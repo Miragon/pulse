@@ -5,7 +5,7 @@
 # The playground Grafana keeps the anonymous-admin setup from the Compose
 # stack — that is only safe because the Fly app never gets a public IP; reach
 # it via `flyctl proxy 8470:3000 -a miragon-ai-playground-grafana`.
-FROM grafana/grafana:13.2.3
+FROM grafana/grafana:13.2.4
 
 COPY provisioning /etc/grafana/provisioning
 COPY dashboards /var/lib/grafana/dashboards
