@@ -42,7 +42,7 @@
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",
     "@miragon/mcp-toolkit-ui": "2.8.1",
-    "@modelcontextprotocol/client": "2.2.0",
+    "@modelcontextprotocol/client": "2.3.0",
     "@playwright/test": "1.63.0",
     "@tailwindcss/vite": "4.3.3",
     "@types/node": "26.6.3",
