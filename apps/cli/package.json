@@ -1,6 +1,6 @@
 {
-  "name": "@miragon/operate",
-  "version": "0.10.0",
+  "name": "@miragon/pulse-cli",
+  "version": "0.21.0",
   "description": "AI-first command line interface for the Camunda 7 REST API. Works with Operaton, CIB seven and Camunda 7.",
   "keywords": [
     "camunda",
@@ -14,13 +14,12 @@
   ],
   "license": "MIT",
   "author": "Miragon GmbH",
-  "homepage": "https://github.com/Miragon/operate#readme",
+  "homepage": "https://github.com/Miragon/pulse/tree/main/apps/cli#readme",
+  "bugs": "https://github.com/Miragon/pulse/issues",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Miragon/operate.git"
-  },
-  "bugs": {
-    "url": "https://github.com/Miragon/operate/issues"
+    "url": "git+https://github.com/Miragon/pulse.git",
+    "directory": "apps/cli"
   },
   "type": "module",
   "bin": {
@@ -29,9 +28,8 @@
   "files": [
     "dist",
     "skills",
-    "!skills/operate/evals",
+    "!skills/pulse-cli/evals",
     "README.md",
-    "CHANGELOG.md",
     "LICENSE"
   ],
   "engines": {
@@ -44,46 +42,29 @@
     "build": "tsdown",
     "build:standalone": "tsdown -c tsdown.standalone.config.ts",
     "build:exe": "tsx scripts/build-exe.ts",
-    "generate": "tsx scripts/generate-catalog.ts",
-    "generate:check": "tsx scripts/generate-catalog.ts --check",
-    "typecheck": "tsc -p .",
-    "lint": "eslint .",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
-    "arch": "depcruise src scripts test --config .dependency-cruiser.js",
-    "knip": "knip",
+    "catalog": "tsx scripts/generate-catalog.ts",
+    "catalog:check": "tsx scripts/generate-catalog.ts --check",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src scripts test",
+    "lint:fix": "eslint src scripts test --fix",
     "test": "vitest run",
-    "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
-    "test:mutation": "stryker run",
-    "test:mutation:score": "tsx scripts/mutation-score.ts",
-    "test:integration": "npm run build && vitest run --config vitest.integration.config.ts",
-    "check": "npm run typecheck && npm run lint && npm run format:check && npm run arch && npm run knip && npm run generate:check && npm run test:coverage",
-    "docs:dev": "npm --prefix docs run dev",
-    "docs:build": "npm --prefix docs run build",
-    "docs:preview": "npm --prefix docs run preview",
-    "prepack": "npm run build"
+    "test:engines": "vitest run --config vitest.integration.config.ts",
+    "test:mutation": "stryker run"
   },
   "dependencies": {
-    "commander": "^15.0.0"
+    "commander": "15.0.0"
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
-    "@stryker-mutator/core": "^10.0.0",
-    "@stryker-mutator/vitest-runner": "^10.0.0",
-    "@types/node": "^22.20.5",
-    "@vitest/coverage-v8": "^5.0.3",
-    "dependency-cruiser": "^18.5.0",
-    "eslint": "^10.12.0",
-    "fast-check": "^4.10.2",
-    "knip": "^6.40.0",
-    "postject": "^1.0.0-alpha.6",
-    "prettier": "^3.9.9",
-    "testcontainers": "^12.2.0",
-    "tsdown": "^0.23.0",
-    "tsx": "^4.23.15",
-    "typescript": "~6.0.3",
-    "typescript-eslint": "^8.71.1",
-    "vitest": "^5.0.3"
+    "@stryker-mutator/core": "10.0.0",
+    "@stryker-mutator/vitest-runner": "10.0.0",
+    "@types/node": "22.20.5",
+    "fast-check": "4.10.2",
+    "postject": "1.0.0-alpha.6",
+    "prettier": "3.9.9",
+    "testcontainers": "12.2.1",
+    "tsdown": "0.23.1",
+    "tsx": "4.23.15",
+    "typescript": "6.0.3",
+    "vitest": "4.1.11"
   }
 }

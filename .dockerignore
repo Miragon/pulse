@@ -21,3 +21,5 @@ engine-plugins/build
 engine-plugins/**/build
 playground/cibseven-example/.gradle
 playground/cibseven-example/build
+# The CLI's standalone bundle and executables (its own image builds from apps/cli)
+apps/cli/build

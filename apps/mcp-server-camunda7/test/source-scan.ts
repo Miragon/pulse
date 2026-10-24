@@ -38,6 +38,7 @@ export type ScanScope = "all" | "mcp"
  * is always "interface".
  */
 export const APP_SCAN: Readonly<Record<string, AppScan>> = {
+  cli: "interface",
   "mcp-server-camunda7": "mcp-host",
 }
 

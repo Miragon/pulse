@@ -1,0 +1,43 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "testRunner": "vitest",
+  "plugins": ["./node_modules/@stryker-mutator/vitest-runner/dist/src/index.js"],
+  "vitest": {
+    "configFile": "vitest.stryker.config.ts"
+  },
+  "coverageAnalysis": "perTest",
+  "ignoreStatic": false,
+  "mutate": [
+    "src/api/**/*.ts",
+    "src/auth/**/*.ts",
+    "src/catalog/**/*.ts",
+    "src/config/**/*.ts",
+    "src/engine-port/**/*.ts",
+    "src/engines/**/*.ts",
+    "src/http/**/*.ts",
+    "src/operation/**/*.ts",
+    "src/output/**/*.ts",
+    "src/workflow/**/*.ts",
+    "src/errors.ts",
+    "src/util.ts",
+    "scripts/catalog/**/*.ts",
+    "!**/*.test.ts",
+    "!**/types.ts",
+    "!scripts/catalog/groups.ts",
+    "!scripts/catalog/openapi.ts",
+    "!scripts/catalog/overrides.ts",
+    "!scripts/catalog/summary-overrides.ts"
+  ],
+  "inPlace": true,
+  "incremental": true,
+  "incrementalFile": "reports/stryker-incremental.json",
+  "reporters": ["clear-text", "progress", "json"],
+  "jsonReporter": {
+    "fileName": "reports/mutation-report.json"
+  },
+  "thresholds": {
+    "high": 95,
+    "low": 93,
+    "break": 92
+  }
+}

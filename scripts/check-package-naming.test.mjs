@@ -748,6 +748,8 @@ describe("checkLayout", () => {
     "apps/mcp-server-camunda7/package.json",
     "apps/mcp-server-camunda7/src/index.ts",
     "apps/mcp-server-camunda7/test/fixtures/mcp-app.js",
+    "apps/cli/package.json",
+    "apps/cli/src/generated/catalog.camunda7.json",
     "packages/core/widget-shell/src/ui/x.tsx",
     `${SDK}/client.gen.ts`,
     `${SDK}/client/index.ts`,
@@ -763,8 +765,8 @@ describe("checkLayout", () => {
   it("fails an unlisted generated/ directory once, however many files it holds", () => {
     const errors = checkLayout([
       ...BASE,
-      "apps/cli/src/generated/catalog.ts",
-      "apps/cli/src/generated/messages.ts",
+      "apps/vscode/src/generated/catalog.ts",
+      "apps/vscode/src/generated/messages.ts",
       `${DOMAIN}/src/generated/x.ts`,
       "packages/core/widget-shell/src/Generated/x.ts",
       `${SDK}/nested/generated/x.ts`,
@@ -772,7 +774,7 @@ describe("checkLayout", () => {
     assert.deepEqual(
       errors.map((error) => error.split(":")[0]),
       [
-        "apps/cli/src/generated",
+        "apps/vscode/src/generated",
         `${SDK}/nested/generated`,
         `${DOMAIN}/src/generated`,
         "packages/core/widget-shell/src/Generated",
@@ -804,13 +806,13 @@ describe("checkLayout", () => {
       "stale",
     )
     assertOne(
-      checkLayout(BASE, { generatedDirs: { ...GENERATED_DIRS, "apps/cli/src/generated": "x" } }),
-      /^apps\/cli\/src\/generated: GENERATED_DIRS lists it/,
+      checkLayout(BASE, { generatedDirs: { ...GENERATED_DIRS, "apps/vscode/src/generated": "x" } }),
+      /^apps\/vscode\/src\/generated: GENERATED_DIRS lists it/,
       "custom",
     )
     assert.deepEqual(
-      checkLayout([...BASE, "apps/cli/src/generated/a.ts"], {
-        generatedDirs: { ...GENERATED_DIRS, "apps/cli/src/generated": "x" },
+      checkLayout([...BASE, "apps/vscode/src/generated/a.ts"], {
+        generatedDirs: { ...GENERATED_DIRS, "apps/vscode/src/generated": "x" },
       }),
       [],
     )

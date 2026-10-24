@@ -57,9 +57,9 @@ const npm = (names) => [`(?:^|/)node_modules/(?:${names})(?:/|$)`, `^(?:${names}
 /**
  * The npm name of every app under apps/. A new app adds its name here, or the
  * self-test's sync case fails: packages-never-import-the-app and apps-never-import-apps
- * read this list. The names of the apps that have not landed yet (the CLI and the
- * extension) are RESERVED_APP_NAMES in scripts/check-package-naming.mjs as well, and a
- * test there holds both lists together.
+ * read this list. The names of the apps that have not landed yet (the extension) are
+ * RESERVED_APP_NAMES in scripts/check-package-naming.mjs as well, and a test there holds
+ * both lists together.
  */
 const SERVER_PACKAGE = "@miragon/pulse-mcp-server-camunda7"
 const CLI_PACKAGE = "@miragon/pulse-cli"
@@ -90,6 +90,16 @@ const MCP_STACK = [
 
 /** Any `@miragon/pulse-*` name except a -domain package (any subpath of one stays open). */
 const PULSE_EXCEPT_DOMAIN = "@miragon/pulse-(?![^/]+-domain(?:/|$))"
+
+/** The CLI's test code: colocated unit tests, and test/ with its fakes and engine suites. */
+const CLI_TEST_CODE = ["[.]test[.]ts$", "^apps/cli/test/"]
+
+/** The CLI's pure layers (no Node built-ins; WebCrypto and timers are globals). */
+const CLI_PURE_LAYERS =
+  "^apps/cli/src/(?:api|auth|catalog|docs|engine-port|engines|output|workflow)/|^apps/cli/src/(?:errors|util)[.]ts$"
+
+/** The CLI's interactive OAuth login: loopback server, browser, callback pages. */
+const CLI_INTERACTIVE_LOGIN = "^apps/cli/src/auth/oauth/(?:login|callback|pages)[.]ts$"
 
 module.exports = {
   forbidden: [
@@ -325,6 +335,254 @@ module.exports = {
         "or by inverting the dependency (type-only cycles are tolerated).",
       from: {},
       to: { circular: true, viaOnly: { dependencyTypesNot: ["type-only"] } },
+    },
+    // ── The CLI (apps/cli): its own layers, the rules it brought from the operate repository ──
+    {
+      name: "cli-no-circular",
+      severity: "error",
+      comment:
+        "The CLI (apps/cli) has no import cycle at all, type-only cycles included (stricter than " +
+        "no-circular above). Extract the shared part into its own module.",
+      from: { path: "^apps/cli/" },
+      to: { circular: true },
+    },
+    {
+      name: "cli-no-deprecated-core",
+      severity: "error",
+      comment: "The CLI imports no deprecated Node built-in module.",
+      from: { path: "^apps/cli/" },
+      to: {
+        dependencyTypes: ["core"],
+        path: ["^(?:node:)?(?:punycode|domain|constants|sys|_linklist|_stream_wrap)$"],
+      },
+    },
+    {
+      name: "cli-not-to-test",
+      severity: "error",
+      comment:
+        "Nothing in the CLI imports a test file (*.test.ts). Shared test helpers live in " +
+        "apps/cli/test/support/.",
+      from: { path: "^apps/cli/" },
+      to: { path: "^apps/cli/.*[.]test[.]ts$" },
+    },
+    {
+      name: "cli-src-not-to-scripts-or-test",
+      severity: "error",
+      comment:
+        "The CLI's shipped code (apps/cli/src, tests aside) never imports its generator and build " +
+        "scripts (apps/cli/scripts) or its test code (apps/cli/test).",
+      from: { path: "^apps/cli/src/", pathNot: CLI_TEST_CODE },
+      to: { path: "^apps/cli/(?:scripts|test)/" },
+    },
+    {
+      name: "cli-test-support-only-from-tests",
+      severity: "error",
+      comment: "apps/cli/test/support/ holds fakes for the CLI's tests; only test code imports it.",
+      from: { path: "^apps/cli/", pathNot: CLI_TEST_CODE },
+      to: { path: "^apps/cli/test/support/" },
+    },
+    {
+      name: "cli-command-layer-only-from-bin",
+      severity: "error",
+      comment:
+        "Only the entry point (apps/cli/src/bin) imports the command layer (apps/cli/src/cli).",
+      from: { path: "^apps/cli/", pathNot: "^apps/cli/src/(?:bin|cli)/" },
+      to: { path: "^apps/cli/src/cli/" },
+    },
+    {
+      name: "cli-commander-only-in-command-layer",
+      severity: "error",
+      comment: "Only the CLI's command layer (apps/cli/src/cli) imports commander.",
+      from: { path: "^apps/cli/", pathNot: "^apps/cli/src/cli/" },
+      to: { path: npm("commander") },
+    },
+    {
+      name: "cli-pure-layers-no-builtins",
+      severity: "error",
+      comment:
+        "The CLI's pure layers (api, auth, catalog, docs, engine-port, engines, output, workflow, " +
+        "errors.ts, util.ts) import no Node built-in module; WebCrypto and the timers are globals.",
+      from: { path: CLI_PURE_LAYERS, pathNot: CLI_TEST_CODE },
+      to: { dependencyTypes: ["core"] },
+    },
+    {
+      name: "cli-operation-only-path-builtin",
+      severity: "error",
+      comment: "apps/cli/src/operation imports node:path and no other Node built-in module.",
+      from: { path: "^apps/cli/src/operation/", pathNot: CLI_TEST_CODE },
+      to: { dependencyTypes: ["core"], pathNot: "^(?:node:)?path(?:/(?:posix|win32))?$" },
+    },
+    {
+      name: "cli-docs-only-catalog-errors-util",
+      severity: "error",
+      comment:
+        "apps/cli/src/docs imports from the CLI's src only catalog/**, errors.ts and util.ts.",
+      from: { path: "^apps/cli/src/docs/", pathNot: CLI_TEST_CODE },
+      to: {
+        path: "^apps/cli/src/",
+        pathNot: "^apps/cli/src/(?:catalog|docs)/|^apps/cli/src/(?:errors|util)[.]ts$",
+      },
+    },
+    {
+      name: "cli-auth-allowed-imports",
+      severity: "error",
+      comment:
+        "apps/cli/src/auth imports from the CLI's src only auth/**, config/**, " +
+        "http/{client,status,types}.ts, errors.ts, util.ts and runtime.ts.",
+      from: { path: "^apps/cli/src/auth/", pathNot: CLI_TEST_CODE },
+      to: {
+        path: "^apps/cli/src/",
+        pathNot:
+          "^apps/cli/src/(?:auth|config)/|^apps/cli/src/http/(?:client|status|types)[.]ts$|^apps/cli/src/(?:errors|util|runtime)[.]ts$",
+      },
+    },
+    {
+      name: "cli-config-not-to-auth",
+      severity: "error",
+      comment:
+        "apps/cli/src/config never imports apps/cli/src/auth: authentication builds on the configuration.",
+      from: { path: "^apps/cli/src/config/", pathNot: CLI_TEST_CODE },
+      to: { path: "^apps/cli/src/auth/" },
+    },
+    {
+      name: "cli-interactive-login-only-from-auth-command",
+      severity: "error",
+      comment:
+        "Only the `auth login` command (apps/cli/src/cli/commands/auth.ts) may start a loopback " +
+        "server or a browser; operation commands, api and ping never start an interactive login.",
+      from: {
+        path: "^apps/cli/",
+        pathNot: [CLI_INTERACTIVE_LOGIN, "^apps/cli/src/cli/commands/auth[.]ts$", ...CLI_TEST_CODE],
+      },
+      to: { path: CLI_INTERACTIVE_LOGIN },
+    },
+    {
+      name: "cli-workflow-not-to-cli-config-auth-bin",
+      severity: "error",
+      comment:
+        "The workflow commands (apps/cli/src/workflow) build on catalog, operation, http, output, " +
+        "errors and util; never on cli, config, auth or bin.",
+      from: { path: "^apps/cli/src/workflow/", pathNot: CLI_TEST_CODE },
+      to: { path: "^apps/cli/src/(?:cli|config|auth|bin)/" },
+    },
+    {
+      name: "cli-workflow-only-from-command-layer",
+      severity: "error",
+      comment: "Only the command layer (apps/cli/src/cli) and the APIs use the workflow commands.",
+      from: {
+        path: "^apps/cli/src/",
+        pathNot: ["^apps/cli/src/(?:cli|workflow|api)/", ...CLI_TEST_CODE],
+      },
+      to: { path: "^apps/cli/src/workflow/" },
+    },
+    {
+      name: "cli-api-only-workflow-engine",
+      severity: "error",
+      comment:
+        "An API (apps/cli/src/api) builds its engine port on apps/cli/src/workflow/engine.ts and " +
+        "uses no other workflow module.",
+      from: { path: "^apps/cli/src/api/", pathNot: CLI_TEST_CODE },
+      to: { path: "^apps/cli/src/workflow/", pathNot: "^apps/cli/src/workflow/engine[.]ts$" },
+    },
+    {
+      name: "cli-workflow-only-engine-port",
+      severity: "error",
+      comment:
+        "The workflow commands know the engine port (apps/cli/src/engine-port), never an engine " +
+        "adapter or an API.",
+      from: { path: "^apps/cli/src/workflow/" },
+      to: { path: "^apps/cli/src/(?:engines|api)/" },
+    },
+    {
+      name: "cli-engine-port-types-only",
+      severity: "error",
+      comment: "apps/cli/src/engine-port holds interfaces only: it imports types, nothing else.",
+      from: { path: "^apps/cli/src/engine-port/", pathNot: CLI_TEST_CODE },
+      to: { dependencyTypesNot: ["type-only"] },
+    },
+    {
+      name: "cli-api-only-from-adapters",
+      severity: "error",
+      comment:
+        "Only the engine adapters (apps/cli/src/engines/<name>/adapter.ts) use an API (apps/cli/src/api).",
+      from: {
+        path: "^apps/cli/",
+        pathNot: ["^apps/cli/src/api/", "^apps/cli/src/engines/[^/]+/adapter[.]ts$"],
+      },
+      to: { path: "^apps/cli/src/api/" },
+    },
+    {
+      name: "cli-api-not-to-other-api",
+      severity: "error",
+      comment: "An API (apps/cli/src/api/<a>) never imports another API (apps/cli/src/api/<b>).",
+      from: { path: "^apps/cli/src/api/([^/]+)/" },
+      to: { path: "^apps/cli/src/api/", pathNot: "^apps/cli/src/api/$1/" },
+    },
+    {
+      name: "cli-engines-not-to-each-other",
+      severity: "error",
+      comment:
+        "An engine adapter (apps/cli/src/engines/<a>) never imports another one (apps/cli/src/engines/<b>).",
+      from: { path: "^apps/cli/src/engines/([^/]+)/" },
+      to: { path: "^apps/cli/src/engines/", pathNot: "^apps/cli/src/engines/$1/" },
+    },
+    {
+      name: "cli-http-not-to-config-cli-operation",
+      severity: "error",
+      comment:
+        "The CLI's HTTP layer (apps/cli/src/http) never depends on config, cli or operation.",
+      from: { path: "^apps/cli/src/http/", pathNot: CLI_TEST_CODE },
+      to: { path: "^apps/cli/src/(?:config|cli|operation)/" },
+    },
+    {
+      name: "cli-generated-catalog-only-via-catalog-ts-or-adapters",
+      severity: "error",
+      comment:
+        "The generated command catalogs (apps/cli/src/generated) are read only by " +
+        "apps/cli/src/catalog/catalog.ts and the engine adapters.",
+      from: {
+        path: "^apps/cli/",
+        pathNot: [
+          "^apps/cli/src/catalog/catalog[.]ts$",
+          "^apps/cli/src/engines/[^/]+/adapter[.]ts$",
+        ],
+      },
+      to: { path: "^apps/cli/src/generated/" },
+    },
+    {
+      name: "cli-adapter-reads-its-own-catalog",
+      severity: "error",
+      comment:
+        "An engine adapter (apps/cli/src/engines/<name>) reads only apps/cli/src/generated/catalog.<name>.json.",
+      from: { path: "^apps/cli/src/engines/([^/]+)/adapter[.]ts$" },
+      to: {
+        path: "^apps/cli/src/generated/",
+        pathNot: "^apps/cli/src/generated/catalog[.]$1[.]json$",
+      },
+    },
+    {
+      name: "cli-output-only-operation-result",
+      severity: "error",
+      comment: "apps/cli/src/output imports from apps/cli/src/operation only result.ts.",
+      from: { path: "^apps/cli/src/output/", pathNot: CLI_TEST_CODE },
+      to: { path: "^apps/cli/src/operation/", pathNot: "^apps/cli/src/operation/result[.]ts$" },
+    },
+    {
+      name: "cli-output-operation-result-type-only",
+      severity: "error",
+      comment:
+        "apps/cli/src/output imports only types from apps/cli/src/operation/result.ts (`import type`).",
+      from: { path: "^apps/cli/src/output/", pathNot: CLI_TEST_CODE },
+      to: { path: "^apps/cli/src/operation/result[.]ts$", dependencyTypesNot: ["type-only"] },
+    },
+    {
+      name: "cli-scripts-only-catalog-types-and-schema",
+      severity: "error",
+      comment:
+        "The catalog generator (apps/cli/scripts) imports from the CLI's src only " +
+        "catalog/types.ts, schema.ts and rules.ts.",
+      from: { path: "^apps/cli/scripts/", pathNot: CLI_TEST_CODE },
+      to: { path: "^apps/cli/src/", pathNot: "^apps/cli/src/catalog/(?:types|schema|rules)[.]ts$" },
     },
   ],
   options: {

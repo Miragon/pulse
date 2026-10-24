@@ -439,6 +439,65 @@ export default tseslint.config(
     files: ["packages/connectors/*/*/src/messages/*.sweep.ts"],
     rules: { "max-lines": "off" },
   },
+  // ── The CLI (apps/cli) ───────────────────────────────────────────────────
+  // Brought along from the operate repository, where the CLI grew up: typescript-eslint's
+  // strict and stylistic type-checked sets for every CLI file (src, scripts, test, the configs),
+  // the rules the global block above downgrades for mcp-use (no-unsafe-*, require-await, ...)
+  // back at error (the CLI touches neither mcp-use nor the toolkit), and budgets stricter than
+  // the global ones: complexity 10 (global 15) and 300 effective lines per file (global 400) for
+  // the shipped code and the scripts, plus depth, parameter, nesting, function length and
+  // statement budgets. No `ignores` and no no-restricted-syntax here: the tests get their own
+  // block below, and a no-restricted-syntax setting would REPLACE the pattern gates.
+  {
+    files: ["apps/cli/**/*.ts"],
+    extends: [tseslint.configs.strictTypeChecked, tseslint.configs.stylisticTypeChecked],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "error",
+      "@typescript-eslint/no-unsafe-argument": "error",
+      "@typescript-eslint/no-unsafe-assignment": "error",
+      "@typescript-eslint/no-unsafe-call": "error",
+      "@typescript-eslint/no-unsafe-member-access": "error",
+      "@typescript-eslint/no-unsafe-return": "error",
+      "@typescript-eslint/require-await": "error",
+      "@typescript-eslint/no-base-to-string": "error",
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_", destructuredArrayIgnorePattern: "^_" },
+      ],
+      "@typescript-eslint/restrict-template-expressions": ["error", { allowNumber: true }],
+      "no-console": "error",
+      eqeqeq: ["error", "always"],
+      "prefer-const": "error",
+      complexity: ["error", 10],
+      "max-depth": ["error", 3],
+      "max-params": ["error", 4],
+      "max-nested-callbacks": ["error", 3],
+      "max-lines": ["error", { max: 300, skipBlankLines: true, skipComments: true }],
+      "max-lines-per-function": ["error", { max: 60, skipBlankLines: true, skipComments: true }],
+      "max-statements": ["error", 20],
+    },
+  },
+  // The CLI's tests (colocated *.test.ts, test/ with its fakes and the engine suites): the
+  // global test budget of 400 effective lines, also for the tests and fakes outside src/ (the
+  // global budget block reads apps/*/src only), and none of the per-function budgets; the
+  // non-null assertion and the unsafe assignment/member access that fixtures need stay allowed.
+  {
+    files: ["apps/cli/**/*.test.ts", "apps/cli/test/**/*.ts"],
+    rules: {
+      "max-lines": ["error", { max: 400, skipBlankLines: true, skipComments: true }],
+      "max-lines-per-function": "off",
+      "max-statements": "off",
+      "max-nested-callbacks": "off",
+      "@typescript-eslint/no-non-null-assertion": "off",
+      "@typescript-eslint/no-unsafe-assignment": "off",
+      "@typescript-eslint/no-unsafe-member-access": "off",
+    },
+  },
+  // The CLI's build and catalog scripts report on the console.
+  {
+    files: ["apps/cli/scripts/**/*.ts"],
+    rules: { "no-console": "off" },
+  },
   ...Object.entries(complexityRatchet).map(([file, max]) => ({
     files: [file],
     rules: { complexity: ["error", max] },

@@ -1233,8 +1233,27 @@ export default [
     )
     assert.deepEqual(errors, [])
     assert.ok("maxLinesRatchet" in maps && "complexityRatchet" in maps)
-    const globals = Object.values(budgets).filter((b) => !b.exemption && b.numbers.length > 0)
-    assert.deepEqual(globals.map((b) => b.numbers[0]).sort(), [15, 400])
+    const budgetsOf = (filesKey) =>
+      Object.entries(budgets)
+        .filter(([key, b]) => key.includes(`| files ${filesKey} |`) && !b.exemption)
+        .map(([, b]) => b.numbers[0])
+        .sort((a, b) => a - b)
+    // The global budgets, and the CLI's stricter ones (apps/cli: complexity 10, 300 lines for
+    // the shipped code and scripts, the global 400 for its tests in and outside src/).
+    assert.deepEqual(
+      budgetsOf(
+        '["apps/*/src/**/*.{ts,tsx}","packages/core/*/src/**/*.{ts,tsx}","packages/connectors/*/*/src/**/*.{ts,tsx}"]',
+      ),
+      [15, 400],
+    )
+    assert.deepEqual(budgetsOf('["apps/cli/**/*.ts"]'), [10, 300])
+    assert.deepEqual(budgetsOf('["apps/cli/**/*.test.ts","apps/cli/test/**/*.ts"]'), [400])
+    const all = Object.values(budgets).filter((b) => !b.exemption && b.numbers.length > 0)
+    assert.equal(
+      all.length,
+      5,
+      "a new complexity/max-lines setting is new debt (or a new app's budget)",
+    )
   })
 
   it("accepts lowering and removing entries, tightening the budget and dropping an exemption", () => {

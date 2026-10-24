@@ -92,6 +92,7 @@ jobs:
           - packages/core/widget-shell
           - packages/connectors/camunda/camunda7-connector
           - packages/connectors/analytics/analytics-connector
+          - apps/cli
     uses: ./.github/workflows/publish-npm-package.yml
     with:
       directory: ${{ matrix.directory }}
