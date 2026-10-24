@@ -32,7 +32,7 @@
  *   ci.yml keys the browser cache of the TypeScript job and of the host simulation on those
  *   pins, so the two share one entry and one browser build (checkPlaywrightPins);
  * - the coverage and mutation artifacts cover every package form and unpack at the repo root,
- *   the diff gate stays within its timeout, and the nightly full run lists every package form,
+ *   and the nightly full run (the only mutation testing CI runs) lists every package form,
  *   forces a run every week and caches each package's incremental file under a fingerprinted
  *   key, the file every stryker.config.json writes (checkArtifactGlobs, checkNightlyMutation,
  *   checkStrykerIncremental).
@@ -65,7 +65,6 @@ export const VSCODE_PUBLISH_WORKFLOW = ".github/workflows/publish-vscode-extensi
 export const REQUIRED_CHECKS = [
   "TypeScript (Build + Test + Lint)",
   "Lint + Format",
-  "Mutation (changed files)",
   "Fitness report",
   "Composed-server template (Build + Test)",
   "Kotlin (Build + Test)",
@@ -1098,9 +1097,6 @@ export function checkRequiredChecks(workflows, required = REQUIRED_CHECKS) {
 
 // ── Mutation artifacts + the nightly full run ───────────────────────────────
 
-/** The ceiling of the diff gate's timeout-minutes in ci.yml. */
-export const MUTATION_TIMEOUT_CEILING = 120
-
 /** The file the nightly caches per package: every stryker.config.json writes exactly this. */
 export const INCREMENTAL_FILE = "reports/stryker-incremental.json"
 
@@ -1112,9 +1108,7 @@ const stepsUsing = (doc, action) =>
   )
 const uploadsOf = (doc) => stepsUsing(doc, "actions/upload-artifact")
 const isReportArtifact = (name) =>
-  name === "coverage-summaries" ||
-  name === "mutation-reports" ||
-  String(name ?? "").startsWith("mutation-report-")
+  name === "coverage-summaries" || String(name ?? "").startsWith("mutation-report-")
 
 /** The jobs of the nightly that run one leg per listed package. */
 const nightlyLegs = (doc) =>
@@ -1148,31 +1142,22 @@ export function checkArtifactGlobs(ciDoc, nightlyDoc, globs) {
         )
       }
       const name = String(upload.step.with?.name ?? "")
-      if (name === "mutation-reports" || name.startsWith("mutation-report-")) {
+      if (name.startsWith("mutation-report-")) {
         expectPaths(file, upload, "reports/mutation-report.json")
       }
       if (name === "coverage-summaries") expectPaths(file, upload, "coverage/coverage-summary.json")
     }
   }
-  for (const name of ["mutation-reports", "coverage-summaries"]) {
-    if (!uploadsOf(ciDoc).some(({ step }) => step.with?.name === name)) {
-      errors.push(`${CI_WORKFLOW}: no step uploads the artifact ${name}`)
-    }
-    if (
-      !stepsUsing(ciDoc, "actions/download-artifact").some(({ step }) => step.with?.name === name)
-    ) {
-      errors.push(
-        `${CI_WORKFLOW}: no step downloads the artifact ${name}: the fitness report would show ` +
-          `"(no run)" for every package`,
-      )
-    }
+  const coverage = "coverage-summaries"
+  if (!uploadsOf(ciDoc).some(({ step }) => step.with?.name === coverage)) {
+    errors.push(`${CI_WORKFLOW}: no step uploads the artifact ${coverage}`)
   }
-  const timeout = ciDoc?.jobs?.mutation?.["timeout-minutes"]
-  if (typeof timeout !== "number" || timeout > MUTATION_TIMEOUT_CEILING) {
+  if (
+    !stepsUsing(ciDoc, "actions/download-artifact").some(({ step }) => step.with?.name === coverage)
+  ) {
     errors.push(
-      `${CI_WORKFLOW}: job mutation needs timeout-minutes of at most ${MUTATION_TIMEOUT_CEILING}: ` +
-        `it runs the packages one after another and FILE_CAP caps each one, so the bound holds ` +
-        `about four packages at the cap at about 1 min/file`,
+      `${CI_WORKFLOW}: no step downloads the artifact ${coverage}: the fitness report would ` +
+        `show no coverage for any package`,
     )
   }
   // Every report artifact carries the apps/ and packages/ prefixes (the globs' least common
@@ -1291,38 +1276,23 @@ export function checkNightlyMutation(doc, globs) {
   return errors
 }
 
-/** A cron fires every week when it names no day of the month and no month. */
-const firesWeekly = (cron) => {
-  const fields = String(cron).trim().split(/\s+/)
-  return fields.length === 5 && fields[2] === "*" && fields[3] === "*"
-}
-const FORCE_EXPRESSION =
-  /^\$\{\{ inputs\.force == true \|\| github\.event\.schedule == '([^']+)' \}\}$/
-
 /**
- * Between forced runs a leg reuses every result whose mutant and killing test did not change,
- * however stale (a helper, another package's dist, a dependency). So one cron of the schedule
- * passes --force at least weekly, and the Stryker step's FORCE names it next to the dispatch
- * input.
+ * The schedule never forces a full pass (owner decision: incremental nightly only, so a reused
+ * result is measured again when its package starts cold, i.e. when the fingerprinted cache key
+ * changes). Only a manual dispatch with `force` re-tests every mutant: the Stryker step's FORCE
+ * reads the dispatch input and nothing else, and passes --force when it is true.
  */
+const FORCE_EXPRESSION = "${{ inputs.force == true }}"
+
 function checkForcedRun(doc, job, at) {
   const stryker = stepsOf(job).find((step) => /\brun test:mutation\b/.test(runOf(step)))
   const force = String(stryker?.env?.FORCE ?? "")
-  const cron = FORCE_EXPRESSION.exec(force)?.[1]
-  const crons = asList(triggersOf(doc).schedule).map((entry) => entry?.cron)
-  if (cron === undefined) {
-    return [
-      `${at}: the Stryker step needs FORCE: \${{ inputs.force == true || ` +
-        `github.event.schedule == '<a weekly cron of the schedule>' }} (found "${force}"): ` +
-        `without a forced run, reused results are never measured again`,
-    ]
-  }
   const errors = []
-  if (!crons.includes(cron)) {
-    errors.push(`${at}: FORCE names the cron "${cron}", which the schedule does not list`)
-  }
-  if (!firesWeekly(cron)) {
-    errors.push(`${at}: the forced cron "${cron}" must fire every week (day of month and month *)`)
+  if (force !== FORCE_EXPRESSION) {
+    errors.push(
+      `${at}: the Stryker step needs FORCE: ${FORCE_EXPRESSION} (found "${force}"): only a ` +
+        `manual dispatch forces a full pass, no schedule does`,
+    )
   }
   if (!/\[ "\$FORCE" = true \]; then args\+=\(--force\)/.test(runOf(stryker))) {
     errors.push(`${at}: the Stryker step must pass --force when FORCE is true`)

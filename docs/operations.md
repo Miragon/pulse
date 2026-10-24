@@ -116,5 +116,5 @@ and `analytics_engine_health` surfaces the same gauges and firing alerts in one 
 `.github/workflows/ci.yml` runs jobs on every push, on public npm dependencies only: TypeScript
 (build, test, lint, format), Kotlin engine plugins, the CIB seven example, the brand checks, the CLI
 and the VS Code extension against Camunda 7, CIB seven and Operaton, the CLI's binaries, image and
-plugin, and the extension in VS Code and as a .vsix. `docs.yml` checks the docs kit, builds this
-site on pull requests touching `docs/` (a dead link fails it) and publishes it from `main`.
+plugin, the extension in VS Code and as a .vsix; mutation testing runs nightly (`mutation-nightly.yml`).
+`docs.yml` checks the docs kit, builds the site on pull requests touching `docs/` (a dead link fails it) and publishes it from `main`.

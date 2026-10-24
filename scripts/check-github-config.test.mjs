@@ -21,7 +21,6 @@ import {
   CLI_PUBLISH_TRIGGERS,
   CLI_PUBLISH_WORKFLOWS,
   INCREMENTAL_FILE,
-  MUTATION_TIMEOUT_CEILING,
   NIGHTLY_WORKFLOW,
   PUBLISHABLE_DIR,
   PUBLISH_WORKFLOW,
@@ -1522,8 +1521,8 @@ describe("checkRequiredChecks", () => {
     )
     assert.ok(
       matches(
-        requiredErrors((w) => (ci(w).jobs.mutation.strategy = { matrix: { pkg: ["a", "b"] } })),
-        /"Mutation \(changed files\)" \(job mutation\) is required, but a matrix/,
+        requiredErrors((w) => (ci(w).jobs.fitness.strategy = { matrix: { pkg: ["a", "b"] } })),
+        /"Fitness report" \(job fitness\) is required, but a matrix/,
       ),
     )
   })
@@ -1611,16 +1610,26 @@ describe("checkArtifactGlobs", () => {
   })
 
   it("rejects ** and a missing package form", () => {
-    const errors = artifactErrors(({ ci }) => {
-      uploadNamed(ci, "mutation-reports").with.path = "packages/**/reports/mutation-report.json"
+    const errors = artifactErrors(({ nightly }) => {
+      uploadNamed(nightly, "mutation-report-").with.path =
+        "packages/**/reports/mutation-report.json"
     })
     assert.ok(
       matches(
         errors,
-        /uploads packages\/\*\*\/reports\/mutation-report\.json: upload-artifact follows symlinks/,
+        /mutation-nightly\.yml: job mutation uploads packages\/\*\*\/reports\/mutation-report\.json: upload-artifact follows symlinks/,
       ),
     )
     assert.ok(matches(errors, /misses apps\/\*\/reports\/mutation-report\.json/))
+    const coverageGlob = artifactErrors(({ ci }) => {
+      uploadNamed(ci, "coverage-summaries").with.path = "packages/**/coverage/coverage-summary.json"
+    })
+    assert.ok(
+      matches(
+        coverageGlob,
+        /ci\.yml: job typescript uploads packages\/\*\*\/coverage\/coverage-summary\.json: upload-artifact follows symlinks/,
+      ),
+    )
     const coverage = artifactErrors(({ ci }) => {
       const upload = uploadNamed(ci, "coverage-summaries")
       upload.with.path = upload.with.path.replace("apps/*/coverage/coverage-summary.json\n", "")
@@ -1645,10 +1654,6 @@ describe("checkArtifactGlobs", () => {
         .find((s) => s.uses?.startsWith("actions/download-artifact@") && s.with?.[key] === value)
     for (const [mutate, message] of [
       [
-        ({ ci }) => (download(ci, "name", "mutation-reports").with.path = "packages"),
-        /ci\.yml: job fitness downloads mutation-reports into packages/,
-      ],
-      [
         ({ ci }) => (download(ci, "name", "coverage-summaries").with.path = "packages"),
         /ci\.yml: job fitness downloads coverage-summaries into packages/,
       ],
@@ -1663,23 +1668,22 @@ describe("checkArtifactGlobs", () => {
     }
   })
 
-  it("demands the coverage and mutation artifacts of ci.yml, uploaded and downloaded", () => {
-    for (const name of ["coverage-summaries", "mutation-reports"]) {
-      const notDownloaded = artifactErrors(({ ci }) => {
-        ci.jobs.fitness.steps = ci.jobs.fitness.steps.filter((s) => s.with?.name !== name)
-      })
-      assert.deepEqual(notDownloaded.length, 1)
-      assert.match(notDownloaded[0], new RegExp(`no step downloads the artifact ${name}`))
-      const notUploaded = artifactErrors(({ ci }) => {
-        for (const job of Object.values(ci.jobs)) {
-          job.steps = (job.steps ?? []).filter(
-            (s) => !(s.uses?.startsWith("actions/upload-artifact@") && s.with?.name === name),
-          )
-        }
-      })
-      assert.deepEqual(notUploaded.length, 1)
-      assert.match(notUploaded[0], new RegExp(`no step uploads the artifact ${name}`))
-    }
+  it("demands the coverage artifact of ci.yml, uploaded and downloaded", () => {
+    const name = "coverage-summaries"
+    const notDownloaded = artifactErrors(({ ci }) => {
+      ci.jobs.fitness.steps = ci.jobs.fitness.steps.filter((s) => s.with?.name !== name)
+    })
+    assert.deepEqual(notDownloaded.length, 1)
+    assert.match(notDownloaded[0], /no step downloads the artifact coverage-summaries/)
+    const notUploaded = artifactErrors(({ ci }) => {
+      for (const job of Object.values(ci.jobs)) {
+        job.steps = (job.steps ?? []).filter(
+          (s) => !(s.uses?.startsWith("actions/upload-artifact@") && s.with?.name === name),
+        )
+      }
+    })
+    assert.deepEqual(notUploaded.length, 1)
+    assert.match(notUploaded[0], /no step uploads the artifact coverage-summaries/)
   })
 
   it("demands the nightly leg's upload and the summary's merged download", () => {
@@ -1718,25 +1722,6 @@ describe("checkArtifactGlobs", () => {
       const errors = artifactErrors(mutate)
       assert.deepEqual(errors.length, 1, errors.join("\n"))
       assert.match(errors[0], message)
-    }
-  })
-
-  it(`bounds the diff gate at ${MUTATION_TIMEOUT_CEILING} minutes`, () => {
-    for (const timeout of [undefined, MUTATION_TIMEOUT_CEILING + 1, 360, "120"]) {
-      const errors = artifactErrors(({ ci }) => {
-        ci.jobs.mutation["timeout-minutes"] = timeout
-      })
-      assert.deepEqual(errors.length, 1, String(timeout))
-      assert.match(
-        errors[0],
-        /job mutation needs timeout-minutes of at most 120: it runs the packages one after another/,
-      )
-    }
-    for (const timeout of [60, MUTATION_TIMEOUT_CEILING]) {
-      assert.deepEqual(
-        artifactErrors(({ ci }) => (ci.jobs.mutation["timeout-minutes"] = timeout)),
-        [],
-      )
     }
   })
 })
@@ -1846,26 +1831,16 @@ describe("checkNightlyMutation", () => {
   const keyStep = (doc) => leg(doc).steps.find((step) => step.id === "cache-key")
   const cacheStep = (doc, action) =>
     leg(doc).steps.find((step) => step.uses?.startsWith(`actions/cache/${action}@`))
-  const forcedCron = (doc) =>
-    /github\.event\.schedule == '([^']+)'/.exec(strykerStep(doc).env.FORCE)[1]
-
-  it("forces a run every week, from a cron of the schedule", () => {
-    assert.ok(NIGHTLY.on.schedule.some((entry) => entry.cron === forcedCron(NIGHTLY)))
+  it("forces a full pass only on a manual dispatch, never on the schedule", () => {
+    assert.equal(strykerStep(NIGHTLY).env.FORCE, "${{ inputs.force == true }}")
     for (const [mutate, message] of [
-      [(doc) => (strykerStep(doc).env.FORCE = "${{ inputs.force == true }}"), /needs FORCE: /],
       [
-        (doc) => (doc.on.schedule = doc.on.schedule.filter((e) => e.cron !== forcedCron(doc))),
-        /FORCE names the cron "[^"]+", which the schedule does not list/,
+        (doc) =>
+          (strykerStep(doc).env.FORCE =
+            "${{ inputs.force == true || github.event.schedule == '0 2 * * 0' }}"),
+        /needs FORCE: \$\{\{ inputs\.force == true \}\} .*no schedule does/,
       ],
-      [
-        (doc) => {
-          const cron = forcedCron(doc)
-          const monthly = "0 2 1 * *"
-          doc.on.schedule.find((entry) => entry.cron === cron).cron = monthly
-          strykerStep(doc).env.FORCE = strykerStep(doc).env.FORCE.replace(cron, monthly)
-        },
-        /the forced cron "0 2 1 \* \*" must fire every week/,
-      ],
+      [(doc) => delete strykerStep(doc).env.FORCE, /needs FORCE: /],
       [
         (doc) => (strykerStep(doc).run = strykerStep(doc).run.replace(/^.*--force.*\n/m, "")),
         /the Stryker step must pass --force when FORCE is true/,

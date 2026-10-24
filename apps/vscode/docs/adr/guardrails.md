@@ -117,11 +117,12 @@ repository's CI (`.github/workflows/ci.yml`) next to the server's.
   | `pnpm --filter pulse-vscode run test:mutation` | 11.5 min full (11 559 mutants); one file in the diff gate about 6 s          |
   | `pnpm --filter pulse-vscode run test:engines`  | 13.5 s per image (measured in the original repository)                       |
 
-- In a pull request the repository's diff gate ("Mutation (changed files)",
-  `scripts/mutation-diff.mjs`) mutates the changed files inside the `mutate` list and fails
-  below `thresholds.break`; more than 25 such files need a reviewed
-  `Mutation-Cap-Exception:` trailer. The full run is `.github/workflows/mutation-nightly.yml`,
-  one leg per package with a `stryker.config.json`, this one included.
+- A pull request runs no mutation check (owner decision, 2026-10-24). Locally,
+  `pnpm test:mutation` (`scripts/mutation-diff.mjs`) mutates the changed files inside the
+  `mutate` list and fails below `thresholds.break`; more than 25 such files need a reviewed
+  `Mutation-Cap-Exception:` trailer, which only that local run reads. CI mutates nightly in
+  `.github/workflows/mutation-nightly.yml`, one leg per package with a `stryker.config.json`,
+  this one included.
 - Thresholds sit just below the measured baseline: coverage lines/statements/functions/
   branches globally 93/93/94/83, contract 97/97/98/90, core 98/98/98/90, the C7 adapter
   92/92/98/80, the model adapter 98/98/98/88, webview 78/78/78/68; mutation score 79
