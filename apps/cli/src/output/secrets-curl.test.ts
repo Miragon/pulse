@@ -44,7 +44,7 @@ function shellWords(line: string): string[] {
 /** Leading blanks, then a double-quoted word (with \\ and \" escapes) or text up to a stop char. */
 function curlWord(input: string, stop: RegExp): { word: string; rest: string } {
   const text = input.replace(/^[\t-\r ]+/, "")
-  const quoted = /^"((?:\\[\\"]|[^"])*)"/.exec(text)
+  const quoted = /^"((?:\\.|[^"\\])*)"/.exec(text)
   if (quoted !== null) {
     return {
       word: quoted[1]!.replace(/\\([\\"])/g, "$1"),

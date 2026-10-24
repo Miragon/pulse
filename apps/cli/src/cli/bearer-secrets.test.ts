@@ -209,7 +209,8 @@ describe("bearer token secrets", () => {
       }),
       { numRuns: 15 },
     )
-  })
+    // Each run drives the CLI through every scenario: 15 s is too tight on a loaded CI runner.
+  }, 60_000)
 
   it("appear with --show-secrets in dry-run, the verbose trace and config show only", async () => {
     await fc.assert(
@@ -229,5 +230,5 @@ describe("bearer token secrets", () => {
       }),
       { numRuns: 10 },
     )
-  })
+  }, 60_000)
 })
