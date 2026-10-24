@@ -11,7 +11,7 @@ import { cachedLogin, cacheText, oauthConfig, TOKEN_FILE } from "../../../test/s
 import { oauthAuth } from "./provider.js"
 
 const HINT =
-  "Run `operate auth login --profile p` in a terminal: a person logs in once in the browser, operate refreshes the token afterwards. Agents cannot log in themselves."
+  "Run `pulse-cli auth login --profile p` in a terminal: a person logs in once in the browser, pulse-cli refreshes the token afterwards. Agents cannot log in themselves."
 
 describe("OAuth provider: proactive refresh", () => {
   it("refreshes from min(60 s, lifetime/2) before expiry on, not before", async () => {
@@ -179,7 +179,7 @@ describe("OAuth provider: proactive refresh", () => {
     )
     await expect(test.provider().preview?.()).resolves.toEqual({
       headers: { Authorization: "Bearer cached-access" },
-      note: "The authorization server rejected the refresh token at 2023-11-14T22:17:30.000Z: the request would fail with LOGIN_REQUIRED. Run `operate auth login --profile p` in a terminal.",
+      note: "The authorization server rejected the refresh token at 2023-11-14T22:17:30.000Z: the request would fail with LOGIN_REQUIRED. Run `pulse-cli auth login --profile p` in a terminal.",
     })
     expect((await rejection(test.provider().refresh?.() ?? Promise.resolve())).message).toBe(
       later.message,

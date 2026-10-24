@@ -39,7 +39,7 @@ describe("splitArgs", () => {
     expect(error.code).toBe("USAGE")
     expect(error.message).toBe("Missing argument(s): <id> <var-name>")
     expect(error.details.hint).toBe(
-      'Run "operate process-instance set-variable --help" for the usage.',
+      'Run "pulse-cli process-instance set-variable --help" for the usage.',
     )
     expect(caught(() => splitArgs(op("setProcessInstanceVariable"), ["pi-1"])).message).toBe(
       "Missing argument(s): <var-name>",
@@ -49,7 +49,7 @@ describe("splitArgs", () => {
   it("rejects extra arguments for operations without resource files", () => {
     const error = caught(() => splitArgs(op("getProcessInstance"), ["a", "b", "c"]))
     expect(error.message).toBe("Unexpected argument(s): b c")
-    expect(error.details.hint).toBe('Run "operate process-instance get --help" for the usage.')
+    expect(error.details.hint).toBe('Run "pulse-cli process-instance get --help" for the usage.')
   })
 
   it("rejects extra arguments for multipart operations without resources", () => {
@@ -140,7 +140,7 @@ describe("buildQuery", () => {
     )
     expect(error.code).toBe("USAGE")
     expect(error.message).toBe("Missing required option --resource-type")
-    expect(error.details.hint).toBe('Run "operate authorization check --help" for the usage.')
+    expect(error.details.hint).toBe('Run "pulse-cli authorization check --help" for the usage.')
     expect(
       buildQuery(op("isUserAuthorized"), {
         "permission-name": "READ",

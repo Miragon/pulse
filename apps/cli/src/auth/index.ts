@@ -13,10 +13,10 @@ import type { AuthProvider } from "./types.js"
 
 /** What the providers need from the outside world: OAuth's dependencies and the shell. */
 export interface AuthDeps extends OAuthDeps {
-  /** Runs the bearer token command (OPERATE_TOKEN_COMMAND). */
+  /** Runs the bearer token command (PULSE_CLI_TOKEN_COMMAND). */
   readonly runCommand: Runtime["runCommand"]
   /**
-   * The directory whose commands share the cached token of OPERATE_TOKEN_COMMAND: the project
+   * The directory whose commands share the cached token of PULSE_CLI_TOKEN_COMMAND: the project
    * file's directory, else the working directory (`tokenScope` of src/cli/session.ts).
    */
   readonly scope: string

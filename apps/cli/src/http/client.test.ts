@@ -261,7 +261,7 @@ describe("send", () => {
       expect(error.message).toBe("Request timed out after 5 ms")
       expect(error.details).toEqual({
         request: { method: "GET", url: URL_ },
-        hint: "Increase the timeout with --timeout <ms> or OPERATE_TIMEOUT, or check the engine load.",
+        hint: "Increase the timeout with --timeout <ms> or PULSE_CLI_TIMEOUT, or check the engine load.",
       })
       expect((error.cause as Error).name).toBe("TimeoutError")
     })
@@ -278,7 +278,7 @@ describe("send", () => {
       expect(error.message).toBe(`Cannot reach ${URL_} (ECONNREFUSED)`)
       expect(error.details).toEqual({
         request: { method: "GET", url: URL_ },
-        hint: "Is the engine running? Check --url, OPERATE_URL or `operate config show`. Run `operate ping` to test the connection.",
+        hint: "Is the engine running? Check --url, PULSE_CLI_URL or `pulse-cli config show`. Run `pulse-cli ping` to test the connection.",
       })
       expect(error.cause).toBe(thrown)
     })
@@ -298,9 +298,9 @@ describe("send", () => {
 describe("networkError", () => {
   const hints = {
     tls: "The TLS certificate is not trusted. Point NODE_EXTRA_CA_CERTS to your CA bundle.",
-    dns: "The host name does not resolve. Check --url, OPERATE_URL or your profile.",
+    dns: "The host name does not resolve. Check --url, PULSE_CLI_URL or your profile.",
     generic:
-      "Is the engine running? Check --url, OPERATE_URL or `operate config show`. Run `operate ping` to test the connection.",
+      "Is the engine running? Check --url, PULSE_CLI_URL or `pulse-cli config show`. Run `pulse-cli ping` to test the connection.",
   }
 
   function fetchFailed(cause: unknown): TypeError {

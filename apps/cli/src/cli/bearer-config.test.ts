@@ -23,7 +23,7 @@ async function cli(args: readonly string[], options: FakeRuntimeOptions = {}, st
   return { ...outcome, requests: fake.requests }
 }
 
-describe("operate config with a bearer token", () => {
+describe("pulse-cli config with a bearer token", () => {
   it("stores the name of the variable and warns when it is not set, without naming it", async () => {
     const result = await cli(["config", "set", "ci", "--auth-token-env", "CI_ENGINE_TOKEN"])
     expect(result.code).toBe(0)
@@ -92,7 +92,7 @@ describe("operate config with a bearer token", () => {
   })
 
   it("shows the token masked with its source, the real value with --show-secrets", async () => {
-    const env = { OPERATE_TOKEN: "shown.token" }
+    const env = { PULSE_CLI_TOKEN: "shown.token" }
     const view = JSON.parse((await cli(["config", "show"], { env })).stdout) as {
       values: Record<string, unknown>
     }
@@ -108,10 +108,10 @@ describe("operate config with a bearer token", () => {
 
   it("reports a token the auth type does not use", async () => {
     const env = {
-      OPERATE_TOKEN: "tok",
-      OPERATE_USERNAME: "u",
-      OPERATE_PASSWORD: "p",
-      OPERATE_AUTH: "basic",
+      PULSE_CLI_TOKEN: "tok",
+      PULSE_CLI_USERNAME: "u",
+      PULSE_CLI_PASSWORD: "p",
+      PULSE_CLI_AUTH: "basic",
     }
     const json = JSON.parse((await cli(["config", "show"], { env })).stdout) as {
       values: Record<string, unknown>
@@ -119,11 +119,11 @@ describe("operate config with a bearer token", () => {
     expect(json.values.token).toEqual({
       value: "***",
       source: "env",
-      unused: "Basic auth is selected by OPERATE_AUTH=basic",
+      unused: "Basic auth is selected by PULSE_CLI_AUTH=basic",
     })
     const table = await cli(["config", "show", "-o", "table"], { env })
     expect(table.stdout).toMatch(
-      /\ntoken +\*\*\* \(unused: Basic auth is selected by OPERATE_AUTH=basic\) +env\n/,
+      /\ntoken +\*\*\* \(unused: Basic auth is selected by PULSE_CLI_AUTH=basic\) +env\n/,
     )
     expect(table.stdout).not.toContain("tok ")
   })
@@ -164,11 +164,11 @@ describe("mistyped bearer flags", () => {
       code: "USAGE",
       exitCode: 2,
       message: "Unknown command (not repeated: it may be a token or password)",
-      hint: `--auth-token-stdin takes no value: pipe the token into it, e.g. printf '%s\\n' "$TOKEN" | operate ... --auth-token-stdin. Run "operate --help" for the commands.`,
+      hint: `--auth-token-stdin takes no value: pipe the token into it, e.g. printf '%s\\n' "$TOKEN" | pulse-cli ... --auth-token-stdin. Run "pulse-cli --help" for the commands.`,
     })
     const typed = await cli(["--auth", "bearer", JWT, "task", "list"])
     expect(errorOf(typed.stderr).hint).toBe(
-      '--auth takes only the type: the token goes into OPERATE_TOKEN or --auth-token-stdin, not after --auth bearer. Run "operate --help" for the commands.',
+      '--auth takes only the type: the token goes into PULSE_CLI_TOKEN or --auth-token-stdin, not after --auth bearer. Run "pulse-cli --help" for the commands.',
     )
     const password = await cli(["--auth-password-stdin", "s3cr3t.pw", "task", "list"])
     const group = await cli(["auth", JWT])
@@ -191,7 +191,7 @@ describe("mistyped bearer flags", () => {
       code: "USAGE",
       exitCode: 2,
       message: "Too many arguments for 'list'. Expected 0 arguments but got 1.",
-      hint: '--auth takes only the type: the token goes into OPERATE_TOKEN or --auth-token-stdin, not after --auth bearer. Run "operate task list --help" for the usage.',
+      hint: '--auth takes only the type: the token goes into PULSE_CLI_TOKEN or --auth-token-stdin, not after --auth bearer. Run "pulse-cli task list --help" for the usage.',
     })
     const equals = await cli(["ping", "--auth=Bearer", JWT])
     const set = await cli(["config", "set", "p", "--auth", "bearer", JWT])
@@ -203,7 +203,7 @@ describe("mistyped bearer flags", () => {
       code: "USAGE",
       exitCode: 2,
       message: "Too many arguments for 'status'. Expected 0 arguments but got 1.",
-      hint: `operate auth status takes no token argument: pipe the token into --auth-token-stdin, e.g. printf '%s\\n' "$TOKEN" | operate auth status --auth-token-stdin. Run "operate auth status --help" for the usage.`,
+      hint: `pulse-cli auth status takes no token argument: pipe the token into --auth-token-stdin, e.g. printf '%s\\n' "$TOKEN" | pulse-cli auth status --auth-token-stdin. Run "pulse-cli auth status --help" for the usage.`,
     })
     const logout = await cli(["auth", "logout", JWT])
     for (const result of [after, equals, set, status, logout]) {
@@ -219,7 +219,7 @@ describe("mistyped bearer flags", () => {
       await cli(["task", "list", "--auth", `Bearer ${JWT}`]),
       await cli(["task", "list", `--auth=${JWT}`]),
       await cli(["task", "list", "--auth", `bearer:${JWT}`]),
-      await cli(["task", "list"], { env: { OPERATE_AUTH: `Bearer ${JWT}` } }),
+      await cli(["task", "list"], { env: { PULSE_CLI_AUTH: `Bearer ${JWT}` } }),
       await cli(["config", "set", "p", "--auth", `Bearer ${JWT}`]),
       await cli(["task", "list"], { files }),
       await cli(["config", "show"], { files }),
@@ -231,7 +231,7 @@ describe("mistyped bearer flags", () => {
         message: "Unsupported auth type (not one of none, basic, oauth, bearer)",
       })
       expect(errorOf(result.stderr).hint).toContain(
-        "A bearer token itself goes into OPERATE_TOKEN or --auth-token-stdin",
+        "A bearer token itself goes into PULSE_CLI_TOKEN or --auth-token-stdin",
       )
       expect(result.stderr).not.toContain(JWT)
       expect(result.requests).toEqual([])

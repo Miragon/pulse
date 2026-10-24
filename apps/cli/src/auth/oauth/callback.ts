@@ -78,7 +78,7 @@ function issFailure(): CallbackFailure {
   return {
     error: loginFailed(
       "The login response came from another issuer (possible mix-up attack)",
-      "The authorization response named another issuer than the one operate logged in with (RFC 9207). Check the issuer of the profile, close other login tabs and run the login again.",
+      "The authorization response named another issuer than the one pulse-cli logged in with (RFC 9207). Check the issuer of the profile, close other login tabs and run the login again.",
     ),
     reason: "The login response came from another issuer.",
   }

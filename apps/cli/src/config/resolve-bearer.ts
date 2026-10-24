@@ -1,9 +1,9 @@
 /**
- * Resolves a bearer token obtained outside operate. The token:
- * `--auth-token-stdin` > OPERATE_TOKEN > OPERATE_TOKEN_COMMAND (a command line operate runs when
+ * Resolves a bearer token obtained outside pulse-cli. The token:
+ * `--auth-token-stdin` > PULSE_CLI_TOKEN > PULSE_CLI_TOKEN_COMMAND (a command line pulse-cli runs when
  * it needs the token) > the variable named by the profile's auth.tokenEnv (only read when no
  * higher source has a token) > the profile's auth.token. Without an auth type anywhere, a token
- * from the flag or the environment, or OPERATE_TOKEN_COMMAND, selects bearer auth, like a username
+ * from the flag or the environment, or PULSE_CLI_TOKEN_COMMAND, selects bearer auth, like a username
  * selects Basic auth. Pure; messages never show a token.
  */
 
@@ -28,7 +28,7 @@ export interface BearerContext {
   readonly flags: ConfigFlags
   readonly env: Env
   readonly selected: SelectedProfile
-  /** `operate auth` commands have no `--auth` option: hints suggest OPERATE_AUTH instead. */
+  /** `pulse-cli auth` commands have no `--auth` option: hints suggest PULSE_CLI_AUTH instead. */
   readonly authCommand?: boolean
 }
 
@@ -57,7 +57,7 @@ function present(value: string | undefined): string | undefined {
 }
 
 /**
- * The token of `--auth-token-stdin` or OPERATE_TOKEN, or the command of OPERATE_TOKEN_COMMAND:
+ * The token of `--auth-token-stdin` or PULSE_CLI_TOKEN, or the command of PULSE_CLI_TOKEN_COMMAND:
  * these select bearer auth without a type.
  */
 export function givenToken({ flags, env }: BearerContext): FoundToken | undefined {
@@ -125,7 +125,7 @@ function missingToken(selectedBy: string, selected: SelectedProfile) {
   const name = selected.name ?? "<profile>"
   return configError(
     "Bearer auth is selected but the token is missing",
-    `Bearer auth was selected by ${selectedBy}. Looked up the token in ${STDIN_FLAG}, ${ENV.token}, ${ENV.tokenCommand} and ${profile}. Fetch a token with the tool that issues it (e.g. az account get-access-token, gcloud auth print-access-token) and export ${ENV.token}=<token>, let operate run that tool with export ${ENV.tokenCommand}=<command>, pipe it into ${STDIN_FLAG}, or store the name of its variable with \`operate config set ${name} --auth bearer --auth-token-env <VAR>\`; --auth none switches bearer auth off.`,
+    `Bearer auth was selected by ${selectedBy}. Looked up the token in ${STDIN_FLAG}, ${ENV.token}, ${ENV.tokenCommand} and ${profile}. Fetch a token with the tool that issues it (e.g. az account get-access-token, gcloud auth print-access-token) and export ${ENV.token}=<token>, let pulse-cli run that tool with export ${ENV.tokenCommand}=<command>, pipe it into ${STDIN_FLAG}, or store the name of its variable with \`pulse-cli config set ${name} --auth bearer --auth-token-env <VAR>\`; --auth none switches bearer auth off.`,
   )
 }
 
@@ -164,7 +164,7 @@ const FAMILY: Readonly<Record<Exclude<AuthType, "bearer">, string>> = {
 }
 
 /**
- * A token of `--auth-token-stdin` or OPERATE_TOKEN, or OPERATE_TOKEN_COMMAND, next to an explicit
+ * A token of `--auth-token-stdin` or PULSE_CLI_TOKEN, or PULSE_CLI_TOKEN_COMMAND, next to an explicit
  * type that does not use it. The environment variable is ignored (and reported by `config show`);
  * `--auth-token-stdin`, which reads stdin for nothing, is a CONFIG error unless the type is none
  * (switched off).
@@ -198,13 +198,13 @@ export function unusedToken(
 export function inferenceConflict(basicBy: string, token: FoundToken) {
   return configError(
     `Both Basic auth and ${tokenNoun(token)} are configured, but no auth type says which one to use`,
-    `${basicBy} selects Basic auth, ${tokenNoun(token)} (from ${token.origin}) selects bearer auth. Choose one explicitly: --auth basic or --auth bearer (also OPERATE_AUTH or the auth.type of the profile), or unset the other.`,
+    `${basicBy} selects Basic auth, ${tokenNoun(token)} (from ${token.origin}) selects bearer auth. Choose one explicitly: --auth basic or --auth bearer (also PULSE_CLI_AUTH or the auth.type of the profile), or unset the other.`,
   )
 }
 
 /**
- * `A bearer token is set (from OPERATE_TOKEN) but not used: <reason>; send it with --auth bearer
- * or OPERATE_AUTH=bearer.`, for hints of failures the type that won causes (also LOGIN_REQUIRED
+ * `A bearer token is set (from PULSE_CLI_TOKEN) but not used: <reason>; send it with --auth bearer
+ * or PULSE_CLI_AUTH=bearer.`, for hints of failures the type that won causes (also LOGIN_REQUIRED
  * and 401 answers, src/auth/note.ts).
  */
 export function unusedTokenNote(unused: UnusedToken, authCommand?: boolean): string {
@@ -219,7 +219,7 @@ export function unusedTokenNote(unused: UnusedToken, authCommand?: boolean): str
 /**
  * Runs `resolve`; a CONFIG error of it (a Basic profile's password variable is not set, OAuth
  * settings are missing, ...) also carries `note` (`unusedTokenNote`), so a user who exported
- * OPERATE_TOKEN next to a profile with another type is not left guessing.
+ * PULSE_CLI_TOKEN next to a profile with another type is not left guessing.
  */
 export function mentioningUnused<T>(note: string | undefined, resolve: () => T): T {
   try {

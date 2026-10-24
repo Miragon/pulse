@@ -1,6 +1,6 @@
 /**
  * Which profiles share an OAuth login: the OAuth profiles of one origin (the user's
- * config file, a config file named by `--config` / OPERATE_CONFIG, or the repository of a project
+ * config file, a config file named by `--config` / PULSE_CLI_CONFIG, or the repository of a project
  * file) that store the same issuer or explicit token endpoint, client id, audience and scopes. A
  * login made for the profiles of one origin never serves those of another, also not a profile of
  * the same name: a project file decides where its profiles send tokens. Pure.

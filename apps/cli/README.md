@@ -1,6 +1,6 @@
-# operate
+# Pulse CLI
 
-[![npm version](https://img.shields.io/npm/v/@miragon/operate.svg)](https://www.npmjs.com/package/@miragon/operate)
+[![npm version](https://img.shields.io/npm/v/@miragon/pulse-cli.svg)](https://www.npmjs.com/package/@miragon/pulse-cli)
 [![CI](https://github.com/Miragon/pulse/actions/workflows/ci.yml/badge.svg)](https://github.com/Miragon/pulse/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-miragon.github.io%2Fpulse%2Fcli-blue.svg)](https://miragon.github.io/pulse/cli/)
@@ -11,7 +11,7 @@ processes and decisions, start and follow instances, work on tasks, fix incident
 instances, look into the history and administer users and permissions. The agent says what should
 happen, and the CLI talks to the REST API.
 
-![operate finds the incident of an order with an expired card, fixes the variable and retries the job, and the order moves on to shipping](https://raw.githubusercontent.com/Miragon/pulse/main/docs/cli/assets/demo.gif)
+![pulse-cli finds the incident of an order with an expired card, fixes the variable and retries the job, and the order moves on to shipping](https://raw.githubusercontent.com/Miragon/pulse/main/docs/cli/assets/demo.gif)
 
 ## Why
 
@@ -22,7 +22,7 @@ act and one to check the result, and each answer has to be read to build the nex
 deployment, a migration or a search through the history is no different. An agent that works this
 way is slow, and every id it copies is a chance to hit the wrong instance.
 
-operate turns this around: the agent names what it means and what should happen, in one short
+pulse-cli turns this around: the agent names what it means and what should happen, in one short
 command, and the CLI sends the requests. What you get:
 
 - One short command replaces a chain of requests, so the agent writes little and works fast.
@@ -42,8 +42,8 @@ Requires Node.js 22.12+, or use Homebrew, the standalone executable or the conta
 below).
 
 ```sh
-npm install -g @miragon/operate      # or, without Node.js: brew install miragon/tap/operate
-operate guide
+npm install -g @miragon/pulse-cli      # or, without Node.js: brew install miragon/tap/pulse-cli
+pulse-cli guide
 ```
 
 ## Quick start
@@ -53,9 +53,9 @@ Start an engine, then deploy a process, start an instance and complete its first
 
 ```sh
 docker run -d --name engine -p 8080:8080 operaton/operaton:2.1.5
-operate ping
-operate deploy order.bpmn --start --business-key ORD-1001 --var amount=250
-operate advance --business-key ORD-1001 --var approved=true
+pulse-cli ping
+pulse-cli deploy order.bpmn --start --business-key ORD-1001 --var amount=250
+pulse-cli advance --business-key ORD-1001 --var approved=true
 ```
 
 ```text
@@ -99,21 +99,21 @@ Details: [workflow commands](https://miragon.github.io/pulse/cli/workflow-comman
 
 ## AI agents and the Claude Code plugin
 
-Everything an agent needs is in the CLI: `operate guide` prints the usage guide, and one line in
-`AGENTS.md` or `CLAUDE.md` ("Run `operate guide` before using `operate`") is enough. This
-repository is also a Claude Code plugin marketplace whose skill makes Claude use the CLI whenever
-a task touches an engine.
+Everything an agent needs is in the CLI: `pulse-cli guide` prints the usage guide, and one line in
+`AGENTS.md` or `CLAUDE.md` ("Run `pulse-cli guide` before using `pulse-cli`") is enough. The CLI
+is also a Claude Code plugin in Miragon's plugin marketplace, whose skill makes Claude use the CLI
+whenever a task touches an engine.
 
 ```text
-/plugin marketplace add Miragon/operate
-/plugin install operate@miragon
+/plugin marketplace add Miragon/skills
+/plugin install pulse-cli@miragon-agent-skills
 ```
 
-Details: [using operate from AI agents](https://miragon.github.io/pulse/cli/agents).
+Details: [using pulse-cli from AI agents](https://miragon.github.io/pulse/cli/agents).
 
 ## Engines
 
-operate works with Operaton, CIB seven and Camunda 7, and is tested against all three on every
+pulse-cli works with Operaton, CIB seven and Camunda 7, and is tested against all three on every
 change. Camunda 8 is not supported: it has a different API.
 
 Details: [engines](https://miragon.github.io/pulse/cli/engines).
@@ -121,7 +121,7 @@ Details: [engines](https://miragon.github.io/pulse/cli/engines).
 ## Without Node.js
 
 Every release also has a standalone executable for Linux, macOS and Windows, and a container
-image, `ghcr.io/miragon/operate`.
+image, `ghcr.io/miragon/pulse-cli`.
 
 Details: [installation](https://miragon.github.io/pulse/cli/installation).
 
@@ -140,7 +140,7 @@ built from the pages in [`docs/cli/`](https://github.com/Miragon/pulse/tree/main
 - [Authentication](https://miragon.github.io/pulse/cli/authentication): Basic auth, OAuth logins, bearer tokens, token commands, other headers
 - [Safety](https://miragon.github.io/pulse/cli/safety): previews, confirmation, read-only mode
 - [Recipes](https://miragon.github.io/pulse/cli/recipes): command lines for everyday tasks
-- [Using operate from AI agents](https://miragon.github.io/pulse/cli/agents): the guide, the Claude Code plugin and skill
+- [Using pulse-cli from AI agents](https://miragon.github.io/pulse/cli/agents): the guide, the Claude Code plugin and skill
 - [Engines](https://miragon.github.io/pulse/cli/engines): compatibility, choosing the engine, adding a difference or an engine
 - [Architecture](https://miragon.github.io/pulse/cli/architecture): engine port, adapters, catalog generation; [decisions](https://miragon.github.io/pulse/cli/adr/)
 - [Development](https://github.com/Miragon/pulse/blob/main/docs/cli/development.md): building and testing the CLI in the Pulse repository

@@ -6,7 +6,7 @@ import { defineConfig } from "tsdown"
 import pkg from "./package.json" with { type: "json" }
 
 export default defineConfig({
-  entry: { operate: "src/bin/operate.ts" },
+  entry: { "pulse-cli": "src/bin/pulse-cli.ts" },
   format: "cjs",
   platform: "node",
   target: "node24",

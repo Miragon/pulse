@@ -27,7 +27,7 @@ async function values(
     .map((line) => line.split("\t")[0] ?? "")
 }
 
-describe("operate __complete", () => {
+describe("pulse-cli __complete", () => {
   it.each([
     [
       [""],
@@ -247,7 +247,7 @@ describe("operate __complete", () => {
   })
 })
 
-describe("operate completion", () => {
+describe("pulse-cli completion", () => {
   it("prints the script of a shell", async () => {
     for (const shell of ["bash", "zsh", "fish"] as const) {
       const result = await execute(run, ["completion", shell], fakeRuntime())
@@ -266,14 +266,14 @@ describe("operate completion", () => {
         error: {
           code: "USAGE",
           message,
-          hint: "Pass one of bash, zsh, fish, e.g. operate completion bash.",
+          hint: "Pass one of bash, zsh, fish, e.g. pulse-cli completion bash.",
         },
       })
     }
   })
 })
 
-describe("operate __complete output", () => {
+describe("pulse-cli __complete output", () => {
   it("prints values without description and commands with their first line", async () => {
     expect(await complete(["completion", ""])).toBe("bash\t\nzsh\t\nfish\t\n")
     expect(await complete(["guide", "rec"])).toBe(

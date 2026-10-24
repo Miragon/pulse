@@ -1,17 +1,17 @@
-/** `operate guide output`: what stdout and stderr carry. */
+/** `pulse-cli guide output`: what stdout and stderr carry. */
 
 import type { GuideTopic } from "./topic.js"
 
 export const OUTPUT_TOPIC: GuideTopic = {
   name: "output",
   summary: "JSON and tables, --fields, XML, text and binary responses, --out-file, previews",
-  text: `# operate guide output: what stdout and stderr carry
+  text: `# pulse-cli guide output: what stdout and stderr carry
 
 ## Format
 
 - stdout carries exactly the engine response (workflow commands: their view): JSON, compact when
   piped, indented on a terminal or with \`--pretty\`, always ending with a newline.
-- JSON when stdout is not a terminal, a table on a terminal; \`-o json|table\`, \`OPERATE_OUTPUT\` or
+- JSON when stdout is not a terminal, a table on a terminal; \`-o json|table\`, \`PULSE_CLI_OUTPUT\` or
   the \`output\` of the profile override it.
 - \`--fields id,name,variables.amount\` keeps only these properties (of every element of a list); a
   field that matches nothing gets a warning on stderr that lists the existing fields.
@@ -20,8 +20,8 @@ export const OUTPUT_TOPIC: GuideTopic = {
   print as a plain number in a table. Integers beyond 2^53 (\`Long\` variables) are kept exactly.
 
 \`\`\`sh
-operate process-instance list --process-definition-key invoice --fields id,businessKey -o table
-operate task count --assignee demo -o table
+pulse-cli process-instance list --process-definition-key invoice --fields id,businessKey -o table
+pulse-cli task count --assignee demo -o table
 \`\`\`
 
 ## Responses that are not JSON
@@ -31,12 +31,12 @@ operate task count --assignee demo -o table
 - \`--out-file <path>\` writes the response body to the file exactly as received (projected with
   \`--fields\`) and prints \`{"outFile", "bytes", "contentType"}\`.
 - No content (HTTP 204): stdout stays empty, stderr gets \`Done: <METHOD> <path> → 204 No Content\`,
-  the path relative to the REST root (as \`operate api\` takes it).
+  the path relative to the REST root (as \`pulse-cli api\` takes it).
 - Terminals never get control characters from response data; pipes and files get the raw bytes.
 
 \`\`\`sh
-operate process-definition xml invoice --out-file invoice.bpmn
-operate job get-stacktrace $JOB_ID
+pulse-cli process-definition xml invoice --out-file invoice.bpmn
+pulse-cli job get-stacktrace $JOB_ID
 \`\`\`
 
 ## Previews and traces
@@ -45,11 +45,11 @@ operate job get-stacktrace $JOB_ID
   with \`-o table\` only the \`curl\` line. Secret headers are masked unless \`--show-secrets\`.
 - \`--verbose\` traces request and response on stderr (secret headers masked unless \`--show-secrets\`).
 - Errors are one JSON line on stderr (\`-o table\` prints readable text instead); the exit code
-  table and the error fields are in the core guide (\`operate guide\`).
+  table and the error fields are in the core guide (\`pulse-cli guide\`).
 
 \`\`\`sh
-operate task list --assignee demo --dry-run -o table
-operate process-definition list --key invoice --fields id,key,version --verbose
+pulse-cli task list --assignee demo --dry-run -o table
+pulse-cli process-definition list --key invoice --fields id,key,version --verbose
 \`\`\`
 `,
 }

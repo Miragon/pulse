@@ -46,7 +46,7 @@ export function registerRefresh(suite: OAuthSuite): void {
       spent = cache.refreshToken ?? ""
       cache = next
     }
-    // operate really sent the previous refresh token: Keycloak treats a second use as a replay
+    // pulse-cli really sent the previous refresh token: Keycloak treats a second use as a replay
     // (this ends the session, so it is the last step)
     const replay = await refreshRequest(top().issuer, CLIENTS.short, spent)
     expect(replay).toMatchObject({ status: 400, body: { error: "invalid_grant" } })
@@ -86,7 +86,7 @@ export function registerRefresh(suite: OAuthSuite): void {
     })
     expect(expired.status).toBe(401)
     expect(await expired.text()).toBe("Jwt is expired")
-    // operate believes the token is good for another hour and sends it
+    // pulse-cli believes the token is good for another hour and sends it
     await writeCache(cacheFile(PROFILE.short), { expiresAt: Date.now() + 3_600_000 })
 
     const result = await run(countArgs(PROFILE.short, globalFlag("verbose")))

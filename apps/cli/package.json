@@ -23,7 +23,7 @@
   },
   "type": "module",
   "bin": {
-    "operate": "dist/operate.js"
+    "pulse-cli": "dist/pulse-cli.js"
   },
   "files": [
     "dist",

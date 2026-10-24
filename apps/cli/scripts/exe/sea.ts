@@ -9,11 +9,11 @@
  * native runner. `macos` and `windows` rather than `darwin` and `win32`: people look for those.
  */
 const ASSET_NAMES: Readonly<Record<string, string>> = {
-  "linux-x64": "operate-linux-x64",
-  "linux-arm64": "operate-linux-arm64",
-  "darwin-x64": "operate-macos-x64",
-  "darwin-arm64": "operate-macos-arm64",
-  "win32-x64": "operate-windows-x64.exe",
+  "linux-x64": "pulse-cli-linux-x64",
+  "linux-arm64": "pulse-cli-linux-arm64",
+  "darwin-x64": "pulse-cli-macos-x64",
+  "darwin-arm64": "pulse-cli-macos-arm64",
+  "win32-x64": "pulse-cli-windows-x64.exe",
 }
 
 /** Every release target, `<process.platform>-<process.arch>`. */
@@ -25,7 +25,7 @@ export const SEA_SENTINEL_FUSE = "NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2
 const SEA_MACHO_SEGMENT = "NODE_SEA"
 
 export interface ExeTarget {
-  /** Release asset name: `operate-<os>-<arch>`, plus `.exe` on Windows. */
+  /** Release asset name: `pulse-cli-<os>-<arch>`, plus `.exe` on Windows. */
   readonly fileName: string
   /**
    * Mach-O (macOS): postject needs the segment name, the signature of the copied node binary has

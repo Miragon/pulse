@@ -22,7 +22,7 @@ describe("login", () => {
     test.idp.queue("token", oauthError(400, "invalid_grant", "Code not valid"))
     const page = await test.runtime.loopback.request("/callback", callback)
     expect(page.status).toBe(400)
-    expect(page.html).toContain("operate could not exchange the authorization code.")
+    expect(page.html).toContain("pulse-cli could not exchange the authorization code.")
     const error = await rejection(result)
     expect(error.code).toBe("LOGIN_FAILED")
     expect(error.message).toBe(
@@ -47,7 +47,7 @@ describe("login", () => {
     expect(error.code).toBe("LOGIN_FAILED")
     expect(error.message).toBe("No login arrived within 1.5 s")
     expect(error.details.hint).toBe(
-      'Complete the login in the browser. If it showed an error such as "Invalid parameter: redirect_uri", register http://127.0.0.1/callback (any port; Keycloak, Entra ID) for client operate-cli, or set a fixed port (operate config set p --oauth-redirect-port <port>) and register http://127.0.0.1:<port>/callback; then run the command again.',
+      'Complete the login in the browser. If it showed an error such as "Invalid parameter: redirect_uri", register http://127.0.0.1/callback (any port; Keycloak, Entra ID) for client pulse-cli, or set a fixed port (pulse-cli config set p --oauth-redirect-port <port>) and register http://127.0.0.1:<port>/callback; then run the command again.',
     )
     expect(test.runtime.deadlines).toEqual([1500])
     expect(test.runtime.stderr.text()).toContain("Waiting up to 1.5 s for the login")
@@ -58,19 +58,19 @@ describe("login", () => {
     const fixed = setup({}, { deadlineResolves: true, loopbackPort: 8765 })
     const error = await rejection(run(fixed, { redirectPort: 8765 }, { loginTimeoutMs: 1000 }))
     expect(error.details.hint).toContain(
-      "register http://127.0.0.1/callback (any port; Keycloak, Entra ID) or http://127.0.0.1:8765/callback for client operate-cli; then",
+      "register http://127.0.0.1/callback (any port; Keycloak, Entra ID) or http://127.0.0.1:8765/callback for client pulse-cli; then",
     )
     const env = setup({}, { deadlineResolves: true })
     const sources = { ...oauthConfig().sources, redirectPort: "env" as const }
     const fromEnv = await rejection(run(env, { sources }, { loginTimeoutMs: 1000 }))
     expect(fromEnv.details.hint).toContain(
-      "or set a fixed port (OPERATE_OAUTH_REDIRECT_PORT=<port>)",
+      "or set a fixed port (PULSE_CLI_OAUTH_REDIRECT_PORT=<port>)",
     )
     const noProfile = setup({}, { deadlineResolves: true })
     const withoutProfile = await rejection(
       run(noProfile, { profile: undefined }, { loginTimeoutMs: 1000 }),
     )
-    expect(withoutProfile.details.hint).toContain("(OPERATE_OAUTH_REDIRECT_PORT=<port>)")
+    expect(withoutProfile.details.hint).toContain("(PULSE_CLI_OAUTH_REDIRECT_PORT=<port>)")
   })
 
   it("reports a port in use and other listen errors as CONFIG", async () => {
@@ -79,14 +79,14 @@ describe("login", () => {
     expect(error.code).toBe("CONFIG")
     expect(error.message).toBe("Port 8765 for the login callback is in use")
     expect(error.details.hint).toBe(
-      "Stop the program that uses it or choose another port: operate config set p --oauth-redirect-port <port> (0 = any free port); the port must match the redirect URI registered for client operate-cli.",
+      "Stop the program that uses it or choose another port: pulse-cli config set p --oauth-redirect-port <port> (0 = any free port); the port must match the redirect URI registered for client pulse-cli.",
     )
     const sources = { ...oauthConfig().sources, redirectPort: "env" as const }
     const fromEnv = await rejection(
       run(setup({}, { listenError: "EADDRINUSE" }), { redirectPort: 8765, sources }),
     )
     expect(fromEnv.details.hint).toBe(
-      "Stop the program that uses it or choose another port: OPERATE_OAUTH_REDIRECT_PORT=<port> (0 = any free port); the port must match the redirect URI registered for client operate-cli.",
+      "Stop the program that uses it or choose another port: PULSE_CLI_OAUTH_REDIRECT_PORT=<port> (0 = any free port); the port must match the redirect URI registered for client pulse-cli.",
     )
     const denied = setup({}, { listenError: "EACCES" })
     expect((await rejection(run(denied, { redirectPort: 80 }))).message).toBe(
@@ -101,7 +101,7 @@ describe("login", () => {
     const done = await result
     expect(done.login).toMatchObject({ refreshToken: null, refreshExpiresAt: null, user: null })
     expect(test.runtime.stderr.text()).toContain(
-      'Warning: the authorization server issued no refresh token; commands fail with LOGIN_REQUIRED (exit 4) once the access token expires at 2023-11-14T22:18:20.000Z. Request the offline_access scope or allow refresh tokens for client operate-cli.\nLogged in as an unknown user (profile "p").\n',
+      'Warning: the authorization server issued no refresh token; commands fail with LOGIN_REQUIRED (exit 4) once the access token expires at 2023-11-14T22:18:20.000Z. Request the offline_access scope or allow refresh tokens for client pulse-cli.\nLogged in as an unknown user (profile "p").\n',
     )
     const unknown = setup({ refreshTokens: false, expiresIn: null })
     const second = await started(unknown)
@@ -112,7 +112,7 @@ describe("login", () => {
 
   it("records client_secret_post for a confidential client that needs it", async () => {
     const test = setup({
-      clients: { "operate-cli": { secret: "s3cret" } },
+      clients: { "pulse-cli": { secret: "s3cret" } },
       metadata: { token_endpoint_auth_methods_supported: ["client_secret_post"] },
     })
     const { result, callback } = await started(test, { clientSecret: "s3cret" })
@@ -123,7 +123,7 @@ describe("login", () => {
   })
 
   it("records client_secret_basic for a confidential client, none for a public one", async () => {
-    const test = setup({ clients: { "operate-cli": { secret: "s3cret" } } })
+    const test = setup({ clients: { "pulse-cli": { secret: "s3cret" } } })
     const { result, callback } = await started(test, { clientSecret: "s3cret" })
     await test.runtime.loopback.request("/callback", callback)
     expect((await result).login.endpoints.clientAuthMethod).toBe("client_secret_basic")

@@ -1,6 +1,6 @@
 /**
- * Runs a command line in the shell for the bearer token command (OPERATE_TOKEN_COMMAND): in the
- * working directory, stdin closed (operate never waits for input), stdout and stderr captured up
+ * Runs a command line in the shell for the bearer token command (PULSE_CLI_TOKEN_COMMAND): in the
+ * working directory, stdin closed (pulse-cli never waits for input), stdout and stderr captured up
  * to 1 MiB each, killed after the timeout. A kill does not wait for grandchildren that keep the
  * pipes open.
  */

@@ -6,16 +6,9 @@ const word = (length: number) => "w".repeat(length)
 
 describe("commandWords", () => {
   it("splits at whitespace and keeps single quoted parts in their word", () => {
-    expect(commandWords(`operate  task complete t1 --var 'note=a b' --body '{"a": 1}'x`)).toEqual([
-      "operate",
-      "task",
-      "complete",
-      "t1",
-      "--var",
-      "'note=a b'",
-      "--body",
-      `'{"a": 1}'x`,
-    ])
+    expect(commandWords(`pulse-cli  task complete t1 --var 'note=a b' --body '{"a": 1}'x`)).toEqual(
+      ["pulse-cli", "task", "complete", "t1", "--var", "'note=a b'", "--body", `'{"a": 1}'x`],
+    )
     expect(commandWords("--var note='a  b'")).toEqual(["--var", "note='a  b'"])
     expect(commandWords("   ")).toEqual([])
   })
@@ -59,15 +52,15 @@ describe("wrap", () => {
 
 describe("wrapCommand", () => {
   it("keeps short commands on one line", () => {
-    expect(wrapCommand("operate task list --assignee demo", "  ")).toEqual([
-      "  operate task list --assignee demo",
+    expect(wrapCommand("pulse-cli task list --assignee demo", "  ")).toEqual([
+      "  pulse-cli task list --assignee demo",
     ])
   })
 
   it("wraps between words with shell continuations", () => {
     const body = `'{"a": "${word(40)}"}'`
-    const lines = wrapCommand(`operate x y ${word(50)} --body ${body} --yes`, "  ")
-    expect(lines).toEqual([`  operate x y ${word(50)} --body \\`, `      ${body} --yes`])
+    const lines = wrapCommand(`pulse-cli x y ${word(50)} --body ${body} --yes`, "  ")
+    expect(lines).toEqual([`  pulse-cli x y ${word(50)} --body \\`, `      ${body} --yes`])
   })
 
   it("reserves room for the continuation marker", () => {

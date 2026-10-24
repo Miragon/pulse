@@ -12,7 +12,7 @@ import { ISSUER } from "./fake-idp.js"
 import { CONFIG_PATH, type FakeRuntime } from "./fake-runtime.js"
 
 /** The token directory of the fake runtime's home on Linux. */
-export const TOKEN_DIR = "/home/tester/.config/operate/tokens"
+export const TOKEN_DIR = "/home/tester/.config/pulse-cli/tokens"
 
 /** The origin of the profiles of the fake runtime's config file. */
 const CONFIG_ORIGIN = `config:${CONFIG_PATH}`
@@ -26,7 +26,7 @@ export function loginKey(overrides: Partial<LoginKey> = {}): LoginKey {
     ...(profile === undefined ? {} : { profile }),
     issuer: ISSUER,
     tokenEndpoint: null,
-    clientId: "operate-cli",
+    clientId: "pulse-cli",
     audience: null,
     scopes: ["offline_access", "openid"],
     ...settings,
@@ -56,7 +56,7 @@ export function oauthConfig(overrides: OAuthOverrides = {}): OAuthConfig {
   const merged = {
     type: "oauth",
     issuer: ISSUER,
-    clientId: "operate-cli",
+    clientId: "pulse-cli",
     scopes: ["openid", "offline_access"],
     redirectPort: 0,
     profile: "p",
@@ -119,14 +119,14 @@ export function loginDeps(runtime: FakeRuntime, overrides: Partial<LoginDeps> = 
   }
 }
 
-/** A cached login of `operate-cli` for profile p, received at `now` with a 300 s token. */
+/** A cached login of `pulse-cli` for profile p, received at `now` with a 300 s token. */
 export function cachedLogin(now: number, overrides: Partial<CachedLogin> = {}): CachedLogin {
   return {
     version: 1,
     identity: {
       issuer: ISSUER,
       tokenEndpoint: null,
-      clientId: "operate-cli",
+      clientId: "pulse-cli",
       audience: null,
       scopes: ["offline_access", "openid"],
     },
@@ -145,17 +145,17 @@ export function cachedLogin(now: number, overrides: Partial<CachedLogin> = {}): 
   }
 }
 
-/** The file content of a cached login, as operate writes it. */
+/** The file content of a cached login, as pulse-cli writes it. */
 export function cacheText(login: CachedLogin): string {
   return `${JSON.stringify(login, null, 2)}\n`
 }
 
-/** A config file whose default profile p uses OAuth (public client `operate-cli`). */
+/** A config file whose default profile p uses OAuth (public client `pulse-cli`). */
 export function oauthProfiles(auth: Readonly<Record<string, unknown>> = {}, profile = {}): string {
   return JSON.stringify({
     defaultProfile: "p",
     profiles: {
-      p: { auth: { type: "oauth", issuer: ISSUER, clientId: "operate-cli", ...auth }, ...profile },
+      p: { auth: { type: "oauth", issuer: ISSUER, clientId: "pulse-cli", ...auth }, ...profile },
     },
   })
 }

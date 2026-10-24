@@ -199,7 +199,7 @@ export function registerValues(scenario: Scenario): void {
     expect(stored.profiles.it?.url).toBe(engineUrl())
 
     const ping = await cli(["ping", globalFlag("profile"), "it"], {
-      env: { OPERATE_URL: undefined },
+      env: { PULSE_CLI_URL: undefined },
     })
     expect(expectSuccess(ping).json<PingOutput>()).toMatchObject({
       url: engineUrl(),

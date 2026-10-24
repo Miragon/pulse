@@ -25,7 +25,7 @@ describe("authorizationUrl", () => {
       REDIRECT,
     )
     expect(url).toBe(
-      `${ISSUER}/auth?response_type=code&client_id=operate-cli&redirect_uri=http%3A%2F%2F127.0.0.1%3A5000%2Fcallback&scope=openid+offline_access&state=${PKCE.state}&code_challenge=${PKCE.challenge}&code_challenge_method=S256&audience=engine-rest`,
+      `${ISSUER}/auth?response_type=code&client_id=pulse-cli&redirect_uri=http%3A%2F%2F127.0.0.1%3A5000%2Fcallback&scope=openid+offline_access&state=${PKCE.state}&code_challenge=${PKCE.challenge}&code_challenge_method=S256&audience=engine-rest`,
     )
     const params = new URL(url).searchParams
     expect(params.get("scope")).toBe("openid offline_access")
@@ -123,7 +123,7 @@ describe("callbackCode", () => {
       reason: "The authorization server reported access_denied.",
     })
     expect("error" in denied && denied.error.details.hint).toBe(
-      "The user cancelled the login or may not use client operate-cli; run `operate auth login --profile p` again.",
+      "The user cancelled the login or may not use client pulse-cli; run `pulse-cli auth login --profile p` again.",
     )
     for (const code of [
       "invalid_request",

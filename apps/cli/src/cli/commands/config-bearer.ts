@@ -1,5 +1,5 @@
 /**
- * The bearer token part of `operate config set`: `--auth-token-env <VAR>`
+ * The bearer token part of `pulse-cli config set`: `--auth-token-env <VAR>`
  * (recommended: only the name of the variable is stored; `checkVariableNames` of
  * src/config/variable.ts refuses a token given in its place) and `--auth-token-stdin` (the token
  * itself, in plain text in the 0600 file), and the warning after storing a token.
@@ -14,7 +14,7 @@ import type { StdinSecret } from "../stdin-password.js"
 export const STORED_TOKEN: StdinSecret = {
   flag: "--auth-token-stdin",
   noun: "token",
-  example: `printf '%s\\n' "$TOKEN" | operate config set <profile> --auth bearer --auth-token-stdin`,
+  example: `printf '%s\\n' "$TOKEN" | pulse-cli config set <profile> --auth bearer --auth-token-stdin`,
 }
 
 export function addBearerOptions(command: Command): Command {

@@ -42,7 +42,7 @@ console.log(token);
     const runs = async () =>
       (await readFile(runsFile, "utf8").catch(() => "")).split("\n").filter(Boolean).length
 
-    /** The variables of the command (passed through operate's environment). */
+    /** The variables of the command (passed through pulse-cli's environment). */
     function commandEnv(extra: EnvOverrides = {}): EnvOverrides {
       return {
         IT_RUNS: runsFile,
@@ -55,14 +55,14 @@ console.log(token);
     }
 
     /**
-     * Runs in the repository without OPERATE_CONFIG and OPERATE_URL, so the project file counts;
+     * Runs in the repository without PULSE_CLI_CONFIG and PULSE_CLI_URL, so the project file counts;
      * checks that no output contains a token the command printed.
      */
     async function inRepo(args: readonly string[], extra: EnvOverrides = {}, directory = "src") {
       const result = await cli(args, {
         timeoutMs: RUN_TIMEOUT_MS,
         cwd: join(repo, directory),
-        env: commandEnv({ OPERATE_CONFIG: undefined, OPERATE_URL: undefined, ...extra }),
+        env: commandEnv({ PULSE_CLI_CONFIG: undefined, PULSE_CLI_URL: undefined, ...extra }),
       })
       remember(...(await readFile(tokensFile, "utf8").catch(() => "")).split("\n").filter(Boolean))
       expectHidden(result)
@@ -92,9 +92,9 @@ console.log(token);
         "bearer",
       ])
       expect(expectSuccess(set).stderr).toContain(
-        `Created the project file ${join(repo, ".operate.json")}`,
+        `Created the project file ${join(repo, ".pulse-cli.json")}`,
       )
-      const env = { OPERATE_TOKEN_COMMAND: command() }
+      const env = { PULSE_CLI_TOKEN_COMMAND: command() }
       const count = await inRepo(countArgs(), env)
       expect(expectSuccess(count).json<Count>().count).toBeGreaterThanOrEqual(0)
       expect(await runs()).toBe(1)
@@ -102,7 +102,7 @@ console.log(token);
       const verbose = await inRepo(countArgs(globalFlag("verbose")), env)
       expectSuccess(verbose)
       expect(verbose.stderr).toContain(
-        "* Using the token of the bearer token command of OPERATE_TOKEN_COMMAND, cached until it expires",
+        "* Using the token of the bearer token command of PULSE_CLI_TOKEN_COMMAND, cached until it expires",
       )
       expect(verbose.stderr).toMatch(MASKED_BEARER)
       expect(await runs()).toBe(1)
@@ -110,7 +110,7 @@ console.log(token);
       expect(status).toMatchObject({
         profile: "it-command",
         source: "env",
-        origin: "OPERATE_TOKEN_COMMAND",
+        origin: "PULSE_CLI_TOKEN_COMMAND",
         command: command(),
         cached: true,
         format: "jwt",
@@ -120,18 +120,18 @@ console.log(token);
 
     it("shares the cached token across the directories of the repository", async () => {
       const before = await runs()
-      const env = { OPERATE_TOKEN_COMMAND: command() }
+      const env = { PULSE_CLI_TOKEN_COMMAND: command() }
       expectSuccess(await inRepo(countArgs(), env, "docs"))
       expect(await runs()).toBe(before)
     })
 
     it("refuses a project file that names a variable for the token, before any request", async () => {
-      const path = join(repo, "docs", ".operate.json")
+      const path = join(repo, "docs", ".pulse-cli.json")
       const file = {
         profiles: { it: { url: top().url, auth: { type: "bearer", tokenEnv: "IT_SECRET" } } },
       }
       await writeFile(path, JSON.stringify(file))
-      const refused = await inRepo(countArgs(), { OPERATE_PROFILE: "it" }, "docs")
+      const refused = await inRepo(countArgs(), { PULSE_CLI_PROFILE: "it" }, "docs")
       expect(expectError(refused, "CONFIG", 3).message).toContain(
         'profile "it" sets auth.tokenEnv;',
       )
@@ -142,9 +142,9 @@ console.log(token);
     it("runs the command again after a 401 and retries with the new token", async () => {
       const retryRuns = join(required(suite.workdir, "the work directory"), "retry-runs.log")
       const result = await inRepo(countArgs(globalFlag("verbose")), {
-        OPERATE_TOKEN_COMMAND: command(),
-        OPERATE_URL: top().url,
-        OPERATE_CONFIG: suite.configFile,
+        PULSE_CLI_TOKEN_COMMAND: command(),
+        PULSE_CLI_URL: top().url,
+        PULSE_CLI_CONFIG: suite.configFile,
         IT_GARBAGE_FIRST: "1",
         IT_RUNS: retryRuns,
       })
@@ -156,9 +156,9 @@ console.log(token);
 
     it("reports a failing command as LOGIN_FAILED with the end of its stderr", async () => {
       const env = {
-        OPERATE_TOKEN_COMMAND: command(),
-        OPERATE_URL: top().url,
-        OPERATE_CONFIG: suite.configFile,
+        PULSE_CLI_TOKEN_COMMAND: command(),
+        PULSE_CLI_URL: top().url,
+        PULSE_CLI_CONFIG: suite.configFile,
         IT_FAIL: "1",
       }
       // the token of the previous test is still cached: logout drops it
@@ -167,7 +167,7 @@ console.log(token);
       const result = await inRepo(countArgs(), env)
       const error = expectError(result, "LOGIN_FAILED", 4)
       expect(error.message).toBe(
-        "The bearer token command (OPERATE_TOKEN_COMMAND) failed with exit code 7: the token endpoint is unreachable (it)",
+        "The bearer token command (PULSE_CLI_TOKEN_COMMAND) failed with exit code 7: the token endpoint is unreachable (it)",
       )
       expect(result.stderr).not.toMatch(SENT_REQUEST)
     })

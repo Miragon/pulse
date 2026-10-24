@@ -18,7 +18,7 @@ import {
 } from "./token.js"
 
 const PUBLIC: TokenClient = {
-  clientId: "operate-cli",
+  clientId: "pulse-cli",
   method: "client_secret_basic",
   endpoint: { url: TOKEN_ENDPOINT, source: 'auth.issuer of profile "p"' },
   who: { profile: "p" },
@@ -54,7 +54,7 @@ describe("client authentication (RFC 6749 §2.3.1)", () => {
   it("sends the client id in the form for a public client", () => {
     const form = new URLSearchParams()
     expect(authenticate(form, PUBLIC)).toEqual({})
-    expect(form.toString()).toBe("client_id=operate-cli")
+    expect(form.toString()).toBe("client_id=pulse-cli")
   })
 
   it("form-encodes id and secret before Base64 for client_secret_basic", () => {
@@ -75,7 +75,7 @@ describe("client authentication (RFC 6749 §2.3.1)", () => {
     const form = new URLSearchParams()
     const client = { ...PUBLIC, clientSecret: "s:1", method: "client_secret_post" as const }
     expect(authenticate(form, client)).toEqual({})
-    expect(Object.fromEntries(form)).toEqual({ client_id: "operate-cli", client_secret: "s:1" })
+    expect(Object.fromEntries(form)).toEqual({ client_id: "pulse-cli", client_secret: "s:1" })
   })
 
   it("round-trips any id and secret through the Basic header", () => {
@@ -114,7 +114,7 @@ describe("token requests", () => {
       code: "c-1",
       redirect_uri: "http://127.0.0.1:5000/callback",
       code_verifier: "v".repeat(43),
-      client_id: "operate-cli",
+      client_id: "pulse-cli",
     })
     expect(events.map((event) => event.type)).toEqual(["request", "response"])
     expect(events[0]).toMatchObject({ method: "POST", url: TOKEN_ENDPOINT })
@@ -125,7 +125,7 @@ describe("token requests", () => {
     await refreshTokens({ ...PUBLIC, clientSecret: "top-secret" }, "r-1", deps)
     expect(formOf(calls[0]!.init)).toEqual({ grant_type: "refresh_token", refresh_token: "r-1" })
     expect((calls[0]?.init.headers as Record<string, string>).Authorization).toBe(
-      clientBasicHeader("operate-cli", "top-secret"),
+      clientBasicHeader("pulse-cli", "top-secret"),
     )
     expect(events[0]).toEqual({
       type: "request",
@@ -149,7 +149,7 @@ describe("token requests", () => {
     expect(formOf(calls[0]!.init)).toEqual({
       token: "r-1",
       token_type_hint: "refresh_token",
-      client_id: "operate-cli",
+      client_id: "pulse-cli",
     })
   })
 
@@ -248,7 +248,7 @@ describe("parseTokenResponse", () => {
 
   it.each(["DPoP", "mac", 7])("refuses the token type %j", (type) => {
     expect(() => parseTokenResponse({ access_token: "a", token_type: type })).toThrow(
-      `Unsupported token type "${String(type)}"; operate sends Bearer tokens only`,
+      `Unsupported token type "${String(type)}"; pulse-cli sends Bearer tokens only`,
     )
   })
 })
@@ -277,7 +277,7 @@ describe("tokenError", () => {
     json,
   })
   const HINT =
-    "Run `operate auth login --profile p` in a terminal: a person logs in once in the browser, operate refreshes the token afterwards. Agents cannot log in themselves."
+    "Run `pulse-cli auth login --profile p` in a terminal: a person logs in once in the browser, pulse-cli refreshes the token afterwards. Agents cannot log in themselves."
 
   it("maps invalid_grant on refresh to LOGIN_REQUIRED", () => {
     const error = tokenError(
@@ -300,7 +300,7 @@ describe("tokenError", () => {
       for (const grant of ["refresh", "exchange"] as const) {
         const error = tokenError(answer(401, { error: code }), grant, PUBLIC)
         expect(error.code).toBe("CONFIG")
-        expect(error.message).toBe(`The authorization server rejected client operate-cli (${code})`)
+        expect(error.message).toBe(`The authorization server rejected client pulse-cli (${code})`)
         expect(error.details.hint).toContain("Keycloak answers unauthorized_client")
       }
     },
@@ -330,7 +330,7 @@ describe("tokenError", () => {
       "The authorization server rejected the authorization code (invalid_grant: Code not valid)",
     )
     expect(grant.details.hint).toBe(
-      "The code expired or was already used; run `operate auth login --profile p` again.",
+      "The code expired or was already used; run `pulse-cli auth login --profile p` again.",
     )
     const other = tokenError(answer(400, { error: "invalid_request" }), "exchange", PUBLIC)
     expect(other.code).toBe("LOGIN_FAILED")
@@ -377,7 +377,7 @@ describe("tokenError", () => {
     )
     expect(redirect.code).toBe("CONFIG")
     expect(redirect.message).toBe(
-      `Unexpected answer from ${TOKEN_ENDPOINT}: HTTP 302 Found (operate follows no redirects)`,
+      `Unexpected answer from ${TOKEN_ENDPOINT}: HTTP 302 Found (pulse-cli follows no redirects)`,
     )
     expect(redirect.details.hint).toBe('Check the token endpoint (auth.issuer of profile "p").')
     const forbidden = tokenError(

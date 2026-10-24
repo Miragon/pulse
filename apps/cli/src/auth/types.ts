@@ -26,7 +26,7 @@ export interface AuthProvider {
   readonly principal?: Principal | undefined
   /**
    * Why no credentials are sent although some were configured (`Basic auth is switched off by
-   * OPERATE_AUTH=none`, a password without a username), for the hint of a 401.
+   * PULSE_CLI_AUTH=none`, a password without a username), for the hint of a 401.
    */
   readonly off?: string
   /**
@@ -43,7 +43,7 @@ export interface AuthProvider {
   readonly note?: string
   /**
    * The command that shows whether the login is usable, for the hint of a redirect (OAuth:
-   * `operate auth status --profile p`).
+   * `pulse-cli auth status --profile p`).
    */
   readonly loginStatusCommand?: string
 }

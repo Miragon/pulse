@@ -1,6 +1,6 @@
 /**
- * Bearer tokens obtained outside operate: company SSO tooling, a CI secret, `az
- * account get-access-token`, `gcloud auth print-access-token`. operate sends `Authorization:
+ * Bearer tokens obtained outside pulse-cli: company SSO tooling, a CI secret, `az
+ * account get-access-token`, `gcloud auth print-access-token`. pulse-cli sends `Authorization:
  * Bearer <token>` and nothing else: no login, no refresh, no cache. A JWT whose `exp` lies more
  * than 30 s in the past fails before any request with TOKEN_EXPIRED (exit 4); the claims also
  * explain a 401 or 403. Opaque tokens are sent as they are. Never shows the token.
@@ -19,14 +19,14 @@ function iso(epochMs: number): string {
 export function renewal(config: StaticBearerConfig): string {
   if (config.source === "flag") return "pipe it into --auth-token-stdin"
   if (config.variable !== undefined) return `set ${config.variable}`
-  return `set ${ENV.token} (it overrides the stored token) or store it with \`operate config set ${config.profile ?? "<profile>"} --auth-token-stdin\``
+  return `set ${ENV.token} (it overrides the stored token) or store it with \`pulse-cli config set ${config.profile ?? "<profile>"} --auth-token-stdin\``
 }
 
 /** The TOKEN_EXPIRED error of a JWT whose `exp` lies more than 30 s in the past. */
 export function tokenExpired(config: StaticBearerConfig, expiresAt: number): OperateError {
   const when = `the bearer token from ${config.origin} expired at ${iso(expiresAt)}`
   return new OperateError("TOKEN_EXPIRED", `T${when.slice(1)}`, {
-    hint: `operate never refreshes bearer tokens: ${when}; fetch a new one (e.g. with your identity provider's CLI) and ${renewal(config)}.`,
+    hint: `pulse-cli never refreshes bearer tokens: ${when}; fetch a new one (e.g. with your identity provider's CLI) and ${renewal(config)}.`,
   })
 }
 
@@ -56,7 +56,7 @@ function details(claims: JwtClaims | undefined, now: number): string {
 }
 
 /**
- * What to check after a 401: for a JWT, operate knows whether `exp` has passed (a JWT is still
+ * What to check after a 401: for a JWT, pulse-cli knows whether `exp` has passed (a JWT is still
  * sent up to 30 s after it, for clock skew), so the hint says which cause is likely.
  */
 function unauthorizedCheck(claims: JwtClaims | undefined, now: number): string {
@@ -64,9 +64,9 @@ function unauthorizedCheck(claims: JwtClaims | undefined, now: number): string {
     return "Check that the token is still valid and was issued for this engine (or the gateway in front of it)"
   }
   if (claims.expiresAt !== null && pastExpiry(claims, now)) {
-    return `It expired at ${iso(claims.expiresAt)}: operate still sends a JWT up to 30 s after its exp (clock skew), but the engine or its gateway no longer accepts it`
+    return `It expired at ${iso(claims.expiresAt)}: pulse-cli still sends a JWT up to 30 s after its exp (clock skew), but the engine or its gateway no longer accepts it`
   }
-  return "Check that the engine (or the gateway in front of it) expects its issuer and audience and trusts the key that signed it (operate checks no signatures)"
+  return "Check that the engine (or the gateway in front of it) expects its issuer and audience and trusts the key that signed it (pulse-cli checks no signatures)"
 }
 
 /** A token as the hints of a 401 or 403 describe it: where it came from and its claims. */
@@ -109,7 +109,7 @@ export function bearerAuth(config: StaticBearerConfig, now: () => number): AuthP
       ? tokenExpired(config, expiresAt)
       : undefined
   const principal = principalOf(config.origin, claims)
-  const next = `fetch a new token (e.g. with your identity provider's CLI) and ${renewal(config)}. operate sends the token as it is and never refreshes it.`
+  const next = `fetch a new token (e.g. with your identity provider's CLI) and ${renewal(config)}. pulse-cli sends the token as it is and never refreshes it.`
   return {
     type: "bearer",
     headers: () => {

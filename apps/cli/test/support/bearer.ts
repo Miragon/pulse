@@ -1,6 +1,6 @@
 /**
  * Bearer token fixtures for unit tests: arbitrary RFC 6750 b64tokens and JWTs with
- * the given claims (unsigned: operate never checks signatures).
+ * the given claims (unsigned: pulse-cli never checks signatures).
  */
 
 import fc from "fast-check"

@@ -2,7 +2,7 @@
  * Engine access of the workflow commands: catalog operations sent through
  * `buildRequest` + `sendRequest` exactly like `ping`, so `--engine`, auth, `-H`, `--timeout`,
  * `--verbose` traces, redirect refusal and the error hints apply unchanged, and hints name the
- * generated command of the request (`operate task complete`).
+ * generated command of the request (`pulse-cli task complete`).
  */
 
 import { findByOperationId } from "../catalog/catalog.js"

@@ -1,5 +1,5 @@
 /**
- * The resources of `operate deploy`: files and directories, directories scanned
+ * The resources of `pulse-cli deploy`: files and directories, directories scanned
  * recursively for BPMN, DMN and form files, each resource named so that its name does not depend
  * on which other files are deployed.
  */
@@ -77,7 +77,7 @@ export async function collectResources(
   if (paths.length === 0) {
     throw usageError(
       "At least one file or directory is required",
-      "Example: operate deploy src/main/resources, or operate deploy . for the current directory.",
+      "Example: pulse-cli deploy src/main/resources, or pulse-cli deploy . for the current directory.",
     )
   }
   const resources = new Map<string, Resource>()

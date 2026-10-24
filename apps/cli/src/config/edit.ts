@@ -1,5 +1,5 @@
 /**
- * Pure edit functions behind `operate config set|unset|use|delete|list|show`. They take the parsed
+ * Pure edit functions behind `pulse-cli config set|unset|use|delete|list|show`. They take the parsed
  * config file (undefined when it does not exist yet), never modify it and return a new one; the CLI
  * reads and writes the file. Values are validated with the validators of resolve.ts.
  */
@@ -63,7 +63,7 @@ export interface ProfileChanges extends OAuthChanges, BearerChanges {
 }
 
 /**
- * One row of `operate config list`. Values the profile does not set are null; `scope` says
+ * One row of `pulse-cli config list`. Values the profile does not set are null; `scope` says
  * whether it comes from the project file or the user's (or the named) config file.
  */
 export interface ProfileSummary {
@@ -96,14 +96,14 @@ interface OAuthValues {
 /**
  * The `token` row of `config show`: the bearer token of type bearer, or a token that is set but
  * not used by the resolved type (`unused` says why). The `tokenCommand` row: the command of
- * OPERATE_TOKEN_COMMAND that prints the token (`config show` never runs it).
+ * PULSE_CLI_TOKEN_COMMAND that prints the token (`config show` never runs it).
  */
 interface TokenValue extends ConfigValue<string> {
   readonly unused?: string
 }
 
 /**
- * Output of `operate config show`: every effective value with its source (`auth` is the type,
+ * Output of `pulse-cli config show`: every effective value with its source (`auth` is the type,
  * `username` and `password` the Basic auth credentials, the OAuth settings only for type oauth,
  * `token` or `tokenCommand` for type bearer or an unused one). Header values, the password, the
  * client secret and the token are not masked here; the CLI masks them unless --show-secrets is

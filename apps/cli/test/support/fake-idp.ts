@@ -23,7 +23,7 @@ export interface FakeIdpOptions {
   readonly refreshTokens?: boolean
   /** Rotate refresh tokens on every refresh (default true); false returns none on a refresh. */
   readonly rotate?: boolean
-  /** Registered clients and their secrets (default: public `operate-cli`). */
+  /** Registered clients and their secrets (default: public `pulse-cli`). */
   readonly clients?: Readonly<Record<string, { readonly secret?: string }>>
   /** Claims of the ID token (default sub and preferred_username); null: no ID token. */
   readonly idToken?: Readonly<Record<string, unknown>> | null
@@ -90,7 +90,7 @@ function base64Url(text: string): string {
   return Buffer.from(text, "utf8").toString("base64url")
 }
 
-/** An unsigned JWT with the claims (operate only decodes ID tokens for display). */
+/** An unsigned JWT with the claims (pulse-cli only decodes ID tokens for display). */
 export function jwt(claims: Readonly<Record<string, unknown>>): string {
   return `${base64Url('{"alg":"none"}')}.${base64Url(JSON.stringify(claims))}.sig`
 }
@@ -175,7 +175,7 @@ export function fakeIdp(options: FakeIdpOptions = {}): FakeIdp {
     token: `${prefix}/protocol/openid-connect/token`,
     revocation: `${prefix}/protocol/openid-connect/revoke`,
   }
-  const clients = options.clients ?? { "operate-cli": {} }
+  const clients = options.clients ?? { "pulse-cli": {} }
   const codes = new Map<string, PendingCode>()
   /** refresh token → its session; the session's current token is the only valid one. */
   const sessions = new Map<string, Session>()

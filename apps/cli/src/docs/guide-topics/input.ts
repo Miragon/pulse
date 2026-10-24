@@ -1,4 +1,4 @@
-/** `operate guide input`: how command lines become requests. */
+/** `pulse-cli guide input`: how command lines become requests. */
 
 import { DEFAULT_PAGE_SIZE } from "../../catalog/rules.js"
 import type { GuideTopic } from "./topic.js"
@@ -6,15 +6,15 @@ import type { GuideTopic } from "./topic.js"
 export const INPUT_TOPIC: GuideTopic = {
   name: "input",
   summary: "Arguments, flags, booleans, arrays, dates, variables, request bodies, files, paging",
-  text: `# operate guide input: arguments, options, variables and request bodies
+  text: `# pulse-cli guide input: arguments, options, variables and request bodies
 
-How command lines become requests. \`operate describe <group> <command>\` shows the arguments,
+How command lines become requests. \`pulse-cli describe <group> <command>\` shows the arguments,
 options and request body schema of one command.
 
 ## Arguments and options
 
 - Path parameters are positional arguments in path order:
-  \`operate process-instance get-variable <id> <var-name>\`.
+  \`pulse-cli process-instance get-variable <id> <var-name>\`.
 - Query parameters and body properties are kebab-case flags: \`businessKey\` → \`--business-key\`.
   Integers, numbers and enums are checked before sending.
 - Booleans: \`--with-incident\` sends \`true\`, \`--no-with-incident\` sends \`false\`. Filters the engine
@@ -28,9 +28,9 @@ options and request body schema of one command.
   \`--max-results\`, default ${DEFAULT_PAGE_SIZE}) and print one list.
 
 \`\`\`sh
-operate process-instance list --with-incident --fields id,businessKey,definitionId -o table
-operate task list --candidate-group accounting --created-after 2024-05-01T10:00
-operate process-instance list --process-definition-key invoice --all --fields id,businessKey
+pulse-cli process-instance list --with-incident --fields id,businessKey,definitionId -o table
+pulse-cli task list --candidate-group accounting --created-after 2024-05-01T10:00
+pulse-cli process-instance list --process-definition-key invoice --all --fields id,businessKey
 \`\`\`
 
 ## Variables
@@ -45,8 +45,8 @@ operate process-instance list --process-definition-key invoice --all --fields id
   \`--value <raw>\` and \`--type <Type>\`; without \`--type\` the value is auto typed like \`--var\`.
 
 \`\`\`sh
-operate process-definition start invoice --var 'order:Json={"id":42}' --var due:Date=2024-06-01
-operate process-instance set-variable $INSTANCE_ID dueDate --value 2024-06-01T12:00 --type Date
+pulse-cli process-definition start invoice --var 'order:Json={"id":42}' --var due:Date=2024-06-01
+pulse-cli process-instance set-variable $INSTANCE_ID dueDate --value 2024-06-01T12:00 --type Date
 \`\`\`
 
 ## Request bodies
@@ -58,28 +58,28 @@ operate process-instance set-variable $INSTANCE_ID dueDate --value 2024-06-01T12
   A \`VALIDATION\` error (exit 2) lists the problems, with "did you mean" for misspelled properties.
 
 \`\`\`sh
-operate process-definition start invoice --body @start.json --business-key INV-1002
-echo '{"businessKey":"INV-1003"}' | operate process-definition start invoice --body -
+pulse-cli process-definition start invoice --body @start.json --business-key INV-1002
+echo '{"businessKey":"INV-1003"}' | pulse-cli process-definition start invoice --body -
 \`\`\`
 
 ## Files
 
 - \`deployment create\` takes the resource files as arguments; the resource name is the file name,
-  or the path relative to \`--base-dir <dir>\`. \`operate deploy\` also takes directories.
+  or the path relative to \`--base-dir <dir>\`. \`pulse-cli deploy\` also takes directories.
 - Binary and file variables upload a file with \`--data <path>\`; \`--out-file\` downloads them.
 
 \`\`\`sh
-operate deployment create invoice.bpmn invoice-approval.dmn --deployment-name invoice
-operate process-instance set-variable-binary $INSTANCE_ID contract --data contract.pdf --value-type File
-operate process-instance get-variable-binary $INSTANCE_ID contract --out-file contract.pdf
+pulse-cli deployment create invoice.bpmn invoice-approval.dmn --deployment-name invoice
+pulse-cli process-instance set-variable-binary $INSTANCE_ID contract --data contract.pdf --value-type File
+pulse-cli process-instance get-variable-binary $INSTANCE_ID contract --out-file contract.pdf
 \`\`\`
 
 ## Global options
 
-They work after the command (\`operate task list -o table\`): \`--url\`, \`--engine\`, \`--platform\`,
+They work after the command (\`pulse-cli task list -o table\`): \`--url\`, \`--engine\`, \`--platform\`,
 \`--profile\`, \`--config\`, \`-o/--output\`, \`--fields\`, \`--pretty\`, \`--dry-run\`, \`-y/--yes\`,
 \`--read-only\`, \`--timeout\`, \`-H/--header\`, \`--auth\`, \`--auth-user\`, \`--auth-password-stdin\`,
 \`--auth-token-stdin\`, \`--verbose\`, \`--out-file\`, \`--show-secrets\`. The help of every command
-(\`operate <group> <command> --help\`) explains them.
+(\`pulse-cli <group> <command> --help\`) explains them.
 `,
 }

@@ -32,8 +32,8 @@ describe("Basic auth credentials", () => {
     expect(result.requests[0]?.headers.authorization).toBe(DEMO)
   })
 
-  it("takes the credentials from OPERATE_USERNAME and OPERATE_PASSWORD", async () => {
-    const env = { OPERATE_USERNAME: "demo", OPERATE_PASSWORD: "demo" }
+  it("takes the credentials from PULSE_CLI_USERNAME and PULSE_CLI_PASSWORD", async () => {
+    const env = { PULSE_CLI_USERNAME: "demo", PULSE_CLI_PASSWORD: "demo" }
     const result = await cli(["task", "list"], { env })
     expect(result.code).toBe(0)
     expect(result.requests[0]?.headers.authorization).toBe(DEMO)
@@ -62,7 +62,7 @@ describe("Basic auth credentials", () => {
 
   it("reports user and auth in ping", async () => {
     const result = await cli(["ping", "--auth-user", "demo"], {
-      env: { OPERATE_PASSWORD: "demo" },
+      env: { PULSE_CLI_PASSWORD: "demo" },
     })
     expect(result.code).toBe(0)
     expect(JSON.parse(result.stdout)).toMatchObject({ auth: "basic", user: "demo" })
@@ -89,7 +89,7 @@ describe("Basic auth credentials", () => {
 
   it("refuses Basic auth together with an Authorization header", async () => {
     const result = await cli(["task", "list", "-H", "Authorization: Bearer t"], {
-      env: { OPERATE_USERNAME: "demo", OPERATE_PASSWORD: "demo" },
+      env: { PULSE_CLI_USERNAME: "demo", PULSE_CLI_PASSWORD: "demo" },
     })
     expect(result.code).toBe(3)
     expect(result.requests).toEqual([])
@@ -150,7 +150,7 @@ describe("--auth-password-stdin", () => {
 })
 
 describe("masking", () => {
-  const env = { OPERATE_USERNAME: "demo", OPERATE_PASSWORD: "demo" }
+  const env = { PULSE_CLI_USERNAME: "demo", PULSE_CLI_PASSWORD: "demo" }
 
   it("shows Authorization: Basic *** in dry-run previews and curl", async () => {
     for (const args of [
@@ -190,26 +190,26 @@ describe("HTTP 401", () => {
   it("names the rejected user and the source of the credentials", async () => {
     const result = await cli(
       ["task", "list"],
-      { env: { OPERATE_USERNAME: "demo", OPERATE_PASSWORD: "wrong" } },
+      { env: { PULSE_CLI_USERNAME: "demo", PULSE_CLI_PASSWORD: "wrong" } },
       401,
     )
     expect(result.code).toBe(4)
     expect(errorOf(result.stderr)).toMatchObject({
       code: "UNAUTHORIZED",
-      hint: "The engine rejected the credentials of user demo (source: env). Check the username and the password; `operate config show` shows where each comes from. After a failed login the engine refuses the user for a few seconds (and locks it after repeated failures), so wait before retrying.",
+      hint: "The engine rejected the credentials of user demo (source: env). Check the username and the password; `pulse-cli config show` shows where each comes from. After a failed login the engine refuses the user for a few seconds (and locks it after repeated failures), so wait before retrying.",
     })
     expect(result.stderr).not.toContain("wrong")
   })
 
-  it("says that operate sent no credentials and how to send them", async () => {
+  it("says that pulse-cli sent no credentials and how to send them", async () => {
     const result = await cli(["task", "list"], {}, 401)
     expect(result.code).toBe(4)
     const { hint } = errorOf(result.stderr) as { hint: string }
-    expect(hint).toContain("operate sent no credentials")
+    expect(hint).toContain("pulse-cli sent no credentials")
     expect(hint).toContain("--auth basic --auth-user <name>")
-    expect(hint).toContain("OPERATE_USERNAME and OPERATE_PASSWORD")
+    expect(hint).toContain("PULSE_CLI_USERNAME and PULSE_CLI_PASSWORD")
     expect(hint).toContain(
-      "`operate config set <profile> --auth basic --auth-user <name> --auth-password-env <VAR>`",
+      "`pulse-cli config set <profile> --auth basic --auth-user <name> --auth-password-env <VAR>`",
     )
   })
 })
@@ -228,23 +228,23 @@ describe("credentials that select nothing", () => {
     )
   })
 
-  it("says in the 401 hint that OPERATE_AUTH=none switched Basic auth off", async () => {
+  it("says in the 401 hint that PULSE_CLI_AUTH=none switched Basic auth off", async () => {
     const result = await cli(
       ["task", "list", "--auth-user", "demo", "--auth-password-stdin"],
-      { stdin: "demo\n", env: { OPERATE_AUTH: "none" } },
+      { stdin: "demo\n", env: { PULSE_CLI_AUTH: "none" } },
       401,
     )
     expect(result.code).toBe(4)
     expect(result.requests[0]?.headers.authorization).toBeUndefined()
     expect((errorOf(result.stderr) as { hint: string }).hint).toMatch(
-      /^The engine requires authentication and operate sent no credentials: Basic auth is switched off by OPERATE_AUTH=none\. Use Basic auth: /,
+      /^The engine requires authentication and pulse-cli sent no credentials: Basic auth is switched off by PULSE_CLI_AUTH=none\. Use Basic auth: /,
     )
   })
 
   it("says in the 401 hint that a password without a username was not used", async () => {
-    const result = await cli(["task", "list"], { env: { OPERATE_PASSWORD: "demo" } }, 401)
+    const result = await cli(["task", "list"], { env: { PULSE_CLI_PASSWORD: "demo" } }, 401)
     expect((errorOf(result.stderr) as { hint: string }).hint).toMatch(
-      /^The engine requires authentication and operate sent no credentials: a password is set \(from OPERATE_PASSWORD\), but no username\. /,
+      /^The engine requires authentication and pulse-cli sent no credentials: a password is set \(from PULSE_CLI_PASSWORD\), but no username\. /,
     )
     expect(result.stderr).not.toContain('"demo"')
   })

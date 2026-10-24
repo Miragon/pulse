@@ -91,7 +91,7 @@ function checkTokenType(tokenType: unknown): void {
     return
   }
   throw configError(
-    `Unsupported token type "${sanitize(typeof tokenType === "string" ? tokenType : JSON.stringify(tokenType))}"; operate sends Bearer tokens only`,
+    `Unsupported token type "${sanitize(typeof tokenType === "string" ? tokenType : JSON.stringify(tokenType))}"; pulse-cli sends Bearer tokens only`,
     "Configure the client at the authorization server for Bearer tokens (no DPoP or mTLS binding).",
   )
 }
@@ -124,7 +124,7 @@ function errorDetail(error: string, description: unknown): string {
 function clientError(clientId: string, detail: string): OperateError {
   return configError(
     `The authorization server rejected client ${clientId} ${detail}`,
-    `Check the client id, the client secret source (auth.clientSecretEnv, OPERATE_OAUTH_CLIENT_SECRET) and that the client is public or confidential as configured and allows the authorization code flow and refresh tokens. Keycloak answers unauthorized_client "Invalid client or Invalid client credentials" for a wrong or missing client secret.`,
+    `Check the client id, the client secret source (auth.clientSecretEnv, PULSE_CLI_OAUTH_CLIENT_SECRET) and that the client is public or confidential as configured and allows the authorization code flow and refresh tokens. Keycloak answers unauthorized_client "Invalid client or Invalid client credentials" for a wrong or missing client secret.`,
   )
 }
 
@@ -193,7 +193,7 @@ function errorCodeOf(answer: ServerAnswer): string | undefined {
 
 function unexpected(answer: ServerAnswer, client: TokenClient): OperateError {
   const redirect =
-    answer.status >= 300 && answer.status < 400 ? " (operate follows no redirects)" : ""
+    answer.status >= 300 && answer.status < 400 ? " (pulse-cli follows no redirects)" : ""
   return configError(
     `Unexpected answer from ${shownUrl(answer.url)}: ${statusLine(answer)}${redirect}`,
     `Check the token endpoint (${client.endpoint.source}).`,

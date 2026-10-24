@@ -1,5 +1,5 @@
 /**
- * The OAuth AuthProvider: Bearer tokens from the cache of `operate auth login`,
+ * The OAuth AuthProvider: Bearer tokens from the cache of `pulse-cli auth login`,
  * refreshed shortly before they expire and once after a 401. It never starts a login: without a
  * usable token a command fails with LOGIN_REQUIRED (exit 4) and the hint names the command a
  * person runs in a terminal. Network problems, a slow authorization server or a busy lock do not
@@ -53,7 +53,7 @@ function rejectedHint(config: OAuthConfig, state: State, status: number): string
   }
   if (status !== 401) return undefined
   const again = state.reactiveRefreshDone ? ", also after refreshing it" : ""
-  return `The engine (or the gateway in front of it) rejected the OAuth access token of ${user}${again}. The authorization server issued it, but it is not accepted here: the gateway must expect exactly the issuer operate logged in with (auth.issuer: ${config.issuer ?? "not set"}; localhost and 127.0.0.1 are different issuers), and its clock must agree; \`${statusCommand(config)}\` shows scopes and expiry. If the login was revoked, run ${inTerminal(config)}.`
+  return `The engine (or the gateway in front of it) rejected the OAuth access token of ${user}${again}. The authorization server issued it, but it is not accepted here: the gateway must expect exactly the issuer pulse-cli logged in with (auth.issuer: ${config.issuer ?? "not set"}; localhost and 127.0.0.1 are different issuers), and its clock must agree; \`${statusCommand(config)}\` shows scopes and expiry. If the login was revoked, run ${inTerminal(config)}.`
 }
 
 function previewNote(login: CachedLogin, now: number, who: LoginOwner): string | undefined {
@@ -64,11 +64,11 @@ function previewNote(login: CachedLogin, now: number, who: LoginOwner): string |
   const expired = isExpired(now, login.expiresAt)
   const when = `${expired ? "expired" : "expires"} at ${iso(login.expiresAt ?? now)}`
   if (canRefresh(login, now)) {
-    return `The cached access token ${when}; operate would refresh it before sending.`
+    return `The cached access token ${when}; pulse-cli would refresh it before sending.`
   }
   return expired
-    ? `The cached access token ${when} and operate cannot refresh it: the request would fail with LOGIN_REQUIRED. Run ${inTerminal(who)}.`
-    : `The cached access token ${when} and operate cannot refresh it.`
+    ? `The cached access token ${when} and pulse-cli cannot refresh it: the request would fail with LOGIN_REQUIRED. Run ${inTerminal(who)}.`
+    : `The cached access token ${when} and pulse-cli cannot refresh it.`
 }
 
 class OAuthProvider implements AuthProvider {

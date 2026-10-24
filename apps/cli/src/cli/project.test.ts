@@ -20,7 +20,7 @@ import { loginFile, loginKey } from "../../test/support/oauth.js"
 import { run } from "./run.js"
 
 const REPO = "/home/tester/repo"
-const PROJECT = `${REPO}/.operate.json`
+const PROJECT = `${REPO}/.pulse-cli.json`
 /** The login of an OAuth profile of the user's config file and of one of the repository. */
 const OWN_LOGIN = loginFile()
 const REPO_LOGIN = loginFile(loginKey({ origin: `repository:${REPO}/.git` }))
@@ -123,16 +123,16 @@ describe("the project file in commands", () => {
     ])
   })
 
-  it("is left out with --config or OPERATE_CONFIG", async () => {
+  it("is left out with --config or PULSE_CLI_CONFIG", async () => {
     const files = { [PROJECT]: PROJECT_FILE, "/other.json": USER_FILE }
     const flag = await cli(["config", "show", "--config", "/other.json"], { files })
     expect(JSON.parse(flag.stdout)).toMatchObject({ projectFile: null, profile: "mine" })
-    const env = await cli(["config", "list"], { files, env: { OPERATE_CONFIG: "/other.json" } })
+    const env = await cli(["config", "list"], { files, env: { PULSE_CLI_CONFIG: "/other.json" } })
     expect(env.stdout).not.toContain("svc")
   })
 
   it("is not looked up in the home directory", async () => {
-    const files = { "/home/tester/.operate.json": PROJECT_FILE }
+    const files = { "/home/tester/.pulse-cli.json": PROJECT_FILE }
     const show = await cli(["config", "show"], { files, cwd: "/home/tester" })
     expect(JSON.parse(show.stdout)).toMatchObject({ projectFile: null, profile: null })
   })
@@ -144,7 +144,7 @@ describe("the project file in commands", () => {
     const result = await cli(["ping"], { files })
     expect(result.code).toBe(3)
     expect(errorOf(result.stderr).message).toBe(
-      `Invalid project file ${PROJECT}: profile "p" sets auth.token; a project file is shared and names no credentials, so it comes from OPERATE_TOKEN or OPERATE_TOKEN_COMMAND or a profile "p" of your own config file`,
+      `Invalid project file ${PROJECT}: profile "p" sets auth.token; a project file is shared and names no credentials, so it comes from PULSE_CLI_TOKEN or PULSE_CLI_TOKEN_COMMAND or a profile "p" of your own config file`,
     )
     expect(result.stderr).not.toContain("Tk9-secret")
     // the docs commands still work, with the default output format
@@ -234,10 +234,10 @@ describe("config set|unset|use|delete --project", () => {
     ])
     expect(token.code).toBe(3)
     expect(errorOf(token.stderr).message).toBe(
-      `The project file ${PROJECT} cannot be written: profile "p" sets auth.token; a project file is shared and names no credentials, so it comes from OPERATE_TOKEN or OPERATE_TOKEN_COMMAND or a profile "p" of your own config file`,
+      `The project file ${PROJECT} cannot be written: profile "p" sets auth.token; a project file is shared and names no credentials, so it comes from PULSE_CLI_TOKEN or PULSE_CLI_TOKEN_COMMAND or a profile "p" of your own config file`,
     )
     expect(errorOf(token.stderr).hint).toBe(
-      "Credentials come from the environment (OPERATE_TOKEN, OPERATE_TOKEN_COMMAND, OPERATE_PASSWORD, OPERATE_OAUTH_CLIENT_SECRET) or from a profile of the same name in your own config file. Remove it from the project file, e.g. with `operate config unset <profile> auth --project` (`headers` for a secret header), and a committed secret from the history of your repository, too.",
+      "Credentials come from the environment (PULSE_CLI_TOKEN, PULSE_CLI_TOKEN_COMMAND, PULSE_CLI_PASSWORD, PULSE_CLI_OAUTH_CLIENT_SECRET) or from a profile of the same name in your own config file. Remove it from the project file, e.g. with `pulse-cli config unset <profile> auth --project` (`headers` for a secret header), and a committed secret from the history of your repository, too.",
     )
     const variable = await sequence(runtime, [
       "config",
@@ -275,7 +275,9 @@ describe("config set|unset|use|delete --project", () => {
     const refused = await sequence(runtime, ["task", "list"])
     expect(refused.code).toBe(3)
     expect(errorOf(refused.stderr).message).toContain('profile "p" sets auth.tokenEnv;')
-    expect(errorOf(refused.stderr).hint).toContain("operate config unset <profile> auth --project")
+    expect(errorOf(refused.stderr).hint).toContain(
+      "pulse-cli config unset <profile> auth --project",
+    )
     const unset = await sequence(runtime, ["config", "unset", "p", "tokenEnv", "--project"])
     expect(unset.code).toBe(0)
     expect(JSON.parse(fileText(runtime, PROJECT) ?? "")).toEqual({
@@ -295,7 +297,7 @@ describe("config set|unset|use|delete --project", () => {
       expect(result.code, args.join(" ")).toBe(3)
       expect(errorOf(result.stderr)).toMatchObject({
         message: `Profile "svc" is a profile of the project file ${PROJECT}, not of your config file`,
-        hint: "Add --project to change the project file; `operate config set svc <options>` without it creates a profile of your own that overrides the project's.",
+        hint: "Add --project to change the project file; `pulse-cli config set svc <options>` without it creates a profile of your own that overrides the project's.",
       })
     }
     // a profile in neither file keeps the usual error
@@ -308,7 +310,7 @@ describe("config set|unset|use|delete --project", () => {
     const mine = await sequence(runtime, ["config", "set", "mine", "--url", "http://mine/x"])
     expect(mine.code).toBe(0)
     expect(mine.stderr).toBe(
-      `Notice: in this repository the defaultProfile of the project file ${PROJECT} ("svc") wins; use --profile, OPERATE_PROFILE or \`operate config use <profile> --project\`.\n`,
+      `Notice: in this repository the defaultProfile of the project file ${PROJECT} ("svc") wins; use --profile, PULSE_CLI_PROFILE or \`pulse-cli config use <profile> --project\`.\n`,
     )
     const set = await sequence(runtime, ["config", "set", "shared", "--engine", "mine"])
     expect(set.stderr).toBe(
@@ -342,14 +344,14 @@ describe("config set|unset|use|delete --project", () => {
       files: { [PROJECT]: json5({ defaultProfile: "prod", profiles: { svc: { url: BASE_URL } } }) },
     })
     const hint = errorOf((await sequence(runtime, ["config", "list"])).stderr).hint
-    expect(hint).toContain("`operate config use <profile> --project`")
+    expect(hint).toContain("`pulse-cli config use <profile> --project`")
     expect((await sequence(runtime, ["config", "use", "svc", "--project"])).code).toBe(0)
     expect(JSON.parse(fileText(runtime, PROJECT) ?? "")).toMatchObject({ defaultProfile: "svc" })
     expect((await sequence(runtime, ["task", "list"])).code).toBe(0)
   })
 
   it("keeps the logins of a project profile and a profile of the same name of yours apart, and the repository login on delete", async () => {
-    const auth = { type: "oauth", issuer: ISSUER, clientId: "operate-cli" }
+    const auth = { type: "oauth", issuer: ISSUER, clientId: "pulse-cli" }
     const files = {
       [PROJECT]: json5({
         profiles: { shared: { url: "http://project-shared/engine-rest", auth } },

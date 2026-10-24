@@ -24,7 +24,7 @@ describe("run: usage errors", () => {
           code: "USAGE",
           exitCode: 2,
           message: 'Unknown command "tsk"',
-          hint: 'Did you mean task? Run "operate --help" for the commands, or search all commands with "operate commands --search tsk".',
+          hint: 'Did you mean task? Run "pulse-cli --help" for the commands, or search all commands with "pulse-cli commands --search tsk".',
         },
       })}\n`,
     )
@@ -37,7 +37,7 @@ describe("run: usage errors", () => {
       code: "USAGE",
       exitCode: 2,
       message: 'Unknown command "lsit"',
-      hint: 'Did you mean list? Run "operate task --help" for the commands, or search all commands with "operate commands --search lsit".',
+      hint: 'Did you mean list? Run "pulse-cli task --help" for the commands, or search all commands with "pulse-cli commands --search lsit".',
     })
   })
 
@@ -48,7 +48,7 @@ describe("run: usage errors", () => {
       code: "USAGE",
       exitCode: 2,
       message: 'Unknown option "--assigne"',
-      hint: 'Did you mean one of --assignee, --assigned? Run "operate task list --help" for the usage.',
+      hint: 'Did you mean one of --assignee, --assigned? Run "pulse-cli task list --help" for the usage.',
     })
   })
 
@@ -59,7 +59,7 @@ describe("run: usage errors", () => {
       code: "USAGE",
       exitCode: 2,
       message: "Missing required argument 'id'",
-      hint: 'Run "operate task claim --help" for the usage.',
+      hint: 'Run "pulse-cli task claim --help" for the usage.',
     })
   })
 
@@ -86,18 +86,18 @@ describe("run: usage errors", () => {
     expect(result.stderr).toBe(
       [
         'Error: Unknown command "lsit"',
-        '  Hint: Did you mean list? Run "operate task --help" for the commands, or search all commands with "operate commands --search lsit".',
+        '  Hint: Did you mean list? Run "pulse-cli task --help" for the commands, or search all commands with "pulse-cli commands --search lsit".',
         "",
       ].join("\n"),
     )
   })
 
-  it("takes the error format from -o in argv, then OPERATE_OUTPUT", async () => {
+  it("takes the error format from -o in argv, then PULSE_CLI_OUTPUT", async () => {
     const fromArgv = await cli(["task", "lsit", "-o", "table"], {
-      env: { OPERATE_OUTPUT: "json" },
+      env: { PULSE_CLI_OUTPUT: "json" },
     })
     expect(fromArgv.stderr).toMatch(/^Error: Unknown command "lsit"/)
-    const fromEnv = await cli(["task", "lsit"], { env: { OPERATE_OUTPUT: "table" } })
+    const fromEnv = await cli(["task", "lsit"], { env: { PULSE_CLI_OUTPUT: "table" } })
     expect(fromEnv.stderr).toMatch(/^Error: /)
   })
 
@@ -119,12 +119,14 @@ describe("run: help and version", () => {
     const plain = await cli([])
     expect(plain.code).toBe(0)
     expect(plain.stderr).toBe("")
-    expect(plain.stdout).toMatch(/^Usage: operate \[options\] \[command\]\n\nAI-first command line/)
+    expect(plain.stdout).toMatch(
+      /^Usage: pulse-cli \[options\] \[command\]\n\nAI-first command line/,
+    )
     expect(plain.stdout).toContain("\nAPI groups:\n  authorization ")
     expect(plain.stdout).toMatch(/\n {2}ping +Check the connection to the engine\n/)
     expect(plain.stdout).toMatch(/\n {2}config \[command\] +Manage the config file/)
     expect(plain.stdout).toContain("  help [command]  ")
-    expect(plain.stdout).toContain("\nGet started:\n  operate ping ")
+    expect(plain.stdout).toContain("\nGet started:\n  pulse-cli ping ")
     expect(plain.stdout).toMatch(
       /\nExit codes:\n {2}0 {2}success\n(?:.*\n)* {2}9 {2}the process did not reach the expected state .*\n {5}INSTANCE_ENDED, JOB_FAILED, CHECK_FAILED\)\n$/,
     )
@@ -179,12 +181,12 @@ describe("run: help and version", () => {
     const result = await cli(["task"])
     expect(result.code).toBe(0)
     expect(result.stderr).toBe("")
-    expect(result.stdout).toMatch(/^Usage: operate task \[options\] \[command\]\n\nQuery, claim/)
+    expect(result.stdout).toMatch(/^Usage: pulse-cli task \[options\] \[command\]\n\nQuery, claim/)
     expect(result.stdout).toMatch(/\n {2}claim <id> +Claim a task for a user\n/)
     // aliases only in the help of the command itself
     expect(result.stdout).toMatch(/\n {2}list +List tasks\n/)
     expect(result.stdout).not.toContain("get-tasks")
-    expect(result.stdout).toContain('Run "operate <group> <command> --help"')
+    expect(result.stdout).toContain('Run "pulse-cli <group> <command> --help"')
     for (const args of [
       ["task", "--help"],
       ["help", "task"],
@@ -199,12 +201,12 @@ describe("run: help and version", () => {
     const result = await cli(["task", "claim", "--help"])
     expect(result.code).toBe(0)
     expect(result.stdout).toMatch(
-      /^Usage: operate task claim <id> \[options\]\n\nClaim a task for a user\n\nPOST \/task\/\{id\}\/claim\nEffect: write\n\nArguments:\n {2}id +The id of the task to claim\.\n\nOptions:\n {2}--user-id <value> +/,
+      /^Usage: pulse-cli task claim <id> \[options\]\n\nClaim a task for a user\n\nPOST \/task\/\{id\}\/claim\nEffect: write\n\nArguments:\n {2}id +The id of the task to claim\.\n\nOptions:\n {2}--user-id <value> +/,
     )
     expect(result.stdout).toContain("\nGlobal Options:\n  --url <url> ")
     expect(result.stdout).toMatch(/\n {2}-o, --output <format> +json or table/)
     expect(result.stdout).toMatch(
-      /\n {2}-h, --help +Display help for command\n\nExamples:\n {2}\$ operate task claim 7c1d9e20-0f4a-11ef-a1b2-0242ac120002 --user-id demo\n$/,
+      /\n {2}-h, --help +Display help for command\n\nExamples:\n {2}\$ pulse-cli task claim 7c1d9e20-0f4a-11ef-a1b2-0242ac120002 --user-id demo\n$/,
     )
     const viaHelp = await cli(["task", "help", "claim"])
     expect(viaHelp.stdout).toBe(result.stdout)
@@ -228,15 +230,15 @@ describe("run: help and version", () => {
       [
         "",
         "Examples:",
-        "  $ operate process-definition start invoice --business-key INV-1001 --var amount=250 --var approved=false",
-        "  $ operate process-definition start invoice --var invoiceDate:Date=2024-05-01 --var zip:String=01234",
-        "  $ operate process-definition start invoice --body @start.json --business-key INV-1002",
+        "  $ pulse-cli process-definition start invoice --business-key INV-1001 --var amount=250 --var approved=false",
+        "  $ pulse-cli process-definition start invoice --var invoiceDate:Date=2024-05-01 --var zip:String=01234",
+        "  $ pulse-cli process-definition start invoice --body @start.json --business-key INV-1002",
         "",
       ].join("\n"),
     )
     const generic = await cli(["task-identity-link", "add", "--help"])
     expect(generic.stdout).toMatch(
-      /\n\nExamples:\n {2}\$ operate task-identity-link add my-id --type my-type\n$/,
+      /\n\nExamples:\n {2}\$ pulse-cli task-identity-link add my-id --type my-type\n$/,
     )
   })
 
@@ -251,10 +253,10 @@ describe("run: help and version", () => {
     const [help = "", examples] = narrow.stdout.split("\nExamples:\n")
     expect(Math.max(...help.split("\n").map((line) => line.length))).toBeLessThanOrEqual(70)
     expect(examples).toBe(
-      "  $ operate task claim 7c1d9e20-0f4a-11ef-a1b2-0242ac120002 --user-id demo\n",
+      "  $ pulse-cli task claim 7c1d9e20-0f4a-11ef-a1b2-0242ac120002 --user-id demo\n",
     )
     expect(wide.stdout).toContain(
-      "--url <url>            REST API root, e.g. http://localhost:8080/engine-rest (env OPERATE_URL)\n",
+      "--url <url>            REST API root, e.g. http://localhost:8080/engine-rest (env PULSE_CLI_URL)\n",
     )
   })
 })
@@ -277,7 +279,7 @@ describe("run: global options", () => {
   })
 
   it("accepts global options before nested utility commands", async () => {
-    const result = await cli(["-ojson", "config", "path"], { env: { OPERATE_CONFIG: "/c.json" } })
+    const result = await cli(["-ojson", "config", "path"], { env: { PULSE_CLI_CONFIG: "/c.json" } })
     expect(result).toMatchObject({ code: 0, stdout: '{"path":"/c.json"}\n' })
   })
 

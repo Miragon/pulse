@@ -25,7 +25,7 @@ function failure(action: () => unknown): OperateError {
   throw new Error("expected an error")
 }
 
-const LABEL = "from OPERATE_OAUTH_ISSUER"
+const LABEL = "from PULSE_CLI_OAUTH_ISSUER"
 
 describe("validateOAuthUrl", () => {
   it.each([
@@ -44,7 +44,7 @@ describe("validateOAuthUrl", () => {
       "https://as/authorize?tenant=x",
     )
     expect(failure(() => validateOAuthUrl("https://as/?x=1", "issuer", LABEL)).message).toBe(
-      'The OAuth issuer (from OPERATE_OAUTH_ISSUER) must not contain a query, got "https://as/?…"',
+      'The OAuth issuer (from PULSE_CLI_OAUTH_ISSUER) must not contain a query, got "https://as/?…"',
     )
   })
 
@@ -78,7 +78,7 @@ describe("validateOAuthUrl", () => {
 
   it("refuses a relative URL, never repeating credentials", () => {
     expect(failure(() => validateOAuthUrl("/realms/x", "issuer", LABEL)).message).toBe(
-      'Invalid OAuth issuer "/realms/x" (from OPERATE_OAUTH_ISSUER)',
+      'Invalid OAuth issuer "/realms/x" (from PULSE_CLI_OAUTH_ISSUER)',
     )
     const scheme = failure(() => validateOAuthUrl("user:pw@as", "issuer", LABEL))
     expect(scheme.message).toContain('got "***@as"')
@@ -95,7 +95,7 @@ describe("validateOAuthUrl", () => {
 
 describe("client values", () => {
   it("trims a printable ASCII client id", () => {
-    expect(validateClientId(" operate-cli ", LABEL)).toBe("operate-cli")
+    expect(validateClientId(" pulse-cli ", LABEL)).toBe("pulse-cli")
     for (const id of ["", "  ", "ä", "a\tb"]) {
       expect(failure(() => validateClientId(id, "from --oauth-client-id")).message).toBe(
         "The OAuth client id (from --oauth-client-id) must be printable ASCII and not empty",
@@ -106,18 +106,18 @@ describe("client values", () => {
   it("keeps a client secret exactly, refusing control characters without repeating it", () => {
     expect(validateClientSecret(" s p ä ", LABEL)).toBe(" s p ä ")
     const error = failure(() =>
-      validateClientSecret("top\nsecret", "from OPERATE_OAUTH_CLIENT_SECRET"),
+      validateClientSecret("top\nsecret", "from PULSE_CLI_OAUTH_CLIENT_SECRET"),
     )
     expect(error.message).toBe(
-      "The OAuth client secret (from OPERATE_OAUTH_CLIENT_SECRET) must not contain control characters (line breaks, NUL, tab, ...)",
+      "The OAuth client secret (from PULSE_CLI_OAUTH_CLIENT_SECRET) must not contain control characters (line breaks, NUL, tab, ...)",
     )
     expect(JSON.stringify(error.details)).not.toContain("top")
   })
 
   it("trims a printable ASCII audience", () => {
     expect(validateAudience(" engine-rest ", LABEL)).toBe("engine-rest")
-    expect(failure(() => validateAudience(" ", "from OPERATE_OAUTH_AUDIENCE")).message).toBe(
-      "The OAuth audience (from OPERATE_OAUTH_AUDIENCE) must be printable ASCII and not empty",
+    expect(failure(() => validateAudience(" ", "from PULSE_CLI_OAUTH_AUDIENCE")).message).toBe(
+      "The OAuth audience (from PULSE_CLI_OAUTH_AUDIENCE) must be printable ASCII and not empty",
     )
   })
 })
@@ -167,9 +167,9 @@ describe("parseRedirectPort", () => {
 
   it.each(["65536", "-1", "1.5", "x", "", 70_000, 1.5])("refuses %j", (value) => {
     expect(
-      failure(() => parseRedirectPort(value, "from OPERATE_OAUTH_REDIRECT_PORT")).message,
+      failure(() => parseRedirectPort(value, "from PULSE_CLI_OAUTH_REDIRECT_PORT")).message,
     ).toBe(
-      `The OAuth redirect port (from OPERATE_OAUTH_REDIRECT_PORT) must be a whole number between 0 and 65535, got "${value}"`,
+      `The OAuth redirect port (from PULSE_CLI_OAUTH_REDIRECT_PORT) must be a whole number between 0 and 65535, got "${value}"`,
     )
   })
 })
@@ -227,7 +227,7 @@ describe("profileAuthProblem with OAuth keys", () => {
     ],
     [
       { type: "oauth", clientSecretEnv: "my-secret" },
-      'profile "p" has an invalid auth.clientSecretEnv (expected the name of an environment variable, e.g. OPERATE_CLIENT_SECRET)',
+      'profile "p" has an invalid auth.clientSecretEnv (expected the name of an environment variable, e.g. PULSE_CLI_CLIENT_SECRET)',
     ],
     [
       { type: "oauth", clientId: " " },

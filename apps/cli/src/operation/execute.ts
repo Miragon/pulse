@@ -35,7 +35,7 @@ export async function executeOperation(
   input: OperationInput,
   options: ExecuteOptions,
 ): Promise<OperationResult> {
-  checkEffect(operation.effect, `operate ${operation.group} ${operation.name}`, options)
+  checkEffect(operation.effect, `pulse-cli ${operation.group} ${operation.name}`, options)
   if (options.validate) checkBody(operation, input, options.schemas)
   const paginate = options.all && isPaginated(operation)
   if (options.dryRun) {

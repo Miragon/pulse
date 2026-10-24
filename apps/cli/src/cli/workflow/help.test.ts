@@ -22,7 +22,7 @@ async function help(name: string): Promise<string> {
 describe("workflow command help", () => {
   it("documents inspect", async () => {
     expect(await help("inspect")).toMatchInlineSnapshot(`
-      "Usage: operate inspect [process-instance-id] [options]
+      "Usage: pulse-cli inspect [process-instance-id] [options]
 
       Shows where a process instance waits and why in one call: its wait states (user
       tasks, external tasks, messages, timers, jobs, ...) across the called instances
@@ -62,16 +62,16 @@ describe("workflow command help", () => {
       Global Options: (see help-texts.test.ts)
 
       Examples:
-        $ operate inspect $INSTANCE_ID
-        $ operate inspect --business-key B-1 --history
-        $ operate inspect --process-definition-key order-process --latest --no-variables
+        $ pulse-cli inspect $INSTANCE_ID
+        $ pulse-cli inspect --business-key B-1 --history
+        $ pulse-cli inspect --process-definition-key order-process --latest --no-variables
       "
     `)
   })
 
   it("documents wait", async () => {
     expect(await help("wait")).toMatchInlineSnapshot(`
-      "Usage: operate wait [process-instance-id] [options]
+      "Usage: pulse-cli wait [process-instance-id] [options]
 
       Waits until the process instance is idle (no executable job left, so it rests in
       wait states), or until the --until conditions; fails fast with exit code 9
@@ -120,17 +120,17 @@ describe("workflow command help", () => {
       Global Options: (see help-texts.test.ts)
 
       Examples:
-        $ operate wait $INSTANCE_ID
-        $ operate wait --business-key B-1 --until task --until ended --wait-timeout 2m
-        $ operate wait $INSTANCE_ID --until activity:book --execute-jobs
-        $ operate wait --batch $BATCH_ID
+        $ pulse-cli wait $INSTANCE_ID
+        $ pulse-cli wait --business-key B-1 --until task --until ended --wait-timeout 2m
+        $ pulse-cli wait $INSTANCE_ID --until activity:book --execute-jobs
+        $ pulse-cli wait --batch $BATCH_ID
       "
     `)
   })
 
   it("documents advance", async () => {
     expect(await help("advance")).toMatchInlineSnapshot(`
-      "Usage: operate advance [process-instance-id] [options]
+      "Usage: pulse-cli advance [process-instance-id] [options]
 
       Completes what the process instance waits for, without passing ids around:
       completes a user task, locks and completes an external task (or reports a
@@ -143,7 +143,7 @@ describe("workflow command help", () => {
       (or /failure, /bpmnError; /unlock when that fails); POST
       /execution/{id}/messageSubscriptions/{name}/trigger; POST /signal; POST
       /execution/{id}/signal; or POST /job/{id}/execute; then the instance view, with
-      --wait or --until the polls of operate wait (GET /process-instance/{id}, the
+      --wait or --until the polls of pulse-cli wait (GET /process-instance/{id}, the
       tree, counts of executable jobs, tasks or activities, then of incidents; before
       idle the instance and the tree once more); before the writes, activity and task
       ids of --until are looked up in the BPMN (GET /process-definition/{id}/xml).
@@ -202,16 +202,16 @@ describe("workflow command help", () => {
       Global Options: (see help-texts.test.ts)
 
       Examples:
-        $ operate advance $INSTANCE_ID --var approved=true
-        $ operate advance --business-key B-1 --activity-id charge-card --var charged=true --wait
-        $ operate advance $INSTANCE_ID --activity-id charge-card --fail 'Card declined'
+        $ pulse-cli advance $INSTANCE_ID --var approved=true
+        $ pulse-cli advance --business-key B-1 --activity-id charge-card --var charged=true --wait
+        $ pulse-cli advance $INSTANCE_ID --activity-id charge-card --fail 'Card declined'
       "
     `)
   })
 
   it("documents retry", async () => {
     expect(await help("retry")).toMatchInlineSnapshot(`
-      "Usage: operate retry [process-instance-id] [options]
+      "Usage: pulse-cli retry [process-instance-id] [options]
 
       Sets the retries of the failed jobs and external tasks behind open incidents:
       the incidents of a process instance tree, the named incidents (--incident), or
@@ -225,7 +225,7 @@ describe("workflow command help", () => {
       /incident per instance (or GET /incident/{id}, or GET
       /incident?processDefinitionKeyIn=), GET /incident/{id} for root causes that were
       not loaded, PUT /job/{id}/retries or PUT /external-task/{id}/retries, with --now
-      POST /job/{id}/execute, with --wait or --until the polls of operate wait (GET
+      POST /job/{id}/execute, with --wait or --until the polls of pulse-cli wait (GET
       /process-instance/{id}, the tree, counts of executable jobs, tasks or
       activities, then of incidents; before idle the instance and the tree once more);
       before the writes, activity and task ids of --until are looked up in the BPMN
@@ -269,16 +269,16 @@ describe("workflow command help", () => {
       Global Options: (see help-texts.test.ts)
 
       Examples:
-        $ operate retry $INSTANCE_ID --now
-        $ operate retry --incident $INCIDENT_ID
-        $ operate retry --process-definition-key payment --activity-id call-psp --dry-run
+        $ pulse-cli retry $INSTANCE_ID --now
+        $ pulse-cli retry --incident $INCIDENT_ID
+        $ pulse-cli retry --process-definition-key payment --activity-id call-psp --dry-run
       "
     `)
   })
 
   it("documents deploy", async () => {
     expect(await help("deploy")).toMatchInlineSnapshot(`
-      "Usage: operate deploy <paths...> [options]
+      "Usage: pulse-cli deploy <paths...> [options]
 
       Deploys files and directories (scanned for *.bpmn, *.bpmn20.xml, *.dmn,
       *.dmn11.xml and *.form, skipping dot-directories and node_modules) with the same
@@ -292,7 +292,7 @@ describe("workflow command help", () => {
       deployments of the name and source) and GET /process-definition, GET
       /decision-definition and GET /decision-requirements-definition per resource,
       with --start POST /process-definition/key/{key}/start and the instance view,
-      with --wait or --until the polls of operate wait (GET /process-instance/{id},
+      with --wait or --until the polls of pulse-cli wait (GET /process-instance/{id},
       the tree, counts of executable jobs, tasks or activities, then of incidents;
       before idle the instance and the tree once more).
 
@@ -334,15 +334,15 @@ describe("workflow command help", () => {
       Global Options: (see help-texts.test.ts)
 
       Examples:
-        $ operate deploy src/main/resources
-        $ operate deploy order-process.bpmn approval.dmn --start --business-key B-1 --var amount=250 --wait
+        $ pulse-cli deploy src/main/resources
+        $ pulse-cli deploy order-process.bpmn approval.dmn --start --business-key B-1 --var amount=250 --wait
       "
     `)
   })
 
   it("documents status", async () => {
     expect(await help("status")).toMatchInlineSnapshot(`
-      "Usage: operate status [options]
+      "Usage: pulse-cli status [options]
 
       Engine triage in one call: the definitions with instances and incidents, the
       root incidents grouped by definition, activity, type and message with their root
@@ -371,8 +371,8 @@ describe("workflow command help", () => {
       Global Options: (see help-texts.test.ts)
 
       Examples:
-        $ operate status
-        $ operate status --process-definition-key payment --fail-on warning
+        $ pulse-cli status
+        $ pulse-cli status --process-definition-key payment --fail-on warning
       "
     `)
   })

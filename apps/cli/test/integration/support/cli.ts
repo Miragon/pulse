@@ -1,7 +1,7 @@
 /**
- * Runs the built CLI (`dist/operate.js`) as a child process, the way an agent or a script calls it:
+ * Runs the built CLI (`dist/pulse-cli.js`) as a child process, the way an agent or a script calls it:
  * no TTY (so JSON is the default output), a clean environment and an isolated config file.
- * `OPERATE_IT_BINARY` runs a standalone executable instead, started directly.
+ * `PULSE_CLI_IT_BINARY` runs a standalone executable instead, started directly.
  */
 
 import { existsSync } from "node:fs"
@@ -17,20 +17,20 @@ import {
 
 export const REPO_ROOT = fileURLToPath(new URL("../../../", import.meta.url))
 
-/** Optional path of another CLI entry script to test instead of the built `dist/operate.js`. */
-const CLI_ENV = "OPERATE_IT_CLI"
+/** Optional path of another CLI entry script to test instead of the built `dist/pulse-cli.js`. */
+const CLI_ENV = "PULSE_CLI_IT_CLI"
 /**
  * Optional path of a standalone executable
  * (`pnpm --fail-if-no-match --filter @miragon/pulse-cli build:exe`) to test instead of a script;
  * absolute, so the existence check and the start agree whatever the working directory.
  */
-const BINARY_ENV = "OPERATE_IT_BINARY"
+const BINARY_ENV = "PULSE_CLI_IT_BINARY"
 const binaryEnv = process.env[BINARY_ENV]
 const BINARY = binaryEnv === undefined || binaryEnv === "" ? undefined : resolve(binaryEnv)
 const CLI_PATH =
   BINARY ??
   process.env[CLI_ENV] ??
-  fileURLToPath(new URL("../../../dist/operate.js", import.meta.url))
+  fileURLToPath(new URL("../../../dist/pulse-cli.js", import.meta.url))
 /** Executable and leading arguments that start the CLI. */
 const CLI_COMMAND: readonly [string, ...string[]] =
   BINARY === undefined ? [process.execPath, CLI_PATH] : [BINARY]
@@ -60,11 +60,11 @@ export interface CliResult extends ProcessResult {
 }
 
 export interface CliOptions {
-  /** Exported as `OPERATE_URL`. */
+  /** Exported as `PULSE_CLI_URL`. */
   readonly url?: string
-  /** Exported as `OPERATE_CONFIG`. */
+  /** Exported as `PULSE_CLI_CONFIG`. */
   readonly configFile?: string
-  /** Applied last; `undefined` removes a variable (e.g. `{ OPERATE_URL: undefined }`). */
+  /** Applied last; `undefined` removes a variable (e.g. `{ PULSE_CLI_URL: undefined }`). */
   readonly env?: EnvOverrides
   readonly stdin?: string | Uint8Array
   readonly cwd?: string
@@ -147,12 +147,12 @@ function toCliResult(result: ProcessResult): CliResult {
   }
 }
 
-/** Starts `node dist/operate.js <args>` (or the binary); stderr can be watched while it runs. */
+/** Starts `node dist/pulse-cli.js <args>` (or the binary); stderr can be watched while it runs. */
 function startCli(args: readonly string[], options: CliOptions = {}): RunningCli {
   assertCliBuilt()
   const env = cleanEnv({
-    ...(options.url === undefined ? {} : { OPERATE_URL: options.url }),
-    ...(options.configFile === undefined ? {} : { OPERATE_CONFIG: options.configFile }),
+    ...(options.url === undefined ? {} : { PULSE_CLI_URL: options.url }),
+    ...(options.configFile === undefined ? {} : { PULSE_CLI_CONFIG: options.configFile }),
     ...options.env,
   })
   const [file, ...leading] = CLI_COMMAND
@@ -173,7 +173,7 @@ function startCli(args: readonly string[], options: CliOptions = {}): RunningCli
   }
 }
 
-/** Runs `node dist/operate.js <args>` and captures exit code, stdout and stderr. */
+/** Runs `node dist/pulse-cli.js <args>` and captures exit code, stdout and stderr. */
 function runCli(args: readonly string[], options: CliOptions = {}): Promise<CliResult> {
   return startCli(args, options).result()
 }

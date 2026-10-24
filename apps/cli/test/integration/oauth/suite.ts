@@ -61,7 +61,7 @@ export function authArgs(
   return ["auth", command, "--profile", profile, ...extra]
 }
 
-/** `operate process-definition count --profile <profile> [flags...]`, a read the gateway guards. */
+/** `pulse-cli process-definition count --profile <profile> [flags...]`, a read the gateway guards. */
 export function countArgs(profile: string, ...flags: string[]): string[] {
   return [...argv("process-definition count"), globalFlag("profile"), profile, ...flags]
 }

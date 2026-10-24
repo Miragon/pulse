@@ -1,7 +1,7 @@
 /**
  * Smoke test of the published artifact: `npm pack` of the bundle the build put into `dist/` (as the
  * publish workflow packs it: build first, no prepack script), install the tarball into a temporary
- * global prefix and run the installed `operate` binary.
+ * global prefix and run the installed `pulse-cli` binary.
  *
  * The pack runs in a copy of the package tree, so nothing it writes lands next to the `dist/` the
  * engine suites execute in parallel.
@@ -15,9 +15,9 @@ import { REPO_ROOT } from "./support/cli.js"
 import { cleanEnv, describeResult, type ProcessResult, runProcess } from "./support/process.js"
 import { makeTempDir, removeTempDir } from "./support/temp.js"
 
-const SKIP_ENV = "OPERATE_IT_SKIP_PACK"
-const PACKAGE_NAME = "@miragon/operate"
-const BIN_NAME = "operate"
+const SKIP_ENV = "PULSE_CLI_IT_SKIP_PACK"
+const PACKAGE_NAME = "@miragon/pulse-cli"
+const BIN_NAME = "pulse-cli"
 const SETUP_TIMEOUT_MS = 300_000
 const NPM_TIMEOUT_MS = 240_000
 const IS_WINDOWS = process.platform === "win32"
@@ -103,14 +103,14 @@ describe("packed npm tarball", () => {
   let workdir: string | undefined
   let prefix = ""
 
-  const operate = (args: readonly string[]) =>
+  const pulseCli = (args: readonly string[]) =>
     runProcess(installedBin(prefix), args, {
       cwd: workdir ?? REPO_ROOT,
       env: cleanEnv({ XDG_CONFIG_HOME: workdir }),
     })
 
   beforeAll(async () => {
-    workdir = await makeTempDir("operate-it-pack-")
+    workdir = await makeTempDir("pulse-cli-it-pack-")
     const tree = join(workdir, "tree")
     const packDir = join(workdir, "pack")
     prefix = join(workdir, "prefix")
@@ -126,7 +126,7 @@ describe("packed npm tarball", () => {
 
   it("installs the bundle without sources", () => {
     const packageDir = installedPackageDir(prefix)
-    expect(existsSync(join(packageDir, "dist", "operate.js"))).toBe(true)
+    expect(existsSync(join(packageDir, "dist", "pulse-cli.js"))).toBe(true)
     expect(existsSync(join(packageDir, "src"))).toBe(false)
     expect(existsSync(join(packageDir, "test"))).toBe(false)
     expect(existsSync(installedBin(prefix))).toBe(true)
@@ -138,8 +138,8 @@ describe("packed npm tarball", () => {
       expect(existsSync(join(packageDir, file)), file).toBe(true)
     }
     const skill = await readFile(join(packageDir, "skills", "pulse-cli", "SKILL.md"), "utf8")
-    expect(skill).toMatch(/^---\nname: operate\n/)
-    expect(await readFile(join(packageDir, "README.md"), "utf8")).toContain("operate")
+    expect(skill).toMatch(/^---\nname: pulse-cli\n/)
+    expect(await readFile(join(packageDir, "README.md"), "utf8")).toContain("pulse-cli")
   })
 
   it("ships the Claude Code plugin of the skill without its evals", () => {
@@ -154,36 +154,36 @@ describe("packed npm tarball", () => {
     const manifest = JSON.parse(await readFile(join(REPO_ROOT, "package.json"), "utf8")) as {
       version: string
     }
-    const result = expectSuccess(await operate(["--version"]))
+    const result = expectSuccess(await pulseCli(["--version"]))
     expect(result.stdout.trim()).toBe(manifest.version)
   })
 
   it("lists the command groups", async () => {
-    const result = expectSuccess(await operate(["commands"]))
+    const result = expectSuccess(await pulseCli(["commands"]))
     const groups = JSON.parse(result.stdout) as unknown
     expect(groups).toContainEqual(expect.objectContaining({ group: "process-instance" }))
   })
 
   it("prints the shell completion scripts and completes from the installed bin", async () => {
-    const script = expectSuccess(await operate(["completion", "bash"]))
-    expect(script.stdout).toContain("complete -o nospace -F _operate_complete operate")
-    const candidates = expectSuccess(await operate(["__complete", "proc"]))
+    const script = expectSuccess(await pulseCli(["completion", "bash"]))
+    expect(script.stdout).toContain("complete -o nospace -F _pulse_cli_complete pulse-cli")
+    const candidates = expectSuccess(await pulseCli(["__complete", "proc"]))
     const values = candidates.stdout.split("\n").map((line) => line.split("\t")[0])
     expect(values).toEqual(expect.arrayContaining(["process-definition", "process-instance"]))
     expect(candidates.stderr).toBe("")
   })
 
   it("prints the agent guide, the body of the skill, and its topics", async () => {
-    const result = expectSuccess(await operate(["guide"]))
-    expect(result.stdout).toMatch(/^# operate: /)
+    const result = expectSuccess(await pulseCli(["guide"]))
+    expect(result.stdout).toMatch(/^# pulse-cli: /)
     const skillPath = join(installedPackageDir(prefix), "skills", "pulse-cli", "SKILL.md")
     expect((await readFile(skillPath, "utf8")).endsWith(`\n---\n\n${result.stdout}`)).toBe(true)
-    const list = expectSuccess(await operate(["guide", "--list"]))
+    const list = expectSuccess(await pulseCli(["guide", "--list"]))
     const topics = (JSON.parse(list.stdout) as { topic: string }[]).map(({ topic }) => topic)
     expect(topics).toEqual(expect.arrayContaining(["workflow", "auth", "recipes"]))
     for (const topic of topics) {
-      const page = expectSuccess(await operate(["guide", topic]))
-      expect(page.stdout.startsWith(`# operate guide ${topic}: `), topic).toBe(true)
+      const page = expectSuccess(await pulseCli(["guide", topic]))
+      expect(page.stdout.startsWith(`# pulse-cli guide ${topic}: `), topic).toBe(true)
       expect(result.stdout).toContain(`\n- \`${topic}\`: `)
     }
   })

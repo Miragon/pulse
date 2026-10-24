@@ -21,7 +21,7 @@ import {
 const NOW = 1_700_000_000_000
 const P = { profile: "p" }
 const HINT =
-  "Run `operate auth login --profile p` in a terminal: a person logs in once in the browser, operate refreshes the token afterwards. Agents cannot log in themselves."
+  "Run `pulse-cli auth login --profile p` in a terminal: a person logs in once in the browser, pulse-cli refreshes the token afterwards. Agents cannot log in themselves."
 
 function thrown(action: () => void): OperateError {
   try {
@@ -34,13 +34,13 @@ function thrown(action: () => void): OperateError {
 }
 
 describe("login hint", () => {
-  it("names the profile, or OPERATE_AUTH and the OPERATE_OAUTH_* settings without one", () => {
+  it("names the profile, or PULSE_CLI_AUTH and the PULSE_CLI_OAUTH_* settings without one", () => {
     expect(loginHint(P)).toBe(HINT)
     expect(loginHint({})).toBe(
-      "Run `operate auth login` in a terminal with OPERATE_AUTH=oauth and the same OPERATE_OAUTH_* settings: a person logs in once in the browser, operate refreshes the token afterwards. Agents cannot log in themselves.",
+      "Run `pulse-cli auth login` in a terminal with PULSE_CLI_AUTH=oauth and the same PULSE_CLI_OAUTH_* settings: a person logs in once in the browser, pulse-cli refreshes the token afterwards. Agents cannot log in themselves.",
     )
-    expect(loginCommand({ profile: "prod" })).toBe("operate auth login --profile prod")
-    expect(loginCommand({ configFile: "/c.json" })).toBe("operate auth login")
+    expect(loginCommand({ profile: "prod" })).toBe("pulse-cli auth login --profile prod")
+    expect(loginCommand({ configFile: "/c.json" })).toBe("pulse-cli auth login")
     expect(owner("p")).toBe('profile "p"')
     expect(owner(undefined)).toBe("the environment configuration")
     expect(profileNote("p")).toBe('(profile "p")')
@@ -67,7 +67,7 @@ describe("login hint", () => {
       'The OAuth login of profile "p" was removed while this command ran',
     )
     expect(removedWhileRunning(P).details.hint).toBe(
-      `A logout (also of a profile that shares the login) or \`operate config set|unset|delete\` removed it. ${HINT}`,
+      `A logout (also of a profile that shares the login) or \`pulse-cli config set|unset|delete\` removed it. ${HINT}`,
     )
     expect(iso(0)).toBe("1970-01-01T00:00:00.000Z")
   })
@@ -81,21 +81,21 @@ describe("login hint", () => {
 
   it("names where to log in: the project directory, a config file named by --config", () => {
     expect(loginHint({ profile: "p", projectDirectory: "/work/shop" })).toContain(
-      "Run `operate auth login --profile p` in a terminal in /work/shop: a person",
+      "Run `pulse-cli auth login --profile p` in a terminal in /work/shop: a person",
     )
     expect(loginCommand({ profile: "p", configFile: "/home/me/ci/operate.json" })).toBe(
-      "operate auth login --config /home/me/ci/operate.json --profile p",
+      "pulse-cli auth login --config /home/me/ci/operate.json --profile p",
     )
     expect(loginCommand({ profile: "p", configFile: "/home/me/my files/it's.json" })).toBe(
-      "operate auth login --config '/home/me/my files/it'\\''s.json' --profile p",
+      "pulse-cli auth login --config '/home/me/my files/it'\\''s.json' --profile p",
     )
     expect(loginCommand({ profile: "p", configFile: "C:\\Users\\me\\op.json" })).toBe(
-      "operate auth login --config C:\\Users\\me\\op.json --profile p",
+      "pulse-cli auth login --config C:\\Users\\me\\op.json --profile p",
     )
     expect(statusCommand({ profile: "p", configFile: "/c.json" })).toBe(
-      "operate auth status --config /c.json --profile p",
+      "pulse-cli auth status --config /c.json --profile p",
     )
-    expect(statusCommand({})).toBe("operate auth status")
+    expect(statusCommand({})).toBe("pulse-cli auth status")
     const who = { profile: "p", projectDirectory: "/work/shop" }
     const login = cachedLogin(NOW, { refreshRejected: { at: NOW, error: "invalid_grant" } })
     expect(cannotRefresh(login, NOW, who).details.hint).toContain("in a terminal in /work/shop:")
@@ -115,14 +115,14 @@ describe("otherIdentity", () => {
     )
     expect(error.code).toBe("LOGIN_REQUIRED")
     expect(error.message).toBe(
-      `${PREFIX}client "operate-cli" (the configuration asks for "other"); audience none (the configuration asks for "engine-rest"); scopes "offline_access openid" (the configuration asks for "openid")`,
+      `${PREFIX}client "pulse-cli" (the configuration asks for "other"); audience none (the configuration asks for "engine-rest"); scopes "offline_access openid" (the configuration asks for "openid")`,
     )
     expect(error.details.hint).toBe(
-      `The login was made with other settings: OPERATE_OAUTH_* variables were set where the login ran (also through another profile that shares the login). ${HINT}`,
+      `The login was made with other settings: PULSE_CLI_OAUTH_* variables were set where the login ran (also through another profile that shares the login). ${HINT}`,
     )
   })
 
-  it("names the OPERATE_OAUTH_* variables of this environment that make the difference", () => {
+  it("names the PULSE_CLI_OAUTH_* variables of this environment that make the difference", () => {
     const config = oauthConfig({
       issuer: "https://other.example.com",
       scopes: ["openid", "profile"],
@@ -138,14 +138,14 @@ describe("otherIdentity", () => {
       `${PREFIX}issuer "https://login.example.com/realms/camunda" (the configuration asks for "https://other.example.com"); scopes "offline_access openid" (the configuration asks for "openid profile")`,
     )
     expect(error.details.hint).toBe(
-      `OPERATE_OAUTH_ISSUER, OPERATE_OAUTH_SCOPES of this environment make the difference: run the login below with the same values, or unset them here. ${HINT}`,
+      `PULSE_CLI_OAUTH_ISSUER, PULSE_CLI_OAUTH_SCOPES of this environment make the difference: run the login below with the same values, or unset them here. ${HINT}`,
     )
     const single = otherIdentity(
       stored,
       oauthConfig({ clientId: "x", sources: { ...config.sources, clientId: "env" } }),
     )
     expect(single.details.hint).toBe(
-      `OPERATE_OAUTH_CLIENT_ID of this environment makes the difference: run the login below with the same value, or unset it here. ${HINT}`,
+      `PULSE_CLI_OAUTH_CLIENT_ID of this environment makes the difference: run the login below with the same value, or unset it here. ${HINT}`,
     )
   })
 
@@ -167,7 +167,7 @@ describe("otherIdentity", () => {
       `${PREFIX}token endpoint none (the configuration asks for "https://a.example.com/token"); audience none (the configuration asks for "api")`,
     )
     expect(error.details.hint).toContain(
-      "OPERATE_OAUTH_TOKEN_ENDPOINT, OPERATE_OAUTH_AUDIENCE of this",
+      "PULSE_CLI_OAUTH_TOKEN_ENDPOINT, PULSE_CLI_OAUTH_AUDIENCE of this",
     )
   })
 })
@@ -194,7 +194,7 @@ describe("checkUsable", () => {
       'The access token of profile "p" expired at 2023-11-14T22:13:20.000Z and there is no refresh token',
     )
     expect(error.details.hint).toBe(
-      `Request the offline_access scope or allow refresh tokens for the client, so that operate can refresh the token. ${HINT}`,
+      `Request the offline_access scope or allow refresh tokens for the client, so that pulse-cli can refresh the token. ${HINT}`,
     )
   })
 

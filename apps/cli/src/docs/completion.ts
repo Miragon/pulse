@@ -22,7 +22,7 @@ export type Positional =
   | {
       readonly kind: "values"
       readonly values: readonly string[]
-      /** Descriptions of the values (`operate guide <topic>`), shown by zsh and fish. */
+      /** Descriptions of the values (`pulse-cli guide <topic>`), shown by zsh and fish. */
       readonly descriptions?: Readonly<Record<string, string>>
     }
   | { readonly kind: "path"; readonly path: PathKind }

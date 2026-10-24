@@ -1,8 +1,8 @@
 /**
- * `operate describe <group> [command] | <operationId>`: the full description of one
+ * `pulse-cli describe <group> [command] | <operationId>`: the full description of one
  * operation (usage, arguments, options, request body schema, responses, examples) as JSON when
  * stdout is not a terminal, else as readable text. A group alone lists its commands like
- * `operate commands <group>`.
+ * `pulse-cli commands <group>`.
  */
 
 import type { Command } from "commander"
@@ -25,7 +25,7 @@ import type { UtilityCommand } from "./types.js"
 const DESCRIPTION = [
   "Describe a command: usage, arguments, options, request body schema, responses and examples.",
   "",
-  'Name the command by group and command (process-definition start), by its operationId (startProcessInstanceByKey) or as a workflow command (inspect). A group alone lists its commands like "operate commands <group>". Prints JSON when stdout is not a terminal, readable text otherwise.',
+  'Name the command by group and command (process-definition start), by its operationId (startProcessInstanceByKey) or as a workflow command (inspect). A group alone lists its commands like "pulse-cli commands <group>". Prints JSON when stdout is not a terminal, readable text otherwise.',
 ].join("\n")
 
 /** What `describe` was asked for: a group (its commands), a workflow command or one operation. */
@@ -42,12 +42,12 @@ function unknownTarget(catalog: Catalog, first: string, second: string | undefin
       ? `Unknown group or operationId "${first}"`
       : `Unknown command "${first} ${second}"`
   const list = known
-    ? `Run "operate commands ${first}" for the commands of the group`
-    : 'Run "operate commands" for the groups'
+    ? `Run "pulse-cli commands ${first}" for the commands of the group`
+    : 'Run "pulse-cli commands" for the groups'
   const suggestions = didYouMean(describeSuggestions(catalog, first, second))
   return usageError(
     message,
-    `${suggestions}${list}, or search all commands with "operate commands --search ${second ?? first}".`,
+    `${suggestions}${list}, or search all commands with "pulse-cli commands --search ${second ?? first}".`,
   )
 }
 

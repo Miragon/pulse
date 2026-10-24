@@ -14,13 +14,13 @@ async function engineOf(argv: readonly string[], env: Record<string, string> = {
 }
 
 describe("selectEngine", () => {
-  it("takes --platform, then OPERATE_PLATFORM, then the selected profile", async () => {
-    const env = { OPERATE_PLATFORM: "camunda7" }
+  it("takes --platform, then PULSE_CLI_PLATFORM, then the selected profile", async () => {
+    const env = { PULSE_CLI_PLATFORM: "camunda7" }
     expect(await engineOf(["ping", "--platform", "cibseven"], env)).toBe("cibseven")
     expect(await engineOf(["ping"], env)).toBe("camunda7")
     expect(await engineOf(["ping"])).toBe("operaton")
     expect(await engineOf(["ping", "--profile", "other"])).toBe("cibseven")
-    expect(await engineOf(["ping"], { OPERATE_PROFILE: "other" })).toBe("cibseven")
+    expect(await engineOf(["ping"], { PULSE_CLI_PROFILE: "other" })).toBe("cibseven")
   })
 
   it("uses camunda7 without a platform and when the config cannot be read", async () => {

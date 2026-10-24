@@ -20,18 +20,18 @@ function failure(action: () => unknown): OperateError {
   throw new Error("expected an error")
 }
 
-const ORIGIN = "config:/home/tester/.config/operate/config.json"
+const ORIGIN = "config:/home/tester/.config/pulse-cli/config.json"
 
 function profile(auth: ProfileAuth, name = "p"): SelectedProfile {
   return { name, profile: { auth }, origin: ORIGIN }
 }
 
-/** The login key of a profile of ORIGIN that stores ISSUER and client operate-cli. */
+/** The login key of a profile of ORIGIN that stores ISSUER and client pulse-cli. */
 const LOGIN = {
   origin: ORIGIN,
   issuer: ISSUER,
   tokenEndpoint: null,
-  clientId: "operate-cli",
+  clientId: "pulse-cli",
   audience: null,
   scopes: ["offline_access", "openid"],
 }
@@ -46,7 +46,7 @@ function oauth(
   return resolved.auth as OAuthConfig
 }
 
-const STORED: ProfileAuth = { type: "oauth", issuer: ISSUER, clientId: "operate-cli" }
+const STORED: ProfileAuth = { type: "oauth", issuer: ISSUER, clientId: "pulse-cli" }
 
 describe("resolveAuth with OAuth", () => {
   it("resolves a profile with the defaults", () => {
@@ -54,7 +54,7 @@ describe("resolveAuth with OAuth", () => {
       auth: {
         type: "oauth",
         issuer: ISSUER,
-        clientId: "operate-cli",
+        clientId: "pulse-cli",
         scopes: ["openid", "offline_access"],
         redirectPort: 0,
         profile: "p",
@@ -72,8 +72,8 @@ describe("resolveAuth with OAuth", () => {
 
   it("keys the login on the origin and the stored settings, never on the environment", () => {
     const env = {
-      OPERATE_OAUTH_ISSUER: "https://other.example.com/realms/x",
-      OPERATE_OAUTH_SCOPES: "openid",
+      PULSE_CLI_OAUTH_ISSUER: "https://other.example.com/realms/x",
+      PULSE_CLI_OAUTH_SCOPES: "openid",
     }
     const stored = { ...STORED, audience: "engine-rest", scopes: ["openid", "openid", "email"] }
     expect(oauth({}, env, profile(stored)).login).toEqual({
@@ -85,7 +85,7 @@ describe("resolveAuth with OAuth", () => {
       type: "oauth" as const,
       authorizationEndpoint: `${ISSUER}/auth`,
       tokenEndpoint: `${ISSUER}/token`,
-      clientId: "operate-cli",
+      clientId: "pulse-cli",
     }
     expect(oauth({}, {}, profile(endpoints)).login).toEqual({
       ...LOGIN,
@@ -98,9 +98,9 @@ describe("resolveAuth with OAuth", () => {
   })
 
   it("has no login key without a profile, and names the directory of a project profile", () => {
-    const env = { OPERATE_OAUTH_ISSUER: ISSUER, OPERATE_OAUTH_CLIENT_ID: "operate-cli" }
+    const env = { PULSE_CLI_OAUTH_ISSUER: ISSUER, PULSE_CLI_OAUTH_CLIENT_ID: "pulse-cli" }
     expect(oauth({ auth: "oauth" }, env).login).toBeUndefined()
-    const project = { path: "/work/shop/.operate.json", directory: "/work/shop" }
+    const project = { path: "/work/shop/.pulse-cli.json", directory: "/work/shop" }
     const selected: SelectedProfile = {
       name: "p",
       profile: { auth: STORED },
@@ -115,13 +115,13 @@ describe("resolveAuth with OAuth", () => {
 
   it("resolves the environment alone", () => {
     const env = {
-      OPERATE_AUTH: "oauth",
-      OPERATE_OAUTH_ISSUER: ` ${ISSUER} `,
-      OPERATE_OAUTH_CLIENT_ID: "cli",
-      OPERATE_OAUTH_CLIENT_SECRET: " s e c ",
-      OPERATE_OAUTH_SCOPES: "openid, profile",
-      OPERATE_OAUTH_AUDIENCE: "engine-rest",
-      OPERATE_OAUTH_REDIRECT_PORT: "8765",
+      PULSE_CLI_AUTH: "oauth",
+      PULSE_CLI_OAUTH_ISSUER: ` ${ISSUER} `,
+      PULSE_CLI_OAUTH_CLIENT_ID: "cli",
+      PULSE_CLI_OAUTH_CLIENT_SECRET: " s e c ",
+      PULSE_CLI_OAUTH_SCOPES: "openid, profile",
+      PULSE_CLI_OAUTH_AUDIENCE: "engine-rest",
+      PULSE_CLI_OAUTH_REDIRECT_PORT: "8765",
     }
     expect(resolveAuth({}, env, {})).toEqual({
       auth: {
@@ -145,18 +145,18 @@ describe("resolveAuth with OAuth", () => {
     })
   })
 
-  it("takes the type from --auth, OPERATE_AUTH or the profile, never implies it", () => {
+  it("takes the type from --auth, PULSE_CLI_AUTH or the profile, never implies it", () => {
     expect(
       resolveAuth(
         { auth: "oauth" },
-        { OPERATE_OAUTH_ISSUER: ISSUER, OPERATE_OAUTH_CLIENT_ID: "c" },
+        { PULSE_CLI_OAUTH_ISSUER: ISSUER, PULSE_CLI_OAUTH_CLIENT_ID: "c" },
         {},
       ).source,
     ).toBe("flag")
-    const env = { OPERATE_OAUTH_ISSUER: ISSUER, OPERATE_OAUTH_CLIENT_ID: "c" }
+    const env = { PULSE_CLI_OAUTH_ISSUER: ISSUER, PULSE_CLI_OAUTH_CLIENT_ID: "c" }
     expect(resolveAuth({}, env, {}).auth.type).toBe("none")
     expect(
-      resolveAuth({}, { ...env, OPERATE_USERNAME: "u", OPERATE_PASSWORD: "p" }, {}).auth.type,
+      resolveAuth({}, { ...env, PULSE_CLI_USERNAME: "u", PULSE_CLI_PASSWORD: "p" }, {}).auth.type,
     ).toBe("basic")
   })
 
@@ -174,12 +174,12 @@ describe("resolveAuth with OAuth", () => {
           redirectPort: 1,
         }
         const env: Record<string, string> = {
-          ...entry("OPERATE_OAUTH_CLIENT_ID", envId),
-          ...entry("OPERATE_OAUTH_AUDIENCE", envAudience),
-          ...entry("OPERATE_OAUTH_REDIRECT_PORT", envPort),
+          ...entry("PULSE_CLI_OAUTH_CLIENT_ID", envId),
+          ...entry("PULSE_CLI_OAUTH_AUDIENCE", envAudience),
+          ...entry("PULSE_CLI_OAUTH_REDIRECT_PORT", envPort),
         }
         const config = oauth({}, env, profile(stored))
-        expect(config.clientId).toBe(envId ?? "operate-cli")
+        expect(config.clientId).toBe(envId ?? "pulse-cli")
         expect(config.sources.clientId).toBe(envId === undefined ? "profile" : "env")
         expect(config.audience).toBe(envAudience ?? storedAudience)
         expect(config.redirectPort).toBe(Number(envPort ?? 1))
@@ -187,22 +187,22 @@ describe("resolveAuth with OAuth", () => {
       }),
     )
     expect(
-      oauth({}, { OPERATE_OAUTH_SCOPES: "x y" }, profile({ ...STORED, scopes: [] })).scopes,
+      oauth({}, { PULSE_CLI_OAUTH_SCOPES: "x y" }, profile({ ...STORED, scopes: [] })).scopes,
     ).toEqual(["x", "y"])
     expect(
-      oauth({}, { OPERATE_OAUTH_SCOPES: "  " }, profile({ ...STORED, scopes: [] })).scopes,
+      oauth({}, { PULSE_CLI_OAUTH_SCOPES: "  " }, profile({ ...STORED, scopes: [] })).scopes,
     ).toEqual([])
-    expect(oauth({}, { OPERATE_OAUTH_SCOPES: "," }, profile(STORED)).scopes).toEqual([])
+    expect(oauth({}, { PULSE_CLI_OAUTH_SCOPES: "," }, profile(STORED)).scopes).toEqual([])
   })
 
   it("resolves the issuer and endpoints as a unit from the most specific source", () => {
     const stored: ProfileAuth = {
       type: "oauth",
-      clientId: "operate-cli",
+      clientId: "pulse-cli",
       authorizationEndpoint: "https://as/a",
       tokenEndpoint: "https://as/t",
     }
-    const fromEnv = oauth({}, { OPERATE_OAUTH_ISSUER: ISSUER }, profile(stored))
+    const fromEnv = oauth({}, { PULSE_CLI_OAUTH_ISSUER: ISSUER }, profile(stored))
     expect(fromEnv).toMatchObject({ issuer: ISSUER, sources: { endpoints: "env" } })
     expect(fromEnv.authorizationEndpoint).toBeUndefined()
     expect(fromEnv.tokenEndpoint).toBeUndefined()
@@ -213,25 +213,27 @@ describe("resolveAuth with OAuth", () => {
     })
     expect(fromProfile.issuer).toBeUndefined()
     expect(endpointSource(fromProfile)).toBe('auth.tokenEndpoint of profile "p"')
-    expect(endpointSource(fromEnv)).toBe("OPERATE_OAUTH_ISSUER")
+    expect(endpointSource(fromEnv)).toBe("PULSE_CLI_OAUTH_ISSUER")
     expect(endpointSource(oauth({}, {}, profile(STORED)))).toBe('auth.issuer of profile "p"')
     const envEndpoints = oauth(
       {},
       {
-        OPERATE_OAUTH_AUTHORIZATION_ENDPOINT: "https://e/a",
-        OPERATE_OAUTH_TOKEN_ENDPOINT: "https://e/t",
+        PULSE_CLI_OAUTH_AUTHORIZATION_ENDPOINT: "https://e/a",
+        PULSE_CLI_OAUTH_TOKEN_ENDPOINT: "https://e/t",
       },
       profile(STORED),
     )
     expect(envEndpoints.issuer).toBeUndefined()
-    expect(endpointSource(envEndpoints)).toBe("OPERATE_OAUTH_TOKEN_ENDPOINT")
+    expect(endpointSource(envEndpoints)).toBe("PULSE_CLI_OAUTH_TOKEN_ENDPOINT")
   })
 
   it("needs both endpoints or neither", () => {
     const error = failure(() =>
-      resolveAuth({}, { OPERATE_OAUTH_TOKEN_ENDPOINT: "https://e/t" }, profile(STORED)),
+      resolveAuth({}, { PULSE_CLI_OAUTH_TOKEN_ENDPOINT: "https://e/t" }, profile(STORED)),
     )
-    expect(error.message).toBe("Only one OAuth endpoint is set (from OPERATE_OAUTH_TOKEN_ENDPOINT)")
+    expect(error.message).toBe(
+      "Only one OAuth endpoint is set (from PULSE_CLI_OAUTH_TOKEN_ENDPOINT)",
+    )
     expect(error.details.hint).toBe(
       "Set both the authorization and the token endpoint, or neither and only the issuer (discovery).",
     )
@@ -244,21 +246,21 @@ describe("resolveAuth with OAuth", () => {
   it("validates every value with its source", () => {
     expect(
       failure(() =>
-        resolveAuth({}, { OPERATE_OAUTH_ISSUER: "http://as.example.com" }, profile(STORED)),
+        resolveAuth({}, { PULSE_CLI_OAUTH_ISSUER: "http://as.example.com" }, profile(STORED)),
       ).message,
     ).toBe(
-      'The OAuth issuer (from OPERATE_OAUTH_ISSUER) must use https:// (http:// only for localhost, 127.0.0.1 or [::1]), got "http://as.example.com"',
+      'The OAuth issuer (from PULSE_CLI_OAUTH_ISSUER) must use https:// (http:// only for localhost, 127.0.0.1 or [::1]), got "http://as.example.com"',
     )
     expect(
-      failure(() => resolveAuth({}, { OPERATE_OAUTH_REDIRECT_PORT: "99999" }, profile(STORED)))
+      failure(() => resolveAuth({}, { PULSE_CLI_OAUTH_REDIRECT_PORT: "99999" }, profile(STORED)))
         .message,
-    ).toContain("(from OPERATE_OAUTH_REDIRECT_PORT)")
+    ).toContain("(from PULSE_CLI_OAUTH_REDIRECT_PORT)")
     expect(
-      failure(() => resolveAuth({}, { OPERATE_OAUTH_SCOPES: "a a" }, profile(STORED))).message,
-    ).toBe('The OAuth scope "a" is listed twice (from OPERATE_OAUTH_SCOPES)')
+      failure(() => resolveAuth({}, { PULSE_CLI_OAUTH_SCOPES: "a a" }, profile(STORED))).message,
+    ).toBe('The OAuth scope "a" is listed twice (from PULSE_CLI_OAUTH_SCOPES)')
     expect(
-      failure(() => resolveAuth({}, { OPERATE_OAUTH_CLIENT_ID: "ä" }, profile(STORED))).message,
-    ).toContain("(from OPERATE_OAUTH_CLIENT_ID)")
+      failure(() => resolveAuth({}, { PULSE_CLI_OAUTH_CLIENT_ID: "ä" }, profile(STORED))).message,
+    ).toContain("(from PULSE_CLI_OAUTH_CLIENT_ID)")
     expect(
       failure(() => resolveAuth({}, {}, profile({ ...STORED, audience: "ä" }))).message,
     ).toContain('(auth.audience of profile "p")')
@@ -267,7 +269,7 @@ describe("resolveAuth with OAuth", () => {
   it("resolves the client secret: env > the variable of clientSecretEnv > clientSecret", () => {
     const stored = { ...STORED, clientSecretEnv: "SECRET" }
     expect(
-      oauth({}, { OPERATE_OAUTH_CLIENT_SECRET: "e", SECRET: "v" }, profile(stored)),
+      oauth({}, { PULSE_CLI_OAUTH_CLIENT_SECRET: "e", SECRET: "v" }, profile(stored)),
     ).toMatchObject({ clientSecret: "e", sources: { clientSecret: "env" } })
     expect(oauth({}, { SECRET: "v" }, profile(stored))).toMatchObject({
       clientSecret: "v",
@@ -277,14 +279,14 @@ describe("resolveAuth with OAuth", () => {
       clientSecret: "literal",
     })
     expect(
-      oauth({}, { OPERATE_OAUTH_CLIENT_SECRET: "  " }, profile(STORED)).clientSecret,
+      oauth({}, { PULSE_CLI_OAUTH_CLIENT_SECRET: "  " }, profile(STORED)).clientSecret,
     ).toBeUndefined()
     const missing = failure(() => resolveAuth({}, { SECRET: " " }, profile(stored)))
     expect(missing.message).toBe(
       'The client secret variable SECRET (auth.clientSecretEnv of profile "p") is not set or empty',
     )
     expect(missing.details.hint).toBe(
-      "Export it, e.g. export SECRET=<secret>, or name another variable with `operate config set p --oauth-client-secret-env <VAR>`.",
+      "Export it, e.g. export SECRET=<secret>, or name another variable with `pulse-cli config set p --oauth-client-secret-env <VAR>`.",
     )
     const control = failure(() => resolveAuth({}, { SECRET: "a\nb" }, profile(stored)))
     expect(control.message).toContain('(from SECRET, auth.clientSecretEnv of profile "p")')
@@ -295,13 +297,14 @@ describe("resolveAuth with OAuth", () => {
     const error = failure(() => resolveAuth({ auth: "oauth" }, {}, profile({})))
     expect(error.message).toBe("OAuth is selected but the issuer and the client id are missing")
     expect(error.details.hint).toBe(
-      'OAuth was selected by --auth oauth. Looked up the issuer in OPERATE_OAUTH_ISSUER, OPERATE_OAUTH_AUTHORIZATION_ENDPOINT + OPERATE_OAUTH_TOKEN_ENDPOINT and the auth.issuer / auth.authorizationEndpoint + auth.tokenEndpoint of profile "p"; the client id in OPERATE_OAUTH_CLIENT_ID and the auth.clientId of profile "p". Store them with `operate config set <profile> --auth oauth --oauth-issuer <url> --oauth-client-id <id>`, or set the OPERATE_OAUTH_* variables; --auth none switches OAuth off.',
+      'OAuth was selected by --auth oauth. Looked up the issuer in PULSE_CLI_OAUTH_ISSUER, PULSE_CLI_OAUTH_AUTHORIZATION_ENDPOINT + PULSE_CLI_OAUTH_TOKEN_ENDPOINT and the auth.issuer / auth.authorizationEndpoint + auth.tokenEndpoint of profile "p"; the client id in PULSE_CLI_OAUTH_CLIENT_ID and the auth.clientId of profile "p". Store them with `pulse-cli config set <profile> --auth oauth --oauth-issuer <url> --oauth-client-id <id>`, or set the PULSE_CLI_OAUTH_* variables; --auth none switches OAuth off.',
     )
     expect(
-      failure(() => resolveAuth({}, { OPERATE_AUTH: "oauth", OPERATE_OAUTH_ISSUER: ISSUER }, {}))
-        .details.hint,
+      failure(() =>
+        resolveAuth({}, { PULSE_CLI_AUTH: "oauth", PULSE_CLI_OAUTH_ISSUER: ISSUER }, {}),
+      ).details.hint,
     ).toBe(
-      "OAuth was selected by OPERATE_AUTH=oauth. Looked up the client id in OPERATE_OAUTH_CLIENT_ID and a profile (none is selected). Store them with `operate config set <profile> --auth oauth --oauth-issuer <url> --oauth-client-id <id>`, or set the OPERATE_OAUTH_* variables; --auth none switches OAuth off.",
+      "OAuth was selected by PULSE_CLI_AUTH=oauth. Looked up the client id in PULSE_CLI_OAUTH_CLIENT_ID and a profile (none is selected). Store them with `pulse-cli config set <profile> --auth oauth --oauth-issuer <url> --oauth-client-id <id>`, or set the PULSE_CLI_OAUTH_* variables; --auth none switches OAuth off.",
     )
     expect(
       failure(() => resolveAuth({}, {}, profile({ type: "oauth", clientId: "c" }))).message,
@@ -311,16 +314,16 @@ describe("resolveAuth with OAuth", () => {
   it("ignores the Basic auth inputs, but refuses --auth-password-stdin", () => {
     const config = oauth(
       { authUser: "u:x" },
-      { OPERATE_USERNAME: "u", OPERATE_PASSWORD: "p" },
+      { PULSE_CLI_USERNAME: "u", PULSE_CLI_PASSWORD: "p" },
       profile(STORED),
     )
-    expect(config.clientId).toBe("operate-cli")
+    expect(config.clientId).toBe("pulse-cli")
     const error = failure(() => resolveAuth({ authPassword: "pw" }, {}, profile(STORED)))
     expect(error.message).toBe(
       '--auth-password-stdin reads a Basic auth password, but OAuth is selected by the auth.type of profile "p"',
     )
     expect(error.details.hint).toBe(
-      "Drop --auth-password-stdin: OAuth logs in with `operate auth login` and needs no password.",
+      "Drop --auth-password-stdin: OAuth logs in with `pulse-cli auth login` and needs no password.",
     )
   })
 
@@ -334,19 +337,19 @@ describe("resolveAuth with OAuth", () => {
       off: 'OAuth is switched off by the auth.type of profile "p"',
     })
     expect(
-      resolveAuth({}, { OPERATE_OAUTH_AUDIENCE: "x", OPERATE_OAUTH_CLIENT_ID: "c" }, {}).auth,
+      resolveAuth({}, { PULSE_CLI_OAUTH_AUDIENCE: "x", PULSE_CLI_OAUTH_CLIENT_ID: "c" }, {}).auth,
     ).toEqual({
       type: "none",
-      off: "OAuth settings are set (from OPERATE_OAUTH_CLIENT_ID), but no auth type selects OAuth; set OPERATE_AUTH=oauth or --auth oauth",
+      off: "OAuth settings are set (from PULSE_CLI_OAUTH_CLIENT_ID), but no auth type selects OAuth; set PULSE_CLI_AUTH=oauth or --auth oauth",
     })
-    expect(resolveAuth({ auth: "none" }, { OPERATE_OAUTH_CLIENT_ID: "c" }, {}).auth).toEqual({
+    expect(resolveAuth({ auth: "none" }, { PULSE_CLI_OAUTH_CLIENT_ID: "c" }, {}).auth).toEqual({
       type: "none",
       off: "Basic auth is switched off by --auth none",
     })
     expect(
-      resolveAuth({}, { OPERATE_PASSWORD: "p", OPERATE_OAUTH_CLIENT_ID: "c" }, {}).auth,
+      resolveAuth({}, { PULSE_CLI_PASSWORD: "p", PULSE_CLI_OAUTH_CLIENT_ID: "c" }, {}).auth,
     ).toMatchObject({
-      off: "a password is set (from OPERATE_PASSWORD), but no username",
+      off: "a password is set (from PULSE_CLI_PASSWORD), but no username",
     })
   })
 })
@@ -357,7 +360,7 @@ describe("OAuth and an Authorization header", () => {
     const error = authorizationConflict(config, "flag", "p")
     expect(error?.message).toBe("OAuth and an Authorization header are both configured")
     expect(error?.details.hint).toBe(
-      "Drop one: remove the Authorization header (given with -H/--header), or switch OAuth off with --auth none, OPERATE_AUTH=none or `operate config unset p auth`.",
+      "Drop one: remove the Authorization header (given with -H/--header), or switch OAuth off with --auth none, PULSE_CLI_AUTH=none or `pulse-cli config unset p auth`.",
     )
   })
 

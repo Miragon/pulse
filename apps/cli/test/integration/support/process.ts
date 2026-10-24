@@ -23,14 +23,16 @@ export interface ProcessResult {
 }
 
 const DEFAULT_TIMEOUT_MS = 120_000
-const OPERATE_PREFIX = "OPERATE_"
+const PULSE_CLI_PREFIX = "OPERATE_"
 
 /**
  * The parent environment without any `OPERATE_*` variable, then `overrides` applied
  * (an `undefined` value removes the variable).
  */
 export function cleanEnv(overrides: EnvOverrides = {}): NodeJS.ProcessEnv {
-  const inherited = Object.entries(process.env).filter(([name]) => !name.startsWith(OPERATE_PREFIX))
+  const inherited = Object.entries(process.env).filter(
+    ([name]) => !name.startsWith(PULSE_CLI_PREFIX),
+  )
   // later entries win, so overrides replace inherited values
   const merged = Object.fromEntries([...inherited, ...Object.entries(overrides)])
   return Object.fromEntries(Object.entries(merged).filter(([, value]) => value !== undefined))

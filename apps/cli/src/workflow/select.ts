@@ -164,7 +164,7 @@ function capitalized(text: string): string {
 
 function notFound(selection: Selection): OperateError {
   return new OperateError("NOT_FOUND", `No process instance with ${filterText(selection)}`, {
-    hint: "Check the filters with `operate process-instance list` (running instances) and `operate historic-process-instance list` (also ended ones); with history level none, ended instances cannot be found.",
+    hint: "Check the filters with `pulse-cli process-instance list` (running instances) and `pulse-cli historic-process-instance list` (also ended ones); with history level none, ended instances cannot be found.",
   })
 }
 
@@ -174,7 +174,7 @@ function ambiguous(selection: Selection, candidates: readonly Candidate[], comma
   const options = selection.options?.map((word) => ` ${word}`).join("") ?? ""
   const ready = candidates
     .slice(0, READY_COMMANDS)
-    .map((candidate) => `operate ${command} ${candidate.id}${options}`)
+    .map((candidate) => `pulse-cli ${command} ${candidate.id}${options}`)
   return new OperateError(
     "USAGE",
     `${capitalized(filterText(selection))} ${both ? "match" : "matches"} ${count} process instances`,
@@ -192,7 +192,7 @@ function latestOf(history: readonly Rec[], runtime: readonly Rec[], selection: S
   if (running.length > 1) {
     throw usageError(
       "--latest needs the history (level activity or higher) to order instances",
-      "Pass the process instance id instead; `operate process-instance list` lists the running ones.",
+      "Pass the process instance id instead; `pulse-cli process-instance list` lists the running ones.",
     )
   }
   const [only] = running

@@ -56,9 +56,9 @@ function stored(auth: Record<string, unknown>): Readonly<Record<string, string>>
   return { [CONFIG_PATH]: JSON.stringify({ defaultProfile: "p", profiles: { p: { auth } } }) }
 }
 
-/** Every way a token reaches operate, and every command that renders something. */
+/** Every way a token reaches pulse-cli, and every command that renders something. */
 function scenarios(token: string): Scenario[] {
-  const env = { OPERATE_TOKEN: token }
+  const env = { PULSE_CLI_TOKEN: token }
   const stdin = ["--auth-token-stdin"]
   const literal = stored({ type: "bearer", token })
   const variable = {
@@ -67,9 +67,9 @@ function scenarios(token: string): Scenario[] {
   }
   const unused = {
     ...env,
-    OPERATE_USERNAME: "demo",
-    OPERATE_PASSWORD: "pw",
-    OPERATE_AUTH: "basic",
+    PULSE_CLI_USERNAME: "demo",
+    PULSE_CLI_PASSWORD: "pw",
+    PULSE_CLI_AUTH: "basic",
   }
   return [
     { args: ["config", "show"], env },
@@ -104,8 +104,8 @@ function scenarios(token: string): Scenario[] {
     { args: ["task", "list", ...stdin, "--auth-password-stdin"], stdin: token },
     { args: ["api", "POST", "/message", "--body", "-", ...stdin], stdin: token },
     // invalid tokens are refused without being repeated
-    { args: ["task", "list"], env: { OPERATE_TOKEN: `${token} x` } },
-    { args: ["task", "list"], env: { OPERATE_TOKEN: `{"access_token":"${token}"}` } },
+    { args: ["task", "list"], env: { PULSE_CLI_TOKEN: `${token} x` } },
+    { args: ["task", "list"], env: { PULSE_CLI_TOKEN: `{"access_token":"${token}"}` } },
     { args: ["task", "list", ...stdin], stdin: `${token}\u0000` },
     { args: ["config", "set", "p", ...stdin], stdin: `${token}:x` },
     // mistyped flags: the usage error must not echo the value
@@ -122,7 +122,7 @@ function scenarios(token: string): Scenario[] {
     { args: ["task", "list", "--auth", "bearer", token] },
     { args: ["auth", "status", token] },
     { args: ["task", "list", "--auth", `Bearer ${token}`] },
-    { args: ["task", "list"], env: { OPERATE_AUTH: `Bearer ${token}` } },
+    { args: ["task", "list"], env: { PULSE_CLI_AUTH: `Bearer ${token}` } },
     { args: ["task", "list"], files: stored({ type: token }) },
     // a token given as the name of its variable
     { args: ["config", "set", "p", "--auth", "bearer", "--auth-token-env", token] },
@@ -192,7 +192,7 @@ describe("bearer token secrets", () => {
       ["auth", "status"],
       ["ping", "--verbose"],
     ]) {
-      const result = await outcome({ args, env: { OPERATE_TOKEN: token } })
+      const result = await outcome({ args, env: { PULSE_CLI_TOKEN: token } })
       expect(result.code).toBe(4)
       expect(result.stderr).toContain("TOKEN_EXPIRED")
       expect(`${result.stdout}${result.stderr}`).not.toContain("SgExpiredSignature")
@@ -214,7 +214,7 @@ describe("bearer token secrets", () => {
   it("appear with --show-secrets in dry-run, the verbose trace and config show only", async () => {
     await fc.assert(
       fc.asyncProperty(tokensOf(-30), async ({ token, forms }) => {
-        const env = { OPERATE_TOKEN: token }
+        const env = { PULSE_CLI_TOKEN: token }
         const dryRun = await output({ args: ["task", "list", "--dry-run", "--show-secrets"], env })
         expect(dryRun).toContain(`Bearer ${token}`)
         const verbose = await output({

@@ -1,6 +1,6 @@
 /**
  * `--auth-password-stdin`: the Basic auth password is the first line of stdin, so it never shows
- * up in the shell history or the process list. operate never prompts for it. `--auth-token-stdin`
+ * up in the shell history or the process list. pulse-cli never prompts for it. `--auth-token-stdin`
  * reads a bearer token and `config set --oauth-client-secret-stdin` an OAuth client secret the
  * same way.
  */
@@ -8,7 +8,7 @@
 import { usageError } from "../errors.js"
 import type { Runtime } from "../runtime.js"
 
-const PIPE_EXAMPLE = `printf '%s\\n' "$PASSWORD" | operate ... --auth-password-stdin`
+const PIPE_EXAMPLE = `printf '%s\\n' "$PASSWORD" | pulse-cli ... --auth-password-stdin`
 
 const LINE_FEED = 0x0a
 
@@ -30,7 +30,7 @@ const PASSWORD: StdinSecret = {
 export const TOKEN: StdinSecret = {
   flag: "--auth-token-stdin",
   noun: "token",
-  example: `gcloud auth print-access-token | operate ... --auth-token-stdin`,
+  example: `gcloud auth print-access-token | pulse-cli ... --auth-token-stdin`,
 }
 
 /**
@@ -48,7 +48,7 @@ export function firstLine(data: Uint8Array, secret: StdinSecret = PASSWORD): str
   } catch {
     throw usageError(
       `${secret.flag} read bytes that are not valid UTF-8`,
-      `Re-encode the ${secret.noun} as UTF-8, e.g. with iconv -f latin1 -t utf-8; operate sends it UTF-8 encoded.`,
+      `Re-encode the ${secret.noun} as UTF-8, e.g. with iconv -f latin1 -t utf-8; pulse-cli sends it UTF-8 encoded.`,
     )
   }
   return line.replace(/\r+$/, "")
@@ -69,12 +69,12 @@ export function checkStdinUse(use: StdinUse): void {
   if (use.password && use.token) {
     throw usageError(
       "--auth-password-stdin and --auth-token-stdin both read stdin",
-      "A command sends a Basic auth password or a bearer token, not both; pass the other one with OPERATE_PASSWORD or OPERATE_TOKEN, and choose the type with --auth.",
+      "A command sends a Basic auth password or a bearer token, not both; pass the other one with PULSE_CLI_PASSWORD or PULSE_CLI_TOKEN, and choose the type with --auth.",
     )
   }
   const [flag, variable, option] = use.token
-    ? ["--auth-token-stdin", "the token with OPERATE_TOKEN", "--auth-token-env"]
-    : ["--auth-password-stdin", "the password with OPERATE_PASSWORD", "--auth-password-env"]
+    ? ["--auth-token-stdin", "the token with PULSE_CLI_TOKEN", "--auth-token-env"]
+    : ["--auth-password-stdin", "the password with PULSE_CLI_PASSWORD", "--auth-password-env"]
   if ((use.password || use.token) && use.body) {
     throw usageError(
       `${flag} and --body - both read stdin`,

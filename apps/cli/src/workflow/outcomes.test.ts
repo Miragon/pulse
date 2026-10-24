@@ -38,7 +38,7 @@ describe("outcomes", () => {
     })
     expect(endedError("p1", ["task"], "COMPLETED")).toMatchObject({
       code: "INSTANCE_ENDED",
-      details: { hint: "`operate inspect p1 --history` shows the path it took." },
+      details: { hint: "`pulse-cli inspect p1 --history` shows the path it took." },
     })
     const failures = [
       { jobId: "j1", message: "boom", rootCause: "r" },
@@ -48,7 +48,7 @@ describe("outcomes", () => {
       code: "JOB_FAILED",
       message: "Job j1 failed: boom (and 1 more)",
       details: {
-        hint: "`operate inspect <id> --stacktrace` shows the stacktrace; fix the cause, then retry.",
+        hint: "`pulse-cli inspect <id> --stacktrace` shows the stacktrace; fix the cause, then retry.",
       },
     })
     expect(jobFailedError([]).message).toBe("Job failed")
@@ -128,10 +128,10 @@ describe("dryRunOutput", () => {
 describe("outcome texts", () => {
   it("name the fix and join several conditions with or", () => {
     expect(incidentError("p1", []).details.hint).toBe(
-      "Fix the cause, then run `operate retry p1`; --no-fail-on-incident keeps waiting despite incidents.",
+      "Fix the cause, then run `pulse-cli retry p1`; --no-fail-on-incident keeps waiting despite incidents.",
     )
     expect(timeoutError("p1", ["idle"], 1000, { elapsedMs: 1000, polls: 4 }).details.hint).toBe(
-      "The job executor may be backing off (up to 60 s on an idle engine): raise --wait-timeout, execute due jobs with `operate wait p1 --execute-jobs`, or run `operate status` to see overdue jobs.",
+      "The job executor may be backing off (up to 60 s on an idle engine): raise --wait-timeout, execute due jobs with `pulse-cli wait p1 --execute-jobs`, or run `pulse-cli status` to see overdue jobs.",
     )
     const message = {
       activityId: "paid",
@@ -143,7 +143,7 @@ describe("outcome texts", () => {
     expect(
       timeoutError("p1", ["task"], 1000, { ...progress, idleAt: [message] }).details.hint,
     ).toBe(
-      "No job is due: the instance rests at paid (message). Move it with `operate advance p1`, or check the --until condition against `operate inspect p1`.",
+      "No job is due: the instance rests at paid (message). Move it with `pulse-cli advance p1`, or check the --until condition against `pulse-cli inspect p1`.",
     )
     const four = ["a", "b", "c", "d"].map((activityId) => ({ ...message, activityId }))
     expect(
@@ -163,12 +163,12 @@ describe("outcome texts", () => {
     expect(
       timeoutError("p1", ["task"], 1000, { ...progress, idleAt: [suspended] }).details.hint,
     ).toBe(
-      "No job is due: the instance rests at work (asyncContinuation, suspended). Activate the suspended job with `operate job activate j1`, or check the --until condition against `operate inspect p1`.",
+      "No job is due: the instance rests at work (asyncContinuation, suspended). Activate the suspended job with `pulse-cli job activate j1`, or check the --until condition against `pulse-cli inspect p1`.",
     )
     expect(
       timeoutError("p1", ["task"], 1000, { ...progress, idleAt: [suspended, message] }).details
         .hint,
-    ).toContain("Move it with `operate advance p1`")
+    ).toContain("Move it with `pulse-cli advance p1`")
     expect(endedError("p1", ["task", "activity:x"], "COMPLETED").message).toBe(
       "Process instance p1 ended (COMPLETED) before reaching task or activity:x",
     )

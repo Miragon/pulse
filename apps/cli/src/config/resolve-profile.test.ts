@@ -22,15 +22,15 @@ describe("selectProfile", () => {
     profiles: { dev: { engine: "d" }, prod: { engine: "p" }, test: { engine: "t" } },
   }
 
-  it("selects the profile by flag, then OPERATE_PROFILE, then defaultProfile", () => {
-    const env = { OPERATE_PROFILE: "test" }
+  it("selects the profile by flag, then PULSE_CLI_PROFILE, then defaultProfile", () => {
+    const env = { PULSE_CLI_PROFILE: "test" }
     expect(selectProfile({ profile: "prod" }, env, config)).toEqual({
       name: "prod",
       profile: { engine: "p" },
     })
     expect(selectProfile({}, env, config).name).toBe("test")
     expect(selectProfile({}, {}, config).name).toBe("dev")
-    expect(selectProfile({ profile: " " }, { OPERATE_PROFILE: "" }, config).name).toBe("dev")
+    expect(selectProfile({ profile: " " }, { PULSE_CLI_PROFILE: "" }, config).name).toBe("dev")
   })
 
   it("selects nothing without a name", () => {
@@ -44,14 +44,14 @@ describe("selectProfile", () => {
     expect(error.code).toBe("CONFIG")
     expect(error.message).toBe('Profile "qa" does not exist')
     expect(error.details.hint).toBe(
-      "Known profiles: dev, prod, test. Create it with `operate config set qa --url <url>`.",
+      "Known profiles: dev, prod, test. Create it with `pulse-cli config set qa --url <url>`.",
     )
   })
 
-  it("names OPERATE_PROFILE when it selects a missing profile", () => {
-    const error = failure(() => selectProfile({}, { OPERATE_PROFILE: "qa" }, undefined))
+  it("names PULSE_CLI_PROFILE when it selects a missing profile", () => {
+    const error = failure(() => selectProfile({}, { PULSE_CLI_PROFILE: "qa" }, undefined))
     expect(error.details.hint).toBe(
-      "It is selected by OPERATE_PROFILE. Create it with `operate config set qa --url <url>`.",
+      "It is selected by PULSE_CLI_PROFILE. Create it with `pulse-cli config set qa --url <url>`.",
     )
   })
 
@@ -60,7 +60,7 @@ describe("selectProfile", () => {
       selectProfile({}, {}, { defaultProfile: "gone", profiles: { a: {} } }),
     )
     expect(error.details.hint).toBe(
-      "It is the defaultProfile of the config file; choose another one with `operate config use <profile>`. Known profiles: a. Create it with `operate config set gone --url <url>`.",
+      "It is the defaultProfile of the config file; choose another one with `pulse-cli config use <profile>`. Known profiles: a. Create it with `pulse-cli config set gone --url <url>`.",
     )
   })
 
@@ -96,7 +96,7 @@ describe("findProfile and missingProfileError", () => {
 
   it("defaults to the flag wording", () => {
     expect(missingProfileError("x", undefined).details.hint).toBe(
-      "Create it with `operate config set x --url <url>`.",
+      "Create it with `pulse-cli config set x --url <url>`.",
     )
   })
 })
@@ -146,7 +146,7 @@ describe("validateUrl", () => {
       expect(error.message).toBe("Engine URL must not contain credentials")
       expect(error.message).not.toContain("secret")
       expect(error.details.hint).toBe(
-        "Remove the user info from the URL and use Basic auth: --auth basic --auth-user <name> with the password from --auth-password-stdin or OPERATE_PASSWORD.",
+        "Remove the user info from the URL and use Basic auth: --auth basic --auth-user <name> with the password from --auth-password-stdin or PULSE_CLI_PASSWORD.",
       )
     },
   )
@@ -177,7 +177,7 @@ describe("validateUrl", () => {
         'Engine URL must not contain a query string or fragment, got "http://host/rest?…"',
       )
       expect(error.details.hint).toBe(
-        "Pass credentials as a header (-H, OPERATE_HEADERS) instead. Example URL: http://localhost:8080/engine-rest",
+        "Pass credentials as a header (-H, PULSE_CLI_HEADERS) instead. Example URL: http://localhost:8080/engine-rest",
       )
     },
   )
@@ -217,8 +217,8 @@ describe("validatePlatform", () => {
 })
 
 describe("resolvePlatform", () => {
-  it("takes the flag, then OPERATE_PLATFORM, then the profile, else camunda7", () => {
-    const env = { OPERATE_PLATFORM: "cibseven" }
+  it("takes the flag, then PULSE_CLI_PLATFORM, then the profile, else camunda7", () => {
+    const env = { PULSE_CLI_PLATFORM: "cibseven" }
     const profile: Profile = { platform: "operaton" }
     expect(resolvePlatform({ platform: "camunda7" }, env, profile)).toEqual({
       value: "camunda7",
@@ -230,7 +230,7 @@ describe("resolvePlatform", () => {
   })
 
   it("fails on an unknown value of the environment", () => {
-    const error = failure(() => resolvePlatform({}, { OPERATE_PLATFORM: "zeebe" }, undefined))
+    const error = failure(() => resolvePlatform({}, { PULSE_CLI_PLATFORM: "zeebe" }, undefined))
     expect(error.message).toBe('Unknown platform "zeebe"')
   })
 })

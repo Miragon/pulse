@@ -1,5 +1,5 @@
 /**
- * Shared helpers of the `operate auth` command tests (src/cli/commands/auth*.test.ts): the fake
+ * Shared helpers of the `pulse-cli auth` command tests (src/cli/commands/auth*.test.ts): the fake
  * identity provider with a runtime whose browser completes the login there, and the error line.
  */
 

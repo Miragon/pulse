@@ -1,5 +1,5 @@
 /**
- * `operate api <METHOD> <path>`: a raw request relative to the REST API root with the
+ * `pulse-cli api <METHOD> <path>`: a raw request relative to the REST API root with the
  * same guards, output and errors as the generated commands. The path is normalized first
  * (src/operation/raw-request.ts); the effect comes from the catalog operation with the same method
  * and path template, else from the method.
@@ -91,7 +91,7 @@ async function runApi(rawMethod: string, rawPath: string, command: Command, cont
   const method = parseMethod(rawMethod)
   const { path, query } = parseApiPath(rawPath)
   const operation = findOperationByPath(catalog, method, path)
-  checkEffect(apiEffect(operation, method), `operate api ${method} ${path}`, guardsOf(session))
+  checkEffect(apiEffect(operation, method), `pulse-cli api ${method} ${path}`, guardsOf(session))
   const request = await apiRequest({ method, path, query, operation }, options, session, context)
   const client = clientOf(session, runtime)
   const result: OperationResult = session.globals.dryRun

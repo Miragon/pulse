@@ -1,11 +1,11 @@
 /**
  * Bearer tokens from elsewhere (`--auth bearer`) of the built CLI against the OAuth
- * topology of support/oauth.ts: Keycloak issues the tokens without operate (a CI pipeline's client
+ * topology of support/oauth.ts: Keycloak issues the tokens without pulse-cli (a CI pipeline's client
  * credentials grant, a person's login through another tool), and Envoy's `jwt_authn` gateway
- * checks them in front of an unmodified engine. operate only sends `Authorization: Bearer
+ * checks them in front of an unmodified engine. pulse-cli only sends `Authorization: Bearer
  * <token>`: no login, no refresh, no token cache.
  *
- * Token commands fetch such tokens for operate: OPERATE_TOKEN_COMMAND runs a script
+ * Token commands fetch such tokens for pulse-cli: PULSE_CLI_TOKEN_COMMAND runs a script
  * that runs the client credentials grant, also for the profiles of a project file,
  * whose directories share the cached token.
  *
@@ -118,18 +118,18 @@ describe.skipIf(engine === undefined)(`Bearer tokens from elsewhere at ${engine 
     await writeFile(profilesFile, `${JSON.stringify(next, null, 2)}\n`)
   }
 
-  /** Options of a run with the profiles file: the profile's URL counts, not OPERATE_URL. */
+  /** Options of a run with the profiles file: the profile's URL counts, not PULSE_CLI_URL. */
   function profiles(env: EnvOverrides = {}, options: CliOptions = {}): CliOptions {
-    return { ...options, configFile: profilesFile, env: { OPERATE_URL: undefined, ...env } }
+    return { ...options, configFile: profilesFile, env: { PULSE_CLI_URL: undefined, ...env } }
   }
 
   beforeAll(async () => {
     assertCliBuilt()
     // resolved, so paths printed by the CLI compare equal (macOS: /var → /private/var)
-    workdir = await realpath(await makeTempDir("operate-it-bearer-"))
+    workdir = await realpath(await makeTempDir("pulse-cli-it-bearer-"))
     configFile = join(workdir, "config.json")
     profilesFile = join(workdir, "profiles.json")
-    // OPERATE_CONFIG names the file explicitly, so it must exist (an empty one: no profiles)
+    // PULSE_CLI_CONFIG names the file explicitly, so it must exist (an empty one: no profiles)
     await writeFile(configFile, '{"profiles":{}}\n')
     await writeFile(profilesFile, '{"profiles":{}}\n')
     topology = await startOAuthTopology(required(engine, "an enabled engine"))

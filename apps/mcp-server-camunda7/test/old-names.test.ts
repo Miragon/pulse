@@ -63,6 +63,18 @@ const RULES = [
   { name: "old operate env var", pattern: /\bOPERATE_[A-Z]/ },
   { name: "old operate config file", pattern: /\.operate\.json/ },
   { name: "old operate config dir", pattern: /\.config\/operate/ },
+  // The CLI ships as @miragon/pulse-cli: the unscoped package pulse-cli is a stranger's, so
+  // `npx pulse-cli` or `npm i -g pulse-cli` installs someone else's code.
+  {
+    name: "unscoped pulse-cli package",
+    pattern:
+      /(?:\bnpx|\bbunx|\bdlx)\s+(?:-{1,2}[\w-]+(?:=\S+)?\s+)*pulse-cli(?![\w-])|\b(?:npm|pnpm|yarn|bun)\s+(?:i|install|add)\s+(?:-{1,2}[\w-]+\s+)*pulse-cli(?![\w-])/,
+  },
+  // The CLI image lives on GHCR only, like the server's.
+  {
+    name: "CLI image off GHCR",
+    pattern: /(?<!ghcr\.io\/)(?<![\w.@-])miragon\/pulse-cli(?![\w-])/i,
+  },
 ] as const
 
 type RuleName = (typeof RULES)[number]["name"]
@@ -264,6 +276,11 @@ describe("the old-name rules", () => {
     ["echo $OPERATE_PROFILE", "old operate env var"],
     ["reads ./.operate.json first", "old operate config file"],
     ["~/.config/operate/engines.json", "old operate config dir"],
+    ["npx pulse-cli status", "unscoped pulse-cli package"],
+    ["npm i -g pulse-cli", "unscoped pulse-cli package"],
+    ["pnpm dlx pulse-cli guide", "unscoped pulse-cli package"],
+    ["docker run --rm miragon/pulse-cli --version", "CLI image off GHCR"],
+    ["docker.io/miragon/pulse-cli:latest", "CLI image off GHCR"],
   ] as const)("%s is %s", (text, rule) => {
     expect(rulesMatching(text)).toContain(rule)
   })
@@ -291,6 +308,15 @@ describe("the old-name rules", () => {
     'flavor: "operaton"',
     "https://docs.operaton.org/",
     "@miragon/pulse-cli",
+    "npx -y @miragon/pulse-cli status",
+    "npm i -g @miragon/pulse-cli",
+    "brew install miragon/tap/pulse-cli",
+    "ghcr.io/miragon/pulse-cli:0.22.0",
+    "PULSE_CLI_URL=http://localhost:8080/engine-rest",
+    "~/.config/pulse-cli/config.json",
+    "reads ./.pulse-cli.json first",
+    "deployment-source operate",
+    'workerId: "operate"',
   ])("%s is no old name", (text) => {
     expect(rulesMatching(text)).toEqual([])
   })

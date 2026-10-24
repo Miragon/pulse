@@ -1,4 +1,4 @@
-/** `operate config set` with OAuth options (rules 1–6) and `config show` rows. */
+/** `pulse-cli config set` with OAuth options (rules 1–6) and `config show` rows. */
 
 import { posix, win32 } from "node:path"
 import { describe, expect, it } from "vitest"
@@ -11,7 +11,7 @@ import { resolveConfig } from "./resolve.js"
 import type { ConfigFile, ProfileAuth } from "./types.js"
 
 const ISSUER = "https://login.example.com/realms/camunda"
-const OAUTH: ProfileAuth = { type: "oauth", issuer: ISSUER, clientId: "operate-cli" }
+const OAUTH: ProfileAuth = { type: "oauth", issuer: ISSUER, clientId: "pulse-cli" }
 const BASIC: ProfileAuth = { type: "basic", username: "demo", passwordEnv: "PW" }
 
 function failure(action: () => unknown): OperateError {
@@ -73,7 +73,7 @@ describe("changedOAuthKeys", () => {
     }
     expect(changedOAuthKeys(stored, { oauthIssuer: "https://new.example.com" })).toEqual({
       issuer: "https://new.example.com",
-      clientId: "operate-cli",
+      clientId: "pulse-cli",
     })
   })
 
@@ -87,7 +87,7 @@ describe("changedOAuthKeys", () => {
       issuer: ISSUER,
       authorizationEndpoint: "https://as/a",
       tokenEndpoint: "https://as/t",
-      clientId: "operate-cli",
+      clientId: "pulse-cli",
     })
     const error = failure(() => changedOAuthKeys(OAUTH, { oauthTokenEndpoint: "https://as/t" }))
     expect(error.message).toBe(
@@ -112,7 +112,7 @@ describe("changedOAuthKeys", () => {
     ).not.toHaveProperty("clientSecret")
     expect(
       changedOAuthKeys({ ...OAUTH, clientSecretEnv: "S" }, { oauthClientSecret: " lit " }),
-    ).toEqual({ issuer: ISSUER, clientId: "operate-cli", clientSecret: " lit " })
+    ).toEqual({ issuer: ISSUER, clientId: "pulse-cli", clientSecret: " lit " })
     const error = failure(() =>
       changedOAuthKeys(OAUTH, { oauthClientSecretEnv: "S", oauthClientSecret: "x" }),
     )
@@ -228,7 +228,7 @@ describe("the Authorization header with OAuth (rule 6)", () => {
     )
     expect(error.message).toBe('Profile "p" would have both OAuth and an Authorization header')
     expect(error.details.hint).toBe(
-      "Keep one: OAuth options replace a stored Authorization header (`operate config set p --auth oauth`); --auth none switches OAuth off and keeps the header (`operate config set p --auth none -H 'Authorization: ...'`).",
+      "Keep one: OAuth options replace a stored Authorization header (`pulse-cli config set p --auth oauth`); --auth none switches OAuth off and keeps the header (`pulse-cli config set p --auth none -H 'Authorization: ...'`).",
     )
   })
 
@@ -254,7 +254,7 @@ describe("config list and show with OAuth", () => {
       profiles: { p: { auth: { ...OAUTH, clientSecretEnv: "S", audience: "engine-rest" } } },
     }
     const view = showConfig(
-      resolveConfig({}, { S: "sec", OPERATE_OAUTH_SCOPES: "openid" }, file),
+      resolveConfig({}, { S: "sec", PULSE_CLI_OAUTH_SCOPES: "openid" }, file),
       "/c.json",
     )
     expect(Object.keys(view.values)).toEqual([
@@ -285,7 +285,7 @@ describe("config list and show with OAuth", () => {
       issuer: { value: ISSUER, source: "profile" },
       authorizationEndpoint: { value: null, source: "default" },
       tokenEndpoint: { value: null, source: "default" },
-      clientId: { value: "operate-cli", source: "profile" },
+      clientId: { value: "pulse-cli", source: "profile" },
       clientSecret: { value: "sec", source: "profile" },
       scopes: { value: ["openid"], source: "env" },
       audience: { value: "engine-rest", source: "profile" },
@@ -303,18 +303,20 @@ describe("config list and show with OAuth", () => {
 })
 
 describe("token cache paths", () => {
-  it("lives in the operate config directory, never next to --config", () => {
+  it("lives in the pulse-cli config directory, never next to --config", () => {
     const home = { homedir: "/home/u", platform: "linux" }
-    expect(tokenDirectory({}, home)).toBe("/home/u/.config/operate/tokens")
+    expect(tokenDirectory({}, home)).toBe("/home/u/.config/pulse-cli/tokens")
     expect(
-      tokenDirectory({ XDG_CONFIG_HOME: "/xdg", OPERATE_CONFIG: "/project/c.json" }, home),
-    ).toBe("/xdg/operate/tokens")
+      tokenDirectory({ XDG_CONFIG_HOME: "/xdg", PULSE_CLI_CONFIG: "/project/c.json" }, home),
+    ).toBe("/xdg/pulse-cli/tokens")
     expect(tokenDirectory({ XDG_CONFIG_HOME: "relative" }, home)).toBe(
-      "/home/u/.config/operate/tokens",
+      "/home/u/.config/pulse-cli/tokens",
     )
     const windows = { homedir: "C:\\Users\\u", platform: "win32" }
-    expect(tokenDirectory({ APPDATA: "D:\\AppData" }, windows)).toBe("D:\\AppData\\operate\\tokens")
-    expect(tokenDirectory({}, windows)).toBe("C:\\Users\\u\\AppData\\Roaming\\operate\\tokens")
+    expect(tokenDirectory({ APPDATA: "D:\\AppData" }, windows)).toBe(
+      "D:\\AppData\\pulse-cli\\tokens",
+    )
+    expect(tokenDirectory({}, windows)).toBe("C:\\Users\\u\\AppData\\Roaming\\pulse-cli\\tokens")
   })
 
   it("joins file names per platform, always directly inside the token directory", () => {

@@ -103,7 +103,7 @@ describe("OAuth on operation commands", () => {
       code: "LOGIN_REQUIRED",
       exitCode: 4,
       message: 'Not logged in: profile "p" has no OAuth login',
-      hint: "One login serves every OAuth profile of the same config file, project file or repository that stores the same issuer, client, audience and scopes. Run `operate auth login --profile p` in a terminal: a person logs in once in the browser, operate refreshes the token afterwards. Agents cannot log in themselves.",
+      hint: "One login serves every OAuth profile of the same config file, project file or repository that stores the same issuer, client, audience and scopes. Run `pulse-cli auth login --profile p` in a terminal: a person logs in once in the browser, pulse-cli refreshes the token afterwards. Agents cannot log in themselves.",
     })
   })
 
@@ -129,13 +129,13 @@ describe("OAuth on operation commands", () => {
     const idpSecret = "client-secret-value"
     const { cli } = setup({
       now: T0 + 250_000,
-      env: { OPERATE_OAUTH_CLIENT_SECRET: idpSecret },
-      idp: { clients: { "operate-cli": { secret: idpSecret } } },
+      env: { PULSE_CLI_OAUTH_CLIENT_SECRET: idpSecret },
+      idp: { clients: { "pulse-cli": { secret: idpSecret } } },
     })
     const result = await cli(["process-definition", "count", "--verbose", "--show-secrets"])
     expect(result.stderr).toContain("> Authorization: Bearer access-1\n")
     expect(result.stderr).toContain("> Authorization: Basic ***\n")
-    expect(result.stderr).not.toContain(Buffer.from(`operate-cli:${idpSecret}`).toString("base64"))
+    expect(result.stderr).not.toContain(Buffer.from(`pulse-cli:${idpSecret}`).toString("base64"))
   })
 
   it("refreshes once after a 401 and retries", async () => {
@@ -266,7 +266,7 @@ describe("OAuth on dry-run, ping and api", () => {
     const result = await cli(["process-definition", "count", "--dry-run"])
     expect(result.code).toBe(0)
     expect(result.stderr).toBe(
-      'Note: Not logged in with OAuth (profile "p"); the request would fail with LOGIN_REQUIRED. Run `operate auth login --profile p` in a terminal.\n',
+      'Note: Not logged in with OAuth (profile "p"); the request would fail with LOGIN_REQUIRED. Run `pulse-cli auth login --profile p` in a terminal.\n',
     )
     const api = await cli(["api", "GET", "/process-definition/count", "--dry-run", "-o", "table"])
     expect(api.stderr).toContain("Note: Not logged in with OAuth")
@@ -305,12 +305,12 @@ describe("OAuth on dry-run, ping and api", () => {
 
   it("warns when the access token would travel over plain http beyond loopback", async () => {
     const warning =
-      "Warning: operate sends the OAuth access token over plain http to 192.168.1.125:9198; anyone on the network path can read and reuse it. Use https:// for the engine URL (RFC 6750 §5.3).\n"
-    const lan = setup({ env: { OPERATE_URL: "http://192.168.1.125:9198/engine-rest" } })
+      "Warning: pulse-cli sends the OAuth access token over plain http to 192.168.1.125:9198; anyone on the network path can read and reuse it. Use https:// for the engine URL (RFC 6750 §5.3).\n"
+    const lan = setup({ env: { PULSE_CLI_URL: "http://192.168.1.125:9198/engine-rest" } })
     const sent = await lan.cli(["process-definition", "count"])
     expect(sent.code).toBe(0)
     expect(sent.stderr).toBe(warning)
-    const dryRun = setup({ env: { OPERATE_URL: "http://192.168.1.125:9198/engine-rest" } })
+    const dryRun = setup({ env: { PULSE_CLI_URL: "http://192.168.1.125:9198/engine-rest" } })
     const preview = await dryRun.cli(["process-definition", "count", "--dry-run"])
     expect(preview.stderr).not.toContain("plain http")
     for (const url of [
@@ -319,23 +319,23 @@ describe("OAuth on dry-run, ping and api", () => {
       "http://[::1]:8080/engine-rest",
       "https://camunda.example.com/engine-rest",
     ]) {
-      const quiet = setup({ env: { OPERATE_URL: url } })
+      const quiet = setup({ env: { PULSE_CLI_URL: url } })
       expect((await quiet.cli(["process-definition", "count"])).stderr).toBe("")
     }
     const basic = setup({
-      env: { OPERATE_URL: "http://10.0.0.1/engine-rest", OPERATE_AUTH: "none" },
+      env: { PULSE_CLI_URL: "http://10.0.0.1/engine-rest", PULSE_CLI_AUTH: "none" },
     })
     expect((await basic.cli(["process-definition", "count"])).stderr).not.toContain("plain http")
   })
 
-  it("adds operate auth status to the hint of a redirect", async () => {
+  it("adds pulse-cli auth status to the hint of a redirect", async () => {
     const { cli } = setup({
       engine: () => new Response(null, { status: 302, headers: { location: "https://login/x" } }),
     })
     const result = await cli(["process-definition", "count"])
     expect(result.code).toBe(3)
     expect(errorOf(result.stderr).hint).toContain(
-      "`operate auth status --profile p` shows whether the OAuth login is usable.",
+      "`pulse-cli auth status --profile p` shows whether the OAuth login is usable.",
     )
   })
 })
@@ -356,7 +356,7 @@ describe("OAuth on the workflow commands", () => {
     const missing = await setup({ login: null }).cli(["status", "--dry-run"])
     expect(missing.code).toBe(0)
     expect(missing.stderr).toBe(
-      'Note: Not logged in with OAuth (profile "p"); the request would fail with LOGIN_REQUIRED. Run `operate auth login --profile p` in a terminal.\n',
+      'Note: Not logged in with OAuth (profile "p"); the request would fail with LOGIN_REQUIRED. Run `pulse-cli auth login --profile p` in a terminal.\n',
     )
     expect(server.requests).toEqual([])
   })

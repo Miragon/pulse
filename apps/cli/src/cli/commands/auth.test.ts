@@ -1,5 +1,5 @@
 /**
- * `operate auth login` through `run()` on the fake runtime and the fake identity provider: outputs
+ * `pulse-cli auth login` through `run()` on the fake runtime and the fake identity provider: outputs
  * (json and table), stderr lines, exit codes and the token cache. `auth status|logout` are in
  * auth-logout.test.ts, profiles that share a login in auth-shared-login.test.ts.
  */
@@ -18,7 +18,7 @@ function setup(options: LoginSetup = {}) {
   return { idp, runtime, cli: (args: readonly string[]) => execute(run, args, runtime) }
 }
 
-describe("operate auth login", () => {
+describe("pulse-cli auth login", () => {
   it("logs in, prints the view as JSON and the documented lines on stderr", async () => {
     const { cli, runtime } = setup()
     const result = await cli(["auth", "login"])
@@ -27,7 +27,7 @@ describe("operate auth login", () => {
       profile: "p",
       profiles: ["p"],
       issuer: ISSUER,
-      clientId: "operate-cli",
+      clientId: "pulse-cli",
       user: "alice",
       subject: "user-1",
       scopes: ["openid", "offline_access"],
@@ -40,7 +40,7 @@ describe("operate auth login", () => {
       tokenCache: TOKEN_FILE,
     })
     expect(result.stderr).toMatch(
-      /^Logging in to https:\/\/login\.example\.com\/realms\/camunda as client operate-cli \(profile "p"\)\.\nOpen this URL in a browser to log in:\n {2}https:\/\/\S+\nOpened the system browser\.\nWaiting up to 300 s for the login at http:\/\/127\.0\.0\.1:53682\/callback \(Ctrl\+C cancels\)\.\nLogged in as alice \(profile "p"\)\.\n$/,
+      /^Logging in to https:\/\/login\.example\.com\/realms\/camunda as client pulse-cli \(profile "p"\)\.\nOpen this URL in a browser to log in:\n {2}https:\/\/\S+\nOpened the system browser\.\nWaiting up to 300 s for the login at http:\/\/127\.0\.0\.1:53682\/callback \(Ctrl\+C cancels\)\.\nLogged in as alice \(profile "p"\)\.\n$/,
     )
     expect(runtime.files.get(TOKEN_FILE)?.mode).toBe(0o600)
     expect(runtime.dirModes.get(TOKEN_DIR)).toBe(0o700)
@@ -101,13 +101,14 @@ describe("operate auth login", () => {
     expect(result.code).toBe(3)
     expect(errorOf(result.stderr)).toMatchObject({
       code: "CONFIG",
-      message: 'operate auth login needs OAuth, but profile "p" uses basic',
-      hint: "Configure it: operate config set p --auth oauth --oauth-issuer <url> --oauth-client-id <id>",
+      message: 'pulse-cli auth login needs OAuth, but profile "p" uses basic',
+      hint: "Configure it: pulse-cli config set p --auth oauth --oauth-issuer <url> --oauth-client-id <id>",
     })
     const none = await execute(run, ["auth", "status"], fakeRuntime())
     expect(errorOf(none.stderr)).toMatchObject({
-      message: "operate auth status needs OAuth or a bearer token, but the configuration uses none",
-      hint: "Configure it: operate config set <profile> --auth oauth --oauth-issuer <url> --oauth-client-id <id>. For a bearer token from elsewhere: OPERATE_AUTH=bearer with OPERATE_TOKEN or --auth-token-stdin.",
+      message:
+        "pulse-cli auth status needs OAuth or a bearer token, but the configuration uses none",
+      hint: "Configure it: pulse-cli config set <profile> --auth oauth --oauth-issuer <url> --oauth-client-id <id>. For a bearer token from elsewhere: PULSE_CLI_AUTH=bearer with PULSE_CLI_TOKEN or --auth-token-stdin.",
     })
   })
 
@@ -123,32 +124,32 @@ describe("operate auth login", () => {
       errorOf((await execute(run, args, fakeRuntime(options))).stderr).hint
 
     expect(await hintOf(["auth", "login"], { files: files("none") })).toBe(
-      'OAuth is switched off by the auth.type of profile "p". Switch it on: operate config set p --auth oauth',
+      'OAuth is switched off by the auth.type of profile "p". Switch it on: pulse-cli config set p --auth oauth',
     )
     expect(
-      await hintOf(["auth", "status"], { files: files("oauth"), env: { OPERATE_AUTH: "none" } }),
-    ).toBe("OAuth is switched off by OPERATE_AUTH=none. Switch it on: OPERATE_AUTH=oauth")
-    expect(await hintOf(["auth", "login"], { env: { OPERATE_OAUTH_CLIENT_ID: "cli" } })).toBe(
-      "OAuth settings are set (from OPERATE_OAUTH_CLIENT_ID), but no auth type selects OAuth. Switch it on: OPERATE_AUTH=oauth",
+      await hintOf(["auth", "status"], { files: files("oauth"), env: { PULSE_CLI_AUTH: "none" } }),
+    ).toBe("OAuth is switched off by PULSE_CLI_AUTH=none. Switch it on: PULSE_CLI_AUTH=oauth")
+    expect(await hintOf(["auth", "login"], { env: { PULSE_CLI_OAUTH_CLIENT_ID: "cli" } })).toBe(
+      "OAuth settings are set (from PULSE_CLI_OAUTH_CLIENT_ID), but no auth type selects OAuth. Switch it on: PULSE_CLI_AUTH=oauth",
     )
     // a switched-off Basic auth is no OAuth setting: the usual way to configure OAuth
-    expect(await hintOf(["auth", "login"], { env: { OPERATE_PASSWORD: "pw" } })).toBe(
-      "Configure it: operate config set <profile> --auth oauth --oauth-issuer <url> --oauth-client-id <id>",
+    expect(await hintOf(["auth", "login"], { env: { PULSE_CLI_PASSWORD: "pw" } })).toBe(
+      "Configure it: pulse-cli config set <profile> --auth oauth --oauth-issuer <url> --oauth-client-id <id>",
     )
   })
 
   it("hints only at what the auth commands accept: following a hint is never a USAGE error", async () => {
-    const env = { OPERATE_OAUTH_CLIENT_ID: "operate-cli", OPERATE_OAUTH_ISSUER: ISSUER }
+    const env = { PULSE_CLI_OAUTH_CLIENT_ID: "pulse-cli", PULSE_CLI_OAUTH_ISSUER: ISSUER }
     for (const command of ["login", "status"]) {
       const first = await execute(run, ["auth", command], fakeRuntime({ env }))
       const hint = String(errorOf(first.stderr).hint)
       expect(hint).not.toContain("--auth")
-      expect(hint).toMatch(/Switch it on: OPERATE_AUTH=oauth$/)
+      expect(hint).toMatch(/Switch it on: PULSE_CLI_AUTH=oauth$/)
       // the hint followed: the variable, not an option
       const followed = await execute(
         run,
         ["auth", command],
-        fakeRuntime({ env: { ...env, OPERATE_AUTH: "oauth" } }),
+        fakeRuntime({ env: { ...env, PULSE_CLI_AUTH: "oauth" } }),
       )
       expect(errorOf(followed.stderr).code).not.toBe("USAGE")
       const unknown = await execute(run, ["auth", command, "--auth", "oauth"], fakeRuntime({ env }))
@@ -158,16 +159,16 @@ describe("operate auth login", () => {
 
   it("asks only to remove an Authorization header, never to switch OAuth off", async () => {
     for (const command of ["login", "status"]) {
-      const { cli } = setup({ runtime: { env: { OPERATE_HEADERS: "Authorization: Bearer x" } } })
+      const { cli } = setup({ runtime: { env: { PULSE_CLI_HEADERS: "Authorization: Bearer x" } } })
       const result = await cli(["auth", command])
       expect(result.code).toBe(3)
       expect(errorOf(result.stderr)).toMatchObject({
         code: "CONFIG",
         message: "OAuth and an Authorization header are both configured",
-        hint: "Remove the Authorization header (from OPERATE_HEADERS): with OAuth, operate sends the access token in it.",
+        hint: "Remove the Authorization header (from PULSE_CLI_HEADERS): with OAuth, pulse-cli sends the access token in it.",
       })
     }
-    const { cli } = setup({ runtime: { env: { OPERATE_HEADERS: "Authorization: Bearer x" } } })
+    const { cli } = setup({ runtime: { env: { PULSE_CLI_HEADERS: "Authorization: Bearer x" } } })
     const ping = await cli(["ping"])
     expect(errorOf(ping.stderr).hint).toContain("switch OAuth off with --auth none")
   })
@@ -186,12 +187,12 @@ describe("operate auth login", () => {
         const needs = command === "status" ? "OAuth or a bearer token" : "OAuth"
         const bearer =
           command === "status"
-            ? ". For a bearer token from elsewhere: OPERATE_AUTH=bearer with OPERATE_TOKEN or --auth-token-stdin."
+            ? ". For a bearer token from elsewhere: PULSE_CLI_AUTH=bearer with PULSE_CLI_TOKEN or --auth-token-stdin."
             : ""
         expect(errorOf(result.stderr)).toMatchObject({
           code: "CONFIG",
-          message: `operate auth ${command} needs ${needs}, but profile "p" uses basic`,
-          hint: `Configure it: operate config set p --auth oauth --oauth-issuer <url> --oauth-client-id <id>${bearer}`,
+          message: `pulse-cli auth ${command} needs ${needs}, but profile "p" uses basic`,
+          hint: `Configure it: pulse-cli config set p --auth oauth --oauth-issuer <url> --oauth-client-id <id>${bearer}`,
         })
       }
     }
@@ -228,9 +229,9 @@ describe("operate auth login", () => {
     const { runtime, idp } = setup({ files: {} })
     runtime.files.delete(CONFIG_PATH)
     const env = {
-      OPERATE_AUTH: "oauth",
-      OPERATE_OAUTH_ISSUER: ISSUER,
-      OPERATE_OAUTH_CLIENT_ID: "operate-cli",
+      PULSE_CLI_AUTH: "oauth",
+      PULSE_CLI_OAUTH_ISSUER: ISSUER,
+      PULSE_CLI_OAUTH_CLIENT_ID: "pulse-cli",
     }
     const envRuntime = fakeRuntime({
       fetch: idp.fetch,
@@ -247,7 +248,7 @@ describe("operate auth login", () => {
     const view = JSON.parse(result.stdout) as { tokenCache: string; profile: null }
     expect(view.profile).toBeNull()
     expect(view.tokenCache).toMatch(
-      /^\/home\/tester\/\.config\/operate\/tokens\/env-[0-9a-f]{32}\.json$/,
+      /^\/home\/tester\/\.config\/pulse-cli\/tokens\/env-[0-9a-f]{32}\.json$/,
     )
     const status = await execute(run, ["auth", "status"], envRuntime)
     expect(status.code).toBe(0)

@@ -51,7 +51,7 @@ const MASKED_CURL = /'authorization: Basic \*\*\*'/i
 
 /** Complete Basic auth credentials from the environment. */
 function basicEnv({ username, password }: Credentials): EnvOverrides {
-  return { OPERATE_AUTH: "basic", OPERATE_USERNAME: username, OPERATE_PASSWORD: password }
+  return { PULSE_CLI_AUTH: "basic", PULSE_CLI_USERNAME: username, PULSE_CLI_PASSWORD: password }
 }
 
 /** The password and the base64 token of the credentials. */
@@ -117,10 +117,10 @@ export function registerAuthScenario(engineName: EngineName): void {
 
     beforeAll(async () => {
       assertCliBuilt()
-      workdir = await makeTempDir(`operate-it-${engineName}-auth-`)
+      workdir = await makeTempDir(`pulse-cli-it-${engineName}-auth-`)
       configFile = join(workdir, "config.json")
       profilesFile = join(workdir, "profiles.json")
-      // OPERATE_CONFIG names the file explicitly, so it must exist (an empty one: no profiles)
+      // PULSE_CLI_CONFIG names the file explicitly, so it must exist (an empty one: no profiles)
       await writeFile(configFile, '{"profiles":{}}\n')
       await writeFile(profilesFile, '{"profiles":{}}\n')
       engine = await startEngine(engineName, { basicAuth: true })
@@ -129,10 +129,10 @@ export function registerAuthScenario(engineName: EngineName): void {
       cli = bindCli({
         url: engine.url,
         configFile,
-        // keep the real user config out of reach even if OPERATE_CONFIG is removed
+        // keep the real user config out of reach even if PULSE_CLI_CONFIG is removed
         env: {
           XDG_CONFIG_HOME: workdir,
-          OPERATE_PLATFORM: engine.platform,
+          PULSE_CLI_PLATFORM: engine.platform,
           [PASSWORD_ENV]: undefined,
         },
       })
@@ -149,7 +149,7 @@ export function registerAuthScenario(engineName: EngineName): void {
       expect(error.status).toBe(401)
       expect(error.hint).toMatch(/sent no credentials/)
       expect(error.hint).toContain("--auth basic --auth-user")
-      expect(error.hint).toContain("OPERATE_USERNAME")
+      expect(error.hint).toContain("PULSE_CLI_USERNAME")
       expect(error.hint).not.toContain("issues/1")
       expect(result.stdout).toBe("")
     })
@@ -159,7 +159,7 @@ export function registerAuthScenario(engineName: EngineName): void {
       expect(expectError(result, "UNAUTHORIZED", 4).hint).toMatch(/sent no credentials/)
     })
 
-    it("authenticates with OPERATE_AUTH, OPERATE_USERNAME and OPERATE_PASSWORD", async () => {
+    it("authenticates with PULSE_CLI_AUTH, PULSE_CLI_USERNAME and PULSE_CLI_PASSWORD", async () => {
       const ping = expectSuccess(await cli(["ping"], { env: basicEnv(ADMIN) }))
       expect(ping.json<PingOutput>()).toMatchObject({
         url: engineUrl(),
@@ -195,7 +195,7 @@ export function registerAuthScenario(engineName: EngineName): void {
 
     it("infers Basic auth from a username alone", async () => {
       const result = await cli(["ping", globalFlag("auth-user"), ADMIN.username], {
-        env: { OPERATE_PASSWORD: ADMIN.password },
+        env: { PULSE_CLI_PASSWORD: ADMIN.password },
       })
       expect(expectSuccess(result).json<PingOutput>()).toMatchObject({
         reachable: true,
@@ -225,7 +225,7 @@ export function registerAuthScenario(engineName: EngineName): void {
         passwordEnv: PASSWORD_ENV,
       })
 
-      const env = { OPERATE_URL: undefined, [PASSWORD_ENV]: PROFILE_USER.password }
+      const env = { PULSE_CLI_URL: undefined, [PASSWORD_ENV]: PROFILE_USER.password }
       const ping = await profileCli(["ping", globalFlag("profile"), PROFILE], { env })
       expect(expectSuccess(ping).json<PingOutput>()).toMatchObject({
         url: engineUrl(),
@@ -235,15 +235,15 @@ export function registerAuthScenario(engineName: EngineName): void {
       })
 
       const off = await profileCli(["ping", globalFlag("profile"), PROFILE], {
-        env: { ...env, OPERATE_AUTH: "none" },
+        env: { ...env, PULSE_CLI_AUTH: "none" },
       })
       expect(expectError(off, "UNAUTHORIZED", 4).hint).toMatch(
-        /sent no credentials: Basic auth is switched off by OPERATE_AUTH=none\./,
+        /sent no credentials: Basic auth is switched off by PULSE_CLI_AUTH=none\./,
       )
     })
 
     it("masks the profile password in config show unless --show-secrets", async () => {
-      const env = { OPERATE_URL: undefined, [PASSWORD_ENV]: PROFILE_USER.password }
+      const env = { PULSE_CLI_URL: undefined, [PASSWORD_ENV]: PROFILE_USER.password }
       const show = await profileCli(["config", "show", globalFlag("profile"), PROFILE], { env })
       const values = sourcedValues(expectSuccess(show).json<ConfigShowOutput>().values)
       expect(values).toContainEqual({ value: "basic", source: "profile" })
@@ -264,7 +264,7 @@ export function registerAuthScenario(engineName: EngineName): void {
       const result = await profileCli(
         ["ping", globalFlag("profile"), PROFILE, globalFlag("verbose")],
         {
-          env: { OPERATE_URL: undefined },
+          env: { PULSE_CLI_URL: undefined },
         },
       )
       expect(explanation(expectError(result, "CONFIG", 3))).toContain(PASSWORD_ENV)
@@ -297,7 +297,7 @@ export function registerAuthScenario(engineName: EngineName): void {
       await writeFile(handEdited, JSON.stringify({ profiles: { x: { url: engineUrl(), auth } } }))
       const ping = await cli(["ping", globalFlag("profile"), "x", globalFlag("verbose")], {
         configFile: handEdited,
-        env: { OPERATE_URL: undefined },
+        env: { PULSE_CLI_URL: undefined },
       })
       expect(expectError(ping, "CONFIG", 3).message).toBe(
         'The password variable named by auth.passwordEnv of profile "x" is not set or empty',
@@ -331,7 +331,7 @@ export function registerAuthScenario(engineName: EngineName): void {
       })
 
       const ping = await profileCli(["ping", globalFlag("profile"), LITERAL_PROFILE], {
-        env: { OPERATE_URL: undefined },
+        env: { PULSE_CLI_URL: undefined },
       })
       expect(expectSuccess(ping).json<PingOutput>()).toMatchObject({
         auth: "basic",
@@ -346,7 +346,7 @@ export function registerAuthScenario(engineName: EngineName): void {
       expect(profile).not.toHaveProperty("auth")
 
       const ping = await profileCli(["ping", globalFlag("profile"), LITERAL_PROFILE], {
-        env: { OPERATE_URL: undefined },
+        env: { PULSE_CLI_URL: undefined },
       })
       expect(expectError(ping, "UNAUTHORIZED", 4).hint).toMatch(/sent no credentials/)
     })
@@ -404,14 +404,14 @@ export function registerAuthScenario(engineName: EngineName): void {
       ])
       const passwordError = explanation(expectError(noPassword, "CONFIG", 3))
       expect(passwordError).toContain("--auth-password-stdin")
-      expect(passwordError).toContain("OPERATE_PASSWORD")
+      expect(passwordError).toContain("PULSE_CLI_PASSWORD")
       expect(noPassword.stderr).not.toMatch(SENT_REQUEST)
 
       const lonePassword = "never-printed-3"
       const noUser = await cli(["ping", globalFlag("verbose")], {
-        env: { OPERATE_AUTH: "basic", OPERATE_PASSWORD: lonePassword },
+        env: { PULSE_CLI_AUTH: "basic", PULSE_CLI_PASSWORD: lonePassword },
       })
-      expect(explanation(expectError(noUser, "CONFIG", 3))).toContain("OPERATE_USERNAME")
+      expect(explanation(expectError(noUser, "CONFIG", 3))).toContain("PULSE_CLI_USERNAME")
       expect(noUser.stderr).not.toMatch(SENT_REQUEST)
       expectHidden(noUser, [lonePassword])
     })
@@ -428,7 +428,7 @@ export function registerAuthScenario(engineName: EngineName): void {
           "Authorization: x",
           globalFlag("verbose"),
         ],
-        { env: { OPERATE_PASSWORD: ADMIN.password } },
+        { env: { PULSE_CLI_PASSWORD: ADMIN.password } },
       )
       expect(explanation(expectError(result, "CONFIG", 3))).toContain("Authorization")
       expect(result.stderr).not.toMatch(SENT_REQUEST)

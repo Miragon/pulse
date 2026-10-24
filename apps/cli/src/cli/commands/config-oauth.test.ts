@@ -1,4 +1,4 @@
-/** `operate config set|show|list|delete` with OAuth through `run()`. */
+/** `pulse-cli config set|show|list|delete` with OAuth through `run()`. */
 
 import { describe, expect, it } from "vitest"
 import { ISSUER } from "../../../test/support/fake-idp.js"
@@ -32,7 +32,7 @@ function errorOf(stderr: string): Record<string, unknown> {
   return (JSON.parse(line) as { error: Record<string, unknown> }).error
 }
 
-const NEXT = "Next: run `operate auth login --profile p` in a terminal to log in.\n"
+const NEXT = "Next: run `pulse-cli auth login --profile p` in a terminal to log in.\n"
 
 describe("config set with OAuth options", () => {
   it("stores the OAuth settings, selects oauth and says what comes next", async () => {
@@ -43,7 +43,7 @@ describe("config set with OAuth options", () => {
       "--oauth-issuer",
       ISSUER,
       "--oauth-client-id",
-      "operate-cli",
+      "pulse-cli",
       "--oauth-scopes",
       "openid offline_access profile",
       "--oauth-audience",
@@ -55,7 +55,7 @@ describe("config set with OAuth options", () => {
     expect(result.file?.profiles.p?.auth).toEqual({
       type: "oauth",
       issuer: ISSUER,
-      clientId: "operate-cli",
+      clientId: "pulse-cli",
       scopes: ["openid", "offline_access", "profile"],
       audience: "engine-rest",
       redirectPort: 8765,
@@ -119,7 +119,7 @@ describe("config set with OAuth options", () => {
     expect(errorOf(empty.stderr)).toMatchObject({
       code: "USAGE",
       message: "--oauth-client-secret-stdin read an empty client secret",
-      hint: `Pipe the client secret into the command, e.g. printf '%s\\n' "$CLIENT_SECRET" | operate config set <profile> --oauth-client-secret-stdin.`,
+      hint: `Pipe the client secret into the command, e.g. printf '%s\\n' "$CLIENT_SECRET" | pulse-cli config set <profile> --oauth-client-secret-stdin.`,
     })
     const both = await cli(
       ["config", "set", "p", "--oauth-client-secret-stdin", "--auth-password-stdin"],
@@ -142,13 +142,13 @@ describe("config set with OAuth options", () => {
       "--oauth-client-id",
       "c",
       "--oauth-client-secret-env",
-      "OPERATE_SECRET_X",
+      "PULSE_CLI_SECRET_X",
     ])
-    expect(result.file?.profiles.p?.auth?.clientSecretEnv).toBe("OPERATE_SECRET_X")
+    expect(result.file?.profiles.p?.auth?.clientSecretEnv).toBe("PULSE_CLI_SECRET_X")
     expect(result.stderr).toBe(
-      `Warning: the variable named by --oauth-client-secret-env is not set in this environment. Pass the name of a variable that holds the client secret (e.g. OPERATE_CLIENT_SECRET), never the client secret itself; commands read it when they run.\n${NEXT}`,
+      `Warning: the variable named by --oauth-client-secret-env is not set in this environment. Pass the name of a variable that holds the client secret (e.g. PULSE_CLI_CLIENT_SECRET), never the client secret itself; commands read it when they run.\n${NEXT}`,
     )
-    expect(result.stderr).not.toContain("OPERATE_SECRET_X")
+    expect(result.stderr).not.toContain("PULSE_CLI_SECRET_X")
     const set = await cli(["config", "set", "p", "--oauth-client-secret-env", "S"], {
       env: { S: "v" },
     })
@@ -249,7 +249,7 @@ describe("config set with OAuth options", () => {
     expect(result.file?.profiles.p?.auth).toEqual({
       type: "none",
       issuer: ISSUER,
-      clientId: "operate-cli",
+      clientId: "pulse-cli",
     })
     expect(result.stderr).toBe("")
   })
@@ -293,7 +293,7 @@ describe("config set with OAuth options", () => {
     expect(errorOf(secret.stderr).hint).toContain("--oauth-client-secret-env")
     const token = await cli(["ping", "--token=abc123"])
     expect(token.stderr).not.toContain("abc123")
-    expect(errorOf(token.stderr).hint).toContain("an OAuth token comes from `operate auth login`")
+    expect(errorOf(token.stderr).hint).toContain("an OAuth token comes from `pulse-cli auth login`")
   })
 })
 
@@ -306,7 +306,7 @@ describe("config show and list with OAuth", () => {
     expect(view.values).toMatchObject({
       auth: { value: "oauth", source: "profile" },
       issuer: { value: ISSUER, source: "profile" },
-      clientId: { value: "operate-cli", source: "profile" },
+      clientId: { value: "pulse-cli", source: "profile" },
       clientSecret: { value: "***", source: "profile" },
       scopes: { value: ["openid", "offline_access"], source: "default" },
       redirectPort: { value: 0, source: "default" },
@@ -361,10 +361,10 @@ describe("config unset with OAuth settings", () => {
     expect(result.file?.profiles.p?.auth).toEqual({
       type: "oauth",
       issuer: ISSUER,
-      clientId: "operate-cli",
+      clientId: "pulse-cli",
     })
     const blank = await cli(["config", "set", "p", "--oauth-audience", " "], { files })
-    expect(errorOf(blank.stderr).hint).toContain("`operate config unset <profile> audience`")
+    expect(errorOf(blank.stderr).hint).toContain("`pulse-cli config unset <profile> audience`")
   })
 
   it("lists the OAuth settings in the help and in the hint of an unknown key", async () => {

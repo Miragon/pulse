@@ -9,11 +9,11 @@ import { runTokenCommand } from "./token-command.js"
 const CONFIG: CommandBearerConfig = {
   type: "bearer",
   source: "env",
-  origin: "OPERATE_TOKEN_COMMAND",
+  origin: "PULSE_CLI_TOKEN_COMMAND",
   command: "./token.sh dev",
 }
 
-const PREFIX = "The bearer token command (OPERATE_TOKEN_COMMAND)"
+const PREFIX = "The bearer token command (PULSE_CLI_TOKEN_COMMAND)"
 
 async function runWith(options: FakeRuntimeOptions) {
   const runtime = fakeRuntime(options)
@@ -47,7 +47,7 @@ describe("runTokenCommand", () => {
   it("traces the run with --verbose, never the token", async () => {
     const result = await runWith({ commands: { stdout: "tok-123" } })
     expect(result.events).toEqual([
-      { type: "note", message: "Running the bearer token command of OPERATE_TOKEN_COMMAND." },
+      { type: "note", message: "Running the bearer token command of PULSE_CLI_TOKEN_COMMAND." },
     ])
   })
 
@@ -60,7 +60,7 @@ describe("runTokenCommand", () => {
       `${PREFIX} failed with exit code 7: line 2 / line  [31m3 / line 4`,
     )
     expect(result.error?.details.hint).toBe(
-      "operate runs the command with the shell in the working directory, stdin closed and bounded by the request timeout (--timeout), and takes the first line of its stdout as the token (not a JSON answer: use e.g. jq -r .access_token). Run it in a shell to see what goes wrong (`operate config show` prints it).",
+      "pulse-cli runs the command with the shell in the working directory, stdin closed and bounded by the request timeout (--timeout), and takes the first line of its stdout as the token (not a JSON answer: use e.g. jq -r .access_token). Run it in a shell to see what goes wrong (`pulse-cli config show` prints it).",
     )
     const silent = await runWith({ commands: { exitCode: 1 } })
     expect(silent.error?.message).toBe(`${PREFIX} failed with exit code 1`)
@@ -100,7 +100,7 @@ describe("runTokenCommand", () => {
     const result = await runWith({ commands: { stdout: '{"access_token":"s3cr3t-value"}' } })
     expect(result.error?.code).toBe("LOGIN_FAILED")
     expect(result.error?.message).toBe(
-      "The bearer token from the command of OPERATE_TOKEN_COMMAND has characters a bearer token cannot have (RFC 6750)",
+      "The bearer token from the command of PULSE_CLI_TOKEN_COMMAND has characters a bearer token cannot have (RFC 6750)",
     )
     expect(result.error?.details.hint).toContain("not a whole header line, a JSON answer")
     expect(JSON.stringify(result.error)).not.toContain("s3cr3t-value")

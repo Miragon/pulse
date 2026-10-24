@@ -50,7 +50,7 @@ export function registerRequests(scenario: Scenario): void {
     const error = expectError(result, "NOT_FOUND", 5)
     expect(error).toMatchObject({ status: 404, engineType: "InvalidRequestException" })
     expect(error.message).toMatch(/^HTTP 404 Not Found: .*does-not-exist/)
-    expect(error.hint).toContain("`operate process-instance list`")
+    expect(error.hint).toContain("`pulse-cli process-instance list`")
     expect(result.stdout).toBe("")
   })
 
@@ -66,7 +66,7 @@ export function registerRequests(scenario: Scenario): void {
     const [code, exitCode] = list.code === 5 ? ["NOT_FOUND", 5] : ["HTTP_CLIENT_ERROR", 6]
     const listError = expectError(list, code, exitCode)
     expect(listError.request?.url).toBe(`${engineUrl()}/engine/no-such-engine/task`)
-    expect(listError.hint).toContain("Run `operate ping` to list the engines")
+    expect(listError.hint).toContain("Run `pulse-cli ping` to list the engines")
   })
 
   it("maps an unreachable engine to NETWORK with exit code 8", async () => {
@@ -124,7 +124,7 @@ export function registerRequests(scenario: Scenario): void {
     expect(result.stdout.trimStart()).not.toMatch(/^[[{]/)
   })
 
-  it("sends raw requests with operate api", async () => {
+  it("sends raw requests with pulse-cli api", async () => {
     const result = expectSuccess(await cli(["api", "GET", "/process-definition/count"]))
     const generated = expectSuccess(await cli(argv("process-definition count")))
     expect(result.json<Count>()).toEqual({ count: expect.any(Number) })

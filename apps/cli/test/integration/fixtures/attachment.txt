@@ -1,2 +1,2 @@
-Invoice attachment for the operate integration tests.
+Invoice attachment for the pulse-cli integration tests.
 Line two keeps a second line so newlines must survive the round trip.

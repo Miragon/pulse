@@ -182,7 +182,7 @@ describe("setProfile", () => {
 
   it("suggests unset for an empty engine", () => {
     expect(failure(() => setProfile(TWO, "prod", { engine: "" })).details.hint).toBe(
-      "Remove it with `operate config unset <profile> engine` to use the default engine.",
+      "Remove it with `pulse-cli config unset <profile> engine` to use the default engine.",
     )
   })
 

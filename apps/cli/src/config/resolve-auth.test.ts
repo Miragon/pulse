@@ -18,8 +18,8 @@ describe("resolveAuth type", () => {
       auth: { type: "none", off: "Basic auth is switched off by --auth none" },
       source: "flag",
     })
-    expect(resolveAuth({}, { OPERATE_AUTH: " none " }, NO_PROFILE)).toEqual({
-      auth: { type: "none", off: "Basic auth is switched off by OPERATE_AUTH=none" },
+    expect(resolveAuth({}, { PULSE_CLI_AUTH: " none " }, NO_PROFILE)).toEqual({
+      auth: { type: "none", off: "Basic auth is switched off by PULSE_CLI_AUTH=none" },
       source: "env",
     })
     expect(resolveAuth({}, {}, profile({ type: "none" }))).toEqual({
@@ -31,11 +31,11 @@ describe("resolveAuth type", () => {
   it("says where a password is set that nothing uses (no username, no type)", () => {
     const off = (env: Record<string, string>, selected: SelectedProfile) =>
       resolveAuth({}, env, selected).auth
-    expect(off({ OPERATE_PASSWORD: "pw" }, profile({ password: "x" }))).toEqual({
+    expect(off({ PULSE_CLI_PASSWORD: "pw" }, profile({ password: "x" }))).toEqual({
       type: "none",
-      off: "a password is set (from OPERATE_PASSWORD), but no username",
+      off: "a password is set (from PULSE_CLI_PASSWORD), but no username",
     })
-    expect(off({ OPERATE_PASSWORD: " " }, profile({ passwordEnv: "UNSET_VARIABLE" }))).toEqual({
+    expect(off({ PULSE_CLI_PASSWORD: " " }, profile({ passwordEnv: "UNSET_VARIABLE" }))).toEqual({
       type: "none",
       off: 'a password is set (auth.passwordEnv of profile "prod"), but no username',
     })
@@ -53,7 +53,7 @@ describe("resolveAuth type", () => {
     expect(error.details.hint).toMatch(
       /^Basic auth was selected by --auth-password-stdin without an auth type\. Looked up the username in --auth-user, /,
     )
-    expect(resolveAuth({ authPassword: "pw" }, { OPERATE_USERNAME: "u" }, NO_PROFILE)).toEqual({
+    expect(resolveAuth({ authPassword: "pw" }, { PULSE_CLI_USERNAME: "u" }, NO_PROFILE)).toEqual({
       auth: {
         type: "basic",
         username: "u",
@@ -63,28 +63,30 @@ describe("resolveAuth type", () => {
       source: "env",
     })
     // an explicit none still wins: credentials are ignored
-    expect(resolveAuth({ authPassword: "pw" }, { OPERATE_AUTH: "none" }, NO_PROFILE).auth).toEqual({
+    expect(
+      resolveAuth({ authPassword: "pw" }, { PULSE_CLI_AUTH: "none" }, NO_PROFILE).auth,
+    ).toEqual({
       type: "none",
-      off: "Basic auth is switched off by OPERATE_AUTH=none",
+      off: "Basic auth is switched off by PULSE_CLI_AUTH=none",
     })
   })
 
-  it("lets --auth none and OPERATE_AUTH=none switch off Basic auth of the profile", () => {
+  it("lets --auth none and PULSE_CLI_AUTH=none switch off Basic auth of the profile", () => {
     const basic = profile({ type: "basic", username: "demo", password: "pw" })
     expect(resolveAuth({ auth: "none" }, {}, basic)).toEqual({
       auth: { type: "none", off: "Basic auth is switched off by --auth none" },
       source: "flag",
     })
-    expect(resolveAuth({}, { OPERATE_AUTH: "none" }, basic)).toEqual({
-      auth: { type: "none", off: "Basic auth is switched off by OPERATE_AUTH=none" },
+    expect(resolveAuth({}, { PULSE_CLI_AUTH: "none" }, basic)).toEqual({
+      auth: { type: "none", off: "Basic auth is switched off by PULSE_CLI_AUTH=none" },
       source: "env",
     })
     // a username from the environment does not override an explicit none
-    expect(resolveAuth({ auth: "none" }, { OPERATE_USERNAME: "x" }, basic).auth.type).toBe("none")
+    expect(resolveAuth({ auth: "none" }, { PULSE_CLI_USERNAME: "x" }, basic).auth.type).toBe("none")
   })
 
   it("selects basic for a username without a type, with the source of the username", () => {
-    const env = { OPERATE_USERNAME: "demo", OPERATE_PASSWORD: "pw" }
+    const env = { PULSE_CLI_USERNAME: "demo", PULSE_CLI_PASSWORD: "pw" }
     expect(resolveAuth({}, env, NO_PROFILE)).toEqual({
       auth: {
         type: "basic",
@@ -105,7 +107,7 @@ describe("resolveAuth type", () => {
   it("ignores credentials when auth is none", () => {
     const resolved = resolveAuth(
       { auth: "none", authPassword: "a\nb" },
-      { OPERATE_PASSWORD: "x" },
+      { PULSE_CLI_PASSWORD: "x" },
       profile({ passwordEnv: "UNSET_VARIABLE" }),
     )
     expect(resolved.auth).toEqual({
@@ -118,7 +120,7 @@ describe("resolveAuth type", () => {
     expect(failure(() => resolveAuth({ auth: "digest" }, {}, NO_PROFILE)).message).toBe(
       'Unsupported auth type "digest"',
     )
-    expect(failure(() => resolveAuth({}, { OPERATE_AUTH: "OAuth" }, NO_PROFILE)).message).toBe(
+    expect(failure(() => resolveAuth({}, { PULSE_CLI_AUTH: "OAuth" }, NO_PROFILE)).message).toBe(
       'Unsupported auth type "OAuth"',
     )
   })
@@ -132,8 +134,8 @@ describe("resolveAuth password", () => {
     return auth.type === "basic" ? [auth.password, auth.sources.password] : undefined
   }
 
-  it("prefers stdin, then OPERATE_PASSWORD, then passwordEnv, then the stored password", () => {
-    const env = { OPERATE_PASSWORD: "from-env", PW: "from-variable" }
+  it("prefers stdin, then PULSE_CLI_PASSWORD, then passwordEnv, then the stored password", () => {
+    const env = { PULSE_CLI_PASSWORD: "from-env", PW: "from-variable" }
     const stored = profile({ passwordEnv: "PW" })
     expect(password({ authPassword: "from-stdin" }, env, stored)).toEqual(["from-stdin", "flag"])
     expect(password({}, env, stored)).toEqual(["from-env", "env"])
@@ -143,11 +145,11 @@ describe("resolveAuth password", () => {
 
   it("keeps passwords exactly, but treats blank values as unset", () => {
     expect(password({ authPassword: " p w " }, {}, NO_PROFILE)).toEqual([" p w ", "flag"])
-    expect(password({ authPassword: "  " }, { OPERATE_PASSWORD: " x " }, NO_PROFILE)).toEqual([
+    expect(password({ authPassword: "  " }, { PULSE_CLI_PASSWORD: " x " }, NO_PROFILE)).toEqual([
       " x ",
       "env",
     ])
-    expect(password({}, { OPERATE_PASSWORD: "" }, profile({ password: "p" }))).toEqual([
+    expect(password({}, { PULSE_CLI_PASSWORD: "" }, profile({ password: "p" }))).toEqual([
       "p",
       "profile",
     ])
@@ -155,7 +157,7 @@ describe("resolveAuth password", () => {
 
   it("only reads the passwordEnv variable when no other source has a password", () => {
     expect(
-      password({}, { OPERATE_PASSWORD: "env" }, profile({ passwordEnv: "UNSET_VARIABLE" })),
+      password({}, { PULSE_CLI_PASSWORD: "env" }, profile({ passwordEnv: "UNSET_VARIABLE" })),
     ).toEqual(["env", "env"])
   })
 
@@ -172,7 +174,7 @@ describe("resolveAuth password", () => {
         'The password variable CAMUNDA_PASSWORD (auth.passwordEnv of profile "prod") is not set or empty',
       )
       expect(error.details.hint).toBe(
-        "Export it, e.g. export CAMUNDA_PASSWORD=<password>, or name another variable with `operate config set prod --auth-password-env <VAR>`.",
+        "Export it, e.g. export CAMUNDA_PASSWORD=<password>, or name another variable with `pulse-cli config set prod --auth-password-env <VAR>`.",
       )
     },
   )
@@ -187,7 +189,7 @@ describe("resolveAuth missing credentials", () => {
       "Basic auth is selected but the username and the password are missing",
     )
     expect(error.details.hint).toBe(
-      "Basic auth was selected by --auth basic. Looked up the username in --auth-user, OPERATE_USERNAME and a profile (none is selected); the password in --auth-password-stdin, OPERATE_PASSWORD and a profile (none is selected). Pipe the password into --auth-password-stdin, set OPERATE_USERNAME and OPERATE_PASSWORD, or store them with `operate config set <profile> --auth basic --auth-user <name> --auth-password-env <VAR>`; --auth none switches Basic auth off.",
+      "Basic auth was selected by --auth basic. Looked up the username in --auth-user, PULSE_CLI_USERNAME and a profile (none is selected); the password in --auth-password-stdin, PULSE_CLI_PASSWORD and a profile (none is selected). Pipe the password into --auth-password-stdin, set PULSE_CLI_USERNAME and PULSE_CLI_PASSWORD, or store them with `pulse-cli config set <profile> --auth basic --auth-user <name> --auth-password-env <VAR>`; --auth none switches Basic auth off.",
     )
   })
 
@@ -195,18 +197,18 @@ describe("resolveAuth missing credentials", () => {
     const error = failure(() => resolveAuth({}, {}, profile({ username: "demo" })))
     expect(error.message).toBe("Basic auth is selected but the password is missing")
     expect(error.details.hint).toMatch(
-      /^Basic auth was selected by a username \(auth\.username of profile "prod"\) without an auth type\. Looked up the password in --auth-password-stdin, OPERATE_PASSWORD and the auth\.passwordEnv or auth\.password of profile "prod"\. /,
+      /^Basic auth was selected by a username \(auth\.username of profile "prod"\) without an auth type\. Looked up the password in --auth-password-stdin, PULSE_CLI_PASSWORD and the auth\.passwordEnv or auth\.password of profile "prod"\. /,
     )
     const user = failure(() =>
-      resolveAuth({}, { OPERATE_AUTH: "basic", OPERATE_PASSWORD: "pw" }, profile({})),
+      resolveAuth({}, { PULSE_CLI_AUTH: "basic", PULSE_CLI_PASSWORD: "pw" }, profile({})),
     )
     expect(user.message).toBe("Basic auth is selected but the username is missing")
     expect(user.details.hint).toMatch(
-      /^Basic auth was selected by OPERATE_AUTH=basic\. Looked up the username in --auth-user, OPERATE_USERNAME and the auth\.username of profile "prod"\. /,
+      /^Basic auth was selected by PULSE_CLI_AUTH=basic\. Looked up the username in --auth-user, PULSE_CLI_USERNAME and the auth\.username of profile "prod"\. /,
     )
-    const env = failure(() => resolveAuth({}, { OPERATE_USERNAME: "demo" }, NO_PROFILE))
+    const env = failure(() => resolveAuth({}, { PULSE_CLI_USERNAME: "demo" }, NO_PROFILE))
     expect(env.details.hint).toMatch(
-      /^Basic auth was selected by a username \(from OPERATE_USERNAME\) without an auth type\. /,
+      /^Basic auth was selected by a username \(from PULSE_CLI_USERNAME\) without an auth type\. /,
     )
     const flag = failure(() => resolveAuth({ authUser: "demo" }, {}, NO_PROFILE))
     expect(flag.details.hint).toMatch(
@@ -228,12 +230,12 @@ describe("resolveAuth with a profile without auth settings", () => {
       "Basic auth is selected but the username and the password are missing",
     )
     expect(error.details.hint).toContain(
-      'Looked up the username in --auth-user, OPERATE_USERNAME and the auth.username of profile "plain"; the password in --auth-password-stdin, OPERATE_PASSWORD and the auth.passwordEnv or auth.password of profile "plain".',
+      'Looked up the username in --auth-user, PULSE_CLI_USERNAME and the auth.username of profile "plain"; the password in --auth-password-stdin, PULSE_CLI_PASSWORD and the auth.passwordEnv or auth.password of profile "plain".',
     )
   })
 
   it("takes the credentials from flags and environment", () => {
-    expect(resolveAuth({ authUser: "demo" }, { OPERATE_PASSWORD: "pw" }, plain).auth).toEqual({
+    expect(resolveAuth({ authUser: "demo" }, { PULSE_CLI_PASSWORD: "pw" }, plain).auth).toEqual({
       type: "basic",
       username: "demo",
       password: "pw",
@@ -246,7 +248,7 @@ describe("resolveAuth with a profile without auth settings", () => {
 describe("resolveAuth validation", () => {
   it.each([
     [{ authUser: "a:b", authPassword: "p" }, {}, {}, "from --auth-user"],
-    [{ authPassword: "p" }, { OPERATE_USERNAME: "a:b" }, {}, "from OPERATE_USERNAME"],
+    [{ authPassword: "p" }, { PULSE_CLI_USERNAME: "a:b" }, {}, "from PULSE_CLI_USERNAME"],
     [{ authPassword: "p" }, {}, { username: "a:b" }, 'auth.username of profile "prod"'],
   ] as const)('names the source of a username with ":"', (flags, env, auth, label) => {
     const error = failure(() => resolveAuth(flags, env, profile(auth)))
@@ -255,7 +257,7 @@ describe("resolveAuth validation", () => {
 
   it.each([
     [{ authPassword: "a\rb" }, {}, {}, "from --auth-password-stdin"],
-    [{}, { OPERATE_PASSWORD: "a\0b" }, {}, "from OPERATE_PASSWORD"],
+    [{}, { PULSE_CLI_PASSWORD: "a\0b" }, {}, "from PULSE_CLI_PASSWORD"],
     [{}, { PW: "a\nb" }, { passwordEnv: "PW" }, 'from PW, auth.passwordEnv of profile "prod"'],
     [{}, {}, { password: "a\tb" }, 'auth.password of profile "prod"'],
   ] as const)(

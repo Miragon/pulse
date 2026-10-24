@@ -1,5 +1,5 @@
 /**
- * Validation of bearer tokens obtained outside operate: the token itself (a pasted
+ * Validation of bearer tokens obtained outside pulse-cli: the token itself (a pasted
  * `Bearer ` prefix is dropped, the rest must be an RFC 6750 b64token) and the bearer rules for a
  * profile's auth object in the config file (the name of the variable that holds the token is
  * checked by variable.ts). Messages name where a value came from and never repeat a token.
@@ -26,7 +26,7 @@ const TOKEN_HINT =
 
 /**
  * The token as sent: surrounding blanks and a leading `Bearer ` (case-insensitive) removed. A
- * token that is empty or not a b64token is a CONFIG error naming `origin` (`OPERATE_TOKEN`),
+ * token that is empty or not a b64token is a CONFIG error naming `origin` (`PULSE_CLI_TOKEN`),
  * never the token.
  */
 export function normalizeToken(raw: string, origin: string): string {
@@ -34,7 +34,7 @@ export function normalizeToken(raw: string, origin: string): string {
   if (token === "") {
     throw configError(
       `The bearer token from ${origin} is empty`,
-      "Set the token itself, e.g. export OPERATE_TOKEN=<token> or pipe it into --auth-token-stdin.",
+      "Set the token itself, e.g. export PULSE_CLI_TOKEN=<token> or pipe it into --auth-token-stdin.",
     )
   }
   if (!B64TOKEN.test(token)) {

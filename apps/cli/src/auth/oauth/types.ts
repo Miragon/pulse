@@ -19,7 +19,7 @@ export interface OAuthDeps {
   readonly trace?: (event: TraceEvent) => void
 }
 
-/** Only `operate auth login` gets these: it alone may start a loopback server or a browser. */
+/** Only `pulse-cli auth login` gets these: it alone may start a loopback server or a browser. */
 export interface LoginDeps extends OAuthDeps {
   readonly randomBytes: Runtime["randomBytes"]
   readonly listenLoopback: Runtime["listenLoopback"]
@@ -37,7 +37,7 @@ export type ClientAuthMethod = "client_secret_basic" | "client_secret_post"
  */
 export type LoginClientAuth = "none" | ClientAuthMethod
 
-/** The authorization server as operate uses it: discovered or configured endpoints. */
+/** The authorization server as pulse-cli uses it: discovered or configured endpoints. */
 export interface ServerMetadata {
   /** The discovered issuer, or the configured one with explicit endpoints (null: none known). */
   readonly issuer: string | null

@@ -1,5 +1,5 @@
 /**
- * Planning of `operate retry`: the selection mode, the root cause incidents to
+ * Planning of `pulse-cli retry`: the selection mode, the root cause incidents to
  * retry and the requests per incident type. Pure.
  */
 
@@ -137,8 +137,8 @@ export function checkRetryCount(
   if (!truncated && retryable <= MAX_RETRIES) return
   const definition = key ?? "<key>"
   throw usageError(
-    `More than ${MAX_RETRIES} incidents to retry; operate retries them one by one`,
-    `Set the retries asynchronously instead: \`operate job set-retries-async --body '{"jobQuery":{"processDefinitionKey":"${definition}","noRetriesLeft":true},"retries":1}' --yes\` and \`operate external-task set-retries-async\`.`,
+    `More than ${MAX_RETRIES} incidents to retry; pulse-cli retries them one by one`,
+    `Set the retries asynchronously instead: \`pulse-cli job set-retries-async --body '{"jobQuery":{"processDefinitionKey":"${definition}","noRetriesLeft":true},"retries":1}' --yes\` and \`pulse-cli external-task set-retries-async\`.`,
   )
 }
 
@@ -188,5 +188,5 @@ export function retryPlanView(mode: RetryMode, entries: readonly PlanEntry[]) {
 
 /** What to do about an incident retry cannot fix. */
 export function skipNext(entry: PlanEntry): string {
-  return `operate incident resolve ${entry.incidentId} --yes`
+  return `pulse-cli incident resolve ${entry.incidentId} --yes`
 }

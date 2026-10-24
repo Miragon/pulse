@@ -1,5 +1,5 @@
 /**
- * How `operate auth login|status|logout` print: the view as JSON or KEY VALUE
+ * How `pulse-cli auth login|status|logout` print: the view as JSON or KEY VALUE
  * rows on stdout, and lines on stderr with control characters replaced on a terminal.
  */
 

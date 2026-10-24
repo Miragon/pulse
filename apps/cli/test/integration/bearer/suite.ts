@@ -27,7 +27,7 @@ export const AUDIENCE = "engine-rest"
 export const SERVICE_ACCOUNT = `service-account-${CLIENTS.ci}`
 /** Generous, like the OAuth suite: Keycloak and the gateway share the machine with many containers. */
 export const RUN_TIMEOUT_MS = 90_000
-/** operate refuses a JWT whose `exp` lies more than 30 s in the past. */
+/** pulse-cli refuses a JWT whose `exp` lies more than 30 s in the past. */
 export const EXPIRY_GRACE_MS = 30_000
 /** Envoy accepts 1 s of clock skew (fixtures/envoy.yaml); beyond that it answers "Jwt is expired". */
 export const GATEWAY_SKEW_MS = 2_500
@@ -46,7 +46,7 @@ export const MASKED_CURL = /'authorization: Bearer \*\*\*'/i
 export const ANY_AUTHORIZATION = /^> authorization:/im
 export const COUNT_REQUEST = "> GET <engine>/process-definition/count"
 
-/** `operate process-definition count [flags...]`, a read the gateway guards. */
+/** `pulse-cli process-definition count [flags...]`, a read the gateway guards. */
 export function countArgs(...flags: string[]): string[] {
   return [...argv("process-definition count"), ...flags]
 }
@@ -67,7 +67,7 @@ export function headerValue(
   return Object.entries(headers).find(([key]) => key.toLowerCase() === name)?.[1]
 }
 
-/** `exp` of a JWT as operate prints instants: ISO 8601 UTC with milliseconds. */
+/** `exp` of a JWT as pulse-cli prints instants: ISO 8601 UTC with milliseconds. */
 export function expiryIso(jwt: string): string {
   return new Date(expiryOf(jwt)).toISOString()
 }

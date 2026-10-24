@@ -44,7 +44,7 @@ export function registerWorkflowScenario(engineName: EngineName): void {
 
     beforeAll(async () => {
       assertCliBuilt()
-      workdir = await makeTempDir(`operate-it-workflow-${engineName}-`)
+      workdir = await makeTempDir(`pulse-cli-it-workflow-${engineName}-`)
       const configFile = join(workdir, "config.json")
       await writeFile(configFile, '{"profiles":{}}\n')
       await mkdir(join(workdir, "bpmn"))
@@ -55,7 +55,7 @@ export function registerWorkflowScenario(engineName: EngineName): void {
       cli = bindCli({
         url: engine.url,
         configFile,
-        env: { XDG_CONFIG_HOME: workdir, OPERATE_PLATFORM: engine.platform },
+        env: { XDG_CONFIG_HOME: workdir, PULSE_CLI_PLATFORM: engine.platform },
       })
     }, ENGINE_START_TIMEOUT_MS)
 

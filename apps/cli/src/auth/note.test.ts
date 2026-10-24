@@ -3,12 +3,12 @@ import { OperateError } from "../errors.js"
 import { withAuthNote } from "./note.js"
 import type { AuthProvider, Principal } from "./types.js"
 
-const NOTE = "A bearer token is set (from OPERATE_TOKEN) but not used."
+const NOTE = "A bearer token is set (from PULSE_CLI_TOKEN) but not used."
 
 /** A provider like the OAuth one: a class with a getter and methods that use `this`. */
 class FakeOAuth implements AuthProvider {
   readonly type = "oauth"
-  readonly loginStatusCommand = "operate auth status"
+  readonly loginStatusCommand = "pulse-cli auth status"
   user: string | undefined
   constructor(private readonly failure: OperateError | undefined) {}
 
@@ -71,7 +71,7 @@ describe("withAuthNote", () => {
     expect(noted.principal).toEqual({ user: "alice", source: "login" })
     await expect(noted.refresh?.()).resolves.toBe(true)
     expect(noted.rejectedHint?.(401)).toBe("oauth 401")
-    expect(noted).toMatchObject({ type: "oauth", loginStatusCommand: "operate auth status" })
+    expect(noted).toMatchObject({ type: "oauth", loginStatusCommand: "pulse-cli auth status" })
   })
 
   it("adds no method the provider lacks and keeps a preview without a note", async () => {

@@ -12,11 +12,11 @@ import {
 
 describe("exeTarget", () => {
   it.each([
-    ["linux", "x64", "operate-linux-x64", false],
-    ["linux", "arm64", "operate-linux-arm64", false],
-    ["darwin", "x64", "operate-macos-x64", true],
-    ["darwin", "arm64", "operate-macos-arm64", true],
-    ["win32", "x64", "operate-windows-x64.exe", false],
+    ["linux", "x64", "pulse-cli-linux-x64", false],
+    ["linux", "arm64", "pulse-cli-linux-arm64", false],
+    ["darwin", "x64", "pulse-cli-macos-x64", true],
+    ["darwin", "arm64", "pulse-cli-macos-arm64", true],
+    ["win32", "x64", "pulse-cli-windows-x64.exe", false],
   ])("%s %s builds %s", (platform, arch, fileName, macho) => {
     expect(exeTarget(platform, arch)).toEqual({ fileName, macho })
   })
@@ -28,7 +28,7 @@ describe("exeTarget", () => {
     })
     expect(new Set(names).size).toBe(EXE_TARGETS.length)
     for (const name of names) {
-      expect(name).toMatch(/^operate-(?:linux|macos|windows)-(?:x64|arm64)(?:\.exe)?$/)
+      expect(name).toMatch(/^pulse-cli-(?:linux|macos|windows)-(?:x64|arm64)(?:\.exe)?$/)
     }
   })
 
@@ -60,8 +60,8 @@ describe("exeTarget", () => {
 
 describe("seaConfig", () => {
   it("builds a CommonJS blob with code cache and without the experimental warning", () => {
-    expect(seaConfig("build/standalone/operate.cjs", "build/sea/sea-prep.blob")).toEqual({
-      main: "build/standalone/operate.cjs",
+    expect(seaConfig("build/standalone/pulse-cli.cjs", "build/sea/sea-prep.blob")).toEqual({
+      main: "build/standalone/pulse-cli.cjs",
       output: "build/sea/sea-prep.blob",
       disableExperimentalSEAWarning: true,
       useSnapshot: false,

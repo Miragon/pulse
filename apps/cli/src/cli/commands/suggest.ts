@@ -1,6 +1,6 @@
 /**
- * Suggestions for unknown groups, commands and operationIds of `operate commands` and
- * `operate describe`: close spellings first (`closeNames` of src/util.ts, the one rule for every
+ * Suggestions for unknown groups, commands and operationIds of `pulse-cli commands` and
+ * `pulse-cli describe`: close spellings first (`closeNames` of src/util.ts, the one rule for every
  * "did you mean"), else matches of the command search (`listCommands`). Pure.
  */
 
@@ -34,7 +34,7 @@ function commandNames(catalog: Catalog): string[] {
   )
 }
 
-/** Group names, workflow commands and operationIds: what `operate describe <word>` accepts. */
+/** Group names, workflow commands and operationIds: what `pulse-cli describe <word>` accepts. */
 function singleNames(catalog: Catalog): string[] {
   return [
     ...catalog.groups.map((group) => group.name),

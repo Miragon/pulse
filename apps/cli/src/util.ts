@@ -1,5 +1,8 @@
 /** Small helpers shared across layers. */
 
+/** The program name: the command, the help and every hint name it this way. */
+export const CLI_NAME = "pulse-cli"
+
 type Defined<T> = { [K in keyof T]: Exclude<T[K], undefined> }
 
 /**
@@ -135,7 +138,7 @@ function isClose(distance: number, word: string, name: string): boolean {
 /**
  * Close spellings of `word` among `names`, compared case-insensitively (a name that differs only in
  * case has distance 0), closest first, at most 5; names keep their spelling. The one rule for every
- * "did you mean" of operate: commands, groups, options and body properties.
+ * "did you mean" of pulse-cli: commands, groups, options and body properties.
  */
 export function closeNames(word: string, names: readonly string[]): string[] {
   const wanted = word.toLowerCase()

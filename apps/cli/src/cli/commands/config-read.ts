@@ -1,5 +1,5 @@
 /**
- * The reading `operate config` commands: `config path` (the user's config file,
+ * The reading `pulse-cli config` commands: `config path` (the user's config file,
  * with `--project` the project file), `config show` (the effective configuration with the source
  * of every value and the files it comes from) and `config list` (the profiles of both files).
  */
@@ -61,7 +61,7 @@ async function printPath(command: Command, context: CliContext): Promise<void> {
 
 /**
  * `-o` only chooses how `config show` prints: the values are what an operation command resolves
- * without it (OPERATE_OUTPUT, the profile's output or the default).
+ * without it (PULSE_CLI_OUTPUT, the profile's output or the default).
  */
 async function printConfig(command: Command, context: CliContext): Promise<void> {
   const { output, ...globals } = readGlobals(command)
@@ -110,7 +110,7 @@ export function registerReadCommands(config: Command, context: CliContext): void
     FILE_OPTIONS,
   ).option(
     PROJECT_OPTION[0],
-    "Print the project file (.operate.json from the working directory up to the repository root)",
+    "Print the project file (.pulse-cli.json from the working directory up to the repository root)",
   )
   path.action(() => printPath(path, context))
   const show = configSubcommand(

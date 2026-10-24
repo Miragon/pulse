@@ -7,6 +7,7 @@ import { Command } from "commander"
 import { findGroup, operationsInGroup } from "../catalog/catalog.js"
 import type { Catalog } from "../catalog/types.js"
 import { listGroups } from "../docs/commands.js"
+import { CLI_NAME } from "../util.js"
 import { VERSION } from "../version.js"
 import { addressedCommand } from "./argv.js"
 import { subcommand } from "./command.js"
@@ -18,8 +19,8 @@ import { registerOperation } from "./operation.js"
 import { registerWorkflowCommands } from "./workflow/index.js"
 
 const GROUP_FOOTER = `
-Run "operate <group> <command> --help" for the arguments and options of a command, or
-"operate describe <group> <command>" for the request body schema and the responses.`
+Run "pulse-cli <group> <command> --help" for the arguments and options of a command, or
+"pulse-cli describe <group> <command>" for the request body schema and the responses.`
 
 const GROUPS_HEADING = "API groups:"
 
@@ -49,7 +50,7 @@ function registerGroups(program: Command, context: CliContext, addressed: string
 
 /** Builds the program for the (normalized) argument list. */
 export function createProgram(args: readonly string[], context: CliContext): Command {
-  const program = new Command("operate")
+  const program = new Command(CLI_NAME)
   program
     .exitOverride(exitHandler(program))
     .configureOutput(outputConfiguration(context.runtime))

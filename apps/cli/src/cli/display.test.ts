@@ -46,8 +46,8 @@ describe("displayOf", () => {
     expect(display.maxWidth).toBe(120)
   })
 
-  it("takes -o before OPERATE_OUTPUT, which is trimmed and ignored when blank", async () => {
-    const env = (value: string) => contextOf({ env: { OPERATE_OUTPUT: value } })
+  it("takes -o before PULSE_CLI_OUTPUT, which is trimmed and ignored when blank", async () => {
+    const env = (value: string) => contextOf({ env: { PULSE_CLI_OUTPUT: value } })
     expect((await displayOf(env(" table "), {})).format).toBe("table")
     expect((await displayOf(env("table"), { output: "json" })).format).toBe("json")
     expect((await displayOf(env("  "), {})).format).toBe("json")
@@ -56,11 +56,11 @@ describe("displayOf", () => {
     )
   })
 
-  it("takes the output of the selected profile after OPERATE_OUTPUT", async () => {
+  it("takes the output of the selected profile after PULSE_CLI_OUTPUT", async () => {
     const files = { [CONFIG_PATH]: TABLE_PROFILE }
     expect((await displayOf(contextOf({ files }), {})).format).toBe("table")
     expect((await displayOf(contextOf({ files }), { profile: "j" })).format).toBe("json")
-    const env = { OPERATE_OUTPUT: "json" }
+    const env = { PULSE_CLI_OUTPUT: "json" }
     expect((await displayOf(contextOf({ files, env }), {})).format).toBe("json")
     const other = { "/other.json": TABLE_PROFILE }
     expect((await displayOf(contextOf({ files: other }), { config: "/other.json" })).format).toBe(
@@ -90,7 +90,7 @@ describe("displayOf", () => {
     expect(error).toBeInstanceOf(OperateError)
     expect(error).toMatchObject({ code: "CONFIG", message: 'Unknown output format "yaml"' })
     expect(context.state.format).toBeUndefined()
-    const fromEnv = await displayOf(contextOf({ env: { OPERATE_OUTPUT: "yaml" } }), {}).catch(
+    const fromEnv = await displayOf(contextOf({ env: { PULSE_CLI_OUTPUT: "yaml" } }), {}).catch(
       (caught: unknown) => caught,
     )
     expect(fromEnv).toMatchObject({ code: "CONFIG" })

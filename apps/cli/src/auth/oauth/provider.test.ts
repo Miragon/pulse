@@ -11,7 +11,7 @@ import { rejection, setup, T0 } from "../../../test/support/oauth-provider.js"
 import { cachedLogin, cacheText, TOKEN_FILE } from "../../../test/support/oauth.js"
 
 const HINT =
-  "Run `operate auth login --profile p` in a terminal: a person logs in once in the browser, operate refreshes the token afterwards. Agents cannot log in themselves."
+  "Run `pulse-cli auth login --profile p` in a terminal: a person logs in once in the browser, pulse-cli refreshes the token afterwards. Agents cannot log in themselves."
 
 describe("OAuth provider: the cached login", () => {
   it("sends the cached access token as the only header", async () => {
@@ -45,11 +45,11 @@ describe("OAuth provider: the cached login", () => {
   it("names where to log in in dry-run notes and the hint of a rejected token", async () => {
     const missing = await setup(null).provider({ projectDirectory: "/work/shop" }).preview?.()
     expect(missing?.note).toContain(
-      "Run `operate auth login --profile p` in a terminal in /work/shop.",
+      "Run `pulse-cli auth login --profile p` in a terminal in /work/shop.",
     )
     const auth = setup().provider({ configFile: "/home/me/ci.json" })
     expect(auth.rejectedHint?.(401)).toContain(
-      "run `operate auth login --config /home/me/ci.json --profile p` in a terminal.",
+      "run `pulse-cli auth login --config /home/me/ci.json --profile p` in a terminal.",
     )
   })
 
@@ -58,17 +58,17 @@ describe("OAuth provider: the cached login", () => {
       setup(null).provider({ projectDirectory: "/work/shop" }).headers(),
     )
     expect(error.details.hint).toContain(
-      "Run `operate auth login --profile p` in a terminal in /work/shop: a person logs in once",
+      "Run `pulse-cli auth login --profile p` in a terminal in /work/shop: a person logs in once",
     )
   })
 
   it("fails with LOGIN_REQUIRED for a cache of another identity or an unknown format", async () => {
     const other = await rejection(setup().provider({ clientId: "other" }).headers())
     expect(other.message).toBe(
-      'The OAuth login of profile "p" was made for another issuer, client, audience or scopes: client "operate-cli" (the configuration asks for "other")',
+      'The OAuth login of profile "p" was made for another issuer, client, audience or scopes: client "pulse-cli" (the configuration asks for "other")',
     )
     expect(other.details.hint).toBe(
-      `The login was made with other settings: OPERATE_OAUTH_* variables were set where the login ran (also through another profile that shares the login). ${HINT}`,
+      `The login was made with other settings: PULSE_CLI_OAUTH_* variables were set where the login ran (also through another profile that shares the login). ${HINT}`,
     )
     const garbage = await rejection(setup('{"version":1}').provider().headers())
     expect(garbage.message).toBe(`The token cache ${TOKEN_FILE} has an unknown format`)
@@ -174,7 +174,7 @@ describe("OAuth provider: concurrent processes", () => {
     replaced.runtime.files.set(TOKEN_FILE, { data: new TextEncoder().encode(cacheText(foreign)) })
     replaced.clock = T0 + 250_000
     expect((await rejection(other.headers())).message).toBe(
-      'The OAuth login of profile "p" was made for another issuer, client, audience or scopes: client "x" (the configuration asks for "operate-cli")',
+      'The OAuth login of profile "p" was made for another issuer, client, audience or scopes: client "x" (the configuration asks for "pulse-cli")',
     )
     expect(replaced.idp.requests).toEqual([])
   })
@@ -226,7 +226,7 @@ describe("OAuth provider: reactive refresh", () => {
     await auth.headers()
     const first = auth.rejectedHint?.(401)
     expect(first).toBe(
-      'The engine (or the gateway in front of it) rejected the OAuth access token of alice (profile "p"). The authorization server issued it, but it is not accepted here: the gateway must expect exactly the issuer operate logged in with (auth.issuer: https://login.example.com/realms/camunda; localhost and 127.0.0.1 are different issuers), and its clock must agree; `operate auth status --profile p` shows scopes and expiry. If the login was revoked, run `operate auth login --profile p` in a terminal.',
+      'The engine (or the gateway in front of it) rejected the OAuth access token of alice (profile "p"). The authorization server issued it, but it is not accepted here: the gateway must expect exactly the issuer pulse-cli logged in with (auth.issuer: https://login.example.com/realms/camunda; localhost and 127.0.0.1 are different issuers), and its clock must agree; `pulse-cli auth status --profile p` shows scopes and expiry. If the login was revoked, run `pulse-cli auth login --profile p` in a terminal.',
     )
     await auth.refresh?.()
     expect(auth.rejectedHint?.(401)).toContain(
@@ -245,14 +245,16 @@ describe("OAuth provider: reactive refresh", () => {
       'The gateway or the engine refused the OAuth access token of an unknown user (no profile). A JWT gateway answers 403 when the token\'s audience or scopes do not fit (e.g. "Audiences in Jwt are not allowed"): check the audience mapper or auth.audience and auth.scopes; otherwise the user lacks an engine authorization.',
     )
     expect(auth.rejectedHint?.(401)).toContain("(auth.issuer: not set;")
-    expect(auth.rejectedHint?.(401)).toContain("`operate auth status` shows")
+    expect(auth.rejectedHint?.(401)).toContain("`pulse-cli auth status` shows")
     expect(auth.rejectedHint?.(404)).toBeUndefined()
     expect(auth.rejectedHint?.(500)).toBeUndefined()
   })
 
   it("names the status command of its profile for the hint of a redirect", () => {
-    expect(setup().provider().loginStatusCommand).toBe("operate auth status --profile p")
-    expect(setup().provider({ profile: undefined }).loginStatusCommand).toBe("operate auth status")
+    expect(setup().provider().loginStatusCommand).toBe("pulse-cli auth status --profile p")
+    expect(setup().provider({ profile: undefined }).loginStatusCommand).toBe(
+      "pulse-cli auth status",
+    )
   })
 })
 
@@ -271,23 +273,23 @@ describe("OAuth provider: dry-run preview", () => {
     refresh.clock = T0 + 250_000
     await expect(refresh.provider().preview?.()).resolves.toEqual({
       headers: { Authorization: "Bearer cached-access" },
-      note: "The cached access token expires at 2023-11-14T22:18:20.000Z; operate would refresh it before sending.",
+      note: "The cached access token expires at 2023-11-14T22:18:20.000Z; pulse-cli would refresh it before sending.",
     })
     // an expiry in the past reads "expired", from the exact millisecond on
     const due = setup()
     due.clock = T0 + 300_000
     await expect(due.provider().preview?.()).resolves.toMatchObject({
-      note: "The cached access token expired at 2023-11-14T22:18:20.000Z; operate would refresh it before sending.",
+      note: "The cached access token expired at 2023-11-14T22:18:20.000Z; pulse-cli would refresh it before sending.",
     })
     const expired = setup(cachedLogin(T0, { refreshToken: null }))
     expired.clock = T0 + 300_000
     await expect(expired.provider().preview?.()).resolves.toMatchObject({
-      note: "The cached access token expired at 2023-11-14T22:18:20.000Z and operate cannot refresh it: the request would fail with LOGIN_REQUIRED. Run `operate auth login --profile p` in a terminal.",
+      note: "The cached access token expired at 2023-11-14T22:18:20.000Z and pulse-cli cannot refresh it: the request would fail with LOGIN_REQUIRED. Run `pulse-cli auth login --profile p` in a terminal.",
     })
     const soon = setup(cachedLogin(T0, { refreshToken: null }))
     soon.clock = T0 + 250_000
     await expect(soon.provider().preview?.()).resolves.toMatchObject({
-      note: "The cached access token expires at 2023-11-14T22:18:20.000Z and operate cannot refresh it.",
+      note: "The cached access token expires at 2023-11-14T22:18:20.000Z and pulse-cli cannot refresh it.",
     })
     expect(refresh.idp.requests).toEqual([])
   })
@@ -296,13 +298,13 @@ describe("OAuth provider: dry-run preview", () => {
     for (const test of [setup(null), setup("garbage")]) {
       await expect(test.provider().preview?.()).resolves.toEqual({
         headers: {},
-        note: 'Not logged in with OAuth (profile "p"); the request would fail with LOGIN_REQUIRED. Run `operate auth login --profile p` in a terminal.',
+        note: 'Not logged in with OAuth (profile "p"); the request would fail with LOGIN_REQUIRED. Run `pulse-cli auth login --profile p` in a terminal.',
       })
     }
     await expect(
       setup().provider({ clientId: "x", profile: undefined }).preview?.(),
     ).resolves.toMatchObject({
-      note: "Not logged in with OAuth (no profile); the request would fail with LOGIN_REQUIRED. Run `operate auth login` in a terminal with OPERATE_AUTH=oauth and the same OPERATE_OAUTH_* settings.",
+      note: "Not logged in with OAuth (no profile); the request would fail with LOGIN_REQUIRED. Run `pulse-cli auth login` in a terminal with PULSE_CLI_AUTH=oauth and the same PULSE_CLI_OAUTH_* settings.",
     })
   })
 

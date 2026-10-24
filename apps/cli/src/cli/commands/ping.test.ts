@@ -36,7 +36,7 @@ function cli(args: readonly string[], options: FakeRuntimeOptions = {}) {
   )
 }
 
-describe("operate ping", () => {
+describe("pulse-cli ping", () => {
   it("prints url, engine, version, engine names, latency and auth", async () => {
     const result = await cli(["ping"])
     expect(result).toMatchObject({ code: 0, stderr: "" })
@@ -72,7 +72,7 @@ describe("operate ping", () => {
         code: "CONFIG",
         exitCode: 3,
         message: 'Process engine "third" does not exist',
-        hint: "The REST API serves: default, second. Pass one of them with --engine (or OPERATE_ENGINE, or the profile setting engine), or leave it unset for the default engine.",
+        hint: "The REST API serves: default, second. Pass one of them with --engine (or PULSE_CLI_ENGINE, or the profile setting engine), or leave it unset for the default engine.",
       },
     })
   })
@@ -117,7 +117,7 @@ describe("operate ping", () => {
 
   it("shows its help with the global options", async () => {
     const result = await cli(["ping", "--help"])
-    expect(result.stdout).toMatch(/^Usage: operate ping \[options\]\n\nCheck the connection/)
+    expect(result.stdout).toMatch(/^Usage: pulse-cli ping \[options\]\n\nCheck the connection/)
     expect(result.stdout).toContain("\nGlobal Options:\n  --url <url> ")
   })
 })

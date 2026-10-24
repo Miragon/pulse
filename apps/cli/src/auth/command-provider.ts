@@ -1,7 +1,7 @@
 /**
- * The AuthProvider of OPERATE_TOKEN_COMMAND: operate runs the command when it needs a
+ * The AuthProvider of PULSE_CLI_TOKEN_COMMAND: pulse-cli runs the command when it needs a
  * token. A JWT with `exp` is reused, also across calls (command-cache.ts), until shortly before it
- * expires, then the command runs again, so a long `operate wait` keeps a valid token; an opaque
+ * expires, then the command runs again, so a long `pulse-cli wait` keeps a valid token; an opaque
  * token is fetched once per call. After a 401 the command runs once more and the request is
  * retried with the new token (the client retries a request once). `--dry-run` never runs the
  * command: it shows a fresh token of this call or of the cache, else a note.
@@ -112,14 +112,14 @@ class CommandProvider implements AuthProvider {
     if (token !== undefined) return { headers: header(token) }
     return {
       headers: {},
-      note: `operate runs the bearer token command of ${this.config.origin} for the token when it sends the request; --dry-run does not run it.`,
+      note: `pulse-cli runs the bearer token command of ${this.config.origin} for the token when it sends the request; --dry-run does not run it.`,
     }
   }
 
   rejectedHint(status: number): string | undefined {
     const again = this.rerun
-      ? "operate ran the command again after the 401, and the engine rejected that token too (or the command printed the same one)"
-      : "operate ran the command for this request"
+      ? "pulse-cli ran the command again after the 401, and the engine rejected that token too (or the command printed the same one)"
+      : "pulse-cli ran the command for this request"
     const token = this.current?.token
     const rejected = {
       origin: `the command of ${this.config.origin}`,
@@ -129,7 +129,7 @@ class CommandProvider implements AuthProvider {
     return bearerRejectedHint(
       status,
       rejected,
-      `${again}. Check what the command prints and for which audience (\`operate auth status\` shows the claims of its token).`,
+      `${again}. Check what the command prints and for which audience (\`pulse-cli auth status\` shows the claims of its token).`,
     )
   }
 }

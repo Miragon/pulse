@@ -1,5 +1,5 @@
 /**
- * Path, query and engine prefix of raw requests (`operate api <METHOD> <path>`). The path is
+ * Path, query and engine prefix of raw requests (`pulse-cli api <METHOD> <path>`). The path is
  * normalized before it is matched against the catalog and before it is sent, so that the guards
  * judge exactly the request that goes out: `/process-instance/./delete`, `/x/../process-instance/
  * delete`, `/process-instance//delete/` and `%2e` segments all become `/process-instance/delete`,
@@ -9,9 +9,9 @@
 import { usageError } from "../errors.js"
 
 /** Base for resolving dot segments; never contacted. */
-const PLACEHOLDER_ORIGIN = "http://operate.invalid"
+const PLACEHOLDER_ORIGIN = "http://pulse-cli.invalid"
 
-const PATH_HINT = "Example: operate api GET /process-definition/count; set the root with --url."
+const PATH_HINT = "Example: pulse-cli api GET /process-definition/count; set the root with --url."
 
 export interface ApiPath {
   /** Normalized path with a leading slash and no trailing slash (`/` for the root). */

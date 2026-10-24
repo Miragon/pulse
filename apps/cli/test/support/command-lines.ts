@@ -1,6 +1,6 @@
 /**
  * The command line checker of the command line tests (src/cli/command-lines.test.ts): an
- * `operate` command line is valid against the catalog when its group and command exist, it has the
+ * `pulse-cli` command line is valid against the catalog when its group and command exist, it has the
  * right number of positional arguments, only options the command registers (operation options from
  * `operationOptions`, `--no-x` for boolean options, the global options of GLOBAL_FLAGS) and values
  * the CLI accepts.
@@ -94,7 +94,7 @@ const CONFIG_SUBCOMMANDS: Readonly<Record<string, readonly [number, number]>> = 
   delete: [1, 1],
 }
 
-/** `operate` commands in the fenced code blocks, split at shell operators such as `|`. */
+/** `pulse-cli` commands in the fenced code blocks, split at shell operators such as `|`. */
 export function guideCommands(markdown: string): string[][] {
   const commands: string[][] = []
   let fenced = false
@@ -110,7 +110,7 @@ export function guideCommands(markdown: string): string[][] {
         segment.push(word)
         continue
       }
-      if (segment[0] === "operate") commands.push(segment)
+      if (segment[0] === "pulse-cli") commands.push(segment)
       segment = []
     }
   }
@@ -355,7 +355,7 @@ export function commandLineChecker(globalOptions: readonly GlobalOptionFlags[]) 
     if (subcommand === "set") expect(positionals[0]).toMatch(/^[A-Za-z0-9][A-Za-z0-9._-]*$/)
   }
 
-  /** `operate auth status|logout` (`auth login` is for a person, never in the guide). */
+  /** `pulse-cli auth status|logout` (`auth login` is for a person, never in the guide). */
   function checkAuth(rest: readonly string[]): void {
     const flags = withFlags(new Map([["output", GLOBALS.get("output")!]]), {
       profile: { takesValue: true },
@@ -368,7 +368,7 @@ export function commandLineChecker(globalOptions: readonly GlobalOptionFlags[]) 
     expect(positionals).toEqual([])
   }
 
-  /** `operate guide [topic]` or `operate guide --list`, with `-o` for the list. */
+  /** `pulse-cli guide [topic]` or `pulse-cli guide --list`, with `-o` for the list. */
   function checkGuide(rest: readonly string[]): void {
     const flags = withFlags(new Map([["output", GLOBALS.get("output")!]]), {
       list: { takesValue: false },
@@ -402,9 +402,9 @@ export function commandLineChecker(globalOptions: readonly GlobalOptionFlags[]) 
     ),
   }
 
-  /** Validates one command line given as words, the first being `operate`. */
+  /** Validates one command line given as words, the first being `pulse-cli`. */
   function checkCommandLine(words: readonly string[]): void {
-    expect(words[0]).toBe("operate")
+    expect(words[0]).toBe("pulse-cli")
     const [, first = "", second = "", ...rest] = words
     const utility = UTILITIES[first]
     if (utility !== undefined) {

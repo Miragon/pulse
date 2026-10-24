@@ -1,5 +1,5 @@
 /**
- * Drift protection between the docs and the real command line: every `operate` command of the guide
+ * Drift protection between the docs and the real command line: every `pulse-cli` command of the guide
  * (the core and every topic), of the README and of every page of docs/ (each page in order on its
  * own fake engine) and every example of every operation must run in the CLI with exit code 0
  * (examples with --dry-run, whose preview must show the method and path of the operation).
@@ -37,11 +37,11 @@ function operateSegments(words: readonly string[]): string[][] {
     if (SHELL_OPERATORS.has(word)) segments.push([])
     else segments.at(-1)?.push(word)
   }
-  return segments.filter((segment) => segment[0] === "operate")
+  return segments.filter((segment) => segment[0] === "pulse-cli")
 }
 
 /**
- * `operate` commands in the shell code blocks (```sh, or ```sh [label] in a VitePress code group)
+ * `pulse-cli` commands in the shell code blocks (```sh, or ```sh [label] in a VitePress code group)
  * of markdown, split at shell operators. Other blocks hold transcripts and syntax summaries.
  */
 function fencedCommands(markdown: string): string[][] {
@@ -75,7 +75,7 @@ function referencedFiles(words: readonly string[]): Record<string, string> {
   return Object.fromEntries(paths.map((path) => [path, contentOf(path)]))
 }
 
-/** Directories the documented `operate deploy` lines deploy, each with one process. */
+/** Directories the documented `pulse-cli deploy` lines deploy, each with one process. */
 const DEPLOYED_DIRECTORIES = {
   "bpmn/invoice.bpmn": processXml("invoice.bpmn"),
   "src/main/resources/invoice.bpmn": processXml("invoice.bpmn"),
@@ -86,7 +86,7 @@ const DEPLOYED_DIRECTORIES = {
  * incident of the failing job (the next line retries it).
  */
 const EXIT_9: ReadonlySet<string> = new Set([
-  "operate advance --business-key B-1 --var approved=true --wait",
+  "pulse-cli advance --business-key B-1 --var approved=true --wait",
 ])
 
 /**
@@ -175,16 +175,17 @@ async function previewFailures(examples: readonly (readonly [OperationSpec, read
 }
 
 describe("documented command lines run in the CLI", () => {
-  it("finds the operate commands of fenced code blocks", () => {
+  it("finds the pulse-cli commands of fenced code blocks", () => {
     const markdown =
-      "text operate x\n```sh\necho '{}' | operate guide && operate ping -o 'json'\n```\n```text\noperate <group>\n```"
+      "text pulse-cli x\n```sh\necho '{}' | pulse-cli guide && pulse-cli ping -o 'json'\n```\n```text\npulse-cli <group>\n```"
     expect(fencedCommands(markdown)).toEqual([
-      ["operate", "guide"],
-      ["operate", "ping", "-o", "json"],
+      ["pulse-cli", "guide"],
+      ["pulse-cli", "ping", "-o", "json"],
     ])
-    const codeGroup = "```sh [CI]\noperate status\n```\n```text [Claude Code]\n/operate:status\n```"
-    expect(fencedCommands(codeGroup)).toEqual([["operate", "status"]])
-    expect(fencedCommands("```shell\noperate status\n```")).toEqual([])
+    const codeGroup =
+      "```sh [CI]\npulse-cli status\n```\n```text [Claude Code]\n/pulse-cli:status\n```"
+    expect(fencedCommands(codeGroup)).toEqual([["pulse-cli", "status"]])
+    expect(fencedCommands("```shell\npulse-cli status\n```")).toEqual([])
     expect(referencedFiles(["--body", "@a.json", "b.bpmn", "c.txt"])).toEqual({
       "a.json": "{}",
       "b.bpmn": processXml("b.bpmn"),
@@ -220,26 +221,26 @@ describe("documented command lines run in the CLI", () => {
   it("notices an example whose preview does not match its operation", async () => {
     const list = catalog.operations.find((operation) => operation.operationId === "getTasks")!
     const count = catalog.operations.find((operation) => operation.operationId === "getTasksCount")!
-    const words = ["operate", "task", "count", "--dry-run"]
+    const words = ["pulse-cli", "task", "count", "--dry-run"]
     expect(await previewFailures([[count, words]])).toEqual([])
     expect(await previewFailures([[list, words]])).toHaveLength(1)
-    const table = ["operate", "task", "delete", "t1", "--dry-run", "-o", "table"]
+    const table = ["pulse-cli", "task", "delete", "t1", "--dry-run", "-o", "table"]
     const remove = catalog.operations.find((operation) => operation.operationId === "deleteTask")!
     expect(await previewFailures([[remove, table]])).toEqual([])
   })
 
   it("reports the command lines that fail", async () => {
     const lines = [
-      ["operate", "task", "list", "--no-such-flag"],
-      ["operate", "guide"],
+      ["pulse-cli", "task", "list", "--no-such-flag"],
+      ["pulse-cli", "guide"],
     ]
     expect(await failures(lines, documentedRuntime([]))).toEqual([
-      `operate task list --no-such-flag: ${JSON.stringify({
+      `pulse-cli task list --no-such-flag: ${JSON.stringify({
         error: {
           code: "USAGE",
           exitCode: 2,
           message: 'Unknown option "--no-such-flag"',
-          hint: 'Run "operate task list --help" for the usage.',
+          hint: 'Run "pulse-cli task list --help" for the usage.',
         },
       })}\n`,
     ])

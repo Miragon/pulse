@@ -125,7 +125,7 @@ export function registerProcessFlow(scenario: Scenario): void {
     const claim = expectSuccess(await cli(argv("task claim", [taskId], { userId: "demo" })))
     expect(claim.stdout).toBe("")
     // Tomcat sends no reason phrase; the CLI fills in the standard one
-    // the path relative to the REST root, as `operate api` takes it
+    // the path relative to the REST root, as `pulse-cli api` takes it
     expect(claim.stderr).toBe(`Done: POST /task/${taskId}/claim → 204 No Content\n`)
     const claimed = await cli(
       argv("task list", [], { processInstanceId: orderId, assignee: "demo" }),

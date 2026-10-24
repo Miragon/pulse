@@ -11,7 +11,12 @@ import { createAuthProvider } from "./index.js"
 const NOW = NOW_S * 1000
 
 function config(): CommandBearerConfig {
-  return { type: "bearer", source: "env", origin: "OPERATE_TOKEN_COMMAND", command: "print-token" }
+  return {
+    type: "bearer",
+    source: "env",
+    origin: "PULSE_CLI_TOKEN_COMMAND",
+    command: "print-token",
+  }
 }
 
 /** A shell whose command prints the next of `tokens` (the last one again when they run out). */
@@ -46,7 +51,7 @@ describe("commandBearerAuth", () => {
     await expect(auth.headers()).resolves.toEqual({ Authorization: `Bearer ${JWT}` })
     await expect(auth.headers()).resolves.toEqual({ Authorization: `Bearer ${JWT}` })
     expect(runtime.commandRuns).toHaveLength(1)
-    expect(auth.principal).toEqual({ user: "alice", source: "OPERATE_TOKEN_COMMAND" })
+    expect(auth.principal).toEqual({ user: "alice", source: "PULSE_CLI_TOKEN_COMMAND" })
   })
 
   it("shares the JWT with later commands through the cache until shortly before exp", async () => {
@@ -60,7 +65,7 @@ describe("commandBearerAuth", () => {
       {
         type: "note",
         message:
-          "Using the token of the bearer token command of OPERATE_TOKEN_COMMAND, cached until it expires at 2023-11-14T23:13:20.000Z.",
+          "Using the token of the bearer token command of PULSE_CLI_TOKEN_COMMAND, cached until it expires at 2023-11-14T23:13:20.000Z.",
       },
     ])
     // within the refresh margin the command runs again, also for a running provider
@@ -78,7 +83,7 @@ describe("commandBearerAuth", () => {
     const events: TraceEvent[] = []
     await provider(runtime, events).headers()
     expect(events.map((event) => (event.type === "note" ? event.message : ""))).toEqual([
-      "Running the bearer token command of OPERATE_TOKEN_COMMAND.",
+      "Running the bearer token command of PULSE_CLI_TOKEN_COMMAND.",
       "Cached the token until shortly before it expires at 2023-11-14T23:13:20.000Z.",
     ])
   })
@@ -140,7 +145,7 @@ describe("commandBearerAuth", () => {
     const runtime = printing(JWT)
     const note = {
       headers: {},
-      note: "operate runs the bearer token command of OPERATE_TOKEN_COMMAND for the token when it sends the request; --dry-run does not run it.",
+      note: "pulse-cli runs the bearer token command of PULSE_CLI_TOKEN_COMMAND for the token when it sends the request; --dry-run does not run it.",
     }
     await expect(provider(runtime).preview?.()).resolves.toEqual(note)
     expect(runtime.commandRuns).toHaveLength(0)
@@ -163,15 +168,15 @@ describe("commandBearerAuth", () => {
   it("explains a 401 and a 403 with the claims of the token it sent", async () => {
     const auth = provider(printing(JWT, OTHER))
     expect(auth.rejectedHint?.(401)).toBe(
-      "Bearer auth failed: the engine rejected the bearer token from the command of OPERATE_TOKEN_COMMAND. Check that the token is still valid and was issued for this engine (or the gateway in front of it); operate ran the command for this request. Check what the command prints and for which audience (`operate auth status` shows the claims of its token).",
+      "Bearer auth failed: the engine rejected the bearer token from the command of PULSE_CLI_TOKEN_COMMAND. Check that the token is still valid and was issued for this engine (or the gateway in front of it); pulse-cli ran the command for this request. Check what the command prints and for which audience (`pulse-cli auth status` shows the claims of its token).",
     )
     await auth.headers()
     expect(auth.rejectedHint?.(401)).toContain(
-      "the bearer token from the command of OPERATE_TOKEN_COMMAND (a JWT: subject 27c6dbd7-a170-4b19-8686-f7299949346a, issuer https://login.example.com/realms/camunda, audience engine-rest account, expires at 2023-11-14T23:13:20.000Z)",
+      "the bearer token from the command of PULSE_CLI_TOKEN_COMMAND (a JWT: subject 27c6dbd7-a170-4b19-8686-f7299949346a, issuer https://login.example.com/realms/camunda, audience engine-rest account, expires at 2023-11-14T23:13:20.000Z)",
     )
     await auth.refresh?.()
     expect(auth.rejectedHint?.(401)).toContain(
-      "operate ran the command again after the 401, and the engine rejected that token too (or the command printed the same one).",
+      "pulse-cli ran the command again after the 401, and the engine rejected that token too (or the command printed the same one).",
     )
     expect(auth.rejectedHint?.(403)).toContain("lacks the roles or scopes")
     expect(auth.rejectedHint?.(500)).toBeUndefined()

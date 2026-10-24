@@ -5,9 +5,9 @@ import { escapeHtml, failurePage, successPage } from "./pages.js"
 describe("callback pages", () => {
   it("says the login arrived, without scripts, links or external resources", () => {
     const page = successPage()
-    expect(page).toContain("<title>operate login</title>")
+    expect(page).toContain("<title>pulse-cli login</title>")
     expect(page).toContain(
-      "<h1>Logged in</h1><p>operate received the login. You can close this tab and return to the terminal.</p>",
+      "<h1>Logged in</h1><p>pulse-cli received the login. You can close this tab and return to the terminal.</p>",
     )
     for (const page of [successPage(), failurePage("x")]) {
       expect(page).not.toMatch(/<script|<a |<link|<img|src=|href=/i)

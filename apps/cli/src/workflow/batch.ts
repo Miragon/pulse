@@ -1,5 +1,5 @@
 /**
- * `operate wait --batch <id>`: polls the batch statistics until the batch is gone
+ * `pulse-cli wait --batch <id>`: polls the batch statistics until the batch is gone
  * (finished or deleted), and fails fast when its failed jobs keep it from finishing.
  */
 
@@ -92,7 +92,7 @@ async function stuckError(
     "JOB_FAILED",
     `Batch ${batch.id} cannot finish: ${batch.failedJobs ?? 0} jobs failed${first === undefined ? "" : `, the first: ${first}`}`,
     {
-      hint: `\`operate job list --job-definition-id ${jobDefinitionId ?? "<id>"} --with-exception\` lists the failed jobs; fix the cause, then set their retries (\`operate job set-retries <id> --retries 1\`).`,
+      hint: `\`pulse-cli job list --job-definition-id ${jobDefinitionId ?? "<id>"} --with-exception\` lists the failed jobs; fix the cause, then set their retries (\`pulse-cli job set-retries <id> --retries 1\`).`,
       data: { batchId: batch.id, failedJobs: batch.failedJobs ?? 0, failures },
     },
   )
@@ -118,7 +118,7 @@ export async function waitForBatch(
       ])[0]
       if (history === undefined && last === undefined) {
         throw new OperateError("NOT_FOUND", `Batch ${batchId} does not exist`, {
-          hint: "List batches with `operate batch list` (running) or `operate historic-batch list` (also finished).",
+          hint: "List batches with `pulse-cli batch list` (running) or `pulse-cli historic-batch list` (also finished).",
         })
       }
       return { kind: "finished", ...compact({ history }) }
@@ -149,7 +149,7 @@ export async function waitForBatch(
     "WAIT_TIMEOUT",
     `Timed out after ${formatDuration(timeoutMs)} waiting until batch ${batchId} finished`,
     {
-      hint: "The batch jobs and its monitor job run on the job executor (the monitor checks every 30 s by default); raise --wait-timeout, or run `operate status` to see overdue jobs.",
+      hint: "The batch jobs and its monitor job run on the job executor (the monitor checks every 30 s by default); raise --wait-timeout, or run `pulse-cli status` to see overdue jobs.",
       data: { until: ["finished"], elapsedMs: result.elapsedMs, polls: result.polls, batch },
     },
   )

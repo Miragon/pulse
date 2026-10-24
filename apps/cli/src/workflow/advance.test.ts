@@ -79,12 +79,12 @@ describe("advance", () => {
     ).rejects.toMatchObject({
       code: "USAGE",
       details: {
-        hint: `Choose one: operate advance ${P} --activity-id charge --var charged=true --wait, operate advance ${P} --activity-id refund --var charged=true --wait.`,
+        hint: `Choose one: pulse-cli advance ${P} --activity-id charge --var charged=true --wait, pulse-cli advance ${P} --activity-id refund --var charged=true --wait.`,
       },
     })
   })
 
-  it("locks and completes an external task as worker operate", async () => {
+  it("locks and completes an external task as worker pulse-cli", async () => {
     const server = chargeEngine({})
     const result = await advance(depsOf(server.fetch), {
       ...BASE,

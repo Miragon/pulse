@@ -70,18 +70,18 @@ describe("itemCommand", () => {
   it("names the generated command that moves one wait state", () => {
     const at = { activityId: "a", executionId: "ex1", eventSubscriptionId: "s1" }
     expect(itemCommand({ ...at, kind: "message", eventName: "Paid now" })).toBe(
-      "operate execution trigger-event ex1 'Paid now'",
+      "pulse-cli execution trigger-event ex1 'Paid now'",
     )
     expect(itemCommand({ ...at, kind: "signal", eventName: "go" })).toBe(
-      "operate signal throw --name go --execution-id ex1",
+      "pulse-cli signal throw --name go --execution-id ex1",
     )
-    expect(itemCommand({ ...at, kind: "message" })).toBe("operate execution trigger-event ex1 ''")
+    expect(itemCommand({ ...at, kind: "message" })).toBe("pulse-cli execution trigger-event ex1 ''")
     expect(itemCommand({ activityId: "r", kind: "other", executionId: "ex2" })).toBe(
-      "operate execution signal ex2",
+      "pulse-cli execution signal ex2",
     )
     expect(
       itemCommand({ activityId: "t", kind: "timer", jobId: "j", dueDate: "d", retries: 1 }),
-    ).toBe("operate job execute j")
+    ).toBe("pulse-cli job execute j")
     expect(itemCommand({ ...at, kind: "conditional" })).toBeUndefined()
   })
 })

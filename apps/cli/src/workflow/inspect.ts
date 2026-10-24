@@ -1,5 +1,5 @@
 /**
- * `operate inspect`: where a process instance waits and why. Loads the rounds of
+ * `pulse-cli inspect`: where a process instance waits and why. Loads the rounds of
  * requests (instance, tree, wait states, root causes) and assembles the instance view.
  */
 
@@ -56,7 +56,7 @@ export function instanceMissing(id: string): OperateError {
     "NOT_FOUND",
     `Process instance ${id} does not exist (neither running nor in the history)`,
     {
-      hint: "List instances with `operate process-instance list` (running) or `operate historic-process-instance list` (also ended); with history level none, ended instances cannot be found.",
+      hint: "List instances with `pulse-cli process-instance list` (running) or `pulse-cli historic-process-instance list` (also ended); with history level none, ended instances cannot be found.",
     },
   )
 }
@@ -301,7 +301,7 @@ export async function loadView(
   }
 }
 
-/** `operate inspect`: the first round only with `--dry-run`, else the view. */
+/** `pulse-cli inspect`: the first round only with `--dry-run`, else the view. */
 export async function inspect(
   port: EnginePort,
   selection: Selection,

@@ -81,7 +81,7 @@ describe("waitAndInspect details", () => {
       VIEW,
     )
     expect(result.failure?.details.hint).toBe(
-      "No job is due: the instance rests at approve (userTask). Move it with `operate advance pi-1`, or check the --until condition against `operate inspect pi-1`.",
+      "No job is due: the instance rests at approve (userTask). Move it with `pulse-cli advance pi-1`, or check the --until condition against `pulse-cli inspect pi-1`.",
     )
     const busy = new WorkflowEngine("book")
     const due = await waitAndInspect(
@@ -188,7 +188,7 @@ describe("waitCommand details", () => {
         ...base,
         selection: { businessKey: "B", latest: false },
       }),
-    ).rejects.toMatchObject({ details: { hint: expect.stringContaining("operate wait a") } })
+    ).rejects.toMatchObject({ details: { hint: expect.stringContaining("pulse-cli wait a") } })
     const { deps, engine } = setup("approve")
     const result = await waitCommand(deps, { ...base, selection: { id: "pi-1", latest: false } })
     expect(result.kind === "view" ? result.view : {}).not.toHaveProperty("timeline")

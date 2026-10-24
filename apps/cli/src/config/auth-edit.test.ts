@@ -165,7 +165,7 @@ describe("settleAuthorization", () => {
       expect(error.code).toBe("CONFIG")
       expect(error.message).toBe(message)
       expect(error.details.hint).toBe(
-        "Keep one: Basic auth options replace a stored Authorization header (`operate config set p --auth basic`); --auth none switches Basic auth off and keeps the header (`operate config set p --auth none -H 'Authorization: ...'`).",
+        "Keep one: Basic auth options replace a stored Authorization header (`pulse-cli config set p --auth basic`); --auth none switches Basic auth off and keeps the header (`pulse-cli config set p --auth none -H 'Authorization: ...'`).",
       )
     }
   })

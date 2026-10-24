@@ -23,7 +23,7 @@ const GROUP: IncidentGroup = {
   lastAt: "b",
   rootCause: "PropertyNotFoundException: missingBean",
   processInstanceIds: ["p1"],
-  next: "operate retry --process-definition-key order --activity-id book --dry-run",
+  next: "pulse-cli retry --process-definition-key order --activity-id book --dry-run",
 }
 
 const { rootCause: _, ...withoutCause } = GROUP
@@ -81,13 +81,13 @@ describe("findings", () => {
         code: "JOBS_OVERDUE",
         message:
           "2 executable jobs have waited longer than 5m (oldest since 2026-01-01T10:00:00.000+0000): is the job executor running?",
-        next: "operate job list --executable --sort-by jobDueDate --sort-order asc --max-results 10",
+        next: "pulse-cli job list --executable --sort-by jobDueDate --sort-order asc --max-results 10",
       },
       {
         severity: "warning",
         code: "BATCH_FAILURES",
         message: "batch b1 (instance-deletion): 1 failed job",
-        next: "operate job list --job-definition-id jd-b --with-exception",
+        next: "pulse-cli job list --job-definition-id jd-b --with-exception",
       },
       {
         severity: "warning",
@@ -106,14 +106,14 @@ describe("findings", () => {
         code: "LOCK_EXPIRED",
         message:
           "topic mail: 1 task with an expired lock (the oldest since 2026-01-01T11:30:00.000+0000): a worker crashed or exceeded its lock",
-        next: "operate external-task list --topic-name mail --not-locked --with-retries-left",
+        next: "pulse-cli external-task list --topic-name mail --not-locked --with-retries-left",
       },
       {
         severity: "warning",
         code: "NO_WORKER",
         message:
           "topic mail: 3 tasks wait since 2026-01-01T11:00:00.000+0000, none is locked: is a worker subscribed?",
-        next: "operate external-task list --topic-name mail --not-locked",
+        next: "pulse-cli external-task list --topic-name mail --not-locked",
       },
     ])
     expect(engineStatus(list)).toBe("critical")
@@ -200,7 +200,7 @@ describe("finding rules at their limits", () => {
         severity: "warning",
         code: "UNKNOWN_KEY",
         message: "process definition key nope is not deployed",
-        next: "operate process-definition list --latest-version --sort-by key --sort-order asc",
+        next: "pulse-cli process-definition list --latest-version --sort-by key --sort-order asc",
       },
     ])
   })
@@ -211,7 +211,7 @@ describe("finding rules at their limits", () => {
       processDefinitionKey: "",
       activityId: "",
       jobDefinitionId: "jd-1",
-      next: "operate job list --job-definition-id jd-1 --with-exception",
+      next: "pulse-cli job list --job-definition-id jd-1 --with-exception",
     }
     expect(findings({ ...QUIET, incidents: [standalone] })[0]?.message).toBe(
       "2 failedJob incidents at job definition jd-1: PropertyNotFoundException: missingBean",
@@ -228,7 +228,7 @@ describe("finding rules at their limits", () => {
         severity: "warning",
         code: "BATCH_FAILURES",
         message: "batch  (): 1 failed job",
-        next: "operate job list --job-definition-id '<id>' --with-exception",
+        next: "pulse-cli job list --job-definition-id '<id>' --with-exception",
       },
     ])
   })

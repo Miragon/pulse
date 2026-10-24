@@ -32,14 +32,14 @@ describe("resolveConfig defaults", () => {
 
   it("treats blank flags and environment variables as unset", () => {
     const env = {
-      OPERATE_URL: " ",
-      OPERATE_ENGINE: "",
-      OPERATE_PLATFORM: " ",
-      OPERATE_OUTPUT: "",
-      OPERATE_TIMEOUT: " ",
-      OPERATE_AUTH: "",
-      OPERATE_READ_ONLY: "",
-      OPERATE_PROFILE: "",
+      PULSE_CLI_URL: " ",
+      PULSE_CLI_ENGINE: "",
+      PULSE_CLI_PLATFORM: " ",
+      PULSE_CLI_OUTPUT: "",
+      PULSE_CLI_TIMEOUT: " ",
+      PULSE_CLI_AUTH: "",
+      PULSE_CLI_READ_ONLY: "",
+      PULSE_CLI_PROFILE: "",
     }
     const flags: ConfigFlags = { url: "", engine: " ", platform: "", output: "", profile: "" }
     expect(resolveConfig(flags, env, undefined).sources).toEqual(DEFAULT_SOURCES)
@@ -48,7 +48,7 @@ describe("resolveConfig defaults", () => {
   it("trims flag and environment values", () => {
     const resolved = resolveConfig(
       { engine: " e1 " },
-      { OPERATE_URL: " http://x/ ", OPERATE_OUTPUT: " json " },
+      { PULSE_CLI_URL: " http://x/ ", PULSE_CLI_OUTPUT: " json " },
       undefined,
     )
     expect(resolved.engine).toBe("e1")
@@ -69,13 +69,13 @@ describe("resolveConfig precedence", () => {
     readOnly: true,
   }
   const env = {
-    OPERATE_URL: "http://env:8080/engine-rest",
-    OPERATE_ENGINE: "env-engine",
-    OPERATE_PLATFORM: "cibseven",
-    OPERATE_OUTPUT: "json",
-    OPERATE_TIMEOUT: "2000",
-    OPERATE_AUTH: "none",
-    OPERATE_READ_ONLY: "false",
+    PULSE_CLI_URL: "http://env:8080/engine-rest",
+    PULSE_CLI_ENGINE: "env-engine",
+    PULSE_CLI_PLATFORM: "cibseven",
+    PULSE_CLI_OUTPUT: "json",
+    PULSE_CLI_TIMEOUT: "2000",
+    PULSE_CLI_AUTH: "none",
+    PULSE_CLI_READ_ONLY: "false",
   }
   const flags: ConfigFlags = {
     url: "http://flag:8080/engine-rest/",
@@ -169,24 +169,24 @@ describe("resolveConfig precedence", () => {
     expect(resolved.sources.headers).toBe("flag")
   })
 
-  it("merges OPERATE_HEADERS between profile headers and header flags", () => {
-    const env = { OPERATE_HEADERS: "Authorization: Bearer env\nX-Env: e\r\n\n  " }
+  it("merges PULSE_CLI_HEADERS between profile headers and header flags", () => {
+    const env = { PULSE_CLI_HEADERS: "Authorization: Bearer env\nX-Env: e\r\n\n  " }
     const fromEnv = resolveConfig({}, env, file({ headers: { authorization: "p", "X-P": "p" } }))
     expect(fromEnv.headers).toEqual({ "X-P": "p", Authorization: "Bearer env", "X-Env": "e" })
     expect(fromEnv.sources.headers).toBe("env")
     const flag = resolveConfig({ headers: ["authorization: Bearer flag"] }, env, undefined)
     expect(flag.headers).toEqual({ "X-Env": "e", authorization: "Bearer flag" })
     expect(flag.sources.headers).toBe("flag")
-    expect(resolveConfig({}, { OPERATE_HEADERS: " " }, undefined).sources.headers).toBe("default")
+    expect(resolveConfig({}, { PULSE_CLI_HEADERS: " " }, undefined).sources.headers).toBe("default")
   })
 
-  it("rejects an invalid OPERATE_HEADERS without repeating the value", () => {
+  it("rejects an invalid PULSE_CLI_HEADERS without repeating the value", () => {
     const error = failure(() => parseEnvHeaders("X-Token secret"))
     expect(error.code).toBe("CONFIG")
-    expect(error.message).toBe('Invalid OPERATE_HEADERS: Invalid header: expected "Name: value"')
+    expect(error.message).toBe('Invalid PULSE_CLI_HEADERS: Invalid header: expected "Name: value"')
     expect(error.message).not.toContain("secret")
     expect(error.details.hint).toBe(
-      "Example: OPERATE_HEADERS='X-API-Key: <key>'; separate several headers with line breaks. A bearer token goes into OPERATE_TOKEN (--auth bearer).",
+      "Example: PULSE_CLI_HEADERS='X-API-Key: <key>'; separate several headers with line breaks. A bearer token goes into PULSE_CLI_TOKEN (--auth bearer).",
     )
     expect(parseEnvHeaders(undefined)).toEqual({})
   })
@@ -195,7 +195,7 @@ describe("resolveConfig precedence", () => {
     expect(failure(() => resolveConfig({ engine: ".." }, {}, undefined)).message).toBe(
       'Invalid process engine name ".."',
     )
-    expect(failure(() => resolveConfig({}, { OPERATE_ENGINE: " . " }, undefined)).code).toBe(
+    expect(failure(() => resolveConfig({}, { PULSE_CLI_ENGINE: " . " }, undefined)).code).toBe(
       "CONFIG",
     )
     expect(resolveConfig({ engine: " second " }, {}, undefined).engine).toBe("second")
@@ -218,20 +218,20 @@ describe("resolveConfig precedence", () => {
     expect(failure(() => resolveConfig({ output: "yaml" }, {}, undefined)).message).toBe(
       'Unknown output format "yaml"',
     )
-    expect(failure(() => resolveConfig({}, { OPERATE_TIMEOUT: "soon" }, undefined)).message).toBe(
+    expect(failure(() => resolveConfig({}, { PULSE_CLI_TIMEOUT: "soon" }, undefined)).message).toBe(
       'Timeout must be a positive number of milliseconds, got "soon"',
     )
-    expect(failure(() => resolveConfig({}, { OPERATE_AUTH: "digest" }, undefined)).message).toBe(
+    expect(failure(() => resolveConfig({}, { PULSE_CLI_AUTH: "digest" }, undefined)).message).toBe(
       'Unsupported auth type "digest"',
     )
     expect(failure(() => resolveConfig({ auth: "Basic" }, {}, undefined)).message).toBe(
       'Unsupported auth type "Basic"',
     )
-    expect(failure(() => resolveConfig({}, { OPERATE_URL: "nope" }, undefined)).message).toBe(
+    expect(failure(() => resolveConfig({}, { PULSE_CLI_URL: "nope" }, undefined)).message).toBe(
       'Invalid engine URL "nope"',
     )
     expect(failure(() => resolveConfig({ headers: ["bad"] }, {}, undefined)).code).toBe("CONFIG")
-    expect(failure(() => resolveConfig({}, { OPERATE_READ_ONLY: "maybe" }, undefined)).code).toBe(
+    expect(failure(() => resolveConfig({}, { PULSE_CLI_READ_ONLY: "maybe" }, undefined)).code).toBe(
       "CONFIG",
     )
   })
@@ -284,13 +284,13 @@ describe("resolveConfig precedence", () => {
             readOnly: c.readOnly[0],
           }
           const env = {
-            OPERATE_URL: c.url[1],
-            OPERATE_ENGINE: c.engine[1],
-            OPERATE_PLATFORM: c.platform[1],
-            OPERATE_OUTPUT: c.output[1],
-            OPERATE_TIMEOUT: c.timeout[1]?.toString(),
-            OPERATE_READ_ONLY: c.readOnly[1]?.toString(),
-            OPERATE_AUTH: c.auth[1] ? "none" : undefined,
+            PULSE_CLI_URL: c.url[1],
+            PULSE_CLI_ENGINE: c.engine[1],
+            PULSE_CLI_PLATFORM: c.platform[1],
+            PULSE_CLI_OUTPUT: c.output[1],
+            PULSE_CLI_TIMEOUT: c.timeout[1]?.toString(),
+            PULSE_CLI_READ_ONLY: c.readOnly[1]?.toString(),
+            PULSE_CLI_AUTH: c.auth[1] ? "none" : undefined,
           }
           const profile = {
             url: c.url[2],

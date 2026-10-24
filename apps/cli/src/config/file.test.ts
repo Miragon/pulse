@@ -4,8 +4,8 @@ import type { FileSystem } from "../runtime.js"
 import { configFilePath, parseConfigFile, readConfigFile, writeConfigFile } from "./file.js"
 import type { ConfigFile } from "./types.js"
 
-const PATH = "/home/me/.config/operate/config.json"
-const HINT = "Fix the file or recreate it with `operate config set`."
+const PATH = "/home/me/.config/pulse-cli/config.json"
+const HINT = "Fix the file or recreate it with `pulse-cli config set`."
 const HEADERS =
   "an object mapping header names (not Connection, Content-Length, Expect, Keep-Alive, Transfer-Encoding or Upgrade) to ISO-8859-1 (Latin-1) string values without control characters"
 const ENGINE = 'a process engine name, not "." or ".."'
@@ -59,32 +59,32 @@ function profileFailure(profile: unknown): string {
 }
 
 describe("configFilePath", () => {
-  it("prefers the explicit path over OPERATE_CONFIG and the defaults", () => {
-    const env = { OPERATE_CONFIG: "/env/config.json", XDG_CONFIG_HOME: "/xdg" }
+  it("prefers the explicit path over PULSE_CLI_CONFIG and the defaults", () => {
+    const env = { PULSE_CLI_CONFIG: "/env/config.json", XDG_CONFIG_HOME: "/xdg" }
     expect(configFilePath(env, LINUX, "./my.json")).toBe("./my.json")
   })
 
-  it("uses OPERATE_CONFIG when there is no explicit path", () => {
-    expect(configFilePath({ OPERATE_CONFIG: "/env/config.json" }, LINUX)).toBe("/env/config.json")
+  it("uses PULSE_CLI_CONFIG when there is no explicit path", () => {
+    expect(configFilePath({ PULSE_CLI_CONFIG: "/env/config.json" }, LINUX)).toBe("/env/config.json")
   })
 
-  it("ignores a blank explicit path and falls back to OPERATE_CONFIG", () => {
-    expect(configFilePath({ OPERATE_CONFIG: "/env/c.json" }, LINUX, "  ")).toBe("/env/c.json")
+  it("ignores a blank explicit path and falls back to PULSE_CLI_CONFIG", () => {
+    expect(configFilePath({ PULSE_CLI_CONFIG: "/env/c.json" }, LINUX, "  ")).toBe("/env/c.json")
   })
 
-  it("ignores a blank OPERATE_CONFIG", () => {
-    expect(configFilePath({ OPERATE_CONFIG: "" }, LINUX)).toBe(PATH)
+  it("ignores a blank PULSE_CLI_CONFIG", () => {
+    expect(configFilePath({ PULSE_CLI_CONFIG: "" }, LINUX)).toBe(PATH)
   })
 
-  it("defaults to ~/.config/operate/config.json", () => {
+  it("defaults to ~/.config/pulse-cli/config.json", () => {
     expect(configFilePath({}, LINUX)).toBe(PATH)
     expect(configFilePath({}, { homedir: "/Users/me", platform: "darwin" })).toBe(
-      "/Users/me/.config/operate/config.json",
+      "/Users/me/.config/pulse-cli/config.json",
     )
   })
 
   it("honours an absolute XDG_CONFIG_HOME", () => {
-    expect(configFilePath({ XDG_CONFIG_HOME: "/xdg" }, LINUX)).toBe("/xdg/operate/config.json")
+    expect(configFilePath({ XDG_CONFIG_HOME: "/xdg" }, LINUX)).toBe("/xdg/pulse-cli/config.json")
   })
 
   it.each(["", "relative/dir", "./xdg"])('ignores XDG_CONFIG_HOME "%s"', (xdg) => {
@@ -93,11 +93,11 @@ describe("configFilePath", () => {
 
   it("uses %APPDATA% on Windows", () => {
     const env = { APPDATA: "D:\\Roaming", XDG_CONFIG_HOME: "/xdg" }
-    expect(configFilePath(env, WINDOWS)).toBe("D:\\Roaming\\operate\\config.json")
+    expect(configFilePath(env, WINDOWS)).toBe("D:\\Roaming\\pulse-cli\\config.json")
   })
 
   it("falls back to the roaming profile folder without a usable %APPDATA%", () => {
-    const expected = "C:\\Users\\me\\AppData\\Roaming\\operate\\config.json"
+    const expected = "C:\\Users\\me\\AppData\\Roaming\\pulse-cli\\config.json"
     expect(configFilePath({}, WINDOWS)).toBe(expected)
     expect(configFilePath({ APPDATA: "" }, WINDOWS)).toBe(expected)
     expect(configFilePath({ APPDATA: "Roaming" }, WINDOWS)).toBe(expected)
@@ -351,7 +351,7 @@ describe("readConfigFile", () => {
       code: "CONFIG",
       message: "Config file /typo.json does not exist",
       details: {
-        hint: "Create it with `operate config set <profile> --url <url> --config /typo.json`, or fix the path of --config or OPERATE_CONFIG.",
+        hint: "Create it with `pulse-cli config set <profile> --url <url> --config /typo.json`, or fix the path of --config or PULSE_CLI_CONFIG.",
       },
     })
   })
@@ -370,7 +370,7 @@ describe("readConfigFile", () => {
       code: "CONFIG",
       message: `Cannot read config file ${PATH} (${code})`,
     })
-    expect((error as OperateError).details.hint).toContain("--config or OPERATE_CONFIG")
+    expect((error as OperateError).details.hint).toContain("--config or PULSE_CLI_CONFIG")
   })
 })
 
@@ -379,7 +379,7 @@ describe("writeConfigFile", () => {
     const { fs, writes, dirs } = memoryFs()
     const config: ConfigFile = { defaultProfile: "a", profiles: { a: { url: "http://x" } } }
     await writeConfigFile(fs, PATH, config)
-    expect(dirs).toEqual(["/home/me/.config/operate"])
+    expect(dirs).toEqual(["/home/me/.config/pulse-cli"])
     expect(writes).toEqual([
       {
         path: PATH,

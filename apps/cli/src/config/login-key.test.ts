@@ -11,9 +11,9 @@ import {
 import type { LoadedConfig, LoginKey, ProfileAuth } from "./types.js"
 
 const ISSUER = "https://login.example.com/realms/camunda"
-const USER = "config:/home/me/.config/operate/config.json"
+const USER = "config:/home/me/.config/pulse-cli/config.json"
 const REPO = "repository:/work/shop/.git"
-const OAUTH: ProfileAuth = { type: "oauth", issuer: ISSUER, clientId: "operate-cli" }
+const OAUTH: ProfileAuth = { type: "oauth", issuer: ISSUER, clientId: "pulse-cli" }
 
 describe("loginKeyOf", () => {
   it("keys on the origin and the stored issuer, client, audience and scopes", () => {
@@ -21,7 +21,7 @@ describe("loginKeyOf", () => {
       origin: USER,
       issuer: ISSUER,
       tokenEndpoint: null,
-      clientId: "operate-cli",
+      clientId: "pulse-cli",
       audience: null,
       scopes: ["offline_access", "openid"],
     })
@@ -65,10 +65,10 @@ describe("loginKeyOf", () => {
     })
     expect(loginKeyOf(USER, undefined, "none").profile).toBe("none")
     expect(loginKeyOf(USER, OAUTH, "orders")).not.toHaveProperty("profile")
-    const plain = loginKeyOf(USER, { issuer: ISSUER, clientId: "operate-cli" }, "plain")
+    const plain = loginKeyOf(USER, { issuer: ISSUER, clientId: "pulse-cli" }, "plain")
     expect(sameLoginKey(plain, loginKeyOf(USER, OAUTH, "orders"))).toBe(false)
     expect(
-      sameLoginKey(plain, loginKeyOf(USER, { issuer: ISSUER, clientId: "operate-cli" }, "other")),
+      sameLoginKey(plain, loginKeyOf(USER, { issuer: ISSUER, clientId: "pulse-cli" }, "other")),
     ).toBe(false)
   })
 
@@ -118,7 +118,7 @@ describe("sameLoginKey", () => {
 
 describe("origins", () => {
   it("names a config file by its absolute path, on Windows without case", () => {
-    expect(configOrigin("/home/me/.config/operate/config.json", "/x", "linux")).toBe(USER)
+    expect(configOrigin("/home/me/.config/pulse-cli/config.json", "/x", "linux")).toBe(USER)
     expect(configOrigin("ci/operate.json", "/work/shop", "linux")).toBe(
       "config:/work/shop/ci/operate.json",
     )
@@ -133,7 +133,7 @@ describe("origins", () => {
       origin: USER,
       profiles: { mine: {}, svc: {} },
       project: {
-        source: { path: "/work/shop/.operate.json", directory: "/work/shop", origin: REPO },
+        source: { path: "/work/shop/.pulse-cli.json", directory: "/work/shop", origin: REPO },
         profiles: ["svc"],
         defaultProfile: false,
       },
@@ -156,7 +156,7 @@ describe("loginProfiles", () => {
       none: {},
     },
     project: {
-      source: { path: "/work/shop/.operate.json", directory: "/work/shop", origin: REPO },
+      source: { path: "/work/shop/.pulse-cli.json", directory: "/work/shop", origin: REPO },
       profiles: ["orders", "billing", "audience"],
       defaultProfile: false,
     },

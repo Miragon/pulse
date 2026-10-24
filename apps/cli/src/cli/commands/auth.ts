@@ -1,5 +1,5 @@
 /**
- * `operate auth login|status|logout`: the OAuth login of a person in a terminal,
+ * `pulse-cli auth login|status|logout`: the OAuth login of a person in a terminal,
  * the state of the token cache, and the logout (auth-logout.ts); `auth status` also shows a bearer
  * token from elsewhere (auth-bearer.ts). This is the only module that imports the interactive login
  * (src/auth/oauth/login.ts): no other command can start a loopback server or a browser, so agents
@@ -38,9 +38,9 @@ const DEFAULT_LOGIN_TIMEOUT_MS = 300_000
 const DESCRIPTION = [
   "Log in with OAuth 2.0 (authorization code flow with PKCE) and manage the cached tokens.",
   "",
-  'A person runs "operate auth login" once in a terminal; every other command reads the token cache and refreshes the token on its own. Agents never log in themselves: without a usable login a command fails with LOGIN_REQUIRED (exit 4).',
+  'A person runs "pulse-cli auth login" once in a terminal; every other command reads the token cache and refreshes the token on its own. Agents never log in themselves: without a usable login a command fails with LOGIN_REQUIRED (exit 4).',
   "",
-  'A bearer token from elsewhere (--auth bearer, OPERATE_TOKEN) needs no login: "operate auth status" shows where it comes from and, for a JWT, its subject, issuer, audience and expiry.',
+  'A bearer token from elsewhere (--auth bearer, PULSE_CLI_TOKEN) needs no login: "pulse-cli auth status" shows where it comes from and, for a JWT, its subject, issuer, audience and expiry.',
 ].join("\n")
 
 /** `--login-timeout <ms>`: a positive whole number up to the largest timer delay. */
@@ -141,7 +141,7 @@ function registerStatus(auth: Command, context: CliContext): void {
   const command = authSubcommand(
     auth,
     "status",
-    "Show the cached OAuth login without network access: user, scopes and the expiry of the access and refresh token. Exit 0 when commands can run without a new login, else LOGIN_REQUIRED (exit 4). With a bearer token: its source (OPERATE_TOKEN_COMMAND runs, unless its token is cached) and, for a JWT, subject, issuer, audience and expiry; an expired JWT given as such exits with TOKEN_EXPIRED (exit 4). Never prints a token.",
+    "Show the cached OAuth login without network access: user, scopes and the expiry of the access and refresh token. Exit 0 when commands can run without a new login, else LOGIN_REQUIRED (exit 4). With a bearer token: its source (PULSE_CLI_TOKEN_COMMAND runs, unless its token is cached) and, for a JWT, subject, issuer, audience and expiry; an expired JWT given as such exits with TOKEN_EXPIRED (exit 4). Never prints a token.",
   )
   addGlobalOptions(command, STATUS_OPTIONS, OPTIONS_GROUP)
   command.action(() => runStatus(command, context))

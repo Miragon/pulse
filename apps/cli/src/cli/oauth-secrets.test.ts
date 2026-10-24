@@ -50,7 +50,7 @@ function verifierOf(secrets: Secrets): string {
 
 function base64Credentials(secret: string): string {
   const encode = (text: string) => new URLSearchParams({ x: text }).toString().slice(2)
-  return Buffer.from(`${encode("operate-cli")}:${encode(secret)}`, "utf8").toString("base64")
+  return Buffer.from(`${encode("pulse-cli")}:${encode(secret)}`, "utf8").toString("base64")
 }
 
 /** A minimal authorization server that issues exactly the given secrets. */
@@ -122,7 +122,7 @@ async function output(
   const runtime: FakeRuntime = fakeRuntime({
     fetch: fetchOf(secrets, scenario),
     now: () => T0,
-    env: { OPERATE_OAUTH_CLIENT_SECRET: secrets.clientSecret, ...scenario.env },
+    env: { PULSE_CLI_OAUTH_CLIENT_SECRET: secrets.clientSecret, ...scenario.env },
     files: { [CONFIG_PATH]: oauthProfiles(), ...cacheOf(secrets, scenario) },
     // the first value is the verifier, the second the state (any other value)
     randomBytes: (() => {

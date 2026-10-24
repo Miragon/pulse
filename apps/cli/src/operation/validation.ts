@@ -22,7 +22,7 @@ export function checkBody(operation: OperationSpec, input: OperationInput, schem
   const problems = validateBody(operation.body.schema, jsonBody(input), schemas)
   if (problems.length === 0) return
   throw new OperateError("VALIDATION", `Invalid request body: ${formatProblems(problems)}`, {
-    hint: `Run \`operate describe ${operation.group} ${operation.name}\` to see the body schema, or pass --no-validate to skip this check.`,
+    hint: `Run \`pulse-cli describe ${operation.group} ${operation.name}\` to see the body schema, or pass --no-validate to skip this check.`,
     data: problems,
   })
 }

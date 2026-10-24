@@ -63,20 +63,20 @@ describe("httpError", () => {
     expect(error.code).toBe("UNAUTHORIZED")
     expect(error.exitCode).toBe(4)
     expect(error.details.hint).toBe(
-      "The engine rejected the credentials of user demo (source: env). Check the username and the password; `operate config show` shows where each comes from. After a failed login the engine refuses the user for a few seconds (and locks it after repeated failures), so wait before retrying.",
+      "The engine rejected the credentials of user demo (source: env). Check the username and the password; `pulse-cli config show` shows where each comes from. After a failed login the engine refuses the user for a few seconds (and locks it after repeated failures), so wait before retrying.",
     )
     expect(error.details.request).toEqual(REQUEST)
-    expect(HINTS[401]).toContain("operate sent no credentials")
+    expect(HINTS[401]).toContain("pulse-cli sent no credentials")
     expect(HINTS[401]).not.toContain("issues/1")
   })
 
   it("says why no credentials were sent when Basic auth is off", () => {
-    const off = { ...REQUEST, authOff: "Basic auth is switched off by OPERATE_AUTH=none" }
+    const off = { ...REQUEST, authOff: "Basic auth is switched off by PULSE_CLI_AUTH=none" }
     const error = httpError(response(401, ""), off)
     expect(error.details.hint).toBe(
       HINTS[401].replace(
-        "operate sent no credentials.",
-        "operate sent no credentials: Basic auth is switched off by OPERATE_AUTH=none.",
+        "pulse-cli sent no credentials.",
+        "pulse-cli sent no credentials: Basic auth is switched off by PULSE_CLI_AUTH=none.",
       ),
     )
     expect(error.details.hint).not.toBe(HINTS[401])
@@ -101,10 +101,10 @@ describe("httpError", () => {
   })
 
   it("appends the provider's note to the 401 and 403 hints only", () => {
-    const note = "A bearer token is set (from OPERATE_TOKEN) but not used."
+    const note = "A bearer token is set (from PULSE_CLI_TOKEN) but not used."
     const basic = { ...REQUEST, principal: { user: "demo", source: "flag" }, authNote: note }
     expect(httpError(response(401, ""), basic).details.hint).toMatch(
-      /^The engine rejected the credentials of user demo \(source: flag\)\. .* A bearer token is set \(from OPERATE_TOKEN\) but not used\.$/,
+      /^The engine rejected the credentials of user demo \(source: flag\)\. .* A bearer token is set \(from PULSE_CLI_TOKEN\) but not used\.$/,
     )
     expect(httpError(response(403, ""), basic).details.hint).toBe(`${HINTS[403]} ${note}`)
     const oauth = { ...REQUEST, rejectedHint: "OAuth hint", authNote: note }

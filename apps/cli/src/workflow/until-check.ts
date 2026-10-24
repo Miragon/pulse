@@ -2,7 +2,7 @@
  * `--until activity:<id>` and `task:<key>` checked against the BPMN once, before waiting (and
  * before the write of advance and retry): an id that occurs in no element of the processes of the
  * instance tree or the processes they call is a typo, which would otherwise wait the whole budget.
- * Whatever operate cannot know for sure (dynamic or version-bound call activities, tenants, a cut
+ * Whatever pulse-cli cannot know for sure (dynamic or version-bound call activities, tenants, a cut
  * tree, an XML it cannot read) skips the check.
  */
 
@@ -127,6 +127,6 @@ export async function checkUntil(
     close.length > 0 ? `Did you mean ${close.map((name) => prefix + name).join(", ")}? ` : ""
   throw usageError(
     `--until ${labels}: no such element in the BPMN of ${known.keys.join(", ")}`,
-    `${suggestion}Activity ids and task definition keys are the ids of the BPMN elements; \`operate process-definition xml ${known.keys[0] ?? "<key>"}\` shows them.`,
+    `${suggestion}Activity ids and task definition keys are the ids of the BPMN elements; \`pulse-cli process-definition xml ${known.keys[0] ?? "<key>"}\` shows them.`,
   )
 }

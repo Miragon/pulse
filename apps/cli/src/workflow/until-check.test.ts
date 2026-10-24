@@ -110,7 +110,7 @@ describe("checkUntil", () => {
       code: "USAGE",
       message: "--until activity:boook, task:x: no such element in the BPMN of parent, child",
       details: {
-        hint: "Did you mean activity:book? Activity ids and task definition keys are the ids of the BPMN elements; `operate process-definition xml parent` shows them.",
+        hint: "Did you mean activity:book? Activity ids and task definition keys are the ids of the BPMN elements; `pulse-cli process-definition xml parent` shows them.",
       },
     })
     const task = await usageOf(

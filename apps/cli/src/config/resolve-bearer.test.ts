@@ -10,28 +10,28 @@ import { resolveConfig } from "./resolve.js"
 import type { ProfileAuth } from "./types.js"
 
 describe("resolveAuth with a bearer token", () => {
-  it("sends the token of OPERATE_TOKEN with --auth bearer", () => {
-    expect(resolveAuth({ auth: "bearer" }, { OPERATE_TOKEN: "abc.def" }, NO_PROFILE)).toEqual({
+  it("sends the token of PULSE_CLI_TOKEN with --auth bearer", () => {
+    expect(resolveAuth({ auth: "bearer" }, { PULSE_CLI_TOKEN: "abc.def" }, NO_PROFILE)).toEqual({
       auth: {
         type: "bearer",
         token: "abc.def",
         source: "env",
-        origin: "OPERATE_TOKEN",
-        variable: "OPERATE_TOKEN",
+        origin: "PULSE_CLI_TOKEN",
+        variable: "PULSE_CLI_TOKEN",
       },
       source: "flag",
     })
   })
 
   it('normalizes the token: a pasted "Bearer " and blanks go', () => {
-    const resolved = resolveAuth({}, { OPERATE_TOKEN: "  Bearer abc.def== \n" }, NO_PROFILE)
+    const resolved = resolveAuth({}, { PULSE_CLI_TOKEN: "  Bearer abc.def== \n" }, NO_PROFILE)
     expect(resolved.auth).toMatchObject({ type: "bearer", token: "abc.def==" })
   })
 
   it("reads the token of --auth-token-stdin first", () => {
     const resolved = resolveAuth(
       { authToken: "from-stdin" },
-      { OPERATE_TOKEN: "from-env", OPERATE_AUTH: "bearer" },
+      { PULSE_CLI_TOKEN: "from-env", PULSE_CLI_AUTH: "bearer" },
       profile({ type: "bearer", token: "stored" }),
     )
     expect(resolved).toEqual({
@@ -59,8 +59,8 @@ describe("resolveAuth with a bearer token", () => {
       },
       source: "profile",
     })
-    // the unset variable does not matter when OPERATE_TOKEN has a token
-    expect(resolveAuth({}, { OPERATE_TOKEN: "env.token" }, stored).auth).toMatchObject({
+    // the unset variable does not matter when PULSE_CLI_TOKEN has a token
+    expect(resolveAuth({}, { PULSE_CLI_TOKEN: "env.token" }, stored).auth).toMatchObject({
       token: "env.token",
       source: "env",
     })
@@ -80,7 +80,7 @@ describe("resolveAuth with a bearer token", () => {
         'The token variable CI_TOKEN (auth.tokenEnv of profile "prod") is not set or empty',
       )
       expect(error.details.hint).toBe(
-        "Export it, e.g. export CI_TOKEN=<token>, or name another variable with `operate config set prod --auth-token-env <VAR>`.",
+        "Export it, e.g. export CI_TOKEN=<token>, or name another variable with `pulse-cli config set prod --auth-token-env <VAR>`.",
       )
     }
   })
@@ -92,7 +92,7 @@ describe("resolveAuth with a bearer token", () => {
       'The token variable named by auth.tokenEnv of profile "prod" is not set or empty',
     )
     expect(error.details.hint).toBe(
-      "Its name is not in the usual upper-case form, so it is not repeated: it may be a token stored by mistake. Check auth.tokenEnv in the config file (`operate config path`), or name another variable with `operate config set prod --auth-token-env <VAR>`.",
+      "Its name is not in the usual upper-case form, so it is not repeated: it may be a token stored by mistake. Check auth.tokenEnv in the config file (`pulse-cli config path`), or name another variable with `pulse-cli config set prod --auth-token-env <VAR>`.",
     )
     // set, it is a variable: the token is read from it
     const set = resolveAuth({}, { [name]: "tok" }, profile({ type: "bearer", tokenEnv: name }))
@@ -118,38 +118,38 @@ describe("resolveAuth with a bearer token", () => {
     expect(error.exitCode).toBe(3)
     expect(error.message).toBe("Bearer auth is selected but the token is missing")
     expect(error.details.hint).toBe(
-      "Bearer auth was selected by --auth bearer. Looked up the token in --auth-token-stdin, OPERATE_TOKEN, OPERATE_TOKEN_COMMAND and a profile (none is selected). Fetch a token with the tool that issues it (e.g. az account get-access-token, gcloud auth print-access-token) and export OPERATE_TOKEN=<token>, let operate run that tool with export OPERATE_TOKEN_COMMAND=<command>, pipe it into --auth-token-stdin, or store the name of its variable with `operate config set <profile> --auth bearer --auth-token-env <VAR>`; --auth none switches bearer auth off.",
+      "Bearer auth was selected by --auth bearer. Looked up the token in --auth-token-stdin, PULSE_CLI_TOKEN, PULSE_CLI_TOKEN_COMMAND and a profile (none is selected). Fetch a token with the tool that issues it (e.g. az account get-access-token, gcloud auth print-access-token) and export PULSE_CLI_TOKEN=<token>, let pulse-cli run that tool with export PULSE_CLI_TOKEN_COMMAND=<command>, pipe it into --auth-token-stdin, or store the name of its variable with `pulse-cli config set <profile> --auth bearer --auth-token-env <VAR>`; --auth none switches bearer auth off.",
     )
     const stored = failure(() => resolveAuth({}, {}, profile({ type: "bearer" })))
     expect(stored.details.hint).toContain(
-      'Bearer auth was selected by the auth.type of profile "prod". Looked up the token in --auth-token-stdin, OPERATE_TOKEN, OPERATE_TOKEN_COMMAND and the auth.tokenEnv and auth.token of profile "prod".',
+      'Bearer auth was selected by the auth.type of profile "prod". Looked up the token in --auth-token-stdin, PULSE_CLI_TOKEN, PULSE_CLI_TOKEN_COMMAND and the auth.tokenEnv and auth.token of profile "prod".',
     )
     expect(stored.details.hint).toContain(
-      "`operate config set prod --auth bearer --auth-token-env <VAR>`",
+      "`pulse-cli config set prod --auth bearer --auth-token-env <VAR>`",
     )
   })
 
   it("refuses an invalid token naming its source, never the token", () => {
     const error = failure(() =>
-      resolveAuth({}, { OPERATE_TOKEN: '{"access_token":"s3cr3t"}' }, NO_PROFILE),
+      resolveAuth({}, { PULSE_CLI_TOKEN: '{"access_token":"s3cr3t"}' }, NO_PROFILE),
     )
     expect(error.code).toBe("CONFIG")
     expect(error.message).toBe(
-      "The bearer token from OPERATE_TOKEN has characters a bearer token cannot have (RFC 6750)",
+      "The bearer token from PULSE_CLI_TOKEN has characters a bearer token cannot have (RFC 6750)",
     )
     expect(JSON.stringify(error.details)).not.toContain("s3cr3t")
   })
 
   it("refuses --auth-password-stdin with bearer auth: stdin would be read for nothing", () => {
     const error = failure(() =>
-      resolveAuth({ auth: "bearer", authPassword: "pw" }, { OPERATE_TOKEN: "t" }, NO_PROFILE),
+      resolveAuth({ auth: "bearer", authPassword: "pw" }, { PULSE_CLI_TOKEN: "t" }, NO_PROFILE),
     )
     expect(error.code).toBe("CONFIG")
     expect(error.message).toBe(
       "--auth-password-stdin reads a Basic auth password, but bearer auth is selected by --auth bearer",
     )
     expect(error.details.hint).toBe(
-      "Drop --auth-password-stdin: bearer auth sends a token (--auth-token-stdin or OPERATE_TOKEN), no password.",
+      "Drop --auth-password-stdin: bearer auth sends a token (--auth-token-stdin or PULSE_CLI_TOKEN), no password.",
     )
   })
 
@@ -168,7 +168,7 @@ describe("resolveAuth with a bearer token", () => {
             token: stored,
           })
           const variables = compact({
-            OPERATE_TOKEN: env,
+            PULSE_CLI_TOKEN: env,
             CI_TOKEN: tokenEnv?.variableSet === true ? tokenEnv.value : undefined,
           })
           const resolve = () => resolveAuth(compact({ authToken: flag }), variables, profile(auth))
@@ -190,11 +190,11 @@ describe("resolveAuth with a bearer token", () => {
 
 describe("selectedAuth with bearer tokens", () => {
   it("is bearer for a token without reading the token variable, undefined for a conflict", () => {
-    expect(selectedAuth({}, { OPERATE_TOKEN: "t" }, NO_PROFILE)).toEqual({
+    expect(selectedAuth({}, { PULSE_CLI_TOKEN: "t" }, NO_PROFILE)).toEqual({
       type: "bearer",
       source: "env",
-      label: "a bearer token (from OPERATE_TOKEN) without an auth type",
-      token: { origin: "OPERATE_TOKEN", command: false },
+      label: "a bearer token (from PULSE_CLI_TOKEN) without an auth type",
+      token: { origin: "PULSE_CLI_TOKEN", command: false },
     })
     expect(selectedAuth({}, {}, profile({ type: "bearer", tokenEnv: "UNSET" }))).toEqual({
       type: "bearer",
@@ -202,39 +202,40 @@ describe("selectedAuth with bearer tokens", () => {
       label: 'the auth.type of profile "prod"',
       token: { origin: 'auth.tokenEnv of profile "prod"', command: false },
     })
-    expect(selectedAuth({}, { OPERATE_AUTH: "bearer" }, NO_PROFILE)).toEqual({
+    expect(selectedAuth({}, { PULSE_CLI_AUTH: "bearer" }, NO_PROFILE)).toEqual({
       type: "bearer",
       source: "env",
-      label: "OPERATE_AUTH=bearer",
+      label: "PULSE_CLI_AUTH=bearer",
     })
     expect(selectedAuth({}, {}, NO_PROFILE)).toEqual({
       type: "none",
       source: "default",
       label: "no auth settings",
     })
-    expect(selectedAuth({ authUser: "u" }, { OPERATE_TOKEN: "t" }, NO_PROFILE)).toBeUndefined()
+    expect(selectedAuth({ authUser: "u" }, { PULSE_CLI_TOKEN: "t" }, NO_PROFILE)).toBeUndefined()
   })
 })
 
 describe("bearer auth and an Authorization header", () => {
-  const bearer = resolveAuth({}, { OPERATE_TOKEN: "t" }, NO_PROFILE).auth
+  const bearer = resolveAuth({}, { PULSE_CLI_TOKEN: "t" }, NO_PROFILE).auth
 
   it("is a CONFIG error naming where the header comes from", () => {
     const error = authorizationConflict(bearer, "env", undefined)
     expect(error?.code).toBe("CONFIG")
     expect(error?.message).toBe("Bearer auth and an Authorization header are both configured")
     expect(error?.details.hint).toBe(
-      "Drop one: remove the Authorization header (from OPERATE_HEADERS), or switch Bearer auth off with --auth none, OPERATE_AUTH=none or `operate config unset <profile> auth`.",
+      "Drop one: remove the Authorization header (from PULSE_CLI_HEADERS), or switch Bearer auth off with --auth none, PULSE_CLI_AUTH=none or `pulse-cli config unset <profile> auth`.",
     )
     expect(authorizationConflict(bearer, "flag", "p", true)?.details.hint).toBe(
-      "Remove the Authorization header (given with -H/--header): with bearer auth, operate sends the token in it.",
+      "Remove the Authorization header (given with -H/--header): with bearer auth, pulse-cli sends the token in it.",
     )
   })
 
-  it("is raised by resolveConfig for -H, OPERATE_HEADERS and profile headers", () => {
+  it("is raised by resolveConfig for -H, PULSE_CLI_HEADERS and profile headers", () => {
     const header = ["Authorization: Bearer other"]
     expect(
-      failure(() => resolveConfig({ headers: header }, { OPERATE_TOKEN: "t" }, undefined)).message,
+      failure(() => resolveConfig({ headers: header }, { PULSE_CLI_TOKEN: "t" }, undefined))
+        .message,
     ).toBe("Bearer auth and an Authorization header are both configured")
     const file = {
       profiles: {
@@ -248,7 +249,7 @@ describe("bearer auth and an Authorization header", () => {
   })
 
   it("passes the unused token through resolveConfig", () => {
-    const resolved = resolveConfig({ auth: "none" }, { OPERATE_TOKEN: "tok" }, undefined)
+    const resolved = resolveConfig({ auth: "none" }, { PULSE_CLI_TOKEN: "tok" }, undefined)
     expect(resolved.unusedToken).toEqual({
       value: "tok",
       source: "env",

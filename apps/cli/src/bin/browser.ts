@@ -1,5 +1,5 @@
 /**
- * Starts the system browser for `operate auth login` without waiting for it.
+ * Starts the system browser for `pulse-cli auth login` without waiting for it.
  * `BROWSER` (non-blank) is run as one executable with the URL as its only argument (no shell, no
  * splitting); else `open` on macOS, `rundll32 url.dll,FileProtocolHandler` on Windows (no cmd
  * parsing of `&`) and `xdg-open` elsewhere, but only with a graphical session (`DISPLAY` or

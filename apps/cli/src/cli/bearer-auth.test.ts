@@ -25,15 +25,15 @@ async function cli(args: readonly string[], options: FakeRuntimeOptions = {}, st
   return { ...outcome, requests: fake.requests }
 }
 
-describe("operate auth with a bearer token", () => {
+describe("pulse-cli auth with a bearer token", () => {
   it("shows the source and the claims of a JWT without the token", async () => {
-    const result = await cli(["auth", "status"], { env: { OPERATE_TOKEN: JWT } })
+    const result = await cli(["auth", "status"], { env: { PULSE_CLI_TOKEN: JWT } })
     expect(result.code).toBe(0)
     expect(JSON.parse(result.stdout)).toEqual({
       type: "bearer",
       profile: null,
       source: "env",
-      origin: "OPERATE_TOKEN",
+      origin: "PULSE_CLI_TOKEN",
       command: null,
       cached: false,
       format: "jwt",
@@ -68,12 +68,12 @@ describe("operate auth with a bearer token", () => {
       message:
         '--auth-token-stdin reads a bearer token, but OAuth is selected by the auth.type of profile "p"',
       // auth commands have no --auth option: the hint names the variable
-      hint: "Drop --auth-token-stdin, or select bearer auth with OPERATE_AUTH=bearer.",
+      hint: "Drop --auth-token-stdin, or select bearer auth with PULSE_CLI_AUTH=bearer.",
     })
     const followed = await cli(["auth", "status", "--auth-token-stdin"], {
       stdin: `${JWT}\n`,
       files: oauth,
-      env: { OPERATE_AUTH: "bearer" },
+      env: { PULSE_CLI_AUTH: "bearer" },
     })
     expect(followed.code).toBe(0)
     expect(JSON.parse(followed.stdout)).toMatchObject({
@@ -100,7 +100,7 @@ describe("operate auth with a bearer token", () => {
   })
 
   it("prints the view of an expired JWT and exits with TOKEN_EXPIRED", async () => {
-    const result = await cli(["auth", "status"], { env: { OPERATE_TOKEN: EXPIRED } })
+    const result = await cli(["auth", "status"], { env: { PULSE_CLI_TOKEN: EXPIRED } })
     expect(result.code).toBe(4)
     expect(JSON.parse(result.stdout)).toMatchObject({
       expired: true,
@@ -109,12 +109,12 @@ describe("operate auth with a bearer token", () => {
     expect(errorOf(result.stderr).code).toBe("TOKEN_EXPIRED")
   })
 
-  it("refuses auth login and auth logout: operate manages no bearer token", async () => {
-    const login = await cli(["auth", "login"], { env: { OPERATE_TOKEN: "t" } })
+  it("refuses auth login and auth logout: pulse-cli manages no bearer token", async () => {
+    const login = await cli(["auth", "login"], { env: { PULSE_CLI_TOKEN: "t" } })
     expect(login.code).toBe(2)
     expect(errorOf(login.stderr)).toMatchObject({
       code: "USAGE",
-      message: "operate auth login does not apply to bearer tokens",
+      message: "pulse-cli auth login does not apply to bearer tokens",
     })
     expect(errorOf(login.stderr).hint).toContain("never logs in, refreshes or stores it")
     const files = {
@@ -122,23 +122,23 @@ describe("operate auth with a bearer token", () => {
     }
     const unresolved = await cli(["auth", "login"], { files })
     expect(errorOf(unresolved.stderr).message).toBe(
-      "operate auth login does not apply to bearer tokens",
+      "pulse-cli auth login does not apply to bearer tokens",
     )
     const logout = await cli(["auth", "logout"], { files })
     expect(logout.code).toBe(2)
     expect(errorOf(logout.stderr)).toMatchObject({
-      message: "operate auth logout does not apply to bearer tokens",
-      hint: 'operate stores no bearer token, so there is nothing to log out (bearer auth is selected by the auth.type of profile "p"); `operate config unset p auth` removes that setting. The token stays valid at the engine until it expires; revoke it with the tool that issued it.',
+      message: "pulse-cli auth logout does not apply to bearer tokens",
+      hint: 'pulse-cli stores no bearer token, so there is nothing to log out (bearer auth is selected by the auth.type of profile "p"); `pulse-cli config unset p auth` removes that setting. The token stays valid at the engine until it expires; revoke it with the tool that issued it.',
     })
-    const env = await cli(["auth", "logout"], { env: { OPERATE_TOKEN: "t" } })
+    const env = await cli(["auth", "logout"], { env: { PULSE_CLI_TOKEN: "t" } })
     expect(errorOf(env.stderr).hint).toBe(
-      "operate stores no bearer token, so there is nothing to log out (bearer auth is selected by a token from OPERATE_TOKEN without an auth type); unset OPERATE_TOKEN to stop sending it. The token stays valid at the engine until it expires; revoke it with the tool that issued it.",
+      "pulse-cli stores no bearer token, so there is nothing to log out (bearer auth is selected by a token from PULSE_CLI_TOKEN without an auth type); unset PULSE_CLI_TOKEN to stop sending it. The token stays valid at the engine until it expires; revoke it with the tool that issued it.",
     )
     for (const result of [login, unresolved, logout, env])
       expect(result.runtime.browserUrls).toEqual([])
   })
 
-  it("names OPERATE_AUTH=bearer, not the OAuth profile, as what blocks login and logout", async () => {
+  it("names PULSE_CLI_AUTH=bearer, not the OAuth profile, as what blocks login and logout", async () => {
     const files = {
       [CONFIG_PATH]: profiles({
         sso: {
@@ -147,24 +147,26 @@ describe("operate auth with a bearer token", () => {
         plain: {},
       }),
     }
-    const env = { OPERATE_AUTH: "bearer" }
+    const env = { PULSE_CLI_AUTH: "bearer" }
     const login = await cli(["auth", "login", "--profile", "sso"], { files, env })
-    expect(errorOf(login.stderr).hint).toMatch(/^Bearer auth is selected by OPERATE_AUTH=bearer: /)
+    expect(errorOf(login.stderr).hint).toMatch(
+      /^Bearer auth is selected by PULSE_CLI_AUTH=bearer: /,
+    )
     expect(errorOf(login.stderr).hint).toContain(
-      'To log in with OAuth instead, unset OPERATE_AUTH so that the auth settings of profile "sso" apply.',
+      'To log in with OAuth instead, unset PULSE_CLI_AUTH so that the auth settings of profile "sso" apply.',
     )
     const logout = await cli(["auth", "logout", "--profile", "sso"], { files, env })
     expect(errorOf(logout.stderr).hint).toBe(
-      'operate stores no bearer token, so there is nothing to log out (bearer auth is selected by OPERATE_AUTH=bearer); unset OPERATE_AUTH to use the auth settings of profile "sso". The token stays valid at the engine until it expires; revoke it with the tool that issued it.',
+      'pulse-cli stores no bearer token, so there is nothing to log out (bearer auth is selected by PULSE_CLI_AUTH=bearer); unset PULSE_CLI_AUTH to use the auth settings of profile "sso". The token stays valid at the engine until it expires; revoke it with the tool that issued it.',
     )
     // a token without a type and a profile without auth: nothing to unset in the profile
-    const token = { OPERATE_TOKEN: "t" }
+    const token = { PULSE_CLI_TOKEN: "t" }
     const plain = await cli(["auth", "logout", "--profile", "plain"], { files, env: token })
-    expect(errorOf(plain.stderr).hint).toContain("unset OPERATE_TOKEN to stop sending it")
+    expect(errorOf(plain.stderr).hint).toContain("unset PULSE_CLI_TOKEN to stop sending it")
     expect(errorOf(plain.stderr).hint).not.toContain("config unset")
     const inferred = await cli(["auth", "login", "--profile", "plain"], { files, env: token })
     expect(errorOf(inferred.stderr).hint).toContain(
-      "For an OAuth login run by operate: unset OPERATE_TOKEN and configure OAuth: operate config set plain --auth oauth",
+      "For an OAuth login run by pulse-cli: unset PULSE_CLI_TOKEN and configure OAuth: pulse-cli config set plain --auth oauth",
     )
     const anonymous = await cli(["auth", "login"], { env: { ...env, ...token } })
     expect(errorOf(anonymous.stderr).hint).toContain("the auth settings of the configuration apply")
@@ -183,10 +185,10 @@ describe("operate auth with a bearer token", () => {
 
   it("says that auth status needs OAuth or a bearer token, and how to use one that is set", async () => {
     const result = await cli(["auth", "status"], {
-      env: { OPERATE_USERNAME: "demo", OPERATE_PASSWORD: "x" },
+      env: { PULSE_CLI_USERNAME: "demo", PULSE_CLI_PASSWORD: "x" },
     })
     expect(errorOf(result.stderr).message).toBe(
-      "operate auth status needs OAuth or a bearer token, but the configuration uses basic",
+      "pulse-cli auth status needs OAuth or a bearer token, but the configuration uses basic",
     )
     const files = {
       [CONFIG_PATH]: profiles({
@@ -197,31 +199,31 @@ describe("operate auth with a bearer token", () => {
     }
     const status = async (profile: string, env: Record<string, string>) =>
       errorOf((await cli(["auth", "status", "--profile", profile], { files, env })).stderr)
-    expect(await status("b2", { CI_PW: "x", OPERATE_TOKEN: "abc" })).toEqual({
+    expect(await status("b2", { CI_PW: "x", PULSE_CLI_TOKEN: "abc" })).toEqual({
       code: "CONFIG",
       exitCode: 3,
-      message: 'operate auth status needs OAuth or a bearer token, but profile "b2" uses basic',
-      hint: 'A bearer token is set (from OPERATE_TOKEN) but not used: Basic auth is selected by the auth.type of profile "b2"; use it with OPERATE_AUTH=bearer.',
+      message: 'pulse-cli auth status needs OAuth or a bearer token, but profile "b2" uses basic',
+      hint: 'A bearer token is set (from PULSE_CLI_TOKEN) but not used: Basic auth is selected by the auth.type of profile "b2"; use it with PULSE_CLI_AUTH=bearer.',
     })
     // the password variable is not set: still about the token, not about the password
-    expect((await status("b2", { OPERATE_TOKEN: "abc" })).hint).toBe(
-      'A bearer token is set (from OPERATE_TOKEN) but not used: Basic auth is selected by the auth.type of profile "b2"; use it with OPERATE_AUTH=bearer.',
+    expect((await status("b2", { PULSE_CLI_TOKEN: "abc" })).hint).toBe(
+      'A bearer token is set (from PULSE_CLI_TOKEN) but not used: Basic auth is selected by the auth.type of profile "b2"; use it with PULSE_CLI_AUTH=bearer.',
     )
-    expect((await status("nn", { OPERATE_TOKEN: "abc" })).hint).toBe(
-      'A bearer token is set (from OPERATE_TOKEN) but not used: bearer auth is switched off by the auth.type of profile "nn"; use it with OPERATE_AUTH=bearer.',
+    expect((await status("nn", { PULSE_CLI_TOKEN: "abc" })).hint).toBe(
+      'A bearer token is set (from PULSE_CLI_TOKEN) but not used: bearer auth is switched off by the auth.type of profile "nn"; use it with PULSE_CLI_AUTH=bearer.',
     )
     expect((await status("offp", { CI_T: "abc" })).hint).toBe(
-      'Bearer auth is switched off by the auth.type of profile "offp". Switch it on: operate config set offp --auth bearer',
+      'Bearer auth is switched off by the auth.type of profile "offp". Switch it on: pulse-cli config set offp --auth bearer',
     )
-    expect((await status("offp", { CI_T: "abc", OPERATE_AUTH: "none" })).hint).toBe(
-      "Bearer auth is switched off by OPERATE_AUTH=none. Switch it on: OPERATE_AUTH=bearer",
+    expect((await status("offp", { CI_T: "abc", PULSE_CLI_AUTH: "none" })).hint).toBe(
+      "Bearer auth is switched off by PULSE_CLI_AUTH=none. Switch it on: PULSE_CLI_AUTH=bearer",
     )
     // following the hints works
     const followed = await cli(["auth", "status", "--profile", "b2"], {
       files,
-      env: { CI_PW: "x", OPERATE_TOKEN: "abc", OPERATE_AUTH: "bearer" },
+      env: { CI_PW: "x", PULSE_CLI_TOKEN: "abc", PULSE_CLI_AUTH: "bearer" },
     })
     expect(followed.code).toBe(0)
-    expect(JSON.parse(followed.stdout)).toMatchObject({ type: "bearer", origin: "OPERATE_TOKEN" })
+    expect(JSON.parse(followed.stdout)).toMatchObject({ type: "bearer", origin: "PULSE_CLI_TOKEN" })
   })
 })

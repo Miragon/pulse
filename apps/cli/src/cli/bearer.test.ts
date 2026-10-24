@@ -28,8 +28,8 @@ async function cli(args: readonly string[], options: FakeRuntimeOptions = {}, st
 }
 
 describe("bearer token sources", () => {
-  it("sends OPERATE_TOKEN as Authorization: Bearer, and nothing else", async () => {
-    const result = await cli(["task", "list"], { env: { OPERATE_TOKEN: "opaque-token" } })
+  it("sends PULSE_CLI_TOKEN as Authorization: Bearer, and nothing else", async () => {
+    const result = await cli(["task", "list"], { env: { PULSE_CLI_TOKEN: "opaque-token" } })
     expect(result).toMatchObject({ code: 0, stdout: "[]\n", stderr: "" })
     expect(result.requests.map((request) => request.headers.authorization)).toEqual([
       "Bearer opaque-token",
@@ -71,7 +71,7 @@ describe("bearer token sources", () => {
     expect(errorOf(empty.stderr)).toMatchObject({
       code: "USAGE",
       message: "--auth-token-stdin read an empty token",
-      hint: "Pipe the token into the command, e.g. gcloud auth print-access-token | operate ... --auth-token-stdin.",
+      hint: "Pipe the token into the command, e.g. gcloud auth print-access-token | pulse-cli ... --auth-token-stdin.",
     })
     // the Node runtime refuses a terminal with a USAGE error (src/bin/node-runtime.test.ts)
     const tty = fakeRuntime()
@@ -103,45 +103,45 @@ describe("bearer token sources", () => {
 
   it("refuses a token next to an Authorization header", async () => {
     const result = await cli(["task", "list", "-H", "Authorization: Bearer other"], {
-      env: { OPERATE_TOKEN: "t" },
+      env: { PULSE_CLI_TOKEN: "t" },
     })
     expect(result.code).toBe(3)
     expect(errorOf(result.stderr).message).toBe(
       "Bearer auth and an Authorization header are both configured",
     )
     const env = await cli(["task", "list", "--auth", "bearer"], {
-      env: { OPERATE_TOKEN: "t", OPERATE_HEADERS: "Authorization: Basic x" },
+      env: { PULSE_CLI_TOKEN: "t", PULSE_CLI_HEADERS: "Authorization: Basic x" },
     })
-    expect(errorOf(env.stderr).hint).toContain("from OPERATE_HEADERS")
+    expect(errorOf(env.stderr).hint).toContain("from PULSE_CLI_HEADERS")
   })
 
   it("refuses a username and a token without a type", async () => {
     const result = await cli(["task", "list", "--auth-user", "demo"], {
-      env: { OPERATE_TOKEN: "t", OPERATE_PASSWORD: "pw" },
+      env: { PULSE_CLI_TOKEN: "t", PULSE_CLI_PASSWORD: "pw" },
     })
     expect(result.code).toBe(3)
     expect(errorOf(result.stderr).message).toBe(
       "Both Basic auth and a bearer token are configured, but no auth type says which one to use",
     )
     const basic = await cli(["task", "list", "--auth-user", "demo", "--auth", "basic"], {
-      env: { OPERATE_TOKEN: "t", OPERATE_PASSWORD: "demo" },
+      env: { PULSE_CLI_TOKEN: "t", PULSE_CLI_PASSWORD: "demo" },
     })
     expect(basic.requests[0]?.headers.authorization).toBe("Basic ZGVtbzpkZW1v")
-    const none = await cli(["task", "list", "--auth", "none"], { env: { OPERATE_TOKEN: "t" } })
+    const none = await cli(["task", "list", "--auth", "none"], { env: { PULSE_CLI_TOKEN: "t" } })
     expect(none.requests[0]?.headers.authorization).toBeUndefined()
   })
 })
 
 describe("JWT expiry", () => {
   it("fails with TOKEN_EXPIRED (exit 4) before sending an expired JWT", async () => {
-    const result = await cli(["task", "list"], { env: { OPERATE_TOKEN: EXPIRED } })
+    const result = await cli(["task", "list"], { env: { PULSE_CLI_TOKEN: EXPIRED } })
     expect(result.code).toBe(4)
     expect(result.requests).toEqual([])
     expect(errorOf(result.stderr)).toEqual({
       code: "TOKEN_EXPIRED",
       exitCode: 4,
-      message: "The bearer token from OPERATE_TOKEN expired at 2023-11-14T22:12:49.000Z",
-      hint: "operate never refreshes bearer tokens: the bearer token from OPERATE_TOKEN expired at 2023-11-14T22:12:49.000Z; fetch a new one (e.g. with your identity provider's CLI) and set OPERATE_TOKEN.",
+      message: "The bearer token from PULSE_CLI_TOKEN expired at 2023-11-14T22:12:49.000Z",
+      hint: "pulse-cli never refreshes bearer tokens: the bearer token from PULSE_CLI_TOKEN expired at 2023-11-14T22:12:49.000Z; fetch a new one (e.g. with your identity provider's CLI) and set PULSE_CLI_TOKEN.",
     })
     const ping = await cli(["ping", "--auth-token-stdin"], { stdin: EXPIRED })
     expect(errorOf(ping.stderr).hint).toContain("and pipe it into --auth-token-stdin.")
@@ -149,7 +149,7 @@ describe("JWT expiry", () => {
 
   it("sends a JWT that expired less than 30 s ago (clock skew)", async () => {
     const recent = jwtWith({ exp: NOW_S - 30 })
-    const result = await cli(["task", "list"], { env: { OPERATE_TOKEN: recent } })
+    const result = await cli(["task", "list"], { env: { PULSE_CLI_TOKEN: recent } })
     expect(result.code).toBe(0)
     expect(result.requests).toHaveLength(1)
   })
@@ -157,7 +157,7 @@ describe("JWT expiry", () => {
 
 describe("bearer tokens in dry-run, verbose and ping", () => {
   it("masks the token in dry-run previews and curl unless --show-secrets", async () => {
-    const env = { OPERATE_TOKEN: JWT }
+    const env = { PULSE_CLI_TOKEN: JWT }
     const preview = await cli(["task", "list", "--dry-run"], { env })
     expect(JSON.parse(preview.stdout)).toMatchObject({
       headers: { Authorization: "Bearer ***" },
@@ -173,28 +173,30 @@ describe("bearer tokens in dry-run, verbose and ping", () => {
   })
 
   it("notes in a dry-run that an expired JWT would fail", async () => {
-    const result = await cli(["task", "list", "--dry-run"], { env: { OPERATE_TOKEN: EXPIRED } })
+    const result = await cli(["task", "list", "--dry-run"], { env: { PULSE_CLI_TOKEN: EXPIRED } })
     expect(result.code).toBe(0)
     expect(result.stderr).toBe(
-      "Note: The bearer token from OPERATE_TOKEN expired at 2023-11-14T22:12:49.000Z: the request would fail with TOKEN_EXPIRED. Fetch a new one and set OPERATE_TOKEN.\n",
+      "Note: The bearer token from PULSE_CLI_TOKEN expired at 2023-11-14T22:12:49.000Z: the request would fail with TOKEN_EXPIRED. Fetch a new one and set PULSE_CLI_TOKEN.\n",
     )
   })
 
   it("masks the token in the verbose trace", async () => {
-    const result = await cli(["task", "list", "--verbose"], { env: { OPERATE_TOKEN: "secret.t" } })
+    const result = await cli(["task", "list", "--verbose"], {
+      env: { PULSE_CLI_TOKEN: "secret.t" },
+    })
     expect(result.stderr).toContain("> Authorization: Bearer ***\n")
     expect(result.stderr).not.toContain("secret.t")
   })
 
   it("pings with auth bearer and the user and subject of a JWT", async () => {
-    const jwt = await cli(["ping"], { env: { OPERATE_TOKEN: JWT } })
+    const jwt = await cli(["ping"], { env: { PULSE_CLI_TOKEN: JWT } })
     expect(JSON.parse(jwt.stdout)).toMatchObject({
       auth: "bearer",
       user: "alice",
       subject: VALID_CLAIMS.sub,
     })
     const opaque = JSON.parse(
-      (await cli(["ping"], { env: { OPERATE_TOKEN: "op" } })).stdout,
+      (await cli(["ping"], { env: { PULSE_CLI_TOKEN: "op" } })).stdout,
     ) as Record<string, unknown>
     expect(opaque.auth).toBe("bearer")
     expect(opaque).not.toHaveProperty("subject")
@@ -202,11 +204,11 @@ describe("bearer tokens in dry-run, verbose and ping", () => {
   })
 
   it("warns about a token over plain http beyond loopback, not in a dry-run", async () => {
-    const env = { OPERATE_TOKEN: "t", OPERATE_URL: "http://camunda.intranet:8080/engine-rest" }
+    const env = { PULSE_CLI_TOKEN: "t", PULSE_CLI_URL: "http://camunda.intranet:8080/engine-rest" }
     const fake = fakeServer("http://camunda.intranet:8080/engine-rest").on("GET", "/task", json([]))
     const result = await execute(run, ["task", "list"], fakeRuntime({ fetch: fake.fetch, env }))
     expect(result.stderr).toBe(
-      "Warning: operate sends the bearer token over plain http to camunda.intranet:8080; anyone on the network path can read and reuse it. Use https:// for the engine URL (RFC 6750 §5.3).\n",
+      "Warning: pulse-cli sends the bearer token over plain http to camunda.intranet:8080; anyone on the network path can read and reuse it. Use https:// for the engine URL (RFC 6750 §5.3).\n",
     )
     const dry = await execute(run, ["task", "list", "--dry-run"], fakeRuntime({ env }))
     expect(dry.stderr).toBe("")
@@ -215,21 +217,21 @@ describe("bearer tokens in dry-run, verbose and ping", () => {
 
 describe("a rejected bearer token", () => {
   it("explains a 401 without retrying", async () => {
-    const result = await cli(["task", "list"], { env: { OPERATE_TOKEN: JWT } }, 401)
+    const result = await cli(["task", "list"], { env: { PULSE_CLI_TOKEN: JWT } }, 401)
     expect(result.code).toBe(4)
     expect(result.requests).toHaveLength(1)
     const error = errorOf(result.stderr)
     expect(error).toMatchObject({ code: "UNAUTHORIZED", engineMessage: "Jwt is expired" })
     expect(error.hint).toContain(
-      "the engine rejected the bearer token from OPERATE_TOKEN (a JWT: subject",
+      "the engine rejected the bearer token from PULSE_CLI_TOKEN (a JWT: subject",
     )
     expect(error.hint).toContain(
-      "fetch a new token (e.g. with your identity provider's CLI) and set OPERATE_TOKEN",
+      "fetch a new token (e.g. with your identity provider's CLI) and set PULSE_CLI_TOKEN",
     )
   })
 
   it("explains a 403 with missing roles or scopes", async () => {
-    const result = await cli(["task", "list"], { env: { OPERATE_TOKEN: "op" } }, 403)
+    const result = await cli(["task", "list"], { env: { PULSE_CLI_TOKEN: "op" } }, 403)
     expect(result.code).toBe(4)
     expect(errorOf(result.stderr)).toMatchObject({ code: "FORBIDDEN" })
     expect(errorOf(result.stderr).hint).toContain("lacks the roles or scopes this operation needs")
@@ -244,10 +246,10 @@ describe("a bearer token that the auth type does not use", () => {
     }),
   }
   const note =
-    'A bearer token is set (from OPERATE_TOKEN) but not used: OAuth is selected by the auth.type of profile "p"; send it with --auth bearer or OPERATE_AUTH=bearer.'
+    'A bearer token is set (from PULSE_CLI_TOKEN) but not used: OAuth is selected by the auth.type of profile "p"; send it with --auth bearer or PULSE_CLI_AUTH=bearer.'
 
   it("is named by the LOGIN_REQUIRED hint and the dry-run note of an OAuth profile", async () => {
-    const env = { OPERATE_TOKEN: JWT }
+    const env = { PULSE_CLI_TOKEN: JWT }
     const result = await cli(["task", "list"], { files: sso, env })
     expect(result.code).toBe(4)
     expect(errorOf(result.stderr).code).toBe("LOGIN_REQUIRED")
@@ -263,16 +265,20 @@ describe("a bearer token that the auth type does not use", () => {
   })
 
   it("is named by the 401 and 403 hints of a Basic profile", async () => {
-    const env = { OPERATE_TOKEN: JWT, PW: "pw" }
+    const env = { PULSE_CLI_TOKEN: JWT, PW: "pw" }
     const rejected = await cli(["task", "list", "--profile", "b"], { files: sso, env }, 401)
     expect(rejected.code).toBe(4)
     expect(errorOf(rejected.stderr).hint).toBe(
-      'The engine rejected the credentials of user demo (source: profile). Check the username and the password; `operate config show` shows where each comes from. After a failed login the engine refuses the user for a few seconds (and locks it after repeated failures), so wait before retrying. A bearer token is set (from OPERATE_TOKEN) but not used: Basic auth is selected by the auth.type of profile "b"; send it with --auth bearer or OPERATE_AUTH=bearer.',
+      'The engine rejected the credentials of user demo (source: profile). Check the username and the password; `pulse-cli config show` shows where each comes from. After a failed login the engine refuses the user for a few seconds (and locks it after repeated failures), so wait before retrying. A bearer token is set (from PULSE_CLI_TOKEN) but not used: Basic auth is selected by the auth.type of profile "b"; send it with --auth bearer or PULSE_CLI_AUTH=bearer.',
     )
     const forbidden = await cli(["task", "list", "--profile", "b"], { files: sso, env }, 403)
-    expect(errorOf(forbidden.stderr).hint).toContain("A bearer token is set (from OPERATE_TOKEN)")
+    expect(errorOf(forbidden.stderr).hint).toContain("A bearer token is set (from PULSE_CLI_TOKEN)")
     // switched off explicitly: the 401 hint already says why nothing was sent
-    const none = await cli(["task", "list", "--auth", "none"], { env: { OPERATE_TOKEN: JWT } }, 401)
+    const none = await cli(
+      ["task", "list", "--auth", "none"],
+      { env: { PULSE_CLI_TOKEN: JWT } },
+      401,
+    )
     expect(errorOf(none.stderr).hint).not.toContain("A bearer token is set")
     expect(errorOf(none.stderr).hint).toContain("Bearer auth is switched off by --auth none")
   })

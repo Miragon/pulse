@@ -1,8 +1,8 @@
 /**
  * The authorization server's endpoints: the configured explicit endpoints, or
  * OpenID Connect discovery with the RFC 8414 location as fallback. The metadata must name exactly
- * the configured issuer, support PKCE S256 and a client authentication operate can do. Only
- * `operate auth login` discovers; refreshes and logout use the endpoints cached at login.
+ * the configured issuer, support PKCE S256 and a client authentication pulse-cli can do. Only
+ * `pulse-cli auth login` discovers; refreshes and logout use the endpoints cached at login.
  */
 
 import { configError } from "../../config/config-error.js"
@@ -98,7 +98,7 @@ function checkPkce(document: Record<string, unknown>, issuer: string): void {
   if (!Array.isArray(methods) || methods.includes("S256")) return
   throw configError(
     `The authorization server ${issuer} does not support PKCE with S256`,
-    "Its discovery document lists code_challenge_methods_supported without S256; operate only uses S256 (RFC 7636, RFC 9700). Enable S256 for the client.",
+    "Its discovery document lists code_challenge_methods_supported without S256; pulse-cli only uses S256 (RFC 7636, RFC 9700). Enable S256 for the client.",
   )
 }
 
@@ -117,7 +117,7 @@ function clientAuthMethodOf(
   if (config.clientSecret === undefined) return "client_secret_basic"
   throw configError(
     "The authorization server supports neither client_secret_basic nor client_secret_post",
-    "operate authenticates a confidential client with its secret only. Use a public client (no client secret) with PKCE.",
+    "pulse-cli authenticates a confidential client with its secret only. Use a public client (no client secret) with PKCE.",
   )
 }
 
@@ -128,7 +128,7 @@ function clientAuthMethodOf(
 function issuerFix(config: OAuthConfig): string {
   return config.sources.endpoints === "env"
     ? `${ENV.oauthIssuer}=<issuer>`
-    : `operate config set ${config.profile ?? "<profile>"} --oauth-issuer <issuer>`
+    : `pulse-cli config set ${config.profile ?? "<profile>"} --oauth-issuer <issuer>`
 }
 
 function checkIssuer(answer: ServerAnswer, document: Record<string, unknown>, config: OAuthConfig) {

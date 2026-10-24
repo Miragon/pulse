@@ -42,7 +42,7 @@ export function displayText(value: unknown, display: Display, text: () => string
 }
 
 /**
- * `-o/--output`, else OPERATE_OUTPUT, else the profile's output, else table on a terminal and JSON
+ * `-o/--output`, else PULSE_CLI_OUTPUT, else the profile's output, else table on a terminal and JSON
  * otherwise. JSON is indented with `--pretty` or on a terminal. Records the format for errors.
  */
 export async function displayOf(context: CliContext, flags: DisplayFlags): Promise<Display> {

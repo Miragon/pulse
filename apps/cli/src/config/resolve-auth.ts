@@ -1,11 +1,11 @@
 /**
- * Resolves the authentication. Type: `--auth` > OPERATE_AUTH > the
+ * Resolves the authentication. Type: `--auth` > PULSE_CLI_AUTH > the
  * profile's auth.type; without a type anywhere, a username from any source or
- * `--auth-password-stdin` selects Basic auth, a token from `--auth-token-stdin` or OPERATE_TOKEN
+ * `--auth-password-stdin` selects Basic auth, a token from `--auth-token-stdin` or PULSE_CLI_TOKEN
  * selects bearer auth (both at once is a CONFIG error), otherwise none (OAuth is never implied;
  * resolve-oauth.ts resolves it, resolve-bearer.ts the bearer token). Username: `--auth-user` >
- * OPERATE_USERNAME > the profile's auth.username. Password: `--auth-password-stdin` >
- * OPERATE_PASSWORD > the variable named by the profile's auth.passwordEnv > the profile's
+ * PULSE_CLI_USERNAME > the profile's auth.username. Password: `--auth-password-stdin` >
+ * PULSE_CLI_PASSWORD > the variable named by the profile's auth.passwordEnv > the profile's
  * auth.password. Basic auth needs both values; errors never show a secret.
  */
 
@@ -59,7 +59,7 @@ export interface ResolvedAuth {
   readonly auth: AuthConfig
   /** Where the type came from; for a type implied by a username or token, its source. */
   readonly source: Source
-  /** OPERATE_TOKEN (or a switched off `--auth-token-stdin`) that the type does not use. */
+  /** PULSE_CLI_TOKEN (or a switched off `--auth-token-stdin`) that the type does not use. */
   readonly unusedToken?: UnusedToken
 }
 
@@ -106,7 +106,7 @@ function storedPassword({ env, selected }: Context): Found<string> | undefined {
   return { value: passwordFromEnv(variable, name, env), source: "profile", label }
 }
 
-/** Where the type was set (`--auth none`, `OPERATE_AUTH=basic`, ...), for messages. */
+/** Where the type was set (`--auth none`, `PULSE_CLI_AUTH=basic`, ...), for messages. */
 function typeLabel(source: Source, type: AuthType, profile: string | undefined): string {
   if (source === "flag") return `--auth ${type}`
   if (source === "env") return `${ENV.auth}=${type}`
@@ -158,7 +158,7 @@ function missingError(missing: readonly Credential[], selectedBy: string, contex
   const places = missing.map((credential) => lookedUp(credential, context.selected))
   return configError(
     `Basic auth is selected but ${values} ${missing.length > 1 ? "are" : "is"} missing`,
-    `Basic auth was selected by ${selectedBy}. Looked up ${places.join("; ")}. Pipe the password into --auth-password-stdin, set ${ENV.username} and ${ENV.password}, or store them with \`operate config set <profile> --auth basic --auth-user <name> --auth-password-env <VAR>\`; --auth none switches Basic auth off.`,
+    `Basic auth was selected by ${selectedBy}. Looked up ${places.join("; ")}. Pipe the password into --auth-password-stdin, set ${ENV.username} and ${ENV.password}, or store them with \`pulse-cli config set <profile> --auth basic --auth-user <name> --auth-password-env <VAR>\`; --auth none switches Basic auth off.`,
   )
 }
 
@@ -201,7 +201,7 @@ function impliedBasic(
 
 /**
  * The type without an explicit one: Basic auth (`impliedBasic`), or bearer auth for a token of
- * `--auth-token-stdin` or OPERATE_TOKEN. Both at once is a CONFIG error.
+ * `--auth-token-stdin` or PULSE_CLI_TOKEN. Both at once is a CONFIG error.
  */
 function impliedType(
   username: Found<string> | undefined,
@@ -273,7 +273,7 @@ function authOf(
   }
 }
 
-/** `authCommand`: for `operate auth` commands, whose hints never suggest `--auth`. */
+/** `authCommand`: for `pulse-cli auth` commands, whose hints never suggest `--auth`. */
 export function resolveAuth(
   flags: ConfigFlags,
   env: Env,
@@ -300,20 +300,20 @@ function headerOrigin(source: Source, profile: string | undefined): string {
   if (source === "flag") return "given with -H/--header"
   if (source === "env") return `from ${ENV.headers}`
   const name = profile ?? "<profile>"
-  return `from the headers of profile "${name}"; \`operate config unset ${name} headers\` removes them`
+  return `from the headers of profile "${name}"; \`pulse-cli config unset ${name} headers\` removes them`
 }
 
-/** The credentials of an auth type, and what operate sends in the Authorization header. */
+/** The credentials of an auth type, and what pulse-cli sends in the Authorization header. */
 const CREDENTIALS: Readonly<Record<Exclude<AuthType, "none">, readonly [string, string]>> = {
-  basic: ["Basic auth", "with Basic auth, operate sends the credentials in it"],
-  oauth: ["OAuth", "with OAuth, operate sends the access token in it"],
-  bearer: ["Bearer auth", "with bearer auth, operate sends the token in it"],
+  basic: ["Basic auth", "with Basic auth, pulse-cli sends the credentials in it"],
+  oauth: ["OAuth", "with OAuth, pulse-cli sends the access token in it"],
+  bearer: ["Bearer auth", "with bearer auth, pulse-cli sends the token in it"],
 }
 
 /**
  * Basic auth, OAuth or a bearer token and an explicit Authorization header (`-H`,
- * OPERATE_HEADERS, profile headers) would fight over the same header: a CONFIG error asks to drop
- * one. For `operate auth` commands (`authCommand`) only the header can go.
+ * PULSE_CLI_HEADERS, profile headers) would fight over the same header: a CONFIG error asks to drop
+ * one. For `pulse-cli auth` commands (`authCommand`) only the header can go.
  */
 export function authorizationConflict(
   auth: AuthConfig,
@@ -328,12 +328,12 @@ export function authorizationConflict(
     `${name} and an Authorization header are both configured`,
     authCommand
       ? `Remove the Authorization header (${origin}): ${sent}.`
-      : `Drop one: remove the Authorization header (${origin}), or switch ${name} off with --auth none, ${ENV.auth}=none or \`operate config unset ${profile ?? "<profile>"} auth\`.`,
+      : `Drop one: remove the Authorization header (${origin}), or switch ${name} off with --auth none, ${ENV.auth}=none or \`pulse-cli config unset ${profile ?? "<profile>"} auth\`.`,
   )
 }
 
 /**
- * The auth type of `selectedAuth`; `label` says what selected it (`OPERATE_AUTH=basic`), `token`
+ * The auth type of `selectedAuth`; `label` says what selected it (`PULSE_CLI_AUTH=basic`), `token`
  * where the token of bearer auth would come from.
  */
 export interface SelectedAuth {
@@ -347,7 +347,7 @@ export interface SelectedAuth {
  * The auth type a command would use and where it came from, without resolving credentials (no
  * password or token variable is read, no command is run): the explicit type, else basic for a
  * username or `--auth-password-stdin`, bearer for a token of `--auth-token-stdin` or
- * OPERATE_TOKEN or for OPERATE_TOKEN_COMMAND, else none (source default). Undefined for an unknown
+ * PULSE_CLI_TOKEN or for PULSE_CLI_TOKEN_COMMAND, else none (source default). Undefined for an unknown
  * type or an inference conflict (resolution reports them).
  */
 export function selectedAuth(

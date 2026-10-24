@@ -48,7 +48,7 @@ describe.each(GUIDE_PAGES)("guide page %s", (_, text) => {
   const lines = text.split("\n")
 
   it("is a markdown document with one final newline and closed code blocks", () => {
-    expect(text.startsWith("# operate")).toBe(true)
+    expect(text.startsWith("# pulse-cli")).toBe(true)
     expect(text.endsWith("\n")).toBe(true)
     expect(text.endsWith("\n\n")).toBe(false)
     expect(text.split("```").length % 2).toBe(1)
@@ -68,7 +68,7 @@ describe.each(GUIDE_PAGES)("guide page %s", (_, text) => {
   })
 })
 
-describe("the core guide (operate guide)", () => {
+describe("the core guide (pulse-cli guide)", () => {
   const lines = GUIDE.split("\n")
 
   it(`stays within ${MAX_CORE_LINES} lines`, () => {
@@ -76,7 +76,7 @@ describe("the core guide (operate guide)", () => {
   })
 
   it("has the sections an agent needs, the topics last", () => {
-    expect(GUIDE.startsWith("# operate: ")).toBe(true)
+    expect(GUIDE.startsWith("# pulse-cli: ")).toBe(true)
     expect(lines.filter((line) => line.startsWith("## "))).toEqual([
       "## Setup",
       "## Discover, describe, preview, run",
@@ -91,23 +91,23 @@ describe("the core guide (operate guide)", () => {
 
   it("ends with the index of every topic, one line each", () => {
     const topics = GUIDE.slice(GUIDE.indexOf("## Topics"))
-    expect(topics).toContain("`operate guide <topic>`")
-    expect(topics).toContain("`operate guide --list`")
+    expect(topics).toContain("`pulse-cli guide <topic>`")
+    expect(topics).toContain("`pulse-cli guide --list`")
     for (const topic of GUIDE_TOPICS) {
       expect(topics).toContain(`\n- \`${topic.name}\`: ${topic.summary}\n`)
     }
   })
 
-  it("names the supported engines, the setup and how to run operate without installing it", () => {
+  it("names the supported engines, the setup and how to run pulse-cli without installing it", () => {
     expectAll(GUIDE, [
       "Operaton",
       "CIB seven",
       "Camunda 7",
-      "OPERATE_URL",
-      "operate config set",
-      "operate ping",
-      "`npx -y @miragon/operate` in its place",
-      "`npm i -g @miragon/operate`",
+      "PULSE_CLI_URL",
+      "pulse-cli config set",
+      "pulse-cli ping",
+      "`npx -y @miragon/pulse-cli` in its place",
+      "`npm i -g @miragon/pulse-cli`",
       "flag > environment variable > profile > default",
     ])
   })
@@ -115,38 +115,38 @@ describe("the core guide (operate guide)", () => {
   it("keeps a shell URL away from the profiles: it would override them, credentials included", () => {
     const start = GUIDE.indexOf("\n## Setup\n")
     const setup = GUIDE.slice(start, GUIDE.indexOf("\n## ", start + 1))
-    expect(setup).toContain("`--url` and `OPERATE_URL` override")
+    expect(setup).toContain("`--url` and `PULSE_CLI_URL` override")
     expect(setup).toContain("its credentials go along")
-    const unset = setup.indexOf("\nunset OPERATE_URL\n")
-    expect(unset).toBeGreaterThan(setup.indexOf("\nexport OPERATE_URL="))
-    expect(unset).toBeLessThan(setup.indexOf("\noperate ping --profile prod\n"))
+    const unset = setup.indexOf("\nunset PULSE_CLI_URL\n")
+    expect(unset).toBeGreaterThan(setup.indexOf("\nexport PULSE_CLI_URL="))
+    expect(unset).toBeLessThan(setup.indexOf("\npulse-cli ping --profile prod\n"))
   })
 
-  it("says how to read a topic with an operate older than the skill", () => {
+  it("says how to read a topic with a pulse-cli older than the skill", () => {
     expect(GUIDE).toContain("\"Too many arguments for 'guide'\"")
-    expect(GUIDE).toContain("`npx -y @miragon/operate@latest guide <topic>`")
+    expect(GUIDE).toContain("`npx -y @miragon/pulse-cli@latest guide <topic>`")
   })
 
   it("keeps discover, describe, preview, run and the dev loop of the workflow commands", () => {
     expectAll(GUIDE, [
       "Never guess commands or flags",
-      "operate commands --search",
-      "operate describe process-definition start",
+      "pulse-cli commands --search",
+      "pulse-cli describe process-definition start",
       "--dry-run",
       "instead of `sleep`",
       "exit code 9, which still prints the view",
       ...["inspect", "wait", "advance", "retry", "deploy", "status"].map(
-        (name) => `operate ${name}`,
+        (name) => `pulse-cli ${name}`,
       ),
     ])
     expect(GUIDE).toContain(
       [
-        "operate deploy bpmn --start --business-key B-1 --var amount=250",
-        "operate inspect --business-key B-1",
-        "operate advance --business-key B-1 --var approved=true --wait",
-        "operate retry --business-key B-1 --now",
-        "operate wait --business-key B-1 --until ended",
-        "operate status",
+        "pulse-cli deploy bpmn --start --business-key B-1 --var amount=250",
+        "pulse-cli inspect --business-key B-1",
+        "pulse-cli advance --business-key B-1 --var approved=true --wait",
+        "pulse-cli retry --business-key B-1 --now",
+        "pulse-cli wait --business-key B-1 --until ended",
+        "pulse-cli status",
       ].join("\n"),
     )
   })
@@ -160,7 +160,7 @@ describe("the core guide (operate guide)", () => {
       "--all",
       "Done: <METHOD> <path>",
       ...GUIDE_TOPICS.filter((topic) => topic.name !== "recipes").map(
-        (topic) => `\`operate guide ${topic.name}\``,
+        (topic) => `\`pulse-cli guide ${topic.name}\``,
       ),
     ])
   })
@@ -179,19 +179,19 @@ describe("the core guide (operate guide)", () => {
       "--yes",
       "CONFIRMATION_REQUIRED",
       "READ_ONLY",
-      "OPERATE_READ_ONLY",
+      "PULSE_CLI_READ_ONLY",
     ])
   })
 })
 
-describe("the topics (operate guide <topic>)", () => {
+describe("the topics (pulse-cli guide <topic>)", () => {
   it("have unique lowercase names, one-line summaries and a title naming their command", () => {
     const names = GUIDE_TOPICS.map((topic) => topic.name)
     expect(new Set(names).size).toBe(names.length)
     for (const topic of GUIDE_TOPICS) {
       expect(topic.name).toMatch(/^[a-z]+(?:-[a-z]+)*$/)
       expect(topic.summary).toMatch(/^\S[^\n]{10,85}[^.\s]$/)
-      expect(topic.text.startsWith(`# operate guide ${topic.name}: `)).toBe(true)
+      expect(topic.text.startsWith(`# pulse-cli guide ${topic.name}: `)).toBe(true)
       expect(findGuideTopic(topic.name)).toBe(topic)
     }
     expect(findGuideTopic("core")).toBeUndefined()
@@ -201,7 +201,7 @@ describe("the topics (operate guide <topic>)", () => {
     `%s stays within ${MAX_TOPIC_LINES} lines and has command lines`,
     (_, text) => {
       expect(text.split("\n").length).toBeLessThanOrEqual(MAX_TOPIC_LINES)
-      expect(text).toMatch(/```sh\n(?:.*\n)*?operate /)
+      expect(text).toMatch(/```sh\n(?:.*\n)*?pulse-cli /)
     },
   )
 
@@ -230,7 +230,7 @@ describe("the topics (operate guide <topic>)", () => {
 
   it("input: arguments, booleans, arrays, dates, variables, bodies, files and global options", () => {
     expectAll(topicText("input"), [
-      "operate process-instance get-variable <id> <var-name>",
+      "pulse-cli process-instance get-variable <id> <var-name>",
       "`--no-with-incident` sends `false`",
       "--process-instance-ids a,b --process-instance-ids c",
       "2024-05-01T10:00:00.000+0200",
@@ -267,33 +267,33 @@ describe("the topics (operate guide <topic>)", () => {
 
   it("config: profiles, the config file, the environment, engines and headers", () => {
     expectAll(topicText("config"), [
-      "operate config set local --url http://localhost:8080/engine-rest --default",
-      "operate config show --profile prod",
-      "operate config path",
+      "pulse-cli config set local --url http://localhost:8080/engine-rest --default",
+      "pulse-cli config show --profile prod",
+      "pulse-cli config path",
       "--config <path>",
       "config set` creates it",
       "only formats the output",
       "--engine <name>",
-      "OPERATE_HEADERS",
-      "OPERATE_TOKEN",
-      "OPERATE_OAUTH_*",
+      "PULSE_CLI_HEADERS",
+      "PULSE_CLI_TOKEN",
+      "PULSE_CLI_OAUTH_*",
       "read-only profiles",
     ])
   })
 
   it("auth: Basic auth, bearer tokens and OAuth without logging in itself", () => {
     expectAll(topicText("auth"), [
-      "OPERATE_USERNAME",
-      "OPERATE_PASSWORD",
+      "PULSE_CLI_USERNAME",
+      "PULSE_CLI_PASSWORD",
       "--auth-password-env <VAR>",
-      "OPERATE_AUTH=none",
+      "PULSE_CLI_AUTH=none",
       "--auth-token-env <VAR>",
       "TOKEN_EXPIRED",
-      "OPERATE_OAUTH_*",
-      "operate auth login --profile <name>",
+      "PULSE_CLI_OAUTH_*",
+      "pulse-cli auth login --profile <name>",
       "Never run `auth login` yourself",
       "LOGIN_REQUIRED",
-      "operate auth status",
+      "pulse-cli auth status",
       "`UNAUTHORIZED`/`FORBIDDEN` despite a login",
       "do not ask for a new login",
       "--show-secrets",
@@ -304,7 +304,7 @@ describe("the topics (operate guide <topic>)", () => {
     expectAll(topicText("recipes"), [
       "The worker id must match the one that locked the task",
       "`incident resolve` only resolves custom incidents",
-      "operate api GET",
+      "pulse-cli api GET",
       "The effect is taken from the matching catalog operation (the query\n`POST /process-instance` is a read)",
     ])
   })
@@ -321,8 +321,8 @@ describe("all guide pages together", () => {
   })
 
   it("point only to topics that exist", () => {
-    // `operate guide <name>` in prose is not checked by the command line tests
-    const named = [...ALL.matchAll(/`operate guide ([a-z][a-z-]*)`/g)].map((match) => match[1]!)
+    // `pulse-cli guide <name>` in prose is not checked by the command line tests
+    const named = [...ALL.matchAll(/`pulse-cli guide ([a-z][a-z-]*)`/g)].map((match) => match[1]!)
     expect(named).toContain("config")
     for (const name of named) expect(findGuideTopic(name), name).toBeDefined()
   })
@@ -359,11 +359,11 @@ describe("topicSuggestions", () => {
 
 describe("docs/cli/agents.md", () => {
   it("points agents to the core guide, its topics and --list", () => {
-    expect(AGENTS_PAGE.startsWith("# Using operate from AI agents\n")).toBe(true)
+    expect(AGENTS_PAGE.startsWith("# Using pulse-cli from AI agents\n")).toBe(true)
     expectAll(AGENTS_PAGE, [
-      "`operate guide`",
-      "`operate guide <topic>`",
-      "`operate guide --list`",
+      "`pulse-cli guide`",
+      "`pulse-cli guide <topic>`",
+      "`pulse-cli guide --list`",
       ...GUIDE_TOPICS.map((topic) => `\`${topic.name}\``),
     ])
   })
@@ -371,7 +371,7 @@ describe("docs/cli/agents.md", () => {
 
 describe("README", () => {
   it("points agents to the guide and to the agents page of the docs site", () => {
-    expectAll(README, ["`operate guide`", "(https://miragon.github.io/pulse/cli/agents)"])
+    expectAll(README, ["`pulse-cli guide`", "(https://miragon.github.io/pulse/cli/agents)"])
   })
 })
 
@@ -381,7 +381,7 @@ describe("skills/pulse-cli/SKILL.md", () => {
   it("has a YAML frontmatter with name and description", () => {
     expect(match).not.toBeNull()
     const frontmatter = match![1]!.split("\n")
-    expect(frontmatter[0]).toBe("name: operate")
+    expect(frontmatter[0]).toBe("name: pulse-cli")
     expect(frontmatter).toHaveLength(2)
     const description = frontmatter[1]!
     expect(description).toMatch(/^description: \S/)

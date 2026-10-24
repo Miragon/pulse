@@ -1,6 +1,6 @@
 /**
  * The configuration a command reads: the config file named by `--config` or
- * OPERATE_CONFIG alone (it must exist), else the project file (`.operate.json`, looked up from the
+ * PULSE_CLI_CONFIG alone (it must exist), else the project file (`.pulse-cli.json`, looked up from the
  * working directory up to the repository root) merged with the user's config file.
  */
 
@@ -16,18 +16,18 @@ import {
 import type { ConfigFile, LoadedConfig, ProjectSource } from "../config/types.js"
 import type { Runtime } from "../runtime.js"
 
-/** Path of the config file for `--config`, OPERATE_CONFIG or the platform default. */
+/** Path of the config file for `--config`, PULSE_CLI_CONFIG or the platform default. */
 export function configPath(runtime: Runtime, explicit: string | undefined): string {
   return configFilePath(runtime.env, runtime, explicit)
 }
 
-/** True when the config file was named by `--config` or OPERATE_CONFIG: then it must exist. */
+/** True when the config file was named by `--config` or PULSE_CLI_CONFIG: then it must exist. */
 export function isExplicit(runtime: Runtime, flag: string | undefined): boolean {
   return explicitConfigPath(runtime.env, flag) !== undefined
 }
 
 export interface LoadedFiles {
-  /** The user's config file, or the one named by `--config` / OPERATE_CONFIG. */
+  /** The user's config file, or the one named by `--config` / PULSE_CLI_CONFIG. */
   readonly path: string
   /** The project file in effect (never next to an explicit config file). */
   readonly project?: ProjectSource
@@ -55,7 +55,7 @@ async function projectOf(runtime: Runtime, path: string) {
 }
 
 /**
- * The user's config file, or the one named by `--config` / OPERATE_CONFIG (`explicit`), with the
+ * The user's config file, or the one named by `--config` / PULSE_CLI_CONFIG (`explicit`), with the
  * origin of its profiles.
  */
 function withOrigin(

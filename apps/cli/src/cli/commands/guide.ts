@@ -1,5 +1,5 @@
 /**
- * `operate guide [topic] | --list`: prints the usage guide for agents. The core
+ * `pulse-cli guide [topic] | --list`: prints the usage guide for agents. The core
  * and every topic are always the raw markdown, whatever the output format, so that they read the
  * same in a terminal, a pipe and an agent's context; `--list` lists the topics as JSON when stdout
  * is not a terminal, else as a table.
@@ -35,16 +35,17 @@ interface GuideOptions {
 function unknownTopic(name: string): OperateError {
   return usageError(
     `Unknown guide topic "${name}"`,
-    `${didYouMean(topicSuggestions(name))}The topics are ${TOPIC_NAMES.join(", ")} ("operate guide --list" summarizes them); "operate guide" alone prints the core guide.`,
+    `${didYouMean(topicSuggestions(name))}The topics are ${TOPIC_NAMES.join(", ")} ("pulse-cli guide --list" summarizes them); "pulse-cli guide" alone prints the core guide.`,
   )
 }
 
 /** `--list` with a topic; the hint offers the topic only when it exists. */
 function listWithTopic(name: string): OperateError {
-  const one = findGuideTopic(name) === undefined ? "" : ` or "operate guide ${name}" for one topic`
+  const one =
+    findGuideTopic(name) === undefined ? "" : ` or "pulse-cli guide ${name}" for one topic`
   return usageError(
     `--list takes no topic, got "${name}"`,
-    `Run "operate guide --list" for the topics${one}.`,
+    `Run "pulse-cli guide --list" for the topics${one}.`,
   )
 }
 

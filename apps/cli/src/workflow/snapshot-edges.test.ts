@@ -98,7 +98,7 @@ describe("instanceView with history", () => {
       waitingAt: [],
       incidents: [],
       children: [],
-      next: ["operate inspect pi --history"],
+      next: ["pulse-cli inspect pi --history"],
     })
     expect(
       instanceView(

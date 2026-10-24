@@ -2,10 +2,10 @@
 
 ## Context
 
-Users ask whether operate works with Camunda 8. Camunda 8 is not a fork of Camunda 7: it has its
+Users ask whether pulse-cli works with Camunda 8. Camunda 8 is not a fork of Camunda 7: it has its
 own REST API (the Orchestration Cluster API), other resources (process instances by key, jobs
-without external tasks, no history endpoints in the same form) and other authentication. The
-catalog of operate is generated from the Camunda 7 REST API spec, and the workflow commands use its
+without external tasks, no history endpoints in the same form) and other authentication. The catalog
+of pulse-cli is generated from the Camunda 7 REST API spec, and the workflow commands use its
 operations by id.
 
 ## Decision
@@ -19,7 +19,7 @@ their Camunda 7 operation id. A second API would need ports that describe tasks 
 commands (find an instance, list its incidents) instead. They are written when the second API is,
 not before.
 
-**Until then operate does not support Camunda 8.** The docs say so ([Engines](../engines.md)).
+**Until then pulse-cli does not support Camunda 8.** The docs say so ([Engines](../engines.md)).
 
 ## Consequences
 

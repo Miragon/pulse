@@ -1,5 +1,5 @@
 /**
- * The loopback HTTP server of `operate auth login` (RFC 8252 §7.3): bound to
+ * The loopback HTTP server of `pulse-cli auth login` (RFC 8252 §7.3): bound to
  * 127.0.0.1 only (never `localhost`, `0.0.0.0` or `::`), request bodies ignored, static HTML
  * answers with security headers. `close()` waits for answers in flight, then drops every
  * connection.
@@ -21,7 +21,7 @@ const HEADERS = {
 } as const
 
 const ERROR_PAGE =
-  '<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><title>operate login</title></head><body><h1>Login failed</h1><p>operate could not handle this request.</p></body></html>\n'
+  '<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><title>pulse-cli login</title></head><body><h1>Login failed</h1><p>pulse-cli could not handle this request.</p></body></html>\n'
 
 function toRequest(request: IncomingMessage): LoopbackRequest {
   const url = new URL(request.url ?? "/", "http://127.0.0.1")

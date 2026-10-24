@@ -232,7 +232,7 @@ export async function adminLogout(keycloakUrl: string, username: string): Promis
 
 /**
  * An access token of the client credentials grant (RFC 6749 §4.4), as a CI pipeline gets one with
- * its client secret, without operate.
+ * its client secret, without pulse-cli.
  */
 export async function clientCredentialsToken(
   issuer: string,

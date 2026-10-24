@@ -209,7 +209,7 @@ function lockError(path: string, cause: unknown): OperateError {
     "CONFIG",
     `Cannot lock the token cache ${path}`,
     {
-      hint: `Another operate process holds ${path}.lock. If no operate process is running, remove ${path}.lock; nothing was sent.`,
+      hint: `Another pulse-cli process holds ${path}.lock. If no pulse-cli process is running, remove ${path}.lock; nothing was sent.`,
     },
     cause,
   )

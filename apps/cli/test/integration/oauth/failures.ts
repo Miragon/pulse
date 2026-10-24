@@ -105,11 +105,11 @@ export function registerFailures(suite: OAuthSuite): void {
   it('shows Keycloak\'s "Client not found" for an unknown client id and names it on timeout', async () => {
     const pending = startLogin(start, loginArgs(PROFILE.it, "--login-timeout", "3000"), {
       timeoutMs: RUN_TIMEOUT_MS,
-      env: { OPERATE_OAUTH_CLIENT_ID: UNKNOWN_CLIENT },
+      env: { PULSE_CLI_OAUTH_CLIENT_ID: UNKNOWN_CLIENT },
     })
     const url = await pending.authorizationUrl()
     expect(new URL(url).searchParams.get("client_id")).toBe(UNKNOWN_CLIENT)
-    // the browser shows the error; the authorization server never redirects to operate
+    // the browser shows the error; the authorization server never redirects to pulse-cli
     const page = await openAuthorizationUrl(url)
     expect(page.status).toBe(400)
     expect(page.html).toContain("Client not found")
@@ -136,14 +136,14 @@ export function registerFailures(suite: OAuthSuite): void {
     expect(trace(rejected)).toEqual(["> POST <token>", "< 401"])
 
     const other = await run(countArgs(PROFILE.it, globalFlag("verbose")), {
-      env: { OPERATE_OAUTH_CLIENT_ID: CLIENTS.short },
+      env: { PULSE_CLI_OAUTH_CLIENT_ID: CLIENTS.short },
     })
     const mismatch = expectError(other, "LOGIN_REQUIRED", 4)
     expect(mismatch.message).toBe(
       `The OAuth login of profile "it" was made for another issuer, client, audience or scopes: client "${CLIENTS.public}" (the configuration asks for "${CLIENTS.short}")`,
     )
     expect(mismatch.hint).toContain(
-      "OPERATE_OAUTH_CLIENT_ID of this environment makes the difference",
+      "PULSE_CLI_OAUTH_CLIENT_ID of this environment makes the difference",
     )
     expect(mismatch.hint).toContain(LOGIN_HINT(PROFILE.it))
     expect(other.stderr).not.toMatch(SENT_REQUEST)
@@ -156,25 +156,25 @@ export function registerFailures(suite: OAuthSuite): void {
     const port = await listen(blocker)
     try {
       const busy = await run(loginArgs(PROFILE.it, ...BOUNDED), {
-        env: { OPERATE_OAUTH_REDIRECT_PORT: String(port) },
+        env: { PULSE_CLI_OAUTH_REDIRECT_PORT: String(port) },
       })
       const error = expectError(busy, "CONFIG", 3)
       expect(error.message).toContain(`Port ${port} for the login callback is in use`)
       // the variable overrides the profile, so the hint names the variable
-      expect(error.hint).toContain("OPERATE_OAUTH_REDIRECT_PORT=<port>")
+      expect(error.hint).toContain("PULSE_CLI_OAUTH_REDIRECT_PORT=<port>")
       expect(busy.stderr).not.toMatch(URL_LINE)
     } finally {
       blocker.close()
     }
 
     const unknownRealm = await run(loginArgs(PROFILE.it, ...BOUNDED), {
-      env: { OPERATE_OAUTH_ISSUER: `${top().keycloakUrl}/realms/nope` },
+      env: { PULSE_CLI_OAUTH_ISSUER: `${top().keycloakUrl}/realms/nope` },
     })
     expect(expectError(unknownRealm, "CONFIG", 3).message).toContain("OAuth discovery failed")
     expect(unknownRealm.stderr).not.toMatch(URL_LINE)
 
     const closed = await run(loginArgs(PROFILE.it, ...BOUNDED), {
-      env: { OPERATE_OAUTH_ISSUER: "http://127.0.0.1:1/realms/operate" },
+      env: { PULSE_CLI_OAUTH_ISSUER: "http://127.0.0.1:1/realms/operate" },
     })
     expect(expectError(closed, "NETWORK", 8).message).toContain(
       "Cannot reach the authorization server at http://127.0.0.1:1",
@@ -248,13 +248,13 @@ export function registerFailures(suite: OAuthSuite): void {
     expect(result.stderr).not.toMatch(SENT_REQUEST)
   })
 
-  it("logs in from OPERATE_OAUTH_* alone into a cache named after the identity", async () => {
+  it("logs in from PULSE_CLI_OAUTH_* alone into a cache named after the identity", async () => {
     const { issuer, url } = top()
     const env = {
-      OPERATE_AUTH: "oauth",
-      OPERATE_OAUTH_ISSUER: issuer,
-      OPERATE_OAUTH_CLIENT_ID: CLIENTS.public,
-      OPERATE_URL: url,
+      PULSE_CLI_AUTH: "oauth",
+      PULSE_CLI_OAUTH_ISSUER: issuer,
+      PULSE_CLI_OAUTH_CLIENT_ID: CLIENTS.public,
+      PULSE_CLI_URL: url,
     }
     const pending = startLogin(start, ["auth", "login", "--no-browser"], {
       timeoutMs: RUN_TIMEOUT_MS,

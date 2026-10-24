@@ -1,5 +1,5 @@
 /**
- * `operate config set` changes of a profile's auth object: the type,
+ * `pulse-cli config set` changes of a profile's auth object: the type,
  * the Basic auth username and password (stored as the name of an environment variable,
  * recommended, or literally), the OAuth settings (oauth-edit.ts) and the bearer token
  * (bearer-edit.ts). Only given values change; a passwordEnv replaces a stored password and the
@@ -238,7 +238,7 @@ export function settleAuthorization(
   const family = FAMILY_NAMES[type]
   throw configError(
     `Profile "${name}" would have both ${family} and an Authorization header`,
-    `Keep one: ${family} options replace a stored Authorization header (\`operate config set ${name} --auth ${type}\`); --auth none switches ${family} off and keeps the header (\`operate config set ${name} --auth none -H 'Authorization: ...'\`).`,
+    `Keep one: ${family} options replace a stored Authorization header (\`pulse-cli config set ${name} --auth ${type}\`); --auth none switches ${family} off and keeps the header (\`pulse-cli config set ${name} --auth none -H 'Authorization: ...'\`).`,
   )
 }
 

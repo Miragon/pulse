@@ -131,10 +131,10 @@ describe("unsetProfileKeys", () => {
     const error = failure(() => unsetProfileKeys(TWO, "qa", ["url"]))
     expect(error.message).toBe('Profile "qa" does not exist')
     expect(error.details.hint).toBe(
-      "Known profiles: dev, prod. Create it with `operate config set qa --url <url>`.",
+      "Known profiles: dev, prod. Create it with `pulse-cli config set qa --url <url>`.",
     )
     expect(failure(() => unsetProfileKeys(undefined, "qa", ["url"])).details.hint).toBe(
-      "Create it with `operate config set qa --url <url>`.",
+      "Create it with `pulse-cli config set qa --url <url>`.",
     )
   })
 
@@ -149,14 +149,14 @@ describe("showConfig", () => {
   it("shows every effective value with its source", () => {
     const resolved = resolveConfig(
       { output: "json", headers: ["X-Flag: 1"] },
-      { OPERATE_TIMEOUT: "1000" },
+      { PULSE_CLI_TIMEOUT: "1000" },
       TWO,
     )
-    expect(showConfig(resolved, "/home/me/.config/operate/config.json")).toEqual({
-      configFile: "/home/me/.config/operate/config.json",
+    expect(showConfig(resolved, "/home/me/.config/pulse-cli/config.json")).toEqual({
+      configFile: "/home/me/.config/pulse-cli/config.json",
       projectFile: null,
       profile: "dev",
-      profileFile: "/home/me/.config/operate/config.json",
+      profileFile: "/home/me/.config/pulse-cli/config.json",
       values: {
         url: { value: "http://localhost:8080/engine-rest", source: "profile" },
         cockpitUrl: { value: null, source: "default" },
@@ -256,7 +256,7 @@ describe("Basic auth in profiles", () => {
     expect(view.values.username).toEqual({ value: "demo", source: "profile" })
     expect(view.values.password).toEqual({ value: "s3cret", source: "profile" })
     const fromEnv = showConfig(
-      resolveConfig({ authUser: "cli" }, { OPERATE_PASSWORD: "x", PW: "y" }, file),
+      resolveConfig({ authUser: "cli" }, { PULSE_CLI_PASSWORD: "x", PW: "y" }, file),
       "c.json",
     )
     expect(fromEnv.values.username).toEqual({ value: "cli", source: "flag" })

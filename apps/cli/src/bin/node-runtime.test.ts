@@ -39,7 +39,7 @@ describe("createNodeRuntime().readStdin", () => {
     expect(code).toBe("USAGE")
     expect(message).toBe("stdin is a terminal; pipe the input into the command")
     expect(details.hint).toBe(
-      `Examples: echo '{}' | operate ... --body - (or --body @file.json); printf '%s\\n' "$PASSWORD" | operate ... --auth-password-stdin (a token: --auth-token-stdin).`,
+      `Examples: echo '{}' | pulse-cli ... --body - (or --body @file.json); printf '%s\\n' "$PASSWORD" | pulse-cli ... --auth-password-stdin (a token: --auth-token-stdin).`,
     )
     // rendered errors are single lines; a template literal "\n" would break the printf example
     expect(details.hint).not.toMatch(/[\r\n]/)
@@ -54,7 +54,7 @@ describe.skipIf(process.platform === "win32")(
     const modeOf = async (path: string) => (await stat(path)).mode & 0o777
 
     beforeEach(async () => {
-      dir = await mkdtemp(join(tmpdir(), "operate-fs-"))
+      dir = await mkdtemp(join(tmpdir(), "pulse-cli-fs-"))
     })
 
     afterEach(async () => {
@@ -216,7 +216,7 @@ describe.skipIf(process.platform === "win32")("withLock and the file system", ()
   const runtime = createNodeRuntime()
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), "operate-lock-"))
+    dir = await mkdtemp(join(tmpdir(), "pulse-cli-lock-"))
   })
 
   afterEach(async () => {
@@ -313,7 +313,7 @@ describe.skipIf(process.platform === "win32")("withLock and the file system", ()
     await writeFile(file, "{}")
     await expect(runtime.fs.remove(file)).resolves.toBe(true)
     await expect(runtime.fs.remove(file)).resolves.toBe(false)
-    const tokens = join(dir, "operate", "tokens")
+    const tokens = join(dir, "pulse-cli", "tokens")
     await runtime.fs.mkdir(tokens, { mode: 0o700 })
     expect((await stat(tokens)).mode & 0o777).toBe(0o700)
     await runtime.fs.mkdir(tokens, { mode: 0o755 })
@@ -326,7 +326,7 @@ describe.skipIf(process.platform === "win32")("createNodeRuntime().fs.readdir an
   const fs = createNodeRuntime().fs
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), "operate-scan-"))
+    dir = await mkdtemp(join(tmpdir(), "pulse-cli-scan-"))
   })
 
   afterEach(async () => {

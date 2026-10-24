@@ -1,5 +1,5 @@
 /**
- * What `operate auth login|status|logout` print. Pure. Never a token: only who is
+ * What `pulse-cli auth login|status|logout` print. Pure. Never a token: only who is
  * logged in, for what, until when, and where the cache file is. Timestamps are ISO 8601 UTC.
  */
 

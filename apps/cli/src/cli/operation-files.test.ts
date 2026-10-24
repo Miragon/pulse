@@ -191,7 +191,7 @@ describe("operation commands: input", () => {
       code: "USAGE",
       exitCode: 2,
       message: "At least one resource file is required",
-      hint: "Example: operate deployment create order.bpmn approval.dmn --deployment-name orders",
+      hint: "Example: pulse-cli deployment create order.bpmn approval.dmn --deployment-name orders",
     })
   })
 

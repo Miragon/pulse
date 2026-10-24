@@ -1,6 +1,6 @@
 /**
  * The output format rule, in one place for every entry point: `-o/--output` >
- * OPERATE_OUTPUT > the `output` of the selected profile > table on a terminal, JSON otherwise.
+ * PULSE_CLI_OUTPUT > the `output` of the selected profile > table on a terminal, JSON otherwise.
  * Operation commands resolve it with the configuration (strict), the docs commands and errors
  * raised before a command got that far use the same order (errors never fail on a bad value).
  */
@@ -32,7 +32,7 @@ export function terminalFormat(runtime: Runtime): OutputFormat {
   return runtime.stdout.isTTY ? "table" : "json"
 }
 
-/** OPERATE_OUTPUT (trimmed, blank = unset). `strict`: an unknown value is a CONFIG error. */
+/** PULSE_CLI_OUTPUT (trimmed, blank = unset). `strict`: an unknown value is a CONFIG error. */
 export function envFormat(runtime: Runtime, strict: boolean): OutputFormat | undefined {
   const value = runtime.env[ENV.output]?.trim()
   if (value === undefined || value === "") return undefined

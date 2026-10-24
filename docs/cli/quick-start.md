@@ -12,7 +12,7 @@ Check the connection. `http://localhost:8080/engine-rest` is the default, so no 
 needed:
 
 ```sh
-operate ping --pretty
+pulse-cli ping --pretty
 ```
 
 ```json
@@ -53,9 +53,9 @@ EOF
 Deploy it, start an instance, and work on the task:
 
 ```sh
-operate deployment create order.bpmn --deployment-name order
-operate process-definition start order --business-key ORD-1001 --var amount=250
-operate task list --process-definition-key order --fields id,name,created -o table
+pulse-cli deployment create order.bpmn --deployment-name order
+pulse-cli process-definition start order --business-key ORD-1001 --var amount=250
+pulse-cli task list --process-definition-key order --fields id,name,created -o table
 ```
 
 ```text
@@ -64,8 +64,8 @@ id                                    name          created
 ```
 
 ```sh
-TASK_ID=$(operate task list --process-definition-key order --fields id | jq -r '.[0].id')
-operate task complete "$TASK_ID" --var approved=true
+TASK_ID=$(pulse-cli task list --process-definition-key order --fields id | jq -r '.[0].id')
+pulse-cli task complete "$TASK_ID" --var approved=true
 ```
 
 ```text
@@ -73,7 +73,7 @@ Done: POST /task/4e3d858c-c35f-11f1-80fb-aa0e0285a34c/complete → 204 No Conten
 ```
 
 ```sh
-operate historic-process-instance list --process-definition-key order --finished --fields id,businessKey,state -o table
+pulse-cli historic-process-instance list --process-definition-key order --finished --fields id,businessKey,state -o table
 ```
 
 ```text
@@ -81,5 +81,5 @@ id                                    businessKey  state
 4e3d5e77-c35f-11f1-80fb-aa0e0285a34c  ORD-1001     COMPLETED
 ```
 
-Where next: `operate commands` lists the API groups, `operate describe <group> <command>` explains
-a command and `operate guide` prints the usage guide.
+Where next: `pulse-cli commands` lists the API groups, `pulse-cli describe <group> <command>`
+explains a command and `pulse-cli guide` prints the usage guide.

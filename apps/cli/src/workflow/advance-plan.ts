@@ -1,5 +1,5 @@
 /**
- * Planning of `operate advance`: which wait state to move, which options apply to
+ * Planning of `pulse-cli advance`: which wait state to move, which options apply to
  * it, and the requests that move it. Pure.
  */
 
@@ -80,7 +80,7 @@ function itemHint(wait: WaitState): string {
   if (wait.kind === "userTask") return `${itemCommand(wait) ?? ""} --var ...`
   return (
     itemCommand(wait) ??
-    `operate external-task complete ${waitId(wait)} --worker-id <worker> (after locking it)`
+    `pulse-cli external-task complete ${waitId(wait)} --worker-id <worker> (after locking it)`
   )
 }
 
@@ -94,7 +94,7 @@ function candidate(view: InstanceView, wait: WaitState) {
 }
 
 /**
- * A ready command per place: `operate advance <id> --activity-id <a>` with the other options of
+ * A ready command per place: `pulse-cli advance <id> --activity-id <a>` with the other options of
  * the command line, or the generated command of the first item of a multi-instance activity
  * (`advance --activity-id` refuses to pick one of its items).
  */
@@ -102,7 +102,7 @@ function placeCommand(view: InstanceView, waits: readonly WaitState[], options: 
   const [first, ...more] = waits
   if (first === undefined) return ""
   if (more.length > 0) return itemHint(first)
-  return `operate advance ${view.id} --activity-id ${shellWord(first.activityId)}${options}`
+  return `pulse-cli advance ${view.id} --activity-id ${shellWord(first.activityId)}${options}`
 }
 
 function several(
@@ -139,13 +139,13 @@ function nothing(view: InstanceView, activityId: string | undefined) {
       `It waits at: ${waiting.join(", ")}.`,
     )
   }
-  let hint = `\`operate inspect ${view.id}\` shows where it waits.`
+  let hint = `\`pulse-cli inspect ${view.id}\` shows where it waits.`
   if (view.waitingAt.some((wait) => wait.kind === "conditional")) {
-    hint = `Conditional events react to variables: \`operate process-instance set-variable ${view.id} <name> --value <value>\`.`
+    hint = `Conditional events react to variables: \`pulse-cli process-instance set-variable ${view.id} <name> --value <value>\`.`
   } else if (view.truncated === true && view.children[0] !== undefined) {
-    hint = `The instance tree was cut; inspect the called instances, e.g. \`operate inspect ${view.children[0].id}\`.`
+    hint = `The instance tree was cut; inspect the called instances, e.g. \`pulse-cli inspect ${view.children[0].id}\`.`
   }
-  return usageError(`Process instance ${view.id} waits at nothing operate can advance`, hint)
+  return usageError(`Process instance ${view.id} waits at nothing pulse-cli can advance`, hint)
 }
 
 /**
@@ -160,13 +160,13 @@ export function chooseWait(
   if (ended(view)) {
     throw usageError(
       `Process instance ${view.id} has ended (${view.state}); nothing to advance`,
-      `\`operate inspect ${view.id} --history\` shows the path it took.`,
+      `\`pulse-cli inspect ${view.id} --history\` shows the path it took.`,
     )
   }
   if (view.state === "SUSPENDED") {
     throw usageError(
       `Process instance ${view.id} is suspended`,
-      `Activate it first: \`operate process-instance activate ${view.id}\`.`,
+      `Activate it first: \`pulse-cli process-instance activate ${view.id}\`.`,
     )
   }
   const matching = view.waitingAt.filter(
@@ -187,7 +187,7 @@ export function checkOptions(wait: WaitState, input: AdvanceInput): void {
     if (input[key] !== undefined && !rule.kinds.includes(wait.kind)) {
       throw usageError(
         `${rule.flag} applies to ${rule.text} only; ${wait.activityId} is a ${wait.kind}`,
-        "Run `operate advance --help` for the options per kind.",
+        "Run `pulse-cli advance --help` for the options per kind.",
       )
     }
   }
@@ -198,7 +198,7 @@ export function checkSuspended(wait: WaitState): void {
   if (!isSuspendedJob(wait) || !("jobId" in wait)) return
   throw usageError(
     `Job ${wait.jobId} at ${wait.activityId} is suspended; the job executor does not run it`,
-    `Activate it first: \`operate job activate ${wait.jobId}\` (a suspended job definition suspends its new jobs too: \`operate job-definition activate <id>\`).`,
+    `Activate it first: \`pulse-cli job activate ${wait.jobId}\` (a suspended job definition suspends its new jobs too: \`pulse-cli job-definition activate <id>\`).`,
   )
 }
 
@@ -210,7 +210,7 @@ export function checkLock(wait: WaitState, input: AdvanceInput, now: number): vo
   if (wait.workerId === worker || until === undefined || until <= now) return
   throw usageError(
     `External task ${wait.externalTaskId} is locked by worker ${wait.workerId} until ${wait.lockExpirationTime ?? ""}`,
-    `Pass --worker-id ${wait.workerId}, or unlock it: \`operate external-task unlock ${wait.externalTaskId}\`.`,
+    `Pass --worker-id ${wait.workerId}, or unlock it: \`pulse-cli external-task unlock ${wait.externalTaskId}\`.`,
   )
 }
 

@@ -157,7 +157,7 @@ describe("checkLock", () => {
       "External task e1 is locked by worker other until 2026-01-01T00:01:00.000+0000",
     )
     expect(error.details.hint).toBe(
-      "Pass --worker-id other, or unlock it: `operate external-task unlock e1`.",
+      "Pass --worker-id other, or unlock it: `pulse-cli external-task unlock e1`.",
     )
   })
 

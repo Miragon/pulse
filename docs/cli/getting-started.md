@@ -1,19 +1,19 @@
 # Getting started
 
 You need Node.js 22.12 or later and a reachable Camunda 7 REST API: Operaton, CIB seven or
-Camunda 7. operate uses `http://localhost:8080/engine-rest` by default, so a local Operaton
+Camunda 7. pulse-cli uses `http://localhost:8080/engine-rest` by default, so a local Operaton
 container needs no configuration. Give it a few seconds to start before the first command.
 
 ## A first triage
 
 ```sh
-npm install -g @miragon/operate
+npm install -g @miragon/pulse-cli
 docker run -d --name engine -p 8080:8080 operaton/operaton:2.1.5
-operate ping
-operate status
+pulse-cli ping
+pulse-cli status
 ```
 
-`operate ping` checks the connection. `operate status` triages the whole engine in one read-only
+`pulse-cli ping` checks the connection. `pulse-cli status` triages the whole engine in one read-only
 call: incidents grouped by root cause, overdue jobs, external task workers and failed batches,
 each finding with the next command to run. The Operaton image ships the invoice example, so a
 fresh container already has instances, and no findings:
@@ -39,33 +39,33 @@ container image from [installation](./installation.md).
 
 ## Your engine, Claude Code or CI
 
-Point operate at your own engine with a read-only profile, or hand it to Claude Code or your CI
+Point pulse-cli at your own engine with a read-only profile, or hand it to Claude Code or your CI
 pipeline. A profile also holds the engine's Basic auth, OAuth or bearer token settings, see
 [authentication](./authentication.md).
 
 ::: code-group
 
 ```sh [Your engine]
-operate config set prod --url https://engine.example.com/engine-rest --read-only
-operate status --profile prod
+pulse-cli config set prod --url https://engine.example.com/engine-rest --read-only
+pulse-cli status --profile prod
 ```
 
 ```text [Claude Code]
-/plugin marketplace add Miragon/operate
-/plugin install operate@miragon
-/operate:status
+/plugin marketplace add Miragon/skills
+/plugin install pulse-cli@miragon-agent-skills
+/pulse-cli:status
 ```
 
 ```sh [CI]
-export OPERATE_URL=https://engine.example.com/engine-rest
-operate status --read-only --fail-on warning
+export PULSE_CLI_URL=https://engine.example.com/engine-rest
+pulse-cli status --read-only --fail-on warning
 ```
 
 :::
 
 The [Claude Code plugin](./agents.md#claude-code-plugin) calls the CLI you installed, or
-`npx -y @miragon/operate` if there is none. Other agents need one line in `AGENTS.md` or
-`CLAUDE.md`: "Run `operate guide` before using `operate`."
+`npx -y @miragon/pulse-cli` if there is none. Other agents need one line in `AGENTS.md` or
+`CLAUDE.md`: "Run `pulse-cli guide` before using `pulse-cli`."
 
 In CI, `--fail-on warning` fails on any finding, an open incident included. `--fail-on critical`
 fails only when executable jobs are overdue, and that finding asks whether the job executor is

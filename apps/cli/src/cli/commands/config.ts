@@ -1,5 +1,5 @@
 /**
- * `operate config path|show|list|set|unset|use|delete`. The edits are the pure
+ * `pulse-cli config path|show|list|set|unset|use|delete`. The edits are the pure
  * functions of src/config/edit.ts; this module reads and writes the file (the user's config file
  * with mode 0600, with `--project` the project file, config-project.ts) and prints.
  */
@@ -214,7 +214,7 @@ function completeProfiles(command: Command, rest?: readonly string[]): Command {
 function registerSet(config: Command, context: CliContext): void {
   const set = subcommand(config, "set")
     .description(
-      "Create or update a profile; only the given values change. The first profile becomes the default. --output is the output format stored in the profile; -o <format> chooses how the profile is printed. Basic auth: --auth basic --auth-user <name> --auth-password-env <VAR> keeps the password in an environment variable. OAuth: --auth oauth --oauth-issuer <url> --oauth-client-id <id>, then operate auth login --profile <profile> in a terminal. A bearer token from elsewhere: --auth bearer --auth-token-env <VAR>. --project writes the project file of the repository instead of your config file.",
+      "Create or update a profile; only the given values change. The first profile becomes the default. --output is the output format stored in the profile; -o <format> chooses how the profile is printed. Basic auth: --auth basic --auth-user <name> --auth-password-env <VAR> keeps the password in an environment variable. OAuth: --auth oauth --oauth-issuer <url> --oauth-client-id <id>, then pulse-cli auth login --profile <profile> in a terminal. A bearer token from elsewhere: --auth bearer --auth-token-env <VAR>. --project writes the project file of the repository instead of your config file.",
     )
     .argument("<profile>", "Profile name, e.g. local or prod-eu")
     .option("--url <url>", "REST API root, e.g. http://localhost:8080/engine-rest")
@@ -291,7 +291,7 @@ export const configCommand: UtilityCommand = {
     const config = subcommand(program, "config")
       .summary("Manage the config file and its profiles")
       .description(
-        "Manage the config file and its profiles. The file is written with mode 0600; values are validated before they are stored. A repository can share profiles in a project file (.operate.json, written with --project); your own profiles of the same name override them.",
+        "Manage the config file and its profiles. The file is written with mode 0600; values are validated before they are stored. A repository can share profiles in a project file (.pulse-cli.json, written with --project); your own profiles of the same name override them.",
       )
     registerReadCommands(config, context)
     registerEditCommands(config, context)

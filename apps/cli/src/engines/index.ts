@@ -1,4 +1,4 @@
-/** The engines operate supports, one adapter each. */
+/** The engines pulse-cli supports, one adapter each. */
 
 import type { EngineAdapter, EngineName } from "../engine-port/engine-adapter.js"
 import { camunda7 } from "./camunda7/adapter.js"

@@ -1,6 +1,6 @@
 /**
  * A note that every auth failure of a provider carries: a bearer token that is set
- * (OPERATE_TOKEN) but not used because the profile or OPERATE_AUTH selects Basic auth or OAuth.
+ * (PULSE_CLI_TOKEN) but not used because the profile or PULSE_CLI_AUTH selects Basic auth or OAuth.
  * Without it, LOGIN_REQUIRED would tell an agent to ask for an OAuth login and a 401 would blame
  * the Basic credentials, and neither would mention the token the agent exported.
  */

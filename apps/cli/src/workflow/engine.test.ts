@@ -47,7 +47,7 @@ describe("enginePort", () => {
     expect(error).toMatchObject({
       code: "NOT_FOUND",
       details: {
-        hint: "Check the id or key. List the existing ones with `operate process-instance list`.",
+        hint: "Check the id or key. List the existing ones with `pulse-cli process-instance list`.",
       },
     })
   })

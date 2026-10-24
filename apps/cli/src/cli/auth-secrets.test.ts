@@ -57,9 +57,9 @@ function secretForms(user: string, password: string): string[] {
   return [password, JSON.stringify(password).slice(1, -1), base64(`${user}:${password}`)]
 }
 
-/** Every way the credentials reach operate, and every command that renders something. */
+/** Every way the credentials reach pulse-cli, and every command that renders something. */
 function scenarios(user: string, password: string): Scenario[] {
-  const env = { OPERATE_USERNAME: user, OPERATE_PASSWORD: password }
+  const env = { PULSE_CLI_USERNAME: user, PULSE_CLI_PASSWORD: password }
   const stdin = ["--auth-user", user, "--auth-password-stdin"]
   const stored = JSON.stringify({
     defaultProfile: "p",
@@ -84,8 +84,8 @@ function scenarios(user: string, password: string): Scenario[] {
     { args: ["task", "list", "--verbose"], env, status: "down" },
     { args: ["task", "list", "--verbose", "-H", "Authorization: Bearer x"], env },
     { args: ["task", "list", "--verbose", "--auth-user", `${user}:x`], env },
-    { args: ["task", "list", "--auth", "basic"], env: { OPERATE_PASSWORD: password } },
-    { args: ["task", "list"], env: { ...env, OPERATE_PASSWORD: `${password}\n` } },
+    { args: ["task", "list", "--auth", "basic"], env: { PULSE_CLI_PASSWORD: password } },
+    { args: ["task", "list"], env: { ...env, PULSE_CLI_PASSWORD: `${password}\n` } },
     { args: ["task", "list", "--body", "-", ...stdin], stdin: password },
     // mistyped password flags: the usage error must not echo the value
     { args: ["task", "list", "--auth-user", user, `--auth-password=${password}`] },
@@ -97,7 +97,7 @@ function scenarios(user: string, password: string): Scenario[] {
   ]
 }
 
-/** Usernames: no ":" and no control characters (operate refuses them). */
+/** Usernames: no ":" and no control characters (pulse-cli refuses them). */
 const users = fc
   .string({ unit: "binary", minLength: 1, maxLength: 12 })
   .map((value) => `u${value.replace(/[\p{Cc}:\s]/gu, "")}`)
@@ -140,7 +140,7 @@ describe("Basic auth secrets", () => {
   it("appear with --show-secrets", async () => {
     await fc.assert(
       fc.asyncProperty(users, passwords, async (user, password) => {
-        const env = { OPERATE_USERNAME: user, OPERATE_PASSWORD: password }
+        const env = { PULSE_CLI_USERNAME: user, PULSE_CLI_PASSWORD: password }
         const [, escaped, header] = secretForms(user, password)
         const show = await output({ args: ["config", "show", "--show-secrets"], env })
         expect(show).toContain(escaped)

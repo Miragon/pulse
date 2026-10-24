@@ -168,7 +168,7 @@ function checkStartOptions(run: WorkflowRun, starts: boolean): void {
   const flag = NEGATED.has(name) ? `--no-${name}` : `--${name}`
   throw usageError(
     `${flag} needs --start or --start-key`,
-    "Example: operate deploy order.bpmn --start --business-key B-1 --var amount=250",
+    "Example: pulse-cli deploy order.bpmn --start --business-key B-1 --var amount=250",
   )
 }
 

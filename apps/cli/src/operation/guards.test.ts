@@ -20,21 +20,21 @@ function caught(action: () => unknown): OperateError {
 describe("checkEffect", () => {
   it("allows read and write without flags", () => {
     expect(() => {
-      checkEffect("read", "operate task list", base)
+      checkEffect("read", "pulse-cli task list", base)
     }).not.toThrow()
     expect(() => {
-      checkEffect("write", "operate task claim", base)
+      checkEffect("write", "pulse-cli task claim", base)
     }).not.toThrow()
   })
 
   it.each(["delete", "bulk"] as const)("requires confirmation for %s", (effect) => {
     const error = caught(() => {
-      checkEffect(effect, "operate process-instance delete", base)
+      checkEffect(effect, "pulse-cli process-instance delete", base)
     })
     expect(error.code).toBe("CONFIRMATION_REQUIRED")
     expect(error.exitCode).toBe(2)
     expect(error.message).toBe(
-      `\`operate process-instance delete\` is a ${effect} operation and needs confirmation`,
+      `\`pulse-cli process-instance delete\` is a ${effect} operation and needs confirmation`,
     )
     expect(error.details).toEqual({
       hint: "Re-run with --yes to confirm, or --dry-run to preview.",
@@ -52,7 +52,7 @@ describe("checkEffect", () => {
 
   it.each(["write", "delete", "bulk"] as const)("refuses %s in read-only mode", (effect) => {
     const error = caught(() => {
-      checkEffect(effect, "operate job set-retries", {
+      checkEffect(effect, "pulse-cli job set-retries", {
         ...base,
         readOnly: true,
         yes: true,
@@ -62,7 +62,7 @@ describe("checkEffect", () => {
     expect(error.code).toBe("READ_ONLY")
     expect(error.exitCode).toBe(2)
     expect(error.message).toBe(
-      `\`operate job set-retries\` is a ${effect} operation and read-only mode is enabled`,
+      `\`pulse-cli job set-retries\` is a ${effect} operation and read-only mode is enabled`,
     )
     expect(error.details).toEqual({
       hint: 'Read-only mode is enabled by profile "prod". Use --dry-run to preview the request.',
@@ -74,7 +74,7 @@ describe("checkEffect", () => {
       checkEffect("write", "x", { ...base, readOnly: true })
     })
     expect(error.details.hint).toBe(
-      "Read-only mode is enabled (--read-only, OPERATE_READ_ONLY or the profile setting readOnly). Use --dry-run to preview the request.",
+      "Read-only mode is enabled (--read-only, PULSE_CLI_READ_ONLY or the profile setting readOnly). Use --dry-run to preview the request.",
     )
   })
 

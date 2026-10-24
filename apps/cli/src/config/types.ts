@@ -3,7 +3,7 @@
 export const OUTPUT_FORMATS = ["json", "table"] as const
 export type OutputFormat = (typeof OUTPUT_FORMATS)[number]
 
-/** The engines operate has an adapter for (`platform`); without one it uses `camunda7`. */
+/** The engines pulse-cli has an adapter for (`platform`); without one it uses `camunda7`. */
 export const PLATFORMS = ["operaton", "cibseven", "camunda7"] as const
 export type Platform = (typeof PLATFORMS)[number]
 export const DEFAULT_PLATFORM: Platform = "camunda7"
@@ -68,7 +68,7 @@ export const PROFILE_AUTH_KEYS = [
   ...BEARER_AUTH_KEYS,
 ] as const satisfies readonly (keyof ProfileAuth)[]
 
-/** Scopes requested when neither OPERATE_OAUTH_SCOPES nor the profile sets them. */
+/** Scopes requested when neither PULSE_CLI_OAUTH_SCOPES nor the profile sets them. */
 export const DEFAULT_OAUTH_SCOPES = ["openid", "offline_access"] as const
 
 /** Basic auth credentials and where each value came from. */
@@ -104,7 +104,7 @@ export interface OAuthConfig {
   readonly login?: LoginKey
   /** The directory of the project file the profile comes from: a person logs in there. */
   readonly projectDirectory?: string
-  /** The config file named by `--config` or OPERATE_CONFIG the profile comes from. */
+  /** The config file named by `--config` or PULSE_CLI_CONFIG the profile comes from. */
   readonly configFile?: string
   readonly sources: {
     readonly endpoints: Source
@@ -124,12 +124,12 @@ export interface OAuthConfig {
 export interface LoginKey {
   /**
    * Where the profile comes from: `config:<path>` for the user's config file or the one named by
-   * `--config` / OPERATE_CONFIG, `repository:<git directory>` for a project file in a repository
+   * `--config` / PULSE_CLI_CONFIG, `repository:<git directory>` for a project file in a repository
    * (shared by its worktrees), `project:<path>` for a project file outside one.
    */
   readonly origin: string
   /**
-   * A profile that stores no `type: "oauth"` (OAuth selected by OPERATE_AUTH) has a login of its
+   * A profile that stores no `type: "oauth"` (OAuth selected by PULSE_CLI_AUTH) has a login of its
    * own: its name. Absent for OAuth profiles, which share by their settings.
    */
   readonly profile?: string
@@ -143,7 +143,7 @@ export interface LoginKey {
 }
 
 /**
- * A bearer token obtained outside operate: sent as `Authorization: Bearer <token>`.
+ * A bearer token obtained outside pulse-cli: sent as `Authorization: Bearer <token>`.
  * A token given as such is never refreshed and never stored; a token command is run
  * again when its token expires or is rejected.
  */
@@ -151,11 +151,11 @@ interface BearerBase {
   readonly type: "bearer"
   readonly source: Source
   /**
-   * Where the token came from, for messages: `--auth-token-stdin`, `OPERATE_TOKEN`, `CI_TOKEN
-   * (auth.tokenEnv of profile "p")`, `auth.token of profile "p"` or `OPERATE_TOKEN_COMMAND`.
+   * Where the token came from, for messages: `--auth-token-stdin`, `PULSE_CLI_TOKEN`, `CI_TOKEN
+   * (auth.tokenEnv of profile "p")`, `auth.token of profile "p"` or `PULSE_CLI_TOKEN_COMMAND`.
    */
   readonly origin: string
-  /** The variable that holds the token (OPERATE_TOKEN or the profile's tokenEnv), if any. */
+  /** The variable that holds the token (PULSE_CLI_TOKEN or the profile's tokenEnv), if any. */
   readonly variable?: string
   /** The selected profile. */
   readonly profile?: string
@@ -169,7 +169,7 @@ export interface StaticBearerConfig extends BearerBase {
 }
 
 /**
- * A bearer token that the command line of OPERATE_TOKEN_COMMAND prints; the shell
+ * A bearer token that the command line of PULSE_CLI_TOKEN_COMMAND prints; the shell
  * runs it in the working directory.
  */
 export interface CommandBearerConfig extends BearerBase {
@@ -181,7 +181,7 @@ export type BearerAuthConfig = StaticBearerConfig | CommandBearerConfig
 
 /**
  * No credentials. `off` says why when Basic auth or OAuth was switched off or a password is set
- * without a username (`Basic auth is switched off by OPERATE_AUTH=none`), for the hint of a 401.
+ * without a username (`Basic auth is switched off by PULSE_CLI_AUTH=none`), for the hint of a 401.
  */
 export interface NoAuthConfig {
   readonly type: "none"
@@ -192,8 +192,8 @@ export interface NoAuthConfig {
 export type AuthConfig = NoAuthConfig | BasicAuthConfig | OAuthConfig | BearerAuthConfig
 
 /**
- * A bearer token given by OPERATE_TOKEN or `--auth-token-stdin`, or the token command of
- * OPERATE_TOKEN_COMMAND (`command`), that the resolved auth type does not use (an explicit none,
+ * A bearer token given by PULSE_CLI_TOKEN or `--auth-token-stdin`, or the token command of
+ * PULSE_CLI_TOKEN_COMMAND (`command`), that the resolved auth type does not use (an explicit none,
  * basic or oauth); `config show` reports it. Never validated.
  */
 export interface UnusedToken {
@@ -248,7 +248,7 @@ export type SelectedProfile =
       readonly profile: Profile
       readonly project?: ProjectSource
       readonly origin?: string
-      /** The config file named by `--config` or OPERATE_CONFIG, when the profile comes from it. */
+      /** The config file named by `--config` or PULSE_CLI_CONFIG, when the profile comes from it. */
       readonly configFile?: string
     }
 
@@ -257,10 +257,10 @@ export interface ConfigFile {
   readonly profiles: Readonly<Record<string, Profile>>
 }
 
-/** A project file (`.operate.json`) whose profiles a command uses. */
+/** A project file (`.pulse-cli.json`) whose profiles a command uses. */
 export interface ProjectSource {
   readonly path: string
-  /** Its directory: commands below it share the cached token of OPERATE_TOKEN_COMMAND. */
+  /** Its directory: commands below it share the cached token of PULSE_CLI_TOKEN_COMMAND. */
   readonly directory: string
   /** Where its profiles come from (`LoginKey.origin`): its repository, else the file itself. */
   readonly origin?: string
@@ -268,14 +268,14 @@ export interface ProjectSource {
 
 /**
  * The profiles a command sees: the config file named by `--config` or
- * OPERATE_CONFIG, else the project file merged with the user's config file (the user's profile
+ * PULSE_CLI_CONFIG, else the project file merged with the user's config file (the user's profile
  * wins on a name clash; the project's defaultProfile wins when it names a profile of the project
  * file that the user's file does not override). Never written to a file.
  */
 export interface LoadedConfig extends ConfigFile {
   /** Where the profiles of the config file come from (`config:<path>`, `LoginKey.origin`). */
   readonly origin?: string
-  /** The absolute path of the config file when `--config` or OPERATE_CONFIG named it. */
+  /** The absolute path of the config file when `--config` or PULSE_CLI_CONFIG named it. */
   readonly configFile?: string
   readonly project?: {
     readonly source: ProjectSource
@@ -335,26 +335,26 @@ export const DEFAULT_URL = "http://localhost:8080/engine-rest"
 export const DEFAULT_TIMEOUT_MS = 30_000
 
 export const ENV = {
-  url: "OPERATE_URL",
-  engine: "OPERATE_ENGINE",
-  platform: "OPERATE_PLATFORM",
-  profile: "OPERATE_PROFILE",
-  config: "OPERATE_CONFIG",
-  output: "OPERATE_OUTPUT",
-  timeout: "OPERATE_TIMEOUT",
-  auth: "OPERATE_AUTH",
-  username: "OPERATE_USERNAME",
-  password: "OPERATE_PASSWORD",
-  oauthIssuer: "OPERATE_OAUTH_ISSUER",
-  oauthAuthorizationEndpoint: "OPERATE_OAUTH_AUTHORIZATION_ENDPOINT",
-  oauthTokenEndpoint: "OPERATE_OAUTH_TOKEN_ENDPOINT",
-  oauthClientId: "OPERATE_OAUTH_CLIENT_ID",
-  oauthClientSecret: "OPERATE_OAUTH_CLIENT_SECRET",
-  oauthScopes: "OPERATE_OAUTH_SCOPES",
-  oauthAudience: "OPERATE_OAUTH_AUDIENCE",
-  oauthRedirectPort: "OPERATE_OAUTH_REDIRECT_PORT",
-  token: "OPERATE_TOKEN",
-  tokenCommand: "OPERATE_TOKEN_COMMAND",
-  headers: "OPERATE_HEADERS",
-  readOnly: "OPERATE_READ_ONLY",
+  url: "PULSE_CLI_URL",
+  engine: "PULSE_CLI_ENGINE",
+  platform: "PULSE_CLI_PLATFORM",
+  profile: "PULSE_CLI_PROFILE",
+  config: "PULSE_CLI_CONFIG",
+  output: "PULSE_CLI_OUTPUT",
+  timeout: "PULSE_CLI_TIMEOUT",
+  auth: "PULSE_CLI_AUTH",
+  username: "PULSE_CLI_USERNAME",
+  password: "PULSE_CLI_PASSWORD",
+  oauthIssuer: "PULSE_CLI_OAUTH_ISSUER",
+  oauthAuthorizationEndpoint: "PULSE_CLI_OAUTH_AUTHORIZATION_ENDPOINT",
+  oauthTokenEndpoint: "PULSE_CLI_OAUTH_TOKEN_ENDPOINT",
+  oauthClientId: "PULSE_CLI_OAUTH_CLIENT_ID",
+  oauthClientSecret: "PULSE_CLI_OAUTH_CLIENT_SECRET",
+  oauthScopes: "PULSE_CLI_OAUTH_SCOPES",
+  oauthAudience: "PULSE_CLI_OAUTH_AUDIENCE",
+  oauthRedirectPort: "PULSE_CLI_OAUTH_REDIRECT_PORT",
+  token: "PULSE_CLI_TOKEN",
+  tokenCommand: "PULSE_CLI_TOKEN_COMMAND",
+  headers: "PULSE_CLI_HEADERS",
+  readOnly: "PULSE_CLI_READ_ONLY",
 } as const

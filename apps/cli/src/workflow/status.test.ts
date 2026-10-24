@@ -105,7 +105,7 @@ describe("groupIncidents", () => {
         firstAt: "2026-01-01T10:00:01.000+0000",
         lastAt: "2026-01-01T10:00:04.000+0000",
         processInstanceIds: ["p-e", "p-b", "p-d"],
-        next: "operate retry --process-definition-key order --activity-id book --dry-run",
+        next: "pulse-cli retry --process-definition-key order --activity-id book --dry-run",
       },
       {
         processDefinitionKey: "pay",
@@ -116,7 +116,7 @@ describe("groupIncidents", () => {
         firstAt: "2026-01-01T10:00:00.000+0000",
         lastAt: "2026-01-01T10:00:00.000+0000",
         processInstanceIds: ["p-c"],
-        next: "operate retry --process-definition-key pay --activity-id charge --dry-run",
+        next: "pulse-cli retry --process-definition-key pay --activity-id charge --dry-run",
       },
     ])
   })
@@ -127,7 +127,7 @@ describe("groupIncidents", () => {
       [],
     )
     expect(grouped.groups[0]?.next).toBe(
-      "operate incident list --process-definition-key-in order --activity-id 'my task'",
+      "pulse-cli incident list --process-definition-key-in order --activity-id 'my task'",
     )
   })
 
@@ -260,7 +260,7 @@ describe("incidents outside process definitions", () => {
         firstAt: "2026-01-01T10:00:00.000+0000",
         lastAt: "2026-01-01T10:00:00.000+0000",
         processInstanceIds: [],
-        next: "operate job list --job-definition-id jd-cleanup --with-exception",
+        next: "pulse-cli job list --job-definition-id jd-cleanup --with-exception",
       },
     ])
   })
@@ -275,9 +275,9 @@ describe("incidents outside process definitions", () => {
       [],
     )
     expect(grouped.groups.map((group) => group.next).sort()).toEqual([
-      "operate incident list --incident-type custom",
-      "operate job list --job-definition-id jd-1 --with-exception",
-      "operate job list --job-definition-id jd-2 --with-exception",
+      "pulse-cli incident list --incident-type custom",
+      "pulse-cli job list --job-definition-id jd-1 --with-exception",
+      "pulse-cli job list --job-definition-id jd-2 --with-exception",
     ])
   })
 

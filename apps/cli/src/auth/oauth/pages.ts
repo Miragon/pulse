@@ -20,12 +20,12 @@ export function escapeHtml(text: string): string {
 }
 
 function page(body: string): string {
-  return `<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><title>operate login</title><style>${STYLE}</style></head><body>${body}</body></html>\n`
+  return `<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><title>pulse-cli login</title><style>${STYLE}</style></head><body>${body}</body></html>\n`
 }
 
 export function successPage(): string {
   return page(
-    "<h1>Logged in</h1><p>operate received the login. You can close this tab and return to the terminal.</p>",
+    "<h1>Logged in</h1><p>pulse-cli received the login. You can close this tab and return to the terminal.</p>",
   )
 }
 

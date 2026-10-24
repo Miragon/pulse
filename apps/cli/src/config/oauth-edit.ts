@@ -1,5 +1,5 @@
 /**
- * `operate config set` changes of a profile's OAuth settings: only given values
+ * `pulse-cli config set` changes of a profile's OAuth settings: only given values
  * change; `--oauth-issuer` alone goes back to discovery (stored endpoints are removed), the two
  * endpoint options come together and keep the issuer (the `iss` check), the client secret is
  * stored as the name of a variable (recommended) or literally. Values are validated with the
@@ -148,7 +148,7 @@ const ENDPOINT_PAIR: readonly OAuthKey[] = ["authorizationEndpoint", "tokenEndpo
 const SECRET_KEYS: readonly OAuthKey[] = ["clientSecret", "clientSecretEnv"]
 
 /**
- * The OAuth keys `operate config unset <profile> <key>` accepts, and what each removes from the
+ * The OAuth keys `pulse-cli config unset <profile> <key>` accepts, and what each removes from the
  * auth object: the endpoints go as a pair (both or neither), the client secret in either form.
  */
 const UNSET_KEYS: Readonly<Record<string, readonly OAuthKey[]>> = {

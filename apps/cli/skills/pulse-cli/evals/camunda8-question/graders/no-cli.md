@@ -1,6 +1,6 @@
 ---
 type: regex
-pattern: 'operate (?:status|incident (?:list|count)|inspect)\b|@miragon/operate'
+pattern: 'pulse-cli (?:status|incident (?:list|count)|inspect)\b|@miragon/pulse-cli'
 match: not_contains
 target: last_message
 ---

@@ -1,4 +1,4 @@
-/** What the `operate config` commands print: profiles and the effective configuration. Pure. */
+/** What the `pulse-cli config` commands print: profiles and the effective configuration. Pure. */
 
 import type { ConfigView } from "../../config/edit.js"
 import type { Env } from "../../config/pick.js"

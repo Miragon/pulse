@@ -1,6 +1,6 @@
 # Architecture
 
-operate speaks to an engine through a port. Each engine has its own adapter behind that port.
+pulse-cli speaks to an engine through a port. Each engine has its own adapter behind that port.
 Today every adapter passes straight through to the Camunda 7 REST API. When an engine diverges,
 only its adapter changes.
 
@@ -25,13 +25,13 @@ flowchart TB
 
 ## Layers
 
-| Folder            | What it holds                                                                   |
-| ----------------- | ------------------------------------------------------------------------------- |
-| `src/engine-port` | What operate needs from an engine: `EnginePort` and `EngineAdapter`. Types only |
-| `src/engines`     | One adapter per engine: `operaton`, `cibseven`, `camunda7`                      |
-| `src/api`         | One folder per engine API. `camunda7-rest` builds catalog and port              |
-| `src/workflow`    | The workflow commands. They know the port, never an adapter or an API           |
-| `src/cli`         | Selects the adapter and registers its commands                                  |
+| Folder            | What it holds                                                                     |
+| ----------------- | --------------------------------------------------------------------------------- |
+| `src/engine-port` | What pulse-cli needs from an engine: `EnginePort` and `EngineAdapter`. Types only |
+| `src/engines`     | One adapter per engine: `operaton`, `cibseven`, `camunda7`                        |
+| `src/api`         | One folder per engine API. `camunda7-rest` builds catalog and port                |
+| `src/workflow`    | The workflow commands. They know the port, never an adapter or an API             |
+| `src/cli`         | Selects the adapter and registers its commands                                    |
 
 dependency-cruiser enforces the boundaries (`pnpm lint:architecture && pnpm lint:architecture:cli`):
 
@@ -66,7 +66,7 @@ flowchart LR
 ```mermaid
 flowchart LR
   argv["--platform"] --> pick{first set}
-  env["OPERATE_PLATFORM"] --> pick
+  env["PULSE_CLI_PLATFORM"] --> pick
   profile["profile.platform"] --> pick
   pick -- none --> default["camunda7"]
   pick --> adapter["ENGINES[platform]"]
@@ -74,7 +74,7 @@ flowchart LR
   adapter --> program["createProgram: commands, help, describe"]
 ```
 
-A config file that cannot be read does not stop the selection: operate falls back to `camunda7`,
+A config file that cannot be read does not stop the selection: pulse-cli falls back to `camunda7`,
 and the command reports the problem when it reads its configuration.
 
 ## A workflow command

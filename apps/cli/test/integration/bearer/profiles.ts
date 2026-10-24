@@ -38,7 +38,7 @@ export function registerProfiles(suite: BearerSuite): void {
   const { top, trace, expectHidden, run, readProfiles, profiles } = suite
 
   it("masks the token in the --verbose trace and the --dry-run preview unless --show-secrets", async () => {
-    const env = { OPERATE_TOKEN: suite.ciToken }
+    const env = { PULSE_CLI_TOKEN: suite.ciToken }
     const masked = await run(countArgs(globalFlag("verbose")), { env })
     expect(expectSuccess(masked).stderr).toMatch(MASKED_BEARER)
 
@@ -135,7 +135,7 @@ export function registerProfiles(suite: BearerSuite): void {
     })
   })
 
-  it("fails with CONFIG naming an unset tokenEnv variable, unless OPERATE_TOKEN wins", async () => {
+  it("fails with CONFIG naming an unset tokenEnv variable, unless PULSE_CLI_TOKEN wins", async () => {
     for (const value of [undefined, ""]) {
       const result = await run(
         ["ping", ...profileArgs(PROFILE.fixed), globalFlag("verbose")],
@@ -144,16 +144,16 @@ export function registerProfiles(suite: BearerSuite): void {
       expect(explanation(expectError(result, "CONFIG", 3))).toContain(TOKEN_ENV)
       expect(result.stderr).not.toMatch(SENT_REQUEST)
     }
-    // OPERATE_TOKEN comes first, so the profile's variable is not read (like the passwordEnv of Basic auth)
+    // PULSE_CLI_TOKEN comes first, so the profile's variable is not read (like the passwordEnv of Basic auth)
     const override = await run(
       ["ping", ...profileArgs(PROFILE.fixed)],
-      profiles({ OPERATE_TOKEN: suite.ciToken }),
+      profiles({ PULSE_CLI_TOKEN: suite.ciToken }),
     )
     expect(expectSuccess(override).json<PingOutput>()).toMatchObject({ auth: "bearer" })
-    // and a garbage OPERATE_TOKEN is really what is sent
+    // and a garbage PULSE_CLI_TOKEN is really what is sent
     const garbage = await run(
       countArgs(...profileArgs(PROFILE.fixed), globalFlag("verbose")),
-      profiles({ [TOKEN_ENV]: suite.ciToken, OPERATE_TOKEN: GARBAGE }),
+      profiles({ [TOKEN_ENV]: suite.ciToken, PULSE_CLI_TOKEN: GARBAGE }),
     )
     expectError(garbage, "UNAUTHORIZED", 4)
     expect(trace(garbage)).toEqual([COUNT_REQUEST, "< 401"])
@@ -226,12 +226,12 @@ export function registerProfiles(suite: BearerSuite): void {
       expiresAt: expiryIso(suite.ciToken),
       expired: false,
     }
-    const fromEnv = await run(["auth", "status"], { env: { OPERATE_TOKEN: suite.ciToken } })
+    const fromEnv = await run(["auth", "status"], { env: { PULSE_CLI_TOKEN: suite.ciToken } })
     expect(expectSuccess(fromEnv).json<BearerStatusOutput>()).toEqual({
       ...claims,
       profile: null,
       source: "env",
-      origin: "OPERATE_TOKEN",
+      origin: "PULSE_CLI_TOKEN",
     })
     const fromProfile = await run(
       ["auth", "status", ...profileArgs(PROFILE.fixed)],
@@ -246,7 +246,7 @@ export function registerProfiles(suite: BearerSuite): void {
     // a piped token can be checked before it is used
     const piped = await run(["auth", "status", globalFlag("auth-token-stdin")], {
       stdin: `${suite.ciToken}\n`,
-      env: { OPERATE_TOKEN: GARBAGE },
+      env: { PULSE_CLI_TOKEN: GARBAGE },
     })
     expect(expectSuccess(piped).json<BearerStatusOutput>()).toEqual({
       ...claims,
@@ -255,13 +255,13 @@ export function registerProfiles(suite: BearerSuite): void {
       origin: "--auth-token-stdin",
     })
     const table = await run(["auth", "status", "-o", "table"], {
-      env: { OPERATE_TOKEN: suite.ciToken },
+      env: { PULSE_CLI_TOKEN: suite.ciToken },
     })
     expect(expectSuccess(table).stdout).toMatch(new RegExp(`^issuer\\s+${top().issuer}\\s*$`, "m"))
     expect(table.stdout).toMatch(new RegExp(`^expiresAt\\s+${expiryIso(suite.ciToken)}\\s*$`, "m"))
 
     // an opaque token has no claims to show, and is no reason to fail
-    const opaque = await run(["auth", "status"], { env: { OPERATE_TOKEN: GARBAGE } })
+    const opaque = await run(["auth", "status"], { env: { PULSE_CLI_TOKEN: GARBAGE } })
     expect(expectSuccess(opaque).json<BearerStatusOutput>()).toMatchObject({
       type: "bearer",
       format: "opaque",
@@ -273,7 +273,7 @@ export function registerProfiles(suite: BearerSuite): void {
     })
   })
 
-  it("refuses auth login and logout for bearer tokens, which are managed outside operate", async () => {
+  it("refuses auth login and logout for bearer tokens, which are managed outside pulse-cli", async () => {
     const quick = profiles({ [TOKEN_ENV]: suite.ciToken }, { timeoutMs: 30_000 })
     const login = await run(
       ["auth", "login", ...profileArgs(PROFILE.fixed), "--no-browser", "--login-timeout", "5000"],
@@ -284,7 +284,7 @@ export function registerProfiles(suite: BearerSuite): void {
     const logout = await run(["auth", "logout", ...profileArgs(PROFILE.fixed)], quick)
     expect(expectError(logout, "USAGE", 2).message).toContain("does not apply to bearer tokens")
     // without a profile as well
-    const envOnly = await run(["auth", "logout"], { env: { OPERATE_TOKEN: suite.ciToken } })
+    const envOnly = await run(["auth", "logout"], { env: { PULSE_CLI_TOKEN: suite.ciToken } })
     expectError(envOnly, "USAGE", 2)
   })
 }

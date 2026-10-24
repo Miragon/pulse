@@ -1,5 +1,5 @@
 /**
- * `operate describe`: everything an agent needs to call one operation — usage, arguments, options,
+ * `pulse-cli describe`: everything an agent needs to call one operation — usage, arguments, options,
  * request body schema, responses and examples — as a JSON view and as readable plain text. Pure.
  */
 
@@ -59,7 +59,7 @@ interface DescribeResponse {
 }
 
 export interface DescribeView {
-  /** Usage with positional arguments and required options, e.g. `operate task claim <id>`. */
+  /** Usage with positional arguments and required options, e.g. `pulse-cli task claim <id>`. */
   readonly command: string
   readonly operationId: string
   readonly method: string
@@ -150,7 +150,7 @@ function describeResponse(response: ResponseSpec, schemas: Schemas): DescribeRes
   }
 }
 
-/** The JSON view of `operate describe` for one operation. */
+/** The JSON view of `pulse-cli describe` for one operation. */
 export function describeOperation(operation: OperationSpec, catalog: Catalog): DescribeView {
   const options = operationOptions(operation, catalog.schemas)
   const formats = formatsByFlag(operation)
@@ -220,7 +220,7 @@ function responseLines(response: DescribeResponse): string[] {
   ]
 }
 
-/** Human readable `operate describe` output, wrapped at 100 columns, with a trailing newline. */
+/** Human readable `pulse-cli describe` output, wrapped at 100 columns, with a trailing newline. */
 export function renderDescribeText(view: DescribeView): string {
   const lines = [
     "USAGE",

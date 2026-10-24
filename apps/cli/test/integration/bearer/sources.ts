@@ -33,7 +33,7 @@ import {
 export function registerSources(suite: BearerSuite): void {
   const { top, trace, remember, run } = suite
 
-  it("runs against a gateway that takes the tokens Keycloak issues without operate", async () => {
+  it("runs against a gateway that takes the tokens Keycloak issues without pulse-cli", async () => {
     const { url, issuer } = top()
     expect(claimsOf(suite.ciToken)).toMatchObject({
       iss: issuer,
@@ -58,7 +58,7 @@ export function registerSources(suite: BearerSuite): void {
   })
 
   it("completes bearer for --auth and the token flags in the shell completion", async () => {
-    /** Candidate values of `operate __complete <words...>` (the completion scripts' protocol). */
+    /** Candidate values of `pulse-cli __complete <words...>` (the completion scripts' protocol). */
     const complete = async (...words: string[]) => {
       const result = expectSuccess(await run(["__complete", ...words]))
       return result.stdout.split("\n").map((line) => line.split("\t")[0])
@@ -72,15 +72,15 @@ export function registerSources(suite: BearerSuite): void {
     )
   })
 
-  it("infers bearer from OPERATE_TOKEN alone and sends the token on every request", async () => {
-    const env = { OPERATE_TOKEN: suite.ciToken }
+  it("infers bearer from PULSE_CLI_TOKEN alone and sends the token on every request", async () => {
+    const env = { PULSE_CLI_TOKEN: suite.ciToken }
     const list = await run([...argv("process-definition list"), globalFlag("verbose")], { env })
     expect(expectSuccess(list).json<ProcessDefinition[]>()).toEqual(expect.any(Array))
-    // one request, no token request: operate neither logs in nor refreshes
+    // one request, no token request: pulse-cli neither logs in nor refreshes
     expect(trace(list)).toEqual(["> GET <engine>/process-definition", "< 200"])
     expect(list.stderr).toMatch(MASKED_BEARER)
 
-    const count = await run(countArgs(), { env: { ...env, OPERATE_AUTH: "bearer" } })
+    const count = await run(countArgs(), { env: { ...env, PULSE_CLI_AUTH: "bearer" } })
     expect(expectSuccess(count).json<Count>()).toEqual({ count: expect.any(Number) })
     const api = await run(["api", "GET", "/version"], { env })
     expect(expectSuccess(api).json()).toEqual({ version: ENGINES[top().engine].version })
@@ -117,10 +117,10 @@ export function registerSources(suite: BearerSuite): void {
     expect(trace(expectSuccess(inferred))).toEqual([COUNT_REQUEST, "< 200"])
     expect(inferred.stderr).toMatch(MASKED_BEARER)
 
-    // the flag beats OPERATE_TOKEN
+    // the flag beats PULSE_CLI_TOKEN
     const precedence = await run(countArgs(globalFlag("auth-token-stdin")), {
       stdin: `${suite.ciToken}\n`,
-      env: { OPERATE_TOKEN: GARBAGE },
+      env: { PULSE_CLI_TOKEN: GARBAGE },
     })
     expectSuccess(precedence)
   })
@@ -157,12 +157,12 @@ export function registerSources(suite: BearerSuite): void {
 
   it('strips a pasted "Bearer " prefix and surrounding whitespace', async () => {
     const pasted = await run(countArgs(globalFlag("verbose")), {
-      env: { OPERATE_TOKEN: `Bearer ${suite.ciToken}` },
+      env: { PULSE_CLI_TOKEN: `Bearer ${suite.ciToken}` },
     })
     expect(trace(expectSuccess(pasted))).toEqual([COUNT_REQUEST, "< 200"])
     expect(pasted.stderr).toMatch(MASKED_BEARER)
 
-    // the gateway refuses "bearer" in lower case (first test): operate sends the token alone
+    // the gateway refuses "bearer" in lower case (first test): pulse-cli sends the token alone
     const piped = await run(countArgs(globalFlag("auth-token-stdin")), {
       stdin: `  bearer ${suite.ciToken}\t\r\n`,
     })
@@ -170,7 +170,7 @@ export function registerSources(suite: BearerSuite): void {
 
     const preview = await run(
       countArgs(globalFlag("dry-run"), globalFlag("show-secrets")),
-      { env: { OPERATE_TOKEN: ` BEARER ${suite.ciToken} ` } },
+      { env: { PULSE_CLI_TOKEN: ` BEARER ${suite.ciToken} ` } },
       suite.ciToken,
     )
     const { headers } = expectSuccess(preview).json<DryRunOutput>()
@@ -181,7 +181,7 @@ export function registerSources(suite: BearerSuite): void {
     for (const token of INVALID_TOKENS) {
       remember(token, ...token.split(/[\s=,]/))
       const result = await run(countArgs(globalFlag("verbose")), {
-        env: { OPERATE_TOKEN: token },
+        env: { PULSE_CLI_TOKEN: token },
       })
       expectError(result, "CONFIG", 3)
       expect(result.stderr).not.toMatch(SENT_REQUEST)
@@ -196,12 +196,12 @@ export function registerSources(suite: BearerSuite): void {
   it("fails with CONFIG before any request when bearer is selected without a token", async () => {
     const result = await run(["ping", globalFlag("auth"), "bearer", globalFlag("verbose")])
     const text = explanation(expectError(result, "CONFIG", 3))
-    expect(text).toContain("OPERATE_TOKEN")
+    expect(text).toContain("PULSE_CLI_TOKEN")
     expect(text).toContain("--auth-token-stdin")
     expect(result.stderr).not.toMatch(SENT_REQUEST)
 
-    const viaEnv = await run(["ping", globalFlag("verbose")], { env: { OPERATE_AUTH: "bearer" } })
-    expect(explanation(expectError(viaEnv, "CONFIG", 3))).toContain("OPERATE_TOKEN")
+    const viaEnv = await run(["ping", globalFlag("verbose")], { env: { PULSE_CLI_AUTH: "bearer" } })
+    expect(explanation(expectError(viaEnv, "CONFIG", 3))).toContain("PULSE_CLI_TOKEN")
     expect(viaEnv.stderr).not.toMatch(SENT_REQUEST)
   })
 }

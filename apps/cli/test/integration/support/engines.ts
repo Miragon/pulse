@@ -11,7 +11,7 @@ export type EngineName = (typeof ENGINE_NAMES)[number]
 
 export interface EngineDefinition {
   readonly name: EngineName
-  /** The engine adapter of operate (`--platform`, OPERATE_PLATFORM). */
+  /** The engine adapter of pulse-cli (`--platform`, PULSE_CLI_PLATFORM). */
   readonly platform: Platform
   readonly image: string
   /** Container port of the HTTP server. */
@@ -36,7 +36,7 @@ export interface RunningEngine {
 }
 
 /** Selects the engines to test; comma separated subset of {@link ENGINE_NAMES}. */
-const ENGINES_ENV = "OPERATE_IT_ENGINES"
+const ENGINES_ENV = "PULSE_CLI_IT_ENGINES"
 
 const STARTUP_TIMEOUT_MS = 180_000
 /** Timeout of a `beforeAll` that starts an engine: the startup plus pulling the image. */
@@ -83,7 +83,7 @@ function isEngineName(value: string): value is EngineName {
   return ENGINE_NAMES.some((name) => name === value)
 }
 
-/** Engines selected by `OPERATE_IT_ENGINES` (all when unset or empty). Unknown names fail loudly. */
+/** Engines selected by `PULSE_CLI_IT_ENGINES` (all when unset or empty). Unknown names fail loudly. */
 function enabledEngines(env: NodeJS.ProcessEnv = process.env): EngineName[] {
   const raw = env[ENGINES_ENV]?.trim() ?? ""
   if (raw === "") return [...ENGINE_NAMES]

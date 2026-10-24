@@ -1,5 +1,5 @@
 /**
- * `operate auth login` as a child process whose browser step the test performs over HTTP: the CLI
+ * `pulse-cli auth login` as a child process whose browser step the test performs over HTTP: the CLI
  * prints the authorization URL on stderr (the only line indented by two spaces) and
  * waits on its loopback server; the test reads the URL and logs in at Keycloak, whose redirect
  * delivers the code to that server.
@@ -8,7 +8,7 @@
 import type { CliOptions, CliResult, RunningCli, StartCli } from "./cli.js"
 import { type BrowserLogin, type Credentials, keycloakLogin, USER } from "./keycloak.js"
 
-/** The authorization URL line of `operate auth login`. */
+/** The authorization URL line of `pulse-cli auth login`. */
 const URL_LINE = /^ {2}(https?:\/\/\S+)$/m
 /** The redirect URI of every login: the loopback interface, any port, path `/callback`. */
 const REDIRECT_URI = /^http:\/\/127\.0\.0\.1:(\d+)\/callback$/
@@ -28,7 +28,7 @@ export interface PendingLogin {
   result(): Promise<CliResult>
 }
 
-/** Starts `operate <args>` (an `auth login` command line) and tracks it until it ends. */
+/** Starts `pulse-cli <args>` (an `auth login` command line) and tracks it until it ends. */
 export function startLogin(
   start: StartCli,
   args: readonly string[],

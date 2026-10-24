@@ -18,7 +18,7 @@ const T0 = 1_700_000_000_000
 const SOURCE = 'auth.issuer of profile "p"'
 const TARGET: LogoutTarget = { profile: "p", source: SOURCE, settings: oauthConfig() }
 const SECRET = "secret-of-this-client"
-const CONFIDENTIAL = { clients: { "operate-cli": { secret: SECRET } } }
+const CONFIDENTIAL = { clients: { "pulse-cli": { secret: SECRET } } }
 
 /** A cached login of a confidential client (the login recorded its method). */
 function confidential(method: LoginClientAuth = "client_secret_basic", overrides = {}) {
@@ -68,7 +68,7 @@ describe("logout", () => {
     expect(Object.fromEntries(revocation?.form ?? [])).toEqual({
       token: "cached-refresh",
       token_type_hint: "refresh_token",
-      client_id: "operate-cli",
+      client_id: "pulse-cli",
     })
     expect(revocation?.headers.authorization).toBeUndefined()
   })
@@ -81,9 +81,7 @@ describe("logout", () => {
     const result = await logout(TOKEN_FILE, withSecret(), test.deps)
     expect(result).toEqual({ removed: true, revoked: true, warnings: [], validUntil: null })
     expect(test.idp.requests[0]?.form.get("token_type_hint")).toBe("access_token")
-    expect(test.idp.requests[0]?.headers.authorization).toBe(
-      `Basic ${btoa(`operate-cli:${SECRET}`)}`,
-    )
+    expect(test.idp.requests[0]?.headers.authorization).toBe(`Basic ${btoa(`pulse-cli:${SECRET}`)}`)
   })
 
   it("uses client_secret_post when the login recorded it", async () => {
@@ -100,7 +98,7 @@ describe("logout", () => {
     const request = test.idp.requests[0]
     expect(request?.headers.authorization).toBeUndefined()
     expect(request?.form.has("client_secret")).toBe(false)
-    expect(request?.form.get("client_id")).toBe("operate-cli")
+    expect(request?.form.get("client_id")).toBe("pulse-cli")
   })
 
   it.each([
@@ -152,7 +150,7 @@ describe("logout", () => {
     const result = await logout(TOKEN_FILE, TARGET, test.deps)
     expect(result).toMatchObject({ removed: true, revoked: null })
     expect(result.warnings).toEqual([
-      "Warning: operate knows no token revocation endpoint (RFC 7009) for https://login.example.com/realms/camunda (explicit endpoints, or none in its discovery document); the refresh token was not revoked and stays valid until 2023-11-14T22:43:20.000Z. End the session at the authorization server if needed (sign out, or revoke the user's sessions).",
+      "Warning: pulse-cli knows no token revocation endpoint (RFC 7009) for https://login.example.com/realms/camunda (explicit endpoints, or none in its discovery document); the refresh token was not revoked and stays valid until 2023-11-14T22:43:20.000Z. End the session at the authorization server if needed (sign out, or revoke the user's sessions).",
     ])
     expect(test.idp.requests).toEqual([])
   })

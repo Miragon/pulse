@@ -1,8 +1,8 @@
 /**
- * Builds the standalone executable of operate for this platform: a copy of the Node.js
+ * Builds the standalone executable of pulse-cli for this platform: a copy of the Node.js
  * binary that runs this script, with the standalone bundle injected as single executable
  * application. Releases build it with Node.js 24 on one native runner per target.
- * Usage (from the repository root), writing build/bin/operate-<os>-<arch>[.exe]:
+ * Usage (from the repository root), writing build/bin/pulse-cli-<os>-<arch>[.exe]:
  *   pnpm --fail-if-no-match --filter @miragon/pulse-cli build:standalone
  *   pnpm --fail-if-no-match --filter @miragon/pulse-cli build:exe
  */
@@ -15,7 +15,7 @@ import { inject } from "postject"
 import { exeTarget, injectOptions, SEA_RESOURCE, seaConfig, sharedLibraries } from "./exe/sea.js"
 
 const root = (path: string) => fileURLToPath(new URL(`../${path}`, import.meta.url))
-const BUNDLE = root("build/standalone/operate.cjs")
+const BUNDLE = root("build/standalone/pulse-cli.cjs")
 const WORK_DIR = root("build/sea")
 const OUT_DIR = root("build/bin")
 

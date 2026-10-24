@@ -38,7 +38,7 @@ describe("login", () => {
       identity: {
         issuer: ISSUER,
         tokenEndpoint: null,
-        clientId: "operate-cli",
+        clientId: "pulse-cli",
         audience: null,
         scopes: ["offline_access", "openid"],
       },
@@ -64,7 +64,7 @@ describe("login", () => {
     const url = runtime.browserUrls[0] ?? ""
     expect(runtime.stderr.text()).toBe(
       [
-        `Logging in to ${ISSUER} as client operate-cli (profile "p").`,
+        `Logging in to ${ISSUER} as client pulse-cli (profile "p").`,
         "Open this URL in a browser to log in:",
         `  ${url}`,
         "Opened the system browser.",
@@ -83,7 +83,7 @@ describe("login", () => {
     const params = new URL(url).searchParams
     expect(Object.fromEntries(params)).toMatchObject({
       response_type: "code",
-      client_id: "operate-cli",
+      client_id: "pulse-cli",
       redirect_uri: "http://127.0.0.1:40000/callback",
       scope: "openid offline_access",
       code_challenge_method: "S256",
@@ -145,7 +145,7 @@ describe("login", () => {
       profile: undefined,
     })
     expect(test.runtime.stderr.text()).toContain(
-      "Logging in to https://login.example.com as client operate-cli (no profile).",
+      "Logging in to https://login.example.com as client pulse-cli (no profile).",
     )
     callback.delete("iss")
     await test.runtime.loopback.request("/callback", callback)
@@ -184,7 +184,7 @@ describe("login", () => {
     await login(oauthConfig(), { noBrowser: false, loginTimeoutMs: 1000 }, loginDeps(runtime))
     expect(done.result).toMatchObject({ status: 409 })
     expect((done.result as { html: string }).html).toContain(
-      "operate already received the login callback.",
+      "pulse-cli already received the login callback.",
     )
   })
 

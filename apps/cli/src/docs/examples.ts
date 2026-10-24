@@ -1,5 +1,5 @@
 /**
- * Example command lines for `--help` and `operate describe`: curated examples for the everyday
+ * Example command lines for `--help` and `pulse-cli describe`: curated examples for the everyday
  * commands, otherwise one generic example built from the positional arguments and the required
  * options. A unit test checks every example against the catalog, so examples cannot drift.
  */
@@ -8,6 +8,7 @@ import { loadCatalog } from "../catalog/catalog.js"
 import { requiresConfirmation } from "../catalog/rules.js"
 import type { Schemas } from "../catalog/schema.js"
 import type { OperationSpec } from "../catalog/types.js"
+import { CLI_NAME } from "../util.js"
 import {
   type ArgumentDoc,
   type OptionDoc,
@@ -28,87 +29,87 @@ const TOPICS = `'{"topics":[{"topicName":"send-invoice","lockDuration":60000}]}'
  */
 const CURATED: Readonly<Record<string, readonly string[]>> = {
   createDeployment: [
-    "operate deployment create invoice.bpmn invoice-approval.dmn --deployment-name invoice",
-    "operate deployment create bpmn/invoice.bpmn forms/approve.form --base-dir . --deploy-changed-only",
+    "pulse-cli deployment create invoice.bpmn invoice-approval.dmn --deployment-name invoice",
+    "pulse-cli deployment create bpmn/invoice.bpmn forms/approve.form --base-dir . --deploy-changed-only",
   ],
   getProcessDefinitions: [
-    "operate process-definition list --latest-version --sort-by key --sort-order asc",
-    "operate process-definition list --key invoice --fields id,key,version,deploymentId -o table",
+    "pulse-cli process-definition list --latest-version --sort-by key --sort-order asc",
+    "pulse-cli process-definition list --key invoice --fields id,key,version,deploymentId -o table",
   ],
   startProcessInstanceByKey: [
-    "operate process-definition start invoice --business-key INV-1001 --var amount=250 --var approved=false",
-    "operate process-definition start invoice --var invoiceDate:Date=2024-05-01 --var zip:String=01234",
-    "operate process-definition start invoice --body @start.json --business-key INV-1002",
+    "pulse-cli process-definition start invoice --business-key INV-1001 --var amount=250 --var approved=false",
+    "pulse-cli process-definition start invoice --var invoiceDate:Date=2024-05-01 --var zip:String=01234",
+    "pulse-cli process-definition start invoice --body @start.json --business-key INV-1002",
   ],
-  getProcessDefinitionBpmn20XmlByKey: ["operate process-definition xml invoice"],
+  getProcessDefinitionBpmn20XmlByKey: ["pulse-cli process-definition xml invoice"],
   getProcessInstances: [
-    "operate process-instance list --process-definition-key invoice --business-key INV-1001",
-    "operate process-instance list --with-incident --fields id,businessKey,definitionId -o table",
-    "operate process-instance list --variables amount_gt_1000 --all",
+    "pulse-cli process-instance list --process-definition-key invoice --business-key INV-1001",
+    "pulse-cli process-instance list --with-incident --fields id,businessKey,definitionId -o table",
+    "pulse-cli process-instance list --variables amount_gt_1000 --all",
   ],
-  getProcessInstance: [`operate process-instance get ${INSTANCE}`],
+  getProcessInstance: [`pulse-cli process-instance get ${INSTANCE}`],
   getProcessInstanceVariables: [
-    `operate process-instance get-variables ${INSTANCE}`,
-    `operate process-instance get-variables ${INSTANCE} --fields amount,approved`,
+    `pulse-cli process-instance get-variables ${INSTANCE}`,
+    `pulse-cli process-instance get-variables ${INSTANCE} --fields amount,approved`,
   ],
   deleteProcessInstance: [
-    `operate process-instance delete ${INSTANCE} --yes`,
-    `operate process-instance delete ${INSTANCE} --skip-custom-listeners --skip-io-mappings --yes`,
+    `pulse-cli process-instance delete ${INSTANCE} --yes`,
+    `pulse-cli process-instance delete ${INSTANCE} --skip-custom-listeners --skip-io-mappings --yes`,
   ],
   modifyProcessInstance: [
-    `operate process-instance modify ${INSTANCE} --body @modification.json --dry-run`,
-    `operate process-instance modify ${INSTANCE} --annotation 'Back to review' --body '{"instructions":[{"type":"startBeforeActivity","activityId":"reviewInvoice"}]}'`,
+    `pulse-cli process-instance modify ${INSTANCE} --body @modification.json --dry-run`,
+    `pulse-cli process-instance modify ${INSTANCE} --annotation 'Back to review' --body '{"instructions":[{"type":"startBeforeActivity","activityId":"reviewInvoice"}]}'`,
   ],
   updateSuspensionStateById: [
-    `operate process-instance suspend ${INSTANCE}`,
-    `operate process-instance activate ${INSTANCE}`,
+    `pulse-cli process-instance suspend ${INSTANCE}`,
+    `pulse-cli process-instance activate ${INSTANCE}`,
   ],
   getTasks: [
-    "operate task list --process-definition-key invoice --unassigned",
-    "operate task list --candidate-group accounting --sort-by created --sort-order desc",
-    "operate task list --assignee demo --fields id,name,created,processInstanceId -o table",
+    "pulse-cli task list --process-definition-key invoice --unassigned",
+    "pulse-cli task list --candidate-group accounting --sort-by created --sort-order desc",
+    "pulse-cli task list --assignee demo --fields id,name,created,processInstanceId -o table",
   ],
-  claim: [`operate task claim ${TASK} --user-id demo`],
+  claim: [`pulse-cli task claim ${TASK} --user-id demo`],
   complete: [
-    `operate task complete ${TASK} --var approved=true --var 'comment=Looks good'`,
-    `operate task complete ${TASK} --with-variables-in-return --body '{"variables":{"approved":{"value":false,"type":"Boolean"}}}'`,
+    `pulse-cli task complete ${TASK} --var approved=true --var 'comment=Looks good'`,
+    `pulse-cli task complete ${TASK} --with-variables-in-return --body '{"variables":{"approved":{"value":false,"type":"Boolean"}}}'`,
   ],
   fetchAndLock: [
-    `operate external-task fetch-and-lock --worker-id worker-1 --max-tasks 5 --body ${TOPICS}`,
-    "operate external-task fetch-and-lock --worker-id worker-1 --max-tasks 1 --async-response-timeout 30000 --body @topics.json",
+    `pulse-cli external-task fetch-and-lock --worker-id worker-1 --max-tasks 5 --body ${TOPICS}`,
+    "pulse-cli external-task fetch-and-lock --worker-id worker-1 --max-tasks 1 --async-response-timeout 30000 --body @topics.json",
   ],
   completeExternalTaskResource: [
-    `operate external-task complete ${EXTERNAL_TASK} --worker-id worker-1 --var invoiceSent=true`,
+    `pulse-cli external-task complete ${EXTERNAL_TASK} --worker-id worker-1 --var invoiceSent=true`,
   ],
   handleFailure: [
-    `operate external-task handle-failure ${EXTERNAL_TASK} --worker-id worker-1 --error-message 'SMTP timeout' --retries 2 --retry-timeout 60000`,
-    `operate external-task handle-failure ${EXTERNAL_TASK} --worker-id worker-1 --error-message 'Invalid address' --retries 0`,
+    `pulse-cli external-task handle-failure ${EXTERNAL_TASK} --worker-id worker-1 --error-message 'SMTP timeout' --retries 2 --retry-timeout 60000`,
+    `pulse-cli external-task handle-failure ${EXTERNAL_TASK} --worker-id worker-1 --error-message 'Invalid address' --retries 0`,
   ],
   getIncidents: [
-    `operate incident list --process-instance-id ${INSTANCE}`,
-    "operate incident list --incident-type failedJob --fields id,activityId,incidentMessage -o table",
+    `pulse-cli incident list --process-instance-id ${INSTANCE}`,
+    "pulse-cli incident list --incident-type failedJob --fields id,activityId,incidentMessage -o table",
   ],
-  resolveIncident: [`operate incident resolve ${INCIDENT} --yes`],
+  resolveIncident: [`pulse-cli incident resolve ${INCIDENT} --yes`],
   getJobs: [
-    `operate job list --process-instance-id ${INSTANCE} --with-exception`,
-    "operate job list --no-retries-left --fields id,processInstanceId,exceptionMessage",
+    `pulse-cli job list --process-instance-id ${INSTANCE} --with-exception`,
+    "pulse-cli job list --no-retries-left --fields id,processInstanceId,exceptionMessage",
   ],
-  setJobRetries: [`operate job set-retries ${JOB} --retries 3`],
+  setJobRetries: [`pulse-cli job set-retries ${JOB} --retries 3`],
   getHistoricProcessInstances: [
-    "operate historic-process-instance list --process-definition-key invoice --finished --started-after 2024-05-01",
-    "operate historic-process-instance list --process-instance-business-key INV-1001 --sort-by startTime --sort-order desc",
+    "pulse-cli historic-process-instance list --process-definition-key invoice --finished --started-after 2024-05-01",
+    "pulse-cli historic-process-instance list --process-instance-business-key INV-1001 --sort-by startTime --sort-order desc",
   ],
   deliverMessage: [
-    "operate message correlate --message-name InvoiceReceived --business-key INV-1001 --var amount=250",
-    "operate message correlate --message-name PaymentReceived --correlation-key orderId=A-17 --result-enabled",
+    "pulse-cli message correlate --message-name InvoiceReceived --business-key INV-1001 --var amount=250",
+    "pulse-cli message correlate --message-name PaymentReceived --correlation-key orderId=A-17 --result-enabled",
   ],
   evaluateDecisionByKey: [
-    "operate decision-definition evaluate-by-key invoice-approval --var amount=250 --var category=travel",
+    "pulse-cli decision-definition evaluate-by-key invoice-approval --var amount=250 --var category=travel",
   ],
   setProcessInstanceVariable: [
-    `operate process-instance set-variable ${INSTANCE} amount --value 300`,
-    `operate process-instance set-variable ${INSTANCE} dueDate --value 2024-06-01T12:00 --type Date`,
-    `operate process-instance set-variable ${INSTANCE} order --value '{"id":42}' --type Json`,
+    `pulse-cli process-instance set-variable ${INSTANCE} amount --value 300`,
+    `pulse-cli process-instance set-variable ${INSTANCE} dueDate --value 2024-06-01T12:00 --type Date`,
+    `pulse-cli process-instance set-variable ${INSTANCE} order --value '{"id":42}' --type Json`,
   ],
 }
 
@@ -138,7 +139,7 @@ function genericExample(operation: OperationSpec, schemas: Schemas): string {
   const required = operationOptions(operation, schemas).filter((option) => option.required)
   const confirm = requiresConfirmation(operation.effect) ? ["--yes"] : []
   return [
-    "operate",
+    CLI_NAME,
     operation.group,
     operation.name,
     ...argumentPlaceholders(operation),
@@ -155,7 +156,7 @@ export function examplesFor(
   operation: OperationSpec,
   schemas: Schemas = loadCatalog().schemas,
 ): string[] {
-  const command = `operate ${operation.group} ${operation.name}`
+  const command = `pulse-cli ${operation.group} ${operation.name}`
   const curated =
     CURATED[operation.operationId]?.filter((example) => `${example} `.startsWith(`${command} `)) ??
     []

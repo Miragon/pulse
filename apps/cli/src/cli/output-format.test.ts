@@ -30,8 +30,8 @@ describe("terminal width and format", () => {
 })
 
 describe("envFormat", () => {
-  it("reads OPERATE_OUTPUT, blank is unset; strict mode rejects unknown values", () => {
-    const env = (value: string | undefined) => fakeRuntime({ env: { OPERATE_OUTPUT: value } })
+  it("reads PULSE_CLI_OUTPUT, blank is unset; strict mode rejects unknown values", () => {
+    const env = (value: string | undefined) => fakeRuntime({ env: { PULSE_CLI_OUTPUT: value } })
     expect(envFormat(env(" table "), true)).toBe("table")
     expect(envFormat(env(" "), true)).toBeUndefined()
     expect(envFormat(env(undefined), true)).toBeUndefined()
@@ -47,7 +47,7 @@ describe("profileFormat", () => {
     const runtime = fakeRuntime({ files: { [CONFIG_PATH]: file } })
     expect(await profileFormat(runtime, {})).toBe("table")
     expect(await profileFormat(runtime, { profile: "b" })).toBeUndefined()
-    const env = fakeRuntime({ files: { [CONFIG_PATH]: file }, env: { OPERATE_PROFILE: "b" } })
+    const env = fakeRuntime({ files: { [CONFIG_PATH]: file }, env: { PULSE_CLI_PROFILE: "b" } })
     expect(await profileFormat(env, {})).toBeUndefined()
   })
 

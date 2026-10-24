@@ -1,5 +1,5 @@
 /**
- * The hidden `operate __complete <words...>` of the completion scripts: builds the
+ * The hidden `pulse-cli __complete <words...>` of the completion scripts: builds the
  * commander program for the words (lazy registration registers only the addressed group), turns
  * it into the plain model of src/docs/completion.ts and prints the candidates. Never touches the
  * network or stdin, writes nothing to stderr and never fails.
@@ -14,7 +14,7 @@ import {
   complete,
   formatCompletion,
 } from "../docs/completion.js"
-import { compact } from "../util.js"
+import { CLI_NAME, compact } from "../util.js"
 import { globalFromArgv, globalOptionLength } from "./argv.js"
 import { optionCompletion, positionalOf } from "./completion-meta.js"
 import { loadConfig } from "./config-files.js"
@@ -73,7 +73,7 @@ function rootModel(program: Command, context: CliContext): CompletionCommand {
     positional: { kind: "top-level" },
   }
   return {
-    name: "operate",
+    name: CLI_NAME,
     aliases: [],
     description: "",
     kind: "command",
@@ -96,7 +96,7 @@ function pathWords(words: readonly string[]): string[] {
 }
 
 /**
- * Profile names of the config file (`--config`, OPERATE_CONFIG) or of the project file and the
+ * Profile names of the config file (`--config`, PULSE_CLI_CONFIG) or of the project file and the
  * user's config file, best effort.
  */
 async function profileNames(context: CliContext, words: readonly string[]): Promise<string[]> {

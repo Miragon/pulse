@@ -16,7 +16,7 @@ describe("nextCommands", () => {
         },
         false,
       ),
-    ).toEqual(["operate retry p1"])
+    ).toEqual(["pulse-cli retry p1"])
     expect(
       nextCommands(
         { ...base, incidents: [{ id: "i", type: "custom", activityId: "a", since: "s" }] },
@@ -38,15 +38,15 @@ describe("nextCommands", () => {
         false,
       ),
     ).toEqual([
-      "operate retry p1",
-      "operate advance p1 --activity-id a",
-      "operate advance p1 --activity-id b",
+      "pulse-cli retry p1",
+      "pulse-cli advance p1 --activity-id a",
+      "pulse-cli advance p1 --activity-id b",
     ])
     expect(nextCommands({ ...base, state: "EXTERNALLY_TERMINATED" }, false)).toEqual([
-      "operate inspect p1 --history",
+      "pulse-cli inspect p1 --history",
     ])
     expect(nextCommands({ ...base, state: "SUSPENDED" }, false)).toEqual([
-      "operate process-instance activate p1",
+      "pulse-cli process-instance activate p1",
     ])
   })
 
@@ -57,11 +57,11 @@ describe("nextCommands", () => {
       taskId,
     })
     expect(nextCommands({ ...base, waitingAt: [task("t1"), task("t2")] }, false)).toEqual([
-      "operate task complete t1",
+      "pulse-cli task complete t1",
     ])
     expect(
       nextCommands({ ...base, waitingAt: [task("t1"), task("t2"), task("t3", "review")] }, false),
-    ).toEqual(["operate task complete t1", "operate advance p1 --activity-id review"])
+    ).toEqual(["pulse-cli task complete t1", "pulse-cli advance p1 --activity-id review"])
     const external = (id: string) => ({
       activityId: "charge",
       kind: "externalTask" as const,
@@ -80,7 +80,7 @@ describe("nextCommands", () => {
       suspended: true as const,
     }
     expect(nextCommands({ ...base, waitingAt: [suspended, task("t1", "review")] }, false)).toEqual([
-      "operate advance p1",
+      "pulse-cli advance p1",
     ])
   })
 })
@@ -95,7 +95,7 @@ describe("nextCommands details", () => {
       eventSubscriptionId: "e",
       executionId: "x",
     }
-    expect(nextCommands({ ...base, waitingAt: [signal] }, false)).toEqual(["operate advance p1"])
+    expect(nextCommands({ ...base, waitingAt: [signal] }, false)).toEqual(["pulse-cli advance p1"])
     const odd = {
       activityId: "c",
       kind: "conditional" as const,
@@ -109,7 +109,7 @@ describe("nextCommands details", () => {
       { activityId: "a", kind: "userTask" as const, taskId: "t2" },
     ]
     expect(nextCommands({ ...base, waitingAt: unnamed }, false)).toEqual([
-      "operate advance p1 --activity-id a",
+      "pulse-cli advance p1 --activity-id a",
     ])
     const many = ["a", "b"].map((activityId) => ({
       activityId,
@@ -127,9 +127,9 @@ describe("nextCommands details", () => {
         false,
       ),
     ).toEqual([
-      "operate retry p1",
-      "operate advance p1 --activity-id a",
-      "operate advance p1 --activity-id b",
+      "pulse-cli retry p1",
+      "pulse-cli advance p1 --activity-id a",
+      "pulse-cli advance p1 --activity-id b",
     ])
   })
 })

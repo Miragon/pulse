@@ -17,7 +17,7 @@ function failure(action: () => unknown): OperateError {
 
 describe("normalizeToken", () => {
   it("keeps a valid token as it is", () => {
-    expect(normalizeToken("abc.DEF-ghi_jkl~mno+pqr/stu==", "OPERATE_TOKEN")).toBe(
+    expect(normalizeToken("abc.DEF-ghi_jkl~mno+pqr/stu==", "PULSE_CLI_TOKEN")).toBe(
       "abc.DEF-ghi_jkl~mno+pqr/stu==",
     )
   })
@@ -30,7 +30,9 @@ describe("normalizeToken", () => {
         fc.constantFrom("", " ", "\t", " \n", " "),
         fc.constantFrom("", " ", "\r\n", "\t"),
         (token, prefix, before, after) => {
-          expect(normalizeToken(`${before}${prefix}${token}${after}`, "OPERATE_TOKEN")).toBe(token)
+          expect(normalizeToken(`${before}${prefix}${token}${after}`, "PULSE_CLI_TOKEN")).toBe(
+            token,
+          )
         },
       ),
     )
@@ -51,12 +53,12 @@ describe("normalizeToken", () => {
   })
 
   it.each(["", "   ", "Bearer", "bearer ", " Bearer \t "])("refuses the empty token %j", (raw) => {
-    const error = failure(() => normalizeToken(raw, "OPERATE_TOKEN"))
+    const error = failure(() => normalizeToken(raw, "PULSE_CLI_TOKEN"))
     expect(error.code).toBe("CONFIG")
     expect(error.exitCode).toBe(3)
-    expect(error.message).toBe("The bearer token from OPERATE_TOKEN is empty")
+    expect(error.message).toBe("The bearer token from PULSE_CLI_TOKEN is empty")
     expect(error.details.hint).toBe(
-      "Set the token itself, e.g. export OPERATE_TOKEN=<token> or pipe it into --auth-token-stdin.",
+      "Set the token itself, e.g. export PULSE_CLI_TOKEN=<token> or pipe it into --auth-token-stdin.",
     )
   })
 

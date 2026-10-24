@@ -29,7 +29,7 @@ export function registerStatusAndRetry(scenario: WorkflowScenario): void {
     )
     expect(finding?.message).toContain("missingBean")
     expect(finding?.next).toBe(
-      "operate retry --process-definition-key workflow-parent --activity-id book --dry-run",
+      "pulse-cli retry --process-definition-key workflow-parent --activity-id book --dry-run",
     )
     expectError(await cli(["status", "--fail-on", "warning"]), "CHECK_FAILED", 9)
   })
@@ -144,7 +144,7 @@ export function registerStatusAndRetry(scenario: WorkflowScenario): void {
     expect(view.waitingAt).toEqual([
       expect.objectContaining({ activityId: "work", kind: "asyncContinuation", suspended: true }),
     ])
-    expect(view.next ?? []).not.toContain(`operate advance ${started.id}`)
+    expect(view.next ?? []).not.toContain(`pulse-cli advance ${started.id}`)
     expectSuccess(await cli(["wait", started.id, "--wait-timeout", "5s"]))
     expectError(
       await cli(["wait", started.id, "--execute-jobs", "--until", "task", "--wait-timeout", "2s"]),

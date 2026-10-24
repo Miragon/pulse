@@ -109,14 +109,14 @@ describe("serverMetadata", () => {
     expect(error.message).toBe(`The discovery document names issuer "${ISSUER}/", not "${ISSUER}"`)
     // the server's value stays out of the command (the message shows it)
     expect(error.details.hint).toBe(
-      'Set the issuer exactly as the document names it (Auth0 issuers end with "/"): operate config set p --oauth-issuer <issuer>.',
+      'Set the issuer exactly as the document names it (Auth0 issuers end with "/"): pulse-cli config set p --oauth-issuer <issuer>.',
     )
     const env = oauthConfig({
       profile: undefined,
       sources: { endpoints: "env", clientId: "env", scopes: "default", redirectPort: "default" },
     })
     expect((await rejection(serverMetadata(env, deps))).details.hint).toBe(
-      'Set the issuer exactly as the document names it (Auth0 issuers end with "/"): OPERATE_OAUTH_ISSUER=<issuer>.',
+      'Set the issuer exactly as the document names it (Auth0 issuers end with "/"): PULSE_CLI_OAUTH_ISSUER=<issuer>.',
     )
   })
 

@@ -2,7 +2,7 @@
  * Resolves the OAuth settings. The endpoint group (issuer, authorization and
  * token endpoint) comes as a unit from the most specific source that sets any of them
  * (environment over profile); every other value resolves on its own: environment > profile >
- * default. The client secret: OPERATE_OAUTH_CLIENT_SECRET > the variable named by
+ * default. The client secret: PULSE_CLI_OAUTH_CLIENT_SECRET > the variable named by
  * auth.clientSecretEnv > auth.clientSecret. Pure; messages never show a secret.
  */
 
@@ -37,7 +37,7 @@ export interface OAuthContext {
   readonly selected: SelectedProfile
 }
 
-/** A value with its source and where exactly it came from (`from OPERATE_OAUTH_ISSUER`). */
+/** A value with its source and where exactly it came from (`from PULSE_CLI_OAUTH_ISSUER`). */
 interface Found<T> {
   readonly value: T
   readonly source: Source
@@ -67,7 +67,7 @@ const ENDPOINT_KIND = {
   tokenEndpoint: "token endpoint",
 } as const
 
-/** The OPERATE_OAUTH_* variables, in the order messages name them. */
+/** The PULSE_CLI_OAUTH_* variables, in the order messages name them. */
 const OAUTH_ENV: readonly string[] = [
   ENV.oauthIssuer,
   ENV.oauthAuthorizationEndpoint,
@@ -80,7 +80,7 @@ const OAUTH_ENV: readonly string[] = [
 ]
 
 const SET_HINT =
-  "`operate config set <profile> --auth oauth --oauth-issuer <url> --oauth-client-id <id>`"
+  "`pulse-cli config set <profile> --auth oauth --oauth-issuer <url> --oauth-client-id <id>`"
 
 /** A secret: blank counts as unset, other values are kept exactly. */
 function present(value: string | undefined): string | undefined {
@@ -98,7 +98,7 @@ function endpointLabel(key: EndpointKey, group: EndpointGroup, selected: Selecte
 
 /**
  * Where the issuer or endpoints of the resolved configuration came from, for the hints of
- * network errors (`OPERATE_OAUTH_ISSUER`, `auth.issuer of profile "p"`).
+ * network errors (`PULSE_CLI_OAUTH_ISSUER`, `auth.issuer of profile "p"`).
  */
 export function endpointSource(config: OAuthConfig): string {
   const key = config.issuer === undefined ? "tokenEndpoint" : "issuer"
@@ -229,7 +229,7 @@ function missingError(missing: readonly string[], selectedBy: string, context: O
   const values = missing.map((value) => `the ${value}`).join(" and ")
   return configError(
     `OAuth is selected but ${values} ${missing.length > 1 ? "are" : "is"} missing`,
-    `OAuth was selected by ${selectedBy}. Looked up ${lookedUp(missing, context.selected)}. Store them with ${SET_HINT}, or set the OPERATE_OAUTH_* variables; --auth none switches OAuth off.`,
+    `OAuth was selected by ${selectedBy}. Looked up ${lookedUp(missing, context.selected)}. Store them with ${SET_HINT}, or set the PULSE_CLI_OAUTH_* variables; --auth none switches OAuth off.`,
   )
 }
 
@@ -238,7 +238,7 @@ function refuseStdinPassword(context: OAuthContext, selectedBy: string): void {
   if (present(context.flags.authPassword) === undefined) return
   throw configError(
     `--auth-password-stdin reads a Basic auth password, but OAuth is selected by ${selectedBy}`,
-    "Drop --auth-password-stdin: OAuth logs in with `operate auth login` and needs no password.",
+    "Drop --auth-password-stdin: OAuth logs in with `pulse-cli auth login` and needs no password.",
   )
 }
 
@@ -301,7 +301,7 @@ export function resolveOAuth(context: OAuthContext, selectedBy: string): OAuthCo
   }
 }
 
-/** The first OPERATE_OAUTH_* variable that is set, if any (names only, never values). */
+/** The first PULSE_CLI_OAUTH_* variable that is set, if any (names only, never values). */
 export function oauthEnvVariable(env: Env): string | undefined {
   return OAUTH_ENV.find((variable) => nonEmpty(env[variable]) !== undefined)
 }

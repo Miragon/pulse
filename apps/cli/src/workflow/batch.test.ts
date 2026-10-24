@@ -137,7 +137,7 @@ describe("waitForBatch details", () => {
     const result = await waitForBatch(depsOf(server.fetch), "b1", 60_000)
     expect(server.requests[0]?.query.toString()).toBe("batchId=b1")
     expect(result.kind === "view" ? result.failure?.details.hint : undefined).toBe(
-      "`operate job list --job-definition-id jd-b --with-exception` lists the failed jobs; fix the cause, then set their retries (`operate job set-retries <id> --retries 1`).",
+      "`pulse-cli job list --job-definition-id jd-b --with-exception` lists the failed jobs; fix the cause, then set their retries (`pulse-cli job set-retries <id> --retries 1`).",
     )
     const bare = fakeServer().on(
       "GET",
@@ -153,7 +153,7 @@ describe("waitForBatch details", () => {
       .on("GET", "/history/batch/b1", engineError(404, "InvalidRequestException", "no history"))
     await expect(waitForBatch(depsOf(missing.fetch), "b1", 1000)).rejects.toMatchObject({
       details: {
-        hint: "List batches with `operate batch list` (running) or `operate historic-batch list` (also finished).",
+        hint: "List batches with `pulse-cli batch list` (running) or `pulse-cli historic-batch list` (also finished).",
       },
     })
   })
@@ -166,7 +166,7 @@ describe("waitForBatch details", () => {
       view: { batch: { id: "b7", type: "", totalJobs: 2 } },
       failure: {
         details: {
-          hint: "The batch jobs and its monitor job run on the job executor (the monitor checks every 30 s by default); raise --wait-timeout, or run `operate status` to see overdue jobs.",
+          hint: "The batch jobs and its monitor job run on the job executor (the monitor checks every 30 s by default); raise --wait-timeout, or run `pulse-cli status` to see overdue jobs.",
           data: { batch: { id: "b7", type: "", totalJobs: 2 } },
         },
       },

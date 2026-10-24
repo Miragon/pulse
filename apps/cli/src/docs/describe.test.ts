@@ -31,7 +31,7 @@ describe("describeOperation", () => {
       "examples",
     ])
     expect(start).toMatchObject({
-      command: "operate process-definition start <key>",
+      command: "pulse-cli process-definition start <key>",
       operationId: "startProcessInstanceByKey",
       method: "POST",
       path: "/process-definition/key/{key}/start",
@@ -98,7 +98,7 @@ describe("describeOperation", () => {
   it("adds required options to the command", () => {
     const fetch = view("external-task", "fetch-and-lock")
     expect(fetch.command).toBe(
-      "operate external-task fetch-and-lock --worker-id <value> --max-tasks <n>",
+      "pulse-cli external-task fetch-and-lock --worker-id <value> --max-tasks <n>",
     )
     expect(option(fetch, "--max-tasks <n>")).toEqual({
       flag: "--max-tasks <n>",
@@ -134,7 +134,7 @@ describe("describeOperation", () => {
 
   it("describes multipart bodies and resource file arguments", () => {
     const deploy = view("deployment", "create")
-    expect(deploy.command).toBe("operate deployment create <files...>")
+    expect(deploy.command).toBe("pulse-cli deployment create <files...>")
     expect(deploy.arguments).toEqual([
       { name: "files", description: "Resource files to deploy (BPMN, DMN, forms, scripts, ...)." },
     ])
@@ -231,7 +231,7 @@ describe("describeOperation", () => {
       expect(JSON.parse(JSON.stringify(described))).toEqual(described)
       expect(described.options).toHaveLength(operationOptions(operation).length)
       expect(described.responses).toHaveLength(operation.responses.length)
-      expect(described.command.startsWith(`operate ${operation.group} ${operation.name}`)).toBe(
+      expect(described.command.startsWith(`pulse-cli ${operation.group} ${operation.name}`)).toBe(
         true,
       )
     }

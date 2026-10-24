@@ -1,5 +1,5 @@
 /**
- * Command discovery for `operate commands`: the groups of the catalog and the commands of one group
+ * Command discovery for `pulse-cli commands`: the groups of the catalog and the commands of one group
  * or of a search across all groups. Pure.
  */
 
@@ -105,7 +105,7 @@ export function listCommands(catalog: Catalog, filter: CommandFilter): CommandSu
 }
 
 /**
- * A workflow command in `operate commands`: no operationId, method and path (`operate describe
+ * A workflow command in `pulse-cli commands`: no operationId, method and path (`pulse-cli describe
  * <command>` lists the requests it may send).
  */
 interface WorkflowSummary {
@@ -118,7 +118,7 @@ interface WorkflowSummary {
 
 export type CommandRow = WorkflowSummary | CommandSummary
 
-/** The groups of `operate commands`: the catalog groups and the `workflow` pseudo group. */
+/** The groups of `pulse-cli commands`: the catalog groups and the `workflow` pseudo group. */
 export function discoveryGroups(catalog: Catalog): GroupSummary[] {
   return [...listGroups(catalog), WORKFLOW_GROUP].sort((left, right) =>
     compareText(left.group, right.group),

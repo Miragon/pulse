@@ -44,7 +44,7 @@ describe("validateAuthType", () => {
             "Unsupported auth type (not one of none, basic, oauth, bearer)",
           )
           expect(error.details.hint).toContain(
-            "A bearer token itself goes into OPERATE_TOKEN or --auth-token-stdin",
+            "A bearer token itself goes into PULSE_CLI_TOKEN or --auth-token-stdin",
           )
           expect(`${error.message}${error.details.hint ?? ""}`).not.toContain(token)
         }
@@ -62,9 +62,9 @@ describe("validateUsername", () => {
   })
 
   it('rejects ":" (RFC 7617) without repeating the name', () => {
-    const error = failure(() => validateUsername("alice:secret", "from OPERATE_USERNAME"))
+    const error = failure(() => validateUsername("alice:secret", "from PULSE_CLI_USERNAME"))
     expect(error.code).toBe("CONFIG")
-    expect(error.message).toBe('The username (from OPERATE_USERNAME) must not contain ":"')
+    expect(error.message).toBe('The username (from PULSE_CLI_USERNAME) must not contain ":"')
     expect(error.details.hint).toBe(
       'Basic auth (RFC 7617) separates the username from the password with ":"; only the password may contain it.',
     )
@@ -94,7 +94,7 @@ describe("validatePassword", () => {
     fc.assert(
       fc.property(fc.string({ unit: "binary" }), (value) => {
         const password = value.replace(/\p{Cc}/gu, "")
-        expect(validatePassword(password, "from OPERATE_PASSWORD")).toBe(password)
+        expect(validatePassword(password, "from PULSE_CLI_PASSWORD")).toBe(password)
       }),
     )
     expect(validatePassword(" p:a ss ", "x")).toBe(" p:a ss ")

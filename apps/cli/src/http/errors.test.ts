@@ -102,13 +102,13 @@ describe("httpError", () => {
 
     it("names the list command of the group for a missing resource", () => {
       expect(httpError(response(404, missing), REQUEST, LISTED).details.hint).toBe(
-        "Check the id or key. List the existing ones with `operate process-instance list`.",
+        "Check the id or key. List the existing ones with `pulse-cli process-instance list`.",
       )
     })
 
     it("points to describe for a missing resource of a group without list command", () => {
       expect(httpError(response(404, missing), REQUEST, UNLISTED).details.hint).toBe(
-        "Check the id or key; `operate describe message correlate` explains the arguments.",
+        "Check the id or key; `pulse-cli describe message correlate` explains the arguments.",
       )
     })
 
@@ -118,7 +118,7 @@ describe("httpError", () => {
     ])("points to ping when the named process engine does not exist (%i)", (status, message) => {
       const body = JSON.stringify({ type: "InvalidRequestException", message })
       const hint =
-        "The process engine named by --engine (or OPERATE_ENGINE, or the profile setting engine) does not exist. Run `operate ping` to list the engines of the REST API."
+        "The process engine named by --engine (or PULSE_CLI_ENGINE, or the profile setting engine) does not exist. Run `pulse-cli ping` to list the engines of the REST API."
       expect(httpError(response(status, body), REQUEST, LISTED).details.hint).toBe(hint)
       expect(httpError(response(status, body), REQUEST).details.hint).toBe(hint)
     })
@@ -137,7 +137,7 @@ describe("httpError", () => {
 
     it("names the describe command for other client errors", () => {
       expect(httpError(response(400, '{"message":"bad"}'), REQUEST, LISTED).details.hint).toBe(
-        "The engine rejected the request. Check parameters and body with `operate describe process-instance get`.",
+        "The engine rejected the request. Check parameters and body with `pulse-cli describe process-instance get`.",
       )
     })
 
@@ -167,16 +167,16 @@ describe("redirectError", () => {
     expect(error.exitCode).toBe(3)
     expect(error.message).toBe("HTTP 302 Found: redirect to http://localhost:8080/login")
     expect(error.details).toMatchObject({ status: 302, request: REQUEST })
-    expect(error.details.hint).toContain("operate does not follow redirects")
+    expect(error.details.hint).toContain("pulse-cli does not follow redirects")
   })
 
-  it("points to operate auth status for OAuth", () => {
+  it("points to pulse-cli auth status for OAuth", () => {
     const oauth = redirectError(redirect(302, "/login"), {
       ...REQUEST,
-      loginStatusCommand: "operate auth status --profile p",
+      loginStatusCommand: "pulse-cli auth status --profile p",
     })
     expect(oauth.details.hint).toMatch(
-      /expired\. `operate auth status --profile p` shows whether the OAuth login is usable\.$/,
+      /expired\. `pulse-cli auth status --profile p` shows whether the OAuth login is usable\.$/,
     )
     expect(redirectError(redirect(302), REQUEST).details.hint).not.toContain("auth status")
   })
@@ -203,7 +203,7 @@ describe("job execute hints", () => {
     )
     expect(error.code).toBe("NOT_FOUND")
     expect(error.details.hint).toBe(
-      "The job ran and failed; the engine reports failures of job execute as 404. See `operate job get-stacktrace <id>` or `operate retry --incident <incident-id> --now`.",
+      "The job ran and failed; the engine reports failures of job execute as 404. See `pulse-cli job get-stacktrace <id>` or `pulse-cli retry --incident <incident-id> --now`.",
     )
   })
 
@@ -214,7 +214,7 @@ describe("job execute hints", () => {
       EXECUTE,
     )
     expect(error.details.hint).toBe(
-      "Check the id or key. List the existing ones with `operate job list`.",
+      "Check the id or key. List the existing ones with `pulse-cli job list`.",
     )
   })
 })

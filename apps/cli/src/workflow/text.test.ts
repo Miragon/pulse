@@ -82,7 +82,7 @@ describe("instanceText", () => {
         "2  book      serviceTask  s                canceled; failedJob (resolved): boom; x (open)",
         "",
         "Next:",
-        "  operate retry p1",
+        "  pulse-cli retry p1",
         "",
       ].join("\n"),
     )
@@ -183,7 +183,7 @@ describe("instance text of the comfort details", () => {
             processInstanceId: "p1",
             action: "none",
             result: "skipped",
-            next: "operate incident resolve i1 --yes",
+            next: "pulse-cli incident resolve i1 --yes",
           },
           {
             incidentId: "i2",
@@ -200,7 +200,7 @@ describe("instance text of the comfort details", () => {
     )
     expect(text).toContain("Retried 0, succeeded 0, failed 0, skipped 1, gone 0, errors 1")
     expect(text).toMatch(/i2 +failedJob +b +error +HTTP 500: boom/)
-    expect(text.endsWith("\nNext:\n  operate incident resolve i1 --yes\n")).toBe(true)
+    expect(text.endsWith("\nNext:\n  pulse-cli incident resolve i1 --yes\n")).toBe(true)
   })
 
   it("renders an advance whose instance could not be read", () => {

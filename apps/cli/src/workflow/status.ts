@@ -1,5 +1,5 @@
 /**
- * Aggregation of `operate status`: definitions, incident groups, external task
+ * Aggregation of `pulse-cli status`: definitions, incident groups, external task
  * topics, jobs, tasks and batches from the responses of round 1. Pure; `now` is injected (engine
  * and client clocks are assumed to agree, as for local containers).
  */
@@ -147,14 +147,14 @@ function groupNext(key: string, activityId: string, type: string, jobDefinitionI
   if (key === "") {
     // a job outside any process definition (a batch or a history cleanup job)
     return jobDefinitionId === undefined
-      ? `operate incident list --incident-type ${shellWord(type)}`
-      : `operate job list --job-definition-id ${shellWord(jobDefinitionId)} --with-exception`
+      ? `pulse-cli incident list --incident-type ${shellWord(type)}`
+      : `pulse-cli job list --job-definition-id ${shellWord(jobDefinitionId)} --with-exception`
   }
   const definition = shellWord(key)
   const activity = shellWord(activityId)
   return isRetryable(type)
-    ? `operate retry --process-definition-key ${definition} --activity-id ${activity} --dry-run`
-    : `operate incident list --process-definition-key-in ${definition} --activity-id ${activity}`
+    ? `pulse-cli retry --process-definition-key ${definition} --activity-id ${activity} --dry-run`
+    : `pulse-cli incident list --process-definition-key-in ${definition} --activity-id ${activity}`
 }
 
 /** Newest first, then by id. */

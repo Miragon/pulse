@@ -4,7 +4,7 @@ import { loginFile, loginKey, TOKEN_DIR } from "../../../test/support/oauth.js"
 import type { LoadedConfig } from "../../config/types.js"
 import { sharedLoginLines, sharedLogoutNote, sharingProfiles, storedLogin } from "./auth-shared.js"
 
-const AUTH = { type: "oauth", issuer: ISSUER, clientId: "operate-cli" } as const
+const AUTH = { type: "oauth", issuer: ISSUER, clientId: "pulse-cli" } as const
 const FILE: LoadedConfig = {
   origin: loginKey().origin,
   profiles: {

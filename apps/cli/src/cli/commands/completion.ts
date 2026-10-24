@@ -1,6 +1,6 @@
 /**
- * `operate completion <bash|zsh|fish>`: prints the completion script of a shell.
- * The scripts call the hidden `operate __complete <words>` (src/cli/completion-model.ts), which
+ * `pulse-cli completion <bash|zsh|fish>`: prints the completion script of a shell.
+ * The scripts call the hidden `pulse-cli __complete <words>` (src/cli/completion-model.ts), which
  * answers from the command definitions alone, without network or stdin.
  */
 
@@ -40,7 +40,7 @@ export const completionCommand: UtilityCommand = {
       if (!isShell(shell)) {
         throw usageError(
           shell === undefined ? "Missing shell" : `Unknown shell "${shell}"`,
-          `Pass one of ${SHELLS.join(", ")}, e.g. operate completion bash.`,
+          `Pass one of ${SHELLS.join(", ")}, e.g. pulse-cli completion bash.`,
         )
       }
       context.runtime.stdout.write(COMPLETION_SCRIPTS[shell])

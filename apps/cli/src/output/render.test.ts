@@ -278,7 +278,7 @@ describe("renderResult", () => {
     })
   })
 
-  it("shows the path relative to the REST root, like operate api takes it", () => {
+  it("shows the path relative to the REST root, like pulse-cli api takes it", () => {
     const done = (url: string, baseUrl: string) =>
       renderResult(
         { kind: "none", status: 204, statusText: "No Content", request: request({ url }) },

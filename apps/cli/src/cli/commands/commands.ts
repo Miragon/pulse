@@ -1,5 +1,5 @@
 /**
- * `operate commands [group] [--search <text>] [--effect <effect>]`: the groups of the
+ * `pulse-cli commands [group] [--search <text>] [--effect <effect>]`: the groups of the
  * catalog, or the commands of a group, a search or an effect. JSON when stdout is not a terminal,
  * else a table (GROUP COMMANDS DESCRIPTION / COMMAND EFFECT SUMMARY).
  */
@@ -86,7 +86,7 @@ export function requireGroup(catalog: Catalog, name: string): void {
   const suggestions = didYouMean(groupSuggestions(catalog, name))
   throw usageError(
     `Unknown group "${name}"`,
-    `${suggestions}Run "operate commands" for the groups, or search all commands with "operate commands --search ${name}".`,
+    `${suggestions}Run "pulse-cli commands" for the groups, or search all commands with "pulse-cli commands --search ${name}".`,
   )
 }
 

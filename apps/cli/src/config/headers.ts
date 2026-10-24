@@ -1,5 +1,5 @@
 /**
- * Extra request headers (`-H`, OPERATE_HEADERS, profile headers): parsing, validation and
+ * Extra request headers (`-H`, PULSE_CLI_HEADERS, profile headers): parsing, validation and
  * resolution. A value must be sendable by fetch (ISO-8859-1, no control characters but tab) and
  * connection management headers are refused, so that a bad header fails as CONFIG error naming it
  * instead of as a network error. Messages never repeat a value, it may be a credential.
@@ -30,7 +30,7 @@ const CLIENT_HEADERS: ReadonlySet<string> = new Set([
 ])
 const HEADER_HINT = 'Use the form "Name: value", e.g. "X-Tenant-Id: acme".'
 
-/** True for a header name operate may send: an HTTP token, not a connection management header. */
+/** True for a header name pulse-cli may send: an HTTP token, not a connection management header. */
 export function isHeaderName(name: string): boolean {
   return HEADER_NAME.test(name) && !CLIENT_HEADERS.has(name.toLowerCase())
 }
@@ -88,7 +88,7 @@ export function parseHeaders(headers: readonly string[]): Record<string, string>
 }
 
 /**
- * OPERATE_HEADERS: `Name: value` headers separated by line breaks (a header value never contains
+ * PULSE_CLI_HEADERS: `Name: value` headers separated by line breaks (a header value never contains
  * one), e.g. an API key a CI job keeps in its environment instead of the command line.
  */
 export function parseEnvHeaders(value: string | undefined): Record<string, string> {
@@ -121,7 +121,7 @@ export function hasAuthorization(headers: Readonly<Record<string, string>>): boo
   return Object.keys(headers).some((name) => name.toLowerCase() === "authorization")
 }
 
-/** Headers merge per name: profile, then OPERATE_HEADERS, then -H flags (later wins). */
+/** Headers merge per name: profile, then PULSE_CLI_HEADERS, then -H flags (later wins). */
 export function resolveHeaders(
   flags: ConfigFlags,
   env: Env,

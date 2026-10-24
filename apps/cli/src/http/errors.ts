@@ -94,7 +94,7 @@ export interface CommandRef {
 const JOB_EXECUTE = "job execute"
 const NO_JOB = "No job found with id"
 const FAILED_JOB_HINT =
-  "The job ran and failed; the engine reports failures of job execute as 404. See `operate job get-stacktrace <id>` or `operate retry --incident <incident-id> --now`."
+  "The job ran and failed; the engine reports failures of job execute as 404. See `pulse-cli job get-stacktrace <id>` or `pulse-cli retry --incident <incident-id> --now`."
 
 function notFoundHint(ref: CommandRef | undefined, engine: EngineError | undefined): string {
   if (ref?.command === JOB_EXECUTE && engine?.message?.includes(NO_JOB) !== true) {
@@ -104,9 +104,9 @@ function notFoundHint(ref: CommandRef | undefined, engine: EngineError | undefin
     return "Check the id or key. List existing resources with the `list` command of the group."
   }
   if (ref.listCommand === undefined) {
-    return `Check the id or key; \`operate describe ${ref.command}\` explains the arguments.`
+    return `Check the id or key; \`pulse-cli describe ${ref.command}\` explains the arguments.`
   }
-  return `Check the id or key. List the existing ones with \`operate ${ref.listCommand}\`.`
+  return `Check the id or key. List the existing ones with \`pulse-cli ${ref.listCommand}\`.`
 }
 
 /**
@@ -118,14 +118,14 @@ const UNKNOWN_ENGINE = /^(?:No process engine|Process engine \S+ not) available$
 
 const HINTS = {
   unauthenticated:
-    "Use Basic auth: --auth basic --auth-user <name> with the password piped into --auth-password-stdin, OPERATE_USERNAME and OPERATE_PASSWORD, or a profile: `operate config set <profile> --auth basic --auth-user <name> --auth-password-env <VAR>`. OAuth: `operate config set <profile> --auth oauth --oauth-issuer <url> --oauth-client-id <id>`, then `operate auth login --profile <profile>` in a terminal. A token from elsewhere (SSO tooling, a CI secret): --auth bearer with OPERATE_TOKEN or --auth-token-stdin.",
+    "Use Basic auth: --auth basic --auth-user <name> with the password piped into --auth-password-stdin, PULSE_CLI_USERNAME and PULSE_CLI_PASSWORD, or a profile: `pulse-cli config set <profile> --auth basic --auth-user <name> --auth-password-env <VAR>`. OAuth: `pulse-cli config set <profile> --auth oauth --oauth-issuer <url> --oauth-client-id <id>`, then `pulse-cli auth login --profile <profile>` in a terminal. A token from elsewhere (SSO tooling, a CI secret): --auth bearer with PULSE_CLI_TOKEN or --auth-token-stdin.",
   rejected:
-    "The engine rejected the credentials of the Authorization header (from -H, OPERATE_HEADERS or the profile headers; `operate config show` shows which). Check user and password or the token.",
+    "The engine rejected the credentials of the Authorization header (from -H, PULSE_CLI_HEADERS or the profile headers; `pulse-cli config show` shows which). Check user and password or the token.",
   403: "The user is authenticated but lacks the authorization for this operation.",
   server:
     "The engine could not process the request; the engine message says why. Camunda 7 engines also report rule violations (task already claimed, dependent instances, ...) as 500, so retrying unchanged rarely helps.",
   engine:
-    "The process engine named by --engine (or OPERATE_ENGINE, or the profile setting engine) does not exist. Run `operate ping` to list the engines of the REST API.",
+    "The process engine named by --engine (or PULSE_CLI_ENGINE, or the profile setting engine) does not exist. Run `pulse-cli ping` to list the engines of the REST API.",
   endpoint:
     "The endpoint does not exist. Check that the URL points to the REST API root, e.g. http://localhost:8080/engine-rest, and the engine name (--engine).",
   queryParam:
@@ -162,18 +162,18 @@ function sentCredentials(request: FailedRequest): boolean {
 }
 
 function clientErrorHint(ref: CommandRef | undefined): string {
-  return `The engine rejected the request. Check parameters and body with \`operate describe ${ref?.command ?? "<group> <command>"}\`.`
+  return `The engine rejected the request. Check parameters and body with \`pulse-cli describe ${ref?.command ?? "<group> <command>"}\`.`
 }
 
 /** The 401 hint: Basic credentials rejected, an Authorization header rejected, or none sent. */
 function unauthorizedHint(request: FailedRequest): string {
   const { principal } = request
   if (principal !== undefined) {
-    return `The engine rejected the credentials of user ${principal.user} (source: ${principal.source}). Check the username and the password; \`operate config show\` shows where each comes from. After a failed login the engine refuses the user for a few seconds (and locks it after repeated failures), so wait before retrying.`
+    return `The engine rejected the credentials of user ${principal.user} (source: ${principal.source}). Check the username and the password; \`pulse-cli config show\` shows where each comes from. After a failed login the engine refuses the user for a few seconds (and locks it after repeated failures), so wait before retrying.`
   }
   if (sentCredentials(request)) return HINTS.rejected
   const why = request.authOff === undefined ? "" : `: ${request.authOff}`
-  return `The engine requires authentication and operate sent no credentials${why}. ${HINTS.unauthenticated}`
+  return `The engine requires authentication and pulse-cli sent no credentials${why}. ${HINTS.unauthenticated}`
 }
 
 /** The 401/403 hint: the provider's own hint wins; the provider's note is appended. */
@@ -276,7 +276,7 @@ function redirectTarget(response: HttpResponse, url: string): string | undefined
 }
 
 /**
- * A 3xx answer. operate never follows redirects: a redirected POST would turn into a GET of a
+ * A 3xx answer. pulse-cli never follows redirects: a redirected POST would turn into a GET of a
  * login page that "succeeds", and custom credential headers would travel to the other origin.
  */
 export function redirectError(response: HttpResponse, request: FailedRequest): OperateError {
@@ -291,7 +291,7 @@ export function redirectError(response: HttpResponse, request: FailedRequest): O
     {
       status: response.status,
       request: { method: request.method, url: request.url },
-      hint: `operate does not follow redirects. Point --url (OPERATE_URL or the profile url) at the REST API root itself, e.g. https:// when the server redirects from http://. A redirect to a login page means the credentials (headers) are missing or expired.${oauth}`,
+      hint: `pulse-cli does not follow redirects. Point --url (PULSE_CLI_URL or the profile url) at the REST API root itself, e.g. https:// when the server redirects from http://. A redirect to a login page means the credentials (headers) are missing or expired.${oauth}`,
     },
   )
 }

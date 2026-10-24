@@ -26,7 +26,7 @@ function ancestorNames(command: Command): string[] {
   return names
 }
 
-/** `operate group command`: the names from the root to the command. */
+/** `pulse-cli group command`: the names from the root to the command. */
 export function commandPath(command: Command): string {
   return [...ancestorNames(command), command.name()].join(" ")
 }
@@ -51,7 +51,7 @@ export function outputConfiguration(runtime: Runtime): OutputConfiguration {
     writeOut: (text) => {
       stdout.write(text)
     },
-    // commander writes help to its error stream only when a command is missing (`operate task`);
+    // commander writes help to its error stream only when a command is missing (`pulse-cli task`);
     // that help is the answer to the call, so it goes to stdout like `--help` does
     writeErr: (text) => {
       stdout.write(text)
@@ -73,26 +73,26 @@ export function examplesText(examples: readonly string[]): string {
   return ["", "Examples:", ...examples.map((example) => `  $ ${example}`)].join("\n")
 }
 
-/** Root help description: what operate is and how to start. commander wraps the paragraphs. */
+/** Root help description: what pulse-cli is and how to start. commander wraps the paragraphs. */
 export const ROOT_DESCRIPTION = [
-  "AI-first command line interface for the Camunda 7 REST API (Operaton, CIB seven, Camunda 7). Every REST operation is a command: operate <group> <command> [arguments] [options]. Output is JSON when stdout is not a terminal, errors are one JSON line on stderr, and nothing ever prompts.",
+  "AI-first command line interface for the Camunda 7 REST API (Operaton, CIB seven, Camunda 7). Every REST operation is a command: pulse-cli <group> <command> [arguments] [options]. Output is JSON when stdout is not a terminal, errors are one JSON line on stderr, and nothing ever prompts.",
   "",
-  "The REST API root defaults to http://localhost:8080/engine-rest; set it with --url, OPERATE_URL or a profile (operate config set).",
+  "The REST API root defaults to http://localhost:8080/engine-rest; set it with --url, PULSE_CLI_URL or a profile (pulse-cli config set).",
   "",
-  "Basic auth: --auth-user <name> with the password piped into --auth-password-stdin, OPERATE_USERNAME and OPERATE_PASSWORD, or a profile (operate config set <profile> --auth basic --auth-user <name> --auth-password-env <VAR>).",
+  "Basic auth: --auth-user <name> with the password piped into --auth-password-stdin, PULSE_CLI_USERNAME and PULSE_CLI_PASSWORD, or a profile (pulse-cli config set <profile> --auth basic --auth-user <name> --auth-password-env <VAR>).",
   "",
-  'OAuth: a person runs "operate auth login --profile <name>" once in a terminal; commands then refresh the token on their own.',
+  'OAuth: a person runs "pulse-cli auth login --profile <name>" once in a terminal; commands then refresh the token on their own.',
   "",
-  "Bearer token from elsewhere (SSO tooling, a CI secret): OPERATE_TOKEN, --auth-token-stdin or a profile (operate config set <profile> --auth bearer --auth-token-env <VAR>); OPERATE_TOKEN_COMMAND names a command that prints one (operate guide auth).",
+  "Bearer token from elsewhere (SSO tooling, a CI secret): PULSE_CLI_TOKEN, --auth-token-stdin or a profile (pulse-cli config set <profile> --auth bearer --auth-token-env <VAR>); PULSE_CLI_TOKEN_COMMAND names a command that prints one (pulse-cli guide auth).",
   "",
   "Get started:",
-  "  operate ping                        check the connection to the engine",
-  "  operate commands                    list the API groups",
-  "  operate commands --search <text>    find a command",
-  "  operate describe <group> <command>  options, body, responses, examples",
-  "  operate inspect <id>                where an instance waits and why",
-  "  operate status                      incidents, jobs and workers at a glance",
-  "  operate guide                       usage guide for agents (markdown)",
+  "  pulse-cli ping                        check the connection to the engine",
+  "  pulse-cli commands                    list the API groups",
+  "  pulse-cli commands --search <text>    find a command",
+  "  pulse-cli describe <group> <command>  options, body, responses, examples",
+  "  pulse-cli inspect <id>                where an instance waits and why",
+  "  pulse-cli status                      incidents, jobs and workers at a glance",
+  "  pulse-cli guide                       usage guide for agents (markdown)",
 ].join("\n")
 
 /** Meaning of every exit code. */
@@ -140,8 +140,8 @@ export function exitCodeLines(): string[] {
 export function rootFooter(): string {
   return [
     "",
-    'Run "operate <group> --help" for the commands of a group and',
-    '"operate <group> <command> --help" for the options of a command.',
+    'Run "pulse-cli <group> --help" for the commands of a group and',
+    '"pulse-cli <group> <command> --help" for the options of a command.',
     "",
     "Exit codes:",
     ...exitCodeLines(),

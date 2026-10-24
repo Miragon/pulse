@@ -10,9 +10,9 @@ exports[`workflow command describe > describes the options of advance 1`] = `
     },
   ],
   "examples": [
-    "operate advance $INSTANCE_ID --var approved=true",
-    "operate advance --business-key B-1 --activity-id charge-card --var charged=true --wait",
-    "operate advance $INSTANCE_ID --activity-id charge-card --fail 'Card declined'",
+    "pulse-cli advance $INSTANCE_ID --var approved=true",
+    "pulse-cli advance --business-key B-1 --activity-id charge-card --var charged=true --wait",
+    "pulse-cli advance $INSTANCE_ID --activity-id charge-card --fail 'Card declined'",
   ],
   "options": [
     {
@@ -129,8 +129,8 @@ exports[`workflow command describe > describes the options of deploy 1`] = `
     },
   ],
   "examples": [
-    "operate deploy src/main/resources",
-    "operate deploy order-process.bpmn approval.dmn --start --business-key B-1 --var amount=250 --wait",
+    "pulse-cli deploy src/main/resources",
+    "pulse-cli deploy order-process.bpmn approval.dmn --start --business-key B-1 --var amount=250 --wait",
   ],
   "options": [
     {
@@ -221,9 +221,9 @@ exports[`workflow command describe > describes the options of inspect 1`] = `
     },
   ],
   "examples": [
-    "operate inspect $INSTANCE_ID",
-    "operate inspect --business-key B-1 --history",
-    "operate inspect --process-definition-key order-process --latest --no-variables",
+    "pulse-cli inspect $INSTANCE_ID",
+    "pulse-cli inspect --business-key B-1 --history",
+    "pulse-cli inspect --process-definition-key order-process --latest --no-variables",
   ],
   "options": [
     {
@@ -276,9 +276,9 @@ exports[`workflow command describe > describes the options of retry 1`] = `
     },
   ],
   "examples": [
-    "operate retry $INSTANCE_ID --now",
-    "operate retry --incident $INCIDENT_ID",
-    "operate retry --process-definition-key payment --activity-id call-psp --dry-run",
+    "pulse-cli retry $INSTANCE_ID --now",
+    "pulse-cli retry --incident $INCIDENT_ID",
+    "pulse-cli retry --process-definition-key payment --activity-id call-psp --dry-run",
   ],
   "options": [
     {
@@ -373,8 +373,8 @@ exports[`workflow command describe > describes the options of status 1`] = `
 {
   "arguments": [],
   "examples": [
-    "operate status",
-    "operate status --process-definition-key payment --fail-on warning",
+    "pulse-cli status",
+    "pulse-cli status --process-definition-key payment --fail-on warning",
   ],
   "options": [
     {
@@ -420,10 +420,10 @@ exports[`workflow command describe > describes the options of wait 1`] = `
     },
   ],
   "examples": [
-    "operate wait $INSTANCE_ID",
-    "operate wait --business-key B-1 --until task --until ended --wait-timeout 2m",
-    "operate wait $INSTANCE_ID --until activity:book --execute-jobs",
-    "operate wait --batch $BATCH_ID",
+    "pulse-cli wait $INSTANCE_ID",
+    "pulse-cli wait --business-key B-1 --until task --until ended --wait-timeout 2m",
+    "pulse-cli wait $INSTANCE_ID --until activity:book --execute-jobs",
+    "pulse-cli wait --batch $BATCH_ID",
   ],
   "options": [
     {
@@ -487,7 +487,7 @@ exports[`workflow command describe > describes the options of wait 1`] = `
 
 exports[`workflow command describe text > renders the description of advance 1`] = `
 "USAGE
-  operate advance [process-instance-id] [options]
+  pulse-cli advance [process-instance-id] [options]
 
 DESCRIPTION
   Complete what a process instance waits for: user task, external task, message, signal, timer or
@@ -538,47 +538,47 @@ OPTIONS
   --no-variables                  Leave out the variables of the instance view (and their request)
 
 REQUESTS
-  getHistoricProcessInstances       operate historic-process-instance list
-  getProcessInstances               operate process-instance list
-  getProcessInstance                operate process-instance get
-  getHistoricProcessInstance        operate historic-process-instance get
-  getHistoricVariableInstances      operate historic-variable-instance list
-  getActivityInstanceTree           operate process-instance get-activity-instance-tree
-  getIncidents                      operate incident list
-  getEventSubscriptions             operate event-subscription list
-  getTasks                          operate task list
-  getExternalTasks                  operate external-task list
-  getJobs                           operate job list
-  getProcessDefinitions             operate process-definition list
-  getJobDefinitions                 operate job-definition list
-  getProcessInstanceVariables       operate process-instance get-variables
-  getStacktrace                     operate job get-stacktrace
-  getExternalTaskErrorDetails       operate external-task get-error-details
-  complete                          operate task complete
-  handleBpmnError                   operate task handle-bpmn-error
-  lock                              operate external-task lock
-  completeExternalTaskResource      operate external-task complete
-  handleExternalTaskBpmnError       operate external-task handle-bpmn-error
-  handleFailure                     operate external-task handle-failure
-  unlock                            operate external-task unlock
-  triggerEvent                      operate execution trigger-event
-  throwSignal                       operate signal throw
-  signalExecution                   operate execution signal
-  executeJob                        operate job execute
-  getJob                            operate job get
-  getProcessDefinitionBpmn20Xml     operate process-definition xml-by-id
+  getHistoricProcessInstances       pulse-cli historic-process-instance list
+  getProcessInstances               pulse-cli process-instance list
+  getProcessInstance                pulse-cli process-instance get
+  getHistoricProcessInstance        pulse-cli historic-process-instance get
+  getHistoricVariableInstances      pulse-cli historic-variable-instance list
+  getActivityInstanceTree           pulse-cli process-instance get-activity-instance-tree
+  getIncidents                      pulse-cli incident list
+  getEventSubscriptions             pulse-cli event-subscription list
+  getTasks                          pulse-cli task list
+  getExternalTasks                  pulse-cli external-task list
+  getJobs                           pulse-cli job list
+  getProcessDefinitions             pulse-cli process-definition list
+  getJobDefinitions                 pulse-cli job-definition list
+  getProcessInstanceVariables       pulse-cli process-instance get-variables
+  getStacktrace                     pulse-cli job get-stacktrace
+  getExternalTaskErrorDetails       pulse-cli external-task get-error-details
+  complete                          pulse-cli task complete
+  handleBpmnError                   pulse-cli task handle-bpmn-error
+  lock                              pulse-cli external-task lock
+  completeExternalTaskResource      pulse-cli external-task complete
+  handleExternalTaskBpmnError       pulse-cli external-task handle-bpmn-error
+  handleFailure                     pulse-cli external-task handle-failure
+  unlock                            pulse-cli external-task unlock
+  triggerEvent                      pulse-cli execution trigger-event
+  throwSignal                       pulse-cli signal throw
+  signalExecution                   pulse-cli execution signal
+  executeJob                        pulse-cli job execute
+  getJob                            pulse-cli job get
+  getProcessDefinitionBpmn20Xml     pulse-cli process-definition xml-by-id
   getProcessDefinitionBpmn20XmlByKey
-                                    operate process-definition xml
-  getProcessInstancesCount          operate process-instance count
-  getJobsCount                      operate job count
-  getTasksCount                     operate task count
+                                    pulse-cli process-definition xml
+  getProcessInstancesCount          pulse-cli process-instance count
+  getJobsCount                      pulse-cli job count
+  getTasksCount                     pulse-cli task count
   getHistoricActivityInstancesCount
-                                    operate historic-activity-instance count
+                                    pulse-cli historic-activity-instance count
 
 EXAMPLES
-  operate advance $INSTANCE_ID --var approved=true
-  operate advance --business-key B-1 --activity-id charge-card --var charged=true --wait
-  operate advance $INSTANCE_ID --activity-id charge-card --fail 'Card declined'
+  pulse-cli advance $INSTANCE_ID --var approved=true
+  pulse-cli advance --business-key B-1 --activity-id charge-card --var charged=true --wait
+  pulse-cli advance $INSTANCE_ID --activity-id charge-card --fail 'Card declined'
 "
 `;
 
@@ -725,7 +725,7 @@ exports[`workflow command describe text > renders the description of advance 2`]
 
 exports[`workflow command describe text > renders the description of deploy 1`] = `
 "USAGE
-  operate deploy <paths...> [options]
+  pulse-cli deploy <paths...> [options]
 
 DESCRIPTION
   Deploy changed BPMN, DMN and form files, report the versions in effect, optionally start an
@@ -763,39 +763,39 @@ OPTIONS
   --no-variables             Leave out the variables of the instance view (and their request)
 
 REQUESTS
-  getDeployments                    operate deployment list
-  createDeployment                  operate deployment create
-  getDeploymentResources            operate deployment get-resources
-  getProcessDefinitions             operate process-definition list
-  getDecisionDefinitions            operate decision-definition list
+  getDeployments                    pulse-cli deployment list
+  createDeployment                  pulse-cli deployment create
+  getDeploymentResources            pulse-cli deployment get-resources
+  getProcessDefinitions             pulse-cli process-definition list
+  getDecisionDefinitions            pulse-cli decision-definition list
   getDecisionRequirementsDefinitions
-                                    operate decision-requirements-definition list
-  startProcessInstanceByKey         operate process-definition start
+                                    pulse-cli decision-requirements-definition list
+  startProcessInstanceByKey         pulse-cli process-definition start
   startProcessInstanceByKeyAndTenantId
-                                    operate process-definition start-by-key-and-tenant-id
-  getProcessInstance                operate process-instance get
-  getHistoricProcessInstance        operate historic-process-instance get
-  getHistoricVariableInstances      operate historic-variable-instance list
-  getProcessInstances               operate process-instance list
-  getActivityInstanceTree           operate process-instance get-activity-instance-tree
-  getIncidents                      operate incident list
-  getEventSubscriptions             operate event-subscription list
-  getTasks                          operate task list
-  getExternalTasks                  operate external-task list
-  getJobs                           operate job list
-  getJobDefinitions                 operate job-definition list
-  getProcessInstanceVariables       operate process-instance get-variables
-  getStacktrace                     operate job get-stacktrace
-  getExternalTaskErrorDetails       operate external-task get-error-details
-  getProcessInstancesCount          operate process-instance count
-  getJobsCount                      operate job count
-  getTasksCount                     operate task count
+                                    pulse-cli process-definition start-by-key-and-tenant-id
+  getProcessInstance                pulse-cli process-instance get
+  getHistoricProcessInstance        pulse-cli historic-process-instance get
+  getHistoricVariableInstances      pulse-cli historic-variable-instance list
+  getProcessInstances               pulse-cli process-instance list
+  getActivityInstanceTree           pulse-cli process-instance get-activity-instance-tree
+  getIncidents                      pulse-cli incident list
+  getEventSubscriptions             pulse-cli event-subscription list
+  getTasks                          pulse-cli task list
+  getExternalTasks                  pulse-cli external-task list
+  getJobs                           pulse-cli job list
+  getJobDefinitions                 pulse-cli job-definition list
+  getProcessInstanceVariables       pulse-cli process-instance get-variables
+  getStacktrace                     pulse-cli job get-stacktrace
+  getExternalTaskErrorDetails       pulse-cli external-task get-error-details
+  getProcessInstancesCount          pulse-cli process-instance count
+  getJobsCount                      pulse-cli job count
+  getTasksCount                     pulse-cli task count
   getHistoricActivityInstancesCount
-                                    operate historic-activity-instance count
+                                    pulse-cli historic-activity-instance count
 
 EXAMPLES
-  operate deploy src/main/resources
-  operate deploy order-process.bpmn approval.dmn --start --business-key B-1 --var amount=250 \\
+  pulse-cli deploy src/main/resources
+  pulse-cli deploy order-process.bpmn approval.dmn --start --business-key B-1 --var amount=250 \\
       --wait
 "
 `;
@@ -911,7 +911,7 @@ exports[`workflow command describe text > renders the description of deploy 2`] 
 
 exports[`workflow command describe text > renders the description of inspect 1`] = `
 "USAGE
-  operate inspect [process-instance-id] [options]
+  pulse-cli inspect [process-instance-id] [options]
 
 DESCRIPTION
   Show where a process instance waits and why: wait states, incidents with root cause, called
@@ -938,29 +938,29 @@ OPTIONS
   --stacktrace                    Add the stacktrace (at most 200 lines) to each incident
 
 REQUESTS
-  getHistoricProcessInstances   operate historic-process-instance list
-  getProcessInstances           operate process-instance list
-  getProcessInstance            operate process-instance get
-  getHistoricProcessInstance    operate historic-process-instance get
-  getHistoricVariableInstances  operate historic-variable-instance list
-  getActivityInstanceTree       operate process-instance get-activity-instance-tree
-  getIncidents                  operate incident list
-  getEventSubscriptions         operate event-subscription list
-  getTasks                      operate task list
-  getExternalTasks              operate external-task list
-  getJobs                       operate job list
-  getProcessDefinitions         operate process-definition list
-  getJobDefinitions             operate job-definition list
-  getProcessInstanceVariables   operate process-instance get-variables
-  getStacktrace                 operate job get-stacktrace
-  getExternalTaskErrorDetails   operate external-task get-error-details
-  getHistoricActivityInstances  operate historic-activity-instance list
-  getHistoricIncidents          operate historic-incident list
+  getHistoricProcessInstances   pulse-cli historic-process-instance list
+  getProcessInstances           pulse-cli process-instance list
+  getProcessInstance            pulse-cli process-instance get
+  getHistoricProcessInstance    pulse-cli historic-process-instance get
+  getHistoricVariableInstances  pulse-cli historic-variable-instance list
+  getActivityInstanceTree       pulse-cli process-instance get-activity-instance-tree
+  getIncidents                  pulse-cli incident list
+  getEventSubscriptions         pulse-cli event-subscription list
+  getTasks                      pulse-cli task list
+  getExternalTasks              pulse-cli external-task list
+  getJobs                       pulse-cli job list
+  getProcessDefinitions         pulse-cli process-definition list
+  getJobDefinitions             pulse-cli job-definition list
+  getProcessInstanceVariables   pulse-cli process-instance get-variables
+  getStacktrace                 pulse-cli job get-stacktrace
+  getExternalTaskErrorDetails   pulse-cli external-task get-error-details
+  getHistoricActivityInstances  pulse-cli historic-activity-instance list
+  getHistoricIncidents          pulse-cli historic-incident list
 
 EXAMPLES
-  operate inspect $INSTANCE_ID
-  operate inspect --business-key B-1 --history
-  operate inspect --process-definition-key order-process --latest --no-variables
+  pulse-cli inspect $INSTANCE_ID
+  pulse-cli inspect --business-key B-1 --history
+  pulse-cli inspect --process-definition-key order-process --latest --no-variables
 "
 `;
 
@@ -1043,7 +1043,7 @@ exports[`workflow command describe text > renders the description of inspect 2`]
 
 exports[`workflow command describe text > renders the description of retry 1`] = `
 "USAGE
-  operate retry [process-instance-id] [options]
+  pulse-cli retry [process-instance-id] [options]
 
 DESCRIPTION
   Retry the failed jobs and external tasks of open incidents, optionally executing the jobs at once
@@ -1083,40 +1083,40 @@ OPTIONS
   --no-variables                  Leave out the variables of the instance view (and their request)
 
 REQUESTS
-  getHistoricProcessInstances       operate historic-process-instance list
-  getProcessInstances               operate process-instance list
-  getProcessInstance                operate process-instance get
-  getIncidents                      operate incident list
-  getIncident                       operate incident get
-  setJobRetries                     operate job set-retries
-  setExternalTaskResourceRetries    operate external-task set-retries
-  executeJob                        operate job execute
-  getJob                            operate job get
-  getStacktrace                     operate job get-stacktrace
-  getProcessDefinitionBpmn20Xml     operate process-definition xml-by-id
+  getHistoricProcessInstances       pulse-cli historic-process-instance list
+  getProcessInstances               pulse-cli process-instance list
+  getProcessInstance                pulse-cli process-instance get
+  getIncidents                      pulse-cli incident list
+  getIncident                       pulse-cli incident get
+  setJobRetries                     pulse-cli job set-retries
+  setExternalTaskResourceRetries    pulse-cli external-task set-retries
+  executeJob                        pulse-cli job execute
+  getJob                            pulse-cli job get
+  getStacktrace                     pulse-cli job get-stacktrace
+  getProcessDefinitionBpmn20Xml     pulse-cli process-definition xml-by-id
   getProcessDefinitionBpmn20XmlByKey
-                                    operate process-definition xml
-  getProcessInstancesCount          operate process-instance count
-  getJobsCount                      operate job count
-  getTasksCount                     operate task count
+                                    pulse-cli process-definition xml
+  getProcessInstancesCount          pulse-cli process-instance count
+  getJobsCount                      pulse-cli job count
+  getTasksCount                     pulse-cli task count
   getHistoricActivityInstancesCount
-                                    operate historic-activity-instance count
-  getHistoricProcessInstance        operate historic-process-instance get
-  getHistoricVariableInstances      operate historic-variable-instance list
-  getActivityInstanceTree           operate process-instance get-activity-instance-tree
-  getEventSubscriptions             operate event-subscription list
-  getTasks                          operate task list
-  getExternalTasks                  operate external-task list
-  getJobs                           operate job list
-  getProcessDefinitions             operate process-definition list
-  getJobDefinitions                 operate job-definition list
-  getProcessInstanceVariables       operate process-instance get-variables
-  getExternalTaskErrorDetails       operate external-task get-error-details
+                                    pulse-cli historic-activity-instance count
+  getHistoricProcessInstance        pulse-cli historic-process-instance get
+  getHistoricVariableInstances      pulse-cli historic-variable-instance list
+  getActivityInstanceTree           pulse-cli process-instance get-activity-instance-tree
+  getEventSubscriptions             pulse-cli event-subscription list
+  getTasks                          pulse-cli task list
+  getExternalTasks                  pulse-cli external-task list
+  getJobs                           pulse-cli job list
+  getProcessDefinitions             pulse-cli process-definition list
+  getJobDefinitions                 pulse-cli job-definition list
+  getProcessInstanceVariables       pulse-cli process-instance get-variables
+  getExternalTaskErrorDetails       pulse-cli external-task get-error-details
 
 EXAMPLES
-  operate retry $INSTANCE_ID --now
-  operate retry --incident $INCIDENT_ID
-  operate retry --process-definition-key payment --activity-id call-psp --dry-run
+  pulse-cli retry $INSTANCE_ID --now
+  pulse-cli retry --incident $INCIDENT_ID
+  pulse-cli retry --process-definition-key payment --activity-id call-psp --dry-run
 "
 `;
 
@@ -1235,7 +1235,7 @@ exports[`workflow command describe text > renders the description of retry 2`] =
 
 exports[`workflow command describe text > renders the description of status 1`] = `
 "USAGE
-  operate status [options]
+  pulse-cli status [options]
 
 DESCRIPTION
   Triage the engine: grouped incidents with root cause, job executor and external task worker health
@@ -1256,22 +1256,22 @@ OPTIONS
                                   level. One of: warning, critical.
 
 REQUESTS
-  getRestAPIVersion               operate version get
-  getProcessDefinitionStatistics  operate process-definition get-statistics
-  getIncidents                    operate incident list
-  getIncidentsCount               operate incident count
-  getExternalTasks                operate external-task list
-  getExternalTasksCount           operate external-task count
-  getJobsCount                    operate job count
-  getJobs                         operate job list
-  getTasksCount                   operate task count
-  getBatchStatistics              operate batch get-statistics
-  getStacktrace                   operate job get-stacktrace
-  getExternalTaskErrorDetails     operate external-task get-error-details
+  getRestAPIVersion               pulse-cli version get
+  getProcessDefinitionStatistics  pulse-cli process-definition get-statistics
+  getIncidents                    pulse-cli incident list
+  getIncidentsCount               pulse-cli incident count
+  getExternalTasks                pulse-cli external-task list
+  getExternalTasksCount           pulse-cli external-task count
+  getJobsCount                    pulse-cli job count
+  getJobs                         pulse-cli job list
+  getTasksCount                   pulse-cli task count
+  getBatchStatistics              pulse-cli batch get-statistics
+  getStacktrace                   pulse-cli job get-stacktrace
+  getExternalTaskErrorDetails     pulse-cli external-task get-error-details
 
 EXAMPLES
-  operate status
-  operate status --process-definition-key payment --fail-on warning
+  pulse-cli status
+  pulse-cli status --process-definition-key payment --fail-on warning
 "
 `;
 
@@ -1330,7 +1330,7 @@ exports[`workflow command describe text > renders the description of status 2`] 
 
 exports[`workflow command describe text > renders the description of wait 1`] = `
 "USAGE
-  operate wait [process-instance-id] [options]
+  pulse-cli wait [process-instance-id] [options]
 
 DESCRIPTION
   Wait until a process instance is idle, ended, has an incident or reached an activity, or a batch
@@ -1363,40 +1363,40 @@ OPTIONS
   --batch <batch-id>              Wait until this batch finished instead of a process instance
 
 REQUESTS
-  getHistoricProcessInstances       operate historic-process-instance list
-  getProcessInstances               operate process-instance list
-  getProcessInstance                operate process-instance get
-  getHistoricProcessInstance        operate historic-process-instance get
-  getProcessDefinitionBpmn20Xml     operate process-definition xml-by-id
+  getHistoricProcessInstances       pulse-cli historic-process-instance list
+  getProcessInstances               pulse-cli process-instance list
+  getProcessInstance                pulse-cli process-instance get
+  getHistoricProcessInstance        pulse-cli historic-process-instance get
+  getProcessDefinitionBpmn20Xml     pulse-cli process-definition xml-by-id
   getProcessDefinitionBpmn20XmlByKey
-                                    operate process-definition xml
-  getProcessInstancesCount          operate process-instance count
-  getJobsCount                      operate job count
-  getTasksCount                     operate task count
+                                    pulse-cli process-definition xml
+  getProcessInstancesCount          pulse-cli process-instance count
+  getJobsCount                      pulse-cli job count
+  getTasksCount                     pulse-cli task count
   getHistoricActivityInstancesCount
-                                    operate historic-activity-instance count
-  getJobs                           operate job list
-  executeJob                        operate job execute
-  getJob                            operate job get
-  getStacktrace                     operate job get-stacktrace
-  getHistoricVariableInstances      operate historic-variable-instance list
-  getActivityInstanceTree           operate process-instance get-activity-instance-tree
-  getIncidents                      operate incident list
-  getEventSubscriptions             operate event-subscription list
-  getTasks                          operate task list
-  getExternalTasks                  operate external-task list
-  getProcessDefinitions             operate process-definition list
-  getJobDefinitions                 operate job-definition list
-  getProcessInstanceVariables       operate process-instance get-variables
-  getExternalTaskErrorDetails       operate external-task get-error-details
-  getBatchStatistics                operate batch get-statistics
-  getHistoricBatch                  operate historic-batch get
+                                    pulse-cli historic-activity-instance count
+  getJobs                           pulse-cli job list
+  executeJob                        pulse-cli job execute
+  getJob                            pulse-cli job get
+  getStacktrace                     pulse-cli job get-stacktrace
+  getHistoricVariableInstances      pulse-cli historic-variable-instance list
+  getActivityInstanceTree           pulse-cli process-instance get-activity-instance-tree
+  getIncidents                      pulse-cli incident list
+  getEventSubscriptions             pulse-cli event-subscription list
+  getTasks                          pulse-cli task list
+  getExternalTasks                  pulse-cli external-task list
+  getProcessDefinitions             pulse-cli process-definition list
+  getJobDefinitions                 pulse-cli job-definition list
+  getProcessInstanceVariables       pulse-cli process-instance get-variables
+  getExternalTaskErrorDetails       pulse-cli external-task get-error-details
+  getBatchStatistics                pulse-cli batch get-statistics
+  getHistoricBatch                  pulse-cli historic-batch get
 
 EXAMPLES
-  operate wait $INSTANCE_ID
-  operate wait --business-key B-1 --until task --until ended --wait-timeout 2m
-  operate wait $INSTANCE_ID --until activity:book --execute-jobs
-  operate wait --batch $BATCH_ID
+  pulse-cli wait $INSTANCE_ID
+  pulse-cli wait --business-key B-1 --until task --until ended --wait-timeout 2m
+  pulse-cli wait $INSTANCE_ID --until activity:book --execute-jobs
+  pulse-cli wait --batch $BATCH_ID
 "
 `;
 

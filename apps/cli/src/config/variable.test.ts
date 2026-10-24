@@ -61,7 +61,7 @@ describe("validateVariableName", () => {
       ],
       [
         "Invalid --oauth-client-secret-env: expected the name of an environment variable",
-        'Use letters, digits and "_", not starting with a digit, e.g. --oauth-client-secret-env OPERATE_CLIENT_SECRET; the variable holds the client secret.',
+        'Use letters, digits and "_", not starting with a digit, e.g. --oauth-client-secret-env PULSE_CLI_CLIENT_SECRET; the variable holds the client secret.',
       ],
       [
         "Invalid --auth-token-env: expected the name of an environment variable",
@@ -86,7 +86,7 @@ describe("validateVariableName", () => {
 
 describe("isConventionalVariable", () => {
   it("accepts upper-case names of words up to 24 characters, at most 64 in all", () => {
-    for (const name of ["CI_ENGINE_TOKEN", "_X", "A", "OPERATE_ENGINE_PRODUCTION_BEARER_TOKEN"]) {
+    for (const name of ["CI_ENGINE_TOKEN", "_X", "A", "PULSE_CLI_ENGINE_PRODUCTION_BEARER_TOKEN"]) {
       expect(isConventionalVariable(name)).toBe(true)
     }
     expect(isConventionalVariable(`${"A".repeat(24)}_B`)).toBe(true)
@@ -147,7 +147,7 @@ describe("checkVariableName", () => {
     expect(
       failure(() => checkVariableName("cs_value", {}, CLIENT_SECRET_VARIABLE)).details.hint,
     ).toBe(
-      'Pass the name of the variable that holds the client secret, not its value: --oauth-client-secret-env OPERATE_CLIENT_SECRET, not --oauth-client-secret-env "$OPERATE_CLIENT_SECRET". A name in another form (lower case, very long) is accepted once the variable is set.',
+      'Pass the name of the variable that holds the client secret, not its value: --oauth-client-secret-env PULSE_CLI_CLIENT_SECRET, not --oauth-client-secret-env "$PULSE_CLI_CLIENT_SECRET". A name in another form (lower case, very long) is accepted once the variable is set.',
     )
   })
 
@@ -191,7 +191,7 @@ describe("unsetVariableWarnings", () => {
     const names = { authPasswordEnv: " PW ", oauthClientSecretEnv: "SECRET", authTokenEnv: "TOK" }
     expect(unsetVariableWarnings(names, { SECRET: " " })).toEqual([
       "Warning: the variable named by --auth-password-env is not set in this environment. Pass the name of a variable that holds the password (e.g. CAMUNDA_PASSWORD), never the password itself; commands read it when they run.",
-      "Warning: the variable named by --oauth-client-secret-env is not set in this environment. Pass the name of a variable that holds the client secret (e.g. OPERATE_CLIENT_SECRET), never the client secret itself; commands read it when they run.",
+      "Warning: the variable named by --oauth-client-secret-env is not set in this environment. Pass the name of a variable that holds the client secret (e.g. PULSE_CLI_CLIENT_SECRET), never the client secret itself; commands read it when they run.",
       "Warning: the variable named by --auth-token-env is not set in this environment. Pass the name of a variable that holds the token (e.g. CI_ENGINE_TOKEN), never the token itself; commands read it when they run.",
     ])
     expect(unsetVariableWarnings(names, { PW: "p", SECRET: "s", TOK: "t" })).toEqual([])
@@ -206,24 +206,24 @@ describe("unsetVariable", () => {
       [
         "CONFIG",
         'The password variable CI_VALUE (auth.passwordEnv of profile "prod") is not set or empty',
-        "Export it, e.g. export CI_VALUE=<password>, or name another variable with `operate config set prod --auth-password-env <VAR>`.",
+        "Export it, e.g. export CI_VALUE=<password>, or name another variable with `pulse-cli config set prod --auth-password-env <VAR>`.",
       ],
       [
         "CONFIG",
         'The client secret variable CI_VALUE (auth.clientSecretEnv of profile "prod") is not set or empty',
-        "Export it, e.g. export CI_VALUE=<secret>, or name another variable with `operate config set prod --oauth-client-secret-env <VAR>`.",
+        "Export it, e.g. export CI_VALUE=<secret>, or name another variable with `pulse-cli config set prod --oauth-client-secret-env <VAR>`.",
       ],
       [
         "CONFIG",
         'The token variable CI_VALUE (auth.tokenEnv of profile "prod") is not set or empty',
-        "Export it, e.g. export CI_VALUE=<token>, or name another variable with `operate config set prod --auth-token-env <VAR>`.",
+        "Export it, e.g. export CI_VALUE=<token>, or name another variable with `pulse-cli config set prod --auth-token-env <VAR>`.",
       ],
     ])
   })
 
   it("does not repeat a name in another form: it may be the secret stored by mistake", () => {
     expect(text(unsetVariable("hunter2", "p", PASSWORD_VARIABLE))).toBe(
-      'The password variable named by auth.passwordEnv of profile "p" is not set or empty\nIts name is not in the usual upper-case form, so it is not repeated: it may be a password stored by mistake. Check auth.passwordEnv in the config file (`operate config path`), or name another variable with `operate config set p --auth-password-env <VAR>`.',
+      'The password variable named by auth.passwordEnv of profile "p" is not set or empty\nIts name is not in the usual upper-case form, so it is not repeated: it may be a password stored by mistake. Check auth.passwordEnv in the config file (`pulse-cli config path`), or name another variable with `pulse-cli config set p --auth-password-env <VAR>`.',
     )
     fc.assert(
       fc.property(unusualNames, fc.constantFrom(...KINDS), (name, variable) => {

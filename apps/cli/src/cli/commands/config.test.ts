@@ -42,13 +42,13 @@ describe("config path", () => {
     expect((await cli(["config", "path"])).stdout).toBe(`{"path":"${CONFIG_PATH}"}\n`)
     expect((await cli(["config", "path"], { stdoutTTY: true })).stdout).toBe(`${CONFIG_PATH}\n`)
     expect((await cli(["config", "path", "-o", "table"])).stdout).toBe(`${CONFIG_PATH}\n`)
-    expect((await cli(["config", "path"], { env: { OPERATE_OUTPUT: "table" } })).stdout).toBe(
+    expect((await cli(["config", "path"], { env: { PULSE_CLI_OUTPUT: "table" } })).stdout).toBe(
       `${CONFIG_PATH}\n`,
     )
   })
 
-  it("follows --config and OPERATE_CONFIG", async () => {
-    const env = { OPERATE_CONFIG: "/env.json", OPERATE_OUTPUT: " " }
+  it("follows --config and PULSE_CLI_CONFIG", async () => {
+    const env = { PULSE_CLI_CONFIG: "/env.json", PULSE_CLI_OUTPUT: " " }
     expect((await cli(["config", "path"], { env })).stdout).toBe('{"path":"/env.json"}\n')
     expect((await cli(["config", "path", "--config", "/flag.json"], { env })).stdout).toBe(
       '{"path":"/flag.json"}\n',
@@ -71,7 +71,7 @@ describe("config set", () => {
       stderr: "",
     })
     expect(result.runtime.files.get(CONFIG_PATH)?.mode).toBe(0o600)
-    expect(result.runtime.dirs.has("/home/tester/.config/operate")).toBe(true)
+    expect(result.runtime.dirs.has("/home/tester/.config/pulse-cli")).toBe(true)
     expect(stored(result.runtime)).toEqual({
       defaultProfile: "local",
       profiles: { local: { url: URL_A } },
@@ -315,7 +315,7 @@ describe("config show", () => {
   it("shows every value with its source and masks header values", async () => {
     const result = await cli(["config", "show", "--engine", "e2"], {
       files: { [CONFIG_PATH]: file },
-      env: { OPERATE_READ_ONLY: "true" },
+      env: { PULSE_CLI_READ_ONLY: "true" },
     })
     expect(JSON.parse(result.stdout)).toEqual({
       configFile: CONFIG_PATH,
@@ -338,10 +338,10 @@ describe("config show", () => {
     })
   })
 
-  it("shows headers of OPERATE_HEADERS with source env, masked", async () => {
+  it("shows headers of PULSE_CLI_HEADERS with source env, masked", async () => {
     const result = await cli(["config", "show"], {
       files: { [CONFIG_PATH]: file },
-      env: { OPERATE_HEADERS: "Authorization: Bearer from-env" },
+      env: { PULSE_CLI_HEADERS: "Authorization: Bearer from-env" },
     })
     expect(JSON.parse(result.stdout)).toMatchObject({
       values: { headers: { value: { Authorization: "Bearer ***" }, source: "env" } },
@@ -355,7 +355,7 @@ describe("config show", () => {
       code: "CONFIG",
       message: "Config file /typo.json does not exist",
     })
-    const list = await cli(["config", "list"], { env: { OPERATE_CONFIG: "/typo.json" } })
+    const list = await cli(["config", "list"], { env: { PULSE_CLI_CONFIG: "/typo.json" } })
     expect(errorOf(list.stderr)).toMatchObject({
       message: "Config file /typo.json does not exist",
     })
@@ -410,7 +410,7 @@ describe("config show", () => {
     })
     expect(json.stdout).toMatch(/^\{\n {2}"configFile"/)
     const env = await cli(["config", "show", "--output", "table"], {
-      env: { OPERATE_OUTPUT: "json" },
+      env: { PULSE_CLI_OUTPUT: "json" },
     })
     expect(env.stdout).toMatch(/\noutput +json +env\n/)
     // without -o the resolved output format also picks the display format

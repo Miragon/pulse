@@ -21,7 +21,7 @@ const TYPE_LIKE = /^[A-Za-z-]{0,20}$/
 
 /**
  * The auth type. An unsupported value is quoted only when it looks like a type name: since
- * `bearer` is a type, `--auth "Bearer <token>"` or `OPERATE_AUTH=<token>` are likely mistakes.
+ * `bearer` is a type, `--auth "Bearer <token>"` or `PULSE_CLI_AUTH=<token>` are likely mistakes.
  */
 export function validateAuthType(type: string): AuthType {
   const known = AUTH_TYPES.find((candidate) => candidate === type)
@@ -30,7 +30,7 @@ export function validateAuthType(type: string): AuthType {
   if (TYPE_LIKE.test(type)) throw configError(`Unsupported auth type "${type}"`, supported)
   throw configError(
     `Unsupported auth type (not one of ${AUTH_TYPES.join(", ")})`,
-    "The auth type (--auth, OPERATE_AUTH, auth.type) is only the word, so the value is not repeated: it may be a credential. A bearer token itself goes into OPERATE_TOKEN or --auth-token-stdin, e.g. --auth bearer with OPERATE_TOKEN=<token>.",
+    "The auth type (--auth, PULSE_CLI_AUTH, auth.type) is only the word, so the value is not repeated: it may be a credential. A bearer token itself goes into PULSE_CLI_TOKEN or --auth-token-stdin, e.g. --auth bearer with PULSE_CLI_TOKEN=<token>.",
   )
 }
 
@@ -90,7 +90,7 @@ export function profileAuthProblem(name: string, value: unknown): string | undef
   if (!isRecord(value)) return `profile "${name}" has an invalid auth (expected ${AUTH_EXAMPLE})`
   // the token command of 0.6.0: only the environment gives one now
   if (Object.hasOwn(value, "tokenCommand")) {
-    return `profile "${name}" sets auth.tokenCommand, which operate no longer reads: remove the key from the file and export ${ENV.tokenCommand}=<command> instead`
+    return `profile "${name}" sets auth.tokenCommand, which pulse-cli no longer reads: remove the key from the file and export ${ENV.tokenCommand}=<command> instead`
   }
   const allowed: readonly string[] = PROFILE_AUTH_KEYS
   const unknown = Object.keys(value).filter((key) => !allowed.includes(key))

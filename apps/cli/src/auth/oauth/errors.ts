@@ -1,6 +1,6 @@
 /**
  * The errors of the OAuth flow. LOGIN_REQUIRED (exit 4) means a person must run
- * `operate auth login` in a terminal; agents cannot log in themselves, so the hint says who does
+ * `pulse-cli auth login` in a terminal; agents cannot log in themselves, so the hint says who does
  * what. LOGIN_FAILED (exit 4) is a login that did not complete.
  */
 
@@ -15,7 +15,7 @@ export function owner(profile: string | undefined): string {
   return profile === undefined ? "the environment configuration" : `profile "${profile}"`
 }
 
-/** `(profile "p")`, or `(no profile)`, for the lines of `operate auth login`. */
+/** `(profile "p")`, or `(no profile)`, for the lines of `pulse-cli auth login`. */
 export function profileNote(profile: string | undefined): string {
   return profile === undefined ? "(no profile)" : `(profile "${profile}")`
 }
@@ -29,7 +29,7 @@ export interface LoginOwner {
   readonly profile?: string | undefined
   /** The directory of the project file the profile comes from. */
   readonly projectDirectory?: string | undefined
-  /** The config file named by `--config` or OPERATE_CONFIG the profile comes from. */
+  /** The config file named by `--config` or PULSE_CLI_CONFIG the profile comes from. */
   readonly configFile?: string | undefined
 }
 
@@ -38,11 +38,11 @@ function shellWord(path: string): string {
   return /^[\w@%+=:,./\\-]+$/.test(path) ? path : `'${path.replace(/'/g, `'\\''`)}'`
 }
 
-/** `operate auth <command> [--config <file>] [--profile <p>]` for the login of `who`. */
+/** `pulse-cli auth <command> [--config <file>] [--profile <p>]` for the login of `who`. */
 function authCommand(command: string, who: LoginOwner): string {
-  if (who.profile === undefined) return `operate auth ${command}`
+  if (who.profile === undefined) return `pulse-cli auth ${command}`
   const config = who.configFile === undefined ? "" : ` --config ${shellWord(who.configFile)}`
-  return `operate auth ${command}${config} --profile ${who.profile}`
+  return `pulse-cli auth ${command}${config} --profile ${who.profile}`
 }
 
 /** The command a person runs to log in. */
@@ -56,22 +56,22 @@ export function statusCommand(who: LoginOwner): string {
 }
 
 /**
- * `` `operate auth login ...` in a terminal ``, and where: a profile of a project file is logged in
- * where that file applies. Without a profile the person needs OPERATE_AUTH=oauth too: `auth login`
+ * `` `pulse-cli auth login ...` in a terminal ``, and where: a profile of a project file is logged in
+ * where that file applies. Without a profile the person needs PULSE_CLI_AUTH=oauth too: `auth login`
  * has no `--auth` option, so an agent's `--auth oauth` does not carry over.
  */
 export function inTerminal(who: LoginOwner): string {
   const where = who.projectDirectory === undefined ? "" : ` in ${who.projectDirectory}`
   const settings =
     who.profile === undefined
-      ? " with OPERATE_AUTH=oauth and the same OPERATE_OAUTH_* settings"
+      ? " with PULSE_CLI_AUTH=oauth and the same PULSE_CLI_OAUTH_* settings"
       : ""
   return `\`${loginCommand(who)}\` in a terminal${where}${settings}`
 }
 
 /** The hint of every LOGIN_REQUIRED error. */
 export function loginHint(who: LoginOwner): string {
-  return `Run ${inTerminal(who)}: a person logs in once in the browser, operate refreshes the token afterwards. Agents cannot log in themselves.`
+  return `Run ${inTerminal(who)}: a person logs in once in the browser, pulse-cli refreshes the token afterwards. Agents cannot log in themselves.`
 }
 
 /** LOGIN_REQUIRED with the login hint, after an optional explanation. */
@@ -101,7 +101,7 @@ export function notLoggedIn(who: LoginOwner): OperateError {
 
 /**
  * LOGIN_REQUIRED for a cached login of another identity: the message names the fields that
- * differ, the hint the OPERATE_OAUTH_* variables that changed them (the person's terminal must
+ * differ, the hint the PULSE_CLI_OAUTH_* variables that changed them (the person's terminal must
  * set them too, or the agent must drop them), else that the settings changed since the login.
  */
 export function otherIdentity(stored: LoginIdentity, config: OAuthConfig): OperateError {
@@ -112,7 +112,7 @@ export function otherIdentity(stored: LoginIdentity, config: OAuthConfig): Opera
   )
   const why =
     variables.length === 0
-      ? "The login was made with other settings: OPERATE_OAUTH_* variables were set where the login ran (also through another profile that shares the login)."
+      ? "The login was made with other settings: PULSE_CLI_OAUTH_* variables were set where the login ran (also through another profile that shares the login)."
       : `${variables.join(", ")} of this environment ${variables.length > 1 ? "make" : "makes"} the difference: run the login below with the same ${variables.length > 1 ? "values" : "value"}, or unset ${variables.length > 1 ? "them" : "it"} here.`
   return loginRequired(
     `The OAuth login of ${owner(config.profile)} was made for another issuer, client, audience or scopes: ${details}`,
@@ -129,7 +129,7 @@ export function removedWhileRunning(who: LoginOwner): OperateError {
   return loginRequired(
     `The OAuth login of ${owner(who.profile)} was removed while this command ran`,
     who,
-    "A logout (also of a profile that shares the login) or `operate config set|unset|delete` removed it.",
+    "A logout (also of a profile that shares the login) or `pulse-cli config set|unset|delete` removed it.",
   )
 }
 
@@ -138,7 +138,7 @@ export const REFRESH_REJECTED =
   "The session expired, was revoked, or the refresh token was replayed."
 
 /**
- * LOGIN_REQUIRED for a login operate cannot refresh: the authorization server refused its
+ * LOGIN_REQUIRED for a login pulse-cli cannot refresh: the authorization server refused its
  * refresh token before, it has none, or an expired one.
  */
 export function cannotRefresh(login: CachedLogin, now: number, who: LoginOwner) {
@@ -155,7 +155,7 @@ export function cannotRefresh(login: CachedLogin, now: number, who: LoginOwner) 
     return loginRequired(
       `The access token of ${whose} expired at ${iso(login.expiresAt ?? now)} and there is no refresh token`,
       who,
-      "Request the offline_access scope or allow refresh tokens for the client, so that operate can refresh the token.",
+      "Request the offline_access scope or allow refresh tokens for the client, so that pulse-cli can refresh the token.",
     )
   }
   return loginRequired(

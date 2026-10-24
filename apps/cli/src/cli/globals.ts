@@ -33,29 +33,29 @@ export const GLOBAL_OPTIONS: readonly GlobalOptionSpec[] = [
   {
     long: "url",
     value: "<url>",
-    description: "REST API root, e.g. http://localhost:8080/engine-rest (env OPERATE_URL)",
+    description: "REST API root, e.g. http://localhost:8080/engine-rest (env PULSE_CLI_URL)",
   },
   {
     long: "engine",
     value: "<name>",
-    description: "Named process engine, adds /engine/<name> to the path (env OPERATE_ENGINE)",
+    description: "Named process engine, adds /engine/<name> to the path (env PULSE_CLI_ENGINE)",
   },
   {
     long: "platform",
     value: "<name>",
-    description: `Engine product: ${PLATFORMS.join(", ")}; default ${DEFAULT_PLATFORM} (env OPERATE_PLATFORM)`,
+    description: `Engine product: ${PLATFORMS.join(", ")}; default ${DEFAULT_PLATFORM} (env PULSE_CLI_PLATFORM)`,
   },
   {
     long: "profile",
     value: "<name>",
-    description: "Profile of the config file (env OPERATE_PROFILE)",
+    description: "Profile of the config file (env PULSE_CLI_PROFILE)",
   },
-  { long: "config", value: "<path>", description: "Config file location (env OPERATE_CONFIG)" },
+  { long: "config", value: "<path>", description: "Config file location (env PULSE_CLI_CONFIG)" },
   {
     long: "output",
     short: "o",
     value: "<format>",
-    description: "json or table; default: table on a terminal, else json (env OPERATE_OUTPUT)",
+    description: "json or table; default: table on a terminal, else json (env PULSE_CLI_OUTPUT)",
   },
   {
     long: "fields",
@@ -68,12 +68,12 @@ export const GLOBAL_OPTIONS: readonly GlobalOptionSpec[] = [
   { long: "yes", short: "y", description: "Confirm delete and bulk operations" },
   {
     long: "read-only",
-    description: "Refuse every operation that is not a read (env OPERATE_READ_ONLY)",
+    description: "Refuse every operation that is not a read (env PULSE_CLI_READ_ONLY)",
   },
   {
     long: "timeout",
     value: "<ms>",
-    description: "Request timeout in milliseconds, default 30000 (env OPERATE_TIMEOUT)",
+    description: "Request timeout in milliseconds, default 30000 (env PULSE_CLI_TIMEOUT)",
   },
   {
     long: "header",
@@ -86,20 +86,21 @@ export const GLOBAL_OPTIONS: readonly GlobalOptionSpec[] = [
     long: "auth",
     value: "<type>",
     description:
-      "Authentication: none, basic, oauth or bearer; a username alone selects basic, a token bearer (env OPERATE_AUTH)",
+      "Authentication: none, basic, oauth or bearer; a username alone selects basic, a token bearer (env PULSE_CLI_AUTH)",
   },
   {
     long: "auth-user",
     value: "<name>",
-    description: "Username for Basic auth (env OPERATE_USERNAME)",
+    description: "Username for Basic auth (env PULSE_CLI_USERNAME)",
   },
   {
     long: "auth-password-stdin",
-    description: "Read the Basic auth password from the first line of stdin (env OPERATE_PASSWORD)",
+    description:
+      "Read the Basic auth password from the first line of stdin (env PULSE_CLI_PASSWORD)",
   },
   {
     long: "auth-token-stdin",
-    description: "Read the bearer token from the first line of stdin (env OPERATE_TOKEN)",
+    description: "Read the bearer token from the first line of stdin (env PULSE_CLI_TOKEN)",
   },
   { long: "verbose", description: "Trace requests and responses on stderr" },
   { long: "out-file", value: "<path>", description: "Write the response body to a file" },

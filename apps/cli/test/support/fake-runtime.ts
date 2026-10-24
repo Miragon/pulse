@@ -137,7 +137,7 @@ export interface FakeRuntime extends Runtime {
 const FIXED_NOW = 1_700_000_000_000
 const HOME = "/home/tester"
 /** Default config file location for HOME on Linux. */
-export const CONFIG_PATH = `${HOME}/.config/operate/config.json`
+export const CONFIG_PATH = `${HOME}/.config/pulse-cli/config.json`
 
 const decoder = new TextDecoder()
 

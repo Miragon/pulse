@@ -31,7 +31,7 @@ const METHODS: readonly HttpMethod[] = ["GET", "POST", "PUT", "DELETE"]
 
 /**
  * Path item keys that are not commands. OPTIONS operations only list the HATEOAS links a user may
- * follow (`availableOperations...`); they stay reachable with `operate api OPTIONS <path>`.
+ * follow (`availableOperations...`); they stay reachable with `pulse-cli api OPTIONS <path>`.
  */
 const IGNORED_KEYS: ReadonlySet<string> = new Set([
   "options",

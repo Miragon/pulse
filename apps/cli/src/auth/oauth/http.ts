@@ -32,7 +32,7 @@ export interface ServerAnswer {
 /** Where the requests go, for messages: the issuer or endpoint and where it was configured. */
 export interface Endpoint {
   readonly url: string
-  /** `OPERATE_OAUTH_ISSUER`, `auth.issuer of profile "p"`, ... */
+  /** `PULSE_CLI_OAUTH_ISSUER`, `auth.issuer of profile "p"`, ... */
   readonly source: string
 }
 

@@ -1,7 +1,7 @@
 import { defineConfig } from "tsdown"
 
 export default defineConfig({
-  entry: { operate: "src/bin/operate.ts" },
+  entry: { "pulse-cli": "src/bin/pulse-cli.ts" },
   format: "esm",
   platform: "node",
   target: "node22",

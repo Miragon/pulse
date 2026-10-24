@@ -30,12 +30,12 @@ function errorOf(stderr: string): Record<string, unknown> {
   return (JSON.parse(stderr) as { error: Record<string, unknown> }).error
 }
 
-describe("operate describe <group> <command>", () => {
+describe("pulse-cli describe <group> <command>", () => {
   it("prints the describe view as JSON when piped", async () => {
     const result = await cli(["describe", "process-definition", "start"])
     expect(result).toMatchObject({ code: 0, stderr: "" })
     expect(result.stdout).toBe(`${JSON.stringify(START_VIEW)}\n`)
-    expect(START_VIEW.command).toBe("operate process-definition start <key>")
+    expect(START_VIEW.command).toBe("pulse-cli process-definition start <key>")
   })
 
   it("finds the command by an alias", async () => {
@@ -46,7 +46,9 @@ describe("operate describe <group> <command>", () => {
   it("prints readable text with -o table and on a terminal", async () => {
     const table = await cli(["describe", "process-definition", "start", "-o", "table"])
     expect(table.stdout).toBe(renderDescribeText(START_VIEW))
-    expect(table.stdout).toMatch(/^USAGE\n {2}operate process-definition start <key> \[options\]\n/)
+    expect(table.stdout).toMatch(
+      /^USAGE\n {2}pulse-cli process-definition start <key> \[options\]\n/,
+    )
     const terminal = await cli(["describe", "process-definition", "start"], { stdoutTTY: true })
     expect(terminal.stdout).toBe(table.stdout)
   })
@@ -73,7 +75,7 @@ describe("operate describe <group> <command>", () => {
   })
 })
 
-describe("operate describe <operationId>", () => {
+describe("pulse-cli describe <operationId>", () => {
   it("describes the operation of an operationId, in any case", async () => {
     const result = await cli(["describe", "startProcessInstanceByKey"])
     expect(result.stdout).toBe(`${JSON.stringify(START_VIEW)}\n`)
@@ -87,8 +89,8 @@ describe("operate describe <operationId>", () => {
   })
 })
 
-describe("operate describe <group>", () => {
-  it("prints the same as operate commands <group>", async () => {
+describe("pulse-cli describe <group>", () => {
+  it("prints the same as pulse-cli commands <group>", async () => {
     for (const options of [{}, { stdoutTTY: true }]) {
       const described = await cli(["describe", "task"], options)
       const listed = await cli(["commands", "task"], options)
@@ -97,7 +99,7 @@ describe("operate describe <group>", () => {
   })
 })
 
-describe("operate describe: errors", () => {
+describe("pulse-cli describe: errors", () => {
   it("suggests the command for a misspelled command of a group", async () => {
     const result = await cli(["describe", "task", "lsit"])
     expect(result).toMatchObject({ code: 2, stdout: "" })
@@ -105,7 +107,7 @@ describe("operate describe: errors", () => {
       code: "USAGE",
       exitCode: 2,
       message: 'Unknown command "task lsit"',
-      hint: 'Did you mean task list? Run "operate commands task" for the commands of the group, or search all commands with "operate commands --search lsit".',
+      hint: 'Did you mean task list? Run "pulse-cli commands task" for the commands of the group, or search all commands with "pulse-cli commands --search lsit".',
     })
   })
 
@@ -115,7 +117,7 @@ describe("operate describe: errors", () => {
       code: "USAGE",
       exitCode: 2,
       message: 'Unknown command "tsk list"',
-      hint: 'Did you mean task list? Run "operate commands" for the groups, or search all commands with "operate commands --search list".',
+      hint: 'Did you mean task list? Run "pulse-cli commands" for the groups, or search all commands with "pulse-cli commands --search list".',
     })
   })
 
@@ -125,7 +127,7 @@ describe("operate describe: errors", () => {
       code: "USAGE",
       exitCode: 2,
       message: 'Unknown group or operationId "startProcessInstanceByKy"',
-      hint: 'Did you mean startProcessInstanceByKey? Run "operate commands" for the groups, or search all commands with "operate commands --search startProcessInstanceByKy".',
+      hint: 'Did you mean startProcessInstanceByKey? Run "pulse-cli commands" for the groups, or search all commands with "pulse-cli commands --search startProcessInstanceByKy".',
     })
   })
 
@@ -134,7 +136,7 @@ describe("operate describe: errors", () => {
     expect(result.stderr).toBe(
       [
         'Error: Unknown command "external-task retries"',
-        '  Hint: Did you mean one of external-task set-retries, external-task set-retries-async, external-task set-retries-bulk? Run "operate commands external-task" for the commands of the group, or search all commands with "operate commands --search retries".',
+        '  Hint: Did you mean one of external-task set-retries, external-task set-retries-async, external-task set-retries-bulk? Run "pulse-cli commands external-task" for the commands of the group, or search all commands with "pulse-cli commands --search retries".',
         "",
       ].join("\n"),
     )
@@ -143,7 +145,7 @@ describe("operate describe: errors", () => {
   it("gives only the hints when nothing matches", async () => {
     const result = await cli(["describe", "zzzz"])
     expect(errorOf(result.stderr)).toMatchObject({
-      hint: 'Run "operate commands" for the groups, or search all commands with "operate commands --search zzzz".',
+      hint: 'Run "pulse-cli commands" for the groups, or search all commands with "pulse-cli commands --search zzzz".',
     })
   })
 
@@ -153,7 +155,7 @@ describe("operate describe: errors", () => {
       code: "USAGE",
       exitCode: 2,
       message: "Missing required argument 'group'",
-      hint: 'Run "operate describe --help" for the usage.',
+      hint: 'Run "pulse-cli describe --help" for the usage.',
     })
     const excess = await cli(["describe", "task", "claim", "extra"])
     expect(errorOf(excess.stderr)).toMatchObject({

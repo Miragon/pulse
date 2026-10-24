@@ -213,7 +213,7 @@ describe("executeOperation", () => {
     const error = await caught(executeOperation(remove, input({ pathArgs: ["pi"] }), opts))
     expect(error.code).toBe("CONFIRMATION_REQUIRED")
     expect(error.message).toBe(
-      "`operate process-instance delete` is a delete operation and needs confirmation",
+      "`pulse-cli process-instance delete` is a delete operation and needs confirmation",
     )
     expect(opts.calls).toEqual([])
   })
@@ -236,7 +236,7 @@ describe("executeOperation", () => {
     )
     expect(error.code).toBe("READ_ONLY")
     expect(error.message).toBe(
-      "`operate process-definition start` is a write operation and read-only mode is enabled",
+      "`pulse-cli process-definition start` is a write operation and read-only mode is enabled",
     )
     expect(error.details.hint).toBe(
       "Read-only mode is enabled by --read-only. Use --dry-run to preview the request.",
@@ -259,7 +259,7 @@ describe("executeOperation", () => {
       ),
     )
     expect(error.message).toBe(
-      "`operate process-instance suspend` is a write operation and read-only mode is enabled",
+      "`pulse-cli process-instance suspend` is a write operation and read-only mode is enabled",
     )
   })
 

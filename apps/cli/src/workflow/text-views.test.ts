@@ -120,7 +120,7 @@ describe("view texts", () => {
         engine: { url: "http://h/engine-rest", engine: "second", version: null, latencyMs: 1500 },
         status: "critical",
         findings: [
-          { severity: "critical", code: "JOBS_OVERDUE", message: "m", next: "operate job list" },
+          { severity: "critical", code: "JOBS_OVERDUE", message: "m", next: "pulse-cli job list" },
           { severity: "warning", code: "X", message: "w" },
         ],
         definitions: [
@@ -154,7 +154,7 @@ describe("view texts", () => {
       "Engine  http://h/engine-rest (engine second, version unknown, 1.5s)\nStatus  critical\n",
     )
     expect(text).toContain(
-      "\nFindings:\n  critical  m\n            next: operate job list\n  warning   w\n",
+      "\nFindings:\n  critical  m\n            next: pulse-cli job list\n  warning   w\n",
     )
     expect(text).toContain(
       "\nDefinitions:\nKEY  VERSIONS  INSTANCES  INCIDENTS  FAILED JOBS\nk    1         2          1          1\n",
@@ -242,7 +242,7 @@ describe("view texts, other shapes", () => {
       {
         engine: { url: "http://h", version: "1", latencyMs: 1 },
         status: "warning",
-        findings: [{ severity: "warning", code: "X", message: "w", next: "operate x" }],
+        findings: [{ severity: "warning", code: "X", message: "w", next: "pulse-cli x" }],
         definitions: [],
         incidents: [],
         incidentsTotal: 0,
@@ -253,7 +253,7 @@ describe("view texts, other shapes", () => {
       },
       120,
     )
-    expect(overdue).toContain("\nFindings:\n  warning  w\n           next: operate x\n")
+    expect(overdue).toContain("\nFindings:\n  warning  w\n           next: pulse-cli x\n")
     expect(overdue).toContain("\nJobs       3 executable, 2 overdue\n")
   })
 

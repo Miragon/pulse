@@ -1,5 +1,5 @@
 /**
- * Every example command line (curated and generic) and every `operate` command in the code blocks
+ * Every example command line (curated and generic) and every `pulse-cli` command in the code blocks
  * of the guide (the core and every topic) must be valid against the catalog: known group and
  * command, the right number of positional arguments, only options the command registers (operation
  * options from `operationOptions`, `--no-x` for boolean options, the global options of
@@ -24,96 +24,96 @@ describe("the command line checker", () => {
   }
 
   it("accepts valid operation and utility commands", () => {
-    expect(ok("operate process-instance get abc -o table --pretty")).not.toThrow()
-    expect(ok("operate process-instance list --no-with-incident --all")).not.toThrow()
-    expect(ok("operate task complete t1 --var 'note=a b' --no-validate")).not.toThrow()
-    expect(ok("operate deployment create a.bpmn b.dmn --base-dir .")).not.toThrow()
-    expect(ok("operate metrics sum job-acquisition-attempt")).not.toThrow()
-    expect(ok("operate commands task --search claim --effect write")).not.toThrow()
-    expect(ok("operate describe getProcessInstances")).not.toThrow()
-    expect(ok("operate config unset prod url headers")).not.toThrow()
+    expect(ok("pulse-cli process-instance get abc -o table --pretty")).not.toThrow()
+    expect(ok("pulse-cli process-instance list --no-with-incident --all")).not.toThrow()
+    expect(ok("pulse-cli task complete t1 --var 'note=a b' --no-validate")).not.toThrow()
+    expect(ok("pulse-cli deployment create a.bpmn b.dmn --base-dir .")).not.toThrow()
+    expect(ok("pulse-cli metrics sum job-acquisition-attempt")).not.toThrow()
+    expect(ok("pulse-cli commands task --search claim --effect write")).not.toThrow()
+    expect(ok("pulse-cli describe getProcessInstances")).not.toThrow()
+    expect(ok("pulse-cli config unset prod url headers")).not.toThrow()
     expect(
-      ok("operate config set p --auth basic --auth-user demo --auth-password-env PW"),
+      ok("pulse-cli config set p --auth basic --auth-user demo --auth-password-env PW"),
     ).not.toThrow()
-    expect(ok("operate ping --auth basic --auth-user demo --auth-password-stdin")).not.toThrow()
-    expect(ok('operate api PUT /job/j1/retries --body {"retries":1}')).not.toThrow()
-    expect(ok("operate inspect p1 --history --no-variables -o table")).not.toThrow()
+    expect(ok("pulse-cli ping --auth basic --auth-user demo --auth-password-stdin")).not.toThrow()
+    expect(ok('pulse-cli api PUT /job/j1/retries --body {"retries":1}')).not.toThrow()
+    expect(ok("pulse-cli inspect p1 --history --no-variables -o table")).not.toThrow()
     expect(
-      ok("operate wait --business-key B --until task:a --until ended --wait-timeout 2m"),
+      ok("pulse-cli wait --business-key B --until task:a --until ended --wait-timeout 2m"),
     ).not.toThrow()
-    expect(ok("operate retry --process-definition-key k --dry-run")).not.toThrow()
-    expect(ok("operate deploy a b --start-key k --var x=1")).not.toThrow()
-    expect(ok("operate status --fail-on warning --stale-after 10m")).not.toThrow()
-    expect(ok("operate completion zsh")).not.toThrow()
-    expect(ok("operate describe inspect")).not.toThrow()
-    expect(ok("operate commands workflow")).not.toThrow()
-    expect(ok("operate guide")).not.toThrow()
-    expect(ok("operate guide auth")).not.toThrow()
-    expect(ok("operate guide --list -o table")).not.toThrow()
+    expect(ok("pulse-cli retry --process-definition-key k --dry-run")).not.toThrow()
+    expect(ok("pulse-cli deploy a b --start-key k --var x=1")).not.toThrow()
+    expect(ok("pulse-cli status --fail-on warning --stale-after 10m")).not.toThrow()
+    expect(ok("pulse-cli completion zsh")).not.toThrow()
+    expect(ok("pulse-cli describe inspect")).not.toThrow()
+    expect(ok("pulse-cli commands workflow")).not.toThrow()
+    expect(ok("pulse-cli guide")).not.toThrow()
+    expect(ok("pulse-cli guide auth")).not.toThrow()
+    expect(ok("pulse-cli guide --list -o table")).not.toThrow()
   })
 
   it("rejects drift from the catalog", () => {
-    expect(ok("operate process-instance get")).toThrow()
-    expect(ok("operate process-instance get a b")).toThrow()
-    expect(ok("operate process-instance lists")).toThrow()
-    expect(ok("operate process-instance get abc --nope")).toThrow()
-    expect(ok("operate process-instance get abc --no-pretty")).toThrow()
-    expect(ok("operate process-instance list --active=true")).toThrow()
-    expect(ok("operate process-instance list --no-active")).toThrow()
-    expect(ok("operate process-instance list --sort-order up")).toThrow()
-    expect(ok("operate metrics sum my-metrics-name")).toThrow()
-    expect(ok("operate process-instance list --max-results ten")).toThrow()
-    expect(ok("operate process-instance list --fields")).toThrow()
-    expect(ok("operate process-instance list -o yaml")).toThrow()
-    expect(ok("operate historic-process-instance list --started-after yesterday")).toThrow()
-    expect(ok("operate task complete t1 --var novalue")).toThrow()
-    expect(ok("operate task complete t1 --body '{\"variablez\":{}}'")).toThrow()
-    expect(ok("operate process-instance delete abc")).toThrow()
-    expect(ok("operate deployment create")).toThrow()
-    expect(ok("operate commands no-such-group")).toThrow()
-    expect(ok("operate commands --effect remove")).toThrow()
-    expect(ok("operate describe task nothing")).toThrow()
-    expect(ok("operate config set")).toThrow()
-    expect(ok("operate config set p --auth digest")).toThrow()
-    expect(ok("operate config set p --oauth-issuer http://login.example.com")).toThrow()
-    expect(ok("operate config set p --auth-password-env MY-VAR")).toThrow()
-    expect(ok("operate config set p --auth-token-env MY-VAR")).toThrow()
-    expect(ok("operate config set p --auth-user a:b")).toThrow()
-    expect(ok("operate config rename a b")).toThrow()
-    expect(ok("operate api FETCH /x")).toThrow()
-    expect(ok("operate api DELETE /process-instance/abc")).toThrow()
-    expect(ok("operate ping extra")).toThrow()
-    expect(ok("operate guide --pretty")).toThrow()
-    expect(ok("operate guide setup")).toThrow()
-    expect(ok("operate guide auth recipes")).toThrow()
-    expect(ok("operate guide auth --list")).toThrow()
-    expect(ok("operate guide --list -o yaml")).toThrow()
-    expect(ok("operate inspect a b")).toThrow()
-    expect(ok("operate inspect a --nope")).toThrow()
-    expect(ok("operate wait a --until done")).toThrow()
-    expect(ok("operate wait a --wait-timeout soon")).toThrow()
-    expect(ok("operate status x")).toThrow()
-    expect(ok("operate status --fail-on never")).toThrow()
-    expect(ok("operate deploy")).toThrow()
-    expect(ok("operate retry --process-definition-key k")).toThrow()
-    expect(ok("operate retry a --retries one")).toThrow()
-    expect(ok("operate completion powershell")).toThrow()
+    expect(ok("pulse-cli process-instance get")).toThrow()
+    expect(ok("pulse-cli process-instance get a b")).toThrow()
+    expect(ok("pulse-cli process-instance lists")).toThrow()
+    expect(ok("pulse-cli process-instance get abc --nope")).toThrow()
+    expect(ok("pulse-cli process-instance get abc --no-pretty")).toThrow()
+    expect(ok("pulse-cli process-instance list --active=true")).toThrow()
+    expect(ok("pulse-cli process-instance list --no-active")).toThrow()
+    expect(ok("pulse-cli process-instance list --sort-order up")).toThrow()
+    expect(ok("pulse-cli metrics sum my-metrics-name")).toThrow()
+    expect(ok("pulse-cli process-instance list --max-results ten")).toThrow()
+    expect(ok("pulse-cli process-instance list --fields")).toThrow()
+    expect(ok("pulse-cli process-instance list -o yaml")).toThrow()
+    expect(ok("pulse-cli historic-process-instance list --started-after yesterday")).toThrow()
+    expect(ok("pulse-cli task complete t1 --var novalue")).toThrow()
+    expect(ok("pulse-cli task complete t1 --body '{\"variablez\":{}}'")).toThrow()
+    expect(ok("pulse-cli process-instance delete abc")).toThrow()
+    expect(ok("pulse-cli deployment create")).toThrow()
+    expect(ok("pulse-cli commands no-such-group")).toThrow()
+    expect(ok("pulse-cli commands --effect remove")).toThrow()
+    expect(ok("pulse-cli describe task nothing")).toThrow()
+    expect(ok("pulse-cli config set")).toThrow()
+    expect(ok("pulse-cli config set p --auth digest")).toThrow()
+    expect(ok("pulse-cli config set p --oauth-issuer http://login.example.com")).toThrow()
+    expect(ok("pulse-cli config set p --auth-password-env MY-VAR")).toThrow()
+    expect(ok("pulse-cli config set p --auth-token-env MY-VAR")).toThrow()
+    expect(ok("pulse-cli config set p --auth-user a:b")).toThrow()
+    expect(ok("pulse-cli config rename a b")).toThrow()
+    expect(ok("pulse-cli api FETCH /x")).toThrow()
+    expect(ok("pulse-cli api DELETE /process-instance/abc")).toThrow()
+    expect(ok("pulse-cli ping extra")).toThrow()
+    expect(ok("pulse-cli guide --pretty")).toThrow()
+    expect(ok("pulse-cli guide setup")).toThrow()
+    expect(ok("pulse-cli guide auth recipes")).toThrow()
+    expect(ok("pulse-cli guide auth --list")).toThrow()
+    expect(ok("pulse-cli guide --list -o yaml")).toThrow()
+    expect(ok("pulse-cli inspect a b")).toThrow()
+    expect(ok("pulse-cli inspect a --nope")).toThrow()
+    expect(ok("pulse-cli wait a --until done")).toThrow()
+    expect(ok("pulse-cli wait a --wait-timeout soon")).toThrow()
+    expect(ok("pulse-cli status x")).toThrow()
+    expect(ok("pulse-cli status --fail-on never")).toThrow()
+    expect(ok("pulse-cli deploy")).toThrow()
+    expect(ok("pulse-cli retry --process-definition-key k")).toThrow()
+    expect(ok("pulse-cli retry a --retries one")).toThrow()
+    expect(ok("pulse-cli completion powershell")).toThrow()
   })
 
   it("finds commands in fenced code blocks only, split at shell operators", () => {
     const markdown = [
-      "operate outside a block",
+      "pulse-cli outside a block",
       "```sh",
-      "echo '{}' | operate task list --body - > out.json",
-      "operate ping && operate guide",
+      "echo '{}' | pulse-cli task list --body - > out.json",
+      "pulse-cli ping && pulse-cli guide",
       "export X=1",
       "```",
-      "operate after the block",
+      "pulse-cli after the block",
     ].join("\n")
     expect(guideCommands(markdown)).toEqual([
-      ["operate", "task", "list", "--body", "-"],
-      ["operate", "ping"],
-      ["operate", "guide"],
+      ["pulse-cli", "task", "list", "--body", "-"],
+      ["pulse-cli", "ping"],
+      ["pulse-cli", "guide"],
     ])
   })
 })
@@ -123,7 +123,7 @@ describe("examples", () => {
     for (const operation of catalog.operations) {
       for (const example of examplesFor(operation)) {
         const words = commandWords(example)
-        expect(words.slice(0, 3), example).toEqual(["operate", operation.group, operation.name])
+        expect(words.slice(0, 3), example).toEqual(["pulse-cli", operation.group, operation.name])
         expect(() => {
           checkOperationCommand(operation, words.slice(3))
         }, example).not.toThrow()

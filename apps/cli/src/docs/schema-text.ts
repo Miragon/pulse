@@ -1,6 +1,6 @@
 /**
  * Plain text views of expanded schemas (see `expandSchema`): one line type labels such as
- * `array<TaskDto>` and compact indented property lists for `operate describe`. Pure.
+ * `array<TaskDto>` and compact indented property lists for `pulse-cli describe`. Pure.
  */
 
 import { objectProperties, refName, requiredProperties } from "../catalog/schema.js"

@@ -202,7 +202,7 @@ describe("inspect requests", () => {
       .on("GET", "/history/process-instance/x", engineError(404, "InvalidRequestException", "gone"))
     await expect(loadInstance(portOf(server.fetch), "x", ALL)).rejects.toMatchObject({
       details: {
-        hint: "List instances with `operate process-instance list` (running) or `operate historic-process-instance list` (also ended); with history level none, ended instances cannot be found.",
+        hint: "List instances with `pulse-cli process-instance list` (running) or `pulse-cli historic-process-instance list` (also ended); with history level none, ended instances cannot be found.",
       },
     })
   })

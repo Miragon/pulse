@@ -1,6 +1,6 @@
 # Architecture decisions
 
-These records describe the architecture of operate as it is today, as a set of decisions: what was
+These records describe the architecture of pulse-cli as it is today, as a set of decisions: what was
 decided, what follows from it, and which alternatives were turned down and why. They are not a
 history. When a decision changes, its record is edited in place so that it stays true.
 

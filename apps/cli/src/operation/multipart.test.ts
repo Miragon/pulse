@@ -159,7 +159,7 @@ describe("buildMultipart", () => {
     expect(error.code).toBe("USAGE")
     expect(error.message).toBe("At least one resource file is required")
     expect(error.details.hint).toBe(
-      "Example: operate deployment create order.bpmn approval.dmn --deployment-name orders",
+      "Example: pulse-cli deployment create order.bpmn approval.dmn --deployment-name orders",
     )
   })
 

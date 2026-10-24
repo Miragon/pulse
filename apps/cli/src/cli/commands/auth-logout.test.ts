@@ -1,5 +1,5 @@
 /**
- * `operate auth status|logout` through `run()` on the fake runtime and the fake identity provider:
+ * `pulse-cli auth status|logout` through `run()` on the fake runtime and the fake identity provider:
  * outputs, stderr lines, exit codes and the token cache (auth.test.ts has `auth login`).
  */
 
@@ -30,7 +30,7 @@ function setup(options: LoginSetup = {}) {
   return { idp, runtime, cli: (args: readonly string[]) => execute(run, args, runtime) }
 }
 
-describe("operate auth status", () => {
+describe("pulse-cli auth status", () => {
   it("prints the cached login without network access", async () => {
     const { cli, idp, runtime } = setup({
       files: { [TOKEN_FILE]: cacheText(cachedLogin(T0 - 1000)) },
@@ -61,7 +61,7 @@ describe("operate auth status", () => {
     [null, 'Not logged in: profile "p" has no OAuth login'],
     [
       cacheText(cachedLogin(T0, { identity: { ...cachedLogin(T0).identity, clientId: "x" } })),
-      'The OAuth login of profile "p" was made for another issuer, client, audience or scopes: client "x" (the configuration asks for "operate-cli")',
+      'The OAuth login of profile "p" was made for another issuer, client, audience or scopes: client "x" (the configuration asks for "pulse-cli")',
     ],
     [
       cacheText(cachedLogin(T0 - 400_000, { refreshToken: null })),
@@ -79,14 +79,14 @@ describe("operate auth status", () => {
         code: "LOGIN_REQUIRED",
         message,
         hint: expect.stringContaining(
-          "Run `operate auth login --profile p` in a terminal",
+          "Run `pulse-cli auth login --profile p` in a terminal",
         ) as string,
       })
     },
   )
 })
 
-describe("operate auth logout", () => {
+describe("pulse-cli auth logout", () => {
   it("revokes, removes the file and notes the still valid access token", async () => {
     const { cli, idp, runtime } = setup({ files: { [TOKEN_FILE]: cacheText(cachedLogin(T0)) } })
     const result = await cli(["auth", "logout"])
@@ -132,7 +132,7 @@ describe("operate auth logout", () => {
   it("works for a profile whose OAuth settings no longer resolve", async () => {
     for (const { auth, env } of [
       { auth: { clientSecretEnv: "UNSET_SECRET" }, env: {} },
-      { auth: {}, env: { OPERATE_OAUTH_REDIRECT_PORT: "any" } },
+      { auth: {}, env: { PULSE_CLI_OAUTH_REDIRECT_PORT: "any" } },
     ]) {
       const { cli, idp, runtime } = setup({
         runtime: { env },
@@ -164,7 +164,7 @@ describe("operate auth logout", () => {
 
   it("revokes a confidential login with the secret of the same issuer and client", async () => {
     const { cli, idp } = setup({
-      idp: { clients: { "operate-cli": { secret: "a-secret" } } },
+      idp: { clients: { "pulse-cli": { secret: "a-secret" } } },
       runtime: { env: { A_SECRET: "a-secret" } },
       files: {
         [CONFIG_PATH]: oauthProfiles({ clientSecretEnv: "A_SECRET" }),
@@ -173,24 +173,24 @@ describe("operate auth logout", () => {
     })
     const result = await cli(["auth", "logout"])
     expect(JSON.parse(result.stdout)).toMatchObject({ removed: true, revoked: true })
-    expect(idp.requests[0]?.headers.authorization).toBe(`Basic ${btoa("operate-cli:a-secret")}`)
+    expect(idp.requests[0]?.headers.authorization).toBe(`Basic ${btoa("pulse-cli:a-secret")}`)
   })
 
   it("never sends the secret of other settings to the authorization server of the login", async () => {
-    const secret = { OPERATE_OAUTH_CLIENT_SECRET: "secret-of-b" }
+    const secret = { PULSE_CLI_OAUTH_CLIENT_SECRET: "secret-of-b" }
     const cases = [
       // the environment points at another issuer and client with their own secret
       {
         ...secret,
-        OPERATE_OAUTH_ISSUER: "https://b.example.com/realms/b",
-        OPERATE_OAUTH_CLIENT_ID: "b-client",
+        PULSE_CLI_OAUTH_ISSUER: "https://b.example.com/realms/b",
+        PULSE_CLI_OAUTH_CLIENT_ID: "b-client",
       },
       // the environment switches to Basic auth; an exported secret of another setup
-      { ...secret, OPERATE_AUTH: "basic", OPERATE_USERNAME: "u", OPERATE_PASSWORD: "pw" },
+      { ...secret, PULSE_CLI_AUTH: "basic", PULSE_CLI_USERNAME: "u", PULSE_CLI_PASSWORD: "pw" },
     ]
     for (const env of cases) {
       const { cli, idp, runtime } = setup({
-        idp: { clients: { "operate-cli": { secret: "a-secret" } } },
+        idp: { clients: { "pulse-cli": { secret: "a-secret" } } },
         runtime: { env },
         files: { [CONFIG_PATH]: oauthProfiles(), [TOKEN_FILE]: cacheText(CONFIDENTIAL_LOGIN) },
       })
@@ -212,7 +212,7 @@ describe("operate auth logout", () => {
     expect(result.code).toBe(0)
     expect(result.stdout).toMatch(/removed\s+true/)
     expect(result.stderr).toBe(
-      `Warning: operate knows no token revocation endpoint (RFC 7009) for ${ISSUER} (explicit endpoints, or none in its discovery document); the refresh token was not revoked and stays valid until 2023-11-14T22:43:20.000Z. End the session at the authorization server if needed (sign out, or revoke the user's sessions).\nNote: the access token issued before stays valid until 2023-11-14T22:18:20.000Z at gateways that check tokens offline.\n`,
+      `Warning: pulse-cli knows no token revocation endpoint (RFC 7009) for ${ISSUER} (explicit endpoints, or none in its discovery document); the refresh token was not revoked and stays valid until 2023-11-14T22:43:20.000Z. End the session at the authorization server if needed (sign out, or revoke the user's sessions).\nNote: the access token issued before stays valid until 2023-11-14T22:18:20.000Z at gateways that check tokens offline.\n`,
     )
   })
 
@@ -220,12 +220,12 @@ describe("operate auth logout", () => {
     const plain = await execute(run, ["auth", "logout"], fakeRuntime())
     expect(plain.code).toBe(3)
     expect(errorOf(plain.stderr).message).toBe(
-      "operate auth logout needs OAuth, but the configuration uses none",
+      "pulse-cli auth logout needs OAuth, but the configuration uses none",
     )
     const broken = await execute(
       run,
       ["auth", "logout"],
-      fakeRuntime({ env: { OPERATE_AUTH: "oauth" } }),
+      fakeRuntime({ env: { PULSE_CLI_AUTH: "oauth" } }),
     )
     expect(errorOf(broken.stderr).message).toBe(
       "OAuth is selected but the issuer and the client id are missing",

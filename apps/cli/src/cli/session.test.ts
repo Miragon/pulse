@@ -55,7 +55,7 @@ function config(sources: Partial<ResolvedConfig["sources"]>, profile?: string): 
 
 describe("openSession", () => {
   it("resolves the configuration and records the output format", async () => {
-    const ctx = context(fakeRuntime({ env: { OPERATE_OUTPUT: "table" } }))
+    const ctx = context(fakeRuntime({ env: { PULSE_CLI_OUTPUT: "table" } }))
     const session = await openSession(ctx, { ...NONE, fields: "id, name", engine: "e" })
     expect(session).toMatchObject({
       configPath: CONFIG_PATH,
@@ -86,7 +86,7 @@ describe("openSession", () => {
 })
 
 describe("session helpers", () => {
-  it("requires a config file named by --config or OPERATE_CONFIG, not the default one", async () => {
+  it("requires a config file named by --config or PULSE_CLI_CONFIG, not the default one", async () => {
     const missing = await openSession(context(), { ...NONE, config: "/typo.json" }).catch(
       (error: unknown) => error,
     )
@@ -95,13 +95,13 @@ describe("session helpers", () => {
       message: "Config file /typo.json does not exist",
     })
     const fromEnv = await openSession(
-      context(fakeRuntime({ env: { OPERATE_CONFIG: "/env.json" } })),
+      context(fakeRuntime({ env: { PULSE_CLI_CONFIG: "/env.json" } })),
       NONE,
     ).catch((error: unknown) => error)
     expect(fromEnv).toMatchObject({ message: "Config file /env.json does not exist" })
     const fallback = await openSession(context(), NONE)
     expect(fallback.configPath).toBe(CONFIG_PATH)
-    expect(isExplicit(fakeRuntime({ env: { OPERATE_CONFIG: " " } }), undefined)).toBe(false)
+    expect(isExplicit(fakeRuntime({ env: { PULSE_CLI_CONFIG: " " } }), undefined)).toBe(false)
   })
 
   it("chooses the config path", () => {
@@ -110,7 +110,7 @@ describe("session helpers", () => {
 
   it("names the source of read-only mode", () => {
     expect(readOnlySource(config({ readOnly: "flag" }))).toBe("--read-only")
-    expect(readOnlySource(config({ readOnly: "env" }))).toBe("OPERATE_READ_ONLY")
+    expect(readOnlySource(config({ readOnly: "env" }))).toBe("PULSE_CLI_READ_ONLY")
     expect(readOnlySource(config({ readOnly: "profile" }, "prod"))).toBe('profile "prod"')
     expect(readOnlySource(config({ readOnly: "profile" }))).toBe('profile ""')
     expect(readOnlySource(config({}))).toBeUndefined()

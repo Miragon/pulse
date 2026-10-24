@@ -9,7 +9,7 @@ import { compact } from "../util.js"
 import { isAdvanceable, isSuspendedJob } from "./next.js"
 import type { IncidentView, WaitState } from "./types.js"
 
-/** A job that failed when operate executed it. */
+/** A job that failed when pulse-cli executed it. */
 export interface JobFailure {
   readonly jobId: string
   readonly activityId?: string
@@ -41,7 +41,7 @@ export function incidentError(id: string, incidents: readonly IncidentView[]): O
     }),
   )
   return new OperateError("INCIDENT", `Process instance ${id} has ${what}`, {
-    hint: `Fix the cause, then run \`operate retry ${id}\`; --no-fail-on-incident keeps waiting despite incidents.`,
+    hint: `Fix the cause, then run \`pulse-cli retry ${id}\`; --no-fail-on-incident keeps waiting despite incidents.`,
     data: { incidents: named },
   })
 }
@@ -54,25 +54,25 @@ const LISTED_WAITS = 3
  */
 function timeoutHint(id: string, idleAt: readonly WaitState[] | undefined): string {
   if (idleAt === undefined || idleAt.length === 0) {
-    return `The job executor may be backing off (up to 60 s on an idle engine): raise --wait-timeout, execute due jobs with \`operate wait ${id} --execute-jobs\`, or run \`operate status\` to see overdue jobs.`
+    return `The job executor may be backing off (up to 60 s on an idle engine): raise --wait-timeout, execute due jobs with \`pulse-cli wait ${id} --execute-jobs\`, or run \`pulse-cli status\` to see overdue jobs.`
   }
   const places = idleAt.slice(0, LISTED_WAITS).map(placeText)
   const more = idleAt.length > LISTED_WAITS ? ", ..." : ""
-  return `No job is due: the instance rests at ${places.join(", ")}${more}. ${moveText(id, idleAt)}, or check the --until condition against \`operate inspect ${id}\`.`
+  return `No job is due: the instance rests at ${places.join(", ")}${more}. ${moveText(id, idleAt)}, or check the --until condition against \`pulse-cli inspect ${id}\`.`
 }
 
 function placeText(wait: WaitState): string {
   return `${wait.activityId} (${wait.kind}${isSuspendedJob(wait) ? ", suspended" : ""})`
 }
 
-/** `operate advance`, unless only a suspended job could move (advance refuses to execute it). */
+/** `pulse-cli advance`, unless only a suspended job could move (advance refuses to execute it). */
 function moveText(id: string, idleAt: readonly WaitState[]): string {
   const movable = idleAt.some((wait) => isAdvanceable(wait) && !isSuspendedJob(wait))
   const job = idleAt.find(isSuspendedJob)
   if (movable || job === undefined || !("jobId" in job)) {
-    return `Move it with \`operate advance ${id}\``
+    return `Move it with \`pulse-cli advance ${id}\``
   }
-  return `Activate the suspended job with \`operate job activate ${job.jobId}\``
+  return `Activate the suspended job with \`pulse-cli job activate ${job.jobId}\``
 }
 
 export function timeoutError(
@@ -101,7 +101,7 @@ export function endedError(id: string, until: readonly string[], state: string):
     "INSTANCE_ENDED",
     `Process instance ${id} ended (${state}) before reaching ${until.join(" or ")}`,
     {
-      hint: `\`operate inspect ${id} --history\` shows the path it took.`,
+      hint: `\`pulse-cli inspect ${id} --history\` shows the path it took.`,
       data: { until, state },
     },
   )
@@ -109,7 +109,7 @@ export function endedError(id: string, until: readonly string[], state: string):
 
 function inspectCommand(failure: JobFailure | undefined): string {
   const instance = failure?.processInstanceId ?? "<id>"
-  return `operate inspect ${instance} --stacktrace`
+  return `pulse-cli inspect ${instance} --stacktrace`
 }
 
 function failureText(failure: JobFailure | undefined): string {

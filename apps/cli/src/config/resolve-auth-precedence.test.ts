@@ -45,16 +45,16 @@ describe("resolveAuth precedence", () => {
     return {
       flags: compact({ auth: type[0], authUser: user[0], authPassword: secret[0] }),
       env: {
-        OPERATE_AUTH: type[1],
-        OPERATE_USERNAME: user[1],
-        OPERATE_PASSWORD: secret[1],
+        PULSE_CLI_AUTH: type[1],
+        PULSE_CLI_USERNAME: user[1],
+        PULSE_CLI_PASSWORD: secret[1],
         PW_VAR: viaVariable ? secret[2] : undefined,
       },
       auth: compact({ type: type[2], username: user[2], ...stored }) as ProfileAuth,
     }
   }
 
-  const NONE_LABELS = { flag: "--auth none", env: "OPERATE_AUTH=none" } as const
+  const NONE_LABELS = { flag: "--auth none", env: "PULSE_CLI_AUTH=none" } as const
 
   /** Why auth is none: an explicit none, or a password nothing uses. */
   function off(
@@ -69,7 +69,7 @@ describe("resolveAuth precedence", () => {
           : NONE_LABELS[explicit.source]
       return `Basic auth is switched off by ${label}`
     }
-    if (env !== undefined) return "a password is set (from OPERATE_PASSWORD), but no username"
+    if (env !== undefined) return "a password is set (from PULSE_CLI_PASSWORD), but no username"
     if (stored === undefined) return undefined
     const key = viaVariable ? "passwordEnv" : "password"
     return `a password is set (auth.${key} of profile "prod"), but no username`
@@ -131,10 +131,10 @@ describe("authorizationConflict", () => {
 
   it.each([
     ["flag", "given with -H/--header", "prod"],
-    ["env", "from OPERATE_HEADERS", "prod"],
+    ["env", "from PULSE_CLI_HEADERS", "prod"],
     [
       "profile",
-      'from the headers of profile "prod"; `operate config unset prod headers` removes them',
+      'from the headers of profile "prod"; `pulse-cli config unset prod headers` removes them',
       "prod",
     ],
   ] as const)("asks to drop one when the header comes from %s", (source, origin, name) => {
@@ -143,13 +143,13 @@ describe("authorizationConflict", () => {
     expect(error?.exitCode).toBe(3)
     expect(error?.message).toBe("Basic auth and an Authorization header are both configured")
     expect(error?.details.hint).toBe(
-      `Drop one: remove the Authorization header (${origin}), or switch Basic auth off with --auth none, OPERATE_AUTH=none or \`operate config unset prod auth\`.`,
+      `Drop one: remove the Authorization header (${origin}), or switch Basic auth off with --auth none, PULSE_CLI_AUTH=none or \`pulse-cli config unset prod auth\`.`,
     )
   })
 
   it("uses a placeholder without a selected profile", () => {
     expect(authorizationConflict(basic, "profile", undefined)?.details.hint).toBe(
-      'Drop one: remove the Authorization header (from the headers of profile "<profile>"; `operate config unset <profile> headers` removes them), or switch Basic auth off with --auth none, OPERATE_AUTH=none or `operate config unset <profile> auth`.',
+      'Drop one: remove the Authorization header (from the headers of profile "<profile>"; `pulse-cli config unset <profile> headers` removes them), or switch Basic auth off with --auth none, PULSE_CLI_AUTH=none or `pulse-cli config unset <profile> auth`.',
     )
   })
 })
@@ -157,7 +157,7 @@ describe("authorizationConflict", () => {
 describe("resolveHeaders", () => {
   it("reports the most specific source of an Authorization header", () => {
     const stored: Profile = { headers: { authorization: "Bearer p", "X-A": "1" } }
-    const env = { OPERATE_HEADERS: "Authorization: Bearer e" }
+    const env = { PULSE_CLI_HEADERS: "Authorization: Bearer e" }
     expect(
       resolveHeaders({ headers: ["AUTHORIZATION: Bearer f"] }, env, stored).authorization,
     ).toBe("flag")
@@ -181,7 +181,7 @@ describe("resolveConfig with Basic auth", () => {
   it("resolves Basic auth credentials", () => {
     const resolved = resolveConfig(
       { authPassword: "from-stdin" },
-      { OPERATE_USERNAME: "demo" },
+      { PULSE_CLI_USERNAME: "demo" },
       file({ url: "http://x" }),
     )
     expect(resolved.auth).toEqual({
@@ -202,7 +202,7 @@ describe("resolveConfig with Basic auth", () => {
       ),
     )
     expect(error.message).toBe("Basic auth and an Authorization header are both configured")
-    expect(error.details.hint).toContain("`operate config unset p headers`")
+    expect(error.details.hint).toContain("`pulse-cli config unset p headers`")
     expect(
       resolveConfig({ auth: "none" }, {}, file({ headers: { Authorization: "Bearer t" } })).headers,
     ).toEqual({ Authorization: "Bearer t" })

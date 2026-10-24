@@ -45,7 +45,7 @@ const thing = command("thing", "group", { description: "Things", commands: [leaf
 
 const context: CompletionContext = {
   root: {
-    name: "operate",
+    name: "pulse-cli",
     aliases: [],
     description: "",
     kind: "command",
@@ -268,25 +268,25 @@ describe("formatCompletion", () => {
 })
 
 describe("completion scripts", () => {
-  it("call operate __complete and fall back to path completion", () => {
+  it("call pulse-cli __complete and fall back to path completion", () => {
     expect(SHELLS).toEqual(["bash", "zsh", "fish"])
     const { bash, zsh, fish } = COMPLETION_SCRIPTS
     // bash 3.2 has no compopt: the function quotes paths and adds "/" or the space itself
-    expect(bash).toContain("complete -o nospace -F _operate_complete operate\n")
+    expect(bash).toContain("complete -o nospace -F _pulse_cli_complete pulse-cli\n")
     expect(bash).not.toContain("compopt ")
-    expect(bash).toContain('done < <(operate __complete "${words[@]}" 2>/dev/null)')
+    expect(bash).toContain('done < <(pulse-cli __complete "${words[@]}" 2>/dev/null)')
     expect(bash).toContain('compgen -d -- "${cur#@}"')
     expect(bash).toContain(`printf '%q' "$1"`)
     expect(bash).toContain('if [[ "$candidate" != *: ]]; then candidate="$candidate "; fi')
-    expect(bash.split("\n")[1]).toBe('#   eval "$(operate completion bash)"')
-    expect(zsh.startsWith("#compdef operate\n")).toBe(true)
-    expect(zsh).toContain("_describe 'operate' candidates")
+    expect(bash.split("\n")[1]).toBe('#   eval "$(pulse-cli completion bash)"')
+    expect(zsh.startsWith("#compdef pulse-cli\n")).toBe(true)
+    expect(zsh).toContain("_describe 'pulse-cli' candidates")
     // activity: and task: are prefixes: no space after them
-    expect(zsh).toContain("_describe 'operate' prefixes -S ''")
+    expect(zsh).toContain("_describe 'pulse-cli' prefixes -S ''")
     expect(zsh).toContain("compset -P '@'")
     expect(zsh).toContain("_files -/")
     expect(zsh).toContain("//:/\\\\:")
-    expect(fish).toContain("complete -c operate -f -a '(__operate_complete)'")
+    expect(fish).toContain("complete -c pulse-cli -f -a '(__pulse_cli_complete)'")
     expect(fish).toContain('__fish_complete_path "$current"')
     expect(INSTALL_LINES.join("\n")).not.toContain("source <(")
   })

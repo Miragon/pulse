@@ -99,7 +99,7 @@ describe("selectInstance", () => {
       code: "NOT_FOUND",
       message: 'No process instance with business key "B-1" and process definition key "order"',
     })
-    expect(error.details.hint).toContain("`operate historic-process-instance list`")
+    expect(error.details.hint).toContain("`pulse-cli historic-process-instance list`")
   })
 
   it("lists the candidates of an ambiguous filter with ready commands", async () => {
@@ -116,7 +116,7 @@ describe("selectInstance", () => {
       message: 'Business key "B-1" matches 3 process instances',
     })
     expect(error.details.hint).toBe(
-      "Choose one: operate wait p3, operate wait p2, operate wait p1; or narrow the selection with --process-definition-key <key>, or take the most recently started one with --latest.",
+      "Choose one: pulse-cli wait p3, pulse-cli wait p2, pulse-cli wait p1; or narrow the selection with --process-definition-key <key>, or take the most recently started one with --latest.",
     )
     expect(error.details.data).toEqual({
       candidates: [
@@ -266,7 +266,7 @@ describe("selection details", () => {
       'Business key "B-1" and process definition key "order" match 10 process instances',
     )
     expect(error.details.hint).toBe(
-      "Choose one: operate advance p9, operate advance p8, operate advance p7; or narrow the selection with --process-definition-key <key>, or take the most recently started one with --latest.",
+      "Choose one: pulse-cli advance p9, pulse-cli advance p8, pulse-cli advance p7; or narrow the selection with --process-definition-key <key>, or take the most recently started one with --latest.",
     )
   })
 
@@ -284,7 +284,7 @@ describe("selection details", () => {
       selectInstance(portOf(several.fetch), { businessKey: "B", latest: true }, "inspect"),
     )
     expect(error.details.hint).toBe(
-      "Pass the process instance id instead; `operate process-instance list` lists the running ones.",
+      "Pass the process instance id instead; `pulse-cli process-instance list` lists the running ones.",
     )
   })
 })

@@ -1,7 +1,7 @@
 /**
  * Resolves the effective configuration. Precedence per value: flag > environment > profile > default.
  * Pure: the config file content and the environment are passed in. The validators are shared with
- * the config file parser and the `operate config` edit functions.
+ * the config file parser and the `pulse-cli config` edit functions.
  */
 
 import type { OperateError } from "../errors.js"
@@ -45,8 +45,8 @@ function originNote(origin: ProfileOrigin, file: LoadedConfig | undefined): stri
   if (origin === "env") return `It is selected by ${ENV.profile}. `
   const project = file?.project
   return project?.defaultProfile === true
-    ? `It is the defaultProfile of the project file ${project.source.path}; choose another one with \`operate config use <profile> --project\`. `
-    : "It is the defaultProfile of the config file; choose another one with `operate config use <profile>`. "
+    ? `It is the defaultProfile of the project file ${project.source.path}; choose another one with \`pulse-cli config use <profile> --project\`. `
+    : "It is the defaultProfile of the config file; choose another one with `pulse-cli config use <profile>`. "
 }
 
 /** Error for a profile name that is not in the config file, with the known profiles as hint. */
@@ -59,7 +59,7 @@ export function missingProfileError(
   const listed = known.length > 0 ? `Known profiles: ${known.join(", ")}. ` : ""
   return configError(
     `Profile "${name}" does not exist`,
-    `${originNote(origin, file)}${listed}Create it with \`operate config set ${name} --url <url>\`.`,
+    `${originNote(origin, file)}${listed}Create it with \`pulse-cli config set ${name} --url <url>\`.`,
   )
 }
 
@@ -123,7 +123,7 @@ export function validateUrl(url: string, label = "Engine URL", example = DEFAULT
   if (parsed.username !== "" || parsed.password !== "") {
     throw configError(
       `${label} must not contain credentials`,
-      "Remove the user info from the URL and use Basic auth: --auth basic --auth-user <name> with the password from --auth-password-stdin or OPERATE_PASSWORD.",
+      "Remove the user info from the URL and use Basic auth: --auth basic --auth-user <name> with the password from --auth-password-stdin or PULSE_CLI_PASSWORD.",
     )
   }
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
@@ -158,13 +158,13 @@ export function validateEngine(engine: string): string {
   if (trimmed === "") {
     throw configError(
       "Engine name must not be empty",
-      "Remove it with `operate config unset <profile> engine` to use the default engine.",
+      "Remove it with `pulse-cli config unset <profile> engine` to use the default engine.",
     )
   }
   if (!isEngineName(trimmed)) {
     throw configError(
       `Invalid process engine name "${trimmed}"`,
-      "Use the name of a process engine as listed by `operate ping`, e.g. default; omit it for the default engine.",
+      "Use the name of a process engine as listed by `pulse-cli ping`, e.g. default; omit it for the default engine.",
     )
   }
   return trimmed
@@ -224,7 +224,7 @@ export function parseTimeout(value: string | number): number {
   return timeout
 }
 
-/** Parses OPERATE_READ_ONLY. Blank means unset; unknown values fail instead of silently disabling. */
+/** Parses PULSE_CLI_READ_ONLY. Blank means unset; unknown values fail instead of silently disabling. */
 export function parseReadOnly(value: string | undefined): boolean | undefined {
   const normalized = nonEmpty(value)?.toLowerCase()
   if (normalized === undefined) return undefined
@@ -247,7 +247,7 @@ function pickAll(flags: ConfigFlags, env: Env, profile: Profile | undefined) {
   }
 }
 
-/** How the configuration is used: `authCommand` for `operate auth login|status|logout`. */
+/** How the configuration is used: `authCommand` for `pulse-cli auth login|status|logout`. */
 export interface ResolveOptions {
   readonly authCommand?: boolean
 }

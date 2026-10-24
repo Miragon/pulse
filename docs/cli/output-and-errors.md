@@ -2,11 +2,11 @@
 
 ## Output
 
-stdout carries exactly the engine response, stderr everything else. `operate guide output` prints
+stdout carries exactly the engine response, stderr everything else. `pulse-cli guide output` prints
 the full rules, also for XML, text and binary responses and `--out-file`.
 
 - **Format**: JSON when stdout is not a terminal, a table on a terminal. `-o json|table`,
-  `OPERATE_OUTPUT` or the profile setting override it. JSON is compact when piped and indented on
+  `PULSE_CLI_OUTPUT` or the profile setting override it. JSON is compact when piped and indented on
   a terminal or with `--pretty`.
 - **`--fields id,name,variables.amount`** keeps only these properties (of every element of a
   list); in table format they are the columns.
@@ -18,17 +18,17 @@ the full rules, also for XML, text and binary responses and `--out-file`.
   command line:
 
 ```text
-$ operate process-definition start invoice --var amount=250 --dry-run
+$ pulse-cli process-definition start invoice --var amount=250 --dry-run
 {"method":"POST","url":"http://localhost:8080/engine-rest/process-definition/key/invoice/start","headers":{"Accept":"application/json","Content-Type":"application/json"},"body":{"variables":{"amount":{"value":250,"type":"Integer"}}},"curl":"curl -X POST 'http://localhost:8080/engine-rest/process-definition/key/invoice/start' -H 'Accept: application/json' -H 'Content-Type: application/json' --data-raw '{\"variables\":{\"amount\":{\"value\":250,\"type\":\"Integer\"}}}'"}
 
-$ operate task list --assignee demo --dry-run -o table
+$ pulse-cli task list --assignee demo --dry-run -o table
 curl 'http://localhost:8080/engine-rest/task?assignee=demo' -H 'Accept: application/json'
 ```
 
 - **`--verbose`** traces the request and response on stderr (secret headers masked):
 
 ```text
-$ operate process-definition list --key order-process --fields id,key,version --verbose
+$ pulse-cli process-definition list --key order-process --fields id,key,version --verbose
 > GET http://localhost:8080/engine-rest/process-definition?key=order-process
 > Accept: application/json
 < 200 OK (14 ms, 408 bytes)
@@ -43,14 +43,14 @@ names the fix (for unknown commands, options and body properties it starts with 
 plain text (such as JSON deserialization errors).
 
 ```text
-$ operate process-instance get abc
-{"error":{"code":"NOT_FOUND","exitCode":5,"message":"HTTP 404 Not Found: Process instance with id abc does not exist","status":404,"engineType":"InvalidRequestException","engineMessage":"Process instance with id abc does not exist","hint":"Check the id or key. List the existing ones with `operate process-instance list`.","request":{"method":"GET","url":"http://localhost:8080/engine-rest/process-instance/abc"}}}
+$ pulse-cli process-instance get abc
+{"error":{"code":"NOT_FOUND","exitCode":5,"message":"HTTP 404 Not Found: Process instance with id abc does not exist","status":404,"engineType":"InvalidRequestException","engineMessage":"Process instance with id abc does not exist","hint":"Check the id or key. List the existing ones with `pulse-cli process-instance list`.","request":{"method":"GET","url":"http://localhost:8080/engine-rest/process-instance/abc"}}}
 
-$ operate process-instance get abc -o table
+$ pulse-cli process-instance get abc -o table
 Error: HTTP 404 Not Found: Process instance with id abc does not exist
   Engine: InvalidRequestException
   Request: GET http://localhost:8080/engine-rest/process-instance/abc
-  Hint: Check the id or key. List the existing ones with `operate process-instance list`.
+  Hint: Check the id or key. List the existing ones with `pulse-cli process-instance list`.
 ```
 
 Fields: `code`, `exitCode`, `message`, and when available `status`, `engineType`,
@@ -73,8 +73,8 @@ validation problems).
 Camunda 7 engines report many rule violations as HTTP 500 (exit 7), e.g. a task that is already
 completed or a deployment that still has running instances. Read `engineMessage` and fix the cause
 instead of retrying. A query value the engine cannot read (`maxResults=abc`) comes back as 404
-`QueryParamException`; `operate` reports it as exit 6, not as a missing resource.
+`QueryParamException`; `pulse-cli` reports it as exit 6, not as a missing resource.
 
-`operate` never follows redirects: a write redirected to a login page must not look successful,
+`pulse-cli` never follows redirects: a write redirected to a login page must not look successful,
 and credential headers must not travel to another host. A 3xx answer is the error `HTTP_REDIRECT`
 naming the target; point `--url` at the REST API root itself (e.g. `https://`).

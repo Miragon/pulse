@@ -33,7 +33,7 @@ function absoluteDir(value: string | undefined, path: typeof posix): string | un
   return value !== undefined && path.isAbsolute(value) ? value : undefined
 }
 
-/** The config file named by `--config` or OPERATE_CONFIG, if any (else the default location). */
+/** The config file named by `--config` or PULSE_CLI_CONFIG, if any (else the default location). */
 export function explicitConfigPath(env: Env, flag?: string): string | undefined {
   return given(flag) ?? given(env[ENV.config])
 }
@@ -48,36 +48,39 @@ export function pathModule(platform: string): typeof posix {
   return platform === "win32" ? win32 : posix
 }
 
-/** The platform's operate config directory (never derived from `--config` / OPERATE_CONFIG). */
-function operateDirectory(env: Env, location: Location): string {
+/** The directory of the user's config file and tokens under the platform's config home. */
+export const CONFIG_DIRECTORY = "pulse-cli"
+
+/** The platform's config directory (never derived from `--config` / PULSE_CLI_CONFIG). */
+function configDirectory(env: Env, location: Location): string {
   if (location.platform === "win32") {
     const appData =
       absoluteDir(env.APPDATA, win32) ?? win32.join(location.homedir, "AppData", "Roaming")
-    return win32.join(appData, "operate")
+    return win32.join(appData, CONFIG_DIRECTORY)
   }
   const configHome =
     absoluteDir(env.XDG_CONFIG_HOME, posix) ?? posix.join(location.homedir, ".config")
-  return posix.join(configHome, "operate")
+  return posix.join(configHome, CONFIG_DIRECTORY)
 }
 
 /**
- * Config file location: `--config` > OPERATE_CONFIG > $XDG_CONFIG_HOME/operate/config.json >
- * ~/.config/operate/config.json; on Windows %APPDATA%\operate\config.json.
+ * Config file location: `--config` > PULSE_CLI_CONFIG > $XDG_CONFIG_HOME/pulse-cli/config.json >
+ * ~/.config/pulse-cli/config.json; on Windows %APPDATA%\pulse-cli\config.json.
  */
 export function configFilePath(env: Env, location: Location, explicit?: string): string {
   const chosen = explicitConfigPath(env, explicit)
   if (chosen !== undefined) return chosen
-  return pathModule(location.platform).join(operateDirectory(env, location), "config.json")
+  return pathModule(location.platform).join(configDirectory(env, location), "config.json")
 }
 
 /**
- * The OAuth token cache directory: $XDG_CONFIG_HOME/operate/tokens >
- * ~/.config/operate/tokens; on Windows %APPDATA%\operate\tokens. Never next to a config file
- * named by `--config` or OPERATE_CONFIG: a project-local (possibly committed) config file must not
+ * The OAuth token cache directory: $XDG_CONFIG_HOME/pulse-cli/tokens >
+ * ~/.config/pulse-cli/tokens; on Windows %APPDATA%\pulse-cli\tokens. Never next to a config file
+ * named by `--config` or PULSE_CLI_CONFIG: a project-local (possibly committed) config file must not
  * get token files beside it.
  */
 export function tokenDirectory(env: Env, location: Location): string {
-  return pathModule(location.platform).join(operateDirectory(env, location), "tokens")
+  return pathModule(location.platform).join(configDirectory(env, location), "tokens")
 }
 
 /** A file of the token directory (win32 or posix join). */
@@ -88,7 +91,7 @@ export function tokenPath(directory: string, fileName: string, platform: string)
 function fail(path: string, problem: string): never {
   throw configError(
     `Invalid config file ${path}: ${problem}`,
-    "Fix the file or recreate it with `operate config set`.",
+    "Fix the file or recreate it with `pulse-cli config set`.",
   )
 }
 
@@ -225,7 +228,7 @@ function ioError(action: "read" | "write", path: string, error: unknown) {
 
 /**
  * Reads and validates the config file. A missing file means "no profiles", unless `required` (the
- * user named the file with --config or OPERATE_CONFIG: a typo must not silently drop the
+ * user named the file with --config or PULSE_CLI_CONFIG: a typo must not silently drop the
  * profile, its headers and its read-only guard).
  */
 export async function readConfigFile(
@@ -239,7 +242,7 @@ export async function readConfigFile(
       if (!required) return undefined
       throw configError(
         `Config file ${path} does not exist`,
-        `Create it with \`operate config set <profile> --url <url> --config ${path}\`, or fix the path of --config or ${ENV.config}.`,
+        `Create it with \`pulse-cli config set <profile> --url <url> --config ${path}\`, or fix the path of --config or ${ENV.config}.`,
       )
     }
     data = await fs.readFile(path)

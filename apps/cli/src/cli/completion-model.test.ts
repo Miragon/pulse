@@ -31,7 +31,7 @@ describe("completionContext", () => {
     const { root } = await completionContext(cliContext(), [""])
     const { commands, ...rest } = root
     expect(rest).toEqual({
-      name: "operate",
+      name: "pulse-cli",
       aliases: [],
       description: "",
       kind: "command",
@@ -127,12 +127,12 @@ describe("completionContext", () => {
     expect(model.globals[0]).toEqual({
       flags: ["--url"],
       takesValue: true,
-      description: "REST API root, e.g. http://localhost:8080/engine-rest (env OPERATE_URL)",
+      description: "REST API root, e.g. http://localhost:8080/engine-rest (env PULSE_CLI_URL)",
     })
     expect(model.globals.find((option) => option.flags[0] === "--output")).toEqual({
       flags: ["--output", "-o"],
       takesValue: true,
-      description: "json or table; default: table on a terminal, else json (env OPERATE_OUTPUT)",
+      description: "json or table; default: table on a terminal, else json (env PULSE_CLI_OUTPUT)",
       values: ["json", "table"],
     })
     expect(model.group("task")).toMatchObject({ name: "task", kind: "group" })

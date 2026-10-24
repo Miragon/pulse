@@ -4,8 +4,8 @@
  * checks the Bearer token (the engines have no OAuth resource server of their own).
  *
  * ```
- * operate ──http://localhost:<envoy>/engine-rest──▶ Envoy ──http://engine-<name>:8080──▶ engine
- *    └──discovery, token, revoke──▶ Keycloak (alias keycloak) ◀──JWKS── Envoy
+ * pulse-cli ──http://localhost:<envoy>/engine-rest──▶ Envoy ──http://engine-<name>:8080──▶ engine
+ *      └──discovery, token, revoke──▶ Keycloak (alias keycloak) ◀──JWKS── Envoy
  * ```
  *
  * Keycloak in dev mode builds the issuer from the request's Host header, so the tokens carry the
@@ -151,7 +151,7 @@ export async function startOAuthTopology(engine: EngineName): Promise<OAuthTopol
     const host = keycloak.getHost()
     if (!LOOPBACK_HOSTS.has(host)) {
       throw new Error(
-        `The Docker host is "${host}", not this machine: operate accepts http issuers only on ` +
+        `The Docker host is "${host}", not this machine: pulse-cli accepts http issuers only on ` +
           "loopback hosts, so the OAuth integration test needs a local Docker daemon",
       )
     }

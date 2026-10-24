@@ -27,7 +27,7 @@ const catalog = loadCatalog()
 function operation(command: string): OperationSpec {
   const [group = "", name = "", ...rest] = command.split(" ")
   const found = rest.length === 0 ? findOperation(catalog, group, name) : undefined
-  if (found === undefined) throw new Error(`The catalog has no command "operate ${command}"`)
+  if (found === undefined) throw new Error(`The catalog has no command "pulse-cli ${command}"`)
   return found
 }
 
@@ -66,7 +66,7 @@ function flag(command: string, key: string): string {
   const name =
     catalogFlag(spec, key) ??
     [...specialFlags(spec), ...GLOBAL_FLAGS].find((candidate) => candidate === key)
-  if (name === undefined) throw new Error(`"operate ${command}" has no option for "${key}"`)
+  if (name === undefined) throw new Error(`"pulse-cli ${command}" has no option for "${key}"`)
   return `--${name}`
 }
 
@@ -86,7 +86,7 @@ export function argv(command: string, positionals: readonly string[] = [], optio
   const spec = operation(command)
   const pathParams = spec.params.filter((param) => param.in === "path").length
   if (positionals.length < pathParams) {
-    throw new Error(`"operate ${command}" needs ${pathParams} positional argument(s)`)
+    throw new Error(`"pulse-cli ${command}" needs ${pathParams} positional argument(s)`)
   }
   return [
     spec.group,

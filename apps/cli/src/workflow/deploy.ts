@@ -1,5 +1,5 @@
 /**
- * `operate deploy`: deploys files and directories with a stable deployment name
+ * `pulse-cli deploy`: deploys files and directories with a stable deployment name
  * and source (so unchanged files are really skipped), reports the versions in effect per
  * resource and optionally starts an instance.
  */

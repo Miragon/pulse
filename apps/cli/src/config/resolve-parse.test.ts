@@ -173,12 +173,12 @@ describe("parseReadOnly", () => {
   it("rejects other values instead of silently disabling read-only mode", () => {
     const error = failure(() => parseReadOnly("Enabled"))
     expect(error.code).toBe("CONFIG")
-    expect(error.message).toBe('Invalid OPERATE_READ_ONLY value "enabled"')
+    expect(error.message).toBe('Invalid PULSE_CLI_READ_ONLY value "enabled"')
     expect(error.details.hint).toBe("Use one of: 1, true, yes, on, 0, false, no, off.")
   })
 
-  it("keeps a read-only profile read-only when OPERATE_READ_ONLY is empty", () => {
-    const resolved = resolveConfig({}, { OPERATE_READ_ONLY: "" }, file({ readOnly: true }))
+  it("keeps a read-only profile read-only when PULSE_CLI_READ_ONLY is empty", () => {
+    const resolved = resolveConfig({}, { PULSE_CLI_READ_ONLY: "" }, file({ readOnly: true }))
     expect(resolved.readOnly).toBe(true)
     expect(resolved.sources.readOnly).toBe("profile")
   })

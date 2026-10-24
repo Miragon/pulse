@@ -1,5 +1,5 @@
 /**
- * The OAuth logins after `operate config set|unset|delete`: a login is cached per
+ * The OAuth logins after `pulse-cli config set|unset|delete`: a login is cached per
  * origin and stored OAuth settings, so an edit that changes a profile's settings or deletes it
  * removes the login of its previous settings when no other OAuth profile of the file uses it
  * (under the cache lock, so that a refresh in flight cannot write it back; not revoked). The
@@ -63,7 +63,7 @@ async function cachedLogin(key: LoginKey, runtime: Runtime): Promise<string | un
  * Removes the cached login of the profile's settings before the edit when the edit changed them
  * (or deleted the profile) and no OAuth profile of the file uses it any more; keeps that of a
  * repository with a note. A profile without stored OAuth settings has a login of its own (OAuth
- * from OPERATE_AUTH), so its login goes with it, too.
+ * from PULSE_CLI_AUTH), so its login goes with it, too.
  */
 async function releaseLogin(edited: Edited, runtime: Runtime): Promise<void> {
   const { before, name } = edited

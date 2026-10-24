@@ -50,7 +50,7 @@ describe("checkBody", () => {
       'Invalid request body: $: unknown property "businesKey", did you mean "businessKey"?',
     )
     expect(error.details.hint).toBe(
-      "Run `operate describe process-definition start` to see the body schema, or pass --no-validate to skip this check.",
+      "Run `pulse-cli describe process-definition start` to see the body schema, or pass --no-validate to skip this check.",
     )
     expect(error.details.data).toEqual([
       { path: "$", message: 'unknown property "businesKey", did you mean "businessKey"?' },

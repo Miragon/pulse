@@ -1,6 +1,6 @@
 /**
  * The engine adapter of a run, chosen before the commands are registered: `--platform`, then
- * OPERATE_PLATFORM, then the `platform` of the selected profile, else camunda7.
+ * PULSE_CLI_PLATFORM, then the `platform` of the selected profile, else camunda7.
  */
 
 import { resolvePlatform, selectProfile } from "../config/resolve.js"

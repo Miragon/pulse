@@ -15,7 +15,7 @@ type Flags = CommandValues["flags"]
 type Multipart = NonNullable<OperationInput["multipart"]>
 
 const RESOURCE_HINT =
-  "Example: operate deployment create order.bpmn approval.dmn --deployment-name orders"
+  "Example: pulse-cli deployment create order.bpmn approval.dmn --deployment-name orders"
 
 /**
  * Name of a deployment resource: the file name, or the posix path relative to `baseDir`.
@@ -81,7 +81,7 @@ function checkNotField(spec: MultipartBodySpec, name: string, file: string): voi
 
 /**
  * Resource names must be unique and must not be the name of a form field of the deployment
- * (shared by `deployment create` and `operate deploy`).
+ * (shared by `deployment create` and `pulse-cli deploy`).
  */
 export function checkResourceNames(spec: MultipartBodySpec, resources: readonly Resource[]): void {
   const seen = new Map<string, string>()

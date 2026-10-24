@@ -1,7 +1,7 @@
 ---
 type: tool_used
 tool: Skill
-input_match: '"skill"\s*:\s*"(?:operate:)?operate"'
+input_match: '"skill"\s*:\s*"(?:pulse-cli:)?pulse-cli"'
 ---
 
-Claude loads the operate skill.
+Claude loads the pulse-cli skill.

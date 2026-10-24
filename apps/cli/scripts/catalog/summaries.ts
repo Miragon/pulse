@@ -1,5 +1,5 @@
 /**
- * One-line summaries of the commands, shown by `operate commands`, `--help` and `describe`. The
+ * One-line summaries of the commands, shown by `pulse-cli commands`, `--help` and `describe`. The
  * upstream summaries are often generic ("Get List", "Get") or shared by the by-id / by-key / by-key
  * and tenant id variants of an operation, so an agent cannot pick a command from them. Rules:
  *

@@ -1,5 +1,5 @@
 /**
- * `operate auth logout`: under the cache lock, revoke the refresh token (else the
+ * `pulse-cli auth logout`: under the cache lock, revoke the refresh token (else the
  * access token) at the revocation endpoint cached at login (RFC 7009) and remove the cache file.
  * A failed or skipped revocation only warns: the file is removed anyway. Works when the
  * profile's OAuth settings no longer resolve. A client secret is a credential for one
@@ -55,7 +55,7 @@ function noEndpoint(login: CachedLogin): Revocation {
   return {
     revoked: null,
     warnings: [
-      `Warning: operate knows no token revocation endpoint (RFC 7009) for ${server} (explicit endpoints, or none in its discovery document); the refresh token was not revoked and stays valid ${validity(login.refreshExpiresAt)}. End the session at the authorization server if needed (sign out, or revoke the user's sessions).`,
+      `Warning: pulse-cli knows no token revocation endpoint (RFC 7009) for ${server} (explicit endpoints, or none in its discovery document); the refresh token was not revoked and stays valid ${validity(login.refreshExpiresAt)}. End the session at the authorization server if needed (sign out, or revoke the user's sessions).`,
     ],
   }
 }

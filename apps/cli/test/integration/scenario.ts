@@ -25,7 +25,7 @@ import { makeTempDir, removeTempDir } from "./support/temp.js"
 import type { Count, ExternalTask, ProcessInstance, Task } from "./support/types.js"
 
 export function registerScenario(engineName: EngineName): void {
-  describe.skipIf(!isEngineEnabled(engineName))(`operate against ${engineName}`, () => {
+  describe.skipIf(!isEngineEnabled(engineName))(`pulse-cli against ${engineName}`, () => {
     let engine: RunningEngine | undefined
     let workdir: string | undefined
     let configFile = ""
@@ -36,16 +36,16 @@ export function registerScenario(engineName: EngineName): void {
 
     beforeAll(async () => {
       assertCliBuilt()
-      workdir = await makeTempDir(`operate-it-${engineName}-`)
+      workdir = await makeTempDir(`pulse-cli-it-${engineName}-`)
       configFile = join(workdir, "config.json")
-      // OPERATE_CONFIG names the file explicitly, so it must exist (an empty one: no profiles)
+      // PULSE_CLI_CONFIG names the file explicitly, so it must exist (an empty one: no profiles)
       await writeFile(configFile, '{"profiles":{}}\n')
       engine = await startEngine(engineName)
       cli = bindCli({
         url: engine.url,
         configFile,
-        // keep the real user config out of reach even if OPERATE_CONFIG is removed
-        env: { XDG_CONFIG_HOME: workdir, OPERATE_PLATFORM: engine.platform },
+        // keep the real user config out of reach even if PULSE_CLI_CONFIG is removed
+        env: { XDG_CONFIG_HOME: workdir, PULSE_CLI_PLATFORM: engine.platform },
       })
     }, ENGINE_START_TIMEOUT_MS)
 

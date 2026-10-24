@@ -1,5 +1,5 @@
 /**
- * The token command of OPERATE_TOKEN_COMMAND and profiles of a project file in config resolution: the token sources and their order, unused commands, the profile
+ * The token command of PULSE_CLI_TOKEN_COMMAND and profiles of a project file in config resolution: the token sources and their order, unused commands, the profile
  * selection with a project file and what `config show` makes of it.
  */
 
@@ -23,43 +23,43 @@ function failure(action: () => unknown): OperateError {
   throw new Error("expected an OperateError")
 }
 
-const PROJECT: ProjectSource = { path: "/repo/.operate.json", directory: "/repo" }
+const PROJECT: ProjectSource = { path: "/repo/.pulse-cli.json", directory: "/repo" }
 
 function profile(auth: ProfileAuth): SelectedProfile {
   return { name: "dev", profile: { auth } }
 }
 
-const COMMAND_ENV = { OPERATE_TOKEN_COMMAND: " ./token.sh dev " }
+const COMMAND_ENV = { PULSE_CLI_TOKEN_COMMAND: " ./token.sh dev " }
 
 describe("resolveAuth with a token command", () => {
-  it("takes OPERATE_TOKEN_COMMAND, trimmed, and selects bearer auth without a type", () => {
+  it("takes PULSE_CLI_TOKEN_COMMAND, trimmed, and selects bearer auth without a type", () => {
     const resolved = resolveAuth({}, COMMAND_ENV, {})
     expect(resolved.source).toBe("env")
     expect(resolved.auth).toEqual({
       type: "bearer",
       source: "env",
-      origin: "OPERATE_TOKEN_COMMAND",
+      origin: "PULSE_CLI_TOKEN_COMMAND",
       command: "./token.sh dev",
     })
     expect(selectedAuth({}, COMMAND_ENV, {})).toEqual({
       type: "bearer",
       source: "env",
-      label: "a bearer token command (from OPERATE_TOKEN_COMMAND) without an auth type",
-      token: { origin: "OPERATE_TOKEN_COMMAND", command: true },
+      label: "a bearer token command (from PULSE_CLI_TOKEN_COMMAND) without an auth type",
+      token: { origin: "PULSE_CLI_TOKEN_COMMAND", command: true },
     })
     // a blank variable is unset
-    expect(resolveAuth({}, { OPERATE_TOKEN_COMMAND: "  " }, {}).auth.type).toBe("none")
+    expect(resolveAuth({}, { PULSE_CLI_TOKEN_COMMAND: "  " }, {}).auth.type).toBe("none")
   })
 
-  it("comes after --auth-token-stdin and OPERATE_TOKEN, before the profile", () => {
+  it("comes after --auth-token-stdin and PULSE_CLI_TOKEN, before the profile", () => {
     const stored = profile({ type: "bearer", tokenEnv: "CI_TOKEN" })
     const env = { ...COMMAND_ENV, CI_TOKEN: "ci" }
     expect(resolveAuth({}, env, stored).auth).toMatchObject({
       command: "./token.sh dev",
       profile: "dev",
     })
-    const token = resolveAuth({}, { ...env, OPERATE_TOKEN: "tok" }, stored)
-    expect(token.auth).toMatchObject({ token: "tok", origin: "OPERATE_TOKEN" })
+    const token = resolveAuth({}, { ...env, PULSE_CLI_TOKEN: "tok" }, stored)
+    expect(token.auth).toMatchObject({ token: "tok", origin: "PULSE_CLI_TOKEN" })
     const piped = resolveAuth({ authToken: "piped" }, env, stored)
     expect(piped.auth).toMatchObject({ token: "piped", origin: "--auth-token-stdin" })
     expect(resolveAuth({}, { CI_TOKEN: "ci" }, stored).auth).toMatchObject({ token: "ci" })
@@ -71,7 +71,7 @@ describe("resolveAuth with a token command", () => {
     })
     const error = failure(() => parseConfigFile(text, "/c.json"))
     expect(error.message).toBe(
-      'Invalid config file /c.json: profile "p" sets auth.tokenCommand, which operate no longer reads: remove the key from the file and export OPERATE_TOKEN_COMMAND=<command> instead',
+      'Invalid config file /c.json: profile "p" sets auth.tokenCommand, which pulse-cli no longer reads: remove the key from the file and export PULSE_CLI_TOKEN_COMMAND=<command> instead',
     )
   })
 
@@ -81,13 +81,13 @@ describe("resolveAuth with a token command", () => {
       "Both Basic auth and a bearer token command are configured, but no auth type says which one to use",
     )
     expect(error.details.hint).toContain(
-      "a bearer token command (from OPERATE_TOKEN_COMMAND) selects bearer auth",
+      "a bearer token command (from PULSE_CLI_TOKEN_COMMAND) selects bearer auth",
     )
   })
 
   it("reports an unused command next to another auth type", () => {
     const basic = profile({ type: "basic", username: "u", password: "p" })
-    const resolved = resolveAuth({}, { OPERATE_TOKEN_COMMAND: "c" }, basic)
+    const resolved = resolveAuth({}, { PULSE_CLI_TOKEN_COMMAND: "c" }, basic)
     expect(resolved.unusedToken).toEqual({
       value: "c",
       source: "env",
@@ -95,20 +95,20 @@ describe("resolveAuth with a token command", () => {
       command: true,
     })
     expect(unusedTokenNote(resolved.unusedToken!)).toBe(
-      'A bearer token command is set (from OPERATE_TOKEN_COMMAND) but not used: Basic auth is selected by the auth.type of profile "dev"; send it with --auth bearer or OPERATE_AUTH=bearer.',
+      'A bearer token command is set (from PULSE_CLI_TOKEN_COMMAND) but not used: Basic auth is selected by the auth.type of profile "dev"; send it with --auth bearer or PULSE_CLI_AUTH=bearer.',
     )
-    const off = resolveAuth({ auth: "none" }, { OPERATE_TOKEN_COMMAND: "c" }, {})
+    const off = resolveAuth({ auth: "none" }, { PULSE_CLI_TOKEN_COMMAND: "c" }, {})
     expect(unusedTokenNote(off.unusedToken!, true)).toBe(
-      "A bearer token command is set (from OPERATE_TOKEN_COMMAND) but not used: bearer auth is switched off by --auth none; use it with OPERATE_AUTH=bearer.",
+      "A bearer token command is set (from PULSE_CLI_TOKEN_COMMAND) but not used: bearer auth is switched off by --auth none; use it with PULSE_CLI_AUTH=bearer.",
     )
   })
 
   it("is named in the hint of a missing token", () => {
     const error = failure(() => resolveAuth({ auth: "bearer" }, {}, {}))
     expect(error.details.hint).toContain(
-      "Looked up the token in --auth-token-stdin, OPERATE_TOKEN, OPERATE_TOKEN_COMMAND and a profile (none is selected).",
+      "Looked up the token in --auth-token-stdin, PULSE_CLI_TOKEN, PULSE_CLI_TOKEN_COMMAND and a profile (none is selected).",
     )
-    expect(error.details.hint).toContain("export OPERATE_TOKEN_COMMAND=<command>")
+    expect(error.details.hint).toContain("export PULSE_CLI_TOKEN_COMMAND=<command>")
   })
 })
 
@@ -124,8 +124,8 @@ describe("bearerSource", () => {
       origin: 'auth.token of profile "dev"',
       command: false,
     })
-    expect(bearerSource(context(profile({}), { OPERATE_TOKEN_COMMAND: "c" }))).toEqual({
-      origin: "OPERATE_TOKEN_COMMAND",
+    expect(bearerSource(context(profile({}), { PULSE_CLI_TOKEN_COMMAND: "c" }))).toEqual({
+      origin: "PULSE_CLI_TOKEN_COMMAND",
       command: true,
     })
     expect(bearerSource(context(profile({})))).toBeUndefined()
@@ -159,10 +159,10 @@ describe("profiles of a project file", () => {
     const broken: LoadedConfig = { ...file, defaultProfile: "gone" }
     const error = failure(() => selectProfile({}, {}, broken))
     expect(error.details.hint).toBe(
-      "It is the defaultProfile of the project file /repo/.operate.json; choose another one with `operate config use <profile> --project`. Known profiles: svc, mine. Create it with `operate config set gone --url <url>`.",
+      "It is the defaultProfile of the project file /repo/.pulse-cli.json; choose another one with `pulse-cli config use <profile> --project`. Known profiles: svc, mine. Create it with `pulse-cli config set gone --url <url>`.",
     )
     expect(missingProfileError("x", { profiles: {} }, "default").details.hint).toBe(
-      "It is the defaultProfile of the config file; choose another one with `operate config use <profile>`. Create it with `operate config set x --url <url>`.",
+      "It is the defaultProfile of the config file; choose another one with `pulse-cli config use <profile>`. Create it with `pulse-cli config set x --url <url>`.",
     )
   })
 
@@ -185,14 +185,14 @@ describe("profiles of a project file", () => {
 
 describe("config show with a token command", () => {
   it("shows the command (never run)", () => {
-    const resolved = resolveConfig({}, { OPERATE_TOKEN_COMMAND: "c" }, undefined)
+    const resolved = resolveConfig({}, { PULSE_CLI_TOKEN_COMMAND: "c" }, undefined)
     const view = showConfig(resolved, "/c.json")
     expect(view.values.tokenCommand).toEqual({ value: "c", source: "env" })
     expect(view.values.token).toBeUndefined()
   })
 
   it("shows an unused command as unused", () => {
-    const resolved = resolveConfig({ auth: "none" }, { OPERATE_TOKEN_COMMAND: "c" }, undefined)
+    const resolved = resolveConfig({ auth: "none" }, { PULSE_CLI_TOKEN_COMMAND: "c" }, undefined)
     expect(showConfig(resolved, "/c.json").values).toMatchObject({
       tokenCommand: {
         value: "c",

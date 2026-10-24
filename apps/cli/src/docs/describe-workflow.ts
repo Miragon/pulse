@@ -1,5 +1,5 @@
 /**
- * `operate describe <workflow-command>`: usage, description, effect, arguments,
+ * `pulse-cli describe <workflow-command>`: usage, description, effect, arguments,
  * options, the operations it may call and examples, as a JSON view and as readable text. Pure.
  */
 
@@ -90,7 +90,7 @@ function optionText(option: WorkflowOptionView): string {
     : `${option.description}. One of: ${option.enum.join(", ")}.`
 }
 
-/** Human readable `operate describe <workflow-command>`, with a trailing newline. */
+/** Human readable `pulse-cli describe <workflow-command>`, with a trailing newline. */
 export function renderWorkflowDescribeText(view: WorkflowDescribeView): string {
   const effect = view.effectNote === undefined ? view.effect : `${view.effect}; ${view.effectNote}`
   const lines = [
@@ -109,7 +109,7 @@ export function renderWorkflowDescribeText(view: WorkflowDescribeView): string {
     ...section("OPTIONS", columns(view.options.map((option) => [option.flag, optionText(option)]))),
     ...section(
       "REQUESTS",
-      columns(view.calls.map((call) => [call.operationId, `operate ${call.command}`])),
+      columns(view.calls.map((call) => [call.operationId, `pulse-cli ${call.command}`])),
     ),
     ...section(
       "EXAMPLES",

@@ -1,6 +1,6 @@
 /**
- * The project file part of `operate config`: the file an edit writes (the user's
- * config file, or with `--project` the project file `.operate.json`), and the checks and notices
+ * The project file part of `pulse-cli config`: the file an edit writes (the user's
+ * config file, or with `--project` the project file `.pulse-cli.json`), and the checks and notices
  * of edits next to a project file.
  */
 
@@ -27,7 +27,7 @@ export const PROJECT_OPTION = [
 export interface EditTarget {
   readonly path: string
   readonly project: boolean
-  /** The user's file was named by `--config` or OPERATE_CONFIG. */
+  /** The user's file was named by `--config` or PULSE_CLI_CONFIG. */
   readonly explicit?: boolean
   /** The project file in effect, read best effort, when the edit writes the user's file. */
   readonly other?: { readonly path: string; readonly file: ConfigFile }
@@ -36,7 +36,7 @@ export interface EditTarget {
 function noProjectDirectory(runtime: Runtime) {
   return configError(
     `No project directory: ${runtime.cwd} is your home directory`,
-    `operate looks up ${PROJECT_FILE} from the working directory up to the repository root; run the command inside the repository (\`config set --project\` creates the file at its root).`,
+    `pulse-cli looks up ${PROJECT_FILE} from the working directory up to the repository root; run the command inside the repository (\`config set --project\` creates the file at its root).`,
   )
 }
 
@@ -117,7 +117,7 @@ export function checkUserProfile(target: EditTarget, file: ConfigFile | undefine
   if (findProfile(other.file, name) === undefined) return
   throw configError(
     `Profile "${name}" is a profile of the project file ${other.path}, not of your config file`,
-    `Add --project to change the project file; \`operate config set ${name} <options>\` without it creates a profile of your own that overrides the project's.`,
+    `Add --project to change the project file; \`pulse-cli config set ${name} <options>\` without it creates a profile of your own that overrides the project's.`,
   )
 }
 
@@ -136,7 +136,7 @@ function defaultNotice(other: Other, before: ConfigFile | undefined, after: Conf
   if (after.defaultProfile === before?.defaultProfile || projectDefault === "") return undefined
   // a profile of the user's file of the same name takes the project's default away
   if (findProfile(after, projectDefault) !== undefined) return undefined
-  return `Notice: in this repository the defaultProfile of the project file ${other.path} ("${projectDefault}") wins; use --profile, ${ENV.profile} or \`operate config use <profile> --project\`.`
+  return `Notice: in this repository the defaultProfile of the project file ${other.path} ("${projectDefault}") wins; use --profile, ${ENV.profile} or \`pulse-cli config use <profile> --project\`.`
 }
 
 /** Notices after an edit of the user's file next to a project file. */

@@ -1,5 +1,5 @@
 /**
- * `operate auth` and `config delete` for profiles that share a login (the same issuer and client):
+ * `pulse-cli auth` and `config delete` for profiles that share a login (the same issuer and client):
  * one login for all of them, lost together on logout and kept until the last of them goes, a login
  * of its own for another audience or scopes, and the logins operate 0.7.0 and earlier cached under
  * the profile name.
@@ -33,7 +33,7 @@ describe("profiles that share a login", () => {
           name,
           {
             url: `http://localhost:${String(8112 + index)}/engine-rest`,
-            auth: { type: "oauth", issuer: ISSUER, clientId: "operate-cli" },
+            auth: { type: "oauth", issuer: ISSUER, clientId: "pulse-cli" },
           },
         ]),
       ),
@@ -138,7 +138,7 @@ describe("profiles that share a login", () => {
     const files = {
       [CONFIG_PATH]: JSON.stringify({
         defaultProfile: "Prod",
-        profiles: { Prod: { auth: { type: "oauth", issuer: ISSUER, clientId: "operate-cli" } } },
+        profiles: { Prod: { auth: { type: "oauth", issuer: ISSUER, clientId: "pulse-cli" } } },
       }),
       [`${TOKEN_DIR}/profile-%50rod.json`]: cacheText(cachedLogin(T0, { refreshToken: "r-07" })),
       [`${TOKEN_DIR}/profile-Prod.json`]: cacheText(cachedLogin(T0, { refreshToken: "r-05" })),
@@ -160,7 +160,7 @@ describe("profiles that share a login", () => {
   })
 
   it("never take the old login of a profile whose name differs only in case (macOS, Windows)", async () => {
-    const auth = { type: "oauth", issuer: ISSUER, clientId: "operate-cli" }
+    const auth = { type: "oauth", issuer: ISSUER, clientId: "pulse-cli" }
     const files = {
       [CONFIG_PATH]: JSON.stringify({ profiles: { Prod: { auth }, prod: { auth } } }),
       [`${TOKEN_DIR}/profile-%50rod.json`]: cacheText(cachedLogin(T0, { refreshToken: "r-Prod" })),
@@ -183,11 +183,11 @@ describe("profiles that share a login", () => {
   })
 
   it("never let a profile without stored OAuth settings reach the login of another one", async () => {
-    // "env" stores only its type: issuer and client come from OPERATE_OAUTH_*; "plain" is Basic
+    // "env" stores only its type: issuer and client come from PULSE_CLI_OAUTH_*; "plain" is Basic
     const env = {
-      OPERATE_OAUTH_ISSUER: ISSUER,
-      OPERATE_OAUTH_CLIENT_ID: "operate-cli",
-      OPERATE_PASSWORD: "pw",
+      PULSE_CLI_OAUTH_ISSUER: ISSUER,
+      PULSE_CLI_OAUTH_CLIENT_ID: "pulse-cli",
+      PULSE_CLI_PASSWORD: "pw",
     }
     const config = JSON.stringify({
       profiles: {
@@ -207,9 +207,9 @@ describe("profiles that share a login", () => {
     expect(JSON.parse(plain.stdout)).toMatchObject({ profile: "plain", removed: false })
     expect(idp.revoked).toEqual([])
     expect(runtime.files.has(envLogin)).toBe(true)
-    // with OPERATE_AUTH=oauth the Basic profile gets a login of its own, never that of "env"
+    // with PULSE_CLI_AUTH=oauth the Basic profile gets a login of its own, never that of "env"
     const oauth = setup({
-      runtime: { env: { ...env, OPERATE_AUTH: "oauth" } },
+      runtime: { env: { ...env, PULSE_CLI_AUTH: "oauth" } },
       files: { [CONFIG_PATH]: config, [envLogin]: cacheText(cachedLogin(T0)) },
     })
     const own = await oauth.cli(["auth", "status", "--profile", "plain"])

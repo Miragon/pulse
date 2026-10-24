@@ -23,7 +23,7 @@ function checkPathArg(param: ParamSpec, value: string): string {
 }
 
 function usageHint(operation: OperationSpec): string {
-  return `Run "operate ${operation.group} ${operation.name} --help" for the usage.`
+  return `Run "pulse-cli ${operation.group} ${operation.name} --help" for the usage.`
 }
 
 function missingArguments(operation: OperationSpec, missing: readonly ParamSpec[]) {

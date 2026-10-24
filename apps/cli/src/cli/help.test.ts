@@ -15,11 +15,11 @@ import {
 
 describe("commandPath", () => {
   it("joins the names from the root", () => {
-    const root = new Command("operate")
+    const root = new Command("pulse-cli")
     const group = root.command("task")
     const leaf = group.command("list")
-    expect(commandPath(root)).toBe("operate")
-    expect(commandPath(leaf)).toBe("operate task list")
+    expect(commandPath(root)).toBe("pulse-cli")
+    expect(commandPath(leaf)).toBe("pulse-cli task list")
   })
 })
 
@@ -35,11 +35,11 @@ describe("helpConfiguration", () => {
   })
 
   it("builds the usage line from the command path and the usage without aliases", () => {
-    const root = new Command("operate").configureHelp(helpConfiguration())
+    const root = new Command("pulse-cli").configureHelp(helpConfiguration())
     const leaf = root.command("task").command("list").alias("get-tasks").usage("[options]")
-    expect(leaf.createHelp().commandUsage(leaf)).toBe("operate task list [options]")
+    expect(leaf.createHelp().commandUsage(leaf)).toBe("pulse-cli task list [options]")
     const bare = root.command("bare").helpOption(false)
-    expect(bare.createHelp().commandUsage(bare)).toBe("operate bare")
+    expect(bare.createHelp().commandUsage(bare)).toBe("pulse-cli bare")
   })
 })
 
@@ -70,8 +70,8 @@ describe("outputConfiguration", () => {
 describe("examples", () => {
   it("renders an Examples section after a blank line, nothing without examples", () => {
     expect(examplesText([])).toBe("")
-    expect(examplesText(["operate task list", "operate task get t1"])).toBe(
-      "\nExamples:\n  $ operate task list\n  $ operate task get t1",
+    expect(examplesText(["pulse-cli task list", "pulse-cli task get t1"])).toBe(
+      "\nExamples:\n  $ pulse-cli task list\n  $ pulse-cli task get t1",
     )
   })
 })
@@ -80,28 +80,33 @@ describe("root help texts", () => {
   it("ends the root description with the commands to start with", () => {
     expect(ROOT_DESCRIPTION.split("\n").slice(1)).toEqual([
       "",
-      "The REST API root defaults to http://localhost:8080/engine-rest; set it with --url, OPERATE_URL or a profile (operate config set).",
+      "The REST API root defaults to http://localhost:8080/engine-rest; set it with --url, PULSE_CLI_URL or a profile (pulse-cli config set).",
       "",
-      "Basic auth: --auth-user <name> with the password piped into --auth-password-stdin, OPERATE_USERNAME and OPERATE_PASSWORD, or a profile (operate config set <profile> --auth basic --auth-user <name> --auth-password-env <VAR>).",
+      "Basic auth: --auth-user <name> with the password piped into --auth-password-stdin, PULSE_CLI_USERNAME and PULSE_CLI_PASSWORD, or a profile (pulse-cli config set <profile> --auth basic --auth-user <name> --auth-password-env <VAR>).",
       "",
-      'OAuth: a person runs "operate auth login --profile <name>" once in a terminal; commands then refresh the token on their own.',
+      'OAuth: a person runs "pulse-cli auth login --profile <name>" once in a terminal; commands then refresh the token on their own.',
       "",
-      "Bearer token from elsewhere (SSO tooling, a CI secret): OPERATE_TOKEN, --auth-token-stdin or a profile (operate config set <profile> --auth bearer --auth-token-env <VAR>); OPERATE_TOKEN_COMMAND names a command that prints one (operate guide auth).",
+      "Bearer token from elsewhere (SSO tooling, a CI secret): PULSE_CLI_TOKEN, --auth-token-stdin or a profile (pulse-cli config set <profile> --auth bearer --auth-token-env <VAR>); PULSE_CLI_TOKEN_COMMAND names a command that prints one (pulse-cli guide auth).",
       "",
       "Get started:",
-      "  operate ping                        check the connection to the engine",
-      "  operate commands                    list the API groups",
-      "  operate commands --search <text>    find a command",
-      "  operate describe <group> <command>  options, body, responses, examples",
-      "  operate inspect <id>                where an instance waits and why",
-      "  operate status                      incidents, jobs and workers at a glance",
-      "  operate guide                       usage guide for agents (markdown)",
+      "  pulse-cli ping                        check the connection to the engine",
+      "  pulse-cli commands                    list the API groups",
+      "  pulse-cli commands --search <text>    find a command",
+      "  pulse-cli describe <group> <command>  options, body, responses, examples",
+      "  pulse-cli inspect <id>                where an instance waits and why",
+      "  pulse-cli status                      incidents, jobs and workers at a glance",
+      "  pulse-cli guide                       usage guide for agents (markdown)",
     ])
   })
 
-  it("introduces operate and the first commands to run", () => {
+  it("introduces pulse-cli and the first commands to run", () => {
     expect(ROOT_DESCRIPTION).toMatch(/^AI-first command line interface for the Camunda 7 REST API/)
-    for (const start of ["operate ping", "operate commands", "operate describe", "operate guide"]) {
+    for (const start of [
+      "pulse-cli ping",
+      "pulse-cli commands",
+      "pulse-cli describe",
+      "pulse-cli guide",
+    ]) {
       expect(ROOT_DESCRIPTION).toContain(`\n  ${start} `)
     }
     expect(ROOT_DESCRIPTION).toContain("http://localhost:8080/engine-rest")
@@ -133,8 +138,8 @@ describe("root help texts", () => {
     expect(rootFooter()).toBe(
       [
         "",
-        'Run "operate <group> --help" for the commands of a group and',
-        '"operate <group> <command> --help" for the options of a command.',
+        'Run "pulse-cli <group> --help" for the commands of a group and',
+        '"pulse-cli <group> <command> --help" for the options of a command.',
         "",
         "Exit codes:",
         ...exitCodeLines(),

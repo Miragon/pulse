@@ -17,7 +17,7 @@ export interface PingOutput {
 }
 
 /**
- * `operate auth status` of a bearer token: where it came from and, for a JWT, what its
+ * `pulse-cli auth status` of a bearer token: where it came from and, for a JWT, what its
  * claims say (no signature check); never the token.
  */
 export interface BearerStatusOutput {
@@ -25,11 +25,11 @@ export interface BearerStatusOutput {
   readonly profile: string | null
   /** `flag`, `env` or `profile`. */
   readonly source: string
-  /** `OPERATE_TOKEN`, `--auth-token-stdin`, `IT_TOKEN (auth.tokenEnv of profile "p")`, ... */
+  /** `PULSE_CLI_TOKEN`, `--auth-token-stdin`, `IT_TOKEN (auth.tokenEnv of profile "p")`, ... */
   readonly origin: string
   /** The token command that printed the token, else null. */
   readonly command: string | null
-  /** The token of the command came from operate's cache. */
+  /** The token of the command came from pulse-cli's cache. */
   readonly cached: boolean
   readonly format: "jwt" | "opaque"
   /** `sub` of a JWT. */
@@ -44,7 +44,7 @@ export interface BearerStatusOutput {
   readonly expired: boolean
 }
 
-/** `operate auth login` (stdout) and `operate auth status`: the cached login, never a token. */
+/** `pulse-cli auth login` (stdout) and `pulse-cli auth status`: the cached login, never a token. */
 export interface LoginOutput {
   readonly profile: string | null
   /** Every profile that uses the login, in file order. */
@@ -68,7 +68,7 @@ export interface LoginOutput {
   readonly tokenCache: string
 }
 
-/** `operate auth logout`. */
+/** `pulse-cli auth logout`. */
 export interface LogoutOutput {
   readonly profile: string | null
   /** OAuth: every profile that used the login. */
@@ -79,7 +79,7 @@ export interface LogoutOutput {
   readonly revoked: boolean | null
 }
 
-/** `operate config show`: every effective value with the source it came from. */
+/** `pulse-cli config show`: every effective value with the source it came from. */
 export interface ConfigShowOutput {
   readonly configFile: string
   readonly profile: string | null

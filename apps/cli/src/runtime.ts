@@ -40,7 +40,7 @@ export interface FileSystem {
   ownedByUser?(path: string): Promise<boolean>
 }
 
-/** A request to the loopback server of `operate auth login` (the OAuth callback). */
+/** A request to the loopback server of `pulse-cli auth login` (the OAuth callback). */
 export interface LoopbackRequest {
   readonly method: string
   /** The path without the query string. */
@@ -93,7 +93,7 @@ export interface Runtime {
   randomBytes(length: number): Uint8Array
   /**
    * An HTTP server on 127.0.0.1 only (port 0: an ephemeral port); rejects with the listen error
-   * (its `code`, e.g. EADDRINUSE). Only `operate auth login` starts one.
+   * (its `code`, e.g. EADDRINUSE). Only `pulse-cli auth login` starts one.
    */
   listenLoopback(
     port: number,
@@ -120,7 +120,7 @@ export interface Runtime {
   /**
    * Runs a command line in the shell (`sh -c`, `cmd.exe /d /s /c` on Windows) in the working
    * directory, with stdin closed and stdout and stderr captured; rejects when it cannot be
-   * started. Only the bearer token command (OPERATE_TOKEN_COMMAND) runs one.
+   * started. Only the bearer token command (PULSE_CLI_TOKEN_COMMAND) runs one.
    */
   runCommand(command: string, options: CommandOptions): Promise<CommandResult>
 }

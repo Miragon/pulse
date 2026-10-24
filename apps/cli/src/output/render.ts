@@ -22,7 +22,7 @@ export interface RenderOptions {
   readonly unwrap?: string | undefined
   /** Do not mask secret headers and URL passwords in dry-run previews. */
   readonly showSecrets: boolean
-  /** REST API root; the `Done:` line shows request paths relative to it, like `operate api`. */
+  /** REST API root; the `Done:` line shows request paths relative to it, like `pulse-cli api`. */
   readonly baseUrl?: string | undefined
 }
 
@@ -116,7 +116,7 @@ function relativePath(path: string, baseUrl: string | undefined): string {
 }
 
 /**
- * Path (relative to the REST root, what `operate api` takes) and query of a URL, for the `Done:`
+ * Path (relative to the REST root, what `pulse-cli api` takes) and query of a URL, for the `Done:`
  * line; an unparseable URL as is, but masked.
  */
 function requestPath(url: string, baseUrl: string | undefined): string {

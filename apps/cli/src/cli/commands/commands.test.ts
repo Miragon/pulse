@@ -43,7 +43,7 @@ function summary(overrides: Partial<CommandSummary>): CommandSummary {
   }
 }
 
-describe("operate commands: groups", () => {
+describe("pulse-cli commands: groups", () => {
   it("prints every group with description and number of commands as JSON when piped", async () => {
     const result = await cli(["commands"])
     expect(result).toMatchObject({ code: 0, stderr: "" })
@@ -51,7 +51,7 @@ describe("operate commands: groups", () => {
     expect(JSON.parse(result.stdout)).toContainEqual({
       group: "workflow",
       description:
-        "Top-level commands that combine several requests (operate <command>): inspect, wait, advance, retry, deploy, status",
+        "Top-level commands that combine several requests (pulse-cli <command>): inspect, wait, advance, retry, deploy, status",
       commands: 6,
     })
   })
@@ -93,7 +93,7 @@ describe("operate commands: groups", () => {
   })
 })
 
-describe("operate commands: commands", () => {
+describe("pulse-cli commands: commands", () => {
   it("prints the commands of a group", async () => {
     const result = await cli(["commands", "task"])
     expect(result).toMatchObject({ code: 0, stderr: "" })
@@ -166,7 +166,7 @@ describe("operate commands: commands", () => {
   })
 })
 
-describe("operate commands: errors", () => {
+describe("pulse-cli commands: errors", () => {
   it("reports an unknown group with suggestions", async () => {
     const result = await cli(["commands", "tsk"])
     expect(result).toMatchObject({ code: 2, stdout: "" })
@@ -174,7 +174,7 @@ describe("operate commands: errors", () => {
       code: "USAGE",
       exitCode: 2,
       message: 'Unknown group "tsk"',
-      hint: 'Did you mean task? Run "operate commands" for the groups, or search all commands with "operate commands --search tsk".',
+      hint: 'Did you mean task? Run "pulse-cli commands" for the groups, or search all commands with "pulse-cli commands --search tsk".',
     })
   })
 
@@ -186,7 +186,7 @@ describe("operate commands: errors", () => {
       exitCode: 2,
       message:
         "Option '--effect <effect>' argument 'remove' is invalid. Allowed choices are read, write, delete, bulk.",
-      hint: 'Run "operate commands --help" for the usage.',
+      hint: 'Run "pulse-cli commands --help" for the usage.',
     })
   })
 

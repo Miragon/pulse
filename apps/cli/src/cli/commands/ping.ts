@@ -1,5 +1,5 @@
 /**
- * `operate ping`: `GET /version` and `GET /engine`, printed as
+ * `pulse-cli ping`: `GET /version` and `GET /engine`, printed as
  * `{url, engine, reachable, version, engines, latencyMs, auth}`, plus `user` with Basic auth and
  * OAuth, and `user` and `subject` of a bearer token that is a JWT. Failures are normal errors; a
  * configured engine name that the REST API does not serve is a CONFIG error.
@@ -65,7 +65,7 @@ export function engineNames(result: OperationResult): string[] {
 export function checkEngine(engine: string | undefined, names: readonly string[]): void {
   if (engine === undefined || names.length === 0 || names.includes(engine)) return
   throw new OperateError("CONFIG", `Process engine "${engine}" does not exist`, {
-    hint: `The REST API serves: ${names.join(", ")}. Pass one of them with --engine (or OPERATE_ENGINE, or the profile setting engine), or leave it unset for the default engine.`,
+    hint: `The REST API serves: ${names.join(", ")}. Pass one of them with --engine (or PULSE_CLI_ENGINE, or the profile setting engine), or leave it unset for the default engine.`,
   })
 }
 

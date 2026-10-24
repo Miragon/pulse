@@ -27,7 +27,7 @@ import { traceWriter } from "./trace.js"
 export interface Session {
   readonly globals: GlobalOptions
   readonly config: ResolvedConfig
-  /** The user's config file, or the one named by `--config` / OPERATE_CONFIG. */
+  /** The user's config file, or the one named by `--config` / PULSE_CLI_CONFIG. */
   readonly configPath: string
   /** The project file in effect, if any. */
   readonly projectPath: string | undefined
@@ -41,7 +41,7 @@ export interface Session {
 export interface SessionOptions {
   /** `--body -`: stdin holds the body, so `--auth-password-stdin` and `--auth-token-stdin` are refused. */
   readonly bodyFromStdin?: boolean
-  /** `operate auth login|status`: hints never suggest switching OAuth off. */
+  /** `pulse-cli auth login|status`: hints never suggest switching OAuth off. */
   readonly authCommand?: boolean
 }
 
@@ -122,7 +122,7 @@ export function sessionOAuthDeps(session: Session, runtime: Runtime): OAuthDeps 
 }
 
 /**
- * The directory whose commands share the cached token of OPERATE_TOKEN_COMMAND: the directory of
+ * The directory whose commands share the cached token of PULSE_CLI_TOKEN_COMMAND: the directory of
  * the project file in effect (an agent moving between the services of a repository fetches one
  * token), else the working directory.
  */
@@ -157,11 +157,11 @@ function plainHttpWarning(session: Session): string | undefined {
   const host = plainHttpHost(config.url)
   return host === undefined
     ? undefined
-    : `Warning: operate sends ${token} over plain http to ${host}; anyone on the network path can read and reuse it. Use https:// for the engine URL (RFC 6750 §5.3).`
+    : `Warning: pulse-cli sends ${token} over plain http to ${host}; anyone on the network path can read and reuse it. Use https:// for the engine URL (RFC 6750 §5.3).`
 }
 
 /**
- * The note for auth failures when OPERATE_TOKEN is set but Basic auth or OAuth won;
+ * The note for auth failures when PULSE_CLI_TOKEN is set but Basic auth or OAuth won;
  * with type none the provider's `off` reason says it already.
  */
 function unusedNote(config: ResolvedConfig): string | undefined {

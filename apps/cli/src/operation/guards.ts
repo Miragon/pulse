@@ -9,7 +9,7 @@ import { OperateError } from "../errors.js"
 
 export interface GuardOptions {
   readonly readOnly: boolean
-  /** Where read-only mode was enabled, e.g. `--read-only`, `OPERATE_READ_ONLY` or `profile "prod"`. */
+  /** Where read-only mode was enabled, e.g. `--read-only`, `PULSE_CLI_READ_ONLY` or `profile "prod"`. */
   readonly readOnlySource?: string
   readonly yes: boolean
   readonly dryRun: boolean
@@ -20,14 +20,14 @@ const CONFIRMATION_HINT = "Re-run with --yes to confirm, or --dry-run to preview
 function readOnlyHint(source: string | undefined): string {
   const origin =
     source === undefined
-      ? "Read-only mode is enabled (--read-only, OPERATE_READ_ONLY or the profile setting readOnly)."
+      ? "Read-only mode is enabled (--read-only, PULSE_CLI_READ_ONLY or the profile setting readOnly)."
       : `Read-only mode is enabled by ${source}.`
   return `${origin} Use --dry-run to preview the request.`
 }
 
 /**
  * Throws READ_ONLY or CONFIRMATION_REQUIRED. `label` names the command in the message, e.g.
- * `operate process-instance delete`.
+ * `pulse-cli process-instance delete`.
  */
 export function checkEffect(effect: Effect, label: string, options: GuardOptions): void {
   if (options.dryRun || effect === "read") return

@@ -44,12 +44,12 @@ const EVERYDAY: readonly (readonly [string, string, number])[] = [
 describe("examplesFor", () => {
   it("returns the curated examples of everyday commands", () => {
     expect(examplesFor(command("process-definition", "start"))).toEqual([
-      "operate process-definition start invoice --business-key INV-1001 --var amount=250 --var approved=false",
-      "operate process-definition start invoice --var invoiceDate:Date=2024-05-01 --var zip:String=01234",
-      "operate process-definition start invoice --body @start.json --business-key INV-1002",
+      "pulse-cli process-definition start invoice --business-key INV-1001 --var amount=250 --var approved=false",
+      "pulse-cli process-definition start invoice --var invoiceDate:Date=2024-05-01 --var zip:String=01234",
+      "pulse-cli process-definition start invoice --body @start.json --business-key INV-1002",
     ])
     expect(examplesFor(command("incident", "resolve"))).toEqual([
-      "operate incident resolve 9b4f2a53-0f4a-11ef-a1b2-0242ac120002 --yes",
+      "pulse-cli incident resolve 9b4f2a53-0f4a-11ef-a1b2-0242ac120002 --yes",
     ])
   })
 
@@ -57,20 +57,20 @@ describe("examplesFor", () => {
     const examples = examplesFor(command(group, name))
     expect(examples).toHaveLength(count)
     for (const example of examples) {
-      expect(example.startsWith(`operate ${group} ${name} `)).toBe(true)
+      expect(example.startsWith(`pulse-cli ${group} ${name} `)).toBe(true)
       expect(example).not.toContain("my-")
     }
   })
 
   it("gives presets only the examples of their own command", () => {
     expect(examplesFor(command("process-instance", "suspend"))).toEqual([
-      "operate process-instance suspend 6f2b8c3e-0f4a-11ef-a1b2-0242ac120002",
+      "pulse-cli process-instance suspend 6f2b8c3e-0f4a-11ef-a1b2-0242ac120002",
     ])
     expect(examplesFor(command("process-instance", "activate"))).toEqual([
-      "operate process-instance activate 6f2b8c3e-0f4a-11ef-a1b2-0242ac120002",
+      "pulse-cli process-instance activate 6f2b8c3e-0f4a-11ef-a1b2-0242ac120002",
     ])
     expect(examplesFor(command("process-instance", "update-suspension-state-by-id"))).toEqual([
-      "operate process-instance update-suspension-state-by-id my-id",
+      "pulse-cli process-instance update-suspension-state-by-id my-id",
     ])
   })
 
@@ -78,7 +78,7 @@ describe("examplesFor", () => {
     const first = examplesFor(command("job", "set-retries"))
     first.push("changed")
     expect(examplesFor(command("job", "set-retries"))).toEqual([
-      "operate job set-retries ac5a3b64-0f4a-11ef-a1b2-0242ac120002 --retries 3",
+      "pulse-cli job set-retries ac5a3b64-0f4a-11ef-a1b2-0242ac120002 --retries 3",
     ])
   })
 
@@ -95,37 +95,37 @@ describe("examplesFor", () => {
 
   it("builds a generic example from the positional arguments", () => {
     expect(examplesFor(command("process-instance", "get-variable"))).toEqual([
-      "operate process-instance get-variable my-id my-var-name",
+      "pulse-cli process-instance get-variable my-id my-var-name",
     ])
-    expect(examplesFor(command("engine", "list"))).toEqual(["operate engine list"])
+    expect(examplesFor(command("engine", "list"))).toEqual(["pulse-cli engine list"])
     expect(examplesFor(command("deployment", "delete"))).toEqual([
-      "operate deployment delete my-id --yes",
+      "pulse-cli deployment delete my-id --yes",
     ])
     expect(examplesFor(command("process-instance", "delete-async"))).toEqual([
-      "operate process-instance delete-async --yes",
+      "pulse-cli process-instance delete-async --yes",
     ])
   })
 
   it("uses the first allowed value for an enum path parameter", () => {
     expect(examplesFor(command("metrics", "sum"))).toEqual([
-      "operate metrics sum activity-instance-start",
+      "pulse-cli metrics sum activity-instance-start",
     ])
   })
 
   it("adds required options with placeholder values", () => {
     expect(examplesFor(command("authorization", "check"))).toEqual([
-      "operate authorization check --permission-name my-permission-name --resource-name my-resource-name --resource-type 1",
+      "pulse-cli authorization check --permission-name my-permission-name --resource-name my-resource-name --resource-type 1",
     ])
     expect(examplesFor(command("historic-process-instance", "get-duration-report"))).toEqual([
-      "operate historic-process-instance get-duration-report --report-type my-report-type --period-unit month",
+      "pulse-cli historic-process-instance get-duration-report --report-type my-report-type --period-unit month",
     ])
   })
 
   it("resolves required body properties with the given schemas, by default those of the catalog", () => {
     const add = command("task-identity-link", "add")
-    expect(examplesFor(add)).toEqual(["operate task-identity-link add my-id --type my-type"])
+    expect(examplesFor(add)).toEqual(["pulse-cli task-identity-link add my-id --type my-type"])
     expect(examplesFor(add, catalog.schemas)).toEqual(examplesFor(add))
-    expect(examplesFor(add, {})).toEqual(["operate task-identity-link add my-id"])
+    expect(examplesFor(add, {})).toEqual(["pulse-cli task-identity-link add my-id"])
   })
 
   it("uses typed placeholders for numbers, dates, booleans and resource files", () => {
@@ -172,7 +172,7 @@ describe("examplesFor", () => {
       ],
     }
     expect(examplesFor(spec)).toEqual([
-      "operate fake run process.bpmn --ratio 1.5 --since 2024-05-01T10:00:00Z --force",
+      "pulse-cli fake run process.bpmn --ratio 1.5 --since 2024-05-01T10:00:00Z --force",
     ])
   })
 })

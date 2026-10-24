@@ -1,5 +1,5 @@
 /**
- * Ready-to-run follow-ups of the instance view: at most three `operate` command
+ * Ready-to-run follow-ups of the instance view: at most three `pulse-cli` command
  * lines, always with ids (never business keys), so they are reproducible. Pure.
  */
 
@@ -19,21 +19,21 @@ const ADVANCEABLE: ReadonlySet<string> = new Set([
 ])
 const RUNNING: ReadonlySet<string> = new Set(["ACTIVE", "SUSPENDED"])
 
-/** Wait states `operate advance` can move: also receive tasks without a message. */
+/** Wait states `pulse-cli advance` can move: also receive tasks without a message. */
 export function isAdvanceable(wait: WaitState): boolean {
   return (
     ADVANCEABLE.has(wait.kind) || (wait.kind === "other" && wait.activityType === "receiveTask")
   )
 }
 
-/** True for incident types whose retries `operate retry` sets. */
+/** True for incident types whose retries `pulse-cli retry` sets. */
 export function isRetryable(type: string): boolean {
   return RETRYABLE.has(type)
 }
 
 type NextInput = Pick<InstanceView, "id" | "state" | "waitingAt" | "incidents">
 
-/** A suspended job: `operate advance` refuses to execute it. */
+/** A suspended job: `pulse-cli advance` refuses to execute it. */
 export function isSuspendedJob(wait: WaitState): boolean {
   return (wait.kind === "timer" || wait.kind === "asyncContinuation") && wait.suspended === true
 }
@@ -45,16 +45,16 @@ export function isSuspendedJob(wait: WaitState): boolean {
 export function itemCommand(wait: WaitState): string | undefined {
   switch (wait.kind) {
     case "userTask":
-      return `operate task complete ${wait.taskId}`
+      return `pulse-cli task complete ${wait.taskId}`
     case "timer":
     case "asyncContinuation":
-      return `operate job execute ${wait.jobId}`
+      return `pulse-cli job execute ${wait.jobId}`
     case "message":
-      return `operate execution trigger-event ${wait.executionId} ${shellWord(wait.eventName ?? "")}`
+      return `pulse-cli execution trigger-event ${wait.executionId} ${shellWord(wait.eventName ?? "")}`
     case "signal":
-      return `operate signal throw --name ${shellWord(wait.eventName ?? "")} --execution-id ${wait.executionId}`
+      return `pulse-cli signal throw --name ${shellWord(wait.eventName ?? "")} --execution-id ${wait.executionId}`
     case "other":
-      return `operate execution signal ${wait.executionId}`
+      return `pulse-cli execution signal ${wait.executionId}`
     default:
       return undefined
   }
@@ -70,33 +70,33 @@ export function byActivity(waits: readonly WaitState[]): Map<string, WaitState[]
 }
 
 /**
- * `operate advance <id>` for the only wait state; with several, per activity (the first two)
+ * `pulse-cli advance <id>` for the only wait state; with several, per activity (the first two)
  * `--activity-id`, or the generated command of the first item of a multi-instance activity
  * (`advance --activity-id` refuses to pick one). A suspended instance is activated first.
  */
 function advanceCommands(view: NextInput): string[] {
-  if (view.state === "SUSPENDED") return [`operate process-instance activate ${view.id}`]
+  if (view.state === "SUSPENDED") return [`pulse-cli process-instance activate ${view.id}`]
   const movable = view.waitingAt.filter((wait) => isAdvanceable(wait) && !isSuspendedJob(wait))
-  if (movable.length === 1) return [`operate advance ${view.id}`]
+  if (movable.length === 1) return [`pulse-cli advance ${view.id}`]
   return [...byActivity(movable).entries()]
     .filter(([activityId]) => activityId !== "")
     .slice(0, MAX_ACTIVITIES)
     .flatMap(([activityId, waits]) => {
       if (waits.length === 1)
-        return [`operate advance ${view.id} --activity-id ${shellWord(activityId)}`]
+        return [`pulse-cli advance ${view.id} --activity-id ${shellWord(activityId)}`]
       return waits[0] === undefined ? [] : (itemCommand(waits[0]) ?? [])
     })
 }
 
 /**
- * `operate retry <id>` for a failed job or external task, the advance commands above, `operate
+ * `pulse-cli retry <id>` for a failed job or external task, the advance commands above, `pulse-cli
  * inspect <id> --history` for an ended instance shown without its history.
  */
 export function nextCommands(view: NextInput, historyShown: boolean): string[] {
   const retry = view.incidents.some((incident) => isRetryable(incident.type))
-    ? [`operate retry ${view.id}`]
+    ? [`pulse-cli retry ${view.id}`]
     : []
   const history =
-    !RUNNING.has(view.state) && !historyShown ? [`operate inspect ${view.id} --history`] : []
+    !RUNNING.has(view.state) && !historyShown ? [`pulse-cli inspect ${view.id} --history`] : []
   return [...retry, ...advanceCommands(view), ...history].slice(0, MAX_NEXT)
 }

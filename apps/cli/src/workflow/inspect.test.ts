@@ -115,7 +115,7 @@ describe("loadInstance", () => {
       state: "COMPLETED",
       waitingAt: [],
       variables: { amount: 250 },
-      next: [`operate inspect ${P} --history`],
+      next: [`pulse-cli inspect ${P} --history`],
     })
     expect(
       server.requests

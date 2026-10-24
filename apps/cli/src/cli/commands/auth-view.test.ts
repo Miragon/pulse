@@ -17,7 +17,7 @@ describe("loginView", () => {
       profile: "p",
       profiles: ["p", "billing"],
       issuer: "https://login.example.com/realms/camunda",
-      clientId: "operate-cli",
+      clientId: "pulse-cli",
       user: "alice",
       subject: "user-1",
       scopes: ["openid", "profile"],

@@ -88,6 +88,6 @@ export const VIEW: InstanceView = {
     },
   ],
   truncated: true,
-  next: ["operate retry p1"],
+  next: ["pulse-cli retry p1"],
   waited: { until: "idle", elapsedMs: 1200, polls: 5 },
 }

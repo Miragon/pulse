@@ -323,7 +323,9 @@ describe("operationArguments and usageLine", () => {
       { name: "id", required: true, variadic: false, description: expect.any(String) },
       { name: "var-name", required: true, variadic: false, description: expect.any(String) },
     ])
-    expect(usageLine(spec)).toBe("operate process-instance get-variable <id> <var-name> [options]")
+    expect(usageLine(spec)).toBe(
+      "pulse-cli process-instance get-variable <id> <var-name> [options]",
+    )
   })
 
   it("adds variadic resource files to deployment create", () => {
@@ -336,13 +338,13 @@ describe("operationArguments and usageLine", () => {
         description: "Resource files to deploy (BPMN, DMN, forms, scripts, ...).",
       },
     ])
-    expect(usageLine(spec)).toBe("operate deployment create <files...> [options]")
+    expect(usageLine(spec)).toBe("pulse-cli deployment create <files...> [options]")
   })
 
   it("has no arguments for collection endpoints", () => {
     expect(operationArguments(operation("getProcessInstances"))).toEqual([])
     expect(usageLine(operation("getProcessInstances"))).toBe(
-      "operate process-instance list [options]",
+      "pulse-cli process-instance list [options]",
     )
   })
 })

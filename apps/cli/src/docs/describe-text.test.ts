@@ -6,7 +6,7 @@ import { type DescribeView, describeOperation, renderDescribeText } from "./desc
 
 describe("renderDescribeText", () => {
   const sample: DescribeView = {
-    command: "operate sample run <id> --mode <value>",
+    command: "pulse-cli sample run <id> --mode <value>",
     operationId: "runSample",
     method: "POST",
     path: "/sample/{id}/run",
@@ -68,14 +68,14 @@ describe("renderDescribeText", () => {
       },
       { status: 204, kind: "none", contentTypes: [] },
     ],
-    examples: ["operate sample run abc --mode fast --yes"],
+    examples: ["pulse-cli sample run abc --mode fast --yes"],
   }
 
   it("renders every section", () => {
     expect(renderDescribeText(sample)).toBe(
       [
         "USAGE",
-        "  operate sample run <id> --mode <value> [options]",
+        "  pulse-cli sample run <id> --mode <value> [options]",
         "",
         "DESCRIPTION",
         "  Run a sample",
@@ -110,7 +110,7 @@ describe("renderDescribeText", () => {
         "  204 no content",
         "",
         "EXAMPLES",
-        "  operate sample run abc --mode fast --yes",
+        "  pulse-cli sample run abc --mode fast --yes",
         "",
       ].join("\n"),
     )
@@ -119,7 +119,7 @@ describe("renderDescribeText", () => {
   it("leaves out empty sections and optional lines", () => {
     const minimal: DescribeView = {
       ...sample,
-      command: "operate sample get",
+      command: "pulse-cli sample get",
       description: "  ",
       deprecated: false,
       arguments: [],
@@ -131,7 +131,7 @@ describe("renderDescribeText", () => {
     expect(renderDescribeText(minimal)).toBe(
       [
         "USAGE",
-        "  operate sample get [options]",
+        "  pulse-cli sample get [options]",
         "",
         "DESCRIPTION",
         "  Run a sample",
@@ -163,7 +163,7 @@ describe("renderDescribeText", () => {
     expect(text).toContain(
       [
         "EXAMPLES",
-        "  operate process-instance modify 6f2b8c3e-0f4a-11ef-a1b2-0242ac120002 --body @modification.json \\",
+        "  pulse-cli process-instance modify 6f2b8c3e-0f4a-11ef-a1b2-0242ac120002 --body @modification.json \\",
         "      --dry-run",
       ].join("\n"),
     )

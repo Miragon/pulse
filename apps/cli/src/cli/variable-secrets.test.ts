@@ -34,12 +34,12 @@ const FAMILIES: readonly Family[] = [
     auth: (secret) => ({ type: "basic", username: "demo", passwordEnv: secret }),
   },
   {
-    set: ["--oauth-issuer", ISSUER, "--oauth-client-id", "operate-cli"],
+    set: ["--oauth-issuer", ISSUER, "--oauth-client-id", "pulse-cli"],
     flag: "--oauth-client-secret-env",
     auth: (secret) => ({
       type: "oauth",
       issuer: ISSUER,
-      clientId: "operate-cli",
+      clientId: "pulse-cli",
       clientSecretEnv: secret,
     }),
   },

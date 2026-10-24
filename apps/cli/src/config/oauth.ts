@@ -81,7 +81,7 @@ export function validateClientId(clientId: string, label: string): string {
   if (trimmed === "" || !VSCHAR.test(trimmed)) {
     throw configError(
       `The OAuth client id (${label}) must be printable ASCII and not empty`,
-      "Use the client id registered at the authorization server, e.g. operate-cli.",
+      "Use the client id registered at the authorization server, e.g. pulse-cli.",
     )
   }
   return trimmed
@@ -125,7 +125,7 @@ export function validateAudience(audience: string, label: string): string {
   if (trimmed === "" || !VSCHAR.test(trimmed)) {
     throw configError(
       `The OAuth audience (${label}) must be printable ASCII and not empty`,
-      "Example: engine-rest. Without an audience (the authorization server sets it itself, e.g. a Keycloak audience mapper) remove it: `operate config unset <profile> audience`, or unset OPERATE_OAUTH_AUDIENCE.",
+      "Example: engine-rest. Without an audience (the authorization server sets it itself, e.g. a Keycloak audience mapper) remove it: `pulse-cli config unset <profile> audience`, or unset PULSE_CLI_OAUTH_AUDIENCE.",
     )
   }
   return trimmed
@@ -168,7 +168,7 @@ export const OAUTH_CHECKS: Readonly<Record<(typeof OAUTH_AUTH_KEYS)[number], Che
   clientId: [isNonEmptyString, "a non-empty string"],
   clientSecretEnv: [
     (value) => typeof value === "string" && ENV_NAME.test(value),
-    "the name of an environment variable, e.g. OPERATE_CLIENT_SECRET",
+    "the name of an environment variable, e.g. PULSE_CLI_CLIENT_SECRET",
   ],
   clientSecret: [isNonEmptyString, "a non-empty string"],
   scopes: [isScopeList, 'an array of distinct scopes such as ["openid", "offline_access"]'],

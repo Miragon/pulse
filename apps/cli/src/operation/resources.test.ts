@@ -178,7 +178,7 @@ describe("collectResources details", () => {
       ].map(async (promise) => (await usage(promise)).details.hint),
     )
     expect(hints).toEqual([
-      "Example: operate deploy src/main/resources, or operate deploy . for the current directory.",
+      "Example: pulse-cli deploy src/main/resources, or pulse-cli deploy . for the current directory.",
       "Relative paths are resolved against the current directory.",
       "Pass BPMN, DMN or form files, or directories.",
       "A directory deploys its *.bpmn, *.bpmn20.xml, *.dmn, *.dmn11.xml and *.form files (dot-directories and node_modules are skipped); name other files explicitly.",

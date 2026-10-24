@@ -70,19 +70,19 @@ function usageHint(command: Command): string {
 
 function commandsHint(command: Command): string {
   const word = command.args[0] ?? ""
-  return `Run "${commandPath(command)} --help" for the commands, or search all commands with "operate commands --search ${word}".`
+  return `Run "${commandPath(command)} --help" for the commands, or search all commands with "pulse-cli commands --search ${word}".`
 }
 
 function capitalized(text: string): string {
   return `${text.charAt(0).toUpperCase()}${text.slice(1)}`
 }
 
-/** `operate auth` and its subcommands: an extra word there is most likely a token. */
+/** `pulse-cli auth` and its subcommands: an extra word there is most likely a token. */
 function isAuthCommand(command: Command): boolean {
   return command.name() === "auth" || command.parent?.name() === "auth"
 }
 
-const STATUS_TOKEN_HINT = `operate auth status takes no token argument: pipe the token into --auth-token-stdin, e.g. printf '%s\\n' "$TOKEN" | operate auth status --auth-token-stdin. `
+const STATUS_TOKEN_HINT = `pulse-cli auth status takes no token argument: pipe the token into --auth-token-stdin, e.g. printf '%s\\n' "$TOKEN" | pulse-cli auth status --auth-token-stdin. `
 
 /**
  * Too many arguments. Next to an option about a secret, `--auth bearer` or on an `auth` command
@@ -101,7 +101,7 @@ function excessArguments(text: string, command: Command, argv: readonly string[]
 
 /**
  * An unknown command. Next to an option about a secret, `--auth bearer` or under `auth` the word
- * is not repeated (`operate --auth-token-stdin $TOKEN task list` makes the token the command
+ * is not repeated (`pulse-cli --auth-token-stdin $TOKEN task list` makes the token the command
  * name); suggestions name known commands only, so they stay.
  */
 function unknownCommand(name: string, command: Command, argv: readonly string[]): OperateError {
@@ -133,13 +133,13 @@ function unknownOption(text: string, command: Command): OperateError {
   return usageError(`Unknown option "${name}"`, `${suggestions}${secret}${help}`)
 }
 
-/** `operate workflow <x>`: the workflow commands are top-level commands. */
+/** `pulse-cli workflow <x>`: the workflow commands are top-level commands. */
 function workflowGroupError(argv: readonly string[]): OperateError {
   const next = argv[argv.indexOf(WORKFLOW_GROUP.group) + 1]
   const command = next === undefined || next.startsWith("-") ? "<command>" : next
   return usageError(
     'Unknown command "workflow"',
-    `Workflow commands are top-level: operate ${command}. "operate commands workflow" lists them.`,
+    `Workflow commands are top-level: pulse-cli ${command}. "pulse-cli commands workflow" lists them.`,
   )
 }
 
@@ -167,7 +167,7 @@ export function commanderUsageError(
 
 /**
  * Format for errors (the order of output-format.ts): the resolved one when a command got that far, else
- * `-o/--output` from argv, else OPERATE_OUTPUT, else the profile's output (best effort), else json
+ * `-o/--output` from argv, else PULSE_CLI_OUTPUT, else the profile's output (best effort), else json
  * unless stdout is a terminal. Never fails.
  */
 export async function errorFormat(argv: readonly string[], runtime: Runtime, state: CliState) {

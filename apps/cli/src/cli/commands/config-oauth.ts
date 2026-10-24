@@ -1,5 +1,5 @@
 /**
- * The OAuth part of `operate config set`: the `--oauth-*` options, the
+ * The OAuth part of `pulse-cli config set`: the `--oauth-*` options, the
  * secrets `config set` reads from stdin and the notices on stderr after `config set` (also those
  * of Basic auth and bearer tokens). What an edit does to cached logins: config-login.ts.
  */
@@ -38,7 +38,7 @@ interface OAuthSetOptions {
 const CLIENT_SECRET: StdinSecret = {
   flag: "--oauth-client-secret-stdin",
   noun: "client secret",
-  example: `printf '%s\\n' "$CLIENT_SECRET" | operate config set <profile> --oauth-client-secret-stdin`,
+  example: `printf '%s\\n' "$CLIENT_SECRET" | pulse-cli config set <profile> --oauth-client-secret-stdin`,
 }
 
 /** The `--oauth-*` options of `config set`, in help order. */

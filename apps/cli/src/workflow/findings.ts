@@ -1,5 +1,5 @@
 /**
- * The findings of `operate status`: pure rules over the aggregated status, each
+ * The findings of `pulse-cli status`: pure rules over the aggregated status, each
  * naming the next command, and the overall status (the highest severity, else `ok`).
  */
 
@@ -43,7 +43,7 @@ function overdueJobs(input: FindingInput): Finding[] {
       severity: "critical",
       code: "JOBS_OVERDUE",
       message: `${plural(overdue, "executable job")} ${overdue === 1 ? "has" : "have"} waited longer than ${formatDuration(input.staleAfterMs)}${since}: is the job executor running?`,
-      next: "operate job list --executable --sort-by jobDueDate --sort-order asc --max-results 10",
+      next: "pulse-cli job list --executable --sort-by jobDueDate --sort-order asc --max-results 10",
     },
   ]
 }
@@ -73,7 +73,7 @@ function workerFindings(input: FindingInput): Finding[] {
         severity: "warning",
         code: "NO_WORKER",
         message: `topic ${topic.topic}: ${plural(topic.waiting, "task")} wait since ${topic.oldestWaitingSince ?? ""}, none is locked: is a worker subscribed?`,
-        next: `operate external-task list --topic-name ${shellWord(topic.topic)} --not-locked`,
+        next: `pulse-cli external-task list --topic-name ${shellWord(topic.topic)} --not-locked`,
       })
     }
     const expired = engineTime(topic.oldestLockExpiredAt)
@@ -82,7 +82,7 @@ function workerFindings(input: FindingInput): Finding[] {
         severity: "warning",
         code: "LOCK_EXPIRED",
         message: `topic ${topic.topic}: ${plural(topic.lockExpired, "task")} with an expired lock (the oldest since ${topic.oldestLockExpiredAt ?? ""}): a worker crashed or exceeded its lock`,
-        next: `operate external-task list --topic-name ${shellWord(topic.topic)} --not-locked --with-retries-left`,
+        next: `pulse-cli external-task list --topic-name ${shellWord(topic.topic)} --not-locked --with-retries-left`,
       })
     }
     return findings
@@ -99,7 +99,7 @@ function batchFindings(input: FindingInput): Finding[] {
         severity: "warning",
         code: "BATCH_FAILURES",
         message: `batch ${field(batch, "id")} (${field(batch, "type")}): ${plural(failed, "failed job")}`,
-        next: `operate job list --job-definition-id ${shellWord(jobDefinition)} --with-exception`,
+        next: `pulse-cli job list --job-definition-id ${shellWord(jobDefinition)} --with-exception`,
       },
     ]
   })
@@ -110,7 +110,7 @@ function keyFindings(input: FindingInput): Finding[] {
     severity: "warning",
     code: "UNKNOWN_KEY",
     message: `process definition key ${key} is not deployed`,
-    next: "operate process-definition list --latest-version --sort-by key --sort-order asc",
+    next: "pulse-cli process-definition list --latest-version --sort-by key --sort-order asc",
   }))
 }
 

@@ -1,7 +1,7 @@
 # Engines
 
-operate works with Operaton, CIB seven and Camunda 7. All three speak the Camunda 7 REST API. Each
-has its own adapter in operate, so a difference of one engine stays in one place.
+pulse-cli works with Operaton, CIB seven and Camunda 7. All three speak the Camunda 7 REST API. Each
+has its own adapter in pulse-cli, so a difference of one engine stays in one place.
 
 ## Compatibility
 
@@ -17,12 +17,12 @@ not supported: it has a different API (see the [decision](adr/002-camunda-8-is-a
 
 ## Choosing the engine
 
-Set `platform` in a profile, `OPERATE_PLATFORM` or `--platform`. Without it operate uses
+Set `platform` in a profile, `PULSE_CLI_PLATFORM` or `--platform`. Without it pulse-cli uses
 `camunda7`, which works for all three engines today.
 
 ```sh
-operate config set local --platform operaton
-operate ping --platform cibseven
+pulse-cli config set local --platform operaton
+pulse-cli ping --platform cibseven
 ```
 
 `platform` is the product. `engine` is the name of a process engine on that server
@@ -30,7 +30,7 @@ operate ping --platform cibseven
 
 ## Known differences
 
-None that operate has to handle today. The engine patches in `apps/cli/spec/engines/` are empty,
+None that pulse-cli has to handle today. The engine patches in `apps/cli/spec/engines/` are empty,
 and the three generated catalogs are identical.
 
 ## Adding a difference

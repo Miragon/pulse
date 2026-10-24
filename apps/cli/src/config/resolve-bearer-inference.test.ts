@@ -9,9 +9,9 @@ import { resolveAuth, selectedAuth } from "./resolve-auth.js"
 import type { AuthType, ConfigFlags, ProfileAuth } from "./types.js"
 
 describe("resolveAuth type inference with bearer tokens", () => {
-  it("selects bearer auth for a token of OPERATE_TOKEN or --auth-token-stdin without a type", () => {
-    expect(resolveAuth({}, { OPERATE_TOKEN: "t" }, NO_PROFILE)).toMatchObject({
-      auth: { type: "bearer", origin: "OPERATE_TOKEN" },
+  it("selects bearer auth for a token of PULSE_CLI_TOKEN or --auth-token-stdin without a type", () => {
+    expect(resolveAuth({}, { PULSE_CLI_TOKEN: "t" }, NO_PROFILE)).toMatchObject({
+      auth: { type: "bearer", origin: "PULSE_CLI_TOKEN" },
       source: "env",
     })
     expect(resolveAuth({ authToken: "t" }, {}, NO_PROFILE)).toMatchObject({
@@ -22,27 +22,27 @@ describe("resolveAuth type inference with bearer tokens", () => {
 
   it("refuses a username and a token without a type", () => {
     const error = failure(() =>
-      resolveAuth({}, { OPERATE_USERNAME: "demo", OPERATE_TOKEN: "t" }, NO_PROFILE),
+      resolveAuth({}, { PULSE_CLI_USERNAME: "demo", PULSE_CLI_TOKEN: "t" }, NO_PROFILE),
     )
     expect(error.code).toBe("CONFIG")
     expect(error.message).toBe(
       "Both Basic auth and a bearer token are configured, but no auth type says which one to use",
     )
     expect(error.details.hint).toBe(
-      "A username (from OPERATE_USERNAME) selects Basic auth, a bearer token (from OPERATE_TOKEN) selects bearer auth. Choose one explicitly: --auth basic or --auth bearer (also OPERATE_AUTH or the auth.type of the profile), or unset the other.",
+      "A username (from PULSE_CLI_USERNAME) selects Basic auth, a bearer token (from PULSE_CLI_TOKEN) selects bearer auth. Choose one explicitly: --auth basic or --auth bearer (also PULSE_CLI_AUTH or the auth.type of the profile), or unset the other.",
     )
     const stdin = failure(() => resolveAuth({ authPassword: "pw", authToken: "t" }, {}, NO_PROFILE))
     expect(stdin.details.hint).toContain(
       "--auth-password-stdin selects Basic auth, a bearer token (from --auth-token-stdin) selects bearer auth.",
     )
     const stored = failure(() =>
-      resolveAuth({}, { OPERATE_TOKEN: "t" }, profile({ username: "demo" })),
+      resolveAuth({}, { PULSE_CLI_TOKEN: "t" }, profile({ username: "demo" })),
     )
     expect(stored.details.hint).toContain('A username (auth.username of profile "prod")')
   })
 
   it("lets an explicit type win and reports the unused token", () => {
-    const env = { OPERATE_USERNAME: "demo", OPERATE_PASSWORD: "pw", OPERATE_TOKEN: "tok" }
+    const env = { PULSE_CLI_USERNAME: "demo", PULSE_CLI_PASSWORD: "pw", PULSE_CLI_TOKEN: "tok" }
     expect(resolveAuth({ auth: "basic" }, env, NO_PROFILE)).toMatchObject({
       auth: { type: "basic", username: "demo" },
       unusedToken: {
@@ -51,19 +51,19 @@ describe("resolveAuth type inference with bearer tokens", () => {
         reason: "Basic auth is selected by --auth basic",
       },
     })
-    expect(resolveAuth({}, { ...env, OPERATE_AUTH: "none" }, NO_PROFILE)).toEqual({
-      auth: { type: "none", off: "Bearer auth is switched off by OPERATE_AUTH=none" },
+    expect(resolveAuth({}, { ...env, PULSE_CLI_AUTH: "none" }, NO_PROFILE)).toEqual({
+      auth: { type: "none", off: "Bearer auth is switched off by PULSE_CLI_AUTH=none" },
       source: "env",
       unusedToken: {
         value: "tok",
         source: "env",
-        reason: "bearer auth is switched off by OPERATE_AUTH=none",
+        reason: "bearer auth is switched off by PULSE_CLI_AUTH=none",
       },
     })
     const oauth = {
-      OPERATE_TOKEN: "tok",
-      OPERATE_OAUTH_ISSUER: "https://login.example.com/realms/x",
-      OPERATE_OAUTH_CLIENT_ID: "cli",
+      PULSE_CLI_TOKEN: "tok",
+      PULSE_CLI_OAUTH_ISSUER: "https://login.example.com/realms/x",
+      PULSE_CLI_OAUTH_CLIENT_ID: "cli",
     }
     expect(resolveAuth({}, oauth, profile({ type: "oauth" }))).toMatchObject({
       auth: { type: "oauth" },
@@ -75,7 +75,7 @@ describe("resolveAuth type inference with bearer tokens", () => {
     const basic = failure(() =>
       resolveAuth(
         {},
-        { OPERATE_TOKEN: "tok" },
+        { PULSE_CLI_TOKEN: "tok" },
         profile({ type: "basic", username: "u", passwordEnv: "UNSET_PASSWORD" }),
       ),
     )
@@ -83,35 +83,35 @@ describe("resolveAuth type inference with bearer tokens", () => {
       'The password variable UNSET_PASSWORD (auth.passwordEnv of profile "prod") is not set or empty',
     )
     expect(basic.details.hint).toBe(
-      'Export it, e.g. export UNSET_PASSWORD=<password>, or name another variable with `operate config set prod --auth-password-env <VAR>`. A bearer token is set (from OPERATE_TOKEN) but not used: Basic auth is selected by the auth.type of profile "prod"; send it with --auth bearer or OPERATE_AUTH=bearer.',
+      'Export it, e.g. export UNSET_PASSWORD=<password>, or name another variable with `pulse-cli config set prod --auth-password-env <VAR>`. A bearer token is set (from PULSE_CLI_TOKEN) but not used: Basic auth is selected by the auth.type of profile "prod"; send it with --auth bearer or PULSE_CLI_AUTH=bearer.',
     )
     // errors without a hint get the note as hint
     const scopes = failure(() =>
       resolveAuth(
         { auth: "oauth" },
         {
-          OPERATE_TOKEN: "tok",
-          OPERATE_OAUTH_ISSUER: "https://login.example.com/realms/x",
-          OPERATE_OAUTH_CLIENT_ID: "cli",
-          OPERATE_OAUTH_SCOPES: "openid openid",
+          PULSE_CLI_TOKEN: "tok",
+          PULSE_CLI_OAUTH_ISSUER: "https://login.example.com/realms/x",
+          PULSE_CLI_OAUTH_CLIENT_ID: "cli",
+          PULSE_CLI_OAUTH_SCOPES: "openid openid",
         },
         NO_PROFILE,
       ),
     )
     expect(scopes.details.hint).toBe(
-      "A bearer token is set (from OPERATE_TOKEN) but not used: OAuth is selected by --auth oauth; send it with --auth bearer or OPERATE_AUTH=bearer.",
+      "A bearer token is set (from PULSE_CLI_TOKEN) but not used: OAuth is selected by --auth oauth; send it with --auth bearer or PULSE_CLI_AUTH=bearer.",
     )
     // auth commands have no --auth option
     const status = failure(() =>
       resolveAuth(
         {},
-        { OPERATE_TOKEN: "tok" },
+        { PULSE_CLI_TOKEN: "tok" },
         profile({ type: "basic", username: "u", passwordEnv: "UNSET_PASSWORD" }),
         true,
       ),
     )
     expect(status.details.hint).toContain(
-      'A bearer token is set (from OPERATE_TOKEN) but not used: Basic auth is selected by the auth.type of profile "prod"; use it with OPERATE_AUTH=bearer.',
+      'A bearer token is set (from PULSE_CLI_TOKEN) but not used: Basic auth is selected by the auth.type of profile "prod"; use it with PULSE_CLI_AUTH=bearer.',
     )
     // without an unused token the error stays as it is
     const plain = failure(() =>
@@ -123,7 +123,7 @@ describe("resolveAuth type inference with bearer tokens", () => {
   it("never leaves --auth-token-stdin unused next to Basic auth or OAuth", () => {
     for (const type of ["basic", "oauth"]) {
       const error = failure(() =>
-        resolveAuth({ auth: type, authToken: "t" }, { OPERATE_USERNAME: "u" }, NO_PROFILE),
+        resolveAuth({ auth: type, authToken: "t" }, { PULSE_CLI_USERNAME: "u" }, NO_PROFILE),
       )
       expect(error.code).toBe("CONFIG")
       expect(error.message).toBe(
@@ -138,7 +138,7 @@ describe("resolveAuth type inference with bearer tokens", () => {
       resolveAuth({ authToken: "t" }, {}, profile({ type: "oauth", clientId: "c" }), true),
     )
     expect(auth.details.hint).toBe(
-      "Drop --auth-token-stdin, or select bearer auth with OPERATE_AUTH=bearer.",
+      "Drop --auth-token-stdin, or select bearer auth with PULSE_CLI_AUTH=bearer.",
     )
     // switched off: the token is reported, not refused
     expect(resolveAuth({ auth: "none", authToken: "t" }, {}, NO_PROFILE).unusedToken).toEqual({
@@ -176,12 +176,12 @@ describe("resolveAuth type inference with bearer tokens", () => {
       authToken: token("flag"),
     })
     const env = compact({
-      OPERATE_AUTH: type("env"),
-      OPERATE_USERNAME: user("env"),
-      OPERATE_TOKEN: token("env"),
-      OPERATE_PASSWORD: "envpw",
-      OPERATE_OAUTH_ISSUER: "https://login.example.com/realms/x",
-      OPERATE_OAUTH_CLIENT_ID: "cli",
+      PULSE_CLI_AUTH: type("env"),
+      PULSE_CLI_USERNAME: user("env"),
+      PULSE_CLI_TOKEN: token("env"),
+      PULSE_CLI_PASSWORD: "envpw",
+      PULSE_CLI_OAUTH_ISSUER: "https://login.example.com/realms/x",
+      PULSE_CLI_OAUTH_CLIENT_ID: "cli",
     })
     const auth: ProfileAuth = compact({ type: type("profile"), username: user("profile") })
     return { flags, env, selected: profile(auth) }

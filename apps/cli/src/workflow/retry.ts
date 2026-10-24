@@ -1,5 +1,5 @@
 /**
- * `operate retry`: sets the retries of the failed jobs and external tasks behind
+ * `pulse-cli retry`: sets the retries of the failed jobs and external tasks behind
  * open incidents (root causes only), optionally executes the jobs at once (`--now`) and reports
  * per incident what happened.
  */
@@ -113,7 +113,7 @@ async function namedIncidents(port: EnginePort, ids: readonly string[]): Promise
     const incident = await incidentById(port, id)
     if (incident === undefined) {
       throw new OperateError("NOT_FOUND", `Incident ${id} does not exist`, {
-        hint: "List the open incidents with `operate incident list`; resolved incidents are gone.",
+        hint: "List the open incidents with `pulse-cli incident list`; resolved incidents are gone.",
       })
     }
     return incident
@@ -196,7 +196,8 @@ function entryView(outcome: Outcome, options: RetryOptions): RetryEntryView {
   const { entry } = outcome
   const execute = options.executeNow && entry.jobId !== undefined ? ", execute" : ""
   let next: string | undefined
-  if (outcome.result === "failed") next = `operate inspect ${entry.processInstanceId} --stacktrace`
+  if (outcome.result === "failed")
+    next = `pulse-cli inspect ${entry.processInstanceId} --stacktrace`
   if (outcome.result === "skipped") next = skipNext(entry)
   return {
     incidentId: entry.incidentId,

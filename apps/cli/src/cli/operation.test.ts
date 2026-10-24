@@ -164,11 +164,11 @@ describe("operation commands: unwrap", () => {
     expect(result.stdout).toBe(`${XML}\n`)
   })
 
-  it("prints the JSON with an explicit -o json, OPERATE_OUTPUT=json or --fields", async () => {
+  it("prints the JSON with an explicit -o json, PULSE_CLI_OUTPUT=json or --fields", async () => {
     const explicit = await cli(server(), ["process-definition", "xml", "order", "-o", "json"])
     expect(explicit.stdout).toBe(`{"id":"p1","bpmn20Xml":${JSON.stringify(XML)}}\n`)
     const env = await cli(server(), ["process-definition", "xml", "order"], {
-      env: { OPERATE_OUTPUT: "json" },
+      env: { PULSE_CLI_OUTPUT: "json" },
     })
     expect(env.stdout).toBe(explicit.stdout)
     const fields = await cli(server(), ["process-definition", "xml", "order", "--fields", "id"])
@@ -236,7 +236,7 @@ describe("operation commands: dry-run and guards", () => {
     expect(errorOf(refused.stderr)).toEqual({
       code: "CONFIRMATION_REQUIRED",
       exitCode: 2,
-      message: "`operate process-instance delete` is a delete operation and needs confirmation",
+      message: "`pulse-cli process-instance delete` is a delete operation and needs confirmation",
       hint: "Re-run with --yes to confirm, or --dry-run to preview.",
     })
     expect(server.requests).toEqual([])
@@ -255,12 +255,12 @@ describe("operation commands: dry-run and guards", () => {
     expect(errorOf(flag.stderr)).toEqual({
       code: "READ_ONLY",
       exitCode: 2,
-      message: "`operate task claim` is a write operation and read-only mode is enabled",
+      message: "`pulse-cli task claim` is a write operation and read-only mode is enabled",
       hint: "Read-only mode is enabled by --read-only. Use --dry-run to preview the request.",
     })
-    const env = await cli(server, ["task", "claim", "t1"], { env: { OPERATE_READ_ONLY: "yes" } })
+    const env = await cli(server, ["task", "claim", "t1"], { env: { PULSE_CLI_READ_ONLY: "yes" } })
     expect(errorOf(env.stderr).hint).toBe(
-      "Read-only mode is enabled by OPERATE_READ_ONLY. Use --dry-run to preview the request.",
+      "Read-only mode is enabled by PULSE_CLI_READ_ONLY. Use --dry-run to preview the request.",
     )
     const config = JSON.stringify({ profiles: { prod: { readOnly: true } } })
     const profile = await cli(server, ["task", "claim", "t1", "--profile", "prod"], {
@@ -311,7 +311,7 @@ describe("operation commands: paging, engine and headers", () => {
   it("adds the engine prefix and the configured headers", async () => {
     const server = fakeServer().on("GET", "/engine/second/task", json([]))
     const result = await cli(server, ["task", "list", "--engine", "second", "-H", "X-Tenant: a"], {
-      env: { OPERATE_URL: `${BASE_URL}/` },
+      env: { PULSE_CLI_URL: `${BASE_URL}/` },
     })
     expect(result.code).toBe(0)
     expect(only(server).url).toBe(`${BASE_URL}/engine/second/task`)

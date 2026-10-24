@@ -62,7 +62,7 @@ export async function emitResult<V>(
 
 /** The read-only and confirmation guard with the effect the options give, before the first request. */
 export function guard(run: WorkflowRun, effect: Effect): void {
-  checkEffect(effect, `operate ${run.name}`, guardsOf(run.session))
+  checkEffect(effect, `pulse-cli ${run.name}`, guardsOf(run.session))
 }
 
 async function start(
@@ -79,7 +79,7 @@ async function start(
     port,
     now: () => runtime.now(),
     sleep: (ms) => runtime.sleep(ms),
-    // a human at a terminal sees that operate waits; pipes stay silent
+    // a human at a terminal sees that pulse-cli waits; pipes stay silent
     ...(runtime.stderr.isTTY
       ? {
           notice: (line: string) => {

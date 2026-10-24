@@ -42,9 +42,9 @@ export interface CachedLogin {
   readonly refreshRejected?: { readonly at: number; readonly error: string }
 }
 
-/** `<config home>/operate/tokens` (XDG_CONFIG_HOME; APPDATA on Windows). */
+/** `<config home>/pulse-cli/tokens` (XDG_CONFIG_HOME; APPDATA on Windows). */
 export function tokenDirectory(configHome: string): string {
-  return join(configHome, "operate", "tokens")
+  return join(configHome, "pulse-cli", "tokens")
 }
 
 /**
