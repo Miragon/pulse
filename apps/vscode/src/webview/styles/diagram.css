@@ -1,0 +1,323 @@
+.diagram-region {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background: var(--cd-ui-grund);
+}
+
+.diagram-host {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.diagram-region__failure {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  z-index: 21;
+  background: var(--cd-ui-grund);
+}
+
+.diagram-region--placeholder {
+  display: grid;
+  place-items: center;
+}
+
+.cd-shell-canvas[data-focus-by-pointer] .djs-container > svg:focus-visible {
+  outline: none;
+}
+
+.badge-anchor {
+  position: relative;
+  width: 0;
+  height: 0;
+}
+
+.djs-overlay-pulse-badges {
+  transform-origin: 0 0;
+}
+
+.badge-cluster {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: inline-flex;
+  gap: 4px;
+}
+
+.badge-cluster__count {
+  display: inline-flex;
+  padding: 0;
+  border: 0;
+  border-radius: var(--cd-radius-pill);
+  background: none;
+  cursor: pointer;
+}
+
+.bjs-drilldown.call-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 3px;
+  outline: 0;
+  box-shadow: none;
+}
+
+.bjs-drilldown.call-button:focus-visible {
+  outline: 1px solid var(--drilldown-focus-outline-color);
+  outline-offset: 1px;
+}
+
+.bjs-drilldown.call-button svg {
+  display: block;
+}
+
+.bjs-drilldown.call-button--missing {
+  border: 1px solid var(--cd-ui-kontur);
+  background: var(--cd-ui-flaeche-hoch);
+  fill: var(--cd-ui-text);
+}
+
+.badge-cluster .count-badge {
+  box-shadow: 0 0 0 2px var(--cd-ui-plot);
+}
+
+[data-cd-kontrast='hoch'] .badge-cluster .count-badge {
+  box-shadow: none;
+  outline: 1px solid var(--cd-ui-text);
+}
+
+.badge-cluster__count:focus-visible {
+  outline-offset: 3px;
+}
+
+.djs-element.pulse-incident .djs-visual > :first-child {
+  stroke: var(--cd-ui-danger) !important;
+  stroke-width: 2px !important;
+  fill: var(--cd-ui-danger-flaeche) !important;
+}
+
+.djs-element.pulse-completed .djs-visual > :first-child {
+  stroke: var(--cd-ui-success) !important;
+  fill: var(--cd-ui-success-flaeche) !important;
+}
+
+.djs-connection.pulse-taken .djs-visual > path {
+  stroke: var(--cd-ui-success) !important;
+  stroke-width: 2px !important;
+}
+
+.djs-element.pulse-incident-called .djs-visual > :first-child {
+  stroke: var(--cd-ui-danger) !important;
+  stroke-width: 2px !important;
+  stroke-dasharray: 6 4 !important;
+}
+
+.djs-element.pulse-waiting .djs-visual > :first-child {
+  stroke: var(--cd-ui-info) !important;
+  stroke-width: 3px !important;
+  fill: var(--cd-ui-info-flaeche) !important;
+}
+
+.djs-element.pulse-waiting.pulse-incident .djs-visual > :first-child {
+  stroke: var(--cd-ui-danger) !important;
+  fill: var(--cd-ui-danger-flaeche) !important;
+}
+
+[data-cd-kontrast='hoch']
+  .djs-element:is(.pulse-incident, .pulse-waiting)
+  .djs-visual
+  > :first-child {
+  stroke-width: 3px !important;
+}
+
+.djs-element.pulse-move-target {
+  cursor: pointer;
+}
+
+.djs-element.pulse-move-target .djs-visual > :first-child {
+  stroke-dasharray: 4 3 !important;
+}
+
+.djs-element.pulse-move-refused {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.djs-element.pulse-move-from .djs-visual > :first-child {
+  stroke-dasharray: 6 4 !important;
+  fill-opacity: 0.35 !important;
+}
+
+.djs-element.pulse-move-from .djs-visual text {
+  text-decoration: line-through;
+}
+
+.djs-element.pulse-move-to .djs-visual > :first-child {
+  stroke: var(--cd-ui-info) !important;
+  stroke-width: 4px !important;
+  stroke-dasharray: none !important;
+  fill: var(--cd-ui-info-flaeche) !important;
+}
+
+.element-actions {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.move-entry.move-entry--refused {
+  color: var(--cd-ui-text-leise);
+  cursor: help;
+}
+
+.move-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 20px;
+  padding: 0 6px;
+  border: 1px solid var(--cd-ui-info);
+  border-radius: var(--cd-radius-pill);
+  background: var(--cd-ui-flaeche-hoch);
+  color: var(--cd-ui-text);
+  font: 600 13px/1 var(--pulse-font);
+  white-space: nowrap;
+}
+
+.move-badge--from {
+  border-style: dashed;
+  color: var(--cd-ui-text-leise);
+}
+
+@media (forced-colors: active) {
+  .djs-element:is(.pulse-move-target, .pulse-move-to) .djs-visual > :first-child {
+    stroke: Highlight !important;
+  }
+
+  .move-badge {
+    border-color: CanvasText;
+    forced-color-adjust: none;
+    background: Canvas;
+    color: CanvasText;
+  }
+
+  .count-badge {
+    border: 1px solid CanvasText;
+    forced-color-adjust: none;
+    background: Canvas;
+    color: CanvasText;
+  }
+
+  .djs-element:is(.pulse-incident, .pulse-incident-called, .pulse-waiting)
+    .djs-visual
+    > :first-child {
+    stroke: Highlight !important;
+  }
+}
+
+.diagram-host .bjs-powered-by {
+  right: auto !important;
+  bottom: var(--cd-shell-rand) !important;
+  left: var(--cd-shell-rand) !important;
+  z-index: 10 !important;
+  color: var(--cd-ui-text-leise) !important;
+}
+
+.legend {
+  display: flex;
+  flex: none;
+  align-items: center;
+  margin-left: auto;
+  color: var(--cd-ui-text-leise);
+}
+
+.legend__item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend .count-badge {
+  min-width: 24px;
+  height: 16px;
+}
+
+.legend__toggle {
+  anchor-name: --pulse-legend;
+  color: var(--cd-ui-text-leise);
+}
+
+.legend__popover {
+  position-anchor: --pulse-legend;
+  position-area: top span-left;
+  inset: auto;
+  margin: 0 0 6px;
+  padding: 8px 12px;
+  border: 1px solid var(--cd-ui-linie);
+  border-radius: var(--cd-radius-md);
+  background: var(--cd-ui-flaeche-hoch);
+  box-shadow: var(--cd-shadow-2);
+  color: var(--cd-ui-text);
+  line-height: 24px;
+}
+
+.legend__popover > p:first-child:not(.legend__item) {
+  font-weight: 600;
+}
+
+.legend-swatch {
+  box-sizing: border-box;
+  width: 18px;
+  height: 14px;
+  border-radius: 3px;
+}
+
+.legend-swatch--waiting {
+  border: 3px solid var(--cd-ui-info);
+  background: var(--cd-ui-info-flaeche);
+}
+
+.legend-swatch--incident {
+  border: 2px solid var(--cd-ui-danger);
+  background: var(--cd-ui-danger-flaeche);
+}
+
+.legend-swatch--called {
+  border: 2px dashed var(--cd-ui-danger);
+}
+
+.legend-swatch--completed {
+  border: 2px solid var(--cd-ui-success);
+  background: var(--cd-ui-success-flaeche);
+}
+
+.code-button,
+.move-entry {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--cd-ui-kontur);
+  border-radius: 3px;
+  background: var(--cd-ui-flaeche-hoch);
+  color: var(--cd-ui-text);
+  cursor: pointer;
+}
+
+.code-button:hover,
+.move-entry:hover {
+  border-color: var(--cd-ui-link);
+}
+
+.code-button:focus-visible,
+.move-entry:focus-visible {
+  outline: 1px solid var(--drilldown-focus-outline-color);
+  outline-offset: 1px;
+}

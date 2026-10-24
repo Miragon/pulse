@@ -1,0 +1,16 @@
+{
+  "error": {
+    "code": "NOT_FOUND",
+    "exitCode": 5,
+    "message": "HTTP 404 Not Found",
+    "status": 404,
+    "hint": "The endpoint does not exist. Check that the URL points to the REST API root, e.g. http://localhost:8080/engine-rest, and the engine name (--engine).",
+    "request": { "method": "GET", "url": "http://localhost:18180/wrong-root/incident" },
+    "data": {
+      "timestamp": "2026-10-21T18:46:34.533Z",
+      "status": 404,
+      "error": "Not Found",
+      "path": "/wrong-root/incident"
+    }
+  }
+}

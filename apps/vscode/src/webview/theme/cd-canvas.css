@@ -1,0 +1,118 @@
+/* AUTOMATISCH GENERIERT aus brand/tokens.json. Nicht von Hand ändern, sondern die Quelle bearbeiten und `npm run tokens:build` laufen lassen. */
+/* Rollen-Klassen für SVG-Renderer (tiny-svg, bpmn-js). Braucht cd-tokens.generated.css.
+   Renderer zeichnen mit den hellen Werten aus cd-tokens.generated.json (Attribut oder Inline-Style),
+   diese Klassen setzen die Rolle des aktuellen Modus. Je Klasse genau eine Eigenschaft, offene Pfade
+   bekommen nie eine fill-Klasse. !important ist nötig, weil tiny-svg (svgAttr) und bpmn-js fill und
+   stroke als Inline-Style schreiben. Elemente mit Nutzerfarbe bekommen keine Rollen-Klasse.
+   Der Export entfernt alle cd-c-* Klassen und bleibt hell. */
+.cd-c-fill-grund { fill: var(--cd-ui-grund) !important; }
+.cd-c-fill-plot { fill: var(--cd-ui-plot) !important; } /* Plot, Elementfläche, Griffe */
+.cd-c-stroke-plot { stroke: var(--cd-ui-plot) !important; } /* Label-Halo auf dem Plot */
+.cd-c-stroke-grund { stroke: var(--cd-ui-grund) !important; } /* Label-Halo auf der Umgebung */
+.cd-c-fill-flaeche-hoch { fill: var(--cd-ui-flaeche-hoch) !important; } /* Chips auf dem Canvas */
+.cd-c-stroke-text { stroke: var(--cd-ui-text) !important; }
+.cd-c-fill-text { fill: var(--cd-ui-text) !important; }
+.cd-c-fill-text-leise { fill: var(--cd-ui-text-leise) !important; }
+.cd-c-stroke-kontur { stroke: var(--cd-ui-kontur) !important; }
+.cd-c-stroke-linie { stroke: var(--cd-ui-linie) !important; }
+.cd-c-fill-linie { fill: var(--cd-ui-linie) !important; } /* dekorative Marken. Das Punktraster ist Hintergrund des Containers und nie im Export */
+.cd-c-stroke-interaktion { stroke: var(--cd-ui-interaktion) !important; }
+.cd-c-stroke-danger { stroke: var(--cd-ui-danger) !important; }
+.cd-c-fill-danger { fill: var(--cd-ui-danger) !important; }
+.cd-c-stroke-info { stroke: var(--cd-ui-info) !important; }
+
+/* Nur dunkel: Bereiche mit Deckkraft verlieren die Füllung und zeigen den Rand in der Statusrolle,
+   Unterleger unter schwachen Fremdstrichen werden sichtbar (hell stroke none, im Export unsichtbar).
+   Wie alle Dunkel-Blöcke nur auf dem Bildschirm. */
+@media screen {
+  [data-cd-theme="dark"] .cd-c-bereich { fill: none !important; }
+  [data-cd-theme="dark"] .cd-c-bereich-success { stroke: var(--cd-ui-success) !important; }
+  [data-cd-theme="dark"] .cd-c-bereich-warning { stroke: var(--cd-ui-warning) !important; }
+  [data-cd-theme="dark"] .cd-c-bereich-info { stroke: var(--cd-ui-info) !important; }
+  [data-cd-theme="dark"] .cd-c-unterleger { stroke: var(--cd-ui-kontur) !important; }
+}
+@media screen and (prefers-color-scheme: dark) {
+  [data-cd-theme="system"] .cd-c-bereich { fill: none !important; }
+  [data-cd-theme="system"] .cd-c-bereich-success { stroke: var(--cd-ui-success) !important; }
+  [data-cd-theme="system"] .cd-c-bereich-warning { stroke: var(--cd-ui-warning) !important; }
+  [data-cd-theme="system"] .cd-c-bereich-info { stroke: var(--cd-ui-info) !important; }
+  [data-cd-theme="system"] .cd-c-unterleger { stroke: var(--cd-ui-kontur) !important; }
+}
+
+/* diagram-js ab 15.28 und bpmn-js: Chrome über die --bio-* Variablen, für beide Modi. Steht auf :root
+   und jedem [data-cd-theme], damit Container mit eigenem Modus neu auflösen. Pflicht: nach
+   diagram-js.css und bpmn-js.css laden. Die doppelten Klassen (Spezifität 0,2,0) gewinnen zusätzlich
+   gegen deren Standardwerte auf .bio-theme-parent, .djs-parent und .bjs-container (0,1,0), auch wenn
+   ein Bundler die Reihenfolge ändert. */
+:root, [data-cd-theme], .bio-theme-parent.bio-theme-parent {
+  --bio-surface: var(--cd-ui-flaeche-hoch);
+  --bio-surface-overlay: var(--cd-ui-flaeche-hoch);
+  --bio-surface-subtle: var(--cd-ui-flaeche-hoch);
+  --bio-surface-medium: var(--cd-ui-hover);
+  --bio-surface-inverted: var(--cd-ui-flaeche-hoch);  /* ein schwarzer Tooltip verschwände dunkel */
+  --bio-surface-inverted-subtle: var(--cd-ui-hover);  /* Standard ist ein bläuliches Grau */
+  --bio-text: var(--cd-ui-text);
+  --bio-text-subtle: var(--cd-ui-text-leise);
+  --bio-text-subtlest: var(--cd-ui-text-leise);
+  --bio-text-on-inverted: var(--cd-ui-text);
+  --bio-border: var(--cd-ui-linie);
+  --bio-border-disabled: var(--cd-ui-linie);
+  --bio-primary: var(--cd-ui-interaktion);
+  --bio-primary-surface: var(--cd-ui-hover);
+  --bio-text-on-primary: var(--cd-weiss);
+  --bio-danger: var(--cd-ui-danger);
+  --bio-danger-surface-subtle: var(--cd-ui-danger-flaeche);
+  --bio-selected-surface: var(--cd-ui-hover);
+  --bio-selected-text: var(--cd-ui-text);
+  --bio-focus: var(--cd-ui-fokus);
+  --bio-focus-surface: var(--cd-ui-hover);
+  --bio-canvas-accent: var(--cd-ui-interaktion);
+  --bio-canvas-accent-subtle: var(--cd-ui-interaktion);
+  --bio-shadow: color-mix(in srgb, var(--cd-schwarz) 30%, transparent);
+  --bio-shadow-subtle: color-mix(in srgb, var(--cd-schwarz) 10%, transparent);
+  --bio-radius-sm: var(--cd-radius-sm);
+  --bio-radius-md: var(--cd-radius-md);
+  --bio-radius-lg: var(--cd-radius-lg);
+}
+/* diagram-js: Lasso ohne Füllung, Griffe mit Fläche plot und Rand interaktion, nie Akzent als Fläche. */
+.djs-parent.djs-parent {
+  --canvas-fill-color: var(--cd-ui-grund);
+  --lasso-fill-color: transparent;                           /* Standard: Akzent 15 % (Blau-Tönung) */
+  --search-preselected-background-color: var(--cd-ui-hover); /* Standard: Akzent 15 % */
+  --snap-line-stroke-color: var(--cd-ui-kontur);             /* Standard: Akzent 30 % */
+  --resizer-fill-color: var(--cd-ui-plot);                   /* Standard: Akzent als Fläche */
+  --resizer-stroke-color: var(--cd-ui-interaktion);
+  --bendpoint-fill-color: var(--cd-ui-plot);                 /* Standard: Akzent als Fläche */
+  --bendpoint-stroke-color: var(--cd-ui-interaktion);
+  --shape-connect-allowed-fill-color: var(--cd-ui-hover);
+  --shape-drop-allowed-fill-color: var(--cd-ui-hover);
+  --popup-border-color: var(--cd-ui-linie);
+  --popup-scrollbar-thumb-color: var(--cd-ui-linie);
+  --popup-font-family: "Geist Variable", "Geist", ui-sans-serif, system-ui, sans-serif;
+  --search-font-family: var(--popup-font-family);
+  --hover-tooltip-font-family: var(--popup-font-family);
+}
+/* diagram-js: Drop und Verbinden verboten zeigen neben Fläche und Cursor einen gestrichelten Rand in
+   danger. Dunkel ist die Fläche neutral (5 % auf Schwarz), ohne Rand bliebe nur der Cursor. */
+.djs-parent.djs-parent .djs-shape.drop-not-ok .djs-visual > :nth-child(1),
+.djs-parent.djs-parent .djs-shape.connect-not-ok .djs-visual > :nth-child(1) {
+  stroke: var(--cd-ui-danger) !important;
+  stroke-dasharray: 6 4 !important;
+}
+.djs-parent.djs-parent svg.drop-not-ok {
+  outline: 2px dashed var(--cd-ui-danger);
+  outline-offset: -2px;
+}
+/* Fehler-Tooltip deckend: Standard ist Deckkraft 0,75, dunkel ein getöntes Rot unter 4,5:1. */
+.djs-parent.djs-parent .djs-tooltip-error {
+  opacity: 1;
+}
+/* bpmn-js: Akzent nur als Kante, Breadcrumbs sind Links, der Drilldown ist ein Button (Blau mit Weiß). */
+.bjs-container.bjs-container {
+  --accent-color: var(--cd-ui-interaktion);
+  --breadcrumbs-item-color: var(--cd-ui-link);               /* Standard: Akzent als Text, dunkel 4,27:1 */
+  --breadcrumbs-background-color: var(--cd-ui-flaeche-hoch);
+  --breadcrumbs-border-color: var(--cd-ui-linie);
+  --drilldown-background-color: var(--cd-blau);              /* Standard: Akzent als Fläche */
+  --drilldown-fill-color: var(--cd-weiss);
+}

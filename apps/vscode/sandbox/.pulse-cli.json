@@ -1,0 +1,23 @@
+{
+  "profiles": {
+    "shop-dev": {
+      "url": "http://localhost:18090/engine-rest",
+      "platform": "operaton",
+      "cockpitUrl": "http://localhost:18090/operaton/app/cockpit/default/"
+    },
+    "shop-test": {
+      "url": "http://localhost:18091/engine-rest",
+      "platform": "cibseven",
+      "cockpitUrl": "http://localhost:18091/camunda/app/cockpit/default/",
+      "auth": {
+        "type": "basic"
+      }
+    },
+    "prod-eu": {
+      "url": "https://prod-eu.shop.invalid/engine-rest",
+      "auth": {
+        "type": "basic"
+      }
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "id": "63d9e117-cd7f-11f1-86d2-667bc3771e0d",
+  "parentActivityInstanceId": null,
+  "activityId": "pulse-order:1:63b7b305-cd7f-11f1-86d2-667bc3771e0d",
+  "activityType": "processDefinition",
+  "processInstanceId": "63d9e117-cd7f-11f1-86d2-667bc3771e0d",
+  "processDefinitionId": "pulse-order:1:63b7b305-cd7f-11f1-86d2-667bc3771e0d",
+  "childActivityInstances": [],
+  "childTransitionInstances": [
+    {
+      "id": "63da7d5d-cd7f-11f1-86d2-667bc3771e0d",
+      "parentActivityInstanceId": "63d9e117-cd7f-11f1-86d2-667bc3771e0d",
+      "activityId": "Activity_ChargePayment",
+      "activityType": "serviceTask",
+      "processInstanceId": "63d9e117-cd7f-11f1-86d2-667bc3771e0d",
+      "processDefinitionId": "pulse-order:1:63b7b305-cd7f-11f1-86d2-667bc3771e0d",
+      "executionId": "63d9e117-cd7f-11f1-86d2-667bc3771e0d",
+      "activityName": "Charge payment",
+      "targetActivityId": "Activity_ChargePayment",
+      "incidentIds": ["63e2bad0-cd7f-11f1-86d2-667bc3771e0d"],
+      "incidents": []
+    }
+  ],
+  "executionIds": ["63d9e117-cd7f-11f1-86d2-667bc3771e0d"],
+  "activityName": "Order fulfillment",
+  "incidentIds": [],
+  "incidents": [],
+  "name": "Order fulfillment"
+}

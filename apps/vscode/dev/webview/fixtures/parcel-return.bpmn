@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_ParcelReturn" targetNamespace="http://bpmn.io/schema/bpmn" modeler:executionPlatform="Camunda Platform" modeler:executionPlatformVersion="7.24.0">
+  <bpmn:process id="parcel-return" name="Parcel return" isExecutable="true" camunda:historyTimeToLive="180">
+    <bpmn:startEvent id="Event_ReturnRequested" name="Return requested">
+      <bpmn:outgoing>Flow_ReturnRequestedToInspectParcel</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:subProcess id="Activity_InspectParcel" name="Inspect parcel">
+      <bpmn:incoming>Flow_ReturnRequestedToInspectParcel</bpmn:incoming>
+      <bpmn:outgoing>Flow_InspectParcelToRefund</bpmn:outgoing>
+      <bpmn:startEvent id="Event_ParcelArrived" name="Parcel arrived">
+        <bpmn:outgoing>Flow_ParcelArrivedToCheckParcel</bpmn:outgoing>
+      </bpmn:startEvent>
+      <bpmn:userTask id="Activity_CheckParcel" name="Check parcel">
+        <bpmn:incoming>Flow_ParcelArrivedToCheckParcel</bpmn:incoming>
+        <bpmn:outgoing>Flow_CheckParcelToWeighParcel</bpmn:outgoing>
+      </bpmn:userTask>
+      <bpmn:subProcess id="Activity_WeighParcel" name="Weigh parcel">
+        <bpmn:incoming>Flow_CheckParcelToWeighParcel</bpmn:incoming>
+        <bpmn:outgoing>Flow_WeighParcelToInspected</bpmn:outgoing>
+        <bpmn:startEvent id="Event_ScaleReady" name="Scale ready">
+          <bpmn:outgoing>Flow_ScaleReadyToReadScale</bpmn:outgoing>
+        </bpmn:startEvent>
+        <bpmn:serviceTask id="Activity_ReadScale" name="Read scale" camunda:type="external" camunda:topic="read-scale">
+          <bpmn:incoming>Flow_ScaleReadyToReadScale</bpmn:incoming>
+          <bpmn:outgoing>Flow_ReadScaleToWeighed</bpmn:outgoing>
+        </bpmn:serviceTask>
+        <bpmn:endEvent id="Event_Weighed" name="Weighed">
+          <bpmn:incoming>Flow_ReadScaleToWeighed</bpmn:incoming>
+        </bpmn:endEvent>
+        <bpmn:sequenceFlow id="Flow_ReadScaleToWeighed" sourceRef="Activity_ReadScale" targetRef="Event_Weighed" />
+        <bpmn:sequenceFlow id="Flow_ScaleReadyToReadScale" sourceRef="Event_ScaleReady" targetRef="Activity_ReadScale" />
+      </bpmn:subProcess>
+      <bpmn:endEvent id="Event_Inspected" name="Inspected">
+        <bpmn:incoming>Flow_WeighParcelToInspected</bpmn:incoming>
+      </bpmn:endEvent>
+      <bpmn:sequenceFlow id="Flow_WeighParcelToInspected" sourceRef="Activity_WeighParcel" targetRef="Event_Inspected" />
+      <bpmn:sequenceFlow id="Flow_CheckParcelToWeighParcel" sourceRef="Activity_CheckParcel" targetRef="Activity_WeighParcel" />
+      <bpmn:sequenceFlow id="Flow_ParcelArrivedToCheckParcel" sourceRef="Event_ParcelArrived" targetRef="Activity_CheckParcel" />
+    </bpmn:subProcess>
+    <bpmn:subProcess id="Activity_Refund" name="Refund">
+      <bpmn:incoming>Flow_InspectParcelToRefund</bpmn:incoming>
+      <bpmn:outgoing>Flow_RefundToNotifyCustomer</bpmn:outgoing>
+      <bpmn:startEvent id="Event_RefundDue" name="Refund due">
+        <bpmn:outgoing>Flow_RefundDueToPayRefund</bpmn:outgoing>
+      </bpmn:startEvent>
+      <bpmn:serviceTask id="Activity_PayRefund" name="Pay refund" camunda:type="external" camunda:topic="pay-refund">
+        <bpmn:incoming>Flow_RefundDueToPayRefund</bpmn:incoming>
+        <bpmn:outgoing>Flow_PayRefundToRefunded</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:endEvent id="Event_Refunded" name="Refunded">
+        <bpmn:incoming>Flow_PayRefundToRefunded</bpmn:incoming>
+      </bpmn:endEvent>
+      <bpmn:sequenceFlow id="Flow_PayRefundToRefunded" sourceRef="Activity_PayRefund" targetRef="Event_Refunded" />
+      <bpmn:sequenceFlow id="Flow_RefundDueToPayRefund" sourceRef="Event_RefundDue" targetRef="Activity_PayRefund" />
+    </bpmn:subProcess>
+    <bpmn:callActivity id="Activity_NotifyCustomer" name="Notify customer" calledElement="notification">
+      <bpmn:incoming>Flow_RefundToNotifyCustomer</bpmn:incoming>
+      <bpmn:outgoing>Flow_NotifyCustomerToReturnClosed</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:endEvent id="Event_ReturnClosed" name="Return closed">
+      <bpmn:incoming>Flow_NotifyCustomerToReturnClosed</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_NotifyCustomerToReturnClosed" sourceRef="Activity_NotifyCustomer" targetRef="Event_ReturnClosed" />
+    <bpmn:sequenceFlow id="Flow_RefundToNotifyCustomer" sourceRef="Activity_Refund" targetRef="Activity_NotifyCustomer" />
+    <bpmn:sequenceFlow id="Flow_InspectParcelToRefund" sourceRef="Activity_InspectParcel" targetRef="Activity_Refund" />
+    <bpmn:sequenceFlow id="Flow_ReturnRequestedToInspectParcel" sourceRef="Event_ReturnRequested" targetRef="Activity_InspectParcel" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_Process_ParcelReturn">
+    <bpmndi:BPMNPlane id="BPMNPlane_Process_ParcelReturn" bpmnElement="parcel-return">
+      <bpmndi:BPMNShape id="BPMNShape_Event_ReturnRequested" bpmnElement="Event_ReturnRequested">
+        <dc:Bounds x="80" y="140" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="61" y="182" width="75" height="28" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Activity_InspectParcel" bpmnElement="Activity_InspectParcel">
+        <dc:Bounds x="176" y="118" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Activity_Refund" bpmnElement="Activity_Refund" isExpanded="true">
+        <dc:Bounds x="336" y="80" width="352" height="155" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Event_RefundDue" bpmnElement="Event_RefundDue">
+        <dc:Bounds x="366" y="147" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="343" y="189" width="82" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Activity_PayRefund" bpmnElement="Activity_PayRefund">
+        <dc:Bounds x="462" y="125" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Event_Refunded" bpmnElement="Event_Refunded">
+        <dc:Bounds x="622" y="147" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="606" y="189" width="68" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_PayRefundToRefunded" bpmnElement="Flow_PayRefundToRefunded">
+        <di:waypoint x="562" y="165" />
+        <di:waypoint x="622" y="165" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_RefundDueToPayRefund" bpmnElement="Flow_RefundDueToPayRefund">
+        <di:waypoint x="402" y="165" />
+        <di:waypoint x="462" y="165" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="BPMNShape_Activity_NotifyCustomer" bpmnElement="Activity_NotifyCustomer">
+        <dc:Bounds x="748" y="118" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Event_ReturnClosed" bpmnElement="Event_ReturnClosed">
+        <dc:Bounds x="908" y="140" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="899" y="182" width="54" height="28" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_NotifyCustomerToReturnClosed" bpmnElement="Flow_NotifyCustomerToReturnClosed">
+        <di:waypoint x="848" y="158" />
+        <di:waypoint x="908" y="158" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_RefundToNotifyCustomer" bpmnElement="Flow_RefundToNotifyCustomer">
+        <di:waypoint x="688" y="158" />
+        <di:waypoint x="748" y="158" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_InspectParcelToRefund" bpmnElement="Flow_InspectParcelToRefund">
+        <di:waypoint x="276" y="158" />
+        <di:waypoint x="336" y="158" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_ReturnRequestedToInspectParcel" bpmnElement="Flow_ReturnRequestedToInspectParcel">
+        <di:waypoint x="116" y="158" />
+        <di:waypoint x="176" y="158" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_Activity_WeighParcel">
+    <bpmndi:BPMNPlane id="BPMNPlane_Activity_WeighParcel" bpmnElement="Activity_WeighParcel">
+      <bpmndi:BPMNShape id="BPMNShape_Event_ScaleReady" bpmnElement="Event_ScaleReady">
+        <dc:Bounds x="80" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="54" y="144" width="89" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Activity_ReadScale" bpmnElement="Activity_ReadScale">
+        <dc:Bounds x="176" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Event_Weighed" bpmnElement="Event_Weighed">
+        <dc:Bounds x="336" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="324" y="144" width="61" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_ReadScaleToWeighed" bpmnElement="Flow_ReadScaleToWeighed">
+        <di:waypoint x="276" y="120" />
+        <di:waypoint x="336" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_ScaleReadyToReadScale" bpmnElement="Flow_ScaleReadyToReadScale">
+        <di:waypoint x="116" y="120" />
+        <di:waypoint x="176" y="120" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_Activity_InspectParcel">
+    <bpmndi:BPMNPlane id="BPMNPlane_Activity_InspectParcel" bpmnElement="Activity_InspectParcel">
+      <bpmndi:BPMNShape id="BPMNShape_Event_ParcelArrived" bpmnElement="Event_ParcelArrived">
+        <dc:Bounds x="80" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="68" y="144" width="61" height="28" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Activity_CheckParcel" bpmnElement="Activity_CheckParcel">
+        <dc:Bounds x="176" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Activity_WeighParcel" bpmnElement="Activity_WeighParcel">
+        <dc:Bounds x="336" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Event_Inspected" bpmnElement="Event_Inspected">
+        <dc:Bounds x="496" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="477" y="144" width="75" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_WeighParcelToInspected" bpmnElement="Flow_WeighParcelToInspected">
+        <di:waypoint x="436" y="120" />
+        <di:waypoint x="496" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_CheckParcelToWeighParcel" bpmnElement="Flow_CheckParcelToWeighParcel">
+        <di:waypoint x="276" y="120" />
+        <di:waypoint x="336" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_ParcelArrivedToCheckParcel" bpmnElement="Flow_ParcelArrivedToCheckParcel">
+        <di:waypoint x="116" y="120" />
+        <di:waypoint x="176" y="120" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

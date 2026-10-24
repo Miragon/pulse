@@ -1,0 +1,9 @@
+{
+  "error": {
+    "code": "NETWORK",
+    "exitCode": 8,
+    "message": "Cannot reach http://localhost:18999/engine-rest/incident (ECONNREFUSED)",
+    "hint": "Is the engine running? Check --url, OPERATE_URL or `operate config show`. Run `operate ping` to test the connection.",
+    "request": { "method": "GET", "url": "http://localhost:18999/engine-rest/incident" }
+  }
+}

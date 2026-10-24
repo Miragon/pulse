@@ -1,0 +1,16 @@
+{
+  "error": {
+    "code": "NOT_FOUND",
+    "exitCode": 5,
+    "message": "HTTP 404 Not Found: No matching definition with id nope:1:00000000-0000-0000-0000-000000000000",
+    "status": 404,
+    "engineType": "InvalidRequestException",
+    "engineMessage": "No matching definition with id nope:1:00000000-0000-0000-0000-000000000000",
+    "engineCode": 0,
+    "hint": "Check the id or key. List the existing ones with `operate process-definition list`.",
+    "request": {
+      "method": "GET",
+      "url": "http://localhost:18180/engine-rest/process-definition/nope%3A1%3A00000000-0000-0000-0000-000000000000/xml"
+    }
+  }
+}

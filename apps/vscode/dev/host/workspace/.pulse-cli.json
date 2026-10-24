@@ -1,0 +1,14 @@
+{
+  "profiles": {
+    "local-operaton": {
+      "url": "http://localhost:18080/engine-rest",
+      "platform": "operaton"
+    },
+    "prod-eu": {
+      "url": "https://prod-eu.example.invalid/engine-rest",
+      "auth": {
+        "type": "basic"
+      }
+    }
+  }
+}

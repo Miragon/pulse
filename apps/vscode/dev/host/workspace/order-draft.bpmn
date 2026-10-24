@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_OrderFulfillment" targetNamespace="http://bpmn.io/schema/bpmn" modeler:executionPlatform="Camunda Platform" modeler:executionPlatformVersion="7.24.0">
+  <bpmn:process id="pulse-order" name="Order fulfillment" isExecutable="true" camunda:historyTimeToLive="180">
+    <bpmn:startEvent id="Event_OrderReceived" name="Order received">
+      <bpmn:outgoing>Flow_OrderReceivedToRoute</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:exclusiveGateway id="Gateway_Route" name="Route?" default="Flow_RouteToShippedExpress">
+      <bpmn:incoming>Flow_OrderReceivedToRoute</bpmn:incoming>
+      <bpmn:outgoing>Flow_RouteToReviewOrder</bpmn:outgoing>
+      <bpmn:outgoing>Flow_RouteToChargePayment</bpmn:outgoing>
+      <bpmn:outgoing>Flow_RouteToShippedExpress</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="Activity_ReviewOrder" name="Review order (4 eyes)" camunda:assignee="demo">
+      <bpmn:incoming>Flow_RouteToReviewOrder</bpmn:incoming>
+      <bpmn:outgoing>Flow_ReviewOrderToOrderReviewed</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:endEvent id="Event_OrderReviewed" name="Order reviewed">
+      <bpmn:incoming>Flow_ReviewOrderToOrderReviewed</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_ReviewOrderToOrderReviewed" sourceRef="Activity_ReviewOrder" targetRef="Event_OrderReviewed" />
+    <bpmn:sequenceFlow id="Flow_RouteToReviewOrder" name="review" sourceRef="Gateway_Route" targetRef="Activity_ReviewOrder">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${route == 'review'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:serviceTask id="Activity_ChargePayment" name="Charge payment" camunda:asyncBefore="true" camunda:expression="${paymentService.charge(amount)}">
+      <bpmn:incoming>Flow_RouteToChargePayment</bpmn:incoming>
+      <bpmn:outgoing>Flow_ChargePaymentToPaymentCharged</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="Event_PaymentCharged" name="Payment charged">
+      <bpmn:incoming>Flow_ChargePaymentToPaymentCharged</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_ChargePaymentToPaymentCharged" sourceRef="Activity_ChargePayment" targetRef="Event_PaymentCharged" />
+    <bpmn:sequenceFlow id="Flow_RouteToChargePayment" name="charge" sourceRef="Gateway_Route" targetRef="Activity_ChargePayment">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${route == 'charge'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:endEvent id="Event_ShippedExpress" name="Shipped express">
+      <bpmn:incoming>Flow_RouteToShippedExpress</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_RouteToShippedExpress" name="express" sourceRef="Gateway_Route" targetRef="Event_ShippedExpress" />
+    <bpmn:sequenceFlow id="Flow_OrderReceivedToRoute" sourceRef="Event_OrderReceived" targetRef="Gateway_Route" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_pulse-order">
+    <bpmndi:BPMNPlane id="BPMNPlane_pulse-order" bpmnElement="pulse-order">
+      <bpmndi:BPMNShape id="BPMNShape_Event_OrderReceived" bpmnElement="Event_OrderReceived">
+        <dc:Bounds x="80" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="64" y="144" width="68" height="28" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Gateway_Route" bpmnElement="Gateway_Route" isMarkerVisible="true">
+        <dc:Bounds x="176" y="95" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="174" y="75" width="54" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Activity_ReviewOrder" bpmnElement="Activity_ReviewOrder">
+        <dc:Bounds x="303" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Event_OrderReviewed" bpmnElement="Event_OrderReviewed">
+        <dc:Bounds x="463" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="447" y="144" width="68" height="28" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Activity_ChargePayment" bpmnElement="Activity_ChargePayment">
+        <dc:Bounds x="303" y="220" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Event_PaymentCharged" bpmnElement="Event_PaymentCharged">
+        <dc:Bounds x="463" y="242" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="451" y="284" width="61" height="28" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Event_ShippedExpress" bpmnElement="Event_ShippedExpress">
+        <dc:Bounds x="335" y="360" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="323" y="402" width="61" height="28" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_ReviewOrderToOrderReviewed" bpmnElement="Flow_ReviewOrderToOrderReviewed">
+        <di:waypoint x="403" y="120" />
+        <di:waypoint x="463" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_RouteToReviewOrder" bpmnElement="Flow_RouteToReviewOrder">
+        <di:waypoint x="226" y="120" />
+        <di:waypoint x="303" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="234" y="102" width="54" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_ChargePaymentToPaymentCharged" bpmnElement="Flow_ChargePaymentToPaymentCharged">
+        <di:waypoint x="403" y="260" />
+        <di:waypoint x="463" y="260" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_RouteToChargePayment" bpmnElement="Flow_RouteToChargePayment">
+        <di:waypoint x="201" y="145" />
+        <di:waypoint x="201" y="260" />
+        <di:waypoint x="303" y="260" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="209" y="242" width="54" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_RouteToShippedExpress" bpmnElement="Flow_RouteToShippedExpress">
+        <di:waypoint x="201" y="145" />
+        <di:waypoint x="201" y="378" />
+        <di:waypoint x="335" y="378" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="209" y="360" width="61" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_OrderReceivedToRoute" bpmnElement="Flow_OrderReceivedToRoute">
+        <di:waypoint x="116" y="120" />
+        <di:waypoint x="176" y="120" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

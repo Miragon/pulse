@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_Shipping" targetNamespace="http://bpmn.io/schema/bpmn" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.9.0">
+  <bpmn:process id="shipping" name="Shipping" isExecutable="true">
+    <bpmn:startEvent id="Event_OrderPaid" name="Order paid">
+      <bpmn:outgoing>Flow_OrderPaidToBookCarrier</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:serviceTask id="Activity_BookCarrier" name="Book carrier">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="book-carrier" retries="3" />
+        <zeebe:ioMapping>
+          <zeebe:input source="=order.address" target="address" />
+          <zeebe:output source="=booking.id" target="bookingId" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_OrderPaidToBookCarrier</bpmn:incoming>
+      <bpmn:outgoing>Flow_BookCarrierToCarrierBooked</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="Event_CarrierBooked" name="Carrier booked">
+      <bpmn:incoming>Flow_BookCarrierToCarrierBooked</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_BookCarrierToCarrierBooked" sourceRef="Activity_BookCarrier" targetRef="Event_CarrierBooked" />
+    <bpmn:sequenceFlow id="Flow_OrderPaidToBookCarrier" sourceRef="Event_OrderPaid" targetRef="Activity_BookCarrier" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_shipping">
+    <bpmndi:BPMNPlane id="BPMNPlane_shipping" bpmnElement="shipping">
+      <bpmndi:BPMNShape id="BPMNShape_Event_OrderPaid" bpmnElement="Event_OrderPaid">
+        <dc:Bounds x="80" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="57" y="144" width="82" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Activity_BookCarrier" bpmnElement="Activity_BookCarrier">
+        <dc:Bounds x="176" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Event_CarrierBooked" bpmnElement="Event_CarrierBooked">
+        <dc:Bounds x="336" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="324" y="144" width="61" height="28" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_BookCarrierToCarrierBooked" bpmnElement="Flow_BookCarrierToCarrierBooked">
+        <di:waypoint x="276" y="120" />
+        <di:waypoint x="336" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_OrderPaidToBookCarrier" bpmnElement="Flow_OrderPaidToBookCarrier">
+        <di:waypoint x="116" y="120" />
+        <di:waypoint x="176" y="120" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_OrderFulfillment" targetNamespace="http://bpmn.io/schema/bpmn" modeler:executionPlatform="Camunda Platform" modeler:executionPlatformVersion="7.24.0">
+  <bpmn:process id="order-fulfillment" name="Order fulfillment" isExecutable="true" camunda:historyTimeToLive="180">
+    <bpmn:startEvent id="Event_OrderReceived" name="Order received">
+      <bpmn:outgoing>Flow_OrderReceivedToCheckOrder</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:userTask id="Activity_CheckOrder" name="Check order" camunda:candidateGroups="sales">
+      <bpmn:incoming>Flow_OrderReceivedToCheckOrder</bpmn:incoming>
+      <bpmn:outgoing>Flow_CheckOrderToOrderOk</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="Gateway_OrderOk" name="Order ok?">
+      <bpmn:incoming>Flow_CheckOrderToOrderOk</bpmn:incoming>
+      <bpmn:outgoing>Flow_OrderOkToReserveStock</bpmn:outgoing>
+      <bpmn:outgoing>Flow_OrderOkToOrderRejected</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:serviceTask id="Activity_ReserveStock" name="Reserve stock" camunda:type="external" camunda:topic="reserve-stock">
+      <bpmn:incoming>Flow_OrderOkToReserveStock</bpmn:incoming>
+      <bpmn:outgoing>Flow_ReserveStockToChargePayment</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Activity_ChargePayment" name="Charge payment" camunda:type="external" camunda:topic="charge-payment">
+      <bpmn:incoming>Flow_ReserveStockToChargePayment</bpmn:incoming>
+      <bpmn:outgoing>Flow_ChargePaymentToAwaitPayment</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:receiveTask id="Activity_AwaitPayment" name="Await payment confirmation" messageRef="Message_PaymentConfirmed">
+      <bpmn:incoming>Flow_ChargePaymentToAwaitPayment</bpmn:incoming>
+      <bpmn:outgoing>Flow_AwaitPaymentToShipOrder</bpmn:outgoing>
+    </bpmn:receiveTask>
+    <bpmn:boundaryEvent id="Event_PaymentOverdue" name="3 days" attachedToRef="Activity_AwaitPayment">
+      <bpmn:outgoing>Flow_PaymentOverdueToOrderCancelled</bpmn:outgoing>
+      <bpmn:timerEventDefinition>
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">P3D</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:boundaryEvent>
+    <bpmn:endEvent id="Event_OrderCancelled" name="Order cancelled">
+      <bpmn:incoming>Flow_PaymentOverdueToOrderCancelled</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_PaymentOverdueToOrderCancelled" sourceRef="Event_PaymentOverdue" targetRef="Event_OrderCancelled" />
+    <bpmn:callActivity id="Activity_ShipOrder" name="Ship order" calledElement="shipment">
+      <bpmn:extensionElements>
+        <camunda:in variables="all" />
+        <camunda:in businessKey="#{execution.processBusinessKey}" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_AwaitPaymentToShipOrder</bpmn:incoming>
+      <bpmn:outgoing>Flow_ShipOrderToOrderFulfilled</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:endEvent id="Event_OrderFulfilled" name="Order fulfilled">
+      <bpmn:incoming>Flow_ShipOrderToOrderFulfilled</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_ShipOrderToOrderFulfilled" sourceRef="Activity_ShipOrder" targetRef="Event_OrderFulfilled" />
+    <bpmn:sequenceFlow id="Flow_AwaitPaymentToShipOrder" sourceRef="Activity_AwaitPayment" targetRef="Activity_ShipOrder" />
+    <bpmn:sequenceFlow id="Flow_ChargePaymentToAwaitPayment" sourceRef="Activity_ChargePayment" targetRef="Activity_AwaitPayment" />
+    <bpmn:sequenceFlow id="Flow_ReserveStockToChargePayment" sourceRef="Activity_ReserveStock" targetRef="Activity_ChargePayment" />
+    <bpmn:sequenceFlow id="Flow_OrderOkToReserveStock" name="yes" sourceRef="Gateway_OrderOk" targetRef="Activity_ReserveStock">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:endEvent id="Event_OrderRejected" name="Order rejected">
+      <bpmn:incoming>Flow_OrderOkToOrderRejected</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_OrderOkToOrderRejected" name="no" sourceRef="Gateway_OrderOk" targetRef="Event_OrderRejected">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${!approved}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_CheckOrderToOrderOk" sourceRef="Activity_CheckOrder" targetRef="Gateway_OrderOk" />
+    <bpmn:sequenceFlow id="Flow_OrderReceivedToCheckOrder" sourceRef="Event_OrderReceived" targetRef="Activity_CheckOrder" />
+  </bpmn:process>
+  <bpmn:message id="Message_PaymentConfirmed" name="PaymentConfirmed" />
+  <bpmndi:BPMNDiagram id="BPMNDiagram_order-fulfillment">
+    <bpmndi:BPMNPlane id="BPMNPlane_order-fulfillment" bpmnElement="order-fulfillment">
+      <bpmndi:BPMNShape id="BPMNShape_Event_OrderReceived" bpmnElement="Event_OrderReceived">
+        <dc:Bounds x="80" y="121" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="64" y="163" width="68" height="28" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Activity_CheckOrder" bpmnElement="Activity_CheckOrder">
+        <dc:Bounds x="176" y="99" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Gateway_OrderOk" bpmnElement="Gateway_OrderOk" isMarkerVisible="true">
+        <dc:Bounds x="336" y="114" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="324" y="94" width="75" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Activity_ReserveStock" bpmnElement="Activity_ReserveStock">
+        <dc:Bounds x="446" y="99" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Activity_ChargePayment" bpmnElement="Activity_ChargePayment">
+        <dc:Bounds x="606" y="99" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Activity_AwaitPayment" bpmnElement="Activity_AwaitPayment">
+        <dc:Bounds x="766" y="99" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Event_PaymentOverdue" bpmnElement="Event_PaymentOverdue">
+        <dc:Bounds x="823" y="161" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="863" y="181" width="54" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Event_OrderCancelled" bpmnElement="Event_OrderCancelled">
+        <dc:Bounds x="958" y="258" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="939" y="300" width="75" height="28" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Activity_ShipOrder" bpmnElement="Activity_ShipOrder">
+        <dc:Bounds x="926" y="99" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Event_OrderFulfilled" bpmnElement="Event_OrderFulfilled">
+        <dc:Bounds x="1086" y="121" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1067" y="163" width="75" height="28" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Event_OrderRejected" bpmnElement="Event_OrderRejected">
+        <dc:Bounds x="478" y="258" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="462" y="300" width="68" height="28" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_PaymentOverdueToOrderCancelled" bpmnElement="Flow_PaymentOverdueToOrderCancelled">
+        <di:waypoint x="841" y="197" />
+        <di:waypoint x="841" y="276" />
+        <di:waypoint x="958" y="276" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_ShipOrderToOrderFulfilled" bpmnElement="Flow_ShipOrderToOrderFulfilled">
+        <di:waypoint x="1026" y="139" />
+        <di:waypoint x="1086" y="139" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_AwaitPaymentToShipOrder" bpmnElement="Flow_AwaitPaymentToShipOrder">
+        <di:waypoint x="866" y="139" />
+        <di:waypoint x="926" y="139" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_ChargePaymentToAwaitPayment" bpmnElement="Flow_ChargePaymentToAwaitPayment">
+        <di:waypoint x="706" y="139" />
+        <di:waypoint x="766" y="139" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_ReserveStockToChargePayment" bpmnElement="Flow_ReserveStockToChargePayment">
+        <di:waypoint x="546" y="139" />
+        <di:waypoint x="606" y="139" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_OrderOkToReserveStock" bpmnElement="Flow_OrderOkToReserveStock">
+        <di:waypoint x="386" y="139" />
+        <di:waypoint x="446" y="139" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="394" y="121" width="33" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_OrderOkToOrderRejected" bpmnElement="Flow_OrderOkToOrderRejected">
+        <di:waypoint x="361" y="164" />
+        <di:waypoint x="361" y="276" />
+        <di:waypoint x="478" y="276" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="369" y="258" width="26" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_CheckOrderToOrderOk" bpmnElement="Flow_CheckOrderToOrderOk">
+        <di:waypoint x="276" y="139" />
+        <di:waypoint x="336" y="139" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_OrderReceivedToCheckOrder" bpmnElement="Flow_OrderReceivedToCheckOrder">
+        <di:waypoint x="116" y="139" />
+        <di:waypoint x="176" y="139" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

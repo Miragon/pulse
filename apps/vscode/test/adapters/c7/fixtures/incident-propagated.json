@@ -1,0 +1,17 @@
+{
+  "id": "63ebbba1-cd7f-11f1-86d2-667bc3771e0d",
+  "processDefinitionId": "pulse-dispatch:1:63c0659d-cd7f-11f1-86d2-667bc3771e0d",
+  "processInstanceId": "63e79cda-cd7f-11f1-86d2-667bc3771e0d",
+  "executionId": "63e7c3ee-cd7f-11f1-86d2-667bc3771e0d",
+  "incidentTimestamp": "2026-10-21T18:44:04.613+0000",
+  "incidentType": "failedJob",
+  "activityId": "Activity_PrintShippingLabel",
+  "failedActivityId": "Activity_PrintShippingLabel",
+  "causeIncidentId": "63ebbba0-cd7f-11f1-86d2-667bc3771e0d",
+  "rootCauseIncidentId": "63ebbba0-cd7f-11f1-86d2-667bc3771e0d",
+  "configuration": null,
+  "incidentMessage": null,
+  "tenantId": null,
+  "jobDefinitionId": null,
+  "annotation": null
+}
