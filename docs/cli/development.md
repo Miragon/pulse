@@ -19,8 +19,10 @@ pnpm --fail-if-no-match --filter @miragon/pulse-cli test:mutation
 ```
 
 `test:engines` runs the Testcontainers suites against the built CLI (Docker or Podman, `build`
-first). `test:mutation` is a full Stryker run that mutates the working tree in place: leave
-`apps/cli` alone while it runs.
+first). `PULSE_CLI_IT_ENGINES=operaton,camunda` picks engines (`operaton`, `cibseven`, `camunda`),
+`PULSE_CLI_IT_SKIP_PACK=1` skips the tarball test, `PULSE_CLI_IT_BINARY=<absolute path>` tests a
+standalone executable and `PULSE_CLI_IT_CLI=<script>` another entry script. `test:mutation` is a
+full Stryker run that mutates the working tree in place: leave `apps/cli` alone while it runs.
 
 ## Standalone executable and container image
 
@@ -43,6 +45,8 @@ application runs.
 ```sh
 pnpm --fail-if-no-match --filter @miragon/pulse-cli build:standalone
 pnpm --fail-if-no-match --filter @miragon/pulse-cli build:exe
+apps/cli/scripts/smoke-test.sh apps/cli/build/bin/pulse-cli-macos-arm64
+PULSE_CLI_IT_BINARY="$PWD/apps/cli/build/bin/pulse-cli-macos-arm64" PULSE_CLI_IT_ENGINES=operaton pnpm --fail-if-no-match --filter @miragon/pulse-cli test:engines
 docker build -t pulse-cli apps/cli && apps/cli/scripts/smoke-test.sh docker run --rm -i pulse-cli
 ```
 
@@ -86,13 +90,12 @@ test/           fakes for unit tests, Testcontainers engine suites
 ```
 
 The overview with diagrams is in [Architecture](architecture.md), the decisions in
-[Architecture decisions](adr/). The `cli-*` rules of `.dependency-cruiser.cjs` hold the layering:
-no cycle (a type-only one included), only `src/bin` imports `src/cli`, only `src/cli` imports
-commander, the pure layers import no Node built-in, `workflow` knows engines only through
-`src/engine-port`, only the adapters import `src/api`, only the `auth login` command reaches the
-interactive login, and the generated catalogs are read only by `src/catalog/catalog.ts` and the
-adapters, each adapter its own. `pnpm lint:architecture` cruises `apps/cli/src`,
-`pnpm lint:architecture:cli` its `scripts/` and `test/`.
+[Architecture decisions](adr/). The `cli-*` rules of `.dependency-cruiser.cjs` hold the layering
+(`pnpm lint:architecture` cruises `apps/cli/src`, `pnpm lint:architecture:cli` its `scripts/` and
+`test/`): no cycle (a type-only one included), only `src/bin` imports `src/cli`, only `src/cli`
+imports commander, the pure layers import no Node built-in, `workflow` knows engines only through
+`src/engine-port`, only the adapters import `src/api`, only `auth login` reaches the interactive
+login, and only `src/catalog/catalog.ts` and the adapters (each its own) read the catalogs.
 
 ## Quality gates
 
@@ -111,8 +114,8 @@ adapters, each adapter its own. `pnpm lint:architecture` cruises `apps/cli/src`,
 - **Testcontainers** suites against the three engines, with and without Basic auth, behind
   Keycloak and an Envoy JWT gateway for OAuth, through the workflow commands, plus a test of the
   packed tarball. CI runs them, the packaging smoke tests and `claude plugin validate --strict` on
-  every pull request that touches the CLI. The plugin evals in
-  `apps/cli/skills/pulse-cli/evals/` call the model on your account and run locally.
+  every pull request. The plugin evals in `apps/cli/skills/pulse-cli/evals/` call the model on
+  your account, so they run locally: `claude plugin eval apps/cli/skills/pulse-cli --no-publish`.
 
 ## Ground rules
 
