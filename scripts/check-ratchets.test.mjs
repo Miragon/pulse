@@ -171,7 +171,7 @@ describe("shadowing vitest, prettier and editorconfig files", () => {
       assert.equal(ratchetKind(rel), null, rel)
   })
 
-  it("flags every prettier config under apps/ or packages/ and every root one but .prettierrc.json", () => {
+  it("flags every prettier config below the root and every root one but .prettierrc.json", () => {
     for (const rel of [
       `${CLI_DIR}/.prettierrc`,
       `${CLI_DIR}/.prettierrc.json`,
@@ -185,6 +185,15 @@ describe("shadowing vitest, prettier and editorconfig files", () => {
       `${DOMAIN_DIR}/.prettierrc.json`,
       "packages/core/widget-shell/src/ui/.prettierrc",
       "apps/.prettierrc",
+      // Outside apps/ and packages/ too: `prettier --check .` reads every directory.
+      "docs/.prettierrc",
+      "docs/.vitepress/.prettierrc.json",
+      "docs/package.yaml",
+      "templates/composed-server/.prettierrc.json",
+      "templates/composed-server/server/prettier.config.mjs",
+      "scripts/.prettierrc.yml",
+      "playground/prettier.config.js",
+      ".github/.prettierrc",
       ".prettierrc",
       ".prettierrc.yaml",
       "prettier.config.js",
@@ -193,22 +202,30 @@ describe("shadowing vitest, prettier and editorconfig files", () => {
       flags(rel, /prettier config of its own.*NEAREST.*root \.prettierrc\.json `overrides`/)
   })
 
-  it("flags a nested .editorconfig (prettier reads it for every option .prettierrc.json leaves open)", () => {
-    for (const rel of [`${VSCODE_DIR}/.editorconfig`, `${DOMAIN_DIR}/src/.editorconfig`])
+  it("flags every .editorconfig below the root (prettier reads it for every option .prettierrc.json leaves open)", () => {
+    for (const rel of [
+      `${VSCODE_DIR}/.editorconfig`,
+      `${DOMAIN_DIR}/src/.editorconfig`,
+      "docs/.editorconfig",
+      "templates/composed-server/.editorconfig",
+      "scripts/.editorconfig",
+    ])
       flags(rel, /overrides the root \.editorconfig.*Add a section/)
   })
 
-  it("leaves the root configs, ignore files, other trees and installed dependencies alone", () => {
+  it("leaves the root configs, ignore files, look-alikes and installed dependencies alone", () => {
     for (const rel of [
       ".prettierrc.json",
       ".editorconfig",
       ".prettierignore",
       `${CLI_DIR}/.prettierignore`,
-      "docs/.prettierrc",
-      "docs/.editorconfig",
-      "templates/composed-server/.prettierrc.json",
+      "docs/.prettierignore",
+      "scripts/prettier-config.test.mjs",
+      "templates/composed-server/editorconfig.md",
       `${VSCODE_DIR}/node_modules/some-dep/.prettierrc`,
       "packages/core/widget-shell/node_modules/some-dep/.editorconfig",
+      "docs/node_modules/vitepress/.prettierrc",
+      "node_modules/some-dep/.editorconfig",
     ])
       assert.equal(ratchetKind(rel), null, rel)
     assert.deepEqual(checkRatchetFile(`${CLI_DIR}/.prettierrc`, "{}", null), [])

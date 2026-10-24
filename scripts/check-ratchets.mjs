@@ -88,16 +88,18 @@
  *                                   tool would load it INSTEAD of the ratchet.
  *                                   A vitest.config.{mts,cts,js,mjs,cjs} in a
  *                                   package (dead next to vitest.config.ts,
- *                                   loaded unratcheted without it). A prettier
- *                                   config (.prettierrc*, prettier.config.*,
- *                                   package.yaml) or an .editorconfig under
- *                                   apps/ or packages/, and any root prettier
- *                                   config besides .prettierrc.json: prettier
- *                                   and editorconfig resolve the NEAREST
- *                                   config, so a nested one keeps a foreign
- *                                   style; per-app style goes into the root
- *                                   .prettierrc.json `overrides`. Each fails
- *                                   whenever it exists
+ *                                   loaded unratcheted without it). Any
+ *                                   prettier config (.prettierrc*,
+ *                                   prettier.config.*, package.yaml) besides
+ *                                   the root .prettierrc.json and any
+ *                                   .editorconfig besides the root one, in
+ *                                   every directory (docs/, templates/,
+ *                                   scripts/ as much as apps/ and packages/):
+ *                                   prettier and editorconfig resolve the
+ *                                   NEAREST config, so a nested one keeps a
+ *                                   foreign style; per-directory style goes
+ *                                   into the root .prettierrc.json
+ *                                   `overrides`. Each fails whenever it exists
  *   inline suppressions             `eslint-disable` of a gate rule (or of every
  *                                   rule), inline gate-rule config, `v8|c8|
  *                                   istanbul ignore`, `Stryker disable` in
@@ -133,8 +135,12 @@ const PKG = String.raw`(?:apps/[^/]+|packages/core/[^/]+|packages/connectors/[^/
 const loadedInstead = (replaces) => (relPath) =>
   `${relPath} would be loaded INSTEAD of ${replaces} — the tool resolves it first, while this check (and mutation-diff.mjs) keep reading the ratcheted file, so every threshold, ignore list and gate in it could be swapped out unseen. Edit ${replaces} instead.`
 
-/** A path below apps/ or packages/ that is not inside an installed dependency. */
-const NESTED = String.raw`(?:apps|packages)/(?!(?:.*/)?node_modules/)(?:.+/)?`
+/**
+ * A directory prefix anywhere below the repo root that is not inside an
+ * installed dependency: prettier and editorconfig resolve the nearest config
+ * from every file `prettier --check .` reads, docs/ and templates/ included.
+ */
+const NESTED = String.raw`(?!(?:.*/)?node_modules/)(?:.+/)`
 /** prettier's config file names besides package.json (the manifest check covers its key). */
 const PRETTIER_CONFIG = String.raw`(?:package\.yaml|\.prettierrc(?:\.\w+)?|prettier\.config\.[cm]?[jt]s)`
 
@@ -169,18 +175,19 @@ const SHADOW_CONFIGS = [
       `${relPath} is a second vitest config next to the package's vitest.config.ts. vitest tries vitest.config.{ts,mts,cts,js,mjs,cjs} in that order and loads the first it finds: next to vitest.config.ts this file is dead code that reads like the config, and without vitest.config.ts vitest loads it with no ratchet reading its thresholds. Keep the package's config in vitest.config.ts and delete this file.`,
   },
   {
-    // Any root prettier config but .prettierrc.json: package.yaml and
-    // .prettierrc come BEFORE it, the others take over once it is gone.
+    // Any root prettier config but .prettierrc.json (package.yaml and
+    // .prettierrc come BEFORE it, the others take over once it is gone), and
+    // any prettier config in a directory below the root.
     pattern: new RegExp(
       `^(?!\\.prettierrc\\.json$)${PRETTIER_CONFIG}$|^${NESTED}${PRETTIER_CONFIG}$`,
     ),
     message: (relPath) =>
-      `${relPath} is a prettier config of its own. prettier takes the NEAREST config walking up from each file, so every file below it would be formatted, and pass format:check, in a style the root .prettierrc.json does not set (\`requirePragma: true\` even skips every file without a pragma). Per-app style goes into the root .prettierrc.json \`overrides\` (\`"files": ["apps/<app>/**"]\`); delete this file.`,
+      `${relPath} is a prettier config of its own. prettier takes the NEAREST config walking up from each file, so every file below it would be formatted, and pass format:check, in a style the root .prettierrc.json does not set (\`requirePragma: true\` even skips every file without a pragma). Per-directory style goes into the root .prettierrc.json \`overrides\` (\`"files": ["apps/<app>/**"]\`); delete this file.`,
   },
   {
     pattern: new RegExp(`^${NESTED}\\.editorconfig$`),
     message: (relPath) =>
-      `${relPath} overrides the root .editorconfig below it. prettier reads the nearest .editorconfig for every option .prettierrc.json leaves open (indentation, tab width, line endings), so format:check would accept a foreign style there. Add a section such as \`[apps/<app>/**]\` to the root .editorconfig instead and delete this file.`,
+      `${relPath} overrides the root .editorconfig below it. prettier reads the nearest .editorconfig for every option .prettierrc.json leaves open (indentation, tab width, line endings), so format:check would accept a foreign style there. Add a section such as \`[apps/<app>/**]\` or \`[docs/**]\` to the root .editorconfig instead and delete this file.`,
   },
 ]
 
