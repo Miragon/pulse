@@ -1,0 +1,278 @@
+name: Publish VS Code extension
+
+# Reusable workflow, called by release-please.yml after the release gate: packages ONE VS Code
+# extension (an app whose package.json declares engines.vscode, e.g. apps/vscode) as a .vsix and,
+# when the release switch is on, publishes that same file to the Visual Studio Marketplace and
+# Open VSX and attaches it to the GitHub release. Three jobs, so the store credentials never meet
+# a build or an install that runs code:
+#   package  installs, builds and `vsce package`s the extension, without id-token or secrets,
+#            and refuses a version that is not the release tag or that the Marketplace refuses
+#            (a prerelease or build suffix).
+#   publish  runs in the vscode-marketplace environment (deployment branch main), installs the
+#            lockfile's vsce and ovsx with --ignore-scripts, builds nothing and publishes the
+#            .vsix: with the environment's VSCE_PAT / OVSX_PAT when set, else by trusted
+#            publishing (OIDC, id-token: write).
+#   attach   uploads the .vsix to the release v<version> (contents: write, no credentials).
+# The switch is the input channel, the repository variable VSCODE_PUBLISH:
+#   unset or off  package only: every release still proves that the tagged commit packages;
+#   pre-release   publish as a pre-release (packaged with --pre-release; Open VSX reads it from
+#                 the .vsix);
+#   release       publish as a release.
+# Any other value fails the package job. --skip-duplicate makes a re-run after a partial failure
+# publish only what is missing. scripts/check-github-config.mjs (`pnpm lint:github`) pins this
+# shape; its test runs the Release switch and Resolve extension steps.
+on:
+  workflow_call:
+    inputs:
+      directory:
+        description: Repo-relative directory of the extension (e.g. apps/vscode)
+        required: true
+        type: string
+      version:
+        description: Release tag (e.g. v1.2.0); the .vsix must carry this version (empty on a dry run)
+        required: true
+        type: string
+      dry_run:
+        description: Package only, publish nothing
+        type: boolean
+        default: false
+      channel:
+        description: off (or empty), pre-release or release; the repository variable VSCODE_PUBLISH
+        type: string
+        default: ""
+
+permissions: {}
+
+# Explicit bash: -eo pipefail, the flags scripts/check-github-config.test.mjs runs the steps with.
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  package:
+    name: Package ${{ inputs.directory }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    outputs:
+      publish: ${{ steps.channel.outputs.publish }}
+      pre_release: ${{ steps.channel.outputs.pre_release }}
+      name: ${{ steps.pkg.outputs.name }}
+      vsix: ${{ steps.pkg.outputs.vsix }}
+      artifact: ${{ steps.pkg.outputs.artifact }}
+    steps:
+      - id: channel
+        name: Release switch
+        env:
+          CHANNEL: ${{ inputs.channel }}
+        run: |
+          case "$CHANNEL" in
+            "" | off) publish=false pre_release=false ;;
+            pre-release) publish=true pre_release=true ;;
+            release) publish=true pre_release=false ;;
+            *)
+              echo "::error::VSCODE_PUBLISH is \"${CHANNEL}\": set it to pre-release or release, or to off (or delete it) to publish nothing"
+              exit 1
+              ;;
+          esac
+          echo "publish=${publish}" >> "$GITHUB_OUTPUT"
+          echo "pre_release=${pre_release}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v6.1.0
+
+      # No dependency cache in a release job: a restored store would end up in the package.
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - id: pkg
+        name: Resolve extension
+        env:
+          DIR: ${{ inputs.directory }}
+          TAG: ${{ inputs.version }}
+        run: |
+          if ! [[ "$DIR" =~ ^apps/[a-z0-9][a-z0-9-]*$ ]] || [ ! -f "${DIR}/package.json" ]; then
+            echo "::error::${DIR} is no app directory"
+            exit 1
+          fi
+          manifest="${DIR}/package.json"
+          field() {
+            node -p 'const m = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")); String(process.argv[2].split(".").reduce((v, k) => v?.[k], m) ?? "")' "$manifest" "$1"
+          }
+          name="$(field name)"
+          version="$(field version)"
+          engine="$(field engines.vscode)"
+          if [ -z "$engine" ]; then
+            echo "::error::${DIR} declares no engines.vscode: it is no VS Code extension"
+            exit 1
+          fi
+          if ! [[ "$name" =~ ^[a-z0-9][a-z0-9-]*$ ]]; then
+            echo "::error::${DIR} is named \"${name}\": vsce takes an unscoped lowercase name only"
+            exit 1
+          fi
+          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::${name}@${version}: the Marketplace takes major.minor.patch only, no prerelease or build suffix"
+            exit 1
+          fi
+          if [ -n "$TAG" ] && [ "v${version}" != "$TAG" ]; then
+            echo "::error::${name}@${version} is not the release ${TAG}: is ${manifest} in release-please-config.json extra-files?"
+            exit 1
+          fi
+          {
+            echo "name=${name}"
+            echo "version=${version}"
+            echo "vsix=${name}-${version}.vsix"
+            echo "artifact=vsix-${name}"
+          } >> "$GITHUB_OUTPUT"
+
+      - run: pnpm install --frozen-lockfile
+
+      # The extension and its workspace dependencies only.
+      - name: Build
+        env:
+          NAME: ${{ steps.pkg.outputs.name }}
+        run: pnpm --fail-if-no-match --filter "${NAME}..." run build
+
+      - name: Package
+        env:
+          NAME: ${{ steps.pkg.outputs.name }}
+          VSIX: ${{ steps.pkg.outputs.vsix }}
+          PRE_RELEASE: ${{ steps.channel.outputs.pre_release }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/vsix"
+          args=(--out "$RUNNER_TEMP/vsix/${VSIX}")
+          if [ "$PRE_RELEASE" = true ]; then args+=(--pre-release); fi
+          pnpm --fail-if-no-match --filter "${NAME}" run package "${args[@]}"
+
+      # The same list as ci.yml's vscode-package job.
+      - name: Check the package
+        env:
+          VSIX: ${{ steps.pkg.outputs.vsix }}
+          VERSION: ${{ steps.pkg.outputs.version }}
+        run: |
+          vsix="$RUNNER_TEMP/vsix/${VSIX}"
+          listing="$(unzip -Z1 "$vsix")"
+          for file in extension/package.json extension/dist/extension.cjs extension/dist/engine-cli.js extension/dist/webview.js extension/dist/webview.css; do
+            if ! grep -qxF "$file" <<<"$listing"; then
+              echo "::error::The .vsix lacks ${file}"
+              exit 1
+            fi
+          done
+          if grep -E '^extension/(node_modules|src|test)/|\.map$' <<<"$listing"; then
+            echo "::error::The .vsix ships sources, tests, source maps or node_modules (listed above)"
+            exit 1
+          fi
+          packaged="$(unzip -p "$vsix" extension/package.json | node -p 'JSON.parse(require("fs").readFileSync(0, "utf8")).version')"
+          if [ "$packaged" != "$VERSION" ]; then
+            echo "::error::The .vsix carries ${packaged}, not ${VERSION}"
+            exit 1
+          fi
+
+      # Only what the publish job will publish leaves this job.
+      - if: ${{ steps.channel.outputs.publish == 'true' && inputs.dry_run != true }}
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: ${{ steps.pkg.outputs.artifact }}
+          path: ${{ runner.temp }}/vsix/${{ steps.pkg.outputs.vsix }}
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Publish ${{ inputs.directory }}
+    needs: package
+    if: ${{ inputs.dry_run != true && needs.package.outputs.publish == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: vscode-marketplace
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v6.1.0
+
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      # vsce and ovsx at the lockfile's versions, the extension's dependency tree only, and
+      # nothing runs while they install: no lifecycle script, no build.
+      - name: Install vsce and ovsx
+        env:
+          NAME: ${{ needs.package.outputs.name }}
+        run: pnpm install --frozen-lockfile --ignore-scripts --fail-if-no-match --filter "${NAME}"
+
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: ${{ needs.package.outputs.artifact }}
+          path: ${{ runner.temp }}/vsix
+
+      - name: Check the version
+        env:
+          TAG: ${{ inputs.version }}
+          VSIX: ${{ needs.package.outputs.vsix }}
+        run: |
+          packaged="$(unzip -p "$RUNNER_TEMP/vsix/${VSIX}" extension/package.json | node -p 'JSON.parse(require("fs").readFileSync(0, "utf8")).version')"
+          if [ "v${packaged}" != "$TAG" ]; then
+            echo "::error::The .vsix carries ${packaged}, not the release ${TAG}"
+            exit 1
+          fi
+
+      - name: Publish to the Visual Studio Marketplace
+        env:
+          NAME: ${{ needs.package.outputs.name }}
+          VSIX: ${{ needs.package.outputs.vsix }}
+          PRE_RELEASE: ${{ needs.package.outputs.pre_release }}
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          args=(--packagePath "$RUNNER_TEMP/vsix/${VSIX}" --skip-duplicate)
+          if [ "$PRE_RELEASE" = true ]; then args+=(--pre-release); fi
+          if [ -z "$VSCE_PAT" ]; then
+            unset VSCE_PAT
+            args+=(--oidc)
+          fi
+          pnpm --fail-if-no-match --filter "${NAME}" run marketplace:publish "${args[@]}"
+
+      # A packaged .vsix carries its pre-release flag; ovsx ignores --pre-release for one.
+      - name: Publish to Open VSX
+        env:
+          NAME: ${{ needs.package.outputs.name }}
+          VSIX: ${{ needs.package.outputs.vsix }}
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        run: |
+          args=(--packagePath "$RUNNER_TEMP/vsix/${VSIX}" --skip-duplicate)
+          if [ -z "$OVSX_PAT" ]; then
+            unset OVSX_PAT
+            args+=(--trusted-publishing)
+          fi
+          pnpm --fail-if-no-match --filter "${NAME}" run open-vsx:publish "${args[@]}"
+
+  attach:
+    name: Attach ${{ inputs.directory }} to the release
+    needs: [package, publish]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: ${{ needs.package.outputs.artifact }}
+          path: ${{ runner.temp }}/vsix
+
+      - name: Upload to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.version }}
+          VSIX: ${{ needs.package.outputs.vsix }}
+        run: gh release upload "$TAG" "$RUNNER_TEMP/vsix/${VSIX}" --clobber --repo "$GITHUB_REPOSITORY"
