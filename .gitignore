@@ -41,3 +41,13 @@ stryker-setup-*.js
 apps/cli/build/
 apps/cli/*.tgz
 apps/cli/skills/pulse-cli/evals/results/
+
+# The VS Code extension (apps/vscode): the VS Code that @vscode/test-cli and the e2e
+# scripts download, packaged extensions, the browser dev host's build, the e2e
+# screenshots, and vitest browser mode's failure screenshots and attachments
+.vscode-test/
+*.vsix
+apps/vscode/dist-dev/
+apps/vscode/test-results/
+__screenshots__/
+.vitest/

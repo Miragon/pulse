@@ -29,6 +29,26 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # The extension's webview suites run in Chromium (vitest browser mode, apps/vscode), so
+      # `pnpm test` needs Playwright's headless shell. Cached like host-sim's: keyed on the exact
+      # playwright pin of apps/vscode, which equals the server app's @playwright/test pin
+      # (lint:github holds every Playwright pin at one version), so both jobs share one entry.
+      # System libraries are not cacheable and are installed on every run.
+      - id: playwright
+        run: echo "version=$(node -p "require('./apps/vscode/package.json').devDependencies.playwright")" >> "$GITHUB_OUTPUT"
+
+      - id: playwright-cache
+        uses: actions/cache@v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium-shell
+
+      - if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: pnpm --fail-if-no-match --filter pulse-vscode exec playwright install --with-deps --only-shell chromium
+
+      - if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: pnpm --fail-if-no-match --filter pulse-vscode exec playwright install-deps chromium
+
       - run: pnpm build
 
       - run: pnpm typecheck
@@ -150,17 +170,17 @@ jobs:
 
   # Real engines in Testcontainers on the runner's Docker, one leg per flavor (Camunda 7, CIB
   # seven, Operaton: the server's flavor values, the default first). Each leg runs every suite
-  # that needs a real engine, so far the CLI's (apps/cli test:engines; its OAuth and bearer
-  # suites put Keycloak and Envoy in front). Node 22, the floor of the CLI's npm package; the CLI
-  # binary leg below runs the Operaton suites on Node 24. Not path-filtered, like every job here:
-  # a skipped leg would hide a broken shared input (lockfile, tsconfig.base.json,
-  # vitest.shared.ts). Each leg reports a check of its own; the "Engines" job below is the one
-  # check a ruleset can require.
+  # that needs a real engine: the CLI's (apps/cli test:engines; its OAuth and bearer suites put
+  # Keycloak and Envoy in front) and the extension's conformance laws (apps/vscode
+  # test:engines). Node 22, the floor of the CLI's npm package; the CLI binary leg below runs
+  # the Operaton suites on Node 24. Not path-filtered, like every job here: a skipped leg would
+  # hide a broken shared input (lockfile, tsconfig.base.json, vitest.shared.ts). Each leg
+  # reports a check of its own; the "Engines" job below is the one check a ruleset can require.
   engines:
     name: Engines (${{ matrix.flavor }})
     runs-on: ubuntu-latest
-    # Image pulls, engine starts (a suite allows 4 min for one) and the suites: a CLI leg took
-    # about 4 min in its own repository.
+    # Image pulls, engine starts (a suite allows 4 to 5 min for one) and the suites: a CLI leg
+    # took about 4 min in its own repository, the extension's slowest leg 105 s of tests.
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -202,9 +222,10 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # The suites run what CI built: the CLI's dist/pulse-cli.js and its workspace dependencies.
+      # The suites run what CI built: the CLI's dist/pulse-cli.js and its workspace
+      # dependencies, and the extension's (it has none yet).
       - id: build
-        run: pnpm turbo build --filter=@miragon/pulse-cli...
+        run: pnpm turbo build --filter=@miragon/pulse-cli... --filter=pulse-vscode...
 
       # Each suite runs even when an earlier one failed, so a red leg names every failing suite.
       # The packed-tarball test (pnpm pack, npm install -g into a temporary prefix, run the
@@ -215,6 +236,12 @@ jobs:
           PULSE_CLI_IT_ENGINES: ${{ matrix.cli-engine }}
           PULSE_CLI_IT_SKIP_PACK: ${{ matrix.flavor == 'operaton' && '0' || '1' }}
         run: pnpm --fail-if-no-match --filter @miragon/pulse-cli run test:engines
+
+      - name: Extension conformance (apps/vscode)
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        env:
+          PULSE_ENGINE_IMAGE: ${{ matrix.image }}
+        run: pnpm --fail-if-no-match --filter pulse-vscode run test:engines
 
   # The one check of the engine matrix a ruleset can require: each leg reports under its own
   # name, and scripts/check-github-config.mjs refuses a required matrix job.
@@ -233,6 +260,92 @@ jobs:
             echo "::error::The engine matrix ended with ${RESULT}: see the Engines (<flavor>) jobs"
             exit 1
           fi
+
+  # The extension activates in a real VS Code (stable, under Xvfb) and registers every
+  # contributed command (apps/vscode test:smoke). @vscode/test-electron downloads VS Code into
+  # apps/vscode/.vscode-test (its cwd), cached under the exact current stable version: a new VS
+  # Code release downloads once. Without the release API the key is "unknown" and test-electron
+  # falls back to whatever that entry holds.
+  vscode-smoke:
+    name: VS Code smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v6.1.0
+
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm turbo build --filter=pulse-vscode...
+
+      - id: vscode
+        name: Current VS Code stable
+        shell: bash
+        run: |
+          version="$(curl -fsSL --retry 3 'https://update.code.visualstudio.com/api/releases/stable?released=true' | node -p 'JSON.parse(require("fs").readFileSync(0, "utf8"))[0]')" || version=unknown
+          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then version=unknown; fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      # No restore-keys, so old VS Code installs never pile up in the cache.
+      - uses: actions/cache@v6.1.0
+        with:
+          path: apps/vscode/.vscode-test
+          key: vscode-test-${{ runner.os }}-${{ steps.vscode.outputs.version }}
+
+      - run: xvfb-run -a pnpm --fail-if-no-match --filter pulse-vscode run test:smoke
+
+  # The .vsix a release would ship, built and checked on every pull request: vsce packages the
+  # production bundles (--no-dependencies: esbuild bundled them), and the package carries the
+  # host and webview bundles and the bundled engine CLI, never sources, tests, source maps or
+  # node_modules. The webview's bundle budget is `pnpm test`'s
+  # (apps/vscode/test/architecture/bundle-budget.test.ts). Nothing is uploaded: publishing is the
+  # release train's (publish-vscode-extension.yml checks the same list).
+  vscode-package:
+    name: VS Code package (vsce dry run)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v6.1.0
+
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm turbo build --filter=pulse-vscode...
+
+      - name: Package
+        run: pnpm --fail-if-no-match --filter pulse-vscode run package --out "$RUNNER_TEMP/pulse-vscode.vsix"
+
+      - name: The package ships the bundles and nothing else
+        shell: bash
+        run: |
+          listing="$(unzip -Z1 "$RUNNER_TEMP/pulse-vscode.vsix")"
+          for file in extension/package.json extension/dist/extension.cjs extension/dist/engine-cli.js extension/dist/webview.js extension/dist/webview.css; do
+            if ! grep -qxF "$file" <<<"$listing"; then
+              echo "::error::The .vsix lacks ${file}"
+              exit 1
+            fi
+          done
+          if grep -E '^extension/(node_modules|src|test)/|\.map$' <<<"$listing"; then
+            echo "::error::The .vsix ships sources, tests, source maps or node_modules (listed above)"
+            exit 1
+          fi
+          echo "$listing"
 
   quality:
     name: Lint + Format

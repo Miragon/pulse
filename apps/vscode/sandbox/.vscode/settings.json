@@ -1,0 +1,8 @@
+{
+  "pulse.environments": {
+    "shop-test": "test",
+    "prod-eu": "production"
+  },
+  "git.openRepositoryInParentFolders": "never",
+  "workbench.startupEditor": "readme"
+}

@@ -74,13 +74,13 @@ export const GENERATED_DIRS = {
 }
 
 /**
- * The npm names of the apps Pulse plans before they land under apps/: the VS
- * Code extension. They count as app names already, so no package
- * declares them from npm in the meantime. When an app lands, its name comes
- * from its package.json, and its entry here goes (a test keeps this list equal
- * to the names .dependency-cruiser.cjs APP_PACKAGES holds beyond the real apps).
+ * The npm names of the apps Pulse plans before they land under apps/: none today.
+ * They count as app names already, so no package declares them from npm in the
+ * meantime. When an app lands, its name comes from its package.json, and its
+ * entry here goes (a test keeps this list equal to the names
+ * .dependency-cruiser.cjs APP_PACKAGES holds beyond the real apps).
  */
-export const RESERVED_APP_NAMES = ["pulse-vscode"]
+export const RESERVED_APP_NAMES = []
 
 /** The package.json fields that make another package reachable under pnpm. */
 const DEPENDENCY_FIELDS = [

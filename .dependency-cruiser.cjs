@@ -57,7 +57,7 @@ const npm = (names) => [`(?:^|/)node_modules/(?:${names})(?:/|$)`, `^(?:${names}
 /**
  * The npm name of every app under apps/. A new app adds its name here, or the
  * self-test's sync case fails: packages-never-import-the-app and apps-never-import-apps
- * read this list. The names of the apps that have not landed yet (the extension) are
+ * read this list. The names of the apps that have not landed yet (none today) are
  * RESERVED_APP_NAMES in scripts/check-package-naming.mjs as well, and a test there holds
  * both lists together.
  */

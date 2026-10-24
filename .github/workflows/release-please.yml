@@ -133,6 +133,27 @@ jobs:
     secrets:
       RELEASE_PLEASE_APP_PRIVATE_KEY: ${{ secrets.RELEASE_PLEASE_APP_PRIVATE_KEY }}
 
+  # The VS Code extension ships as a .vsix through the Visual Studio Marketplace and Open VSX,
+  # never through npm (scripts/check-github-config.mjs keeps it out of the publish-npm matrix).
+  # The called workflow packages it on every release and dry run; it publishes only when the
+  # repository variable VSCODE_PUBLISH is pre-release or release (unset: nothing leaves the run).
+  # No secrets: the store credentials (or trust) live in its vscode-marketplace environment.
+  publish-vscode:
+    name: Publish VS Code extension
+    needs: [release-please, gate]
+    if: ${{ needs.release-please.outputs.release_created == 'true' || inputs.dry_run == true }}
+    # The ceiling for the called jobs: package narrows itself to contents: read, publish to
+    # contents: read + id-token: write (trusted publishing), attach to contents: write.
+    permissions:
+      contents: write
+      id-token: write
+    uses: ./.github/workflows/publish-vscode-extension.yml
+    with:
+      directory: apps/vscode
+      version: ${{ needs.release-please.outputs.tag_name }}
+      dry_run: ${{ inputs.dry_run == true }}
+      channel: ${{ vars.VSCODE_PUBLISH }}
+
   # After (not alongside) publish-npm: the mirror commits the release's pins
   # plus a lockfile resolved from the public registry, so syncing before the
   # packages are live would push an uninstallable template.

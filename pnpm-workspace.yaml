@@ -20,6 +20,19 @@ overrides:
   js-yaml: "^4.3.2"
   # via ajv <- @stryker-mutator/core: host confusion + SSRF in URI normalization
   fast-uri: "^3.1.6"
+  # The VS Code extension's toolchain (apps/vscode), never in the .vsix (vsce packages the
+  # esbuild bundles with --no-dependencies). Each crosses its dependent's major; the VS Code
+  # package job proves vsce still starts, the VS Code smoke job that mocha still runs.
+  # via @vscode/vsce <- @azure/identity: MSAL Node's authorization code flow may disclose
+  # parameters to an attacker-controlled endpoint (GHSA-xcx6-jx8p-x3h5)
+  "@azure/identity>@azure/msal-node": "^7.1.0"
+  # via @vscode/test-cli <- mocha 11: RCE via RegExp.flags and Date.prototype.toISOString(),
+  # CPU exhaustion via array-like objects, XSS via an unescaped </script (GHSA-5c6j-r48x-rmvq,
+  # GHSA-qj8w-gfj5-8c6v, GHSA-m5mm-p8h7-m29v)
+  "mocha>serialize-javascript": "^7.1.4"
+  # via @vscode/test-cli <- mocha 11: denial of service in parsePatch and applyPatch
+  # (GHSA-73rr-hh4g-fpgx)
+  "mocha>diff": "^8.0.3"
   # The docs site (docs/): VitePress 1.6.4 asks for vite ^5.4.14, below the fix
   # for the server.fs.deny bypass. An exact pin, not a range: it is the vite the
   # Miragon docs kit (docs/.vitepress/miragon/) is built and tested with, and it

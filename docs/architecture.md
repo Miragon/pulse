@@ -35,6 +35,8 @@ flowchart LR
 | Module                                                               | Role                                                                                                                                                                                                                        |
 | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **MCP Server** (`apps/mcp-server-camunda7/`)                         | Hosts the HTTP transport on port `8400`, loads modules from `MCP_ACTIVE_MODULES`, and serves the Vite-built React widget bundle (see **widgets**).                                                                          |
+| **CLI** (`apps/cli/`)                                                | Every engine REST operation as a command, generated from the OpenAPI spec, plus the workflow commands; on npm, Homebrew, GHCR and the GitHub release. See the [CLI docs](./cli/index.md); rules in `apps/cli/CLAUDE.md`.    |
+| **VS Code extension** (`apps/vscode/`)                               | Shows what an engine runs next to the BPMN models in VS Code: a Preact webview over an engine-neutral contract and the C7 adapter. Ships as a .vsix (not on the Marketplace yet); rules in `apps/vscode/CLAUDE.md`.         |
 | **camunda7** (`packages/connectors/camunda/camunda7-connector/`)     | Wraps the Camunda 7 / CIB seven REST API via an OpenAPI-generated client. Exposes process, task, incident, deployment, and history tools plus widgets.                                                                      |
 | **analytics** (`packages/connectors/analytics/analytics-connector/`) | Queries Prometheus via PromQL for performance, failure, bottleneck, version/cluster comparison, and the cross-engine landscape. Tools + widgets.                                                                            |
 | **engine-plugins** (`engine-plugins/`)                               | Kotlin Micrometer plugins for CIB seven: a process-metrics emitter. Independent build (Java 21, Gradle). No engine-side database.                                                                                           |
@@ -54,6 +56,7 @@ second engine dialect cheap:
   interfaces share a use case, a domain package. An _interface_ is an app:
   `apps/mcp-server-camunda7` is the thin composition root of the Camunda-7-dialect
   MCP server (camunda7 + analytics); a different dialect gets its own MCP server app.
+  The CLI (`apps/cli`) and the VS Code extension (`apps/vscode`) are interfaces of their own.
 - Modules are peers. Connector packages (`*-connector`) never import each other. Cross-module
   capabilities are injected by the app, e.g. the camunda7 module's BPMN-XML lookup feeding the
   analytics heatmap and the names in its views (`SharedResources.fetchBpmnXml`) and its

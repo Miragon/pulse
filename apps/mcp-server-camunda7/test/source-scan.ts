@@ -40,6 +40,7 @@ export type ScanScope = "all" | "mcp"
 export const APP_SCAN: Readonly<Record<string, AppScan>> = {
   cli: "interface",
   "mcp-server-camunda7": "mcp-host",
+  vscode: "interface",
 }
 
 export interface ScanOptions {

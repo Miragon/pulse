@@ -1,0 +1,9 @@
+[
+  {
+    "@class": "org.operaton.bpm.engine.rest.dto.repository.ActivityStatisticsResultDto",
+    "id": "Activity_PrintShippingLabel",
+    "instances": 1,
+    "failedJobs": 0,
+    "incidents": []
+  }
+]

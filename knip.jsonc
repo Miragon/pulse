@@ -40,6 +40,27 @@
       },
     },
 
+    "apps/vscode": {
+      // esbuild bundles the first four (scripts/build.mjs, scripts/webview-build-options.mjs,
+      // scripts/dev-server.mjs, dev/webview/serve.mjs), the webview's dev scripts run by
+      // hand (apps/vscode/src/webview/README.md) and @vscode/test-cli loads the smoke test
+      // (.vscode-test.mjs); knip reads none of them.
+      "entry": [
+        "src/host/extension.ts",
+        "src/webview/main.tsx",
+        "dev/host/dev-host.ts",
+        "dev/webview/stub.ts",
+        "dev/webview/*.mjs",
+        "test/smoke/*.test.cjs",
+      ],
+      "vitest": {
+        "config": ["vitest.config.ts", "vitest.stryker.config.ts", "vitest.engines.config.ts"],
+      },
+      // The shop sandbox: a Java and JS project the extension's code links point at, not
+      // code of the extension.
+      "ignore": ["sandbox/**"],
+    },
+
     "packages/connectors/camunda/camunda7-client": {
       "vitest": {
         "config": ["vitest.config.ts", "vitest.stryker.config.ts"],

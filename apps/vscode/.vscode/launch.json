@@ -1,0 +1,24 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run Pulse",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}",
+        "${workspaceFolder}/dev/host/workspace"
+      ],
+      "outFiles": ["${workspaceFolder}/dist/**/*.cjs"],
+      "preLaunchTask": "npm: build"
+    },
+    {
+      "name": "Run Pulse (sandbox)",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}", "${workspaceFolder}/sandbox"],
+      "outFiles": ["${workspaceFolder}/dist/**/*.cjs"],
+      "preLaunchTask": "npm: build"
+    }
+  ]
+}

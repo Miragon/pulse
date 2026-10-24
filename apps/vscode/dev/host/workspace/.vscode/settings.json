@@ -1,0 +1,8 @@
+{
+  "pulse.environments": {
+    "prod-eu": "production"
+  },
+  "git.openRepositoryInParentFolders": "never",
+  "workbench.secondarySideBar.defaultVisibility": "hidden",
+  "workbench.startupEditor": "none"
+}

@@ -1,0 +1,163 @@
+[
+  {
+    "@class": "org.operaton.bpm.engine.rest.dto.repository.ProcessDefinitionStatisticsResultDto",
+    "id": "ReviewInvoice:1:61c4bcf2-cd7f-11f1-86d2-667bc3771e0d",
+    "instances": 2,
+    "failedJobs": 0,
+    "incidents": [],
+    "definition": {
+      "id": "ReviewInvoice:1:61c4bcf2-cd7f-11f1-86d2-667bc3771e0d",
+      "key": "ReviewInvoice",
+      "category": "http://bpmn.io/schema/bpmn",
+      "description": null,
+      "name": "Review Invoice",
+      "version": 1,
+      "resource": "reviewInvoice.bpmn",
+      "deploymentId": "61b1d12c-cd7f-11f1-86d2-667bc3771e0d",
+      "diagram": null,
+      "suspended": false,
+      "tenantId": null,
+      "versionTag": null,
+      "historyTimeToLive": null,
+      "startableInTasklist": false
+    }
+  },
+  {
+    "@class": "org.operaton.bpm.engine.rest.dto.repository.ProcessDefinitionStatisticsResultDto",
+    "id": "pulse-dispatch:1:63c0659d-cd7f-11f1-86d2-667bc3771e0d",
+    "instances": 1,
+    "failedJobs": 0,
+    "incidents": [],
+    "definition": {
+      "id": "pulse-dispatch:1:63c0659d-cd7f-11f1-86d2-667bc3771e0d",
+      "key": "pulse-dispatch",
+      "category": "http://bpmn.io/schema/bpmn",
+      "description": null,
+      "name": "Dispatch order",
+      "version": 1,
+      "resource": "dispatch.bpmn",
+      "deploymentId": "63bfa24b-cd7f-11f1-86d2-667bc3771e0d",
+      "diagram": null,
+      "suspended": false,
+      "tenantId": null,
+      "versionTag": null,
+      "historyTimeToLive": null,
+      "startableInTasklist": true
+    }
+  },
+  {
+    "@class": "org.operaton.bpm.engine.rest.dto.repository.ProcessDefinitionStatisticsResultDto",
+    "id": "pulse-label:1:63b14a61-cd7f-11f1-86d2-667bc3771e0d",
+    "instances": 1,
+    "failedJobs": 0,
+    "incidents": [{ "incidentType": "failedJob", "incidentCount": 1 }],
+    "definition": {
+      "id": "pulse-label:1:63b14a61-cd7f-11f1-86d2-667bc3771e0d",
+      "key": "pulse-label",
+      "category": "http://bpmn.io/schema/bpmn",
+      "description": null,
+      "name": "Print label",
+      "version": 1,
+      "resource": "label.bpmn",
+      "deploymentId": "63b039ef-cd7f-11f1-86d2-667bc3771e0d",
+      "diagram": null,
+      "suspended": false,
+      "tenantId": null,
+      "versionTag": null,
+      "historyTimeToLive": null,
+      "startableInTasklist": true
+    }
+  },
+  {
+    "@class": "org.operaton.bpm.engine.rest.dto.repository.ProcessDefinitionStatisticsResultDto",
+    "id": "pulse-order:1:63b7b305-cd7f-11f1-86d2-667bc3771e0d",
+    "instances": 2,
+    "failedJobs": 0,
+    "incidents": [{ "incidentType": "failedJob", "incidentCount": 1 }],
+    "definition": {
+      "id": "pulse-order:1:63b7b305-cd7f-11f1-86d2-667bc3771e0d",
+      "key": "pulse-order",
+      "category": "http://bpmn.io/schema/bpmn",
+      "description": null,
+      "name": "Order fulfillment",
+      "version": 1,
+      "resource": "order.bpmn",
+      "deploymentId": "63b62c63-cd7f-11f1-86d2-667bc3771e0d",
+      "diagram": null,
+      "suspended": false,
+      "tenantId": null,
+      "versionTag": null,
+      "historyTimeToLive": null,
+      "startableInTasklist": true
+    }
+  },
+  {
+    "@class": "org.operaton.bpm.engine.rest.dto.repository.ProcessDefinitionStatisticsResultDto",
+    "id": "pulse-order:2:63bcbc19-cd7f-11f1-86d2-667bc3771e0d",
+    "instances": 1,
+    "failedJobs": 0,
+    "incidents": [],
+    "definition": {
+      "id": "pulse-order:2:63bcbc19-cd7f-11f1-86d2-667bc3771e0d",
+      "key": "pulse-order",
+      "category": "http://bpmn.io/schema/bpmn",
+      "description": null,
+      "name": "Order fulfillment",
+      "version": 2,
+      "resource": "order.bpmn",
+      "deploymentId": "63ba9937-cd7f-11f1-86d2-667bc3771e0d",
+      "diagram": null,
+      "suspended": false,
+      "tenantId": null,
+      "versionTag": null,
+      "historyTimeToLive": null,
+      "startableInTasklist": true
+    }
+  },
+  {
+    "@class": "org.operaton.bpm.engine.rest.dto.repository.ProcessDefinitionStatisticsResultDto",
+    "id": "invoice:1:61c3f9a0-cd7f-11f1-86d2-667bc3771e0d",
+    "instances": 3,
+    "failedJobs": 0,
+    "incidents": [],
+    "definition": {
+      "id": "invoice:1:61c3f9a0-cd7f-11f1-86d2-667bc3771e0d",
+      "key": "invoice",
+      "category": "http://www.omg.org/spec/BPMN/20100524/MODEL",
+      "description": null,
+      "name": "Invoice Receipt",
+      "version": 1,
+      "resource": "invoice.v1.bpmn",
+      "deploymentId": "61b1d12c-cd7f-11f1-86d2-667bc3771e0d",
+      "diagram": null,
+      "suspended": false,
+      "tenantId": null,
+      "versionTag": "V1.0",
+      "historyTimeToLive": null,
+      "startableInTasklist": true
+    }
+  },
+  {
+    "@class": "org.operaton.bpm.engine.rest.dto.repository.ProcessDefinitionStatisticsResultDto",
+    "id": "invoice:2:62318889-cd7f-11f1-86d2-667bc3771e0d",
+    "instances": 3,
+    "failedJobs": 0,
+    "incidents": [],
+    "definition": {
+      "id": "invoice:2:62318889-cd7f-11f1-86d2-667bc3771e0d",
+      "key": "invoice",
+      "category": "http://www.omg.org/spec/BPMN/20100524/MODEL",
+      "description": null,
+      "name": "Invoice Receipt",
+      "version": 2,
+      "resource": "invoice.v2.bpmn",
+      "deploymentId": "622fb3c6-cd7f-11f1-86d2-667bc3771e0d",
+      "diagram": null,
+      "suspended": false,
+      "tenantId": null,
+      "versionTag": "V2.0",
+      "historyTimeToLive": null,
+      "startableInTasklist": true
+    }
+  }
+]

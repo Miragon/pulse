@@ -1,0 +1,31 @@
+{
+  "id": "63d65e9e-cd7f-11f1-86d2-667bc3771e0d",
+  "parentActivityInstanceId": null,
+  "activityId": "pulse-order:1:63b7b305-cd7f-11f1-86d2-667bc3771e0d",
+  "activityType": "processDefinition",
+  "processInstanceId": "63d65e9e-cd7f-11f1-86d2-667bc3771e0d",
+  "processDefinitionId": "pulse-order:1:63b7b305-cd7f-11f1-86d2-667bc3771e0d",
+  "childActivityInstances": [
+    {
+      "id": "Activity_ReviewOrder:63d7bdc3-cd7f-11f1-86d2-667bc3771e0d",
+      "parentActivityInstanceId": "63d65e9e-cd7f-11f1-86d2-667bc3771e0d",
+      "activityId": "Activity_ReviewOrder",
+      "activityType": "userTask",
+      "processInstanceId": "63d65e9e-cd7f-11f1-86d2-667bc3771e0d",
+      "processDefinitionId": "pulse-order:1:63b7b305-cd7f-11f1-86d2-667bc3771e0d",
+      "childActivityInstances": [],
+      "childTransitionInstances": [],
+      "executionIds": ["63d65e9e-cd7f-11f1-86d2-667bc3771e0d"],
+      "activityName": "Review order",
+      "incidentIds": [],
+      "incidents": [],
+      "name": "Review order"
+    }
+  ],
+  "childTransitionInstances": [],
+  "executionIds": ["63d65e9e-cd7f-11f1-86d2-667bc3771e0d"],
+  "activityName": "Order fulfillment",
+  "incidentIds": [],
+  "incidents": [],
+  "name": "Order fulfillment"
+}
