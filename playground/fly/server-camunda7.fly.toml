@@ -31,8 +31,9 @@ primary_region = "fra"
   # demo/demo is the engine's seeded admin user; its REST API does not enforce
   # auth. The engine has no public IP, but it sits on the org's private 6PN
   # network, which other apps in the org share — treat it as reachable by
-  # them, not as isolated.
-  CAMUNDA_ENGINES_JSON = '[{"id":"prod-a","baseUrl":"http://miragon-ai-playground-engine.internal:8410/engine-rest","auth":{"type":"basic","username":"demo","password":"demo"}}]'
+  # them, not as isolated. The engine is CIB seven: without `flavor` the
+  # server would take it for Camunda 7 and name and link it as one.
+  CAMUNDA_ENGINES_JSON = '[{"id":"prod-a","baseUrl":"http://miragon-ai-playground-engine.internal:8410/engine-rest","flavor":"cibseven","auth":{"type":"basic","username":"demo","password":"demo"}}]'
   PROMETHEUS_URL = "http://miragon-ai-playground-prometheus.internal:9090"
 
 [http_service]
