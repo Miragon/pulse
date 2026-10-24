@@ -279,7 +279,7 @@ describe("every hand-off names only tools the model can call", () => {
   it("no prose anywhere sends the model to an app-only feed", () => {
     const appOnly = new Set(full.filter((t) => !isModelVisible(t)).map((t) => t.name))
     const prose = scanSources((file, text) =>
-      findProseToolNames(file, text, ["camunda7", "analytics"]),
+      findProseToolNames(file, text, ["camunda7", "analytics", "shell"]),
     )
     expect(prose.length, "the scanner is not blind").toBeGreaterThanOrEqual(20)
     expect(

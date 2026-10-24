@@ -14,7 +14,8 @@ import { REPO_ROOT } from "./source-scan.js"
  * repo: tool names against the full surface, repo paths against the tree
  * (from the repo root, in a nested file too), the identifiers of the skills
  * and of the nested agent files against the sources and the toolkit/mcp-use
- * typings, and each page of the docs site (every Markdown file under docs/,
+ * typings (a nested agent file's also against its package's own
+ * tsconfig*.json), and each page of the docs site (every Markdown file under docs/,
  * built by VitePress to https://miragon.github.io/pulse/) against its line
  * budget (DOCS_BUDGETS below, keyed by the path under docs/).
  *
@@ -93,13 +94,13 @@ function isCheckedDoc(rel: string): boolean {
 }
 
 /**
- * The checked docs of the repo at `root`: what git tracks or would add
- * (committed, staged, or new and not ignored), so a gitignored download or
- * build output (a VS Code test install with its bundled extensions' READMEs)
- * is never read. The GIT_* variables a hook may set are dropped, so `root`
- * alone decides the repository.
+ * The files of the repo at `root` this guard reads: what git tracks or would
+ * add (committed, staged, or new and not ignored), so a gitignored download or
+ * build output (a VS Code test install with its bundled extensions' READMEs
+ * and tsconfigs) is never read. The GIT_* variables a hook may set are
+ * dropped, so `root` alone decides the repository.
  */
-function checkedDocs(root: string): string[] {
+function listedFiles(root: string): string[] {
   const env = Object.fromEntries(
     Object.entries(process.env).filter(([name]) => !name.startsWith("GIT_")),
   )
@@ -110,15 +111,30 @@ function checkedDocs(root: string): string[] {
     maxBuffer: 64 * 1024 * 1024,
   })
     .split("\0")
-    .filter((rel) => rel !== "" && isCheckedDoc(rel))
     .filter(
-      (rel) => fs.statSync(path.join(root, rel), { throwIfNoEntry: false })?.isFile() === true,
+      (rel) =>
+        rel !== "" &&
+        fs.statSync(path.join(root, rel), { throwIfNoEntry: false })?.isFile() === true,
     )
 }
 
-const docFiles = checkedDocs(REPO_ROOT)
+/** The checked docs among the listed files of the repo at `root`. */
+const checkedDocs = (root: string) => listedFiles(root).filter(isCheckedDoc)
+
+// Skills that teach no code of this repo: shadcn's is vendored (its own
+// components and CLI), create-ticket names the agent's tools.
+const NOT_REPO_CODE = new Set(["shadcn", "create-ticket"])
+const teachesRepoCode = (file: string) => !NOT_REPO_CODE.has(path.basename(path.dirname(file)))
+
+/** The docs whose identifiers are checked: the skills that teach repo code and the nested agent files. */
+const identifierDocs = (docs: readonly string[]) => [
+  ...docs.filter(isSkill).filter(teachesRepoCode),
+  ...docs.filter(isNestedAgentFile),
+]
+
+const repoFiles = listedFiles(REPO_ROOT)
+const docFiles = repoFiles.filter(isCheckedDoc)
 const skillFiles = docFiles.filter(isSkill)
-const agentFiles = docFiles.filter(isNestedAgentFile)
 const docsPages = docFiles.filter(isDocsPage)
 
 interface Ref {
@@ -128,10 +144,10 @@ interface Ref {
 }
 
 /** Every inline-code token (`…`) with its file and line; fenced blocks are code, read separately. */
-function backticked(file: string): Ref[] {
+function backticked(file: string, root = REPO_ROOT): Ref[] {
   const refs: Ref[] = []
   let fenced = false
-  fs.readFileSync(path.join(REPO_ROOT, file), "utf8")
+  fs.readFileSync(path.join(root, file), "utf8")
     .split("\n")
     .forEach((text, index) => {
       if (/^\s*```/.test(text)) fenced = !fenced
@@ -163,7 +179,7 @@ describe("tool names in the docs", () => {
 
   it("names only tools the server registers", () => {
     const stale = docFiles
-      .flatMap(backticked)
+      .flatMap((file) => backticked(file))
       .filter((ref) => looksLikeTool(ref.token) && checked(ref) && !known(ref.token))
     expect(stale.map(where)).toEqual([])
   })
@@ -180,7 +196,7 @@ describe("repo paths in the docs", () => {
 
   it("cites only files and directories that exist", () => {
     const missing = docFiles
-      .flatMap(backticked)
+      .flatMap((file) => backticked(file))
       .filter((ref) => isPath(ref.token))
       .filter((ref) => {
         const target = pathOf(ref.token)
@@ -195,40 +211,76 @@ describe("repo paths in the docs", () => {
   })
 })
 
+/** Every identifier-shaped word of `files`. */
+const wordsOf = (files: readonly string[]) =>
+  new Set(files.flatMap((file) => fs.readFileSync(file, "utf8").match(/[A-Za-z_$][\w$]*/g) ?? []))
+
+// A camelCase or PascalCase name, optionally called: `useResetOnChange(…)`.
+const identifierOf = (token: string) =>
+  /^([a-z]+[A-Z]\w*|[A-Z][a-z]+[A-Z]\w*)(?:\(.*\))?$/.exec(token)?.[1]
+// Names a skill invents for the reader's own code.
+const PLACEHOLDER = /Xyz|Your[A-Z]|My[A-Z]|^my[A-Z]|Foo|Example/
+
+/** The workspace package a nested agent file sits in, as a repo-relative directory. */
+const packageOf = (rel: string) =>
+  /^(?:apps\/[^/]+|packages\/core\/[^/]+|packages\/connectors\/[^/]+\/[^/]+)/.exec(rel)?.[0]
+
+/**
+ * The words of the tsconfig*.json files (among `files`, the repo's listed
+ * files) of the package a nested agent file sits in: its compiler options
+ * (`exactOptionalPropertyTypes`) are true statements about that package,
+ * though no source names them. A skill gets none of them; its corpus stays
+ * the sources and the typings.
+ */
+function tsconfigWords(root: string, rel: string, files: readonly string[]): Set<string> {
+  const dir = packageOf(rel)
+  if (dir === undefined) return new Set()
+  return wordsOf(
+    files
+      .filter((file) => file.startsWith(`${dir}/`))
+      .filter((file) => /^tsconfig.*\.json$/.test(path.posix.basename(file)))
+      .map((file) => path.join(root, file)),
+  )
+}
+
+/**
+ * The backticked identifiers of `docs` (repo-relative under `root`) that no
+ * word of `words` declares, as `file:line \`token\``; a nested agent file also
+ * accepts the words of its package's own tsconfig*.json files among `files`.
+ */
+function unknownIdentifiers(
+  root: string,
+  docs: readonly string[],
+  words: ReadonlySet<string>,
+  files: readonly string[],
+): string[] {
+  return docs.flatMap((doc) => {
+    const own = isNestedAgentFile(doc) ? tsconfigWords(root, doc, files) : new Set<string>()
+    return backticked(doc, root)
+      .filter((ref) => {
+        const name = identifierOf(ref.token)
+        return name !== undefined && !PLACEHOLDER.test(name) && !words.has(name) && !own.has(name)
+      })
+      .map(where)
+  })
+}
+
 describe("identifiers in the skills and the nested agent files", () => {
   // The app's own copies: the versions the skills' code compiles against.
   const packageDir = (name: string) =>
     fs.realpathSync(path.join(import.meta.dirname, "..", "node_modules", name))
   const isSource = (file: string) => /\.(?:tsx?|mts|mjs|cjs|kt)$/.test(file)
-  const corpus = [
+  const words = wordsOf([
     ...["apps", "packages", "scripts", "templates", "engine-plugins"].flatMap((dir) =>
       walk(path.join(REPO_ROOT, dir), isSource),
     ),
     ...["@miragon/mcp-toolkit-core", "@miragon/mcp-toolkit-ui", "mcp-use"].flatMap((name) =>
       walk(path.join(packageDir(name), "dist"), (file) => file.endsWith(".d.ts")),
     ),
-  ]
-  const words = new Set(
-    corpus.flatMap((file) => fs.readFileSync(file, "utf8").match(/[A-Za-z_$][\w$]*/g) ?? []),
-  )
-  // A camelCase or PascalCase name, optionally called: `useResetOnChange(…)`.
-  const identifierOf = (token: string) =>
-    /^([a-z]+[A-Z]\w*|[A-Z][a-z]+[A-Z]\w*)(?:\(.*\))?$/.exec(token)?.[1]
-  // Names a skill invents for the reader's own code.
-  const PLACEHOLDER = /Xyz|Your[A-Z]|My[A-Z]|^my[A-Z]|Foo|Example/
-  // Skills that teach no code of this repo: shadcn's is vendored (its own
-  // components and CLI), create-ticket names the agent's tools.
-  const NOT_REPO_CODE = new Set(["shadcn", "create-ticket"])
-  const teachesRepoCode = (file: string) => !NOT_REPO_CODE.has(path.basename(path.dirname(file)))
+  ])
 
   it("name only functions, hooks and types that exist", () => {
-    const unknown = [...skillFiles.filter(teachesRepoCode), ...agentFiles]
-      .flatMap(backticked)
-      .filter((ref) => {
-        const name = identifierOf(ref.token)
-        return name !== undefined && !PLACEHOLDER.test(name) && !words.has(name)
-      })
-    expect(unknown.map(where)).toEqual([])
+    expect(unknownIdentifiers(REPO_ROOT, identifierDocs(docFiles), words, repoFiles)).toEqual([])
   })
 })
 
@@ -333,6 +385,30 @@ describe("what the guard reads", () => {
     expect(isCheckedDoc(rel)).toBe(false)
   })
 
+  it("checks the identifiers of the skills that teach repo code and of the nested agent files", () => {
+    expect(
+      identifierDocs([
+        "CLAUDE.md",
+        "README.md",
+        "templates/composed-server/CLAUDE.md",
+        "apps/vscode/AGENTS.md",
+        "apps/vscode/CLAUDE.md",
+        "apps/cli/README.md",
+        "packages/connectors/camunda/camunda7-domain/AGENTS.md",
+        ".claude/skills/add-bpm-feature/SKILL.md",
+        ".claude/skills/shadcn/SKILL.md",
+        ".claude/skills/create-ticket/SKILL.md",
+        "templates/composed-server/.claude/skills/add-widget/SKILL.md",
+      ]),
+    ).toEqual([
+      ".claude/skills/add-bpm-feature/SKILL.md",
+      "templates/composed-server/.claude/skills/add-widget/SKILL.md",
+      "apps/vscode/AGENTS.md",
+      "apps/vscode/CLAUDE.md",
+      "packages/connectors/camunda/camunda7-domain/AGENTS.md",
+    ])
+  })
+
   it("checks the identifiers of the agent files under apps/ and packages/, not the root's", () => {
     const nested = [
       "apps/cli/CLAUDE.md",
@@ -419,6 +495,52 @@ describe("what the guard reads", () => {
         "README.md",
         "apps/vscode/README.md",
         "apps/vscode/src/notes.md",
+      ])
+    })
+  })
+
+  describe("the identifier check over a fixture tree", () => {
+    const roots: string[] = []
+    afterEach(() => {
+      for (const root of roots.splice(0)) fs.rmSync(root, { recursive: true, force: true })
+    })
+
+    it("reports an unknown name in a nested agent file, and takes its package's compiler options", () => {
+      const root = fs.mkdtempSync(path.join(os.tmpdir(), "docs-idents-"))
+      roots.push(root)
+      const strict = "Strict TypeScript (`exactOptionalPropertyTypes`, `noUncheckedIndexedAccess`)."
+      const files: Record<string, string> = {
+        "apps/vscode/AGENTS.md": `${strict}\nCall \`useNoSuchHook()\` and \`knownHook()\`.\n`,
+        "apps/vscode/tsconfig.base.json":
+          '{ "compilerOptions": { "exactOptionalPropertyTypes": true, // strict\n "noUncheckedIndexedAccess": true, } }',
+        "apps/vscode/src/webview/tsconfig.json": '{ "compilerOptions": { "noEmitOnError": true } }',
+        "apps/cli/CLAUDE.md": "Set `noEmitOnError` and `exactOptionalPropertyTypes`.\n",
+        "apps/cli/tsconfig.json": '{ "compilerOptions": { "strict": true } }',
+        // A download git ignores (a VS Code test install) names options of its own.
+        ".gitignore": ".vscode-test/\n",
+        "apps/cli/.vscode-test/ext/tsconfig.json":
+          '{ "compilerOptions": { "noEmitOnError": true } }',
+        ".claude/skills/x/SKILL.md": `${strict}\n`,
+        "CLAUDE.md": "Run `noSuchRootTool`.\n",
+      }
+      for (const [rel, text] of Object.entries(files)) {
+        fs.mkdirSync(path.dirname(path.join(root, rel)), { recursive: true })
+        fs.writeFileSync(path.join(root, rel), text)
+      }
+      const env = Object.fromEntries(
+        Object.entries(process.env).filter(([name]) => !name.startsWith("GIT_")),
+      )
+      execFileSync("git", ["init", "--quiet"], { cwd: root, env })
+      const listed = listedFiles(root)
+      const docs = identifierDocs(listed.filter(isCheckedDoc))
+      expect(unknownIdentifiers(root, docs, new Set(["knownHook"]), listed)).toEqual([
+        // A skill keeps the plain corpus: a compiler option is no identifier of the code.
+        ".claude/skills/x/SKILL.md:1 `exactOptionalPropertyTypes`",
+        ".claude/skills/x/SKILL.md:1 `noUncheckedIndexedAccess`",
+        // Another package's tsconfig is not this package's, and an ignored one counts for none.
+        "apps/cli/CLAUDE.md:1 `noEmitOnError`",
+        "apps/cli/CLAUDE.md:1 `exactOptionalPropertyTypes`",
+        "apps/vscode/AGENTS.md:2 `useNoSuchHook()`",
       ])
     })
   })

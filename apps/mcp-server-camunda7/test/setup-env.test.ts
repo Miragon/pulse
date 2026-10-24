@@ -14,7 +14,7 @@ import {
 } from "../src/setup.js"
 import { createApp } from "../src/app.js"
 import { createTestRuntime } from "./boot-server.js"
-import { REPO_ROOT, scanSources } from "./source-scan.js"
+import { REPO_ROOT, scanSources, type ScanOptions } from "./source-scan.js"
 
 const FILE_ENGINES = [{ id: "from-file", baseUrl: "http://file.example/engine-rest" }]
 const JSON_ENGINES = [{ id: "from-json", baseUrl: "http://json.example/engine-rest" }]
@@ -487,8 +487,6 @@ describe("warnUnknownEnvVars", () => {
 describe("the server reads no PULSE_* variable", () => {
   /** A PULSE_ name on its own (IMPULSE_RATE, MY_PULSE_X and the word Pulse are no hit). */
   const PULSE_NAME = /\bPULSE_[A-Z0-9]/
-  /** The server's sources: this app and every package; another app (a CLI) owns its own names. */
-  const SERVER_SCOPE = /^(?:apps\/mcp-server-camunda7\/src\/|packages\/)/
 
   /** Every line of `text` that names a PULSE_ variable, as `file:line: text`. */
   const pulseLines = (file: string, text: string): string[] =>
@@ -498,9 +496,13 @@ describe("the server reads no PULSE_* variable", () => {
         PULSE_NAME.test(line) ? [`${file}:${index + 1}: ${line.trim()}`] : [],
       )
 
-  /** The PULSE_ lines of a server source; a file outside the server's scope gives none. */
-  const pulseRefs = (file: string, text: string): string[] =>
-    SERVER_SCOPE.test(file.split(path.sep).join("/")) ? pulseLines(file, text) : []
+  /**
+   * The PULSE_ lines of the server's sources: every package and every MCP
+   * server app (scope "mcp", per APP_SCAN). An interface app (a CLI, an editor
+   * extension) is left out: PULSE_CLI_* is its own namespace.
+   */
+  const serverPulseRefs = (options: Pick<ScanOptions, "root" | "apps"> = {}) =>
+    scanSources(pulseLines, { ...options, scope: "mcp" })
 
   afterEach(() => {
     vi.restoreAllMocks()
@@ -525,30 +527,70 @@ describe("the server reads no PULSE_* variable", () => {
   })
 
   it.each([
-    ["packages/x/src/a.ts", "const url = process.env.PULSE_URL", 1],
-    ["packages/connectors/c/c-domain/src/a.ts", 'read("PULSE_SERVER")', 1],
-    ["apps/mcp-server-camunda7/src/a.ts", 'const name = "PULSE_CLI_TOKEN"', 1],
-    ["apps/mcp-server-camunda7/src/a.ts", "// set PULSE_2 in the shell", 1],
-    ["packages/x/src/a.ts", "const rate = env.IMPULSE_RATE", 0],
-    ["packages/x/src/a.ts", "const MY_PULSE_X = 1", 0],
-    ["packages/x/src/a.ts", 'const id = "pulse_server"', 0],
-    ["packages/x/src/a.ts", 'const label = "Pulse"', 0],
-    ["packages/x/src/a.ts", 'const prefix = "PULSE_"', 0],
-    // Another app is out of the server's scope: the CLI and the extension name their own.
-    ["apps/cli/src/env.ts", "const url = process.env.PULSE_CLI_URL", 0],
-    ["apps/vscode/src/env.ts", "const url = process.env.PULSE_CLI_URL", 0],
-  ] as const)("%s: %s gives %i hit(s)", (file, line, count) => {
-    expect(pulseRefs(file, `const a = 1\n${line}\n`)).toHaveLength(count)
+    ["const url = process.env.PULSE_URL", 1],
+    ['read("PULSE_SERVER")', 1],
+    ['const name = "PULSE_CLI_TOKEN"', 1],
+    ["// set PULSE_2 in the shell", 1],
+    ["const rate = env.IMPULSE_RATE", 0],
+    ["const MY_PULSE_X = 1", 0],
+    ['const id = "pulse_server"', 0],
+    ['const label = "Pulse"', 0],
+    ['const prefix = "PULSE_"', 0],
+  ] as const)("%s gives %i hit(s)", (line, count) => {
+    expect(pulseLines("packages/x/src/a.ts", `const a = 1\n${line}\n`)).toHaveLength(count)
   })
 
   it("names the file and the line of a hit", () => {
-    expect(pulseRefs("packages/x/src/a.ts", "const a = 1\n  env.PULSE_URL \n")).toEqual([
+    expect(pulseLines("packages/x/src/a.ts", "const a = 1\n  env.PULSE_URL \n")).toEqual([
       "packages/x/src/a.ts:2: env.PULSE_URL",
     ])
   })
 
-  it("no server source names one (this app and every package)", () => {
-    expect(scanSources(pulseRefs)).toEqual([])
+  describe("over a tree with a second MCP server app, a CLI and an extension", () => {
+    let root: string | undefined
+
+    afterEach(() => {
+      if (root) fs.rmSync(root, { recursive: true, force: true })
+      root = undefined
+    })
+
+    it("reads every package and every MCP server app, never an interface app", () => {
+      root = fs.mkdtempSync(path.join(os.tmpdir(), "pulse-names-"))
+      const files: Record<string, string> = {
+        "apps/mcp-server-camunda7/package.json": "{}",
+        "apps/mcp-server-camunda7/src/a.ts": 'const name = "PULSE_CLI_TOKEN"',
+        "apps/mcp-server-flowable/package.json": "{}",
+        "apps/mcp-server-flowable/src/env.ts": "export const url = process.env.PULSE_URL",
+        "apps/cli/package.json": "{}",
+        "apps/cli/src/env.ts": "const url = process.env.PULSE_CLI_URL",
+        "apps/vscode/package.json": JSON.stringify({ engines: { vscode: "^1.101.0" } }),
+        "apps/vscode/src/env.ts": "const url = process.env.PULSE_CLI_URL",
+        "packages/core/x/src/a.ts": "const rate = env.IMPULSE_RATE",
+        "packages/connectors/c/c-domain/src/a.ts": 'read("PULSE_SERVER")',
+      }
+      for (const [rel, text] of Object.entries(files)) {
+        fs.mkdirSync(path.dirname(path.join(root, rel)), { recursive: true })
+        fs.writeFileSync(path.join(root, rel), text)
+      }
+      const refs = serverPulseRefs({
+        root,
+        apps: {
+          "mcp-server-camunda7": "mcp-host",
+          "mcp-server-flowable": "mcp-host",
+          cli: "interface",
+          vscode: "interface",
+        },
+      })
+      expect(refs.sort()).toEqual([
+        'apps/mcp-server-camunda7/src/a.ts:1: const name = "PULSE_CLI_TOKEN"',
+        "apps/mcp-server-flowable/src/env.ts:1: export const url = process.env.PULSE_URL",
+        'packages/connectors/c/c-domain/src/a.ts:1: read("PULSE_SERVER")',
+      ])
+    })
+  })
+
+  it("no server source names one (every MCP server app and every package)", () => {
+    expect(serverPulseRefs()).toEqual([])
   })
 
   it.each([".env.example", "templates/composed-server/.env.example"])("%s names none", (file) => {

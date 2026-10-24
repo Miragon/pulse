@@ -12,6 +12,10 @@ import { dirname, isAbsolute, join, relative, sep } from "node:path"
  * `$kommentar` are fine) and sanctions a stylesheet only when it lies inside
  * the manifest's own folder and matches its sha256 byte for byte. A manifest
  * sanctions nothing by being there: the caller names the manifests it trusts.
+ * A sanctioned stylesheet keeps every palette value it declares in a top-level
+ * `:root`, and once any stylesheet of a manifest declares a `--cd-*` at all,
+ * those stylesheets' top-level `:root` blocks together declare EVERY token of
+ * the palette: a copy that drops one forks the palette by omission.
  *
  * Every rule fails closed: a sanctioned manifest that is missing, malformed,
  * lists a path outside the repo, a missing or edited file, or sits next to a
@@ -53,7 +57,11 @@ export interface VendoredTokenOptions {
   manifests: readonly string[]
   /** Repo-relative folders whose `.css` files must not declare a `--cd-*` of their own. */
   scanRoots: readonly string[]
-  /** The toolkit copy's top-level `:root` tokens (`rootTokens`): a sanctioned copy keeps each value. */
+  /**
+   * The toolkit copy's top-level `:root` tokens (`rootTokens`): a sanctioned
+   * copy keeps each value, and a manifest whose copies declare tokens declares
+   * all of them.
+   */
   palette: ReadonlyMap<string, string>
 }
 
@@ -181,6 +189,8 @@ export function vendoredTokenFindings({
 }: VendoredTokenOptions): string[] {
   const findings: string[] = []
   const sanctioned = new Set<string>()
+  /** The files each manifest sanctions. */
+  const sanctionedBy = new Map<string, string[]>()
 
   for (const manifest of manifests) {
     const data = readManifest(root, manifest)
@@ -211,7 +221,10 @@ export function vendoredTokenFindings({
       }
       // A manifest sanctions tokens only inside its own folder (the docs kit
       // also lists its logos under docs/public/logo/: pinned, not sanctioned).
-      if (relative(folder, file).split(sep)[0] !== "..") sanctioned.add(file)
+      if (relative(folder, file).split(sep)[0] !== "..") {
+        sanctioned.add(file)
+        sanctionedBy.set(manifest, [...(sanctionedBy.get(manifest) ?? []), file])
+      }
     }
     for (const file of filesUnder(folder)) {
       if (!listed.has(file)) {
@@ -239,15 +252,27 @@ export function vendoredTokenFindings({
     }
   }
 
-  for (const file of sanctioned) {
-    if (!file.endsWith(".css")) continue
-    for (const [name, value] of rootTokens(readFileSync(file, "utf8"))) {
-      const expected = palette.get(name)
-      if (expected !== undefined && expected !== value) {
-        findings.push(
-          `${posix(relative(root, file))}: ${name} is ${value}, the toolkit's copy says ${expected}: vendor both from the same CI release (a toolkit bump or a re-vendor), never change a value in the repo`,
-        )
+  for (const [manifest, files] of sanctionedBy) {
+    const declared = new Set<string>()
+    let declaresTokens = false
+    for (const file of files.filter((name) => name.endsWith(".css"))) {
+      const css = readFileSync(file, "utf8")
+      declaresTokens ||= CD_DECLARATION.test(rulesOf(css))
+      for (const [name, value] of rootTokens(css)) {
+        declared.add(name)
+        const expected = palette.get(name)
+        if (expected !== undefined && expected !== value) {
+          findings.push(
+            `${posix(relative(root, file))}: ${name} is ${value}, the toolkit's copy says ${expected}: vendor both from the same CI release (a toolkit bump or a re-vendor), never change a value in the repo`,
+          )
+        }
       }
+    }
+    const missing = [...palette.keys()].filter((name) => !declared.has(name))
+    if (declaresTokens && missing.length > 0) {
+      findings.push(
+        `${manifest}: its vendored stylesheets declare --cd-* tokens, but no top-level :root among them declares ${missing.join(", ")}, which the toolkit's copy does: a copy without a palette token forks the palette by omission, so vendor the CI token file whole (a toolkit bump or a re-vendor), never trim it`,
+      )
     }
   }
 

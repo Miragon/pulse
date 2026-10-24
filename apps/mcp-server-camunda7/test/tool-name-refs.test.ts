@@ -1,3 +1,6 @@
+import fs from "node:fs"
+import os from "node:os"
+import path from "node:path"
 import ts from "typescript"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 import { bootServer, listToolNames, type BootedServer } from "./boot-server.js"
@@ -6,8 +9,9 @@ import {
   collectTextHelpers,
   findParamRefs,
   type ParamRef,
+  type TextHelpers,
 } from "./prompt-param-refs.js"
-import { scanSources } from "./source-scan.js"
+import { scanSources, type ScanOptions } from "./source-scan.js"
 
 /**
  * Raw tool-name references vs the composed tool surface (#322 N187).
@@ -54,6 +58,33 @@ function findToolNameLiterals(
   return refs
 }
 
+/**
+ * The parameters the sources quote for a tool, over every app (an interface
+ * app such as a CLI or an editor extension included) and every package.
+ * One-line text helpers (`engineArg`) resolve by name over the packages and
+ * the MCP server apps only (scope "mcp"); a name declared twice there is
+ * ambiguous and stays a placeholder. An interface app resolves no helper: a
+ * call it makes reads as OPAQUE_ARGUMENT and fails loudly, and a CLI helper
+ * that shares a server helper's name cannot turn a server prompt's check
+ * opaque either.
+ */
+function collectParamRefs(
+  prefixes: readonly string[],
+  options: Pick<ScanOptions, "root" | "apps"> = {},
+): ParamRef[] {
+  const helperDecls = scanSources(collectTextHelpers, { ...options, scope: "mcp" })
+  const helperNames = helperDecls.map(([name]) => name)
+  const helpers = new Map(
+    helperDecls.filter(([name]) => helperNames.indexOf(name) === helperNames.lastIndexOf(name)),
+  )
+  const none: TextHelpers = new Map()
+  return scanSources(
+    (file, text, owner) =>
+      findParamRefs(file, text, prefixes, owner === "interface" ? none : helpers),
+    options,
+  )
+}
+
 describe("raw tool-name literals name real tools (full surface)", () => {
   let server: BootedServer
   let tools: Set<string>
@@ -83,19 +114,7 @@ describe("raw tool-name literals name real tools (full surface)", () => {
     // Every app is read for the literals, an interface app (a CLI, an editor
     // extension) included: where it names a tool, that tool must exist.
     refs = scanSources((file, text) => findToolNameLiterals(file, text, prefixes))
-    // One-line text helpers (`engineArg`) resolve by name across the sources;
-    // a name declared twice is ambiguous and stays a placeholder. The helpers
-    // and the parameters quoted with them are read over the packages and the
-    // MCP server apps only (scope "mcp"), so a CLI helper that happens to share
-    // a server helper's name cannot turn a server prompt's check opaque.
-    const helperDecls = scanSources(collectTextHelpers, { scope: "mcp" })
-    const helperNames = helperDecls.map(([name]) => name)
-    const helpers = new Map(
-      helperDecls.filter(([name]) => helperNames.indexOf(name) === helperNames.lastIndexOf(name)),
-    )
-    paramRefs = scanSources((file, text) => findParamRefs(file, text, prefixes, helpers), {
-      scope: "mcp",
-    })
+    paramRefs = collectParamRefs(prefixes)
   })
 
   afterAll(async () => {
@@ -160,6 +179,47 @@ describe("raw tool-name literals name real tools (full surface)", () => {
         "camunda7_list_jobs.activityId",
       ]),
     )
+  })
+})
+
+describe("collectParamRefs over an interface app", () => {
+  let root: string | undefined
+
+  afterAll(() => {
+    if (root) fs.rmSync(root, { recursive: true, force: true })
+  })
+
+  it("reads the parameters an interface app quotes, and resolves no MCP helper for it", () => {
+    root = fs.mkdtempSync(path.join(os.tmpdir(), "param-refs-"))
+    const files: Record<string, string> = {
+      "apps/server/package.json": "{}",
+      "apps/server/src/prompt.ts": [
+        'export function engineArg(id: string) { return id ? `engine: "${id}", ` : "" }',
+        "export const p = `camunda7_y({${engineArg(id)}incidentId: 1})`",
+      ].join("\n"),
+      "apps/cli/package.json": "{}",
+      "apps/cli/src/help.ts": [
+        'export const hint = "Ask Claude to run camunda7_list_jobs(bogusParam=1) for this"',
+        "export const p = `camunda7_y({${engineArg(id)}incidentId: 1})`",
+      ].join("\n"),
+      "packages/core/shell/src/x.ts": 'export const q = "camunda7_z(activityId=1)"',
+      "packages/connectors/camunda/camunda7-domain/src/y.ts": "export const r = 1",
+    }
+    for (const [rel, text] of Object.entries(files)) {
+      fs.mkdirSync(path.dirname(path.join(root, rel)), { recursive: true })
+      fs.writeFileSync(path.join(root, rel), text)
+    }
+    const refs = collectParamRefs(["camunda7"], {
+      root,
+      apps: { server: "mcp-host", cli: "interface" },
+    }).map((ref) => `${ref.tool}.${ref.param} @ ${ref.at}`)
+    expect(refs.sort()).toEqual([
+      "camunda7_list_jobs.bogusParam @ apps/cli/src/help.ts:1",
+      `camunda7_y.${OPAQUE_ARGUMENT} @ apps/cli/src/help.ts:2`,
+      "camunda7_y.engine @ apps/server/src/prompt.ts:2",
+      "camunda7_y.incidentId @ apps/server/src/prompt.ts:2",
+      "camunda7_z.activityId @ packages/core/shell/src/x.ts:1",
+    ])
   })
 })
 

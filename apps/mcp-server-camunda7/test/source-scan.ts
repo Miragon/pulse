@@ -15,12 +15,17 @@ export const REPO_ROOT = path.resolve(import.meta.dirname, "..", "..", "..")
  *   (literals and prose) and the MCP-widget rules of CLAUDE.md invariant 6
  *   (the hand-off primitive, model contexts) with their name resolution.
  * - "interface": a CLI or an editor extension. Only the tool-name checks read
- *   it: where it names an MCP tool, that tool must exist. The widget rules and
- *   the corpora they resolve helper names in stay with the packages and the MCP
- *   server apps, so a CLI helper that shares a name with a server helper cannot
- *   turn a server prompt check opaque.
+ *   it: a tool-name literal must name a registered tool, a parameter quoted
+ *   for a tool must be one that tool takes, and prose must not send the model
+ *   to an app-only feed. The widget rules and the corpus the helper names
+ *   resolve in stay with the packages and the MCP server apps, so a CLI helper
+ *   that shares a name with a server helper cannot turn a server prompt check
+ *   opaque.
  */
 export type AppScan = "mcp-host" | "interface"
+
+/** What a scanned file belongs to: a package, or an app as APP_SCAN classifies it. */
+export type SourceOwner = "package" | AppScan
 
 /** Which source guards read: everything ("all") or the MCP surface only ("mcp"). */
 export type ScanScope = "all" | "mcp"
@@ -65,12 +70,17 @@ function declaresVsCodeEngine(dir: string): boolean {
 }
 
 /**
- * The apps the scope reads, after checking the classification against the
- * apps/ directory in both directions. It throws on an unclassified app, on an
- * entry naming no app, on a classified app without src/ (its sources would be
- * read by no guard) and on a VS Code extension classified as an MCP server.
+ * The apps the scope reads, as [dir, classification], after checking the
+ * classification against the apps/ directory in both directions. It throws on
+ * an unclassified app, on an entry naming no app, on a classified app without
+ * src/ (its sources would be read by no guard) and on a VS Code extension
+ * classified as an MCP server.
  */
-function scannedApps(root: string, apps: Readonly<Record<string, AppScan>>, scope: ScanScope) {
+function scannedApps(
+  root: string,
+  apps: Readonly<Record<string, AppScan>>,
+  scope: ScanScope,
+): Array<[string, AppScan]> {
   const appsDir = path.join(root, "apps")
   const found = childDirs(appsDir)
     .filter(isApp)
@@ -103,23 +113,26 @@ function scannedApps(root: string, apps: Readonly<Record<string, AppScan>>, scop
           `as "mcp-host": an extension is no MCP server, classify it as "interface".`,
       )
     }
-    return scope === "all" || scan === "mcp-host" ? [dir] : []
+    return scope === "all" || scan === "mcp-host" ? [[dir, scan]] : []
   })
 }
 
 /**
- * Source roots: apps/<app>/src for the apps the scope reads,
+ * Source roots with their owner: apps/<app>/src for the apps the scope reads,
  * packages/core/<pkg>/src, packages/connectors/<family>/<pkg>/src.
  */
 function sourceRoots(root: string, apps: Readonly<Record<string, AppScan>>, scope: ScanScope) {
   const packages = path.join(root, "packages")
-  return [
-    ...scannedApps(root, apps, scope),
+  const packageDirs = [
     ...childDirs(path.join(packages, "core")),
     ...childDirs(path.join(packages, "connectors")).flatMap(childDirs),
   ]
-    .map((pkg) => path.join(pkg, "src"))
-    .filter((src) => fs.existsSync(src))
+  return [
+    ...scannedApps(root, apps, scope),
+    ...packageDirs.map((dir): [string, SourceOwner] => [dir, "package"]),
+  ]
+    .map(([dir, owner]) => ({ src: path.join(dir, "src"), owner }))
+    .filter(({ src }) => fs.existsSync(src))
 }
 
 /**
@@ -133,16 +146,19 @@ const isScannedSource = (rel: string) =>
   !rel.endsWith(".test-support.ts") &&
   !rel.split(path.sep).includes("generated")
 
-/** Runs `scan` over every scanned source file (repo-relative path, text) in the scope. */
+/**
+ * Runs `scan` over every scanned source file in the scope: its repo-relative
+ * path, its text and what it belongs to (a package, or an app's APP_SCAN class).
+ */
 export function scanSources<T>(
-  scan: (file: string, text: string) => T[],
+  scan: (file: string, text: string, owner: SourceOwner) => T[],
   { scope = "all", root = REPO_ROOT, apps = APP_SCAN }: ScanOptions = {},
 ): T[] {
-  return sourceRoots(root, apps, scope).flatMap((src) =>
+  return sourceRoots(root, apps, scope).flatMap(({ src, owner }) =>
     fs
       .readdirSync(src, { recursive: true, encoding: "utf8" })
       .map((rel) => path.relative(root, path.join(src, rel)))
       .filter(isScannedSource)
-      .flatMap((file) => scan(file, fs.readFileSync(path.join(root, file), "utf8"))),
+      .flatMap((file) => scan(file, fs.readFileSync(path.join(root, file), "utf8"), owner)),
   )
 }

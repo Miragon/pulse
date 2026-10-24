@@ -304,7 +304,65 @@ describe("vendoredTokenFindings: the palette rule", () => {
     })
     expect(findings(["app/theme/manifest.json"])).toEqual([
       "app/theme/cd-tokens.generated.css: --cd-blau is #1D1D1D, the toolkit's copy says #335DE5: vendor both from the same CI release (a toolkit bump or a re-vendor), never change a value in the repo",
+      // --cd-gruen sits in the dark scope only: no top-level :root declares it.
+      "app/theme/manifest.json: its vendored stylesheets declare --cd-* tokens, but no top-level :root among them declares --cd-gruen, which the toolkit's copy does: a copy without a palette token forks the palette by omission, so vendor the CI token file whole (a toolkit bump or a re-vendor), never trim it",
     ])
+  })
+
+  it("a copy that drops a palette token fails, however many other tokens it declares", () => {
+    const partial = ":root {\n  --cd-blau: #335DE5;\n  --cd-ui-grund: #FFFFFF;\n}\n"
+    write({
+      "app/theme/cd-tokens.generated.css": partial,
+      "app/theme/manifest.json": manifestOf({ "app/theme/cd-tokens.generated.css": partial }),
+    })
+    expect(findings(["app/theme/manifest.json"])).toEqual([
+      expect.stringMatching(
+        /^app\/theme\/manifest\.json: .*no top-level :root among them declares --cd-gruen, which/,
+      ),
+    ])
+    // A token declared only outside a top-level :root (a media query) is no palette token.
+    const scoped = `${partial}@media screen {\n  :root { --cd-gruen: #00E676; }\n}\n`
+    write({
+      "app/theme/cd-tokens.generated.css": scoped,
+      "app/theme/manifest.json": manifestOf({ "app/theme/cd-tokens.generated.css": scoped }),
+    })
+    expect(findings(["app/theme/manifest.json"])).toEqual([
+      expect.stringMatching(/declares --cd-gruen, which the toolkit's copy does/),
+    ])
+  })
+
+  it("the palette may be split across the stylesheets of one manifest, never across two", () => {
+    const blau = ":root { --cd-blau: #335DE5; }\n"
+    const gruen = ":root { --cd-gruen: #00E676; }\n"
+    write({
+      "app/a/blau.css": blau,
+      "app/a/gruen.css": gruen,
+      "app/a/manifest.json": manifestOf({ "app/a/blau.css": blau, "app/a/gruen.css": gruen }),
+      "app/b/blau.css": blau,
+      "app/b/manifest.json": manifestOf({ "app/b/blau.css": blau }),
+      "app/c/gruen.css": gruen,
+      "app/c/manifest.json": manifestOf({ "app/c/gruen.css": gruen }),
+    })
+    expect(findings(["app/a/manifest.json"], ["app/a"])).toEqual([])
+    expect(findings(["app/b/manifest.json", "app/c/manifest.json"], ["app/b", "app/c"])).toEqual([
+      expect.stringMatching(/^app\/b\/manifest\.json: .*declares --cd-gruen, which/),
+      expect.stringMatching(/^app\/c\/manifest\.json: .*declares --cd-blau, which/),
+    ])
+  })
+
+  it("a manifest that vendors no stylesheet with tokens is held to no palette", () => {
+    const theme = ".vp-doc a { color: var(--cd-blau-link); }\n"
+    write({
+      "app/kit/check.mjs": "export {}\n",
+      "app/kit/theme.css": theme,
+      "app/kit/manifest.json": manifestOf({
+        "app/kit/check.mjs": "export {}\n",
+        "app/kit/theme.css": theme,
+      }),
+      "app/logos/manifest.json": manifestOf({ "app/logos/mark.svg": "<svg/>" }),
+      "app/logos/mark.svg": "<svg/>",
+    })
+    expect(findings(["app/kit/manifest.json", "app/logos/manifest.json"])).toEqual([])
   })
 
   it("a sanctioned copy outside the scan roots is still held to the palette", () => {
@@ -315,6 +373,7 @@ describe("vendoredTokenFindings: the palette rule", () => {
     })
     expect(findings(["vendor/theme/manifest.json"])).toEqual([
       expect.stringMatching(/^vendor\/theme\/cd-tokens\.generated\.css: --cd-blau is #1D1D1D/),
+      expect.stringMatching(/^vendor\/theme\/manifest\.json: .*declares --cd-gruen, which/),
     ])
   })
 })

@@ -161,8 +161,9 @@ describe("view stylesheets: role variables over the Miragon theme", () => {
  * copy: `theme.css` imports it. Besides it a `--cd-*` is declared only in a
  * vendored copy that a manifest in SANCTIONED_TOKEN_MANIFESTS lists: inside
  * that manifest's folder, byte-equal to the manifest's sha256, nothing else in
- * the folder, and every top-level `:root` value the toolkit's copy also
- * declares kept as the toolkit has it (`vendored-tokens.ts`). Today that is
+ * the folder, and, once the manifest's stylesheets declare a `--cd-*` at all,
+ * their top-level `:root` blocks together declaring every token of the
+ * toolkit's copy with the toolkit's value (`vendored-tokens.ts`). Today that is
  * the Miragon docs kit (`docs/.vitepress/miragon/`, vendored from
  * Miragon/corporate-identity, skill docs-site): its token file, theme and
  * logos are pinned by the kit's own manifest, which `check.mjs` verifies as
@@ -196,7 +197,8 @@ describe("Miragon tokens: vendored copies listed by manifest", () => {
     const repo = fileURLToPath(new URL("../../../", import.meta.url))
     const palette = rootTokens(toolkitTokens)
     // The palette rule is not blind: the toolkit's copy yields its palette, and
-    // the docs kit's copy declares every token of it, so each value is compared.
+    // the docs kit's copy declares every token of it (vendoredTokenFindings
+    // requires that too), so each value is compared.
     expect(palette.get("--cd-blau")).toMatch(/^#[0-9A-Fa-f]{6}$/)
     const kitTokens = rootTokens(
       readFileSync(join(repo, DOCS_KIT, "theme", "cd-tokens.generated.css"), "utf8"),
