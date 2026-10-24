@@ -71,25 +71,32 @@ jobs:
       dry_run: ${{ inputs.dry_run == true }}
       version: ${{ needs.release-please.outputs.tag_name }}
 
+  # A dry run packs every package for real; the called publish job skips itself then.
   publish-npm:
-    name: Publish ${{ matrix.package }} to npm
+    name: Publish ${{ matrix.directory }} to npm
     needs: [release-please, gate]
-    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    if: ${{ needs.release-please.outputs.release_created == 'true' || inputs.dry_run == true }}
+    # The ceiling for the called jobs: its pack job narrows itself to contents: read, its
+    # publish job to id-token: write.
     permissions:
       contents: read
       id-token: write
     strategy:
       fail-fast: false
+      # Exactly the workspace packages npm receives (not private, no VS Code extension), each
+      # a repo-relative directory: pinned by scripts/check-github-config.mjs.
       matrix:
-        package:
-          - connectors/camunda/camunda7-client
-          - connectors/analytics/analytics-client
-          - core/widget-shell
-          - connectors/camunda/camunda7-connector
-          - connectors/analytics/analytics-connector
+        directory:
+          - packages/connectors/camunda/camunda7-client
+          - packages/connectors/analytics/analytics-client
+          - packages/core/widget-shell
+          - packages/connectors/camunda/camunda7-connector
+          - packages/connectors/analytics/analytics-connector
     uses: ./.github/workflows/publish-npm-package.yml
     with:
-      package: ${{ matrix.package }}
+      directory: ${{ matrix.directory }}
+      version: ${{ needs.release-please.outputs.tag_name }}
+      dry_run: ${{ inputs.dry_run == true }}
 
   # After (not alongside) publish-npm: the mirror commits the release's pins
   # plus a lockfile resolved from the public registry, so syncing before the
