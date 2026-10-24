@@ -30,6 +30,7 @@ import {
   checkArtifactGlobs,
   checkDependabot,
   checkNightlyMutation,
+  checkPlaywrightPins,
   checkPublishMatrix,
   checkPublishWorkflow,
   checkReleaseExtraFiles,
@@ -1546,6 +1547,55 @@ const uploadNamed = (doc, name) =>
         step.uses?.startsWith("actions/upload-artifact@") &&
         String(step.with?.name).startsWith(name),
     )
+
+describe("checkPlaywrightPins", () => {
+  const SERVER = "apps/mcp-server-camunda7"
+  const pinned = (dir, field, name, version) => ({
+    dir,
+    manifest: { name: dir, [field]: { [name]: version } },
+  })
+
+  it("holds the extension's playwright and the server app's @playwright/test at one version", () => {
+    const pins = readWorkspace(ROOT).flatMap(({ dir, manifest }) =>
+      ["playwright", "@playwright/test"]
+        .map((name) => manifest.devDependencies?.[name])
+        .filter(Boolean)
+        .map((version) => `${dir} ${version}`),
+    )
+    assert.equal(pins.length, 2, pins.join(", "))
+    assert.deepEqual(checkPlaywrightPins(readWorkspace(ROOT)), [])
+  })
+
+  it("passes one version, a single pin and none", () => {
+    const same = [
+      pinned("apps/vscode", "devDependencies", "playwright", "1.64.1"),
+      pinned(SERVER, "devDependencies", "@playwright/test", "1.64.1"),
+    ]
+    assert.deepEqual(checkPlaywrightPins(same), [])
+    assert.deepEqual(checkPlaywrightPins(same.slice(0, 1)), [])
+    assert.deepEqual(checkPlaywrightPins([{ dir: "docs", manifest: { name: "docs" } }]), [])
+  })
+
+  it("fails two versions and names every pin", () => {
+    const errors = checkPlaywrightPins([
+      pinned("apps/vscode", "devDependencies", "playwright", "1.63.0"),
+      pinned(SERVER, "devDependencies", "@playwright/test", "1.64.1"),
+    ])
+    assert.equal(errors.length, 1)
+    assert.match(
+      errors[0],
+      /apps\/vscode playwright 1\.63\.0, apps\/mcp-server-camunda7 @playwright\/test 1\.64\.1\): ci\.yml keys one browser cache/,
+    )
+  })
+
+  it("reads runtime dependencies too", () => {
+    const errors = checkPlaywrightPins([
+      pinned("apps/vscode", "dependencies", "playwright", "1.63.0"),
+      pinned(SERVER, "devDependencies", "@playwright/test", "1.64.1"),
+    ])
+    assert.equal(errors.length, 1)
+  })
+})
 
 describe("checkArtifactGlobs", () => {
   it("accepts the real workflows", () => {

@@ -31,8 +31,9 @@ jobs:
 
       # The extension's webview suites run in Chromium (vitest browser mode, apps/vscode), so
       # `pnpm test` needs Playwright's headless shell. Cached like host-sim's: keyed on the exact
-      # playwright pin of apps/vscode, which equals the server app's @playwright/test pin, so both
-      # jobs share one entry. System libraries are not cacheable and are installed on every run.
+      # playwright pin of apps/vscode, which equals the server app's @playwright/test pin
+      # (lint:github holds every Playwright pin at one version), so both jobs share one entry.
+      # System libraries are not cacheable and are installed on every run.
       - id: playwright
         run: echo "version=$(node -p "require('./apps/vscode/package.json').devDependencies.playwright")" >> "$GITHUB_OUTPUT"
 

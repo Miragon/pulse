@@ -23,6 +23,9 @@
  *   (checkDependabot);
  * - every check the main-branch ruleset requires is a job a pull request runs
  *   (checkRequiredChecks);
+ * - every workspace package pins Playwright (`playwright`, `@playwright/test`) at one version:
+ *   ci.yml keys the browser cache of the TypeScript job and of the host simulation on those
+ *   pins, so the two share one entry and one browser build (checkPlaywrightPins);
  * - the coverage and mutation artifacts cover every package form and unpack at the repo root,
  *   the diff gate stays within its timeout, and the nightly full run lists every package form,
  *   forces a run every week and caches each package's incremental file under a fingerprinted
@@ -1206,6 +1209,34 @@ export function checkStrykerIncremental(configs) {
   return errors
 }
 
+// ── Playwright pins ─────────────────────────────────────────────────────────
+
+/** The packages that pin a Playwright version, each decides the browser build its job installs. */
+export const PLAYWRIGHT_PACKAGES = ["playwright", "@playwright/test"]
+
+/**
+ * Every Playwright pin of the workspace is one version (pure). ci.yml keys the browser cache of
+ * the TypeScript job on apps/vscode's `playwright` and the host simulation's on the server app's
+ * `@playwright/test`; two versions would mean two keys, two browser downloads and a job that
+ * never hits the shared entry.
+ */
+export function checkPlaywrightPins(packages) {
+  const pins = packages.flatMap(({ dir, manifest }) =>
+    PLAYWRIGHT_PACKAGES.flatMap((name) =>
+      ["dependencies", "devDependencies"]
+        .map((field) => manifest?.[field]?.[name])
+        .filter((version) => version !== undefined)
+        .map((version) => ({ dir, name, version })),
+    ),
+  )
+  if (new Set(pins.map(({ version }) => version)).size <= 1) return []
+  const listed = pins.map(({ dir, name, version }) => `${dir} ${name} ${version}`).join(", ")
+  return [
+    `Playwright is pinned at more than one version (${listed}): ci.yml keys one browser cache ` +
+      `on these pins, so bump them together to one version`,
+  ]
+}
+
 // ── Main ────────────────────────────────────────────────────────────────────
 
 /** A JSON object file, or undefined when it holds no JSON object (reported, not thrown). */
@@ -1252,6 +1283,7 @@ export function checkRepo(root) {
     ),
     ...checkDependabot(readYaml(root, ".github/dependabot.yml"), { packages, dirExists: exists }),
     ...checkRequiredChecks(workflows),
+    ...checkPlaywrightPins(packages),
     ...checkArtifactGlobs(workflows.get(CI_WORKFLOW), workflows.get(NIGHTLY_WORKFLOW), globs),
     ...checkNightlyMutation(workflows.get(NIGHTLY_WORKFLOW), globs),
     ...checkStrykerIncremental(strykerConfigs),
@@ -1274,6 +1306,7 @@ if (isMain) {
   console.log(
     "GitHub config: publish workflow, npm matrix and repositories, release extra-files, the " +
       `extension's release path, Dependabot groups, ${REQUIRED_CHECKS.length} required checks, ` +
-      "the report artifacts, the nightly mutation run and the Stryker incremental files hold.",
+      "the Playwright pins, the report artifacts, the nightly mutation run and the Stryker " +
+      "incremental files hold.",
   )
 }
