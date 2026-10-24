@@ -376,7 +376,7 @@ describe("config unset with OAuth settings", () => {
       files: { [CONFIG_PATH]: oauthProfiles() },
     })
     expect(errorOf(unknown.stderr).hint).toBe(
-      "Valid keys: url, cockpitUrl, engine, platform, auth, output, timeout, headers, readOnly; OAuth settings: issuer, endpoints, clientId, clientSecret, scopes, audience, redirectPort; bearer token: token, tokenEnv.",
+      "Valid keys: url, cockpitUrl, engine, flavor, auth, output, timeout, headers, readOnly; OAuth settings: issuer, endpoints, clientId, clientSecret, scopes, audience, redirectPort; bearer token: token, tokenEnv.",
     )
   })
 })

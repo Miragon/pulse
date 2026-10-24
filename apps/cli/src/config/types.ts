@@ -3,10 +3,10 @@
 export const OUTPUT_FORMATS = ["json", "table"] as const
 export type OutputFormat = (typeof OUTPUT_FORMATS)[number]
 
-/** The engines pulse-cli has an adapter for (`platform`); without one it uses `camunda7`. */
-export const PLATFORMS = ["operaton", "cibseven", "camunda7"] as const
-export type Platform = (typeof PLATFORMS)[number]
-export const DEFAULT_PLATFORM: Platform = "camunda7"
+/** The engine vendors pulse-cli has an adapter for (`flavor`); without one it uses `camunda7`. */
+export const FLAVORS = ["operaton", "cibseven", "camunda7"] as const
+export type Flavor = (typeof FLAVORS)[number]
+export const DEFAULT_FLAVOR: Flavor = "camunda7"
 
 export const AUTH_TYPES = ["none", "basic", "oauth", "bearer"] as const
 export type AuthType = (typeof AUTH_TYPES)[number]
@@ -209,7 +209,7 @@ export interface Profile {
   readonly url?: string
   readonly cockpitUrl?: string
   readonly engine?: string
-  readonly platform?: Platform
+  readonly flavor?: Flavor
   readonly auth?: ProfileAuth
   readonly output?: OutputFormat
   readonly timeout?: number
@@ -222,7 +222,7 @@ export const PROFILE_KEYS = [
   "url",
   "cockpitUrl",
   "engine",
-  "platform",
+  "flavor",
   "auth",
   "output",
   "timeout",
@@ -290,7 +290,7 @@ export interface LoadedConfig extends ConfigFile {
 export interface ConfigFlags {
   readonly url?: string
   readonly engine?: string
-  readonly platform?: string
+  readonly flavor?: string
   readonly profile?: string
   readonly output?: string
   readonly timeout?: string
@@ -312,7 +312,7 @@ export interface ResolvedConfig {
   readonly profile?: string
   readonly url: string
   readonly engine?: string
-  readonly platform: Platform
+  readonly flavor: Flavor
   /** `sources.auth` is where the auth type came from; credentials carry their own sources. */
   readonly auth: AuthConfig
   /** Undefined means: choose by terminal (table on a TTY, JSON otherwise). */
@@ -329,7 +329,7 @@ export interface ResolvedConfig {
 }
 
 type ResolvedKey =
-  "url" | "engine" | "platform" | "auth" | "output" | "timeout" | "headers" | "readOnly"
+  "url" | "engine" | "flavor" | "auth" | "output" | "timeout" | "headers" | "readOnly"
 
 export const DEFAULT_URL = "http://localhost:8080/engine-rest"
 export const DEFAULT_TIMEOUT_MS = 30_000
@@ -337,7 +337,7 @@ export const DEFAULT_TIMEOUT_MS = 30_000
 export const ENV = {
   url: "PULSE_CLI_URL",
   engine: "PULSE_CLI_ENGINE",
-  platform: "PULSE_CLI_PLATFORM",
+  flavor: "PULSE_CLI_FLAVOR",
   profile: "PULSE_CLI_PROFILE",
   config: "PULSE_CLI_CONFIG",
   output: "PULSE_CLI_OUTPUT",

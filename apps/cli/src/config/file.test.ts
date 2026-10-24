@@ -219,7 +219,7 @@ describe("parseConfigFile", () => {
 
   it("rejects unknown profile keys", () => {
     expect(profileFailure({ url: "http://x", user: "demo" })).toBe(
-      `Invalid config file ${PATH}: unknown key(s) user in profile "prod" (allowed: url, cockpitUrl, engine, platform, auth, output, timeout, headers, readOnly)`,
+      `Invalid config file ${PATH}: unknown key(s) user in profile "prod" (allowed: url, cockpitUrl, engine, flavor, auth, output, timeout, headers, readOnly)`,
     )
   })
 

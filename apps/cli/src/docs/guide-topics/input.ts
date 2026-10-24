@@ -76,7 +76,7 @@ pulse-cli process-instance get-variable-binary $INSTANCE_ID contract --out-file 
 
 ## Global options
 
-They work after the command (\`pulse-cli task list -o table\`): \`--url\`, \`--engine\`, \`--platform\`,
+They work after the command (\`pulse-cli task list -o table\`): \`--url\`, \`--engine\`, \`--flavor\`,
 \`--profile\`, \`--config\`, \`-o/--output\`, \`--fields\`, \`--pretty\`, \`--dry-run\`, \`-y/--yes\`,
 \`--read-only\`, \`--timeout\`, \`-H/--header\`, \`--auth\`, \`--auth-user\`, \`--auth-password-stdin\`,
 \`--auth-token-stdin\`, \`--verbose\`, \`--out-file\`, \`--show-secrets\`. The help of every command

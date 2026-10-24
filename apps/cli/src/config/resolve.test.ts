@@ -4,12 +4,12 @@ import { file } from "../../test/support/config-resolve.js"
 import { failure } from "../../test/support/failure.js"
 import { parseEnvHeaders } from "./headers.js"
 import { MAX_TIMEOUT_MS, isEngineName, resolveConfig, validateEngine } from "./resolve.js"
-import { type ConfigFlags, PLATFORMS, type Profile } from "./types.js"
+import { type ConfigFlags, FLAVORS, type Profile } from "./types.js"
 
 const DEFAULT_SOURCES = {
   url: "default",
   engine: "default",
-  platform: "default",
+  flavor: "default",
   auth: "default",
   output: "default",
   timeout: "default",
@@ -21,7 +21,7 @@ describe("resolveConfig defaults", () => {
   it("resolves the defaults without flags, environment or file", () => {
     expect(resolveConfig({}, {}, undefined)).toEqual({
       url: "http://localhost:8080/engine-rest",
-      platform: "camunda7",
+      flavor: "camunda7",
       auth: { type: "none" },
       timeoutMs: 30000,
       headers: {},
@@ -34,14 +34,14 @@ describe("resolveConfig defaults", () => {
     const env = {
       PULSE_CLI_URL: " ",
       PULSE_CLI_ENGINE: "",
-      PULSE_CLI_PLATFORM: " ",
+      PULSE_CLI_FLAVOR: " ",
       PULSE_CLI_OUTPUT: "",
       PULSE_CLI_TIMEOUT: " ",
       PULSE_CLI_AUTH: "",
       PULSE_CLI_READ_ONLY: "",
       PULSE_CLI_PROFILE: "",
     }
-    const flags: ConfigFlags = { url: "", engine: " ", platform: "", output: "", profile: "" }
+    const flags: ConfigFlags = { url: "", engine: " ", flavor: "", output: "", profile: "" }
     expect(resolveConfig(flags, env, undefined).sources).toEqual(DEFAULT_SOURCES)
   })
 
@@ -61,7 +61,7 @@ describe("resolveConfig precedence", () => {
   const profile: Profile = {
     url: "http://profile:8080/engine-rest",
     engine: "profile-engine",
-    platform: "operaton",
+    flavor: "operaton",
     auth: { type: "none" },
     output: "table",
     timeout: 3000,
@@ -71,7 +71,7 @@ describe("resolveConfig precedence", () => {
   const env = {
     PULSE_CLI_URL: "http://env:8080/engine-rest",
     PULSE_CLI_ENGINE: "env-engine",
-    PULSE_CLI_PLATFORM: "cibseven",
+    PULSE_CLI_FLAVOR: "cibseven",
     PULSE_CLI_OUTPUT: "json",
     PULSE_CLI_TIMEOUT: "2000",
     PULSE_CLI_AUTH: "none",
@@ -80,7 +80,7 @@ describe("resolveConfig precedence", () => {
   const flags: ConfigFlags = {
     url: "http://flag:8080/engine-rest/",
     engine: "flag-engine",
-    platform: "camunda7",
+    flavor: "camunda7",
     output: "table",
     timeout: "1000",
     headers: ["X-Flag: f"],
@@ -93,7 +93,7 @@ describe("resolveConfig precedence", () => {
       profile: "p",
       url: "http://profile:8080/engine-rest",
       engine: "profile-engine",
-      platform: "operaton",
+      flavor: "operaton",
       auth: { type: "none", off: 'Basic auth is switched off by the auth.type of profile "p"' },
       output: "table",
       timeoutMs: 3000,
@@ -102,7 +102,7 @@ describe("resolveConfig precedence", () => {
       sources: {
         url: "profile",
         engine: "profile",
-        platform: "profile",
+        flavor: "profile",
         auth: "profile",
         output: "profile",
         timeout: "profile",
@@ -261,14 +261,14 @@ describe("resolveConfig precedence", () => {
     const urls = fc.constantFrom("http://a:1/engine-rest", "https://b/rest", "http://c")
     const engines = fc.stringMatching(/^[a-z][a-z0-9-]{0,8}$/)
     const outputs = fc.constantFrom("json" as const, "table" as const)
-    const platforms = fc.constantFrom(...PLATFORMS)
+    const flavors = fc.constantFrom(...FLAVORS)
     const timeouts = fc.integer({ min: 1, max: MAX_TIMEOUT_MS })
     fc.assert(
       fc.property(
         fc.record({
           url: choice(urls),
           engine: choice(engines),
-          platform: choice(platforms),
+          flavor: choice(flavors),
           output: choice(outputs),
           timeout: choice(timeouts),
           readOnly: choice(fc.boolean()),
@@ -278,7 +278,7 @@ describe("resolveConfig precedence", () => {
           const flags = {
             url: c.url[0],
             engine: c.engine[0],
-            platform: c.platform[0],
+            flavor: c.flavor[0],
             output: c.output[0],
             timeout: c.timeout[0]?.toString(),
             readOnly: c.readOnly[0],
@@ -286,7 +286,7 @@ describe("resolveConfig precedence", () => {
           const env = {
             PULSE_CLI_URL: c.url[1],
             PULSE_CLI_ENGINE: c.engine[1],
-            PULSE_CLI_PLATFORM: c.platform[1],
+            PULSE_CLI_FLAVOR: c.flavor[1],
             PULSE_CLI_OUTPUT: c.output[1],
             PULSE_CLI_TIMEOUT: c.timeout[1]?.toString(),
             PULSE_CLI_READ_ONLY: c.readOnly[1]?.toString(),
@@ -295,7 +295,7 @@ describe("resolveConfig precedence", () => {
           const profile = {
             url: c.url[2],
             engine: c.engine[2],
-            platform: c.platform[2],
+            flavor: c.flavor[2],
             output: c.output[2],
             timeout: c.timeout[2],
             readOnly: c.readOnly[2],
@@ -308,21 +308,21 @@ describe("resolveConfig precedence", () => {
           )
           const url = expected(c.url, "http://localhost:8080/engine-rest")
           const engine = expected(c.engine, undefined)
-          const platform = expected(c.platform, "camunda7")
+          const flavor = expected(c.flavor, "camunda7")
           const output = expected(c.output, undefined)
           const timeout = expected(c.timeout, 30000)
           const readOnly = expected(c.readOnly, false)
           const auth = expected([undefined, c.auth[1] || undefined, c.auth[2] || undefined], false)
           expect(resolved.url).toBe(url.value)
           expect(resolved.engine).toBe(engine.value)
-          expect(resolved.platform).toBe(platform.value)
+          expect(resolved.flavor).toBe(flavor.value)
           expect(resolved.output).toBe(output.value)
           expect(resolved.timeoutMs).toBe(timeout.value)
           expect(resolved.readOnly).toBe(readOnly.value)
           expect(resolved.sources).toEqual({
             url: url.source,
             engine: engine.source,
-            platform: platform.source,
+            flavor: flavor.source,
             auth: auth.source,
             output: output.source,
             timeout: timeout.source,

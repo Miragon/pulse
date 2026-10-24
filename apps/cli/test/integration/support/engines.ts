@@ -4,15 +4,15 @@
  */
 
 import { GenericContainer, type StartedNetwork, Wait } from "testcontainers"
-import type { Platform } from "../../../src/config/types.js"
+import type { Flavor } from "../../../src/config/types.js"
 
 export const ENGINE_NAMES = ["operaton", "cibseven", "camunda"] as const
 export type EngineName = (typeof ENGINE_NAMES)[number]
 
 export interface EngineDefinition {
   readonly name: EngineName
-  /** The engine adapter of pulse-cli (`--platform`, PULSE_CLI_PLATFORM). */
-  readonly platform: Platform
+  /** The engine adapter of pulse-cli (`--flavor`, PULSE_CLI_FLAVOR). */
+  readonly flavor: Flavor
   readonly image: string
   /** Container port of the HTTP server. */
   readonly port: number
@@ -29,7 +29,7 @@ export interface EngineDefinition {
 
 export interface RunningEngine {
   readonly name: EngineName
-  readonly platform: Platform
+  readonly flavor: Flavor
   /** REST API root, e.g. `http://localhost:32768/engine-rest`. */
   readonly url: string
   stop(): Promise<void>
@@ -48,7 +48,7 @@ export const ADMIN = { username: "demo", password: "demo" } as const
 export const ENGINES: Readonly<Record<EngineName, EngineDefinition>> = {
   operaton: {
     name: "operaton",
-    platform: "operaton",
+    flavor: "operaton",
     image: "operaton/operaton:2.1.5",
     port: 8080,
     restPath: "/engine-rest",
@@ -57,7 +57,7 @@ export const ENGINES: Readonly<Record<EngineName, EngineDefinition>> = {
   },
   cibseven: {
     name: "cibseven",
-    platform: "cibseven",
+    flavor: "cibseven",
     image: "cibseven/cibseven:run-2.2.0",
     port: 8080,
     restPath: "/engine-rest",
@@ -70,8 +70,8 @@ export const ENGINES: Readonly<Record<EngineName, EngineDefinition>> = {
   },
   camunda: {
     name: "camunda",
-    platform: "camunda7",
-    image: "camunda/camunda-bpm-platform:run-7.24.0",
+    flavor: "camunda7",
+    image: "camunda/camunda-bpm-flavor:run-7.24.0",
     port: 8080,
     restPath: "/engine-rest",
     version: "7.24.0",
@@ -138,7 +138,7 @@ export async function startEngine(
   const url = `http://${container.getHost()}:${container.getMappedPort(definition.port)}${definition.restPath}`
   return {
     name,
-    platform: definition.platform,
+    flavor: definition.flavor,
     url,
     stop: async () => {
       await container.stop()

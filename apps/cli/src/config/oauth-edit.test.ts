@@ -261,7 +261,7 @@ describe("config list and show with OAuth", () => {
       "url",
       "cockpitUrl",
       "engine",
-      "platform",
+      "flavor",
       "auth",
       "username",
       "password",

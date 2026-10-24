@@ -10,7 +10,7 @@ The short form for agents: `pulse-cli guide config`; every option:
 ## Global options
 
 These work on every API command, `api` and `ping`, after the command path
-(`pulse-cli task list -o table`): target (`--url`, `--engine`, `--platform`, `--profile`,
+(`pulse-cli task list -o table`): target (`--url`, `--engine`, `--flavor`, `--profile`,
 `--config`), output
 (`-o`, `--fields`, `--pretty`, `--out-file`, `--verbose`), guards (`--dry-run`, `--yes`,
 `--read-only`), requests (`--timeout`, `-H`) and [authentication](authentication.md). The list with
@@ -22,7 +22,7 @@ meanings and variables: `pulse-cli ping --help`.
 | ------------------------- | ------------------------------------------------------------------------------------------ |
 | `PULSE_CLI_URL`           | REST API root                                                                              |
 | `PULSE_CLI_ENGINE`        | Named process engine                                                                       |
-| `PULSE_CLI_PLATFORM`      | Engine product: `operaton`, `cibseven` or `camunda7` (default), see [Engines](#engines)    |
+| `PULSE_CLI_FLAVOR`        | Engine product: `operaton`, `cibseven` or `camunda7` (default), see [Engines](#engines)    |
 | `PULSE_CLI_PROFILE`       | Profile to use instead of the default profile                                              |
 | `PULSE_CLI_CONFIG`        | Config file location; the file must exist, and no project file is used                     |
 | `PULSE_CLI_OUTPUT`        | `json` or `table`                                                                          |
@@ -73,26 +73,26 @@ exist and is the only file read. pulse-cli validates every value and writes the 
 }
 ```
 
-- Profile keys: `url`, `cockpitUrl` (for links only, never called), `engine`, `platform`, `auth`
+- Profile keys: `url`, `cockpitUrl` (for links only, never called), `engine`, `flavor`, `auth`
   (see [Authentication](authentication.md)), `output`, `timeout`, `headers`, `readOnly`.
 - Profile names use letters, digits, `.`, `_` and `-` and start with a letter or digit.
 - URLs with credentials or a query string are rejected.
 
 ## Engines
 
-`platform` says which product runs behind the URL: `operaton`, `cibseven` or `camunda7`. It
+`flavor` says which product runs behind the URL: `operaton`, `cibseven` or `camunda7`. It
 selects the engine adapter and with it the commands, help and `describe`. Without it pulse-cli uses
 `camunda7`, which works for all three today. `engine` stays what it was: the name of a process
 engine (`/engine/{name}`).
 
 ```sh
-pulse-cli config set local --platform operaton
-PULSE_CLI_PLATFORM=cibseven pulse-cli ping
-pulse-cli ping --platform camunda7
+pulse-cli config set local --flavor operaton
+PULSE_CLI_FLAVOR=cibseven pulse-cli ping
+pulse-cli ping --flavor camunda7
 ```
 
-An unknown value is an error that lists the known engines. Versions of pulse-cli before `platform`
-existed reject a config file that contains it.
+An unknown value is an error that lists the known engines. Before the CLI moved to Pulse the key
+was called `platform`; that name is an unknown key now, and `--platform` an unknown option.
 
 ## Profiles
 

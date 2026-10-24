@@ -5,7 +5,7 @@ has its own adapter in pulse-cli, so a difference of one engine stays in one pla
 
 ## Compatibility
 
-| Engine    | `platform` | Tested in CI with                         |
+| Engine    | `flavor`   | Tested in CI with                         |
 | --------- | ---------- | ----------------------------------------- |
 | Operaton  | `operaton` | `operaton/operaton:2.1.5`                 |
 | CIB seven | `cibseven` | `cibseven/cibseven:run-2.2.0`             |
@@ -17,15 +17,15 @@ not supported: it has a different API (see the [decision](adr/002-camunda-8-is-a
 
 ## Choosing the engine
 
-Set `platform` in a profile, `PULSE_CLI_PLATFORM` or `--platform`. Without it pulse-cli uses
+Set `flavor` in a profile, `PULSE_CLI_FLAVOR` or `--flavor`. Without it pulse-cli uses
 `camunda7`, which works for all three engines today.
 
 ```sh
-pulse-cli config set local --platform operaton
-pulse-cli ping --platform cibseven
+pulse-cli config set local --flavor operaton
+pulse-cli ping --flavor cibseven
 ```
 
-`platform` is the product. `engine` is the name of a process engine on that server
+`flavor` is the product. `engine` is the name of a process engine on that server
 (`/engine/{name}`). See [Configuration](configuration.md#engines).
 
 ## Known differences
@@ -46,7 +46,7 @@ and the three generated catalogs are identical.
 
 ## Adding an engine
 
-1. Add its name to `PLATFORMS` (`apps/cli/src/config/types.ts`) and to `ENGINES`
+1. Add its name to `FLAVORS` (`apps/cli/src/config/types.ts`) and to `ENGINES`
    (`apps/cli/scripts/catalog/files.ts`).
 2. Create `apps/cli/spec/engines/<engine>.patches.json` with `[]` and run
    `pnpm --fail-if-no-match --filter @miragon/pulse-cli catalog`.

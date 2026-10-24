@@ -34,7 +34,7 @@ function config(sources: Partial<ResolvedConfig["sources"]>, profile?: string): 
   return {
     ...(profile === undefined ? {} : { profile }),
     url: "http://h/engine-rest",
-    platform: "camunda7",
+    flavor: "camunda7",
     auth: { type: "none" },
     timeoutMs: 1000,
     headers: {},
@@ -42,7 +42,7 @@ function config(sources: Partial<ResolvedConfig["sources"]>, profile?: string): 
     sources: {
       url: "default",
       engine: "default",
-      platform: "default",
+      flavor: "default",
       auth: "default",
       output: "default",
       timeout: "default",

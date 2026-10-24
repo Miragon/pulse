@@ -9,12 +9,12 @@ import { profileAuthProblem } from "./auth.js"
 import { PROFILE_NAME } from "./syntax.js"
 import { configError } from "./config-error.js"
 import { isHeaderName, isHeaderValue } from "./headers.js"
-import { MAX_TIMEOUT_MS, isEngineName, isPlatform, isTimeout } from "./resolve.js"
+import { MAX_TIMEOUT_MS, isEngineName, isFlavor, isTimeout } from "./resolve.js"
 import {
   type ConfigFile,
   ENV,
   OUTPUT_FORMATS,
-  PLATFORMS,
+  FLAVORS,
   PROFILE_KEYS,
   type Profile,
   type ProfileKey,
@@ -130,7 +130,7 @@ const PROFILE_CHECKS: Readonly<Record<Exclude<ProfileKey, "auth">, Check>> = {
     "a URL such as http://localhost:8080/operaton/app/cockpit/default/",
   ],
   engine: [isEngineName, 'a process engine name, not "." or ".."'],
-  platform: [isPlatform, `one of ${PLATFORMS.join(", ")}`],
+  flavor: [isFlavor, `one of ${FLAVORS.join(", ")}`],
   output: [
     (value) => OUTPUT_FORMATS.some((format) => format === value),
     OUTPUT_FORMATS.join(" or "),

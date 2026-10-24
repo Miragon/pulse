@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs"
 import { describe, expect, it } from "vitest"
-import { PLATFORMS } from "../../src/config/types.js"
+import { FLAVORS } from "../../src/config/types.js"
 import {
   catalogFile,
   ENGINES,
@@ -106,7 +106,7 @@ describe("files", () => {
   })
 
   it("lists the engines of the CLI", () => {
-    expect(ENGINES).toEqual(PLATFORMS)
+    expect(ENGINES).toEqual(FLAVORS)
   })
 
   it("reads the patched spec", () => {

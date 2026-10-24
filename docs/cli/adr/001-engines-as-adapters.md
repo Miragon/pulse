@@ -22,8 +22,9 @@ handled with checks of the engine name across the code base.
 divergence is either a patch in `spec/engines/<name>.patches.json`, which changes only that engine's
 catalog, or a wrapper around the port in its adapter.
 
-**The engine is chosen before anything is registered.** `platform` (profile, `PULSE_CLI_PLATFORM`,
-`--platform`, default `camunda7`) selects the adapter in `run.ts`; commands, help and `describe`
+**The engine is chosen before anything is registered.** `flavor` (profile, `PULSE_CLI_FLAVOR`,
+`--flavor`, default `camunda7`; called `platform` before the move to Pulse) selects the adapter in
+`run.ts`; commands, help and `describe`
 then come from its catalog.
 
 **The rules are checked.** dependency-cruiser fails the build when `workflow` imports an adapter or
@@ -39,8 +40,8 @@ The overview is in [Architecture](../architecture.md), the engine list in [Engin
 - Three generated catalogs are committed. They are identical while the engine patches are empty,
   and a test keeps them so. They make the package and the standalone executable about three times
   as large in catalog data.
-- Existing profiles keep working: without `platform` pulse-cli behaves as before. Older versions of
-  pulse-cli reject a config file that contains `platform`.
+- Existing profiles keep working: without `flavor` pulse-cli behaves as before. Versions without the
+  key reject a config file that contains it.
 - `src/catalog`, `src/operation` and `src/http` still hold the Camunda 7 REST code. They move into
   `src/api/camunda7-rest` step by step, not in one move.
 - No rule forbids `if (name === 'cibseven')` outside `src/engines/<name>`. Review does.

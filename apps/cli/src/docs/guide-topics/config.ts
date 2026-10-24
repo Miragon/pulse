@@ -61,7 +61,7 @@ pulse-cli config path --project
 
 ## Environment
 
-- Variables: \`PULSE_CLI_URL\`, \`PULSE_CLI_ENGINE\`, \`PULSE_CLI_PLATFORM\`, \`PULSE_CLI_PROFILE\`,
+- Variables: \`PULSE_CLI_URL\`, \`PULSE_CLI_ENGINE\`, \`PULSE_CLI_FLAVOR\`, \`PULSE_CLI_PROFILE\`,
   \`PULSE_CLI_CONFIG\`, \`PULSE_CLI_OUTPUT\`, \`PULSE_CLI_TIMEOUT\`, \`PULSE_CLI_READ_ONLY\`,
   \`PULSE_CLI_AUTH\`, \`PULSE_CLI_USERNAME\`, \`PULSE_CLI_PASSWORD\`, \`PULSE_CLI_TOKEN\`,
   \`PULSE_CLI_TOKEN_COMMAND\`, \`PULSE_CLI_OAUTH_*\`, \`PULSE_CLI_HEADERS\`.
@@ -71,7 +71,7 @@ pulse-cli config path --project
 ## Engines, headers and timeouts
 
 - \`--engine <name>\` addresses a named process engine (\`/engine/{name}/...\`); \`ping\` checks it.
-- \`--platform <name>\` (\`PULSE_CLI_PLATFORM\`, profile key \`platform\`) names the product:
+- \`--flavor <name>\` (\`PULSE_CLI_FLAVOR\`, profile key \`flavor\`) names the product:
   \`operaton\`, \`cibseven\` or \`camunda7\` (default). It selects the commands of that engine.
 - \`-H 'Name: value'\` (repeatable), \`PULSE_CLI_HEADERS\` (one per line) or the headers of a profile
   (\`config set --header\`) add request headers such as an API key; they merge per name: profile,

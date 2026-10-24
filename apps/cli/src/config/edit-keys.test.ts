@@ -62,7 +62,7 @@ describe("unsetProfileKeys", () => {
     expect(error.code).toBe("CONFIG")
     expect(error.message).toBe('Unknown profile key "user"')
     expect(error.details.hint).toBe(
-      "Valid keys: url, cockpitUrl, engine, platform, auth, output, timeout, headers, readOnly; OAuth settings: issuer, endpoints, clientId, clientSecret, scopes, audience, redirectPort; bearer token: token, tokenEnv.",
+      "Valid keys: url, cockpitUrl, engine, flavor, auth, output, timeout, headers, readOnly; OAuth settings: issuer, endpoints, clientId, clientSecret, scopes, audience, redirectPort; bearer token: token, tokenEnv.",
     )
   })
 
@@ -161,7 +161,7 @@ describe("showConfig", () => {
         url: { value: "http://localhost:8080/engine-rest", source: "profile" },
         cockpitUrl: { value: null, source: "default" },
         engine: { value: null, source: "default" },
-        platform: { value: "camunda7", source: "default" },
+        flavor: { value: "camunda7", source: "default" },
         auth: { value: "none", source: "default" },
         username: { value: null, source: "default" },
         password: { value: null, source: "default" },

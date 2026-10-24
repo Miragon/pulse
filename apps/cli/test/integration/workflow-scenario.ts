@@ -55,7 +55,7 @@ export function registerWorkflowScenario(engineName: EngineName): void {
       cli = bindCli({
         url: engine.url,
         configFile,
-        env: { XDG_CONFIG_HOME: workdir, PULSE_CLI_PLATFORM: engine.platform },
+        env: { XDG_CONFIG_HOME: workdir, PULSE_CLI_FLAVOR: engine.flavor },
       })
     }, ENGINE_START_TIMEOUT_MS)
 

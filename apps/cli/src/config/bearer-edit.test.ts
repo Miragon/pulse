@@ -195,7 +195,7 @@ describe("listProfiles and showConfig with a bearer token", () => {
       "url",
       "cockpitUrl",
       "engine",
-      "platform",
+      "flavor",
       "auth",
       "username",
       "password",

@@ -1,4 +1,4 @@
-/** The profile selection and the validation of URL, output and platform (resolve.ts). */
+/** The profile selection and the validation of URL, output and flavor (resolve.ts). */
 
 import { describe, expect, it } from "vitest"
 import { failure } from "../../test/support/failure.js"
@@ -7,14 +7,14 @@ import { configError } from "./config-error.js"
 import {
   findProfile,
   missingProfileError,
-  resolvePlatform,
+  resolveFlavor,
   selectProfile,
   validateOutput,
-  validatePlatform,
+  validateFlavor,
   validateUrl,
 } from "./resolve.js"
 import { redactUrl } from "./redact.js"
-import { type ConfigFile, PLATFORMS, type Profile } from "./types.js"
+import { type ConfigFile, FLAVORS, type Profile } from "./types.js"
 
 describe("selectProfile", () => {
   const config: ConfigFile = {
@@ -203,34 +203,34 @@ describe("validateOutput", () => {
   })
 })
 
-describe("validatePlatform", () => {
+describe("validateFlavor", () => {
   it("accepts every engine with an adapter, trimmed", () => {
-    for (const platform of PLATFORMS) expect(validatePlatform(` ${platform} `)).toBe(platform)
+    for (const flavor of FLAVORS) expect(validateFlavor(` ${flavor} `)).toBe(flavor)
   })
 
   it("rejects other values with the list of known engines", () => {
-    const error = failure(() => validatePlatform("camunda8"))
+    const error = failure(() => validateFlavor("camunda8"))
     expect(error.code).toBe("CONFIG")
-    expect(error.message).toBe('Unknown platform "camunda8"')
+    expect(error.message).toBe('Unknown flavor "camunda8"')
     expect(error.details.hint).toBe("Use one of: operaton, cibseven, camunda7")
   })
 })
 
-describe("resolvePlatform", () => {
-  it("takes the flag, then PULSE_CLI_PLATFORM, then the profile, else camunda7", () => {
-    const env = { PULSE_CLI_PLATFORM: "cibseven" }
-    const profile: Profile = { platform: "operaton" }
-    expect(resolvePlatform({ platform: "camunda7" }, env, profile)).toEqual({
+describe("resolveFlavor", () => {
+  it("takes the flag, then PULSE_CLI_FLAVOR, then the profile, else camunda7", () => {
+    const env = { PULSE_CLI_FLAVOR: "cibseven" }
+    const profile: Profile = { flavor: "operaton" }
+    expect(resolveFlavor({ flavor: "camunda7" }, env, profile)).toEqual({
       value: "camunda7",
       source: "flag",
     })
-    expect(resolvePlatform({}, env, profile)).toEqual({ value: "cibseven", source: "env" })
-    expect(resolvePlatform({}, {}, profile)).toEqual({ value: "operaton", source: "profile" })
-    expect(resolvePlatform({}, {}, undefined)).toEqual({ value: "camunda7", source: "default" })
+    expect(resolveFlavor({}, env, profile)).toEqual({ value: "cibseven", source: "env" })
+    expect(resolveFlavor({}, {}, profile)).toEqual({ value: "operaton", source: "profile" })
+    expect(resolveFlavor({}, {}, undefined)).toEqual({ value: "camunda7", source: "default" })
   })
 
   it("fails on an unknown value of the environment", () => {
-    const error = failure(() => resolvePlatform({}, { PULSE_CLI_PLATFORM: "zeebe" }, undefined))
-    expect(error.message).toBe('Unknown platform "zeebe"')
+    const error = failure(() => resolveFlavor({}, { PULSE_CLI_FLAVOR: "zeebe" }, undefined))
+    expect(error.message).toBe('Unknown flavor "zeebe"')
   })
 })

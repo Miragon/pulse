@@ -132,7 +132,7 @@ export function registerAuthScenario(engineName: EngineName): void {
         // keep the real user config out of reach even if PULSE_CLI_CONFIG is removed
         env: {
           XDG_CONFIG_HOME: workdir,
-          PULSE_CLI_PLATFORM: engine.platform,
+          PULSE_CLI_FLAVOR: engine.flavor,
           [PASSWORD_ENV]: undefined,
         },
       })

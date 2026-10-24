@@ -19,7 +19,7 @@ import {
   AUTH_TYPES,
   type ConfigFile,
   OUTPUT_FORMATS,
-  PLATFORMS,
+  FLAVORS,
   PROFILE_KEYS,
 } from "../../config/types.js"
 import { checkVariableNames } from "../../config/variable.js"
@@ -63,7 +63,7 @@ const SET_OPTIONS = ["config"]
 interface SetOptions {
   readonly url?: string
   readonly engine?: string
-  readonly platform?: string
+  readonly flavor?: string
   readonly auth?: string
   readonly authUser?: string
   readonly authPasswordEnv?: string
@@ -124,7 +124,7 @@ function profileChanges(command: Command, secrets: SetSecrets): ProfileChanges {
     ...bearerChanges(command, secrets.token),
     url: options.url,
     engine: options.engine,
-    platform: options.platform,
+    flavor: options.flavor,
     auth: options.auth,
     authUser: options.authUser,
     authPasswordEnv: options.authPasswordEnv,
@@ -195,7 +195,7 @@ async function removeProfile(name: string, command: Command, context: CliContext
 const SET_VALUES: Readonly<Record<string, readonly string[]>> = {
   "--auth": AUTH_TYPES,
   "--output": OUTPUT_FORMATS,
-  "--platform": PLATFORMS,
+  "--flavor": FLAVORS,
   "-o": OUTPUT_FORMATS,
 }
 
@@ -219,7 +219,7 @@ function registerSet(config: Command, context: CliContext): void {
     .argument("<profile>", "Profile name, e.g. local or prod-eu")
     .option("--url <url>", "REST API root, e.g. http://localhost:8080/engine-rest")
     .option("--engine <name>", "Named process engine")
-    .option("--platform <name>", `Engine product: ${PLATFORMS.join(", ")}`)
+    .option("--flavor <name>", `Engine product: ${FLAVORS.join(", ")}`)
     .option("--auth <type>", "Authentication: none, basic, oauth or bearer")
     .option("--auth-user <name>", "Username for Basic auth")
     .option(

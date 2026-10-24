@@ -1,9 +1,9 @@
 /**
- * The engine adapter of a run, chosen before the commands are registered: `--platform`, then
- * PULSE_CLI_PLATFORM, then the `platform` of the selected profile, else camunda7.
+ * The engine adapter of a run, chosen before the commands are registered: `--flavor`, then
+ * PULSE_CLI_FLAVOR, then the `flavor` of the selected profile, else camunda7.
  */
 
-import { resolvePlatform, selectProfile } from "../config/resolve.js"
+import { resolveFlavor, selectProfile } from "../config/resolve.js"
 import type { Profile } from "../config/types.js"
 import type { EngineAdapter } from "../engine-port/engine-adapter.js"
 import { ENGINES } from "../engines/index.js"
@@ -30,7 +30,7 @@ export async function selectEngine(
   argv: readonly string[],
   runtime: Runtime,
 ): Promise<EngineAdapter> {
-  const flags = compact({ platform: globalFromArgv(argv, "platform") })
-  const platform = resolvePlatform(flags, runtime.env, await profileOf(argv, runtime))
-  return ENGINES[platform.value]
+  const flags = compact({ flavor: globalFromArgv(argv, "flavor") })
+  const flavor = resolveFlavor(flags, runtime.env, await profileOf(argv, runtime))
+  return ENGINES[flavor.value]
 }

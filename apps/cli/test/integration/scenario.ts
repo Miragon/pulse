@@ -45,7 +45,7 @@ export function registerScenario(engineName: EngineName): void {
         url: engine.url,
         configFile,
         // keep the real user config out of reach even if PULSE_CLI_CONFIG is removed
-        env: { XDG_CONFIG_HOME: workdir, PULSE_CLI_PLATFORM: engine.platform },
+        env: { XDG_CONFIG_HOME: workdir, PULSE_CLI_FLAVOR: engine.flavor },
       })
     }, ENGINE_START_TIMEOUT_MS)
 

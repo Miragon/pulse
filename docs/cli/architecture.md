@@ -65,11 +65,11 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-  argv["--platform"] --> pick{first set}
-  env["PULSE_CLI_PLATFORM"] --> pick
-  profile["profile.platform"] --> pick
+  argv["--flavor"] --> pick{first set}
+  env["PULSE_CLI_FLAVOR"] --> pick
+  profile["profile.flavor"] --> pick
   pick -- none --> default["camunda7"]
-  pick --> adapter["ENGINES[platform]"]
+  pick --> adapter["ENGINES[flavor]"]
   default --> adapter
   adapter --> program["createProgram: commands, help, describe"]
 ```

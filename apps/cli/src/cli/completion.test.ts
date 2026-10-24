@@ -190,7 +190,7 @@ describe("pulse-cli __complete", () => {
       "url",
       "cockpitUrl",
       "engine",
-      "platform",
+      "flavor",
       "auth",
       "output",
       "timeout",

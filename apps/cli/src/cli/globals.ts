@@ -8,9 +8,9 @@ import { type Command, Option } from "commander"
 import {
   AUTH_TYPES,
   type ConfigFlags,
-  DEFAULT_PLATFORM,
+  DEFAULT_FLAVOR,
   OUTPUT_FORMATS,
-  PLATFORMS,
+  FLAVORS,
 } from "../config/types.js"
 import { compact } from "../util.js"
 import { type OptionCompletion, setOptionCompletion } from "./completion-meta.js"
@@ -41,9 +41,9 @@ export const GLOBAL_OPTIONS: readonly GlobalOptionSpec[] = [
     description: "Named process engine, adds /engine/<name> to the path (env PULSE_CLI_ENGINE)",
   },
   {
-    long: "platform",
+    long: "flavor",
     value: "<name>",
-    description: `Engine product: ${PLATFORMS.join(", ")}; default ${DEFAULT_PLATFORM} (env PULSE_CLI_PLATFORM)`,
+    description: `Engine product: ${FLAVORS.join(", ")}; default ${DEFAULT_FLAVOR} (env PULSE_CLI_FLAVOR)`,
   },
   {
     long: "profile",
@@ -118,7 +118,7 @@ export const GLOBAL_OPTION_FLAGS: readonly string[] = GLOBAL_OPTIONS.map((spec) 
 export interface GlobalOptions {
   readonly url?: string
   readonly engine?: string
-  readonly platform?: string
+  readonly flavor?: string
   readonly profile?: string
   readonly config?: string
   readonly output?: string
@@ -148,7 +148,7 @@ export function optionFlags(spec: GlobalOptionSpec): string {
 /** What the values of global options complete to. */
 const COMPLETIONS: Readonly<Record<string, OptionCompletion>> = {
   output: { values: OUTPUT_FORMATS },
-  platform: { values: PLATFORMS },
+  flavor: { values: FLAVORS },
   auth: { values: AUTH_TYPES },
   profile: { profiles: true },
   config: { path: "files" },
@@ -196,7 +196,7 @@ export function readGlobals(command: Command): GlobalOptions {
     ...compact({
       url: text("url"),
       engine: text("engine"),
-      platform: text("platform"),
+      flavor: text("flavor"),
       profile: text("profile"),
       config: text("config"),
       output: text("output"),
@@ -229,7 +229,7 @@ export function configFlags(globals: GlobalOptions, secrets: StdinSecrets = {}):
   return compact({
     url: globals.url,
     engine: globals.engine,
-    platform: globals.platform,
+    flavor: globals.flavor,
     profile: globals.profile,
     output: globals.output,
     timeout: globals.timeout,
