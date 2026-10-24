@@ -36,6 +36,12 @@ apps/mcp-server-camunda7/test-results/
 .stryker-tmp/
 reports/
 stryker-setup-*.js
+# The CLI (apps/cli): the standalone bundle and executables (build:standalone, build:exe), a
+# packed tarball and the results of a local plugin eval run.
+apps/cli/build/
+apps/cli/*.tgz
+apps/cli/skills/pulse-cli/evals/results/
+
 # The VS Code extension (apps/vscode): the VS Code that @vscode/test-cli and the e2e
 # scripts download, packaged extensions, the browser dev host's build, the e2e
 # screenshots, and vitest browser mode's failure screenshots and attachments

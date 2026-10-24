@@ -13,9 +13,9 @@ import extractTSConfig from "dependency-cruiser/config-utl/extract-ts-config"
  * Self-test of the dependency rules in .dependency-cruiser.cjs (a gate that has never been
  * red is decoration). It builds a pnpm-shaped fixture workspace under os.tmpdir() that holds
  * the apps and packages the rules are about, including the ones the repo does not have yet
- * (an apps/cli, an apps/vscode named pulse-vscode, two -domain packages), cruises it ONCE
- * with the REAL config over the paths of the pinned `pnpm lint:architecture` command, and
- * asserts the EXACT set of rules each planted import trips. Exact, so an edge that only
+ * (an apps/vscode named pulse-vscode, two -domain packages), cruises it ONCE with the REAL
+ * config over the paths of the pinned `pnpm lint:architecture` and `pnpm lint:architecture:cli`
+ * commands, and asserts the EXACT set of rules each planted import trips. Exact, so an edge that only
  * no-cross-package-deep-imports catches never passes as "some violation".
  *
  * Every import is planted in all the shapes the header of .dependency-cruiser.cjs names:
@@ -102,6 +102,33 @@ const NOT_HOST = "extension-is-not-an-mcp-host"
 const NO_EXT = "nothing-imports-the-extension"
 const DEEP = "no-cross-package-deep-imports"
 const CIRCULAR = "no-circular"
+const CLI_CYCLE = "cli-no-circular"
+const CLI_DEPRECATED = "cli-no-deprecated-core"
+const CLI_NOT_TEST = "cli-not-to-test"
+const CLI_SRC_SCRIPTS = "cli-src-not-to-scripts-or-test"
+const CLI_SUPPORT = "cli-test-support-only-from-tests"
+const CLI_LAYER_BIN = "cli-command-layer-only-from-bin"
+const CLI_COMMANDER = "cli-commander-only-in-command-layer"
+const CLI_PURE = "cli-pure-layers-no-builtins"
+const CLI_OPERATION_PATH = "cli-operation-only-path-builtin"
+const CLI_DOCS = "cli-docs-only-catalog-errors-util"
+const CLI_AUTH = "cli-auth-allowed-imports"
+const CLI_CONFIG_AUTH = "cli-config-not-to-auth"
+const CLI_LOGIN = "cli-interactive-login-only-from-auth-command"
+const CLI_WORKFLOW_DEPS = "cli-workflow-not-to-cli-config-auth-bin"
+const CLI_WORKFLOW_USERS = "cli-workflow-only-from-command-layer"
+const CLI_API_ENGINE = "cli-api-only-workflow-engine"
+const CLI_WORKFLOW_PORT = "cli-workflow-only-engine-port"
+const CLI_PORT_TYPES = "cli-engine-port-types-only"
+const CLI_API_ADAPTERS = "cli-api-only-from-adapters"
+const CLI_API_API = "cli-api-not-to-other-api"
+const CLI_ENGINES = "cli-engines-not-to-each-other"
+const CLI_HTTP = "cli-http-not-to-config-cli-operation"
+const CLI_GENERATED = "cli-generated-catalog-only-via-catalog-ts-or-adapters"
+const CLI_OWN_CATALOG = "cli-adapter-reads-its-own-catalog"
+const CLI_OUTPUT = "cli-output-only-operation-result"
+const CLI_OUTPUT_TYPES = "cli-output-operation-result-type-only"
+const CLI_SCRIPTS = "cli-scripts-only-catalog-types-and-schema"
 
 const CLI_SRC = `${CLI}/src/index.ts`
 const SERVER_SRC = `${SERVER}/src/index.ts`
@@ -119,6 +146,28 @@ const LEAVES = [
   `${SERVER}/src/lib.ts`,
   `${CLI}/src/target.ts`,
   `${CLI}/src/lib.ts`,
+  `${CLI}/src/cli/target.ts`,
+  `${CLI}/src/workflow/target.ts`,
+  `${CLI}/src/workflow/engine.ts`,
+  `${CLI}/src/api/rest/target.ts`,
+  `${CLI}/src/api/other/target.ts`,
+  `${CLI}/src/engines/b/target.ts`,
+  `${CLI}/src/auth/target.ts`,
+  `${CLI}/src/auth/oauth/login.ts`,
+  `${CLI}/src/config/target.ts`,
+  `${CLI}/src/catalog/target.ts`,
+  `${CLI}/src/catalog/types.ts`,
+  `${CLI}/src/operation/target.ts`,
+  `${CLI}/src/operation/result.ts`,
+  `${CLI}/src/output/target.ts`,
+  `${CLI}/src/http/client.ts`,
+  `${CLI}/src/http/target.ts`,
+  `${CLI}/src/engine-port/target.ts`,
+  `${CLI}/src/errors.ts`,
+  `${CLI}/src/runtime.ts`,
+  `${CLI}/src/a.test.ts`,
+  `${CLI}/scripts/target.ts`,
+  `${CLI}/test/support/fake.ts`,
   `${EXT}/src/target.ts`,
   `${EXT}/src/panel.ts`,
   `${SHELL}/src/target.ts`,
@@ -132,7 +181,11 @@ const LEAVES = [
   `${C7_DOMAIN}/src/model.ts`,
   `${AN_DOMAIN}/src/target.ts`,
 ]
-const JSON_LEAVES = [`${CLI}/src/generated/commands.json`]
+const JSON_LEAVES = [
+  `${CLI}/src/generated/commands.json`,
+  `${CLI}/src/generated/catalog.a.json`,
+  `${CLI}/src/generated/catalog.b.json`,
+]
 
 /**
  * One suite per rule: [importer, specifier, exact rules, form?]. `form` "type" plants an
@@ -184,7 +237,8 @@ const SUITES = [
       [CLI_SRC, "@miragon/pulse-camunda7-domain", []],
       [CLI_SRC, "@miragon/pulse-camunda7-domain/testing", []],
       [CLI_SRC, "@miragon/pulse-analytics-domain", []],
-      [CLI_SRC, "commander", []],
+      [CLI_SRC, "commander", [CLI_COMMANDER]],
+      [`${CLI}/src/cli/program.ts`, "commander", []],
       [CLI_SRC, "node:fs", []],
       [CLI_SRC, "./lib.ts", []],
       [CLI_SRC, "reactive", []],
@@ -487,6 +541,246 @@ const SUITES = [
       [`${SERVER}/src/type-cycle-b.ts`, "./type-cycle-a.ts", [], "type"],
     ],
   },
+  {
+    rule: CLI_CYCLE,
+    title: "the CLI has no import cycle, a type-only one included",
+    cases: [
+      [`${CLI}/src/cycle-a.ts`, "./cycle-b.ts", [CIRCULAR, CLI_CYCLE]],
+      [`${CLI}/src/cycle-b.ts`, "./cycle-a.ts", [CIRCULAR, CLI_CYCLE]],
+      [`${CLI}/src/type-cycle-a.ts`, "./type-cycle-b.ts", [CLI_CYCLE], "type"],
+      [`${CLI}/src/type-cycle-b.ts`, "./type-cycle-a.ts", [CLI_CYCLE], "type"],
+    ],
+  },
+  {
+    rule: CLI_DEPRECATED,
+    title: "the CLI imports no deprecated Node built-in",
+    cases: [
+      [`${CLI}/src/bin/punycode.ts`, "node:punycode", [CLI_DEPRECATED]],
+      [`${CLI}/src/bin/node-fs.ts`, "node:fs", []],
+    ],
+  },
+  {
+    rule: CLI_NOT_TEST,
+    title: "nothing in the CLI imports a test file",
+    cases: [
+      [`${CLI}/src/b.test.ts`, "./a.test.ts", [CLI_NOT_TEST]],
+      [`${CLI}/src/c.test.ts`, "./target.ts", []],
+    ],
+  },
+  {
+    rule: CLI_SRC_SCRIPTS,
+    title: "the CLI's shipped code imports neither its scripts nor its test code",
+    cases: [
+      [`${CLI}/src/to-scripts.ts`, "../scripts/target.ts", [CLI_SRC_SCRIPTS]],
+      [`${CLI}/src/to-test.ts`, "../test/support/fake.ts", [CLI_SRC_SCRIPTS, CLI_SUPPORT]],
+      [`${CLI}/src/d.test.ts`, "../scripts/target.ts", []],
+    ],
+  },
+  {
+    rule: CLI_SUPPORT,
+    title: "only test code imports the CLI's test/support",
+    cases: [
+      [`${CLI}/scripts/to-support.ts`, "../test/support/fake.ts", [CLI_SUPPORT]],
+      [`${CLI}/src/e.test.ts`, "../test/support/fake.ts", []],
+      [`${CLI}/test/integration/x.it.test.ts`, "../support/fake.ts", []],
+    ],
+  },
+  {
+    rule: CLI_LAYER_BIN,
+    title: "only the entry point imports the command layer",
+    cases: [
+      [`${CLI}/src/docs/to-cli.ts`, "../cli/target.ts", [CLI_DOCS, CLI_LAYER_BIN]],
+      [`${CLI}/test/support/to-cli.ts`, "../../src/cli/target.ts", [CLI_LAYER_BIN]],
+      [`${CLI}/src/bin/entry.ts`, "../cli/target.ts", []],
+    ],
+  },
+  {
+    rule: CLI_COMMANDER,
+    title: "only the command layer imports commander",
+    cases: [
+      [`${CLI}/src/workflow/commander.ts`, "commander", [CLI_COMMANDER]],
+      [`${CLI}/scripts/commander.ts`, "commander", [CLI_COMMANDER]],
+      [`${CLI}/src/cli/commands/x.ts`, "commander", []],
+    ],
+  },
+  {
+    rule: CLI_PURE,
+    title: "the CLI's pure layers import no Node built-in",
+    cases: [
+      ...["api/rest", "auth", "catalog", "docs", "engines/a", "output", "workflow"].map((layer) => [
+        `${CLI}/src/${layer}/fs.ts`,
+        "node:fs",
+        [CLI_PURE],
+      ]),
+      [`${CLI}/src/engine-port/fs.ts`, "node:fs", [CLI_PORT_TYPES, CLI_PURE]],
+      [`${CLI}/src/util.ts`, "node:os", [CLI_PURE]],
+      [`${CLI}/src/workflow/fs.test.ts`, "node:fs", []],
+      [`${CLI}/src/config/fs.ts`, "node:fs", []],
+    ],
+  },
+  {
+    rule: CLI_OPERATION_PATH,
+    title: "the CLI's operation layer imports node:path and no other built-in",
+    cases: [
+      [`${CLI}/src/operation/fs.ts`, "node:fs", [CLI_OPERATION_PATH]],
+      [`${CLI}/src/operation/path.ts`, "node:path", []],
+    ],
+  },
+  {
+    rule: CLI_DOCS,
+    title: "the CLI's docs layer imports only catalog, errors and util",
+    cases: [
+      [`${CLI}/src/docs/to-output.ts`, "../output/target.ts", [CLI_DOCS]],
+      [`${CLI}/src/docs/to-catalog.ts`, "../catalog/target.ts", []],
+      [`${CLI}/src/docs/to-errors.ts`, "../errors.ts", []],
+    ],
+  },
+  {
+    rule: CLI_AUTH,
+    title: "the CLI's auth layer imports only auth, config, the http client and the base modules",
+    cases: [
+      [`${CLI}/src/auth/to-output.ts`, "../output/target.ts", [CLI_AUTH]],
+      [`${CLI}/src/auth/to-http.ts`, "../http/target.ts", [CLI_AUTH]],
+      [`${CLI}/src/auth/to-config.ts`, "../config/target.ts", []],
+      [`${CLI}/src/auth/to-client.ts`, "../http/client.ts", []],
+      [`${CLI}/src/auth/to-runtime.ts`, "../runtime.ts", []],
+    ],
+  },
+  {
+    rule: CLI_CONFIG_AUTH,
+    title: "the CLI's config layer never imports auth",
+    cases: [
+      [`${CLI}/src/config/to-auth.ts`, "../auth/target.ts", [CLI_CONFIG_AUTH]],
+      [`${CLI}/src/config/auth.test.ts`, "../auth/target.ts", []],
+    ],
+  },
+  {
+    rule: CLI_LOGIN,
+    title: "only the auth command starts an interactive login",
+    cases: [
+      [`${CLI}/src/cli/commands/ping.ts`, "../../auth/oauth/login.ts", [CLI_LOGIN]],
+      [`${CLI}/src/cli/commands/auth.ts`, "../../auth/oauth/login.ts", []],
+      [`${CLI}/src/cli/login.test.ts`, "../auth/oauth/login.ts", []],
+    ],
+  },
+  {
+    rule: CLI_WORKFLOW_DEPS,
+    title: "the workflow commands build on neither cli, config, auth nor bin",
+    cases: [
+      [`${CLI}/src/workflow/to-config.ts`, "../config/target.ts", [CLI_WORKFLOW_DEPS]],
+      [`${CLI}/src/workflow/to-cli.ts`, "../cli/target.ts", [CLI_LAYER_BIN, CLI_WORKFLOW_DEPS]],
+      [`${CLI}/src/workflow/to-output.ts`, "../output/target.ts", []],
+    ],
+  },
+  {
+    rule: CLI_WORKFLOW_USERS,
+    title: "only the command layer and the APIs use the workflow commands",
+    cases: [
+      [`${CLI}/src/output/to-workflow.ts`, "../workflow/target.ts", [CLI_WORKFLOW_USERS]],
+      [`${CLI}/src/cli/to-workflow.ts`, "../workflow/target.ts", []],
+    ],
+  },
+  {
+    rule: CLI_API_ENGINE,
+    title: "an API uses only the workflow engine module",
+    cases: [
+      [`${CLI}/src/api/rest/to-workflow.ts`, "../../workflow/target.ts", [CLI_API_ENGINE]],
+      [`${CLI}/src/api/rest/to-engine.ts`, "../../workflow/engine.ts", []],
+    ],
+  },
+  {
+    rule: CLI_WORKFLOW_PORT,
+    title: "the workflow commands know the engine port, never an adapter or an API",
+    cases: [
+      [`${CLI}/src/workflow/to-engines.ts`, "../engines/b/target.ts", [CLI_WORKFLOW_PORT]],
+      [
+        `${CLI}/src/workflow/to-api.ts`,
+        "../api/rest/target.ts",
+        [CLI_API_ADAPTERS, CLI_WORKFLOW_PORT],
+      ],
+      [`${CLI}/src/workflow/to-port.ts`, "../engine-port/target.ts", [], "type"],
+    ],
+  },
+  {
+    rule: CLI_PORT_TYPES,
+    title: "the engine port imports types only",
+    cases: [
+      [`${CLI}/src/engine-port/value.ts`, "../catalog/types.ts", [CLI_PORT_TYPES]],
+      [`${CLI}/src/engine-port/types.ts`, "../catalog/target.ts", [], "type"],
+    ],
+  },
+  {
+    rule: CLI_API_ADAPTERS,
+    title: "only the engine adapters use an API",
+    cases: [
+      [`${CLI}/src/cli/to-api.ts`, "../api/rest/target.ts", [CLI_API_ADAPTERS]],
+      [`${CLI}/src/engines/a/adapter.ts`, "../../api/rest/target.ts", []],
+    ],
+  },
+  {
+    rule: CLI_API_API,
+    title: "an API never imports another API",
+    cases: [
+      [`${CLI}/src/api/rest/to-other.ts`, "../other/target.ts", [CLI_API_API]],
+      [`${CLI}/src/api/rest/to-own.ts`, "./target.ts", []],
+    ],
+  },
+  {
+    rule: CLI_ENGINES,
+    title: "an engine adapter never imports another one",
+    cases: [[`${CLI}/src/engines/a/to-b.ts`, "../b/target.ts", [CLI_ENGINES]]],
+  },
+  {
+    rule: CLI_HTTP,
+    title: "the CLI's HTTP layer depends on neither config, cli nor operation",
+    cases: [
+      [`${CLI}/src/http/to-operation.ts`, "../operation/target.ts", [CLI_HTTP]],
+      [`${CLI}/src/http/to-errors.ts`, "../errors.ts", []],
+    ],
+  },
+  {
+    rule: CLI_GENERATED,
+    title: "only catalog.ts and the engine adapters read the generated catalogs",
+    cases: [
+      [`${CLI}/src/output/to-catalog.ts`, "../generated/catalog.a.json", [CLI_GENERATED]],
+      [
+        `${CLI}/scripts/to-catalog.ts`,
+        "../src/generated/catalog.a.json",
+        [CLI_GENERATED, CLI_SCRIPTS],
+      ],
+      [`${CLI}/src/engines/a/adapter.ts`, "../../generated/catalog.a.json", []],
+    ],
+  },
+  {
+    rule: CLI_OWN_CATALOG,
+    title: "an engine adapter reads only its own catalog",
+    cases: [
+      [`${CLI}/src/engines/b/adapter.ts`, "../../generated/catalog.a.json", [CLI_OWN_CATALOG]],
+      [`${CLI}/src/engines/b/adapter.ts`, "../../generated/catalog.b.json", []],
+    ],
+  },
+  {
+    rule: CLI_OUTPUT,
+    title: "the CLI's output layer imports only the operation result",
+    cases: [
+      [`${CLI}/src/output/to-operation.ts`, "../operation/target.ts", [CLI_OUTPUT]],
+      [`${CLI}/src/output/to-result.ts`, "../operation/result.ts", [], "type"],
+    ],
+  },
+  {
+    rule: CLI_OUTPUT_TYPES,
+    title: "the CLI's output layer imports the operation result as types only",
+    cases: [[`${CLI}/src/output/result-value.ts`, "../operation/result.ts", [CLI_OUTPUT_TYPES]]],
+  },
+  {
+    rule: CLI_SCRIPTS,
+    title: "the catalog generator imports only the catalog types, schema and rules",
+    cases: [
+      [`${CLI}/scripts/to-output.ts`, "../src/output/target.ts", [CLI_SCRIPTS]],
+      [`${CLI}/scripts/to-types.ts`, "../src/catalog/types.ts", []],
+      [`${CLI}/scripts/x.test.ts`, "../src/output/target.ts", []],
+    ],
+  },
 ]
 
 /** Every app the real repo has: {dir, name} from apps/<dir>/package.json. */
@@ -514,18 +808,23 @@ const SYNC_CASES = APPS.filter(({ name }) => name).flatMap(({ dir, name }) => {
   ])
 })
 
-/** The path arguments of the pinned `pnpm lint:architecture` command. */
+/** The root scripts that cruise with .dependency-cruiser.cjs, both chained into `pnpm lint`. */
+const ARCHITECTURE_SCRIPTS = ["lint:architecture", "lint:architecture:cli"]
+
+/** The path arguments of the pinned `pnpm lint:architecture` and `lint:architecture:cli` commands. */
 function lintArchitecturePaths() {
   const rootPackage = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"))
-  const words = rootPackage.scripts["lint:architecture"].trim().split(/\s+/)
-  const configAt = words.indexOf("--config")
-  assert.equal(words[0], "depcruise", "lint:architecture no longer runs depcruise")
-  assert.equal(
-    words[configAt + 1],
-    ".dependency-cruiser.cjs",
-    "lint:architecture no longer reads .dependency-cruiser.cjs; point this self-test at its config",
-  )
-  return words.slice(1, configAt)
+  return ARCHITECTURE_SCRIPTS.flatMap((script) => {
+    const words = rootPackage.scripts[script].trim().split(/\s+/)
+    const configAt = words.indexOf("--config")
+    assert.equal(words[0], "depcruise", `${script} no longer runs depcruise`)
+    assert.equal(
+      words[configAt + 1],
+      ".dependency-cruiser.cjs",
+      `${script} no longer reads .dependency-cruiser.cjs; point this self-test at its config`,
+    )
+    return words.slice(1, configAt)
+  })
 }
 
 /**
@@ -601,7 +900,7 @@ function buildFixture(root) {
   }
   for (const { cases } of SUITES) for (const [from, spec, , form] of cases) plant(from, spec, form)
   for (const { from, spec } of SYNC_CASES) plant(from, spec)
-  plant(`${CLI}/src/catalog.ts`, "./generated/commands.json")
+  plant(`${CLI}/src/catalog/catalog.ts`, "../generated/commands.json")
   plant(C7_CLIENT_SRC, "./generated/sdk.gen.ts")
   plant(C7_CONNECTOR_SRC, "./generated/catalog.ts")
 
@@ -683,7 +982,10 @@ describe("options.exclude keeps only the hey-api SDK out of the graph", () => {
       sources.has(`${C7_CONNECTOR}/src/generated/catalog.ts`),
       "connector generated dropped",
     )
-    assert.deepEqual(edgeOf(`${CLI}/src/catalog.ts`, "./generated/commands.json").rules, [])
+    assert.deepEqual(
+      edgeOf(`${CLI}/src/catalog/catalog.ts`, "../generated/commands.json").rules,
+      [],
+    )
   })
 
   it("excludes camunda7-client/src/generated", () => {

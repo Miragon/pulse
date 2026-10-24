@@ -9,6 +9,7 @@
     "src/data/**/*.ts",
     "src/lib/**/*.ts",
     "src/module.ts",
+    "src/providers/index.ts",
     "src/tools/deployments.ts",
     "src/tools/engines.ts",
     "src/widget-tools/model-surface.ts",

@@ -262,7 +262,7 @@ itself; widget-shell neither forks nor re-exports them) — never re-inline thes
   number, never a palette class or raw colour; text on a tint is black (`TONE_SOFT`), the
   `-ink` role is only for text in a tone directly on the card or page (an inline error)
 - Icons: Lucide via `Icon` (`import { FileSearch } from "lucide-react"`; the package pins
-  devDependency `lucide-react` `0.562.0`, see CLAUDE.md invariant 6), never a Unicode glyph
+  devDependency `lucide-react` `1.61.0`, see CLAUDE.md invariant 6), never a Unicode glyph
   or emoji, at 16 px (`dense` in rows; `scanIconSizes` allows 16 and 24 only); a chat
   hand-off is the kit's `<HandOffButton action="explainError" prompt={ask(…)} />`
   (`@miragon/pulse-widget-shell/widgets`: the product's one table of functions, each with its

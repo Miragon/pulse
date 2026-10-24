@@ -48,6 +48,9 @@ pnpm build        # build:ui (Vite widget bundle) + build:server (tsc)
 pnpm start        # run the compiled server from dist/
 ```
 
+Pulse assumes a Camunda 7 engine. For CIB seven or Operaton add `-e CAMUNDA_ENGINE_FLAVOR=cibseven`
+(or `operaton`): it picks the engine's cockpit links and the product name the views show.
+
 Configuration is entirely environment-driven. See
 [Configuration](../../README.md#configuration), [Toolsets](../../README.md#toolsets) and
 [`docs/operations.md`](../../docs/operations.md). To exercise write paths locally, set

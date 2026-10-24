@@ -69,16 +69,18 @@ export const CONNECTOR_ROLES = ["connector", "client", "domain"]
 export const GENERATED_DIRS = {
   "packages/connectors/camunda/camunda7-client/src/generated":
     "the hey-api SDK `pnpm generate` regenerates from the CIB seven OpenAPI spec; never edited by hand",
+  "apps/cli/src/generated":
+    "the CLI's command catalog per engine (catalog.<engine>.json), which `pnpm --fail-if-no-match --filter @miragon/pulse-cli catalog` renders from apps/cli/spec; never edited by hand (scripts/catalog/render.test.ts fails on a stale one)",
 }
 
 /**
- * The npm names of the apps Pulse plans before they land under apps/: the CLI
- * and the VS Code extension. They count as app names already, so no package
- * declares them from npm in the meantime. When an app lands, its name comes
- * from its package.json, and its entry here goes (a test keeps this list equal
- * to the names .dependency-cruiser.cjs APP_PACKAGES holds beyond the real apps).
+ * The npm names of the apps Pulse plans before they land under apps/: none today.
+ * They count as app names already, so no package declares them from npm in the
+ * meantime. When an app lands, its name comes from its package.json, and its
+ * entry here goes (a test keeps this list equal to the names
+ * .dependency-cruiser.cjs APP_PACKAGES holds beyond the real apps).
  */
-export const RESERVED_APP_NAMES = ["@miragon/pulse-cli"]
+export const RESERVED_APP_NAMES = []
 
 /** The package.json fields that make another package reachable under pnpm. */
 const DEPENDENCY_FIELDS = [

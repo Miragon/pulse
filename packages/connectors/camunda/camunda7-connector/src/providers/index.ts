@@ -10,8 +10,8 @@ export const ENGINE_PROVIDERS: Record<EngineFlavor, EngineProvider> = {
   camunda7: camunda7Provider,
 }
 
-/** The default vendor: engines without a `flavor` are CIB Seven. */
-export const DEFAULT_ENGINE_FLAVOR: EngineFlavor = "cibseven"
+/** The default vendor: engines without a `flavor` are Camunda 7. */
+export const DEFAULT_ENGINE_FLAVOR: EngineFlavor = "camunda7"
 
 /**
  * Resolves the provider for a configured engine entry. The config schema

@@ -68,6 +68,12 @@
           "type": "json",
           "path": "templates/composed-server/modules/mcp-notes/package.json",
           "jsonpath": "$.dependencies['@miragon/pulse-widget-shell']"
+        },
+        { "type": "json", "path": "apps/cli/package.json", "jsonpath": "$.version" },
+        {
+          "type": "json",
+          "path": "apps/cli/skills/pulse-cli/.claude-plugin/plugin.json",
+          "jsonpath": "$.version"
         }
       ]
     }

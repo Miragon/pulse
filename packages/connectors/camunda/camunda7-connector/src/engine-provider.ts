@@ -42,7 +42,7 @@ export interface EngineEntry {
    * default environment.
    */
   environment?: string
-  /** Engine vendor of the C7 dialect; selects the provider. Default: "cibseven". */
+  /** Engine vendor of the C7 dialect; selects the provider. Default: "camunda7". */
   flavor?: EngineFlavor
   auth?: EngineAuth
 }

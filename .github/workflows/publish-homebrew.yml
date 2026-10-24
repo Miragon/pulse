@@ -1,0 +1,197 @@
+name: Publish the CLI Homebrew formula
+
+# Publishes the Homebrew formula of the CLI to Miragon/homebrew-tap (`brew install
+# miragon/tap/pulse-cli`): the standalone executables of a Pulse release for macOS and Linux,
+# without dependencies. Called by release-please.yml after publish-cli.yml attached the binaries
+# (not for a prerelease: the tap has one formula, which follows the newest stable release); a
+# manual run publishes an existing release again, or checks it with dry-run. The formula comes from
+# apps/cli/scripts/homebrew-formula.sh of the commit this workflow runs from, not of the release.
+#
+# The first publish also renames the formula: it adds operate -> pulse-cli to the tap's
+# formula_renames.json and removes Formula/operate.rb in the same squash-merged pull request, so
+# `brew upgrade` moves an installed operate to pulse-cli, whose formula keeps an `operate`
+# command until the first release after 2027-01-31.
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+    secrets:
+      RELEASE_PLEASE_APP_PRIVATE_KEY:
+        required: true
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Released version without the v prefix (e.g. 0.22.0)
+        required: true
+        type: string
+      dry-run:
+        description: Build and test the formula without pushing it to the tap
+        type: boolean
+        default: false
+
+permissions: {}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  formula:
+    name: CLI formula ${{ inputs.version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    env:
+      VERSION: ${{ inputs.version }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Write the formula
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/formula"
+          gh release download "v${VERSION}" --repo "$GITHUB_REPOSITORY" --pattern pulse-cli-SHA256SUMS --dir "$RUNNER_TEMP"
+          bash apps/cli/scripts/homebrew-formula.sh "$VERSION" "$RUNNER_TEMP/pulse-cli-SHA256SUMS" > "$RUNNER_TEMP/formula/pulse-cli.rb"
+          cat "$RUNNER_TEMP/formula/pulse-cli.rb"
+
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: cli-homebrew-formula
+          path: ${{ runner.temp }}/formula/pulse-cli.rb
+          if-no-files-found: error
+          retention-days: 7
+
+  # Installs the formula from a local tap on each platform with a preinstalled Homebrew and runs
+  # its test, the audit of homebrew/core and the smoke test against the installed binary.
+  # Homebrew reads homebrew/core from its API: the Linux runner cannot clone it as a tap.
+  verify:
+    name: CLI formula on ${{ matrix.runner }}
+    needs: formula
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-latest, macos-26-intel, ubuntu-latest]
+    env:
+      EXPECTED_VERSION: ${{ inputs.version }}
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: cli-homebrew-formula
+          path: ${{ runner.temp }}/formula
+
+      - name: Put Homebrew on the PATH (Linux)
+        if: runner.os == 'Linux'
+        run: echo "/home/linuxbrew/.linuxbrew/bin" >> "$GITHUB_PATH"
+
+      - name: Install, test and audit the formula
+        run: |
+          brew tap-new --no-git miragon/verify
+          cp "$RUNNER_TEMP/formula/pulse-cli.rb" "$(brew --repository miragon/verify)/Formula/pulse-cli.rb"
+          brew install miragon/verify/pulse-cli
+          brew test miragon/verify/pulse-cli
+          brew audit --strict --online miragon/verify/pulse-cli
+
+      - name: Smoke test the installed binary
+        working-directory: apps/cli
+        run: |
+          bash scripts/smoke-test.sh "$(brew --prefix)/bin/pulse-cli"
+          test "$("$(brew --prefix)/bin/operate" --version)" = "$EXPECTED_VERSION"
+
+  # Opens a pull request with the formula on Miragon/homebrew-tap and squash-merges it, with a
+  # token of the Miragon release-please app (vars.RELEASE_PLEASE_APP_CLIENT_ID +
+  # secrets.RELEASE_PLEASE_APP_PRIVATE_KEY, both organization-wide), installed on the tap with
+  # Contents and Pull requests write. The files change through the contents API and the squash
+  # merge is GitHub's, so the commit on main is signed, which the tap's ruleset requires.
+  publish:
+    name: Publish pulse-cli ${{ inputs.version }} to Miragon/homebrew-tap
+    needs: verify
+    if: ${{ !inputs.dry-run }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions: {}
+    concurrency:
+      group: homebrew-tap
+      cancel-in-progress: false
+    env:
+      VERSION: ${{ inputs.version }}
+      TAP: Miragon/homebrew-tap
+    steps:
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: cli-homebrew-formula
+          path: ${{ runner.temp }}/formula
+
+      - id: tap-token
+        name: Create a GitHub App token
+        uses: actions/create-github-app-token@v3.3.0
+        with:
+          client-id: ${{ vars.RELEASE_PLEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_PLEASE_APP_PRIVATE_KEY }}
+          owner: Miragon
+          repositories: homebrew-tap
+          permission-contents: write
+          permission-pull-requests: write
+
+      # A re-run replaces the branch; a tap that already holds this formula and the rename is
+      # left alone.
+      - name: Open and squash-merge the pull request
+        env:
+          GH_TOKEN: ${{ steps.tap-token.outputs.token }}
+        run: |
+          formula="$RUNNER_TEMP/formula/pulse-cli.rb"
+          branch="pulse-cli-${VERSION}"
+          # gh prints the error body of a 404 on stdout, so a missing file is the failed call.
+          sha_on_main() {
+            local sha
+            sha="$(gh api "repos/${TAP}/contents/$1?ref=main" --jq .sha 2>/dev/null)" || sha=""
+            printf '%s' "$sha"
+          }
+          current="$(sha_on_main Formula/pulse-cli.rb)"
+          renamed="$(sha_on_main Formula/operate.rb)"
+          renames_sha="$(sha_on_main formula_renames.json)"
+          renames='{}'
+          if [ -n "$renames_sha" ]; then
+            renames="$(gh api "repos/${TAP}/contents/formula_renames.json?ref=main" --jq .content | base64 -d)"
+          fi
+          wanted="$(jq -S '. + {"operate": "pulse-cli"}' <<<"$renames")"
+          if [ "$current" = "$(git hash-object "$formula")" ] && [ -z "$renamed" ] &&
+            [ "$(jq -S . <<<"$renames")" = "$wanted" ]; then
+            echo "::notice::${TAP} already holds pulse-cli ${VERSION} and the rename"
+            exit 0
+          fi
+          main="$(gh api "repos/${TAP}/git/ref/heads/main" --jq .object.sha)"
+          gh api -X DELETE "repos/${TAP}/git/refs/heads/${branch}" > /dev/null 2>&1 || true
+          gh api "repos/${TAP}/git/refs" -f ref="refs/heads/${branch}" -f sha="$main" > /dev/null
+          gh api -X PUT "repos/${TAP}/contents/Formula/pulse-cli.rb" -f branch="$branch" \
+            -f message="chore: update pulse-cli to ${VERSION}" -f content="$(base64 -w0 "$formula")" \
+            ${current:+-f sha="$current"} > /dev/null
+          body="Automated formula update for [pulse-cli ${VERSION}](https://github.com/Miragon/pulse/releases/tag/v${VERSION})."
+          if [ "$(jq -S . <<<"$renames")" != "$wanted" ]; then
+            gh api -X PUT "repos/${TAP}/contents/formula_renames.json" -f branch="$branch" \
+              -f message="chore: rename the formula operate to pulse-cli" \
+              -f content="$(printf '%s\n' "$wanted" | base64 -w0)" \
+              ${renames_sha:+-f sha="$renames_sha"} > /dev/null
+            body="${body} Renames the formula operate to pulse-cli (formula_renames.json), so brew upgrade moves existing installs."
+          fi
+          if [ -n "$renamed" ]; then
+            gh api -X DELETE "repos/${TAP}/contents/Formula/operate.rb" -f branch="$branch" \
+              -f message="chore: remove the formula operate, renamed to pulse-cli" -f sha="$renamed" > /dev/null
+          fi
+          gh pr create --repo "$TAP" --base main --head "$branch" \
+            --title "chore: update pulse-cli to ${VERSION}" --body "$body"
+          gh pr merge "$branch" --repo "$TAP" --squash --delete-branch

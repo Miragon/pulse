@@ -1,0 +1,71 @@
+{
+  "name": "@miragon/pulse-cli",
+  "version": "0.21.0",
+  "description": "AI-first command line interface for the Camunda 7 REST API. Works with Operaton, CIB seven and Camunda 7.",
+  "keywords": [
+    "camunda",
+    "camunda7",
+    "operaton",
+    "cibseven",
+    "bpmn",
+    "cli",
+    "rest",
+    "ai-agents",
+    "pulse"
+  ],
+  "license": "MIT",
+  "author": "Miragon GmbH",
+  "homepage": "https://miragon.github.io/pulse/cli/",
+  "bugs": "https://github.com/Miragon/pulse/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Miragon/pulse.git",
+    "directory": "apps/cli"
+  },
+  "type": "module",
+  "bin": {
+    "pulse-cli": "dist/pulse-cli.js"
+  },
+  "files": [
+    "dist",
+    "skills",
+    "!skills/pulse-cli/evals",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "build:standalone": "tsdown -c tsdown.standalone.config.ts",
+    "build:exe": "tsx scripts/build-exe.ts",
+    "catalog": "tsx scripts/generate-catalog.ts",
+    "catalog:check": "tsx scripts/generate-catalog.ts --check",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src scripts test *.config.ts",
+    "lint:fix": "eslint src scripts test *.config.ts --fix",
+    "test": "vitest run",
+    "test:engines": "vitest run --config vitest.integration.config.ts",
+    "test:mutation": "stryker run"
+  },
+  "dependencies": {
+    "commander": "15.0.0"
+  },
+  "devDependencies": {
+    "@stryker-mutator/core": "10.0.0",
+    "@stryker-mutator/vitest-runner": "10.0.0",
+    "@types/node": "22.20.5",
+    "fast-check": "4.10.2",
+    "postject": "1.0.0-alpha.6",
+    "prettier": "3.9.10",
+    "testcontainers": "12.2.1",
+    "tsdown": "0.23.1",
+    "tsx": "4.23.15",
+    "typescript": "6.0.3",
+    "vitest": "4.1.11"
+  }
+}

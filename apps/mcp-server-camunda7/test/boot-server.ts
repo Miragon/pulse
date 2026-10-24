@@ -22,6 +22,8 @@ const FIXTURE_JS = path.join(import.meta.dirname, "fixtures", "mcp-app.js")
  */
 const BASE_ENV: Record<string, string | undefined> = {
   CAMUNDA_BASE_URL: "http://localhost:1",
+  CAMUNDA_ENGINE_ID: undefined,
+  CAMUNDA_ENGINE_FLAVOR: undefined,
   CAMUNDA_ENGINES_FILE: undefined,
   CAMUNDA_ENGINES_JSON: undefined,
   CAMUNDA_COCKPIT_URL: undefined,

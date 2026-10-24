@@ -2,6 +2,12 @@
 # Replace with a GitHub team (e.g. `@Miragon/pulse`) once one exists.
 * @dominikhorn93
 
+# The CLI (apps/cli), its pages of the docs site and its release workflows.
+/apps/cli/ @dominikhorn93 @emaarco
+/docs/cli/ @dominikhorn93 @emaarco
+/.github/workflows/publish-cli.yml @dominikhorn93 @emaarco
+/.github/workflows/publish-homebrew.yml @dominikhorn93 @emaarco
+
 # The VS Code extension (imported from Miragon/pulse-vscode) and its release path. The ruleset
 # requires no code-owner review, so these lines only route review requests; the last matching
 # line wins, so files under apps/vscode/ request their author instead of the default owner.

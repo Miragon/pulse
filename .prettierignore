@@ -26,6 +26,10 @@ docs/.vitepress/cache/
 # formatted or hand-edited here.
 docs/.vitepress/miragon/
 
+# The CLI's vendored OpenAPI spec (Operaton REST 1.0.1) and its JSON patches: the catalog
+# generator reads them byte for byte (apps/cli/scripts/catalog/files.ts).
+apps/cli/spec/
+
 # The VS Code extension (apps/vscode): the Miragon tokens of its webview, vendored byte for
 # byte from Miragon/corporate-identity and pinned by their manifest (the token drift test in
 # apps/mcp-server-camunda7/test/ui-stylesheet.test.ts), and the screenshot index

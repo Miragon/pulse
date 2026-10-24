@@ -1,0 +1,4 @@
+# The CLI image (Dockerfile, build context apps/cli) needs the standalone bundle only:
+# pnpm --fail-if-no-match --filter @miragon/pulse-cli run build:standalone writes it.
+*
+!build/standalone/pulse-cli.cjs

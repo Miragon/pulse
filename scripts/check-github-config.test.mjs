@@ -1,5 +1,6 @@
 import assert from "node:assert/strict"
 import { execFileSync, spawnSync } from "node:child_process"
+import { createHash } from "node:crypto"
 import {
   existsSync,
   mkdirSync,
@@ -15,7 +16,10 @@ import { after, describe, it } from "node:test"
 import { fileURLToPath } from "node:url"
 import { parse } from "yaml"
 import {
+  BEFORE_THE_GATE,
   CI_WORKFLOW,
+  CLI_PUBLISH_TRIGGERS,
+  CLI_PUBLISH_WORKFLOWS,
   INCREMENTAL_FILE,
   MUTATION_TIMEOUT_CEILING,
   NIGHTLY_WORKFLOW,
@@ -28,12 +32,15 @@ import {
   VSCODE_SWITCH,
   actionRefs,
   checkArtifactGlobs,
+  checkCliPublishWorkflows,
   checkDependabot,
   checkNightlyMutation,
   checkPlaywrightPins,
+  checkPluginVersions,
   checkPublishMatrix,
   checkPublishWorkflow,
   checkReleaseExtraFiles,
+  checkReleaseGate,
   checkRepo,
   checkRequiredChecks,
   checkStrykerIncremental,
@@ -41,6 +48,7 @@ import {
   expectedRepository,
   isNpmPublished,
   packageManagerRun,
+  pluginManifests,
   readWorkspace,
 } from "./check-github-config.mjs"
 import { workspaceGlobs } from "./check-package-scripts.mjs"
@@ -2020,5 +2028,400 @@ describe("the nightly steps", () => {
         `--fail-if-no-match --filter ./apps/cli ${expected}`,
       )
     }
+  })
+})
+
+// ── release-please.yml: the release gate ────────────────────────────────────
+
+describe("checkReleaseGate", () => {
+  const release = () => readDoc(RELEASE_WORKFLOW)
+
+  it("accepts the real release workflow", () => {
+    assert.deepEqual(checkReleaseGate(release()), [])
+  })
+
+  it("rejects a publish job that skips the approval, directly or through another job", () => {
+    const doc = release()
+    doc.jobs["publish-cli"].needs = ["release-please"]
+    const errors = checkReleaseGate(doc)
+    assert.equal(errors.length, 2)
+    assert.match(errors[0], /job publish-cli never waits for gate/)
+    assert.match(errors[1], /job publish-homebrew never waits for gate/)
+  })
+
+  it("rejects a status check function in the if of a job past the approval", () => {
+    const doc = release()
+    doc.jobs["publish-cli"].if = "${{ always() }}"
+    doc.jobs["publish-npm"].if = "${{ !cancelled() && inputs.dry_run == true }}"
+    doc.jobs["publish-maven"].if = "${{ success() || true }}"
+    doc.jobs["publish-docker"].if = "failure ()"
+    doc.jobs["sync-template-mirror"].if = "${{ cancelled() }}"
+    const errors = checkReleaseGate(doc)
+    assert.equal(errors.length, 5)
+    assert.match(errors[0], /job publish-maven's if uses the status check function success\(\)/)
+    assert.match(errors[1], /job publish-docker's if uses the status check function failure \(\)/)
+    assert.match(errors[2], /job publish-npm's if uses the status check function cancelled\(\)/)
+    assert.match(errors[3], /job publish-cli's if uses the status check function always\(\)/)
+    assert.match(errors[4], /job sync-template-mirror's .* cancelled\(\): it would run after/)
+    // the gate's own condition and an output named like a function stay allowed
+    const quiet = release()
+    quiet.jobs.gate.if = "${{ always() }}"
+    quiet.jobs["publish-homebrew"].if = "${{ needs.release-please.outputs.successful == 'true' }}"
+    assert.deepEqual(checkReleaseGate(quiet), [])
+  })
+
+  it("rejects a gate outside the release environment", () => {
+    const doc = release()
+    delete doc.jobs.gate.environment
+    assert.match(checkReleaseGate(doc)[0], /job gate must run in the environment release/)
+  })
+
+  it("survives a cycle and an unknown need", () => {
+    const doc = {
+      jobs: { gate: { environment: "release" }, a: { needs: ["b"] }, b: { needs: ["a", "nope"] } },
+    }
+    assert.equal(checkReleaseGate(doc).length, 2)
+    assert.deepEqual(BEFORE_THE_GATE, ["release-please", "gate"])
+  })
+})
+
+// ── publish-cli.yml + publish-homebrew.yml ──────────────────────────────────
+
+describe("checkCliPublishWorkflows", () => {
+  const workflows = () =>
+    new Map([RELEASE_WORKFLOW, ...CLI_PUBLISH_WORKFLOWS].map((file) => [file, readDoc(file)]))
+
+  it("accepts the real workflows", () => {
+    assert.deepEqual(checkCliPublishWorkflows(workflows()), [])
+  })
+
+  it("rejects a package manager next to a write grant, not in a contents: read job", () => {
+    const docs = workflows()
+    const cli = docs.get(CLI_PUBLISH_WORKFLOWS[0])
+    cli.jobs.image.steps.splice(1, 0, { run: "pnpm install --frozen-lockfile" })
+    cli.jobs.assets.steps.push({ run: "npx some-tool" })
+    const errors = checkCliPublishWorkflows(docs)
+    assert.equal(errors.length, 2)
+    assert.match(errors[0], /job assets holds .* and runs "npx"/)
+    assert.match(errors[1], /job image holds .* and runs "pnpm"/)
+  })
+
+  it("rejects a package manager next to an App token, a secret or a minted token", () => {
+    const docs = workflows()
+    const brew = docs.get(CLI_PUBLISH_WORKFLOWS[1])
+    brew.jobs.publish.steps.splice(2, 0, { run: "npx some-tool" })
+    brew.jobs.formula.steps.push({
+      env: { NPM_TOKEN: "${{ secrets.NPM_TOKEN }}" },
+      run: "npm ci",
+    })
+    brew.jobs.verify.steps.push({
+      env: { GH_TOKEN: "${{ needs.formula.outputs.tap-token }}" },
+      run: "yarn install",
+    })
+    const errors = checkCliPublishWorkflows(docs)
+    assert.equal(errors.length, 3)
+    assert.match(errors[0], /job formula holds a secret and runs "npm ci"/)
+    assert.match(errors[1], /job verify holds a minted token and runs "yarn"/)
+    assert.match(errors[2], /job publish holds an App token and runs "npx"/)
+  })
+
+  it("lets a contents: read job with only its own GITHUB_TOKEN run a package manager", () => {
+    const docs = workflows()
+    const cli = docs.get(CLI_PUBLISH_WORKFLOWS[0])
+    cli.jobs.bundle.steps.push({
+      env: { GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}" },
+      run: "pnpm --version",
+    })
+    assert.deepEqual(checkCliPublishWorkflows(docs), [])
+  })
+
+  it("rejects string permissions, top-level grants, caches, persisted credentials and expressions in run", () => {
+    const docs = workflows()
+    const brew = docs.get(CLI_PUBLISH_WORKFLOWS[1])
+    brew.permissions = { contents: "read" }
+    brew.jobs.publish.permissions = "write-all"
+    brew.jobs.formula.steps[0].with = {}
+    brew.jobs.verify.steps.push({ uses: "actions/cache@v6.1.0", with: { path: "x", key: "y" } })
+    brew.jobs.verify.steps.push({ run: 'echo "${{ inputs.version }}"' })
+    const errors = checkCliPublishWorkflows(docs)
+    assert.equal(errors.length, 5)
+    assert.match(errors[0], /top-level permissions must be \{\}/)
+  })
+
+  it("demands that the release calls each one and that it runs on its own triggers only", () => {
+    const docs = workflows()
+    delete docs.get(RELEASE_WORKFLOW).jobs["publish-homebrew"]
+    docs.get(CLI_PUBLISH_WORKFLOWS[0]).on.workflow_dispatch = {}
+    docs.get(CLI_PUBLISH_WORKFLOWS[1]).on.push = { branches: ["main"] }
+    const errors = checkCliPublishWorkflows(docs)
+    assert.equal(errors.length, 3)
+    assert.match(
+      errors[0],
+      /publish-cli\.yml: runs on workflow_dispatch; it runs on workflow_call only/,
+    )
+    assert.match(errors[1], /no job calls \.\/\.github\/workflows\/publish-homebrew\.yml/)
+    assert.match(errors[2], /publish-homebrew\.yml: runs on push; it runs on workflow_call and/)
+    assert.deepEqual(Object.keys(CLI_PUBLISH_TRIGGERS), CLI_PUBLISH_WORKFLOWS)
+  })
+
+  it("names a missing workflow, and a release that calls nothing", () => {
+    const docs = workflows()
+    docs.delete(CLI_PUBLISH_WORKFLOWS[1])
+    assert.match(checkCliPublishWorkflows(docs)[0], /publish-homebrew\.yml is missing/)
+    docs.delete(RELEASE_WORKFLOW)
+    assert.match(
+      checkCliPublishWorkflows(docs)[0],
+      /no job calls \.\/\.github\/workflows\/publish-cli\.yml/,
+    )
+  })
+})
+
+describe("checkPluginVersions", () => {
+  const config = () =>
+    JSON.parse(readFileSync(path.join(ROOT, "release-please-config.json"), "utf8"))
+
+  it("accepts the real config and finds every app's plugin manifest", () => {
+    const manifests = pluginManifests(ROOT, readWorkspace(ROOT))
+    assert.deepEqual(checkPluginVersions(config(), manifests), [])
+  })
+
+  it("demands a plugin manifest an app ships", () => {
+    const root = tempDir("plugin-manifests-")
+    writeFile(root, "apps/cli/skills/pulse-cli/.claude-plugin/plugin.json", '{"version":"0.0.0"}\n')
+    writeFile(root, "apps/cli/skills/notes.md", "no plugin\n")
+    writeFile(root, "packages/core/x/skills/y/.claude-plugin/plugin.json", "{}\n")
+    const manifests = pluginManifests(root, [{ dir: "apps/cli" }, { dir: "packages/core/x" }])
+    assert.deepEqual(manifests, ["apps/cli/skills/pulse-cli/.claude-plugin/plugin.json"])
+    assert.match(
+      checkPluginVersions({ packages: { ".": { "extra-files": [] } } }, manifests)[0],
+      /plugin\.json is missing from extra-files/,
+    )
+  })
+})
+
+// ── Behaviour of the CLI release's bash steps ───────────────────────────────
+
+/** True when `tool` is on PATH: a step that needs it is skipped where it is not. */
+const onPath = (tool) => spawnSync(BASH, ["-c", `command -v ${tool}`]).status === 0
+const CLI_RELEASE = readDoc(CLI_PUBLISH_WORKFLOWS[0])
+const HOMEBREW = readDoc(CLI_PUBLISH_WORKFLOWS[1])
+
+describe("the CLI release's Resolve version step", () => {
+  const script = stepNamed(CLI_RELEASE.jobs.bundle, "version").run
+  const resolve = (VERSION) => {
+    const dir = tempDir("gh-config-cli-version-")
+    writeFile(dir, "apps/cli/package.json", JSON.stringify({ version: "1.2.3" }))
+    const output = path.join(dir, "github-output")
+    writeFileSync(output, "")
+    const env = { PATH: `${path.dirname(process.execPath)}:${process.env.PATH}` }
+    const result = runStep(script, { cwd: dir, env: { ...env, VERSION, GITHUB_OUTPUT: output } })
+    return { ...result, output: readFileSync(output, "utf8").trim() }
+  }
+
+  for (const [VERSION, why] of [
+    ["1.2.3", "the release version, which apps/cli/package.json carries"],
+    ["", "apps/cli/package.json's version on a dry run"],
+  ]) {
+    it(`resolves ${why}`, () => {
+      const result = resolve(VERSION)
+      assert.equal(result.status, 0, result.stdout + result.stderr)
+      assert.equal(result.output, "version=1.2.3")
+    })
+  }
+
+  it("refuses a release that left apps/cli/package.json behind", () => {
+    const result = resolve("1.2.4")
+    assert.equal(result.status, 1)
+    assert.match(result.stdout, /apps\/cli\/package\.json is 1\.2\.3, the release is 1\.2\.4/)
+    assert.equal(result.output, "")
+  })
+})
+
+describe("the CLI release's checksums step", () => {
+  const script = stepNamed(CLI_RELEASE.jobs.assets, "Write pulse-cli-SHA256SUMS").run
+  const BINARIES = CLI_RELEASE.jobs.binaries.strategy.matrix.include.map(({ file }) => file)
+  const ASSETS = [
+    ...BINARIES,
+    ...BINARIES.filter((file) => !file.endsWith(".exe")).map((file) => `${file}.tar.xz`),
+  ].sort()
+  const write = (files) => {
+    const dir = tempDir("gh-config-cli-sums-")
+    for (const file of files) writeFile(dir, file, `${file}\n`)
+    const result = runStep(script, { cwd: dir, env: {} })
+    const sums = path.join(dir, "pulse-cli-SHA256SUMS")
+    return { ...result, sums: existsSync(sums) ? readFileSync(sums, "utf8") : undefined }
+  }
+  const skip = !onPath("sha256sum") && "sha256sum is not on PATH"
+
+  it("checksums the five binaries and the four archives", { skip }, () => {
+    assert.equal(ASSETS.length, 9)
+    const result = write(ASSETS)
+    assert.equal(result.status, 0, result.stdout + result.stderr)
+    const lines = result.sums.trim().split("\n")
+    assert.deepEqual(
+      lines.map((line) => line.split(/\s+/)[1]),
+      ASSETS,
+    )
+    const sha = createHash("sha256").update(`${ASSETS[0]}\n`).digest("hex")
+    assert.equal(lines[0], `${sha}  ${ASSETS[0]}`)
+  })
+
+  it("refuses a set with a binary missing", { skip }, () => {
+    const result = write(ASSETS.slice(1))
+    assert.equal(result.status, 1)
+    assert.match(result.stdout, /Expected 5 binaries and 4 archives, got 8/)
+    assert.equal(result.sums, undefined)
+  })
+})
+
+/** The git blob id, which the contents API reports as a file's sha. */
+const blobSha = (text) =>
+  createHash("sha1")
+    .update(`blob ${Buffer.byteLength(text)}\0${text}`)
+    .digest("hex")
+
+/**
+ * A stub gh over a fixture tap (tap.json: path -> content on main): logs every call, answers the
+ * contents and ref reads, and prints a 404's body on stdout as gh does. A stub base64 with GNU's
+ * -w0 and -d, which macOS lacks.
+ */
+const GH_STUB = `#!/usr/bin/env node
+const fs = require("node:fs")
+const path = require("node:path")
+const crypto = require("node:crypto")
+const args = process.argv.slice(2)
+fs.appendFileSync(path.join(process.env.STUB, "calls"), JSON.stringify(args) + "\\n")
+const tap = JSON.parse(fs.readFileSync(path.join(process.env.STUB, "tap.json"), "utf8"))
+const write = args.includes("-X") || args.includes("-f")
+const read = /^repos\\/Miragon\\/homebrew-tap\\/contents\\/(.+)\\?ref=main$/.exec(args[1] ?? "")
+if (args[0] === "api" && !write && read) {
+  const text = tap[read[1]]
+  if (text === undefined) {
+    console.log('{"message":"Not Found","status":"404"}')
+    process.exit(1)
+  }
+  const jq = args[args.indexOf("--jq") + 1]
+  const sha = crypto.createHash("sha1").update("blob " + Buffer.byteLength(text) + "\\0" + text)
+  console.log(jq === ".sha" ? sha.digest("hex") : Buffer.from(text).toString("base64").replace(/.{60}/g, "$&\\n"))
+} else if (args[0] === "api" && !write && args[1] === "repos/Miragon/homebrew-tap/git/ref/heads/main") {
+  console.log("c0ffee")
+}
+`
+const BASE64_STUB = `#!/usr/bin/env node
+const fs = require("node:fs")
+const [flag, file] = process.argv.slice(2)
+if (flag === "-d") process.stdout.write(Buffer.from(fs.readFileSync(0, "utf8").replace(/\\s/g, ""), "base64"))
+else if (flag === "-w0") process.stdout.write(fs.readFileSync(file ?? 0).toString("base64"))
+else process.exit(2)
+`
+
+describe("the CLI release's tap update", () => {
+  const script = stepNamed(HOMEBREW.jobs.publish, "Open and squash-merge the pull request").run
+  const FORMULA = 'class PulseCli < Formula\n  desc "fixture"\nend\n'
+  const OLD = "class Operate < Formula\nend\n"
+  const RENAMED = '{\n  "operate": "pulse-cli"\n}\n'
+  const skip = !onPath("jq") && "jq is not on PATH"
+  const lines = (text) => text.split("\n").filter(Boolean)
+
+  function publish(tap) {
+    const dir = tempDir("gh-config-tap-")
+    writeFile(dir, "formula/pulse-cli.rb", FORMULA)
+    writeFile(dir, "tap.json", JSON.stringify(tap))
+    writeFile(dir, "bin/gh", GH_STUB, 0o755)
+    writeFile(dir, "bin/base64", BASE64_STUB, 0o755)
+    const result = runStep(script, {
+      cwd: dir,
+      env: {
+        PATH: `${dir}/bin:${path.dirname(process.execPath)}:${process.env.PATH}`,
+        STUB: dir,
+        RUNNER_TEMP: dir,
+        VERSION: "1.2.3",
+        TAP: "Miragon/homebrew-tap",
+      },
+    })
+    const log = path.join(dir, "calls")
+    const calls = existsSync(log) ? lines(readFileSync(log, "utf8")).map((l) => JSON.parse(l)) : []
+    return { ...result, calls }
+  }
+  const field = (call, name) =>
+    call
+      .find((arg, index) => call[index - 1] === "-f" && arg.startsWith(`${name}=`))
+      ?.slice(name.length + 1)
+  const writes = (calls) =>
+    calls.filter(
+      (call) => call[0] === "pr" || (call.includes("-X") && call[3]?.includes("/contents/")),
+    )
+  const decoded = (call) => Buffer.from(field(call, "content"), "base64").toString("utf8")
+
+  it(
+    "adds the formula, the rename and the removal of operate.rb on the first publish",
+    { skip },
+    () => {
+      const result = publish({ "Formula/operate.rb": OLD })
+      assert.equal(result.status, 0, result.stdout + result.stderr)
+      const branchFrom = result.calls.find(
+        (call) => call[1] === "repos/Miragon/homebrew-tap/git/refs",
+      )
+      assert.equal(field(branchFrom, "ref"), "refs/heads/pulse-cli-1.2.3")
+      assert.equal(field(branchFrom, "sha"), "c0ffee")
+      const [formula, renames, removal, create, merge] = writes(result.calls)
+      assert.equal(formula[3], "repos/Miragon/homebrew-tap/contents/Formula/pulse-cli.rb")
+      assert.equal(field(formula, "branch"), "pulse-cli-1.2.3")
+      assert.equal(decoded(formula), FORMULA)
+      assert.equal(field(formula, "sha"), undefined)
+      assert.equal(renames[3], "repos/Miragon/homebrew-tap/contents/formula_renames.json")
+      assert.equal(decoded(renames), RENAMED)
+      assert.equal(field(renames, "sha"), undefined)
+      assert.deepEqual(removal.slice(0, 4), [
+        "api",
+        "-X",
+        "DELETE",
+        "repos/Miragon/homebrew-tap/contents/Formula/operate.rb",
+      ])
+      assert.equal(field(removal, "sha"), blobSha(OLD))
+      assert.deepEqual(create.slice(0, 2), ["pr", "create"])
+      assert.match(create.join(" "), /Renames the formula operate to pulse-cli/)
+      assert.deepEqual(merge, [
+        "pr",
+        "merge",
+        "pulse-cli-1.2.3",
+        "--repo",
+        "Miragon/homebrew-tap",
+        "--squash",
+        "--delete-branch",
+      ])
+    },
+  )
+
+  it("keeps the tap's other renames and names the file's sha", { skip }, () => {
+    const renames = '{ "foo": "bar" }\n'
+    const result = publish({ "Formula/operate.rb": OLD, "formula_renames.json": renames })
+    assert.equal(result.status, 0, result.stdout + result.stderr)
+    const write = writes(result.calls).find((call) => call[3]?.endsWith("formula_renames.json"))
+    assert.deepEqual(JSON.parse(decoded(write)), { foo: "bar", operate: "pulse-cli" })
+    assert.equal(field(write, "sha"), blobSha(renames))
+  })
+
+  it("updates only the formula once the rename is in", { skip }, () => {
+    const current = "class PulseCli < Formula\nend\n"
+    const result = publish({ "Formula/pulse-cli.rb": current, "formula_renames.json": RENAMED })
+    assert.equal(result.status, 0, result.stdout + result.stderr)
+    const [formula, create, merge] = writes(result.calls)
+    assert.equal(formula[3], "repos/Miragon/homebrew-tap/contents/Formula/pulse-cli.rb")
+    assert.equal(field(formula, "sha"), blobSha(current))
+    assert.deepEqual(create.slice(0, 2), ["pr", "create"])
+    assert.doesNotMatch(create.join(" "), /Renames/)
+    assert.deepEqual(merge.slice(0, 2), ["pr", "merge"])
+  })
+
+  it("leaves a tap alone that holds this formula and the rename", { skip }, () => {
+    const result = publish({ "Formula/pulse-cli.rb": FORMULA, "formula_renames.json": RENAMED })
+    assert.equal(result.status, 0, result.stdout + result.stderr)
+    assert.match(result.stdout, /already holds pulse-cli 1\.2\.3 and the rename/)
+    assert.deepEqual(writes(result.calls), [])
+    assert.equal(
+      result.calls.filter((call) => call.includes("-X") || call.includes("-f")).length,
+      0,
+    )
   })
 })

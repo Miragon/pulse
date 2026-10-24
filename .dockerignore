@@ -21,6 +21,11 @@ engine-plugins/build
 engine-plugins/**/build
 playground/cibseven-example/.gradle
 playground/cibseven-example/build
+# The CLI (apps/cli) builds its own image from its own context (apps/cli/Dockerfile); the
+# server's build stage needs its package.json only, for the frozen workspace install.
+apps/cli/*
+!apps/cli/package.json
+
 # The VS Code extension (apps/vscode): the VS Code test downloads (wherever vscode-test ran),
 # packaged extensions, the dev-host build, its docs (screenshots) and the shop sandbox never
 # enter the image build; the install needs its package.json only.

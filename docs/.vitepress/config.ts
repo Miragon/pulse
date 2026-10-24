@@ -27,23 +27,70 @@ export default miragonDocs({
     { text: "Operations", link: "/operations" },
     { text: "Architecture", link: "/architecture" },
     { text: "Developers", link: "/developer" },
+    { text: "CLI", link: "/cli/" },
   ],
 
-  sidebar: [
-    {
-      text: "Start",
-      items: [
-        { text: "Getting started", link: "/getting-started" },
-        { text: "Usage", link: "/usage" },
-      ],
-    },
-    {
-      text: "Reference",
-      items: [
-        { text: "Operations", link: "/operations" },
-        { text: "Architecture", link: "/architecture" },
-        { text: "Developer guide", link: "/developer" },
-      ],
-    },
-  ],
+  // One sidebar per part of the site, keyed by path: the CLI's pages under docs/cli/, the
+  // server's pages at the root.
+  sidebar: {
+    "/cli/": [
+      {
+        text: "Getting started",
+        items: [
+          { text: "Getting started", link: "/cli/getting-started" },
+          { text: "Quick start", link: "/cli/quick-start" },
+          { text: "Installation", link: "/cli/installation" },
+        ],
+      },
+      {
+        text: "Commands",
+        items: [
+          { text: "Workflow commands", link: "/cli/workflow-commands" },
+          { text: "Command structure", link: "/cli/commands" },
+          { text: "Recipes", link: "/cli/recipes" },
+          { text: "Output and errors", link: "/cli/output-and-errors" },
+          { text: "Safety", link: "/cli/safety" },
+        ],
+      },
+      {
+        text: "Setup",
+        items: [
+          { text: "Configuration", link: "/cli/configuration" },
+          { text: "Authentication", link: "/cli/authentication" },
+          { text: "Engines", link: "/cli/engines" },
+        ],
+      },
+      {
+        text: "AI agents",
+        items: [{ text: "Using the CLI from AI agents", link: "/cli/agents" }],
+      },
+      {
+        text: "Contributing",
+        collapsed: true,
+        items: [
+          { text: "Development", link: "/cli/development" },
+          { text: "Releasing", link: "/cli/releasing" },
+          { text: "Architecture", link: "/cli/architecture" },
+          { text: "Architecture decisions", link: "/cli/adr/" },
+        ],
+      },
+    ],
+    "/": [
+      {
+        text: "Start",
+        items: [
+          { text: "Getting started", link: "/getting-started" },
+          { text: "Usage", link: "/usage" },
+        ],
+      },
+      {
+        text: "Reference",
+        items: [
+          { text: "Operations", link: "/operations" },
+          { text: "Architecture", link: "/architecture" },
+          { text: "Developer guide", link: "/developer" },
+        ],
+      },
+    ],
+  },
 })
