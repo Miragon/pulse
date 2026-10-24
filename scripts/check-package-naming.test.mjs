@@ -1,14 +1,17 @@
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { createRequire } from "node:module"
 import { tmpdir } from "node:os"
 import path from "node:path"
 import { describe, it } from "node:test"
 import { fileURLToPath } from "node:url"
+import vm from "node:vm"
 import {
   CONNECTOR_ROLES,
   GENERATED_DIRS,
+  RESERVED_APP_NAMES,
+  checkAppDependencies,
   checkLayout,
   checkPackageName,
   checkPackageNaming,
@@ -474,6 +477,145 @@ describe("versionFloor and compareVersions", () => {
   })
 })
 
+describe("checkAppDependencies: no package declares an app", () => {
+  const SERVER = "apps/mcp-server-camunda7"
+  const server = (extra = {}) => [SERVER, { name: "@miragon/pulse-mcp-server-camunda7", ...extra }]
+  const cli = (extra = {}) => ["apps/cli", { name: "@miragon/pulse-cli", ...extra }]
+  const extension = (extra = {}) => ["apps/vscode", { ...EXTENSION, ...extra }]
+  const shell = (extra = {}) => [
+    "packages/core/widget-shell",
+    { ...scoped("widget-shell"), ...extra },
+  ]
+  const today = (...overrides) => {
+    const packages = new Map([server(), shell()])
+    for (const [dir, manifest] of overrides) packages.set(dir, manifest)
+    return [...packages]
+  }
+  const future = (...overrides) => today(cli(), extension(), ...overrides)
+  const DECLARES =
+    /declares the app .*only through such a declaration.*no CLI inside the MCP server/
+
+  it("fails the MCP server declaring the CLI, in every dependency field", () => {
+    for (const field of [
+      "dependencies",
+      "devDependencies",
+      "peerDependencies",
+      "optionalDependencies",
+    ]) {
+      const errors = checkAppDependencies(
+        future(server({ [field]: { "@miragon/pulse-cli": "workspace:*" } })),
+      )
+      assertOne(errors, new RegExp(`^${SERVER}/package\\.json: ${field} declares the app`), field)
+      assert.match(errors[0], /@miragon\/pulse-cli \(apps\/cli\)/, field)
+      assert.match(errors[0], DECLARES, field)
+    }
+  })
+
+  it("fails the extension declaring the CLI", () => {
+    assertOne(
+      checkAppDependencies(future(extension({ dependencies: { "@miragon/pulse-cli": "1.0.0" } }))),
+      /^apps\/vscode\/package\.json: dependencies declares the app @miragon\/pulse-cli/,
+      "extension",
+    )
+  })
+
+  it("fails a package or another app declaring the server", () => {
+    const declared = { devDependencies: { "@miragon/pulse-mcp-server-camunda7": "workspace:*" } }
+    const errors = checkAppDependencies(future(shell(declared), cli(declared)))
+    assert.deepEqual(errors.map((error) => error.split(":")[0]).sort(), [
+      "apps/cli/package.json",
+      "packages/core/widget-shell/package.json",
+    ])
+    assert.match(errors[0], /@miragon\/pulse-mcp-server-camunda7 \(apps\/mcp-server-camunda7\)/)
+  })
+
+  it("holds the reserved names before their app lands, also from npm", () => {
+    for (const name of RESERVED_APP_NAMES) {
+      const errors = checkAppDependencies(today(server({ dependencies: { [name]: "^1.0.0" } })))
+      assertOne(errors, new RegExp(`declares the app ${name} \\(a name RESERVED_APP_NAMES`), name)
+      assert.match(errors[0], /so not from npm either/, name)
+    }
+  })
+
+  it("fails the root package.json declaring an app (Node resolves it from every directory below)", () => {
+    assertOne(
+      checkAppDependencies(future([".", { devDependencies: { "pulse-vscode": "workspace:*" } }])),
+      /^package\.json: devDependencies declares the app pulse-vscode \(apps\/vscode\)/,
+      "root",
+    )
+  })
+
+  it("fails an app declaring its own name: it imports its own modules by relative path", () => {
+    assertOne(
+      checkAppDependencies(
+        future(cli({ devDependencies: { "@miragon/pulse-cli": "workspace:*" } })),
+      ),
+      /^apps\/cli\/package\.json: devDependencies declares the app @miragon\/pulse-cli/,
+      "self",
+    )
+  })
+
+  it("sees an app behind an npm: or workspace: alias and behind a path into its directory", () => {
+    const errors = checkAppDependencies(
+      future(
+        extension({
+          devDependencies: {
+            engine: "npm:@miragon/pulse-cli@^1",
+            "engine-latest": "npm:@miragon/pulse-cli",
+            local: "workspace:@miragon/pulse-cli@*",
+            linked: "link:../cli",
+            built: "file:../cli/dist",
+            portal: "portal:../mcp-server-camunda7",
+            relative: "workspace:../cli",
+          },
+        }),
+      ),
+    )
+    assert.deepEqual(
+      errors.map((error) => /declares the app (\S+) .* as "([^"]+)"/.exec(error)?.slice(1)),
+      [
+        ["@miragon/pulse-cli", "engine"],
+        ["@miragon/pulse-cli", "engine-latest"],
+        ["@miragon/pulse-cli", "local"],
+        ["@miragon/pulse-cli", "linked"],
+        ["@miragon/pulse-cli", "built"],
+        ["@miragon/pulse-mcp-server-camunda7", "portal"],
+        ["@miragon/pulse-cli", "relative"],
+      ],
+    )
+  })
+
+  it("passes a third-party CLI the extension bundles, look-alike names and other paths", () => {
+    assert.deepEqual(
+      checkAppDependencies(
+        future(
+          extension({
+            dependencies: { "some-engine-cli": "0.9.0", "pulse-vscode-tools": "1.0.0" },
+            devDependencies: {
+              "@miragon/pulse-camunda7-domain": "workspace:*",
+              "@miragon/pulse-client": "workspace:*",
+              core: "workspace:^1.0.0",
+              sibling: "link:../vscode-tools",
+              shared: "file:../../packages/core/widget-shell",
+              absolute: "file:/opt/apps/cli",
+              tarball: "npm:some-engine-cli@0.9.0",
+            },
+            peerDependencies: null,
+            optionalDependencies: "none",
+          }),
+          [".", { devDependencies: { "some-engine-cli": "0.9.0", odd: 1 } }],
+        ),
+      ),
+      [],
+    )
+  })
+
+  it("passes every app's own package.json: its name field names it, no declaration does", () => {
+    assert.deepEqual(checkAppDependencies(future()), [])
+    assert.deepEqual(checkAppDependencies([]), [])
+  })
+})
+
 describe("checkPackageNaming over a fixture tree", () => {
   it("passes the future layout: CLI, extension and a -domain package", () => {
     inTree(FUTURE, (root) => {
@@ -490,6 +632,31 @@ describe("checkPackageNaming over a fixture tree", () => {
     assert.equal(errors.length, 2, JSON.stringify(errors))
     assert.match(errors[0], /^apps\/broken: package\.json is not valid JSON/)
     assert.match(errors[1], /^apps\/leftover: missing package\.json \(a directory left behind/)
+  })
+
+  it("fails a workspace package or the root declaring an app, and a broken root package.json", () => {
+    const errors = namingErrors({
+      ...FUTURE,
+      "package.json": { name: "pulse", devDependencies: { "@miragon/pulse-cli": "workspace:*" } },
+      "apps/mcp-server-camunda7/package.json": {
+        ...FUTURE["apps/mcp-server-camunda7/package.json"],
+        dependencies: { "@miragon/pulse-cli": "workspace:*" },
+      },
+      "docs/package.json": {
+        ...FUTURE["docs/package.json"],
+        devDependencies: { "pulse-vscode": "workspace:*" },
+      },
+    })
+    assert.deepEqual(
+      errors.map((error) => error.split(":")[0]),
+      ["package.json", "apps/mcp-server-camunda7/package.json", "docs/package.json"],
+    )
+    assertOne(
+      namingErrors({ ...FUTURE, "package.json": "{ not json" }),
+      /^package\.json: not valid JSON/,
+      "broken root",
+    )
+    assert.deepEqual(namingErrors({ ...FUTURE, "package.json": { name: "pulse" } }), [])
   })
 
   it("fails a package.json without a name (no silent pass)", () => {
@@ -611,7 +778,8 @@ describe("checkLayout", () => {
         "packages/core/widget-shell/src/Generated",
       ],
     )
-    assert.match(errors[0], /exempt from ESLint, prettier, the source scans and dependency-cruiser/)
+    assert.match(errors[0], /exempt from ESLint, prettier and the app's source scans/)
+    assert.match(errors[0], /dependency-cruiser still reads it/)
     assert.match(errors[0], /GENERATED_DIRS/)
   })
 
@@ -663,7 +831,8 @@ describe("checkLayout", () => {
       errors.map((error) => error.split(":")[0]),
       [...offenders].sort(),
     )
-    assert.match(errors[0], /read \.ts and \.tsx only/)
+    assert.match(errors[0], /ESLint complexity and max-lines budgets and pattern gates/)
+    assert.match(errors[0], /brand-gate scans, which read \.ts and \.tsx only/)
   })
 
   it("leaves scripts outside src/ and .ts/.tsx/.d.ts/.json under src/ alone", () => {
@@ -790,12 +959,40 @@ describe("lockstep with .dependency-cruiser.cjs", () => {
     })
   }
 
+  /** The npm names of the repo's apps (apps/<dir>/package.json). */
+  const realAppNames = () =>
+    listRepoFiles(repoRoot)
+      .filter((file) => /^apps\/[^/]+\/package\.json$/.test(file))
+      .map((file) => require(path.join(repoRoot, file)).name)
+
+  /**
+   * APP_PACKAGES of .dependency-cruiser.cjs. dependency-cruiser refuses any
+   * export besides its config keys, so the file is evaluated with the constant
+   * handed out instead.
+   */
+  const depcruiseAppPackages = () => {
+    const file = path.join(repoRoot, ".dependency-cruiser.cjs")
+    const sandbox = { module: { exports: {} } }
+    vm.runInNewContext(`${readFileSync(file, "utf8")}\n;module.exports = APP_PACKAGES\n`, sandbox, {
+      filename: file,
+    })
+    return [...sandbox.module.exports]
+  }
+
+  it("RESERVED_APP_NAMES are exactly the names APP_PACKAGES holds beyond the repo's apps", () => {
+    const real = realAppNames()
+    assert.ok(real.includes("@miragon/pulse-mcp-server-camunda7"), JSON.stringify(real))
+    const packages = depcruiseAppPackages()
+    for (const name of real) assert.ok(packages.includes(name), `APP_PACKAGES lacks ${name}`)
+    assert.deepEqual(
+      packages.filter((name) => !real.includes(name)).sort(),
+      [...RESERVED_APP_NAMES].sort(),
+      "an app that landed leaves RESERVED_APP_NAMES; a planned one joins both lists",
+    )
+  })
+
   it("packages-never-import-the-app bans every app under both name shapes the gate admits", () => {
-    const apps = new Set(["@miragon/pulse-cli", "pulse-vscode"])
-    for (const dir of listRepoFiles(repoRoot)) {
-      const match = /^apps\/([^/]+)\/package\.json$/.exec(dir)
-      if (match) apps.add(require(path.join(repoRoot, dir)).name)
-    }
+    const apps = new Set([...RESERVED_APP_NAMES, ...realAppNames()])
     const banned = patterns(rule("packages-never-import-the-app")?.to?.path)
     for (const name of apps) {
       const probe = `node_modules/${name}/dist/index.js`

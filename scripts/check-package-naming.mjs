@@ -21,11 +21,22 @@
  *   outside apps/ fails: every npm gate skips an extension, so a package that
  *   declared it would escape them.
  * - A generated/ directory under apps/ or packages/ is exempt from ESLint,
- *   prettier, the source scans and dependency-cruiser, so it exists only where
- *   GENERATED_DIRS lists it with its reason.
- * - No .mts/.cts/.js/.mjs/.cjs/.jsx source under a package's src/: the
- *   complexity/max-lines budgets, the source scans and published-imports read
- *   .ts and .tsx only.
+ *   prettier and the app's source scans (dependency-cruiser excludes only the
+ *   CIB seven SDK and cruises every other generated/ tree), so it exists only
+ *   where GENERATED_DIRS lists it with its reason.
+ * - No .mts/.cts/.js/.mjs/.cjs/.jsx source under a package's src/: the ESLint
+ *   complexity/max-lines budgets and pattern gates (globbed *.{ts,tsx}) and
+ *   widget-shell's brand-gate scans (scanGlyphs, scanColors, scanIconSizes,
+ *   scanTypeScale) read .ts and .tsx only.
+ * - No package.json declares an app (the npm name of an apps/<dir>, or one of
+ *   RESERVED_APP_NAMES) in dependencies, devDependencies, peerDependencies or
+ *   optionalDependencies: not by its name, not as an npm: or workspace: alias,
+ *   not as a file:/link:/portal: path into its directory. That holds for the
+ *   root package.json too (Node resolves what the root declares from every
+ *   directory below it); an app's own package.json names it in `name` only.
+ *   Under pnpm a workspace app is reachable from another package (an import,
+ *   require.resolve, its bin, a spawned process) only through such a
+ *   declaration, and dependency-cruiser sees imports only.
  * - No package.json, lockfile or pnpm-workspace.yaml anywhere else under apps/
  *   or packages/: a nested package falls out of every gate keyed on the layout.
  *
@@ -50,7 +61,8 @@ export const CONNECTOR_ROLES = ["connector", "client", "domain"]
 
 /**
  * The only generated/ directories under apps/ or packages/, each with the
- * reason it may skip ESLint, prettier, the source scans and dependency-cruiser.
+ * reason it may skip ESLint, prettier and the app's source scans
+ * (dependency-cruiser keeps its own exclude list, today only the CIB seven SDK).
  * An entry names output a tool regenerates and nobody edits by hand; an entry
  * whose directory is gone fails as stale.
  */
@@ -58,6 +70,23 @@ export const GENERATED_DIRS = {
   "packages/connectors/camunda/camunda7-client/src/generated":
     "the hey-api SDK `pnpm generate` regenerates from the CIB seven OpenAPI spec; never edited by hand",
 }
+
+/**
+ * The npm names of the apps Pulse plans before they land under apps/: the CLI
+ * and the VS Code extension. They count as app names already, so no package
+ * declares them from npm in the meantime. When an app lands, its name comes
+ * from its package.json, and its entry here goes (a test keeps this list equal
+ * to the names .dependency-cruiser.cjs APP_PACKAGES holds beyond the real apps).
+ */
+export const RESERVED_APP_NAMES = ["@miragon/pulse-cli", "pulse-vscode"]
+
+/** The package.json fields that make another package reachable under pnpm. */
+const DEPENDENCY_FIELDS = [
+  "dependencies",
+  "devDependencies",
+  "peerDependencies",
+  "optionalDependencies",
+]
 
 const SCOPE = "@miragon/pulse-"
 const EXTENSION_PREFIX = "pulse-"
@@ -305,6 +334,68 @@ export function checkPackageName(dir, manifest) {
   return errors
 }
 
+/** The package an `npm:` or `workspace:` alias names (`npm:@miragon/pulse-cli@^1`), else undefined. */
+const aliasTarget = (spec) => /^(?:npm|workspace):((?:@[^/@]+\/)?[^/@]+)(?:@|$)/.exec(spec)?.[1]
+
+/**
+ * The repo-relative directory a relative `file:`, `link:` or `portal:` path or a
+ * `workspace:./path` points to, else undefined (`workspace:*` is a range).
+ */
+function pathTarget(dir, spec) {
+  const match = /^(?:(?:file|link|portal):(?!\/)(.+)|workspace:(\.{1,2}(?:\/.*)?))$/.exec(spec)
+  const target = match?.[1] ?? match?.[2]
+  return target === undefined ? undefined : path.posix.join(dir, target)
+}
+
+/**
+ * Declarations of an app (pure). `packages` are [repo-relative dir, parsed
+ * package.json] pairs ("." is the root); the app names are those of every
+ * apps/<dir> among them plus `reserved`. No package declares an app, its own
+ * name included (an app imports its own modules by relative path): an app's
+ * own package.json names it in `name` only.
+ */
+export function checkAppDependencies(packages, { reserved = RESERVED_APP_NAMES } = {}) {
+  const apps = new Map(reserved.map((name) => [name, undefined]))
+  for (const [dir, manifest] of packages) {
+    if (packageKind(dir) === "app" && typeof manifest?.name === "string") {
+      apps.set(manifest.name, dir)
+    }
+  }
+  /** The app whose directory `target` lies in, else undefined. */
+  const appAt = (target) =>
+    [...apps].find(([, dir]) => dir !== undefined && `${target}/`.startsWith(`${dir}/`))?.[0]
+  const errors = []
+  for (const [dir, manifest] of packages) {
+    for (const field of DEPENDENCY_FIELDS) {
+      const declared = manifest?.[field]
+      if (declared === null || typeof declared !== "object") continue
+      for (const [key, spec] of Object.entries(declared)) {
+        const text = typeof spec === "string" ? spec.trim() : ""
+        const target = pathTarget(dir, text)
+        const app =
+          [key, aliasTarget(text)].find((name) => apps.has(name)) ??
+          (target === undefined ? undefined : appAt(target))
+        if (app === undefined) continue
+        const how = app === key ? "" : ` as ${JSON.stringify(key)}: ${JSON.stringify(text)}`
+        const what =
+          apps.get(app) === undefined
+            ? "a name RESERVED_APP_NAMES keeps for an app, so not from npm either"
+            : apps.get(app)
+        errors.push(
+          `${dir === "." ? "" : `${dir}/`}package.json: ${field} declares the app ${app} ` +
+            `(${what})${how}. Under pnpm a workspace app is reachable from another package ` +
+            `(an import, require.resolve, its bin, a spawned process) only through such a ` +
+            `declaration, and the apps stay apart: no CLI inside the MCP server (no argv tool, ` +
+            `no process), no extension wired to the CLI, no package on top of an app. Move ` +
+            `what two of them share into a package (engine use cases into a -domain package, ` +
+            `MCP plumbing into packages/core) and drop the declaration`,
+        )
+      }
+    }
+  }
+  return errors
+}
+
 const isDirectory = (abs) => existsSync(abs) && statSync(abs).isDirectory()
 
 /** Mirror of a `<rel>/*` workspace glob: the direct child directories. */
@@ -374,6 +465,15 @@ export function checkPackageNaming(root) {
     ...(existsSync(path.join(root, "docs", "package.json")) ? ["docs"] : []),
   ]
   const packageDirs = []
+  const manifests = []
+  const rootManifest = path.join(root, "package.json")
+  if (existsSync(rootManifest)) {
+    try {
+      manifests.push([".", JSON.parse(readFileSync(rootManifest, "utf8"))])
+    } catch (error) {
+      errors.push(`package.json: not valid JSON (${error.message}); fix the file`)
+    }
+  }
   for (const dir of dirs) {
     const file = path.join(root, dir, "package.json")
     if (!existsSync(file)) {
@@ -391,8 +491,10 @@ export function checkPackageNaming(root) {
       continue
     }
     packageDirs.push(dir)
+    manifests.push([dir, manifest])
     errors.push(...checkPackageName(dir, manifest))
   }
+  errors.push(...checkAppDependencies(manifests))
   errors.push(...checkWorkspace(root, packageDirs))
   return { errors, checked: packageDirs.length }
 }
@@ -424,8 +526,9 @@ export function checkLayout(files, { generatedDirs = GENERATED_DIRS } = {}) {
   for (const dir of [...generated].sort()) {
     if (Object.hasOwn(generatedDirs, dir)) continue
     errors.push(
-      `${dir}: a generated/ directory is exempt from ESLint, prettier, the source scans and ` +
-        `dependency-cruiser, so code in it escapes every gate. Rename the directory, or, when ` +
+      `${dir}: a generated/ directory is exempt from ESLint, prettier and the app's source ` +
+        `scans, so code in it escapes lint, formatting and the tool-name and hand-off guards ` +
+        `(dependency-cruiser still reads it). Rename the directory, or, when ` +
         `a tool regenerates it and nobody edits it, list it in GENERATED_DIRS ` +
         `(scripts/check-package-naming.mjs) with the command that regenerates it`,
     )
@@ -439,9 +542,10 @@ export function checkLayout(files, { generatedDirs = GENERATED_DIRS } = {}) {
   }
   for (const file of scripts.sort()) {
     errors.push(
-      `${file}: a ${path.posix.extname(file)} source under src/ escapes the complexity and ` +
-        `max-lines budgets, the source scans and published-imports, which read .ts and .tsx ` +
-        `only; write it as .ts or .tsx (a build script lives at the package root, outside src/)`,
+      `${file}: a ${path.posix.extname(file)} source under src/ escapes the ESLint ` +
+        `complexity and max-lines budgets and pattern gates (globbed *.{ts,tsx}) and ` +
+        `widget-shell's brand-gate scans, which read .ts and .tsx only; write it as .ts or ` +
+        `.tsx (a build script lives at the package root, outside src/)`,
     )
   }
   for (const file of nested.sort()) {
