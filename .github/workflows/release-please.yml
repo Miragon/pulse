@@ -22,6 +22,7 @@ jobs:
     outputs:
       release_created: ${{ steps.rp.outputs.release_created }}
       tag_name: ${{ steps.rp.outputs.tag_name }}
+      version: ${{ steps.rp.outputs.version }}
       paths_released: ${{ steps.rp.outputs.paths_released }}
     steps:
       - uses: actions/create-github-app-token@v3.3.0
@@ -98,6 +99,39 @@ jobs:
       directory: ${{ matrix.directory }}
       version: ${{ needs.release-please.outputs.tag_name }}
       dry_run: ${{ inputs.dry_run == true }}
+
+  # The CLI's channels besides npm (publish-cli.yml): the standalone executables on the GitHub
+  # release, with checksums and attestation, and the image ghcr.io/miragon/pulse-cli. The
+  # grants are the ceiling of the called jobs, each of which narrows itself: the build jobs to
+  # contents: read, the asset upload and the image push to what they write.
+  publish-cli:
+    name: Publish the CLI binaries and image
+    needs: [release-please, gate]
+    if: ${{ needs.release-please.outputs.release_created == 'true' || inputs.dry_run == true }}
+    permissions:
+      contents: write # the binaries on the GitHub release
+      packages: write # push ghcr.io/miragon/pulse-cli
+      id-token: write # Sigstore certificates of the attestations
+      attestations: write # store the attestations
+    uses: ./.github/workflows/publish-cli.yml
+    with:
+      version: ${{ needs.release-please.outputs.version }}
+      dry_run: ${{ inputs.dry_run == true }}
+
+  # The Homebrew formula of the attached binaries (publish-homebrew.yml), not for a prerelease:
+  # the tap has one formula, which follows the newest stable release. It writes to
+  # Miragon/homebrew-tap with a token of the release-please app, never with this run's token.
+  publish-homebrew:
+    name: Publish the CLI Homebrew formula
+    needs: [release-please, publish-cli]
+    if: ${{ needs.release-please.outputs.release_created == 'true' && !contains(needs.release-please.outputs.version, '-') }}
+    permissions:
+      contents: read
+    uses: ./.github/workflows/publish-homebrew.yml
+    with:
+      version: ${{ needs.release-please.outputs.version }}
+    secrets:
+      RELEASE_PLEASE_APP_PRIVATE_KEY: ${{ secrets.RELEASE_PLEASE_APP_PRIVATE_KEY }}
 
   # After (not alongside) publish-npm: the mirror commits the release's pins
   # plus a lockfile resolved from the public registry, so syncing before the
