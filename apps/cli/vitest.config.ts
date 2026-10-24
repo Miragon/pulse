@@ -9,8 +9,10 @@ export default mergeConfig(
       clearMocks: true,
       restoreMocks: true,
       // CI runners are several times slower than developer machines, especially with coverage
-      // instrumentation; property tests and catalog-wide tests need headroom beyond the 5 s default.
-      testTimeout: 15_000,
+      // instrumentation, and in this monorepo the CLI's suite shares a 4-core runner with every
+      // other package's tests: the property tests that drive the CLI through many scenarios took
+      // more than 15 s there (#445), so they get a minute.
+      testTimeout: 60_000,
       coverage: {
         include: ["src/**/*.ts", "scripts/catalog/**/*.ts", "scripts/exe/**/*.ts"],
         // Only the entry point stays out: importing it runs the CLI, so no unit test can.
