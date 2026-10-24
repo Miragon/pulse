@@ -4,7 +4,8 @@
  * gates already measure into one report: architecture graph (dependency-
  * cruiser), ratchet debt (eslint.config.mjs), per-package coverage (from the
  * last `pnpm test` run's coverage-summary.json) and mutation scores (from
- * reports/mutation-report.json where a mutation run has happened).
+ * reports/mutation-report.json where a mutation run has happened: in CI only
+ * the nightly "Mutation summary", so a pull request's report reads "(no run)").
  *
  * Read-only over existing artifacts except the architecture check, which is
  * fast enough to run inline. Appends the report to $GITHUB_STEP_SUMMARY in CI.
@@ -75,8 +76,8 @@ function mutationScore(reportPath) {
     }
   }
   const valid = detected + undetected
-  // The file count travels with the score on purpose: on CI the report comes
-  // from the diff gate and covers only the files the PR touched, which reads
+  // The file count travels with the score on purpose: a local
+  // `pnpm test:mutation` covers only the files the branch changed, which reads
   // as a package-wide number otherwise.
   return valid === 0
     ? null
@@ -100,7 +101,7 @@ for (const dir of pkgDirs) {
 }
 put()
 put(
-  "_Coverage from the last `pnpm test`. Mutation scores from the last Stryker run per package, over the file count next to each: on a pull request that is the diff gate, which mutates only the files the PR touched; the nightly run (`mutation-nightly.yml`) covers the package's whole `mutate` allowlist. Missing rows: no artifacts yet._",
+  "_Coverage from the last `pnpm test`. Mutation scores from the last Stryker run per package, over the file count next to each: in CI only the nightly run (`mutation-nightly.yml`, its Mutation summary job), over the package's whole `mutate` allowlist, so a pull request's rows read (no run); a local `pnpm test:mutation` covers only the files the branch changed. Missing rows: no artifacts yet._",
 )
 
 const report = lines.join("\n")

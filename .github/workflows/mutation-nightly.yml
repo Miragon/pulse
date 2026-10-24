@@ -1,10 +1,10 @@
 name: Mutation (nightly)
 
 # The FULL Stryker run, one leg per workspace package with a stryker.config.json, over the
-# package's whole `mutate` allowlist. The pull request gate is "Mutation (changed files)" in
-# ci.yml, which mutates only the files a PR changed; this run reports every mutant of the
-# allowlist, those in files no recent PR touched included. It is no required check and never runs
-# on a pull request. A red leg means the package scores below its thresholds.break.
+# package's whole `mutate` allowlist, and the only mutation testing CI runs (owner decision): no
+# pull request runs Stryker, and this run is no required check. Locally, `pnpm test:mutation`
+# (scripts/mutation-diff.mjs) mutates only the files a branch changed. A red leg means the
+# package scores below its thresholds.break.
 #
 # Each leg keeps its package's Stryker incremental file in the Actions cache (every
 # stryker.config.json sets incremental: true and incrementalFile reports/stryker-incremental.json,
@@ -134,9 +134,9 @@ jobs:
           path: ${{ matrix.dir }}/reports/stryker-incremental.json
           key: ${{ steps.cache-key.outputs.prefix }}${{ github.run_id }}-${{ github.run_attempt }}
 
-      # The same exact-depth globs as ci.yml: their least common ancestor is the repo root, so
-      # the report keeps its package prefix and the summary job unpacks every leg's over the
-      # checkout.
+      # One exact-depth glob per package form, as for ci.yml's coverage-summaries: their least
+      # common ancestor is the repo root, so the report keeps its package prefix and the summary
+      # job unpacks every leg's over the checkout.
       - if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7.0.2
         with:

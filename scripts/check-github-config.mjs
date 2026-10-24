@@ -32,7 +32,7 @@
  *   ci.yml keys the browser cache of the TypeScript job and of the host simulation on those
  *   pins, so the two share one entry and one browser build (checkPlaywrightPins);
  * - the coverage and mutation artifacts cover every package form and unpack at the repo root,
- *   the diff gate stays within its timeout, and the nightly full run lists every package form,
+ *   and the nightly full run (the only mutation testing CI runs) lists every package form,
  *   forces a run every week and caches each package's incremental file under a fingerprinted
  *   key, the file every stryker.config.json writes (checkArtifactGlobs, checkNightlyMutation,
  *   checkStrykerIncremental).
@@ -65,7 +65,6 @@ export const VSCODE_PUBLISH_WORKFLOW = ".github/workflows/publish-vscode-extensi
 export const REQUIRED_CHECKS = [
   "TypeScript (Build + Test + Lint)",
   "Lint + Format",
-  "Mutation (changed files)",
   "Fitness report",
   "Composed-server template (Build + Test)",
   "Kotlin (Build + Test)",
@@ -1098,9 +1097,6 @@ export function checkRequiredChecks(workflows, required = REQUIRED_CHECKS) {
 
 // ── Mutation artifacts + the nightly full run ───────────────────────────────
 
-/** The ceiling of the diff gate's timeout-minutes in ci.yml. */
-export const MUTATION_TIMEOUT_CEILING = 120
-
 /** The file the nightly caches per package: every stryker.config.json writes exactly this. */
 export const INCREMENTAL_FILE = "reports/stryker-incremental.json"
 
@@ -1112,9 +1108,7 @@ const stepsUsing = (doc, action) =>
   )
 const uploadsOf = (doc) => stepsUsing(doc, "actions/upload-artifact")
 const isReportArtifact = (name) =>
-  name === "coverage-summaries" ||
-  name === "mutation-reports" ||
-  String(name ?? "").startsWith("mutation-report-")
+  name === "coverage-summaries" || String(name ?? "").startsWith("mutation-report-")
 
 /** The jobs of the nightly that run one leg per listed package. */
 const nightlyLegs = (doc) =>
@@ -1148,31 +1142,22 @@ export function checkArtifactGlobs(ciDoc, nightlyDoc, globs) {
         )
       }
       const name = String(upload.step.with?.name ?? "")
-      if (name === "mutation-reports" || name.startsWith("mutation-report-")) {
+      if (name.startsWith("mutation-report-")) {
         expectPaths(file, upload, "reports/mutation-report.json")
       }
       if (name === "coverage-summaries") expectPaths(file, upload, "coverage/coverage-summary.json")
     }
   }
-  for (const name of ["mutation-reports", "coverage-summaries"]) {
-    if (!uploadsOf(ciDoc).some(({ step }) => step.with?.name === name)) {
-      errors.push(`${CI_WORKFLOW}: no step uploads the artifact ${name}`)
-    }
-    if (
-      !stepsUsing(ciDoc, "actions/download-artifact").some(({ step }) => step.with?.name === name)
-    ) {
-      errors.push(
-        `${CI_WORKFLOW}: no step downloads the artifact ${name}: the fitness report would show ` +
-          `"(no run)" for every package`,
-      )
-    }
+  const coverage = "coverage-summaries"
+  if (!uploadsOf(ciDoc).some(({ step }) => step.with?.name === coverage)) {
+    errors.push(`${CI_WORKFLOW}: no step uploads the artifact ${coverage}`)
   }
-  const timeout = ciDoc?.jobs?.mutation?.["timeout-minutes"]
-  if (typeof timeout !== "number" || timeout > MUTATION_TIMEOUT_CEILING) {
+  if (
+    !stepsUsing(ciDoc, "actions/download-artifact").some(({ step }) => step.with?.name === coverage)
+  ) {
     errors.push(
-      `${CI_WORKFLOW}: job mutation needs timeout-minutes of at most ${MUTATION_TIMEOUT_CEILING}: ` +
-        `it runs the packages one after another and FILE_CAP caps each one, so the bound holds ` +
-        `about four packages at the cap at about 1 min/file`,
+      `${CI_WORKFLOW}: no step downloads the artifact ${coverage}: the fitness report would ` +
+        `show no coverage for any package`,
     )
   }
   // Every report artifact carries the apps/ and packages/ prefixes (the globs' least common
