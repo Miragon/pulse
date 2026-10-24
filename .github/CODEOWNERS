@@ -1,3 +1,7 @@
 # Default owners for everything in the repo, auto-requested as reviewers on PRs.
 # Replace with a GitHub team (e.g. `@Miragon/pulse`) once one exists.
 * @dominikhorn93
+
+# The CLI (apps/cli) and its pages of the docs site.
+/apps/cli/ @dominikhorn93 @emaarco
+/docs/cli/ @dominikhorn93 @emaarco

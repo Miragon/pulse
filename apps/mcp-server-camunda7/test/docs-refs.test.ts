@@ -297,6 +297,25 @@ const DOCS_BUDGETS: Record<string, number> = {
   "developer.md": 80,
   "operations.md": 120,
   "usage.md": 150,
+  // The CLI's pages (docs/cli/).
+  "cli/index.md": 40,
+  "cli/getting-started.md": 90,
+  "cli/quick-start.md": 90,
+  "cli/installation.md": 130,
+  "cli/workflow-commands.md": 70,
+  "cli/commands.md": 150,
+  "cli/recipes.md": 110,
+  "cli/output-and-errors.md": 90,
+  "cli/safety.md": 40,
+  "cli/configuration.md": 160,
+  "cli/authentication.md": 180,
+  "cli/engines.md": 60,
+  "cli/agents.md": 90,
+  "cli/architecture.md": 100,
+  "cli/development.md": 130,
+  "cli/adr/index.md": 20,
+  "cli/adr/001-engines-as-adapters.md": 70,
+  "cli/adr/002-camunda-8-is-a-separate-api.md": 50,
 }
 
 /** A page's budget key: its path under docs/, so docs/index.md and docs/cli/index.md differ. */
