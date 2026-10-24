@@ -63,9 +63,9 @@ export class FlowNodes {
 
   static of(xml: string): FlowNodes {
     const nodes = new FlowNodes()
-    for (const [, closing, kind = "", attributes = ""] of xml
-      .replace(COMMENTS_AND_TEXT, "")
-      .matchAll(TAG)) {
+    for (const [, closing, kind = "", attributes = ""] of FlowNodes.withoutCommentsAndText(
+      xml,
+    ).matchAll(TAG)) {
       if (closing === "/") {
         nodes.open.pop()
       } else {
@@ -125,6 +125,16 @@ export class FlowNodes {
 
   reachesAlongBranch(from: string, to: string): boolean {
     return this.reachableFrom(from, (node) => !JOIN_KINDS.has(this.kindOf(node) ?? "")).includes(to)
+  }
+
+  private static withoutCommentsAndText(xml: string): string {
+    let text = xml
+    let previous: string
+    do {
+      previous = text
+      text = text.replace(COMMENTS_AND_TEXT, "")
+    } while (text !== previous)
+    return text
   }
 
   private isSplit(id: string): boolean {

@@ -153,6 +153,14 @@ describe("the flow nodes of a deployed diagram", () => {
     expect(nodes.kindOf("Charge")).toBe("serviceTask")
   })
 
+  test("ignore an element inside a comment that a removed comment splits", () => {
+    const split = FlowNodes.of(
+      '<definitions><process id="p"><!<!-- inner -->-- <serviceTask id="Split"/> --><serviceTask id="Kept"/></process></definitions>',
+    )
+    expect(split.kindOf("Split")).toBeUndefined()
+    expect(split.kindOf("Kept")).toBe("serviceTask")
+  })
+
   test("know the scopes around an element, innermost first", () => {
     expect(nodes.scopesAround("Inspect")).toEqual(["Check", "moves"])
     expect(nodes.scopesAround("Elsewhere")).toEqual(["other"])
