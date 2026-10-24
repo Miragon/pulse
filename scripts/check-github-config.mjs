@@ -577,13 +577,33 @@ export const CLI_PUBLISH_TRIGGERS = {
 const grantsWrite = (job) =>
   Object.values(job?.permissions ?? {}).some((value) => value === "write")
 
+/** A secret other than the job's own GITHUB_TOKEN, whose power its permissions already name. */
+const SECRET = /\bsecrets\.(?!GITHUB_TOKEN\b)[\w-]+/
+/** A token another step or job minted, e.g. `steps.tap-token.outputs.token`. */
+const TOKEN_OUTPUT = /\b(?:steps|needs)\.[\w-]+\.outputs\.[\w-]*token/i
+
+/**
+ * The credential a job holds, if any, for the message: a write grant or id-token (its
+ * permissions), an App token it mints, a secret or a minted token it reads (a job with
+ * `permissions: {}` can still hold the strongest token of the workflow).
+ */
+function credentialOf(job) {
+  if (grantsWrite(job)) return JSON.stringify(job.permissions)
+  if (stepsOf(job).some((step) => usesAction(step, "actions/create-github-app-token"))) {
+    return "an App token"
+  }
+  const text = JSON.stringify(job ?? {})
+  if (SECRET.test(text)) return "a secret"
+  return TOKEN_OUTPUT.test(text) ? "a minted token" : undefined
+}
+
 /**
  * The CLI's publish workflows hold their tokens the way the npm publish does (pure; `workflows`
  * holds release-please.yml too): release-please.yml calls each of them, each runs only on its
  * CLI_PUBLISH_TRIGGERS, no permission at the top level, a permissions map on every job, no
  * dependency cache, checkouts without persisted credentials, no expression in a run script, and
- * no package manager in a job that holds a write grant or id-token (the build jobs hold
- * contents: read only).
+ * no package manager in a job that holds a credential: a write grant, id-token, an App token, a
+ * secret or a minted token (the build jobs hold contents: read only).
  */
 export function checkCliPublishWorkflows(workflows) {
   const errors = []
@@ -613,6 +633,7 @@ export function checkCliPublishWorkflows(workflows) {
     }
     for (const [id, job] of jobsOf(doc)) {
       const at = `${file}: job ${id}`
+      const credential = credentialOf(job)
       const permissions = job?.permissions
       if (permissions === null || typeof permissions !== "object" || Array.isArray(permissions)) {
         errors.push(
@@ -642,11 +663,12 @@ export function checkCliPublishWorkflows(workflows) {
         ) {
           errors.push(`${at}: actions/setup-node must set package-manager-cache: false`)
         }
-        const install = grantsWrite(job) ? packageManagerRun(run) : undefined
+        const install = credential === undefined ? undefined : packageManagerRun(run)
         if (install) {
           errors.push(
-            `${at} holds ${JSON.stringify(permissions)} and runs "${install}": a job that holds ` +
-              `a write grant or id-token installs nothing; build in a job with contents: read`,
+            `${at} holds ${credential} and runs "${install}": a job that holds a write grant, ` +
+              `id-token, an App token or a secret installs nothing; build in a job with ` +
+              `contents: read`,
           )
         }
       }

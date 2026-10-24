@@ -16,8 +16,8 @@ that run:
 | `miragon/tap/pulse-cli`     | `.github/workflows/publish-homebrew.yml`    | Stable releases only: the formula from `apps/cli/scripts/homebrew-formula.sh`, installed, tested and audited on macOS and Linux, then squash-merged into [Miragon/homebrew-tap](https://github.com/Miragon/homebrew-tap)                                    |
 
 The jobs that build hold read access only; the jobs that hold a token (the asset upload, the
-attestations, the image push) install nothing. `pnpm lint:github` pins that shape, and that no
-publish job runs before the approval.
+attestations, the image push, the tap update) install nothing. `pnpm lint:github` pins that
+shape, and that no publish job runs before the approval or after a rejected one.
 
 ## Dry run and re-runs
 

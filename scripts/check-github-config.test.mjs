@@ -1588,6 +1588,35 @@ describe("checkCliPublishWorkflows", () => {
     assert.match(errors[1], /job image holds .* and runs "pnpm"/)
   })
 
+  it("rejects a package manager next to an App token, a secret or a minted token", () => {
+    const docs = workflows()
+    const brew = docs.get(CLI_PUBLISH_WORKFLOWS[1])
+    brew.jobs.publish.steps.splice(2, 0, { run: "npx some-tool" })
+    brew.jobs.formula.steps.push({
+      env: { NPM_TOKEN: "${{ secrets.NPM_TOKEN }}" },
+      run: "npm ci",
+    })
+    brew.jobs.verify.steps.push({
+      env: { GH_TOKEN: "${{ needs.formula.outputs.tap-token }}" },
+      run: "yarn install",
+    })
+    const errors = checkCliPublishWorkflows(docs)
+    assert.equal(errors.length, 3)
+    assert.match(errors[0], /job formula holds a secret and runs "npm ci"/)
+    assert.match(errors[1], /job verify holds a minted token and runs "yarn"/)
+    assert.match(errors[2], /job publish holds an App token and runs "npx"/)
+  })
+
+  it("lets a contents: read job with only its own GITHUB_TOKEN run a package manager", () => {
+    const docs = workflows()
+    const cli = docs.get(CLI_PUBLISH_WORKFLOWS[0])
+    cli.jobs.bundle.steps.push({
+      env: { GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}" },
+      run: "pnpm --version",
+    })
+    assert.deepEqual(checkCliPublishWorkflows(docs), [])
+  })
+
   it("rejects string permissions, top-level grants, caches, persisted credentials and expressions in run", () => {
     const docs = workflows()
     const brew = docs.get(CLI_PUBLISH_WORKFLOWS[1])
