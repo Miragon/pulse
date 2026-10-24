@@ -55,7 +55,7 @@ write paths, uncomment `MCP_ACTIVE_MODULES=camunda7:admin,analytics:standard` in
 | `pnpm test:mutation`          | Stryker over the files your branch changed, on demand |
 
 A pull request runs no mutation check: `.github/workflows/mutation-nightly.yml` mutates every
-package each night (incremental, a forced full run on Sundays, not a required check).
+package each night (incremental, not a required check).
 
 ## Build your own server
 

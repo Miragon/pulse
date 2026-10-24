@@ -1276,38 +1276,23 @@ export function checkNightlyMutation(doc, globs) {
   return errors
 }
 
-/** A cron fires every week when it names no day of the month and no month. */
-const firesWeekly = (cron) => {
-  const fields = String(cron).trim().split(/\s+/)
-  return fields.length === 5 && fields[2] === "*" && fields[3] === "*"
-}
-const FORCE_EXPRESSION =
-  /^\$\{\{ inputs\.force == true \|\| github\.event\.schedule == '([^']+)' \}\}$/
-
 /**
- * Between forced runs a leg reuses every result whose mutant and killing test did not change,
- * however stale (a helper, another package's dist, a dependency). So one cron of the schedule
- * passes --force at least weekly, and the Stryker step's FORCE names it next to the dispatch
- * input.
+ * The schedule never forces a full pass (owner decision: incremental nightly only, so a reused
+ * result is measured again when its package starts cold, i.e. when the fingerprinted cache key
+ * changes). Only a manual dispatch with `force` re-tests every mutant: the Stryker step's FORCE
+ * reads the dispatch input and nothing else, and passes --force when it is true.
  */
+const FORCE_EXPRESSION = "${{ inputs.force == true }}"
+
 function checkForcedRun(doc, job, at) {
   const stryker = stepsOf(job).find((step) => /\brun test:mutation\b/.test(runOf(step)))
   const force = String(stryker?.env?.FORCE ?? "")
-  const cron = FORCE_EXPRESSION.exec(force)?.[1]
-  const crons = asList(triggersOf(doc).schedule).map((entry) => entry?.cron)
-  if (cron === undefined) {
-    return [
-      `${at}: the Stryker step needs FORCE: \${{ inputs.force == true || ` +
-        `github.event.schedule == '<a weekly cron of the schedule>' }} (found "${force}"): ` +
-        `without a forced run, reused results are never measured again`,
-    ]
-  }
   const errors = []
-  if (!crons.includes(cron)) {
-    errors.push(`${at}: FORCE names the cron "${cron}", which the schedule does not list`)
-  }
-  if (!firesWeekly(cron)) {
-    errors.push(`${at}: the forced cron "${cron}" must fire every week (day of month and month *)`)
+  if (force !== FORCE_EXPRESSION) {
+    errors.push(
+      `${at}: the Stryker step needs FORCE: ${FORCE_EXPRESSION} (found "${force}"): only a ` +
+        `manual dispatch forces a full pass, no schedule does`,
+    )
   }
   if (!/\[ "\$FORCE" = true \]; then args\+=\(--force\)/.test(runOf(stryker))) {
     errors.push(`${at}: the Stryker step must pass --force when FORCE is true`)

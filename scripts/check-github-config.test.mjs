@@ -1831,26 +1831,16 @@ describe("checkNightlyMutation", () => {
   const keyStep = (doc) => leg(doc).steps.find((step) => step.id === "cache-key")
   const cacheStep = (doc, action) =>
     leg(doc).steps.find((step) => step.uses?.startsWith(`actions/cache/${action}@`))
-  const forcedCron = (doc) =>
-    /github\.event\.schedule == '([^']+)'/.exec(strykerStep(doc).env.FORCE)[1]
-
-  it("forces a run every week, from a cron of the schedule", () => {
-    assert.ok(NIGHTLY.on.schedule.some((entry) => entry.cron === forcedCron(NIGHTLY)))
+  it("forces a full pass only on a manual dispatch, never on the schedule", () => {
+    assert.equal(strykerStep(NIGHTLY).env.FORCE, "${{ inputs.force == true }}")
     for (const [mutate, message] of [
-      [(doc) => (strykerStep(doc).env.FORCE = "${{ inputs.force == true }}"), /needs FORCE: /],
       [
-        (doc) => (doc.on.schedule = doc.on.schedule.filter((e) => e.cron !== forcedCron(doc))),
-        /FORCE names the cron "[^"]+", which the schedule does not list/,
+        (doc) =>
+          (strykerStep(doc).env.FORCE =
+            "${{ inputs.force == true || github.event.schedule == '0 2 * * 0' }}"),
+        /needs FORCE: \$\{\{ inputs\.force == true \}\} .*no schedule does/,
       ],
-      [
-        (doc) => {
-          const cron = forcedCron(doc)
-          const monthly = "0 2 1 * *"
-          doc.on.schedule.find((entry) => entry.cron === cron).cron = monthly
-          strykerStep(doc).env.FORCE = strykerStep(doc).env.FORCE.replace(cron, monthly)
-        },
-        /the forced cron "0 2 1 \* \*" must fire every week/,
-      ],
+      [(doc) => delete strykerStep(doc).env.FORCE, /needs FORCE: /],
       [
         (doc) => (strykerStep(doc).run = strykerStep(doc).run.replace(/^.*--force.*\n/m, "")),
         /the Stryker step must pass --force when FORCE is true/,

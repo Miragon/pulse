@@ -8,19 +8,18 @@ name: Mutation (nightly)
 #
 # Each leg keeps its package's Stryker incremental file in the Actions cache (every
 # stryker.config.json sets incremental: true and incrementalFile reports/stryker-incremental.json,
-# pinned). Between forced runs a night re-tests only the mutants whose own code or tests changed
-# and reuses every other result, also where a helper, another package's dist or a dependency
-# changed what a test asserts: such a result can be stale until the next forced run. The Sunday
-# run passes --force and re-tests every mutant, as does a dispatch with `force`. The cache key
-# fingerprints the lockfile, the vitest, tsconfig and Stryker config and the Node major, so a
-# change there starts the package cold. scripts/check-github-config.mjs (`pnpm lint:github`)
-# pins the triggers, the forced cron, the cache key and path and the package forms the list
-# covers; its test runs the List, Cache key and Stryker steps in fixture trees.
+# pinned). A night re-tests only the mutants whose own code or tests changed and reuses every
+# other result, also where a helper, another package's dist or a dependency changed what a test
+# asserts: such a result can be stale until the package starts cold. No scheduled run forces a
+# full pass (owner decision: incremental nightly only); a dispatch with `force` re-tests every
+# mutant. The cache key fingerprints the lockfile, the vitest, tsconfig and Stryker config and
+# the Node major, so a change there starts the package cold. scripts/check-github-config.mjs
+# (`pnpm lint:github`) pins the triggers, the dispatch-only force, the cache key and path and
+# the package forms the list covers; its test runs the List, Cache key and Stryker steps in
+# fixture trees.
 on:
   schedule:
-    - cron: "0 2 * * 1-6"
-    # Forced: FORCE in the Stryker step names this cron.
-    - cron: "0 2 * * 0"
+    - cron: "0 2 * * *"
   workflow_dispatch:
     inputs:
       force:
@@ -120,14 +119,14 @@ jobs:
       - name: Stryker
         env:
           DIR: ${{ matrix.dir }}
-          FORCE: ${{ inputs.force == true || github.event.schedule == '0 2 * * 0' }}
+          FORCE: ${{ inputs.force == true }}
         run: |
           args=()
           if [ "$FORCE" = true ]; then args+=(--force); fi
           pnpm --fail-if-no-match --filter "./${DIR}" run test:mutation "${args[@]}"
 
       # Saved after a red leg too: Stryker writes the file before it checks thresholds.break, and
-      # the next night then starts from it (after a forced run, from a fresh baseline).
+      # the next night then starts from it.
       - if: ${{ !cancelled() }}
         uses: actions/cache/save@v6.1.0
         with:
