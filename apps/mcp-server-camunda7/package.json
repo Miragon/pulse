@@ -35,7 +35,7 @@
     "@miragon/pulse-camunda7-connector": "workspace:*",
     "@miragon/pulse-widget-shell": "workspace:*",
     "@miragon/mcp-toolkit-core": "2.8.1",
-    "mcp-use": "2.7.3",
+    "mcp-use": "2.11.2",
     "postgres": "3.4.9",
     "zod": "4.6.7"
   },
