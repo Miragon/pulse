@@ -1,8 +1,7 @@
 /**
  * `pulse-cli auth` and `config delete` for profiles that share a login (the same issuer and client):
- * one login for all of them, lost together on logout and kept until the last of them goes, a login
- * of its own for another audience or scopes, and the logins operate 0.7.0 and earlier cached under
- * the profile name.
+ * one login for all of them, lost together on logout and kept until the last of them goes, and a
+ * login of its own for another audience or scopes.
  */
 
 import { describe, expect, it } from "vitest"
@@ -132,54 +131,6 @@ describe("profiles that share a login", () => {
       const orders = await cli(["auth", "status", "--profile", "orders"])
       expect(orders.code).toBe(0)
     }
-  })
-
-  it("revoke and remove the logins operate 0.7.0 and earlier cached under the name on auth logout", async () => {
-    const files = {
-      [CONFIG_PATH]: JSON.stringify({
-        defaultProfile: "Prod",
-        profiles: { Prod: { auth: { type: "oauth", issuer: ISSUER, clientId: "pulse-cli" } } },
-      }),
-      [`${TOKEN_DIR}/profile-%50rod.json`]: cacheText(cachedLogin(T0, { refreshToken: "r-07" })),
-      [`${TOKEN_DIR}/profile-Prod.json`]: cacheText(cachedLogin(T0, { refreshToken: "r-05" })),
-    }
-    const { cli, idp, runtime } = setup({ files })
-    const result = await cli(["auth", "logout"])
-    expect(result.code).toBe(0)
-    expect(JSON.parse(result.stdout)).toMatchObject({
-      profile: "Prod",
-      removed: false,
-      oldTokenCaches: [`${TOKEN_DIR}/profile-%50rod.json`, `${TOKEN_DIR}/profile-Prod.json`],
-    })
-    expect(result.stderr).toContain(
-      `Logged out the login that operate 0.7.0 or earlier cached for profile "Prod" (${TOKEN_DIR}/profile-%50rod.json).\n`,
-    )
-    expect(result.stderr).toContain(`(${TOKEN_DIR}/profile-Prod.json).\n`)
-    expect(idp.revoked).toEqual(["r-07", "r-05"])
-    expect([...runtime.files.keys()].filter((path) => path.startsWith(TOKEN_DIR))).toEqual([])
-  })
-
-  it("never take the old login of a profile whose name differs only in case (macOS, Windows)", async () => {
-    const auth = { type: "oauth", issuer: ISSUER, clientId: "pulse-cli" }
-    const files = {
-      [CONFIG_PATH]: JSON.stringify({ profiles: { Prod: { auth }, prod: { auth } } }),
-      [`${TOKEN_DIR}/profile-%50rod.json`]: cacheText(cachedLogin(T0, { refreshToken: "r-Prod" })),
-      [`${TOKEN_DIR}/profile-prod.json`]: cacheText(cachedLogin(T0, { refreshToken: "r-prod" })),
-    }
-    const { cli, idp, runtime } = setup({ files, runtime: { caseInsensitive: true } })
-    const result = await cli(["auth", "logout", "--profile", "Prod"])
-    expect(JSON.parse(result.stdout)).toMatchObject({
-      oldTokenCaches: [`${TOKEN_DIR}/profile-%50rod.json`],
-    })
-    expect(idp.revoked).toEqual(["r-Prod"])
-    expect(runtime.files.has(`${TOKEN_DIR}/profile-prod.json`)).toBe(true)
-    // config delete removes the old file of the deleted name (not revoked), as 0.7.0 did
-    const deleted = await cli(["config", "delete", "prod"])
-    expect(deleted.stderr).toContain(
-      `Removed the login that operate 0.7.0 or earlier cached for profile "prod" (${TOKEN_DIR}/profile-prod.json); it was not revoked.\n`,
-    )
-    expect(runtime.files.has(`${TOKEN_DIR}/profile-prod.json`)).toBe(false)
-    expect(idp.revoked).toEqual(["r-Prod"])
   })
 
   it("never let a profile without stored OAuth settings reach the login of another one", async () => {

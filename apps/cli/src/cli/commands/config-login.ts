@@ -21,7 +21,7 @@ import {
 } from "../../config/types.js"
 import type { Runtime } from "../../runtime.js"
 import { oauthDeps } from "../session.js"
-import { oldLoginFiles, quotedNames } from "./auth-shared.js"
+import { quotedNames } from "./auth-shared.js"
 import type { EditTarget } from "./config-project.js"
 
 /** An edit of profile `name`: the profile before, the file after and where it was written. */
@@ -112,23 +112,8 @@ async function loginNotice(edited: Edited, runtime: Runtime): Promise<string | u
 }
 
 /**
- * `config delete`: removes the logins operate 0.7.0 and earlier cached under the profile's name,
- * as it did then (not revoked; no command reads them any more).
- */
-async function removeOldLogins(edited: Edited, runtime: Runtime): Promise<void> {
-  if (edited.before === undefined || findProfile(edited.after, edited.name) !== undefined) return
-  const deps = cacheDeps(runtime)
-  for (const path of await oldLoginFiles(edited.name, deps)) {
-    if (!(await withCacheLock(path, deps, () => removeCache(path, deps)))) continue
-    runtime.stderr.write(
-      `Removed the login that operate 0.7.0 or earlier cached for profile "${edited.name}" (${path}); it was not revoked.\n`,
-    )
-  }
-}
-
-/**
- * What an edit does to the cached logins (`releaseLogin`, `removeOldLogins`); after `config set`
- * (`set`) also the note on the profile's login.
+ * What an edit does to the cached logins (`releaseLogin`); after `config set` (`set`) also the
+ * note on the profile's login.
  */
 export async function editedLogins(
   change: ProfileChange,
@@ -137,7 +122,6 @@ export async function editedLogins(
 ): Promise<void> {
   const edited = { ...change, origin: await originOfTarget(change.target, runtime) }
   await releaseLogin(edited, runtime)
-  await removeOldLogins(edited, runtime)
   const notice = set ? await loginNotice(edited, runtime) : undefined
   if (notice !== undefined) runtime.stderr.write(`${notice}\n`)
 }

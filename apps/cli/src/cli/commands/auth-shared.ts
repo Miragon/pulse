@@ -72,32 +72,6 @@ export function sharedLogoutNote(
   return `Note: the login was shared; profile${rest.length === 1 ? "" : "s"} ${quotedNames(rest)} ${verb} a new login, too.`
 }
 
-/** `%xx` (`%uxxxx`) for every UTF-16 code unit outside `[a-z0-9._-]`, as operate 0.6/0.7 did. */
-function encodedName(profile: string): string {
-  return profile.replace(/[^a-z0-9._-]/g, (unit) => {
-    const code = unit.charCodeAt(0)
-    const hex = code.toString(16)
-    return code < 0x100 ? `%${hex.padStart(2, "0")}` : `%u${hex.padStart(4, "0")}`
-  })
-}
-
-/**
- * The cache files that operate 0.7.0 and earlier kept for a profile name and that exist
- * (`profile-<encoded name>.json`; 0.5.0: `profile-<name>.json`). No command reads them any more;
- * `auth logout` revokes and removes them, so their sessions can end, `config delete` removes them.
- * Only directory entries spelled exactly so count: on a case-insensitive file system (macOS,
- * Windows) `profile-Prod.json` also opens the file of profile "prod".
- */
-export async function oldLoginFiles(
-  profile: string,
-  deps: Pick<OAuthDeps, "tokenPath" | "tokenDir" | "fs">,
-): Promise<string[]> {
-  const names = [...new Set([encodedName(profile), profile])].map((name) => `profile-${name}.json`)
-  const entries = await deps.fs.readdir(deps.tokenDir).catch(() => [])
-  const files = new Set(entries.filter((entry) => entry.kind === "file").map((entry) => entry.name))
-  return names.filter((name) => files.has(name)).map((name) => deps.tokenPath(name))
-}
-
 /**
  * The cache file of a selected profile's login and the profiles that share it, from its stored
  * settings: `auth logout` finds the login also when the settings no longer resolve.

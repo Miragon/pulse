@@ -67,12 +67,6 @@ export interface FakeRuntimeOptions {
   readonly lockTimeout?: boolean
   /** `deadline` resolves at once (default: never). */
   readonly deadlineResolves?: boolean
-  /**
-   * File and lock names compare without case, like on macOS (APFS) and Windows (NTFS) by default:
-   * a path opens an entry whose name differs only in case, and writing over an entry keeps its
-   * spelling (an atomic rename over it does, observed on APFS). `files` keeps the spelling.
-   */
-  readonly caseInsensitive?: boolean
   /** The working directory; default the home directory (no project file is looked up there). */
   readonly cwd?: string
   /**
@@ -220,10 +214,9 @@ function fakeLocks(options: FakeRuntimeOptions, locks: FakeRuntime["locks"]) {
         new Error(`Timed out after ${2 * holdMs} ms waiting for the lock ${path}`),
       )
     }
-    const key = options.caseInsensitive === true ? path.toLowerCase() : path
-    const result = (queues.get(key) ?? Promise.resolve()).then(action)
+    const result = (queues.get(path) ?? Promise.resolve()).then(action)
     queues.set(
-      key,
+      path,
       result.catch(() => undefined),
     )
     return result

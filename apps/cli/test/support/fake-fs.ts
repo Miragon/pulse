@@ -1,6 +1,6 @@
 /**
  * The in-memory file system of the fake runtime (fake-runtime.ts): files, directories and other
- * entries, Node.js style errors, the owners of the entries and case-insensitive names.
+ * entries, Node.js style errors and the owners of the entries.
  */
 
 import type { DirectoryEntry, FileSystem, PathKind } from "../../src/runtime.js"
@@ -16,8 +16,6 @@ export interface FsOptions {
   readonly foreign?: readonly string[]
   /** The file system has no owners, like on Windows (`ownedByUser` is absent). */
   readonly noOwners?: boolean
-  /** Names match regardless of case and keep their spelling, as on macOS and Windows. */
-  readonly caseInsensitive?: boolean
 }
 
 const encoder = new TextEncoder()
@@ -105,47 +103,11 @@ export function fakeFileSystem(tree: FakeTree): FileSystem {
   }
 }
 
-/** The directory and the name of a path. */
-function splitPath(path: string): readonly [string, string] {
-  const index = path.lastIndexOf("/")
-  return [path.slice(0, index), path.slice(index + 1)]
-}
-
-/** `fs` with case-insensitive, case-preserving names (`FsOptions.caseInsensitive`). */
-function caseInsensitiveFs(fs: FileSystem): FileSystem {
-  const resolve = async (path: string): Promise<string> => {
-    const [directory, name] = splitPath(path)
-    const entries = await fs.readdir(directory).catch(() => [])
-    const entry = entries.find((candidate) => candidate.name.toLowerCase() === name.toLowerCase())
-    return entry === undefined ? path : `${directory}/${entry.name}`
-  }
-  const owned = fs.ownedByUser?.bind(fs)
-  return {
-    readFile: async (path) => fs.readFile(await resolve(path)),
-    writeFile: async (path, data, options) => {
-      await fs.writeFile(await resolve(path), data, options)
-    },
-    mkdir: async (path, options) => {
-      await fs.mkdir(await resolve(path), options)
-    },
-    exists: async (path) => fs.exists(await resolve(path)),
-    remove: async (path) => fs.remove(await resolve(path)),
-    readdir: (path) => fs.readdir(path),
-    kind: async (path) => fs.kind(await resolve(path)),
-    ...(owned === undefined ? {} : { ownedByUser: async (path) => owned(await resolve(path)) }),
-  }
-}
-
-/**
- * The owners of the fake file system (none with `noOwners`, else the user's but `foreign`) and the
- * case of its names (`caseInsensitive`).
- */
+/** The owners of the fake file system: none with `noOwners`, else the user's but `foreign`. */
 export function withOwners(fs: FileSystem, tree: FakeTree, options: FsOptions): FileSystem {
-  if (options.noOwners === true)
-    return options.caseInsensitive === true ? caseInsensitiveFs(fs) : fs
+  if (options.noOwners === true) return fs
   const foreign = new Set<string>(options.foreign ?? [])
   const ownedByUser = (path: string) =>
     Promise.resolve(pathKind(tree, path) !== "missing" && !foreign.has(path))
-  const owned = { ...fs, ownedByUser }
-  return options.caseInsensitive === true ? caseInsensitiveFs(owned) : owned
+  return { ...fs, ownedByUser }
 }

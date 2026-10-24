@@ -39,8 +39,6 @@ export interface LogoutView {
   readonly profile: string | null
   /** OAuth: every profile that used the login; all of them need a new one. */
   readonly profiles?: readonly string[]
-  /** The logins operate 0.7.0 and earlier cached under the profile's name, revoked and removed. */
-  readonly oldTokenCaches?: readonly string[]
   readonly tokenCache: string
   readonly removed: boolean
   /** null: nothing to revoke or no revocation endpoint. */

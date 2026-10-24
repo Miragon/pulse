@@ -82,12 +82,6 @@ const ALLOWED: readonly Allowance[] = [
     reason: "the English verb",
   },
   {
-    file: /^apps\/cli\/src\/cli\/commands\/(?:auth-logout|auth-shared|auth-view|config-login)\.ts$/,
-    line: /\boperate 0\.[67]\b/,
-    reason:
-      "the logins that operate 0.7.0 and earlier cached under the profile's name, which auth logout and config delete still remove",
-  },
-  {
     file: "apps/cli/src/config/legacy.ts",
     reason:
       "the compat layer names the old program until the first release after 2027-01-31 (its removal list: apps/cli/CLAUDE.md)",

@@ -1,9 +1,8 @@
 /**
  * `pulse-cli auth logout`: revokes and removes the cached OAuth login of the
  * selected profile, found from its stored settings also when they no longer resolve, and names
- * every profile that shared it; the logins operate 0.7.0 and earlier cached under
- * the profile's name are revoked and removed, too. A token command's cached token is removed
- * (auth-bearer.ts); a bearer token from elsewhere has nothing to log out.
+ * every profile that shared it. A token command's cached token is removed (auth-bearer.ts); a
+ * bearer token from elsewhere has nothing to log out.
  */
 
 import type { Command } from "commander"
@@ -29,7 +28,7 @@ import { oauthDeps, tokenScope } from "../session.js"
 import { bearerNotManaged, logoutCommand } from "./auth-bearer.js"
 import { printView, safeStderr } from "./auth-output.js"
 import { notOAuth, notOAuthOf } from "./auth-session.js"
-import { oldLoginFiles, sharedLogoutNote, storedLogin } from "./auth-shared.js"
+import { sharedLogoutNote, storedLogin } from "./auth-shared.js"
 
 /** The resolved configuration, or why it does not resolve (logout resolves best effort). */
 function tryResolve(
@@ -139,10 +138,8 @@ export async function runLogout(command: Command, context: CliContext): Promise<
   const { removed, revoked } = result
   const shared = removed ? sharedLogoutNote(profiles, target.profile) : undefined
   if (shared !== undefined) stderr.write(`${shared}\n`)
-  const old =
-    target.profile === undefined ? [] : await logoutOld(target.profile, target, deps, stderr)
   const view = { profile: target.profile ?? null, profiles, tokenCache, removed, revoked }
-  printView(old.length === 0 ? view : { ...view, oldTokenCaches: old }, display, runtime)
+  printView(view, display, runtime)
 }
 
 /** The warnings of a logout and until when the access token issued before stays valid. */
@@ -153,25 +150,4 @@ function writeLogout(stderr: OutputStream, result: LogoutResult): void {
   stderr.write(
     `Note: the access token issued before stays valid until ${until} at gateways that check tokens offline.\n`,
   )
-}
-
-/**
- * Revokes and removes the logins operate 0.7.0 and earlier cached under the profile's name;
- * resolves to their files.
- */
-async function logoutOld(
-  profile: string,
-  target: LogoutTarget,
-  deps: OAuthDeps,
-  stderr: OutputStream,
-): Promise<string[]> {
-  const files = await oldLoginFiles(profile, deps)
-  for (const path of files) {
-    const result = await logout(path, target, deps)
-    stderr.write(
-      `Logged out the login that operate 0.7.0 or earlier cached for profile "${profile}" (${path}).\n`,
-    )
-    writeLogout(stderr, result)
-  }
-  return files
 }
