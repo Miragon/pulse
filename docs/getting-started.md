@@ -45,7 +45,9 @@ claude mcp add --transport http pulse http://localhost:8400/mcp
 Pulse is pre-1.0 and minor releases can rename tools, so pin a version tag from the
 [releases](https://github.com/Miragon/pulse/releases) for anything beyond a first try. If the
 REST API needs a login, add `CAMUNDA_AUTH_TYPE=basic` with `CAMUNDA_USERNAME` and
-`CAMUNDA_PASSWORD`. [Operations](operations.md) covers several engines, OAuth and the toolsets that
+`CAMUNDA_PASSWORD`. Pulse assumes a Camunda 7 engine: for CIB seven or Operaton add
+`CAMUNDA_ENGINE_FLAVOR=cibseven` (or `operaton`), so its links open the right web app.
+[Operations](operations.md) covers several engines, OAuth and the toolsets that
 allow writes. For analytics, your engine project adds the plugin
 `io.miragon.mcp:cibseven-history-metrics` and exports its metrics to Prometheus, as
 [Architecture](architecture.md) shows.
