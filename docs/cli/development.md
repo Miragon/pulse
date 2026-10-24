@@ -109,8 +109,8 @@ login, and only `src/catalog/catalog.ts` and the adapters (each its own) read th
   projection, table width, config and auth precedence, PKCE, token expiry, the token cache, body
   validation and secret masking.
 - **StrykerJS** over the logic layers and the catalog generator without its data tables
-  (`apps/cli/stryker.config.json`, break 92): a pull request's changed files run through
-  `pnpm test:mutation`, the nightly run covers the whole list.
+  (`apps/cli/stryker.config.json`, break 92): a branch's changed files run locally through
+  `pnpm test:mutation`; CI mutates only nightly, over the whole list.
 - **Testcontainers** suites against the three engines, with and without Basic auth, behind
   Keycloak and an Envoy JWT gateway for OAuth, through the workflow commands, plus a test of the
   packed tarball. CI runs them, the packaging smoke tests and `claude plugin validate --strict` on
