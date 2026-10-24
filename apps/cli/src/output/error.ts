@@ -18,16 +18,15 @@ const MAX_CAUSES = 5
 /** Control characters except LF and tab (ANSI escapes, CR) that would garble a terminal. */
 const CONTROL = /[^\P{Cc}\n\t]/gu
 
-// Stryker disable BlockStatement: emptying the catch block is equivalent (it returns undefined too)
 /** JSON text of a value, or undefined when it has none (undefined, functions) or cannot be serialized. */
 function safeJson(value: unknown): string | undefined {
   try {
     return stringifyJson(value)
   } catch {
-    return undefined
+    // not serializable (a BigInt, a cycle, a throwing toJSON): no JSON text
   }
+  return undefined
 }
-// Stryker restore BlockStatement
 
 /** The `message` of an error-like object (may throw for hostile values such as getters). */
 function messageProperty(value: unknown): string | undefined {

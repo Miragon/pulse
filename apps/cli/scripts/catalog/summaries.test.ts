@@ -3,7 +3,8 @@ import type { Catalog, OperationSpec, ParamSpec } from "../../src/catalog/types.
 import { buildCatalog } from "./build-catalog.js"
 import { readPatchedSpec } from "./files.js"
 import { SPEC_URL } from "./render.js"
-import { SUMMARY_OVERRIDES, assertUniqueSummaries, summarize } from "./summaries.js"
+import { assertUniqueSummaries, summarize } from "./summaries.js"
+import { SUMMARY_OVERRIDES } from "./summary-overrides.js"
 
 const pathParam = (name: string): ParamSpec => ({
   name,
