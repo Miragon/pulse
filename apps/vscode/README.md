@@ -190,7 +190,18 @@ The README's `apps/vscode/docs/demo.gif` comes from the `product-shots` skill in
 [Miragon/corporate-identity](https://github.com/Miragon/corporate-identity), see
 [CLAUDE.md](CLAUDE.md#commands).
 
-Rules for contributors and coding agents: [CLAUDE.md](CLAUDE.md); how a release is cut:
+Rules for contributors and coding agents: [CLAUDE.md](CLAUDE.md).
+
+## Release
+
+The extension rides Pulse's release train: release-please bumps `apps/vscode/package.json`
+with every Pulse release (tag `v<version>`), and after the release approval
+`.github/workflows/publish-vscode-extension.yml` packages the .vsix once. It leaves the run
+only when the repository variable `VSCODE_PUBLISH` says so: `pre-release` publishes it as a
+pre-release to the Visual Studio Marketplace and Open VSX and attaches it to the GitHub
+release, `release` does the same as a release; unset (today) nothing is published. Every pull
+request packages it too (CI job "VS Code package (vsce dry run)"); to check the release path by
+hand, run the Release workflow with `dry_run`. The whole train:
 [the repository's CLAUDE.md](../../CLAUDE.md#releases--toolkit-contributions).
 
 ## License
