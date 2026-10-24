@@ -96,8 +96,14 @@ remove, in one PR:
    `apps/cli/src/product-name.test.ts`, and the "Renamed from operate" sections of
    `apps/cli/README.md` and `docs/cli/installation.md` (keep one line that points to the
    archived repository).
-4. The `operate` link and its test lines in `apps/cli/scripts/homebrew-formula.sh` and the step
-   that starts the binary under that name in `.github/workflows/ci.yml`.
+4. The `operate` link and its test lines in `apps/cli/scripts/homebrew-formula.sh`, the step
+   that starts the binary under that name in `.github/workflows/ci.yml`, and the
+   `operate --version` check of the smoke test in `.github/workflows/publish-homebrew.yml` (no gate
+   reads it: left in, the next release's `verify` job fails and the formula is not published).
+   With them the sentences that describe the alias: the header of `publish-homebrew.yml`, the CLI
+   publish bullet and the "CLI jobs" row of the root `CLAUDE.md`, and the end of the Homebrew step
+   in `docs/cli/releasing.md`. The tap migration of the `publish` job (`formula_renames.json`, the
+   removal of `Formula/operate.rb`) stays.
 5. The legacy prefix in `apps/cli/test/integration/support/process.ts`.
 6. In the same release, the extension drops its fallback to the old project file.
 
