@@ -1531,6 +1531,27 @@ describe("checkReleaseGate", () => {
     assert.match(errors[1], /job publish-homebrew never waits for gate/)
   })
 
+  it("rejects a status check function in the if of a job past the approval", () => {
+    const doc = release()
+    doc.jobs["publish-cli"].if = "${{ always() }}"
+    doc.jobs["publish-npm"].if = "${{ !cancelled() && inputs.dry_run == true }}"
+    doc.jobs["publish-maven"].if = "${{ success() || true }}"
+    doc.jobs["publish-docker"].if = "failure ()"
+    doc.jobs["sync-template-mirror"].if = "${{ cancelled() }}"
+    const errors = checkReleaseGate(doc)
+    assert.equal(errors.length, 5)
+    assert.match(errors[0], /job publish-maven's if uses the status check function success\(\)/)
+    assert.match(errors[1], /job publish-docker's if uses the status check function failure \(\)/)
+    assert.match(errors[2], /job publish-npm's if uses the status check function cancelled\(\)/)
+    assert.match(errors[3], /job publish-cli's if uses the status check function always\(\)/)
+    assert.match(errors[4], /job sync-template-mirror's .* cancelled\(\): it would run after/)
+    // the gate's own condition and an output named like a function stay allowed
+    const quiet = release()
+    quiet.jobs.gate.if = "${{ always() }}"
+    quiet.jobs["publish-homebrew"].if = "${{ needs.release-please.outputs.successful == 'true' }}"
+    assert.deepEqual(checkReleaseGate(quiet), [])
+  })
+
   it("rejects a gate outside the release environment", () => {
     const doc = release()
     delete doc.jobs.gate.environment

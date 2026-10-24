@@ -509,8 +509,16 @@ export function checkPluginVersions(config, manifests) {
 export const BEFORE_THE_GATE = ["release-please", "gate"]
 
 /**
+ * A status check function in a job's `if`. Once a condition names one, GitHub drops the implicit
+ * success() of the job's needs, so `always()`, `!cancelled()`, `failure()`, `cancelled()` and
+ * `success() || x` all let the job run after a rejected or failed approval.
+ */
+const STATUS_FUNCTION = /\b(?:always|cancelled|failure|success)\s*\(/
+
+/**
  * Every other job of release-please.yml waits for gate, the `release` environment's approval:
- * it needs gate directly or through another job that does (pure).
+ * it needs gate directly or through another job that does, and its `if` names no status check
+ * function, which would let it run when gate did not succeed (pure).
  */
 export function checkReleaseGate(releaseDoc) {
   const errors = []
@@ -535,6 +543,13 @@ export function checkReleaseGate(releaseDoc) {
       errors.push(
         `${RELEASE_WORKFLOW}: job ${id} never waits for gate (needs it, directly or through ` +
           `another job): it would publish without the release approval`,
+      )
+    }
+    const status = STATUS_FUNCTION.exec(String(jobs[id]?.if ?? ""))
+    if (status) {
+      errors.push(
+        `${RELEASE_WORKFLOW}: job ${id}'s if uses the status check function ${status[0]}): it ` +
+          `would run after a rejected or failed release approval`,
       )
     }
   }
