@@ -35,6 +35,14 @@ describe("the lint gates", { timeout: 120_000 }, () => {
     expect(await rulesFiredOn(disabled)).toContain("pulse-vscode/no-comments")
   })
 
+  test("allow no console call outside the dev tools and scripts", async () => {
+    const logging = withProbe(
+      "export const log = (): void => {\n  console.error(1)\n  console.warn(2)\n  console.log(3)\n}",
+    )
+    const fired = await rulesFiredOn(logging)
+    expect(fired.filter((rule) => rule === "no-console")).toHaveLength(3)
+  })
+
   test("enforce the complexity budget", async () => {
     const branches = Array.from(
       { length: 11 },
@@ -148,5 +156,40 @@ describe("the lint gates", { timeout: 120_000 }, () => {
     expect(await rulesFiredOn(probe, filePath)).toEqual(
       expect.arrayContaining(["no-restricted-syntax", "max-classes-per-file"]),
     )
+  })
+
+  test("hold the webview test harness to the budgets and the non-null ban", async () => {
+    const harness = "apps/vscode/test/webview/harness.tsx"
+    expect(await rulesFiredOn(readRepoFile(harness), harness)).toEqual([])
+    const statements = Array.from({ length: 21 }, (_, index) => `  void ${index}`)
+    const probe = `${readRepoFile(harness)}\nexport const first = [1].at(0)!\n\nexport class Long {\n  run(): void {\n${statements.join("\n")}\n  }\n}\n`
+    expect(await rulesFiredOn(probe, harness)).toEqual(
+      expect.arrayContaining(["@typescript-eslint/no-non-null-assertion", "max-statements"]),
+    )
+  })
+
+  test("hold the smoke test to the budgets", async () => {
+    const smoke = "apps/vscode/test/smoke/activation.test.cjs"
+    expect(await rulesFiredOn(readRepoFile(smoke), smoke)).toEqual([])
+    const statements = Array.from({ length: 21 }, (_, index) => `  void ${index}`)
+    const probe = `${readRepoFile(smoke)}\nmodule.exports.long = () => {\n${statements.join("\n")}\n}\n`
+    expect(await rulesFiredOn(probe, smoke)).toEqual(["max-statements"])
+  })
+
+  test.each([
+    ["export class Probe {\n  constructor() {}\n}", "@typescript-eslint/no-useless-constructor"],
+    [
+      "export const sum = (list) => {\n  let total = 0\n  for (let index = 0; index < list.length; index++) {\n    total += list[index]\n  }\n  return total\n}",
+      "@typescript-eslint/prefer-for-of",
+    ],
+    [
+      "export const drop = (record, key) => {\n  delete record[key]\n}",
+      "@typescript-eslint/no-dynamic-delete",
+    ],
+    ["export const call = () => undeclared()", "no-undef"],
+  ])("hold the JS files to the strict rules that need no types: %s", async (line, rule) => {
+    const script = "apps/vscode/scripts/build.mjs"
+    expect(await rulesFiredOn(readRepoFile(script), script)).toEqual([])
+    expect(await rulesFiredOn(`${readRepoFile(script)}\n${line}\n`, script)).toContain(rule)
   })
 })

@@ -535,6 +535,16 @@ export default tseslint.config(
     files: ["apps/vscode/**/*.{ts,tsx}"],
     extends: [tseslint.configs.strictTypeChecked, tseslint.configs.stylisticTypeChecked],
   },
+  // The JS files keep the strict and stylistic rules that need no types. Only their rule
+  // sets: the configs' eslint-recommended part switches core checks such as no-undef off,
+  // which TypeScript does for TS files but nothing does for JS.
+  {
+    files: ["apps/vscode/**/*.{js,mjs,cjs}"],
+    extends: [
+      tseslint.configs.strict.find(({ name }) => name === "typescript-eslint/strict"),
+      tseslint.configs.stylistic.find(({ name }) => name === "typescript-eslint/stylistic"),
+    ],
+  },
   {
     files: ["apps/vscode/**/*.{ts,tsx,js,mjs,cjs}"],
     plugins: { "pulse-vscode": { rules: { "no-comments": vscodeNoComments } } },
@@ -544,7 +554,7 @@ export default tseslint.config(
       complexity: ["error", 10],
       "max-depth": ["error", 3],
       "max-params": ["error", 4],
-      "no-console": "error",
+      "no-console": ["error", {}],
       eqeqeq: ["error", "always"],
       "@typescript-eslint/consistent-type-imports": "error",
       "@typescript-eslint/restrict-template-expressions": ["error", { allowNumber: true }],
@@ -552,7 +562,11 @@ export default tseslint.config(
     },
   },
   {
-    files: ["apps/vscode/{src,dev,scripts}/**/*.{ts,tsx,mjs,cjs}"],
+    files: [
+      "apps/vscode/{src,dev,scripts,sandbox}/**/*.{ts,tsx,js,mjs,cjs}",
+      "apps/vscode/test/webview/harness.tsx",
+      "apps/vscode/test/smoke/*.cjs",
+    ],
     rules: {
       "max-lines": ["error", { max: 300, skipBlankLines: true }],
       "max-lines-per-function": ["error", { max: 60, skipBlankLines: true }],
@@ -561,7 +575,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ["apps/vscode/test/**/*.{ts,tsx}"],
+    files: ["apps/vscode/test/**/*.ts", "apps/vscode/test/**/*.test.tsx"],
     rules: { "@typescript-eslint/no-non-null-assertion": "off" },
   },
   {
