@@ -91,8 +91,8 @@ importers:
         specifier: 1.0.0-alpha.6
         version: 1.0.0-alpha.6
       prettier:
-        specifier: 3.9.9
-        version: 3.9.9
+        specifier: 3.9.10
+        version: 3.9.10
       testcontainers:
         specifier: 12.2.1
         version: 12.2.1
@@ -5719,11 +5719,6 @@ packages:
 
   prettier@3.9.10:
     resolution: {integrity: sha512-skGHTH1Yb9QvaTC4hWnRTzEYtCpApF0UMBPz+t/0ZPzP8ihefo/btKd+QA7pUE0fEwA1SbS/NmhyEcstdXOIdA==}
-    engines: {node: '>=14'}
-    hasBin: true
-
-  prettier@3.9.9:
-    resolution: {integrity: sha512-Z/CJHIkdujO/OtN7nXUii0Rf3VT5SRuhjBA82Xvu2XhBUgX3nhP67T0LHceBdQLex7OOFGTox+Q5Yg8Jk2Qivg==}
     engines: {node: '>=14'}
     hasBin: true
 
@@ -12148,8 +12143,6 @@ snapshots:
       prettier: 3.9.10
 
   prettier@3.9.10: {}
-
-  prettier@3.9.9: {}
 
   pretty-format@27.5.1:
     dependencies:
