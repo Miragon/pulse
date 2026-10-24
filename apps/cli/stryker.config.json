@@ -24,7 +24,6 @@
     "!**/*.test.ts",
     "!**/types.ts",
     "!scripts/catalog/groups.ts",
-    "!scripts/catalog/openapi.ts",
     "!scripts/catalog/overrides.ts",
     "!scripts/catalog/summary-overrides.ts"
   ],

@@ -13,10 +13,11 @@ export default mergeConfig(
       testTimeout: 15_000,
       coverage: {
         include: ["src/**/*.ts", "scripts/catalog/**/*.ts", "scripts/exe/**/*.ts"],
-        exclude: ["**/*.test.ts", "src/bin/**", "src/**/types.ts", "scripts/catalog/openapi.ts"],
-        // Ratchet: the floors the CLI brought along (measured at the import: statements 99.73 /
-        // branches 97.62 / functions 99.86 / lines 99.88). Raise when you push coverage up;
-        // never lower.
+        // Only the entry point stays out: importing it runs the CLI, so no unit test can.
+        exclude: ["**/*.test.ts", "src/bin/pulse-cli.ts"],
+        // Ratchet: the floors the CLI brought along (measured with the Node runtime counted:
+        // statements 99.40 / branches 97.18 / functions 99.64 / lines 99.59). Raise when you push
+        // coverage up; never lower.
         thresholds: { statements: 90, branches: 85, functions: 90, lines: 90 },
       },
     },
