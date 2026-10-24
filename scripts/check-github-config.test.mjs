@@ -1097,6 +1097,37 @@ describe("checkVscodePublish", () => {
       },
       [/pnpm install must pass --frozen-lockfile/],
     ],
+    ...[
+      ["--ignore-scripts", "--ignore-scripts=false"],
+      ["--ignore-scripts", "--no-ignore-scripts"],
+      ["--ignore-scripts", "--ignore-scripts --config.ignore-scripts=false"],
+      ["--frozen-lockfile", "--frozen-lockfile=false"],
+      ["--frozen-lockfile", "--no-frozen-lockfile"],
+    ].map(([flag, negated]) => [
+      `an install that switches ${flag} back off with ${negated}`,
+      ({ jobs }) => {
+        const step = stepNamed(jobs.publish, "Install vsce and ovsx")
+        step.run = step.run.replace(` ${flag}`, ` ${negated}`)
+      },
+      [new RegExp(`pnpm install must pass ${flag}, and no word that switches it back off`)],
+    ]),
+    [
+      "install flags only in a comment",
+      ({ jobs }) => {
+        const step = stepNamed(jobs.publish, "Install vsce and ovsx")
+        step.run =
+          'pnpm install --fail-if-no-match --filter "${NAME}" # --frozen-lockfile --ignore-scripts'
+      },
+      [/pnpm install must pass --frozen-lockfile/, /pnpm install must pass --ignore-scripts/],
+    ],
+    [
+      "a second install command without the flags in the same step",
+      ({ jobs }) => {
+        const step = stepNamed(jobs.publish, "Install vsce and ovsx")
+        step.run = `${step.run} && pnpm install`
+      },
+      [/pnpm install must pass --frozen-lockfile/, /pnpm install must pass --ignore-scripts/],
+    ],
     [
       "a second install",
       ({ jobs }) =>
@@ -1139,6 +1170,22 @@ describe("checkVscodePublish", () => {
       ({ jobs }) => {
         const step = stepNamed(jobs.publish, "Publish to Open VSX")
         step.run = step.run.replace(" --skip-duplicate", "")
+      },
+      [/the step "Publish to Open VSX" must pass --skip-duplicate/],
+    ],
+    [
+      "a Marketplace publish that switches --skip-duplicate back off",
+      ({ jobs }) => {
+        const step = stepNamed(jobs.publish, "Publish to the Visual Studio Marketplace")
+        step.run = step.run.replace(" --skip-duplicate)", " --skip-duplicate=false)")
+      },
+      [/the step "Publish to the Visual Studio Marketplace" must pass --skip-duplicate/],
+    ],
+    [
+      "an Open VSX publish with --skip-duplicate only in a comment",
+      ({ jobs }) => {
+        const step = stepNamed(jobs.publish, "Publish to Open VSX")
+        step.run = `${step.run.replace(" --skip-duplicate)", ")")}\n# --skip-duplicate`
       },
       [/the step "Publish to Open VSX" must pass --skip-duplicate/],
     ],

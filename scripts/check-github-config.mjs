@@ -529,6 +529,30 @@ function checkVscodeCaller(id, job) {
   return errors
 }
 
+/** A run script's commands: its lines without shell comments, split at &&, ||, ; and |. */
+const commandsOf = (step) =>
+  lines(runOf(step))
+    .map((line) => line.replace(/(?:^|\s)#.*$/, ""))
+    .flatMap((line) => line.split(/&&|\|\||;|\|/))
+    .map((command) => command.trim())
+    .filter(Boolean)
+
+/** The words of a command, with their quotes and the parentheses of a bash array taken off. */
+const wordsOf = (command) =>
+  command
+    .split(/[\s()]+/)
+    .map((word) => word.replace(/^["']+|["']+$/g, ""))
+    .filter(Boolean)
+
+/**
+ * Whether the words pass `flag` as a bare word, and no other word names it: neither
+ * `--flag=false`, `--no-flag` nor `--config.flag=false` switches it back off.
+ */
+const passesFlag = (words, flag) => {
+  const name = flag.replace(/^--/, "")
+  return words.includes(flag) && words.every((word) => word === flag || !word.includes(name))
+}
+
 /**
  * The command lines of the credential job that start a package manager or a build: only the one
  * install and the two publish scripts may run next to the store credentials.
@@ -571,14 +595,18 @@ function checkVscodeCredentialJob(id, job) {
   if (installs.length !== 1) {
     errors.push(`${at} must run exactly one pnpm install, found ${installs.length}`)
   }
-  for (const step of installs) {
-    for (const flag of ["--frozen-lockfile", "--ignore-scripts"]) {
-      if (!runOf(step).includes(flag)) {
-        errors.push(
-          `${at}: pnpm install must pass ${flag}: the lockfile's vsce and ovsx, and no ` +
-            `lifecycle script runs next to the credentials`,
-        )
-      }
+  const installCommands = installs
+    .flatMap((step) => commandsOf(step))
+    .filter((command) => /^pnpm install\b/.test(command))
+  for (const flag of installs.length === 0 ? [] : ["--frozen-lockfile", "--ignore-scripts"]) {
+    const name = flag.replace(/^--/, "")
+    const passed = installCommands.every((command) => passesFlag(wordsOf(command), flag))
+    if (installCommands.length === 0 || !passed) {
+      errors.push(
+        `${at}: pnpm install must pass ${flag}, and no word that switches it back off ` +
+          `(${flag}=false, --no-${name}): the lockfile's vsce and ovsx, and no lifecycle ` +
+          `script runs next to the credentials`,
+      )
     }
   }
   for (const line of foreignCommands(job)) {
@@ -592,10 +620,16 @@ function checkVscodeCredentialJob(id, job) {
     if (steps.length !== 1) {
       errors.push(`${at} must run ${script} in exactly one step, found ${steps.length}`)
     }
-    for (const step of steps.filter((step) => !runOf(step).includes("--skip-duplicate"))) {
+    const skipping = (step) =>
+      passesFlag(
+        commandsOf(step).flatMap((command) => wordsOf(command)),
+        "--skip-duplicate",
+      )
+    for (const step of steps.filter((step) => !skipping(step))) {
       errors.push(
-        `${at}: the step "${step.name ?? script}" must pass --skip-duplicate: a re-run after a ` +
-          `partial failure publishes only what is missing`,
+        `${at}: the step "${step.name ?? script}" must pass --skip-duplicate, and no word that ` +
+          `switches it back off (--skip-duplicate=false): a re-run after a partial failure ` +
+          `publishes only what is missing`,
       )
     }
   }
