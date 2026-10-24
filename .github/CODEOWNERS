@@ -1,3 +1,9 @@
 # Default owners for everything in the repo, auto-requested as reviewers on PRs.
 # Replace with a GitHub team (e.g. `@Miragon/pulse`) once one exists.
 * @dominikhorn93
+
+# The VS Code extension (imported from Miragon/pulse-vscode) and its release path. The ruleset
+# requires no code-owner review, so these lines only route review requests; the last matching
+# line wins, so files under apps/vscode/ request their author instead of the default owner.
+/apps/vscode/ @emaarco
+/.github/workflows/publish-vscode-extension.yml @dominikhorn93 @emaarco
