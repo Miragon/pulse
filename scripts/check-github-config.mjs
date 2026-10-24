@@ -13,7 +13,12 @@
  *   (checkPublishWorkflow);
  * - release-please.yml's publish-npm matrix lists exactly the workspace packages npm receives,
  *   each naming this repository for its provenance (checkPublishMatrix), and
- *   release-please-config.json bumps every workspace package (checkReleaseExtraFiles);
+ *   release-please-config.json bumps every workspace package (checkReleaseExtraFiles) and
+ *   every Claude Code plugin manifest an app ships (checkPluginVersions);
+ * - every job of release-please.yml past the approval waits for gate, and release-please.yml
+ *   calls the CLI's publish workflows, which run on no other trigger (a dispatch only publishes
+ *   the formula of a release again) and hold their tokens like the npm publish
+ *   (checkReleaseGate, checkCliPublishWorkflows);
  * - dependabot.yml groups never shadow each other and name only directories that exist
  *   (checkDependabot);
  * - every check the main-branch ruleset requires is a job a pull request runs
@@ -25,7 +30,8 @@
  *   checkStrykerIncremental).
  *
  * The test (check-github-config.test.mjs) also RUNS the bash steps of the publish workflow
- * (against stub npm and curl executables) and of the nightly run in fixture trees.
+ * (against stub npm and curl executables), of the CLI's release (the tap update against a stub
+ * gh) and of the nightly run in fixture trees.
  *
  * Runs as `pnpm lint:github` (chained into the root `pnpm lint`).
  */
@@ -458,6 +464,177 @@ export function checkReleaseExtraFiles(config, packages, { fileExists = () => tr
     const file = typeof entry === "string" ? entry : entry?.path
     if (typeof file !== "string" || !fileExists(file)) {
       errors.push(`release-please-config.json: the extra-files path ${file} does not exist`)
+    }
+  }
+  return errors
+}
+
+/**
+ * Every Claude Code plugin manifest an app ships (`apps/<app>/skills/<skill>/.claude-plugin/
+ * plugin.json`): its version is the release's too, so release-please bumps it with the rest.
+ */
+export function pluginManifests(root, packages) {
+  return packages
+    .filter(({ dir }) => dir.startsWith("apps/"))
+    .flatMap(({ dir }) => {
+      const skills = path.join(root, dir, "skills")
+      if (!existsSync(skills)) return []
+      return readdirSync(skills, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => `${dir}/skills/${entry.name}/.claude-plugin/plugin.json`)
+        .filter((rel) => existsSync(path.join(root, rel)))
+    })
+    .sort()
+}
+
+/** Each plugin manifest is in extra-files as { type: json, jsonpath: $.version } (pure). */
+export function checkPluginVersions(config, manifests) {
+  const bumped = new Set(
+    asList(config?.packages?.["."]?.["extra-files"])
+      .filter((entry) => entry?.type === "json" && entry?.jsonpath === "$.version")
+      .map((entry) => entry.path),
+  )
+  return manifests
+    .filter((file) => !bumped.has(file))
+    .map(
+      (file) =>
+        `release-please-config.json: ${file} is missing from extra-files as { type: json, ` +
+        `jsonpath: $.version }: the plugin would announce the previous release's version`,
+    )
+}
+
+// ── release-please.yml: the release gate ────────────────────────────────────
+
+/** The jobs before the approval: release-please opens the release, gate is the approval. */
+export const BEFORE_THE_GATE = ["release-please", "gate"]
+
+/**
+ * Every other job of release-please.yml waits for gate, the `release` environment's approval:
+ * it needs gate directly or through another job that does (pure).
+ */
+export function checkReleaseGate(releaseDoc) {
+  const errors = []
+  const jobs = releaseDoc?.jobs ?? {}
+  if (environmentOf(jobs.gate) !== "release") {
+    errors.push(
+      `${RELEASE_WORKFLOW}: job gate must run in the environment release: it is the approval ` +
+        `every publish waits for`,
+    )
+  }
+  const memo = new Map()
+  const waits = (id, seen) => {
+    if (id === "gate") return true
+    if (memo.has(id)) return memo.get(id)
+    if (seen.has(id) || jobs[id] === undefined) return false
+    const result = asList(jobs[id].needs).some((need) => waits(need, new Set([...seen, id])))
+    memo.set(id, result)
+    return result
+  }
+  for (const id of Object.keys(jobs).filter((id) => !BEFORE_THE_GATE.includes(id))) {
+    if (!waits(id, new Set())) {
+      errors.push(
+        `${RELEASE_WORKFLOW}: job ${id} never waits for gate (needs it, directly or through ` +
+          `another job): it would publish without the release approval`,
+      )
+    }
+  }
+  return errors
+}
+
+// ── publish-cli.yml + publish-homebrew.yml ──────────────────────────────────
+
+/** The CLI's release channels besides npm, called by release-please.yml after the gate. */
+export const CLI_PUBLISH_WORKFLOWS = [
+  ".github/workflows/publish-cli.yml",
+  ".github/workflows/publish-homebrew.yml",
+]
+
+/**
+ * The events each one runs on: the release calls both, and only the formula can be published
+ * again by hand, from the assets of a release that exists. Nothing reaches the binaries or the
+ * image without the approval.
+ */
+export const CLI_PUBLISH_TRIGGERS = {
+  ".github/workflows/publish-cli.yml": ["workflow_call"],
+  ".github/workflows/publish-homebrew.yml": ["workflow_call", "workflow_dispatch"],
+}
+
+const grantsWrite = (job) =>
+  Object.values(job?.permissions ?? {}).some((value) => value === "write")
+
+/**
+ * The CLI's publish workflows hold their tokens the way the npm publish does (pure; `workflows`
+ * holds release-please.yml too): release-please.yml calls each of them, each runs only on its
+ * CLI_PUBLISH_TRIGGERS, no permission at the top level, a permissions map on every job, no
+ * dependency cache, checkouts without persisted credentials, no expression in a run script, and
+ * no package manager in a job that holds a write grant or id-token (the build jobs hold
+ * contents: read only).
+ */
+export function checkCliPublishWorkflows(workflows) {
+  const errors = []
+  const callers = new Set(
+    jobsOf(workflows.get(RELEASE_WORKFLOW)).map(([, job]) => String(job?.uses ?? "")),
+  )
+  for (const file of CLI_PUBLISH_WORKFLOWS) {
+    const doc = workflows.get(file)
+    if (doc === undefined) {
+      errors.push(`${file} is missing: release-please.yml calls it`)
+      continue
+    }
+    if (!callers.has(`./${file}`)) {
+      errors.push(
+        `${RELEASE_WORKFLOW}: no job calls ./${file}: a release would ship without that channel`,
+      )
+    }
+    const allowed = CLI_PUBLISH_TRIGGERS[file]
+    for (const event of Object.keys(triggersOf(doc)).filter((e) => !allowed.includes(e))) {
+      errors.push(
+        `${file}: runs on ${event}; it runs on ${allowed.join(" and ")} only, so nothing ` +
+          `publishes without the release approval`,
+      )
+    }
+    if (!isDeepStrictEqual(doc.permissions, {})) {
+      errors.push(`${file}: top-level permissions must be {}: each job names its own`)
+    }
+    for (const [id, job] of jobsOf(doc)) {
+      const at = `${file}: job ${id}`
+      const permissions = job?.permissions
+      if (permissions === null || typeof permissions !== "object" || Array.isArray(permissions)) {
+        errors.push(
+          `${at} must name its permissions as a map (a string such as write-all grants all)`,
+        )
+        continue
+      }
+      for (const step of stepsOf(job)) {
+        const run = runOf(step)
+        if (run.includes("${{")) {
+          errors.push(
+            `${at}: a run script holds a \${{ }} expression (template injection); pass it through env`,
+          )
+        }
+        if (usesAction(step, "actions/checkout") && step.with?.["persist-credentials"] !== false) {
+          errors.push(`${at}: actions/checkout must set persist-credentials: false`)
+        }
+        if (
+          String(step?.uses ?? "").startsWith("actions/cache") ||
+          step?.with?.cache !== undefined
+        ) {
+          errors.push(`${at}: a release job restores no cache`)
+        }
+        if (
+          usesAction(step, "actions/setup-node") &&
+          step.with?.["package-manager-cache"] !== false
+        ) {
+          errors.push(`${at}: actions/setup-node must set package-manager-cache: false`)
+        }
+        const install = grantsWrite(job) ? packageManagerRun(run) : undefined
+        if (install) {
+          errors.push(
+            `${at} holds ${JSON.stringify(permissions)} and runs "${install}": a job that holds ` +
+              `a write grant or id-token installs nothing; build in a job with contents: read`,
+          )
+        }
+      }
     }
   }
   return errors
@@ -940,6 +1117,12 @@ export function checkRepo(root) {
       packages,
       { fileExists: exists },
     ),
+    ...checkPluginVersions(
+      JSON.parse(readFileSync(path.join(root, "release-please-config.json"), "utf8")),
+      pluginManifests(root, packages),
+    ),
+    ...checkReleaseGate(workflows.get(RELEASE_WORKFLOW)),
+    ...checkCliPublishWorkflows(workflows),
     ...checkDependabot(readYaml(root, ".github/dependabot.yml"), { packages, dirExists: exists }),
     ...checkRequiredChecks(workflows),
     ...checkArtifactGlobs(workflows.get(CI_WORKFLOW), workflows.get(NIGHTLY_WORKFLOW), globs),
@@ -962,8 +1145,9 @@ if (isMain) {
     process.exit(1)
   }
   console.log(
-    "GitHub config: publish workflow, npm matrix and repositories, release extra-files, " +
-      `Dependabot groups, ${REQUIRED_CHECKS.length} required checks, the report artifacts, the ` +
-      "nightly mutation run and the Stryker incremental files hold.",
+    "GitHub config: publish workflow, npm matrix and repositories, release extra-files and " +
+      "plugin versions, the release gate, the CLI publish workflows, Dependabot groups, " +
+      `${REQUIRED_CHECKS.length} required checks, the report artifacts, the nightly mutation ` +
+      "run and the Stryker incremental files hold.",
   )
 }
