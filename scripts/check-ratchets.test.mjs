@@ -397,6 +397,43 @@ describe("vitest coverage thresholds: glob keys, perFile, the 100 shorthand, cou
       assert.deepEqual(check(base, config(body)), [], body)
   })
 
+  it("reads the LAST of duplicate keys, as JS does: a metric, a glob, a glob's metric, thresholds", () => {
+    for (const [after, pattern] of [
+      [
+        config(`${GLOBAL}, "src/core/**": { lines: 98, branches: 95 }, lines: 10`),
+        /\.lines: 90 -> 10/,
+      ],
+      [
+        config(
+          `${GLOBAL}, "src/core/**": { lines: 98, branches: 95 }, "src/core/**": { lines: 10, branches: 95 }`,
+        ),
+        /\["src\/core\/\*\*"\]\.lines: 98 -> 10/,
+      ],
+      [
+        config(`${GLOBAL}, "src/core/**": { lines: 98, branches: 95, lines: 10 }`),
+        /\["src\/core\/\*\*"\]\.lines: 98 -> 10/,
+      ],
+      [
+        vitestConfig({
+          thresholds: `thresholds: { ${GLOBAL}, "src/core/**": { lines: 98, branches: 95 } }, thresholds: { lines: 10 },`,
+        }),
+        /\.statements was removed/,
+      ],
+    ]) {
+      const violations = check(base, after)
+      assert.ok(violations.length > 0, String(pattern))
+      assert.match(violations.join("\n"), pattern)
+    }
+    // The other way round the last, stricter value is the one vitest applies.
+    assert.deepEqual(
+      check(
+        base,
+        config(`lines: 10, ${GLOBAL}, "src/core/**": { lines: 10, lines: 98, branches: 95 }`),
+      ),
+      [],
+    )
+  })
+
   it("fails closed on what it cannot read: a non-literal glob, metric, key, spread or accessor", () => {
     const nonLiteral = check(base, config(`${GLOBAL}, "src/core/**": CORE`))
     assert.equal(nonLiteral.length, 2)
@@ -707,6 +744,7 @@ export default defineConfig({
       'name: { label: "browser", color: "green" }',
     )
     for (const projects of [
+      [UNIT.replace('name: "unit",', 'name: "lax", name: "unit",'), BROWSER, ENGINE],
       [UNIT, BROWSER, ENGINE, smoke],
       [UNIT, grown, ENGINE],
       [unitAll, BROWSER, ENGINE],
@@ -802,6 +840,24 @@ export default defineConfig({ coverage: { enabled: true, thresholds: { lines: 90
       [
         [UNIT.replace("extends: true", 'extends: "./vitest.base.ts"'), BROWSER, ENGINE],
         /\["unit"\]\.extends: "\.\/vitest\.base\.ts"/,
+      ],
+      // A duplicate key reads as JS reads it: the LAST one wins, so a harmless first
+      // value cannot hide the path vitest loads, nor the name it runs the project under.
+      [
+        [
+          UNIT.replace("extends: true,", 'extends: true, extends: "./loose.config.ts",'),
+          BROWSER,
+          ENGINE,
+        ],
+        /\["unit"\]\.extends: "\.\/loose\.config\.ts"/,
+      ],
+      [
+        [UNIT.replace('name: "unit",', 'name: "unit", name: "lax",'), BROWSER, ENGINE],
+        /\["unit"\] was removed/,
+      ],
+      [
+        [UNIT.replace('name: "unit",', 'name: { label: "unit", label: "lax" },'), BROWSER, ENGINE],
+        /\["unit"\] was removed/,
       ],
     ]) {
       const violations = check(projectsConfig({ projects }))
@@ -943,6 +999,12 @@ export const sharedConfig = defineConfig({
     assert.match(
       checkRatchetFile("vitest.shared.ts", base, dropped)[0],
       /coverage\.enabled is now undefined \(was true\)/,
+    )
+    // A duplicate key: the last one is the one vitest reads.
+    const switched = base.replace("enabled: true, ", "enabled: true, enabled: false, ")
+    assert.match(
+      checkRatchetFile("vitest.shared.ts", base, switched)[0],
+      /coverage\.enabled is now false \(was true\)/,
     )
   })
 

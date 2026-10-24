@@ -1,6 +1,7 @@
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
+import ts from "typescript"
 import { afterEach, describe, expect, it } from "vitest"
 import { APP_SCAN, REPO_ROOT, scanSources, type AppScan, type ScanScope } from "./source-scan.js"
 
@@ -126,6 +127,21 @@ describe("scanSources", () => {
     expect(filesIn(root, apps, "mcp")).toEqual(BASE_FILES)
   })
 
+  it("tells each scan what a file belongs to: a package, an MCP server app or an interface app", () => {
+    const root = fixture({ ...BASE, ...CLI, ...EXTENSION })
+    const apps: Record<string, AppScan> = { ...SERVER_ONLY, cli: "interface", vscode: "interface" }
+    const owners = scanSources((file, _text, owner) => [`${file} ${owner}`], { root, apps })
+    expect(owners.sort()).toEqual([
+      "apps/cli/src/index.ts interface",
+      "apps/mcp-server-camunda7/src/a.ts mcp-host",
+      "apps/vscode/src/host/extension.ts interface",
+      "packages/connectors/camunda/camunda7-domain/src/c.ts package",
+      "packages/connectors/camunda/camunda7-domain/src/routes.mts package",
+      "packages/core/widget-shell/src/b.ts package",
+      "packages/core/widget-shell/src/ui/inline-fit.test-support.tsx package",
+    ])
+  })
+
   it('reads a second MCP server app in scope "mcp" too', () => {
     const root = fixture({
       ...BASE,
@@ -196,5 +212,99 @@ describe("the repo's apps", () => {
       )
     }
     expect(all.some((file) => /\.test\.tsx?$|\/generated\//.test(file))).toBe(false)
+  })
+})
+
+/**
+ * The scope each guard reads, pinned at its call site: an interface app is
+ * read by the tool-name checks (literals, quoted parameters, prose) and by no
+ * widget rule, no helper resolution and no server-only guard. Today APP_SCAN
+ * classifies no interface app, so a scope switched at a call site would change
+ * no result yet; this reads the guard files themselves.
+ */
+describe("the guards' scan scopes", () => {
+  /** Each scanSources call of a guard file, in source order: the scan it runs and the scope it reads. */
+  function scanCalls(rel: string): Array<[scan: string, scope: ScanScope]> {
+    const file = path.join(REPO_ROOT, "apps/mcp-server-camunda7/test", rel)
+    const source = ts.createSourceFile(
+      file,
+      fs.readFileSync(file, "utf8"),
+      ts.ScriptTarget.Latest,
+      true,
+    )
+    const consts = new Map<string, ts.Expression>()
+    for (const statement of source.statements) {
+      if (!ts.isVariableStatement(statement)) continue
+      for (const decl of statement.declarationList.declarations) {
+        if (ts.isIdentifier(decl.name) && decl.initializer)
+          consts.set(decl.name.text, decl.initializer)
+      }
+    }
+    /** The scope an options argument sets: its literal `scope`, else the default "all". */
+    const scopeOf = (arg: ts.Expression | undefined): ScanScope => {
+      const options = arg && ts.isIdentifier(arg) ? consts.get(arg.text) : arg
+      if (!options || !ts.isObjectLiteralExpression(options)) return "all"
+      const scope = options.properties.find(
+        (member) => member.name !== undefined && member.name.getText() === "scope",
+      )
+      if (scope === undefined) return "all"
+      if (ts.isPropertyAssignment(scope) && ts.isStringLiteral(scope.initializer)) {
+        return scope.initializer.text as ScanScope
+      }
+      throw new Error(
+        `${rel}: a scope this test cannot read (${scope.getText()}): write it literally`,
+      )
+    }
+    /** The scan's name: the function passed, or the first function the arrow calls. */
+    const scanOf = (arg: ts.Expression): string => {
+      if (ts.isIdentifier(arg)) return arg.text
+      let name = "?"
+      const visit = (node: ts.Node) => {
+        if (name === "?" && ts.isCallExpression(node) && ts.isIdentifier(node.expression)) {
+          name = node.expression.text
+        }
+        ts.forEachChild(node, visit)
+      }
+      visit(arg)
+      return name
+    }
+    const calls: Array<[string, ScanScope]> = []
+    const visit = (node: ts.Node) => {
+      if (
+        ts.isCallExpression(node) &&
+        ts.isIdentifier(node.expression) &&
+        node.expression.text === "scanSources" &&
+        node.arguments[0] !== undefined
+      ) {
+        calls.push([scanOf(node.arguments[0]), scopeOf(node.arguments[1])])
+      }
+      ts.forEachChild(node, visit)
+    }
+    visit(source)
+    return calls
+  }
+
+  it("tool-name-refs: literals and quoted parameters read every app, the helpers only the MCP side", () => {
+    expect(scanCalls("tool-name-refs.test.ts")).toEqual([
+      ["collectTextHelpers", "mcp"],
+      ["findParamRefs", "all"],
+      ["findToolNameLiterals", "all"],
+    ])
+  })
+
+  it("hand-off-surface: the widget rules read the MCP side, the prose check every app", () => {
+    expect(scanCalls("hand-off-surface.test.ts")).toEqual([
+      ["findIdentifiers", "mcp"],
+      ["findIdentifiers", "mcp"],
+      ["findModelContextContents", "mcp"],
+      ["findContextFunctions", "mcp"],
+      ["findDescribeForModelArgs", "mcp"],
+      ["findHandOffSpecs", "mcp"],
+      ["findProseToolNames", "all"],
+    ])
+  })
+
+  it("setup-env: the PULSE_ guard reads the packages and the MCP server apps", () => {
+    expect(scanCalls("setup-env.test.ts")).toEqual([["pulseLines", "mcp"]])
   })
 })

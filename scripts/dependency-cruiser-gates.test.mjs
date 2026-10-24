@@ -42,6 +42,9 @@ const C7_DOMAIN = "packages/connectors/camunda/camunda7-domain"
 const AN_CLIENT = "packages/connectors/analytics/analytics-client"
 const AN_CONNECTOR = "packages/connectors/analytics/analytics-connector"
 const AN_DOMAIN = "packages/connectors/analytics/analytics-domain"
+// A legal client whose name merely contains "-domain": the -domain exemption of the
+// interface rules must end at the name's boundary, or this package slips through.
+const C7_DOMAIN_CLIENT = "packages/connectors/camunda/camunda7-domain-client"
 
 const WORKSPACE = {
   [SERVER]: { name: "@miragon/pulse-mcp-server-camunda7", private: true },
@@ -54,6 +57,7 @@ const WORKSPACE = {
   [AN_CLIENT]: { name: "@miragon/pulse-analytics-client" },
   [AN_CONNECTOR]: { name: "@miragon/pulse-analytics-connector" },
   [AN_DOMAIN]: { name: "@miragon/pulse-analytics-domain" },
+  [C7_DOMAIN_CLIENT]: { name: "@miragon/pulse-camunda7-domain-client" },
 }
 
 // Third-party stubs installed into every importer's own node_modules. `vscode` is left out
@@ -165,6 +169,12 @@ const SUITES = [
         "vscode",
       ].map((spec) => [CLI_SRC, spec, [HEADLESS]]),
       [CLI_SRC, "pulse-vscode", [APP_APP, HEADLESS, NO_EXT]],
+      // "-domain" inside a name is no -domain package: declared (through the symlink), as a
+      // subpath and bare (the naming gate admits core names such as order-domains).
+      [CLI_SRC, "@miragon/pulse-camunda7-domain-client", [HEADLESS]],
+      [CLI_SRC, "@miragon/pulse-camunda7-domain-client/sdk", [HEADLESS]],
+      [CLI_SRC, "@miragon/pulse-order-domains", [HEADLESS]],
+      [CLI_SRC, "@miragon/pulse-x-domain-utils", [HEADLESS]],
       [
         `${CLI}/src/escape-package.ts`,
         "../../../packages/core/widget-shell/src/target.ts",
@@ -227,6 +237,10 @@ const SUITES = [
         "@hey-api/client-fetch",
       ].map((spec) => [EXT_SRC, spec, [NOT_HOST]]),
       [EXT_SRC, "@miragon/pulse-mcp-server-camunda7", [APP_APP, NOT_HOST]],
+      [EXT_SRC, "@miragon/pulse-camunda7-domain-client", [NOT_HOST]],
+      [EXT_SRC, "@miragon/pulse-camunda7-domain-client/sdk", [NOT_HOST]],
+      [EXT_SRC, "@miragon/pulse-order-domains", [NOT_HOST]],
+      [EXT_SRC, "@miragon/pulse-x-domain-utils", [NOT_HOST]],
       [
         `${EXT}/src/escape-package.ts`,
         "../../../packages/core/widget-shell/src/target.ts",
@@ -411,6 +425,17 @@ const SUITES = [
       // A type-only import counts too (tsPreCompilationDeps): no `import type` from the SDK.
       [`${C7_DOMAIN}/src/client-type.ts`, "@miragon/pulse-camunda7-client", [DOMAIN_LEAF], "type"],
       [`${C7_DOMAIN}/src/escape.ts`, "../../camunda7-client/src/target.ts", [DOMAIN_LEAF, DEEP]],
+      // A relative escape into an app: the rule's own "no app" pattern, not only its neighbours'.
+      [
+        `${C7_DOMAIN}/src/escape-app.ts`,
+        "../../../../../apps/cli/src/target.ts",
+        [DOMAIN_LEAF, NO_APP, NO_CLI, DEEP],
+      ],
+      [
+        `${C7_DOMAIN}/src/escape-server.ts`,
+        "../../../../../apps/mcp-server-camunda7/src/target.ts",
+        [DOMAIN_LEAF, NO_APP, DEEP],
+      ],
       // Its tests are leaves too: a test imports no zod either.
       [`${C7_DOMAIN}/src/index.test.ts`, "zod", [DOMAIN_LEAF]],
       [C7_DOMAIN_SRC, "./model.ts", []],
