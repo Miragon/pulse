@@ -45,13 +45,15 @@ flowchart LR
 A small set of layering rules keeps modules independently usable and a future
 second engine dialect cheap:
 
-- App = one product per engine dialect. `apps/mcp-server-camunda7` is the
-  thin composition root of the Camunda-7-dialect product (camunda7 +
-  analytics). Engine _vendors_ of that dialect (CIB seven, Operaton, Camunda 7)
-  are per-engine runtime configuration (`flavor` on the engine entry, resolved
-  to an `EngineProvider` carrying only the real differences: cockpit routes,
-  branding, client hook), never separate apps. A different dialect (e.g.
-  Flowable, with its own REST API) would be its own module, client, and app.
+- Three axes keep a second engine dialect and a second interface cheap. Engine
+  _vendors_ (CIB seven, Operaton, Camunda 7) are per-engine runtime configuration
+  (`flavor` on the engine entry, resolved to an `EngineProvider` carrying only the
+  real differences: cockpit routes, branding, client hook), never packages or apps.
+  A _dialect_ (an engine API family: Camunda 7 today, Flowable would be another) is
+  one package family: its client, its connector (the MCP module) and, once two
+  interfaces share a use case, a domain package. An _interface_ is an app:
+  `apps/mcp-server-camunda7` is the thin composition root of the Camunda-7-dialect
+  MCP server (camunda7 + analytics); a different dialect gets its own MCP server app.
 - Modules are peers. Connector packages (`*-connector`) never import each other. Cross-module
   capabilities are injected by the app, e.g. the camunda7 module's BPMN-XML lookup feeding the
   analytics heatmap and the names in its views (`SharedResources.fetchBpmnXml`) and its
@@ -64,7 +66,7 @@ second engine dialect cheap:
   fail-closed toolset per module per boot (read-only unless widened) and logs it. The module
   packages are published to npm, so external composition roots can mount them next to their own
   modules. The reference is `templates/composed-server/`.
-- Apps own no domain UI. Widgets and their catalogues live in packages:
+- The MCP server app owns no domain UI. Widgets and their catalogues live in packages:
   `widget-shell` carries the generic primitives plus the `shell:*` widgets;
   each module carries its own. Cross-module UI has three sanctioned tiers:
   generic `shell:*` widgets fed via `props.dataKey`, tool-name string
@@ -72,7 +74,7 @@ second engine dialect cheap:
   package (created with the first real view).
 - Extract on the second consumer, never speculatively. A composed-views
   package appears with the first cross-module view, a shared domain-widget
-  package with a second dialect, a host-kit with a second app.
+  package with a second dialect, a host-kit with a second MCP server app.
 
 ## User settings
 

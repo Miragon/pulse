@@ -268,3 +268,90 @@ describe("gates sharing a glob are merged, not overridden", () => {
     assert.equal(messages.filter(isDateHit).length, 1)
   })
 })
+
+describe("domain globals gate (invariant 8) in every -domain package", () => {
+  // No -domain package exists yet: the probes name paths the gate must cover
+  // BEFORE the first one lands.
+  const DOMAIN_PATHS = [
+    "packages/connectors/camunda/camunda7-domain/src/x.ts",
+    "packages/connectors/camunda/camunda7-domain/src/use-cases/deep/x.tsx",
+    "packages/connectors/analytics/analytics-domain/src/x.ts",
+  ]
+  const NODE_GLOBALS = [
+    "Buffer",
+    "__dirname",
+    "__filename",
+    "clearImmediate",
+    "exports",
+    "global",
+    "module",
+    "process",
+    "require",
+    "setImmediate",
+  ]
+  const isDomainHit = (m) => m.includes("A -domain package runs unchanged")
+  const domainMessages = (rel, code) => gateMessages(rel, code, "no-restricted-globals")
+
+  it("bans every Node global, each with its replacement in the message", async () => {
+    for (const rel of DOMAIN_PATHS) {
+      const options = await ruleOptionsFor(rel, "no-restricted-globals")
+      assert.ok(options, `${rel}: no-restricted-globals is off`)
+      const globals = options[1].globals
+      assert.deepEqual(globals.map((g) => g.name).sort(), NODE_GLOBALS, rel)
+      for (const g of globals) assert.ok(isDomainHit(g.message), `${rel}: ${g.name} has no reason`)
+      assert.equal(options[1].checkGlobalObject, true, `${rel}: globalThis.<name> passes`)
+    }
+  })
+
+  it("catches process.env, Buffer.from, __dirname and the rest without an import", async () => {
+    const escapes = [
+      "const url = process.env.X",
+      'const bytes = Buffer.from("x")',
+      'const file = __dirname + "/x.json"',
+      "const self = __filename",
+      'const fs = require("node:fs")',
+      "module.exports = { a: 1 }",
+      "exports.a = 1",
+      "global.cache = new Map()",
+      "setImmediate(run)",
+      "clearImmediate(handle)",
+      "const url = globalThis.process.env.X",
+    ]
+    for (const rel of DOMAIN_PATHS) {
+      for (const code of escapes) {
+        const messages = await domainMessages(rel, code)
+        assert.equal(messages.filter(isDomainHit).length, 1, `${rel}: "${code}" passed the gate`)
+      }
+    }
+  })
+
+  it("leaves web-standard globals, type positions and properties named like a global alone", async () => {
+    const code = [
+      'const bytes = new TextEncoder().encode("x")',
+      "queueMicrotask(run)",
+      "const handle = setTimeout(run, 1)",
+      "clearTimeout(handle)",
+      'const url = new URL("x", base)',
+      "type Env = NodeJS.ProcessEnv",
+      "let current: typeof process | undefined",
+      "const step = { process: run, module: name }",
+      "step.process()",
+    ].join("\n")
+    for (const rel of DOMAIN_PATHS) {
+      assert.deepEqual(await domainMessages(rel, code), [], rel)
+    }
+  })
+
+  it("applies to -domain packages only: the same code at a connector, a client or core passes", async () => {
+    const code = 'const url = process.env.X\nconst bytes = Buffer.from("x")\nconst dir = __dirname'
+    for (const rel of [
+      `${C7}/x.ts`,
+      `${AN}/widgets/x.tsx`,
+      "packages/connectors/camunda/camunda7-client/src/x.ts",
+      "packages/core/widget-shell/src/x.ts",
+      "apps/mcp-server-camunda7/src/x.ts",
+    ]) {
+      assert.deepEqual(await domainMessages(rel, code), [], rel)
+    }
+  })
+})

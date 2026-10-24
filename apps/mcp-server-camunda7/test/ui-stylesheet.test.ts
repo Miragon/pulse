@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process"
-import { readdirSync, readFileSync, statSync } from "node:fs"
+import { readFileSync } from "node:fs"
 import { createRequire } from "node:module"
-import { join, relative, sep } from "node:path"
+import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { describe, expect, it } from "vitest"
 import {
@@ -12,6 +12,7 @@ import {
   toneContrastPairs,
   toolkitThemeStylesheets,
 } from "@miragon/pulse-widget-shell/testing"
+import { rootTokens, vendoredTokenFindings } from "./vendored-tokens.js"
 
 /**
  * The stylesheets every view document inlines: the app's own and the customer
@@ -33,6 +34,19 @@ import {
 
 /** The Miragon docs kit, vendored from Miragon/corporate-identity with its own manifest. */
 const DOCS_KIT = "docs/.vitepress/miragon"
+
+/**
+ * The vendored CI token copies besides the toolkit's, by manifest (the docs
+ * kit's format: `version`, `dateien: [{ pfad, quelle, sha256 }]`). A copy is
+ * sanctioned only by an entry here, never by a manifest's mere presence next
+ * to it. A second copy (say the App and web variant of the token file from
+ * modeler-tool-design) lands with its manifest and adds that manifest's path
+ * here; it never becomes an exception in the scan.
+ */
+const SANCTIONED_TOKEN_MANIFESTS = [`${DOCS_KIT}/manifest.json`]
+
+/** Where a `--cd-*` declaration outside a sanctioned copy is a fork. */
+const TOKEN_SCAN_ROOTS = ["apps", "packages", "templates", "docs"]
 
 const read = (relativePath: string) => readFileSync(new URL(relativePath, import.meta.url), "utf8")
 
@@ -144,14 +158,18 @@ describe("view stylesheets: role variables over the Miragon theme", () => {
 /**
  * Drift guard (modeler-tool-design §13: vendor the CI tokens unchanged, never
  * fork a value). The token file every view ships is the toolkit's vendored
- * copy — `theme.css` imports it, and nobody in this repo declares a `--cd-*`
- * of its own. The docs site builds on the Miragon docs kit
- * (`docs/.vitepress/miragon/`, vendored from Miragon/corporate-identity, skill
- * docs-site): its token file, theme and logos are pinned by the kit's own
- * manifest, which `check.mjs` verifies; the kit's contrast and role mapping
- * are tested at its source.
+ * copy: `theme.css` imports it. Besides it a `--cd-*` is declared only in a
+ * vendored copy that a manifest in SANCTIONED_TOKEN_MANIFESTS lists: inside
+ * that manifest's folder, byte-equal to the manifest's sha256, nothing else in
+ * the folder, and, once the manifest's stylesheets declare a `--cd-*` at all,
+ * their top-level `:root` blocks together declaring every token of the
+ * toolkit's copy with the toolkit's value (`vendored-tokens.ts`). Today that is
+ * the Miragon docs kit (`docs/.vitepress/miragon/`, vendored from
+ * Miragon/corporate-identity, skill docs-site): its token file, theme and
+ * logos are pinned by the kit's own manifest, which `check.mjs` verifies as
+ * well; the kit's contrast and role mapping are tested at its source.
  */
-describe("Miragon tokens: one vendored copy", () => {
+describe("Miragon tokens: vendored copies listed by manifest", () => {
   const require = createRequire(import.meta.url)
   const toolkitTheme = require.resolve("@miragon/mcp-toolkit-ui/theme.css")
   const toolkitTokens = readFileSync(
@@ -175,26 +193,24 @@ describe("Miragon tokens: one vendored copy", () => {
     expect(check.status).toBe(0)
   })
 
-  it("no stylesheet in the repo declares a --cd-* token (no fork)", () => {
+  it("a --cd-* token is declared only in a sanctioned vendored copy, byte-equal to its manifest and on the toolkit palette (no fork)", () => {
     const repo = fileURLToPath(new URL("../../../", import.meta.url))
-    const kit = join(repo, DOCS_KIT) + sep
-    const forks = ["apps", "packages", "templates", "docs"]
-      .flatMap((dir) => stylesheetsUnder(join(repo, dir)))
-      .filter((file) => !file.startsWith(kit))
-      .filter((file) => /--cd-[\w-]+\s*:/.test(rulesOf(readFileSync(file, "utf8"))))
-      .map((file) => relative(repo, file))
-    expect(forks).toEqual([])
+    const palette = rootTokens(toolkitTokens)
+    // The palette rule is not blind: the toolkit's copy yields its palette, and
+    // the docs kit's copy declares every token of it (vendoredTokenFindings
+    // requires that too), so each value is compared.
+    expect(palette.get("--cd-blau")).toMatch(/^#[0-9A-Fa-f]{6}$/)
+    const kitTokens = rootTokens(
+      readFileSync(join(repo, DOCS_KIT, "theme", "cd-tokens.generated.css"), "utf8"),
+    )
+    expect([...palette.keys()].filter((name) => !kitTokens.has(name))).toEqual([])
+    expect(
+      vendoredTokenFindings({
+        root: repo,
+        manifests: SANCTIONED_TOKEN_MANIFESTS,
+        scanRoots: TOKEN_SCAN_ROOTS,
+        palette,
+      }),
+    ).toEqual([])
   })
 })
-
-/** Every `.css` file under `dir`, skipping installs and build output. */
-function stylesheetsUnder(dir: string): string[] {
-  return readdirSync(dir).flatMap((name) => {
-    if (["node_modules", "dist", "cache", ".vitepress-cache", "test-results"].includes(name)) {
-      return []
-    }
-    const path = join(dir, name)
-    if (statSync(path).isDirectory()) return stylesheetsUnder(path)
-    return name.endsWith(".css") ? [path] : []
-  })
-}

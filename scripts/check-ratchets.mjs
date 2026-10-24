@@ -8,14 +8,41 @@
  * every ratchet against the MERGE BASE of the target branch (never against
  * the PR's own files) and fails on any move in the forbidden direction:
  *
- *   <pkg>/vitest.config.ts          coverage thresholds raise-only, never removed;
- *   vitest.shared.ts                coverage `exclude` and test `exclude`
+ *   <pkg>/vitest.config.ts          coverage thresholds raise-only, never removed:
+ *   vitest.shared.ts                the global metrics AND every glob key's
+ *                                   metrics (vitest's `100` shorthand expanded;
+ *                                   a removed or renamed glob fails, since a
+ *                                   glob that matches no file passes vacuously;
+ *                                   a new glob only adds, because vitest 4
+ *                                   still holds every file to the global
+ *                                   floors); `perFile` never switched off; a
+ *                                   count floor (-N) never traded for a
+ *                                   percentage below 100; vitest.shared.ts
+ *                                   carries no floors at all (mergeConfig lets
+ *                                   a package key override them unseen);
+ *                                   coverage `exclude` and test `exclude`
  *                                   shrink-only; coverage `include` and test
  *                                   `include` grow-only (a coverage `include`
  *                                   never appears: without one vitest measures
  *                                   every loaded file); `enabled` never
  *                                   switched off (incl. a package that stops
- *                                   merging sharedConfig)
+ *                                   merging sharedConfig); inline
+ *                                   `test.projects` keyed by their literal
+ *                                   name: none removed, each one's `include`
+ *                                   grow-only and `exclude` shrink-only, its
+ *                                   `extends` pinned, the list never appearing
+ *                                   or disappearing; the one coverage block is
+ *                                   the root `test.coverage` (vitest reads no
+ *                                   other); every shape the AST cannot read (a
+ *                                   spread, shorthand, accessor, computed key
+ *                                   or non-literal value) frozen. A config the
+ *                                   ratchet cannot read on the base is held to
+ *                                   the rules of an introduced one, and one it
+ *                                   cannot read on either side fails. An
+ *                                   INTRODUCED <pkg>/vitest.config.ts is not
+ *                                   free: it must be readable, measure (merge
+ *                                   sharedConfig or set coverage.enabled: true)
+ *                                   and carry all four global floors
  *   <pkg>/stryker.config.json       thresholds.break raise-only; `mutate`
  *                                   grow-only (an entry may leave only when
  *                                   break rises in the same diff, or when it
@@ -51,10 +78,28 @@
  *                                   gates CI runs directly are pinned (only an
  *                                   `--exclude` list may shrink); no `knip` key
  *   <pkg>/package.json              lint / typecheck / test / test:mutation pinned
+ *   every workspace package.json    no `prettier` key (root, apps, packages,
+ *                                   docs; also in a package.json the diff
+ *                                   introduces): prettier reads it before any
+ *                                   .prettierrc in the same directory
  *   shadowing configs               an eslint.config.* besides the root .mjs, a
  *                                   knip config besides knip.jsonc, a Stryker
- *                                   config besides stryker.config.json — each
- *                                   tool would load it INSTEAD of the ratchet
+ *                                   config besides stryker.config.json: each
+ *                                   tool would load it INSTEAD of the ratchet.
+ *                                   A vitest.config.{mts,cts,js,mjs,cjs} in a
+ *                                   package (dead next to vitest.config.ts,
+ *                                   loaded unratcheted without it). Any
+ *                                   prettier config (.prettierrc*,
+ *                                   prettier.config.*, package.yaml) besides
+ *                                   the root .prettierrc.json and any
+ *                                   .editorconfig besides the root one, in
+ *                                   every directory (docs/, templates/,
+ *                                   scripts/ as much as apps/ and packages/):
+ *                                   prettier and editorconfig resolve the
+ *                                   NEAREST config, so a nested one keeps a
+ *                                   foreign style; per-directory style goes
+ *                                   into the root .prettierrc.json
+ *                                   `overrides`. Each fails whenever it exists
  *   inline suppressions             `eslint-disable` of a gate rule (or of every
  *                                   rule), inline gate-rule config, `v8|c8|
  *                                   istanbul ignore`, `Stryker disable` in
@@ -86,20 +131,63 @@ export const EXCEPTION_TRAILER = /^Ratchet-Exception: .+/m
 
 const PKG = String.raw`(?:apps/[^/]+|packages/core/[^/]+|packages/connectors/[^/]+/[^/]+)`
 
+/** The default message: the tool resolves the shadow first, the ratchet keeps reading `replaces`. */
+const loadedInstead = (replaces) => (relPath) =>
+  `${relPath} would be loaded INSTEAD of ${replaces} — the tool resolves it first, while this check (and mutation-diff.mjs) keep reading the ratcheted file, so every threshold, ignore list and gate in it could be swapped out unseen. Edit ${replaces} instead.`
+
+/**
+ * A directory prefix anywhere below the repo root that is not inside an
+ * installed dependency: prettier and editorconfig resolve the nearest config
+ * from every file `prettier --check .` reads, docs/ and templates/ included.
+ */
+const NESTED = String.raw`(?!(?:.*/)?node_modules/)(?:.+/)`
+/** prettier's config file names besides package.json (the manifest check covers its key). */
+const PRETTIER_CONFIG = String.raw`(?:package\.yaml|\.prettierrc(?:\.\w+)?|prettier\.config\.[cm]?[jt]s)`
+
 // Config files a tool loads BEFORE (or instead of) the ratcheted one:
 // ESLint resolves the nearest eslint.config.{js,mjs,cjs,ts,mts,cts} upward
 // from each linted file (.js first); knip tries knip.json, knip.jsonc,
 // .knip.json(c), knip.{ts,js}, knip.config.{ts,js} in the root; Stryker tries
 // {,.}stryker.{conf,config}.{json,js,mjs,cjs} in the package dir, .conf first.
+// vitest (4.1.11, CONFIG_NAMES x CONFIG_EXTENSIONS) tries vitest.config.{ts,
+// mts,cts,js,mjs,cjs} in the package dir and loads the first it finds.
+// prettier walks up from each file and takes the NEAREST directory that has a
+// package.json with a `prettier` key, a package.yaml with one, .prettierrc,
+// .prettierrc.json, .prettierrc.{yml,yaml,json5,js,ts,mjs,mts,cjs,cts,toml}
+// or prettier.config.{js,ts,mjs,mts,cjs,cts}; it reads the nearest
+// .editorconfig for every option the prettier config leaves open.
 const SHADOW_CONFIGS = [
   {
     pattern: /^(?:(?:apps|packages)\/.+\/)?eslint\.config\.(?:[cm]?js|[cm]?ts)$/,
-    replaces: "eslint.config.mjs",
+    message: loadedInstead("eslint.config.mjs"),
   },
-  { pattern: /^\.?knip(?:\.config)?\.(?:jsonc?|[cm]?js|[cm]?ts)$/, replaces: "knip.jsonc" },
+  {
+    pattern: /^\.?knip(?:\.config)?\.(?:jsonc?|[cm]?js|[cm]?ts)$/,
+    message: loadedInstead("knip.jsonc"),
+  },
   {
     pattern: new RegExp(`^${PKG}/\\.?stryker\\.(?:conf|config)\\.(?:json|[cm]?js)$`),
-    replaces: "the package's stryker.config.json",
+    message: loadedInstead("the package's stryker.config.json"),
+  },
+  {
+    pattern: new RegExp(`^${PKG}/vitest\\.config\\.(?:mts|cts|[cm]?js)$`),
+    message: (relPath) =>
+      `${relPath} is a second vitest config next to the package's vitest.config.ts. vitest tries vitest.config.{ts,mts,cts,js,mjs,cjs} in that order and loads the first it finds: next to vitest.config.ts this file is dead code that reads like the config, and without vitest.config.ts vitest loads it with no ratchet reading its thresholds. Keep the package's config in vitest.config.ts and delete this file.`,
+  },
+  {
+    // Any root prettier config but .prettierrc.json (package.yaml and
+    // .prettierrc come BEFORE it, the others take over once it is gone), and
+    // any prettier config in a directory below the root.
+    pattern: new RegExp(
+      `^(?!\\.prettierrc\\.json$)${PRETTIER_CONFIG}$|^${NESTED}${PRETTIER_CONFIG}$`,
+    ),
+    message: (relPath) =>
+      `${relPath} is a prettier config of its own. prettier takes the NEAREST config walking up from each file, so every file below it would be formatted, and pass format:check, in a style the root .prettierrc.json does not set (\`requirePragma: true\` even skips every file without a pragma). Per-directory style goes into the root .prettierrc.json \`overrides\` (\`"files": ["apps/<app>/**"]\`); delete this file.`,
+  },
+  {
+    pattern: new RegExp(`^${NESTED}\\.editorconfig$`),
+    message: (relPath) =>
+      `${relPath} overrides the root .editorconfig below it. prettier reads the nearest .editorconfig for every option .prettierrc.json leaves open (indentation, tab width, line endings), so format:check would accept a foreign style there. Add a section such as \`[apps/<app>/**]\` or \`[docs/**]\` to the root .editorconfig instead and delete this file.`,
   },
 ]
 
@@ -115,8 +203,13 @@ export function ratchetKind(relPath) {
   if (/^apps\/[^/]+\/test\/__golden__\/bundle-budget\.json$/.test(relPath)) return "bundle-budget"
   if (relPath === "package.json") return "root-scripts"
   if (new RegExp(`^${PKG}/package\\.json$`).test(relPath)) return "package-scripts"
+  // The docs workspace pins no gate script; only its `prettier` key is checked.
+  if (relPath === "docs/package.json") return "workspace-manifest"
   return null
 }
+
+/** The ratchet kinds of a workspace package.json: each must carry no `prettier` key. */
+const MANIFEST_KINDS = new Set(["root-scripts", "package-scripts", "workspace-manifest"])
 
 // ── Source extraction (TypeScript AST — no evaluation, no imports) ──────────
 
@@ -145,6 +238,22 @@ function propName(name) {
     return name.text
   return undefined
 }
+
+/**
+ * A key's static text, also for a computed key whose expression is a literal
+ * (`["src/**"]: ...` is the same key to vitest), or undefined.
+ */
+function staticName(name) {
+  if (name && ts.isComputedPropertyName(name)) {
+    const value = literalValue(name.expression)
+    return typeof value === "string" || typeof value === "number" ? String(value) : undefined
+  }
+  return propName(name)
+}
+
+/** The last `name: value` member of an object literal (JS keeps the last duplicate). */
+const lastProperty = (object, name) =>
+  object.properties.findLast((p) => ts.isPropertyAssignment(p) && staticName(p.name) === name)
 
 /** A property's static name — also for `{ name }` shorthand — or undefined. */
 const memberName = (prop) =>
@@ -213,10 +322,187 @@ const COVERAGE_METRICS = ["statements", "branches", "functions", "lines"]
 const listEntries = (node) => arrayEntries(node) ?? [normalize(node.getText())]
 
 /**
- * The measured-surface ratchets of a vitest config: `{ thresholds, exclude,
- * include, enabled, testInclude, testExclude, opaque, usesShared }`, or
- * `{ error }` when the file cannot be read unambiguously (the comparison then
- * fails closed). `include`/`testInclude` are null when the key is absent.
+ * The floors of one thresholds object, the global one or a glob's, as
+ * metric -> number. vitest's `100` shorthand is expanded the way vitest
+ * expands it: any truthy literal at the top level (where it overrides the
+ * explicit metrics), exactly `true` inside a glob (resolveGlobThresholds).
+ * A member it cannot read (a spread, a shorthand, a method or accessor, a
+ * metric or `100` whose value is no literal, a metric whose literal is no
+ * number) lands in `opaque`: a spread written after the literals overrides
+ * them at runtime, so reading around it would miss a loosening. Other keys
+ * are the caller's (options, globs) or, inside a glob, ignored by vitest.
+ */
+function thresholdFloors(object, where, opaque, isGlob) {
+  const floors = {}
+  let hundred = false
+  for (const member of object.properties) {
+    const key = ts.isPropertyAssignment(member) ? staticName(member.name) : undefined
+    if (key === undefined) {
+      // A non-literal computed key is already opaque (extractVitestCoverage).
+      if (!ts.isPropertyAssignment(member)) opaque.push(`${where}: ${normalize(member.getText())}`)
+      continue
+    }
+    if (key !== "100" && !COVERAGE_METRICS.includes(key)) continue
+    const value = literalValue(member.initializer)
+    if (key === "100") {
+      hundred = value === undefined ? false : isGlob ? value === true : Boolean(value)
+      if (value === undefined)
+        opaque.push(`${where}.100: ${normalize(member.initializer.getText())}`)
+    } else if (typeof value === "number") {
+      floors[key] = value
+    } else {
+      delete floors[key]
+      opaque.push(`${where}.${key}: ${normalize(member.initializer.getText())}`)
+    }
+  }
+  if (hundred) for (const metric of COVERAGE_METRICS) floors[metric] = 100
+  return floors
+}
+
+/**
+ * `coverage.thresholds`: the global floors, every glob key's floors (vitest
+ * reads each key that is not a metric, `100`, `perFile` or `autoUpdate` as a
+ * glob, and still holds EVERY file to the global floors, so a glob only adds)
+ * and `perFile` (it applies to the global and every glob set). `autoUpdate`
+ * stays free: it only ever writes RAISED floors into this file. A typo such
+ * as `line: 90` is a glob to vitest too, one with no floors: opaque here.
+ */
+function readThresholds(node, opaque) {
+  const read = { thresholds: {}, globThresholds: {}, perFile: undefined }
+  if (!ts.isObjectLiteralExpression(node)) {
+    opaque.push(`thresholds: ${normalize(node.getText())}`)
+    return read
+  }
+  read.thresholds = thresholdFloors(node, "thresholds", opaque, false)
+  for (const member of node.properties) {
+    const key = ts.isPropertyAssignment(member) ? staticName(member.name) : undefined
+    if (key === undefined || key === "100" || key === "autoUpdate") continue
+    if (COVERAGE_METRICS.includes(key)) continue
+    if (key === "perFile") {
+      const value = literalValue(member.initializer)
+      read.perFile = value === undefined ? undefined : Boolean(value)
+      if (value === undefined)
+        opaque.push(`thresholds.perFile: ${normalize(member.initializer.getText())}`)
+      continue
+    }
+    const where = `thresholds[${JSON.stringify(key)}]`
+    // `__proto__: {...}` sets the prototype, not a key.
+    if (ts.isObjectLiteralExpression(member.initializer) && key !== "__proto__") {
+      read.globThresholds[key] = thresholdFloors(member.initializer, where, opaque, true)
+    } else {
+      delete read.globThresholds[key]
+      opaque.push(`${where}: ${normalize(member.initializer.getText())}`)
+    }
+  }
+  return read
+}
+
+/**
+ * Whether a `test` property is an inline project's: a direct member of an
+ * object literal listed in a `projects` array (`projects: [{ test: {...} }]`).
+ */
+function isProjectTest(prop) {
+  const element = prop.parent
+  const list = element?.parent
+  const owner = list?.parent
+  return (
+    ts.isObjectLiteralExpression(element) &&
+    ts.isArrayLiteralExpression(list) &&
+    ts.isPropertyAssignment(owner) &&
+    staticName(owner.name) === "projects"
+  )
+}
+
+/** Whether `node` sits inside an inline project's `test` block. */
+function insideProjectTest(node) {
+  for (let up = node.parent; up; up = up.parent)
+    if (ts.isPropertyAssignment(up) && staticName(up.name) === "test" && isProjectTest(up))
+      return true
+  return false
+}
+
+/** An inline project's literal name: `name: "unit"` or `name: { label: "unit" }`. */
+function projectName(test) {
+  const prop = lastProperty(test, "name")
+  if (!prop) return undefined
+  const named = ts.isObjectLiteralExpression(prop.initializer)
+    ? lastProperty(prop.initializer, "label")?.initializer
+    : prop.initializer
+  const value = literalValue(named)
+  return typeof value === "string" ? value : undefined
+}
+
+const PROJECT_NAME_NEEDED =
+  "the ratchet keys a project's include/exclude by its name: give every inline project a unique literal `test.name`"
+
+/**
+ * The inline projects of the root `test.projects`, as name -> `{ include,
+ * exclude, extends }`, plus the project `test` properties it read (`reached`);
+ * or `{ error }`. A list that is not an array literal, an element that is not
+ * an object literal (a config-file path or glob, which loads an unratcheted
+ * file; a function; a spread), an `extends` that is not a boolean literal (a
+ * path loads another unratcheted file) and a spread or shorthand anywhere in
+ * a project land in `opaque`.
+ */
+function readProjects(node, opaque) {
+  const projects = {}
+  const reached = new Set()
+  if (!ts.isArrayLiteralExpression(node)) {
+    opaque.push(`test.projects: ${normalize(node.getText())}`)
+    return { projects, reached }
+  }
+  for (const element of node.elements) {
+    if (!ts.isObjectLiteralExpression(element)) {
+      opaque.push(`test.projects element ${normalize(element.getText())}`)
+      continue
+    }
+    for (const member of element.properties)
+      if (!ts.isPropertyAssignment(member))
+        opaque.push(`test.projects element member ${normalize(member.getText())}`)
+    const testProp = lastProperty(element, "test")
+    if (!testProp || !ts.isObjectLiteralExpression(testProp.initializer))
+      return { error: `an inline project without a literal \`test\` block: ${PROJECT_NAME_NEEDED}` }
+    reached.add(testProp)
+    const name = projectName(testProp.initializer)
+    if (name === undefined)
+      return { error: `an inline project without a literal name: ${PROJECT_NAME_NEEDED}` }
+    if (Object.hasOwn(projects, name) || name === "__proto__")
+      return {
+        error: `the project name ${JSON.stringify(name)} is taken twice (or is __proto__): ${PROJECT_NAME_NEEDED}`,
+      }
+    const label = `test.projects[${JSON.stringify(name)}]`
+    const project = { include: null, exclude: [], extends: false }
+    const extendsProp = lastProperty(element, "extends")
+    if (extendsProp) {
+      const value = literalValue(extendsProp.initializer)
+      if (typeof value === "boolean") project.extends = value
+      else opaque.push(`${label}.extends: ${normalize(extendsProp.initializer.getText())}`)
+    }
+    for (const member of testProp.initializer.properties) {
+      if (!ts.isPropertyAssignment(member)) {
+        opaque.push(`${label}: ${normalize(member.getText())}`)
+        continue
+      }
+      const key = staticName(member.name)
+      if (key === "include") project.include = listEntries(member.initializer)
+      else if (key === "exclude") project.exclude = listEntries(member.initializer)
+    }
+    projects[name] = project
+  }
+  return { projects, reached }
+}
+
+/**
+ * The measured-surface ratchets of a vitest config: `{ thresholds,
+ * globThresholds, perFile, exclude, include, enabled, testInclude,
+ * testExclude, projects, opaque, usesShared }`, or `{ error }` when the file
+ * cannot be read unambiguously (the comparison then fails closed).
+ * `include`/`testInclude` are null when the key is absent, `projects` when
+ * the root test has no `projects` list (else name -> `{ include, exclude,
+ * extends }`, see readProjects). `opaque` holds every member the ratchet
+ * cannot read: a spread or shorthand inside coverage or test, a non-literal
+ * threshold, and every computed key of the file whose name is no literal
+ * (`[KEY]: ...` could BE coverage, test, thresholds or enabled).
  * `usesShared`: the config passes `sharedConfig` (vitest.shared.ts — where
  * coverage is ENABLED) into a call such as `mergeConfig`; vitest's own
  * default is coverage off.
@@ -224,10 +510,13 @@ const listEntries = (node) => arrayEntries(node) ?? [normalize(node.getText())]
 export function extractVitestCoverage(relPath, text) {
   const blocks = []
   const testBlocks = []
+  const computed = []
   let usesShared = false
   walk(parseSource(relPath, text), (node) => {
-    if (ts.isPropertyAssignment(node) && propName(node.name) === "coverage") blocks.push(node)
-    if (ts.isPropertyAssignment(node) && propName(node.name) === "test") testBlocks.push(node)
+    if (ts.isPropertyAssignment(node) && staticName(node.name) === "coverage") blocks.push(node)
+    if (ts.isPropertyAssignment(node) && staticName(node.name) === "test") testBlocks.push(node)
+    if (ts.isComputedPropertyName(node) && staticName(node) === undefined)
+      computed.push(`computed key ${normalize(node.getText())}`)
     if (
       ts.isCallExpression(node) &&
       node.arguments.some((arg) => ts.isIdentifier(arg) && arg.text === "sharedConfig")
@@ -236,34 +525,62 @@ export function extractVitestCoverage(relPath, text) {
   })
   const result = {
     thresholds: null,
+    globThresholds: {},
+    perFile: undefined,
     exclude: [],
     include: null,
     enabled: undefined,
     testInclude: null,
     testExclude: [],
-    opaque: [],
+    projects: null,
+    opaque: computed,
     usesShared,
   }
-  if (testBlocks.length > 1)
-    return { error: `${testBlocks.length} \`test\` blocks — the ratchet needs at most one` }
-  if (testBlocks.length === 1) {
-    const test = testBlocks[0].initializer
-    if (!ts.isObjectLiteralExpression(test))
+  const rootTests = testBlocks.filter((block) => !isProjectTest(block))
+  if (rootTests.length > 1)
+    return {
+      error: `${rootTests.length} \`test\` blocks outside test.projects: the ratchet needs at most one`,
+    }
+  const rootTest = rootTests[0]?.initializer
+  let reached = new Set()
+  if (rootTest) {
+    if (!ts.isObjectLiteralExpression(rootTest))
       return { error: "`test` is not an object literal — the ratchet cannot read it" }
-    for (const prop of test.properties) {
+    for (const prop of rootTest.properties) {
       if (!ts.isPropertyAssignment(prop)) {
         // A spread or shorthand could carry include/exclude the AST cannot see.
         result.opaque.push(`test: ${normalize(prop.getText())}`)
         continue
       }
-      const name = propName(prop.name)
+      const name = staticName(prop.name)
       if (name === "include") result.testInclude = listEntries(prop.initializer)
       else if (name === "exclude") result.testExclude = listEntries(prop.initializer)
+      else if (name === "projects") {
+        const read = readProjects(prop.initializer, result.opaque)
+        if (read.error) return { error: read.error }
+        result.projects = read.projects
+        reached = read.reached
+      }
     }
   }
+  if (testBlocks.some((block) => isProjectTest(block) && !reached.has(block)))
+    return {
+      error:
+        "a `test` block inside a `projects` list the ratchet does not read (not the root test.projects, or a duplicate key): keep inline projects in the root `test: { projects: [...] }`",
+    }
   if (blocks.length === 0) return result
   if (blocks.length > 1)
     return { error: `${blocks.length} \`coverage\` blocks — the ratchet needs exactly one` }
+  if (insideProjectTest(blocks[0]))
+    return {
+      error:
+        "`coverage` inside an inline project: vitest reads coverage from the root config only, so its floors would never apply. Move them to the root `test.coverage`",
+    }
+  if (!rootTest || blocks[0].parent !== rootTest)
+    return {
+      error:
+        "a `coverage` block outside the root `test` block: vitest reads only `test.coverage`, so floors anywhere else never apply",
+    }
   const coverage = blocks[0].initializer
   if (!ts.isObjectLiteralExpression(coverage))
     return { error: "`coverage` is not an object literal — the ratchet cannot read it" }
@@ -273,17 +590,9 @@ export function extractVitestCoverage(relPath, text) {
       result.opaque.push(normalize(prop.getText()))
       continue
     }
-    const name = propName(prop.name)
+    const name = staticName(prop.name)
     if (name === "thresholds") {
-      result.thresholds = {}
-      if (!ts.isObjectLiteralExpression(prop.initializer)) continue
-      for (const metric of prop.initializer.properties) {
-        const key = ts.isPropertyAssignment(metric) ? propName(metric.name) : undefined
-        if (key && COVERAGE_METRICS.includes(key)) {
-          const value = literalValue(metric.initializer)
-          if (typeof value === "number") result.thresholds[key] = value
-        }
-      }
+      Object.assign(result, readThresholds(prop.initializer, result.opaque))
     } else if (name === "exclude") {
       result.exclude = listEntries(prop.initializer)
     } else if (name === "include") {
@@ -644,11 +953,172 @@ function includeChanges(relPath, key, before, after, why) {
     )
 }
 
+/**
+ * Whether a floor now admits less coverage. vitest reads X >= 0 as a minimum
+ * percentage and -X as "at most X uncovered": the two kinds compare only
+ * through 100 (nothing uncovered) and 0 (no floor at all).
+ */
+function floorLoosened(before, after) {
+  if (before < 0 === after < 0) return after < before
+  return before < 0 ? after !== 100 : before !== 0
+}
+
+/** Every floor of `before` must survive in `after` as a number literal, never looser. */
+function floorChanges(relPath, label, before, after) {
+  const violations = []
+  for (const [metric, was] of Object.entries(before)) {
+    const now = after[metric]
+    if (typeof now !== "number") {
+      violations.push(
+        `${relPath} -> ${label}.${metric} was removed or is no longer a number literal (was ${was}). Coverage floors are raise-only and never deleted.`,
+      )
+    } else if (floorLoosened(was, now)) {
+      const kinds =
+        was < 0 === now < 0
+          ? ""
+          : " A negative floor caps the uncovered count, a positive one is a percentage: they compare only through 100."
+      violations.push(
+        `${relPath} -> ${label}.${metric}: ${was} -> ${now}. Ratchets are raise-only — write the missing tests instead (pnpm --filter <pkg> test prints the uncovered files).${kinds}`,
+      )
+    }
+  }
+  return violations
+}
+
+const hasFloors = (floors) => Object.keys(floors ?? {}).length > 0
+/** Whether a read config holds anything a deletion would lose: a floor or perFile. */
+const carriesFloors = (read) =>
+  hasFloors(read.thresholds) ||
+  Object.values(read.globThresholds).some(hasFloors) ||
+  read.perFile === true
+const hasCountFloor = (read) =>
+  [read.thresholds ?? {}, ...Object.values(read.globThresholds)].some((floors) =>
+    Object.values(floors).some((value) => value < 0),
+  )
+
+/** Floors in vitest.shared.ts: a package key would override them where no ratchet looks. */
+function sharedFloorViolations(relPath, cur) {
+  if (relPath !== "vitest.shared.ts" || !carriesFloors(cur)) return []
+  return [
+    `${relPath} -> coverage.thresholds carries floors. Floors belong in each package's vitest.config.ts: mergeConfig lets a package key override a shared floor, and the per-file ratchet reads that key as a new (stricter) floor.`,
+  ]
+}
+
+/**
+ * Inline projects: none removed, each one's include grow-only and exclude
+ * shrink-only, `extends` pinned (with `true` a project inherits the root
+ * config's test options, so switching it changes which tests run), and the
+ * list never appears or disappears (with projects vitest runs them instead of
+ * the root config, a change the ratchet cannot compare). A new project only
+ * adds tests.
+ */
+function projectChanges(relPath, before, after) {
+  if (before === null && after === null) return []
+  const names = (projects) => Object.keys(projects).join(", ")
+  if (before === null)
+    return [
+      `${relPath} -> test.projects appeared (${names(after)}). With projects vitest runs them instead of the root test block, so the ratchet cannot compare the tests that run before and after. A deliberate switch carries a Ratchet-Exception trailer that says why.`,
+    ]
+  if (after === null)
+    return [
+      `${relPath} -> test.projects was removed (was ${names(before)}). Without projects vitest runs the root test block instead, so the ratchet cannot compare the tests that run before and after. Keep the projects, or carry a Ratchet-Exception trailer that says why.`,
+    ]
+  const violations = []
+  for (const [name, was] of Object.entries(before)) {
+    const label = `test.projects[${JSON.stringify(name)}]`
+    const now = Object.hasOwn(after, name) ? after[name] : undefined
+    if (!now) {
+      violations.push(
+        `${relPath} -> ${label} was removed (a renamed project reads as removed). Its tests no longer run, so the code they cover is measured less: projects only grow.`,
+      )
+      continue
+    }
+    violations.push(
+      ...includeChanges(
+        relPath,
+        `${label}.include`,
+        was.include,
+        now.include,
+        "Tests that never run never load the code they cover.",
+      ),
+    )
+    for (const entry of now.exclude.filter((e) => !was.exclude.includes(e)))
+      violations.push(
+        `${relPath} -> new ${label}.exclude entry "${entry}". Tests that never run never load the code they cover: the measured surface only grows.`,
+      )
+    if (was.extends !== now.extends)
+      violations.push(
+        `${relPath} -> ${label}.extends: ${was.extends} -> ${now.extends}. With \`extends: true\` a project inherits the root config's test options (include, exclude, setup), so switching it changes which tests run: pinned to the merge base.`,
+      )
+  }
+  return violations
+}
+
+/**
+ * The rules for a package vitest config with nothing to compare against (the
+ * diff introduces it, or the ratchet could not read its base): from the next
+ * diff on it IS the ratchet, so it must be readable (an unreadable base is
+ * never compared), measure (sharedConfig or `enabled: true`; vitest's default
+ * is off and the canonical `vitest run` passes no flag) and carry a floor for
+ * each of the four metrics. vitest.shared.ts only must stay free of floors.
+ */
+function newVitestConfigViolations(relPath, cur) {
+  const violations = cur.opaque.map(
+    (entry) =>
+      `${relPath} -> spread/shorthand or non-literal \`${entry}\` in a vitest config with nothing to compare against. The ratchet reads literals only: inline the values, or it can never see them change.`,
+  )
+  violations.push(...sharedFloorViolations(relPath, cur))
+  if (relPath === "vitest.shared.ts") return violations
+  const measures = cur.enabled === true || (cur.enabled === undefined && cur.usesShared)
+  if (!measures)
+    violations.push(
+      `${relPath} neither merges sharedConfig nor sets coverage.enabled: true (enabled: ${String(cur.enabled)}): \`vitest run\` would never measure coverage, so no threshold could fail. Merge sharedConfig (mergeConfig(sharedConfig, defineConfig({ ... }))) and leave \`enabled\` alone.`,
+    )
+  const missing = COVERAGE_METRICS.filter((metric) => {
+    const floor = cur.thresholds?.[metric]
+    return typeof floor !== "number" || floor === 0
+  })
+  if (missing.length > 0)
+    violations.push(
+      `${relPath} carries no coverage floor for ${missing.join(", ")}. A new package starts with all four global floors (statements, branches, functions, lines) as number literals just under its measured baseline; 0 is no floor.`,
+    )
+  return violations
+}
+
+/** A vitest config the diff introduces: see newVitestConfigViolations. */
+function introducedVitest(relPath, newText) {
+  if (newText === null || newText === undefined) return []
+  const cur = extractVitestCoverage(relPath, newText)
+  if (cur.error)
+    return [
+      `${relPath}: ${cur.error}. A new vitest config must be readable by the ratchet from its first commit: an unreadable base is never compared again.`,
+    ]
+  return newVitestConfigViolations(relPath, cur)
+}
+
+/**
+ * A vitest config the ratchet cannot read on the base: never compared, so
+ * the new side must stand on its own like an introduced config, and a side
+ * that is unreadable too (or a deletion) fails.
+ */
+function unreadableVitestBase(relPath, error, newText) {
+  if (newText === null || newText === undefined)
+    return [
+      `${relPath} was removed while the ratchet could not read its base (${error}), so nothing shows it carried no coverage floors. Coverage floors are raise-only and never deleted.`,
+    ]
+  const cur = extractVitestCoverage(relPath, newText)
+  if (cur.error)
+    return [
+      `${relPath}: ${cur.error}, on the base and in the working tree. A ratchet the gate cannot read is a disabled ratchet, and one unreadable on the base is never compared: make it readable (the literal \`test: { coverage: { thresholds: { ... } } }\` shape).`,
+    ]
+  return newVitestConfigViolations(relPath, cur)
+}
+
 function compareVitest(relPath, oldText, newText) {
   const old = extractVitestCoverage(relPath, oldText)
-  if (old.error) return [] // unreadable on the base: nothing trustworthy to compare
-  if (newText === null) {
-    return old.thresholds && Object.keys(old.thresholds).length > 0
+  if (old.error) return unreadableVitestBase(relPath, old.error, newText)
+  if (newText === null || newText === undefined) {
+    return carriesFloors(old)
       ? [
           `${relPath} was removed while it carried coverage thresholds. Coverage floors are raise-only and never deleted.`,
         ]
@@ -659,19 +1129,31 @@ function compareVitest(relPath, oldText, newText) {
     return [
       `${relPath}: ${cur.error}. A ratchet the gate cannot read is a disabled ratchet — keep the literal \`coverage: { thresholds: { … } }\` shape.`,
     ]
-  const violations = []
-  for (const [metric, oldValue] of Object.entries(old.thresholds ?? {})) {
-    const newValue = cur.thresholds?.[metric]
-    if (typeof newValue !== "number") {
+  const violations = floorChanges(
+    relPath,
+    "coverage.thresholds",
+    old.thresholds ?? {},
+    cur.thresholds ?? {},
+  )
+  for (const [glob, was] of Object.entries(old.globThresholds)) {
+    const label = `coverage.thresholds[${JSON.stringify(glob)}]`
+    const now = Object.hasOwn(cur.globThresholds, glob) ? cur.globThresholds[glob] : undefined
+    if (now !== undefined) violations.push(...floorChanges(relPath, label, was, now))
+    else if (hasFloors(was))
       violations.push(
-        `${relPath} -> coverage.thresholds.${metric} was removed or is no longer a number literal (was ${oldValue}). Coverage floors are raise-only and never deleted.`,
+        `${relPath} -> ${label} was removed or is no longer an object literal (was ${JSON.stringify(was)}). A glob's floors are raise-only and never deleted. A renamed glob reads as removed: vitest checks a glob that matches no file against nothing, and that always passes.`,
       )
-    } else if (newValue < oldValue) {
-      violations.push(
-        `${relPath} -> coverage.thresholds.${metric}: ${oldValue} -> ${newValue}. Ratchets are raise-only — write the missing tests instead (pnpm --filter <pkg> test prints the uncovered files).`,
-      )
-    }
   }
+  if (old.perFile === true && cur.perFile !== true) {
+    violations.push(
+      `${relPath} -> coverage.thresholds.perFile is now ${String(cur.perFile)} (was true). Without it a well-covered file hides an uncovered one in the average.`,
+    )
+  } else if (old.perFile !== true && cur.perFile === true && hasCountFloor(cur)) {
+    violations.push(
+      `${relPath} -> coverage.thresholds.perFile switched on next to a negative floor: -N then allows N uncovered items in EVERY file instead of N in all files together.`,
+    )
+  }
+  violations.push(...sharedFloorViolations(relPath, cur))
   for (const entry of cur.exclude) {
     if (!old.exclude.includes(entry)) {
       violations.push(
@@ -702,6 +1184,7 @@ function compareVitest(relPath, oldText, newText) {
       )
     }
   }
+  violations.push(...projectChanges(relPath, old.projects, cur.projects))
   // vitest's default is coverage OFF: an explicit `true` that disappears is as
   // much a switch-off as a `false` that appears.
   const switchedOff =
@@ -720,7 +1203,7 @@ function compareVitest(relPath, oldText, newText) {
   for (const entry of cur.opaque) {
     if (!old.opaque.includes(entry)) {
       violations.push(
-        `${relPath} -> new spread/shorthand \`${entry}\` inside coverage/test. The ratchet reads literals only — inline the values.`,
+        `${relPath} -> new spread/shorthand or non-literal \`${entry}\` in the vitest config. The ratchet reads literals only: inline the values (a spread written after the literals overrides them at runtime).`,
       )
     }
   }
@@ -1082,8 +1565,44 @@ function comparePackageScripts(relPath, oldJson, newJson) {
 }
 
 function shadowViolation(relPath) {
-  const { replaces } = SHADOW_CONFIGS.find(({ pattern }) => pattern.test(relPath))
-  return `${relPath} would be loaded INSTEAD of ${replaces} — the tool resolves it first, while this check (and mutation-diff.mjs) keep reading the ratcheted file, so every threshold, ignore list and gate in it could be swapped out unseen. Edit ${replaces} instead.`
+  return SHADOW_CONFIGS.find(({ pattern }) => pattern.test(relPath)).message(relPath)
+}
+
+/**
+ * A workspace package.json key that configures a gate's tool where no
+ * ratchet looks: prettier reads a package.json `prettier` key BEFORE any
+ * .prettierrc in the same directory, so a nested one formats its package in
+ * a foreign style and the root one would replace .prettierrc.json itself.
+ */
+function manifestKeyViolations(relPath, json) {
+  if (!json || typeof json !== "object" || !Object.hasOwn(json, "prettier")) return []
+  return [
+    `${relPath} -> a \`prettier\` key (package.json#prettier). prettier reads it before any .prettierrc in the same directory, so every file below it would be formatted, and pass format:check, in a style the root .prettierrc.json does not set. Per-app style goes into the root .prettierrc.json \`overrides\` (\`"files": ["apps/<app>/**"]\`); delete the key.`,
+  ]
+}
+
+/** A ratchet file that does not parse: fails whatever the base held. */
+const invalidJson = (relPath) => [
+  `${relPath} is not valid JSON — a broken ratchet file disables the gate.`,
+]
+
+/**
+ * A ratchet file with nothing to compare against (absent on the base, or
+ * unreadable there) is free, with two exceptions: a package vitest config
+ * must already be a working ratchet (introducedVitest), and a workspace
+ * package.json carries no `prettier` key.
+ */
+function introducedViolations(kind, relPath, newText) {
+  if (newText === null || newText === undefined) return []
+  if (kind === "vitest") return introducedVitest(relPath, newText)
+  if (!MANIFEST_KINDS.has(kind)) return []
+  let json
+  try {
+    json = JSON.parse(newText)
+  } catch {
+    return invalidJson(relPath)
+  }
+  return manifestKeyViolations(relPath, json)
 }
 
 /**
@@ -1096,33 +1615,45 @@ export function checkRatchetFile(relPath, oldText, newText, fileExists = () => t
   // A shadowing config fails whenever it exists — introducing one is the attack.
   if (kind === "shadow-config")
     return newText === null || newText === undefined ? [] : [shadowViolation(relPath)]
-  if (oldText === null || oldText === undefined) return [] // introduced in this diff
+  if (oldText === null || oldText === undefined) return introducedViolations(kind, relPath, newText)
   if (kind === "vitest") return compareVitest(relPath, oldText, newText)
   if (kind === "eslint") return compareEslint(relPath, oldText, newText)
 
   const parse = (text) =>
     relPath.endsWith(".jsonc") ? parseJsonc(relPath, text) : JSON.parse(text)
+  // The new side first: a broken file fails whatever the base held, so a
+  // ratchet file unreadable on both sides is never waved through.
+  let newJson = null
+  if (newText !== null && newText !== undefined) {
+    try {
+      newJson = parse(newText)
+    } catch {
+      return invalidJson(relPath)
+    }
+  }
   let oldJson
   try {
     oldJson = parse(oldText)
   } catch {
-    return [] // unreadable on the base: nothing trustworthy to compare
-  }
-  let newJson = null
-  if (newText !== null) {
-    try {
-      newJson = parse(newText)
-    } catch {
-      return [`${relPath} is not valid JSON — a broken ratchet file disables the gate.`]
-    }
+    // Unreadable on the base: nothing to compare, so the new side stands alone.
+    return introducedViolations(kind, relPath, newText)
   }
   if (kind === "stryker") return compareStryker(relPath, oldJson, newJson, fileExists)
   if (kind === "knip") return compareKnip(relPath, oldJson, newJson)
   if (kind === "char-budgets" || kind === "bundle-budget") {
     return compareBudgets(kind, relPath, oldJson, newJson)
   }
-  if (kind === "root-scripts") return compareRootScripts(relPath, oldJson, newJson)
-  if (kind === "package-scripts") return comparePackageScripts(relPath, oldJson, newJson)
+  if (kind === "root-scripts")
+    return [
+      ...compareRootScripts(relPath, oldJson, newJson),
+      ...manifestKeyViolations(relPath, newJson),
+    ]
+  if (kind === "package-scripts")
+    return [
+      ...comparePackageScripts(relPath, oldJson, newJson),
+      ...manifestKeyViolations(relPath, newJson),
+    ]
+  if (kind === "workspace-manifest") return manifestKeyViolations(relPath, newJson)
   return []
 }
 

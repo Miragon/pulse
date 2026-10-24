@@ -5,14 +5,24 @@ Guidance for AI agents working in this repository. The repo-specific skills
 step-by-step walkthroughs for the two main feature paths; read them before adding tools,
 queries, or widgets; `.claude/skills/add-settings-section` covers the third path,
 module-owned user settings (a `profile.modules.<module>` slice + its tool triple + its
-section on the settings page). The skills, READMEs and `docs/` are held to the code by
-`apps/mcp-server-camunda7/test/docs-refs.test.ts`: every backticked tool name must be
-registered, every repo path must exist, every identifier a house skill names must exist in
-the sources or the toolkit/mcp-use typings, and each docs page stays within its budget.
-`apps/mcp-server-camunda7/test/old-names.test.ts` fails on a pre-Pulse name (the old npm scope,
-repo, docs URL, image, starter, slug or product name; "Miragon AI" as the family and the Fly app
-names stay), on a scoped `--filter` naming no workspace package, and on a gate-path pnpm filter
-without `--fail-if-no-match`; its allowances are shrink-only.
+section on the settings page). The skills, READMEs, agent files and `docs/` are held to the
+code by `apps/mcp-server-camunda7/test/docs-refs.test.ts`, over what git tracks (never an
+ignored download or build output): the root README and CLAUDE.md, the docs pages, each
+package's README and agent files (CLAUDE.md, AGENTS.md), every Markdown file of an app except
+its CHANGELOG, the template's README and CLAUDE.md, and the skills. Every backticked tool name
+must be registered, every repo path must exist (resolved from the repo root, in a nested file
+too), every identifier a house skill or a nested agent file names must exist in the sources or
+the toolkit/mcp-use typings (a nested agent file's may also stand in its package's own
+`tsconfig*.json`, such as a compiler option), and each docs page stays within its budget, keyed
+by its path under `docs/`. `apps/mcp-server-camunda7/test/old-names.test.ts` fails on a pre-Pulse name (the
+old npm scope, repo, docs URL, image, starter, slug or product name; "Miragon AI" as the family
+and the Fly app names stay), on a technical name of the retired operate CLI (its npm package,
+repo, image, tap, docs and product page, its environment variables, config file and config
+directory; the word "operate" and Camunda 8's Operate stay), on a `--filter` naming no
+workspace package (a scoped name or an unscoped `pulse-<name>`), and on a pnpm filter without
+`--fail-if-no-match` on a gate path (the root's and every workspace package's scripts, the
+Dockerfile, the workflows and their composite actions, the gate shell scripts); its
+allowances are shrink-only.
 
 `docs/` holds the Pulse docs, a VitePress site built
 with the Miragon docs kit (`docs/.vitepress/miragon/`, vendored from Miragon/corporate-identity,
@@ -41,6 +51,23 @@ operations and Prometheus-backed process analytics, including interactive React 
 | `engine-plugins/`                                    | Kotlin/Gradle: CIB seven OTEL metrics plugin (Java 21)                                                                                                                                                                          |
 | `playground/`                                        | Demo env: CIB seven showcase engine, Compose stack, Fly.io deploy                                                                                                                                                               |
 | `docs/`                                              | Pulse docs, a VitePress site on GitHub Pages (getting started, usage, architecture, developer, operations)                                                                                                                      |
+
+Three axes decide where code goes, and they stay apart:
+
+- Vendor (CIB seven, Operaton, Camunda 7): runtime config per engine, `flavor` →
+  `EngineProvider` (invariant 8), never a package or an app.
+- Dialect (an engine API family; Camunda 7 today): one package family under
+  `packages/connectors/<family>/`: `<name>-client` (the wire: SDK, schemas, engine contract),
+  `<name>-connector` (the MCP module) and, once two interfaces share a use case,
+  `<name>-domain` (pure use cases with typed results: no MCP, no UI, no zod). A different
+  dialect is a new family plus its own MCP server app.
+- Interface (how a person or an agent reaches an engine): an app under `apps/`, today the
+  MCP server. A CLI or an editor extension is an app of its own. Apps never import each other,
+  and no package imports an app.
+
+The architecture invariants below are written for the MCP server, its modules and its widgets.
+The package rules of invariant 8 (layout, naming, dependency edges) hold for every workspace
+package; another interface app keeps its own rules in its own CLAUDE.md.
 
 ## Commands
 
@@ -94,9 +121,18 @@ Komponenten; widget-shell hat kein eigenes Theme mehr. Die Docs-Site nimmt das D
 (Skill `miragon-brand:docs-site`): Konfiguration, Theme, Token-Datei und Logos liegen unverändert
 unter `docs/.vitepress/miragon/` und `docs/public/logo/`, bei jedem CI-Release neu vendoren, nie
 von Hand ändern; `docs/.vitepress/config.ts` ruft nur `miragonDocs()` auf. Der Drift-Test
-(`apps/mcp-server-camunda7/test/ui-stylesheet.test.ts`: kein `--cd-*` außerhalb der
-Toolkit-Kopie und des Kits, das Kit gleich seinem Manifest über dessen `check.mjs`;
-`test:host`: das gebaute Stylesheet trägt die vendorten Werte) hält das fest. Die Website
+(`apps/mcp-server-camunda7/test/ui-stylesheet.test.ts` mit
+`apps/mcp-server-camunda7/test/vendored-tokens.ts`) hält das fest: Ein `--cd-*` steht nur in
+der Toolkit-Kopie und in vendorten Kopien, deren Manifest der Test in
+`SANCTIONED_TOKEN_MANIFESTS` freigibt, heute nur das Kit. Jede freigegebene Kopie liegt im
+Ordner ihres Manifests, ist byte-gleich mit ihm und teilt den Ordner mit keiner eigenen Datei.
+Sobald die Stylesheets eines Manifests ein `--cd-*` deklarieren, deklarieren ihre `:root`-Blöcke
+der obersten Ebene zusammen jedes Token der Toolkit-Kopie mit deren Wert; ein Manifest, das nur
+daneben liegt, gibt nichts frei. Das Kit prüft zusätzlich sein `check.mjs`, und `test:host`
+prüft, dass das gebaute Stylesheet die vendorten Werte trägt. Eine weitere Kopie, etwa die App- und
+Web-Variante aus `miragon-brand:modeler-tool-design`, kommt mit einem Manifest im Format des
+Kits (`version`, `dateien` mit `pfad`, `quelle`, `sha256`) und einem Eintrag in
+`SANCTIONED_TOKEN_MANIFESTS`, nie als Ausnahme im Scan. Die Website
 miragon.ai liegt in Miragon/miragon-ai-docs und prüft ihre Token-Kopie dort.
 
 UI-Texte gibt es auf Deutsch und Englisch, je nach Host-Locale. Deutsch folgt brand-tone
@@ -231,8 +267,11 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    keys, never a silently stripped filter (`test/strict-input.e2e.test.ts` in the app).
    Parameter names follow the guide in the add-bpm-feature skill.
 
-6. **Widgets compose from the shared kit (`@miragon/pulse-widget-shell/widgets`) and the
-   toolkit (`@miragon/mcp-toolkit-ui`); never re-inline their primitives.** ONE kit: the
+6. **MCP App widgets compose from the shared kit (`@miragon/pulse-widget-shell/widgets`) and
+   the toolkit (`@miragon/mcp-toolkit-ui`); never re-inline their primitives.** This
+   invariant covers the React views an MCP host renders (widget-shell's `src/ui`, the
+   connectors' `src/widgets`, the host bundle in `apps/mcp-server-camunda7/src/ui/`), not a
+   UI another interface app draws itself, which follows the design system above. ONE kit: the
    toolkit's components (`KpiGrid`/`KpiGridSkeleton`, `StatusBadge`/`LivePill`/`CountPill`,
    `FilterBar`, `WidgetHeader` with `as`, `SectionHeading`, `GroupCard`, `DrillButton`,
    `ListFooter`, `PagedListFooter`), its tone model (`TONE_*`, `resolveTone`, `MICRO_LABEL`)
@@ -420,9 +459,12 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    same over the app's and the template's stack (`globals.css`, the template's `brand.css`),
    pins that no consumer stylesheet names a raw colour (`stylesheetColorFindings`) or a
    `--cd-*`/`--m-*`/`--critical` variable, and is the token DRIFT test (the shipped theme
-   imports the toolkit's vendored copy, no stylesheet in the repo declares a `--cd-*`, the
-   docs site's copy equals the toolkit's byte for byte; `test:host` checks the built
-   stylesheet's `--cd-*` values); the template
+   imports the toolkit's vendored copy; besides it a `--cd-*` is declared only in a vendored
+   copy whose manifest the test lists in `SANCTIONED_TOKEN_MANIFESTS`, today only the docs
+   kit's: inside its manifest's folder, byte-equal to the manifest, and once the manifest's
+   stylesheets declare a `--cd-*`, their top-level `:root` blocks together declare every token
+   of the toolkit's copy with its value (`apps/mcp-server-camunda7/test/vendored-tokens.ts`);
+   `test:host` checks the built stylesheet's `--cd-*` values); the template
    runs `server/test/brand.test.ts` over its own `brand.css`, the override example included.
    `parseThemeVariables` reads a stylesheet stack the way
    `<html class="dark" data-theme="dark">` sees it: `:root` and the dark scopes (`.dark`,
@@ -518,6 +560,7 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    in-widget tools/call) still builds it, naming no tool. Generic playbooks and
    the engine-pinning rule (hand-offs AND model contexts) live in the module
    `instructions`, gated by toolset. `apps/mcp-server-camunda7/test/hand-off-surface.test.ts`
+   (over the packages and the MCP server apps, see `APP_SCAN` in invariant 8)
    fails on a raw `askAi`/`sendFollowup`, a model context (`HostModelContext` or
    `adaptDataWidget`'s description) not built by `modelContextText`, a non-static
    summary, a tool named outside `tools`, an app-only or unknown tool, an id no
@@ -586,23 +629,63 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      that does not exist yet, so without it two concurrent first saves both take the create
      branch and the second silently overwrites the first, ownership check included.
 
-8. **Modules are self-contained peers; the app is a thin composition root.**
+8. **Modules are self-contained peers; an MCP server app is a thin composition root.**
+   Its package rules (layout, naming, dependency edges) hold for every workspace package;
+   its composition-root rules hold for MCP server apps (this repo's and the template's).
    Connector packages never import each other. Layout + naming carry the layer
    semantics and are load-bearing for the guardrails: connector modules live at
    `packages/connectors/<family>/<name>-connector` (npm `@miragon/pulse-<name>-connector`),
    their SDK leaves at `packages/connectors/<family>/<name>-client`
-   (npm `@miragon/pulse-<name>-client`), foundation packages under `packages/core/`
-   (npm `@miragon/pulse-<name>`). The rules and the gate key on `@miragon/pulse-`, never on
-   bare `@miragon/`, which the toolkit shares. A new package that follows the convention is
-   covered by the dependency rules without touching them; one that breaks it would silently
-   fall OUT of the rules, which is why the convention itself is gated: `scripts/check-package-naming.mjs`
-   (`pnpm lint:naming`, part of `pnpm lint`) fails on any workspace package whose
-   directory or npm name breaks the pattern.
-   The dependency edges of this invariant
-   (connector peer-isolation, connector→own-client only, leaf clients, foundation
-   core, packages never importing the app, no cross-package deep imports)
-   are machine-enforced by `.dependency-cruiser.cjs` via the root
-   `pnpm lint:architecture` (part of `pnpm lint`). Each module exports its definition in
+   (npm `@miragon/pulse-<name>-client`), a family's interface-neutral use cases at
+   `packages/connectors/<family>/<name>-domain` (npm `@miragon/pulse-<name>-domain`),
+   foundation packages under `packages/core/` (npm `@miragon/pulse-<name>`, no role suffix)
+   and apps at `apps/<dir>` (npm `@miragon/pulse-<dir>`). An app whose package.json declares
+   `engines.vscode` is a VS Code extension: vsce takes no scope, so it is named `pulse-<dir>`
+   (it need not be private), and the lowest `@types/vscode` it allows never exceeds the
+   major.minor of the lowest VS Code its `engines.vscode` admits (vsce refuses the package
+   otherwise); `engines.vscode` outside `apps/*` fails. A package directory is lowercase
+   kebab-case and never repeats the `pulse-` prefix. The rules and the gate key on
+   `@miragon/pulse-`, never on bare `@miragon/`, which the toolkit shares. A new package that
+   follows the convention is covered by the dependency rules without touching them; one that
+   breaks it would silently fall OUT of the rules, which is why the convention itself is
+   gated: `scripts/check-package-naming.mjs` (`pnpm lint:naming`, part of `pnpm lint`) fails
+   on any workspace package whose directory or npm name breaks the pattern, on a
+   `pnpm-workspace.yaml` glob outside these layouts or a package directory no glob includes,
+   on a `package.json`, lockfile or `pnpm-workspace.yaml` nested anywhere else under `apps/*`
+   or `packages/*`, on a `.js`, `.mjs`, `.cjs`, `.jsx`, `.mts` or `.cts` file under a
+   package's `src/` (the ESLint complexity/max-lines budgets and pattern gates, globbed
+   `*.{ts,tsx}`, and widget-shell's brand-gate scans read `.ts` and `.tsx` only), on a
+   `generated/` directory its `GENERATED_DIRS` map does not list with a reason (such a
+   directory is exempt from ESLint, prettier and the app's source scans; dependency-cruiser
+   excludes only the CIB seven SDK, today the one listed directory), and on a `package.json`
+   that declares an app in `dependencies`, `devDependencies`, `peerDependencies` or
+   `optionalDependencies` (by name, by an `npm:`/`workspace:` alias or by a path into its
+   directory; the root `package.json` and an app's own included). The app names are those of
+   every `apps/*/package.json` plus its `RESERVED_APP_NAMES` (`@miragon/pulse-cli`,
+   `pulse-vscode`, kept equal to the extra names of the dependency-cruiser config's
+   `APP_PACKAGES`): under pnpm another package reaches a workspace app (an import,
+   `require.resolve`, its bin, a spawned process) only through such a declaration, which no
+   dependency rule reads. The dependency edges of this invariant (connector
+   peer-isolation, connector→own-client and connector→own-domain only, leaf clients, pure
+   leaf domains, foundation core, no package importing an app, no app importing an app,
+   interface apps reaching only a -domain package, no cross-package deep imports) are
+   machine-enforced by `.dependency-cruiser.cjs` via the root `pnpm lint:architecture` (part
+   of `pnpm lint`). A -domain package imports no other workspace package (its own client's
+   wire subpaths are opened when they exist), no zod, no @hey-api, nothing of the MCP/UI
+   stack, no vscode and no commander, and no Node built-in outside its tests; its Node
+   globals (`process`, `Buffer`, `__dirname` …) are banned by a literal `no-restricted-globals`
+   block in `eslint.config.mjs`, since dependency rules see only imports. The interface apps
+   (the CLI, npm `@miragon/pulse-cli`; the extension, `pulse-vscode`) import from the
+   workspace only -domain packages and nothing of the MCP/UI/server stack, zod included;
+   no module imports them (dependency-cruiser), and no `package.json` declares them (the
+   naming gate). An import reaches a rule in three shapes (a relative escape,
+   `<importer>/node_modules/<name>/` for a declared dependency imported at its root, a bare
+   specifier for a subpath or an undeclared dependency), and the rules name all three: never
+   exempt a package's own directory in a `pathNot`, its node_modules holds exactly the
+   declared imports a rule is about. Every rule has planted violations in
+   `scripts/dependency-cruiser-gates.test.mjs` (a pnpm-shaped fixture with the future apps
+   and -domain packages, cruised with the real config), and a new app adds its npm name to
+   the config's `APP_PACKAGES` or the self-test's sync case fails. Each module exports its definition in
    `src/module.ts` (config schema, `configFromEnv`, `knownEnvVars`, `toolsets`,
    `bootWarnings`, `instructions` (its slice of the MCP server instructions, where rules
    that hold for every tool, camunda7's engine routing, live instead of 60 descriptions),
@@ -630,7 +713,7 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    rejects; and
    `engineIds`, camunda7's configured engines: the ONLY engines analytics reads, else
    `ANALYTICS_ENGINE_IDS`, else every analytics tool refuses; analytics has NO
-   engine-SDK dependency). Apps own no domain UI: widget catalogues and
+   engine-SDK dependency). An MCP server app owns no domain UI: widget catalogues and
    components live in packages, and no boot plumbing either. The bundle root's provider
    stack (`AppShellProviders`: host context + display mode → host document → host
    bridge → `ProfileGate` → host widget registry; order is load-bearing; the language
@@ -671,7 +754,7 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    Host on every request, Origin on non-GET requests that carry one, admitted only when
    localhost-class, `MCP_URL`'s or in `MCP_ALLOWED_HOSTS`/`MCP_ALLOWED_ORIGINS`;
    `/health*` and `/metrics` are exempt (probes and scrapers address a container by IP);
-   never swap it for mcp-use's `allowedHosts`, which guards those too. Each app owns ONE
+   never swap it for mcp-use's `allowedHosts`, which guards those too. Each MCP server app owns ONE
    `createApp(env, deps?)` (`src/app.ts`: its OAuth decision, persistence, plugins) that
    `src/index.ts` (production and `mcp-use dev`, which owns the socket (no cap, no drain)
    and the Host check: the guard defers that half to the CLI, which admits its tunnel host)
@@ -690,7 +773,20 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    cross-engine view) and appears once confirmed. Graceful degradation hides a stale raw
    name at runtime, so `apps/mcp-server-camunda7/test/tool-name-refs.test.ts` checks every
    `<module>_…` string literal in app and package sources (the shell's `shell_…` tools
-   included) against the full booted tool surface.
+   included) against the full booted tool surface. Which apps the source guards read is
+   single-sourced in `apps/mcp-server-camunda7/test/source-scan.ts` (`APP_SCAN`): every scan
+   fails on an app the map does not classify, on an entry that names no app and on a
+   classified app without `src/`. An MCP server app ("mcp-host") is read by every guard; an
+   interface app ("interface": a CLI, an editor extension, always an app that declares
+   `engines.vscode`) only by the tool-name checks: each `<module>_…` literal it holds must
+   name a registered tool, each parameter it quotes for a tool must be one that tool takes,
+   and none of its prose (a string with whitespace) may name an app-only feed. Of these
+   guards only the widget rules of invariant 6 and the helper resolution of tool-name-refs
+   read just the packages and the MCP server apps (scope "mcp" of `scanSources`), and so does
+   the server's `PULSE_*` guard (Contracts). An interface app resolves no helper: its own
+   helper names never make a server check opaque, and a helper call inside the parameters it
+   quotes reads as opaque and fails. `apps/mcp-server-camunda7/test/source-scan.test.ts` pins
+   each guard's scope at its call site. A new app's import PR adds its entry.
    The settings page is the SHELL's (#346): `createShellPlugin({ profileStore, allowSave })`
    registers `shell_show_settings` (the page, `shell:settings-page`, also the cockpit's
    settings tab), `shell_settings_data` (its language section, `shell:settings`, and what
@@ -748,8 +844,10 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    engine and target. Engine _vendors_ (CIB seven, Operaton, Camunda 7) are
    per-engine runtime config (`flavor` → `EngineProvider` in
    `packages/connectors/camunda/camunda7-connector/src/providers/`; the port holds ONLY real differences:
-   cockpit routes, branding, client hook; never an SDK mirror), never separate apps; a different _dialect_ (Flowable)
-   would be a new module + client + app. Extract shared packages on the second concrete
+   cockpit routes, branding, client hook; never an SDK mirror), never separate packages or apps; a different
+   _dialect_ (Flowable) would be a new package family (client, connector, a domain once two
+   interfaces share a use case) plus its own MCP server app (the axes under "What this repo
+   is"). Extract shared packages on the second concrete
    consumer, never speculatively.
 
 ## Contracts
@@ -809,9 +907,16 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
   instance: `react`/`react-dom` `^19.2.0`, `zod` `^4.4.0`, `@miragon/mcp-toolkit-*`
   `~2.8.1` (2.8.x patches only, tracking the exact `mcp-use` pin). Each ranged peer also
   appears as an EXACT `devDependency` so the in-repo build/tests resolve a concrete
-  version. A published package's shipped source imports only what its `dependencies` or
-  `peerDependencies` declare (`apps/mcp-server-camunda7/test/published-imports.test.ts`;
-  knip counts a devDependency as listed, so it cannot see this). **`mcp-use` is the exception: exactly pinned even as a peer** (`2.7.3`): a
+  version. A package published to npm (every workspace package, apps included, that is not
+  `"private": true` and declares no `engines.vscode`; an extension ships as a .vsix) imports
+  from its src only what its `dependencies` or `peerDependencies` declare
+  (`apps/mcp-server-camunda7/test/published-imports.test.ts`, over the globs of
+  `pnpm-workspace.yaml`, reading every import form through the TypeScript AST: either quote
+  style, re-exports, `import()`, `require`, type imports; a computed specifier is a finding;
+  knip counts a devDependency as listed, so it cannot see this). An app that bundles
+  workspace packages it lists only as devDependencies fails that scan by design: the PR that
+  starts bundling replaces its src scan with a test over the built bundle plus a size
+  budget. **`mcp-use` is the exception: exactly pinned even as a peer** (`2.7.3`): a
   duplicate `mcp-use` instance breaks the React context and hangs every in-widget query
   on "Loading…" (invariant #4), so its exact pin is load-bearing. Name the required
   `mcp-use` version in each package README and the release changelog. Toolkit updates are
@@ -863,6 +968,15 @@ viewResourceUri(name), title })` stamps only the `openai/*` half
   `shell:kpi-grid`/`shell:data-table` widgets (catalogue + components in
   `@miragon/pulse-widget-shell`) are always registered: they are the standard
   `render-view`/builder composition targets for KPI rows/tables, fed via `props.dataKey`.
+- **The server reads no `PULSE_*` variable.** PulseAudio owns `PULSE_*` (`PULSE_SERVER`,
+  `PULSE_COOKIE`), and `PULSE_CLI_*` is reserved for the CLI. The typo warner watches the
+  prefix of every known variable, so one server name under `PULSE_` would make the server warn
+  about both in a shared environment (a devcontainer, a Compose file). A server setting goes
+  into its own family (`CAMUNDA_*`, `PROMETHEUS_*`, `ANALYTICS_*`, `MCP_*`, `DATABASE_URL`).
+  `apps/mcp-server-camunda7/test/setup-env.test.ts` fails on a known variable under
+  `PULSE_`, on a server source (every package and every MCP server app's `src`, per `APP_SCAN`;
+  an interface app keeps its own `PULSE_CLI_*` names) or an `.env.example` that names one, and
+  on a warner that flags `PULSE_SERVER` or `PULSE_CLI_*`.
 
 ## Releases & toolkit contributions
 
@@ -941,7 +1055,16 @@ thresholds in each `vitest.config.ts` may only improve: delete a list entry or r
 threshold when you better a file, never the reverse, and never add new entries. The
 mutation ratchet works the same way inverted: each package's `mutate` allowlist in
 `stryker.config.json` is the TESTED surface and may only GROW (add files when you add
-tests), and `thresholds.break` may only rise. Mutation runs use
+tests), and `thresholds.break` may only rise. A package's FIRST configs are held by
+`pnpm lint:package-scripts` (`scripts/check-package-scripts.mjs`) instead: every package
+with `src/` carries a `vitest.config.ts` and a `stryker.config.json` with a numeric
+`thresholds.break` above 0, a `mutate` list that selects files and its json report at
+`reports/mutation-report.json` (the one path CI and `scripts/fitness-report.mjs` read); only
+an app listed with its reason in `NO_MUTATION_APPS` goes without one (today the server app,
+whose logic lives in the packages), and a stale entry fails. The diff gate
+(`scripts/mutation-diff.mjs`) knows the package roots `scripts/check-ratchets.mjs` knows,
+apps included, fails on a config without `mutate` and runs every pnpm filter with
+`--fail-if-no-match`. Mutation runs use
 `vitest.stryker.config.ts` (coverage off: a coverage-threshold failure would read as a
 killed mutant); the Stryker vitest runner disables per-file isolation, so DOM widget
 suites stay out of the mutation test set (see the camunda7 connector's config). The
@@ -959,7 +1082,14 @@ These directions are machine-checked, not review-only: `scripts/check-ratchets.m
 with `origin/main` (in CI always `origin/$GITHUB_BASE_REF`: a positional base ref is
 ignored there, a PR whose merge base is HEAD fails, and the job checks out with
 `fetch-depth: 0`), never against the PR's own files, and fails on a lowered/removed
-coverage threshold, coverage switched off, a new coverage or test `exclude`, a coverage
+coverage threshold (the global metrics and every glob key's metrics, the `100` shorthand
+expanded as vitest expands it; a renamed glob counts as removed, since a glob that matches
+no file passes vacuously; a new glob only adds, because vitest 4 still holds every file to
+the global floors; `perFile` never switched off; a negative count floor never traded for a
+percentage below 100), a coverage floor in `vitest.shared.ts` (a package key would override
+it unseen), coverage switched off, an inline `test.projects` entry removed, a project's
+`include` narrowed or `exclude` grown, the projects list appearing or disappearing, a new
+coverage or test `exclude`, a coverage
 `include` that appears or a narrowed `include`, a lowered `thresholds.break`, a shrunk
 `mutate` list (unless `break` rises in the same diff or the entry's file is gone), any
 other changed Stryker option that decides which mutants exist or count (`ignoreStatic`,
@@ -972,13 +1102,21 @@ to a gate command: the chained root scripts plus `build`/`typecheck`/`format:che
 `test:pg`/`test:mutation`, and each package's `lint`/`typecheck`/`test`/`test:mutation`
 (only an `--exclude` list may shrink). It fails closed on what it cannot read: a
 non-literal `rules`, a spread, a local import or `Object.entries(…)` in `eslint.config.mjs`
-is frozen, and on top of the AST reading `scripts/eslint-effective-config.mjs` asks ESLint
+is frozen, and so is a spread, shorthand, accessor, non-literal threshold or computed key in
+a vitest config. A vitest config the diff INTRODUCES is not free: it must be readable by the
+ratchet, measure (merge sharedConfig or set `coverage.enabled: true`) and carry a non-zero
+floor for each of the four metrics; one unreadable on both sides fails. On top of the AST reading `scripts/eslint-effective-config.mjs` asks ESLint
 itself for the effective complexity/max-lines/`no-restricted-syntax` settings of every
 source file (plus a sample path per glob) under the base and the new config. A shadowing
 config fails whenever it exists (any `eslint.config.*` besides the root `.mjs`, a
 `knip.json`/`.knip.json(c)`/`knip.{ts,js}`/`knip.config.*` or `package.json#knip` besides
-`knip.jsonc`, a `stryker.conf.*`/`.stryker.*` besides `stryker.config.json`), because each
-tool would load it INSTEAD of the ratcheted file; deleting `knip.jsonc` fails too. Inline
+`knip.jsonc`, a `stryker.conf.*`/`.stryker.*` besides `stryker.config.json`, a
+`vitest.config.*` besides a package's `vitest.config.ts`, any prettier config besides the
+root `.prettierrc.json` and any `.editorconfig` besides the root one, in every directory of
+the repo (`docs/` and `templates/` as much as `apps/` and `packages/`), a `prettier` key in
+any workspace `package.json`), because each tool would load it INSTEAD of the ratcheted file
+(prettier takes the NEAREST config, so per-directory style goes into the root `overrides`);
+deleting `knip.jsonc` fails too. Inline
 suppressions are shrink-only: an `eslint-disable` naming complexity, max-lines or
 `no-restricted-syntax` (or no rule), inline gate-rule config, `v8|c8|istanbul ignore` or
 `Stryker disable` in `apps/`/`packages/` sources. The working tree is the new side, so

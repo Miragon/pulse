@@ -1,6 +1,8 @@
 import assert from "node:assert/strict"
+import { execFileSync } from "node:child_process"
 import { readFileSync } from "node:fs"
 import { describe, it } from "node:test"
+import { BaseCoverageProvider } from "vitest/node"
 import {
   EXCEPTION_TRAILER,
   checkRatchetFile,
@@ -37,6 +39,18 @@ export default mergeConfig(sharedConfig, defineConfig({
 `
 const PKG_VITEST = "packages/connectors/camunda/camunda7-client/vitest.config.ts"
 const BASE_THRESHOLDS = "thresholds: { statements: 44, branches: 32, functions: 45, lines: 44 },"
+// Packages that do not exist yet: the ratchet must cover them before they arrive.
+const CLI_DIR = "apps/cli"
+const VSCODE_DIR = "apps/vscode"
+const DOMAIN_DIR = "packages/connectors/camunda/camunda7-domain"
+const REAL_VITEST_CONFIGS = [
+  "apps/mcp-server-camunda7/vitest.config.ts",
+  "packages/core/widget-shell/vitest.config.ts",
+  "packages/connectors/camunda/camunda7-client/vitest.config.ts",
+  "packages/connectors/camunda/camunda7-connector/vitest.config.ts",
+  "packages/connectors/analytics/analytics-client/vitest.config.ts",
+  "packages/connectors/analytics/analytics-connector/vitest.config.ts",
+]
 
 describe("ratchetKind", () => {
   it("recognises every monitored location and nothing else", () => {
@@ -61,6 +75,17 @@ describe("ratchetKind", () => {
     assert.equal(ratchetKind("packages/core/widget-shell/vitest.stryker.config.ts"), null)
     assert.equal(ratchetKind("templates/composed-server/vitest.config.ts"), null)
     assert.equal(ratchetKind("templates/composed-server/server/package.json"), null)
+  })
+
+  it("already covers the apps and the -domain package that do not exist yet", () => {
+    // A CLI app, a VS Code extension app and a connector's -domain package.
+    for (const pkg of [CLI_DIR, VSCODE_DIR, DOMAIN_DIR]) {
+      assert.equal(ratchetKind(`${pkg}/vitest.config.ts`), "vitest", pkg)
+      assert.equal(ratchetKind(`${pkg}/stryker.config.json`), "stryker", pkg)
+      assert.equal(ratchetKind(`${pkg}/package.json`), "package-scripts", pkg)
+    }
+    // The docs workspace: only its manifest's `prettier` key is checked.
+    assert.equal(ratchetKind("docs/package.json"), "workspace-manifest")
   })
 })
 
@@ -112,6 +137,129 @@ describe("shadowing configs (loaded BEFORE the ratcheted file)", () => {
       checkRatchetFile("package.json", root({}), root({ knip: { include: ["files"] } }))[0],
       /package\.json#knip/,
     )
+  })
+})
+
+describe("shadowing vitest, prettier and editorconfig files", () => {
+  const flags = (rel, pattern) => {
+    assert.equal(ratchetKind(rel), "shadow-config", rel)
+    const violations = checkRatchetFile(rel, null, "export default {}")
+    assert.equal(violations.length, 1, rel)
+    assert.match(violations[0], pattern, rel)
+    assert.ok(violations[0].startsWith(rel), rel)
+  }
+
+  it("flags a second vitest config in a package (vitest tries .ts first, the others without it)", () => {
+    for (const rel of [
+      `${CLI_DIR}/vitest.config.mts`,
+      `${VSCODE_DIR}/vitest.config.js`,
+      `${DOMAIN_DIR}/vitest.config.cjs`,
+      "packages/core/widget-shell/vitest.config.mjs",
+      "apps/mcp-server-camunda7/vitest.config.cts",
+    ])
+      flags(rel, /second vitest config.*loads the first it finds.*Keep the package's config/)
+  })
+
+  it("leaves the configs vitest does not resolve from a package dir alone", () => {
+    for (const rel of [
+      // the widget bundle's build config, which vitest.config.ts outranks
+      "apps/mcp-server-camunda7/vite.config.ts",
+      "packages/core/widget-shell/vitest.stryker.config.ts",
+      `${CLI_DIR}/src/vitest.config.mts`,
+      "templates/composed-server/server/vitest.config.mts",
+    ])
+      assert.equal(ratchetKind(rel), null, rel)
+  })
+
+  it("flags every prettier config below the root and every root one but .prettierrc.json", () => {
+    for (const rel of [
+      `${CLI_DIR}/.prettierrc`,
+      `${CLI_DIR}/.prettierrc.json`,
+      `${VSCODE_DIR}/.prettierrc.yaml`,
+      `${VSCODE_DIR}/.prettierrc.json5`,
+      `${VSCODE_DIR}/.prettierrc.toml`,
+      `${VSCODE_DIR}/.prettierrc.cjs`,
+      `${CLI_DIR}/prettier.config.mjs`,
+      `${CLI_DIR}/prettier.config.ts`,
+      `${CLI_DIR}/package.yaml`,
+      `${DOMAIN_DIR}/.prettierrc.json`,
+      "packages/core/widget-shell/src/ui/.prettierrc",
+      "apps/.prettierrc",
+      // Outside apps/ and packages/ too: `prettier --check .` reads every directory.
+      "docs/.prettierrc",
+      "docs/.vitepress/.prettierrc.json",
+      "docs/package.yaml",
+      "templates/composed-server/.prettierrc.json",
+      "templates/composed-server/server/prettier.config.mjs",
+      "scripts/.prettierrc.yml",
+      "playground/prettier.config.js",
+      ".github/.prettierrc",
+      ".prettierrc",
+      ".prettierrc.yaml",
+      "prettier.config.js",
+      "package.yaml",
+    ])
+      flags(rel, /prettier config of its own.*NEAREST.*root \.prettierrc\.json `overrides`/)
+  })
+
+  it("flags every .editorconfig below the root (prettier reads it for every option .prettierrc.json leaves open)", () => {
+    for (const rel of [
+      `${VSCODE_DIR}/.editorconfig`,
+      `${DOMAIN_DIR}/src/.editorconfig`,
+      "docs/.editorconfig",
+      "templates/composed-server/.editorconfig",
+      "scripts/.editorconfig",
+    ])
+      flags(rel, /overrides the root \.editorconfig.*Add a section/)
+  })
+
+  it("leaves the root configs, ignore files, look-alikes and installed dependencies alone", () => {
+    for (const rel of [
+      ".prettierrc.json",
+      ".editorconfig",
+      ".prettierignore",
+      `${CLI_DIR}/.prettierignore`,
+      "docs/.prettierignore",
+      "scripts/prettier-config.test.mjs",
+      "templates/composed-server/editorconfig.md",
+      `${VSCODE_DIR}/node_modules/some-dep/.prettierrc`,
+      "packages/core/widget-shell/node_modules/some-dep/.editorconfig",
+      "docs/node_modules/vitepress/.prettierrc",
+      "node_modules/some-dep/.editorconfig",
+    ])
+      assert.equal(ratchetKind(rel), null, rel)
+    assert.deepEqual(checkRatchetFile(`${CLI_DIR}/.prettierrc`, "{}", null), [])
+  })
+})
+
+describe("no `prettier` key in a workspace package.json (read before any .prettierrc)", () => {
+  const manifest = (extra = {}) =>
+    JSON.stringify({ name: "x", scripts: { lint: "eslint src", test: "vitest run" }, ...extra })
+
+  it("flags the key in the root, an existing package, an introduced app and the docs workspace", () => {
+    for (const [rel, before] of [
+      ["package.json", manifest()],
+      ["packages/core/widget-shell/package.json", manifest()],
+      [`${CLI_DIR}/package.json`, null],
+      [`${VSCODE_DIR}/package.json`, null],
+      ["docs/package.json", manifest()],
+    ]) {
+      for (const value of [{ singleQuote: true }, "@some-org/prettier-config"]) {
+        const violations = checkRatchetFile(rel, before, manifest({ prettier: value }))
+        assert.equal(violations.length, 1, rel)
+        assert.match(violations[0], /package\.json#prettier.*root \.prettierrc\.json `overrides`/)
+      }
+    }
+  })
+
+  it("is quiet without the key, also for an introduced package", () => {
+    assert.deepEqual(checkRatchetFile(`${CLI_DIR}/package.json`, null, manifest()), [])
+    assert.deepEqual(checkRatchetFile("docs/package.json", manifest(), manifest()), [])
+    assert.deepEqual(checkRatchetFile("docs/package.json", manifest(), null), [])
+  })
+
+  it("flags an introduced manifest that is not valid JSON", () => {
+    assert.match(checkRatchetFile(`${CLI_DIR}/package.json`, null, "{ nope")[0], /not valid JSON/)
   })
 })
 
@@ -200,6 +348,633 @@ describe("vitest coverage thresholds (raise-only, never removed)", () => {
   })
 })
 
+describe("vitest coverage thresholds: glob keys, perFile, the 100 shorthand, count floors", () => {
+  const DOMAIN = `${DOMAIN_DIR}/vitest.config.ts`
+  const GLOBAL = "statements: 90, branches: 85, functions: 90, lines: 90"
+  const config = (body) => vitestConfig({ thresholds: `thresholds: { ${body} },` })
+  const base = config(`${GLOBAL}, "src/core/**": { lines: 98, branches: 95 }`)
+  const check = (before, after) => checkRatchetFile(DOMAIN, before, after)
+  const withExtra = (extra) => vitestConfig({ thresholds: `thresholds: { ${GLOBAL} },`, extra })
+
+  it("reads glob keys next to the global floors", () => {
+    const read = extractVitestCoverage(DOMAIN, base)
+    assert.deepEqual(read.thresholds, { statements: 90, branches: 85, functions: 90, lines: 90 })
+    assert.deepEqual(read.globThresholds, { "src/core/**": { lines: 98, branches: 95 } })
+    assert.deepEqual(read.opaque, [])
+  })
+
+  it("flags a lowered glob floor, a dropped glob metric and a removed glob", () => {
+    const lowered = check(base, config(`${GLOBAL}, "src/core/**": { lines: 90, branches: 95 }`))
+    assert.equal(lowered.length, 1)
+    assert.match(lowered[0], /coverage\.thresholds\["src\/core\/\*\*"\]\.lines: 98 -> 90/)
+    const dropped = check(base, config(`${GLOBAL}, "src/core/**": { lines: 98 }`))
+    assert.equal(dropped.length, 1)
+    assert.match(dropped[0], /\["src\/core\/\*\*"\]\.branches was removed/)
+    const removed = check(base, config(GLOBAL))
+    assert.equal(removed.length, 1)
+    assert.match(removed[0], /\["src\/core\/\*\*"\] was removed/)
+  })
+
+  it("reads a renamed glob as removed (a glob that matches no file passes vacuously)", () => {
+    const renamed = check(base, config(`${GLOBAL}, "src/domain/**": { lines: 98, branches: 95 }`))
+    assert.equal(renamed.length, 1)
+    assert.match(renamed[0], /\["src\/core\/\*\*"\] was removed.*renamed glob/)
+  })
+
+  it("accepts a new glob, also below the global floors (vitest still holds every file to those)", () => {
+    const added = config(
+      `${GLOBAL}, "src/core/**": { lines: 98, branches: 95 }, "src/io/**": { lines: 10 }`,
+    )
+    assert.deepEqual(check(base, added), [])
+  })
+
+  it("accepts raising, adding a metric, reordering, quote style and a literal computed key", () => {
+    for (const body of [
+      `"src/core/**": { branches: 96, lines: 99, functions: 90 }, ${GLOBAL}`,
+      `${GLOBAL}, 'src/core/**': { lines: 98, branches: 95 }`,
+      `${GLOBAL}, ["src/core/**"]: { lines: 98, branches: 95 }`,
+    ])
+      assert.deepEqual(check(base, config(body)), [], body)
+  })
+
+  it("reads the LAST of duplicate keys, as JS does: a metric, a glob, a glob's metric, thresholds", () => {
+    for (const [after, pattern] of [
+      [
+        config(`${GLOBAL}, "src/core/**": { lines: 98, branches: 95 }, lines: 10`),
+        /\.lines: 90 -> 10/,
+      ],
+      [
+        config(
+          `${GLOBAL}, "src/core/**": { lines: 98, branches: 95 }, "src/core/**": { lines: 10, branches: 95 }`,
+        ),
+        /\["src\/core\/\*\*"\]\.lines: 98 -> 10/,
+      ],
+      [
+        config(`${GLOBAL}, "src/core/**": { lines: 98, branches: 95, lines: 10 }`),
+        /\["src\/core\/\*\*"\]\.lines: 98 -> 10/,
+      ],
+      [
+        vitestConfig({
+          thresholds: `thresholds: { ${GLOBAL}, "src/core/**": { lines: 98, branches: 95 } }, thresholds: { lines: 10 },`,
+        }),
+        /\.statements was removed/,
+      ],
+    ]) {
+      const violations = check(base, after)
+      assert.ok(violations.length > 0, String(pattern))
+      assert.match(violations.join("\n"), pattern)
+    }
+    // The other way round the last, stricter value is the one vitest applies.
+    assert.deepEqual(
+      check(
+        base,
+        config(`lines: 10, ${GLOBAL}, "src/core/**": { lines: 10, lines: 98, branches: 95 }`),
+      ),
+      [],
+    )
+  })
+
+  it("fails closed on what it cannot read: a non-literal glob, metric, key, spread or accessor", () => {
+    const nonLiteral = check(base, config(`${GLOBAL}, "src/core/**": CORE`))
+    assert.equal(nonLiteral.length, 2)
+    assert.match(nonLiteral[1], /non-literal `thresholds\["src\/core\/\*\*"\]: CORE`/)
+    const metric = check(base, config(`${GLOBAL}, "src/core/**": { lines: FLOOR, branches: 95 }`))
+    assert.equal(metric.length, 2)
+    assert.match(metric.join("\n"), /\.lines was removed/)
+    assert.match(
+      check(config(GLOBAL), config(`${GLOBAL}, [CORE_GLOB]: { lines: 98 }`))[0],
+      /computed key \[CORE_GLOB\]/,
+    )
+    // A spread or accessor written AFTER the literals overrides them at runtime.
+    assert.match(
+      check(config(GLOBAL), config(`${GLOBAL}, ...LOOSER`))[0],
+      /`thresholds: \.\.\.LOOSER`/,
+    )
+    assert.match(
+      check(config(GLOBAL), config(`${GLOBAL}, get lines() { return 0 }`))[0],
+      /getlines/,
+    )
+    assert.match(
+      check(base, config(`${GLOBAL}, "src/core/**": { lines: 98, branches: 95, ...LOOSER }`))[0],
+      /src\/core.*\.\.\.LOOSER/,
+    )
+    // A typo is a glob with no floors to vitest: opaque here, never a silent no-op.
+    assert.match(check(config(GLOBAL), config(`${GLOBAL}, line: 95`))[0], /line"\]: 95/)
+    assert.match(
+      check(config(GLOBAL), config(`${GLOBAL}, __proto__: { lines: 0 }`))[0],
+      /__proto__/,
+    )
+    // A non-object thresholds value hides every floor.
+    assert.match(
+      check(config(GLOBAL), vitestConfig({ thresholds: "thresholds: FLOORS," })).join("\n"),
+      /`thresholds: FLOORS`/,
+    )
+  })
+
+  it("fails closed on a computed key anywhere in the file (it could be enabled, exclude, thresholds)", () => {
+    for (const extra of ['["enabled"]: false,', "[KEY]: false,"])
+      assert.equal(check(config(GLOBAL), withExtra(extra)).length, 1, extra)
+  })
+
+  it("never switches perFile off, and never on next to a count floor", () => {
+    const perFile = config(`${GLOBAL}, perFile: true`)
+    assert.match(check(perFile, config(GLOBAL))[0], /perFile is now undefined \(was true\)/)
+    assert.match(check(perFile, config(`${GLOBAL}, perFile: false`))[0], /perFile is now false/)
+    assert.deepEqual(check(config(GLOBAL), perFile), [])
+    assert.match(
+      check(config("lines: -10"), config("lines: -10, perFile: true"))[0],
+      /negative floor/,
+    )
+    assert.match(
+      check(perFile, config(`${GLOBAL}, perFile: PER_FILE`)).join("\n"),
+      /perFile: PER_FILE/,
+    )
+  })
+
+  it("expands the 100 shorthand the way vitest does (truthy at the top, exactly true in a glob)", () => {
+    const hundred = config("100: true")
+    assert.equal(check(hundred, config("")).length, 4)
+    assert.deepEqual(check(hundred, config("100: true, lines: 1")), [])
+    assert.match(
+      check(hundred, config("lines: 99, statements: 100, branches: 100, functions: 100"))[0],
+      /lines: 100 -> 99/,
+    )
+    assert.deepEqual(
+      check(config("statements: 100, branches: 100, functions: 100, lines: 100"), hundred),
+      [],
+    )
+    assert.deepEqual(extractVitestCoverage(DOMAIN, config('"src/**": { 100: 1 }')).globThresholds, {
+      "src/**": {},
+    })
+    assert.equal(extractVitestCoverage(DOMAIN, config("100: 1")).thresholds.lines, 100)
+    assert.equal(
+      check(config('"src/**": { 100: true }'), config('"src/**": { lines: 100 }')).length,
+      3,
+    )
+    assert.match(check(hundred, config("100: FULL")).join("\n"), /thresholds\.100: FULL/)
+  })
+
+  it("compares count floors (-N = at most N uncovered) only where they compare", () => {
+    assert.deepEqual(check(config("lines: -10"), config("lines: -5")), [])
+    assert.match(check(config("lines: -5"), config("lines: -10"))[0], /lines: -5 -> -10/)
+    assert.deepEqual(check(config("lines: -5"), config("lines: 100")), [])
+    assert.match(check(config("lines: -5"), config("lines: 99"))[0], /compare only through 100/)
+    assert.match(check(config("lines: 90"), config("lines: -5"))[0], /compare only through 100/)
+    assert.deepEqual(check(config("lines: 0"), config("lines: -5")), [])
+  })
+
+  it("flags deleting a config that carried only glob floors or perFile", () => {
+    assert.match(check(config('"src/**": { lines: 98 }'), null)[0], /was removed while it carried/)
+    assert.match(check(config("perFile: true"), null)[0], /was removed while it carried/)
+    assert.deepEqual(check(config(""), null), [])
+  })
+
+  it("leaves autoUpdate free (it only writes raised floors) and ignores what vitest ignores in a glob", () => {
+    assert.deepEqual(check(config(`${GLOBAL}, autoUpdate: true`), config(GLOBAL)), [])
+    assert.deepEqual(
+      check(config(GLOBAL), config(`${GLOBAL}, autoUpdate: (v) => Math.floor(v)`)),
+      [],
+    )
+    assert.deepEqual(
+      check(config('"src/**": { lines: 98, perFile: true }'), config('"src/**": { lines: 98 }')),
+      [],
+    )
+  })
+
+  it("reads every real config without a glob, a project or an unreadable shape", () => {
+    for (const rel of ["vitest.shared.ts", ...REAL_VITEST_CONFIGS]) {
+      const text = readFileSync(rel, "utf8")
+      const read = extractVitestCoverage(rel, text)
+      assert.equal(read.error, undefined, rel)
+      assert.deepEqual(read.opaque, [], rel)
+      assert.deepEqual(read.globThresholds, {}, rel)
+      assert.equal(read.projects, null, rel)
+      assert.deepEqual(checkRatchetFile(rel, text, text), [], rel)
+    }
+  })
+})
+
+describe("an introduced vitest config must already be a working ratchet", () => {
+  const FLOORS = "statements: 90, branches: 85, functions: 90, lines: 90"
+  const standalone = (coverage) => `import { defineConfig } from "vitest/config"
+export default defineConfig({
+  test: {
+    include: ["src/**/*.test.ts"],
+    coverage: { provider: "v8", ${coverage} },
+  },
+})`
+
+  it("measures: a standalone config needs coverage.enabled: true (vitest's default is off)", () => {
+    const off = checkRatchetFile(
+      `${CLI_DIR}/vitest.config.ts`,
+      null,
+      standalone(`thresholds: { ${FLOORS} }`),
+    )
+    assert.equal(off.length, 1)
+    assert.match(off[0], /neither merges sharedConfig nor sets coverage\.enabled: true/)
+    assert.deepEqual(
+      checkRatchetFile(
+        `${CLI_DIR}/vitest.config.ts`,
+        null,
+        standalone(`enabled: true, thresholds: { ${FLOORS} }`),
+      ),
+      [],
+    )
+    // Merging sharedConfig does not help when the package switches coverage off again.
+    for (const enabled of ["false", "COVERAGE"]) {
+      const merged = vitestConfig({
+        thresholds: `thresholds: { ${FLOORS} },`,
+        extra: `enabled: ${enabled},`,
+      })
+      assert.match(
+        checkRatchetFile(`${DOMAIN_DIR}/vitest.config.ts`, null, merged).join("\n"),
+        /neither merges sharedConfig/,
+        enabled,
+      )
+    }
+  })
+
+  it("carries a non-zero floor for each of the four metrics", () => {
+    const introduce = (thresholds) =>
+      checkRatchetFile(`${DOMAIN_DIR}/vitest.config.ts`, null, vitestConfig({ thresholds }))
+    assert.deepEqual(
+      introduce(`thresholds: { ${FLOORS}, "src/core/**": { lines: 98 }, perFile: true },`),
+      [],
+    )
+    assert.deepEqual(introduce("thresholds: { 100: true },"), [])
+    assert.match(
+      introduce("")[0],
+      /no coverage floor for statements, branches, functions, lines.*0 is no floor/,
+    )
+    assert.match(introduce("thresholds: { lines: 90 },")[0], /statements, branches, functions\./)
+    assert.match(introduce(`thresholds: { ${FLOORS.replace("90", "0")} },`)[0], /for statements\./)
+    // Glob floors or perFile alone leave the rest of the package unguarded.
+    assert.equal(introduce('thresholds: { "src/**": { lines: 98 }, perFile: true },').length, 1)
+  })
+
+  it("is readable: no unreadable shape, no opaque member", () => {
+    const twice = `${vitestConfig({ thresholds: `thresholds: { ${FLOORS} },` })}\nexport const x = { test: {} }`
+    assert.match(
+      checkRatchetFile(`${CLI_DIR}/vitest.config.ts`, null, twice)[0],
+      /2 `test` blocks.*readable by the ratchet from its first commit/,
+    )
+    const spread = vitestConfig({ thresholds: `thresholds: { ${FLOORS} },`, extra: "...LAX," })
+    assert.match(
+      checkRatchetFile(`${CLI_DIR}/vitest.config.ts`, null, spread)[0],
+      /non-literal `\.\.\.LAX`.*nothing to compare against/,
+    )
+  })
+
+  it("accepts every real package config as if it were new", () => {
+    for (const rel of REAL_VITEST_CONFIGS)
+      assert.deepEqual(checkRatchetFile(rel, null, readFileSync(rel, "utf8")), [], rel)
+  })
+})
+
+describe("vitest.shared.ts carries no floors (a package key would override them unseen)", () => {
+  const shared = (thresholds) => `
+import { coverageConfigDefaults, defineConfig } from "vitest/config"
+export const sharedConfig = defineConfig({
+  test: { coverage: { provider: "v8", enabled: true, exclude: [...coverageConfigDefaults.exclude], ${thresholds} } },
+})`
+
+  it("flags a global floor, a glob floor and perFile, and nothing without them", () => {
+    for (const thresholds of [
+      "thresholds: { lines: 90 },",
+      'thresholds: { "src/**": { lines: 90 } },',
+      "thresholds: { perFile: true },",
+    ]) {
+      const violations = checkRatchetFile("vitest.shared.ts", shared(""), shared(thresholds))
+      assert.equal(violations.length, 1, thresholds)
+      assert.match(violations[0], /belong in each package's vitest\.config\.ts/, thresholds)
+    }
+    assert.deepEqual(checkRatchetFile("vitest.shared.ts", shared(""), shared("")), [])
+    const real = readFileSync("vitest.shared.ts", "utf8")
+    assert.deepEqual(checkRatchetFile("vitest.shared.ts", real, real), [])
+  })
+})
+
+describe("inline test.projects (keyed by their literal name)", () => {
+  const VSCODE = `${VSCODE_DIR}/vitest.config.ts`
+  const project = (name, include, extra = "", outer = "extends: true,") =>
+    `{ ${outer} test: { name: ${JSON.stringify(name)}, include: ${JSON.stringify(include)}, ${extra} } }`
+  const UNIT = project("unit", ["src/**/*.test.ts"], 'exclude: [ENGINE_TEST, "test/fixtures/**"],')
+  const BROWSER = project("browser", ["src/webview/**/*.test.tsx"], "browser: { enabled: true },")
+  // Two `include` keys: the last one wins, in JS and in the ratchet.
+  const ENGINE = project("engine", [], "include: [ENGINE_TEST], testTimeout: 180_000,")
+  // The shape of a VS Code extension's config: root coverage with global and
+  // glob floors, three inline projects that inherit the root config.
+  const projectsConfig = ({ projects = [UNIT, BROWSER, ENGINE], core = 98 } = {}) => `
+import { defineConfig } from "vitest/config"
+const ENGINE_TEST = "test/**/*.engine.test.ts"
+export default defineConfig({
+  plugins: [bpmnAsText],
+  test: {
+    clearMocks: true,
+    coverage: {
+      provider: "v8",
+      enabled: true,
+      include: ["src/**/*.{ts,tsx}"],
+      thresholds: {
+        lines: 93, statements: 93, functions: 94, branches: 83,
+        "src/core/**": { lines: ${core}, statements: 98, functions: 98, branches: 90 },
+        "src/webview/**": { lines: 78, statements: 78, functions: 78, branches: 68 },
+      },
+    },
+    ${projects === null ? "" : `projects: [${projects.join(", ")}],`}
+  },
+})`
+  const base = projectsConfig()
+  const check = (after, before = base) => checkRatchetFile(VSCODE, before, after)
+
+  it("reads root coverage and the projects of a config the ratchet could not read before", () => {
+    const read = extractVitestCoverage(VSCODE, base)
+    assert.equal(read.error, undefined)
+    assert.deepEqual(read.opaque, [])
+    assert.deepEqual(Object.keys(read.globThresholds), ["src/core/**", "src/webview/**"])
+    assert.deepEqual(read.projects, {
+      unit: {
+        include: ["src/**/*.test.ts"],
+        exclude: ["ENGINE_TEST", "test/fixtures/**"],
+        extends: true,
+      },
+      browser: { include: ["src/webview/**/*.test.tsx"], exclude: [], extends: true },
+      engine: { include: ["ENGINE_TEST"], exclude: [], extends: true },
+    })
+    assert.deepEqual(checkRatchetFile(VSCODE, null, base), [])
+  })
+
+  it("ratchets the floors of a projects config", () => {
+    assert.match(check(projectsConfig({ core: 90 }))[0], /\["src\/core\/\*\*"\]\.lines: 98 -> 90/)
+  })
+
+  it("flags a removed or renamed project, a narrowed include, a new exclude and a switched extends", () => {
+    assert.match(
+      check(projectsConfig({ projects: [UNIT, ENGINE] }))[0],
+      /\["browser"\] was removed/,
+    )
+    const renamed = project("dom", ["src/webview/**/*.test.tsx"])
+    assert.match(
+      check(projectsConfig({ projects: [UNIT, renamed, ENGINE] }))[0],
+      /\["browser"\] was removed \(a renamed project reads as removed\)/,
+    )
+    const narrowed = project("browser", ["src/webview/ui/**/*.test.tsx"])
+    assert.match(
+      check(projectsConfig({ projects: [UNIT, narrowed, ENGINE] }))[0],
+      /test\.projects\["browser"\]\.include lost "src\/webview\/\*\*\/\*\.test\.tsx"/,
+    )
+    const excluded = project("browser", ["src/webview/**/*.test.tsx"], 'exclude: ["**/slow/**"],')
+    assert.match(
+      check(projectsConfig({ projects: [UNIT, excluded, ENGINE] }))[0],
+      /new test\.projects\["browser"\]\.exclude entry "\*\*\/slow\/\*\*"/,
+    )
+    const detached = project("browser", ["src/webview/**/*.test.tsx"], "", "extends: false,")
+    assert.match(
+      check(projectsConfig({ projects: [UNIT, detached, ENGINE] }))[0],
+      /\["browser"\]\.extends: true -> false/,
+    )
+  })
+
+  it("accepts a new project, a grown include, a dropped exclude, reordering and an object name", () => {
+    const smoke = project("smoke", ["test/smoke/**/*.test.ts"])
+    const grown = project("browser", ["src/webview/**/*.test.tsx", "test/webview/**/*.test.tsx"])
+    const unitAll = project("unit", ["src/**/*.test.ts"], "exclude: [ENGINE_TEST],")
+    const labelled = BROWSER.replace(
+      'name: "browser"',
+      'name: { label: "browser", color: "green" }',
+    )
+    for (const projects of [
+      [UNIT.replace('name: "unit",', 'name: "lax", name: "unit",'), BROWSER, ENGINE],
+      [UNIT, BROWSER, ENGINE, smoke],
+      [UNIT, grown, ENGINE],
+      [unitAll, BROWSER, ENGINE],
+      [ENGINE, UNIT, BROWSER],
+      [UNIT, labelled, ENGINE],
+    ])
+      assert.deepEqual(check(projectsConfig({ projects })), [], projects.join(" | "))
+  })
+
+  it("flags projects appearing in, or disappearing from, a config", () => {
+    const plain = projectsConfig({ projects: null })
+    assert.match(check(base, plain)[0], /test\.projects appeared \(unit, browser, engine\)/)
+    assert.match(check(plain)[0], /test\.projects was removed \(was unit, browser, engine\)/)
+    assert.deepEqual(check(plain, plain), [])
+  })
+
+  it("fails closed on a project it cannot key or read", () => {
+    const errorOf = (projects) => extractVitestCoverage(VSCODE, projectsConfig({ projects })).error
+    assert.match(errorOf(['{ test: { include: ["x"] } }']), /without a literal name/)
+    assert.match(errorOf(["{ test: { name: NAME } }"]), /without a literal name/)
+    assert.match(errorOf(["{ extends: true }"]), /without a literal `test` block/)
+    assert.match(errorOf([UNIT, UNIT]), /project name "unit" is taken twice/)
+    assert.match(errorOf([project("__proto__", ["x"])]), /"__proto__" is taken twice/)
+    // A project built by a function: its test block is no root test.projects entry.
+    assert.match(
+      errorOf(["() => ({ test: { name: 'e2e' } })"]),
+      /2 `test` blocks outside test\.projects/,
+    )
+    // A project coverage block next to the root one: ambiguous, so unreadable.
+    assert.match(
+      errorOf([project("unit", ["x"], "coverage: { enabled: false },")]),
+      /2 `coverage` blocks/,
+    )
+    // vitest reads coverage from the root config only: a project's never applies.
+    const projectCoverage = projectsConfig({
+      projects: [project("unit", ["x"], "coverage: { thresholds: { lines: 1 } },")],
+    }).replace(/coverage: \{\n {6}provider[\s\S]*?\n {4}\},\n/, "")
+    assert.match(extractVitestCoverage(VSCODE, projectCoverage).error, /inside an inline project/)
+    // A projects list outside the root test block is not vitest's.
+    const misplaced = base.replace("plugins: [bpmnAsText],", `projects: [${UNIT}],`)
+    assert.match(
+      extractVitestCoverage(VSCODE, misplaced).error,
+      /projects` list the ratchet does not read/,
+    )
+    // So is a coverage block outside the root test block.
+    const topLevel = base.replace(
+      "plugins: [bpmnAsText],",
+      "coverage: { thresholds: { lines: 1 } },",
+    )
+    assert.match(extractVitestCoverage(VSCODE, topLevel).error, /2 `coverage` blocks/)
+    const onlyTopLevel = `import { defineConfig } from "vitest/config"
+export default defineConfig({ coverage: { enabled: true, thresholds: { lines: 90 } }, test: {} })`
+    assert.match(extractVitestCoverage(VSCODE, onlyTopLevel).error, /outside the root `test` block/)
+  })
+
+  it("freezes what loads or overrides a project out of sight", () => {
+    for (const [projects, pattern] of [
+      [
+        [UNIT, BROWSER, ENGINE, '"./vitest.e2e.config.ts"'],
+        /test\.projects element "\.\/vitest\.e2e/,
+      ],
+      [[UNIT, BROWSER, ENGINE, "() => E2E_PROJECT"], /test\.projects element \(\)=>E2E_PROJECT/],
+      [
+        [UNIT, BROWSER, ENGINE, "defineProject(E2E)"],
+        /test\.projects element defineProject\(E2E\)/,
+      ],
+      [[UNIT, BROWSER, ENGINE, "...EXTRA"], /test\.projects element \.\.\.EXTRA/],
+      [
+        [
+          project(
+            "unit",
+            ["src/**/*.test.ts"],
+            'exclude: [ENGINE_TEST, "test/fixtures/**"],',
+            "...LAX, extends: true,",
+          ),
+          BROWSER,
+          ENGINE,
+        ],
+        /element member \.\.\.LAX/,
+      ],
+      [
+        [
+          project(
+            "unit",
+            ["src/**/*.test.ts"],
+            'exclude: [ENGINE_TEST, "test/fixtures/**"], ...LAX,',
+          ),
+          BROWSER,
+          ENGINE,
+        ],
+        /test\.projects\["unit"\]: \.\.\.LAX/,
+      ],
+      [
+        [UNIT.replace("extends: true", 'extends: "./vitest.base.ts"'), BROWSER, ENGINE],
+        /\["unit"\]\.extends: "\.\/vitest\.base\.ts"/,
+      ],
+      // A duplicate key reads as JS reads it: the LAST one wins, so a harmless first
+      // value cannot hide the path vitest loads, nor the name it runs the project under.
+      [
+        [
+          UNIT.replace("extends: true,", 'extends: true, extends: "./loose.config.ts",'),
+          BROWSER,
+          ENGINE,
+        ],
+        /\["unit"\]\.extends: "\.\/loose\.config\.ts"/,
+      ],
+      [
+        [UNIT.replace('name: "unit",', 'name: "unit", name: "lax",'), BROWSER, ENGINE],
+        /\["unit"\] was removed/,
+      ],
+      [
+        [UNIT.replace('name: "unit",', 'name: { label: "unit", label: "lax" },'), BROWSER, ENGINE],
+        /\["unit"\] was removed/,
+      ],
+    ]) {
+      const violations = check(projectsConfig({ projects }))
+      assert.ok(violations.length > 0, String(pattern))
+      assert.match(violations.join("\n"), pattern)
+    }
+    assert.match(
+      check(base.replace(/projects: \[[\s\S]*\],\n/, "projects: PROJECTS,\n")).join("\n"),
+      /`test\.projects: PROJECTS`/,
+    )
+  })
+})
+
+describe("a ratchet file unreadable on the base is never compared again", () => {
+  const twoTests = `${vitestConfig({ thresholds: BASE_THRESHOLDS })}\nexport const x = { test: {} }`
+
+  it("fails a vitest config unreadable on both sides, and a deleted one", () => {
+    const both = checkRatchetFile(PKG_VITEST, twoTests, twoTests)
+    assert.equal(both.length, 1)
+    assert.match(both[0], /on the base and in the working tree.*never compared/)
+    assert.match(checkRatchetFile(PKG_VITEST, twoTests, null)[0], /could not read its base/)
+  })
+
+  it("holds the readable new side to the rules of an introduced config", () => {
+    assert.deepEqual(
+      checkRatchetFile(PKG_VITEST, twoTests, vitestConfig({ thresholds: BASE_THRESHOLDS })),
+      [],
+    )
+    assert.match(
+      checkRatchetFile(PKG_VITEST, twoTests, vitestConfig({ thresholds: "" }))[0],
+      /carries no coverage floor/,
+    )
+  })
+
+  it("fails a JSON ratchet broken on both sides, and judges a fixed one alone", () => {
+    const rel = "packages/core/widget-shell/stryker.config.json"
+    assert.match(checkRatchetFile(rel, "{ nope", "{ nope")[0], /not valid JSON/)
+    assert.deepEqual(checkRatchetFile(rel, "{ nope", '{ "mutate": ["src/a.ts"] }'), [])
+    const pkg = "packages/core/widget-shell/package.json"
+    assert.match(
+      checkRatchetFile(pkg, "{ nope", JSON.stringify({ prettier: {} }))[0],
+      /package\.json#prettier/,
+    )
+  })
+})
+
+describe("the vitest threshold semantics the glob ratchet relies on (vitest/node)", () => {
+  // Read from the vitest the repo pins: a new glob only ADDS a floor because
+  // the global set still holds every file, a non-metric key is a glob, and
+  // `100` inside a glob counts only as exactly `true`. A vitest bump that
+  // changes any of this fails here before the ratchet's reasoning goes stale.
+  class Probe extends BaseCoverageProvider {
+    createCoverageMap() {
+      const files = []
+      return {
+        files: () => files,
+        addFileCoverage: (file) => files.push(file),
+        fileCoverageFor: (file) => file,
+      }
+    }
+  }
+  const resolve = (thresholds) => {
+    const probe = new Probe()
+    probe.options = { thresholds }
+    probe.ctx = { config: { root: "/pkg" } }
+    const all = ["/pkg/src/core/a.ts", "/pkg/src/io/b.ts"]
+    return probe.resolveThresholds({ files: () => all, fileCoverageFor: (file) => file })
+  }
+
+  it("holds glob-matched files to the global floors too", () => {
+    const [global, core] = resolve({ lines: 90, "src/core/**": { lines: 10 } })
+    assert.equal(global.name, "global")
+    assert.deepEqual(global.coverageMap.files(), ["/pkg/src/core/a.ts", "/pkg/src/io/b.ts"])
+    assert.deepEqual(core.coverageMap.files(), ["/pkg/src/core/a.ts"])
+    assert.equal(core.thresholds.lines, 10)
+  })
+
+  it("reads every other key as a glob, and `100` in a glob only as exactly true", () => {
+    const [, typo, strict, loose] = resolve({
+      lines: 90,
+      line: 80,
+      "a/**": { 100: true },
+      "b/**": { 100: 1 },
+    })
+    assert.equal(typo.name, "line")
+    assert.deepEqual(
+      Object.values(typo.thresholds).filter((value) => value !== undefined),
+      [],
+    )
+    assert.equal(strict.thresholds.branches, 100)
+    assert.equal(loose.thresholds.lines, undefined)
+  })
+})
+
+describe("the real repository carries no shadowing config and no package.json#prettier", () => {
+  it("holds for every tracked and untracked file", () => {
+    const listed = execFileSync("git", ["ls-files", "--cached", "--others", "--exclude-standard"], {
+      encoding: "utf8",
+      maxBuffer: 64 * 1024 * 1024,
+    })
+      .split("\n")
+      .filter(Boolean)
+    assert.deepEqual(
+      listed.filter((rel) => ratchetKind(rel) === "shadow-config"),
+      [],
+    )
+    const manifests = listed.filter((rel) =>
+      ["root-scripts", "package-scripts", "workspace-manifest"].includes(ratchetKind(rel)),
+    )
+    assert.ok(manifests.includes("package.json") && manifests.includes("docs/package.json"))
+    for (const rel of manifests) {
+      const text = readFileSync(rel, "utf8")
+      assert.deepEqual(checkRatchetFile(rel, text, text), [], rel)
+    }
+  })
+})
+
 describe("coverage exclude (shrink-only)", () => {
   const shared = (entries) => `
 import { coverageConfigDefaults, defineConfig } from "vitest/config"
@@ -224,6 +999,12 @@ export const sharedConfig = defineConfig({
     assert.match(
       checkRatchetFile("vitest.shared.ts", base, dropped)[0],
       /coverage\.enabled is now undefined \(was true\)/,
+    )
+    // A duplicate key: the last one is the one vitest reads.
+    const switched = base.replace("enabled: true, ", "enabled: true, enabled: false, ")
+    assert.match(
+      checkRatchetFile("vitest.shared.ts", base, switched)[0],
+      /coverage\.enabled is now false \(was true\)/,
     )
   })
 
@@ -984,8 +1765,16 @@ describe("inline suppressions (shrink-only)", () => {
 })
 
 describe("introduction and the escape trailer", () => {
-  it("a file absent on the base produces no violations", () => {
-    assert.deepEqual(checkRatchetFile(PKG_VITEST, null, vitestConfig({ thresholds: "" })), [])
+  it("a file absent on the base is free, except a package vitest config that is no working ratchet", () => {
+    assert.deepEqual(
+      checkRatchetFile(PKG_VITEST, null, vitestConfig({ thresholds: BASE_THRESHOLDS })),
+      [],
+    )
+    // Without floors the introduced config would be compared against nothing forever.
+    assert.match(
+      checkRatchetFile(PKG_VITEST, null, vitestConfig({ thresholds: "" }))[0],
+      /carries no coverage floor/,
+    )
     assert.deepEqual(checkRatchetFile("knip.jsonc", undefined, "{}"), [])
   })
 
