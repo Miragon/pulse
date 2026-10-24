@@ -223,7 +223,9 @@ describe("moving a token from the instance screen", () => {
   it("holds live updates while the move panel is open", async () => {
     const panel = await startMove()
 
-    expect(posted("holdLiveUpdates")).toEqual([{ type: "holdLiveUpdates", held: true }])
+    await vi.waitFor(() => {
+      expect(posted("holdLiveUpdates")).toEqual([{ type: "holdLiveUpdates", held: true }])
+    })
     press(panel.querySelector("select")!, "Escape")
 
     await vi.waitFor(() => {
