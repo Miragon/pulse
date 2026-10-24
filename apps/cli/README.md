@@ -11,8 +11,6 @@ processes and decisions, start and follow instances, work on tasks, fix incident
 instances, look into the history and administer users and permissions. The agent says what should
 happen, and the CLI talks to the REST API.
 
-![pulse-cli finds the incident of an order with an expired card, fixes the variable and retries the job, and the order moves on to shipping](https://raw.githubusercontent.com/Miragon/pulse/main/docs/cli/assets/demo.gif)
-
 ## Why
 
 A language model writes its answer token by token, so the time and the cost of a task grow with

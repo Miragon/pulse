@@ -8,8 +8,6 @@ sends the requests to the engine's REST API.
 npx @miragon/pulse-cli guide
 ```
 
-![The CLI finds the incident of an order with an expired card, fixes the variable and retries the job, and the order moves on to shipping](./assets/demo.gif)
-
 | Page                                        | What it covers                                                          |
 | ------------------------------------------- | ----------------------------------------------------------------------- |
 | [Getting started](./getting-started.md)     | A first triage, then your own engine, Claude Code or CI                 |
