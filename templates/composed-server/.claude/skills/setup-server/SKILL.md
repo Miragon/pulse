@@ -184,6 +184,7 @@ pnpm install                    # once, then COMMIT pnpm-lock.yaml
 docker build -t my-mcp-server .
 docker run -p 127.0.0.1:8400:8400 \
   -e CAMUNDA_BASE_URL=http://host.docker.internal:8410/engine-rest \
+  -e CAMUNDA_ENGINE_FLAVOR=cibseven \
   -e MCP_PROFILE_DIR=/data/profiles -v mcp-data:/data \
   my-mcp-server
 ```
