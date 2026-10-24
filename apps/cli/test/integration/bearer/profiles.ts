@@ -144,7 +144,7 @@ export function registerProfiles(suite: BearerSuite): void {
       expect(explanation(expectError(result, "CONFIG", 3))).toContain(TOKEN_ENV)
       expect(result.stderr).not.toMatch(SENT_REQUEST)
     }
-    // OPERATE_TOKEN comes first, so the profile's variable is not read (like §15's passwordEnv)
+    // OPERATE_TOKEN comes first, so the profile's variable is not read (like the passwordEnv of Basic auth)
     const override = await run(
       ["ping", ...profileArgs(PROFILE.fixed)],
       profiles({ OPERATE_TOKEN: suite.ciToken }),
@@ -243,7 +243,7 @@ export function registerProfiles(suite: BearerSuite): void {
       source: "profile",
       origin: `${TOKEN_ENV} (auth.tokenEnv of profile "${PROFILE.fixed}")`,
     })
-    // a piped token can be checked before it is used (design §18.6)
+    // a piped token can be checked before it is used
     const piped = await run(["auth", "status", globalFlag("auth-token-stdin")], {
       stdin: `${suite.ciToken}\n`,
       env: { OPERATE_TOKEN: GARBAGE },

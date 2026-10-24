@@ -1,5 +1,5 @@
 /**
- * `operate guide [topic] | --list` (design §5, §19): prints the usage guide for agents. The core
+ * `operate guide [topic] | --list`: prints the usage guide for agents. The core
  * and every topic are always the raw markdown, whatever the output format, so that they read the
  * same in a terminal, a pipe and an agent's context; `--list` lists the topics as JSON when stdout
  * is not a terminal, else as a table.

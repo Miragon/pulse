@@ -1,5 +1,5 @@
 /**
- * Project config files end to end through `run()` (design §22): the lookup from the working
+ * Project config files end to end through `run()`: the lookup from the working
  * directory, the merge with the user's config file, `config set|unset|use|delete --project`,
  * `config path|list|show`, the credentials and the foreign default a project file refuses, and the
  * files a command reads.

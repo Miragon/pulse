@@ -16,7 +16,7 @@ import type { SecretLedger } from "../support/secrets.js"
 import type { CachedLogin } from "../support/token-cache.js"
 import type { LoginOutput } from "../support/types.js"
 
-/** Profiles of the suite's config file (design §16.14.2). */
+/** Profiles of the suite's config file. */
 export const PROFILE = {
   /** operate-cli, audience engine-rest (sent, ignored by Keycloak), offline token */
   it: "it",

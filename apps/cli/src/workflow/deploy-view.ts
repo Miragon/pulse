@@ -1,5 +1,5 @@
 /**
- * The resources of a deployment as `operate deploy` reports them (design §17.8): which ones were
+ * The resources of a deployment as `operate deploy` reports them: which ones were
  * deployed now, and the definitions in effect for every resource.
  */
 

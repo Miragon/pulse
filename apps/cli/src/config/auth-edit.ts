@@ -1,5 +1,5 @@
 /**
- * `operate config set` changes of a profile's auth object (design §15, §16.2.2, §18): the type,
+ * `operate config set` changes of a profile's auth object: the type,
  * the Basic auth username and password (stored as the name of an environment variable,
  * recommended, or literally), the OAuth settings (oauth-edit.ts) and the bearer token
  * (bearer-edit.ts). Only given values change; a passwordEnv replaces a stored password and the

@@ -12,7 +12,7 @@ function command(group: string, name: string): OperationSpec {
   return found
 }
 
-/** The everyday commands of design §5, which have curated examples. */
+/** The everyday commands, which have curated examples. */
 const EVERYDAY: readonly (readonly [string, string, number])[] = [
   ["deployment", "create", 2],
   ["process-definition", "list", 2],

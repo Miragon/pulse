@@ -1,5 +1,5 @@
 /**
- * Property (design §15, §16.2, §18, extends auth-secrets, oauth-secrets and bearer-secrets): a
+ * Property (extends auth-secrets, oauth-secrets and bearer-secrets): a
  * secret typed in place of the name of its variable (`--auth-password-env`,
  * `--oauth-client-secret-env`, `--auth-token-env`, or a hand-edited auth.passwordEnv,
  * auth.clientSecretEnv or auth.tokenEnv) is never stored by `config set` and never appears in

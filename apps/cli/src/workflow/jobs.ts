@@ -1,5 +1,5 @@
 /**
- * Executing a job (design §17.2.7), shared by advance (timers, async jobs), `retry --now` and
+ * Executing a job, shared by advance (timers, async jobs), `retry --now` and
  * `wait --execute-jobs`. The engine reports a job that ran and failed as 404 (the job stays with
  * one retry less), so every error is checked against the job itself.
  */

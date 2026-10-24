@@ -1,5 +1,5 @@
 /**
- * The OAuth AuthProvider (design §16.6): Bearer tokens from the cache of `operate auth login`,
+ * The OAuth AuthProvider: Bearer tokens from the cache of `operate auth login`,
  * refreshed shortly before they expire and once after a 401. It never starts a login: without a
  * usable token a command fails with LOGIN_REQUIRED (exit 4) and the hint names the command a
  * person runs in a terminal. Network problems, a slow authorization server or a busy lock do not

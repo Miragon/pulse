@@ -1,5 +1,5 @@
 /**
- * `operate config set` changes of a profile's OAuth settings (design §16.2.2): only given values
+ * `operate config set` changes of a profile's OAuth settings: only given values
  * change; `--oauth-issuer` alone goes back to discovery (stored endpoints are removed), the two
  * endpoint options come together and keep the issuer (the `iss` check), the client secret is
  * stored as the name of a variable (recommended) or literally. Values are validated with the

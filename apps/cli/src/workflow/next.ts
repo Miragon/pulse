@@ -1,5 +1,5 @@
 /**
- * Ready-to-run follow-ups of the instance view (design §17.4): at most three `operate` command
+ * Ready-to-run follow-ups of the instance view: at most three `operate` command
  * lines, always with ids (never business keys), so they are reproducible. Pure.
  */
 

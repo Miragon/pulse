@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { EXIT_CODES, type ErrorCode, OperateError, usageError } from "./errors.js"
 
-/** Exit codes as documented in the design (§2.7) and docs/output-and-errors.md. */
+/** Exit codes as documented in docs/cli/output-and-errors.md. */
 const DOCUMENTED: Readonly<Record<ErrorCode, number>> = {
   INTERNAL: 1,
   USAGE: 2,

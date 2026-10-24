@@ -1,5 +1,5 @@
 /**
- * The authorization request and the validation of its callback (design §16.4). The state is
+ * The authorization request and the validation of its callback. The state is
  * checked first and in constant time: a callback without the right state is not processed at all
  * (and does not end the login). After that the `iss` parameter (RFC 9207 mix-up defense), an
  * `error` and the code decide. Repeated parameters count as invalid (RFC 6749 §3.1).

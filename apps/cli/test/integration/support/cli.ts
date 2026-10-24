@@ -1,7 +1,7 @@
 /**
  * Runs the built CLI (`dist/operate.js`) as a child process, the way an agent or a script calls it:
  * no TTY (so JSON is the default output), a clean environment and an isolated config file.
- * `OPERATE_IT_BINARY` runs a standalone executable instead (design §20), started directly.
+ * `OPERATE_IT_BINARY` runs a standalone executable instead, started directly.
  */
 
 import { existsSync } from "node:fs"

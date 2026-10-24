@@ -1,5 +1,5 @@
 /**
- * Planning of `operate retry` (design §17.7): the selection mode, the root cause incidents to
+ * Planning of `operate retry`: the selection mode, the root cause incidents to
  * retry and the requests per incident type. Pure.
  */
 

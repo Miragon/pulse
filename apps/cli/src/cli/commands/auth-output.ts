@@ -1,5 +1,5 @@
 /**
- * How `operate auth login|status|logout` print (design §16.3): the view as JSON or KEY VALUE
+ * How `operate auth login|status|logout` print: the view as JSON or KEY VALUE
  * rows on stdout, and lines on stderr with control characters replaced on a terminal.
  */
 

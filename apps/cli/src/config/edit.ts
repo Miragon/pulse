@@ -111,7 +111,7 @@ interface TokenValue extends ConfigValue<string> {
  */
 export interface ConfigView {
   readonly configFile: string
-  /** The project file in effect (design §22), null without one. */
+  /** The project file in effect, null without one. */
   readonly projectFile: string | null
   readonly profile: string | null
   /** The file the selected profile comes from: the project file or the config file. */

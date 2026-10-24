@@ -1,5 +1,5 @@
 /**
- * The active instance tree below a process instance (design §17.2.5): breadth first over
+ * The active instance tree below a process instance: breadth first over
  * `GET /process-instance?superProcessInstance=<id>`, one round per level. Works without history
  * and on every engine (`rootProcessInstanceId` would include siblings and carries no parent edge).
  */

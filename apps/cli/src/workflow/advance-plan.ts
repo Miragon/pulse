@@ -1,5 +1,5 @@
 /**
- * Planning of `operate advance` (design §17.6): which wait state to move, which options apply to
+ * Planning of `operate advance`: which wait state to move, which options apply to
  * it, and the requests that move it. Pure.
  */
 

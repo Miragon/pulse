@@ -1,7 +1,7 @@
 /**
- * OAuth 2.0 authorization code + PKCE (GitHub issue #2, design §16) of the built CLI against
- * Keycloak and an unmodified engine behind an Envoy JWT gateway (support/oauth.ts, design
- * §16.14.1). A person logs in once with `operate auth login`; the test plays the browser over HTTP
+ * OAuth 2.0 authorization code + PKCE (issue 2 of the archived operate repository) of the built
+ * CLI against Keycloak and an unmodified engine behind an Envoy JWT gateway (support/oauth.ts). A
+ * person logs in once with `operate auth login`; the test plays the browser over HTTP
  * (support/keycloak.ts). Every other command only reads the token cache, refreshes silently and
  * fails with LOGIN_REQUIRED (exit 4) instead of ever starting an interactive login (AI first).
  *
@@ -68,11 +68,11 @@ describe.skipIf(engine === undefined)(`OAuth login and tokens against ${engine ?
   }
 
   const top = () => required(topology, "the OAuth topology")
-  /** The login command of a hint: the suite's config file is named by --config (design §16.5). */
+  /** The login command of a hint: the suite's config file is named by --config. */
   const LOGIN_HINT = (profile: string) =>
     `operate auth login --config ${profilesFile} --profile ${profile}`
   const tokenEndpoint = () => endpointsOf(top().issuer).token
-  /** The cache file of a profile's login (design §16.5): its config file and stored settings. */
+  /** The cache file of a profile's login: its config file and stored settings. */
   const cacheFile = (profile: string) => {
     const profiles: Readonly<
       Record<string, { readonly auth: Record<string, unknown> } | undefined>

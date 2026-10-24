@@ -1,5 +1,5 @@
 /**
- * The CLI's OAuth token cache (design §16.5), read and rewritten by the tests: they move expiry
+ * The CLI's OAuth token cache, read and rewritten by the tests: they move expiry
  * times or replace tokens to reach refresh paths deterministically, and they collect every token
  * the CLI ever stored to prove that no output contains one.
  */
@@ -48,7 +48,7 @@ export function tokenDirectory(configHome: string): string {
 }
 
 /**
- * What makes profiles share a login (design §16.5): where the profile comes from (`config:<path>`
+ * What makes profiles share a login: where the profile comes from (`config:<path>`
  * for a config file) and the OAuth settings it stores.
  */
 export interface LoginKey {

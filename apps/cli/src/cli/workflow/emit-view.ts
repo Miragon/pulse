@@ -1,7 +1,7 @@
 /**
- * Prints a workflow view (design §17.2.3): JSON per §2.6 (projected with `--fields`, with the
+ * Prints a workflow view: JSON (projected with `--fields`, with the
  * warnings for fields that match nothing), the section text of the view on `-o table`, or the
- * JSON view written to `--out-file` with the §2.6 summary.
+ * JSON view written to `--out-file` with the summary of the written file.
  */
 
 import { fieldWarnings, renderValue } from "../../output/render.js"

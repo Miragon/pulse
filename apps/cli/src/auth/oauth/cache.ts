@@ -1,5 +1,5 @@
 /**
- * The token cache (design §16.5): one JSON file per login in the token directory, written
+ * The token cache: one JSON file per login in the token directory, written
  * atomically with mode 0600 under a lock file; readers need no lock. Profiles with the same login
  * key (their origin and stored OAuth settings, `LoginKey`) share one file (`login-<hash>.json`),
  * the configuration from the environment has one per identity (`env-<hash>.json`). A cache whose

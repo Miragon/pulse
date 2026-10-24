@@ -1,5 +1,5 @@
 /**
- * Running the bearer token command of OPERATE_TOKEN_COMMAND (design §23): the shell runs it in the
+ * Running the bearer token command of OPERATE_TOKEN_COMMAND: the shell runs it in the
  * working directory with stdin closed, bounded by the request timeout; the first line of its
  * stdout is the token (a leading `Bearer ` is dropped, the rest must be an RFC 6750 b64token). A
  * command that cannot start, fails, times out or prints no token is LOGIN_FAILED (exit 4) and

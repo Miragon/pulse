@@ -1,5 +1,5 @@
 /**
- * `operate ping` (design §5): `GET /version` and `GET /engine`, printed as
+ * `operate ping`: `GET /version` and `GET /engine`, printed as
  * `{url, engine, reachable, version, engines, latencyMs, auth}`, plus `user` with Basic auth and
  * OAuth, and `user` and `subject` of a bearer token that is a JWT. Failures are normal errors; a
  * configured engine name that the REST API does not serve is a CONFIG error.

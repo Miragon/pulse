@@ -1,5 +1,5 @@
 /**
- * Global options (design §2.1): registered on every operation command, `api` and `ping`, shown
+ * Global options: registered on every operation command, `api` and `ping`, shown
  * under "Global Options:" in the help. `GLOBAL_OPTION_FLAGS` must equal `GLOBAL_FLAGS` of the
  * catalog generator (scripts/catalog/flags.ts), which keeps body field flags clear of them.
  */
@@ -144,7 +144,7 @@ export function optionFlags(spec: GlobalOptionSpec): string {
   return `${short}--${spec.long}${value}`
 }
 
-/** What the values of global options complete to (design §17.10). */
+/** What the values of global options complete to. */
 const COMPLETIONS: Readonly<Record<string, OptionCompletion>> = {
   output: { values: OUTPUT_FORMATS },
   platform: { values: PLATFORMS },

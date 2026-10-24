@@ -1,5 +1,5 @@
 /**
- * Table format of the views of advance, retry, deploy, status and `wait --batch` (design §17.2.3),
+ * Table format of the views of advance, retry, deploy, status and `wait --batch`,
  * built from the helpers of text.ts. Pure.
  */
 

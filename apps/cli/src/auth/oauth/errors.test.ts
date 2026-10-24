@@ -58,7 +58,7 @@ describe("login hint", () => {
     expect(failed.exitCode).toBe(4)
   })
 
-  it("has the messages of design §16.9", () => {
+  it("has the documented messages", () => {
     expect(notLoggedIn(P).message).toBe('Not logged in: profile "p" has no OAuth login')
     expect(unknownFormat("/t.json", P).message).toBe(
       "The token cache /t.json has an unknown format",

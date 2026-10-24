@@ -1,5 +1,5 @@
 /**
- * The commander program. Registration is lazy (design §9.2): every group is registered with its
+ * The commander program. Registration is lazy: every group is registered with its
  * description, but operation commands only for the group addressed on the command line.
  */
 

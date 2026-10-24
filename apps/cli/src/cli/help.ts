@@ -95,7 +95,7 @@ export const ROOT_DESCRIPTION = [
   "  operate guide                       usage guide for agents (markdown)",
 ].join("\n")
 
-/** Meaning of every exit code (design §2.7). */
+/** Meaning of every exit code. */
 const EXIT_CODE_MEANINGS: Readonly<Record<keyof typeof EXIT_CODES, string>> = {
   ok: "success",
   internal: "internal error",

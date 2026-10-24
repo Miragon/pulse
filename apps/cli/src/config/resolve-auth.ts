@@ -1,5 +1,5 @@
 /**
- * Resolves the authentication (design §15, §16, §18). Type: `--auth` > OPERATE_AUTH > the
+ * Resolves the authentication. Type: `--auth` > OPERATE_AUTH > the
  * profile's auth.type; without a type anywhere, a username from any source or
  * `--auth-password-stdin` selects Basic auth, a token from `--auth-token-stdin` or OPERATE_TOKEN
  * selects bearer auth (both at once is a CONFIG error), otherwise none (OAuth is never implied;

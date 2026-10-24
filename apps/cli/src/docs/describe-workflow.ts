@@ -1,5 +1,5 @@
 /**
- * `operate describe <workflow-command>` (design §17.3): usage, description, effect, arguments,
+ * `operate describe <workflow-command>`: usage, description, effect, arguments,
  * options, the operations it may call and examples, as a JSON view and as readable text. Pure.
  */
 

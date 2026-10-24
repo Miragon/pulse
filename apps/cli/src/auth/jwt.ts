@@ -1,5 +1,5 @@
 /**
- * Reading the claims of a JWT (RFC 7519) without checking its signature (design §18): bearer
+ * Reading the claims of a JWT (RFC 7519) without checking its signature: bearer
  * tokens from elsewhere are often JWTs, and their expiry, subject, issuer and audience help
  * explain a rejected or expired token. Nothing here decides whether a token is trusted; the
  * engine or its gateway does that. Opaque tokens give no claims.

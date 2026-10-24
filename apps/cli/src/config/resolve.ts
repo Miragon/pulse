@@ -87,8 +87,8 @@ function projectOf(file: LoadedConfig | undefined, name: string): ProjectSource 
 }
 
 /**
- * The selected profile, where it comes from (design §16.5) and, when it comes from there, the
- * project file (design §22).
+ * The selected profile, where it comes from and, when it comes from there, the
+ * project file.
  */
 export function selectProfile(
   flags: ConfigFlags,

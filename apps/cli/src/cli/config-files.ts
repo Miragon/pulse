@@ -1,5 +1,5 @@
 /**
- * The configuration a command reads (design §22): the config file named by `--config` or
+ * The configuration a command reads: the config file named by `--config` or
  * OPERATE_CONFIG alone (it must exist), else the project file (`.operate.json`, looked up from the
  * working directory up to the repository root) merged with the user's config file.
  */
@@ -56,7 +56,7 @@ async function projectOf(runtime: Runtime, path: string) {
 
 /**
  * The user's config file, or the one named by `--config` / OPERATE_CONFIG (`explicit`), with the
- * origin of its profiles (design §16.5).
+ * origin of its profiles.
  */
 function withOrigin(
   runtime: Runtime,

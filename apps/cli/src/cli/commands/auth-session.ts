@@ -1,6 +1,5 @@
 /**
- * The session of `operate auth login|status` and the auth type these commands need (design
- * §16.3, §18): OAuth for login (CONFIG `needs OAuth, but profile "p" uses basic` otherwise, with
+ * The session of `operate auth login|status` and the auth type these commands need: OAuth for login (CONFIG `needs OAuth, but profile "p" uses basic` otherwise, with
  * how to switch stored or exported OAuth settings on), OAuth or a bearer token for status, and no
  * login or logout for a bearer token from elsewhere (USAGE). `auth` commands have no `--auth`
  * option, so hints never suggest one.

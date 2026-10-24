@@ -1,4 +1,4 @@
-// Standalone bundle (design §20): one CommonJS file with every runtime dependency inlined, the
+// Standalone bundle: one CommonJS file with every runtime dependency inlined, the
 // main script of the single executable applications (scripts/build-exe.ts) and of the container
 // image (Dockerfile). Node.js 24 runs a SEA main script only as CommonJS. The npm package keeps
 // its own ESM build (tsdown.config.ts) with commander as a dependency.

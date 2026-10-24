@@ -1,5 +1,5 @@
 /**
- * `operate auth status|login|logout` with a bearer token obtained elsewhere (design §18, §23).
+ * `operate auth status|login|logout` with a bearer token obtained elsewhere.
  * `auth status` shows what operate can tell about the token without sending it: where it comes
  * from (for a token command, the command, which it runs unless its token is cached) and, for a
  * JWT, subject, issuer, audience and expiry (no signature check); an expired JWT exits with

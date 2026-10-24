@@ -1,5 +1,5 @@
 /**
- * Validation of the auth settings (design §15, §16, §18): the auth type, Basic auth usernames and
+ * Validation of the auth settings: the auth type, Basic auth usernames and
  * passwords (RFC 7617: no control characters, no ":" in the username) and the auth object of a
  * profile in the config file (the OAuth rules live in oauth.ts, the bearer token rules in
  * bearer.ts, the names of the variables that hold secrets in variable.ts). Messages never repeat
@@ -88,7 +88,7 @@ const AUTH_EXAMPLE = '{"type": "basic", "username": "demo", "passwordEnv": "CAMU
  */
 export function profileAuthProblem(name: string, value: unknown): string | undefined {
   if (!isRecord(value)) return `profile "${name}" has an invalid auth (expected ${AUTH_EXAMPLE})`
-  // the token command of 0.6.0 (design §23): only the environment gives one now
+  // the token command of 0.6.0: only the environment gives one now
   if (Object.hasOwn(value, "tokenCommand")) {
     return `profile "${name}" sets auth.tokenCommand, which operate no longer reads: remove the key from the file and export ${ENV.tokenCommand}=<command> instead`
   }

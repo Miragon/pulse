@@ -1,5 +1,5 @@
 /**
- * `operate commands [group] [--search <text>] [--effect <effect>]` (design §5): the groups of the
+ * `operate commands [group] [--search <text>] [--effect <effect>]`: the groups of the
  * catalog, or the commands of a group, a search or an effect. JSON when stdout is not a terminal,
  * else a table (GROUP COMMANDS DESCRIPTION / COMMAND EFFECT SUMMARY).
  */

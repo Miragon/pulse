@@ -1,5 +1,5 @@
 /**
- * Property (design §18, extends auth-secrets.test.ts and oauth-secrets.test.ts to bearer tokens
+ * Property (extends auth-secrets.test.ts and oauth-secrets.test.ts to bearer tokens
  * from elsewhere): for arbitrary opaque tokens and JWTs, no output of config show/set/list, ping,
  * dry-run (json, curl), operations with --verbose (success, 401, 403, network error), api,
  * `auth status|login|logout` or any error (invalid, expired or conflicting tokens, mistyped

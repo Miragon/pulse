@@ -1,4 +1,4 @@
-# Envoy jwt_authn gateway in front of an unmodified engine (design §16.14.1). The test fills in
+# Envoy jwt_authn gateway in front of an unmodified engine. The test fills in
 # ${ISSUER} (the host-side issuer, exactly as the CLI and the tokens spell it) and ${UPSTREAM} (the
 # network alias of the engine) after Keycloak and the engine have started. The image's CMD reads
 # /etc/envoy/envoy.yaml.

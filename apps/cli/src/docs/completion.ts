@@ -1,5 +1,5 @@
 /**
- * Shell completion candidates (design §17.10) over a plain model of the command tree that the CLI
+ * Shell completion candidates over a plain model of the command tree that the CLI
  * builds from the same commander program it parses with, so completion and parsing cannot drift.
  * Static values only: nothing here reads the network. Pure.
  */

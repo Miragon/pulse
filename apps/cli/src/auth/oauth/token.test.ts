@@ -269,7 +269,7 @@ describe("idTokenClaims", () => {
   )
 })
 
-describe("tokenError (design §16.9)", () => {
+describe("tokenError", () => {
   const answer = (status: number, json?: Record<string, unknown>) => ({
     url: TOKEN_ENDPOINT,
     status,

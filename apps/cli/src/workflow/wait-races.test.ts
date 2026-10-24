@@ -1,5 +1,5 @@
 /**
- * Waits that race the job executor (design §17.2.6). A poll reads the tree, then counts, one
+ * Waits that race the job executor. A poll reads the tree, then counts, one
  * request after the other, while the job executor commits whenever it likes. These tests let a
  * job executor transaction commit between two given requests and check that the wait never
  * reports `idle` for an instance that is not idle.

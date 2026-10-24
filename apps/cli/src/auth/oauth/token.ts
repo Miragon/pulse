@@ -1,6 +1,6 @@
 /**
- * Token endpoint requests (design §16.7): code exchange, refresh and revocation (RFC 7009), the
- * validation of token responses and the mapping of token errors (§16.9). Messages show the
+ * Token endpoint requests: code exchange, refresh and revocation (RFC 7009), the
+ * validation of token responses and the mapping of token errors. Messages show the
  * sanitized `error` and `error_description` of the answer, never other parts of a body.
  */
 
@@ -200,7 +200,7 @@ function unexpected(answer: ServerAnswer, client: TokenClient): OperateError {
   )
 }
 
-/** The error of a failed token request (§16.9). */
+/** The error of a failed token request. */
 export function tokenError(answer: ServerAnswer, grant: Grant, client: TokenClient): OperateError {
   if (answer.status >= 500) return serverError(answer, grant)
   const error = errorCodeOf(answer)

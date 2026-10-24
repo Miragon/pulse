@@ -1,5 +1,5 @@
 /**
- * The bearer token part of `operate config set` (design §18): `--auth-token-env <VAR>`
+ * The bearer token part of `operate config set`: `--auth-token-env <VAR>`
  * (recommended: only the name of the variable is stored; `checkVariableNames` of
  * src/config/variable.ts refuses a token given in its place) and `--auth-token-stdin` (the token
  * itself, in plain text in the 0600 file), and the warning after storing a token.

@@ -1,5 +1,5 @@
 /**
- * The project config file (design §22): `.operate.json`, looked up from the working directory
+ * The project config file: `.operate.json`, looked up from the working directory
  * upwards, so a repository can ship its profiles. The lookup stops at the repository root (a
  * directory with `.git`), before the home directory and at the file system root; the nearest file
  * wins. Its profiles are merged with those of the user's config file: the user's profile wins on a
@@ -132,8 +132,8 @@ async function repositoryOf(fs: FileSystem, directory: string, location: Locatio
 }
 
 /**
- * Where the profiles of the project file `projectPath` come from (`LoginKey.origin`, design
- * §16.5): its repository (`repository:<git directory>`), so that all worktrees of a repository
+ * Where the profiles of the project file `projectPath` come from (`LoginKey.origin`):
+ * its repository (`repository:<git directory>`), so that all worktrees of a repository
  * share their logins, else the project file itself (`project:<path>`).
  */
 export async function projectOrigin(

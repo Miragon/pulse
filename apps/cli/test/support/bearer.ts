@@ -1,5 +1,5 @@
 /**
- * Bearer token fixtures for unit tests (design §18): arbitrary RFC 6750 b64tokens and JWTs with
+ * Bearer token fixtures for unit tests: arbitrary RFC 6750 b64tokens and JWTs with
  * the given claims (unsigned: operate never checks signatures).
  */
 

@@ -1,5 +1,5 @@
 /**
- * Engine access of the workflow commands (design §17.2.1): catalog operations sent through
+ * Engine access of the workflow commands: catalog operations sent through
  * `buildRequest` + `sendRequest` exactly like `ping`, so `--engine`, auth, `-H`, `--timeout`,
  * `--verbose` traces, redirect refusal and the error hints apply unchanged, and hints name the
  * generated command of the request (`operate task complete`).

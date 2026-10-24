@@ -1,5 +1,5 @@
 /**
- * `operate auth login` (design §16.4): the authorization code flow with PKCE and a loopback
+ * `operate auth login`: the authorization code flow with PKCE and a loopback
  * redirect on 127.0.0.1 (RFC 8252). It prints the authorization URL (also over SSH), opens the
  * system browser unless --no-browser, waits for the callback with the right state, exchanges the
  * code and writes the token cache under the lock. Only `src/cli/commands/auth.ts` imports this

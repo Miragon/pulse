@@ -1,5 +1,5 @@
 /**
- * The profiles that share the OAuth login of `operate auth login|status|logout` (design §16.5):
+ * The profiles that share the OAuth login of `operate auth login|status|logout`:
  * the OAuth profiles of the files in effect with the same origin and stored settings
  * (`loginProfiles`), and what the commands say about them. `auth login` lists the other profiles
  * with their URLs, so the person sees where the login is sent; `auth logout` names those that

@@ -29,7 +29,7 @@ export interface Session {
   readonly config: ResolvedConfig
   /** The user's config file, or the one named by `--config` / OPERATE_CONFIG. */
   readonly configPath: string
-  /** The project file in effect, if any (design §22). */
+  /** The project file in effect, if any. */
   readonly projectPath: string | undefined
   /** The profiles the command sees: the config file and the project file merged. */
   readonly file: LoadedConfig | undefined
@@ -161,7 +161,7 @@ function plainHttpWarning(session: Session): string | undefined {
 }
 
 /**
- * The note for auth failures when OPERATE_TOKEN is set but Basic auth or OAuth won (design §18);
+ * The note for auth failures when OPERATE_TOKEN is set but Basic auth or OAuth won;
  * with type none the provider's `off` reason says it already.
  */
 function unusedNote(config: ResolvedConfig): string | undefined {

@@ -1,6 +1,6 @@
 /**
  * Error handling of `run()`: commander exits become exit code 0 (help, version) or USAGE errors
- * with a hint (design §2.7); everything is rendered by `renderError` in the best known format.
+ * with a hint; everything is rendered by `renderError` in the best known format.
  */
 
 import type { Command, CommanderError } from "commander"
@@ -166,7 +166,7 @@ export function commanderUsageError(
 }
 
 /**
- * Format for errors (design §2.6 order): the resolved one when a command got that far, else
+ * Format for errors (the order of output-format.ts): the resolved one when a command got that far, else
  * `-o/--output` from argv, else OPERATE_OUTPUT, else the profile's output (best effort), else json
  * unless stdout is a terminal. Never fails.
  */

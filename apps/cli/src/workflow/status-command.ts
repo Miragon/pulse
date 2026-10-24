@@ -1,5 +1,5 @@
 /**
- * `operate status` (design §17.9): engine triage in one call. Round 1 loads version, statistics,
+ * `operate status`: engine triage in one call. Round 1 loads version, statistics,
  * incidents, external tasks, jobs, tasks and batches in parallel, round 2 the root cause of each
  * incident group shown; the findings name the next command.
  */

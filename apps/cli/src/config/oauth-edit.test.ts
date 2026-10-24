@@ -1,4 +1,4 @@
-/** `operate config set` with OAuth options (design §16.2.2, rules 1–6) and `config show` rows. */
+/** `operate config set` with OAuth options (rules 1–6) and `config show` rows. */
 
 import { posix, win32 } from "node:path"
 import { describe, expect, it } from "vitest"

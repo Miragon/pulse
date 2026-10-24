@@ -1,5 +1,5 @@
 /**
- * The authorization server's endpoints (design §16.7): the configured explicit endpoints, or
+ * The authorization server's endpoints: the configured explicit endpoints, or
  * OpenID Connect discovery with the RFC 8414 location as fallback. The metadata must name exactly
  * the configured issuer, support PKCE S256 and a client authentication operate can do. Only
  * `operate auth login` discovers; refreshes and logout use the endpoints cached at login.

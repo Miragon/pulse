@@ -1,5 +1,5 @@
 /**
- * Where the profiles of a project file come from (design §16.5): its repository, shared by all
+ * Where the profiles of a project file come from: its repository, shared by all
  * worktrees that link back to it, else the project file itself. A `.git` file that only claims a
  * repository, a submodule and a symbolic link never make two repositories one.
  */

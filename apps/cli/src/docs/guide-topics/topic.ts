@@ -1,4 +1,4 @@
-/** A topic page of the agent guide, printed by `operate guide <name>` (design §19). */
+/** A topic page of the agent guide, printed by `operate guide <name>`. */
 export interface GuideTopic {
   /** The word of `operate guide <name>`: lowercase letters and dashes. */
   readonly name: string

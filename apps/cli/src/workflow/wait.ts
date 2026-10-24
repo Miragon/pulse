@@ -1,5 +1,5 @@
 /**
- * Waiting for a process instance (design §17.5, §17.2.6), shared by `wait` and the `--wait` of
+ * Waiting for a process instance, shared by `wait` and the `--wait` of
  * advance, retry and deploy: poll until a condition holds, fail fast on incidents, then load the
  * instance view (the state at the end, also for the errors of exit code 9).
  */
@@ -148,7 +148,7 @@ async function treeKept(port: EnginePort, probe: Probe): Promise<boolean> {
 }
 
 /**
- * The verdict of one poll (design §17.2.6). `idle` holds only on a tree that held still; without
+ * The verdict of one poll. `idle` holds only on a tree that held still; without
  * it the other conditions decide (what they found exists, whatever the tree did meanwhile).
  */
 async function judge(port: EnginePort, probe: Probe, settings: WaitSettings): Promise<Verdict> {

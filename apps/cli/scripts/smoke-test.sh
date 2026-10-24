@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Smoke test of a packaged operate (design §20) without an engine: a standalone executable, the
+# Smoke test of a packaged operate without an engine: a standalone executable, the
 # container image or any other command line that starts the CLI and forwards stdin.
 #
 #   scripts/smoke-test.sh build/bin/operate-linux-x64

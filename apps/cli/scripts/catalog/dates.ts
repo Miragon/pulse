@@ -2,7 +2,7 @@
  * Dates the spec does not mark as `format: date-time` although their description demands the
  * engine date format: the task filters `dueDate`, `createdAfter`, `updatedAfter`, ... of
  * `task list` / `task count` and two body properties. Marking them gives them the date
- * normalization of every other date-time value (design §2.4) and `string(date-time)` in `describe`.
+ * normalization of every other date-time value and `string(date-time)` in `describe`.
  */
 
 import type { OpenApiDocument } from "./openapi.js"

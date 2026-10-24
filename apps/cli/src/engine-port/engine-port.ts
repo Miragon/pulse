@@ -1,5 +1,5 @@
 /**
- * What the workflow commands need from an engine (design §17.2.1). Types only: the engine adapters
+ * What the workflow commands need from an engine. Types only: the engine adapters
  * in src/engines implement it.
  */
 
@@ -28,7 +28,7 @@ interface ListResult {
 }
 
 export interface EnginePort {
-  /** Sends the catalog operation; HTTP errors as in §2.7 with the command of that operation. */
+  /** Sends the catalog operation; HTTP errors as error codes, with the command of that operation. */
   call(operationId: string, input: OperationInput): Promise<OperationResult>
   /** The JSON value of `call`; an engine 404 (a missing resource) gives undefined. */
   find(operationId: string, input: OperationInput): Promise<unknown>

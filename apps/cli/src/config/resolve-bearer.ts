@@ -1,5 +1,5 @@
 /**
- * Resolves a bearer token obtained outside operate (design §18, §23). The token:
+ * Resolves a bearer token obtained outside operate. The token:
  * `--auth-token-stdin` > OPERATE_TOKEN > OPERATE_TOKEN_COMMAND (a command line operate runs when
  * it needs the token) > the variable named by the profile's auth.tokenEnv (only read when no
  * higher source has a token) > the profile's auth.token. Without an auth type anywhere, a token

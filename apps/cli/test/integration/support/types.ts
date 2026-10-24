@@ -17,7 +17,7 @@ export interface PingOutput {
 }
 
 /**
- * `operate auth status` of a bearer token (design §18): where it came from and, for a JWT, what its
+ * `operate auth status` of a bearer token: where it came from and, for a JWT, what its
  * claims say (no signature check); never the token.
  */
 export interface BearerStatusOutput {
@@ -27,7 +27,7 @@ export interface BearerStatusOutput {
   readonly source: string
   /** `OPERATE_TOKEN`, `--auth-token-stdin`, `IT_TOKEN (auth.tokenEnv of profile "p")`, ... */
   readonly origin: string
-  /** The token command that printed the token (design §23), else null. */
+  /** The token command that printed the token, else null. */
   readonly command: string | null
   /** The token of the command came from operate's cache. */
   readonly cached: boolean

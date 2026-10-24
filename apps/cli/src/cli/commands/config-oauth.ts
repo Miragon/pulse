@@ -1,5 +1,5 @@
 /**
- * The OAuth part of `operate config set` (design §16.2.2): the `--oauth-*` options, the
+ * The OAuth part of `operate config set`: the `--oauth-*` options, the
  * secrets `config set` reads from stdin and the notices on stderr after `config set` (also those
  * of Basic auth and bearer tokens). What an edit does to cached logins: config-login.ts.
  */

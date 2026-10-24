@@ -132,7 +132,7 @@ describe("operate wait", () => {
     expect(table.stdout).toContain("Waited            idle after 0ms (1 poll)\n")
   })
 
-  it("times out with exit code 9, the view on stdout and the poll schedule of the design", async () => {
+  it("times out with exit code 9, the view on stdout and a doubling poll interval", async () => {
     const { cli, runtime } = setup()
     const result = await cli(["wait", "pi-1", "--until", "ended", "--wait-timeout", "5s"])
     expect(result.code).toBe(9)

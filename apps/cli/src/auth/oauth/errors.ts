@@ -1,5 +1,5 @@
 /**
- * The errors of the OAuth flow (design §16.9). LOGIN_REQUIRED (exit 4) means a person must run
+ * The errors of the OAuth flow. LOGIN_REQUIRED (exit 4) means a person must run
  * `operate auth login` in a terminal; agents cannot log in themselves, so the hint says who does
  * what. LOGIN_FAILED (exit 4) is a login that did not complete.
  */
@@ -21,7 +21,7 @@ export function profileNote(profile: string | undefined): string {
 }
 
 /**
- * Whose login a message is about and where a person logs in for it (design §16.5): logins are
+ * Whose login a message is about and where a person logs in for it: logins are
  * cached per origin, so the login must run with the same config file or project file. The
  * resolved OAuthConfig is one.
  */
@@ -89,7 +89,7 @@ export function iso(epochMs: number): string {
   return new Date(epochMs).toISOString()
 }
 
-/** What one login serves (design §16.5), for the hint of a profile that has none. */
+/** What one login serves, for the hint of a profile that has none. */
 const SHARED_LOGIN =
   "One login serves every OAuth profile of the same config file, project file or repository that stores the same issuer, client, audience and scopes."
 

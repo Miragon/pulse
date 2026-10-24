@@ -190,7 +190,7 @@ describe("readCache and writeCache", () => {
     )
   })
 
-  it("writes the schema of design §16.5 with mode 0600 and a final newline", async () => {
+  it("writes the cache schema with mode 0600 and a final newline", async () => {
     const runtime = fakeRuntime()
     const login = cachedLogin(NOW, {
       endpoints: { token: "t", revocation: null, clientAuthMethod: "client_secret_post" },

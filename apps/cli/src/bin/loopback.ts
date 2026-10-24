@@ -1,5 +1,5 @@
 /**
- * The loopback HTTP server of `operate auth login` (design §16.10, RFC 8252 §7.3): bound to
+ * The loopback HTTP server of `operate auth login` (RFC 8252 §7.3): bound to
  * 127.0.0.1 only (never `localhost`, `0.0.0.0` or `::`), request bodies ignored, static HTML
  * answers with security headers. `close()` waits for answers in flight, then drops every
  * connection.

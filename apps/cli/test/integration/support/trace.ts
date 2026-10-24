@@ -1,6 +1,6 @@
 /**
  * The `--verbose` trace of the CLI as the request record of the OAuth tests (no gateway log
- * needed): `> METHOD url` lines are requests (token requests included, design §16.8), `< status
+ * needed): `> METHOD url` lines are requests (token requests included), `< status
  * text (...)` lines their answers.
  */
 

@@ -1,5 +1,5 @@
 /**
- * Variables of the instance view (design §17.2.8): values fetched with `deserializeValues=false`;
+ * Variables of the instance view: values fetched with `deserializeValues=false`;
  * scalar types become their plain value, every other type keeps what writing it back needs. Pure.
  */
 

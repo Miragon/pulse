@@ -1,5 +1,5 @@
 /**
- * The project file part of `operate config` (design §22): the file an edit writes (the user's
+ * The project file part of `operate config`: the file an edit writes (the user's
  * config file, or with `--project` the project file `.operate.json`), and the checks and notices
  * of edits next to a project file.
  */

@@ -1,5 +1,5 @@
 /**
- * HTTP to the authorization server (design §16.7): every request goes through `deps.fetch`, never
+ * HTTP to the authorization server: every request goes through `deps.fetch`, never
  * follows redirects, is bounded by `--timeout` and asks for JSON; forms are
  * application/x-www-form-urlencoded. `--verbose` traces method, URL, headers (the client
  * credentials always masked: the trace writer cannot tell them from the engine's Bearer token)

@@ -1,5 +1,5 @@
 /**
- * Which profiles share an OAuth login (design §16.5): the OAuth profiles of one origin (the user's
+ * Which profiles share an OAuth login: the OAuth profiles of one origin (the user's
  * config file, a config file named by `--config` / OPERATE_CONFIG, or the repository of a project
  * file) that store the same issuer or explicit token endpoint, client id, audience and scopes. A
  * login made for the profiles of one origin never serves those of another, also not a profile of

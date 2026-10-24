@@ -1,5 +1,5 @@
 /**
- * `operate completion <bash|zsh|fish>` (design §17.10): prints the completion script of a shell.
+ * `operate completion <bash|zsh|fish>`: prints the completion script of a shell.
  * The scripts call the hidden `operate __complete <words>` (src/cli/completion-model.ts), which
  * answers from the command definitions alone, without network or stdin.
  */

@@ -1,6 +1,5 @@
 /**
- * The token command of OPERATE_TOKEN_COMMAND (design §23) and profiles of a project file (design
- * §22) in config resolution: the token sources and their order, unused commands, the profile
+ * The token command of OPERATE_TOKEN_COMMAND and profiles of a project file in config resolution: the token sources and their order, unused commands, the profile
  * selection with a project file and what `config show` makes of it.
  */
 

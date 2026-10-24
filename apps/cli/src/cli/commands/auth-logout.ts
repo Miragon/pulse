@@ -1,7 +1,7 @@
 /**
- * `operate auth logout` (design §16.3): revokes and removes the cached OAuth login of the
+ * `operate auth logout`: revokes and removes the cached OAuth login of the
  * selected profile, found from its stored settings also when they no longer resolve, and names
- * every profile that shared it (design §16.5); the logins operate 0.7.0 and earlier cached under
+ * every profile that shared it; the logins operate 0.7.0 and earlier cached under
  * the profile's name are revoked and removed, too. A token command's cached token is removed
  * (auth-bearer.ts); a bearer token from elsewhere has nothing to log out.
  */

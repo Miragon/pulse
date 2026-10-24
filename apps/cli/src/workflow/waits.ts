@@ -1,5 +1,5 @@
 /**
- * Where an instance tree waits (design §17.4): one wait state per user task, external task, job
+ * Where an instance tree waits: one wait state per user task, external task, job
  * and message, signal or conditional event subscription, plus the leaf activity instances that
  * wait for something else. Pure and independent of the order of the engine's lists.
  */

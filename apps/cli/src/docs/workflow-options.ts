@@ -1,5 +1,5 @@
 /**
- * The options of the workflow commands (design §17), in the option model of options.ts, so
+ * The options of the workflow commands, in the option model of options.ts, so
  * registration, `--help`, `describe` and completion share one source. Pure.
  */
 

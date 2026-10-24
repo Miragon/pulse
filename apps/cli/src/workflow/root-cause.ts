@@ -1,5 +1,5 @@
 /**
- * The root cause of a failure (design §17.2.7): one line out of a Java stacktrace or an external
+ * The root cause of a failure: one line out of a Java stacktrace or an external
  * task's error details. Pure.
  */
 

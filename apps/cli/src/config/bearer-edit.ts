@@ -1,5 +1,5 @@
 /**
- * `operate config set|unset` changes of a profile's bearer token (design §18): the name of the
+ * `operate config set|unset` changes of a profile's bearer token: the name of the
  * variable that holds the token (recommended) or the token itself, read from stdin. Each replaces
  * the other; `config unset <profile> token` (or `tokenEnv`) removes the token in either form.
  */

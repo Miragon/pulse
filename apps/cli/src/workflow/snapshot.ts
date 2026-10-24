@@ -1,5 +1,5 @@
 /**
- * The instance view of inspect, wait, advance, retry and deploy (design §17.4), assembled from
+ * The instance view of inspect, wait, advance, retry and deploy, assembled from
  * what `inspect` loaded. Pure and deterministic: the view does not depend on the order of the
  * engine's lists (except the timeline, which keeps the history order).
  */

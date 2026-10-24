@@ -1,5 +1,5 @@
 /**
- * The workflow commands (design §17.3): one entry per top-level command that combines catalog
+ * The workflow commands: one entry per top-level command that combines catalog
  * operations. The single source of commander registration, `--help`, `describe`, `commands`,
  * completion and the docs drift tests. Pure.
  */

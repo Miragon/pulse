@@ -1,5 +1,5 @@
 /**
- * The resources of `operate deploy` (design §17.8): files and directories, directories scanned
+ * The resources of `operate deploy`: files and directories, directories scanned
  * recursively for BPMN, DMN and form files, each resource named so that its name does not depend
  * on which other files are deployed.
  */

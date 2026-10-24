@@ -1,5 +1,5 @@
 /**
- * Bearer tokens obtained outside operate (design §18): company SSO tooling, a CI secret, `az
+ * Bearer tokens obtained outside operate: company SSO tooling, a CI secret, `az
  * account get-access-token`, `gcloud auth print-access-token`. operate sends `Authorization:
  * Bearer <token>` and nothing else: no login, no refresh, no cache. A JWT whose `exp` lies more
  * than 30 s in the past fails before any request with TOKEN_EXPIRED (exit 4); the claims also

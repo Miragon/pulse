@@ -71,7 +71,7 @@ export function configFilePath(env: Env, location: Location, explicit?: string):
 }
 
 /**
- * The OAuth token cache directory (design §16.5): $XDG_CONFIG_HOME/operate/tokens >
+ * The OAuth token cache directory: $XDG_CONFIG_HOME/operate/tokens >
  * ~/.config/operate/tokens; on Windows %APPDATA%\operate\tokens. Never next to a config file
  * named by `--config` or OPERATE_CONFIG: a project-local (possibly committed) config file must not
  * get token files beside it.

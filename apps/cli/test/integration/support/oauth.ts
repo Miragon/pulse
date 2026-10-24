@@ -1,5 +1,5 @@
 /**
- * The OAuth topology of design §16.14.1: Keycloak (realm imported from a fixture) and an unmodified
+ * The OAuth topology of the engine suites: Keycloak (realm imported from a fixture) and an unmodified
  * engine on one Docker network, with an Envoy `jwt_authn` gateway in front of the engine that
  * checks the Bearer token (the engines have no OAuth resource server of their own).
  *

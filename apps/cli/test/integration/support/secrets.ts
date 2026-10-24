@@ -2,7 +2,7 @@
  * Everything secret the OAuth tests have seen: the tokens the CLI stored (collected from the cache
  * files after every run, rotated ones included), authorization codes, the client secret and the
  * Base64 client credentials. No CLI output may contain any of them; the only exception is the
- * Bearer access token in runs with `--show-secrets` (dry-run and trace, design §16.8).
+ * Bearer access token in runs with `--show-secrets` (dry-run and trace).
  */
 
 import { expect } from "vitest"

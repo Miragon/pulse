@@ -1,5 +1,5 @@
 /**
- * The workflow commands (design §17) of the built CLI against one real engine: the fixture
+ * The workflow commands of the built CLI against one real engine: the fixture
  * `workflow.bpmn` (call activity with a user task in the child, external task, message, timer,
  * asynchronous job that fails, receive task) is deployed, started, inspected, advanced step by
  * step, waited for, retried and ended, like a developer or an agent would. The tests build on each

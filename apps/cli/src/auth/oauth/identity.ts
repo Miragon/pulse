@@ -1,5 +1,5 @@
 /**
- * What a login is valid for (design §16.5): issuer, explicit token endpoint, client, audience and
+ * What a login is valid for: issuer, explicit token endpoint, client, audience and
  * the requested scopes. A cached login of another identity counts as not logged in; refreshes
  * and revocations only use the client secret of the current settings for a login of the same
  * identity, so a credential never crosses authorization servers or clients.

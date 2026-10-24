@@ -1,5 +1,5 @@
 /**
- * The output format rule of design §2.6, in one place for every entry point: `-o/--output` >
+ * The output format rule, in one place for every entry point: `-o/--output` >
  * OPERATE_OUTPUT > the `output` of the selected profile > table on a terminal, JSON otherwise.
  * Operation commands resolve it with the configuration (strict), the docs commands and errors
  * raised before a command got that far use the same order (errors never fail on a bad value).

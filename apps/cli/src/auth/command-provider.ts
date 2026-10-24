@@ -1,5 +1,5 @@
 /**
- * The AuthProvider of OPERATE_TOKEN_COMMAND (design §23): operate runs the command when it needs a
+ * The AuthProvider of OPERATE_TOKEN_COMMAND: operate runs the command when it needs a
  * token. A JWT with `exp` is reused, also across calls (command-cache.ts), until shortly before it
  * expires, then the command runs again, so a long `operate wait` keeps a valid token; an opaque
  * token is fetched once per call. After a 401 the command runs once more and the request is

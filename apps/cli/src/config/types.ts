@@ -54,7 +54,7 @@ export const OAUTH_AUTH_KEYS = [
   "redirectPort",
 ] as const satisfies readonly (keyof ProfileAuth)[]
 
-/** Keys of a stored bearer token (design §18): the name of its variable, or the token itself. */
+/** Keys of a stored bearer token: the name of its variable, or the token itself. */
 export const BEARER_AUTH_KEYS = [
   "tokenEnv",
   "token",
@@ -80,7 +80,7 @@ export interface BasicAuthConfig {
 }
 
 /**
- * OAuth 2.0 authorization code flow with PKCE (design §16). The issuer is discovered unless both
+ * OAuth 2.0 authorization code flow with PKCE. The issuer is discovered unless both
  * endpoints are configured; without a client secret the client is public.
  */
 export interface OAuthConfig {
@@ -98,7 +98,7 @@ export interface OAuthConfig {
   /** The selected profile. */
   readonly profile?: string
   /**
-   * The login of the selected profile (design §16.5): profiles with the same key share one cached
+   * The login of the selected profile: profiles with the same key share one cached
    * login. Absent without a profile: the configuration from the environment has a login of its own.
    */
   readonly login?: LoginKey
@@ -117,7 +117,7 @@ export interface OAuthConfig {
 }
 
 /**
- * What makes profiles share an OAuth login (design §16.5): where the profile comes from and the
+ * What makes profiles share an OAuth login: where the profile comes from and the
  * OAuth settings it stores, before the environment applies. The resolved settings still decide
  * whether a cached login fits (issuer, client, audience and scopes, `identityOf`).
  */
@@ -143,8 +143,8 @@ export interface LoginKey {
 }
 
 /**
- * A bearer token obtained outside operate (design §18): sent as `Authorization: Bearer <token>`.
- * A token given as such is never refreshed and never stored; a token command (design §23) is run
+ * A bearer token obtained outside operate: sent as `Authorization: Bearer <token>`.
+ * A token given as such is never refreshed and never stored; a token command is run
  * again when its token expires or is rejected.
  */
 interface BearerBase {
@@ -169,7 +169,7 @@ export interface StaticBearerConfig extends BearerBase {
 }
 
 /**
- * A bearer token that the command line of OPERATE_TOKEN_COMMAND prints (design §23); the shell
+ * A bearer token that the command line of OPERATE_TOKEN_COMMAND prints; the shell
  * runs it in the working directory.
  */
 export interface CommandBearerConfig extends BearerBase {
@@ -257,7 +257,7 @@ export interface ConfigFile {
   readonly profiles: Readonly<Record<string, Profile>>
 }
 
-/** A project file (`.operate.json`, design §22) whose profiles a command uses. */
+/** A project file (`.operate.json`) whose profiles a command uses. */
 export interface ProjectSource {
   readonly path: string
   /** Its directory: commands below it share the cached token of OPERATE_TOKEN_COMMAND. */
@@ -267,7 +267,7 @@ export interface ProjectSource {
 }
 
 /**
- * The profiles a command sees (design §22): the config file named by `--config` or
+ * The profiles a command sees: the config file named by `--config` or
  * OPERATE_CONFIG, else the project file merged with the user's config file (the user's profile
  * wins on a name clash; the project's defaultProfile wins when it names a profile of the project
  * file that the user's file does not override). Never written to a file.

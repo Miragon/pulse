@@ -1,5 +1,5 @@
 /**
- * The workflow commands (design §17): top-level commands that combine catalog operations,
+ * The workflow commands: top-level commands that combine catalog operations,
  * registered eagerly in the order of the root help heading "Workflow commands:".
  */
 

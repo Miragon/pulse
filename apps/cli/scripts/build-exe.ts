@@ -1,5 +1,5 @@
 /**
- * Builds the standalone executable of operate for this platform (design §20): a copy of the Node.js
+ * Builds the standalone executable of operate for this platform: a copy of the Node.js
  * binary that runs this script, with the standalone bundle injected as single executable
  * application. Releases build it with Node.js 24 on one native runner per target.
  * Usage (from the repository root), writing build/bin/operate-<os>-<arch>[.exe]:

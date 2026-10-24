@@ -1,5 +1,5 @@
 /**
- * HTTP Basic authentication (GitHub issue #1, design §15) of the built CLI against one engine whose
+ * HTTP Basic authentication (issue 1 of the archived operate repository) of the built CLI against one engine whose
  * REST API requires it: credentials from flags, stdin, environment and profile, the errors before
  * and after sending, and that no output ever contains a password or its base64 token.
  *

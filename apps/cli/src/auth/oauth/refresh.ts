@@ -1,5 +1,5 @@
 /**
- * A refresh under the cache lock (design §16.6 steps 1–5). Under the lock the file is the only
+ * A refresh under the cache lock. Under the lock the file is the only
  * source of the refresh token: another process may have rotated it since this one read the
  * cache, and sending the old one again is a replay that ends the session (Keycloak reuse
  * detection). A newer access token in the file is adopted without a request, so concurrent

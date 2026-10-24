@@ -1,5 +1,5 @@
 /**
- * `operate advance` (design §17.6): completes what a process instance waits for. Selects the
+ * `operate advance`: completes what a process instance waits for. Selects the
  * instance, reads where it waits, sends the writes of the chosen wait state and prints the
  * instance afterwards (optionally after waiting).
  */

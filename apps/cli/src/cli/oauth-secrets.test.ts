@@ -1,5 +1,5 @@
 /**
- * Property (design §16.13, extends auth-secrets.test.ts to OAuth): for arbitrary access, refresh
+ * Property (extends auth-secrets.test.ts to OAuth): for arbitrary access, refresh
  * and ID tokens, codes, verifiers and client secrets, no output of config show/list/set, ping,
  * dry-run (json, table, curl), operations with --verbose (success, 401 + refresh, invalid_grant),
  * api, auth login/status/logout or any error contains them. With --show-secrets only dry-run and

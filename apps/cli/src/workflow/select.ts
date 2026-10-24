@@ -1,5 +1,5 @@
 /**
- * Instance selection of inspect, wait, advance and retry (design §17.1.1): a process instance id,
+ * Instance selection of inspect, wait, advance and retry: a process instance id,
  * or `--business-key` / `--process-definition-key` (with `--latest`) resolved against history
  * and runtime.
  */

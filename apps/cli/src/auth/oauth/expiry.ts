@@ -1,5 +1,5 @@
 /**
- * Token expiry math (design §16.6). Expiries come from the local receipt time and the relative
+ * Token expiry math. Expiries come from the local receipt time and the relative
  * `expires_in`, never from token claims or the server's clock. A token is refreshed shortly
  * before it expires: the margin is 60 s, but at most half the token's lifetime, so short-lived
  * tokens (Keycloak realms with 60 s or 5 s) are not refreshed on every request.

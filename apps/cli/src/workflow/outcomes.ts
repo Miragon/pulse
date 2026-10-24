@@ -1,5 +1,5 @@
 /**
- * The errors of exit code 9 (design §17.2.4): every request succeeded, but the process did not
+ * The errors of exit code 9: every request succeeded, but the process did not
  * reach the expected state. Commands print their view on stdout before these errors. Pure.
  */
 

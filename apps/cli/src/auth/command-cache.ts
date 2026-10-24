@@ -1,5 +1,5 @@
 /**
- * The cache of tokens that OPERATE_TOKEN_COMMAND printed (design §23). A JWT with `exp` is kept in
+ * The cache of tokens that OPERATE_TOKEN_COMMAND printed. A JWT with `exp` is kept in
  * `command-<hash>.json` of the token directory (mode 0600, written atomically), so later and
  * parallel commands do not run the command again: a token is reused until 60 s before its `exp`,
  * at most half of its lifetime (short-lived dev realm tokens of 60 s are reused for 30 s). The hash

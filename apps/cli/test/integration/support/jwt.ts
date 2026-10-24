@@ -1,7 +1,7 @@
 /**
  * Reading and forging JSON Web Tokens in the OAuth and bearer token tests. Nothing here checks a
  * signature: operate reads the claims of a bearer token only to explain it (expiry, subject,
- * issuer, audience; design §18), and the gateway is what rejects a forged one.
+ * issuer, audience), and the gateway is what rejects a forged one.
  */
 
 export type Claims = Readonly<Record<string, unknown>>

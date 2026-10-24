@@ -1,7 +1,7 @@
 /**
- * `operate auth login|status|logout` (design §16.3): the OAuth login of a person in a terminal,
+ * `operate auth login|status|logout`: the OAuth login of a person in a terminal,
  * the state of the token cache, and the logout (auth-logout.ts); `auth status` also shows a bearer
- * token from elsewhere (auth-bearer.ts, §18). This is the only module that imports the interactive login
+ * token from elsewhere (auth-bearer.ts). This is the only module that imports the interactive login
  * (src/auth/oauth/login.ts): no other command can start a loopback server or a browser, so agents
  * never end up in an interactive login.
  */
@@ -30,7 +30,7 @@ import { loginView } from "./auth-view.js"
 import type { UtilityCommand } from "./types.js"
 
 const LOGIN_OPTIONS = ["profile", "config", "output", "timeout", "verbose"]
-/** `--auth-token-stdin` lets `auth status` show a piped bearer token (design §18). */
+/** `--auth-token-stdin` lets `auth status` show a piped bearer token. */
 const STATUS_OPTIONS = ["profile", "config", "output", "auth-token-stdin"]
 const OPTIONS_GROUP = "Options:"
 const DEFAULT_LOGIN_TIMEOUT_MS = 300_000

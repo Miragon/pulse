@@ -1,5 +1,5 @@
 /**
- * `operate wait --batch <id>` (design §17.5): polls the batch statistics until the batch is gone
+ * `operate wait --batch <id>`: polls the batch statistics until the batch is gone
  * (finished or deleted), and fails fast when its failed jobs keep it from finishing.
  */
 

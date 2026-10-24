@@ -1,5 +1,5 @@
 /**
- * The `--history` timeline of an instance (design §17.4): its historic activity instances in the
+ * The `--history` timeline of an instance: its historic activity instances in the
  * order of the history (BPMN order), each with the historic incidents of its activity. Pure.
  */
 

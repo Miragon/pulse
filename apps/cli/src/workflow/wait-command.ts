@@ -1,5 +1,5 @@
 /**
- * `operate wait` (design §17.5): waits for a process instance (selection, then polling with the
+ * `operate wait`: waits for a process instance (selection, then polling with the
  * default condition `idle`) or, with `--batch`, for a batch.
  */
 

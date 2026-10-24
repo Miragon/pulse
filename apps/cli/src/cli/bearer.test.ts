@@ -1,5 +1,5 @@
 /**
- * Bearer tokens from elsewhere end to end through `run()` (design §18): flag, environment and
+ * Bearer tokens from elsewhere end to end through `run()`: flag, environment and
  * profile sources, the header on the wire, JWT expiry, masking, the 401/403 hints and completion.
  * `auth status` and `auth login|logout` are in bearer-auth.test.ts, `config set|show|unset|list`
  * and mistyped flags in bearer-config.test.ts.

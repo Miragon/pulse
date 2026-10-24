@@ -1,5 +1,5 @@
 /**
- * Shared OAuth logins end to end through `run()` (design §16.5): one `auth login` serves every
+ * Shared OAuth logins end to end through `run()`: one `auth login` serves every
  * profile of the same config file or repository with the same stored OAuth settings, in every
  * worktree of the repository; a login never serves a profile of another origin, also not one of
  * the same name in another repository's project file.

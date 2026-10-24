@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-# Container image of operate (design §20): the standalone bundle (one CommonJS file, every runtime
+# Container image of operate: the standalone bundle (one CommonJS file, every runtime
 # dependency inlined) on distroless Node.js 24: non-root (nonroot, uid 65532), no shell, no package
 # manager. The bundle is the same for every platform, so a multi-platform build only copies it:
 #   npm run build:standalone

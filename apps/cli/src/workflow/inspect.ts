@@ -1,5 +1,5 @@
 /**
- * `operate inspect` (design §17.4): where a process instance waits and why. Loads the rounds of
+ * `operate inspect`: where a process instance waits and why. Loads the rounds of
  * requests (instance, tree, wait states, root causes) and assembles the instance view.
  */
 

@@ -1,5 +1,5 @@
 /**
- * Validation of bearer tokens obtained outside operate (design §18): the token itself (a pasted
+ * Validation of bearer tokens obtained outside operate: the token itself (a pasted
  * `Bearer ` prefix is dropped, the rest must be an RFC 6750 b64token) and the bearer rules for a
  * profile's auth object in the config file (the name of the variable that holds the token is
  * checked by variable.ts). Messages name where a value came from and never repeat a token.

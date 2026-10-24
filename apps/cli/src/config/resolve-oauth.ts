@@ -1,5 +1,5 @@
 /**
- * Resolves the OAuth settings (design §16.2.1). The endpoint group (issuer, authorization and
+ * Resolves the OAuth settings. The endpoint group (issuer, authorization and
  * token endpoint) comes as a unit from the most specific source that sets any of them
  * (environment over profile); every other value resolves on its own: environment > profile >
  * default. The client secret: OPERATE_OAUTH_CLIENT_SECRET > the variable named by
@@ -127,7 +127,7 @@ function rawGroup({ env, selected }: OAuthContext): EndpointGroup | undefined {
   return fromProfile === undefined ? undefined : { ...fromProfile, source: "profile" }
 }
 
-/** The endpoint group, validated: URLs per §16.2, both endpoints or neither. */
+/** The endpoint group, validated: URLs as validateOAuthUrl takes them, both endpoints or neither. */
 function endpointGroup(context: OAuthContext): EndpointGroup | undefined {
   const group = rawGroup(context)
   if (group === undefined) return undefined
@@ -262,7 +262,7 @@ function validAudience(context: OAuthContext): Found<string> | undefined {
   return audience && { ...audience, value: validateAudience(audience.value, audience.label) }
 }
 
-/** The login key of the selected profile (design §16.5); none without a profile. */
+/** The login key of the selected profile; none without a profile. */
 function loginOf(selected: SelectedProfile): LoginKey | undefined {
   return selected.name === undefined ? undefined : selectedLoginKey(selected)
 }

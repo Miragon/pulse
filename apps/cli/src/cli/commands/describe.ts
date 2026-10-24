@@ -1,5 +1,5 @@
 /**
- * `operate describe <group> [command] | <operationId>` (design §5): the full description of one
+ * `operate describe <group> [command] | <operationId>`: the full description of one
  * operation (usage, arguments, options, request body schema, responses, examples) as JSON when
  * stdout is not a terminal, else as readable text. A group alone lists its commands like
  * `operate commands <group>`.

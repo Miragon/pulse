@@ -1,5 +1,5 @@
 /**
- * The names of the environment variables that hold secrets (design §15, §16.2, §18): the Basic
+ * The names of the environment variables that hold secrets: the Basic
  * auth password (`--auth-password-env`, auth.passwordEnv), the OAuth client secret
  * (`--oauth-client-secret-env`, auth.clientSecretEnv) and the bearer token (`--auth-token-env`,
  * auth.tokenEnv). Many secrets are valid variable names (GitHub's `ghp_...`, passwords without

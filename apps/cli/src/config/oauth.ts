@@ -1,5 +1,5 @@
 /**
- * Validation of the OAuth settings (design §16.2): issuer and endpoint URLs, client id and
+ * Validation of the OAuth settings: issuer and endpoint URLs, client id and
  * secret, scopes, audience, redirect port, and the OAuth rules for a profile's auth object in the
  * config file. Messages name where a value came from (`label`) and never repeat a secret.
  */

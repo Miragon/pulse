@@ -1,5 +1,5 @@
 /**
- * The polling loop of `wait` and `--wait` (design §17.2.6): a check right away, then after
+ * The polling loop of `wait` and `--wait`: a check right away, then after
  * sleeps of 250, 500, 1000, 2000, 2000, ... ms; the last sleep ends at the deadline, where a
  * final check runs. Pure: the clock and the sleep are injected.
  */

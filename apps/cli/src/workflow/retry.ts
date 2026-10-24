@@ -1,5 +1,5 @@
 /**
- * `operate retry` (design §17.7): sets the retries of the failed jobs and external tasks behind
+ * `operate retry`: sets the retries of the failed jobs and external tasks behind
  * open incidents (root causes only), optionally executes the jobs at once (`--now`) and reports
  * per incident what happened.
  */

@@ -1,5 +1,5 @@
 /**
- * `operate config path|show|list|set|unset|use|delete` (design §3, §22). The edits are the pure
+ * `operate config path|show|list|set|unset|use|delete`. The edits are the pure
  * functions of src/config/edit.ts; this module reads and writes the file (the user's config file
  * with mode 0600, with `--project` the project file, config-project.ts) and prints.
  */

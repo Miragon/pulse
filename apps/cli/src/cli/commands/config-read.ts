@@ -1,5 +1,5 @@
 /**
- * The reading `operate config` commands (design §3, §22): `config path` (the user's config file,
+ * The reading `operate config` commands: `config path` (the user's config file,
  * with `--project` the project file), `config show` (the effective configuration with the source
  * of every value and the files it comes from) and `config list` (the profiles of both files).
  */

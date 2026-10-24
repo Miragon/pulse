@@ -1,5 +1,5 @@
 /**
- * Targets and settings of the standalone executables (design §20): Node.js single executable
+ * Targets and settings of the standalone executables: Node.js single executable
  * applications (https://nodejs.org/api/single-executable-applications.html), built with
  * `--experimental-sea-config` and postject, the workflow of Node.js 24.
  */

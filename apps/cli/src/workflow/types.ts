@@ -1,5 +1,5 @@
 /**
- * Views printed by the workflow commands (design §17). Keys appear in the documented order,
+ * Views printed by the workflow commands. Keys appear in the documented order,
  * absent values are left out, empty lists are kept. Types only.
  */
 
@@ -180,7 +180,7 @@ export type WorkflowResult<V> =
       readonly requests: readonly PlannedRequest[]
     }
 
-/** A process instance of the active tree (design §17.2.5). */
+/** A process instance of the active tree. */
 export interface TreeNode {
   readonly id: string
   readonly parentId?: string

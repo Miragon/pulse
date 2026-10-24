@@ -1,6 +1,6 @@
 /**
  * Entry point of the CLI: parses the arguments, runs the command and turns every outcome into an
- * exit code. Errors are rendered to stderr by `renderError` (design §2.7), never printed directly.
+ * exit code. Errors are rendered to stderr by `renderError`, never printed directly.
  */
 
 import { DEFAULT_PLATFORM } from "../config/types.js"

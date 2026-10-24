@@ -1,5 +1,5 @@
 /**
- * Aggregation of `operate status` (design §17.9): definitions, incident groups, external task
+ * Aggregation of `operate status`: definitions, incident groups, external task
  * topics, jobs, tasks and batches from the responses of round 1. Pure; `now` is injected (engine
  * and client clocks are assumed to agree, as for local containers).
  */

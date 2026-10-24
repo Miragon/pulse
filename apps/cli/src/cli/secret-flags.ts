@@ -1,5 +1,5 @@
 /**
- * Mistyped auth flags in commander errors (design §15, §16.2.2, §18). Secrets are never flags, so
+ * Mistyped auth flags in commander errors. Secrets are never flags, so
  * the most likely mistakes (`--auth-password=...`, `--auth-password-stdin <password>`,
  * `--auth-token=<token>`) must not echo them on stderr, into CI logs and agent transcripts. The
  * flag names proposed in issues #1 and #2 point to the `--auth-*` / `--oauth-*` flags they became.

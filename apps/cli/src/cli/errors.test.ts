@@ -133,7 +133,7 @@ describe("commanderUsageError", () => {
         exitOf(auth, "commander.unknownOption", `error: unknown option '${flag}'`),
       )
 
-    it("points the flag names of issue #1 to the --auth-* flags", () => {
+    it("points the flag names of issue 1 of the archived operate repository to the --auth-* flags", () => {
       for (const flag of ["--username", "--USER", "--auth-username"]) {
         expect(unknown(flag).details.hint).toBe(`Did you mean --auth-user? ${help}`)
       }

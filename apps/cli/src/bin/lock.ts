@@ -1,5 +1,5 @@
 /**
- * An exclusive lock file (design §16.10) for the OAuth token cache: concurrent operate processes
+ * An exclusive lock file for the OAuth token cache: concurrent operate processes
  * must not refresh with the same refresh token. The holder records how long it may keep the lock
  * (`staleAt`); a waiter breaks the lock only after that, so processes with different timeouts
  * never break a live holder's lock. Breaking and releasing compare the content first: a lock a

@@ -1,4 +1,4 @@
-/** `operate config set|show|list|delete` with OAuth through `run()` (design §16.2.2). */
+/** `operate config set|show|list|delete` with OAuth through `run()`. */
 
 import { describe, expect, it } from "vitest"
 import { ISSUER } from "../../../test/support/fake-idp.js"

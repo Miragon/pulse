@@ -1,5 +1,5 @@
 /**
- * `operate auth logout` (design §16.3): under the cache lock, revoke the refresh token (else the
+ * `operate auth logout`: under the cache lock, revoke the refresh token (else the
  * access token) at the revocation endpoint cached at login (RFC 7009) and remove the cache file.
  * A failed or skipped revocation only warns: the file is removed anyway. Works when the
  * profile's OAuth settings no longer resolve. A client secret is a credential for one

@@ -10,7 +10,7 @@ export const EXIT_CODES = {
   client: 6,
   server: 7,
   network: 8,
-  /** Every request succeeded, but the process did not reach the expected state (design §17). */
+  /** Every request succeeded, but the process did not reach the expected state. */
   outcome: 9,
 } as const
 
@@ -49,7 +49,7 @@ const EXIT_CODE_BY_ERROR: Readonly<Record<ErrorCode, number>> = {
   // a person must run `operate auth login` (agents cannot), or that login failed
   LOGIN_REQUIRED: EXIT_CODES.auth,
   LOGIN_FAILED: EXIT_CODES.auth,
-  // a bearer token from elsewhere (JWT) expired; operate never refreshes those (design §18)
+  // a bearer token from elsewhere (JWT) expired; operate never refreshes those
   TOKEN_EXPIRED: EXIT_CODES.auth,
   NOT_FOUND: EXIT_CODES.notFound,
   HTTP_CLIENT_ERROR: EXIT_CODES.client,

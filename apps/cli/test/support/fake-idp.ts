@@ -1,5 +1,5 @@
 /**
- * A fake OAuth authorization server on a fake fetch, modelled on Keycloak (design §16.10): OIDC
+ * A fake OAuth authorization server on a fake fetch, modelled on Keycloak: OIDC
  * discovery, authorization (`authorize` plays the browser and returns the callback query), a token
  * endpoint with real PKCE S256 verification, refresh token rotation with reuse detection (a
  * replayed refresh token ends the session), revocation, client authentication, queued error

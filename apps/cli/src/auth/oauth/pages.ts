@@ -1,5 +1,5 @@
 /**
- * The HTML pages of the login callback (design §16.4.1): static, without scripts, links or
+ * The HTML pages of the login callback: static, without scripts, links or
  * external resources, so the authorization code in the URL never leaks through a Referer. A
  * failure page shows a fixed reason (HTML-escaped), never a token, code or received parameter
  * except a validated error code.

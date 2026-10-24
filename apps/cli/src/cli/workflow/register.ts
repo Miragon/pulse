@@ -1,5 +1,5 @@
 /**
- * Commander wiring of the workflow commands (design §17.1): registered eagerly from their
+ * Commander wiring of the workflow commands: registered eagerly from their
  * WORKFLOW_DOCS entry with their own options and every global option, under the root help heading
  * "Workflow commands:". The action opens the session, checks the guard and prints the result.
  */
@@ -60,7 +60,7 @@ export async function emitResult<V>(
   if (result.failure !== undefined) throw result.failure
 }
 
-/** The guard of §2.3 with the effect the options give, before the first request. */
+/** The read-only and confirmation guard with the effect the options give, before the first request. */
 export function guard(run: WorkflowRun, effect: Effect): void {
   checkEffect(effect, `operate ${run.name}`, guardsOf(run.session))
 }

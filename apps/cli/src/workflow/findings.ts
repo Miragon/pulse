@@ -1,5 +1,5 @@
 /**
- * The findings of `operate status` (design §17.9): pure rules over the aggregated status, each
+ * The findings of `operate status`: pure rules over the aggregated status, each
  * naming the next command, and the overall status (the highest severity, else `ok`).
  */
 

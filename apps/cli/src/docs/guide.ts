@@ -1,5 +1,5 @@
 /**
- * The usage guide for LLM agents (design §19): the core printed by `operate guide` and the topic
+ * The usage guide for LLM agents: the core printed by `operate guide` and the topic
  * pages printed by `operate guide <topic>` (src/docs/guide-topics). `skills/pulse-cli/SKILL.md` is
  * a YAML frontmatter followed by exactly the core, which ends with the index of the topics. Every
  * `operate` command line in the code blocks of every page is checked against the catalog and run in

@@ -1,6 +1,6 @@
 /**
  * Output settings of the commands that do not talk to the engine (`config`, `commands`,
- * `describe`): the output format rule of design §2.6 (src/cli/output-format.ts), with the profile
+ * `describe`): the output format rule (src/cli/output-format.ts), with the profile
  * read best effort, since these commands need no configuration.
  */
 

@@ -1,12 +1,12 @@
 /**
- * Bearer tokens from elsewhere (`--auth bearer`, design §18) of the built CLI against the OAuth
- * topology of design §16.14.1: Keycloak issues the tokens without operate (a CI pipeline's client
+ * Bearer tokens from elsewhere (`--auth bearer`) of the built CLI against the OAuth
+ * topology of support/oauth.ts: Keycloak issues the tokens without operate (a CI pipeline's client
  * credentials grant, a person's login through another tool), and Envoy's `jwt_authn` gateway
  * checks them in front of an unmodified engine. operate only sends `Authorization: Bearer
  * <token>`: no login, no refresh, no token cache.
  *
- * Token commands (design §23) fetch such tokens for operate: OPERATE_TOKEN_COMMAND runs a script
- * that runs the client credentials grant, also for the profiles of a project file (design §22),
+ * Token commands fetch such tokens for operate: OPERATE_TOKEN_COMMAND runs a script
+ * that runs the client credentials grant, also for the profiles of a project file,
  * whose directories share the cached token.
  *
  * The 5 s token of `operate-cli-short` is issued first, in `beforeAll`, so the 30 s expiry grace of

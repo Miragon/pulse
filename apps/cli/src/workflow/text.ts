@@ -1,5 +1,5 @@
 /**
- * Table format of the workflow views (design §17.2.3): a header block of `Label  value` lines,
+ * Table format of the workflow views: a header block of `Label  value` lines,
  * titled sections as tables (empty ones left out) and a final `Next:` block. Pure.
  */
 

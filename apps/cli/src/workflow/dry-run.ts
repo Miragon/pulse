@@ -1,7 +1,7 @@
 /**
- * `--dry-run` of the workflow commands (design §17.2.2): the plan of the writes and a preview of
- * every request that would be sent, secrets masked like every other preview (§2.6), plus the notes
- * of the auth provider (§16.8, e.g. that there is no OAuth login) for stderr.
+ * `--dry-run` of the workflow commands: the plan of the writes and a preview of
+ * every request that would be sent, secrets masked like every other preview, plus the notes
+ * of the auth provider (e.g. that there is no OAuth login) for stderr.
  */
 
 import type { EnginePort, PlannedRequest } from "../engine-port/engine-port.js"

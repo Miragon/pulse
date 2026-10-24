@@ -1,5 +1,5 @@
 /**
- * The shell completion scripts of `operate completion <shell>` (design §17.10). Each script calls
+ * The shell completion scripts of `operate completion <shell>`. Each script calls
  * `operate __complete <words up to the cursor>` and offers its `value<TAB>description` lines, or
  * falls back to the shell's own path completion for `:files` / `:dirs`.
  */
@@ -117,7 +117,7 @@ export const COMPLETION_SCRIPTS: Readonly<Record<Shell, string>> = {
   fish: FISH,
 }
 
-/** How to install the script of each shell, for the help and docs/installation.md. */
+/** How to install the script of each shell, for the help and docs/cli/installation.md. */
 export const INSTALL_LINES: readonly string[] = [
   'bash: eval "$(operate completion bash)"  in ~/.bashrc (also bash 3.2)',
   "zsh:  mkdir -p ~/.zfunc && operate completion zsh > ~/.zfunc/_operate",

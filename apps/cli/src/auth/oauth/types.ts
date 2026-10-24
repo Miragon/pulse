@@ -1,4 +1,4 @@
-/** Types of the OAuth authorization code flow with PKCE (design §16). Types only. */
+/** Types of the OAuth authorization code flow with PKCE. Types only. */
 
 import type { TraceEvent } from "../../http/types.js"
 import type { FileSystem, OutputStream, Runtime } from "../../runtime.js"
@@ -75,7 +75,7 @@ export interface LoginIdentity {
   readonly scopes: readonly string[]
 }
 
-/** The token cache file (schema version 1, design §16.5). */
+/** The token cache file (schema version 1). */
 export interface CachedLogin {
   readonly version: 1
   readonly identity: LoginIdentity

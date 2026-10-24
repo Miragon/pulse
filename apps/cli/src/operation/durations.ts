@@ -1,5 +1,5 @@
 /**
- * Durations of the workflow commands (`--wait-timeout`, `--stale-after`, design §17.1.2): a number
+ * Durations of the workflow commands (`--wait-timeout`, `--stale-after`): a number
  * with an optional unit `ms`, `s`, `m` or `h`; a bare number is milliseconds like `--timeout`.
  * Pure.
  */

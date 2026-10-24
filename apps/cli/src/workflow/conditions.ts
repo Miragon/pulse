@@ -1,5 +1,5 @@
 /**
- * Wait conditions (`--until`, design §17.1.3 and §17.2.6): parsing, the requests each condition
+ * Wait conditions (`--until`): parsing, the requests each condition
  * needs per poll, and the order in which a poll decides.
  */
 
@@ -56,7 +56,7 @@ export interface Probe {
   readonly ended: boolean
   /** The active tree (empty once the instance ended). */
   readonly tree: readonly string[]
-  /** The tree was cut (design §17.2.5): instances beyond the cut are not counted. */
+  /** The tree was cut: instances beyond the cut are not counted. */
   readonly truncated?: boolean
 }
 

@@ -1,5 +1,5 @@
 /**
- * The bearer token command of OPERATE_TOKEN_COMMAND end to end through `run()` (design §23): the
+ * The bearer token command of OPERATE_TOKEN_COMMAND end to end through `run()`: the
  * header on the wire, the run again after a 401, the cache per project, failures, masking in
  * --verbose and --dry-run, `ping`, `auth status|login|logout` and `config show`.
  */

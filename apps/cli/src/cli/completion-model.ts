@@ -1,5 +1,5 @@
 /**
- * The hidden `operate __complete <words...>` of the completion scripts (design §17.10): builds the
+ * The hidden `operate __complete <words...>` of the completion scripts: builds the
  * commander program for the words (lazy registration registers only the addressed group), turns
  * it into the plain model of src/docs/completion.ts and prints the candidates. Never touches the
  * network or stdin, writes nothing to stderr and never fails.
