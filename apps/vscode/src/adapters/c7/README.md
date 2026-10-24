@@ -1,4 +1,4 @@
-# @miragon/pulse-vscode-adapter-c7
+# The C7 adapter
 
 The adapter that answers Pulse's questions and writes for Operaton, CIB seven and Camunda 7.
 
@@ -38,17 +38,17 @@ Writes (`ProcessCommands`) take the same road without the read-only flag, the va
 
 ## Where things are
 
-- `src` – `C7Adapter` builds a runtime and commands per engine connection
-- `apps/vscode/src/adapters/c7/reading` – one reader per question, e.g. `InstanceDetailReader`
-- `apps/vscode/src/adapters/c7/mapping` – mappers from the CLI's views to the contract's read models, no I/O
-- `apps/vscode/src/adapters/c7/writing`, `apps/vscode/src/adapters/c7/errors` – the bodies of a variable change and a move, the token a move cancels; failures to `RuntimeError`
-- `apps/vscode/src/adapters/c7/web-ui` – `CockpitWebUi`: links into Cockpit or the CIB seven webclient
-- `apps/vscode/src/adapters/c7/engine-cli` – the engine CLI wrapper: runs the CLI and parses its JSON; meant to move upstream
+- `src`: `C7Adapter` builds a runtime and commands per engine connection
+- `apps/vscode/src/adapters/c7/reading`: one reader per question, e.g. `InstanceDetailReader`
+- `apps/vscode/src/adapters/c7/mapping`: mappers from the CLI's views to the contract's read models, no I/O
+- `apps/vscode/src/adapters/c7/writing`, `apps/vscode/src/adapters/c7/errors`: the bodies of a variable change and a move, the token a move cancels; failures to `RuntimeError`
+- `apps/vscode/src/adapters/c7/web-ui`: `CockpitWebUi`: links into Cockpit or the CIB seven webclient
+- `apps/vscode/src/adapters/c7/engine-cli`: the engine CLI wrapper: runs the CLI and parses its JSON; replaced by an in-process client
 
 ## Rules
 
 - `src` imports only the contract; Node built-ins only inside `apps/vscode/src/adapters/c7/engine-cli` (dependency-cruiser)
-- `apps/vscode/src/adapters/c7/engine-cli` imports nothing of ours, so it can move into the CLI as a library (dependency-cruiser)
+- `apps/vscode/src/adapters/c7/engine-cli` imports nothing of ours, so an in-process engine client can replace it as a whole (dependency-cruiser)
 - Engine words are allowed here, not in contract, core or webview; classes, no comments (ESLint)
 
 ## Proven on
@@ -57,4 +57,4 @@ CI runs all 39 conformance laws on real Operaton 2.1.5, CIB seven 2.2.0 and Camu
 
 ## More
 
-[C7 adapter](../../../docs/adr/c7-adapter.md) · [code structure](../../../docs/adr/code-structure.md) · [runtime contract](../../../docs/adr/runtime-contract.md) · [writes](../../../docs/adr/writes.md) · [the engine CLI as a library](../../docs/upstream/engine-cli-library-export.md)
+[C7 adapter](../../../docs/adr/c7-adapter.md) · [code structure](../../../docs/adr/code-structure.md) · [runtime contract](../../../docs/adr/runtime-contract.md) · [writes](../../../docs/adr/writes.md)

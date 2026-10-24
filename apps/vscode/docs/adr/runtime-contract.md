@@ -157,7 +157,7 @@ flowchart LR
   saboteurs[Saboteurs: broken runtimes] -- each must fail its law --> kit
 ```
 
-`@miragon/pulse-vscode-contract/conformance` holds 34 read laws and 15 command laws as
+`apps/vscode/src/contract/conformance` holds 34 read laws and 15 command laws as
 executable cases, modelled on `@miragon/modeler-api/conformance`:
 `new ConformanceKit(test).registerRuntimeLaws(prepare)` and `.registerCommandLaws(prepare)`
 bind them to any `(name, fn)` runner and throw a `ConformanceViolation` when a law fails. Command laws run on

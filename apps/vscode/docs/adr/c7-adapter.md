@@ -46,8 +46,8 @@ on top of a **local engine CLI wrapper** in `src/engine-cli/`.
   `EngineCliClient.create(options)` implements it, `EngineWriter`/`EngineCliWriter`
   the writes (`retryIncident`, `setVariable`, `modify`, `deleteInstancesAsync`,
   `migrateInstancesAsync`, `suspendBatch`, `deleteBatch`). The wrapper imports only `node:*` and itself (dependency rule
-  `engine-cli-wrapper-is-self-contained`), so it can move into `Miragon/operate` as its
-  library entry unchanged.
+  `engine-cli-wrapper-is-self-contained`), so an in-process engine client (a `-domain`
+  package the CLI and the MCP server share) can replace it without touching the readers.
 - **Today it spawns the bundled CLI** with VS Code's own runtime (`process.execPath`,
   `ELECTRON_RUN_AS_NODE=1`; VS Code ≥ 1.101 ships Node ≥ 22.12). The extension build
   copies `@miragon/operate/dist/operate.js` (pinned exactly) next to its bundle.
@@ -58,8 +58,8 @@ on top of a **local engine CLI wrapper** in `src/engine-cli/`.
   dropped, while `NODE_EXTRA_CA_CERTS`, `NODE_USE_SYSTEM_CA` and the proxy variables
   stay; `OPERATE_READ_ONLY=1`; `OPERATE_CONFIG` points at an extension-owned
   `{"profiles":{}}` so the CLI never resolves a profile of its own: Pulse reads the
-  workspace's `.operate.json` itself (the only source of engines, read in
-  `TargetsParser`) and passes the chosen profile's URL. Ids must match
+  workspace's `.pulse-cli.json` itself (the only source of engines, read in
+  `TargetsParser`; the CLI's former name is a fallback, `TargetsFile`) and passes the chosen profile's URL. Ids must match
   `^[A-Za-z0-9_][\w.:-]*$` (no `-` in front, no comma that operate would split) and are
   refused before spawning.
 - **Writes use their own runner.** `C7Adapter.commands` builds an `EngineCliWriter`
@@ -274,10 +274,10 @@ every class above against recorded CLI output.
 
 - The conformance kit passes all 49 laws (34 read, 15 command) against `operaton/operaton:2.1.5`,
   `cibseven/cibseven:run-2.2.0` and `camunda/camunda-bpm-platform:run-7.24.0`
-  (`PULSE_ENGINE_IMAGE=… npm run test:engine`).
+  (`PULSE_ENGINE_IMAGE=… pnpm --filter pulse-vscode run test:engines`).
 - Spawning costs ~80 ms of Node start-up per call. Acceptable for one call per view;
-  in-process calls take 2–12 ms. Once operate exports a library entry
-  ([proposal](../upstream/engine-cli-library-export.md)), in-process implementations of
+  in-process calls take 2–12 ms. Once the engine use cases live in a `-domain` package of
+  this repository (shared with the CLI and the MCP server), in-process implementations of
   `EngineClient` and `EngineWriter` replace `EngineCliClient` and `EngineCliWriter`: only the wrapper internals switch
   from spawning to importing; the adapter, the kit and the core do not change.
 - OAuth2 targets are refused with a clear message in v0.1; operate has no client

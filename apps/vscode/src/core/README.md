@@ -1,4 +1,4 @@
-# @miragon/pulse-vscode-core
+# Core
 
 The engine-neutral logic of Pulse: it answers what the webview asks with complete views.
 
@@ -40,17 +40,17 @@ sequenceDiagram
 
 ## Where things are
 
-- `apps/vscode/src/core/protocol` – intents, states and view models shared with the webview (`MessageGuards`)
-- `apps/vscode/src/core/panels` – the three panel sessions and their loading (`ViewSession`, `InstanceWrites`)
-- `apps/vscode/src/core/views` – view builders: read models in, one view model out
-- `apps/vscode/src/core/health`, `apps/vscode/src/core/explorer` – what the Health and Engines trees list (`IncidentHealthReport`)
-- `apps/vscode/src/core/drift` – does a local `.bpmn` file match a deployed version? (`ModelDrift`)
-- `apps/vscode/src/core/bpmn`, `apps/vscode/src/core/incidents`, `apps/vscode/src/core/diagrams` – text rules for BPMN XML and errors, diagram cache
+- `apps/vscode/src/core/protocol`: intents, states and view models shared with the webview (`MessageGuards`)
+- `apps/vscode/src/core/panels`: the three panel sessions and their loading (`ViewSession`, `InstanceWrites`)
+- `apps/vscode/src/core/views`: view builders: read models in, one view model out
+- `apps/vscode/src/core/explorer`: what the Engines tree lists
+- `apps/vscode/src/core/drift`: does a local `.bpmn` file match a deployed version? (`ModelDrift`)
+- `apps/vscode/src/core/bpmn`, `apps/vscode/src/core/incidents`, `apps/vscode/src/core/diagrams`: text rules for BPMN XML and errors, diagram cache
 
 ## Rules
 
 - Imports the contract only, no `vscode`, Node or npm; the protocol none (dependency-cruiser)
-- No DOM and no Node globals: `lib` is ES2023 only (tsc, `apps/vscode/test/core/runtime.boundary.ts`)
+- No DOM and no Node globals: `lib` is ES2023 only (`apps/vscode/tsconfig.core.json`, `apps/vscode/test/core/runtime.boundary.ts`)
 - No engine words, no comments, one class per file, no module functions (ESLint)
 
 ## More

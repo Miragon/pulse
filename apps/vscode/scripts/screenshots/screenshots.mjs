@@ -20,7 +20,7 @@ function indexPage(taken) {
   return [
     "# What Pulse can do, in screenshots",
     "",
-    "Taken from VS Code against the shop sandbox (`sandbox/`). Recreate them with",
+    "Taken from VS Code against the shop sandbox (`apps/vscode/sandbox/`). Recreate them with",
     "`pnpm --filter pulse-vscode run sandbox:up` followed by",
     "`pnpm --filter pulse-vscode run docs:screenshots`; with",
     "`PULSE_SCREENSHOTS=28-engine-overview` it takes only the shots whose file name contains that.",

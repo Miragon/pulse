@@ -10,16 +10,17 @@ every use case: [docs/screenshots](../docs/screenshots/README.md).
 From the repository root (podman or docker):
 
 ```sh
-npm run sandbox:open      # builds Pulse, starts the engines if needed, opens this folder in VS Code
-npm run sandbox:up        # (re)creates both engines and seeds them, about 1–2 minutes
-npm run sandbox:traffic   # optional: live orders on shop-dev until Ctrl+C
-npm run sandbox:down      # removes both engines
+pnpm --filter pulse-vscode run sandbox:open      # builds Pulse, starts the engines if needed, opens this folder in VS Code
+pnpm --filter pulse-vscode run sandbox:up        # (re)creates both engines and seeds them, about 1–2 minutes
+pnpm --filter pulse-vscode run sandbox:traffic   # optional: live orders on shop-dev until Ctrl+C
+pnpm --filter pulse-vscode run sandbox:down      # removes both engines
 ```
 
 `sandbox:open` needs the `code` command on your PATH. It starts its own VS Code instance
 with a profile of its own in the temp folder (`pulse-sandbox`), so it never mixes with your
-VS Code window; it runs the build from this repository next to your installed extensions. Alternatively, press **F5 → "Run Pulse (sandbox)"** in the
-repository, or install the VSIX (`npm run package`) and open this folder with `code sandbox`.
+VS Code window; it runs the build from this repository next to your installed extensions. Alternatively, open `apps/vscode` in VS Code and press **F5 → "Run Pulse (sandbox)"**, or
+install the VSIX (`pnpm --filter pulse-vscode run package`) and open this folder with
+`code apps/vscode/sandbox`.
 
 `sandbox:up` always starts from scratch, so run it again to reset all data.
 
@@ -73,7 +74,7 @@ to jump to them.
 | 15  | Model drift                     | `shipment.bpmn` → _Show Runtime Data for This Model_                                   | "differs from every deployed version" (this file adds _Notify customer_). `order-fulfillment.bpmn` matches v3.                                                                                                                                                                                                                                 |
 | 16  | Credentials                     | `shop-test`                                                                            | TEST badge; "rejected the credentials" until _Set Credentials…_ with `demo` / `demo`, then its data.                                                                                                                                                                                                                                           |
 | 17  | Unreachable production          | `prod-eu`                                                                              | Red PROD label and "Can't reach prod-eu."                                                                                                                                                                                                                                                                                                      |
-| 18  | Live data                       | `npm run sandbox:traffic`, then _Refresh_                                              | New `ORD-9xxxx` orders, new incident counts in the Engines tree, the "As of" time moves.                                                                                                                                                                                                                                                       |
+| 18  | Live data                       | `pnpm --filter pulse-vscode run sandbox:traffic`, then _Refresh_                       | New `ORD-9xxxx` orders, new incident counts in the Engines tree, the "As of" time moves.                                                                                                                                                                                                                                                       |
 | 19  | Retry a worker task             | `ORD-10129` … `ORD-10132`, _Retry_                                                     | No dialog on a local engine; after a few seconds "Waiting at Charge payment for the next attempt" (no worker runs unless `sandbox:traffic` does).                                                                                                                                                                                              |
 | 20  | Retry that fails again          | `ORD-10135`, _Retry_                                                                   | The panel keeps checking for up to a minute and then says "Failed again" with the Groovy root cause.                                                                                                                                                                                                                                           |
 | 21  | Fix the data, then retry        | `ORD-10130` → Variables → `cardExpiry` → `12/2030`                                     | "Changed cardExpiry." with _Retry now_; with `sandbox:traffic` running the payment then goes through.                                                                                                                                                                                                                                          |

@@ -6,7 +6,7 @@
 ## Context
 
 When an instance is stuck on an incident, the next questions are "what is configured on
-this element?" and "where is the code that ran?" (Miragon/pulse-vscode-plugin#2). A
+this element?" and "where is the code that ran?" (Miragon/pulse-vscode#2). A
 standalone cockpit cannot answer them; an IDE can, because the `.bpmn` file and the
 workers are in the workspace. The configuration is vendor vocabulary (`camunda:topic`,
 `camunda:delegateExpression`, `zeebe:taskDefinition`, `camunda:inputOutput`,
@@ -120,8 +120,8 @@ The extension declares no `extensionDependencies` (`manifest.test.ts` checks it)
 
 - dependency-cruiser's `model-libraries-stay-in-the-model-adapter` refuses
   `bpmn-moddle`, its descriptors and `@miragon/bpmn-modeler*` outside
-  `apps/vscode/src/model`; a planted import in
-  `apps/vscode/test/architecture/fixtures/violations/packages/extension` proves it bites. The cruiser no
+  `apps/vscode/src/model`; a planted import in the tree
+  `apps/vscode/test/architecture/dependency-rules.test.ts` builds proves it bites. The cruiser no
   longer excludes every `dist/` folder, only our own build output, because libraries such as
   `bpmn-moddle` resolve into `node_modules/<lib>/dist/` and were invisible to every rule.
 - `focusLintElement` is an internal command of the bpmn-modeler, meant for its lint links.

@@ -170,6 +170,12 @@ const ALLOWED: Allowance[] = [
     reason: "the extension's fallback to the CLI's former project file name",
   },
   {
+    file: "apps/vscode/README.md",
+    rules: ["old operate config file"],
+    line: /former project file, `\.operate\.json`/,
+    reason: "the README names the fallback and the release that drops it",
+  },
+  {
     file: "scripts/test-template.sh",
     rules: ["old npm scope"],
     line: /OLD_SCOPE = |@miragon-ai scope/,

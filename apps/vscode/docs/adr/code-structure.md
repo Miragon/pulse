@@ -20,13 +20,13 @@ visible responsibility per file.
 
 ### Ports are interfaces, adapters are classes
 
-| Where                            | What                                                                                                                                                     |
-| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/vscode/src/contract/ports` | `ProcessRuntime` (read), `ProcessCommands` (write), `EngineAdapter` (one per engine family: turns a connection into a runtime and, if it can, commands)  |
-| `apps/vscode/src/contract/model` | what the ports exchange: ids, read models, queries, `RuntimeError`, value kinds                                                                          |
-| `packages/adapter-<engine>`      | `class <Engine>Adapter implements EngineAdapter`, `class <Engine>ProcessRuntime implements ProcessRuntime`, `class <Engine>ProcessCommands implements …` |
-| `apps/vscode/src/host`           | the composition root keeps one `EngineAdapter` per engine kind and hands the core what the active one returns                                            |
-| `apps/vscode/src/core`           | sees only `ProcessRuntime` and `ProcessCommands`, never an adapter                                                                                       |
+| Where                               | What                                                                                                                                                     |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/vscode/src/contract/ports`    | `ProcessRuntime` (read), `ProcessCommands` (write), `EngineAdapter` (one per engine family: turns a connection into a runtime and, if it can, commands)  |
+| `apps/vscode/src/contract/model`    | what the ports exchange: ids, read models, queries, `RuntimeError`, value kinds                                                                          |
+| `apps/vscode/src/adapters/<engine>` | `class <Engine>Adapter implements EngineAdapter`, `class <Engine>ProcessRuntime implements ProcessRuntime`, `class <Engine>ProcessCommands implements …` |
+| `apps/vscode/src/host`              | the composition root keeps one `EngineAdapter` per engine kind and hands the core what the active one returns                                            |
+| `apps/vscode/src/core`              | sees only `ProcessRuntime` and `ProcessCommands`, never an adapter                                                                                       |
 
 ### Classes own behaviour
 
@@ -100,21 +100,20 @@ classDiagram
 
 ### Enforcement
 
-ESLint, configured in `eslint.config.js` and proven in
-`apps/vscode/test/architecture/lint-rules.test.ts`:
+ESLint, configured in the `apps/vscode` blocks of the repository's `eslint.config.mjs` and
+proven in `apps/vscode/test/architecture/lint-rules.test.ts`:
 
 - `no-restricted-syntax` rejects module-level function declarations and functions
-  assigned to module-level constants in shipped code (`packages/*/src`), with the
-  exceptions above; a package joins `CLASS_BASED_PACKAGES` once it is written in
-  classes (today every package: `contract`, `core`, `webview`, the adapters and
-  `extension`);
+  assigned to module-level constants in shipped code (`apps/vscode/src`), with the
+  exceptions above, in every layer: `contract`, `core`, `webview`, the adapters, `model`
+  and `host`;
 - `max-classes-per-file: 1`;
 - `@typescript-eslint/member-ordering`: fields, constructor, public before private
   methods;
 - `@typescript-eslint/no-extraneous-class` allows static-only utility classes.
 
-The rules apply package by package, as each one is moved; `CLASS_BASED_PACKAGES` in
-`eslint.config.js` lists them. In the webview, helpers of components are static utility
+The rules were switched on package by package while the code moved to classes; since the
+move into the monorepo they hold for every layer. In the webview, helpers of components are static utility
 classes (`JsonText` and `TimeLabels` in `src/format`, `VariableEditorText` next to its screen), and a file that
 holds a Preact context and its hook is a `.tsx` file. In the extension, every command
 is a class implementing `Command` (`id`, `run`) that `CommandRegistrar` registers;

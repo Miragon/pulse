@@ -63,7 +63,7 @@ next engine plugs in: one more adapter package and one entry in the composition 
 | 5   | extension → adapter             | a configured target becomes a runtime, commands (wrapped in the audit) and web UI links                                   | `EngineAdapter`, only in `composition-root.ts`                                      |
 | 6   | adapter-c7 → engine CLI         | one to three CLI commands per question; values on stdin, credentials in environment variables; JSON on stdout             | child process (`execFile` with VS Code's own Node), read-only flag unless it writes |
 | 7   | engine CLI → C7 family          | definitions, instances, incidents, variables; retries and variable changes                                                | HTTP(S) REST `/engine-rest`, basic auth                                             |
-| 8   | extension → your files          | the engines to show, the model to compare with a deployed version, stack frames to link to your sources                   | `.operate.json` (watched), `.bpmn` files, `pulse.*` settings                        |
+| 8   | extension → your files          | the engines to show, the model to compare with a deployed version, stack frames to link to your sources                   | `.pulse-cli.json` (watched), `.bpmn` files, `pulse.*` settings                      |
 | 9   | extension → SecretStorage       | user name and password per target, bound to the endpoint's origin                                                         | VS Code `SecretStorage`                                                             |
 | 10  | extension → output channel      | one audit line per confirmation and per write, without values                                                             | the "Pulse" output channel                                                          |
 | 11  | extension → the engine's web UI | the shown version or instance, or the engine's start page                                                                 | `vscode.env.openExternal` with a URL built from the target's `cockpitUrl`           |
@@ -139,7 +139,7 @@ flowchart TB
   engineCli -. "starts dist/engine-cli.js" .-> cli[[engine CLI: child process]]
 ```
 
-Every import edge not drawn fails `npm run arch` (dependency-cruiser, closed world). The
+Every import edge not drawn fails `pnpm lint:architecture:vscode` (dependency-cruiser, closed world). The
 dotted line is no import: the wrapper starts the bundled CLI as a child process.
 
 ## 4. One adapter for Operaton, CIB seven and Camunda 7

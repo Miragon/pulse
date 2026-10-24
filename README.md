@@ -129,17 +129,18 @@ only, never instance ids or variable values.
 
 A pnpm + Turbo monorepo. The server composes the two modules and serves them as one MCP endpoint.
 
-| Path                                                                                                      | Package                                   | Role                                                                    |
-| --------------------------------------------------------------------------------------------------------- | ----------------------------------------- | ----------------------------------------------------------------------- |
-| [`apps/mcp-server-camunda7/`](apps/mcp-server-camunda7)                                                   | `@miragon/pulse-mcp-server-camunda7`      | The MCP host: composes modules, bundles widgets, serves HTTP on `:8400` |
-| [`packages/connectors/camunda/camunda7-connector/`](packages/connectors/camunda/camunda7-connector)       | `@miragon/pulse-camunda7-connector`       | Camunda 7 operations tools, widget tools, and React widgets             |
-| [`packages/connectors/analytics/analytics-connector/`](packages/connectors/analytics/analytics-connector) | `@miragon/pulse-analytics-connector`      | Prometheus-backed analytics tools and dashboard widgets                 |
-| [`packages/connectors/camunda/camunda7-client/`](packages/connectors/camunda/camunda7-client)             | `@miragon/pulse-camunda7-client`          | Generated CIB seven REST SDK + MCP-oriented Zod schemas                 |
-| [`packages/connectors/analytics/analytics-client/`](packages/connectors/analytics/analytics-client)       | `@miragon/pulse-analytics-client`         | Prometheus client, PromQL query functions + metrics contract            |
-| [`packages/core/widget-shell/`](packages/core/widget-shell)                                               | `@miragon/pulse-widget-shell`             | Shared widget plumbing (`adaptDataWidget`, view builders)               |
-| [`engine-plugins/`](engine-plugins)                                                                       | `io.miragon.mcp:cibseven-history-metrics` | Kotlin Micrometer metrics plugin for CIB seven (Java 21)                |
-| [`playground/`](playground)                                                                               | —                                         | Demo env: CIB seven showcase, Compose stack, Fly.io deploy              |
-| [`docs/`](docs/README.md)                                                                                 | `@miragon/pulse-docs`                     | Pulse docs, a VitePress site on GitHub Pages                            |
+| Path                                                                                                      | Package                                   | Role                                                                                 |
+| --------------------------------------------------------------------------------------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------ |
+| [`apps/mcp-server-camunda7/`](apps/mcp-server-camunda7)                                                   | `@miragon/pulse-mcp-server-camunda7`      | The MCP host: composes modules, bundles widgets, serves HTTP on `:8400`              |
+| [`apps/vscode/`](apps/vscode)                                                                             | `pulse-vscode` (a .vsix)                  | Pulse for VS Code: runtime data next to the BPMN models (not on the Marketplace yet) |
+| [`packages/connectors/camunda/camunda7-connector/`](packages/connectors/camunda/camunda7-connector)       | `@miragon/pulse-camunda7-connector`       | Camunda 7 operations tools, widget tools, and React widgets                          |
+| [`packages/connectors/analytics/analytics-connector/`](packages/connectors/analytics/analytics-connector) | `@miragon/pulse-analytics-connector`      | Prometheus-backed analytics tools and dashboard widgets                              |
+| [`packages/connectors/camunda/camunda7-client/`](packages/connectors/camunda/camunda7-client)             | `@miragon/pulse-camunda7-client`          | Generated CIB seven REST SDK + MCP-oriented Zod schemas                              |
+| [`packages/connectors/analytics/analytics-client/`](packages/connectors/analytics/analytics-client)       | `@miragon/pulse-analytics-client`         | Prometheus client, PromQL query functions + metrics contract                         |
+| [`packages/core/widget-shell/`](packages/core/widget-shell)                                               | `@miragon/pulse-widget-shell`             | Shared widget plumbing (`adaptDataWidget`, view builders)                            |
+| [`engine-plugins/`](engine-plugins)                                                                       | `io.miragon.mcp:cibseven-history-metrics` | Kotlin Micrometer metrics plugin for CIB seven (Java 21)                             |
+| [`playground/`](playground)                                                                               | —                                         | Demo env: CIB seven showcase, Compose stack, Fly.io deploy                           |
+| [`docs/`](docs/README.md)                                                                                 | `@miragon/pulse-docs`                     | Pulse docs, a VitePress site on GitHub Pages                                         |
 
 ## Tools
 

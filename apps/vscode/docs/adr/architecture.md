@@ -13,28 +13,29 @@ and adapter modules that only provide data and fulfil contracts.
 
 ## Decision
 
-### Packages
+### Layers
 
-One npm workspace with six source-only packages. Each `package.json` points its
-`exports` at TypeScript sources; there is no per-package build. Only the extension
-bundles (esbuild): the host as CommonJS for Node 22, the webview as an IIFE.
+One package, `apps/vscode` of the Pulse monorepo, with six layers as folders under
+`apps/vscode/src`. There is no per-layer build. Only the extension bundles (esbuild): the
+host as CommonJS for Node 22, the webview as an IIFE.
 
-| Package         | Responsibility                                                                                                                                                                                                                                                  | Runtime                               |
-| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
-| `contract`      | The `ProcessRuntime`, `ProcessCommands` and `EngineAdapter` ports, the local `ModelSource` and `CodeLocator` ports with the `WorkspaceFiles` seam, read models and `RuntimeError`; subpaths `./conformance` (the kit) and `./fake` (in-memory reference engine) | none (no DOM, no Node)                |
-| `core`          | Engine-neutral logic: use cases turn read models into view models, panel sessions handle webview intents; `./protocol` holds the JSON-only messages and view models                                                                                             | none                                  |
-| `webview`       | Preact UI and bpmn-js diagram. Renders protocol view models, sends intents                                                                                                                                                                                      | browser                               |
-| `adapter-c7`    | `EngineAdapter`, `ProcessRuntime`, `ProcessCommands` and the Cockpit web UI for the Camunda 7 family ([c7-adapter.md](c7-adapter.md)); `src/engine-cli` is a self-contained wrapper around the engine CLI                                                       | Node                                  |
-| `model-adapter` | `ModelSource` and `CodeLocator` for the local workspace: reads `.bpmn` files with bpmn-moddle and its vendor descriptors, finds the implementing code ([local-sources.md](local-sources.md)); the only package with those libraries                             | none (files through `WorkspaceFiles`) |
-| `extension`     | VS Code host: composition root, connections, tree, panels, commands, status bar                                                                                                                                                                                 | Node + `vscode`                       |
+| Layer         | Responsibility                                                                                                                                                                                                                                                  | Runtime                               |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| `contract`    | The `ProcessRuntime`, `ProcessCommands` and `EngineAdapter` ports, the local `ModelSource` and `CodeLocator` ports with the `WorkspaceFiles` seam, read models and `RuntimeError`; subpaths `./conformance` (the kit) and `./fake` (in-memory reference engine) | none (no DOM, no Node)                |
+| `core`        | Engine-neutral logic: use cases turn read models into view models, panel sessions handle webview intents; `./protocol` holds the JSON-only messages and view models                                                                                             | none                                  |
+| `webview`     | Preact UI and bpmn-js diagram. Renders protocol view models, sends intents                                                                                                                                                                                      | browser                               |
+| `adapters/c7` | `EngineAdapter`, `ProcessRuntime`, `ProcessCommands` and the Cockpit web UI for the Camunda 7 family ([c7-adapter.md](c7-adapter.md)); `src/engine-cli` is a self-contained wrapper around the engine CLI                                                       | Node                                  |
+| `model`       | `ModelSource` and `CodeLocator` for the local workspace: reads `.bpmn` files with bpmn-moddle and its vendor descriptors, finds the implementing code ([local-sources.md](local-sources.md)); the only layer with those libraries                               | none (files through `WorkspaceFiles`) |
+| `host`        | VS Code host: composition root, connections, tree, panels, commands, status bar                                                                                                                                                                                 | Node + `vscode`                       |
 
 The core in the product owner's sense is everything that is engine-neutral
-(`core`, `webview`, `extension`); adapters only provide data.
+(`core`, `webview`, `host`); adapters only provide data.
 
 ### Allowed dependencies
 
 The list is closed: every import edge not listed is an error
-(`.dependency-cruiser.cjs`, `allowedSeverity: error`).
+(`apps/vscode/.dependency-cruiser.cjs`, `allowedSeverity: error`, run by
+`pnpm lint:architecture:vscode`).
 
 ```mermaid
 flowchart TB
@@ -55,16 +56,16 @@ contract    → (nothing)
 core        → contract (entry only)
 protocol    → (nothing outside protocol)
 webview     → protocol (type-only), preact, bpmn-js, diagram-js, modeler-shell, fonts
-adapter-*   → contract (entry only); only adapter-c7/src/engine-cli may use Node built-ins
-engine-cli  → (nothing of ours; it moves upstream into the CLI as a library)
-model-adapter → contract (entry only), bpmn-moddle, camunda-bpmn-moddle, zeebe-bpmn-moddle
+adapters/*  → contract (entry only); only adapters/c7/engine-cli may use Node built-ins
+engine-cli  → (nothing of ours; an in-process engine client replaces it as a whole)
+model       → contract (entry only), bpmn-moddle, camunda-bpmn-moddle, zeebe-bpmn-moddle
               (nothing else may import these)
-extension   → core, protocol, contract, vscode, modeler-shell, Node built-ins
-              adapters and the model adapter only from src/composition-root.ts
+host        → core, protocol, contract, vscode, modeler-shell, Node built-ins
+              adapters and the model adapter only from host/composition-root.ts
 tests, scripts, dev tooling → anything
 ```
 
-Each package has its own `tsconfig.json` with `lib`/`types` matching its runtime,
+Each layer has its own `tsconfig.<layer>.json` with `lib`/`types` matching its runtime,
 so code that uses `document` in the core or `process` in the webview does not compile.
 
 ### Composition root
@@ -85,7 +86,7 @@ The rest of the extension is VS Code wiring. `activate` in `extension.ts` hands 
 trees, the status bar, the panel manager and the commands (each a class implementing
 `Command`, registered by `CommandRegistrar`) and puts them into the context's
 subscriptions. No DI container, no plugin registry: adding an engine means one adapter
-package and one entry in the composition root's adapter map.
+folder and one entry in the composition root's adapter map.
 
 ### Host ⇄ webview protocol
 
@@ -160,23 +161,25 @@ file's current content when _Show Runtime Data for This Model_ runs again.
 
 ## Consequences
 
-- An undeclared or forbidden import fails `npm run arch` (negative test in
-  `apps/vscode/test/architecture`); a wrong global fails `npm run typecheck` through the
-  `@ts-expect-error` probes in `packages/*/test/runtime.boundary.ts`.
-- A new engine takes `packages/adapter-<engine>` with a class implementing
+- An undeclared or forbidden import fails `pnpm lint:architecture:vscode` (negative test
+  in `apps/vscode/test/architecture`); a wrong global fails
+  `pnpm --filter pulse-vscode run typecheck` through the `@ts-expect-error` probe of each
+  layer (`apps/vscode/test/<layer>/runtime.boundary.ts`).
+- A new engine takes `apps/vscode/src/adapters/<engine>` with a class implementing
   `EngineAdapter`, an engine test that runs the `ConformanceKit` and one entry in the
   composition root; core, protocol and webview stay untouched. ESLint keeps engine words
   out of them, and dependency-cruiser fails while a new adapter has no engine test. The
   spike built a Camunda 8 adapter this way against a mock of the REST API v2 and removed
   it again to keep the prototype small to check.
-- Source-only packages keep the build to one esbuild run, but packages cannot be
-  published as they are (not needed now).
+- Source-only layers keep the build to one esbuild run; the extension ships as one .vsix.
 
 ## Decision log
 
 Consensus round 2026-10-21 (five reviewers). Repo shape was split 2:2 between one
 package with folder rules and workspaces; workspaces won on the tie-break "hard,
 machine-checked boundaries beat convention" because per-package tsconfigs close the
-globals gap dependency-cruiser cannot see. `vscode-messenger` was rejected in favour
-of plain unions (its host side is bound to the `vscode` API, which blocks the
-browser dev host).
+globals gap dependency-cruiser cannot see. Superseded on 2026-10-24 by the move into the
+Pulse monorepo: its gates know one package per app, so the workspaces folded into one
+package, and one tsconfig per layer keeps the globals boundary. `vscode-messenger` was
+rejected in favour of plain unions (its host side is bound to the `vscode` API, which
+blocks the browser dev host).

@@ -1,4 +1,4 @@
-# @miragon/pulse-vscode-contract
+# Contract
 
 The ports, read models and conformance laws between Pulse and any process engine.
 
@@ -6,7 +6,7 @@ The ports, read models and conformance laws between Pulse and any process engine
 
 Camunda 7 family engines and Camunda 8 hold the same runtime data, named and numbered differently.
 This package fixes Pulse's questions and the words of the answers, so the core never learns
-which engine answers. It is its own package, so tools can prove that it imports nothing.
+which engine answers. It is its own layer, so tools can prove that it imports nothing.
 
 ## How it works
 
@@ -42,16 +42,16 @@ flowchart LR
 
 ## Where things are
 
-- `apps/vscode/src/contract/ports` – the read and write ports and the plug that hands them out (`EngineAdapter`)
-- `apps/vscode/src/contract/model` – ids, filters, pages and read models the ports exchange, plus `RuntimeError`
-- `apps/vscode/src/contract/failing-runtime.ts` – a runtime that rejects every call, for a target Pulse refuses
-- `apps/vscode/src/contract/conformance` – the kit, its laws and the fixed world, imported as `./conformance`
-- `apps/vscode/src/contract/fake` – an in-memory engine for tests and the dev host, imported as `./fake` (`FakeEngine`)
+- `apps/vscode/src/contract/ports`: the read and write ports and the plug that hands them out (`EngineAdapter`)
+- `apps/vscode/src/contract/model`: ids, filters, pages and read models the ports exchange, plus `RuntimeError`
+- `apps/vscode/src/contract/failing-runtime.ts`: a runtime that rejects every call, for a target Pulse refuses
+- `apps/vscode/src/contract/conformance`: the kit, its laws and the fixed world, imported as `./conformance`
+- `apps/vscode/src/contract/fake`: an in-memory engine for tests and the dev host, imported as `./fake` (`FakeEngine`)
 
 ## Rules
 
-- Imports nothing: no other package, no npm package, no Node built-in (dependency-cruiser)
-- Runs on any host: no DOM, no Node globals (tsc `lib` and `types`, `apps/vscode/test/contract/runtime.boundary.ts`)
+- Imports nothing: no other layer, no npm package, no Node built-in (dependency-cruiser)
+- Runs on any host: no DOM, no Node globals (tsc `lib` and `types` of `apps/vscode/tsconfig.contract.json`, `apps/vscode/test/contract/runtime.boundary.ts`)
 - No engine words such as `camunda` or `processDefinitionKey` in `src` (ESLint)
 
 ## More

@@ -1,7 +1,8 @@
 # What Pulse can do, in screenshots
 
 Taken from VS Code against the shop sandbox (`apps/vscode/sandbox/`). Recreate them with
-`npm run sandbox:up` followed by `npm run docs:screenshots`; with
+`pnpm --filter pulse-vscode run sandbox:up` followed by
+`pnpm --filter pulse-vscode run docs:screenshots`; with
 `PULSE_SCREENSHOTS=28-engine-overview` it takes only the shots whose file name contains that.
 
 | # | Use case | Screenshot | What it shows |
