@@ -4,6 +4,7 @@ import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { frameworkWritesAllowed } from "@miragon/pulse-widget-shell/server"
 import {
+  composition,
   emitBootWarnings,
   getAppConfig,
   getPlugins,
@@ -13,6 +14,7 @@ import {
 } from "../src/setup.js"
 import { createApp } from "../src/app.js"
 import { createTestRuntime } from "./boot-server.js"
+import { REPO_ROOT, scanSources } from "./source-scan.js"
 
 const FILE_ENGINES = [{ id: "from-file", baseUrl: "http://file.example/engine-rest" }]
 const JSON_ENGINES = [{ id: "from-json", baseUrl: "http://json.example/engine-rest" }]
@@ -471,5 +473,85 @@ describe("warnUnknownEnvVars", () => {
     expect(
       warnUnknownEnvVars({ MCP_IDP_CLIENT_SECRET: "secret" }, ["MCP_IDP_CLIENT_SECRET"]),
     ).toEqual([])
+  })
+})
+
+/**
+ * The server reads no PULSE_* variable. PulseAudio owns PULSE_* (PULSE_SERVER,
+ * PULSE_COOKIE, ...) and PULSE_CLI_* belongs to the CLI. The typo warner watches
+ * the prefix of every known variable, so ONE server name under PULSE_ would make
+ * every server in a shared environment (a devcontainer, a Compose file, a shell
+ * that also runs the CLI) warn about both. Name a server setting in its own
+ * family instead (CAMUNDA_*, PROMETHEUS_*, ANALYTICS_*, MCP_*, DATABASE_URL).
+ */
+describe("the server reads no PULSE_* variable", () => {
+  /** A PULSE_ name on its own (IMPULSE_RATE, MY_PULSE_X and the word Pulse are no hit). */
+  const PULSE_NAME = /\bPULSE_[A-Z0-9]/
+  /** The server's sources: this app and every package; another app (a CLI) owns its own names. */
+  const SERVER_SCOPE = /^(?:apps\/mcp-server-camunda7\/src\/|packages\/)/
+
+  /** Every line of `text` that names a PULSE_ variable, as `file:line: text`. */
+  const pulseLines = (file: string, text: string): string[] =>
+    text
+      .split("\n")
+      .flatMap((line, index) =>
+        PULSE_NAME.test(line) ? [`${file}:${index + 1}: ${line.trim()}`] : [],
+      )
+
+  /** The PULSE_ lines of a server source; a file outside the server's scope gives none. */
+  const pulseRefs = (file: string, text: string): string[] =>
+    SERVER_SCOPE.test(file.split(path.sep).join("/")) ? pulseLines(file, text) : []
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it("declares none: no known variable of the app, the shared edge, OAuth or a module", () => {
+    expect([...composition.knownEnvVars].filter((name) => name.startsWith("PULSE_"))).toEqual([])
+  })
+
+  it("never flags PulseAudio's or the CLI's variables in a shared environment", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+
+    const unknown = warnUnknownEnvVars({
+      PULSE_SERVER: "unix:/run/user/1000/pulse/native",
+      PULSE_COOKIE: "/tmp/pulse-cookie",
+      PULSE_CLI_URL: "http://localhost:8080/engine-rest",
+      PULSE_CLI_TOKEN: "token",
+    })
+
+    expect(unknown).toEqual([])
+    expect(warn).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ["packages/x/src/a.ts", "const url = process.env.PULSE_URL", 1],
+    ["packages/connectors/c/c-domain/src/a.ts", 'read("PULSE_SERVER")', 1],
+    ["apps/mcp-server-camunda7/src/a.ts", 'const name = "PULSE_CLI_TOKEN"', 1],
+    ["apps/mcp-server-camunda7/src/a.ts", "// set PULSE_2 in the shell", 1],
+    ["packages/x/src/a.ts", "const rate = env.IMPULSE_RATE", 0],
+    ["packages/x/src/a.ts", "const MY_PULSE_X = 1", 0],
+    ["packages/x/src/a.ts", 'const id = "pulse_server"', 0],
+    ["packages/x/src/a.ts", 'const label = "Pulse"', 0],
+    ["packages/x/src/a.ts", 'const prefix = "PULSE_"', 0],
+    // Another app is out of the server's scope: the CLI and the extension name their own.
+    ["apps/cli/src/env.ts", "const url = process.env.PULSE_CLI_URL", 0],
+    ["apps/vscode/src/env.ts", "const url = process.env.PULSE_CLI_URL", 0],
+  ] as const)("%s: %s gives %i hit(s)", (file, line, count) => {
+    expect(pulseRefs(file, `const a = 1\n${line}\n`)).toHaveLength(count)
+  })
+
+  it("names the file and the line of a hit", () => {
+    expect(pulseRefs("packages/x/src/a.ts", "const a = 1\n  env.PULSE_URL \n")).toEqual([
+      "packages/x/src/a.ts:2: env.PULSE_URL",
+    ])
+  })
+
+  it("no server source names one (this app and every package)", () => {
+    expect(scanSources(pulseRefs)).toEqual([])
+  })
+
+  it.each([".env.example", "templates/composed-server/.env.example"])("%s names none", (file) => {
+    expect(pulseLines(file, fs.readFileSync(path.join(REPO_ROOT, file), "utf8"))).toEqual([])
   })
 })

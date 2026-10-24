@@ -47,6 +47,22 @@ const RULES = [
   // keeps answering for existing client configs. Everywhere else the public
   // URL is https://pulse-playground.miragon.ai/mcp.
   { name: "Fly app name", pattern: /miragon-ai-playground/i },
+  // The CLI grew up as its own product, operate, in its own repo. In Pulse it ships under
+  // Pulse names only (npm @miragon/pulse-cli, its variables PULSE_CLI_*), so every
+  // technical name of the old product is retired: the package (any @miragon/operate-*
+  // too), the repo, the image, the Homebrew tap, the docs, the product page, its
+  // OPERATE_* variables, its config file and its config directory. The plain word stays
+  // ("read and operate your engines", the cockpit's fleet.operate key, Camunda 8 Operate).
+  { name: "old operate package", pattern: /@miragon\/operate(?!\w)/i },
+  { name: "old operate repo", pattern: /(?<![\w.-])miragon\/operate(?![\w-])/i },
+  { name: "old operate image", pattern: /ghcr\.io\/miragon\/operate/i },
+  { name: "old operate tap", pattern: /miragon\/tap\/operate/i },
+  { name: "old operate docs URL", pattern: /miragon\.github\.io\/operate/i },
+  { name: "old operate product page", pattern: /miragon\.ai\/tools\/operate/i },
+  // A name of its own only: Camunda 8's CAMUNDA_OPERATE_* stays clean.
+  { name: "old operate env var", pattern: /\bOPERATE_[A-Z]/ },
+  { name: "old operate config file", pattern: /\.operate\.json/ },
+  { name: "old operate config dir", pattern: /\.config\/operate/ },
 ] as const
 
 type RuleName = (typeof RULES)[number]["name"]
@@ -233,6 +249,21 @@ describe("the old-name rules", () => {
     ["[miragon-ai] listening on :8400", "old slug"],
     ['"miragon_ai": { "url": … }', "old slug"],
     ["https://miragon-ai-playground.fly.dev/mcp", "Fly app name"],
+    ['import { run } from "@miragon/operate"', "old operate package"],
+    ["npm install -g @miragon/operate@1.4.0", "old operate package"],
+    ['"name": "@miragon/operate-docs"', "old operate package"],
+    ["https://github.com/Miragon/operate/issues", "old operate repo"],
+    ["git@github.com:miragon/operate.git", "old operate repo"],
+    ["gh repo clone MIRAGON/OPERATE", "old operate repo"],
+    ["docker pull ghcr.io/miragon/operate:latest", "old operate image"],
+    ["brew install miragon/tap/operate", "old operate tap"],
+    ["https://miragon.github.io/operate/guide/", "old operate docs URL"],
+    ["https://miragon.ai/tools/operate/", "old operate product page"],
+    ["OPERATE_ENGINE_URL=http://localhost:8080/engine-rest", "old operate env var"],
+    ["const token = process.env.OPERATE_TOKEN", "old operate env var"],
+    ["echo $OPERATE_PROFILE", "old operate env var"],
+    ["reads ./.operate.json first", "old operate config file"],
+    ["~/.config/operate/engines.json", "old operate config dir"],
   ] as const)("%s is %s", (text, rule) => {
     expect(rulesMatching(text)).toContain(rule)
   })
@@ -250,6 +281,16 @@ describe("the old-name rules", () => {
     "ghcr.io/miragon/pulse-server:0.21.0-RC1",
     "https://github.com/Miragon/pulse/pkgs/container/pulse-server",
     "docker build -t pulse-server .",
+    // operate as a word, the cockpit's key, the Camunda 8 product and its variables.
+    "Pulse lets Claude read and operate your Camunda 7, CIB seven and Operaton engines",
+    '"fleet.operate": "Open"',
+    "Camunda 8 Operate shows the same instance",
+    "operate",
+    "Operate one engine",
+    "CAMUNDA_OPERATE_BASE_URL=http://localhost:8081",
+    'flavor: "operaton"',
+    "https://docs.operaton.org/",
+    "@miragon/pulse-cli",
   ])("%s is no old name", (text) => {
     expect(rulesMatching(text)).toEqual([])
   })
@@ -265,10 +306,13 @@ describe("the old-name rules", () => {
  * A pnpm filter that matches nothing exits 0 (pnpm 10), so a stale name turns a
  * CI job green without running it. `--fail-if-no-match` fails only when NO
  * filter of the command matches: one stale name among three still passes. So
- * every scoped filter anywhere (commands in docs included: the golden update
- * command rewrites nothing under a stale filter) must name a real package, and
- * every pnpm filter on a gate path carries the flag. Turbo's own --filter
- * already fails on an unknown name.
+ * every filter that names a package anywhere (commands in docs included: the
+ * golden update command rewrites nothing under a stale filter) must name a real
+ * one: a scoped `@scope/name`, and an unscoped `pulse-<name>` (a VS Code
+ * extension's manifest name is unscoped, since vsce rejects a scope). And every
+ * pnpm filter on a gate path (a workspace package's scripts and the composite
+ * actions included) carries the flag. Turbo's own --filter already fails on an
+ * unknown name.
  */
 describe("pnpm and turbo filters", () => {
   const packageNames = (inTemplate: boolean) =>
@@ -281,31 +325,67 @@ describe("pnpm and turbo filters", () => {
   const workspace = packageNames(false)
   const template = new Set([...workspace, ...packageNames(true)])
 
-  /** `@scope/name` filter targets, selectors stripped (`!x`, `...x`, `x...`, `x^...`). */
   const FILTER = /(?:--filter(?:=|\s+)|\s-F\s+)\\?["']?([^\s"'`)\\]+)/g
-  const scopedTarget = (raw: string) =>
-    /^@[\w.-]+\/[\w.-]+$/.exec(
+  /**
+   * The package a filter target names, selectors stripped (`!x`, `...x`, `x...`, `x^...`):
+   * a scoped `@scope/name` or an unscoped `pulse-<name>`. A path selector (`./apps/x`,
+   * `{apps/x}`) and a glob name no package, so they are not checked here.
+   */
+  const packageTarget = (raw: string) =>
+    /^(?:@[\w.-]+\/[\w.-]+|pulse-[a-z0-9-]+)$/.exec(
       raw
         .replace(/^!/, "")
         .replace(/^\.\.\.\^?/, "")
         .replace(/\^?\.\.\.$/, ""),
     )?.[0]
 
-  it("every scoped filter names a package of its workspace", () => {
-    const unknown = textFiles.flatMap(({ file, lines }) => {
-      const known = file.startsWith("templates/") ? template : workspace
-      return lines.flatMap((text, index) =>
-        [...text.matchAll(FILTER)]
-          .map((match) => scopedTarget(match[1] ?? ""))
-          .filter((name): name is string => name !== undefined && !known.has(name))
-          .map((name) => `${file}:${index + 1} --filter ${name}`),
-      )
-    })
+  /** `file:line --filter name` for every package a filter on `lines` names that `known` lacks. */
+  const unknownFilters = (file: string, lines: string[], known: { has(name: string): boolean }) =>
+    lines.flatMap((text, index) =>
+      [...text.matchAll(FILTER)]
+        .map((match) => packageTarget(match[1] ?? ""))
+        .filter((name): name is string => name !== undefined && !known.has(name))
+        .map((name) => `${file}:${index + 1} --filter ${name}`),
+    )
+
+  it("every filter that names a package names one of its workspace", () => {
+    const unknown = textFiles.flatMap(({ file, lines }) =>
+      unknownFilters(file, lines, file.startsWith("templates/") ? template : workspace),
+    )
     expect(unknown).toEqual([])
   })
 
+  // The flag is spelled through a constant, so this file names no stale filter itself.
+  const FLAG = "--filter"
+  const SHORT = "-F"
+  it.each([
+    [`pnpm ${FLAG} pulse-vscode build`, []],
+    [`pnpm ${FLAG}=pulse-vscode... build`, []],
+    [`pnpm ${FLAG} @miragon/pulse-widget-shell test`, []],
+    [`pnpm ${FLAG} pulse-vsocde build`, ["pulse-vsocde"]],
+    [`pnpm ${FLAG}=pulse-vsocde^... build`, ["pulse-vsocde"]],
+    [`pnpm ${FLAG} "!pulse-vsocde" -r build`, ["pulse-vsocde"]],
+    [`pnpm ${SHORT} pulse-vsocde build`, ["pulse-vsocde"]],
+    [`"x": "pnpm ${FLAG} \\"pulse-vsocde\\" build"`, ["pulse-vsocde"]],
+    // One stale name among valid ones passes --fail-if-no-match, so it is checked on its own.
+    [`pnpm ${FLAG} pulse-vscode ${FLAG} pulse-vsocde build`, ["pulse-vsocde"]],
+    [`pnpm ${FLAG} @miragon/pulse-widget-shel test`, ["@miragon/pulse-widget-shel"]],
+    // A path selector names no package: --fail-if-no-match covers it on a gate path.
+    [`pnpm ${FLAG} ./apps/vscod build`, []],
+    [`pnpm ${FLAG} "./modules/**" build`, []],
+    [`pnpm ${FLAG} "{apps/vscod}" build`, []],
+  ] as const)("the filter check reads %s", (text, stale) => {
+    const known = new Set(["@miragon/pulse-widget-shell", "pulse-vscode"])
+    expect(unknownFilters("x", [text], known)).toEqual(stale.map((name) => `x:1 ${FLAG} ${name}`))
+  })
+
+  /**
+   * Where a command runs as a gate: the root and every workspace package's scripts
+   * (a `vscode:prepublish` that builds a dependency), the Dockerfile, the workflows and
+   * their composite actions, the conductor and gate shell scripts.
+   */
   const GATE_PATH =
-    /^(?:package\.json|Dockerfile|\.github\/workflows\/[^/]+\.ya?ml|\.conductor\/[^/]+\.sh|scripts\/[^/]+\.sh)$/
+    /^(?:package\.json|(?:apps|packages)\/(?:[^/]+\/)+package\.json|docs\/package\.json|Dockerfile|\.github\/workflows\/[^/]+\.ya?ml|\.github\/actions\/(?:[^/]+\/)*[^/]+\.ya?ml|\.conductor\/[^/]+\.sh|scripts\/[^/]+\.sh)$/
   /** A pnpm command whose filter is pnpm's (not one turbo receives after `pnpm turbo`). */
   const pnpmFilters = (command: string) => {
     const filter = command.search(/--filter\b|\s-F\s/)
@@ -313,21 +393,64 @@ describe("pnpm and turbo filters", () => {
     return /\bpnpm\b/.test(command) && filter >= 0 && (turbo < 0 || turbo > filter)
   }
 
+  /** `file:line command` for every pnpm filter on `lines` that exits 0 when it matches nothing. */
+  const laxFilters = (file: string, lines: string[]) =>
+    lines.flatMap((text, index) =>
+      text.trim().startsWith("#")
+        ? []
+        : text
+            .split(/&&|\|\||;|\|/)
+            .filter((command) => pnpmFilters(command) && !command.includes("--fail-if-no-match"))
+            .map((command) => `${file}:${index + 1} ${command.trim()}`),
+    )
+
   it("every pnpm filter on a gate path fails when it matches nothing", () => {
     const lax = textFiles
       .filter(({ file }) => GATE_PATH.test(file))
-      .flatMap(({ file, lines }) =>
-        lines.flatMap((text, index) =>
-          text.trim().startsWith("#")
-            ? []
-            : text
-                .split(/&&|\|\||;|\|/)
-                .filter(
-                  (command) => pnpmFilters(command) && !command.includes("--fail-if-no-match"),
-                )
-                .map((command) => `${file}:${index + 1} ${command.trim()}`),
-        ),
-      )
+      .flatMap(({ file, lines }) => laxFilters(file, lines))
     expect(lax).toEqual([])
+  })
+
+  it.each([
+    "package.json",
+    "apps/mcp-server-camunda7/package.json",
+    "apps/cli/package.json",
+    "apps/vscode/package.json",
+    "packages/core/widget-shell/package.json",
+    "packages/connectors/camunda/camunda7-domain/package.json",
+    "docs/package.json",
+    "Dockerfile",
+    ".github/workflows/ci.yml",
+    ".github/actions/setup/action.yml",
+    ".github/actions/release/publish/action.yaml",
+    "scripts/test-template.sh",
+  ])("%s is a gate path", (file) => {
+    expect(GATE_PATH.test(file)).toBe(true)
+  })
+
+  it.each([
+    "apps/cli/README.md",
+    "apps/vscode/src/package.json.ts",
+    ".github/actions/setup/README.md",
+    "docs/operations.md",
+  ])("%s is no gate path", (file) => {
+    expect(GATE_PATH.test(file)).toBe(false)
+  })
+
+  it("flags a package script's or a composite action's filter without the flag", () => {
+    const build = `pnpm ${FLAG} ./packages/connectors/camunda/camunda7-domain build`
+    expect(
+      laxFilters("apps/vscode/package.json", [
+        `"vscode:prepublish": "${build} && pnpm run bundle",`,
+        `"ok": "pnpm --fail-if-no-match ${FLAG} ./apps/vscode build",`,
+        `"turbo": "pnpm turbo run build ${FLAG}=./apps/vscode",`,
+      ]),
+    ).toEqual([`apps/vscode/package.json:1 "vscode:prepublish": "${build}`])
+    expect(
+      laxFilters(".github/actions/setup/action.yml", [
+        `# pnpm ${FLAG} ./apps/vscode build`,
+        `      run: pnpm ${SHORT} ./apps/vscode build`,
+      ]),
+    ).toEqual([`.github/actions/setup/action.yml:2 run: pnpm ${SHORT} ./apps/vscode build`])
   })
 })
