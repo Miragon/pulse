@@ -334,6 +334,9 @@ type ResolvedKey =
 export const DEFAULT_URL = "http://localhost:8080/engine-rest"
 export const DEFAULT_TIMEOUT_MS = 30_000
 
+/** The prefix of every environment variable pulse-cli reads (never bare PULSE_, PulseAudio's). */
+export const ENV_PREFIX = "PULSE_CLI_"
+
 export const ENV = {
   url: "PULSE_CLI_URL",
   engine: "PULSE_CLI_ENGINE",

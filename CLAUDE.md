@@ -18,11 +18,15 @@ by its path under `docs/`. `apps/mcp-server-camunda7/test/old-names.test.ts` fai
 old npm scope, repo, docs URL, image, starter, slug or product name; "Miragon AI" as the family
 and the Fly app names stay), on a technical name of the retired operate CLI (its npm package,
 repo, image, tap, docs and product page, its environment variables, config file and config
-directory; the word "operate" and Camunda 8's Operate stay), on a `--filter` naming no
+directory; the word "operate" and Camunda 8's Operate stay), on the unscoped npm package
+pulse-cli (someone else's) and a CLI image off GHCR, on a `--filter` naming no
 workspace package (a scoped name or an unscoped `pulse-<name>`), and on a pnpm filter without
 `--fail-if-no-match` on a gate path (the root's and every workspace package's scripts, the
 Dockerfile, the workflows and their composite actions, the gate shell scripts); its
-allowances are shrink-only.
+allowances are shrink-only. The CLI reads operate's released names (its variables, project
+file, config directory and, through Homebrew, its command) only through
+`apps/cli/src/config/legacy.ts`, until the first release after 2027-01-31; a CHANGELOG guard in
+its tests fails the first release after that date.
 
 `docs/` holds the Pulse docs, a VitePress site built
 with the Miragon docs kit (`docs/.vitepress/miragon/`, vendored from Miragon/corporate-identity,

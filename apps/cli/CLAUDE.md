@@ -75,6 +75,32 @@ no `generate` script, so turbo's cached `generate` task never replays a stale ca
   repository root: leave the tree alone during a run. The mutate list only grows.
 - Coverage floors in `apps/cli/vitest.config.ts` only rise.
 
+## Names of operate
+
+Up to 0.10.0 the CLI was operate. Until the first release after 2027-01-31 it still reads the
+names operate released (its variables, its user config file, its project file and, through the
+Homebrew alias, its command) and warns once per run. Only `apps/cli/src/config/legacy.ts` spells
+them; every other module uses its constants (`LEGACY_ENV_PREFIX`, `LEGACY_PROJECT_FILE`,
+`LEGACY_CONFIG_DIRECTORY`, `LEGACY_PROGRAM`), so no other shipped file names them. The CHANGELOG
+guard in `apps/cli/src/config/legacy.test.ts` fails the first release PR after that date. Then
+remove, in one PR:
+
+1. `apps/cli/src/config/legacy.ts` with `apps/cli/src/config/legacy.test.ts` and
+   `apps/cli/src/config/legacy-files.test.ts`, and `apps/cli/src/cli/legacy-notice.ts` with
+   `apps/cli/src/cli/legacy-notice.test.ts`.
+2. `userConfigFile` (it becomes `configFilePath`), the legacy branch of the project file lookup,
+   `legacyProjectProblem`, the `seed` and `legacy` of an edit target, `legacyFileUses`, and in
+   `run` the environment view of `withLegacyEnv` and the `invokedAs` option (also in
+   `apps/cli/src/bin/pulse-cli.ts`).
+3. The compat allowances in `apps/mcp-server-camunda7/test/old-names.test.ts` and in
+   `apps/cli/src/product-name.test.ts`, and the "Renamed from operate" sections of
+   `apps/cli/README.md` and `docs/cli/installation.md` (keep one line that points to the
+   archived repository).
+4. The `operate` link and its test lines in `apps/cli/scripts/homebrew-formula.sh` and the step
+   that starts the binary under that name in `.github/workflows/ci.yml`.
+5. The legacy prefix in `apps/cli/test/integration/support/process.ts`.
+6. In the same release, the extension drops its fallback to the old project file.
+
 ## Docs move with the code
 
 A change to a command, an option, an output or an error changes, in the same commit, the guide

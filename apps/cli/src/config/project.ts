@@ -13,9 +13,10 @@
  */
 
 import type { FileSystem } from "../runtime.js"
-import { compact, isRecord, isSecretHeader } from "../util.js"
+import { CLI_NAME, compact, isRecord, isSecretHeader } from "../util.js"
 import { configError } from "./config-error.js"
 import { type Location, parseConfigFile, pathModule } from "./file.js"
+import { LEGACY_PROJECT_FILE } from "./legacy.js"
 import {
   type ConfigFile,
   ENV,
@@ -31,6 +32,10 @@ export const PROJECT_FILE = ".pulse-cli.json"
 export interface ProjectFile {
   readonly path: string
   readonly exists: boolean
+  /** The legacy project file (LEGACY_PROJECT_FILE: read, and edited in place, until LEGACY_REMOVAL). */
+  readonly legacy?: true
+  /** The legacy project file next to `path`, ignored. */
+  readonly shadowed?: string
 }
 
 /** A directory as it is compared with the home directory: no trailing separators, on win32 no case. */
@@ -39,10 +44,26 @@ function comparable(path: string, platform: string): string {
   return platform === "win32" ? trimmed.toLowerCase() : trimmed
 }
 
+/** The project file of one directory: PROJECT_FILE, else the legacy LEGACY_PROJECT_FILE. */
+async function projectFileIn(
+  fs: FileSystem,
+  directory: string,
+  path: ReturnType<typeof pathModule>,
+): Promise<ProjectFile | undefined> {
+  const current = path.join(directory, PROJECT_FILE)
+  const old = path.join(directory, LEGACY_PROJECT_FILE)
+  const hasOld = (await fs.kind(old)) !== "missing"
+  if ((await fs.kind(current)) !== "missing") {
+    return hasOld ? { path: current, exists: true, shadowed: old } : { path: current, exists: true }
+  }
+  return hasOld ? { path: old, exists: true, legacy: true } : undefined
+}
+
 /**
- * The project file for the working directory `cwd`: the nearest existing `.pulse-cli.json` from
- * `cwd` up to the repository root, else where `config set --project` creates one (the repository
- * root, else `cwd`). Undefined in the home directory itself: it is nobody's project.
+ * The project file for the working directory `cwd`: the nearest existing `.pulse-cli.json` (else
+ * the legacy file of the same directory) from `cwd` up to the repository root, else where
+ * `config set --project` creates one (the repository root, else `cwd`). Undefined in the home
+ * directory itself: it is nobody's project.
  */
 export async function findProjectFile(
   fs: FileSystem,
@@ -56,10 +77,10 @@ export async function findProjectFile(
     if (comparable(directory, location.platform) === home) {
       return directory === cwd ? undefined : { path: path.join(cwd, PROJECT_FILE), exists: false }
     }
-    const candidate = path.join(directory, PROJECT_FILE)
-    if ((await fs.kind(candidate)) !== "missing") return { path: candidate, exists: true }
+    const found = await projectFileIn(fs, directory, path)
+    if (found !== undefined) return found
     if ((await fs.kind(path.join(directory, ".git"))) !== "missing") {
-      return { path: candidate, exists: false }
+      return { path: path.join(directory, PROJECT_FILE), exists: false }
     }
     const parent = path.dirname(directory)
     if (parent === directory) return { path: path.join(cwd, PROJECT_FILE), exists: false }
@@ -207,6 +228,22 @@ export function projectProblem(
   if (secret !== undefined) return { problem: secret, hint: CREDENTIAL_HINT }
   const foreign = defaultProblem(file)
   return foreign === undefined ? undefined : { problem: foreign, hint: DEFAULT_HINT }
+}
+
+/**
+ * Releases up to 0.10.0 refuse unknown keys, so pulse-cli never writes flavor into the legacy
+ * project file (LEGACY_PROJECT_FILE): a teammate still on such a release could no longer read it.
+ */
+export function legacyProjectProblem(
+  file: ConfigFile,
+): { readonly problem: string; readonly hint: string } | undefined {
+  const name = Object.keys(file.profiles).find((key) => file.profiles[key]?.flavor !== undefined)
+  return name === undefined
+    ? undefined
+    : {
+        problem: `profile "${name}" sets flavor, which operate (up to 0.10.0) refuses in ${LEGACY_PROJECT_FILE}`,
+        hint: `Rename the file to ${PROJECT_FILE} first (git mv ${LEGACY_PROJECT_FILE} ${PROJECT_FILE}) once everyone uses ${CLI_NAME}, or leave flavor out.`,
+      }
 }
 
 /**

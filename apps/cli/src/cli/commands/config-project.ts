@@ -8,6 +8,7 @@ import { configError } from "../../config/config-error.js"
 import { readConfigFile, writeConfigFile } from "../../config/file.js"
 import {
   findProjectFile,
+  legacyProjectProblem,
   PROJECT_FILE,
   projectProblem,
   readProjectFile,
@@ -16,7 +17,7 @@ import { findProfile } from "../../config/resolve.js"
 import { type ConfigFile, ENV } from "../../config/types.js"
 import { usageError } from "../../errors.js"
 import type { Runtime } from "../../runtime.js"
-import { configPath, isExplicit, projectFileOf } from "../config-files.js"
+import { isExplicit, projectFileOf, userConfig } from "../config-files.js"
 
 export const PROJECT_OPTION = [
   "--project",
@@ -31,6 +32,10 @@ export interface EditTarget {
   readonly explicit?: boolean
   /** The project file in effect, read best effort, when the edit writes the user's file. */
   readonly other?: { readonly path: string; readonly file: ConfigFile }
+  /** The legacy config file the edit starts from: `path` does not exist yet. */
+  readonly seed?: string
+  /** The project file is the legacy one: edited in place, never given a flavor. */
+  readonly legacy?: true
 }
 
 function noProjectDirectory(runtime: Runtime) {
@@ -58,11 +63,11 @@ export async function editTarget(
 ): Promise<EditTarget> {
   if (flags.project !== true) {
     const other = await projectInEffect(runtime, flags.config)
-    const path = configPath(runtime, flags.config)
+    const user = await userConfig(runtime, flags.config)
     const explicit = isExplicit(runtime, flags.config)
-    return other === undefined
-      ? { path, project: false, explicit }
-      : { path, project: false, explicit, other }
+    const seed = user.legacy ? { seed: user.path } : {}
+    const target = { path: user.canonical, project: false, explicit, ...seed }
+    return other === undefined ? target : { ...target, other }
   }
   if (flags.config !== undefined) {
     throw usageError(
@@ -72,15 +77,18 @@ export async function editTarget(
   }
   const found = await findProjectFile(runtime.fs, runtime.cwd, runtime)
   if (found === undefined) throw noProjectDirectory(runtime)
-  return { path: found.path, project: true }
+  return found.legacy === true
+    ? { path: found.path, project: true, legacy: true }
+    : { path: found.path, project: true }
 }
 
 /**
- * The current content of the target. A project file is read without its checks, so that an edit
- * can remove what they refuse (`config unset <profile> tokenEnv --project`); writeTarget checks.
+ * The current content of the target (of the legacy config file it starts from, `seed`). A project
+ * file is read without its checks, so that an edit can remove what they refuse
+ * (`config unset <profile> tokenEnv --project`); writeTarget checks.
  */
 export function readTarget(runtime: Runtime, target: EditTarget): Promise<ConfigFile | undefined> {
-  return readConfigFile(runtime.fs, target.path)
+  return readConfigFile(runtime.fs, target.seed ?? target.path)
 }
 
 /**
@@ -97,7 +105,8 @@ export async function writeTarget(
     await writeConfigFile(runtime.fs, target.path, file)
     return
   }
-  const invalid = projectProblem(file)
+  const invalid =
+    projectProblem(file) ?? (target.legacy === true ? legacyProjectProblem(file) : undefined)
   if (invalid !== undefined) {
     throw configError(
       `The project file ${target.path} cannot be written: ${invalid.problem}`,

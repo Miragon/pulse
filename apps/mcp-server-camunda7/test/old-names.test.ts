@@ -53,6 +53,8 @@ const RULES = [
   // too), the repo, the image, the Homebrew tap, the docs, the product page, its
   // OPERATE_* variables, its config file and its config directory. The plain word stays
   // ("read and operate your engines", the cockpit's fleet.operate key, Camunda 8 Operate).
+  // The CLI's compat layer reads the released ones until the first release after 2027-01-31:
+  // only its tests and the two "Renamed from operate" sections may name them (ALLOWED).
   { name: "old operate package", pattern: /@miragon\/operate(?!\w)/i },
   { name: "old operate repo", pattern: /(?<![\w.-])miragon\/operate(?![\w-])/i },
   { name: "old operate image", pattern: /ghcr\.io\/miragon\/operate/i },
@@ -149,6 +151,41 @@ const ALLOWED: Allowance[] = [
     rules: ["old slug"],
     line: /Up to 0\.20\.0 .*shipped under `miragon-ai`/,
     reason: "the release section says what shipped up to 0.20.0: deprecated, never reused",
+  },
+  {
+    file: /^apps\/cli\/src\/(?:config\/legacy(?:-files)?|cli\/legacy-notice)\.test\.ts$/,
+    rules: ["old operate env var", "old operate config file", "old operate config dir"],
+    reason:
+      "the CLI's compat tests pin the names operate released up to 0.10.0, read until the first release after 2027-01-31",
+  },
+  {
+    file: "apps/cli/README.md",
+    rules: [
+      "old operate package",
+      "old operate repo",
+      "old operate image",
+      "old operate tap",
+      "old operate env var",
+      "old operate config file",
+      "old operate config dir",
+    ],
+    section: /^#{2,6} Renamed from operate\b/,
+    reason: "the npm README maps each name of operate (up to 0.10.0) to its pulse-cli name",
+  },
+  {
+    file: "docs/cli/installation.md",
+    rules: [
+      "old operate package",
+      "old operate repo",
+      "old operate image",
+      "old operate tap",
+      "old operate env var",
+      "old operate config file",
+      "old operate config dir",
+    ],
+    section: /^#{2,6} Renamed from operate\b/,
+    reason:
+      "the docs map each name of operate to its pulse-cli name and say how long the old ones work",
   },
   {
     file: "scripts/test-template.sh",

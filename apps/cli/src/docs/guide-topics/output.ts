@@ -44,8 +44,9 @@ pulse-cli job get-stacktrace $JOB_ID
 - \`--dry-run\` prints the request (\`method\`, \`url\`, \`headers\`, \`body\`, \`curl\`) without sending it;
   with \`-o table\` only the \`curl\` line. Secret headers are masked unless \`--show-secrets\`.
 - \`--verbose\` traces request and response on stderr (secret headers masked unless \`--show-secrets\`).
-- Errors are one JSON line on stderr (\`-o table\` prints readable text instead); the exit code
-  table and the error fields are in the core guide (\`pulse-cli guide\`).
+- Errors are one JSON line on stderr, its last line (\`-o table\` prints readable text instead);
+  warnings come before it. The exit code table and the error fields are in the core guide
+  (\`pulse-cli guide\`).
 
 \`\`\`sh
 pulse-cli task list --assignee demo --dry-run -o table

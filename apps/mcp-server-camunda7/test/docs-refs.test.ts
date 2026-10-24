@@ -301,7 +301,7 @@ const DOCS_BUDGETS: Record<string, number> = {
   "cli/index.md": 40,
   "cli/getting-started.md": 90,
   "cli/quick-start.md": 90,
-  "cli/installation.md": 130,
+  "cli/installation.md": 150,
   "cli/workflow-commands.md": 70,
   "cli/commands.md": 150,
   "cli/recipes.md": 110,

@@ -8,6 +8,7 @@ import { jsonErrorPosition } from "./json-position.js"
 import { profileAuthProblem } from "./auth.js"
 import { PROFILE_NAME } from "./syntax.js"
 import { configError } from "./config-error.js"
+import { LEGACY_CONFIG_DIRECTORY } from "./legacy.js"
 import { isHeaderName, isHeaderValue } from "./headers.js"
 import { MAX_TIMEOUT_MS, isEngineName, isFlavor, isTimeout } from "./resolve.js"
 import {
@@ -51,16 +52,20 @@ export function pathModule(platform: string): typeof posix {
 /** The directory of the user's config file and tokens under the platform's config home. */
 export const CONFIG_DIRECTORY = "pulse-cli"
 
-/** The platform's config directory (never derived from `--config` / PULSE_CLI_CONFIG). */
-function configDirectory(env: Env, location: Location): string {
+/** The config directory `name` of the platform (never derived from `--config` / PULSE_CLI_CONFIG). */
+export function configDirectory(
+  env: Env,
+  location: Location,
+  name: string = CONFIG_DIRECTORY,
+): string {
   if (location.platform === "win32") {
     const appData =
       absoluteDir(env.APPDATA, win32) ?? win32.join(location.homedir, "AppData", "Roaming")
-    return win32.join(appData, CONFIG_DIRECTORY)
+    return win32.join(appData, name)
   }
   const configHome =
     absoluteDir(env.XDG_CONFIG_HOME, posix) ?? posix.join(location.homedir, ".config")
-  return posix.join(configHome, CONFIG_DIRECTORY)
+  return posix.join(configHome, name)
 }
 
 /**
@@ -81,6 +86,40 @@ export function configFilePath(env: Env, location: Location, explicit?: string):
  */
 export function tokenDirectory(env: Env, location: Location): string {
   return pathModule(location.platform).join(configDirectory(env, location), "tokens")
+}
+
+/** The user's config file in effect: configFilePath, or the legacy one while only that exists. */
+export interface UserConfigFile {
+  /** The file commands read. */
+  readonly path: string
+  /** The file edits write and logins are keyed by (configFilePath). */
+  readonly canonical: string
+  /** `path` is the legacy config file (LEGACY_CONFIG_DIRECTORY), read until LEGACY_REMOVAL. */
+  readonly legacy: boolean
+}
+
+/**
+ * The user's config file: the one named by `--config` or PULSE_CLI_CONFIG, else configFilePath when
+ * it exists, else the legacy config.json in LEGACY_CONFIG_DIRECTORY when that one exists, else
+ * configFilePath. The legacy file is only read: edits write configFilePath.
+ */
+export async function userConfigFile(
+  fs: FileSystem,
+  env: Env,
+  location: Location,
+  explicit?: string,
+): Promise<UserConfigFile> {
+  const canonical = configFilePath(env, location, explicit)
+  const current = { path: canonical, canonical, legacy: false }
+  if (explicitConfigPath(env, explicit) !== undefined) return current
+  if (await fs.exists(canonical).catch(() => true)) return current
+  const old = pathModule(location.platform).join(
+    configDirectory(env, location, LEGACY_CONFIG_DIRECTORY),
+    "config.json",
+  )
+  return (await fs.exists(old).catch(() => false))
+    ? { path: old, canonical, legacy: true }
+    : current
 }
 
 /** A file of the token directory (win32 or posix join). */

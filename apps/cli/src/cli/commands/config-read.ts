@@ -10,7 +10,7 @@ import { validateOutput } from "../../config/resolve.js"
 import { renderValue } from "../../output/render.js"
 import { compact } from "../../util.js"
 import { subcommand } from "../command.js"
-import { configPath, loadConfig } from "../config-files.js"
+import { loadConfig, userConfig } from "../config-files.js"
 import type { CliContext } from "../context.js"
 import { displayOf } from "../display.js"
 import { addGlobalOptions, readGlobals } from "../globals.js"
@@ -46,7 +46,10 @@ function write(context: CliContext, text: string): void {
   context.runtime.stdout.write(text)
 }
 
-/** The user's config file, with `--project` the project file (the one in effect, else a new one). */
+/**
+ * The user's config file in effect (the legacy one while only that exists), with `--project` the
+ * project file (the one in effect, else a new one).
+ */
 async function printPath(command: Command, context: CliContext): Promise<void> {
   const globals = readGlobals(command)
   const view = await displayOf(context, globals)
@@ -55,7 +58,7 @@ async function printPath(command: Command, context: CliContext): Promise<void> {
     project === true
       ? (await editTarget(context.runtime, { ...compact({ config: globals.config }), project }))
           .path
-      : configPath(context.runtime, globals.config)
+      : (await userConfig(context.runtime, globals.config)).path
   write(context, view.format === "json" ? renderValue({ path }, view) : `${path}\n`)
 }
 

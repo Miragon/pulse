@@ -9,9 +9,9 @@ description: Inspect and operate Camunda 7, Operaton and CIB seven process engin
 and Camunda 7 CE/EE. Every REST operation is a command generated from the OpenAPI spec:
 `pulse-cli <group> <command> [path-args...] [options]`; workflow commands such as
 `pulse-cli inspect` combine several requests. It never prompts, prints JSON when stdout is not a
-terminal, reports errors as one JSON line on stderr and uses stable exit codes. This core guide
-covers everyday use; `pulse-cli guide <topic>` prints the details of a topic (see Topics at the
-end).
+terminal, reports errors as one JSON line on stderr (the last line) and uses stable exit codes.
+This core guide covers everyday use; `pulse-cli guide <topic>` prints the details of a topic (see
+Topics at the end).
 
 ## Setup
 
@@ -113,7 +113,7 @@ with exit code 9, which still prints the view. Options and rules: `pulse-cli gui
 
 ## Errors and exit codes
 
-Errors are one JSON line on stderr (`-o table` prints readable text instead):
+Errors are one JSON line on stderr, its last line (`-o table` prints readable text instead):
 
 ```text
 {"error":{"code":"NOT_FOUND","exitCode":5,"message":"HTTP 404 Not Found: ...","status":404,"engineType":"InvalidRequestException","hint":"...","request":{"method":"GET","url":"..."}}}

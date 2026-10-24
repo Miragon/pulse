@@ -37,10 +37,11 @@ $ pulse-cli process-definition list --key order-process --fields id,key,version 
 
 ## Errors and exit codes
 
-Errors go to stderr as one JSON line (`-o table` or a terminal prints readable text). `hint`
-names the fix (for unknown commands, options and body properties it starts with "Did you mean
-...?"); `engineMessage` carries the engine's own explanation, also when the engine answers with
-plain text (such as JSON deserialization errors).
+Errors go to stderr as one JSON line, the last one; warnings such as a deprecation notice come
+before it (`-o table` or a terminal prints readable text). `hint` names the fix (for unknown
+commands, options and body properties it starts with "Did you mean ...?"); `engineMessage` carries
+the engine's own explanation, also when the engine answers with plain text (such as JSON
+deserialization errors).
 
 ```text
 $ pulse-cli process-instance get abc

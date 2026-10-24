@@ -25,8 +25,8 @@ the [shell completion](#shell-completion). `brew upgrade pulse-cli` updates it.
 
 ## Standalone executable
 
-Every [GitHub release](https://github.com/Miragon/pulse/releases) after 0.5.0 has one file per
-platform that embeds Node.js 24, plus `SHA256SUMS`:
+Every [GitHub release](https://github.com/Miragon/pulse/releases) of the CLI has one file per
+platform that embeds Node.js 24, plus `pulse-cli-SHA256SUMS`:
 
 | Platform              | File                        | Requires                                                 |
 | --------------------- | --------------------------- | -------------------------------------------------------- |
@@ -36,25 +36,24 @@ platform that embeds Node.js 24, plus `SHA256SUMS`:
 | macOS (Intel)         | `pulse-cli-macos-x64`       | macOS 13.5 or newer                                      |
 | Windows x64           | `pulse-cli-windows-x64.exe` | Windows 10 or Server 2016 or newer                       |
 
-Releases after 0.8.0 also have each macOS and Linux file as `<file>.tar.xz` (about 25 MB instead
-of 125 MB). On Alpine and other musl based systems, use the container image or the npm package.
+Each macOS and Linux file also comes as `<file>.tar.xz` (about 25 MB instead of 125 MB). On Alpine and other musl based systems, use the container image or the npm package.
 
 ```sh
 base=https://github.com/Miragon/pulse/releases/latest/download
-curl -fL -O "$base/pulse-cli-linux-x64" -O "$base/SHA256SUMS"
-sha256sum --check --ignore-missing SHA256SUMS
+curl -fL -O "$base/pulse-cli-linux-x64" -O "$base/pulse-cli-SHA256SUMS"
+sha256sum --check --ignore-missing pulse-cli-SHA256SUMS
 sudo install -m 0755 pulse-cli-linux-x64 /usr/local/bin/pulse-cli
 pulse-cli --version
 gh attestation verify pulse-cli-linux-x64 --repo Miragon/pulse
 ```
 
 - `latest/download` follows the newest release; `download/v<version>/<file>` pins one. On macOS
-  check with `shasum -a 256 --check --ignore-missing SHA256SUMS`.
+  check with `shasum -a 256 --check --ignore-missing pulse-cli-SHA256SUMS`.
 - **macOS**: the binaries are signed ad hoc, not notarized. A file downloaded with a browser is
   blocked; run `xattr -d com.apple.quarantine pulse-cli-macos-arm64` or allow it under System
   Settings → Privacy & Security.
 - **Windows**: compare `(Get-FileHash pulse-cli-windows-x64.exe).Hash` in PowerShell with its line
-  in `SHA256SUMS`. The file is not Authenticode signed, so SmartScreen may warn.
+  in `pulse-cli-SHA256SUMS`. The file is not Authenticode signed, so SmartScreen may warn.
 - **Certificates and proxies**: `NODE_EXTRA_CA_CERTS=/path/ca.pem` or `NODE_USE_SYSTEM_CA=1` for an
   internal CA, `NODE_USE_ENV_PROXY=1` with `HTTPS_PROXY` / `NO_PROXY` for a proxy. The same holds
   for the container image.
@@ -112,3 +111,38 @@ pulse-cli completion fish > ~/.config/fish/completions/pulse-cli.fish
 
 Put the bash line into `~/.bashrc`. For zsh add `fpath=(~/.zfunc $fpath)` to `~/.zshrc` before
 `compinit`.
+
+## Renamed from operate
+
+Up to 0.10.0 this CLI was `@miragon/operate` with the command `operate`, released from
+[Miragon/operate](https://github.com/Miragon/operate), which keeps its releases and changelog.
+In Pulse it ships under one name, `pulse-cli`:
+
+| operate (up to 0.10.0)                      | pulse-cli                                        |
+| ------------------------------------------- | ------------------------------------------------ |
+| `npm i -g @miragon/operate`                 | `npm i -g @miragon/pulse-cli`                    |
+| `brew install miragon/tap/operate`          | `brew install miragon/tap/pulse-cli`             |
+| `ghcr.io/miragon/operate`                   | `ghcr.io/miragon/pulse-cli`                      |
+| `/plugin install operate@miragon`           | `/plugin install pulse-cli@miragon-agent-skills` |
+| `OPERATE_URL`, `OPERATE_TOKEN` and the rest | `PULSE_CLI_URL`, `PULSE_CLI_TOKEN` and so on     |
+| `.operate.json`                             | `.pulse-cli.json`                                |
+| `~/.config/operate`, `%APPDATA%\operate`    | `~/.config/pulse-cli`, `%APPDATA%\pulse-cli`     |
+
+Until the first release after 2027-01-31, pulse-cli still reads the old names and prints one
+warning per run that lists each one in use:
+
+- Variables: while no `PULSE_CLI_` variable is set, each `OPERATE_` variable counts as its
+  `PULSE_CLI_` twin. Once one `PULSE_CLI_` variable is set, all `OPERATE_` variables are ignored,
+  so a caller that sets the new names never passes on old credentials.
+- Config file: `~/.config/operate/config.json` is read while `~/.config/pulse-cli/config.json` is
+  missing. The next `pulse-cli config` edit writes the new file from it and leaves the old one as
+  it is. Logins and cached tokens stay behind: run `pulse-cli auth login` once.
+- Project file: in each directory `.pulse-cli.json` comes first, and `.operate.json` is read where
+  it is the only one. Edits stay in the file you have, but pulse-cli writes no `flavor` into
+  `.operate.json`, which operate rejects. Once everyone uses pulse-cli, run
+  `git mv .operate.json .pulse-cli.json`. The VS Code extension looks the files up the same way.
+- Command: the Homebrew formula keeps `operate` as an alias of `pulse-cli`. The npm package has
+  only `pulse-cli`; `@miragon/operate` stays installable (deprecated) with its own `operate`.
+- Claude Code: `/plugin uninstall operate@miragon`, then `/plugin marketplace add Miragon/skills`
+  and `/plugin install pulse-cli@miragon-agent-skills`. Remove a copy of the skill in
+  `~/.claude/skills/operate`.

@@ -11,6 +11,8 @@ import { existsSync } from "node:fs"
 import { cp, mkdir, readdir, readFile, symlink } from "node:fs/promises"
 import { join, relative, sep } from "node:path"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
+import { legacyVariable } from "../../src/config/legacy.js"
+import { ENV } from "../../src/config/types.js"
 import { REPO_ROOT } from "./support/cli.js"
 import { cleanEnv, describeResult, type ProcessResult, runProcess } from "./support/process.js"
 import { makeTempDir, removeTempDir } from "./support/temp.js"
@@ -132,6 +134,15 @@ describe("packed npm tarball", () => {
     expect(existsSync(installedBin(prefix))).toBe(true)
   })
 
+  it("installs exactly one command, pulse-cli: an operate bin would collide with the old package", async () => {
+    const bins = IS_WINDOWS
+      ? (await readdir(prefix)).filter((name) => name !== "node_modules")
+      : await readdir(join(prefix, "bin"))
+    expect(bins.sort()).toEqual(
+      IS_WINDOWS ? [BIN_NAME, `${BIN_NAME}.cmd`, `${BIN_NAME}.ps1`] : [BIN_NAME],
+    )
+  })
+
   it("ships the README, the license and the agent skill", async () => {
     const packageDir = installedPackageDir(prefix)
     for (const file of ["README.md", "LICENSE", join("skills", "pulse-cli", "SKILL.md")]) {
@@ -156,6 +167,19 @@ describe("packed npm tarball", () => {
     }
     const result = expectSuccess(await pulseCli(["--version"]))
     expect(result.stdout.trim()).toBe(manifest.version)
+  })
+
+  it("still reads a variable of its name up to 0.10.0, and warns once", async () => {
+    const result = await runProcess(installedBin(prefix), ["config", "show", "-o", "json"], {
+      cwd: workdir ?? REPO_ROOT,
+      env: cleanEnv({ XDG_CONFIG_HOME: workdir, [legacyVariable(ENV.url)]: "http://old:8080/x" }),
+    })
+    expectSuccess(result)
+    const values = (JSON.parse(result.stdout) as { values: { url: { value: string } } }).values
+    expect(values.url.value).toBe("http://old:8080/x")
+    const warnings = result.stderr.split("\n").filter((line) => line.startsWith("Warning: "))
+    expect(warnings).toHaveLength(1)
+    expect(warnings[0]).toContain("the first release after 2027-01-31")
   })
 
   it("lists the command groups", async () => {

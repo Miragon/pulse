@@ -17,6 +17,8 @@ if (process.pid === 1) {
 // 13, the one Node.js gives an unsettled top-level await, so an event loop that drains early never
 // looks like success; a rejection still ends with exit code 1 (unhandled rejection).
 process.exitCode = 13
-void run(process.argv.slice(2), createNodeRuntime()).then((exitCode) => {
-  process.exitCode = exitCode
-})
+void run(process.argv.slice(2), createNodeRuntime(), { invokedAs: process.argv[1] }).then(
+  (exitCode) => {
+    process.exitCode = exitCode
+  },
+)

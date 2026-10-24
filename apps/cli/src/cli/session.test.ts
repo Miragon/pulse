@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { CONFIG_PATH, fakeRuntime } from "../../test/support/fake-runtime.js"
 import { camunda7 } from "../engines/camunda7/adapter.js"
 import type { ResolvedConfig } from "../config/types.js"
-import { configPath, isExplicit } from "./config-files.js"
+import { isExplicit, userConfig } from "./config-files.js"
 import type { CliContext } from "./context.js"
 import type { GlobalOptions } from "./globals.js"
 import {
@@ -104,8 +104,8 @@ describe("session helpers", () => {
     expect(isExplicit(fakeRuntime({ env: { PULSE_CLI_CONFIG: " " } }), undefined)).toBe(false)
   })
 
-  it("chooses the config path", () => {
-    expect(configPath(fakeRuntime(), "/x.json")).toBe("/x.json")
+  it("chooses the config path", async () => {
+    expect((await userConfig(fakeRuntime(), "/x.json")).path).toBe("/x.json")
   })
 
   it("names the source of read-only mode", () => {
