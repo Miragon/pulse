@@ -18,7 +18,7 @@
       // stays off (historical: the pre-2.x config needed an INPUT env var);
       // the explicit list is stable and cheap to keep.
       "vite": false,
-      // No stryker.config.json here: the diff gate only scans packages/*.
+      // No stryker.config.json: exempt by NO_MUTATION_APPS (scripts/check-package-scripts.mjs).
       "entry": [
         "src/ui/main.tsx",
         // Parsed statically as an entry so its plugin imports count as used.
