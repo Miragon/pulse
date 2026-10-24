@@ -10,9 +10,15 @@ import { ConnectionLive } from "./support/connection-live.js"
 import { describe, expect, test, vi } from "vitest"
 import type { Connection } from "../../src/host/connections/connection.js"
 import { LOCAL_TARGET } from "../../src/host/connections/engine-target.js"
+import { TargetsProblem } from "../../src/host/connections/targets-problem.js"
 import { EnginesTree, type EnginesTreeNode } from "../../src/host/explorer/engines-tree.js"
 import { FakeRegistry } from "./support/fake-registry.js"
-import { TreeItemCollapsibleState, treeViews } from "./support/vscode-fake.js"
+import {
+  ThemeColor,
+  ThemeIcon,
+  TreeItemCollapsibleState,
+  treeViews,
+} from "./support/vscode-fake.js"
 
 vi.mock("vscode", () => import("./support/vscode-fake.js"))
 
@@ -181,5 +187,18 @@ describe("the Engines tree following the active panel", () => {
     await tree.reveal({ engineName: "local-operaton", bpmnProcessId: ORDER })
 
     expect(view.revealed).toEqual([])
+  })
+})
+
+describe("a problem of a project file in the Engines tree", () => {
+  test.each([
+    [undefined, "error", "problemsErrorIcon.foreground", "Error"],
+    ["warning", "warning", "problemsWarningIcon.foreground", "Warning"],
+  ] as const)("shows a %s problem with its icon and words", (severity, icon, colour, words) => {
+    const { tree } = treeOf(new FakeRegistry([]))
+    const problem = new TargetsProblem("/work/engines.json", "what is wrong", severity)
+    const item = tree.getTreeItem({ kind: "targetsProblem", problem })
+    expect(item.iconPath).toEqual(new ThemeIcon(icon, new ThemeColor(colour)))
+    expect(item.accessibilityInformation?.label).toBe(`${words}: /work/engines.json: what is wrong`)
   })
 })

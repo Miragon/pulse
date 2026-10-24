@@ -7,7 +7,7 @@ import { EnvironmentClassifier } from "../../src/host/connections/environment-cl
 import { TargetPolicy } from "../../src/host/connections/target-policy.js"
 import { TargetsParser } from "../../src/host/connections/targets-parser.js"
 
-const FILE = "/work/.operate.json"
+const FILE = "/work/.pulse-cli.json"
 const NONE = { user: undefined, workspace: [] }
 
 function userSaid(user: Record<string, string>) {
@@ -18,7 +18,7 @@ function remote(name: string, endpoint: string): EngineTarget {
   return { ...LOCAL_TARGET, name, endpoint, source: { kind: "file", path: FILE } }
 }
 
-describe("parsing the profiles of .operate.json", () => {
+describe("parsing the profiles of .pulse-cli.json", () => {
   test("reads each profile as an engine with url and auth", () => {
     const content = JSON.stringify({
       defaultProfile: "dev",
@@ -26,7 +26,7 @@ describe("parsing the profiles of .operate.json", () => {
         dev: { url: "https://dev.example.com/engine-rest" },
         "prod-eu": {
           url: "https://prod.example.com/engine-rest",
-          platform: "operaton",
+          flavor: "operaton",
           engine: "default",
           auth: { type: "basic", username: "demo" },
           readOnly: true,
@@ -89,7 +89,7 @@ describe("parsing the profiles of .operate.json", () => {
     const content = JSON.stringify({
       profiles: {
         ok: { url: "http://localhost:8088/engine-rest", auth: { type: "oauth" } },
-        cluster: { url: "http://localhost:8088/v2", platform: "camunda8" },
+        cluster: { url: "http://localhost:8088/v2", flavor: "camunda8" },
         named: { url: "http://localhost:8080/engine-rest", engine: "orders" },
         "bad-url": { url: "not a url" },
         bearer: { url: "http://localhost:8080/engine-rest", auth: { type: "bearer" } },
@@ -102,7 +102,7 @@ describe("parsing the profiles of .operate.json", () => {
     expect(parsed.targets.map((target) => target.name)).toEqual(["ok"])
     expect(parsed.targets[0]?.auth).toEqual({ kind: "oauth2" })
     expect(parsed.problems.map((problem) => problem.detail())).toEqual([
-      `${FILE}: profile "cluster" uses the platform camunda8, which Pulse does not support yet`,
+      `${FILE}: profile "cluster" uses the flavor camunda8, which Pulse does not support yet`,
       `${FILE}: profile "named" names a process engine other than "default", which Pulse does not support yet`,
       `${FILE}: profile "bad-url" needs a valid url without credentials and an auth type Pulse supports (none, basic or oauth)`,
       `${FILE}: profile "bearer" needs a valid url without credentials and an auth type Pulse supports (none, basic or oauth)`,
@@ -123,7 +123,7 @@ describe("parsing the profiles of .operate.json", () => {
   test("names the broken file and what is wrong, for the error item in the Engines tree", () => {
     const [problem] = new TargetsParser(FILE).parse("{").problems
 
-    expect(problem?.label()).toBe(".operate.json: the file is not valid JSON")
+    expect(problem?.label()).toBe(".pulse-cli.json: the file is not valid JSON")
     expect(problem?.detail()).toBe(`${FILE}: the file is not valid JSON`)
     expect(problem?.path).toBe(FILE)
   })

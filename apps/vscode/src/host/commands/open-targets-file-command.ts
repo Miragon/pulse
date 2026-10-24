@@ -25,7 +25,7 @@ export class OpenTargetsFileCommand implements Command {
     const folder = vscode.workspace.workspaceFolders?.[0]
     if (folder === undefined) {
       void vscode.window.showInformationMessage(
-        "Open a folder to configure engines in a .operate.json.",
+        "Open a folder to configure engines in a .pulse-cli.json.",
       )
       return
     }

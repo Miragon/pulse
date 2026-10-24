@@ -4,6 +4,7 @@ export class TargetsProblem {
   constructor(
     readonly path: string,
     readonly message: string,
+    readonly severity?: "warning",
   ) {}
 
   label(): string {

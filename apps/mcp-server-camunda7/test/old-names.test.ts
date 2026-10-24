@@ -161,6 +161,14 @@ const ALLOWED: Allowance[] = [
     reason:
       "the C7 adapter and migration records say how the extension runs the bundled operate 0.9.0",
   },
+  // The CLI's project file was .operate.json up to operate 0.10.0; the extension still reads
+  // it where no .pulse-cli.json sits beside it, until the first release after 2027-01-31.
+  {
+    file: "apps/vscode/src/host/connections/targets-file.ts",
+    rules: ["old operate config file"],
+    line: /FALLBACK_NAME = ["']\.operate\.json["']/,
+    reason: "the extension's fallback to the CLI's former project file name",
+  },
   {
     file: "scripts/test-template.sh",
     rules: ["old npm scope"],

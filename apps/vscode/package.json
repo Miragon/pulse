@@ -56,7 +56,7 @@
     "viewsWelcome": [
       {
         "view": "pulse.engines",
-        "contents": "See what your process engine is running: definitions, instances, incidents. Retry incidents and fix variables on local engines.\n[Configure Engines](command:pulse.openTargetsFile)\nEngines from .operate.json show up here on their own. Works with Operaton, CIB seven and Camunda 7."
+        "contents": "See what your process engine is running: definitions, instances, incidents. Retry incidents and fix variables on local engines.\n[Configure Engines](command:pulse.openTargetsFile)\nEngines from .pulse-cli.json show up here on their own. Works with Operaton, CIB seven and Camunda 7."
       }
     ],
     "commands": [

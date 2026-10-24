@@ -10,7 +10,7 @@ type Json = Readonly<Record<string, unknown>>
 
 type Optionals = Pick<EngineTarget, "webUiUrl" | "readOnly">
 
-const C7_PLATFORMS: ReadonlySet<string> = new Set(["camunda7", "operaton", "cibseven"])
+const C7_FLAVORS: ReadonlySet<string> = new Set(["camunda7", "operaton", "cibseven"])
 const DEFAULT_ENGINE = "default"
 const WEB_PROTOCOLS: ReadonlySet<string> = new Set(["http:", "https:"])
 
@@ -52,9 +52,9 @@ export class TargetsParser {
     if (!this.isRecord(profile)) {
       return `profile "${name}" is not an object`
     }
-    const platform = this.text(profile, "platform") ?? "camunda7"
-    if (!C7_PLATFORMS.has(platform)) {
-      return `profile "${name}" uses the platform ${platform}, which Pulse does not support yet`
+    const flavor = this.text(profile, "flavor") ?? "camunda7"
+    if (!C7_FLAVORS.has(flavor)) {
+      return `profile "${name}" uses the flavor ${flavor}, which Pulse does not support yet`
     }
     if ((this.text(profile, "engine") ?? DEFAULT_ENGINE) !== DEFAULT_ENGINE) {
       return `profile "${name}" names a process engine other than "default", which Pulse does not support yet`

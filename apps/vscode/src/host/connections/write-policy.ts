@@ -1,3 +1,4 @@
+import { basename } from "node:path"
 import type { EngineAccess } from "../../core/protocol/index.js"
 import type { Credentials } from "./connection.js"
 import type { EngineTarget } from "./engine-target.js"
@@ -21,7 +22,9 @@ export class WritePolicy {
       return WritePolicy.denied("Writes are turned off with pulse.writes.")
     }
     if (target.readOnly === true) {
-      return WritePolicy.denied(`${target.name} is a read-only profile in .operate.json.`)
+      return WritePolicy.denied(
+        `${target.name} is a read-only profile in ${WritePolicy.fileOf(target)}.`,
+      )
     }
     const loopback = TargetHosts.isLoopback(target)
     if (!loopback && setting === "localOnly") {
@@ -42,5 +45,9 @@ export class WritePolicy {
 
   private static denied(note: string): EngineAccess {
     return { writable: false, note: `Read-only. ${note}` }
+  }
+
+  private static fileOf(target: EngineTarget): string {
+    return target.source.kind === "file" ? basename(target.source.path) : "its project file"
   }
 }

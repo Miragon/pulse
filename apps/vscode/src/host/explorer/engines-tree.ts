@@ -128,12 +128,17 @@ export class EnginesTree
 
   private problemItem(problem: TargetsProblem): vscode.TreeItem {
     const item = new vscode.TreeItem(problem.label(), vscode.TreeItemCollapsibleState.None)
+    const warning = problem.severity === "warning"
     item.iconPath = new vscode.ThemeIcon(
-      "error",
-      new vscode.ThemeColor("problemsErrorIcon.foreground"),
+      warning ? "warning" : "error",
+      new vscode.ThemeColor(
+        warning ? "problemsWarningIcon.foreground" : "problemsErrorIcon.foreground",
+      ),
     )
     item.tooltip = problem.detail()
-    item.accessibilityInformation = { label: `Error: ${problem.detail()}` }
+    item.accessibilityInformation = {
+      label: `${warning ? "Warning" : "Error"}: ${problem.detail()}`,
+    }
     item.command = {
       command: COMMAND.openTargetsFile,
       title: "Open the Targets File",

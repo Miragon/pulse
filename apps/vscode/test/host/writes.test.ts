@@ -73,7 +73,7 @@ describe("who may write", () => {
   test("keeps a read-only profile read-only, even on this machine", () => {
     expect(WritePolicy.access({ ...LOCAL, readOnly: true }, "enabled", NO_LOGIN)).toEqual({
       writable: false,
-      note: "Read-only. shop-dev is a read-only profile in .operate.json.",
+      note: "Read-only. shop-dev is a read-only profile in its project file.",
     })
   })
 })

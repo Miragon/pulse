@@ -17,7 +17,7 @@ export class ConnectionEditor {
     const choice = await vscode.window.showQuickPick(
       [
         { label: `Set credentials for ${connection.target.name}…`, action: "credentials" as const },
-        { label: "Open .operate.json", action: "file" as const },
+        { label: "Open the project file", action: "file" as const },
       ],
       { title: `Edit connection ${connection.target.name}` },
     )
