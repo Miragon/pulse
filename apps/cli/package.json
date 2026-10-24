@@ -46,8 +46,8 @@
     "catalog": "tsx scripts/generate-catalog.ts",
     "catalog:check": "tsx scripts/generate-catalog.ts --check",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src scripts test",
-    "lint:fix": "eslint src scripts test --fix",
+    "lint": "eslint src scripts test *.config.ts",
+    "lint:fix": "eslint src scripts test *.config.ts --fix",
     "test": "vitest run",
     "test:engines": "vitest run --config vitest.integration.config.ts",
     "test:mutation": "stryker run"
