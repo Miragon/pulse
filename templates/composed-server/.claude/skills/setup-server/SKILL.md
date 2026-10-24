@@ -43,6 +43,9 @@ Edit `.env` (every field is documented inline in `.env.example`):
   metrics.** Analytics reads only the configured engine ids, so the mismatch
   is silent: every analytics tool returns nothing for that engine and its
   health reads `unknown`.
+- `CAMUNDA_ENGINE_FLAVOR`: the engine's vendor, `camunda7` (default), `cibseven` or `operaton`. It
+  picks the cockpit-link routes and the product name the views show, so a CIB seven engine (the
+  playground's) sets `cibseven`.
 - `CAMUNDA_AUTH_TYPE`: `none | basic | bearer | passthrough`; `basic` needs
   `CAMUNDA_USERNAME`/`CAMUNDA_PASSWORD`, `bearer` needs `CAMUNDA_TOKEN` (both
   enforced at boot); `passthrough` forwards each MCP caller's own bearer token.
@@ -51,7 +54,7 @@ Edit `.env` (every field is documented inline in `.env.example`):
   cockpit" links point nowhere.
 - Multiple engines: `CAMUNDA_ENGINES_JSON` (or `CAMUNDA_ENGINES_FILE`) with
   per-engine `id`, `baseUrl`, optional `environment`, `flavor` (`cibseven |
-operaton | camunda7`) and `auth`; overrides the single-engine shorthand
+operaton | camunda7`, default `camunda7`) and `auth`; overrides the single-engine shorthand
   above. To group engines by environment, either set `environment` per entry
   or write the JSON as a map keyed by environment id
   (`{"<environment>": [engines…]}`); pickers and `camunda7_list_engines`
@@ -181,6 +184,7 @@ pnpm install                    # once, then COMMIT pnpm-lock.yaml
 docker build -t my-mcp-server .
 docker run -p 127.0.0.1:8400:8400 \
   -e CAMUNDA_BASE_URL=http://host.docker.internal:8410/engine-rest \
+  -e CAMUNDA_ENGINE_FLAVOR=cibseven \
   -e MCP_PROFILE_DIR=/data/profiles -v mcp-data:/data \
   my-mcp-server
 ```
@@ -267,6 +271,7 @@ missing-URL warnings) is part of done.
 | Every in-widget query hangs on "Loading…" | `resolve.dedupe` in `server/vite.config.ts` was trimmed, or a second copy of React/toolkit/mcp-use got installed                                                                                                   |
 | Widgets render unstyled                   | widget sources outside the Tailwind scan set (workspace modules are globbed; npm-installed ones need an `@source` in `server/src/ui/globals.css`)                                                                  |
 | Analytics tools return empty results      | `CAMUNDA_ENGINE_ID` doesn't match the engine's metrics `ENGINE_ID`, or `PROMETHEUS_URL` points at the wrong port                                                                                                   |
+| Cockpit links open the wrong web app      | the engine's vendor: without `CAMUNDA_ENGINE_FLAVOR` (or a `flavor` per engine entry) it counts as Camunda 7                                                                                                       |
 | "Unknown environment variable" at boot    | typo, or a var this build doesn't read; `.env.example` is the authoritative list                                                                                                                                   |
 | Widget UI changes don't show up           | the bundle is read once at boot; restart `pnpm dev` at the repo root (it rebuilds modules + bundle on start)                                                                                                       |
 | A tool is missing                         | module not in `MCP_ACTIVE_MODULES`, or its toolset filtered it; with no suffix and no `MCP_OAUTH` it is `read-only` (see the boot log's `Toolsets —` line); deployments also need `CAMUNDA_ALLOW_DEPLOYMENTS=true` |

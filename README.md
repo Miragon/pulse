@@ -38,8 +38,8 @@ panels straight into the chat. Built on [mcp-use](https://github.com/mcp-use/mcp
 
 ## Quick start
 
-Pull the published server image and point an MCP client at it. You need a reachable CIB seven /
-Camunda 7 engine (REST API) and, for the analytics module, a Prometheus instance.
+Pull the published server image and point an MCP client at it. You need a reachable Camunda 7,
+CIB seven or Operaton engine (REST API) and, for the analytics module, a Prometheus instance.
 
 ```bash
 docker run --rm -p 127.0.0.1:8400:8400 \
@@ -50,6 +50,9 @@ docker run --rm -p 127.0.0.1:8400:8400 \
   -e PROMETHEUS_URL=http://host.docker.internal:9090 \
   ghcr.io/miragon/pulse-server:latest
 ```
+
+Pulse assumes a Camunda 7 engine. For CIB seven or Operaton add `-e CAMUNDA_ENGINE_FLAVOR=cibseven`
+(or `operaton`): it picks the engine's cockpit links and the product name the views show.
 
 Without `MCP_OAUTH` the endpoint is unauthenticated, so this boots **read-only**: queries, widgets
 and analytics, no engine writes. The boot log names the effective [toolsets](#toolsets). To allow
@@ -225,6 +228,7 @@ The most common variables. See [`docs/operations.md`](docs/operations.md) for th
 | `CAMUNDA_ALLOW_DEPLOYMENTS`                               | `false`                             | `true` registers `camunda7_create_deployment` under `camunda7:admin`: code execution in the engine JVM; empty = unset, any value but `true`/`false` fails the boot        |
 | `CAMUNDA_BASE_URL`                                        | `http://localhost:8410/engine-rest` | Single-engine REST base URL                                                                                                                                               |
 | `CAMUNDA_ENGINE_ID`                                       | `default`                           | Id of that engine; must match the engine's `ENGINE_ID` or its analytics stay empty                                                                                        |
+| `CAMUNDA_ENGINE_FLAVOR`                                   | `camunda7`                          | Vendor of that engine (`cibseven`, `operaton` or `camunda7`): picks its cockpit links and product name                                                                    |
 | `CAMUNDA_ENGINES_JSON` / `CAMUNDA_ENGINES_FILE`           | —                                   | Register multiple engines (see [Multi-engine](#multi-engine))                                                                                                             |
 | `CAMUNDA_COCKPIT_URL`                                     | derived                             | Cockpit web base for jump-out links                                                                                                                                       |
 | `CAMUNDA_AUTH_TYPE`                                       | `none`                              | `basic`, `bearer`, `passthrough`, or `none`: fallback for engines without an `auth`                                                                                       |
@@ -248,7 +252,8 @@ take an optional `engine` filter to aggregate or compare. The server `instructio
 routing rule once for every tool. Each engine entry may carry its own `auth`
 (`{type, username?, password?, token?}`); entries without one use the global `CAMUNDA_*` settings.
 Entries may also declare their vendor via `flavor` (`cibseven` | `operaton` | `camunda7`, default
-`cibseven`), which selects the engine's cockpit-link routes and display name.
+`camunda7`; the single-engine shorthand takes `CAMUNDA_ENGINE_FLAVOR`), which selects the engine's
+cockpit-link routes and display name.
 
 With several engines, the cockpit landing lists every engine with its live health in words (open
 incidents, empty, unreachable, loading), read from the engine itself. The cross-engine view (process

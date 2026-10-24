@@ -251,6 +251,9 @@ services:
       # Analytics reads only the configured engines, so this single-engine
       # default leaves prod-b's metrics out until CAMUNDA_ENGINES_JSON lists it.
       - CAMUNDA_ENGINE_ID=prod-a
+      # The engine is CIB seven: without the flavor the server takes it for
+      # Camunda 7 and puts Camunda 7 routes on the /webapp cockpit below.
+      - CAMUNDA_ENGINE_FLAVOR=cibseven
       - CAMUNDA_COCKPIT_URL=http://localhost:8410/webapp
       - CAMUNDA_AUTH_TYPE=basic
       - CAMUNDA_USERNAME=demo

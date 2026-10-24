@@ -4,7 +4,7 @@ import type { AppPlugin } from "@miragon/mcp-toolkit-core"
 import type { MCPServer } from "mcp-use"
 import type { Client } from "@miragon/pulse-camunda7-client"
 import { createPlugin, type Camunda7SharedResources } from "./plugin.js"
-import { providerForEntry } from "./providers/index.js"
+import { DEFAULT_ENGINE_FLAVOR, providerForEntry } from "./providers/index.js"
 import { allowsProfileSave, camunda7Toolsets } from "./lib/toolsets.js"
 import { camunda7Instructions } from "./instructions.js"
 import { fetchLatestDefinitionXml } from "./data/definition-info.js"
@@ -61,8 +61,16 @@ const engineSchema = z.object({
     // BPMN-XML source engine). Reject it loudly instead.
     .regex(/^(?!\d+$)/, "Environment id must not be purely numeric")
     .optional(),
-  /** Engine vendor of the C7 dialect (selects the provider). Default: "cibseven". */
-  flavor: z.enum(["cibseven", "operaton", "camunda7"]).optional(),
+  /**
+   * Engine vendor of the C7 dialect (selects the provider). Default: "camunda7".
+   * The single-engine shorthand takes it from CAMUNDA_ENGINE_FLAVOR.
+   */
+  flavor: z
+    .enum(["cibseven", "operaton", "camunda7"], {
+      error:
+        'Engine flavor must be "cibseven", "operaton" or "camunda7" (the entry\'s `flavor`, or CAMUNDA_ENGINE_FLAVOR next to CAMUNDA_BASE_URL)',
+    })
+    .optional(),
   /** Per-engine override; engines without one use the global CAMUNDA_* auth. */
   auth: engineAuthSchema.optional(),
 })
@@ -250,7 +258,8 @@ function passthroughEngineIds(env: NodeJS.ProcessEnv): string[] {
  *   1. `CAMUNDA_ENGINES_FILE` — path to a JSON document (preferred at scale; fits ConfigMap workflows).
  *   2. `CAMUNDA_ENGINES_JSON` — inline JSON.
  *   3. `CAMUNDA_BASE_URL` (+ `CAMUNDA_COCKPIT_URL`) — the single-engine shorthand
- *      (the quick-start path), synthesized as `id: CAMUNDA_ENGINE_ID ?? "default"`.
+ *      (the quick-start path), synthesized as `id: CAMUNDA_ENGINE_ID ?? "default"`
+ *      and, when set, `flavor: CAMUNDA_ENGINE_FLAVOR`.
  *
  * Both JSON sources accept the flat array form and the environment-map form
  * (see [[normalizeEnginesConfig]]). Falls back to the local default engine
@@ -262,6 +271,9 @@ function passthroughEngineIds(env: NodeJS.ProcessEnv): string[] {
  * BPMN heatmap, engine compare, …) matches on it. Without a way to name the
  * single-engine shorthand, the only alignment option was switching to the JSON
  * form — and a mismatch reads as "no data", not as a config error.
+ * `CAMUNDA_ENGINE_FLAVOR` names the shorthand's vendor for the same reason: an
+ * engine without a `flavor` is Camunda 7, so a CIB seven or Operaton engine
+ * would otherwise need the JSON form to get its own cockpit links and name.
  */
 function loadEnginesFromEnv(env: NodeJS.ProcessEnv): unknown {
   const filePath = env.CAMUNDA_ENGINES_FILE?.trim()
@@ -276,17 +288,29 @@ function loadEnginesFromEnv(env: NodeJS.ProcessEnv): unknown {
     return normalizeEnginesConfig(JSON.parse(json))
   }
   const id = env.CAMUNDA_ENGINE_ID?.trim() || "default"
+  const flavor = engineFlavorFromEnv(env)
+  const shorthand = { id, ...(flavor ? { flavor } : {}) }
   const baseUrl = env.CAMUNDA_BASE_URL?.trim()
   if (baseUrl) {
     return [
       {
-        id,
+        ...shorthand,
         baseUrl,
         ...(env.CAMUNDA_COCKPIT_URL ? { cockpitUrl: env.CAMUNDA_COCKPIT_URL } : {}),
       },
     ]
   }
-  return [{ id, baseUrl: "http://localhost:8410/engine-rest" }]
+  return [{ ...shorthand, baseUrl: "http://localhost:8410/engine-rest" }]
+}
+
+/**
+ * CAMUNDA_ENGINE_FLAVOR as the shorthand reads it — trimmed, empty = unset —
+ * shared by `loadEnginesFromEnv` (the engine entry) and `bootWarnings` (the
+ * zero-config disclosure). Not validated here: the config schema's `flavor`
+ * enum fails the boot on an unknown vendor.
+ */
+function engineFlavorFromEnv(env: NodeJS.ProcessEnv): string | undefined {
+  return env.CAMUNDA_ENGINE_FLAVOR?.trim() || undefined
 }
 
 /**
@@ -334,6 +358,7 @@ export const camunda7Module = {
     "CAMUNDA_ENGINES_JSON",
     "CAMUNDA_BASE_URL",
     "CAMUNDA_ENGINE_ID",
+    "CAMUNDA_ENGINE_FLAVOR",
     "CAMUNDA_COCKPIT_URL",
     "CAMUNDA_AUTH_TYPE",
     "CAMUNDA_USERNAME",
@@ -362,8 +387,9 @@ export const camunda7Module = {
    *   `http://localhost:8410/engine-rest` — which reaches the repo's Compose
    *   engine, so BPM tools work while engine-scoped analytics (heatmap,
    *   engine compare) join on a mismatched `engine_id` and read as "no data",
-   *   not as a config error. Mirrors the analytics module's PROMETHEUS_URL
-   *   warning.
+   *   not as a config error, and its cockpit links follow the default flavor
+   *   (Camunda 7) although the Compose engine is CIB seven. Mirrors the
+   *   analytics module's PROMETHEUS_URL warning.
    * - `CAMUNDA_ALLOW_DEPLOYMENTS=true` arms code execution inside the engine
    *   JVM for every `camunda7:admin` caller — stated on every boot.
    */
@@ -375,8 +401,9 @@ export const camunda7Module = {
       env.CAMUNDA_BASE_URL?.trim()
     if (!configured) {
       const id = env.CAMUNDA_ENGINE_ID?.trim() || "default"
+      const flavor = engineFlavorFromEnv(env) ?? DEFAULT_ENGINE_FLAVOR
       warnings.push(
-        `No engine is configured (CAMUNDA_ENGINES_FILE / CAMUNDA_ENGINES_JSON / CAMUNDA_BASE_URL) — defaulting to http://localhost:8410/engine-rest with engine id "${id}". That id is the join key against the metrics' engine_id label: engine-scoped analytics return empty when it does not match the ENGINE_ID the engine stamps (the repo's Compose stack stamps "prod-a" — set CAMUNDA_ENGINE_ID to match).`,
+        `No engine is configured (CAMUNDA_ENGINES_FILE / CAMUNDA_ENGINES_JSON / CAMUNDA_BASE_URL) — defaulting to http://localhost:8410/engine-rest with engine id "${id}". That id is the join key against the metrics' engine_id label: engine-scoped analytics return empty when it does not match the ENGINE_ID the engine stamps (the repo's Compose stack stamps "prod-a" — set CAMUNDA_ENGINE_ID to match). Its cockpit links and name follow flavor "${flavor}"; the Compose engine is CIB seven (CAMUNDA_ENGINE_FLAVOR=cibseven).`,
       )
     }
     const passthrough = passthroughEngineIds(env)

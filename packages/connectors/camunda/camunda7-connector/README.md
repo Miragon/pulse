@@ -31,9 +31,9 @@ hangs every in-widget query on "Loading…".
 - **Multi-engine routing:** every tool resolves its engine through `withEngine` / `resolveEngine`
   (`src/lib/`): per-call override → saved default engine (profile) → single configured default.
 - **Engine providers** (`src/engine-provider.ts`, `src/providers/`): each engine entry carries a
-  vendor `flavor` (`cibseven` | `operaton` | `camunda7`, default `cibseven`) resolved to an
-  `EngineProvider` holding only the real vendor differences: cockpit routes, branding, client hook.
-  Mixed-vendor fleets run in one server.
+  vendor `flavor` (`cibseven` | `operaton` | `camunda7`, default `camunda7`; the `CAMUNDA_BASE_URL`
+  shorthand takes `CAMUNDA_ENGINE_FLAVOR`) resolved to an `EngineProvider` holding only the real
+  vendor differences: cockpit routes, branding, client hook. Mixed-vendor fleets run in one server.
 - **Toolsets, fail-closed:** `src/lib/toolsets.ts` declares `read-only` / `operations` / `admin` as
   the module's `toolsets` vocabulary. With no `camunda7:<toolset>` suffix the module runs
   `read-only` on an unauthenticated server and `operations` under OAuth; an empty or unknown suffix
