@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" id="wf" targetNamespace="https://example.com/wf">
+  <bpmn:message id="msg-paid" name="WorkflowPaid" />
+  <bpmn:process id="workflow-child" isExecutable="true" camunda:historyTimeToLive="1">
+    <bpmn:startEvent id="child-start" />
+    <bpmn:sequenceFlow id="c1" sourceRef="child-start" targetRef="approve" />
+    <bpmn:userTask id="approve" name="Approve" />
+    <bpmn:sequenceFlow id="c2" sourceRef="approve" targetRef="child-end" />
+    <bpmn:endEvent id="child-end" />
+  </bpmn:process>
+  <bpmn:process id="workflow-parent" isExecutable="true" camunda:historyTimeToLive="1">
+    <bpmn:startEvent id="start" />
+    <bpmn:sequenceFlow id="f1" sourceRef="start" targetRef="call-approval" />
+    <bpmn:callActivity id="call-approval" calledElement="workflow-child" />
+    <bpmn:sequenceFlow id="f2" sourceRef="call-approval" targetRef="charge" />
+    <bpmn:serviceTask id="charge" camunda:type="external" camunda:topic="workflow-charge" />
+    <bpmn:sequenceFlow id="f3" sourceRef="charge" targetRef="paid" />
+    <bpmn:intermediateCatchEvent id="paid"><bpmn:messageEventDefinition messageRef="msg-paid" /></bpmn:intermediateCatchEvent>
+    <bpmn:sequenceFlow id="f4" sourceRef="paid" targetRef="cool-down" />
+    <bpmn:intermediateCatchEvent id="cool-down"><bpmn:timerEventDefinition><bpmn:timeDuration>PT1H</bpmn:timeDuration></bpmn:timerEventDefinition></bpmn:intermediateCatchEvent>
+    <bpmn:sequenceFlow id="f5" sourceRef="cool-down" targetRef="book" />
+    <bpmn:serviceTask id="book" camunda:asyncBefore="true" camunda:expression="${failBooking ? missingBean.run() : true}">
+      <bpmn:extensionElements><camunda:failedJobRetryTimeCycle>R1/PT1S</camunda:failedJobRetryTimeCycle></bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="f6" sourceRef="book" targetRef="wait-signal" />
+    <bpmn:receiveTask id="wait-signal" />
+    <bpmn:sequenceFlow id="f7" sourceRef="wait-signal" targetRef="end" />
+    <bpmn:endEvent id="end" />
+  </bpmn:process>
+</bpmn:definitions>

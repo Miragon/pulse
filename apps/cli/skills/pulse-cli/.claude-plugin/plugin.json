@@ -1,0 +1,21 @@
+{
+  "name": "operate",
+  "version": "0.10.0",
+  "description": "Inspect and operate Camunda 7, Operaton and CIB seven process engines through their REST API with the operate CLI: the agent skill for its operations and workflow commands, and /operate:status for engine triage.",
+  "author": {
+    "name": "Miragon GmbH",
+    "url": "https://github.com/Miragon"
+  },
+  "homepage": "https://github.com/Miragon/operate#readme",
+  "repository": "https://github.com/Miragon/operate",
+  "license": "MIT",
+  "keywords": [
+    "camunda",
+    "camunda7",
+    "operaton",
+    "cibseven",
+    "bpmn",
+    "rest",
+    "cli"
+  ]
+}

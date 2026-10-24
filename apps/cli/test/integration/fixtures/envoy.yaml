@@ -1,0 +1,68 @@
+# Envoy jwt_authn gateway in front of an unmodified engine (design §16.14.1). The test fills in
+# ${ISSUER} (the host-side issuer, exactly as the CLI and the tokens spell it) and ${UPSTREAM} (the
+# network alias of the engine) after Keycloak and the engine have started. The image's CMD reads
+# /etc/envoy/envoy.yaml.
+static_resources:
+  listeners:
+    - name: engine
+      address: { socket_address: { address: 0.0.0.0, port_value: 8080 } }
+      filter_chains:
+        - filters:
+            - name: envoy.filters.network.http_connection_manager
+              typed_config:
+                '@type': type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                stat_prefix: engine
+                route_config:
+                  virtual_hosts:
+                    - name: engine
+                      domains: ['*']
+                      routes:
+                        - match: { prefix: '/' }
+                          route: { cluster: engine, timeout: 120s }
+                http_filters:
+                  - name: envoy.filters.http.jwt_authn
+                    typed_config:
+                      '@type': type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.JwtAuthentication
+                      providers:
+                        keycloak:
+                          # must equal the token's iss (the host-side URL)
+                          issuer: '${ISSUER}'
+                          audiences: [engine-rest]
+                          # 0 means "unset", i.e. the 60 s default: an expired token would pass
+                          clock_skew_seconds: 1
+                          forward: true
+                          remote_jwks:
+                            http_uri:
+                              uri: http://keycloak:8080/realms/operate/protocol/openid-connect/certs
+                              cluster: keycloak
+                              timeout: 5s
+                            cache_duration: 300s
+                            # the listener is ready only after the JWKS fetch
+                            async_fetch: { fast_listener: false }
+                            retry_policy:
+                              num_retries: 10
+                              retry_back_off: { base_interval: 0.5s, max_interval: 3s }
+                      rules:
+                        - match: { prefix: '/' }
+                          requires: { provider_name: keycloak }
+                  - name: envoy.filters.http.router
+                    typed_config:
+                      '@type': type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+  clusters:
+    - name: engine
+      type: STRICT_DNS
+      connect_timeout: 5s
+      load_assignment:
+        cluster_name: engine
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  { address: { socket_address: { address: '${UPSTREAM}', port_value: 8080 } } }
+    - name: keycloak
+      type: STRICT_DNS
+      connect_timeout: 5s
+      load_assignment:
+        cluster_name: keycloak
+        endpoints:
+          - lb_endpoints:
+              - endpoint: { address: { socket_address: { address: keycloak, port_value: 8080 } } }

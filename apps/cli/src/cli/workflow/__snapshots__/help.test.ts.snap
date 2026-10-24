@@ -1,0 +1,1510 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`workflow command describe > describes the options of advance 1`] = `
+{
+  "arguments": [
+    {
+      "description": "Process instance id; or select it with --business-key / --process-definition-key",
+      "name": "process-instance-id",
+      "required": false,
+    },
+  ],
+  "examples": [
+    "operate advance $INSTANCE_ID --var approved=true",
+    "operate advance --business-key B-1 --activity-id charge-card --var charged=true --wait",
+    "operate advance $INSTANCE_ID --activity-id charge-card --fail 'Card declined'",
+  ],
+  "options": [
+    {
+      "description": "Select the process instance by business key (running or ended)",
+      "flag": "--business-key <key>",
+      "required": false,
+      "type": "string",
+    },
+    {
+      "description": "Select by process definition key; with --latest the most recently started instance",
+      "flag": "--process-definition-key <key>",
+      "required": false,
+      "type": "string",
+    },
+    {
+      "description": "Take the most recently started instance that matches the filters",
+      "flag": "--latest",
+      "required": false,
+      "type": "boolean",
+    },
+    {
+      "description": "The activity to advance when the instance waits at several places",
+      "flag": "--activity-id <id>",
+      "required": false,
+      "type": "string",
+    },
+    {
+      "description": "Variable of the completion (process scope): name=value (auto typed: true/false, integers, decimals, null, else string) or name:Type=value (String, Integer, Short, Long, Double, Boolean, Date, Json, Xml, Null; Date accepts the date-time forms, e.g. 2024-05-01 or 2024-05-01T10:00:00+02:00); repeatable",
+      "flag": "--var <name=value>",
+      "repeatable": true,
+      "required": false,
+      "type": "variables",
+    },
+    {
+      "description": "Local variable of an external task completion: name=value (auto typed: true/false, integers, decimals, null, else string) or name:Type=value (String, Integer, Short, Long, Double, Boolean, Date, Json, Xml, Null; Date accepts the date-time forms, e.g. 2024-05-01 or 2024-05-01T10:00:00+02:00); repeatable",
+      "flag": "--local-var <name=value>",
+      "repeatable": true,
+      "required": false,
+      "type": "variables",
+    },
+    {
+      "description": "Throw a BPMN error with this code instead of completing (user and external tasks)",
+      "flag": "--bpmn-error <code>",
+      "required": false,
+      "type": "string",
+    },
+    {
+      "description": "Message of the BPMN error",
+      "flag": "--error-message <text>",
+      "required": false,
+      "type": "string",
+    },
+    {
+      "description": "Report a failure of the external task with this message instead of completing it",
+      "flag": "--fail <message>",
+      "required": false,
+      "type": "string",
+    },
+    {
+      "description": "Retries left after --fail (default 0: an incident)",
+      "flag": "--retries <n>",
+      "required": false,
+      "type": "integer",
+    },
+    {
+      "description": "Worker that locks and completes an external task (default operate)",
+      "flag": "--worker-id <id>",
+      "required": false,
+      "type": "string",
+    },
+    {
+      "description": "After the writes, wait until the instance is idle before printing it",
+      "flag": "--wait",
+      "required": false,
+      "type": "boolean",
+    },
+    {
+      "description": "Wait until idle, ended, incident, task, task:<taskDefinitionKey> or activity:<activityId>; repeatable, any one ends the wait (implies --wait)",
+      "flag": "--until <condition>",
+      "repeatable": true,
+      "required": false,
+      "type": "condition",
+    },
+    {
+      "description": "Total wait budget like 500ms, 30s, 2m or 1h (default 60s; --timeout is per request)",
+      "flag": "--wait-timeout <duration>",
+      "required": false,
+      "type": "duration",
+    },
+    {
+      "description": "Keep waiting when an incident appears (default: fail fast with INCIDENT)",
+      "flag": "--no-fail-on-incident",
+      "required": false,
+      "type": "boolean",
+    },
+    {
+      "description": "Leave out the variables of the instance view (and their request)",
+      "flag": "--no-variables",
+      "required": false,
+      "type": "boolean",
+    },
+  ],
+}
+`;
+
+exports[`workflow command describe > describes the options of deploy 1`] = `
+{
+  "arguments": [
+    {
+      "description": "BPMN, DMN and form files and directories to deploy",
+      "name": "paths",
+      "required": true,
+      "variadic": true,
+    },
+  ],
+  "examples": [
+    "operate deploy src/main/resources",
+    "operate deploy order-process.bpmn approval.dmn --start --business-key B-1 --var amount=250 --wait",
+  ],
+  "options": [
+    {
+      "description": "Deployment name (default operate); unchanged files are skipped per name",
+      "flag": "--name <deployment-name>",
+      "required": false,
+      "type": "string",
+    },
+    {
+      "description": "Name every resource by its path relative to this directory",
+      "flag": "--base-dir <dir>",
+      "required": false,
+      "type": "string",
+    },
+    {
+      "description": "Tenant of the deployment (and of the started instance)",
+      "flag": "--tenant-id <id>",
+      "required": false,
+      "type": "string",
+    },
+    {
+      "description": "Start an instance of the only process of the deployed files",
+      "flag": "--start",
+      "required": false,
+      "type": "boolean",
+    },
+    {
+      "description": "Start an instance of this process definition key (implies --start)",
+      "flag": "--start-key <key>",
+      "required": false,
+      "type": "string",
+    },
+    {
+      "description": "Business key of the started instance",
+      "flag": "--business-key <key>",
+      "required": false,
+      "type": "string",
+    },
+    {
+      "description": "Variable of the started instance: name=value (auto typed: true/false, integers, decimals, null, else string) or name:Type=value (String, Integer, Short, Long, Double, Boolean, Date, Json, Xml, Null; Date accepts the date-time forms, e.g. 2024-05-01 or 2024-05-01T10:00:00+02:00); repeatable",
+      "flag": "--var <name=value>",
+      "repeatable": true,
+      "required": false,
+      "type": "variables",
+    },
+    {
+      "description": "After the writes, wait until the instance is idle before printing it",
+      "flag": "--wait",
+      "required": false,
+      "type": "boolean",
+    },
+    {
+      "description": "Wait until idle, ended, incident, task, task:<taskDefinitionKey> or activity:<activityId>; repeatable, any one ends the wait (implies --wait)",
+      "flag": "--until <condition>",
+      "repeatable": true,
+      "required": false,
+      "type": "condition",
+    },
+    {
+      "description": "Total wait budget like 500ms, 30s, 2m or 1h (default 60s; --timeout is per request)",
+      "flag": "--wait-timeout <duration>",
+      "required": false,
+      "type": "duration",
+    },
+    {
+      "description": "Keep waiting when an incident appears (default: fail fast with INCIDENT)",
+      "flag": "--no-fail-on-incident",
+      "required": false,
+      "type": "boolean",
+    },
+    {
+      "description": "Leave out the variables of the instance view (and their request)",
+      "flag": "--no-variables",
+      "required": false,
+      "type": "boolean",
+    },
+  ],
+}
+`;
+
+exports[`workflow command describe > describes the options of inspect 1`] = `
+{
+  "arguments": [
+    {
+      "description": "Process instance id; or select it with --business-key / --process-definition-key",
+      "name": "process-instance-id",
+      "required": false,
+    },
+  ],
+  "examples": [
+    "operate inspect $INSTANCE_ID",
+    "operate inspect --business-key B-1 --history",
+    "operate inspect --process-definition-key order-process --latest --no-variables",
+  ],
+  "options": [
+    {
+      "description": "Select the process instance by business key (running or ended)",
+      "flag": "--business-key <key>",
+      "required": false,
+      "type": "string",
+    },
+    {
+      "description": "Select by process definition key; with --latest the most recently started instance",
+      "flag": "--process-definition-key <key>",
+      "required": false,
+      "type": "string",
+    },
+    {
+      "description": "Take the most recently started instance that matches the filters",
+      "flag": "--latest",
+      "required": false,
+      "type": "boolean",
+    },
+    {
+      "description": "Leave out the variables of the instance view (and their request)",
+      "flag": "--no-variables",
+      "required": false,
+      "type": "boolean",
+    },
+    {
+      "description": "Add the timeline: activities in BPMN order with their incidents, from the history",
+      "flag": "--history",
+      "required": false,
+      "type": "boolean",
+    },
+    {
+      "description": "Add the stacktrace (at most 200 lines) to each incident",
+      "flag": "--stacktrace",
+      "required": false,
+      "type": "boolean",
+    },
+  ],
+}
+`;
+
+exports[`workflow command describe > describes the options of retry 1`] = `
+{
+  "arguments": [
+    {
+      "description": "Process instance id; or select it with --business-key / --process-definition-key",
+      "name": "process-instance-id",
+      "required": false,
+    },
+  ],
+  "examples": [
+    "operate retry $INSTANCE_ID --now",
+    "operate retry --incident $INCIDENT_ID",
+    "operate retry --process-definition-key payment --activity-id call-psp --dry-run",
+  ],
+  "options": [
+    {
+      "description": "Select the process instance by business key (running or ended)",
+      "flag": "--business-key <key>",
+      "required": false,
+      "type": "string",
+    },
+    {
+      "description": "Select by process definition key; with --latest the most recently started instance",
+      "flag": "--process-definition-key <key>",
+      "required": false,
+      "type": "string",
+    },
+    {
+      "description": "Take the most recently started instance that matches the filters",
+      "flag": "--latest",
+      "required": false,
+      "type": "boolean",
+    },
+    {
+      "description": "Retry these incidents; comma separated, repeatable",
+      "flag": "--incident <ids>",
+      "repeatable": true,
+      "required": false,
+      "type": "string",
+    },
+    {
+      "description": "Only incidents at this activity",
+      "flag": "--activity-id <id>",
+      "required": false,
+      "type": "string",
+    },
+    {
+      "description": "Only incidents of this type",
+      "enum": [
+        "failedJob",
+        "failedExternalTask",
+      ],
+      "flag": "--incident-type <type>",
+      "required": false,
+      "type": "string",
+    },
+    {
+      "description": "Retries to set (default 1)",
+      "flag": "--retries <n>",
+      "required": false,
+      "type": "integer",
+    },
+    {
+      "description": "Execute the retried jobs at once and report the ones that failed again",
+      "flag": "--now",
+      "required": false,
+      "type": "boolean",
+    },
+    {
+      "description": "After the writes, wait until the instance is idle before printing it",
+      "flag": "--wait",
+      "required": false,
+      "type": "boolean",
+    },
+    {
+      "description": "Wait until idle, ended, incident, task, task:<taskDefinitionKey> or activity:<activityId>; repeatable, any one ends the wait (implies --wait)",
+      "flag": "--until <condition>",
+      "repeatable": true,
+      "required": false,
+      "type": "condition",
+    },
+    {
+      "description": "Total wait budget like 500ms, 30s, 2m or 1h (default 60s; --timeout is per request)",
+      "flag": "--wait-timeout <duration>",
+      "required": false,
+      "type": "duration",
+    },
+    {
+      "description": "Keep waiting when an incident appears (default: fail fast with INCIDENT)",
+      "flag": "--no-fail-on-incident",
+      "required": false,
+      "type": "boolean",
+    },
+    {
+      "description": "Leave out the variables of the instance view (and their request)",
+      "flag": "--no-variables",
+      "required": false,
+      "type": "boolean",
+    },
+  ],
+}
+`;
+
+exports[`workflow command describe > describes the options of status 1`] = `
+{
+  "arguments": [],
+  "examples": [
+    "operate status",
+    "operate status --process-definition-key payment --fail-on warning",
+  ],
+  "options": [
+    {
+      "description": "Only these process definition keys; repeatable",
+      "flag": "--process-definition-key <key>",
+      "repeatable": true,
+      "required": false,
+      "type": "string",
+    },
+    {
+      "description": "Jobs and external tasks waiting longer than this are findings (default 5m)",
+      "flag": "--stale-after <duration>",
+      "required": false,
+      "type": "duration",
+    },
+    {
+      "description": "Incident groups to show, 1 to 100 (default 10)",
+      "flag": "--max-groups <n>",
+      "required": false,
+      "type": "integer",
+    },
+    {
+      "description": "Exit with code 9 (CHECK_FAILED) when the status reaches this level",
+      "enum": [
+        "warning",
+        "critical",
+      ],
+      "flag": "--fail-on <level>",
+      "required": false,
+      "type": "string",
+    },
+  ],
+}
+`;
+
+exports[`workflow command describe > describes the options of wait 1`] = `
+{
+  "arguments": [
+    {
+      "description": "Process instance id; or select it with --business-key / --process-definition-key",
+      "name": "process-instance-id",
+      "required": false,
+    },
+  ],
+  "examples": [
+    "operate wait $INSTANCE_ID",
+    "operate wait --business-key B-1 --until task --until ended --wait-timeout 2m",
+    "operate wait $INSTANCE_ID --until activity:book --execute-jobs",
+    "operate wait --batch $BATCH_ID",
+  ],
+  "options": [
+    {
+      "description": "Select the process instance by business key (running or ended)",
+      "flag": "--business-key <key>",
+      "required": false,
+      "type": "string",
+    },
+    {
+      "description": "Select by process definition key; with --latest the most recently started instance",
+      "flag": "--process-definition-key <key>",
+      "required": false,
+      "type": "string",
+    },
+    {
+      "description": "Take the most recently started instance that matches the filters",
+      "flag": "--latest",
+      "required": false,
+      "type": "boolean",
+    },
+    {
+      "description": "Wait until idle, ended, incident, task, task:<taskDefinitionKey> or activity:<activityId>; repeatable, any one ends the wait",
+      "flag": "--until <condition>",
+      "repeatable": true,
+      "required": false,
+      "type": "condition",
+    },
+    {
+      "description": "Total wait budget like 500ms, 30s, 2m or 1h (default 60s; --timeout is per request)",
+      "flag": "--wait-timeout <duration>",
+      "required": false,
+      "type": "duration",
+    },
+    {
+      "description": "Keep waiting when an incident appears (default: fail fast with INCIDENT)",
+      "flag": "--no-fail-on-incident",
+      "required": false,
+      "type": "boolean",
+    },
+    {
+      "description": "Execute due jobs of the instance tree on every poll instead of waiting for the job executor (a write)",
+      "flag": "--execute-jobs",
+      "required": false,
+      "type": "boolean",
+    },
+    {
+      "description": "Leave out the variables of the instance view (and their request)",
+      "flag": "--no-variables",
+      "required": false,
+      "type": "boolean",
+    },
+    {
+      "description": "Wait until this batch finished instead of a process instance",
+      "flag": "--batch <batch-id>",
+      "required": false,
+      "type": "string",
+    },
+  ],
+}
+`;
+
+exports[`workflow command describe text > renders the description of advance 1`] = `
+"USAGE
+  operate advance [process-instance-id] [options]
+
+DESCRIPTION
+  Complete what a process instance waits for: user task, external task, message, signal, timer or
+  async job
+  Effect: write; --dry-run sends the reads and previews the writes
+
+  Completes what the process instance waits for, without passing ids around: completes a user task,
+  locks and completes an external task (or reports a failure or BPMN error), triggers a message or
+  signal at the waiting execution, signals a receive task, or executes a timer or an asynchronous
+  job. Name the activity with --activity-id when the instance waits at several places.
+
+ARGUMENTS
+  [process-instance-id]  Process instance id; or select it with --business-key /
+                         --process-definition-key
+
+OPTIONS
+  --business-key <key>            Select the process instance by business key (running or ended)
+  --process-definition-key <key>  Select by process definition key; with --latest the most recently
+                                  started instance
+  --latest                        Take the most recently started instance that matches the filters
+  --activity-id <id>              The activity to advance when the instance waits at several places
+  --var <name=value>              Variable of the completion (process scope): name=value (auto
+                                  typed: true/false, integers, decimals, null, else string) or
+                                  name:Type=value (String, Integer, Short, Long, Double, Boolean,
+                                  Date, Json, Xml, Null; Date accepts the date-time forms, e.g.
+                                  2024-05-01 or 2024-05-01T10:00:00+02:00); repeatable
+  --local-var <name=value>        Local variable of an external task completion: name=value (auto
+                                  typed: true/false, integers, decimals, null, else string) or
+                                  name:Type=value (String, Integer, Short, Long, Double, Boolean,
+                                  Date, Json, Xml, Null; Date accepts the date-time forms, e.g.
+                                  2024-05-01 or 2024-05-01T10:00:00+02:00); repeatable
+  --bpmn-error <code>             Throw a BPMN error with this code instead of completing (user and
+                                  external tasks)
+  --error-message <text>          Message of the BPMN error
+  --fail <message>                Report a failure of the external task with this message instead of
+                                  completing it
+  --retries <n>                   Retries left after --fail (default 0: an incident)
+  --worker-id <id>                Worker that locks and completes an external task (default operate)
+  --wait                          After the writes, wait until the instance is idle before printing
+                                  it
+  --until <condition>             Wait until idle, ended, incident, task, task:<taskDefinitionKey>
+                                  or activity:<activityId>; repeatable, any one ends the wait
+                                  (implies --wait)
+  --wait-timeout <duration>       Total wait budget like 500ms, 30s, 2m or 1h (default 60s;
+                                  --timeout is per request)
+  --no-fail-on-incident           Keep waiting when an incident appears (default: fail fast with
+                                  INCIDENT)
+  --no-variables                  Leave out the variables of the instance view (and their request)
+
+REQUESTS
+  getHistoricProcessInstances       operate historic-process-instance list
+  getProcessInstances               operate process-instance list
+  getProcessInstance                operate process-instance get
+  getHistoricProcessInstance        operate historic-process-instance get
+  getHistoricVariableInstances      operate historic-variable-instance list
+  getActivityInstanceTree           operate process-instance get-activity-instance-tree
+  getIncidents                      operate incident list
+  getEventSubscriptions             operate event-subscription list
+  getTasks                          operate task list
+  getExternalTasks                  operate external-task list
+  getJobs                           operate job list
+  getProcessDefinitions             operate process-definition list
+  getJobDefinitions                 operate job-definition list
+  getProcessInstanceVariables       operate process-instance get-variables
+  getStacktrace                     operate job get-stacktrace
+  getExternalTaskErrorDetails       operate external-task get-error-details
+  complete                          operate task complete
+  handleBpmnError                   operate task handle-bpmn-error
+  lock                              operate external-task lock
+  completeExternalTaskResource      operate external-task complete
+  handleExternalTaskBpmnError       operate external-task handle-bpmn-error
+  handleFailure                     operate external-task handle-failure
+  unlock                            operate external-task unlock
+  triggerEvent                      operate execution trigger-event
+  throwSignal                       operate signal throw
+  signalExecution                   operate execution signal
+  executeJob                        operate job execute
+  getJob                            operate job get
+  getProcessDefinitionBpmn20Xml     operate process-definition xml-by-id
+  getProcessDefinitionBpmn20XmlByKey
+                                    operate process-definition xml
+  getProcessInstancesCount          operate process-instance count
+  getJobsCount                      operate job count
+  getTasksCount                     operate task count
+  getHistoricActivityInstancesCount
+                                    operate historic-activity-instance count
+
+EXAMPLES
+  operate advance $INSTANCE_ID --var approved=true
+  operate advance --business-key B-1 --activity-id charge-card --var charged=true --wait
+  operate advance $INSTANCE_ID --activity-id charge-card --fail 'Card declined'
+"
+`;
+
+exports[`workflow command describe text > renders the description of advance 2`] = `
+[
+  {
+    "command": "historic-process-instance list",
+    "operationId": "getHistoricProcessInstances",
+  },
+  {
+    "command": "process-instance list",
+    "operationId": "getProcessInstances",
+  },
+  {
+    "command": "process-instance get",
+    "operationId": "getProcessInstance",
+  },
+  {
+    "command": "historic-process-instance get",
+    "operationId": "getHistoricProcessInstance",
+  },
+  {
+    "command": "historic-variable-instance list",
+    "operationId": "getHistoricVariableInstances",
+  },
+  {
+    "command": "process-instance get-activity-instance-tree",
+    "operationId": "getActivityInstanceTree",
+  },
+  {
+    "command": "incident list",
+    "operationId": "getIncidents",
+  },
+  {
+    "command": "event-subscription list",
+    "operationId": "getEventSubscriptions",
+  },
+  {
+    "command": "task list",
+    "operationId": "getTasks",
+  },
+  {
+    "command": "external-task list",
+    "operationId": "getExternalTasks",
+  },
+  {
+    "command": "job list",
+    "operationId": "getJobs",
+  },
+  {
+    "command": "process-definition list",
+    "operationId": "getProcessDefinitions",
+  },
+  {
+    "command": "job-definition list",
+    "operationId": "getJobDefinitions",
+  },
+  {
+    "command": "process-instance get-variables",
+    "operationId": "getProcessInstanceVariables",
+  },
+  {
+    "command": "job get-stacktrace",
+    "operationId": "getStacktrace",
+  },
+  {
+    "command": "external-task get-error-details",
+    "operationId": "getExternalTaskErrorDetails",
+  },
+  {
+    "command": "task complete",
+    "operationId": "complete",
+  },
+  {
+    "command": "task handle-bpmn-error",
+    "operationId": "handleBpmnError",
+  },
+  {
+    "command": "external-task lock",
+    "operationId": "lock",
+  },
+  {
+    "command": "external-task complete",
+    "operationId": "completeExternalTaskResource",
+  },
+  {
+    "command": "external-task handle-bpmn-error",
+    "operationId": "handleExternalTaskBpmnError",
+  },
+  {
+    "command": "external-task handle-failure",
+    "operationId": "handleFailure",
+  },
+  {
+    "command": "external-task unlock",
+    "operationId": "unlock",
+  },
+  {
+    "command": "execution trigger-event",
+    "operationId": "triggerEvent",
+  },
+  {
+    "command": "signal throw",
+    "operationId": "throwSignal",
+  },
+  {
+    "command": "execution signal",
+    "operationId": "signalExecution",
+  },
+  {
+    "command": "job execute",
+    "operationId": "executeJob",
+  },
+  {
+    "command": "job get",
+    "operationId": "getJob",
+  },
+  {
+    "command": "process-definition xml-by-id",
+    "operationId": "getProcessDefinitionBpmn20Xml",
+  },
+  {
+    "command": "process-definition xml",
+    "operationId": "getProcessDefinitionBpmn20XmlByKey",
+  },
+  {
+    "command": "process-instance count",
+    "operationId": "getProcessInstancesCount",
+  },
+  {
+    "command": "job count",
+    "operationId": "getJobsCount",
+  },
+  {
+    "command": "task count",
+    "operationId": "getTasksCount",
+  },
+  {
+    "command": "historic-activity-instance count",
+    "operationId": "getHistoricActivityInstancesCount",
+  },
+]
+`;
+
+exports[`workflow command describe text > renders the description of deploy 1`] = `
+"USAGE
+  operate deploy <paths...> [options]
+
+DESCRIPTION
+  Deploy changed BPMN, DMN and form files, report the versions in effect, optionally start an
+  instance
+  Effect: write
+
+  Deploys files and directories (scanned for *.bpmn, *.bpmn20.xml, *.dmn, *.dmn11.xml and *.form,
+  skipping dot-directories and node_modules) with the same deployment name and source every time, so
+  unchanged files are skipped and keep their version. Reports per resource whether it was deployed
+  now and the definitions in effect. --start or --start-key starts an instance and prints it.
+
+ARGUMENTS
+  <paths...>  BPMN, DMN and form files and directories to deploy
+
+OPTIONS
+  --name <deployment-name>   Deployment name (default operate); unchanged files are skipped per name
+  --base-dir <dir>           Name every resource by its path relative to this directory
+  --tenant-id <id>           Tenant of the deployment (and of the started instance)
+  --start                    Start an instance of the only process of the deployed files
+  --start-key <key>          Start an instance of this process definition key (implies --start)
+  --business-key <key>       Business key of the started instance
+  --var <name=value>         Variable of the started instance: name=value (auto typed: true/false,
+                             integers, decimals, null, else string) or name:Type=value (String,
+                             Integer, Short, Long, Double, Boolean, Date, Json, Xml, Null; Date
+                             accepts the date-time forms, e.g. 2024-05-01 or
+                             2024-05-01T10:00:00+02:00); repeatable
+  --wait                     After the writes, wait until the instance is idle before printing it
+  --until <condition>        Wait until idle, ended, incident, task, task:<taskDefinitionKey> or
+                             activity:<activityId>; repeatable, any one ends the wait (implies
+                             --wait)
+  --wait-timeout <duration>  Total wait budget like 500ms, 30s, 2m or 1h (default 60s; --timeout is
+                             per request)
+  --no-fail-on-incident      Keep waiting when an incident appears (default: fail fast with
+                             INCIDENT)
+  --no-variables             Leave out the variables of the instance view (and their request)
+
+REQUESTS
+  getDeployments                    operate deployment list
+  createDeployment                  operate deployment create
+  getDeploymentResources            operate deployment get-resources
+  getProcessDefinitions             operate process-definition list
+  getDecisionDefinitions            operate decision-definition list
+  getDecisionRequirementsDefinitions
+                                    operate decision-requirements-definition list
+  startProcessInstanceByKey         operate process-definition start
+  startProcessInstanceByKeyAndTenantId
+                                    operate process-definition start-by-key-and-tenant-id
+  getProcessInstance                operate process-instance get
+  getHistoricProcessInstance        operate historic-process-instance get
+  getHistoricVariableInstances      operate historic-variable-instance list
+  getProcessInstances               operate process-instance list
+  getActivityInstanceTree           operate process-instance get-activity-instance-tree
+  getIncidents                      operate incident list
+  getEventSubscriptions             operate event-subscription list
+  getTasks                          operate task list
+  getExternalTasks                  operate external-task list
+  getJobs                           operate job list
+  getJobDefinitions                 operate job-definition list
+  getProcessInstanceVariables       operate process-instance get-variables
+  getStacktrace                     operate job get-stacktrace
+  getExternalTaskErrorDetails       operate external-task get-error-details
+  getProcessInstancesCount          operate process-instance count
+  getJobsCount                      operate job count
+  getTasksCount                     operate task count
+  getHistoricActivityInstancesCount
+                                    operate historic-activity-instance count
+
+EXAMPLES
+  operate deploy src/main/resources
+  operate deploy order-process.bpmn approval.dmn --start --business-key B-1 --var amount=250 \\
+      --wait
+"
+`;
+
+exports[`workflow command describe text > renders the description of deploy 2`] = `
+[
+  {
+    "command": "deployment list",
+    "operationId": "getDeployments",
+  },
+  {
+    "command": "deployment create",
+    "operationId": "createDeployment",
+  },
+  {
+    "command": "deployment get-resources",
+    "operationId": "getDeploymentResources",
+  },
+  {
+    "command": "process-definition list",
+    "operationId": "getProcessDefinitions",
+  },
+  {
+    "command": "decision-definition list",
+    "operationId": "getDecisionDefinitions",
+  },
+  {
+    "command": "decision-requirements-definition list",
+    "operationId": "getDecisionRequirementsDefinitions",
+  },
+  {
+    "command": "process-definition start",
+    "operationId": "startProcessInstanceByKey",
+  },
+  {
+    "command": "process-definition start-by-key-and-tenant-id",
+    "operationId": "startProcessInstanceByKeyAndTenantId",
+  },
+  {
+    "command": "process-instance get",
+    "operationId": "getProcessInstance",
+  },
+  {
+    "command": "historic-process-instance get",
+    "operationId": "getHistoricProcessInstance",
+  },
+  {
+    "command": "historic-variable-instance list",
+    "operationId": "getHistoricVariableInstances",
+  },
+  {
+    "command": "process-instance list",
+    "operationId": "getProcessInstances",
+  },
+  {
+    "command": "process-instance get-activity-instance-tree",
+    "operationId": "getActivityInstanceTree",
+  },
+  {
+    "command": "incident list",
+    "operationId": "getIncidents",
+  },
+  {
+    "command": "event-subscription list",
+    "operationId": "getEventSubscriptions",
+  },
+  {
+    "command": "task list",
+    "operationId": "getTasks",
+  },
+  {
+    "command": "external-task list",
+    "operationId": "getExternalTasks",
+  },
+  {
+    "command": "job list",
+    "operationId": "getJobs",
+  },
+  {
+    "command": "job-definition list",
+    "operationId": "getJobDefinitions",
+  },
+  {
+    "command": "process-instance get-variables",
+    "operationId": "getProcessInstanceVariables",
+  },
+  {
+    "command": "job get-stacktrace",
+    "operationId": "getStacktrace",
+  },
+  {
+    "command": "external-task get-error-details",
+    "operationId": "getExternalTaskErrorDetails",
+  },
+  {
+    "command": "process-instance count",
+    "operationId": "getProcessInstancesCount",
+  },
+  {
+    "command": "job count",
+    "operationId": "getJobsCount",
+  },
+  {
+    "command": "task count",
+    "operationId": "getTasksCount",
+  },
+  {
+    "command": "historic-activity-instance count",
+    "operationId": "getHistoricActivityInstancesCount",
+  },
+]
+`;
+
+exports[`workflow command describe text > renders the description of inspect 1`] = `
+"USAGE
+  operate inspect [process-instance-id] [options]
+
+DESCRIPTION
+  Show where a process instance waits and why: wait states, incidents with root cause, called
+  instances, variables
+  Effect: read
+
+  Shows where a process instance waits and why in one call: its wait states (user tasks, external
+  tasks, messages, timers, jobs, ...) across the called instances below it, the open root incidents
+  with their root cause, the called instances and the variables. Finds ended instances through the
+  history; --history adds the timeline.
+
+ARGUMENTS
+  [process-instance-id]  Process instance id; or select it with --business-key /
+                         --process-definition-key
+
+OPTIONS
+  --business-key <key>            Select the process instance by business key (running or ended)
+  --process-definition-key <key>  Select by process definition key; with --latest the most recently
+                                  started instance
+  --latest                        Take the most recently started instance that matches the filters
+  --no-variables                  Leave out the variables of the instance view (and their request)
+  --history                       Add the timeline: activities in BPMN order with their incidents,
+                                  from the history
+  --stacktrace                    Add the stacktrace (at most 200 lines) to each incident
+
+REQUESTS
+  getHistoricProcessInstances   operate historic-process-instance list
+  getProcessInstances           operate process-instance list
+  getProcessInstance            operate process-instance get
+  getHistoricProcessInstance    operate historic-process-instance get
+  getHistoricVariableInstances  operate historic-variable-instance list
+  getActivityInstanceTree       operate process-instance get-activity-instance-tree
+  getIncidents                  operate incident list
+  getEventSubscriptions         operate event-subscription list
+  getTasks                      operate task list
+  getExternalTasks              operate external-task list
+  getJobs                       operate job list
+  getProcessDefinitions         operate process-definition list
+  getJobDefinitions             operate job-definition list
+  getProcessInstanceVariables   operate process-instance get-variables
+  getStacktrace                 operate job get-stacktrace
+  getExternalTaskErrorDetails   operate external-task get-error-details
+  getHistoricActivityInstances  operate historic-activity-instance list
+  getHistoricIncidents          operate historic-incident list
+
+EXAMPLES
+  operate inspect $INSTANCE_ID
+  operate inspect --business-key B-1 --history
+  operate inspect --process-definition-key order-process --latest --no-variables
+"
+`;
+
+exports[`workflow command describe text > renders the description of inspect 2`] = `
+[
+  {
+    "command": "historic-process-instance list",
+    "operationId": "getHistoricProcessInstances",
+  },
+  {
+    "command": "process-instance list",
+    "operationId": "getProcessInstances",
+  },
+  {
+    "command": "process-instance get",
+    "operationId": "getProcessInstance",
+  },
+  {
+    "command": "historic-process-instance get",
+    "operationId": "getHistoricProcessInstance",
+  },
+  {
+    "command": "historic-variable-instance list",
+    "operationId": "getHistoricVariableInstances",
+  },
+  {
+    "command": "process-instance get-activity-instance-tree",
+    "operationId": "getActivityInstanceTree",
+  },
+  {
+    "command": "incident list",
+    "operationId": "getIncidents",
+  },
+  {
+    "command": "event-subscription list",
+    "operationId": "getEventSubscriptions",
+  },
+  {
+    "command": "task list",
+    "operationId": "getTasks",
+  },
+  {
+    "command": "external-task list",
+    "operationId": "getExternalTasks",
+  },
+  {
+    "command": "job list",
+    "operationId": "getJobs",
+  },
+  {
+    "command": "process-definition list",
+    "operationId": "getProcessDefinitions",
+  },
+  {
+    "command": "job-definition list",
+    "operationId": "getJobDefinitions",
+  },
+  {
+    "command": "process-instance get-variables",
+    "operationId": "getProcessInstanceVariables",
+  },
+  {
+    "command": "job get-stacktrace",
+    "operationId": "getStacktrace",
+  },
+  {
+    "command": "external-task get-error-details",
+    "operationId": "getExternalTaskErrorDetails",
+  },
+  {
+    "command": "historic-activity-instance list",
+    "operationId": "getHistoricActivityInstances",
+  },
+  {
+    "command": "historic-incident list",
+    "operationId": "getHistoricIncidents",
+  },
+]
+`;
+
+exports[`workflow command describe text > renders the description of retry 1`] = `
+"USAGE
+  operate retry [process-instance-id] [options]
+
+DESCRIPTION
+  Retry the failed jobs and external tasks of open incidents, optionally executing the jobs at once
+  Effect: write; bulk with --process-definition-key alone (requires --yes); --dry-run sends the reads and previews the writes
+
+  Sets the retries of the failed jobs and external tasks behind open incidents: the incidents of a
+  process instance tree, the named incidents (--incident), or every incident of a process definition
+  (--process-definition-key alone, a bulk operation that needs --yes). Propagated incidents are
+  replaced by their root cause; other incident types are skipped with a hint. --now executes the
+  jobs at once and reports a job that failed again as "failed" with its root cause.
+
+ARGUMENTS
+  [process-instance-id]  Process instance id; or select it with --business-key /
+                         --process-definition-key
+
+OPTIONS
+  --business-key <key>            Select the process instance by business key (running or ended)
+  --process-definition-key <key>  Select by process definition key; with --latest the most recently
+                                  started instance
+  --latest                        Take the most recently started instance that matches the filters
+  --incident <ids>                Retry these incidents; comma separated, repeatable
+  --activity-id <id>              Only incidents at this activity
+  --incident-type <type>          Only incidents of this type. One of: failedJob,
+                                  failedExternalTask.
+  --retries <n>                   Retries to set (default 1)
+  --now                           Execute the retried jobs at once and report the ones that failed
+                                  again
+  --wait                          After the writes, wait until the instance is idle before printing
+                                  it
+  --until <condition>             Wait until idle, ended, incident, task, task:<taskDefinitionKey>
+                                  or activity:<activityId>; repeatable, any one ends the wait
+                                  (implies --wait)
+  --wait-timeout <duration>       Total wait budget like 500ms, 30s, 2m or 1h (default 60s;
+                                  --timeout is per request)
+  --no-fail-on-incident           Keep waiting when an incident appears (default: fail fast with
+                                  INCIDENT)
+  --no-variables                  Leave out the variables of the instance view (and their request)
+
+REQUESTS
+  getHistoricProcessInstances       operate historic-process-instance list
+  getProcessInstances               operate process-instance list
+  getProcessInstance                operate process-instance get
+  getIncidents                      operate incident list
+  getIncident                       operate incident get
+  setJobRetries                     operate job set-retries
+  setExternalTaskResourceRetries    operate external-task set-retries
+  executeJob                        operate job execute
+  getJob                            operate job get
+  getStacktrace                     operate job get-stacktrace
+  getProcessDefinitionBpmn20Xml     operate process-definition xml-by-id
+  getProcessDefinitionBpmn20XmlByKey
+                                    operate process-definition xml
+  getProcessInstancesCount          operate process-instance count
+  getJobsCount                      operate job count
+  getTasksCount                     operate task count
+  getHistoricActivityInstancesCount
+                                    operate historic-activity-instance count
+  getHistoricProcessInstance        operate historic-process-instance get
+  getHistoricVariableInstances      operate historic-variable-instance list
+  getActivityInstanceTree           operate process-instance get-activity-instance-tree
+  getEventSubscriptions             operate event-subscription list
+  getTasks                          operate task list
+  getExternalTasks                  operate external-task list
+  getJobs                           operate job list
+  getProcessDefinitions             operate process-definition list
+  getJobDefinitions                 operate job-definition list
+  getProcessInstanceVariables       operate process-instance get-variables
+  getExternalTaskErrorDetails       operate external-task get-error-details
+
+EXAMPLES
+  operate retry $INSTANCE_ID --now
+  operate retry --incident $INCIDENT_ID
+  operate retry --process-definition-key payment --activity-id call-psp --dry-run
+"
+`;
+
+exports[`workflow command describe text > renders the description of retry 2`] = `
+[
+  {
+    "command": "historic-process-instance list",
+    "operationId": "getHistoricProcessInstances",
+  },
+  {
+    "command": "process-instance list",
+    "operationId": "getProcessInstances",
+  },
+  {
+    "command": "process-instance get",
+    "operationId": "getProcessInstance",
+  },
+  {
+    "command": "incident list",
+    "operationId": "getIncidents",
+  },
+  {
+    "command": "incident get",
+    "operationId": "getIncident",
+  },
+  {
+    "command": "job set-retries",
+    "operationId": "setJobRetries",
+  },
+  {
+    "command": "external-task set-retries",
+    "operationId": "setExternalTaskResourceRetries",
+  },
+  {
+    "command": "job execute",
+    "operationId": "executeJob",
+  },
+  {
+    "command": "job get",
+    "operationId": "getJob",
+  },
+  {
+    "command": "job get-stacktrace",
+    "operationId": "getStacktrace",
+  },
+  {
+    "command": "process-definition xml-by-id",
+    "operationId": "getProcessDefinitionBpmn20Xml",
+  },
+  {
+    "command": "process-definition xml",
+    "operationId": "getProcessDefinitionBpmn20XmlByKey",
+  },
+  {
+    "command": "process-instance count",
+    "operationId": "getProcessInstancesCount",
+  },
+  {
+    "command": "job count",
+    "operationId": "getJobsCount",
+  },
+  {
+    "command": "task count",
+    "operationId": "getTasksCount",
+  },
+  {
+    "command": "historic-activity-instance count",
+    "operationId": "getHistoricActivityInstancesCount",
+  },
+  {
+    "command": "historic-process-instance get",
+    "operationId": "getHistoricProcessInstance",
+  },
+  {
+    "command": "historic-variable-instance list",
+    "operationId": "getHistoricVariableInstances",
+  },
+  {
+    "command": "process-instance get-activity-instance-tree",
+    "operationId": "getActivityInstanceTree",
+  },
+  {
+    "command": "event-subscription list",
+    "operationId": "getEventSubscriptions",
+  },
+  {
+    "command": "task list",
+    "operationId": "getTasks",
+  },
+  {
+    "command": "external-task list",
+    "operationId": "getExternalTasks",
+  },
+  {
+    "command": "job list",
+    "operationId": "getJobs",
+  },
+  {
+    "command": "process-definition list",
+    "operationId": "getProcessDefinitions",
+  },
+  {
+    "command": "job-definition list",
+    "operationId": "getJobDefinitions",
+  },
+  {
+    "command": "process-instance get-variables",
+    "operationId": "getProcessInstanceVariables",
+  },
+  {
+    "command": "external-task get-error-details",
+    "operationId": "getExternalTaskErrorDetails",
+  },
+]
+`;
+
+exports[`workflow command describe text > renders the description of status 1`] = `
+"USAGE
+  operate status [options]
+
+DESCRIPTION
+  Triage the engine: grouped incidents with root cause, job executor and external task worker health
+  Effect: read
+
+  Engine triage in one call: the definitions with instances and incidents, the root incidents
+  grouped by definition, activity, type and message with their root cause, overdue executable jobs
+  (is the job executor running?), external task topics with waiting, locked and expired tasks (is a
+  worker subscribed?), open tasks and failed batches. Every finding names the next command;
+  --fail-on makes CI fail on findings.
+
+OPTIONS
+  --process-definition-key <key>  Only these process definition keys; repeatable
+  --stale-after <duration>        Jobs and external tasks waiting longer than this are findings
+                                  (default 5m)
+  --max-groups <n>                Incident groups to show, 1 to 100 (default 10)
+  --fail-on <level>               Exit with code 9 (CHECK_FAILED) when the status reaches this
+                                  level. One of: warning, critical.
+
+REQUESTS
+  getRestAPIVersion               operate version get
+  getProcessDefinitionStatistics  operate process-definition get-statistics
+  getIncidents                    operate incident list
+  getIncidentsCount               operate incident count
+  getExternalTasks                operate external-task list
+  getExternalTasksCount           operate external-task count
+  getJobsCount                    operate job count
+  getJobs                         operate job list
+  getTasksCount                   operate task count
+  getBatchStatistics              operate batch get-statistics
+  getStacktrace                   operate job get-stacktrace
+  getExternalTaskErrorDetails     operate external-task get-error-details
+
+EXAMPLES
+  operate status
+  operate status --process-definition-key payment --fail-on warning
+"
+`;
+
+exports[`workflow command describe text > renders the description of status 2`] = `
+[
+  {
+    "command": "version get",
+    "operationId": "getRestAPIVersion",
+  },
+  {
+    "command": "process-definition get-statistics",
+    "operationId": "getProcessDefinitionStatistics",
+  },
+  {
+    "command": "incident list",
+    "operationId": "getIncidents",
+  },
+  {
+    "command": "incident count",
+    "operationId": "getIncidentsCount",
+  },
+  {
+    "command": "external-task list",
+    "operationId": "getExternalTasks",
+  },
+  {
+    "command": "external-task count",
+    "operationId": "getExternalTasksCount",
+  },
+  {
+    "command": "job count",
+    "operationId": "getJobsCount",
+  },
+  {
+    "command": "job list",
+    "operationId": "getJobs",
+  },
+  {
+    "command": "task count",
+    "operationId": "getTasksCount",
+  },
+  {
+    "command": "batch get-statistics",
+    "operationId": "getBatchStatistics",
+  },
+  {
+    "command": "job get-stacktrace",
+    "operationId": "getStacktrace",
+  },
+  {
+    "command": "external-task get-error-details",
+    "operationId": "getExternalTaskErrorDetails",
+  },
+]
+`;
+
+exports[`workflow command describe text > renders the description of wait 1`] = `
+"USAGE
+  operate wait [process-instance-id] [options]
+
+DESCRIPTION
+  Wait until a process instance is idle, ended, has an incident or reached an activity, or a batch
+  finished
+  Effect: read; write with --execute-jobs
+
+  Waits until the process instance is idle (no executable job left, so it rests in wait states), or
+  until the --until conditions; fails fast with exit code 9 (INCIDENT) when an incident appears, and
+  with WAIT_TIMEOUT after --wait-timeout. Prints the instance view with "waited". Use it instead of
+  sleep after every asynchronous step. With --batch it waits until the batch finished.
+
+ARGUMENTS
+  [process-instance-id]  Process instance id; or select it with --business-key /
+                         --process-definition-key
+
+OPTIONS
+  --business-key <key>            Select the process instance by business key (running or ended)
+  --process-definition-key <key>  Select by process definition key; with --latest the most recently
+                                  started instance
+  --latest                        Take the most recently started instance that matches the filters
+  --until <condition>             Wait until idle, ended, incident, task, task:<taskDefinitionKey>
+                                  or activity:<activityId>; repeatable, any one ends the wait
+  --wait-timeout <duration>       Total wait budget like 500ms, 30s, 2m or 1h (default 60s;
+                                  --timeout is per request)
+  --no-fail-on-incident           Keep waiting when an incident appears (default: fail fast with
+                                  INCIDENT)
+  --execute-jobs                  Execute due jobs of the instance tree on every poll instead of
+                                  waiting for the job executor (a write)
+  --no-variables                  Leave out the variables of the instance view (and their request)
+  --batch <batch-id>              Wait until this batch finished instead of a process instance
+
+REQUESTS
+  getHistoricProcessInstances       operate historic-process-instance list
+  getProcessInstances               operate process-instance list
+  getProcessInstance                operate process-instance get
+  getHistoricProcessInstance        operate historic-process-instance get
+  getProcessDefinitionBpmn20Xml     operate process-definition xml-by-id
+  getProcessDefinitionBpmn20XmlByKey
+                                    operate process-definition xml
+  getProcessInstancesCount          operate process-instance count
+  getJobsCount                      operate job count
+  getTasksCount                     operate task count
+  getHistoricActivityInstancesCount
+                                    operate historic-activity-instance count
+  getJobs                           operate job list
+  executeJob                        operate job execute
+  getJob                            operate job get
+  getStacktrace                     operate job get-stacktrace
+  getHistoricVariableInstances      operate historic-variable-instance list
+  getActivityInstanceTree           operate process-instance get-activity-instance-tree
+  getIncidents                      operate incident list
+  getEventSubscriptions             operate event-subscription list
+  getTasks                          operate task list
+  getExternalTasks                  operate external-task list
+  getProcessDefinitions             operate process-definition list
+  getJobDefinitions                 operate job-definition list
+  getProcessInstanceVariables       operate process-instance get-variables
+  getExternalTaskErrorDetails       operate external-task get-error-details
+  getBatchStatistics                operate batch get-statistics
+  getHistoricBatch                  operate historic-batch get
+
+EXAMPLES
+  operate wait $INSTANCE_ID
+  operate wait --business-key B-1 --until task --until ended --wait-timeout 2m
+  operate wait $INSTANCE_ID --until activity:book --execute-jobs
+  operate wait --batch $BATCH_ID
+"
+`;
+
+exports[`workflow command describe text > renders the description of wait 2`] = `
+[
+  {
+    "command": "historic-process-instance list",
+    "operationId": "getHistoricProcessInstances",
+  },
+  {
+    "command": "process-instance list",
+    "operationId": "getProcessInstances",
+  },
+  {
+    "command": "process-instance get",
+    "operationId": "getProcessInstance",
+  },
+  {
+    "command": "historic-process-instance get",
+    "operationId": "getHistoricProcessInstance",
+  },
+  {
+    "command": "process-definition xml-by-id",
+    "operationId": "getProcessDefinitionBpmn20Xml",
+  },
+  {
+    "command": "process-definition xml",
+    "operationId": "getProcessDefinitionBpmn20XmlByKey",
+  },
+  {
+    "command": "process-instance count",
+    "operationId": "getProcessInstancesCount",
+  },
+  {
+    "command": "job count",
+    "operationId": "getJobsCount",
+  },
+  {
+    "command": "task count",
+    "operationId": "getTasksCount",
+  },
+  {
+    "command": "historic-activity-instance count",
+    "operationId": "getHistoricActivityInstancesCount",
+  },
+  {
+    "command": "job list",
+    "operationId": "getJobs",
+  },
+  {
+    "command": "job execute",
+    "operationId": "executeJob",
+  },
+  {
+    "command": "job get",
+    "operationId": "getJob",
+  },
+  {
+    "command": "job get-stacktrace",
+    "operationId": "getStacktrace",
+  },
+  {
+    "command": "historic-variable-instance list",
+    "operationId": "getHistoricVariableInstances",
+  },
+  {
+    "command": "process-instance get-activity-instance-tree",
+    "operationId": "getActivityInstanceTree",
+  },
+  {
+    "command": "incident list",
+    "operationId": "getIncidents",
+  },
+  {
+    "command": "event-subscription list",
+    "operationId": "getEventSubscriptions",
+  },
+  {
+    "command": "task list",
+    "operationId": "getTasks",
+  },
+  {
+    "command": "external-task list",
+    "operationId": "getExternalTasks",
+  },
+  {
+    "command": "process-definition list",
+    "operationId": "getProcessDefinitions",
+  },
+  {
+    "command": "job-definition list",
+    "operationId": "getJobDefinitions",
+  },
+  {
+    "command": "process-instance get-variables",
+    "operationId": "getProcessInstanceVariables",
+  },
+  {
+    "command": "external-task get-error-details",
+    "operationId": "getExternalTaskErrorDetails",
+  },
+  {
+    "command": "batch get-statistics",
+    "operationId": "getBatchStatistics",
+  },
+  {
+    "command": "historic-batch get",
+    "operationId": "getHistoricBatch",
+  },
+]
+`;

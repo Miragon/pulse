@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+                  id="order-process-definitions"
+                  targetNamespace="https://github.com/Miragon/operate/test/integration">
+  <bpmn:process id="order-process" name="Order process" isExecutable="true" camunda:historyTimeToLive="180">
+    <bpmn:startEvent id="order-received" name="Order received">
+      <bpmn:outgoing>to-review</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="to-review" sourceRef="order-received" targetRef="review-order" />
+    <bpmn:userTask id="review-order" name="Review order">
+      <bpmn:incoming>to-review</bpmn:incoming>
+      <bpmn:outgoing>to-charge</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="to-charge" sourceRef="review-order" targetRef="charge-card" />
+    <bpmn:serviceTask id="charge-card" name="Charge card" camunda:type="external" camunda:topic="charge-card">
+      <bpmn:incoming>to-charge</bpmn:incoming>
+      <bpmn:outgoing>to-end</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="to-end" sourceRef="charge-card" targetRef="order-processed" />
+    <bpmn:endEvent id="order-processed" name="Order processed">
+      <bpmn:incoming>to-end</bpmn:incoming>
+    </bpmn:endEvent>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="order-process-diagram">
+    <bpmndi:BPMNPlane id="order-process-plane" bpmnElement="order-process">
+      <bpmndi:BPMNShape id="order-received-shape" bpmnElement="order-received">
+        <dc:Bounds x="152" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="review-order-shape" bpmnElement="review-order">
+        <dc:Bounds x="240" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="charge-card-shape" bpmnElement="charge-card">
+        <dc:Bounds x="400" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="order-processed-shape" bpmnElement="order-processed">
+        <dc:Bounds x="562" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="to-review-edge" bpmnElement="to-review">
+        <di:waypoint x="188" y="120" />
+        <di:waypoint x="240" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="to-charge-edge" bpmnElement="to-charge">
+        <di:waypoint x="340" y="120" />
+        <di:waypoint x="400" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="to-end-edge" bpmnElement="to-end">
+        <di:waypoint x="500" y="120" />
+        <di:waypoint x="562" y="120" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

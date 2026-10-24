@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+             xmlns:camunda="http://camunda.org/schema/1.0/dmn"
+             id="approval-definitions"
+             name="Approval"
+             namespace="https://github.com/Miragon/operate/test/integration">
+  <decision id="approval" name="Approval" camunda:historyTimeToLive="180">
+    <decisionTable id="approval-table" hitPolicy="UNIQUE">
+      <input id="amount-input" label="Amount">
+        <inputExpression id="amount-expression" typeRef="integer">
+          <text>amount</text>
+        </inputExpression>
+      </input>
+      <output id="approved-output" label="Approved" name="approved" typeRef="boolean" />
+      <rule id="small-amount">
+        <inputEntry id="small-amount-input">
+          <text>&lt;= 1000</text>
+        </inputEntry>
+        <outputEntry id="small-amount-output">
+          <text>true</text>
+        </outputEntry>
+      </rule>
+      <rule id="large-amount">
+        <inputEntry id="large-amount-input">
+          <text>&gt; 1000</text>
+        </inputEntry>
+        <outputEntry id="large-amount-output">
+          <text>false</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>

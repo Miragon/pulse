@@ -1,0 +1,3 @@
+# The image only needs the standalone bundle (npm run build:standalone), see Dockerfile.
+*
+!build/standalone/operate.cjs

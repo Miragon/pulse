@@ -1,0 +1,2 @@
+Invoice attachment for the operate integration tests.
+Line two keeps a second line so newlines must survive the round trip.
