@@ -304,7 +304,7 @@ Rules while building:
   rate without a verdict, direction or colour (`incidentRateTrend`). A bar scales to the largest value in its table, never to 100, and is a magnitude
   in the data-viz blue (`TONE_DOT.info`), never a state colour.
   No palette classes or raw colours.
-- Icons are Lucide via `Icon` (devDependency `lucide-react` `0.562.0`, see invariant 6), never
+- Icons are Lucide via `Icon` (devDependency `lucide-react` `1.61.0`, see invariant 6), never
   glyphs or emoji, at 16 px (`dense` in rows and chips; no `size` other than 16 or 24). A chat
   hand-off is the kit's `<HandOffButton action="findCause" prompt={ask(…)} />`: the product's
   one table of functions with their Lucide icon and a label that names the chat, the same as

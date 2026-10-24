@@ -476,11 +476,11 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    the mechanism the toolkit's `LucideProvider` uses for its chrome (2.5, its toolbar 2), never
    a CSS `stroke-width` rule, which would beat the provider; 16 px in chrome and 24 px
    previews are the only sizes, `scanIconSizes` below). `lucide-react` is a
-   widget-shell peer, deduped in the bundle (invariant 4); a workspace package that imports it
-   pins devDependency `0.562.0`, the version mcp-use's graph peers on: any other version
-   resolves a second mcp-use/toolkit instance for that package and splits the React contexts
-   between it and widget-shell in tests. A host BUNDLE (the app, the template's server) pins a
-   1.x `lucide-react` instead: it dedupes the toolkit's icons onto its copy, and the toolkit (2.7
+   widget-shell peer, deduped in the bundle (invariant 4); every workspace package that imports it
+   and every host bundle pin the SAME exact 1.x devDependency (today `1.61.0`): two versions
+   resolve a second mcp-use/toolkit instance and split the React contexts
+   between it and widget-shell in tests. A host BUNDLE (the app, the template.s server) needs
+   1.x: it dedupes the toolkit's icons onto its copy, and the toolkit (2.7
    and later) imports `LucideProvider`, which 0.x lacks. A chat hand-off is the kit's `HandOffButton`
    (`action` from `HAND_OFF_ACTIONS`, `widget-shell/src/ui/hand-off-button.tsx`): ONE
    vocabulary for the product, each function with one Lucide icon and one verb that names the
