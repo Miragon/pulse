@@ -21,10 +21,10 @@ engine-plugins/build
 engine-plugins/**/build
 playground/cibseven-example/.gradle
 playground/cibseven-example/build
-# The VS Code extension (apps/vscode): its VS Code test downloads, packaged extensions, the
-# dev-host build, its docs (screenshots) and the shop sandbox never enter the image build;
-# the install needs its package.json only.
-apps/vscode/.vscode-test
+# The VS Code extension (apps/vscode): the VS Code test downloads (wherever vscode-test ran),
+# packaged extensions, the dev-host build, its docs (screenshots) and the shop sandbox never
+# enter the image build; the install needs its package.json only.
+**/.vscode-test
 apps/vscode/dist-dev
 apps/vscode/docs
 apps/vscode/sandbox
