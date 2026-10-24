@@ -38,21 +38,21 @@ flowchart LR
 
 1. Each test harness seeds one fixed world of processes, element ids and instances into its engine.
 2. The kit runs 34 read laws and 15 command laws; the fake and every adapter must pass all of them.
-3. It tests itself: 46 saboteurs in `test`, each the fake with one flaw, fail exactly their laws.
+3. It tests itself: 46 saboteurs in `apps/vscode/test/contract`, each the fake with one flaw, fail exactly their laws.
 
 ## Where things are
 
 - `apps/vscode/src/contract/ports`: the read and write ports and the plug that hands them out (`EngineAdapter`)
 - `apps/vscode/src/contract/model`: ids, filters, pages and read models the ports exchange, plus `RuntimeError`
 - `apps/vscode/src/contract/failing-runtime.ts`: a runtime that rejects every call, for a target Pulse refuses
-- `apps/vscode/src/contract/conformance`: the kit, its laws and the fixed world, imported as `./conformance`
-- `apps/vscode/src/contract/fake`: an in-memory engine for tests and the dev host, imported as `./fake` (`FakeEngine`)
+- `apps/vscode/src/contract/conformance`: the kit, its laws and the fixed world, imported through its `index.ts`
+- `apps/vscode/src/contract/fake`: an in-memory engine for tests and the dev host, imported through its `index.ts` (`FakeEngine`)
 
 ## Rules
 
 - Imports nothing: no other layer, no npm package, no Node built-in (dependency-cruiser)
 - Runs on any host: no DOM, no Node globals (tsc `lib` and `types` of `apps/vscode/tsconfig.contract.json`, `apps/vscode/test/contract/runtime.boundary.ts`)
-- No engine words such as `camunda` or `processDefinitionKey` in `src` (ESLint)
+- No engine words such as `camunda` or `processDefinitionKey` in `apps/vscode/src/contract` (ESLint)
 
 ## More
 

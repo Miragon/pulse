@@ -81,7 +81,7 @@ What they found:
 ### Bulk progress is not a tick
 
 A running bulk operation ([writes.md](writes.md)) is followed by a poll of its own
-(`BulkFollow` in `core/src/panels`), not by the panel's ticks:
+(`BulkFollow` in `apps/vscode/src/core/panels`), not by the panel's ticks:
 
 - Cadence 2, 3 and 5 s after the submit (and after a panel picks the run up), then
   every 10 s, on every engine; the setting `pulse.liveUpdates` and the pause button do not

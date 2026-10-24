@@ -56,7 +56,7 @@ visible responsibility per file.
 
 Exceptions, each for a reason outside our control:
 
-- branded id constructors in `model/ids.ts` (`InstanceId('…')`): a type and its value
+- branded id constructors in `apps/vscode/src/contract/model/ids.ts` (`InstanceId('…')`): a type and its value
   constructor share a name, like `Number('3')`;
 - `activate` and `deactivate` in `apps/vscode/src/host/extension.ts`: VS Code calls
   these exported functions;
@@ -114,7 +114,7 @@ proven in `apps/vscode/test/architecture/lint-rules.test.ts`:
 
 The rules were switched on package by package while the code moved to classes; since the
 move into the monorepo they hold for every layer. In the webview, helpers of components are static utility
-classes (`JsonText` and `TimeLabels` in `src/format`, `VariableEditorText` next to its screen), and a file that
+classes (`JsonText` and `TimeLabels` in `apps/vscode/src/webview/format`, `VariableEditorText` next to its screen), and a file that
 holds a Preact context and its hook is a `.tsx` file. In the extension, every command
 is a class implementing `Command` (`id`, `run`) that `CommandRegistrar` registers;
 `PulseExtension` wires VS Code, `CompositionRoot` wires the engines, and the panel

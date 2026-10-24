@@ -19,14 +19,14 @@ One package, `apps/vscode` of the Pulse monorepo, with six layers as folders und
 `apps/vscode/src`. There is no per-layer build. Only the extension bundles (esbuild): the
 host as CommonJS for Node 22, the webview as an IIFE.
 
-| Layer         | Responsibility                                                                                                                                                                                                                                                  | Runtime                               |
-| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
-| `contract`    | The `ProcessRuntime`, `ProcessCommands` and `EngineAdapter` ports, the local `ModelSource` and `CodeLocator` ports with the `WorkspaceFiles` seam, read models and `RuntimeError`; subpaths `./conformance` (the kit) and `./fake` (in-memory reference engine) | none (no DOM, no Node)                |
-| `core`        | Engine-neutral logic: use cases turn read models into view models, panel sessions handle webview intents; `./protocol` holds the JSON-only messages and view models                                                                                             | none                                  |
-| `webview`     | Preact UI and bpmn-js diagram. Renders protocol view models, sends intents                                                                                                                                                                                      | browser                               |
-| `adapters/c7` | `EngineAdapter`, `ProcessRuntime`, `ProcessCommands` and the Cockpit web UI for the Camunda 7 family ([c7-adapter.md](c7-adapter.md)); `src/engine-cli` is a self-contained wrapper around the engine CLI                                                       | Node                                  |
-| `model`       | `ModelSource` and `CodeLocator` for the local workspace: reads `.bpmn` files with bpmn-moddle and its vendor descriptors, finds the implementing code ([local-sources.md](local-sources.md)); the only layer with those libraries                               | none (files through `WorkspaceFiles`) |
-| `host`        | VS Code host: composition root, connections, tree, panels, commands, status bar                                                                                                                                                                                 | Node + `vscode`                       |
+| Layer         | Responsibility                                                                                                                                                                                                                                                                                               | Runtime                               |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------- |
+| `contract`    | The `ProcessRuntime`, `ProcessCommands` and `EngineAdapter` ports, the local `ModelSource` and `CodeLocator` ports with the `WorkspaceFiles` seam, read models and `RuntimeError`; folders `apps/vscode/src/contract/conformance` (the kit) and `apps/vscode/src/contract/fake` (in-memory reference engine) | none (no DOM, no Node)                |
+| `core`        | Engine-neutral logic: use cases turn read models into view models, panel sessions handle webview intents; `apps/vscode/src/core/protocol` holds the JSON-only messages and view models                                                                                                                       | none                                  |
+| `webview`     | Preact UI and bpmn-js diagram. Renders protocol view models, sends intents                                                                                                                                                                                                                                   | browser                               |
+| `adapters/c7` | `EngineAdapter`, `ProcessRuntime`, `ProcessCommands` and the Cockpit web UI for the Camunda 7 family ([c7-adapter.md](c7-adapter.md)); `apps/vscode/src/adapters/c7/engine-cli` is a self-contained wrapper around the engine CLI                                                                            | Node                                  |
+| `model`       | `ModelSource` and `CodeLocator` for the local workspace: reads `.bpmn` files with bpmn-moddle and its vendor descriptors, finds the implementing code ([local-sources.md](local-sources.md)); the only layer with those libraries                                                                            | none (files through `WorkspaceFiles`) |
+| `host`        | VS Code host: composition root, connections, tree, panels, commands, status bar                                                                                                                                                                                                                              | Node + `vscode`                       |
 
 The core in the product owner's sense is everything that is engine-neutral
 (`core`, `webview`, `host`); adapters only provide data.
@@ -90,7 +90,7 @@ folder and one entry in the composition root's adapter map.
 
 ### Host ⇄ webview protocol
 
-Hand-rolled discriminated unions in `core/src/protocol` with runtime guards
+Hand-rolled discriminated unions in `apps/vscode/src/core/protocol` with runtime guards
 (`MessageGuards.isWebviewIntent` in the host; the webview, which may import only types,
 checks state messages in its `HostBridge`). Rule: **intents in,
 state out**. The webview sends intents (`ready`, `refresh`, `selectVersion`,

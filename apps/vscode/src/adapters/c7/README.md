@@ -38,7 +38,7 @@ Writes (`ProcessCommands`) take the same road without the read-only flag, the va
 
 ## Where things are
 
-- `src`: `C7Adapter` builds a runtime and commands per engine connection
+- `apps/vscode/src/adapters/c7`: `C7Adapter` builds a runtime and commands per engine connection
 - `apps/vscode/src/adapters/c7/reading`: one reader per question, e.g. `InstanceDetailReader`
 - `apps/vscode/src/adapters/c7/mapping`: mappers from the CLI's views to the contract's read models, no I/O
 - `apps/vscode/src/adapters/c7/writing`, `apps/vscode/src/adapters/c7/errors`: the bodies of a variable change and a move, the token a move cancels; failures to `RuntimeError`
@@ -47,7 +47,7 @@ Writes (`ProcessCommands`) take the same road without the read-only flag, the va
 
 ## Rules
 
-- `src` imports only the contract; Node built-ins only inside `apps/vscode/src/adapters/c7/engine-cli` (dependency-cruiser)
+- `apps/vscode/src/adapters/c7` imports only the contract; Node built-ins only inside `apps/vscode/src/adapters/c7/engine-cli` (dependency-cruiser)
 - `apps/vscode/src/adapters/c7/engine-cli` imports nothing of ours, so an in-process engine client can replace it as a whole (dependency-cruiser)
 - Engine words are allowed here, not in contract, core or webview; classes, no comments (ESLint)
 
