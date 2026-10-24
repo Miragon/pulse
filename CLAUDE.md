@@ -12,8 +12,9 @@ package's README and agent files (CLAUDE.md, AGENTS.md), every Markdown file of 
 its CHANGELOG, the template's README and CLAUDE.md, and the skills. Every backticked tool name
 must be registered, every repo path must exist (resolved from the repo root, in a nested file
 too), every identifier a house skill or a nested agent file names must exist in the sources or
-the toolkit/mcp-use typings, and each docs page stays within its budget, keyed by its path
-under `docs/`. `apps/mcp-server-camunda7/test/old-names.test.ts` fails on a pre-Pulse name (the
+the toolkit/mcp-use typings (a nested agent file's may also stand in its package's own
+`tsconfig*.json`, such as a compiler option), and each docs page stays within its budget, keyed
+by its path under `docs/`. `apps/mcp-server-camunda7/test/old-names.test.ts` fails on a pre-Pulse name (the
 old npm scope, repo, docs URL, image, starter, slug or product name; "Miragon AI" as the family
 and the Fly app names stay), on a technical name of the retired operate CLI (its npm package,
 repo, image, tap, docs and product page, its environment variables, config file and config
@@ -124,10 +125,11 @@ von Hand ändern; `docs/.vitepress/config.ts` ruft nur `miragonDocs()` auf. Der 
 `apps/mcp-server-camunda7/test/vendored-tokens.ts`) hält das fest: Ein `--cd-*` steht nur in
 der Toolkit-Kopie und in vendorten Kopien, deren Manifest der Test in
 `SANCTIONED_TOKEN_MANIFESTS` freigibt, heute nur das Kit. Jede freigegebene Kopie liegt im
-Ordner ihres Manifests, ist byte-gleich mit ihm, teilt den Ordner mit keiner eigenen Datei und
-behält in `:root` jeden Palettenwert der Toolkit-Kopie; ein Manifest, das nur daneben liegt,
-gibt nichts frei. Das Kit prüft zusätzlich sein `check.mjs`, und `test:host` prüft, dass das
-gebaute Stylesheet die vendorten Werte trägt. Eine weitere Kopie, etwa die App- und
+Ordner ihres Manifests, ist byte-gleich mit ihm und teilt den Ordner mit keiner eigenen Datei.
+Sobald die Stylesheets eines Manifests ein `--cd-*` deklarieren, deklarieren ihre `:root`-Blöcke
+der obersten Ebene zusammen jedes Token der Toolkit-Kopie mit deren Wert; ein Manifest, das nur
+daneben liegt, gibt nichts frei. Das Kit prüft zusätzlich sein `check.mjs`, und `test:host`
+prüft, dass das gebaute Stylesheet die vendorten Werte trägt. Eine weitere Kopie, etwa die App- und
 Web-Variante aus `miragon-brand:modeler-tool-design`, kommt mit einem Manifest im Format des
 Kits (`version`, `dateien` mit `pfad`, `quelle`, `sha256`) und einem Eintrag in
 `SANCTIONED_TOKEN_MANIFESTS`, nie als Ausnahme im Scan. Die Website
@@ -459,8 +461,9 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    `--cd-*`/`--m-*`/`--critical` variable, and is the token DRIFT test (the shipped theme
    imports the toolkit's vendored copy; besides it a `--cd-*` is declared only in a vendored
    copy whose manifest the test lists in `SANCTIONED_TOKEN_MANIFESTS`, today only the docs
-   kit's: inside its manifest's folder, byte-equal to the manifest, keeping in `:root` every
-   value the toolkit's copy declares (`apps/mcp-server-camunda7/test/vendored-tokens.ts`);
+   kit's: inside its manifest's folder, byte-equal to the manifest, and once the manifest's
+   stylesheets declare a `--cd-*`, their top-level `:root` blocks together declare every token
+   of the toolkit's copy with its value (`apps/mcp-server-camunda7/test/vendored-tokens.ts`);
    `test:host` checks the built stylesheet's `--cd-*` values); the template
    runs `server/test/brand.test.ts` over its own `brand.css`, the override example included.
    `parseThemeVariables` reads a stylesheet stack the way
@@ -650,10 +653,19 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    `pnpm-workspace.yaml` glob outside these layouts or a package directory no glob includes,
    on a `package.json`, lockfile or `pnpm-workspace.yaml` nested anywhere else under `apps/*`
    or `packages/*`, on a `.js`, `.mjs`, `.cjs`, `.jsx`, `.mts` or `.cts` file under a
-   package's `src/` (the budgets and the source scans read `.ts` and `.tsx` only), and on a
+   package's `src/` (the ESLint complexity/max-lines budgets and pattern gates, globbed
+   `*.{ts,tsx}`, and widget-shell's brand-gate scans read `.ts` and `.tsx` only), on a
    `generated/` directory its `GENERATED_DIRS` map does not list with a reason (such a
-   directory is exempt from ESLint, prettier, the source scans and dependency-cruiser; today
-   only the CIB seven SDK has one). The dependency edges of this invariant (connector
+   directory is exempt from ESLint, prettier and the app's source scans; dependency-cruiser
+   excludes only the CIB seven SDK, today the one listed directory), and on a `package.json`
+   that declares an app in `dependencies`, `devDependencies`, `peerDependencies` or
+   `optionalDependencies` (by name, by an `npm:`/`workspace:` alias or by a path into its
+   directory; the root `package.json` and an app's own included). The app names are those of
+   every `apps/*/package.json` plus its `RESERVED_APP_NAMES` (`@miragon/pulse-cli`,
+   `pulse-vscode`, kept equal to the extra names of the dependency-cruiser config's
+   `APP_PACKAGES`): under pnpm another package reaches a workspace app (an import,
+   `require.resolve`, its bin, a spawned process) only through such a declaration, which no
+   dependency rule reads. The dependency edges of this invariant (connector
    peer-isolation, connector→own-client and connector→own-domain only, leaf clients, pure
    leaf domains, foundation core, no package importing an app, no app importing an app,
    interface apps reaching only a -domain package, no cross-package deep imports) are
@@ -665,7 +677,8 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    block in `eslint.config.mjs`, since dependency rules see only imports. The interface apps
    (the CLI, npm `@miragon/pulse-cli`; the extension, `pulse-vscode`) import from the
    workspace only -domain packages and nothing of the MCP/UI/server stack, zod included;
-   nothing imports them. An import reaches a rule in three shapes (a relative escape,
+   no module imports them (dependency-cruiser), and no `package.json` declares them (the
+   naming gate). An import reaches a rule in three shapes (a relative escape,
    `<importer>/node_modules/<name>/` for a declared dependency imported at its root, a bare
    specifier for a subpath or an undeclared dependency), and the rules name all three: never
    exempt a package's own directory in a `pathNot`, its node_modules holds exactly the
@@ -765,11 +778,15 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    fails on an app the map does not classify, on an entry that names no app and on a
    classified app without `src/`. An MCP server app ("mcp-host") is read by every guard; an
    interface app ("interface": a CLI, an editor extension, always an app that declares
-   `engines.vscode`) only by the tool-name checks, literals and prose: where it names an MCP
-   tool, that tool must exist and must not be an app-only feed. The widget rules of
-   invariant 6 and the helper and parameter resolution of tool-name-refs read only the
-   packages and the MCP server apps (scope "mcp" of `scanSources`), so an interface app's
-   own helper names never make a server check opaque. A new app's import PR adds its entry.
+   `engines.vscode`) only by the tool-name checks: each `<module>_…` literal it holds must
+   name a registered tool, each parameter it quotes for a tool must be one that tool takes,
+   and none of its prose (a string with whitespace) may name an app-only feed. Of these
+   guards only the widget rules of invariant 6 and the helper resolution of tool-name-refs
+   read just the packages and the MCP server apps (scope "mcp" of `scanSources`), and so does
+   the server's `PULSE_*` guard (Contracts). An interface app resolves no helper: its own
+   helper names never make a server check opaque, and a helper call inside the parameters it
+   quotes reads as opaque and fails. `apps/mcp-server-camunda7/test/source-scan.test.ts` pins
+   each guard's scope at its call site. A new app's import PR adds its entry.
    The settings page is the SHELL's (#346): `createShellPlugin({ profileStore, allowSave })`
    registers `shell_show_settings` (the page, `shell:settings-page`, also the cockpit's
    settings tab), `shell_settings_data` (its language section, `shell:settings`, and what
@@ -957,8 +974,9 @@ viewResourceUri(name), title })` stamps only the `openai/*` half
   about both in a shared environment (a devcontainer, a Compose file). A server setting goes
   into its own family (`CAMUNDA_*`, `PROMETHEUS_*`, `ANALYTICS_*`, `MCP_*`, `DATABASE_URL`).
   `apps/mcp-server-camunda7/test/setup-env.test.ts` fails on a known variable under
-  `PULSE_`, on a server source (this app's `src` and every package) or an `.env.example` that
-  names one, and on a warner that flags `PULSE_SERVER` or `PULSE_CLI_*`.
+  `PULSE_`, on a server source (every package and every MCP server app's `src`, per `APP_SCAN`;
+  an interface app keeps its own `PULSE_CLI_*` names) or an `.env.example` that names one, and
+  on a warner that flags `PULSE_SERVER` or `PULSE_CLI_*`.
 
 ## Releases & toolkit contributions
 
@@ -1017,7 +1035,7 @@ camunda7-client,analytics-connector,analytics-client}`; matrix entries are packa
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `pnpm build`         | tsc emit of server code + the server app's Vite widget bundle (`build:ui`); excludes widget `.tsx` type errors in packages                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | `pnpm typecheck`     | **The only check that type-checks widget code**: `tsc -p tsconfig.widgets.json` in the two connector packages, `tsc -p tsconfig.ui.json` in the server app                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| `pnpm test`          | Vitest unit tests (lib + query logic) **plus** the server app e2e smoke + widget wire-contract tests + per-toolset tools/list goldens (in-process boot, loopback HTTP) + the repo-wide doc-reference and old-name guards (`docs-refs.test.ts`, `old-names.test.ts`); **no widget rendering**; enforces the per-package coverage ratchet (frozen thresholds in each `vitest.config.ts`); then `test:scripts`, `node --test` over `scripts/*.test.mjs` (the gate scripts' own tests + the ESLint pattern-gate and dependency-cruiser self-tests)                                                                                                                                                    |
+| `pnpm test`          | Vitest unit tests (lib + query logic) **plus** the server app e2e smoke + widget wire-contract tests + per-toolset tools/list goldens (in-process boot, loopback HTTP) + the repo-wide doc-reference and old-name guards (`docs-refs.test.ts`, `old-names.test.ts`); **no widget rendering**; enforces the per-package coverage ratchet (frozen thresholds in each `vitest.config.ts`); then `test:scripts`, `node --test` over `scripts/*.test.mjs` (the gate scripts' own tests + the ESLint pattern-gate self-test)                                                                                                                                                                            |
 | `pnpm lint`          | ESLint over each package's `src` (the server app also `test`/`test-host`) incl. the pattern gates (registrar-only tools, widget-shell date formatting), then `lint:architecture` (dependency-cruiser), `lint:naming`, `lint:package-scripts` (every package with `src/` runs the canonical `eslint src` / `tsc --noEmit` (+ `tsc -p` per extra tsconfig) / `vitest run` (+ `stryker run`); turbo silently skips a missing script, and a flag can switch a present one off), `lint:ratchets` (`scripts/check-ratchets.mjs`, below; needs the merge base, `git fetch origin`) and `lint:deadcode`: knip over files/dependencies/unlisted (unused exports are report-only for now: `pnpm exec knip`) |
 | `pnpm test:mutation` | Diff-scoped Stryker run (`scripts/mutation-diff.mjs`): changed files inside a package's `mutate` allowlist must keep the mutation score above the package's `thresholds.break` (`stryker.config.json`); runs in CI as "Mutation (changed files)". The gate bypasses the package's incremental cache, so a local run and CI agree. More than 25 in-scope files in one package FAIL the gate unless the branch carries a reviewed `Mutation-Cap-Exception: <reason>` trailer                                                                                                                                                                                                                        |
 | `pnpm fitness`       | Aggregated fitness report: architecture graph, ratchet debt, per-package coverage + mutation scores (diff-scoped in CI; the file count next to each score says over what); its own CI job, fed by the test + mutation jobs' artifacts                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
@@ -1094,9 +1112,11 @@ config fails whenever it exists (any `eslint.config.*` besides the root `.mjs`, 
 `knip.json`/`.knip.json(c)`/`knip.{ts,js}`/`knip.config.*` or `package.json#knip` besides
 `knip.jsonc`, a `stryker.conf.*`/`.stryker.*` besides `stryker.config.json`, a
 `vitest.config.*` besides a package's `vitest.config.ts`, any prettier config besides the
-root `.prettierrc.json`, an `.editorconfig` under `apps/` or `packages/`, a `prettier` key in
+root `.prettierrc.json` and any `.editorconfig` besides the root one, in every directory of
+the repo (`docs/` and `templates/` as much as `apps/` and `packages/`), a `prettier` key in
 any workspace `package.json`), because each tool would load it INSTEAD of the ratcheted file
-(prettier takes the NEAREST config, so per-app style goes into the root `overrides`); deleting `knip.jsonc` fails too. Inline
+(prettier takes the NEAREST config, so per-directory style goes into the root `overrides`);
+deleting `knip.jsonc` fails too. Inline
 suppressions are shrink-only: an `eslint-disable` naming complexity, max-lines or
 `no-restricted-syntax` (or no rule), inline gate-rule config, `v8|c8|istanbul ignore` or
 `Stryker disable` in `apps/`/`packages/` sources. The working tree is the new side, so
