@@ -15,17 +15,10 @@ export type {
   MappingCandidate,
   MappingRow,
   MigrateOffer,
-  MigrationSide,
   MigrationView,
 } from "./migration-views.js"
 export type { Notice, NoticeAction, Tone } from "./notices.js"
-export type {
-  BackLink,
-  HostMessage,
-  StateMessage,
-  WebviewIntent,
-  WebviewIntentType,
-} from "./messages.js"
+export type { BackLink, HostMessage, StateMessage, WebviewIntent } from "./messages.js"
 export type { MoveOption, MoveTarget, RefusedTarget } from "./move-models.js"
 export type {
   CalledInstanceLink,
@@ -53,7 +46,6 @@ export type {
   ProcessListFilter,
   ProcessRow,
   ProcessScope,
-  ProcessScopeCounts,
   ScopeCounts,
   VariableEditor,
   VariableRow,

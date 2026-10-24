@@ -2,7 +2,7 @@ import type { BulkOperationId, InstanceId, IsoTimestamp } from "./ids.js"
 
 export type BulkOperationKind = "cancelInstances" | "migrateInstances"
 
-export type BulkOperationState = "running" | "suspended" | "ended"
+type BulkOperationState = "running" | "suspended" | "ended"
 
 export interface BulkOperation {
   readonly id: BulkOperationId

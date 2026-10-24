@@ -22,7 +22,7 @@ export const SHOP_DEV = {
   scenarios: SHOP_DEV_SCENARIOS,
 }
 
-export const SHOP_TEST = {
+const SHOP_TEST = {
   name: "shop-test",
   container: {
     name: "pulse-sandbox-test",

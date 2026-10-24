@@ -106,7 +106,7 @@ export const WORLD_SECOND_TOKEN = {
   instance: "CMD-TWIN",
   elementId: WORLD_ELEMENT.reviewOrder,
 } as const satisfies { readonly instance: CommandInstanceAlias; readonly elementId: string }
-export const WORLD_BULK_SIZE = 50
+const WORLD_BULK_SIZE = 50
 
 const WAITING_ORDER = { route: "review" } as const
 

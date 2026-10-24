@@ -47,7 +47,7 @@ function bookCarrier(order, task) {
   return completed({ trackingNumber: `00340434${task.id.slice(0, 10)}` }, "carrier booked")
 }
 
-export const HANDLERS = {
+const HANDLERS = {
   "reserve-stock": (_order, task) =>
     completed({ stockReservation: `RES-${task.id.slice(0, 8)}` }, "stock reserved"),
   "charge-payment": chargePayment,

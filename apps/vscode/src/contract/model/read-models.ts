@@ -19,7 +19,7 @@ export interface DefinitionRef {
   readonly name?: string
 }
 
-export interface RuntimeCounts {
+interface RuntimeCounts {
   readonly running: number
   readonly withIncident: number
 }

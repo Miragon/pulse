@@ -235,7 +235,7 @@ export interface ProcessListFilter {
   readonly search?: string
 }
 
-export type ProcessScopeCounts = Readonly<Record<ProcessScope, number>>
+type ProcessScopeCounts = Readonly<Record<ProcessScope, number>>
 
 export interface ProcessRow {
   readonly bpmnProcessId: string

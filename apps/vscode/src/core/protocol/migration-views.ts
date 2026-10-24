@@ -2,7 +2,7 @@ import type { BulkView } from "./bulk-views.js"
 import type { Notice } from "./notices.js"
 import type { EngineBadge, VersionOption } from "./view-models.js"
 
-export interface MigrationSide {
+interface MigrationSide {
   readonly definitionId: string
   readonly version: number
   readonly diagramXml: string

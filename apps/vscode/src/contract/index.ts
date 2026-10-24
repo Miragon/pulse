@@ -18,12 +18,7 @@ export type {
   SourceLocation,
   VariableMapping,
 } from "./model/local-sources.js"
-export type {
-  BulkFailure,
-  BulkOperation,
-  BulkOperationKind,
-  BulkOperationState,
-} from "./model/bulk-operations.js"
+export type { BulkFailure, BulkOperation, BulkOperationKind } from "./model/bulk-operations.js"
 export type {
   ElementMapping,
   MigrationCheck,
@@ -45,7 +40,6 @@ export type {
   InstanceDetail,
   InstanceState,
   InstanceSummary,
-  RuntimeCounts,
   ValueKind,
   Variable,
   VariableScope,
@@ -55,7 +49,7 @@ export type {
 } from "./model/read-models.js"
 export { MoveReasons } from "./model/move-reasons.js"
 export { RuntimeError } from "./model/runtime-error.js"
-export type { RuntimeErrorOptions, RuntimeFailure } from "./model/runtime-error.js"
+export type { RuntimeFailure } from "./model/runtime-error.js"
 export { ValueKinds } from "./model/value-kinds.js"
 export type {
   EngineAdapter,

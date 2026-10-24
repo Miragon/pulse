@@ -67,7 +67,7 @@ export function panelFrame(window) {
   return window.frameLocator("iframe.webview.ready").last().frameLocator("iframe#active-frame")
 }
 
-export async function quickInput(window, shortcut) {
+async function quickInput(window, shortcut) {
   await window.keyboard.press("Escape")
   await window.locator(".statusbar").click({ position: { x: 800, y: 8 } })
   await window.keyboard.press(shortcut)

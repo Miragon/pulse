@@ -175,6 +175,7 @@ pnpm test && pnpm lint`) covers the extension too.
 | `pnpm --filter pulse-vscode run typecheck`        | the whole app, then each layer with its runtime's globals only                               |
 | `pnpm --filter pulse-vscode run lint`             | ESLint with the extension's house rules                                                      |
 | `pnpm lint:architecture:vscode`                   | the closed-world dependency rules of the layers                                              |
+| `pnpm lint:deadcode:vscode`                       | knip over the extension: no dead file, dependency, export or exported type                   |
 | `pnpm --filter pulse-vscode run test:mutation`    | Stryker mutation testing of contract, core, the C7 adapter and the model adapter             |
 | `pnpm --filter pulse-vscode run test:engines`     | conformance kit against a real engine (`PULSE_ENGINE_IMAGE`, testcontainers)                 |
 | `pnpm --filter pulse-vscode run test:smoke`       | activation test in VS Code (`@vscode/test-cli`)                                              |

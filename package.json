@@ -15,7 +15,7 @@
     "test": "turbo run test && pnpm test:scripts",
     "test:scripts": "node --test \"scripts/*.test.mjs\"",
     "test:pg": "TEST_DATABASE_URL=${TEST_DATABASE_URL:-postgres://miragon:miragon@localhost:8440/miragon_test} pnpm --fail-if-no-match --filter @miragon/pulse-widget-shell --filter @miragon/pulse-camunda7-connector --filter @miragon/pulse-mcp-server-camunda7 run test",
-    "lint": "turbo run lint && pnpm lint:architecture && pnpm lint:architecture:vscode && pnpm lint:naming && pnpm lint:package-scripts && pnpm lint:ratchets && pnpm lint:deadcode && pnpm lint:github",
+    "lint": "turbo run lint && pnpm lint:architecture && pnpm lint:architecture:vscode && pnpm lint:naming && pnpm lint:package-scripts && pnpm lint:ratchets && pnpm lint:deadcode && pnpm lint:deadcode:vscode && pnpm lint:github",
     "lint:architecture": "depcruise apps/*/src packages/core/*/src packages/connectors/*/*/src --config .dependency-cruiser.cjs",
     "lint:architecture:vscode": "depcruise apps/vscode/src apps/vscode/test apps/vscode/dev apps/vscode/scripts --config apps/vscode/.dependency-cruiser.cjs",
     "lint:naming": "node scripts/check-package-naming.mjs",
@@ -32,7 +32,8 @@
     "docs:preview": "pnpm --fail-if-no-match --filter @miragon/pulse-docs preview",
     "test:mutation": "node scripts/mutation-diff.mjs",
     "fitness": "node scripts/fitness-report.mjs",
-    "lint:deadcode": "knip --exclude exports,types,enumMembers"
+    "lint:deadcode": "knip --exclude exports,types,enumMembers",
+    "lint:deadcode:vscode": "knip --workspace apps/vscode"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
