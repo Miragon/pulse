@@ -5,7 +5,7 @@
                   xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
                   xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
                   id="order-process-definitions"
-                  targetNamespace="https://github.com/Miragon/operate/test/integration">
+                  targetNamespace="https://github.com/Miragon/pulse/apps/cli/test/integration">
   <bpmn:process id="order-process" name="Order process" isExecutable="true" camunda:historyTimeToLive="180">
     <bpmn:startEvent id="order-received" name="Order received">
       <bpmn:outgoing>to-review</bpmn:outgoing>

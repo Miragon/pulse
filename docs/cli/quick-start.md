@@ -46,7 +46,7 @@ EOF
 ```
 
 <figure class="diagram">
-  <img src="/shots/quick-start-order.svg" alt="The order process: start event, user task Review order, end event" />
+  <img src="./assets/quick-start-order.svg" alt="The order process: start event, user task Review order, end event" />
   <figcaption>order.bpmn as a diagram</figcaption>
 </figure>
 

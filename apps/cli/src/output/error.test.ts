@@ -4,7 +4,7 @@ import { OperateError, usageError } from "../errors.js"
 import { renderError, toOperateError } from "./error.js"
 
 const INTERNAL_HINT =
-  "This is likely a bug in operate. Re-run with --verbose for the stack trace and report it at https://github.com/Miragon/operate/issues."
+  "This is likely a bug in operate. Re-run with --verbose for the stack trace and report it at https://github.com/Miragon/pulse/issues."
 
 function withStack<T extends Error>(error: T, stack: string | undefined): T {
   Object.defineProperty(error, "stack", { value: stack, configurable: true })

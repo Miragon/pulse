@@ -24,7 +24,7 @@ const TOPIC_TABLE = { columns: ["TOPIC", "SUMMARY"], fixed: ["TOPIC"] }
 const DESCRIPTION = [
   "Print the usage guide for agents and scripts as markdown. Without a topic: the core guide (setup, discover, describe, preview, run, workflow commands, conventions, output, errors and exit codes, safety) and the index of the topics. With a topic: its details.",
   "",
-  `Topics: ${TOPIC_NAMES.join(", ")}. --list lists them with a summary (JSON when stdout is not a terminal, else a table). The guide is always markdown; -o/--output only formats --list. skills/operate/SKILL.md of the npm package holds the core guide as an agent skill.`,
+  `Topics: ${TOPIC_NAMES.join(", ")}. --list lists them with a summary (JSON when stdout is not a terminal, else a table). The guide is always markdown; -o/--output only formats --list. skills/pulse-cli/SKILL.md of the npm package holds the core guide as an agent skill.`,
 ].join("\n")
 
 interface GuideOptions {

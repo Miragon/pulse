@@ -19,7 +19,7 @@ const enginePatchText = (engine: (typeof ENGINES)[number]) =>
 
 describe("renderCatalog", () => {
   it.each(ENGINES)(
-    "renders exactly the committed src/generated/catalog.%s.json (run `npm run generate`)",
+    "renders exactly the committed src/generated/catalog.%s.json (run `pnpm --fail-if-no-match --filter @miragon/pulse-cli catalog`)",
     (engine) => {
       const rendered = renderCatalog(specText, patchText, enginePatchText(engine))
       expect(rendered === readFileSync(catalogFile(engine), "utf8")).toBe(true)

@@ -20,7 +20,8 @@ export const REPO_ROOT = fileURLToPath(new URL("../../../", import.meta.url))
 /** Optional path of another CLI entry script to test instead of the built `dist/operate.js`. */
 const CLI_ENV = "OPERATE_IT_CLI"
 /**
- * Optional path of a standalone executable (`npm run build:exe`) to test instead of a script;
+ * Optional path of a standalone executable
+ * (`pnpm --fail-if-no-match --filter @miragon/pulse-cli build:exe`) to test instead of a script;
  * absolute, so the existence check and the start agree whatever the working directory.
  */
 const BINARY_ENV = "OPERATE_IT_BINARY"
@@ -91,7 +92,9 @@ export type StartCli = (args: readonly string[], options?: CliOptions) => Runnin
 export function assertCliBuilt(): void {
   if (!existsSync(CLI_PATH)) {
     const build =
-      BINARY === undefined ? "npm run build" : "npm run build:standalone && npm run build:exe"
+      BINARY === undefined
+        ? "pnpm --fail-if-no-match --filter @miragon/pulse-cli build"
+        : "pnpm --fail-if-no-match --filter @miragon/pulse-cli build:standalone && pnpm --fail-if-no-match --filter @miragon/pulse-cli build:exe"
     throw new Error(`${CLI_PATH} does not exist; run "${build}" before the integration tests`)
   }
 }

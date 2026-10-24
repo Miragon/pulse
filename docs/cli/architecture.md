@@ -33,7 +33,7 @@ flowchart TB
 | `src/workflow`    | The workflow commands. They know the port, never an adapter or an API           |
 | `src/cli`         | Selects the adapter and registers its commands                                  |
 
-dependency-cruiser enforces the boundaries (`npm run arch`):
+dependency-cruiser enforces the boundaries (`pnpm lint:architecture && pnpm lint:architecture:cli`):
 
 - `workflow` imports `engine-port`, never `engines` or `api`.
 - Only `engines/<name>/adapter.ts` imports `api`.
@@ -49,7 +49,7 @@ it and sends requests over HTTP.
 
 ```mermaid
 flowchart LR
-  spec["spec/camunda7-rest<br/>api.json + patches.json"] --> gen["npm run generate<br/>scripts/catalog"]
+  spec["spec/camunda7-rest<br/>api.json + patches.json"] --> gen["pnpm catalog<br/>scripts/catalog"]
   patches["spec/engines<br/>&lt;engine&gt;.patches.json"] --> gen
   gen --> catalog["src/generated<br/>catalog.&lt;engine&gt;.json"]
   catalog -- loaded by --> adapter["src/engines/&lt;engine&gt;/adapter.ts"]

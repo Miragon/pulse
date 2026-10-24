@@ -10,11 +10,11 @@ import { EXIT_CODES } from "../errors.js"
 import { VARIABLE_TYPES } from "../operation/variables.js"
 import { findGuideTopic, GUIDE, GUIDE_TOPICS, topicSuggestions } from "./guide.js"
 
-const SKILL_URL = new URL("../../skills/operate/SKILL.md", import.meta.url)
+const SKILL_URL = new URL("../../skills/pulse-cli/SKILL.md", import.meta.url)
 const SKILL = readFileSync(SKILL_URL, "utf8")
 const FRONTMATTER = /^---\n([\s\S]*?)\n---\n\n([\s\S]*)$/
 const README = readFileSync(new URL("../../README.md", import.meta.url), "utf8")
-const AGENTS_PAGE = readFileSync(new URL("../../docs/agents.md", import.meta.url), "utf8")
+const AGENTS_PAGE = readFileSync(new URL("../../../../docs/cli/agents.md", import.meta.url), "utf8")
 
 /**
  * Size budgets per page, with headroom: an edit that adds a few lines to a page must not break
@@ -328,9 +328,8 @@ describe("all guide pages together", () => {
   })
 
   it("know that Basic auth and OAuth are built in", () => {
-    // no workaround header and no links to their issues
-    expect(ALL).not.toContain("https://github.com/Miragon/operate/issues/1")
-    expect(ALL).not.toContain("https://github.com/Miragon/operate/issues/2")
+    // no workaround header and no links to their issues (or to any other issue)
+    expect(ALL).not.toMatch(/github\.com\/Miragon\/[\w.-]+\/issues\//)
     expect(ALL).not.toContain("planned")
     expect(ALL).not.toContain("Authorization: Basic")
   })
@@ -358,7 +357,7 @@ describe("topicSuggestions", () => {
   })
 })
 
-describe("docs/agents.md", () => {
+describe("docs/cli/agents.md", () => {
   it("points agents to the core guide, its topics and --list", () => {
     expect(AGENTS_PAGE.startsWith("# Using operate from AI agents\n")).toBe(true)
     expectAll(AGENTS_PAGE, [
@@ -371,12 +370,12 @@ describe("docs/agents.md", () => {
 })
 
 describe("README", () => {
-  it("points agents to the guide and to docs/agents.md", () => {
-    expectAll(README, ["`operate guide`", "(docs/agents.md)"])
+  it("points agents to the guide and to the agents page of the docs site", () => {
+    expectAll(README, ["`operate guide`", "(https://miragon.github.io/pulse/cli/agents)"])
   })
 })
 
-describe("skills/operate/SKILL.md", () => {
+describe("skills/pulse-cli/SKILL.md", () => {
   const match = FRONTMATTER.exec(SKILL)
 
   it("has a YAML frontmatter with name and description", () => {

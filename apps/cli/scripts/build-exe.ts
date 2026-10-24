@@ -2,7 +2,9 @@
  * Builds the standalone executable of operate for this platform (design §20): a copy of the Node.js
  * binary that runs this script, with the standalone bundle injected as single executable
  * application. Releases build it with Node.js 24 on one native runner per target.
- * Usage: npm run build:standalone && npm run build:exe   ->   build/bin/operate-<os>-<arch>[.exe]
+ * Usage (from the repository root), writing build/bin/operate-<os>-<arch>[.exe]:
+ *   pnpm --fail-if-no-match --filter @miragon/pulse-cli build:standalone
+ *   pnpm --fail-if-no-match --filter @miragon/pulse-cli build:exe
  */
 
 import { execFileSync } from "node:child_process"
@@ -22,7 +24,9 @@ const run = (file: string, args: readonly string[]) => {
 }
 
 if (!existsSync(BUNDLE)) {
-  console.error(`${BUNDLE} does not exist. Run \`npm run build:standalone\` first.`)
+  console.error(
+    `${BUNDLE} does not exist. Run \`pnpm --fail-if-no-match --filter @miragon/pulse-cli build:standalone\` first.`,
+  )
   process.exit(1)
 }
 const shared = sharedLibraries(process.config.variables)

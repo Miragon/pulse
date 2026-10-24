@@ -3,7 +3,7 @@
              xmlns:camunda="http://camunda.org/schema/1.0/dmn"
              id="approval-definitions"
              name="Approval"
-             namespace="https://github.com/Miragon/operate/test/integration">
+             namespace="https://github.com/Miragon/pulse/apps/cli/test/integration">
   <decision id="approval" name="Approval" camunda:historyTimeToLive="180">
     <decisionTable id="approval-table" hitPolicy="UNIQUE">
       <input id="amount-input" label="Amount">

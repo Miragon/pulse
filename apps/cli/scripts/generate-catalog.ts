@@ -1,7 +1,7 @@
 /**
  * Regenerates `src/generated/catalog.<engine>.json` for every engine from the vendored OpenAPI
  * spec, `spec/camunda7-rest/patches.json` and `spec/engines/<engine>.patches.json`.
- * Usage: npm run generate [-- --check]
+ * Usage: pnpm --fail-if-no-match --filter @miragon/pulse-cli catalog (or catalog:check)
  * With --check the script fails if a committed catalog is out of date instead of writing it.
  */
 
@@ -22,7 +22,7 @@ for (const engine of ENGINES) {
     const current = await readFile(file, "utf8").catch(() => "")
     if (current !== rendered) {
       console.error(
-        `src/generated/catalog.${engine}.json is out of date. Run \`npm run generate\`.`,
+        `src/generated/catalog.${engine}.json is out of date. Run \`pnpm --fail-if-no-match --filter @miragon/pulse-cli catalog\`.`,
       )
       process.exitCode = 1
     }

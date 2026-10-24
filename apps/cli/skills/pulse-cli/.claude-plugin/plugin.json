@@ -6,8 +6,8 @@
     "name": "Miragon GmbH",
     "url": "https://github.com/Miragon"
   },
-  "homepage": "https://github.com/Miragon/operate#readme",
-  "repository": "https://github.com/Miragon/operate",
+  "homepage": "https://github.com/Miragon/pulse/tree/main/apps/cli#readme",
+  "repository": "https://github.com/Miragon/pulse",
   "license": "MIT",
   "keywords": [
     "camunda",

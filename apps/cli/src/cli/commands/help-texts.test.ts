@@ -506,7 +506,7 @@ const HELP: readonly (readonly [string, readonly string[]])[] = [
       "",
       "Topics: workflow, input, output, config, auth, recipes. --list lists them with a",
       "summary (JSON when stdout is not a terminal, else a table). The guide is always",
-      "markdown; -o/--output only formats --list. skills/operate/SKILL.md of the npm",
+      "markdown; -o/--output only formats --list. skills/pulse-cli/SKILL.md of the npm",
       "package holds the core guide as an agent skill.",
       "",
       "Arguments:",

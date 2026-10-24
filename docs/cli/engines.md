@@ -30,26 +30,28 @@ operate ping --platform cibseven
 
 ## Known differences
 
-None that operate has to handle today. The engine patches in `spec/engines/` are empty, and the
-three generated catalogs are identical.
+None that operate has to handle today. The engine patches in `apps/cli/spec/engines/` are empty,
+and the three generated catalogs are identical.
 
 ## Adding a difference
 
-1. Describe it as an RFC 6902 patch in `spec/engines/<engine>.patches.json`, with a `test` guard
-   and a `reason`.
-2. Run `npm run generate`. Only `src/generated/catalog.<engine>.json` changes.
+1. Describe it as an RFC 6902 patch in `apps/cli/spec/engines/<engine>.patches.json`, with a
+   `test` guard and a `reason`.
+2. Run `pnpm --fail-if-no-match --filter @miragon/pulse-cli catalog`. Only
+   `apps/cli/src/generated/catalog.<engine>.json` changes.
 3. Take that engine out of the test that keeps the catalogs identical
-   (`scripts/catalog/render.test.ts`).
+   (`apps/cli/scripts/catalog/render.test.ts`).
 4. If the difference is in behaviour, not in the API description, wrap the port in
-   `src/engines/<engine>/adapter.ts`.
+   `apps/cli/src/engines/<engine>/adapter.ts`.
 
 ## Adding an engine
 
-1. Add its name to `PLATFORMS` (`src/config/types.ts`) and to `ENGINES`
-   (`scripts/catalog/files.ts`).
-2. Create `spec/engines/<engine>.patches.json` with `[]` and run `npm run generate`.
-3. Write `src/engines/<engine>/adapter.ts` on the API it speaks and add it to
-   `src/engines/index.ts`.
-4. Add a container to the integration tests (`test/integration/support/engines.ts`).
+1. Add its name to `PLATFORMS` (`apps/cli/src/config/types.ts`) and to `ENGINES`
+   (`apps/cli/scripts/catalog/files.ts`).
+2. Create `apps/cli/spec/engines/<engine>.patches.json` with `[]` and run
+   `pnpm --fail-if-no-match --filter @miragon/pulse-cli catalog`.
+3. Write `apps/cli/src/engines/<engine>/adapter.ts` on the API it speaks and add it to
+   `apps/cli/src/engines/index.ts`.
+4. Add a container to the engine suites (`apps/cli/test/integration/support/engines.ts`).
 
-An engine with another API gets its own folder in `src/api/` first.
+An engine with another API gets its own folder in `apps/cli/src/api/` first.

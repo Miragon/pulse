@@ -1,10 +1,11 @@
 /**
- * The Claude Code plugin. Its root is the skill directory skills/operate (SKILL.md is the guide), not
- * the repository root, whose package.json and lockfile would make Claude Code install every
- * dependency into the plugin. skills/operate/.claude-plugin/plugin.json carries the package version
- * and release-please bumps it with the package; .claude-plugin/marketplace.json at the repository
- * root lists the plugin; commands/status.md pre-approves read-only commands only, without options;
- * and the skill says how to run operate without an installation.
+ * The Claude Code plugin. Its root is the skill directory skills/pulse-cli (SKILL.md is the guide),
+ * not the package root, whose package.json would make Claude Code install every dependency into the
+ * plugin. skills/pulse-cli/.claude-plugin/plugin.json carries the package version and release-please
+ * bumps it with the package (release-please-config.json at the repository root); the family
+ * marketplace lists the plugin from this directory, so the repository has no marketplace file of
+ * its own; commands/status.md pre-approves read-only commands only, without options; and the skill
+ * says how to run operate without an installation.
  */
 
 import { existsSync, readFileSync } from "node:fs"
@@ -32,23 +33,15 @@ interface PluginManifest {
   readonly keywords: readonly string[]
 }
 
-interface Marketplace {
-  readonly name: string
-  readonly owner: { readonly name: string }
-  readonly plugins: readonly Record<string, unknown>[]
-}
-
 interface ExtraFile {
   readonly type: string
   readonly path: string
   readonly jsonpath?: string
 }
 
-const PLUGIN_ROOT = "skills/operate"
+const PLUGIN_ROOT = "skills/pulse-cli"
 const PLUGIN_TEXT = read(`${PLUGIN_ROOT}/.claude-plugin/plugin.json`)
 const PLUGIN = JSON.parse(PLUGIN_TEXT) as PluginManifest
-const MARKETPLACE_TEXT = read(".claude-plugin/marketplace.json")
-const MARKETPLACE = JSON.parse(MARKETPLACE_TEXT) as Marketplace
 const PACKAGE = JSON.parse(read("package.json")) as {
   readonly version: string
   readonly files: readonly string[]
@@ -57,11 +50,11 @@ const PACKAGE = JSON.parse(read("package.json")) as {
   readonly license: string
   readonly keywords: readonly string[]
 }
-const RELEASE_PLEASE = JSON.parse(read("release-please-config.json")) as {
+const RELEASE_PLEASE = JSON.parse(read("../../release-please-config.json")) as {
   readonly packages: Record<string, { readonly "extra-files"?: readonly ExtraFile[] }>
 }
 
-describe("skills/operate/.claude-plugin/plugin.json", () => {
+describe("skills/pulse-cli/.claude-plugin/plugin.json", () => {
   it("has the version of the package", () => {
     expect(PLUGIN.version).toBe(PACKAGE.version)
     expect(PLUGIN.version).toBe(VERSION)
@@ -70,21 +63,20 @@ describe("skills/operate/.claude-plugin/plugin.json", () => {
   it("is bumped by release-please together with package.json", () => {
     expect(RELEASE_PLEASE.packages["."]?.["extra-files"]).toContainEqual({
       type: "json",
-      path: `${PLUGIN_ROOT}/.claude-plugin/plugin.json`,
+      path: `apps/cli/${PLUGIN_ROOT}/.claude-plugin/plugin.json`,
       jsonpath: "$.version",
     })
   })
 
   it("is formatted the way release-please writes it (JSON.stringify, two spaces)", () => {
     expect(PLUGIN_TEXT).toBe(`${JSON.stringify(PLUGIN, null, 2)}\n`)
-    expect(MARKETPLACE_TEXT).toBe(`${JSON.stringify(MARKETPLACE, null, 2)}\n`)
   })
 
   it("names the plugin operate and shares the metadata of the package", () => {
     expect(PLUGIN.name).toBe("operate")
     expect(PLUGIN.author.name).toBe(PACKAGE.author)
     expect(PLUGIN.homepage).toBe(PACKAGE.homepage)
-    expect(PLUGIN.repository).toBe("https://github.com/Miragon/operate")
+    expect(PLUGIN.repository).toBe("https://github.com/Miragon/pulse")
     expect(PLUGIN.license).toBe(PACKAGE.license)
     expect(PACKAGE.keywords).toEqual(expect.arrayContaining([...PLUGIN.keywords]))
     for (const text of ["Camunda 7", "Operaton", "CIB seven", "REST API", "/operate:status"]) {
@@ -93,7 +85,7 @@ describe("skills/operate/.claude-plugin/plugin.json", () => {
   })
 })
 
-describe("the plugin root skills/operate", () => {
+describe("the plugin root skills/pulse-cli", () => {
   it("holds no package.json, so Claude Code installs no dependencies into the plugin", () => {
     expect(existsSync(fileUrl(`${PLUGIN_ROOT}/SKILL.md`))).toBe(true)
     expect(existsSync(fileUrl(`${PLUGIN_ROOT}/package.json`))).toBe(false)
@@ -104,21 +96,7 @@ describe("the plugin root skills/operate", () => {
   })
 })
 
-describe(".claude-plugin/marketplace.json", () => {
-  it("is the miragon marketplace of Miragon GmbH", () => {
-    expect(MARKETPLACE.name).toBe("miragon")
-    expect(MARKETPLACE.owner.name).toBe(PACKAGE.author)
-  })
-
-  it("lists the plugin from its directory, without a second version", () => {
-    // plugin.json wins over an entry version, and `claude plugin validate` warns about both
-    expect(MARKETPLACE.plugins).toHaveLength(1)
-    expect(MARKETPLACE.plugins[0]).toMatchObject({ name: PLUGIN.name, source: `./${PLUGIN_ROOT}` })
-    expect(MARKETPLACE.plugins[0]).not.toHaveProperty("version")
-  })
-})
-
-describe("skills/operate/commands/status.md", () => {
+describe("skills/pulse-cli/commands/status.md", () => {
   const command = read(`${PLUGIN_ROOT}/commands/status.md`)
   const frontmatter = (/^---\n([\s\S]*?)\n---\n\n/.exec(command)?.[1] ?? "").split("\n")
 

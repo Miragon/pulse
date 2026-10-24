@@ -10,7 +10,7 @@ import { compact, stringifyJson } from "../util.js"
 import { maskUrl, maskUrlsInText } from "./secrets.js"
 
 const INTERNAL_HINT =
-  "This is likely a bug in operate. Re-run with --verbose for the stack trace and report it at https://github.com/Miragon/operate/issues."
+  "This is likely a bug in operate. Re-run with --verbose for the stack trace and report it at https://github.com/Miragon/pulse/issues."
 
 /** How many `cause` levels the verbose stack follows. */
 const MAX_CAUSES = 5

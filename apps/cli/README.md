@@ -1,9 +1,9 @@
 # operate
 
 [![npm version](https://img.shields.io/npm/v/@miragon/operate.svg)](https://www.npmjs.com/package/@miragon/operate)
-[![CI](https://github.com/Miragon/operate/actions/workflows/ci.yml/badge.svg)](https://github.com/Miragon/operate/actions/workflows/ci.yml)
+[![CI](https://github.com/Miragon/pulse/actions/workflows/ci.yml/badge.svg)](https://github.com/Miragon/pulse/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Documentation](https://img.shields.io/badge/docs-miragon.github.io%2Foperate-blue.svg)](https://miragon.github.io/operate/)
+[![Documentation](https://img.shields.io/badge/docs-miragon.github.io%2Fpulse%2Fcli-blue.svg)](https://miragon.github.io/pulse/cli/)
 
 A command line tool that lets an AI agent (or a human at a shell) **operate a Camunda 7 process
 engine**: [Operaton](https://operaton.org), [CIB seven](https://cibseven.org) and Camunda 7. Deploy
@@ -11,7 +11,7 @@ processes and decisions, start and follow instances, work on tasks, fix incident
 instances, look into the history and administer users and permissions. The agent says what should
 happen, and the CLI talks to the REST API.
 
-![operate finds the incident of an order with an expired card, fixes the variable and retries the job, and the order moves on to shipping](docs/assets/demo.gif)
+![operate finds the incident of an order with an expired card, fixes the variable and retries the job, and the order moves on to shipping](https://raw.githubusercontent.com/Miragon/pulse/main/docs/cli/assets/demo.gif)
 
 ## Why
 
@@ -49,7 +49,7 @@ operate guide
 ## Quick start
 
 Start an engine, then deploy a process, start an instance and complete its first task.
-`order.bpmn` is any process with a user task; the [walk-through](docs/quick-start.md) has one.
+`order.bpmn` is any process with a user task; the [walk-through](https://miragon.github.io/pulse/cli/quick-start) has one.
 
 ```sh
 docker run -d --name engine -p 8080:8080 operaton/operaton:2.1.5
@@ -94,8 +94,8 @@ On a terminal the answer is a table, as above; an agent or a script gets JSON.
 The six top-level commands (`inspect`, `wait`, `advance`, `retry`, `deploy`, `status`) combine
 several requests; every other command is one operation of the REST API.
 
-Details: [workflow commands](docs/workflow-commands.md),
-[command structure](docs/commands.md), [recipes](docs/recipes.md).
+Details: [workflow commands](https://miragon.github.io/pulse/cli/workflow-commands),
+[command structure](https://miragon.github.io/pulse/cli/commands), [recipes](https://miragon.github.io/pulse/cli/recipes).
 
 ## AI agents and the Claude Code plugin
 
@@ -109,46 +109,46 @@ a task touches an engine.
 /plugin install operate@miragon
 ```
 
-Details: [using operate from AI agents](docs/agents.md).
+Details: [using operate from AI agents](https://miragon.github.io/pulse/cli/agents).
 
 ## Engines
 
 operate works with Operaton, CIB seven and Camunda 7, and is tested against all three on every
 change. Camunda 8 is not supported: it has a different API.
 
-Details: [engines](docs/engines.md).
+Details: [engines](https://miragon.github.io/pulse/cli/engines).
 
 ## Without Node.js
 
 Every release also has a standalone executable for Linux, macOS and Windows, and a container
 image, `ghcr.io/miragon/operate`.
 
-Details: [installation](docs/installation.md).
+Details: [installation](https://miragon.github.io/pulse/cli/installation).
 
 ## Documentation
 
-The documentation is a website, [miragon.github.io/operate](https://miragon.github.io/operate/),
-built from the pages in [`docs/`](docs/):
+The documentation is a website, [miragon.github.io/pulse/cli](https://miragon.github.io/pulse/cli/),
+built from the pages in [`docs/cli/`](https://github.com/Miragon/pulse/tree/main/docs/cli):
 
-- [Getting started](docs/getting-started.md): a first triage, then your own engine, Claude Code or CI
-- [Installation](docs/installation.md): npm, Homebrew, standalone executable, container image, shell completion
-- [Quick start](docs/quick-start.md): one process from an empty engine to a finished instance
-- [Workflow commands](docs/workflow-commands.md): inspect, wait, advance, retry, deploy, status
-- [Command structure](docs/commands.md): names, arguments, variables, request bodies, files, dates
-- [Output and errors](docs/output-and-errors.md): formats, previews, error fields, exit codes
-- [Configuration](docs/configuration.md): options, environment variables, config and project files, profiles
-- [Authentication](docs/authentication.md): Basic auth, OAuth logins, bearer tokens, token commands, other headers
-- [Safety](docs/safety.md): previews, confirmation, read-only mode
-- [Recipes](docs/recipes.md): command lines for everyday tasks
-- [Using operate from AI agents](docs/agents.md): the guide, the Claude Code plugin and skill
-- [Engines](docs/engines.md): compatibility, choosing the engine, adding a difference or an engine
-- [Architecture](docs/architecture.md): engine port, adapters, catalog generation; [decisions](docs/adr/index.md)
-- [Development](docs/development.md) and [releasing](docs/releasing.md)
+- [Getting started](https://miragon.github.io/pulse/cli/getting-started): a first triage, then your own engine, Claude Code or CI
+- [Installation](https://miragon.github.io/pulse/cli/installation): npm, Homebrew, standalone executable, container image, shell completion
+- [Quick start](https://miragon.github.io/pulse/cli/quick-start): one process from an empty engine to a finished instance
+- [Workflow commands](https://miragon.github.io/pulse/cli/workflow-commands): inspect, wait, advance, retry, deploy, status
+- [Command structure](https://miragon.github.io/pulse/cli/commands): names, arguments, variables, request bodies, files, dates
+- [Output and errors](https://miragon.github.io/pulse/cli/output-and-errors): formats, previews, error fields, exit codes
+- [Configuration](https://miragon.github.io/pulse/cli/configuration): options, environment variables, config and project files, profiles
+- [Authentication](https://miragon.github.io/pulse/cli/authentication): Basic auth, OAuth logins, bearer tokens, token commands, other headers
+- [Safety](https://miragon.github.io/pulse/cli/safety): previews, confirmation, read-only mode
+- [Recipes](https://miragon.github.io/pulse/cli/recipes): command lines for everyday tasks
+- [Using operate from AI agents](https://miragon.github.io/pulse/cli/agents): the guide, the Claude Code plugin and skill
+- [Engines](https://miragon.github.io/pulse/cli/engines): compatibility, choosing the engine, adding a difference or an engine
+- [Architecture](https://miragon.github.io/pulse/cli/architecture): engine port, adapters, catalog generation; [decisions](https://miragon.github.io/pulse/cli/adr/)
+- [Development](https://github.com/Miragon/pulse/blob/main/docs/cli/development.md): building and testing the CLI in the Pulse repository
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Bugs and ideas go to the
-[issues](https://github.com/Miragon/operate/issues).
+See the [development guide](https://github.com/Miragon/pulse/blob/main/docs/cli/development.md).
+Bugs and ideas go to the [issues](https://github.com/Miragon/pulse/issues).
 
 ## License
 

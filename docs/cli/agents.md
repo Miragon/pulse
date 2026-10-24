@@ -62,21 +62,21 @@ claude plugin update operate@miragon
 If you copied `SKILL.md` into a skills directory before, remove that copy
 (`rm -r ~/.claude/skills/operate`); otherwise Claude Code lists the skill twice.
 
-The plugin lives in [`skills/operate`](https://github.com/Miragon/operate/tree/main/skills/operate).
+The plugin lives in [`apps/cli/skills/pulse-cli`](https://github.com/Miragon/pulse/tree/main/apps/cli/skills/pulse-cli).
 The npm package ships it too, so
-`claude --plugin-dir "$(npm root -g)/@miragon/operate/skills/operate"` loads the installed version
+`claude --plugin-dir "$(npm root -g)/@miragon/operate/skills/pulse-cli"` loads the installed version
 for one session.
 
 ## Claude Code skill without the plugin
 
-[`skills/operate/SKILL.md`](https://github.com/Miragon/operate/blob/main/skills/operate/SKILL.md)
+[`apps/cli/skills/pulse-cli/SKILL.md`](https://github.com/Miragon/pulse/blob/main/apps/cli/skills/pulse-cli/SKILL.md)
 is the core guide as a Claude Code skill; it ships with the npm package. To use it without the
 plugin (not in addition to it), install it for all your projects or for one project:
 
 ```sh
 mkdir -p ~/.claude/skills/operate
-cp "$(npm root -g)/@miragon/operate/skills/operate/SKILL.md" ~/.claude/skills/operate/
+cp "$(npm root -g)/@miragon/operate/skills/pulse-cli/SKILL.md" ~/.claude/skills/operate/
 
 mkdir -p .claude/skills/operate
-curl -fsSL https://raw.githubusercontent.com/Miragon/operate/main/skills/operate/SKILL.md -o .claude/skills/operate/SKILL.md
+curl -fsSL https://raw.githubusercontent.com/Miragon/pulse/main/apps/cli/skills/pulse-cli/SKILL.md -o .claude/skills/operate/SKILL.md
 ```

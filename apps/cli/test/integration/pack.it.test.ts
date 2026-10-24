@@ -1,9 +1,10 @@
 /**
- * Smoke test of the published artifact: `npm pack` (its prepack script builds the bundle), install
- * the tarball into a temporary global prefix and run the installed `operate` binary.
+ * Smoke test of the published artifact: `npm pack` of the bundle the build put into `dist/` (as the
+ * publish workflow packs it: build first, no prepack script), install the tarball into a temporary
+ * global prefix and run the installed `operate` binary.
  *
- * The pack runs in a copy of the working tree, so the prepack build cannot replace `dist/` while the
- * engine suites execute `dist/operate.js` in parallel.
+ * The pack runs in a copy of the package tree, so nothing it writes lands next to the `dist/` the
+ * engine suites execute in parallel.
  */
 
 import { existsSync } from "node:fs"
@@ -25,7 +26,6 @@ const NPM = IS_WINDOWS ? "npm.cmd" : "npm"
 const NOT_COPIED = new Set([
   "node_modules",
   ".git",
-  "dist",
   "build",
   "coverage",
   "reports",
@@ -134,16 +134,16 @@ describe("packed npm tarball", () => {
 
   it("ships the README, the license and the agent skill", async () => {
     const packageDir = installedPackageDir(prefix)
-    for (const file of ["README.md", "LICENSE", join("skills", "operate", "SKILL.md")]) {
+    for (const file of ["README.md", "LICENSE", join("skills", "pulse-cli", "SKILL.md")]) {
       expect(existsSync(join(packageDir, file)), file).toBe(true)
     }
-    const skill = await readFile(join(packageDir, "skills", "operate", "SKILL.md"), "utf8")
+    const skill = await readFile(join(packageDir, "skills", "pulse-cli", "SKILL.md"), "utf8")
     expect(skill).toMatch(/^---\nname: operate\n/)
     expect(await readFile(join(packageDir, "README.md"), "utf8")).toContain("operate")
   })
 
   it("ships the Claude Code plugin of the skill without its evals", () => {
-    const pluginDir = join(installedPackageDir(prefix), "skills", "operate")
+    const pluginDir = join(installedPackageDir(prefix), "skills", "pulse-cli")
     for (const file of [join(".claude-plugin", "plugin.json"), join("commands", "status.md")]) {
       expect(existsSync(join(pluginDir, file)), file).toBe(true)
     }
@@ -176,7 +176,7 @@ describe("packed npm tarball", () => {
   it("prints the agent guide, the body of the skill, and its topics", async () => {
     const result = expectSuccess(await operate(["guide"]))
     expect(result.stdout).toMatch(/^# operate: /)
-    const skillPath = join(installedPackageDir(prefix), "skills", "operate", "SKILL.md")
+    const skillPath = join(installedPackageDir(prefix), "skills", "pulse-cli", "SKILL.md")
     expect((await readFile(skillPath, "utf8")).endsWith(`\n---\n\n${result.stdout}`)).toBe(true)
     const list = expectSuccess(await operate(["guide", "--list"]))
     const topics = (JSON.parse(list.stdout) as { topic: string }[]).map(({ topic }) => topic)
