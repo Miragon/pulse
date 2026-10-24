@@ -1482,6 +1482,18 @@ const DIRECT_ROOT_GATES = ["build", "typecheck", "format:check", "test:pg", "tes
 const PLAIN_PNPM_SEGMENT = /^pnpm (?:run )?([\w:-]+)$/
 /** Per-package scripts that turbo runs as gates. */
 const PACKAGE_GATES = ["lint", "typecheck", "test", "test:mutation"]
+/**
+ * Per-package scripts a CI or release job runs by name (.github/workflows/ci.yml,
+ * publish-vscode-extension.yml): the job checks what the command does, so the command is pinned
+ * like a gate once it exists on the merge base.
+ */
+const CI_PACKAGE_SCRIPTS = [
+  "test:engines",
+  "test:smoke",
+  "package",
+  "marketplace:publish",
+  "open-vsx:publish",
+]
 
 /**
  * Why `after` is not the pinned gate command `before` — null when it is,
@@ -1558,6 +1570,20 @@ function comparePackageScripts(relPath, oldJson, newJson) {
     } else if (normalizeCommand(before) !== normalizeCommand(after)) {
       violations.push(
         `${relPath} -> the "${script}" gate changed: "${normalizeCommand(before)}" -> "${normalizeCommand(after)}". A package's gate commands are pinned to the merge base — \`--coverage.enabled=false\`, \`--rule 'complexity: off'\`, \`|| true\` or a dropped \`tsc -p\` project switch the gate off while the command still "runs" it. A deliberate change carries the Ratchet-Exception trailer.`,
+      )
+    }
+  }
+  for (const script of CI_PACKAGE_SCRIPTS) {
+    const before = oldJson?.scripts?.[script]
+    if (typeof before !== "string") continue
+    const after = newJson?.scripts?.[script]
+    if (typeof after !== "string") {
+      violations.push(
+        `${relPath} -> "${script}" was removed — a CI or release job runs it by name.`,
+      )
+    } else if (normalizeCommand(before) !== normalizeCommand(after)) {
+      violations.push(
+        `${relPath} -> the "${script}" script changed: "${normalizeCommand(before)}" -> "${normalizeCommand(after)}". A CI or release job runs it by name, so it is pinned to the merge base like a gate — a dropped step or an \`|| true\` hollows the job while it stays green. A deliberate change carries the Ratchet-Exception trailer.`,
       )
     }
   }

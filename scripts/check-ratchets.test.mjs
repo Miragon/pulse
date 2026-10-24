@@ -1692,6 +1692,63 @@ describe("package gate scripts are pinned to the merge base", () => {
       [],
     )
   })
+
+  describe("the scripts a CI or release job runs by name", () => {
+    const extension = "apps/vscode/package.json"
+    const CI_SCRIPTS = {
+      "test:engines": "vitest run --config vitest.engines.config.ts",
+      "test:smoke": "node scripts/build.mjs && vscode-test --config .vscode-test.mjs",
+      package:
+        "node scripts/build.mjs --production && vsce package --no-dependencies --readme-path MARKETPLACE.md",
+      "marketplace:publish": "vsce publish",
+      "open-vsx:publish": "ovsx publish",
+    }
+    const app = (scripts) =>
+      JSON.stringify({
+        name: "pulse-vscode",
+        engines: { vscode: "^1.101.0" },
+        scripts: { ...BASE, ...CI_SCRIPTS, ...scripts },
+      })
+
+    it("flags each one changed in any way", () => {
+      for (const scripts of [
+        { "test:smoke": "node scripts/build.mjs && vscode-test --config .vscode-test.mjs || true" },
+        { "test:smoke": "node scripts/build.mjs" },
+        { package: "node scripts/build.mjs --production && vsce package" },
+        { "test:engines": "vitest run --config vitest.engines.config.ts --passWithNoTests" },
+        { "marketplace:publish": "vsce publish --allow-proposed-apis" },
+        { "open-vsx:publish": "true" },
+      ]) {
+        const violations = checkRatchetFile(extension, app({}), app(scripts))
+        assert.equal(violations.length, 1, JSON.stringify({ scripts, violations }))
+        assert.match(violations[0], /runs it by name, so it is pinned to the merge base/)
+      }
+    })
+
+    it("flags each one removed", () => {
+      for (const script of Object.keys(CI_SCRIPTS)) {
+        const scripts = JSON.parse(app({})).scripts
+        delete scripts[script]
+        const violations = checkRatchetFile(
+          extension,
+          app({}),
+          JSON.stringify({ name: "pulse-vscode", scripts }),
+        )
+        assert.equal(violations.length, 1, script)
+        assert.match(violations[0], new RegExp(`"${script}" was removed — a CI or release job`))
+      }
+    })
+
+    it("leaves whitespace, a new package and a script the base lacks free", () => {
+      const spaced = { package: `  ${CI_SCRIPTS.package.replaceAll(" ", "  ")} ` }
+      assert.deepEqual(checkRatchetFile(extension, app({}), app(spaced)), [])
+      assert.deepEqual(checkRatchetFile(extension, null, app({ "open-vsx:publish": "true" })), [])
+      assert.deepEqual(
+        checkRatchetFile(rel, pkg({}), pkg({ "test:engines": "vitest run --config x.ts" })),
+        [],
+      )
+    })
+  })
 })
 
 describe("base ref resolution in CI", () => {

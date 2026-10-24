@@ -22,6 +22,10 @@ import {
   PUBLISHABLE_DIR,
   PUBLISH_WORKFLOW,
   RELEASE_WORKFLOW,
+  VSCODE_APP_DIR,
+  VSCODE_ENVIRONMENT,
+  VSCODE_PUBLISH_WORKFLOW,
+  VSCODE_SWITCH,
   actionRefs,
   checkArtifactGlobs,
   checkDependabot,
@@ -32,6 +36,7 @@ import {
   checkRepo,
   checkRequiredChecks,
   checkStrykerIncremental,
+  checkVscodePublish,
   expectedRepository,
   isNpmPublished,
   packageManagerRun,
@@ -854,6 +859,422 @@ describe("checkReleaseExtraFiles", () => {
     assert.ok(matches(errors, /: package\.json \(the root\) is missing/))
     assert.ok(matches(errors, /apps\/gone\/package\.json does not exist/))
   })
+})
+
+// ── publish-vscode-extension.yml ────────────────────────────────────────────
+
+const VSCODE_PUBLISH = readDoc(VSCODE_PUBLISH_WORKFLOW)
+const WITH_EXTENSION = workspace({ ...TODAY, ...VSCODE })
+const WITHOUT_EXTENSION = workspace(TODAY)
+/**
+ * checkVscodePublish over the real release and extension workflows, mutated: `mutate` gets the
+ * release-please.yml doc, the caller job, the extension workflow doc and its jobs.
+ */
+const vscodeErrors = (mutate, packages = WITH_EXTENSION) => {
+  const release = structuredClone(RELEASE)
+  const publish = structuredClone(VSCODE_PUBLISH)
+  mutate({ release, caller: release.jobs["publish-vscode"], publish, jobs: publish.jobs })
+  return checkVscodePublish(release, publish, packages)
+}
+const stepUsing = (job, action) => job.steps.find((step) => step.uses?.startsWith(`${action}@`))
+
+describe("checkVscodePublish", () => {
+  it("accepts the real workflows, for the real and the fixture workspace", () => {
+    assert.deepEqual(checkVscodePublish(RELEASE, VSCODE_PUBLISH, REAL_PACKAGES), [])
+    assert.deepEqual(
+      vscodeErrors(() => {}),
+      [],
+    )
+  })
+
+  it("asks nothing of a workspace without an extension, and refuses a caller there", () => {
+    const withoutCaller = structuredClone(RELEASE)
+    delete withoutCaller.jobs["publish-vscode"]
+    assert.deepEqual(checkVscodePublish(withoutCaller, undefined, WITHOUT_EXTENSION), [])
+    assert.deepEqual(checkVscodePublish(withoutCaller, VSCODE_PUBLISH, WITHOUT_EXTENSION), [])
+    const errors = vscodeErrors(() => {}, WITHOUT_EXTENSION)
+    assert.equal(errors.length, 1, errors.join("\n"))
+    assert.match(errors[0], /job publish-vscode calls .* apps\/vscode, which declares no engines/)
+  })
+
+  it("demands the workflow once an extension exists", () => {
+    const errors = checkVscodePublish(RELEASE, undefined, WITH_EXTENSION)
+    assert.deepEqual(errors, [
+      `${VSCODE_PUBLISH_WORKFLOW} is missing: a release never packages the extension`,
+    ])
+  })
+
+  it("demands an extension under apps/", () => {
+    const withoutCaller = structuredClone(RELEASE)
+    delete withoutCaller.jobs["publish-vscode"]
+    const elsewhere = workspace({
+      ...TODAY,
+      "packages/core/vscode-extension": { name: "pulse-x", engines: { vscode: "^1.101.0" } },
+    })
+    const errors = checkVscodePublish(withoutCaller, VSCODE_PUBLISH, elsewhere)
+    assert.equal(errors.length, 1, errors.join("\n"))
+    assert.match(errors[0], /packages\/core\/vscode-extension \(pulse-x\) .* apps\/<name> only/)
+  })
+
+  it("reads the environment in both of its forms", () => {
+    const named = vscodeErrors(({ jobs }) => {
+      jobs.publish.environment = { name: VSCODE_ENVIRONMENT, url: "https://example.com" }
+    })
+    assert.deepEqual(named, [])
+  })
+
+  /** One mutation per rule, each with exactly the errors it must raise. */
+  const CASES = [
+    [
+      "no caller",
+      ({ release }) => delete release.jobs["publish-vscode"],
+      [/0 jobs .* a release never packages it \(or twice\)/],
+    ],
+    [
+      "a caller with another directory",
+      ({ caller }) => (caller.with.directory = "apps/vscodex"),
+      [/apps\/vscodex, which declares no engines\.vscode: it packages nothing/, /0 jobs of/],
+    ],
+    [
+      "a second caller",
+      ({ release, caller }) => (release.jobs["publish-vscode-again"] = structuredClone(caller)),
+      [/2 jobs of .* \(or twice\)/],
+    ],
+    [
+      "needs release-please only",
+      ({ caller }) => (caller.needs = "release-please"),
+      [/must need release-please and gate/],
+    ],
+    [
+      "a literal channel",
+      ({ caller }) => (caller.with.channel = "release"),
+      [/must pass channel: \$\{\{ vars\.VSCODE_PUBLISH \}\} \(found "release"\)/],
+    ],
+    ["no channel", ({ caller }) => delete caller.with.channel, [/must pass channel/]],
+    ["a constant dry run", ({ caller }) => (caller.with.dry_run = false), [/must pass dry_run/]],
+    ["no version", ({ caller }) => delete caller.with.version, [/must pass version/]],
+    [
+      "secrets: inherit",
+      ({ caller }) => (caller.secrets = "inherit"),
+      [/passes secrets: the store credentials live in the vscode-marketplace environment/],
+    ],
+    [
+      "write-all on the caller",
+      ({ caller }) => (caller.permissions = "write-all"),
+      [/exactly \{ contents: write, id-token: write \}/],
+    ],
+    [
+      "a caller without id-token",
+      ({ caller }) => delete caller.permissions["id-token"],
+      [/exactly \{ contents: write, id-token: write \}/],
+    ],
+    [
+      "a required input that is not",
+      ({ publish }) => delete publish.on.workflow_call.inputs.version.required,
+      [/required string input "version"/],
+    ],
+    [
+      "no channel input",
+      ({ publish }) => delete publish.on.workflow_call.inputs.channel,
+      [/string input "channel"/],
+    ],
+    [
+      "a string dry_run input",
+      ({ publish }) => (publish.on.workflow_call.inputs.dry_run.type = "string"),
+      [/boolean input "dry_run"/],
+    ],
+    [
+      "top-level permissions",
+      ({ publish }) => (publish.permissions = { contents: "read" }),
+      [/top-level permissions must be \{\}/],
+    ],
+    [
+      "no bash default",
+      ({ publish }) => delete publish.defaults,
+      [/defaults\.run\.shell must be bash/],
+    ],
+    [
+      "a publish job without id-token",
+      ({ jobs }) => delete jobs.publish.permissions["id-token"],
+      [/job publish must hold exactly \{ contents: read, id-token: write \}/],
+    ],
+    [
+      "a publish job with contents: write",
+      ({ jobs }) => (jobs.publish.permissions.contents = "write"),
+      [/job publish must hold exactly \{ contents: read, id-token: write \}/],
+    ],
+    [
+      "a second job in the environment",
+      ({ jobs }) =>
+        (jobs.rogue = {
+          "runs-on": "ubuntu-latest",
+          environment: VSCODE_ENVIRONMENT,
+          permissions: { contents: "read" },
+          steps: [{ run: "echo hello" }],
+        }),
+      [/exactly one job runs in the environment vscode-marketplace .* found 2 \(publish, rogue\)/],
+    ],
+    [
+      "id-token on package",
+      ({ jobs }) => (jobs.package.permissions["id-token"] = "write"),
+      [/job package must hold exactly \{ contents: read \}/],
+    ],
+    [
+      "package in an environment",
+      ({ jobs }) => (jobs.package.environment = "release"),
+      [/job package runs in no environment/],
+    ],
+    [
+      "id-token on attach",
+      ({ jobs }) => (jobs.attach.permissions["id-token"] = "write"),
+      [/job attach holds id-token/],
+    ],
+    [
+      "read-all on attach",
+      ({ jobs }) => (jobs.attach.permissions = "read-all"),
+      [/job attach holds id-token/],
+    ],
+    [
+      "a secret in the package job",
+      ({ jobs }) => (stepNamed(jobs.package, "Package").env.VSCE_PAT = "${{ secrets.VSCE_PAT }}"),
+      [/job package reads secrets/],
+    ],
+    [
+      "an expression inside a run",
+      ({ jobs }) => {
+        const step = stepNamed(jobs.package, "channel")
+        step.run = step.run.replace('case "$CHANNEL" in', 'case "${{ inputs.channel }}" in')
+      },
+      [/job package: a run script holds a \$\{\{ \}\} expression/],
+    ],
+    [
+      "actions/cache in publish",
+      ({ jobs }) =>
+        jobs.publish.steps.splice(1, 0, {
+          uses: "actions/cache@v6.1.0",
+          with: { path: "x", key: "k" },
+        }),
+      [/job publish uses actions\/cache@v6\.1\.0: a release job restores no cache/],
+    ],
+    [
+      "actions/cache/restore in package",
+      ({ jobs }) =>
+        jobs.package.steps.splice(1, 0, {
+          uses: "actions/cache/restore@v6.1.0",
+          with: { path: "x", key: "k" },
+        }),
+      [/job package uses actions\/cache\/restore@v6\.1\.0/],
+    ],
+    [
+      "cache: pnpm on setup-node",
+      ({ jobs }) => (stepUsing(jobs.package, "actions/setup-node").with.cache = "pnpm"),
+      [/job package: actions\/setup-node@v7\.1\.0 sets cache/],
+    ],
+    [
+      "setup-node with the package manager cache",
+      ({ jobs }) =>
+        delete stepUsing(jobs.publish, "actions/setup-node").with["package-manager-cache"],
+      [/job publish: actions\/setup-node must set package-manager-cache: false/],
+    ],
+    [
+      "a checkout that keeps its credentials",
+      ({ jobs }) => delete stepUsing(jobs.publish, "actions/checkout").with,
+      [/job publish: actions\/checkout must set persist-credentials: false/],
+    ],
+    [
+      "an install that runs lifecycle scripts",
+      ({ jobs }) => {
+        const step = stepNamed(jobs.publish, "Install vsce and ovsx")
+        step.run = step.run.replace(" --ignore-scripts", "")
+      },
+      [/pnpm install must pass --ignore-scripts/],
+    ],
+    [
+      "an install off the lockfile",
+      ({ jobs }) => {
+        const step = stepNamed(jobs.publish, "Install vsce and ovsx")
+        step.run = step.run.replace(" --frozen-lockfile", "")
+      },
+      [/pnpm install must pass --frozen-lockfile/],
+    ],
+    [
+      "a second install",
+      ({ jobs }) =>
+        jobs.publish.steps.splice(4, 0, { run: "pnpm install --frozen-lockfile --ignore-scripts" }),
+      [/must run exactly one pnpm install, found 2/],
+    ],
+    [
+      "a build next to the credentials",
+      ({ jobs }) =>
+        jobs.publish.steps.splice(4, 0, {
+          run: 'pnpm --fail-if-no-match --filter "${NAME}" run build',
+        }),
+      [
+        /job publish runs "pnpm --fail-if-no-match --filter "\$\{NAME\}" run build": next to the credentials/,
+      ],
+    ],
+    [
+      "a build script without a package manager",
+      ({ jobs }) =>
+        jobs.publish.steps.splice(4, 0, {
+          run: "cd apps/vscode && node scripts/build.mjs --production",
+        }),
+      [/runs "node scripts\/build\.mjs --production"/],
+    ],
+    [
+      "a registry download next to the credentials",
+      ({ jobs }) => jobs.publish.steps.splice(4, 0, { run: "npx @vscode/vsce@latest --version" }),
+      [/runs "npx @vscode\/vsce@latest --version"/],
+    ],
+    [
+      "a Marketplace publish without --skip-duplicate",
+      ({ jobs }) => {
+        const step = stepNamed(jobs.publish, "Publish to the Visual Studio Marketplace")
+        step.run = step.run.replace(" --skip-duplicate", "")
+      },
+      [/the step "Publish to the Visual Studio Marketplace" must pass --skip-duplicate/],
+    ],
+    [
+      "an Open VSX publish without --skip-duplicate",
+      ({ jobs }) => {
+        const step = stepNamed(jobs.publish, "Publish to Open VSX")
+        step.run = step.run.replace(" --skip-duplicate", "")
+      },
+      [/the step "Publish to Open VSX" must pass --skip-duplicate/],
+    ],
+    [
+      "no Open VSX publish",
+      ({ jobs }) =>
+        (jobs.publish.steps = jobs.publish.steps.filter(
+          (step) => step.name !== "Publish to Open VSX",
+        )),
+      [/must run open-vsx:publish in exactly one step, found 0/],
+    ],
+    [
+      "a publish job that runs on a dry run",
+      ({ jobs }) => (jobs.publish.if = "${{ needs.package.outputs.publish == 'true' }}"),
+      [/must skip itself on a dry run and while the switch is off/],
+    ],
+    [
+      "a publish job that ignores the switch",
+      ({ jobs }) => (jobs.publish.if = "${{ inputs.dry_run != true }}"),
+      [/must skip itself on a dry run and while the switch is off/],
+    ],
+    [
+      "a publish job that needs nothing",
+      ({ jobs }) => delete jobs.publish.needs,
+      [/must need the package job/],
+    ],
+  ]
+  for (const [label, mutate, expected] of CASES) {
+    it(`rejects ${label}`, () => {
+      const errors = vscodeErrors(mutate)
+      assert.equal(errors.length, expected.length, errors.join("\n"))
+      for (const pattern of expected)
+        assert.ok(matches(errors, pattern), `${pattern}\n${errors.join("\n")}`)
+    })
+  }
+
+  it("pins the switch the caller passes and the directories the Resolve step accepts", () => {
+    assert.equal(RELEASE.jobs["publish-vscode"].with.channel, VSCODE_SWITCH)
+    const script = stepNamed(VSCODE_PUBLISH.jobs.package, "pkg").run
+    assert.ok(script.includes(VSCODE_APP_DIR.source.replaceAll("\\/", "/")))
+  })
+})
+
+// ── Behaviour of the extension workflow's bash steps ────────────────────────
+
+describe("the Release switch step", () => {
+  const script = stepNamed(VSCODE_PUBLISH.jobs.package, "channel").run
+  const dir = tempDir("gh-config-switch-")
+  let runs = 0
+  const resolve = (CHANNEL) => {
+    const output = path.join(dir, `github-output-${(runs += 1)}`)
+    writeFileSync(output, "")
+    const result = runStep(script, { cwd: dir, env: { CHANNEL, GITHUB_OUTPUT: output } })
+    return { ...result, output: readFileSync(output, "utf8").trim().split("\n").filter(Boolean) }
+  }
+
+  for (const [CHANNEL, publish, preRelease] of [
+    ["", false, false],
+    ["off", false, false],
+    ["pre-release", true, true],
+    ["release", true, false],
+  ]) {
+    it(`reads ${JSON.stringify(CHANNEL)} as publish=${publish}, pre_release=${preRelease}`, () => {
+      const result = resolve(CHANNEL)
+      assert.equal(result.status, 0, result.stdout + result.stderr)
+      assert.deepEqual(result.output, [`publish=${publish}`, `pre_release=${preRelease}`])
+    })
+  }
+
+  for (const CHANNEL of ["prerelease", "true", "on", "Release", "release "]) {
+    it(`fails on ${JSON.stringify(CHANNEL)}`, () => {
+      const result = resolve(CHANNEL)
+      assert.equal(result.status, 1)
+      assert.match(result.stdout, /VSCODE_PUBLISH is/)
+      assert.deepEqual(result.output, [])
+    })
+  }
+})
+
+describe("the Resolve extension step", () => {
+  const script = stepNamed(VSCODE_PUBLISH.jobs.package, "pkg").run
+  const repo = tempDir("gh-config-resolve-vsix-")
+  const extension = (manifest) => ({
+    name: "pulse-vscode",
+    version: "1.2.3",
+    engines: { vscode: "^1.101.0" },
+    ...manifest,
+  })
+  for (const [dir, manifest] of Object.entries({
+    ...TODAY,
+    "apps/vscode": extension({}),
+    "apps/beta": extension({ name: "pulse-beta", version: "1.2.3-beta.1" }),
+    "apps/plain": { name: "pulse-plain", version: "1.2.3" },
+    "apps/scoped": extension({ name: "@miragon/pulse-vscode" }),
+  })) {
+    writeFile(repo, `${dir}/package.json`, JSON.stringify(manifest))
+  }
+  let runs = 0
+  const resolve = (DIR, TAG) => {
+    const output = path.join(repo, `github-output-${(runs += 1)}`)
+    writeFileSync(output, "")
+    const result = runStep(script, { cwd: repo, env: { DIR, TAG, GITHUB_OUTPUT: output } })
+    return { ...result, output: readFileSync(output, "utf8").trim().split("\n").filter(Boolean) }
+  }
+
+  for (const TAG of ["v1.2.3", ""]) {
+    it(`resolves apps/vscode for ${TAG === "" ? "a dry run" : TAG}`, () => {
+      const result = resolve("apps/vscode", TAG)
+      assert.equal(result.status, 0, result.stdout + result.stderr)
+      assert.deepEqual(result.output, [
+        "name=pulse-vscode",
+        "version=1.2.3",
+        "vsix=pulse-vscode-1.2.3.vsix",
+        "artifact=vsix-pulse-vscode",
+      ])
+    })
+  }
+
+  for (const [DIR, TAG, message] of [
+    ["apps/vscode", "v1.2.4", /pulse-vscode@1\.2\.3 is not the release v1\.2\.4/],
+    ["apps/beta", "", /pulse-beta@1\.2\.3-beta\.1: the Marketplace takes major\.minor\.patch only/],
+    ["apps/plain", "", /apps\/plain declares no engines\.vscode/],
+    ["apps/scoped", "", /is named "@miragon\/pulse-vscode": vsce takes an unscoped lowercase name/],
+    ["apps/..", "", /apps\/\.\. is no app directory/],
+    ["apps/missing", "", /is no app directory/],
+    ["packages/core/widget-shell", "", /is no app directory/],
+    ["apps/vscode; touch pwned", "", /is no app directory/],
+  ]) {
+    it(`refuses ${DIR}${TAG === "" ? "" : ` for ${TAG}`}`, () => {
+      const result = resolve(DIR, TAG)
+      assert.equal(result.status, 1)
+      assert.match(result.stdout, message)
+      assert.deepEqual(result.output, [])
+      assert.equal(existsSync(path.join(repo, "pwned")), false)
+    })
+  }
 })
 
 // ── dependabot.yml ──────────────────────────────────────────────────────────
