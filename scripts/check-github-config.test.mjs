@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url"
 import { parse } from "yaml"
 import {
   CI_WORKFLOW,
+  INCREMENTAL_FILE,
   NIGHTLY_WORKFLOW,
   PUBLISHABLE_DIR,
   PUBLISH_WORKFLOW,
@@ -20,6 +21,7 @@ import {
   checkReleaseExtraFiles,
   checkRepo,
   checkRequiredChecks,
+  checkStrykerIncremental,
   isNpmPublished,
   readWorkspace,
 } from "./check-github-config.mjs"
@@ -856,6 +858,49 @@ describe("checkArtifactGlobs", () => {
   })
 })
 
+// ── stryker.config.json ─────────────────────────────────────────────────────
+
+describe("checkStrykerIncremental", () => {
+  const good = { incremental: true, incrementalFile: INCREMENTAL_FILE, mutate: ["src/**/*.ts"] }
+  const errorsFor = (config) => checkStrykerIncremental([{ dir: "apps/cli", config }])
+
+  it("accepts every real config and a config that writes the cached file", () => {
+    const real = REAL_PACKAGES.filter(({ dir }) =>
+      existsSync(path.join(ROOT, dir, "stryker.config.json")),
+    ).map(({ dir }) => ({
+      dir,
+      config: JSON.parse(readFileSync(path.join(ROOT, dir, "stryker.config.json"), "utf8")),
+    }))
+    assert.ok(real.length > 0)
+    assert.deepEqual(checkStrykerIncremental(real), [])
+    assert.deepEqual(errorsFor(good), [])
+  })
+
+  it("rejects a config without incremental, or with it off", () => {
+    for (const incremental of [undefined, false, "true"]) {
+      const errors = errorsFor({ ...good, incremental })
+      assert.deepEqual(errors.length, 1, String(incremental))
+      assert.match(errors[0], /^apps\/cli\/stryker\.config\.json must set "incremental": true/)
+    }
+  })
+
+  it("rejects an incremental file the nightly does not cache", () => {
+    for (const incrementalFile of [undefined, "reports/mutation/incremental.json"]) {
+      const errors = errorsFor({ ...good, incrementalFile })
+      assert.deepEqual(errors.length, 1, String(incrementalFile))
+      assert.match(
+        errors[0],
+        /must set "incrementalFile": "reports\/stryker-incremental\.json", the path the nightly caches/,
+      )
+    }
+    assert.deepEqual(errorsFor({}).length, 2)
+  })
+
+  it("rejects a config that is no JSON object", () => {
+    assert.deepEqual(errorsFor(undefined), ["apps/cli/stryker.config.json is no JSON object"])
+  })
+})
+
 const nightlyErrors = (mutate) => {
   const doc = structuredClone(NIGHTLY)
   mutate(doc)
@@ -912,6 +957,104 @@ describe("checkNightlyMutation", () => {
     )
     assert.ok(matches(checkNightlyMutation(undefined, GLOBS), /is missing/))
   })
+
+  const leg = (doc) => doc.jobs.mutation
+  const strykerStep = (doc) => leg(doc).steps.find((step) => step.name === "Stryker")
+  const keyStep = (doc) => leg(doc).steps.find((step) => step.id === "cache-key")
+  const cacheStep = (doc, action) =>
+    leg(doc).steps.find((step) => step.uses?.startsWith(`actions/cache/${action}@`))
+  const forcedCron = (doc) =>
+    /github\.event\.schedule == '([^']+)'/.exec(strykerStep(doc).env.FORCE)[1]
+
+  it("forces a run every week, from a cron of the schedule", () => {
+    assert.ok(NIGHTLY.on.schedule.some((entry) => entry.cron === forcedCron(NIGHTLY)))
+    for (const [mutate, message] of [
+      [(doc) => (strykerStep(doc).env.FORCE = "${{ inputs.force == true }}"), /needs FORCE: /],
+      [
+        (doc) => (doc.on.schedule = doc.on.schedule.filter((e) => e.cron !== forcedCron(doc))),
+        /FORCE names the cron "[^"]+", which the schedule does not list/,
+      ],
+      [
+        (doc) => {
+          const cron = forcedCron(doc)
+          const monthly = "0 2 1 * *"
+          doc.on.schedule.find((entry) => entry.cron === cron).cron = monthly
+          strykerStep(doc).env.FORCE = strykerStep(doc).env.FORCE.replace(cron, monthly)
+        },
+        /the forced cron "0 2 1 \* \*" must fire every week/,
+      ],
+      [
+        (doc) => (strykerStep(doc).run = strykerStep(doc).run.replace(/^.*--force.*\n/m, "")),
+        /the Stryker step must pass --force when FORCE is true/,
+      ],
+    ]) {
+      const errors = nightlyErrors(mutate)
+      assert.deepEqual(errors.length, 1, errors.join("\n"))
+      assert.match(errors[0], message)
+    }
+  })
+
+  it("caches the pinned incremental file under the fingerprinted key", () => {
+    const bare = "stryker-incremental-${{ matrix.slug }}-"
+    for (const [mutate, message] of [
+      [
+        (doc) => (cacheStep(doc, "restore").with["restore-keys"] = bare),
+        /restore needs restore-keys: /,
+      ],
+      [
+        (doc) => (cacheStep(doc, "restore").with.key = `${bare}\${{ github.run_id }}`),
+        /restore needs key: /,
+      ],
+      [(doc) => (cacheStep(doc, "save").with.key = `${bare}x`), /save needs key: /],
+      [
+        (doc) =>
+          (cacheStep(doc, "save").with.path =
+            "${{ matrix.dir }}/reports/mutation/incremental.json"),
+        /actions\/cache\/save must cache path \$\{\{ matrix\.dir \}\}\/reports\/stryker-incremental\.json/,
+      ],
+      [
+        (doc) => (leg(doc).steps = leg(doc).steps.filter((s) => s !== cacheStep(doc, "save"))),
+        /exactly one actions\/cache\/save step, found 0/,
+      ],
+      [
+        (doc) =>
+          (keyStep(doc).env.FINGERPRINT = keyStep(doc).env.FINGERPRINT.replace(
+            "'pnpm-lock.yaml', ",
+            "",
+          )),
+        /FINGERPRINT misses 'pnpm-lock\.yaml'/,
+      ],
+      [
+        (doc) =>
+          (keyStep(doc).env.FINGERPRINT = keyStep(doc).env.FINGERPRINT.replace(
+            "format('{0}/vitest*.ts', matrix.dir), ",
+            "",
+          )),
+        /FINGERPRINT misses format\('\{0\}\/vitest\*\.ts', matrix\.dir\)/,
+      ],
+      [(doc) => (keyStep(doc).env.SLUG = "${{ matrix.dir }}"), /needs SLUG: /],
+      [
+        (doc) => (keyStep(doc).run = keyStep(doc).run.replace("-node${node_major}", "")),
+        /the cache-key step must run echo "prefix=stryker-incremental-\$\{SLUG\}-node\$\{node_major\}/,
+      ],
+    ]) {
+      const errors = nightlyErrors(mutate)
+      assert.deepEqual(errors.length, 1, errors.join("\n"))
+      assert.match(errors[0], message)
+    }
+    assert.ok(
+      matches(
+        nightlyErrors((doc) => (keyStep(doc).env.FINGERPRINT = "${{ github.sha }}")),
+        /needs FINGERPRINT: \$\{\{ hashFiles\(\.\.\.\) \}\}/,
+      ),
+    )
+    assert.ok(
+      matches(
+        nightlyErrors((doc) => delete keyStep(doc).id),
+        /needs the step id cache-key/,
+      ),
+    )
+  })
 })
 
 describe("the nightly steps", () => {
@@ -955,6 +1098,33 @@ describe("the nightly steps", () => {
 
   it("lists nothing in a tree without Stryker", () => {
     assert.deepEqual(list({ "apps/plain": false }), [])
+  })
+
+  it("builds the cache key prefix from the slug, the Node major and the fingerprint", () => {
+    const script = NIGHTLY.jobs.mutation.steps.find((step) => step.id === "cache-key").run
+    const dir = tempDir("gh-config-cache-key-")
+    // The node the test runs on first, so the expected major is the one the step reads.
+    const env = { PATH: `${path.dirname(process.execPath)}:${process.env.PATH}` }
+    const output = path.join(dir, "github-output")
+    writeFileSync(output, "")
+    const result = runStep(script, {
+      cwd: dir,
+      env: { ...env, SLUG: "apps-cli", FINGERPRINT: "f1ng3r", GITHUB_OUTPUT: output },
+    })
+    assert.equal(result.status, 0, result.stdout + result.stderr)
+    const major = process.versions.node.split(".")[0]
+    assert.equal(
+      readFileSync(output, "utf8").trim(),
+      `prefix=stryker-incremental-apps-cli-node${major}-f1ng3r-`,
+    )
+    writeFileSync(output, "")
+    const empty = runStep(script, {
+      cwd: dir,
+      env: { ...env, SLUG: "apps-cli", FINGERPRINT: "", GITHUB_OUTPUT: output },
+    })
+    assert.equal(empty.status, 1)
+    assert.match(empty.stdout, /cache fingerprint is empty/)
+    assert.equal(readFileSync(output, "utf8"), "")
   })
 
   it("passes --force to Stryker only when dispatched with force", () => {

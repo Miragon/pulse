@@ -2,18 +2,25 @@ name: Mutation (nightly)
 
 # The FULL Stryker run, one leg per workspace package with a stryker.config.json, over the
 # package's whole `mutate` allowlist. The pull request gate is "Mutation (changed files)" in
-# ci.yml, which mutates only the files a PR changed; this run shows what the diff gate cannot:
-# survivors in files no recent PR touched. It is no required check and never runs on a pull
-# request. A red leg means the package scores below its thresholds.break.
+# ci.yml, which mutates only the files a PR changed; this run reports every mutant of the
+# allowlist, those in files no recent PR touched included. It is no required check and never runs
+# on a pull request. A red leg means the package scores below its thresholds.break.
 #
-# Each leg keeps its package's Stryker incremental file (incrementalFile
-# reports/stryker-incremental.json in every stryker.config.json) in the Actions cache, so a night
-# re-runs only the mutants whose code or tests changed. Dispatch with `force` to run every mutant
-# again. scripts/check-github-config.mjs (`pnpm lint:github`) pins the triggers and the package
-# forms the list covers; its test runs the List and Stryker steps in fixture trees.
+# Each leg keeps its package's Stryker incremental file in the Actions cache (every
+# stryker.config.json sets incremental: true and incrementalFile reports/stryker-incremental.json,
+# pinned). Between forced runs a night re-tests only the mutants whose own code or tests changed
+# and reuses every other result, also where a helper, another package's dist or a dependency
+# changed what a test asserts: such a result can be stale until the next forced run. The Sunday
+# run passes --force and re-tests every mutant, as does a dispatch with `force`. The cache key
+# fingerprints the lockfile, the vitest, tsconfig and Stryker config and the Node major, so a
+# change there starts the package cold. scripts/check-github-config.mjs (`pnpm lint:github`)
+# pins the triggers, the forced cron, the cache key and path and the package forms the list
+# covers; its test runs the List, Cache key and Stryker steps in fixture trees.
 on:
   schedule:
-    - cron: "0 2 * * *"
+    - cron: "0 2 * * 1-6"
+    # Forced: FORCE in the Stryker step names this cron.
+    - cron: "0 2 * * 0"
   workflow_dispatch:
     inputs:
       force:
@@ -61,8 +68,8 @@ jobs:
     needs: packages
     if: ${{ needs.packages.outputs.packages != '[]' }}
     runs-on: ubuntu-latest
-    # The first run of a package mutates its whole allowlist (widget-shell: about 70 files at
-    # about 1 min/file); later nights re-run only what changed.
+    # A cold or forced run of a package mutates its whole allowlist (widget-shell: about 70 files
+    # at about 1 min/file); the other nights re-run only what changed.
     timeout-minutes: 180
     strategy:
       fail-fast: false
@@ -85,29 +92,45 @@ jobs:
       # Cross-package imports in the suites resolve via each package's dist.
       - run: pnpm build
 
-      # The newest incremental file of this package; every run saves its own under a new key.
+      # The key prefix: the package, the Node major and a fingerprint of what Stryker's own diff
+      # never looks at (the lockfile, the shared and the package's vitest, tsconfig and Stryker
+      # config). A change there restores nothing, and the leg runs cold.
+      - id: cache-key
+        name: Cache key
+        env:
+          SLUG: ${{ matrix.slug }}
+          FINGERPRINT: ${{ hashFiles('pnpm-lock.yaml', 'vitest.shared.ts', 'tsconfig.base.json', format('{0}/stryker.config.json', matrix.dir), format('{0}/vitest*.ts', matrix.dir), format('{0}/tsconfig*.json', matrix.dir)) }}
+        run: |
+          if [ -z "$FINGERPRINT" ]; then
+            echo "::error::The cache fingerprint is empty: hashFiles matched no file"
+            exit 1
+          fi
+          node_major="$(node -p 'process.versions.node.split(".")[0]')"
+          echo "prefix=stryker-incremental-${SLUG}-node${node_major}-${FINGERPRINT}-" >> "$GITHUB_OUTPUT"
+
+      # The newest incremental file under that prefix; every run saves its own under a new key.
       - uses: actions/cache/restore@v6.1.0
         with:
           path: ${{ matrix.dir }}/reports/stryker-incremental.json
-          key: stryker-incremental-${{ matrix.slug }}-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: stryker-incremental-${{ matrix.slug }}-
+          key: ${{ steps.cache-key.outputs.prefix }}${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: ${{ steps.cache-key.outputs.prefix }}
 
       - name: Stryker
         env:
           DIR: ${{ matrix.dir }}
-          FORCE: ${{ inputs.force == true }}
+          FORCE: ${{ inputs.force == true || github.event.schedule == '0 2 * * 0' }}
         run: |
           args=()
           if [ "$FORCE" = true ]; then args+=(--force); fi
           pnpm --fail-if-no-match --filter "./${DIR}" run test:mutation "${args[@]}"
 
       # Saved after a red leg too: Stryker writes the file before it checks thresholds.break, and
-      # the next night then starts from it.
+      # the next night then starts from it (after a forced run, from a fresh baseline).
       - if: ${{ !cancelled() }}
         uses: actions/cache/save@v6.1.0
         with:
           path: ${{ matrix.dir }}/reports/stryker-incremental.json
-          key: stryker-incremental-${{ matrix.slug }}-${{ github.run_id }}-${{ github.run_attempt }}
+          key: ${{ steps.cache-key.outputs.prefix }}${{ github.run_id }}-${{ github.run_attempt }}
 
       # The same exact-depth globs as ci.yml: their least common ancestor is the repo root, so
       # the report keeps its package prefix and the summary job unpacks every leg's over the

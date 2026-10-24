@@ -16,8 +16,10 @@
  *   (checkDependabot);
  * - every check the main-branch ruleset requires is a job a pull request runs
  *   (checkRequiredChecks);
- * - the mutation artifacts and the nightly full run cover every package form
- *   (checkArtifactGlobs, checkNightlyMutation).
+ * - the mutation artifacts and the nightly full run cover every package form, and the nightly
+ *   forces a run every week and caches each package's incremental file under a fingerprinted
+ *   key, the file every stryker.config.json writes (checkArtifactGlobs, checkNightlyMutation,
+ *   checkStrykerIncremental).
  *
  * The test (check-github-config.test.mjs) also RUNS the bash steps of the publish workflow
  * (against stub npm and curl executables) and of the nightly run in fixture trees.
@@ -459,6 +461,9 @@ export function checkRequiredChecks(workflows, required = REQUIRED_CHECKS) {
 
 // ── Mutation artifacts + the nightly full run ───────────────────────────────
 
+/** The file the nightly caches per package: every stryker.config.json writes exactly this. */
+export const INCREMENTAL_FILE = "reports/stryker-incremental.json"
+
 const uploadsOf = (doc) =>
   jobsOf(doc).flatMap(([id, job]) =>
     stepsOf(job)
@@ -583,11 +588,154 @@ export function checkNightlyMutation(doc, globs) {
         `${where}: job ${id} must run pnpm --fail-if-no-match --filter ./<dir> run test:mutation`,
       )
     }
+    errors.push(...checkForcedRun(doc, job, `${where}: job ${id}`))
+    errors.push(...checkIncrementalCache(job, `${where}: job ${id}`))
+  }
+  return errors
+}
+
+/** A cron fires every week when it names no day of the month and no month. */
+const firesWeekly = (cron) => {
+  const fields = String(cron).trim().split(/\s+/)
+  return fields.length === 5 && fields[2] === "*" && fields[3] === "*"
+}
+const FORCE_EXPRESSION =
+  /^\$\{\{ inputs\.force == true \|\| github\.event\.schedule == '([^']+)' \}\}$/
+
+/**
+ * Between forced runs a leg reuses every result whose mutant and killing test did not change,
+ * however stale (a helper, another package's dist, a dependency). So one cron of the schedule
+ * passes --force at least weekly, and the Stryker step's FORCE names it next to the dispatch
+ * input.
+ */
+function checkForcedRun(doc, job, at) {
+  const stryker = stepsOf(job).find((step) => /\brun test:mutation\b/.test(runOf(step)))
+  const force = String(stryker?.env?.FORCE ?? "")
+  const cron = FORCE_EXPRESSION.exec(force)?.[1]
+  const crons = asList(triggersOf(doc).schedule).map((entry) => entry?.cron)
+  if (cron === undefined) {
+    return [
+      `${at}: the Stryker step needs FORCE: \${{ inputs.force == true || ` +
+        `github.event.schedule == '<a weekly cron of the schedule>' }} (found "${force}"): ` +
+        `without a forced run, reused results are never measured again`,
+    ]
+  }
+  const errors = []
+  if (!crons.includes(cron)) {
+    errors.push(`${at}: FORCE names the cron "${cron}", which the schedule does not list`)
+  }
+  if (!firesWeekly(cron)) {
+    errors.push(`${at}: the forced cron "${cron}" must fire every week (day of month and month *)`)
+  }
+  if (!/\[ "\$FORCE" = true \]; then args\+=\(--force\)/.test(runOf(stryker))) {
+    errors.push(`${at}: the Stryker step must pass --force when FORCE is true`)
+  }
+  return errors
+}
+
+/** What the fingerprint hashes: a change in any of them starts a leg cold. */
+export const CACHE_FINGERPRINT_INPUTS = [
+  "'pnpm-lock.yaml'",
+  "'vitest.shared.ts'",
+  "'tsconfig.base.json'",
+  "format('{0}/stryker.config.json', matrix.dir)",
+  "format('{0}/vitest*.ts', matrix.dir)",
+  "format('{0}/tsconfig*.json', matrix.dir)",
+]
+/** The cache-key step's prefix: the package, the Node major the leg runs and the fingerprint. */
+const CACHE_KEY_LINES = [
+  `node_major="$(node -p 'process.versions.node.split(".")[0]')"`,
+  'echo "prefix=stryker-incremental-${SLUG}-node${node_major}-${FINGERPRINT}-" >> "$GITHUB_OUTPUT"',
+]
+const CACHE_PREFIX = "${{ steps.cache-key.outputs.prefix }}"
+const CACHE_KEY = `${CACHE_PREFIX}\${{ github.run_id }}-\${{ github.run_attempt }}`
+
+/**
+ * The leg restores and saves the incremental file under a key whose prefix (the cache-key
+ * step's output) fingerprints the lockfile, the configs and the Node major: a bare package
+ * prefix would restore results measured under another dependency tree or Node.
+ */
+function checkIncrementalCache(job, at) {
+  const errors = []
+  const keyStep = stepsOf(job).find((step) => step?.id === "cache-key")
+  if (keyStep === undefined) {
+    errors.push(`${at} needs the step id cache-key, which builds the cache key prefix`)
+  } else {
+    const fingerprint = String(keyStep.env?.FINGERPRINT ?? "")
+    if (!/^\$\{\{ hashFiles\(.*\) \}\}$/.test(fingerprint)) {
+      errors.push(`${at}: the cache-key step needs FINGERPRINT: \${{ hashFiles(...) }}`)
+    }
+    for (const input of CACHE_FINGERPRINT_INPUTS.filter((input) => !fingerprint.includes(input))) {
+      errors.push(`${at}: the cache-key step's FINGERPRINT misses ${input}`)
+    }
+    if (keyStep.env?.SLUG !== "${{ matrix.slug }}") {
+      errors.push(`${at}: the cache-key step needs SLUG: \${{ matrix.slug }}`)
+    }
+    const run = runOf(keyStep)
+    for (const line of CACHE_KEY_LINES.filter((line) => !run.includes(line))) {
+      errors.push(`${at}: the cache-key step must run ${line}`)
+    }
+  }
+  const cachePath = `\${{ matrix.dir }}/${INCREMENTAL_FILE}`
+  for (const [action, keys] of [
+    ["actions/cache/restore", { key: CACHE_KEY, "restore-keys": CACHE_PREFIX }],
+    ["actions/cache/save", { key: CACHE_KEY }],
+  ]) {
+    const steps = stepsOf(job).filter((step) => usesAction(step, action))
+    if (steps.length !== 1) {
+      errors.push(`${at} needs exactly one ${action} step, found ${steps.length}`)
+      continue
+    }
+    const step = steps[0]
+    if (step.with?.path !== cachePath) {
+      errors.push(`${at}: ${action} must cache path ${cachePath}, the file every config writes`)
+    }
+    for (const [name, value] of Object.entries(keys)) {
+      if (step.with?.[name] !== value) {
+        errors.push(`${at}: ${action} needs ${name}: ${value} (found ${step.with?.[name]})`)
+      }
+    }
+  }
+  return errors
+}
+
+/** Every stryker.config.json writes the incremental file the nightly caches (pure). */
+export function checkStrykerIncremental(configs) {
+  const errors = []
+  for (const { dir, config } of configs) {
+    const at = `${dir}/stryker.config.json`
+    if (config === undefined) {
+      errors.push(`${at} is no JSON object`)
+      continue
+    }
+    if (config.incremental !== true) {
+      errors.push(
+        `${at} must set "incremental": true: the nightly leg reuses the last night's results ` +
+          `from that file`,
+      )
+    }
+    if (config.incrementalFile !== INCREMENTAL_FILE) {
+      errors.push(
+        `${at} must set "incrementalFile": "${INCREMENTAL_FILE}", the path the nightly caches ` +
+          `(found ${JSON.stringify(config.incrementalFile)}): any other path is never restored, ` +
+          `and every night runs cold`,
+      )
+    }
   }
   return errors
 }
 
 // ── Main ────────────────────────────────────────────────────────────────────
+
+/** A JSON object file, or undefined when it holds no JSON object (reported, not thrown). */
+const readJsonObject = (root, file) => {
+  try {
+    const value = JSON.parse(readFileSync(path.join(root, file), "utf8"))
+    return value !== null && typeof value === "object" && !Array.isArray(value) ? value : undefined
+  } catch {
+    return undefined
+  }
+}
 
 const readYaml = (root, file) =>
   existsSync(path.join(root, file)) ? parse(readFileSync(path.join(root, file), "utf8")) : undefined
@@ -604,6 +752,9 @@ export function checkRepo(root) {
       .map((name) => [`.github/workflows/${name}`, readYaml(root, `.github/workflows/${name}`)]),
   )
   const exists = (rel) => existsSync(path.join(root, rel))
+  const strykerConfigs = packages
+    .filter(({ dir }) => exists(`${dir}/stryker.config.json`))
+    .map(({ dir }) => ({ dir, config: readJsonObject(root, `${dir}/stryker.config.json`) }))
   return [
     ...checkPublishWorkflow(workflows.get(PUBLISH_WORKFLOW)),
     ...checkPublishMatrix(workflows.get(RELEASE_WORKFLOW), packages),
@@ -616,6 +767,7 @@ export function checkRepo(root) {
     ...checkRequiredChecks(workflows),
     ...checkArtifactGlobs(workflows.get(CI_WORKFLOW), workflows.get(NIGHTLY_WORKFLOW), globs),
     ...checkNightlyMutation(workflows.get(NIGHTLY_WORKFLOW), globs),
+    ...checkStrykerIncremental(strykerConfigs),
   ]
 }
 
@@ -634,6 +786,7 @@ if (isMain) {
   }
   console.log(
     "GitHub config: publish workflow, npm matrix, release extra-files, Dependabot groups, " +
-      `${REQUIRED_CHECKS.length} required checks and the nightly mutation run hold.`,
+      `${REQUIRED_CHECKS.length} required checks, the nightly mutation run and the Stryker ` +
+      "incremental files hold.",
   )
 }
