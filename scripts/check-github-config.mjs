@@ -7,16 +7,19 @@
  * packages that do not exist yet (a public CLI under apps/, a VS Code extension, a -domain
  * package) the moment they land:
  *
- * - publish-npm-package.yml packs without id-token and publishes in a job that holds ONLY
- *   `id-token: write` (checkPublishWorkflow);
- * - release-please.yml's publish-npm matrix lists exactly the workspace packages npm receives
- *   (checkPublishMatrix), and release-please-config.json bumps every workspace package
- *   (checkReleaseExtraFiles);
+ * - publish-npm-package.yml packs without id-token and publishes in the one job that holds
+ *   id-token, as exactly `id-token: write`, using only actions/setup-node and
+ *   actions/download-artifact at the repo's pins and running no package manager
+ *   (checkPublishWorkflow);
+ * - release-please.yml's publish-npm matrix lists exactly the workspace packages npm receives,
+ *   each naming this repository for its provenance (checkPublishMatrix), and
+ *   release-please-config.json bumps every workspace package (checkReleaseExtraFiles);
  * - dependabot.yml groups never shadow each other and name only directories that exist
  *   (checkDependabot);
  * - every check the main-branch ruleset requires is a job a pull request runs
  *   (checkRequiredChecks);
- * - the mutation artifacts and the nightly full run cover every package form, and the nightly
+ * - the coverage and mutation artifacts cover every package form and unpack at the repo root,
+ *   the diff gate stays within its timeout, and the nightly full run lists every package form,
  *   forces a run every week and caches each package's incremental file under a fingerprinted
  *   key, the file every stryker.config.json writes (checkArtifactGlobs, checkNightlyMutation,
  *   checkStrykerIncremental).
@@ -103,10 +106,77 @@ export function triggersOf(doc) {
 
 // ── publish-npm-package.yml ─────────────────────────────────────────────────
 
-const INSTALLS = /\b(?:pnpm|yarn|npx|corepack|bun)\b|\bnpm\s+(?:ci|install|i|exec|x|run|rebuild)\b/
+/** The only actions the token job may use: the runtime and the pack job's tarball. */
+export const TOKEN_JOB_ACTIONS = ["actions/setup-node", "actions/download-artifact"]
 
-/** Violations of the two-job publish shape (pure; the doc is the parsed workflow). */
-export function checkPublishWorkflow(doc) {
+/** An exact pin: a full version tag or a commit SHA, never a moving ref such as v7 or main. */
+const EXACT_REF = /^(?:v\d+\.\d+\.\d+|[0-9a-f]{40})$/
+
+/**
+ * npm's verbs that install, rebuild or run package code, with every alias npm 11 accepts for
+ * them (`npm i`, `npm add`, `npm it`, `npm cit`, `npm up`, `npm rb`, `npm x` and more). Next to
+ * the token only `npm --version`, `npm view` and `npm publish` run. A verb you need there that
+ * this list catches is a sign the step belongs in the pack job, which holds no token.
+ */
+const NPM_CODE_VERBS = [
+  ...["install", "i", "in", "ins", "inst", "insta", "instal", "add"],
+  ...["isnt", "isnta", "isntal", "isntall"],
+  ...["install-test", "it", "install-ci-test", "cit", "sit", "clean-install-test"],
+  ...["ci", "clean-install", "ic", "install-clean", "isntall-clean"],
+  ...["update", "up", "upgrade", "udpate", "rebuild", "rb"],
+  ...["exec", "x", "run", "run-script", "rum", "urn"],
+  ...["test", "tst", "t", "start", "stop", "restart"],
+  ...["dedupe", "ddp", "link", "ln", "init", "create", "innit", "explore"],
+  ...["uninstall", "un", "unlink", "remove", "rm", "r"],
+]
+const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+// `npm`, any flags (`-g`, `--loglevel=silent`, `--prefix /tmp`), then one of the verbs.
+const NPM_RUNS_CODE = new RegExp(
+  String.raw`\bnpm(?:\s+--?[\w-]+(?:=\S*|\s+[^\s-]\S*)?)*\s+(?:` +
+    NPM_CODE_VERBS.map(escapeRegExp).join("|") +
+    String.raw`)(?![\w-])`,
+)
+const OTHER_PACKAGE_MANAGERS = /\b(?:pnpm|pnpx|yarn|yarnpkg|npx|corepack|bun|bunx)\b/
+
+/** The package manager command a run script starts, if any (the first one found). */
+export const packageManagerRun = (script) =>
+  OTHER_PACKAGE_MANAGERS.exec(script)?.[0] ?? NPM_RUNS_CODE.exec(script)?.[0]
+
+/**
+ * A job holds id-token when its permissions grant it in any form: a string such as write-all
+ * (read-all included, so a string never slips past this rule) or a map that names id-token at
+ * all. A job without permissions inherits the top level, which must be {}.
+ */
+const holdsIdToken = (job) => {
+  const permissions = job?.permissions
+  if (permissions === undefined) return false
+  if (permissions === null || typeof permissions !== "object" || Array.isArray(permissions)) {
+    return true
+  }
+  return Object.hasOwn(permissions, "id-token")
+}
+
+/** Each action's refs in `workflows` (a Map of file to parsed doc), for the token job's pins. */
+export function actionRefs(workflows) {
+  const refs = new Map()
+  for (const [, doc] of workflows) {
+    for (const [, job] of jobsOf(doc)) {
+      for (const step of stepsOf(job)) {
+        if (typeof step?.uses !== "string" || !step.uses.includes("@")) continue
+        const [action, ref] = step.uses.split("@")
+        refs.set(action, new Set([...(refs.get(action) ?? []), ref]))
+      }
+    }
+  }
+  return refs
+}
+
+/**
+ * Violations of the two-job publish shape (pure; the doc is the parsed workflow). `pinnedRefs`
+ * (from actionRefs over the other workflows) holds the token job's actions at the versions the
+ * rest of the repo runs; Dependabot moves them all in one pull request.
+ */
+export function checkPublishWorkflow(doc, { pinnedRefs = new Map() } = {}) {
   const errors = []
   const where = PUBLISH_WORKFLOW
   const inputs = doc?.on?.workflow_call?.inputs ?? {}
@@ -135,16 +205,30 @@ export function checkPublishWorkflow(doc) {
   }
 
   const jobs = jobsOf(doc)
-  const tokenJobs = jobs.filter(([, job]) => job?.permissions?.["id-token"] === "write")
+  const tokenJobs = jobs.filter(([, job]) => holdsIdToken(job))
   if (tokenJobs.length !== 1) {
+    const ids = tokenJobs.map(([id]) => id).join(", ")
     errors.push(
-      `${where}: exactly one job may hold id-token: write (the publish job), found ${tokenJobs.length}`,
+      `${where}: exactly one job may hold id-token (the publish job, as { id-token: write }), ` +
+        `found ${tokenJobs.length}${ids === "" ? "" : ` (${ids})`}; a string such as write-all ` +
+        `or read-all counts as holding it`,
     )
+  }
+  for (const [id, job] of jobs) {
+    if (environmentOf(job) === "npm" && !tokenJobs.some(([tokenId]) => tokenId === id)) {
+      errors.push(
+        `${where}: job ${id} runs in the environment npm without the token: only the publish ` +
+          `job runs there`,
+      )
+    }
   }
   for (const [id, job] of tokenJobs) {
     const at = `${where}: job ${id}`
     if (!isDeepStrictEqual(job.permissions, { "id-token": "write" })) {
-      errors.push(`${at} must hold exactly { id-token: write }, nothing next to the token`)
+      errors.push(
+        `${at} must hold exactly { id-token: write }, nothing next to the token (found ` +
+          `${JSON.stringify(job.permissions)})`,
+      )
     }
     if (environmentOf(job) !== "npm") {
       errors.push(`${at} must run in the environment npm: the trusted publisher binds it`)
@@ -157,15 +241,27 @@ export function checkPublishWorkflow(doc) {
       errors.push(`${at} must need the pack job, which builds the tarball without the token`)
     }
     for (const step of stepsOf(job)) {
-      for (const action of ["actions/checkout", "pnpm/action-setup", "actions/cache"]) {
-        if (usesAction(step, action)) {
-          errors.push(`${at} uses ${action}: the token job checks out, installs and caches nothing`)
+      if (step?.uses !== undefined) {
+        const [action, ref] = String(step.uses).split("@")
+        if (!TOKEN_JOB_ACTIONS.includes(action)) {
+          errors.push(
+            `${at} uses ${step.uses}: the token job uses only ${TOKEN_JOB_ACTIONS.join(" and ")} ` +
+              `(it checks out, installs and caches nothing)`,
+          )
+        } else if (!EXACT_REF.test(ref ?? "")) {
+          errors.push(`${at} uses ${step.uses}: pin an exact version (vX.Y.Z) or a commit SHA`)
+        } else if (pinnedRefs.has(action) && !pinnedRefs.get(action).has(ref)) {
+          errors.push(
+            `${at} uses ${step.uses}, but the other workflows run ${action}@` +
+              `${[...pinnedRefs.get(action)].join(", @")}: keep the token job on the repo's pin`,
+          )
         }
       }
-      const install = INSTALLS.exec(runOf(step))?.[0]
+      const install = packageManagerRun(runOf(step))
       if (install) {
         errors.push(
-          `${at} runs "${install}": no package manager runs next to the token (only npm publish)`,
+          `${at} runs "${install}": no package manager runs next to the token (only npm ` +
+            `--version, npm view and npm publish)`,
         )
       }
     }
@@ -247,7 +343,14 @@ export function checkPublishWorkflow(doc) {
 
 const describe = ({ dir, manifest }) => `${dir} (${manifest?.name ?? "no name"})`
 
-/** The publish-npm matrix equals the workspace packages npm receives (pure). */
+/** The repository every npm-published package names: npm checks it against the provenance. */
+export const REPOSITORY_URL = "git+https://github.com/Miragon/pulse.git"
+export const expectedRepository = (dir) => ({ type: "git", url: REPOSITORY_URL, directory: dir })
+
+/**
+ * The publish-npm matrix equals the workspace packages npm receives, and each of them names this
+ * repository in its manifest (pure).
+ */
 export function checkPublishMatrix(releaseDoc, packages) {
   const errors = []
   const where = `${RELEASE_WORKFLOW}: job publish-npm`
@@ -305,10 +408,23 @@ export function checkPublishMatrix(releaseDoc, packages) {
         `${describe(pkg)} is not private, but the publish workflow packs only apps/*, ` +
           `packages/core/* and packages/connectors/*/*: mark it "private": true`,
       )
-    } else if (!seen.has(pkg.dir)) {
+      continue
+    }
+    if (!seen.has(pkg.dir)) {
       errors.push(
         `${describe(pkg)} is published to npm (not private, no engines.vscode) but the release ` +
           `train never publishes it: add it to the publish-npm matrix`,
+      )
+    }
+    // npm compares repository.url with the repository the provenance names (E422 otherwise);
+    // directory keeps the npm page's source link on the package.
+    const repository = expectedRepository(pkg.dir)
+    if (!isDeepStrictEqual(pkg.manifest?.repository, repository)) {
+      errors.push(
+        `${describe(pkg)} is published to npm with provenance, so its package.json needs ` +
+          `"repository": ${JSON.stringify(repository)} (found ` +
+          `${JSON.stringify(pkg.manifest?.repository) ?? "none"}): npm refuses a provenance ` +
+          `publish whose repository is not the one that built it`,
       )
     }
   }
@@ -461,14 +577,28 @@ export function checkRequiredChecks(workflows, required = REQUIRED_CHECKS) {
 
 // ── Mutation artifacts + the nightly full run ───────────────────────────────
 
+/** The ceiling of the diff gate's timeout-minutes in ci.yml. */
+export const MUTATION_TIMEOUT_CEILING = 120
+
 /** The file the nightly caches per package: every stryker.config.json writes exactly this. */
 export const INCREMENTAL_FILE = "reports/stryker-incremental.json"
 
-const uploadsOf = (doc) =>
+const stepsUsing = (doc, action) =>
   jobsOf(doc).flatMap(([id, job]) =>
     stepsOf(job)
-      .filter((step) => usesAction(step, "actions/upload-artifact"))
-      .map((step) => ({ id, step, paths: lines(step.with?.path) })),
+      .filter((step) => usesAction(step, action))
+      .map((step) => ({ id, job, step, paths: lines(step.with?.path) })),
+  )
+const uploadsOf = (doc) => stepsUsing(doc, "actions/upload-artifact")
+const isReportArtifact = (name) =>
+  name === "coverage-summaries" ||
+  name === "mutation-reports" ||
+  String(name ?? "").startsWith("mutation-report-")
+
+/** The jobs of the nightly that run one leg per listed package. */
+const nightlyLegs = (doc) =>
+  jobsOf(doc).filter(([, job]) =>
+    String(job?.strategy?.matrix?.include ?? "").includes("needs.packages.outputs.packages"),
   )
 
 /** The reports and summaries every package form writes reach the fitness report (pure). */
@@ -503,29 +633,77 @@ export function checkArtifactGlobs(ciDoc, nightlyDoc, globs) {
       if (name === "coverage-summaries") expectPaths(file, upload, "coverage/coverage-summary.json")
     }
   }
-  if (!uploadsOf(ciDoc).some(({ step }) => step.with?.name === "mutation-reports")) {
-    errors.push(`${CI_WORKFLOW}: no step uploads the artifact mutation-reports`)
+  for (const name of ["mutation-reports", "coverage-summaries"]) {
+    if (!uploadsOf(ciDoc).some(({ step }) => step.with?.name === name)) {
+      errors.push(`${CI_WORKFLOW}: no step uploads the artifact ${name}`)
+    }
+    if (
+      !stepsUsing(ciDoc, "actions/download-artifact").some(({ step }) => step.with?.name === name)
+    ) {
+      errors.push(
+        `${CI_WORKFLOW}: no step downloads the artifact ${name}: the fitness report would show ` +
+          `"(no run)" for every package`,
+      )
+    }
   }
-  const mutation = ciDoc?.jobs?.mutation
-  const timeout = mutation?.["timeout-minutes"]
-  if (typeof timeout !== "number" || timeout > 60) {
+  const timeout = ciDoc?.jobs?.mutation?.["timeout-minutes"]
+  if (typeof timeout !== "number" || timeout > MUTATION_TIMEOUT_CEILING) {
     errors.push(
-      `${CI_WORKFLOW}: job mutation needs timeout-minutes of at most 60 (FILE_CAP bounds a ` +
-        `package at about 30 min)`,
+      `${CI_WORKFLOW}: job mutation needs timeout-minutes of at most ${MUTATION_TIMEOUT_CEILING}: ` +
+        `it runs the packages one after another and FILE_CAP caps each one, so the bound holds ` +
+        `about four packages at the cap at about 1 min/file`,
     )
   }
-  for (const [id, job] of jobsOf(ciDoc)) {
-    for (const step of stepsOf(job)) {
-      if (
-        usesAction(step, "actions/download-artifact") &&
-        step.with?.name === "mutation-reports" &&
-        step.with?.path !== undefined
-      ) {
+  // Every report artifact carries the apps/ and packages/ prefixes (the globs' least common
+  // ancestor is the repo root), so a download unpacks it over the checkout, where
+  // fitness-report.mjs reads each package's coverage/ and reports/ files.
+  for (const [file, doc] of [
+    [CI_WORKFLOW, ciDoc],
+    [NIGHTLY_WORKFLOW, nightlyDoc],
+  ]) {
+    for (const { id, step } of stepsUsing(doc, "actions/download-artifact")) {
+      const artifact = step.with?.name ?? step.with?.pattern
+      if (isReportArtifact(artifact) && step.with?.path !== undefined) {
         errors.push(
-          `${CI_WORKFLOW}: job ${id} downloads mutation-reports into ${step.with.path}; the ` +
-            `artifact carries the apps/ and packages/ prefixes, so it unpacks at the repo root`,
+          `${file}: job ${id} downloads ${artifact} into ${step.with.path}; the artifact ` +
+            `carries the apps/ and packages/ prefixes, so it unpacks at the repo root`,
         )
       }
+    }
+  }
+  const legName = "mutation-report-${{ matrix.slug }}"
+  for (const [id, job] of nightlyLegs(nightlyDoc)) {
+    if (
+      !stepsOf(job).some(
+        (step) => usesAction(step, "actions/upload-artifact") && step.with?.name === legName,
+      )
+    ) {
+      errors.push(
+        `${NIGHTLY_WORKFLOW}: job ${id} must upload its report as ${legName} (one exact-depth ` +
+          `glob per package form): the summary reads nothing else`,
+      )
+    }
+  }
+  const summaries = stepsUsing(nightlyDoc, "actions/download-artifact").filter(
+    ({ step }) => step.with?.pattern === "mutation-report-*",
+  )
+  if (summaries.length === 0) {
+    errors.push(
+      `${NIGHTLY_WORKFLOW}: no step downloads pattern mutation-report-*: the nightly scores ` +
+        `never reach the summary`,
+    )
+  }
+  for (const { id, job, step } of summaries) {
+    if (step.with?.["merge-multiple"] !== true) {
+      errors.push(
+        `${NIGHTLY_WORKFLOW}: job ${id} must download mutation-report-* with merge-multiple: ` +
+          `true, or each leg unpacks into a directory of its own name`,
+      )
+    }
+    if (!stepsOf(job).some((other) => /^pnpm fitness\b/.test(runOf(other).trim()))) {
+      errors.push(
+        `${NIGHTLY_WORKFLOW}: job ${id} downloads the reports but never runs pnpm fitness`,
+      )
     }
   }
   return errors
@@ -569,9 +747,7 @@ export function checkNightlyMutation(doc, globs) {
       errors.push(`${where}: the list step must pick the dirs that carry a stryker.config.json`)
     }
   }
-  const legs = jobsOf(doc).filter(([, job]) =>
-    String(job?.strategy?.matrix?.include ?? "").includes("needs.packages.outputs.packages"),
-  )
+  const legs = nightlyLegs(doc)
   if (legs.length !== 1) {
     errors.push(`${where}: needs one matrix job over needs.packages.outputs.packages`)
   }
@@ -752,11 +928,12 @@ export function checkRepo(root) {
       .map((name) => [`.github/workflows/${name}`, readYaml(root, `.github/workflows/${name}`)]),
   )
   const exists = (rel) => existsSync(path.join(root, rel))
+  const others = new Map([...workflows].filter(([file]) => file !== PUBLISH_WORKFLOW))
   const strykerConfigs = packages
     .filter(({ dir }) => exists(`${dir}/stryker.config.json`))
     .map(({ dir }) => ({ dir, config: readJsonObject(root, `${dir}/stryker.config.json`) }))
   return [
-    ...checkPublishWorkflow(workflows.get(PUBLISH_WORKFLOW)),
+    ...checkPublishWorkflow(workflows.get(PUBLISH_WORKFLOW), { pinnedRefs: actionRefs(others) }),
     ...checkPublishMatrix(workflows.get(RELEASE_WORKFLOW), packages),
     ...checkReleaseExtraFiles(
       JSON.parse(readFileSync(path.join(root, "release-please-config.json"), "utf8")),
@@ -785,8 +962,8 @@ if (isMain) {
     process.exit(1)
   }
   console.log(
-    "GitHub config: publish workflow, npm matrix, release extra-files, Dependabot groups, " +
-      `${REQUIRED_CHECKS.length} required checks, the nightly mutation run and the Stryker ` +
-      "incremental files hold.",
+    "GitHub config: publish workflow, npm matrix and repositories, release extra-files, " +
+      `Dependabot groups, ${REQUIRED_CHECKS.length} required checks, the report artifacts, the ` +
+      "nightly mutation run and the Stryker incremental files hold.",
   )
 }

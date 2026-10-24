@@ -1,6 +1,14 @@
 import assert from "node:assert/strict"
 import { execFileSync, spawnSync } from "node:child_process"
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs"
 import { tmpdir } from "node:os"
 import path from "node:path"
 import { after, describe, it } from "node:test"
@@ -9,10 +17,12 @@ import { parse } from "yaml"
 import {
   CI_WORKFLOW,
   INCREMENTAL_FILE,
+  MUTATION_TIMEOUT_CEILING,
   NIGHTLY_WORKFLOW,
   PUBLISHABLE_DIR,
   PUBLISH_WORKFLOW,
   RELEASE_WORKFLOW,
+  actionRefs,
   checkArtifactGlobs,
   checkDependabot,
   checkNightlyMutation,
@@ -22,7 +32,9 @@ import {
   checkRepo,
   checkRequiredChecks,
   checkStrykerIncremental,
+  expectedRepository,
   isNpmPublished,
+  packageManagerRun,
   readWorkspace,
 } from "./check-github-config.mjs"
 import { workspaceGlobs } from "./check-package-scripts.mjs"
@@ -47,24 +59,42 @@ const writeFile = (root, rel, text, mode) => {
   writeFileSync(path.join(root, rel), text, mode === undefined ? undefined : { mode })
 }
 
-/** Today's workspace, as manifests. */
+/** A package npm receives, with the repository field its provenance publish needs. */
+const published = (dir, manifest) => ({
+  [dir]: { ...manifest, repository: expectedRepository(dir) },
+})
+
+/**
+ * Today's workspace, as manifests. The fixture cases below run on fixture data only (this
+ * workspace and configs built for it), so a package that lands in the real tree changes none of
+ * them; the real files are compared with the real workspace alone.
+ */
 const TODAY = {
   "apps/mcp-server-camunda7": { name: "@miragon/pulse-mcp-server-camunda7", private: true },
-  "packages/core/widget-shell": { name: "@miragon/pulse-widget-shell" },
-  "packages/connectors/camunda/camunda7-client": { name: "@miragon/pulse-camunda7-client" },
-  "packages/connectors/camunda/camunda7-connector": { name: "@miragon/pulse-camunda7-connector" },
-  "packages/connectors/analytics/analytics-client": { name: "@miragon/pulse-analytics-client" },
-  "packages/connectors/analytics/analytics-connector": {
+  ...published("packages/core/widget-shell", { name: "@miragon/pulse-widget-shell" }),
+  ...published("packages/connectors/camunda/camunda7-client", {
+    name: "@miragon/pulse-camunda7-client",
+  }),
+  ...published("packages/connectors/camunda/camunda7-connector", {
+    name: "@miragon/pulse-camunda7-connector",
+  }),
+  ...published("packages/connectors/analytics/analytics-client", {
+    name: "@miragon/pulse-analytics-client",
+  }),
+  ...published("packages/connectors/analytics/analytics-connector", {
     name: "@miragon/pulse-analytics-connector",
-  },
+  }),
   docs: { name: "@miragon/pulse-docs", private: true },
 }
 /** Packages that do not exist yet: a public CLI, a VS Code extension, a public domain package. */
-const CLI = { "apps/cli": { name: "@miragon/pulse-cli", bin: { "pulse-cli": "dist/cli.js" } } }
+const CLI = published("apps/cli", {
+  name: "@miragon/pulse-cli",
+  bin: { "pulse-cli": "dist/cli.js" },
+})
 const VSCODE = { "apps/vscode": { name: "pulse-vscode", engines: { vscode: "^1.101.0" } } }
-const DOMAIN = {
-  "packages/connectors/camunda/camunda7-domain": { name: "@miragon/pulse-camunda7-domain" },
-}
+const DOMAIN = published("packages/connectors/camunda/camunda7-domain", {
+  name: "@miragon/pulse-camunda7-domain",
+})
 
 /** A workspace fixture in a tmpdir, read back the way the gate reads the real one. */
 function workspace(manifests) {
@@ -98,16 +128,37 @@ describe("the repo", () => {
 // ── publish-npm-package.yml ─────────────────────────────────────────────────
 
 const PUBLISH = readDoc(PUBLISH_WORKFLOW)
-const publishErrors = (mutate) => {
+/** The refs the repo's other workflows pin, as checkRepo hands them to checkPublishWorkflow. */
+const REAL_PINS = actionRefs(
+  new Map(
+    readdirSync(path.join(ROOT, ".github/workflows"))
+      .filter((name) => /\.ya?ml$/.test(name) && `.github/workflows/${name}` !== PUBLISH_WORKFLOW)
+      .map((name) => [name, readDoc(`.github/workflows/${name}`)]),
+  ),
+)
+const publishErrors = (mutate, options) => {
   const doc = structuredClone(PUBLISH)
   mutate(doc)
-  return checkPublishWorkflow(doc)
+  return checkPublishWorkflow(doc, options)
 }
 const stepNamed = (job, name) => job.steps.find((step) => step.name === name || step.id === name)
+const setupNode = (job) => job.steps.find((step) => step.uses?.startsWith("actions/setup-node@"))
+/** A second job in the npm environment that checks out, installs and publishes. */
+const rogueJob = (permissions) => ({
+  "runs-on": "ubuntu-latest",
+  environment: "npm",
+  permissions,
+  steps: [
+    { uses: "actions/checkout@v7.0.1", with: { "persist-credentials": false } },
+    { run: "npm install -g pnpm && pnpm install" },
+    { run: "npm publish --provenance" },
+  ],
+})
 
 describe("checkPublishWorkflow", () => {
-  it("accepts the real workflow", () => {
+  it("accepts the real workflow, also against the pins of the other workflows", () => {
     assert.deepEqual(checkPublishWorkflow(PUBLISH), [])
+    assert.deepEqual(checkPublishWorkflow(PUBLISH, { pinnedRefs: REAL_PINS }), [])
   })
 
   it("rejects the retired package input and a missing directory input", () => {
@@ -131,15 +182,42 @@ describe("checkPublishWorkflow", () => {
     assert.ok(
       matches(
         publishErrors((doc) => delete doc.jobs.publish.permissions["id-token"]),
-        /exactly one job may hold id-token: write .* found 0/,
+        /exactly one job may hold id-token .* found 0;/,
       ),
     )
     assert.ok(
       matches(
         publishErrors((doc) => (doc.jobs.pack.permissions["id-token"] = "write")),
-        /exactly one job may hold id-token: write .* found 2/,
+        /exactly one job may hold id-token .* found 2 \(pack, publish\)/,
       ),
     )
+  })
+
+  it("counts every grant of id-token as a token job, a string permissions included", () => {
+    for (const permissions of ["write-all", "read-all", { "id-token": "none" }]) {
+      const errors = publishErrors((doc) => (doc.jobs.pack.permissions = permissions))
+      assert.ok(matches(errors, /found 2 \(pack, publish\)/), JSON.stringify(permissions))
+      assert.ok(
+        matches(errors, /job pack must hold exactly \{ id-token: write \}/),
+        JSON.stringify(permissions),
+      )
+    }
+    const readAll = publishErrors((doc) => (doc.jobs.publish.permissions = "read-all"))
+    assert.deepEqual(readAll.length, 1)
+    assert.match(readAll[0], /job publish must hold exactly \{ id-token: write \}.*"read-all"/)
+  })
+
+  it("rejects a second job in the npm environment, with write-all or without the token", () => {
+    const writeAll = publishErrors((doc) => (doc.jobs.rogue = rogueJob("write-all")))
+    assert.ok(matches(writeAll, /found 2 \(publish, rogue\)/))
+    assert.ok(matches(writeAll, /job rogue must hold exactly \{ id-token: write \}/))
+    assert.ok(
+      matches(writeAll, /job rogue uses actions\/checkout@v7\.0\.1: the token job uses only/),
+    )
+    assert.ok(matches(writeAll, /job rogue runs "pnpm"/))
+    const tokenless = publishErrors((doc) => (doc.jobs.rogue = rogueJob({ contents: "read" })))
+    assert.deepEqual(tokenless.length, 1)
+    assert.match(tokenless[0], /job rogue runs in the environment npm without the token/)
   })
 
   it("rejects a publish job that holds anything next to the token", () => {
@@ -154,34 +232,116 @@ describe("checkPublishWorkflow", () => {
     assert.match(errors[0], /environment npm/)
   })
 
-  it("rejects a checkout, a package manager or an install in the token job, one each", () => {
+  it("rejects a checkout, any other action, a package manager or an install in the token job, one each", () => {
     for (const step of [
       { uses: "actions/checkout@v7.0.1" },
       { uses: "pnpm/action-setup@v6.1.0" },
+      { uses: "bahmutov/npm-install@v1" },
+      { uses: "./.github/actions/setup" },
+      { uses: "docker://node:24" },
       { run: "pnpm install --frozen-lockfile" },
       { run: "npm ci" },
       { run: "npm install -g npm@11" },
       { run: "npx foo" },
+      { run: "npm add -g npm@latest" },
+      { run: "npm update -g npm" },
+      { run: "npm clean-install" },
+      { run: "npm it" },
+      { run: "npm rb" },
+      { run: "npm i" },
+      { run: "npm exec -- foo" },
+      { run: "npm x foo" },
+      { run: "npm run build" },
+      { run: "npm rebuild" },
+      { run: "npm -g install npm@11" },
+      { run: "npm --loglevel=silent up" },
+      { run: "npm --prefix /tmp/x install foo" },
+      { run: "echo ok && npm cit" },
+      { run: "yarn" },
+      { run: "corepack enable" },
+      { run: "bun install" },
+      { run: "bunx foo" },
+      { run: "pnpx foo" },
     ]) {
       const errors = publishErrors((doc) => doc.jobs.publish.steps.unshift(step))
       assert.equal(errors.length, 1, JSON.stringify({ step, errors }))
+      assert.match(
+        errors[0],
+        /job publish (?:uses .*: the token job uses only actions\/setup-node and actions\/download-artifact|runs ".*": no package manager runs next to the token)/,
+      )
     }
+  })
+
+  it("leaves npm --version, npm view and npm publish and prose about npm alone", () => {
+    for (const script of [
+      "npm --version",
+      'npm view "@miragon/pulse-x@1.2.3" version',
+      'npm view "@miragon/pulse-x@1.2.3" dist.attestations.url',
+      'npm publish "$tarball" --access public --provenance',
+      'echo "::notice::x is already on npm from the repo, nothing to publish"',
+      'echo "::error::npm $(npm --version) predates trusted publishing"',
+      "echo npm_config_registry",
+      ...PUBLISH.jobs.publish.steps.map((step) => step.run ?? ""),
+    ]) {
+      assert.equal(packageManagerRun(script), undefined, script)
+    }
+  })
+
+  it("keeps the token job's actions on exact pins the other workflows run", () => {
+    for (const ref of ["v7", "main", "v7.1"]) {
+      const errors = publishErrors(
+        (doc) => (setupNode(doc.jobs.publish).uses = `actions/setup-node@${ref}`),
+      )
+      assert.deepEqual(errors.length, 1, ref)
+      assert.match(errors[0], /pin an exact version \(vX\.Y\.Z\) or a commit SHA/)
+    }
+    const sha = `actions/setup-node@${"a".repeat(40)}`
+    assert.deepEqual(
+      publishErrors((doc) => (setupNode(doc.jobs.publish).uses = sha)),
+      [],
+    )
+    const pinnedRefs = new Map([["actions/download-artifact", new Set(["v8.0.2"])]])
+    const older = publishErrors(
+      (doc) => {
+        doc.jobs.publish.steps.find((s) => s.uses?.startsWith("actions/download-artifact@")).uses =
+          "actions/download-artifact@v8.0.1"
+      },
+      { pinnedRefs },
+    )
+    assert.deepEqual(older.length, 1)
+    assert.match(older[0], /the other workflows run actions\/download-artifact@v8\.0\.2/)
+  })
+
+  it("collects each action's refs over every workflow", () => {
+    const refs = actionRefs(
+      new Map([
+        [
+          "a.yml",
+          { jobs: { x: { steps: [{ uses: "actions/setup-node@v7.1.0" }, { run: "true" }] } } },
+        ],
+        [
+          "b.yml",
+          {
+            jobs: {
+              y: { steps: [{ uses: "actions/setup-node@v7.0.0" }, { uses: "./local-action" }] },
+              z: { uses: "./.github/workflows/c.yml" },
+            },
+          },
+        ],
+      ]),
+    )
+    assert.deepEqual([...refs.keys()], ["actions/setup-node"])
+    assert.deepEqual([...refs.get("actions/setup-node")].sort(), ["v7.0.0", "v7.1.0"])
   })
 
   it("rejects a dependency cache in either job", () => {
     for (const job of ["pack", "publish"]) {
-      const errors = publishErrors((doc) => {
-        const setup = doc.jobs[job].steps.find((s) => s.uses.startsWith("actions/setup-node@"))
-        setup.with.cache = "pnpm"
-      })
+      const errors = publishErrors((doc) => (setupNode(doc.jobs[job]).with.cache = "pnpm"))
       assert.ok(matches(errors, /sets cache/), job)
     }
     assert.ok(
       matches(
-        publishErrors((doc) => {
-          const setup = doc.jobs.pack.steps.find((s) => s.uses.startsWith("actions/setup-node@"))
-          delete setup.with["package-manager-cache"]
-        }),
+        publishErrors((doc) => delete setupNode(doc.jobs.pack).with["package-manager-cache"]),
         /package-manager-cache: false/,
       ),
     )
@@ -476,8 +636,16 @@ describe("the Publish step", () => {
 
 const RELEASE = readDoc(RELEASE_WORKFLOW)
 const REAL_PACKAGES = readWorkspace(ROOT)
-const matrixErrors = (packages, mutate = () => {}) => {
+/** The real release workflow with its npm matrix rebuilt for a fixture workspace. */
+const fixtureRelease = (packages) => {
   const doc = structuredClone(RELEASE)
+  doc.jobs["publish-npm"].strategy.matrix.directory = packages
+    .filter(({ dir, manifest }) => isNpmPublished(manifest) && PUBLISHABLE_DIR.test(dir))
+    .map(({ dir }) => dir)
+  return doc
+}
+const matrixErrors = (packages, mutate = () => {}) => {
+  const doc = fixtureRelease(workspace(TODAY))
   mutate(doc)
   return checkPublishMatrix(doc, packages)
 }
@@ -486,6 +654,9 @@ const addToMatrix = (dir) => (doc) => doc.jobs["publish-npm"].strategy.matrix.di
 describe("checkPublishMatrix", () => {
   it("accepts the real release workflow and workspace", () => {
     assert.deepEqual(checkPublishMatrix(RELEASE, REAL_PACKAGES), [])
+  })
+
+  it("accepts a matrix built for the fixture workspace", () => {
     assert.deepEqual(matrixErrors(workspace(TODAY)), [])
   })
 
@@ -538,6 +709,44 @@ describe("checkPublishMatrix", () => {
     )
   })
 
+  it("demands the repository npm checks against the provenance", () => {
+    for (const [fixture, dir] of [
+      [CLI, "apps/cli"],
+      [DOMAIN, "packages/connectors/camunda/camunda7-domain"],
+    ]) {
+      const { repository, ...manifest } = fixture[dir]
+      assert.deepEqual(repository, {
+        type: "git",
+        url: "git+https://github.com/Miragon/pulse.git",
+        directory: dir,
+      })
+      for (const wrong of [
+        undefined,
+        "github:Miragon/pulse",
+        { ...repository, url: "git+https://github.com/example/fork.git" },
+        { ...repository, url: "git+https://github.com/miragon/pulse.git" },
+        { ...repository, url: "https://github.com/Miragon/pulse" },
+        { ...repository, directory: "packages/core/widget-shell" },
+        { url: repository.url, directory: dir },
+      ]) {
+        const errors = matrixErrors(
+          workspace({ ...TODAY, [dir]: { ...manifest, repository: wrong } }),
+          addToMatrix(dir),
+        )
+        assert.equal(errors.length, 1, JSON.stringify({ dir, wrong, errors }))
+        const head = `${dir} (${manifest.name}) is published to npm with provenance`
+        assert.ok(errors[0].startsWith(head), errors[0])
+        assert.ok(errors[0].includes(JSON.stringify(repository)), errors[0])
+      }
+    }
+    // Private packages and extensions never reach npm, so they need none.
+    assert.deepEqual(
+      matrixErrors(workspace({ ...TODAY, "apps/private-app": { name: "x", private: true } })),
+      [],
+    )
+    assert.deepEqual(matrixErrors(workspace({ ...TODAY, ...VSCODE })), [])
+  })
+
   it("rejects a public package the publish workflow cannot pack", () => {
     const errors = matrixErrors(workspace({ ...TODAY, docs: { name: "@miragon/pulse-docs" } }))
     assert.ok(
@@ -582,12 +791,32 @@ describe("checkPublishMatrix", () => {
   })
 })
 
+/** A release-please config that bumps the root and every fixture package, as the gate asks. */
+const fixtureConfig = (manifests) => ({
+  packages: {
+    ".": {
+      "extra-files": [
+        { type: "generic", path: "engine-plugins/gradle.properties" },
+        { type: "json", path: "package.json", jsonpath: "$.version" },
+        ...Object.keys(manifests)
+          .filter((dir) => /^(?:apps|packages)\//.test(dir))
+          .map((dir) => ({ type: "json", path: `${dir}/package.json`, jsonpath: "$.version" })),
+      ],
+    },
+  },
+})
+
 describe("checkReleaseExtraFiles", () => {
-  const config = JSON.parse(readFileSync(path.join(ROOT, "release-please-config.json"), "utf8"))
+  const realConfig = JSON.parse(readFileSync(path.join(ROOT, "release-please-config.json"), "utf8"))
+  const config = fixtureConfig(TODAY)
   const exists = (rel) => existsSync(path.join(ROOT, rel))
 
   it("accepts the real config", () => {
-    assert.deepEqual(checkReleaseExtraFiles(config, REAL_PACKAGES, { fileExists: exists }), [])
+    assert.deepEqual(checkReleaseExtraFiles(realConfig, REAL_PACKAGES, { fileExists: exists }), [])
+  })
+
+  it("accepts a config built for the fixture workspace", () => {
+    assert.deepEqual(checkReleaseExtraFiles(config, workspace(TODAY)), [])
   })
 
   it("demands every package under apps/ and packages/, published or not", () => {
@@ -614,7 +843,7 @@ describe("checkReleaseExtraFiles", () => {
   })
 
   it("demands the root and refuses a path that does not exist", () => {
-    const broken = structuredClone(config)
+    const broken = structuredClone(realConfig)
     const files = broken.packages["."]["extra-files"]
     files.splice(
       files.findIndex((entry) => entry.path === "package.json"),
@@ -631,16 +860,63 @@ describe("checkReleaseExtraFiles", () => {
 
 const DEPENDABOT = readDoc(".github/dependabot.yml")
 const dirExists = (rel) => existsSync(path.join(ROOT, rel))
+/** A Dependabot config in the real one's shape, over fixture groups and directories. */
+const FIXTURE_DEPENDABOT = {
+  version: 2,
+  updates: [
+    {
+      "package-ecosystem": "npm",
+      directory: "/",
+      ignore: [
+        {
+          "dependency-name": "@types/vscode",
+          "update-types": ["version-update:semver-minor", "version-update:semver-major"],
+        },
+      ],
+      groups: {
+        cli: { patterns: ["commander", "tsdown"] },
+        vscode: { patterns: ["@vscode/*", "@types/vscode"] },
+        "npm-dependencies": {
+          patterns: ["*"],
+          "exclude-patterns": ["commander", "tsdown", "@vscode/*", "@types/vscode"],
+        },
+      },
+    },
+    {
+      "package-ecosystem": "docker",
+      directories: ["/playground/docker", "/playground/docker/otel"],
+      groups: { "docker-dependencies": { patterns: ["*"] } },
+    },
+    {
+      "package-ecosystem": "github-actions",
+      directory: "/",
+      groups: { "github-actions": { patterns: ["*"] } },
+    },
+  ],
+}
+const FIXTURE_DIRS = new Set([".", "playground/docker", "playground/docker/otel"])
+const fixtureDirExists = (rel) => FIXTURE_DIRS.has(rel)
 const dependabotErrors = (mutate, options = {}) => {
-  const doc = structuredClone(DEPENDABOT)
+  const doc = structuredClone(FIXTURE_DEPENDABOT)
   mutate(doc)
-  return checkDependabot(doc, { packages: REAL_PACKAGES, dirExists, ...options })
+  return checkDependabot(doc, {
+    packages: workspace(TODAY),
+    dirExists: fixtureDirExists,
+    ...options,
+  })
 }
 const npmEntry = (doc) => doc.updates.find((entry) => entry["package-ecosystem"] === "npm")
 
 describe("checkDependabot", () => {
   it("accepts the real config", () => {
     assert.deepEqual(checkDependabot(DEPENDABOT, { packages: REAL_PACKAGES, dirExists }), [])
+  })
+
+  it("accepts the fixture config", () => {
+    assert.deepEqual(
+      dependabotErrors(() => {}),
+      [],
+    )
   })
 
   it("rejects a group listed after the catch-all", () => {
@@ -673,7 +949,9 @@ describe("checkDependabot", () => {
       })
     assert.ok(matches(dependabotErrors(addCliImage), /\/apps\/cli does not exist/))
     assert.deepEqual(
-      dependabotErrors(addCliImage, { dirExists: (rel) => rel === "apps/cli" || dirExists(rel) }),
+      dependabotErrors(addCliImage, {
+        dirExists: (rel) => rel === "apps/cli" || fixtureDirExists(rel),
+      }),
       [],
     )
     const missing = dependabotErrors((doc) =>
@@ -711,17 +989,17 @@ describe("checkDependabot", () => {
   })
 
   it("asks nothing of @types/vscode without an extension", () => {
-    const errors = dependabotErrors((doc) => delete npmEntry(doc).ignore, {
-      packages: workspace(TODAY),
-    })
-    assert.deepEqual(errors, [])
+    assert.deepEqual(
+      dependabotErrors((doc) => delete npmEntry(doc).ignore),
+      [],
+    )
   })
 
   it("passes entries whose only group is a catch-all", () => {
-    const doc = {
-      updates: DEPENDABOT.updates.filter((entry) => entry["package-ecosystem"] !== "npm"),
-    }
-    assert.deepEqual(checkDependabot(doc, { packages: REAL_PACKAGES, dirExists }), [])
+    assert.deepEqual(
+      dependabotErrors((doc) => doc.updates.splice(doc.updates.indexOf(npmEntry(doc)), 1)),
+      [],
+    )
   })
 })
 
@@ -834,27 +1112,106 @@ describe("checkArtifactGlobs", () => {
     assert.match(nightly[0], /mutation-nightly\.yml: .* misses packages\/core\/\*\/reports/)
   })
 
-  it("rejects a mutation download below the repo root", () => {
-    const errors = artifactErrors(({ ci }) => {
-      ci.jobs.fitness.steps.find((s) => s.with?.name === "mutation-reports").with.path = "packages"
-    })
-    assert.deepEqual(errors.length, 1)
-    assert.match(errors[0], /downloads mutation-reports into packages/)
+  it("rejects a report download below the repo root, in both workflows", () => {
+    const download = (doc, key, value) =>
+      Object.values(doc.jobs)
+        .flatMap((job) => job.steps ?? [])
+        .find((s) => s.uses?.startsWith("actions/download-artifact@") && s.with?.[key] === value)
+    for (const [mutate, message] of [
+      [
+        ({ ci }) => (download(ci, "name", "mutation-reports").with.path = "packages"),
+        /ci\.yml: job fitness downloads mutation-reports into packages/,
+      ],
+      [
+        ({ ci }) => (download(ci, "name", "coverage-summaries").with.path = "packages"),
+        /ci\.yml: job fitness downloads coverage-summaries into packages/,
+      ],
+      [
+        ({ nightly }) => (download(nightly, "pattern", "mutation-report-*").with.path = "packages"),
+        /mutation-nightly\.yml: job summary downloads mutation-report-\* into packages/,
+      ],
+    ]) {
+      const errors = artifactErrors(mutate)
+      assert.deepEqual(errors.length, 1, errors.join("\n"))
+      assert.match(errors[0], message)
+    }
   })
 
-  it("bounds the diff gate at 60 minutes", () => {
-    assert.ok(
-      matches(
-        artifactErrors(({ ci }) => delete ci.jobs.mutation["timeout-minutes"]),
-        /at most 60/,
-      ),
-    )
-    assert.ok(
-      matches(
-        artifactErrors(({ ci }) => (ci.jobs.mutation["timeout-minutes"] = 360)),
-        /at most 60/,
-      ),
-    )
+  it("demands the coverage and mutation artifacts of ci.yml, uploaded and downloaded", () => {
+    for (const name of ["coverage-summaries", "mutation-reports"]) {
+      const notDownloaded = artifactErrors(({ ci }) => {
+        ci.jobs.fitness.steps = ci.jobs.fitness.steps.filter((s) => s.with?.name !== name)
+      })
+      assert.deepEqual(notDownloaded.length, 1)
+      assert.match(notDownloaded[0], new RegExp(`no step downloads the artifact ${name}`))
+      const notUploaded = artifactErrors(({ ci }) => {
+        for (const job of Object.values(ci.jobs)) {
+          job.steps = (job.steps ?? []).filter(
+            (s) => !(s.uses?.startsWith("actions/upload-artifact@") && s.with?.name === name),
+          )
+        }
+      })
+      assert.deepEqual(notUploaded.length, 1)
+      assert.match(notUploaded[0], new RegExp(`no step uploads the artifact ${name}`))
+    }
+  })
+
+  it("demands the nightly leg's upload and the summary's merged download", () => {
+    const summary = (nightly) =>
+      nightly.jobs.summary.steps.find((s) => s.uses?.startsWith("actions/download-artifact@"))
+    for (const [mutate, message] of [
+      [
+        ({ nightly }) => {
+          nightly.jobs.mutation.steps = nightly.jobs.mutation.steps.filter(
+            (s) => !s.uses?.startsWith("actions/upload-artifact@"),
+          )
+        },
+        /job mutation must upload its report as mutation-report-\$\{\{ matrix\.slug \}\}/,
+      ],
+      [
+        ({ nightly }) => (uploadNamed(nightly, "mutation-report-").with.name = "report"),
+        /job mutation must upload its report as mutation-report-/,
+      ],
+      [
+        ({ nightly }) => delete summary(nightly).with["merge-multiple"],
+        /job summary must download mutation-report-\* with merge-multiple: true/,
+      ],
+      [
+        ({ nightly }) => (summary(nightly).with.pattern = "mutation-*"),
+        /no step downloads pattern mutation-report-\*/,
+      ],
+      [
+        ({ nightly }) => {
+          nightly.jobs.summary.steps = nightly.jobs.summary.steps.filter(
+            (s) => s.run !== "pnpm fitness",
+          )
+        },
+        /job summary downloads the reports but never runs pnpm fitness/,
+      ],
+    ]) {
+      const errors = artifactErrors(mutate)
+      assert.deepEqual(errors.length, 1, errors.join("\n"))
+      assert.match(errors[0], message)
+    }
+  })
+
+  it(`bounds the diff gate at ${MUTATION_TIMEOUT_CEILING} minutes`, () => {
+    for (const timeout of [undefined, MUTATION_TIMEOUT_CEILING + 1, 360, "120"]) {
+      const errors = artifactErrors(({ ci }) => {
+        ci.jobs.mutation["timeout-minutes"] = timeout
+      })
+      assert.deepEqual(errors.length, 1, String(timeout))
+      assert.match(
+        errors[0],
+        /job mutation needs timeout-minutes of at most 120: it runs the packages one after another/,
+      )
+    }
+    for (const timeout of [60, MUTATION_TIMEOUT_CEILING]) {
+      assert.deepEqual(
+        artifactErrors(({ ci }) => (ci.jobs.mutation["timeout-minutes"] = timeout)),
+        [],
+      )
+    }
   })
 })
 

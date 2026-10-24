@@ -181,12 +181,15 @@ jobs:
     name: Mutation (changed files)
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    # Bounded by FILE_CAP: one package at the cap runs about 25-30 min at the
-    # slowest measured rate (widget-shell, about 1 min/file); the longest run
-    # so far took 10 min. A run that hits this fails the required check:
-    # split the PR (the Mutation-Cap-Exception trailer does not apply to a
-    # timeout).
-    timeout-minutes: 60
+    # A bound for the whole job, not one package: mutation-diff.mjs runs the
+    # packages one after another, and FILE_CAP (25 files) caps each package on
+    # its own. At the slowest measured rate (widget-shell, about 1 min/file)
+    # one package at the cap takes about 25 min, so 120 min hold about four
+    # packages at the cap next to install and build; the longest run so far
+    # took 10 min, and GitHub's default would be 360. A run that hits it fails
+    # the required check: split the PR (the Mutation-Cap-Exception trailer does
+    # not apply to a timeout).
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v7.0.1
         with:
