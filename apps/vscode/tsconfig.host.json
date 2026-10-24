@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2023"],
+    "types": ["node", "vscode"],
+    "jsx": null,
+    "jsxImportSource": null
+  },
+  "include": [
+    "src/host",
+    "test/host",
+    "dev/host",
+    "src/contract/bpmn.d.ts",
+    "src/model/moddle.d.ts"
+  ],
+  "exclude": []
+}

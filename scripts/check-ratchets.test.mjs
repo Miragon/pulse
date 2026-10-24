@@ -1234,7 +1234,9 @@ export default [
     assert.deepEqual(errors, [])
     assert.ok("maxLinesRatchet" in maps && "complexityRatchet" in maps)
     const globals = Object.values(budgets).filter((b) => !b.exemption && b.numbers.length > 0)
-    assert.deepEqual(globals.map((b) => b.numbers[0]).sort(), [15, 400])
+    // The global budgets (complexity 15, 400 lines) and the VS Code extension's stricter
+    // house budgets (complexity 10, 300 lines, apps/vscode only).
+    assert.deepEqual(globals.map((b) => b.numbers[0]).sort(), [10, 15, 300, 400])
   })
 
   it("accepts lowering and removing entries, tightening the budget and dropping an exemption", () => {

@@ -43,7 +43,11 @@ const DOCS_KIT = "docs/.vitepress/miragon"
  * modeler-tool-design) lands with its manifest and adds that manifest's path
  * here; it never becomes an exception in the scan.
  */
-const SANCTIONED_TOKEN_MANIFESTS = [`${DOCS_KIT}/manifest.json`]
+const SANCTIONED_TOKEN_MANIFESTS = [
+  `${DOCS_KIT}/manifest.json`,
+  // The VS Code webview (apps/vscode): the App and web variant of modeler-tool-design.
+  "apps/vscode/src/webview/theme/manifest.json",
+]
 
 /** Where a `--cd-*` declaration outside a sanctioned copy is a fork. */
 const TOKEN_SCAN_ROOTS = ["apps", "packages", "templates", "docs"]

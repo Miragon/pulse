@@ -5,9 +5,9 @@ import { join, resolve } from "node:path"
 import { downloadAndUnzipVSCode } from "@vscode/test-electron"
 import { _electron as electron } from "playwright"
 
-const EXTENSION = resolve("packages/extension")
-const WORKSPACE = resolve("packages/extension/dev/workspace")
-const SHOTS = resolve(process.env.PULSE_E2E_SHOTS ?? ".context/screenshots/vscode")
+const EXTENSION = resolve(".")
+const WORKSPACE = resolve("dev/host/workspace")
+const SHOTS = resolve(process.env.PULSE_E2E_SHOTS ?? "test-results/e2e")
 const MAC_INSTALLATION = "/Applications/Visual Studio Code.app/Contents/MacOS/Code"
 const ENGINE = "http://localhost:18080/engine-rest"
 
@@ -21,7 +21,7 @@ async function vscodeExecutable() {
 async function engineIsUp() {
   const response = await fetch(`${ENGINE}/version`).catch(() => undefined)
   if (response?.ok !== true) {
-    throw new Error(`No engine at ${ENGINE}. Run "npm run engine:up" first.`)
+    throw new Error(`No engine at ${ENGINE}. Run "pnpm --filter pulse-vscode run engine:up" first.`)
   }
 }
 

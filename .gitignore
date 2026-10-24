@@ -36,3 +36,12 @@ apps/mcp-server-camunda7/test-results/
 .stryker-tmp/
 reports/
 stryker-setup-*.js
+# The VS Code extension (apps/vscode): the VS Code that @vscode/test-cli and the e2e
+# scripts download, packaged extensions, the browser dev host's build, the e2e
+# screenshots, and vitest browser mode's failure screenshots and attachments
+.vscode-test/
+*.vsix
+apps/vscode/dist-dev/
+apps/vscode/test-results/
+__screenshots__/
+.vitest/

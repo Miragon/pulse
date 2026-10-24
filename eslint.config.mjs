@@ -1,6 +1,7 @@
 import js from "@eslint/js"
 import tseslint from "typescript-eslint"
 import reactHooks from "eslint-plugin-react-hooks"
+import globals from "globals"
 
 // Widget/UI sources are excluded from the package tsconfigs (they are
 // compiled by Vite/the bundler) and get their type information from the
@@ -18,6 +19,12 @@ const serverTestFiles = [
   "apps/mcp-server-camunda7/test/**/*.ts",
   "apps/mcp-server-camunda7/test-host/**/*.ts",
 ]
+
+// The VS Code extension's runtime probes (apps/vscode/test/<layer>/runtime.boundary.ts)
+// expect the globals of their layer to be missing, so apps/vscode/tsconfig.json (the
+// union the editor and the project service use) leaves them out; each is typed by its
+// layer's tsconfig instead.
+const vscodeBoundaryProbes = ["apps/vscode/test/*/runtime.boundary.ts"]
 
 // Ratchet debt: frozen high-water marks from the 2026-08-07 baseline
 // measurement. Shrink-only lists — refactor a file below the global target
@@ -160,6 +167,74 @@ const widgetHandOffGate = [
 const DOMAIN_GLOBAL_REASON =
   "A -domain package runs unchanged in the MCP server, the CLI and the VS Code extension host, so it uses no Node global"
 
+// ── The VS Code extension (apps/vscode): its own house rules ───────────────
+// The extension keeps the stricter rules it was built with (apps/vscode/CLAUDE.md,
+// apps/vscode/docs/adr/guardrails.md): no comments (the inline rule below, never
+// switched off inline: noInlineConfig), behaviour in classes, one class per file,
+// budgets (complexity 10, 300 lines, 60 per function, 4 parameters, 20 statements),
+// no engine words in the contract, the core and the webview, no --vscode-* colour in
+// the webview. apps/vscode/test/architecture/lint-rules.test.ts lints a probe per rule.
+// Its no-restricted-syntax blocks name apps/vscode paths only, so they never replace
+// a selector of the MCP gates above (and none of those reaches apps/vscode).
+const vscodeNoComments = {
+  meta: {
+    type: "suggestion",
+    messages: {
+      comment:
+        "Comments are not allowed. Express the intent with a well-named function, variable or type instead, and keep the scope small.",
+    },
+    schema: [],
+  },
+  create(context) {
+    return {
+      Program() {
+        for (const comment of context.sourceCode.getAllComments()) {
+          context.report({ loc: comment.loc, messageId: "comment" })
+        }
+      },
+    }
+  },
+}
+
+const VSCODE_ENGINE_WORDS =
+  "camunda|zeebe|operaton|cib ?seven|processDefinitionKey|processInstanceKey|activityId|\\bc[78]\\b"
+const VSCODE_ENGINE_WORDS_MESSAGE =
+  "Engine vocabulary belongs in apps/vscode/src/adapters/<engine> and the composition root. Use the neutral words of the contract here (elementId, definitionId, bpmnProcessId, instanceId)."
+const VSCODE_HOST_COLOUR_MESSAGE =
+  "The webview takes no colour from VS Code. Use a Miragon token (--cd-*) from apps/vscode/src/webview/theme instead of a --vscode-* variable."
+const VSCODE_CLASS_MESSAGE =
+  "Put behaviour in a class: a method of the class that owns the job, or a static method of a utility class named after its topic. See apps/vscode/docs/adr/code-structure.md."
+
+const vscodeForbiddenWords = (words, message) =>
+  [
+    "Identifier[name",
+    "JSXIdentifier[name",
+    "Literal[value",
+    "TemplateElement[value.raw",
+    "JSXText[value",
+  ].map((attribute) => ({ selector: `${attribute}=/${words}/i]`, message }))
+
+const vscodeModuleFunctions = (allowedNames) => {
+  const allowed = allowedNames === undefined ? "" : `:not([id.name=${allowedNames}])`
+  return [
+    `Program > FunctionDeclaration${allowed}`,
+    `Program > ExportNamedDeclaration > FunctionDeclaration${allowed}`,
+    "Program > ExportDefaultDeclaration > FunctionDeclaration",
+    `Program > VariableDeclaration > VariableDeclarator${allowed} > :matches(ArrowFunctionExpression, FunctionExpression)`,
+    `Program > ExportNamedDeclaration > VariableDeclaration > VariableDeclarator${allowed} > :matches(ArrowFunctionExpression, FunctionExpression)`,
+  ].map((selector) => ({ selector, message: VSCODE_CLASS_MESSAGE }))
+}
+
+const vscodeNeutralCode = vscodeForbiddenWords(VSCODE_ENGINE_WORDS, VSCODE_ENGINE_WORDS_MESSAGE)
+const vscodeHostColours = vscodeForbiddenWords("--vscode-", VSCODE_HOST_COLOUR_MESSAGE)
+const vscodeHostEngineWords = vscodeForbiddenWords(
+  `${VSCODE_ENGINE_WORDS}|\\bengine-cli\\b`,
+  VSCODE_ENGINE_WORDS_MESSAGE,
+)
+const vscodeModuleFunctionGate = vscodeModuleFunctions()
+const vscodeComponentFunctionGate = vscodeModuleFunctions("/^(use)?[A-Z]/")
+const vscodeEntryFunctionGate = vscodeModuleFunctions("/^(activate|deactivate)$/")
+
 export default tseslint.config(
   {
     ignores: [
@@ -185,7 +260,7 @@ export default tseslint.config(
 
   // Typed linting via the project service for everything the package tsconfigs cover
   {
-    ignores: [...bundledUiFiles, ...serverTestFiles],
+    ignores: [...bundledUiFiles, ...serverTestFiles, ...vscodeBoundaryProbes],
     languageOptions: {
       parserOptions: {
         projectService: {
@@ -235,6 +310,22 @@ export default tseslint.config(
     languageOptions: {
       parserOptions: {
         project: ["apps/mcp-server-camunda7/tsconfig.test.json"],
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+  },
+
+  // The VS Code extension's runtime probes: typed via their layer's tsconfig
+  {
+    files: vscodeBoundaryProbes,
+    languageOptions: {
+      parserOptions: {
+        project: [
+          "apps/vscode/tsconfig.contract.json",
+          "apps/vscode/tsconfig.core.json",
+          "apps/vscode/tsconfig.webview.json",
+          "apps/vscode/tsconfig.host.json",
+        ],
         tsconfigRootDir: import.meta.dirname,
       },
     },
@@ -438,6 +529,143 @@ export default tseslint.config(
   {
     files: ["packages/connectors/*/*/src/messages/*.sweep.ts"],
     rules: { "max-lines": "off" },
+  },
+  // ── The VS Code extension (apps/vscode) ─────────────────────────────────
+  {
+    files: ["apps/vscode/**/*.{ts,tsx}"],
+    extends: [tseslint.configs.strictTypeChecked, tseslint.configs.stylisticTypeChecked],
+  },
+  {
+    files: ["apps/vscode/**/*.{ts,tsx,js,mjs,cjs}"],
+    plugins: { "pulse-vscode": { rules: { "no-comments": vscodeNoComments } } },
+    linterOptions: { noInlineConfig: true, reportUnusedDisableDirectives: "error" },
+    rules: {
+      "pulse-vscode/no-comments": "error",
+      complexity: ["error", 10],
+      "max-depth": ["error", 3],
+      "max-params": ["error", 4],
+      "no-console": "error",
+      eqeqeq: ["error", "always"],
+      "@typescript-eslint/consistent-type-imports": "error",
+      "@typescript-eslint/restrict-template-expressions": ["error", { allowNumber: true }],
+      "@typescript-eslint/no-extraneous-class": ["error", { allowStaticOnly: true }],
+    },
+  },
+  {
+    files: ["apps/vscode/{src,dev,scripts}/**/*.{ts,tsx,mjs,cjs}"],
+    rules: {
+      "max-lines": ["error", { max: 300, skipBlankLines: true }],
+      "max-lines-per-function": ["error", { max: 60, skipBlankLines: true }],
+      "max-statements": ["error", 20],
+      "max-nested-callbacks": ["error", 3],
+    },
+  },
+  {
+    files: ["apps/vscode/test/**/*.{ts,tsx}"],
+    rules: { "@typescript-eslint/no-non-null-assertion": "off" },
+  },
+  {
+    files: ["apps/vscode/test/*/runtime.boundary.ts"],
+    rules: { "pulse-vscode/no-comments": "off" },
+  },
+  {
+    files: ["apps/vscode/dev/**/*.{ts,tsx}"],
+    rules: { "no-console": "off" },
+  },
+  {
+    files: ["apps/vscode/**/*.{js,mjs}"],
+    extends: [tseslint.configs.disableTypeChecked],
+    languageOptions: { globals: globals.node },
+    rules: { "no-console": "off" },
+  },
+  {
+    files: ["apps/vscode/**/*.cjs"],
+    extends: [tseslint.configs.disableTypeChecked],
+    languageOptions: { globals: { ...globals.node, ...globals.mocha }, sourceType: "commonjs" },
+    rules: { "@typescript-eslint/no-require-imports": "off" },
+  },
+  {
+    files: ["apps/vscode/src/contract/**/*.ts"],
+    rules: { "no-restricted-syntax": ["error", ...vscodeNeutralCode, ...vscodeModuleFunctionGate] },
+  },
+  // The branded id constructors are module functions by design: this block replaces the
+  // contract's selectors for the one file (flat config never merges a rule's options).
+  {
+    files: ["apps/vscode/src/contract/model/ids.ts"],
+    rules: { "no-restricted-syntax": ["error", ...vscodeNeutralCode] },
+  },
+  {
+    files: ["apps/vscode/src/adapters/**/*.ts", "apps/vscode/src/model/**/*.ts"],
+    rules: { "no-restricted-syntax": ["error", ...vscodeModuleFunctionGate] },
+  },
+  {
+    files: ["apps/vscode/src/core/**/*.ts"],
+    rules: { "no-restricted-syntax": ["error", ...vscodeNeutralCode, ...vscodeModuleFunctionGate] },
+  },
+  {
+    files: ["apps/vscode/src/webview/**/*.ts"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        ...vscodeNeutralCode,
+        ...vscodeHostColours,
+        ...vscodeModuleFunctionGate,
+      ],
+    },
+  },
+  {
+    files: ["apps/vscode/src/webview/**/*.tsx"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        ...vscodeNeutralCode,
+        ...vscodeHostColours,
+        ...vscodeComponentFunctionGate,
+      ],
+    },
+  },
+  {
+    files: ["apps/vscode/src/host/**/*.ts"],
+    rules: {
+      "no-restricted-syntax": ["error", ...vscodeHostEngineWords, ...vscodeModuleFunctionGate],
+    },
+  },
+  {
+    files: ["apps/vscode/src/host/composition-root.ts", "apps/vscode/src/host/connections/**"],
+    rules: { "no-restricted-syntax": ["error", ...vscodeModuleFunctionGate] },
+  },
+  {
+    files: ["apps/vscode/src/host/extension.ts"],
+    rules: {
+      "no-restricted-syntax": ["error", ...vscodeHostEngineWords, ...vscodeEntryFunctionGate],
+    },
+  },
+  {
+    files: ["apps/vscode/src/**/*.{ts,tsx}"],
+    rules: {
+      "max-classes-per-file": ["error", 1],
+      "@typescript-eslint/member-ordering": [
+        "error",
+        {
+          default: [
+            "signature",
+            "field",
+            "constructor",
+            "public-method",
+            "protected-method",
+            "private-method",
+          ],
+        },
+      ],
+    },
+  },
+  // The Preact webview follows the rules of hooks (Preact's hooks have React's call-order
+  // contract). The React Compiler rules of recommended-latest stay off here: they read
+  // Preact's mutable refs and diagram handles as React state.
+  {
+    files: ["apps/vscode/src/webview/**/*.{ts,tsx}", "apps/vscode/test/webview/**/*.{ts,tsx}"],
+    plugins: { "react-hooks": reactHooks },
+    rules: { "react-hooks/rules-of-hooks": "error" },
   },
   ...Object.entries(complexityRatchet).map(([file, max]) => ({
     files: [file],

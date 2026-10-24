@@ -1,10 +1,10 @@
 import { spawnSync } from "node:child_process"
 import { describe, expect, test } from "vitest"
 import { INSPECT_STACKTRACE_LINE_CAP } from "../../../../src/adapters/c7/engine-cli/index.js"
-import { OPERATE_CLI_PATH } from "../support/engine-cli-binary.js"
+import { ENGINE_CLI_PATH } from "../support/engine-cli-binary.js"
 
 function helpOf(...command: string[]): string {
-  const result = spawnSync(process.execPath, [OPERATE_CLI_PATH, ...command, "--help"], {
+  const result = spawnSync(process.execPath, [ENGINE_CLI_PATH, ...command, "--help"], {
     encoding: "utf8",
     env: { PATH: process.env.PATH ?? "" },
   })

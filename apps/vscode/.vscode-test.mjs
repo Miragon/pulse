@@ -9,9 +9,9 @@ const installation =
   (existsSync(MAC_INSTALLATION) ? MAC_INSTALLATION : undefined)
 
 export default defineConfig({
-  files: "smoke/*.test.cjs",
+  files: "test/smoke/*.test.cjs",
   extensionDevelopmentPath: ".",
-  workspaceFolder: "./smoke/workspace",
+  workspaceFolder: "./test/smoke/workspace",
   ...(installation === undefined
     ? { version: "stable" }
     : { useInstallation: { fromPath: installation } }),

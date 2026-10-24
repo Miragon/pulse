@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2023"],
+    "types": ["node"],
+    "jsx": null,
+    "jsxImportSource": null
+  },
+  "include": [
+    "vitest.config.ts",
+    "vitest.stryker.config.ts",
+    "vitest.engines.config.ts",
+    "test/architecture"
+  ],
+  "exclude": []
+}

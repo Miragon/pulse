@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, test } from "vitest"
 import { C7Adapter } from "../../../src/adapters/c7/index.js"
 import { ENGINE_IMAGE, startEngine, type RunningEngine } from "./support/engine-container.js"
 import {
-  OPERATE_CLI_PATH,
+  ENGINE_CLI_PATH,
   writeEngineCliConfig,
   type EngineCliConfig,
 } from "./support/engine-cli-binary.js"
@@ -16,7 +16,7 @@ const BATCHES_RUN_WITHIN = {
 }
 
 function adapterWith(config: EngineCliConfig): C7Adapter {
-  return C7Adapter.create({ cliPath: OPERATE_CLI_PATH, configPath: config.path })
+  return C7Adapter.create({ cliPath: ENGINE_CLI_PATH, configPath: config.path })
 }
 
 function connectionTo(endpoint: string) {

@@ -27,7 +27,7 @@ function sourceFiles(directory: string): string[] {
   })
 }
 
-const source = sourceFiles(join(PACKAGE, "src"))
+const source = sourceFiles(join(PACKAGE, "src", "host"))
   .map((path) => readFileSync(path, "utf8"))
   .join("\n")
 
@@ -38,7 +38,7 @@ function registered(pattern: RegExp): string[] {
 describe("the extension manifest", () => {
   test("declares exactly the commands the extension registers", () => {
     const declared = manifest.contributes.commands.map((entry) => entry.command).sort()
-    const commandKeys = registered(/readonly id = COMMAND\.(\w+);/g)
+    const commandKeys = registered(/readonly id = COMMAND\.(\w+);?$/gm)
     const registeredCommands = commandKeys.map((key) => COMMAND[key as keyof typeof COMMAND]).sort()
     expect(registeredCommands).toEqual(declared)
     expect(Object.values(COMMAND).sort()).toEqual(declared)
@@ -63,15 +63,15 @@ describe("the extension manifest", () => {
       entries.map((entry) => entry.id),
     )
     const providers = [
-      ...registered(/registerTreeDataProvider\('([\w.]+)'/g),
-      ...registered(/createTreeView\('([\w.]+)'/g),
+      ...registered(/registerTreeDataProvider\(["']([\w.]+)["']/g),
+      ...registered(/createTreeView\(["']([\w.]+)["']/g),
     ]
     expect(providers.sort()).toEqual(views.sort())
   })
 
   test("declares every setting the extension reads", () => {
     const read = registered(
-      /getConfiguration\('pulse'\)\s*\.(?:get|inspect)(?:<.+?>)?\('(\w+)'\)/gs,
+      /getConfiguration\(["']pulse["']\)\s*\.(?:get|inspect)(?:<.+?>)?\(["'](\w+)["']\)/gs,
     ).map((key) => `pulse.${key}`)
     expect(read.length).toBeGreaterThan(0)
     expect(read.filter((key) => !(key in manifest.contributes.configuration.properties))).toEqual(
@@ -84,8 +84,8 @@ describe("the extension manifest", () => {
       scope: "application",
       default: "localOnly",
     })
-    expect(source).toMatch(/inspect\('writes'\)\?\.globalValue/)
-    expect(source).not.toMatch(/get<[^>]*>\('writes'\)|\.get\('writes'\)/)
+    expect(source).toMatch(/inspect\(["']writes["']\)\?\.globalValue/)
+    expect(source).not.toMatch(/get<[^>]*>\(["']writes["']\)|\.get\(["']writes["']\)/)
   })
 
   test("lets only the user turn live updates on, never a workspace or a dev container", () => {
@@ -93,8 +93,8 @@ describe("the extension manifest", () => {
       scope: "application",
       default: {},
     })
-    expect(source).toMatch(/inspect\('liveUpdates'\)\?\.globalValue/)
-    expect(source).not.toMatch(/\.get\('liveUpdates'\)/)
+    expect(source).toMatch(/inspect\(["']liveUpdates["']\)\?\.globalValue/)
+    expect(source).not.toMatch(/\.get\(["']liveUpdates["']\)/)
   })
 
   test("points main at the bundled host", () => {

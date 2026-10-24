@@ -32,8 +32,8 @@ import { renderWebviewHtml } from "@miragon/modeler-shell/vscode/extension"
 
 const PORT = Number(process.env.PULSE_DEV_PORT ?? "5180")
 const ENGINE_URL = process.env.PULSE_DEV_ENGINE ?? "fake"
-const DIST = process.env.PULSE_DEV_DIST ?? "packages/extension/dist"
-const OPERATE_CLI = process.env.PULSE_ENGINE_CLI ?? "node_modules/@miragon/operate/dist/operate.js"
+const DIST = process.env.PULSE_DEV_DIST ?? "dist"
+const ENGINE_CLI = process.env.PULSE_ENGINE_CLI ?? join(DIST, "engine-cli.js")
 const ORIGIN = `http://localhost:${PORT}`
 const TYPES: Readonly<Record<string, string>> = {
   ".js": "text/javascript",
@@ -66,7 +66,7 @@ async function createEngine(): Promise<DevEngine> {
   }
   const configPath = join(tmpdir(), "pulse-dev-engine-cli-config.json")
   await writeFile(configPath, JSON.stringify({ profiles: {} }))
-  const adapter = C7Adapter.create({ cliPath: OPERATE_CLI, configPath })
+  const adapter = C7Adapter.create({ cliPath: ENGINE_CLI, configPath })
   const connection = { endpoint: ENGINE_URL, credentials: { kind: "none" as const } }
   return { runtime: adapter.runtime(connection), commands: adapter.commands(connection) }
 }

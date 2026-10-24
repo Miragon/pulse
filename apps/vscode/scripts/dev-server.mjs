@@ -1,10 +1,10 @@
 import { spawn } from "node:child_process"
 import * as esbuild from "esbuild"
 
-const OUTFILE = "packages/extension/dist-dev/dev-host.mjs"
+const OUTFILE = "dist-dev/dev-host.mjs"
 
 await esbuild.build({
-  entryPoints: ["packages/extension/dev/dev-host.ts"],
+  entryPoints: ["dev/host/dev-host.ts"],
   outfile: OUTFILE,
   bundle: true,
   platform: "node",

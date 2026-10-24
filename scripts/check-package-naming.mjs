@@ -78,7 +78,7 @@ export const GENERATED_DIRS = {
  * from its package.json, and its entry here goes (a test keeps this list equal
  * to the names .dependency-cruiser.cjs APP_PACKAGES holds beyond the real apps).
  */
-export const RESERVED_APP_NAMES = ["@miragon/pulse-cli", "pulse-vscode"]
+export const RESERVED_APP_NAMES = ["@miragon/pulse-cli"]
 
 /** The package.json fields that make another package reachable under pnpm. */
 const DEPENDENCY_FIELDS = [

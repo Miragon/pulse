@@ -3,7 +3,7 @@ const { readFileSync } = require("node:fs")
 const { join } = require("node:path")
 const vscode = require("vscode")
 
-const manifest = JSON.parse(readFileSync(join(__dirname, "..", "package.json"), "utf8"))
+const manifest = JSON.parse(readFileSync(join(__dirname, "..", "..", "package.json"), "utf8"))
 
 suite("Pulse in VS Code", () => {
   test("activates and registers every contributed command", async () => {

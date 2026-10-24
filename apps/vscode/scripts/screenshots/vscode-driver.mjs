@@ -38,7 +38,7 @@ export async function launchVsCode(workspace) {
     executablePath: await vscodeExecutable(),
     args: [
       resolve(workspace),
-      `--extensionDevelopmentPath=${resolve("packages/extension")}`,
+      `--extensionDevelopmentPath=${resolve(".")}`,
       `--user-data-dir=${userData}`,
       `--extensions-dir=${join(userData, "extensions")}`,
       "--disable-workspace-trust",

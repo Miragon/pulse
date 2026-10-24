@@ -3,7 +3,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 
-export const OPERATE_CLI_PATH = fileURLToPath(
+export const ENGINE_CLI_PATH = fileURLToPath(
   import.meta.resolve("@miragon/operate/dist/operate.js"),
 )
 

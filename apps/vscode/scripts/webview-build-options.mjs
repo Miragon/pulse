@@ -4,7 +4,7 @@ const here = fileURLToPath(new URL("../", import.meta.url))
 
 export function webviewBuildOptions({ production, outdir }) {
   return {
-    entryPoints: { webview: `${here}src/main.tsx` },
+    entryPoints: { webview: `${here}src/webview/main.tsx` },
     outdir,
     bundle: true,
     platform: "browser",

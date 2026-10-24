@@ -22,7 +22,7 @@ const output = Object.entries(result.metafile.outputs).find(([name]) =>
 const groups = new Map()
 for (const [path, { bytesInOutput }] of Object.entries(output.inputs)) {
   const match = path.match(/node_modules\/((@[^/]+\/)?[^/]+)/)
-  const key = match ? match[1] : "packages/webview/src"
+  const key = match ? match[1] : "src/webview"
   groups.set(key, (groups.get(key) ?? 0) + bytesInOutput)
 }
 for (const [key, bytes] of [...groups].sort((a, b) => b[1] - a[1]).slice(0, 14)) {

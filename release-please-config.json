@@ -19,6 +19,7 @@
           "path": "apps/mcp-server-camunda7/package.json",
           "jsonpath": "$.version"
         },
+        { "type": "json", "path": "apps/vscode/package.json", "jsonpath": "$.version" },
         {
           "type": "json",
           "path": "packages/connectors/camunda/camunda7-client/package.json",

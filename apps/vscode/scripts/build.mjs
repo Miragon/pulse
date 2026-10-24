@@ -1,5 +1,6 @@
 import { copyFile, mkdir, writeFile } from "node:fs/promises"
 import { createRequire } from "node:module"
+import { resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import * as esbuild from "esbuild"
 import { webviewBuildOptions } from "./webview-build-options.mjs"
@@ -12,7 +13,7 @@ const require = createRequire(import.meta.url)
 
 export function hostBuildOptions({ production: minify }) {
   return {
-    entryPoints: [`${here}src/extension.ts`],
+    entryPoints: [`${here}src/host/extension.ts`],
     outfile: `${dist}/extension.cjs`,
     bundle: true,
     platform: "node",
@@ -39,7 +40,10 @@ async function writeMetafiles(results) {
   await writeFile(`${dist}/webview.meta.json`, JSON.stringify(webview.metafile))
 }
 
-if (import.meta.main) {
+const invokedDirectly =
+  process.argv[1] !== undefined && fileURLToPath(import.meta.url) === resolve(process.argv[1])
+
+if (invokedDirectly) {
   await copyEngineCli()
   const builds = [
     hostBuildOptions({ production }),

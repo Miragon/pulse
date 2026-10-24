@@ -5,7 +5,7 @@ const CONTAINER = "pulse-dev-engine"
 const IMAGE = process.env.PULSE_ENGINE_IMAGE ?? "operaton/operaton:2.1.5"
 const PORT = process.env.PULSE_ENGINE_PORT ?? "18080"
 const engine = engineClient(`http://localhost:${PORT}/engine-rest`)
-const WORLD = "packages/adapter-c7/test/world"
+const WORLD = "test/adapters/c7/world"
 
 const ORDERS = [
   ["ORD-1001", 1, "review"],
