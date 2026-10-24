@@ -1,0 +1,155 @@
+name: Mutation (nightly)
+
+# The FULL Stryker run, one leg per workspace package with a stryker.config.json, over the
+# package's whole `mutate` allowlist. The pull request gate is "Mutation (changed files)" in
+# ci.yml, which mutates only the files a PR changed; this run shows what the diff gate cannot:
+# survivors in files no recent PR touched. It is no required check and never runs on a pull
+# request. A red leg means the package scores below its thresholds.break.
+#
+# Each leg keeps its package's Stryker incremental file (incrementalFile
+# reports/stryker-incremental.json in every stryker.config.json) in the Actions cache, so a night
+# re-runs only the mutants whose code or tests changed. Dispatch with `force` to run every mutant
+# again. scripts/check-github-config.mjs (`pnpm lint:github`) pins the triggers and the package
+# forms the list covers; its test runs the List and Stryker steps in fixture trees.
+on:
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Ignore the incremental cache and run every mutant
+        type: boolean
+        default: false
+
+concurrency:
+  group: mutation-nightly
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  packages:
+    name: List mutation packages
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      packages: ${{ steps.list.outputs.packages }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      # Every package form of pnpm-workspace.yaml (its wildcard globs) at its exact depth: a new
+      # form fails `pnpm lint:github` until it is listed here. The slug names the leg's cache and
+      # artifact, which cannot carry a slash.
+      - id: list
+        name: List
+        run: |
+          dirs=()
+          for dir in apps/* packages/core/* packages/connectors/*/*; do
+            if [ -f "${dir}/stryker.config.json" ]; then dirs+=("$dir"); fi
+          done
+          node -e 'console.log("packages=" + JSON.stringify(process.argv.slice(1).map((dir) => ({ dir, slug: dir.split("/").join("-") }))))' "${dirs[@]}" >> "$GITHUB_OUTPUT"
+
+  mutation:
+    name: Mutation (${{ matrix.dir }})
+    needs: packages
+    if: ${{ needs.packages.outputs.packages != '[]' }}
+    runs-on: ubuntu-latest
+    # The first run of a package mutates its whole allowlist (widget-shell: about 70 files at
+    # about 1 min/file); later nights re-run only what changed.
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.packages.outputs.packages) }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v6.1.0
+
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Cross-package imports in the suites resolve via each package's dist.
+      - run: pnpm build
+
+      # The newest incremental file of this package; every run saves its own under a new key.
+      - uses: actions/cache/restore@v6.1.0
+        with:
+          path: ${{ matrix.dir }}/reports/stryker-incremental.json
+          key: stryker-incremental-${{ matrix.slug }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: stryker-incremental-${{ matrix.slug }}-
+
+      - name: Stryker
+        env:
+          DIR: ${{ matrix.dir }}
+          FORCE: ${{ inputs.force == true }}
+        run: |
+          args=()
+          if [ "$FORCE" = true ]; then args+=(--force); fi
+          pnpm --fail-if-no-match --filter "./${DIR}" run test:mutation "${args[@]}"
+
+      # Saved after a red leg too: Stryker writes the file before it checks thresholds.break, and
+      # the next night then starts from it.
+      - if: ${{ !cancelled() }}
+        uses: actions/cache/save@v6.1.0
+        with:
+          path: ${{ matrix.dir }}/reports/stryker-incremental.json
+          key: stryker-incremental-${{ matrix.slug }}-${{ github.run_id }}-${{ github.run_attempt }}
+
+      # The same exact-depth globs as ci.yml: their least common ancestor is the repo root, so
+      # the report keeps its package prefix and the summary job unpacks every leg's over the
+      # checkout.
+      - if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: mutation-report-${{ matrix.slug }}
+          path: |
+            apps/*/reports/mutation-report.json
+            packages/core/*/reports/mutation-report.json
+            packages/connectors/*/*/reports/mutation-report.json
+          if-no-files-found: warn
+          retention-days: 14
+
+  summary:
+    name: Mutation summary
+    needs: [packages, mutation]
+    if: ${{ !cancelled() && needs.packages.result == 'success' && needs.packages.outputs.packages != '[]' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v6.1.0
+
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # depcruise (the report's architecture line) resolves workspace imports through dist.
+      - run: pnpm build
+
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          pattern: mutation-report-*
+          merge-multiple: true
+
+      # The scores and the file count each covers, into the job summary (no coverage here).
+      - run: pnpm fitness

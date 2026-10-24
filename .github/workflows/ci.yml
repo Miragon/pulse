@@ -35,15 +35,19 @@ jobs:
 
       - run: pnpm test
 
-      # Handed to the `fitness` job, which owns the aggregated report. Both
-      # globs split at the repo root, so the artifact keeps the apps/ and
-      # packages/ prefixes and unpacks over the checkout as-is.
+      # Handed to the `fitness` job, which owns the aggregated report. One
+      # glob per package form; their least common ancestor is the repo root,
+      # so the artifact keeps the apps/ and packages/ prefixes and unpacks
+      # over the checkout as-is. Exact depth, never `**`: upload-artifact
+      # follows symlinks, and `**` walks pnpm's workspace links in
+      # node_modules and uploads each summary again under every dependent.
       - uses: actions/upload-artifact@v7.0.2
         with:
           name: coverage-summaries
           path: |
             apps/*/coverage/coverage-summary.json
-            packages/**/coverage/coverage-summary.json
+            packages/core/*/coverage/coverage-summary.json
+            packages/connectors/*/*/coverage/coverage-summary.json
           if-no-files-found: error
           retention-days: 1
 
@@ -170,10 +174,19 @@ jobs:
 
       - uses: Miragon/pin-npm-dependencies@v1.2.2
 
+  # The diff gate: Stryker over the files the PR changed. The full run per
+  # package is the nightly .github/workflows/mutation-nightly.yml (no
+  # required check).
   mutation:
     name: Mutation (changed files)
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    # Bounded by FILE_CAP: one package at the cap runs about 25-30 min at the
+    # slowest measured rate (widget-shell, about 1 min/file); the longest run
+    # so far took 10 min. A run that hits this fails the required check:
+    # split the PR (the Mutation-Cap-Exception trailer does not apply to a
+    # timeout).
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -194,14 +207,21 @@ jobs:
 
       - run: node scripts/mutation-diff.mjs origin/${{ github.base_ref }}
 
-      # Only packages/* carry a stryker.config.json, so the artifact root is
-      # `packages` — the fitness job unpacks it there again. Uploaded even on a
-      # red gate so the report still shows the score that failed.
+      # One glob per package form a stryker.config.json can sit in. Their
+      # least common ancestor is the repo root, so the artifact keeps the
+      # prefixes and the fitness job unpacks it over the checkout as-is.
+      # Exact depth, never `**`: upload-artifact follows symlinks, and `**`
+      # walks pnpm's workspace links in node_modules and uploads each report
+      # again under every dependent. Uploaded even on a red gate so the report
+      # still shows the score that failed.
       - if: always()
         uses: actions/upload-artifact@v7.0.2
         with:
           name: mutation-reports
-          path: packages/**/reports/mutation-report.json
+          path: |
+            apps/*/reports/mutation-report.json
+            packages/core/*/reports/mutation-report.json
+            packages/connectors/*/*/reports/mutation-report.json
           if-no-files-found: ignore
           retention-days: 1
 
@@ -239,13 +259,14 @@ jobs:
 
       # Optional: no artifact exists on push-to-main (the mutation job does not
       # run) nor when the diff touched nothing inside a `mutate` allowlist. The
-      # report degrades to "— (no run)" in those cases instead of failing.
+      # report degrades to "(no run)" in those cases instead of failing.
+      # Rooted at the repo, like coverage-summaries: the artifact carries the
+      # apps/ and packages/ prefixes.
       - if: needs.mutation.result == 'success' || needs.mutation.result == 'failure'
         continue-on-error: true
         uses: actions/download-artifact@v8.0.2
         with:
           name: mutation-reports
-          path: packages
 
       - run: pnpm fitness
 

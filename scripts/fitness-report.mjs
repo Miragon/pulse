@@ -97,7 +97,7 @@ for (const dir of pkgDirs) {
 }
 put()
 put(
-  "_Coverage from the last `pnpm test`. Mutation scores from the last Stryker run per package — on CI that is the diff gate, so the score covers only the files listed next to it, not the package's whole `mutate` allowlist. Missing rows: no artifacts yet._",
+  "_Coverage from the last `pnpm test`. Mutation scores from the last Stryker run per package, over the file count next to each: on a pull request that is the diff gate, which mutates only the files the PR touched; the nightly run (`mutation-nightly.yml`) covers the package's whole `mutate` allowlist. Missing rows: no artifacts yet._",
 )
 
 const report = lines.join("\n")
