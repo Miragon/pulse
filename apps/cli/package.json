@@ -10,11 +10,12 @@
     "bpmn",
     "cli",
     "rest",
-    "ai-agents"
+    "ai-agents",
+    "pulse"
   ],
   "license": "MIT",
   "author": "Miragon GmbH",
-  "homepage": "https://github.com/Miragon/pulse/tree/main/apps/cli#readme",
+  "homepage": "https://miragon.github.io/pulse/cli/",
   "bugs": "https://github.com/Miragon/pulse/issues",
   "repository": {
     "type": "git",
