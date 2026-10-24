@@ -110,6 +110,42 @@ describe("parsing the profiles of .pulse-cli.json", () => {
     ])
   })
 
+  test("refuses a profile that still names its engine type with platform", () => {
+    const content = JSON.stringify({
+      profiles: {
+        renamed: { url: "http://localhost:8080/engine-rest", platform: "camunda7" },
+        cluster: { url: "http://localhost:8088/v2", platform: "camunda8" },
+        both: { url: "http://localhost:8080/engine-rest", platform: "", flavor: "operaton" },
+        current: { url: "http://localhost:8080/engine-rest", flavor: "cibseven" },
+      },
+    })
+
+    const parsed = new TargetsParser(FILE).parse(content)
+
+    expect(parsed.targets.map((target) => target.name)).toEqual(["current"])
+    expect(parsed.problems.map((problem) => problem.detail())).toEqual([
+      `${FILE}: profile "renamed" uses the key platform, now called flavor`,
+      `${FILE}: profile "cluster" uses the key platform, now called flavor`,
+      `${FILE}: profile "both" uses the key platform, now called flavor`,
+    ])
+  })
+
+  test("refuses a flavor it does not know", () => {
+    const content = JSON.stringify({
+      profiles: { typo: { url: "http://localhost:8080/engine-rest", flavor: "camunda" } },
+    })
+
+    expect(new TargetsParser(FILE).parse(content)).toEqual({
+      targets: [],
+      problems: [
+        {
+          path: FILE,
+          message: 'profile "typo" uses the flavor camunda, which Pulse does not support yet',
+        },
+      ],
+    })
+  })
+
   test("reports a malformed file instead of failing", () => {
     expect(new TargetsParser(FILE).parse("{")).toEqual({
       targets: [],

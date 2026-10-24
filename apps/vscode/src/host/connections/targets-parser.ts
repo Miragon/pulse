@@ -52,12 +52,9 @@ export class TargetsParser {
     if (!this.isRecord(profile)) {
       return `profile "${name}" is not an object`
     }
-    const flavor = this.text(profile, "flavor") ?? "camunda7"
-    if (!C7_FLAVORS.has(flavor)) {
-      return `profile "${name}" uses the flavor ${flavor}, which Pulse does not support yet`
-    }
-    if ((this.text(profile, "engine") ?? DEFAULT_ENGINE) !== DEFAULT_ENGINE) {
-      return `profile "${name}" names a process engine other than "default", which Pulse does not support yet`
+    const unsupported = this.unsupportedEngineOf(name, profile)
+    if (unsupported !== undefined) {
+      return unsupported
     }
     const endpoint = this.text(profile, "url")
     const auth = this.authOf(profile)
@@ -76,6 +73,20 @@ export class TargetsParser {
       source: { kind: "file", path: this.path },
       ...optional,
     }
+  }
+
+  private unsupportedEngineOf(name: string, profile: Json): string | undefined {
+    if (Object.hasOwn(profile, "platform")) {
+      return `profile "${name}" uses the key platform, now called flavor`
+    }
+    const flavor = this.text(profile, "flavor") ?? "camunda7"
+    if (!C7_FLAVORS.has(flavor)) {
+      return `profile "${name}" uses the flavor ${flavor}, which Pulse does not support yet`
+    }
+    if ((this.text(profile, "engine") ?? DEFAULT_ENGINE) !== DEFAULT_ENGINE) {
+      return `profile "${name}" names a process engine other than "default", which Pulse does not support yet`
+    }
+    return undefined
   }
 
   private optionalsOf(profile: Json, name: string): Optionals | string {
