@@ -71,7 +71,7 @@ export const ENGINES: Readonly<Record<EngineName, EngineDefinition>> = {
   camunda: {
     name: "camunda",
     flavor: "camunda7",
-    image: "camunda/camunda-bpm-flavor:run-7.24.0",
+    image: "camunda/camunda-bpm-platform:run-7.24.0",
     port: 8080,
     restPath: "/engine-rest",
     version: "7.24.0",
