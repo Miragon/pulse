@@ -80,15 +80,22 @@ describe("raw tool-name literals name real tools (full surface)", () => {
     // Prefixes come from the surface itself: `camunda7_…`, `analytics_…`, `shell_…`.
     const prefixes = [...new Set(names.flatMap((n) => /^([a-z0-9]+)_/.exec(n)?.[1] ?? []))]
     expect(prefixes.sort()).toEqual(["analytics", "camunda7", "shell"])
+    // Every app is read for the literals, an interface app (a CLI, an editor
+    // extension) included: where it names a tool, that tool must exist.
     refs = scanSources((file, text) => findToolNameLiterals(file, text, prefixes))
     // One-line text helpers (`engineArg`) resolve by name across the sources;
-    // a name declared twice is ambiguous and stays a placeholder.
-    const helperDecls = scanSources(collectTextHelpers)
+    // a name declared twice is ambiguous and stays a placeholder. The helpers
+    // and the parameters quoted with them are read over the packages and the
+    // MCP server apps only (scope "mcp"), so a CLI helper that happens to share
+    // a server helper's name cannot turn a server prompt's check opaque.
+    const helperDecls = scanSources(collectTextHelpers, { scope: "mcp" })
     const helperNames = helperDecls.map(([name]) => name)
     const helpers = new Map(
       helperDecls.filter(([name]) => helperNames.indexOf(name) === helperNames.lastIndexOf(name)),
     )
-    paramRefs = scanSources((file, text) => findParamRefs(file, text, prefixes, helpers))
+    paramRefs = scanSources((file, text) => findParamRefs(file, text, prefixes, helpers), {
+      scope: "mcp",
+    })
   })
 
   afterAll(async () => {

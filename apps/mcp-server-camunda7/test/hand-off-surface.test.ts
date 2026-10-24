@@ -11,7 +11,7 @@ import {
   toolNamesIn,
   type HandOffSpec,
 } from "./hand-off-refs.js"
-import { scanSources } from "./source-scan.js"
+import { scanSources, type ScanOptions } from "./source-scan.js"
 
 /**
  * The Ask-AI hand-offs and model contexts vs the LIVE tool surface (#338).
@@ -26,6 +26,18 @@ import { scanSources } from "./source-scan.js"
  * is a parameter of one of them) and the surface (per toolset, what the
  * widgets filter by IS what tools/list advertises).
  */
+
+/**
+ * The widget rules read the packages and the MCP server apps only: an
+ * interface app (a CLI, an editor extension) posts nothing to an MCP host, so
+ * its own `askAi` handler or `{ summary, tools }` output is none of these
+ * rules' business, and a helper it declares must not make a widget's
+ * reference ambiguous. Only the prose check ("no prose anywhere sends the
+ * model to an app-only feed") reads every app (scope "all"): any text that
+ * names a tool, in a CLI or an extension too, must not send the model to an
+ * app-only feed.
+ */
+const MCP: ScanOptions = { scope: "mcp" }
 
 const PRIMITIVE = "packages/core/widget-shell/src/ui/ask-ai-button.tsx"
 /** Deterministic navigation (`useNav` standalone fallback) — the one other follow-up path. */
@@ -48,18 +60,20 @@ describe("hand-offs go through the one primitive", () => {
   // `askAi`/`sendFollowup` post a USER-role message: only AskAiButton (which
   // accepts nothing but an `askAiPrompt` result) may hold that pen.
   it("no source but AskAiButton posts a follow-up", () => {
-    const raw = scanSources((file, text) =>
-      findIdentifiers(
-        file,
-        text,
-        new Set([
-          "askAi",
-          "sendFollowup",
-          "sendFollowUp",
-          "sendFollowUpMessage",
-          "useSendFollowUp",
-        ]),
-      ),
+    const raw = scanSources(
+      (file, text) =>
+        findIdentifiers(
+          file,
+          text,
+          new Set([
+            "askAi",
+            "sendFollowup",
+            "sendFollowUp",
+            "sendFollowUpMessage",
+            "useSendFollowUp",
+          ]),
+        ),
+      MCP,
     ).filter((ref) => !ref.at.startsWith(`${PRIMITIVE}:`))
     expect(
       raw.map((ref) => `${ref.name} (${ref.at})`),
@@ -68,14 +82,15 @@ describe("hand-offs go through the one primitive", () => {
   })
 
   it("only the navigation seam sends a show-widget follow-up", () => {
-    const raw = scanSources((file, text) =>
-      findIdentifiers(file, text, new Set(["showWidget"])),
+    const raw = scanSources(
+      (file, text) => findIdentifiers(file, text, new Set(["showWidget"])),
+      MCP,
     ).filter((ref) => !ref.at.startsWith(`${NAVIGATION}:`))
     expect(raw.map((ref) => ref.at)).toEqual([])
   })
 
   it("every HostModelContext text is assembled by modelContextText, never written in place", () => {
-    const contents = scanSources(findModelContextContents)
+    const contents = scanSources(findModelContextContents, MCP)
     const written = contents.filter(
       (c) => c.callee !== "context" && c.callee !== "modelContextText",
     )
@@ -91,8 +106,8 @@ describe("hand-offs go through the one primitive", () => {
   // model context — the analytics widgets attach theirs this way — so it is
   // held to the same rule as a HostModelContext text.
   it("every adaptDataWidget model description returns modelContextText(…)", () => {
-    const functions = scanSources(findContextFunctions)
-    const args = scanSources(findDescribeForModelArgs)
+    const functions = scanSources(findContextFunctions, MCP)
+    const args = scanSources(findDescribeForModelArgs, MCP)
     const verdict = (ref: string) => {
       const declared = functions.filter((f) => f.name === ref)
       return declared.length === 1 ? declared[0].returnsModelContext : null
@@ -133,7 +148,7 @@ describe("every hand-off names only tools the model can call", () => {
     await server.close()
     server = await bootServer({})
     floor = new Set(modelTools(await surfaceOf(server)))
-    specs = scanSources(findHandOffSpecs)
+    specs = scanSources(findHandOffSpecs, MCP)
   })
 
   afterAll(async () => {
@@ -259,7 +274,8 @@ describe("every hand-off names only tools the model can call", () => {
 
   // The original bug class: a prompt telling the model to "read the full
   // trace with camunda7_incident_detail_data" — a feed the host hides from
-  // it. No model-facing text (prose: a string with whitespace) may name one.
+  // it. No model-facing text (prose: a string with whitespace) may name one,
+  // in any app: an interface app (a CLI, an editor extension) is read too.
   it("no prose anywhere sends the model to an app-only feed", () => {
     const appOnly = new Set(full.filter((t) => !isModelVisible(t)).map((t) => t.name))
     const prose = scanSources((file, text) =>
