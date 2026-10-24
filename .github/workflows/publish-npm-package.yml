@@ -1,60 +1,172 @@
 name: Publish npm package
 
-# Reusable workflow: publishes a single package under packages/ to the public
-# npm registry using OIDC trusted publishing (no NPM_TOKEN). Provenance is
-# attached automatically. The `id-token: write` permission and the `npm`
-# environment are what npm's trusted publishing exchanges for a short-lived
-# token — configure the trusted publisher for each package on npmjs.com first
-# (Settings → Trusted publisher → GitHub Actions, this repo + `release-please.yml`,
-# i.e. the CALLING workflow, not this one).
+# Reusable workflow: publishes ONE workspace package (a repo-relative directory such as
+# packages/core/widget-shell) to the public npm registry with OIDC trusted publishing (no
+# NPM_TOKEN) and provenance. Two jobs, so no dependency install script ever runs next to the
+# OIDC token:
+#   pack     installs, builds and `pnpm pack`s the package, WITHOUT id-token. pnpm rewrites
+#            `workspace:*` to the released version; `npm pack` would ship it verbatim.
+#   publish  holds ONLY `id-token: write` in the `npm` environment, checks nothing out,
+#            installs nothing and runs `npm publish <tgz> --provenance`.
+# The trusted publisher on npmjs.com (Settings, Trusted publisher, GitHub Actions) names the
+# CALLING workflow (`release-please.yml`) and the `npm` environment, not this file.
+# scripts/check-github-config.mjs (`pnpm lint:github`) pins this shape, and its test runs the
+# Resolve package and Publish steps below against stub npm and curl executables.
 on:
   workflow_call:
     inputs:
-      package:
-        description: Package directory under packages/ (e.g. core/widget-shell)
+      directory:
+        description: Repo-relative package directory (e.g. packages/core/widget-shell)
         required: true
         type: string
+      version:
+        description: Release tag (e.g. v1.2.0); the tarball must carry this version (empty on a dry run)
+        required: true
+        type: string
+      dry_run:
+        description: Pack only, publish nothing
+        type: boolean
+        default: false
 
-permissions:
-  contents: read
-  id-token: write
+permissions: {}
+
+# Explicit bash: -eo pipefail, the flags scripts/check-github-config.test.mjs runs the steps with.
+defaults:
+  run:
+    shell: bash
 
 jobs:
-  publish:
+  pack:
+    name: Pack ${{ inputs.directory }}
     runs-on: ubuntu-latest
-    environment: npm
+    timeout-minutes: 20
     permissions:
       contents: read
-      id-token: write
+    outputs:
+      artifact: ${{ steps.pkg.outputs.artifact }}
     steps:
       - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
 
       - uses: pnpm/action-setup@v6.1.0
 
+      # No dependency cache in a release job: a restored store would end up in the tarball.
       - uses: actions/setup-node@v7.1.0
         with:
           node-version: 24
-          cache: pnpm
-          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+
+      # Only a directory of a workspace package form, published to npm: not private, and no VS
+      # Code extension (engines.vscode), which ships as a .vsix through vsce/ovsx instead.
+      - id: pkg
+        name: Resolve package
+        env:
+          DIR: ${{ inputs.directory }}
+        run: |
+          pkg_re='^(apps/[a-z0-9][a-z0-9-]*|packages/core/[a-z0-9][a-z0-9-]*|packages/connectors/[a-z0-9][a-z0-9-]*/[a-z0-9][a-z0-9-]*)$'
+          if ! [[ "$DIR" =~ $pkg_re ]] || [ ! -f "${DIR}/package.json" ]; then
+            echo "::error::${DIR} is no workspace package directory"
+            exit 1
+          fi
+          manifest="${DIR}/package.json"
+          name="$(node -p 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).name ?? ""' "$manifest")"
+          kind="$(node -p 'const m = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")); m.private === true ? "private" : m.engines?.vscode !== undefined ? "vscode" : "npm"' "$manifest")"
+          if [ -z "$name" ]; then
+            echo "::error::${manifest} has no name"
+            exit 1
+          fi
+          if [ "$kind" = private ]; then
+            echo "::error::${name} (${DIR}) is private: npm never receives it"
+            exit 1
+          fi
+          if [ "$kind" = vscode ]; then
+            echo "::error::${name} (${DIR}) declares engines.vscode: a VS Code extension ships as a .vsix through vsce/ovsx, never through npm"
+            exit 1
+          fi
+          echo "name=${name}" >> "$GITHUB_OUTPUT"
+          echo "artifact=npm-$(printf %s "${name#@}" | tr / -)" >> "$GITHUB_OUTPUT"
 
       - run: pnpm install --frozen-lockfile
 
-      # The npm name lives in the package.json — the directory name no longer
-      # mirrors it (packages/connectors/camunda/camunda7-connector etc.).
-      - id: pkg
-        name: Resolve package name
-        run: echo "name=$(node -p "require('./packages/${{ inputs.package }}/package.json').name")" >> "$GITHUB_OUTPUT"
-
       # Build the target package and its workspace dependencies only.
-      - run: pnpm --fail-if-no-match --filter "${{ steps.pkg.outputs.name }}..." run build
+      - name: Build
+        env:
+          NAME: ${{ steps.pkg.outputs.name }}
+        run: pnpm --fail-if-no-match --filter "${NAME}..." run build
 
-      - name: Publish packages/${{ inputs.package }}
+      # The command scripts/test-template.sh runs on every pull request.
+      - name: Pack
+        working-directory: ${{ inputs.directory }}
+        run: pnpm pack --pack-destination "$RUNNER_TEMP/package"
+
+      # One artifact per matrix call: they all share the caller's run, where a name exists once.
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: ${{ steps.pkg.outputs.artifact }}
+          path: ${{ runner.temp }}/package/*.tgz
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Publish ${{ inputs.directory }}
+    needs: pack
+    if: ${{ inputs.dry_run != true }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: npm
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+
+      # Fails rather than installing a newer npm: nothing is installed next to the token.
+      - name: Require an npm with trusted publishing (>= 11.5.1)
         run: |
-          dir="packages/${{ inputs.package }}"
-          name="$(node -p "require('./$dir/package.json').name")"
-          version="$(node -p "require('./$dir/package.json').version")"
-          if npm view "$name@$version" version > /dev/null 2>&1; then
-            echo "$name@$version already published — skipping"
-          else
-            pnpm publish --fail-if-no-match --filter "$name" --provenance --access public --no-git-checks
+          if ! node -e 'const [a, b, c] = process.argv[1].split(".").map(Number); process.exit(a * 1e6 + b * 1e3 + c >= 11005001 ? 0 : 1)' "$(npm --version)"; then
+            echo "::error::npm $(npm --version) predates trusted publishing (11.5.1)"
+            exit 1
           fi
+
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: ${{ needs.pack.outputs.artifact }}
+          path: ${{ runner.temp }}/package
+
+      # A version already on npm is skipped only when its provenance names this repository (a
+      # re-run). Anything else, a token publish or another repository's release of the same
+      # version, fails instead of passing silently.
+      - name: Publish
+        env:
+          TAG: ${{ inputs.version }}
+          SOURCE: ${{ github.server_url }}/${{ github.repository }}
+        run: |
+          shopt -s failglob
+          tarballs=("$RUNNER_TEMP"/package/*.tgz)
+          if [ "${#tarballs[@]}" -ne 1 ]; then
+            echo "::error::Expected one package tarball, got ${#tarballs[@]}"
+            exit 1
+          fi
+          tarball="${tarballs[0]}"
+          manifest="$(tar -xzOf "$tarball" package/package.json)"
+          name="$(node -p 'JSON.parse(process.argv[1]).name' "$manifest")"
+          version="$(node -p 'JSON.parse(process.argv[1]).version' "$manifest")"
+          if [ "v${version}" != "$TAG" ]; then
+            echo "::error::${name}@${version} is not the release ${TAG}: is its package.json in release-please-config.json extra-files?"
+            exit 1
+          fi
+          if [ "$(npm view "${name}@${version}" version 2>/dev/null)" = "$version" ]; then
+            url="$(npm view "${name}@${version}" dist.attestations.url 2>/dev/null)"
+            repo="$(curl -fsSL "$url" | node -e 'let s = ""; process.stdin.on("data", (d) => (s += d)).on("end", () => { for (const a of JSON.parse(s).attestations ?? []) { if (a.predicateType !== "https://slsa.dev/provenance/v1") continue; const p = JSON.parse(Buffer.from(a.bundle.dsseEnvelope.payload, "base64").toString()); console.log(p.predicate?.buildDefinition?.externalParameters?.workflow?.repository ?? "") } })' || true)"
+            if [ "$repo" = "$SOURCE" ]; then
+              echo "::notice::${name}@${version} is already on npm from ${SOURCE}, nothing to publish"
+              exit 0
+            fi
+            echo "::error::${name}@${version} is already on npm, but not from ${SOURCE} (provenance: ${repo:-none}). Release a higher version."
+            exit 1
+          fi
+          npm publish "$tarball" --access public --provenance

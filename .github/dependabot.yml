@@ -9,7 +9,7 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
-    # majors arrive as individual PRs — leave room next to the grouped one
+    # majors arrive as individual PRs: leave room next to the grouped one
     open-pull-requests-limit: 10
     commit-message:
       prefix: "fix"
@@ -17,14 +17,56 @@ updates:
     reviewers:
       - "dominikhorn93"
       - "emaarco"
+    ignore:
+      # A VS Code extension keeps its API types at its engines.vscode floor: vsce refuses a
+      # package whose @types/vscode is newer than the VS Code it declares, so both move together,
+      # by hand.
+      - dependency-name: "@types/vscode"
+        update-types:
+          - "version-update:semver-minor"
+          - "version-update:semver-major"
+    # Dependabot assigns each dependency to the FIRST group that matches it: the specific groups
+    # come first, and the catch-all excludes their patterns as well (both pinned by
+    # scripts/check-github-config.mjs).
     groups:
       # Toolkit peers `mcp-use` exactly, so bump them together in their own PR (a lone
-      # bump breaks the peer + template drift gate, see #270). Listed FIRST: Dependabot
-      # assigns each dependency to the first matching group.
+      # bump breaks the peer + template drift gate, see #270).
       mcp-toolkit:
         patterns:
           - "mcp-use"
           - "@miragon/mcp-toolkit-*"
+        update-types:
+          - "patch"
+          - "minor"
+      # What only the CLI uses (#193: one broken bump must not hold the shared group).
+      # testcontainers also runs the extension engine suites; a core package that adopts one of
+      # these generic tools later gets its bumps through this group too.
+      cli:
+        patterns:
+          - "commander"
+          - "tsdown"
+          - "tsx"
+          - "postject"
+          - "testcontainers"
+          - "fast-check"
+        update-types:
+          - "patch"
+          - "minor"
+      # What only the VS Code extension uses. bpmn-js, diagram-js, playwright and @vitest/*
+      # stay shared: they move in lockstep with the server and the test toolchain.
+      vscode:
+        patterns:
+          - "preact"
+          - "@vscode/*"
+          - "@types/vscode"
+          - "bpmn-moddle"
+          - "camunda-bpmn-moddle"
+          - "zeebe-bpmn-moddle"
+          - "@miragon/modeler-shell"
+          - "esbuild"
+          - "ovsx"
+          - "size-limit"
+          - "@size-limit/*"
         update-types:
           - "patch"
           - "minor"
@@ -34,6 +76,23 @@ updates:
         exclude-patterns:
           - "mcp-use"
           - "@miragon/mcp-toolkit-*"
+          - "commander"
+          - "tsdown"
+          - "tsx"
+          - "postject"
+          - "testcontainers"
+          - "fast-check"
+          - "preact"
+          - "@vscode/*"
+          - "@types/vscode"
+          - "bpmn-moddle"
+          - "camunda-bpmn-moddle"
+          - "zeebe-bpmn-moddle"
+          - "@miragon/modeler-shell"
+          - "esbuild"
+          - "ovsx"
+          - "size-limit"
+          - "@size-limit/*"
         update-types:
           - "patch"
           - "minor"
@@ -70,7 +129,7 @@ updates:
           - "patch"
           - "minor"
 
-  # Docker images — playground: compose stack, Fly variants, engine
+  # Docker images, playground: compose stack, Fly variants, engine
   - package-ecosystem: "docker"
     directories:
       - "/playground/docker"
@@ -91,7 +150,7 @@ updates:
           - "patch"
           - "minor"
 
-  # Docker image — root Dockerfile (server), keeps the pinned base digest current
+  # Docker image, root Dockerfile (server), keeps the pinned base digest current
   - package-ecosystem: "docker"
     directory: "/"
     schedule:

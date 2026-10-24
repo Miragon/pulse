@@ -15,11 +15,12 @@
     "test": "turbo run test && pnpm test:scripts",
     "test:scripts": "node --test \"scripts/*.test.mjs\"",
     "test:pg": "TEST_DATABASE_URL=${TEST_DATABASE_URL:-postgres://miragon:miragon@localhost:8440/miragon_test} pnpm --fail-if-no-match --filter @miragon/pulse-widget-shell --filter @miragon/pulse-camunda7-connector --filter @miragon/pulse-mcp-server-camunda7 run test",
-    "lint": "turbo run lint && pnpm lint:architecture && pnpm lint:naming && pnpm lint:package-scripts && pnpm lint:ratchets && pnpm lint:deadcode",
+    "lint": "turbo run lint && pnpm lint:architecture && pnpm lint:naming && pnpm lint:package-scripts && pnpm lint:ratchets && pnpm lint:deadcode && pnpm lint:github",
     "lint:architecture": "depcruise apps/*/src packages/core/*/src packages/connectors/*/*/src --config .dependency-cruiser.cjs",
     "lint:naming": "node scripts/check-package-naming.mjs",
     "lint:package-scripts": "node scripts/check-package-scripts.mjs",
     "lint:ratchets": "node scripts/check-ratchets.mjs",
+    "lint:github": "node scripts/check-github-config.mjs",
     "lint:fix": "turbo run lint:fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -49,7 +50,8 @@
     "turbo": "2.11.4",
     "typescript": "6.0.3",
     "typescript-eslint": "8.70.1",
-    "vitest": "4.1.11"
+    "vitest": "4.1.11",
+    "yaml": "2.9.1"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
