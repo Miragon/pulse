@@ -22,6 +22,7 @@ import {
   checkSuspended,
   chooseWait,
 } from "./advance-plan.js"
+import { omit } from "../util.js"
 import type { WaitState } from "./types.js"
 
 describe("chooseWait", () => {
@@ -241,7 +242,7 @@ describe("advance plan details", () => {
     expect(advanceSteps(EXTERNAL, { fail: "f" })[1]?.summary).toBe(
       "report a failure of external task e1",
     )
-    const { eventName: _m, ...message } = MESSAGE as WaitState & { eventName: string }
+    const message = omit(MESSAGE as WaitState & { eventName: string }, "eventName")
     expect(advanceSteps(message, {})).toEqual([
       {
         summary: "trigger message  of execution x1",
@@ -249,7 +250,7 @@ describe("advance plan details", () => {
         input: { pathArgs: ["x1", ""], query: {}, body: {} },
       },
     ])
-    const { eventName: _s, ...signal } = SIGNAL as WaitState & { eventName: string }
+    const signal = omit(SIGNAL as WaitState & { eventName: string }, "eventName")
     expect(advanceSteps(signal, VARS)).toEqual([
       {
         summary: "send signal  to execution x2",

@@ -20,10 +20,10 @@ function realCatalog(): Catalog {
   return cachedCatalog
 }
 
-function unnamed(operationId: string, tag: string): UnnamedOperation {
+/** The fields of an operation that naming leaves as they are. */
+function fields(operationId: string): Omit<UnnamedOperation, "tag"> {
   return {
     operationId,
-    tag,
     method: "GET",
     path: `/${operationId}`,
     summary: operationId,
@@ -36,9 +36,12 @@ function unnamed(operationId: string, tag: string): UnnamedOperation {
   }
 }
 
+function unnamed(operationId: string, tag: string): UnnamedOperation {
+  return { ...fields(operationId), tag }
+}
+
 function named(group: string, name: string, aliases: string[] = []): OperationSpec {
-  const { tag: _tag, ...rest } = unnamed(name, group)
-  return { ...rest, group, name, aliases }
+  return { ...fields(name), group, name, aliases }
 }
 
 describe("assignNames", () => {

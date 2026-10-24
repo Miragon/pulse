@@ -5,6 +5,7 @@
  */
 
 import type { Rec } from "../../src/workflow/records.js"
+import { omit } from "../../src/util.js"
 import type { InstanceData, TreeNode } from "../../src/workflow/types.js"
 
 export const P = "adff9abe-c3e6-11f1-aa2b-66e6c1afd69e"
@@ -307,7 +308,7 @@ export function waitSignalStage(): InstanceData {
 
 /** The instance completed: no runtime, the history record and its timeline. */
 export function endedStage(): InstanceData {
-  const { runtime: _, ...active } = activeData()
+  const active = omit(activeData(), "runtime")
   return {
     ...active,
     history: {

@@ -1,6 +1,7 @@
 import fc from "fast-check"
 import { describe, expect, it } from "vitest"
 import { NOW, statistics } from "../../test/support/workflow-status.js"
+import { omit } from "../util.js"
 import {
   definitionStatus,
   groupIncidents,
@@ -95,7 +96,7 @@ describe("groupIncidents", () => {
     ]
     const grouped = groupIncidents(incidents, [statistics("order", 2, [1, 1, 1])])
     expect(grouped.propagated).toBe(1)
-    expect(grouped.groups.map(({ newest: _, ...group }) => group)).toEqual([
+    expect(grouped.groups.map((group) => omit(group, "newest"))).toEqual([
       {
         processDefinitionKey: "order",
         activityId: "book",
@@ -249,7 +250,7 @@ describe("incidents outside process definitions", () => {
       new Set(["jd-batch"]),
     )
     expect(grouped.propagated).toBe(1)
-    expect(grouped.groups.map(({ newest: _, ...group }) => group)).toEqual([
+    expect(grouped.groups.map((group) => omit(group, "newest"))).toEqual([
       {
         processDefinitionKey: "",
         activityId: "",

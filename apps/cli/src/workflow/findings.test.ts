@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { checkFailure, engineStatus, type FindingInput, findings } from "./findings.js"
+import { omit } from "../util.js"
 import type { IncidentGroup } from "./status.js"
 
 const NOW = Date.parse("2026-01-01T12:00:00.000Z")
@@ -26,7 +27,7 @@ const GROUP: IncidentGroup = {
   next: "pulse-cli retry --process-definition-key order --activity-id book --dry-run",
 }
 
-const { rootCause: _, ...withoutCause } = GROUP
+const withoutCause = omit(GROUP, "rootCause")
 
 describe("findings", () => {
   it("finds nothing on a quiet engine: status ok, no CHECK_FAILED", () => {
@@ -167,7 +168,7 @@ describe("finding rules at their limits", () => {
     expect(codes({ oldestWaitingSince: "2026-01-01T11:55:00.000+0000" })).toEqual([])
     expect(codes({ oldestWaitingSince: "2026-01-01T11:55:00.001+0000" })).toEqual([])
     expect(codes({ oldestWaitingSince: "2026-01-01T11:54:59.999+0000" })).toEqual(["NO_WORKER"])
-    const { oldestWaitingSince: _o, ...noTime } = topic
+    const noTime = omit(topic, "oldestWaitingSince")
     expect(findings({ ...QUIET, externalTasks: [noTime] })).toEqual([])
     expect(findings({ ...QUIET, externalTasks: [{ ...topic, waiting: 2 }] })[0]?.message).toBe(
       "topic pay: 2 tasks wait since 2026-01-01T11:00:00.000+0000, none is locked: is a worker subscribed?",
@@ -216,7 +217,7 @@ describe("finding rules at their limits", () => {
     expect(findings({ ...QUIET, incidents: [standalone] })[0]?.message).toBe(
       "2 failedJob incidents at job definition jd-1: PropertyNotFoundException: missingBean",
     )
-    const { jobDefinitionId: _j, ...unknown } = standalone
+    const unknown = omit(standalone, "jobDefinitionId")
     expect(findings({ ...QUIET, incidents: [unknown] })[0]?.message).toContain(
       "at job definition (unknown):",
     )

@@ -13,6 +13,7 @@ import {
   PARENT_DEF,
   ROOT_NODE,
 } from "../../test/support/workflow-fixture.js"
+import { omit } from "../util.js"
 import { instanceView } from "./snapshot.js"
 
 describe("instanceView details", () => {
@@ -190,9 +191,12 @@ describe("instanceView details", () => {
   })
 
   it("takes the definition from the definition list without a history record", () => {
-    const { history: _, ...data } = activeData({
-      runtime: { id: P, definitionId: CHILD_DEF, businessKey: "B", suspended: true },
-    })
+    const data = omit(
+      activeData({
+        runtime: { id: P, definitionId: CHILD_DEF, businessKey: "B", suspended: true },
+      }),
+      "history",
+    )
     const view = instanceView(data)
     expect(view).toMatchObject({
       businessKey: "B",

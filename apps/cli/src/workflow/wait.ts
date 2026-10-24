@@ -7,7 +7,7 @@
 import type { EnginePort } from "../engine-port/engine-port.js"
 import type { OperateError } from "../errors.js"
 import { formatDuration } from "../operation/durations.js"
-import { compact } from "../util.js"
+import { compact, omit } from "../util.js"
 import {
   type Condition,
   conditionLabel,
@@ -107,10 +107,7 @@ async function runDueJobs(
     .slice(0, DUE_JOBS)
   for (const job of jobs) {
     const outcome = await executeJob(deps.port, field(job, "id"), deps.sleep)
-    if (outcome.result === "failed") {
-      const { result: _, ...failure } = outcome
-      return failure
-    }
+    if (outcome.result === "failed") return omit(outcome, "result")
   }
   return undefined
 }

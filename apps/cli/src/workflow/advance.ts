@@ -6,7 +6,7 @@
 
 import type { EnginePort } from "../engine-port/engine-port.js"
 import { OperateError } from "../errors.js"
-import { compact } from "../util.js"
+import { compact, omit } from "../util.js"
 import {
   type AdvanceInput,
   advanceSteps,
@@ -88,8 +88,7 @@ async function send(
     const outcome = await executeJob(port, wait.jobId, deps.sleep)
     if (outcome.result === "executed")
       return { via, ...compact({ executedBy: outcome.executedBy }) }
-    const { result: _, ...failure } = outcome
-    return { via, failure }
+    return { via, failure: omit(outcome, "result") }
   }
   if (wait.kind === "externalTask") {
     await lockAndSend(port, steps)

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest"
 import { fakeRuntime } from "../../test/support/fake-runtime.js"
 import { OperateError } from "../errors.js"
 import type { FileSystem } from "../runtime.js"
+import { omit } from "../util.js"
 import {
   findProjectFile,
   mergeProject,
@@ -273,7 +274,7 @@ describe("mergeProject", () => {
     const user: ConfigFile = { defaultProfile: "mine", profiles: { mine: {} } }
     for (const defaultProfile of [undefined, "  "]) {
       const file = { ...project, ...(defaultProfile === undefined ? {} : { defaultProfile }) }
-      const { defaultProfile: _ignored, ...withoutDefault } = file
+      const withoutDefault = omit(file, "defaultProfile")
       const merged = mergeProject(user, {
         source,
         file: defaultProfile === undefined ? withoutDefault : file,

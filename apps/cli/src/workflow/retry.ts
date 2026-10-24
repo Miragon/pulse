@@ -6,7 +6,7 @@
 
 import type { EnginePort } from "../engine-port/engine-port.js"
 import { OperateError, usageError } from "../errors.js"
-import { compact, mapLimit } from "../util.js"
+import { compact, mapLimit, omit } from "../util.js"
 import { isMissing, PARALLEL } from "./engine.js"
 import { instanceMissing, loadView } from "./inspect.js"
 import { executeJob } from "./jobs.js"
@@ -179,7 +179,7 @@ async function execute(deps: WaitDeps, retried: readonly Outcome[]): Promise<Out
       outcomes.push({ entry, result: "succeeded" })
       continue
     }
-    const { result: _, ...failure } = executed
+    const failure = omit(executed, "result")
     outcomes.push({
       entry,
       result: "failed",

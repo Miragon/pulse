@@ -6,7 +6,7 @@
 
 import type { EnginePort, PlannedRequest, Query } from "../engine-port/engine-port.js"
 import { maskUrl } from "../output/secrets.js"
-import { compact, mapLimit } from "../util.js"
+import { compact, mapLimit, omit } from "../util.js"
 import { EXECUTABLE } from "./conditions.js"
 import { json, PARALLEL, pageQuery, queryInput } from "./engine.js"
 import { checkFailure, engineStatus, type Finding, findings, type Severity } from "./findings.js"
@@ -226,8 +226,8 @@ async function incidentGroups(port: EnginePort, data: RoundOne, maxGroups: numbe
   const causes = await mapLimit(shown, PARALLEL, (group) =>
     incidentCause(port, group.newest, false),
   )
-  const incidents = shown.map(({ newest: _, ...group }, index) => ({
-    ...group,
+  const incidents = shown.map((group, index) => ({
+    ...omit(group, "newest"),
     ...compact({ rootCause: causes[index]?.rootCause }),
   }))
   return { grouped, incidents }

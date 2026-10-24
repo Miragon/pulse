@@ -53,13 +53,13 @@ export function assignNames(
 ): OperationSpec[] {
   assertKnownOperations(operations, Object.keys(overrides), "Name overrides")
   assertKnownOperations(operations, Object.keys(extraAliases), "Extra aliases")
-  const candidates = operations.map((operation) => ({
+  const candidates = operations.map(({ tag, ...operation }) => ({
     operation,
-    group: kebab(operation.tag),
+    group: kebab(tag),
     full: kebab(operation.operationId),
     short:
       overrides[operation.operationId] ??
-      shortCommandName(operation.operationId, operation.tag) ??
+      shortCommandName(operation.operationId, tag) ??
       kebab(operation.operationId),
   }))
   const counts = new Map<string, number>()
@@ -69,9 +69,8 @@ export function assignNames(
   }
   const named = candidates.map(({ operation, group, full, short }) => {
     const name = (counts.get(`${group} ${short}`) ?? 0) > 1 ? full : short
-    const { tag: _tag, ...rest } = operation
     const extra = extraAliases[operation.operationId] ?? []
-    return { ...rest, group, name, aliases: [...(name === full ? [] : [full]), ...extra] }
+    return { ...operation, group, name, aliases: [...(name === full ? [] : [full]), ...extra] }
   })
   return named
 }

@@ -15,6 +15,20 @@ export function compact<T extends object>(value: T): Partial<Defined<T>> {
   ) as Partial<Defined<T>>
 }
 
+/** `Omit` for each member of a union, as a rest pattern types it. */
+type Without<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never
+
+/**
+ * A copy of `value` without its property `key`; every other own property stays, an undefined value
+ * included. The rest pattern `{ [key]: _, ...rest }` without a binding that is never read.
+ */
+export function omit<T extends object, K extends keyof T & string>(
+  value: T,
+  key: K,
+): Without<T, K> {
+  return Object.fromEntries(Object.entries(value).filter(([name]) => name !== key)) as Without<T, K>
+}
+
 /** True for plain JSON-like objects (not null, not arrays). */
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)

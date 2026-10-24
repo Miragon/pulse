@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest"
 import { findOperation, loadCatalog } from "../catalog/catalog.js"
 import { type OptionDoc, operationOptions } from "../docs/options.js"
 import type { CommandValues } from "../operation/input.js"
+import { omit } from "../util.js"
 import { helpConfiguration } from "./help.js"
 import {
   addOperationOptions,
@@ -69,7 +70,7 @@ describe("createOptions", () => {
     expect(shape(createOptions(doc({ flag: "max-results", valueName: "<n>" })))).toEqual([
       ["--max-results <n>", false, false, "maxResults"],
     ])
-    const { valueName: _unused, ...withoutValueName } = doc({ kind: "repeatable", flag: "var" })
+    const withoutValueName = omit(doc({ kind: "repeatable", flag: "var" }), "valueName")
     expect(shape(createOptions(withoutValueName))).toEqual([["--var <value>", false, false, "var"]])
     expect(shape(createOptions(doc({ kind: "presence", flag: "all" })))).toEqual([
       ["--all", false, false, "all"],

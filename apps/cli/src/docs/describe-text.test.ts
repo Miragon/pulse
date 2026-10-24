@@ -2,6 +2,7 @@
 
 import { describe, expect, it } from "vitest"
 import { catalog, view } from "../../test/support/docs-describe.js"
+import { omit } from "../util.js"
 import { type DescribeView, describeOperation, renderDescribeText } from "./describe.js"
 
 describe("renderDescribeText", () => {
@@ -142,8 +143,7 @@ describe("renderDescribeText", () => {
         "",
       ].join("\n"),
     )
-    const { body: _body, ...withoutBody } = minimal
-    expect(renderDescribeText(withoutBody)).not.toContain("BODY")
+    expect(renderDescribeText(omit(minimal, "body"))).not.toContain("BODY")
   })
 
   it("keeps every catalog operation within 100 columns, except single overlong words", () => {

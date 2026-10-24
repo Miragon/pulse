@@ -460,10 +460,6 @@ export default tseslint.config(
       "@typescript-eslint/no-unsafe-return": "error",
       "@typescript-eslint/require-await": "error",
       "@typescript-eslint/no-base-to-string": "error",
-      "@typescript-eslint/no-unused-vars": [
-        "error",
-        { argsIgnorePattern: "^_", varsIgnorePattern: "^_", destructuredArrayIgnorePattern: "^_" },
-      ],
       "@typescript-eslint/restrict-template-expressions": ["error", { allowNumber: true }],
       "no-console": "error",
       eqeqeq: ["error", "always"],

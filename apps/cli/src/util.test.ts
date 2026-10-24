@@ -7,6 +7,7 @@ import {
   isRecord,
   mapLimit,
   mergeHeaders,
+  omit,
   parseJson,
   stringifyJson,
 } from "./util.js"
@@ -38,6 +39,27 @@ describe("compact", () => {
         },
       ),
     )
+  })
+})
+
+describe("omit", () => {
+  it("drops the one key and keeps every other property, an undefined value included", () => {
+    const result = omit({ a: 1, b: 2, c: undefined, d: null }, "b")
+    expect(result).toStrictEqual({ a: 1, c: undefined, d: null })
+    expect(Object.keys(result)).toEqual(["a", "c", "d"])
+  })
+
+  it("returns a new object and leaves the input alone", () => {
+    const input = { a: 1, b: 2 }
+    const result = omit(input, "a")
+    expect(result).not.toBe(input)
+    expect(input).toStrictEqual({ a: 1, b: 2 })
+    expect(omit(input, "a")).toStrictEqual({ b: 2 })
+  })
+
+  it("keeps the object as it is when the key is absent", () => {
+    const input: { a: number; b?: number } = { a: 1 }
+    expect(omit(input, "b")).toStrictEqual({ a: 1 })
   })
 })
 
