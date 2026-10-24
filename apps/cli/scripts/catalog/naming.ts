@@ -7,25 +7,25 @@
  * Words: an acronym before a capitalized word or a digit (`XMLHttp`, `API2`), a capitalized or
  * lower-case word with trailing digits (`Bpmn20`), any other run of capitals, or a number.
  */
-const WORD = /[A-Z]{2,}(?=[A-Z][a-z]|\d)|[A-Z]?[a-z]+\d*|[A-Z]+\d*|\d+/g;
+const WORD = /[A-Z]{2,}(?=[A-Z][a-z]|\d)|[A-Z]?[a-z]+\d*|[A-Z]+\d*|\d+/g
 
 /** Splits camelCase, PascalCase, kebab-case and space separated text into lower case words. */
 export function splitWords(text: string): string[] {
-  return (text.match(WORD) ?? []).map((word) => word.toLowerCase());
+  return (text.match(WORD) ?? []).map((word) => word.toLowerCase())
 }
 
 export function kebab(text: string): string {
-  return splitWords(text).join('-');
+  return splitWords(text).join("-")
 }
 
 export function pluralize(word: string): string {
-  if (/(s|x|z|ch|sh)$/.test(word)) return `${word}es`;
-  if (/[^aeiou]y$/.test(word)) return `${word.slice(0, -1)}ies`;
-  return `${word}s`;
+  if (/(s|x|z|ch|sh)$/.test(word)) return `${word}es`
+  if (/[^aeiou]y$/.test(word)) return `${word.slice(0, -1)}ies`
+  return `${word}s`
 }
 
 function startsWithAt(words: readonly string[], noun: readonly string[], index: number): boolean {
-  return noun.every((word, offset) => words[index + offset] === word);
+  return noun.every((word, offset) => words[index + offset] === word)
 }
 
 /**
@@ -34,28 +34,28 @@ function startsWithAt(words: readonly string[], noun: readonly string[], index: 
  * becomes `get-variables`. Returns undefined when the rule does not apply.
  */
 export function shortCommandName(operationId: string, tag: string): string | undefined {
-  const words = splitWords(operationId);
-  const singular = splitWords(tag);
-  const last = singular.at(-1);
+  const words = splitWords(operationId)
+  const singular = splitWords(tag)
+  const last = singular.at(-1)
   // a tag without words has no noun to remove
-  if (last === undefined) return undefined;
-  const plural = [...singular.slice(0, -1), pluralize(last)];
+  if (last === undefined) return undefined
+  const plural = [...singular.slice(0, -1), pluralize(last)]
   for (const [noun, isPlural] of [
     [plural, true],
     [singular, false],
   ] as const) {
-    if (!startsWithAt(words, noun, 1)) continue;
-    const rest = [words[0] ?? '', ...words.slice(1 + noun.length)];
-    return renameListVerbs(rest, isPlural).join('-');
+    if (!startsWithAt(words, noun, 1)) continue
+    const rest = [words[0] ?? "", ...words.slice(1 + noun.length)]
+    return renameListVerbs(rest, isPlural).join("-")
   }
-  return undefined;
+  return undefined
 }
 
 function renameListVerbs(rest: string[], isPlural: boolean): string[] {
-  if (!isPlural || rest[0] !== 'get') return rest;
-  if (rest.length === 1) return ['list'];
-  if (rest.length === 2 && rest[1] === 'count') return ['count'];
-  return rest;
+  if (!isPlural || rest[0] !== "get") return rest
+  if (rest.length === 1) return ["list"]
+  if (rest.length === 2 && rest[1] === "count") return ["count"]
+  return rest
 }
 
 /**
@@ -63,5 +63,5 @@ function renameListVerbs(rest: string[], isPlural: boolean): string[] {
  * registered by the CLI as single negatable options that mean "true" when present.
  */
 export function flagName(paramName: string): string {
-  return kebab(paramName);
+  return kebab(paramName)
 }

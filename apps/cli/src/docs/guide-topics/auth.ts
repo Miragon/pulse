@@ -1,10 +1,10 @@
 /** `operate guide auth`: Basic auth, bearer tokens, token commands and OAuth logins. */
 
-import type { GuideTopic } from './topic.js';
+import type { GuideTopic } from "./topic.js"
 
 export const AUTH_TOPIC: GuideTopic = {
-  name: 'auth',
-  summary: 'Basic auth, bearer tokens and token commands, OAuth logins, what to do on exit 4',
+  name: "auth",
+  summary: "Basic auth, bearer tokens and token commands, OAuth logins, what to do on exit 4",
   text: `# operate guide auth: Basic auth, bearer tokens and OAuth
 
 The auth type comes from \`--auth none|basic|oauth|bearer\`, \`OPERATE_AUTH\` or the profile; without
@@ -74,4 +74,4 @@ API keys and gateway specific headers go into request headers (\`-H\`, \`OPERATE
 profile, see \`operate guide config\`). An \`Authorization\` header together with Basic auth, OAuth or
 a bearer token is a configuration error (exit 3).
 `,
-};
+}

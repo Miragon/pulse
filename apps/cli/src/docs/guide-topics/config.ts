@@ -1,10 +1,10 @@
 /** `operate guide config`: profiles, project files, the environment, named engines and headers. */
 
-import type { GuideTopic } from './topic.js';
+import type { GuideTopic } from "./topic.js"
 
 export const CONFIG_TOPIC: GuideTopic = {
-  name: 'config',
-  summary: 'Profiles, config and project files, environment variables, engines, headers, timeouts',
+  name: "config",
+  summary: "Profiles, config and project files, environment variables, engines, headers, timeouts",
   text: `# operate guide config: profiles, project files, environment and engines
 
 Every setting is resolved on its own: flag > environment variable > profile > default.
@@ -84,4 +84,4 @@ operate config set prod --url https://camunda.example.com/engine-rest --header '
 operate process-instance list --profile local --timeout 10000 -H 'X-Request-Id: 42'
 \`\`\`
 `,
-};
+}

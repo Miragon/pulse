@@ -5,13 +5,13 @@
  */
 
 export interface Credentials {
-  readonly username: string;
-  readonly password: string;
+  readonly username: string
+  readonly password: string
 }
 
 /** The token of `Authorization: Basic <token>`: base64 of the UTF-8 bytes of `user:password`. */
 export function basicToken({ username, password }: Credentials): string {
-  return Buffer.from(`${username}:${password}`, 'utf8').toString('base64');
+  return Buffer.from(`${username}:${password}`, "utf8").toString("base64")
 }
 
 /**
@@ -25,23 +25,23 @@ export async function createUser(
   user: Credentials,
 ): Promise<void> {
   const response = await fetch(`${engineUrl}/user/create`, {
-    method: 'POST',
+    method: "POST",
     headers: {
       Authorization: `Basic ${basicToken(admin)}`,
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({
       profile: {
         id: user.username,
-        firstName: 'Operate',
-        lastName: 'Integration test',
+        firstName: "Operate",
+        lastName: "Integration test",
         email: `${user.username}@example.com`,
       },
       credentials: { password: user.password },
     }),
-  });
+  })
   if (!response.ok) {
-    const body = await response.text();
-    throw new Error(`Cannot create user ${user.username}: HTTP ${response.status} ${body}`);
+    const body = await response.text()
+    throw new Error(`Cannot create user ${user.username}: HTTP ${response.status} ${body}`)
   }
 }

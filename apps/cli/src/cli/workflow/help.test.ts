@@ -1,27 +1,27 @@
 /** The complete help and describe output of the workflow commands (80 columns, not a terminal). */
 
-import { describe, expect, it } from 'vitest';
-import { execute, fakeRuntime } from '../../../test/support/fake-runtime.js';
-import { run } from '../run.js';
+import { describe, expect, it } from "vitest"
+import { execute, fakeRuntime } from "../../../test/support/fake-runtime.js"
+import { run } from "../run.js"
 
 async function output(args: readonly string[]): Promise<string> {
-  const result = await execute(run, args, fakeRuntime());
-  expect(result.code).toBe(0);
-  return result.stdout;
+  const result = await execute(run, args, fakeRuntime())
+  expect(result.code).toBe(0)
+  return result.stdout
 }
 
 /** The help without the global options, which help-texts.test.ts checks for every command. */
 async function help(name: string): Promise<string> {
-  const text = await output([name, '--help']);
+  const text = await output([name, "--help"])
   return text.replace(
     /\nGlobal Options:\n[\s\S]*?\n\n/,
-    '\nGlobal Options: (see help-texts.test.ts)\n\n',
-  );
+    "\nGlobal Options: (see help-texts.test.ts)\n\n",
+  )
 }
 
-describe('workflow command help', () => {
-  it('documents inspect', async () => {
-    expect(await help('inspect')).toMatchInlineSnapshot(`
+describe("workflow command help", () => {
+  it("documents inspect", async () => {
+    expect(await help("inspect")).toMatchInlineSnapshot(`
       "Usage: operate inspect [process-instance-id] [options]
 
       Shows where a process instance waits and why in one call: its wait states (user
@@ -66,11 +66,11 @@ describe('workflow command help', () => {
         $ operate inspect --business-key B-1 --history
         $ operate inspect --process-definition-key order-process --latest --no-variables
       "
-    `);
-  });
+    `)
+  })
 
-  it('documents wait', async () => {
-    expect(await help('wait')).toMatchInlineSnapshot(`
+  it("documents wait", async () => {
+    expect(await help("wait")).toMatchInlineSnapshot(`
       "Usage: operate wait [process-instance-id] [options]
 
       Waits until the process instance is idle (no executable job left, so it rests in
@@ -125,11 +125,11 @@ describe('workflow command help', () => {
         $ operate wait $INSTANCE_ID --until activity:book --execute-jobs
         $ operate wait --batch $BATCH_ID
       "
-    `);
-  });
+    `)
+  })
 
-  it('documents advance', async () => {
-    expect(await help('advance')).toMatchInlineSnapshot(`
+  it("documents advance", async () => {
+    expect(await help("advance")).toMatchInlineSnapshot(`
       "Usage: operate advance [process-instance-id] [options]
 
       Completes what the process instance waits for, without passing ids around:
@@ -206,11 +206,11 @@ describe('workflow command help', () => {
         $ operate advance --business-key B-1 --activity-id charge-card --var charged=true --wait
         $ operate advance $INSTANCE_ID --activity-id charge-card --fail 'Card declined'
       "
-    `);
-  });
+    `)
+  })
 
-  it('documents retry', async () => {
-    expect(await help('retry')).toMatchInlineSnapshot(`
+  it("documents retry", async () => {
+    expect(await help("retry")).toMatchInlineSnapshot(`
       "Usage: operate retry [process-instance-id] [options]
 
       Sets the retries of the failed jobs and external tasks behind open incidents:
@@ -273,11 +273,11 @@ describe('workflow command help', () => {
         $ operate retry --incident $INCIDENT_ID
         $ operate retry --process-definition-key payment --activity-id call-psp --dry-run
       "
-    `);
-  });
+    `)
+  })
 
-  it('documents deploy', async () => {
-    expect(await help('deploy')).toMatchInlineSnapshot(`
+  it("documents deploy", async () => {
+    expect(await help("deploy")).toMatchInlineSnapshot(`
       "Usage: operate deploy <paths...> [options]
 
       Deploys files and directories (scanned for *.bpmn, *.bpmn20.xml, *.dmn,
@@ -337,11 +337,11 @@ describe('workflow command help', () => {
         $ operate deploy src/main/resources
         $ operate deploy order-process.bpmn approval.dmn --start --business-key B-1 --var amount=250 --wait
       "
-    `);
-  });
+    `)
+  })
 
-  it('documents status', async () => {
-    expect(await help('status')).toMatchInlineSnapshot(`
+  it("documents status", async () => {
+    expect(await help("status")).toMatchInlineSnapshot(`
       "Usage: operate status [options]
 
       Engine triage in one call: the definitions with instances and incidents, the
@@ -374,35 +374,35 @@ describe('workflow command help', () => {
         $ operate status
         $ operate status --process-definition-key payment --fail-on warning
       "
-    `);
-  });
-});
+    `)
+  })
+})
 
-describe('workflow command describe', () => {
-  it.each(['inspect', 'wait', 'advance', 'retry', 'deploy', 'status'])(
-    'describes the options of %s',
+describe("workflow command describe", () => {
+  it.each(["inspect", "wait", "advance", "retry", "deploy", "status"])(
+    "describes the options of %s",
     async (name) => {
-      const view = JSON.parse(await output(['describe', name])) as {
-        options: unknown[];
-        arguments: unknown[];
-        examples: unknown[];
-      };
+      const view = JSON.parse(await output(["describe", name])) as {
+        options: unknown[]
+        arguments: unknown[]
+        examples: unknown[]
+      }
       expect({
         arguments: view.arguments,
         options: view.options,
         examples: view.examples,
-      }).toMatchSnapshot();
+      }).toMatchSnapshot()
     },
-  );
-});
+  )
+})
 
-describe('workflow command describe text', () => {
-  it.each(['inspect', 'wait', 'advance', 'retry', 'deploy', 'status'])(
-    'renders the description of %s',
+describe("workflow command describe text", () => {
+  it.each(["inspect", "wait", "advance", "retry", "deploy", "status"])(
+    "renders the description of %s",
     async (name) => {
-      expect(await output(['describe', name, '-o', 'table'])).toMatchSnapshot();
-      const view = JSON.parse(await output(['describe', name])) as { calls: unknown[] };
-      expect(view.calls).toMatchSnapshot();
+      expect(await output(["describe", name, "-o", "table"])).toMatchSnapshot()
+      const view = JSON.parse(await output(["describe", name])) as { calls: unknown[] }
+      expect(view.calls).toMatchSnapshot()
     },
-  );
-});
+  )
+})

@@ -6,7 +6,7 @@
  * the same name: a project file decides where its profiles send tokens. Pure.
  */
 
-import { posix, win32 } from 'node:path';
+import { posix, win32 } from "node:path"
 import {
   type ConfigFile,
   DEFAULT_OAUTH_SCOPES,
@@ -14,17 +14,17 @@ import {
   type LoginKey,
   type ProfileAuth,
   type SelectedProfile,
-} from './types.js';
+} from "./types.js"
 
 /** A path as origins compare it: absolute, normalized, on win32 without case. */
 export function originPath(path: string, cwd: string, platform: string): string {
-  const resolved = (platform === 'win32' ? win32 : posix).resolve(cwd, path);
-  return platform === 'win32' ? resolved.toLowerCase() : resolved;
+  const resolved = (platform === "win32" ? win32 : posix).resolve(cwd, path)
+  return platform === "win32" ? resolved.toLowerCase() : resolved
 }
 
 /** `config:<path>`: the origin of the profiles of a config file. */
 export function configOrigin(path: string, cwd: string, platform: string): string {
-  return `config:${originPath(path, cwd, platform)}`;
+  return `config:${originPath(path, cwd, platform)}`
 }
 
 /**
@@ -36,17 +36,17 @@ export function loginKeyOf(
   stored: ProfileAuth | undefined,
   name?: string,
 ): LoginKey {
-  const auth: ProfileAuth = stored ?? {};
-  const explicit = auth.authorizationEndpoint !== undefined;
+  const auth: ProfileAuth = stored ?? {}
+  const explicit = auth.authorizationEndpoint !== undefined
   return {
     origin,
-    ...(auth.type === 'oauth' || name === undefined ? {} : { profile: name }),
+    ...(auth.type === "oauth" || name === undefined ? {} : { profile: name }),
     issuer: auth.issuer ?? null,
     tokenEndpoint: explicit ? (auth.tokenEndpoint ?? null) : null,
     clientId: auth.clientId ?? null,
     audience: auth.audience ?? null,
     scopes: [...new Set(auth.scopes ?? DEFAULT_OAUTH_SCOPES)].sort(),
-  };
+  }
 }
 
 /**
@@ -54,7 +54,7 @@ export function loginKeyOf(
  * (`loadConfig`); a configuration not read from a file (tests) has the empty origin.
  */
 export function selectedLoginKey(selected: Extract<SelectedProfile, { name: string }>): LoginKey {
-  return loginKeyOf(selected.origin ?? '', selected.profile.auth, selected.name);
+  return loginKeyOf(selected.origin ?? "", selected.profile.auth, selected.name)
 }
 
 export function sameLoginKey(left: LoginKey, right: LoginKey): boolean {
@@ -65,13 +65,13 @@ export function sameLoginKey(left: LoginKey, right: LoginKey): boolean {
     left.tokenEndpoint === right.tokenEndpoint &&
     left.clientId === right.clientId &&
     left.audience === right.audience &&
-    left.scopes.join(' ') === right.scopes.join(' ')
-  );
+    left.scopes.join(" ") === right.scopes.join(" ")
+  )
 }
 
 /** The origin of profile `name` of the loaded configuration: its project file's or the file's. */
 export function originOf(file: LoadedConfig, name: string): string | undefined {
-  return file.project?.profiles.includes(name) === true ? file.project.source.origin : file.origin;
+  return file.project?.profiles.includes(name) === true ? file.project.source.origin : file.origin
 }
 
 /**
@@ -79,12 +79,12 @@ export function originOf(file: LoadedConfig, name: string): string | undefined {
  * on its own is one origin: pass it as `{ ...file, origin }`.
  */
 export function loginProfiles(file: LoadedConfig | undefined, key: LoginKey): string[] {
-  const profiles: ConfigFile['profiles'] = file?.profiles ?? {};
+  const profiles: ConfigFile["profiles"] = file?.profiles ?? {}
   return Object.entries(profiles)
     .filter(([name, profile]) => {
-      if (file === undefined || profile.auth?.type !== 'oauth') return false;
-      const origin = originOf(file, name);
-      return origin !== undefined && sameLoginKey(loginKeyOf(origin, profile.auth), key);
+      if (file === undefined || profile.auth?.type !== "oauth") return false
+      const origin = originOf(file, name)
+      return origin !== undefined && sameLoginKey(loginKeyOf(origin, profile.auth), key)
     })
-    .map(([name]) => name);
+    .map(([name]) => name)
 }

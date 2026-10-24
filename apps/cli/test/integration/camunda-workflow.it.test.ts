@@ -1,3 +1,3 @@
-import { registerWorkflowScenario } from './workflow-scenario.js';
+import { registerWorkflowScenario } from "./workflow-scenario.js"
 
-registerWorkflowScenario('camunda');
+registerWorkflowScenario("camunda")

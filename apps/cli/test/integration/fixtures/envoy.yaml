@@ -10,23 +10,23 @@ static_resources:
         - filters:
             - name: envoy.filters.network.http_connection_manager
               typed_config:
-                '@type': type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
                 stat_prefix: engine
                 route_config:
                   virtual_hosts:
                     - name: engine
-                      domains: ['*']
+                      domains: ["*"]
                       routes:
-                        - match: { prefix: '/' }
+                        - match: { prefix: "/" }
                           route: { cluster: engine, timeout: 120s }
                 http_filters:
                   - name: envoy.filters.http.jwt_authn
                     typed_config:
-                      '@type': type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.JwtAuthentication
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.JwtAuthentication
                       providers:
                         keycloak:
                           # must equal the token's iss (the host-side URL)
-                          issuer: '${ISSUER}'
+                          issuer: "${ISSUER}"
                           audiences: [engine-rest]
                           # 0 means "unset", i.e. the 60 s default: an expired token would pass
                           clock_skew_seconds: 1
@@ -43,11 +43,11 @@ static_resources:
                               num_retries: 10
                               retry_back_off: { base_interval: 0.5s, max_interval: 3s }
                       rules:
-                        - match: { prefix: '/' }
+                        - match: { prefix: "/" }
                           requires: { provider_name: keycloak }
                   - name: envoy.filters.http.router
                     typed_config:
-                      '@type': type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
   clusters:
     - name: engine
       type: STRICT_DNS
@@ -57,7 +57,7 @@ static_resources:
         endpoints:
           - lb_endpoints:
               - endpoint:
-                  { address: { socket_address: { address: '${UPSTREAM}', port_value: 8080 } } }
+                  { address: { socket_address: { address: "${UPSTREAM}", port_value: 8080 } } }
     - name: keycloak
       type: STRICT_DNS
       connect_timeout: 5s

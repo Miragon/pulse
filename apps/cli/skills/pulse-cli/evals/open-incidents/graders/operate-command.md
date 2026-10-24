@@ -1,6 +1,6 @@
 ---
 type: regex
-pattern: 'operate (?:status|incident list|incident count|inspect)'
+pattern: "operate (?:status|incident list|incident count|inspect)"
 target: last_message
 ---
 

@@ -1,3 +1,3 @@
-import { registerScenario } from './scenario.js';
+import { registerScenario } from "./scenario.js"
 
-registerScenario('operaton');
+registerScenario("operaton")

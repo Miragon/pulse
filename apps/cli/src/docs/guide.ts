@@ -6,14 +6,14 @@
  * the CLI; unit tests keep all of it true. Markdown, formatted with Prettier.
  */
 
-import { closeNames } from '../util.js';
-import { AUTH_TOPIC } from './guide-topics/auth.js';
-import { CONFIG_TOPIC } from './guide-topics/config.js';
-import { INPUT_TOPIC } from './guide-topics/input.js';
-import { OUTPUT_TOPIC } from './guide-topics/output.js';
-import { RECIPES_TOPIC } from './guide-topics/recipes.js';
-import type { GuideTopic } from './guide-topics/topic.js';
-import { WORKFLOW_TOPIC } from './guide-topics/workflow.js';
+import { closeNames } from "../util.js"
+import { AUTH_TOPIC } from "./guide-topics/auth.js"
+import { CONFIG_TOPIC } from "./guide-topics/config.js"
+import { INPUT_TOPIC } from "./guide-topics/input.js"
+import { OUTPUT_TOPIC } from "./guide-topics/output.js"
+import { RECIPES_TOPIC } from "./guide-topics/recipes.js"
+import type { GuideTopic } from "./guide-topics/topic.js"
+import { WORKFLOW_TOPIC } from "./guide-topics/workflow.js"
 
 /** The topics of `operate guide <topic>`, in the order of the index. */
 export const GUIDE_TOPICS: readonly GuideTopic[] = [
@@ -23,14 +23,14 @@ export const GUIDE_TOPICS: readonly GuideTopic[] = [
   CONFIG_TOPIC,
   AUTH_TOPIC,
   RECIPES_TOPIC,
-];
+]
 
 /** Shorter words match too many summaries to be worth a suggestion. */
-const MIN_SEARCH_LENGTH = 3;
+const MIN_SEARCH_LENGTH = 3
 
 /** The topic of a name. */
 export function findGuideTopic(name: string): GuideTopic | undefined {
-  return GUIDE_TOPICS.find((topic) => topic.name === name);
+  return GUIDE_TOPICS.find((topic) => topic.name === name)
 }
 
 /**
@@ -38,16 +38,16 @@ export function findGuideTopic(name: string): GuideTopic | undefined {
  * or summary contains the word (`bearer` → `auth`, `variables` → `input`).
  */
 export function topicSuggestions(word: string): string[] {
-  const names = GUIDE_TOPICS.map((topic) => topic.name);
-  const close = closeNames(word, names);
-  if (close.length > 0 || word.length < MIN_SEARCH_LENGTH) return close;
-  const wanted = word.toLowerCase();
+  const names = GUIDE_TOPICS.map((topic) => topic.name)
+  const close = closeNames(word, names)
+  if (close.length > 0 || word.length < MIN_SEARCH_LENGTH) return close
+  const wanted = word.toLowerCase()
   return GUIDE_TOPICS.filter((topic) =>
     `${topic.name} ${topic.summary}`.toLowerCase().includes(wanted),
-  ).map((topic) => topic.name);
+  ).map((topic) => topic.name)
 }
 
-const TOPIC_INDEX = GUIDE_TOPICS.map((topic) => `- \`${topic.name}\`: ${topic.summary}`).join('\n');
+const TOPIC_INDEX = GUIDE_TOPICS.map((topic) => `- \`${topic.name}\`: ${topic.summary}`).join("\n")
 
 export const GUIDE = `# operate: the Camunda 7 REST API from the command line
 
@@ -203,4 +203,4 @@ operate guide recipes
 
 An older operate without topics answers "Too many arguments for 'guide'": run
 \`npx -y @miragon/operate@latest guide <topic>\` instead, or ask the user to update operate.
-`;
+`

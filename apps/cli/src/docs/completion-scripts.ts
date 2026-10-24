@@ -4,8 +4,8 @@
  * falls back to the shell's own path completion for `:files` / `:dirs`.
  */
 
-export const SHELLS = ['bash', 'zsh', 'fish'] as const;
-export type Shell = (typeof SHELLS)[number];
+export const SHELLS = ["bash", "zsh", "fish"] as const
+export type Shell = (typeof SHELLS)[number]
 
 const BASH = `# operate completion for bash (3.2 and later). Install: add to ~/.bashrc
 #   eval "$(operate completion bash)"
@@ -55,7 +55,7 @@ _operate_complete() {
 }
 # -o nospace: the function adds the space itself (bash 3.2 has no compopt)
 complete -o nospace -F _operate_complete operate
-`;
+`
 
 const ZSH = `#compdef operate
 # operate completion for zsh. Install:
@@ -92,7 +92,7 @@ if [[ "\${funcstack[1]}" == "_operate" ]]; then
 else
   compdef _operate operate
 fi
-`;
+`
 
 const FISH = `# operate completion for fish. Install:
 #   operate completion fish > ~/.config/fish/completions/operate.fish
@@ -109,18 +109,18 @@ function __operate_complete
     end
 end
 complete -c operate -f -a '(__operate_complete)'
-`;
+`
 
 export const COMPLETION_SCRIPTS: Readonly<Record<Shell, string>> = {
   bash: BASH,
   zsh: ZSH,
   fish: FISH,
-};
+}
 
 /** How to install the script of each shell, for the help and docs/installation.md. */
 export const INSTALL_LINES: readonly string[] = [
   'bash: eval "$(operate completion bash)"  in ~/.bashrc (also bash 3.2)',
-  'zsh:  mkdir -p ~/.zfunc && operate completion zsh > ~/.zfunc/_operate',
-  '      and fpath=(~/.zfunc $fpath) before compinit in ~/.zshrc',
-  'fish: operate completion fish > ~/.config/fish/completions/operate.fish',
-];
+  "zsh:  mkdir -p ~/.zfunc && operate completion zsh > ~/.zfunc/_operate",
+  "      and fpath=(~/.zfunc $fpath) before compinit in ~/.zshrc",
+  "fish: operate completion fish > ~/.config/fish/completions/operate.fish",
+]

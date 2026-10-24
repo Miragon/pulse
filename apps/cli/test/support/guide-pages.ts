@@ -3,9 +3,9 @@
  * `operate guide` and every topic of `operate guide <topic>`, in index order.
  */
 
-import { GUIDE, GUIDE_TOPICS } from '../../src/docs/guide.js';
+import { GUIDE, GUIDE_TOPICS } from "../../src/docs/guide.js"
 
 export const GUIDE_PAGES: readonly (readonly [string, string])[] = [
-  ['core', GUIDE],
+  ["core", GUIDE],
   ...GUIDE_TOPICS.map((topic) => [topic.name, topic.text] as const),
-];
+]

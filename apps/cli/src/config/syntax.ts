@@ -4,14 +4,14 @@
  */
 
 /** Control characters (C0, DEL, C1): RFC 7617 and RFC 6749 forbid them in credentials. */
-export const CONTROL = /\p{Cc}/u;
+export const CONTROL = /\p{Cc}/u
 
 /** A portable environment variable name. */
-export const ENV_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
+export const ENV_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/
 
 /** True for a string that is not blank. */
 export function isNonEmptyString(value: unknown): value is string {
-  return typeof value === 'string' && value.trim() !== '';
+  return typeof value === "string" && value.trim() !== ""
 }
 
 /**
@@ -19,4 +19,4 @@ export function isNonEmptyString(value: unknown): value is string {
  * appear in hints and commands that people and agents run, so the config file parser enforces it
  * as well as `config set`.
  */
-export const PROFILE_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+export const PROFILE_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]*$/

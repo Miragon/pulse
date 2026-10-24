@@ -1,10 +1,10 @@
 /** `operate guide output`: what stdout and stderr carry. */
 
-import type { GuideTopic } from './topic.js';
+import type { GuideTopic } from "./topic.js"
 
 export const OUTPUT_TOPIC: GuideTopic = {
-  name: 'output',
-  summary: 'JSON and tables, --fields, XML, text and binary responses, --out-file, previews',
+  name: "output",
+  summary: "JSON and tables, --fields, XML, text and binary responses, --out-file, previews",
   text: `# operate guide output: what stdout and stderr carry
 
 ## Format
@@ -52,4 +52,4 @@ operate task list --assignee demo --dry-run -o table
 operate process-definition list --key invoice --fields id,key,version --verbose
 \`\`\`
 `,
-};
+}

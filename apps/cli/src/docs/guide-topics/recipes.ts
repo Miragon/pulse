@@ -1,10 +1,10 @@
 /** `operate guide recipes`: command lines for everyday tasks. */
 
-import type { GuideTopic } from './topic.js';
+import type { GuideTopic } from "./topic.js"
 
 export const RECIPES_TOPIC: GuideTopic = {
-  name: 'recipes',
-  summary: 'Command lines for everyday tasks: deploy, tasks, incidents, messages, history, api',
+  name: "recipes",
+  summary: "Command lines for everyday tasks: deploy, tasks, incidents, messages, history, api",
   text: `# operate guide recipes: command lines for everyday tasks
 
 The recipes use \`$INSTANCE_ID\`, \`$TASK_ID\`, ... for ids from earlier commands. Preview writes you
@@ -91,4 +91,4 @@ operate api POST /process-instance --body '{"processDefinitionKey":"invoice","wi
 operate api DELETE /process-instance/$INSTANCE_ID --yes
 \`\`\`
 `,
-};
+}

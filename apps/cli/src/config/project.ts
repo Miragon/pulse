@@ -12,10 +12,10 @@
  * share OAuth logins only among the profiles of its repository (`projectOrigin`).
  */
 
-import type { FileSystem } from '../runtime.js';
-import { compact, isRecord, isSecretHeader } from '../util.js';
-import { configError } from './config-error.js';
-import { type Location, parseConfigFile, pathModule } from './file.js';
+import type { FileSystem } from "../runtime.js"
+import { compact, isRecord, isSecretHeader } from "../util.js"
+import { configError } from "./config-error.js"
+import { type Location, parseConfigFile, pathModule } from "./file.js"
 import {
   type ConfigFile,
   ENV,
@@ -23,20 +23,20 @@ import {
   type Profile,
   type ProfileAuth,
   type ProjectSource,
-} from './types.js';
+} from "./types.js"
 
-export const PROJECT_FILE = '.operate.json';
+export const PROJECT_FILE = ".operate.json"
 
 /** The project file of a working directory: the nearest one, or where a new one goes. */
 export interface ProjectFile {
-  readonly path: string;
-  readonly exists: boolean;
+  readonly path: string
+  readonly exists: boolean
 }
 
 /** A directory as it is compared with the home directory: no trailing separators, on win32 no case. */
 function comparable(path: string, platform: string): string {
-  const trimmed = path.replace(/[\\/]+$/, '');
-  return platform === 'win32' ? trimmed.toLowerCase() : trimmed;
+  const trimmed = path.replace(/[\\/]+$/, "")
+  return platform === "win32" ? trimmed.toLowerCase() : trimmed
 }
 
 /**
@@ -49,30 +49,30 @@ export async function findProjectFile(
   cwd: string,
   location: Location,
 ): Promise<ProjectFile | undefined> {
-  const path = pathModule(location.platform);
-  const home = comparable(location.homedir, location.platform);
-  let directory = cwd;
+  const path = pathModule(location.platform)
+  const home = comparable(location.homedir, location.platform)
+  let directory = cwd
   for (;;) {
     if (comparable(directory, location.platform) === home) {
-      return directory === cwd ? undefined : { path: path.join(cwd, PROJECT_FILE), exists: false };
+      return directory === cwd ? undefined : { path: path.join(cwd, PROJECT_FILE), exists: false }
     }
-    const candidate = path.join(directory, PROJECT_FILE);
-    if ((await fs.kind(candidate)) !== 'missing') return { path: candidate, exists: true };
-    if ((await fs.kind(path.join(directory, '.git'))) !== 'missing') {
-      return { path: candidate, exists: false };
+    const candidate = path.join(directory, PROJECT_FILE)
+    if ((await fs.kind(candidate)) !== "missing") return { path: candidate, exists: true }
+    if ((await fs.kind(path.join(directory, ".git"))) !== "missing") {
+      return { path: candidate, exists: false }
     }
-    const parent = path.dirname(directory);
-    if (parent === directory) return { path: path.join(cwd, PROJECT_FILE), exists: false };
-    directory = parent;
+    const parent = path.dirname(directory)
+    if (parent === directory) return { path: path.join(cwd, PROJECT_FILE), exists: false }
+    directory = parent
   }
 }
 
 /** The text of a file, or undefined when it cannot be read. */
 async function textOf(fs: FileSystem, path: string): Promise<string | undefined> {
   try {
-    return new TextDecoder().decode(await fs.readFile(path));
+    return new TextDecoder().decode(await fs.readFile(path))
   } catch {
-    return undefined;
+    return undefined
   }
 }
 
@@ -83,16 +83,16 @@ async function textOf(fs: FileSystem, path: string): Promise<string | undefined>
  * pointing elsewhere) does not count, nor does a submodule (`<git directory>/modules/<name>`).
  */
 async function worktreeRepository(fs: FileSystem, dotGit: string, location: Location) {
-  const path = pathModule(location.platform);
-  const named = /^gitdir: (.+)$/m.exec((await textOf(fs, dotGit)) ?? '')?.[1]?.trim();
-  if (named === undefined) return undefined;
-  const gitDir = path.resolve(path.dirname(dotGit), named);
-  const worktrees = path.dirname(gitDir);
-  if (comparable(path.basename(worktrees), location.platform) !== 'worktrees') return undefined;
-  const back = (await textOf(fs, path.join(gitDir, 'gitdir')))?.trim();
-  if (back === undefined || back === '') return undefined;
-  const linked = comparable(path.resolve(gitDir, back), location.platform);
-  return linked === comparable(dotGit, location.platform) ? path.dirname(worktrees) : undefined;
+  const path = pathModule(location.platform)
+  const named = /^gitdir: (.+)$/m.exec((await textOf(fs, dotGit)) ?? "")?.[1]?.trim()
+  if (named === undefined) return undefined
+  const gitDir = path.resolve(path.dirname(dotGit), named)
+  const worktrees = path.dirname(gitDir)
+  if (comparable(path.basename(worktrees), location.platform) !== "worktrees") return undefined
+  const back = (await textOf(fs, path.join(gitDir, "gitdir")))?.trim()
+  if (back === undefined || back === "") return undefined
+  const linked = comparable(path.resolve(gitDir, back), location.platform)
+  return linked === comparable(dotGit, location.platform) ? path.dirname(worktrees) : undefined
 }
 
 /**
@@ -102,8 +102,8 @@ async function worktreeRepository(fs: FileSystem, dotGit: string, location: Loca
  * there only `C:\\.git` and the like are refused.
  */
 async function trusted(fs: FileSystem, directory: string, dotGit: string, location: Location) {
-  if (pathModule(location.platform).dirname(directory) === directory) return false;
-  return fs.ownedByUser === undefined || fs.ownedByUser(dotGit);
+  if (pathModule(location.platform).dirname(directory) === directory) return false
+  return fs.ownedByUser === undefined || fs.ownedByUser(dotGit)
 }
 
 /**
@@ -114,21 +114,21 @@ async function trusted(fs: FileSystem, directory: string, dotGit: string, locati
  * repositories one.
  */
 async function repositoryOf(fs: FileSystem, directory: string, location: Location) {
-  const path = pathModule(location.platform);
-  const home = comparable(location.homedir, location.platform);
+  const path = pathModule(location.platform)
+  const home = comparable(location.homedir, location.platform)
   for (let current = directory; comparable(current, location.platform) !== home;) {
-    const dotGit = path.join(current, '.git');
-    const kind = await fs.kind(dotGit);
-    if (kind !== 'missing') {
-      if (!(await trusted(fs, current, dotGit, location))) return undefined;
-      if (kind === 'directory') return dotGit;
-      return kind === 'file' ? worktreeRepository(fs, dotGit, location) : undefined;
+    const dotGit = path.join(current, ".git")
+    const kind = await fs.kind(dotGit)
+    if (kind !== "missing") {
+      if (!(await trusted(fs, current, dotGit, location))) return undefined
+      if (kind === "directory") return dotGit
+      return kind === "file" ? worktreeRepository(fs, dotGit, location) : undefined
     }
-    const parent = path.dirname(current);
-    if (parent === current) return undefined;
-    current = parent;
+    const parent = path.dirname(current)
+    if (parent === current) return undefined
+    current = parent
   }
-  return undefined;
+  return undefined
 }
 
 /**
@@ -141,11 +141,11 @@ export async function projectOrigin(
   projectPath: string,
   location: Location,
 ): Promise<string> {
-  const path = pathModule(location.platform);
-  const repository = await repositoryOf(fs, path.dirname(projectPath), location);
+  const path = pathModule(location.platform)
+  const repository = await repositoryOf(fs, path.dirname(projectPath), location)
   return repository === undefined
     ? `project:${comparable(path.resolve(projectPath), location.platform)}`
-    : `repository:${comparable(path.resolve(repository), location.platform)}`;
+    : `repository:${comparable(path.resolve(repository), location.platform)}`
 }
 
 /** The credential keys of a profile's auth object, and where the credential comes from instead. */
@@ -156,19 +156,19 @@ const CREDENTIALS: Readonly<Partial<Record<keyof ProfileAuth, string>>> = {
   clientSecretEnv: ENV.oauthClientSecret,
   token: `${ENV.token} or ${ENV.tokenCommand}`,
   tokenEnv: `${ENV.token} or ${ENV.tokenCommand}`,
-};
+}
 
 function secretProblem(name: string, profile: Profile): string | undefined {
   const key = Object.keys(CREDENTIALS).find(
     (candidate) => profile.auth?.[candidate as keyof ProfileAuth] !== undefined,
-  );
+  )
   if (key !== undefined) {
-    return `profile "${name}" sets auth.${key}; a project file is shared and names no credentials, so it comes from ${CREDENTIALS[key as keyof ProfileAuth] ?? ''} or a profile "${name}" of your own config file`;
+    return `profile "${name}" sets auth.${key}; a project file is shared and names no credentials, so it comes from ${CREDENTIALS[key as keyof ProfileAuth] ?? ""} or a profile "${name}" of your own config file`
   }
-  const header = Object.keys(profile.headers ?? {}).find(isSecretHeader);
+  const header = Object.keys(profile.headers ?? {}).find(isSecretHeader)
   return header === undefined
     ? undefined
-    : `profile "${name}" stores the secret header ${header}; a project file is shared, so secret headers go into ${ENV.headers} or a profile of your own config file`;
+    : `profile "${name}" stores the secret header ${header}; a project file is shared, so secret headers go into ${ENV.headers} or a profile of your own config file`
 }
 
 /**
@@ -177,24 +177,24 @@ function secretProblem(name: string, profile: Profile): string | undefined {
  */
 export function projectSecretProblem(file: ConfigFile): string | undefined {
   for (const [name, profile] of Object.entries(file.profiles)) {
-    const problem = secretProblem(name, profile);
-    if (problem !== undefined) return problem;
+    const problem = secretProblem(name, profile)
+    if (problem !== undefined) return problem
   }
-  return undefined;
+  return undefined
 }
 
 /** A defaultProfile that names no profile of the file itself. */
 function defaultProblem(file: ConfigFile): string | undefined {
-  const name = given(file.defaultProfile);
+  const name = given(file.defaultProfile)
   return name === undefined || Object.hasOwn(file.profiles, name)
     ? undefined
-    : `defaultProfile "${name}" is not one of its profiles; a project file chooses only among its own profiles`;
+    : `defaultProfile "${name}" is not one of its profiles; a project file chooses only among its own profiles`
 }
 
-const CREDENTIAL_HINT = `Credentials come from the environment (${ENV.token}, ${ENV.tokenCommand}, ${ENV.password}, ${ENV.oauthClientSecret}) or from a profile of the same name in your own config file. Remove it from the project file, e.g. with \`operate config unset <profile> auth --project\` (\`headers\` for a secret header), and a committed secret from the history of your repository, too.`;
+const CREDENTIAL_HINT = `Credentials come from the environment (${ENV.token}, ${ENV.tokenCommand}, ${ENV.password}, ${ENV.oauthClientSecret}) or from a profile of the same name in your own config file. Remove it from the project file, e.g. with \`operate config unset <profile> auth --project\` (\`headers\` for a secret header), and a committed secret from the history of your repository, too.`
 
 const DEFAULT_HINT =
-  'Make one of its profiles the default with `operate config use <profile> --project`, or remove defaultProfile from the file.';
+  "Make one of its profiles the default with `operate config use <profile> --project`, or remove defaultProfile from the file."
 
 /**
  * Why `file` is no valid project file, and how to fix it: a credential (projectSecretProblem) or a
@@ -203,10 +203,10 @@ const DEFAULT_HINT =
 export function projectProblem(
   file: ConfigFile,
 ): { readonly problem: string; readonly hint: string } | undefined {
-  const secret = projectSecretProblem(file);
-  if (secret !== undefined) return { problem: secret, hint: CREDENTIAL_HINT };
-  const foreign = defaultProblem(file);
-  return foreign === undefined ? undefined : { problem: foreign, hint: DEFAULT_HINT };
+  const secret = projectSecretProblem(file)
+  if (secret !== undefined) return { problem: secret, hint: CREDENTIAL_HINT }
+  const foreign = defaultProblem(file)
+  return foreign === undefined ? undefined : { problem: foreign, hint: DEFAULT_HINT }
 }
 
 /**
@@ -214,37 +214,37 @@ export function projectProblem(
  * defaultProfile it does not define (CONFIG).
  */
 export function parseProjectFile(text: string, path: string): ConfigFile {
-  const file = parseConfigFile(text, path);
-  const invalid = projectProblem(file);
+  const file = parseConfigFile(text, path)
+  const invalid = projectProblem(file)
   if (invalid !== undefined) {
-    throw configError(`Invalid project file ${path}: ${invalid.problem}`, invalid.hint);
+    throw configError(`Invalid project file ${path}: ${invalid.problem}`, invalid.hint)
   }
-  return file;
+  return file
 }
 
 /** `EACCES`, `EISDIR`, ... of a file system error, else its message. */
 function reasonOf(error: unknown): string {
-  const code = isRecord(error) ? error.code : undefined;
-  if (typeof code === 'string') return code;
-  return error instanceof Error ? error.message : String(error);
+  const code = isRecord(error) ? error.code : undefined
+  if (typeof code === "string") return code
+  return error instanceof Error ? error.message : String(error)
 }
 
 /** Reads and checks an existing project file. */
 export async function readProjectFile(fs: FileSystem, path: string): Promise<ConfigFile> {
-  let content: Uint8Array;
+  let content: Uint8Array
   try {
-    content = await fs.readFile(path);
+    content = await fs.readFile(path)
   } catch (error) {
     throw configError(
       `Cannot read project file ${path} (${reasonOf(error)})`,
-      'Check the file and its permissions; operate looks up .operate.json from the working directory up to the repository root.',
-    );
+      "Check the file and its permissions; operate looks up .operate.json from the working directory up to the repository root.",
+    )
   }
-  return parseProjectFile(new TextDecoder().decode(content), path);
+  return parseProjectFile(new TextDecoder().decode(content), path)
 }
 
 function given(name: string | undefined): string | undefined {
-  return name === undefined || name.trim() === '' ? undefined : name.trim();
+  return name === undefined || name.trim() === "" ? undefined : name.trim()
 }
 
 /**
@@ -257,15 +257,15 @@ export function mergeProject(
   user: LoadedConfig | undefined,
   project: { readonly source: ProjectSource; readonly file: ConfigFile } | undefined,
 ): LoadedConfig | undefined {
-  if (project === undefined) return user;
-  const own = user?.profiles ?? {};
-  const profiles = Object.keys(project.file.profiles).filter((name) => !Object.hasOwn(own, name));
-  const named = given(project.file.defaultProfile);
-  const projectDefault = named !== undefined && profiles.includes(named) ? named : undefined;
-  const defaultProfile = projectDefault ?? user?.defaultProfile;
+  if (project === undefined) return user
+  const own = user?.profiles ?? {}
+  const profiles = Object.keys(project.file.profiles).filter((name) => !Object.hasOwn(own, name))
+  const named = given(project.file.defaultProfile)
+  const projectDefault = named !== undefined && profiles.includes(named) ? named : undefined
+  const defaultProfile = projectDefault ?? user?.defaultProfile
   return {
     ...compact({ defaultProfile, origin: user?.origin }),
     profiles: { ...project.file.profiles, ...own },
     project: { source: project.source, profiles, defaultProfile: projectDefault !== undefined },
-  };
+  }
 }

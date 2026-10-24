@@ -7,30 +7,30 @@
  * contain a secret; `operate config show` prints it).
  */
 
-import { normalizeToken } from '../config/bearer.js';
-import type { CommandBearerConfig } from '../config/types.js';
-import { OperateError } from '../errors.js';
-import type { CommandResult, Runtime } from '../runtime.js';
-import { isRecord } from '../util.js';
-import type { OAuthDeps } from './oauth/types.js';
+import { normalizeToken } from "../config/bearer.js"
+import type { CommandBearerConfig } from "../config/types.js"
+import { OperateError } from "../errors.js"
+import type { CommandResult, Runtime } from "../runtime.js"
+import { isRecord } from "../util.js"
+import type { OAuthDeps } from "./oauth/types.js"
 
 /** What running a token command needs: the shell, the clock, the timeout and `--verbose`. */
-export interface CommandDeps extends Pick<OAuthDeps, 'now' | 'timeoutMs' | 'trace'> {
-  readonly runCommand: Runtime['runCommand'];
+export interface CommandDeps extends Pick<OAuthDeps, "now" | "timeoutMs" | "trace"> {
+  readonly runCommand: Runtime["runCommand"]
 }
 
 /** Longest stderr excerpt a message quotes. */
-const MAX_EXCERPT = 300;
+const MAX_EXCERPT = 300
 
 /** LOGIN_FAILED: the command did not give a token; `problem` says why (never the token). */
 function loginFailed(config: CommandBearerConfig, problem: string): OperateError {
   return new OperateError(
-    'LOGIN_FAILED',
+    "LOGIN_FAILED",
     `The bearer token command (${config.origin}) ${problem}`,
     {
       hint: `operate runs the command with the shell in the working directory, stdin closed and bounded by the request timeout (--timeout), and takes the first line of its stdout as the token (not a JSON answer: use e.g. jq -r .access_token). Run it in a shell to see what goes wrong (\`operate config show\` prints it).`,
     },
-  );
+  )
 }
 
 /** The end of stderr, control characters replaced, lines joined: what a message quotes. */
@@ -38,38 +38,38 @@ function excerpt(stderr: Uint8Array): string {
   const lines = new TextDecoder()
     .decode(stderr)
     .split(/\r?\n/)
-    .map((line) => line.replace(/\p{Cc}/gu, ' ').trim())
-    .filter((line) => line !== '');
-  const text = lines.slice(-3).join(' / ');
-  return text.length > MAX_EXCERPT ? `…${text.slice(-(MAX_EXCERPT - 1))}` : text;
+    .map((line) => line.replace(/\p{Cc}/gu, " ").trim())
+    .filter((line) => line !== "")
+  const text = lines.slice(-3).join(" / ")
+  return text.length > MAX_EXCERPT ? `…${text.slice(-(MAX_EXCERPT - 1))}` : text
 }
 
 /** `ENOENT`, `EACCES`, ... of a start failure, else its message. */
 function reasonOf(error: unknown): string {
-  const code = isRecord(error) ? error.code : undefined;
-  if (typeof code === 'string') return code;
-  return error instanceof Error ? error.message : String(error);
+  const code = isRecord(error) ? error.code : undefined
+  if (typeof code === "string") return code
+  return error instanceof Error ? error.message : String(error)
 }
 
 /** Why the command left no output to take a token from; undefined when it succeeded. */
 function failure(result: CommandResult, timeoutMs: number): string | undefined {
-  if (result.timedOut) return `did not finish within ${timeoutMs} ms and was stopped`;
-  if (result.exitCode === 0) return undefined;
+  if (result.timedOut) return `did not finish within ${timeoutMs} ms and was stopped`
+  if (result.exitCode === 0) return undefined
   const code =
-    result.exitCode === null ? 'ended by a signal' : `failed with exit code ${result.exitCode}`;
-  const stderr = excerpt(result.stderr);
-  return stderr === '' ? code : `${code}: ${stderr}`;
+    result.exitCode === null ? "ended by a signal" : `failed with exit code ${result.exitCode}`
+  const stderr = excerpt(result.stderr)
+  return stderr === "" ? code : `${code}: ${stderr}`
 }
 
 /** The token on the first line of stdout; LOGIN_FAILED for anything else. */
 function tokenOf(config: CommandBearerConfig, stdout: Uint8Array): string {
-  const line = new TextDecoder().decode(stdout).split('\n', 1)[0] ?? '';
-  if (line.trim() === '') throw loginFailed(config, 'printed no token on the first line of stdout');
+  const line = new TextDecoder().decode(stdout).split("\n", 1)[0] ?? ""
+  if (line.trim() === "") throw loginFailed(config, "printed no token on the first line of stdout")
   try {
-    return normalizeToken(line, `the command of ${config.origin}`);
+    return normalizeToken(line, `the command of ${config.origin}`)
   } catch (error) {
-    if (!(error instanceof OperateError)) throw error;
-    throw new OperateError('LOGIN_FAILED', error.message, error.details);
+    if (!(error instanceof OperateError)) throw error
+    throw new OperateError("LOGIN_FAILED", error.message, error.details)
   }
 }
 
@@ -78,14 +78,14 @@ export async function runTokenCommand(
   config: CommandBearerConfig,
   deps: CommandDeps,
 ): Promise<string> {
-  deps.trace?.({ type: 'note', message: `Running the bearer token command of ${config.origin}.` });
-  let result: CommandResult;
+  deps.trace?.({ type: "note", message: `Running the bearer token command of ${config.origin}.` })
+  let result: CommandResult
   try {
-    result = await deps.runCommand(config.command, { timeoutMs: deps.timeoutMs });
+    result = await deps.runCommand(config.command, { timeoutMs: deps.timeoutMs })
   } catch (error) {
-    throw loginFailed(config, `could not be started (${reasonOf(error)})`);
+    throw loginFailed(config, `could not be started (${reasonOf(error)})`)
   }
-  const problem = failure(result, deps.timeoutMs);
-  if (problem !== undefined) throw loginFailed(config, problem);
-  return tokenOf(config, result.stdout);
+  const problem = failure(result, deps.timeoutMs)
+  if (problem !== undefined) throw loginFailed(config, problem)
+  return tokenOf(config, result.stdout)
 }

@@ -1,6 +1,6 @@
 ---
 type: regex
-pattern: 'parallel'
+pattern: "parallel"
 flags: i
 target: last_message
 ---

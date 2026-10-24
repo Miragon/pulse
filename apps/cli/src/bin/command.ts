@@ -5,61 +5,61 @@
  * pipes open.
  */
 
-import { spawn } from 'node:child_process';
-import type { CommandOptions, CommandResult } from '../runtime.js';
+import { spawn } from "node:child_process"
+import type { CommandOptions, CommandResult } from "../runtime.js"
 
 /** Bytes kept of each output stream. */
-const MAX_OUTPUT = 1_048_576;
+const MAX_OUTPUT = 1_048_576
 
 /** Collects the chunks of a stream up to MAX_OUTPUT bytes. */
 function collector() {
-  const chunks: Buffer[] = [];
-  let size = 0;
+  const chunks: Buffer[] = []
+  let size = 0
   return {
     add(chunk: Buffer) {
-      if (size >= MAX_OUTPUT) return;
-      const kept = chunk.subarray(0, MAX_OUTPUT - size);
-      chunks.push(kept);
-      size += kept.length;
+      if (size >= MAX_OUTPUT) return
+      const kept = chunk.subarray(0, MAX_OUTPUT - size)
+      chunks.push(kept)
+      size += kept.length
     },
     bytes: () => new Uint8Array(Buffer.concat(chunks)),
-  };
+  }
 }
 
 export function runCommand(command: string, options: CommandOptions): Promise<CommandResult> {
   return new Promise((resolve, reject) => {
     const child = spawn(command, {
       shell: true,
-      stdio: ['ignore', 'pipe', 'pipe'],
+      stdio: ["ignore", "pipe", "pipe"],
       windowsHide: true,
-    });
-    const stdout = collector();
-    const stderr = collector();
-    child.stdout.on('data', (chunk: Buffer) => {
-      stdout.add(chunk);
-    });
-    child.stderr.on('data', (chunk: Buffer) => {
-      stderr.add(chunk);
-    });
+    })
+    const stdout = collector()
+    const stderr = collector()
+    child.stdout.on("data", (chunk: Buffer) => {
+      stdout.add(chunk)
+    })
+    child.stderr.on("data", (chunk: Buffer) => {
+      stderr.add(chunk)
+    })
     const result = (exitCode: number | null, timedOut: boolean): CommandResult => ({
       exitCode,
       timedOut,
       stdout: stdout.bytes(),
       stderr: stderr.bytes(),
-    });
+    })
     const timer = setTimeout(() => {
-      child.kill('SIGKILL');
-      child.stdout.destroy();
-      child.stderr.destroy();
-      resolve(result(null, true));
-    }, options.timeoutMs);
-    child.on('error', (error) => {
-      clearTimeout(timer);
-      reject(error);
-    });
-    child.on('close', (code) => {
-      clearTimeout(timer);
-      resolve(result(code, false));
-    });
-  });
+      child.kill("SIGKILL")
+      child.stdout.destroy()
+      child.stderr.destroy()
+      resolve(result(null, true))
+    }, options.timeoutMs)
+    child.on("error", (error) => {
+      clearTimeout(timer)
+      reject(error)
+    })
+    child.on("close", (code) => {
+      clearTimeout(timer)
+      resolve(result(code, false))
+    })
+  })
 }

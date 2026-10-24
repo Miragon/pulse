@@ -1,10 +1,10 @@
 /** `operate guide workflow`: the workflow commands in detail. */
 
-import type { GuideTopic } from './topic.js';
+import type { GuideTopic } from "./topic.js"
 
 export const WORKFLOW_TOPIC: GuideTopic = {
-  name: 'workflow',
-  summary: 'Workflow commands in detail: selection, inspect, wait, advance, retry, deploy, status',
+  name: "workflow",
+  summary: "Workflow commands in detail: selection, inspect, wait, advance, retry, deploy, status",
   text: `# operate guide workflow: commands that combine requests
 
 The workflow commands are top-level commands (\`operate inspect\`, not \`operate workflow inspect\`)
@@ -63,4 +63,4 @@ operate deploy src/main/resources --start-key invoice --business-key INV-1001 --
 operate status --process-definition-key invoice --fail-on critical
 \`\`\`
 `,
-};
+}

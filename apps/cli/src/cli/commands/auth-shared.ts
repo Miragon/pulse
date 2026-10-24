@@ -6,16 +6,16 @@
  * lose it. In a repository, project files elsewhere and other worktrees may use it, too.
  */
 
-import { loginFileName } from '../../auth/oauth/cache.js';
-import type { OAuthDeps } from '../../auth/oauth/types.js';
-import { loginProfiles, selectedLoginKey } from '../../config/login-key.js';
-import { findProfile } from '../../config/resolve.js';
+import { loginFileName } from "../../auth/oauth/cache.js"
+import type { OAuthDeps } from "../../auth/oauth/types.js"
+import { loginProfiles, selectedLoginKey } from "../../config/login-key.js"
+import { findProfile } from "../../config/resolve.js"
 import {
   DEFAULT_URL,
   type LoadedConfig,
   type LoginKey,
   type SelectedProfile,
-} from '../../config/types.js';
+} from "../../config/types.js"
 
 /**
  * The profiles that use the login of `key`, in file order; `profile` first when it is not among
@@ -26,21 +26,21 @@ export function sharingProfiles(
   key: LoginKey | undefined,
   profile: string | undefined,
 ): string[] {
-  if (key === undefined || profile === undefined) return [];
-  const profiles = loginProfiles(file, key);
-  return profiles.includes(profile) ? profiles : [profile, ...profiles];
+  if (key === undefined || profile === undefined) return []
+  const profiles = loginProfiles(file, key)
+  return profiles.includes(profile) ? profiles : [profile, ...profiles]
 }
 
 function others(profiles: readonly string[], profile: string | undefined): string[] {
-  return profiles.filter((name) => name !== profile);
+  return profiles.filter((name) => name !== profile)
 }
 
 /** `"a"`, `"a" and "b"`, `"a", "b" and "c"`. */
 export function quotedNames(names: readonly string[]): string {
-  const list = names.map((name) => `"${name}"`);
+  const list = names.map((name) => `"${name}"`)
   return list.length === 1
-    ? (list[0] ?? '')
-    : `${list.slice(0, -1).join(', ')} and ${list.at(-1) ?? ''}`;
+    ? (list[0] ?? "")
+    : `${list.slice(0, -1).join(", ")} and ${list.at(-1) ?? ""}`
 }
 
 /** The lines on stderr after `auth login`: the other profiles the login serves and their URLs. */
@@ -49,16 +49,16 @@ export function sharedLoginLines(
   profiles: readonly string[],
   profile: string | undefined,
 ): string[] {
-  const rest = others(profiles, profile);
-  if (rest.length === 0) return [];
-  const width = Math.max(...rest.map((name) => name.length));
-  const count = rest.length === 1 ? 'another profile' : `${String(rest.length)} other profiles`;
+  const rest = others(profiles, profile)
+  if (rest.length === 0) return []
+  const width = Math.max(...rest.map((name) => name.length))
+  const count = rest.length === 1 ? "another profile" : `${String(rest.length)} other profiles`
   return [
     `The login also serves ${count} with the same issuer, client, audience and scopes:`,
     ...rest.map(
       (name) => `  ${name.padEnd(width)}  ${findProfile(file, name)?.url ?? DEFAULT_URL}`,
     ),
-  ];
+  ]
 }
 
 /** The note on stderr after `auth logout` when other profiles lose the login, too. */
@@ -66,19 +66,19 @@ export function sharedLogoutNote(
   profiles: readonly string[],
   profile: string | undefined,
 ): string | undefined {
-  const rest = others(profiles, profile);
-  if (rest.length === 0) return undefined;
-  const verb = rest.length === 1 ? 'needs' : 'need';
-  return `Note: the login was shared; profile${rest.length === 1 ? '' : 's'} ${quotedNames(rest)} ${verb} a new login, too.`;
+  const rest = others(profiles, profile)
+  if (rest.length === 0) return undefined
+  const verb = rest.length === 1 ? "needs" : "need"
+  return `Note: the login was shared; profile${rest.length === 1 ? "" : "s"} ${quotedNames(rest)} ${verb} a new login, too.`
 }
 
 /** `%xx` (`%uxxxx`) for every UTF-16 code unit outside `[a-z0-9._-]`, as operate 0.6/0.7 did. */
 function encodedName(profile: string): string {
   return profile.replace(/[^a-z0-9._-]/g, (unit) => {
-    const code = unit.charCodeAt(0);
-    const hex = code.toString(16);
-    return code < 0x100 ? `%${hex.padStart(2, '0')}` : `%u${hex.padStart(4, '0')}`;
-  });
+    const code = unit.charCodeAt(0)
+    const hex = code.toString(16)
+    return code < 0x100 ? `%${hex.padStart(2, "0")}` : `%u${hex.padStart(4, "0")}`
+  })
 }
 
 /**
@@ -90,14 +90,12 @@ function encodedName(profile: string): string {
  */
 export async function oldLoginFiles(
   profile: string,
-  deps: Pick<OAuthDeps, 'tokenPath' | 'tokenDir' | 'fs'>,
+  deps: Pick<OAuthDeps, "tokenPath" | "tokenDir" | "fs">,
 ): Promise<string[]> {
-  const names = [...new Set([encodedName(profile), profile])].map((name) => `profile-${name}.json`);
-  const entries = await deps.fs.readdir(deps.tokenDir).catch(() => []);
-  const files = new Set(
-    entries.filter((entry) => entry.kind === 'file').map((entry) => entry.name),
-  );
-  return names.filter((name) => files.has(name)).map((name) => deps.tokenPath(name));
+  const names = [...new Set([encodedName(profile), profile])].map((name) => `profile-${name}.json`)
+  const entries = await deps.fs.readdir(deps.tokenDir).catch(() => [])
+  const files = new Set(entries.filter((entry) => entry.kind === "file").map((entry) => entry.name))
+  return names.filter((name) => files.has(name)).map((name) => deps.tokenPath(name))
 }
 
 /**
@@ -107,11 +105,11 @@ export async function oldLoginFiles(
 export async function storedLogin(
   file: LoadedConfig | undefined,
   selected: Extract<SelectedProfile, { name: string }>,
-  deps: Pick<OAuthDeps, 'tokenPath'>,
+  deps: Pick<OAuthDeps, "tokenPath">,
 ) {
-  const key = selectedLoginKey(selected);
+  const key = selectedLoginKey(selected)
   return {
     tokenCache: deps.tokenPath(await loginFileName(key)),
     profiles: sharingProfiles(file, key, selected.name),
-  };
+  }
 }

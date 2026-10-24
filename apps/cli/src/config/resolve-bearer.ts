@@ -7,11 +7,11 @@
  * selects Basic auth. Pure; messages never show a token.
  */
 
-import { OperateError } from '../errors.js';
-import { compact } from '../util.js';
-import { normalizeToken } from './bearer.js';
-import { configError } from './config-error.js';
-import type { Env } from './pick.js';
+import { OperateError } from "../errors.js"
+import { compact } from "../util.js"
+import { normalizeToken } from "./bearer.js"
+import { configError } from "./config-error.js"
+import type { Env } from "./pick.js"
 import {
   type AuthType,
   type BearerAuthConfig,
@@ -21,15 +21,15 @@ import {
   type SelectedProfile,
   type Source,
   type UnusedToken,
-} from './types.js';
-import { TOKEN_VARIABLE, unsetVariable } from './variable.js';
+} from "./types.js"
+import { TOKEN_VARIABLE, unsetVariable } from "./variable.js"
 
 export interface BearerContext {
-  readonly flags: ConfigFlags;
-  readonly env: Env;
-  readonly selected: SelectedProfile;
+  readonly flags: ConfigFlags
+  readonly env: Env
+  readonly selected: SelectedProfile
   /** `operate auth` commands have no `--auth` option: hints suggest OPERATE_AUTH instead. */
-  readonly authCommand?: boolean;
+  readonly authCommand?: boolean
 }
 
 /**
@@ -37,23 +37,23 @@ export interface BearerContext {
  * `command` says that `value` is a command line that prints the token.
  */
 interface FoundToken {
-  readonly value: string;
-  readonly source: Source;
-  readonly origin: string;
-  readonly variable?: string;
-  readonly command?: boolean;
+  readonly value: string
+  readonly source: Source
+  readonly origin: string
+  readonly variable?: string
+  readonly command?: boolean
 }
 
-const STDIN_FLAG = '--auth-token-stdin';
+const STDIN_FLAG = "--auth-token-stdin"
 
 /** `a bearer token` or `a bearer token command`, for messages. */
 export function tokenNoun(token: { readonly command?: boolean | undefined }): string {
-  return token.command === true ? 'a bearer token command' : 'a bearer token';
+  return token.command === true ? "a bearer token command" : "a bearer token"
 }
 
 /** A token value: blank counts as unset. */
 function present(value: string | undefined): string | undefined {
-  return value === undefined || value.trim() === '' ? undefined : value;
+  return value === undefined || value.trim() === "" ? undefined : value
 }
 
 /**
@@ -61,45 +61,45 @@ function present(value: string | undefined): string | undefined {
  * these select bearer auth without a type.
  */
 export function givenToken({ flags, env }: BearerContext): FoundToken | undefined {
-  const fromFlag = present(flags.authToken);
-  if (fromFlag !== undefined) return { value: fromFlag, source: 'flag', origin: STDIN_FLAG };
-  const fromEnv = present(env[ENV.token]);
+  const fromFlag = present(flags.authToken)
+  if (fromFlag !== undefined) return { value: fromFlag, source: "flag", origin: STDIN_FLAG }
+  const fromEnv = present(env[ENV.token])
   if (fromEnv !== undefined) {
-    return { value: fromEnv, source: 'env', origin: ENV.token, variable: ENV.token };
+    return { value: fromEnv, source: "env", origin: ENV.token, variable: ENV.token }
   }
-  const commandEnv = present(env[ENV.tokenCommand]);
+  const commandEnv = present(env[ENV.tokenCommand])
   return commandEnv === undefined
     ? undefined
-    : { value: commandEnv, source: 'env', origin: ENV.tokenCommand, command: true };
+    : { value: commandEnv, source: "env", origin: ENV.tokenCommand, command: true }
 }
 
 /** The variable named by auth.tokenEnv; it must be set. */
 function tokenFromVariable(variable: string, name: string, env: Env): FoundToken {
-  const value = present(env[variable]);
-  if (value === undefined) throw unsetVariable(variable, name, TOKEN_VARIABLE);
+  const value = present(env[variable])
+  if (value === undefined) throw unsetVariable(variable, name, TOKEN_VARIABLE)
   return {
     value,
-    source: 'profile',
+    source: "profile",
     origin: `${variable} (auth.tokenEnv of profile "${name}")`,
     variable,
-  };
+  }
 }
 
 function storedToken({ env, selected }: BearerContext): FoundToken | undefined {
-  if (selected.profile === undefined) return undefined;
-  const { name, profile } = selected;
-  const auth: ProfileAuth = profile.auth ?? {};
-  if (auth.tokenEnv !== undefined) return tokenFromVariable(auth.tokenEnv, name, env);
-  const value = present(auth.token);
+  if (selected.profile === undefined) return undefined
+  const { name, profile } = selected
+  const auth: ProfileAuth = profile.auth ?? {}
+  if (auth.tokenEnv !== undefined) return tokenFromVariable(auth.tokenEnv, name, env)
+  const value = present(auth.token)
   return value === undefined
     ? undefined
-    : { value, source: 'profile', origin: `auth.token of profile "${name}"` };
+    : { value, source: "profile", origin: `auth.token of profile "${name}"` }
 }
 
 /** Where a bearer token comes from: its origin, and whether a command prints it. */
 export interface BearerSource {
-  readonly origin: string;
-  readonly command: boolean;
+  readonly origin: string
+  readonly command: boolean
 }
 
 /**
@@ -107,35 +107,35 @@ export interface BearerSource {
  * tokenEnv names (and without running a command); undefined when there is none.
  */
 export function bearerSource(context: BearerContext): BearerSource | undefined {
-  const given = givenToken(context);
-  if (given !== undefined) return { origin: given.origin, command: given.command === true };
-  const { name, profile } = context.selected;
-  const auth = profile?.auth ?? {};
-  const key = (['tokenEnv', 'token'] as const).find((candidate) => auth[candidate] !== undefined);
+  const given = givenToken(context)
+  if (given !== undefined) return { origin: given.origin, command: given.command === true }
+  const { name, profile } = context.selected
+  const auth = profile?.auth ?? {}
+  const key = (["tokenEnv", "token"] as const).find((candidate) => auth[candidate] !== undefined)
   return key === undefined
     ? undefined
-    : { origin: `auth.${key} of profile "${name ?? ''}"`, command: false };
+    : { origin: `auth.${key} of profile "${name ?? ""}"`, command: false }
 }
 
 function missingToken(selectedBy: string, selected: SelectedProfile) {
   const profile =
     selected.profile === undefined
-      ? 'a profile (none is selected)'
-      : `the auth.tokenEnv and auth.token of profile "${selected.name}"`;
-  const name = selected.name ?? '<profile>';
+      ? "a profile (none is selected)"
+      : `the auth.tokenEnv and auth.token of profile "${selected.name}"`
+  const name = selected.name ?? "<profile>"
   return configError(
-    'Bearer auth is selected but the token is missing',
+    "Bearer auth is selected but the token is missing",
     `Bearer auth was selected by ${selectedBy}. Looked up the token in ${STDIN_FLAG}, ${ENV.token}, ${ENV.tokenCommand} and ${profile}. Fetch a token with the tool that issues it (e.g. az account get-access-token, gcloud auth print-access-token) and export ${ENV.token}=<token>, let operate run that tool with export ${ENV.tokenCommand}=<command>, pipe it into ${STDIN_FLAG}, or store the name of its variable with \`operate config set ${name} --auth bearer --auth-token-env <VAR>\`; --auth none switches bearer auth off.`,
-  );
+  )
 }
 
 /** `--auth-password-stdin` with bearer auth: stdin would be read for nothing. */
 function refuseStdinPassword(flags: ConfigFlags, selectedBy: string): void {
-  if (present(flags.authPassword) === undefined) return;
+  if (present(flags.authPassword) === undefined) return
   throw configError(
     `--auth-password-stdin reads a Basic auth password, but bearer auth is selected by ${selectedBy}`,
     `Drop --auth-password-stdin: bearer auth sends a token (${STDIN_FLAG} or ${ENV.token}), no password.`,
-  );
+  )
 }
 
 /**
@@ -143,25 +143,25 @@ function refuseStdinPassword(flags: ConfigFlags, selectedBy: string): void {
  * (`--auth bearer`). A command is not run here.
  */
 export function resolveBearer(context: BearerContext, selectedBy: string): BearerAuthConfig {
-  refuseStdinPassword(context.flags, selectedBy);
-  const found = givenToken(context) ?? storedToken(context);
-  if (found === undefined) throw missingToken(selectedBy, context.selected);
+  refuseStdinPassword(context.flags, selectedBy)
+  const found = givenToken(context) ?? storedToken(context)
+  if (found === undefined) throw missingToken(selectedBy, context.selected)
   const base = {
-    type: 'bearer',
+    type: "bearer",
     source: found.source,
     origin: found.origin,
     ...compact({ variable: found.variable, profile: context.selected.name }),
-  } as const;
+  } as const
   return found.command === true
     ? { ...base, command: found.value.trim() }
-    : { ...base, token: normalizeToken(found.value, found.origin) };
+    : { ...base, token: normalizeToken(found.value, found.origin) }
 }
 
-const FAMILY: Readonly<Record<Exclude<AuthType, 'bearer'>, string>> = {
-  none: 'none',
-  basic: 'Basic auth',
-  oauth: 'OAuth',
-};
+const FAMILY: Readonly<Record<Exclude<AuthType, "bearer">, string>> = {
+  none: "none",
+  basic: "Basic auth",
+  oauth: "OAuth",
+}
 
 /**
  * A token of `--auth-token-stdin` or OPERATE_TOKEN, or OPERATE_TOKEN_COMMAND, next to an explicit
@@ -171,24 +171,24 @@ const FAMILY: Readonly<Record<Exclude<AuthType, 'bearer'>, string>> = {
  */
 export function unusedToken(
   context: BearerContext,
-  type: Exclude<AuthType, 'bearer'>,
+  type: Exclude<AuthType, "bearer">,
   typeLabel: string,
 ): UnusedToken | undefined {
-  const token = givenToken(context);
-  if (token === undefined) return undefined;
-  if (token.source === 'flag' && type !== 'none') {
-    const select = context.authCommand === true ? `${ENV.auth}=bearer` : '--auth bearer';
+  const token = givenToken(context)
+  if (token === undefined) return undefined
+  if (token.source === "flag" && type !== "none") {
+    const select = context.authCommand === true ? `${ENV.auth}=bearer` : "--auth bearer"
     throw configError(
       `${STDIN_FLAG} reads a bearer token, but ${FAMILY[type]} is selected by ${typeLabel}`,
       `Drop ${STDIN_FLAG}, or select bearer auth with ${select}.`,
-    );
+    )
   }
   const reason =
-    type === 'none'
+    type === "none"
       ? `bearer auth is switched off by ${typeLabel}`
-      : `${FAMILY[type]} is selected by ${typeLabel}`;
-  const { value, source, command } = token;
-  return { value, source, reason, ...compact({ command }) };
+      : `${FAMILY[type]} is selected by ${typeLabel}`
+  const { value, source, command } = token
+  return { value, source, reason, ...compact({ command }) }
 }
 
 /**
@@ -199,7 +199,7 @@ export function inferenceConflict(basicBy: string, token: FoundToken) {
   return configError(
     `Both Basic auth and ${tokenNoun(token)} are configured, but no auth type says which one to use`,
     `${basicBy} selects Basic auth, ${tokenNoun(token)} (from ${token.origin}) selects bearer auth. Choose one explicitly: --auth basic or --auth bearer (also OPERATE_AUTH or the auth.type of the profile), or unset the other.`,
-  );
+  )
 }
 
 /**
@@ -208,12 +208,12 @@ export function inferenceConflict(basicBy: string, token: FoundToken) {
  * and 401 answers, src/auth/note.ts).
  */
 export function unusedTokenNote(unused: UnusedToken, authCommand?: boolean): string {
-  const command = unused.command === true;
-  const variable = command ? ENV.tokenCommand : ENV.token;
-  const origin = unused.source === 'flag' ? STDIN_FLAG : variable;
-  const noun = command ? 'A bearer token command' : 'A bearer token';
-  const select = authCommand === true ? 'use it with' : 'send it with --auth bearer or';
-  return `${noun} is set (from ${origin}) but not used: ${unused.reason}; ${select} ${ENV.auth}=bearer.`;
+  const command = unused.command === true
+  const variable = command ? ENV.tokenCommand : ENV.token
+  const origin = unused.source === "flag" ? STDIN_FLAG : variable
+  const noun = command ? "A bearer token command" : "A bearer token"
+  const select = authCommand === true ? "use it with" : "send it with --auth bearer or"
+  return `${noun} is set (from ${origin}) but not used: ${unused.reason}; ${select} ${ENV.auth}=bearer.`
 }
 
 /**
@@ -223,15 +223,15 @@ export function unusedTokenNote(unused: UnusedToken, authCommand?: boolean): str
  */
 export function mentioningUnused<T>(note: string | undefined, resolve: () => T): T {
   try {
-    return resolve();
+    return resolve()
   } catch (error) {
-    if (note === undefined || !(error instanceof OperateError) || error.code !== 'CONFIG') {
-      throw error;
+    if (note === undefined || !(error instanceof OperateError) || error.code !== "CONFIG") {
+      throw error
     }
-    const { hint } = error.details;
-    throw new OperateError('CONFIG', error.message, {
+    const { hint } = error.details
+    throw new OperateError("CONFIG", error.message, {
       ...error.details,
       hint: hint === undefined ? note : `${hint} ${note}`,
-    });
+    })
   }
 }

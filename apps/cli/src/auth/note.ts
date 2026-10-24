@@ -5,24 +5,24 @@
  * the Basic credentials, and neither would mention the token the agent exported.
  */
 
-import { OperateError } from '../errors.js';
-import type { AuthPreview, AuthProvider } from './types.js';
+import { OperateError } from "../errors.js"
+import type { AuthPreview, AuthProvider } from "./types.js"
 
 /** Failures of `headers()` and `refresh()` that the note explains. */
-const NOTED_CODES: ReadonlySet<string> = new Set(['LOGIN_REQUIRED']);
+const NOTED_CODES: ReadonlySet<string> = new Set(["LOGIN_REQUIRED"])
 
 function withHint(error: OperateError, note: string): OperateError {
-  const { hint } = error.details;
-  const details = { ...error.details, hint: hint === undefined ? note : `${hint} ${note}` };
-  return new OperateError(error.code, error.message, details, error.cause);
+  const { hint } = error.details
+  const details = { ...error.details, hint: hint === undefined ? note : `${hint} ${note}` }
+  return new OperateError(error.code, error.message, details, error.cause)
 }
 
 function noted(note: string): (error: unknown) => never {
   return (error) => {
     throw error instanceof OperateError && NOTED_CODES.has(error.code)
       ? withHint(error, note)
-      : error;
-  };
+      : error
+  }
 }
 
 /**
@@ -31,13 +31,13 @@ function noted(note: string): (error: unknown) => never {
  * methods keep working on the provider itself. Without a note the provider is returned as it is.
  */
 export function withAuthNote(provider: AuthProvider, note: string | undefined): AuthProvider {
-  if (note === undefined) return provider;
-  const fail = noted(note);
+  if (note === undefined) return provider
+  const fail = noted(note)
   return {
     type: provider.type,
     note,
     get principal() {
-      return provider.principal;
+      return provider.principal
     },
     ...(provider.off === undefined ? {} : { off: provider.off }),
     ...(provider.loginStatusCommand === undefined
@@ -48,11 +48,11 @@ export function withAuthNote(provider: AuthProvider, note: string | undefined): 
       ? {}
       : { refresh: () => provider.refresh?.().catch(fail) ?? Promise.resolve(false) }),
     preview: async (): Promise<AuthPreview> => {
-      const preview = (await provider.preview?.()) ?? { headers: {} };
-      return preview.note === undefined ? preview : { ...preview, note: `${preview.note} ${note}` };
+      const preview = (await provider.preview?.()) ?? { headers: {} }
+      return preview.note === undefined ? preview : { ...preview, note: `${preview.note} ${note}` }
     },
     ...(provider.rejectedHint === undefined
       ? {}
       : { rejectedHint: (status: number) => provider.rejectedHint?.(status) }),
-  };
+  }
 }

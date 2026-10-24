@@ -5,68 +5,68 @@
  * configured engine name that the REST API does not serve is a CONFIG error.
  */
 
-import type { Command } from 'commander';
-import { jwtClaims } from '../../auth/jwt.js';
-import type { AuthProvider } from '../../auth/types.js';
-import { findByOperationId } from '../../catalog/catalog.js';
-import type { Catalog, OperationSpec } from '../../catalog/types.js';
-import type { AuthConfig } from '../../config/types.js';
-import { OperateError } from '../../errors.js';
-import { dryRunPreview, sendRequest } from '../../operation/execute.js';
-import { buildRequest, type OperationInput } from '../../operation/request.js';
-import type { OperationResult } from '../../operation/result.js';
-import { maskUrl } from '../../output/secrets.js';
-import { isRecord } from '../../util.js';
-import { subcommand } from '../command.js';
-import type { CliContext } from '../context.js';
-import { emitResult } from '../emit.js';
-import { addGlobalOptions, readGlobals } from '../globals.js';
-import { clientOf, openSession, targetOf } from '../session.js';
-import type { UtilityCommand } from './types.js';
+import type { Command } from "commander"
+import { jwtClaims } from "../../auth/jwt.js"
+import type { AuthProvider } from "../../auth/types.js"
+import { findByOperationId } from "../../catalog/catalog.js"
+import type { Catalog, OperationSpec } from "../../catalog/types.js"
+import type { AuthConfig } from "../../config/types.js"
+import { OperateError } from "../../errors.js"
+import { dryRunPreview, sendRequest } from "../../operation/execute.js"
+import { buildRequest, type OperationInput } from "../../operation/request.js"
+import type { OperationResult } from "../../operation/result.js"
+import { maskUrl } from "../../output/secrets.js"
+import { isRecord } from "../../util.js"
+import { subcommand } from "../command.js"
+import type { CliContext } from "../context.js"
+import { emitResult } from "../emit.js"
+import { addGlobalOptions, readGlobals } from "../globals.js"
+import { clientOf, openSession, targetOf } from "../session.js"
+import type { UtilityCommand } from "./types.js"
 
-const VERSION_OPERATION = 'getRestAPIVersion';
-const ENGINES_OPERATION = 'getProcessEngineNames';
-const NO_INPUT: OperationInput = { pathArgs: [], query: {} };
+const VERSION_OPERATION = "getRestAPIVersion"
+const ENGINES_OPERATION = "getProcessEngineNames"
+const NO_INPUT: OperationInput = { pathArgs: [], query: {} }
 
 const DESCRIPTION = [
-  'Check the connection to the engine: REST API version, process engines and latency.',
-  '',
-  'Sends GET /version and GET /engine; --dry-run shows the first request.',
-].join('\n');
+  "Check the connection to the engine: REST API version, process engines and latency.",
+  "",
+  "Sends GET /version and GET /engine; --dry-run shows the first request.",
+].join("\n")
 
 function catalogOperation(catalog: Catalog, operationId: string): OperationSpec {
-  const operation = findByOperationId(catalog, operationId);
+  const operation = findByOperationId(catalog, operationId)
   if (operation === undefined) {
-    throw new OperateError('INTERNAL', `The catalog has no operation ${operationId}`);
+    throw new OperateError("INTERNAL", `The catalog has no operation ${operationId}`)
   }
-  return operation;
+  return operation
 }
 
 function jsonValue(result: OperationResult): unknown {
-  return result.kind === 'json' ? result.value : undefined;
+  return result.kind === "json" ? result.value : undefined
 }
 
 /** `version` of the VersionDto, or null. */
 export function versionOf(result: OperationResult): string | null {
-  const value = jsonValue(result);
-  return isRecord(value) && typeof value.version === 'string' ? value.version : null;
+  const value = jsonValue(result)
+  return isRecord(value) && typeof value.version === "string" ? value.version : null
 }
 
 /** Names of the ProcessEngineDto list. */
 export function engineNames(result: OperationResult): string[] {
-  const value = jsonValue(result);
-  if (!Array.isArray(value)) return [];
+  const value = jsonValue(result)
+  if (!Array.isArray(value)) return []
   return value.flatMap((engine: unknown) =>
-    isRecord(engine) && typeof engine.name === 'string' ? [engine.name] : [],
-  );
+    isRecord(engine) && typeof engine.name === "string" ? [engine.name] : [],
+  )
 }
 
 /** Throws CONFIG when `engine` is set but not among the (non-empty) engine names. */
 export function checkEngine(engine: string | undefined, names: readonly string[]): void {
-  if (engine === undefined || names.length === 0 || names.includes(engine)) return;
-  throw new OperateError('CONFIG', `Process engine "${engine}" does not exist`, {
-    hint: `The REST API serves: ${names.join(', ')}. Pass one of them with --engine (or OPERATE_ENGINE, or the profile setting engine), or leave it unset for the default engine.`,
-  });
+  if (engine === undefined || names.length === 0 || names.includes(engine)) return
+  throw new OperateError("CONFIG", `Process engine "${engine}" does not exist`, {
+    hint: `The REST API serves: ${names.join(", ")}. Pass one of them with --engine (or OPERATE_ENGINE, or the profile setting engine), or leave it unset for the default engine.`,
+  })
 }
 
 /**
@@ -78,38 +78,38 @@ function userOf(
   auth: AuthConfig,
   provider: AuthProvider,
 ): { user?: string | null; subject?: string | null } {
-  if (auth.type === 'basic') return { user: auth.username };
-  if (auth.type === 'none') return {};
+  if (auth.type === "basic") return { user: auth.username }
+  if (auth.type === "none") return {}
   // the token of OAuth and of a token command is known once the provider got it
-  if (auth.type === 'oauth' || auth.command !== undefined) {
-    return { user: provider.principal?.user ?? null };
+  if (auth.type === "oauth" || auth.command !== undefined) {
+    return { user: provider.principal?.user ?? null }
   }
-  const claims = jwtClaims(auth.token);
-  return claims === undefined ? {} : { user: claims.user, subject: claims.subject };
+  const claims = jwtClaims(auth.token)
+  return claims === undefined ? {} : { user: claims.user, subject: claims.subject }
 }
 
 async function runPing(command: Command, context: CliContext): Promise<void> {
-  const { runtime, catalog } = context;
-  const session = await openSession(context, readGlobals(command));
-  const target = targetOf(session);
+  const { runtime, catalog } = context
+  const session = await openSession(context, readGlobals(command))
+  const target = targetOf(session)
   const versionRequest = buildRequest(
     catalogOperation(catalog, VERSION_OPERATION),
     NO_INPUT,
     target,
-  );
-  const client = clientOf(session, runtime);
+  )
+  const client = clientOf(session, runtime)
   if (session.globals.dryRun) {
-    await emitResult(await dryRunPreview(versionRequest, client.auth), session, runtime);
-    return;
+    await emitResult(await dryRunPreview(versionRequest, client.auth), session, runtime)
+    return
   }
-  const started = runtime.now();
-  const version = await sendRequest(versionRequest, client);
-  const latencyMs = runtime.now() - started;
-  const enginesOperation = catalogOperation(catalog, ENGINES_OPERATION);
-  const engines = await sendRequest(buildRequest(enginesOperation, NO_INPUT, target), client);
-  const { config, globals } = session;
-  const names = engineNames(engines);
-  checkEngine(config.engine, names);
+  const started = runtime.now()
+  const version = await sendRequest(versionRequest, client)
+  const latencyMs = runtime.now() - started
+  const enginesOperation = catalogOperation(catalog, ENGINES_OPERATION)
+  const engines = await sendRequest(buildRequest(enginesOperation, NO_INPUT, target), client)
+  const { config, globals } = session
+  const names = engineNames(engines)
+  checkEngine(config.engine, names)
   const value = {
     url: maskUrl(config.url, globals.showSecrets),
     engine: config.engine ?? null,
@@ -119,22 +119,18 @@ async function runPing(command: Command, context: CliContext): Promise<void> {
     latencyMs,
     auth: config.auth.type,
     ...userOf(config.auth, client.auth),
-  };
-  await emitResult(
-    { kind: 'json', status: 200, value, request: version.request },
-    session,
-    runtime,
-  );
+  }
+  await emitResult({ kind: "json", status: 200, value, request: version.request }, session, runtime)
 }
 
 export const pingCommand: UtilityCommand = {
-  name: 'ping',
+  name: "ping",
   nested: false,
   register(program, context) {
-    const command = subcommand(program, 'ping')
-      .summary('Check the connection to the engine')
-      .description(DESCRIPTION);
-    addGlobalOptions(command);
-    command.action(() => runPing(command, context));
+    const command = subcommand(program, "ping")
+      .summary("Check the connection to the engine")
+      .description(DESCRIPTION)
+    addGlobalOptions(command)
+    command.action(() => runPing(command, context))
   },
-};
+}

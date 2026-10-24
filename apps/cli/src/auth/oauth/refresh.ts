@@ -6,14 +6,14 @@
  * commands send one refresh token exactly once.
  */
 
-import { endpointSource } from '../../config/resolve-oauth.js';
-import type { OAuthConfig } from '../../config/types.js';
-import { clientAuthOf, readCache, withCacheLock, writeCache } from './cache.js';
-import { cannotRefresh, otherIdentity, removedWhileRunning } from './errors.js';
-import { canRefresh, expiryOf, isExpired } from './expiry.js';
-import { identityOf, sameIdentity } from './identity.js';
-import { refreshRejection, refreshTokens, type TokenClient } from './token.js';
-import type { CachedLogin, OAuthDeps, TokenResponse } from './types.js';
+import { endpointSource } from "../../config/resolve-oauth.js"
+import type { OAuthConfig } from "../../config/types.js"
+import { clientAuthOf, readCache, withCacheLock, writeCache } from "./cache.js"
+import { cannotRefresh, otherIdentity, removedWhileRunning } from "./errors.js"
+import { canRefresh, expiryOf, isExpired } from "./expiry.js"
+import { identityOf, sameIdentity } from "./identity.js"
+import { refreshRejection, refreshTokens, type TokenClient } from "./token.js"
+import type { CachedLogin, OAuthDeps, TokenResponse } from "./types.js"
 
 /** The token endpoint client of a cached login (refreshes need no discovery). */
 function cachedClient(config: OAuthConfig, login: CachedLogin): TokenClient {
@@ -23,13 +23,13 @@ function cachedClient(config: OAuthConfig, login: CachedLogin): TokenClient {
     method: clientAuthOf(login),
     endpoint: { url: login.endpoints.token, source: endpointSource(config) },
     who: config,
-  };
+  }
 }
 
 /** `refresh_expires_in` given: its expiry; else none after a rotation, else unchanged. */
 function refreshExpiry(stored: CachedLogin, tokens: TokenResponse, now: number): number | null {
-  if (tokens.refreshExpiresIn !== null) return expiryOf(now, tokens.refreshExpiresIn);
-  return tokens.refreshToken === null ? stored.refreshExpiresAt : null;
+  if (tokens.refreshExpiresIn !== null) return expiryOf(now, tokens.refreshExpiresIn)
+  return tokens.refreshToken === null ? stored.refreshExpiresAt : null
 }
 
 /**
@@ -39,7 +39,7 @@ function refreshExpiry(stored: CachedLogin, tokens: TokenResponse, now: number):
 function mergeRefresh(stored: CachedLogin, tokens: TokenResponse, now: number): CachedLogin {
   return {
     ...stored,
-    tokenType: 'Bearer',
+    tokenType: "Bearer",
     accessToken: tokens.accessToken,
     expiresAt: expiryOf(now, tokens.expiresIn),
     refreshToken: tokens.refreshToken ?? stored.refreshToken,
@@ -48,16 +48,16 @@ function mergeRefresh(stored: CachedLogin, tokens: TokenResponse, now: number): 
     subject: tokens.subject ?? stored.subject,
     user: tokens.user ?? stored.user,
     refreshedAt: now,
-  };
+  }
 }
 
 /** Re-reads the file under the lock with the checks of a first read; a missing file fails. */
 async function storedLogin(config: OAuthConfig, path: string, deps: OAuthDeps) {
-  const stored = await readCache(path, deps, config);
-  if (stored === undefined) throw removedWhileRunning(config);
+  const stored = await readCache(path, deps, config)
+  if (stored === undefined) throw removedWhileRunning(config)
   if (!sameIdentity(stored.identity, identityOf(config)))
-    throw otherIdentity(stored.identity, config);
-  return stored;
+    throw otherIdentity(stored.identity, config)
+  return stored
 }
 
 /**
@@ -72,16 +72,16 @@ export function refreshUnderLock(
   deps: OAuthDeps,
 ): Promise<CachedLogin> {
   return withCacheLock(path, deps, async () => {
-    const stored = await storedLogin(config, path, deps);
-    const now = deps.now();
+    const stored = await storedLogin(config, path, deps)
+    const now = deps.now()
     if (stored.accessToken !== current.accessToken && !isExpired(now, stored.expiresAt)) {
-      return stored;
+      return stored
     }
-    const tokens = await refreshOrRecord(config, path, stored, deps);
-    const refreshed = mergeRefresh(stored, tokens, deps.now());
-    await writeCache(path, refreshed, deps);
-    return refreshed;
-  });
+    const tokens = await refreshOrRecord(config, path, stored, deps)
+    const refreshed = mergeRefresh(stored, tokens, deps.now())
+    await writeCache(path, refreshed, deps)
+    return refreshed
+  })
 }
 
 /**
@@ -95,19 +95,19 @@ async function refreshOrRecord(
   stored: CachedLogin,
   deps: OAuthDeps,
 ): Promise<TokenResponse> {
-  const now = deps.now();
+  const now = deps.now()
   if (stored.refreshToken === null || !canRefresh(stored, now)) {
-    throw cannotRefresh(stored, now, config);
+    throw cannotRefresh(stored, now, config)
   }
   try {
-    return await refreshTokens(cachedClient(config, stored), stored.refreshToken, deps);
+    return await refreshTokens(cachedClient(config, stored), stored.refreshToken, deps)
   } catch (error) {
-    const rejection = refreshRejection(error);
+    const rejection = refreshRejection(error)
     if (rejection !== undefined) {
-      const refreshRejected = { at: deps.now(), error: rejection };
+      const refreshRejected = { at: deps.now(), error: rejection }
       // best effort: the refusal itself is what the command reports
-      await writeCache(path, { ...stored, refreshRejected }, deps).catch(() => undefined);
+      await writeCache(path, { ...stored, refreshRejected }, deps).catch(() => undefined)
     }
-    throw error;
+    throw error
   }
 }

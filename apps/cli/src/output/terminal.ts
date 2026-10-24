@@ -5,12 +5,12 @@
  */
 
 /** C0 controls except tab and line feed, DEL, and the C1 controls (`\x9b` starts a sequence too). */
-const CONTROL = /[^\P{Cc}\t\n]/gu;
+const CONTROL = /[^\P{Cc}\t\n]/gu
 
 /** Shown in place of a control character. */
-const REPLACEMENT = '�';
+const REPLACEMENT = "�"
 
 /** Replaces control characters (except tab and line feed) with U+FFFD; CRLF becomes LF. */
 export function terminalSafe(text: string): string {
-  return text.replace(/\r\n/g, '\n').replace(CONTROL, REPLACEMENT);
+  return text.replace(/\r\n/g, "\n").replace(CONTROL, REPLACEMENT)
 }

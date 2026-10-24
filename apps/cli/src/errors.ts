@@ -12,31 +12,31 @@ export const EXIT_CODES = {
   network: 8,
   /** Every request succeeded, but the process did not reach the expected state (design §17). */
   outcome: 9,
-} as const;
+} as const
 
 export type ErrorCode =
-  | 'USAGE'
-  | 'CONFIG'
-  | 'READ_ONLY'
-  | 'CONFIRMATION_REQUIRED'
-  | 'VALIDATION'
-  | 'UNAUTHORIZED'
-  | 'FORBIDDEN'
-  | 'LOGIN_REQUIRED'
-  | 'LOGIN_FAILED'
-  | 'TOKEN_EXPIRED'
-  | 'NOT_FOUND'
-  | 'HTTP_CLIENT_ERROR'
-  | 'HTTP_SERVER_ERROR'
-  | 'HTTP_REDIRECT'
-  | 'NETWORK'
-  | 'TIMEOUT'
-  | 'INTERNAL'
-  | 'WAIT_TIMEOUT'
-  | 'INCIDENT'
-  | 'INSTANCE_ENDED'
-  | 'JOB_FAILED'
-  | 'CHECK_FAILED';
+  | "USAGE"
+  | "CONFIG"
+  | "READ_ONLY"
+  | "CONFIRMATION_REQUIRED"
+  | "VALIDATION"
+  | "UNAUTHORIZED"
+  | "FORBIDDEN"
+  | "LOGIN_REQUIRED"
+  | "LOGIN_FAILED"
+  | "TOKEN_EXPIRED"
+  | "NOT_FOUND"
+  | "HTTP_CLIENT_ERROR"
+  | "HTTP_SERVER_ERROR"
+  | "HTTP_REDIRECT"
+  | "NETWORK"
+  | "TIMEOUT"
+  | "INTERNAL"
+  | "WAIT_TIMEOUT"
+  | "INCIDENT"
+  | "INSTANCE_ENDED"
+  | "JOB_FAILED"
+  | "CHECK_FAILED"
 
 const EXIT_CODE_BY_ERROR: Readonly<Record<ErrorCode, number>> = {
   USAGE: EXIT_CODES.usage,
@@ -64,36 +64,36 @@ const EXIT_CODE_BY_ERROR: Readonly<Record<ErrorCode, number>> = {
   INSTANCE_ENDED: EXIT_CODES.outcome,
   JOB_FAILED: EXIT_CODES.outcome,
   CHECK_FAILED: EXIT_CODES.outcome,
-};
+}
 
 export interface ErrorDetails {
-  readonly hint?: string;
-  readonly status?: number;
+  readonly hint?: string
+  readonly status?: number
   /** Exception class reported by the engine, e.g. `InvalidRequestException`. */
-  readonly engineType?: string;
-  readonly engineMessage?: string;
-  readonly engineCode?: number;
-  readonly request?: { readonly method: string; readonly url: string };
+  readonly engineType?: string
+  readonly engineMessage?: string
+  readonly engineCode?: number
+  readonly request?: { readonly method: string; readonly url: string }
   /** Extra structured data from the engine error (validation reports and similar). */
-  readonly data?: unknown;
+  readonly data?: unknown
 }
 
 export class OperateError extends Error {
-  readonly code: ErrorCode;
-  readonly details: ErrorDetails;
+  readonly code: ErrorCode
+  readonly details: ErrorDetails
 
   constructor(code: ErrorCode, message: string, details: ErrorDetails = {}, cause?: unknown) {
-    super(message, cause === undefined ? undefined : { cause });
-    this.name = 'OperateError';
-    this.code = code;
-    this.details = details;
+    super(message, cause === undefined ? undefined : { cause })
+    this.name = "OperateError"
+    this.code = code
+    this.details = details
   }
 
   get exitCode(): number {
-    return EXIT_CODE_BY_ERROR[this.code];
+    return EXIT_CODE_BY_ERROR[this.code]
   }
 }
 
 export function usageError(message: string, hint?: string): OperateError {
-  return new OperateError('USAGE', message, hint === undefined ? {} : { hint });
+  return new OperateError("USAGE", message, hint === undefined ? {} : { hint })
 }

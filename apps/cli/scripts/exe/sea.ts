@@ -9,48 +9,48 @@
  * native runner. `macos` and `windows` rather than `darwin` and `win32`: people look for those.
  */
 const ASSET_NAMES: Readonly<Record<string, string>> = {
-  'linux-x64': 'operate-linux-x64',
-  'linux-arm64': 'operate-linux-arm64',
-  'darwin-x64': 'operate-macos-x64',
-  'darwin-arm64': 'operate-macos-arm64',
-  'win32-x64': 'operate-windows-x64.exe',
-};
+  "linux-x64": "operate-linux-x64",
+  "linux-arm64": "operate-linux-arm64",
+  "darwin-x64": "operate-macos-x64",
+  "darwin-arm64": "operate-macos-arm64",
+  "win32-x64": "operate-windows-x64.exe",
+}
 
 /** Every release target, `<process.platform>-<process.arch>`. */
-export const EXE_TARGETS: readonly string[] = Object.keys(ASSET_NAMES);
+export const EXE_TARGETS: readonly string[] = Object.keys(ASSET_NAMES)
 
 /** Resource name, sentinel fuse and Mach-O segment that Node.js looks for at start-up. */
-export const SEA_RESOURCE = 'NODE_SEA_BLOB';
-export const SEA_SENTINEL_FUSE = 'NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2';
-const SEA_MACHO_SEGMENT = 'NODE_SEA';
+export const SEA_RESOURCE = "NODE_SEA_BLOB"
+export const SEA_SENTINEL_FUSE = "NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2"
+const SEA_MACHO_SEGMENT = "NODE_SEA"
 
 export interface ExeTarget {
   /** Release asset name: `operate-<os>-<arch>`, plus `.exe` on Windows. */
-  readonly fileName: string;
+  readonly fileName: string
   /**
    * Mach-O (macOS): postject needs the segment name, the signature of the copied node binary has
    * to go before the injection, and the result needs a new one (ad hoc) or arm64 refuses to run it.
    */
-  readonly macho: boolean;
+  readonly macho: boolean
 }
 
 /** The target for a platform and architecture; fails for one the release does not build. */
 export function exeTarget(platform: string, arch: string): ExeTarget {
-  const key = `${platform}-${arch}`;
-  const fileName = ASSET_NAMES[key];
+  const key = `${platform}-${arch}`
+  const fileName = ASSET_NAMES[key]
   if (fileName === undefined) {
-    throw new Error(`No standalone executable for ${key}; targets: ${EXE_TARGETS.join(', ')}`);
+    throw new Error(`No standalone executable for ${key}; targets: ${EXE_TARGETS.join(", ")}`)
   }
-  return { fileName, macho: platform === 'darwin' };
+  return { fileName, macho: platform === "darwin" }
 }
 
 /** The SEA configuration file read by `node --experimental-sea-config`. */
 export interface SeaConfig {
-  readonly main: string;
-  readonly output: string;
-  readonly disableExperimentalSEAWarning: true;
-  readonly useSnapshot: false;
-  readonly useCodeCache: true;
+  readonly main: string
+  readonly output: string
+  readonly disableExperimentalSEAWarning: true
+  readonly useSnapshot: false
+  readonly useCodeCache: true
 }
 
 /**
@@ -65,7 +65,7 @@ export function seaConfig(main: string, blob: string): SeaConfig {
     disableExperimentalSEAWarning: true,
     useSnapshot: false,
     useCodeCache: true,
-  };
+  }
 }
 
 /**
@@ -76,16 +76,16 @@ export function seaConfig(main: string, blob: string): SeaConfig {
  */
 export function sharedLibraries(variables: object): string[] {
   return Object.entries(variables)
-    .filter(([key, value]) => key.startsWith('node_shared') && value === true)
-    .map(([key]) => key);
+    .filter(([key, value]) => key.startsWith("node_shared") && value === true)
+    .map(([key]) => key)
 }
 
 /** postject options for the target. */
 export function injectOptions(target: ExeTarget): {
-  readonly sentinelFuse: string;
-  readonly machoSegmentName?: string;
+  readonly sentinelFuse: string
+  readonly machoSegmentName?: string
 } {
   return target.macho
     ? { sentinelFuse: SEA_SENTINEL_FUSE, machoSegmentName: SEA_MACHO_SEGMENT }
-    : { sentinelFuse: SEA_SENTINEL_FUSE };
+    : { sentinelFuse: SEA_SENTINEL_FUSE }
 }

@@ -5,22 +5,22 @@
  */
 
 export interface PollTiming {
-  readonly now: () => number;
-  readonly sleep: (ms: number) => Promise<void>;
-  readonly timeoutMs: number;
+  readonly now: () => number
+  readonly sleep: (ms: number) => Promise<void>
+  readonly timeoutMs: number
   /** Called once, before the first sleep (the wait really waits). */
-  readonly waiting?: () => void;
+  readonly waiting?: () => void
 }
 
 export interface PollResult<T> {
   /** The value of the check that ended the loop; undefined after the deadline. */
-  readonly value?: T;
-  readonly polls: number;
-  readonly elapsedMs: number;
+  readonly value?: T
+  readonly polls: number
+  readonly elapsedMs: number
 }
 
-const FIRST_DELAY_MS = 250;
-const MAX_DELAY_MS = 2000;
+const FIRST_DELAY_MS = 250
+const MAX_DELAY_MS = 2000
 
 /**
  * Runs `check` until it returns a value or the deadline passed. `check` gets the number of the
@@ -30,16 +30,16 @@ export async function poll<T>(
   check: (polls: number) => Promise<T | undefined>,
   timing: PollTiming,
 ): Promise<PollResult<T>> {
-  const started = timing.now();
-  const deadline = started + timing.timeoutMs;
-  let delay = FIRST_DELAY_MS;
+  const started = timing.now()
+  const deadline = started + timing.timeoutMs
+  let delay = FIRST_DELAY_MS
   for (let polls = 1; ; polls++) {
-    const value = await check(polls);
-    const now = timing.now();
-    if (value !== undefined) return { value, polls, elapsedMs: now - started };
-    if (now >= deadline) return { polls, elapsedMs: now - started };
-    if (polls === 1) timing.waiting?.();
-    await timing.sleep(Math.min(delay, deadline - now));
-    delay = Math.min(delay * 2, MAX_DELAY_MS);
+    const value = await check(polls)
+    const now = timing.now()
+    if (value !== undefined) return { value, polls, elapsedMs: now - started }
+    if (now >= deadline) return { polls, elapsedMs: now - started }
+    if (polls === 1) timing.waiting?.()
+    await timing.sleep(Math.min(delay, deadline - now))
+    delay = Math.min(delay * 2, MAX_DELAY_MS)
   }
 }

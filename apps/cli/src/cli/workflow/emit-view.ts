@@ -4,10 +4,10 @@
  * JSON view written to `--out-file` with the §2.6 summary.
  */
 
-import { fieldWarnings, renderValue } from '../../output/render.js';
-import type { Runtime } from '../../runtime.js';
-import { writeOutFile, writeText } from '../emit.js';
-import { renderOptionsOf, type Session } from '../session.js';
+import { fieldWarnings, renderValue } from "../../output/render.js"
+import type { Runtime } from "../../runtime.js"
+import { writeOutFile, writeText } from "../emit.js"
+import { renderOptionsOf, type Session } from "../session.js"
 
 export async function emitView(
   value: unknown,
@@ -15,19 +15,19 @@ export async function emitView(
   session: Session,
   runtime: Runtime,
 ): Promise<void> {
-  const options = renderOptionsOf(session, runtime);
-  const warnings = fieldWarnings(value, options.fields);
-  const outFile = session.globals.outFile;
+  const options = renderOptionsOf(session, runtime)
+  const warnings = fieldWarnings(value, options.fields)
+  const outFile = session.globals.outFile
   if (outFile !== undefined) {
-    const data = renderValue(value, { ...options, format: 'json' });
-    const body = { data, contentType: 'application/json' };
-    await writeOutFile({ body, path: outFile, warnings }, options, runtime);
-    return;
+    const data = renderValue(value, { ...options, format: "json" })
+    const body = { data, contentType: "application/json" }
+    await writeOutFile({ body, path: outFile, warnings }, options, runtime)
+    return
   }
-  if (options.format === 'json' || options.fields !== undefined) {
-    writeText(runtime.stdout, renderValue(value, options));
-    writeText(runtime.stderr, warnings);
-    return;
+  if (options.format === "json" || options.fields !== undefined) {
+    writeText(runtime.stdout, renderValue(value, options))
+    writeText(runtime.stderr, warnings)
+    return
   }
-  writeText(runtime.stdout, text(options.maxWidth));
+  writeText(runtime.stdout, text(options.maxWidth))
 }

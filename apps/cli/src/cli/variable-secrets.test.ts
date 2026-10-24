@@ -7,94 +7,94 @@
  * the verbose trace, `auth status|login|logout` or any error.
  */
 
-import fc from 'fast-check';
-import { describe, expect, it } from 'vitest';
-import { opaqueTokens } from '../../test/support/bearer.js';
-import { fakeServer, json } from '../../test/support/fake-fetch.js';
-import { ISSUER } from '../../test/support/fake-idp.js';
-import { CONFIG_PATH, execute, fakeRuntime, fileText } from '../../test/support/fake-runtime.js';
-import { cachedLogin, cacheText, TOKEN_FILE } from '../../test/support/oauth.js';
-import { isConventionalVariable } from '../config/variable.js';
-import { run } from './run.js';
+import fc from "fast-check"
+import { describe, expect, it } from "vitest"
+import { opaqueTokens } from "../../test/support/bearer.js"
+import { fakeServer, json } from "../../test/support/fake-fetch.js"
+import { ISSUER } from "../../test/support/fake-idp.js"
+import { CONFIG_PATH, execute, fakeRuntime, fileText } from "../../test/support/fake-runtime.js"
+import { cachedLogin, cacheText, TOKEN_FILE } from "../../test/support/oauth.js"
+import { isConventionalVariable } from "../config/variable.js"
+import { run } from "./run.js"
 
-const T0 = 1_700_000_000_000;
+const T0 = 1_700_000_000_000
 
 interface Family {
   /** The options of `config set` before the variable option. */
-  readonly set: readonly string[];
-  readonly flag: string;
+  readonly set: readonly string[]
+  readonly flag: string
   /** The auth object of a hand-edited profile whose variable key holds `secret`. */
-  readonly auth: (secret: string) => Readonly<Record<string, unknown>>;
+  readonly auth: (secret: string) => Readonly<Record<string, unknown>>
 }
 
 const FAMILIES: readonly Family[] = [
   {
-    set: ['--auth', 'basic', '--auth-user', 'demo'],
-    flag: '--auth-password-env',
-    auth: (secret) => ({ type: 'basic', username: 'demo', passwordEnv: secret }),
+    set: ["--auth", "basic", "--auth-user", "demo"],
+    flag: "--auth-password-env",
+    auth: (secret) => ({ type: "basic", username: "demo", passwordEnv: secret }),
   },
   {
-    set: ['--oauth-issuer', ISSUER, '--oauth-client-id', 'operate-cli'],
-    flag: '--oauth-client-secret-env',
+    set: ["--oauth-issuer", ISSUER, "--oauth-client-id", "operate-cli"],
+    flag: "--oauth-client-secret-env",
     auth: (secret) => ({
-      type: 'oauth',
+      type: "oauth",
       issuer: ISSUER,
-      clientId: 'operate-cli',
+      clientId: "operate-cli",
       clientSecretEnv: secret,
     }),
   },
   {
-    set: ['--auth', 'bearer'],
-    flag: '--auth-token-env',
-    auth: (secret) => ({ type: 'bearer', tokenEnv: secret }),
+    set: ["--auth", "bearer"],
+    flag: "--auth-token-env",
+    auth: (secret) => ({ type: "bearer", tokenEnv: secret }),
   },
-];
+]
 
 interface Scenario {
-  readonly args: readonly string[];
-  readonly files?: Readonly<Record<string, string>>;
+  readonly args: readonly string[]
+  readonly files?: Readonly<Record<string, string>>
 }
 
 function scenarios(family: Family, secret: string): Scenario[] {
   const files = {
     [CONFIG_PATH]: JSON.stringify({
-      defaultProfile: 'p',
+      defaultProfile: "p",
       profiles: { p: { auth: family.auth(secret) } },
     }),
     // the cached login of the OAuth profile (logout revokes it without the unknown secret)
     [TOKEN_FILE]: cacheText(cachedLogin(T0)),
-  };
+  }
   return [
-    { args: ['config', 'set', 'p', ...family.set, family.flag, secret] },
-    { args: ['config', 'set', 'p', ...family.set, family.flag, secret, '-o', 'table'] },
-    { args: ['config', 'set', 'p', '--url', 'http://localhost:8080/engine-rest'], files },
-    { args: ['config', 'unset', 'p', 'engine'], files },
-    { args: ['config', 'use', 'p', '-o', 'table'], files },
-    { args: ['config', 'show'], files },
-    { args: ['config', 'show', '-o', 'table'], files },
-    { args: ['config', 'list'], files },
-    { args: ['task', 'list'], files },
-    { args: ['task', 'list', '--verbose'], files },
-    { args: ['ping', '--dry-run'], files },
-    { args: ['api', 'GET', '/task', '--dry-run', '-o', 'table'], files },
-    { args: ['auth', 'status'], files },
-    { args: ['auth', 'login'], files },
-    { args: ['auth', 'logout'], files },
-  ];
+    { args: ["config", "set", "p", ...family.set, family.flag, secret] },
+    { args: ["config", "set", "p", ...family.set, family.flag, secret, "-o", "table"] },
+    { args: ["config", "set", "p", "--url", "http://localhost:8080/engine-rest"], files },
+    { args: ["config", "unset", "p", "engine"], files },
+    { args: ["config", "use", "p", "-o", "table"], files },
+    { args: ["config", "show"], files },
+    { args: ["config", "show", "-o", "table"], files },
+    { args: ["config", "list"], files },
+    { args: ["task", "list"], files },
+    { args: ["task", "list", "--verbose"], files },
+    { args: ["ping", "--dry-run"], files },
+    { args: ["api", "GET", "/task", "--dry-run", "-o", "table"], files },
+    { args: ["auth", "status"], files },
+    { args: ["auth", "login"], files },
+    { args: ["auth", "logout"], files },
+  ]
 }
 
 async function outcome(scenario: Scenario) {
   const engine = fakeServer()
-    .on('GET', '/version', json({ version: '7.24.0' }))
-    .on('GET', '/engine', json([{ name: 'default' }]))
-    .on('GET', '/task', json([]));
+    .on("GET", "/version", json({ version: "7.24.0" }))
+    .on("GET", "/engine", json([{ name: "default" }]))
+    .on("GET", "/task", json([]))
   const runtime = fakeRuntime({
     fetch: engine.fetch,
     now: () => T0,
     files: scenario.files ?? {},
-  });
-  const result = await execute(run, scenario.args, runtime);
-  return { ...result, file: fileText(runtime, CONFIG_PATH) };
+  })
+  const result = await execute(run, scenario.args, runtime)
+  return { ...result, file: fileText(runtime, CONFIG_PATH) }
 }
 
 /** Secrets that are valid variable names, but not in the usual upper-case form. */
@@ -105,14 +105,14 @@ const secrets = fc
     fc.stringMatching(/^[A-Z][A-Z0-9]{24,40}$/),
     opaqueTokens.filter((token) => /^[A-Za-z0-9_]+$/.test(token)),
   )
-  .filter((secret) => !isConventionalVariable(secret));
+  .filter((secret) => !isConventionalVariable(secret))
 
-describe('secrets typed in place of the name of their variable', () => {
-  it('scenarios reach the outputs they are meant for', async () => {
-    const codes = [];
+describe("secrets typed in place of the name of their variable", () => {
+  it("scenarios reach the outputs they are meant for", async () => {
+    const codes = []
     for (const family of FAMILIES) {
-      for (const scenario of scenarios(family, 'sQhunter2_value')) {
-        codes.push((await outcome(scenario)).code);
+      for (const scenario of scenarios(family, "sQhunter2_value")) {
+        codes.push((await outcome(scenario)).code)
       }
     }
     // config set x2 refused; config set/unset/use print the profile; config list; every
@@ -126,20 +126,20 @@ describe('secrets typed in place of the name of their variable', () => {
       3, 3, 0, 0, 0, 3, 3, 0, 3, 3, 3, 3, 3, 3, 0,
       // bearer token
       3, 3, 0, 0, 0, 3, 3, 0, 3, 3, 3, 3, 3, 2, 2,
-    ]);
-  });
+    ])
+  })
 
-  it('are never stored and never appear in any output', async () => {
+  it("are never stored and never appear in any output", async () => {
     await fc.assert(
       fc.asyncProperty(secrets, fc.constantFrom(...FAMILIES), async (secret, family) => {
         for (const scenario of scenarios(family, secret)) {
-          const result = await outcome(scenario);
-          const args = scenario.args.join(' ');
-          expect(`${result.stdout}\n${result.stderr}`, args).not.toContain(secret);
-          if (scenario.files === undefined) expect(result.file, args).toBeUndefined();
+          const result = await outcome(scenario)
+          const args = scenario.args.join(" ")
+          expect(`${result.stdout}\n${result.stderr}`, args).not.toContain(secret)
+          if (scenario.files === undefined) expect(result.file, args).toBeUndefined()
         }
       }),
       { numRuns: 20 },
-    );
-  });
-});
+    )
+  })
+})

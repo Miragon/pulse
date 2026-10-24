@@ -1,3 +1,3 @@
-import { registerAuthScenario } from './auth-scenario.js';
+import { registerAuthScenario } from "./auth-scenario.js"
 
-registerAuthScenario('cibseven');
+registerAuthScenario("cibseven")

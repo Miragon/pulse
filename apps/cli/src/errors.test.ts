@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { EXIT_CODES, type ErrorCode, OperateError, usageError } from './errors.js';
+import { describe, expect, it } from "vitest"
+import { EXIT_CODES, type ErrorCode, OperateError, usageError } from "./errors.js"
 
 /** Exit codes as documented in the design (§2.7) and docs/output-and-errors.md. */
 const DOCUMENTED: Readonly<Record<ErrorCode, number>> = {
@@ -25,10 +25,10 @@ const DOCUMENTED: Readonly<Record<ErrorCode, number>> = {
   INSTANCE_ENDED: 9,
   JOB_FAILED: 9,
   CHECK_FAILED: 9,
-};
+}
 
-describe('EXIT_CODES', () => {
-  it('matches the documented exit codes', () => {
+describe("EXIT_CODES", () => {
+  it("matches the documented exit codes", () => {
     expect(EXIT_CODES).toEqual({
       ok: 0,
       internal: 1,
@@ -40,40 +40,40 @@ describe('EXIT_CODES', () => {
       server: 7,
       network: 8,
       outcome: 9,
-    });
-  });
-});
+    })
+  })
+})
 
-describe('OperateError', () => {
-  it.each(Object.entries(DOCUMENTED))('maps %s to exit code %i', (code, exitCode) => {
-    expect(new OperateError(code as ErrorCode, 'x').exitCode).toBe(exitCode);
-  });
+describe("OperateError", () => {
+  it.each(Object.entries(DOCUMENTED))("maps %s to exit code %i", (code, exitCode) => {
+    expect(new OperateError(code as ErrorCode, "x").exitCode).toBe(exitCode)
+  })
 
-  it('keeps code, message, details and cause', () => {
-    const cause = new Error('root');
-    const error = new OperateError('NOT_FOUND', 'missing', { status: 404, hint: 'h' }, cause);
-    expect(error).toBeInstanceOf(Error);
-    expect(error.name).toBe('OperateError');
-    expect(error.code).toBe('NOT_FOUND');
-    expect(error.message).toBe('missing');
-    expect(error.details).toEqual({ status: 404, hint: 'h' });
-    expect(error.cause).toBe(cause);
-  });
+  it("keeps code, message, details and cause", () => {
+    const cause = new Error("root")
+    const error = new OperateError("NOT_FOUND", "missing", { status: 404, hint: "h" }, cause)
+    expect(error).toBeInstanceOf(Error)
+    expect(error.name).toBe("OperateError")
+    expect(error.code).toBe("NOT_FOUND")
+    expect(error.message).toBe("missing")
+    expect(error.details).toEqual({ status: 404, hint: "h" })
+    expect(error.cause).toBe(cause)
+  })
 
-  it('has empty details and no cause by default', () => {
-    const error = new OperateError('INTERNAL', 'boom');
-    expect(error.details).toEqual({});
-    expect('cause' in error).toBe(false);
-  });
-});
+  it("has empty details and no cause by default", () => {
+    const error = new OperateError("INTERNAL", "boom")
+    expect(error.details).toEqual({})
+    expect("cause" in error).toBe(false)
+  })
+})
 
-describe('usageError', () => {
-  it('creates a USAGE error with an optional hint', () => {
-    const withHint = usageError('bad', 'try this');
-    expect(withHint.code).toBe('USAGE');
-    expect(withHint.exitCode).toBe(2);
-    expect(withHint.message).toBe('bad');
-    expect(withHint.details).toEqual({ hint: 'try this' });
-    expect(usageError('bad').details).toEqual({});
-  });
-});
+describe("usageError", () => {
+  it("creates a USAGE error with an optional hint", () => {
+    const withHint = usageError("bad", "try this")
+    expect(withHint.code).toBe("USAGE")
+    expect(withHint.exitCode).toBe(2)
+    expect(withHint.message).toBe("bad")
+    expect(withHint.details).toEqual({ hint: "try this" })
+    expect(usageError("bad").details).toEqual({})
+  })
+})

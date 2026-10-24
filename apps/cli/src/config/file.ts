@@ -1,15 +1,15 @@
 /** Location, parsing, validation and persistence of the config file. */
 
-import { dirname, posix, win32 } from 'node:path';
-import { OperateError } from '../errors.js';
-import type { FileSystem } from '../runtime.js';
-import { isRecord } from '../util.js';
-import { jsonErrorPosition } from './json-position.js';
-import { profileAuthProblem } from './auth.js';
-import { PROFILE_NAME } from './syntax.js';
-import { configError } from './config-error.js';
-import { isHeaderName, isHeaderValue } from './headers.js';
-import { MAX_TIMEOUT_MS, isEngineName, isPlatform, isTimeout } from './resolve.js';
+import { dirname, posix, win32 } from "node:path"
+import { OperateError } from "../errors.js"
+import type { FileSystem } from "../runtime.js"
+import { isRecord } from "../util.js"
+import { jsonErrorPosition } from "./json-position.js"
+import { profileAuthProblem } from "./auth.js"
+import { PROFILE_NAME } from "./syntax.js"
+import { configError } from "./config-error.js"
+import { isHeaderName, isHeaderValue } from "./headers.js"
+import { MAX_TIMEOUT_MS, isEngineName, isPlatform, isTimeout } from "./resolve.js"
 import {
   type ConfigFile,
   ENV,
@@ -18,46 +18,46 @@ import {
   PROFILE_KEYS,
   type Profile,
   type ProfileKey,
-} from './types.js';
+} from "./types.js"
 
-type Env = Readonly<Record<string, string | undefined>>;
+type Env = Readonly<Record<string, string | undefined>>
 
-const ROOT_KEYS: readonly string[] = ['$schema', 'defaultProfile', 'profiles'];
+const ROOT_KEYS: readonly string[] = ["$schema", "defaultProfile", "profiles"]
 
 function given(value: string | undefined): string | undefined {
-  return value === undefined || value.trim() === '' ? undefined : value;
+  return value === undefined || value.trim() === "" ? undefined : value
 }
 
 /** An environment directory is only used when it is an absolute path (XDG Base Directory spec). */
 function absoluteDir(value: string | undefined, path: typeof posix): string | undefined {
-  return value !== undefined && path.isAbsolute(value) ? value : undefined;
+  return value !== undefined && path.isAbsolute(value) ? value : undefined
 }
 
 /** The config file named by `--config` or OPERATE_CONFIG, if any (else the default location). */
 export function explicitConfigPath(env: Env, flag?: string): string | undefined {
-  return given(flag) ?? given(env[ENV.config]);
+  return given(flag) ?? given(env[ENV.config])
 }
 
 export interface Location {
-  readonly homedir: string;
-  readonly platform: string;
+  readonly homedir: string
+  readonly platform: string
 }
 
 /** The path functions of the platform (win32 or posix). */
 export function pathModule(platform: string): typeof posix {
-  return platform === 'win32' ? win32 : posix;
+  return platform === "win32" ? win32 : posix
 }
 
 /** The platform's operate config directory (never derived from `--config` / OPERATE_CONFIG). */
 function operateDirectory(env: Env, location: Location): string {
-  if (location.platform === 'win32') {
+  if (location.platform === "win32") {
     const appData =
-      absoluteDir(env.APPDATA, win32) ?? win32.join(location.homedir, 'AppData', 'Roaming');
-    return win32.join(appData, 'operate');
+      absoluteDir(env.APPDATA, win32) ?? win32.join(location.homedir, "AppData", "Roaming")
+    return win32.join(appData, "operate")
   }
   const configHome =
-    absoluteDir(env.XDG_CONFIG_HOME, posix) ?? posix.join(location.homedir, '.config');
-  return posix.join(configHome, 'operate');
+    absoluteDir(env.XDG_CONFIG_HOME, posix) ?? posix.join(location.homedir, ".config")
+  return posix.join(configHome, "operate")
 }
 
 /**
@@ -65,9 +65,9 @@ function operateDirectory(env: Env, location: Location): string {
  * ~/.config/operate/config.json; on Windows %APPDATA%\operate\config.json.
  */
 export function configFilePath(env: Env, location: Location, explicit?: string): string {
-  const chosen = explicitConfigPath(env, explicit);
-  if (chosen !== undefined) return chosen;
-  return pathModule(location.platform).join(operateDirectory(env, location), 'config.json');
+  const chosen = explicitConfigPath(env, explicit)
+  if (chosen !== undefined) return chosen
+  return pathModule(location.platform).join(operateDirectory(env, location), "config.json")
 }
 
 /**
@@ -77,19 +77,19 @@ export function configFilePath(env: Env, location: Location, explicit?: string):
  * get token files beside it.
  */
 export function tokenDirectory(env: Env, location: Location): string {
-  return pathModule(location.platform).join(operateDirectory(env, location), 'tokens');
+  return pathModule(location.platform).join(operateDirectory(env, location), "tokens")
 }
 
 /** A file of the token directory (win32 or posix join). */
 export function tokenPath(directory: string, fileName: string, platform: string): string {
-  return pathModule(platform).join(directory, fileName);
+  return pathModule(platform).join(directory, fileName)
 }
 
 function fail(path: string, problem: string): never {
   throw configError(
     `Invalid config file ${path}: ${problem}`,
-    'Fix the file or recreate it with `operate config set`.',
-  );
+    "Fix the file or recreate it with `operate config set`.",
+  )
 }
 
 function checkKeys(
@@ -98,73 +98,71 @@ function checkKeys(
   where: string,
   path: string,
 ): void {
-  const unknown = Object.keys(value).filter((key) => !allowed.includes(key));
+  const unknown = Object.keys(value).filter((key) => !allowed.includes(key))
   if (unknown.length > 0) {
-    fail(path, `unknown key(s) ${unknown.join(', ')} in ${where} (allowed: ${allowed.join(', ')})`);
+    fail(path, `unknown key(s) ${unknown.join(", ")} in ${where} (allowed: ${allowed.join(", ")})`)
   }
 }
 
 function isNonEmptyString(value: unknown): boolean {
-  return typeof value === 'string' && value.trim() !== '';
+  return typeof value === "string" && value.trim() !== ""
 }
 
 function isHeaderMap(value: unknown): boolean {
   return (
     isRecord(value) &&
     Object.entries(value).every(
-      ([name, entry]) => isHeaderName(name) && typeof entry === 'string' && isHeaderValue(entry),
+      ([name, entry]) => isHeaderName(name) && typeof entry === "string" && isHeaderValue(entry),
     )
-  );
+  )
 }
 
-type Check = readonly [check: (value: unknown) => boolean, expected: string];
+type Check = readonly [check: (value: unknown) => boolean, expected: string]
 
 /** Checks of the plain profile values; the auth object has its own (`profileAuthProblem`). */
-const PROFILE_CHECKS: Readonly<Record<Exclude<ProfileKey, 'auth'>, Check>> = {
-  url: [isNonEmptyString, 'a URL such as http://localhost:8080/engine-rest'],
+const PROFILE_CHECKS: Readonly<Record<Exclude<ProfileKey, "auth">, Check>> = {
+  url: [isNonEmptyString, "a URL such as http://localhost:8080/engine-rest"],
   cockpitUrl: [
     isNonEmptyString,
-    'a URL such as http://localhost:8080/operaton/app/cockpit/default/',
+    "a URL such as http://localhost:8080/operaton/app/cockpit/default/",
   ],
   engine: [isEngineName, 'a process engine name, not "." or ".."'],
-  platform: [isPlatform, `one of ${PLATFORMS.join(', ')}`],
+  platform: [isPlatform, `one of ${PLATFORMS.join(", ")}`],
   output: [
     (value) => OUTPUT_FORMATS.some((format) => format === value),
-    OUTPUT_FORMATS.join(' or '),
+    OUTPUT_FORMATS.join(" or "),
   ],
   timeout: [isTimeout, `a whole number of milliseconds between 1 and ${MAX_TIMEOUT_MS}`],
   headers: [
     isHeaderMap,
-    'an object mapping header names (not Connection, Content-Length, Expect, Keep-Alive, Transfer-Encoding or Upgrade) to ISO-8859-1 (Latin-1) string values without control characters',
+    "an object mapping header names (not Connection, Content-Length, Expect, Keep-Alive, Transfer-Encoding or Upgrade) to ISO-8859-1 (Latin-1) string values without control characters",
   ],
-  readOnly: [(value) => typeof value === 'boolean', 'true or false'],
-};
+  readOnly: [(value) => typeof value === "boolean", "true or false"],
+}
 
 function valueProblem(name: string, key: ProfileKey, value: unknown): string | undefined {
-  if (key === 'auth') return profileAuthProblem(name, value);
-  const [check, expected] = PROFILE_CHECKS[key];
-  return check(value)
-    ? undefined
-    : `profile "${name}" has an invalid ${key} (expected ${expected})`;
+  if (key === "auth") return profileAuthProblem(name, value)
+  const [check, expected] = PROFILE_CHECKS[key]
+  return check(value) ? undefined : `profile "${name}" has an invalid ${key} (expected ${expected})`
 }
 
 /** A profile name as JSON (control characters escaped: the file may come from anywhere). */
 function quoted(name: string): string {
-  return JSON.stringify(name);
+  return JSON.stringify(name)
 }
 
 const NAME_RULE =
-  'use letters, digits, ".", "_" and "-", starting with a letter or digit; rename it in the file';
+  'use letters, digits, ".", "_" and "-", starting with a letter or digit; rename it in the file'
 
 function validateProfile(name: string, value: unknown, path: string): Profile {
-  if (!PROFILE_NAME.test(name)) fail(path, `invalid profile name ${quoted(name)} (${NAME_RULE})`);
-  if (!isRecord(value)) fail(path, `profile "${name}" must be an object`);
-  checkKeys(value, PROFILE_KEYS, `profile "${name}"`, path);
+  if (!PROFILE_NAME.test(name)) fail(path, `invalid profile name ${quoted(name)} (${NAME_RULE})`)
+  if (!isRecord(value)) fail(path, `profile "${name}" must be an object`)
+  checkKeys(value, PROFILE_KEYS, `profile "${name}"`, path)
   for (const key of PROFILE_KEYS) {
-    const problem = Object.hasOwn(value, key) ? valueProblem(name, key, value[key]) : undefined;
-    if (problem !== undefined) fail(path, problem);
+    const problem = Object.hasOwn(value, key) ? valueProblem(name, key, value[key]) : undefined
+    if (problem !== undefined) fail(path, problem)
   }
-  return value;
+  return value
 }
 
 /**
@@ -172,34 +170,34 @@ function validateProfile(name: string, value: unknown, path: string): Profile {
  * error, which may be a stored credential.
  */
 function syntaxProblem(text: string): string {
-  const position = jsonErrorPosition(text);
+  const position = jsonErrorPosition(text)
   return position === undefined
-    ? 'not valid JSON'
-    : `not valid JSON (line ${position.line}, column ${position.column})`;
+    ? "not valid JSON"
+    : `not valid JSON (line ${position.line}, column ${position.column})`
 }
 
 /** defaultProfile: a string; blank means none, anything else must be a valid profile name. */
 function checkDefaultProfile(value: unknown, path: string): asserts value is string | undefined {
-  if (value === undefined) return;
-  if (typeof value !== 'string') fail(path, 'defaultProfile must be a string');
-  const name = value.trim();
-  if (name !== '' && !PROFILE_NAME.test(name)) {
-    fail(path, `invalid defaultProfile ${quoted(name)} (${NAME_RULE})`);
+  if (value === undefined) return
+  if (typeof value !== "string") fail(path, "defaultProfile must be a string")
+  const name = value.trim()
+  if (name !== "" && !PROFILE_NAME.test(name)) {
+    fail(path, `invalid defaultProfile ${quoted(name)} (${NAME_RULE})`)
   }
 }
 
 export function parseConfigFile(text: string, path: string): ConfigFile {
-  let parsed: unknown;
+  let parsed: unknown
   try {
-    parsed = JSON.parse(text);
+    parsed = JSON.parse(text)
   } catch {
-    fail(path, syntaxProblem(text));
+    fail(path, syntaxProblem(text))
   }
-  if (!isRecord(parsed)) fail(path, 'expected a JSON object');
-  checkKeys(parsed, ROOT_KEYS, 'the root object', path);
-  const { defaultProfile, profiles = {} } = parsed;
-  checkDefaultProfile(defaultProfile, path);
-  if (!isRecord(profiles)) fail(path, 'profiles must be an object');
+  if (!isRecord(parsed)) fail(path, "expected a JSON object")
+  checkKeys(parsed, ROOT_KEYS, "the root object", path)
+  const { defaultProfile, profiles = {} } = parsed
+  checkDefaultProfile(defaultProfile, path)
+  if (!isRecord(profiles)) fail(path, "profiles must be an object")
   return {
     ...(defaultProfile === undefined ? {} : { defaultProfile }),
     profiles: Object.fromEntries(
@@ -208,21 +206,21 @@ export function parseConfigFile(text: string, path: string): ConfigFile {
         validateProfile(name, profile, path),
       ]),
     ),
-  };
+  }
 }
 
 /** `EACCES`, `EISDIR`, ... of a file system error, else its message. */
 function reasonOf(error: unknown): string {
-  const code = isRecord(error) ? error.code : undefined;
-  if (typeof code === 'string') return code;
-  return error instanceof Error ? error.message : String(error);
+  const code = isRecord(error) ? error.code : undefined
+  if (typeof code === "string") return code
+  return error instanceof Error ? error.message : String(error)
 }
 
-function ioError(action: 'read' | 'write', path: string, error: unknown) {
+function ioError(action: "read" | "write", path: string, error: unknown) {
   return configError(
     `Cannot ${action} config file ${path} (${reasonOf(error)})`,
     `Check the path and its permissions, or choose another file with --config or ${ENV.config}.`,
-  );
+  )
 }
 
 /**
@@ -235,26 +233,26 @@ export async function readConfigFile(
   path: string,
   required = false,
 ): Promise<ConfigFile | undefined> {
-  let data: Uint8Array;
+  let data: Uint8Array
   try {
     if (!(await fs.exists(path))) {
-      if (!required) return undefined;
+      if (!required) return undefined
       throw configError(
         `Config file ${path} does not exist`,
         `Create it with \`operate config set <profile> --url <url> --config ${path}\`, or fix the path of --config or ${ENV.config}.`,
-      );
+      )
     }
-    data = await fs.readFile(path);
+    data = await fs.readFile(path)
   } catch (error) {
-    throw error instanceof OperateError ? error : ioError('read', path, error);
+    throw error instanceof OperateError ? error : ioError("read", path, error)
   }
-  return parseConfigFile(new TextDecoder().decode(data), path);
+  return parseConfigFile(new TextDecoder().decode(data), path)
 }
 
 /** The text of a config file: its default profile and profiles, indented, with a final newline. */
 function serializeConfigFile(config: ConfigFile): string {
-  const { defaultProfile, profiles } = config;
-  return `${JSON.stringify({ ...(defaultProfile === undefined ? {} : { defaultProfile }), profiles }, null, 2)}\n`;
+  const { defaultProfile, profiles } = config
+  return `${JSON.stringify({ ...(defaultProfile === undefined ? {} : { defaultProfile }), profiles }, null, 2)}\n`
 }
 
 /**
@@ -268,9 +266,9 @@ export async function writeConfigFile(
   mode = 0o600,
 ): Promise<void> {
   try {
-    await fs.mkdir(dirname(path));
-    await fs.writeFile(path, serializeConfigFile(config), { mode });
+    await fs.mkdir(dirname(path))
+    await fs.writeFile(path, serializeConfigFile(config), { mode })
   } catch (error) {
-    throw ioError('write', path, error);
+    throw ioError("write", path, error)
   }
 }

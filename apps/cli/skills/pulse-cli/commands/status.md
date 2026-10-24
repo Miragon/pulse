@@ -1,6 +1,6 @@
 ---
 description: Triage the Camunda 7 engine with operate status and summarize incidents, overdue jobs and external task workers
-argument-hint: '[--profile <name>] [--process-definition-key <key>]'
+argument-hint: "[--profile <name>] [--process-definition-key <key>]"
 allowed-tools:
   - Bash(operate status)
   - Bash(operate ping)

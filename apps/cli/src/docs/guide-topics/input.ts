@@ -1,11 +1,11 @@
 /** `operate guide input`: how command lines become requests. */
 
-import { DEFAULT_PAGE_SIZE } from '../../catalog/rules.js';
-import type { GuideTopic } from './topic.js';
+import { DEFAULT_PAGE_SIZE } from "../../catalog/rules.js"
+import type { GuideTopic } from "./topic.js"
 
 export const INPUT_TOPIC: GuideTopic = {
-  name: 'input',
-  summary: 'Arguments, flags, booleans, arrays, dates, variables, request bodies, files, paging',
+  name: "input",
+  summary: "Arguments, flags, booleans, arrays, dates, variables, request bodies, files, paging",
   text: `# operate guide input: arguments, options, variables and request bodies
 
 How command lines become requests. \`operate describe <group> <command>\` shows the arguments,
@@ -82,4 +82,4 @@ They work after the command (\`operate task list -o table\`): \`--url\`, \`--eng
 \`--auth-token-stdin\`, \`--verbose\`, \`--out-file\`, \`--show-secrets\`. The help of every command
 (\`operate <group> <command> --help\`) explains them.
 `,
-};
+}

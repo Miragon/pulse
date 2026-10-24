@@ -1,6 +1,6 @@
 ---
 type: regex
-pattern: 'incident'
+pattern: "incident"
 flags: i
 target: last_message
 ---
