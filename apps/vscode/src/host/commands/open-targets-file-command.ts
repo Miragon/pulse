@@ -10,16 +10,9 @@ export class OpenTargetsFileCommand implements Command {
   constructor(private readonly registry: ConnectionRegistry) {}
 
   async run(path?: unknown): Promise<void> {
-    const broken = this.registry.configurationProblems().find((problem) => problem.path === path)
-    if (broken !== undefined) {
-      await vscode.window.showTextDocument(vscode.Uri.file(broken.path))
-      return
-    }
-    const fromFile = this.registry
-      .all()
-      .find((connection) => connection.target.source.kind === "file")
-    if (fromFile?.target.source.kind === "file") {
-      await vscode.window.showTextDocument(vscode.Uri.file(fromFile.target.source.path))
+    const known = this.knownFile(path)
+    if (known !== undefined) {
+      await vscode.window.showTextDocument(vscode.Uri.file(known))
       return
     }
     const folder = vscode.workspace.workspaceFolders?.[0]
@@ -29,11 +22,34 @@ export class OpenTargetsFileCommand implements Command {
       )
       return
     }
-    const file = TargetsFile.in(folder.uri)
-    if (!(await this.exists(file))) {
-      await vscode.workspace.fs.writeFile(file, new TextEncoder().encode(TargetsFile.TEMPLATE))
+    await vscode.window.showTextDocument(await this.projectFileIn(folder.uri))
+  }
+
+  private knownFile(path: unknown): string | undefined {
+    const problems = this.registry.configurationProblems()
+    const broken = problems.find((problem) => problem.path === path)
+    if (broken !== undefined) {
+      return broken.path
     }
-    await vscode.window.showTextDocument(file)
+    for (const { target } of this.registry.all()) {
+      if (target.source.kind === "file") {
+        return target.source.path
+      }
+    }
+    return problems[0]?.path
+  }
+
+  private async projectFileIn(folder: vscode.Uri): Promise<vscode.Uri> {
+    const current = TargetsFile.in(folder)
+    if (await this.exists(current)) {
+      return current
+    }
+    const fallback = vscode.Uri.joinPath(folder, TargetsFile.FALLBACK_NAME)
+    if (await this.exists(fallback)) {
+      return fallback
+    }
+    await vscode.workspace.fs.writeFile(current, new TextEncoder().encode(TargetsFile.TEMPLATE))
+    return current
   }
 
   private exists(file: vscode.Uri): Thenable<boolean> {
