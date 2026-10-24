@@ -50,14 +50,10 @@ export function pathModule(platform: string): typeof posix {
 }
 
 /** The directory of the user's config file and tokens under the platform's config home. */
-export const CONFIG_DIRECTORY = "pulse-cli"
+const CONFIG_DIRECTORY = "pulse-cli"
 
 /** The config directory `name` of the platform (never derived from `--config` / PULSE_CLI_CONFIG). */
-export function configDirectory(
-  env: Env,
-  location: Location,
-  name: string = CONFIG_DIRECTORY,
-): string {
+function configDirectory(env: Env, location: Location, name: string = CONFIG_DIRECTORY): string {
   if (location.platform === "win32") {
     const appData =
       absoluteDir(env.APPDATA, win32) ?? win32.join(location.homedir, "AppData", "Roaming")

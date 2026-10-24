@@ -98,8 +98,8 @@ adapters, each adapter its own. `pnpm lint:architecture` cruises `apps/cli/src`,
 
 - **TypeScript** strict (`apps/cli/tsconfig.json`), **ESLint** with the CLI's blocks of
   `eslint.config.mjs`: typescript-eslint `strictTypeChecked`, complexity 10, 300 lines per file
-  (400 for tests), 60 lines per function, 20 statements, depth 3, 4 parameters. **Prettier** and
-  **knip** as everywhere in the repository.
+  (400 for tests), 60 lines per function, 20 statements, depth 3, 4 parameters. **Prettier** as
+  everywhere, **knip** also on unused exports, types and enum members (`pnpm lint:deadcode:cli`).
 - **vitest** with v8 coverage floors of 90 % for lines, statements and functions and 85 % for
   branches (`apps/cli/vitest.config.ts`); the floors only rise.
 - **fast-check** property tests for naming, patches, variable parsing, dates, query building,
