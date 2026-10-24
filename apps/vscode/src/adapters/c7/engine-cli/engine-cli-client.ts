@@ -1,15 +1,15 @@
-import { ReadCommands } from './commands/read-commands.js';
-import type { EngineClient, EngineClientOptions } from './engine-client.js';
-import { EngineCliRunner } from './running/engine-cli-runner.js';
-import { ActivityInstanceViewParser } from './views/activity-instance-view-parser.js';
-import { BatchViewParser } from './views/batch-view-parser.js';
-import { DefinitionViewParser } from './views/definition-view-parser.js';
-import { EngineViewParser } from './views/engine-view-parser.js';
-import { HistoricInstanceViewParser } from './views/historic-instance-view-parser.js';
-import { IncidentViewParser } from './views/incident-view-parser.js';
-import { InspectViewParser } from './views/inspect-view-parser.js';
-import { MigrationViewParser } from './views/migration-view-parser.js';
-import { VariableViewParser } from './views/variable-view-parser.js';
+import { ReadCommands } from "./commands/read-commands.js"
+import type { EngineClient, EngineClientOptions } from "./engine-client.js"
+import { EngineCliRunner } from "./running/engine-cli-runner.js"
+import { ActivityInstanceViewParser } from "./views/activity-instance-view-parser.js"
+import { BatchViewParser } from "./views/batch-view-parser.js"
+import { DefinitionViewParser } from "./views/definition-view-parser.js"
+import { EngineViewParser } from "./views/engine-view-parser.js"
+import { HistoricInstanceViewParser } from "./views/historic-instance-view-parser.js"
+import { IncidentViewParser } from "./views/incident-view-parser.js"
+import { InspectViewParser } from "./views/inspect-view-parser.js"
+import { MigrationViewParser } from "./views/migration-view-parser.js"
+import { VariableViewParser } from "./views/variable-view-parser.js"
 import type {
   ActivityInstanceView,
   ActivityStatisticsView,
@@ -28,55 +28,53 @@ import type {
   OffsetPage,
   ProductView,
   VariableView,
-} from './views/views.js';
+} from "./views/views.js"
 
 export class EngineCliClient implements EngineClient {
   constructor(private readonly runner: EngineCliRunner) {}
 
   static create(options: EngineClientOptions): EngineCliClient {
-    return new EngineCliClient(EngineCliRunner.create(options));
+    return new EngineCliClient(EngineCliRunner.create(options))
   }
 
   async product(): Promise<ProductView> {
-    return EngineViewParser.product(await this.runner.json(ReadCommands.product()));
+    return EngineViewParser.product(await this.runner.json(ReadCommands.product()))
   }
 
   async version(): Promise<string> {
-    return EngineViewParser.version(await this.runner.json(ReadCommands.version()));
+    return EngineViewParser.version(await this.runner.json(ReadCommands.version()))
   }
 
   async definitionStatistics(): Promise<DefinitionStatisticsView[]> {
     return DefinitionViewParser.definitionStatistics(
       await this.runner.json(ReadCommands.definitionStatistics()),
-    );
+    )
   }
 
   async activityStatistics(definitionId: string): Promise<ActivityStatisticsView[]> {
     return DefinitionViewParser.activityStatistics(
       await this.runner.json(ReadCommands.activityStatistics(definitionId)),
-    );
+    )
   }
 
   async diagramXml(definitionId: string): Promise<string> {
     return DefinitionViewParser.diagramXml(
       await this.runner.json(ReadCommands.diagramXml(definitionId)),
-    );
+    )
   }
 
   async incidents(query: IncidentQuery, page?: OffsetPage): Promise<IncidentView[]> {
-    return IncidentViewParser.incidents(
-      await this.runner.json(ReadCommands.incidents(query, page)),
-    );
+    return IncidentViewParser.incidents(await this.runner.json(ReadCommands.incidents(query, page)))
   }
 
   async incidentInstances(): Promise<IncidentInstanceView[]> {
     return IncidentViewParser.incidentInstances(
       await this.runner.json(ReadCommands.incidentInstances()),
-    );
+    )
   }
 
   async incident(incidentId: string): Promise<IncidentView> {
-    return IncidentViewParser.incident(await this.runner.json(ReadCommands.incident(incidentId)));
+    return IncidentViewParser.incident(await this.runner.json(ReadCommands.incident(incidentId)))
   }
 
   async historicInstances(
@@ -88,7 +86,7 @@ export class EngineCliClient implements EngineClient {
         ReadCommands.historicInstances(page),
         ReadCommands.historicInstanceBody(query),
       ),
-    );
+    )
   }
 
   async historicInstanceCount(query: HistoricInstanceQuery): Promise<number> {
@@ -97,45 +95,43 @@ export class EngineCliClient implements EngineClient {
         ReadCommands.historicInstanceCount(),
         ReadCommands.historicInstanceCountBody(query),
       ),
-    );
+    )
   }
 
   async inspect(instanceId: string): Promise<InspectView> {
-    return InspectViewParser.view(await this.runner.json(ReadCommands.inspect(instanceId)));
+    return InspectViewParser.view(await this.runner.json(ReadCommands.inspect(instanceId)))
   }
 
   async activityInstances(instanceId: string): Promise<ActivityInstanceView> {
     return ActivityInstanceViewParser.tree(
       await this.runner.json(ReadCommands.activityInstances(instanceId)),
-    );
+    )
   }
 
   async variables(instanceId: string): Promise<VariableView[]> {
-    return VariableViewParser.instances(await this.runner.json(ReadCommands.variables(instanceId)));
+    return VariableViewParser.instances(await this.runner.json(ReadCommands.variables(instanceId)))
   }
 
   async jobStacktrace(jobId: string): Promise<string> {
-    return this.runner.text(ReadCommands.jobStacktrace(jobId));
+    return this.runner.text(ReadCommands.jobStacktrace(jobId))
   }
 
   async externalTaskErrorDetails(externalTaskId: string): Promise<string> {
-    return this.runner.text(ReadCommands.externalTaskErrorDetails(externalTaskId));
+    return this.runner.text(ReadCommands.externalTaskErrorDetails(externalTaskId))
   }
 
   async batchStatistics(batchId: string): Promise<BatchStatisticsView | undefined> {
-    return BatchViewParser.statistics(
-      await this.runner.json(ReadCommands.batchStatistics(batchId)),
-    );
+    return BatchViewParser.statistics(await this.runner.json(ReadCommands.batchStatistics(batchId)))
   }
 
   async historicBatch(batchId: string): Promise<HistoricBatchView> {
-    return BatchViewParser.historic(await this.runner.json(ReadCommands.historicBatch(batchId)));
+    return BatchViewParser.historic(await this.runner.json(ReadCommands.historicBatch(batchId)))
   }
 
   async failedJobs(jobDefinitionId: string): Promise<FailedJobView[]> {
     return BatchViewParser.failedJobs(
       await this.runner.json(ReadCommands.failedJobs(jobDefinitionId)),
-    );
+    )
   }
 
   async migrationPlan(
@@ -147,7 +143,7 @@ export class EngineCliClient implements EngineClient {
         ReadCommands.migrationPlan(),
         ReadCommands.migrationPlanBody(sourceDefinitionId, targetDefinitionId),
       ),
-    );
+    )
   }
 
   async migrationReport(plan: MigrationPlanView): Promise<MigrationReportView> {
@@ -156,6 +152,6 @@ export class EngineCliClient implements EngineClient {
         ReadCommands.migrationReport(),
         ReadCommands.migrationReportBody(plan),
       ),
-    );
+    )
   }
 }

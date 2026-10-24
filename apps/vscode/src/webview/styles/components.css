@@ -217,7 +217,7 @@ tr:focus-within :is(.id-text__copy, .value-cell__copy),
 }
 
 .status-box::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0 auto 0 0;
   width: 4px;
@@ -259,7 +259,7 @@ tr:focus-within :is(.id-text__copy, .value-cell__copy),
   align-self: center;
 }
 
-[data-cd-kontrast='hoch'] .status-box {
+[data-cd-kontrast="hoch"] .status-box {
   box-shadow: none;
 }
 
@@ -349,6 +349,6 @@ tr:focus-within :is(.id-text__copy, .value-cell__copy),
   }
 }
 
-[data-cd-kontrast='hoch'] .status-strip {
+[data-cd-kontrast="hoch"] .status-strip {
   border-bottom-width: 2px;
 }

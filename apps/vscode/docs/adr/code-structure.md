@@ -20,13 +20,13 @@ visible responsibility per file.
 
 ### Ports are interfaces, adapters are classes
 
-| Where                         | What                                                                                                                                                     |
-| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Where                            | What                                                                                                                                                     |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `apps/vscode/src/contract/ports` | `ProcessRuntime` (read), `ProcessCommands` (write), `EngineAdapter` (one per engine family: turns a connection into a runtime and, if it can, commands)  |
 | `apps/vscode/src/contract/model` | what the ports exchange: ids, read models, queries, `RuntimeError`, value kinds                                                                          |
-| `packages/adapter-<engine>`   | `class <Engine>Adapter implements EngineAdapter`, `class <Engine>ProcessRuntime implements ProcessRuntime`, `class <Engine>ProcessCommands implements …` |
-| `apps/vscode/src/host`          | the composition root keeps one `EngineAdapter` per engine kind and hands the core what the active one returns                                            |
-| `apps/vscode/src/core`               | sees only `ProcessRuntime` and `ProcessCommands`, never an adapter                                                                                       |
+| `packages/adapter-<engine>`      | `class <Engine>Adapter implements EngineAdapter`, `class <Engine>ProcessRuntime implements ProcessRuntime`, `class <Engine>ProcessCommands implements …` |
+| `apps/vscode/src/host`           | the composition root keeps one `EngineAdapter` per engine kind and hands the core what the active one returns                                            |
+| `apps/vscode/src/core`           | sees only `ProcessRuntime` and `ProcessCommands`, never an adapter                                                                                       |
 
 ### Classes own behaviour
 

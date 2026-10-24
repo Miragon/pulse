@@ -1,12 +1,8 @@
-import {
-  InstanceId,
-  type DefinitionRef,
-  type InstanceSummary,
-} from '../../../contract/index.js';
-import { Present, type DefinitionView, type InspectView } from '../engine-cli/index.js';
-import { InstanceStates } from './instance-states.js';
-import type { Mapper } from './mapper.js';
-import { Timestamps } from './timestamps.js';
+import { InstanceId, type DefinitionRef, type InstanceSummary } from "../../../contract/index.js"
+import { Present, type DefinitionView, type InspectView } from "../engine-cli/index.js"
+import { InstanceStates } from "./instance-states.js"
+import type { Mapper } from "./mapper.js"
+import { Timestamps } from "./timestamps.js"
 
 export class InstanceSummaryMapper implements Mapper<InspectView, InstanceSummary> {
   constructor(private readonly definitions: Mapper<DefinitionView, DefinitionRef>) {}
@@ -23,6 +19,6 @@ export class InstanceSummaryMapper implements Mapper<InspectView, InstanceSummar
         endedAt: Timestamps.optional(view.endTime),
         parentInstanceId: view.parentId === undefined ? undefined : InstanceId(view.parentId),
       }),
-    };
+    }
   }
 }

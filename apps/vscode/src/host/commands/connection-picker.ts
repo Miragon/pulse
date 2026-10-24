@@ -1,6 +1,6 @@
-import * as vscode from 'vscode';
-import type { Connection } from '../connections/connection.js';
-import type { ConnectionRegistry } from '../connections/connection-registry.js';
+import * as vscode from "vscode"
+import type { Connection } from "../connections/connection.js"
+import type { ConnectionRegistry } from "../connections/connection-registry.js"
 
 export class ConnectionPicker {
   constructor(private readonly registry: ConnectionRegistry) {}
@@ -13,7 +13,7 @@ export class ConnectionPicker {
         connection,
       })),
       { title },
-    );
-    return picked?.connection;
+    )
+    return picked?.connection
   }
 }

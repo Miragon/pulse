@@ -1,6 +1,6 @@
-import type { IncidentFilter } from '../../../contract/index.js';
-import type { IncidentQuery } from '../engine-cli/index.js';
-import type { Mapper } from './mapper.js';
+import type { IncidentFilter } from "../../../contract/index.js"
+import type { IncidentQuery } from "../engine-cli/index.js"
+import type { Mapper } from "./mapper.js"
 
 export class IncidentQueryMapper implements Mapper<IncidentFilter, IncidentQuery> {
   map(filter: IncidentFilter): IncidentQuery {
@@ -10,6 +10,6 @@ export class IncidentQueryMapper implements Mapper<IncidentFilter, IncidentQuery
         ? {}
         : { processDefinitionKeyIn: [filter.bpmnProcessId] }),
       ...(filter.instanceId === undefined ? {} : { processInstanceId: filter.instanceId }),
-    };
+    }
   }
 }

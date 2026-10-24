@@ -1,46 +1,46 @@
 export class EngineLane {
-  private busy = false;
-  private blocked = false;
-  private readonly waiting: (() => void)[] = [];
+  private busy = false
+  private blocked = false
+  private readonly waiting: (() => void)[] = []
 
   get isBlocked(): boolean {
-    return this.blocked;
+    return this.blocked
   }
 
   block(): void {
-    this.blocked = true;
+    this.blocked = true
   }
 
   unblock(): void {
-    this.blocked = false;
+    this.blocked = false
   }
 
   async tryRun<T>(task: () => Promise<T>): Promise<T | undefined> {
     if (this.busy || this.blocked) {
-      return undefined;
+      return undefined
     }
-    return this.run(task);
+    return this.run(task)
   }
 
   async run<T>(task: () => Promise<T>): Promise<T> {
     if (this.busy) {
-      await new Promise<void>((resolve) => this.waiting.push(resolve));
+      await new Promise<void>((resolve) => this.waiting.push(resolve))
     } else {
-      this.busy = true;
+      this.busy = true
     }
     try {
-      return await task();
+      return await task()
     } finally {
-      this.release();
+      this.release()
     }
   }
 
   private release(): void {
-    const next = this.waiting.shift();
+    const next = this.waiting.shift()
     if (next === undefined) {
-      this.busy = false;
+      this.busy = false
     } else {
-      next();
+      next()
     }
   }
 }

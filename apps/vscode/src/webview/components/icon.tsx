@@ -1,13 +1,13 @@
 export interface IconProps {
-  readonly of: string;
-  readonly size?: 12 | 16;
-  readonly class?: string | undefined;
+  readonly of: string
+  readonly size?: 12 | 16
+  readonly class?: string | undefined
 }
 
 export function Icon({ of: glyph, size = 16, class: className }: IconProps) {
   return (
     <svg
-      class={className === undefined ? 'icon' : `icon ${className}`}
+      class={className === undefined ? "icon" : `icon ${className}`}
       width={size}
       height={size}
       viewBox="0 0 24 24"
@@ -20,5 +20,5 @@ export function Icon({ of: glyph, size = 16, class: className }: IconProps) {
       focusable="false"
       dangerouslySetInnerHTML={{ __html: glyph }}
     />
-  );
+  )
 }

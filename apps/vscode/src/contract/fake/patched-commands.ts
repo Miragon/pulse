@@ -1,11 +1,11 @@
-import type { BulkOperationId, IncidentId, InstanceId } from '../model/ids.js';
-import type { MigrationPlan } from '../model/migrations.js';
+import type { BulkOperationId, IncidentId, InstanceId } from "../model/ids.js"
+import type { MigrationPlan } from "../model/migrations.js"
 import type {
   CancelOptions,
   ProcessCommands,
   TokenMove,
   VariableChange,
-} from '../ports/process-commands.js';
+} from "../ports/process-commands.js"
 
 export class PatchedCommands implements ProcessCommands {
   constructor(
@@ -14,17 +14,15 @@ export class PatchedCommands implements ProcessCommands {
   ) {}
 
   retryIncident(incidentId: IncidentId): Promise<void> {
-    return this.patch.retryIncident?.(incidentId) ?? this.base.retryIncident(incidentId);
+    return this.patch.retryIncident?.(incidentId) ?? this.base.retryIncident(incidentId)
   }
 
   setVariable(instanceId: InstanceId, change: VariableChange): Promise<void> {
-    return (
-      this.patch.setVariable?.(instanceId, change) ?? this.base.setVariable(instanceId, change)
-    );
+    return this.patch.setVariable?.(instanceId, change) ?? this.base.setVariable(instanceId, change)
   }
 
   moveToken(instanceId: InstanceId, move: TokenMove): Promise<void> {
-    return this.patch.moveToken?.(instanceId, move) ?? this.base.moveToken(instanceId, move);
+    return this.patch.moveToken?.(instanceId, move) ?? this.base.moveToken(instanceId, move)
   }
 
   cancelInstances(
@@ -34,7 +32,7 @@ export class PatchedCommands implements ProcessCommands {
     return (
       this.patch.cancelInstances?.(instanceIds, options) ??
       this.base.cancelInstances(instanceIds, options)
-    );
+    )
   }
 
   migrateInstances(
@@ -44,13 +42,13 @@ export class PatchedCommands implements ProcessCommands {
     return (
       this.patch.migrateInstances?.(plan, instanceIds) ??
       this.base.migrateInstances(plan, instanceIds)
-    );
+    )
   }
 
   stopBulkOperation(bulkOperationId: BulkOperationId): Promise<void> {
     return (
       this.patch.stopBulkOperation?.(bulkOperationId) ??
       this.base.stopBulkOperation(bulkOperationId)
-    );
+    )
   }
 }

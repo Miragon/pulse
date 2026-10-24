@@ -1,9 +1,9 @@
-import { CopyButton } from './copy-button.js';
+import { CopyButton } from "./copy-button.js"
 
 export interface IdTextProps {
-  readonly id: string;
-  readonly shortId: string;
-  readonly label: string;
+  readonly id: string
+  readonly shortId: string
+  readonly label: string
 }
 
 export function IdText({ id, shortId, label }: IdTextProps) {
@@ -15,5 +15,5 @@ export function IdText({ id, shortId, label }: IdTextProps) {
       </code>
       <CopyButton text={id} label={label} class="id-text__copy" />
     </span>
-  );
+  )
 }

@@ -1,7 +1,7 @@
 :root {
   --pulse-font:
-    'Geist Variable', 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --pulse-font-mono: 'Geist Mono Variable', 'Geist Mono', ui-monospace, monospace;
+    "Geist Variable", "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --pulse-font-mono: "Geist Mono Variable", "Geist Mono", ui-monospace, monospace;
   --pulse-bar: var(--cd-shell-zeile);
   --pulse-entry: var(--cd-shell-eintrag);
   --pulse-row: 28px;
@@ -58,7 +58,7 @@ dd {
   outline-offset: 2px;
 }
 
-[data-cd-kontrast='hoch'] :focus-visible {
+[data-cd-kontrast="hoch"] :focus-visible {
   outline-width: 3px;
 }
 

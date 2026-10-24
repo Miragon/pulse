@@ -12,7 +12,7 @@ import {
   type InstanceAlias,
   type MigrationInstanceAlias,
   type WorldInstance,
-} from '../conformance/world/world.js';
+} from "../conformance/world/world.js"
 import {
   BpmnProcessId,
   DefinitionId,
@@ -20,52 +20,52 @@ import {
   IncidentId,
   InstanceId,
   IsoTimestamp,
-} from '../model/ids.js';
-import type { DefinitionRef, ElementRun, InstanceSummary, Variable } from '../model/read-models.js';
-import type { FakeDefinition, FakeIncident, FakeInstance } from './fake-engine-state.js';
+} from "../model/ids.js"
+import type { DefinitionRef, ElementRun, InstanceSummary, Variable } from "../model/read-models.js"
+import type { FakeDefinition, FakeIncident, FakeInstance } from "./fake-engine-state.js"
 
-const STARTED_AT = IsoTimestamp('2026-10-21T08:00:00Z');
-const ENDED_AT = IsoTimestamp('2026-10-21T08:00:01Z');
-const FAILED_AT = IsoTimestamp('2026-10-21T08:00:02Z');
-const DISPATCH_REQUESTED = 'Event_DispatchRequested';
-const LABEL_REQUESTED = 'Event_LabelRequested';
+const STARTED_AT = IsoTimestamp("2026-10-21T08:00:00Z")
+const ENDED_AT = IsoTimestamp("2026-10-21T08:00:01Z")
+const FAILED_AT = IsoTimestamp("2026-10-21T08:00:02Z")
+const DISPATCH_REQUESTED = "Event_DispatchRequested"
+const LABEL_REQUESTED = "Event_LabelRequested"
 const PROCESS_NAMES = {
-  order: 'Order fulfillment',
-  dispatch: 'Dispatch order',
-  label: 'Print label',
-} as const;
+  order: "Order fulfillment",
+  dispatch: "Dispatch order",
+  label: "Print label",
+} as const
 
 const STACKTRACE = [
-  'org.example.TaskFailure: Cannot resolve identifier',
-  '\tat org.example.Worker.execute(Worker.java:42)',
-  'Caused by: org.example.MissingBean: Cannot resolve identifier',
-].join('\n');
+  "org.example.TaskFailure: Cannot resolve identifier",
+  "\tat org.example.Worker.execute(Worker.java:42)",
+  "Caused by: org.example.MissingBean: Cannot resolve identifier",
+].join("\n")
 
 const LOCAL_VARIABLE: Variable = {
   name: WORLD_LOCAL_VARIABLE.name,
-  scope: { kind: 'element', elementId: ElementId(WORLD_LOCAL_VARIABLE.elementId) },
+  scope: { kind: "element", elementId: ElementId(WORLD_LOCAL_VARIABLE.elementId) },
   valueJson: JSON.stringify(WORLD_LOCAL_VARIABLE.value),
   truncated: false,
-  type: 'String',
-  kind: 'string',
-};
+  type: "String",
+  kind: "string",
+}
 
 export type AnyWorldInstance = WorldInstance<
   InstanceAlias | CommandInstanceAlias | BulkInstanceAlias | MigrationInstanceAlias
->;
+>
 
 export interface Simulated {
-  readonly instances: FakeInstance[];
-  readonly incidents: FakeIncident[];
+  readonly instances: FakeInstance[]
+  readonly incidents: FakeIncident[]
 }
 
 export class FakeWorldSimulation {
   static definitionOf(alias: DeploymentAlias): FakeDefinition {
-    const deployment = WORLD_DEPLOYMENTS.find((candidate) => candidate.alias === alias);
+    const deployment = WORLD_DEPLOYMENTS.find((candidate) => candidate.alias === alias)
     if (deployment === undefined) {
-      throw new RangeError(`unknown deployment ${alias}`);
+      throw new RangeError(`unknown deployment ${alias}`)
     }
-    const bpmnProcessId = WORLD_PROCESS[deployment.process];
+    const bpmnProcessId = WORLD_PROCESS[deployment.process]
     return {
       ref: {
         id: DefinitionId(`${bpmnProcessId}:${deployment.version}`),
@@ -83,25 +83,25 @@ export class FakeWorldSimulation {
               },
             ]
           : [],
-    };
+    }
   }
 
   simulate(world: AnyWorldInstance): Simulated {
-    const definition = FakeWorldSimulation.definitionOf(world.deployment).ref;
-    return world.deployment === 'dispatch@1'
+    const definition = FakeWorldSimulation.definitionOf(world.deployment).ref
+    return world.deployment === "dispatch@1"
       ? this.simulateDispatch(world, definition)
-      : this.simulateOrder(world, definition);
+      : this.simulateOrder(world, definition)
   }
 
-  private variablesOf(values: WorldInstance['variables']): Variable[] {
+  private variablesOf(values: WorldInstance["variables"]): Variable[] {
     return Object.entries(values).map(([name, value]) => ({
       name,
-      scope: { kind: 'instance' },
+      scope: { kind: "instance" },
       valueJson: JSON.stringify(value),
       truncated: false,
-      type: typeof value === 'number' ? 'Integer' : 'String',
-      kind: typeof value === 'number' ? 'integer' : 'string',
-    }));
+      type: typeof value === "number" ? "Integer" : "String",
+      kind: typeof value === "number" ? "integer" : "string",
+    }))
   }
 
   private pathOf(ended: readonly string[], open?: string): ElementRun[] {
@@ -110,10 +110,10 @@ export class FakeWorldSimulation {
       startedAt: STARTED_AT,
       endedAt: ENDED_AT,
       canceled: false,
-    }));
+    }))
     return open === undefined
       ? done
-      : [...done, { elementId: ElementId(open), startedAt: ENDED_AT, canceled: false }];
+      : [...done, { elementId: ElementId(open), startedAt: ENDED_AT, canceled: false }]
   }
 
   private summaryOf(
@@ -124,12 +124,12 @@ export class FakeWorldSimulation {
     return {
       id: InstanceId(`fake-${world.businessKey}`),
       definition,
-      state: 'running',
+      state: "running",
       hasIncident: false,
       businessKey: world.businessKey,
       startedAt: STARTED_AT,
       ...extra,
-    };
+    }
   }
 
   private failure(
@@ -143,14 +143,14 @@ export class FakeWorldSimulation {
         instanceId,
         definition,
         elementId: ElementId(elementId),
-        type: 'failedTask',
-        message: 'Cannot resolve identifier',
+        type: "failedTask",
+        message: "Cannot resolve identifier",
         createdAt: FAILED_AT,
         retriesLeft: 0,
         job: { id: `job-of-${instanceId}` },
       },
-      fullDetails: { kind: 'stacktrace', text: STACKTRACE, truncated: false },
-    };
+      fullDetails: { kind: "stacktrace", text: STACKTRACE, truncated: false },
+    }
   }
 
   private simulateExpressOrder(
@@ -158,7 +158,7 @@ export class FakeWorldSimulation {
     definition: DefinitionRef,
     variables: readonly Variable[],
   ): Simulated {
-    const summary = this.summaryOf(world, definition, { state: 'completed', endedAt: ENDED_AT });
+    const summary = this.summaryOf(world, definition, { state: "completed", endedAt: ENDED_AT })
     return {
       instances: [
         {
@@ -174,27 +174,27 @@ export class FakeWorldSimulation {
         },
       ],
       incidents: [],
-    };
+    }
   }
 
   private simulateOrder(world: AnyWorldInstance, definition: DefinitionRef): Simulated {
-    const variables = this.variablesOf(world.variables);
-    if (world.variables.route === 'express') {
-      return this.simulateExpressOrder(world, definition, variables);
+    const variables = this.variablesOf(world.variables)
+    if (world.variables.route === "express") {
+      return this.simulateExpressOrder(world, definition, variables)
     }
-    if (world.variables.route === 'charge') {
-      const summary = this.summaryOf(world, definition, { hasIncident: true });
-      const incident = this.failure(summary.id, definition, WORLD_ELEMENT.chargePayment);
-      const elementId = ElementId(WORLD_ELEMENT.chargePayment);
+    if (world.variables.route === "charge") {
+      const summary = this.summaryOf(world, definition, { hasIncident: true })
+      const incident = this.failure(summary.id, definition, WORLD_ELEMENT.chargePayment)
+      const elementId = ElementId(WORLD_ELEMENT.chargePayment)
       const waitStates = [
         {
-          kind: 'asyncContinuation',
+          kind: "asyncContinuation",
           instanceId: summary.id,
           elementId,
           retriesLeft: 0,
           incidentId: incident.incident.id,
         },
-      ] as const;
+      ] as const
       return {
         instances: [
           {
@@ -206,14 +206,14 @@ export class FakeWorldSimulation {
           },
         ],
         incidents: [incident],
-      };
+      }
     }
-    const summary = this.summaryOf(world, definition, {});
-    const elementId = ElementId(WORLD_ELEMENT.reviewOrder);
-    const tokens = world.businessKey === WORLD_SECOND_TOKEN.instance ? 2 : 1;
-    const wait = { kind: 'userTask', instanceId: summary.id, elementId, assignee: 'demo' } as const;
-    const path = this.pathOf([WORLD_ELEMENT.orderReceived, WORLD_ELEMENT.route], elementId);
-    const local = world.businessKey === WORLD_LOCAL_VARIABLE.instance ? [LOCAL_VARIABLE] : [];
+    const summary = this.summaryOf(world, definition, {})
+    const elementId = ElementId(WORLD_ELEMENT.reviewOrder)
+    const tokens = world.businessKey === WORLD_SECOND_TOKEN.instance ? 2 : 1
+    const wait = { kind: "userTask", instanceId: summary.id, elementId, assignee: "demo" } as const
+    const path = this.pathOf([WORLD_ELEMENT.orderReceived, WORLD_ELEMENT.route], elementId)
+    const local = world.businessKey === WORLD_LOCAL_VARIABLE.instance ? [LOCAL_VARIABLE] : []
     return {
       instances: [
         {
@@ -225,23 +225,23 @@ export class FakeWorldSimulation {
         },
       ],
       incidents: [],
-    };
+    }
   }
 
   private simulateDispatch(world: AnyWorldInstance, definition: DefinitionRef): Simulated {
-    const parent = this.summaryOf(world, definition, { hasIncident: true });
-    const label = FakeWorldSimulation.definitionOf('label@1').ref;
+    const parent = this.summaryOf(world, definition, { hasIncident: true })
+    const label = FakeWorldSimulation.definitionOf("label@1").ref
     const child: InstanceSummary = {
       id: InstanceId(`fake-label-of-${world.businessKey}`),
       definition: label,
-      state: 'running',
+      state: "running",
       hasIncident: true,
       startedAt: STARTED_AT,
       parentInstanceId: parent.id,
-    };
-    const incident = this.failure(child.id, label, WORLD_ELEMENT.renderLabel);
-    const callActivity = ElementId(WORLD_ELEMENT.printShippingLabel);
-    const renderLabel = ElementId(WORLD_ELEMENT.renderLabel);
+    }
+    const incident = this.failure(child.id, label, WORLD_ELEMENT.renderLabel)
+    const callActivity = ElementId(WORLD_ELEMENT.printShippingLabel)
+    const renderLabel = ElementId(WORLD_ELEMENT.renderLabel)
     return {
       instances: [
         {
@@ -256,7 +256,7 @@ export class FakeWorldSimulation {
           activeElementIds: [renderLabel],
           waitStates: [
             {
-              kind: 'asyncContinuation',
+              kind: "asyncContinuation",
               instanceId: child.id,
               elementId: renderLabel,
               retriesLeft: 0,
@@ -269,6 +269,6 @@ export class FakeWorldSimulation {
         },
       ],
       incidents: [incident],
-    };
+    }
   }
 }

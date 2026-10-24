@@ -1,7 +1,7 @@
-import type { DefinitionView, IncidentRow } from '../../core/protocol/index.js';
-import type { ElementCode } from './code-button.js';
+import type { DefinitionView, IncidentRow } from "../../core/protocol/index.js"
+import type { ElementCode } from "./code-button.js"
 
-type LocalModel = DefinitionView['model'];
+type LocalModel = DefinitionView["model"]
 
 export class ElementCodes {
   static of(model: LocalModel, incidents: readonly IncidentRow[] = []): ElementCode[] {
@@ -9,9 +9,9 @@ export class ElementCodes {
       row.model?.codeLabel === undefined
         ? []
         : [{ elementId: row.elementId, label: row.model.codeLabel }],
-    );
-    const selected = model?.code;
-    const all = selected === undefined ? codes : [...codes, selected];
-    return [...new Map(all.map((code) => [code.elementId, code])).values()];
+    )
+    const selected = model?.code
+    const all = selected === undefined ? codes : [...codes, selected]
+    return [...new Map(all.map((code) => [code.elementId, code])).values()]
   }
 }

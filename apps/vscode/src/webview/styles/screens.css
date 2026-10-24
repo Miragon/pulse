@@ -166,7 +166,7 @@
 }
 
 .split-layout__handle::after {
-  content: '';
+  content: "";
   position: absolute;
   inset: -4px 0;
 }
@@ -225,7 +225,7 @@
   color: var(--cd-ui-text);
 }
 
-.segmented__option[aria-checked='true'] {
+.segmented__option[aria-checked="true"] {
   background: var(--cd-ui-flaeche-hoch);
   color: var(--cd-ui-text);
   font-weight: 600;
@@ -330,7 +330,7 @@
   }
 
   .filter-bar::after {
-    content: '';
+    content: "";
     flex-basis: 100%;
     order: 2;
   }

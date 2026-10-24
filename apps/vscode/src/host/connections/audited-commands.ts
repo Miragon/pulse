@@ -7,8 +7,8 @@ import type {
   ProcessCommands,
   TokenMove,
   VariableChange,
-} from '../../contract/index.js';
-import type { AuditedEngine, WriteAudit } from './write-audit.js';
+} from "../../contract/index.js"
+import type { AuditedEngine, WriteAudit } from "./write-audit.js"
 
 export class AuditedCommands implements ProcessCommands {
   constructor(
@@ -20,41 +20,41 @@ export class AuditedCommands implements ProcessCommands {
 
   retryIncident(incidentId: IncidentId): Promise<void> {
     return this.audit.recordWrite(this.engine, {
-      operation: 'retryIncident',
+      operation: "retryIncident",
       fields: `incident=${incidentId}`,
       run: () => this.commands.retryIncident(incidentId),
-    });
+    })
   }
 
   setVariable(instanceId: InstanceId, change: VariableChange): Promise<void> {
     return this.audit.recordWrite(this.engine, {
-      operation: 'setVariable',
+      operation: "setVariable",
       fields: `instance=${instanceId} ${this.changeFields(change)}`,
       run: () => this.commands.setVariable(instanceId, change),
-    });
+    })
   }
 
   moveToken(instanceId: InstanceId, move: TokenMove): Promise<void> {
-    const ends = `from=${JSON.stringify(move.fromElementId)} to=${JSON.stringify(move.toElementId)}`;
-    const reason = `reasonChars=${move.reason.trim().length}${this.signedIn ? '' : ' oplog=none'}`;
+    const ends = `from=${JSON.stringify(move.fromElementId)} to=${JSON.stringify(move.toElementId)}`
+    const reason = `reasonChars=${move.reason.trim().length}${this.signedIn ? "" : " oplog=none"}`
     return this.audit.recordWrite(this.engine, {
-      operation: 'moveToken',
+      operation: "moveToken",
       fields: `instance=${instanceId} ${ends} ${reason}`,
       run: () => this.commands.moveToken(instanceId, move),
-    });
+    })
   }
 
   cancelInstances(
     instanceIds: readonly InstanceId[],
     options?: CancelOptions,
   ): Promise<BulkOperationId> {
-    this.audit.recordIds(this.engine, 'cancelInstances', instanceIds);
+    this.audit.recordIds(this.engine, "cancelInstances", instanceIds)
     return this.audit.recordWrite(this.engine, {
-      operation: 'cancelInstances',
-      fields: `count=${instanceIds.length} reason=${options?.reason === undefined ? 'none' : 'given'}`,
+      operation: "cancelInstances",
+      fields: `count=${instanceIds.length} reason=${options?.reason === undefined ? "none" : "given"}`,
       run: () => this.commands.cancelInstances(instanceIds, options),
       resultFields: (bulkOperationId) => `bulk=${bulkOperationId}`,
-    });
+    })
   }
 
   migrateInstances(
@@ -63,27 +63,27 @@ export class AuditedCommands implements ProcessCommands {
   ): Promise<BulkOperationId> {
     const pairs = plan.mappings.map(
       (mapping) => `${mapping.sourceElementId}>${mapping.targetElementId}`,
-    );
-    this.audit.recordParts(this.engine, 'migrateInstancesPlan', 'map', pairs);
-    this.audit.recordIds(this.engine, 'migrateInstances', instanceIds);
+    )
+    this.audit.recordParts(this.engine, "migrateInstancesPlan", "map", pairs)
+    this.audit.recordIds(this.engine, "migrateInstances", instanceIds)
     return this.audit.recordWrite(this.engine, {
-      operation: 'migrateInstances',
-      fields: `source=${plan.sourceDefinitionId} target=${plan.targetDefinitionId} mappings=${pairs.length} count=${instanceIds.length}${this.signedIn ? '' : ' oplog=none'}`,
+      operation: "migrateInstances",
+      fields: `source=${plan.sourceDefinitionId} target=${plan.targetDefinitionId} mappings=${pairs.length} count=${instanceIds.length}${this.signedIn ? "" : " oplog=none"}`,
       run: () => this.commands.migrateInstances(plan, instanceIds),
       resultFields: (bulkOperationId) => `bulk=${bulkOperationId}`,
-    });
+    })
   }
 
   stopBulkOperation(bulkOperationId: BulkOperationId): Promise<void> {
     return this.audit.recordWrite(this.engine, {
-      operation: 'stopBulkOperation',
+      operation: "stopBulkOperation",
       fields: `bulk=${bulkOperationId}`,
       run: () => this.commands.stopBulkOperation(bulkOperationId),
-    });
+    })
   }
 
   private changeFields(change: VariableChange): string {
-    const bytes = new TextEncoder().encode(change.valueJson).length;
-    return `variable=${JSON.stringify(change.name)} type=${change.type ?? 'inferred'} bytes=${bytes}`;
+    const bytes = new TextEncoder().encode(change.valueJson).length
+    return `variable=${JSON.stringify(change.name)} type=${change.type ?? "inferred"} bytes=${bytes}`
   }
 }

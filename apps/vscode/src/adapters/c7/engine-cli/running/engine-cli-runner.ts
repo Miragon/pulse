@@ -1,33 +1,33 @@
-import { EngineCliFailure } from '../engine-cli-failure.js';
-import { EngineCliOutputError } from '../engine-cli-output-error.js';
-import { LosslessJson } from '../views/lossless-json.js';
-import { NodeSpawner } from './node-spawner.js';
+import { EngineCliFailure } from "../engine-cli-failure.js"
+import { EngineCliOutputError } from "../engine-cli-output-error.js"
+import { LosslessJson } from "../views/lossless-json.js"
+import { NodeSpawner } from "./node-spawner.js"
 import {
   EngineCliEnvironment,
   type Environment,
   type EngineCliAccess,
   type EngineCliConnection,
-} from './engine-cli-environment.js';
-import { EngineCliErrorLine } from './engine-cli-error-line.js';
-import type { EngineCliSpawner } from './engine-cli-spawner.js';
+} from "./engine-cli-environment.js"
+import { EngineCliErrorLine } from "./engine-cli-error-line.js"
+import type { EngineCliSpawner } from "./engine-cli-spawner.js"
 
 export interface EngineCliRunnerOptions {
-  readonly cliPath: string;
-  readonly connection: EngineCliConnection;
-  readonly timeoutMs?: number;
-  readonly spawner?: EngineCliSpawner;
-  readonly nodePath?: string;
-  readonly baseEnvironment?: Environment;
+  readonly cliPath: string
+  readonly connection: EngineCliConnection
+  readonly timeoutMs?: number
+  readonly spawner?: EngineCliSpawner
+  readonly nodePath?: string
+  readonly baseEnvironment?: Environment
 }
 
 interface EngineCliLaunch {
-  readonly command: string;
-  readonly cliPath: string;
-  readonly environment: Readonly<Record<string, string>>;
-  readonly timeoutMs: number;
+  readonly command: string
+  readonly cliPath: string
+  readonly environment: Readonly<Record<string, string>>
+  readonly timeoutMs: number
 }
 
-const DEFAULT_TIMEOUT_MS = 60_000;
+const DEFAULT_TIMEOUT_MS = 60_000
 
 export class EngineCliRunner {
   constructor(
@@ -37,7 +37,7 @@ export class EngineCliRunner {
 
   static create(
     options: EngineCliRunnerOptions,
-    access: EngineCliAccess = 'read',
+    access: EngineCliAccess = "read",
   ): EngineCliRunner {
     return new EngineCliRunner(options.spawner ?? new NodeSpawner(), {
       command: options.nodePath ?? process.execPath,
@@ -48,7 +48,7 @@ export class EngineCliRunner {
         access,
       ),
       timeoutMs: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
-    });
+    })
   }
 
   async text(args: readonly string[], input?: string): Promise<string> {
@@ -58,35 +58,35 @@ export class EngineCliRunner {
       environment: this.launch.environment,
       timeoutMs: this.launch.timeoutMs,
       ...(input === undefined ? {} : { input }),
-    });
+    })
     if (exit.timedOut) {
-      throw this.timedOut();
+      throw this.timedOut()
     }
     if (exit.exitCode !== 0) {
-      throw EngineCliErrorLine.failureOf(exit);
+      throw EngineCliErrorLine.failureOf(exit)
     }
-    return exit.stdout;
+    return exit.stdout
   }
 
   async json(args: readonly string[], input?: string): Promise<unknown> {
-    return this.parsed(await this.text(args, input));
+    return this.parsed(await this.text(args, input))
   }
 
   private timedOut(): EngineCliFailure {
     return new EngineCliFailure(
       `the engine CLI did not answer within ${this.launch.timeoutMs} ms`,
       {
-        code: 'TIMEOUT',
+        code: "TIMEOUT",
         exitCode: null,
       },
-    );
+    )
   }
 
   private parsed(stdout: string): unknown {
     try {
-      return LosslessJson.parse(stdout);
+      return LosslessJson.parse(stdout)
     } catch (error: unknown) {
-      throw new EngineCliOutputError(`the engine CLI printed no JSON: ${String(error)}`);
+      throw new EngineCliOutputError(`the engine CLI printed no JSON: ${String(error)}`)
     }
   }
 }

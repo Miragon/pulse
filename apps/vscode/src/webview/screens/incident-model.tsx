@@ -1,12 +1,12 @@
-import { Fragment } from 'preact';
-import type { IncidentRow, ModelFacts } from '../../core/protocol/index.js';
-import { glyphs } from '../components/lucide-glyphs.json';
-import { Icon } from '../components/icon.js';
-import { useHost } from '../host/host-context.js';
+import { Fragment } from "preact"
+import type { IncidentRow, ModelFacts } from "../../core/protocol/index.js"
+import { glyphs } from "../components/lucide-glyphs.json"
+import { Icon } from "../components/icon.js"
+import { useHost } from "../host/host-context.js"
 
 export function IncidentModelFacts({ model }: { readonly model: ModelFacts | undefined }) {
   if (model === undefined) {
-    return null;
+    return null
   }
   return (
     <>
@@ -26,14 +26,14 @@ export function IncidentModelFacts({ model }: { readonly model: ModelFacts | und
         )}
       </dd>
     </>
-  );
+  )
 }
 
 export function IncidentModelActions({ incident }: { readonly incident: IncidentRow }) {
-  const host = useHost();
-  const model = incident.model;
+  const host = useHost()
+  const model = incident.model
   if (model === undefined) {
-    return null;
+    return null
   }
   return (
     <>
@@ -42,7 +42,7 @@ export function IncidentModelActions({ incident }: { readonly incident: Incident
         class="button button--secondary"
         title={`Open ${model.fileName} at this element`}
         onClick={() => {
-          host.post({ type: 'openModel', incidentId: incident.id });
+          host.post({ type: "openModel", incidentId: incident.id })
         }}
       >
         <Icon of={glyphs.Workflow} />
@@ -54,7 +54,7 @@ export function IncidentModelActions({ incident }: { readonly incident: Incident
           class="button button--secondary"
           title={`Open ${model.codeLabel}`}
           onClick={() => {
-            host.post({ type: 'openCode', incidentId: incident.id });
+            host.post({ type: "openCode", incidentId: incident.id })
           }}
         >
           <Icon of={glyphs.FileCode} />
@@ -62,5 +62,5 @@ export function IncidentModelActions({ incident }: { readonly incident: Incident
         </button>
       )}
     </>
-  );
+  )
 }

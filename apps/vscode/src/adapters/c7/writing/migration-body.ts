@@ -1,4 +1,4 @@
-import type { InstanceId, MigrationPlan } from '../../../contract/index.js';
+import type { InstanceId, MigrationPlan } from "../../../contract/index.js"
 
 export class MigrationBody {
   static of(plan: MigrationPlan, instanceIds: readonly InstanceId[]): string {
@@ -15,6 +15,6 @@ export class MigrationBody {
       processInstanceIds: instanceIds,
       skipCustomListeners: false,
       skipIoMappings: false,
-    });
+    })
   }
 }

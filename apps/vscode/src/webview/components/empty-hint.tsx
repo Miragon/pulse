@@ -1,15 +1,15 @@
-import type { ComponentChildren } from 'preact';
+import type { ComponentChildren } from "preact"
 
 export interface EmptyHintProps {
-  readonly text: string;
-  readonly busy?: boolean;
-  readonly action?: { readonly label: string; readonly onClick: () => void };
-  readonly children?: ComponentChildren;
+  readonly text: string
+  readonly busy?: boolean
+  readonly action?: { readonly label: string; readonly onClick: () => void }
+  readonly children?: ComponentChildren
 }
 
 export function EmptyHint({ text, busy = false, action, children }: EmptyHintProps) {
   return (
-    <div class="empty-hint" role={busy ? 'status' : undefined} aria-busy={busy || undefined}>
+    <div class="empty-hint" role={busy ? "status" : undefined} aria-busy={busy || undefined}>
       {children}
       <p class="empty-hint__text">{text}</p>
       {action !== undefined && (
@@ -18,5 +18,5 @@ export function EmptyHint({ text, busy = false, action, children }: EmptyHintPro
         </button>
       )}
     </div>
-  );
+  )
 }

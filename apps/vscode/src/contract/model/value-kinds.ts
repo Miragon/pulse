@@ -1,25 +1,25 @@
-import type { ValueKind } from './read-models.js';
+import type { ValueKind } from "./read-models.js"
 
-const INTEGER = /^-?\d+$/;
-const DECIMAL = /^-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?$/;
+const INTEGER = /^-?\d+$/
+const DECIMAL = /^-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?$/
 const LITERALS: Readonly<Record<string, ValueKind>> = {
-  true: 'boolean',
-  false: 'boolean',
-  null: 'null',
-};
+  true: "boolean",
+  false: "boolean",
+  null: "null",
+}
 
 export class ValueKinds {
   static ofJson(valueJson: string): ValueKind {
-    const text = valueJson.trim();
+    const text = valueJson.trim()
     if (text.startsWith('"')) {
-      return 'string';
+      return "string"
     }
     if (INTEGER.test(text)) {
-      return 'integer';
+      return "integer"
     }
     if (DECIMAL.test(text)) {
-      return 'decimal';
+      return "decimal"
     }
-    return LITERALS[text] ?? 'json';
+    return LITERALS[text] ?? "json"
   }
 }

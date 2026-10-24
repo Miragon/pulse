@@ -1,20 +1,20 @@
-import type { ComponentChildren } from 'preact';
-import { CountLabels } from '../format/count-labels.js';
-import { RovingKeys } from './roving-keys.js';
+import type { ComponentChildren } from "preact"
+import { CountLabels } from "../format/count-labels.js"
+import { RovingKeys } from "./roving-keys.js"
 
 export interface TabItem<Id extends string> {
-  readonly id: Id;
-  readonly label: string;
-  readonly count: number;
+  readonly id: Id
+  readonly label: string
+  readonly count: number
 }
 
 export interface TabsProps<Id extends string> {
-  readonly label: string;
-  readonly items: readonly TabItem<Id>[];
-  readonly selected: Id;
-  readonly onSelect: (id: Id) => void;
-  readonly aside?: ComponentChildren;
-  readonly children: ComponentChildren;
+  readonly label: string
+  readonly items: readonly TabItem<Id>[]
+  readonly selected: Id
+  readonly onSelect: (id: Id) => void
+  readonly aside?: ComponentChildren
+  readonly children: ComponentChildren
 }
 
 export function Tabs<Id extends string>({
@@ -37,7 +37,7 @@ export function Tabs<Id extends string>({
               event,
               items.map((item) => item.id),
               onSelect,
-            );
+            )
           }}
         >
           {items.map((item) => (
@@ -52,7 +52,7 @@ export function Tabs<Id extends string>({
               tabIndex={item.id === selected ? 0 : -1}
               class="tabs__tab"
               onClick={() => {
-                onSelect(item.id);
+                onSelect(item.id)
               }}
             >
               {item.label}
@@ -71,5 +71,5 @@ export function Tabs<Id extends string>({
         {children}
       </div>
     </div>
-  );
+  )
 }

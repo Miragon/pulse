@@ -98,7 +98,7 @@
 }
 
 .column-grip::after {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0 3px;
   background: var(--cd-ui-interaktion);
@@ -255,7 +255,7 @@
   color: var(--cd-ui-text);
 }
 
-.tabs__tab[aria-selected='true'] {
+.tabs__tab[aria-selected="true"] {
   color: var(--cd-ui-text);
   font-weight: 600;
   box-shadow: inset 0 -2px 0 var(--cd-ui-interaktion);

@@ -1,146 +1,146 @@
-import { ESLint } from 'eslint';
-import { describe, expect, test } from 'vitest';
-import { readRepoFile, REPO_ROOT } from './support/files.js';
+import { ESLint } from "eslint"
+import { describe, expect, test } from "vitest"
+import { readRepoFile, REPO_ROOT } from "./support/files.js"
 
-const PROBE_FILE = 'packages/core/src/incidents/root-cause.ts';
-const CLASS_PROBE = 'packages/contract/src/model/value-kinds.ts';
-const COMPONENT_PROBE = 'packages/webview/src/components/icon.tsx';
+const PROBE_FILE = "packages/core/src/incidents/root-cause.ts"
+const CLASS_PROBE = "packages/contract/src/model/value-kinds.ts"
+const COMPONENT_PROBE = "packages/webview/src/components/icon.tsx"
 
-const eslint = new ESLint({ cwd: REPO_ROOT });
+const eslint = new ESLint({ cwd: REPO_ROOT })
 
 async function rulesFiredOn(text: string, filePath = PROBE_FILE): Promise<string[]> {
-  const [result] = await eslint.lintText(text, { filePath });
-  return (result?.messages ?? []).map((message) => message.ruleId ?? message.message);
+  const [result] = await eslint.lintText(text, { filePath })
+  return (result?.messages ?? []).map((message) => message.ruleId ?? message.message)
 }
 
 function withProbe(line: string): string {
-  return `${readRepoFile(PROBE_FILE)}\n${line}\n`;
+  return `${readRepoFile(PROBE_FILE)}\n${line}\n`
 }
 
-describe('the lint gates', { timeout: 20_000 }, () => {
-  test('the probe file is clean as it is', async () => {
-    expect(await rulesFiredOn(readRepoFile(PROBE_FILE))).toEqual([]);
-  });
+describe("the lint gates", { timeout: 20_000 }, () => {
+  test("the probe file is clean as it is", async () => {
+    expect(await rulesFiredOn(readRepoFile(PROBE_FILE))).toEqual([])
+  })
 
-  test('reject comments of every kind', async () => {
-    const commented = `// explain\n/* block */\n${readRepoFile(PROBE_FILE)}`;
-    expect(await rulesFiredOn(commented)).toEqual(['pulse/no-comments', 'pulse/no-comments']);
-  });
+  test("reject comments of every kind", async () => {
+    const commented = `// explain\n/* block */\n${readRepoFile(PROBE_FILE)}`
+    expect(await rulesFiredOn(commented)).toEqual(["pulse/no-comments", "pulse/no-comments"])
+  })
 
-  test('cannot be switched off inline', async () => {
-    const disabled = `/* eslint-disable */\n${readRepoFile(PROBE_FILE)}`;
-    expect(await rulesFiredOn(disabled)).toContain('pulse/no-comments');
-  });
+  test("cannot be switched off inline", async () => {
+    const disabled = `/* eslint-disable */\n${readRepoFile(PROBE_FILE)}`
+    expect(await rulesFiredOn(disabled)).toContain("pulse/no-comments")
+  })
 
-  test('enforce the complexity budget', async () => {
+  test("enforce the complexity budget", async () => {
     const branches = Array.from(
       { length: 11 },
       (_, index) => `  if (value === ${index}) return ${index};`,
-    );
+    )
     const complex = withProbe(
-      `export function tangled(value: number): number {\n${branches.join('\n')}\n  return -1;\n}`,
-    );
-    expect(await rulesFiredOn(complex)).toContain('complexity');
-  });
+      `export function tangled(value: number): number {\n${branches.join("\n")}\n  return -1;\n}`,
+    )
+    expect(await rulesFiredOn(complex)).toContain("complexity")
+  })
 
   test.each([
-    'export const processDefinitionKey = 1;',
+    "export const processDefinitionKey = 1;",
     "export const engine = 'Camunda 7';",
-    'export const label = `zeebe ${String(1)}`;',
+    "export const label = `zeebe ${String(1)}`;",
     "export type Engine = 'c8';",
-  ])('keep engine words out of the core: %s', async (line) => {
-    expect(await rulesFiredOn(withProbe(line))).toContain('no-restricted-syntax');
-  });
+  ])("keep engine words out of the core: %s", async (line) => {
+    expect(await rulesFiredOn(withProbe(line))).toContain("no-restricted-syntax")
+  })
 
   test.each([
-    'packages/contract/src/ports/process-runtime.ts',
-    'packages/contract/src/model/ids.ts',
-  ])('keep engine words out of the contract: %s', async (filePath) => {
-    expect(await rulesFiredOn(readRepoFile(filePath), filePath)).toEqual([]);
-    const probe = `${readRepoFile(filePath)}\nexport type Key = 'processInstanceKey';\n`;
-    expect(await rulesFiredOn(probe, filePath)).toEqual(['no-restricted-syntax']);
-  });
+    "packages/contract/src/ports/process-runtime.ts",
+    "packages/contract/src/model/ids.ts",
+  ])("keep engine words out of the contract: %s", async (filePath) => {
+    expect(await rulesFiredOn(readRepoFile(filePath), filePath)).toEqual([])
+    const probe = `${readRepoFile(filePath)}\nexport type Key = 'processInstanceKey';\n`
+    expect(await rulesFiredOn(probe, filePath)).toEqual(["no-restricted-syntax"])
+  })
 
-  test('let the neutral words of the contract through', async () => {
-    const neutral = withProbe("export const ids = 'elementId bpmnProcessId definitionId c78';");
-    expect(await rulesFiredOn(neutral)).toEqual([]);
-  });
+  test("let the neutral words of the contract through", async () => {
+    const neutral = withProbe("export const ids = 'elementId bpmnProcessId definitionId c78';")
+    expect(await rulesFiredOn(neutral)).toEqual([])
+  })
 
-  test('keep the engine CLI out of the extension outside its composition root', async () => {
-    const host = "export const cli = 'engine-cli';\n";
-    expect(await rulesFiredOn(host, 'packages/extension/src/engine-status-bar.ts')).toContain(
-      'no-restricted-syntax',
-    );
-    expect(await rulesFiredOn(host, 'packages/extension/src/composition-root.ts')).not.toContain(
-      'no-restricted-syntax',
-    );
-  });
+  test("keep the engine CLI out of the extension outside its composition root", async () => {
+    const host = "export const cli = 'engine-cli';\n"
+    expect(await rulesFiredOn(host, "packages/extension/src/engine-status-bar.ts")).toContain(
+      "no-restricted-syntax",
+    )
+    expect(await rulesFiredOn(host, "packages/extension/src/composition-root.ts")).not.toContain(
+      "no-restricted-syntax",
+    )
+  })
 
   test.each([
-    ['packages/webview/src/styles/base.css', '.probe { color: var(--vscode-foreground); }\n'],
-    ['packages/webview/src/styles/base.css', '.probe { color: var(--cd-x, var(--vscode-x)); }\n'],
+    ["packages/webview/src/styles/base.css", ".probe { color: var(--vscode-foreground); }\n"],
+    ["packages/webview/src/styles/base.css", ".probe { color: var(--cd-x, var(--vscode-x)); }\n"],
     [
-      'packages/webview/src/format/json-text.ts',
+      "packages/webview/src/format/json-text.ts",
       "export const colour = 'var(--vscode-foreground)';\n",
     ],
-  ])('keep VS Code colours out of the webview: %s', async (filePath, text) => {
-    expect(await rulesFiredOn(text, filePath)).toEqual(['no-restricted-syntax']);
-  });
+  ])("keep VS Code colours out of the webview: %s", async (filePath, text) => {
+    expect(await rulesFiredOn(text, filePath)).toEqual(["no-restricted-syntax"])
+  })
 
   test.each([
-    'export function helper(): number {\n  return 1;\n}',
-    'function helper(): number {\n  return 1;\n}\nexport const one = helper();',
-    'export const helper = (): number => 1;',
-  ])('keep behaviour in classes: %s', async (line) => {
-    const probe = `${readRepoFile(CLASS_PROBE)}\n${line}\n`;
-    expect(await rulesFiredOn(probe, CLASS_PROBE)).toContain('no-restricted-syntax');
-  });
+    "export function helper(): number {\n  return 1;\n}",
+    "function helper(): number {\n  return 1;\n}\nexport const one = helper();",
+    "export const helper = (): number => 1;",
+  ])("keep behaviour in classes: %s", async (line) => {
+    const probe = `${readRepoFile(CLASS_PROBE)}\n${line}\n`
+    expect(await rulesFiredOn(probe, CLASS_PROBE)).toContain("no-restricted-syntax")
+  })
 
   test.each([
-    [COMPONENT_PROBE, 'function helper(): number {\n  return 1;\n}\nexport const one = helper();'],
-    [COMPONENT_PROBE, 'export const helper = (): number => 1;'],
+    [COMPONENT_PROBE, "function helper(): number {\n  return 1;\n}\nexport const one = helper();"],
+    [COMPONENT_PROBE, "export const helper = (): number => 1;"],
     [
-      'packages/webview/src/format/json-text.ts',
-      'export function useProbe(): number {\n  return 1;\n}',
+      "packages/webview/src/format/json-text.ts",
+      "export function useProbe(): number {\n  return 1;\n}",
     ],
-  ])('keep the helpers of components in classes: %s', async (filePath, line) => {
-    const probe = `${readRepoFile(filePath)}\n${line}\n`;
-    expect(await rulesFiredOn(probe, filePath)).toContain('no-restricted-syntax');
-  });
+  ])("keep the helpers of components in classes: %s", async (filePath, line) => {
+    const probe = `${readRepoFile(filePath)}\n${line}\n`
+    expect(await rulesFiredOn(probe, filePath)).toContain("no-restricted-syntax")
+  })
 
-  test('let Preact components and hooks stay functions', async () => {
-    const probe = `${readRepoFile(COMPONENT_PROBE)}\nexport function Probe() {\n  return null;\n}\n\nexport function useProbe(): number {\n  return 1;\n}\n`;
-    expect(await rulesFiredOn(probe, COMPONENT_PROBE)).toEqual([]);
-  });
+  test("let Preact components and hooks stay functions", async () => {
+    const probe = `${readRepoFile(COMPONENT_PROBE)}\nexport function Probe() {\n  return null;\n}\n\nexport function useProbe(): number {\n  return 1;\n}\n`
+    expect(await rulesFiredOn(probe, COMPONENT_PROBE)).toEqual([])
+  })
 
-  test('allow one class per file', async () => {
-    const probe = `${readRepoFile(CLASS_PROBE)}\nexport class Second {}\n`;
-    expect(await rulesFiredOn(probe, CLASS_PROBE)).toContain('max-classes-per-file');
-  });
+  test("allow one class per file", async () => {
+    const probe = `${readRepoFile(CLASS_PROBE)}\nexport class Second {}\n`
+    expect(await rulesFiredOn(probe, CLASS_PROBE)).toContain("max-classes-per-file")
+  })
 
-  test('declare what a class does before how it does it', async () => {
-    const probe = `${readRepoFile(CLASS_PROBE)}\nexport class Ordered {\n  private how(): number {\n    return 1;\n  }\n\n  what(): number {\n    return this.how();\n  }\n}\n`;
-    expect(await rulesFiredOn(probe, 'packages/contract/src/failing-runtime.ts')).toContain(
-      '@typescript-eslint/member-ordering',
-    );
-  });
+  test("declare what a class does before how it does it", async () => {
+    const probe = `${readRepoFile(CLASS_PROBE)}\nexport class Ordered {\n  private how(): number {\n    return 1;\n  }\n\n  what(): number {\n    return this.how();\n  }\n}\n`
+    expect(await rulesFiredOn(probe, "packages/contract/src/failing-runtime.ts")).toContain(
+      "@typescript-eslint/member-ordering",
+    )
+  })
 
-  test('let VS Code call activate and deactivate in the extension entry, nothing else', async () => {
-    const entry = 'packages/extension/src/extension.ts';
-    expect(await rulesFiredOn(readRepoFile(entry), entry)).toEqual([]);
-    const helper = `${readRepoFile(entry)}\nexport function helper(): number {\n  return 1;\n}\n`;
-    expect(await rulesFiredOn(helper, entry)).toEqual(['no-restricted-syntax']);
-  });
+  test("let VS Code call activate and deactivate in the extension entry, nothing else", async () => {
+    const entry = "packages/extension/src/extension.ts"
+    expect(await rulesFiredOn(readRepoFile(entry), entry)).toEqual([])
+    const helper = `${readRepoFile(entry)}\nexport function helper(): number {\n  return 1;\n}\n`
+    expect(await rulesFiredOn(helper, entry)).toEqual(["no-restricted-syntax"])
+  })
 
   test.each([
-    'packages/adapter-c7/src/mapping/timestamps.ts',
-    'packages/adapter-c7/src/engine-cli/present.ts',
-    'packages/extension/src/notification-text.ts',
-    'packages/extension/src/connections/target-hosts.ts',
-  ])('hold the adapters and the extension to the same class structure: %s', async (filePath) => {
-    const probe = `${readRepoFile(filePath)}\nexport function helper(): number {\n  return 1;\n}\nexport class Second {}\n`;
+    "packages/adapter-c7/src/mapping/timestamps.ts",
+    "packages/adapter-c7/src/engine-cli/present.ts",
+    "packages/extension/src/notification-text.ts",
+    "packages/extension/src/connections/target-hosts.ts",
+  ])("hold the adapters and the extension to the same class structure: %s", async (filePath) => {
+    const probe = `${readRepoFile(filePath)}\nexport function helper(): number {\n  return 1;\n}\nexport class Second {}\n`
     expect(await rulesFiredOn(probe, filePath)).toEqual(
-      expect.arrayContaining(['no-restricted-syntax', 'max-classes-per-file']),
-    );
-  });
-});
+      expect.arrayContaining(["no-restricted-syntax", "max-classes-per-file"]),
+    )
+  })
+})

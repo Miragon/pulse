@@ -1,7 +1,7 @@
-import type { DefinitionId, ElementStatistics } from '../../../contract/index.js';
-import type { ElementActivity } from '../mapping/element-statistics-mapper.js';
-import type { Mapper } from '../mapping/mapper.js';
-import type { EngineClient } from '../engine-cli/index.js';
+import type { DefinitionId, ElementStatistics } from "../../../contract/index.js"
+import type { ElementActivity } from "../mapping/element-statistics-mapper.js"
+import type { Mapper } from "../mapping/mapper.js"
+import type { EngineClient } from "../engine-cli/index.js"
 
 export class ElementStatisticsReader {
   constructor(
@@ -13,7 +13,7 @@ export class ElementStatisticsReader {
     const [activities, incidents] = await Promise.all([
       this.client.activityStatistics(definitionId),
       this.client.incidents({ processDefinitionId: definitionId }),
-    ]);
-    return this.statistics.map({ activities, incidents });
+    ])
+    return this.statistics.map({ activities, incidents })
   }
 }

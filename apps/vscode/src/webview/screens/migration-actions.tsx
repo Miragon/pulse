@@ -1,13 +1,13 @@
-import { useEffect, useRef } from 'preact/hooks';
-import type { MigrateOffer } from '../../core/protocol/index.js';
-import { useHost } from '../host/host-context.js';
+import { useEffect, useRef } from "preact/hooks"
+import type { MigrateOffer } from "../../core/protocol/index.js"
+import { useHost } from "../host/host-context.js"
 
 function Refusal({
   offer,
   onLeaveOut,
 }: {
-  readonly offer: Extract<MigrateOffer, { readonly status: 'refused' }>;
-  readonly onLeaveOut: () => void;
+  readonly offer: Extract<MigrateOffer, { readonly status: "refused" }>
+  readonly onLeaveOut: () => void
 }) {
   return (
     <>
@@ -20,27 +20,27 @@ function Refusal({
         </button>
       )}
     </>
-  );
+  )
 }
 
 export function MigrationActions({
   offer,
   summary,
 }: {
-  readonly offer: MigrateOffer;
-  readonly summary: string;
+  readonly offer: MigrateOffer
+  readonly summary: string
 }) {
-  const host = useHost();
-  const migrate = useRef<HTMLButtonElement>(null);
+  const host = useHost()
+  const migrate = useRef<HTMLButtonElement>(null)
   const announcement =
-    offer.status === 'refused' ? offer.reason : offer.status === 'ready' ? offer.label : '';
-  const focusWhenReady = useRef(false);
+    offer.status === "refused" ? offer.reason : offer.status === "ready" ? offer.label : ""
+  const focusWhenReady = useRef(false)
   useEffect(() => {
-    if (focusWhenReady.current && offer.status === 'ready') {
-      focusWhenReady.current = false;
-      migrate.current?.focus();
+    if (focusWhenReady.current && offer.status === "ready") {
+      focusWhenReady.current = false
+      migrate.current?.focus()
     }
-  }, [offer.status]);
+  }, [offer.status])
   return (
     <div class="migration-actions" role="group" aria-label="Migration">
       <span class="migration-actions__summary">{summary}</span>
@@ -48,29 +48,29 @@ export function MigrationActions({
         {announcement}
       </span>
       <span class="selection-bar__spacer" />
-      {offer.status === 'ready' && (
+      {offer.status === "ready" && (
         <button
           ref={migrate}
           type="button"
           class="button button--primary button--compact"
           onClick={() => {
-            host.post({ type: 'startMigration' });
+            host.post({ type: "startMigration" })
           }}
         >
           {offer.label}
         </button>
       )}
-      {offer.status === 'checking' && <span class="muted">Checking the plan…</span>}
-      {offer.status === 'pickTarget' && <span class="muted">{offer.reason}</span>}
-      {offer.status === 'refused' && (
+      {offer.status === "checking" && <span class="muted">Checking the plan…</span>}
+      {offer.status === "pickTarget" && <span class="muted">{offer.reason}</span>}
+      {offer.status === "refused" && (
         <Refusal
           offer={offer}
           onLeaveOut={() => {
-            focusWhenReady.current = true;
-            host.post({ type: 'leaveOutUnmapped' });
+            focusWhenReady.current = true
+            host.post({ type: "leaveOutUnmapped" })
           }}
         />
       )}
     </div>
-  );
+  )
 }

@@ -1,22 +1,22 @@
-import type { IncidentRow, InstanceView } from '../protocol/index.js';
+import type { IncidentRow, InstanceView } from "../protocol/index.js"
 
 export class HandoverText {
   static of(view: InstanceView): string {
-    const { instance, engine } = view;
-    const subject = instance.businessKey ?? instance.shortId;
+    const { instance, engine } = view
+    const subject = instance.businessKey ?? instance.shortId
     return [
       `### ${subject} · ${instance.processName} v${instance.version}`,
-      `Engine: ${engine.name} (${engine.environment}, ${engine.host})${engine.product === undefined ? '' : ` · ${engine.product}`}`,
-      `Instance: \`${instance.id}\`${instance.businessKey === undefined ? '' : ` · business key \`${instance.businessKey}\``} · ${instance.state}`,
+      `Engine: ${engine.name} (${engine.environment}, ${engine.host})${engine.product === undefined ? "" : ` · ${engine.product}`}`,
+      `Instance: \`${instance.id}\`${instance.businessKey === undefined ? "" : ` · business key \`${instance.businessKey}\``} · ${instance.state}`,
       `Definition: \`${instance.definitionId}\` (${instance.bpmnProcessId} v${instance.version})`,
-      '',
+      "",
       view.incidents.length === 0
-        ? 'No open incidents.'
+        ? "No open incidents."
         : `${view.incidents.length} open incident(s):`,
       ...view.incidents.flatMap((incident) => HandoverText.incidentLines(incident)),
-      '',
+      "",
       `As of ${HandoverText.utc(view.asOf)}. Variables are left out on purpose.`,
-    ].join('\n');
+    ].join("\n")
   }
 
   private static incidentLines(incident: IncidentRow): string[] {
@@ -28,7 +28,7 @@ export class HandoverText {
       ...(incident.job === undefined
         ? []
         : [
-            `  - Job: \`${incident.job.id}\`${incident.job.type === undefined ? '' : ` (${incident.job.type})`}`,
+            `  - Job: \`${incident.job.id}\`${incident.job.type === undefined ? "" : ` (${incident.job.type})`}`,
           ]),
       ...(incident.inCalledInstance === undefined
         ? []
@@ -36,12 +36,12 @@ export class HandoverText {
             `  - In called instance \`${incident.inCalledInstance.instanceId}\` of ${incident.inCalledInstance.bpmnProcessId}`,
           ]),
       `  - Incident: \`${incident.id}\` (${incident.engineType})`,
-    ];
+    ]
   }
 
   private static utc(timestamp: string | undefined): string {
     return timestamp === undefined
-      ? 'unknown'
-      : `${timestamp.replace('T', ' ').replace(/\.\d+Z$|Z$/, '')} UTC`;
+      ? "unknown"
+      : `${timestamp.replace("T", " ").replace(/\.\d+Z$|Z$/, "")} UTC`
   }
 }

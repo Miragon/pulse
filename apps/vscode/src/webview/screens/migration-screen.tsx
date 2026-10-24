@@ -1,32 +1,32 @@
-import type { ComponentChildren } from 'preact';
-import { useMemo } from 'preact/hooks';
-import type { MigrationView } from '../../core/protocol/index.js';
-import { ContextBar, type Freshness } from '../components/context-bar.js';
-import { Icon } from '../components/icon.js';
-import { glyphs } from '../components/lucide-glyphs.json';
-import { EmptyHint } from '../components/empty-hint.js';
-import { RuntimeDiagram } from '../components/runtime-diagram.js';
-import type { Decorations } from '../diagram/decoration-layer.js';
-import { useHost } from '../host/host-context.js';
-import { BulkStrip } from './bulk-strip.js';
-import { MappingTable } from './mapping-table.js';
-import { MigrationActions } from './migration-actions.js';
-import { NoticeStrips } from './notices.js';
-import { SplitLayout } from './split-layout.js';
-import { VersionPicker } from './version-picker.js';
+import type { ComponentChildren } from "preact"
+import { useMemo } from "preact/hooks"
+import type { MigrationView } from "../../core/protocol/index.js"
+import { ContextBar, type Freshness } from "../components/context-bar.js"
+import { Icon } from "../components/icon.js"
+import { glyphs } from "../components/lucide-glyphs.json"
+import { EmptyHint } from "../components/empty-hint.js"
+import { RuntimeDiagram } from "../components/runtime-diagram.js"
+import type { Decorations } from "../diagram/decoration-layer.js"
+import { useHost } from "../host/host-context.js"
+import { BulkStrip } from "./bulk-strip.js"
+import { MappingTable } from "./mapping-table.js"
+import { MigrationActions } from "./migration-actions.js"
+import { NoticeStrips } from "./notices.js"
+import { SplitLayout } from "./split-layout.js"
+import { VersionPicker } from "./version-picker.js"
 
 export interface MigrationScreenProps {
-  readonly view: MigrationView;
-  readonly freshness: Freshness;
-  readonly stale: boolean;
-  readonly problem?: ComponentChildren;
+  readonly view: MigrationView
+  readonly freshness: Freshness
+  readonly stale: boolean
+  readonly problem?: ComponentChildren
 }
 
-const UNNAMED = (): void => undefined;
+const UNNAMED = (): void => undefined
 
 function useMigrationDecorations(view: MigrationView, stale: boolean) {
-  const focusedRow = view.rows.find((row) => row.sourceElementId === view.focused);
-  const unmapped = view.rows.filter((row) => row.unmappedTokens === true);
+  const focusedRow = view.rows.find((row) => row.sourceElementId === view.focused)
+  const unmapped = view.rows.filter((row) => row.unmappedTokens === true)
   const source = useMemo<Decorations>(
     () => ({
       badges: [],
@@ -37,7 +37,7 @@ function useMigrationDecorations(view: MigrationView, stale: boolean) {
       unmapped: unmapped.map((row) => row.sourceElementId),
     }),
     [stale, view.focused, unmapped.map((row) => row.sourceElementId).join()],
-  );
+  )
   const target = useMemo<Decorations>(
     () => ({
       badges: [],
@@ -48,14 +48,14 @@ function useMigrationDecorations(view: MigrationView, stale: boolean) {
       candidates: focusedRow?.candidates.map((candidate) => candidate.elementId) ?? [],
     }),
     [stale, focusedRow],
-  );
-  return { source, target, focusedRow };
+  )
+  return { source, target, focusedRow }
 }
 
 function Diagrams({ view, stale }: { readonly view: MigrationView; readonly stale: boolean }) {
-  const host = useHost();
-  const { source, target } = useMigrationDecorations(view, stale);
-  const focused = view.focused;
+  const host = useHost()
+  const { source, target } = useMigrationDecorations(view, stale)
+  const focused = view.focused
   return (
     <div class="migration-diagrams">
       <div class="migration-diagrams__grid">
@@ -67,7 +67,7 @@ function Diagrams({ view, stale }: { readonly view: MigrationView; readonly stal
             label={`Diagram of v${view.source.version}, the version to migrate from`}
             keysOnCanvas
             onSelectElement={(elementId) => {
-              host.post({ type: 'focusMapping', sourceElementId: elementId });
+              host.post({ type: "focusMapping", sourceElementId: elementId })
             }}
             onNames={UNNAMED}
           />
@@ -88,10 +88,10 @@ function Diagrams({ view, stale }: { readonly view: MigrationView; readonly stal
               onSelectElement={(elementId) => {
                 if (focused !== undefined) {
                   host.post({
-                    type: 'mapElement',
+                    type: "mapElement",
                     sourceElementId: focused,
                     targetElementId: elementId,
-                  });
+                  })
                 }
               }}
               onNames={UNNAMED}
@@ -100,11 +100,11 @@ function Diagrams({ view, stale }: { readonly view: MigrationView; readonly stal
         )}
       </div>
     </div>
-  );
+  )
 }
 
 export function MigrationScreen({ view, freshness, stale, problem }: MigrationScreenProps) {
-  const host = useHost();
+  const host = useHost()
   return (
     <div class="screen screen--with-strips">
       <ContextBar
@@ -123,7 +123,7 @@ export function MigrationScreen({ view, freshness, stale, problem }: MigrationSc
           label="Migrate to version"
           placeholder="Pick a version"
           onPick={(definitionId) => {
-            host.post({ type: 'pickMigrationTarget', definitionId });
+            host.post({ type: "pickMigrationTarget", definitionId })
           }}
         />
       </ContextBar>
@@ -142,5 +142,5 @@ export function MigrationScreen({ view, freshness, stale, problem }: MigrationSc
         }
       />
     </div>
-  );
+  )
 }

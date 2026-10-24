@@ -1,19 +1,19 @@
-import { DefinitionsLoop } from '../../core/index.js';
-import * as vscode from 'vscode';
-import type { Connection } from '../connections/connection.js';
-import type { ConnectionRegistry } from '../connections/connection-registry.js';
-import type { LiveWiring } from '../live/live-wiring.js';
+import { DefinitionsLoop } from "../../core/index.js"
+import * as vscode from "vscode"
+import type { Connection } from "../connections/connection.js"
+import type { ConnectionRegistry } from "../connections/connection-registry.js"
+import type { LiveWiring } from "../live/live-wiring.js"
 
 export interface LiveTree {
-  readonly visible: boolean;
-  readonly onDidChangeVisibility: vscode.Event<unknown>;
-  isExpanded(connection: Connection): boolean;
-  refreshEngine(connection: Connection): void;
+  readonly visible: boolean
+  readonly onDidChangeVisibility: vscode.Event<unknown>
+  isExpanded(connection: Connection): boolean
+  refreshEngine(connection: Connection): void
 }
 
 export class EnginesTreeLive implements vscode.Disposable {
-  private loops = new Map<Connection, DefinitionsLoop>();
-  private readonly subscription: vscode.Disposable;
+  private loops = new Map<Connection, DefinitionsLoop>()
+  private readonly subscription: vscode.Disposable
 
   constructor(
     private readonly registry: ConnectionRegistry,
@@ -21,37 +21,37 @@ export class EnginesTreeLive implements vscode.Disposable {
     private readonly live: LiveWiring,
   ) {
     const attend = () => {
-      this.attend();
-    };
+      this.attend()
+    }
     this.subscription = vscode.Disposable.from(
       registry.onDidChange(() => {
-        this.rebuild();
+        this.rebuild()
       }),
       tree.onDidChangeVisibility(attend),
       live.attention.onDidChange(attend),
-    );
-    this.rebuild();
+    )
+    this.rebuild()
   }
 
   nudgeLocal(): void {
     for (const [connection, loop] of this.loops) {
-      if (connection.badge.environment === 'local') {
-        loop.nudge();
+      if (connection.badge.environment === "local") {
+        loop.nudge()
       }
     }
   }
 
   dispose(): void {
-    this.subscription.dispose();
-    this.stopAll();
+    this.subscription.dispose()
+    this.stopAll()
   }
 
   private rebuild(): void {
-    this.stopAll();
+    this.stopAll()
     this.loops = new Map(
       this.registry.all().map((connection) => [connection, this.loopOf(connection)]),
-    );
-    this.attend();
+    )
+    this.attend()
   }
 
   private loopOf(connection: Connection): DefinitionsLoop {
@@ -65,22 +65,22 @@ export class EnginesTreeLive implements vscode.Disposable {
       {
         isExpanded: () => this.tree.isExpanded(connection),
         refreshed: () => {
-          this.tree.refreshEngine(connection);
+          this.tree.refreshEngine(connection)
         },
       },
-    );
+    )
   }
 
   private attend(): void {
-    const attention = this.live.attention.of(this.tree.visible);
+    const attention = this.live.attention.of(this.tree.visible)
     for (const loop of this.loops.values()) {
-      loop.attend(attention);
+      loop.attend(attention)
     }
   }
 
   private stopAll(): void {
     for (const loop of this.loops.values()) {
-      loop.dispose();
+      loop.dispose()
     }
   }
 }

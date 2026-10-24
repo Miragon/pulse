@@ -1,22 +1,22 @@
-import type { Environment } from '../protocol/index.js';
-import type { Attention, LiveContext } from './live-context.js';
-import { RefreshLoop, type TickOutcome } from './refresh-loop.js';
-import type { SharedDefinitions } from './shared-definitions.js';
+import type { Environment } from "../protocol/index.js"
+import type { Attention, LiveContext } from "./live-context.js"
+import { RefreshLoop, type TickOutcome } from "./refresh-loop.js"
+import type { SharedDefinitions } from "./shared-definitions.js"
 
 export interface DefinitionsSource {
-  readonly live: LiveContext;
-  readonly definitions: SharedDefinitions;
-  readonly environment: Environment;
-  readonly now: () => Date;
+  readonly live: LiveContext
+  readonly definitions: SharedDefinitions
+  readonly environment: Environment
+  readonly now: () => Date
 }
 
 export interface DefinitionsView {
-  isExpanded(): boolean;
-  refreshed(): void;
+  isExpanded(): boolean
+  refreshed(): void
 }
 
 export class DefinitionsLoop {
-  private readonly loop: RefreshLoop;
+  private readonly loop: RefreshLoop
 
   constructor(
     private readonly source: DefinitionsSource,
@@ -30,29 +30,29 @@ export class DefinitionsLoop {
         hasEnded: () => false,
         showLive: () => undefined,
       },
-      { view: 'tree', environment: source.environment, now: source.now },
-    );
+      { view: "tree", environment: source.environment, now: source.now },
+    )
   }
 
   attend(attention: Attention): void {
-    this.loop.attend(attention);
+    this.loop.attend(attention)
   }
 
   nudge(): void {
-    this.loop.nudge();
+    this.loop.nudge()
   }
 
   dispose(): void {
-    this.loop.dispose();
+    this.loop.dispose()
   }
 
   private async refresh(): Promise<TickOutcome> {
     try {
-      await this.source.definitions.read(0);
-      this.view.refreshed();
-      return 'done';
+      await this.source.definitions.read(0)
+      this.view.refreshed()
+      return "done"
     } catch {
-      return this.source.live.lane.isBlocked ? 'stopped' : 'failed';
+      return this.source.live.lane.isBlocked ? "stopped" : "failed"
     }
   }
 }

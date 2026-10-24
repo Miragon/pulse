@@ -87,7 +87,7 @@
   box-shadow: 0 0 0 2px var(--cd-ui-plot);
 }
 
-[data-cd-kontrast='hoch'] .badge-cluster .count-badge {
+[data-cd-kontrast="hoch"] .badge-cluster .count-badge {
   box-shadow: none;
   outline: 1px solid var(--cd-ui-text);
 }
@@ -129,7 +129,7 @@
   fill: var(--cd-ui-danger-flaeche) !important;
 }
 
-[data-cd-kontrast='hoch']
+[data-cd-kontrast="hoch"]
   .djs-element:is(.pulse-incident, .pulse-waiting)
   .djs-visual
   > :first-child {

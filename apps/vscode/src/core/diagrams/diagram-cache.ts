@@ -1,30 +1,30 @@
-import type { DefinitionId, ProcessRuntime } from '../../contract/index.js';
-import { RuntimeError } from '../../contract/index.js';
+import type { DefinitionId, ProcessRuntime } from "../../contract/index.js"
+import { RuntimeError } from "../../contract/index.js"
 
 export class DiagramCache {
-  private readonly diagrams = new Map<DefinitionId, Promise<string>>();
+  private readonly diagrams = new Map<DefinitionId, Promise<string>>()
 
   constructor(private readonly runtime: ProcessRuntime) {}
 
   get(definitionId: DefinitionId): Promise<string> {
-    const cached = this.diagrams.get(definitionId);
+    const cached = this.diagrams.get(definitionId)
     if (cached !== undefined) {
-      return cached;
+      return cached
     }
-    const loading = this.load(definitionId);
-    this.diagrams.set(definitionId, loading);
-    loading.catch(() => this.diagrams.delete(definitionId));
-    return loading;
+    const loading = this.load(definitionId)
+    this.diagrams.set(definitionId, loading)
+    loading.catch(() => this.diagrams.delete(definitionId))
+    return loading
   }
 
   private async load(definitionId: DefinitionId): Promise<string> {
-    const xml = await this.runtime.getDiagramXml(definitionId);
+    const xml = await this.runtime.getDiagramXml(definitionId)
     if (xml === undefined) {
       throw new RuntimeError(
-        'unexpectedResponse',
+        "unexpectedResponse",
         `The engine has no diagram for the definition ${definitionId}.`,
-      );
+      )
     }
-    return xml;
+    return xml
   }
 }

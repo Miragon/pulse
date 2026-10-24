@@ -1,4 +1,4 @@
-import { basename } from 'node:path';
+import { basename } from "node:path"
 
 export class TargetsProblem {
   constructor(
@@ -7,10 +7,10 @@ export class TargetsProblem {
   ) {}
 
   label(): string {
-    return `${basename(this.path)}: ${this.message}`;
+    return `${basename(this.path)}: ${this.message}`
   }
 
   detail(): string {
-    return `${this.path}: ${this.message}`;
+    return `${this.path}: ${this.message}`
   }
 }

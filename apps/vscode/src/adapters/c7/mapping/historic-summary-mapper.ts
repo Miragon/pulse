@@ -1,16 +1,12 @@
-import {
-  InstanceId,
-  type DefinitionRef,
-  type InstanceSummary,
-} from '../../../contract/index.js';
-import { Present, type HistoricInstanceView } from '../engine-cli/index.js';
-import { InstanceStates } from './instance-states.js';
-import type { Mapper } from './mapper.js';
-import { Timestamps } from './timestamps.js';
+import { InstanceId, type DefinitionRef, type InstanceSummary } from "../../../contract/index.js"
+import { Present, type HistoricInstanceView } from "../engine-cli/index.js"
+import { InstanceStates } from "./instance-states.js"
+import type { Mapper } from "./mapper.js"
+import { Timestamps } from "./timestamps.js"
 
 export interface HistoricFacts {
-  readonly row: HistoricInstanceView;
-  readonly hasIncident: boolean;
+  readonly row: HistoricInstanceView
+  readonly hasIncident: boolean
 }
 
 export class HistoricSummaryMapper implements Mapper<HistoricFacts, InstanceSummary> {
@@ -31,6 +27,6 @@ export class HistoricSummaryMapper implements Mapper<HistoricFacts, InstanceSumm
             ? undefined
             : InstanceId(row.superProcessInstanceId),
       }),
-    };
+    }
   }
 }

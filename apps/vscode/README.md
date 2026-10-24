@@ -151,18 +151,18 @@ Decisions and their reasons: [docs/adr](docs/adr/README.md).
 
 ## Development
 
-| Command                    | What it does                                                                    |
-| -------------------------- | ------------------------------------------------------------------------------- |
-| `npm run verify`           | typecheck, lint, format, architecture rules, dead code, unit tests, in parallel |
-| `npm run check`            | the same with browser tests, coverage thresholds and the bundle budget          |
-| `npm run test:mutation`    | Stryker mutation testing of contract, core and the C7 adapter (incremental)     |
-| `npm run test:browser`     | webview tests in Chromium                                                       |
-| `npm run test:engine`      | conformance kit against a real engine (`PULSE_ENGINE_IMAGE`, testcontainers)    |
-| `npm run test:smoke`       | activation test in VS Code (`@vscode/test-cli`)                                 |
-| `npm run test:e2e`         | Playwright drives VS Code against `npm run engine:up`                           |
-| `npm run dev`              | browser dev host for the webview (fake engine or `PULSE_DEV_ENGINE`)            |
-| `npm run sandbox:up`       | shop sandbox for manual testing (`sandbox:traffic`, `sandbox:down`)             |
-| `npm run docs:screenshots` | one VS Code screenshot per use case into `apps/vscode/docs/screenshots` (sandbox running)   |
+| Command                    | What it does                                                                              |
+| -------------------------- | ----------------------------------------------------------------------------------------- |
+| `npm run verify`           | typecheck, lint, format, architecture rules, dead code, unit tests, in parallel           |
+| `npm run check`            | the same with browser tests, coverage thresholds and the bundle budget                    |
+| `npm run test:mutation`    | Stryker mutation testing of contract, core and the C7 adapter (incremental)               |
+| `npm run test:browser`     | webview tests in Chromium                                                                 |
+| `npm run test:engine`      | conformance kit against a real engine (`PULSE_ENGINE_IMAGE`, testcontainers)              |
+| `npm run test:smoke`       | activation test in VS Code (`@vscode/test-cli`)                                           |
+| `npm run test:e2e`         | Playwright drives VS Code against `npm run engine:up`                                     |
+| `npm run dev`              | browser dev host for the webview (fake engine or `PULSE_DEV_ENGINE`)                      |
+| `npm run sandbox:up`       | shop sandbox for manual testing (`sandbox:traffic`, `sandbox:down`)                       |
+| `npm run docs:screenshots` | one VS Code screenshot per use case into `apps/vscode/docs/screenshots` (sandbox running) |
 
 The README's `apps/vscode/docs/demo.gif` comes from the `product-shots` skill in
 [Miragon/corporate-identity](https://github.com/Miragon/corporate-identity), see [AGENTS.md](CLAUDE.md#commands).

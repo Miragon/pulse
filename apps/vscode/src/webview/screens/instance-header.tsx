@@ -1,27 +1,27 @@
-import { glyphs } from '../components/lucide-glyphs.json';
-import type { InstanceHeader } from '../../core/protocol/index.js';
-import { HeaderButton } from '../components/header-button.js';
-import { Icon } from '../components/icon.js';
-import { IdText } from '../components/id-text.js';
-import { TimeLabels } from '../format/time-labels.js';
-import { useHost } from '../host/host-context.js';
+import { glyphs } from "../components/lucide-glyphs.json"
+import type { InstanceHeader } from "../../core/protocol/index.js"
+import { HeaderButton } from "../components/header-button.js"
+import { Icon } from "../components/icon.js"
+import { IdText } from "../components/id-text.js"
+import { TimeLabels } from "../format/time-labels.js"
+import { useHost } from "../host/host-context.js"
 
 function Timing({ instance }: { readonly instance: InstanceHeader }) {
-  const at = instance.endedAt ?? instance.startedAt;
+  const at = instance.endedAt ?? instance.startedAt
   if (at === undefined) {
-    return null;
+    return null
   }
-  const verb = instance.endedAt === undefined ? 'Started' : 'Ended';
+  const verb = instance.endedAt === undefined ? "Started" : "Ended"
   return (
     <span class="muted context-bar__optional" title={TimeLabels.tooltip(at)}>
       {verb} {TimeLabels.precise(at)}
     </span>
-  );
+  )
 }
 
 function DefinitionLink({ instance }: { readonly instance: InstanceHeader }) {
-  const host = useHost();
-  const label = `${instance.processName} v${instance.version}`;
+  const host = useHost()
+  const label = `${instance.processName} v${instance.version}`
   return (
     <button
       type="button"
@@ -29,19 +29,19 @@ function DefinitionLink({ instance }: { readonly instance: InstanceHeader }) {
       title={`Show definition ${label}`}
       onClick={() => {
         host.post({
-          type: 'openDefinition',
+          type: "openDefinition",
           bpmnProcessId: instance.bpmnProcessId,
           definitionId: instance.definitionId,
-        });
+        })
       }}
     >
       {label}
     </button>
-  );
+  )
 }
 
-function ParentLink({ parent }: { readonly parent: NonNullable<InstanceHeader['parent']> }) {
-  const host = useHost();
+function ParentLink({ parent }: { readonly parent: NonNullable<InstanceHeader["parent"]> }) {
+  const host = useHost()
   return (
     <button
       type="button"
@@ -49,16 +49,16 @@ function ParentLink({ parent }: { readonly parent: NonNullable<InstanceHeader['p
       title={`Open the calling instance ${parent.instanceId}`}
       onClick={(event) => {
         host.post({
-          type: 'openInstance',
+          type: "openInstance",
           instanceId: parent.instanceId,
           toSide: event.metaKey || event.ctrlKey,
-        });
+        })
       }}
     >
       <Icon of={glyphs.CornerLeftUp} size={12} />
       <span class="context-bar__shrink-text">{parent.label}</span>
     </button>
-  );
+  )
 }
 
 export function InstanceHeaderDetails({ instance }: { readonly instance: InstanceHeader }) {
@@ -72,8 +72,8 @@ export function InstanceHeaderDetails({ instance }: { readonly instance: Instanc
         icon={glyphs.ClipboardList}
         label="Copy handover"
         title="Copy a Markdown handover of this instance, without variables"
-        intent={{ type: 'copyHandover' }}
+        intent={{ type: "copyHandover" }}
       />
     </>
-  );
+  )
 }

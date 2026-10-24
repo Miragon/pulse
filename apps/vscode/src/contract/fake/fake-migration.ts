@@ -1,71 +1,71 @@
-import type { BulkFailure } from '../model/bulk-operations.js';
-import type { DefinitionId, ElementId, InstanceId } from '../model/ids.js';
+import type { BulkFailure } from "../model/bulk-operations.js"
+import type { DefinitionId, ElementId, InstanceId } from "../model/ids.js"
 import type {
   ElementMapping,
   MigrationCheck,
   MigrationPlan,
   MigrationProblem,
-} from '../model/migrations.js';
-import type { DefinitionRef } from '../model/read-models.js';
-import { RuntimeError } from '../model/runtime-error.js';
-import { FakeDiagramElements } from './fake-diagram-elements.js';
-import type { FakeDefinition, FakeEngineState, FakeInstance } from './fake-engine-state.js';
-import { FakeQueries } from './fake-queries.js';
-import { FakeTransitions } from './fake-transitions.js';
+} from "../model/migrations.js"
+import type { DefinitionRef } from "../model/read-models.js"
+import { RuntimeError } from "../model/runtime-error.js"
+import { FakeDiagramElements } from "./fake-diagram-elements.js"
+import type { FakeDefinition, FakeEngineState, FakeInstance } from "./fake-engine-state.js"
+import { FakeQueries } from "./fake-queries.js"
+import { FakeTransitions } from "./fake-transitions.js"
 
 interface PlanKinds {
-  readonly source: ReadonlyMap<ElementId, string>;
-  readonly target: ReadonlyMap<ElementId, string>;
+  readonly source: ReadonlyMap<ElementId, string>
+  readonly target: ReadonlyMap<ElementId, string>
 }
 
 export interface FakeMigrationWork {
-  readonly state: FakeEngineState;
-  readonly migrated: number;
-  readonly failures: readonly BulkFailure[];
+  readonly state: FakeEngineState
+  readonly migrated: number
+  readonly failures: readonly BulkFailure[]
 }
 
 export class FakeMigration {
   constructor(private readonly state: FakeEngineState) {}
 
   proposal(source: DefinitionId, target: DefinitionId): MigrationPlan {
-    const sourceKinds = FakeDiagramElements.kindsOf(this.definition(source).xml);
-    const targetKinds = FakeDiagramElements.kindsOf(this.definition(target).xml);
+    const sourceKinds = FakeDiagramElements.kindsOf(this.definition(source).xml)
+    const targetKinds = FakeDiagramElements.kindsOf(this.definition(target).xml)
     const mappings = [...sourceKinds]
       .filter(([id, kind]) => FakeDiagramElements.holdsTokens(kind) && targetKinds.get(id) === kind)
-      .map(([id]) => ({ sourceElementId: id, targetElementId: id }));
-    return { sourceDefinitionId: source, targetDefinitionId: target, mappings };
+      .map(([id]) => ({ sourceElementId: id, targetElementId: id }))
+    return { sourceDefinitionId: source, targetDefinitionId: target, mappings }
   }
 
   check(plan: MigrationPlan): MigrationCheck {
     const kinds: PlanKinds = {
       source: FakeDiagramElements.kindsOf(this.definition(plan.sourceDefinitionId).xml),
       target: FakeDiagramElements.kindsOf(this.definition(plan.targetDefinitionId).xml),
-    };
+    }
     const problems = plan.mappings.flatMap((mapping, index): MigrationProblem[] => {
-      const message = this.problemOf(mapping, kinds, plan.mappings.slice(0, index));
-      return message === undefined ? [] : [{ mapping, message }];
-    });
-    return { problems };
+      const message = this.problemOf(mapping, kinds, plan.mappings.slice(0, index))
+      return message === undefined ? [] : [{ mapping, message }]
+    })
+    return { problems }
   }
 
   runningOnSource(plan: MigrationPlan, instanceIds: readonly InstanceId[]): InstanceId[] {
-    this.definition(plan.targetDefinitionId);
+    this.definition(plan.targetDefinitionId)
     return new FakeQueries(this.state)
-      .instances({ definitionId: plan.sourceDefinitionId, lifecycle: 'running', instanceIds })
-      .map((instance) => instance.id);
+      .instances({ definitionId: plan.sourceDefinitionId, lifecycle: "running", instanceIds })
+      .map((instance) => instance.id)
   }
 
   worked(plan: MigrationPlan, instanceIds: readonly InstanceId[]): FakeMigrationWork {
-    const target = this.definition(plan.targetDefinitionId).ref;
-    const targets = new Map(plan.mappings.map((m) => [m.sourceElementId, m.targetElementId]));
-    const movable = new Set<InstanceId>();
-    const failures: BulkFailure[] = [];
+    const target = this.definition(plan.targetDefinitionId).ref
+    const targets = new Map(plan.mappings.map((m) => [m.sourceElementId, m.targetElementId]))
+    const movable = new Set<InstanceId>()
+    const failures: BulkFailure[] = []
     for (const instanceId of instanceIds) {
-      const reason = this.whyNot(instanceId, plan, targets);
+      const reason = this.whyNot(instanceId, plan, targets)
       if (reason === undefined) {
-        movable.add(instanceId);
+        movable.add(instanceId)
       } else {
-        failures.push({ instanceId, reason });
+        failures.push({ instanceId, reason })
       }
     }
     const state = new FakeTransitions({
@@ -85,16 +85,16 @@ export class FakeMigration {
             }
           : entry,
       ),
-    }).withIncidentFlags();
-    return { state, migrated: movable.size, failures };
+    }).withIncidentFlags()
+    return { state, migrated: movable.size, failures }
   }
 
   private definition(id: DefinitionId): FakeDefinition {
-    const definition = this.state.definitions.find((candidate) => candidate.ref.id === id);
+    const definition = this.state.definitions.find((candidate) => candidate.ref.id === id)
     if (definition === undefined) {
-      throw new RuntimeError('rejected', `Process definition ${id} does not exist.`);
+      throw new RuntimeError("rejected", `Process definition ${id} does not exist.`)
     }
-    return definition;
+    return definition
   }
 
   private problemOf(
@@ -102,18 +102,18 @@ export class FakeMigration {
     kinds: PlanKinds,
     earlier: readonly ElementMapping[],
   ): string | undefined {
-    const sourceKind = kinds.source.get(mapping.sourceElementId);
-    const targetKind = kinds.target.get(mapping.targetElementId);
+    const sourceKind = kinds.source.get(mapping.sourceElementId)
+    const targetKind = kinds.target.get(mapping.targetElementId)
     if (sourceKind === undefined) {
-      return `Source element ${mapping.sourceElementId} does not exist.`;
+      return `Source element ${mapping.sourceElementId} does not exist.`
     }
     if (targetKind === undefined) {
-      return `Target element ${mapping.targetElementId} does not exist.`;
+      return `Target element ${mapping.targetElementId} does not exist.`
     }
     if (earlier.some((other) => other.sourceElementId === mapping.sourceElementId)) {
-      return `${mapping.sourceElementId} is mapped twice.`;
+      return `${mapping.sourceElementId} is mapped twice.`
     }
-    return sourceKind === targetKind ? undefined : `A ${sourceKind} cannot become a ${targetKind}.`;
+    return sourceKind === targetKind ? undefined : `A ${sourceKind} cannot become a ${targetKind}.`
   }
 
   private whyNot(
@@ -121,16 +121,16 @@ export class FakeMigration {
     plan: MigrationPlan,
     targets: ReadonlyMap<ElementId, ElementId>,
   ): string | undefined {
-    const instance = this.state.instances.find((candidate) => candidate.summary.id === instanceId);
+    const instance = this.state.instances.find((candidate) => candidate.summary.id === instanceId)
     if (
       instance === undefined ||
       !FakeQueries.isRunning(instance.summary) ||
       instance.summary.definition.id !== plan.sourceDefinitionId
     ) {
-      return `Instance ${instanceId} does not run on ${plan.sourceDefinitionId}.`;
+      return `Instance ${instanceId} does not run on ${plan.sourceDefinitionId}.`
     }
-    const unmapped = instance.activeElementIds.find((elementId) => !targets.has(elementId));
-    return unmapped === undefined ? undefined : `No mapping for the token at ${unmapped}.`;
+    const unmapped = instance.activeElementIds.find((elementId) => !targets.has(elementId))
+    return unmapped === undefined ? undefined : `No mapping for the token at ${unmapped}.`
   }
 
   private migrated(
@@ -138,7 +138,7 @@ export class FakeMigration {
     target: DefinitionRef,
     targets: ReadonlyMap<ElementId, ElementId>,
   ): FakeInstance {
-    const mapped = (elementId: ElementId): ElementId => targets.get(elementId) ?? elementId;
+    const mapped = (elementId: ElementId): ElementId => targets.get(elementId) ?? elementId
     return {
       ...instance,
       summary: { ...instance.summary, definition: target },
@@ -147,6 +147,6 @@ export class FakeMigration {
         ...waitState,
         elementId: mapped(waitState.elementId),
       })),
-    };
+    }
   }
 }

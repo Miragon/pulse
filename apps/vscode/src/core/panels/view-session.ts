@@ -1,34 +1,34 @@
-import type { LiveUpdates, PanelState, PanelView, Problem } from '../protocol/index.js';
-import { LiveFailures } from '../refresh/live-failures.js';
-import type { SettledRead, TickOutcome } from '../refresh/refresh-loop.js';
-import type { PanelContext } from './panel-context.js';
-import { Problems } from './problems.js';
+import type { LiveUpdates, PanelState, PanelView, Problem } from "../protocol/index.js"
+import { LiveFailures } from "../refresh/live-failures.js"
+import type { SettledRead, TickOutcome } from "../refresh/refresh-loop.js"
+import type { PanelContext } from "./panel-context.js"
+import { Problems } from "./problems.js"
 
 export interface Snapshot<View extends PanelView> {
-  readonly view: View;
+  readonly view: View
 }
 
 export interface Unavailable {
-  readonly problem: Problem;
+  readonly problem: Problem
 }
 
 export interface SessionHooks<View extends PanelView> {
-  readonly decorate?: (view: View) => View;
-  readonly live?: () => LiveUpdates | undefined;
-  readonly settled?: (read: SettledRead) => void;
+  readonly decorate?: (view: View) => View
+  readonly live?: () => LiveUpdates | undefined
+  readonly settled?: (read: SettledRead) => void
 }
 
 interface Failed extends Unavailable {
-  readonly stops: boolean;
+  readonly stops: boolean
 }
 
 export class ViewSession<View extends PanelView, Loaded extends Snapshot<View>> {
-  private loaded: Loaded | undefined;
-  private problem: Problem | undefined;
-  private latest = 0;
-  private reloading = false;
-  private extending = false;
-  private closed = false;
+  private loaded: Loaded | undefined
+  private problem: Problem | undefined
+  private latest = 0
+  private reloading = false
+  private extending = false
+  private closed = false
 
   constructor(
     private readonly context: PanelContext,
@@ -37,64 +37,64 @@ export class ViewSession<View extends PanelView, Loaded extends Snapshot<View>> 
   ) {}
 
   current(): Loaded | undefined {
-    return this.loaded;
+    return this.loaded
   }
 
   close(): void {
-    this.closed = true;
+    this.closed = true
   }
 
   republish(): void {
     if (this.loaded === undefined) {
-      return;
+      return
     }
     if (this.problem !== undefined) {
-      this.publishFailure(this.problem);
-      return;
+      this.publishFailure(this.problem)
+      return
     }
-    this.publishReady(this.loaded, this.reloading);
+    this.publishReady(this.loaded, this.reloading)
   }
 
   rebuild(build: (loaded: Loaded) => Loaded): void {
     if (this.loaded !== undefined) {
-      this.loaded = build(this.loaded);
-      this.republish();
+      this.loaded = build(this.loaded)
+      this.republish()
     }
   }
 
   async resume(build: () => Promise<Loaded | Unavailable>): Promise<void> {
     if (this.loaded === undefined) {
-      await this.reload(build);
-      return;
+      await this.reload(build)
+      return
     }
-    this.publishReady(this.loaded, false);
+    this.publishReady(this.loaded, false)
   }
 
   async reload(build: () => Promise<Loaded | Unavailable>): Promise<void> {
-    const ticket = this.begin();
-    const startedAt = this.context.now();
-    this.reloading = true;
-    this.publishProgress();
-    const outcome = await this.attempt(build);
+    const ticket = this.begin()
+    const startedAt = this.context.now()
+    this.reloading = true
+    this.publishProgress()
+    const outcome = await this.attempt(build)
     if (ticket !== this.latest) {
-      return;
+      return
     }
-    this.reloading = false;
-    this.hooks.settled?.({ startedAt, succeeded: !this.isUnavailable(outcome) });
-    this.settle(outcome);
+    this.reloading = false
+    this.hooks.settled?.({ startedAt, succeeded: !this.isUnavailable(outcome) })
+    this.settle(outcome)
   }
 
   async extend(build: (loaded: Loaded) => Promise<Loaded>): Promise<void> {
-    const base = this.loaded;
+    const base = this.loaded
     if (base === undefined || this.busy()) {
-      return;
+      return
     }
-    const ticket = this.begin();
-    this.extending = true;
-    const outcome = await this.attempt(() => build(base));
-    this.extending = false;
+    const ticket = this.begin()
+    this.extending = true
+    const outcome = await this.attempt(() => build(base))
+    this.extending = false
     if (ticket === this.latest) {
-      this.settle(outcome);
+      this.settle(outcome)
     }
   }
 
@@ -103,115 +103,115 @@ export class ViewSession<View extends PanelView, Loaded extends Snapshot<View>> 
     load: () => Promise<Loaded | Unavailable>,
   ): Promise<TickOutcome> {
     if (this.busy()) {
-      return 'skipped';
+      return "skipped"
     }
-    const base = this.loaded;
-    const ticket = this.begin();
-    const outcome = await this.attempt(() => (base === undefined ? load() : build(base)));
+    const base = this.loaded
+    const ticket = this.begin()
+    const outcome = await this.attempt(() => (base === undefined ? load() : build(base)))
     if (ticket !== this.latest) {
-      return 'skipped';
+      return "skipped"
     }
     if (this.isUnavailable(outcome) && this.isTransient(outcome)) {
       if (base === undefined) {
-        this.settle(outcome);
+        this.settle(outcome)
       }
-      return 'failed';
+      return "failed"
     }
-    this.settle(outcome);
-    return this.isUnavailable(outcome) ? 'stopped' : 'done';
+    this.settle(outcome)
+    return this.isUnavailable(outcome) ? "stopped" : "done"
   }
 
   private busy(): boolean {
-    return this.reloading || this.extending;
+    return this.reloading || this.extending
   }
 
   private begin(): number {
-    this.latest += 1;
-    return this.latest;
+    this.latest += 1
+    return this.latest
   }
 
   private async attempt(build: () => Promise<Loaded | Unavailable>): Promise<Loaded | Unavailable> {
     try {
-      const outcome = await build();
-      this.context.live?.lane.unblock();
-      return outcome;
+      const outcome = await build()
+      this.context.live?.lane.unblock()
+      return outcome
     } catch (error) {
-      return this.failed(error);
+      return this.failed(error)
     }
   }
 
   private failed(error: unknown): Failed {
-    const stops = LiveFailures.stopsLiveUpdates(error);
-    const problem = Problems.of(error, this.context.engine);
+    const stops = LiveFailures.stopsLiveUpdates(error)
+    const problem = Problems.of(error, this.context.engine)
     if (stops) {
-      this.context.live?.lane.block();
+      this.context.live?.lane.block()
     }
-    this.context.live?.log(`read failed${stops ? ', engine blocked' : ''}: ${problem.title}`);
-    return { problem, stops };
+    this.context.live?.log(`read failed${stops ? ", engine blocked" : ""}: ${problem.title}`)
+    return { problem, stops }
   }
 
   private isTransient(outcome: Unavailable | Failed): boolean {
-    return 'stops' in outcome && !outcome.stops;
+    return "stops" in outcome && !outcome.stops
   }
 
   private settle(outcome: Loaded | Unavailable): void {
     if (this.isUnavailable(outcome)) {
-      this.problem = outcome.problem;
-      this.publishFailure(outcome.problem);
-      return;
+      this.problem = outcome.problem
+      this.publishFailure(outcome.problem)
+      return
     }
-    this.problem = undefined;
-    this.loaded = outcome;
-    this.publishReady(outcome, false);
+    this.problem = undefined
+    this.loaded = outcome
+    this.publishReady(outcome, false)
   }
 
   private isUnavailable(outcome: Loaded | Unavailable): outcome is Unavailable {
-    return 'problem' in outcome;
+    return "problem" in outcome
   }
 
   private publish(state: PanelState): void {
     if (!this.closed) {
-      this.context.publish(state);
+      this.context.publish(state)
     }
   }
 
   private publishProgress(): void {
     if (this.loaded === undefined) {
       this.publish({
-        status: 'loading',
+        status: "loading",
         title: this.loadingTitle,
         engine: this.context.engine,
-      });
-      return;
+      })
+      return
     }
-    this.publishReady(this.loaded, true);
+    this.publishReady(this.loaded, true)
   }
 
   private publishReady(loaded: Loaded, refreshing: boolean): void {
     this.publish({
-      status: 'ready',
+      status: "ready",
       view: this.decorated(loaded.view),
       refreshing,
       ...this.liveField(),
-    });
+    })
   }
 
   private publishFailure(problem: Problem): void {
     this.publish({
-      status: 'failed',
+      status: "failed",
       problem,
       engine: this.context.engine,
       ...(this.loaded === undefined ? {} : { staleView: this.decorated(this.loaded.view) }),
       ...this.liveField(),
-    });
+    })
   }
 
   private decorated(view: View): View {
-    return this.hooks.decorate === undefined ? view : this.hooks.decorate(view);
+    return this.hooks.decorate === undefined ? view : this.hooks.decorate(view)
   }
 
   private liveField(): { readonly live?: LiveUpdates } {
-    const live = this.hooks.live?.();
-    return live === undefined ? {} : { live };
+    const live = this.hooks.live?.()
+    return live === undefined ? {} : { live }
   }
 }

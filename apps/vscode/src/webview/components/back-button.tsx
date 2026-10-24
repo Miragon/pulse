@@ -1,13 +1,13 @@
-import { useHost } from '../host/host-context.js';
-import { Icon } from './icon.js';
-import { glyphs } from './lucide-glyphs.json';
+import { useHost } from "../host/host-context.js"
+import { Icon } from "./icon.js"
+import { glyphs } from "./lucide-glyphs.json"
 
 export function BackButton({ class: className }: { readonly class: string }) {
-  const host = useHost();
+  const host = useHost()
   if (host.back === undefined) {
-    return null;
+    return null
   }
-  const label = `Back to ${host.back.label}`;
+  const label = `Back to ${host.back.label}`
   return (
     <button
       type="button"
@@ -15,10 +15,10 @@ export function BackButton({ class: className }: { readonly class: string }) {
       aria-label={label}
       title={label}
       onClick={() => {
-        host.post({ type: 'goBack' });
+        host.post({ type: "goBack" })
       }}
     >
       <Icon of={glyphs.ArrowLeft} />
     </button>
-  );
+  )
 }

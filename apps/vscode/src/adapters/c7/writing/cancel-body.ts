@@ -1,4 +1,4 @@
-import type { CancelOptions, InstanceId } from '../../../contract/index.js';
+import type { CancelOptions, InstanceId } from "../../../contract/index.js"
 
 export class CancelBody {
   static of(instanceIds: readonly InstanceId[], options: CancelOptions | undefined): string {
@@ -8,6 +8,6 @@ export class CancelBody {
       skipCustomListeners: false,
       skipSubprocesses: false,
       skipIoMappings: false,
-    });
+    })
   }
 }

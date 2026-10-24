@@ -1,19 +1,19 @@
-import type { SelectionView } from '../../core/protocol/index.js';
-import { useHost } from '../host/host-context.js';
+import type { SelectionView } from "../../core/protocol/index.js"
+import { useHost } from "../host/host-context.js"
 
 function SelectionCount({ selection }: { readonly selection: SelectionView }) {
   const text = selection.allMatching
     ? `All ${selection.count} ${selection.eligible} selected`
-    : `${selection.count} selected`;
+    : `${selection.count} selected`
   return (
     <span class="selection-bar__count" aria-live="polite">
       {text}
     </span>
-  );
+  )
 }
 
 function SelectionOffers({ selection }: { readonly selection: SelectionView }) {
-  const host = useHost();
+  const host = useHost()
   return (
     <>
       {selection.offers.map((offer) => (
@@ -22,7 +22,7 @@ function SelectionOffers({ selection }: { readonly selection: SelectionView }) {
           type="button"
           class="button button--secondary button--compact"
           onClick={() => {
-            host.post({ type: 'startBulk', action: offer.action });
+            host.post({ type: "startBulk", action: offer.action })
           }}
         >
           {offer.label}
@@ -33,18 +33,18 @@ function SelectionOffers({ selection }: { readonly selection: SelectionView }) {
           type="button"
           class="button button--secondary button--compact"
           onClick={() => {
-            host.post({ type: 'openMigration' });
+            host.post({ type: "openMigration" })
           }}
         >
           {selection.migration}
         </button>
       )}
     </>
-  );
+  )
 }
 
 export function SelectionBar({ selection }: { readonly selection: SelectionView }) {
-  const host = useHost();
+  const host = useHost()
   return (
     <div class="selection-bar" role="group" aria-label="Selected instances">
       <SelectionCount selection={selection} />
@@ -53,7 +53,7 @@ export function SelectionBar({ selection }: { readonly selection: SelectionView 
           type="button"
           class="button button--ghost button--compact"
           onClick={() => {
-            host.post({ type: 'selectMatching' });
+            host.post({ type: "selectMatching" })
           }}
         >
           Select all {selection.matching} {selection.eligible}
@@ -74,11 +74,11 @@ export function SelectionBar({ selection }: { readonly selection: SelectionView 
         type="button"
         class="button button--ghost button--compact"
         onClick={() => {
-          host.post({ type: 'clearSelection' });
+          host.post({ type: "clearSelection" })
         }}
       >
         Clear
       </button>
     </div>
-  );
+  )
 }

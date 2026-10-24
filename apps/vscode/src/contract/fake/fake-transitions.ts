@@ -1,19 +1,19 @@
-import { IsoTimestamp, type IncidentId, type InstanceId } from '../model/ids.js';
-import type { Variable, WaitState } from '../model/read-models.js';
-import { RuntimeError } from '../model/runtime-error.js';
-import { ValueKinds } from '../model/value-kinds.js';
-import type { VariableChange } from '../ports/process-commands.js';
-import type { FakeEngineState, FakeInstance } from './fake-engine-state.js';
-import { FakeQueries } from './fake-queries.js';
+import { IsoTimestamp, type IncidentId, type InstanceId } from "../model/ids.js"
+import type { Variable, WaitState } from "../model/read-models.js"
+import { RuntimeError } from "../model/runtime-error.js"
+import { ValueKinds } from "../model/value-kinds.js"
+import type { VariableChange } from "../ports/process-commands.js"
+import type { FakeEngineState, FakeInstance } from "./fake-engine-state.js"
+import { FakeQueries } from "./fake-queries.js"
 
-const CANCELLED_AT = IsoTimestamp('2026-10-21T09:00:00Z');
+const CANCELLED_AT = IsoTimestamp("2026-10-21T09:00:00Z")
 
 export class FakeTransitions {
   constructor(private readonly state: FakeEngineState) {}
 
   retried(incidentId: IncidentId): FakeEngineState {
     if (!this.state.incidents.some(({ incident }) => incident.id === incidentId)) {
-      throw new RuntimeError('rejected', `Incident ${incidentId} is not open.`);
+      throw new RuntimeError("rejected", `Incident ${incidentId} is not open.`)
     }
     return new FakeTransitions({
       ...this.state,
@@ -24,13 +24,13 @@ export class FakeTransitions {
           this.waitingAgain(waitState, incidentId),
         ),
       })),
-    }).withIncidentFlags();
+    }).withIncidentFlags()
   }
 
   withVariable(instanceId: InstanceId, change: VariableChange): FakeEngineState {
-    const target = this.state.instances.find((instance) => instance.summary.id === instanceId);
+    const target = this.state.instances.find((instance) => instance.summary.id === instanceId)
     if (target === undefined || !FakeQueries.isRunning(target.summary)) {
-      throw new RuntimeError('rejected', `Instance ${instanceId} is not running.`);
+      throw new RuntimeError("rejected", `Instance ${instanceId} is not running.`)
     }
     return {
       ...this.state,
@@ -39,11 +39,11 @@ export class FakeTransitions {
           ? { ...instance, variables: this.changedVariables(instance.variables, change) }
           : instance,
       ),
-    };
+    }
   }
 
   cancelled(instanceIds: readonly InstanceId[]): FakeEngineState {
-    const queries = new FakeQueries(this.state);
+    const queries = new FakeQueries(this.state)
     const tree = new Set(
       this.state.instances
         .filter(
@@ -52,14 +52,14 @@ export class FakeTransitions {
         )
         .flatMap((instance) => [instance, ...queries.descendantsOf(instance.summary.id)])
         .map((instance) => instance.summary.id),
-    );
+    )
     return new FakeTransitions({
       ...this.state,
       incidents: this.state.incidents.filter(({ incident }) => !tree.has(incident.instanceId)),
       instances: this.state.instances.map((instance) =>
         tree.has(instance.summary.id) ? this.terminated(instance) : instance,
       ),
-    }).withIncidentFlags();
+    }).withIncidentFlags()
   }
 
   withIncidentFlags(): FakeEngineState {
@@ -69,13 +69,13 @@ export class FakeTransitions {
         ...instance,
         summary: { ...instance.summary, hasIncident: this.hasIncidentInTree(instance) },
       })),
-    };
+    }
   }
 
   private terminated(instance: FakeInstance): FakeInstance {
     return {
       ...instance,
-      summary: { ...instance.summary, state: 'terminated', endedAt: CANCELLED_AT },
+      summary: { ...instance.summary, state: "terminated", endedAt: CANCELLED_AT },
       activeElementIds: [],
       waitStates: [],
       ...(instance.path === undefined
@@ -85,24 +85,24 @@ export class FakeTransitions {
               run.endedAt === undefined ? { ...run, endedAt: CANCELLED_AT, canceled: true } : run,
             ),
           }),
-    };
+    }
   }
 
   private hasIncidentInTree(instance: FakeInstance): boolean {
-    const descendants = new FakeQueries(this.state).descendantsOf(instance.summary.id);
-    const tree = new Set([instance.summary.id, ...descendants.map((child) => child.summary.id)]);
-    return this.state.incidents.some(({ incident }) => tree.has(incident.instanceId));
+    const descendants = new FakeQueries(this.state).descendantsOf(instance.summary.id)
+    const tree = new Set([instance.summary.id, ...descendants.map((child) => child.summary.id)])
+    return this.state.incidents.some(({ incident }) => tree.has(incident.instanceId))
   }
 
   private waitingAgain(waitState: WaitState, incidentId: IncidentId): WaitState {
     if (waitState.incidentId !== incidentId) {
-      return waitState;
+      return waitState
     }
-    const open = { ...waitState };
-    delete open.incidentId;
-    return open.kind === 'workerTask' || open.kind === 'asyncContinuation'
+    const open = { ...waitState }
+    delete open.incidentId
+    return open.kind === "workerTask" || open.kind === "asyncContinuation"
       ? { ...open, retriesLeft: 1 }
-      : open;
+      : open
   }
 
   private changedVariables(
@@ -111,15 +111,15 @@ export class FakeTransitions {
   ): readonly Variable[] {
     const changed: Variable = {
       name: change.name,
-      scope: { kind: 'instance' },
+      scope: { kind: "instance" },
       valueJson: change.valueJson.trim(),
       truncated: false,
       kind: ValueKinds.ofJson(change.valueJson),
       ...(change.type === undefined ? {} : { type: change.type }),
-    };
+    }
     const others = variables.filter(
-      (variable) => variable.name !== change.name || variable.scope.kind !== 'instance',
-    );
-    return [...others, changed];
+      (variable) => variable.name !== change.name || variable.scope.kind !== "instance",
+    )
+    return [...others, changed]
   }
 }

@@ -1,8 +1,8 @@
-import { mkdir, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
-import { C7Adapter, type C7AdapterOptions } from '../adapters/c7/index.js';
-import type { LocalSources } from '../core/index.js';
-import { BpmnModelSource, WorkspaceCodeLocator } from '../model/index.js';
+import { mkdir, writeFile } from "node:fs/promises"
+import { join } from "node:path"
+import { C7Adapter, type C7AdapterOptions } from "../adapters/c7/index.js"
+import type { LocalSources } from "../core/index.js"
+import { BpmnModelSource, WorkspaceCodeLocator } from "../model/index.js"
 import {
   FailingRuntime,
   RuntimeError,
@@ -13,17 +13,17 @@ import {
   type ProcessCommands,
   type ProcessRuntime,
   type WorkspaceFiles,
-} from '../contract/index.js';
-import type { Credentials, EngineFactories } from './connections/connection.js';
-import type { EngineKind, EngineTarget } from './connections/engine-target.js';
-import { TargetPolicy } from './connections/target-policy.js';
+} from "../contract/index.js"
+import type { Credentials, EngineFactories } from "./connections/connection.js"
+import type { EngineKind, EngineTarget } from "./connections/engine-target.js"
+import { TargetPolicy } from "./connections/target-policy.js"
 
 export interface ExtensionPaths {
-  readonly extensionPath: string;
-  readonly storagePath: string;
+  readonly extensionPath: string
+  readonly storagePath: string
 }
 
-type EngineAdapters = Readonly<Record<EngineKind, EngineAdapter>>;
+type EngineAdapters = Readonly<Record<EngineKind, EngineAdapter>>
 
 export class CompositionRoot implements EngineFactories {
   constructor(private readonly adapters: EngineAdapters) {}
@@ -31,50 +31,50 @@ export class CompositionRoot implements EngineFactories {
   static async create(paths: ExtensionPaths): Promise<CompositionRoot> {
     return new CompositionRoot({
       c7: C7Adapter.create(await CompositionRoot.engineCliOptions(paths)),
-    });
+    })
   }
 
   runtime(target: EngineTarget, credentials: Credentials): ProcessRuntime {
-    const refused = TargetPolicy.refusal(target, credentials);
+    const refused = TargetPolicy.refusal(target, credentials)
     if (refused !== undefined) {
-      return new FailingRuntime(new RuntimeError('misconfigured', refused));
+      return new FailingRuntime(new RuntimeError("misconfigured", refused))
     }
-    return this.adapters[target.engine].runtime(this.connectionOf(target, credentials));
+    return this.adapters[target.engine].runtime(this.connectionOf(target, credentials))
   }
 
   commands(target: EngineTarget, credentials: Credentials): ProcessCommands | undefined {
     return TargetPolicy.refusal(target, credentials) === undefined
       ? this.adapters[target.engine].commands(this.connectionOf(target, credentials))
-      : undefined;
+      : undefined
   }
 
   webUi(target: EngineTarget): EngineWebUi | undefined {
     return target.webUiUrl === undefined
       ? undefined
-      : this.adapters[target.engine].webUi(target.webUiUrl);
+      : this.adapters[target.engine].webUi(target.webUiUrl)
   }
 
   static localSources(files: WorkspaceFiles): LocalSources {
-    return { models: new BpmnModelSource(files), code: new WorkspaceCodeLocator(files) };
+    return { models: new BpmnModelSource(files), code: new WorkspaceCodeLocator(files) }
   }
 
   private static async engineCliOptions(paths: ExtensionPaths): Promise<C7AdapterOptions> {
-    const configPath = join(paths.storagePath, 'engine-cli-config.json');
-    await mkdir(paths.storagePath, { recursive: true });
-    await writeFile(configPath, `${JSON.stringify({ profiles: {} })}\n`);
-    return { cliPath: join(paths.extensionPath, 'dist', 'engine-cli.js'), configPath };
+    const configPath = join(paths.storagePath, "engine-cli-config.json")
+    await mkdir(paths.storagePath, { recursive: true })
+    await writeFile(configPath, `${JSON.stringify({ profiles: {} })}\n`)
+    return { cliPath: join(paths.extensionPath, "dist", "engine-cli.js"), configPath }
   }
 
   private connectionOf(target: EngineTarget, credentials: Credentials): EngineConnection {
     return {
       endpoint: target.endpoint,
       credentials: this.engineCredentials(target, credentials),
-    };
+    }
   }
 
   private engineCredentials(target: EngineTarget, credentials: Credentials): EngineCredentials {
-    return target.auth.kind === 'basic' && credentials.kind === 'basic'
+    return target.auth.kind === "basic" && credentials.kind === "basic"
       ? credentials
-      : { kind: 'none' };
+      : { kind: "none" }
   }
 }

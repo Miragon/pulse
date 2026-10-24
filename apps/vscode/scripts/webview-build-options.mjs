@@ -1,22 +1,22 @@
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath } from "node:url"
 
-const here = fileURLToPath(new URL('../', import.meta.url));
+const here = fileURLToPath(new URL("../", import.meta.url))
 
 export function webviewBuildOptions({ production, outdir }) {
   return {
     entryPoints: { webview: `${here}src/main.tsx` },
     outdir,
     bundle: true,
-    platform: 'browser',
-    format: 'iife',
-    target: 'es2022',
-    jsx: 'automatic',
-    jsxImportSource: 'preact',
+    platform: "browser",
+    format: "iife",
+    target: "es2022",
+    jsx: "automatic",
+    jsxImportSource: "preact",
     sourcemap: !production,
     minify: production,
     metafile: true,
-    loader: { '.woff2': 'file', '.woff': 'file', '.ttf': 'file', '.bpmn': 'text' },
-    assetNames: 'fonts/[name]-[hash]',
-    logLevel: 'info',
-  };
+    loader: { ".woff2": "file", ".woff": "file", ".ttf": "file", ".bpmn": "text" },
+    assetNames: "fonts/[name]-[hash]",
+    logLevel: "info",
+  }
 }

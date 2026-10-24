@@ -3,5 +3,13 @@
   "singleQuote": false,
   "printWidth": 100,
   "trailingComma": "all",
-  "plugins": ["prettier-plugin-tailwindcss"]
+  "plugins": ["prettier-plugin-tailwindcss"],
+  "overrides": [
+    {
+      "files": ["apps/vscode/**"],
+      "options": {
+        "plugins": []
+      }
+    }
+  ]
 }

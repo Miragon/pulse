@@ -1,6 +1,6 @@
-declare module '*.css';
+declare module "*.css"
 
-declare module '*.bpmn' {
-  const xml: string;
-  export default xml;
+declare module "*.bpmn" {
+  const xml: string
+  export default xml
 }

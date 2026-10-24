@@ -1,13 +1,13 @@
-import * as vscode from 'vscode';
-import type { Connection } from '../connections/connection.js';
-import type { ConnectionRegistry } from '../connections/connection-registry.js';
-import type { CredentialStore } from '../connections/credential-store.js';
-import type { Command } from './command.js';
-import { COMMAND } from './command-ids.js';
-import type { ConnectionPicker } from './connection-picker.js';
+import * as vscode from "vscode"
+import type { Connection } from "../connections/connection.js"
+import type { ConnectionRegistry } from "../connections/connection-registry.js"
+import type { CredentialStore } from "../connections/credential-store.js"
+import type { Command } from "./command.js"
+import { COMMAND } from "./command-ids.js"
+import type { ConnectionPicker } from "./connection-picker.js"
 
 export class SetCredentialsCommand implements Command {
-  readonly id = COMMAND.setCredentials;
+  readonly id = COMMAND.setCredentials
 
   constructor(
     private readonly registry: ConnectionRegistry,
@@ -16,24 +16,24 @@ export class SetCredentialsCommand implements Command {
   ) {}
 
   async run(node?: { readonly connection?: Connection }): Promise<void> {
-    const chosen = node?.connection ?? (await this.picker.pick('Set Credentials'));
+    const chosen = node?.connection ?? (await this.picker.pick("Set Credentials"))
     if (chosen === undefined) {
-      return;
+      return
     }
     const username = await vscode.window.showInputBox({
       title: `Username for ${chosen.target.name}`,
-    });
+    })
     if (username === undefined) {
-      return;
+      return
     }
     const password = await vscode.window.showInputBox({
       title: `Password for ${chosen.target.name}`,
       password: true,
-    });
+    })
     if (password === undefined) {
-      return;
+      return
     }
-    await this.store.write(chosen.target, username, password);
-    await this.registry.reload();
+    await this.store.write(chosen.target, username, password)
+    await this.registry.reload()
   }
 }
