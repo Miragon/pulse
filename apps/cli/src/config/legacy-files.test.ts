@@ -82,10 +82,17 @@ describe("userConfigFile", () => {
     })
   })
 
-  it("keeps the new file when its existence cannot be checked", async () => {
+  it("keeps the new file when an existence check fails", async () => {
     const runtime = fakeRuntime({ files: { [LEGACY_CONFIG]: FILE } })
-    const fs = { ...runtime.fs, exists: () => Promise.reject(new Error("EACCES")) }
-    expect(await userConfigFile(fs, runtime.env, runtime)).toMatchObject({ legacy: false })
+    const failing = (path: string) => ({
+      ...runtime.fs,
+      exists: (candidate: string) =>
+        candidate === path ? Promise.reject(new Error("EACCES")) : runtime.fs.exists(candidate),
+    })
+    const unknownNew = await userConfigFile(failing(CONFIG_PATH), runtime.env, runtime)
+    expect(unknownNew).toMatchObject({ path: CONFIG_PATH, legacy: false })
+    const unknownOld = await userConfigFile(failing(LEGACY_CONFIG), runtime.env, runtime)
+    expect(unknownOld).toMatchObject({ path: CONFIG_PATH, legacy: false })
   })
 
   it("leaves the tokens in the new directory", () => {
