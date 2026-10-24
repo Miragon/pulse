@@ -489,12 +489,16 @@ jobs:
 
       - uses: pnpm/action-setup@v6.1.0
 
-      # The binary embeds this Node.js: the newest 24.x, like the release.
+      # The binary embeds this Node.js: the newest 24.x, like the release. setup-node keys the pnpm
+      # store by OS and lockfile only, so on Linux this filtered install would save a partial
+      # store under the key the full installs of the other jobs restore; macOS and Windows have
+      # their own keys and keep the cache.
       - uses: actions/setup-node@v7.1.0
         with:
           node-version: 24.x
           check-latest: true
-          cache: pnpm
+          cache: ${{ runner.os != 'Linux' && 'pnpm' || '' }}
+          package-manager-cache: false
 
       # The root and the CLI with its workspace dependencies only: no other package installs
       # (or fails to install) on macOS and Windows.
@@ -561,10 +565,12 @@ jobs:
 
       - uses: pnpm/action-setup@v6.1.0
 
+      # No pnpm cache: this filtered install would save a partial store under the key the full
+      # installs of the other Linux jobs restore (see cli-binaries).
       - uses: actions/setup-node@v7.1.0
         with:
           node-version: 24.x
-          cache: pnpm
+          package-manager-cache: false
 
       - run: pnpm install --frozen-lockfile --ignore-scripts --fail-if-no-match --filter "@miragon/pulse-cli..."
 
