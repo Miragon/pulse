@@ -33,5 +33,6 @@ server, its two modules (camunda7 and analytics) and the systems they talk to.
 ## Build on it
 
 The [developer guide](./developer.md) runs the stack from source and composes the published
-`@miragon/pulse-*` modules into a server of your own. Pulse is pre-1.0: minor releases can rename
-tools, so pin a version from the [releases](https://github.com/Miragon/pulse/releases).
+`@miragon/pulse-*` modules into a server of your own. The [CLI](./cli/index.md) brings the same
+engines to a shell and to coding agents. Pulse is pre-1.0: minor releases can rename tools, so
+pin a version from the [releases](https://github.com/Miragon/pulse/releases).

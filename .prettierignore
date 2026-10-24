@@ -25,3 +25,7 @@ docs/.vitepress/cache/
 # ui-stylesheet.test.ts and docs.yml): re-vendored on every CI release, never
 # formatted or hand-edited here.
 docs/.vitepress/miragon/
+
+# The CLI's vendored OpenAPI spec (Operaton REST 1.0.1) and its JSON patches: the catalog
+# generator reads them byte for byte (apps/cli/scripts/catalog/files.ts).
+apps/cli/spec/

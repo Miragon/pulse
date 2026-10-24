@@ -28,6 +28,18 @@
       ],
     },
 
+    "apps/cli": {
+      // vitest.integration.config.ts runs the engine suites (`test:engines`) and
+      // tsdown.standalone.config.ts builds the bundle of the standalone executable and the
+      // image; neither name is one the plugins find on their own.
+      "vitest": {
+        "config": ["vitest.config.ts", "vitest.stryker.config.ts", "vitest.integration.config.ts"],
+      },
+      "tsdown": {
+        "config": ["tsdown.config.ts", "tsdown.standalone.config.ts"],
+      },
+    },
+
     "packages/connectors/camunda/camunda7-client": {
       "vitest": {
         "config": ["vitest.config.ts", "vitest.stryker.config.ts"],

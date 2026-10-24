@@ -42,8 +42,10 @@ import { fileURLToPath } from "node:url"
  */
 export const REQUIRED_SCRIPTS = {
   lint: {
-    pattern: /^eslint src(?: \w[\w-]*)*$/,
-    expect: "`eslint src` (further source dirs allowed; no flags or shell operators)",
+    // `*.config.ts` (the one glob, last) also lints the package's root configs.
+    pattern: /^eslint src(?: \w[\w-]*)*(?: \*\.config\.ts)?$/,
+    expect:
+      "`eslint src` (further source dirs and a final `*.config.ts` allowed; no flags or shell operators)",
   },
   typecheck: {
     pattern: /^tsc --noEmit(?: && tsc -p tsconfig\.[\w-]+\.json)*$/,

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "test": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/docs/cli/**",
+        "$TURBO_ROOT$/release-please-config.json",
+        "$TURBO_ROOT$/.prettierrc.json"
+      ]
+    }
+  }
+}

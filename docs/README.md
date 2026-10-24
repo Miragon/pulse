@@ -11,6 +11,7 @@ engines, with answers as widgets in the chat. Commands and configs call the serv
 | [Architecture](architecture.md)       | The server, its two modules and the systems they talk to                             |
 | [Developer guide](developer.md)       | Run the stack from source and build your own server on the published modules         |
 | [Operations](operations.md)           | The Docker image, security, environment variables, toolsets, health routes and CI    |
+| [CLI](cli/index.md)                   | The command line interface: install, commands, configuration, AI agents              |
 
 The pages build into a VitePress site, published at
 [miragon.github.io/pulse](https://miragon.github.io/pulse/) from `main`. Run

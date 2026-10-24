@@ -53,6 +53,8 @@ const RULES = [
   // too), the repo, the image, the Homebrew tap, the docs, the product page, its
   // OPERATE_* variables, its config file and its config directory. The plain word stays
   // ("read and operate your engines", the cockpit's fleet.operate key, Camunda 8 Operate).
+  // The CLI's compat layer reads the released ones until the first release after 2027-01-31:
+  // only its tests and the two "Renamed from operate" sections may name them (ALLOWED).
   { name: "old operate package", pattern: /@miragon\/operate(?!\w)/i },
   { name: "old operate repo", pattern: /(?<![\w.-])miragon\/operate(?![\w-])/i },
   { name: "old operate image", pattern: /ghcr\.io\/miragon\/operate/i },
@@ -63,6 +65,18 @@ const RULES = [
   { name: "old operate env var", pattern: /\bOPERATE_[A-Z]/ },
   { name: "old operate config file", pattern: /\.operate\.json/ },
   { name: "old operate config dir", pattern: /\.config\/operate/ },
+  // The CLI ships as @miragon/pulse-cli: the unscoped package pulse-cli is a stranger's, so
+  // `npx pulse-cli` or `npm i -g pulse-cli` installs someone else's code.
+  {
+    name: "unscoped pulse-cli package",
+    pattern:
+      /(?:\bnpx|\bbunx|\bdlx)\s+(?:-{1,2}[\w-]+(?:=\S+)?\s+)*pulse-cli(?![\w-])|\b(?:npm|pnpm|yarn|bun)\s+(?:i|install|add)\s+(?:-{1,2}[\w-]+\s+)*pulse-cli(?![\w-])/,
+  },
+  // The CLI image lives on GHCR only, like the server's.
+  {
+    name: "CLI image off GHCR",
+    pattern: /(?<!ghcr\.io\/)(?<![\w.@-])miragon\/pulse-cli(?![\w-])/i,
+  },
 ] as const
 
 type RuleName = (typeof RULES)[number]["name"]
@@ -137,6 +151,41 @@ const ALLOWED: Allowance[] = [
     rules: ["old slug"],
     line: /Up to 0\.20\.0 .*shipped under `miragon-ai`/,
     reason: "the release section says what shipped up to 0.20.0: deprecated, never reused",
+  },
+  {
+    file: /^apps\/cli\/src\/(?:config\/legacy(?:-files)?|cli\/legacy-notice)\.test\.ts$/,
+    rules: ["old operate env var", "old operate config file", "old operate config dir"],
+    reason:
+      "the CLI's compat tests pin the names operate released up to 0.10.0, read until the first release after 2027-01-31",
+  },
+  {
+    file: "apps/cli/README.md",
+    rules: [
+      "old operate package",
+      "old operate repo",
+      "old operate image",
+      "old operate tap",
+      "old operate env var",
+      "old operate config file",
+      "old operate config dir",
+    ],
+    section: /^#{2,6} Renamed from operate\b/,
+    reason: "the npm README maps each name of operate (up to 0.10.0) to its pulse-cli name",
+  },
+  {
+    file: "docs/cli/installation.md",
+    rules: [
+      "old operate package",
+      "old operate repo",
+      "old operate image",
+      "old operate tap",
+      "old operate env var",
+      "old operate config file",
+      "old operate config dir",
+    ],
+    section: /^#{2,6} Renamed from operate\b/,
+    reason:
+      "the docs map each name of operate to its pulse-cli name and say how long the old ones work",
   },
   {
     file: "scripts/test-template.sh",
@@ -264,6 +313,11 @@ describe("the old-name rules", () => {
     ["echo $OPERATE_PROFILE", "old operate env var"],
     ["reads ./.operate.json first", "old operate config file"],
     ["~/.config/operate/engines.json", "old operate config dir"],
+    ["npx pulse-cli status", "unscoped pulse-cli package"],
+    ["npm i -g pulse-cli", "unscoped pulse-cli package"],
+    ["pnpm dlx pulse-cli guide", "unscoped pulse-cli package"],
+    ["docker run --rm miragon/pulse-cli --version", "CLI image off GHCR"],
+    ["docker.io/miragon/pulse-cli:latest", "CLI image off GHCR"],
   ] as const)("%s is %s", (text, rule) => {
     expect(rulesMatching(text)).toContain(rule)
   })
@@ -291,6 +345,15 @@ describe("the old-name rules", () => {
     'flavor: "operaton"',
     "https://docs.operaton.org/",
     "@miragon/pulse-cli",
+    "npx -y @miragon/pulse-cli status",
+    "npm i -g @miragon/pulse-cli",
+    "brew install miragon/tap/pulse-cli",
+    "ghcr.io/miragon/pulse-cli:0.22.0",
+    "PULSE_CLI_URL=http://localhost:8080/engine-rest",
+    "~/.config/pulse-cli/config.json",
+    "reads ./.pulse-cli.json first",
+    "deployment-source operate",
+    'workerId: "operate"',
   ])("%s is no old name", (text) => {
     expect(rulesMatching(text)).toEqual([])
   })

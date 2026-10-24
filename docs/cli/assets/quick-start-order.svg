@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="350" height="120" viewBox="41.63 60 350.37 120" font-family="Arial, Arimo, sans-serif">
+<rect x="41.63" y="60" width="350.37" height="120" fill="#ffffff"/>
+<g data-id="Event_OrderReceived"><circle cx="98" cy="120" r="18" fill="#ffffff" stroke="#1D1D1D" stroke-width="2"/></g>
+<g data-id="Activity_ReviewOrder"><rect x="176" y="80" width="100" height="80" rx="10" fill="#ffffff" stroke="#1D1D1D" stroke-width="2"/><g transform="translate(180 84)"><path d="M2 18V15C2 11.5 5 10 10 10C15 10 18 11.5 18 15V18Z" fill="#ffffff" stroke="#1D1D1D" stroke-width="1.2"/><circle cx="10" cy="6" r="3.8" fill="#ffffff" stroke="#1D1D1D" stroke-width="1.2"/><path d="M6 18V15M14 18V15" fill="none" stroke="#1D1D1D" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round"/></g><text font-size="12" fill="#1D1D1D" text-anchor="middle"><tspan x="226" y="123.6">Review order</tspan></text></g>
+<g data-id="Event_Done"><circle cx="354" cy="120" r="18" fill="#ffffff" stroke="#1D1D1D" stroke-width="4"/></g>
+<g data-id="Flow_ReviewOrderToDone"><path d="M276 120L336 120" fill="none" stroke="#1D1D1D" stroke-width="1.5" stroke-linejoin="round"/><path d="M325 124L336 120L325 116Z" fill="#1D1D1D" stroke="#1D1D1D" stroke-width="1" stroke-linejoin="round"/></g>
+<g data-id="Flow_OrderReceivedToReviewOrder"><path d="M116 120L176 120" fill="none" stroke="#1D1D1D" stroke-width="1.5" stroke-linejoin="round"/><path d="M165 124L176 120L165 116Z" fill="#1D1D1D" stroke="#1D1D1D" stroke-width="1" stroke-linejoin="round"/></g>
+<text data-label="Event_OrderReceived" font-size="11" fill="#1D1D1D" text-anchor="middle"><tspan x="98" y="153.9">Order received</tspan></text>
+<text data-label="Event_Done" font-size="11" fill="#1D1D1D" text-anchor="middle"><tspan x="354" y="153.9">Done</tspan></text>
+</svg>

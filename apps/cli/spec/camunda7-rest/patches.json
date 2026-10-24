@@ -1,0 +1,121 @@
+[
+  {
+    "op": "test",
+    "path": "/components/schemas/ProcessInstanceModificationInstructionDto/properties/variables/$ref",
+    "value": "#/components/schemas/TriggerVariableValueDto",
+    "reason": "Guard: the upstream schema still types instruction variables as a single value."
+  },
+  {
+    "op": "replace",
+    "path": "/components/schemas/ProcessInstanceModificationInstructionDto/properties/variables",
+    "value": {
+      "type": "object",
+      "nullable": true,
+      "additionalProperties": {
+        "$ref": "#/components/schemas/TriggerVariableValueDto"
+      },
+      "description": "A map of variables that are set in the scope of the instruction. Keys are variable names, values are typed variable values with an optional `local` flag."
+    },
+    "reason": "The engine expects a map of variable name to TriggerVariableValueDto, not a single value."
+  },
+  {
+    "op": "test",
+    "path": "/paths/~1history~1variable-instance/get/parameters/2/name",
+    "value": "variableValue",
+    "reason": "Guard: the patched parameter must still be variableValue."
+  },
+  {
+    "op": "replace",
+    "path": "/paths/~1history~1variable-instance/get/parameters/2/schema",
+    "value": {
+      "type": "string"
+    },
+    "reason": "variableValue is sent as a plain query string; the spec types it as object."
+  },
+  {
+    "op": "test",
+    "path": "/paths/~1history~1variable-instance~1count/get/parameters/2/name",
+    "value": "variableValue",
+    "reason": "Guard: the patched parameter must still be variableValue."
+  },
+  {
+    "op": "replace",
+    "path": "/paths/~1history~1variable-instance~1count/get/parameters/2/schema",
+    "value": {
+      "type": "string"
+    },
+    "reason": "variableValue is sent as a plain query string; the spec types it as object."
+  },
+  {
+    "op": "test",
+    "path": "/components/schemas/TaskDto/properties/operatonFormRef",
+    "value": {
+      "$ref": "#/components/schemas/OperatonFormRef"
+    },
+    "reason": "Guard: the form reference is still the plain Operaton property."
+  },
+  {
+    "op": "replace",
+    "path": "/components/schemas/TaskDto/properties/operatonFormRef",
+    "value": {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/OperatonFormRef"
+        }
+      ],
+      "nullable": true,
+      "description": "Reference to the form of the task (Operaton). Camunda 7 and CIB seven send and accept the same object as `camundaFormRef`."
+    },
+    "reason": "Documents that the property name depends on the engine."
+  },
+  {
+    "op": "add",
+    "path": "/components/schemas/TaskDto/properties/camundaFormRef",
+    "value": {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/OperatonFormRef"
+        }
+      ],
+      "nullable": true,
+      "description": "Reference to the form of the task (Camunda 7, CIB seven). Operaton sends and accepts the same object as `operatonFormRef`."
+    },
+    "reason": "Camunda 7 and CIB seven name the form reference camundaFormRef; without it body validation rejects their property (engines ignore the name they do not know)."
+  },
+  {
+    "op": "test",
+    "path": "/components/schemas/FormDto/properties/operatonFormRef",
+    "value": {
+      "$ref": "#/components/schemas/OperatonFormRef"
+    },
+    "reason": "Guard: the form reference is still the plain Operaton property."
+  },
+  {
+    "op": "replace",
+    "path": "/components/schemas/FormDto/properties/operatonFormRef",
+    "value": {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/OperatonFormRef"
+        }
+      ],
+      "nullable": true,
+      "description": "Reference to the form of the task (Operaton). Camunda 7 and CIB seven send and accept the same object as `camundaFormRef`."
+    },
+    "reason": "Documents that the property name depends on the engine."
+  },
+  {
+    "op": "add",
+    "path": "/components/schemas/FormDto/properties/camundaFormRef",
+    "value": {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/OperatonFormRef"
+        }
+      ],
+      "nullable": true,
+      "description": "Reference to the form of the task (Camunda 7, CIB seven). Operaton sends and accepts the same object as `operatonFormRef`."
+    },
+    "reason": "Camunda 7 and CIB seven name the form reference camundaFormRef; without it body validation rejects their property (engines ignore the name they do not know)."
+  }
+]

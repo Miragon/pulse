@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" id="wf-edges" targetNamespace="https://example.com/wf-edges">
+  <bpmn:process id="race-end" isExecutable="true" camunda:historyTimeToLive="1">
+    <bpmn:startEvent id="race-start" />
+    <bpmn:sequenceFlow id="r1" sourceRef="race-start" targetRef="review" />
+    <bpmn:userTask id="review" name="Review" />
+    <bpmn:sequenceFlow id="r2" sourceRef="review" targetRef="go" />
+    <bpmn:serviceTask id="go" camunda:asyncBefore="true" camunda:expression="${true}" />
+    <bpmn:sequenceFlow id="r3" sourceRef="go" targetRef="race-done" />
+    <bpmn:endEvent id="race-done" />
+  </bpmn:process>
+  <bpmn:process id="paused" isExecutable="true" camunda:historyTimeToLive="1">
+    <bpmn:startEvent id="paused-start" />
+    <bpmn:sequenceFlow id="p1" sourceRef="paused-start" targetRef="work" />
+    <bpmn:serviceTask id="work" camunda:asyncBefore="true" camunda:expression="${true}" />
+    <bpmn:sequenceFlow id="p2" sourceRef="work" targetRef="hold" />
+    <bpmn:userTask id="hold" name="Hold" />
+    <bpmn:sequenceFlow id="p3" sourceRef="hold" targetRef="paused-done" />
+    <bpmn:endEvent id="paused-done" />
+  </bpmn:process>
+</bpmn:definitions>

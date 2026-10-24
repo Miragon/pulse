@@ -148,6 +148,92 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+  # Real engines in Testcontainers on the runner's Docker, one leg per flavor (Camunda 7, CIB
+  # seven, Operaton: the server's flavor values, the default first). Each leg runs every suite
+  # that needs a real engine, so far the CLI's (apps/cli test:engines; its OAuth and bearer
+  # suites put Keycloak and Envoy in front). Node 22, the floor of the CLI's npm package; the CLI
+  # binary leg below runs the Operaton suites on Node 24. Not path-filtered, like every job here:
+  # a skipped leg would hide a broken shared input (lockfile, tsconfig.base.json,
+  # vitest.shared.ts). Each leg reports a check of its own; the "Engines" job below is the one
+  # check a ruleset can require.
+  engines:
+    name: Engines (${{ matrix.flavor }})
+    runs-on: ubuntu-latest
+    # Image pulls, engine starts (a suite allows 4 min for one) and the suites: a CLI leg took
+    # about 4 min in its own repository.
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        # image: the engine image of the flavor. cli-engine: its name in the CLI's suites
+        # (PULSE_CLI_IT_ENGINES).
+        include:
+          - flavor: camunda7
+            image: camunda/camunda-bpm-platform:run-7.24.0
+            cli-engine: camunda
+          - flavor: cibseven
+            image: cibseven/cibseven:run-2.2.0
+            cli-engine: cibseven
+          - flavor: operaton
+            image: operaton/operaton:2.1.5
+            cli-engine: operaton
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      # The CLI's suites pin their images in engines.ts, and Dependabot tracks neither copy: a
+      # bump changes both, or this leg would claim an engine it never started.
+      - name: The CLI suites start the image of this flavor
+        env:
+          IMAGE: ${{ matrix.image }}
+        run: |
+          if ! grep -qF "image: \"${IMAGE}\"," apps/cli/test/integration/support/engines.ts; then
+            echo "::error::apps/cli/test/integration/support/engines.ts does not start ${IMAGE}: bump the matrix and the suites together"
+            exit 1
+          fi
+
+      - uses: pnpm/action-setup@v6.1.0
+
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # The suites run what CI built: the CLI's dist/pulse-cli.js and its workspace dependencies.
+      - id: build
+        run: pnpm turbo build --filter=@miragon/pulse-cli...
+
+      # Each suite runs even when an earlier one failed, so a red leg names every failing suite.
+      # The packed-tarball test (pnpm pack, npm install -g into a temporary prefix, run the
+      # installed bin) does not depend on the engine: the operaton leg runs it.
+      - name: CLI integration (apps/cli)
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        env:
+          PULSE_CLI_IT_ENGINES: ${{ matrix.cli-engine }}
+          PULSE_CLI_IT_SKIP_PACK: ${{ matrix.flavor == 'operaton' && '0' || '1' }}
+        run: pnpm --fail-if-no-match --filter @miragon/pulse-cli run test:engines
+
+  # The one check of the engine matrix a ruleset can require: each leg reports under its own
+  # name, and scripts/check-github-config.mjs refuses a required matrix job.
+  engines-result:
+    name: Engines
+    needs: engines
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Every leg passed
+        env:
+          RESULT: ${{ needs.engines.result }}
+        run: |
+          if [ "$RESULT" != success ]; then
+            echo "::error::The engine matrix ended with ${RESULT}: see the Engines (<flavor>) jobs"
+            exit 1
+          fi
+
   quality:
     name: Lint + Format
     runs-on: ubuntu-latest
@@ -295,8 +381,8 @@ jobs:
 
   # The Miragon brand against its source, the private Miragon/corporate-identity:
   # the docs kit vendored in docs/.vitepress/miragon/ equals the release pinned
-  # below, and brand-lint finds no hard violation in the docs and the README
-  # (rules and exceptions in .miragon/brand.json). Without the secret (not set up
+  # below, and brand-lint finds no hard violation in the docs, the README and the
+  # CLI's README, which npm shows (rules and exceptions in .miragon/brand.json). Without the secret (not set up
   # yet, or a fork PR) the job warns and skips; the kit's own manifest check
   # still runs in `pnpm test` and in docs.yml.
   brand:
@@ -332,7 +418,7 @@ jobs:
 
       - name: brand-lint
         if: env.CI_SOURCE_TOKEN != ''
-        run: node .ci-source/plugins/miragon-brand/scripts/brand-lint.mjs --nur-hart docs README.md
+        run: node .ci-source/plugins/miragon-brand/scripts/brand-lint.mjs --nur-hart docs README.md apps/cli/README.md
 
   kotlin:
     name: Kotlin (Build + Test)
@@ -371,3 +457,224 @@ jobs:
       - run: ./gradlew build
         env:
           GRADLE_OPTS: -Dorg.gradle.daemon=false
+
+  # The CLI's standalone executable: the standalone bundle injected into Node.js 24 as a single
+  # executable application (apps/cli/scripts/build-exe.ts), built and smoke-tested on one native
+  # runner per operating system; the release builds all five targets. Linux also runs the
+  # Operaton suites against the binary, so a bundling or SEA defect (module loading, fetch, stdin,
+  # the loopback server) fails here and not after a release. The CLI's suites on Node 22 run in
+  # the engine matrix above.
+  cli-binaries:
+    name: CLI binary (${{ matrix.target }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { target: linux-x64, runner: ubuntu-latest, file: pulse-cli-linux-x64 }
+          - { target: macos-arm64, runner: macos-latest, file: pulse-cli-macos-arm64 }
+          - { target: windows-x64, runner: windows-latest, file: pulse-cli-windows-x64.exe }
+    defaults:
+      run:
+        shell: bash
+    env:
+      FILE: ${{ matrix.file }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v6.1.0
+
+      # The binary embeds this Node.js: the newest 24.x, like the release. setup-node keys the pnpm
+      # store by OS and lockfile only, so on Linux this filtered install would save a partial
+      # store under the key the full installs of the other jobs restore; macOS and Windows have
+      # their own keys and keep the cache.
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24.x
+          check-latest: true
+          cache: ${{ runner.os != 'Linux' && 'pnpm' || '' }}
+          package-manager-cache: false
+
+      # The root and the CLI with its workspace dependencies only: no other package installs
+      # (or fails to install) on macOS and Windows.
+      - run: pnpm install --frozen-lockfile --ignore-scripts --fail-if-no-match --filter "@miragon/pulse-cli..."
+
+      - run: pnpm --fail-if-no-match --filter "@miragon/pulse-cli..." run build
+
+      - run: pnpm --fail-if-no-match --filter @miragon/pulse-cli run build:standalone
+
+      - run: pnpm --fail-if-no-match --filter @miragon/pulse-cli run build:exe
+
+      - name: Smoke test the binary
+        env:
+          # Git Bash on Windows passes the smoke test's URL arguments unchanged. Only this
+          # step: on the whole job it breaks pnpm's own shim (a /c/... path read as D:\c\...).
+          MSYS_NO_PATHCONV: "1"
+        working-directory: apps/cli
+        run: bash scripts/smoke-test.sh "build/bin/${FILE}"
+
+      # Homebrew installs operate, the command's released name, as a symlink to pulse-cli
+      # (apps/cli/scripts/homebrew-formula.sh) until the first release after 2027-01-31: the binary
+      # started under that name runs and warns on stderr.
+      - name: The binary started as operate
+        if: runner.os != 'Windows'
+        working-directory: apps/cli
+        run: |
+          ln -s "$PWD/build/bin/${FILE}" "$RUNNER_TEMP/operate"
+          version="$("$RUNNER_TEMP/operate" --version 2>"$RUNNER_TEMP/operate.err")"
+          cat "$RUNNER_TEMP/operate.err"
+          if [ "$version" != "$(jq -r .version package.json)" ]; then
+            echo "::error::operate --version printed ${version}"
+            exit 1
+          fi
+          if ! grep -q "first release after 2027-01-31" "$RUNNER_TEMP/operate.err"; then
+            echo "::error::operate --version did not warn that the name goes away"
+            exit 1
+          fi
+
+      - name: Engine suites against the binary
+        if: matrix.target == 'linux-x64'
+        run: pnpm --fail-if-no-match --filter @miragon/pulse-cli run test:engines
+        env:
+          PULSE_CLI_IT_BINARY: ${{ github.workspace }}/apps/cli/build/bin/pulse-cli-linux-x64
+          PULSE_CLI_IT_ENGINES: operaton
+          PULSE_CLI_IT_SKIP_PACK: "1"
+
+      # The release writes the Homebrew formula with this script: it renders to valid Ruby.
+      - name: The Homebrew formula renders
+        if: matrix.target == 'linux-x64'
+        working-directory: apps/cli
+        run: |
+          for file in pulse-cli-macos-arm64 pulse-cli-macos-x64 pulse-cli-linux-arm64 pulse-cli-linux-x64; do
+            printf '%064d  %s.tar.xz\n' 0 "$file"
+          done > "$RUNNER_TEMP/pulse-cli-SHA256SUMS"
+          bash scripts/homebrew-formula.sh 0.0.0 "$RUNNER_TEMP/pulse-cli-SHA256SUMS" > "$RUNNER_TEMP/pulse-cli.rb"
+          ruby -c "$RUNNER_TEMP/pulse-cli.rb"
+
+  # The CLI image (apps/cli/Dockerfile: the standalone bundle on distroless Node.js 24) for both
+  # platforms, without pushing; the smoke test runs the image of the runner's platform.
+  cli-image:
+    name: CLI image (build + smoke)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v6.1.0
+
+      # No pnpm cache: this filtered install would save a partial store under the key the full
+      # installs of the other Linux jobs restore (see cli-binaries).
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24.x
+          package-manager-cache: false
+
+      - run: pnpm install --frozen-lockfile --ignore-scripts --fail-if-no-match --filter "@miragon/pulse-cli..."
+
+      - run: pnpm --fail-if-no-match --filter "@miragon/pulse-cli..." run build
+
+      - run: pnpm --fail-if-no-match --filter @miragon/pulse-cli run build:standalone
+
+      - uses: docker/setup-buildx-action@v4.4.1
+
+      # Only COPY instructions, so neither platform needs emulation.
+      - name: Build linux/amd64 and linux/arm64
+        uses: docker/build-push-action@v7.4.0
+        with:
+          context: apps/cli
+          platforms: linux/amd64,linux/arm64
+          push: false
+
+      - name: Build the image of this platform
+        uses: docker/build-push-action@v7.4.0
+        with:
+          context: apps/cli
+          load: true
+          tags: pulse-cli:ci
+
+      - name: Smoke test the image
+        working-directory: apps/cli
+        run: bash scripts/smoke-test.sh docker run --rm -i pulse-cli:ci
+
+      # node is PID 1 in the container: without the CLI's own handler the kernel drops SIGTERM
+      # and SIGINT, and docker stop would need SIGKILL after the timeout (exit 137).
+      - name: docker stop ends a waiting command
+        run: |
+          docker run -d -i --name pulse-cli-signal pulse-cli:ci process-definition list --dry-run \
+            --url http://engine.example/engine-rest --auth basic --auth-user demo --auth-password-stdin
+          sleep 2
+          docker stop -t 10 pulse-cli-signal
+          code="$(docker inspect -f '{{.State.ExitCode}}' pulse-cli-signal)"
+          docker rm pulse-cli-signal
+          if [ "$code" != 143 ]; then
+            echo "::error::docker stop ended the CLI with exit code ${code}, expected 143 (SIGTERM)"
+            exit 1
+          fi
+
+  # The Claude Code plugin of the CLI: the plugin in apps/cli/skills/pulse-cli (manifest and
+  # command) and its skill, validated as part of apps/cli/skills, since a plugin run skips a
+  # SKILL.md at the plugin root. The repository has no marketplace of its own: the family
+  # marketplace Miragon/skills lists the plugin. `claude plugin validate` needs no account or API
+  # key; the stable channel is typically a week old and skips releases with major regressions.
+  cli-plugin:
+    name: CLI plugin (validate)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DISABLE_AUTOUPDATER: "1"
+      CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1"
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24.x
+          package-manager-cache: false
+
+      # release-please bumps both (release-please-config.json extra-files): they never differ.
+      - name: The plugin carries the CLI's version
+        run: |
+          cli="$(jq -r .version apps/cli/package.json)"
+          plugin="$(jq -r .version apps/cli/skills/pulse-cli/.claude-plugin/plugin.json)"
+          if [ "$cli" != "$plugin" ]; then
+            echo "::error::plugin.json is ${plugin}, apps/cli/package.json is ${cli}"
+            exit 1
+          fi
+
+      # The postinstall script of the package puts the native binary in place.
+      - name: Install Claude Code
+        run: npm install --global --allow-scripts=@anthropic-ai/claude-code @anthropic-ai/claude-code@stable
+
+      - name: Validate the plugin and its skill
+        run: |
+          claude --version
+          for target in apps/cli/skills/pulse-cli apps/cli/skills; do
+            claude plugin validate --strict "$target"
+          done
+
+  # One check for the CLI's own jobs above, the name a ruleset can require: a matrix reports one
+  # check per leg under another name (scripts/check-github-config.mjs refuses a required matrix
+  # job). The CLI's engine suites report under "Engines". Fails when any of them did not succeed.
+  cli:
+    name: CLI (all checks)
+    needs: [cli-binaries, cli-image, cli-plugin]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Every CLI job succeeded
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          failed="$(jq -r 'to_entries[] | select(.value.result != "success") | "\(.key): \(.value.result)"' <<<"$NEEDS")"
+          if [ -n "$failed" ]; then
+            while IFS= read -r line; do echo "::error::${line}"; done <<<"$failed"
+            exit 1
+          fi

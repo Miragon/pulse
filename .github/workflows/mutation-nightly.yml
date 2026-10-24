@@ -69,8 +69,10 @@ jobs:
     if: ${{ needs.packages.outputs.packages != '[]' }}
     runs-on: ubuntu-latest
     # A cold or forced run of a package mutates its whole allowlist (widget-shell: about 70 files
-    # at about 1 min/file); the other nights re-run only what changed.
-    timeout-minutes: 180
+    # at about 1 min/file; the CLI: 135 files, about 240 min at Stryker's 4 workers, measured as
+    # the sum of the four shards of its last full run in its own repository); the other nights
+    # re-run only what changed. GitHub ends a hosted job after 360 min.
+    timeout-minutes: 350
     strategy:
       fail-fast: false
       matrix:

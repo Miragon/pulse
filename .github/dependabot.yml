@@ -165,3 +165,19 @@ updates:
         update-types:
           - "patch"
           - "minor"
+
+  # Docker image, apps/cli/Dockerfile (CLI), keeps the distroless Node.js base digest current
+  - package-ecosystem: "docker"
+    directory: "/apps/cli"
+    schedule:
+      interval: "weekly"
+    reviewers:
+      - "dominikhorn93"
+      - "emaarco"
+    groups:
+      docker-cli:
+        patterns:
+          - "*"
+        update-types:
+          - "patch"
+          - "minor"

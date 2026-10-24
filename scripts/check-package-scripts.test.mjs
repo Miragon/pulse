@@ -31,6 +31,11 @@ describe("checkPackageScripts", () => {
       }),
       [],
     )
+    // the root configs, too (the CLI's tsdown and vitest configs)
+    assert.deepEqual(
+      checkPackageScripts("apps/z", { ...COMPLETE, lint: "eslint src scripts test *.config.ts" }),
+      [],
+    )
   })
 
   it("flags each missing script — turbo would skip the package silently", () => {
@@ -68,6 +73,9 @@ describe("checkPackageScripts", () => {
       { lint: "eslint src --rule 'complexity: off'" },
       { lint: "eslint src --no-config-lookup" },
       { lint: "eslint src/index.ts" },
+      { lint: "eslint src *.ts" },
+      { lint: "eslint src *.config.ts test" },
+      { lint: "eslint *.config.ts" },
       { typecheck: "tsc --version" },
       { typecheck: "tsc --noEmit; true" },
     ]) {

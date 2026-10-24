@@ -18,11 +18,15 @@ by its path under `docs/`. `apps/mcp-server-camunda7/test/old-names.test.ts` fai
 old npm scope, repo, docs URL, image, starter, slug or product name; "Miragon AI" as the family
 and the Fly app names stay), on a technical name of the retired operate CLI (its npm package,
 repo, image, tap, docs and product page, its environment variables, config file and config
-directory; the word "operate" and Camunda 8's Operate stay), on a `--filter` naming no
+directory; the word "operate" and Camunda 8's Operate stay), on the unscoped npm package
+pulse-cli (someone else's) and a CLI image off GHCR, on a `--filter` naming no
 workspace package (a scoped name or an unscoped `pulse-<name>`), and on a pnpm filter without
 `--fail-if-no-match` on a gate path (the root's and every workspace package's scripts, the
 Dockerfile, the workflows and their composite actions, the gate shell scripts); its
-allowances are shrink-only.
+allowances are shrink-only. The CLI reads operate's released names (its variables, project
+file, config directory and, through Homebrew, its command) only through
+`apps/cli/src/config/legacy.ts`, until the first release after 2027-01-31; a CHANGELOG guard in
+its tests fails the first release after that date.
 
 `docs/` holds the Pulse docs, a VitePress site built
 with the Miragon docs kit (`docs/.vitepress/miragon/`, vendored from Miragon/corporate-identity,
@@ -38,11 +42,12 @@ PR there too.
 Pulse (part of the Miragon AI tool family) is a pnpm + Turbo monorepo that ships an MCP server
 (built on `mcp-use` plus the `@miragon/mcp-toolkit-*` packages) for Camunda 7 / CIB seven BPM
 operations and Prometheus-backed process analytics, including interactive React widgets
-(MCP Apps).
+(MCP Apps), and a command line interface for the same engines (`apps/cli`).
 
 | Path                                                 | Contents                                                                                                                                                                                                                        |
 | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `apps/mcp-server-camunda7/`                          | The MCP host: composes plugins, bundles the widget UI, serves HTTP on `:8400`                                                                                                                                                   |
+| `apps/cli/`                                          | The CLI (npm `@miragon/pulse-cli`): every REST operation of the engine as a command, generated from its OpenAPI spec, plus the workflow commands; its rules in `apps/cli/CLAUDE.md`                                             |
 | `packages/connectors/camunda/camunda7-connector/`    | camunda7 module: operations tools, widget tools, widgets, pipeline steps                                                                                                                                                        |
 | `packages/connectors/analytics/analytics-connector/` | analytics module: Prometheus-backed tools, dashboards, comparison widgets                                                                                                                                                       |
 | `packages/connectors/camunda/camunda7-client/`       | Generated CIB seven REST SDK (`src/generated/`) + Zod input schemas (`src/schemas/`)                                                                                                                                            |
@@ -51,6 +56,7 @@ operations and Prometheus-backed process analytics, including interactive React 
 | `engine-plugins/`                                    | Kotlin/Gradle: CIB seven OTEL metrics plugin (Java 21)                                                                                                                                                                          |
 | `playground/`                                        | Demo env: CIB seven showcase engine, Compose stack, Fly.io deploy                                                                                                                                                               |
 | `docs/`                                              | Pulse docs, a VitePress site on GitHub Pages (getting started, usage, architecture, developer, operations)                                                                                                                      |
+| `docs/cli/`                                          | The CLI's pages of the docs site (install, commands, configuration, authentication, AI agents, development)                                                                                                                     |
 
 Three axes decide where code goes, and they stay apart:
 
@@ -62,8 +68,8 @@ Three axes decide where code goes, and they stay apart:
   `<name>-domain` (pure use cases with typed results: no MCP, no UI, no zod). A different
   dialect is a new family plus its own MCP server app.
 - Interface (how a person or an agent reaches an engine): an app under `apps/`, today the
-  MCP server. A CLI or an editor extension is an app of its own. Apps never import each other,
-  and no package imports an app.
+  MCP server and the CLI (`apps/cli`). A CLI or an editor extension is an app of its own.
+  Apps never import each other, and no package imports an app.
 
 The architecture invariants below are written for the MCP server, its modules and its widgets.
 The package rules of invariant 8 (layout, naming, dependency edges) hold for every workspace
@@ -90,6 +96,10 @@ cd engine-plugins && ./gradlew build # compile + unit tests + Konsist architectu
 
 # Docs site:
 pnpm docs:dev                        # local dev server; pnpm docs:build to build
+
+# The CLI (apps/cli; Docker for the engine suites, build first):
+pnpm --fail-if-no-match --filter @miragon/pulse-cli catalog       # regenerate the command catalogs
+pnpm --fail-if-no-match --filter @miragon/pulse-cli test:engines  # Testcontainers suites
 ```
 
 `pnpm dev` serves the MCP endpoint at `http://localhost:8400/mcp` and the `mcp-use`
@@ -656,23 +666,24 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    package's `src/` (the ESLint complexity/max-lines budgets and pattern gates, globbed
    `*.{ts,tsx}`, and widget-shell's brand-gate scans read `.ts` and `.tsx` only), on a
    `generated/` directory its `GENERATED_DIRS` map does not list with a reason (such a
-   directory is exempt from ESLint, prettier and the app's source scans; dependency-cruiser
-   excludes only the CIB seven SDK, today the one listed directory), and on a `package.json`
-   that declares an app in `dependencies`, `devDependencies`, `peerDependencies` or
-   `optionalDependencies` (by name, by an `npm:`/`workspace:` alias or by a path into its
-   directory; the root `package.json` and an app's own included). The app names are those of
-   every `apps/*/package.json` plus its `RESERVED_APP_NAMES` (`@miragon/pulse-cli`,
-   `pulse-vscode`, kept equal to the extra names of the dependency-cruiser config's
+   directory is exempt from ESLint, prettier and the app's source scans; it lists the CIB
+   seven SDK and the CLI's command catalogs; dependency-cruiser excludes only the SDK), and
+   on a `package.json` that declares an app in `dependencies`, `devDependencies`,
+   `peerDependencies` or `optionalDependencies` (by name, by an `npm:`/`workspace:` alias or
+   by a path into its directory; the root `package.json` and an app's own included). The app
+   names are those of every `apps/*/package.json` plus its `RESERVED_APP_NAMES`
+   (`pulse-vscode`, kept equal to the extra names of the dependency-cruiser config's
    `APP_PACKAGES`): under pnpm another package reaches a workspace app (an import,
    `require.resolve`, its bin, a spawned process) only through such a declaration, which no
    dependency rule reads. The dependency edges of this invariant (connector
    peer-isolation, connector→own-client and connector→own-domain only, leaf clients, pure
    leaf domains, foundation core, no package importing an app, no app importing an app,
    interface apps reaching only a -domain package, no cross-package deep imports) are
-   machine-enforced by `.dependency-cruiser.cjs` via the root `pnpm lint:architecture` (part
-   of `pnpm lint`). A -domain package imports no other workspace package (its own client's
-   wire subpaths are opened when they exist), no zod, no @hey-api, nothing of the MCP/UI
-   stack, no vscode and no commander, and no Node built-in outside its tests; its Node
+   machine-enforced by `.dependency-cruiser.cjs` via the root `pnpm lint:architecture` and
+   `pnpm lint:architecture:cli` (the CLI's `scripts/` and `test/`; both part of `pnpm lint`).
+   A -domain package imports no other workspace package (its own client's wire subpaths are
+   opened when they exist), no zod, no @hey-api, nothing of the MCP/UI stack, no vscode and
+   no commander, and no Node built-in outside its tests; its Node
    globals (`process`, `Buffer`, `__dirname` …) are banned by a literal `no-restricted-globals`
    block in `eslint.config.mjs`, since dependency rules see only imports. The interface apps
    (the CLI, npm `@miragon/pulse-cli`; the extension, `pulse-vscode`) import from the
@@ -982,17 +993,19 @@ viewResourceUri(name), title })` stamps only the `openai/*` half
 
 - **Everything releases through one release-please train.** Conventional commits on
   `main` drive `release-please.yml`, which opens/updates a single Release PR (root
-  component, tag `v<version>`); release-please bumps the root, the server app, all five
-  `packages/` `package.json`s, the template's `@miragon/pulse-*` pins, the camunda7-client
+  component, tag `v<version>`); release-please bumps the root, the server app, the CLI
+  (`apps/cli/package.json` and its Claude Code plugin manifest
+  `apps/cli/skills/pulse-cli/.claude-plugin/plugin.json`, which the `CLI plugin (validate)` job
+  holds equal), all five `packages/` `package.json`s, the template's `@miragon/pulse-*` pins, the camunda7-client
   User-Agent line in `packages/connectors/camunda/camunda7-client/src/hey-api.ts`
   (`x-release-please-version`, held equal to its `package.json` by `client.test.ts`) plus
   `engine-plugins/gradle.properties` in lockstep (`extra-files` in
   `release-please-config.json`). Merging the PR creates the release; the publish
   workflows then wait for manual approval of the `release` environment gate.
-- **The five packages publish to the public npm registry.** The release train's
+- **The five packages and the CLI publish to the public npm registry.** The release train's
   `publish-npm` matrix calls `publish-npm-package.yml` (OIDC trusted publishing, no
   NPM_TOKEN; provenance attached) for `@miragon/pulse-{widget-shell,camunda7-connector,
-camunda7-client,analytics-connector,analytics-client}`; matrix entries are repo-relative
+camunda7-client,analytics-connector,analytics-client}` and `@miragon/pulse-cli` (`apps/cli`); matrix entries are repo-relative
   package directories (`packages/core/widget-shell`) and list exactly the workspace packages npm
   receives: every one that is neither `"private": true` nor a VS Code extension (an app whose
   `package.json` declares `engines.vscode` ships as a .vsix through vsce/ovsx, never through the
@@ -1008,9 +1021,11 @@ camunda7-client,analytics-connector,analytics-client}`; matrix entries are repo-
   `npm publish <tgz> --provenance`. A version already on npm passes only when its provenance
   names this repository (a re-run); otherwise the job fails. A `workflow_dispatch` dry run packs
   every package and publishes none. `scripts/check-github-config.mjs` (`pnpm lint:github`) pins
-  that shape, the matrix, the `repository` fields and the `extra-files` (the root and every
-  workspace package under `apps/` and `packages/`) against the workspace, and with them the
-  Dependabot groups, the ruleset's required checks as job names of pull request workflows, the
+  that shape, the matrix, the `repository` fields and the `extra-files` (the root, every
+  workspace package under `apps/` and `packages/`, and every Claude Code plugin manifest an app
+  ships) against the workspace, that every job of `release-please.yml` past the approval waits
+  for `gate`, that it calls `publish-cli.yml` and `publish-homebrew.yml`, their triggers and
+  token shape, and with them the Dependabot groups, the ruleset's required checks as job names of pull request workflows, the
   report artifacts, the diff gate's timeout, the nightly run over every package form (its weekly
   forced run, its fingerprinted cache key) and the `incremental`/`incrementalFile` of every
   `stryker.config.json`.
@@ -1039,6 +1054,20 @@ camunda7-client,analytics-connector,analytics-client}`; matrix entries are repo-
   registry secret; a reusable workflow gets no more than its caller grants, so the
   `publish-docker` job in `release-please.yml` grants `packages: write` itself. Nothing
   publishes to Docker Hub.
+- **The CLI's binaries, image and Homebrew formula publish via `publish-cli.yml` and
+  `publish-homebrew.yml`** (same train, behind the same gate). One standalone bundle becomes
+  five Node.js 24 single executable applications, each built and smoke-tested on its native
+  runner (Linux x64 and arm64, macOS Intel and Apple silicon, Windows x64) and attached to the
+  release of the tag with their `.tar.xz` archives, `pulse-cli-SHA256SUMS` and a build
+  provenance attestation. `apps/cli/Dockerfile` (distroless Node.js 24) becomes
+  `ghcr.io/miragon/pulse-cli` (`<version>`, `<major>.<minor>`, `latest`) with SBOM, provenance
+  and an attestation, pushed with the run's `GITHUB_TOKEN`. For a stable release the formula
+  `miragon/tap/pulse-cli` (`apps/cli/scripts/homebrew-formula.sh`, verified on macOS and Linux;
+  it links `operate` to `pulse-cli`, which warns, until the first release after 2027-01-31)
+  lands in Miragon/homebrew-tap as a squash-merged pull request with a token of the
+  release-please app. The build jobs hold `contents: read` only; the jobs that hold a token
+  install nothing. A new GHCR package starts private, and an organization owner makes it public
+  once.
 - **`@miragon/mcp-toolkit-*` lives in a separate repository.** In `devDependencies` it is
   exactly pinned (`save-exact`, currently `2.8.1`); in the published surface it is a
   ranged `peerDependency` (`~2.8.1`) so consumers dedupe it. Toolkit changes arrive here
@@ -1051,26 +1080,29 @@ camunda7-client,analytics-connector,analytics-client}`; matrix entries are repo-
 
 ## Verification: what each check actually covers
 
-| Check                | Coverage                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm build`         | tsc emit of server code + the server app's Vite widget bundle (`build:ui`); excludes widget `.tsx` type errors in packages                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| `pnpm typecheck`     | **The only check that type-checks widget code**: `tsc -p tsconfig.widgets.json` in the two connector packages, `tsc -p tsconfig.ui.json` in the server app                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| `pnpm test`          | Vitest unit tests (lib + query logic) **plus** the server app e2e smoke + widget wire-contract tests + per-toolset tools/list goldens (in-process boot, loopback HTTP) + the repo-wide doc-reference and old-name guards (`docs-refs.test.ts`, `old-names.test.ts`); **no widget rendering**; enforces the per-package coverage ratchet (frozen thresholds in each `vitest.config.ts`); then `test:scripts`, `node --test` over `scripts/*.test.mjs` (the gate scripts' own tests + the ESLint pattern-gate self-test)                                                                                                                                                                            |
-| `pnpm lint`          | ESLint over each package's `src` (the server app also `test`/`test-host`) incl. the pattern gates (registrar-only tools, widget-shell date formatting), then `lint:architecture` (dependency-cruiser), `lint:naming`, `lint:package-scripts` (each `src/` package runs the canonical `eslint src` / `tsc --noEmit` (+ `tsc -p` per extra tsconfig) / `vitest run` (+ `stryker run`); turbo skips a missing script, a flag can switch one off), `lint:ratchets` (`scripts/check-ratchets.mjs`, below; needs `git fetch origin`), `lint:deadcode` (knip over files/dependencies/unlisted; unused exports only in `pnpm exec knip`), `lint:github` (`scripts/check-github-config.mjs`, see Releases) |
-| `pnpm test:mutation` | Diff-scoped Stryker run (`scripts/mutation-diff.mjs`): changed files inside a package's `mutate` allowlist must keep the mutation score above the package's `thresholds.break` (`stryker.config.json`); runs in CI as "Mutation (changed files)", one job over all packages bounded at 120 minutes. The gate bypasses the package's incremental cache, so a local run and CI agree. More than 25 in-scope files in one package FAIL the gate unless the branch carries a reviewed `Mutation-Cap-Exception: <reason>` trailer. The full run over every allowlist is nightly (`.github/workflows/mutation-nightly.yml`, no required check) on each package's incremental cache, forced every Sunday |
-| `pnpm fitness`       | Aggregated fitness report: architecture graph, ratchet debt, per-package coverage + mutation scores (the file count next to each score says over what): on a pull request the "Fitness report" job, fed by the test + mutation jobs' artifacts, so diff-scoped; nightly the "Mutation summary" job of `.github/workflows/mutation-nightly.yml` over every package's whole allowlist (no coverage)                                                                                                                                                                                                                                                                                                 |
-| `./gradlew build`    | Kotlin compile + unit tests + Konsist architecture tests (run in `engine-plugins/`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| `test:host`          | `pnpm --filter @miragon/pulse-mcp-server-camunda7 test:host`: Playwright host simulation of the **built** widget bundle: the view document `createApp` serves (`resources/read`), sandboxed behind a SEP-1865 host shim, rendering a real camunda7 show tool against a stub engine (keep/strip, slow tool, `isError`, cancel, host theme, display modes, served fonts: Geist drawn when allowed, the host's font when the host ignores `resourceDomains` or the route is unreachable; `pinned …` scenarios = known defects, flipped when fixed); runs in CI as "Widget host simulation (test:host)"; run it locally for changes to the widget shell, `src/ui/`, or the toolkit pin                |
-| `pnpm test:pg`       | The database slice: reruns the suites with `TEST_DATABASE_URL` pointed at the compose stack's test database, which un-skips the Postgres store + migration-runner tests (`describe.skipIf`). **The only check that executes the Postgres adapters**; runs in CI as "Postgres adapters (test:pg)" against a `postgres:` service container; run it locally for changes to `postgres.ts` or any `*-store-postgres.ts`                                                                                                                                                                                                                                                                                |
-| Docker build         | `.github/workflows/docker-build.yml`: plain `docker build` of the root `Dockerfile` (no push) on every PR touching it, `apps/`, `packages/` or a root file the build stage copies                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| Manual               | `docker compose -f playground/docker/docker-compose.yml up -d` + `pnpm dev`, then exercise tools/widgets via the inspector at `http://localhost:8400/mcp/inspector` (`pnpm dev` only). The default boot is read-only; write paths need an explicit suffix, e.g. `MCP_ACTIVE_MODULES=camunda7:admin,analytics:standard` in `.env`                                                                                                                                                                                                                                                                                                                                                                  |
+| Check                | Coverage                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm build`         | tsc emit of server code + the server app's Vite widget bundle (`build:ui`); excludes widget `.tsx` type errors in packages                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `pnpm typecheck`     | **The only check that type-checks widget code**: `tsc -p tsconfig.widgets.json` in the two connector packages, `tsc -p tsconfig.ui.json` in the server app                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `pnpm test`          | Vitest unit tests (lib + query logic) **plus** the server app e2e smoke + widget wire-contract tests + per-toolset tools/list goldens (in-process boot, loopback HTTP) + the repo-wide doc-reference and old-name guards (`docs-refs.test.ts`, `old-names.test.ts`); **no widget rendering**; enforces the per-package coverage ratchet (frozen thresholds in each `vitest.config.ts`); then `test:scripts`, `node --test` over `scripts/*.test.mjs` (the gate scripts' own tests + the ESLint pattern-gate self-test)                                                                                                                                                                                                                                                                                                                                     |
+| `pnpm lint`          | ESLint over each package's `src` (the server app also `test`/`test-host`) incl. the pattern gates (registrar-only tools, widget-shell date formatting), then `lint:architecture` and `lint:architecture:cli` (dependency-cruiser), `lint:naming`, `lint:package-scripts` (each `src/` package runs the canonical `eslint src` (+ a final `*.config.ts`) / `tsc --noEmit` (+ `tsc -p` per extra tsconfig) / `vitest run` (+ `stryker run`); turbo skips a missing script, a flag can switch one off), `lint:ratchets` (`scripts/check-ratchets.mjs`, below; needs `git fetch origin`), `lint:deadcode` (knip over files/dependencies/unlisted; unused exports only in `pnpm exec knip`), `lint:deadcode:cli` (knip over `apps/cli` with every issue type, unused exports included), `lint:github` (`scripts/check-github-config.mjs`, see Releases)         |
+| `pnpm test:mutation` | Diff-scoped Stryker run (`scripts/mutation-diff.mjs`): changed files inside a package's `mutate` allowlist must keep the mutation score above the package's `thresholds.break` (`stryker.config.json`); runs in CI as "Mutation (changed files)", one job over all packages bounded at 120 minutes. The gate bypasses the package's incremental cache, so a local run and CI agree. More than 25 in-scope files in one package FAIL the gate unless the branch carries a reviewed `Mutation-Cap-Exception: <reason>` trailer. The full run over every allowlist is nightly (`.github/workflows/mutation-nightly.yml`, no required check) on each package's incremental cache, forced every Sunday                                                                                                                                                          |
+| `pnpm fitness`       | Aggregated fitness report: architecture graph, ratchet debt, per-package coverage + mutation scores (the file count next to each score says over what): on a pull request the "Fitness report" job, fed by the test + mutation jobs' artifacts, so diff-scoped; nightly the "Mutation summary" job of `.github/workflows/mutation-nightly.yml` over every package's whole allowlist (no coverage)                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `./gradlew build`    | Kotlin compile + unit tests + Konsist architecture tests (run in `engine-plugins/`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `test:host`          | `pnpm --filter @miragon/pulse-mcp-server-camunda7 test:host`: Playwright host simulation of the **built** widget bundle: the view document `createApp` serves (`resources/read`), sandboxed behind a SEP-1865 host shim, rendering a real camunda7 show tool against a stub engine (keep/strip, slow tool, `isError`, cancel, host theme, display modes, served fonts: Geist drawn when allowed, the host's font when the host ignores `resourceDomains` or the route is unreachable; `pinned …` scenarios = known defects, flipped when fixed); runs in CI as "Widget host simulation (test:host)"; run it locally for changes to the widget shell, `src/ui/`, or the toolkit pin                                                                                                                                                                         |
+| `pnpm test:pg`       | The database slice: reruns the suites with `TEST_DATABASE_URL` pointed at the compose stack's test database, which un-skips the Postgres store + migration-runner tests (`describe.skipIf`). **The only check that executes the Postgres adapters**; runs in CI as "Postgres adapters (test:pg)" against a `postgres:` service container; run it locally for changes to `postgres.ts` or any `*-store-postgres.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Docker build         | `.github/workflows/docker-build.yml`: plain `docker build` of the root `Dockerfile` (no push) on every PR touching it, `apps/`, `packages/` or a root file the build stage copies                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| CLI jobs             | `ci.yml` on every PR: `Engines (<flavor>)` runs the CLI's Testcontainers suites against Camunda 7, CIB seven and Operaton (Node 22; the operaton leg also installs the packed tarball; each leg's image is held equal to the one `apps/cli/test/integration/support/engines.ts` pins), and `Engines` aggregates the legs; `CLI binary (<target>)` builds and smoke-tests the Node 24 single executable on Linux x64, macOS arm64 and Windows x64 (Linux and macOS also start it as `operate`; Linux also runs the Operaton suites against it and renders the Homebrew formula); `CLI image (build + smoke)` builds both platforms and checks `docker stop`; `CLI plugin (validate)` runs `claude plugin validate --strict` and compares the plugin's version; `CLI (all checks)` and `Engines` are the checks a ruleset can require (none is required yet) |
+| Manual               | `docker compose -f playground/docker/docker-compose.yml up -d` + `pnpm dev`, then exercise tools/widgets via the inspector at `http://localhost:8400/mcp/inspector` (`pnpm dev` only). The default boot is read-only; write paths need an explicit suffix, e.g. `MCP_ACTIVE_MODULES=camunda7:admin,analytics:standard` in `.env`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 
 A green `pnpm build && pnpm typecheck && pnpm test && pnpm lint` is the minimum bar for
 every change; widget changes additionally need `test:host` plus a manual render check via
 the inspector (the host simulation renders one real view, not every widget's data path).
 
 Ratchet rules are shrink-only: the complexity/max-lines offender lists in
-`eslint.config.mjs` (global budgets: complexity 15, 400 effective lines) and the coverage
+`eslint.config.mjs` (global budgets: complexity 15, 400 effective lines; the CLI's blocks are
+stricter: complexity 10 and 300 lines for its shipped code and scripts, 400 for every CLI test,
+also under `apps/cli/test/`) and the coverage
 thresholds in each `vitest.config.ts` may only improve: delete a list entry or raise a
 threshold when you better a file, never the reverse, and never add new entries. The
 mutation ratchet works the same way inverted: each package's `mutate` allowlist in

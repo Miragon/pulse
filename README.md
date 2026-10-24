@@ -135,6 +135,7 @@ A pnpm + Turbo monorepo. The server composes the two modules and serves them as 
 | Path                                                                                                      | Package                                   | Role                                                                    |
 | --------------------------------------------------------------------------------------------------------- | ----------------------------------------- | ----------------------------------------------------------------------- |
 | [`apps/mcp-server-camunda7/`](apps/mcp-server-camunda7)                                                   | `@miragon/pulse-mcp-server-camunda7`      | The MCP host: composes modules, bundles widgets, serves HTTP on `:8400` |
+| [`apps/cli/`](apps/cli)                                                                                   | `@miragon/pulse-cli`                      | The CLI: every engine REST operation as a command, plus workflows       |
 | [`packages/connectors/camunda/camunda7-connector/`](packages/connectors/camunda/camunda7-connector)       | `@miragon/pulse-camunda7-connector`       | Camunda 7 operations tools, widget tools, and React widgets             |
 | [`packages/connectors/analytics/analytics-connector/`](packages/connectors/analytics/analytics-connector) | `@miragon/pulse-analytics-connector`      | Prometheus-backed analytics tools and dashboard widgets                 |
 | [`packages/connectors/camunda/camunda7-client/`](packages/connectors/camunda/camunda7-client)             | `@miragon/pulse-camunda7-client`          | Generated CIB seven REST SDK + MCP-oriented Zod schemas                 |
@@ -359,9 +360,11 @@ everything it ships carries the Pulse name:
 ## Releases
 
 Releases are automated with [release-please](https://github.com/googleapis/release-please): semantic
-commits on `main` open a Release PR; merging it tags the repo and publishes the
+commits on `main` open a Release PR; merging it tags the repo and, after approval, publishes the
 [server image](https://github.com/Miragon/pulse/pkgs/container/pulse-server) to the GitHub
-Container Registry, the packages to npm and the engine plugin to Maven Central.
+Container Registry, the packages and the CLI to npm, the CLI's binaries to the GitHub release, its
+image `ghcr.io/miragon/pulse-cli` and its Homebrew formula `miragon/tap/pulse-cli`, and the engine
+plugin to Maven Central.
 
 ## Contributing
 
