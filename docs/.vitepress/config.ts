@@ -69,6 +69,7 @@ export default miragonDocs({
         collapsed: true,
         items: [
           { text: "Development", link: "/cli/development" },
+          { text: "Releasing", link: "/cli/releasing" },
           { text: "Architecture", link: "/cli/architecture" },
           { text: "Architecture decisions", link: "/cli/adr/" },
         ],

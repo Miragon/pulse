@@ -313,6 +313,7 @@ const DOCS_BUDGETS: Record<string, number> = {
   "cli/agents.md": 90,
   "cli/architecture.md": 100,
   "cli/development.md": 130,
+  "cli/releasing.md": 70,
   "cli/adr/index.md": 20,
   "cli/adr/001-engines-as-adapters.md": 70,
   "cli/adr/002-camunda-8-is-a-separate-api.md": 50,
