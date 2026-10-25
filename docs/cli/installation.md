@@ -118,15 +118,15 @@ Up to 0.10.0 this CLI was `@miragon/operate` with the command `operate`, release
 [Miragon/operate](https://github.com/Miragon/operate), which keeps its releases and changelog.
 In Pulse it ships under one name, `pulse-cli`:
 
-| operate (up to 0.10.0)                      | pulse-cli                                        |
-| ------------------------------------------- | ------------------------------------------------ |
-| `npm i -g @miragon/operate`                 | `npm i -g @miragon/pulse-cli`                    |
-| `brew install miragon/tap/operate`          | `brew install miragon/tap/pulse-cli`             |
-| `ghcr.io/miragon/operate`                   | `ghcr.io/miragon/pulse-cli`                      |
-| `/plugin install operate@miragon`           | `/plugin install pulse-cli@miragon-agent-skills` |
-| `OPERATE_URL`, `OPERATE_TOKEN` and the rest | `PULSE_CLI_URL`, `PULSE_CLI_TOKEN` and so on     |
-| `.operate.json`                             | `.pulse-cli.json`                                |
-| `~/.config/operate`, `%APPDATA%\operate`    | `~/.config/pulse-cli`, `%APPDATA%\pulse-cli`     |
+| operate (up to 0.10.0)                      | pulse-cli                                    |
+| ------------------------------------------- | -------------------------------------------- |
+| `npm i -g @miragon/operate`                 | `npm i -g @miragon/pulse-cli`                |
+| `brew install miragon/tap/operate`          | `brew install miragon/tap/pulse-cli`         |
+| `ghcr.io/miragon/operate`                   | `ghcr.io/miragon/pulse-cli`                  |
+| `/plugin install operate@miragon`           | `/plugin install pulse-cli@pulse`            |
+| `OPERATE_URL`, `OPERATE_TOKEN` and the rest | `PULSE_CLI_URL`, `PULSE_CLI_TOKEN` and so on |
+| `.operate.json`                             | `.pulse-cli.json`                            |
+| `~/.config/operate`, `%APPDATA%\operate`    | `~/.config/pulse-cli`, `%APPDATA%\pulse-cli` |
 
 Until the first release after 2027-01-31, pulse-cli still reads the old names and prints one
 warning per run that lists each one in use:
@@ -143,6 +143,6 @@ warning per run that lists each one in use:
   `git mv .operate.json .pulse-cli.json`. The VS Code extension looks the files up the same way.
 - Command: the Homebrew formula keeps `operate` as an alias of `pulse-cli`. The npm package has
   only `pulse-cli`; `@miragon/operate` stays installable (deprecated) with its own `operate`.
-- Claude Code: `/plugin uninstall operate@miragon`, then `/plugin marketplace add Miragon/skills`
-  and `/plugin install pulse-cli@miragon-agent-skills`. Remove a copy of the skill in
+- Claude Code: `/plugin uninstall operate@miragon`, then `/plugin marketplace add Miragon/pulse`
+  and `/plugin install pulse-cli@pulse`. Remove a copy of the skill in
   `~/.claude/skills/operate`.

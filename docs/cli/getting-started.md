@@ -51,8 +51,8 @@ pulse-cli status --profile prod
 ```
 
 ```text [Claude Code]
-/plugin marketplace add Miragon/skills
-/plugin install pulse-cli@miragon-agent-skills
+/plugin marketplace add Miragon/pulse
+/plugin install pulse-cli@pulse
 /pulse-cli:status
 ```
 

@@ -33,16 +33,16 @@ pulse-cli guide auth
 
 ## Claude Code plugin
 
-The CLI is also a Claude Code plugin, `pulse-cli`, in Miragon's plugin marketplace
-[Miragon/skills](https://github.com/Miragon/skills) (`miragon-agent-skills`):
+The CLI is also a Claude Code plugin, `pulse-cli`, in the plugin marketplace `pulse` of this
+repository (`.claude-plugin/marketplace.json`):
 
 ```text
-/plugin marketplace add Miragon/skills
-/plugin install pulse-cli@miragon-agent-skills
+/plugin marketplace add Miragon/pulse
+/plugin install pulse-cli@pulse
 ```
 
-From a shell: `claude plugin marketplace add Miragon/skills` and
-`claude plugin install pulse-cli@miragon-agent-skills`. The plugin contains:
+From a shell: `claude plugin marketplace add Miragon/pulse` and
+`claude plugin install pulse-cli@pulse`. The plugin contains:
 
 - The skill `pulse-cli`, the text of `pulse-cli guide`. Claude Code loads it when a task reads or
   changes the state of a Camunda 7, Operaton or CIB seven engine; `/pulse-cli` loads it by hand.
@@ -53,11 +53,11 @@ From a shell: `claude plugin marketplace add Miragon/skills` and
 The CLI is not part of the plugin: install it with `npm install -g @miragon/pulse-cli`, otherwise
 the skill runs `npx -y @miragon/pulse-cli`. Plugin and npm versions match. Claude Code does not
 update third-party plugins on its own: after a release, run the commands below, or turn on
-auto-update for `miragon-agent-skills` under **Marketplaces** in `/plugin`.
+auto-update for `pulse` under **Marketplaces** in `/plugin`.
 
 ```sh
-claude plugin marketplace update miragon-agent-skills
-claude plugin update pulse-cli@miragon-agent-skills
+claude plugin marketplace update pulse
+claude plugin update pulse-cli@pulse
 ```
 
 If you copied `SKILL.md` into a skills directory before, remove that copy
