@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.22.0](https://github.com/Miragon/pulse/compare/v0.21.0...v0.22.0) (2026-10-25)
+
+
+### ⚠ BREAKING CHANGES
+
+* **cli:** import operate as @miragon/pulse-cli ([#445](https://github.com/Miragon/pulse/issues/445))
+* **camunda7:** an engine without a `flavor` is Camunda 7, no longer CIB seven: its cockpit links use the classic Camunda 7 routes and the views, `camunda7_list_engines` and incident drafts name it Camunda 7. A CIB seven or Operaton engine sets `"flavor": "cibseven"` (or `operaton`) on its engine entry, or `CAMUNDA_ENGINE_FLAVOR` next to `CAMUNDA_BASE_URL`.
+
+### Features
+
+* **camunda7:** engines without a flavor are Camunda 7 ([#442](https://github.com/Miragon/pulse/issues/442)) ([355c1b8](https://github.com/Miragon/pulse/commit/355c1b89bf1c98e4f0bfb9df7df830c8496e45d4))
+* **cli:** import operate as @miragon/pulse-cli ([#445](https://github.com/Miragon/pulse/issues/445)) ([0d62b83](https://github.com/Miragon/pulse/commit/0d62b83f131304ccfe62c5f9339639898b6772d8))
+* **vscode:** import the Pulse VS Code extension ([#451](https://github.com/Miragon/pulse/issues/451)) ([6207cf4](https://github.com/Miragon/pulse/commit/6207cf472db0d2c2f546b42049821265483c6077))
+
 ## [0.21.0](https://github.com/Miragon/pulse/compare/v0.20.0...v0.21.0) (2026-10-16)
 
 

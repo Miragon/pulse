@@ -1,6 +1,6 @@
 {
   "name": "@miragon/pulse-cli",
-  "version": "0.21.0",
+  "version": "0.22.0",
   "description": "AI-first command line interface for the Camunda 7 REST API. Works with Operaton, CIB seven and Camunda 7.",
   "keywords": [
     "camunda",
