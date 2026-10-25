@@ -666,9 +666,9 @@ jobs:
 
   # The Claude Code plugin of the CLI: the plugin in apps/cli/skills/pulse-cli (manifest and
   # command) and its skill, validated as part of apps/cli/skills, since a plugin run skips a
-  # SKILL.md at the plugin root. The repository has no marketplace of its own: the family
-  # marketplace Miragon/skills lists the plugin. `claude plugin validate` needs no account or API
-  # key; the stable channel is typically a week old and skips releases with major regressions.
+  # SKILL.md at the plugin root, and the repository's marketplace `pulse`
+  # (.claude-plugin/marketplace.json) that lists it. `claude plugin validate` needs no account or
+  # API key; the stable channel is typically a week old and skips releases with major regressions.
   cli-plugin:
     name: CLI plugin (validate)
     runs-on: ubuntu-latest
@@ -700,10 +700,10 @@ jobs:
       - name: Install Claude Code
         run: npm install --global --allow-scripts=@anthropic-ai/claude-code @anthropic-ai/claude-code@stable
 
-      - name: Validate the plugin and its skill
+      - name: Validate the marketplace, the plugin and its skill
         run: |
           claude --version
-          for target in apps/cli/skills/pulse-cli apps/cli/skills; do
+          for target in . apps/cli/skills/pulse-cli apps/cli/skills; do
             claude plugin validate --strict "$target"
           done
 

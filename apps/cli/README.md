@@ -99,12 +99,12 @@ Details: [workflow commands](https://miragon.github.io/pulse/cli/workflow-comman
 
 Everything an agent needs is in the CLI: `pulse-cli guide` prints the usage guide, and one line in
 `AGENTS.md` or `CLAUDE.md` ("Run `pulse-cli guide` before using `pulse-cli`") is enough. The CLI
-is also a Claude Code plugin in Miragon's plugin marketplace, whose skill makes Claude use the CLI
-whenever a task touches an engine.
+is also a Claude Code plugin in the plugin marketplace of this repository, whose skill makes Claude
+use the CLI whenever a task touches an engine.
 
 ```text
-/plugin marketplace add Miragon/skills
-/plugin install pulse-cli@miragon-agent-skills
+/plugin marketplace add Miragon/pulse
+/plugin install pulse-cli@pulse
 ```
 
 Details: [using pulse-cli from AI agents](https://miragon.github.io/pulse/cli/agents).
