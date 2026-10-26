@@ -17,7 +17,7 @@ docker run --rm -p 127.0.0.1:8400:8400 \
 claude mcp add --transport http pulse http://localhost:8400/mcp
 ```
 
-Claude Desktop, claude.ai, ChatGPT and other hosts: [Usage](../../docs/usage.md#connect-your-assistant).
+Claude Desktop, claude.ai, ChatGPT and other hosts: [Usage](../../docs/mcp/usage.md#connect-your-assistant).
 
 ## Overview
 
@@ -73,8 +73,8 @@ Pulse assumes a Camunda 7 engine. For CIB seven or Operaton add `-e CAMUNDA_ENGI
 (or `operaton`): it picks the engine's cockpit links and the product name the views show.
 
 Configuration is entirely environment-driven. See
-[Configuration](../../docs/reference.md#configuration), [Toolsets](../../docs/reference.md#toolsets) and
-[`docs/operations.md`](../../docs/operations.md). To exercise write paths locally, set
+[Configuration](../../docs/mcp/reference.md#configuration), [Toolsets](../../docs/mcp/reference.md#toolsets) and
+[`docs/mcp/operations.md`](../../docs/mcp/operations.md). To exercise write paths locally, set
 `MCP_ACTIVE_MODULES=camunda7:admin,analytics:standard` in `.env` (plus
 `CAMUNDA_ALLOW_DEPLOYMENTS=true` for deployments).
 

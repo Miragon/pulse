@@ -35,11 +35,11 @@ Pulse brings the engine to you instead:
 | ------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | Your AI chat  | An MCP server with interactive widgets for Claude, ChatGPT and other hosts | `docker run ghcr.io/miragon/pulse-server` ([README](apps/mcp-server-camunda7/README.md)) |
 | Your terminal | `pulse-cli`: every engine operation as a command, for people and agents    | `npm install -g @miragon/pulse-cli` ([README](apps/cli/README.md))                       |
-| VS Code       | Runtime data next to your BPMN models: incidents, variables, retries       | Early prototype: [build the `.vsix`](apps/vscode/README.md#install) from source          |
+| VS Code       | Runtime data next to your BPMN models: incidents, variables, retries       | Early prototype: [build the `.vsix`](docs/vscode/installation.md) from source            |
 
 ## Quick start: the MCP server
 
-Try it without installing anything: [connect your Claude to the public playground](docs/getting-started.md).
+Try it without installing anything: [connect your Claude to the public playground](docs/mcp/getting-started.md).
 To run it on your own engine:
 
 ```bash
@@ -54,7 +54,7 @@ claude mcp add --transport http pulse http://localhost:8400/mcp
 
 Then ask _"Which incidents are open, and why?"_. Without `MCP_OAUTH` the server runs read-only;
 the boot log names the toolset of each module. Writes, OAuth, several engines and every variable:
-[Operations](docs/operations.md) and [Reference](docs/reference.md).
+[Operations](docs/mcp/operations.md) and [Reference](docs/mcp/reference.md).
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/widget-incident-dark.png">
@@ -81,12 +81,12 @@ the boot log names the toolset of each module. Writes, OAuth, several engines an
 
 The docs site, [miragon.github.io/pulse](https://miragon.github.io/pulse/), is built from [`docs/`](docs/README.md):
 
-- [Getting started](docs/getting-started.md): connect your Claude to the playground, then run it on your own engine
-- [Usage](docs/usage.md): connect an assistant and what to ask
-- [Reference](docs/reference.md): every tool, the toolsets and the common settings
-- [Operations](docs/operations.md): the image, security, environment variables, health routes
-- [Architecture](docs/architecture.md): the server, its modules and the systems they talk to
-- [Developer guide](docs/developer.md): run the stack from source, build your own server
+- [Getting started](docs/mcp/getting-started.md): connect your Claude to the playground, then run it on your own engine
+- [Usage](docs/mcp/usage.md): connect an assistant and what to ask
+- [Reference](docs/mcp/reference.md): every tool, the toolsets and the common settings
+- [Operations](docs/mcp/operations.md): the image, security, environment variables, health routes
+- [Architecture](docs/mcp/architecture.md): the server, its modules and the systems they talk to
+- [Developer guide](docs/mcp/developer.md): run the stack from source, build your own server
 - [CLI](https://miragon.github.io/pulse/cli/): install, commands, configuration, AI agents
 
 The product page is [miragon.ai/tools/pulse](https://miragon.ai/tools/pulse/).
@@ -101,7 +101,7 @@ pnpm dev                                                        # MCP server on 
 pnpm build && pnpm typecheck && pnpm test && pnpm lint          # the bar for every change
 ```
 
-Details: [developer guide](docs/developer.md); the rules for code changes are in [`CLAUDE.md`](CLAUDE.md).
+Details: [developer guide](docs/mcp/developer.md); the rules for code changes are in [`CLAUDE.md`](CLAUDE.md).
 
 ## Renamed from miragon-ai
 

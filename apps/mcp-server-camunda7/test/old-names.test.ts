@@ -184,12 +184,6 @@ const ALLOWED: Allowance[] = [
     reason: "the extension's fallback to the CLI's former project file name",
   },
   {
-    file: "apps/vscode/README.md",
-    rules: ["old operate config file"],
-    line: /former project file, `\.operate\.json`/,
-    reason: "the README names the fallback and the release that drops it",
-  },
-  {
     file: /^apps\/cli\/src\/(?:config\/legacy(?:-files)?|cli\/legacy-notice)\.test\.ts$/,
     rules: ["old operate env var", "old operate config file", "old operate config dir"],
     reason:
@@ -532,7 +526,7 @@ describe("pnpm and turbo filters", () => {
     "apps/cli/README.md",
     "apps/vscode/src/package.json.ts",
     ".github/actions/setup/README.md",
-    "docs/operations.md",
+    "docs/mcp/operations.md",
   ])("%s is no gate path", (file) => {
     expect(GATE_PATH.test(file)).toBe(false)
   })

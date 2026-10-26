@@ -260,7 +260,7 @@ absent" instead of erroring.
 Also add the three tool names to `apps/mcp-server-camunda7/test/expected-tools.ts`, refresh
 the tools/list goldens (`GOLDEN_UPDATE=1 pnpm --filter @miragon/pulse-mcp-server-camunda7 test`,
 commit `test/__golden__/`; a grown char budget needs a `Ratchet-Exception:` trailer), and
-document any new env var in `docs/operations.md` (the page
+document any new env var in `docs/mcp/operations.md` (the page
 https://miragon.github.io/pulse/operations of the docs site).
 
 ## Step 7 — tests
