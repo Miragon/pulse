@@ -29,14 +29,14 @@ recently started one). Their views carry \`next\`: the follow-up commands for wh
 - \`pulse-cli advance\`: completes what it waits for: user task, external task (locked first),
   message, signal, receive task, timer or job. \`--var\` sets variables, \`--bpmn-error <code>\` throws
   a BPMN error instead, \`--fail <message>\` reports an external task failure (\`--retries\`, default 0:
-  an incident); the external task worker is \`--worker-id\`, default \`operate\`.
+  an incident); the external task worker is \`--worker-id\`, default \`pulse-cli\`.
 - \`pulse-cli retry\`: sets the retries (\`--retries\`, default 1) behind open incidents (root causes
   only); \`--now\` executes jobs and reports the ones that failed again; \`--incident <ids>\` takes
   named incidents, \`--activity-id\` and \`--incident-type\` narrow the selection;
   \`--process-definition-key <key>\` alone retries every incident of the definition, a bulk
   operation that needs \`--yes\`.
 - \`pulse-cli deploy\`: deploys changed files and directories (\`*.bpmn\`, \`*.dmn\`, \`*.form\`, ...) under
-  one deployment name (\`--name\`, default \`operate\`), skips unchanged files and reports the
+  one deployment name (\`--name\`, default \`pulse-cli\`), skips unchanged files and reports the
   versions in effect; \`--start\` or \`--start-key <key>\` starts an instance (\`--business-key\`,
   \`--var\`).
 - \`pulse-cli status\`: grouped incidents with root cause, overdue jobs, external task workers, open

@@ -20,7 +20,7 @@ function depsFor(fetch: typeof globalThis.fetch, files: Readonly<Record<string, 
   return { ...depsOf(fetch), fs: fakeRuntime({ files }).fs, catalog: loadCatalog() }
 }
 
-const BEFORE = { id: "dep-1", name: "operate", deploymentTime: "2026-01-01T00:00:00.000+0000" }
+const BEFORE = { id: "dep-1", name: "pulse-cli", deploymentTime: "2026-01-01T00:00:00.000+0000" }
 
 function engine(deployment: Record<string, unknown>, held: readonly string[] = []) {
   return fakeServer()
@@ -59,7 +59,7 @@ describe("deploy", () => {
       kind: "view",
       view: {
         deploymentId: "dep-1",
-        name: "operate",
+        name: "pulse-cli",
         changed: false,
         deploymentTime: "2026-01-01T00:00:00.000+0000",
         resources: [
@@ -81,7 +81,7 @@ describe("deploy", () => {
     })
     const list = server.requests[0]
     expect(list?.query.toString()).toBe(
-      "name=operate&sortBy=deploymentTime&sortOrder=desc&maxResults=1",
+      "name=pulse-cli&sortBy=deploymentTime&sortOrder=desc&maxResults=1",
     )
     const form = server.requests[1]?.body as FormData
     expect([...form.keys()]).toEqual([
@@ -94,8 +94,8 @@ describe("deploy", () => {
     ])
     const latest = server.requests.find((request) => request.path === "/process-definition")
     expect(latest?.query.toString()).toBe("resourceName=order.bpmn&firstResult=0&maxResults=500")
-    const own = server.requests.find((request) => request.query.get("source") === "operate")
-    expect(own?.query.get("name")).toBe("operate")
+    const own = server.requests.find((request) => request.query.get("source") === "pulse-cli")
+    expect(own?.query.get("name")).toBe("pulse-cli")
   })
 
   it("reports a new deployment: its resources deployed, the others unchanged", async () => {
@@ -153,7 +153,7 @@ describe("deploy", () => {
     expect(result).toMatchObject({
       kind: "dry-run",
       plan: {
-        name: "operate",
+        name: "pulse-cli",
         resources: [
           { resource: "approval.dmn", file: "res/approval.dmn" },
           { resource: "approve.form", file: "res/approve.form" },
@@ -161,7 +161,7 @@ describe("deploy", () => {
         ],
         start: { key: "order", businessKey: "B-1" },
       },
-      requests: [{ summary: "deploy 3 resource(s) as operate", operationId: "createDeployment" }],
+      requests: [{ summary: "deploy 3 resource(s) as pulse-cli", operationId: "createDeployment" }],
     })
     expect(server.requests).toEqual([])
   })
@@ -282,10 +282,10 @@ describe("deploy details", () => {
     expect(await (form.get("order.bpmn") as File).text()).toBe(ORDER)
     expect(
       ["deployment-name", "deployment-source", "deploy-changed-only"].map((name) => form.get(name)),
-    ).toEqual(["operate", "operate", "true"])
+    ).toEqual(["pulse-cli", "pulse-cli", "true"])
     expect(form.has("tenant-id")).toBe(false)
     expect(Object.fromEntries(server.requests[0]?.query ?? [])).toEqual({
-      name: "operate",
+      name: "pulse-cli",
       sortBy: "deploymentTime",
       sortOrder: "desc",
       maxResults: "1",

@@ -200,7 +200,7 @@ describe("topicStatus", () => {
     const tasks = [
       {
         topicName: "charge",
-        workerId: "operate",
+        workerId: "pulse-cli",
         retries: 2,
         errorMessage: "PSP timeout",
         lockExpirationTime: "2026-01-01T11:50:00.000+0000",

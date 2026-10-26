@@ -175,7 +175,7 @@ export const ADVANCE_OPTIONS: readonly WorkflowOptionDoc[] = [
   option(
     "worker-id",
     "value",
-    "Worker that locks and completes an external task (default operate)",
+    "Worker that locks and completes an external task (default pulse-cli)",
     { valueName: "<id>" },
   ),
   ...WAIT_OPTIONS,
@@ -206,7 +206,7 @@ export const DEPLOY_OPTIONS: readonly WorkflowOptionDoc[] = [
   option(
     "name",
     "value",
-    "Deployment name (default operate); unchanged files are skipped per name",
+    "Deployment name (default pulse-cli); unchanged files are skipped per name",
     { valueName: "<deployment-name>" },
   ),
   option("base-dir", "value", "Name every resource by its path relative to this directory", {

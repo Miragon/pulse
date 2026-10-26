@@ -5,7 +5,7 @@ import { resourceViews } from "./deploy-view.js"
 
 const resources = (...names: string[]) => names.map((name) => ({ file: `/x/${name}`, name }))
 
-const FACTS = { name: "operate", source: "operate" }
+const FACTS = { name: "pulse-cli", source: "pulse-cli" }
 
 /** Every version of a resource name engine-wide; `own` is a deployment of this name and source. */
 function lookups() {
@@ -99,8 +99,8 @@ describe("resourceViews", () => {
       [
         "/deployment",
         {
-          name: "operate",
-          source: "operate",
+          name: "pulse-cli",
+          source: "pulse-cli",
           tenantIdIn: "t1",
           firstResult: "0",
           maxResults: "500",

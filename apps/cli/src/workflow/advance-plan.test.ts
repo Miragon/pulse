@@ -28,11 +28,11 @@ describe("advanceSteps", () => {
       EXTERNAL,
       { ...VARS, localVariables: { l: { value: 1, type: "Integer" } } },
       [
-        ["lock", ["e1"], { workerId: "operate", lockDuration: 60000 }],
+        ["lock", ["e1"], { workerId: "pulse-cli", lockDuration: 60000 }],
         [
           "completeExternalTaskResource",
           ["e1"],
-          { workerId: "operate", ...VARS, localVariables: { l: { value: 1, type: "Integer" } } },
+          { workerId: "pulse-cli", ...VARS, localVariables: { l: { value: 1, type: "Integer" } } },
         ],
       ],
     ],
@@ -54,8 +54,8 @@ describe("advanceSteps", () => {
       EXTERNAL,
       { bpmnError: "NO_FUNDS" },
       [
-        ["lock", ["e1"], { workerId: "operate", lockDuration: 60000 }],
-        ["handleExternalTaskBpmnError", ["e1"], { workerId: "operate", errorCode: "NO_FUNDS" }],
+        ["lock", ["e1"], { workerId: "pulse-cli", lockDuration: 60000 }],
+        ["handleExternalTaskBpmnError", ["e1"], { workerId: "pulse-cli", errorCode: "NO_FUNDS" }],
       ],
     ],
     ["timer", TIMER, {}, [["executeJob", ["j1"], undefined]]],

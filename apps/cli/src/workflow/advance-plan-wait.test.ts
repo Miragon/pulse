@@ -211,7 +211,7 @@ describe("advance plan details", () => {
         now,
       )
       checkLock({ ...EXTERNAL, workerId: "other" }, {}, now)
-      checkLock({ ...EXTERNAL, workerId: "operate", lockExpirationTime: "2027" }, {}, now)
+      checkLock({ ...EXTERNAL, workerId: "pulse-cli", lockExpirationTime: "2027" }, {}, now)
     }).not.toThrow()
   })
 
@@ -232,9 +232,9 @@ describe("advance plan details", () => {
     ])
     expect(
       advanceSteps(EXTERNAL, { bpmnError: "R", errorMessage: "m", ...VARS })[1]?.input.body,
-    ).toEqual({ workerId: "operate", errorCode: "R", errorMessage: "m", ...VARS })
+    ).toEqual({ workerId: "pulse-cli", errorCode: "R", errorMessage: "m", ...VARS })
     expect(advanceSteps(EXTERNAL, { fail: "f" })[1]?.input.body).toEqual({
-      workerId: "operate",
+      workerId: "pulse-cli",
       errorMessage: "f",
       retries: 0,
       retryTimeout: 0,

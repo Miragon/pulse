@@ -109,10 +109,10 @@ describe("advance", () => {
       JSON.parse(request.body as string) as unknown,
     ])
     expect(bodies).toEqual([
-      ["/external-task/et-1/lock", { workerId: "operate", lockDuration: 60000 }],
+      ["/external-task/et-1/lock", { workerId: "pulse-cli", lockDuration: 60000 }],
       [
         "/external-task/et-1/complete",
-        { workerId: "operate", variables: { charged: { value: true, type: "Boolean" } } },
+        { workerId: "pulse-cli", variables: { charged: { value: true, type: "Boolean" } } },
       ],
     ])
   })

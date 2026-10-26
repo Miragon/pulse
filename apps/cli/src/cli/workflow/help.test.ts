@@ -185,7 +185,7 @@ describe("workflow command help", () => {
         --retries <n>                   Retries left after --fail (default 0: an
                                         incident)
         --worker-id <id>                Worker that locks and completes an external
-                                        task (default operate)
+                                        task (default pulse-cli)
         --wait                          After the writes, wait until the instance is
                                         idle before printing it
         --until <condition>             Wait until idle, ended, incident, task,
@@ -287,7 +287,7 @@ describe("workflow command help", () => {
       definitions in effect. --start or --start-key starts an instance and prints it.
 
       Requests: GET /deployment (the latest of the name), POST /deployment/create
-      (multipart, deploy-changed-only, deployment-source operate), GET
+      (multipart, deploy-changed-only, deployment-source pulse-cli), GET
       /deployment/{id}/resources, for unchanged resources GET /deployment (the
       deployments of the name and source) and GET /process-definition, GET
       /decision-definition and GET /decision-requirements-definition per resource,
@@ -302,8 +302,8 @@ describe("workflow command help", () => {
         paths                      BPMN, DMN and form files and directories to deploy
 
       Options:
-        --name <deployment-name>   Deployment name (default operate); unchanged files
-                                   are skipped per name
+        --name <deployment-name>   Deployment name (default pulse-cli); unchanged
+                                   files are skipped per name
         --base-dir <dir>           Name every resource by its path relative to this
                                    directory
         --tenant-id <id>           Tenant of the deployment (and of the started

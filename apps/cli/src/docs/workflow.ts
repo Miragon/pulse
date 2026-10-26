@@ -222,7 +222,7 @@ export const WORKFLOW_DOCS: readonly WorkflowDoc[] = [
     description:
       "Deploys files and directories (scanned for *.bpmn, *.bpmn20.xml, *.dmn, *.dmn11.xml and *.form, skipping dot-directories and node_modules) with the same deployment name and source every time, so unchanged files are skipped and keep their version. Reports per resource whether it was deployed now and the definitions in effect. --start or --start-key starts an instance and prints it.",
     requests:
-      "GET /deployment (the latest of the name), POST /deployment/create (multipart, deploy-changed-only, deployment-source operate), GET /deployment/{id}/resources, for unchanged resources GET /deployment (the deployments of the name and source) and GET /process-definition, GET /decision-definition and GET /decision-requirements-definition per resource, with --start POST /process-definition/key/{key}/start and the instance view, " +
+      "GET /deployment (the latest of the name), POST /deployment/create (multipart, deploy-changed-only, deployment-source pulse-cli), GET /deployment/{id}/resources, for unchanged resources GET /deployment (the deployments of the name and source) and GET /process-definition, GET /decision-definition and GET /decision-requirements-definition per resource, with --start POST /process-definition/key/{key}/start and the instance view, " +
       WAIT_REQUESTS,
     effect: "write",
     arguments: [
