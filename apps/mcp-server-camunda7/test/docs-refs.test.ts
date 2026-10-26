@@ -326,6 +326,7 @@ const DOCS_BUDGETS: Record<string, number> = {
   "vscode/installation.md": 50,
   "vscode/configuration.md": 80,
   "vscode/usage.md": 80,
+  "vscode/boards.md": 70,
   "vscode/architecture.md": 50,
 }
 

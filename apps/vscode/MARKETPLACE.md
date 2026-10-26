@@ -30,6 +30,7 @@ where your models and your code already are.
   it waits, its incidents and its variables
 - Show Runtime Data for This Model on a `.bpmn` file, and Go to Process Instance… by id or
   business key
+- Boards: shared views as JSON in your repository, counting and listing across engines
 
 ## Get started
 
