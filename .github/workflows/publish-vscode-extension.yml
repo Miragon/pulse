@@ -10,8 +10,9 @@ name: Publish VS Code extension
 #            (a prerelease or build suffix).
 #   publish  runs in the vscode-marketplace environment (deployment branch main), installs the
 #            lockfile's vsce and ovsx with --ignore-scripts, builds nothing and publishes the
-#            .vsix: with the environment's VSCE_PAT / OVSX_PAT when set, else by trusted
-#            publishing (OIDC, id-token: write).
+#            .vsix: with the organization's VSCE_PUBLISH / OVSX_PUBLISH (as every Miragon
+#            extension) when set, else by trusted publishing (OIDC, id-token: write). The
+#            environment is the gate (main only), the caller hands down the two tokens by name.
 #   attach   uploads the .vsix to the release v<version> (contents: write, no credentials).
 # The switch is the input channel, the repository variable VSCODE_PUBLISH:
 #   unset or off  package only: every release still proves that the tagged commit packages;
@@ -40,6 +41,13 @@ on:
         description: off (or empty), pre-release or release; the repository variable VSCODE_PUBLISH
         type: string
         default: ""
+    secrets:
+      VSCE_PUBLISH:
+        description: Visual Studio Marketplace token (the organization secret)
+        required: false
+      OVSX_PUBLISH:
+        description: Open VSX token (the organization secret)
+        required: false
 
 permissions: {}
 
@@ -233,7 +241,7 @@ jobs:
           NAME: ${{ needs.package.outputs.name }}
           VSIX: ${{ needs.package.outputs.vsix }}
           PRE_RELEASE: ${{ needs.package.outputs.pre_release }}
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+          VSCE_PAT: ${{ secrets.VSCE_PUBLISH }}
         run: |
           args=(--packagePath "$RUNNER_TEMP/vsix/${VSIX}" --skip-duplicate)
           if [ "$PRE_RELEASE" = true ]; then args+=(--pre-release); fi
@@ -248,7 +256,7 @@ jobs:
         env:
           NAME: ${{ needs.package.outputs.name }}
           VSIX: ${{ needs.package.outputs.vsix }}
-          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+          OVSX_PAT: ${{ secrets.OVSX_PUBLISH }}
         run: |
           args=(--packagePath "$RUNNER_TEMP/vsix/${VSIX}" --skip-duplicate)
           if [ -z "$OVSX_PAT" ]; then

@@ -137,7 +137,8 @@ jobs:
   # never through npm (scripts/check-github-config.mjs keeps it out of the publish-npm matrix).
   # The called workflow packages it on every release and dry run; it publishes only when the
   # repository variable VSCODE_PUBLISH is pre-release or release (unset: nothing leaves the run).
-  # No secrets: the store credentials (or trust) live in its vscode-marketplace environment.
+  # The store tokens are the organization's, as for every Miragon extension, handed down by name;
+  # only the called publish job, in the vscode-marketplace environment (main only), reads them.
   publish-vscode:
     name: Publish VS Code extension
     needs: [release-please, gate]
@@ -153,6 +154,9 @@ jobs:
       version: ${{ needs.release-please.outputs.tag_name }}
       dry_run: ${{ inputs.dry_run == true }}
       channel: ${{ vars.VSCODE_PUBLISH }}
+    secrets:
+      VSCE_PUBLISH: ${{ secrets.VSCE_PUBLISH }}
+      OVSX_PUBLISH: ${{ secrets.OVSX_PUBLISH }}
 
   # After (not alongside) publish-npm: the mirror commits the release's pins
   # plus a lockfile resolved from the public registry, so syncing before the

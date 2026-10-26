@@ -694,6 +694,14 @@ export const VSCODE_SWITCH = "${{ vars.VSCODE_PUBLISH }}"
 const VSCODE_DRY_RUN = "${{ inputs.dry_run == true }}"
 /** The directories the Resolve extension step of the workflow accepts. */
 export const VSCODE_APP_DIR = /^apps\/[a-z0-9][a-z0-9-]*$/
+/**
+ * The store tokens the caller hands down: the organization's secrets, the same ones every Miragon
+ * extension publishes with (Miragon/modeler-suite, Miragon/bpmn-modeler), each by name.
+ */
+export const VSCODE_SECRETS = {
+  VSCE_PUBLISH: "${{ secrets.VSCE_PUBLISH }}",
+  OVSX_PUBLISH: "${{ secrets.OVSX_PUBLISH }}",
+}
 /** The scripts the publish job runs by name (pinned by scripts/check-ratchets.mjs). */
 const VSCODE_PUBLISH_SCRIPTS = ["marketplace:publish", "open-vsx:publish"]
 
@@ -705,8 +713,8 @@ const runsScript = (step, script) =>
 
 /**
  * The release job that calls the workflow for one extension: after the release approval, with the
- * switch, the dry run and the release tag of the train, the ceiling of the called jobs and no
- * secrets (pure).
+ * switch, the dry run and the release tag of the train, the ceiling of the called jobs and the two
+ * store tokens by name, never `secrets: inherit` (pure).
  */
 function checkVscodeCaller(id, job) {
   const errors = []
@@ -735,10 +743,11 @@ function checkVscodeCaller(id, job) {
         `package, publish and attach jobs (found ${JSON.stringify(job.permissions)})`,
     )
   }
-  if (job.secrets !== undefined) {
+  if (!isDeepStrictEqual(job.secrets, VSCODE_SECRETS)) {
     errors.push(
-      `${at} passes secrets: the store credentials live in the ${VSCODE_ENVIRONMENT} ` +
-        `environment, never in the caller`,
+      `${at} must pass exactly the secrets ${JSON.stringify(VSCODE_SECRETS)} (found ` +
+        `${JSON.stringify(job.secrets)}): the organization's store tokens by name, never ` +
+        `secrets: inherit`,
     )
   }
   return errors
@@ -863,6 +872,13 @@ function checkVscodeWorkflow(doc) {
     }
   }
   if (inputs.channel?.type !== "string") errors.push(`${where}: needs the string input "channel"`)
+  const secrets = doc.on?.workflow_call?.secrets ?? {}
+  if (!isDeepStrictEqual(Object.keys(secrets).sort(), Object.keys(VSCODE_SECRETS).sort())) {
+    errors.push(
+      `${where}: must declare exactly the secrets ${Object.keys(VSCODE_SECRETS).join(" and ")} ` +
+        `(found ${JSON.stringify(Object.keys(secrets))})`,
+    )
+  }
   if (inputs.dry_run?.type !== "boolean") {
     errors.push(`${where}: needs the boolean input "dry_run"`)
   }
@@ -907,10 +923,7 @@ function checkVscodeWorkflow(doc) {
       )
     }
     if (JSON.stringify(job).includes("secrets.")) {
-      errors.push(
-        `${where}: job ${id} reads secrets: only the job in ${VSCODE_ENVIRONMENT} may, from ` +
-          `that environment`,
-      )
+      errors.push(`${where}: job ${id} reads secrets: only the job in ${VSCODE_ENVIRONMENT} may`)
     }
   }
 

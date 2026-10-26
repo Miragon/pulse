@@ -1051,7 +1051,8 @@ camunda7-client,analytics-connector,analytics-client}` and `@miragon/pulse-cli` 
   only job with store credentials, runs in the `vscode-marketplace` environment (`main` only),
   installs the lockfile's vsce and ovsx with `--ignore-scripts`, builds nothing and publishes
   the same file to the Visual Studio Marketplace and Open VSX (`--skip-duplicate`; the
-  environment's `VSCE_PAT`/`OVSX_PAT` when set, else trusted publishing over
+  organization secrets `VSCE_PUBLISH`/`OVSX_PUBLISH` every Miragon extension publishes with, which
+  the caller hands down by name, never `secrets: inherit`; unset, trusted publishing over
   `id-token: write`); a third job attaches it to the release. It publishes only when the
   repository variable `VSCODE_PUBLISH` is `pre-release` or `release`; unset or `off` the
   release only packages, any other value fails the job. `pnpm lint:github` pins that path.

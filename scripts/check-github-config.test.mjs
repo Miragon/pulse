@@ -964,7 +964,17 @@ describe("checkVscodePublish", () => {
     [
       "secrets: inherit",
       ({ caller }) => (caller.secrets = "inherit"),
-      [/passes secrets: the store credentials live in the vscode-marketplace environment/],
+      [/must pass exactly the secrets .* never secrets: inherit/],
+    ],
+    [
+      "a store token missing",
+      ({ caller }) => delete caller.secrets.OVSX_PUBLISH,
+      [/must pass exactly the secrets/],
+    ],
+    [
+      "a store token renamed",
+      ({ caller }) => (caller.secrets.VSCE_PUBLISH = "${{ secrets.VSCE_PAT }}"),
+      [/must pass exactly the secrets/],
     ],
     [
       "write-all on the caller",
@@ -990,6 +1000,11 @@ describe("checkVscodePublish", () => {
       "a string dry_run input",
       ({ publish }) => (publish.on.workflow_call.inputs.dry_run.type = "string"),
       [/boolean input "dry_run"/],
+    ],
+    [
+      "no store token declared",
+      ({ publish }) => delete publish.on.workflow_call.secrets.OVSX_PUBLISH,
+      [/must declare exactly the secrets VSCE_PUBLISH and OVSX_PUBLISH/],
     ],
     [
       "top-level permissions",
