@@ -23,18 +23,19 @@ Pulse brings the engine to you instead:
 - **Every engine of your fleet.** CIB seven, Operaton and Camunda 7 side by side, grouped by
   environment, with a default engine per person and an override per call.
 - **Safe by default.** The server starts read-only; writes need OAuth or an explicit toolset, and
-  deployments a flag of their own. The CLI previews every change and asks before it deletes.
+  deployments a flag of their own. The CLI previews any change with `--dry-run` and asks before it
+  deletes.
 - **Analytics without the engine database.** Process KPIs, bottlenecks and engine comparisons come
   from Prometheus, fed by a small metrics plugin in the engine.
 - **Self-hosted.** One container image, public npm packages, MIT licensed.
 
 ## Three ways in
 
-| Where         | What it is                                                                 | Get it                                                                                                   |
-| ------------- | -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| Your AI chat  | An MCP server with interactive widgets for Claude, ChatGPT and other hosts | `docker run ghcr.io/miragon/pulse-server` ([README](apps/mcp-server-camunda7/README.md))                 |
-| Your terminal | `pulse-cli`: every engine operation as a command, for people and agents    | `npm install -g @miragon/pulse-cli` ([README](apps/cli/README.md))                                       |
-| VS Code       | Runtime data next to your BPMN models: incidents, variables, retries       | `.vsix` from the [releases](https://github.com/Miragon/pulse/releases) ([README](apps/vscode/README.md)) |
+| Where         | What it is                                                                 | Get it                                                                                   |
+| ------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Your AI chat  | An MCP server with interactive widgets for Claude, ChatGPT and other hosts | `docker run ghcr.io/miragon/pulse-server` ([README](apps/mcp-server-camunda7/README.md)) |
+| Your terminal | `pulse-cli`: every engine operation as a command, for people and agents    | `npm install -g @miragon/pulse-cli` ([README](apps/cli/README.md))                       |
+| VS Code       | Runtime data next to your BPMN models: incidents, variables, retries       | Early prototype: [build the `.vsix`](apps/vscode/README.md#install) from source          |
 
 ## Quick start: the MCP server
 
@@ -133,8 +134,8 @@ everything it ships carries the Pulse name:
 
 [release-please](https://github.com/googleapis/release-please) releases everything together:
 semantic commits on `main` open a release PR, and merging it publishes the server image, the npm
-packages, the CLI (npm, binaries, image, Homebrew `miragon/tap/pulse-cli`), the VS Code extension
-and the engine plugin (Maven Central).
+packages, the CLI (npm, binaries, image, Homebrew `miragon/tap/pulse-cli`) and the engine plugin
+(Maven Central). The VS Code extension is packaged too, but not published yet.
 
 ## Contributing
 

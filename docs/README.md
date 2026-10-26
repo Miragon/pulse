@@ -1,8 +1,8 @@
 # Pulse docs
 
-Pulse is the MCP server from this repo, part of the [Miragon AI](https://miragon.ai/) family. It
-lets Claude, ChatGPT or any other MCP client read and operate your Camunda 7, CIB seven and Operaton
-engines, with answers as widgets in the chat. Commands and configs call the server `pulse`.
+Pulse, part of the [Miragon AI](https://miragon.ai/) family, lets you operate and analyse your
+Camunda 7, CIB seven and Operaton engines from your AI chat (the MCP server, with answers as widgets
+in the chat), your terminal (the CLI) and VS Code. Commands and configs call the server `pulse`.
 
 | Page                                  | What it covers                                                                       |
 | ------------------------------------- | ------------------------------------------------------------------------------------ |
