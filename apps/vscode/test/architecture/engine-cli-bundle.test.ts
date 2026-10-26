@@ -1,20 +1,16 @@
 import { execFileSync } from "node:child_process"
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
-import { createRequire } from "node:module"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import * as esbuild from "esbuild"
 import { afterAll, describe, expect, test } from "vitest"
+import { ENGINE_CLI_PATH } from "../adapters/c7/support/engine-cli-binary.js"
 
 interface EngineCliBuild {
   readonly engineCliBuildOptions: (options: { readonly outfile: string }) => esbuild.BuildOptions
 }
 
 const BUILD_SCRIPT = new URL("../../scripts/build.mjs", import.meta.url).href
-
-const installedEngineCli = createRequire(import.meta.url)("@miragon/operate/package.json") as {
-  readonly version: string
-}
 
 const extensionWithoutDependencies = mkdtempSync(join(tmpdir(), "pulse-vscode-engine-cli-"))
 
@@ -29,8 +25,9 @@ describe("the engine CLI the extension ships", { timeout: 60_000 }, () => {
     writeFileSync(join(extensionWithoutDependencies, "package.json"), '{ "type": "module" }\n')
     await esbuild.build({ ...engineCliBuildOptions({ outfile }), logLevel: "silent" })
 
-    const version = execFileSync(process.execPath, [outfile, "--version"], { encoding: "utf8" })
+    const versionOf = (cli: string) =>
+      execFileSync(process.execPath, [cli, "--version"], { encoding: "utf8" })
 
-    expect(version.trim()).toBe(installedEngineCli.version)
+    expect(versionOf(outfile)).toBe(versionOf(ENGINE_CLI_PATH))
   })
 })
