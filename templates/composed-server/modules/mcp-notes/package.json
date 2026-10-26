@@ -20,7 +20,7 @@
     "typecheck": "tsc --noEmit && tsc -p tsconfig.widgets.json"
   },
   "dependencies": {
-    "@miragon/pulse-widget-shell": "0.24.1"
+    "@miragon/pulse-widget-shell": "0.24.2"
   },
   "peerDependencies": {
     "@miragon/mcp-toolkit-core": "~2.8.1",

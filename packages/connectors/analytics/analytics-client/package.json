@@ -1,6 +1,6 @@
 {
   "name": "@miragon/pulse-analytics-client",
-  "version": "0.24.1",
+  "version": "0.24.2",
   "description": "Prometheus client and PromQL query functions for Camunda process analytics, with Zod schemas.",
   "license": "MIT",
   "keywords": [

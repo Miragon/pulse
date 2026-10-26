@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.24.2](https://github.com/Miragon/pulse/compare/v0.24.1...v0.24.2) (2026-10-26)
+
+
+### Bug Fixes
+
+* **vscode:** bundle the engine CLI with its dependencies ([#467](https://github.com/Miragon/pulse/issues/467)) ([60cb706](https://github.com/Miragon/pulse/commit/60cb706d0c3a3b02497c9229f1c7765988e33c96))
+
 ## [0.24.1](https://github.com/Miragon/pulse/compare/v0.24.0...v0.24.1) (2026-10-26)
 
 
