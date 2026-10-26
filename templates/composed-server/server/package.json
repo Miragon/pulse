@@ -19,9 +19,9 @@
   },
   "dependencies": {
     "@acme/mcp-notes": "workspace:*",
-    "@miragon/pulse-analytics-connector": "0.23.0",
-    "@miragon/pulse-camunda7-connector": "0.23.0",
-    "@miragon/pulse-widget-shell": "0.23.0",
+    "@miragon/pulse-analytics-connector": "0.24.0",
+    "@miragon/pulse-camunda7-connector": "0.24.0",
+    "@miragon/pulse-widget-shell": "0.24.0",
     "@miragon/mcp-toolkit-core": "2.8.1",
     "mcp-use": "2.7.3",
     "zod": "4.6.6"
