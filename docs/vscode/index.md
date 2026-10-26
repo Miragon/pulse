@@ -1,8 +1,9 @@
 # Pulse for VS Code
 
 ::: warning Early version
-Pulse for VS Code is an early prototype. It is not on the Marketplace yet: you build the `.vsix`
-from source ([Installation](./installation.md)). Writes are off for every engine but a local one
+Pulse for VS Code is an early version, published on the
+[Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.pulse) and [Open VSX](https://open-vsx.org/extension/miragon-gmbh/pulse): expect rough edges and changes between
+releases ([Installation](./installation.md)). Writes are off for every engine but a local one
 unless you turn them on.
 :::
 
@@ -30,7 +31,7 @@ where the models and the code already are.
 
 | Page                                | What it covers                                           |
 | ----------------------------------- | -------------------------------------------------------- |
-| [Installation](./installation.md)   | Build and install the `.vsix`, try it on a seeded engine |
+| [Installation](./installation.md)   | Install it, try it on a seeded engine                    |
 | [Configuration](./configuration.md) | Engine profiles, credentials, environments, live updates |
 | [Usage](./usage.md)                 | The views and panels, model and code, writes and batches |
 | [Architecture](./architecture.md)   | Contract, core, adapters and the decisions behind them   |

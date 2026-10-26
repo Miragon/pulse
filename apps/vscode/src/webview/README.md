@@ -50,8 +50,8 @@ Only UI state (open tab, split, column widths, zoom) stays in the webview's own 
 
 ## Develop and test
 
-- `pnpm --filter pulse-vscode run build`, then `pnpm --filter pulse-vscode run dev`, runs the real core on a fake engine at localhost:5180
-- `pnpm --filter pulse-vscode test` runs the browser tests in Chromium with the unit tests, and checks the 200 000 B gzip budget of the bundle (`apps/vscode/test/__golden__/bundle-budget.json`)
+- `pnpm --filter pulse run build`, then `pnpm --filter pulse run dev`, runs the real core on a fake engine at localhost:5180
+- `pnpm --filter pulse test` runs the browser tests in Chromium with the unit tests, and checks the 200 000 B gzip budget of the bundle (`apps/vscode/test/__golden__/bundle-budget.json`)
 - `apps/vscode/dev/webview/serve.mjs` serves the fixture page with the webview alone, `screenshot.mjs` shoots its fixtures and `bundle-size.mjs` lists what the bundle is made of; run them by hand with `node`
 
 ## More

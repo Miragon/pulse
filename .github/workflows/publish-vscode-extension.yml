@@ -2,7 +2,7 @@ name: Publish VS Code extension
 
 # Reusable workflow, called by release-please.yml after the release gate: packages ONE VS Code
 # extension (an app whose package.json declares engines.vscode, e.g. apps/vscode) as a .vsix and,
-# when the release switch is on, publishes that same file to the Visual Studio Marketplace and
+# on every release (never on a dry run) publishes that same file to the Visual Studio Marketplace and
 # Open VSX and attaches it to the GitHub release. Three jobs, so the store credentials never meet
 # a build or an install that runs code:
 #   package  installs, builds and `vsce package`s the extension, without id-token or secrets,
@@ -10,17 +10,13 @@ name: Publish VS Code extension
 #            (a prerelease or build suffix).
 #   publish  runs in the vscode-marketplace environment (deployment branch main), installs the
 #            lockfile's vsce and ovsx with --ignore-scripts, builds nothing and publishes the
-#            .vsix: with the environment's VSCE_PAT / OVSX_PAT when set, else by trusted
-#            publishing (OIDC, id-token: write).
+#            .vsix: with the organization's VSCE_PUBLISH / OVSX_PUBLISH (as every Miragon
+#            extension) when set, else by trusted publishing (OIDC, id-token: write). The
+#            environment is the gate (main only), the caller hands down the two tokens by name.
 #   attach   uploads the .vsix to the release v<version> (contents: write, no credentials).
-# The switch is the input channel, the repository variable VSCODE_PUBLISH:
-#   unset or off  package only: every release still proves that the tagged commit packages;
-#   pre-release   publish as a pre-release (packaged with --pre-release; Open VSX reads it from
-#                 the .vsix);
-#   release       publish as a release.
-# Any other value fails the package job. --skip-duplicate makes a re-run after a partial failure
-# publish only what is missing. scripts/check-github-config.mjs (`pnpm lint:github`) pins this
-# shape; its test runs the Release switch and Resolve extension steps.
+# Every release publishes a plain release, never a pre-release. --skip-duplicate makes a re-run
+# after a partial failure publish only what is missing. scripts/check-github-config.mjs
+# (`pnpm lint:github`) pins this shape; its test runs the Resolve extension step.
 on:
   workflow_call:
     inputs:
@@ -36,10 +32,13 @@ on:
         description: Package only, publish nothing
         type: boolean
         default: false
-      channel:
-        description: off (or empty), pre-release or release; the repository variable VSCODE_PUBLISH
-        type: string
-        default: ""
+    secrets:
+      VSCE_PUBLISH:
+        description: Visual Studio Marketplace token (the organization secret)
+        required: false
+      OVSX_PUBLISH:
+        description: Open VSX token (the organization secret)
+        required: false
 
 permissions: {}
 
@@ -56,29 +55,10 @@ jobs:
     permissions:
       contents: read
     outputs:
-      publish: ${{ steps.channel.outputs.publish }}
-      pre_release: ${{ steps.channel.outputs.pre_release }}
       name: ${{ steps.pkg.outputs.name }}
       vsix: ${{ steps.pkg.outputs.vsix }}
       artifact: ${{ steps.pkg.outputs.artifact }}
     steps:
-      - id: channel
-        name: Release switch
-        env:
-          CHANNEL: ${{ inputs.channel }}
-        run: |
-          case "$CHANNEL" in
-            "" | off) publish=false pre_release=false ;;
-            pre-release) publish=true pre_release=true ;;
-            release) publish=true pre_release=false ;;
-            *)
-              echo "::error::VSCODE_PUBLISH is \"${CHANNEL}\": set it to pre-release or release, or to off (or delete it) to publish nothing"
-              exit 1
-              ;;
-          esac
-          echo "publish=${publish}" >> "$GITHUB_OUTPUT"
-          echo "pre_release=${pre_release}" >> "$GITHUB_OUTPUT"
-
       - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
@@ -143,12 +123,9 @@ jobs:
         env:
           NAME: ${{ steps.pkg.outputs.name }}
           VSIX: ${{ steps.pkg.outputs.vsix }}
-          PRE_RELEASE: ${{ steps.channel.outputs.pre_release }}
         run: |
           mkdir -p "$RUNNER_TEMP/vsix"
-          args=(--out "$RUNNER_TEMP/vsix/${VSIX}")
-          if [ "$PRE_RELEASE" = true ]; then args+=(--pre-release); fi
-          pnpm --fail-if-no-match --filter "${NAME}" run package "${args[@]}"
+          pnpm --fail-if-no-match --filter "${NAME}" run package --out "$RUNNER_TEMP/vsix/${VSIX}"
 
       # The same list as ci.yml's vscode-package job.
       - name: Check the package
@@ -175,7 +152,7 @@ jobs:
           fi
 
       # Only what the publish job will publish leaves this job.
-      - if: ${{ steps.channel.outputs.publish == 'true' && inputs.dry_run != true }}
+      - if: ${{ inputs.dry_run != true }}
         uses: actions/upload-artifact@v7.0.2
         with:
           name: ${{ steps.pkg.outputs.artifact }}
@@ -186,7 +163,7 @@ jobs:
   publish:
     name: Publish ${{ inputs.directory }}
     needs: package
-    if: ${{ inputs.dry_run != true && needs.package.outputs.publish == 'true' }}
+    if: ${{ inputs.dry_run != true }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: vscode-marketplace
@@ -232,23 +209,20 @@ jobs:
         env:
           NAME: ${{ needs.package.outputs.name }}
           VSIX: ${{ needs.package.outputs.vsix }}
-          PRE_RELEASE: ${{ needs.package.outputs.pre_release }}
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+          VSCE_PAT: ${{ secrets.VSCE_PUBLISH }}
         run: |
           args=(--packagePath "$RUNNER_TEMP/vsix/${VSIX}" --skip-duplicate)
-          if [ "$PRE_RELEASE" = true ]; then args+=(--pre-release); fi
           if [ -z "$VSCE_PAT" ]; then
             unset VSCE_PAT
             args+=(--oidc)
           fi
           pnpm --fail-if-no-match --filter "${NAME}" run marketplace:publish "${args[@]}"
 
-      # A packaged .vsix carries its pre-release flag; ovsx ignores --pre-release for one.
       - name: Publish to Open VSX
         env:
           NAME: ${{ needs.package.outputs.name }}
           VSIX: ${{ needs.package.outputs.vsix }}
-          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+          OVSX_PAT: ${{ secrets.OVSX_PUBLISH }}
         run: |
           args=(--packagePath "$RUNNER_TEMP/vsix/${VSIX}" --skip-duplicate)
           if [ -z "$OVSX_PAT" ]; then

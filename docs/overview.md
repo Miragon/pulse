@@ -9,7 +9,8 @@ Camunda 7, CIB seven and Operaton engines are running. It reaches the same engin
 | [CLI](./cli/index.md)        | your shell, scripts, CI and coding agents | [Getting started](./cli/getting-started.md) |
 | [VS Code](./vscode/index.md) | developers next to their models and code  | [Installation](./vscode/installation.md)    |
 
-The VS Code extension is an early version and not on the Marketplace yet.
+The VS Code extension is an early version, published on the
+[Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.pulse) and [Open VSX](https://open-vsx.org/extension/miragon-gmbh/pulse).
 
 ## What they share
 
@@ -19,4 +20,4 @@ The VS Code extension is an early version and not on the Marketplace yet.
   extension writes only on local engines unless you allow more.
 - **One release.** All three ship with every Pulse release, the same version number:
   the image `ghcr.io/miragon/pulse-server`, the npm package `@miragon/pulse-cli` and the
-  extension `pulse-vscode`.
+  extension `pulse`.

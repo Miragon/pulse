@@ -38,7 +38,7 @@ const PLANTED: Readonly<Record<string, string>> = {
     "import { protocolValue } from '../core/protocol/index.ts';\nexport const value = protocolValue;\n",
   "test/adapters/c7/c7.engine.test.ts":
     "import { adapter } from '../../../src/adapters/c7/index.ts';\nexport const proven = adapter;\n",
-  "package.json": '{ "name": "pulse-vscode", "private": true }\n',
+  "package.json": '{ "name": "pulse", "private": true }\n',
 }
 
 const roots: string[] = []

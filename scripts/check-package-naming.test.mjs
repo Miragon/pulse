@@ -36,7 +36,7 @@ const WORKSPACE = [
   "",
 ].join("\n")
 const EXTENSION = {
-  name: "pulse-vscode",
+  name: "pulse",
   publisher: "miragon-gmbh",
   engines: { vscode: "^1.101.0" },
   devDependencies: { "@types/vscode": "1.101.0" },
@@ -158,8 +158,8 @@ describe("checkPackageName: VS Code extension (an app with engines.vscode)", () 
 
   it("rejects a scoped name: vsce takes none", () => {
     assertOne(
-      checkPackageName("apps/vscode", { ...EXTENSION, name: "@miragon/pulse-vscode" }),
-      /must be named 'pulse-vscode'.*unscoped/,
+      checkPackageName("apps/vscode", { ...EXTENSION, name: "@miragon/pulse" }),
+      /must be named 'pulse'.*unscoped/,
       "scoped",
     )
   })
@@ -168,7 +168,7 @@ describe("checkPackageName: VS Code extension (an app with engines.vscode)", () 
     for (const name of ["vscode", "pulse-vs-code", "miragon-vscode", undefined]) {
       assertOne(
         checkPackageName("apps/vscode", { ...EXTENSION, name }),
-        /must be named 'pulse-vscode'/,
+        /must be named 'pulse'/,
         String(name),
       )
     }
@@ -184,8 +184,7 @@ describe("checkPackageName: VS Code extension (an app with engines.vscode)", () 
     }
     // A garbage engines.vscode still makes the app an extension: the scoped name fails too.
     assert.equal(
-      checkPackageName("apps/vscode", { name: "@miragon/pulse-vscode", engines: { vscode: null } })
-        .length,
+      checkPackageName("apps/vscode", { name: "@miragon/pulse", engines: { vscode: null } }).length,
       2,
     )
   })
@@ -206,7 +205,7 @@ describe("checkPackageName: VS Code extension (an app with engines.vscode)", () 
       ["^1.101.0", "1.101.9", "devDependencies"],
       ["^1.101.0-insider", "1.101.0", "devDependencies"],
     ]) {
-      const manifest = { name: "pulse-vscode", engines: { vscode: engine }, [field]: {} }
+      const manifest = { name: "pulse", engines: { vscode: engine }, [field]: {} }
       manifest[field]["@types/vscode"] = types
       assert.deepEqual(checkPackageName("apps/vscode", manifest), [], `${engine} vs ${types}`)
     }
@@ -220,7 +219,7 @@ describe("checkPackageName: VS Code extension (an app with engines.vscode)", () 
       ["*", "1.101.0", "devDependencies"],
       ["^1.100.9", "1.101.0", "devDependencies"],
     ]) {
-      const manifest = { name: "pulse-vscode", engines: { vscode: engine }, [field]: {} }
+      const manifest = { name: "pulse", engines: { vscode: engine }, [field]: {} }
       manifest[field]["@types/vscode"] = types
       assertOne(
         checkPackageName("apps/vscode", manifest),
@@ -254,7 +253,7 @@ describe("checkPackageName: VS Code extension (an app with engines.vscode)", () 
   it("fails closed, once, on an engines.vscode it cannot read while @types/vscode is declared", () => {
     assertOne(
       checkPackageName("apps/vscode", {
-        name: "pulse-vscode",
+        name: "pulse",
         engines: { vscode: "insiders" },
         dependencies: { "@types/vscode": "1.101.0" },
         devDependencies: { "@types/vscode": "1.101.0" },
@@ -334,7 +333,7 @@ describe("checkPackageName: directory rules", () => {
     }
     assertOne(
       checkPackageName("apps/vscode-client", {
-        name: "pulse-vscode-client",
+        name: "pulse",
         engines: { vscode: "^1.101.0" },
       }),
       /role suffix -client/,
@@ -351,7 +350,7 @@ describe("checkPackageName: directory rules", () => {
         "packages/connectors/camunda/pulse-camunda7-domain",
         { name: "@miragon/pulse-pulse-camunda7-domain" },
       ],
-      ["apps/pulse-vscode", { name: "pulse-pulse-vscode", engines: { vscode: "^1.101.0" } }],
+      ["apps/pulse-vscode", { name: "pulse", engines: { vscode: "^1.101.0" } }],
     ]) {
       assertOne(checkPackageName(dir, manifest), /repeats the product prefix/, dir)
     }
@@ -539,8 +538,8 @@ describe("checkAppDependencies: no package declares an app", () => {
 
   it("fails the root package.json declaring an app (Node resolves it from every directory below)", () => {
     assertOne(
-      checkAppDependencies(future([".", { devDependencies: { "pulse-vscode": "workspace:*" } }])),
-      /^package\.json: devDependencies declares the app pulse-vscode \(apps\/vscode\)/,
+      checkAppDependencies(future([".", { devDependencies: { pulse: "workspace:*" } }])),
+      /^package\.json: devDependencies declares the app pulse \(apps\/vscode\)/,
       "root",
     )
   })
@@ -590,7 +589,7 @@ describe("checkAppDependencies: no package declares an app", () => {
       checkAppDependencies(
         future(
           extension({
-            dependencies: { "some-engine-cli": "0.9.0", "pulse-vscode-tools": "1.0.0" },
+            dependencies: { "some-engine-cli": "0.9.0", "pulse-tools": "1.0.0" },
             devDependencies: {
               "@miragon/pulse-camunda7-domain": "workspace:*",
               "@miragon/pulse-client": "workspace:*",
@@ -644,7 +643,7 @@ describe("checkPackageNaming over a fixture tree", () => {
       },
       "docs/package.json": {
         ...FUTURE["docs/package.json"],
-        devDependencies: { "pulse-vscode": "workspace:*" },
+        devDependencies: { pulse: "workspace:*" },
       },
     })
     assert.deepEqual(

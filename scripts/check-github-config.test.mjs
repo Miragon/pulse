@@ -28,7 +28,6 @@ import {
   VSCODE_APP_DIR,
   VSCODE_ENVIRONMENT,
   VSCODE_PUBLISH_WORKFLOW,
-  VSCODE_SWITCH,
   actionRefs,
   checkArtifactGlobs,
   checkCliPublishWorkflows,
@@ -104,7 +103,7 @@ const CLI = published("apps/cli", {
   name: "@miragon/pulse-cli",
   bin: { "pulse-cli": "dist/cli.js" },
 })
-const VSCODE = { "apps/vscode": { name: "pulse-vscode", engines: { vscode: "^1.101.0" } } }
+const VSCODE = { "apps/vscode": { name: "pulse", engines: { vscode: "^1.101.0" } } }
 const DOMAIN = published("packages/connectors/camunda/camunda7-domain", {
   name: "@miragon/pulse-camunda7-domain",
 })
@@ -133,7 +132,7 @@ describe("the repo", () => {
   it("publishes exactly the packages that are neither private nor an extension", () => {
     assert.equal(isNpmPublished({ name: "a" }), true)
     assert.equal(isNpmPublished({ name: "a", private: true }), false)
-    assert.equal(isNpmPublished({ name: "pulse-vscode", engines: { vscode: "^1.101.0" } }), false)
+    assert.equal(isNpmPublished({ name: "pulse", engines: { vscode: "^1.101.0" } }), false)
     assert.equal(isNpmPublished({ name: "a", engines: { node: ">=22" } }), true)
   })
 })
@@ -690,7 +689,7 @@ describe("checkPublishMatrix", () => {
     assert.deepEqual(matrixErrors(workspace({ ...TODAY, ...VSCODE })), [])
     const listed = matrixErrors(workspace({ ...TODAY, ...VSCODE }), addToMatrix("apps/vscode"))
     assert.equal(listed.length, 1)
-    assert.match(listed[0], /apps\/vscode \(pulse-vscode\) declares engines\.vscode: .*vsce\/ovsx/)
+    assert.match(listed[0], /apps\/vscode \(pulse\) declares engines\.vscode: .*vsce\/ovsx/)
     const privateExtension = {
       "apps/vscode": { ...VSCODE["apps/vscode"], private: true },
     }
@@ -954,17 +953,26 @@ describe("checkVscodePublish", () => {
       [/must need release-please and gate/],
     ],
     [
-      "a literal channel",
-      ({ caller }) => (caller.with.channel = "release"),
-      [/must pass channel: \$\{\{ vars\.VSCODE_PUBLISH \}\} \(found "release"\)/],
+      "a channel again",
+      ({ caller }) => (caller.with.channel = "${{ vars.VSCODE_PUBLISH }}"),
+      [/passes channel: every release publishes a plain release/],
     ],
-    ["no channel", ({ caller }) => delete caller.with.channel, [/must pass channel/]],
     ["a constant dry run", ({ caller }) => (caller.with.dry_run = false), [/must pass dry_run/]],
     ["no version", ({ caller }) => delete caller.with.version, [/must pass version/]],
     [
       "secrets: inherit",
       ({ caller }) => (caller.secrets = "inherit"),
-      [/passes secrets: the store credentials live in the vscode-marketplace environment/],
+      [/must pass exactly the secrets .* never secrets: inherit/],
+    ],
+    [
+      "a store token missing",
+      ({ caller }) => delete caller.secrets.OVSX_PUBLISH,
+      [/must pass exactly the secrets/],
+    ],
+    [
+      "a store token renamed",
+      ({ caller }) => (caller.secrets.VSCE_PUBLISH = "${{ secrets.VSCE_PAT }}"),
+      [/must pass exactly the secrets/],
     ],
     [
       "write-all on the caller",
@@ -982,14 +990,24 @@ describe("checkVscodePublish", () => {
       [/required string input "version"/],
     ],
     [
-      "no channel input",
-      ({ publish }) => delete publish.on.workflow_call.inputs.channel,
-      [/string input "channel"/],
+      "a channel input again",
+      ({ publish }) => (publish.on.workflow_call.inputs.channel = { type: "string" }),
+      [/takes no input "channel"/],
+    ],
+    [
+      "a pre-release again",
+      ({ jobs }) => (stepNamed(jobs.package, "Package").run += " --pre-release"),
+      [/passes --pre-release/],
     ],
     [
       "a string dry_run input",
       ({ publish }) => (publish.on.workflow_call.inputs.dry_run.type = "string"),
       [/boolean input "dry_run"/],
+    ],
+    [
+      "no store token declared",
+      ({ publish }) => delete publish.on.workflow_call.secrets.OVSX_PUBLISH,
+      [/must declare exactly the secrets VSCE_PUBLISH and OVSX_PUBLISH/],
     ],
     [
       "top-level permissions",
@@ -1050,8 +1068,8 @@ describe("checkVscodePublish", () => {
     [
       "an expression inside a run",
       ({ jobs }) => {
-        const step = stepNamed(jobs.package, "channel")
-        step.run = step.run.replace('case "$CHANNEL" in', 'case "${{ inputs.channel }}" in')
+        const step = stepNamed(jobs.package, "Package")
+        step.run = step.run.replace('"${NAME}"', '"${{ inputs.directory }}"')
       },
       [/job package: a run script holds a \$\{\{ \}\} expression/],
     ],
@@ -1207,13 +1225,8 @@ describe("checkVscodePublish", () => {
     ],
     [
       "a publish job that runs on a dry run",
-      ({ jobs }) => (jobs.publish.if = "${{ needs.package.outputs.publish == 'true' }}"),
-      [/must skip itself on a dry run and while the switch is off/],
-    ],
-    [
-      "a publish job that ignores the switch",
-      ({ jobs }) => (jobs.publish.if = "${{ inputs.dry_run != true }}"),
-      [/must skip itself on a dry run and while the switch is off/],
+      ({ jobs }) => delete jobs.publish.if,
+      [/must skip itself on a dry run/],
     ],
     [
       "a publish job that needs nothing",
@@ -1230,8 +1243,7 @@ describe("checkVscodePublish", () => {
     })
   }
 
-  it("pins the switch the caller passes and the directories the Resolve step accepts", () => {
-    assert.equal(RELEASE.jobs["publish-vscode"].with.channel, VSCODE_SWITCH)
+  it("pins the directories the Resolve step accepts", () => {
     const script = stepNamed(VSCODE_PUBLISH.jobs.package, "pkg").run
     assert.ok(script.includes(VSCODE_APP_DIR.source.replaceAll("\\/", "/")))
   })
@@ -1239,45 +1251,11 @@ describe("checkVscodePublish", () => {
 
 // ── Behaviour of the extension workflow's bash steps ────────────────────────
 
-describe("the Release switch step", () => {
-  const script = stepNamed(VSCODE_PUBLISH.jobs.package, "channel").run
-  const dir = tempDir("gh-config-switch-")
-  let runs = 0
-  const resolve = (CHANNEL) => {
-    const output = path.join(dir, `github-output-${(runs += 1)}`)
-    writeFileSync(output, "")
-    const result = runStep(script, { cwd: dir, env: { CHANNEL, GITHUB_OUTPUT: output } })
-    return { ...result, output: readFileSync(output, "utf8").trim().split("\n").filter(Boolean) }
-  }
-
-  for (const [CHANNEL, publish, preRelease] of [
-    ["", false, false],
-    ["off", false, false],
-    ["pre-release", true, true],
-    ["release", true, false],
-  ]) {
-    it(`reads ${JSON.stringify(CHANNEL)} as publish=${publish}, pre_release=${preRelease}`, () => {
-      const result = resolve(CHANNEL)
-      assert.equal(result.status, 0, result.stdout + result.stderr)
-      assert.deepEqual(result.output, [`publish=${publish}`, `pre_release=${preRelease}`])
-    })
-  }
-
-  for (const CHANNEL of ["prerelease", "true", "on", "Release", "release "]) {
-    it(`fails on ${JSON.stringify(CHANNEL)}`, () => {
-      const result = resolve(CHANNEL)
-      assert.equal(result.status, 1)
-      assert.match(result.stdout, /VSCODE_PUBLISH is/)
-      assert.deepEqual(result.output, [])
-    })
-  }
-})
-
 describe("the Resolve extension step", () => {
   const script = stepNamed(VSCODE_PUBLISH.jobs.package, "pkg").run
   const repo = tempDir("gh-config-resolve-vsix-")
   const extension = (manifest) => ({
-    name: "pulse-vscode",
+    name: "pulse",
     version: "1.2.3",
     engines: { vscode: "^1.101.0" },
     ...manifest,
@@ -1287,7 +1265,7 @@ describe("the Resolve extension step", () => {
     "apps/vscode": extension({}),
     "apps/beta": extension({ name: "pulse-beta", version: "1.2.3-beta.1" }),
     "apps/plain": { name: "pulse-plain", version: "1.2.3" },
-    "apps/scoped": extension({ name: "@miragon/pulse-vscode" }),
+    "apps/scoped": extension({ name: "@miragon/pulse" }),
   })) {
     writeFile(repo, `${dir}/package.json`, JSON.stringify(manifest))
   }
@@ -1304,19 +1282,19 @@ describe("the Resolve extension step", () => {
       const result = resolve("apps/vscode", TAG)
       assert.equal(result.status, 0, result.stdout + result.stderr)
       assert.deepEqual(result.output, [
-        "name=pulse-vscode",
+        "name=pulse",
         "version=1.2.3",
-        "vsix=pulse-vscode-1.2.3.vsix",
-        "artifact=vsix-pulse-vscode",
+        "vsix=pulse-1.2.3.vsix",
+        "artifact=vsix-pulse",
       ])
     })
   }
 
   for (const [DIR, TAG, message] of [
-    ["apps/vscode", "v1.2.4", /pulse-vscode@1\.2\.3 is not the release v1\.2\.4/],
+    ["apps/vscode", "v1.2.4", /pulse@1\.2\.3 is not the release v1\.2\.4/],
     ["apps/beta", "", /pulse-beta@1\.2\.3-beta\.1: the Marketplace takes major\.minor\.patch only/],
     ["apps/plain", "", /apps\/plain declares no engines\.vscode/],
-    ["apps/scoped", "", /is named "@miragon\/pulse-vscode": vsce takes an unscoped lowercase name/],
+    ["apps/scoped", "", /is named "@miragon\/pulse": vsce takes an unscoped lowercase name/],
     ["apps/..", "", /apps\/\.\. is no app directory/],
     ["apps/missing", "", /is no app directory/],
     ["packages/core/widget-shell", "", /is no app directory/],
@@ -1447,7 +1425,7 @@ describe("checkDependabot", () => {
     assert.ok(
       matches(
         dependabotErrors(ignoring(undefined), { packages }),
-        /apps\/vscode \(pulse-vscode\) declares engines\.vscode/,
+        /apps\/vscode \(pulse\) declares engines\.vscode/,
       ),
     )
     assert.ok(

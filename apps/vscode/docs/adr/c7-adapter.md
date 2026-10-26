@@ -274,7 +274,7 @@ every class above against recorded CLI output.
 
 - The conformance kit passes all 49 laws (34 read, 15 command) against `operaton/operaton:2.1.5`,
   `cibseven/cibseven:run-2.2.0` and `camunda/camunda-bpm-platform:run-7.24.0`
-  (`PULSE_ENGINE_IMAGE=… pnpm --filter pulse-vscode run test:engines`).
+  (`PULSE_ENGINE_IMAGE=… pnpm --filter pulse run test:engines`).
 - Spawning costs ~80 ms of Node start-up per call. Acceptable for one call per view;
   in-process calls take 2–12 ms. Once the engine use cases live in a `-domain` package of
   this repository (shared with the CLI and the MCP server), in-process implementations of

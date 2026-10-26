@@ -52,8 +52,8 @@ flowchart LR
 
 ## Build and test
 
-`pnpm --filter pulse-vscode run build` bundles the host, the webview and the engine CLI into `dist/` (`apps/vscode/scripts/build.mjs`).
-`pnpm --filter pulse-vscode test` runs `apps/vscode/test/host/` on a `vscode` fake; `test:smoke` and `test:e2e` start a real VS Code.
+`pnpm --filter pulse run build` bundles the host, the webview and the engine CLI into `dist/` (`apps/vscode/scripts/build.mjs`).
+`pnpm --filter pulse test` runs `apps/vscode/test/host/` on a `vscode` fake; `test:smoke` and `test:e2e` start a real VS Code.
 
 ## More
 

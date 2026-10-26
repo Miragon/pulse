@@ -21,7 +21,7 @@ async function vscodeExecutable() {
 async function engineIsUp() {
   const response = await fetch(`${ENGINE}/version`).catch(() => undefined)
   if (response?.ok !== true) {
-    throw new Error(`No engine at ${ENGINE}. Run "pnpm --filter pulse-vscode run engine:up" first.`)
+    throw new Error(`No engine at ${ENGINE}. Run "pnpm --filter pulse run engine:up" first.`)
   }
 }
 

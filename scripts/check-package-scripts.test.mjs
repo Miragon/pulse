@@ -362,7 +362,7 @@ const SCRIPTS = { ...COMPLETE, "test:mutation": "stryker run" }
 const PACKAGES = {
   "apps/cli": { name: "@miragon/pulse-cli", stryker: GOOD_STRYKER },
   "apps/vscode": {
-    name: "pulse-vscode",
+    name: "pulse",
     engines: { vscode: "^1.95.0" },
     stryker: GOOD_STRYKER,
   },
