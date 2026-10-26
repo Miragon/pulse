@@ -30,21 +30,21 @@ const clients = [
     title: "AI chat · pulse",
     effect: "Claude, ChatGPT or any other MCP client asks, Pulse answers with the incident.",
     action: "https://pulse-playground.miragon.ai/mcp",
-    link: "/mcp/getting-started",
+    href: "https://pulse-playground.miragon.ai/mcp",
   },
   {
     name: "Terminal",
     title: "Terminal · pulse-cli",
     effect: "Triage the whole engine in one read-only call, then fix it.",
     action: "npm install -g @miragon/pulse-cli",
-    link: "/cli/getting-started",
+    href: "https://www.npmjs.com/package/@miragon/pulse-cli",
   },
   {
     name: "VS Code",
     title: "VS Code · Order fulfillment",
     effect: "The runtime on your model, the root cause next to your code.",
     action: "code --install-extension miragon-gmbh.pulse",
-    link: "/vscode/installation",
+    href: "https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.pulse",
     early: true,
   },
 ]
@@ -225,10 +225,12 @@ async function moveBy(offset: number) {
             />
           </div>
 
-          <a class="footer" :href="withBase(client.link)">
+          <div class="footer">
             <span class="effect">{{ client.effect }}</span>
-            <code>{{ client.action }}</code>
-          </a>
+            <a class="action" :href="client.href" target="_blank" rel="noopener noreferrer"
+              ><code>{{ client.action }}</code></a
+            >
+          </div>
         </div>
       </div>
     </section>
@@ -591,9 +593,13 @@ h1 {
   gap: 8px 24px;
   padding: 10px 20px;
   border-top: 1px solid var(--cd-ui-linie);
-  color: inherit;
-  text-decoration: none;
   font-size: 14px;
+}
+.action {
+  text-decoration: none;
+}
+.action:hover code {
+  text-decoration: underline;
 }
 .effect {
   color: var(--cd-ui-text-leise);
