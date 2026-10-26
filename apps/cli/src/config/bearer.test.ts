@@ -1,16 +1,16 @@
 import fc from "fast-check"
 import { describe, expect, it } from "vitest"
 import { b64tokens } from "../../test/support/bearer.js"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import { profileAuthProblem } from "./auth.js"
 import { hasBearerKeys, normalizeToken } from "./bearer.js"
 
-function failure(action: () => unknown): OperateError {
+function failure(action: () => unknown): PulseCliError {
   try {
     action()
   } catch (error) {
-    expect(error).toBeInstanceOf(OperateError)
-    return error as OperateError
+    expect(error).toBeInstanceOf(PulseCliError)
+    return error as PulseCliError
   }
   throw new Error("expected an error")
 }

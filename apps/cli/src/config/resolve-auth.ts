@@ -9,7 +9,7 @@
  * auth.password. Basic auth needs both values; errors never show a secret.
  */
 
-import type { OperateError } from "../errors.js"
+import type { PulseCliError } from "../errors.js"
 import { compact } from "../util.js"
 import { validateAuthType, validatePassword, validateUsername } from "./auth.js"
 import { hasBearerKeys } from "./bearer.js"
@@ -320,7 +320,7 @@ export function authorizationConflict(
   authorization: Source | undefined,
   profile: string | undefined,
   authCommand = false,
-): OperateError | undefined {
+): PulseCliError | undefined {
   if (auth.type === "none" || authorization === undefined) return undefined
   const [name, sent] = CREDENTIALS[auth.type]
   const origin = headerOrigin(authorization, profile)

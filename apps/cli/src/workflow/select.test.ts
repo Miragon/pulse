@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { portOf } from "../../test/support/engine-port.js"
 import { fakeServer, json } from "../../test/support/fake-fetch.js"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import { checkSelection, mergeCandidates, selectInstance, selectionRequests } from "./select.js"
 
 function history(id: string, startTime: string, state = "ACTIVE") {
@@ -21,13 +21,13 @@ function engine(historyRows: unknown[], runtimeRows: unknown[]) {
     .on("GET", "/process-instance", json(runtimeRows))
 }
 
-async function failure(promise: Promise<unknown>): Promise<OperateError> {
+async function failure(promise: Promise<unknown>): Promise<PulseCliError> {
   try {
     await promise
   } catch (error) {
-    if (error instanceof OperateError) return error
+    if (error instanceof PulseCliError) return error
   }
-  throw new Error("expected an OperateError")
+  throw new Error("expected an PulseCliError")
 }
 
 describe("checkSelection", () => {
@@ -229,7 +229,7 @@ describe("selection details", () => {
       checkSelection({ latest: false })
       expect.unreachable()
     } catch (error) {
-      expect((error as OperateError).details.hint).toBe(
+      expect((error as PulseCliError).details.hint).toBe(
         "Pass a process instance id, --business-key <key> (optionally with --process-definition-key <key>), or --process-definition-key <key> --latest.",
       )
     }

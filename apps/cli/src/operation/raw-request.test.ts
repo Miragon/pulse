@@ -1,15 +1,15 @@
 import fc from "fast-check"
 import { describe, expect, it } from "vitest"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import { apiPath, apiQuery, parseApiPath } from "./raw-request.js"
 
 function usage(action: () => unknown): string {
   try {
     action()
   } catch (error) {
-    expect(error).toBeInstanceOf(OperateError)
-    expect((error as OperateError).code).toBe("USAGE")
-    return (error as OperateError).message
+    expect(error).toBeInstanceOf(PulseCliError)
+    expect((error as PulseCliError).code).toBe("USAGE")
+    return (error as PulseCliError).message
   }
   throw new Error("expected a usage error")
 }

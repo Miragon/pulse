@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import { withAuthNote } from "./note.js"
 import type { AuthProvider, Principal } from "./types.js"
 
@@ -10,7 +10,7 @@ class FakeOAuth implements AuthProvider {
   readonly type = "oauth"
   readonly loginStatusCommand = "pulse-cli auth status"
   user: string | undefined
-  constructor(private readonly failure: OperateError | undefined) {}
+  constructor(private readonly failure: PulseCliError | undefined) {}
 
   get principal(): Principal | undefined {
     return this.user === undefined ? undefined : { user: this.user, source: "login" }
@@ -36,7 +36,7 @@ class FakeOAuth implements AuthProvider {
   }
 }
 
-const loginRequired = new OperateError("LOGIN_REQUIRED", "Not logged in", { hint: "Log in." })
+const loginRequired = new PulseCliError("LOGIN_REQUIRED", "Not logged in", { hint: "Log in." })
 
 describe("withAuthNote", () => {
   it("returns the provider itself without a note", () => {
@@ -57,12 +57,12 @@ describe("withAuthNote", () => {
       headers: {},
       note: `Not logged in. ${NOTE}`,
     })
-    const bare = withAuthNote(new FakeOAuth(new OperateError("LOGIN_REQUIRED", "x")), NOTE)
+    const bare = withAuthNote(new FakeOAuth(new PulseCliError("LOGIN_REQUIRED", "x")), NOTE)
     await expect(bare.headers()).rejects.toMatchObject({ details: { hint: NOTE } })
   })
 
   it("keeps other failures, getters and methods of the provider as they are", async () => {
-    const other = new OperateError("NETWORK", "down")
+    const other = new PulseCliError("NETWORK", "down")
     await expect(withAuthNote(new FakeOAuth(other), NOTE).headers()).rejects.toBe(other)
     const provider = new FakeOAuth(undefined)
     const noted = withAuthNote(provider, NOTE)

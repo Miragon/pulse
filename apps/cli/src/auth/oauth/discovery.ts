@@ -9,7 +9,7 @@ import { configError } from "../../config/config-error.js"
 import { ISSUER_EXAMPLE, validateOAuthUrl } from "../../config/oauth.js"
 import { endpointSource } from "../../config/resolve-oauth.js"
 import { ENV, type OAuthConfig } from "../../config/types.js"
-import { OperateError } from "../../errors.js"
+import { PulseCliError } from "../../errors.js"
 import { getJson, sanitize, type ServerAnswer, shownUrl, statusLine, statusOf } from "./http.js"
 import type { ClientAuthMethod, OAuthDeps, ServerMetadata } from "./types.js"
 
@@ -35,14 +35,14 @@ function attempt(answer: ServerAnswer): string {
  * CONFIG for an unusable discovery answer; `earlier` is the OpenID Connect answer (404) when the
  * RFC 8414 location was tried after it, so the message names the URL the hint talks about.
  */
-function failed(answer: ServerAnswer, problem?: string, earlier?: ServerAnswer): OperateError {
+function failed(answer: ServerAnswer, problem?: string, earlier?: ServerAnswer): PulseCliError {
   const suffix = problem === undefined ? "" : `, ${problem}`
   const before = earlier === undefined ? "" : `${attempt(earlier)}, then `
   return configError(`OAuth discovery failed: ${before}${attempt(answer)}${suffix}`, DISCOVERY_HINT)
 }
 
-function serverFailed(answer: ServerAnswer): OperateError {
-  return new OperateError(
+function serverFailed(answer: ServerAnswer): PulseCliError {
+  return new PulseCliError(
     "HTTP_SERVER_ERROR",
     `The authorization server failed: ${statusLine(answer)}`,
     {

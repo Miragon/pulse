@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import {
   changedAuth,
   replacedAuthorization,
@@ -8,14 +8,14 @@ import {
 } from "./auth-edit.js"
 import type { Profile, ProfileAuth } from "./types.js"
 
-function failure(action: () => unknown): OperateError {
+function failure(action: () => unknown): PulseCliError {
   try {
     action()
   } catch (error) {
-    if (error instanceof OperateError) return error
+    if (error instanceof PulseCliError) return error
     throw error
   }
-  throw new Error("expected an OperateError")
+  throw new Error("expected an PulseCliError")
 }
 
 const STORED: ProfileAuth = { type: "basic", username: "demo", passwordEnv: "OLD_PW" }

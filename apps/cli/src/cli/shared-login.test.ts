@@ -189,22 +189,22 @@ describe("a login shared by the profiles of a repository", () => {
 
   it("names a config file of --config in the command to log in", async () => {
     const { cli } = machine({})
-    const args = ["config", "set", "p", "--config", "/home/tester/ci/operate.json"]
+    const args = ["config", "set", "p", "--config", "/home/tester/ci/pulse-cli.json"]
     const oauth = ["--auth", "oauth", "--oauth-issuer", ISSUER, "--oauth-client-id", "pulse-cli"]
     const set = await cli("/home/tester", [...args, ...oauth])
     expect(set.stderr).toBe(
-      "Next: run `pulse-cli auth login --config /home/tester/ci/operate.json --profile p` in a terminal to log in.\n",
+      "Next: run `pulse-cli auth login --config /home/tester/ci/pulse-cli.json --profile p` in a terminal to log in.\n",
     )
     const status = await cli("/home/tester", [
       "auth",
       "status",
       "--config",
-      "/home/tester/ci/operate.json",
+      "/home/tester/ci/pulse-cli.json",
       "--profile",
       "p",
     ])
     expect(errorOf(status.stderr).hint).toContain(
-      "Run `pulse-cli auth login --config /home/tester/ci/operate.json --profile p` in a terminal:",
+      "Run `pulse-cli auth login --config /home/tester/ci/pulse-cli.json --profile p` in a terminal:",
     )
   })
 })
@@ -263,7 +263,7 @@ describe("a login never crosses origins", () => {
     const { cli, tokenFiles } = machine(
       {
         [CONFIG_PATH]: own,
-        "/home/tester/ci/operate.json": own,
+        "/home/tester/ci/pulse-cli.json": own,
         [`${OTHER}/.pulse-cli.json`]: COLLECTOR,
       },
       [`${OTHER}/.git`],
@@ -273,7 +273,7 @@ describe("a login never crosses origins", () => {
     const named = await cli("/home/tester/ci", [
       "status",
       "--config",
-      "/home/tester/ci/operate.json",
+      "/home/tester/ci/pulse-cli.json",
     ])
     expect(errorOf(named.stderr)).toMatchObject({ code: "LOGIN_REQUIRED" })
     // in the repository the profile of your config file wins and keeps its login

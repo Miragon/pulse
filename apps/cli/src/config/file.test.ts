@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import type { FileSystem } from "../runtime.js"
 import { configFilePath, parseConfigFile, readConfigFile, writeConfigFile } from "./file.js"
 import type { ConfigFile } from "./types.js"
@@ -44,11 +44,11 @@ function memoryFs(files: Record<string, string> = {}) {
   return { fs, writes, dirs }
 }
 
-function parseFailure(text: string): OperateError {
+function parseFailure(text: string): PulseCliError {
   try {
     parseConfigFile(text, PATH)
   } catch (error) {
-    if (error instanceof OperateError) return error
+    if (error instanceof PulseCliError) return error
     throw error
   }
   throw new Error("expected parseConfigFile to fail")
@@ -341,7 +341,7 @@ describe("readConfigFile", () => {
 
   it("propagates parse errors", async () => {
     const { fs } = memoryFs({ [PATH]: "nope" })
-    await expect(readConfigFile(fs, PATH)).rejects.toThrow(OperateError)
+    await expect(readConfigFile(fs, PATH)).rejects.toThrow(PulseCliError)
   })
 
   it("requires the file when the user named it", async () => {
@@ -370,7 +370,7 @@ describe("readConfigFile", () => {
       code: "CONFIG",
       message: `Cannot read config file ${PATH} (${code})`,
     })
-    expect((error as OperateError).details.hint).toContain("--config or PULSE_CLI_CONFIG")
+    expect((error as PulseCliError).details.hint).toContain("--config or PULSE_CLI_CONFIG")
   })
 })
 

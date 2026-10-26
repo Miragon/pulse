@@ -31,7 +31,7 @@ function shellWords(line: string): string[] {
   return commandWords(line).map((word) => word.replaceAll("'", ""))
 }
 
-function operateSegments(words: readonly string[]): string[][] {
+function cliSegments(words: readonly string[]): string[][] {
   const segments: string[][] = [[]]
   for (const word of words) {
     if (SHELL_OPERATORS.has(word)) segments.push([])
@@ -50,7 +50,7 @@ function fencedCommands(markdown: string): string[][] {
   for (const line of markdown.split("\n")) {
     if (line.startsWith("```")) fence = fence === undefined ? line.slice(3) : undefined
     else if (fence !== undefined && /^sh(?: \[.*\])?$/.test(fence)) {
-      commands.push(...operateSegments(shellWords(line)))
+      commands.push(...cliSegments(shellWords(line)))
     }
   }
   return commands

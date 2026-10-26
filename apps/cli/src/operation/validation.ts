@@ -3,7 +3,7 @@
 import type { Schemas } from "../catalog/schema.js"
 import type { OperationSpec } from "../catalog/types.js"
 import { type Problem, validateBody } from "../catalog/validate.js"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import { jsonBody, type OperationInput } from "./request.js"
 
 const MAX_LISTED = 5
@@ -21,7 +21,7 @@ export function checkBody(operation: OperationSpec, input: OperationInput, schem
   if (operation.body?.kind !== "json") return
   const problems = validateBody(operation.body.schema, jsonBody(input), schemas)
   if (problems.length === 0) return
-  throw new OperateError("VALIDATION", `Invalid request body: ${formatProblems(problems)}`, {
+  throw new PulseCliError("VALIDATION", `Invalid request body: ${formatProblems(problems)}`, {
     hint: `Run \`pulse-cli describe ${operation.group} ${operation.name}\` to see the body schema, or pass --no-validate to skip this check.`,
     data: problems,
   })

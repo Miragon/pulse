@@ -2,7 +2,7 @@
 
 import { posix, win32 } from "node:path"
 import { describe, expect, it } from "vitest"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import { changedAuth, replacedFamily, settleAuthorization, usesCredentials } from "./auth-edit.js"
 import { listProfiles, setProfile, showConfig } from "./edit.js"
 import { tokenDirectory, tokenPath } from "./file.js"
@@ -14,13 +14,13 @@ const ISSUER = "https://login.example.com/realms/camunda"
 const OAUTH: ProfileAuth = { type: "oauth", issuer: ISSUER, clientId: "pulse-cli" }
 const BASIC: ProfileAuth = { type: "basic", username: "demo", passwordEnv: "PW" }
 
-function failure(action: () => unknown): OperateError {
+function failure(action: () => unknown): PulseCliError {
   try {
     action()
   } catch (error) {
-    expect(error).toBeInstanceOf(OperateError)
-    expect((error as OperateError).code).toBe("CONFIG")
-    return error as OperateError
+    expect(error).toBeInstanceOf(PulseCliError)
+    expect((error as PulseCliError).code).toBe("CONFIG")
+    return error as PulseCliError
   }
   throw new Error("expected an error")
 }

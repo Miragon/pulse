@@ -7,7 +7,7 @@ import { expect } from "vitest"
 import { fakeIdp, type FakeIdpOptions } from "./fake-idp.js"
 import { fakeRuntime, type FakeRuntime, fileText } from "./fake-runtime.js"
 import { cachedLogin, cacheText, oauthConfig, oauthDeps, TOKEN_FILE } from "./oauth.js"
-import { OperateError } from "../../src/errors.js"
+import { PulseCliError } from "../../src/errors.js"
 import type { AuthProvider } from "../../src/auth/types.js"
 import { oauthAuth } from "../../src/auth/oauth/provider.js"
 import type { CachedLogin, OAuthDeps } from "../../src/auth/oauth/types.js"
@@ -58,12 +58,12 @@ export function setup(
   }
 }
 
-export async function rejection(promise: Promise<unknown>): Promise<OperateError> {
+export async function rejection(promise: Promise<unknown>): Promise<PulseCliError> {
   try {
     await promise
   } catch (error) {
-    expect(error).toBeInstanceOf(OperateError)
-    return error as OperateError
+    expect(error).toBeInstanceOf(PulseCliError)
+    return error as PulseCliError
   }
   throw new Error("expected an error")
 }

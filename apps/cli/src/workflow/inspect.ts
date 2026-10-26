@@ -4,7 +4,7 @@
  */
 
 import type { EnginePort, PlannedRequest } from "../engine-port/engine-port.js"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import { compact, isRecord, mapLimit } from "../util.js"
 import { isMissing, json, listByIds, PARALLEL } from "./engine.js"
 import { field, type Rec, records, str } from "./records.js"
@@ -51,8 +51,8 @@ export function instanceRequests(id: string): PlannedRequest[] {
 }
 
 /** NOT_FOUND for an id that neither the runtime nor the history knows. */
-export function instanceMissing(id: string): OperateError {
-  return new OperateError(
+export function instanceMissing(id: string): PulseCliError {
+  return new PulseCliError(
     "NOT_FOUND",
     `Process instance ${id} does not exist (neither running nor in the history)`,
     {
@@ -114,7 +114,7 @@ async function endedData(port: EnginePort, id: string, history: Rec, options: In
 function endedMeanwhile(error: unknown): boolean {
   if (isMissing(error)) return true
   return (
-    error instanceof OperateError &&
+    error instanceof PulseCliError &&
     error.details.status === 500 &&
     error.details.engineType === "NullValueException"
   )
@@ -291,7 +291,7 @@ export async function loadView(
     return await loadInstance(port, id, options)
   } catch (error) {
     if (
-      error instanceof OperateError &&
+      error instanceof PulseCliError &&
       error.code === "NOT_FOUND" &&
       error.details.status === undefined
     ) {

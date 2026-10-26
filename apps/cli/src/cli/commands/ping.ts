@@ -11,7 +11,7 @@ import type { AuthProvider } from "../../auth/types.js"
 import { findByOperationId } from "../../catalog/catalog.js"
 import type { Catalog, OperationSpec } from "../../catalog/types.js"
 import type { AuthConfig } from "../../config/types.js"
-import { OperateError } from "../../errors.js"
+import { PulseCliError } from "../../errors.js"
 import { dryRunPreview, sendRequest } from "../../operation/execute.js"
 import { buildRequest, type OperationInput } from "../../operation/request.js"
 import type { OperationResult } from "../../operation/result.js"
@@ -37,7 +37,7 @@ const DESCRIPTION = [
 function catalogOperation(catalog: Catalog, operationId: string): OperationSpec {
   const operation = findByOperationId(catalog, operationId)
   if (operation === undefined) {
-    throw new OperateError("INTERNAL", `The catalog has no operation ${operationId}`)
+    throw new PulseCliError("INTERNAL", `The catalog has no operation ${operationId}`)
   }
   return operation
 }
@@ -64,7 +64,7 @@ export function engineNames(result: OperationResult): string[] {
 /** Throws CONFIG when `engine` is set but not among the (non-empty) engine names. */
 export function checkEngine(engine: string | undefined, names: readonly string[]): void {
   if (engine === undefined || names.length === 0 || names.includes(engine)) return
-  throw new OperateError("CONFIG", `Process engine "${engine}" does not exist`, {
+  throw new PulseCliError("CONFIG", `Process engine "${engine}" does not exist`, {
     hint: `The REST API serves: ${names.join(", ")}. Pass one of them with --engine (or PULSE_CLI_ENGINE, or the profile setting engine), or leave it unset for the default engine.`,
   })
 }

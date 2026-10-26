@@ -5,7 +5,7 @@
  * instead of as a network error. Messages never repeat a value, it may be a credential.
  */
 
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import { mergeHeaders } from "../util.js"
 import { configError } from "./config-error.js"
 import type { Env } from "./pick.js"
@@ -96,7 +96,7 @@ export function parseEnvHeaders(value: string | undefined): Record<string, strin
   try {
     return parseHeaders(lines)
   } catch (error) {
-    const reason = error instanceof OperateError ? error.message : String(error)
+    const reason = error instanceof PulseCliError ? error.message : String(error)
     throw configError(
       `Invalid ${ENV.headers}: ${reason}`,
       `Example: ${ENV.headers}='X-API-Key: <key>'; separate several headers with line breaks. A bearer token goes into ${ENV.token} (--auth bearer).`,

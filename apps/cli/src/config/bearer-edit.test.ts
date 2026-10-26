@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import {
   changedAuth,
   replacedFamily,
@@ -12,14 +12,14 @@ import { listProfiles, setProfile, showConfig, unsetProfileKeys } from "./edit.j
 import { resolveConfig } from "./resolve.js"
 import type { ConfigFile, ProfileAuth } from "./types.js"
 
-function failure(action: () => unknown): OperateError {
+function failure(action: () => unknown): PulseCliError {
   try {
     action()
   } catch (error) {
-    if (error instanceof OperateError) return error
+    if (error instanceof PulseCliError) return error
     throw error
   }
-  throw new Error("expected an OperateError")
+  throw new Error("expected an PulseCliError")
 }
 
 function file(auth: ProfileAuth, headers?: Record<string, string>): ConfigFile {

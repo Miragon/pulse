@@ -33,7 +33,7 @@ static_resources:
                           forward: true
                           remote_jwks:
                             http_uri:
-                              uri: http://keycloak:8080/realms/operate/protocol/openid-connect/certs
+                              uri: http://keycloak:8080/realms/pulse/protocol/openid-connect/certs
                               cluster: keycloak
                               timeout: 5s
                             cache_duration: 300s

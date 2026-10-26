@@ -21,7 +21,7 @@ import {
   type Source,
   type StaticBearerConfig,
 } from "../../config/types.js"
-import { type OperateError, usageError } from "../../errors.js"
+import { type PulseCliError, usageError } from "../../errors.js"
 import type { LogoutView } from "./auth-view.js"
 
 export interface BearerStatusView {
@@ -87,7 +87,7 @@ export function bearerStatusView(
 }
 
 /** TOKEN_EXPIRED for a JWT whose `exp` lies more than 30 s in the past, else undefined. */
-export function expiredError(config: StaticBearerConfig, now: number): OperateError | undefined {
+export function expiredError(config: StaticBearerConfig, now: number): PulseCliError | undefined {
   const expiresAt = jwtClaims(config.token)?.expiresAt ?? null
   return expiresAt !== null && isExpired({ expiresAt }, now)
     ? tokenExpired(config, expiresAt)
@@ -165,7 +165,7 @@ function commandLoginHint(by: string, selection: BearerSelection): string {
  * hint names what selected bearer auth (the profile, PULSE_CLI_AUTH, a token without a type), so it
  * never suggests removing the OAuth settings of a profile that PULSE_CLI_AUTH=bearer overrides.
  */
-export function bearerNotManaged(command: string, selection: BearerSelection): OperateError {
+export function bearerNotManaged(command: string, selection: BearerSelection): PulseCliError {
   const selector = selectorOf(selection)
   const by = `bearer auth is selected by ${selectedBy(selector, selection)}`
   if (command !== "logout" && selection.token?.command === true) {

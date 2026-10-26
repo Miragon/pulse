@@ -104,14 +104,14 @@ export function registerErrors(suite: BearerSuite): void {
   it("asks for an explicit --auth when a token and a username are both set", async () => {
     const env = {
       PULSE_CLI_TOKEN: suite.ciToken,
-      PULSE_CLI_USERNAME: "operateit",
+      PULSE_CLI_USERNAME: "pulseit",
       PULSE_CLI_PASSWORD: STRAY_PASSWORD,
     }
     const both = await run(countArgs(globalFlag("verbose")), { env })
     expect(explanation(expectError(both, "CONFIG", 3))).toContain("--auth")
     expect(both.stderr).not.toMatch(SENT_REQUEST)
     const flags = await run(
-      countArgs(globalFlag("auth-user"), "operateit", globalFlag("auth-token-stdin")),
+      countArgs(globalFlag("auth-user"), "pulseit", globalFlag("auth-token-stdin")),
       { stdin: `${suite.ciToken}\n` },
     )
     expectError(flags, "CONFIG", 3)
@@ -189,7 +189,7 @@ export function registerErrors(suite: BearerSuite): void {
     })
     await writeProfile("it-basic", {
       url: top().url,
-      auth: { type: "basic", username: "operateit", passwordEnv: "IT_STRAY_PASSWORD" },
+      auth: { type: "basic", username: "pulseit", passwordEnv: "IT_STRAY_PASSWORD" },
     })
     const env = { PULSE_CLI_TOKEN: suite.ciToken, IT_STRAY_PASSWORD: STRAY_PASSWORD }
     const note = "A bearer token is set (from PULSE_CLI_TOKEN) but not used"

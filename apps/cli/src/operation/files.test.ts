@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import type { FileSystem } from "../runtime.js"
 import { readInputFile } from "./files.js"
 
@@ -18,12 +18,12 @@ function failingFs(error: unknown): FileSystem {
   }
 }
 
-async function caught(promise: Promise<unknown>): Promise<OperateError> {
+async function caught(promise: Promise<unknown>): Promise<PulseCliError> {
   try {
     await promise
   } catch (error) {
-    expect(error).toBeInstanceOf(OperateError)
-    return error as OperateError
+    expect(error).toBeInstanceOf(PulseCliError)
+    return error as PulseCliError
   }
   throw new Error("expected an error")
 }

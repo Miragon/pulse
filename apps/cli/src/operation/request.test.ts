@@ -1,7 +1,7 @@
 import fc from "fast-check"
 import { describe, expect, it } from "vitest"
 import type { OperationSpec, ParamSpec } from "../catalog/types.js"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import {
   acceptHeader,
   buildRequest,
@@ -94,7 +94,7 @@ describe("expandPath", () => {
       try {
         expandPath(op, ["abc"])
       } catch (caught) {
-        return caught as OperateError
+        return caught as PulseCliError
       }
       throw new Error("expected an error")
     })()
@@ -137,7 +137,7 @@ describe("expandPath", () => {
     fc.assert(
       fc.property(fc.constantFrom("", ".", ".."), fc.boolean(), (bad, first) => {
         const args = first ? [bad, "ok"] : ["ok", bad]
-        expect(() => expandPath(op, args)).toThrow(OperateError)
+        expect(() => expandPath(op, args)).toThrow(PulseCliError)
       }),
     )
   })

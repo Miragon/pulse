@@ -11,7 +11,7 @@ import {
   TOKEN_DIR,
   TOKEN_FILE,
 } from "../../../test/support/oauth.js"
-import { OperateError } from "../../errors.js"
+import { PulseCliError } from "../../errors.js"
 import type { FileSystem } from "../../runtime.js"
 import {
   cacheFileName,
@@ -30,12 +30,12 @@ import type { CachedLogin } from "./types.js"
 
 const NOW = 1_700_000_000_000
 
-async function rejection(promise: Promise<unknown>): Promise<OperateError> {
+async function rejection(promise: Promise<unknown>): Promise<PulseCliError> {
   try {
     await promise
   } catch (error) {
-    expect(error).toBeInstanceOf(OperateError)
-    return error as OperateError
+    expect(error).toBeInstanceOf(PulseCliError)
+    return error as PulseCliError
   }
   throw new Error("expected an error")
 }
@@ -354,7 +354,7 @@ describe("withCacheLock", () => {
       `Another pulse-cli process holds ${TOKEN_FILE}.lock. If no pulse-cli process is running, remove ${TOKEN_FILE}.lock; nothing was sent.`,
     )
     expect(isLockError(error)).toBe(true)
-    expect(isLockError(new OperateError("CONFIG", "other"))).toBe(false)
+    expect(isLockError(new PulseCliError("CONFIG", "other"))).toBe(false)
   })
 
   it("counts a lock that never ran the action as not taken", async () => {

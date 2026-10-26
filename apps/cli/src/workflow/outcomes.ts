@@ -3,7 +3,7 @@
  * reach the expected state. Commands print their view on stdout before these errors. Pure.
  */
 
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import { formatDuration } from "../operation/durations.js"
 import { compact } from "../util.js"
 import { isAdvanceable, isSuspendedJob } from "./next.js"
@@ -22,7 +22,7 @@ function incidentText(incident: IncidentView): string {
   return `${incident.type} at ${incident.activityId}: ${incident.rootCause ?? incident.message ?? ""}`
 }
 
-export function incidentError(id: string, incidents: readonly IncidentView[]): OperateError {
+export function incidentError(id: string, incidents: readonly IncidentView[]): PulseCliError {
   const [first] = incidents
   let what = "an incident"
   if (first !== undefined) {
@@ -40,7 +40,7 @@ export function incidentError(id: string, incidents: readonly IncidentView[]): O
       processInstanceId: incident.processInstanceId,
     }),
   )
-  return new OperateError("INCIDENT", `Process instance ${id} has ${what}`, {
+  return new PulseCliError("INCIDENT", `Process instance ${id} has ${what}`, {
     hint: `Fix the cause, then run \`pulse-cli retry ${id}\`; --no-fail-on-incident keeps waiting despite incidents.`,
     data: { incidents: named },
   })
@@ -85,8 +85,8 @@ export function timeoutError(
     /** The wait states when no job was due at the end; undefined when jobs were due. */
     readonly idleAt?: readonly WaitState[] | undefined
   },
-): OperateError {
-  return new OperateError(
+): PulseCliError {
+  return new PulseCliError(
     "WAIT_TIMEOUT",
     `Timed out after ${formatDuration(timeoutMs)} waiting until ${until.join(" or ")} (process instance ${id})`,
     {
@@ -96,8 +96,8 @@ export function timeoutError(
   )
 }
 
-export function endedError(id: string, until: readonly string[], state: string): OperateError {
-  return new OperateError(
+export function endedError(id: string, until: readonly string[], state: string): PulseCliError {
+  return new PulseCliError(
     "INSTANCE_ENDED",
     `Process instance ${id} ended (${state}) before reaching ${until.join(" or ")}`,
     {
@@ -122,10 +122,10 @@ function failureText(failure: JobFailure | undefined): string {
 export function jobFailedError(
   failures: readonly JobFailure[],
   data: readonly unknown[] = failures,
-): OperateError {
+): PulseCliError {
   const [first] = failures
   const more = failures.length > 1 ? ` (and ${failures.length - 1} more)` : ""
-  return new OperateError("JOB_FAILED", `${failureText(first)}${more}`, {
+  return new PulseCliError("JOB_FAILED", `${failureText(first)}${more}`, {
     hint: `\`${inspectCommand(first)}\` shows the stacktrace; fix the cause, then retry.`,
     data: { failures: data },
   })

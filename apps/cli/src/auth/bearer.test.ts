@@ -3,7 +3,7 @@ import { jwtWith, NOW_S, VALID_CLAIMS } from "../../test/support/bearer.js"
 import { fakeRuntime } from "../../test/support/fake-runtime.js"
 import { authDeps } from "../../test/support/oauth.js"
 import type { StaticBearerConfig } from "../config/types.js"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import { compact } from "../util.js"
 import { bearerAuth, claimText, renewal, tokenExpired } from "./bearer.js"
 import { createAuthProvider } from "./index.js"
@@ -61,8 +61,8 @@ describe("bearerAuth", () => {
       () => undefined,
       (reason: unknown) => reason,
     )
-    expect(error).toBeInstanceOf(OperateError)
-    const expired = error as OperateError
+    expect(error).toBeInstanceOf(PulseCliError)
+    const expired = error as PulseCliError
     expect(expired.code).toBe("TOKEN_EXPIRED")
     expect(expired.exitCode).toBe(4)
     expect(expired.message).toBe(

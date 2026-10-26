@@ -1,6 +1,6 @@
 import fc from "fast-check"
 import { describe, expect, it } from "vitest"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import { profileAuthProblem } from "./auth.js"
 import {
   hasOAuthKeys,
@@ -14,13 +14,13 @@ import {
   validateScopes,
 } from "./oauth.js"
 
-function failure(action: () => unknown): OperateError {
+function failure(action: () => unknown): PulseCliError {
   try {
     action()
   } catch (error) {
-    expect(error).toBeInstanceOf(OperateError)
-    expect((error as OperateError).code).toBe("CONFIG")
-    return error as OperateError
+    expect(error).toBeInstanceOf(PulseCliError)
+    expect((error as PulseCliError).code).toBe("CONFIG")
+    return error as PulseCliError
   }
   throw new Error("expected an error")
 }

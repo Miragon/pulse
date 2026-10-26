@@ -1,7 +1,7 @@
 import fc from "fast-check"
 import { describe, expect, it } from "vitest"
 import { fakeRuntime } from "../../test/support/fake-runtime.js"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import type { FileSystem } from "../runtime.js"
 import { omit } from "../util.js"
 import {
@@ -22,14 +22,14 @@ function find(cwd: string, files: Record<string, string> = {}, dirs: string[] = 
   return findProjectFile(runtime.fs, cwd, LINUX)
 }
 
-async function failure(action: () => unknown): Promise<OperateError> {
+async function failure(action: () => unknown): Promise<PulseCliError> {
   try {
     await action()
   } catch (error) {
-    if (error instanceof OperateError) return error
+    if (error instanceof PulseCliError) return error
     throw error
   }
-  throw new Error("expected an OperateError")
+  throw new Error("expected an PulseCliError")
 }
 
 describe("findProjectFile", () => {

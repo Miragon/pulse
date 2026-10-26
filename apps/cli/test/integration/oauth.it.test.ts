@@ -7,7 +7,7 @@
  *
  * Every test that needs a login runs its own (0.1–0.6 s): several end their session on purpose.
  * Expiry is reached by rewriting the token cache where that is enough; the 5 s access tokens of
- * `operate-cli-short` cover the real expiry paths (proactive refresh, 401 from the gateway).
+ * `pulse-cli-short` cover the real expiry paths (proactive refresh, 401 from the gateway).
  * Every CLI run is checked against every token, code and client secret seen so far.
  */
 

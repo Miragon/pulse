@@ -5,21 +5,21 @@
  * the Basic credentials, and neither would mention the token the agent exported.
  */
 
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import type { AuthPreview, AuthProvider } from "./types.js"
 
 /** Failures of `headers()` and `refresh()` that the note explains. */
 const NOTED_CODES: ReadonlySet<string> = new Set(["LOGIN_REQUIRED"])
 
-function withHint(error: OperateError, note: string): OperateError {
+function withHint(error: PulseCliError, note: string): PulseCliError {
   const { hint } = error.details
   const details = { ...error.details, hint: hint === undefined ? note : `${hint} ${note}` }
-  return new OperateError(error.code, error.message, details, error.cause)
+  return new PulseCliError(error.code, error.message, details, error.cause)
 }
 
 function noted(note: string): (error: unknown) => never {
   return (error) => {
-    throw error instanceof OperateError && NOTED_CODES.has(error.code)
+    throw error instanceof PulseCliError && NOTED_CODES.has(error.code)
       ? withHint(error, note)
       : error
   }

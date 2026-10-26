@@ -1,18 +1,18 @@
 import fc from "fast-check"
 import { describe, expect, it } from "vitest"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import { DATE_TIME_HINT, normalizeDateTime } from "./dates.js"
 import { parseVariable, parseVariables, typeValue, VARIABLE_TYPES } from "./variables.js"
 
 const INT32_MIN = -(2 ** 31)
 const INT32_MAX = 2 ** 31 - 1
 
-function caught(action: () => unknown): OperateError {
+function caught(action: () => unknown): PulseCliError {
   try {
     action()
   } catch (error) {
-    expect(error).toBeInstanceOf(OperateError)
-    return error as OperateError
+    expect(error).toBeInstanceOf(PulseCliError)
+    return error as PulseCliError
   }
   throw new Error("expected an error")
 }

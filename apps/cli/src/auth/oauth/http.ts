@@ -7,7 +7,7 @@
  */
 
 import { redactUrl } from "../../config/redact.js"
-import { OperateError } from "../../errors.js"
+import { PulseCliError } from "../../errors.js"
 import { failureDetail, networkError } from "../../http/client.js"
 import { statusTextOf } from "../../http/status.js"
 import { isRecord } from "../../util.js"
@@ -95,7 +95,7 @@ function unreachable(error: unknown, method: string, endpoint: Endpoint, deps: O
   const mapped = networkError(error, { method, url, headers: {} }, deps.timeoutMs)
   const detail =
     mapped.code === "TIMEOUT" ? `timed out after ${deps.timeoutMs} ms` : failureDetail(error)
-  return new OperateError(
+  return new PulseCliError(
     mapped.code === "TIMEOUT" ? "TIMEOUT" : "NETWORK",
     `Cannot reach the authorization server at ${shownUrl(url)}${detail === undefined ? "" : ` (${detail})`}`,
     {

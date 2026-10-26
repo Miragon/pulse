@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { findByOperationId, loadCatalog } from "../catalog/catalog.js"
 import type { OperationSpec } from "../catalog/types.js"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import { buildQuery, splitArgs } from "./params.js"
 
 const catalog = loadCatalog()
@@ -12,12 +12,12 @@ function op(operationId: string): OperationSpec {
   return operation
 }
 
-function caught(action: () => unknown): OperateError {
+function caught(action: () => unknown): PulseCliError {
   try {
     action()
   } catch (error) {
-    expect(error).toBeInstanceOf(OperateError)
-    return error as OperateError
+    expect(error).toBeInstanceOf(PulseCliError)
+    return error as PulseCliError
   }
   throw new Error("expected an error")
 }

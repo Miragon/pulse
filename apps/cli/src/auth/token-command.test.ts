@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { fakeRuntime, type FakeRuntimeOptions } from "../../test/support/fake-runtime.js"
 import { authDeps } from "../../test/support/oauth.js"
 import type { CommandBearerConfig } from "../config/types.js"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import type { TraceEvent } from "../http/types.js"
 import { runTokenCommand } from "./token-command.js"
 
@@ -22,7 +22,7 @@ async function runWith(options: FakeRuntimeOptions) {
   try {
     return { token: await runTokenCommand(CONFIG, deps), runtime, events }
   } catch (error) {
-    if (!(error instanceof OperateError)) throw error
+    if (!(error instanceof PulseCliError)) throw error
     return { error, runtime, events }
   }
 }

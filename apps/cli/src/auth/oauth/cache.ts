@@ -9,7 +9,7 @@
 
 import { configError } from "../../config/config-error.js"
 import type { LoginKey, OAuthConfig } from "../../config/types.js"
-import { OperateError } from "../../errors.js"
+import { PulseCliError } from "../../errors.js"
 import { isRecord } from "../../util.js"
 import { type LoginOwner, unknownFormat } from "./errors.js"
 import { identityOf } from "./identity.js"
@@ -172,7 +172,7 @@ export function serializeCache(login: CachedLogin): string {
   return `${JSON.stringify(value, null, 2)}\n`
 }
 
-function writeError(path: string, error: unknown): OperateError {
+function writeError(path: string, error: unknown): PulseCliError {
   return configError(
     `Cannot write token cache ${path} (${reasonOf(error)})`,
     "Check the permissions of the token directory.",
@@ -197,15 +197,15 @@ export async function removeCache(path: string, deps: Pick<OAuthDeps, "fs">): Pr
   }
 }
 
-const lockErrors = new WeakSet<OperateError>()
+const lockErrors = new WeakSet<PulseCliError>()
 
 /** True for the CONFIG error of a lock that could not be taken (nothing was sent). */
 export function isLockError(error: unknown): boolean {
-  return error instanceof OperateError && lockErrors.has(error)
+  return error instanceof PulseCliError && lockErrors.has(error)
 }
 
-function lockError(path: string, cause: unknown): OperateError {
-  const error = new OperateError(
+function lockError(path: string, cause: unknown): PulseCliError {
+  const error = new PulseCliError(
     "CONFIG",
     `Cannot lock the token cache ${path}`,
     {

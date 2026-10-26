@@ -18,27 +18,27 @@ import type { LoginOutput } from "../support/types.js"
 
 /** Profiles of the suite's config file. */
 export const PROFILE = {
-  /** operate-cli, audience engine-rest (sent, ignored by Keycloak), offline token */
+  /** pulse-cli, audience engine-rest (sent, ignored by Keycloak), offline token */
   it: "it",
-  /** operate-cli-short: 5 s access tokens */
+  /** pulse-cli-short: 5 s access tokens */
   short: "short",
-  /** operate-cli-short with scopes ["openid"]: an online session, which an admin logout ends */
+  /** pulse-cli-short with scopes ["openid"]: an online session, which an admin logout ends */
   online: "online",
-  /** operate-cli-confidential, secret from IT_CLIENT_SECRET */
+  /** pulse-cli-confidential, secret from IT_CLIENT_SECRET */
   conf: "conf",
-  /** operate-cli-noaud: Envoy answers 403 */
+  /** pulse-cli-noaud: Envoy answers 403 */
   noaud: "noaud",
   /** a client id Keycloak does not know */
   wrongClient: "wrong-client",
-  /** operate-cli with the issuer spelled http://127.0.0.1:<port>/... (only with Docker on localhost) */
+  /** pulse-cli with the issuer spelled http://127.0.0.1:<port>/... (only with Docker on localhost) */
   loopbackIp: "loopback-ip",
-  /** operate-cli like "it" with the email scope: two profiles that share a login, names differ in case */
+  /** pulse-cli like "it" with the email scope: two profiles that share a login, names differ in case */
   caseLower: "case-it",
   caseUpper: "Case-It",
 } as const
 
 export const CLIENT_SECRET_ENV = "IT_CLIENT_SECRET"
-export const UNKNOWN_CLIENT = "operate-cli-unknown"
+export const UNKNOWN_CLIENT = "pulse-cli-unknown"
 export const AUDIENCE = "engine-rest"
 export const DEFAULT_SCOPES = ["openid", "offline_access"]
 /** The scopes of the profiles that share a login: other than those of "it", so a login of their own. */
@@ -115,7 +115,7 @@ export function profilesOf({ url, issuer, host, keycloakPort }: OAuthTopology) {
     url,
     auth: { type: "oauth", issuer, ...auth },
   })
-  const loopbackIssuer = `http://127.0.0.1:${keycloakPort}/realms/operate`
+  const loopbackIssuer = `http://127.0.0.1:${keycloakPort}/realms/pulse`
   return {
     [PROFILE.it]: oauth({ clientId: CLIENTS.public, audience: AUDIENCE }),
     [PROFILE.short]: oauth({ clientId: CLIENTS.short }),

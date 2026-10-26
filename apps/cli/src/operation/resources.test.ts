@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { fakeRuntime } from "../../test/support/fake-runtime.js"
 import { findByOperationId, loadCatalog } from "../catalog/catalog.js"
 import type { MultipartBodySpec } from "../catalog/types.js"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import { bpmnProcessIds, collectResources, isBpmn, isDmn } from "./resources.js"
 
 const spec = findByOperationId(loadCatalog(), "createDeployment")?.body as MultipartBodySpec
@@ -23,11 +23,11 @@ function fs(others: readonly string[] = []) {
   return fakeRuntime({ files: FILES, others, dirs: ["project/empty"] }).fs
 }
 
-async function usage(promise: Promise<unknown>): Promise<OperateError> {
+async function usage(promise: Promise<unknown>): Promise<PulseCliError> {
   try {
     await promise
   } catch (error) {
-    if (error instanceof OperateError) return error
+    if (error instanceof PulseCliError) return error
   }
   throw new Error("expected a usage error")
 }

@@ -23,7 +23,7 @@ export const PROFILE = {
 /** Variable named by the profiles' `tokenEnv`. */
 export const TOKEN_ENV = "IT_TOKEN"
 export const AUDIENCE = "engine-rest"
-/** `preferred_username` of the tokens of `operate-ci`. */
+/** `preferred_username` of the tokens of `pulse-ci`. */
 export const SERVICE_ACCOUNT = `service-account-${CLIENTS.ci}`
 /** Generous, like the OAuth suite: Keycloak and the gateway share the machine with many containers. */
 export const RUN_TIMEOUT_MS = 90_000

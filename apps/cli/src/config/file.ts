@@ -1,7 +1,7 @@
 /** Location, parsing, validation and persistence of the config file. */
 
 import { dirname, posix, win32 } from "node:path"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import type { FileSystem } from "../runtime.js"
 import { isRecord } from "../util.js"
 import { jsonErrorPosition } from "./json-position.js"
@@ -247,7 +247,7 @@ export async function readConfigFile(
     }
     data = await fs.readFile(path)
   } catch (error) {
-    throw error instanceof OperateError ? error : ioError("read", path, error)
+    throw error instanceof PulseCliError ? error : ioError("read", path, error)
   }
   return parseConfigFile(new TextDecoder().decode(data), path)
 }

@@ -3,7 +3,7 @@
  * naming the next command, and the overall status (the highest severity, else `ok`).
  */
 
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import { formatDuration } from "../operation/durations.js"
 import { amount, compareText, engineTime, field, type Rec, str } from "./records.js"
 import { shellWord } from "./shell.js"
@@ -142,11 +142,11 @@ export function checkFailure(
   status: EngineStatus,
   list: readonly Finding[],
   failOn: Severity | undefined,
-): OperateError | undefined {
+): PulseCliError | undefined {
   const reached = failOn === "warning" ? status !== "ok" : status === "critical"
   if (failOn === undefined || !reached) return undefined
   const next = list[0]?.next
-  return new OperateError(
+  return new PulseCliError(
     "CHECK_FAILED",
     `Engine status is ${status} (${plural(list.length, "finding")})`,
     {

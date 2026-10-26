@@ -8,7 +8,7 @@
 import { type Command, Option } from "commander"
 import { OUTPUT_FORMATS } from "../../config/types.js"
 import { findGuideTopic, GUIDE, GUIDE_TOPICS, topicSuggestions } from "../../docs/guide.js"
-import { type OperateError, usageError } from "../../errors.js"
+import { type PulseCliError, usageError } from "../../errors.js"
 import { renderTable } from "../../output/table.js"
 import { compact } from "../../util.js"
 import { subcommand } from "../command.js"
@@ -32,7 +32,7 @@ interface GuideOptions {
   readonly output?: string
 }
 
-function unknownTopic(name: string): OperateError {
+function unknownTopic(name: string): PulseCliError {
   return usageError(
     `Unknown guide topic "${name}"`,
     `${didYouMean(topicSuggestions(name))}The topics are ${TOPIC_NAMES.join(", ")} ("pulse-cli guide --list" summarizes them); "pulse-cli guide" alone prints the core guide.`,
@@ -40,7 +40,7 @@ function unknownTopic(name: string): OperateError {
 }
 
 /** `--list` with a topic; the hint offers the topic only when it exists. */
-function listWithTopic(name: string): OperateError {
+function listWithTopic(name: string): PulseCliError {
   const one =
     findGuideTopic(name) === undefined ? "" : ` or "pulse-cli guide ${name}" for one topic`
   return usageError(

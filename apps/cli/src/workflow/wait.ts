@@ -5,7 +5,7 @@
  */
 
 import type { EnginePort } from "../engine-port/engine-port.js"
-import type { OperateError } from "../errors.js"
+import type { PulseCliError } from "../errors.js"
 import { formatDuration } from "../operation/durations.js"
 import { compact, omit } from "../util.js"
 import {
@@ -192,7 +192,7 @@ async function run(deps: WaitDeps, target: WaitTarget, settings: WaitSettings): 
 
 export interface WaitResult {
   readonly view: InstanceView | EndedInstance
-  readonly failure?: OperateError
+  readonly failure?: PulseCliError
 }
 
 /** True for a job the job executor runs now: retries left, active and due. */
@@ -213,7 +213,7 @@ function failureOf(
   view: InstanceView | EndedInstance,
   settings: WaitSettings,
   now: number,
-): OperateError | undefined {
+): PulseCliError | undefined {
   const { id } = view
   const until = settings.conditions.map(conditionLabel)
   switch (run.ending?.kind) {

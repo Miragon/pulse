@@ -33,7 +33,7 @@ export async function createUser(
     body: JSON.stringify({
       profile: {
         id: user.username,
-        firstName: "Operate",
+        firstName: "Pulse",
         lastName: "Integration test",
         email: `${user.username}@example.com`,
       },

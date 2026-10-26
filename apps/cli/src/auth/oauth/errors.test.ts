@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { cachedLogin, oauthConfig } from "../../../test/support/oauth.js"
-import { OperateError } from "../../errors.js"
+import { PulseCliError } from "../../errors.js"
 import {
   cannotRefresh,
   checkUsable,
@@ -23,12 +23,12 @@ const P = { profile: "p" }
 const HINT =
   "Run `pulse-cli auth login --profile p` in a terminal: a person logs in once in the browser, pulse-cli refreshes the token afterwards. Agents cannot log in themselves."
 
-function thrown(action: () => void): OperateError {
+function thrown(action: () => void): PulseCliError {
   try {
     action()
   } catch (error) {
-    expect(error).toBeInstanceOf(OperateError)
-    return error as OperateError
+    expect(error).toBeInstanceOf(PulseCliError)
+    return error as PulseCliError
   }
   throw new Error("expected an error")
 }
@@ -83,8 +83,8 @@ describe("login hint", () => {
     expect(loginHint({ profile: "p", projectDirectory: "/work/shop" })).toContain(
       "Run `pulse-cli auth login --profile p` in a terminal in /work/shop: a person",
     )
-    expect(loginCommand({ profile: "p", configFile: "/home/me/ci/operate.json" })).toBe(
-      "pulse-cli auth login --config /home/me/ci/operate.json --profile p",
+    expect(loginCommand({ profile: "p", configFile: "/home/me/ci/pulse-cli.json" })).toBe(
+      "pulse-cli auth login --config /home/me/ci/pulse-cli.json --profile p",
     )
     expect(loginCommand({ profile: "p", configFile: "/home/me/my files/it's.json" })).toBe(
       "pulse-cli auth login --config '/home/me/my files/it'\\''s.json' --profile p",

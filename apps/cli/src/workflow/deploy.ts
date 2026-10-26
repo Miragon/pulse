@@ -7,7 +7,7 @@
 import { findByOperationId } from "../catalog/catalog.js"
 import type { Catalog, MultipartBodySpec } from "../catalog/types.js"
 import type { EnginePort, PlannedRequest } from "../engine-port/engine-port.js"
-import { OperateError, usageError } from "../errors.js"
+import { PulseCliError, usageError } from "../errors.js"
 import { readInputFile } from "../operation/files.js"
 import type { Resource } from "../operation/multipart.js"
 import type { OperationInput } from "../operation/request.js"
@@ -51,7 +51,7 @@ export interface DeployDeps extends WaitDeps {
 function deploymentSpec(catalog: Catalog): MultipartBodySpec {
   const body = findByOperationId(catalog, "createDeployment")?.body
   if (body?.kind !== "multipart")
-    throw new OperateError("INTERNAL", "createDeployment has no multipart body")
+    throw new PulseCliError("INTERNAL", "createDeployment has no multipart body")
   return body
 }
 
@@ -163,7 +163,7 @@ async function start(deps: DeployDeps, key: string, options: DeployOptions): Pro
   })
   const id = records([started])[0]?.id
   if (typeof id !== "string")
-    throw new OperateError("INTERNAL", `Starting ${key} returned no process instance id`)
+    throw new PulseCliError("INTERNAL", `Starting ${key} returned no process instance id`)
   const inspect = { variables: options.variablesShown, history: false, stacktrace: false }
   if (options.wait === undefined) return { view: await loadView(deps.port, id, inspect) }
   return waitAndInspect(deps, { id, known: true }, options.wait, inspect)
@@ -200,7 +200,7 @@ export async function deploy(
     }
   } catch (error) {
     // the deployment happened: its report is printed before the error of the start
-    if (error instanceof OperateError) return { kind: "view", view: result, failure: error }
+    if (error instanceof PulseCliError) return { kind: "view", view: result, failure: error }
     throw error
   }
 }

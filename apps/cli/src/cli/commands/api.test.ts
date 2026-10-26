@@ -13,7 +13,7 @@ import {
   type FakeRuntimeOptions,
 } from "../../../test/support/fake-runtime.js"
 import { loadCatalog } from "../../catalog/catalog.js"
-import { OperateError } from "../../errors.js"
+import { PulseCliError } from "../../errors.js"
 import { run } from "../run.js"
 import { findOperationByPath } from "../../catalog/catalog.js"
 import { apiEffect, parseMethod } from "./api.js"
@@ -32,9 +32,9 @@ function usage(action: () => unknown): string {
   try {
     action()
   } catch (error) {
-    expect(error).toBeInstanceOf(OperateError)
-    expect((error as OperateError).code).toBe("USAGE")
-    return (error as OperateError).message
+    expect(error).toBeInstanceOf(PulseCliError)
+    expect((error as PulseCliError).code).toBe("USAGE")
+    return (error as PulseCliError).message
   }
   throw new Error("expected a usage error")
 }

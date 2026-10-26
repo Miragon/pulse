@@ -13,7 +13,7 @@ import {
 } from "../../../test/support/fake-runtime.js"
 import { loadCatalog } from "../../catalog/catalog.js"
 import { camunda7 } from "../../engines/camunda7/adapter.js"
-import { OperateError } from "../../errors.js"
+import { PulseCliError } from "../../errors.js"
 import type { OperationResult } from "../../operation/result.js"
 import { createProgram } from "../program.js"
 import { run } from "../run.js"
@@ -111,7 +111,7 @@ describe("pulse-cli ping", () => {
       from: "user",
     })
     await expect(parsing).rejects.toThrow(
-      new OperateError("INTERNAL", "The catalog has no operation getRestAPIVersion"),
+      new PulseCliError("INTERNAL", "The catalog has no operation getRestAPIVersion"),
     )
   })
 

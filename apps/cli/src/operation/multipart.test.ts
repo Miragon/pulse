@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { findByOperationId, loadCatalog } from "../catalog/catalog.js"
 import type { MultipartBodySpec } from "../catalog/types.js"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import type { FileSystem } from "../runtime.js"
 import type { FlagValue } from "./command-values.js"
 import { buildMultipart, resourceName } from "./multipart.js"
@@ -35,22 +35,22 @@ function fakeFs(files: Record<string, string>): FileSystem & { reads: string[] }
   }
 }
 
-async function caught(promise: Promise<unknown>): Promise<OperateError> {
+async function caught(promise: Promise<unknown>): Promise<PulseCliError> {
   try {
     await promise
   } catch (error) {
-    expect(error).toBeInstanceOf(OperateError)
-    return error as OperateError
+    expect(error).toBeInstanceOf(PulseCliError)
+    return error as PulseCliError
   }
   throw new Error("expected an error")
 }
 
-function caughtSync(action: () => unknown): OperateError {
+function caughtSync(action: () => unknown): PulseCliError {
   try {
     action()
   } catch (error) {
-    expect(error).toBeInstanceOf(OperateError)
-    return error as OperateError
+    expect(error).toBeInstanceOf(PulseCliError)
+    return error as PulseCliError
   }
   throw new Error("expected an error")
 }

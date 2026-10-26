@@ -4,7 +4,7 @@
  */
 
 import { describe, expect, it } from "vitest"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import { parseConfigFile } from "./file.js"
 import { showConfig } from "./edit.js"
 import { mergeProject } from "./project.js"
@@ -13,14 +13,14 @@ import { resolveAuth, selectedAuth } from "./resolve-auth.js"
 import { missingProfileError, resolveConfig, selectProfile } from "./resolve.js"
 import type { LoadedConfig, ProfileAuth, ProjectSource, SelectedProfile } from "./types.js"
 
-function failure(action: () => unknown): OperateError {
+function failure(action: () => unknown): PulseCliError {
   try {
     action()
   } catch (error) {
-    if (error instanceof OperateError) return error
+    if (error instanceof PulseCliError) return error
     throw error
   }
-  throw new Error("expected an OperateError")
+  throw new Error("expected an PulseCliError")
 }
 
 const PROJECT: ProjectSource = { path: "/repo/.pulse-cli.json", directory: "/repo" }

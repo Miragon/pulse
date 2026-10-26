@@ -119,11 +119,11 @@ describe("sameLoginKey", () => {
 describe("origins", () => {
   it("names a config file by its absolute path, on Windows without case", () => {
     expect(configOrigin("/home/me/.config/pulse-cli/config.json", "/x", "linux")).toBe(USER)
-    expect(configOrigin("ci/operate.json", "/work/shop", "linux")).toBe(
-      "config:/work/shop/ci/operate.json",
+    expect(configOrigin("ci/pulse-cli.json", "/work/shop", "linux")).toBe(
+      "config:/work/shop/ci/pulse-cli.json",
     )
-    expect(configOrigin("..\\Operate.JSON", "C:\\Work\\Shop", "win32")).toBe(
-      "config:c:\\work\\operate.json",
+    expect(configOrigin("..\\Pulse-Cli.JSON", "C:\\Work\\Shop", "win32")).toBe(
+      "config:c:\\work\\pulse-cli.json",
     )
     expect(originPath("/a/./b/../c", "/", "linux")).toBe("/a/c")
   })

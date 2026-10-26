@@ -7,7 +7,7 @@
  * selects Basic auth. Pure; messages never show a token.
  */
 
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import { compact } from "../util.js"
 import { normalizeToken } from "./bearer.js"
 import { configError } from "./config-error.js"
@@ -225,11 +225,11 @@ export function mentioningUnused<T>(note: string | undefined, resolve: () => T):
   try {
     return resolve()
   } catch (error) {
-    if (note === undefined || !(error instanceof OperateError) || error.code !== "CONFIG") {
+    if (note === undefined || !(error instanceof PulseCliError) || error.code !== "CONFIG") {
       throw error
     }
     const { hint } = error.details
-    throw new OperateError("CONFIG", error.message, {
+    throw new PulseCliError("CONFIG", error.message, {
       ...error.details,
       hint: hint === undefined ? note : `${hint} ${note}`,
     })

@@ -10,7 +10,7 @@ import {
 } from "../../test/support/fake-fetch.js"
 import { basicAuth } from "../auth/basic.js"
 import { loadCatalog } from "../catalog/catalog.js"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import {
   countByIds,
   ID_CHUNK,
@@ -25,14 +25,14 @@ import { findByOperationId } from "../catalog/catalog.js"
 
 const NO_INPUT = { pathArgs: [], query: {} }
 
-async function caught(promise: Promise<unknown>): Promise<OperateError> {
+async function caught(promise: Promise<unknown>): Promise<PulseCliError> {
   try {
     await promise
   } catch (error) {
-    if (error instanceof OperateError) return error
+    if (error instanceof PulseCliError) return error
     throw error
   }
-  throw new Error("expected an OperateError")
+  throw new Error("expected an PulseCliError")
 }
 
 describe("enginePort", () => {
@@ -209,14 +209,14 @@ describe("id chunks", () => {
 describe("isMissing", () => {
   it("is true only for engine 404s", () => {
     expect(
-      isMissing(new OperateError("NOT_FOUND", "x", { engineType: "InvalidRequestException" })),
+      isMissing(new PulseCliError("NOT_FOUND", "x", { engineType: "InvalidRequestException" })),
     ).toBe(true)
-    expect(isMissing(new OperateError("NOT_FOUND", "x", { engineType: "NotFoundException" }))).toBe(
-      false,
-    )
-    expect(isMissing(new OperateError("NOT_FOUND", "x"))).toBe(false)
     expect(
-      isMissing(new OperateError("USAGE", "x", { engineType: "InvalidRequestException" })),
+      isMissing(new PulseCliError("NOT_FOUND", "x", { engineType: "NotFoundException" })),
+    ).toBe(false)
+    expect(isMissing(new PulseCliError("NOT_FOUND", "x"))).toBe(false)
+    expect(
+      isMissing(new PulseCliError("USAGE", "x", { engineType: "InvalidRequestException" })),
     ).toBe(false)
     expect(isMissing(new Error("x"))).toBe(false)
   })

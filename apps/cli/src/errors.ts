@@ -78,13 +78,13 @@ export interface ErrorDetails {
   readonly data?: unknown
 }
 
-export class OperateError extends Error {
+export class PulseCliError extends Error {
   readonly code: ErrorCode
   readonly details: ErrorDetails
 
   constructor(code: ErrorCode, message: string, details: ErrorDetails = {}, cause?: unknown) {
     super(message, cause === undefined ? undefined : { cause })
-    this.name = "OperateError"
+    this.name = "PulseCliError"
     this.code = code
     this.details = details
   }
@@ -94,6 +94,6 @@ export class OperateError extends Error {
   }
 }
 
-export function usageError(message: string, hint?: string): OperateError {
-  return new OperateError("USAGE", message, hint === undefined ? {} : { hint })
+export function usageError(message: string, hint?: string): PulseCliError {
+  return new PulseCliError("USAGE", message, hint === undefined ? {} : { hint })
 }

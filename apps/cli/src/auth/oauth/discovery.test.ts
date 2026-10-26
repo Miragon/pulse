@@ -3,15 +3,15 @@ import { connectionRefused } from "../../../test/support/fake-fetch.js"
 import { fakeIdp, ISSUER, tokenJson } from "../../../test/support/fake-idp.js"
 import { fakeRuntime } from "../../../test/support/fake-runtime.js"
 import { oauthConfig, oauthDeps } from "../../../test/support/oauth.js"
-import { OperateError } from "../../errors.js"
+import { PulseCliError } from "../../errors.js"
 import { discoveryUrls, serverMetadata } from "./discovery.js"
 
-async function rejection(promise: Promise<unknown>): Promise<OperateError> {
+async function rejection(promise: Promise<unknown>): Promise<PulseCliError> {
   try {
     await promise
   } catch (error) {
-    expect(error).toBeInstanceOf(OperateError)
-    return error as OperateError
+    expect(error).toBeInstanceOf(PulseCliError)
+    return error as PulseCliError
   }
   throw new Error("expected an error")
 }

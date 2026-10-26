@@ -9,7 +9,7 @@
 
 import { normalizeToken } from "../config/bearer.js"
 import type { CommandBearerConfig } from "../config/types.js"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import type { CommandResult, Runtime } from "../runtime.js"
 import { isRecord } from "../util.js"
 import type { OAuthDeps } from "./oauth/types.js"
@@ -23,8 +23,8 @@ export interface CommandDeps extends Pick<OAuthDeps, "now" | "timeoutMs" | "trac
 const MAX_EXCERPT = 300
 
 /** LOGIN_FAILED: the command did not give a token; `problem` says why (never the token). */
-function loginFailed(config: CommandBearerConfig, problem: string): OperateError {
-  return new OperateError(
+function loginFailed(config: CommandBearerConfig, problem: string): PulseCliError {
+  return new PulseCliError(
     "LOGIN_FAILED",
     `The bearer token command (${config.origin}) ${problem}`,
     {
@@ -68,8 +68,8 @@ function tokenOf(config: CommandBearerConfig, stdout: Uint8Array): string {
   try {
     return normalizeToken(line, `the command of ${config.origin}`)
   } catch (error) {
-    if (!(error instanceof OperateError)) throw error
-    throw new OperateError("LOGIN_FAILED", error.message, error.details)
+    if (!(error instanceof PulseCliError)) throw error
+    throw new PulseCliError("LOGIN_FAILED", error.message, error.details)
   }
 }
 

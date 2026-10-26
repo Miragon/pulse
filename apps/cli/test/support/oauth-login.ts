@@ -1,7 +1,7 @@
 /** The runtime, the identity provider and the login steps of the login tests (src/auth/oauth). */
 
 import { expect } from "vitest"
-import { OperateError } from "../../src/errors.js"
+import { PulseCliError } from "../../src/errors.js"
 import { login, type LoginOptions } from "../../src/auth/oauth/login.js"
 import { fakeIdp, type FakeIdpOptions } from "./fake-idp.js"
 import { fakeRuntime, type FakeRuntime, type FakeRuntimeOptions } from "./fake-runtime.js"
@@ -45,12 +45,12 @@ export function run(test: Setup, config: OAuthOverrides = {}, options: Partial<L
   return login(oauthConfig(config), { ...OPTIONS, ...options }, loginDeps(test.runtime))
 }
 
-export async function rejection(promise: Promise<unknown>): Promise<OperateError> {
+export async function rejection(promise: Promise<unknown>): Promise<PulseCliError> {
   try {
     await promise
   } catch (error) {
-    expect(error).toBeInstanceOf(OperateError)
-    return error as OperateError
+    expect(error).toBeInstanceOf(PulseCliError)
+    return error as PulseCliError
   }
   throw new Error("expected an error")
 }

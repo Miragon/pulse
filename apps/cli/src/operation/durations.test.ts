@@ -1,6 +1,6 @@
 import fc from "fast-check"
 import { describe, expect, it } from "vitest"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import { formatDuration, parseDuration } from "./durations.js"
 
 describe("parseDuration", () => {
@@ -26,7 +26,7 @@ describe("parseDuration", () => {
       } catch (caught) {
         error = caught
       }
-      expect(error).toBeInstanceOf(OperateError)
+      expect(error).toBeInstanceOf(PulseCliError)
       expect(error).toMatchObject({
         code: "USAGE",
         message: `--stale-after expects a duration like 500ms, 30s, 2m or 1h, got "${raw}"`,

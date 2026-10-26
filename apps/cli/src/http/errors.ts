@@ -1,7 +1,7 @@
-/** Maps HTTP error responses (and the engine's ExceptionDto) to OperateError with hints. */
+/** Maps HTTP error responses (and the engine's ExceptionDto) to PulseCliError with hints. */
 
 import type { Principal } from "../auth/types.js"
-import { type ErrorCode, OperateError } from "../errors.js"
+import { type ErrorCode, PulseCliError } from "../errors.js"
 import { compact, isRecord, parseJson } from "../util.js"
 import type { HttpResponse } from "./types.js"
 
@@ -250,9 +250,9 @@ export function httpError(
   response: HttpResponse,
   request: FailedRequest,
   ref?: CommandRef,
-): OperateError {
+): PulseCliError {
   const engine = parseEngineError(response)
-  return new OperateError(codeFor(response.status, engine), errorMessage(response, engine), {
+  return new PulseCliError(codeFor(response.status, engine), errorMessage(response, engine), {
     status: response.status,
     request: { method: request.method, url: request.url },
     hint: hintFor(response.status, engine, request, ref),
@@ -279,13 +279,13 @@ function redirectTarget(response: HttpResponse, url: string): string | undefined
  * A 3xx answer. pulse-cli never follows redirects: a redirected POST would turn into a GET of a
  * login page that "succeeds", and custom credential headers would travel to the other origin.
  */
-export function redirectError(response: HttpResponse, request: FailedRequest): OperateError {
+export function redirectError(response: HttpResponse, request: FailedRequest): PulseCliError {
   const target = redirectTarget(response, request.url)
   const status = `HTTP ${response.status}${response.statusText ? ` ${response.statusText}` : ""}`
   const command = request.loginStatusCommand
   const oauth =
     command === undefined ? "" : ` \`${command}\` shows whether the OAuth login is usable.`
-  return new OperateError(
+  return new PulseCliError(
     "HTTP_REDIRECT",
     target === undefined ? `${status}: redirect` : `${status}: redirect to ${target}`,
     {

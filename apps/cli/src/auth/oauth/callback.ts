@@ -7,7 +7,7 @@
 
 import { configError } from "../../config/config-error.js"
 import type { OAuthConfig } from "../../config/types.js"
-import type { OperateError } from "../../errors.js"
+import type { PulseCliError } from "../../errors.js"
 import { loginCommand, loginFailed } from "./errors.js"
 import { sanitize } from "./http.js"
 import type { PkceRequest } from "./pkce.js"
@@ -70,7 +70,7 @@ export function hasState(query: URLSearchParams, expected: string): boolean {
 
 /** A callback with the right state that cannot complete the login, with the page's reason. */
 export interface CallbackFailure {
-  readonly error: OperateError
+  readonly error: PulseCliError
   readonly reason: string
 }
 

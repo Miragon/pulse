@@ -2,7 +2,7 @@
 
 import { argumentName } from "../catalog/names.js"
 import type { OperationSpec } from "../catalog/types.js"
-import { OperateError, usageError } from "../errors.js"
+import { PulseCliError, usageError } from "../errors.js"
 import type { HttpRequest } from "../http/types.js"
 import { mergeHeaders, stringifyJson } from "../util.js"
 import type { TypedValue } from "./variables.js"
@@ -48,7 +48,7 @@ export function expandPath(operation: OperationSpec, pathArgs: readonly string[]
   const pathParams = operation.params.filter((param) => param.in === "path")
   if (pathArgs.length !== pathParams.length) {
     // splitArgs (and commander before it) check the arguments the user gave
-    throw new OperateError(
+    throw new PulseCliError(
       "INTERNAL",
       `${operation.operationId} needs ${pathParams.length} path argument(s), got ${pathArgs.length}`,
     )

@@ -1,5 +1,5 @@
 /**
- * Sends a prepared request and decodes the response; HTTP error statuses become OperateErrors
+ * Sends a prepared request and decodes the response; HTTP error statuses become PulseCliErrors
  * whose hints name `ref`, the command that sent the request, when given, the user whose Basic
  * auth credentials were sent, or the auth provider's own hint for a rejected token (OAuth).
  */

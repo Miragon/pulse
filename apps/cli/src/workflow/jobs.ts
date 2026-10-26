@@ -5,7 +5,7 @@
  */
 
 import type { EnginePort } from "../engine-port/engine-port.js"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import { compact } from "../util.js"
 
 import { type Rec, records, str } from "./records.js"
@@ -29,13 +29,13 @@ const EXECUTED: JobOutcome = { result: "executed" }
 const BY_JOB_EXECUTOR: JobOutcome = { result: "executed", executedBy: "jobExecutor" }
 
 /** An error answer of the engine about the job (not 401/403, not a network failure). */
-function isJobError(error: unknown): error is OperateError {
-  const status = error instanceof OperateError ? error.details.status : undefined
+function isJobError(error: unknown): error is PulseCliError {
+  const status = error instanceof PulseCliError ? error.details.status : undefined
   return status !== undefined && status >= 400 && status !== 401 && status !== 403
 }
 
 /** The job executor ran the job at the same time. */
-function isConflict(error: OperateError): boolean {
+function isConflict(error: PulseCliError): boolean {
   const text = `${error.details.engineType ?? ""} ${error.details.engineMessage ?? ""}`
   return text.includes("OptimisticLockingException")
 }
@@ -52,7 +52,7 @@ async function findJob(port: EnginePort, jobId: string): Promise<Rec | undefined
 async function afterError(
   port: EnginePort,
   jobId: string,
-  error: OperateError,
+  error: PulseCliError,
 ): Promise<JobOutcome> {
   const job = await findJob(port, jobId)
   if (job === undefined) return BY_JOB_EXECUTOR
@@ -70,7 +70,7 @@ async function afterError(
   }
 }
 
-async function execute(port: EnginePort, jobId: string): Promise<OperateError | undefined> {
+async function execute(port: EnginePort, jobId: string): Promise<PulseCliError | undefined> {
   try {
     await port.call("executeJob", jobInput(jobId))
     return undefined

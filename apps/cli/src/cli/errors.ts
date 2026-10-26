@@ -4,8 +4,8 @@
  */
 
 import type { Command, CommanderError } from "commander"
-import { type OperateError, usageError } from "../errors.js"
-import { renderError, toOperateError } from "../output/error.js"
+import { type PulseCliError, usageError } from "../errors.js"
+import { renderError, toPulseCliError } from "../output/error.js"
 import { terminalSafe } from "../output/terminal.js"
 import type { Runtime } from "../runtime.js"
 import { closeNames } from "../util.js"
@@ -90,7 +90,7 @@ const STATUS_TOKEN_HINT = `pulse-cli auth status takes no token argument: pipe t
  * takes none (`--auth-password-stdin`, `--auth-token-stdin`), after `--auth bearer`, or to `auth
  * status`.
  */
-function excessArguments(text: string, command: Command, argv: readonly string[]): OperateError {
+function excessArguments(text: string, command: Command, argv: readonly string[]): PulseCliError {
   const status = isAuthCommand(command) && command.name() === "status" ? STATUS_TOKEN_HINT : ""
   const hint = `${stdinHint(argv)}${status}${usageHint(command)}`
   if (!mentionsSecret(argv) && !isAuthCommand(command)) {
@@ -104,7 +104,7 @@ function excessArguments(text: string, command: Command, argv: readonly string[]
  * is not repeated (`pulse-cli --auth-token-stdin $TOKEN task list` makes the token the command
  * name); suggestions name known commands only, so they stay.
  */
-function unknownCommand(name: string, command: Command, argv: readonly string[]): OperateError {
+function unknownCommand(name: string, command: Command, argv: readonly string[]): PulseCliError {
   const suggestions = didYouMean(closeNames(name, subcommandNames(command)))
   if (!mentionsSecret(argv) && !isAuthCommand(command)) {
     return usageError(`Unknown command "${name}"`, `${suggestions}${commandsHint(command)}`)
@@ -120,7 +120,7 @@ function unknownCommand(name: string, command: Command, argv: readonly string[])
  * with a value is a flag that takes none (`--dry-run=x`, `--auth-password-stdin=<password>`).
  * Suggestions: the `--auth-*` flag of a renamed name (`--username`), then close spellings.
  */
-function unknownOption(text: string, command: Command): OperateError {
+function unknownOption(text: string, command: Command): PulseCliError {
   const name = optionName(unknownName(text))
   const known = optionNames(command)
   const help = usageHint(command)
@@ -134,7 +134,7 @@ function unknownOption(text: string, command: Command): OperateError {
 }
 
 /** `pulse-cli workflow <x>`: the workflow commands are top-level commands. */
-function workflowGroupError(argv: readonly string[]): OperateError {
+function workflowGroupError(argv: readonly string[]): PulseCliError {
   const next = argv[argv.indexOf(WORKFLOW_GROUP.group) + 1]
   const command = next === undefined || next.startsWith("-") ? "<command>" : next
   return usageError(
@@ -152,7 +152,7 @@ function workflowGroupError(argv: readonly string[]): OperateError {
 export function commanderUsageError(
   error: CommandExit,
   argv: readonly string[] = [],
-): OperateError {
+): PulseCliError {
   const { exit, command } = error
   const text = exit.message.replace(/^error: /, "").replace(/\n\(Did you mean[^)]*\)$/, "")
   if (exit.code === "commander.excessArguments") return excessArguments(text, command, argv)
@@ -191,10 +191,10 @@ export async function reportError(
   state: CliState,
 ): Promise<number> {
   if (isDisplayExit(error)) return 0
-  const operateError =
-    error instanceof CommandExit ? commanderUsageError(error, argv) : toOperateError(error)
+  const pulseCliError =
+    error instanceof CommandExit ? commanderUsageError(error, argv) : toPulseCliError(error)
   const format = await errorFormat(argv, runtime, state)
-  const text = renderError(operateError, format, verboseRequested(argv))
+  const text = renderError(pulseCliError, format, verboseRequested(argv))
   runtime.stderr.write(runtime.stderr.isTTY ? terminalSafe(text) : text)
-  return operateError.exitCode
+  return pulseCliError.exitCode
 }

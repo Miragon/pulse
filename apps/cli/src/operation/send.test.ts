@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { basicAuth } from "../auth/basic.js"
 import { noAuth } from "../auth/none.js"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import type { ClientOptions } from "../http/client.js"
 import { sendRequest } from "./send.js"
 
@@ -20,12 +20,12 @@ function client(response: () => Response): ClientOptions & { urls: string[] } {
   }
 }
 
-async function caught(promise: Promise<unknown>): Promise<OperateError> {
+async function caught(promise: Promise<unknown>): Promise<PulseCliError> {
   try {
     await promise
   } catch (error) {
-    expect(error).toBeInstanceOf(OperateError)
-    return error as OperateError
+    expect(error).toBeInstanceOf(PulseCliError)
+    return error as PulseCliError
   }
   throw new Error("expected an error")
 }

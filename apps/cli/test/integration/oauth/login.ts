@@ -142,7 +142,7 @@ export function registerLogin(suite: OAuthSuite): void {
     expect(result.stderr).toContain(
       `Waiting up to 300 s for the login at ${redirectUri} (Ctrl+C cancels).`,
     )
-    expect(result.stderr).toContain('Logged in as operate-user (profile "it").')
+    expect(result.stderr).toContain('Logged in as pulse-user (profile "it").')
     // --no-browser: neither browser line
     expect(result.stderr).not.toContain("Opened the system browser.")
     expect(result.stderr).not.toContain("Could not open a browser")

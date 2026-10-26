@@ -5,7 +5,7 @@
  */
 
 import type { EnginePort } from "../engine-port/engine-port.js"
-import { OperateError, usageError } from "../errors.js"
+import { PulseCliError, usageError } from "../errors.js"
 import { compact, mapLimit, omit } from "../util.js"
 import { isMissing, PARALLEL } from "./engine.js"
 import { instanceMissing, loadView } from "./inspect.js"
@@ -112,7 +112,7 @@ async function namedIncidents(port: EnginePort, ids: readonly string[]): Promise
   const incidents = await mapLimit(ids, PARALLEL, async (id) => {
     const incident = await incidentById(port, id)
     if (incident === undefined) {
-      throw new OperateError("NOT_FOUND", `Incident ${id} does not exist`, {
+      throw new PulseCliError("NOT_FOUND", `Incident ${id} does not exist`, {
         hint: "List the open incidents with `pulse-cli incident list`; resolved incidents are gone.",
       })
     }
@@ -139,7 +139,7 @@ async function load(port: EnginePort, mode: RetryMode, options: RetryOptions): P
  */
 function isGone(error: unknown): boolean {
   if (isMissing(error)) return true
-  if (!(error instanceof OperateError) || error.details.status !== 500) return false
+  if (!(error instanceof PulseCliError) || error.details.status !== 500) return false
   return /ENGINE-13053|No job found/.test(error.details.engineMessage ?? error.message)
 }
 
@@ -148,7 +148,7 @@ interface Outcome {
   readonly result: Result
   readonly failure?: JobFailure
   /** The error of a request that failed (`error`). */
-  readonly error?: OperateError
+  readonly error?: PulseCliError
 }
 
 /** Sets the retries; `gone` for a resource resolved meanwhile, `error` for a failed request. */
@@ -160,7 +160,7 @@ async function setRetries(port: EnginePort, entry: PlanEntry, retries: number): 
     return { entry, result: "retried" }
   } catch (error) {
     if (isGone(error)) return { entry, result: "gone" }
-    if (error instanceof OperateError) return { entry, result: "error", error }
+    if (error instanceof PulseCliError) return { entry, result: "error", error }
     throw error
   }
 }
@@ -264,7 +264,7 @@ async function instanceAfter(
     if (failed) return { view: await loadView(deps.port, id, inspect) }
     return await waitAndInspect(deps, { id, known: true }, wait, inspect)
   } catch (error) {
-    if (error instanceof OperateError) return { failure: error }
+    if (error instanceof PulseCliError) return { failure: error }
     throw error
   }
 }

@@ -5,7 +5,7 @@
 
 import { requiresConfirmation } from "../catalog/rules.js"
 import type { Effect } from "../catalog/types.js"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 
 export interface GuardOptions {
   readonly readOnly: boolean
@@ -32,14 +32,14 @@ function readOnlyHint(source: string | undefined): string {
 export function checkEffect(effect: Effect, label: string, options: GuardOptions): void {
   if (options.dryRun || effect === "read") return
   if (options.readOnly) {
-    throw new OperateError(
+    throw new PulseCliError(
       "READ_ONLY",
       `\`${label}\` is a ${effect} operation and read-only mode is enabled`,
       { hint: readOnlyHint(options.readOnlySource) },
     )
   }
   if (requiresConfirmation(effect) && !options.yes) {
-    throw new OperateError(
+    throw new PulseCliError(
       "CONFIRMATION_REQUIRED",
       `\`${label}\` is a ${effect} operation and needs confirmation`,
       { hint: CONFIRMATION_HINT },

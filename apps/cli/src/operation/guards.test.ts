@@ -1,18 +1,18 @@
 import fc from "fast-check"
 import { describe, expect, it } from "vitest"
 import type { Effect } from "../catalog/types.js"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import { checkEffect, type GuardOptions } from "./guards.js"
 
 const base: GuardOptions = { readOnly: false, yes: false, dryRun: false }
 const EFFECTS: readonly Effect[] = ["read", "write", "delete", "bulk"]
 
-function caught(action: () => unknown): OperateError {
+function caught(action: () => unknown): PulseCliError {
   try {
     action()
   } catch (error) {
-    expect(error).toBeInstanceOf(OperateError)
-    return error as OperateError
+    expect(error).toBeInstanceOf(PulseCliError)
+    return error as PulseCliError
   }
   throw new Error("expected an error")
 }
@@ -125,7 +125,7 @@ describe("checkEffect", () => {
           try {
             checkEffect(effect, "x", { readOnly, yes, dryRun })
           } catch (error) {
-            code = (error as OperateError).code
+            code = (error as PulseCliError).code
           }
           expect(code).toBe(expected)
         },

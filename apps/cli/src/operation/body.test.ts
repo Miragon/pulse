@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { findByOperationId, findOperation, loadCatalog } from "../catalog/catalog.js"
 import type { JsonBodySpec, OperationSpec } from "../catalog/types.js"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import type { FileSystem } from "../runtime.js"
 import { buildJsonBody, readBody } from "./body.js"
 import type { FlagValue, InputDeps } from "./command-values.js"
@@ -47,12 +47,12 @@ function build(
   return buildJsonBody(operation, jsonSpec(operation), flags, inputDeps)
 }
 
-async function caught(promise: Promise<unknown>): Promise<OperateError> {
+async function caught(promise: Promise<unknown>): Promise<PulseCliError> {
   try {
     await promise
   } catch (error) {
-    expect(error).toBeInstanceOf(OperateError)
-    return error as OperateError
+    expect(error).toBeInstanceOf(PulseCliError)
+    return error as PulseCliError
   }
   throw new Error("expected an error")
 }

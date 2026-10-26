@@ -1,17 +1,17 @@
 import fc from "fast-check"
 import { describe, expect, it } from "vitest"
 import { opaqueTokens } from "../../test/support/bearer.js"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import { profileAuthProblem, validateAuthType, validatePassword, validateUsername } from "./auth.js"
 
-function failure(action: () => unknown): OperateError {
+function failure(action: () => unknown): PulseCliError {
   try {
     action()
   } catch (error) {
-    if (error instanceof OperateError) return error
+    if (error instanceof PulseCliError) return error
     throw error
   }
-  throw new Error("expected an OperateError")
+  throw new Error("expected an PulseCliError")
 }
 
 const CONTROL_HINT =

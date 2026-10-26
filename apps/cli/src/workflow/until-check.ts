@@ -7,7 +7,7 @@
  */
 
 import type { EnginePort } from "../engine-port/engine-port.js"
-import { OperateError, usageError } from "../errors.js"
+import { PulseCliError, usageError } from "../errors.js"
 import { closeNames } from "../util.js"
 import type { Condition } from "./conditions.js"
 
@@ -86,7 +86,7 @@ async function knownIds(port: EnginePort, id: string) {
     return await elementIds(port, [...new Set(tree.nodes.map((node) => node.definitionId))])
   } catch (error) {
     // the polls report errors of the engine; the check only helps when it can
-    if (error instanceof OperateError) return undefined
+    if (error instanceof PulseCliError) return undefined
     throw error
   }
 }

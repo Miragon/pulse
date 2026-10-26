@@ -4,7 +4,7 @@ import fc from "fast-check"
 import { describe, expect, it } from "vitest"
 import { file } from "../../test/support/config-resolve.js"
 import { failure } from "../../test/support/failure.js"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import { isHeaderName, isHeaderValue, parseHeader, parseHeaders } from "./headers.js"
 import { MAX_TIMEOUT_MS, isTimeout, parseReadOnly, parseTimeout, resolveConfig } from "./resolve.js"
 
@@ -35,8 +35,8 @@ describe("parseTimeout", () => {
   )
 
   it("rejects timeouts above the timer limit", () => {
-    expect(() => parseTimeout(MAX_TIMEOUT_MS + 1)).toThrow(OperateError)
-    expect(() => parseTimeout(String(MAX_TIMEOUT_MS + 1))).toThrow(OperateError)
+    expect(() => parseTimeout(MAX_TIMEOUT_MS + 1)).toThrow(PulseCliError)
+    expect(() => parseTimeout(String(MAX_TIMEOUT_MS + 1))).toThrow(PulseCliError)
   })
 
   it("isTimeout only accepts whole numbers in range", () => {
