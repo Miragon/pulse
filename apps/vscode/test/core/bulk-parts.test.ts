@@ -10,7 +10,7 @@ import { describe, expect, test } from "vitest"
 import { BulkRun, type BulkPlan } from "../../src/core/panels/bulk-run.js"
 import { BULK_CAP, BulkSelection } from "../../src/core/panels/bulk-selection.js"
 import { CancelInstancesAction } from "../../src/core/panels/cancel-instances-action.js"
-import type { DefinitionView } from "../../src/core/protocol/index.js"
+import type { DefinitionView, InstanceListFilter } from "../../src/core/protocol/index.js"
 import { BulkOutcomes, type BulkScene } from "../../src/core/views/bulk-outcomes.js"
 import { BulkRequests } from "../../src/core/views/bulk-requests.js"
 
@@ -243,10 +243,19 @@ describe("the strip of a bulk run", () => {
 })
 
 describe("the confirmation of a bulk cancel", () => {
+  const FILTER: InstanceListFilter = {
+    scope: "withIncident",
+    elementId: "Activity_Review",
+    businessKey: "ORD-1",
+    variables: [
+      { name: "amount", operator: "greaterThan", value: "100" },
+      { name: "route", operator: "equals", value: "review" },
+    ],
+  }
   const VIEW = {
     processName: "Order",
     diagramXml: '<bpmn:userTask id="Activity_Review" name="Review order" />',
-    filter: { scope: "withIncident", elementId: "Activity_Review", businessKey: "ORD-1" },
+    filter: FILTER,
   } as DefinitionView
 
   function summary(id: string, extra: Partial<InstanceSummary> = {}): InstanceSummary {
@@ -271,7 +280,7 @@ describe("the confirmation of a bulk cancel", () => {
     })
 
     expect(request.facts.slice(0, 3)).toEqual([
-      "Filter: With incident · at Review order · business key ORD-1",
+      'Filter: With incident · at Review order · business key ORD-1 · amount > 100 · route = "review"',
       "ORD-1, row-1, row-2 and 3 more",
       "Called instances end with them.",
     ])

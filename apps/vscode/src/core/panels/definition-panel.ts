@@ -103,7 +103,10 @@ export class DefinitionPanel implements Panel {
         return this.reload()
       case "selectVersion":
         this.bulk.clearSelection()
-        this.request = { selected: DefinitionId(intent.definitionId), filter: RUNNING }
+        this.request = {
+          selected: DefinitionId(intent.definitionId),
+          filter: this.keptAcrossVersions(this.request.filter),
+        }
         return this.reload()
       case "filterInstances":
         this.bulk.clearSelection()
@@ -154,6 +157,10 @@ export class DefinitionPanel implements Panel {
       return
     }
     await this.session.extend((loaded) => this.reads.more(loaded))
+  }
+
+  private keptAcrossVersions({ variables }: InstanceListFilter): InstanceListFilter {
+    return variables === undefined ? RUNNING : { ...RUNNING, variables }
   }
 
   private withNotice(view: DefinitionView): DefinitionView {

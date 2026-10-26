@@ -1,5 +1,7 @@
 import type { OfferedBulkKind } from "./bulk-views.js"
 import type { StateMessage, WebviewIntent, WebviewIntentType } from "./messages.js"
+import { MAX_VARIABLE_CONDITIONS, VariableConditionRules } from "./variable-condition-rules.js"
+import type { VariableConditionView } from "./view-models.js"
 
 type Fields = Readonly<Record<string, unknown>>
 
@@ -11,6 +13,14 @@ const SCOPES: ReadonlySet<unknown> = new Set(["running", "withIncident", "ended"
 const PROCESS_SCOPES: ReadonlySet<unknown> = new Set(["all", "withIncident"])
 const BULK_KINDS: Readonly<Record<OfferedBulkKind, true>> = { cancelInstances: true }
 const MAX_SELECTED_IDS = 1000
+const VARIABLE_OPERATORS: ReadonlySet<unknown> = new Set([
+  "equals",
+  "notEquals",
+  "like",
+  "greaterThan",
+  "lessThan",
+])
+const VALUE_TYPES: ReadonlySet<unknown> = new Set(["text", "number", "boolean"])
 
 export class MessageGuards {
   private static readonly INTENT_SHAPES: Readonly<
@@ -131,7 +141,30 @@ export class MessageGuards {
     return (
       SCOPES.has(filter.scope) &&
       (filter.elementId === undefined || MessageGuards.isText(filter.elementId)) &&
-      (filter.businessKey === undefined || MessageGuards.isText(filter.businessKey))
+      (filter.businessKey === undefined || MessageGuards.isText(filter.businessKey)) &&
+      (filter.variables === undefined || MessageGuards.isConditionList(filter.variables))
+    )
+  }
+
+  private static isConditionList(value: unknown): boolean {
+    return (
+      Array.isArray(value) &&
+      value.length <= MAX_VARIABLE_CONDITIONS &&
+      value.every((condition) => MessageGuards.isCondition(condition))
+    )
+  }
+
+  private static isCondition(value: unknown): boolean {
+    if (typeof value !== "object" || value === null) {
+      return false
+    }
+    const condition = value as Fields
+    return (
+      MessageGuards.isName(condition.name) &&
+      VARIABLE_OPERATORS.has(condition.operator) &&
+      MessageGuards.isValue(condition.value) &&
+      (condition.as === undefined || VALUE_TYPES.has(condition.as)) &&
+      VariableConditionRules.fits(condition as unknown as VariableConditionView)
     )
   }
 

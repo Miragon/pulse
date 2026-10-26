@@ -7,8 +7,15 @@ import {
   type Page,
   type PageCursor,
   type ProcessRuntime,
+  type VariableCondition,
 } from "../../contract/index.js"
-import type { InstanceListFilter, InstanceScope, ScopeCounts } from "../protocol/index.js"
+import {
+  VariableConditionRules,
+  type InstanceListFilter,
+  type InstanceScope,
+  type ScopeCounts,
+  type VariableConditionView,
+} from "../protocol/index.js"
 
 const PAGE_SIZE = 50
 const ID_PAGE_SIZE = 250
@@ -93,6 +100,18 @@ export class InstanceListQuery {
       ...SCOPES[filter.scope],
       ...(filter.elementId === undefined ? {} : { activeElementId: ElementId(filter.elementId) }),
       ...(filter.businessKey === undefined ? {} : { businessKey: filter.businessKey }),
+      ...(filter.variables === undefined
+        ? {}
+        : { variables: filter.variables.map((condition) => this.variableCondition(condition)) }),
     }
+  }
+
+  private variableCondition(condition: VariableConditionView): VariableCondition {
+    const { name, operator, value } = condition
+    if (operator === "like") {
+      return { name, operator, pattern: value }
+    }
+    const asText = VariableConditionRules.typeOf(condition) === "text"
+    return { name, operator, valueJson: asText ? JSON.stringify(value) : value }
   }
 }
