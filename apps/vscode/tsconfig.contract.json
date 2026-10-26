@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2023"],
+    "types": [],
+    "jsx": null,
+    "jsxImportSource": null
+  },
+  "include": ["src/contract", "test/contract"],
+  "exclude": []
+}

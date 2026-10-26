@@ -1,5 +1,19 @@
 # @miragon/pulse-analytics-client
 
+[![npm](https://img.shields.io/npm/v/@miragon/pulse-analytics-client?style=flat-square)](https://www.npmjs.com/package/@miragon/pulse-analytics-client)
+[![CI](https://img.shields.io/github/actions/workflow/status/Miragon/pulse/ci.yml?style=flat-square&label=ci)](https://github.com/Miragon/pulse/actions/workflows/ci.yml)
+[![Docs](https://img.shields.io/badge/docs-miragon.github.io%2Fpulse-335DE5?style=flat-square)](https://miragon.github.io/pulse/)
+
+Typed PromQL queries over the `camunda_*` metrics of the Pulse engine plugin.
+
+## Install
+
+```sh
+npm install @miragon/pulse-analytics-client zod
+```
+
+## Overview
+
 Prometheus client and PromQL query layer for Camunda 7 / CIB Seven process analytics. It pairs a thin
 HTTP client for the Prometheus query API with a set of typed, purpose-built query functions and the
 **metrics contract** — the single source of truth for the `camunda_*` metric names and labels the

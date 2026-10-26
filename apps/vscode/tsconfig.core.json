@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2023"],
+    "types": [],
+    "jsx": null,
+    "jsxImportSource": null
+  },
+  "include": ["src/core", "test/core", "src/contract/bpmn.d.ts"],
+  "exclude": []
+}

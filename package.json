@@ -1,6 +1,6 @@
 {
-  "name": "pulse",
-  "version": "0.21.0",
+  "name": "pulse-monorepo",
+  "version": "0.24.0",
   "private": true,
   "license": "MIT",
   "packageManager": "pnpm@10.32.1",
@@ -15,9 +15,10 @@
     "test": "turbo run test && pnpm test:scripts",
     "test:scripts": "node --test \"scripts/*.test.mjs\"",
     "test:pg": "TEST_DATABASE_URL=${TEST_DATABASE_URL:-postgres://miragon:miragon@localhost:8440/miragon_test} pnpm --fail-if-no-match --filter @miragon/pulse-widget-shell --filter @miragon/pulse-camunda7-connector --filter @miragon/pulse-mcp-server-camunda7 run test",
-    "lint": "turbo run lint && pnpm lint:architecture && pnpm lint:architecture:cli && pnpm lint:naming && pnpm lint:package-scripts && pnpm lint:ratchets && pnpm lint:deadcode && pnpm lint:deadcode:cli && pnpm lint:github",
+    "lint": "turbo run lint && pnpm lint:architecture && pnpm lint:architecture:cli && pnpm lint:architecture:vscode && pnpm lint:naming && pnpm lint:package-scripts && pnpm lint:ratchets && pnpm lint:deadcode && pnpm lint:deadcode:cli && pnpm lint:deadcode:vscode && pnpm lint:github",
     "lint:architecture": "depcruise apps/*/src packages/core/*/src packages/connectors/*/*/src --config .dependency-cruiser.cjs",
     "lint:architecture:cli": "depcruise apps/cli/scripts apps/cli/test --config .dependency-cruiser.cjs",
+    "lint:architecture:vscode": "depcruise apps/vscode/src apps/vscode/test apps/vscode/dev apps/vscode/scripts --config apps/vscode/.dependency-cruiser.cjs",
     "lint:naming": "node scripts/check-package-naming.mjs",
     "lint:package-scripts": "node scripts/check-package-scripts.mjs",
     "lint:ratchets": "node scripts/check-ratchets.mjs",
@@ -33,7 +34,8 @@
     "test:mutation": "node scripts/mutation-diff.mjs",
     "fitness": "node scripts/fitness-report.mjs",
     "lint:deadcode": "knip --exclude exports,types,enumMembers",
-    "lint:deadcode:cli": "knip --workspace apps/cli"
+    "lint:deadcode:cli": "knip --workspace apps/cli",
+    "lint:deadcode:vscode": "knip --workspace apps/vscode"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
@@ -43,6 +45,7 @@
     "dotenv-cli": "11.0.0",
     "eslint": "10.13.0",
     "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "17.13.0",
     "husky": "9.1.7",
     "knip": "6.42.1",
     "lint-staged": "17.6.0",

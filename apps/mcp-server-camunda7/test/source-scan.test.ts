@@ -70,7 +70,7 @@ const CLI = {
 }
 
 const EXTENSION = {
-  "apps/vscode/package.json": json({ name: "pulse-vscode", engines: { vscode: "^1.101.0" } }),
+  "apps/vscode/package.json": json({ name: "pulse", engines: { vscode: "^1.101.0" } }),
   "apps/vscode/src/host/extension.ts": "extension",
 }
 
@@ -169,7 +169,7 @@ describe("scanSources", () => {
   it("fails on a classified app without src/: its sources would be read by no guard", () => {
     const root = fixture({
       ...BASE,
-      "apps/vscode/package.json": json({ name: "pulse-vscode", engines: { vscode: "^1.101.0" } }),
+      "apps/vscode/package.json": json({ name: "pulse", engines: { vscode: "^1.101.0" } }),
       "apps/vscode/packages/core/src/x.ts": "x",
     })
     expect(() => filesIn(root, { ...SERVER_ONLY, vscode: "interface" })).toThrow(

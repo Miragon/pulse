@@ -1,0 +1,21 @@
+{
+  "$kommentar": "Von Hand geschrieben beim Import der VS Code Extension (Miragon/pulse-vscode, nach apps/vscode): die App- und Web-Variante der Marken-Tokens aus der Skill modeler-tool-design des Plugins miragon-brand in Miragon/corporate-identity, Release 1.20.0, unverändert vendort. Pfad im Repo, Quelle in Miragon/corporate-identity und sha256 je Datei. Neu vendoren statt editieren; apps/mcp-server-camunda7/test/ui-stylesheet.test.ts (SANCTIONED_TOKEN_MANIFESTS) prüft die Kopie damit.",
+  "version": "1.20.0",
+  "dateien": [
+    {
+      "pfad": "apps/vscode/src/webview/theme/cd-tokens.generated.css",
+      "quelle": "plugins/miragon-brand/skills/modeler-tool-design/assets/cd-tokens.generated.css",
+      "sha256": "36ccd5bbcb732c57143e32f13172967467dd574ae1ac5d84d6c601d0ab0847a1"
+    },
+    {
+      "pfad": "apps/vscode/src/webview/theme/cd-tokens.generated.json",
+      "quelle": "plugins/miragon-brand/skills/modeler-tool-design/assets/cd-tokens.generated.json",
+      "sha256": "549a244fba0951e9b77fed0f5d2172cb793191913326f08749e167ac7fdbb127"
+    },
+    {
+      "pfad": "apps/vscode/src/webview/theme/cd-canvas.css",
+      "quelle": "plugins/miragon-brand/skills/modeler-tool-design/assets/cd-canvas.css",
+      "sha256": "4c5231402d0764b09c4b978140759ed1b0afdd7cebc4cd2ebd1ff82253928664"
+    }
+  ]
+}

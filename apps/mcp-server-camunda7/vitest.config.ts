@@ -7,8 +7,13 @@ export default mergeConfig(
     test: {
       include: ["test/**/*.test.ts"],
       // The E2E smoke test boots a full framework app (plugin registration,
-      // HTTP listener, MCP handshake) — give it headroom over the unit default.
-      testTimeout: 30_000,
+      // HTTP listener, MCP handshake), and the repo-wide guards (hand-off-surface,
+      // tool-name-refs, docs-refs, old-names) scan every source of every app and
+      // package, the CLI and the VS Code extension included. Locally that takes
+      // seconds; in CI's TypeScript job every package's suite (the CLI's 3,850 tests,
+      // the extension's Chromium tests) shares one 4-core runner, and a scan took
+      // over 30 s there (#452). Same headroom as the hooks below.
+      testTimeout: 120_000,
       // Hooks get more: several suites boot the FULL surface in a beforeAll and
       // then scan every widget source (tool-name-refs, hand-off-surface). Under
       // CI load with the suites running in parallel that took over 30 s twice

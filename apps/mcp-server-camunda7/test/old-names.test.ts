@@ -152,6 +152,37 @@ const ALLOWED: Allowance[] = [
     line: /Up to 0\.20\.0 .*shipped under `miragon-ai`/,
     reason: "the release section says what shipped up to 0.20.0: deprecated, never reused",
   },
+  // The VS Code extension (apps/vscode) bundles the last published operate CLI, 0.9.0, and
+  // spawns it through its engine-cli wrapper until an in-process engine client replaces both
+  // (then these entries go). That release's names are recorded as that release has them.
+  {
+    file: /^apps\/vscode\/(?:package\.json|scripts\/build\.mjs|test\/adapters\/c7\/support\/engine-cli-binary\.ts)$/,
+    rules: ["old operate package", "old operate repo"],
+    line: /@miragon\/operate(?:\/dist\/operate\.js)?["']/,
+    reason:
+      "the extension pins the published operate 0.9.0 (package.json), copies its bundle into dist (build.mjs) and runs it in tests",
+  },
+  {
+    file: /^apps\/vscode\/(?:src\/adapters\/c7\/engine-cli\/running\/engine-cli-environment\.ts|test\/adapters\/c7\/(?:c7-[\w-]+|engine-cli\/[\w-]+)\.test\.ts|test\/adapters\/c7\/fixtures\/error-[\w-]+\.json)$/,
+    rules: ["old operate env var"],
+    line: /\bOPERATE_(?:URL|OUTPUT|READ_ONLY|CONFIG|AUTH|USERNAME|PASSWORD|TOKEN|TOKEN_COMMAND|PROFILE|VARIABLE)\b/,
+    reason:
+      "operate 0.9.0 takes target, credentials and the read-only flag from its OPERATE_* variables: the wrapper sets them and drops inherited ones, its tests assert both, the fixtures record its error output",
+  },
+  {
+    file: /^apps\/vscode\/docs\/adr\/(?:c7-adapter|migrations)\.md$/,
+    rules: ["old operate package", "old operate repo", "old operate env var"],
+    reason:
+      "the C7 adapter and migration records say how the extension runs the bundled operate 0.9.0",
+  },
+  // The CLI's project file was .operate.json up to operate 0.10.0; the extension still reads
+  // it where no .pulse-cli.json sits beside it, until the first release after 2027-01-31.
+  {
+    file: "apps/vscode/src/host/connections/targets-file.ts",
+    rules: ["old operate config file"],
+    line: /FALLBACK_NAME = ["']\.operate\.json["']/,
+    reason: "the extension's fallback to the CLI's former project file name",
+  },
   {
     file: /^apps\/cli\/src\/(?:config\/legacy(?:-files)?|cli\/legacy-notice)\.test\.ts$/,
     rules: ["old operate env var", "old operate config file", "old operate config dir"],
@@ -422,8 +453,8 @@ describe("pnpm and turbo filters", () => {
   const FLAG = "--filter"
   const SHORT = "-F"
   it.each([
-    [`pnpm ${FLAG} pulse-vscode build`, []],
-    [`pnpm ${FLAG}=pulse-vscode... build`, []],
+    [`pnpm ${FLAG} pulse build`, []],
+    [`pnpm ${FLAG}=pulse... build`, []],
     [`pnpm ${FLAG} @miragon/pulse-widget-shell test`, []],
     [`pnpm ${FLAG} pulse-vsocde build`, ["pulse-vsocde"]],
     [`pnpm ${FLAG}=pulse-vsocde^... build`, ["pulse-vsocde"]],
@@ -431,14 +462,14 @@ describe("pnpm and turbo filters", () => {
     [`pnpm ${SHORT} pulse-vsocde build`, ["pulse-vsocde"]],
     [`"x": "pnpm ${FLAG} \\"pulse-vsocde\\" build"`, ["pulse-vsocde"]],
     // One stale name among valid ones passes --fail-if-no-match, so it is checked on its own.
-    [`pnpm ${FLAG} pulse-vscode ${FLAG} pulse-vsocde build`, ["pulse-vsocde"]],
+    [`pnpm ${FLAG} pulse ${FLAG} pulse-vsocde build`, ["pulse-vsocde"]],
     [`pnpm ${FLAG} @miragon/pulse-widget-shel test`, ["@miragon/pulse-widget-shel"]],
     // A path selector names no package: --fail-if-no-match covers it on a gate path.
     [`pnpm ${FLAG} ./apps/vscod build`, []],
     [`pnpm ${FLAG} "./modules/**" build`, []],
     [`pnpm ${FLAG} "{apps/vscod}" build`, []],
   ] as const)("the filter check reads %s", (text, stale) => {
-    const known = new Set(["@miragon/pulse-widget-shell", "pulse-vscode"])
+    const known = new Set(["@miragon/pulse-widget-shell", "pulse"])
     expect(unknownFilters("x", [text], known)).toEqual(stale.map((name) => `x:1 ${FLAG} ${name}`))
   })
 
@@ -495,7 +526,7 @@ describe("pnpm and turbo filters", () => {
     "apps/cli/README.md",
     "apps/vscode/src/package.json.ts",
     ".github/actions/setup/README.md",
-    "docs/operations.md",
+    "docs/mcp/operations.md",
   ])("%s is no gate path", (file) => {
     expect(GATE_PATH.test(file)).toBe(false)
   })

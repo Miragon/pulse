@@ -57,7 +57,8 @@ jobs:
           node-version: 22
 
       # npm's read replicas can lag the publish by a minute or two — a plain
-      # install would then resolve a 404 and fail the whole sync.
+      # install would then resolve a 404 and fail the whole sync. The metadata can
+      # arrive before the tarball (0.23.0), so both have to answer.
       - name: Wait until the released packages are visible on npm
         env:
           TAG: ${{ inputs.tag_name }}
@@ -65,7 +66,9 @@ jobs:
           version="${TAG#v}"
           deadline=$((SECONDS + 600))
           for p in camunda7-client analytics-client widget-shell camunda7-connector analytics-connector; do
-            until npm view "@miragon/pulse-$p@$version" version >/dev/null 2>&1; do
+            tarball="https://registry.npmjs.org/@miragon/pulse-$p/-/pulse-$p-$version.tgz"
+            until npm view "@miragon/pulse-$p@$version" version >/dev/null 2>&1 &&
+              curl -sfI "$tarball" >/dev/null; do
               if ((SECONDS >= deadline)); then
                 echo "::error::@miragon/pulse-$p@$version not visible on npm after 10 minutes"
                 exit 1

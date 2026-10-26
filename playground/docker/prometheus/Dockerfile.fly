@@ -1,7 +1,7 @@
 # Fly.io image for Prometheus — Fly Machines cannot bind-mount config files,
 # so the config and the (contract-checked, shared) alert rules are baked in.
 # Deployed via playground/fly/deploy.sh with playground/fly/prometheus.fly.toml.
-FROM prom/prometheus:v3.15.0
+FROM prom/prometheus:v3.15.1
 
 COPY prometheus.fly.yml /etc/prometheus/prometheus.yml
 COPY alerts.yml /etc/prometheus/alerts.yml

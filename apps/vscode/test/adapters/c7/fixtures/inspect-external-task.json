@@ -1,0 +1,109 @@
+{
+  "id": "c727b084-cd79-11f1-9d36-92016cbb8c45",
+  "businessKey": "ORD-1001",
+  "definition": {
+    "key": "cockpit-order",
+    "version": 1,
+    "name": "Cockpit Order",
+    "id": "cockpit-order:1:c2f1f610-cd79-11f1-9d36-92016cbb8c45"
+  },
+  "state": "ACTIVE",
+  "startTime": "2026-10-21T18:03:54.120+0000",
+  "waitingAt": [
+    {
+      "activityId": "charge",
+      "activityName": "Charge card",
+      "activityType": "serviceTask",
+      "since": "2026-10-21T18:03:54.133+0000",
+      "incidentId": "c7339796-cd79-11f1-9d36-92016cbb8c45",
+      "kind": "asyncContinuation",
+      "jobId": "c729ac73-cd79-11f1-9d36-92016cbb8c45",
+      "retries": 0
+    },
+    {
+      "activityId": "notify",
+      "activityName": "Notify customer",
+      "activityType": "serviceTask",
+      "since": "2026-10-21T18:03:54.138+0000",
+      "incidentId": "ccbde620-cd79-11f1-9d36-92016cbb8c45",
+      "kind": "externalTask",
+      "externalTaskId": "c72a6fc7-cd79-11f1-9d36-92016cbb8c45",
+      "topic": "notify-customer",
+      "workerId": "research-worker",
+      "lockExpirationTime": "2026-10-21T18:04:03.493+0000",
+      "retries": 0,
+      "errorMessage": "SMTP relay rejected recipient"
+    },
+    {
+      "activityId": "paymentReceived",
+      "activityName": "Payment received",
+      "activityType": "intermediateMessageCatch",
+      "since": "2026-10-21T18:03:54.142+0000",
+      "kind": "message",
+      "eventSubscriptionId": "c72b0c0a-cd79-11f1-9d36-92016cbb8c45",
+      "eventName": "PaymentReceived",
+      "executionId": "c72b0c09-cd79-11f1-9d36-92016cbb8c45"
+    },
+    {
+      "activityId": "review",
+      "activityName": "Review order",
+      "activityType": "userTask",
+      "since": "2026-10-21T18:03:54.132+0000",
+      "kind": "userTask",
+      "taskId": "c7298560-cd79-11f1-9d36-92016cbb8c45",
+      "assignee": "demo",
+      "due": "2026-10-22T18:03:54.132+0000"
+    },
+    {
+      "activityId": "reviewTimeout",
+      "attachedTo": "review",
+      "since": "2026-10-21T18:03:54.127+0000",
+      "kind": "timer",
+      "jobId": "c728c20e-cd79-11f1-9d36-92016cbb8c45",
+      "dueDate": "2026-10-21T19:03:54.127+0000",
+      "retries": 3
+    }
+  ],
+  "incidents": [
+    {
+      "id": "c7339796-cd79-11f1-9d36-92016cbb8c45",
+      "type": "failedJob",
+      "activityId": "charge",
+      "message": "Unknown property used in expression: ${paymentService.charge(amount)}. Cause: Cannot resolve identifier 'paymentService'",
+      "rootCause": "PropertyNotFoundException: Cannot resolve identifier 'paymentService'",
+      "jobId": "c729ac73-cd79-11f1-9d36-92016cbb8c45",
+      "since": "2026-10-21T18:03:54.198+0000",
+      "annotation": "paymentService bean missing in research engine"
+    },
+    {
+      "id": "ccbde620-cd79-11f1-9d36-92016cbb8c45",
+      "type": "failedExternalTask",
+      "activityId": "notify",
+      "message": "SMTP relay rejected recipient",
+      "rootCause": "SendFailedException: 550 5.1.1 <customer@acme.example>: Recipient address rejected",
+      "externalTaskId": "c72a6fc7-cd79-11f1-9d36-92016cbb8c45",
+      "since": "2026-10-21T18:04:03.493+0000"
+    }
+  ],
+  "children": [],
+  "variables": {
+    "amount": 125,
+    "approved": false,
+    "bigId": 9007199254740993,
+    "customer": "ACME GmbH 1",
+    "items": {
+      "type": "Json",
+      "value": "[{\"sku\":\"A-1\",\"qty\":2},{\"sku\":\"B-7\",\"qty\":1}]"
+    },
+    "note": null,
+    "orderDate": {
+      "type": "Date",
+      "value": "2026-10-21T08:00:00.000+0000"
+    }
+  },
+  "next": [
+    "operate retry c727b084-cd79-11f1-9d36-92016cbb8c45",
+    "operate advance c727b084-cd79-11f1-9d36-92016cbb8c45 --activity-id charge",
+    "operate advance c727b084-cd79-11f1-9d36-92016cbb8c45 --activity-id notify"
+  ]
+}

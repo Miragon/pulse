@@ -1,5 +1,23 @@
 # @miragon/pulse-analytics-connector
 
+[![npm](https://img.shields.io/npm/v/@miragon/pulse-analytics-connector?style=flat-square)](https://www.npmjs.com/package/@miragon/pulse-analytics-connector)
+[![CI](https://img.shields.io/github/actions/workflow/status/Miragon/pulse/ci.yml?style=flat-square&label=ci)](https://github.com/Miragon/pulse/actions/workflows/ci.yml)
+[![Docs](https://img.shields.io/badge/docs-miragon.github.io%2Fpulse-335DE5?style=flat-square)](https://miragon.github.io/pulse/)
+
+Process analytics for Camunda 7 engines in any MCP host: KPIs, bottlenecks, failures and engine
+comparisons from Prometheus as `analytics_*` tools and dashboards.
+
+## Install
+
+```sh
+npm install @miragon/pulse-analytics-connector @miragon/pulse-widget-shell
+npm install react react-dom zod lucide-react bpmn-js@18.31.0 @miragon/mcp-toolkit-core @miragon/mcp-toolkit-ui mcp-use@2.7.3
+```
+
+To build your own MCP server on it, start from [pulse-starter](https://github.com/Miragon/pulse-starter).
+
+## Overview
+
 The **analytics module** for [Pulse](../../../../README.md): Prometheus-backed process analytics as
 `analytics_*` MCP tools, plus dashboard and comparison widgets. Built on
 [`@miragon/pulse-analytics-client`](../analytics-client) and the `@miragon/mcp-toolkit-*` packages.

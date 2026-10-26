@@ -1,0 +1,292 @@
+{
+  "name": "pulse",
+  "private": true,
+  "version": "0.24.0",
+  "displayName": "Miragon Pulse",
+  "description": "See what your process engine is running, right next to your BPMN models: definitions, instances, incidents and variables. Retry incidents and fix variables, guarded.",
+  "publisher": "miragon-gmbh",
+  "icon": "media/icon.png",
+  "license": "MIT",
+  "homepage": "https://github.com/Miragon/pulse/tree/main/apps/vscode#readme",
+  "bugs": "https://github.com/Miragon/pulse/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Miragon/pulse.git",
+    "directory": "apps/vscode"
+  },
+  "type": "module",
+  "main": "./dist/extension.cjs",
+  "engines": {
+    "vscode": "^1.101.0"
+  },
+  "categories": [
+    "Visualization",
+    "Debuggers",
+    "Other"
+  ],
+  "keywords": [
+    "bpmn",
+    "process engine",
+    "operaton",
+    "cib seven",
+    "camunda 7",
+    "incidents",
+    "workflow",
+    "runtime"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "pulse",
+          "title": "Pulse",
+          "icon": "media/pulse.svg"
+        }
+      ]
+    },
+    "views": {
+      "pulse": [
+        {
+          "id": "pulse.engines",
+          "name": "Engines",
+          "icon": "media/pulse.svg"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "pulse.engines",
+        "contents": "See what your process engine is running: definitions, instances, incidents. Retry incidents and fix variables on local engines.\n[Configure Engines](command:pulse.openTargetsFile)\nEngines from .pulse-cli.json show up here on their own. Works with Operaton, CIB seven and Camunda 7."
+      }
+    ],
+    "commands": [
+      {
+        "command": "pulse.refresh",
+        "title": "Refresh",
+        "category": "Pulse",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "pulse.openDefinition",
+        "title": "Open Process Definition",
+        "category": "Pulse"
+      },
+      {
+        "command": "pulse.openEngineOverview",
+        "title": "Open Engine Overview…",
+        "category": "Pulse"
+      },
+      {
+        "command": "pulse.goToInstance",
+        "title": "Go to Process Instance…",
+        "category": "Pulse",
+        "icon": "$(search)"
+      },
+      {
+        "command": "pulse.switchEngine",
+        "title": "Switch Engine…",
+        "category": "Pulse"
+      },
+      {
+        "command": "pulse.setCredentials",
+        "title": "Set Credentials…",
+        "category": "Pulse",
+        "icon": "$(key)"
+      },
+      {
+        "command": "pulse.openTargetsFile",
+        "title": "Configure Engines",
+        "category": "Pulse",
+        "icon": "$(gear)"
+      },
+      {
+        "command": "pulse.showRuntimeData",
+        "title": "Show Runtime Data for This Model",
+        "category": "Pulse",
+        "icon": "$(pulse)"
+      },
+      {
+        "command": "pulse.openInstance",
+        "title": "Open Process Instance",
+        "category": "Pulse"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "pulse.openDefinition",
+          "when": "false"
+        },
+        {
+          "command": "pulse.openInstance",
+          "when": "false"
+        },
+        {
+          "command": "pulse.showRuntimeData",
+          "when": "resourceExtname == .bpmn"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "pulse.goToInstance",
+          "when": "view == pulse.engines",
+          "group": "navigation@1"
+        },
+        {
+          "command": "pulse.refresh",
+          "when": "view == pulse.engines",
+          "group": "navigation@2"
+        },
+        {
+          "command": "pulse.openTargetsFile",
+          "when": "view == pulse.engines",
+          "group": "navigation@3"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "pulse.setCredentials",
+          "when": "view == pulse.engines && viewItem == pulse.engine",
+          "group": "inline"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "pulse.showRuntimeData",
+          "when": "resourceExtname == .bpmn",
+          "group": "navigation@90"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "pulse.showRuntimeData",
+          "when": "resourceExtname == .bpmn",
+          "group": "navigation@90"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Pulse",
+      "properties": {
+        "pulse.environments": {
+          "type": "object",
+          "markdownDescription": "Environment of each engine by target name, e.g. `{ \"prod-eu\": \"production\" }`. Production engines are shown in red. Loopback hosts (`localhost`, `127.0.0.1`, `[::1]`) are local without configuration.",
+          "additionalProperties": {
+            "type": "string",
+            "enum": [
+              "local",
+              "test",
+              "production"
+            ]
+          },
+          "default": {}
+        },
+        "pulse.liveUpdates": {
+          "type": "object",
+          "markdownDescription": "Whether open Pulse views read the engine again on their own, per environment: `on` or `off`. Views update only while they are visible and VS Code has focus, and pause after 15 minutes without activity: local engines every 5–30 s, test engines every 15–60 s, production and unclassified engines every 30–120 s once you turn them on. Without a value local and test are on, production and unclassified off. Only your user settings count: a workspace or a dev container cannot turn live updates on. An engine reached through a tunnel on `localhost` counts as local; mark it in `pulse.environments`.",
+          "properties": {
+            "local": {
+              "type": "string",
+              "enum": [
+                "on",
+                "off"
+              ]
+            },
+            "test": {
+              "type": "string",
+              "enum": [
+                "on",
+                "off"
+              ]
+            },
+            "production": {
+              "type": "string",
+              "enum": [
+                "on",
+                "off"
+              ]
+            },
+            "unclassified": {
+              "type": "string",
+              "enum": [
+                "on",
+                "off"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "default": {},
+          "scope": "application"
+        },
+        "pulse.writes": {
+          "type": "string",
+          "enum": [
+            "localOnly",
+            "enabled",
+            "disabled"
+          ],
+          "enumDescriptions": [
+            "Retry incidents, change variables and move tokens on local engines (localhost) only.",
+            "Also on remote engines with a login. Production and unclassified engines ask you to type their host.",
+            "Never write: Pulse stays read-only."
+          ],
+          "default": "localOnly",
+          "scope": "application",
+          "markdownDescription": "Whether Pulse may retry incidents, change process variables and move tokens. Only your user settings count: a workspace or a dev container cannot turn writes on."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs --production",
+    "watch": "node scripts/build.mjs --watch",
+    "dev": "node scripts/dev-server.mjs",
+    "lint": "eslint src test dev scripts sandbox",
+    "lint:fix": "eslint src test dev scripts sandbox --fix",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.contract.json && tsc -p tsconfig.core.json && tsc -p tsconfig.model.json && tsc -p tsconfig.adapters.json && tsc -p tsconfig.webview.json && tsc -p tsconfig.host.json && tsc -p tsconfig.tooling.json",
+    "test": "vitest run",
+    "test:engines": "vitest run --config vitest.engines.config.ts",
+    "test:smoke": "node scripts/build.mjs && vscode-test --config .vscode-test.mjs",
+    "test:e2e": "node scripts/build.mjs && node scripts/e2e.mjs",
+    "test:mutation": "stryker run",
+    "engine:up": "node scripts/engine.mjs up",
+    "engine:down": "node scripts/engine.mjs down",
+    "sandbox:up": "node scripts/sandbox/sandbox.mjs up",
+    "sandbox:open": "node scripts/build.mjs && node scripts/sandbox/sandbox.mjs open",
+    "sandbox:traffic": "node scripts/sandbox/sandbox.mjs traffic",
+    "sandbox:down": "node scripts/sandbox/sandbox.mjs down",
+    "docs:screenshots": "node scripts/build.mjs && node scripts/screenshots/screenshots.mjs",
+    "package": "node scripts/build.mjs --production && vsce package --no-dependencies --readme-path MARKETPLACE.md",
+    "marketplace:publish": "vsce publish",
+    "open-vsx:publish": "ovsx publish"
+  },
+  "dependencies": {
+    "@fontsource-variable/geist": "5.3.0",
+    "@fontsource-variable/geist-mono": "5.3.0",
+    "@miragon/modeler-shell": "0.2.2",
+    "@miragon/operate": "0.9.0",
+    "bpmn-js": "18.31.1",
+    "bpmn-moddle": "10.3.1",
+    "camunda-bpmn-moddle": "8.0.2",
+    "diagram-js": "15.28.1",
+    "preact": "11.0.1",
+    "zeebe-bpmn-moddle": "2.0.0"
+  },
+  "devDependencies": {
+    "@stryker-mutator/core": "10.0.0",
+    "@stryker-mutator/vitest-runner": "10.0.0",
+    "@types/node": "22.20.5",
+    "@types/vscode": "1.101.0",
+    "@vitest/browser-playwright": "4.1.11",
+    "@vitest/coverage-v8": "4.1.11",
+    "@vscode/test-cli": "0.0.15",
+    "@vscode/test-electron": "3.1.0",
+    "@vscode/vsce": "4.0.0",
+    "esbuild": "0.28.2",
+    "ovsx": "1.3.0",
+    "playwright": "1.64.1",
+    "testcontainers": "12.2.1",
+    "typescript": "6.0.3",
+    "vitest": "4.1.11"
+  }
+}

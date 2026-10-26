@@ -11,6 +11,8 @@ processes and decisions, start and follow instances, work on tasks, fix incident
 instances, look into the history and administer users and permissions. The agent says what should
 happen, and the CLI talks to the REST API.
 
+![pulse-cli status finds five incidents at Charge payment, and pulse-cli inspect shows that order ORD-10130 waits there because the card expired, with the expiry date among its variables](https://raw.githubusercontent.com/Miragon/pulse/main/docs/assets/cli-triage.gif)
+
 ## Why
 
 A language model writes its answer token by token, so the time and the cost of a task grow with
@@ -99,12 +101,12 @@ Details: [workflow commands](https://miragon.github.io/pulse/cli/workflow-comman
 
 Everything an agent needs is in the CLI: `pulse-cli guide` prints the usage guide, and one line in
 `AGENTS.md` or `CLAUDE.md` ("Run `pulse-cli guide` before using `pulse-cli`") is enough. The CLI
-is also a Claude Code plugin in Miragon's plugin marketplace, whose skill makes Claude use the CLI
-whenever a task touches an engine.
+is also a Claude Code plugin in the plugin marketplace of this repository, whose skill makes Claude
+use the CLI whenever a task touches an engine.
 
 ```text
-/plugin marketplace add Miragon/skills
-/plugin install pulse-cli@miragon-agent-skills
+/plugin marketplace add Miragon/pulse
+/plugin install pulse-cli@pulse
 ```
 
 Details: [using pulse-cli from AI agents](https://miragon.github.io/pulse/cli/agents).

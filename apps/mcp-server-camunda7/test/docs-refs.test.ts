@@ -292,11 +292,15 @@ describe("identifiers in the skills and the nested agent files", () => {
 const DOCS_BUDGETS: Record<string, number> = {
   "index.md": 40,
   "README.md": 40,
-  "getting-started.md": 60,
-  "architecture.md": 150,
-  "developer.md": 80,
-  "operations.md": 120,
-  "usage.md": 150,
+  "overview.md": 40,
+  // The MCP server's pages (docs/mcp/).
+  "mcp/index.md": 30,
+  "mcp/getting-started.md": 60,
+  "mcp/architecture.md": 150,
+  "mcp/developer.md": 80,
+  "mcp/operations.md": 120,
+  "mcp/usage.md": 150,
+  "mcp/reference.md": 160,
   // The CLI's pages (docs/cli/).
   "cli/index.md": 40,
   "cli/getting-started.md": 90,
@@ -317,6 +321,12 @@ const DOCS_BUDGETS: Record<string, number> = {
   "cli/adr/index.md": 20,
   "cli/adr/001-engines-as-adapters.md": 70,
   "cli/adr/002-camunda-8-is-a-separate-api.md": 50,
+  // The VS Code extension's pages (docs/vscode/).
+  "vscode/index.md": 50,
+  "vscode/installation.md": 50,
+  "vscode/configuration.md": 80,
+  "vscode/usage.md": 80,
+  "vscode/architecture.md": 50,
 }
 
 /** A page's budget key: its path under docs/, so docs/index.md and docs/cli/index.md differ. */

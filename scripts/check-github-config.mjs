@@ -19,19 +19,27 @@
  *   calls the CLI's publish workflows, which run on no other trigger (a dispatch only publishes
  *   the formula of a release again) and hold their tokens like the npm publish
  *   (checkReleaseGate, checkCliPublishWorkflows);
+ * - every VS Code extension is packaged by exactly one release job through
+ *   publish-vscode-extension.yml, after the release gate, as a plain release on every release
+ *   (no switch, no pre-release), and that workflow keeps the store credentials in its one job in the vscode-marketplace
+ *   environment, which installs with --ignore-scripts, builds nothing and publishes with
+ *   --skip-duplicate (checkVscodePublish);
  * - dependabot.yml groups never shadow each other and name only directories that exist
  *   (checkDependabot);
  * - every check the main-branch ruleset requires is a job a pull request runs
  *   (checkRequiredChecks);
+ * - every workspace package pins Playwright (`playwright`, `@playwright/test`) at one version:
+ *   ci.yml keys the browser cache of the TypeScript job and of the host simulation on those
+ *   pins, so the two share one entry and one browser build (checkPlaywrightPins);
  * - the coverage and mutation artifacts cover every package form and unpack at the repo root,
- *   the diff gate stays within its timeout, and the nightly full run lists every package form,
+ *   and the nightly full run (the only mutation testing CI runs) lists every package form,
  *   forces a run every week and caches each package's incremental file under a fingerprinted
  *   key, the file every stryker.config.json writes (checkArtifactGlobs, checkNightlyMutation,
  *   checkStrykerIncremental).
  *
  * The test (check-github-config.test.mjs) also RUNS the bash steps of the publish workflow
  * (against stub npm and curl executables), of the CLI's release (the tap update against a stub
- * gh) and of the nightly run in fixture trees.
+ * gh), of the extension's release switch and of the nightly run in fixture trees.
  *
  * Runs as `pnpm lint:github` (chained into the root `pnpm lint`).
  */
@@ -46,6 +54,7 @@ export const PUBLISH_WORKFLOW = ".github/workflows/publish-npm-package.yml"
 export const RELEASE_WORKFLOW = ".github/workflows/release-please.yml"
 export const CI_WORKFLOW = ".github/workflows/ci.yml"
 export const NIGHTLY_WORKFLOW = ".github/workflows/mutation-nightly.yml"
+export const VSCODE_PUBLISH_WORKFLOW = ".github/workflows/publish-vscode-extension.yml"
 
 /**
  * The status checks ruleset 15024440 (branch main) requires. A MIRROR of a GitHub setting that
@@ -56,7 +65,6 @@ export const NIGHTLY_WORKFLOW = ".github/workflows/mutation-nightly.yml"
 export const REQUIRED_CHECKS = [
   "TypeScript (Build + Test + Lint)",
   "Lint + Format",
-  "Mutation (changed files)",
   "Fitness report",
   "Composed-server template (Build + Test)",
   "Kotlin (Build + Test)",
@@ -677,6 +685,311 @@ export function checkCliPublishWorkflows(workflows) {
   return errors
 }
 
+// ── publish-vscode-extension.yml ────────────────────────────────────────────
+
+/** The one environment whose job holds the store credentials (or the trusted-publishing token). */
+export const VSCODE_ENVIRONMENT = "vscode-marketplace"
+const VSCODE_DRY_RUN = "${{ inputs.dry_run == true }}"
+/** The directories the Resolve extension step of the workflow accepts. */
+export const VSCODE_APP_DIR = /^apps\/[a-z0-9][a-z0-9-]*$/
+/**
+ * The store tokens the caller hands down: the organization's secrets, the same ones every Miragon
+ * extension publishes with (Miragon/modeler-suite, Miragon/bpmn-modeler), each by name.
+ */
+export const VSCODE_SECRETS = {
+  VSCE_PUBLISH: "${{ secrets.VSCE_PUBLISH }}",
+  OVSX_PUBLISH: "${{ secrets.OVSX_PUBLISH }}",
+}
+/** The scripts the publish job runs by name (pinned by scripts/check-ratchets.mjs). */
+const VSCODE_PUBLISH_SCRIPTS = ["marketplace:publish", "open-vsx:publish"]
+
+const callsVscodePublish = (job) => job?.uses === `./${VSCODE_PUBLISH_WORKFLOW}`
+const usesCache = (step) =>
+  typeof step?.uses === "string" && /^actions\/cache(?:\/[\w-]+)?@/.test(step.uses)
+const runsScript = (step, script) =>
+  new RegExp(String.raw`\brun ${escapeRegExp(script)}(?![\w:-])`).test(runOf(step))
+
+/**
+ * The release job that calls the workflow for one extension: after the release approval, with the
+ * dry run and the release tag of the train, the ceiling of the called jobs and the two
+ * store tokens by name, never `secrets: inherit` (pure).
+ */
+function checkVscodeCaller(id, job) {
+  const errors = []
+  const at = `${RELEASE_WORKFLOW}: job ${id}`
+  const needs = asList(job.needs)
+  if (!["release-please", "gate"].every((need) => needs.includes(need))) {
+    errors.push(
+      `${at} must need release-please and gate: the release approval covers the extension too`,
+    )
+  }
+  if (job.with?.channel !== undefined) {
+    errors.push(`${at} passes channel: every release publishes a plain release, there is no switch`)
+  }
+  if (job.with?.dry_run !== VSCODE_DRY_RUN) {
+    errors.push(`${at} must pass dry_run: ${VSCODE_DRY_RUN}`)
+  }
+  if (!String(job.with?.version ?? "").includes("tag_name")) {
+    errors.push(`${at} must pass version: the release tag (tag_name) the .vsix has to carry`)
+  }
+  if (!isDeepStrictEqual(job.permissions, { contents: "write", "id-token": "write" })) {
+    errors.push(
+      `${at} must hold exactly { contents: write, id-token: write }: the ceiling of the called ` +
+        `package, publish and attach jobs (found ${JSON.stringify(job.permissions)})`,
+    )
+  }
+  if (!isDeepStrictEqual(job.secrets, VSCODE_SECRETS)) {
+    errors.push(
+      `${at} must pass exactly the secrets ${JSON.stringify(VSCODE_SECRETS)} (found ` +
+        `${JSON.stringify(job.secrets)}): the organization's store tokens by name, never ` +
+        `secrets: inherit`,
+    )
+  }
+  return errors
+}
+
+/** A run script's commands: its lines without shell comments, split at &&, ||, ; and |. */
+const commandsOf = (step) =>
+  lines(runOf(step))
+    .map((line) => line.replace(/(?:^|\s)#.*$/, ""))
+    .flatMap((line) => line.split(/&&|\|\||;|\|/))
+    .map((command) => command.trim())
+    .filter(Boolean)
+
+/** The words of a command, with their quotes and the parentheses of a bash array taken off. */
+const wordsOf = (command) =>
+  command
+    .split(/[\s()]+/)
+    .map((word) => word.replace(/^["']+|["']+$/g, ""))
+    .filter(Boolean)
+
+/**
+ * Whether the words pass `flag` as a bare word, and no other word names it: neither
+ * `--flag=false`, `--no-flag` nor `--config.flag=false` switches it back off.
+ */
+const passesFlag = (words, flag) => {
+  const name = flag.replace(/^--/, "")
+  return words.includes(flag) && words.every((word) => word === flag || !word.includes(name))
+}
+
+/**
+ * The command lines of the credential job that start a package manager or a build: only the one
+ * install and the two publish scripts may run next to the store credentials.
+ */
+const foreignCommands = (job) =>
+  stepsOf(job)
+    .flatMap((step) => lines(runOf(step)))
+    .flatMap((line) => line.split(/&&|\|\||;|\|/).map((command) => command.trim()))
+    .filter((command) => packageManagerRun(command) !== undefined || /\bbuild\b/.test(command))
+    .filter(
+      (command) =>
+        !/^pnpm install\b/.test(command) &&
+        !VSCODE_PUBLISH_SCRIPTS.some((script) => runsScript({ run: command }, script)),
+    )
+
+/** The job in the environment: the token, the dry-run gate, the install, the publish steps. */
+function checkVscodeCredentialJob(id, job) {
+  const errors = []
+  const at = `${VSCODE_PUBLISH_WORKFLOW}: job ${id}`
+  if (!isDeepStrictEqual(job.permissions, { contents: "read", "id-token": "write" })) {
+    errors.push(
+      `${at} must hold exactly { contents: read, id-token: write } (found ` +
+        `${JSON.stringify(job.permissions)})`,
+    )
+  }
+  const condition = String(job.if ?? "")
+  if (!condition.includes("inputs.dry_run")) {
+    errors.push(`${at} must skip itself on a dry run (if: inputs.dry_run)`)
+  }
+  if (!asList(job.needs).includes("package")) {
+    errors.push(`${at} must need the package job, which builds the .vsix without the credentials`)
+  }
+  const installs = stepsOf(job).filter((step) => /\bpnpm install\b/.test(runOf(step)))
+  if (installs.length !== 1) {
+    errors.push(`${at} must run exactly one pnpm install, found ${installs.length}`)
+  }
+  const installCommands = installs
+    .flatMap((step) => commandsOf(step))
+    .filter((command) => /^pnpm install\b/.test(command))
+  for (const flag of installs.length === 0 ? [] : ["--frozen-lockfile", "--ignore-scripts"]) {
+    const name = flag.replace(/^--/, "")
+    const passed = installCommands.every((command) => passesFlag(wordsOf(command), flag))
+    if (installCommands.length === 0 || !passed) {
+      errors.push(
+        `${at}: pnpm install must pass ${flag}, and no word that switches it back off ` +
+          `(${flag}=false, --no-${name}): the lockfile's vsce and ovsx, and no lifecycle ` +
+          `script runs next to the credentials`,
+      )
+    }
+  }
+  for (const line of foreignCommands(job)) {
+    errors.push(
+      `${at} runs "${line}": next to the credentials only the one pnpm install and the scripts ` +
+        `${VSCODE_PUBLISH_SCRIPTS.join(" and ")} run, and nothing builds`,
+    )
+  }
+  for (const script of VSCODE_PUBLISH_SCRIPTS) {
+    const steps = stepsOf(job).filter((step) => runsScript(step, script))
+    if (steps.length !== 1) {
+      errors.push(`${at} must run ${script} in exactly one step, found ${steps.length}`)
+    }
+    const skipping = (step) =>
+      passesFlag(
+        commandsOf(step).flatMap((command) => wordsOf(command)),
+        "--skip-duplicate",
+      )
+    for (const step of steps.filter((step) => !skipping(step))) {
+      errors.push(
+        `${at}: the step "${step.name ?? script}" must pass --skip-duplicate, and no word that ` +
+          `switches it back off (--skip-duplicate=false): a re-run after a partial failure ` +
+          `publishes only what is missing`,
+      )
+    }
+  }
+  return errors
+}
+
+/** The workflow's shape, whoever calls it (pure; the doc is the parsed workflow). */
+function checkVscodeWorkflow(doc) {
+  const where = VSCODE_PUBLISH_WORKFLOW
+  if (doc === undefined) return [`${where} is missing: a release never packages the extension`]
+  const errors = []
+  const inputs = doc.on?.workflow_call?.inputs ?? {}
+  for (const name of ["directory", "version"]) {
+    if (inputs[name]?.required !== true || inputs[name]?.type !== "string") {
+      errors.push(`${where}: needs the required string input "${name}"`)
+    }
+  }
+  if (inputs.channel !== undefined) {
+    errors.push(`${where}: takes no input "channel": every release publishes a plain release`)
+  }
+  if (/--pre-release\b/.test(JSON.stringify(doc.jobs ?? {}))) {
+    errors.push(`${where}: passes --pre-release: every release publishes a plain release`)
+  }
+  const secrets = doc.on?.workflow_call?.secrets ?? {}
+  if (!isDeepStrictEqual(Object.keys(secrets).sort(), Object.keys(VSCODE_SECRETS).sort())) {
+    errors.push(
+      `${where}: must declare exactly the secrets ${Object.keys(VSCODE_SECRETS).join(" and ")} ` +
+        `(found ${JSON.stringify(Object.keys(secrets))})`,
+    )
+  }
+  if (inputs.dry_run?.type !== "boolean") {
+    errors.push(`${where}: needs the boolean input "dry_run"`)
+  }
+  if (!isDeepStrictEqual(doc.permissions, {})) {
+    errors.push(`${where}: top-level permissions must be {}: each job names its own`)
+  }
+  if (doc.defaults?.run?.shell !== "bash") {
+    errors.push(
+      `${where}: defaults.run.shell must be bash (-eo pipefail, the flags its test runs the ` +
+        `steps with)`,
+    )
+  }
+
+  const jobs = jobsOf(doc)
+  const credentialJobs = jobs.filter(([, job]) => environmentOf(job) === VSCODE_ENVIRONMENT)
+  if (credentialJobs.length !== 1) {
+    const ids = credentialJobs.map(([id]) => id).join(", ")
+    errors.push(
+      `${where}: exactly one job runs in the environment ${VSCODE_ENVIRONMENT} (the publish ` +
+        `job), found ${credentialJobs.length}${ids === "" ? "" : ` (${ids})`}`,
+    )
+  } else {
+    errors.push(...checkVscodeCredentialJob(...credentialJobs[0]))
+  }
+  const credentialIds = new Set(credentialJobs.map(([id]) => id))
+  const pack = doc.jobs?.package
+  if (pack === undefined) {
+    errors.push(`${where}: the job package is missing`)
+  } else {
+    if (!isDeepStrictEqual(pack.permissions, { contents: "read" })) {
+      errors.push(`${where}: job package must hold exactly { contents: read }`)
+    }
+    if (environmentOf(pack) !== undefined) {
+      errors.push(`${where}: job package runs in no environment`)
+    }
+  }
+  for (const [id, job] of jobs.filter(([id]) => !credentialIds.has(id))) {
+    if (id !== "package" && holdsIdToken(job)) {
+      errors.push(
+        `${where}: job ${id} holds id-token: only the job in ${VSCODE_ENVIRONMENT} may (a ` +
+          `string such as write-all or read-all counts)`,
+      )
+    }
+    if (JSON.stringify(job).includes("secrets.")) {
+      errors.push(`${where}: job ${id} reads secrets: only the job in ${VSCODE_ENVIRONMENT} may`)
+    }
+  }
+
+  for (const [id, job] of jobs) {
+    const at = `${where}: job ${id}`
+    for (const step of stepsOf(job)) {
+      if (runOf(step).includes("${{")) {
+        errors.push(
+          `${at}: a run script holds a \${{ }} expression (template injection); pass it through env`,
+        )
+      }
+      if (usesCache(step)) {
+        errors.push(`${at} uses ${step.uses}: a release job restores no cache into the package`)
+      }
+      if (step?.with?.cache !== undefined) {
+        errors.push(`${at}: ${step.uses} sets cache: a release job restores no dependency cache`)
+      }
+      if (
+        usesAction(step, "actions/setup-node") &&
+        step.with?.["package-manager-cache"] !== false
+      ) {
+        errors.push(`${at}: actions/setup-node must set package-manager-cache: false`)
+      }
+      if (usesAction(step, "actions/checkout") && step.with?.["persist-credentials"] !== false) {
+        errors.push(`${at}: actions/checkout must set persist-credentials: false`)
+      }
+    }
+  }
+  return errors
+}
+
+/**
+ * Every VS Code extension (an app that declares engines.vscode) is packaged by exactly one release
+ * job through publish-vscode-extension.yml, and that workflow keeps the store credentials in one
+ * job that builds nothing (pure).
+ */
+export function checkVscodePublish(releaseDoc, publishDoc, packages) {
+  const errors = []
+  const extensions = packages.filter(({ manifest }) => isVscodeExtension(manifest))
+  const callers = jobsOf(releaseDoc).filter(([, job]) => callsVscodePublish(job))
+  for (const [id, job] of callers) {
+    if (!extensions.some(({ dir }) => dir === job.with?.directory)) {
+      errors.push(
+        `${RELEASE_WORKFLOW}: job ${id} calls ./${VSCODE_PUBLISH_WORKFLOW} with directory ` +
+          `${job.with?.directory}, which declares no engines.vscode: it packages nothing`,
+      )
+    }
+  }
+  for (const pkg of extensions) {
+    if (!VSCODE_APP_DIR.test(pkg.dir)) {
+      errors.push(
+        `${describe(pkg)} declares engines.vscode, but ./${VSCODE_PUBLISH_WORKFLOW} packages ` +
+          `apps/<name> only`,
+      )
+      continue
+    }
+    const own = callers.filter(([, job]) => job.with?.directory === pkg.dir)
+    if (own.length !== 1) {
+      errors.push(
+        `${describe(pkg)} declares engines.vscode, but ${own.length} jobs of ${RELEASE_WORKFLOW} ` +
+          `call ./${VSCODE_PUBLISH_WORKFLOW} with directory: ${pkg.dir}: a release never ` +
+          `packages it (or twice)`,
+      )
+    }
+    for (const [id, job] of own) errors.push(...checkVscodeCaller(id, job))
+  }
+  if (publishDoc !== undefined || extensions.length > 0) {
+    errors.push(...checkVscodeWorkflow(publishDoc))
+  }
+  return errors
+}
+
 // ── dependabot.yml ──────────────────────────────────────────────────────────
 
 const isCatchAll = (group) => isDeepStrictEqual(group?.patterns, ["*"])
@@ -791,9 +1104,6 @@ export function checkRequiredChecks(workflows, required = REQUIRED_CHECKS) {
 
 // ── Mutation artifacts + the nightly full run ───────────────────────────────
 
-/** The ceiling of the diff gate's timeout-minutes in ci.yml. */
-export const MUTATION_TIMEOUT_CEILING = 120
-
 /** The file the nightly caches per package: every stryker.config.json writes exactly this. */
 export const INCREMENTAL_FILE = "reports/stryker-incremental.json"
 
@@ -805,9 +1115,7 @@ const stepsUsing = (doc, action) =>
   )
 const uploadsOf = (doc) => stepsUsing(doc, "actions/upload-artifact")
 const isReportArtifact = (name) =>
-  name === "coverage-summaries" ||
-  name === "mutation-reports" ||
-  String(name ?? "").startsWith("mutation-report-")
+  name === "coverage-summaries" || String(name ?? "").startsWith("mutation-report-")
 
 /** The jobs of the nightly that run one leg per listed package. */
 const nightlyLegs = (doc) =>
@@ -841,31 +1149,22 @@ export function checkArtifactGlobs(ciDoc, nightlyDoc, globs) {
         )
       }
       const name = String(upload.step.with?.name ?? "")
-      if (name === "mutation-reports" || name.startsWith("mutation-report-")) {
+      if (name.startsWith("mutation-report-")) {
         expectPaths(file, upload, "reports/mutation-report.json")
       }
       if (name === "coverage-summaries") expectPaths(file, upload, "coverage/coverage-summary.json")
     }
   }
-  for (const name of ["mutation-reports", "coverage-summaries"]) {
-    if (!uploadsOf(ciDoc).some(({ step }) => step.with?.name === name)) {
-      errors.push(`${CI_WORKFLOW}: no step uploads the artifact ${name}`)
-    }
-    if (
-      !stepsUsing(ciDoc, "actions/download-artifact").some(({ step }) => step.with?.name === name)
-    ) {
-      errors.push(
-        `${CI_WORKFLOW}: no step downloads the artifact ${name}: the fitness report would show ` +
-          `"(no run)" for every package`,
-      )
-    }
+  const coverage = "coverage-summaries"
+  if (!uploadsOf(ciDoc).some(({ step }) => step.with?.name === coverage)) {
+    errors.push(`${CI_WORKFLOW}: no step uploads the artifact ${coverage}`)
   }
-  const timeout = ciDoc?.jobs?.mutation?.["timeout-minutes"]
-  if (typeof timeout !== "number" || timeout > MUTATION_TIMEOUT_CEILING) {
+  if (
+    !stepsUsing(ciDoc, "actions/download-artifact").some(({ step }) => step.with?.name === coverage)
+  ) {
     errors.push(
-      `${CI_WORKFLOW}: job mutation needs timeout-minutes of at most ${MUTATION_TIMEOUT_CEILING}: ` +
-        `it runs the packages one after another and FILE_CAP caps each one, so the bound holds ` +
-        `about four packages at the cap at about 1 min/file`,
+      `${CI_WORKFLOW}: no step downloads the artifact ${coverage}: the fitness report would ` +
+        `show no coverage for any package`,
     )
   }
   // Every report artifact carries the apps/ and packages/ prefixes (the globs' least common
@@ -984,38 +1283,23 @@ export function checkNightlyMutation(doc, globs) {
   return errors
 }
 
-/** A cron fires every week when it names no day of the month and no month. */
-const firesWeekly = (cron) => {
-  const fields = String(cron).trim().split(/\s+/)
-  return fields.length === 5 && fields[2] === "*" && fields[3] === "*"
-}
-const FORCE_EXPRESSION =
-  /^\$\{\{ inputs\.force == true \|\| github\.event\.schedule == '([^']+)' \}\}$/
-
 /**
- * Between forced runs a leg reuses every result whose mutant and killing test did not change,
- * however stale (a helper, another package's dist, a dependency). So one cron of the schedule
- * passes --force at least weekly, and the Stryker step's FORCE names it next to the dispatch
- * input.
+ * The schedule never forces a full pass (owner decision: incremental nightly only, so a reused
+ * result is measured again when its package starts cold, i.e. when the fingerprinted cache key
+ * changes). Only a manual dispatch with `force` re-tests every mutant: the Stryker step's FORCE
+ * reads the dispatch input and nothing else, and passes --force when it is true.
  */
+const FORCE_EXPRESSION = "${{ inputs.force == true }}"
+
 function checkForcedRun(doc, job, at) {
   const stryker = stepsOf(job).find((step) => /\brun test:mutation\b/.test(runOf(step)))
   const force = String(stryker?.env?.FORCE ?? "")
-  const cron = FORCE_EXPRESSION.exec(force)?.[1]
-  const crons = asList(triggersOf(doc).schedule).map((entry) => entry?.cron)
-  if (cron === undefined) {
-    return [
-      `${at}: the Stryker step needs FORCE: \${{ inputs.force == true || ` +
-        `github.event.schedule == '<a weekly cron of the schedule>' }} (found "${force}"): ` +
-        `without a forced run, reused results are never measured again`,
-    ]
-  }
   const errors = []
-  if (!crons.includes(cron)) {
-    errors.push(`${at}: FORCE names the cron "${cron}", which the schedule does not list`)
-  }
-  if (!firesWeekly(cron)) {
-    errors.push(`${at}: the forced cron "${cron}" must fire every week (day of month and month *)`)
+  if (force !== FORCE_EXPRESSION) {
+    errors.push(
+      `${at}: the Stryker step needs FORCE: ${FORCE_EXPRESSION} (found "${force}"): only a ` +
+        `manual dispatch forces a full pass, no schedule does`,
+    )
   }
   if (!/\[ "\$FORCE" = true \]; then args\+=\(--force\)/.test(runOf(stryker))) {
     errors.push(`${at}: the Stryker step must pass --force when FORCE is true`)
@@ -1115,6 +1399,34 @@ export function checkStrykerIncremental(configs) {
   return errors
 }
 
+// ── Playwright pins ─────────────────────────────────────────────────────────
+
+/** The packages that pin a Playwright version, each decides the browser build its job installs. */
+export const PLAYWRIGHT_PACKAGES = ["playwright", "@playwright/test"]
+
+/**
+ * Every Playwright pin of the workspace is one version (pure). ci.yml keys the browser cache of
+ * the TypeScript job on apps/vscode's `playwright` and the host simulation's on the server app's
+ * `@playwright/test`; two versions would mean two keys, two browser downloads and a job that
+ * never hits the shared entry.
+ */
+export function checkPlaywrightPins(packages) {
+  const pins = packages.flatMap(({ dir, manifest }) =>
+    PLAYWRIGHT_PACKAGES.flatMap((name) =>
+      ["dependencies", "devDependencies"]
+        .map((field) => manifest?.[field]?.[name])
+        .filter((version) => version !== undefined)
+        .map((version) => ({ dir, name, version })),
+    ),
+  )
+  if (new Set(pins.map(({ version }) => version)).size <= 1) return []
+  const listed = pins.map(({ dir, name, version }) => `${dir} ${name} ${version}`).join(", ")
+  return [
+    `Playwright is pinned at more than one version (${listed}): ci.yml keys one browser cache ` +
+      `on these pins, so bump them together to one version`,
+  ]
+}
+
 // ── Main ────────────────────────────────────────────────────────────────────
 
 /** A JSON object file, or undefined when it holds no JSON object (reported, not thrown). */
@@ -1160,8 +1472,14 @@ export function checkRepo(root) {
     ),
     ...checkReleaseGate(workflows.get(RELEASE_WORKFLOW)),
     ...checkCliPublishWorkflows(workflows),
+    ...checkVscodePublish(
+      workflows.get(RELEASE_WORKFLOW),
+      workflows.get(VSCODE_PUBLISH_WORKFLOW),
+      packages,
+    ),
     ...checkDependabot(readYaml(root, ".github/dependabot.yml"), { packages, dirExists: exists }),
     ...checkRequiredChecks(workflows),
+    ...checkPlaywrightPins(packages),
     ...checkArtifactGlobs(workflows.get(CI_WORKFLOW), workflows.get(NIGHTLY_WORKFLOW), globs),
     ...checkNightlyMutation(workflows.get(NIGHTLY_WORKFLOW), globs),
     ...checkStrykerIncremental(strykerConfigs),
@@ -1183,8 +1501,8 @@ if (isMain) {
   }
   console.log(
     "GitHub config: publish workflow, npm matrix and repositories, release extra-files and " +
-      "plugin versions, the release gate, the CLI publish workflows, Dependabot groups, " +
-      `${REQUIRED_CHECKS.length} required checks, the report artifacts, the nightly mutation ` +
-      "run and the Stryker incremental files hold.",
+      "plugin versions, the release gate, the CLI publish workflows, the extension's release " +
+      `path, Dependabot groups, ${REQUIRED_CHECKS.length} required checks, the Playwright pins, ` +
+      "the report artifacts, the nightly mutation run and the Stryker incremental files hold.",
   )
 }

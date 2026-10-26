@@ -1,5 +1,25 @@
 # @miragon/pulse-widget-shell
 
+[![npm](https://img.shields.io/npm/v/@miragon/pulse-widget-shell?style=flat-square)](https://www.npmjs.com/package/@miragon/pulse-widget-shell)
+[![CI](https://img.shields.io/github/actions/workflow/status/Miragon/pulse/ci.yml?style=flat-square&label=ci)](https://github.com/Miragon/pulse/actions/workflows/ci.yml)
+[![Docs](https://img.shields.io/badge/docs-miragon.github.io%2Fpulse-335DE5?style=flat-square)](https://miragon.github.io/pulse/)
+
+The base for your own Pulse server: the shared widget kit, the settings page and the server boot
+that the Pulse connectors and the [pulse-starter](https://github.com/Miragon/pulse-starter) build on.
+
+## Install
+
+```sh
+npm install @miragon/pulse-widget-shell zod bpmn-js@18.31.0 @miragon/mcp-toolkit-core mcp-use@2.7.3
+```
+
+The widgets also need `react`, `react-dom`, `@miragon/mcp-toolkit-ui`, `lucide-react` and
+`@tanstack/react-query`; the Postgres stores need `postgres`.
+
+To build your own MCP server on it, start from [pulse-starter](https://github.com/Miragon/pulse-starter).
+
+## Overview
+
 Shared widget plumbing for the [Pulse](../../../README.md) MCP App widgets. It is the common base
 both widget modules ([`camunda7-connector`](../../connectors/camunda/camunda7-connector), [`analytics-connector`](../../connectors/analytics/analytics-connector)) build on,
 so every widget gets the same data-loading, refresh and view-composition behaviour.

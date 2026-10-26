@@ -7,3 +7,9 @@
 /docs/cli/ @dominikhorn93 @emaarco
 /.github/workflows/publish-cli.yml @dominikhorn93 @emaarco
 /.github/workflows/publish-homebrew.yml @dominikhorn93 @emaarco
+
+# The VS Code extension (imported from Miragon/pulse-vscode) and its release path. The ruleset
+# requires no code-owner review, so these lines only route review requests; the last matching
+# line wins, so files under apps/vscode/ request their author instead of the default owner.
+/apps/vscode/ @emaarco
+/.github/workflows/publish-vscode-extension.yml @dominikhorn93 @emaarco
