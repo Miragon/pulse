@@ -41,8 +41,7 @@ meanings and variables: `pulse-cli ping --help`.
 Lookup order: `--config <path>`, `PULSE_CLI_CONFIG`, `$XDG_CONFIG_HOME/pulse-cli/config.json`,
 `~/.config/pulse-cli/config.json` (Windows: `%APPDATA%\pulse-cli\config.json`).
 `pulse-cli config path` prints the location. A file named with `--config` or `PULSE_CLI_CONFIG` must
-exist and is the only file read. Until the first release after 2027-01-31 the config and project
-files of the CLI's old name stand in for missing ones ([rename notes](installation.md#renamed-from-operate)).
+exist and is the only file read.
 pulse-cli validates every value and writes the file with mode `0600`; you can also edit it by hand:
 
 ```json
@@ -94,8 +93,6 @@ pulse-cli ping --flavor camunda7
 
 An unknown value is an error that lists the known engines. Before the CLI moved to Pulse the key
 was called `platform`; that name is an unknown key now, and `--platform` an unknown option.
-pulse-cli writes no `flavor` into a project file under the CLI's old name, which the old releases
-reject ([rename notes](installation.md#renamed-from-operate)).
 
 ## Profiles
 

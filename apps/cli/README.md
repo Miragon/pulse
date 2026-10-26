@@ -147,22 +147,7 @@ built from the pages in [`docs/cli/`](https://github.com/Miragon/pulse/tree/main
 
 ## Renamed from operate
 
-Up to 0.10.0 this CLI was `@miragon/operate` with the command `operate`, released from
-[Miragon/operate](https://github.com/Miragon/operate), which keeps its history and changelog.
-Each old name has one new name:
-
-- npm: `@miragon/operate` becomes `@miragon/pulse-cli` (command `pulse-cli`). The old package is
-  deprecated; it stays installable and keeps its own `operate`.
-- Homebrew: `miragon/tap/operate` becomes `miragon/tap/pulse-cli`; `brew upgrade` switches, and
-  the formula keeps `operate` as an alias until the first release after 2027-01-31.
-- Image: `ghcr.io/miragon/operate` becomes `ghcr.io/miragon/pulse-cli`.
-- Variables: `OPERATE_URL`, `OPERATE_TOKEN` and the rest become `PULSE_CLI_URL`,
-  `PULSE_CLI_TOKEN` and so on.
-- Files: the project file `.operate.json` becomes `.pulse-cli.json`, the config directory
-  `~/.config/operate` (Windows: `%APPDATA%\operate`) becomes `~/.config/pulse-cli`.
-
-pulse-cli still reads the old variables and files, with one warning per run, until the first
-release after 2027-01-31: [how](https://miragon.github.io/pulse/cli/installation#renamed-from-operate).
+Up to 0.10.0 this CLI was operate, released from the archived [Miragon/operate](https://github.com/Miragon/operate).
 
 ## Contributing
 

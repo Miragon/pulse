@@ -59,6 +59,4 @@ npm view @miragon/pulse-cli@0.22.0 dist.attestations.url
 5. **Homebrew** uses the Miragon release-please app (`RELEASE_PLEASE_APP_CLIENT_ID`,
    `RELEASE_PLEASE_APP_PRIVATE_KEY`), installed on Miragon/homebrew-tap with write access to
    contents and pull requests. Its first publish also renames the formula the CLI had before
-   (see [Homebrew](./installation#homebrew)), so `brew upgrade` moves existing installations,
-   and the formula links the old command to `pulse-cli` until the first release after
-   2027-01-31.
+   (see [Homebrew](./installation#homebrew)), so `brew upgrade` moves existing installations.

@@ -44,10 +44,6 @@ export class OpenTargetsFileCommand implements Command {
     if (await this.exists(current)) {
       return current
     }
-    const fallback = vscode.Uri.joinPath(folder, TargetsFile.FALLBACK_NAME)
-    if (await this.exists(fallback)) {
-      return fallback
-    }
     await vscode.workspace.fs.writeFile(current, new TextEncoder().encode(TargetsFile.TEMPLATE))
     return current
   }

@@ -82,29 +82,14 @@ const ALLOWED: readonly Allowance[] = [
     reason: "the English verb",
   },
   {
-    file: "apps/cli/src/config/legacy.ts",
-    reason:
-      "the compat layer names the old program until the first release after 2027-01-31 (its removal list: apps/cli/CLAUDE.md)",
-  },
-  {
-    file: "apps/cli/src/config/project.ts",
-    line: /which operate \(up to 0\.10\.0\) refuses/,
-    reason: "the flavor refusal names the old CLI that rejects the key",
-  },
-  {
     file: "apps/cli/README.md",
     section: /^#{2,6} Renamed from operate\b/,
-    reason: "the npm README maps operate's names",
+    reason: "the npm README points to the archived repository",
   },
   {
     file: "docs/cli/installation.md",
     section: /^#{2,6} Renamed from operate\b/,
-    reason: "the docs map operate's names",
-  },
-  {
-    file: "apps/cli/scripts/homebrew-formula.sh",
-    line: /=> "operate"|bin\}\/operate|# operate, the command/,
-    reason: "the Homebrew alias operate until the first release after 2027-01-31",
+    reason: "the docs point to the archived repository",
   },
 ]
 

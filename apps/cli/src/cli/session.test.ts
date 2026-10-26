@@ -104,8 +104,8 @@ describe("session helpers", () => {
     expect(isExplicit(fakeRuntime({ env: { PULSE_CLI_CONFIG: " " } }), undefined)).toBe(false)
   })
 
-  it("chooses the config path", async () => {
-    expect((await userConfig(fakeRuntime(), "/x.json")).path).toBe("/x.json")
+  it("chooses the config path", () => {
+    expect(userConfig(fakeRuntime(), "/x.json")).toBe("/x.json")
   })
 
   it("names the source of read-only mode", () => {
