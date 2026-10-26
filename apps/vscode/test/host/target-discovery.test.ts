@@ -23,8 +23,7 @@ vi.mock("vscode", () => ({
 }))
 
 const CURRENT_A = join("/work/a", TargetsFile.NAME)
-const FALLBACK_A = join("/work/a", TargetsFile.FALLBACK_NAME)
-const FALLBACK_B = join("/work/b", TargetsFile.FALLBACK_NAME)
+const CURRENT_B = join("/work/b", TargetsFile.NAME)
 
 function profiles(entries: Record<string, string>): string {
   return JSON.stringify({
@@ -37,15 +36,8 @@ beforeEach(() => {
 })
 
 describe("the project files Pulse reads", () => {
-  test("are the pulse-cli project file and, where none sits beside it, the old one", () => {
-    expect(TargetsFile.GLOB).toBe(`**/{${TargetsFile.NAME},${TargetsFile.FALLBACK_NAME}}`)
-    const currentA = { fsPath: CURRENT_A }
-    const fallbackA = { fsPath: FALLBACK_A }
-    const fallbackB = { fsPath: FALLBACK_B }
-    expect(TargetsFile.readingOrder([fallbackB, fallbackA, currentA])).toEqual([
-      { file: currentA, fallback: false },
-      { file: fallbackB, fallback: true },
-    ])
+  test("are the pulse-cli project files", () => {
+    expect(TargetsFile.GLOB).toBe(`**/${TargetsFile.NAME}`)
   })
 
   test("writes a new one under the pulse-cli name", () => {
@@ -54,13 +46,12 @@ describe("the project files Pulse reads", () => {
     })
   })
 
-  test("let the pulse-cli project file win a profile name and warn about the old name", async () => {
+  test("let the first project file win a profile name", async () => {
+    files.set(CURRENT_A, profiles({ shared: "http://a:8080/engine-rest" }))
     files.set(
-      FALLBACK_B,
+      CURRENT_B,
       profiles({ shared: "http://b:8080/engine-rest", b: "http://b:8080/engine-rest" }),
     )
-    files.set(CURRENT_A, profiles({ shared: "http://a:8080/engine-rest" }))
-    files.set(FALLBACK_A, profiles({ shadowed: "http://a:9090/engine-rest" }))
 
     const { targets, problems } = await TargetDiscovery.discover()
 
@@ -68,12 +59,7 @@ describe("the project files Pulse reads", () => {
       ["shared", "http://a:8080/engine-rest"],
       ["b", "http://b:8080/engine-rest"],
     ])
-    expect(problems).toHaveLength(1)
-    expect(problems[0]?.path).toBe(FALLBACK_B)
-    expect(problems[0]?.severity).toBe("warning")
-    expect(problems[0]?.label()).toBe(
-      `${TargetsFile.FALLBACK_NAME}: rename it to ${TargetsFile.NAME}; Pulse reads this file name only until its first release after 2027-01-31`,
-    )
+    expect(problems).toEqual([])
   })
 
   test("falls back to the local engine without any project file", async () => {
@@ -91,8 +77,7 @@ describe("the project files Pulse reads", () => {
     )
   })
 
-  test("keeps a broken file an error and the old name a warning", () => {
+  test("keeps a broken file an error", () => {
     expect(new TargetsProblem(CURRENT_A, "the file is not valid JSON").severity).toBeUndefined()
-    expect(new TargetsProblem(FALLBACK_B, "rename it", "warning").severity).toBe("warning")
   })
 })

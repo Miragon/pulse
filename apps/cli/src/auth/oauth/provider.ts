@@ -7,7 +7,7 @@
  */
 
 import type { OAuthConfig } from "../../config/types.js"
-import { OperateError } from "../../errors.js"
+import { PulseCliError } from "../../errors.js"
 import type { AuthPreview, AuthProvider, Principal } from "../types.js"
 import { cachePath, isLockError, readCache } from "./cache.js"
 import {
@@ -30,7 +30,7 @@ import type { CachedLogin, OAuthDeps } from "./types.js"
 const TRANSIENT: ReadonlySet<string> = new Set(["NETWORK", "TIMEOUT", "HTTP_SERVER_ERROR"])
 
 function isTransient(error: unknown): boolean {
-  return isLockError(error) || (error instanceof OperateError && TRANSIENT.has(error.code))
+  return isLockError(error) || (error instanceof PulseCliError && TRANSIENT.has(error.code))
 }
 
 function bearer(login: CachedLogin): Readonly<Record<string, string>> {
@@ -159,7 +159,7 @@ class OAuthProvider implements AuthProvider {
       const note = previewNote(login, this.deps.now(), this.config)
       return note === undefined ? { headers: bearer(login) } : { headers: bearer(login), note }
     } catch (error) {
-      if (!(error instanceof OperateError) || error.code !== "LOGIN_REQUIRED") throw error
+      if (!(error instanceof PulseCliError) || error.code !== "LOGIN_REQUIRED") throw error
       return {
         headers: {},
         note: `Not logged in with OAuth ${profileNote(this.config.profile)}; the request would fail with LOGIN_REQUIRED. Run ${inTerminal(this.config)}.`,

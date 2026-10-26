@@ -5,7 +5,7 @@
  */
 
 import type { OAuthConfig } from "../../config/types.js"
-import { OperateError } from "../../errors.js"
+import { PulseCliError } from "../../errors.js"
 import { canRefresh, isExpired } from "./expiry.js"
 import { identityDifferences } from "./identity.js"
 import type { CachedLogin, LoginIdentity } from "./types.js"
@@ -78,11 +78,11 @@ export function loginHint(who: LoginOwner): string {
 export function loginRequired(message: string, who: LoginOwner, why?: string) {
   const login = loginHint(who)
   const hint = why === undefined ? login : `${why} ${login}`
-  return new OperateError("LOGIN_REQUIRED", message, { hint })
+  return new PulseCliError("LOGIN_REQUIRED", message, { hint })
 }
 
-export function loginFailed(message: string, hint: string): OperateError {
-  return new OperateError("LOGIN_FAILED", message, { hint })
+export function loginFailed(message: string, hint: string): PulseCliError {
+  return new PulseCliError("LOGIN_FAILED", message, { hint })
 }
 
 export function iso(epochMs: number): string {
@@ -94,7 +94,7 @@ const SHARED_LOGIN =
   "One login serves every OAuth profile of the same config file, project file or repository that stores the same issuer, client, audience and scopes."
 
 /** LOGIN_REQUIRED without a cached login. */
-export function notLoggedIn(who: LoginOwner): OperateError {
+export function notLoggedIn(who: LoginOwner): PulseCliError {
   const message = `Not logged in: ${owner(who.profile)} has no OAuth login`
   return loginRequired(message, who, who.profile === undefined ? undefined : SHARED_LOGIN)
 }
@@ -104,7 +104,7 @@ export function notLoggedIn(who: LoginOwner): OperateError {
  * differ, the hint the PULSE_CLI_OAUTH_* variables that changed them (the person's terminal must
  * set them too, or the agent must drop them), else that the settings changed since the login.
  */
-export function otherIdentity(stored: LoginIdentity, config: OAuthConfig): OperateError {
+export function otherIdentity(stored: LoginIdentity, config: OAuthConfig): PulseCliError {
   const differences = identityDifferences(stored, config)
   const details = differences.map((difference) => difference.text).join("; ")
   const variables = differences.flatMap((difference) =>
@@ -121,11 +121,11 @@ export function otherIdentity(stored: LoginIdentity, config: OAuthConfig): Opera
   )
 }
 
-export function unknownFormat(path: string, who: LoginOwner): OperateError {
+export function unknownFormat(path: string, who: LoginOwner): PulseCliError {
   return loginRequired(`The token cache ${path} has an unknown format`, who)
 }
 
-export function removedWhileRunning(who: LoginOwner): OperateError {
+export function removedWhileRunning(who: LoginOwner): PulseCliError {
   return loginRequired(
     `The OAuth login of ${owner(who.profile)} was removed while this command ran`,
     who,

@@ -5,7 +5,7 @@
  */
 
 import type { EnginePort } from "../engine-port/engine-port.js"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import { compact, omit } from "../util.js"
 import {
   type AdvanceInput,
@@ -111,7 +111,7 @@ async function after(
       return { view: await loadView(deps.port, id, inspect) }
     return await waitAndInspect(deps, { id, known: true }, options.wait, inspect)
   } catch (error) {
-    if (error instanceof OperateError) return { failure: error }
+    if (error instanceof PulseCliError) return { failure: error }
     throw error
   }
 }
@@ -143,7 +143,7 @@ export async function advance(
   if (options.dryRun) return { kind: "dry-run", plan: advanced, requests: steps }
   const sent = await send(deps, wait, steps)
   const result = await after(deps, id, options, sent.failure !== undefined)
-  const failure: OperateError | undefined =
+  const failure: PulseCliError | undefined =
     sent.failure === undefined ? result.failure : jobFailedError([sent.failure])
   const done = { ...advanced, via: sent.via, ...compact({ executedBy: sent.executedBy }) }
   const report: AdvanceView = { advanced: done, ...compact({ instance: result.view }) }

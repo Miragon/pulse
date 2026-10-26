@@ -61,7 +61,7 @@ on top of a **local engine CLI wrapper** in `apps/vscode/src/adapters/c7/engine-
   stay; `OPERATE_READ_ONLY=1`; `OPERATE_CONFIG` points at an extension-owned
   `{"profiles":{}}` so the CLI never resolves a profile of its own: Pulse reads the
   workspace's `.pulse-cli.json` itself (the only source of engines, read in
-  `TargetsParser`; the CLI's former name is a fallback, `TargetsFile`) and passes the chosen profile's URL. Ids must match
+  `TargetsParser`) and passes the chosen profile's URL. Ids must match
   `^[A-Za-z0-9_][\w.:-]*$` (no `-` in front, no comma that operate would split) and are
   refused before spawning.
 - **Writes use their own runner.** `C7Adapter.commands` builds an `EngineCliWriter`

@@ -34,9 +34,9 @@ import type {
 } from "./support/types.js"
 
 /** Logs in through the profile; the non-ASCII password proves the UTF-8 encoding of the token. */
-const PROFILE_USER: Credentials = { username: "operateit", password: "Pässwörd-€-it" }
+const PROFILE_USER: Credentials = { username: "pulseit", password: "Pässwörd-€-it" }
 /** The only user that ever gets a wrong password (see the file comment). */
-const REJECTED_USER: Credentials = { username: "operaterejected", password: "right-pw-1" }
+const REJECTED_USER: Credentials = { username: "pulserejected", password: "right-pw-1" }
 const WRONG_PASSWORD = "wrong-pw-2"
 /** Variable named by the profile's `passwordEnv`. */
 const PASSWORD_ENV = "IT_PW"

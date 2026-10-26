@@ -1,14 +1,14 @@
 /** The option readers of the workflow commands on plain flag maps. */
 
 import { describe, expect, it } from "vitest"
-import { OperateError } from "../../errors.js"
+import { PulseCliError } from "../../errors.js"
 import { integer, otherWords, selectionOf, waitSettings } from "./values.js"
 
-function usage(fn: () => unknown): OperateError {
+function usage(fn: () => unknown): PulseCliError {
   try {
     fn()
   } catch (error) {
-    if (error instanceof OperateError) return error
+    if (error instanceof PulseCliError) return error
   }
   throw new Error("expected a usage error")
 }

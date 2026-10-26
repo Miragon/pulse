@@ -1,6 +1,6 @@
 import fc from "fast-check"
 import { describe, expect, it } from "vitest"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import { DATE_TIME_HINT, normalizeDateTime } from "./dates.js"
 
 const ENGINE_FORMAT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}[+-]\d{4}$/
@@ -58,10 +58,10 @@ function expectUsageError(raw: string): void {
   try {
     normalizeDateTime(raw)
   } catch (error) {
-    expect(error).toBeInstanceOf(OperateError)
-    expect((error as OperateError).code).toBe("USAGE")
-    expect((error as OperateError).message).toBe(`Invalid date-time "${raw}"`)
-    expect((error as OperateError).details.hint).toBe(DATE_TIME_HINT)
+    expect(error).toBeInstanceOf(PulseCliError)
+    expect((error as PulseCliError).code).toBe("USAGE")
+    expect((error as PulseCliError).message).toBe(`Invalid date-time "${raw}"`)
+    expect((error as PulseCliError).details.hint).toBe(DATE_TIME_HINT)
     return
   }
   throw new Error(`expected "${raw}" to be rejected`)
@@ -192,7 +192,7 @@ describe("normalizeDateTime", () => {
           const day = daysIn(year, month) + beyond
           if (day > 99) return
           expect(() => normalizeDateTime(`${pad(year, 4)}-${pad(month)}-${pad(day)}`)).toThrow(
-            OperateError,
+            PulseCliError,
           )
         },
       ),

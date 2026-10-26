@@ -1,13 +1,13 @@
 /** Reads files named on the command line, turning file system errors into usage errors. */
 
-import { type OperateError, usageError } from "../errors.js"
+import { type PulseCliError, usageError } from "../errors.js"
 import type { FileSystem } from "../runtime.js"
 
 function errorCode(error: unknown): unknown {
   return typeof error === "object" && error !== null && "code" in error ? error.code : undefined
 }
 
-function fileError(path: string, error: unknown): OperateError {
+function fileError(path: string, error: unknown): PulseCliError {
   const code = errorCode(error)
   if (code === "ENOENT") {
     return usageError(

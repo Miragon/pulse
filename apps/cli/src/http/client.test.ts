@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest"
 import type { AuthProvider } from "../auth/types.js"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import { type ClientOptions, networkError, send } from "./client.js"
 import type { HttpRequest, TraceEvent } from "./types.js"
 
@@ -48,13 +48,13 @@ function options(
   return { fetch, auth: noAuth(), timeoutMs: 1000, now: () => 0, ...overrides }
 }
 
-async function failure(promise: Promise<unknown>): Promise<OperateError> {
+async function failure(promise: Promise<unknown>): Promise<PulseCliError> {
   const error: unknown = await promise.then(
     () => undefined,
     (reason: unknown) => reason,
   )
-  if (!(error instanceof OperateError))
-    throw new Error(`expected OperateError, got ${String(error)}`)
+  if (!(error instanceof PulseCliError))
+    throw new Error(`expected PulseCliError, got ${String(error)}`)
   return error
 }
 
@@ -167,7 +167,7 @@ describe("send", () => {
 
     it("propagates an error of refresh() instead of the 401", async () => {
       const { fetch, calls } = fakeFetch(json(401))
-      const failure = new OperateError("LOGIN_REQUIRED", "revoked")
+      const failure = new PulseCliError("LOGIN_REQUIRED", "revoked")
       const refresh = vi.fn(() => Promise.reject(failure))
       await expect(send(REQUEST, options(fetch, { auth: { ...noAuth(), refresh } }))).rejects.toBe(
         failure,
@@ -229,7 +229,7 @@ describe("send", () => {
       const { fetch } = fakeFetch(new TypeError("fetch failed"))
       const events: TraceEvent[] = []
       await expect(send(REQUEST, options(fetch, { trace: (e) => events.push(e) }))).rejects.toThrow(
-        OperateError,
+        PulseCliError,
       )
       expect(events.map((event) => event.type)).toEqual(["request"])
     })

@@ -11,7 +11,7 @@ import {
   findCommands,
   listCommands,
 } from "../../docs/commands.js"
-import { OperateError } from "../../errors.js"
+import { PulseCliError } from "../../errors.js"
 import type { Display } from "../display.js"
 import { run } from "../run.js"
 import { EFFECTS } from "../../catalog/types.js"
@@ -241,6 +241,6 @@ describe("commands helpers", () => {
     }).not.toThrow()
     expect(() => {
       requireGroup(catalog, "Task")
-    }).toThrow(OperateError)
+    }).toThrow(PulseCliError)
   })
 })

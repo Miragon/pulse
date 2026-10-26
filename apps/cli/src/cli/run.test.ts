@@ -103,7 +103,7 @@ describe("run: usage errors", () => {
 
   it("adds the stack with --verbose", async () => {
     const result = await cli(["task", "lsit", "--verbose"])
-    expect(errorOf(result.stderr).stack).toEqual(expect.stringContaining("OperateError"))
+    expect(errorOf(result.stderr).stack).toEqual(expect.stringContaining("PulseCliError"))
   })
 })
 

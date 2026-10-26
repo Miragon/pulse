@@ -53,8 +53,7 @@ const RULES = [
   // too), the repo, the image, the Homebrew tap, the docs, the product page, its
   // OPERATE_* variables, its config file and its config directory. The plain word stays
   // ("read and operate your engines", the cockpit's fleet.operate key, Camunda 8 Operate).
-  // The CLI's compat layer reads the released ones until the first release after 2027-01-31:
-  // only its tests and the two "Renamed from operate" sections may name them (ALLOWED).
+  // Only the two "Renamed from operate" sections may point to the archived repo (ALLOWED).
   { name: "old operate package", pattern: /@miragon\/operate(?!\w)/i },
   { name: "old operate repo", pattern: /(?<![\w.-])miragon\/operate(?![\w-])/i },
   { name: "old operate image", pattern: /ghcr\.io\/miragon\/operate/i },
@@ -175,48 +174,17 @@ const ALLOWED: Allowance[] = [
     reason:
       "the C7 adapter and migration records say how the extension runs the bundled operate 0.9.0",
   },
-  // The CLI's project file was .operate.json up to operate 0.10.0; the extension still reads
-  // it where no .pulse-cli.json sits beside it, until the first release after 2027-01-31.
-  {
-    file: "apps/vscode/src/host/connections/targets-file.ts",
-    rules: ["old operate config file"],
-    line: /FALLBACK_NAME = ["']\.operate\.json["']/,
-    reason: "the extension's fallback to the CLI's former project file name",
-  },
-  {
-    file: /^apps\/cli\/src\/(?:config\/legacy(?:-files)?|cli\/legacy-notice)\.test\.ts$/,
-    rules: ["old operate env var", "old operate config file", "old operate config dir"],
-    reason:
-      "the CLI's compat tests pin the names operate released up to 0.10.0, read until the first release after 2027-01-31",
-  },
   {
     file: "apps/cli/README.md",
-    rules: [
-      "old operate package",
-      "old operate repo",
-      "old operate image",
-      "old operate tap",
-      "old operate env var",
-      "old operate config file",
-      "old operate config dir",
-    ],
+    rules: ["old operate repo"],
     section: /^#{2,6} Renamed from operate\b/,
-    reason: "the npm README maps each name of operate (up to 0.10.0) to its pulse-cli name",
+    reason: "the npm README points to the archived repository of operate (up to 0.10.0)",
   },
   {
     file: "docs/cli/installation.md",
-    rules: [
-      "old operate package",
-      "old operate repo",
-      "old operate image",
-      "old operate tap",
-      "old operate env var",
-      "old operate config file",
-      "old operate config dir",
-    ],
+    rules: ["old operate repo"],
     section: /^#{2,6} Renamed from operate\b/,
-    reason:
-      "the docs map each name of operate to its pulse-cli name and say how long the old ones work",
+    reason: "the docs point to the archived repository of operate (up to 0.10.0)",
   },
   {
     file: "scripts/test-template.sh",

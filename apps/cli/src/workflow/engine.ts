@@ -13,7 +13,7 @@ import type {
   PlannedRequest,
   Query,
 } from "../engine-port/engine-port.js"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import type { ClientOptions } from "../http/client.js"
 import { commandRef } from "../operation/command-ref.js"
 import { dryRunPreview } from "../operation/preview.js"
@@ -37,7 +37,7 @@ const PAGE_SIZE = 500
 
 /** Engine 404s mean "missing"; routing 404s (a wrong REST root) have no engine type. */
 export function isMissing(error: unknown): boolean {
-  if (!(error instanceof OperateError) || error.code !== "NOT_FOUND") return false
+  if (!(error instanceof PulseCliError) || error.code !== "NOT_FOUND") return false
   const type = error.details.engineType
   return type !== undefined && type !== "NotFoundException"
 }
@@ -91,12 +91,12 @@ class CatalogPort implements EnginePort {
   private operation(operationId: string, input: OperationInput): OperationSpec {
     const operation = findByOperationId(this.catalog, operationId)
     if (operation === undefined) {
-      throw new OperateError("INTERNAL", `The catalog has no operation ${operationId}`)
+      throw new PulseCliError("INTERNAL", `The catalog has no operation ${operationId}`)
     }
     for (const [key, value] of Object.entries(input.query)) {
       const known = operation.params.some((param) => param.in === "query" && param.name === key)
       if (value !== undefined && !known) {
-        throw new OperateError("INTERNAL", `${operationId} has no query parameter ${key}`)
+        throw new PulseCliError("INTERNAL", `${operationId} has no query parameter ${key}`)
       }
     }
     return operation

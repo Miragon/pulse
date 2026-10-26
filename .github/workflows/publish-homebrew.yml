@@ -9,8 +9,7 @@ name: Publish the CLI Homebrew formula
 #
 # The first publish also renames the formula: it adds operate -> pulse-cli to the tap's
 # formula_renames.json and removes Formula/operate.rb in the same squash-merged pull request, so
-# `brew upgrade` moves an installed operate to pulse-cli, whose formula keeps an `operate`
-# command until the first release after 2027-01-31.
+# `brew upgrade` moves an installed operate to pulse-cli.
 on:
   workflow_call:
     inputs:
@@ -110,7 +109,6 @@ jobs:
         working-directory: apps/cli
         run: |
           bash scripts/smoke-test.sh "$(brew --prefix)/bin/pulse-cli"
-          test "$("$(brew --prefix)/bin/operate" --version)" = "$EXPECTED_VERSION"
 
   # Opens a pull request with the formula on Miragon/homebrew-tap and squash-merges it, with a
   # token of the Miragon release-please app (vars.RELEASE_PLEASE_APP_CLIENT_ID +

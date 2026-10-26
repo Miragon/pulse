@@ -1,6 +1,6 @@
 /** Wait states, an instance view and the usage error, for the advance plan tests. */
 
-import { OperateError } from "../../src/errors.js"
+import { PulseCliError } from "../../src/errors.js"
 import type { InstanceView, WaitState } from "../../src/workflow/types.js"
 
 export const USER_TASK = {
@@ -70,11 +70,11 @@ export function view(
   }
 }
 
-export function usage(fn: () => unknown): OperateError {
+export function usage(fn: () => unknown): PulseCliError {
   try {
     fn()
   } catch (error) {
-    if (error instanceof OperateError) return error
+    if (error instanceof PulseCliError) return error
   }
   throw new Error("expected a usage error")
 }

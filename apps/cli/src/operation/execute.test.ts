@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { noAuth } from "../auth/none.js"
 import { findByOperationId, findOperation, loadCatalog } from "../catalog/catalog.js"
 import type { OperationSpec } from "../catalog/types.js"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import {
   checkEffect,
   executeOperation,
@@ -56,12 +56,12 @@ function options(
   }
 }
 
-async function caught(promise: Promise<unknown>): Promise<OperateError> {
+async function caught(promise: Promise<unknown>): Promise<PulseCliError> {
   try {
     await promise
   } catch (error) {
-    expect(error).toBeInstanceOf(OperateError)
-    return error as OperateError
+    expect(error).toBeInstanceOf(PulseCliError)
+    return error as PulseCliError
   }
   throw new Error("expected an error")
 }
@@ -263,7 +263,7 @@ describe("executeOperation", () => {
     )
   })
 
-  it("turns HTTP errors into OperateErrors", async () => {
+  it("turns HTTP errors into PulseCliErrors", async () => {
     const opts = options(
       () =>
         new Response('{"type":"InvalidRequestException","message":"No instance"}', {

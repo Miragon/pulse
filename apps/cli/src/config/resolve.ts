@@ -4,7 +4,7 @@
  * the config file parser and the `pulse-cli config` edit functions.
  */
 
-import type { OperateError } from "../errors.js"
+import type { PulseCliError } from "../errors.js"
 import { compact } from "../util.js"
 import { configError } from "./config-error.js"
 import { redactUrl } from "./redact.js"
@@ -54,7 +54,7 @@ export function missingProfileError(
   name: string,
   file: LoadedConfig | undefined,
   origin: ProfileOrigin = "flag",
-): OperateError {
+): PulseCliError {
   const known = Object.keys(file?.profiles ?? {})
   const listed = known.length > 0 ? `Known profiles: ${known.join(", ")}. ` : ""
   return configError(

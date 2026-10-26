@@ -5,9 +5,6 @@
 #
 #   gh release download v0.22.0 --repo Miragon/pulse --pattern pulse-cli-SHA256SUMS
 #   apps/cli/scripts/homebrew-formula.sh 0.22.0 pulse-cli-SHA256SUMS > pulse-cli.rb
-#
-# The formula also links the command's released name to pulse-cli, which warns when it starts
-# under that name. Remove the link and its two test lines in the first release after 2027-01-31.
 set -euo pipefail
 
 if [ "$#" -ne 2 ]; then
@@ -66,16 +63,11 @@ class PulseCli < Formula
 
   def install
     bin.install "pulse-cli"
-    # operate, the command up to 0.10.0, until the first release after 2027-01-31: pulse-cli
-    # recognizes the name and warns
-    bin.install_symlink "pulse-cli" => "operate"
     generate_completions_from_executable(bin/"pulse-cli", "completion")
   end
 
   test do
     assert_equal version.to_s, shell_output("#{bin}/pulse-cli --version").strip
-    assert_equal version.to_s, shell_output("#{bin}/operate --version").strip
-    assert_match "first release after 2027-01-31", shell_output("#{bin}/operate --version 2>&1")
   end
 end
 EOF

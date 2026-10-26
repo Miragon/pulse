@@ -5,7 +5,7 @@ import {
   type FakeRuntimeOptions,
 } from "../../test/support/fake-runtime.js"
 import { camunda7 } from "../engines/camunda7/adapter.js"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import type { CliContext } from "./context.js"
 import { displayOf } from "./display.js"
 
@@ -87,7 +87,7 @@ describe("displayOf", () => {
   it("rejects an unknown format as configuration error and records nothing", async () => {
     const context = contextOf()
     const error = await displayOf(context, { output: "yaml" }).catch((caught: unknown) => caught)
-    expect(error).toBeInstanceOf(OperateError)
+    expect(error).toBeInstanceOf(PulseCliError)
     expect(error).toMatchObject({ code: "CONFIG", message: 'Unknown output format "yaml"' })
     expect(context.state.format).toBeUndefined()
     const fromEnv = await displayOf(contextOf({ env: { PULSE_CLI_OUTPUT: "yaml" } }), {}).catch(

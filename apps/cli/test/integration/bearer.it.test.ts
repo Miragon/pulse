@@ -9,7 +9,7 @@
  * that runs the client credentials grant, also for the profiles of a project file,
  * whose directories share the cached token.
  *
- * The 5 s token of `operate-cli-short` is issued first, in `beforeAll`, so the 30 s expiry grace of
+ * The 5 s token of `pulse-cli-short` is issued first, in `beforeAll`, so the 30 s expiry grace of
  * the TOKEN_EXPIRED test mostly passes while the other tests run. Every CLI run is checked against
  * every token the suite has seen (and each JWT's signature on its own); only `--show-secrets` runs
  * may print the one token they send.
@@ -66,9 +66,9 @@ describe.skipIf(engine === undefined)(`Bearer tokens from elsewhere at ${engine 
   let configFile = ""
   /** Config file of the profile tests. */
   let profilesFile = ""
-  /** A CI pipeline's token: client credentials grant of `operate-ci`, a JWT valid for 300 s. */
+  /** A CI pipeline's token: client credentials grant of `pulse-ci`, a JWT valid for 300 s. */
   let ciToken = ""
-  /** A person's 5 s token (`operate-cli-short`), issued first; it expires while the suite runs. */
+  /** A person's 5 s token (`pulse-cli-short`), issued first; it expires while the suite runs. */
   let staleToken = ""
   /** Everything no output may contain (tokens, their signatures, stray credentials). */
   const secrets = new Set<string>()

@@ -1,13 +1,13 @@
-/** The OperateError an action throws, for the config tests (src/config/resolve*, edit*). */
+/** The PulseCliError an action throws, for the config tests (src/config/resolve*, edit*). */
 
-import { OperateError } from "../../src/errors.js"
+import { PulseCliError } from "../../src/errors.js"
 
-export function failure(action: () => unknown): OperateError {
+export function failure(action: () => unknown): PulseCliError {
   try {
     action()
   } catch (error) {
-    if (error instanceof OperateError) return error
+    if (error instanceof PulseCliError) return error
     throw error
   }
-  throw new Error("expected an OperateError")
+  throw new Error("expected an PulseCliError")
 }

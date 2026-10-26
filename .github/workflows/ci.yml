@@ -564,25 +564,6 @@ jobs:
         working-directory: apps/cli
         run: bash scripts/smoke-test.sh "build/bin/${FILE}"
 
-      # Homebrew installs operate, the command's released name, as a symlink to pulse-cli
-      # (apps/cli/scripts/homebrew-formula.sh) until the first release after 2027-01-31: the binary
-      # started under that name runs and warns on stderr.
-      - name: The binary started as operate
-        if: runner.os != 'Windows'
-        working-directory: apps/cli
-        run: |
-          ln -s "$PWD/build/bin/${FILE}" "$RUNNER_TEMP/operate"
-          version="$("$RUNNER_TEMP/operate" --version 2>"$RUNNER_TEMP/operate.err")"
-          cat "$RUNNER_TEMP/operate.err"
-          if [ "$version" != "$(jq -r .version package.json)" ]; then
-            echo "::error::operate --version printed ${version}"
-            exit 1
-          fi
-          if ! grep -q "first release after 2027-01-31" "$RUNNER_TEMP/operate.err"; then
-            echo "::error::operate --version did not warn that the name goes away"
-            exit 1
-          fi
-
       - name: Engine suites against the binary
         if: matrix.target == 'linux-x64'
         run: pnpm --fail-if-no-match --filter @miragon/pulse-cli run test:engines

@@ -77,35 +77,7 @@ no `generate` script, so turbo's cached `generate` task never replays a stale ca
 
 ## Names of operate
 
-Up to 0.10.0 the CLI was operate. Until the first release after 2027-01-31 it still reads the
-names operate released (its variables, its user config file, its project file and, through the
-Homebrew alias, its command) and warns once per run. Only `apps/cli/src/config/legacy.ts` spells
-them; every other module uses its constants (`LEGACY_ENV_PREFIX`, `LEGACY_PROJECT_FILE`,
-`LEGACY_CONFIG_DIRECTORY`, `LEGACY_PROGRAM`), so no other shipped file names them. The CHANGELOG
-guard in `apps/cli/src/config/legacy.test.ts` fails the first release PR after that date. Then
-remove, in one PR:
-
-1. `apps/cli/src/config/legacy.ts` with `apps/cli/src/config/legacy.test.ts` and
-   `apps/cli/src/config/legacy-files.test.ts`, and `apps/cli/src/cli/legacy-notice.ts` with
-   `apps/cli/src/cli/legacy-notice.test.ts`.
-2. `userConfigFile` (it becomes `configFilePath`), the legacy branch of the project file lookup,
-   `legacyProjectProblem`, the `seed` and `legacy` of an edit target, `legacyFileUses`, and in
-   `run` the environment view of `withLegacyEnv` and the `invokedAs` option (also in
-   `apps/cli/src/bin/pulse-cli.ts`).
-3. The compat allowances in `apps/mcp-server-camunda7/test/old-names.test.ts` and in
-   `apps/cli/src/product-name.test.ts`, and the "Renamed from operate" sections of
-   `apps/cli/README.md` and `docs/cli/installation.md` (keep one line that points to the
-   archived repository).
-4. The `operate` link and its test lines in `apps/cli/scripts/homebrew-formula.sh`, the step
-   that starts the binary under that name in `.github/workflows/ci.yml`, and the
-   `operate --version` check of the smoke test in `.github/workflows/publish-homebrew.yml` (no gate
-   reads it: left in, the next release's `verify` job fails and the formula is not published).
-   With them the sentences that describe the alias: the header of `publish-homebrew.yml`, the CLI
-   publish bullet and the "CLI jobs" row of the root `CLAUDE.md`, and the end of the Homebrew step
-   in `docs/cli/releasing.md`. The tap migration of the `publish` job (`formula_renames.json`, the
-   removal of `Formula/operate.rb`) stays.
-5. The legacy prefix in `apps/cli/test/integration/support/process.ts`.
-6. In the same release, the extension drops its fallback to the old project file.
+Up to 0.10.0 the CLI was operate; pulse-cli reads none of its names.
 
 ## Docs move with the code
 

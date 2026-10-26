@@ -7,7 +7,7 @@
  */
 
 import { ENV, type StaticBearerConfig } from "../config/types.js"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import { isExpired, type JwtClaims, jwtClaims } from "./jwt.js"
 import type { AuthProvider, Principal } from "./types.js"
 
@@ -23,9 +23,9 @@ export function renewal(config: StaticBearerConfig): string {
 }
 
 /** The TOKEN_EXPIRED error of a JWT whose `exp` lies more than 30 s in the past. */
-export function tokenExpired(config: StaticBearerConfig, expiresAt: number): OperateError {
+export function tokenExpired(config: StaticBearerConfig, expiresAt: number): PulseCliError {
   const when = `the bearer token from ${config.origin} expired at ${iso(expiresAt)}`
-  return new OperateError("TOKEN_EXPIRED", `T${when.slice(1)}`, {
+  return new PulseCliError("TOKEN_EXPIRED", `T${when.slice(1)}`, {
     hint: `pulse-cli never refreshes bearer tokens: ${when}; fetch a new one (e.g. with your identity provider's CLI) and ${renewal(config)}.`,
   })
 }

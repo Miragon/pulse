@@ -14,7 +14,7 @@ import {
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import { browserCommand, openBrowser } from "./browser.js"
 import { createNodeRuntime } from "./node-runtime.js"
 
@@ -34,8 +34,8 @@ describe("createNodeRuntime().readStdin", () => {
         () => undefined,
         (reason: unknown) => reason,
       )
-    expect(error).toBeInstanceOf(OperateError)
-    const { code, message, details } = error as OperateError
+    expect(error).toBeInstanceOf(PulseCliError)
+    const { code, message, details } = error as PulseCliError
     expect(code).toBe("USAGE")
     expect(message).toBe("stdin is a terminal; pipe the input into the command")
     expect(details.hint).toBe(

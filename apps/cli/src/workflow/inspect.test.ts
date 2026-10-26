@@ -10,7 +10,7 @@ import {
   historyDto,
   P,
 } from "../../test/support/workflow-fixture.js"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import { incidentCause, inspect, instanceRequests, loadInstance, loadView } from "./inspect.js"
 
 describe("loadInstance", () => {
@@ -134,7 +134,7 @@ describe("loadInstance", () => {
     })
     expect(await loadView(portOf(server.fetch), "x", ALL)).toEqual({ id: "x", state: "ENDED" })
     const broken = fakeServer()
-    await expect(loadView(portOf(broken.fetch), "x", ALL)).rejects.toBeInstanceOf(OperateError)
+    await expect(loadView(portOf(broken.fetch), "x", ALL)).rejects.toBeInstanceOf(PulseCliError)
   })
 })
 

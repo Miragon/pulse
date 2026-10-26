@@ -4,7 +4,7 @@
  */
 
 import type { EnginePort, PlannedRequest } from "../engine-port/engine-port.js"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import { formatDuration } from "../operation/durations.js"
 import { compact } from "../util.js"
 import { json, queryInput } from "./engine.js"
@@ -68,7 +68,7 @@ async function stuckError(
   port: EnginePort,
   batch: BatchSummary,
   statistics: Rec,
-): Promise<OperateError> {
+): Promise<PulseCliError> {
   const jobDefinitionId = str(statistics, "batchJobDefinitionId")
   const jobs =
     jobDefinitionId === undefined
@@ -88,7 +88,7 @@ async function stuckError(
     compact({ jobId: str(job, "id"), exceptionMessage: str(job, "exceptionMessage") }),
   )
   const first = failures[0]?.exceptionMessage
-  return new OperateError(
+  return new PulseCliError(
     "JOB_FAILED",
     `Batch ${batch.id} cannot finish: ${batch.failedJobs ?? 0} jobs failed${first === undefined ? "" : `, the first: ${first}`}`,
     {
@@ -117,7 +117,7 @@ export async function waitForBatch(
         await port.find("getHistoricBatch", { pathArgs: [batchId], query: {} }),
       ])[0]
       if (history === undefined && last === undefined) {
-        throw new OperateError("NOT_FOUND", `Batch ${batchId} does not exist`, {
+        throw new PulseCliError("NOT_FOUND", `Batch ${batchId} does not exist`, {
           hint: "List batches with `pulse-cli batch list` (running) or `pulse-cli historic-batch list` (also finished).",
         })
       }
@@ -145,7 +145,7 @@ export async function waitForBatch(
   if (end?.kind === "stuck" && last !== undefined) {
     return { kind: "view", view: { batch }, failure: await stuckError(port, batch, last) }
   }
-  const failure = new OperateError(
+  const failure = new PulseCliError(
     "WAIT_TIMEOUT",
     `Timed out after ${formatDuration(timeoutMs)} waiting until batch ${batchId} finished`,
     {

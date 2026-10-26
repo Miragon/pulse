@@ -1,15 +1,15 @@
 import fc from "fast-check"
 import { describe, expect, it } from "vitest"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import { DATE_TIME_HINT } from "./dates.js"
 import { convertScalar } from "./values.js"
 
-function caught(action: () => unknown): OperateError {
+function caught(action: () => unknown): PulseCliError {
   try {
     action()
   } catch (error) {
-    expect(error).toBeInstanceOf(OperateError)
-    return error as OperateError
+    expect(error).toBeInstanceOf(PulseCliError)
+    return error as PulseCliError
   }
   throw new Error("expected an error")
 }
@@ -87,7 +87,7 @@ describe("convertScalar", () => {
         (n, negative) => {
           const raw = String(negative ? -n - 1 : n)
           expect(() => convertScalar({ type: "integer", format: "int32" }, raw, "--n")).toThrow(
-            OperateError,
+            PulseCliError,
           )
         },
       ),

@@ -1,19 +1,19 @@
 import fc from "fast-check"
 import { describe, expect, it } from "vitest"
 import { fakeRuntime } from "../../test/support/fake-runtime.js"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import { checkStdinUse, firstLine, readStdinPassword } from "./stdin-password.js"
 
 const encode = (text: string) => new TextEncoder().encode(text)
 
-async function usage(promise: Promise<unknown>): Promise<OperateError> {
+async function usage(promise: Promise<unknown>): Promise<PulseCliError> {
   try {
     await promise
   } catch (error) {
-    expect(error).toBeInstanceOf(OperateError)
-    expect((error as OperateError).code).toBe("USAGE")
-    expect((error as OperateError).exitCode).toBe(2)
-    return error as OperateError
+    expect(error).toBeInstanceOf(PulseCliError)
+    expect((error as PulseCliError).code).toBe("USAGE")
+    expect((error as PulseCliError).exitCode).toBe(2)
+    return error as PulseCliError
   }
   throw new Error("expected a usage error")
 }

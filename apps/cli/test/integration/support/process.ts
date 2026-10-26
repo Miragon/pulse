@@ -1,7 +1,6 @@
 /** Runs child processes with a clean environment and captures their output. */
 
 import { spawn } from "node:child_process"
-import { LEGACY_ENV_PREFIX } from "../../../src/config/legacy.js"
 import { ENV_PREFIX } from "../../../src/config/types.js"
 
 export type EnvOverrides = Readonly<Record<string, string | undefined>>
@@ -25,14 +24,11 @@ export interface ProcessResult {
 }
 
 const DEFAULT_TIMEOUT_MS = 120_000
-/**
- * Never inherited: the CLI's variables, and those of its name up to 0.10.0, which it still reads
- * (until LEGACY_REMOVAL). A PULSE_CLI_IT_* variable of CI would switch that fallback off.
- */
-const STRIPPED = [ENV_PREFIX, LEGACY_ENV_PREFIX]
+/** Never inherited: the CLI's variables. */
+const STRIPPED = [ENV_PREFIX]
 
 /**
- * The parent environment without any variable of the CLI (PULSE_CLI_*, and the legacy prefix),
+ * The parent environment without any variable of the CLI (PULSE_CLI_*),
  * then `overrides` applied (an `undefined` value removes the variable).
  */
 export function cleanEnv(overrides: EnvOverrides = {}): NodeJS.ProcessEnv {

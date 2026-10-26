@@ -4,7 +4,7 @@
  */
 
 import type { PlannedRequest } from "../engine-port/engine-port.js"
-import type { OperateError } from "../errors.js"
+import type { PulseCliError } from "../errors.js"
 import type { Rec } from "./records.js"
 
 export type InstanceState =
@@ -173,7 +173,7 @@ export interface PlannedWrite extends PlannedRequest {
  * printing it), or the requests of a `--dry-run` with the plan of the writes.
  */
 export type WorkflowResult<V> =
-  | { readonly kind: "view"; readonly view: V; readonly failure?: OperateError }
+  | { readonly kind: "view"; readonly view: V; readonly failure?: PulseCliError }
   | {
       readonly kind: "dry-run"
       readonly plan?: unknown

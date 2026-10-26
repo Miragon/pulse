@@ -269,7 +269,7 @@ export function registerRefresh(suite: OAuthSuite): void {
   it("reports a token of a differently spelled issuer as UNAUTHORIZED after one refresh", async (context) => {
     const { host, keycloakPort, url } = top()
     if (host !== "localhost") context.skip("the 127.0.0.1 spelling needs Docker on localhost")
-    const loopbackIssuer = `http://127.0.0.1:${keycloakPort}/realms/operate`
+    const loopbackIssuer = `http://127.0.0.1:${keycloakPort}/realms/pulse`
     const { cache } = await login(PROFILE.loopbackIp)
     expect(claimsOf(cache.accessToken).iss).toBe(loopbackIssuer)
 

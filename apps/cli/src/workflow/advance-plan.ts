@@ -3,7 +3,7 @@
  * it, and the requests that move it. Pure.
  */
 
-import { OperateError, usageError } from "../errors.js"
+import { PulseCliError, usageError } from "../errors.js"
 import type { TypedValue } from "../operation/variables.js"
 import { compact } from "../util.js"
 import { byActivity, isAdvanceable, isSuspendedJob, itemCommand } from "./next.js"
@@ -109,12 +109,12 @@ function several(
   view: InstanceView,
   waits: readonly WaitState[],
   options: readonly string[],
-): OperateError {
+): PulseCliError {
   const places = [...byActivity(waits).values()]
   const data = { candidates: waits.map((wait) => candidate(view, wait)) }
   if (places.length === 1) {
     const items = waits.slice(0, READY_COMMANDS).map(itemHint)
-    return new OperateError(
+    return new PulseCliError(
       "USAGE",
       `Process instance ${view.id} waits ${waits.length} times at ${waits[0]?.activityId ?? ""}`,
       { hint: `Move one item with its generated command: ${items.join(", ")}.`, data },
@@ -122,7 +122,7 @@ function several(
   }
   const others = options.map((word) => ` ${word}`).join("")
   const ready = places.slice(0, READY_COMMANDS).map((place) => placeCommand(view, place, others))
-  return new OperateError(
+  return new PulseCliError(
     "USAGE",
     `Process instance ${view.id} waits at ${places.length} places; choose one with --activity-id`,
     { hint: `Choose one: ${ready.join(", ")}.`, data },

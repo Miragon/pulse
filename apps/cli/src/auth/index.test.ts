@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { fakeRuntime } from "../../test/support/fake-runtime.js"
 import { authDeps, oauthConfig } from "../../test/support/oauth.js"
 import type { AuthConfig } from "../config/types.js"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import { createAuthProvider } from "./index.js"
 
 const deps = authDeps(fakeRuntime())
@@ -47,11 +47,11 @@ describe("createAuthProvider", () => {
     try {
       createAuthProvider({ type } as unknown as AuthConfig, deps)
     } catch (error) {
-      expect(error).toBeInstanceOf(OperateError)
-      expect((error as OperateError).code).toBe("CONFIG")
-      expect((error as OperateError).exitCode).toBe(3)
-      expect((error as OperateError).message).toBe(`Unsupported auth type "${type}"`)
-      expect((error as OperateError).details.hint).toBe("Supported: none, basic, oauth, bearer.")
+      expect(error).toBeInstanceOf(PulseCliError)
+      expect((error as PulseCliError).code).toBe("CONFIG")
+      expect((error as PulseCliError).exitCode).toBe(3)
+      expect((error as PulseCliError).message).toBe(`Unsupported auth type "${type}"`)
+      expect((error as PulseCliError).details.hint).toBe("Supported: none, basic, oauth, bearer.")
       return
     }
     throw new Error("expected an error")

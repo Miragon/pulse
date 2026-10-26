@@ -5,7 +5,7 @@
  */
 
 import { configError } from "../../config/config-error.js"
-import { OperateError } from "../../errors.js"
+import { PulseCliError } from "../../errors.js"
 import { isRecord } from "../../util.js"
 import { decodeBase64Url } from "../jwt.js"
 import {
@@ -47,7 +47,7 @@ const CLIENT_ERRORS: ReadonlySet<string> = new Set([
 
 type Grant = "exchange" | "refresh"
 
-function unusable(hint: string): OperateError {
+function unusable(hint: string): PulseCliError {
   return configError("The authorization server answered without a usable access token", hint)
 }
 
@@ -121,7 +121,7 @@ function errorDetail(error: string, description: unknown): string {
   return `(${sanitize(error)}${detail})`
 }
 
-function clientError(clientId: string, detail: string): OperateError {
+function clientError(clientId: string, detail: string): PulseCliError {
   return configError(
     `The authorization server rejected client ${clientId} ${detail}`,
     `Check the client id, the client secret source (auth.clientSecretEnv, PULSE_CLI_OAUTH_CLIENT_SECRET) and that the client is public or confidential as configured and allows the authorization code flow and refresh tokens. Keycloak answers unauthorized_client "Invalid client or Invalid client credentials" for a wrong or missing client secret.`,
@@ -129,17 +129,17 @@ function clientError(clientId: string, detail: string): OperateError {
 }
 
 /** The `error: description` of refresh errors that need a new login, by error object. */
-const rejections = new WeakMap<OperateError, string>()
+const rejections = new WeakMap<PulseCliError, string>()
 
 /**
  * `invalid_grant: <description>` (or another error code) when `error` is the LOGIN_REQUIRED of
  * a refresh the authorization server refused; undefined for every other error.
  */
 export function refreshRejection(error: unknown): string | undefined {
-  return error instanceof OperateError ? rejections.get(error) : undefined
+  return error instanceof PulseCliError ? rejections.get(error) : undefined
 }
 
-function refreshError(error: string, detail: string, who: LoginOwner): OperateError {
+function refreshError(error: string, detail: string, who: LoginOwner): PulseCliError {
   const whose = owner(who.profile)
   const rejected =
     error === "invalid_grant"
@@ -158,7 +158,7 @@ function grantError(
   error: string,
   detail: string,
   client: TokenClient,
-): OperateError {
+): PulseCliError {
   const { who } = client
   if (grant === "refresh") return refreshError(error, detail, who)
   return error === "invalid_grant"
@@ -172,8 +172,8 @@ function grantError(
       )
 }
 
-function serverError(answer: ServerAnswer, grant: Grant): OperateError {
-  return new OperateError(
+function serverError(answer: ServerAnswer, grant: Grant): PulseCliError {
+  return new PulseCliError(
     "HTTP_SERVER_ERROR",
     `The authorization server failed: ${statusLine(answer)}`,
     {
@@ -191,7 +191,7 @@ function errorCodeOf(answer: ServerAnswer): string | undefined {
   return rejected && typeof error === "string" && error !== "" ? error : undefined
 }
 
-function unexpected(answer: ServerAnswer, client: TokenClient): OperateError {
+function unexpected(answer: ServerAnswer, client: TokenClient): PulseCliError {
   const redirect =
     answer.status >= 300 && answer.status < 400 ? " (pulse-cli follows no redirects)" : ""
   return configError(
@@ -201,7 +201,7 @@ function unexpected(answer: ServerAnswer, client: TokenClient): OperateError {
 }
 
 /** The error of a failed token request. */
-export function tokenError(answer: ServerAnswer, grant: Grant, client: TokenClient): OperateError {
+export function tokenError(answer: ServerAnswer, grant: Grant, client: TokenClient): PulseCliError {
   if (answer.status >= 500) return serverError(answer, grant)
   const error = errorCodeOf(answer)
   if (error === undefined) return unexpected(answer, client)

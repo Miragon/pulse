@@ -12,7 +12,7 @@ import { findCommands } from "../../docs/commands.js"
 import { describeOperation, type DescribeView, renderDescribeText } from "../../docs/describe.js"
 import { describeWorkflow, renderWorkflowDescribeText } from "../../docs/describe-workflow.js"
 import { findWorkflow, WORKFLOW_GROUP, type WorkflowDoc } from "../../docs/workflow.js"
-import { type OperateError, usageError } from "../../errors.js"
+import { type PulseCliError, usageError } from "../../errors.js"
 import { subcommand } from "../command.js"
 import { setPositional } from "../completion-meta.js"
 import type { CliContext } from "../context.js"
@@ -34,7 +34,7 @@ export type DescribeTarget =
   | { readonly kind: "workflow"; readonly doc: WorkflowDoc }
   | { readonly kind: "operation"; readonly operation: OperationSpec }
 
-function unknownTarget(catalog: Catalog, first: string, second: string | undefined): OperateError {
+function unknownTarget(catalog: Catalog, first: string, second: string | undefined): PulseCliError {
   // a group alone is a target of its own, so a known group here always comes with a command
   const known = findGroup(catalog, first) !== undefined
   const message =

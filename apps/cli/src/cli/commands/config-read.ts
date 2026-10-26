@@ -47,7 +47,7 @@ function write(context: CliContext, text: string): void {
 }
 
 /**
- * The user's config file in effect (the legacy one while only that exists), with `--project` the
+ * The user's config file in effect with `--project` the
  * project file (the one in effect, else a new one).
  */
 async function printPath(command: Command, context: CliContext): Promise<void> {
@@ -58,7 +58,7 @@ async function printPath(command: Command, context: CliContext): Promise<void> {
     project === true
       ? (await editTarget(context.runtime, { ...compact({ config: globals.config }), project }))
           .path
-      : (await userConfig(context.runtime, globals.config)).path
+      : userConfig(context.runtime, globals.config)
   write(context, view.format === "json" ? renderValue({ path }, view) : `${path}\n`)
 }
 

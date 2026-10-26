@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { EXIT_CODES, type ErrorCode, OperateError, usageError } from "./errors.js"
+import { EXIT_CODES, type ErrorCode, PulseCliError, usageError } from "./errors.js"
 
 /** Exit codes as documented in docs/cli/output-and-errors.md. */
 const DOCUMENTED: Readonly<Record<ErrorCode, number>> = {
@@ -44,16 +44,16 @@ describe("EXIT_CODES", () => {
   })
 })
 
-describe("OperateError", () => {
+describe("PulseCliError", () => {
   it.each(Object.entries(DOCUMENTED))("maps %s to exit code %i", (code, exitCode) => {
-    expect(new OperateError(code as ErrorCode, "x").exitCode).toBe(exitCode)
+    expect(new PulseCliError(code as ErrorCode, "x").exitCode).toBe(exitCode)
   })
 
   it("keeps code, message, details and cause", () => {
     const cause = new Error("root")
-    const error = new OperateError("NOT_FOUND", "missing", { status: 404, hint: "h" }, cause)
+    const error = new PulseCliError("NOT_FOUND", "missing", { status: 404, hint: "h" }, cause)
     expect(error).toBeInstanceOf(Error)
-    expect(error.name).toBe("OperateError")
+    expect(error.name).toBe("PulseCliError")
     expect(error.code).toBe("NOT_FOUND")
     expect(error.message).toBe("missing")
     expect(error.details).toEqual({ status: 404, hint: "h" })
@@ -61,7 +61,7 @@ describe("OperateError", () => {
   })
 
   it("has empty details and no cause by default", () => {
-    const error = new OperateError("INTERNAL", "boom")
+    const error = new PulseCliError("INTERNAL", "boom")
     expect(error.details).toEqual({})
     expect("cause" in error).toBe(false)
   })

@@ -16,7 +16,7 @@ export function registerTokenCommands(suite: BearerSuite): void {
 
   describe("token commands", () => {
     /**
-     * The token command: the client credentials grant of `operate-ci`, run by the shell. It logs
+     * The token command: the client credentials grant of `pulse-ci`, run by the shell. It logs
      * every run and every token it prints (so no output may contain one); IT_FAIL makes it fail,
      * IT_GARBAGE_FIRST prints a token the gateway rejects on its first run.
      */

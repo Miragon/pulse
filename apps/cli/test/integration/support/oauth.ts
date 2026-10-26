@@ -34,7 +34,7 @@ const KEYCLOAK_IMAGE = "quay.io/keycloak/keycloak:26.8.0"
 const ENVOY_IMAGE = "envoyproxy/envoy:v1.39.3"
 /** Port of Keycloak and of the Envoy listener inside their containers. */
 const HTTP_PORT = 8080
-const REALM = "operate"
+const REALM = "pulse"
 const STARTUP_TIMEOUT_MS = 180_000
 const ENVOY_STARTUP_TIMEOUT_MS = 60_000
 /** Timeout of the `beforeAll` that starts the topology: image pulls plus startups. */
@@ -54,7 +54,7 @@ export interface OAuthTopology {
   readonly keycloakPort: number
   /** Keycloak's root URL from the host, e.g. `http://localhost:32770`. */
   readonly keycloakUrl: string
-  /** The issuer every profile uses and Envoy expects: `<keycloakUrl>/realms/operate`. */
+  /** The issuer every profile uses and Envoy expects: `<keycloakUrl>/realms/pulse`. */
   readonly issuer: string
   /** REST API root behind the gateway, e.g. `http://localhost:32771/engine-rest`. */
   readonly url: string

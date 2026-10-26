@@ -1,11 +1,11 @@
 /**
- * Turns anything thrown into an OperateError and renders it for stderr: one JSON line for scripts
+ * Turns anything thrown into an PulseCliError and renders it for stderr: one JSON line for scripts
  * and agents, or a short multi-line text for humans. URL passwords are always masked, in the
  * request URL and in free text (network errors and their causes quote the URL).
  */
 
 import type { OutputFormat } from "../config/types.js"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import { compact, stringifyJson } from "../util.js"
 import { maskUrl, maskUrlsInText } from "./secrets.js"
 
@@ -49,11 +49,11 @@ function errorMessage(error: Error): string {
   return error.name === "Error" ? error.message : `${error.name}: ${error.message}`
 }
 
-/** OperateErrors pass through; everything else becomes an INTERNAL error with the original as cause. */
-export function toOperateError(error: unknown): OperateError {
-  if (error instanceof OperateError) return error
+/** PulseCliErrors pass through; everything else becomes an INTERNAL error with the original as cause. */
+export function toPulseCliError(error: unknown): PulseCliError {
+  if (error instanceof PulseCliError) return error
   const message = error instanceof Error ? errorMessage(error) : describeThrown(error)
-  return new OperateError("INTERNAL", message, { hint: INTERNAL_HINT }, error)
+  return new PulseCliError("INTERNAL", message, { hint: INTERNAL_HINT }, error)
 }
 
 function causeChain(cause: unknown, depth: number): string[] {
@@ -69,19 +69,19 @@ function maskOptional(text: string | undefined): string | undefined {
   return text === undefined ? undefined : maskText(text)
 }
 
-function stackOf(error: OperateError): string {
+function stackOf(error: PulseCliError): string {
   const own = error.stack ?? `${error.name}: ${error.message}`
   return maskText([own, ...causeChain(error.cause, 0)].join("\n"))
 }
 
-function maskedRequest(error: OperateError): { method: string; url: string } | undefined {
+function maskedRequest(error: PulseCliError): { method: string; url: string } | undefined {
   const { request } = error.details
   return request === undefined
     ? undefined
     : { method: request.method, url: maskUrl(request.url, false) }
 }
 
-function jsonError(error: OperateError, verbose: boolean): string {
+function jsonError(error: PulseCliError, verbose: boolean): string {
   const { details } = error
   const body = {
     code: error.code,
@@ -110,7 +110,7 @@ function labeled(label: string, text: string | undefined): string | undefined {
   return text === undefined ? undefined : `  ${label}: ${block(text, "    ")}`
 }
 
-function humanError(error: OperateError, verbose: boolean): string {
+function humanError(error: PulseCliError, verbose: boolean): string {
   const { details } = error
   const request = maskedRequest(error)
   const lines = [
@@ -125,6 +125,6 @@ function humanError(error: OperateError, verbose: boolean): string {
 }
 
 /** Renders an error for stderr; the stack (with causes) only when verbose. Ends with a newline. */
-export function renderError(error: OperateError, format: OutputFormat, verbose = false): string {
+export function renderError(error: PulseCliError, format: OutputFormat, verbose = false): string {
   return format === "json" ? jsonError(error, verbose) : humanError(error, verbose)
 }

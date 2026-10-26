@@ -14,24 +14,24 @@ export interface Credentials {
   readonly password: string
 }
 
-/** The realm's only user (offline_access via `default-roles-operate`). */
-export const USER: Credentials = { username: "operate-user", password: "operate-pw-1" }
+/** The realm's only user (offline_access via `default-roles-pulse`). */
+export const USER: Credentials = { username: "pulse-user", password: "pulse-pw-1" }
 
 /** Clients of the realm fixture. */
 export const CLIENTS = {
   /** public, auth code + PKCE S256, audience mapper `engine-rest`, 300 s access tokens */
-  public: "operate-cli",
+  public: "pulse-cli",
   /** like `public` with 5 s access tokens */
-  short: "operate-cli-short",
+  short: "pulse-cli-short",
   /** like `public`, but confidential with {@link CLIENT_SECRET} (client_secret_basic) */
-  confidential: "operate-cli-confidential",
+  confidential: "pulse-cli-confidential",
   /** like `public` without the audience mapper: Envoy answers 403 */
-  noAudience: "operate-cli-noaud",
+  noAudience: "pulse-cli-noaud",
   /**
    * a CI pipeline's service account: confidential ({@link CI_CLIENT_SECRET}), client credentials
    * grant only, audience mapper `engine-rest`, 300 s access tokens (bearer token tests)
    */
-  ci: "operate-ci",
+  ci: "pulse-ci",
 } as const
 
 export const CLIENT_SECRET = "it-client-secret"
@@ -202,7 +202,7 @@ function requireString(answer: JsonAnswer, key: string, what: string): string {
 }
 
 async function adminRequest(keycloakUrl: string, token: string, path: string, method = "GET") {
-  const response = await fetch(`${keycloakUrl}/admin/realms/operate${path}`, {
+  const response = await fetch(`${keycloakUrl}/admin/realms/pulse${path}`, {
     method,
     headers: { authorization: `Bearer ${token}` },
     signal: signal(),

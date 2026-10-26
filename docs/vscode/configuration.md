@@ -24,10 +24,6 @@ profile it cannot serve yet shows up as a problem in the Engines view.
 
 Set credentials with _Pulse: Set Credentials…_. They live in VS Code's secret storage.
 
-Pulse also reads the CLI's former project file in every folder without a `.pulse-cli.json` and
-marks it with a warning: rename it to `.pulse-cli.json`. The former name is read until the
-first Pulse release after 2027-01-31.
-
 ## Settings
 
 | Setting              | Values                                                                       | Default                    |

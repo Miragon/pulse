@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest"
 import { noAuth } from "../auth/none.js"
 import { findByOperationId, loadCatalog } from "../catalog/catalog.js"
 import type { OperationSpec } from "../catalog/types.js"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import type { ClientOptions } from "../http/client.js"
 import { isPaginated } from "../catalog/rules.js"
 import { fetchAllPages, firstPageInput } from "./paginate.js"
@@ -103,12 +103,12 @@ describe("firstPageInput", () => {
     try {
       firstPageInput(input({ maxResults }))
     } catch (error) {
-      expect(error).toBeInstanceOf(OperateError)
-      expect((error as OperateError).code).toBe("USAGE")
-      expect((error as OperateError).message).toBe(
+      expect(error).toBeInstanceOf(PulseCliError)
+      expect((error as PulseCliError).code).toBe("USAGE")
+      expect((error as PulseCliError).message).toBe(
         `--max-results must be at least 1 with --all, got ${maxResults}`,
       )
-      expect((error as OperateError).details.hint).toBe("Omit --max-results to use pages of 500.")
+      expect((error as PulseCliError).details.hint).toBe("Omit --max-results to use pages of 500.")
       return
     }
     throw new Error("expected an error")
@@ -185,12 +185,12 @@ describe("fetchAllPages", () => {
     try {
       await fetchAllPages(list, input(), context)
     } catch (error) {
-      expect(error).toBeInstanceOf(OperateError)
-      expect((error as OperateError).code).toBe("INTERNAL")
-      expect((error as OperateError).message).toBe(
+      expect(error).toBeInstanceOf(PulseCliError)
+      expect((error as PulseCliError).code).toBe("INTERNAL")
+      expect((error as PulseCliError).message).toBe(
         "Cannot use --all: GET http://h/engine-rest/process-instance?firstResult=0&maxResults=500 did not return a JSON array (got json)",
       )
-      expect((error as OperateError).details.request).toEqual({
+      expect((error as PulseCliError).details.request).toEqual({
         method: "GET",
         url: "http://h/engine-rest/process-instance?firstResult=0&maxResults=500",
       })

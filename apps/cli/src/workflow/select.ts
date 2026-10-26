@@ -5,7 +5,7 @@
  */
 
 import type { EnginePort, PlannedRequest } from "../engine-port/engine-port.js"
-import { OperateError, usageError } from "../errors.js"
+import { PulseCliError, usageError } from "../errors.js"
 import { compact } from "../util.js"
 import { json, queryInput } from "./engine.js"
 import {
@@ -162,8 +162,8 @@ function capitalized(text: string): string {
   return `${text.charAt(0).toUpperCase()}${text.slice(1)}`
 }
 
-function notFound(selection: Selection): OperateError {
-  return new OperateError("NOT_FOUND", `No process instance with ${filterText(selection)}`, {
+function notFound(selection: Selection): PulseCliError {
+  return new PulseCliError("NOT_FOUND", `No process instance with ${filterText(selection)}`, {
     hint: "Check the filters with `pulse-cli process-instance list` (running instances) and `pulse-cli historic-process-instance list` (also ended ones); with history level none, ended instances cannot be found.",
   })
 }
@@ -175,7 +175,7 @@ function ambiguous(selection: Selection, candidates: readonly Candidate[], comma
   const ready = candidates
     .slice(0, READY_COMMANDS)
     .map((candidate) => `pulse-cli ${command} ${candidate.id}${options}`)
-  return new OperateError(
+  return new PulseCliError(
     "USAGE",
     `${capitalized(filterText(selection))} ${both ? "match" : "matches"} ${count} process instances`,
     {

@@ -114,35 +114,4 @@ Put the bash line into `~/.bashrc`. For zsh add `fpath=(~/.zfunc $fpath)` to `~/
 
 ## Renamed from operate
 
-Up to 0.10.0 this CLI was `@miragon/operate` with the command `operate`, released from
-[Miragon/operate](https://github.com/Miragon/operate), which keeps its releases and changelog.
-In Pulse it ships under one name, `pulse-cli`:
-
-| operate (up to 0.10.0)                      | pulse-cli                                    |
-| ------------------------------------------- | -------------------------------------------- |
-| `npm i -g @miragon/operate`                 | `npm i -g @miragon/pulse-cli`                |
-| `brew install miragon/tap/operate`          | `brew install miragon/tap/pulse-cli`         |
-| `ghcr.io/miragon/operate`                   | `ghcr.io/miragon/pulse-cli`                  |
-| `/plugin install operate@miragon`           | `/plugin install pulse-cli@pulse`            |
-| `OPERATE_URL`, `OPERATE_TOKEN` and the rest | `PULSE_CLI_URL`, `PULSE_CLI_TOKEN` and so on |
-| `.operate.json`                             | `.pulse-cli.json`                            |
-| `~/.config/operate`, `%APPDATA%\operate`    | `~/.config/pulse-cli`, `%APPDATA%\pulse-cli` |
-
-Until the first release after 2027-01-31, pulse-cli still reads the old names and prints one
-warning per run that lists each one in use:
-
-- Variables: while no `PULSE_CLI_` variable is set, each `OPERATE_` variable counts as its
-  `PULSE_CLI_` twin. Once one `PULSE_CLI_` variable is set, all `OPERATE_` variables are ignored,
-  so a caller that sets the new names never passes on old credentials.
-- Config file: `~/.config/operate/config.json` is read while `~/.config/pulse-cli/config.json` is
-  missing. The next `pulse-cli config` edit writes the new file from it and leaves the old one as
-  it is. Logins and cached tokens stay behind: run `pulse-cli auth login` once.
-- Project file: in each directory `.pulse-cli.json` comes first, and `.operate.json` is read where
-  it is the only one. Edits stay in the file you have, but pulse-cli writes no `flavor` into
-  `.operate.json`, which operate rejects. Once everyone uses pulse-cli, run
-  `git mv .operate.json .pulse-cli.json`. The VS Code extension looks the files up the same way.
-- Command: the Homebrew formula keeps `operate` as an alias of `pulse-cli`. The npm package has
-  only `pulse-cli`; `@miragon/operate` stays installable (deprecated) with its own `operate`.
-- Claude Code: `/plugin uninstall operate@miragon`, then `/plugin marketplace add Miragon/pulse`
-  and `/plugin install pulse-cli@pulse`. Remove a copy of the skill in
-  `~/.claude/skills/operate`.
+Up to 0.10.0 this CLI was operate, released from the archived [Miragon/operate](https://github.com/Miragon/operate).

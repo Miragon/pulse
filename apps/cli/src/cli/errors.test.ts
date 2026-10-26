@@ -1,7 +1,7 @@
 import { Command, CommanderError } from "commander"
 import { describe, expect, it } from "vitest"
 import { CONFIG_PATH, fakeRuntime } from "../../test/support/fake-runtime.js"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import {
   CommandExit,
   commanderUsageError,
@@ -54,7 +54,7 @@ describe("commanderUsageError", () => {
     const error = commanderUsageError(
       exitOf(group, "commander.missingArgument", "error: missing required argument 'id'"),
     )
-    expect(error).toBeInstanceOf(OperateError)
+    expect(error).toBeInstanceOf(PulseCliError)
     expect(error.code).toBe("USAGE")
     expect(error.message).toBe("Missing required argument 'id'")
     expect(error.details.hint).toBe('Run "pulse-cli task --help" for the usage.')
@@ -294,9 +294,9 @@ describe("reportError", () => {
     expect(runtime.stderr.text()).toBe("")
   })
 
-  it("renders OperateErrors and returns their exit code", async () => {
+  it("renders PulseCliErrors and returns their exit code", async () => {
     const runtime = fakeRuntime()
-    const error = new OperateError("NOT_FOUND", "gone", { hint: "look elsewhere" })
+    const error = new PulseCliError("NOT_FOUND", "gone", { hint: "look elsewhere" })
     expect(await reportError(error, [], runtime, {})).toBe(5)
     expect(runtime.stderr.text()).toBe(
       '{"error":{"code":"NOT_FOUND","exitCode":5,"message":"gone","hint":"look elsewhere"}}\n',
@@ -316,7 +316,7 @@ describe("reportError", () => {
   })
 
   it("replaces control characters of messages on a terminal stderr only", async () => {
-    const error = new OperateError("HTTP_CLIENT_ERROR", "bad \u009b2J value")
+    const error = new PulseCliError("HTTP_CLIENT_ERROR", "bad \u009b2J value")
     const tty = fakeRuntime({ stderrTTY: true })
     await reportError(error, [], tty, { format: "json" })
     expect(tty.stderr.text()).toContain("bad \ufffd2J value")

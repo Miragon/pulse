@@ -1,7 +1,7 @@
 /** Sends requests with authentication, timeout, tracing and one retry after a credential refresh. */
 
 import type { AuthProvider } from "../auth/types.js"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import { isRecord, mergeHeaders } from "../util.js"
 import { statusTextOf } from "./status.js"
 import type { HttpRequest, HttpResponse, TraceEvent } from "./types.js"
@@ -112,11 +112,11 @@ export function networkError(
   error: unknown,
   request: HttpRequest,
   timeoutMs: number,
-): OperateError {
+): PulseCliError {
   const target = { method: request.method, url: request.url }
   const name = stringProperty(error, "name")
   if (name === "TimeoutError" || name === "AbortError") {
-    return new OperateError(
+    return new PulseCliError(
       "TIMEOUT",
       `Request timed out after ${timeoutMs} ms`,
       {
@@ -128,7 +128,7 @@ export function networkError(
   }
   if (REQUEST_ERRORS.has(errorCode(error))) return invalidRequestError(error, target)
   const detail = failureDetail(error)
-  return new OperateError(
+  return new PulseCliError(
     "NETWORK",
     `Cannot reach ${request.url}${detail === undefined ? "" : ` (${detail})`}`,
     { request: target, hint: networkHint(errorCode(error)) },
@@ -140,10 +140,10 @@ export function networkError(
 function invalidRequestError(
   error: unknown,
   target: { readonly method: string; readonly url: string },
-): OperateError {
+): PulseCliError {
   const cause = isRecord(error) ? error.cause : undefined
   const reason = stringProperty(cause, "message") ?? errorCode(error) ?? "unknown reason"
-  return new OperateError(
+  return new PulseCliError(
     "USAGE",
     `Cannot send ${target.method} ${target.url}: invalid request (${reason})`,
     {

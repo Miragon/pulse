@@ -4,7 +4,7 @@ import { connectionRefused } from "../../../test/support/fake-fetch.js"
 import { fakeIdp, jwt, oauthError, tokenJson } from "../../../test/support/fake-idp.js"
 import { fakeRuntime } from "../../../test/support/fake-runtime.js"
 import { oauthDeps, TOKEN_ENDPOINT } from "../../../test/support/oauth.js"
-import { OperateError } from "../../errors.js"
+import { PulseCliError } from "../../errors.js"
 import type { TraceEvent } from "../../http/types.js"
 import { authenticate, clientBasicHeader, sanitize, statusLine } from "./http.js"
 import {
@@ -24,12 +24,12 @@ const PUBLIC: TokenClient = {
   who: { profile: "p" },
 }
 
-async function rejection(promise: Promise<unknown>): Promise<OperateError> {
+async function rejection(promise: Promise<unknown>): Promise<PulseCliError> {
   try {
     await promise
   } catch (error) {
-    expect(error).toBeInstanceOf(OperateError)
-    return error as OperateError
+    expect(error).toBeInstanceOf(PulseCliError)
+    return error as PulseCliError
   }
   throw new Error("expected an error")
 }

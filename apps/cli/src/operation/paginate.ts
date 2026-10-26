@@ -6,7 +6,7 @@
 
 import { DEFAULT_PAGE_SIZE } from "../catalog/rules.js"
 import type { OperationSpec } from "../catalog/types.js"
-import { OperateError, usageError } from "../errors.js"
+import { PulseCliError, usageError } from "../errors.js"
 import type { ClientOptions } from "../http/client.js"
 import type { CommandRef } from "../http/errors.js"
 import { buildRequest, type OperationInput, type Target } from "./request.js"
@@ -52,7 +52,7 @@ function pageResult(result: OperationResult): PageResult {
     return { status: result.status, items: result.value }
   }
   const { method, url } = result.request
-  throw new OperateError(
+  throw new PulseCliError(
     "INTERNAL",
     `Cannot use --all: ${method} ${url} did not return a JSON array (got ${result.kind})`,
     { request: { method, url } },

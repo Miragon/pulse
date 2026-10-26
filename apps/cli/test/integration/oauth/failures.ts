@@ -174,7 +174,7 @@ export function registerFailures(suite: OAuthSuite): void {
     expect(unknownRealm.stderr).not.toMatch(URL_LINE)
 
     const closed = await run(loginArgs(PROFILE.it, ...BOUNDED), {
-      env: { PULSE_CLI_OAUTH_ISSUER: "http://127.0.0.1:1/realms/operate" },
+      env: { PULSE_CLI_OAUTH_ISSUER: "http://127.0.0.1:1/realms/pulse" },
     })
     expect(expectError(closed, "NETWORK", 8).message).toContain(
       "Cannot reach the authorization server at http://127.0.0.1:1",

@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from "vitest"
 import { failure } from "../../test/support/failure.js"
-import { OperateError } from "../errors.js"
+import { PulseCliError } from "../errors.js"
 import { configError } from "./config-error.js"
 import {
   findProfile,
@@ -76,7 +76,7 @@ describe("selectProfile", () => {
 describe("configError", () => {
   it("creates a CONFIG error with an optional hint", () => {
     const plain = configError("broken")
-    expect(plain).toBeInstanceOf(OperateError)
+    expect(plain).toBeInstanceOf(PulseCliError)
     expect(plain.code).toBe("CONFIG")
     expect(plain.exitCode).toBe(3)
     expect(plain.message).toBe("broken")
