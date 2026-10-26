@@ -1,4 +1,4 @@
-import { copyFile, mkdir, writeFile } from "node:fs/promises"
+import { writeFile } from "node:fs/promises"
 import { createRequire } from "node:module"
 import { resolve } from "node:path"
 import { fileURLToPath } from "node:url"
@@ -29,9 +29,16 @@ export function hostBuildOptions({ production: minify }) {
   }
 }
 
-async function copyEngineCli() {
-  await mkdir(dist, { recursive: true })
-  await copyFile(require.resolve("@miragon/operate/dist/operate.js"), `${dist}/engine-cli.js`)
+export function engineCliBuildOptions({ outfile }) {
+  return {
+    entryPoints: [require.resolve("@miragon/operate/dist/operate.js")],
+    outfile,
+    bundle: true,
+    platform: "node",
+    format: "esm",
+    target: "node22",
+    logLevel: "info",
+  }
 }
 
 async function writeMetafiles(results) {
@@ -44,7 +51,7 @@ const invokedDirectly =
   process.argv[1] !== undefined && fileURLToPath(import.meta.url) === resolve(process.argv[1])
 
 if (invokedDirectly) {
-  await copyEngineCli()
+  await esbuild.build(engineCliBuildOptions({ outfile: `${dist}/engine-cli.js` }))
   const builds = [
     hostBuildOptions({ production }),
     webviewBuildOptions({ production, outdir: dist }),
