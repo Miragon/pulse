@@ -38,7 +38,7 @@ export class BoardFiles {
               widget: "counter",
               props: { title: "With incident", filter: { ...filter, withIncident: true } },
             },
-            { widget: "incidentSummary", props: { groupBy: "process" } },
+            { widget: "incidentSummary", props: { title: "With incident per process" } },
           ],
         },
         { row: [{ widget: "instanceList", props: { filter } }] },

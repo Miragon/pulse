@@ -137,7 +137,7 @@ describe("a board", () => {
     harness = mountApp()
     harness.publish(ready(BOARD_VIEW))
     await waitForElement(harness.root, ".board-card--incidentSummary")
-    const summary = card(harness.root, "Incidents per process")
+    const summary = card(harness.root, "With incident per process")
 
     expect(summary.querySelector(".counter__value")?.textContent).toBe("14")
     expect(texts(summary, ".incident-summary__open")).toEqual([

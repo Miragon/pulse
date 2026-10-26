@@ -2,6 +2,7 @@ import type {
   BoardEngineStatus,
   BoardView,
   CounterTile,
+  IncidentSummaryRow,
   IncidentSummaryTile,
 } from "../../../core/protocol/index.js"
 import { CountLabels } from "../../format/count-labels.js"
@@ -41,6 +42,12 @@ export class BoardLabels {
     return tile.known < engines
       ? `from ${tile.known} of ${CountLabels.plural(engines, "engine")}`
       : undefined
+  }
+
+  static openTitle(row: IncidentSummaryRow): string {
+    return row.target.bpmnProcessId === undefined
+      ? `Open the processes of ${row.engine}`
+      : `Open the process on ${row.engine}, latest version first`
   }
 
   static count(count: number | undefined): string {

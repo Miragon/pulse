@@ -89,7 +89,7 @@ export const BOARD_VIEW: BoardView = {
       },
       {
         kind: "incidentSummary",
-        title: "Incidents per process",
+        title: "With incident per process",
         groupBy: "process",
         total: 14,
         known: 2,

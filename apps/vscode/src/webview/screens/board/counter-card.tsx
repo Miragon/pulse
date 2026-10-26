@@ -16,7 +16,7 @@ function EntryButton({ entry }: { readonly entry: CounterEntry }) {
         title={
           entry.count === undefined
             ? `${entry.engine} could not be read`
-            : `Show them on ${entry.engine}`
+            : `Open the process on ${entry.engine}, latest version first`
         }
         disabled={entry.count === undefined}
         onClick={(event) => {

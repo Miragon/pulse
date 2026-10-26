@@ -22,7 +22,7 @@ function SummaryRow({
         title={
           row.withIncident === undefined
             ? `${row.engine} could not be read`
-            : `Show them on ${row.engine}`
+            : BoardLabels.openTitle(row)
         }
         onClick={(event) => {
           open(row.target, event.ctrlKey || event.metaKey)

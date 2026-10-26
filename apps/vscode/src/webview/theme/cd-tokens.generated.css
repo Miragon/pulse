@@ -4,30 +4,30 @@
    oder system (folgt prefers-color-scheme). data-cd-kontrast="hoch" auf demselben Element schaltet
    Hochkontrast ein. Palette, Statusfarben und ui.* stehen nur in :root und schalten nie um. */
 :root {
-  --cd-blau: #335DE5;
-  --cd-gruen: #00E676;
-  --cd-grau: #F9F7F7;
-  --cd-schwarz: #1D1D1D;
-  --cd-weiss: #FFFFFF;
-  --cd-blau-link: #2B50D4;
-  --cd-blau-hell: #6B8AFF;
-  --cd-success: #00E676;
-  --cd-success-soft: #DAFBEB;
-  --cd-success-hell: #00E676;
-  --cd-warning: #FFB000;
-  --cd-warning-soft: #FFF1D2;
-  --cd-warning-hell: #FFB000;
-  --cd-danger: #CD1839;
-  --cd-danger-soft: #FBEEF0;
-  --cd-danger-hell: #FB6D73;
-  --cd-info: #335DE5;
-  --cd-info-soft: #EEF1FD;
-  --cd-info-hell: #6B8AFF;
-  --cd-linie: #E6E2E2;
-  --cd-kontur: #8F8A8A;
-  --cd-text-leise: #6B6666;
-  --cd-gradient-brand: linear-gradient(120deg, #335DE5 30%, #00E676);
-  --cd-gradient-format: linear-gradient(135deg, #335DE5 0%, #00E676 140%);
+  --cd-blau: #335de5;
+  --cd-gruen: #00e676;
+  --cd-grau: #f9f7f7;
+  --cd-schwarz: #1d1d1d;
+  --cd-weiss: #ffffff;
+  --cd-blau-link: #2b50d4;
+  --cd-blau-hell: #6b8aff;
+  --cd-success: #00e676;
+  --cd-success-soft: #dafbeb;
+  --cd-success-hell: #00e676;
+  --cd-warning: #ffb000;
+  --cd-warning-soft: #fff1d2;
+  --cd-warning-hell: #ffb000;
+  --cd-danger: #cd1839;
+  --cd-danger-soft: #fbeef0;
+  --cd-danger-hell: #fb6d73;
+  --cd-info: #335de5;
+  --cd-info-soft: #eef1fd;
+  --cd-info-hell: #6b8aff;
+  --cd-linie: #e6e2e2;
+  --cd-kontur: #8f8a8a;
+  --cd-text-leise: #6b6666;
+  --cd-gradient-brand: linear-gradient(120deg, #335de5 30%, #00e676);
+  --cd-gradient-format: linear-gradient(135deg, #335de5 0%, #00e676 140%);
   --cd-space-1: 4px;
   --cd-space-2: 8px;
   --cd-space-3: 16px;
@@ -40,8 +40,8 @@
   --cd-radius-md: 12px;
   --cd-radius-lg: 16px;
   --cd-radius-pill: 999px;
-  --cd-shadow-1: 0 1px 2px rgba(29, 29, 29, 0.06), 0 1px 3px rgba(29, 29, 29, 0.10);
-  --cd-shadow-2: 0 4px 12px rgba(29, 29, 29, 0.10);
+  --cd-shadow-1: 0 1px 2px rgba(29, 29, 29, 0.06), 0 1px 3px rgba(29, 29, 29, 0.1);
+  --cd-shadow-2: 0 4px 12px rgba(29, 29, 29, 0.1);
   --cd-shadow-3: 0 12px 32px rgba(29, 29, 29, 0.16);
   --cd-motion-fast: 150ms;
   --cd-motion-base: 250ms;
@@ -71,30 +71,30 @@
   --cd-shell-ebene-dialog: 50;
   --cd-shell-ebene-toast: 60;
   /* Rollen, hell (gilt ohne data-cd-theme) */
-  --cd-ui-grund: #F9F7F7;
-  --cd-ui-flaeche: #FFFFFF;
-  --cd-ui-flaeche-hoch: #FFFFFF;
-  --cd-ui-hover: #EEF1FD;
-  --cd-ui-plot: #FFFFFF;
-  --cd-ui-seite: #FFFFFF;
-  --cd-ui-abschnitt: #F9F7F7;
-  --cd-ui-linie: #E6E2E2;
-  --cd-ui-kontur: #8F8A8A;
-  --cd-ui-text: #1D1D1D;
-  --cd-ui-text-leise: #6B6666;
-  --cd-ui-link: #2B50D4;
-  --cd-ui-icon-akzent: #335DE5;
-  --cd-ui-fokus: #2B50D4;
-  --cd-ui-interaktion: #335DE5;
-  --cd-ui-success: #00E676;
-  --cd-ui-warning: #FFB000;
-  --cd-ui-danger: #CD1839;
-  --cd-ui-info: #335DE5;
-  --cd-ui-success-flaeche: #DAFBEB;
-  --cd-ui-warning-flaeche: #FFF1D2;
-  --cd-ui-danger-flaeche: #FBEEF0;
-  --cd-ui-info-flaeche: #EEF1FD;
-  --cd-ui-wortmarke: #00E676;
+  --cd-ui-grund: #f9f7f7;
+  --cd-ui-flaeche: #ffffff;
+  --cd-ui-flaeche-hoch: #ffffff;
+  --cd-ui-hover: #eef1fd;
+  --cd-ui-plot: #ffffff;
+  --cd-ui-seite: #ffffff;
+  --cd-ui-abschnitt: #f9f7f7;
+  --cd-ui-linie: #e6e2e2;
+  --cd-ui-kontur: #8f8a8a;
+  --cd-ui-text: #1d1d1d;
+  --cd-ui-text-leise: #6b6666;
+  --cd-ui-link: #2b50d4;
+  --cd-ui-icon-akzent: #335de5;
+  --cd-ui-fokus: #2b50d4;
+  --cd-ui-interaktion: #335de5;
+  --cd-ui-success: #00e676;
+  --cd-ui-warning: #ffb000;
+  --cd-ui-danger: #cd1839;
+  --cd-ui-info: #335de5;
+  --cd-ui-success-flaeche: #dafbeb;
+  --cd-ui-warning-flaeche: #fff1d2;
+  --cd-ui-danger-flaeche: #fbeef0;
+  --cd-ui-info-flaeche: #eef1fd;
+  --cd-ui-wortmarke: #00e676;
   --cd-ui-backdrop: rgba(29, 29, 29, 0.42);
   --cd-ui-chrome-deckkraft: 84%;
 }
@@ -102,30 +102,30 @@
 /* Hell erzwungen, und die Ausgangslage von System */
 [data-cd-theme="light"],
 [data-cd-theme="system"] {
-  --cd-ui-grund: #F9F7F7;
-  --cd-ui-flaeche: #FFFFFF;
-  --cd-ui-flaeche-hoch: #FFFFFF;
-  --cd-ui-hover: #EEF1FD;
-  --cd-ui-plot: #FFFFFF;
-  --cd-ui-seite: #FFFFFF;
-  --cd-ui-abschnitt: #F9F7F7;
-  --cd-ui-linie: #E6E2E2;
-  --cd-ui-kontur: #8F8A8A;
-  --cd-ui-text: #1D1D1D;
-  --cd-ui-text-leise: #6B6666;
-  --cd-ui-link: #2B50D4;
-  --cd-ui-icon-akzent: #335DE5;
-  --cd-ui-fokus: #2B50D4;
-  --cd-ui-interaktion: #335DE5;
-  --cd-ui-success: #00E676;
-  --cd-ui-warning: #FFB000;
-  --cd-ui-danger: #CD1839;
-  --cd-ui-info: #335DE5;
-  --cd-ui-success-flaeche: #DAFBEB;
-  --cd-ui-warning-flaeche: #FFF1D2;
-  --cd-ui-danger-flaeche: #FBEEF0;
-  --cd-ui-info-flaeche: #EEF1FD;
-  --cd-ui-wortmarke: #00E676;
+  --cd-ui-grund: #f9f7f7;
+  --cd-ui-flaeche: #ffffff;
+  --cd-ui-flaeche-hoch: #ffffff;
+  --cd-ui-hover: #eef1fd;
+  --cd-ui-plot: #ffffff;
+  --cd-ui-seite: #ffffff;
+  --cd-ui-abschnitt: #f9f7f7;
+  --cd-ui-linie: #e6e2e2;
+  --cd-ui-kontur: #8f8a8a;
+  --cd-ui-text: #1d1d1d;
+  --cd-ui-text-leise: #6b6666;
+  --cd-ui-link: #2b50d4;
+  --cd-ui-icon-akzent: #335de5;
+  --cd-ui-fokus: #2b50d4;
+  --cd-ui-interaktion: #335de5;
+  --cd-ui-success: #00e676;
+  --cd-ui-warning: #ffb000;
+  --cd-ui-danger: #cd1839;
+  --cd-ui-info: #335de5;
+  --cd-ui-success-flaeche: #dafbeb;
+  --cd-ui-warning-flaeche: #fff1d2;
+  --cd-ui-danger-flaeche: #fbeef0;
+  --cd-ui-info-flaeche: #eef1fd;
+  --cd-ui-wortmarke: #00e676;
   --cd-ui-backdrop: rgba(29, 29, 29, 0.42);
   --cd-ui-chrome-deckkraft: 84%;
   color-scheme: light;
@@ -134,100 +134,124 @@
 /* Dunkel erzwungen. Alle Dunkel-Blöcke gelten nur auf dem Bildschirm, gedruckt wird hell. */
 @media screen {
   [data-cd-theme="dark"] {
-    --cd-ui-grund: #1D1D1D;
+    --cd-ui-grund: #1d1d1d;
     --cd-ui-flaeche: #282828;
-    --cd-ui-flaeche-hoch: #2F2F2F;
+    --cd-ui-flaeche-hoch: #2f2f2f;
     --cd-ui-hover: #383838;
-    --cd-ui-plot: #1D1D1D;
-    --cd-ui-seite: #1D1D1D;
+    --cd-ui-plot: #1d1d1d;
+    --cd-ui-seite: #1d1d1d;
     --cd-ui-abschnitt: #282828;
     --cd-ui-linie: #464646;
-    --cd-ui-kontur: #8F8A8A;
-    --cd-ui-text: #FFFFFF;
-    --cd-ui-text-leise: #BBBBBB;
-    --cd-ui-link: #00E676;
-    --cd-ui-icon-akzent: #00E676;
-    --cd-ui-fokus: #6B8AFF;
-    --cd-ui-interaktion: #6B8AFF;
-    --cd-ui-success: #00E676;
-    --cd-ui-warning: #FFB000;
-    --cd-ui-danger: #FB6D73;
-    --cd-ui-info: #6B8AFF;
+    --cd-ui-kontur: #8f8a8a;
+    --cd-ui-text: #ffffff;
+    --cd-ui-text-leise: #bbbbbb;
+    --cd-ui-link: #00e676;
+    --cd-ui-icon-akzent: #00e676;
+    --cd-ui-fokus: #6b8aff;
+    --cd-ui-interaktion: #6b8aff;
+    --cd-ui-success: #00e676;
+    --cd-ui-warning: #ffb000;
+    --cd-ui-danger: #fb6d73;
+    --cd-ui-info: #6b8aff;
     --cd-ui-success-flaeche: #282828;
     --cd-ui-warning-flaeche: #282828;
     --cd-ui-danger-flaeche: #282828;
     --cd-ui-info-flaeche: #282828;
-    --cd-ui-wortmarke: #FFFFFF;
+    --cd-ui-wortmarke: #ffffff;
     --cd-ui-backdrop: rgba(29, 29, 29, 0.6);
     --cd-ui-chrome-deckkraft: 100%;
     color-scheme: dark;
   }
-  [data-cd-theme="dark"] ::selection { background-color: #383838; color: #FFFFFF; }
+  [data-cd-theme="dark"] ::selection {
+    background-color: #383838;
+    color: #ffffff;
+  }
 }
 
 /* System: folgt prefers-color-scheme */
 @media screen and (prefers-color-scheme: dark) {
   [data-cd-theme="system"] {
-    --cd-ui-grund: #1D1D1D;
+    --cd-ui-grund: #1d1d1d;
     --cd-ui-flaeche: #282828;
-    --cd-ui-flaeche-hoch: #2F2F2F;
+    --cd-ui-flaeche-hoch: #2f2f2f;
     --cd-ui-hover: #383838;
-    --cd-ui-plot: #1D1D1D;
-    --cd-ui-seite: #1D1D1D;
+    --cd-ui-plot: #1d1d1d;
+    --cd-ui-seite: #1d1d1d;
     --cd-ui-abschnitt: #282828;
     --cd-ui-linie: #464646;
-    --cd-ui-kontur: #8F8A8A;
-    --cd-ui-text: #FFFFFF;
-    --cd-ui-text-leise: #BBBBBB;
-    --cd-ui-link: #00E676;
-    --cd-ui-icon-akzent: #00E676;
-    --cd-ui-fokus: #6B8AFF;
-    --cd-ui-interaktion: #6B8AFF;
-    --cd-ui-success: #00E676;
-    --cd-ui-warning: #FFB000;
-    --cd-ui-danger: #FB6D73;
-    --cd-ui-info: #6B8AFF;
+    --cd-ui-kontur: #8f8a8a;
+    --cd-ui-text: #ffffff;
+    --cd-ui-text-leise: #bbbbbb;
+    --cd-ui-link: #00e676;
+    --cd-ui-icon-akzent: #00e676;
+    --cd-ui-fokus: #6b8aff;
+    --cd-ui-interaktion: #6b8aff;
+    --cd-ui-success: #00e676;
+    --cd-ui-warning: #ffb000;
+    --cd-ui-danger: #fb6d73;
+    --cd-ui-info: #6b8aff;
     --cd-ui-success-flaeche: #282828;
     --cd-ui-warning-flaeche: #282828;
     --cd-ui-danger-flaeche: #282828;
     --cd-ui-info-flaeche: #282828;
-    --cd-ui-wortmarke: #FFFFFF;
+    --cd-ui-wortmarke: #ffffff;
     --cd-ui-backdrop: rgba(29, 29, 29, 0.6);
     --cd-ui-chrome-deckkraft: 100%;
     color-scheme: dark;
   }
-  [data-cd-theme="system"] ::selection { background-color: #383838; color: #FFFFFF; }
+  [data-cd-theme="system"] ::selection {
+    background-color: #383838;
+    color: #ffffff;
+  }
 }
 
 /* Tausch je Modus der Seite (data-cd-theme am <html>), etwa für Bilder und Logos als Datei.
    Ausgeblendet wird nur, was nicht passt. Beim Drucken gilt die helle Variante. */
-:root:not([data-cd-theme="dark"]):not([data-cd-theme="system"]) .cd-nur-dunkel { display: none !important; }
-@media print { :root .cd-nur-dunkel { display: none !important; } }
-@media (prefers-color-scheme: light) { :root[data-cd-theme="system"] .cd-nur-dunkel { display: none !important; } }
-@media screen { :root[data-cd-theme="dark"] .cd-nur-hell { display: none !important; } }
-@media screen and (prefers-color-scheme: dark) { :root[data-cd-theme="system"] .cd-nur-hell { display: none !important; } }
+:root:not([data-cd-theme="dark"]):not([data-cd-theme="system"]) .cd-nur-dunkel {
+  display: none !important;
+}
+@media print {
+  :root .cd-nur-dunkel {
+    display: none !important;
+  }
+}
+@media (prefers-color-scheme: light) {
+  :root[data-cd-theme="system"] .cd-nur-dunkel {
+    display: none !important;
+  }
+}
+@media screen {
+  :root[data-cd-theme="dark"] .cd-nur-hell {
+    display: none !important;
+  }
+}
+@media screen and (prefers-color-scheme: dark) {
+  :root[data-cd-theme="system"] .cd-nur-hell {
+    display: none !important;
+  }
+}
 
 /* Hochkontrast: nur Verweise auf bestehende Werte. data-cd-kontrast steht auf demselben Element wie
    data-cd-theme. Dazu in Komponenten: keine Schatten, schwebende Flächen deckend, Fokusrahmen 3px. */
 [data-cd-kontrast="hoch"] {
-  --cd-ui-linie: #8F8A8A;
-  --cd-ui-kontur: #1D1D1D;
-  --cd-ui-text-leise: #1D1D1D;
+  --cd-ui-linie: #8f8a8a;
+  --cd-ui-kontur: #1d1d1d;
+  --cd-ui-text-leise: #1d1d1d;
   --cd-ui-chrome-deckkraft: 100%;
 }
 @media screen {
   [data-cd-theme="dark"][data-cd-kontrast="hoch"] {
-    --cd-ui-linie: #8F8A8A;
-    --cd-ui-kontur: #FFFFFF;
-    --cd-ui-text-leise: #FFFFFF;
+    --cd-ui-linie: #8f8a8a;
+    --cd-ui-kontur: #ffffff;
+    --cd-ui-text-leise: #ffffff;
     --cd-ui-chrome-deckkraft: 100%;
   }
 }
 @media screen and (prefers-color-scheme: dark) {
   [data-cd-theme="system"][data-cd-kontrast="hoch"] {
-    --cd-ui-linie: #8F8A8A;
-    --cd-ui-kontur: #FFFFFF;
-    --cd-ui-text-leise: #FFFFFF;
+    --cd-ui-linie: #8f8a8a;
+    --cd-ui-kontur: #ffffff;
+    --cd-ui-text-leise: #ffffff;
     --cd-ui-chrome-deckkraft: 100%;
   }
 }

@@ -22,7 +22,7 @@
         },
         {
           "widget": "incidentSummary",
-          "props": { "title": "Incidents per engine", "groupBy": "engine" }
+          "props": { "title": "With incident per engine", "groupBy": "engine" }
         }
       ]
     },
@@ -39,7 +39,7 @@
         },
         {
           "widget": "incidentSummary",
-          "props": { "title": "Incidents per process", "groupBy": "process" }
+          "props": { "title": "With incident per process", "groupBy": "process" }
         }
       ]
     }
