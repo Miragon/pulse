@@ -2,11 +2,7 @@ import type { InstanceSummary } from "../../contract/index.js"
 import { ElementNames } from "../bpmn/element-names.js"
 import type { BulkRequest } from "../panels/panel-context.js"
 import type { BulkPlan } from "../panels/bulk-run.js"
-import {
-  VariableConditionRules,
-  type DefinitionView,
-  type InstanceScope,
-} from "../protocol/index.js"
+import type { DefinitionView, InstanceScope } from "../protocol/index.js"
 import { Labels } from "./labels.js"
 
 const SHOWN_ROWS = 3
@@ -62,13 +58,13 @@ export class BulkRequests {
   }
 
   private static filterFact(view: DefinitionView): string {
-    const { scope, elementId, businessKey, variables = [] } = view.filter
+    const { scope, elementId, businessKey } = view.filter
     const element =
       elementId === undefined
         ? []
         : [`at ${ElementNames.of(view.diagramXml).get(elementId) ?? elementId}`]
     const key = businessKey === undefined ? [] : [`business key ${businessKey}`]
-    const conditions = variables.map((condition) => VariableConditionRules.label(condition))
+    const conditions = view.variableLabels ?? []
     return `Filter: ${[SCOPE_LABELS[scope], ...element, ...key, ...conditions].join(" · ")}`
   }
 }

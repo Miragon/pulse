@@ -13,14 +13,6 @@ const SCOPES: ReadonlySet<unknown> = new Set(["running", "withIncident", "ended"
 const PROCESS_SCOPES: ReadonlySet<unknown> = new Set(["all", "withIncident"])
 const BULK_KINDS: Readonly<Record<OfferedBulkKind, true>> = { cancelInstances: true }
 const MAX_SELECTED_IDS = 1000
-const VARIABLE_OPERATORS: ReadonlySet<unknown> = new Set([
-  "equals",
-  "notEquals",
-  "like",
-  "greaterThan",
-  "lessThan",
-])
-const VALUE_TYPES: ReadonlySet<unknown> = new Set(["text", "number", "boolean"])
 
 export class MessageGuards {
   private static readonly INTENT_SHAPES: Readonly<
@@ -161,9 +153,9 @@ export class MessageGuards {
     const condition = value as Fields
     return (
       MessageGuards.isName(condition.name) &&
-      VARIABLE_OPERATORS.has(condition.operator) &&
+      VariableConditionRules.isOperator(condition.operator) &&
       MessageGuards.isValue(condition.value) &&
-      (condition.as === undefined || VALUE_TYPES.has(condition.as)) &&
+      (condition.as === undefined || VariableConditionRules.isValueType(condition.as)) &&
       VariableConditionRules.fits(condition as unknown as VariableConditionView)
     )
   }

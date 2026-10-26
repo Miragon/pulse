@@ -128,8 +128,8 @@ the diagram, the "Instances … · n running" header and the toolbar.
   anchored above the button over the diagram, never inline: what a reader needs once
   hides instead of taking room every time. Digit-free shapes; its first line
   (definition: "Badges count running instances of vN") replaces the version line. Below
-  760 px the definition bar takes two rows: scopes and legend button, then element chip
-  and search. Container queries, no JavaScript.
+  760 px the definition bar takes two rows: scopes and legend button, then element chip,
+  variable chips and search. Container queries, no JavaScript.
 - **Escape** clears the instance selection first and the element filter after it, only
   when no popover or dialog is open, focus is not in a field (a checkbox does not count)
   and no column drag is cancelled. In the variable dialog it closes the dialog only;

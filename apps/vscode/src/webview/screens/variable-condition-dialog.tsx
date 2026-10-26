@@ -41,6 +41,7 @@ function NameField({ draft, errors, onDraft }: FieldProps) {
         class="condition-dialog__control"
         value={draft.name}
         spellcheck={false}
+        maxLength={255}
         autoFocus
         aria-invalid={errors.name !== undefined || undefined}
         aria-describedby={`${id}-hint ${id}-error`}
@@ -175,14 +176,15 @@ export function VariableConditionDialog(props: VariableConditionDialogProps) {
   const titleId = useId()
   const [draft, setDraft] = useState(() => VariableDraft.from(initial))
   const [errors, setErrors] = useState<DraftErrors>({})
+  useEffect(() => {
+    dialog.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()
+  }, [errors, dialog])
   const apply = (event: Event): void => {
     event.preventDefault()
     const found = VariableDraft.errors(draft, others)
     setErrors(found)
     if (Object.keys(found).length === 0) {
       onApply(VariableDraft.condition(draft))
-    } else {
-      dialog.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()
     }
   }
   return (

@@ -127,7 +127,8 @@ for any workspace, and the conformance kit does not cover them
   characters and every other character, `%` and `_` included, stands for itself. A
   condition holds when the instance has a variable of that name, at any scope (the C7
   family matches task-local variables too, so a C8 adapter must as well), whose value
-  satisfies it: `notEquals` never finds an instance without the variable. Ended instances
+  satisfies it: `notEquals` never finds an instance without the variable, and a value
+  of another type differs (`route ≠ 42` finds the text `"review"`). Ended instances
   match by their variables. An unknown name finds nothing, an empty list constrains
   nothing (unlike `instanceIds: []`). How letter case compares is the engine's (its
   database's) business, so no law pins it.

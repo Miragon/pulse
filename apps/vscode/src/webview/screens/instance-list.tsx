@@ -66,7 +66,7 @@ function NoMatches({
   }
   return (
     <EmptyHint
-      text={`${SCOPE_WORDS[filter.scope]} match these variable conditions.`}
+      text={`${SCOPE_WORDS[filter.scope]} match these variable conditions. An engine that keeps no variable history finds none.`}
       action={{
         label: "Clear variable conditions",
         onClick: () => {

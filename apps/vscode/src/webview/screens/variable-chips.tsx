@@ -17,7 +17,7 @@ interface Editing {
 
 interface VariableChipProps {
   readonly label: string
-  readonly onEdit: () => void
+  readonly onEdit: (event: Event) => void
   readonly onRemove: () => void
 }
 
@@ -48,16 +48,21 @@ function VariableChip({ label, onEdit, onRemove }: VariableChipProps) {
 export function VariableChips({ filter, labels, onFilter }: VariableChipsProps) {
   const [editing, setEditing] = useState<Editing | undefined>(undefined)
   const opener = useRef<HTMLButtonElement>(null)
-  const refocus = useRef(false)
+  const returnTo = useRef<HTMLElement | null>(null)
   const conditions = filter.variables ?? []
   useEffect(() => {
-    if (refocus.current && editing === undefined) {
-      refocus.current = false
-      opener.current?.focus()
+    const target = returnTo.current
+    if (target !== null && editing === undefined) {
+      returnTo.current = null
+      const focusable = target.isConnected ? target : opener.current
+      focusable?.focus()
     }
   }, [editing])
+  const open = (event: Event, at?: number): void => {
+    returnTo.current = event.currentTarget as HTMLElement
+    setEditing(at === undefined ? {} : { at })
+  }
   const close = (): void => {
-    refocus.current = true
     setEditing(undefined)
   }
   return (
@@ -67,18 +72,18 @@ export function VariableChips({ filter, labels, onFilter }: VariableChipsProps) 
         type="button"
         class="button button--secondary button--compact"
         aria-haspopup="dialog"
-        onClick={() => {
-          setEditing({})
+        onClick={(event) => {
+          open(event)
         }}
       >
         {conditions.length === 0 ? "Variables" : `Variables · ${conditions.length}`}
       </button>
       {conditions.map((condition, at) => (
         <VariableChip
-          key={`${at}:${condition.name}`}
+          key={at}
           label={labels?.[at] ?? condition.name}
-          onEdit={() => {
-            setEditing({ at })
+          onEdit={(event) => {
+            open(event, at)
           }}
           onRemove={() => {
             onFilter(InstanceFilter.withoutVariable(filter, at))

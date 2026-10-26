@@ -444,10 +444,6 @@
     max-width: 50%;
   }
 
-  .filter-bar .filter-chip--variable {
-    display: none;
-  }
-
   .filter-bar .search-field {
     flex: 1;
     order: 4;

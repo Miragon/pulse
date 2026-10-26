@@ -252,10 +252,12 @@ describe("the confirmation of a bulk cancel", () => {
       { name: "route", operator: "equals", value: "review" },
     ],
   }
+  const LABELS: DefinitionView["variableLabels"] = ["amount > 100", 'route = "review"']
   const VIEW = {
     processName: "Order",
     diagramXml: '<bpmn:userTask id="Activity_Review" name="Review order" />',
     filter: FILTER,
+    variableLabels: LABELS,
   } as DefinitionView
 
   function summary(id: string, extra: Partial<InstanceSummary> = {}): InstanceSummary {

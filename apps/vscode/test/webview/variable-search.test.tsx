@@ -124,6 +124,10 @@ describe("the variable search of the definition panel", () => {
     await vi.waitFor(() => {
       expect(dialog.textContent).toContain("Enter a number, for example 42 or 9.5.")
     })
+    await vi.waitFor(() => {
+      expect(document.activeElement).toBe(field(dialog, "Value"))
+    })
+    expect(field(dialog, "Name").hasAttribute("aria-invalid")).toBe(false)
     expect(lastFilter(harness)).toBeUndefined()
   })
 
@@ -135,10 +139,8 @@ describe("the variable search of the definition panel", () => {
     labelled(harness.root, "Remove condition amount > 100").click()
     expect(lastFilter(harness)).toEqual({ scope: "running", variables: [CONDITIONS.variables![0]] })
 
-    const dialog = await openDialog(
-      harness,
-      labelled(harness.root, 'Edit condition route = "review"'),
-    )
+    const chip = labelled(harness.root, 'Edit condition route = "review"')
+    const dialog = await openDialog(harness, chip)
     expect(field(dialog, "Name").value).toBe("route")
     enter(field(dialog, "Value"), "charge")
     await apply(dialog)
@@ -152,6 +154,17 @@ describe("the variable search of the definition panel", () => {
         ],
       })
     })
+    await vi.waitFor(() => {
+      expect(document.activeElement).toBe(chip)
+    })
+  })
+
+  it("keeps the chips in a narrow panel", async () => {
+    harness = mountApp({ width: 600 })
+    harness.publish(ready({ ...DEFINITION_VIEW, filter: CONDITIONS, variableLabels: LABELS }))
+
+    const chip = await vi.waitFor(() => labelled(harness.root, "Remove condition amount > 100"))
+    expect(chip.getClientRects().length).toBeGreaterThan(0)
   })
 
   it("keeps the conditions when the scope changes", async () => {
@@ -188,7 +201,7 @@ describe("the variable search of the definition panel", () => {
 
     const clear = await vi.waitFor(() => buttonNamed(harness.root, "Clear variable conditions"))
     expect(harness.root.textContent).toContain(
-      "No running instances match these variable conditions.",
+      "No running instances match these variable conditions. An engine that keeps no variable history finds none.",
     )
     clear.click()
 

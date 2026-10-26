@@ -73,6 +73,26 @@ async function notEqualsAlsoWithout(
   return candidates.items.filter((item) => excluded.every((found) => !found.has(item.id)))
 }
 
+async function notEqualsOnlyOwnType(
+  runtime: ProcessRuntime,
+  filter: InstanceFilter,
+): Promise<InstanceSummary[]> {
+  const pages = await Promise.all(
+    (["greaterThan", "lessThan"] as const).map((operator) =>
+      runtime.searchInstances(
+        mapConditions(filter, (condition) =>
+          condition.operator === "notEquals" && typeof JSON.parse(condition.valueJson) === "number"
+            ? { ...condition, operator }
+            : condition,
+        ),
+        ALL,
+      ),
+    ),
+  )
+  const found = new Map(pages.flatMap((page) => page.items).map((item) => [item.id, item]))
+  return [...found.values()]
+}
+
 const SABOTAGES: readonly (readonly [string, Sabotage, readonly CaseName[]])[] = [
   [
     "the search ignores the variable conditions",
@@ -122,6 +142,16 @@ const SABOTAGES: readonly (readonly [string, Sabotage, readonly CaseName[]])[] =
       searchInstances: async (filter, page) =>
         filter.variables?.some((condition) => condition.operator === "notEquals") === true
           ? { items: await notEqualsAlsoWithout(runtime, filter) }
+          : runtime.searchInstances(filter, page),
+    }),
+    [CASE.variablesNotEquals],
+  ],
+  [
+    "not equals skips a value of another type",
+    (runtime) => ({
+      searchInstances: async (filter, page) =>
+        filter.variables?.some((condition) => condition.operator === "notEquals") === true
+          ? { items: await notEqualsOnlyOwnType(runtime, filter) }
           : runtime.searchInstances(filter, page),
     }),
     [CASE.variablesNotEquals],

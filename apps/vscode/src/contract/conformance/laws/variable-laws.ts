@@ -78,6 +78,10 @@ export const VARIABLE_LAWS: readonly ConformanceCase[] = [
   ]),
   VariableSearch.law(CASE.variablesNotEquals, [
     { conditions: [Conditions.notEquals("route", "review")], found: ["ORD-1002", "ORD-1003"] },
+    {
+      conditions: [Conditions.notEquals("route", 42)],
+      found: ["ORD-1001", "ORD-1002", "ORD-1003", "ORD-2001"],
+    },
   ]),
   VariableSearch.law(CASE.variablesNumbers, [
     { conditions: [Conditions.equals("amount", 42)], found: ["ORD-1002"] },

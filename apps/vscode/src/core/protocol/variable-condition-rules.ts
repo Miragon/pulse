@@ -26,6 +26,14 @@ export class VariableConditionRules {
 
   private static readonly NUMBER = new RegExp(`^${VariableConditionRules.NUMBER_PATTERN}$`)
 
+  static isOperator(value: unknown): value is VariableOperator {
+    return typeof value === "string" && Object.hasOwn(SYMBOLS, value)
+  }
+
+  static isValueType(value: unknown): value is VariableValueType {
+    return typeof value === "string" && Object.hasOwn(OPERATORS_OF, value)
+  }
+
   static isNumber(text: string): boolean {
     return VariableConditionRules.NUMBER.test(text)
   }
