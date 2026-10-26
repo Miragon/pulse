@@ -16,6 +16,12 @@ The **Definition** panel draws the deployed diagram of one version with badges p
 version picker with counts per version, and the instances (running, with incident, ended),
 filtered by element or business key.
 
+_Variables_ in the filter bar finds instances by their process variables: a name, an operator
+(is, is not, matches, greater or less than) and a value, `*` as the wildcard of _matches_.
+Each condition becomes a chip, and an instance matches when all of them hold; counts and
+selections follow. The search reads the engine's history, so CIB seven, Operaton and Camunda 7
+need history level `audit` or higher.
+
 ![A definition with badges on the diagram and its instances](../assets/vscode/02-definition-overview.png)
 
 ## An instance and its incident

@@ -5,6 +5,7 @@ import { ScopeSegments } from "../components/scope-segments.js"
 import { SearchField } from "../components/search-field.js"
 import { DiagramLegend } from "../diagram/diagram-legend.js"
 import { InstanceFilter, SCOPE_OPTIONS } from "./instance-filter.js"
+import { VariableChips } from "./variable-chips.js"
 
 export interface InstanceFilterBarProps {
   readonly filter: InstanceListFilter
@@ -12,6 +13,7 @@ export interface InstanceFilterBarProps {
   readonly refreshing: boolean
   readonly version: number
   readonly historyNote?: string | undefined
+  readonly variableLabels?: readonly string[] | undefined
   readonly elementName: (elementId: string) => string
   readonly onFilter: (filter: InstanceListFilter) => void
 }
@@ -68,6 +70,7 @@ export function InstanceFilterBar(props: InstanceFilterBarProps) {
           onFilter(InstanceFilter.withBusinessKey(filter, text))
         }}
       />
+      <VariableChips filter={filter} labels={props.variableLabels} onFilter={onFilter} />
       <DiagramLegend kind="badges" scope={`Badges count running instances of v${props.version}`} />
     </div>
   )

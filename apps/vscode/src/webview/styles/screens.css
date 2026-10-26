@@ -265,6 +265,106 @@
   white-space: nowrap;
 }
 
+.filter-chip--variable {
+  max-width: 240px;
+}
+
+.filter-chip__edit {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.filter-chip__edit:hover {
+  color: var(--cd-ui-link);
+}
+
+.condition-dialog {
+  box-sizing: border-box;
+  width: min(440px, calc(100vw - 32px));
+  padding: 0;
+  border: 1px solid var(--cd-ui-linie);
+  border-radius: var(--cd-radius-md);
+  background: var(--cd-ui-flaeche-hoch);
+  color: var(--cd-ui-text);
+  box-shadow: var(--cd-shadow-2);
+}
+
+.condition-dialog::backdrop {
+  background: color-mix(in srgb, var(--cd-ui-grund) 60%, transparent);
+}
+
+.condition-dialog__form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+}
+
+.condition-dialog__title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.condition-dialog__form > p {
+  margin: 0;
+}
+
+.condition-dialog__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.condition-dialog__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.condition-dialog__field > p {
+  margin: 0;
+}
+
+.condition-dialog__control {
+  box-sizing: border-box;
+  width: 100%;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--cd-ui-kontur);
+  border-radius: var(--cd-radius-sm);
+  background: var(--cd-ui-grund);
+  color: var(--cd-ui-text);
+  font: inherit;
+}
+
+.condition-dialog__control:focus-visible {
+  outline: 2px solid var(--cd-ui-fokus);
+  outline-offset: 2px;
+}
+
+.condition-dialog__control[aria-invalid="true"] {
+  border-color: var(--cd-ui-danger);
+}
+
+.condition-dialog__hint {
+  font-size: 12px;
+}
+
+.condition-dialog__error {
+  color: var(--cd-ui-danger);
+}
+
+.condition-dialog__actions {
+  display: flex;
+  gap: 8px;
+}
+
 .search-field {
   display: inline-flex;
   flex: none;
@@ -342,6 +442,10 @@
   .filter-bar .filter-chip {
     order: 3;
     max-width: 50%;
+  }
+
+  .filter-bar .filter-chip--variable {
+    display: none;
   }
 
   .filter-bar .search-field {

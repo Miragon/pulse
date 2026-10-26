@@ -1,7 +1,7 @@
 # User interface
 
 - Status: accepted
-- Last reviewed: 2026-10-23 (live updates, see [live-updates.md](live-updates.md); moving a token; bulk cancel, see [writes.md](writes.md); migration, see [migrations.md](migrations.md))
+- Last reviewed: 2026-10-26 (live updates, see [live-updates.md](live-updates.md); moving a token; bulk cancel, see [writes.md](writes.md); migration, see [migrations.md](migrations.md))
 
 ## Context
 
@@ -91,15 +91,29 @@ credentials, or Edit connection… for the other connection problems.
 The bottom pane of the split starts with one 36 px bar; it replaced the legend line under
 the diagram, the "Instances … · n running" header and the toolbar.
 
-- **Definition panel:** scopes with counts, element chip, business-key search and, at
-  the far end, the legend button. The scopes are a `radiogroup` ("Show instances") with one tab
+- **Definition panel:** scopes with counts, element chip, business-key search, the
+  _Variables_ button with one chip per variable condition and, at the far end, the legend
+  button. The scopes are a `radiogroup` ("Show instances") with one tab
   stop on the checked radio; ←/→/Home/End move and select, the latest request wins,
   and the checked segment is boxed, not underlined (an underline means tabs). Each
   scope shows `DefinitionView.scopeCounts` (compact, the exact value in the tooltip, a
-  red "With incident" count when it is above 0). Counts follow the element filter and
-  the business-key search, so a count says what a click shows; the version totals stay
+  red "With incident" count when it is above 0). Counts follow the element filter, the
+  business-key search and the variable conditions, so a count says what a click shows; the version totals stay
   in the version picker. While the panel refreshes the old counts stay and the group is
   `aria-busy`.
+- **Variable conditions:** _Variables_ (_Variables · 2_ with conditions) opens a modal
+  `<dialog>` for one condition: name, _Compare as_ (Automatic, Text, Number, True or
+  false), the operators that fit the type and the value. Apply adds it, or replaces the
+  one whose chip was clicked; every chip (`amount > 100`, `route = "review"`, text in
+  quotes) has its remove button; all conditions must hold, at most 5. Automatic reads
+  `42` and `-4.5` as a number, `true` and `false` as true or false and anything else as
+  text; _matches_ compares text and _is greater than_ and _is less than_ numbers.
+  `VariableConditionRules` in the protocol holds these rules for the guard and the core,
+  which also labels the chips (`DefinitionView.variableLabels`); the webview imports the
+  protocol as types only, so the dialog keeps its operator table, number pattern and cap
+  as constants a test holds equal to the rules. The conditions survive a scope change, the element filter,
+  the business-key search and a version switch, which resets scope and element only; the
+  cancel confirmation names them in its filter line.
 - **Instance panel:** the History / Incidents / Waiting / Variables tablist on the left, the marker
   legend button on the right.
 - **Engine overview:** the scopes _All_ and _With incident_ ("Show processes", the same
@@ -117,8 +131,9 @@ the diagram, the "Instances … · n running" header and the toolbar.
   760 px the definition bar takes two rows: scopes and legend button, then element chip
   and search. Container queries, no JavaScript.
 - **Escape** clears the instance selection first and the element filter after it, only
-  when no popover is open, focus is not in a field (a checkbox does not count) and no
-  column drag is cancelled.
+  when no popover or dialog is open, focus is not in a field (a checkbox does not count)
+  and no column drag is cancelled. In the variable dialog it closes the dialog only;
+  Escape never clears a variable condition.
 - **Columns** of the Processes, Instances, Waiting, Variables and History tables are resizable: a
   `separator` on the right edge of every header but the last (←/→ 8 px, Shift 32 px,
   Enter or a double-click fits the widest cell up to half the visible table, Home sets

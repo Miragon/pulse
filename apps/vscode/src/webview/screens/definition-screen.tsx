@@ -56,8 +56,8 @@ function useFilterActions(filter: InstanceListFilter, selecting: boolean) {
     const inField =
       (event.target instanceof HTMLInputElement && event.target.type !== "checkbox") ||
       event.target instanceof HTMLSelectElement
-    const legendOpen = document.querySelector(":popover-open") !== null
-    if (event.key !== "Escape" || inField || legendOpen) {
+    const layerOpen = document.querySelector(":popover-open, dialog[open]") !== null
+    if (event.key !== "Escape" || inField || layerOpen) {
       return
     }
     if (selecting) {

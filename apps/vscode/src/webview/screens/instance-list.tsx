@@ -6,6 +6,7 @@ import { IdText } from "../components/id-text.js"
 import { IncidentFlag, StateLabel } from "../components/state-label.js"
 import { TimeLabels } from "../format/time-labels.js"
 import { useHost } from "../host/host-context.js"
+import { InstanceFilter } from "./instance-filter.js"
 import { InstanceFilterBar } from "./instance-filter-bar.js"
 import { useSelectionColumn } from "./instance-selection.js"
 import { SelectionBar } from "./selection-bar.js"
@@ -46,6 +47,36 @@ const COLUMNS: readonly Column<InstanceRow>[] = [
   { key: "started", label: "Started", render: (row) => <StartedCell row={row} /> },
 ]
 
+const SCOPE_WORDS: Readonly<Record<InstanceListFilter["scope"], string>> = {
+  running: "No running instances",
+  withIncident: "No instances with an incident",
+  ended: "No ended instances",
+  all: "No instances",
+}
+
+function NoMatches({
+  filter,
+  onFilter,
+}: {
+  readonly filter: InstanceListFilter
+  readonly onFilter: (filter: InstanceListFilter) => void
+}) {
+  if (filter.variables === undefined) {
+    return <EmptyHint text="No instances match this filter." />
+  }
+  return (
+    <EmptyHint
+      text={`${SCOPE_WORDS[filter.scope]} match these variable conditions.`}
+      action={{
+        label: "Clear variable conditions",
+        onClick: () => {
+          onFilter(InstanceFilter.withoutVariables(filter))
+        },
+      }}
+    />
+  )
+}
+
 export interface InstanceListProps {
   readonly view: DefinitionView
   readonly elementName: (elementId: string) => string
@@ -79,6 +110,7 @@ export function InstanceList({ view, elementName, onFilter, refreshing, busy }: 
         refreshing={refreshing}
         version={view.selectedVersion}
         historyNote={view.historyNote}
+        variableLabels={view.variableLabels}
         elementName={elementName}
         onFilter={onFilter}
       />
@@ -106,7 +138,7 @@ export function InstanceList({ view, elementName, onFilter, refreshing, busy }: 
             }
           },
         }}
-        empty={<EmptyHint text="No instances match this filter." />}
+        empty={<NoMatches filter={view.filter} onFilter={onFilter} />}
         footer={footer}
       />
     </section>

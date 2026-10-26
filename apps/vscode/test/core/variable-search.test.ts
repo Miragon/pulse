@@ -48,6 +48,8 @@ describe("the variable condition rules", () => {
     [{ name: "paid", operator: "equals", value: "true" }, "boolean"],
     [{ name: "paid", operator: "equals", value: "True" }, "text"],
     [{ name: "code", operator: "like", value: "42" }, "text"],
+    [{ name: "amount", operator: "greaterThan", value: "abc" }, "number"],
+    [{ name: "amount", operator: "lessThan", value: "true" }, "number"],
     [{ name: "code", operator: "equals", value: "42", as: "text" }, "text"],
   ] as const)("reads %o as %s", (condition, type) => {
     expect(VariableConditionRules.typeOf(condition)).toBe(type)
@@ -96,6 +98,7 @@ describe("the definition panel with variable conditions", () => {
       { name: "amount", operator: "greaterThan", valueJson: "5" },
     ])
     expect(opened.view().instances.map((row) => row.businessKey)).toEqual(["ORD-1002"])
+    expect(opened.view().variableLabels).toEqual(['route ≠ "review"', "amount > 5"])
     expect(opened.view().scopeCounts).toEqual({ running: 1, withIncident: 1, ended: 0, all: 1 })
   })
 

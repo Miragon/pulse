@@ -2,7 +2,6 @@ import type { VariableConditionView, VariableOperator, VariableValueType } from 
 
 export const MAX_VARIABLE_CONDITIONS = 5
 
-const NUMBER = /^-?(?:0|[1-9]\d*)(?:\.\d+)?$/
 const BOOLEANS: ReadonlySet<string> = new Set(["true", "false"])
 const SYMBOLS: Readonly<Record<VariableOperator, string>> = {
   equals: "=",
@@ -11,6 +10,11 @@ const SYMBOLS: Readonly<Record<VariableOperator, string>> = {
   lessThan: "<",
   like: "matches",
 }
+const IMPLIED_TYPES: Readonly<Partial<Record<VariableOperator, VariableValueType>>> = {
+  like: "text",
+  greaterThan: "number",
+  lessThan: "number",
+}
 const OPERATORS_OF: Readonly<Record<VariableValueType, readonly VariableOperator[]>> = {
   text: ["equals", "notEquals", "like"],
   number: ["equals", "notEquals", "greaterThan", "lessThan"],
@@ -18,16 +22,21 @@ const OPERATORS_OF: Readonly<Record<VariableValueType, readonly VariableOperator
 }
 
 export class VariableConditionRules {
+  static readonly NUMBER_PATTERN = "-?(?:0|[1-9]\\d*)(?:\\.\\d+)?"
+
+  private static readonly NUMBER = new RegExp(`^${VariableConditionRules.NUMBER_PATTERN}$`)
+
   static isNumber(text: string): boolean {
-    return NUMBER.test(text)
+    return VariableConditionRules.NUMBER.test(text)
   }
 
   static typeOf(condition: VariableConditionView): VariableValueType {
     if (condition.as !== undefined) {
       return condition.as
     }
-    if (condition.operator === "like") {
-      return "text"
+    const implied = IMPLIED_TYPES[condition.operator]
+    if (implied !== undefined) {
+      return implied
     }
     if (VariableConditionRules.isNumber(condition.value)) {
       return "number"

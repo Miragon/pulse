@@ -5,15 +5,16 @@ import type {
   InstanceSummary,
   VersionSummary,
 } from "../../contract/index.js"
-import type {
-  DefinitionView,
-  ElementBadge,
-  EngineBadge,
-  InstanceListFilter,
-  InstanceRow,
-  Notice,
-  ScopeCounts,
-  VersionOption,
+import {
+  VariableConditionRules,
+  type DefinitionView,
+  type ElementBadge,
+  type EngineBadge,
+  type InstanceListFilter,
+  type InstanceRow,
+  type Notice,
+  type ScopeCounts,
+  type VersionOption,
 } from "../protocol/index.js"
 import { BpmnStructure } from "../bpmn/bpmn-structure.js"
 import { CallLinks } from "./call-links.js"
@@ -57,10 +58,18 @@ export class DefinitionViewBuilder {
       instances: this.snapshot.instances.map((instance) => this.instanceRow(instance)),
       hasMoreInstances: this.snapshot.hasMoreInstances,
       filter: this.snapshot.filter,
+      ...this.variableLabels(),
       scopeCounts: this.snapshot.scopeCounts,
       notices: this.notices(),
       ...WebUiLinks.to(subject, this.snapshot.engine),
     }
+  }
+
+  private variableLabels(): Pick<DefinitionView, "variableLabels"> {
+    const { variables } = this.snapshot.filter
+    return variables === undefined
+      ? {}
+      : { variableLabels: variables.map((condition) => VariableConditionRules.label(condition)) }
   }
 
   private selectedVersion(): VersionSummary | undefined {
