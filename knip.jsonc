@@ -98,9 +98,7 @@
       // The Miragon docs kit (.vitepress/miragon/, vendored unchanged from
       // Miragon/corporate-identity, pinned by its check.mjs): slug.d.mts types
       // slug.mjs for TypeScript, so no import names the declaration itself.
-      // useStars.ts is imported only from the kit's .vue components, which knip
-      // does not read.
-      "ignore": [".vitepress/miragon/slug.d.mts", ".vitepress/miragon/theme/useStars.ts"],
+      "ignore": [".vitepress/miragon/slug.d.mts"],
       "ignoreDependencies": [
         // mermaid's diagram runtimes, which vitepress-plugin-mermaid lists in
         // Vite's optimizeDeps.include: under pnpm's strict layout the dev
@@ -112,9 +110,6 @@
         "cytoscape-cose-bilkent",
         "dayjs",
         "debug",
-        // Provided by vitepress, which aliases `vue` to its own copy; the kit's
-        // theme imports it directly.
-        "vue",
       ],
     },
   },
