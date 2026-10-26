@@ -1,6 +1,6 @@
 {
   "name": "@miragon/pulse-mcp-server-camunda7",
-  "version": "0.24.0",
+  "version": "0.24.1",
   "private": true,
   "license": "MIT",
   "repository": {

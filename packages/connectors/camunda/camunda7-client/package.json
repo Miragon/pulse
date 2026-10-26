@@ -1,6 +1,6 @@
 {
   "name": "@miragon/pulse-camunda7-client",
-  "version": "0.24.0",
+  "version": "0.24.1",
   "description": "Generated CIB Seven / Camunda 7 REST SDK plus Zod input schemas.",
   "license": "MIT",
   "keywords": [

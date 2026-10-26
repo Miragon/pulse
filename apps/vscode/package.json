@@ -1,7 +1,7 @@
 {
   "name": "pulse-cockpit",
   "private": true,
-  "version": "0.24.0",
+  "version": "0.24.1",
   "displayName": "Miragon Pulse",
   "description": "See what your process engine is running, right next to your BPMN models: definitions, instances, incidents and variables. Retry incidents and fix variables, guarded.",
   "publisher": "miragon-gmbh",

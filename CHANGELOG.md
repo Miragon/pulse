@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.24.1](https://github.com/Miragon/pulse/compare/v0.24.0...v0.24.1) (2026-10-26)
+
+
+### Bug Fixes
+
+* bump body-parser from 2.3.0 to 2.4.0 ([#441](https://github.com/Miragon/pulse/issues/441)) ([75b3688](https://github.com/Miragon/pulse/commit/75b3688de4eca7f39909f789c41cb402469bd5e0))
+* **vscode:** publish the extension as miragon-gmbh.pulse-cockpit ([#464](https://github.com/Miragon/pulse/issues/464)) ([47dc189](https://github.com/Miragon/pulse/commit/47dc189beeb540dc1502d76345b0e6758d39cc86))
+
 ## [0.24.0](https://github.com/Miragon/pulse/compare/v0.23.0...v0.24.0) (2026-10-26)
 
 
