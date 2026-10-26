@@ -61,7 +61,7 @@ export const composition = composeModules<SharedResources>({
   label: SERVER_LABEL,
   modules: MODULES,
   appEnvVars: APP_ENV_VARS,
-  envVarHint: "see docs/operations.md",
+  envVarHint: "see docs/mcp/operations.md",
 })
 
 export const warnUnknownEnvVars = composition.warnUnknownEnvVars

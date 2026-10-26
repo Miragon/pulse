@@ -37,4 +37,9 @@ overrides:
   # for the server.fs.deny bypass. An exact pin, not a range: it is the vite the
   # Miragon docs kit (docs/.vitepress/miragon/) is built and tested with, and it
   # moves only with a release of Miragon/corporate-identity (skill docs-site).
-  "vitepress>vite": 6.4.3
+  "vitepress>vite": 6.4.5
+
+peerDependencyRules:
+  allowedVersions:
+    # vitepress-plugin-mermaid 2.0.17 asks for mermaid 10 or 11; the Miragon docs kit pins 12.
+    "vitepress-plugin-mermaid>mermaid": "12"
