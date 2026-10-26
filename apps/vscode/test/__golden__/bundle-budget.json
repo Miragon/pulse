@@ -1,0 +1,4 @@
+{
+  "$comment": "Gzip ceiling (bytes, zlib default level) of the webview bundle the extension ships (dist/webview.js), checked by test/architecture/bundle-budget.test.ts against a production build. Shrink-only (scripts/check-ratchets.mjs): growth needs a Ratchet-Exception trailer that says why.",
+  "webview.js": 200000
+}

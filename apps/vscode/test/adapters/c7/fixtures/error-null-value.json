@@ -1,0 +1,16 @@
+{
+  "error": {
+    "code": "HTTP_SERVER_ERROR",
+    "exitCode": 7,
+    "message": "HTTP 500 Internal Server Error: No external task found with id 00000000-0000-0000-0000-000000000000: externalTask is null",
+    "status": 500,
+    "engineType": "NullValueException",
+    "engineMessage": "No external task found with id 00000000-0000-0000-0000-000000000000: externalTask is null",
+    "engineCode": 0,
+    "hint": "The engine could not process the request; the engine message says why. Camunda 7 engines also report rule violations (task already claimed, dependent instances, ...) as 500, so retrying unchanged rarely helps.",
+    "request": {
+      "method": "GET",
+      "url": "http://localhost:18180/engine-rest/external-task/00000000-0000-0000-0000-000000000000/errorDetails"
+    }
+  }
+}

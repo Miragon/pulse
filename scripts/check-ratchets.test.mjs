@@ -1238,8 +1238,9 @@ export default [
         .filter(([key, b]) => key.includes(`| files ${filesKey} |`) && !b.exemption)
         .map(([, b]) => b.numbers[0])
         .sort((a, b) => a - b)
-    // The global budgets, and the CLI's stricter ones (apps/cli: complexity 10, 300 lines for
-    // the shipped code and scripts, the global 400 for its tests in and outside src/).
+    // The global budgets, the CLI's stricter ones (apps/cli: complexity 10, 300 lines for the
+    // shipped code and scripts, the global 400 for its tests in and outside src/) and the VS
+    // Code extension's stricter house budgets (apps/vscode: complexity 10, 300 lines).
     assert.deepEqual(
       budgetsOf(
         '["apps/*/src/**/*.{ts,tsx}","packages/core/*/src/**/*.{ts,tsx}","packages/connectors/*/*/src/**/*.{ts,tsx}"]',
@@ -1248,10 +1249,17 @@ export default [
     )
     assert.deepEqual(budgetsOf('["apps/cli/**/*.ts"]'), [10, 300])
     assert.deepEqual(budgetsOf('["apps/cli/**/*.test.ts","apps/cli/test/**/*.ts"]'), [400])
+    assert.deepEqual(budgetsOf('["apps/vscode/**/*.{ts,tsx,js,mjs,cjs}"]'), [10])
+    assert.deepEqual(
+      budgetsOf(
+        '["apps/vscode/{src,dev,scripts,sandbox}/**/*.{ts,tsx,js,mjs,cjs}","apps/vscode/test/webview/harness.tsx","apps/vscode/test/smoke/*.cjs"]',
+      ),
+      [300],
+    )
     const all = Object.values(budgets).filter((b) => !b.exemption && b.numbers.length > 0)
     assert.equal(
       all.length,
-      5,
+      7,
       "a new complexity/max-lines setting is new debt (or a new app's budget)",
     )
   })
@@ -1708,6 +1716,63 @@ describe("package gate scripts are pinned to the merge base", () => {
       checkRatchetFile(rel, null, pkg({ test: "vitest run --coverage.enabled=false" })),
       [],
     )
+  })
+
+  describe("the scripts a CI or release job runs by name", () => {
+    const extension = "apps/vscode/package.json"
+    const CI_SCRIPTS = {
+      "test:engines": "vitest run --config vitest.engines.config.ts",
+      "test:smoke": "node scripts/build.mjs && vscode-test --config .vscode-test.mjs",
+      package:
+        "node scripts/build.mjs --production && vsce package --no-dependencies --readme-path MARKETPLACE.md",
+      "marketplace:publish": "vsce publish",
+      "open-vsx:publish": "ovsx publish",
+    }
+    const app = (scripts) =>
+      JSON.stringify({
+        name: "pulse",
+        engines: { vscode: "^1.101.0" },
+        scripts: { ...BASE, ...CI_SCRIPTS, ...scripts },
+      })
+
+    it("flags each one changed in any way", () => {
+      for (const scripts of [
+        { "test:smoke": "node scripts/build.mjs && vscode-test --config .vscode-test.mjs || true" },
+        { "test:smoke": "node scripts/build.mjs" },
+        { package: "node scripts/build.mjs --production && vsce package" },
+        { "test:engines": "vitest run --config vitest.engines.config.ts --passWithNoTests" },
+        { "marketplace:publish": "vsce publish --allow-proposed-apis" },
+        { "open-vsx:publish": "true" },
+      ]) {
+        const violations = checkRatchetFile(extension, app({}), app(scripts))
+        assert.equal(violations.length, 1, JSON.stringify({ scripts, violations }))
+        assert.match(violations[0], /runs it by name, so it is pinned to the merge base/)
+      }
+    })
+
+    it("flags each one removed", () => {
+      for (const script of Object.keys(CI_SCRIPTS)) {
+        const scripts = JSON.parse(app({})).scripts
+        delete scripts[script]
+        const violations = checkRatchetFile(
+          extension,
+          app({}),
+          JSON.stringify({ name: "pulse", scripts }),
+        )
+        assert.equal(violations.length, 1, script)
+        assert.match(violations[0], new RegExp(`"${script}" was removed — a CI or release job`))
+      }
+    })
+
+    it("leaves whitespace, a new package and a script the base lacks free", () => {
+      const spaced = { package: `  ${CI_SCRIPTS.package.replaceAll(" ", "  ")} ` }
+      assert.deepEqual(checkRatchetFile(extension, app({}), app(spaced)), [])
+      assert.deepEqual(checkRatchetFile(extension, null, app({ "open-vsx:publish": "true" })), [])
+      assert.deepEqual(
+        checkRatchetFile(rel, pkg({}), pkg({ "test:engines": "vitest run --config x.ts" })),
+        [],
+      )
+    })
   })
 })
 

@@ -8,6 +8,12 @@
     {
       "files": "**/.claude-plugin/*.json",
       "options": { "parser": "json-stringify" }
+    },
+    {
+      "files": ["apps/vscode/**"],
+      "options": {
+        "plugins": []
+      }
     }
   ]
 }

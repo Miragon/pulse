@@ -1,5 +1,28 @@
 # @miragon/pulse-camunda7-connector
 
+[![npm](https://img.shields.io/npm/v/@miragon/pulse-camunda7-connector?style=flat-square)](https://www.npmjs.com/package/@miragon/pulse-camunda7-connector)
+[![CI](https://img.shields.io/github/actions/workflow/status/Miragon/pulse/ci.yml?style=flat-square&label=ci)](https://github.com/Miragon/pulse/actions/workflows/ci.yml)
+[![Docs](https://img.shields.io/badge/docs-miragon.github.io%2Fpulse-335DE5?style=flat-square)](https://miragon.github.io/pulse/)
+
+Operate Camunda 7, CIB seven and Operaton engines from any MCP host: the `camunda7_*` tools and the
+interactive views that show incidents, instances and diagrams right in the chat.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Miragon/pulse/main/docs/assets/widget-incident-dark.png">
+  <img alt="The incident view of this module: a failed payment task with its error message, a retry button and the process diagram with the failing step marked" src="https://raw.githubusercontent.com/Miragon/pulse/main/docs/assets/widget-incident.png">
+</picture>
+
+## Install
+
+```sh
+npm install @miragon/pulse-camunda7-connector @miragon/pulse-widget-shell
+npm install react react-dom zod lucide-react bpmn-js@18.31.0 @miragon/mcp-toolkit-core @miragon/mcp-toolkit-ui mcp-use@2.7.3
+```
+
+To build your own MCP server on it, start from [pulse-starter](https://github.com/Miragon/pulse-starter).
+
+## Overview
+
 The **camunda7 module** for [Pulse](../../../../README.md): Camunda 7 / CIB Seven BPM operations as
 `camunda7_*` MCP tools, plus the interactive cockpit widgets (MCP Apps). Built on
 [`@miragon/pulse-camunda7-client`](../camunda7-client) and the `@miragon/mcp-toolkit-*` packages.

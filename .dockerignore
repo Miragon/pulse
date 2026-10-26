@@ -25,3 +25,12 @@ playground/cibseven-example/build
 # server's build stage needs its package.json only, for the frozen workspace install.
 apps/cli/*
 !apps/cli/package.json
+
+# The VS Code extension (apps/vscode): the VS Code test downloads (wherever vscode-test ran),
+# packaged extensions, the dev-host build, its docs (screenshots) and the shop sandbox never
+# enter the image build; the install needs its package.json only.
+**/.vscode-test
+apps/vscode/dist-dev
+apps/vscode/docs
+apps/vscode/sandbox
+**/*.vsix

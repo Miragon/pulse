@@ -89,7 +89,7 @@ describe("IdText (U2, U13)", () => {
     // Not the shortened "5f0ce78e…": the field holds the id itself, selected.
     expect(field.value).toBe(UUID)
     expect(field.readOnly).toBe(true)
-    expect(document.activeElement).toBe(field)
+    await waitFor(() => expect(document.activeElement).toBe(field))
     expect([field.selectionStart, field.selectionEnd]).toEqual([0, UUID.length])
     expect(screen.queryByTitle(UUID)).toBeNull()
 

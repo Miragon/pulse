@@ -1,0 +1,52 @@
+{
+  "id": "63d65e9e-cd7f-11f1-86d2-667bc3771e0d",
+  "businessKey": "ORD-1001",
+  "definition": {
+    "key": "pulse-order",
+    "version": 1,
+    "name": "Order fulfillment",
+    "id": "pulse-order:1:63b7b305-cd7f-11f1-86d2-667bc3771e0d"
+  },
+  "state": "ACTIVE",
+  "startTime": "2026-10-21T18:44:04.473+0000",
+  "waitingAt": [
+    {
+      "activityId": "Activity_ReviewOrder",
+      "activityName": "Review order",
+      "activityType": "userTask",
+      "since": "2026-10-21T18:44:04.475+0000",
+      "kind": "userTask",
+      "taskId": "63d6acc4-cd7f-11f1-86d2-667bc3771e0d",
+      "assignee": "demo"
+    }
+  ],
+  "incidents": [],
+  "children": [],
+  "variables": { "route": "review" },
+  "timeline": [
+    {
+      "activityId": "Event_OrderReceived",
+      "activityName": "Order received",
+      "activityType": "startEvent",
+      "startTime": "2026-10-21T18:44:04.474+0000",
+      "endTime": "2026-10-21T18:44:04.474+0000",
+      "durationMs": 0
+    },
+    {
+      "activityId": "Gateway_Route",
+      "activityName": "Route?",
+      "activityType": "exclusiveGateway",
+      "startTime": "2026-10-21T18:44:04.474+0000",
+      "endTime": "2026-10-21T18:44:04.475+0000",
+      "durationMs": 1
+    },
+    {
+      "activityId": "Activity_ReviewOrder",
+      "activityName": "Review order",
+      "activityType": "userTask",
+      "startTime": "2026-10-21T18:44:04.475+0000",
+      "assignee": "demo"
+    }
+  ],
+  "next": ["operate advance 63d65e9e-cd7f-11f1-86d2-667bc3771e0d"]
+}

@@ -1,0 +1,14 @@
+{
+  "name": "pulse",
+  "owner": {
+    "name": "Miragon GmbH",
+    "url": "https://github.com/Miragon"
+  },
+  "description": "Claude Code plugins of Pulse by Miragon",
+  "plugins": [
+    {
+      "name": "pulse-cli",
+      "source": "./apps/cli/skills/pulse-cli"
+    }
+  ]
+}

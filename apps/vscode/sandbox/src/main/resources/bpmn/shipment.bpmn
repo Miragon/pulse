@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_Shipment" targetNamespace="http://bpmn.io/schema/bpmn" modeler:executionPlatform="Camunda Platform" modeler:executionPlatformVersion="7.24.0">
+  <bpmn:process id="shipment" name="Shipment" isExecutable="true" camunda:historyTimeToLive="180">
+    <bpmn:startEvent id="Event_ShipmentRequested" name="Shipment requested">
+      <bpmn:outgoing>Flow_ShipmentRequestedToBookCarrier</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:serviceTask id="Activity_BookCarrier" name="Book carrier" camunda:type="external" camunda:topic="book-carrier">
+      <bpmn:incoming>Flow_ShipmentRequestedToBookCarrier</bpmn:incoming>
+      <bpmn:outgoing>Flow_BookCarrierToPackParcel</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="Activity_PackParcel" name="Pack parcel" camunda:candidateGroups="warehouse">
+      <bpmn:incoming>Flow_BookCarrierToPackParcel</bpmn:incoming>
+      <bpmn:outgoing>Flow_PackParcelToAwaitPickup</bpmn:outgoing>
+      <bpmn:multiInstanceLoopCharacteristics>
+        <bpmn:loopCardinality xsi:type="bpmn:tFormalExpression">${parcelCount}</bpmn:loopCardinality>
+      </bpmn:multiInstanceLoopCharacteristics>
+    </bpmn:userTask>
+    <bpmn:intermediateCatchEvent id="Event_AwaitPickup" name="Wait for pickup">
+      <bpmn:incoming>Flow_PackParcelToAwaitPickup</bpmn:incoming>
+      <bpmn:outgoing>Flow_AwaitPickupToNotifyCustomer</bpmn:outgoing>
+      <bpmn:timerEventDefinition>
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT10M</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:intermediateCatchEvent>
+    <bpmn:endEvent id="Event_HandedOverToCarrier" name="Handed over to carrier">
+      <bpmn:incoming>Flow_NotifyCustomerToHandedOverToCarrier</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_AwaitPickupToNotifyCustomer" sourceRef="Event_AwaitPickup" targetRef="Activity_NotifyCustomer" />
+    <bpmn:serviceTask id="Activity_NotifyCustomer" name="Notify customer" camunda:type="external" camunda:topic="notify-customer">
+      <bpmn:incoming>Flow_AwaitPickupToNotifyCustomer</bpmn:incoming>
+      <bpmn:outgoing>Flow_NotifyCustomerToHandedOverToCarrier</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_NotifyCustomerToHandedOverToCarrier" sourceRef="Activity_NotifyCustomer" targetRef="Event_HandedOverToCarrier" />
+    <bpmn:sequenceFlow id="Flow_PackParcelToAwaitPickup" sourceRef="Activity_PackParcel" targetRef="Event_AwaitPickup" />
+    <bpmn:sequenceFlow id="Flow_BookCarrierToPackParcel" sourceRef="Activity_BookCarrier" targetRef="Activity_PackParcel" />
+    <bpmn:sequenceFlow id="Flow_ShipmentRequestedToBookCarrier" sourceRef="Event_ShipmentRequested" targetRef="Activity_BookCarrier" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_shipment">
+    <bpmndi:BPMNPlane id="BPMNPlane_shipment" bpmnElement="shipment">
+      <bpmndi:BPMNShape id="BPMNShape_Event_ShipmentRequested" bpmnElement="Event_ShipmentRequested">
+        <dc:Bounds x="80" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="61" y="144" width="75" height="28" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Activity_BookCarrier" bpmnElement="Activity_BookCarrier">
+        <dc:Bounds x="176" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Activity_PackParcel" bpmnElement="Activity_PackParcel">
+        <dc:Bounds x="336" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Event_AwaitPickup" bpmnElement="Event_AwaitPickup">
+        <dc:Bounds x="496" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="480" y="144" width="68" height="28" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Event_HandedOverToCarrier" bpmnElement="Event_HandedOverToCarrier">
+        <dc:Bounds x="752" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="726" y="144" width="89" height="28" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Activity_NotifyCustomer" bpmnElement="Activity_NotifyCustomer">
+        <dc:Bounds x="592" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_AwaitPickupToNotifyCustomer" bpmnElement="Flow_AwaitPickupToNotifyCustomer">
+        <di:waypoint x="532" y="120" />
+        <di:waypoint x="592" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_NotifyCustomerToHandedOverToCarrier" bpmnElement="Flow_NotifyCustomerToHandedOverToCarrier">
+        <di:waypoint x="692" y="120" />
+        <di:waypoint x="752" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_PackParcelToAwaitPickup" bpmnElement="Flow_PackParcelToAwaitPickup">
+        <di:waypoint x="436" y="120" />
+        <di:waypoint x="496" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_BookCarrierToPackParcel" bpmnElement="Flow_BookCarrierToPackParcel">
+        <di:waypoint x="276" y="120" />
+        <di:waypoint x="336" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_Flow_ShipmentRequestedToBookCarrier" bpmnElement="Flow_ShipmentRequestedToBookCarrier">
+        <di:waypoint x="116" y="120" />
+        <di:waypoint x="176" y="120" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

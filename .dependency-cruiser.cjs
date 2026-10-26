@@ -18,7 +18,7 @@
  * suffix, e.g. `@miragon/pulse-widget-shell`). The apps under `apps/` sit ON TOP of
  * the packages: the MCP server (`@miragon/pulse-mcp-server-camunda7`) composes the
  * connectors; the two interface apps, the CLI (apps/cli, `@miragon/pulse-cli`) and the
- * VS Code extension (apps/vscode, the unscoped `pulse-vscode`, because vsce rejects
+ * VS Code extension (apps/vscode, the unscoped `pulse`, because vsce rejects
  * scoped names), reach the engine through a `-domain` package only. No package and no
  * app imports an app. APP_PACKAGES below names every app's npm name; the self-test
  * fails when a real app's name is missing there. These rules see IMPORTS only: a
@@ -57,13 +57,13 @@ const npm = (names) => [`(?:^|/)node_modules/(?:${names})(?:/|$)`, `^(?:${names}
 /**
  * The npm name of every app under apps/. A new app adds its name here, or the
  * self-test's sync case fails: packages-never-import-the-app and apps-never-import-apps
- * read this list. The names of the apps that have not landed yet (the extension) are
+ * read this list. The names of the apps that have not landed yet (none today) are
  * RESERVED_APP_NAMES in scripts/check-package-naming.mjs as well, and a test there holds
  * both lists together.
  */
 const SERVER_PACKAGE = "@miragon/pulse-mcp-server-camunda7"
 const CLI_PACKAGE = "@miragon/pulse-cli"
-const EXTENSION_PACKAGE = "pulse-vscode"
+const EXTENSION_PACKAGE = "pulse"
 const APP_PACKAGES = [SERVER_PACKAGE, CLI_PACKAGE, EXTENSION_PACKAGE]
 const APP_NAMES = APP_PACKAGES.map(escapeRegExp).join("|")
 
@@ -295,7 +295,7 @@ module.exports = {
       name: "extension-is-not-an-mcp-host",
       severity: "error",
       comment:
-        "The VS Code extension (apps/vscode, npm name pulse-vscode: unscoped, since vsce " +
+        "The VS Code extension (apps/vscode, npm name pulse: unscoped, since vsce " +
         "rejects scoped names) is an interface, not an MCP host: it never imports another " +
         "app, widget-shell or another core package, a connector or a client, nor the MCP/UI " +
         "stack (react, react-dom, lucide-react, mcp-use, @modelcontextprotocol, the toolkit, " +
@@ -309,11 +309,11 @@ module.exports = {
       name: "nothing-imports-the-extension",
       severity: "error",
       comment:
-        "No module imports the VS Code extension (pulse-vscode): it ships as a .vsix on its " +
+        "No module imports the VS Code extension (pulse): it ships as a .vsix on its " +
         "own (that no package.json declares it is check-package-naming's). Behaviour it " +
         "shares with the MCP server or the CLI moves into the -domain package they all call.",
       from: { pathNot: "^apps/vscode/" },
-      // Anchored (npm()), since the name is unscoped: a third-party pulse-vscode-tools
+      // Anchored (npm()), since the name is unscoped: a third-party pulse-tools
       // is not the extension.
       to: { path: ["^apps/vscode/", ...npm(escapeRegExp(EXTENSION_PACKAGE))] },
     },

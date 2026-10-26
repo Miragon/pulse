@@ -357,7 +357,7 @@ describe("published packages declare what their shipped source imports", () => {
       "apps/cli/src/cli.mts": "import u from 'undeclared-mts'",
       "apps/cli/src/a.test.ts": "import { it } from 'vitest'",
       "apps/cli/src/test-support/b.ts": "import { it } from 'vitest'",
-      "apps/vscode/package.json": json({ name: "pulse-vscode", engines: { vscode: "^1.101.0" } }),
+      "apps/vscode/package.json": json({ name: "pulse", engines: { vscode: "^1.101.0" } }),
       "apps/vscode/src/extension.ts": "import * as vscode from 'vscode'",
       "apps/mcp-server-camunda7/package.json": json({
         name: "@miragon/pulse-mcp-server-camunda7",
@@ -387,7 +387,7 @@ describe("published packages declare what their shipped source imports", () => {
       expect(workspacePackages(root).map((pkg) => pkg.manifest.name)).toEqual([
         "@miragon/pulse-cli",
         "@miragon/pulse-mcp-server-camunda7",
-        "pulse-vscode",
+        "pulse",
         "@miragon/pulse-widget-shell",
         "@miragon/pulse-camunda7-domain",
         "@miragon/pulse-docs",
@@ -411,26 +411,26 @@ describe("published packages declare what their shipped source imports", () => {
           peerDependencies: { zod: "^4.4.0" },
         }),
         "apps/vscode/package.json": json({
-          name: "pulse-vscode",
+          name: "pulse",
           private: true,
           engines: { vscode: "^1.101.0" },
         }),
       })
       expect(findings(root)["@miragon/pulse-camunda7-domain"]).toEqual([])
-      expect(Object.keys(findings(root))).not.toContain("pulse-vscode")
+      expect(Object.keys(findings(root))).not.toContain("pulse")
     })
 
     it("reads an app that names no VS Code engine and is not private: true", () => {
       const root = fixture({
         ...LAYOUT,
-        "apps/vscode/package.json": json({ name: "pulse-vscode", engines: { node: ">=22" } }),
+        "apps/vscode/package.json": json({ name: "pulse", engines: { node: ">=22" } }),
         "apps/mcp-server-camunda7/package.json": json({
           name: "@miragon/pulse-mcp-server-camunda7",
           private: "true",
         }),
       })
       expect(findings(root)).toMatchObject({
-        "pulse-vscode": ["extension.ts: vscode"],
+        pulse: ["extension.ts: vscode"],
         "@miragon/pulse-mcp-server-camunda7": ["index.ts: undeclared-but-private"],
       })
     })

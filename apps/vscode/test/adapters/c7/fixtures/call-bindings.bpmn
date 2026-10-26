@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_Calls" targetNamespace="http://bpmn.io/schema/bpmn" modeler:executionPlatform="Camunda Platform" modeler:executionPlatformVersion="7.24.0">
+  <bpmn:process id="Process_Calls" name="Calls" isExecutable="true" camunda:historyTimeToLive="180">
+    <bpmn:startEvent id="Event_Started" name="Started" />
+    <bpmn:callActivity id="Activity_LatestInvoice" name="Latest invoice" calledElement="invoice" />
+    <bpmn:callActivity id="Activity_SameDeployment" name="Same deployment" calledElement="ReviewInvoice" camunda:calledElementBinding="deployment" />
+    <bpmn:callActivity id="Activity_VersionOne" name="Version one" calledElement="invoice" camunda:calledElementBinding="version" camunda:calledElementVersion="1" />
+    <bpmn:callActivity id="Activity_Tagged" name="Tagged" calledElement="invoice" camunda:calledElementBinding="versionTag" camunda:calledElementVersionTag="V2.0" />
+    <bpmn:callActivity id="Activity_Expression" name="Expression" calledElement="${nextProcess}" />
+    <bpmn:callActivity id="Activity_VersionExpression" name="Version expression" calledElement="invoice" camunda:calledElementBinding="version" camunda:calledElementVersion="${version}" />
+    <bpmn:callActivity id="Activity_NotDeployed" name="Not deployed" calledElement="refund" />
+    <bpmn:endEvent id="Event_Done" name="Done" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_Process_Calls">
+    <bpmndi:BPMNPlane id="BPMNPlane_Process_Calls" bpmnElement="Process_Calls">
+      <bpmndi:BPMNShape id="BPMNShape_Event_Started" bpmnElement="Event_Started">
+        <dc:Bounds x="112" y="80" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="100" y="122" width="61" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Activity_LatestInvoice" bpmnElement="Activity_LatestInvoice">
+        <dc:Bounds x="80" y="176" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Activity_SameDeployment" bpmnElement="Activity_SameDeployment">
+        <dc:Bounds x="80" y="316" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Activity_VersionOne" bpmnElement="Activity_VersionOne">
+        <dc:Bounds x="80" y="456" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Activity_Tagged" bpmnElement="Activity_Tagged">
+        <dc:Bounds x="80" y="596" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Activity_Expression" bpmnElement="Activity_Expression">
+        <dc:Bounds x="80" y="736" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Activity_VersionExpression" bpmnElement="Activity_VersionExpression">
+        <dc:Bounds x="80" y="876" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Activity_NotDeployed" bpmnElement="Activity_NotDeployed">
+        <dc:Bounds x="80" y="1016" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Event_Done" bpmnElement="Event_Done">
+        <dc:Bounds x="112" y="1156" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="110" y="1198" width="40" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
