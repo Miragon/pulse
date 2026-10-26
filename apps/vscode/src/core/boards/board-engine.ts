@@ -25,6 +25,7 @@ export interface BoardNavigation {
   openFile(): void
   editEngines(): void
   setCredentials(engine: string): void
+  copy(text: string, label: string): void
 }
 
 export interface BoardContext {

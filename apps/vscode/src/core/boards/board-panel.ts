@@ -31,6 +31,9 @@ export class BoardPanel implements Panel {
       case "editConnection":
         this.context.navigation.editEngines()
         return
+      case "copy":
+        this.context.navigation.copy(intent.text, intent.label)
+        return
       default:
         this.navigate(intent)
         return

@@ -109,6 +109,10 @@ export class BoardPanels implements vscode.Disposable {
           void vscode.commands.executeCommand(COMMAND.setCredentials, { connection })
         })
       },
+      copy: (text, label) => {
+        void vscode.env.clipboard.writeText(text)
+        vscode.window.setStatusBarMessage(`$(check) Copied ${label}`, 2000)
+      },
     }
   }
 

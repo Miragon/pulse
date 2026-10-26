@@ -50,6 +50,7 @@ const fake = vi.hoisted(() => {
     listeners,
     files: new Map<string, string>(),
     commands: [] as unknown[][],
+    copied: [] as string[],
     shown: [] as unknown[][],
     inputs: [] as (string | undefined)[],
     folders: [] as { uri: unknown }[],
@@ -102,6 +103,14 @@ vi.mock("vscode", () => {
       }),
     },
     Uri: fake.Uri,
+    env: {
+      clipboard: {
+        writeText: (text: string) => {
+          fake.copied.push(text)
+          return Promise.resolve()
+        },
+      },
+    },
     commands: {
       executeCommand: (...args: unknown[]) => {
         fake.commands.push(args)
@@ -121,6 +130,10 @@ vi.mock("vscode", () => {
         const checks = await Promise.all(["!!!", "Shop payments"].map(options.validateInput))
         fake.shown.push(["validate", ...checks])
         return answer
+      },
+      setStatusBarMessage: (message: string) => {
+        fake.shown.push(["status", message])
+        return { dispose: () => undefined }
       },
       showInformationMessage: (message: string) => {
         fake.shown.push(["inform", message])
@@ -258,6 +271,7 @@ function lastState(panel: ReturnType<typeof webviewPanel>): PanelState | undefin
 beforeEach(() => {
   fake.files.clear()
   fake.commands.length = 0
+  fake.copied.length = 0
   fake.shown.length = 0
   fake.inputs.length = 0
   fake.folders.length = 0
@@ -404,6 +418,7 @@ describe("an open board", () => {
     panel.send({ type: "openBoardInstance", engine: "shop", instanceId: "i-1", toSide: false })
     panel.send({ type: "setBoardCredentials", engine: "locked" })
     panel.send({ type: "openBoardFile" })
+    panel.send({ type: "copy", text: "i-1", label: "Instance ID" })
     panel.send({ type: "editConnection" })
     await vi.waitFor(() => {
       expect(fake.commands).toContainEqual(["pulse.openTargetsFile"])
@@ -415,6 +430,8 @@ describe("an open board", () => {
       ["instance", connection, "i-1", -1],
     ])
     expect(fake.commands).toContainEqual(["pulse.setCredentials", { connection: locked }])
+    expect(fake.copied).toEqual(["i-1"])
+    expect(fake.shown).toContainEqual(["status", "$(check) Copied Instance ID"])
     const [shownFile, shownOptions] = fake.shown[0] ?? []
     expect((shownFile as FakeUri).path).toBe(file)
     expect(shownOptions).toEqual({ viewColumn: -2 })

@@ -116,6 +116,7 @@ export function boardFixture(content: unknown, engines: readonly EngineSetup[]):
     openFile: vi.fn<BoardNavigation["openFile"]>(),
     editEngines: vi.fn<BoardNavigation["editEngines"]>(),
     setCredentials: vi.fn<BoardNavigation["setCredentials"]>(),
+    copy: vi.fn<BoardNavigation["copy"]>(),
   }
   const fixture: BoardFixture = {
     content: typeof content === "string" ? content : JSON.stringify(content),
