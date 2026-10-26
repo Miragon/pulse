@@ -20,8 +20,8 @@
  *   the formula of a release again) and hold their tokens like the npm publish
  *   (checkReleaseGate, checkCliPublishWorkflows);
  * - every VS Code extension is packaged by exactly one release job through
- *   publish-vscode-extension.yml, after the release gate and behind the VSCODE_PUBLISH switch,
- *   and that workflow keeps the store credentials in its one job in the vscode-marketplace
+ *   publish-vscode-extension.yml, after the release gate, as a plain release on every release
+ *   (no switch, no pre-release), and that workflow keeps the store credentials in its one job in the vscode-marketplace
  *   environment, which installs with --ignore-scripts, builds nothing and publishes with
  *   --skip-duplicate (checkVscodePublish);
  * - dependabot.yml groups never shadow each other and name only directories that exist
@@ -689,8 +689,6 @@ export function checkCliPublishWorkflows(workflows) {
 
 /** The one environment whose job holds the store credentials (or the trusted-publishing token). */
 export const VSCODE_ENVIRONMENT = "vscode-marketplace"
-/** The release switch: the repository variable, never a literal in the workflow. */
-export const VSCODE_SWITCH = "${{ vars.VSCODE_PUBLISH }}"
 const VSCODE_DRY_RUN = "${{ inputs.dry_run == true }}"
 /** The directories the Resolve extension step of the workflow accepts. */
 export const VSCODE_APP_DIR = /^apps\/[a-z0-9][a-z0-9-]*$/
@@ -713,7 +711,7 @@ const runsScript = (step, script) =>
 
 /**
  * The release job that calls the workflow for one extension: after the release approval, with the
- * switch, the dry run and the release tag of the train, the ceiling of the called jobs and the two
+ * dry run and the release tag of the train, the ceiling of the called jobs and the two
  * store tokens by name, never `secrets: inherit` (pure).
  */
 function checkVscodeCaller(id, job) {
@@ -725,11 +723,8 @@ function checkVscodeCaller(id, job) {
       `${at} must need release-please and gate: the release approval covers the extension too`,
     )
   }
-  if (job.with?.channel !== VSCODE_SWITCH) {
-    errors.push(
-      `${at} must pass channel: ${VSCODE_SWITCH} (found ${JSON.stringify(job.with?.channel)}): ` +
-        `the switch is the repository variable, never a literal in the workflow`,
-    )
+  if (job.with?.channel !== undefined) {
+    errors.push(`${at} passes channel: every release publishes a plain release, there is no switch`)
   }
   if (job.with?.dry_run !== VSCODE_DRY_RUN) {
     errors.push(`${at} must pass dry_run: ${VSCODE_DRY_RUN}`)
@@ -792,7 +787,7 @@ const foreignCommands = (job) =>
         !VSCODE_PUBLISH_SCRIPTS.some((script) => runsScript({ run: command }, script)),
     )
 
-/** The job in the environment: the token, the gate on the switch, the install, the publish steps. */
+/** The job in the environment: the token, the dry-run gate, the install, the publish steps. */
 function checkVscodeCredentialJob(id, job) {
   const errors = []
   const at = `${VSCODE_PUBLISH_WORKFLOW}: job ${id}`
@@ -803,14 +798,8 @@ function checkVscodeCredentialJob(id, job) {
     )
   }
   const condition = String(job.if ?? "")
-  if (
-    !condition.includes("inputs.dry_run") ||
-    !condition.includes("needs.package.outputs.publish")
-  ) {
-    errors.push(
-      `${at} must skip itself on a dry run and while the switch is off (if: inputs.dry_run and ` +
-        `needs.package.outputs.publish)`,
-    )
+  if (!condition.includes("inputs.dry_run")) {
+    errors.push(`${at} must skip itself on a dry run (if: inputs.dry_run)`)
   }
   if (!asList(job.needs).includes("package")) {
     errors.push(`${at} must need the package job, which builds the .vsix without the credentials`)
@@ -871,7 +860,12 @@ function checkVscodeWorkflow(doc) {
       errors.push(`${where}: needs the required string input "${name}"`)
     }
   }
-  if (inputs.channel?.type !== "string") errors.push(`${where}: needs the string input "channel"`)
+  if (inputs.channel !== undefined) {
+    errors.push(`${where}: takes no input "channel": every release publishes a plain release`)
+  }
+  if (/--pre-release\b/.test(JSON.stringify(doc.jobs ?? {}))) {
+    errors.push(`${where}: passes --pre-release: every release publishes a plain release`)
+  }
   const secrets = doc.on?.workflow_call?.secrets ?? {}
   if (!isDeepStrictEqual(Object.keys(secrets).sort(), Object.keys(VSCODE_SECRETS).sort())) {
     errors.push(

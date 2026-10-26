@@ -43,9 +43,9 @@ const clients = [
     name: "VS Code",
     title: "VS Code · Order fulfillment",
     effect: "The runtime on your model, the root cause next to your code.",
-    action: "code --install-extension miragon-gmbh.pulse --pre-release",
+    action: "code --install-extension miragon-gmbh.pulse",
     link: "/vscode/installation",
-    beta: true,
+    early: true,
   },
 ]
 
@@ -140,7 +140,7 @@ async function moveBy(offset: number) {
             @keydown.left.prevent="moveBy(-1)"
           >
             <span :key="round" class="progress" />{{ client.name
-            }}<span v-if="client.beta" class="tag">beta</span>
+            }}<span v-if="client.early" class="tag">early</span>
           </button>
         </div>
       </div>

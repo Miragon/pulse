@@ -1,6 +1,6 @@
 # Installation
 
-Pulse for VS Code is an early version. It ships as a pre-release (beta) with every Pulse
+Pulse for VS Code is an early version. It ships with every Pulse
 release, on the [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.pulse) and on [Open VSX](https://open-vsx.org/extension/miragon-gmbh/pulse) (VSCodium, Cursor and
 other editors on Open VSX).
 
@@ -9,7 +9,7 @@ other editors on Open VSX).
 In the Extensions view search for **Miragon Pulse**, or from a shell:
 
 ```sh
-code --install-extension miragon-gmbh.pulse --pre-release
+code --install-extension miragon-gmbh.pulse
 ```
 
 Each GitHub release also carries the `.vsix`. To build it from source:

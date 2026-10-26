@@ -1054,9 +1054,8 @@ camunda7-client,analytics-connector,analytics-client}` and `@miragon/pulse-cli` 
   the same file to the Visual Studio Marketplace and Open VSX (`--skip-duplicate`; the
   organization secrets `VSCE_PUBLISH`/`OVSX_PUBLISH` every Miragon extension publishes with, which
   the caller hands down by name, never `secrets: inherit`; unset, trusted publishing over
-  `id-token: write`); a third job attaches it to the release. It publishes only when the
-  repository variable `VSCODE_PUBLISH` is `pre-release` or `release`; unset or `off` the
-  release only packages, any other value fails the job. `pnpm lint:github` pins that path.
+  `id-token: write`); a third job attaches it to the release. Every release publishes it as a plain release (no
+  switch, no pre-release); only a dry run publishes nothing. `pnpm lint:github` pins that path.
 - **Engine plugins publish to Maven Central via `publish-to-maven.yml`** (called from the
   release train): the Vanniktech Maven Publish plugin runs
   `publishAndReleaseToMavenCentral` against the Sonatype Central Portal (thin jar +

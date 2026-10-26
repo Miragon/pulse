@@ -28,7 +28,6 @@ import {
   VSCODE_APP_DIR,
   VSCODE_ENVIRONMENT,
   VSCODE_PUBLISH_WORKFLOW,
-  VSCODE_SWITCH,
   actionRefs,
   checkArtifactGlobs,
   checkCliPublishWorkflows,
@@ -954,11 +953,10 @@ describe("checkVscodePublish", () => {
       [/must need release-please and gate/],
     ],
     [
-      "a literal channel",
-      ({ caller }) => (caller.with.channel = "release"),
-      [/must pass channel: \$\{\{ vars\.VSCODE_PUBLISH \}\} \(found "release"\)/],
+      "a channel again",
+      ({ caller }) => (caller.with.channel = "${{ vars.VSCODE_PUBLISH }}"),
+      [/passes channel: every release publishes a plain release/],
     ],
-    ["no channel", ({ caller }) => delete caller.with.channel, [/must pass channel/]],
     ["a constant dry run", ({ caller }) => (caller.with.dry_run = false), [/must pass dry_run/]],
     ["no version", ({ caller }) => delete caller.with.version, [/must pass version/]],
     [
@@ -992,9 +990,14 @@ describe("checkVscodePublish", () => {
       [/required string input "version"/],
     ],
     [
-      "no channel input",
-      ({ publish }) => delete publish.on.workflow_call.inputs.channel,
-      [/string input "channel"/],
+      "a channel input again",
+      ({ publish }) => (publish.on.workflow_call.inputs.channel = { type: "string" }),
+      [/takes no input "channel"/],
+    ],
+    [
+      "a pre-release again",
+      ({ jobs }) => (stepNamed(jobs.package, "Package").run += " --pre-release"),
+      [/passes --pre-release/],
     ],
     [
       "a string dry_run input",
@@ -1065,8 +1068,8 @@ describe("checkVscodePublish", () => {
     [
       "an expression inside a run",
       ({ jobs }) => {
-        const step = stepNamed(jobs.package, "channel")
-        step.run = step.run.replace('case "$CHANNEL" in', 'case "${{ inputs.channel }}" in')
+        const step = stepNamed(jobs.package, "Package")
+        step.run = step.run.replace('"${NAME}"', '"${{ inputs.directory }}"')
       },
       [/job package: a run script holds a \$\{\{ \}\} expression/],
     ],
@@ -1222,13 +1225,8 @@ describe("checkVscodePublish", () => {
     ],
     [
       "a publish job that runs on a dry run",
-      ({ jobs }) => (jobs.publish.if = "${{ needs.package.outputs.publish == 'true' }}"),
-      [/must skip itself on a dry run and while the switch is off/],
-    ],
-    [
-      "a publish job that ignores the switch",
-      ({ jobs }) => (jobs.publish.if = "${{ inputs.dry_run != true }}"),
-      [/must skip itself on a dry run and while the switch is off/],
+      ({ jobs }) => delete jobs.publish.if,
+      [/must skip itself on a dry run/],
     ],
     [
       "a publish job that needs nothing",
@@ -1245,48 +1243,13 @@ describe("checkVscodePublish", () => {
     })
   }
 
-  it("pins the switch the caller passes and the directories the Resolve step accepts", () => {
-    assert.equal(RELEASE.jobs["publish-vscode"].with.channel, VSCODE_SWITCH)
+  it("pins the directories the Resolve step accepts", () => {
     const script = stepNamed(VSCODE_PUBLISH.jobs.package, "pkg").run
     assert.ok(script.includes(VSCODE_APP_DIR.source.replaceAll("\\/", "/")))
   })
 })
 
 // ── Behaviour of the extension workflow's bash steps ────────────────────────
-
-describe("the Release switch step", () => {
-  const script = stepNamed(VSCODE_PUBLISH.jobs.package, "channel").run
-  const dir = tempDir("gh-config-switch-")
-  let runs = 0
-  const resolve = (CHANNEL) => {
-    const output = path.join(dir, `github-output-${(runs += 1)}`)
-    writeFileSync(output, "")
-    const result = runStep(script, { cwd: dir, env: { CHANNEL, GITHUB_OUTPUT: output } })
-    return { ...result, output: readFileSync(output, "utf8").trim().split("\n").filter(Boolean) }
-  }
-
-  for (const [CHANNEL, publish, preRelease] of [
-    ["", false, false],
-    ["off", false, false],
-    ["pre-release", true, true],
-    ["release", true, false],
-  ]) {
-    it(`reads ${JSON.stringify(CHANNEL)} as publish=${publish}, pre_release=${preRelease}`, () => {
-      const result = resolve(CHANNEL)
-      assert.equal(result.status, 0, result.stdout + result.stderr)
-      assert.deepEqual(result.output, [`publish=${publish}`, `pre_release=${preRelease}`])
-    })
-  }
-
-  for (const CHANNEL of ["prerelease", "true", "on", "Release", "release "]) {
-    it(`fails on ${JSON.stringify(CHANNEL)}`, () => {
-      const result = resolve(CHANNEL)
-      assert.equal(result.status, 1)
-      assert.match(result.stdout, /VSCODE_PUBLISH is/)
-      assert.deepEqual(result.output, [])
-    })
-  }
-})
 
 describe("the Resolve extension step", () => {
   const script = stepNamed(VSCODE_PUBLISH.jobs.package, "pkg").run

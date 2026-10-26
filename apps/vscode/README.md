@@ -5,7 +5,7 @@
 
 > [!IMPORTANT]
 > **Spike phase.** Pulse for VS Code is an early prototype that explores whether this is worth
-> building. It ships as a pre-release (beta) on the [Marketplace](https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.pulse) and [Open VSX](https://open-vsx.org/extension/miragon-gmbh/pulse), see [Installation](https://miragon.github.io/pulse/vscode/installation). Changes to engine data
+> building. It ships on the [Marketplace](https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.pulse) and [Open VSX](https://open-vsx.org/extension/miragon-gmbh/pulse), see [Installation](https://miragon.github.io/pulse/vscode/installation). Changes to engine data
 > are off for every engine but a local one unless you turn them on (`pulse.writes`).
 
 A VS Code extension that shows what your process engine is running, right next to your BPMN
@@ -65,10 +65,9 @@ Rules for contributors and coding agents: [CLAUDE.md](CLAUDE.md).
 
 The extension rides Pulse's release train: release-please bumps `apps/vscode/package.json`
 with every Pulse release (tag `v<version>`), and after the release approval
-`.github/workflows/publish-vscode-extension.yml` packages the .vsix once. It leaves the run
-only when the repository variable `VSCODE_PUBLISH` says so: `pre-release` publishes it as a
-pre-release to the Visual Studio Marketplace and Open VSX and attaches it to the GitHub
-release, `release` does the same as a release; unset or `off` nothing is published. Every pull
+`.github/workflows/publish-vscode-extension.yml` packages the .vsix once, publishes it as a
+plain release to the Visual Studio Marketplace and Open VSX and attaches it to the GitHub
+release. Every pull
 request packages it too (CI job "VS Code package (vsce dry run)"); to check the release path by
 hand, run the Release workflow with `dry_run`. The whole train:
 [the repository's CLAUDE.md](../../CLAUDE.md#releases--toolkit-contributions).
