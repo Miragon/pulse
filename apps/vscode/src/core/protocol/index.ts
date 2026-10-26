@@ -4,6 +4,21 @@ export type { LiveUpdates, PauseReason } from "./live-updates.js"
 export type { PanelState } from "./panel-state.js"
 export type { PanelView } from "./panel-view.js"
 export type {
+  BoardColumn,
+  BoardEngineStatus,
+  BoardInstanceRow,
+  BoardProblem,
+  BoardTarget,
+  BoardTile,
+  BoardView,
+  CounterEntry,
+  CounterTile,
+  IncidentSummaryRow,
+  IncidentSummaryTile,
+  InstanceGroup,
+  InstanceListTile,
+} from "./board-views.js"
+export type {
   BulkKind,
   BulkOffer,
   BulkProgress,

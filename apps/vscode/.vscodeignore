@@ -5,6 +5,7 @@
 !dist/webview.css
 !dist/fonts/**
 !media/**
+!schemas/board.schema.json
 !package.json
 !MARKETPLACE.md
 !LICENSE

@@ -70,6 +70,19 @@ export class MessageGuards {
     retryIncident: (fields) => MessageGuards.isText(fields.incidentId),
     setVariable: (fields) =>
       MessageGuards.isName(fields.name) && MessageGuards.isValue(fields.valueJson),
+    openBoardFile: () => true,
+    openBoardInstance: (fields) =>
+      MessageGuards.isName(fields.engine) &&
+      MessageGuards.isName(fields.instanceId) &&
+      typeof fields.toSide === "boolean",
+    openBoardProcess: (fields) =>
+      MessageGuards.isName(fields.engine) &&
+      MessageGuards.isName(fields.bpmnProcessId) &&
+      MessageGuards.isFilter(fields.filter) &&
+      typeof fields.toSide === "boolean",
+    openBoardEngine: (fields) =>
+      MessageGuards.isName(fields.engine) && typeof fields.toSide === "boolean",
+    setBoardCredentials: (fields) => MessageGuards.isName(fields.engine),
     moveToken: (fields) =>
       MessageGuards.isName(fields.fromElementId) &&
       MessageGuards.isName(fields.toElementId) &&

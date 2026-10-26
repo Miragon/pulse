@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "title": "Shop operations",
+  "engines": ["shop-dev", "shop-test", "prod-eu"],
+  "rows": [
+    {
+      "row": [
+        {
+          "widget": "counter",
+          "props": {
+            "title": "Waiting for payment",
+            "filter": { "process": "order-fulfillment", "activeElement": "Activity_AwaitPayment" },
+            "warnAbove": 5
+          }
+        },
+        {
+          "widget": "counter",
+          "props": {
+            "title": "Orders with incident",
+            "filter": { "process": "order-fulfillment", "withIncident": true }
+          }
+        },
+        {
+          "widget": "incidentSummary",
+          "props": { "title": "Incidents per engine", "groupBy": "engine" }
+        }
+      ]
+    },
+    {
+      "row": [
+        {
+          "widget": "instanceList",
+          "props": {
+            "title": "Orders waiting for payment",
+            "engines": ["shop-dev", "shop-test"],
+            "filter": { "process": "order-fulfillment", "activeElement": "Activity_AwaitPayment" },
+            "columns": ["engine", "businessKey", "version", "startedAt", "incident"]
+          }
+        },
+        {
+          "widget": "incidentSummary",
+          "props": { "title": "Incidents per process", "groupBy": "process" }
+        }
+      ]
+    }
+  ]
+}

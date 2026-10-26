@@ -17,6 +17,7 @@ commit and replace superseded text; Git keeps the history.
 | [code-structure.md](code-structure.md)     | Classes implement the ports, one class per file, utility classes per topic         |
 | [local-sources.md](local-sources.md)       | Local model and code next to an incident: ports, model adapter, opening            |
 | [live-updates.md](live-updates.md)         | Views that read the engine again on their own: cadence, gating, safety             |
+| [boards.md](boards.md)                     | Boards: shared JSON views across engines, read only                                |
 | [guardrails.md](guardrails.md)             | The machine-checked rules that enforce all of the above                            |
 
 The records were decided in a consensus round of five independent reviews

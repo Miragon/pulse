@@ -5,6 +5,10 @@ export class PanelTitle {
     return `${name} · Processes`
   }
 
+  static ofBoard(title: string): string {
+    return `${title} · Board`
+  }
+
   static of(state: PanelState, fallback: string): string {
     const view =
       state.status === "ready"
@@ -14,6 +18,9 @@ export class PanelTitle {
           : undefined
     if (view === undefined) {
       return fallback
+    }
+    if (view.kind === "board") {
+      return PanelTitle.ofBoard(view.title)
     }
     if (view.kind === "engine") {
       return PanelTitle.ofEngine(view.engine.name)

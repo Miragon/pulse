@@ -50,6 +50,12 @@
           "id": "pulse.engines",
           "name": "Engines",
           "icon": "media/pulse.svg"
+        },
+        {
+          "id": "pulse.boards",
+          "name": "Boards",
+          "icon": "media/pulse.svg",
+          "when": "pulse.hasBoards"
         }
       ]
     },
@@ -109,6 +115,17 @@
         "command": "pulse.openInstance",
         "title": "Open Process Instance",
         "category": "Pulse"
+      },
+      {
+        "command": "pulse.openBoard",
+        "title": "Open Board",
+        "category": "Pulse"
+      },
+      {
+        "command": "pulse.newBoard",
+        "title": "New Board…",
+        "category": "Pulse",
+        "icon": "$(add)"
       }
     ],
     "menus": {
@@ -124,6 +141,10 @@
         {
           "command": "pulse.showRuntimeData",
           "when": "resourceExtname == .bpmn"
+        },
+        {
+          "command": "pulse.openBoard",
+          "when": "false"
         }
       ],
       "view/title": [
@@ -141,6 +162,16 @@
           "command": "pulse.openTargetsFile",
           "when": "view == pulse.engines",
           "group": "navigation@3"
+        },
+        {
+          "command": "pulse.newBoard",
+          "when": "view == pulse.engines",
+          "group": "boards@1"
+        },
+        {
+          "command": "pulse.newBoard",
+          "when": "view == pulse.boards",
+          "group": "navigation@1"
         }
       ],
       "view/item/context": [
@@ -235,7 +266,13 @@
           "markdownDescription": "Whether Pulse may retry incidents, change process variables and move tokens. Only your user settings count: a workspace or a dev container cannot turn writes on."
         }
       }
-    }
+    },
+    "jsonValidation": [
+      {
+        "fileMatch": "**/.pulse/boards/*.board.json",
+        "url": "./schemas/board.schema.json"
+      }
+    ]
   },
   "scripts": {
     "build": "node scripts/build.mjs --production",
