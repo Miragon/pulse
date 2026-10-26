@@ -1,7 +1,7 @@
 # Camunda 7 family adapter
 
 - Status: accepted
-- Last reviewed: 2026-10-23
+- Last reviewed: 2026-10-26
 
 ## Context
 
@@ -112,6 +112,12 @@ on top of a **local engine CLI wrapper** in `apps/vscode/src/adapters/c7/engine-
   their body with `--body -` on stdin: 1000 instance ids (`processInstanceIds`) are about
   39 KB, beyond Windows' command-line limit of 32 KB. An empty `instanceIds` list
   answers without a call.
+- **Variable conditions are `variables` of the historic query.** `equals`, `notEquals`,
+  `greaterThan` and `lessThan` become `eq`, `neq`, `gt` and `lt` with the value parsed
+  losslessly from `valueJson`; `like` becomes `like` with `*` turned into `%` and the
+  engine's `%`, `_` and `\` escaped with `\`. The engine matches a variable of any scope,
+  including task-local ones, and a JSON number matches an Integer variable of that value,
+  `42` and `42.0` alike, while the text `"42"` does not (checked on Operaton 2.1.5, CIB seven 2.2.0 and Camunda 7.24.0).
 - **Migrations are batches too.** `proposeMigration` is `migration generate-plan --body -`
   (`updateEventTriggers: false`) and `checkMigration` `migration validate-plan --body -`,
   both on the read runner (operate counts them as reads). An instruction maps one source
@@ -290,4 +296,6 @@ every class above against recorded CLI output.
   level FULL the engine keeps no historic batch: a finished batch reads `undefined` (the
   core then reconciles by ids) and a Stop after it ended is rejected. With
   `invocationsPerBatchJob` above 1 the item counts are approximate, because the last
-  job may hold fewer items.
+  job may hold fewer items. Variable conditions read the historic variables, so below
+  history level AUDIT a search by variables finds nothing, running instances included;
+  date variables cannot be searched yet.

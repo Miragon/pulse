@@ -25,7 +25,14 @@ export type {
   MigrationPlan,
   MigrationProblem,
 } from "./model/migrations.js"
-export type { IncidentFilter, InstanceFilter, Page, PageRequest } from "./model/queries.js"
+export type {
+  IncidentFilter,
+  InstanceFilter,
+  Page,
+  PageRequest,
+  VariableComparison,
+  VariableCondition,
+} from "./model/queries.js"
 export type {
   CalledInstance,
   CalledProcess,

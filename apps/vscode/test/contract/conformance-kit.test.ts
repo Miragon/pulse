@@ -2,45 +2,18 @@ import { describe, expect, test } from "vitest"
 import {
   BpmnProcessId,
   ElementId,
-  FailingRuntime,
   IncidentId,
   IsoTimestamp,
   type Incident,
-  type ProcessRuntime,
 } from "../../src/contract/index.js"
 import {
   CASE,
   ConformanceKit,
   WORLD_ELEMENT,
   type CaseName,
-  type ConformanceHarness,
 } from "../../src/contract/conformance/index.js"
-import { FakeEngine, FakeWorld, PatchedRuntime } from "../../src/contract/fake/index.js"
-
-type Sabotage = (runtime: ProcessRuntime, harness: ConformanceHarness) => Partial<ProcessRuntime>
-
-function conformingHarness(): ConformanceHarness {
-  const { state, world } = FakeWorld.seed()
-  return {
-    runtime: new FakeEngine(state),
-    unreachableRuntime: FailingRuntime.unreachable("http://unreachable.invalid"),
-    world,
-  }
-}
-
-function sabotaged(sabotage: Sabotage): ConformanceHarness {
-  const harness = conformingHarness()
-  const broken = new PatchedRuntime(harness.runtime, sabotage(harness.runtime, harness))
-  return { ...harness, runtime: broken, unreachableRuntime: harness.unreachableRuntime }
-}
-
-async function failingCases(harness: ConformanceHarness): Promise<CaseName[]> {
-  const failing: CaseName[] = []
-  for (const conformanceCase of ConformanceKit.runtimeLaws()) {
-    await conformanceCase.run(harness).catch(() => failing.push(conformanceCase.name as CaseName))
-  }
-  return failing.sort()
-}
+import { PatchedRuntime } from "../../src/contract/fake/index.js"
+import { SabotagedRuntime, type Sabotage } from "./support/sabotaged-runtime.js"
 
 const SABOTAGES: readonly (readonly [string, Sabotage, readonly CaseName[]])[] = [
   [
@@ -334,10 +307,10 @@ const SABOTAGES: readonly (readonly [string, Sabotage, readonly CaseName[]])[] =
 ]
 
 describe("the conforming fake runtime", () => {
-  new ConformanceKit(test).registerRuntimeLaws(() => Promise.resolve(conformingHarness()))
+  new ConformanceKit(test).registerRuntimeLaws(() => Promise.resolve(SabotagedRuntime.conforming()))
 
   test("fails no case", async () => {
-    expect(await failingCases(conformingHarness())).toEqual([])
+    expect(await SabotagedRuntime.failingCases(SabotagedRuntime.conforming())).toEqual([])
   })
 })
 
@@ -351,17 +324,19 @@ describe("the kit", () => {
   })
 
   test("reports raw errors of an unreachable engine", async () => {
-    const harness = conformingHarness()
+    const harness = SabotagedRuntime.conforming()
     const rawErrors = {
       ...harness,
       unreachableRuntime: new PatchedRuntime(harness.unreachableRuntime, {
         listDefinitions: () => Promise.reject(new Error("ECONNREFUSED")),
       }),
     }
-    expect(await failingCases(rawErrors)).toEqual([CASE.unreachableEngine])
+    expect(await SabotagedRuntime.failingCases(rawErrors)).toEqual([CASE.unreachableEngine])
   })
 
   test.each(SABOTAGES)("catches a runtime where %s", async (_flaw, sabotage, expected) => {
-    expect(await failingCases(sabotaged(sabotage))).toEqual([...expected].sort())
+    expect(await SabotagedRuntime.failingCases(SabotagedRuntime.with(sabotage))).toEqual(
+      [...expected].sort(),
+    )
   })
 })

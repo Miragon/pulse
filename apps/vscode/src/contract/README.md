@@ -37,8 +37,8 @@ flowchart LR
 ```
 
 1. Each test harness seeds one fixed world of processes, element ids and instances into its engine.
-2. The kit runs 34 read laws and 15 command laws; the fake and every adapter must pass all of them.
-3. It tests itself: 46 saboteurs in `apps/vscode/test/contract`, each the fake with one flaw, fail exactly their laws.
+2. The kit runs 43 read laws and 15 command laws; the fake and every adapter must pass all of them.
+3. It tests itself: 55 saboteurs in `apps/vscode/test/contract`, each the fake with one flaw, fail exactly their laws.
 
 ## Where things are
 
