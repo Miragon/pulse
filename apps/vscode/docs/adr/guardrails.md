@@ -109,13 +109,13 @@ repository's CI (`.github/workflows/ci.yml`) next to the server's.
 
 - Measured on 2026-10-24 (18 cores):
 
-  | Command                                 | Time                                                                         |
-  | --------------------------------------- | ---------------------------------------------------------------------------- |
-  | `pnpm --filter pulse test`              | 16.5 s (84 files, 1 109 unit and browser tests, coverage, the bundle budget) |
-  | `pnpm --filter pulse run typecheck`     | 11.3 s (the union, then the seven layer configs)                             |
-  | `pnpm --filter pulse run lint`          | 14.7 s                                                                       |
-  | `pnpm --filter pulse run test:mutation` | 11.5 min full (11 559 mutants); one file in the diff gate about 6 s          |
-  | `pnpm --filter pulse run test:engines`  | 13.5 s per image (measured in the original repository)                       |
+  | Command                                         | Time                                                                         |
+  | ----------------------------------------------- | ---------------------------------------------------------------------------- |
+  | `pnpm --filter pulse-cockpit test`              | 16.5 s (84 files, 1 109 unit and browser tests, coverage, the bundle budget) |
+  | `pnpm --filter pulse-cockpit run typecheck`     | 11.3 s (the union, then the seven layer configs)                             |
+  | `pnpm --filter pulse-cockpit run lint`          | 14.7 s                                                                       |
+  | `pnpm --filter pulse-cockpit run test:mutation` | 11.5 min full (11 559 mutants); one file in the diff gate about 6 s          |
+  | `pnpm --filter pulse-cockpit run test:engines`  | 13.5 s per image (measured in the original repository)                       |
 
 - A pull request runs no mutation check (owner decision, 2026-10-24). Locally,
   `pnpm test:mutation` (`scripts/mutation-diff.mjs`) mutates the changed files inside the

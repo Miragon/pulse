@@ -163,7 +163,7 @@ file's current content when _Show Runtime Data for This Model_ runs again.
 
 - An undeclared or forbidden import fails `pnpm lint:architecture:vscode` (negative test
   in `apps/vscode/test/architecture`); a wrong global fails
-  `pnpm --filter pulse run typecheck` through the `@ts-expect-error` probe of each
+  `pnpm --filter pulse-cockpit run typecheck` through the `@ts-expect-error` probe of each
   layer (`apps/vscode/test/<layer>/runtime.boundary.ts`).
 - A new engine takes `apps/vscode/src/adapters/<engine>` with a class implementing
   `EngineAdapter`, an engine test that runs the `ConformanceKit` and one entry in the

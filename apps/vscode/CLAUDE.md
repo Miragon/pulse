@@ -1,7 +1,7 @@
 # CLAUDE.md (apps/vscode)
 
 Guidance for agents working on Pulse for VS Code: the extension `pulse` (Marketplace
-id `miragon-gmbh.pulse`), an engine-neutral runtime view for process engines inside
+id `miragon-gmbh.pulse-cockpit`), an engine-neutral runtime view for process engines inside
 VS Code. It is an interface app of the Pulse monorepo. The repository's package rules hold
 here (the root `CLAUDE.md`: layout and naming, the dependency edges of invariant 8, the
 ratchets, Verification); the MCP invariants are written for the MCP server, its modules and
@@ -12,24 +12,24 @@ its widgets, and this file replaces them for the extension.
 Run them from the repository root.
 
 ```sh
-pnpm --filter pulse run typecheck        # tsc over the app, then once per layer with that layer's globals
-pnpm --filter pulse run lint             # ESLint with the house rules below
+pnpm --filter pulse-cockpit run typecheck        # tsc over the app, then once per layer with that layer's globals
+pnpm --filter pulse-cockpit run lint             # ESLint with the house rules below
 pnpm lint:architecture:vscode                   # the closed-world dependency rules
 pnpm lint:deadcode:vscode                       # knip over the extension, unused exports and types included
-pnpm --filter pulse test                 # unit and webview (Chromium) tests, coverage floors
-pnpm --filter pulse run test:mutation    # Stryker over contract, core, the C7 adapter and the model adapter
-pnpm --filter pulse run test:engines     # adapter conformance on a real engine; needs podman/docker
-pnpm --filter pulse run test:smoke       # the extension activates in a real VS Code
-pnpm --filter pulse run test:e2e         # VS Code e2e; needs `engine:up`
-pnpm --filter pulse run sandbox:up       # shop sandbox for manual testing: two seeded engines
-pnpm --filter pulse run sandbox:open     # build, start the sandbox if needed, open it in VS Code
-pnpm --filter pulse run docs:screenshots # one screenshot per use case (after sandbox:up)
-pnpm --filter pulse run package          # the .vsix
+pnpm --filter pulse-cockpit test                 # unit and webview (Chromium) tests, coverage floors
+pnpm --filter pulse-cockpit run test:mutation    # Stryker over contract, core, the C7 adapter and the model adapter
+pnpm --filter pulse-cockpit run test:engines     # adapter conformance on a real engine; needs podman/docker
+pnpm --filter pulse-cockpit run test:smoke       # the extension activates in a real VS Code
+pnpm --filter pulse-cockpit run test:e2e         # VS Code e2e; needs `engine:up`
+pnpm --filter pulse-cockpit run sandbox:up       # shop sandbox for manual testing: two seeded engines
+pnpm --filter pulse-cockpit run sandbox:open     # build, start the sandbox if needed, open it in VS Code
+pnpm --filter pulse-cockpit run docs:screenshots # one screenshot per use case (after sandbox:up)
+pnpm --filter pulse-cockpit run package          # the .vsix
 ```
 
 The bar for every change is the repository's: `pnpm build && pnpm typecheck && pnpm test &&
 pnpm lint` at the root. The webview tests run in Chromium: install it once with
-`pnpm --filter pulse exec playwright install chromium`. Run `test:engines`, `test:e2e`
+`pnpm --filter pulse-cockpit exec playwright install chromium`. Run `test:engines`, `test:e2e`
 and `docs:screenshots` only when the change touches the adapter or the contract, the VS Code
 flows or the screens.
 

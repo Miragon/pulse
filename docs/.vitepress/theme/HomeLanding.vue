@@ -43,8 +43,8 @@ const clients = [
     name: "VS Code",
     title: "VS Code · Order fulfillment",
     effect: "The runtime on your model, the root cause next to your code.",
-    action: "code --install-extension miragon-gmbh.pulse",
-    href: "https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.pulse",
+    action: "code --install-extension miragon-gmbh.pulse-cockpit",
+    href: "https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.pulse-cockpit",
     early: true,
   },
 ]

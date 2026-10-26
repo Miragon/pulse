@@ -39,14 +39,16 @@ async function up() {
   await Promise.all(SANDBOX_ENGINES.map(startAndSeed))
   const descriptions = await Promise.all(SANDBOX_ENGINES.map(describe))
   console.log(`\nSandbox ready.\n\n${descriptions.join("\n\n")}\n`)
-  console.log('Try it: pnpm --filter pulse run sandbox:open, or press F5 on "Run Pulse (sandbox)".')
-  console.log("Live traffic: pnpm --filter pulse run sandbox:traffic")
+  console.log(
+    'Try it: pnpm --filter pulse-cockpit run sandbox:open, or press F5 on "Run Pulse (sandbox)".',
+  )
+  console.log("Live traffic: pnpm --filter pulse-cockpit run sandbox:traffic")
 }
 
 async function traffic() {
   if (!(await isRunning(SHOP_DEV))) {
     throw new Error(
-      `${SHOP_DEV.name} is not running. Start it with: pnpm --filter pulse run sandbox:up`,
+      `${SHOP_DEV.name} is not running. Start it with: pnpm --filter pulse-cockpit run sandbox:up`,
     )
   }
   await runTraffic(clientOf(SHOP_DEV))

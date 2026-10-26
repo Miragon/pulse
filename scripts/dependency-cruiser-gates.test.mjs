@@ -49,7 +49,7 @@ const C7_DOMAIN_CLIENT = "packages/connectors/camunda/camunda7-domain-client"
 const WORKSPACE = {
   [SERVER]: { name: "@miragon/pulse-mcp-server-camunda7", private: true },
   [CLI]: { name: "@miragon/pulse-cli" },
-  [EXT]: { name: "pulse", engines: { vscode: "^1.101.0" } },
+  [EXT]: { name: "pulse-cockpit", engines: { vscode: "^1.101.0" } },
   [SHELL]: { name: "@miragon/pulse-widget-shell" },
   [C7_CLIENT]: { name: "@miragon/pulse-camunda7-client" },
   [C7_CONNECTOR]: { name: "@miragon/pulse-camunda7-connector" },
@@ -221,7 +221,7 @@ const SUITES = [
         "@miragon/modeler-shell",
         "vscode",
       ].map((spec) => [CLI_SRC, spec, [HEADLESS]]),
-      [CLI_SRC, "pulse", [APP_APP, HEADLESS, NO_EXT]],
+      [CLI_SRC, "pulse-cockpit", [APP_APP, HEADLESS, NO_EXT]],
       // "-domain" inside a name is no -domain package: declared (through the symlink), as a
       // subpath and bare (the naming gate admits core names such as order-domains).
       [CLI_SRC, "@miragon/pulse-camunda7-domain-client", [HEADLESS]],
@@ -319,13 +319,13 @@ const SUITES = [
     rule: NO_EXT,
     title: "nothing imports the extension",
     cases: [
-      [SERVER_SRC, "pulse", [APP_APP, NO_EXT]],
-      [SERVER_SRC, "pulse/out/api", [APP_APP, NO_EXT]],
+      [SERVER_SRC, "pulse-cockpit", [APP_APP, NO_EXT]],
+      [SERVER_SRC, "pulse-cockpit/out/api", [APP_APP, NO_EXT]],
       [`${SERVER}/src/escape-extension.ts`, "../../vscode/src/target.ts", [APP_APP, NO_EXT, DEEP]],
-      [SHELL_SRC, "pulse", [NO_APP, NO_EXT]],
-      [C7_CLIENT_SRC, "pulse", [NO_APP, NO_EXT]],
-      [C7_CLIENT_SRC, "pulse/out/api", [NO_APP, NO_EXT]],
-      [C7_DOMAIN_SRC, "pulse", [DOMAIN_LEAF, NO_APP, NO_EXT]],
+      [SHELL_SRC, "pulse-cockpit", [NO_APP, NO_EXT]],
+      [C7_CLIENT_SRC, "pulse-cockpit", [NO_APP, NO_EXT]],
+      [C7_CLIENT_SRC, "pulse-cockpit/out/api", [NO_APP, NO_EXT]],
+      [C7_DOMAIN_SRC, "pulse-cockpit", [DOMAIN_LEAF, NO_APP, NO_EXT]],
       // Anchored: the name is unscoped, and a third-party pulse-tools is not the extension.
       [SERVER_SRC, "pulse-tools", []],
       [SHELL_SRC, "pulse-tools", []],
@@ -344,7 +344,7 @@ const SUITES = [
       ],
       // Its own npm name is no way around the rule either: import own modules relatively.
       [`${SERVER}/src/self.ts`, "@miragon/pulse-mcp-server-camunda7", [APP_APP]],
-      [`${EXT}/src/self.ts`, "pulse", [APP_APP]],
+      [`${EXT}/src/self.ts`, "pulse-cockpit", [APP_APP]],
       [`${CLI}/src/self.ts`, "@miragon/pulse-cli/commands", [APP_APP, HEADLESS]],
       // The MCP server's composition stays legal.
       [SERVER_SRC, "@miragon/pulse-widget-shell", []],
@@ -370,7 +370,7 @@ const SUITES = [
       [C7_CLIENT_SRC, "@miragon/pulse-mcp-server-camunda7", [CLIENT_LEAF, NO_APP]],
       [C7_CONNECTOR_SRC, "@miragon/pulse-mcp-server-camunda7", [NO_APP]],
       [C7_CONNECTOR_SRC, "@miragon/pulse-cli", [NO_APP, NO_CLI]],
-      [C7_CONNECTOR_SRC, "pulse", [NO_APP, NO_EXT]],
+      [C7_CONNECTOR_SRC, "pulse-cockpit", [NO_APP, NO_EXT]],
       [C7_DOMAIN_SRC, "@miragon/pulse-mcp-server-camunda7", [DOMAIN_LEAF, NO_APP]],
     ],
   },

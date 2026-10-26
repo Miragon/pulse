@@ -63,7 +63,7 @@ const npm = (names) => [`(?:^|/)node_modules/(?:${names})(?:/|$)`, `^(?:${names}
  */
 const SERVER_PACKAGE = "@miragon/pulse-mcp-server-camunda7"
 const CLI_PACKAGE = "@miragon/pulse-cli"
-const EXTENSION_PACKAGE = "pulse"
+const EXTENSION_PACKAGE = "pulse-cockpit"
 const APP_PACKAGES = [SERVER_PACKAGE, CLI_PACKAGE, EXTENSION_PACKAGE]
 const APP_NAMES = APP_PACKAGES.map(escapeRegExp).join("|")
 

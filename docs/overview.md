@@ -10,7 +10,7 @@ Camunda 7, CIB seven and Operaton engines are running. It reaches the same engin
 | [VS Code](./vscode/index.md) | developers next to their models and code  | [Installation](./vscode/installation.md)    |
 
 The VS Code extension is an early version, published on the
-[Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.pulse) and [Open VSX](https://open-vsx.org/extension/miragon-gmbh/pulse).
+[Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.pulse-cockpit) and [Open VSX](https://open-vsx.org/extension/miragon-gmbh/pulse-cockpit).
 
 ## What they share
 

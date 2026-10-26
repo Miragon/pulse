@@ -21,8 +21,8 @@ function indexPage(taken) {
     "# What Pulse can do, in screenshots",
     "",
     "Taken from VS Code against the shop sandbox (`apps/vscode/sandbox/`). Recreate them with",
-    "`pnpm --filter pulse run sandbox:up` followed by",
-    "`pnpm --filter pulse run docs:screenshots`; with",
+    "`pnpm --filter pulse-cockpit run sandbox:up` followed by",
+    "`pnpm --filter pulse-cockpit run docs:screenshots`; with",
     "`PULSE_SCREENSHOTS=28-engine-overview` it takes only the shots whose file name contains that.",
     "",
     "| # | Use case | Screenshot | What it shows |",
@@ -47,7 +47,9 @@ function indexPage(taken) {
 async function sandboxIsUp() {
   const response = await fetch(SANDBOX_ENGINE).catch(() => undefined)
   if (response?.ok !== true) {
-    throw new Error("The sandbox is not running. Start it with: pnpm --filter pulse run sandbox:up")
+    throw new Error(
+      "The sandbox is not running. Start it with: pnpm --filter pulse-cockpit run sandbox:up",
+    )
   }
 }
 
