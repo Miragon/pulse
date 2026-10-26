@@ -1,6 +1,6 @@
 ---
 layout: page
-title: Miragon Pulse
+title: Pulse
 sidebar: false
 aside: false
 editLink: false

@@ -6,11 +6,12 @@ import { miragonDocs } from "./miragon/config"
 
 export default miragonDocs({
   repo: "Miragon/pulse",
-  // The product name. Miragon AI is the family of all tools, this repo is Pulse, and so
-  // are its technical names (#415): the repo Miragon/pulse, the Docker image
+  // The tab reads "<page> | Miragon" like the other Miragon docs; the product name, Pulse,
+  // stands next to the Komet. Miragon AI is the family of all tools, this repo is Pulse, and
+  // so are its technical names (#415): the repo Miragon/pulse, the Docker image
   // ghcr.io/miragon/pulse-server, the @miragon/pulse-* packages and the MCP server
   // name "pulse".
-  title: "Miragon Pulse",
+  title: "Miragon",
   siteTitle: "Pulse",
   description:
     "Pulse, part of Miragon AI: operate and analyse your Camunda 7, CIB seven and Operaton engines from your AI chat, your terminal and VS Code.",
@@ -82,6 +83,10 @@ export default miragonDocs({
       items: [
         { text: "Introduction", link: "/vscode/" },
         { text: "Installation", link: "/vscode/installation" },
+        {
+          text: "Marketplace",
+          link: "https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.pulse-vscode",
+        },
         { text: "Configuration", link: "/vscode/configuration" },
         { text: "Usage", link: "/vscode/usage" },
         { text: "Architecture", link: "/vscode/architecture" },

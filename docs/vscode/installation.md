@@ -1,9 +1,18 @@
 # Installation
 
-Pulse for VS Code is not on the Marketplace or Open VSX yet. You build the `.vsix` from the
-Pulse repository and install it.
+Pulse for VS Code is an early version. It ships as a pre-release (beta) with every Pulse
+release, on the [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.pulse-vscode) and on [Open VSX](https://open-vsx.org/extension/miragon-gmbh/pulse-vscode) (VSCodium, Cursor and
+other editors on Open VSX).
 
-## Build and install
+## From the Marketplace
+
+In the Extensions view search for **Pulse** by Miragon, or from a shell:
+
+```sh
+code --install-extension miragon-gmbh.pulse-vscode --pre-release
+```
+
+Each GitHub release also carries the `.vsix`. To build it from source:
 
 ```sh
 git clone https://github.com/Miragon/pulse.git && cd pulse
@@ -11,8 +20,6 @@ pnpm install --frozen-lockfile
 pnpm --filter pulse-vscode run package               # writes apps/vscode/pulse-vscode-<version>.vsix
 code --install-extension apps/vscode/pulse-vscode-*.vsix
 ```
-
-Then tell Pulse which engines to show: [Configuration](./configuration.md).
 
 ## Try it on a seeded engine
 

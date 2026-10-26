@@ -43,9 +43,9 @@ const clients = [
     name: "VS Code",
     title: "VS Code · Order fulfillment",
     effect: "The runtime on your model, the root cause next to your code.",
-    action: "Coming soon to the Marketplace",
-    link: "/vscode/",
-    soon: true,
+    action: "code --install-extension miragon-gmbh.pulse-vscode --pre-release",
+    link: "/vscode/installation",
+    beta: true,
   },
 ]
 
@@ -140,7 +140,7 @@ async function moveBy(offset: number) {
             @keydown.left.prevent="moveBy(-1)"
           >
             <span :key="round" class="progress" />{{ client.name
-            }}<span v-if="client.soon" class="tag">soon</span>
+            }}<span v-if="client.beta" class="tag">beta</span>
           </button>
         </div>
       </div>
@@ -227,8 +227,7 @@ async function moveBy(offset: number) {
 
           <a class="footer" :href="withBase(client.link)">
             <span class="effect">{{ client.effect }}</span>
-            <code v-if="!client.soon">{{ client.action }}</code>
-            <span v-else class="soon">{{ client.action }}</span>
+            <code>{{ client.action }}</code>
           </a>
         </div>
       </div>
@@ -605,12 +604,6 @@ h1 {
   font-size: 13px;
   color: var(--cd-ui-link);
   overflow-wrap: anywhere;
-}
-.soon {
-  font: 500 12px var(--vp-font-family-mono);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--cd-ui-text-leise);
 }
 @media (min-height: 1000px) {
   .widget {

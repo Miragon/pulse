@@ -9,7 +9,8 @@ Camunda 7, CIB seven and Operaton engines are running. It reaches the same engin
 | [CLI](./cli/index.md)        | your shell, scripts, CI and coding agents | [Getting started](./cli/getting-started.md) |
 | [VS Code](./vscode/index.md) | developers next to their models and code  | [Installation](./vscode/installation.md)    |
 
-The VS Code extension is an early version and not on the Marketplace yet.
+The VS Code extension is an early version, published as a pre-release (beta) on the
+[Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.pulse-vscode) and [Open VSX](https://open-vsx.org/extension/miragon-gmbh/pulse-vscode).
 
 ## What they share
 
