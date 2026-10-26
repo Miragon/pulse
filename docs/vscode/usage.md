@@ -16,7 +16,9 @@ The **Definition** panel draws the deployed diagram of one version with badges p
 version picker with counts per version, and the instances (running, with incident, ended),
 filtered by element or business key.
 
-_Variables_ in the filter bar finds instances by their process variables: a name, an operator
+The funnel button in the filter bar finds instances by their process variables: a name (the
+dialog suggests the names the newest instances of the version hold, any other name works
+too), an operator
 (is, is not, matches, greater or less than) and a value, `*` as the wildcard of _matches_.
 _Compare as_ picks the type: text, number, true or false, date and time (is after, is
 before) or null. JSON and object variables can't be searched.

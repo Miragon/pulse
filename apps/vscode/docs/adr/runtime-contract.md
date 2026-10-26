@@ -33,6 +33,7 @@ engine question:
 | `getCalledProcesses`   | Per call activity of one version: the process it calls and the deployed version its binding starts                              |
 | `searchInstances`      | Instances by version or process, lifecycle, incident, business key, active element, variable conditions; cursor paging          |
 | `countInstances`       | How many instances the same filter finds, without paging                                                                        |
+| `listVariableNames`    | The names of the variables the instances of one version hold, at any scope, sorted and once each; a hint, not a complete list   |
 | `getInstanceDetail`    | Wait states (across called instances), root incidents, called instances, variables, the path (elements run, with start and end) |
 | `searchIncidents`      | Root incidents by process, version or instance; cursor paging                                                                   |
 | `getIncidentDetails`   | The complete stack trace or error message of one incident                                                                       |
@@ -166,13 +167,13 @@ for any workspace, and the conformance kit does not cover them
 
 ```mermaid
 flowchart LR
-  kit[ConformanceKit: 45 read laws, 15 command laws]
+  kit[ConformanceKit: 46 read laws, 15 command laws]
   kit --> fake[FakeEngine in memory]
   kit --> c7[C7Adapter on Operaton, CIB seven, Camunda 7 in containers]
   saboteurs[Saboteurs: broken runtimes] -- each must fail its law --> kit
 ```
 
-`apps/vscode/src/contract/conformance` holds 45 read laws and 15 command laws as
+`apps/vscode/src/contract/conformance` holds 46 read laws and 15 command laws as
 executable cases, modelled on `@miragon/modeler-api/conformance`:
 `new ConformanceKit(test).registerRuntimeLaws(prepare)` and `.registerCommandLaws(prepare)`
 bind them to any `(name, fn)` runner and throw a `ConformanceViolation` when a law fails. Command laws run on

@@ -39,6 +39,7 @@ export const CASE = {
   variablesEnded: "variables: ended instances match by their variables",
   variablesAnyScope: "variables: a variable local to an element matches too",
   variablesUnknownName: "variables: an unknown variable name matches nothing",
+  variablesNamed: "variables: a version names the variables of its instances, sorted and once each",
   variablesEmpty: "variables: an empty list of conditions constrains nothing",
   detailUnknown: "detail: an unknown instance is undefined",
   detailUserTask: "detail: a user task wait state with the instance variables",

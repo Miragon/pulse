@@ -1,6 +1,8 @@
+import type { Ref } from "preact"
 import { useEffect, useRef, useState } from "preact/hooks"
 import type { InstanceListFilter } from "../../core/protocol/index.js"
 import { Icon } from "../components/icon.js"
+import { useHost } from "../host/host-context.js"
 import { glyphs } from "../components/lucide-glyphs.json"
 import { InstanceFilter } from "./instance-filter.js"
 import { VariableConditionDialog } from "./variable-condition-dialog.js"
@@ -8,6 +10,7 @@ import { VariableConditionDialog } from "./variable-condition-dialog.js"
 export interface VariableChipsProps {
   readonly filter: InstanceListFilter
   readonly labels: readonly string[] | undefined
+  readonly names: readonly string[] | undefined
   readonly onFilter: (filter: InstanceListFilter) => void
 }
 
@@ -45,7 +48,32 @@ function VariableChip({ label, onEdit, onRemove }: VariableChipProps) {
   )
 }
 
-export function VariableChips({ filter, labels, onFilter }: VariableChipsProps) {
+interface FilterOpenerProps {
+  readonly buttonRef: Ref<HTMLButtonElement>
+  readonly active: number
+  readonly onOpen: (event: Event) => void
+}
+
+function FilterOpener({ buttonRef, active, onOpen }: FilterOpenerProps) {
+  const name = active === 0 ? "Filter by variables" : `Filter by variables, ${active} active`
+  return (
+    <button
+      ref={buttonRef}
+      type="button"
+      class="button button--secondary button--compact filter-opener"
+      aria-haspopup="dialog"
+      aria-label={name}
+      title={name}
+      onClick={onOpen}
+    >
+      <Icon of={glyphs.Funnel} />
+      {active > 0 && <span aria-hidden="true">{active}</span>}
+    </button>
+  )
+}
+
+export function VariableChips({ filter, labels, names, onFilter }: VariableChipsProps) {
+  const host = useHost()
   const [editing, setEditing] = useState<Editing | undefined>(undefined)
   const opener = useRef<HTMLButtonElement>(null)
   const returnTo = useRef<HTMLElement | null>(null)
@@ -60,6 +88,7 @@ export function VariableChips({ filter, labels, onFilter }: VariableChipsProps) 
   }, [editing])
   const open = (event: Event, at?: number): void => {
     returnTo.current = event.currentTarget as HTMLElement
+    host.post({ type: "suggestVariableNames" })
     setEditing(at === undefined ? {} : { at })
   }
   const close = (): void => {
@@ -67,17 +96,13 @@ export function VariableChips({ filter, labels, onFilter }: VariableChipsProps) 
   }
   return (
     <>
-      <button
-        ref={opener}
-        type="button"
-        class="button button--secondary button--compact"
-        aria-haspopup="dialog"
-        onClick={(event) => {
+      <FilterOpener
+        buttonRef={opener}
+        active={conditions.length}
+        onOpen={(event) => {
           open(event)
         }}
-      >
-        {conditions.length === 0 ? "Variables" : `Variables · ${conditions.length}`}
-      </button>
+      />
       {conditions.map((condition, at) => (
         <VariableChip
           key={at}
@@ -95,6 +120,7 @@ export function VariableChips({ filter, labels, onFilter }: VariableChipsProps) 
         <VariableConditionDialog
           initial={editing.at === undefined ? undefined : conditions[editing.at]}
           others={editing.at === undefined ? conditions.length : conditions.length - 1}
+          suggestions={names ?? []}
           onApply={(condition) => {
             onFilter(InstanceFilter.withVariable(filter, condition, editing.at))
             close()

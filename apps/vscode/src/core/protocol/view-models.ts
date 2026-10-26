@@ -94,6 +94,7 @@ export interface DefinitionView {
   readonly hasMoreInstances: boolean
   readonly filter: InstanceListFilter
   readonly variableLabels?: readonly string[]
+  readonly variableNames?: readonly string[]
   readonly scopeCounts: ScopeCounts
   readonly historyNote?: string
   readonly notices: readonly Notice[]

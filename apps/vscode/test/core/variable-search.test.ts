@@ -170,6 +170,36 @@ describe("the definition panel with variable conditions", () => {
     expect(opened.view().variableLabels).toEqual(["dueAt > 2026-01-01 00:00", "giftNote = null"])
   })
 
+  test("suggests the variable names of the shown version once", async () => {
+    const opened = await openOrder("order@1")
+
+    await opened.panel.handle({ type: "suggestVariableNames" })
+    await opened.panel.handle({ type: "suggestVariableNames" })
+
+    expect(opened.view().variableNames).toEqual(
+      expect.arrayContaining(["amount", "dueAt", "giftNote", "reviewNote", "route"]),
+    )
+    expect(opened.fixture.calls.filter((call) => call === "listVariableNames")).toHaveLength(1)
+  })
+
+  test("suggests nothing when the names cannot be read", async () => {
+    const fixture = panelFixture(
+      (runtime) =>
+        new PatchedRuntime(runtime, {
+          listVariableNames: () => Promise.reject(new Error("boom")),
+        }),
+    )
+    const panel = new DefinitionPanel(fixture.context, {
+      bpmnProcessId: ORDER,
+      definitionId: fixture.world.definitionIds["order@1"],
+    })
+    await panel.handle({ type: "ready" })
+
+    await panel.handle({ type: "suggestVariableNames" })
+
+    expect(readyView(fixture.lastState()).variableNames).toBeUndefined()
+  })
+
   test("selects only the running instances the conditions match", async () => {
     const opened = await openOrder("order@1")
     await opened.panel.handle({

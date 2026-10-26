@@ -92,7 +92,7 @@ The bottom pane of the split starts with one 36 px bar; it replaced the legend l
 the diagram, the "Instances … · n running" header and the toolbar.
 
 - **Definition panel:** scopes with counts, element chip, business-key search, the
-  _Variables_ button with one chip per variable condition and, at the far end, the legend
+  filter button (a funnel) with one chip per variable condition and, at the far end, the legend
   button. The scopes are a `radiogroup` ("Show instances") with one tab
   stop on the checked radio; ←/→/Home/End move and select, the latest request wins,
   and the checked segment is boxed, not underlined (an underline means tabs). Each
@@ -101,9 +101,15 @@ the diagram, the "Instances … · n running" header and the toolbar.
   business-key search and the variable conditions, so a count says what a click shows; the version totals stay
   in the version picker. While the panel refreshes the old counts stay and the group is
   `aria-busy`.
-- **Variable conditions:** _Variables_ (_Variables · 2_ with conditions) opens a modal
-  `<dialog>` for one condition: name, _Compare as_ (Automatic, Text, Number, True or
-  false, Date and time, Null), the operators that fit the type and the value. Date and
+- **Variable conditions:** the funnel button ("Filter by variables", with conditions their
+  count beside the icon and "…, 2 active" in its name) opens a modal `<dialog>` for one
+  condition: name, _Compare as_ (Automatic, Text, Number, True or
+  false, Date and time, Null), the operators that fit the type and the value. Opening
+  it sends `suggestVariableNames`; the core reads `listVariableNames` once per version and
+  republishes them as `DefinitionView.variableNames`, which the name field offers in a
+  `datalist` while it still takes any text (no names, no list; a failed read suggests
+  nothing). Value stays editable before a name is set: a disabled field would drop out of
+  the tab order without saying why, and Apply names a missing name. Date and
   time takes a `datetime-local` field and offers _is after_ and _is before_, read in the
   local time zone; Null asks for no value and offers _is null_ and _is not null_; the
   dialog says that JSON and object variables cannot be searched. Apply adds it, or replaces the

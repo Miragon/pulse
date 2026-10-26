@@ -111,6 +111,7 @@ export function InstanceList({ view, elementName, onFilter, refreshing, busy }: 
         version={view.selectedVersion}
         historyNote={view.historyNote}
         variableLabels={view.variableLabels}
+        variableNames={view.variableNames}
         elementName={elementName}
         onFilter={onFilter}
       />

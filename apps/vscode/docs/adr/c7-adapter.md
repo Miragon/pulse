@@ -200,7 +200,9 @@ on top of a **local engine CLI wrapper** in `apps/vscode/src/adapters/c7/engine-
 
 Engine calls per port method (one call ≈ 120–170 ms spawn): `describeEngine` 1–2,
 `listDefinitions`/`listVersions` 2, `getElementStatistics` 2, `getCalledProcesses` 2 in
-parallel, `searchInstances` 2 per page (never per row), `countInstances` 1
+parallel, `searchInstances` 2 per page (never per row), `listVariableNames` 2 (the newest 50
+instances of the version, then `historic-variable-instance query --no-deserialize-values`
+for their ids, at most 2000 variables), `countInstances` 1
 (`historic-process-instance query-count` with the body of the search; 2 for instances
 without an incident: all minus those with an open incident), `getInstanceDetail` 2 in
 parallel (`inspect` and

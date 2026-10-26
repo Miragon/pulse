@@ -14,6 +14,7 @@ export interface InstanceFilterBarProps {
   readonly version: number
   readonly historyNote?: string | undefined
   readonly variableLabels?: readonly string[] | undefined
+  readonly variableNames?: readonly string[] | undefined
   readonly elementName: (elementId: string) => string
   readonly onFilter: (filter: InstanceListFilter) => void
 }
@@ -70,7 +71,12 @@ export function InstanceFilterBar(props: InstanceFilterBarProps) {
           onFilter(InstanceFilter.withBusinessKey(filter, text))
         }}
       />
-      <VariableChips filter={filter} labels={props.variableLabels} onFilter={onFilter} />
+      <VariableChips
+        filter={filter}
+        labels={props.variableLabels}
+        names={props.variableNames}
+        onFilter={onFilter}
+      />
       <DiagramLegend kind="badges" scope={`Badges count running instances of v${props.version}`} />
     </div>
   )

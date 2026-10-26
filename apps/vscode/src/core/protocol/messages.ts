@@ -38,6 +38,7 @@ export type WebviewIntent =
       readonly ids: readonly string[]
       readonly selected: boolean
     }
+  | { readonly type: "suggestVariableNames" }
   | { readonly type: "selectMatching" }
   | { readonly type: "clearSelection" }
   | { readonly type: "startBulk"; readonly action: OfferedBulkKind }

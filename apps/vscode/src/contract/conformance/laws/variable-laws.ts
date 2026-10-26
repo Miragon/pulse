@@ -78,6 +78,29 @@ const emptyConditions: ConformanceCase = {
   },
 }
 
+const ORDER_VARIABLES = ["amount", "dueAt", "giftNote", "reviewNote", "route"]
+
+const namesOfAVersion: ConformanceCase = {
+  name: CASE.variablesNamed,
+  async run(harness) {
+    const { definitionIds, unknown } = harness.world
+    const names = await harness.runtime.listVariableNames(definitionIds["order@1"])
+    const described = Ensure.describe(names)
+    Ensure.that(
+      ORDER_VARIABLES.every((name) => names.includes(name)) && !names.includes("orderId"),
+      this.name,
+      `order@1 names ${described}`,
+    )
+    Ensure.that(
+      described === Ensure.describe([...new Set(names)].sort()),
+      this.name,
+      `names are not distinct and sorted: ${described}`,
+    )
+    const none = await harness.runtime.listVariableNames(unknown.definitionId)
+    Ensure.that(none.length === 0, this.name, `an unknown version names ${Ensure.describe(none)}`)
+  },
+}
+
 export const VARIABLE_LAWS: readonly ConformanceCase[] = [
   VariableSearch.law(CASE.variablesEquals, [
     { conditions: [Conditions.equals("route", "review")], found: ["ORD-1001", "ORD-2001"] },
@@ -142,4 +165,5 @@ export const VARIABLE_LAWS: readonly ConformanceCase[] = [
     { conditions: [Conditions.equals("unknownVariable", "review")], found: [] },
   ]),
   emptyConditions,
+  namesOfAVersion,
 ]

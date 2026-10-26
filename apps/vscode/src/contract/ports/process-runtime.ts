@@ -29,6 +29,7 @@ export interface ProcessRuntime {
   getCalledProcesses(definitionId: DefinitionId): Promise<readonly CalledProcess[]>
   searchInstances(filter: InstanceFilter, page: PageRequest): Promise<Page<InstanceSummary>>
   countInstances(filter: InstanceFilter): Promise<number>
+  listVariableNames(definitionId: DefinitionId): Promise<readonly string[]>
   getInstanceDetail(instanceId: InstanceId): Promise<InstanceDetail | undefined>
   searchIncidents(filter: IncidentFilter, page: PageRequest): Promise<Page<Incident>>
   getIncidentDetails(incidentId: IncidentId): Promise<IncidentDetails | undefined>

@@ -56,6 +56,10 @@ export class PatchedRuntime implements ProcessRuntime {
     )
   }
 
+  listVariableNames(definitionId: DefinitionId): Promise<readonly string[]> {
+    return this.patch.listVariableNames?.(definitionId) ?? this.base.listVariableNames(definitionId)
+  }
+
   searchInstances(filter: InstanceFilter, page: PageRequest): Promise<Page<InstanceSummary>> {
     return this.patch.searchInstances?.(filter, page) ?? this.base.searchInstances(filter, page)
   }

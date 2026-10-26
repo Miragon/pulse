@@ -58,6 +58,7 @@ import { IncidentSearch } from "./reading/incident-search.js"
 import { InstanceDetailReader } from "./reading/instance-detail-reader.js"
 import { InstanceSearch } from "./reading/instance-search.js"
 import { MigrationReader } from "./reading/migration-reader.js"
+import { VariableNameReader } from "./reading/variable-name-reader.js"
 
 export interface C7Readers {
   readonly engine: EngineReader
@@ -65,6 +66,7 @@ export interface C7Readers {
   readonly statistics: ElementStatisticsReader
   readonly calls: CalledProcessReader
   readonly instances: InstanceSearch
+  readonly variableNames: VariableNameReader
   readonly instanceDetails: InstanceDetailReader
   readonly incidents: IncidentSearch
   readonly incidentDetails: IncidentDetailsReader
@@ -95,6 +97,7 @@ export class C7ProcessRuntime implements ProcessRuntime {
         queries: new InstanceQueryMapper(),
         summaries: new HistoricSummaryMapper(historicRefs),
       }),
+      variableNames: new VariableNameReader(client),
       instanceDetails: new InstanceDetailReader(client, {
         summaries: new InstanceSummaryMapper(refs),
         waits: new WaitStateMapper(),
@@ -152,6 +155,10 @@ export class C7ProcessRuntime implements ProcessRuntime {
 
   countInstances(filter: InstanceFilter): Promise<number> {
     return ErrorTranslation.translated(() => this.readers.instances.count(filter))
+  }
+
+  listVariableNames(definitionId: DefinitionId): Promise<readonly string[]> {
+    return ErrorTranslation.translated(() => this.readers.variableNames.names(definitionId))
   }
 
   getInstanceDetail(instanceId: InstanceId): Promise<InstanceDetail | undefined> {

@@ -109,7 +109,8 @@ core finds the called process or instances in its snapshot and opens them throug
 snapshot lists it. `filterProcesses` costs no engine call: the overview filters its
 snapshot again. `filterInstances` carries up to five variable conditions as text with an
 optional type; `VariableConditionRules` decides the type, and the guard drops a filter
-whose condition does not fit it. `openWebUi` carries no URL either: the core picks the shown version or
+whose condition does not fit it. `suggestVariableNames` names nothing either: the core
+reads the names of the shown version once and puts them into the view. `openWebUi` carries no URL either: the core picks the shown version or
 instance, or the engine's start page in the overview, the extension builds the URL with
 the connection's `EngineWebUi` and hands it to `vscode.env.openExternal`. Nothing
 awaits a reply, so no correlation is needed. View models carry ISO

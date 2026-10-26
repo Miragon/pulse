@@ -113,6 +113,7 @@ describe("every intent shape", () => {
         ],
       },
     },
+    { type: "suggestVariableNames" },
     { type: "openInstance", instanceId: "i", toSide: true },
     { type: "openDefinition", bpmnProcessId: "order", definitionId: "order:1" },
     { type: "openIncidentDetails", incidentId: "x" },

@@ -11,7 +11,8 @@ import { SabotagedRuntime, type Sabotage } from "./support/sabotaged-runtime.js"
 const ALL = { limit: 1000 }
 
 const VARIABLE_CASES: readonly CaseName[] = Object.values(CASE).filter(
-  (name) => name.startsWith("variables:") && name !== CASE.variablesEmpty,
+  (name) =>
+    name.startsWith("variables:") && name !== CASE.variablesEmpty && name !== CASE.variablesNamed,
 )
 
 function withoutVariables(filter: InstanceFilter): InstanceFilter {
@@ -237,6 +238,26 @@ const SABOTAGES: readonly (readonly [string, Sabotage, readonly CaseName[]])[] =
       },
     }),
     [CASE.variablesEnded, CASE.variablesNotEquals, CASE.variablesNull, CASE.instancesCounted],
+  ],
+  [
+    "a version names the variables of every version",
+    (runtime, harness) => ({
+      listVariableNames: async (definitionId) => [
+        ...(await runtime.listVariableNames(definitionId)),
+        ...(await runtime.listVariableNames(harness.world.definitionIds["dispatch@1"])),
+      ],
+    }),
+    [CASE.variablesNamed],
+  ],
+  [
+    "a version names a variable once per instance",
+    (runtime) => ({
+      listVariableNames: async (definitionId) => {
+        const names = await runtime.listVariableNames(definitionId)
+        return [...names, ...names]
+      },
+    }),
+    [CASE.variablesNamed],
   ],
   [
     "an empty list of conditions finds nothing",

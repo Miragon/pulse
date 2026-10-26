@@ -12,6 +12,7 @@ import {
 export interface VariableConditionDialogProps {
   readonly initial?: VariableConditionView | undefined
   readonly others: number
+  readonly suggestions: readonly string[]
   readonly onApply: (condition: VariableConditionView) => void
   readonly onClose: () => void
 }
@@ -30,7 +31,12 @@ function FieldError({ id, text }: { readonly id: string; readonly text: string |
   )
 }
 
-function NameField({ draft, errors, onDraft }: FieldProps) {
+function NameField({
+  draft,
+  errors,
+  onDraft,
+  suggestions,
+}: FieldProps & { readonly suggestions: readonly string[] }) {
   const id = useId()
   return (
     <div class="condition-dialog__field">
@@ -41,6 +47,8 @@ function NameField({ draft, errors, onDraft }: FieldProps) {
         value={draft.name}
         spellcheck={false}
         maxLength={255}
+        list={`${id}-names`}
+        autocomplete="off"
         autoFocus
         aria-invalid={errors.name !== undefined || undefined}
         aria-describedby={`${id}-hint ${id}-error`}
@@ -49,6 +57,11 @@ function NameField({ draft, errors, onDraft }: FieldProps) {
           onDraft((current) => ({ ...current, name }))
         }}
       />
+      <datalist id={`${id}-names`}>
+        {suggestions.map((name) => (
+          <option key={name} value={name} />
+        ))}
+      </datalist>
       <p id={`${id}-hint`} class="condition-dialog__hint muted">
         Names are case sensitive.
       </p>
@@ -192,7 +205,7 @@ function useModal(onClose: () => void) {
 }
 
 export function VariableConditionDialog(props: VariableConditionDialogProps) {
-  const { initial, others, onApply, onClose } = props
+  const { initial, others, suggestions, onApply, onClose } = props
   const { dialog, onCancel } = useModal(onClose)
   const titleId = useId()
   const [draft, setDraft] = useState(() => VariableDraft.from(initial))
@@ -223,7 +236,7 @@ export function VariableConditionDialog(props: VariableConditionDialogProps) {
           {initial === undefined ? "Filter by variable" : "Edit variable condition"}
         </h2>
         <p class="muted">An instance matches when all conditions hold.</p>
-        <NameField draft={draft} errors={errors} onDraft={setDraft} />
+        <NameField draft={draft} errors={errors} onDraft={setDraft} suggestions={suggestions} />
         <ComparisonFields draft={draft} errors={errors} onDraft={setDraft} />
         <ValueField draft={draft} errors={errors} onDraft={setDraft} />
         {errors.count !== undefined && (

@@ -30,6 +30,7 @@ export class MessageGuards {
     resumeLiveUpdates: () => true,
     turnOnLiveUpdates: () => true,
     activity: () => true,
+    suggestVariableNames: () => true,
     selectMatching: () => true,
     clearSelection: () => true,
     stopBulk: () => true,

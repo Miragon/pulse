@@ -83,7 +83,7 @@ describe("the variable search of the definition panel", () => {
   it("adds a condition from the dialog and keeps the other filters", async () => {
     harness = mountApp()
     harness.publish(ready(FILTERED_DEFINITION_VIEW))
-    const opener = await vi.waitFor(() => buttonNamed(harness.root, "Variables"))
+    const opener = await vi.waitFor(() => labelled(harness.root, "Filter by variables"))
 
     const dialog = await openDialog(harness, opener)
     enter(field(dialog, "Name"), " amount ")
@@ -108,7 +108,7 @@ describe("the variable search of the definition panel", () => {
     harness.publish(ready(DEFINITION_VIEW))
     const dialog = await openDialog(
       harness,
-      await vi.waitFor(() => buttonNamed(harness.root, "Variables")),
+      await vi.waitFor(() => labelled(harness.root, "Filter by variables")),
     )
 
     await apply(dialog)
@@ -137,7 +137,7 @@ describe("the variable search of the definition panel", () => {
     harness.publish(ready(DEFINITION_VIEW))
     const dialog = await openDialog(
       harness,
-      await vi.waitFor(() => buttonNamed(harness.root, "Variables")),
+      await vi.waitFor(() => labelled(harness.root, "Filter by variables")),
     )
 
     enter(field(dialog, "Name"), "dueAt")
@@ -166,7 +166,7 @@ describe("the variable search of the definition panel", () => {
     harness.publish(ready(DEFINITION_VIEW))
     const dialog = await openDialog(
       harness,
-      await vi.waitFor(() => buttonNamed(harness.root, "Variables")),
+      await vi.waitFor(() => labelled(harness.root, "Filter by variables")),
     )
 
     enter(field(dialog, "Name"), "giftNote")
@@ -192,7 +192,7 @@ describe("the variable search of the definition panel", () => {
   it("shows every condition as a chip that edits or removes it", async () => {
     harness = mountApp()
     harness.publish(ready({ ...DEFINITION_VIEW, filter: CONDITIONS, variableLabels: LABELS }))
-    await vi.waitFor(() => buttonNamed(harness.root, "Variables · 2"))
+    await vi.waitFor(() => labelled(harness.root, "Filter by variables, 2 active"))
 
     labelled(harness.root, "Remove condition amount > 100").click()
     expect(lastFilter(harness)).toEqual({ scope: "running", variables: [CONDITIONS.variables![0]] })
@@ -228,7 +228,7 @@ describe("the variable search of the definition panel", () => {
   it("keeps the conditions when the scope changes", async () => {
     harness = mountApp()
     harness.publish(ready({ ...DEFINITION_VIEW, filter: CONDITIONS, variableLabels: LABELS }))
-    await vi.waitFor(() => buttonNamed(harness.root, "Variables · 2"))
+    await vi.waitFor(() => labelled(harness.root, "Filter by variables, 2 active"))
 
     radioNamed(harness.root, "Ended").click()
 
@@ -240,7 +240,7 @@ describe("the variable search of the definition panel", () => {
     harness.publish(ready(SELECTING_DEFINITION))
     const dialog = await openDialog(
       harness,
-      await vi.waitFor(() => buttonNamed(harness.root, "Variables")),
+      await vi.waitFor(() => labelled(harness.root, "Filter by variables")),
     )
 
     await userEvent.keyboard("{Escape}")
@@ -264,6 +264,20 @@ describe("the variable search of the definition panel", () => {
     clear.click()
 
     expect(lastFilter(harness)).toEqual({ scope: "running" })
+  })
+
+  it("asks the host for the variable names and suggests them", async () => {
+    harness = mountApp()
+    harness.publish(ready({ ...DEFINITION_VIEW, variableNames: ["amount", "route"] }))
+    const dialog = await openDialog(
+      harness,
+      await vi.waitFor(() => labelled(harness.root, "Filter by variables")),
+    )
+
+    expect(harness.posted).toContainEqual({ type: "suggestVariableNames" })
+    const name = field(dialog, "Name")
+    const options = [...(name.list?.options ?? [])].map((option) => option.value)
+    expect(options).toEqual(["amount", "route"])
   })
 
   it("names a condition by its name until the host labels it", async () => {
