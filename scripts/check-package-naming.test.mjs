@@ -36,7 +36,7 @@ const WORKSPACE = [
   "",
 ].join("\n")
 const EXTENSION = {
-  name: "pulse",
+  name: "pulse-cockpit",
   publisher: "miragon-gmbh",
   engines: { vscode: "^1.101.0" },
   devDependencies: { "@types/vscode": "1.101.0" },
@@ -159,16 +159,16 @@ describe("checkPackageName: VS Code extension (an app with engines.vscode)", () 
   it("rejects a scoped name: vsce takes none", () => {
     assertOne(
       checkPackageName("apps/vscode", { ...EXTENSION, name: "@miragon/pulse" }),
-      /must be named 'pulse'.*unscoped/,
+      /must be named 'pulse-cockpit'.*unscoped/,
       "scoped",
     )
   })
 
   it("rejects every other name, a missing one included", () => {
-    for (const name of ["vscode", "pulse-vs-code", "miragon-vscode", undefined]) {
+    for (const name of ["pulse", "vscode", "pulse-vs-code", "miragon-vscode", undefined]) {
       assertOne(
         checkPackageName("apps/vscode", { ...EXTENSION, name }),
-        /must be named 'pulse'/,
+        /must be named 'pulse-cockpit'/,
         String(name),
       )
     }
@@ -205,7 +205,7 @@ describe("checkPackageName: VS Code extension (an app with engines.vscode)", () 
       ["^1.101.0", "1.101.9", "devDependencies"],
       ["^1.101.0-insider", "1.101.0", "devDependencies"],
     ]) {
-      const manifest = { name: "pulse", engines: { vscode: engine }, [field]: {} }
+      const manifest = { name: "pulse-cockpit", engines: { vscode: engine }, [field]: {} }
       manifest[field]["@types/vscode"] = types
       assert.deepEqual(checkPackageName("apps/vscode", manifest), [], `${engine} vs ${types}`)
     }
@@ -219,7 +219,7 @@ describe("checkPackageName: VS Code extension (an app with engines.vscode)", () 
       ["*", "1.101.0", "devDependencies"],
       ["^1.100.9", "1.101.0", "devDependencies"],
     ]) {
-      const manifest = { name: "pulse", engines: { vscode: engine }, [field]: {} }
+      const manifest = { name: "pulse-cockpit", engines: { vscode: engine }, [field]: {} }
       manifest[field]["@types/vscode"] = types
       assertOne(
         checkPackageName("apps/vscode", manifest),
@@ -253,7 +253,7 @@ describe("checkPackageName: VS Code extension (an app with engines.vscode)", () 
   it("fails closed, once, on an engines.vscode it cannot read while @types/vscode is declared", () => {
     assertOne(
       checkPackageName("apps/vscode", {
-        name: "pulse",
+        name: "pulse-cockpit",
         engines: { vscode: "insiders" },
         dependencies: { "@types/vscode": "1.101.0" },
         devDependencies: { "@types/vscode": "1.101.0" },
@@ -333,7 +333,7 @@ describe("checkPackageName: directory rules", () => {
     }
     assertOne(
       checkPackageName("apps/vscode-client", {
-        name: "pulse",
+        name: "pulse-cockpit",
         engines: { vscode: "^1.101.0" },
       }),
       /role suffix -client/,
@@ -350,7 +350,7 @@ describe("checkPackageName: directory rules", () => {
         "packages/connectors/camunda/pulse-camunda7-domain",
         { name: "@miragon/pulse-pulse-camunda7-domain" },
       ],
-      ["apps/pulse-vscode", { name: "pulse", engines: { vscode: "^1.101.0" } }],
+      ["apps/pulse-vscode", { name: "pulse-cockpit", engines: { vscode: "^1.101.0" } }],
     ]) {
       assertOne(checkPackageName(dir, manifest), /repeats the product prefix/, dir)
     }
@@ -538,8 +538,8 @@ describe("checkAppDependencies: no package declares an app", () => {
 
   it("fails the root package.json declaring an app (Node resolves it from every directory below)", () => {
     assertOne(
-      checkAppDependencies(future([".", { devDependencies: { pulse: "workspace:*" } }])),
-      /^package\.json: devDependencies declares the app pulse \(apps\/vscode\)/,
+      checkAppDependencies(future([".", { devDependencies: { "pulse-cockpit": "workspace:*" } }])),
+      /^package\.json: devDependencies declares the app pulse-cockpit \(apps\/vscode\)/,
       "root",
     )
   })
@@ -643,7 +643,7 @@ describe("checkPackageNaming over a fixture tree", () => {
       },
       "docs/package.json": {
         ...FUTURE["docs/package.json"],
-        devDependencies: { pulse: "workspace:*" },
+        devDependencies: { "pulse-cockpit": "workspace:*" },
       },
     })
     assert.deepEqual(

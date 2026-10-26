@@ -44,10 +44,10 @@ jobs:
           key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium-shell
 
       - if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: pnpm --fail-if-no-match --filter pulse exec playwright install --with-deps --only-shell chromium
+        run: pnpm --fail-if-no-match --filter pulse-cockpit exec playwright install --with-deps --only-shell chromium
 
       - if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: pnpm --fail-if-no-match --filter pulse exec playwright install-deps chromium
+        run: pnpm --fail-if-no-match --filter pulse-cockpit exec playwright install-deps chromium
 
       - run: pnpm build
 
@@ -241,7 +241,7 @@ jobs:
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         env:
           PULSE_ENGINE_IMAGE: ${{ matrix.image }}
-        run: pnpm --fail-if-no-match --filter pulse run test:engines
+        run: pnpm --fail-if-no-match --filter pulse-cockpit run test:engines
 
   # The one check of the engine matrix a ruleset can require: each leg reports under its own
   # name, and scripts/check-github-config.mjs refuses a required matrix job.
@@ -300,7 +300,7 @@ jobs:
           path: apps/vscode/.vscode-test
           key: vscode-test-${{ runner.os }}-${{ steps.vscode.outputs.version }}
 
-      - run: xvfb-run -a pnpm --fail-if-no-match --filter pulse run test:smoke
+      - run: xvfb-run -a pnpm --fail-if-no-match --filter pulse-cockpit run test:smoke
 
   # The .vsix a release would ship, built and checked on every pull request: vsce packages the
   # production bundles (--no-dependencies: esbuild bundled them), and the package carries the
@@ -329,7 +329,7 @@ jobs:
       - run: pnpm turbo build --filter=pulse...
 
       - name: Package
-        run: pnpm --fail-if-no-match --filter pulse run package --out "$RUNNER_TEMP/pulse.vsix"
+        run: pnpm --fail-if-no-match --filter pulse-cockpit run package --out "$RUNNER_TEMP/pulse.vsix"
 
       - name: The package ships the bundles and nothing else
         shell: bash
