@@ -225,7 +225,7 @@ jobs:
       # The suites run what CI built: the CLI's dist/pulse-cli.js and its workspace
       # dependencies, and the extension's (it has none yet).
       - id: build
-        run: pnpm turbo build --filter=@miragon/pulse-cli... --filter=pulse...
+        run: pnpm turbo build --filter=@miragon/pulse-cli... --filter=pulse-cockpit...
 
       # Each suite runs even when an earlier one failed, so a red leg names every failing suite.
       # The packed-tarball test (pnpm pack, npm install -g into a temporary prefix, run the
@@ -284,7 +284,7 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm turbo build --filter=pulse...
+      - run: pnpm turbo build --filter=pulse-cockpit...
 
       - id: vscode
         name: Current VS Code stable
@@ -326,7 +326,7 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm turbo build --filter=pulse...
+      - run: pnpm turbo build --filter=pulse-cockpit...
 
       - name: Package
         run: pnpm --fail-if-no-match --filter pulse-cockpit run package --out "$RUNNER_TEMP/pulse.vsix"
