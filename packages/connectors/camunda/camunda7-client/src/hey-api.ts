@@ -8,7 +8,7 @@ import { mergeHeaders } from "./generated/client/index.js"
  * `extra-files`), in step with `package.json`; `client.test.ts` holds the two
  * equal.
  */
-const USER_AGENT = "@miragon/pulse-camunda7-client/0.22.0" // x-release-please-version
+const USER_AGENT = "@miragon/pulse-camunda7-client/0.23.0" // x-release-please-version
 
 /**
  * Runtime client defaults, referenced by the generator config
