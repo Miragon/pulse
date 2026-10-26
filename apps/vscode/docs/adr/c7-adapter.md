@@ -50,7 +50,9 @@ on top of a **local engine CLI wrapper** in `apps/vscode/src/adapters/c7/engine-
   package the CLI and the MCP server share) can replace it without touching the readers.
 - **Today it spawns the bundled CLI** with VS Code's own runtime (`process.execPath`,
   `ELECTRON_RUN_AS_NODE=1`; VS Code ≥ 1.101 ships Node ≥ 22.12). The extension build
-  copies `@miragon/operate/dist/operate.js` (pinned exactly) next to its bundle.
+  bundles `@miragon/operate/dist/operate.js` (pinned exactly) with its dependencies into
+  `dist/engine-cli.js`, since the .vsix carries no `node_modules`
+  (`apps/vscode/test/architecture/engine-cli-bundle.test.ts` runs it without them).
 - **The engine shown is the engine queried.** URL and credentials come only from the
   selected target, credentials only through `OPERATE_USERNAME`/`OPERATE_PASSWORD`/
   `OPERATE_TOKEN`; inherited `OPERATE_*` and `NODE_*` variables (`NODE_OPTIONS`,
