@@ -86,6 +86,7 @@ export default miragonDocs({
       {
         text: "Reference",
         items: [
+          { text: "Tools and settings", link: "/reference" },
           { text: "Operations", link: "/operations" },
           { text: "Architecture", link: "/architecture" },
           { text: "Developer guide", link: "/developer" },

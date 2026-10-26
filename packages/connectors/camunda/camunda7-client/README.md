@@ -1,5 +1,19 @@
 # @miragon/pulse-camunda7-client
 
+[![npm](https://img.shields.io/npm/v/@miragon/pulse-camunda7-client?style=flat-square)](https://www.npmjs.com/package/@miragon/pulse-camunda7-client)
+[![CI](https://img.shields.io/github/actions/workflow/status/Miragon/pulse/ci.yml?style=flat-square&label=ci)](https://github.com/Miragon/pulse/actions/workflows/ci.yml)
+[![Docs](https://img.shields.io/badge/docs-miragon.github.io%2Fpulse-335DE5?style=flat-square)](https://miragon.github.io/pulse/)
+
+A typed TypeScript client for the REST API of Camunda 7, CIB seven and Operaton.
+
+## Install
+
+```sh
+npm install @miragon/pulse-camunda7-client zod
+```
+
+## Overview
+
 TypeScript client for the [CIB Seven](https://cibseven.org/) REST API: an SDK
 generated with [`@hey-api/openapi-ts`](https://heyapi.dev/) plus hand-written,
 MCP-oriented Zod input schemas. There is no official TypeScript client for

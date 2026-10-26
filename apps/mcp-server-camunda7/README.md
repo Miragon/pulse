@@ -1,5 +1,26 @@
 # @miragon/pulse-mcp-server-camunda7
 
+[![Image](https://img.shields.io/badge/image-ghcr.io%2Fmiragon%2Fpulse--server-2496ED?style=flat-square&logo=docker&logoColor=white)](https://github.com/Miragon/pulse/pkgs/container/pulse-server)
+[![Docs](https://img.shields.io/badge/docs-miragon.github.io%2Fpulse-335DE5?style=flat-square)](https://miragon.github.io/pulse/)
+
+Ask your AI assistant about your Camunda 7, CIB seven and Operaton engines, and get the answer as
+an interactive view in the chat.
+
+![A chat asks why order ORD-10130 is stuck; Pulse answers with the incident view: the payment task failed because the card expired, with a retry button and the process diagram](../../docs/assets/chat-incident.png)
+
+## Connect
+
+```bash
+docker run --rm -p 127.0.0.1:8400:8400 \
+  -e CAMUNDA_BASE_URL=http://host.docker.internal:8080/engine-rest \
+  ghcr.io/miragon/pulse-server:latest
+claude mcp add --transport http pulse http://localhost:8400/mcp
+```
+
+Claude Desktop, claude.ai, ChatGPT and other hosts: [Usage](../../docs/usage.md#connect-your-assistant).
+
+## Overview
+
 The MCP host for [Pulse](../../README.md). It composes the `camunda7` and `analytics` modules
 into a single [mcp-use](https://github.com/mcp-use/mcp-use) server, bundles every React widget into
 one Vite bundle served as per-tool view resources, and serves the streamable-HTTP MCP transport on
@@ -52,7 +73,7 @@ Pulse assumes a Camunda 7 engine. For CIB seven or Operaton add `-e CAMUNDA_ENGI
 (or `operaton`): it picks the engine's cockpit links and the product name the views show.
 
 Configuration is entirely environment-driven. See
-[Configuration](../../README.md#configuration), [Toolsets](../../README.md#toolsets) and
+[Configuration](../../docs/reference.md#configuration), [Toolsets](../../docs/reference.md#toolsets) and
 [`docs/operations.md`](../../docs/operations.md). To exercise write paths locally, set
 `MCP_ACTIVE_MODULES=camunda7:admin,analytics:standard` in `.env` (plus
 `CAMUNDA_ALLOW_DEPLOYMENTS=true` for deployments).

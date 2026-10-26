@@ -297,6 +297,7 @@ const DOCS_BUDGETS: Record<string, number> = {
   "developer.md": 80,
   "operations.md": 120,
   "usage.md": 150,
+  "reference.md": 160,
   // The CLI's pages (docs/cli/).
   "cli/index.md": 40,
   "cli/getting-started.md": 90,
