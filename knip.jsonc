@@ -110,9 +110,6 @@
         "cytoscape-cose-bilkent",
         "dayjs",
         "debug",
-        // Provided by vitepress, which aliases `vue` to its own copy; the kit's
-        // theme imports it directly.
-        "vue",
       ],
     },
   },
