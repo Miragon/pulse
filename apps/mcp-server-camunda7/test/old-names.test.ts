@@ -453,8 +453,8 @@ describe("pnpm and turbo filters", () => {
   const FLAG = "--filter"
   const SHORT = "-F"
   it.each([
-    [`pnpm ${FLAG} pulse-vscode build`, []],
-    [`pnpm ${FLAG}=pulse-vscode... build`, []],
+    [`pnpm ${FLAG} pulse build`, []],
+    [`pnpm ${FLAG}=pulse... build`, []],
     [`pnpm ${FLAG} @miragon/pulse-widget-shell test`, []],
     [`pnpm ${FLAG} pulse-vsocde build`, ["pulse-vsocde"]],
     [`pnpm ${FLAG}=pulse-vsocde^... build`, ["pulse-vsocde"]],
@@ -462,14 +462,14 @@ describe("pnpm and turbo filters", () => {
     [`pnpm ${SHORT} pulse-vsocde build`, ["pulse-vsocde"]],
     [`"x": "pnpm ${FLAG} \\"pulse-vsocde\\" build"`, ["pulse-vsocde"]],
     // One stale name among valid ones passes --fail-if-no-match, so it is checked on its own.
-    [`pnpm ${FLAG} pulse-vscode ${FLAG} pulse-vsocde build`, ["pulse-vsocde"]],
+    [`pnpm ${FLAG} pulse ${FLAG} pulse-vsocde build`, ["pulse-vsocde"]],
     [`pnpm ${FLAG} @miragon/pulse-widget-shel test`, ["@miragon/pulse-widget-shel"]],
     // A path selector names no package: --fail-if-no-match covers it on a gate path.
     [`pnpm ${FLAG} ./apps/vscod build`, []],
     [`pnpm ${FLAG} "./modules/**" build`, []],
     [`pnpm ${FLAG} "{apps/vscod}" build`, []],
   ] as const)("the filter check reads %s", (text, stale) => {
-    const known = new Set(["@miragon/pulse-widget-shell", "pulse-vscode"])
+    const known = new Set(["@miragon/pulse-widget-shell", "pulse"])
     expect(unknownFilters("x", [text], known)).toEqual(stale.map((name) => `x:1 ${FLAG} ${name}`))
   })
 

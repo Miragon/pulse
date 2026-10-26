@@ -15,7 +15,9 @@
  *   because the dependency-cruiser rules match the suffix by name.
  * - The npm name is @miragon/pulse-<dir>. The one exception is a VS Code
  *   extension, an app whose package.json declares engines.vscode: vsce takes no
- *   scope, so it is named pulse-<dir>, its engines.vscode is a non-empty
+ *   scope, so it is named after the product, pulse (Marketplace id
+ *   miragon-gmbh.pulse; the root package is pulse-monorepo, so a filter on
+ *   pulse names the extension alone), its engines.vscode is a non-empty
  *   string, and the lowest @types/vscode it allows never exceeds the lowest VS
  *   Code engines.vscode allows (vsce refuses that package). engines.vscode
  *   outside apps/ fails: every npm gate skips an extension, so a package that
@@ -91,7 +93,7 @@ const DEPENDENCY_FIELDS = [
 ]
 
 const SCOPE = "@miragon/pulse-"
-const EXTENSION_PREFIX = "pulse-"
+const EXTENSION_NAME = "pulse"
 const KEBAB_CASE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const PRODUCT_PREFIX = /^pulse(?:-|$)/
 const ROLE_LIST = CONNECTOR_ROLES.map((role) => `-${role}`)
@@ -320,7 +322,7 @@ export function checkPackageName(dir, manifest) {
   }
   if (kind === "docs") return [...errors, ...checkDocs(pkg)]
   const base = path.posix.basename(dir)
-  const expected = extension && kind === "app" ? `${EXTENSION_PREFIX}${base}` : `${SCOPE}${base}`
+  const expected = extension && kind === "app" ? EXTENSION_NAME : `${SCOPE}${base}`
   errors.push(...checkDirectory(dir, kind, base, expected))
   if (extension && kind === "app") return [...errors, ...checkExtension(dir, pkg, expected)]
   if (pkg.name !== expected) {

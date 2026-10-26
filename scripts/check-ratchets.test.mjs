@@ -1730,7 +1730,7 @@ describe("package gate scripts are pinned to the merge base", () => {
     }
     const app = (scripts) =>
       JSON.stringify({
-        name: "pulse-vscode",
+        name: "pulse",
         engines: { vscode: "^1.101.0" },
         scripts: { ...BASE, ...CI_SCRIPTS, ...scripts },
       })
@@ -1757,7 +1757,7 @@ describe("package gate scripts are pinned to the merge base", () => {
         const violations = checkRatchetFile(
           extension,
           app({}),
-          JSON.stringify({ name: "pulse-vscode", scripts }),
+          JSON.stringify({ name: "pulse", scripts }),
         )
         assert.equal(violations.length, 1, script)
         assert.match(violations[0], new RegExp(`"${script}" was removed — a CI or release job`))

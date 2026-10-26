@@ -85,7 +85,7 @@ export default miragonDocs({
         { text: "Installation", link: "/vscode/installation" },
         {
           text: "Marketplace",
-          link: "https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.pulse-vscode",
+          link: "https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.pulse",
         },
         { text: "Configuration", link: "/vscode/configuration" },
         { text: "Usage", link: "/vscode/usage" },

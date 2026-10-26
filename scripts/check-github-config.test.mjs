@@ -104,7 +104,7 @@ const CLI = published("apps/cli", {
   name: "@miragon/pulse-cli",
   bin: { "pulse-cli": "dist/cli.js" },
 })
-const VSCODE = { "apps/vscode": { name: "pulse-vscode", engines: { vscode: "^1.101.0" } } }
+const VSCODE = { "apps/vscode": { name: "pulse", engines: { vscode: "^1.101.0" } } }
 const DOMAIN = published("packages/connectors/camunda/camunda7-domain", {
   name: "@miragon/pulse-camunda7-domain",
 })
@@ -133,7 +133,7 @@ describe("the repo", () => {
   it("publishes exactly the packages that are neither private nor an extension", () => {
     assert.equal(isNpmPublished({ name: "a" }), true)
     assert.equal(isNpmPublished({ name: "a", private: true }), false)
-    assert.equal(isNpmPublished({ name: "pulse-vscode", engines: { vscode: "^1.101.0" } }), false)
+    assert.equal(isNpmPublished({ name: "pulse", engines: { vscode: "^1.101.0" } }), false)
     assert.equal(isNpmPublished({ name: "a", engines: { node: ">=22" } }), true)
   })
 })
@@ -690,7 +690,7 @@ describe("checkPublishMatrix", () => {
     assert.deepEqual(matrixErrors(workspace({ ...TODAY, ...VSCODE })), [])
     const listed = matrixErrors(workspace({ ...TODAY, ...VSCODE }), addToMatrix("apps/vscode"))
     assert.equal(listed.length, 1)
-    assert.match(listed[0], /apps\/vscode \(pulse-vscode\) declares engines\.vscode: .*vsce\/ovsx/)
+    assert.match(listed[0], /apps\/vscode \(pulse\) declares engines\.vscode: .*vsce\/ovsx/)
     const privateExtension = {
       "apps/vscode": { ...VSCODE["apps/vscode"], private: true },
     }
@@ -1292,7 +1292,7 @@ describe("the Resolve extension step", () => {
   const script = stepNamed(VSCODE_PUBLISH.jobs.package, "pkg").run
   const repo = tempDir("gh-config-resolve-vsix-")
   const extension = (manifest) => ({
-    name: "pulse-vscode",
+    name: "pulse",
     version: "1.2.3",
     engines: { vscode: "^1.101.0" },
     ...manifest,
@@ -1302,7 +1302,7 @@ describe("the Resolve extension step", () => {
     "apps/vscode": extension({}),
     "apps/beta": extension({ name: "pulse-beta", version: "1.2.3-beta.1" }),
     "apps/plain": { name: "pulse-plain", version: "1.2.3" },
-    "apps/scoped": extension({ name: "@miragon/pulse-vscode" }),
+    "apps/scoped": extension({ name: "@miragon/pulse" }),
   })) {
     writeFile(repo, `${dir}/package.json`, JSON.stringify(manifest))
   }
@@ -1319,19 +1319,19 @@ describe("the Resolve extension step", () => {
       const result = resolve("apps/vscode", TAG)
       assert.equal(result.status, 0, result.stdout + result.stderr)
       assert.deepEqual(result.output, [
-        "name=pulse-vscode",
+        "name=pulse",
         "version=1.2.3",
-        "vsix=pulse-vscode-1.2.3.vsix",
-        "artifact=vsix-pulse-vscode",
+        "vsix=pulse-1.2.3.vsix",
+        "artifact=vsix-pulse",
       ])
     })
   }
 
   for (const [DIR, TAG, message] of [
-    ["apps/vscode", "v1.2.4", /pulse-vscode@1\.2\.3 is not the release v1\.2\.4/],
+    ["apps/vscode", "v1.2.4", /pulse@1\.2\.3 is not the release v1\.2\.4/],
     ["apps/beta", "", /pulse-beta@1\.2\.3-beta\.1: the Marketplace takes major\.minor\.patch only/],
     ["apps/plain", "", /apps\/plain declares no engines\.vscode/],
-    ["apps/scoped", "", /is named "@miragon\/pulse-vscode": vsce takes an unscoped lowercase name/],
+    ["apps/scoped", "", /is named "@miragon\/pulse": vsce takes an unscoped lowercase name/],
     ["apps/..", "", /apps\/\.\. is no app directory/],
     ["apps/missing", "", /is no app directory/],
     ["packages/core/widget-shell", "", /is no app directory/],
@@ -1462,7 +1462,7 @@ describe("checkDependabot", () => {
     assert.ok(
       matches(
         dependabotErrors(ignoring(undefined), { packages }),
-        /apps\/vscode \(pulse-vscode\) declares engines\.vscode/,
+        /apps\/vscode \(pulse\) declares engines\.vscode/,
       ),
     )
     assert.ok(

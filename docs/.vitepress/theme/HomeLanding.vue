@@ -43,7 +43,7 @@ const clients = [
     name: "VS Code",
     title: "VS Code · Order fulfillment",
     effect: "The runtime on your model, the root cause next to your code.",
-    action: "code --install-extension miragon-gmbh.pulse-vscode --pre-release",
+    action: "code --install-extension miragon-gmbh.pulse --pre-release",
     link: "/vscode/installation",
     beta: true,
   },

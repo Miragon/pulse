@@ -282,7 +282,7 @@ describe("strykerPackages + unknownPackageRoots: no stryker package outside the 
       "apps/cli/package.json": JSON.stringify({ name: "@miragon/pulse-cli" }),
       "apps/cli/stryker.config.json": STRYKER,
       "apps/vscode/package.json": JSON.stringify({
-        name: "pulse-vscode",
+        name: "pulse",
         engines: { vscode: "^1.95.0" },
       }),
       "apps/vscode/stryker.config.json": STRYKER,

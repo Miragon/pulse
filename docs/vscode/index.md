@@ -2,7 +2,7 @@
 
 ::: warning Early version
 Pulse for VS Code is an early version, published as a pre-release (beta) on the
-[Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.pulse-vscode) and [Open VSX](https://open-vsx.org/extension/miragon-gmbh/pulse-vscode): expect rough edges and changes between
+[Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.pulse) and [Open VSX](https://open-vsx.org/extension/miragon-gmbh/pulse): expect rough edges and changes between
 releases ([Installation](./installation.md)). Writes are off for every engine but a local one
 unless you turn them on.
 :::

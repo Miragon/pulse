@@ -5,7 +5,7 @@
 
 > [!IMPORTANT]
 > **Spike phase.** Pulse for VS Code is an early prototype that explores whether this is worth
-> building. It ships as a pre-release (beta) on the [Marketplace](https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.pulse-vscode) and [Open VSX](https://open-vsx.org/extension/miragon-gmbh/pulse-vscode), see [Installation](https://miragon.github.io/pulse/vscode/installation). Changes to engine data
+> building. It ships as a pre-release (beta) on the [Marketplace](https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.pulse) and [Open VSX](https://open-vsx.org/extension/miragon-gmbh/pulse), see [Installation](https://miragon.github.io/pulse/vscode/installation). Changes to engine data
 > are off for every engine but a local one unless you turn them on (`pulse.writes`).
 
 A VS Code extension that shows what your process engine is running, right next to your BPMN
@@ -37,23 +37,23 @@ Decisions and their reasons: [docs/adr](docs/adr/README.md).
 Run these from the repository root; the repository's bar (`pnpm build && pnpm typecheck &&
 pnpm test && pnpm lint`) covers the extension too.
 
-| Command                                           | What it does                                                                                 |
-| ------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `pnpm --filter pulse-vscode test`                 | unit tests and the webview tests in Chromium, with the coverage floors and the bundle budget |
-| `pnpm --filter pulse-vscode run typecheck`        | the whole app, then each layer with its runtime's globals only                               |
-| `pnpm --filter pulse-vscode run lint`             | ESLint with the extension's house rules                                                      |
-| `pnpm lint:architecture:vscode`                   | the closed-world dependency rules of the layers                                              |
-| `pnpm lint:deadcode:vscode`                       | knip over the extension: no dead file, dependency, export or exported type                   |
-| `pnpm --filter pulse-vscode run test:mutation`    | Stryker mutation testing of contract, core, the C7 adapter and the model adapter             |
-| `pnpm --filter pulse-vscode run test:engines`     | conformance kit against a real engine (`PULSE_ENGINE_IMAGE`, testcontainers)                 |
-| `pnpm --filter pulse-vscode run test:smoke`       | activation test in VS Code (`@vscode/test-cli`)                                              |
-| `pnpm --filter pulse-vscode run test:e2e`         | Playwright drives VS Code against `engine:up`                                                |
-| `pnpm --filter pulse-vscode run dev`              | browser dev host for the webview (fake engine or `PULSE_DEV_ENGINE`)                         |
-| `pnpm --filter pulse-vscode run sandbox:up`       | shop sandbox for manual testing (`sandbox:traffic`, `sandbox:down`)                          |
-| `pnpm --filter pulse-vscode run docs:screenshots` | one VS Code screenshot per use case into `apps/vscode/docs/screenshots` (sandbox running)    |
-| `pnpm --filter pulse-vscode run package`          | the `.vsix`                                                                                  |
+| Command                                    | What it does                                                                                 |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| `pnpm --filter pulse test`                 | unit tests and the webview tests in Chromium, with the coverage floors and the bundle budget |
+| `pnpm --filter pulse run typecheck`        | the whole app, then each layer with its runtime's globals only                               |
+| `pnpm --filter pulse run lint`             | ESLint with the extension's house rules                                                      |
+| `pnpm lint:architecture:vscode`            | the closed-world dependency rules of the layers                                              |
+| `pnpm lint:deadcode:vscode`                | knip over the extension: no dead file, dependency, export or exported type                   |
+| `pnpm --filter pulse run test:mutation`    | Stryker mutation testing of contract, core, the C7 adapter and the model adapter             |
+| `pnpm --filter pulse run test:engines`     | conformance kit against a real engine (`PULSE_ENGINE_IMAGE`, testcontainers)                 |
+| `pnpm --filter pulse run test:smoke`       | activation test in VS Code (`@vscode/test-cli`)                                              |
+| `pnpm --filter pulse run test:e2e`         | Playwright drives VS Code against `engine:up`                                                |
+| `pnpm --filter pulse run dev`              | browser dev host for the webview (fake engine or `PULSE_DEV_ENGINE`)                         |
+| `pnpm --filter pulse run sandbox:up`       | shop sandbox for manual testing (`sandbox:traffic`, `sandbox:down`)                          |
+| `pnpm --filter pulse run docs:screenshots` | one VS Code screenshot per use case into `apps/vscode/docs/screenshots` (sandbox running)    |
+| `pnpm --filter pulse run package`          | the `.vsix`                                                                                  |
 
-The webview tests need Chromium once: `pnpm --filter pulse-vscode exec playwright install chromium`.
+The webview tests need Chromium once: `pnpm --filter pulse exec playwright install chromium`.
 
 The README's `apps/vscode/docs/demo.gif` comes from the `product-shots` skill in
 [Miragon/corporate-identity](https://github.com/Miragon/corporate-identity), see
