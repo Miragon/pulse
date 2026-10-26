@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.23.0](https://github.com/Miragon/pulse/compare/v0.22.0...v0.23.0) (2026-10-26)
+
+
+### Features
+
+* **cli:** install the Claude Code plugin from this repository's marketplace ([#453](https://github.com/Miragon/pulse/issues/453)) ([fd8e324](https://github.com/Miragon/pulse/commit/fd8e3244b825abe92e144ba5cd2e5c3420544a05))
+
 ## [0.22.0](https://github.com/Miragon/pulse/compare/v0.21.0...v0.22.0) (2026-10-25)
 
 

@@ -1,6 +1,6 @@
 {
   "name": "@miragon/pulse-camunda7-connector",
-  "version": "0.22.0",
+  "version": "0.23.0",
   "description": "Camunda 7 / CIB Seven MCP module: operations tools, widget tools, and cockpit widgets.",
   "license": "MIT",
   "keywords": [
