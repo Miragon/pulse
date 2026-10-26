@@ -17,7 +17,7 @@ const BROKEN_BOARD = fileURLToPath(
 async function openBoard(window, title) {
   await showPulse(window)
   await window
-    .getByRole("treeitem", { name: new RegExp(`^${title}`) })
+    .getByRole("treeitem", { name: new RegExp(`^${title}, .*\\.board\\.json`) })
     .first()
     .click()
   await panelFrame(window).locator(".context-bar--board", { hasText: "As of" }).waitFor({
@@ -112,6 +112,44 @@ export const BOARD_USE_CASES = [
     },
     after: async () => {
       await rm(BROKEN_BOARD, { force: true })
+    },
+  },
+  {
+    file: "board-process",
+    title: "A board around one process",
+    shows:
+      "`order-fulfillment.board.json` draws the deployed diagram on shop-dev and shop-test with waiting and incident badges, lists the open incidents of both engines with element and message, and the running orders below.",
+    run: async (window) => {
+      await closeEditors(window)
+      await showPulse(window)
+      await signInToTest(window)
+      await openBoard(window, "Order fulfillment")
+      await panelFrame(window)
+        .locator(".board-card--processDiagram .badge-cluster")
+        .first()
+        .waitFor({
+          timeout: 30_000,
+        })
+      await restPointer(window)
+      await window.waitForTimeout(900)
+    },
+  },
+  {
+    file: "board-diagram-opens-element",
+    title: "A count in a board diagram opens the process there",
+    shows:
+      "A click on the incident count at an element opens the process on that engine, filtered to the instances with incident at that element.",
+    run: async (window) => {
+      await openBoard(window, "Order fulfillment")
+      await panelFrame(window)
+        .locator('.board-card--processDiagram [data-scope="withIncident"]')
+        .first()
+        .click()
+      await panelFrame(window).locator(".context-bar--definition", { hasText: "As of" }).waitFor({
+        timeout: 30_000,
+      })
+      await restPointer(window)
+      await window.waitForTimeout(900)
     },
   },
 ]

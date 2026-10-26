@@ -1,4 +1,12 @@
-import type { BoardTarget, BoardTile, BoardView, InstanceListFilter } from "../protocol/index.js"
+import type {
+  BoardTarget,
+  BoardTile,
+  BoardView,
+  InstanceListFilter,
+  ProcessDiagramTile,
+} from "../protocol/index.js"
+
+const DIAGRAM_SCOPES: readonly string[] = ["running", "withIncident"]
 
 export class BoardTargets {
   private readonly tiles: readonly BoardTile[]
@@ -8,23 +16,31 @@ export class BoardTargets {
   }
 
   showsInstance(engine: string, instanceId: string): boolean {
-    return this.tiles.some(
-      (tile) =>
-        tile.kind === "instanceList" &&
-        tile.groups.some(
+    return this.tiles.some((tile) => {
+      if (tile.kind === "instanceList") {
+        return tile.groups.some(
           (group) => group.engine === engine && group.rows.some((row) => row.id === instanceId),
-        ),
-    )
+        )
+      }
+      return (
+        tile.kind === "incidentList" &&
+        tile.groups.some(
+          (group) =>
+            group.engine === engine && group.rows.some((row) => row.instanceId === instanceId),
+        )
+      )
+    })
   }
 
   showsProcess(engine: string, bpmnProcessId: string, filter: InstanceListFilter): boolean {
     const asked = JSON.stringify(filter)
-    return this.targets().some(
+    const listed = this.targets().some(
       (target) =>
         target.engine === engine &&
         target.bpmnProcessId === bpmnProcessId &&
         JSON.stringify(target.filter) === asked,
     )
+    return listed || this.diagrams(engine, bpmnProcessId).some((tile) => this.draws(tile, filter))
   }
 
   reaches(engine: string): boolean {
@@ -36,6 +52,27 @@ export class BoardTargets {
   configures(engine: string): boolean {
     return this.view.engines.some(
       (status) => status.name === engine && status.problem?.needsCredentials === true,
+    )
+  }
+
+  private diagrams(engine: string, bpmnProcessId: string): readonly ProcessDiagramTile[] {
+    return this.tiles.filter(
+      (tile): tile is ProcessDiagramTile =>
+        tile.kind === "processDiagram" &&
+        tile.engine === engine &&
+        tile.bpmnProcessId === bpmnProcessId &&
+        tile.diagram !== undefined,
+    )
+  }
+
+  private draws(tile: ProcessDiagramTile, filter: InstanceListFilter): boolean {
+    if (!DIAGRAM_SCOPES.includes(filter.scope) || filter.businessKey !== undefined) {
+      return false
+    }
+    const elementId = filter.elementId
+    return (
+      elementId === undefined ||
+      (tile.diagram?.badges.some((badge) => badge.elementId === elementId) ?? false)
     )
   }
 

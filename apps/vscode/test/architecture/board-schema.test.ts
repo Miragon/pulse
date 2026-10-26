@@ -48,7 +48,9 @@ function expectWidgetLikeTheParser(widget: (typeof BoardVocabulary.WIDGETS)[numb
   const props = node.properties?.props
   expect(keysOf(node)).toEqual(BoardVocabulary.WIDGET_KEYS)
   expect(node.additionalProperties).toBe(false)
-  expect(node.required).toEqual(["widget"])
+  const required = BoardVocabulary.REQUIRED_PROPS[widget]
+  expect(node.required).toEqual(required.length === 0 ? ["widget"] : ["widget", "props"])
+  expect(props?.required ?? []).toEqual(required)
   expect(keysOf(props)).toEqual(BoardVocabulary.PROPS[widget])
   expect(props?.additionalProperties).toBe(false)
   expect(props?.properties?.engines?.uniqueItems).toBe(true)

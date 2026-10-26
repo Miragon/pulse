@@ -1,4 +1,10 @@
-import type { EngineBadge, InstanceListFilter, InstanceStateLabel, Problem } from "./view-models.js"
+import type {
+  ElementBadge,
+  EngineBadge,
+  InstanceListFilter,
+  InstanceStateLabel,
+  Problem,
+} from "./view-models.js"
 
 export type BoardColumn =
   "engine" | "process" | "version" | "businessKey" | "state" | "startedAt" | "endedAt" | "incident"
@@ -83,7 +89,49 @@ export interface IncidentSummaryTile {
   readonly rows: readonly IncidentSummaryRow[]
 }
 
-export type BoardTile = CounterTile | InstanceListTile | IncidentSummaryTile
+export interface BoardDiagram {
+  readonly processName: string
+  readonly version: number
+  readonly diagramXml: string
+  readonly badges: readonly ElementBadge[]
+}
+
+export interface ProcessDiagramTile {
+  readonly kind: "processDiagram"
+  readonly title: string
+  readonly engine: string
+  readonly bpmnProcessId: string
+  readonly diagram?: BoardDiagram
+  readonly notDeployed?: true
+}
+
+export interface BoardIncidentRow {
+  readonly engine: string
+  readonly id: string
+  readonly instanceId: string
+  readonly shortInstanceId: string
+  readonly processName: string
+  readonly bpmnProcessId: string
+  readonly elementId: string
+  readonly message: string
+  readonly createdAt: string
+}
+
+export interface IncidentGroup {
+  readonly engine: string
+  readonly rows: readonly BoardIncidentRow[]
+  readonly more?: true
+  readonly unavailable?: true
+}
+
+export interface IncidentListTile {
+  readonly kind: "incidentList"
+  readonly title: string
+  readonly groups: readonly IncidentGroup[]
+}
+
+export type BoardTile =
+  CounterTile | InstanceListTile | IncidentSummaryTile | ProcessDiagramTile | IncidentListTile
 
 export interface BoardProblem {
   readonly path: string

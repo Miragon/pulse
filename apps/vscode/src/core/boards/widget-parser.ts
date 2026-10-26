@@ -32,6 +32,11 @@ export class WidgetParser {
       return undefined
     }
     this.problems.onlyKeys(props, BoardVocabulary.PROPS[type], propsPath)
+    for (const key of BoardVocabulary.REQUIRED_PROPS[type]) {
+      if (props[key] === undefined) {
+        this.problems.add(ParseProblems.key(propsPath, key), "is missing")
+      }
+    }
     return this.widgetOf(type, props, propsPath)
   }
 
@@ -56,10 +61,28 @@ export class WidgetParser {
     path: string,
     common: Common,
   ): BoardWidget | undefined {
-    if (type === "incidentSummary") {
-      const groupBy = this.problems.oneOf(props, "groupBy", BoardVocabulary.GROUPINGS, path)
-      return { widget: type, ...common, groupBy: groupBy ?? "process" }
+    switch (type) {
+      case "incidentSummary": {
+        const groupBy = this.problems.oneOf(props, "groupBy", BoardVocabulary.GROUPINGS, path)
+        return { widget: type, ...common, groupBy: groupBy ?? "process" }
+      }
+      case "processDiagram":
+        return this.diagramOf(props, path, common)
+      case "incidentList": {
+        const process = this.problems.text(props, "process", path)
+        return { widget: type, ...common, ...(process === undefined ? {} : { process }) }
+      }
+      default:
+        return this.filteredOf(type, props, path, common)
     }
+  }
+
+  private filteredOf(
+    type: "counter" | "instanceList",
+    props: Json,
+    path: string,
+    common: Common,
+  ): BoardWidget | undefined {
     const filter = this.filters.parse(props.filter, ParseProblems.key(path, "filter"))
     if (filter === undefined) {
       return undefined
@@ -70,6 +93,17 @@ export class WidgetParser {
     }
     const columns = this.columnsOf(props.columns, ParseProblems.key(path, "columns"))
     return { widget: type, ...common, filter, columns }
+  }
+
+  private diagramOf(props: Json, path: string, common: Common): BoardWidget | undefined {
+    if (common.engines.length !== 1) {
+      this.problems.add(
+        ParseProblems.key(path, "engines"),
+        "must name one engine, because a diagram shows the deployment of one engine",
+      )
+    }
+    const process = this.problems.text(props, "process", path)
+    return process === undefined ? undefined : { widget: "processDiagram", ...common, process }
   }
 
   private commonOf(props: Json, path: string): Common {

@@ -201,6 +201,82 @@
               }
             }
           }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["widget", "props"],
+          "description": "The deployed diagram of the latest version on one engine, with running instances and incidents per element.",
+          "properties": {
+            "widget": {
+              "const": "processDiagram"
+            },
+            "props": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["process"],
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Heading of the widget."
+                },
+                "engines": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "description": "The one engine to draw from; needed when the board has several.",
+                  "uniqueItems": true,
+                  "maxItems": 1
+                },
+                "process": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "BPMN process id."
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["widget"],
+          "description": "The first 50 open incidents of each engine, with their messages.",
+          "properties": {
+            "widget": {
+              "const": "incidentList"
+            },
+            "props": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Heading of the widget."
+                },
+                "engines": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "description": "Narrows the board's engines for this widget; only names of the board.",
+                  "uniqueItems": true
+                },
+                "process": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "BPMN process id; only its incidents."
+                }
+              }
+            }
+          }
         }
       ]
     }

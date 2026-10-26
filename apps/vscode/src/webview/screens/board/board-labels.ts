@@ -4,6 +4,7 @@ import type {
   BoardView,
   CounterTile,
   IncidentSummaryTile,
+  ProcessDiagramTile,
 } from "../../../core/protocol/index.js"
 import { CountLabels } from "../../format/count-labels.js"
 
@@ -61,6 +62,16 @@ export class BoardLabels {
     return above.length === 1
       ? `${above[0]?.engine ?? ""} above ${limit}`
       : `${CountLabels.plural(above.length, "engine")} above ${limit}`
+  }
+
+  static diagramFacts(engine: string, version: number): string {
+    return `${engine} · v${version}, the latest version`
+  }
+
+  static diagramMissing(tile: ProcessDiagramTile): string {
+    return tile.notDeployed === true
+      ? `${tile.bpmnProcessId} is not deployed on ${tile.engine}.`
+      : `The diagram was not read from ${tile.engine}.`
   }
 
   static entryCount(count: number | undefined): string {

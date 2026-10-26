@@ -34,12 +34,39 @@
   border-radius: 6px;
 }
 
-.board-card--instanceList {
+.board-card--instanceList,
+.board-card--incidentList {
   padding: 12px 0 0;
 }
 
-.board-card--instanceList > .board-card__title {
+.board-card--instanceList > .board-card__title,
+.board-card--incidentList > .board-card__title {
   padding: 0 12px;
+}
+
+.board-diagram {
+  height: 320px;
+  overflow: hidden;
+  border: 1px solid var(--cd-ui-linie);
+  border-radius: 4px;
+}
+
+.board-diagram__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin: 0;
+}
+
+.board-incident__message {
+  display: inline-block;
+  max-width: 48ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
 }
 
 .board-card__title {

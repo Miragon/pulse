@@ -40,7 +40,8 @@ What they found:
 its JSON path and reason. `schemaVersion` 1, `title`, `engines` (profile names of
 `.pulse-cli.json`, the only engine id the extension has) and `rows`, each `{ "row": [...] }`
 of `{ "widget", "props" }`, the toolkit's layout grammar. The widgets are `counter`,
-`instanceList` and `incidentSummary`; a widget may narrow the board's engines. One filter
+`instanceList`, `incidentSummary`, `processDiagram` and `incidentList`; a widget may narrow
+the board's engines, and a `processDiagram` names exactly one. One filter
 vocabulary without aliases: `process`, `activeElement` (needs `process`, never with `ended`),
 `state` (`running` by default, `ended`), `withIncident`, `businessKey`. At most 12 widgets.
 The editor validates with `apps/vscode/schemas/board.schema.json` (`jsonValidation`, shipped in
@@ -57,11 +58,15 @@ load), no writes.
 single-engine. Per engine it probes `describeEngine` first and reads nothing else from an engine
 that fails it; `EngineReads` reads each distinct question once per engine and load. Honest
 numbers: totals come from counts and the shared definitions, never from page lengths; a failed
-read shows "—", never 0; a total says how many engines it counts ("from 2 of 3 engines"); a
+read shows "not read", never 0; a total says how many engines it counts ("from 2 of 3 engines"); a
 threshold warns per engine. `instanceList` shows each engine's first 50 rows with that
 engine's total, in one table with an engine column and the rows of each engine together, because the contract promises no order across
 engines. `incidentSummary` counts instances with incident from `listDefinitions`, one call per
-engine. A broken save keeps the last valid board under its problems.
+engine. `processDiagram` draws the latest version of one engine's deployment with the
+element statistics of that version, the same diagram and badges the definition panel draws
+(`ElementBadges`); a click on a count opens that panel at the element. `incidentList` shows
+each engine's first 50 open incidents from `searchIncidents` and says when more are open, since
+the contract has no incident count. A broken save keeps the last valid board under its problems.
 
 ### Navigation and host
 
@@ -92,3 +97,4 @@ an open board on save, and **Pulse: New Board…** writes a starter board.
 | `health` widget  | Replaced by one status strip per engine                    | The engine overview exists; no green "healthy"       |
 | Merge of lists   | One table, rows of each engine together, totals per engine | No order across engines in the contract              |
 | Workspace trust  | No `capabilities`: off in untrusted folders                | `limited` would allow engine reads there             |
+| Diagram scope    | One engine, latest version                                 | Deployments and versions differ between engines      |

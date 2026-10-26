@@ -19,11 +19,22 @@ export class BoardVocabulary {
     "counter",
     "instanceList",
     "incidentSummary",
+    "processDiagram",
+    "incidentList",
   ]
   static readonly PROPS: Readonly<Record<BoardWidgetType, readonly string[]>> = {
     counter: ["title", "engines", "filter", "warnAbove"],
     instanceList: ["title", "engines", "filter", "columns"],
     incidentSummary: ["title", "engines", "groupBy"],
+    processDiagram: ["title", "engines", "process"],
+    incidentList: ["title", "engines", "process"],
+  }
+  static readonly REQUIRED_PROPS: Readonly<Record<BoardWidgetType, readonly string[]>> = {
+    counter: [],
+    instanceList: [],
+    incidentSummary: [],
+    processDiagram: ["process"],
+    incidentList: [],
   }
   static readonly FILTER_KEYS: readonly string[] = [
     "process",

@@ -43,11 +43,13 @@ completion and checks from the board schema; Pulse reloads an open board when yo
 
 `engines` names profiles of `.pulse-cli.json`. A widget may narrow them with its own `engines`.
 
-| Widget            | Shows                                                                               |
-| ----------------- | ----------------------------------------------------------------------------------- |
-| `counter`         | How many instances match, per engine and in total; `warnAbove` warns per engine     |
-| `instanceList`    | The first 50 matching instances of each engine with the total of each, in one table |
-| `incidentSummary` | Instances with an open incident, `groupBy` engine or process                        |
+| Widget            | Shows                                                                                            |
+| ----------------- | ------------------------------------------------------------------------------------------------ |
+| `counter`         | How many instances match, per engine and in total; `warnAbove` warns per engine                  |
+| `instanceList`    | The first 50 matching instances of each engine with the total of each, in one table              |
+| `incidentSummary` | Instances with an open incident, `groupBy` engine or process                                     |
+| `processDiagram`  | The deployed diagram of one engine (`process`, latest version) with its counts per element       |
+| `incidentList`    | The first 50 open incidents of each engine with element and message, optionally of one `process` |
 
 The `filter` takes `process` (BPMN process ID, every version), `activeElement` (needs
 `process`), `state` (`running`, the default, or `ended`), `withIncident` and `businessKey`.
@@ -58,6 +60,7 @@ Columns are `engine`, `process`, `version`, `businessKey`, `state`, `startedAt`,
 
 Every row and every number keeps the engine it came from, and a click opens the instance or
 the process on that engine. An engine that cannot be read, or that is not in your
-`.pulse-cli.json`, gets one strip on top and a dash in its cells; a total then says how many
-engines it counts. A broken file lists each problem with its path and reason and keeps
+`.pulse-cli.json`, gets one strip on top and "not read" in its cells; a total then says how
+many engines it counts. A click on a count in a diagram opens the process filtered to that
+element. A broken file lists each problem with its path and reason and keeps
 showing the last valid version.

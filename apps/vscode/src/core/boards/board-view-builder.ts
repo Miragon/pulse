@@ -3,8 +3,10 @@ import type { BoardDefinition, BoardWidget } from "./board-definition.js"
 import type { BoardEngine } from "./board-engine.js"
 import { CounterTiles } from "./counter-tiles.js"
 import { EngineProbe, type ProbedEngine } from "./engine-probe.js"
+import { IncidentListTiles } from "./incident-list-tiles.js"
 import { IncidentSummaryTiles } from "./incident-summary-tiles.js"
 import { InstanceListTiles } from "./instance-list-tiles.js"
+import { ProcessDiagramTiles } from "./process-diagram-tiles.js"
 
 export interface BoardSource {
   readonly fileName: string
@@ -56,6 +58,10 @@ export class BoardViewBuilder {
         return InstanceListTiles.build(widget, engines)
       case "incidentSummary":
         return IncidentSummaryTiles.build(widget, engines)
+      case "processDiagram":
+        return ProcessDiagramTiles.build(widget, engines)
+      case "incidentList":
+        return IncidentListTiles.build(widget, engines)
     }
   }
 }

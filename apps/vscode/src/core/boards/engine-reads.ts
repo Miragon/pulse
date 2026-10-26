@@ -1,8 +1,14 @@
-import type {
-  DefinitionSummary,
-  InstanceFilter,
-  InstanceSummary,
-  ProcessRuntime,
+import {
+  RuntimeError,
+  type BpmnProcessId,
+  type DefinitionId,
+  type DefinitionSummary,
+  type ElementStatistics,
+  type Incident,
+  type InstanceFilter,
+  type InstanceSummary,
+  type Page,
+  type ProcessRuntime,
 } from "../../contract/index.js"
 import type { SharedDefinitions } from "../refresh/shared-definitions.js"
 import { BoardVocabulary } from "./board-vocabulary.js"
@@ -34,6 +40,30 @@ export class EngineReads {
       const page = await this.runtime.searchInstances(filter, { limit: BoardVocabulary.LIST_LIMIT })
       return page.items
     })
+  }
+
+  diagram(definitionId: DefinitionId): Promise<Read<string>> {
+    return this.once(`diagram|${definitionId}`, async () => {
+      const xml = await this.runtime.getDiagramXml(definitionId)
+      if (xml === undefined) {
+        throw new RuntimeError("unexpectedResponse", "The engine has no diagram.")
+      }
+      return xml
+    })
+  }
+
+  statistics(definitionId: DefinitionId): Promise<Read<readonly ElementStatistics[]>> {
+    return this.once(`statistics|${definitionId}`, () =>
+      this.runtime.getElementStatistics(definitionId),
+    )
+  }
+
+  incidents(bpmnProcessId: BpmnProcessId | undefined): Promise<Read<Page<Incident>>> {
+    return this.once(`incidents|${bpmnProcessId ?? ""}`, () =>
+      this.runtime.searchIncidents(bpmnProcessId === undefined ? {} : { bpmnProcessId }, {
+        limit: BoardVocabulary.LIST_LIMIT,
+      }),
+    )
   }
 
   private once<Value>(key: string, read: () => Promise<Value>): Promise<Read<Value>> {

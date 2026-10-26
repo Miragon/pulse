@@ -10,8 +10,10 @@ import { useHost } from "../../host/host-context.js"
 import { BoardEngines } from "./board-engines.js"
 import { BoardLabels } from "./board-labels.js"
 import { CounterCard } from "./counter-card.js"
+import { IncidentListCard } from "./incident-list-card.js"
 import { IncidentSummaryCard } from "./incident-summary-card.js"
 import { InstanceListCard } from "./instance-list-card.js"
+import { ProcessDiagramCard } from "./process-diagram-card.js"
 
 export interface BoardScreenProps {
   readonly view: BoardView
@@ -97,6 +99,10 @@ function Tile({ tile }: { readonly tile: BoardTile }) {
       return <InstanceListCard tile={tile} />
     case "incidentSummary":
       return <IncidentSummaryCard tile={tile} />
+    case "processDiagram":
+      return <ProcessDiagramCard tile={tile} />
+    case "incidentList":
+      return <IncidentListCard tile={tile} />
   }
 }
 

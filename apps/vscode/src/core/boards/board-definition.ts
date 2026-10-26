@@ -34,7 +34,22 @@ export interface IncidentSummaryWidget extends WidgetBase {
   readonly groupBy: IncidentGrouping
 }
 
-export type BoardWidget = CounterWidget | InstanceListWidget | IncidentSummaryWidget
+export interface ProcessDiagramWidget extends WidgetBase {
+  readonly widget: "processDiagram"
+  readonly process: string
+}
+
+export interface IncidentListWidget extends WidgetBase {
+  readonly widget: "incidentList"
+  readonly process?: string
+}
+
+export type BoardWidget =
+  | CounterWidget
+  | InstanceListWidget
+  | IncidentSummaryWidget
+  | ProcessDiagramWidget
+  | IncidentListWidget
 
 export type BoardWidgetType = BoardWidget["widget"]
 

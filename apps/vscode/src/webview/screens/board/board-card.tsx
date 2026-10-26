@@ -1,9 +1,10 @@
 import type { ComponentChildren } from "preact"
 import { useId } from "preact/hooks"
+import type { BoardTile } from "../../../core/protocol/index.js"
 
 export interface BoardCardProps {
   readonly title: string
-  readonly kind: "counter" | "instanceList" | "incidentSummary"
+  readonly kind: BoardTile["kind"]
   readonly children: ComponentChildren
 }
 

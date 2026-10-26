@@ -132,7 +132,8 @@ describe("the board parser", () => {
       { path: "rows[3].row[0].widget", reason: "is missing" },
       {
         path: "rows[3].row[1].widget",
-        reason: "must be one of counter, instanceList, incidentSummary",
+        reason:
+          "must be one of counter, instanceList, incidentSummary, processDiagram, incidentList",
       },
       { path: "rows[3].row[2]", reason: "must be an object" },
     ])
