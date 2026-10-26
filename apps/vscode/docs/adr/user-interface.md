@@ -103,14 +103,18 @@ the diagram, the "Instances … · n running" header and the toolbar.
   `aria-busy`.
 - **Variable conditions:** _Variables_ (_Variables · 2_ with conditions) opens a modal
   `<dialog>` for one condition: name, _Compare as_ (Automatic, Text, Number, True or
-  false), the operators that fit the type and the value. Apply adds it, or replaces the
+  false, Date and time, Null), the operators that fit the type and the value. Date and
+  time takes a `datetime-local` field and offers _is after_ and _is before_, read in the
+  local time zone; Null asks for no value and offers _is null_ and _is not null_; the
+  dialog says that JSON and object variables cannot be searched. Apply adds it, or replaces the
   one whose chip was clicked; every chip (`amount > 100`, `route = "review"`, text in
-  quotes) has its remove button; all conditions must hold, at most 5. Automatic reads
+  quotes) has its remove button and keeps its width up to 240 px, the bar wrapping into a
+  second row instead; all conditions must hold, at most 5. Automatic reads
   `42` and `-4.5` as a number, `true` and `false` as true or false and anything else as
   text; _matches_ compares text and _is greater than_ and _is less than_ numbers.
   `VariableConditionRules` in the protocol holds these rules for the guard and the core,
   which also labels the chips (`DefinitionView.variableLabels`); the webview imports the
-  protocol as types only, so the dialog keeps its operator table, number pattern and cap
+  protocol as types only, so the dialog keeps its operator table, number and date patterns and cap
   as constants a test holds equal to the rules. The conditions survive a scope change, the element filter,
   the business-key search and a version switch, which resets scope and element only; the
   cancel confirmation names them in its filter line.

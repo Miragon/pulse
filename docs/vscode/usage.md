@@ -18,6 +18,8 @@ filtered by element or business key.
 
 _Variables_ in the filter bar finds instances by their process variables: a name, an operator
 (is, is not, matches, greater or less than) and a value, `*` as the wildcard of _matches_.
+_Compare as_ picks the type: text, number, true or false, date and time (is after, is
+before) or null. JSON and object variables can't be searched.
 Each condition becomes a chip, and an instance matches when all of them hold; counts and
 selections follow. The search reads the engine's history, so CIB seven, Operaton and Camunda 7
 need history level `audit` or higher.

@@ -1,4 +1,4 @@
-import type { VariableCondition } from "../model/queries.js"
+import type { VariableComparison, VariableCondition } from "../model/queries.js"
 import type { Variable } from "../model/read-models.js"
 
 const REGEX_SPECIALS = /[.+?^${}()|[\]\\*]/g
@@ -23,8 +23,23 @@ export class FakeVariableConditions {
         typeof actual === "string" && FakeVariableConditions.likeOf(condition.pattern).test(actual)
       )
     }
-    const wanted = JSON.parse(condition.valueJson) as unknown
-    switch (condition.operator) {
+    const date = variable.kind === "date" && typeof actual === "string" ? actual : undefined
+    if ("at" in condition) {
+      return FakeVariableConditions.compared(
+        condition.operator,
+        date === undefined ? undefined : Date.parse(date),
+        Date.parse(condition.at),
+      )
+    }
+    return FakeVariableConditions.compared(
+      condition.operator,
+      date === undefined ? actual : undefined,
+      JSON.parse(condition.valueJson) as unknown,
+    )
+  }
+
+  private static compared(operator: VariableComparison, actual: unknown, wanted: unknown): boolean {
+    switch (operator) {
       case "equals":
         return actual === wanted
       case "notEquals":

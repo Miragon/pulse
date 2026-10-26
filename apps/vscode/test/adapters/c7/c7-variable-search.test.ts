@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest"
-import type { VariableCondition } from "../../../src/contract/index.js"
+import { IsoTimestamp, type VariableCondition } from "../../../src/contract/index.js"
 import { fakeRuntime, type FakeEngineCli } from "./support/fake-engine-cli.js"
 
 const NO_INSTANCES = { command: ["historic-process-instance", "query"], stdout: "[]" }
@@ -37,6 +37,18 @@ describe("the C7 variable search", () => {
     ).toEqual([
       { name: "route", operator: "eq", value: "42" },
       { name: "express", operator: "eq", value: true },
+    ])
+  })
+
+  test("sends a date in the engine's date format and null as null", async () => {
+    expect(
+      await searched([
+        { name: "dueAt", operator: "greaterThan", at: IsoTimestamp("2026-03-15T11:00:00+01:00") },
+        { name: "giftNote", operator: "equals", valueJson: "null" },
+      ]),
+    ).toEqual([
+      { name: "dueAt", operator: "gt", value: "2026-03-15T10:00:00.000+0000" },
+      { name: "giftNote", operator: "eq", value: null },
     ])
   })
 

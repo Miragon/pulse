@@ -32,6 +32,8 @@ export const CASE = {
   variablesEquals: "variables: equals finds the instances holding the value",
   variablesNotEquals: "variables: not equals skips instances without the variable",
   variablesNumbers: "variables: numbers compare as numbers, never as text",
+  variablesDates: "variables: dates compare as points in time, never as text",
+  variablesNull: "variables: null finds a variable without a value, not a missing one",
   variablesLike: "variables: like reads * as any text and every other character literally",
   variablesAllHold: "variables: an instance matches only when all conditions hold",
   variablesEnded: "variables: ended instances match by their variables",

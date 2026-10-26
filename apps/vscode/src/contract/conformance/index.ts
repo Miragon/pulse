@@ -22,4 +22,5 @@ export type {
   MigrationSet,
   WorldDeployment,
   WorldInstance,
+  WorldValue,
 } from "./world/world.js"

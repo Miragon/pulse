@@ -1,4 +1,11 @@
-import type { BpmnProcessId, DefinitionId, ElementId, InstanceId, PageCursor } from "./ids.js"
+import type {
+  BpmnProcessId,
+  DefinitionId,
+  ElementId,
+  InstanceId,
+  IsoTimestamp,
+  PageCursor,
+} from "./ids.js"
 
 export interface InstanceFilter {
   readonly bpmnProcessId?: BpmnProcessId
@@ -18,6 +25,11 @@ export type VariableCondition =
       readonly name: string
       readonly operator: VariableComparison
       readonly valueJson: string
+    }
+  | {
+      readonly name: string
+      readonly operator: VariableComparison
+      readonly at: IsoTimestamp
     }
   | {
       readonly name: string

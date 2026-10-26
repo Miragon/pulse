@@ -4,9 +4,15 @@ import { Conditions } from "./conditions.js"
 import { Ensure } from "../ensure.js"
 import { CASE, type ConformanceCase } from "../conformance-case.js"
 import type { ConformanceHarness } from "../harness.js"
-import { WORLD_LOCAL_VARIABLE, WORLD_PROCESS, type InstanceAlias } from "../world/world.js"
+import {
+  WORLD_DUE_AT,
+  WORLD_LOCAL_VARIABLE,
+  WORLD_PROCESS,
+  type InstanceAlias,
+} from "../world/world.js"
 
 const PAGE_LIMIT = 50
+const NEW_YEAR = "2026-01-01T00:00:00.000Z"
 
 interface Expectation {
   readonly conditions: readonly VariableCondition[]
@@ -91,6 +97,22 @@ export const VARIABLE_LAWS: readonly ConformanceCase[] = [
       found: ["ORD-1002"],
     },
     { conditions: [Conditions.greaterThan("amount", 42)], found: [] },
+  ]),
+  VariableSearch.law(CASE.variablesDates, [
+    { conditions: [Conditions.date("dueAt", "equals", WORLD_DUE_AT)], found: ["ORD-1002"] },
+    { conditions: [Conditions.date("dueAt", "greaterThan", NEW_YEAR)], found: ["ORD-1002"] },
+    { conditions: [Conditions.date("dueAt", "lessThan", NEW_YEAR)], found: [] },
+    { conditions: [Conditions.equals("dueAt", WORLD_DUE_AT)], found: [] },
+    { conditions: [Conditions.date("route", "greaterThan", NEW_YEAR)], found: [] },
+  ]),
+  VariableSearch.law(CASE.variablesNull, [
+    { conditions: [Conditions.equals("giftNote", null)], found: ["ORD-1002"] },
+    { conditions: [Conditions.notEquals("giftNote", null)], found: [] },
+    { conditions: [Conditions.equals("route", null)], found: [] },
+    {
+      conditions: [Conditions.notEquals("route", null)],
+      found: ["ORD-1001", "ORD-1002", "ORD-1003", "ORD-2001"],
+    },
   ]),
   VariableSearch.law(CASE.variablesLike, [
     { conditions: [Conditions.like("route", "rev*")], found: ["ORD-1001", "ORD-2001"] },

@@ -122,8 +122,10 @@ for any workspace, and the conformance kit does not cover them
 - **Variable conditions.** `InstanceFilter.variables` holds `VariableCondition`s, all of
   which must hold (AND). A comparison (`equals`, `notEquals`, `greaterThan`, `lessThan`)
   carries its value as `valueJson`, so big integers stay exact and a JSON number never
-  matches text: `42` finds the integer 42, `"42"` only the text. `greaterThan` and
-  `lessThan` compare numbers. `like` carries a `pattern` in which `*` is any run of
+  matches text: `42` finds the integer 42, `"42"` only the text, and `null` finds a
+  variable whose value is null, never a missing one. A date comparison carries `at`, an
+  `IsoTimestamp`, and compares points in time; text never matches a date. `greaterThan`
+  and `lessThan` compare numbers and dates. `like` carries a `pattern` in which `*` is any run of
   characters and every other character, `%` and `_` included, stands for itself. A
   condition holds when the instance has a variable of that name, at any scope (the C7
   family matches task-local variables too, so a C8 adapter must as well), whose value
@@ -164,13 +166,13 @@ for any workspace, and the conformance kit does not cover them
 
 ```mermaid
 flowchart LR
-  kit[ConformanceKit: 43 read laws, 15 command laws]
+  kit[ConformanceKit: 45 read laws, 15 command laws]
   kit --> fake[FakeEngine in memory]
   kit --> c7[C7Adapter on Operaton, CIB seven, Camunda 7 in containers]
   saboteurs[Saboteurs: broken runtimes] -- each must fail its law --> kit
 ```
 
-`apps/vscode/src/contract/conformance` holds 43 read laws and 15 command laws as
+`apps/vscode/src/contract/conformance` holds 45 read laws and 15 command laws as
 executable cases, modelled on `@miragon/modeler-api/conformance`:
 `new ConformanceKit(test).registerRuntimeLaws(prepare)` and `.registerCommandLaws(prepare)`
 bind them to any `(name, fn)` runner and throw a `ConformanceViolation` when a law fails. Command laws run on

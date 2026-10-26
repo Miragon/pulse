@@ -114,7 +114,9 @@ on top of a **local engine CLI wrapper** in `apps/vscode/src/adapters/c7/engine-
   answers without a call.
 - **Variable conditions are `variables` of the historic query.** `equals`, `notEquals`,
   `greaterThan` and `lessThan` become `eq`, `neq`, `gt` and `lt` with the value parsed
-  losslessly from `valueJson`; `like` becomes `like` with `*` turned into `%` and the
+  losslessly from `valueJson` (`null` included); a date's `at` is sent in UTC in the
+  engine's date format (`2026-03-15T10:00:00.000+0000`), the only form the engine reads as
+  a date; `like` becomes `like` with `*` turned into `%` and the
   engine's `%`, `_` and `\` escaped with `\`. The engine matches a variable of any scope,
   including task-local ones, and a JSON number matches an Integer variable of that value,
   `42` and `42.0` alike, while the text `"42"` does not (checked on Operaton 2.1.5, CIB seven 2.2.0 and Camunda 7.24.0).
@@ -297,5 +299,6 @@ every class above against recorded CLI output.
   core then reconciles by ids) and a Stop after it ended is rejected. With
   `invocationsPerBatchJob` above 1 the item counts are approximate, because the last
   job may hold fewer items. Variable conditions read the historic variables, so below
-  history level AUDIT a search by variables finds nothing, running instances included;
-  date variables cannot be searched yet.
+  history level AUDIT a search by variables finds nothing, running instances included.
+  JSON and object variables cannot be searched: the engine keeps their value serialized.
+  A text value written in the engine's date format is read as a date by the engine.

@@ -103,6 +103,16 @@ describe("every intent shape", () => {
         ],
       },
     },
+    {
+      type: "filterInstances",
+      filter: {
+        scope: "all",
+        variables: [
+          { name: "dueAt", operator: "lessThan", value: "2026-03-15T10:00", as: "date" },
+          { name: "giftNote", operator: "notEquals", value: "", as: "null" },
+        ],
+      },
+    },
     { type: "openInstance", instanceId: "i", toSide: true },
     { type: "openDefinition", bpmnProcessId: "order", definitionId: "order:1" },
     { type: "openIncidentDetails", incidentId: "x" },
@@ -147,6 +157,8 @@ describe("every intent shape", () => {
       { name: "route", operator: "like", value: "rev*", as: "number" },
       { name: "paid", operator: "equals", value: "yes", as: "boolean" },
       { name: "amount", operator: "equals", value: "4x", as: "number" },
+      { name: "dueAt", operator: "equals", value: "tomorrow", as: "date" },
+      { name: "giftNote", operator: "equals", value: "x", as: "null" },
     ].map((condition) => ({
       type: "filterInstances",
       filter: { scope: "running", variables: [condition] },

@@ -29,10 +29,43 @@ function mapConditions(
 }
 
 function numbersAsText(condition: VariableCondition): VariableCondition {
-  if (condition.operator === "like" || typeof JSON.parse(condition.valueJson) !== "number") {
+  if (!("valueJson" in condition) || typeof JSON.parse(condition.valueJson) !== "number") {
     return condition
   }
   return { ...condition, valueJson: JSON.stringify(condition.valueJson) }
+}
+
+function datesAsText(condition: VariableCondition): VariableCondition {
+  return "at" in condition
+    ? {
+        name: condition.name,
+        operator: condition.operator,
+        valueJson: JSON.stringify(condition.at),
+      }
+    : condition
+}
+
+function isNullCheck(condition: VariableCondition): boolean {
+  return (
+    condition.operator === "equals" && "valueJson" in condition && condition.valueJson === "null"
+  )
+}
+
+async function nullAlsoWithout(
+  runtime: ProcessRuntime,
+  filter: InstanceFilter,
+): Promise<InstanceSummary[]> {
+  const others = (filter.variables ?? []).filter((condition) => !isNullCheck(condition))
+  const valued = (filter.variables ?? []).flatMap((condition) =>
+    isNullCheck(condition)
+      ? [{ name: condition.name, operator: "notEquals" as const, valueJson: "null" }]
+      : [],
+  )
+  const candidates = await runtime.searchInstances({ ...filter, variables: others }, ALL)
+  const excluded = await Promise.all(
+    valued.map((condition) => ids(runtime, { ...filter, variables: [condition] })),
+  )
+  return candidates.items.filter((item) => excluded.every((found) => !found.has(item.id)))
 }
 
 function sqlWildcards(condition: VariableCondition): VariableCondition {
@@ -81,7 +114,9 @@ async function notEqualsOnlyOwnType(
     (["greaterThan", "lessThan"] as const).map((operator) =>
       runtime.searchInstances(
         mapConditions(filter, (condition) =>
-          condition.operator === "notEquals" && typeof JSON.parse(condition.valueJson) === "number"
+          condition.operator === "notEquals" &&
+          "valueJson" in condition &&
+          typeof JSON.parse(condition.valueJson) === "number"
             ? { ...condition, operator }
             : condition,
         ),
@@ -128,6 +163,25 @@ const SABOTAGES: readonly (readonly [string, Sabotage, readonly CaseName[]])[] =
     [CASE.variablesNumbers, CASE.variablesAllHold],
   ],
   [
+    "dates are compared as text",
+    (runtime) => ({
+      searchInstances: (filter, page) =>
+        runtime.searchInstances(mapConditions(filter, datesAsText), page),
+      countInstances: (filter) => runtime.countInstances(mapConditions(filter, datesAsText)),
+    }),
+    [CASE.variablesDates],
+  ],
+  [
+    "null also finds instances without the variable",
+    (runtime) => ({
+      searchInstances: async (filter, page) =>
+        filter.variables?.some(isNullCheck) === true
+          ? { items: await nullAlsoWithout(runtime, filter) }
+          : runtime.searchInstances(filter, page),
+    }),
+    [CASE.variablesNull],
+  ],
+  [
     "a like pattern reads % and _ as wildcards",
     (runtime) => ({
       searchInstances: (filter, page) =>
@@ -144,7 +198,7 @@ const SABOTAGES: readonly (readonly [string, Sabotage, readonly CaseName[]])[] =
           ? { items: await notEqualsAlsoWithout(runtime, filter) }
           : runtime.searchInstances(filter, page),
     }),
-    [CASE.variablesNotEquals],
+    [CASE.variablesNotEquals, CASE.variablesNull],
   ],
   [
     "not equals skips a value of another type",
@@ -182,7 +236,7 @@ const SABOTAGES: readonly (readonly [string, Sabotage, readonly CaseName[]])[] =
           : result
       },
     }),
-    [CASE.variablesEnded, CASE.variablesNotEquals, CASE.instancesCounted],
+    [CASE.variablesEnded, CASE.variablesNotEquals, CASE.variablesNull, CASE.instancesCounted],
   ],
   [
     "an empty list of conditions finds nothing",

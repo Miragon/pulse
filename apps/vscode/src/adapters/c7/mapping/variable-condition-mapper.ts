@@ -1,4 +1,8 @@
-import type { VariableComparison, VariableCondition } from "../../../contract/index.js"
+import type {
+  IsoTimestamp,
+  VariableComparison,
+  VariableCondition,
+} from "../../../contract/index.js"
 import { LosslessJson, type VariableQueryCondition } from "../engine-cli/index.js"
 import type { Mapper } from "./mapper.js"
 
@@ -10,6 +14,7 @@ const OPERATORS: Readonly<Record<VariableComparison, VariableQueryCondition["ope
 }
 
 const SQL_WILDCARDS = /[\\%_]/g
+const ENGINE_UTC_OFFSET = "+0000"
 
 export class VariableConditionMapper implements Mapper<VariableCondition, VariableQueryCondition> {
   map(condition: VariableCondition): VariableQueryCondition {
@@ -19,8 +24,13 @@ export class VariableConditionMapper implements Mapper<VariableCondition, Variab
     return {
       name: condition.name,
       operator: OPERATORS[condition.operator],
-      value: LosslessJson.parse(condition.valueJson),
+      value:
+        "at" in condition ? this.dateOf(condition.at) : LosslessJson.parse(condition.valueJson),
     }
+  }
+
+  private dateOf(at: IsoTimestamp): string {
+    return new Date(at).toISOString().replace("Z", ENGINE_UTC_OFFSET)
   }
 
   private likeOf(pattern: string): string {

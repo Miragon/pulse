@@ -60,7 +60,7 @@ export type InstanceScope = "running" | "withIncident" | "ended" | "all"
 
 export type VariableOperator = "equals" | "notEquals" | "like" | "greaterThan" | "lessThan"
 
-export type VariableValueType = "text" | "number" | "boolean"
+export type VariableValueType = "text" | "number" | "boolean" | "date" | "null"
 
 export interface VariableConditionView {
   readonly name: string

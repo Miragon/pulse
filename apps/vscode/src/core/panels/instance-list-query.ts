@@ -1,5 +1,6 @@
 import {
   ElementId,
+  IsoTimestamp,
   type DefinitionId,
   type InstanceFilter,
   type InstanceId,
@@ -7,6 +8,7 @@ import {
   type Page,
   type PageCursor,
   type ProcessRuntime,
+  type VariableComparison,
   type VariableCondition,
 } from "../../contract/index.js"
 import {
@@ -15,9 +17,20 @@ import {
   type InstanceScope,
   type ScopeCounts,
   type VariableConditionView,
+  type VariableValueType,
 } from "../protocol/index.js"
 
 const PAGE_SIZE = 50
+
+type ComparisonOf = (name: string, operator: VariableComparison, value: string) => VariableCondition
+
+const VALUE_CONDITIONS: Readonly<Record<VariableValueType, ComparisonOf>> = {
+  text: (name, operator, value) => ({ name, operator, valueJson: JSON.stringify(value) }),
+  number: (name, operator, value) => ({ name, operator, valueJson: value }),
+  boolean: (name, operator, value) => ({ name, operator, valueJson: value }),
+  date: (name, operator, value) => ({ name, operator, at: IsoTimestamp(value) }),
+  null: (name, operator) => ({ name, operator, valueJson: "null" }),
+}
 const ID_PAGE_SIZE = 250
 
 const SCOPES: Readonly<
@@ -111,7 +124,6 @@ export class InstanceListQuery {
     if (operator === "like") {
       return { name, operator, pattern: value }
     }
-    const asText = VariableConditionRules.typeOf(condition) === "text"
-    return { name, operator, valueJson: asText ? JSON.stringify(value) : value }
+    return VALUE_CONDITIONS[VariableConditionRules.typeOf(condition)](name, operator, value)
   }
 }

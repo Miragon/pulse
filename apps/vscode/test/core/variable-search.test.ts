@@ -62,6 +62,11 @@ describe("the variable condition rules", () => {
     [{ name: "code", operator: "notEquals", value: "42", as: "text" }, 'code ≠ "42"'],
     [{ name: "code", operator: "like", value: "ORD-*" }, 'code matches "ORD-*"'],
     [{ name: "paid", operator: "equals", value: "false" }, "paid = false"],
+    [
+      { name: "dueAt", operator: "greaterThan", value: "2026-03-15T10:00", as: "date" },
+      "dueAt > 2026-03-15 10:00",
+    ],
+    [{ name: "giftNote", operator: "notEquals", value: "", as: "null" }, "giftNote ≠ null"],
   ] as const)("names %o as %s", (condition, label) => {
     expect(VariableConditionRules.label(condition)).toBe(label)
   })
@@ -75,6 +80,23 @@ describe("the variable condition rules", () => {
       "lessThan",
     ])
     expect(VariableConditionRules.operatorsOf("boolean")).toEqual(["equals", "notEquals"])
+    expect(VariableConditionRules.operatorsOf("date")).toEqual(
+      VariableConditionRules.operatorsOf("number"),
+    )
+    expect(VariableConditionRules.operatorsOf("null")).toEqual(["equals", "notEquals"])
+  })
+
+  test.each([
+    [{ name: "dueAt", operator: "lessThan", value: "2026-03-15T10:00", as: "date" }, true],
+    [{ name: "dueAt", operator: "lessThan", value: "2026-03-15T10:00:30", as: "date" }, true],
+    [{ name: "dueAt", operator: "lessThan", value: "2026-03-15", as: "date" }, false],
+    [{ name: "dueAt", operator: "lessThan", value: "2026-13-45T10:00", as: "date" }, false],
+    [{ name: "dueAt", operator: "like", value: "2026-03-15T10:00", as: "date" }, false],
+    [{ name: "giftNote", operator: "equals", value: "", as: "null" }, true],
+    [{ name: "giftNote", operator: "equals", value: "x", as: "null" }, false],
+    [{ name: "giftNote", operator: "greaterThan", value: "", as: "null" }, false],
+  ] as const)("lets %o fit: %s", (condition, fits) => {
+    expect(VariableConditionRules.fits(condition)).toBe(fits)
   })
 })
 
@@ -120,6 +142,32 @@ describe("the definition panel with variable conditions", () => {
       { name: "route", operator: "like", pattern: "rev*" },
       { name: "amount", operator: "notEquals", valueJson: '"7"' },
     ])
+  })
+
+  test("sends a date as a point in time and null as null", async () => {
+    const opened = await openOrder("order@1")
+
+    await opened.panel.handle({
+      type: "filterInstances",
+      filter: {
+        scope: "all",
+        variables: [
+          { name: "dueAt", operator: "greaterThan", value: "2026-01-01T00:00", as: "date" },
+          { name: "giftNote", operator: "equals", value: "", as: "null" },
+        ],
+      },
+    })
+
+    expect(opened.searched.at(-1)?.variables).toEqual([
+      {
+        name: "dueAt",
+        operator: "greaterThan",
+        at: new Date("2026-01-01T00:00").toISOString(),
+      },
+      { name: "giftNote", operator: "equals", valueJson: "null" },
+    ])
+    expect(opened.view().instances.map((row) => row.businessKey)).toEqual(["ORD-1002"])
+    expect(opened.view().variableLabels).toEqual(["dueAt > 2026-01-01 00:00", "giftNote = null"])
   })
 
   test("selects only the running instances the conditions match", async () => {

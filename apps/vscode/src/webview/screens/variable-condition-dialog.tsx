@@ -2,7 +2,6 @@ import { useEffect, useId, useRef, useState } from "preact/hooks"
 import type { VariableConditionView } from "../../core/protocol/index.js"
 import {
   COMPARE_AS,
-  OPERATOR_LABELS,
   OPERATORS_OF,
   VariableDraft,
   type CompareAs,
@@ -69,6 +68,7 @@ function ComparisonFields({ draft, onDraft }: FieldProps) {
           id={compareAsId}
           class="condition-dialog__control"
           value={draft.compareAs}
+          aria-describedby={`${compareAsId}-hint`}
           onChange={(event) => {
             const compareAs = event.currentTarget.value as CompareAs
             onDraft((current) => VariableDraft.withCompareAs(current, compareAs))
@@ -80,6 +80,9 @@ function ComparisonFields({ draft, onDraft }: FieldProps) {
             </option>
           ))}
         </select>
+        <p id={`${compareAsId}-hint`} class="condition-dialog__hint muted">
+          JSON and object variables can't be searched.
+        </p>
       </div>
       <div class="condition-dialog__field">
         <label for={operatorId}>Operator</label>
@@ -94,7 +97,7 @@ function ComparisonFields({ draft, onDraft }: FieldProps) {
         >
           {OPERATORS_OF[draft.compareAs].map((option) => (
             <option key={option} value={option}>
-              {OPERATOR_LABELS[option]}
+              {VariableDraft.operatorLabel(draft.compareAs, option)}
             </option>
           ))}
         </select>
@@ -106,6 +109,21 @@ function ComparisonFields({ draft, onDraft }: FieldProps) {
 function ValueControl({ id, draft, errors, onDraft }: FieldProps & { readonly id: string }) {
   const onValue = (value: string): void => {
     onDraft((current) => ({ ...current, value }))
+  }
+  if (draft.compareAs === "date") {
+    return (
+      <input
+        id={id}
+        type="datetime-local"
+        class="condition-dialog__control"
+        value={draft.value}
+        aria-invalid={errors.value !== undefined || undefined}
+        aria-describedby={`${id}-error`}
+        onInput={(event) => {
+          onValue(event.currentTarget.value)
+        }}
+      />
+    )
   }
   if (draft.compareAs === "boolean") {
     return (
@@ -140,6 +158,9 @@ function ValueControl({ id, draft, errors, onDraft }: FieldProps & { readonly id
 function ValueField(props: FieldProps) {
   const id = useId()
   const { compareAs, operator } = props.draft
+  if (compareAs === "null") {
+    return null
+  }
   return (
     <div class="condition-dialog__field">
       <label for={id}>Value</label>

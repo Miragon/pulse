@@ -265,7 +265,14 @@
   white-space: nowrap;
 }
 
+.filter-bar:has(.filter-chip--variable) {
+  flex-wrap: wrap;
+  padding-block: 4px;
+  row-gap: 4px;
+}
+
 .filter-chip--variable {
+  flex: none;
   max-width: 240px;
 }
 

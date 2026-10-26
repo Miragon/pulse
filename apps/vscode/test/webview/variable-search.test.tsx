@@ -8,6 +8,7 @@ import type {
 } from "../../src/core/protocol/index.js"
 import { MAX_VARIABLE_CONDITIONS, VariableConditionRules } from "../../src/core/protocol/index.js"
 import {
+  DATE_PATTERN,
   MAX_CONDITIONS,
   NUMBER_PATTERN,
   OPERATORS_OF,
@@ -131,6 +132,63 @@ describe("the variable search of the definition panel", () => {
     expect(lastFilter(harness)).toBeUndefined()
   })
 
+  it("compares a date as a point in time with a date and time field", async () => {
+    harness = mountApp()
+    harness.publish(ready(DEFINITION_VIEW))
+    const dialog = await openDialog(
+      harness,
+      await vi.waitFor(() => buttonNamed(harness.root, "Variables")),
+    )
+
+    enter(field(dialog, "Name"), "dueAt")
+    enter(field(dialog, "Compare as"), "date")
+    await nextFrame()
+    expect(field(dialog, "Value").type).toBe("datetime-local")
+    expect([...field(dialog, "Operator").options].map((option) => option.textContent)).toEqual([
+      "is",
+      "is not",
+      "is after",
+      "is before",
+    ])
+    enter(field(dialog, "Operator"), "lessThan")
+    enter(field(dialog, "Value"), "2026-03-15T10:00")
+    await apply(dialog)
+
+    await vi.waitFor(() => {
+      expect(lastFilter(harness)?.variables).toEqual([
+        { name: "dueAt", operator: "lessThan", value: "2026-03-15T10:00", as: "date" },
+      ])
+    })
+  })
+
+  it("asks for no value when it compares with null", async () => {
+    harness = mountApp()
+    harness.publish(ready(DEFINITION_VIEW))
+    const dialog = await openDialog(
+      harness,
+      await vi.waitFor(() => buttonNamed(harness.root, "Variables")),
+    )
+
+    enter(field(dialog, "Name"), "giftNote")
+    enter(field(dialog, "Value"), "leftover")
+    enter(field(dialog, "Compare as"), "null")
+    await nextFrame()
+    expect([...dialog.querySelectorAll("label")].map((label) => label.textContent)).not.toContain(
+      "Value",
+    )
+    expect([...field(dialog, "Operator").options].map((option) => option.textContent)).toEqual([
+      "is null",
+      "is not null",
+    ])
+    await apply(dialog)
+
+    await vi.waitFor(() => {
+      expect(lastFilter(harness)?.variables).toEqual([
+        { name: "giftNote", operator: "equals", value: "", as: "null" },
+      ])
+    })
+  })
+
   it("shows every condition as a chip that edits or removes it", async () => {
     harness = mountApp()
     harness.publish(ready({ ...DEFINITION_VIEW, filter: CONDITIONS, variableLabels: LABELS }))
@@ -219,8 +277,9 @@ describe("the variable search of the definition panel", () => {
 describe("the variable dialog", () => {
   it("follows the protocol's rules", () => {
     expect(NUMBER_PATTERN).toBe(VariableConditionRules.NUMBER_PATTERN)
+    expect(DATE_PATTERN).toBe(VariableConditionRules.DATE_PATTERN)
     expect(MAX_CONDITIONS).toBe(MAX_VARIABLE_CONDITIONS)
-    for (const type of ["text", "number", "boolean"] as const) {
+    for (const type of ["text", "number", "boolean", "date", "null"] as const) {
       expect(OPERATORS_OF[type]).toEqual(VariableConditionRules.operatorsOf(type))
     }
   })
@@ -230,6 +289,12 @@ describe("the variable dialog", () => {
     [{ name: "amount", operator: "equals", value: "4x", compareAs: "number" }, "value"],
     [{ name: "amount", operator: "equals", value: "abc", compareAs: "auto" }, undefined],
     [{ name: "  ", operator: "equals", value: "abc", compareAs: "text" }, "name"],
+    [{ name: "dueAt", operator: "lessThan", value: "", compareAs: "date" }, "value"],
+    [
+      { name: "dueAt", operator: "lessThan", value: "2026-03-15T10:00", compareAs: "date" },
+      undefined,
+    ],
+    [{ name: "giftNote", operator: "equals", value: "", compareAs: "null" }, undefined],
   ] as const)("finds in %o a wrong %s", (draft, wrong) => {
     expect(Object.keys(VariableDraft.errors(draft, 0))).toEqual(wrong === undefined ? [] : [wrong])
   })

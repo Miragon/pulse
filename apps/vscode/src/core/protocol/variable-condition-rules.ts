@@ -19,12 +19,33 @@ const OPERATORS_OF: Readonly<Record<VariableValueType, readonly VariableOperator
   text: ["equals", "notEquals", "like"],
   number: ["equals", "notEquals", "greaterThan", "lessThan"],
   boolean: ["equals", "notEquals"],
+  date: ["equals", "notEquals", "greaterThan", "lessThan"],
+  null: ["equals", "notEquals"],
+}
+
+const SHOWN_VALUES: Readonly<Record<VariableValueType, (value: string) => string>> = {
+  text: (value) => JSON.stringify(value),
+  number: (value) => value,
+  boolean: (value) => value,
+  date: (value) => value.replace("T", " "),
+  null: () => "null",
+}
+const VALUE_FITS: Readonly<Record<VariableValueType, (value: string) => boolean>> = {
+  text: () => true,
+  number: (value) => VariableConditionRules.isNumber(value),
+  boolean: (value) => BOOLEANS.has(value),
+  date: (value) => VariableConditionRules.isDate(value),
+  null: (value) => value === "",
 }
 
 export class VariableConditionRules {
   static readonly NUMBER_PATTERN = "-?(?:0|[1-9]\\d*)(?:\\.\\d+)?"
 
+  static readonly DATE_PATTERN = "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(?::\\d{2})?"
+
   private static readonly NUMBER = new RegExp(`^${VariableConditionRules.NUMBER_PATTERN}$`)
+
+  private static readonly DATE = new RegExp(`^${VariableConditionRules.DATE_PATTERN}$`)
 
   static isOperator(value: unknown): value is VariableOperator {
     return typeof value === "string" && Object.hasOwn(SYMBOLS, value)
@@ -36,6 +57,10 @@ export class VariableConditionRules {
 
   static isNumber(text: string): boolean {
     return VariableConditionRules.NUMBER.test(text)
+  }
+
+  static isDate(text: string): boolean {
+    return VariableConditionRules.DATE.test(text) && !Number.isNaN(Date.parse(text))
   }
 
   static typeOf(condition: VariableConditionView): VariableValueType {
@@ -66,17 +91,11 @@ export class VariableConditionRules {
   }
 
   static label(condition: VariableConditionView): string {
-    const shown =
-      VariableConditionRules.typeOf(condition) === "text"
-        ? JSON.stringify(condition.value)
-        : condition.value
+    const shown = SHOWN_VALUES[VariableConditionRules.typeOf(condition)](condition.value)
     return `${condition.name} ${SYMBOLS[condition.operator]} ${shown}`
   }
 
   private static valueFits(type: VariableValueType, value: string): boolean {
-    if (type === "number") {
-      return VariableConditionRules.isNumber(value)
-    }
-    return type === "boolean" ? BOOLEANS.has(value) : true
+    return VALUE_FITS[type](value)
   }
 }
