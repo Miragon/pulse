@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.24.0](https://github.com/Miragon/pulse/compare/v0.23.0...v0.24.0) (2026-10-26)
+
+
+### Features
+
+* **vscode:** publish the extension on every release as miragon-gmbh.pulse ([#460](https://github.com/Miragon/pulse/issues/460)) ([e5db43c](https://github.com/Miragon/pulse/commit/e5db43c73535347a483b38538352a339bbba69c1))
+
+
+### Bug Fixes
+
+* **docs:** open the landing footer's own link in a new tab ([#462](https://github.com/Miragon/pulse/issues/462)) ([a267447](https://github.com/Miragon/pulse/commit/a267447cb6acfbb1e408c57fc8ed6d985c3050f7))
+
 ## [0.23.0](https://github.com/Miragon/pulse/compare/v0.22.0...v0.23.0) (2026-10-26)
 
 
