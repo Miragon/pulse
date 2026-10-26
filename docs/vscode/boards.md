@@ -5,7 +5,7 @@ orders wait for payment, which processes have incidents, which instances run at 
 board is a JSON file in your repository, so it is versioned and shared like the code. It only
 reads; it never writes to an engine.
 
-![A board across two engines, one of them unreachable](../assets/vscode/41-board-across-engines.png)
+![A board across three engines, one of them unreachable](../assets/vscode/41-board-across-engines.png)
 
 ## A board file
 

@@ -1,4 +1,5 @@
 import { rm, writeFile } from "node:fs/promises"
+import { fileURLToPath } from "node:url"
 import { restPointer } from "./panel-steps.mjs"
 import {
   answer,
@@ -9,7 +10,9 @@ import {
   showPulse,
 } from "./vscode-driver.mjs"
 
-const BROKEN_BOARD = "sandbox/.pulse/boards/broken.board.json"
+const BROKEN_BOARD = fileURLToPath(
+  new URL("../../sandbox/.pulse/boards/broken.board.json", import.meta.url),
+)
 
 async function openBoard(window, title) {
   await showPulse(window)

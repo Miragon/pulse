@@ -143,3 +143,21 @@ export function boardFixture(content: unknown, engines: readonly EngineSetup[]):
   }
   return fixture
 }
+
+export interface Deferred<Value> {
+  readonly promise: Promise<Value>
+  resolve(value: Value): void
+}
+
+export function deferred<Value>(): Deferred<Value> {
+  let resolve: (value: Value) => void = () => undefined
+  const promise = new Promise<Value>((settle) => {
+    resolve = settle
+  })
+  return {
+    promise,
+    resolve: (value) => {
+      resolve(value)
+    },
+  }
+}

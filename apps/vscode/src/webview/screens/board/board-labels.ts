@@ -1,8 +1,8 @@
 import type {
   BoardEngineStatus,
+  BoardTarget,
   BoardView,
   CounterTile,
-  IncidentSummaryRow,
   IncidentSummaryTile,
 } from "../../../core/protocol/index.js"
 import { CountLabels } from "../../format/count-labels.js"
@@ -44,10 +44,27 @@ export class BoardLabels {
       : undefined
   }
 
-  static openTitle(row: IncidentSummaryRow): string {
-    return row.target.bpmnProcessId === undefined
-      ? `Open the processes of ${row.engine}`
-      : `Open the process on ${row.engine}, latest version first`
+  static openTitle(target: BoardTarget): string {
+    const where =
+      target.bpmnProcessId === undefined
+        ? `Open the processes of ${target.engine}`
+        : `Open the process on ${target.engine}, latest version first`
+    return `${where} (Ctrl/Cmd+click: to the side)`
+  }
+
+  static above(tile: CounterTile): string | undefined {
+    const above = tile.entries.filter((entry) => entry.above === true)
+    if (tile.warnAbove === undefined || above.length === 0) {
+      return undefined
+    }
+    const limit = CountLabels.exact(tile.warnAbove)
+    return above.length === 1
+      ? `${above[0]?.engine ?? ""} above ${limit}`
+      : `${CountLabels.plural(above.length, "engine")} above ${limit}`
+  }
+
+  static entryCount(count: number | undefined): string {
+    return count === undefined ? "not read" : CountLabels.exact(count)
   }
 
   static count(count: number | undefined): string {

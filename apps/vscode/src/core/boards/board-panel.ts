@@ -55,14 +55,14 @@ export class BoardPanel implements Panel {
     if (this.view !== undefined) {
       this.publish(true)
     }
-    const view = await this.read()
+    const view = await this.read(ticket)
     if (ticket === this.latest) {
       this.view = view
       this.publish(false)
     }
   }
 
-  private async read(): Promise<BoardView> {
+  private async read(ticket: number): Promise<BoardView> {
     const asOf = this.context.now()
     const fileName = this.context.fileName
     let content: string
@@ -76,7 +76,9 @@ export class BoardPanel implements Panel {
     if ("problems" in parsed) {
       return this.fallback({ fileName, asOf, problems: parsed.problems })
     }
-    this.board = parsed.board
+    if (ticket === this.latest) {
+      this.board = parsed.board
+    }
     const engines = this.context.engines(parsed.board.engines)
     return BoardViewBuilder.build(parsed.board, engines, { fileName, asOf, problems: [] })
   }
@@ -110,7 +112,7 @@ export class BoardPanel implements Panel {
         }
         return
       case "openBoardProcess":
-        if (targets.showsProcess(intent.engine, intent.bpmnProcessId)) {
+        if (targets.showsProcess(intent.engine, intent.bpmnProcessId, intent.filter)) {
           const process = BpmnProcessId(intent.bpmnProcessId)
           navigation.openDefinition(intent.engine, process, intent.filter, {
             toSide: intent.toSide,

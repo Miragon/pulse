@@ -9,6 +9,9 @@ import type { Connection } from "../../src/host/connections/connection.js"
 import type { ConnectionRegistry } from "../../src/host/connections/connection-registry.js"
 import type { PanelManager } from "../../src/host/panels/panel-manager.js"
 import type { HostMessage, PanelState } from "../../src/core/protocol/index.js"
+import { RuntimeError } from "../../src/contract/index.js"
+import { BoardParser } from "../../src/core/index.js"
+import { instance } from "../core/support/board-fixture.js"
 
 interface FakeUri {
   readonly path: string
@@ -111,10 +114,13 @@ vi.mock("vscode", () => {
         fake.shown.push(args)
         return Promise.resolve()
       },
-      showInputBox: (options: { validateInput: (value: string) => string | undefined }) => {
+      showInputBox: async (options: {
+        validateInput: (value: string) => Promise<string | undefined>
+      }) => {
         const answer = fake.inputs.shift()
-        fake.shown.push(["validate", options.validateInput("!!!"), options.validateInput("Ok")])
-        return Promise.resolve(answer)
+        const checks = await Promise.all(["!!!", "Shop payments"].map(options.validateInput))
+        fake.shown.push(["validate", ...checks])
+        return answer
       },
       showInformationMessage: (message: string) => {
         fake.shown.push(["inform", message])
@@ -127,6 +133,8 @@ vi.mock("vscode", () => {
       },
       findFiles: () => Promise.resolve([...fake.files.keys()].map((path) => uri(path))),
       fs: {
+        stat: (file: FakeUri) =>
+          fake.files.has(file.path) ? Promise.resolve({}) : Promise.reject(new Error("missing")),
         readFile: (file: FakeUri) => {
           const content = fake.files.get(file.path)
           return content === undefined
@@ -194,12 +202,25 @@ function setup() {
     runtime: {
       describeEngine: () => Promise.resolve({ product: "Engine", version: "1" }),
       countInstances: () => Promise.resolve(4),
+      searchInstances: () => Promise.resolve({ items: [instance("i-1", "order")] }),
     },
     definitions: { read: () => Promise.resolve([]) },
   } as unknown as Connection
+  const locked = {
+    target: { name: "locked" },
+    badge: { name: "locked", environment: "test", host: "locked" },
+    runtime: {
+      describeEngine: () => Promise.reject(new RuntimeError("unauthorized", "HTTP 401")),
+    },
+    definitions: { read: () => Promise.resolve([]) },
+  } as unknown as Connection
+  const known = new Map([
+    ["shop", connection],
+    ["locked", locked],
+  ])
   const registry = {
-    byName: (name: string) => (name === "shop" ? connection : undefined),
-    all: () => [connection],
+    byName: (name: string) => known.get(name),
+    all: () => [...known.values()],
     onDidChange: changed.event,
   } as unknown as ConnectionRegistry
   const panels = [] as ReturnType<typeof webviewPanel>[]
@@ -215,13 +236,19 @@ function setup() {
     openDefinition: (...args: unknown[]) => opened.push(["definition", ...args]),
     openEngine: (...args: unknown[]) => opened.push(["engine", ...args]),
   } as unknown as PanelManager
-  return { registry, manager, panels, opened, connection, registryChanged: changed.all }
+  return { registry, manager, panels, opened, connection, locked, registryChanged: changed.all }
 }
 
-async function settled(): Promise<void> {
-  for (let round = 0; round < 10; round += 1) {
-    await new Promise((resolve) => setTimeout(resolve, 0))
+function fire(listeners: readonly ((value: unknown) => void)[], value: unknown): void {
+  for (const listener of listeners) {
+    listener(value)
   }
+}
+
+async function titled(panel: ReturnType<typeof webviewPanel>, title: string): Promise<void> {
+  await vi.waitFor(() => {
+    expect(lastState(panel)).toMatchObject({ status: "ready", view: { title } })
+  })
 }
 
 function lastState(panel: ReturnType<typeof webviewPanel>): PanelState | undefined {
@@ -246,7 +273,7 @@ describe("the boards view", () => {
     const items = nodes.map((node) => tree.getTreeItem(node))
 
     expect(items.map((item) => [item.label, item.description])).toEqual([
-      ["broken.board.json", "broken.board.json · 1 problem"],
+      ["broken.board.json", "1 problem"],
       ["Payments", "payments.board.json"],
     ])
     expect(items[1]?.command).toEqual({
@@ -265,12 +292,13 @@ describe("the boards view", () => {
     const tree = new BoardsTree()
     const [node] = await tree.getChildren()
 
-    expect(tree.getTreeItem(node!).description).toBe("empty.board.json · 3 problems")
+    expect(tree.getTreeItem(node!).description).toBe("3 problems")
 
     fake.files.clear()
     tree.refresh()
-    await settled()
-    expect(fake.commands.at(-1)).toEqual(["setContext", "pulse.hasBoards", false])
+    await vi.waitFor(() => {
+      expect(fake.commands.at(-1)).toEqual(["setContext", "pulse.hasBoards", false])
+    })
   })
 })
 
@@ -287,12 +315,13 @@ describe("an open board", () => {
     panels[0]?.send({ type: "ready" })
     panels[0]?.send({ type: "activity" })
     panels[0]?.send({ type: "no such intent" })
-    await settled()
+    await vi.waitFor(() => {
+      expect(lastState(panels[0]!)).toMatchObject({ status: "ready", view: { title: "Payments" } })
+    })
 
     expect(panels).toHaveLength(1)
     expect(panels[0]?.revealed).toBe(1)
     expect(panels[0]?.title).toBe("Payments · Board")
-    expect(lastState(panels[0]!)).toMatchObject({ status: "ready", view: { title: "Payments" } })
     boards.dispose()
   })
 
@@ -305,21 +334,30 @@ describe("an open board", () => {
     const watcher = new BoardWatcher(tree, boards)
     boards.open(uri(file))
     panels[0]?.send({ type: "ready" })
-    await settled()
+    await titled(panels[0]!, "Payments")
 
     fake.files.set(file, JSON.stringify({ title: "Renamed", engines: ["shop"], rows: [] }))
-    fake.watcher.change.all.forEach((listener) => {
-      listener(uri(file))
-    })
-    await settled()
-    expect(lastState(panels[0]!)).toMatchObject({ view: { title: "Renamed" } })
+    fire(fake.watcher.change.all, uri(file))
+    await titled(panels[0]!, "Renamed")
 
     fake.files.set(file, JSON.stringify({ title: "Again", engines: ["shop"], rows: [] }))
-    registryChanged.forEach((listener) => {
-      listener(undefined)
+    fire(registryChanged, undefined)
+    await titled(panels[0]!, "Again")
+
+    const announced = fake.commands.length
+    fake.files.set("/w/.pulse/boards/other.board.json", VALID)
+    fire(fake.watcher.create.all, uri("/w/.pulse/boards/other.board.json"))
+    await vi.waitFor(() => {
+      expect(fake.commands.slice(announced)).toContainEqual(["setContext", "pulse.hasBoards", true])
     })
-    await settled()
-    expect(lastState(panels[0]!)).toMatchObject({ view: { title: "Again" } })
+
+    fake.files.delete(file)
+    fire(fake.watcher.remove.all, uri(file))
+    await vi.waitFor(() => {
+      expect(lastState(panels[0]!)).toMatchObject({
+        view: { title: "Again", problems: [{ path: "(file)", reason: "could not be read" }] },
+      })
+    })
 
     panels[0]?.dispose()
     boards.open(uri(file))
@@ -334,16 +372,25 @@ describe("an open board", () => {
       file,
       JSON.stringify({
         title: "Payments",
-        engines: ["shop", "gone"],
-        rows: [{ row: [{ widget: "counter", props: { filter: { process: "order" } } }] }],
+        engines: ["shop", "gone", "locked"],
+        rows: [
+          {
+            row: [
+              { widget: "counter", props: { filter: { process: "order" } } },
+              { widget: "instanceList", props: { filter: { process: "order" } } },
+            ],
+          },
+        ],
       }),
     )
-    const { registry, manager, panels, opened, connection } = setup()
+    const { registry, manager, panels, opened, connection, locked } = setup()
     const boards = new BoardPanels(registry, manager)
     boards.open(uri(file))
     const panel = panels[0]!
     panel.send({ type: "ready" })
-    await settled()
+    await vi.waitFor(() => {
+      expect(lastState(panel)).toMatchObject({ status: "ready", view: { title: "Payments" } })
+    })
 
     const filter = { scope: "running" }
     panel.send({
@@ -354,23 +401,29 @@ describe("an open board", () => {
       toSide: true,
     })
     panel.send({ type: "openBoardEngine", engine: "shop", toSide: false })
+    panel.send({ type: "openBoardInstance", engine: "shop", instanceId: "i-1", toSide: false })
+    panel.send({ type: "setBoardCredentials", engine: "locked" })
     panel.send({ type: "openBoardFile" })
     panel.send({ type: "editConnection" })
-    await settled()
+    await vi.waitFor(() => {
+      expect(fake.commands).toContainEqual(["pulse.openTargetsFile"])
+    })
 
     expect(opened).toEqual([
       ["definition", connection, { bpmnProcessId: "order", filter }, -2],
       ["engine", connection, -1],
+      ["instance", connection, "i-1", -1],
     ])
+    expect(fake.commands).toContainEqual(["pulse.setCredentials", { connection: locked }])
     const [shownFile, shownOptions] = fake.shown[0] ?? []
     expect((shownFile as FakeUri).path).toBe(file)
     expect(shownOptions).toEqual({ viewColumn: -2 })
-    expect(fake.commands).toContainEqual(["pulse.openTargetsFile"])
     expect(lastState(panel)).toMatchObject({
       view: {
         engines: [
           { name: "shop", state: "ready" },
           { name: "gone", state: "notConfigured" },
+          { name: "locked", state: "failed" },
         ],
       },
     })
@@ -386,12 +439,28 @@ describe("a new board", () => {
 
     await new NewBoardCommand(registry, new BoardPanels(registry, manager)).run()
 
-    const written: unknown = JSON.parse(
+    const written = BoardParser.parse(
       fake.files.get("/w/.pulse/boards/shop-payments.board.json") ?? "",
     )
-    expect(written).toMatchObject({ schemaVersion: 1, title: "Shop: Payments", engines: ["shop"] })
+    expect(written).toHaveProperty("board.title", "Shop: Payments")
+    expect(written).toHaveProperty("board.engines", ["shop", "locked"])
     expect(fake.shown[0]).toEqual(["validate", "Enter a name with letters or digits.", undefined])
     expect(panels).toHaveLength(1)
+  })
+
+  test("never overwrites a board that exists", async () => {
+    fake.folders.push({ uri: uri("/w") })
+    fake.files.set("/w/.pulse/boards/shop-payments.board.json", VALID)
+    const { registry, manager } = setup()
+
+    await new NewBoardCommand(registry, new BoardPanels(registry, manager)).run()
+
+    expect(fake.shown[0]).toEqual([
+      "validate",
+      "Enter a name with letters or digits.",
+      "shop-payments.board.json exists. Choose another name.",
+    ])
+    expect(fake.files.get("/w/.pulse/boards/shop-payments.board.json")).toBe(VALID)
   })
 
   test("asks for a folder first and stops when the name is cancelled", async () => {

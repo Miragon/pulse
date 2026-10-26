@@ -86,12 +86,13 @@ export class ParseProblems {
     const valid =
       Array.isArray(value) &&
       value.length > 0 &&
-      value.every((name) => typeof name === "string" && name.trim() !== "")
+      value.every((name) => typeof name === "string" && name.trim() !== "") &&
+      new Set(value).size === value.length
     return this.checked(
       valid,
       value as string[],
       ParseProblems.key(path, key),
-      "must be a list of engine names that is not empty",
+      "must be a list of different engine names that is not empty",
     )
   }
 }

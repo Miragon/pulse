@@ -76,8 +76,8 @@ function ProblemList({ view }: { readonly view: BoardView }) {
     return null
   }
   return (
-    <section class="board-card board-problems" aria-label={`Problems in ${view.fileName}`}>
-      <h2 class="board-card__title">{`Problems in ${view.fileName}`}</h2>
+    <section class="board-card board-problems" aria-labelledby="board-problems-title">
+      <h2 id="board-problems-title" class="board-card__title">{`Problems in ${view.fileName}`}</h2>
       <ul class="board-problems__list">
         {view.problems.map((problem) => (
           <li key={`${problem.path} ${problem.reason}`} class="board-problems__item">

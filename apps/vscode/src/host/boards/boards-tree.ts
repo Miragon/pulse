@@ -29,7 +29,7 @@ export class BoardsTree implements vscode.TreeDataProvider<BoardNode>, vscode.Di
   getTreeItem(node: BoardNode): vscode.TreeItem {
     const name = BoardFiles.nameOf(node.file)
     const item = new vscode.TreeItem(node.title ?? name, vscode.TreeItemCollapsibleState.None)
-    item.description = node.problems === 0 ? name : `${name} · ${this.problemLabel(node)}`
+    item.description = this.descriptionOf(node, name)
     item.tooltip = node.file.fsPath
     item.accessibilityInformation = { label: `${node.title ?? name}, ${item.description}` }
     item.contextValue = "pulse.board"
@@ -65,6 +65,15 @@ export class BoardsTree implements vscode.TreeDataProvider<BoardNode>, vscode.Di
     return "board" in parsed
       ? { file, title: parsed.board.title, problems: 0 }
       : { file, problems: parsed.problems.length }
+  }
+
+  private descriptionOf(node: BoardNode, name: string): string {
+    if (node.problems === 0) {
+      return name
+    }
+    return node.title === undefined
+      ? this.problemLabel(node)
+      : `${name} · ${this.problemLabel(node)}`
   }
 
   private problemLabel(node: BoardNode): string {

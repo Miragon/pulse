@@ -34,6 +34,11 @@ describe("a board filter", () => {
     ).toEqual({ scope: "withIncident", elementId: "Task_Pay", businessKey: "B-1" })
   })
 
+  test("opens nothing when the definition panel has no scope for the same instances", () => {
+    expect(BoardFilters.listFilter({ state: "running", withIncident: false })).toBeUndefined()
+    expect(BoardFilters.listFilter({ state: "ended", withIncident: true })).toBeUndefined()
+  })
+
   test("names itself when the widget has no title", () => {
     expect(BoardFilters.title({ state: "running" })).toBe("Running instances")
     expect(

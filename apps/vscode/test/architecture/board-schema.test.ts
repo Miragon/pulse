@@ -9,6 +9,8 @@ interface Node {
   readonly properties?: Readonly<Record<string, Node>>
   readonly required?: readonly string[]
   readonly additionalProperties?: boolean
+  readonly uniqueItems?: boolean
+  readonly minItems?: number
   readonly items?: Node
   readonly enum?: readonly unknown[]
   readonly const?: unknown
@@ -41,6 +43,17 @@ function widgetNamed(name: string): Node {
   return widget
 }
 
+function expectWidgetLikeTheParser(widget: (typeof BoardVocabulary.WIDGETS)[number]): void {
+  const node = widgetNamed(widget)
+  const props = node.properties?.props
+  expect(keysOf(node)).toEqual(BoardVocabulary.WIDGET_KEYS)
+  expect(node.additionalProperties).toBe(false)
+  expect(node.required).toEqual(["widget"])
+  expect(keysOf(props)).toEqual(BoardVocabulary.PROPS[widget])
+  expect(props?.additionalProperties).toBe(false)
+  expect(props?.properties?.engines?.uniqueItems).toBe(true)
+}
+
 function propOf(widget: string, prop: string): Node | undefined {
   return widgetNamed(widget).properties?.props?.properties?.[prop]
 }
@@ -48,7 +61,9 @@ function propOf(widget: string, prop: string): Node | undefined {
 describe("the board schema the editor validates with", () => {
   test("allows exactly the keys and versions the parser reads", () => {
     expect(keysOf(schema)).toEqual(BoardVocabulary.DOCUMENT_KEYS)
-    expect(schema.required).toEqual(["title", "engines", "rows"])
+    expect(schema.required).toEqual(BoardVocabulary.REQUIRED)
+    expect(schema.properties?.rows?.items?.required).toEqual(BoardVocabulary.ROW_KEYS)
+    expect(schema.properties?.engines?.uniqueItems).toBe(true)
     expect(schema.additionalProperties).toBe(false)
     expect(schema.properties?.schemaVersion?.const).toBe(BoardVocabulary.SCHEMA_VERSION)
     expect(keysOf(schema.properties?.rows?.items)).toEqual(BoardVocabulary.ROW_KEYS)
@@ -60,11 +75,7 @@ describe("the board schema the editor validates with", () => {
     )
     expect(named).toEqual(BoardVocabulary.WIDGETS)
     for (const widget of BoardVocabulary.WIDGETS) {
-      const node = widgetNamed(widget)
-      expect(keysOf(node)).toEqual(BoardVocabulary.WIDGET_KEYS)
-      expect(node.additionalProperties).toBe(false)
-      expect(keysOf(node.properties?.props)).toEqual(BoardVocabulary.PROPS[widget])
-      expect(node.properties?.props?.additionalProperties).toBe(false)
+      expectWidgetLikeTheParser(widget)
     }
   })
 
@@ -75,6 +86,7 @@ describe("the board schema the editor validates with", () => {
     expect(filter?.properties?.state?.enum).toEqual(BoardVocabulary.STATES)
     expect(propOf("incidentSummary", "groupBy")?.enum).toEqual(BoardVocabulary.GROUPINGS)
     expect(propOf("instanceList", "columns")?.items?.enum).toEqual(BoardVocabulary.COLUMNS)
+    expect(propOf("instanceList", "columns")?.minItems).toBe(1)
   })
 
   test("is the one the extension contributes for board files", () => {

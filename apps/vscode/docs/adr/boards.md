@@ -59,7 +59,7 @@ that fails it; `EngineReads` reads each distinct question once per engine and lo
 numbers: totals come from counts and the shared definitions, never from page lengths; a failed
 read shows "—", never 0; a total says how many engines it counts ("from 2 of 3 engines"); a
 threshold warns per engine. `instanceList` shows each engine's first 50 rows with that
-engine's total, grouped by engine in one table, because the contract promises no order across
+engine's total, in one table with an engine column and the rows of each engine together, because the contract promises no order across
 engines. `incidentSummary` counts instances with incident from `listDefinitions`, one call per
 engine. A broken save keeps the last valid board under its problems.
 
@@ -84,11 +84,11 @@ an open board on save, and **Pulse: New Board…** writes a starter board.
 
 ## Decision log
 
-| Question         | Decision                                       | Why                                                  |
-| ---------------- | ---------------------------------------------- | ---------------------------------------------------- |
-| Name             | Boards                                         | Cockpit, Dashboards and Views are taken              |
-| Shape            | Toolkit layout grammar, own widgets            | One layout vocabulary; data binding differs          |
-| Engine reference | Profile name                                   | The only id; `.pulse-cli.json` is shared in the repo |
-| `health` widget  | Replaced by one status strip per engine        | The engine overview exists; no green "healthy"       |
-| Merge of lists   | One table grouped by engine, totals per engine | No order across engines in the contract              |
-| Workspace trust  | No `capabilities`: off in untrusted folders    | `limited` would allow engine reads there             |
+| Question         | Decision                                                   | Why                                                  |
+| ---------------- | ---------------------------------------------------------- | ---------------------------------------------------- |
+| Name             | Boards                                                     | Cockpit, Dashboards and Views are taken              |
+| Shape            | Toolkit layout grammar, own widgets                        | One layout vocabulary; data binding differs          |
+| Engine reference | Profile name                                               | The only id; `.pulse-cli.json` is shared in the repo |
+| `health` widget  | Replaced by one status strip per engine                    | The engine overview exists; no green "healthy"       |
+| Merge of lists   | One table, rows of each engine together, totals per engine | No order across engines in the contract              |
+| Workspace trust  | No `capabilities`: off in untrusted folders                | `limited` would allow engine reads there             |

@@ -25,7 +25,7 @@ export interface CounterEntry {
   readonly engine: string
   readonly count?: number
   readonly above?: true
-  readonly target: BoardTarget
+  readonly target?: BoardTarget
 }
 
 export interface CounterTile {
@@ -34,6 +34,7 @@ export interface CounterTile {
   readonly total?: number
   readonly known: number
   readonly warnAbove?: number
+  readonly incident?: true
   readonly entries: readonly CounterEntry[]
 }
 

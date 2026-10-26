@@ -24,8 +24,7 @@ export class NewBoardCommand implements Command {
     const title = await vscode.window.showInputBox({
       title: "New board",
       prompt: "Name the board, for example Shop: Payments",
-      validateInput: (value) =>
-        this.slugOf(value) === "" ? "Enter a name with letters or digits." : undefined,
+      validateInput: (value) => this.problemWith(folder.uri, value),
     })
     if (title === undefined) {
       return
@@ -38,6 +37,19 @@ export class NewBoardCommand implements Command {
     )
     await vscode.window.showTextDocument(file)
     this.boards.open(file)
+  }
+
+  private async problemWith(folder: vscode.Uri, title: string): Promise<string | undefined> {
+    const slug = this.slugOf(title)
+    if (slug === "") {
+      return "Enter a name with letters or digits."
+    }
+    const file = BoardFiles.fileIn(folder, slug)
+    const taken = await vscode.workspace.fs.stat(file).then(
+      () => true,
+      () => false,
+    )
+    return taken ? `${BoardFiles.nameOf(file)} exists. Choose another name.` : undefined
   }
 
   private slugOf(title: string): string {

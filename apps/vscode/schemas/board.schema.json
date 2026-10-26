@@ -23,7 +23,8 @@
         "type": "string",
         "minLength": 1
       },
-      "description": "Profile names from .pulse-cli.json."
+      "description": "Profile names from .pulse-cli.json.",
+      "uniqueItems": true
     },
     "rows": {
       "type": "array",
@@ -99,7 +100,8 @@
                     "type": "string",
                     "minLength": 1
                   },
-                  "description": "Narrows the board's engines for this widget; only names of the board."
+                  "description": "Narrows the board's engines for this widget; only names of the board.",
+                  "uniqueItems": true
                 },
                 "filter": {
                   "$ref": "#/definitions/filter"
@@ -138,7 +140,8 @@
                     "type": "string",
                     "minLength": 1
                   },
-                  "description": "Narrows the board's engines for this widget; only names of the board."
+                  "description": "Narrows the board's engines for this widget; only names of the board.",
+                  "uniqueItems": true
                 },
                 "filter": {
                   "$ref": "#/definitions/filter"
@@ -156,7 +159,8 @@
                       "endedAt",
                       "incident"
                     ]
-                  }
+                  },
+                  "minItems": 1
                 }
               }
             }
@@ -187,7 +191,8 @@
                     "type": "string",
                     "minLength": 1
                   },
-                  "description": "Narrows the board's engines for this widget; only names of the board."
+                  "description": "Narrows the board's engines for this widget; only names of the board.",
+                  "uniqueItems": true
                 },
                 "groupBy": {
                   "enum": ["engine", "process"],

@@ -103,6 +103,9 @@ export class WidgetParser {
       return BoardVocabulary.DEFAULT_COLUMNS
     }
     const columns = this.problems.items(value, path) ?? []
+    if (columns.length === 0 && Array.isArray(value)) {
+      this.problems.add(path, "must name at least one column")
+    }
     columns.forEach((column, index) => {
       this.checkColumn(column, ParseProblems.index(path, index))
     })

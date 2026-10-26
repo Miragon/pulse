@@ -45,7 +45,7 @@ export class BoardParser {
   }
 
   private checkRequired(record: Json): void {
-    for (const key of ["title", "engines", "rows"]) {
+    for (const key of BoardVocabulary.REQUIRED) {
       if (record[key] === undefined) {
         this.problems.add(key, "is missing")
       }

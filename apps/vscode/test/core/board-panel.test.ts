@@ -2,7 +2,14 @@ import { BpmnProcessId, InstanceId, RuntimeError } from "../../src/contract/inde
 import { describe, expect, test } from "vitest"
 import { BoardPanel } from "../../src/core/boards/board-panel.js"
 import type { BoardTile } from "../../src/core/protocol/index.js"
-import { badgeOf, boardFixture, instance, stubbed, summary } from "./support/board-fixture.js"
+import {
+  badgeOf,
+  boardFixture,
+  deferred,
+  instance,
+  stubbed,
+  summary,
+} from "./support/board-fixture.js"
 
 const SHOP = stubbed({
   describeEngine: () => Promise.resolve({ product: "Engine", version: "7.24" }),
@@ -98,6 +105,19 @@ describe("a board across engines", () => {
       },
       { name: "prod", state: "notConfigured" },
     ])
+  })
+
+  test("offers no click where the definition panel cannot show the same instances", async () => {
+    const without = { widget: "counter", props: { filter: { ...ORDER, withIncident: false } } }
+    const withIncident = { widget: "counter", props: { filter: { ...ORDER, withIncident: true } } }
+    const fixture = boardFixture(board([without, withIncident], ["shop"]), [
+      { name: "shop", runtime: SHOP },
+    ])
+
+    await new BoardPanel(fixture.context).handle({ type: "ready" })
+
+    expect(tileOf(fixture, "counter").entries).toEqual([{ engine: "shop", count: 12 }])
+    expect(tileOf(fixture, "counter", 1)).toMatchObject({ incident: true, total: 3 })
   })
 
   test("reads nothing else from an engine whose probe failed and says why once", async () => {
@@ -343,21 +363,54 @@ describe("a board file that changes", () => {
     expect(fixture.states).toHaveLength(2)
   })
 
-  test("lets the latest read win and publishes nothing once closed", async () => {
+  test("lets the latest read win, even when an older read answers last", async () => {
+    const fixture = boardFixture("", [{ name: "shop", runtime: SHOP }])
+    const older = deferred<string>()
+    const newer = deferred<string>()
+    const reads = [older.promise, newer.promise]
+    const panel = new BoardPanel({ ...fixture.context, read: () => reads.shift()! })
+    const first = panel.handle({ type: "ready" })
+    const second = panel.handle({ type: "refresh" })
+
+    newer.resolve(JSON.stringify({ ...board([COUNTER], ["shop"]), title: "Newer" }))
+    await second
+    older.resolve(JSON.stringify({ ...board([COUNTER], ["shop"]), title: "Older" }))
+    await first
+
+    expect(fixture.view().title).toBe("Newer")
+  })
+
+  test("keeps the latest valid board for later broken saves, not an older one", async () => {
+    const fixture = boardFixture("", [{ name: "shop", runtime: SHOP }])
+    const older = deferred<string>()
+    const contents = [
+      older.promise,
+      Promise.resolve(JSON.stringify({ ...board([COUNTER], ["shop"]), title: "Newer" })),
+      Promise.resolve("{"),
+    ]
+    const panel = new BoardPanel({ ...fixture.context, read: () => contents.shift()! })
+    const first = panel.handle({ type: "ready" })
+    await panel.handle({ type: "refresh" })
+    older.resolve(JSON.stringify({ ...board([COUNTER], ["shop"]), title: "Older" }))
+    await first
+
+    await panel.handle({ type: "refresh" })
+
+    expect(fixture.view()).toMatchObject({ title: "Newer", problems: [{ path: "(file)" }] })
+  })
+
+  test("publishes nothing once closed", async () => {
     const fixture = boardFixture(board([COUNTER], ["shop"]), [{ name: "shop", runtime: SHOP }])
     const panel = new BoardPanel(fixture.context)
-    const first = panel.handle({ type: "ready" })
-    fixture.content = JSON.stringify({ ...board([COUNTER], ["shop"]), title: "Renamed" })
-    const second = panel.handle({ type: "refresh" })
-    await Promise.all([first, second])
-
-    expect(fixture.view().title).toBe("Renamed")
+    await panel.handle({ type: "ready" })
+    const published = fixture.states.length
 
     panel.attend()
     panel.nudge()
     panel.dispose()
     await panel.handle({ type: "refresh" })
-    expect(fixture.view().title).toBe("Renamed")
+
+    expect(fixture.states).toHaveLength(published)
   })
 })
 
@@ -419,6 +472,13 @@ describe("navigating from a board", () => {
       engine: "shop",
       bpmnProcessId: "audit",
       filter,
+      toSide: false,
+    })
+    await panel.handle({
+      type: "openBoardProcess",
+      engine: "shop",
+      bpmnProcessId: "order",
+      filter: { scope: "all" },
       toSide: false,
     })
 

@@ -40,7 +40,7 @@ function EngineProblem({ engine }: { readonly engine: BoardEngineStatus }) {
         detail="Its widgets stay empty until a profile of that name exists."
         actions={[
           {
-            label: "Configure engines",
+            label: "Edit connection…",
             icon: glyphs.FileCode,
             onClick: () => {
               host.post({ type: "editConnection" })
@@ -67,7 +67,7 @@ function EngineChip({ engine }: { readonly engine: BoardEngineStatus }) {
     <button
       type="button"
       class={`board-engine${production ? " board-engine--production" : ""}`}
-      title={`Open the processes of ${engine.name}`}
+      title={BoardLabels.openTitle({ engine: engine.name, filter: { scope: "all" } })}
       onClick={(event) => {
         host.post({
           type: "openBoardEngine",
@@ -93,11 +93,11 @@ export function BoardEngines({ engines }: { readonly engines: readonly BoardEngi
           <EngineProblem key={engine.name} engine={engine} />
         ))}
       {ready.length > 0 && (
-        <nav class="board-engines" aria-label="Engines of this board">
+        <div class="board-engines" role="group" aria-label="Engines of this board">
           {ready.map((engine) => (
             <EngineChip key={engine.name} engine={engine} />
           ))}
-        </nav>
+        </div>
       )}
     </>
   )

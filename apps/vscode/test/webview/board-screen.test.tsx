@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest"
 import type { BoardView, PanelState } from "../../src/core/protocol/index.js"
 import { BOARD_VIEW, BROKEN_BOARD_VIEW } from "../../dev/webview/fixtures/board.js"
+import { TimeLabels } from "../../src/webview/format/time-labels.js"
 import { buttonNamed, mountApp, waitForElement } from "./harness.js"
 import type { Harness } from "./harness.js"
 
@@ -9,10 +10,14 @@ function ready(view: BoardView, refreshing = false): PanelState {
 }
 
 function card(root: ParentNode, title: string): HTMLElement {
-  const found = root.querySelector<HTMLElement>(`section[aria-label="${title}"]`)
-  if (found === null) {
+  const heading = [...root.querySelectorAll("section > h2")].find(
+    (candidate) => candidate.textContent === title,
+  )
+  const found = heading?.parentElement
+  if (found === null || found === undefined) {
     throw new Error(`No card ${title}.`)
   }
+  expect(found.getAttribute("aria-labelledby")).toBe(heading?.id)
   return found
 }
 
@@ -50,8 +55,9 @@ describe("a board", () => {
       "Can't reach prod-eu.",
       "billing-prod is not in .pulse-cli.json.",
     ])
-    buttonNamed(strips, "Edit connection…").click()
-    buttonNamed(strips, "Configure engines").click()
+    for (const button of strips.querySelectorAll<HTMLButtonElement>(".status-strip button")) {
+      button.click()
+    }
     expect(harness.posted).toEqual([{ type: "editConnection" }, { type: "editConnection" }])
   })
 
@@ -101,21 +107,32 @@ describe("a board", () => {
 
     expect(counter.querySelector(".counter__value")?.textContent).toBe("12")
     expect(counter.querySelector(".counter__partial")?.textContent).toBe("from 2 of 3 engines")
-    expect(counter.querySelector(".counter__threshold")?.textContent).toBe("above 5")
-    expect(texts(counter, ".counter__engine")).toEqual(["local10", "shop-test2", "prod-eu—"])
+    expect(counter.querySelector(".counter__threshold--above")?.textContent).toBe("local above 5")
+    expect(texts(counter, ".counter__engine")).toEqual(["local10", "shop-test2", "prod-eunot read"])
     expect(counter.querySelector(".counter__entry--above")?.textContent).toBe("local10")
 
-    const buttons = [...counter.querySelectorAll<HTMLButtonElement>(".counter__engine")]
+    const buttons = [...counter.querySelectorAll<HTMLButtonElement>("button.counter__engine")]
+    expect(buttons.map((button) => button.textContent)).toEqual(["local10", "shop-test2"])
+    expect(buttons[0]?.title).toBe(
+      "Open the process on local, latest version first (Ctrl/Cmd+click: to the side)",
+    )
     buttons[1]?.click()
-    buttons[2]?.click()
-    expect(buttons[2]?.disabled).toBe(true)
+    buttons[0]?.dispatchEvent(new MouseEvent("click", { bubbles: true, metaKey: true }))
+    const filter = { scope: "running", elementId: "Activity_AwaitPayment" }
     expect(harness.posted).toEqual([
       {
         type: "openBoardProcess",
         engine: "shop-test",
         bpmnProcessId: "order-fulfillment",
-        filter: { scope: "running", elementId: "Activity_AwaitPayment" },
+        filter,
         toSide: false,
+      },
+      {
+        type: "openBoardProcess",
+        engine: "local",
+        bpmnProcessId: "order-fulfillment",
+        filter,
+        toSide: true,
       },
     ])
   })
@@ -185,7 +202,7 @@ describe("a board", () => {
     harness.publish(ready(empty))
     await waitForElement(harness.root, ".board-card--incidentSummary")
 
-    expect(card(harness.root, "None").textContent).toContain("No engine answered.")
+    expect(card(harness.root, "None").textContent).toContain("No engine was read.")
     expect(card(harness.root, "Calm").textContent).toContain("No instance has an open incident.")
   })
 
@@ -248,7 +265,7 @@ describe("a board", () => {
     const cells = texts(harness.root, "tbody td")
     expect(cells[0]).toBe("Order fulfillment")
     expect(cells[1]).toBe("Completed")
-    expect(cells[2]).not.toBe("")
+    expect(cells[2]).toBe(TimeLabels.clock(row.endedAt))
     expect(cells[3]).toBe("81a2e0b4…")
     expect(texts(harness.root, ".board-groups__note")).toEqual(["local: showing 1 of ?"])
   })
@@ -274,5 +291,39 @@ describe("a board", () => {
 
     expect(strip.textContent).toContain("Pulse shows the board once you fix them.")
     expect(harness.root.querySelector(".context-bar__key")).toBeNull()
+  })
+
+  it("names several engines above the threshold and colours a count of incidents", async () => {
+    const tile = {
+      kind: "counter",
+      title: "Orders with incident",
+      total: 7,
+      known: 2,
+      warnAbove: 1,
+      incident: true,
+      entries: [
+        { engine: "local", count: 4, above: true },
+        { engine: "shop-test", count: 3, above: true },
+      ],
+    } as const
+    harness = mountApp()
+    harness.publish(ready({ ...BOARD_VIEW, rows: [[tile]] }))
+    const counter = await waitForElement(harness.root, ".board-card--counter")
+
+    expect(counter.querySelector(".counter__threshold--above")?.textContent).toBe(
+      "2 engines above 1",
+    )
+    expect(counter.querySelector(".counter__value.danger-count")?.textContent).toBe("7")
+    expect(texts(counter, ".counter__engine-count.danger-count")).toEqual(["4", "3"])
+    expect(counter.querySelector("button")).toBeNull()
+  })
+
+  it("keeps the board on screen while it reads again", async () => {
+    harness = mountApp()
+    harness.publish(ready(BOARD_VIEW, true))
+    const bar = await waitForElement(harness.root, ".context-bar--board")
+
+    expect(bar.textContent).toContain("Refreshing")
+    expect(harness.root.querySelector(".board-card--counter")).not.toBeNull()
   })
 })

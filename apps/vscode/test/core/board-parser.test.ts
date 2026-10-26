@@ -104,7 +104,7 @@ describe("the board parser", () => {
     ])
     expect(problemsOf(parseBoard({ title: " ", engines: [], rows: {} }))).toEqual([
       { path: "title", reason: "must be a text that is not empty" },
-      { path: "engines", reason: "must be a list of engine names that is not empty" },
+      { path: "engines", reason: "must be a list of different engine names that is not empty" },
     ])
     expect(problemsOf(parseBoard({ title: "Shop", engines: ["a"], rows: {} }))).toEqual([
       { path: "rows", reason: "must be a list" },
@@ -232,5 +232,28 @@ describe("the board parser", () => {
         reason: "hold 14 widgets; a board shows at most 12, so it stays cheap for the engines",
       },
     ])
+  })
+
+  test("refuses an engine named twice and a list without columns", () => {
+    const board = {
+      title: "Shop",
+      engines: ["shop-dev", "shop-dev"],
+      rows: [{ row: [{ widget: "instanceList", props: { columns: [] } }] }],
+    }
+
+    expect(problemsOf(parseBoard(board))).toEqual([
+      { path: "engines", reason: "must be a list of different engine names that is not empty" },
+    ])
+    expect(
+      problemsOf(parseBoard(withWidget({ widget: "instanceList", props: { columns: [] } }))),
+    ).toEqual([{ path: "rows[0].row[0].props.columns", reason: "must name at least one column" }])
+  })
+
+  test("accepts exactly 12 widgets", () => {
+    const row = { row: Array.from({ length: 6 }, () => COUNTER) }
+
+    expect(parseBoard({ title: "Shop", engines: ["shop-dev"], rows: [row, row] })).toHaveProperty(
+      "board",
+    )
   })
 })

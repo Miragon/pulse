@@ -15,7 +15,13 @@ export class BoardFilters {
     }
   }
 
-  static listFilter(filter: BoardFilter): InstanceListFilter {
+  static listFilter(filter: BoardFilter): InstanceListFilter | undefined {
+    if (
+      filter.withIncident === false ||
+      (filter.withIncident === true && filter.state === "ended")
+    ) {
+      return undefined
+    }
     const scope = filter.withIncident === true ? "withIncident" : filter.state
     return {
       scope,

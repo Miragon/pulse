@@ -29,6 +29,7 @@ export class CounterTiles {
         ? {}
         : { total: known.reduce((sum, entry) => sum + (entry.count ?? 0), 0) }),
       ...(widget.warnAbove === undefined ? {} : { warnAbove: widget.warnAbove }),
+      ...(widget.filter.withIncident === true ? { incident: true as const } : {}),
     }
   }
 
@@ -38,13 +39,19 @@ export class CounterTiles {
     count: number | undefined,
   ): CounterEntry {
     const above = count !== undefined && widget.warnAbove !== undefined && count > widget.warnAbove
+    const filter = BoardFilters.listFilter(widget.filter)
+    const process = widget.filter.process
     return {
       engine,
-      target: {
-        engine,
-        filter: BoardFilters.listFilter(widget.filter),
-        ...(widget.filter.process === undefined ? {} : { bpmnProcessId: widget.filter.process }),
-      },
+      ...(filter === undefined
+        ? {}
+        : {
+            target: {
+              engine,
+              filter,
+              ...(process === undefined ? {} : { bpmnProcessId: process }),
+            },
+          }),
       ...(count === undefined ? {} : { count }),
       ...(above ? { above: true as const } : {}),
     }

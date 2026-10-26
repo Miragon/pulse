@@ -103,8 +103,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-.counter__total--above .counter__value,
-.counter__total--above .counter__threshold {
+.counter__threshold.counter__threshold--above {
   color: var(--cd-ui-warning);
 }
 
@@ -147,9 +146,8 @@
   background: var(--cd-ui-hover);
 }
 
-.counter__engine:disabled,
-.incident-summary__open:disabled {
-  color: var(--cd-ui-text-leise);
+.counter__engine--static,
+.incident-summary__open--static {
   cursor: default;
 }
 

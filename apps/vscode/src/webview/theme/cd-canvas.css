@@ -5,88 +5,38 @@
    bekommen nie eine fill-Klasse. !important ist nötig, weil tiny-svg (svgAttr) und bpmn-js fill und
    stroke als Inline-Style schreiben. Elemente mit Nutzerfarbe bekommen keine Rollen-Klasse.
    Der Export entfernt alle cd-c-* Klassen und bleibt hell. */
-.cd-c-fill-grund {
-  fill: var(--cd-ui-grund) !important;
-}
-.cd-c-fill-plot {
-  fill: var(--cd-ui-plot) !important;
-} /* Plot, Elementfläche, Griffe */
-.cd-c-stroke-plot {
-  stroke: var(--cd-ui-plot) !important;
-} /* Label-Halo auf dem Plot */
-.cd-c-stroke-grund {
-  stroke: var(--cd-ui-grund) !important;
-} /* Label-Halo auf der Umgebung */
-.cd-c-fill-flaeche-hoch {
-  fill: var(--cd-ui-flaeche-hoch) !important;
-} /* Chips auf dem Canvas */
-.cd-c-stroke-text {
-  stroke: var(--cd-ui-text) !important;
-}
-.cd-c-fill-text {
-  fill: var(--cd-ui-text) !important;
-}
-.cd-c-fill-text-leise {
-  fill: var(--cd-ui-text-leise) !important;
-}
-.cd-c-stroke-kontur {
-  stroke: var(--cd-ui-kontur) !important;
-}
-.cd-c-stroke-linie {
-  stroke: var(--cd-ui-linie) !important;
-}
-.cd-c-fill-linie {
-  fill: var(--cd-ui-linie) !important;
-} /* dekorative Marken. Das Punktraster ist Hintergrund des Containers und nie im Export */
-.cd-c-stroke-interaktion {
-  stroke: var(--cd-ui-interaktion) !important;
-}
-.cd-c-stroke-danger {
-  stroke: var(--cd-ui-danger) !important;
-}
-.cd-c-fill-danger {
-  fill: var(--cd-ui-danger) !important;
-}
-.cd-c-stroke-info {
-  stroke: var(--cd-ui-info) !important;
-}
+.cd-c-fill-grund { fill: var(--cd-ui-grund) !important; }
+.cd-c-fill-plot { fill: var(--cd-ui-plot) !important; } /* Plot, Elementfläche, Griffe */
+.cd-c-stroke-plot { stroke: var(--cd-ui-plot) !important; } /* Label-Halo auf dem Plot */
+.cd-c-stroke-grund { stroke: var(--cd-ui-grund) !important; } /* Label-Halo auf der Umgebung */
+.cd-c-fill-flaeche-hoch { fill: var(--cd-ui-flaeche-hoch) !important; } /* Chips auf dem Canvas */
+.cd-c-stroke-text { stroke: var(--cd-ui-text) !important; }
+.cd-c-fill-text { fill: var(--cd-ui-text) !important; }
+.cd-c-fill-text-leise { fill: var(--cd-ui-text-leise) !important; }
+.cd-c-stroke-kontur { stroke: var(--cd-ui-kontur) !important; }
+.cd-c-stroke-linie { stroke: var(--cd-ui-linie) !important; }
+.cd-c-fill-linie { fill: var(--cd-ui-linie) !important; } /* dekorative Marken. Das Punktraster ist Hintergrund des Containers und nie im Export */
+.cd-c-stroke-interaktion { stroke: var(--cd-ui-interaktion) !important; }
+.cd-c-stroke-danger { stroke: var(--cd-ui-danger) !important; }
+.cd-c-fill-danger { fill: var(--cd-ui-danger) !important; }
+.cd-c-stroke-info { stroke: var(--cd-ui-info) !important; }
 
 /* Nur dunkel: Bereiche mit Deckkraft verlieren die Füllung und zeigen den Rand in der Statusrolle,
    Unterleger unter schwachen Fremdstrichen werden sichtbar (hell stroke none, im Export unsichtbar).
    Wie alle Dunkel-Blöcke nur auf dem Bildschirm. */
 @media screen {
-  [data-cd-theme="dark"] .cd-c-bereich {
-    fill: none !important;
-  }
-  [data-cd-theme="dark"] .cd-c-bereich-success {
-    stroke: var(--cd-ui-success) !important;
-  }
-  [data-cd-theme="dark"] .cd-c-bereich-warning {
-    stroke: var(--cd-ui-warning) !important;
-  }
-  [data-cd-theme="dark"] .cd-c-bereich-info {
-    stroke: var(--cd-ui-info) !important;
-  }
-  [data-cd-theme="dark"] .cd-c-unterleger {
-    stroke: var(--cd-ui-kontur) !important;
-  }
+  [data-cd-theme="dark"] .cd-c-bereich { fill: none !important; }
+  [data-cd-theme="dark"] .cd-c-bereich-success { stroke: var(--cd-ui-success) !important; }
+  [data-cd-theme="dark"] .cd-c-bereich-warning { stroke: var(--cd-ui-warning) !important; }
+  [data-cd-theme="dark"] .cd-c-bereich-info { stroke: var(--cd-ui-info) !important; }
+  [data-cd-theme="dark"] .cd-c-unterleger { stroke: var(--cd-ui-kontur) !important; }
 }
 @media screen and (prefers-color-scheme: dark) {
-  [data-cd-theme="system"] .cd-c-bereich {
-    fill: none !important;
-  }
-  [data-cd-theme="system"] .cd-c-bereich-success {
-    stroke: var(--cd-ui-success) !important;
-  }
-  [data-cd-theme="system"] .cd-c-bereich-warning {
-    stroke: var(--cd-ui-warning) !important;
-  }
-  [data-cd-theme="system"] .cd-c-bereich-info {
-    stroke: var(--cd-ui-info) !important;
-  }
-  [data-cd-theme="system"] .cd-c-unterleger {
-    stroke: var(--cd-ui-kontur) !important;
-  }
+  [data-cd-theme="system"] .cd-c-bereich { fill: none !important; }
+  [data-cd-theme="system"] .cd-c-bereich-success { stroke: var(--cd-ui-success) !important; }
+  [data-cd-theme="system"] .cd-c-bereich-warning { stroke: var(--cd-ui-warning) !important; }
+  [data-cd-theme="system"] .cd-c-bereich-info { stroke: var(--cd-ui-info) !important; }
+  [data-cd-theme="system"] .cd-c-unterleger { stroke: var(--cd-ui-kontur) !important; }
 }
 
 /* diagram-js ab 15.28 und bpmn-js: Chrome über die --bio-* Variablen, für beide Modi. Steht auf :root
@@ -94,15 +44,13 @@
    diagram-js.css und bpmn-js.css laden. Die doppelten Klassen (Spezifität 0,2,0) gewinnen zusätzlich
    gegen deren Standardwerte auf .bio-theme-parent, .djs-parent und .bjs-container (0,1,0), auch wenn
    ein Bundler die Reihenfolge ändert. */
-:root,
-[data-cd-theme],
-.bio-theme-parent.bio-theme-parent {
+:root, [data-cd-theme], .bio-theme-parent.bio-theme-parent {
   --bio-surface: var(--cd-ui-flaeche-hoch);
   --bio-surface-overlay: var(--cd-ui-flaeche-hoch);
   --bio-surface-subtle: var(--cd-ui-flaeche-hoch);
   --bio-surface-medium: var(--cd-ui-hover);
-  --bio-surface-inverted: var(--cd-ui-flaeche-hoch); /* ein schwarzer Tooltip verschwände dunkel */
-  --bio-surface-inverted-subtle: var(--cd-ui-hover); /* Standard ist ein bläuliches Grau */
+  --bio-surface-inverted: var(--cd-ui-flaeche-hoch);  /* ein schwarzer Tooltip verschwände dunkel */
+  --bio-surface-inverted-subtle: var(--cd-ui-hover);  /* Standard ist ein bläuliches Grau */
   --bio-text: var(--cd-ui-text);
   --bio-text-subtle: var(--cd-ui-text-leise);
   --bio-text-subtlest: var(--cd-ui-text-leise);
@@ -129,12 +77,12 @@
 /* diagram-js: Lasso ohne Füllung, Griffe mit Fläche plot und Rand interaktion, nie Akzent als Fläche. */
 .djs-parent.djs-parent {
   --canvas-fill-color: var(--cd-ui-grund);
-  --lasso-fill-color: transparent; /* Standard: Akzent 15 % (Blau-Tönung) */
+  --lasso-fill-color: transparent;                           /* Standard: Akzent 15 % (Blau-Tönung) */
   --search-preselected-background-color: var(--cd-ui-hover); /* Standard: Akzent 15 % */
-  --snap-line-stroke-color: var(--cd-ui-kontur); /* Standard: Akzent 30 % */
-  --resizer-fill-color: var(--cd-ui-plot); /* Standard: Akzent als Fläche */
+  --snap-line-stroke-color: var(--cd-ui-kontur);             /* Standard: Akzent 30 % */
+  --resizer-fill-color: var(--cd-ui-plot);                   /* Standard: Akzent als Fläche */
   --resizer-stroke-color: var(--cd-ui-interaktion);
-  --bendpoint-fill-color: var(--cd-ui-plot); /* Standard: Akzent als Fläche */
+  --bendpoint-fill-color: var(--cd-ui-plot);                 /* Standard: Akzent als Fläche */
   --bendpoint-stroke-color: var(--cd-ui-interaktion);
   --shape-connect-allowed-fill-color: var(--cd-ui-hover);
   --shape-drop-allowed-fill-color: var(--cd-ui-hover);
@@ -162,9 +110,9 @@
 /* bpmn-js: Akzent nur als Kante, Breadcrumbs sind Links, der Drilldown ist ein Button (Blau mit Weiß). */
 .bjs-container.bjs-container {
   --accent-color: var(--cd-ui-interaktion);
-  --breadcrumbs-item-color: var(--cd-ui-link); /* Standard: Akzent als Text, dunkel 4,27:1 */
+  --breadcrumbs-item-color: var(--cd-ui-link);               /* Standard: Akzent als Text, dunkel 4,27:1 */
   --breadcrumbs-background-color: var(--cd-ui-flaeche-hoch);
   --breadcrumbs-border-color: var(--cd-ui-linie);
-  --drilldown-background-color: var(--cd-blau); /* Standard: Akzent als Fläche */
+  --drilldown-background-color: var(--cd-blau);              /* Standard: Akzent als Fläche */
   --drilldown-fill-color: var(--cd-weiss);
 }

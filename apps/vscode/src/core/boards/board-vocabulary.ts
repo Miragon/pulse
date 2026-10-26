@@ -12,6 +12,7 @@ export class BoardVocabulary {
     "engines",
     "rows",
   ]
+  static readonly REQUIRED: readonly string[] = ["title", "engines", "rows"]
   static readonly ROW_KEYS: readonly string[] = ["row"]
   static readonly WIDGET_KEYS: readonly string[] = ["widget", "props"]
   static readonly WIDGETS: readonly BoardWidgetType[] = [
