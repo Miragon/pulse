@@ -23,6 +23,7 @@ import {
   type SeededWorld,
   type WorldDeployment,
   type WorldInstance,
+  type WorldValue,
 } from "../../../../src/contract/conformance/index.js"
 
 const DEPLOYMENT_ORDER: readonly DeploymentAlias[] = ["label@1", "order@1", "order@2", "dispatch@1"]
@@ -85,12 +86,19 @@ async function deployWorld(engineUrl: string): Promise<Record<DeploymentAlias, D
   return definitionIds as Record<DeploymentAlias, DefinitionId>
 }
 
+function typedValue(value: WorldValue) {
+  if (value === null) {
+    return { value, type: "Null" }
+  }
+  if (typeof value === "object") {
+    return { value: value.date.replace("Z", "+0000"), type: "Date" }
+  }
+  return { value, type: typeof value === "number" ? "Integer" : "String" }
+}
+
 function typedVariables(variables: WorldInstance["variables"]) {
   return Object.fromEntries(
-    Object.entries(variables).map(([name, value]) => [
-      name,
-      { value, type: typeof value === "number" ? "Integer" : "String" },
-    ]),
+    Object.entries(variables).map(([name, value]) => [name, typedValue(value)]),
   )
 }
 

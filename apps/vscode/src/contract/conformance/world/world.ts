@@ -64,15 +64,27 @@ export type MigrationInstanceAlias = `CMD-MIG-${number}`
 
 export type BulkSet = "cancel" | "stop"
 
+interface WorldDate {
+  readonly date: string
+}
+
+export type WorldValue = string | number | null | WorldDate
+
 export interface WorldInstance<Alias extends string = InstanceAlias> {
   readonly businessKey: Alias
   readonly deployment: DeploymentAlias
-  readonly variables: Readonly<Record<string, string | number>>
+  readonly variables: Readonly<Record<string, WorldValue>>
 }
+
+export const WORLD_DUE_AT = "2026-03-15T10:00:00.000Z"
 
 export const WORLD_INSTANCES: readonly WorldInstance[] = [
   { businessKey: "ORD-1001", deployment: "order@1", variables: { route: "review" } },
-  { businessKey: "ORD-1002", deployment: "order@1", variables: { route: "charge", amount: 42 } },
+  {
+    businessKey: "ORD-1002",
+    deployment: "order@1",
+    variables: { route: "charge", amount: 42, dueAt: { date: WORLD_DUE_AT }, giftNote: null },
+  },
   { businessKey: "ORD-1003", deployment: "order@1", variables: { route: "express" } },
   { businessKey: "ORD-2001", deployment: "order@2", variables: { route: "review" } },
   { businessKey: "DSP-3001", deployment: "dispatch@1", variables: { orderId: "ORD-1001" } },

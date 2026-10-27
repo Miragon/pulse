@@ -1,7 +1,7 @@
 # User interface
 
 - Status: accepted
-- Last reviewed: 2026-10-23 (live updates, see [live-updates.md](live-updates.md); moving a token; bulk cancel, see [writes.md](writes.md); migration, see [migrations.md](migrations.md))
+- Last reviewed: 2026-10-26 (boards, see [boards.md](boards.md); live updates, see [live-updates.md](live-updates.md); moving a token; bulk cancel, see [writes.md](writes.md); migration, see [migrations.md](migrations.md))
 
 ## Context
 
@@ -26,6 +26,8 @@ Miragon's CLI) and not "Cockpit" (Camunda 7's webapp).
 | Surface                           | Contents                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Activity Bar container _Pulse_    | One native tree, **Engines** (engine › definitions with `vN · n running` and a red incident decoration; a click on an engine opens its overview, the twistie expands it; on top, an error item per problem of a broken `.pulse-cli.json`, e.g. `.pulse-cli.json: the file is not valid JSON`, and a warning item per project file under the CLI's former name, each opening its file); open incidents show as the red decoration and count per definition, and in the engine overview's _With incident_ scope                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| Activity Bar view **Boards**      | One entry per `.pulse/boards/*.board.json`, named by the board's title with its file name beside it, an error icon and the problem count on a broken file; shown only when the workspace has a board; **New Board…** in its title bar and in the Engines menu ([boards.md](boards.md))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| Webview editor tab **Board**      | "Shop operations · Board": the header names the board and its engines, Refresh and Open file, never an access chip (each engine has its own); one strip per engine that failed (with Set credentials… or Edit connection…) or is not in `.pulse-cli.json` (Edit connection…), a line of the engines that answered (production name in red when configured), then rows of cards that stack below 760 px. A counter shows the total, "from 2 of 3 engines" when one is missing, the threshold and which engines crossed it, one clickable line per engine ("not read" where it was not); an instance list is one table with an Engine column, the rows of each engine together and "showing 50 of 1,204" per engine below it; a process diagram is the definition panel's canvas, 320 px high, with its badges and Open process, and a click on a count opens the process at that element; an incident list is one table of Engine, Process, Element, Message and Since with "first 50, more open" per engine; a broken file lists each problem with its path and reason above the last valid board                                                                                                                                                            |
 | Webview editor tab **Engine**     | One per engine, "shop-dev · Processes": the header names product and version from `describeEngine`, access, freshness, Refresh and the web UI's start page; one filter bar (scopes _All · With incident_ with counts, search by name or BPMN process id, the engine's summary "3 processes · 172 running · 10 with incident"); a table Process (name, BPMN process id muted) · Latest version · Running · With incident (red above 0), incidents first, then running, then name. A row opens the definition panel at the latest version (the tab the Engines tree opens), Ctrl/Cmd+click to the side                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | Webview editor tab **Definition** | The header names the process (its BPMN process id when it has no name) and the version picker, not the id beside the name. Deployed diagram of one version with a badge cluster per element (running, incidents, incidents in called instances; a click on a count filters the instances to the element and its scope, _With incident_ for both incident counts, _Running_ for the blue one), a jump into each called process, version picker with per-version counts, _Open model_ in the header when a local `.bpmn` declares the process (centred on the filtered element, the tooltip says when the file differs from the deployed version) and a code button on the filtered element's shape when its code is found, notices (older versions still running, drift), one filter bar above the instance table (scopes _Running · With incident · Ended · All_ with counts, element filter, business-key search, badge legend behind `?`); on a writable engine a checkbox column, a selection bar and a bulk strip to cancel or migrate many instances                                                                                                                                                                                                    |
 | Webview editor tab **Migration**  | One per engine and process, "Order fulfillment v2 → v3 · shop-dev": the target picker in the header, the source and target diagrams side by side (stacked below 900 px), the mapping table with one select per element, the action row with the summary and Migrate or what blocks it, and the shared bulk strip ([migrations.md](migrations.md))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
@@ -51,7 +53,8 @@ confronted with runtime data (#1688).
   (outline), running (blue badge), stale (outline). No state by colour alone, no green
   "healthy", no greyed-out write buttons; production is red only when configured
   (`pulse.environments`), never guessed from a name. The panel headers name neither
-  engine nor environment: the Engines tree and the status bar do, and every write dialog
+  engine nor environment (a board's names its engines, since it spans several): the Engines
+  tree and the status bar do, and every write dialog
   names both ([writes.md](writes.md)).
 - Geist / Geist Mono, Lucide icons in the webview, codicons on native surfaces. The
   webview draws Lucide's geometry itself: `components/lucide-glyphs.json` holds the
@@ -91,15 +94,39 @@ credentials, or Edit connection… for the other connection problems.
 The bottom pane of the split starts with one 36 px bar; it replaced the legend line under
 the diagram, the "Instances … · n running" header and the toolbar.
 
-- **Definition panel:** scopes with counts, element chip, business-key search and, at
-  the far end, the legend button. The scopes are a `radiogroup` ("Show instances") with one tab
+- **Definition panel:** scopes with counts, element chip, business-key search, the
+  filter button (a funnel) with one chip per variable condition and, at the far end, the legend
+  button. The scopes are a `radiogroup` ("Show instances") with one tab
   stop on the checked radio; ←/→/Home/End move and select, the latest request wins,
   and the checked segment is boxed, not underlined (an underline means tabs). Each
   scope shows `DefinitionView.scopeCounts` (compact, the exact value in the tooltip, a
-  red "With incident" count when it is above 0). Counts follow the element filter and
-  the business-key search, so a count says what a click shows; the version totals stay
+  red "With incident" count when it is above 0). Counts follow the element filter, the
+  business-key search and the variable conditions, so a count says what a click shows; the version totals stay
   in the version picker. While the panel refreshes the old counts stay and the group is
   `aria-busy`.
+- **Variable conditions:** the funnel button ("Filter by variables", with conditions their
+  count beside the icon and "…, 2 active" in its name) opens a modal `<dialog>` for one
+  condition: name, _Compare as_ (Automatic, Text, Number, True or
+  false, Date and time, Null), the operators that fit the type and the value. Opening
+  it sends `suggestVariableNames`; the core reads `listVariableNames` once per version and
+  republishes them as `DefinitionView.variableNames`, which the name field offers in a
+  `datalist` while it still takes any text (no names, no list; a failed read suggests
+  nothing). Value stays editable before a name is set: a disabled field would drop out of
+  the tab order without saying why, and Apply names a missing name. Date and
+  time takes a `datetime-local` field and offers _is after_ and _is before_, read in the
+  local time zone; Null asks for no value and offers _is null_ and _is not null_; the
+  dialog says that JSON and object variables cannot be searched. Apply adds it, or replaces the
+  one whose chip was clicked; every chip (`amount > 100`, `route = "review"`, text in
+  quotes) has its remove button and keeps its width up to 240 px, the bar wrapping into a
+  second row instead; all conditions must hold, at most 5. Automatic reads
+  `42` and `-4.5` as a number, `true` and `false` as true or false and anything else as
+  text; _matches_ compares text and _is greater than_ and _is less than_ numbers.
+  `VariableConditionRules` in the protocol holds these rules for the guard and the core,
+  which also labels the chips (`DefinitionView.variableLabels`); the webview imports the
+  protocol as types only, so the dialog keeps its operator table, number and date patterns and cap
+  as constants a test holds equal to the rules. The conditions survive a scope change, the element filter,
+  the business-key search and a version switch, which resets scope and element only; the
+  cancel confirmation names them in its filter line.
 - **Instance panel:** the History / Incidents / Waiting / Variables tablist on the left, the marker
   legend button on the right.
 - **Engine overview:** the scopes _All_ and _With incident_ ("Show processes", the same
@@ -114,11 +141,12 @@ the diagram, the "Instances … · n running" header and the toolbar.
   anchored above the button over the diagram, never inline: what a reader needs once
   hides instead of taking room every time. Digit-free shapes; its first line
   (definition: "Badges count running instances of vN") replaces the version line. Below
-  760 px the definition bar takes two rows: scopes and legend button, then element chip
-  and search. Container queries, no JavaScript.
+  760 px the definition bar takes two rows: scopes and legend button, then element chip,
+  variable chips and search. Container queries, no JavaScript.
 - **Escape** clears the instance selection first and the element filter after it, only
-  when no popover is open, focus is not in a field (a checkbox does not count) and no
-  column drag is cancelled.
+  when no popover or dialog is open, focus is not in a field (a checkbox does not count)
+  and no column drag is cancelled. In the variable dialog it closes the dialog only;
+  Escape never clears a variable condition.
 - **Columns** of the Processes, Instances, Waiting, Variables and History tables are resizable: a
   `separator` on the right edge of every header but the last (←/→ 8 px, Shift 32 px,
   Enter or a double-click fits the widest cell up to half the visible table, Home sets

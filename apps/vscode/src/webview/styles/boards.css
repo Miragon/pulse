@@ -1,0 +1,227 @@
+.board {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  padding: 12px;
+  overflow: auto;
+  background: var(--cd-ui-grund);
+  container: board / inline-size;
+}
+
+.board__row {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+@container board (max-width: 760px) {
+  .board__row {
+    grid-auto-flow: row;
+  }
+}
+
+.board-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 12px;
+  background: var(--cd-ui-flaeche);
+  border: 1px solid var(--cd-ui-linie);
+  border-radius: 6px;
+}
+
+.board-card--instanceList,
+.board-card--incidentList {
+  padding: 12px 0 0;
+}
+
+.board-card--instanceList > .board-card__title,
+.board-card--incidentList > .board-card__title {
+  padding: 0 12px;
+}
+
+.board-diagram {
+  height: 320px;
+  overflow: hidden;
+  border: 1px solid var(--cd-ui-linie);
+  border-radius: 4px;
+}
+
+.board-diagram__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin: 0;
+}
+
+.board-incident__message {
+  display: inline-block;
+  max-width: 48ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+.board-card__title {
+  margin: 0;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.board-engines {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  padding: 6px 12px;
+  background: var(--cd-ui-flaeche);
+  border-bottom: 1px solid var(--cd-ui-linie);
+}
+
+.board-engine {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 4px;
+  color: var(--cd-ui-text);
+  font: inherit;
+  background: none;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.board-engine:hover {
+  background: var(--cd-ui-hover);
+}
+
+.board-engine__name {
+  font-weight: 600;
+}
+
+.board-engine__facts {
+  color: var(--cd-ui-text-leise);
+}
+
+.board-engine--production .board-engine__name {
+  color: var(--cd-ui-danger);
+}
+
+.counter__total {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+}
+
+.counter__value {
+  font-size: 28px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.counter__threshold.counter__threshold--above {
+  color: var(--cd-ui-warning);
+}
+
+.counter__partial,
+.counter__threshold {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--cd-ui-text-leise);
+}
+
+.counter__entries,
+.incident-summary,
+.board-groups {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.counter__engine,
+.incident-summary__open {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 3px 4px;
+  color: var(--cd-ui-text);
+  font: inherit;
+  text-align: left;
+  background: none;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.counter__engine:hover:enabled,
+.incident-summary__open:hover:enabled {
+  background: var(--cd-ui-hover);
+}
+
+.counter__engine--static,
+.incident-summary__open--static {
+  cursor: default;
+}
+
+.counter__engine-name,
+.incident-summary__label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.counter__engine-count,
+.incident-summary__count {
+  font-variant-numeric: tabular-nums;
+}
+
+.counter__entry--above .counter__engine-count {
+  color: var(--cd-ui-warning);
+  font-weight: 600;
+}
+
+.board-groups {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  padding: 6px 12px;
+  color: var(--cd-ui-text-leise);
+}
+
+.board-groups__note--missing {
+  color: var(--cd-ui-danger);
+}
+
+.board-problems {
+  border-color: var(--cd-ui-danger);
+}
+
+.board-problems__list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.board-problems__item code {
+  color: var(--cd-ui-danger);
+}

@@ -12,6 +12,7 @@ import { INSTANCE_LAWS } from "./laws/instance-laws.js"
 import { MIGRATION_LAWS } from "./laws/migration-laws.js"
 import { MIGRATION_PLAN_LAWS } from "./laws/migration-plan-laws.js"
 import { MOVE_LAWS } from "./laws/move-laws.js"
+import { VARIABLE_LAWS } from "./laws/variable-laws.js"
 
 export type TestRunner = (name: string, body: () => Promise<void>) => unknown
 
@@ -29,6 +30,7 @@ export class ConformanceKit {
       ...DEFINITION_LAWS,
       ...CALL_LAWS,
       ...INSTANCE_LAWS,
+      ...VARIABLE_LAWS,
       ...DETAIL_LAWS,
       ...INCIDENT_LAWS,
       ...MIGRATION_PLAN_LAWS,

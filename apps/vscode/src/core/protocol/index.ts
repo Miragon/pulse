@@ -1,7 +1,28 @@
 export { MessageGuards } from "./message-guards.js"
+export { MAX_VARIABLE_CONDITIONS, VariableConditionRules } from "./variable-condition-rules.js"
 export type { LiveUpdates, PauseReason } from "./live-updates.js"
 export type { PanelState } from "./panel-state.js"
 export type { PanelView } from "./panel-view.js"
+export type {
+  BoardColumn,
+  BoardDiagram,
+  BoardEngineStatus,
+  BoardIncidentRow,
+  BoardInstanceRow,
+  BoardProblem,
+  BoardTarget,
+  BoardTile,
+  BoardView,
+  CounterEntry,
+  CounterTile,
+  IncidentGroup,
+  IncidentListTile,
+  IncidentSummaryRow,
+  IncidentSummaryTile,
+  InstanceGroup,
+  InstanceListTile,
+  ProcessDiagramTile,
+} from "./board-views.js"
 export type {
   BulkKind,
   BulkOffer,
@@ -47,8 +68,11 @@ export type {
   ProcessRow,
   ProcessScope,
   ScopeCounts,
+  VariableConditionView,
   VariableEditor,
+  VariableOperator,
   VariableRow,
+  VariableValueType,
   VersionOption,
   PathRow,
   PathState,

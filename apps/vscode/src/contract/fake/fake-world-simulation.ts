@@ -23,6 +23,7 @@ import {
 } from "../model/ids.js"
 import type { DefinitionRef, ElementRun, InstanceSummary, Variable } from "../model/read-models.js"
 import type { FakeDefinition, FakeIncident, FakeInstance } from "./fake-engine-state.js"
+import { FakeWorldValues } from "./fake-world-values.js"
 
 const STARTED_AT = IsoTimestamp("2026-10-21T08:00:00Z")
 const ENDED_AT = IsoTimestamp("2026-10-21T08:00:01Z")
@@ -97,10 +98,8 @@ export class FakeWorldSimulation {
     return Object.entries(values).map(([name, value]) => ({
       name,
       scope: { kind: "instance" },
-      valueJson: JSON.stringify(value),
       truncated: false,
-      type: typeof value === "number" ? "Integer" : "String",
-      kind: typeof value === "number" ? "integer" : "string",
+      ...FakeWorldValues.of(value),
     }))
   }
 

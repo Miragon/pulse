@@ -64,6 +64,7 @@ export class BulkRequests {
         ? []
         : [`at ${ElementNames.of(view.diagramXml).get(elementId) ?? elementId}`]
     const key = businessKey === undefined ? [] : [`business key ${businessKey}`]
-    return `Filter: ${[SCOPE_LABELS[scope], ...element, ...key].join(" · ")}`
+    const conditions = view.variableLabels ?? []
+    return `Filter: ${[SCOPE_LABELS[scope], ...element, ...key, ...conditions].join(" · ")}`
   }
 }

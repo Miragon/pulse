@@ -34,4 +34,5 @@ where the models and the code already are.
 | [Installation](./installation.md)   | Install it, try it on a seeded engine                    |
 | [Configuration](./configuration.md) | Engine profiles, credentials, environments, live updates |
 | [Usage](./usage.md)                 | The views and panels, model and code, writes and batches |
+| [Boards](./boards.md)               | Shared views across engines, kept as JSON in the repo    |
 | [Architecture](./architecture.md)   | Contract, core, adapters and the decisions behind them   |

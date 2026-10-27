@@ -77,7 +77,7 @@ describe("view texts", () => {
     const text = deployText(
       {
         deploymentId: "d1",
-        name: "operate",
+        name: "pulse-cli",
         changed: true,
         deploymentTime: "t",
         resources: [
@@ -97,7 +97,7 @@ describe("view texts", () => {
     )
     expect(text).toBe(
       [
-        "Deployment  d1 (operate, changed)",
+        "Deployment  d1 (pulse-cli, changed)",
         "Time        t",
         "",
         "Resources:",

@@ -5,20 +5,20 @@ import type {
   InstanceSummary,
   VersionSummary,
 } from "../../contract/index.js"
-import type {
-  DefinitionView,
-  ElementBadge,
-  EngineBadge,
-  InstanceListFilter,
-  InstanceRow,
-  Notice,
-  ScopeCounts,
-  VersionOption,
+import {
+  VariableConditionRules,
+  type DefinitionView,
+  type ElementBadge,
+  type EngineBadge,
+  type InstanceListFilter,
+  type InstanceRow,
+  type Notice,
+  type ScopeCounts,
+  type VersionOption,
 } from "../protocol/index.js"
-import { BpmnStructure } from "../bpmn/bpmn-structure.js"
 import { CallLinks } from "./call-links.js"
+import { ElementBadges } from "./element-badges.js"
 import { Labels } from "./labels.js"
-import { SubProcessRollUp } from "./sub-process-roll-up.js"
 import { WebUiLinks } from "./web-ui-links.js"
 
 export interface DefinitionSnapshot {
@@ -57,10 +57,18 @@ export class DefinitionViewBuilder {
       instances: this.snapshot.instances.map((instance) => this.instanceRow(instance)),
       hasMoreInstances: this.snapshot.hasMoreInstances,
       filter: this.snapshot.filter,
+      ...this.variableLabels(),
       scopeCounts: this.snapshot.scopeCounts,
       notices: this.notices(),
       ...WebUiLinks.to(subject, this.snapshot.engine),
     }
+  }
+
+  private variableLabels(): Pick<DefinitionView, "variableLabels"> {
+    const { variables } = this.snapshot.filter
+    return variables === undefined
+      ? {}
+      : { variableLabels: variables.map((condition) => VariableConditionRules.label(condition)) }
   }
 
   private selectedVersion(): VersionSummary | undefined {
@@ -89,18 +97,7 @@ export class DefinitionViewBuilder {
   }
 
   private badges(): ElementBadge[] {
-    const structure = BpmnStructure.of(this.snapshot.diagramXml)
-    return SubProcessRollUp.statistics(this.snapshot.statistics, structure)
-      .filter(
-        (statistic) =>
-          statistic.active + statistic.incidents + statistic.incidentsInCalledInstances > 0,
-      )
-      .map((statistic) => ({
-        elementId: statistic.elementId,
-        running: statistic.active,
-        incidents: statistic.incidents,
-        incidentsInCalledInstances: statistic.incidentsInCalledInstances,
-      }))
+    return ElementBadges.of(this.snapshot.diagramXml, this.snapshot.statistics)
   }
 
   private instanceRow(instance: InstanceSummary): InstanceRow {

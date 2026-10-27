@@ -1,4 +1,8 @@
-import type { InstanceListFilter, InstanceScope } from "../../core/protocol/index.js"
+import type {
+  InstanceListFilter,
+  InstanceScope,
+  VariableConditionView,
+} from "../../core/protocol/index.js"
 
 export const SCOPE_OPTIONS: readonly { readonly scope: InstanceScope; readonly label: string }[] = [
   { scope: "running", label: "Running" },
@@ -11,6 +15,7 @@ interface FilterParts {
   readonly scope: InstanceScope
   readonly elementId?: string | undefined
   readonly businessKey?: string | undefined
+  readonly variables?: readonly VariableConditionView[] | undefined
 }
 
 export class InstanceFilter {
@@ -30,11 +35,36 @@ export class InstanceFilter {
     return InstanceFilter.compose({ ...filter, businessKey: text.trim() })
   }
 
-  private static compose({ scope, elementId, businessKey }: FilterParts): InstanceListFilter {
+  static withVariable(
+    filter: InstanceListFilter,
+    condition: VariableConditionView,
+    at?: number,
+  ): InstanceListFilter {
+    const variables = [...(filter.variables ?? [])]
+    variables.splice(at ?? variables.length, at === undefined ? 0 : 1, condition)
+    return InstanceFilter.compose({ ...filter, variables })
+  }
+
+  static withoutVariable(filter: InstanceListFilter, at: number): InstanceListFilter {
+    const variables = (filter.variables ?? []).filter((_condition, index) => index !== at)
+    return InstanceFilter.compose({ ...filter, variables })
+  }
+
+  static withoutVariables(filter: InstanceListFilter): InstanceListFilter {
+    return InstanceFilter.compose({ ...filter, variables: undefined })
+  }
+
+  private static compose({
+    scope,
+    elementId,
+    businessKey,
+    variables,
+  }: FilterParts): InstanceListFilter {
     return {
       scope,
       ...(elementId === undefined ? {} : { elementId }),
       ...(businessKey === undefined || businessKey === "" ? {} : { businessKey }),
+      ...(variables === undefined || variables.length === 0 ? {} : { variables }),
     }
   }
 }

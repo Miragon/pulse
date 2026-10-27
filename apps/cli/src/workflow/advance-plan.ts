@@ -24,7 +24,7 @@ export interface AdvanceInput {
   readonly workerId?: string
 }
 
-const DEFAULT_WORKER = "operate"
+const DEFAULT_WORKER = "pulse-cli"
 const LOCK_DURATION_MS = 60_000
 const READY_COMMANDS = 3
 

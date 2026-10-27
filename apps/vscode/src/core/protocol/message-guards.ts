@@ -1,5 +1,7 @@
 import type { OfferedBulkKind } from "./bulk-views.js"
 import type { StateMessage, WebviewIntent, WebviewIntentType } from "./messages.js"
+import { MAX_VARIABLE_CONDITIONS, VariableConditionRules } from "./variable-condition-rules.js"
+import type { VariableConditionView } from "./view-models.js"
 
 type Fields = Readonly<Record<string, unknown>>
 
@@ -28,6 +30,7 @@ export class MessageGuards {
     resumeLiveUpdates: () => true,
     turnOnLiveUpdates: () => true,
     activity: () => true,
+    suggestVariableNames: () => true,
     selectMatching: () => true,
     clearSelection: () => true,
     stopBulk: () => true,
@@ -67,6 +70,19 @@ export class MessageGuards {
     retryIncident: (fields) => MessageGuards.isText(fields.incidentId),
     setVariable: (fields) =>
       MessageGuards.isName(fields.name) && MessageGuards.isValue(fields.valueJson),
+    openBoardFile: () => true,
+    openBoardInstance: (fields) =>
+      MessageGuards.isName(fields.engine) &&
+      MessageGuards.isName(fields.instanceId) &&
+      typeof fields.toSide === "boolean",
+    openBoardProcess: (fields) =>
+      MessageGuards.isName(fields.engine) &&
+      MessageGuards.isName(fields.bpmnProcessId) &&
+      MessageGuards.isFilter(fields.filter) &&
+      typeof fields.toSide === "boolean",
+    openBoardEngine: (fields) =>
+      MessageGuards.isName(fields.engine) && typeof fields.toSide === "boolean",
+    setBoardCredentials: (fields) => MessageGuards.isName(fields.engine),
     moveToken: (fields) =>
       MessageGuards.isName(fields.fromElementId) &&
       MessageGuards.isName(fields.toElementId) &&
@@ -131,7 +147,30 @@ export class MessageGuards {
     return (
       SCOPES.has(filter.scope) &&
       (filter.elementId === undefined || MessageGuards.isText(filter.elementId)) &&
-      (filter.businessKey === undefined || MessageGuards.isText(filter.businessKey))
+      (filter.businessKey === undefined || MessageGuards.isText(filter.businessKey)) &&
+      (filter.variables === undefined || MessageGuards.isConditionList(filter.variables))
+    )
+  }
+
+  private static isConditionList(value: unknown): boolean {
+    return (
+      Array.isArray(value) &&
+      value.length <= MAX_VARIABLE_CONDITIONS &&
+      value.every((condition) => MessageGuards.isCondition(condition))
+    )
+  }
+
+  private static isCondition(value: unknown): boolean {
+    if (typeof value !== "object" || value === null) {
+      return false
+    }
+    const condition = value as Fields
+    return (
+      MessageGuards.isName(condition.name) &&
+      VariableConditionRules.isOperator(condition.operator) &&
+      MessageGuards.isValue(condition.value) &&
+      (condition.as === undefined || VariableConditionRules.isValueType(condition.as)) &&
+      VariableConditionRules.fits(condition as unknown as VariableConditionView)
     )
   }
 

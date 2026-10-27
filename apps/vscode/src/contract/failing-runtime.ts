@@ -56,6 +56,10 @@ export class FailingRuntime implements ProcessRuntime {
     return this.fail()
   }
 
+  listVariableNames(): Promise<readonly string[]> {
+    return this.fail()
+  }
+
   getInstanceDetail(): Promise<InstanceDetail | undefined> {
     return this.fail()
   }

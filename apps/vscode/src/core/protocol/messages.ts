@@ -38,6 +38,7 @@ export type WebviewIntent =
       readonly ids: readonly string[]
       readonly selected: boolean
     }
+  | { readonly type: "suggestVariableNames" }
   | { readonly type: "selectMatching" }
   | { readonly type: "clearSelection" }
   | { readonly type: "startBulk"; readonly action: OfferedBulkKind }
@@ -58,6 +59,22 @@ export type WebviewIntent =
   | { readonly type: "leaveOutUnmapped" }
   | { readonly type: "startMigration" }
   | { readonly type: "activity" }
+  | {
+      readonly type: "openBoardInstance"
+      readonly engine: string
+      readonly instanceId: string
+      readonly toSide: boolean
+    }
+  | {
+      readonly type: "openBoardProcess"
+      readonly engine: string
+      readonly bpmnProcessId: string
+      readonly filter: InstanceListFilter
+      readonly toSide: boolean
+    }
+  | { readonly type: "openBoardEngine"; readonly engine: string; readonly toSide: boolean }
+  | { readonly type: "openBoardFile" }
+  | { readonly type: "setBoardCredentials"; readonly engine: string }
   | {
       readonly type: "moveToken"
       readonly fromElementId: string

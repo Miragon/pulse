@@ -1,0 +1,284 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Pulse board",
+  "description": "A board of the Pulse VS Code extension: read-only widgets over one or more engines.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["title", "engines", "rows"],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "engines": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "Profile names from .pulse-cli.json.",
+      "uniqueItems": true
+    },
+    "rows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["row"],
+        "properties": {
+          "row": {
+            "type": "array",
+            "items": {
+              "$ref": "#/definitions/widget"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "filter": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Which instances the widget reads. Without a state it reads running instances.",
+      "properties": {
+        "process": {
+          "type": "string",
+          "minLength": 1,
+          "description": "BPMN process id; every version counts."
+        },
+        "activeElement": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Element id where a running instance waits. Needs process."
+        },
+        "state": {
+          "enum": ["running", "ended"],
+          "default": "running"
+        },
+        "withIncident": {
+          "type": "boolean",
+          "description": "true: only instances with an open incident; false: only without."
+        },
+        "businessKey": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "widget": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["widget"],
+          "description": "How many instances match, per engine and in total.",
+          "properties": {
+            "widget": {
+              "const": "counter"
+            },
+            "props": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Heading of the widget."
+                },
+                "engines": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "description": "Narrows the board's engines for this widget; only names of the board.",
+                  "uniqueItems": true
+                },
+                "filter": {
+                  "$ref": "#/definitions/filter"
+                },
+                "warnAbove": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Warns when an engine counts more."
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["widget"],
+          "description": "The first 50 matching instances of each engine.",
+          "properties": {
+            "widget": {
+              "const": "instanceList"
+            },
+            "props": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Heading of the widget."
+                },
+                "engines": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "description": "Narrows the board's engines for this widget; only names of the board.",
+                  "uniqueItems": true
+                },
+                "filter": {
+                  "$ref": "#/definitions/filter"
+                },
+                "columns": {
+                  "type": "array",
+                  "items": {
+                    "enum": [
+                      "engine",
+                      "process",
+                      "version",
+                      "businessKey",
+                      "state",
+                      "startedAt",
+                      "endedAt",
+                      "incident"
+                    ]
+                  },
+                  "minItems": 1
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["widget"],
+          "description": "Instances with an open incident, per engine or per process.",
+          "properties": {
+            "widget": {
+              "const": "incidentSummary"
+            },
+            "props": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Heading of the widget."
+                },
+                "engines": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "description": "Narrows the board's engines for this widget; only names of the board.",
+                  "uniqueItems": true
+                },
+                "groupBy": {
+                  "enum": ["engine", "process"],
+                  "default": "process"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["widget", "props"],
+          "description": "The deployed diagram of the latest version on one engine, with running instances and incidents per element.",
+          "properties": {
+            "widget": {
+              "const": "processDiagram"
+            },
+            "props": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["process"],
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Heading of the widget."
+                },
+                "engines": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "description": "The one engine to draw from; needed when the board has several.",
+                  "uniqueItems": true,
+                  "maxItems": 1
+                },
+                "process": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "BPMN process id."
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["widget"],
+          "description": "The first 50 open incidents of each engine, with their messages.",
+          "properties": {
+            "widget": {
+              "const": "incidentList"
+            },
+            "props": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Heading of the widget."
+                },
+                "engines": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "description": "Narrows the board's engines for this widget; only names of the board.",
+                  "uniqueItems": true
+                },
+                "process": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "BPMN process id; only its incidents."
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

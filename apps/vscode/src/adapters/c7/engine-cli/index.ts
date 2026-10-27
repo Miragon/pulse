@@ -1,5 +1,6 @@
 export { VARIABLE_PAGE_SIZE } from "./commands/read-commands.js"
 export { Present } from "./present.js"
+export { LosslessJson } from "./views/lossless-json.js"
 export { EngineCliClient } from "./engine-cli-client.js"
 export { EngineCliWriter } from "./engine-cli-writer.js"
 export type { EngineClient, EngineClientOptions } from "./engine-client.js"
@@ -28,6 +29,7 @@ export type {
   FailedJobView,
   HistoricInstanceQuery,
   HistoricInstanceView,
+  VariableQueryCondition,
   IncidentInstanceView,
   IncidentQuery,
   IncidentView,

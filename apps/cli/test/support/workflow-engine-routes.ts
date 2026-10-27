@@ -71,7 +71,7 @@ function deploy(state: EngineState, request: RecordedRequest): Response {
     return json({
       id: existing,
       name,
-      source: "operate",
+      source: "pulse-cli",
       deploymentTime: T0,
       deployedProcessDefinitions: null,
       deployedDecisionDefinitions: null,
@@ -94,7 +94,7 @@ function deploy(state: EngineState, request: RecordedRequest): Response {
   return json({
     id,
     name,
-    source: "operate",
+    source: "pulse-cli",
     deploymentTime: T1,
     deployedProcessDefinitions: processes.length > 0 ? map : null,
     deployedDecisionDefinitions: null,

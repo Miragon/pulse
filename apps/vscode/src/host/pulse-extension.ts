@@ -12,6 +12,11 @@ import { RefreshCommand } from "./commands/refresh-command.js"
 import { SetCredentialsCommand } from "./commands/set-credentials-command.js"
 import { ShowRuntimeDataCommand } from "./commands/show-runtime-data-command.js"
 import { SwitchEngineCommand } from "./commands/switch-engine-command.js"
+import { BoardPanels } from "./boards/board-panels.js"
+import { BoardWatcher } from "./boards/board-watcher.js"
+import { BoardsTree } from "./boards/boards-tree.js"
+import { NewBoardCommand } from "./commands/new-board-command.js"
+import { OpenBoardCommand } from "./commands/open-board-command.js"
 import { CompositionRoot } from "./composition-root.js"
 import { ConnectionBuilder } from "./connections/connection-builder.js"
 import { ConnectionRegistry } from "./connections/connection-registry.js"
@@ -72,6 +77,7 @@ export class PulseExtension {
       registry,
       panels,
       ...this.views(registry, documents, panels, live),
+      ...this.boards(registry, panels),
       vscode.languages.registerDocumentLinkProvider(
         { scheme: INCIDENT_SCHEME },
         new StackFrameLinks(sources.code),
@@ -114,6 +120,20 @@ export class PulseExtension {
       new EngineStatusBar(registry),
       vscode.window.registerFileDecorationProvider(new IncidentDecorations()),
       vscode.workspace.registerTextDocumentContentProvider(INCIDENT_SCHEME, documents),
+    ]
+  }
+
+  private boards(registry: ConnectionRegistry, panels: PanelManager): vscode.Disposable[] {
+    const tree = new BoardsTree()
+    const boards = new BoardPanels(registry, panels)
+    return [
+      tree,
+      boards,
+      new BoardWatcher(tree, boards),
+      CommandRegistrar.register([
+        new OpenBoardCommand(boards),
+        new NewBoardCommand(registry, boards),
+      ]),
     ]
   }
 

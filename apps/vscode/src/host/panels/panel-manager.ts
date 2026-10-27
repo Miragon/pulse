@@ -65,7 +65,8 @@ export class PanelManager implements vscode.Disposable {
     column = vscode.ViewColumn.Active,
     origin?: string,
   ): void {
-    const variant = `${target.definitionId ?? "latest"}|${target.filter?.elementId ?? ""}`
+    const filter = target.filter
+    const variant = `${target.definitionId ?? "latest"}|${filter?.elementId ?? ""}|${filter?.scope ?? ""}|${filter?.businessKey ?? ""}`
     const key = `${connection.target.name}|definition|${target.bpmnProcessId}|${variant}`
     const focus = { engineName: connection.target.name, bpmnProcessId: target.bpmnProcessId }
     this.open(
@@ -145,6 +146,15 @@ export class PanelManager implements vscode.Disposable {
     this.open(this.migrations, placement, (context) => new MigrationPanel(context, target))
   }
 
+  createWebview(title: string, column: vscode.ViewColumn): vscode.WebviewPanel {
+    const panel = vscode.window.createWebviewPanel(VIEW_TYPE, title, column, {
+      enableScripts: true,
+      localResourceRoots: [this.distUri()],
+    })
+    panel.webview.html = this.html(panel, title)
+    return panel
+  }
+
   nudgeLocal(): void {
     for (const open of this.all()) {
       open.nudgeLocal()
@@ -222,10 +232,7 @@ export class PanelManager implements vscode.Disposable {
       existing.panel.reveal(placement.column)
       return
     }
-    const panel = vscode.window.createWebviewPanel(VIEW_TYPE, placement.title, placement.column, {
-      enableScripts: true,
-      localResourceRoots: [this.distUri()],
-    })
+    const panel = this.createWebview(placement.title, placement.column)
     const navigator = this.navigatorFor(placement.key)
     const open = new OpenPanel(panel, placement.connection, createSession, {
       effectsFor: (connection) => new VsCodePanelEffects(connection, navigator, this.host),
@@ -234,7 +241,6 @@ export class PanelManager implements vscode.Disposable {
       live: this.live,
       bulkRunsFor: (connection) => this.bulkRuns.of(connection.target),
     })
-    panel.webview.html = this.html(panel, placement.title)
     const activation = this.reportActivation(panel, placement.focus)
     panel.onDidDispose(() => {
       panels.delete(placement.key)

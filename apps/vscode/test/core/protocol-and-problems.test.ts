@@ -90,6 +90,30 @@ describe("every intent shape", () => {
     { type: "filterProcesses", filter: { scope: "all" } },
     { type: "openProcess", bpmnProcessId: "order", toSide: false },
     { type: "filterInstances", filter: { scope: "all", elementId: "Task", businessKey: "K" } },
+    {
+      type: "filterInstances",
+      filter: {
+        scope: "all",
+        variables: [
+          { name: "route", operator: "equals", value: "review" },
+          { name: "amount", operator: "greaterThan", value: "5" },
+          { name: "code", operator: "like", value: "ORD-*", as: "text" },
+          { name: "paid", operator: "notEquals", value: "true", as: "boolean" },
+          { name: "zip", operator: "equals", value: "", as: "text" },
+        ],
+      },
+    },
+    {
+      type: "filterInstances",
+      filter: {
+        scope: "all",
+        variables: [
+          { name: "dueAt", operator: "lessThan", value: "2026-03-15T10:00", as: "date" },
+          { name: "giftNote", operator: "notEquals", value: "", as: "null" },
+        ],
+      },
+    },
+    { type: "suggestVariableNames" },
     { type: "openInstance", instanceId: "i", toSide: true },
     { type: "openDefinition", bpmnProcessId: "order", definitionId: "order:1" },
     { type: "openIncidentDetails", incidentId: "x" },
@@ -110,6 +134,36 @@ describe("every intent shape", () => {
     { type: "filterInstances", filter: null },
     { type: "filterInstances", filter: { scope: "running", elementId: 7 } },
     { type: "filterInstances", filter: { scope: "running", businessKey: false } },
+    { type: "filterInstances", filter: { scope: "running", variables: "route=review" } },
+    { type: "filterInstances", filter: { scope: "running", variables: [null] } },
+    {
+      type: "filterInstances",
+      filter: {
+        scope: "running",
+        variables: Array.from({ length: 6 }, () => ({
+          name: "route",
+          operator: "equals",
+          value: "review",
+        })),
+      },
+    },
+    ...[
+      { name: "", operator: "equals", value: "review" },
+      { name: " ", operator: "equals", value: "review" },
+      { name: "route", operator: "between", value: "review" },
+      { name: "route", operator: "equals", value: 7 },
+      { name: "route", operator: "equals", value: "review", as: "date" },
+      { name: "amount", operator: "greaterThan", value: "abc" },
+      { name: "amount", operator: "lessThan", value: "5", as: "text" },
+      { name: "route", operator: "like", value: "rev*", as: "number" },
+      { name: "paid", operator: "equals", value: "yes", as: "boolean" },
+      { name: "amount", operator: "equals", value: "4x", as: "number" },
+      { name: "dueAt", operator: "equals", value: "tomorrow", as: "date" },
+      { name: "giftNote", operator: "equals", value: "x", as: "null" },
+    ].map((condition) => ({
+      type: "filterInstances",
+      filter: { scope: "running", variables: [condition] },
+    })),
     { type: "openInstance", instanceId: "i" },
     { type: "openDefinition", bpmnProcessId: "order" },
     { type: "openIncidentDetails" },

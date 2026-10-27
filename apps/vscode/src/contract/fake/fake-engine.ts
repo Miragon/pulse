@@ -64,6 +64,13 @@ export class FakeEngine implements ProcessRuntime, ProcessCommands {
     )
   }
 
+  listVariableNames(definitionId: DefinitionId): Promise<readonly string[]> {
+    const names = this.state.instances
+      .filter((instance) => instance.summary.definition.id === definitionId)
+      .flatMap((instance) => instance.variables.map((variable) => variable.name))
+    return Promise.resolve([...new Set(names)].sort())
+  }
+
   searchInstances(filter: InstanceFilter, page: PageRequest): Promise<Page<InstanceSummary>> {
     return Promise.resolve(FakeQueries.pageOf(this.queries().instances(filter), page))
   }

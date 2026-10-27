@@ -58,10 +58,22 @@ export interface InstanceRow {
 
 export type InstanceScope = "running" | "withIncident" | "ended" | "all"
 
+export type VariableOperator = "equals" | "notEquals" | "like" | "greaterThan" | "lessThan"
+
+export type VariableValueType = "text" | "number" | "boolean" | "date" | "null"
+
+export interface VariableConditionView {
+  readonly name: string
+  readonly operator: VariableOperator
+  readonly value: string
+  readonly as?: VariableValueType
+}
+
 export interface InstanceListFilter {
   readonly scope: InstanceScope
   readonly elementId?: string
   readonly businessKey?: string
+  readonly variables?: readonly VariableConditionView[]
 }
 
 export type ScopeCounts = Readonly<Record<InstanceScope, number>>
@@ -81,6 +93,8 @@ export interface DefinitionView {
   readonly instances: readonly InstanceRow[]
   readonly hasMoreInstances: boolean
   readonly filter: InstanceListFilter
+  readonly variableLabels?: readonly string[]
+  readonly variableNames?: readonly string[]
   readonly scopeCounts: ScopeCounts
   readonly historyNote?: string
   readonly notices: readonly Notice[]

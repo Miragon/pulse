@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "title": "Order fulfillment",
+  "engines": ["shop-dev", "shop-test"],
+  "rows": [
+    {
+      "row": [
+        {
+          "widget": "processDiagram",
+          "props": {
+            "title": "Orders on shop-dev",
+            "engines": ["shop-dev"],
+            "process": "order-fulfillment"
+          }
+        },
+        {
+          "widget": "processDiagram",
+          "props": {
+            "title": "Orders on shop-test",
+            "engines": ["shop-test"],
+            "process": "order-fulfillment"
+          }
+        }
+      ]
+    },
+    {
+      "row": [
+        {
+          "widget": "incidentList",
+          "props": { "title": "Open incidents of orders", "process": "order-fulfillment" }
+        }
+      ]
+    },
+    {
+      "row": [
+        {
+          "widget": "instanceList",
+          "props": {
+            "title": "Running orders",
+            "filter": { "process": "order-fulfillment" },
+            "columns": ["engine", "businessKey", "version", "state", "startedAt", "incident"]
+          }
+        }
+      ]
+    }
+  ]
+}

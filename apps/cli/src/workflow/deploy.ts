@@ -22,8 +22,8 @@ import { engineTime, type Rec, records, str } from "./records.js"
 import type { EndedInstance, InstanceView, Waited, WorkflowResult } from "./types.js"
 import { type WaitDeps, type WaitResult, type WaitSettings, waitAndInspect } from "./wait.js"
 
-const DEPLOYMENT_SOURCE = "operate"
-const DEFAULT_NAME = "operate"
+const DEPLOYMENT_SOURCE = "pulse-cli"
+const DEFAULT_NAME = "pulse-cli"
 
 export interface DeployOptions {
   readonly paths: readonly string[]

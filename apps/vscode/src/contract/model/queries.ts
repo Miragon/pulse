@@ -1,4 +1,11 @@
-import type { BpmnProcessId, DefinitionId, ElementId, InstanceId, PageCursor } from "./ids.js"
+import type {
+  BpmnProcessId,
+  DefinitionId,
+  ElementId,
+  InstanceId,
+  IsoTimestamp,
+  PageCursor,
+} from "./ids.js"
 
 export interface InstanceFilter {
   readonly bpmnProcessId?: BpmnProcessId
@@ -8,7 +15,27 @@ export interface InstanceFilter {
   readonly businessKey?: string
   readonly activeElementId?: ElementId
   readonly instanceIds?: readonly InstanceId[]
+  readonly variables?: readonly VariableCondition[]
 }
+
+export type VariableComparison = "equals" | "notEquals" | "greaterThan" | "lessThan"
+
+export type VariableCondition =
+  | {
+      readonly name: string
+      readonly operator: VariableComparison
+      readonly valueJson: string
+    }
+  | {
+      readonly name: string
+      readonly operator: VariableComparison
+      readonly at: IsoTimestamp
+    }
+  | {
+      readonly name: string
+      readonly operator: "like"
+      readonly pattern: string
+    }
 
 export interface IncidentFilter {
   readonly bpmnProcessId?: BpmnProcessId

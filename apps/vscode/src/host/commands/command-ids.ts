@@ -8,6 +8,8 @@ export const COMMAND = {
   openTargetsFile: "pulse.openTargetsFile",
   showRuntimeData: "pulse.showRuntimeData",
   openInstance: "pulse.openInstance",
+  openBoard: "pulse.openBoard",
+  newBoard: "pulse.newBoard",
 } as const
 
 export type CommandId = (typeof COMMAND)[keyof typeof COMMAND]
