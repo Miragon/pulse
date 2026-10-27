@@ -1,6 +1,6 @@
 # Overview
 
-Pulse, part of the [Miragon AI](https://miragon.ai/) family, lets you see and operate what your
+Pulse lets you see and operate what your
 Camunda 7, CIB seven and Operaton engines are running. It reaches the same engines three ways:
 
 | Client                       | For                                       | Start                                       |

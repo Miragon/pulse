@@ -60,11 +60,6 @@ const ALLOWED: readonly Allowance[] = [
     section: /^#{2,6} Renamed from operate\b/,
     reason: "the npm README points to the archived repository",
   },
-  {
-    file: "docs/cli/installation.md",
-    section: /^#{2,6} Renamed from operate\b/,
-    reason: "the docs point to the archived repository",
-  },
 ]
 
 interface Hit {

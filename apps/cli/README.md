@@ -49,7 +49,7 @@ pulse-cli guide
 ## Quick start
 
 Start an engine, then deploy a process, start an instance and complete its first task.
-`order.bpmn` is any process with a user task; the [walk-through](https://miragon.github.io/pulse/cli/quick-start) has one.
+`order.bpmn` is any process with a user task; the [walk-through](https://miragon.github.io/pulse/cli/getting-started#your-first-process) has one.
 
 ```sh
 docker run -d --name engine -p 8080:8080 operaton/operaton:2.1.5
@@ -132,7 +132,6 @@ built from the pages in [`docs/cli/`](https://github.com/Miragon/pulse/tree/main
 
 - [Getting started](https://miragon.github.io/pulse/cli/getting-started): a first triage, then your own engine, Claude Code or CI
 - [Installation](https://miragon.github.io/pulse/cli/installation): npm, Homebrew, standalone executable, container image, shell completion
-- [Quick start](https://miragon.github.io/pulse/cli/quick-start): one process from an empty engine to a finished instance
 - [Workflow commands](https://miragon.github.io/pulse/cli/workflow-commands): inspect, wait, advance, retry, deploy, status
 - [Command structure](https://miragon.github.io/pulse/cli/commands): names, arguments, variables, request bodies, files, dates
 - [Output and errors](https://miragon.github.io/pulse/cli/output-and-errors): formats, previews, error fields, exit codes

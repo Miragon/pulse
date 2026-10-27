@@ -53,7 +53,7 @@ const RULES = [
   // too), the repo, the image, the Homebrew tap, the docs, the product page, its
   // OPERATE_* variables, its config file and its config directory. The plain word stays
   // ("read and operate your engines", the cockpit's fleet.operate key, Camunda 8 Operate).
-  // Only the two "Renamed from operate" sections may point to the archived repo (ALLOWED).
+  // Only the "Renamed from operate" section may point to the archived repo (ALLOWED).
   { name: "old operate package", pattern: /@miragon\/operate(?!\w)/i },
   { name: "old operate repo", pattern: /(?<![\w.-])miragon\/operate(?![\w-])/i },
   { name: "old operate image", pattern: /ghcr\.io\/miragon\/operate/i },
@@ -179,12 +179,6 @@ const ALLOWED: Allowance[] = [
     rules: ["old operate repo"],
     section: /^#{2,6} Renamed from operate\b/,
     reason: "the npm README points to the archived repository of operate (up to 0.10.0)",
-  },
-  {
-    file: "docs/cli/installation.md",
-    rules: ["old operate repo"],
-    section: /^#{2,6} Renamed from operate\b/,
-    reason: "the docs point to the archived repository of operate (up to 0.10.0)",
   },
   {
     file: "scripts/test-template.sh",

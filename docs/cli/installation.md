@@ -111,7 +111,3 @@ pulse-cli completion fish > ~/.config/fish/completions/pulse-cli.fish
 
 Put the bash line into `~/.bashrc`. For zsh add `fpath=(~/.zfunc $fpath)` to `~/.zshrc` before
 `compinit`.
-
-## Renamed from operate
-
-Up to 0.10.0 this CLI was operate, released from the archived [Miragon/operate](https://github.com/Miragon/operate).

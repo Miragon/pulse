@@ -14,7 +14,7 @@ export default miragonDocs({
   title: "Miragon",
   siteTitle: "Pulse",
   description:
-    "Pulse, part of Miragon AI: operate and analyse your Camunda 7, CIB seven and Operaton engines from your AI chat, your terminal and VS Code.",
+    "Pulse: operate and analyse your Camunda 7, CIB seven and Operaton engines from your AI chat, your terminal and VS Code.",
   productPage: "https://miragon.ai/tools/pulse/",
   footerMessage: "Released under the MIT License.",
 
@@ -54,7 +54,6 @@ export default miragonDocs({
       items: [
         { text: "Introduction", link: "/cli/" },
         { text: "Getting started", link: "/cli/getting-started" },
-        { text: "Quick start", link: "/cli/quick-start" },
         { text: "Installation", link: "/cli/installation" },
         { text: "Workflow commands", link: "/cli/workflow-commands" },
         { text: "Command structure", link: "/cli/commands" },
