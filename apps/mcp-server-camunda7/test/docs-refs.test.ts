@@ -303,8 +303,7 @@ const DOCS_BUDGETS: Record<string, number> = {
   "mcp/reference.md": 160,
   // The CLI's pages (docs/cli/).
   "cli/index.md": 40,
-  "cli/getting-started.md": 90,
-  "cli/quick-start.md": 90,
+  "cli/getting-started.md": 140,
   "cli/installation.md": 150,
   "cli/workflow-commands.md": 70,
   "cli/commands.md": 150,

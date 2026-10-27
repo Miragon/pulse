@@ -10,9 +10,8 @@ npx @miragon/pulse-cli guide
 
 | Page                                        | What it covers                                                          |
 | ------------------------------------------- | ----------------------------------------------------------------------- |
-| [Getting started](./getting-started.md)     | A first triage, then your own engine, Claude Code or CI                 |
+| [Getting started](./getting-started.md)     | A first triage and process, then your engine, Claude Code or CI         |
 | [Installation](./installation.md)           | npm, Homebrew, standalone executable, container image, shell completion |
-| [Quick start](./quick-start.md)             | One process from an empty engine to a finished instance                 |
 | [Workflow commands](./workflow-commands.md) | Inspect, wait, advance, retry, deploy, status                           |
 | [Command structure](./commands.md)          | Names, arguments, variables, request bodies, files, dates               |
 | [Output and errors](./output-and-errors.md) | Formats, previews, error fields, exit codes                             |
