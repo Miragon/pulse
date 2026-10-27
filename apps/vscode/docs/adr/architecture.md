@@ -1,7 +1,7 @@
 # Architecture
 
 - Status: accepted
-- Last reviewed: 2026-10-23 (bulk intents)
+- Last reviewed: 2026-10-26 (boards)
 
 ## Context
 
@@ -106,7 +106,10 @@ itself ([writes.md](writes.md)). The same holds for jumps: `openCall` names only
 core finds the called process or instances in its snapshot and opens them through
 `PanelEffects` (`openDefinition`, `openLatestDefinition`, `openInstance`, `openMigration`, `pickInstance`);
 `openProcess` names only a BPMN process id, and the engine overview opens it only when its
-snapshot lists it. `filterProcesses` costs no engine call: the overview filters its
+snapshot lists it. A board ([boards.md](boards.md)) is the one panel over several engines: its
+intents (`openBoardInstance`, `openBoardProcess`, `openBoardEngine`, `setBoardCredentials`)
+name an engine and an id, and the core opens them only when the shown board lists them on that
+engine. `filterProcesses` costs no engine call: the overview filters its
 snapshot again. `filterInstances` carries up to five variable conditions as text with an
 optional type; `VariableConditionRules` decides the type, and the guard drops a filter
 whose condition does not fit it. `suggestVariableNames` names nothing either: the core

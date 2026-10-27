@@ -5,6 +5,7 @@ import type { Freshness } from "./components/context-bar.js"
 import type { HostBridge } from "./host/host-bridge.js"
 import { HostContext } from "./host/host-context.js"
 import type { Host } from "./host/host-context.js"
+import { BoardScreen } from "./screens/board/board-screen.js"
 import { DefinitionScreen } from "./screens/definition-screen.js"
 import { EngineScreen } from "./screens/engine-screen.js"
 import { InstanceScreen } from "./screens/instance-screen.js"
@@ -25,6 +26,9 @@ function ViewScreen({ view, ...rest }: ViewScreenProps) {
   }
   if (view.kind === "migration") {
     return <MigrationScreen view={view} {...rest} />
+  }
+  if (view.kind === "board") {
+    return <BoardScreen view={view} freshness={rest.freshness} />
   }
   return view.kind === "definition" ? (
     <DefinitionScreen view={view} refreshing={rest.freshness.kind === "refreshing"} {...rest} />

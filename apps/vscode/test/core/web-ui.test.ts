@@ -14,7 +14,7 @@ const WITH_COCKPIT: EngineBadge = {
 const ORDER = BpmnProcessId("pulse-order")
 
 function viewOf(state: PanelState) {
-  if (state.status !== "ready" || state.view.kind === "migration") {
+  if (state.status !== "ready" || state.view.kind === "migration" || state.view.kind === "board") {
     throw new Error(`expected a ready view with a web UI, got ${state.status}`)
   }
   return state.view

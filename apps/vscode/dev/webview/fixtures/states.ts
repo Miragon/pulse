@@ -1,4 +1,6 @@
 import type { PanelState } from "../../../src/core/protocol/index.js"
+import { BOARD_VIEW, BROKEN_BOARD_VIEW } from "./board.js"
+import { PROCESS_BOARD_VIEW } from "./process-board.js"
 import { BULK_RUNNING_DEFINITION, BULK_STOPPED_DEFINITION, SELECTING_DEFINITION } from "./bulk.js"
 import { DEFINITION_VIEW, ENDED_DEFINITION_VIEW, FILTERED_DEFINITION_VIEW } from "./definition.js"
 import { ENGINE_VIEW } from "./engine.js"
@@ -31,6 +33,9 @@ export const FIXTURES = {
   "migration-running": { status: "ready", view: RUNNING_MIGRATION_VIEW, refreshing: false },
   refreshing: { status: "ready", view: DEFINITION_VIEW, refreshing: true },
   engine: { status: "ready", view: ENGINE_VIEW, refreshing: false },
+  board: { status: "ready", view: BOARD_VIEW, refreshing: false },
+  "board-broken": { status: "ready", view: BROKEN_BOARD_VIEW, refreshing: false },
+  "board-process": { status: "ready", view: PROCESS_BOARD_VIEW, refreshing: false },
   instance: { status: "ready", view: INSTANCE_WITH_CALLED_INCIDENT, refreshing: false },
   "instance-waiting": { status: "ready", view: INSTANCE_WAITING, refreshing: false },
   "instance-writable": { status: "ready", view: WRITABLE_INSTANCE, refreshing: false },
