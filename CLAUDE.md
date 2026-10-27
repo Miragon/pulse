@@ -1039,7 +1039,7 @@ camunda7-client,analytics-connector,analytics-client}` and `@miragon/pulse-cli` 
   packages), drift-gated by `scripts/test-template.sh`. Only the server app and the VS Code
   extension stay `"private": true`.
   Up to 0.20.0 the packages, image and starter shipped under `miragon-ai`
-  names (the root README's rename note maps each); those names are retired, never reuse them.
+  names (the server README's rename note maps each); those names are retired, never reuse them.
 - **The VS Code extension ships as a .vsix, never through npm.** release-please bumps
   `apps/vscode/package.json` with the train (`extra-files`). After the `release` gate, the
   `publish-vscode` job of `release-please.yml` calls

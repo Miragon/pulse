@@ -133,7 +133,7 @@ const ALLOWED: Allowance[] = [
     reason: "stops a stack started under the old compose project name, which holds the ports",
   },
   {
-    file: "README.md",
+    file: "apps/mcp-server-camunda7/README.md",
     rules: [
       "old npm scope",
       "old repo",
