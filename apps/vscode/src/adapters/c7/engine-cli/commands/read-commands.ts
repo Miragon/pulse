@@ -7,6 +7,7 @@ import type {
 import { EngineCliArguments } from "./engine-cli-arguments.js"
 
 const MAX_VARIABLES = 500
+const MAX_NAMED_VARIABLES = 2000
 const MAX_FAILED_JOBS = 100
 
 const NEWEST_FIRST = [
@@ -142,6 +143,19 @@ export class ReadCommands {
       ...["--process-instance-id-in", EngineCliArguments.identifier(instanceId)],
       ...["--no-deserialize-values", "--max-results", String(MAX_VARIABLES)],
     ]
+  }
+
+  static historicVariables(): string[] {
+    return [
+      "historic-variable-instance",
+      "query",
+      ...["--body", "-"],
+      ...["--no-deserialize-values", "--max-results", String(MAX_NAMED_VARIABLES)],
+    ]
+  }
+
+  static historicVariablesBody(instanceIds: readonly string[]): string {
+    return JSON.stringify({ processInstanceIdIn: instanceIds })
   }
 
   static jobStacktrace(jobId: string): string[] {

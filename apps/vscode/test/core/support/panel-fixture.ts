@@ -38,6 +38,7 @@ const RUNTIME_METHODS = [
   "getCalledProcesses",
   "searchInstances",
   "countInstances",
+  "listVariableNames",
   "getInstanceDetail",
   "searchIncidents",
   "getIncidentDetails",

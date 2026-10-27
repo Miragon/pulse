@@ -1,7 +1,7 @@
 # Runtime contract
 
 - Status: accepted
-- Last reviewed: 2026-10-23
+- Last reviewed: 2026-10-26
 
 ## Context
 
@@ -31,8 +31,9 @@ engine question:
 | `getDiagramXml`        | The deployed XML of one version                                                                                                 |
 | `getElementStatistics` | Per element of one version: active, incidents raised here, incidents in called instances                                        |
 | `getCalledProcesses`   | Per call activity of one version: the process it calls and the deployed version its binding starts                              |
-| `searchInstances`      | Instances by version or process, lifecycle, incident, business key, active element; cursor paging                               |
+| `searchInstances`      | Instances by version or process, lifecycle, incident, business key, active element, variable conditions; cursor paging          |
 | `countInstances`       | How many instances the same filter finds, without paging                                                                        |
+| `listVariableNames`    | The names of the variables the instances of one version hold, at any scope, sorted and once each; a hint, not a complete list   |
 | `getInstanceDetail`    | Wait states (across called instances), root incidents, called instances, variables, the path (elements run, with start and end) |
 | `searchIncidents`      | Root incidents by process, version or instance; cursor paging                                                                   |
 | `getIncidentDetails`   | The complete stack trace or error message of one incident                                                                       |
@@ -119,6 +120,21 @@ for any workspace, and the conformance kit does not cover them
   `decimal`, `boolean`, `date`, `json`, `null` or `opaque` (serialized objects, bytes,
   files); `type` stays the engine's label for display. A variable set on an element
   (a task-local variable) has `scope.kind: 'element'` with that element's id.
+- **Variable conditions.** `InstanceFilter.variables` holds `VariableCondition`s, all of
+  which must hold (AND). A comparison (`equals`, `notEquals`, `greaterThan`, `lessThan`)
+  carries its value as `valueJson`, so big integers stay exact and a JSON number never
+  matches text: `42` finds the integer 42, `"42"` only the text, and `null` finds a
+  variable whose value is null, never a missing one. A date comparison carries `at`, an
+  `IsoTimestamp`, and compares points in time; text never matches a date. `greaterThan`
+  and `lessThan` compare numbers and dates. `like` carries a `pattern` in which `*` is any run of
+  characters and every other character, `%` and `_` included, stands for itself. A
+  condition holds when the instance has a variable of that name, at any scope (the C7
+  family matches task-local variables too, so a C8 adapter must as well), whose value
+  satisfies it: `notEquals` never finds an instance without the variable, and a value
+  of another type differs (`route ≠ 42` finds the text `"review"`). Ended instances
+  match by their variables. An unknown name finds nothing, an empty list constrains
+  nothing (unlike `instanceIds: []`). How letter case compares is the engine's (its
+  database's) business, so no law pins it.
 - **Bulk operations are facts about items.** `BulkOperation` has `id`, `kind`
   (`cancelInstances`, `migrateInstances`), `state` (`running`, `suspended`, `ended`), the optional
   timestamps `startedAt` and `endedAt` and the optional counts `total`, `completed` and
@@ -151,13 +167,13 @@ for any workspace, and the conformance kit does not cover them
 
 ```mermaid
 flowchart LR
-  kit[ConformanceKit: 34 read laws, 15 command laws]
+  kit[ConformanceKit: 46 read laws, 15 command laws]
   kit --> fake[FakeEngine in memory]
   kit --> c7[C7Adapter on Operaton, CIB seven, Camunda 7 in containers]
   saboteurs[Saboteurs: broken runtimes] -- each must fail its law --> kit
 ```
 
-`apps/vscode/src/contract/conformance` holds 34 read laws and 15 command laws as
+`apps/vscode/src/contract/conformance` holds 46 read laws and 15 command laws as
 executable cases, modelled on `@miragon/modeler-api/conformance`:
 `new ConformanceKit(test).registerRuntimeLaws(prepare)` and `.registerCommandLaws(prepare)`
 bind them to any `(name, fn)` runner and throw a `ConformanceViolation` when a law fails. Command laws run on
@@ -222,7 +238,11 @@ by process, incidents counted as active, incidents reported on the latest versio
 leaked propagated incidents, a call without the version it starts, ignored cursor, local
 timestamps, truncated details, throwing on unknown ids, per-version definition lists, raw
 errors, missing kinds, flattened scopes, counts that ignore the element and the business
-key, counts without an incident that include those with one; for commands: a retry that
+key, counts without an incident that include those with one, variable conditions that are
+ignored by the search or the count, one condition instead of all, numbers compared as
+text, `%` and `_` read as wildcards, not equals finding instances without the variable,
+task-local variables left out, ended instances left out, an empty list that finds
+nothing; for commands: a retry that
 closes everything, a silently ignored retry, values stored as text, numbers through a
 double, engine failures instead of
 rejections, a move that cancels without starting, a silently ignored refused move, a

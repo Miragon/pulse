@@ -1,5 +1,6 @@
 import {
   ElementId,
+  IsoTimestamp,
   type DefinitionId,
   type InstanceFilter,
   type InstanceId,
@@ -7,10 +8,29 @@ import {
   type Page,
   type PageCursor,
   type ProcessRuntime,
+  type VariableComparison,
+  type VariableCondition,
 } from "../../contract/index.js"
-import type { InstanceListFilter, InstanceScope, ScopeCounts } from "../protocol/index.js"
+import {
+  VariableConditionRules,
+  type InstanceListFilter,
+  type InstanceScope,
+  type ScopeCounts,
+  type VariableConditionView,
+  type VariableValueType,
+} from "../protocol/index.js"
 
 const PAGE_SIZE = 50
+
+type ComparisonOf = (name: string, operator: VariableComparison, value: string) => VariableCondition
+
+const VALUE_CONDITIONS: Readonly<Record<VariableValueType, ComparisonOf>> = {
+  text: (name, operator, value) => ({ name, operator, valueJson: JSON.stringify(value) }),
+  number: (name, operator, value) => ({ name, operator, valueJson: value }),
+  boolean: (name, operator, value) => ({ name, operator, valueJson: value }),
+  date: (name, operator, value) => ({ name, operator, at: IsoTimestamp(value) }),
+  null: (name, operator) => ({ name, operator, valueJson: "null" }),
+}
 const ID_PAGE_SIZE = 250
 
 const SCOPES: Readonly<
@@ -93,6 +113,17 @@ export class InstanceListQuery {
       ...SCOPES[filter.scope],
       ...(filter.elementId === undefined ? {} : { activeElementId: ElementId(filter.elementId) }),
       ...(filter.businessKey === undefined ? {} : { businessKey: filter.businessKey }),
+      ...(filter.variables === undefined
+        ? {}
+        : { variables: filter.variables.map((condition) => this.variableCondition(condition)) }),
     }
+  }
+
+  private variableCondition(condition: VariableConditionView): VariableCondition {
+    const { name, operator, value } = condition
+    if (operator === "like") {
+      return { name, operator, pattern: value }
+    }
+    return VALUE_CONDITIONS[VariableConditionRules.typeOf(condition)](name, operator, value)
   }
 }

@@ -16,6 +16,7 @@ import {
 import { ModelLinks } from "./model-links.js"
 import type { Panel } from "./panel.js"
 import type { PanelContext } from "./panel-context.js"
+import { VariableNameHints } from "./variable-name-hints.js"
 import { ViewSession } from "./view-session.js"
 
 export interface DefinitionTarget {
@@ -37,6 +38,7 @@ export class DefinitionPanel implements Panel {
   private readonly links: DefinitionLinks
   private readonly bulk: BulkIntents
   private readonly live: PanelLive
+  private readonly hints: VariableNameHints
 
   constructor(
     private readonly context: PanelContext,
@@ -57,13 +59,16 @@ export class DefinitionPanel implements Panel {
       },
     })
     this.session = new ViewSession(context, target.bpmnProcessId, {
-      decorate: (view) => this.bulk.decorate(this.withNotice(view)),
+      decorate: (view) => this.bulk.decorate(this.withNotice(this.hints.decorate(view))),
       live: () => this.live.status(),
       settled: (read) => {
         this.live.settled(read)
       },
     })
     this.common = new CommonIntents(context, this.live)
+    this.hints = new VariableNameHints(context, () => {
+      this.session.republish()
+    })
     this.jumps = new CallJumps(context, () => {
       this.session.republish()
     })
@@ -103,7 +108,10 @@ export class DefinitionPanel implements Panel {
         return this.reload()
       case "selectVersion":
         this.bulk.clearSelection()
-        this.request = { selected: DefinitionId(intent.definitionId), filter: RUNNING }
+        this.request = {
+          selected: DefinitionId(intent.definitionId),
+          filter: this.keptAcrossVersions(this.request.filter),
+        }
         return this.reload()
       case "filterInstances":
         this.bulk.clearSelection()
@@ -111,6 +119,8 @@ export class DefinitionPanel implements Panel {
         return this.reload()
       case "loadMoreInstances":
         return this.loadMore()
+      case "suggestVariableNames":
+        return this.hints.suggest(this.session.current()?.selected)
       default:
         return this.common.handle(intent)
     }
@@ -154,6 +164,10 @@ export class DefinitionPanel implements Panel {
       return
     }
     await this.session.extend((loaded) => this.reads.more(loaded))
+  }
+
+  private keptAcrossVersions({ variables }: InstanceListFilter): InstanceListFilter {
+    return variables === undefined ? RUNNING : { ...RUNNING, variables }
   }
 
   private withNotice(view: DefinitionView): DefinitionView {

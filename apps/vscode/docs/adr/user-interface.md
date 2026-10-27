@@ -1,7 +1,7 @@
 # User interface
 
 - Status: accepted
-- Last reviewed: 2026-10-23 (live updates, see [live-updates.md](live-updates.md); moving a token; bulk cancel, see [writes.md](writes.md); migration, see [migrations.md](migrations.md))
+- Last reviewed: 2026-10-26 (live updates, see [live-updates.md](live-updates.md); moving a token; bulk cancel, see [writes.md](writes.md); migration, see [migrations.md](migrations.md))
 
 ## Context
 
@@ -91,15 +91,39 @@ credentials, or Edit connection… for the other connection problems.
 The bottom pane of the split starts with one 36 px bar; it replaced the legend line under
 the diagram, the "Instances … · n running" header and the toolbar.
 
-- **Definition panel:** scopes with counts, element chip, business-key search and, at
-  the far end, the legend button. The scopes are a `radiogroup` ("Show instances") with one tab
+- **Definition panel:** scopes with counts, element chip, business-key search, the
+  filter button (a funnel) with one chip per variable condition and, at the far end, the legend
+  button. The scopes are a `radiogroup` ("Show instances") with one tab
   stop on the checked radio; ←/→/Home/End move and select, the latest request wins,
   and the checked segment is boxed, not underlined (an underline means tabs). Each
   scope shows `DefinitionView.scopeCounts` (compact, the exact value in the tooltip, a
-  red "With incident" count when it is above 0). Counts follow the element filter and
-  the business-key search, so a count says what a click shows; the version totals stay
+  red "With incident" count when it is above 0). Counts follow the element filter, the
+  business-key search and the variable conditions, so a count says what a click shows; the version totals stay
   in the version picker. While the panel refreshes the old counts stay and the group is
   `aria-busy`.
+- **Variable conditions:** the funnel button ("Filter by variables", with conditions their
+  count beside the icon and "…, 2 active" in its name) opens a modal `<dialog>` for one
+  condition: name, _Compare as_ (Automatic, Text, Number, True or
+  false, Date and time, Null), the operators that fit the type and the value. Opening
+  it sends `suggestVariableNames`; the core reads `listVariableNames` once per version and
+  republishes them as `DefinitionView.variableNames`, which the name field offers in a
+  `datalist` while it still takes any text (no names, no list; a failed read suggests
+  nothing). Value stays editable before a name is set: a disabled field would drop out of
+  the tab order without saying why, and Apply names a missing name. Date and
+  time takes a `datetime-local` field and offers _is after_ and _is before_, read in the
+  local time zone; Null asks for no value and offers _is null_ and _is not null_; the
+  dialog says that JSON and object variables cannot be searched. Apply adds it, or replaces the
+  one whose chip was clicked; every chip (`amount > 100`, `route = "review"`, text in
+  quotes) has its remove button and keeps its width up to 240 px, the bar wrapping into a
+  second row instead; all conditions must hold, at most 5. Automatic reads
+  `42` and `-4.5` as a number, `true` and `false` as true or false and anything else as
+  text; _matches_ compares text and _is greater than_ and _is less than_ numbers.
+  `VariableConditionRules` in the protocol holds these rules for the guard and the core,
+  which also labels the chips (`DefinitionView.variableLabels`); the webview imports the
+  protocol as types only, so the dialog keeps its operator table, number and date patterns and cap
+  as constants a test holds equal to the rules. The conditions survive a scope change, the element filter,
+  the business-key search and a version switch, which resets scope and element only; the
+  cancel confirmation names them in its filter line.
 - **Instance panel:** the History / Incidents / Waiting / Variables tablist on the left, the marker
   legend button on the right.
 - **Engine overview:** the scopes _All_ and _With incident_ ("Show processes", the same
@@ -114,11 +138,12 @@ the diagram, the "Instances … · n running" header and the toolbar.
   anchored above the button over the diagram, never inline: what a reader needs once
   hides instead of taking room every time. Digit-free shapes; its first line
   (definition: "Badges count running instances of vN") replaces the version line. Below
-  760 px the definition bar takes two rows: scopes and legend button, then element chip
-  and search. Container queries, no JavaScript.
+  760 px the definition bar takes two rows: scopes and legend button, then element chip,
+  variable chips and search. Container queries, no JavaScript.
 - **Escape** clears the instance selection first and the element filter after it, only
-  when no popover is open, focus is not in a field (a checkbox does not count) and no
-  column drag is cancelled.
+  when no popover or dialog is open, focus is not in a field (a checkbox does not count)
+  and no column drag is cancelled. In the variable dialog it closes the dialog only;
+  Escape never clears a variable condition.
 - **Columns** of the Processes, Instances, Waiting, Variables and History tables are resizable: a
   `separator` on the right edge of every header but the last (←/→ 8 px, Shift 32 px,
   Enter or a double-click fits the widest cell up to half the visible table, Home sets

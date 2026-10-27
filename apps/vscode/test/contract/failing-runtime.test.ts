@@ -20,6 +20,7 @@ const EVERY_METHOD: Readonly<Record<keyof ProcessRuntime, Call>> = {
   getElementStatistics: (runtime) => runtime.getElementStatistics(DefinitionId("order:1")),
   getCalledProcesses: (runtime) => runtime.getCalledProcesses(DefinitionId("order:1")),
   searchInstances: (runtime) => runtime.searchInstances({}, { limit: 1 }),
+  listVariableNames: (runtime) => runtime.listVariableNames(DefinitionId("order:1")),
   countInstances: (runtime) => runtime.countInstances({}),
   getInstanceDetail: (runtime) => runtime.getInstanceDetail(InstanceId("instance")),
   searchIncidents: (runtime) => runtime.searchIncidents({}, { limit: 1 }),

@@ -189,6 +189,12 @@ export interface IncidentQuery {
   readonly processInstanceId?: string
 }
 
+export interface VariableQueryCondition {
+  readonly name: string
+  readonly operator: "eq" | "neq" | "gt" | "lt" | "like"
+  readonly value: unknown
+}
+
 export interface HistoricInstanceQuery {
   readonly processDefinitionId?: string
   readonly processDefinitionKey?: string
@@ -198,6 +204,7 @@ export interface HistoricInstanceQuery {
   readonly finished?: true
   readonly incidentStatus?: "open"
   readonly activityIdIn?: readonly string[]
+  readonly variables?: readonly VariableQueryCondition[]
 }
 
 export interface OffsetPage {

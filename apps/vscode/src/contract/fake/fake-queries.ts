@@ -8,6 +8,7 @@ import type {
   InstanceSummary,
 } from "../model/read-models.js"
 import type { FakeEngineState, FakeInstance } from "./fake-engine-state.js"
+import { FakeVariableConditions } from "./fake-variable-conditions.js"
 
 export class FakeQueries {
   constructor(private readonly state: FakeEngineState) {}
@@ -94,7 +95,8 @@ export class FakeQueries {
       (filter.businessKey === undefined || summary.businessKey === filter.businessKey) &&
       (filter.activeElementId === undefined ||
         instance.activeElementIds.includes(filter.activeElementId)) &&
-      this.matchesIds(summary, filter)
+      this.matchesIds(summary, filter) &&
+      FakeVariableConditions.allHold(instance.variables, filter.variables)
     )
   }
 

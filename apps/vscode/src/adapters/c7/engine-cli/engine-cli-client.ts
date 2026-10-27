@@ -112,6 +112,15 @@ export class EngineCliClient implements EngineClient {
     return VariableViewParser.instances(await this.runner.json(ReadCommands.variables(instanceId)))
   }
 
+  async historicVariableNames(instanceIds: readonly string[]): Promise<string[]> {
+    return VariableViewParser.names(
+      await this.runner.json(
+        ReadCommands.historicVariables(),
+        ReadCommands.historicVariablesBody(instanceIds),
+      ),
+    )
+  }
+
   async jobStacktrace(jobId: string): Promise<string> {
     return this.runner.text(ReadCommands.jobStacktrace(jobId))
   }

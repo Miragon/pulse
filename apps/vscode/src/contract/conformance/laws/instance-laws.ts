@@ -10,6 +10,7 @@ import type { InstanceSummary } from "../../model/read-models.js"
 import { Ensure } from "../ensure.js"
 import { CASE, type ConformanceCase } from "../conformance-case.js"
 import type { ConformanceHarness } from "../harness.js"
+import { VariableSearch } from "./variable-laws.js"
 import { WORLD_ELEMENT, WORLD_PROCESS, type InstanceAlias } from "../world/world.js"
 
 const PAGE_LIMIT = 50
@@ -65,6 +66,7 @@ class InstanceReads {
       },
       { definitionId: orderV1, businessKey: "ORD-1003" },
       { definitionId: harness.world.unknown.definitionId },
+      ...VariableSearch.countedFilters(harness),
     ]
   }
 }
