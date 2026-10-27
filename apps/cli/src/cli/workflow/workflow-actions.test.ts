@@ -103,7 +103,7 @@ describe("pulse-cli deploy", () => {
     const first = await cli(["deploy", "bpmn"])
     expect(first.code).toBe(0)
     expect(JSON.parse(first.stdout)).toMatchObject({
-      name: "operate",
+      name: "pulse-cli",
       changed: true,
       resources: [
         { resource: "forms/approve.form", status: "deployed", definitions: [] },
@@ -116,10 +116,10 @@ describe("pulse-cli deploy", () => {
     })
     const form = engine.requests.find((request) => request.path === "/deployment/create")
       ?.body as FormData
-    expect(form.get("deployment-source")).toBe("operate")
+    expect(form.get("deployment-source")).toBe("pulse-cli")
     expect(form.get("deploy-changed-only")).toBe("true")
     const second = await cli(["deploy", "bpmn", "-o", "table"])
-    expect(second.stdout).toContain("(operate, unchanged)")
+    expect(second.stdout).toContain("(pulse-cli, unchanged)")
     expect(second.stdout).toContain("order.bpmn          unchanged  process  order  1")
   })
 
@@ -147,14 +147,14 @@ describe("pulse-cli deploy", () => {
     expect(engine.requests).toEqual([])
     expect(JSON.parse(preview.stdout)).toMatchObject({
       plan: {
-        name: "operate",
+        name: "pulse-cli",
         resources: [
           { resource: "forms/approve.form", file: "bpmn/forms/approve.form" },
           { resource: "order.bpmn", file: "bpmn/order.bpmn" },
         ],
         start: { key: "order" },
       },
-      requests: [{ summary: "deploy 2 resource(s) as operate", method: "POST" }],
+      requests: [{ summary: "deploy 2 resource(s) as pulse-cli", method: "POST" }],
     })
     expect(errorOf((await cli(["deploy", "bpmn", "--business-key", "B-1"])).stderr)).toMatchObject({
       message: "--business-key needs --start or --start-key",

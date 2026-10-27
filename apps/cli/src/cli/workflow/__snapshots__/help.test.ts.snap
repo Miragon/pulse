@@ -78,7 +78,7 @@ exports[`workflow command describe > describes the options of advance 1`] = `
       "type": "integer",
     },
     {
-      "description": "Worker that locks and completes an external task (default operate)",
+      "description": "Worker that locks and completes an external task (default pulse-cli)",
       "flag": "--worker-id <id>",
       "required": false,
       "type": "string",
@@ -134,7 +134,7 @@ exports[`workflow command describe > describes the options of deploy 1`] = `
   ],
   "options": [
     {
-      "description": "Deployment name (default operate); unchanged files are skipped per name",
+      "description": "Deployment name (default pulse-cli); unchanged files are skipped per name",
       "flag": "--name <deployment-name>",
       "required": false,
       "type": "string",
@@ -525,7 +525,8 @@ OPTIONS
   --fail <message>                Report a failure of the external task with this message instead of
                                   completing it
   --retries <n>                   Retries left after --fail (default 0: an incident)
-  --worker-id <id>                Worker that locks and completes an external task (default operate)
+  --worker-id <id>                Worker that locks and completes an external task (default
+                                  pulse-cli)
   --wait                          After the writes, wait until the instance is idle before printing
                                   it
   --until <condition>             Wait until idle, ended, incident, task, task:<taskDefinitionKey>
@@ -741,7 +742,8 @@ ARGUMENTS
   <paths...>  BPMN, DMN and form files and directories to deploy
 
 OPTIONS
-  --name <deployment-name>   Deployment name (default operate); unchanged files are skipped per name
+  --name <deployment-name>   Deployment name (default pulse-cli); unchanged files are skipped per
+                             name
   --base-dir <dir>           Name every resource by its path relative to this directory
   --tenant-id <id>           Tenant of the deployment (and of the started instance)
   --start                    Start an instance of the only process of the deployed files

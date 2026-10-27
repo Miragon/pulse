@@ -51,32 +51,6 @@ interface Allowance {
 /** Where the word is right. Shrink-only: an entry that covers no hit fails. */
 const ALLOWED: readonly Allowance[] = [
   {
-    file: "apps/cli/src/workflow/deploy.ts",
-    line: /^const (?:DEPLOYMENT_SOURCE|DEFAULT_NAME) = "operate"$/,
-    reason:
-      "engines store the deployment source and name; a new value redeploys every unchanged resource",
-  },
-  {
-    file: "apps/cli/src/workflow/advance-plan.ts",
-    line: /^const DEFAULT_WORKER = "operate"$/,
-    reason: "engines hold external-task locks under the default worker id",
-  },
-  {
-    file: "apps/cli/src/docs/workflow-options.ts",
-    line: /\(default operate\)/,
-    reason: "the help states the default worker id and deployment name",
-  },
-  {
-    file: "apps/cli/src/docs/workflow.ts",
-    line: /deployment-source operate/,
-    reason: "describe states the deployment source",
-  },
-  {
-    file: "apps/cli/src/docs/guide-topics/workflow.ts",
-    line: /default \\`operate\\`/,
-    reason: "the guide states the default worker id and deployment name",
-  },
-  {
     file: /^(?:apps\/cli\/(?:README\.md|skills\/pulse-cli\/(?:SKILL\.md|\.claude-plugin\/plugin\.json))|docs\/cli\/index\.md)$/,
     line: /\*\*operate a Camunda 7|, operate a Camunda 7|[Ii]nspect and operate/,
     reason: "the English verb",
