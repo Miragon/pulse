@@ -28,6 +28,7 @@
  *   (checkDependabot);
  * - every check the main-branch ruleset requires is a job a pull request runs
  *   (checkRequiredChecks);
+ * - every job of ci.yml runs in a scope of scripts/ci-scopes.mjs (checkCiScopes);
  * - every workspace package pins Playwright (`playwright`, `@playwright/test`) at one version:
  *   ci.yml keys the browser cache of the TypeScript job and of the host simulation on those
  *   pins, so the two share one entry and one browser build (checkPlaywrightPins);
@@ -49,6 +50,7 @@ import { fileURLToPath } from "node:url"
 import { isDeepStrictEqual } from "node:util"
 import { parse } from "yaml"
 import { expandWorkspaceGlobs, workspaceGlobs } from "./check-package-scripts.mjs"
+import { SCOPES } from "./ci-scopes.mjs"
 
 export const PUBLISH_WORKFLOW = ".github/workflows/publish-npm-package.yml"
 export const RELEASE_WORKFLOW = ".github/workflows/release-please.yml"
@@ -1102,6 +1104,76 @@ export function checkRequiredChecks(workflows, required = REQUIRED_CHECKS) {
   return errors
 }
 
+// ── CI scopes ───────────────────────────────────────────────────────────────
+
+const SCOPE_REFERENCE = /\bneeds\.changes\.outputs\.([\w-]+)/g
+const RUNS_UNLESS_CANCELLED = /^\$\{\{\s*!\s*cancelled\(\)\s*\}\}$/
+
+/**
+ * Every ci.yml job waits for `changes` and reads only real scopes, and one always-on required job
+ * fails when `changes` fails (otherwise all scoped jobs skip, and skipped passes).
+ */
+export function checkCiScopes(doc, { scopes = SCOPES, required = REQUIRED_CHECKS } = {}) {
+  const jobs = new Map(jobsOf(doc))
+  const changes = jobs.get("changes")
+  if (changes === undefined) return [`${CI_WORKFLOW}: no changes job hands out the CI scopes`]
+  const errors = []
+  const outputs = changes.outputs ?? {}
+  for (const scope of scopes) {
+    if (outputs[scope] !== `\${{ steps.scopes.outputs.${scope} }}`) {
+      errors.push(
+        `${CI_WORKFLOW}: the changes job does not hand out the scope "${scope}" (steps.scopes.outputs.${scope})`,
+      )
+    }
+  }
+  for (const name of Object.keys(outputs).filter((name) => !scopes.includes(name))) {
+    errors.push(
+      `${CI_WORKFLOW}: the changes job hands out "${name}", which scripts/ci-scopes.mjs does not compute`,
+    )
+  }
+  const waitsForChanges = (id, seen = new Set([id])) =>
+    asList(jobs.get(id)?.needs).some(
+      (need) => need === "changes" || (!seen.has(need) && waitsForChanges(need, seen.add(need))),
+    )
+  const used = new Set()
+  for (const [id, job] of jobs) {
+    if (id === "changes") continue
+    if (!waitsForChanges(id)) {
+      errors.push(
+        `${CI_WORKFLOW}: job ${id} does not wait for the changes job, so it runs outside every scope`,
+      )
+    }
+    const read = [...JSON.stringify(job).matchAll(SCOPE_REFERENCE)].map(([, scope]) => scope)
+    if (read.length > 0 && !asList(job.needs).includes("changes")) {
+      errors.push(
+        `${CI_WORKFLOW}: job ${id} reads a scope but does not list changes in its needs, so it reads nothing`,
+      )
+    }
+    for (const scope of read) {
+      used.add(scope)
+      if (!scopes.includes(scope))
+        errors.push(`${CI_WORKFLOW}: job ${id} reads the unknown scope "${scope}"`)
+    }
+  }
+  for (const scope of scopes.filter((scope) => !used.has(scope))) {
+    errors.push(`${CI_WORKFLOW}: no job runs in the scope "${scope}"`)
+  }
+  const guards = [...jobs.values()].filter(
+    (job) =>
+      required.includes(job?.name) &&
+      asList(job.needs).includes("changes") &&
+      RUNS_UNLESS_CANCELLED.test(String(job.if ?? "")) &&
+      JSON.stringify(stepsOf(job)).includes("needs.changes.result"),
+  )
+  if (guards.length === 0) {
+    errors.push(
+      `${CI_WORKFLOW}: no required job runs on every pull request (if: \${{ !cancelled() }}) and ` +
+        `fails on needs.changes.result: a failed changes job would pass as a row of skipped checks`,
+    )
+  }
+  return errors
+}
+
 // ── Mutation artifacts + the nightly full run ───────────────────────────────
 
 /** The file the nightly caches per package: every stryker.config.json writes exactly this. */
@@ -1479,6 +1551,7 @@ export function checkRepo(root) {
     ),
     ...checkDependabot(readYaml(root, ".github/dependabot.yml"), { packages, dirExists: exists }),
     ...checkRequiredChecks(workflows),
+    ...checkCiScopes(workflows.get(CI_WORKFLOW)),
     ...checkPlaywrightPins(packages),
     ...checkArtifactGlobs(workflows.get(CI_WORKFLOW), workflows.get(NIGHTLY_WORKFLOW), globs),
     ...checkNightlyMutation(workflows.get(NIGHTLY_WORKFLOW), globs),
@@ -1502,7 +1575,7 @@ if (isMain) {
   console.log(
     "GitHub config: publish workflow, npm matrix and repositories, release extra-files and " +
       "plugin versions, the release gate, the CLI publish workflows, the extension's release " +
-      `path, Dependabot groups, ${REQUIRED_CHECKS.length} required checks, the Playwright pins, ` +
+      `path, Dependabot groups, ${REQUIRED_CHECKS.length} required checks, the CI scopes, the Playwright pins, ` +
       "the report artifacts, the nightly mutation run and the Stryker incremental files hold.",
   )
 }

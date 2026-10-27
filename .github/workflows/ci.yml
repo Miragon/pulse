@@ -14,8 +14,40 @@ permissions:
   contents: read
 
 jobs:
+  # The scopes a PR needs (scripts/ci-scopes.mjs); a push to main runs all.
+  changes:
+    name: Changes (CI scopes)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      typescript: ${{ steps.scopes.outputs.typescript }}
+      mcp: ${{ steps.scopes.outputs.mcp }}
+      template: ${{ steps.scopes.outputs.template }}
+      cli: ${{ steps.scopes.outputs.cli }}
+      vscode: ${{ steps.scopes.outputs.vscode }}
+      vscode-package: ${{ steps.scopes.outputs.vscode-package }}
+      kotlin: ${{ steps.scopes.outputs.kotlin }}
+      cibseven-example: ${{ steps.scopes.outputs.cibseven-example }}
+      brand: ${{ steps.scopes.outputs.brand }}
+    steps:
+      # Merge commit + base, diffed by the script.
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 22
+          package-manager-cache: false
+
+      - id: scopes
+        run: node scripts/ci-scopes.mjs
+
   typescript:
     name: TypeScript (Build + Test + Lint)
+    needs: changes
+    if: needs.changes.outputs.typescript == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7.0.1
@@ -29,11 +61,7 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # The extension's webview suites run in Chromium (vitest browser mode, apps/vscode), so
-      # `pnpm test` needs Playwright's headless shell. Cached like host-sim's: keyed on the exact
-      # playwright pin of apps/vscode, which equals the server app's @playwright/test pin
-      # (lint:github holds every Playwright pin at one version), so both jobs share one entry.
-      # System libraries are not cacheable and are installed on every run.
+      # Webview suites need Playwright's Chromium shell; cache shared with host-sim.
       - id: playwright
         run: echo "version=$(node -p "require('./apps/vscode/package.json').devDependencies.playwright")" >> "$GITHUB_OUTPUT"
 
@@ -55,12 +83,7 @@ jobs:
 
       - run: pnpm test
 
-      # Handed to the `fitness` job, which owns the aggregated report. One
-      # glob per package form; their least common ancestor is the repo root,
-      # so the artifact keeps the apps/ and packages/ prefixes and unpacks
-      # over the checkout as-is. Exact depth, never `**`: upload-artifact
-      # follows symlinks, and `**` walks pnpm's workspace links in
-      # node_modules and uploads each summary again under every dependent.
+      # Coverage for the fitness job. Exact depth, never `**` (it follows pnpm's symlinks).
       - uses: actions/upload-artifact@v7.0.2
         with:
           name: coverage-summaries
@@ -71,15 +94,11 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  # The Postgres persistence path (advisory-lock first create, ownership
-  # predicate, JSONB encoding, the migration runner, the readiness probe) is
-  # executable only against a real database: its suites `describe.skipIf`
-  # without TEST_DATABASE_URL and skip in the job above. This job gives them
-  # one — same image and credentials as the compose stack's test database
-  # (playground/docker/docker-compose.yml + postgres/init.sql), which is what
-  # `pnpm test:pg` defaults to locally.
+  # Postgres suites skip without TEST_DATABASE_URL; same DB as the compose stack.
   postgres:
     name: Postgres adapters (test:pg)
+    needs: changes
+    if: needs.changes.outputs.mcp == 'true'
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -109,19 +128,15 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # The suites import sibling workspace packages through their dist.
       - run: pnpm build
 
       - run: pnpm test:pg
 
-  # Playwright host simulation of the BUILT widget bundle
-  # (apps/mcp-server-camunda7/test-host/README.md): the view document the real
-  # server serves, rendered in a sandboxed iframe behind a SEP-1865 host shim —
-  # the only check that runs the bundle's provider stack, the vite `dedupe`
-  # and the view recovery lifecycle in a browser. Not path-filtered: the
-  # bundle is assembled from every package plus the toolkit and mcp-use pins.
+  # Playwright host simulation of the built widget bundle (test-host/README.md).
   host-sim:
     name: Widget host simulation (test:host)
+    needs: changes
+    if: needs.changes.outputs.mcp == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -136,12 +151,9 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # The global setup boots `createApp` against the workspace packages' dist.
       - run: pnpm build
 
-      # Browser cache keyed on the exact @playwright/test pin, which decides
-      # the browser build; system libraries are not cacheable and are
-      # installed on every run.
+      # Browser cache keyed on the @playwright/test pin.
       - id: playwright
         run: echo "version=$(node -p "require('./apps/mcp-server-camunda7/package.json').devDependencies['@playwright/test']")" >> "$GITHUB_OUTPUT"
 
@@ -159,7 +171,6 @@ jobs:
 
       - run: pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server-camunda7 test:host
 
-      # Traces + failure screenshots of the failed scenarios.
       - if: failure()
         uses: actions/upload-artifact@v7.0.2
         with:
@@ -168,25 +179,17 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
-  # Real engines in Testcontainers on the runner's Docker, one leg per flavor (Camunda 7, CIB
-  # seven, Operaton: the server's flavor values, the default first). Each leg runs every suite
-  # that needs a real engine: the CLI's (apps/cli test:engines; its OAuth and bearer suites put
-  # Keycloak and Envoy in front) and the extension's conformance laws (apps/vscode
-  # test:engines). Node 22, the floor of the CLI's npm package; the CLI binary leg below runs
-  # the Operaton suites on Node 24. Not path-filtered, like every job here: a skipped leg would
-  # hide a broken shared input (lockfile, tsconfig.base.json, vitest.shared.ts). Each leg
-  # reports a check of its own; the "Engines" job below is the one check a ruleset can require.
+  # Real engines in Testcontainers, one leg per flavor; each suite runs in its app's scope.
   engines:
     name: Engines (${{ matrix.flavor }})
+    needs: changes
+    if: needs.changes.outputs.cli == 'true' || needs.changes.outputs.vscode == 'true'
     runs-on: ubuntu-latest
-    # Image pulls, engine starts (a suite allows 4 to 5 min for one) and the suites: a CLI leg
-    # took about 4 min in its own repository, the extension's slowest leg 105 s of tests.
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        # image: the engine image of the flavor. cli-engine: its name in the CLI's suites
-        # (PULSE_CLI_IT_ENGINES).
+        # cli-engine: the flavor's name in PULSE_CLI_IT_ENGINES.
         include:
           - flavor: camunda7
             image: camunda/camunda-bpm-platform:run-7.24.0
@@ -202,8 +205,7 @@ jobs:
         with:
           persist-credentials: false
 
-      # The CLI's suites pin their images in engines.ts, and Dependabot tracks neither copy: a
-      # bump changes both, or this leg would claim an engine it never started.
+      # Matrix and engines.ts must name the same image.
       - name: The CLI suites start the image of this flavor
         env:
           IMAGE: ${{ matrix.image }}
@@ -222,29 +224,24 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # The suites run what CI built: the CLI's dist/pulse-cli.js and its workspace
-      # dependencies, and the extension's (it has none yet).
       - id: build
         run: pnpm turbo build --filter=@miragon/pulse-cli... --filter=pulse-cockpit...
 
-      # Each suite runs even when an earlier one failed, so a red leg names every failing suite.
-      # The packed-tarball test (pnpm pack, npm install -g into a temporary prefix, run the
-      # installed bin) does not depend on the engine: the operaton leg runs it.
+      # Every suite runs even after a failure; the operaton leg also tests the packed tarball.
       - name: CLI integration (apps/cli)
-        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.build.outcome == 'success' && needs.changes.outputs.cli == 'true' }}
         env:
           PULSE_CLI_IT_ENGINES: ${{ matrix.cli-engine }}
           PULSE_CLI_IT_SKIP_PACK: ${{ matrix.flavor == 'operaton' && '0' || '1' }}
         run: pnpm --fail-if-no-match --filter @miragon/pulse-cli run test:engines
 
       - name: Extension conformance (apps/vscode)
-        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.build.outcome == 'success' && needs.changes.outputs.vscode == 'true' }}
         env:
           PULSE_ENGINE_IMAGE: ${{ matrix.image }}
         run: pnpm --fail-if-no-match --filter pulse-cockpit run test:engines
 
-  # The one check of the engine matrix a ruleset can require: each leg reports under its own
-  # name, and scripts/check-github-config.mjs refuses a required matrix job.
+  # The one requirable check of the matrix; skipped passes.
   engines-result:
     name: Engines
     needs: engines
@@ -256,18 +253,16 @@ jobs:
         env:
           RESULT: ${{ needs.engines.result }}
         run: |
-          if [ "$RESULT" != success ]; then
+          if [ "$RESULT" != success ] && [ "$RESULT" != skipped ]; then
             echo "::error::The engine matrix ended with ${RESULT}: see the Engines (<flavor>) jobs"
             exit 1
           fi
 
-  # The extension activates in a real VS Code (stable, under Xvfb) and registers every
-  # contributed command (apps/vscode test:smoke). @vscode/test-electron downloads VS Code into
-  # apps/vscode/.vscode-test (its cwd), cached under the exact current stable version: a new VS
-  # Code release downloads once. Without the release API the key is "unknown" and test-electron
-  # falls back to whatever that entry holds.
+  # Activation + every command in VS Code stable under Xvfb.
   vscode-smoke:
     name: VS Code smoke
+    needs: changes
+    if: needs.changes.outputs.vscode == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -294,7 +289,6 @@ jobs:
           if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then version=unknown; fi
           echo "version=${version}" >> "$GITHUB_OUTPUT"
 
-      # No restore-keys, so old VS Code installs never pile up in the cache.
       - uses: actions/cache@v6.1.0
         with:
           path: apps/vscode/.vscode-test
@@ -302,14 +296,11 @@ jobs:
 
       - run: xvfb-run -a pnpm --fail-if-no-match --filter pulse-cockpit run test:smoke
 
-  # The .vsix a release would ship, built and checked on every pull request: vsce packages the
-  # production bundles (--no-dependencies: esbuild bundled them), and the package carries the
-  # host and webview bundles and the bundled engine CLI, never sources, tests, source maps or
-  # node_modules. The webview's bundle budget is `pnpm test`'s
-  # (apps/vscode/test/architecture/bundle-budget.test.ts). Nothing is uploaded: publishing is the
-  # release train's (publish-vscode-extension.yml checks the same list).
+  # The .vsix a release would ship (MARKETPLACE.md included), checked without uploading.
   vscode-package:
     name: VS Code package (vsce dry run)
+    needs: changes
+    if: needs.changes.outputs.vscode-package == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -347,15 +338,25 @@ jobs:
           fi
           echo "$listing"
 
+  # Every PR: prettier and the build-free repo guards; `pnpm lint` in the typescript scope.
   quality:
     name: Lint + Format
+    needs: changes
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
+      - name: The CI scopes were computed
+        env:
+          RESULT: ${{ needs.changes.result }}
+        run: |
+          if [ "$RESULT" != success ]; then
+            echo "::error::The changes job ended with ${RESULT}: every scoped job was skipped without running"
+            exit 1
+          fi
+
       - uses: actions/checkout@v7.0.1
         with:
-          # Full history: `pnpm lint` runs scripts/check-ratchets.mjs, which
-          # diffs every ratchet against the merge base with the PR base (and
-          # reads the branch's commit trailers) — it refuses a shallow clone.
+          # check-ratchets needs full history.
           fetch-depth: 0
 
       - uses: pnpm/action-setup@v6.1.0
@@ -367,18 +368,17 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm lint
+      - if: needs.changes.outputs.typescript == 'true'
+        run: pnpm lint
 
       - run: pnpm format:check
 
+      - name: Repo-wide guards (docs-refs, old-names)
+        run: pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server-camunda7 exec vitest run test/docs-refs.test.ts test/old-names.test.ts --coverage.enabled=false
+
       - uses: Miragon/pin-npm-dependencies@v1.2.2
 
-  # Aggregated fitness report (architecture, ratchet debt, coverage) → job
-  # summary, from the coverage summaries the typescript job uploads. CI runs
-  # Stryker only nightly (owner decision, no pull request check): mutation
-  # scores come from the "Mutation summary" of
-  # .github/workflows/mutation-nightly.yml, so the report's mutation column
-  # reads "(no run)" here.
+  # Fitness report from the typescript job's coverage; mutation only nightly.
   fitness:
     name: Fitness report
     needs: [typescript]
@@ -395,12 +395,9 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # depcruise resolves workspace imports through each package's dist; an
-      # unbuilt tree would report "0 violations" it never actually measured.
+      # depcruise reads each package's dist.
       - run: pnpm build
 
-      # Rooted at the repo: the artifact carries the apps/ and packages/
-      # prefixes and unpacks over the checkout as-is.
       - uses: actions/download-artifact@v8.0.2
         with:
           name: coverage-summaries
@@ -409,6 +406,8 @@ jobs:
 
   template:
     name: Composed-server template (Build + Test)
+    needs: changes
+    if: needs.changes.outputs.template == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7.0.1
@@ -422,19 +421,14 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # Packs the workspace packages and runs the template against the
-      # tarballs — the gate that templates/composed-server keeps compiling
-      # against what the release train will publish.
+      # The template against the packed workspace packages.
       - run: ./scripts/test-template.sh
 
-  # The Miragon brand against its source, the private Miragon/corporate-identity:
-  # the docs kit vendored in docs/.vitepress/miragon/ equals the release pinned
-  # below, and brand-lint finds no hard violation in the docs, the README and the
-  # CLI's README, which npm shows (rules and exceptions in .miragon/brand.json). Without the secret (not set up
-  # yet, or a fork PR) the job warns and skips; the kit's own manifest check
-  # still runs in `pnpm test` and in docs.yml.
+  # Docs kit vs. Miragon/corporate-identity + brand-lint; skipped without the secret.
   brand:
     name: Brand (CI source + brand-lint)
+    needs: changes
+    if: needs.changes.outputs.brand == 'true'
     runs-on: ubuntu-latest
     env:
       CI_SOURCE_TOKEN: ${{ secrets.CORPORATE_IDENTITY_READ_TOKEN }}
@@ -445,7 +439,7 @@ jobs:
         if: env.CI_SOURCE_TOKEN == ''
         run: echo "::warning title=Brand checks skipped::CORPORATE_IDENTITY_READ_TOKEN is not set, so the vendored docs kit is not compared with Miragon/corporate-identity and brand-lint does not run. Add the secret (contents:read on Miragon/corporate-identity)."
 
-      # Keep ref on the release in docs/.vitepress/miragon/manifest.json.
+      # Keep in line with docs/.vitepress/miragon/manifest.json.
       - uses: actions/checkout@v7.0.1
         if: env.CI_SOURCE_TOKEN != ''
         with:
@@ -470,6 +464,8 @@ jobs:
 
   kotlin:
     name: Kotlin (Build + Test)
+    needs: changes
+    if: needs.changes.outputs.kotlin == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -489,6 +485,8 @@ jobs:
 
   cibseven-example:
     name: CIB Seven Example (Build + Test)
+    needs: changes
+    if: needs.changes.outputs.cibseven-example == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -506,14 +504,11 @@ jobs:
         env:
           GRADLE_OPTS: -Dorg.gradle.daemon=false
 
-  # The CLI's standalone executable: the standalone bundle injected into Node.js 24 as a single
-  # executable application (apps/cli/scripts/build-exe.ts), built and smoke-tested on one native
-  # runner per operating system; the release builds all five targets. Linux also runs the
-  # Operaton suites against the binary, so a bundling or SEA defect (module loading, fetch, stdin,
-  # the loopback server) fails here and not after a release. The CLI's suites on Node 22 run in
-  # the engine matrix above.
+  # CLI single executable per OS; Linux also runs the Operaton suites against it.
   cli-binaries:
     name: CLI binary (${{ matrix.target }})
+    needs: changes
+    if: needs.changes.outputs.cli == 'true'
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 20
     strategy:
@@ -535,10 +530,7 @@ jobs:
 
       - uses: pnpm/action-setup@v6.1.0
 
-      # The binary embeds this Node.js: the newest 24.x, like the release. setup-node keys the pnpm
-      # store by OS and lockfile only, so on Linux this filtered install would save a partial
-      # store under the key the full installs of the other jobs restore; macOS and Windows have
-      # their own keys and keep the cache.
+      # Node 24 like the release; no pnpm cache on Linux (partial store would poison the key).
       - uses: actions/setup-node@v7.1.0
         with:
           node-version: 24.x
@@ -546,8 +538,6 @@ jobs:
           cache: ${{ runner.os != 'Linux' && 'pnpm' || '' }}
           package-manager-cache: false
 
-      # The root and the CLI with its workspace dependencies only: no other package installs
-      # (or fails to install) on macOS and Windows.
       - run: pnpm install --frozen-lockfile --ignore-scripts --fail-if-no-match --filter "@miragon/pulse-cli..."
 
       - run: pnpm --fail-if-no-match --filter "@miragon/pulse-cli..." run build
@@ -558,8 +548,7 @@ jobs:
 
       - name: Smoke test the binary
         env:
-          # Git Bash on Windows passes the smoke test's URL arguments unchanged. Only this
-          # step: on the whole job it breaks pnpm's own shim (a /c/... path read as D:\c\...).
+          # Keeps URL arguments intact in Git Bash; this step only.
           MSYS_NO_PATHCONV: "1"
         working-directory: apps/cli
         run: bash scripts/smoke-test.sh "build/bin/${FILE}"
@@ -572,7 +561,6 @@ jobs:
           PULSE_CLI_IT_ENGINES: operaton
           PULSE_CLI_IT_SKIP_PACK: "1"
 
-      # The release writes the Homebrew formula with this script: it renders to valid Ruby.
       - name: The Homebrew formula renders
         if: matrix.target == 'linux-x64'
         working-directory: apps/cli
@@ -583,10 +571,11 @@ jobs:
           bash scripts/homebrew-formula.sh 0.0.0 "$RUNNER_TEMP/pulse-cli-SHA256SUMS" > "$RUNNER_TEMP/pulse-cli.rb"
           ruby -c "$RUNNER_TEMP/pulse-cli.rb"
 
-  # The CLI image (apps/cli/Dockerfile: the standalone bundle on distroless Node.js 24) for both
-  # platforms, without pushing; the smoke test runs the image of the runner's platform.
+  # CLI image for both platforms, no push; smoke test on the runner's platform.
   cli-image:
     name: CLI image (build + smoke)
+    needs: changes
+    if: needs.changes.outputs.cli == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -596,8 +585,7 @@ jobs:
 
       - uses: pnpm/action-setup@v6.1.0
 
-      # No pnpm cache: this filtered install would save a partial store under the key the full
-      # installs of the other Linux jobs restore (see cli-binaries).
+      # No pnpm cache (see cli-binaries).
       - uses: actions/setup-node@v7.1.0
         with:
           node-version: 24.x
@@ -611,7 +599,6 @@ jobs:
 
       - uses: docker/setup-buildx-action@v4.4.1
 
-      # Only COPY instructions, so neither platform needs emulation.
       - name: Build linux/amd64 and linux/arm64
         uses: docker/build-push-action@v7.4.0
         with:
@@ -630,8 +617,7 @@ jobs:
         working-directory: apps/cli
         run: bash scripts/smoke-test.sh docker run --rm -i pulse-cli:ci
 
-      # node is PID 1 in the container: without the CLI's own handler the kernel drops SIGTERM
-      # and SIGINT, and docker stop would need SIGKILL after the timeout (exit 137).
+      # docker stop must end the CLI with SIGTERM (143), not SIGKILL.
       - name: docker stop ends a waiting command
         run: |
           docker run -d -i --name pulse-cli-signal pulse-cli:ci process-definition list --dry-run \
@@ -645,13 +631,11 @@ jobs:
             exit 1
           fi
 
-  # The Claude Code plugin of the CLI: the plugin in apps/cli/skills/pulse-cli (manifest and
-  # command) and its skill, validated as part of apps/cli/skills, since a plugin run skips a
-  # SKILL.md at the plugin root, and the repository's marketplace `pulse`
-  # (.claude-plugin/marketplace.json) that lists it. `claude plugin validate` needs no account or
-  # API key; the stable channel is typically a week old and skips releases with major regressions.
+  # Validates the marketplace, the CLI plugin and its skill.
   cli-plugin:
     name: CLI plugin (validate)
+    needs: changes
+    if: needs.changes.outputs.cli == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -667,7 +651,6 @@ jobs:
           node-version: 24.x
           package-manager-cache: false
 
-      # release-please bumps both (release-please-config.json extra-files): they never differ.
       - name: The plugin carries the CLI's version
         run: |
           cli="$(jq -r .version apps/cli/package.json)"
@@ -677,7 +660,6 @@ jobs:
             exit 1
           fi
 
-      # The postinstall script of the package puts the native binary in place.
       - name: Install Claude Code
         run: npm install --global --allow-scripts=@anthropic-ai/claude-code @anthropic-ai/claude-code@stable
 
@@ -688,9 +670,7 @@ jobs:
             claude plugin validate --strict "$target"
           done
 
-  # One check for the CLI's own jobs above, the name a ruleset can require: a matrix reports one
-  # check per leg under another name (scripts/check-github-config.mjs refuses a required matrix
-  # job). The CLI's engine suites report under "Engines". Fails when any of them did not succeed.
+  # The one requirable check of the CLI jobs; skipped passes.
   cli:
     name: CLI (all checks)
     needs: [cli-binaries, cli-image, cli-plugin]
@@ -702,7 +682,7 @@ jobs:
         env:
           NEEDS: ${{ toJSON(needs) }}
         run: |
-          failed="$(jq -r 'to_entries[] | select(.value.result != "success") | "\(.key): \(.value.result)"' <<<"$NEEDS")"
+          failed="$(jq -r 'to_entries[] | select(.value.result != "success" and .value.result != "skipped") | "\(.key): \(.value.result)"' <<<"$NEEDS")"
           if [ -n "$failed" ]; then
             while IFS= read -r line; do echo "::error::${line}"; done <<<"$failed"
             exit 1

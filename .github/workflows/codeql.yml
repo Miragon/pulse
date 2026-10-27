@@ -1,16 +1,19 @@
 name: CodeQL
 
-# Scans the TS/JS server code — the primary attack surface. The Kotlin
-# engine-plugins are intentionally NOT scanned here: CodeQL's Kotlin support is
-# fragile for this Gradle-in-subdir layout (manual build-mode hangs on the
-# Kotlin compiler daemon; build-mode `none` fails to extract any source). The
-# Kotlin module is small and already covered by Konsist + unit tests + the CI
-# Gradle build. Revisit if CodeQL Kotlin extraction stabilises.
+# Scans TS/JS; Kotlin stays out (extraction is unreliable here). PRs with only prose,
+# images or Gradle projects skip it; main and the weekly run analyse everything.
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - "**/*.png"
+      - "**/*.jpg"
+      - "**/*.gif"
+      - engine-plugins/**
+      - playground/cibseven-example/**
   schedule:
     - cron: "27 3 * * 1" # weekly, Monday 03:27 UTC
 

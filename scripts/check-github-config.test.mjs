@@ -30,6 +30,7 @@ import {
   VSCODE_PUBLISH_WORKFLOW,
   actionRefs,
   checkArtifactGlobs,
+  checkCiScopes,
   checkCliPublishWorkflows,
   checkDependabot,
   checkNightlyMutation,
@@ -1512,6 +1513,66 @@ describe("checkRequiredChecks", () => {
       )
       assert.deepEqual(errors, [], JSON.stringify(on))
     }
+  })
+})
+
+// ── CI scopes ───────────────────────────────────────────────────────────────
+
+const scopeErrors = (mutate) => {
+  const doc = structuredClone(readDoc(CI_WORKFLOW))
+  mutate(doc)
+  return checkCiScopes(doc)
+}
+
+describe("checkCiScopes", () => {
+  it("passes the real ci.yml", () => {
+    assert.deepEqual(checkCiScopes(readDoc(CI_WORKFLOW)), [])
+  })
+
+  it("rejects a job that does not wait for the changes job", () => {
+    const errors = scopeErrors((doc) => delete doc.jobs.kotlin.needs)
+    assert.ok(matches(errors, /job kotlin does not wait for the changes job/))
+  })
+
+  it("rejects a job that reads a scope through another job: needs holds its own needs only", () => {
+    const errors = scopeErrors((doc) => (doc.jobs.kotlin.needs = ["template"]))
+    assert.ok(matches(errors, /job kotlin reads a scope but does not list changes in its needs/))
+    assert.ok(!matches(errors, /job kotlin does not wait/))
+  })
+
+  it("rejects a scope the changes job does not hand out, and an unknown output", () => {
+    const errors = scopeErrors((doc) => {
+      delete doc.jobs.changes.outputs.kotlin
+      doc.jobs.changes.outputs.extra = "${{ steps.scopes.outputs.extra }}"
+    })
+    assert.ok(matches(errors, /does not hand out the scope "kotlin"/))
+    assert.ok(matches(errors, /hands out "extra", which scripts\/ci-scopes\.mjs does not compute/))
+  })
+
+  it("rejects a job that reads an unknown scope, and a scope no job reads", () => {
+    const errors = scopeErrors(
+      (doc) => (doc.jobs.kotlin.if = "needs.changes.outputs.gradle == 'true'"),
+    )
+    assert.ok(matches(errors, /job kotlin reads the unknown scope "gradle"/))
+    assert.ok(matches(errors, /no job runs in the scope "kotlin"/))
+  })
+
+  it("rejects a workflow whose required jobs all skip when the changes job fails", () => {
+    for (const mutate of [
+      (doc) => (doc.jobs.quality.if = "needs.changes.outputs.typescript == 'true'"),
+      (doc) => doc.jobs.quality.steps.shift(),
+    ]) {
+      assert.ok(matches(scopeErrors(mutate), /a failed changes job would pass/))
+    }
+  })
+
+  it("rejects a ci.yml without a changes job", () => {
+    assert.ok(
+      matches(
+        scopeErrors((doc) => delete doc.jobs.changes),
+        /no changes job/,
+      ),
+    )
   })
 })
 

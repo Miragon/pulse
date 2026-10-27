@@ -1,10 +1,6 @@
 name: Docker build
 
-# The root Dockerfile used to be built for the first time by the release train
-# (publish-to-docker.yml), i.e. after merge. This builds it on every PR that
-# touches what the image is made of — the Dockerfile, the workspace sources
-# and every root file the build stage copies — so a broken image fails the PR
-# instead of the release. Plain `docker build`, nothing is pushed.
+# Builds the server image (no push) on PRs touching what it is made of; never for Markdown.
 
 on:
   pull_request:
@@ -18,9 +14,11 @@ on:
       - pnpm-workspace.yaml
       - turbo.json
       - tsconfig.base.json
-      - apps/**
+      - apps/mcp-server-camunda7/**
+      - apps/*/package.json
       - packages/**
       - .github/workflows/docker-build.yml
+      - "!**/*.md"
 
 concurrency:
   group: docker-build-${{ github.ref }}

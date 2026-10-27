@@ -113,8 +113,8 @@ and `analytics_engine_health` surfaces the same gauges and firing alerts in one 
 
 ## CI/CD
 
-`.github/workflows/ci.yml` runs jobs on every push, on public npm dependencies only: TypeScript
-(build, test, lint, format), Kotlin engine plugins, the CIB seven example, the brand checks, the CLI
-and the VS Code extension against Camunda 7, CIB seven and Operaton, the CLI's binaries, image and
-plugin, the extension in VS Code and as a .vsix; mutation testing runs nightly (`mutation-nightly.yml`).
+`.github/workflows/ci.yml` runs on public npm dependencies only: TypeScript (build, test, lint,
+format), Kotlin engine plugins, the CIB seven example, the brand checks, the CLI and the VS Code
+extension against Camunda 7, CIB seven and Operaton, the CLI's binaries, image and plugin, the extension in VS Code and as a .vsix.
+A push to `main` runs every job, a pull request those its changes need (`scripts/ci-scopes.mjs`); mutation testing runs nightly.
 `docs.yml` checks the docs kit, builds the site on pull requests touching `docs/` (a dead link fails it) and publishes it from `main`.
