@@ -1,5 +1,5 @@
 import type { Ref } from "preact"
-import { useEffect, useRef, useState } from "preact/hooks"
+import { useLayoutEffect, useRef, useState } from "preact/hooks"
 import type { InstanceListFilter } from "../../core/protocol/index.js"
 import { Icon } from "../components/icon.js"
 import { useHost } from "../host/host-context.js"
@@ -78,7 +78,7 @@ export function VariableChips({ filter, labels, names, onFilter }: VariableChips
   const opener = useRef<HTMLButtonElement>(null)
   const returnTo = useRef<HTMLElement | null>(null)
   const conditions = filter.variables ?? []
-  useEffect(() => {
+  useLayoutEffect(() => {
     const target = returnTo.current
     if (target !== null && editing === undefined) {
       returnTo.current = null
