@@ -69,7 +69,7 @@
     "@stryker-mutator/vitest-runner": "10.0.0",
     "@types/node": "26.6.5",
     "typescript": "6.0.3",
-    "vitest": "4.1.11",
+    "vitest": "5.0.5",
     "zod": "4.6.7"
   }
 }
