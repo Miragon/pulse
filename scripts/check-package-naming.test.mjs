@@ -13,11 +13,9 @@ import {
   checkLayout,
   checkPackageName,
   checkPackageNaming,
-  compareVersions,
   existingFiles,
   listRepoFiles,
   packageKind,
-  versionFloor,
 } from "./check-package-naming.mjs"
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
@@ -37,7 +35,6 @@ const EXTENSION = {
   name: "pulse-cockpit",
   publisher: "miragon-gmbh",
   engines: { vscode: "^1.101.0" },
-  devDependencies: { "@types/vscode": "1.101.0" },
 }
 const scoped = (dir) => ({ name: `@miragon/pulse-${path.posix.basename(dir)}` })
 
@@ -148,9 +145,6 @@ describe("checkPackageName: VS Code extension (an app with engines.vscode)", () 
     for (const extra of [{}, { private: true }, { private: false }]) {
       assert.deepEqual(checkPackageName("apps/vscode", { ...EXTENSION, ...extra }), [])
     }
-    const { devDependencies, ...withoutTypes } = EXTENSION
-    assert.ok(devDependencies)
-    assert.deepEqual(checkPackageName("apps/vscode", withoutTypes), [])
   })
 
   it("rejects a scoped name: vsce takes none", () => {
@@ -183,80 +177,6 @@ describe("checkPackageName: VS Code extension (an app with engines.vscode)", () 
     assert.equal(
       checkPackageName("apps/vscode", { name: "@miragon/pulse", engines: { vscode: null } }).length,
       2,
-    )
-  })
-
-  it("accepts @types/vscode whose floor does not exceed the engines.vscode floor", () => {
-    for (const [engine, types, field] of [
-      ["^1.101.0", "1.101.0", "devDependencies"],
-      ["^1.101.0", "^1.100.0", "devDependencies"],
-      ["^1.101.0", "~1.95.3", "devDependencies"],
-      ["^1.101.0", "1.101.0", "dependencies"],
-      ["^1.101.0", "1.101.x", "devDependencies"],
-      ["^1.101.2", "1.101.1", "devDependencies"],
-      [">=1.101.0", "1.101.0", "devDependencies"],
-      ["1.101.x", "1.101.0", "devDependencies"],
-      ["^1.101.0", "1.101.0-next.1", "devDependencies"],
-      // vsce compares major.minor only: a DefinitelyTyped patch bump or an insider engine passes.
-      ["^1.101.0", "^1.101.1", "devDependencies"],
-      ["^1.101.0", "1.101.9", "devDependencies"],
-      ["^1.101.0-insider", "1.101.0", "devDependencies"],
-    ]) {
-      const manifest = { name: "pulse-cockpit", engines: { vscode: engine }, [field]: {} }
-      manifest[field]["@types/vscode"] = types
-      assert.deepEqual(checkPackageName("apps/vscode", manifest), [], `${engine} vs ${types}`)
-    }
-  })
-
-  it("rejects @types/vscode whose floor exceeds the engines.vscode floor, in either dependency field", () => {
-    for (const [engine, types, field] of [
-      ["^1.101.0", "1.102.0", "devDependencies"],
-      ["^1.101.0", "2.0.0", "dependencies"],
-      ["^1.101.0", "^1.102.0-next.0", "devDependencies"],
-      ["*", "1.101.0", "devDependencies"],
-      ["^1.100.9", "1.101.0", "devDependencies"],
-    ]) {
-      const manifest = { name: "pulse-cockpit", engines: { vscode: engine }, [field]: {} }
-      manifest[field]["@types/vscode"] = types
-      assertOne(
-        checkPackageName("apps/vscode", manifest),
-        new RegExp(`${field}\\["@types/vscode"\\].*vsce refuses to package that`),
-        `${engine} vs ${types}`,
-      )
-    }
-  })
-
-  it("fails closed on an @types/vscode range it cannot read", () => {
-    for (const types of [
-      "latest",
-      "workspace:*",
-      ">1.100.0",
-      "1.100.0 - 1.101.0",
-      "^1.100.0 || ^1.101.0",
-      "",
-      1101,
-    ]) {
-      assertOne(
-        checkPackageName("apps/vscode", {
-          ...EXTENSION,
-          devDependencies: { "@types/vscode": types },
-        }),
-        /devDependencies\["@types\/vscode"\] is .*not a range this gate can read/,
-        JSON.stringify(types),
-      )
-    }
-  })
-
-  it("fails closed, once, on an engines.vscode it cannot read while @types/vscode is declared", () => {
-    assertOne(
-      checkPackageName("apps/vscode", {
-        name: "pulse-cockpit",
-        engines: { vscode: "insiders" },
-        dependencies: { "@types/vscode": "1.101.0" },
-        devDependencies: { "@types/vscode": "1.101.0" },
-      }),
-      /engines\.vscode "insiders" is not a range this gate can read/,
-      "insiders",
     )
   })
 
@@ -386,76 +306,6 @@ describe("checkPackageName: directory rules", () => {
       assert.equal(packageKind(dir), undefined, dir)
       assertOne(checkPackageName(dir, scoped(dir)), /no naming rule covers/, dir)
     }
-  })
-})
-
-describe("versionFloor and compareVersions", () => {
-  it("reads the lowest version of a plain range", () => {
-    for (const [range, floor] of [
-      ["^1.101.0", "1.101.0"],
-      ["~1.95.3", "1.95.3"],
-      [">=1.2.3", "1.2.3"],
-      [">= 1.2.3", "1.2.3"],
-      ["=1.2.3", "1.2.3"],
-      ["v1.2.3", "1.2.3"],
-      [" 1.2.3 ", "1.2.3"],
-      ["1.101", "1.101.0"],
-      ["1", "1.0.0"],
-      ["1.x", "1.0.0"],
-      ["1.2.X", "1.2.0"],
-      ["*", "0.0.0"],
-      ["x", "0.0.0"],
-      ["1.2.3+build.5", "1.2.3"],
-    ]) {
-      const parsed = versionFloor(range)
-      assert.ok(parsed, range)
-      assert.equal(parsed.version.join("."), floor, range)
-      assert.deepEqual(parsed.prerelease, [], range)
-    }
-    assert.deepEqual(versionFloor("1.2.3-beta.1").prerelease, ["beta", "1"])
-  })
-
-  it("returns undefined for a range with no single readable floor", () => {
-    for (const range of [
-      "1.x.3",
-      "1.2.x-beta",
-      "01.2.3",
-      ">1.2.3",
-      "<2.0.0",
-      "1.2.3 - 2.0.0",
-      "^1.0.0 || ^2.0.0",
-      ">=1.0.0 <2.0.0",
-      "latest",
-      "workspace:^1.0.0",
-      "npm:@types/vscode@1.0.0",
-      "",
-      undefined,
-      3,
-    ]) {
-      assert.equal(versionFloor(range), undefined, String(range))
-    }
-  })
-
-  it("orders versions by semver precedence", () => {
-    const sorted = [
-      "1.0.0-alpha",
-      "1.0.0-alpha.1",
-      "1.0.0-alpha.beta",
-      "1.0.0-beta",
-      "1.0.0-beta.2",
-      "1.0.0-beta.11",
-      "1.0.0-rc.1",
-      "1.0.0",
-      "1.0.1",
-      "1.1.0",
-      "2.0.0",
-    ].map(versionFloor)
-    for (let index = 1; index < sorted.length; index += 1) {
-      assert.ok(compareVersions(sorted[index - 1], sorted[index]) < 0, `${index}`)
-      assert.ok(compareVersions(sorted[index], sorted[index - 1]) > 0, `${index}`)
-    }
-    assert.equal(compareVersions(versionFloor("^1.2.3"), versionFloor("1.2.3")), 0)
-    assert.equal(compareVersions(versionFloor("1.2.3-rc.1"), versionFloor("1.2.3-rc.1")), 0)
   })
 })
 

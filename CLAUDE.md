@@ -652,9 +652,7 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    and apps at `apps/<dir>` (npm `@miragon/pulse-<dir>`). An app whose package.json declares
    `engines.vscode` is a VS Code extension: vsce takes no scope, so it is named
    `pulse-cockpit` (Marketplace id `miragon-gmbh.pulse-cockpit`; Marketplace names are global and
-   `pulse` is taken; `--filter pulse-cockpit` names the extension alone; it need not be private), and the lowest `@types/vscode` it allows never exceeds the
-   major.minor of the lowest VS Code its `engines.vscode` admits (vsce refuses the package
-   otherwise); `engines.vscode` outside `apps/*` fails. A package directory is lowercase
+   `pulse` is taken; `--filter pulse-cockpit` names the extension alone; it need not be private); `engines.vscode` outside `apps/*` fails. A package directory is lowercase
    kebab-case and never repeats the `pulse-` prefix. The rules and the gate key on
    `@miragon/pulse-`, never on bare `@miragon/`, which the toolkit shares. A new package that
    follows the convention is covered by the dependency rules without touching them; one that

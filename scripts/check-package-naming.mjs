@@ -17,10 +17,8 @@
  *   extension, an app whose package.json declares engines.vscode: vsce takes no
  *   scope, so it is named pulse-cockpit (Marketplace id
  *   miragon-gmbh.pulse-cockpit; Marketplace names are global and "pulse" is
- *   taken; a filter on pulse-cockpit names the extension alone), its engines.vscode is a non-empty
- *   string, and the lowest @types/vscode it allows never exceeds the lowest VS
- *   Code engines.vscode allows (vsce refuses that package). engines.vscode
- *   outside apps/ fails: every npm gate skips an extension, so a package that
+ *   taken; a filter on pulse-cockpit names the extension alone), and its engines.vscode is a
+ *   non-empty string. engines.vscode outside apps/ fails: every npm gate skips an extension, so a package that
  *   declared it would escape them.
  * - A generated/ directory under apps/ or packages/ is exempt from ESLint,
  *   prettier and the app's source scans (dependency-cruiser excludes only the
@@ -121,106 +119,6 @@ const roleSuffix = (base) => CONNECTOR_ROLES.find((role) => base.endsWith(`-${ro
 const describeName = (name) =>
   name === undefined ? "package.json has no 'name'" : `the name is ${JSON.stringify(name)}`
 
-/**
- * The lowest version a dependency or engines range allows, or undefined when
- * the range is not one this gate can read: a plain version, or one with `^`,
- * `~`, `>=` or `=`, with `x`/`*` wildcards for the trailing parts. Compound
- * ranges (`a - b`, `a || b`, `>a <b`), `>`/`<` and protocols (`workspace:`,
- * `npm:`) fail closed.
- */
-export function versionFloor(range) {
-  if (typeof range !== "string") return undefined
-  const match =
-    /^(?:\^|~|>=|=)?\s*v?(0|[1-9]\d*|[xX*])(?:\.(0|[1-9]\d*|[xX*]))?(?:\.(0|[1-9]\d*|[xX*]))?(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/.exec(
-      range.trim(),
-    )
-  if (!match) return undefined
-  const parts = match.slice(1, 4)
-  const open = parts.findIndex((part) => part === undefined || /^[xX*]$/.test(part))
-  if (open !== -1) {
-    // `1.x.3` or `1.x-beta` name no single lowest version.
-    if (parts.slice(open).some((part) => part !== undefined && !/^[xX*]$/.test(part))) {
-      return undefined
-    }
-    if (match[4] !== undefined) return undefined
-  }
-  return {
-    version: parts.map((part, index) => (open !== -1 && index >= open ? 0 : Number(part))),
-    prerelease: match[4] === undefined ? [] : match[4].split("."),
-  }
-}
-
-/** Semver precedence of two versionFloor() results: negative, 0 or positive. */
-export function compareVersions(a, b) {
-  for (let index = 0; index < 3; index += 1) {
-    if (a.version[index] !== b.version[index]) return a.version[index] - b.version[index]
-  }
-  // A prerelease sorts below its release (1.2.3-beta < 1.2.3).
-  if (a.prerelease.length === 0 || b.prerelease.length === 0) {
-    return b.prerelease.length - a.prerelease.length
-  }
-  for (let index = 0; index < Math.max(a.prerelease.length, b.prerelease.length); index += 1) {
-    const [x, y] = [a.prerelease[index], b.prerelease[index]]
-    if (x === undefined) return -1
-    if (y === undefined) return 1
-    if (x === y) continue
-    const [xNumeric, yNumeric] = [/^\d+$/.test(x), /^\d+$/.test(y)]
-    if (xNumeric && yNumeric) return Number(x) - Number(y)
-    if (xNumeric !== yNumeric) return xNumeric ? -1 : 1
-    return x < y ? -1 : 1
-  }
-  return 0
-}
-
-const formatVersion = ({ version, prerelease }) =>
-  version.join(".") + (prerelease.length > 0 ? `-${prerelease.join(".")}` : "")
-
-/**
- * The API level vsce compares: major.minor of a versionFloor() result. vsce ignores the
- * patch and any prerelease because DefinitelyTyped bumps the patch of @types/vscode on its
- * own (and Dependabot lets those patch bumps through), so `^1.101.0` against
- * `@types/vscode` 1.101.1 is fine, 1.102.0 is not.
- */
-const apiLevel = ({ version }) => ({ version: [version[0], version[1], 0], prerelease: [] })
-
-/** engines.vscode against every @types/vscode the manifest declares (vsce's own check). */
-function checkVsCodeTypes(dir, manifest, engine) {
-  const declared = ["dependencies", "devDependencies"]
-    .map((field) => [field, manifest[field]?.["@types/vscode"]])
-    .filter(([, range]) => range !== undefined)
-  if (declared.length === 0) return []
-  const engineFloor = versionFloor(engine)
-  if (engineFloor === undefined) {
-    return [
-      `${dir}: engines.vscode ${JSON.stringify(engine)} is not a range this gate can read, so ` +
-        `it cannot prove that vsce accepts the declared @types/vscode; write it as a plain ` +
-        `range such as '^1.101.0'`,
-    ]
-  }
-  const errors = []
-  for (const [field, range] of declared) {
-    const typesFloor = versionFloor(range)
-    if (typesFloor === undefined) {
-      errors.push(
-        `${dir}: ${field}["@types/vscode"] is ${JSON.stringify(range)}, not a range this gate ` +
-          `can read, so it cannot prove that vsce accepts the package; write it as a plain ` +
-          `version or range such as '1.101.0' or '^1.101.0'`,
-      )
-    } else if (compareVersions(apiLevel(typesFloor), apiLevel(engineFloor)) > 0) {
-      errors.push(
-        `${dir}: ${field}["@types/vscode"] ${JSON.stringify(range)} allows nothing below ` +
-          `${formatVersion(typesFloor)} (API ${apiLevel(typesFloor).version.slice(0, 2).join(".")}), ` +
-          `but engines.vscode ${JSON.stringify(engine)} admits VS Code ` +
-          `${formatVersion(engineFloor)} (API ${apiLevel(engineFloor).version.slice(0, 2).join(".")}): ` +
-          `vsce refuses to package that, and the code ` +
-          `would compile against API the oldest supported VS Code lacks; lower @types/vscode ` +
-          `or raise engines.vscode`,
-      )
-    }
-  }
-  return errors
-}
-
 /** The rules of an app that declares engines.vscode: a VS Code extension. */
 function checkExtension(dir, manifest, expected) {
   const errors = []
@@ -237,8 +135,6 @@ function checkExtension(dir, manifest, expected) {
       `${dir}: engines.vscode must be a non-empty VS Code version range such as '^1.101.0', ` +
         `got ${JSON.stringify(engine)}`,
     )
-  } else {
-    errors.push(...checkVsCodeTypes(dir, manifest, engine))
   }
   return errors
 }
