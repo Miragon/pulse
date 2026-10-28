@@ -57,7 +57,6 @@ gh attestation verify pulse-cli-linux-x64 --repo Miragon/pulse
 - **Certificates and proxies**: `NODE_EXTRA_CA_CERTS=/path/ca.pem` or `NODE_USE_SYSTEM_CA=1` for an
   internal CA, `NODE_USE_ENV_PROXY=1` with `HTTPS_PROXY` / `NO_PROXY` for a proxy. The same holds
   for the container image.
-- `pulse-cli auth login` works on a server over SSH, see [OAuth](authentication.md#oauth).
 
 ## Container image
 
@@ -86,8 +85,8 @@ docker run --rm -it --user "$(id -u):$(id -g)" -v "$HOME/.config/pulse-cli:/conf
   -e PULSE_CLI_CONFIG=/config/config.json ghcr.io/miragon/pulse-cli --profile prod status
 ```
 
-- `pulse-cli auth login` and token commands do not work in the container: use Basic auth or pass a
-  token with `-e PULSE_CLI_TOKEN`.
+- Token commands do not work in the container: use Basic auth or pass a token with
+  `-e PULSE_CLI_TOKEN`.
 - A project file (`.pulse-cli.json`) in the mounted `/work` directory is used as on the host.
 - Each image carries an SBOM and SLSA provenance;
   `gh attestation verify oci://ghcr.io/miragon/pulse-cli:<version> --repo Miragon/pulse` verifies

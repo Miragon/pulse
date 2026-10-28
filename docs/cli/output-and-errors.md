@@ -67,7 +67,7 @@ validation problems).
 | 1    | internal error                                                                                                             |
 | 2    | usage error, invalid body (`VALIDATION`), `READ_ONLY`, `CONFIRMATION_REQUIRED`                                             |
 | 3    | configuration error, also an HTTP redirect (`HTTP_REDIRECT`)                                                               |
-| 4    | 401, 403, `LOGIN_REQUIRED` (a person must log in), `LOGIN_FAILED`, `TOKEN_EXPIRED` (a bearer token expired)                |
+| 4    | 401, 403, `LOGIN_FAILED` (the token command failed), `TOKEN_EXPIRED` (a bearer token expired)                              |
 | 5    | not found (404)                                                                                                            |
 | 6    | other 4xx: the engine rejected the request                                                                                 |
 | 7    | engine error (5xx)                                                                                                         |

@@ -170,17 +170,6 @@ describe("redirectError", () => {
     expect(error.details.hint).toContain("pulse-cli does not follow redirects")
   })
 
-  it("points to pulse-cli auth status for OAuth", () => {
-    const oauth = redirectError(redirect(302, "/login"), {
-      ...REQUEST,
-      loginStatusCommand: "pulse-cli auth status --profile p",
-    })
-    expect(oauth.details.hint).toMatch(
-      /expired\. `pulse-cli auth status --profile p` shows whether the OAuth login is usable\.$/,
-    )
-    expect(redirectError(redirect(302), REQUEST).details.hint).not.toContain("auth status")
-  })
-
   it("works without or with an unusable Location", () => {
     expect(redirectError(redirect(307), REQUEST).message).toBe("HTTP 307 Found: redirect")
     expect(redirectError(redirect(301, "http://[::1"), REQUEST).message).toBe(

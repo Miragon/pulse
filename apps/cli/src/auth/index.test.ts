@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { fakeRuntime } from "../../test/support/fake-runtime.js"
-import { authDeps, oauthConfig } from "../../test/support/oauth.js"
+import { authDeps } from "../../test/support/auth-deps.js"
 import type { AuthConfig } from "../config/types.js"
 import { PulseCliError } from "../errors.js"
 import { createAuthProvider } from "./index.js"
@@ -32,15 +32,16 @@ describe("createAuthProvider", () => {
     expect(provider.principal).toEqual({ user: "demo", source: "env" })
   })
 
-  it("creates the OAuth provider, which reads the token cache only when asked", async () => {
-    const runtime = fakeRuntime()
-    const provider = createAuthProvider(oauthConfig(), authDeps(runtime))
-    expect(provider.type).toBe("oauth")
-    expect(provider.principal).toBeUndefined()
-    expect(typeof provider.refresh).toBe("function")
-    await expect(provider.headers()).rejects.toMatchObject({ code: "LOGIN_REQUIRED" })
-    expect(runtime.loopback.listens).toEqual([])
-    expect(runtime.browserUrls).toEqual([])
+  it("names the removed OAuth type and the token command that replaces it", () => {
+    expect(() => createAuthProvider({ type: "oauth" } as unknown as AuthConfig, deps)).toThrow(
+      expect.objectContaining({
+        code: "CONFIG",
+        message: 'The auth type "oauth" was removed',
+        details: expect.objectContaining({
+          hint: expect.stringContaining("PULSE_CLI_TOKEN_COMMAND") as unknown,
+        }) as unknown,
+      }),
+    )
   })
 
   it.each(["constructor", "NONE", "", "OAuth"])("rejects the unsupported type %j", (type) => {
@@ -51,7 +52,7 @@ describe("createAuthProvider", () => {
       expect((error as PulseCliError).code).toBe("CONFIG")
       expect((error as PulseCliError).exitCode).toBe(3)
       expect((error as PulseCliError).message).toBe(`Unsupported auth type "${type}"`)
-      expect((error as PulseCliError).details.hint).toBe("Supported: none, basic, oauth, bearer.")
+      expect((error as PulseCliError).details.hint).toBe("Supported: none, basic, bearer.")
       return
     }
     throw new Error("expected an error")

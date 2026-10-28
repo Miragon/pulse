@@ -63,7 +63,7 @@ describe("profileView auth", () => {
 
   it("masks a variable name that may be the secret itself: unusual and not set", () => {
     const auth = (key: string, name: string) => ({ profiles: { p: { auth: { [key]: name } } } })
-    for (const key of ["passwordEnv", "clientSecretEnv", "tokenEnv"]) {
+    for (const key of ["passwordEnv", "tokenEnv"]) {
       expect(profileView(auth(key, "hunter2_pw"), "p", {}).auth).toEqual({ [key]: "***" })
       expect(profileView(auth(key, "hunter2_pw"), "p", { hunter2_pw: " " }).auth).toEqual({
         [key]: "***",

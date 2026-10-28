@@ -160,7 +160,6 @@ export function resolveBearer(context: BearerContext, selectedBy: string): Beare
 const FAMILY: Readonly<Record<Exclude<AuthType, "bearer">, string>> = {
   none: "none",
   basic: "Basic auth",
-  oauth: "OAuth",
 }
 
 /**
@@ -204,8 +203,8 @@ export function inferenceConflict(basicBy: string, token: FoundToken) {
 
 /**
  * `A bearer token is set (from PULSE_CLI_TOKEN) but not used: <reason>; send it with --auth bearer
- * or PULSE_CLI_AUTH=bearer.`, for hints of failures the type that won causes (also LOGIN_REQUIRED
- * and 401 answers, src/auth/note.ts).
+ * or PULSE_CLI_AUTH=bearer.`, for hints of failures the type that won causes (401 answers,
+ * src/auth/note.ts).
  */
 export function unusedTokenNote(unused: UnusedToken, authCommand?: boolean): string {
   const command = unused.command === true
@@ -217,8 +216,8 @@ export function unusedTokenNote(unused: UnusedToken, authCommand?: boolean): str
 }
 
 /**
- * Runs `resolve`; a CONFIG error of it (a Basic profile's password variable is not set, OAuth
- * settings are missing, ...) also carries `note` (`unusedTokenNote`), so a user who exported
+ * Runs `resolve`; a CONFIG error of it (a Basic profile's password variable is not set, ...)
+ * also carries `note` (`unusedTokenNote`), so a user who exported
  * PULSE_CLI_TOKEN next to a profile with another type is not left guessing.
  */
 export function mentioningUnused<T>(note: string | undefined, resolve: () => T): T {

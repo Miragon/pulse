@@ -1,14 +1,13 @@
 /**
  * The Runtime on Node.js: process streams (a closed pipe such as `| head` ends output quietly),
- * stdin, the file system, fetch, the environment and working directory, timers, for OAuth random
- * bytes, the loopback server, the browser and the lock file, and the shell for token commands.
+ * stdin, the file system, fetch, the environment and working directory, timers and the shell for
+ * token commands.
  */
 
 import { randomBytes } from "node:crypto"
 import type { Dirent } from "node:fs"
 import {
   chmod,
-  lstat,
   mkdir,
   readdir,
   readFile,
@@ -23,13 +22,7 @@ import { basename, dirname, join } from "node:path"
 import { setTimeout as delay } from "node:timers/promises"
 import { usageError } from "../errors.js"
 import type { DirectoryEntry, FileSystem, OutputStream, PathKind, Runtime } from "../runtime.js"
-import { openBrowser } from "./browser.js"
 import { runCommand } from "./command.js"
-import { withLock } from "./lock.js"
-import { listenLoopback } from "./loopback.js"
-
-/** Largest request of `crypto.getRandomValues`. */
-const RANDOM_CHUNK = 65_536
 
 function errorCode(error: unknown): unknown {
   return typeof error === "object" && error !== null && "code" in error ? error.code : undefined
@@ -178,21 +171,6 @@ async function directoryEntries(path: string): Promise<DirectoryEntry[]> {
   )
 }
 
-/** Whether the current user owns the entry itself (lstat); false when it is missing. */
-async function ownedByUser(path: string, uid: number): Promise<boolean> {
-  try {
-    return (await lstat(path)).uid === uid
-  } catch {
-    return false
-  }
-}
-
-/** The owner check where the platform has user ids (not on Windows). */
-function ownership(): Pick<FileSystem, "ownedByUser"> {
-  const uid = process.getuid?.()
-  return uid === undefined ? {} : { ownedByUser: (path) => ownedByUser(path, uid) }
-}
-
 const nodeFileSystem: FileSystem = {
   readFile: async (path) => new Uint8Array(await readFile(path)),
   async writeFile(path, data, options) {
@@ -209,21 +187,6 @@ const nodeFileSystem: FileSystem = {
   remove,
   readdir: directoryEntries,
   kind: pathKind,
-  ...ownership(),
-}
-
-/** Cryptographically strong random bytes from WebCrypto, in chunks it accepts. */
-function strongRandomBytes(length: number): Uint8Array {
-  const bytes = new Uint8Array(length)
-  for (let offset = 0; offset < length; offset += RANDOM_CHUNK) {
-    crypto.getRandomValues(bytes.subarray(offset, Math.min(length, offset + RANDOM_CHUNK)))
-  }
-  return bytes
-}
-
-/** Resolves after `ms` without keeping the process alive. */
-function deadline(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms).unref())
 }
 
 export function createNodeRuntime(): Runtime {
@@ -238,11 +201,6 @@ export function createNodeRuntime(): Runtime {
     homedir: homedir(),
     platform: process.platform,
     now: () => Date.now(),
-    randomBytes: strongRandomBytes,
-    listenLoopback,
-    openBrowser: (url) => openBrowser(url, process.env, process.platform),
-    withLock,
-    deadline,
     sleep: (ms) => delay(ms),
     runCommand,
   }

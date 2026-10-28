@@ -1,7 +1,7 @@
 /**
  * `pulse-cli ping`: `GET /version` and `GET /engine`, printed as
- * `{url, engine, reachable, version, engines, latencyMs, auth}`, plus `user` with Basic auth and
- * OAuth, and `user` and `subject` of a bearer token that is a JWT. Failures are normal errors; a
+ * `{url, engine, reachable, version, engines, latencyMs, auth}`, plus `user` with Basic auth, and
+ * `user` and `subject` of a bearer token that is a JWT. Failures are normal errors; a
  * configured engine name that the REST API does not serve is a CONFIG error.
  */
 
@@ -70,8 +70,7 @@ export function checkEngine(engine: string | undefined, names: readonly string[]
 }
 
 /**
- * `user`: the Basic auth username, or the user of the OAuth login (null when unknown); for a
- * bearer token that is a JWT its `preferred_username` and `sub` (`subject`); for the token of a
+ * `user`: the Basic auth username; for a bearer token that is a JWT its `preferred_username` and `sub` (`subject`); for the token of a
  * token command its `preferred_username`, else `sub` (null for an opaque token).
  */
 function userOf(
@@ -80,8 +79,8 @@ function userOf(
 ): { user?: string | null; subject?: string | null } {
   if (auth.type === "basic") return { user: auth.username }
   if (auth.type === "none") return {}
-  // the token of OAuth and of a token command is known once the provider got it
-  if (auth.type === "oauth" || auth.command !== undefined) {
+  // the token of a token command is known once the provider got it
+  if (auth.command !== undefined) {
     return { user: provider.principal?.user ?? null }
   }
   const claims = jwtClaims(auth.token)

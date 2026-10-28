@@ -1,19 +1,16 @@
 /**
- * Property (extends auth-secrets, oauth-secrets and bearer-secrets): a
- * secret typed in place of the name of its variable (`--auth-password-env`,
- * `--oauth-client-secret-env`, `--auth-token-env`, or a hand-edited auth.passwordEnv,
- * auth.clientSecretEnv or auth.tokenEnv) is never stored by `config set` and never appears in
- * any output: not in the profile `config set|unset|use` print, not in `config show`, dry-runs,
- * the verbose trace, `auth status|login|logout` or any error.
+ * Property (extends auth-secrets and bearer-secrets): a secret typed in place of the name of its
+ * variable (`--auth-password-env`, `--auth-token-env`, or a hand-edited auth.passwordEnv or
+ * auth.tokenEnv) is never stored by `config set` and never appears in any output: not in the
+ * profile `config set|unset|use` print, not in `config show`, dry-runs, the verbose trace,
+ * `auth status` or any error.
  */
 
 import fc from "fast-check"
 import { describe, expect, it } from "vitest"
 import { opaqueTokens } from "../../test/support/bearer.js"
 import { fakeServer, json } from "../../test/support/fake-fetch.js"
-import { ISSUER } from "../../test/support/fake-idp.js"
 import { CONFIG_PATH, execute, fakeRuntime, fileText } from "../../test/support/fake-runtime.js"
-import { cachedLogin, cacheText, TOKEN_FILE } from "../../test/support/oauth.js"
 import { isConventionalVariable } from "../config/variable.js"
 import { run } from "./run.js"
 
@@ -34,16 +31,6 @@ const FAMILIES: readonly Family[] = [
     auth: (secret) => ({ type: "basic", username: "demo", passwordEnv: secret }),
   },
   {
-    set: ["--oauth-issuer", ISSUER, "--oauth-client-id", "pulse-cli"],
-    flag: "--oauth-client-secret-env",
-    auth: (secret) => ({
-      type: "oauth",
-      issuer: ISSUER,
-      clientId: "pulse-cli",
-      clientSecretEnv: secret,
-    }),
-  },
-  {
     set: ["--auth", "bearer"],
     flag: "--auth-token-env",
     auth: (secret) => ({ type: "bearer", tokenEnv: secret }),
@@ -61,8 +48,6 @@ function scenarios(family: Family, secret: string): Scenario[] {
       defaultProfile: "p",
       profiles: { p: { auth: family.auth(secret) } },
     }),
-    // the cached login of the OAuth profile (logout revokes it without the unknown secret)
-    [TOKEN_FILE]: cacheText(cachedLogin(T0)),
   }
   return [
     { args: ["config", "set", "p", ...family.set, family.flag, secret] },
@@ -78,8 +63,6 @@ function scenarios(family: Family, secret: string): Scenario[] {
     { args: ["ping", "--dry-run"], files },
     { args: ["api", "GET", "/task", "--dry-run", "-o", "table"], files },
     { args: ["auth", "status"], files },
-    { args: ["auth", "login"], files },
-    { args: ["auth", "logout"], files },
   ]
 }
 
@@ -116,16 +99,12 @@ describe("secrets typed in place of the name of their variable", () => {
       }
     }
     // config set x2 refused; config set/unset/use print the profile; config list; every
-    // command that resolves the auth fails (auth login of a bearer profile: USAGE); auth logout
-    // removes the cached OAuth login, revoked without the secret (a bearer profile has none:
-    // USAGE)
+    // command that resolves the auth fails
     expect(codes).toEqual([
       // Basic auth
-      3, 3, 0, 0, 0, 3, 3, 0, 3, 3, 3, 3, 3, 3, 0,
-      // OAuth
-      3, 3, 0, 0, 0, 3, 3, 0, 3, 3, 3, 3, 3, 3, 0,
+      3, 3, 0, 0, 0, 3, 3, 0, 3, 3, 3, 3, 3,
       // bearer token
-      3, 3, 0, 0, 0, 3, 3, 0, 3, 3, 3, 3, 3, 2, 2,
+      3, 3, 0, 0, 0, 3, 3, 0, 3, 3, 3, 3, 3,
     ])
   })
 

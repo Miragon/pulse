@@ -43,7 +43,7 @@ pulse-cli ping --profile prod
 - Links to Cockpit: take `values.cockpitUrl` from `pulse-cli config show -o json`; when it is null,
   ask the user for the Cockpit URL instead of guessing it from the engine URL.
 - Profiles, project files, environment variables, named engines and headers:
-  `pulse-cli guide config`. Basic auth, bearer tokens, token commands and OAuth logins:
+  `pulse-cli guide config`. Basic auth, bearer tokens and token commands (also for single sign-on):
   `pulse-cli guide auth`.
 
 ## Discover, describe, preview, run
@@ -125,7 +125,7 @@ Errors are one JSON line on stderr, its last line (`-o table` prints readable te
 | 1    | internal error                                                                                         |
 | 2    | usage error, invalid body (`VALIDATION`), `READ_ONLY`, `CONFIRMATION_REQUIRED`                         |
 | 3    | configuration error, also an HTTP redirect (`HTTP_REDIRECT`, see below)                                |
-| 4    | auth failed: 401, 403, `LOGIN_REQUIRED` (a person must log in), `LOGIN_FAILED`, `TOKEN_EXPIRED`        |
+| 4    | auth failed: 401, 403, `LOGIN_FAILED` (the token command failed), `TOKEN_EXPIRED`                      |
 | 5    | not found (404)                                                                                        |
 | 6    | other 4xx: the engine rejected the request, read `engineMessage`                                       |
 | 7    | engine error (5xx)                                                                                     |
@@ -156,7 +156,7 @@ read `engineMessage` and fix the cause instead of retrying. On exit 4: `pulse-cl
 - `input`: Arguments, flags, booleans, arrays, dates, variables, request bodies, files, paging
 - `output`: JSON and tables, --fields, XML, text and binary responses, --out-file, previews
 - `config`: Profiles, config and project files, environment variables, engines, headers, timeouts
-- `auth`: Basic auth, bearer tokens and token commands, OAuth logins, what to do on exit 4
+- `auth`: Basic auth, bearer tokens and token commands, single sign-on, what to do on exit 4
 - `recipes`: Command lines for everyday tasks: deploy, tasks, incidents, messages, history, api
 
 ```sh

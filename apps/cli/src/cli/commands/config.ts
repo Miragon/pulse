@@ -13,7 +13,6 @@ import {
   unsetProfileKeys,
   useProfile,
 } from "../../config/edit.js"
-import { OAUTH_UNSET_KEYS } from "../../config/oauth-edit.js"
 import { findProfile } from "../../config/resolve.js"
 import { type ConfigFile, FLAVORS, PROFILE_KEYS } from "../../config/types.js"
 import { checkVariableNames } from "../../config/variable.js"
@@ -25,14 +24,7 @@ import { type DisplayFlags, displayOf } from "../display.js"
 import { addGlobalOptions } from "../globals.js"
 import { collect } from "../options.js"
 import { addBearerOptions, bearerChanges } from "./config-bearer.js"
-import { editedLogins } from "./config-login.js"
-import {
-  addOAuthOptions,
-  oauthChanges,
-  readSetSecrets,
-  type SetSecrets,
-  setNotices,
-} from "./config-oauth.js"
+import { readSetSecrets, type SetSecrets, setNotices } from "./config-secrets.js"
 import {
   checkUserProfile,
   editTarget,
@@ -107,13 +99,12 @@ async function editConfig(command: Command, context: CliContext, edit: Edit, own
 
 /**
  * The changes of `config set`; only options given on the command line. The secrets are what
- * `--auth-password-stdin`, `--oauth-client-secret-stdin` and `--auth-token-stdin` read.
+ * `--auth-password-stdin` and `--auth-token-stdin` read.
  */
 function profileChanges(command: Command, secrets: SetSecrets): ProfileChanges {
   // --read-only is defined before --no-read-only, so neither sets a default value
   const options = command.opts<SetOptions>()
   return compact({
-    ...oauthChanges(command, secrets.clientSecret),
     ...bearerChanges(command, secrets.token),
     url: options.url,
     engine: options.engine,
@@ -173,27 +164,24 @@ async function setProfileFrom(name: string, command: Command, context: CliContex
       ? [`Created the project file ${path}; commit it to share its profiles.`]
       : []
   for (const notice of [...created, ...setNotices(outcome)]) runtime.stderr.write(`${notice}\n`)
-  await editedLogins({ name, before, after: file, target }, runtime, true)
 }
 
 async function removeProfile(name: string, command: Command, context: CliContext): Promise<void> {
   const edit = (file: ConfigFile | undefined) => deleteProfile(file, name)
-  const { file, previous, path, target } = await editConfig(command, context, edit, name)
+  const { path } = await editConfig(command, context, edit, name)
   context.runtime.stderr.write(`Deleted profile "${name}" from ${path}\n`)
-  const before = findProfile(previous, name)
-  await editedLogins({ name, before, after: file, target }, context.runtime, false)
 }
 
 function registerSet(config: Command, context: CliContext): void {
   const set = subcommand(config, "set")
     .description(
-      "Create or update a profile; only the given values change. The first profile becomes the default. --output is the output format stored in the profile; -o <format> chooses how the profile is printed. Basic auth: --auth basic --auth-user <name> --auth-password-env <VAR> keeps the password in an environment variable. OAuth: --auth oauth --oauth-issuer <url> --oauth-client-id <id>, then pulse-cli auth login --profile <profile> in a terminal. A bearer token from elsewhere: --auth bearer --auth-token-env <VAR>. --project writes the project file of the repository instead of your config file.",
+      "Create or update a profile; only the given values change. The first profile becomes the default. --output is the output format stored in the profile; -o <format> chooses how the profile is printed. Basic auth: --auth basic --auth-user <name> --auth-password-env <VAR> keeps the password in an environment variable. A bearer token from elsewhere: --auth bearer --auth-token-env <VAR>. --project writes the project file of the repository instead of your config file.",
     )
     .argument("<profile>", "Profile name, e.g. local or prod-eu")
     .option("--url <url>", "REST API root, e.g. http://localhost:8080/engine-rest")
     .option("--engine <name>", "Named process engine")
     .option("--flavor <name>", `Engine product: ${FLAVORS.join(", ")}`)
-    .option("--auth <type>", "Authentication: none, basic, oauth or bearer")
+    .option("--auth <type>", "Authentication: none, basic or bearer")
     .option("--auth-user <name>", "Username for Basic auth")
     .option(
       "--auth-password-env <VAR>",
@@ -203,7 +191,7 @@ function registerSet(config: Command, context: CliContext): void {
       "--auth-password-stdin",
       "Store the password read from the first line of stdin (plain text in the file; discouraged)",
     )
-  addBearerOptions(addOAuthOptions(set))
+  addBearerOptions(set)
     .option("--output <format>", "Output format to store in the profile: json or table")
     .option("--timeout <ms>", "Request timeout in milliseconds")
     .option(
@@ -226,20 +214,18 @@ function registerEditCommands(config: Command, context: CliContext): void {
   const unset = configSubcommand(
     config,
     "unset",
-    "Remove values from a profile; auth removes all auth settings, an OAuth setting only itself, token (or tokenEnv) the bearer token",
+    "Remove values from a profile; auth removes all auth settings, token (or tokenEnv) the bearer token",
     FILE_OPTIONS,
   )
     .argument("<profile>", "Profile name")
     .argument(
       "<keys...>",
-      `Keys to remove: ${PROFILE_KEYS.join(", ")}; OAuth settings: ${OAUTH_UNSET_KEYS.join(", ")}; bearer token: ${BEARER_UNSET_KEYS.join(", ")}`,
+      `Keys to remove: ${PROFILE_KEYS.join(", ")}; bearer token: ${BEARER_UNSET_KEYS.join(", ")}`,
     )
   unset.option(...PROJECT_OPTION)
   unset.action(async (name: string, keys: string[]) => {
     const edit = (file: ConfigFile | undefined) => unsetProfileKeys(file, name, keys)
-    const { file, previous, target } = await editProfile(unset, context, { name, edit, own: true })
-    const before = findProfile(previous, name)
-    await editedLogins({ name, before, after: file, target }, context.runtime, false)
+    await editProfile(unset, context, { name, edit, own: true })
   })
   const use = configSubcommand(config, "use", "Make a profile the default", FILE_OPTIONS)
   use.argument("<profile>", "Profile name").option(...PROJECT_OPTION)

@@ -5,7 +5,6 @@ import { PulseCliError } from "../errors.js"
 import {
   checkVariableName,
   checkVariableNames,
-  CLIENT_SECRET_VARIABLE,
   isConventionalVariable,
   PASSWORD_VARIABLE,
   type SecretVariable,
@@ -30,7 +29,7 @@ function text(error: PulseCliError): string {
   return `${error.message}\n${error.details.hint ?? ""}`
 }
 
-const KINDS: readonly SecretVariable[] = [PASSWORD_VARIABLE, CLIENT_SECRET_VARIABLE, TOKEN_VARIABLE]
+const KINDS: readonly SecretVariable[] = [PASSWORD_VARIABLE, TOKEN_VARIABLE]
 
 /**
  * Secrets that are valid variable names but not in the usual form: lower case letters, long
@@ -58,10 +57,6 @@ describe("validateVariableName", () => {
       [
         "Invalid --auth-password-env: expected the name of an environment variable",
         'Use letters, digits and "_", not starting with a digit, e.g. --auth-password-env CAMUNDA_PASSWORD; the variable holds the password.',
-      ],
-      [
-        "Invalid --oauth-client-secret-env: expected the name of an environment variable",
-        'Use letters, digits and "_", not starting with a digit, e.g. --oauth-client-secret-env PULSE_CLI_CLIENT_SECRET; the variable holds the client secret.',
       ],
       [
         "Invalid --auth-token-env: expected the name of an environment variable",
@@ -144,11 +139,6 @@ describe("checkVariableName", () => {
     expect(failure(() => checkVariableName("ghp_x1", {}, TOKEN_VARIABLE)).message).toBe(
       "--auth-token-env names a variable that is not set and does not look like a variable name: it may be the token itself, so it is neither stored nor repeated",
     )
-    expect(
-      failure(() => checkVariableName("cs_value", {}, CLIENT_SECRET_VARIABLE)).details.hint,
-    ).toBe(
-      'Pass the name of the variable that holds the client secret, not its value: --oauth-client-secret-env PULSE_CLI_CLIENT_SECRET, not --oauth-client-secret-env "$PULSE_CLI_CLIENT_SECRET". A name in another form (lower case, very long) is accepted once the variable is set.',
-    )
   })
 
   it("checks the syntax first", () => {
@@ -164,14 +154,10 @@ describe("checkVariableNames", () => {
       checkVariableNames({}, {})
     }).not.toThrow()
     expect(() => {
-      checkVariableNames(
-        { authPasswordEnv: "PW", oauthClientSecretEnv: "SECRET", authTokenEnv: "TOKEN" },
-        {},
-      )
+      checkVariableNames({ authPasswordEnv: "PW", authTokenEnv: "TOKEN" }, {})
     }).not.toThrow()
     const options = [
       ["authPasswordEnv", PASSWORD_VARIABLE],
-      ["oauthClientSecretEnv", CLIENT_SECRET_VARIABLE],
       ["authTokenEnv", TOKEN_VARIABLE],
     ] as const
     for (const [option, variable] of options) {
@@ -188,13 +174,12 @@ describe("checkVariableNames", () => {
 
 describe("unsetVariableWarnings", () => {
   it("warns about each stored name that is not set, without naming it", () => {
-    const names = { authPasswordEnv: " PW ", oauthClientSecretEnv: "SECRET", authTokenEnv: "TOK" }
+    const names = { authPasswordEnv: " PW ", authTokenEnv: "TOK" }
     expect(unsetVariableWarnings(names, { SECRET: " " })).toEqual([
       "Warning: the variable named by --auth-password-env is not set in this environment. Pass the name of a variable that holds the password (e.g. CAMUNDA_PASSWORD), never the password itself; commands read it when they run.",
-      "Warning: the variable named by --oauth-client-secret-env is not set in this environment. Pass the name of a variable that holds the client secret (e.g. PULSE_CLI_CLIENT_SECRET), never the client secret itself; commands read it when they run.",
       "Warning: the variable named by --auth-token-env is not set in this environment. Pass the name of a variable that holds the token (e.g. CI_ENGINE_TOKEN), never the token itself; commands read it when they run.",
     ])
-    expect(unsetVariableWarnings(names, { PW: "p", SECRET: "s", TOK: "t" })).toEqual([])
+    expect(unsetVariableWarnings(names, { PW: "p", TOK: "t" })).toEqual([])
     expect(unsetVariableWarnings({}, {})).toEqual([])
   })
 })
@@ -207,11 +192,6 @@ describe("unsetVariable", () => {
         "CONFIG",
         'The password variable CI_VALUE (auth.passwordEnv of profile "prod") is not set or empty',
         "Export it, e.g. export CI_VALUE=<password>, or name another variable with `pulse-cli config set prod --auth-password-env <VAR>`.",
-      ],
-      [
-        "CONFIG",
-        'The client secret variable CI_VALUE (auth.clientSecretEnv of profile "prod") is not set or empty',
-        "Export it, e.g. export CI_VALUE=<secret>, or name another variable with `pulse-cli config set prod --oauth-client-secret-env <VAR>`.",
       ],
       [
         "CONFIG",

@@ -84,7 +84,7 @@ pulse-cli historic-process-instance list --process-definition-key order --finish
 ## Your engine, Claude Code or CI
 
 Point pulse-cli at your own engine with a read-only profile, or hand it to Claude Code or your CI
-pipeline. A profile also holds the engine's Basic auth, OAuth or bearer token settings, see
+pipeline. A profile also holds the engine's Basic auth or bearer token settings, see
 [authentication](./authentication.md).
 
 ::: code-group

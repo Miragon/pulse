@@ -90,9 +90,6 @@ const CLI_TEST_CODE = ["[.]test[.]ts$", "^apps/cli/test/"]
 const CLI_PURE_LAYERS =
   "^apps/cli/src/(?:api|auth|catalog|docs|engine-port|engines|output|workflow)/|^apps/cli/src/(?:errors|util)[.]ts$"
 
-/** The CLI's interactive OAuth login: loopback server, browser, callback pages. */
-const CLI_INTERACTIVE_LOGIN = "^apps/cli/src/auth/oauth/(?:login|callback|pages)[.]ts$"
-
 module.exports = {
   forbidden: [
     {
@@ -333,18 +330,6 @@ module.exports = {
         "apps/cli/src/config never imports apps/cli/src/auth: authentication builds on the configuration.",
       from: { path: "^apps/cli/src/config/", pathNot: CLI_TEST_CODE },
       to: { path: "^apps/cli/src/auth/" },
-    },
-    {
-      name: "cli-interactive-login-only-from-auth-command",
-      severity: "error",
-      comment:
-        "Only the `auth login` command (apps/cli/src/cli/commands/auth.ts) may start a loopback " +
-        "server or a browser; operation commands, api and ping never start an interactive login.",
-      from: {
-        path: "^apps/cli/",
-        pathNot: [CLI_INTERACTIVE_LOGIN, "^apps/cli/src/cli/commands/auth[.]ts$", ...CLI_TEST_CODE],
-      },
-      to: { path: CLI_INTERACTIVE_LOGIN },
     },
     {
       name: "cli-workflow-not-to-cli-config-auth-bin",

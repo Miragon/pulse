@@ -38,7 +38,7 @@ export interface EnginePort {
   text(operationId: string, pathArgs: readonly string[]): Promise<string | undefined>
   /**
    * The `--dry-run` preview of a request with the auth headers known without network access, plus
-   * the auth provider's note (e.g. that there is no OAuth login).
+   * the auth provider's note (e.g. that the token command did not run).
    */
   preview(request: PlannedRequest): Promise<AuthorizedPreview>
   /** `METHOD /path` relative to the REST root, as the `Done:` line shows it. */

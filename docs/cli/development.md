@@ -81,7 +81,7 @@ src/api/        one folder per engine API; camunda7-rest builds catalog and port
 src/docs/       commands, describe, examples, workflow docs and the agent guide (pure)
 src/catalog/    catalog access, schema helpers, body validation (pure)
 src/config/     config resolution and profile editing (pure), file store, project files
-src/auth/       auth providers (none, basic, bearer with JWT expiry, token commands, OAuth; pure)
+src/auth/       auth providers (none, basic, bearer with JWT expiry, token commands; pure)
 src/http/       fetch based HTTP client and error mapping
 src/output/     JSON, tables, field projection, errors, secret masking (pure)
 scripts/        catalog generator, standalone executable build, packaging smoke test
@@ -93,8 +93,7 @@ The overview with diagrams is in [Architecture](architecture.md), the decisions 
 (`pnpm lint:architecture` cruises `apps/cli/src`, `pnpm lint:architecture:cli` its `scripts/` and
 `test/`): no cycle (a type-only one included), only `src/bin` imports `src/cli`, only `src/cli`
 imports commander, the pure layers import no Node built-in, `workflow` knows engines only through
-`src/engine-port`, only the adapters import `src/api`, only `auth login` reaches the interactive
-login, and only `src/catalog/catalog.ts` and the adapters (each its own) read the catalogs.
+`src/engine-port`, only the adapters import `src/api`, and only `src/catalog/catalog.ts` and the adapters (each its own) read the catalogs.
 
 ## Quality gates
 
@@ -105,13 +104,13 @@ login, and only `src/catalog/catalog.ts` and the adapters (each its own) read th
 - **vitest** with v8 coverage floors of 90 % for lines, statements and functions and 85 % for
   branches (`apps/cli/vitest.config.ts`); the floors only rise.
 - **fast-check** property tests for naming, patches, variable parsing, dates, query building,
-  projection, table width, config and auth precedence, PKCE, token expiry, the token cache, body
+  projection, table width, config and auth precedence, token expiry, the token cache, body
   validation and secret masking.
 - **StrykerJS** over the logic layers and the catalog generator without its data tables
   (`apps/cli/stryker.config.json`, break 92): locally `stryker run --mutate <file>` runs a
   branch's changed files; CI mutates only nightly, over the whole list.
-- **Testcontainers** suites against the three engines, with and without Basic auth, behind
-  Keycloak and an Envoy JWT gateway for OAuth, through the workflow commands, plus a test of the
+- **Testcontainers** suites against the three engines, with and without Basic auth, with bearer
+  tokens from Keycloak behind an Envoy JWT gateway, through the workflow commands, plus a test of the
   packed tarball. CI runs them, the packaging smoke tests and `claude plugin validate --strict` on
   every pull request. The plugin evals in `apps/cli/skills/pulse-cli/evals/` call the model on
   your account, so they run locally: `claude plugin eval apps/cli/skills/pulse-cli --no-publish`.

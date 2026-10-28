@@ -6,10 +6,9 @@
  * name clash (a developer overrides one locally), the project's defaultProfile wins (in the
  * repository its default applies) as long as it names a profile of the project file. A project
  * file is shared and names no credentials, neither secrets nor the variables that hold them: they
- * come from the environment (PULSE_CLI_TOKEN, PULSE_CLI_TOKEN_COMMAND, PULSE_CLI_PASSWORD,
- * PULSE_CLI_OAUTH_CLIENT_SECRET) or the user's own config file. So a cloned repository can neither
- * run code through pulse-cli nor send a variable of its choice to the URL it names. Its profiles
- * share OAuth logins only among the profiles of its repository (`projectOrigin`).
+ * come from the environment (PULSE_CLI_TOKEN, PULSE_CLI_TOKEN_COMMAND, PULSE_CLI_PASSWORD) or the
+ * user's own config file. So a cloned repository can neither run code through pulse-cli nor send a
+ * variable of its choice to the URL it names.
  */
 
 import type { FileSystem } from "../runtime.js"
@@ -77,93 +76,10 @@ export async function findProjectFile(
   }
 }
 
-/** The text of a file, or undefined when it cannot be read. */
-async function textOf(fs: FileSystem, path: string): Promise<string | undefined> {
-  try {
-    return new TextDecoder().decode(await fs.readFile(path))
-  } catch {
-    return undefined
-  }
-}
-
-/**
- * The git directory shared by the worktree whose `.git` file is `dotGit`: the `gitdir:` it names
- * must be `<git directory>/worktrees/<name>` and link back to `dotGit` with its own `gitdir` file,
- * as `git worktree add` writes them. A `.git` file that only claims a repository (copied, or
- * pointing elsewhere) does not count, nor does a submodule (`<git directory>/modules/<name>`).
- */
-async function worktreeRepository(fs: FileSystem, dotGit: string, location: Location) {
-  const path = pathModule(location.platform)
-  const named = /^gitdir: (.+)$/m.exec((await textOf(fs, dotGit)) ?? "")?.[1]?.trim()
-  if (named === undefined) return undefined
-  const gitDir = path.resolve(path.dirname(dotGit), named)
-  const worktrees = path.dirname(gitDir)
-  if (comparable(path.basename(worktrees), location.platform) !== "worktrees") return undefined
-  const back = (await textOf(fs, path.join(gitDir, "gitdir")))?.trim()
-  if (back === undefined || back === "") return undefined
-  const linked = comparable(path.resolve(gitDir, back), location.platform)
-  return linked === comparable(dotGit, location.platform) ? path.dirname(worktrees) : undefined
-}
-
-/**
- * True when a `.git` found in `directory` may name a repository: the current user owns it (like
- * git's safe.directory check: another user's `/tmp/.git` makes nobody's project a repository) and
- * it is not in a file system root. Windows has no owners to compare (`ownedByUser` is absent):
- * there only `C:\\.git` and the like are refused.
- */
-async function trusted(fs: FileSystem, directory: string, dotGit: string, location: Location) {
-  if (pathModule(location.platform).dirname(directory) === directory) return false
-  return fs.ownedByUser === undefined || fs.ownedByUser(dotGit)
-}
-
-/**
- * The git directory of the repository that `directory` belongs to: the first `.git` from there up
- * to the repository root (before the home directory and the file system root), the directory
- * itself or, for a worktree, the git directory it links back to; none for a `.git` that is not
- * `trusted`. Paths are compared as given, symbolic links are not followed: a link never makes two
- * repositories one.
- */
-async function repositoryOf(fs: FileSystem, directory: string, location: Location) {
-  const path = pathModule(location.platform)
-  const home = comparable(location.homedir, location.platform)
-  for (let current = directory; comparable(current, location.platform) !== home;) {
-    const dotGit = path.join(current, ".git")
-    const kind = await fs.kind(dotGit)
-    if (kind !== "missing") {
-      if (!(await trusted(fs, current, dotGit, location))) return undefined
-      if (kind === "directory") return dotGit
-      return kind === "file" ? worktreeRepository(fs, dotGit, location) : undefined
-    }
-    const parent = path.dirname(current)
-    if (parent === current) return undefined
-    current = parent
-  }
-  return undefined
-}
-
-/**
- * Where the profiles of the project file `projectPath` come from (`LoginKey.origin`):
- * its repository (`repository:<git directory>`), so that all worktrees of a repository
- * share their logins, else the project file itself (`project:<path>`).
- */
-export async function projectOrigin(
-  fs: FileSystem,
-  projectPath: string,
-  location: Location,
-): Promise<string> {
-  const path = pathModule(location.platform)
-  const repository = await repositoryOf(fs, path.dirname(projectPath), location)
-  return repository === undefined
-    ? `project:${comparable(path.resolve(projectPath), location.platform)}`
-    : `repository:${comparable(path.resolve(repository), location.platform)}`
-}
-
 /** The credential keys of a profile's auth object, and where the credential comes from instead. */
 const CREDENTIALS: Readonly<Partial<Record<keyof ProfileAuth, string>>> = {
   password: ENV.password,
   passwordEnv: ENV.password,
-  clientSecret: ENV.oauthClientSecret,
-  clientSecretEnv: ENV.oauthClientSecret,
   token: `${ENV.token} or ${ENV.tokenCommand}`,
   tokenEnv: `${ENV.token} or ${ENV.tokenCommand}`,
 }
@@ -182,7 +98,7 @@ function secretProblem(name: string, profile: Profile): string | undefined {
 }
 
 /**
- * Why a project file must not store `file`: a password, client secret or token, or the variable
+ * Why a project file must not store `file`: a password or token, or the variable
  * that holds one, or a secret header. Undefined when it holds none.
  */
 export function projectSecretProblem(file: ConfigFile): string | undefined {
@@ -201,7 +117,7 @@ function defaultProblem(file: ConfigFile): string | undefined {
     : `defaultProfile "${name}" is not one of its profiles; a project file chooses only among its own profiles`
 }
 
-const CREDENTIAL_HINT = `Credentials come from the environment (${ENV.token}, ${ENV.tokenCommand}, ${ENV.password}, ${ENV.oauthClientSecret}) or from a profile of the same name in your own config file. Remove it from the project file, e.g. with \`pulse-cli config unset <profile> auth --project\` (\`headers\` for a secret header), and a committed secret from the history of your repository, too.`
+const CREDENTIAL_HINT = `Credentials come from the environment (${ENV.token}, ${ENV.tokenCommand}, ${ENV.password}) or from a profile of the same name in your own config file. Remove it from the project file, e.g. with \`pulse-cli config unset <profile> auth --project\` (\`headers\` for a secret header), and a committed secret from the history of your repository, too.`
 
 const DEFAULT_HINT =
   "Make one of its profiles the default with `pulse-cli config use <profile> --project`, or remove defaultProfile from the file."
@@ -274,7 +190,7 @@ export function mergeProject(
   const projectDefault = named !== undefined && profiles.includes(named) ? named : undefined
   const defaultProfile = projectDefault ?? user?.defaultProfile
   return {
-    ...compact({ defaultProfile, origin: user?.origin }),
+    ...compact({ defaultProfile }),
     profiles: { ...project.file.profiles, ...own },
     project: { source: project.source, profiles, defaultProfile: projectDefault !== undefined },
   }

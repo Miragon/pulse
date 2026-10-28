@@ -1,11 +1,12 @@
 /**
- * The OAuth topology of the engine suites: Keycloak (realm imported from a fixture) and an unmodified
- * engine on one Docker network, with an Envoy `jwt_authn` gateway in front of the engine that
- * checks the Bearer token (the engines have no OAuth resource server of their own).
+ * The gateway topology of the bearer suite: Keycloak as the token issuer (realm imported from a
+ * fixture) and an unmodified engine on one Docker network, with an Envoy `jwt_authn` gateway in
+ * front of the engine that checks the Bearer token (the engines have no OAuth resource server of
+ * their own).
  *
  * ```
  * pulse-cli ──http://localhost:<envoy>/engine-rest──▶ Envoy ──http://engine-<name>:8080──▶ engine
- *      └──discovery, token, revoke──▶ Keycloak (alias keycloak) ◀──JWKS── Envoy
+ *      └──token (token command, curl)──▶ Keycloak (alias keycloak) ◀──JWKS── Envoy
  * ```
  *
  * Keycloak in dev mode builds the issuer from the request's Host header, so the tokens carry the
@@ -46,7 +47,7 @@ function fixture(name: string): string {
   return fileURLToPath(new URL(`../fixtures/${name}`, import.meta.url))
 }
 
-export interface OAuthTopology {
+export interface GatewayTopology {
   readonly engine: EngineName
   /** Host name of the mapped ports (`localhost` with a local Docker). */
   readonly host: string
@@ -63,10 +64,10 @@ export interface OAuthTopology {
 }
 
 /**
- * The engine of the OAuth scenario: the first enabled one. The gateway checks the token, so one
+ * The engine of the bearer suite: the first enabled one. The gateway checks the token, so one
  * engine is enough; every CI leg (one engine each) runs the scenario against its engine.
  */
-export function oauthEngine(): EngineName | undefined {
+export function gatewayEngine(): EngineName | undefined {
   return ENGINE_NAMES.find((name) => isEngineEnabled(name))
 }
 
@@ -120,7 +121,8 @@ async function stopAll(stoppers: readonly (() => Promise<unknown>)[]): Promise<v
       failures.push(error)
     }
   }
-  if (failures.length > 0) throw new Error("Cannot stop the OAuth topology", { cause: failures[0] })
+  if (failures.length > 0)
+    throw new Error("Cannot stop the gateway topology", { cause: failures[0] })
 }
 
 function fulfilled<T>(result: PromiseSettledResult<T>): T | undefined {
@@ -131,7 +133,7 @@ function fulfilled<T>(result: PromiseSettledResult<T>): T | undefined {
  * Starts Keycloak and the engine in parallel, then Envoy (its configuration needs the issuer).
  * Anything already started is stopped again when a later step fails.
  */
-export async function startOAuthTopology(engine: EngineName): Promise<OAuthTopology> {
+export async function startGatewayTopology(engine: EngineName): Promise<GatewayTopology> {
   const network = await new Network().start()
   const stoppers: (() => Promise<unknown>)[] = [() => network.stop()]
   try {
@@ -152,7 +154,7 @@ export async function startOAuthTopology(engine: EngineName): Promise<OAuthTopol
     if (!LOOPBACK_HOSTS.has(host)) {
       throw new Error(
         `The Docker host is "${host}", not this machine: pulse-cli accepts http issuers only on ` +
-          "loopback hosts, so the OAuth integration test needs a local Docker daemon",
+          "loopback hosts, so the bearer integration test needs a local Docker daemon",
       )
     }
     const keycloakPort = keycloak.getMappedPort(HTTP_PORT)

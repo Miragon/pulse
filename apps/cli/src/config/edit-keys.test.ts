@@ -62,69 +62,16 @@ describe("unsetProfileKeys", () => {
     expect(error.code).toBe("CONFIG")
     expect(error.message).toBe('Unknown profile key "user"')
     expect(error.details.hint).toBe(
-      "Valid keys: url, cockpitUrl, engine, flavor, auth, output, timeout, headers, readOnly; OAuth settings: issuer, endpoints, clientId, clientSecret, scopes, audience, redirectPort; bearer token: token, tokenEnv.",
+      "Valid keys: url, cockpitUrl, engine, flavor, auth, output, timeout, headers, readOnly; bearer token: token, tokenEnv.",
     )
   })
 
-  it("removes single OAuth settings and keeps the others", () => {
-    const auth = {
-      type: "oauth",
-      issuer: "https://login.example.com/realms/x",
-      authorizationEndpoint: "https://login.example.com/auth",
-      tokenEndpoint: "https://login.example.com/token",
-      clientId: "cli",
-      clientSecretEnv: "SECRET",
-      scopes: ["openid"],
-      audience: "engine-rest",
-      redirectPort: 8765,
-    } as const
-    const file: ConfigFile = { profiles: { p: { url: "http://x", auth, readOnly: true } } }
-    const unset = (...keys: string[]) => unsetProfileKeys(file, "p", keys).profiles.p
-    expect(unset("audience")).toEqual({
-      url: "http://x",
-      auth: { ...auth, audience: undefined },
-      readOnly: true,
-    })
-    expect(unset("audience")?.auth).not.toHaveProperty("audience")
-    expect(unset("auth.scopes", "redirectPort")?.auth).toEqual({
-      type: "oauth",
-      issuer: auth.issuer,
-      authorizationEndpoint: auth.authorizationEndpoint,
-      tokenEndpoint: auth.tokenEndpoint,
-      clientId: "cli",
-      clientSecretEnv: "SECRET",
-      audience: "engine-rest",
-    })
-    // the endpoints go as a pair, the client secret in either form
-    for (const key of ["endpoints", "tokenEndpoint", "authorizationEndpoint"]) {
-      expect(Object.keys(unset(key)?.auth ?? {})).toEqual([
-        "type",
-        "issuer",
-        "clientId",
-        "clientSecretEnv",
-        "scopes",
-        "audience",
-        "redirectPort",
-      ])
-    }
-    for (const key of ["clientSecret", "clientSecretEnv"]) {
-      expect(unset(key)?.auth).not.toHaveProperty("clientSecretEnv")
-    }
+  it("drops an auth object that has nothing left and ignores bearer keys without auth", () => {
     expect(
-      unsetProfileKeys({ profiles: { p: { auth: { type: "oauth", clientSecret: "s" } } } }, "p", [
-        "clientSecretEnv",
-      ]).profiles.p,
-    ).toEqual({ auth: { type: "oauth" } })
-    expect(unset("issuer", "clientId")?.auth).not.toHaveProperty("issuer")
-    expect(unset("auth", "audience")).toEqual({ url: "http://x", readOnly: true })
-  })
-
-  it("drops an auth object that has nothing left and ignores OAuth keys without auth", () => {
-    expect(
-      unsetProfileKeys({ profiles: { p: { auth: { audience: "a" } } } }, "p", ["audience"]).profiles
+      unsetProfileKeys({ profiles: { p: { auth: { tokenEnv: "T" } } } }, "p", ["tokenEnv"]).profiles
         .p,
     ).toEqual({})
-    expect(unsetProfileKeys(TWO, "dev", ["audience"])).toEqual(TWO)
+    expect(unsetProfileKeys(TWO, "dev", ["token"])).toEqual(TWO)
   })
 
   it("rejects a missing profile with the known profiles as hint", () => {

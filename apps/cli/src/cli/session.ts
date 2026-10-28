@@ -5,9 +5,8 @@
 
 import { type AuthDeps, createAuthProvider } from "../auth/index.js"
 import { withAuthNote } from "../auth/note.js"
-import type { OAuthDeps } from "../auth/oauth/types.js"
 import { pathModule, tokenDirectory, tokenPath } from "../config/file.js"
-import { plainHttpHost } from "../config/oauth.js"
+import { plainHttpHost } from "../config/bearer.js"
 import { resolveConfig } from "../config/resolve.js"
 import { unusedTokenNote } from "../config/resolve-bearer.js"
 import { ENV, type LoadedConfig, type OutputFormat, type ResolvedConfig } from "../config/types.js"
@@ -41,7 +40,7 @@ export interface Session {
 export interface SessionOptions {
   /** `--body -`: stdin holds the body, so `--auth-password-stdin` and `--auth-token-stdin` are refused. */
   readonly bodyFromStdin?: boolean
-  /** `pulse-cli auth login|status`: hints never suggest switching OAuth off. */
+  /** `pulse-cli auth status`: hints never suggest `--auth`. */
   readonly authCommand?: boolean
 }
 
@@ -93,60 +92,41 @@ export function targetOf(session: Session): Target {
 }
 
 /**
- * What OAuth needs from the runtime: fetch, files, clock, lock, the token directory and the
- * request timeout; with `--verbose` token requests are traced like engine requests.
- */
-export function oauthDeps(
-  runtime: Runtime,
-  options: { readonly timeoutMs: number; readonly verbose: boolean; readonly showSecrets: boolean },
-): OAuthDeps {
-  const tokenDir = tokenDirectory(runtime.env, runtime)
-  const deps: OAuthDeps = {
-    fetch: runtime.fetch,
-    fs: runtime.fs,
-    now: () => runtime.now(),
-    withLock: (path, holdMs, action) => runtime.withLock(path, holdMs, action),
-    tokenDir,
-    tokenPath: (fileName) => tokenPath(tokenDir, fileName, runtime.platform),
-    timeoutMs: options.timeoutMs,
-  }
-  return options.verbose
-    ? { ...deps, trace: traceWriter(runtime.stderr, options.showSecrets) }
-    : deps
-}
-
-/** `oauthDeps` for a resolved session. */
-export function sessionOAuthDeps(session: Session, runtime: Runtime): OAuthDeps {
-  const { verbose, showSecrets } = session.globals
-  return oauthDeps(runtime, { timeoutMs: session.config.timeoutMs, verbose, showSecrets })
-}
-
-/**
  * The directory whose commands share the cached token of PULSE_CLI_TOKEN_COMMAND: the directory of
  * the project file in effect (an agent moving between the services of a repository fetches one
  * token), else the working directory.
  */
-export function tokenScope(projectPath: string | undefined, runtime: Runtime): string {
+function tokenScope(projectPath: string | undefined, runtime: Runtime): string {
   return projectPath === undefined ? runtime.cwd : pathModule(runtime.platform).dirname(projectPath)
 }
 
-/** What every auth provider of a session needs: `sessionOAuthDeps`, the shell and its scope. */
+/**
+ * What every auth provider of a session needs: files, clock, the token directory, the request
+ * timeout, the shell and its scope; with `--verbose` the token command is traced.
+ */
 export function sessionAuthDeps(session: Session, runtime: Runtime): AuthDeps {
-  return {
-    ...sessionOAuthDeps(session, runtime),
+  const { verbose, showSecrets } = session.globals
+  const tokenDir = tokenDirectory(runtime.env, runtime)
+  const deps: AuthDeps = {
+    fs: runtime.fs,
+    now: () => runtime.now(),
+    tokenDir,
+    tokenPath: (fileName) => tokenPath(tokenDir, fileName, runtime.platform),
+    timeoutMs: session.config.timeoutMs,
     runCommand: (command, options) => runtime.runCommand(command, options),
     scope: tokenScope(session.projectPath, runtime),
+    target: { url: session.config.url, profile: session.config.profile },
   }
+  return verbose ? { ...deps, trace: traceWriter(runtime.stderr, showSecrets) } : deps
 }
 
 /** What a Bearer token of an auth type is called in the plain http warning. */
 const BEARER_TOKENS: Readonly<Record<string, string>> = {
-  oauth: "the OAuth access token",
   bearer: "the bearer token",
 }
 
 /**
- * The warning for a Bearer token (OAuth or a token from elsewhere) over plain http to a host
+ * The warning for a bearer token over plain http to a host
  * beyond loopback: the token is readable and reusable on the way (RFC 6750 §5.3: clients MUST use
  * TLS). Not for --dry-run (nothing is sent).
  */
@@ -161,7 +141,7 @@ function plainHttpWarning(session: Session): string | undefined {
 }
 
 /**
- * The note for auth failures when PULSE_CLI_TOKEN is set but Basic auth or OAuth won;
+ * The note for auth failures when PULSE_CLI_TOKEN is set but Basic auth won;
  * with type none the provider's `off` reason says it already.
  */
 function unusedNote(config: ResolvedConfig): string | undefined {
@@ -171,7 +151,7 @@ function unusedNote(config: ResolvedConfig): string | undefined {
     : unusedTokenNote(unusedToken)
 }
 
-/** The HTTP client of a command; the auth provider reads the token cache lazily (OAuth). */
+/** The HTTP client of a command. */
 export function clientOf(session: Session, runtime: Runtime): ClientOptions {
   const { config, globals } = session
   const warning = plainHttpWarning(session)

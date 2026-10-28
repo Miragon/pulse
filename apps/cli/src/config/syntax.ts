@@ -1,5 +1,5 @@
 /**
- * Character classes shared by the validators of the auth settings (Basic auth and OAuth) and of
+ * Character classes shared by the validators of the auth settings (Basic auth and bearer tokens) and of
  * profile names.
  */
 

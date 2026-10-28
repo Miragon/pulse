@@ -13,7 +13,6 @@ import {
   fakeRuntime,
   type FakeRuntimeOptions,
 } from "../../test/support/fake-runtime.js"
-import { TOKEN_DIR } from "../../test/support/oauth.js"
 import { run } from "./run.js"
 
 const JWT = jwtWith(VALID_CLAIMS)
@@ -75,7 +74,16 @@ describe("token command sources", () => {
     })
     expect(stored.code).toBe(0)
     expect(stored.runtime.commandRuns).toEqual([
-      { command: "print-token", options: { timeoutMs: 5_000 } },
+      {
+        command: "print-token",
+        options: {
+          timeoutMs: 5_000,
+          env: {
+            PULSE_CLI_TOKEN_URL: "http://localhost:8080/engine-rest",
+            PULSE_CLI_TOKEN_PROFILE: "dev",
+          },
+        },
+      },
     ])
   })
 
@@ -235,48 +243,45 @@ describe("pulse-cli auth with a token command", () => {
     expect(errorOf(result.stderr)).toMatchObject({ code: "LOGIN_FAILED" })
     expect(result.stdout).toBe("")
   })
+})
 
-  it("logout removes the cached token of the command", async () => {
-    const runtime = fakeRuntime({ env: ENV, commands: printing(JWT) })
-    await execute(run, ["auth", "status"], runtime)
-    const cached = [...runtime.files.keys()].filter((path) => path.startsWith(`${TOKEN_DIR}/`))
-    expect(cached).toHaveLength(1)
-    runtime.stdout.chunks.length = 0
-    const logout = await execute(run, ["auth", "logout"], runtime)
-    expect(logout.code).toBe(0)
-    expect(JSON.parse(logout.stdout)).toEqual({
-      profile: null,
-      tokenCache: cached[0],
-      removed: true,
-      revoked: null,
-    })
-    expect(runtime.files.has(cached[0]!)).toBe(false)
-    runtime.stdout.chunks.length = 0
-    const again = await execute(run, ["auth", "logout"], runtime)
-    expect(JSON.parse(again.stdout)).toMatchObject({ removed: false })
+describe("a token command and engines with different logins", () => {
+  const files = {
+    [CONFIG_PATH]: JSON.stringify({
+      profiles: {
+        acme: { url: "https://camunda.acme.example/engine-rest" },
+        globex: { url: "https://bpm.globex.example/engine-rest" },
+      },
+    }),
+  }
+  /** A dispatcher script: the token depends on the engine it is for. */
+  const dispatcher: NonNullable<FakeRuntimeOptions["commands"]> = (_command, options) => ({
+    stdout: `${options.env?.PULSE_CLI_TOKEN_URL?.includes("acme") === true ? JWT : OTHER}\n`,
   })
 
-  it("logout reports a cache file it cannot remove", async () => {
-    const runtime = fakeRuntime({ env: ENV })
-    const fs = { ...runtime.fs, remove: () => Promise.reject(new Error("EACCES")) }
-    const result = await execute(run, ["auth", "logout"], { ...runtime, fs })
-    expect(result.code).toBe(3)
-    expect(errorOf(result.stderr).message).toMatch(/^Cannot remove the cached token .+ \(EACCES\)$/)
-  })
-
-  it("login does not apply and says that pulse-cli runs the command", async () => {
-    const files = { [CONFIG_PATH]: profiles({ type: "bearer" }) }
-    const stored = await cli(["auth", "login"], { files, env: ENV })
-    expect(stored.code).toBe(2)
-    expect(errorOf(stored.stderr)).toMatchObject({
-      message: "pulse-cli auth login does not apply to bearer tokens",
-      hint: 'Bearer auth is selected by the auth.type of profile "dev": pulse-cli runs the token command (PULSE_CLI_TOKEN_COMMAND) whenever it needs a token and never logs in itself; `pulse-cli auth status` runs it and shows the token\'s claims and expiry. For an OAuth login run by pulse-cli: pulse-cli config set dev --auth oauth --oauth-issuer <url> --oauth-client-id <id>.',
-    })
-    const env = await cli(["auth", "login"], { env: ENV })
-    expect(errorOf(env.stderr).hint).toBe(
-      "Bearer auth is selected by a token command from PULSE_CLI_TOKEN_COMMAND without an auth type: pulse-cli runs the token command (PULSE_CLI_TOKEN_COMMAND) whenever it needs a token and never logs in itself; `pulse-cli auth status` runs it and shows the token's claims and expiry. For an OAuth login run by pulse-cli: unset PULSE_CLI_TOKEN_COMMAND and configure OAuth: pulse-cli config set <profile> --auth oauth --oauth-issuer <url> --oauth-client-id <id>.",
-    )
-    expect(env.runtime.commandRuns).toEqual([])
+  it("tells the command the engine and profile, and caches a token per engine", async () => {
+    const fake = server()
+    const env = { PULSE_CLI_TOKEN_COMMAND: "pulse-token" }
+    const runtime = fakeRuntime({ fetch: fake.fetch, env, files, commands: dispatcher })
+    for (const profile of ["acme", "globex", "acme", "globex"]) {
+      expect((await execute(run, ["task", "list", "--profile", profile], runtime)).code).toBe(0)
+    }
+    expect(runtime.commandRuns.map((entry) => entry.options.env)).toEqual([
+      {
+        PULSE_CLI_TOKEN_URL: "https://camunda.acme.example/engine-rest",
+        PULSE_CLI_TOKEN_PROFILE: "acme",
+      },
+      {
+        PULSE_CLI_TOKEN_URL: "https://bpm.globex.example/engine-rest",
+        PULSE_CLI_TOKEN_PROFILE: "globex",
+      },
+    ])
+    expect(fake.requests.map((request) => request.headers.authorization)).toEqual([
+      `Bearer ${JWT}`,
+      `Bearer ${OTHER}`,
+      `Bearer ${JWT}`,
+      `Bearer ${OTHER}`,
+    ])
   })
 })
 

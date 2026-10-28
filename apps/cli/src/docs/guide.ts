@@ -50,7 +50,7 @@ export const GUIDE_TOPICS: readonly GuideTopic[] = [
   },
   {
     name: "auth",
-    summary: "Basic auth, bearer tokens and token commands, OAuth logins, what to do on exit 4",
+    summary: "Basic auth, bearer tokens and token commands, single sign-on, what to do on exit 4",
     text: AUTH_PAGE,
   },
   {
@@ -69,7 +69,7 @@ export function findGuideTopic(name: string): GuideTopic | undefined {
 }
 
 /**
- * Topics for an unknown topic name: close spellings (`oauth` → `auth`), else the topics whose name
+ * Topics for an unknown topic name: close spellings (`auht` → `auth`), else the topics whose name
  * or summary contains the word (`bearer` → `auth`, `variables` → `input`).
  */
 export function topicSuggestions(word: string): string[] {
@@ -124,7 +124,7 @@ pulse-cli ping --profile prod
 - Links to Cockpit: take \`values.cockpitUrl\` from \`pulse-cli config show -o json\`; when it is null,
   ask the user for the Cockpit URL instead of guessing it from the engine URL.
 - Profiles, project files, environment variables, named engines and headers:
-  \`pulse-cli guide config\`. Basic auth, bearer tokens, token commands and OAuth logins:
+  \`pulse-cli guide config\`. Basic auth, bearer tokens and token commands (also for single sign-on):
   \`pulse-cli guide auth\`.
 
 ## Discover, describe, preview, run
@@ -206,7 +206,7 @@ Errors are one JSON line on stderr, its last line (\`-o table\` prints readable 
 | 1    | internal error                                                                                         |
 | 2    | usage error, invalid body (\`VALIDATION\`), \`READ_ONLY\`, \`CONFIRMATION_REQUIRED\`                         |
 | 3    | configuration error, also an HTTP redirect (\`HTTP_REDIRECT\`, see below)                                |
-| 4    | auth failed: 401, 403, \`LOGIN_REQUIRED\` (a person must log in), \`LOGIN_FAILED\`, \`TOKEN_EXPIRED\`        |
+| 4    | auth failed: 401, 403, \`LOGIN_FAILED\` (the token command failed), \`TOKEN_EXPIRED\`                      |
 | 5    | not found (404)                                                                                        |
 | 6    | other 4xx: the engine rejected the request, read \`engineMessage\`                                       |
 | 7    | engine error (5xx)                                                                                     |

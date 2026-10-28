@@ -18,7 +18,7 @@ export type OperationResult =
   | {
       readonly kind: "dry-run"
       readonly request: RequestPreview
-      /** Printed to stderr as `Note: <note>`, e.g. that the OAuth login is missing. */
+      /** Printed to stderr as `Note: <note>`, e.g. that the token command runs only when the request is sent. */
       readonly note?: string
     }
   | {

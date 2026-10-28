@@ -8,30 +8,20 @@ export const FLAVORS = ["operaton", "cibseven", "camunda7"] as const
 export type Flavor = (typeof FLAVORS)[number]
 export const DEFAULT_FLAVOR: Flavor = "camunda7"
 
-export const AUTH_TYPES = ["none", "basic", "oauth", "bearer"] as const
+export const AUTH_TYPES = ["none", "basic", "bearer"] as const
 export type AuthType = (typeof AUTH_TYPES)[number]
 
 /**
  * Auth settings of a profile as stored in the config file. Without `type`, a `username` selects
- * Basic auth; OAuth needs `type: "oauth"` (it is never implied), a stored bearer token `type:
- * "bearer"`. `passwordEnv` / `clientSecretEnv` / `tokenEnv` name environment variables holding the
- * secret; a literal `password` / `clientSecret` / `token` is possible but discouraged. A profile
- * never mixes the keys of Basic auth, OAuth and bearer tokens.
+ * Basic auth, a stored bearer token needs `type: "bearer"`. `passwordEnv` / `tokenEnv` name
+ * environment variables holding the secret; a literal `password` / `token` is possible but
+ * discouraged. A profile never mixes the keys of Basic auth and bearer tokens.
  */
 export interface ProfileAuth {
   readonly type?: AuthType
   readonly username?: string
   readonly passwordEnv?: string
   readonly password?: string
-  readonly issuer?: string
-  readonly authorizationEndpoint?: string
-  readonly tokenEndpoint?: string
-  readonly clientId?: string
-  readonly clientSecretEnv?: string
-  readonly clientSecret?: string
-  readonly scopes?: readonly string[]
-  readonly audience?: string
-  readonly redirectPort?: number
   readonly tokenEnv?: string
   readonly token?: string
 }
@@ -40,18 +30,6 @@ export const BASIC_AUTH_KEYS = [
   "username",
   "passwordEnv",
   "password",
-] as const satisfies readonly (keyof ProfileAuth)[]
-
-export const OAUTH_AUTH_KEYS = [
-  "issuer",
-  "authorizationEndpoint",
-  "tokenEndpoint",
-  "clientId",
-  "clientSecretEnv",
-  "clientSecret",
-  "scopes",
-  "audience",
-  "redirectPort",
 ] as const satisfies readonly (keyof ProfileAuth)[]
 
 /** Keys of a stored bearer token: the name of its variable, or the token itself. */
@@ -64,12 +42,8 @@ export const BEARER_AUTH_KEYS = [
 export const PROFILE_AUTH_KEYS = [
   "type",
   ...BASIC_AUTH_KEYS,
-  ...OAUTH_AUTH_KEYS,
   ...BEARER_AUTH_KEYS,
 ] as const satisfies readonly (keyof ProfileAuth)[]
-
-/** Scopes requested when neither PULSE_CLI_OAUTH_SCOPES nor the profile sets them. */
-export const DEFAULT_OAUTH_SCOPES = ["openid", "offline_access"] as const
 
 /** Basic auth credentials and where each value came from. */
 export interface BasicAuthConfig {
@@ -77,69 +51,6 @@ export interface BasicAuthConfig {
   readonly username: string
   readonly password: string
   readonly sources: { readonly username: Source; readonly password: Source }
-}
-
-/**
- * OAuth 2.0 authorization code flow with PKCE. The issuer is discovered unless both
- * endpoints are configured; without a client secret the client is public.
- */
-export interface OAuthConfig {
-  readonly type: "oauth"
-  readonly issuer?: string
-  /** Both endpoints or neither. */
-  readonly authorizationEndpoint?: string
-  readonly tokenEndpoint?: string
-  readonly clientId: string
-  /** Absent: public client. */
-  readonly clientSecret?: string
-  readonly scopes: readonly string[]
-  readonly audience?: string
-  readonly redirectPort: number
-  /** The selected profile. */
-  readonly profile?: string
-  /**
-   * The login of the selected profile: profiles with the same key share one cached
-   * login. Absent without a profile: the configuration from the environment has a login of its own.
-   */
-  readonly login?: LoginKey
-  /** The directory of the project file the profile comes from: a person logs in there. */
-  readonly projectDirectory?: string
-  /** The config file named by `--config` or PULSE_CLI_CONFIG the profile comes from. */
-  readonly configFile?: string
-  readonly sources: {
-    readonly endpoints: Source
-    readonly clientId: Source
-    readonly clientSecret?: Source
-    readonly scopes: Source
-    readonly audience?: Source
-    readonly redirectPort: Source
-  }
-}
-
-/**
- * What makes profiles share an OAuth login: where the profile comes from and the
- * OAuth settings it stores, before the environment applies. The resolved settings still decide
- * whether a cached login fits (issuer, client, audience and scopes, `identityOf`).
- */
-export interface LoginKey {
-  /**
-   * Where the profile comes from: `config:<path>` for the user's config file or the one named by
-   * `--config` / PULSE_CLI_CONFIG, `repository:<git directory>` for a project file in a repository
-   * (shared by its worktrees), `project:<path>` for a project file outside one.
-   */
-  readonly origin: string
-  /**
-   * A profile that stores no `type: "oauth"` (OAuth selected by PULSE_CLI_AUTH) has a login of its
-   * own: its name. Absent for OAuth profiles, which share by their settings.
-   */
-  readonly profile?: string
-  readonly issuer: string | null
-  /** The token endpoint of explicit endpoints; null with discovery. */
-  readonly tokenEndpoint: string | null
-  readonly clientId: string | null
-  readonly audience: string | null
-  /** Sorted and deduplicated; the default scopes when the profile stores none. */
-  readonly scopes: readonly string[]
 }
 
 /**
@@ -180,7 +91,7 @@ export interface CommandBearerConfig extends BearerBase {
 export type BearerAuthConfig = StaticBearerConfig | CommandBearerConfig
 
 /**
- * No credentials. `off` says why when Basic auth or OAuth was switched off or a password is set
+ * No credentials. `off` says why when Basic auth was switched off or a password is set
  * without a username (`Basic auth is switched off by PULSE_CLI_AUTH=none`), for the hint of a 401.
  */
 export interface NoAuthConfig {
@@ -188,13 +99,13 @@ export interface NoAuthConfig {
   readonly off?: string
 }
 
-/** The resolved authentication: none, Basic auth credentials, OAuth settings or a bearer token. */
-export type AuthConfig = NoAuthConfig | BasicAuthConfig | OAuthConfig | BearerAuthConfig
+/** The resolved authentication: none, Basic auth credentials or a bearer token. */
+export type AuthConfig = NoAuthConfig | BasicAuthConfig | BearerAuthConfig
 
 /**
  * A bearer token given by PULSE_CLI_TOKEN or `--auth-token-stdin`, or the token command of
  * PULSE_CLI_TOKEN_COMMAND (`command`), that the resolved auth type does not use (an explicit none,
- * basic or oauth); `config show` reports it. Never validated.
+ * or basic); `config show` reports it. Never validated.
  */
 export interface UnusedToken {
   readonly value: string
@@ -232,24 +143,19 @@ export const PROFILE_KEYS = [
 export type ProfileKey = (typeof PROFILE_KEYS)[number]
 
 /**
- * The profile a command uses: none, or a profile of the config file with its name, where it comes
- * from (`LoginKey.origin`) and, when it comes from there, the project file.
+ * The profile a command uses: none, or a profile of the config file with its name and, when it
+ * comes from there, the project file.
  */
 export type SelectedProfile =
   | {
       readonly name?: undefined
       readonly profile?: undefined
       readonly project?: undefined
-      readonly origin?: undefined
-      readonly configFile?: undefined
     }
   | {
       readonly name: string
       readonly profile: Profile
       readonly project?: ProjectSource
-      readonly origin?: string
-      /** The config file named by `--config` or PULSE_CLI_CONFIG, when the profile comes from it. */
-      readonly configFile?: string
     }
 
 export interface ConfigFile {
@@ -262,8 +168,6 @@ export interface ProjectSource {
   readonly path: string
   /** Its directory: commands below it share the cached token of PULSE_CLI_TOKEN_COMMAND. */
   readonly directory: string
-  /** Where its profiles come from (`LoginKey.origin`): its repository, else the file itself. */
-  readonly origin?: string
 }
 
 /**
@@ -273,10 +177,6 @@ export interface ProjectSource {
  * file that the user's file does not override). Never written to a file.
  */
 export interface LoadedConfig extends ConfigFile {
-  /** Where the profiles of the config file come from (`config:<path>`, `LoginKey.origin`). */
-  readonly origin?: string
-  /** The absolute path of the config file when `--config` or PULSE_CLI_CONFIG named it. */
-  readonly configFile?: string
   readonly project?: {
     readonly source: ProjectSource
     /** The profiles that come from the project file (the user's file does not override them). */
@@ -348,14 +248,6 @@ export const ENV = {
   auth: "PULSE_CLI_AUTH",
   username: "PULSE_CLI_USERNAME",
   password: "PULSE_CLI_PASSWORD",
-  oauthIssuer: "PULSE_CLI_OAUTH_ISSUER",
-  oauthAuthorizationEndpoint: "PULSE_CLI_OAUTH_AUTHORIZATION_ENDPOINT",
-  oauthTokenEndpoint: "PULSE_CLI_OAUTH_TOKEN_ENDPOINT",
-  oauthClientId: "PULSE_CLI_OAUTH_CLIENT_ID",
-  oauthClientSecret: "PULSE_CLI_OAUTH_CLIENT_SECRET",
-  oauthScopes: "PULSE_CLI_OAUTH_SCOPES",
-  oauthAudience: "PULSE_CLI_OAUTH_AUDIENCE",
-  oauthRedirectPort: "PULSE_CLI_OAUTH_REDIRECT_PORT",
   token: "PULSE_CLI_TOKEN",
   tokenCommand: "PULSE_CLI_TOKEN_COMMAND",
   headers: "PULSE_CLI_HEADERS",

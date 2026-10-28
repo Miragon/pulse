@@ -1,8 +1,7 @@
 /**
  * `pulse-cli config set` changes of a profile's auth object: the type,
  * the Basic auth username and password (stored as the name of an environment variable,
- * recommended, or literally), the OAuth settings (oauth-edit.ts) and the bearer token
- * (bearer-edit.ts). Only given values change; a passwordEnv replaces a stored password and the
+ * recommended, or literally) and the bearer token (bearer-edit.ts). Only given values change; a passwordEnv replaces a stored password and the
  * other way round. The options of one family (or its type) drop the stored keys of the other
  * families, and a profile never keeps credentials and an Authorization header together
  * (`settleAuthorization`).
@@ -14,8 +13,6 @@ import { hasBearerKeys } from "./bearer.js"
 import { type BearerChanges, changedBearerKeys, hasBearerOptions } from "./bearer-edit.js"
 import { configError } from "./config-error.js"
 import { hasAuthorization } from "./headers.js"
-import { hasOAuthKeys } from "./oauth.js"
-import { changedOAuthKeys, hasOAuthOptions, type OAuthChanges } from "./oauth-edit.js"
 import {
   type AuthType,
   BASIC_AUTH_KEYS,
@@ -25,7 +22,7 @@ import {
 } from "./types.js"
 import { PASSWORD_VARIABLE, validateVariableName } from "./variable.js"
 
-export interface AuthChanges extends OAuthChanges, BearerChanges {
+export interface AuthChanges extends BearerChanges {
   readonly auth?: string
   readonly authUser?: string
   readonly authPasswordEnv?: string
@@ -33,22 +30,20 @@ export interface AuthChanges extends OAuthChanges, BearerChanges {
 }
 
 /** The kinds of credentials a profile can store; one at a time. */
-export type Family = "basic" | "oauth" | "bearer"
+export type Family = "basic" | "bearer"
 type Secret = Pick<ProfileAuth, "password" | "passwordEnv">
 
-const FAMILIES: readonly Family[] = ["basic", "oauth", "bearer"]
+const FAMILIES: readonly Family[] = ["basic", "bearer"]
 
-/** How messages name the auth of a family (`OAuth replaces them`). */
+/** How messages name the auth of a family (`bearer auth replaces them`). */
 export const FAMILY_NAMES: Readonly<Record<Family, string>> = {
   basic: "Basic auth",
-  oauth: "OAuth",
   bearer: "bearer auth",
 }
 
 /** How messages name the options and settings of a family (`bearer token options`). */
 export const SETTING_NAMES: Readonly<Record<Family, string>> = {
   basic: "Basic auth",
-  oauth: "OAuth",
   bearer: "bearer token",
 }
 
@@ -60,7 +55,6 @@ function hasBasicOptions(changes: AuthChanges): boolean {
 
 const HAS_OPTIONS: Readonly<Record<Family, (changes: AuthChanges) => boolean>> = {
   basic: hasBasicOptions,
-  oauth: hasOAuthOptions,
   bearer: hasBearerOptions,
 }
 
@@ -69,7 +63,7 @@ function givenFamilies(changes: AuthChanges): Family[] {
   return FAMILIES.filter((family) => HAS_OPTIONS[family](changes))
 }
 
-/** True when any auth option (type, Basic auth, OAuth or bearer token) was given. */
+/** True when any auth option (type, Basic auth or bearer token) was given. */
 function hasAuthOptions(changes: AuthChanges): boolean {
   return changes.auth !== undefined || givenFamilies(changes).length > 0
 }
@@ -109,7 +103,7 @@ function checkFamilies(type: AuthType | undefined, families: readonly Family[]):
   if (families.length > 1) {
     throw configError(
       `${families.map((family) => SETTING_NAMES[family]).join(" options and ")} options exclude each other`,
-      "A profile uses Basic auth (--auth basic --auth-user <name> --auth-password-env <VAR>), OAuth (--auth oauth --oauth-issuer <url> --oauth-client-id <id>) or a bearer token (--auth bearer --auth-token-env <VAR>).",
+      "A profile uses Basic auth (--auth basic --auth-user <name> --auth-password-env <VAR>) or a bearer token (--auth bearer --auth-token-env <VAR>).",
     )
   }
   const [family] = families
@@ -121,14 +115,13 @@ function checkFamilies(type: AuthType | undefined, families: readonly Family[]):
 }
 
 /**
- * The stored type: `--auth` if given; else bearer token or OAuth options select their type; else
- * Basic auth options switch a profile stored with another type (none, oauth, bearer) to basic,
+ * The stored type: `--auth` if given; else bearer token options select their type; else Basic
+ * auth options switch a profile stored with another type (none, bearer) to basic,
  * which they are meant for.
  */
 function typeOf(existing: ProfileAuth | undefined, changes: AuthChanges): AuthType | undefined {
   if (changes.auth !== undefined) return validateAuthType(changes.auth.trim())
   if (hasBearerOptions(changes)) return "bearer"
-  if (hasOAuthOptions(changes)) return "oauth"
   const stored = existing?.type
   return hasBasicOptions(changes) && stored !== undefined && stored !== "basic" ? "basic" : stored
 }
@@ -153,7 +146,6 @@ export function changedAuth(
   const merged: ProfileAuth = {
     ...compact({ type }),
     ...(keeps("basic") ? basicKeys(existing, changes) : {}),
-    ...(keeps("oauth") ? changedOAuthKeys(existing, changes) : {}),
     ...(keeps("bearer") ? changedBearerKeys(existing, changes) : {}),
   }
   return compact(Object.fromEntries(PROFILE_AUTH_KEYS.map((key) => [key, merged[key]])))
@@ -165,7 +157,6 @@ function hasBasicKeys(auth: ProfileAuth | undefined): boolean {
 
 const HAS_KEYS: Readonly<Record<Family, (auth: ProfileAuth | undefined) => boolean>> = {
   basic: hasBasicKeys,
-  oauth: hasOAuthKeys,
   bearer: hasBearerKeys,
 }
 
@@ -199,7 +190,7 @@ export function usesBasicAuth(auth: ProfileAuth | undefined): boolean {
   return auth?.type === undefined ? auth?.username !== undefined : auth.type === "basic"
 }
 
-/** True when a stored profile sends credentials: Basic auth, OAuth or a bearer token. */
+/** True when a stored profile sends credentials: Basic auth or a bearer token. */
 export function usesCredentials(auth: ProfileAuth | undefined): boolean {
   return storedFamily(auth) !== undefined
 }
@@ -219,7 +210,7 @@ function withoutAuthorization(profile: Profile): Profile {
 }
 
 /**
- * Credentials (Basic auth, OAuth or a bearer token) and an Authorization header in one profile
+ * Credentials (Basic auth or a bearer token) and an Authorization header in one profile
  * would make every command fail. Auth options given without an Authorization header replace a
  * stored one (the upgrade path from `Authorization: Basic ...` or bearer token headers; the CLI
  * says so); every other combination is a CONFIG error. `--auth none` keeps a header and the

@@ -51,3 +51,15 @@ export function bearerUnsetKeys(key: string): readonly BearerKey[] | undefined {
   const bare = key.startsWith("auth.") ? key.slice("auth.".length) : key
   return (BEARER_UNSET_KEYS as readonly string[]).includes(bare) ? BEARER_UNSET_KEYS : undefined
 }
+
+/** The auth object without `keys`; undefined when nothing is left. */
+export function withoutAuthKeys(
+  auth: ProfileAuth | undefined,
+  keys: readonly (keyof ProfileAuth)[],
+): ProfileAuth | undefined {
+  if (auth === undefined) return undefined
+  const kept = Object.fromEntries(
+    Object.entries(auth).filter(([key]) => !(keys as readonly string[]).includes(key)),
+  )
+  return Object.keys(kept).length > 0 ? kept : undefined
+}

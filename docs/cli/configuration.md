@@ -26,12 +26,11 @@ meanings and variables: `pulse-cli ping --help`.
 | `PULSE_CLI_CONFIG`        | Config file location; the file must exist, and no project file is used                     |
 | `PULSE_CLI_OUTPUT`        | `json` or `table`                                                                          |
 | `PULSE_CLI_TIMEOUT`       | Request timeout in milliseconds                                                            |
-| `PULSE_CLI_AUTH`          | Authentication type: `none`, `basic`, `oauth` or `bearer`                                  |
+| `PULSE_CLI_AUTH`          | Authentication type: `none`, `basic` or `bearer`                                           |
 | `PULSE_CLI_USERNAME`      | Username for Basic auth                                                                    |
 | `PULSE_CLI_PASSWORD`      | Password for Basic auth                                                                    |
 | `PULSE_CLI_TOKEN`         | Bearer token obtained elsewhere, see [Bearer tokens](authentication.md#bearer-tokens)      |
 | `PULSE_CLI_TOKEN_COMMAND` | Command that prints a bearer token, see [Token commands](authentication.md#token-commands) |
-| `PULSE_CLI_OAUTH_*`       | OAuth settings, see [OAuth](authentication.md#oauth)                                       |
 | `PULSE_CLI_HEADERS`       | Extra headers `Name: value`, one per line, e.g. an API key                                 |
 | `PULSE_CLI_READ_ONLY`     | `1`/`true`/`yes`/`on` or `0`/`false`/`no`/`off`; anything else is an error                 |
 
@@ -61,11 +60,7 @@ pulse-cli validates every value and writes the file with mode `0600`; you can al
     "prod": {
       "url": "https://camunda.example.com/engine-rest",
       "cockpitUrl": "https://camunda.example.com/operaton/app/cockpit/default/",
-      "auth": {
-        "type": "oauth",
-        "issuer": "https://login.example.com/realms/camunda",
-        "clientId": "pulse-cli"
-      },
+      "auth": { "type": "bearer", "tokenEnv": "CAMUNDA_TOKEN" },
       "readOnly": true
     }
   }
@@ -110,8 +105,6 @@ pulse-cli config delete prod
 - `config set` creates or updates a profile; only the given values change. The first profile
   becomes the default, `config use` picks another, `--profile` or `PULSE_CLI_PROFILE` pick one per
   call.
-- Changing or removing a profile's OAuth settings removes the cached login of the old ones, unless
-  another profile shares it, see [shared logins](authentication.md#shared-logins).
 - `config show` accepts the global flags, so you can see what a combination resolves to.
 
 ## Project file
@@ -132,9 +125,8 @@ pulse-cli config path --project
 - A project file names engines, never credentials: passwords, secrets, tokens, their `*Env`
   variables and secret headers are refused. Credentials come from the environment
   (`PULSE_CLI_TOKEN`, [`PULSE_CLI_TOKEN_COMMAND`](authentication.md#token-commands),
-  `PULSE_CLI_PASSWORD`, `PULSE_CLI_OAUTH_CLIENT_SECRET`), an OAuth login
-  ([shared logins](authentication.md#shared-logins)) or a profile of the same name in your file.
+  `PULSE_CLI_PASSWORD`) or a profile of the same name in your file.
 - `config set|unset|use|delete --project` write the project file (mode `0644`).
   `config list` shows each profile's `scope` (`user` or `project`).
 - Treat a project file like code: it decides where your credentials from the environment and its
-  profiles' OAuth login are sent.
+  profiles are sent.

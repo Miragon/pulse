@@ -171,7 +171,6 @@ describe("the core guide (pulse-cli guide)", () => {
       "Read `hint` first",
       "HTTP_REDIRECT",
       "engineMessage",
-      "LOGIN_REQUIRED",
       "LOGIN_FAILED",
       "TOKEN_EXPIRED",
       "--yes",
@@ -196,11 +195,11 @@ describe("the topics (pulse-cli guide <topic>)", () => {
     expect(findGuideTopic("core")).toBeUndefined()
   })
 
-  it("auth: agents never log in themselves", () => {
+  it("auth: single sign-on runs through a token command", () => {
     expectAll(topicText("auth"), [
-      "never runs `auth login` itself",
-      "LOGIN_REQUIRED",
-      "do not ask for a new login",
+      "has no login of its own",
+      "PULSE_CLI_TOKEN_COMMAND",
+      "LOGIN_FAILED",
       "TOKEN_EXPIRED",
     ])
   })
@@ -223,7 +222,7 @@ describe("all guide pages together", () => {
     for (const name of named) expect(findGuideTopic(name), name).toBeDefined()
   })
 
-  it("know that Basic auth and OAuth are built in", () => {
+  it("know that Basic auth and bearer tokens are built in", () => {
     // no workaround header and no links to their issues (or to any other issue)
     expect(ALL).not.toMatch(/github\.com\/Miragon\/[\w.-]+\/issues\//)
     expect(ALL).not.toContain("planned")

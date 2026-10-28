@@ -30,6 +30,7 @@ export function runCommand(command: string, options: CommandOptions): Promise<Co
   return new Promise((resolve, reject) => {
     const child = spawn(command, {
       shell: true,
+      env: { ...process.env, ...options.env },
       stdio: ["ignore", "pipe", "pipe"],
       windowsHide: true,
     })

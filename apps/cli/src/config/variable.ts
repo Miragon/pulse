@@ -1,8 +1,7 @@
 /**
  * The names of the environment variables that hold secrets: the Basic
- * auth password (`--auth-password-env`, auth.passwordEnv), the OAuth client secret
- * (`--oauth-client-secret-env`, auth.clientSecretEnv) and the bearer token (`--auth-token-env`,
- * auth.tokenEnv). Many secrets are valid variable names (GitHub's `ghp_...`, passwords without
+ * auth password (`--auth-password-env`, auth.passwordEnv) and the bearer token
+ * (`--auth-token-env`, auth.tokenEnv). Many secrets are valid variable names (GitHub's `ghp_...`, passwords without
  * special characters), so a secret typed in place of the name must not be repeated: messages name
  * a variable only in the usual form, and `config set` refuses an unset name in another form
  * before anything is stored.
@@ -32,14 +31,6 @@ export const PASSWORD_VARIABLE: SecretVariable = {
   noun: "password",
   placeholder: "<password>",
   example: "CAMUNDA_PASSWORD",
-}
-
-export const CLIENT_SECRET_VARIABLE: SecretVariable = {
-  flag: "--oauth-client-secret-env",
-  key: "clientSecretEnv",
-  noun: "client secret",
-  placeholder: "<secret>",
-  example: "PULSE_CLI_CLIENT_SECRET",
 }
 
 export const TOKEN_VARIABLE: SecretVariable = {
@@ -113,7 +104,6 @@ export function checkVariableName(name: string, env: Env, variable: SecretVariab
 /** The `--*-env` options of `config set`, by the name of their change. */
 const OPTIONS = [
   ["authPasswordEnv", PASSWORD_VARIABLE],
-  ["oauthClientSecretEnv", CLIENT_SECRET_VARIABLE],
   ["authTokenEnv", TOKEN_VARIABLE],
 ] as const
 
@@ -144,7 +134,7 @@ export function unsetVariableWarnings(names: VariableNames, env: Env): string[] 
 }
 
 /**
- * The CONFIG error for the variable `name` that auth.passwordEnv (clientSecretEnv, tokenEnv) of
+ * The CONFIG error for the variable `name` that auth.passwordEnv (tokenEnv) of
  * `profile` names, when it is not set or empty. The name is repeated only in the usual form: an
  * unusual one may be the secret itself, stored by mistake.
  */

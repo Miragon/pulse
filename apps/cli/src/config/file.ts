@@ -74,7 +74,7 @@ export function configFilePath(env: Env, location: Location, explicit?: string):
 }
 
 /**
- * The OAuth token cache directory: $XDG_CONFIG_HOME/pulse-cli/tokens >
+ * The token cache directory of PULSE_CLI_TOKEN_COMMAND: $XDG_CONFIG_HOME/pulse-cli/tokens >
  * ~/.config/pulse-cli/tokens; on Windows %APPDATA%\pulse-cli\tokens. Never next to a config file
  * named by `--config` or PULSE_CLI_CONFIG: a project-local (possibly committed) config file must not
  * get token files beside it.

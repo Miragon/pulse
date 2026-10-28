@@ -1,8 +1,7 @@
 /**
  * `--auth-password-stdin`: the Basic auth password is the first line of stdin, so it never shows
  * up in the shell history or the process list. pulse-cli never prompts for it. `--auth-token-stdin`
- * reads a bearer token and `config set --oauth-client-secret-stdin` an OAuth client secret the
- * same way.
+ * reads a bearer token the same way.
  */
 
 import { usageError } from "../errors.js"

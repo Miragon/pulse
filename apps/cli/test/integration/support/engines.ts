@@ -108,7 +108,7 @@ export function isEngineEnabled(name: EngineName, env: NodeJS.ProcessEnv = proce
 export interface StartOptions {
   /** Protect the REST API with HTTP Basic authentication ({@link EngineDefinition.basicAuthEnv}). */
   readonly basicAuth?: boolean
-  /** A Docker network to join (the OAuth topology puts a gateway in front of the engine). */
+  /** A Docker network to join (the gateway topology puts a gateway in front of the engine). */
   readonly network?: StartedNetwork
   /** Host name of the engine inside {@link network}. */
   readonly alias?: string

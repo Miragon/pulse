@@ -1,16 +1,11 @@
-/**
- * How `pulse-cli auth login|status|logout` print: the view as JSON or KEY VALUE
- * rows on stdout, and lines on stderr with control characters replaced on a terminal.
- */
+/** How `pulse-cli auth status` prints: the view as JSON or KEY VALUE rows on stdout. */
 
 import { renderValue } from "../../output/render.js"
-import { terminalSafe } from "../../output/terminal.js"
-import type { OutputStream, Runtime } from "../../runtime.js"
+import type { Runtime } from "../../runtime.js"
 import type { Display } from "../display.js"
 import { maxWidthOf } from "../output-format.js"
 import type { Session } from "../session.js"
 import type { BearerStatusView } from "./auth-bearer.js"
-import { type LoginView, type LogoutView, viewRows } from "./auth-view.js"
 
 export type Format = Pick<Display, "format" | "pretty" | "maxWidth">
 
@@ -18,22 +13,15 @@ export function withWidth(session: Session, runtime: Runtime): Format {
   return { ...session, maxWidth: maxWidthOf(runtime) }
 }
 
-export function printView(
-  view: LoginView | LogoutView | BearerStatusView,
-  display: Format,
-  runtime: Runtime,
-): void {
-  const value = display.format === "json" ? view : viewRows(view)
-  runtime.stdout.write(renderValue(value, display))
+/** Rows of the table format: KEY VALUE; lists space-joined, null empty. */
+export function viewRows(view: object): Record<string, unknown>[] {
+  return Object.entries(view).map(([key, value]: [string, unknown]) => ({
+    KEY: key,
+    VALUE: Array.isArray(value) ? value.join(" ") : (value ?? ""),
+  }))
 }
 
-/** stderr with control characters replaced on a terminal (the user name comes from the AS). */
-export function safeStderr(runtime: Runtime): OutputStream {
-  const { stderr } = runtime
-  return {
-    isTTY: stderr.isTTY,
-    write: (chunk) => {
-      stderr.write(typeof chunk === "string" && stderr.isTTY ? terminalSafe(chunk) : chunk)
-    },
-  }
+export function printView(view: BearerStatusView, display: Format, runtime: Runtime): void {
+  const value = display.format === "json" ? view : viewRows(view)
+  runtime.stdout.write(renderValue(value, display))
 }

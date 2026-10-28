@@ -1,6 +1,7 @@
 /**
  * Authentication seam. Every request passes through `headers()`; providers that can refresh
- * credentials (OAuth) return true from `refresh()` after a 401 so the client retries once.
+ * credentials (a token command) return true from `refresh()` after a 401 so the client retries
+ * once.
  */
 
 /** What `--dry-run` shows of a provider: the headers known without network access, and a note. */
@@ -16,12 +17,12 @@ export interface AuthProvider {
   refresh?(): Promise<boolean>
   /**
    * The headers `headers()` would add, for `--dry-run` previews, without network access, without
-   * a refresh and without a lock (Basic: the header; OAuth: the cached token and a note).
+   * a refresh and without a lock (Basic: the header; a token command: the cached token, else a note).
    */
   preview?(): Promise<AuthPreview>
   /**
    * Whose credentials are sent and where they came from, for hints and `ping`; never secrets.
-   * OAuth knows it once the token cache was read.
+   * A token command knows it once it printed the token.
    */
   readonly principal?: Principal | undefined
   /**
@@ -32,20 +33,14 @@ export interface AuthProvider {
   /**
    * The hint of a 401 or 403 answer to a request that carried this provider's credentials;
    * undefined keeps the generic hint (Basic keeps the principal text for 401 and the generic 403
-   * text). OAuth answers both: a JWT gateway answers 403 for a wrong audience and 401 for a
+   * text). Bearer auth answers both: a JWT gateway answers 403 for a wrong audience and 401 for a
    * missing, invalid, expired or foreign-issuer token.
    */
   rejectedHint?(status: number): string | undefined
   /**
-   * Appended to the hint of a 401 or 403 (and by `withAuthNote` to LOGIN_REQUIRED and the dry-run
-   * note): a bearer token that is set but not used by this provider's auth type.
+   * Appended to the hint of a 401 or 403 (and by `withAuthNote` to the dry-run note): a bearer token that is set but not used by this provider's auth type.
    */
   readonly note?: string
-  /**
-   * The command that shows whether the login is usable, for the hint of a redirect (OAuth:
-   * `pulse-cli auth status --profile p`).
-   */
-  readonly loginStatusCommand?: string
 }
 
 export interface Principal {

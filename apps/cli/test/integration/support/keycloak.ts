@@ -37,9 +37,6 @@ export const CLIENTS = {
 export const CLIENT_SECRET = "it-client-secret"
 export const CI_CLIENT_SECRET = "it-ci-secret"
 
-/** The admin of the master realm (`KC_BOOTSTRAP_ADMIN_*` of the container). */
-const ADMIN: Credentials = { username: "admin", password: "admin" }
-
 /** A timeout for every request to Keycloak or to the CLI's loopback server. */
 const REQUEST_TIMEOUT_MS = 60_000
 
@@ -180,54 +177,12 @@ function tokenRequest(issuer: string, form: Readonly<Record<string, string>>): P
   return postForm(endpointsOf(issuer).token, form)
 }
 
-/** Refreshes with a public client's refresh token, as an uncoordinated second process would. */
-export function refreshRequest(
-  issuer: string,
-  clientId: string,
-  refreshToken: string,
-): Promise<JsonAnswer> {
-  return tokenRequest(issuer, {
-    grant_type: "refresh_token",
-    refresh_token: refreshToken,
-    client_id: clientId,
-  })
-}
-
 function requireString(answer: JsonAnswer, key: string, what: string): string {
   const value = answer.body[key]
   if (answer.status !== 200 || typeof value !== "string") {
     throw new Error(`${what} failed: HTTP ${answer.status} ${JSON.stringify(answer.body)}`)
   }
   return value
-}
-
-async function adminRequest(keycloakUrl: string, token: string, path: string, method = "GET") {
-  const response = await fetch(`${keycloakUrl}/admin/realms/pulse${path}`, {
-    method,
-    headers: { authorization: `Bearer ${token}` },
-    signal: signal(),
-  })
-  if (!response.ok) throw new Error(`${method} ${path} failed: HTTP ${response.status}`)
-  const text = await response.text()
-  return text === "" ? undefined : (JSON.parse(text) as unknown)
-}
-
-/**
- * Ends every online session of the user, like an administrator in the admin console. Offline
- * sessions (`offline_access`) survive it.
- */
-export async function adminLogout(keycloakUrl: string, username: string): Promise<void> {
-  const admin = await postForm(`${keycloakUrl}/realms/master/protocol/openid-connect/token`, {
-    grant_type: "password",
-    client_id: "admin-cli",
-    ...ADMIN,
-  })
-  const token = requireString(admin, "access_token", "The admin login")
-  const query = `/users?username=${encodeURIComponent(username)}&exact=true`
-  const users = (await adminRequest(keycloakUrl, token, query)) as readonly { id: string }[]
-  const [user] = users
-  if (user === undefined) throw new Error(`Keycloak has no user ${username}`)
-  await adminRequest(keycloakUrl, token, `/users/${user.id}/logout`, "POST")
 }
 
 /**

@@ -1,5 +1,5 @@
 /**
- * Reading and forging JSON Web Tokens in the OAuth and bearer token tests. Nothing here checks a
+ * Reading and forging JSON Web Tokens in the bearer token tests. Nothing here checks a
  * signature: pulse-cli reads the claims of a bearer token only to explain it (expiry, subject,
  * issuer, audience), and the gateway is what rejects a forged one.
  */

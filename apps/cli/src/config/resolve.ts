@@ -10,7 +10,6 @@ import { configError } from "./config-error.js"
 import { redactUrl } from "./redact.js"
 import { resolveHeaders } from "./headers.js"
 import { type Env, nonEmpty, pick } from "./pick.js"
-import { originOf } from "./login-key.js"
 import { authorizationConflict, resolveAuth } from "./resolve-auth.js"
 import {
   type ConfigFlags,
@@ -86,10 +85,7 @@ function projectOf(file: LoadedConfig | undefined, name: string): ProjectSource 
   return file?.project?.profiles.includes(name) === true ? file.project.source : undefined
 }
 
-/**
- * The selected profile, where it comes from and, when it comes from there, the
- * project file.
- */
+/** The selected profile and, when it comes from there, the project file. */
 export function selectProfile(
   flags: ConfigFlags,
   env: Env,
@@ -102,9 +98,7 @@ export function selectProfile(
     throw missingProfileError(selected.name, file, selected.origin)
   }
   const project = projectOf(file, selected.name)
-  const origin = originOf(file, selected.name)
-  const configFile = project === undefined ? file.configFile : undefined
-  return { name: selected.name, profile, ...compact({ project, origin, configFile }) }
+  return { name: selected.name, profile, ...compact({ project }) }
 }
 
 function parseUrl(url: string): URL {
@@ -247,7 +241,7 @@ function pickAll(flags: ConfigFlags, env: Env, profile: Profile | undefined) {
   }
 }
 
-/** How the configuration is used: `authCommand` for `pulse-cli auth login|status|logout`. */
+/** How the configuration is used: `authCommand` for `pulse-cli auth status`. */
 export interface ResolveOptions {
   readonly authCommand?: boolean
 }

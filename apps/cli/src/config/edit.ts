@@ -6,15 +6,14 @@
 
 import { compact, mergeHeaders } from "../util.js"
 import { changedAuth, settleAuthorization } from "./auth-edit.js"
-import { type BearerChanges, BEARER_UNSET_KEYS, bearerUnsetKeys } from "./bearer-edit.js"
+import {
+  type BearerChanges,
+  BEARER_UNSET_KEYS,
+  bearerUnsetKeys,
+  withoutAuthKeys,
+} from "./bearer-edit.js"
 import { configError } from "./config-error.js"
 import { parseHeaders } from "./headers.js"
-import {
-  type OAuthChanges,
-  OAUTH_UNSET_KEYS,
-  oauthUnsetKeys,
-  withoutAuthKeys,
-} from "./oauth-edit.js"
 import { PROFILE_NAME } from "./syntax.js"
 import {
   findProfile,
@@ -30,22 +29,20 @@ import {
   type AuthConfig,
   type ConfigFile,
   type LoadedConfig,
-  type OAuthConfig,
   type OutputFormat,
   PROFILE_KEYS,
   type Profile,
-  type ProfileAuth,
   type ProfileKey,
   type ResolvedConfig,
   type Source,
 } from "./types.js"
 
-export interface ProfileChanges extends OAuthChanges, BearerChanges {
+export interface ProfileChanges extends BearerChanges {
   readonly url?: string
   readonly cockpitUrl?: string
   readonly engine?: string
   readonly flavor?: string
-  /** Auth type: none, basic, oauth or bearer. */
+  /** Auth type: none, basic or bearer. */
   readonly auth?: string
   /** Basic auth username. */
   readonly authUser?: string
@@ -81,18 +78,6 @@ interface ConfigValue<T> {
   readonly source: Source
 }
 
-/** The OAuth rows of `config show`, only for auth type oauth. */
-interface OAuthValues {
-  readonly issuer: ConfigValue<string | null>
-  readonly authorizationEndpoint: ConfigValue<string | null>
-  readonly tokenEndpoint: ConfigValue<string | null>
-  readonly clientId: ConfigValue<string>
-  readonly clientSecret: ConfigValue<string | null>
-  readonly scopes: ConfigValue<readonly string[]>
-  readonly audience: ConfigValue<string | null>
-  readonly redirectPort: ConfigValue<number>
-}
-
 /**
  * The `token` row of `config show`: the bearer token of type bearer, or a token that is set but
  * not used by the resolved type (`unused` says why). The `tokenCommand` row: the command of
@@ -104,9 +89,8 @@ interface TokenValue extends ConfigValue<string> {
 
 /**
  * Output of `pulse-cli config show`: every effective value with its source (`auth` is the type,
- * `username` and `password` the Basic auth credentials, the OAuth settings only for type oauth,
- * `token` or `tokenCommand` for type bearer or an unused one). Header values, the password, the
- * client secret and the token are not masked here; the CLI masks them unless --show-secrets is
+ * `username` and `password` the Basic auth credentials, `token` or `tokenCommand` for type bearer
+ * or an unused one). Header values, the password and the token are not masked here; the CLI masks them unless --show-secrets is
  * given. A token command is no secret: it is shown as it is.
  */
 export interface ConfigView {
@@ -124,14 +108,14 @@ export interface ConfigView {
     readonly auth: ConfigValue<string>
     readonly username: ConfigValue<string | null>
     readonly password: ConfigValue<string | null>
-  } & Partial<OAuthValues> & {
-      readonly token?: TokenValue
-      readonly tokenCommand?: TokenValue
-      readonly output: ConfigValue<OutputFormat | null>
-      readonly timeout: ConfigValue<number>
-      readonly headers: ConfigValue<Readonly<Record<string, string>>>
-      readonly readOnly: ConfigValue<boolean>
-    }
+  } & {
+    readonly token?: TokenValue
+    readonly tokenCommand?: TokenValue
+    readonly output: ConfigValue<OutputFormat | null>
+    readonly timeout: ConfigValue<number>
+    readonly headers: ConfigValue<Readonly<Record<string, string>>>
+    readonly readOnly: ConfigValue<boolean>
+  }
 }
 
 /** Accepted spellings for `config unset` besides the profile keys themselves. */
@@ -226,20 +210,15 @@ function profileKey(key: string): ProfileKey {
   if (known === undefined) {
     throw configError(
       `Unknown profile key "${key}"`,
-      `Valid keys: ${PROFILE_KEYS.join(", ")}; OAuth settings: ${OAUTH_UNSET_KEYS.join(", ")}; bearer token: ${BEARER_UNSET_KEYS.join(", ")}.`,
+      `Valid keys: ${PROFILE_KEYS.join(", ")}; bearer token: ${BEARER_UNSET_KEYS.join(", ")}.`,
     )
   }
   return known
 }
 
-/** The keys of the auth object an unset key name removes: OAuth settings or the bearer token. */
-function authUnsetKeys(key: string): readonly (keyof ProfileAuth)[] | undefined {
-  return oauthUnsetKeys(key) ?? bearerUnsetKeys(key)
-}
-
 /**
- * Removes keys from a profile: profile keys, or single OAuth settings or the bearer token of its
- * auth object (`audience`, `clientSecret`, `token`, ...; `auth` removes all auth settings).
+ * Removes keys from a profile: profile keys, or the bearer token of its auth object (`token`,
+ * `tokenEnv`; `auth` removes all auth settings).
  * Unknown key names fail; keys the profile does not set are ignored.
  */
 export function unsetProfileKeys(
@@ -249,8 +228,8 @@ export function unsetProfileKeys(
 ): ConfigFile {
   const current = file ?? EMPTY
   const profile = requireProfile(current, name)
-  const authKeys = keys.flatMap((key) => authUnsetKeys(key) ?? [])
-  const plain = keys.filter((key) => authUnsetKeys(key) === undefined)
+  const authKeys = keys.flatMap((key) => bearerUnsetKeys(key) ?? [])
+  const plain = keys.filter((key) => bearerUnsetKeys(key) === undefined)
   const removed = new Set<string>(plain.map(profileKey))
   const { auth, ...kept }: Profile = Object.fromEntries(
     Object.entries(profile).filter(([key]) => !removed.has(key)),
@@ -306,21 +285,6 @@ function optionalValue<T>(value: T | undefined, source: Source | undefined): Con
   return value === undefined || source === undefined ? NOT_SET : { value, source }
 }
 
-/** The OAuth rows of `config show`; endpoints that are not set are null with source default. */
-function oauthValues(oauth: OAuthConfig): OAuthValues {
-  const { sources } = oauth
-  return {
-    issuer: optionalValue(oauth.issuer, sources.endpoints),
-    authorizationEndpoint: optionalValue(oauth.authorizationEndpoint, sources.endpoints),
-    tokenEndpoint: optionalValue(oauth.tokenEndpoint, sources.endpoints),
-    clientId: { value: oauth.clientId, source: sources.clientId },
-    clientSecret: optionalValue(oauth.clientSecret, sources.clientSecret),
-    scopes: { value: oauth.scopes, source: sources.scopes },
-    audience: optionalValue(oauth.audience, sources.audience),
-    redirectPort: { value: oauth.redirectPort, source: sources.redirectPort },
-  }
-}
-
 /**
  * The `token` (or `tokenCommand`) row: the bearer token or its command, or one the resolved type
  * leaves unused.
@@ -340,11 +304,7 @@ function tokenValue(resolved: ResolvedConfig): { token?: TokenValue; tokenComman
 
 function credentialValues(auth: AuthConfig) {
   if (auth.type !== "basic") {
-    return {
-      username: NOT_SET,
-      password: NOT_SET,
-      ...(auth.type === "oauth" ? oauthValues(auth) : {}),
-    }
+    return { username: NOT_SET, password: NOT_SET }
   }
   return {
     username: { value: auth.username, source: auth.sources.username },

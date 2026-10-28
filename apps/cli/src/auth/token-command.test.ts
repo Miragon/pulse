@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { fakeRuntime, type FakeRuntimeOptions } from "../../test/support/fake-runtime.js"
-import { authDeps } from "../../test/support/oauth.js"
+import { authDeps } from "../../test/support/auth-deps.js"
 import type { CommandBearerConfig } from "../config/types.js"
 import { PulseCliError } from "../errors.js"
 import type { TraceEvent } from "../http/types.js"
@@ -32,7 +32,13 @@ describe("runTokenCommand", () => {
     const result = await runWith({ commands: { stdout: "abc.def\nignored\n" } })
     expect(result.token).toBe("abc.def")
     expect(result.runtime.commandRuns).toStrictEqual([
-      { command: "./token.sh dev", options: { timeoutMs: 30_000 } },
+      {
+        command: "./token.sh dev",
+        options: {
+          timeoutMs: 30_000,
+          env: { PULSE_CLI_TOKEN_URL: "http://localhost:8080/engine-rest" },
+        },
+      },
     ])
     // without a line break the whole output is the line
     expect((await runWith({ commands: { stdout: "abc.def" } })).token).toBe("abc.def")

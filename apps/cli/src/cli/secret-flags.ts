@@ -2,10 +2,10 @@
  * Mistyped auth flags in commander errors. Secrets are never flags, so
  * the most likely mistakes (`--auth-password=...`, `--auth-password-stdin <password>`,
  * `--auth-token=<token>`) must not echo them on stderr, into CI logs and agent transcripts. The
- * flag names proposed in issues #1 and #2 point to the `--auth-*` / `--oauth-*` flags they became.
+ * flag names proposed in issues #1 and #2 point to the `--auth-*` flags they became.
  */
 
-/** Flag names that were renamed to the `--auth-*` / `--oauth-*` flags, or are guessed for them. */
+/** Flag names that were renamed to the `--auth-*` flags, or are guessed for them. */
 const AUTH_FLAGS: Readonly<Record<string, string>> = {
   "--username": "--auth-user",
   "--user": "--auth-user",
@@ -14,12 +14,6 @@ const AUTH_FLAGS: Readonly<Record<string, string>> = {
   "--password-env": "--auth-password-env",
   "--auth-password-file": "--auth-password-stdin",
   "--auth-type": "--auth",
-  "--issuer": "--oauth-issuer",
-  "--client-id": "--oauth-client-id",
-  "--client-secret": "--oauth-client-secret-env",
-  "--oauth-client-secret": "--oauth-client-secret-env",
-  "--scope": "--oauth-scopes",
-  "--scopes": "--oauth-scopes",
   "--auth-token": "--auth-token-stdin",
   "--token-stdin": "--auth-token-stdin",
   "--auth-token-file": "--auth-token-stdin",
@@ -30,7 +24,7 @@ const AUTH_FLAGS: Readonly<Record<string, string>> = {
 const SECRET_NAME = /password|passwd|pwd|secret|token|-pass(?:$|-)/i
 
 const SECRET_HINT =
-  "Secrets are never flag values: pipe the password into --auth-password-stdin, or set PULSE_CLI_PASSWORD (a profile stores the name of a variable: config set --auth-password-env <VAR>); pass a bearer token with PULSE_CLI_TOKEN or --auth-token-stdin; an OAuth token comes from `pulse-cli auth login`. "
+  "Secrets are never flag values: pipe the password into --auth-password-stdin, or set PULSE_CLI_PASSWORD (a profile stores the name of a variable: config set --auth-password-env <VAR>); pass a bearer token with PULSE_CLI_TOKEN or --auth-token-stdin, or let PULSE_CLI_TOKEN_COMMAND print one. "
 
 /** The stdin flags, and what an extra argument next to them most likely is. */
 const STDIN_HINTS: readonly (readonly [flag: string, hint: string])[] = [

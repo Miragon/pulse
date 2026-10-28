@@ -73,8 +73,8 @@ export interface CliOptions {
 
 export type Cli = (args: readonly string[], options?: CliOptions) => Promise<CliResult>
 
-/** A CLI run that is still going: stderr can be watched (e.g. for the login URL) while it runs. */
-export interface RunningCli {
+/** A CLI run that is still going: stderr can be watched while it runs. */
+interface RunningCli {
   readonly command: string
   /** Everything the CLI wrote to stderr so far. */
   stderr(): string
@@ -85,8 +85,6 @@ export interface RunningCli {
   /** Kills the CLI (SIGKILL). */
   kill(): void
 }
-
-export type StartCli = (args: readonly string[], options?: CliOptions) => RunningCli
 
 /** Fails with an actionable message when the CLI bundle has not been built. */
 export function assertCliBuilt(): void {
@@ -185,9 +183,4 @@ function mergeOptions(defaults: CliOptions, options: CliOptions): CliOptions {
 /** A {@link runCli} with suite defaults (engine URL, config file); per-call options win. */
 export function bindCli(defaults: CliOptions): Cli {
   return (args, options = {}) => runCli(args, mergeOptions(defaults, options))
-}
-
-/** A {@link startCli} with suite defaults, like {@link bindCli}. */
-export function bindStartCli(defaults: CliOptions): StartCli {
-  return (args, options = {}) => startCli(args, mergeOptions(defaults, options))
 }

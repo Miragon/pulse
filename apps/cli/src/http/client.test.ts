@@ -167,7 +167,7 @@ describe("send", () => {
 
     it("propagates an error of refresh() instead of the 401", async () => {
       const { fetch, calls } = fakeFetch(json(401))
-      const failure = new PulseCliError("LOGIN_REQUIRED", "revoked")
+      const failure = new PulseCliError("LOGIN_FAILED", "the token command failed")
       const refresh = vi.fn(() => Promise.reject(failure))
       await expect(send(REQUEST, options(fetch, { auth: { ...noAuth(), refresh } }))).rejects.toBe(
         failure,

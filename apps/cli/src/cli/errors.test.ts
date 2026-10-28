@@ -126,7 +126,7 @@ describe("commanderUsageError", () => {
     root.addCommand(auth)
     auth.option("--auth <type>").option("--auth-user <name>").option("--auth-password-stdin")
     const secret =
-      "Secrets are never flag values: pipe the password into --auth-password-stdin, or set PULSE_CLI_PASSWORD (a profile stores the name of a variable: config set --auth-password-env <VAR>); pass a bearer token with PULSE_CLI_TOKEN or --auth-token-stdin; an OAuth token comes from `pulse-cli auth login`. "
+      "Secrets are never flag values: pipe the password into --auth-password-stdin, or set PULSE_CLI_PASSWORD (a profile stores the name of a variable: config set --auth-password-env <VAR>); pass a bearer token with PULSE_CLI_TOKEN or --auth-token-stdin, or let PULSE_CLI_TOKEN_COMMAND print one. "
     const help = 'Run "pulse-cli ping --help" for the usage.'
     const unknown = (flag: string) =>
       commanderUsageError(

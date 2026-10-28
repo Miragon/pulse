@@ -4,7 +4,9 @@
  * stdout is the token (a leading `Bearer ` is dropped, the rest must be an RFC 6750 b64token). A
  * command that cannot start, fails, times out or prints no token is LOGIN_FAILED (exit 4) and
  * quotes the end of its stderr. Messages never show the token, nor the command line (it may
- * contain a secret; `pulse-cli config show` prints it).
+ * contain a secret; `pulse-cli config show` prints it). The command learns the engine it serves
+ * from PULSE_CLI_TOKEN_URL and PULSE_CLI_TOKEN_PROFILE, so one script can pick the login per
+ * engine.
  */
 
 import { normalizeToken } from "../config/bearer.js"
@@ -12,10 +14,25 @@ import type { CommandBearerConfig } from "../config/types.js"
 import { PulseCliError } from "../errors.js"
 import type { CommandResult, Runtime } from "../runtime.js"
 import { isRecord } from "../util.js"
-import type { OAuthDeps } from "./oauth/types.js"
+import type { TraceEvent } from "../http/types.js"
 
-/** What running a token command needs: the shell, the clock, the timeout and `--verbose`. */
-export interface CommandDeps extends Pick<OAuthDeps, "now" | "timeoutMs" | "trace"> {
+/** The engine a token is for: its REST API root and the selected profile, if any. */
+export interface TokenTarget {
+  readonly url: string
+  readonly profile?: string | undefined
+}
+
+/**
+ * What running a token command needs: the shell, the clock, the timeout, the engine the token is
+ * for and `--verbose`.
+ */
+export interface CommandDeps {
+  readonly target: TokenTarget
+  readonly now: () => number
+  /** The resolved `--timeout`: bounds the command. */
+  readonly timeoutMs: number
+  /** `--verbose`: traces where the token came from. */
+  readonly trace?: (event: TraceEvent) => void
   readonly runCommand: Runtime["runCommand"]
 }
 
@@ -73,6 +90,12 @@ function tokenOf(config: CommandBearerConfig, stdout: Uint8Array): string {
   }
 }
 
+/** PULSE_CLI_TOKEN_URL and, with a profile, PULSE_CLI_TOKEN_PROFILE for the command. */
+function targetEnv(target: TokenTarget): Readonly<Record<string, string>> {
+  const url = { PULSE_CLI_TOKEN_URL: target.url }
+  return target.profile === undefined ? url : { ...url, PULSE_CLI_TOKEN_PROFILE: target.profile }
+}
+
 /** Runs the command and returns its token. Traces the run with `--verbose`, never the token. */
 export async function runTokenCommand(
   config: CommandBearerConfig,
@@ -81,7 +104,10 @@ export async function runTokenCommand(
   deps.trace?.({ type: "note", message: `Running the bearer token command of ${config.origin}.` })
   let result: CommandResult
   try {
-    result = await deps.runCommand(config.command, { timeoutMs: deps.timeoutMs })
+    result = await deps.runCommand(config.command, {
+      timeoutMs: deps.timeoutMs,
+      env: targetEnv(deps.target),
+    })
   } catch (error) {
     throw loginFailed(config, `could not be started (${reasonOf(error)})`)
   }

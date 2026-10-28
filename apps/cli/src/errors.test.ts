@@ -12,7 +12,6 @@ const DOCUMENTED: Readonly<Record<ErrorCode, number>> = {
   HTTP_REDIRECT: 3,
   UNAUTHORIZED: 4,
   FORBIDDEN: 4,
-  LOGIN_REQUIRED: 4,
   LOGIN_FAILED: 4,
   TOKEN_EXPIRED: 4,
   NOT_FOUND: 5,

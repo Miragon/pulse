@@ -3,8 +3,9 @@
  * `command-<hash>.json` of the token directory (mode 0600, written atomically), so later and
  * parallel commands do not run the command again: a token is reused until 60 s before its `exp`,
  * at most half of its lifetime (short-lived dev realm tokens of 60 s are reused for 30 s). The hash
- * covers the command line and the scope: the directory of the project file in effect, else the
- * working directory, so `./token.sh` of two repositories never shares a token. Opaque tokens and
+ * covers the command line, the scope (the directory of the project file in effect, else the
+ * working directory, so `./token.sh` of two repositories never shares a token) and the engine URL,
+ * so engines with different logins never share one either. Opaque tokens and
  * JWTs without `exp` are never cached. A cache file that cannot be read or written is ignored: the
  * command runs again.
  */
@@ -12,8 +13,8 @@
 import { normalizeToken } from "../config/bearer.js"
 import { isRecord, sha256Hex } from "../util.js"
 import { jwtClaims } from "./jwt.js"
-import { refreshMargin } from "./oauth/expiry.js"
-import type { OAuthDeps } from "./oauth/types.js"
+import type { FileSystem } from "../runtime.js"
+import type { TokenTarget } from "./token-command.js"
 
 /** A token the command printed, with its expiry (epoch ms; null when unknown). */
 export interface CommandToken {
@@ -24,8 +25,21 @@ export interface CommandToken {
 }
 
 /** The token directory, and the scope whose commands share a cached token. */
-export interface CommandCacheDeps extends Pick<OAuthDeps, "fs" | "tokenDir" | "tokenPath"> {
+export interface CommandCacheDeps {
+  readonly fs: FileSystem
+  /** The token cache directory (`tokenDirectory`). */
+  readonly tokenDir: string
+  /** A file of the token directory (`tokenPath` bound to the directory and platform). */
+  readonly tokenPath: (fileName: string) => string
   readonly scope: string
+  readonly target: TokenTarget
+}
+
+const REFRESH_MARGIN_MS = 60_000
+
+/** min(60 s, lifetime / 2); a non-positive lifetime has no margin. */
+function refreshMargin(expiresAt: number, received: number): number {
+  return Math.min(REFRESH_MARGIN_MS, Math.max(0, expiresAt - received) / 2)
 }
 
 /** A token printed at `fetchedAt`; its expiry is the `exp` claim of a JWT. */
@@ -33,9 +47,11 @@ export function commandEntry(token: string, fetchedAt: number): CommandToken {
   return { token, expiresAt: jwtClaims(token)?.expiresAt ?? null, fetchedAt }
 }
 
-/** The cache file of a command: `command-<first 32 hex chars of SHA-256([line, scope])>.json`. */
+/**
+ * The cache file of a command: `command-<first 32 hex chars of SHA-256([line, scope, url])>.json`.
+ */
 export async function commandCachePath(command: string, deps: CommandCacheDeps): Promise<string> {
-  const hash = await sha256Hex(JSON.stringify([command, deps.scope]))
+  const hash = await sha256Hex(JSON.stringify([command, deps.scope, deps.target.url]))
   return deps.tokenPath(`command-${hash.slice(0, 32)}.json`)
 }
 

@@ -122,7 +122,6 @@ describe("parseProjectFile", () => {
       profiles: {
         a: { url: "http://h/engine-rest", auth: { type: "bearer" } },
         b: { auth: { username: "demo" }, headers: { "X-Tenant-Id": "acme" } },
-        c: { auth: { type: "oauth", issuer: "https://idp.example", clientId: "c" } },
       },
     })
     expect(parseProjectFile(text, path).defaultProfile).toBe("a")
@@ -131,16 +130,6 @@ describe("parseProjectFile", () => {
   it.each([
     [{ username: "u", password: "S3cr3t-pw" }, "password", "PULSE_CLI_PASSWORD"],
     [{ username: "u", passwordEnv: "S3cr3t_VAR" }, "passwordEnv", "PULSE_CLI_PASSWORD"],
-    [
-      { type: "oauth", clientId: "c", clientSecret: "S3cr3t-cs" },
-      "clientSecret",
-      "PULSE_CLI_OAUTH_CLIENT_SECRET",
-    ],
-    [
-      { type: "oauth", clientId: "c", clientSecretEnv: "S3cr3t_VAR" },
-      "clientSecretEnv",
-      "PULSE_CLI_OAUTH_CLIENT_SECRET",
-    ],
     [{ type: "bearer", token: "S3cr3t-tk" }, "token", "PULSE_CLI_TOKEN or PULSE_CLI_TOKEN_COMMAND"],
     [
       { type: "bearer", tokenEnv: "S3cr3t_VAR" },

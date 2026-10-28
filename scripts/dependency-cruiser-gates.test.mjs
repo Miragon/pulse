@@ -99,7 +99,6 @@ const CLI_OPERATION_PATH = "cli-operation-only-path-builtin"
 const CLI_DOCS = "cli-docs-only-catalog-errors-util"
 const CLI_AUTH = "cli-auth-allowed-imports"
 const CLI_CONFIG_AUTH = "cli-config-not-to-auth"
-const CLI_LOGIN = "cli-interactive-login-only-from-auth-command"
 const CLI_WORKFLOW_DEPS = "cli-workflow-not-to-cli-config-auth-bin"
 const CLI_WORKFLOW_USERS = "cli-workflow-only-from-command-layer"
 const CLI_API_ENGINE = "cli-api-only-workflow-engine"
@@ -136,7 +135,6 @@ const LEAVES = [
   `${CLI}/src/api/other/target.ts`,
   `${CLI}/src/engines/b/target.ts`,
   `${CLI}/src/auth/target.ts`,
-  `${CLI}/src/auth/oauth/login.ts`,
   `${CLI}/src/config/target.ts`,
   `${CLI}/src/catalog/target.ts`,
   `${CLI}/src/catalog/types.ts`,
@@ -444,15 +442,6 @@ const SUITES = [
     cases: [
       [`${CLI}/src/config/to-auth.ts`, "../auth/target.ts", [CLI_CONFIG_AUTH]],
       [`${CLI}/src/config/auth.test.ts`, "../auth/target.ts", []],
-    ],
-  },
-  {
-    rule: CLI_LOGIN,
-    title: "only the auth command starts an interactive login",
-    cases: [
-      [`${CLI}/src/cli/commands/ping.ts`, "../../auth/oauth/login.ts", [CLI_LOGIN]],
-      [`${CLI}/src/cli/commands/auth.ts`, "../../auth/oauth/login.ts", []],
-      [`${CLI}/src/cli/login.test.ts`, "../auth/oauth/login.ts", []],
     ],
   },
   {

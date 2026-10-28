@@ -89,7 +89,7 @@ On a terminal the answer is a table, as above; an agent or a script gets JSON.
 | Administer the engine          | `user`, `group`, `tenant`, `authorization`, `metrics`, `history-cleanup` |
 | Call any other REST operation  | `<group> <command>`, e.g. `filter list`; `api` for raw requests          |
 | Ask the CLI itself             | `guide`, `commands`, `describe`, `--help`                                |
-| Set up engines and logins      | `config`, `auth`, `ping`                                                 |
+| Set up engines and credentials | `config`, `auth`, `ping`                                                 |
 
 The six top-level commands (`inspect`, `wait`, `advance`, `retry`, `deploy`, `status`) combine
 several requests; every other command is one operation of the REST API.
@@ -136,7 +136,7 @@ built from the pages in [`docs/cli/`](https://github.com/Miragon/pulse/tree/main
 - [Command structure](https://miragon.github.io/pulse/cli/commands): names, arguments, variables, request bodies, files, dates
 - [Output and errors](https://miragon.github.io/pulse/cli/output-and-errors): formats, previews, error fields, exit codes
 - [Configuration](https://miragon.github.io/pulse/cli/configuration): options, environment variables, config and project files, profiles
-- [Authentication](https://miragon.github.io/pulse/cli/authentication): Basic auth, OAuth logins, bearer tokens, token commands, other headers
+- [Authentication](https://miragon.github.io/pulse/cli/authentication): Basic auth, bearer tokens, token commands, single sign-on, other headers
 - [Safety](https://miragon.github.io/pulse/cli/safety): previews, confirmation, read-only mode
 - [Recipes](https://miragon.github.io/pulse/cli/recipes): command lines for everyday tasks
 - [Using pulse-cli from AI agents](https://miragon.github.io/pulse/cli/agents): the guide, the Claude Code plugin and skill

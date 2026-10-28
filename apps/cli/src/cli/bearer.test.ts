@@ -128,27 +128,20 @@ describe("a rejected bearer token", () => {
 })
 
 describe("a bearer token that the auth type does not use", () => {
-  const sso = {
+  const files = {
     [CONFIG_PATH]: profiles({
-      p: { auth: { type: "oauth", issuer: "https://login.example.com/realms/x", clientId: "cli" } },
       b: { auth: { type: "basic", username: "demo", passwordEnv: "PW" } },
     }),
   }
-  const note =
-    'A bearer token is set (from PULSE_CLI_TOKEN) but not used: OAuth is selected by the auth.type of profile "p"; send it with --auth bearer or PULSE_CLI_AUTH=bearer.'
 
-  it("is named by the LOGIN_REQUIRED hint and the 401 hint, and sent with --auth bearer", async () => {
+  it("is named by the 401 hint, and sent with --auth bearer", async () => {
     const env = { PULSE_CLI_TOKEN: JWT, PW: "pw" }
-    const result = await cli(["task", "list"], { files: sso, env })
-    expect(result.code).toBe(4)
-    expect(errorOf(result.stderr).code).toBe("LOGIN_REQUIRED")
-    expect(String(errorOf(result.stderr).hint).endsWith(` ${note}`)).toBe(true)
-    const rejected = await cli(["task", "list", "--profile", "b"], { files: sso, env }, 401)
+    const rejected = await cli(["task", "list", "--profile", "b"], { files, env }, 401)
     expect(errorOf(rejected.stderr).hint).toContain(
       'A bearer token is set (from PULSE_CLI_TOKEN) but not used: Basic auth is selected by the auth.type of profile "b"',
     )
-    const sent = await cli(["task", "list", "--auth", "bearer"], { files: sso, env })
+    const sent = await cli(["task", "list", "--profile", "b", "--auth", "bearer"], { files, env })
     expect(sent.requests[0]?.headers.authorization).toBe(`Bearer ${JWT}`)
-    for (const output of [result, rejected]) expect(output.stderr).not.toContain(JWT)
+    expect(rejected.stderr).not.toContain(JWT)
   })
 })

@@ -120,15 +120,12 @@ describe("profileAuthProblem with bearer keys", () => {
     )
   })
 
-  it("refuses bearer keys next to Basic auth or OAuth keys", () => {
+  it("refuses bearer keys next to Basic auth keys", () => {
     expect(profileAuthProblem("p", { username: "u", tokenEnv: "X" })).toBe(
       'profile "p" mixes bearer token keys (tokenEnv) and Basic auth keys (username); keep one',
     )
     expect(profileAuthProblem("p", { type: "bearer", username: "u", token: "t" })).toBe(
       'profile "p" mixes bearer token keys (token) and Basic auth keys (username); keep one',
-    )
-    expect(profileAuthProblem("p", { type: "oauth", clientId: "c", token: "t" })).toBe(
-      'profile "p" mixes bearer token keys (token) and OAuth keys (clientId); keep one',
     )
   })
 
@@ -139,19 +136,13 @@ describe("profileAuthProblem with bearer keys", () => {
     expect(profileAuthProblem("p", { type: "basic", token: "t" })).toBe(
       'profile "p" has bearer token keys (token) but its auth.type is basic; set "type": "bearer"',
     )
-    expect(profileAuthProblem("p", { type: "oauth", token: "t" })).toBe(
-      'profile "p" has bearer token keys (token) but its auth.type is oauth; set "type": "bearer"',
-    )
     // unknown types are left to resolution, which names the supported ones
     expect(profileAuthProblem("p", { type: "digest", token: "t" })).toBeUndefined()
   })
 
-  it("names the type rule of the other families for type bearer", () => {
+  it("names the type rule of Basic auth for type bearer", () => {
     expect(profileAuthProblem("p", { type: "bearer", username: "u" })).toBe(
       'profile "p" has Basic auth keys (username) but its auth.type is bearer; set "type": "basic"',
-    )
-    expect(profileAuthProblem("p", { type: "bearer", issuer: "https://x" })).toBe(
-      'profile "p" has OAuth keys (issuer) but its auth.type is bearer; set "type": "oauth"',
     )
   })
 })

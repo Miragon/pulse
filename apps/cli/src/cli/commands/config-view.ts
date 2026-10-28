@@ -8,10 +8,10 @@ import { mayBeSecret } from "../../config/variable.js"
 import { MASK, maskHeaders } from "../../output/secrets.js"
 
 /** The keys that name the variable of a secret. */
-const VARIABLE_KEYS = ["passwordEnv", "clientSecretEnv", "tokenEnv"] as const
+const VARIABLE_KEYS = ["passwordEnv", "tokenEnv"] as const
 
 /**
- * The stored auth object with the password, the client secret and the token masked, and the name
+ * The stored auth object with the password and the token masked, and the name
  * of a secret's variable when it may be the secret itself (`mayBeSecret`: a hand-edited file).
  */
 function maskedAuth(auth: ProfileAuth, env: Env): ProfileAuth {
@@ -22,15 +22,14 @@ function maskedAuth(auth: ProfileAuth, env: Env): ProfileAuth {
   return {
     ...auth,
     ...(auth.password === undefined ? {} : { password: MASK }),
-    ...(auth.clientSecret === undefined ? {} : { clientSecret: MASK }),
     ...(auth.token === undefined ? {} : { token: MASK }),
     ...Object.fromEntries(secretNames.map((key) => [key, MASK])),
   }
 }
 
 /**
- * A stored profile with its name and default flag; header values, the password, the client
- * secret and the bearer token masked, as well as a variable name that may be a secret (`env` is
+ * A stored profile with its name and default flag; header values, the password and the bearer
+ * token masked, as well as a variable name that may be a secret (`env` is
  * the environment of the command).
  */
 export function profileView(file: ConfigFile, name: string, env: Env): Record<string, unknown> {
@@ -46,17 +45,16 @@ function masked<T>(entry: { value: T | null; source: Source }, show: boolean) {
 }
 
 /**
- * The `config show` view with header values, the password, the client secret and the bearer
- * token masked unless `showSecrets`.
+ * The `config show` view with header values, the password and the bearer token masked unless
+ * `showSecrets`.
  */
 export function maskedView(view: ConfigView, showSecrets: boolean): ConfigView {
-  const { headers, password, clientSecret, token } = view.values
+  const { headers, password, token } = view.values
   return {
     ...view,
     values: {
       ...view.values,
       password: masked(password, showSecrets),
-      ...(clientSecret === undefined ? {} : { clientSecret: masked(clientSecret, showSecrets) }),
       ...(token === undefined
         ? {}
         : { token: { ...token, value: showSecrets ? token.value : MASK } }),
@@ -65,7 +63,7 @@ export function maskedView(view: ConfigView, showSecrets: boolean): ConfigView {
   }
 }
 
-/** A VALUE cell: lists (scopes) space-joined; an unused token says why it is not used. */
+/** A VALUE cell: lists space-joined; an unused token says why it is not used. */
 function cell(entry: { readonly value: unknown; readonly unused?: string }): unknown {
   if (entry.unused !== undefined) return `${String(entry.value)} (unused: ${entry.unused})`
   return Array.isArray(entry.value) ? entry.value.join(" ") : entry.value

@@ -1,7 +1,7 @@
 /**
  * Sends a prepared request and decodes the response; HTTP error statuses become PulseCliErrors
  * whose hints name `ref`, the command that sent the request, when given, the user whose Basic
- * auth credentials were sent, or the auth provider's own hint for a rejected token (OAuth).
+ * auth credentials were sent, or the auth provider's own hint for a rejected token (bearer auth).
  */
 
 import { type ClientOptions, send } from "../http/client.js"
@@ -28,7 +28,7 @@ export async function sendRequest(
     throw httpError(response, failed, ref)
   }
   if (response.status >= 300) {
-    throw redirectError(response, { ...request, loginStatusCommand: auth.loginStatusCommand })
+    throw redirectError(response, request)
   }
   return decodeResponse(response, previewRequest(request))
 }

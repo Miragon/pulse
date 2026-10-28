@@ -40,7 +40,7 @@ describe("pulse-cli config with a bearer token", () => {
     )
   })
 
-  it("names the replaced Basic auth, OAuth and header settings", async () => {
+  it("names the replaced Basic auth and header settings", async () => {
     const files = {
       [CONFIG_PATH]: profiles({ p: { auth: { type: "basic", username: "u", passwordEnv: "PW" } } }),
     }
@@ -50,13 +50,6 @@ describe("pulse-cli config with a bearer token", () => {
     })
     expect(replaced.stderr).toBe(
       "Notice: removed the Basic auth settings of the profile; bearer auth replaces them.\n",
-    )
-    const oauth = {
-      [CONFIG_PATH]: profiles({ p: { auth: { type: "oauth", clientId: "c" } } }),
-    }
-    const fromOAuth = await cli(["config", "set", "p", "--auth", "bearer"], { files: oauth })
-    expect(fromOAuth.stderr).toBe(
-      "Notice: removed the OAuth settings of the profile; bearer auth replaces them.\n",
     )
     const header = {
       [CONFIG_PATH]: profiles({ p: { headers: { Authorization: "Bearer x" } } }),
@@ -174,7 +167,7 @@ describe("mistyped bearer flags", () => {
       expect(result.code).toBe(3)
       expect(errorOf(result.stderr)).toMatchObject({
         code: "CONFIG",
-        message: "Unsupported auth type (not one of none, basic, oauth, bearer)",
+        message: "Unsupported auth type (not one of none, basic, bearer)",
       })
       expect(errorOf(result.stderr).hint).toContain(
         "A bearer token itself goes into PULSE_CLI_TOKEN or --auth-token-stdin",

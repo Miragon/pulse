@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { jwtWith, NOW_S, VALID_CLAIMS } from "../../test/support/bearer.js"
 import { fakeRuntime } from "../../test/support/fake-runtime.js"
-import { authDeps } from "../../test/support/oauth.js"
+import { authDeps } from "../../test/support/auth-deps.js"
 import type { StaticBearerConfig } from "../config/types.js"
 import { PulseCliError } from "../errors.js"
 import { compact } from "../util.js"

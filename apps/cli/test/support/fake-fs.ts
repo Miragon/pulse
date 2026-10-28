@@ -1,6 +1,6 @@
 /**
  * The in-memory file system of the fake runtime (fake-runtime.ts): files, directories and other
- * entries, Node.js style errors and the owners of the entries.
+ * entries and Node.js style errors.
  */
 
 import type { DirectoryEntry, FileSystem, PathKind } from "../../src/runtime.js"
@@ -8,14 +8,6 @@ import type { DirectoryEntry, FileSystem, PathKind } from "../../src/runtime.js"
 export interface StoredFile {
   readonly data: Uint8Array
   readonly mode?: number
-}
-
-/** How the file system treats owners and names (the same options of `FakeRuntimeOptions`). */
-export interface FsOptions {
-  /** Paths another user owns (`ownedByUser` is false for them, and for missing paths). */
-  readonly foreign?: readonly string[]
-  /** The file system has no owners, like on Windows (`ownedByUser` is absent). */
-  readonly noOwners?: boolean
 }
 
 const encoder = new TextEncoder()
@@ -101,13 +93,4 @@ export function fakeFileSystem(tree: FakeTree): FileSystem {
     },
     kind: (path) => Promise.resolve(pathKind(tree, path)),
   }
-}
-
-/** The owners of the fake file system: none with `noOwners`, else the user's but `foreign`. */
-export function withOwners(fs: FileSystem, tree: FakeTree, options: FsOptions): FileSystem {
-  if (options.noOwners === true) return fs
-  const foreign = new Set<string>(options.foreign ?? [])
-  const ownedByUser = (path: string) =>
-    Promise.resolve(pathKind(tree, path) !== "missing" && !foreign.has(path))
-  return { ...fs, ownedByUser }
 }

@@ -102,7 +102,7 @@ function errorCode(error: unknown): string | undefined {
 }
 
 /** Most specific explanation of a failure: the system code, else the most specific message. */
-export function failureDetail(error: unknown): string | undefined {
+function failureDetail(error: unknown): string | undefined {
   const cause = isRecord(error) ? error.cause : undefined
   const message = stringProperty(cause, "message") ?? stringProperty(error, "message")
   return errorCode(error) ?? (message === GENERIC_FETCH_MESSAGE ? undefined : message)

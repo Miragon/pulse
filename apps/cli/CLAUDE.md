@@ -35,15 +35,15 @@ cruises `apps/cli/src`, `pnpm lint:architecture:cli` its `scripts/` and `test/`.
 | `apps/cli/src/docs/`        | The guide, `describe`, examples: the texts agents read                    |
 | `apps/cli/src/catalog/`     | Catalog access (`loadCatalog`), schemas, body validation                  |
 | `apps/cli/src/config/`      | Config resolution, profiles, project files                                |
-| `apps/cli/src/auth/`        | Auth providers: Basic, bearer, token commands, OAuth                      |
+| `apps/cli/src/auth/`        | Auth providers: Basic, bearer, token commands                             |
 | `apps/cli/src/http/`        | The fetch client and the mapping of HTTP errors                           |
 | `apps/cli/src/output/`      | JSON, tables, field projection, errors, secret masking                    |
 | `apps/cli/scripts/`         | The catalog generator (`renderCatalog`), the executable build             |
 | `apps/cli/test/`            | Fakes for the unit tests (`apps/cli/test/support/`) and the engine suites |
 
 No cycle, a type-only one included. The pure layers import no Node built-in (WebCrypto and the
-timers are globals). Only the `auth login` command reaches the interactive login (loopback
-server, browser), so no other command can ever wait for a person. The CLI imports no workspace
+timers are globals). pulse-cli has no login of its own: single sign-on runs through a token
+command, so no command can ever wait for a person. The CLI imports no workspace
 package and nothing of the MCP or UI stack.
 
 ## Budgets
@@ -69,7 +69,7 @@ no `generate` script, so turbo's cached `generate` task never replays a stale ca
   only the tests of `apps/cli/src/bin/` touch the real system. Every CLI line of a `sh` block in `apps/cli/README.md` and `docs/cli/` runs
   against a fake engine (`DOC_PAGES`): a documented command line that fails is a failing test.
 - The Testcontainers suites (`test:engines`, Docker, build first) run the built CLI against the
-  three engines, with Basic auth, behind Keycloak and an Envoy gateway, and pack the tarball.
+  three engines, with Basic auth, with bearer tokens from Keycloak behind an Envoy gateway, and pack the tarball.
 - `apps/cli/stryker.config.json` mutates the logic layers and the catalog generator (break 92).
   It runs in place, because the tests read `docs/cli/` and `release-please-config.json` from the
   repository root: leave the tree alone during a run. The mutate list only grows.

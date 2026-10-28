@@ -45,7 +45,7 @@ describe("secretHint", () => {
   it("is given for names that ask for a secret only", () => {
     for (const name of ["--password", "--PASSWD", "--pwd", "--client-secret", "--token"]) {
       expect(secretHint(name)).toMatch(
-        /^Secrets are never flag values: .* PULSE_CLI_TOKEN or --auth-token-stdin; an OAuth token comes from `pulse-cli auth login`\. $/,
+        /^Secrets are never flag values: .* PULSE_CLI_TOKEN or --auth-token-stdin, or let PULSE_CLI_TOKEN_COMMAND print one\. $/,
       )
     }
     for (const name of ["--pass", "--pass-word", "--auth-pass"]) {

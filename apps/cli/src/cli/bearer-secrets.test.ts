@@ -96,8 +96,6 @@ function scenarios(token: string): Scenario[] {
     { args: ["task", "list", "--verbose"], env, status: "down" },
     { args: ["auth", "status"], env },
     { args: ["auth", "status", "-o", "table"], files: literal },
-    { args: ["auth", "login"], env },
-    { args: ["auth", "logout"], files: literal },
     // errors: a header next to the token, a username next to it, two stdin readers
     { args: ["task", "list", "-H", "Authorization: Bearer x"], env },
     { args: ["task", "list", "--auth-user", "demo"], env },
@@ -126,12 +124,7 @@ function scenarios(token: string): Scenario[] {
     { args: ["task", "list"], files: stored({ type: token }) },
     // a token given as the name of its variable
     { args: ["config", "set", "p", "--auth", "bearer", "--auth-token-env", token] },
-    // a token next to a type that does not use it: the hints name it, never show it
-    {
-      args: ["task", "list"],
-      env,
-      files: stored({ type: "oauth", issuer: ISSUER, clientId: "c" }),
-    },
+    // a token next to a type that does not use it: the hint names it, never shows it
     {
       args: ["task", "list", "--verbose"],
       env: { ...env, PW: "pw" },
@@ -140,8 +133,6 @@ function scenarios(token: string): Scenario[] {
     },
   ]
 }
-
-const ISSUER = "https://login.example.com/realms/x"
 
 const signatures = fc
   .string({
@@ -177,12 +168,12 @@ describe("bearer token secrets", () => {
       codes.push((await outcome(scenario)).code)
     }
     // config show x7, config set x2, config list, dry-runs x5, ping x2, verbose, 401 x2, 403,
-    // network, auth status x2, auth login/logout, header conflict, username conflict, two
-    // stdin readers x2, invalid tokens x4, mistyped flags x7, misplaced tokens x4, token as the
-    // type x3, token as the variable name, unused token: LOGIN_REQUIRED, 401
+    // network, auth status x2, header conflict, username conflict, two stdin readers x2,
+    // invalid tokens x4, mistyped flags x7, misplaced tokens x4, token as the type x3, token as
+    // the variable name, unused token: 401
     expect(codes).toEqual([
-      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 4, 4, 8, 0, 0, 2, 2, 3, 3, 2, 2, 3,
-      3, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 4, 4, 8, 0, 0, 3, 3, 2, 2, 3, 3, 3,
+      3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 4,
     ])
   })
 

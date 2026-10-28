@@ -1,16 +1,13 @@
 import { describe, expect, it } from "vitest"
-import { PulseCliError } from "../errors.js"
 import { withAuthNote } from "./note.js"
 import type { AuthProvider, Principal } from "./types.js"
 
 const NOTE = "A bearer token is set (from PULSE_CLI_TOKEN) but not used."
 
-/** A provider like the OAuth one: a class with a getter and methods that use `this`. */
-class FakeOAuth implements AuthProvider {
-  readonly type = "oauth"
-  readonly loginStatusCommand = "pulse-cli auth status"
+/** A provider like the token command one: a class with a getter and methods that use `this`. */
+class FakeCommand implements AuthProvider {
+  readonly type = "bearer"
   user: string | undefined
-  constructor(private readonly failure: PulseCliError | undefined) {}
 
   get principal(): Principal | undefined {
     return this.user === undefined ? undefined : { user: this.user, source: "login" }
@@ -18,17 +15,15 @@ class FakeOAuth implements AuthProvider {
 
   headers() {
     this.user = "alice"
-    return this.failure === undefined
-      ? Promise.resolve({ Authorization: "Bearer t" })
-      : Promise.reject(this.failure)
+    return Promise.resolve({ Authorization: "Bearer t" })
   }
 
   refresh() {
-    return this.failure === undefined ? Promise.resolve(true) : Promise.reject(this.failure)
+    return Promise.resolve(true)
   }
 
   preview() {
-    return Promise.resolve({ headers: {}, note: "Not logged in." })
+    return Promise.resolve({ headers: {}, note: "The command runs when the request is sent." })
   }
 
   rejectedHint(status: number) {
@@ -36,42 +31,30 @@ class FakeOAuth implements AuthProvider {
   }
 }
 
-const loginRequired = new PulseCliError("LOGIN_REQUIRED", "Not logged in", { hint: "Log in." })
-
 describe("withAuthNote", () => {
   it("returns the provider itself without a note", () => {
-    const provider = new FakeOAuth(undefined)
+    const provider = new FakeCommand()
     expect(withAuthNote(provider, undefined)).toBe(provider)
   })
 
-  it("appends the note to LOGIN_REQUIRED and the dry-run note, and exposes it", async () => {
-    const noted = withAuthNote(new FakeOAuth(loginRequired), NOTE)
+  it("appends the note to the dry-run note and exposes it", async () => {
+    const noted = withAuthNote(new FakeCommand(), NOTE)
     expect(noted.note).toBe(NOTE)
-    await expect(noted.headers()).rejects.toMatchObject({
-      code: "LOGIN_REQUIRED",
-      message: "Not logged in",
-      details: { hint: `Log in. ${NOTE}` },
-    })
-    await expect(noted.refresh?.()).rejects.toMatchObject({ details: { hint: `Log in. ${NOTE}` } })
     await expect(noted.preview?.()).resolves.toEqual({
       headers: {},
-      note: `Not logged in. ${NOTE}`,
+      note: `The command runs when the request is sent. ${NOTE}`,
     })
-    const bare = withAuthNote(new FakeOAuth(new PulseCliError("LOGIN_REQUIRED", "x")), NOTE)
-    await expect(bare.headers()).rejects.toMatchObject({ details: { hint: NOTE } })
   })
 
-  it("keeps other failures, getters and methods of the provider as they are", async () => {
-    const other = new PulseCliError("NETWORK", "down")
-    await expect(withAuthNote(new FakeOAuth(other), NOTE).headers()).rejects.toBe(other)
-    const provider = new FakeOAuth(undefined)
+  it("keeps getters and methods of the provider as they are", async () => {
+    const provider = new FakeCommand()
     const noted = withAuthNote(provider, NOTE)
     expect(noted.principal).toBeUndefined()
     await expect(noted.headers()).resolves.toEqual({ Authorization: "Bearer t" })
     expect(noted.principal).toEqual({ user: "alice", source: "login" })
     await expect(noted.refresh?.()).resolves.toBe(true)
-    expect(noted.rejectedHint?.(401)).toBe("oauth 401")
-    expect(noted).toMatchObject({ type: "oauth", loginStatusCommand: "pulse-cli auth status" })
+    expect(noted.rejectedHint?.(401)).toBe("bearer 401")
+    expect(noted).toMatchObject({ type: "bearer" })
   })
 
   it("adds no method the provider lacks and keeps a preview without a note", async () => {

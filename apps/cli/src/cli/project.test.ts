@@ -15,15 +15,10 @@ import {
   type FakeRuntimeOptions,
   fileText,
 } from "../../test/support/fake-runtime.js"
-import { ISSUER } from "../../test/support/fake-idp.js"
-import { loginFile, loginKey } from "../../test/support/oauth.js"
 import { run } from "./run.js"
 
 const REPO = "/home/tester/repo"
 const PROJECT = `${REPO}/.pulse-cli.json`
-/** The login of an OAuth profile of the user's config file and of one of the repository. */
-const OWN_LOGIN = loginFile()
-const REPO_LOGIN = loginFile(loginKey({ origin: `repository:${REPO}/.git` }))
 
 function runtimeOf(options: FakeRuntimeOptions = {}): FakeRuntime {
   const server = fakeServer()
@@ -230,7 +225,7 @@ describe("config set|unset|use|delete --project", () => {
       `The project file ${PROJECT} cannot be written: profile "p" sets auth.token; a project file is shared and names no credentials, so it comes from PULSE_CLI_TOKEN or PULSE_CLI_TOKEN_COMMAND or a profile "p" of your own config file`,
     )
     expect(errorOf(token.stderr).hint).toBe(
-      "Credentials come from the environment (PULSE_CLI_TOKEN, PULSE_CLI_TOKEN_COMMAND, PULSE_CLI_PASSWORD, PULSE_CLI_OAUTH_CLIENT_SECRET) or from a profile of the same name in your own config file. Remove it from the project file, e.g. with `pulse-cli config unset <profile> auth --project` (`headers` for a secret header), and a committed secret from the history of your repository, too.",
+      "Credentials come from the environment (PULSE_CLI_TOKEN, PULSE_CLI_TOKEN_COMMAND, PULSE_CLI_PASSWORD) or from a profile of the same name in your own config file. Remove it from the project file, e.g. with `pulse-cli config unset <profile> auth --project` (`headers` for a secret header), and a committed secret from the history of your repository, too.",
     )
     const variable = await sequence(runtime, [
       "config",
@@ -341,29 +336,5 @@ describe("config set|unset|use|delete --project", () => {
     expect((await sequence(runtime, ["config", "use", "svc", "--project"])).code).toBe(0)
     expect(JSON.parse(fileText(runtime, PROJECT) ?? "")).toMatchObject({ defaultProfile: "svc" })
     expect((await sequence(runtime, ["task", "list"])).code).toBe(0)
-  })
-
-  it("keeps the logins of a project profile and a profile of the same name of yours apart, and the repository login on delete", async () => {
-    const auth = { type: "oauth", issuer: ISSUER, clientId: "pulse-cli" }
-    const files = {
-      [PROJECT]: json5({
-        profiles: { shared: { url: "http://project-shared/engine-rest", auth } },
-      }),
-      [CONFIG_PATH]: json5({
-        profiles: { shared: { url: "http://user-shared/engine-rest", auth } },
-      }),
-      [OWN_LOGIN]: "{}",
-      [REPO_LOGIN]: "{}",
-    }
-    const runtime = runtimeOf({ files })
-    const project = await sequence(runtime, ["config", "delete", "shared", "--project"])
-    expect(project.stderr).toBe(
-      `Deleted profile "shared" from ${PROJECT}\nNotice: kept the OAuth login of profile "shared" (${REPO_LOGIN}): other worktrees and project files of the repository may still use it. It was not revoked; delete the file once none does.\n`,
-    )
-    expect(runtime.files.has(REPO_LOGIN)).toBe(true)
-    expect(runtime.files.has(OWN_LOGIN)).toBe(true)
-    const user = await sequence(runtime, ["config", "delete", "shared"])
-    expect(user.stderr).toContain(`Removed the OAuth login of profile "shared" (${OWN_LOGIN})`)
-    expect(runtime.files.has(OWN_LOGIN)).toBe(false)
   })
 })

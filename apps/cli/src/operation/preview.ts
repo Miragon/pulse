@@ -29,8 +29,8 @@ export function previewRequest(request: HttpRequest): RequestPreview {
 
 /**
  * The `--dry-run` result: the request with the auth headers the provider knows without network
- * access, refresh or lock (Basic, a cached OAuth token), plus the provider's note (e.g. "not
- * logged in"). The output layer masks the headers unless --show-secrets.
+ * access (Basic, a cached token of the token command), plus the provider's note (e.g. that the
+ * token command runs only when the request is sent). The output layer masks the headers unless --show-secrets.
  */
 export async function dryRunPreview(
   request: HttpRequest,

@@ -22,7 +22,6 @@ export type ErrorCode =
   | "VALIDATION"
   | "UNAUTHORIZED"
   | "FORBIDDEN"
-  | "LOGIN_REQUIRED"
   | "LOGIN_FAILED"
   | "TOKEN_EXPIRED"
   | "NOT_FOUND"
@@ -46,8 +45,7 @@ const EXIT_CODE_BY_ERROR: Readonly<Record<ErrorCode, number>> = {
   VALIDATION: EXIT_CODES.usage,
   UNAUTHORIZED: EXIT_CODES.auth,
   FORBIDDEN: EXIT_CODES.auth,
-  // a person must run `pulse-cli auth login` (agents cannot), or that login failed
-  LOGIN_REQUIRED: EXIT_CODES.auth,
+  // the bearer token command failed
   LOGIN_FAILED: EXIT_CODES.auth,
   // a bearer token from elsewhere (JWT) expired; pulse-cli never refreshes those
   TOKEN_EXPIRED: EXIT_CODES.auth,

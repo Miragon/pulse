@@ -1,6 +1,6 @@
 /**
- * Bearer tokens from elsewhere (`--auth bearer`) of the built CLI against the OAuth
- * topology of support/oauth.ts: Keycloak issues the tokens without pulse-cli (a CI pipeline's client
+ * Bearer tokens from elsewhere (`--auth bearer`) of the built CLI against the gateway
+ * topology of support/gateway.ts: Keycloak issues the tokens without pulse-cli (a CI pipeline's client
  * credentials grant, a person's login through another tool), and Envoy's `jwt_authn` gateway
  * checks them in front of an unmodified engine. pulse-cli only sends `Authorization: Bearer
  * <token>`: no login, no refresh, no token cache.
@@ -32,18 +32,18 @@ import { required } from "./support/expect.js"
 import { isJwt, signatureOf } from "./support/jwt.js"
 import { CI_CLIENT_SECRET, clientCredentialsToken, CLIENTS } from "./support/keycloak.js"
 import {
-  oauthEngine,
-  startOAuthTopology,
+  gatewayEngine,
+  startGatewayTopology,
   TOPOLOGY_START_TIMEOUT_MS,
-  type OAuthTopology,
-} from "./support/oauth.js"
+  type GatewayTopology,
+} from "./support/gateway.js"
 import { makeTempDir, removeTempDir } from "./support/temp.js"
 import { traceOf } from "./support/trace.js"
 
-const engine = oauthEngine()
+const engine = gatewayEngine()
 
 describe.skipIf(engine === undefined)(`Bearer tokens from elsewhere at ${engine ?? ""}`, () => {
-  let topology: OAuthTopology | undefined
+  let topology: GatewayTopology | undefined
   let workdir: string | undefined
   /** Config file of the runs: empty, so only the environment counts. */
   let configFile = ""
@@ -51,9 +51,9 @@ describe.skipIf(engine === undefined)(`Bearer tokens from elsewhere at ${engine 
   let ciToken = ""
   /** Everything no output may contain (tokens, their signatures, stray credentials). */
   const secrets = new Set<string>()
-  let cli: Cli = () => Promise.reject(new Error("the OAuth topology did not start"))
+  let cli: Cli = () => Promise.reject(new Error("the gateway topology did not start"))
 
-  const top = () => required(topology, "the OAuth topology")
+  const top = () => required(topology, "the gateway topology")
   /** Requests and answers of a `--verbose` run; `<engine>` is the gateway URL. */
   const trace = (result: CliResult) => traceOf(result.stderr, { engine: top().url })
 
@@ -94,7 +94,7 @@ describe.skipIf(engine === undefined)(`Bearer tokens from elsewhere at ${engine 
     configFile = join(workdir, "config.json")
     // PULSE_CLI_CONFIG names the file explicitly, so it must exist (an empty one: no profiles)
     await writeFile(configFile, '{"profiles":{}}\n')
-    topology = await startOAuthTopology(required(engine, "an enabled engine"))
+    topology = await startGatewayTopology(required(engine, "an enabled engine"))
     ciToken = await clientCredentialsToken(topology.issuer, CLIENTS.ci, CI_CLIENT_SECRET)
     remember(ciToken, CI_CLIENT_SECRET, GARBAGE)
     cli = bindCli({

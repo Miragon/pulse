@@ -118,7 +118,7 @@ const UNKNOWN_ENGINE = /^(?:No process engine|Process engine \S+ not) available$
 
 const HINTS = {
   unauthenticated:
-    "Use Basic auth: --auth basic --auth-user <name> with the password piped into --auth-password-stdin, PULSE_CLI_USERNAME and PULSE_CLI_PASSWORD, or a profile: `pulse-cli config set <profile> --auth basic --auth-user <name> --auth-password-env <VAR>`. OAuth: `pulse-cli config set <profile> --auth oauth --oauth-issuer <url> --oauth-client-id <id>`, then `pulse-cli auth login --profile <profile>` in a terminal. A token from elsewhere (SSO tooling, a CI secret): --auth bearer with PULSE_CLI_TOKEN or --auth-token-stdin.",
+    "Use Basic auth: --auth basic --auth-user <name> with the password piped into --auth-password-stdin, PULSE_CLI_USERNAME and PULSE_CLI_PASSWORD, or a profile: `pulse-cli config set <profile> --auth basic --auth-user <name> --auth-password-env <VAR>`. A token from elsewhere (SSO tooling, a CI secret): --auth bearer with PULSE_CLI_TOKEN or --auth-token-stdin, or PULSE_CLI_TOKEN_COMMAND with a command that prints one.",
   rejected:
     "The engine rejected the credentials of the Authorization header (from -H, PULSE_CLI_HEADERS or the profile headers; `pulse-cli config show` shows which). Check user and password or the token.",
   403: "The user is authenticated but lacks the authorization for this operation.",
@@ -142,9 +142,8 @@ const QUERY_PARAM_EXCEPTION = "QueryParamException"
  * The request as far as the hints need it: `headers` tell whether an Authorization header was
  * sent, `principal` whose Basic auth credentials the auth provider added, `authOff` why no
  * credentials were added although some were configured (`AuthProvider.off`), `rejectedHint` the
- * provider's own hint for a 401 or 403 (OAuth), `authNote` a note appended to the 401/403 hint
- * (a bearer token that is set but not used), `loginStatusCommand` the command that shows whether
- * the login of the provider is usable (OAuth).
+ * provider's own hint for a 401 or 403 (bearer auth), `authNote` a note appended to the 401/403
+ * hint (a bearer token that is set but not used).
  */
 export interface FailedRequest {
   readonly method: string
@@ -154,7 +153,6 @@ export interface FailedRequest {
   readonly authOff?: string | undefined
   readonly rejectedHint?: string | undefined
   readonly authNote?: string | undefined
-  readonly loginStatusCommand?: string | undefined
 }
 
 function sentCredentials(request: FailedRequest): boolean {
@@ -282,16 +280,13 @@ function redirectTarget(response: HttpResponse, url: string): string | undefined
 export function redirectError(response: HttpResponse, request: FailedRequest): PulseCliError {
   const target = redirectTarget(response, request.url)
   const status = `HTTP ${response.status}${response.statusText ? ` ${response.statusText}` : ""}`
-  const command = request.loginStatusCommand
-  const oauth =
-    command === undefined ? "" : ` \`${command}\` shows whether the OAuth login is usable.`
   return new PulseCliError(
     "HTTP_REDIRECT",
     target === undefined ? `${status}: redirect` : `${status}: redirect to ${target}`,
     {
       status: response.status,
       request: { method: request.method, url: request.url },
-      hint: `pulse-cli does not follow redirects. Point --url (PULSE_CLI_URL or the profile url) at the REST API root itself, e.g. https:// when the server redirects from http://. A redirect to a login page means the credentials (headers) are missing or expired.${oauth}`,
+      hint: `pulse-cli does not follow redirects. Point --url (PULSE_CLI_URL or the profile url) at the REST API root itself, e.g. https:// when the server redirects from http://. A redirect to a login page means the credentials (headers) are missing or expired.`,
     },
   )
 }

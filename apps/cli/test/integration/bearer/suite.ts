@@ -7,12 +7,12 @@ import { argv } from "../support/catalog.js"
 import type { Cli, CliError, CliOptions, CliResult } from "../support/cli.js"
 import { expiryOf } from "../support/jwt.js"
 import { CLIENTS } from "../support/keycloak.js"
-import type { OAuthTopology } from "../support/oauth.js"
+import type { GatewayTopology } from "../support/gateway.js"
 
 export const AUDIENCE = "engine-rest"
 /** `preferred_username` of the tokens of `pulse-ci`. */
 export const SERVICE_ACCOUNT = `service-account-${CLIENTS.ci}`
-/** Generous, like the OAuth suite: Keycloak and the gateway share the machine with many containers. */
+/** Generous: Keycloak and the gateway share the machine with many containers. */
 export const RUN_TIMEOUT_MS = 90_000
 /** pulse-cli refuses a JWT whose `exp` lies more than 30 s in the past. */
 export const EXPIRY_GRACE_MS = 30_000
@@ -45,7 +45,7 @@ export interface BearerSuite {
   /** Runs the built CLI with the suite's config file (bound once the topology has started). */
   readonly cli: Cli
   /** The running topology: the gateway URL, the issuer and the engine behind them. */
-  readonly top: () => OAuthTopology
+  readonly top: () => GatewayTopology
   /** The suite's temporary directory. */
   readonly workdir: string | undefined
   /** Config file of the runs: empty, so only the environment counts. */

@@ -19,7 +19,6 @@ import {
   writeCommandToken,
 } from "./command-cache.js"
 import { jwtClaims } from "./jwt.js"
-import { iso } from "./oauth/errors.js"
 import { type CommandDeps, runTokenCommand } from "./token-command.js"
 import type { AuthPreview, AuthProvider, Principal } from "./types.js"
 
@@ -35,7 +34,7 @@ async function fetchCommandToken(
   if (await writeCommandToken(await commandCachePath(config.command, deps), entry, deps)) {
     deps.trace?.({
       type: "note",
-      message: `Cached the token until shortly before it expires at ${iso(entry.expiresAt ?? 0)}.`,
+      message: `Cached the token until shortly before it expires at ${new Date(entry.expiresAt ?? 0).toISOString()}.`,
     })
   }
   return entry
@@ -50,7 +49,7 @@ async function cachedToken(
   if (cached === undefined || !isFresh(cached, deps.now())) return undefined
   deps.trace?.({
     type: "note",
-    message: `Using the token of the bearer token command of ${config.origin}, cached until it expires at ${iso(cached.expiresAt ?? 0)}.`,
+    message: `Using the token of the bearer token command of ${config.origin}, cached until it expires at ${new Date(cached.expiresAt ?? 0).toISOString()}.`,
   })
   return cached
 }

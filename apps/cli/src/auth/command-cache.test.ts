@@ -2,7 +2,7 @@ import fc from "fast-check"
 import { describe, expect, it } from "vitest"
 import { jwtWith, NOW_S, VALID_CLAIMS } from "../../test/support/bearer.js"
 import { fakeRuntime, fileText } from "../../test/support/fake-runtime.js"
-import { authDeps, TOKEN_DIR } from "../../test/support/oauth.js"
+import { authDeps, TOKEN_DIR } from "../../test/support/auth-deps.js"
 import type { FileSystem } from "../runtime.js"
 import {
   commandCachePath,

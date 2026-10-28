@@ -60,15 +60,6 @@ describe("resolveAuth type inference with bearer tokens", () => {
         reason: "bearer auth is switched off by PULSE_CLI_AUTH=none",
       },
     })
-    const oauth = {
-      PULSE_CLI_TOKEN: "tok",
-      PULSE_CLI_OAUTH_ISSUER: "https://login.example.com/realms/x",
-      PULSE_CLI_OAUTH_CLIENT_ID: "cli",
-    }
-    expect(resolveAuth({}, oauth, profile({ type: "oauth" }))).toMatchObject({
-      auth: { type: "oauth" },
-      unusedToken: { reason: 'OAuth is selected by the auth.type of profile "prod"' },
-    })
   })
 
   it("says in a resolution error that a token is set but not used, and how to send it", () => {
@@ -84,22 +75,6 @@ describe("resolveAuth type inference with bearer tokens", () => {
     )
     expect(basic.details.hint).toBe(
       'Export it, e.g. export UNSET_PASSWORD=<password>, or name another variable with `pulse-cli config set prod --auth-password-env <VAR>`. A bearer token is set (from PULSE_CLI_TOKEN) but not used: Basic auth is selected by the auth.type of profile "prod"; send it with --auth bearer or PULSE_CLI_AUTH=bearer.',
-    )
-    // errors without a hint get the note as hint
-    const scopes = failure(() =>
-      resolveAuth(
-        { auth: "oauth" },
-        {
-          PULSE_CLI_TOKEN: "tok",
-          PULSE_CLI_OAUTH_ISSUER: "https://login.example.com/realms/x",
-          PULSE_CLI_OAUTH_CLIENT_ID: "cli",
-          PULSE_CLI_OAUTH_SCOPES: "openid openid",
-        },
-        NO_PROFILE,
-      ),
-    )
-    expect(scopes.details.hint).toBe(
-      "A bearer token is set (from PULSE_CLI_TOKEN) but not used: OAuth is selected by --auth oauth; send it with --auth bearer or PULSE_CLI_AUTH=bearer.",
     )
     // auth commands have no --auth option
     const status = failure(() =>
@@ -120,22 +95,20 @@ describe("resolveAuth type inference with bearer tokens", () => {
     expect(plain.details.hint).not.toContain("bearer")
   })
 
-  it("never leaves --auth-token-stdin unused next to Basic auth or OAuth", () => {
-    for (const type of ["basic", "oauth"]) {
-      const error = failure(() =>
-        resolveAuth({ auth: type, authToken: "t" }, { PULSE_CLI_USERNAME: "u" }, NO_PROFILE),
-      )
-      expect(error.code).toBe("CONFIG")
-      expect(error.message).toBe(
-        `--auth-token-stdin reads a bearer token, but ${type === "basic" ? "Basic auth" : "OAuth"} is selected by --auth ${type}`,
-      )
-      expect(error.details.hint).toBe(
-        "Drop --auth-token-stdin, or select bearer auth with --auth bearer.",
-      )
-    }
+  it("never leaves --auth-token-stdin unused next to Basic auth", () => {
+    const error = failure(() =>
+      resolveAuth({ auth: "basic", authToken: "t" }, { PULSE_CLI_USERNAME: "u" }, NO_PROFILE),
+    )
+    expect(error.code).toBe("CONFIG")
+    expect(error.message).toBe(
+      "--auth-token-stdin reads a bearer token, but Basic auth is selected by --auth basic",
+    )
+    expect(error.details.hint).toBe(
+      "Drop --auth-token-stdin, or select bearer auth with --auth bearer.",
+    )
     // auth commands have no --auth option: the hint names the variable
     const auth = failure(() =>
-      resolveAuth({ authToken: "t" }, {}, profile({ type: "oauth", clientId: "c" }), true),
+      resolveAuth({ authToken: "t" }, {}, profile({ type: "basic", username: "u" }), true),
     )
     expect(auth.details.hint).toBe(
       "Drop --auth-token-stdin, or select bearer auth with PULSE_CLI_AUTH=bearer.",
@@ -188,8 +161,8 @@ describe("resolveAuth type inference with bearer tokens", () => {
   }
 
   /** Types that read no bearer token, and types that read no Basic auth password. */
-  const NO_TOKEN: ReadonlySet<AuthType> = new Set(["basic", "oauth"])
-  const NO_PASSWORD: ReadonlySet<AuthType> = new Set(["bearer", "oauth"])
+  const NO_TOKEN: ReadonlySet<AuthType> = new Set(["basic"])
+  const NO_PASSWORD: ReadonlySet<AuthType> = new Set(["bearer"])
   const MISSING_USERNAME = { error: "Basic auth is selected but the username is missing" }
 
   /** The outcome with an explicit type: it wins, but stdin is never read for nothing. */
@@ -222,7 +195,7 @@ describe("resolveAuth type inference with bearer tokens", () => {
     const setups = fc.record({
       type: fc.option(
         fc.record({
-          value: fc.constantFrom<AuthType>("none", "basic", "oauth", "bearer"),
+          value: fc.constantFrom<AuthType>("none", "basic", "bearer"),
           origin: origins,
         }),
         { nil: undefined },

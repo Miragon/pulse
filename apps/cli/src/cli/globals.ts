@@ -79,7 +79,7 @@ export const GLOBAL_OPTIONS: readonly GlobalOptionSpec[] = [
     long: "auth",
     value: "<type>",
     description:
-      "Authentication: none, basic, oauth or bearer; a username alone selects basic, a token bearer (env PULSE_CLI_AUTH)",
+      "Authentication: none, basic or bearer; a username alone selects basic, a token bearer (env PULSE_CLI_AUTH)",
   },
   {
     long: "auth-user",

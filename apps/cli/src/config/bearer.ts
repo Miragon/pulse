@@ -8,13 +8,7 @@
 import { isRecord } from "../util.js"
 import { configError } from "./config-error.js"
 import { CONTROL, ENV_NAME, isNonEmptyString } from "./syntax.js"
-import {
-  AUTH_TYPES,
-  BASIC_AUTH_KEYS,
-  BEARER_AUTH_KEYS,
-  OAUTH_AUTH_KEYS,
-  type ProfileAuth,
-} from "./types.js"
+import { AUTH_TYPES, BASIC_AUTH_KEYS, BEARER_AUTH_KEYS, type ProfileAuth } from "./types.js"
 
 /** RFC 6750 §2.1 b64token: the only syntax a Bearer credential may have. */
 const B64TOKEN = /^[A-Za-z0-9\-._~+/]+=*$/
@@ -61,16 +55,13 @@ function keysOf(value: Record<string, unknown>, keys: readonly string[]): string
   return keys.filter((key) => Object.hasOwn(value, key))
 }
 
-/** Bearer keys next to Basic auth or OAuth keys: one profile uses one kind of credentials. */
+/** Bearer keys next to Basic auth keys: one profile uses one kind of credentials. */
 export function bearerMixProblem(name: string, value: Record<string, unknown>) {
   const bearer = keysOf(value, BEARER_AUTH_KEYS)
-  if (bearer.length === 0) return undefined
   const basic = keysOf(value, BASIC_AUTH_KEYS)
-  const [family, others] =
-    basic.length > 0 ? ["Basic auth", basic] : ["OAuth", keysOf(value, OAUTH_AUTH_KEYS)]
-  return others.length === 0
+  return bearer.length === 0 || basic.length === 0
     ? undefined
-    : `profile "${name}" mixes bearer token keys (${bearer.join(", ")}) and ${family} keys (${others.join(", ")}); keep one`
+    : `profile "${name}" mixes bearer token keys (${bearer.join(", ")}) and Basic auth keys (${basic.join(", ")}); keep one`
 }
 
 /**
@@ -95,4 +86,21 @@ export function bearerProfileProblem(name: string, value: Record<string, unknown
 /** True when the stored auth object has a bearer token setting. */
 export function hasBearerKeys(auth: ProfileAuth | undefined): boolean {
   return isRecord(auth) && BEARER_AUTH_KEYS.some((key) => Object.hasOwn(auth, key))
+}
+
+const LOOPBACK_HOSTS: ReadonlySet<string> = new Set(["localhost", "[::1]"])
+const LOOPBACK_V4 = /^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/
+
+function isLoopbackHost(hostname: string): boolean {
+  return LOOPBACK_HOSTS.has(hostname) || LOOPBACK_V4.test(hostname)
+}
+
+/**
+ * The `host:port` of an engine URL that would carry a Bearer token over plain http beyond the
+ * loopback interface (RFC 6750 §5.3 requires TLS), else undefined.
+ */
+export function plainHttpHost(url: string): string | undefined {
+  if (!URL.canParse(url)) return undefined
+  const parsed = new URL(url)
+  return parsed.protocol === "http:" && !isLoopbackHost(parsed.hostname) ? parsed.host : undefined
 }

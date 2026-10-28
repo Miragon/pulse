@@ -5,12 +5,9 @@ export interface PingOutput {
   readonly reachable: boolean
   readonly version: string
   readonly engines: readonly string[]
-  /** Auth type: `none`, `basic`, `oauth` or `bearer`. */
+  /** Auth type: `none`, `basic` or `bearer`. */
   readonly auth: string
-  /**
-   * The username with `basic`; with `oauth` the logged-in user (null when unknown); with `bearer`
-   * the `preferred_username` of a JWT.
-   */
+  /** The username with `basic`; with `bearer` the `preferred_username` of a JWT. */
   readonly user?: string | null
   /** With `bearer` and a JWT: its `sub` (`user` is its `preferred_username`). */
   readonly subject?: string | null
@@ -42,41 +39,6 @@ export interface BearerStatusOutput {
   readonly expiresAt: string | null
   /** `exp` lies more than 30 s in the past. */
   readonly expired: boolean
-}
-
-/** `pulse-cli auth login` (stdout) and `pulse-cli auth status`: the cached login, never a token. */
-export interface LoginOutput {
-  readonly profile: string | null
-  /** Every profile that uses the login, in file order. */
-  readonly profiles: readonly string[]
-  readonly issuer: string | null
-  readonly clientId: string
-  /** `preferred_username`, else the email of the ID token. */
-  readonly user: string | null
-  /** `sub` of the ID token. */
-  readonly subject: string | null
-  /** Granted scopes, else the requested ones. */
-  readonly scopes: readonly string[]
-  /** ISO 8601 UTC; null when unknown. */
-  readonly accessTokenExpiresAt: string | null
-  readonly accessTokenValid: boolean
-  readonly refreshTokenExpiresAt: string | null
-  readonly canRefresh: boolean
-  readonly loggedInAt: string
-  readonly refreshedAt: string | null
-  /** Absolute path of the token cache file. */
-  readonly tokenCache: string
-}
-
-/** `pulse-cli auth logout`. */
-export interface LogoutOutput {
-  readonly profile: string | null
-  /** OAuth: every profile that used the login. */
-  readonly profiles?: readonly string[]
-  readonly tokenCache: string
-  readonly removed: boolean
-  /** null: nothing to revoke or no revocation endpoint. */
-  readonly revoked: boolean | null
 }
 
 /** `pulse-cli config show`: every effective value with the source it came from. */

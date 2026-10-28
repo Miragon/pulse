@@ -5,15 +5,13 @@
  */
 
 import { configFilePath, explicitConfigPath, pathModule, readConfigFile } from "../config/file.js"
-import { configOrigin } from "../config/login-key.js"
 import {
   findProjectFile,
   mergeProject,
   type ProjectFile,
-  projectOrigin,
   readProjectFile,
 } from "../config/project.js"
-import type { ConfigFile, LoadedConfig, ProjectSource } from "../config/types.js"
+import type { LoadedConfig, ProjectSource } from "../config/types.js"
 import type { Runtime } from "../runtime.js"
 
 /** The user's config file in effect for `--config`, PULSE_CLI_CONFIG or the platform default. */
@@ -49,38 +47,14 @@ async function projectOf(runtime: Runtime, path: string) {
   const source: ProjectSource = {
     path,
     directory: pathModule(runtime.platform).dirname(path),
-    origin: await projectOrigin(runtime.fs, path, runtime),
   }
   return { source, file }
-}
-
-/**
- * The user's config file, or the one named by `--config` / PULSE_CLI_CONFIG (`explicit`), with the
- * origin of its profiles.
- */
-function withOrigin(
-  runtime: Runtime,
-  path: string,
-  file: ConfigFile | undefined,
-  explicit: boolean,
-): LoadedConfig | undefined {
-  if (file === undefined) return undefined
-  const origin = configOrigin(path, runtime.cwd, runtime.platform)
-  if (!explicit) return { ...file, origin }
-  const configFile = pathModule(runtime.platform).resolve(runtime.cwd, path)
-  return { ...file, origin, configFile }
 }
 
 /** Reads the config file(s) of a command. */
 export async function loadConfig(runtime: Runtime, flag: string | undefined): Promise<LoadedFiles> {
   const path = userConfig(runtime, flag)
-  const explicit = isExplicit(runtime, flag)
-  const config = withOrigin(
-    runtime,
-    path,
-    await readConfigFile(runtime.fs, path, explicit),
-    explicit,
-  )
+  const config = await readConfigFile(runtime.fs, path, isExplicit(runtime, flag))
   const found = await projectFileOf(runtime, flag)
   if (found?.exists !== true) return { path, config }
   const project = await projectOf(runtime, found.path)

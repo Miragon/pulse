@@ -267,11 +267,11 @@ describe("parseConfigFile", () => {
     ],
     [
       { type: "basic", user: "demo", pass: "x" },
-      `Invalid config file ${PATH}: unknown key(s) user, pass in the auth of profile "prod" (allowed: type, username, passwordEnv, password, issuer, authorizationEndpoint, tokenEndpoint, clientId, clientSecretEnv, clientSecret, scopes, audience, redirectPort, tokenEnv, token)`,
+      `Invalid config file ${PATH}: unknown key(s) user, pass in the auth of profile "prod" (allowed: type, username, passwordEnv, password, tokenEnv, token)`,
     ],
     [
       { type: 1 },
-      `Invalid config file ${PATH}: profile "prod" has an invalid auth.type (expected none, basic, oauth or bearer)`,
+      `Invalid config file ${PATH}: profile "prod" has an invalid auth.type (expected none, basic or bearer)`,
     ],
     [
       { username: " " },

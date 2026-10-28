@@ -18,8 +18,15 @@ const CONTROL_HINT =
   "Remove line breaks, tabs, NUL and other control characters; Basic auth (RFC 7617) does not allow them."
 
 describe("validateAuthType", () => {
-  it.each(["none", "basic", "oauth", "bearer"] as const)("accepts %s", (type) => {
+  it.each(["none", "basic", "bearer"] as const)("accepts %s", (type) => {
     expect(validateAuthType(type)).toBe(type)
+  })
+
+  it("names the removed oauth type and what replaces it", () => {
+    const error = failure(() => validateAuthType("oauth"))
+    expect(error.code).toBe("CONFIG")
+    expect(error.message).toBe('The auth type "oauth" was removed')
+    expect(error.details.hint).toContain("PULSE_CLI_TOKEN_COMMAND")
   })
 
   it.each(["OAuth", "NONE", "Basic", "", "constructor"])(
@@ -29,7 +36,7 @@ describe("validateAuthType", () => {
       expect(error.code).toBe("CONFIG")
       expect(error.exitCode).toBe(3)
       expect(error.message).toBe(`Unsupported auth type "${type}"`)
-      expect(error.details.hint).toBe("Supported: none, basic, oauth, bearer.")
+      expect(error.details.hint).toBe("Supported: none, basic, bearer.")
     },
   )
 
@@ -40,9 +47,7 @@ describe("validateAuthType", () => {
         for (const value of forms(token)) {
           const error = failure(() => validateAuthType(value))
           expect(error.code).toBe("CONFIG")
-          expect(error.message).toBe(
-            "Unsupported auth type (not one of none, basic, oauth, bearer)",
-          )
+          expect(error.message).toBe("Unsupported auth type (not one of none, basic, bearer)")
           expect(error.details.hint).toContain(
             "A bearer token itself goes into PULSE_CLI_TOKEN or --auth-token-stdin",
           )
@@ -120,13 +125,18 @@ describe("validatePassword", () => {
 })
 
 describe("profileAuthProblem", () => {
+  it("names a stored oauth type as removed", () => {
+    expect(profileAuthProblem("p", { type: "oauth", issuer: "https://x" })).toMatch(
+      /^profile "p" uses auth type "oauth", which was removed\. .*PULSE_CLI_TOKEN_COMMAND/,
+    )
+  })
+
   it("accepts the documented shapes", () => {
     for (const auth of [
       {},
       { type: "none" },
       { type: "basic", username: "demo", passwordEnv: "CAMUNDA_PASSWORD" },
       { username: "demo", password: "demo" },
-      { type: "oauth" },
       // the type is validated during resolution, with the supported types in the hint
       { type: "digest" },
     ]) {
@@ -139,7 +149,7 @@ describe("profileAuthProblem", () => {
       'profile "prod" has an invalid auth (expected {"type": "basic", "username": "demo", "passwordEnv": "CAMUNDA_PASSWORD"})',
     )
     expect(profileAuthProblem("prod", { username: "x", apiKey: "abc" })).toBe(
-      'unknown key(s) apiKey in the auth of profile "prod" (allowed: type, username, passwordEnv, password, issuer, authorizationEndpoint, tokenEndpoint, clientId, clientSecretEnv, clientSecret, scopes, audience, redirectPort, tokenEnv, token)',
+      'unknown key(s) apiKey in the auth of profile "prod" (allowed: type, username, passwordEnv, password, tokenEnv, token)',
     )
     expect(profileAuthProblem("prod", { username: 7 })).toBe(
       'profile "prod" has an invalid auth.username (expected a non-empty string)',

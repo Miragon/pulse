@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { jwtWith, NOW_S, VALID_CLAIMS } from "../../test/support/bearer.js"
 import { fakeRuntime, type FakeRuntime } from "../../test/support/fake-runtime.js"
-import { authDeps } from "../../test/support/oauth.js"
+import { authDeps } from "../../test/support/auth-deps.js"
 import type { CommandBearerConfig } from "../config/types.js"
 import type { TraceEvent } from "../http/types.js"
 import { commandCachePath } from "./command-cache.js"

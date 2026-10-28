@@ -22,9 +22,9 @@ pulse-cli guide auth
 - The workflow commands (`inspect`, `wait`, `advance`, `retry`, `deploy`, `status`) drive a process
   instance without passing ids around. `pulse-cli wait` replaces `sleep`; exit code 9 means the
   process did not reach the expected state.
-- With OAuth, a person logs in once with `pulse-cli auth login`; agents never do. A command that
-  needs a login fails with `LOGIN_REQUIRED` (exit 4) and names the command to run.
-  `pulse-cli auth status` tells whether the login is usable.
+- pulse-cli never logs in: behind single sign-on, a
+  [token command](authentication.md#single-sign-on) fetches the token. `pulse-cli auth status`
+  shows whether it works.
 - A bearer token from `PULSE_CLI_TOKEN` is never refreshed: on `TOKEN_EXPIRED` (exit 4) the agent
   asks for a new one. A [token command](authentication.md#token-commands) in the `env` of
   `.claude/settings.json` fetches short-lived tokens instead.

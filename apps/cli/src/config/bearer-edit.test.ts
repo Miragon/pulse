@@ -88,37 +88,26 @@ describe("changedAuth with bearer token options", () => {
       failure(() => changedAuth(undefined, { authTokenEnv: "X", authUser: "u" })).message,
     ).toBe("Basic auth options and bearer token options exclude each other")
     expect(
-      failure(() => changedAuth(undefined, { authToken: "t", oauthClientId: "c" })).message,
-    ).toBe("OAuth options and bearer token options exclude each other")
-    expect(
       failure(() => changedAuth(undefined, { auth: "basic", authTokenEnv: "X" })).message,
     ).toBe("Bearer token options need --auth bearer, not --auth basic")
     expect(failure(() => changedAuth(undefined, { auth: "bearer", authUser: "u" })).message).toBe(
       "Basic auth options need --auth basic, not --auth bearer",
     )
-    expect(
-      failure(() => changedAuth(undefined, { auth: "bearer", oauthIssuer: "https://x" })).message,
-    ).toBe("OAuth options need --auth oauth, not --auth bearer")
   })
 
   it("drops the keys of the other families", () => {
     const basic: ProfileAuth = { type: "basic", username: "u", passwordEnv: "PW" }
     expect(changedAuth(basic, { authTokenEnv: "X" })).toEqual({ type: "bearer", tokenEnv: "X" })
     expect(changedAuth(basic, { auth: "bearer" })).toEqual({ type: "bearer" })
-    const oauth: ProfileAuth = { type: "oauth", issuer: "https://x", clientId: "c" }
-    expect(changedAuth(oauth, { authToken: "t" })).toEqual({ type: "bearer", token: "t" })
     const bearer: ProfileAuth = { type: "bearer", tokenEnv: "X" }
     expect(changedAuth(bearer, { authUser: "u" })).toEqual({ type: "basic", username: "u" })
-    expect(changedAuth(bearer, { oauthClientId: "c" })).toEqual({ type: "oauth", clientId: "c" })
     // --auth none alone keeps everything
     expect(changedAuth(bearer, { auth: "none" })).toEqual({ type: "none", tokenEnv: "X" })
   })
 
   it("knows which family was replaced and which replaces it", () => {
     expect(replacedFamily({ username: "u" }, { type: "bearer", tokenEnv: "X" })).toBe("basic")
-    expect(replacedFamily({ type: "bearer", token: "t" }, { type: "oauth", clientId: "c" })).toBe(
-      "bearer",
-    )
+    expect(replacedFamily({ type: "bearer", token: "t" }, { username: "u" })).toBe("bearer")
     expect(replacedFamily({ type: "bearer", token: "t" }, { type: "none", token: "t" })).toBe(
       undefined,
     )

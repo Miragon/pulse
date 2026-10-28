@@ -2,8 +2,8 @@
  * Resolves the authentication. Type: `--auth` > PULSE_CLI_AUTH > the
  * profile's auth.type; without a type anywhere, a username from any source or
  * `--auth-password-stdin` selects Basic auth, a token from `--auth-token-stdin` or PULSE_CLI_TOKEN
- * selects bearer auth (both at once is a CONFIG error), otherwise none (OAuth is never implied;
- * resolve-oauth.ts resolves it, resolve-bearer.ts the bearer token). Username: `--auth-user` >
+ * selects bearer auth (both at once is a CONFIG error), otherwise none (resolve-bearer.ts
+ * resolves the bearer token). Username: `--auth-user` >
  * PULSE_CLI_USERNAME > the profile's auth.username. Password: `--auth-password-stdin` >
  * PULSE_CLI_PASSWORD > the variable named by the profile's auth.passwordEnv > the profile's
  * auth.password. Basic auth needs both values; errors never show a secret.
@@ -14,7 +14,6 @@ import { compact } from "../util.js"
 import { validateAuthType, validatePassword, validateUsername } from "./auth.js"
 import { hasBearerKeys } from "./bearer.js"
 import { configError } from "./config-error.js"
-import { hasOAuthKeys } from "./oauth.js"
 import { type Env, nonEmpty, pick } from "./pick.js"
 import {
   type BearerSource,
@@ -27,7 +26,6 @@ import {
   unusedToken,
   unusedTokenNote,
 } from "./resolve-bearer.js"
-import { oauthEnvVariable, resolveOAuth } from "./resolve-oauth.js"
 import {
   type AuthConfig,
   type AuthType,
@@ -227,26 +225,21 @@ function unusedPassword({ env, selected }: Context): string | undefined {
   return profile.auth?.password === undefined ? undefined : `auth.password of profile "${name}"`
 }
 
-/** Why nothing is sent although settings exist: an unused password, or OAuth env values. */
+/** Why nothing is sent although settings exist: an unused password. */
 function unusedSettings(context: Context): string | undefined {
   const password = unusedPassword(context)
-  if (password !== undefined) return `a password is set (${password}), but no username`
-  const variable = oauthEnvVariable(context.env)
-  return variable === undefined
-    ? undefined
-    : `OAuth settings are set (from ${variable}), but no auth type selects OAuth; set ${ENV.auth}=oauth or --auth oauth`
+  return password === undefined ? undefined : `a password is set (${password}), but no username`
 }
 
-/** What an explicit none switches off: stored OAuth settings, a bearer token, else Basic auth. */
+/** What an explicit none switches off: a bearer token, else Basic auth. */
 function offFamily(context: Context): string {
   const auth = context.selected.profile?.auth
-  if (hasOAuthKeys(auth)) return "OAuth"
   return hasBearerKeys(auth) || givenToken(context) !== undefined ? "Bearer auth" : "Basic auth"
 }
 
 /**
- * No credentials, and why when that may surprise: an explicit none (switching off the OAuth
- * settings of the profile, else Basic auth), an unused password or OAuth values in the env.
+ * No credentials, and why when that may surprise: an explicit none (switching off a bearer token,
+ * else Basic auth) or an unused password.
  */
 function withoutAuth(type: Found<AuthType> | undefined, context: Context): NoAuthConfig {
   if (type !== undefined) {
@@ -262,8 +255,6 @@ function authOf(
   context: Context,
 ): AuthConfig {
   switch (type?.value) {
-    case "oauth":
-      return resolveOAuth(context, type.label)
     case "bearer":
       return resolveBearer(context, type.label)
     case "basic":
@@ -306,12 +297,11 @@ function headerOrigin(source: Source, profile: string | undefined): string {
 /** The credentials of an auth type, and what pulse-cli sends in the Authorization header. */
 const CREDENTIALS: Readonly<Record<Exclude<AuthType, "none">, readonly [string, string]>> = {
   basic: ["Basic auth", "with Basic auth, pulse-cli sends the credentials in it"],
-  oauth: ["OAuth", "with OAuth, pulse-cli sends the access token in it"],
   bearer: ["Bearer auth", "with bearer auth, pulse-cli sends the token in it"],
 }
 
 /**
- * Basic auth, OAuth or a bearer token and an explicit Authorization header (`-H`,
+ * Basic auth or a bearer token and an explicit Authorization header (`-H`,
  * PULSE_CLI_HEADERS, profile headers) would fight over the same header: a CONFIG error asks to drop
  * one. For `pulse-cli auth` commands (`authCommand`) only the header can go.
  */
