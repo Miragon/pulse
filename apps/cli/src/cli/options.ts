@@ -6,7 +6,6 @@
 import { type Command, Option } from "commander"
 import type { OptionDoc } from "../docs/options.js"
 import type { CommandValues, FlagValue } from "../operation/input.js"
-import { setOptionCompletion } from "./completion-meta.js"
 import { setHelpTerm } from "./help.js"
 
 /** A registered operation option: commander attribute name → catalog flag. */
@@ -42,35 +41,8 @@ function valueOption(doc: OptionDoc, description: string): Option {
   return new Option(`--${doc.flag} ${doc.valueName ?? "<value>"}`, description)
 }
 
-/** An option doc with the completion facts of the workflow options. */
-type CompletableDoc = OptionDoc & {
-  readonly complete?: "files" | "dirs"
-  readonly suggest?: readonly string[]
-}
-
-/** Path values complete to files or directories (`--body @file`, `--base-dir`, file parts). */
-function pathOf(doc: CompletableDoc) {
-  if (doc.complete !== undefined) return doc.complete
-  if (doc.source === "base-dir") return "dirs"
-  return doc.source === "file" || doc.source === "body" ? "files" : undefined
-}
-
 /** The commander options of one option doc; the first one carries the help text. */
-export function createOptions(doc: CompletableDoc): Option[] {
-  const options = optionsOf(doc)
-  const path = pathOf(doc)
-  const values = doc.enum ?? doc.suggest
-  const [main] = options
-  if (main !== undefined && (values !== undefined || path !== undefined)) {
-    setOptionCompletion(main, {
-      ...(values === undefined ? {} : { values }),
-      ...(path === undefined ? {} : { path }),
-    })
-  }
-  return options
-}
-
-function optionsOf(doc: OptionDoc): Option[] {
+export function createOptions(doc: OptionDoc): Option[] {
   const description = optionDescription(doc)
   switch (doc.kind) {
     case "value":

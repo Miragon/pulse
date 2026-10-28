@@ -89,7 +89,7 @@ On a terminal the answer is a table, as above; an agent or a script gets JSON.
 | Administer the engine          | `user`, `group`, `tenant`, `authorization`, `metrics`, `history-cleanup` |
 | Call any other REST operation  | `<group> <command>`, e.g. `filter list`; `api` for raw requests          |
 | Ask the CLI itself             | `guide`, `commands`, `describe`, `--help`                                |
-| Set up engines and logins      | `config`, `auth`, `completion`, `ping`                                   |
+| Set up engines and logins      | `config`, `auth`, `ping`                                                 |
 
 The six top-level commands (`inspect`, `wait`, `advance`, `retry`, `deploy`, `status`) combine
 several requests; every other command is one operation of the REST API.
@@ -131,7 +131,7 @@ The documentation is a website, [miragon.github.io/pulse/cli](https://miragon.gi
 built from the pages in [`docs/cli/`](https://github.com/Miragon/pulse/tree/main/docs/cli):
 
 - [Getting started](https://miragon.github.io/pulse/cli/getting-started): a first triage, then your own engine, Claude Code or CI
-- [Installation](https://miragon.github.io/pulse/cli/installation): npm, Homebrew, standalone executable, container image, shell completion
+- [Installation](https://miragon.github.io/pulse/cli/installation): npm, Homebrew, standalone executable, container image
 - [Workflow commands](https://miragon.github.io/pulse/cli/workflow-commands): inspect, wait, advance, retry, deploy, status
 - [Command structure](https://miragon.github.io/pulse/cli/commands): names, arguments, variables, request bodies, files, dates
 - [Output and errors](https://miragon.github.io/pulse/cli/output-and-errors): formats, previews, error fields, exit codes

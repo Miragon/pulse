@@ -388,10 +388,6 @@ export function commandLineChecker(globalOptions: readonly GlobalOptionFlags[]) 
     guide: checkGuide,
     config: checkConfig,
     auth: checkAuth,
-    completion: (rest) => {
-      expect(rest).toHaveLength(1)
-      expect(["bash", "zsh", "fish"]).toContain(rest[0])
-    },
     ...Object.fromEntries(
       WORKFLOW_DOCS.map((doc) => [
         doc.name,

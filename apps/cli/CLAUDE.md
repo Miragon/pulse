@@ -32,7 +32,7 @@ cruises `apps/cli/src`, `pnpm lint:architecture:cli` its `scripts/` and `test/`.
 | `apps/cli/src/engine-port/` | `EnginePort` and `EngineAdapter`: types only                              |
 | `apps/cli/src/engines/`     | One adapter per engine, all on the one generated catalog                  |
 | `apps/cli/src/api/`         | One folder per engine API; only the adapters use one                      |
-| `apps/cli/src/docs/`        | The guide, `describe`, examples, completion: the texts agents read        |
+| `apps/cli/src/docs/`        | The guide, `describe`, examples: the texts agents read                    |
 | `apps/cli/src/catalog/`     | Catalog access (`loadCatalog`), schemas, body validation                  |
 | `apps/cli/src/config/`      | Config resolution, profiles, project files                                |
 | `apps/cli/src/auth/`        | Auth providers: Basic, bearer, token commands, OAuth                      |

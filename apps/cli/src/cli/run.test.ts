@@ -161,7 +161,6 @@ describe("run: help and version", () => {
       "ping",
       "config",
       "auth",
-      "completion",
       "help",
     ])
     expect(section("Workflow commands:")).toEqual([

@@ -20,8 +20,8 @@ brew install miragon/tap/pulse-cli
 pulse-cli --version
 ```
 
-The formula installs the [standalone executable](#standalone-executable) (no Node.js needed) and
-the [shell completion](#shell-completion). `brew upgrade pulse-cli` updates it.
+The formula installs the [standalone executable](#standalone-executable) (no Node.js needed).
+`brew upgrade pulse-cli` updates it.
 
 ## Standalone executable
 
@@ -97,17 +97,3 @@ docker run --rm -it --user "$(id -u):$(id -g)" -v "$HOME/.config/pulse-cli:/conf
 
 pulse-cli works with Operaton, CIB seven and Camunda 7. The tested versions and how to choose the
 engine: [Engines](engines.md).
-
-## Shell completion
-
-`pulse-cli completion <bash|zsh|fish>` prints a completion script for commands, options, fixed
-values and profile names. It never contacts the engine, so ids are not completed.
-
-```sh
-eval "$(pulse-cli completion bash)"
-mkdir -p ~/.zfunc && pulse-cli completion zsh > ~/.zfunc/_pulse-cli
-pulse-cli completion fish > ~/.config/fish/completions/pulse-cli.fish
-```
-
-Put the bash line into `~/.bashrc`. For zsh add `fpath=(~/.zfunc $fpath)` to `~/.zshrc` before
-`compinit`.

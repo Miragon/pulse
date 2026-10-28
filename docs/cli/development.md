@@ -78,7 +78,7 @@ src/workflow/   the workflow commands: engine access, instance views, waiting, p
 src/engine-port/ what the CLI needs from an engine: EnginePort and EngineAdapter (types only)
 src/engines/    one adapter per engine (operaton, cibseven, camunda7) and the list of them (pure)
 src/api/        one folder per engine API; camunda7-rest builds catalog and port for the adapters (pure)
-src/docs/       commands, describe, examples, workflow docs, completion and the agent guide (pure)
+src/docs/       commands, describe, examples, workflow docs and the agent guide (pure)
 src/catalog/    catalog access, schema helpers, body validation (pure)
 src/config/     config resolution and profile editing (pure), file store, project files
 src/auth/       auth providers (none, basic, bearer with JWT expiry, token commands, OAuth; pure)

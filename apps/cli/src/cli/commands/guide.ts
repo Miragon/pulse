@@ -5,14 +5,12 @@
  * is not a terminal, else as a table.
  */
 
-import { type Command, Option } from "commander"
-import { OUTPUT_FORMATS } from "../../config/types.js"
+import type { Command } from "commander"
 import { findGuideTopic, GUIDE, GUIDE_TOPICS, topicSuggestions } from "../../docs/guide.js"
 import { type PulseCliError, usageError } from "../../errors.js"
 import { renderTable } from "../../output/table.js"
 import { compact } from "../../util.js"
 import { subcommand } from "../command.js"
-import { setOptionCompletion, setPositional } from "../completion-meta.js"
 import type { CliContext } from "../context.js"
 import { displayOf, displayText } from "../display.js"
 import { didYouMean } from "./suggest.js"
@@ -85,23 +83,16 @@ export const guideCommand: UtilityCommand = {
   name: "guide",
   nested: false,
   register(program, context) {
-    const output = new Option(
-      "-o, --output <format>",
-      "Format of --list: json or table (the guide itself is always markdown)",
-    )
-    setOptionCompletion(output, { values: OUTPUT_FORMATS })
     const command = subcommand(program, "guide")
       .summary("Print the usage guide for agents (markdown)")
       .description(DESCRIPTION)
       .usage("[topic] [options]")
       .argument("[topic]", `Topic: ${TOPIC_NAMES.join(", ")}`)
       .option("--list", "List the topics with a summary")
-      .addOption(output)
-    setPositional(command, {
-      kind: "values",
-      values: TOPIC_NAMES,
-      descriptions: Object.fromEntries(GUIDE_TOPICS.map((topic) => [topic.name, topic.summary])),
-    })
+      .option(
+        "-o, --output <format>",
+        "Format of --list: json or table (the guide itself is always markdown)",
+      )
     command.action((name: string | undefined) => runGuide(name, command, context))
   },
 }
