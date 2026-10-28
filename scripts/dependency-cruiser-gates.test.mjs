@@ -12,8 +12,8 @@ import extractTSConfig from "dependency-cruiser/config-utl/extract-ts-config"
 /**
  * Self-test of the dependency rules in .dependency-cruiser.cjs (a gate that has never been
  * red is decoration). It builds a pnpm-shaped fixture workspace under os.tmpdir() that holds
- * the apps and packages the rules are about, including the ones the repo does not have yet
- * (an apps/vscode named pulse, two -domain packages), cruises it ONCE with the REAL
+ * the apps and packages the rules are about, including the ones the repo does not have
+ * (two -domain packages), cruises it ONCE with the REAL
  * config over the paths of the pinned `pnpm lint:architecture` and `pnpm lint:architecture:cli`
  * commands, and asserts the EXACT set of rules each planted import trips. Exact, so an edge that only
  * no-cross-package-deep-imports catches never passes as "some violation".
@@ -97,9 +97,6 @@ const CORE = "core-is-foundation"
 const NO_APP = "packages-never-import-the-app"
 const APP_APP = "apps-never-import-apps"
 const HEADLESS = "cli-is-headless"
-const NO_CLI = "nothing-imports-the-cli"
-const NOT_HOST = "extension-is-not-an-mcp-host"
-const NO_EXT = "nothing-imports-the-extension"
 const DEEP = "no-cross-package-deep-imports"
 const CIRCULAR = "no-circular"
 const CLI_CYCLE = "cli-no-circular"
@@ -167,8 +164,6 @@ const LEAVES = [
   `${CLI}/src/a.test.ts`,
   `${CLI}/scripts/target.ts`,
   `${CLI}/test/support/fake.ts`,
-  `${EXT}/src/target.ts`,
-  `${EXT}/src/panel.ts`,
   `${SHELL}/src/target.ts`,
   `${C7_CLIENT}/src/target.ts`,
   `${C7_CLIENT}/src/lib.ts`,
@@ -216,7 +211,7 @@ const SUITES = [
         "@miragon/modeler-shell",
         "vscode",
       ].map((spec) => [CLI_SRC, spec, [HEADLESS]]),
-      [CLI_SRC, "pulse-cockpit", [APP_APP, HEADLESS, NO_EXT]],
+      [CLI_SRC, "pulse-cockpit", [APP_APP, HEADLESS]],
       // "-domain" inside a name is no -domain package: declared (through the symlink), as a
       // subpath and bare (the naming gate admits core names such as order-domains).
       [CLI_SRC, "@miragon/pulse-camunda7-domain-client", [HEADLESS]],
@@ -241,97 +236,11 @@ const SUITES = [
     ],
   },
   {
-    rule: NO_CLI,
-    title: "nothing imports the CLI",
-    cases: [
-      [SERVER_SRC, "@miragon/pulse-cli", [APP_APP, NO_CLI]],
-      [SERVER_SRC, "@miragon/pulse-cli/commands", [APP_APP, NO_CLI]],
-      [`${SERVER}/src/escape-cli.ts`, "../../cli/src/target.ts", [APP_APP, NO_CLI, DEEP]],
-      [EXT_SRC, "@miragon/pulse-cli", [APP_APP, NOT_HOST, NO_CLI]],
-      [SHELL_SRC, "@miragon/pulse-cli", [NO_APP, NO_CLI]],
-      [
-        `${SHELL}/src/escape-cli.ts`,
-        "../../../../apps/cli/src/target.ts",
-        [CORE, NO_APP, NO_CLI, DEEP],
-      ],
-      [C7_DOMAIN_SRC, "@miragon/pulse-cli", [DOMAIN_LEAF, NO_APP, NO_CLI]],
-      // Anchored: a package whose name only starts with the CLI's is not the CLI.
-      [SERVER_SRC, "@miragon/pulse-client", []],
-    ],
-  },
-  {
-    rule: NOT_HOST,
-    title:
-      "the extension imports only -domain packages of the workspace and nothing of the MCP/UI stack",
-    cases: [
-      ...[
-        "@miragon/pulse-widget-shell",
-        "@miragon/pulse-widget-shell/widgets",
-        "@miragon/pulse-camunda7-client",
-        "@miragon/pulse-camunda7-client/sdk",
-        "@miragon/pulse-camunda7-client/routes",
-        "@miragon/pulse-camunda7-connector",
-        "@miragon/pulse-vscode-core",
-        "react",
-        "react-dom",
-        "lucide-react",
-        "@tanstack/react-query",
-        "mcp-use",
-        "@modelcontextprotocol/sdk",
-        "@miragon/mcp-toolkit-ui/app",
-        "hono",
-        "postgres",
-        "prom-client",
-        "zod",
-        "@hey-api/client-fetch",
-      ].map((spec) => [EXT_SRC, spec, [NOT_HOST]]),
-      [EXT_SRC, "@miragon/pulse-mcp-server-camunda7", [APP_APP, NOT_HOST]],
-      [EXT_SRC, "@miragon/pulse-camunda7-domain-client", [NOT_HOST]],
-      [EXT_SRC, "@miragon/pulse-camunda7-domain-client/sdk", [NOT_HOST]],
-      [EXT_SRC, "@miragon/pulse-order-domains", [NOT_HOST]],
-      [EXT_SRC, "@miragon/pulse-x-domain-utils", [NOT_HOST]],
-      [
-        `${EXT}/src/escape-package.ts`,
-        "../../../packages/core/widget-shell/src/target.ts",
-        [NOT_HOST, DEEP],
-      ],
-      [`${EXT}/src/escape-app.ts`, "../../cli/src/target.ts", [APP_APP, NOT_HOST, NO_CLI, DEEP]],
-      // Allowed: a -domain package, the host API, the extension's own UI stack, Node.
-      [EXT_SRC, "@miragon/pulse-camunda7-domain", []],
-      [EXT_SRC, "@miragon/pulse-camunda7-domain/testing", []],
-      [EXT_SRC, "vscode", []],
-      [EXT_SRC, "preact", []],
-      [EXT_SRC, "preact/hooks", []],
-      [EXT_SRC, "bpmn-js", []],
-      [EXT_SRC, "bpmn-js/lib/NavigatedViewer", []],
-      [EXT_SRC, "diagram-js", []],
-      [EXT_SRC, "@miragon/modeler-shell/vscode/extension", []],
-      [EXT_SRC, "node:fs", []],
-      [EXT_SRC, "./panel.ts", []],
-    ],
-  },
-  {
-    rule: NO_EXT,
-    title: "nothing imports the extension",
-    cases: [
-      [SERVER_SRC, "pulse-cockpit", [APP_APP, NO_EXT]],
-      [SERVER_SRC, "pulse-cockpit/out/api", [APP_APP, NO_EXT]],
-      [`${SERVER}/src/escape-extension.ts`, "../../vscode/src/target.ts", [APP_APP, NO_EXT, DEEP]],
-      [SHELL_SRC, "pulse-cockpit", [NO_APP, NO_EXT]],
-      [C7_CLIENT_SRC, "pulse-cockpit", [NO_APP, NO_EXT]],
-      [C7_CLIENT_SRC, "pulse-cockpit/out/api", [NO_APP, NO_EXT]],
-      [C7_DOMAIN_SRC, "pulse-cockpit", [DOMAIN_LEAF, NO_APP, NO_EXT]],
-      // Anchored: the name is unscoped, and a third-party pulse-tools is not the extension.
-      [SERVER_SRC, "pulse-tools", []],
-      [SHELL_SRC, "pulse-tools", []],
-    ],
-  },
-  {
     rule: APP_APP,
     title: "an app never imports an app",
     cases: [
       [CLI_SRC, "@miragon/pulse-mcp-server-camunda7", [APP_APP, HEADLESS]],
-      [EXT_SRC, "@miragon/pulse-mcp-server-camunda7/src/setup", [APP_APP, NOT_HOST]],
+      [EXT_SRC, "@miragon/pulse-mcp-server-camunda7/src/setup", [APP_APP]],
       [
         `${CLI}/src/escape-app.ts`,
         "../../mcp-server-camunda7/src/target.ts",
@@ -364,8 +273,8 @@ const SUITES = [
       ],
       [C7_CLIENT_SRC, "@miragon/pulse-mcp-server-camunda7", [CLIENT_LEAF, NO_APP]],
       [C7_CONNECTOR_SRC, "@miragon/pulse-mcp-server-camunda7", [NO_APP]],
-      [C7_CONNECTOR_SRC, "@miragon/pulse-cli", [NO_APP, NO_CLI]],
-      [C7_CONNECTOR_SRC, "pulse-cockpit", [NO_APP, NO_EXT]],
+      [C7_CONNECTOR_SRC, "@miragon/pulse-cli", [NO_APP]],
+      [C7_CONNECTOR_SRC, "pulse-cockpit", [NO_APP]],
       [C7_DOMAIN_SRC, "@miragon/pulse-mcp-server-camunda7", [DOMAIN_LEAF, NO_APP]],
     ],
   },
@@ -478,7 +387,7 @@ const SUITES = [
       [
         `${C7_DOMAIN}/src/escape-app.ts`,
         "../../../../../apps/cli/src/target.ts",
-        [DOMAIN_LEAF, NO_APP, NO_CLI, DEEP],
+        [DOMAIN_LEAF, NO_APP, DEEP],
       ],
       [
         `${C7_DOMAIN}/src/escape-server.ts`,

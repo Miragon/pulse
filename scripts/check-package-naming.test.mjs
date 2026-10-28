@@ -1,16 +1,14 @@
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { createRequire } from "node:module"
 import { tmpdir } from "node:os"
 import path from "node:path"
 import { describe, it } from "node:test"
 import { fileURLToPath } from "node:url"
-import vm from "node:vm"
 import {
   CONNECTOR_ROLES,
   GENERATED_DIRS,
-  RESERVED_APP_NAMES,
   checkAppDependencies,
   checkLayout,
   checkPackageName,
@@ -528,14 +526,6 @@ describe("checkAppDependencies: no package declares an app", () => {
     assert.match(errors[0], /@miragon\/pulse-mcp-server-camunda7 \(apps\/mcp-server-camunda7\)/)
   })
 
-  it("holds the reserved names before their app lands, also from npm", () => {
-    for (const name of RESERVED_APP_NAMES) {
-      const errors = checkAppDependencies(today(server({ dependencies: { [name]: "^1.0.0" } })))
-      assertOne(errors, new RegExp(`declares the app ${name} \\(a name RESERVED_APP_NAMES`), name)
-      assert.match(errors[0], /so not from npm either/, name)
-    }
-  })
-
   it("fails the root package.json declaring an app (Node resolves it from every directory below)", () => {
     assertOne(
       checkAppDependencies(future([".", { devDependencies: { "pulse-cockpit": "workspace:*" } }])),
@@ -959,48 +949,4 @@ describe("lockstep with .dependency-cruiser.cjs", () => {
       )
     })
   }
-
-  /** The npm names of the repo's apps (apps/<dir>/package.json). */
-  const realAppNames = () =>
-    listRepoFiles(repoRoot)
-      .filter((file) => /^apps\/[^/]+\/package\.json$/.test(file))
-      .map((file) => require(path.join(repoRoot, file)).name)
-
-  /**
-   * APP_PACKAGES of .dependency-cruiser.cjs. dependency-cruiser refuses any
-   * export besides its config keys, so the file is evaluated with the constant
-   * handed out instead.
-   */
-  const depcruiseAppPackages = () => {
-    const file = path.join(repoRoot, ".dependency-cruiser.cjs")
-    const sandbox = { module: { exports: {} } }
-    vm.runInNewContext(`${readFileSync(file, "utf8")}\n;module.exports = APP_PACKAGES\n`, sandbox, {
-      filename: file,
-    })
-    return [...sandbox.module.exports]
-  }
-
-  it("RESERVED_APP_NAMES are exactly the names APP_PACKAGES holds beyond the repo's apps", () => {
-    const real = realAppNames()
-    assert.ok(real.includes("@miragon/pulse-mcp-server-camunda7"), JSON.stringify(real))
-    const packages = depcruiseAppPackages()
-    for (const name of real) assert.ok(packages.includes(name), `APP_PACKAGES lacks ${name}`)
-    assert.deepEqual(
-      packages.filter((name) => !real.includes(name)).sort(),
-      [...RESERVED_APP_NAMES].sort(),
-      "an app that landed leaves RESERVED_APP_NAMES; a planned one joins both lists",
-    )
-  })
-
-  it("packages-never-import-the-app bans every app under both name shapes the gate admits", () => {
-    const apps = new Set([...RESERVED_APP_NAMES, ...realAppNames()])
-    const banned = patterns(rule("packages-never-import-the-app")?.to?.path)
-    for (const name of apps) {
-      const probe = `node_modules/${name}/dist/index.js`
-      assert.ok(
-        banned.some((pattern) => new RegExp(pattern).test(probe)),
-        `packages-never-import-the-app's to.path does not match ${probe}`,
-      )
-    }
-  })
 })

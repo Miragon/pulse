@@ -64,8 +64,8 @@ The app is one package with six layers under `apps/vscode/src`. Each layer has i
 
 The dependency rules are closed-world (`apps/vscode/.dependency-cruiser.cjs`): an import that
 is not explicitly allowed fails `pnpm lint:architecture:vscode` with a message that says where
-it belongs. The repository's rules apply on top (`extension-is-not-an-mcp-host`: no
-widget-shell, no toolkit, no React, no zod, no other workspace package but a `-domain` one).
+it belongs. Nothing outside them is allowed, so no widget-shell, no toolkit, no React, no zod and no
+other workspace package either.
 
 ## Rules
 

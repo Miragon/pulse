@@ -30,8 +30,7 @@
  *   complexity/max-lines budgets and pattern gates (globbed *.{ts,tsx}) and
  *   widget-shell's brand-gate scans (scanGlyphs, scanColors, scanIconSizes,
  *   scanTypeScale) read .ts and .tsx only.
- * - No package.json declares an app (the npm name of an apps/<dir>, or one of
- *   RESERVED_APP_NAMES) in dependencies, devDependencies, peerDependencies or
+ * - No package.json declares an app (the npm name of an apps/<dir>) in dependencies, devDependencies, peerDependencies or
  *   optionalDependencies: not by its name, not as an npm: or workspace: alias,
  *   not as a file:/link:/portal: path into its directory. That holds for the
  *   root package.json too (Node resolves what the root declares from every
@@ -74,15 +73,6 @@ export const GENERATED_DIRS = {
   "apps/cli/src/generated":
     "the CLI's command catalog (catalog.json) of every engine, which `pnpm --fail-if-no-match --filter @miragon/pulse-cli catalog` renders from apps/cli/spec; never edited by hand (scripts/catalog/render.test.ts fails on a stale one)",
 }
-
-/**
- * The npm names of the apps Pulse plans before they land under apps/: none today.
- * They count as app names already, so no package declares them from npm in the
- * meantime. When an app lands, its name comes from its package.json, and its
- * entry here goes (a test keeps this list equal to the names
- * .dependency-cruiser.cjs APP_PACKAGES holds beyond the real apps).
- */
-export const RESERVED_APP_NAMES = []
 
 /** The package.json fields that make another package reachable under pnpm. */
 const DEPENDENCY_FIELDS = [
@@ -354,20 +344,19 @@ function pathTarget(dir, spec) {
 /**
  * Declarations of an app (pure). `packages` are [repo-relative dir, parsed
  * package.json] pairs ("." is the root); the app names are those of every
- * apps/<dir> among them plus `reserved`. No package declares an app, its own
- * name included (an app imports its own modules by relative path): an app's
- * own package.json names it in `name` only.
+ * apps/<dir> among them. No package declares an app, its own name included (an
+ * app imports its own modules by relative path): an app's own package.json
+ * names it in `name` only.
  */
-export function checkAppDependencies(packages, { reserved = RESERVED_APP_NAMES } = {}) {
-  const apps = new Map(reserved.map((name) => [name, undefined]))
+export function checkAppDependencies(packages) {
+  const apps = new Map()
   for (const [dir, manifest] of packages) {
     if (packageKind(dir) === "app" && typeof manifest?.name === "string") {
       apps.set(manifest.name, dir)
     }
   }
   /** The app whose directory `target` lies in, else undefined. */
-  const appAt = (target) =>
-    [...apps].find(([, dir]) => dir !== undefined && `${target}/`.startsWith(`${dir}/`))?.[0]
+  const appAt = (target) => [...apps].find(([, dir]) => `${target}/`.startsWith(`${dir}/`))?.[0]
   const errors = []
   for (const [dir, manifest] of packages) {
     for (const field of DEPENDENCY_FIELDS) {
@@ -381,13 +370,9 @@ export function checkAppDependencies(packages, { reserved = RESERVED_APP_NAMES }
           (target === undefined ? undefined : appAt(target))
         if (app === undefined) continue
         const how = app === key ? "" : ` as ${JSON.stringify(key)}: ${JSON.stringify(text)}`
-        const what =
-          apps.get(app) === undefined
-            ? "a name RESERVED_APP_NAMES keeps for an app, so not from npm either"
-            : apps.get(app)
         errors.push(
           `${dir === "." ? "" : `${dir}/`}package.json: ${field} declares the app ${app} ` +
-            `(${what})${how}. Under pnpm a workspace app is reachable from another package ` +
+            `(${apps.get(app)})${how}. Under pnpm a workspace app is reachable from another package ` +
             `(an import, require.resolve, its bin, a spawned process) only through such a ` +
             `declaration, and the apps stay apart: no CLI inside the MCP server (no argv tool, ` +
             `no process), no extension wired to the CLI, no package on top of an app. Move ` +

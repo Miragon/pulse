@@ -20,8 +20,9 @@
  * connectors; the two interface apps, the CLI (apps/cli, `@miragon/pulse-cli`) and the
  * VS Code extension (apps/vscode, the unscoped `pulse`, because vsce rejects
  * scoped names), reach the engine through a `-domain` package only. No package and no
- * app imports an app. APP_PACKAGES below names every app's npm name; the self-test
- * fails when a real app's name is missing there. These rules see IMPORTS only: a
+ * app imports an app (the extension's own closed-world rules live in
+ * apps/vscode/.dependency-cruiser.cjs). APP_PACKAGES below names every app's npm name; the
+ * self-test fails when a real app's name is missing there. These rules see IMPORTS only: a
  * require.resolve, an import.meta.resolve, a bin or a spawned process records no edge.
  * Under pnpm each of those needs the app declared in a package.json, and
  * scripts/check-package-naming.mjs fails on any package.json but the app's own that
@@ -57,9 +58,7 @@ const npm = (names) => [`(?:^|/)node_modules/(?:${names})(?:/|$)`, `^(?:${names}
 /**
  * The npm name of every app under apps/. A new app adds its name here, or the
  * self-test's sync case fails: packages-never-import-the-app and apps-never-import-apps
- * read this list. The names of the apps that have not landed yet (none today) are
- * RESERVED_APP_NAMES in scripts/check-package-naming.mjs as well, and a test there holds
- * both lists together.
+ * read this list.
  */
 const SERVER_PACKAGE = "@miragon/pulse-mcp-server-camunda7"
 const CLI_PACKAGE = "@miragon/pulse-cli"
@@ -277,45 +276,6 @@ module.exports = {
           ),
         ],
       },
-    },
-    {
-      name: "nothing-imports-the-cli",
-      severity: "error",
-      comment:
-        "No module imports the CLI (@miragon/pulse-cli), by npm name or by relative path: not " +
-        "the MCP server, not a package, not the extension. This rule sees imports only; a " +
-        "spawned CLI (an argv tool, a process) needs the CLI declared in a package.json, which " +
-        "scripts/check-package-naming.mjs refuses. Behaviour two interfaces share moves into " +
-        "the -domain package both call.",
-      // No own-dir pathNot on `to`: see the header (shape 2).
-      from: { pathNot: "^apps/cli/" },
-      to: { path: ["^apps/cli/", `${escapeRegExp(CLI_PACKAGE)}(?:/|$)`] },
-    },
-    {
-      name: "extension-is-not-an-mcp-host",
-      severity: "error",
-      comment:
-        "The VS Code extension (apps/vscode, npm name pulse: unscoped, since vsce " +
-        "rejects scoped names) is an interface, not an MCP host: it never imports another " +
-        "app, widget-shell or another core package, a connector or a client, nor the MCP/UI " +
-        "stack (react, react-dom, lucide-react, mcp-use, @modelcontextprotocol, the toolkit, " +
-        "TanStack, hono, postgres, prom-client, zod, @hey-api). Its own UI stays preact, " +
-        "bpmn-js and @miragon/modeler-shell; engine behaviour it shares with the MCP server " +
-        "lives in a -domain package, the only @miragon/pulse-* package it imports.",
-      from: { path: "^apps/vscode/" },
-      to: { path: ["^packages/", "^apps/(?!vscode/)", PULSE_EXCEPT_DOMAIN, ...npm(MCP_STACK)] },
-    },
-    {
-      name: "nothing-imports-the-extension",
-      severity: "error",
-      comment:
-        "No module imports the VS Code extension (pulse): it ships as a .vsix on its " +
-        "own (that no package.json declares it is check-package-naming's). Behaviour it " +
-        "shares with the MCP server or the CLI moves into the -domain package they all call.",
-      from: { pathNot: "^apps/vscode/" },
-      // Anchored (npm()), since the name is unscoped: a third-party pulse-tools
-      // is not the extension.
-      to: { path: ["^apps/vscode/", ...npm(escapeRegExp(EXTENSION_PACKAGE))] },
     },
     {
       name: "no-cross-package-deep-imports",

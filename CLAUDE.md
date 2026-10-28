@@ -675,9 +675,7 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    on a `package.json` that declares an app in `dependencies`, `devDependencies`,
    `peerDependencies` or `optionalDependencies` (by name, by an `npm:`/`workspace:` alias or
    by a path into its directory; the root `package.json` and an app's own included). The app
-   names are those of every `apps/*/package.json` plus its `RESERVED_APP_NAMES` (empty
-   today, kept equal to the extra names of the dependency-cruiser config's
-   `APP_PACKAGES`): under pnpm another package reaches a workspace app (an import,
+   names are those of every `apps/*/package.json`: under pnpm another package reaches a workspace app (an import,
    `require.resolve`, its bin, a spawned process) only through such a declaration, which no
    dependency rule reads. The dependency edges of this invariant (connector
    peer-isolation, connector→own-client and connector→own-domain only, leaf clients, pure
