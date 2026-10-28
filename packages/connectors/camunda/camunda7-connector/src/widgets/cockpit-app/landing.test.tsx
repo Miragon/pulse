@@ -8,13 +8,11 @@ import { CAMUNDA7_COCKPIT_OVERVIEW_DATA } from "../../tool-names.js"
 import { useAnalyticsActive } from "./analytics-probe.js"
 import { LandingChooser } from "./landing.js"
 
-// The toolkit query client is a singleton: its defaults are restored and its
-// cache cleared after each test, so no feed answer leaks across tests.
+// The query client is a singleton: restore it so no feed answer leaks across tests.
 const toolkitDefaults = queryClient.getDefaultOptions()
 
 beforeEach(() => {
-  // Deterministic error states: the default three retries would hold a failed
-  // feed in "pending" for seconds.
+  // The default three retries would hold a failed feed in "pending" for seconds.
   queryClient.setDefaultOptions({
     ...toolkitDefaults,
     queries: { ...toolkitDefaults.queries, retry: false },
@@ -36,11 +34,7 @@ const ENGINES = [
   { id: "test-stuck", environment: "test" },
 ]
 
-/**
- * Per-engine overview feed: prod-a has open incidents, prod-b is healthy,
- * test-down is unreachable, test-empty has nothing deployed, test-slow never
- * answers, test-stuck holds jobs without retries.
- */
+/** prod-a incidents, prod-b healthy, test-down unreachable, test-empty empty, test-slow never answers, test-stuck no retries. */
 function overviewFeed(args: Record<string, unknown>) {
   if (args.engine === "test-down") throw new Error("ECONNREFUSED")
   if (args.engine === "test-slow") return new Promise(() => {})
@@ -113,7 +107,6 @@ describe("LandingChooser", () => {
     expect(
       await screen.findByRole("button", { name: /^test-stuck\s*,\s*4 jobs without retries$/ }),
     ).toBeTruthy()
-    // The saved default says so.
     expect(
       await screen.findByRole("button", { name: /^prod-b\s*default\s*,\s*no incidents$/ }),
     ).toBeTruthy()

@@ -32,8 +32,7 @@ describe("appOnly", () => {
   it("marks the tool app-only + widget-accessible, without any rendering keys", () => {
     expect(appOnly.visibility).toBe("app")
     expect(appOnly._meta).toEqual({ "openai/widgetAccessible": true })
-    // No view binding and no outputTemplate — a feed result must never be
-    // rendered by the host (invariant 5).
+    // A feed result must never be rendered by the host (invariant 5).
     expect(appOnly).not.toHaveProperty("view")
   })
 })
@@ -41,7 +40,6 @@ describe("appOnly", () => {
 describe("strictToolInput", () => {
   const shape = { processDefinitionKey: z.string().optional(), engine: z.string().optional() }
 
-  /** The input schema the toolkit registrar advertises for `input` with `strictInput`. */
   function registrarSchema(input: Record<string, z.ZodType>): z.ZodType {
     let schema: z.ZodType | undefined
     const server = {

@@ -1,14 +1,8 @@
 import { describe, expect, it } from "vitest"
 import { solveInlineFit, type FitSlot } from "./inline-fit-solve.js"
 
-/**
- * The inline fit's decision (#396), with the sizes measured on the playground
- * views at 760 px (chrome above and below the rows, row heights): a list
- * keeps as many rows as fit, 3 before any list goes lower, 1 at the least,
- * and never 0.
- */
+/** Sizes measured on the playground views at 760 px (#396). */
 
-/** A list whose `count` rows of `height` px start at `top`. */
 function list(id: string, count: number, height: number, top = 0, order = 0): FitSlot {
   return {
     id,
@@ -18,7 +12,6 @@ function list(id: string, count: number, height: number, top = 0, order = 0): Fi
   }
 }
 
-/** A view of `chrome` px around one list of `count` × `height` px rows. */
 function view(budget: number, chrome: number, count: number, height: number) {
   return { budget, content: chrome + count * height, slots: [list("rows", count, height, chrome)] }
 }

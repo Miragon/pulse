@@ -1,13 +1,6 @@
 import type { MessageCatalog } from "@miragon/mcp-toolkit-core"
 import { plural } from "./plural.js"
 
-/**
- * German catalog of the analytics widgets, same keys as `en.sweep.ts`. It
- * follows brand-tone fully: du, AI (never KI), CIB seven, no dash as a
- * connector, errors say what happened and what you can do, and the terms of
- * GLOSSARY.md ("Incident", never "Vorfall"). `brand-gates.test.ts` and
- * `glossary.test.ts` check it. Merged into the catalogs in index.ts.
- */
 export const deSweep: MessageCatalog = {
   "aActivityType.boundaryEvent": "Grenzereignis",
   "aActivityType.businessRuleTask": "Business-Rule-Task",

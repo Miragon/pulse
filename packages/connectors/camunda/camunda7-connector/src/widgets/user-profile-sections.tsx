@@ -7,14 +7,9 @@ import type { ProfileReadOnlyReason, UserProfileView } from "../lib/profile-sche
 import { useT } from "../messages/use-t.js"
 import { allowedIn, type DashboardSummary, type FormState } from "./user-profile-form.js"
 
-/** The settings panel's sections — the cards, the read-only notice and the one save bar. */
-
 const helpCls = "text-muted-foreground text-small"
 
-/**
- * Why the panel cannot save, on TOP and with the way out (#322 U25) — not a
- * line under fields that already look disabled.
- */
+// #322 U25: on top with the way out, not a line under fields that already look disabled.
 export function ReadOnlyNotice({ reason }: { reason: ProfileReadOnlyReason }) {
   const t = useT()
   return (
@@ -28,13 +23,7 @@ export function ReadOnlyNotice({ reason }: { reason: ProfileReadOnlyReason }) {
   )
 }
 
-/**
- * The page's ONE save bar (#322 U25), under all cards instead of a detached
- * Save per section: it says whether something is unsaved, Save (the
- * primary) stays off until a valid change exists, and Discard takes the
- * changes back. Saving confirms with a toast; a failure stays here. Shown
- * only where the panel may save — a read-only panel says why on top.
- */
+// #322 U25: one save bar under all cards; a failure stays here. A read-only panel shows the notice instead.
 export function SaveBar({
   dirty,
   pending,
@@ -145,12 +134,7 @@ export function DashboardsCardBody({
   )
 }
 
-/**
- * The engines card: "Alle Engines erlauben" as a switch (#322 U25) instead of
- * the inverted "uncheck all to allow every engine"; switched off, the
- * curated list by environment — with at least one engine, said inline. The
- * default engine is one of the allowed ones.
- */
+// #322 U25: a switch instead of the inverted "uncheck all to allow every engine".
 export function EnginesCard({
   view,
   form,

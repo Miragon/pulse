@@ -21,7 +21,6 @@ import { instanceName } from "../lib/write-feedback.js"
 import { useT } from "../../messages/use-t.js"
 import { rootCauseHandOff } from "./hand-offs.js"
 
-/** One running instance of the list (`ProcessInstancesView`). */
 function rowTone(row: ProcessInstanceRow): ToneVariant {
   if (row.hasIncident) return "danger"
   if (row.suspended) return "warning"
@@ -37,11 +36,9 @@ export function InstanceRow({
   onOpenProcess,
 }: {
   row: ProcessInstanceRow
-  /** The list's definition scope — null in the engine-wide list. */
   processDefinitionKey: string | null
-  /** The engine the list was fetched from — undefined when the default routed it. */
+  /** Undefined when the default routed it. */
   engine: string | undefined
-  /** Engine-wide list: each row names (and drills into) its own definition. */
   showProcessColumn: boolean
   onOpen: (row: ProcessInstanceRow) => void
   onOpenProcess: (row: ProcessInstanceRow) => void
@@ -73,8 +70,7 @@ export function InstanceRow({
               type="button"
               onClick={() => onOpenProcess(row)}
               className="text-link text-left hover:underline"
-              // The name replaces the button's content for a screen reader:
-              // the version on the quiet line is said in it.
+              // The name replaces the button's content for a screen reader, so the version goes in it.
               aria-label={
                 row.version !== null
                   ? t("processInstances.openProcessVersionAria", {

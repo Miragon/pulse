@@ -6,10 +6,7 @@ import { engineParamShape, withEngine } from "../lib/with-engine.js"
 
 type Register = ReturnType<typeof createToolRegistrar<EngineRegistry>>
 
-/**
- * The follow-up to every batch write: the batch tools only report a QUEUED
- * batch, this read says what became of it.
- */
+/** Batch writes only report a QUEUED batch; this read says what became of it. */
 export function registerBatchTools(register: Register) {
   register({
     name: "camunda7_get_batch",

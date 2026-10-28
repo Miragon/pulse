@@ -11,10 +11,8 @@ import { registerHealthTools } from "./health.js"
 
 type Config = ToolConfig<PrometheusClient>
 
-/** The fleet this server is configured for. */
 const scope = createEngineScope(["prod-a", "prod-b"])
 
-/** Registrar stand-in that captures the tool's config instead of an MCPServer. */
 function captureConfig(): Config {
   const configs: Config[] = []
   const register = Object.assign((config: Config) => configs.push(config), {
@@ -24,7 +22,6 @@ function captureConfig(): Config {
   return configs[0]
 }
 
-/** PrometheusClient that records every instant PromQL string and answers via `answer`. */
 function recordingClient(answer: (query: string) => PromSample[] = () => []) {
   const queries: string[] = []
   const client: PrometheusClient = {
@@ -122,8 +119,7 @@ describe("analytics_engine_health — alerts (N76)", () => {
   )
 
   it("never lets a foreign critical alert in a shared Prometheus decide the verdict", async () => {
-    // A critical alert of somebody else's rule, carrying no engine_id: the
-    // scoped selector cannot match it, so it never reaches the verdict.
+    // Somebody else's alert without engine_id: the scoped selector never matches it.
     const { client, queries } = recordingClient(onlyProdAReports)
     const result = await run(client, { engine: "prod-a" })
     expect(alertQueries(queries).some((q) => !q.includes('engine_id="prod-a"'))).toBe(false)
@@ -131,10 +127,7 @@ describe("analytics_engine_health — alerts (N76)", () => {
   })
 })
 
-/**
- * #340: two health tools judge different data by different rules — each
- * states its own in the description AND the result, and routes to the other.
- */
+/** #340: each health tool states its rules and routes to the other. */
 describe("analytics_engine_health verdict labeling", () => {
   it("carries the status rule — including the unknown verdict — in every result", async () => {
     const { client } = recordingClient()

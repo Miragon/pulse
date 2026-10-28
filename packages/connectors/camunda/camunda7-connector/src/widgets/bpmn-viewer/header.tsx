@@ -6,11 +6,6 @@ import { EngineMeta } from "../lib/engine-context.js"
 import { InstanceLabel } from "../lib/identity.js"
 import { useT } from "../../messages/use-t.js"
 
-/**
- * The instance's state on the diagram: what blocks it, what each incident
- * means and whether the failed-job hotspots point to a systemic fault. The
- * highlighted elements travel as their BPMN ids.
- */
 export function explainDiagramHandOff(data: BpmnViewerData): HandOff {
   return {
     intent: "askAi.bpmn.explainState",
@@ -23,8 +18,7 @@ export function explainDiagramHandOff(data: BpmnViewerData): HandOff {
       activeActivities: data.activeActivityIds,
       incidentActivities: data.incidentActivityIds,
       failedJobActivities: data.activityStats.filter((s) => s.failedJobs > 0).map((s) => s.id),
-      // Whose counts the hotspots are (#335 N66): this instance's own tokens
-      // and failed jobs, or every running instance of the rendered version.
+      // #335 N66: this instance's tokens, or every running instance of the version.
       statsScope: data.statsScope,
     },
     tools: [
@@ -46,8 +40,7 @@ export function BpmnViewerHeader({ data }: { data: BpmnViewerData | null }) {
 
   return (
     <WidgetHeader
-      // Names before ids (#322 U13): the process's name, the instance by its
-      // label (business key, then the id chip), as the instance detail does.
+      // Names before ids: the instance by its label, as the instance detail does (#322 U13).
       title={data.processDefinitionName ?? t("bpmnHeader.title")}
       sub={
         <>

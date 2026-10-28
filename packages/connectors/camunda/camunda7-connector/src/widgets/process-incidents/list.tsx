@@ -46,12 +46,7 @@ export function ActivityIncidentList({
   data?: ProcessIncidentsData | null
   processDefinitionKey?: string
   engine?: string
-  /**
-   * No-incidents rendering — the entry point's focus lever: the default
-   * definition view shows a slim one-line success note; the incidents focus
-   * keeps the explorative empty state that jumps to sibling processes with
-   * open incidents.
-   */
+  /** "note" is the default slim success line; "siblings" the explorative empty state of the incidents focus. */
   emptyVariant?: "siblings" | "note"
 }) {
   const t = useT()
@@ -62,9 +57,7 @@ export function ActivityIncidentList({
     engine,
   )
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
-  // Mutations must target the exact engine this data was fetched from (the prop
-  // in the cockpit, the server-resolved id standalone) — never fall back to the
-  // caller's default engine, which can differ if the default-engine save raced or failed.
+  // Writes target the data's engine, never the caller's default.
   const engineId = engine ?? data?.engineId
 
   if (!data) {

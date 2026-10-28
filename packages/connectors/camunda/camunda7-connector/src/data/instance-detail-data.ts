@@ -25,7 +25,6 @@ import {
 } from "./definition-info.js"
 import { countOf, optional, rowsOf } from "./engine-reads.js"
 
-/** Rows the payload carries per list; the exact totals come from `/count`. */
 const INCIDENT_ROWS = 100
 const TASK_ROWS = 50
 
@@ -39,7 +38,7 @@ interface RawIncident {
   configuration?: string | null
 }
 
-/** The diagram of a definition — null when the read fails (the forms are then UNKNOWN). */
+/** Null when the read fails; the forms are then UNKNOWN. */
 async function readBpmnXml(
   client: Client,
   definitionId: string | undefined,
@@ -52,12 +51,7 @@ async function readBpmnXml(
   }
 }
 
-/**
- * The key the per-incident cockpit links address — read only when there are
- * links to build. The id names it, unless it is a bare generated one (long
- * keys): then the definition statistics resolve it (`resolveDefinitionKeys`)
- * as ENRICHMENT — a failed read is no link, never the UUID as a key.
- */
+/** ENRICHMENT, read only when there are links: a failed read is no link, never the UUID as a key. */
 async function linkDefinitionKey(
   client: Client,
   definitionId: string | undefined,
@@ -68,18 +62,11 @@ async function linkDefinitionKey(
   return keyOf(definitionId)
 }
 
-/**
- * One running instance: its state, tokens, variables, open incidents and open
- * user tasks are PRIMARY — the summary reports them as facts, so a failed
- * read is a tool error, never "0 open incidents". The lists are capped, their
- * totals come from `/count`. The diagram, the task forms and the incidents'
- * cockpit links are enrichment (null when unreadable).
- */
+/** State, tokens, variables, incidents and tasks are PRIMARY; diagram, forms and cockpit links are enrichment. */
 export async function buildInstanceDetailData(
   client: Client,
   engineId: string,
   args: { processInstanceId: string },
-  /** Cockpit-URL context for the per-incident jump-out links; absent → null links. */
   urls?: { baseUrl: string; cockpitUrl?: string; provider: EngineProvider },
 ): Promise<InstanceDetailData> {
   const id = args.processInstanceId
@@ -109,9 +96,8 @@ export async function buildInstanceDetailData(
   const openTasks: InstanceDetailData["openTasks"] = await Promise.all(
     openTasksRaw.map(async (task) => ({
       ...task,
-      // A schema that cannot be built is null, never `{ fields: [] }` ("no
-      // form"): the widget then loads it through camunda7_get_task_form,
-      // which fails loudly instead of offering a form task without its form.
+      // Null, never `{ fields: [] }` ("no form"): the widget then loads it via
+      // camunda7_get_task_form, which fails loudly.
       formSchema: unreadable
         ? null
         : await buildTaskFormSchema(client, task.id, { task, bpmnXml }).catch(() => null),
@@ -152,8 +138,6 @@ export async function buildInstanceDetailData(
     variables: variables as unknown as InstanceDetailData["variables"],
     incidents: incidentRows,
     incidentCount,
-    // Drawn by id (`camunda7_bpmn_xml_data`); the XML read here names the
-    // process and builds the task forms.
     diagramDefinitionId: bpmnXml && definitionId ? definitionId : null,
     activeActivityIds: collectActiveActivityIds(activityTree),
     incidentActivityIds: collectIncidentActivityIds(incidents),

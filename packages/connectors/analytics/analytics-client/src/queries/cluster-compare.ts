@@ -28,48 +28,30 @@ export interface ClusterCompareKpi extends CompareKpis {
   period: "before" | "after"
   window_from: string
   window_to: string
-  /** The window's ACTUAL length in days, after clamping to now and retention. */
   window_days: number
 }
 
 export type ClusterCompareDelta = CompareKpiDelta
 
 export interface ClusterCompareResult {
-  /** The engine ids covered; `null` = every engine Prometheus holds (unscoped library call). */
   engines: string[] | null
   processDefinitionKey: string | null
   activityId: string | null
   deploymentTimestamp: string
-  /** The window lengths asked for, in whole days (the tool inputs). */
   requestedWindowDays: { before: number; after: number }
-  /** The ACTUAL window lengths in days — what was measured, not what was asked for. */
   windowDays: { before: number; after: number }
-  /**
-   * True when a window is shorter than requested: the post-deploy window
-   * reaches past now (a recent deployment) or the baseline past retention.
-   */
   partial: boolean
   minBucketSize: number
   suppressed: boolean
   kpis: ClusterCompareKpi[]
   delta: ClusterCompareDelta
-  /**
-   * When the figures were read from Prometheus (ISO timestamp): the "Stand"
-   * a view shows. Optional only for payloads recorded before it existed.
-   */
+  /** Optional: payloads recorded before it existed lack it. */
   asOf?: string
 }
 
 /**
- * Pre/Post deployment comparison from OTEL metrics. Each window is queried with
- * the PromQL `@ <end>` modifier so the before/after split is exact, and both
- * windows are clamped to `[now − retention, now]`: right after a deployment the
- * post-deploy window holds only the elapsed hours, and is reported as exactly
- * that (`window_days`, `partial`) rather than as the requested span. Instance
- * counts are compared PER DAY, so windows of different length compare fairly.
- *
- * `incident_count`/`incident_rate_pct` cover every activity; with `activityId`
- * the `element_incident_*` fields add the count at that element.
+ * Right after a deployment the post-deploy window holds only the elapsed hours,
+ * so starts are compared per day: windows of different length compare fairly.
  */
 export async function clusterCompare(
   ch: PrometheusClient,
@@ -123,7 +105,6 @@ export async function clusterCompare(
     minBucketSize: minBucket,
     suppressed: belowMinBucket([b, a], minBucket),
     kpis: [b, a],
-    // The windows were clamped to this `now`: the figures are as of it.
     asOf: new Date(now * 1000).toISOString(),
     // Exact lengths, not the rounded `window_days`: a 2 h window is 0.083 d.
     delta: compareKpiDelta(b, a, {

@@ -47,8 +47,7 @@ const DATA: HistoryTimelineData = {
   engineId: "default",
 }
 
-// WidgetFixtureHost accepts raw single-data widgets (`({ data }) => …`); the
-// fixture-host prop type is intentionally loose, so widen here.
+// The fixture-host prop type is intentionally loose.
 const Widget = HistoryTimelineWidget as unknown as ComponentType<Record<string, unknown>>
 
 describe("HistoryTimelineWidget (fixture render)", () => {
@@ -117,11 +116,7 @@ describe("HistoryTimelineWidget (fixture render)", () => {
   })
 })
 
-/**
- * The show tool returns one capped page (maxResults <= 100, like every list):
- * a longer instance's timeline continues through "Load more" on the same
- * engine and instance instead of ending silently at the page boundary.
- */
+/** A longer timeline continues through "Load more" on the same engine instead of ending silently. */
 describe("HistoryTimelineWidget paging", () => {
   const nextActivity = {
     ...DATA.activities[1],
@@ -163,9 +158,7 @@ describe("HistoryTimelineWidget paging", () => {
   })
 })
 
-// #344 N120: inside the instance detail the timeline shows no header data,
-// yet a row's "why so long here?" still names its instance and, where the
-// definition id names one, the key the analytics tools take.
+// #344 N120: without header data a row's hand-off still names its instance and key.
 describe("explainActivityHandOff", () => {
   const activity = {
     id: "act-1",

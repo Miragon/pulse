@@ -22,10 +22,7 @@ interface WriteTarget {
   environment: string | null
 }
 
-/**
- * The instance as a confirmation names it: its label (business key, then
- * short id, #322 U13), definition, engine, environment.
- */
+/** #322 U13: business key, then short id. */
 function instanceLines(
   t: T,
   instance: InstanceDetailData["instance"],
@@ -77,17 +74,8 @@ function suspensionConfirmation(
 }
 
 /**
- * The instance-level writes of the instance-detail view — suspend/activate
- * and cancel, each an `EngineAction` that asks first (naming the instance)
- * — plus the incident row remedies (`useIncidentRecovery`). The UI faces are
- * `InstanceHeader` (the buttons, only where `can*` allows them) and
- * `InstanceActionDialogs` (the confirmations).
- *
- * Every write is offered for the CURRENT state only (`isActionable`): never
- * on an ended or cancelled instance, and not while a failed refetch leaves
- * the state `unconfirmed` (completing the last task ends the instance — its
- * runtime read is a 404 then). The task completion additionally needs a
- * running, not suspended instance (`canCompleteTasks`).
+ * Writes are offered for the current state only: never on an ended or cancelled instance, nor
+ * while a failed refetch leaves it `unconfirmed` (completing the last task makes the runtime read 404).
  */
 export function useInstanceActions({
   engine,
@@ -96,15 +84,12 @@ export function useInstanceActions({
 }: {
   engine?: string
   data: InstanceDetailData | null
-  /** A refetch failed over the shown data — the view cannot confirm the state. */
   unconfirmed: boolean
 }) {
   const t = useT()
   const instanceId = data?.instance.id ?? ""
-  // The instance still exists as far as the view can tell.
   const current = !!data && !data.instance.ended && !unconfirmed
-  // No reset: a cancelled instance stays cancelled — its view is not
-  // refetched after the write (the runtime read could only answer 404).
+  // No reset: the runtime read after a cancel could only answer 404.
   const cancel = useEngineAction<CancelArgs>({
     tool: "camunda7_delete_process_instance",
     target: (args) => args.processInstanceId,
@@ -112,8 +97,6 @@ export function useInstanceActions({
   })
   const cancelled = cancel.done.has(instanceId)
   const isActionable = current && !cancelled
-  // The suspend/activate success only bridges the gap until the instance
-  // refetches — fresh server data must win again.
   const suspension = useEngineAction<SuspensionArgs>({
     tool: "camunda7_set_process_instance_suspension",
     target: (args) => args.processInstanceId,
@@ -121,18 +104,14 @@ export function useInstanceActions({
     available: isActionable,
   })
 
-  // Standalone (camunda7_show_instance_detail) the `engine` prop is undefined; fall
-  // back to the engine the data was fetched against — mutations (and the AI
-  // prompts) must target the exact engine this data came from, never the caller's
-  // default engine, which can differ if the default-engine save raced or failed.
+  // Standalone has no `engine` prop; writes must target the data's engine, never the caller's default.
   const engineId = engine ?? data?.engineId
   const where: WriteTarget = { engineId, environment: useEngineEnvironment(engineId) }
   const recovery = useIncidentRecovery(engineId, { resetOn: data, available: isActionable })
   const isSuspended =
     suspension.done.get(instanceId)?.args.suspended ?? data?.instance.suspended ?? false
 
-  // The requests only fire from post-guard UI (data is loaded by then) — the
-  // early returns exist for the type system.
+  // The early returns exist for the type system only.
   function requestSuspendToggle() {
     if (!data) return
     suspension.run(
@@ -167,7 +146,6 @@ export function useInstanceActions({
     isSuspended,
     cancelled,
     isActionable,
-    // The engine refuses to complete a suspended instance's task.
     canCompleteTasks: isActionable && !isSuspended,
     canSuspend: suspension.allowed,
     canCancel: cancel.allowed,

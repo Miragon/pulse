@@ -5,12 +5,7 @@ import { EngineMeta } from "../lib/engine-context.js"
 import { useT } from "../../messages/use-t.js"
 import { instancesFilterFacts, type InstancesListFilters } from "./hand-offs.js"
 
-/**
- * Triage of the running instances — of one definition (scoped list) or of the
- * whole engine. The count is the filtered set's, stated with its filters. The
- * process name is the deployer's text, the business-key filter and the search
- * the operator's — all quoted.
- */
+/** Process name, business-key filter and search are quoted. */
 export function triageInstancesHandOff({
   scopedKey,
   processName,
@@ -59,14 +54,11 @@ export function InstancesHeader({
   filters,
 }: {
   title: string
-  /** The definition's name — null when it has none (or the list is engine-wide). */
   processName: string | null
-  /** The list's definition scope — null in the engine-wide list. */
   scopedKey: string | null
   total: number
-  /** The engine the list was fetched from — undefined when the default routed it. */
+  /** Undefined when the default routed it. */
   engine: string | undefined
-  /** The filters `total` covers. */
   filters: InstancesListFilters
 }) {
   const t = useT()

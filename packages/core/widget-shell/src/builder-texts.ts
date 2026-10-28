@@ -5,30 +5,17 @@ import {
   type LocalizedText,
 } from "@miragon/mcp-toolkit-core"
 
-/** The view builder's names of a module, read from the module's catalogs. */
 export interface BuilderTexts {
-  /** The app's title: the heading of its group in the builder's palette (`builder.app.title`). */
+  /** The heading of its group in the builder's palette. */
   appTitle: () => LocalizedText
-  /** A widget's or step's title and one-line summary (`builder.<key>.title` / `.summary`). */
   text: (key: string) => Required<Pick<DisplayText, "title" | "summary">>
-  /**
-   * A propsSchema field's label and help line in the builder's props sheet, as
-   * zod metadata: `.meta(field("processList.nameLike"))` puts the toolkit's
-   * `x-display` keyword (`builder.field.<key>.*`) on the field's JSON schema.
-   */
+  /** Zod metadata putting the toolkit's `x-display` keyword on the field's JSON schema. */
   field: (key: string) => Record<string, unknown>
 }
 
 /**
- * How the toolkit's view builder (2.8) names a module's widgets, pipeline
- * steps and props fields for people — `DisplayText` on the definitions,
- * `x-display` on a propsSchema field — in English and German, from the
- * `builder.*` entries of the module's own catalogs. The words then sit next
- * to the module's other strings, so its voice, glossary and en/de parity
- * gates hold them too; the definitions' `description`s stay the model's
- * text, and the toolkit never sends these to the model. A missing entry
- * throws as the definitions load, so every test that imports them fails;
- * `missingDisplayTexts` (`/testing`) checks that nothing is left unnamed.
+ * People's texts for the view builder, from the module's own catalogs so voice, glossary and en/de
+ * gates hold them; `description`s stay the model's. A missing entry throws as definitions load.
  */
 export function createBuilderTexts(catalogs: Catalogs, module: string): BuilderTexts {
   const localized = (key: string): LocalizedText => {

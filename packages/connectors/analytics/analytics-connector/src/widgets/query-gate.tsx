@@ -2,21 +2,14 @@ import type { ReactNode } from "react"
 import { QueryFallback, WidgetShell } from "@miragon/pulse-widget-shell/widgets"
 import { useT } from "../messages/use-t.js"
 
-/** The slice of a self-fetch query result the gate needs (tanstack-shaped). */
 interface GateQuery<T> {
   data: T | null | undefined
   isError: boolean
   error?: unknown
-  /** Re-runs the query: the error state's retry (a failed load is never a dead end). */
   refetch: () => unknown
 }
 
-/**
- * Shared self-fetch gate for the split dashboard widgets: resolves pipeline
- * data against the fallback query and renders the loading/error shell until
- * data exists. `children` is a render prop so the happy path only runs with
- * resolved data; `header` keeps a widget's static header visible while loading.
- */
+/** `children` is a render prop so the happy path only runs with resolved data. */
 export function QueryGate<T>({
   initialData,
   query,

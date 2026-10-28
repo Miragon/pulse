@@ -77,9 +77,7 @@ describe("ClusterDetailWidget (fixture render)", () => {
     // Full sample failure message.
     expect(screen.getByText("Connection timeout to WMS after 30000ms")).toBeTruthy()
 
-    // Instance rows (#322 U13): the business key, else the short id — the
-    // UUID a copyable chip; the list footer shows the honest total plus an
-    // explicit Load-more control.
+    // The business key, else the short id (#322 U13).
     expect(screen.getByText("ORDER-4711")).toBeTruthy()
     expect(screen.getByText("a1b2c3d4…")).toBeTruthy()
     expect(screen.getByRole("button", { name: "Copy a1b2c3d4…" })).toBeTruthy()
@@ -94,9 +92,7 @@ describe("ClusterDetailWidget (fixture render)", () => {
     expect(screen.queryByText(/The list covers the newest/)).toBeNull()
   })
 
-  // #322 U12, U13: the head's line names the processes by name and says when
-  // the cluster was first seen — a point in time, not a KPI tile it would not
-  // fit in; the tiles hold the counts only.
+  // #322 U12, U13: first seen is a point in time on the head's line, not a KPI tile.
   it("names the processes and the first sighting in the head's line", () => {
     const named: ClusterDetailData = {
       ...CLUSTER,

@@ -15,7 +15,6 @@ export function explainTimelineHandOff(
   }
 }
 
-/** The "History" tab body — AI timeline handoff plus the paged activity history. */
 export function HistoryTab({
   instanceId,
   definitionId,
@@ -25,10 +24,9 @@ export function HistoryTab({
 }: {
   instanceId: string
   definitionId: string
-  /** The key the definition id names (null for a bare id) — the rows' analytics hand-offs. */
+  /** Null for a bare id. */
   definitionKey: string | null
   engineId?: string
-  /** The instance's activities with an open incident — the timeline marks them. */
   incidentActivityIds: readonly string[]
 }) {
   const { ask } = useHandOff()

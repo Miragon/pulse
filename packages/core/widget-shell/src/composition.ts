@@ -3,152 +3,77 @@ import type { MCPServer } from "mcp-use"
 import type { ToolsetSource, ToolsetVocabulary } from "./toolsets.js"
 
 /**
- * The composition-root machinery every server (the stock app AND a customer's
- * composed server) previously copied: module selection via
- * `MCP_ACTIVE_MODULES` (with the `module:toolset` suffix), the env-typo
- * warner, boot warnings, and the mcp-use `AppConfig`/plugin assembly.
- *
- * The module PORT SHAPE lives here ({@link ComposableModule}); what stays
- * app-owned by design is its instantiation: each composition root declares its
- * own shared-resources type (`ComposableModule<MyShared>`), its module list,
- * and the cross-module wiring — which module's capability reaches which other
- * module is configuration knowledge, never a module-to-module import.
- * Modules keep conforming STRUCTURALLY and never import this type.
+ * Composition-root machinery. Each root declares its own shared-resources type, module list and
+ * cross-module wiring; modules conform STRUCTURALLY and never import this type.
  */
 export interface ComposableModule<TShared> {
-  /** Module key used in `MCP_ACTIVE_MODULES` and as the `activeApps` entry name. */
+  /** Key in `MCP_ACTIVE_MODULES` and the `activeApps` entry name. */
   name: string
-  /** Pure env → raw-config mapping; must not read `process.env` or perform I/O side effects beyond config sources. */
+  /** Pure env → raw-config mapping; no `process.env`, no I/O side effects. */
   configFromEnv(env: NodeJS.ProcessEnv): Record<string, unknown>
-  /** Env vars this module reads — composed into the root's unknown-var typo warner. */
   knownEnvVars: readonly string[]
-  /**
-   * The module's toolset vocabulary (`createToolsetVocabulary`). Declaring it
-   * opts the module into the `module:toolset` suffix: the composition resolves
-   * ONE concrete toolset per boot — the suffix, or the auth-dependent default,
-   * never "everything" — and threads it into `config.toolset`. Absent = the
-   * module has no toolsets: a suffix is ignored (with a warning) and its config
-   * never carries a `toolset`.
-   */
+  /** Opts into the `module:toolset` suffix; absent = a suffix is ignored with a warning. */
   toolsets?: ToolsetVocabulary<string>
-  /** Optional boot-time hints (returned, and logged by the root) for active deployments. */
   bootWarnings?(env: NodeJS.ProcessEnv): string[]
-  /**
-   * Optional model-facing usage notes for this module — routing rules,
-   * argument conventions, which tool answers which question — joined into
-   * the server `instructions` ({@link ModuleComposition.instructions}), so
-   * the rule is stated ONCE instead of in every tool description. Receives
-   * the module's boot config (incl. its effective `toolset`) and the boot's
-   * auth mode; `undefined` contributes nothing.
-   */
+  /** Model-facing usage notes joined into the server `instructions`, stated ONCE instead of per tool. */
   instructions?(config: Record<string, unknown>, context: InstructionsContext): string | undefined
-  /** Validates the raw config and builds the plugin; receives the shared resources. */
   createPlugin(config: Record<string, unknown>, shared: TShared): AppPlugin<MCPServer>
 }
 
-/** What a module's {@link ComposableModule.instructions} may depend on besides its config. */
 export interface InstructionsContext {
-  /** Whether the root installed OAuth — a caller identity (and per-user saves) exists. */
   authenticated: boolean
 }
 
 export interface ActiveModuleRef {
   name: string
-  /**
-   * The raw toolset suffix from the `module:toolset` syntax, e.g.
-   * `camunda7:read-only` — trimmed, and kept even when EMPTY (`camunda7:` →
-   * `""`), so an empty suffix fails closed like an unknown one instead of
-   * reading as "no suffix". Absent = no suffix: the auth-dependent default.
-   */
+  /** Kept even when EMPTY (`camunda7:` → `""`), so an empty suffix fails closed like an unknown one. */
   toolset?: string
 }
 
-/** The toolset one active module runs with — one entry of the boot log. */
 export interface EffectiveToolset {
   module: string
-  /** The concrete toolset; absent for a module without toolsets. */
   toolset?: string
-  /**
-   * Why: the suffix named it, the auth-dependent default applied, an empty or
-   * unknown suffix fell back to the floor — or `none` for a module without
-   * toolsets.
-   */
   source: ToolsetSource | "none"
-  /**
-   * Whether the toolset permits durable writes. A module without toolsets
-   * declares no restriction (`true`).
-   */
+  /** A module without toolsets declares no restriction (`true`). */
   durableWrites: boolean
 }
 
-/** One boot's module selection, resolved ONCE by the composition root. */
 export interface ResolvedBoot {
-  /** Whether the root installed OAuth (a caller identity exists). */
   authenticated: boolean
-  /** The active modules' mcp-use config entries, each carrying its effective toolset. */
   entries: AppConfigEntry[]
   toolsets: EffectiveToolset[]
 }
 
 export interface ResolveBootOptions {
   /**
-   * Whether the composition root INSTALLED OAuth on `/mcp`. Only the root
-   * knows — never infer it from an env var the root may not honor (a server
-   * without OAuth wiring would read a stray `MCP_OAUTH` as authenticated and
-   * fail open). Omitted = `false`, the fail-closed reading.
+   * Only the root knows whether it INSTALLED OAuth; a server without OAuth wiring would read a stray
+   * `MCP_OAUTH` as authenticated and fail open. Omitted = `false`.
    */
   authenticated?: boolean
 }
 
-/**
- * All members are `this`-free closures (function properties, not methods), so
- * composition roots may destructure or re-export them directly
- * (`export const warnUnknownEnvVars = composition.warnUnknownEnvVars`).
- */
+/** `this`-free closures, so roots may destructure or re-export them. */
 export interface ModuleComposition<TShared> {
-  /** Every known env var: the root's own plus each module's slice. */
   knownEnvVars: ReadonlySet<string>
-  /** The `MCP_ACTIVE_MODULES` selection (unset/`all` = every module); unknown names warn and are skipped. */
+  /** Unset/`all` = every module; unknown names warn and are skipped. */
   activeModules: (env?: NodeJS.ProcessEnv) => ActiveModuleRef[]
-  /**
-   * Resolve the boot ONCE: every toolset-bearing module gets a concrete
-   * effective toolset in its config (suffix → itself; empty/unknown → the
-   * module's floor, with one warning; none → the floor without OAuth, the
-   * module's standard toolset with it). Call it once per boot and derive
-   * plugins, `AppConfig` and the boot log from the result.
-   */
+  /** Call once per boot; derive plugins, `AppConfig` and the boot log from the result. */
   resolveBoot: (env?: NodeJS.ProcessEnv, options?: ResolveBootOptions) => ResolvedBoot
-  /** `resolveBoot(env, options).entries`. */
   appEntries: (env?: NodeJS.ProcessEnv, options?: ResolveBootOptions) => AppConfigEntry[]
   appConfig: (env?: NodeJS.ProcessEnv, options?: ResolveBootOptions) => AppConfig
-  /** Instantiate the active modules' plugins with the root's shared resources. */
   pluginsFor: (entries: AppConfigEntry[], shared: TShared) => AppPlugin<MCPServer>[]
-  /** Report unknown env vars under any watched prefix; returns the offenders. */
   warnUnknownEnvVars: (env?: NodeJS.ProcessEnv, extraKnown?: Iterable<string>) => string[]
-  /** Collect + log the active modules' boot-time hints. */
   emitBootWarnings: (env?: NodeJS.ProcessEnv) => string[]
-  /** Log (console.info) and return the one boot line that states each active module's effective toolset. */
   logEffectiveToolsets: (boot: ResolvedBoot) => string
-  /**
-   * The active modules' instruction snippets for this boot, in module order,
-   * joined by a blank line — `undefined` when none contributes. The root
-   * prepends its own preamble (`createComposedServer` does).
-   */
   instructions: (boot: ResolvedBoot) => string | undefined
 }
 
 export function composeModules<TShared>(options: {
-  /** Log prefix for every warning, e.g. `pulse`. */
   label: string
   modules: readonly ComposableModule<TShared>[]
-  /** The root's own env vars (module vars come from each module's `knownEnvVars`). */
   appEnvVars?: readonly string[]
-  /**
-   * Prefixes owned by dependencies, exempt from the typo warner
-   * (mcp-use itself + the dev inspector by default).
-   */
+  /** Prefixes owned by dependencies, exempt from the typo warner. */
   foreignEnvPrefixes?: readonly string[]
-  /** Optional pointer appended to the unknown-var warning, e.g. `see docs/operations.md`. */
   envVarHint?: string
 }): ModuleComposition<TShared> {
   const {
@@ -164,10 +89,7 @@ export function composeModules<TShared>(options: {
   )
   const knownEnvVars = new Set([...appEnvVars, ...modules.flatMap((m) => [...m.knownEnvVars])])
 
-  // Watched prefixes derive from every known var (NOTES_TITLE contributes
-  // NOTES_, PROMETHEUS_URL contributes PROMETHEUS_, …) so custom modules get
-  // the same typo coverage as the CAMUNDA_/MCP_ families — a hardcoded prefix
-  // list would silently exempt every non-Camunda module.
+  // Prefixes derive from every known var, so custom modules get the same typo coverage.
   const watchedPrefixes = [
     ...new Set(
       [...knownEnvVars]
@@ -177,12 +99,8 @@ export function composeModules<TShared>(options: {
   ]
 
   /**
-   * `MCP_ACTIVE_MODULES` → the known modules (with their raw suffix) and the
-   * unknown names. Deliberately not the toolkit's `parseActiveModules`: that
-   * one reads an empty qualifier (`camunda7:`) as no qualifier, which would
-   * turn it into the auth-dependent default instead of failing closed. A name
-   * that appears twice is refused — two entries would build two plugins with
-   * colliding steps, and which suffix wins would be a guess.
+   * Not the toolkit's `parseActiveModules`: it reads `camunda7:` as no qualifier instead of failing
+   * closed. A repeated name is refused: two plugins would collide and the winning suffix is a guess.
    */
   const parseActiveModules = (
     env: NodeJS.ProcessEnv,
@@ -196,9 +114,7 @@ export function composeModules<TShared>(options: {
       .map((s) => s.trim())
       .filter(Boolean)
       .map((entry): ActiveModuleRef => {
-        // Everything after the FIRST colon is the suffix, kept even when empty
-        // or when it contains further colons — both are then unknown toolset
-        // names and fail closed, instead of reading as "no suffix".
+        // Everything after the FIRST colon is the suffix, so extra colons fail closed too.
         const colon = entry.indexOf(":")
         if (colon === -1) return { name: entry }
         return { name: entry.slice(0, colon).trim(), toolset: entry.slice(colon + 1).trim() }
@@ -217,11 +133,9 @@ export function composeModules<TShared>(options: {
     }
   }
 
-  /** The known active modules; the unknown ones warn once per boot, in `emitBootWarnings`. */
   const activeModules = (env: NodeJS.ProcessEnv = process.env): ActiveModuleRef[] =>
     parseActiveModules(env).known
 
-  // The one place a suffix becomes a toolset: per module, per boot.
   const effectiveToolset = (
     module: ComposableModule<TShared>,
     suffix: string | undefined,
@@ -281,9 +195,7 @@ export function composeModules<TShared>(options: {
     },
     warnUnknownEnvVars(env = process.env, extraKnown = []) {
       const known = new Set([...knownEnvVars, ...extraKnown])
-      // `<KNOWN_VAR>_*` extensions (DATABASE_URL_FILE, REDIS_URL_2, …) are
-      // conventions addressed at OTHER processes — docker secrets, sidecars —
-      // never a typo of the var they extend, so they don't warn.
+      // `<KNOWN_VAR>_*` (DATABASE_URL_FILE, …) addresses OTHER processes, never a typo.
       const extendsKnownVar = (name: string) =>
         [...known].some((knownName) => name.startsWith(`${knownName}_`))
       const unknown = Object.keys(env).filter(
@@ -302,8 +214,7 @@ export function composeModules<TShared>(options: {
       return unknown
     },
     emitBootWarnings(env = process.env) {
-      // Deliberately separate from `configFromEnv` (which runs inside
-      // `resolveBoot` and stays side-effect free).
+      // Separate from `configFromEnv`, which stays side-effect free.
       const { known, unknown } = parseActiveModules(env)
       const warnings = [
         ...unknown.map((name) => `Unknown module "${name}" in MCP_ACTIVE_MODULES — skipping`),
@@ -315,8 +226,7 @@ export function composeModules<TShared>(options: {
       return warnings
     },
     logEffectiveToolsets(boot) {
-      // console.info, deliberately not a boot WARNING: it states the surface
-      // on every boot, the restrictive default included.
+      // console.info, not a warning: it states the surface on every boot.
       const describe = ({ module, toolset, source }: EffectiveToolset): string => {
         if (toolset === undefined) return `${module} (no toolsets)`
         if (source === "default") {
@@ -340,12 +250,8 @@ export function composeModules<TShared>(options: {
 }
 
 /**
- * Whether the server may register FRAMEWORK durable writes — the toolkit
- * builder's `save-dashboard`/`delete-dashboard` and the shell's
- * `shell_save_settings`, which no module toolset filters. Only with a caller
- * identity (records are keyed by user; without OAuth every record is shared
- * and ownerless) and only when no active module sits on its read-only floor:
- * the most restrictive module wins.
+ * Framework durable writes (dashboard builder, `shell_save_settings`) need a caller identity and no
+ * module on its read-only floor: the most restrictive module wins.
  */
 export function frameworkWritesAllowed(boot: ResolvedBoot): boolean {
   return boot.authenticated && boot.toolsets.every(({ durableWrites }) => durableWrites)

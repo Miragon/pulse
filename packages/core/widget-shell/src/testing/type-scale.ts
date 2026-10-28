@@ -8,22 +8,7 @@ import {
   walkNodes,
 } from "./source-scan.js"
 
-/**
- * The type-scale gate (CLAUDE.md "Design-System"; modeler-tool-design §4,
- * the toolkit's `TYPE_SCALE`): widget text sits on the five steps of the
- * scale — `text-title` (28/700, a widget's page title, the CI h2),
- * `text-section` (21/600), `text-body` (16), `text-dense` (14, dense tables
- * and controls) and `text-small` (13, the FLOOR) — and nothing renders
- * smaller than 13 px. Two rules:
- *
- * - `below-floor`: `text-xs` (12 px), `text-2xs`, an arbitrary size under
- *   13 px (`text-[11px]`, `text-[0.7rem]`);
- * - `off-scale`: Tailwind's own sizes (`text-sm`, `text-base`, `text-lg` …
- *   `text-9xl`) and any other arbitrary size — the step names say what the
- *   text IS, so the scale changes in one place.
- *
- * It reads string and template literals (class lists), never comments.
- */
+/** Widget text sits on the toolkit's five TYPE_SCALE steps, nothing below 13 px; step names say what the text IS, so the scale changes in one place. */
 export type TypeScaleRule = "below-floor" | "off-scale"
 
 export interface TypeScaleFinding {
@@ -43,13 +28,11 @@ const OFF_SCALE_CLASS = /(?<![\w-])(?:[\w-]+:)*text-(?:sm|base|lg|[2-9]?xl)(?![\
 /** `text-[11px]`, `text-[0.8rem]`, `text-[length:12px]`. */
 const ARBITRARY_SIZE = /(?<![\w-])(?:[\w-]+:)*text-\[(?:length:)?(\d*\.?\d+)(px|rem|em)\]/g
 
-/** The px value of an arbitrary size. */
 function px(value: string, unit: string): number {
   const n = Number(value)
   return unit === "px" ? n : n * ROOT_PX
 }
 
-/** Every off-scale or below-floor text size in one literal. */
 function literalFindings(text: string): Array<{ rule: TypeScaleRule; match: string; at: number }> {
   const out: Array<{ rule: TypeScaleRule; match: string; at: number }> = []
   for (const m of text.matchAll(BELOW_FLOOR_CLASS)) {
@@ -65,7 +48,6 @@ function literalFindings(text: string): Array<{ rule: TypeScaleRule; match: stri
   return out.sort((a, b) => a.at - b.at)
 }
 
-/** Every text size off the scale (or below its floor) in one source file. */
 export function typeScaleFindings(source: string, file: string): TypeScaleFinding[] {
   const sf = parseSource(source, file)
   const findings: TypeScaleFinding[] = []
@@ -80,18 +62,10 @@ export function typeScaleFindings(source: string, file: string): TypeScaleFindin
 }
 
 export interface ScanTypeScaleOptions {
-  /**
-   * The rules to enforce (default both). A package still migrating its
-   * widgets onto the steps starts with `["below-floor"]`.
-   */
+  /** A package still migrating its widgets starts with `["below-floor"]`. */
   rules?: readonly TypeScaleRule[]
 }
 
-/**
- * Scan every `.ts`/`.tsx` source under `dir` (tests and declarations
- * excluded) for text sizes off the type scale. Findings carry "/"-separated
- * paths relative to `dir`.
- */
 export function scanTypeScale(dir: string, options: ScanTypeScaleOptions = {}): TypeScaleFinding[] {
   const rules = new Set<TypeScaleRule>(options.rules ?? ["below-floor", "off-scale"])
   return sourceFiles(dir)

@@ -2,14 +2,7 @@ import { describe, expect, it } from "vitest"
 import { parseViewToolResult } from "@miragon/mcp-toolkit-ui"
 import { buildComposedView, buildSingleWidgetView } from "./server.js"
 
-/**
- * The structuredContent shape produced here is an implicit contract with the
- * toolkit's `McpAppView` shell / `adaptDataWidget`: widget data must live under
- * `context.stepData[<id>]` with `_app` and `_dataType` routing fields. These
- * tests pin that contract — plus the text-channel diet: the text block carries
- * only a model summary, the payload lives in structuredContent and round-trips
- * through `parseViewToolResult` for in-widget refreshes.
- */
+/** Pins the implicit contract with the toolkit's `McpAppView`: data under `context.stepData[<id>]`. */
 describe("buildSingleWidgetView", () => {
   const data = { rows: [{ id: "pi-1" }], total: 1 }
   const view = buildSingleWidgetView({

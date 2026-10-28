@@ -5,13 +5,7 @@ import { RefreshCw } from "lucide-react"
 import { translator } from "../../messages/index.js"
 import { refreshCockpitData } from "../refresh.js"
 
-/**
- * The cockpit's ONE Refresh (#322 U27): re-reads every data feed of the open
- * view — the way to see what the agent (or another session) changed
- * meanwhile, and the retry of a view stuck in an error state. A 32 px icon
- * button in the head; its name says what it does, and while it runs the
- * icon turns (not under reduced motion) and the name says so.
- */
+/** #322 U27: re-reads every feed of the open view; also the retry of a view stuck in error. */
 export function CockpitRefreshButton() {
   const locale = useLocale()
   const [refreshing, setRefreshing] = useState(false)

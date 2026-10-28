@@ -12,12 +12,7 @@ import {
   buildProcessListData,
 } from "./cockpit-data.js"
 
-/**
- * The cockpit builders against a recording engine: the REST calls they make
- * (filters, paging, key-scoped endpoints) and the numbers they report. The
- * failure half — every primary read propagates — is the rejection table in
- * `honest-numbers.test.ts`.
- */
+// The failure half is the rejection table in `honest-numbers.test.ts`.
 
 const engines: FakeEngine[] = []
 afterEach(async () => {
@@ -167,13 +162,8 @@ describe("buildProcessListData", () => {
   })
 })
 
-/** The filter a POST query or count sent in its body. */
 const bodyOf = (r: RecordedRequest) => r.body as Record<string, unknown>
 
-/**
- * The process-instance endpoints: the page and the counts (POST, the filter in
- * the body), the page-scoped incident flags (GET over the page's ids).
- */
 function instanceRoutes(counts: { all: number; withIncident: number; suspended: number }) {
   return {
     "GET /process-instance": { body: [{ id: "p2" }] },
@@ -403,9 +393,8 @@ describe("buildProcessInstancesData — totals and page-scoped incident flags (#
 })
 
 describe("buildProcessInstancesData — each row's real definition key", () => {
-  // A key over ~25 characters with UUID ids: the engine stores a bare id, and
-  // a key parsed from it is that UUID — the process column would drill into a
-  // definition view no key matches.
+  // A long key with UUID ids gets a bare id; parsed, that UUID would drill into
+  // a definition view no key matches.
   const LONG_KEY = "customerOnboardingApprovalProcess"
   const UUID = "6f1c2a9e-0b7d-4c33-9a51-3d2e8f40b7aa"
   const STATS = {

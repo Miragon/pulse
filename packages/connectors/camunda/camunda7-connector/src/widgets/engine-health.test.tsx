@@ -119,14 +119,12 @@ describe("EngineHealthVerdict (fixture render)", () => {
       />,
     )
 
-    // Verdict header (the engine in the title, #322 U4, + the deterministic
-    // headline), the one primary next step and the AI hand-off after it.
+    // Verdict header (#322 U4), the one primary next step and the AI hand-off.
     expect(screen.getByRole("heading", { name: "default · Overview" })).toBeTruthy()
     expect(screen.getByText("51 open incidents across 3 activities")).toBeTruthy()
     expect(screen.getByRole("button", { name: "View incidents" })).toBeTruthy()
     expect(await screen.findByText("Assess in chat")).toBeTruthy()
 
-    // KPI row.
     expect(screen.getByText("Running instances")).toBeTruthy()
 
     // Freshness affordances: the "as of" stamp + a manual refresh button.
@@ -139,15 +137,12 @@ describe("EngineHealthVerdict (fixture render)", () => {
     expect(screen.getByText("failedExternalTask")).toBeTruthy()
     expect(screen.getByText("checkCustomer")).toBeTruthy()
 
-    // Each cluster carries both launchpads: a deterministic drill + the guarded
-    // remediation handoff to the agent.
+    // A deterministic drill + the guarded remediation hand-off.
     expect(screen.getAllByText("Open")).toHaveLength(2)
     expect(await screen.findAllByText("Plan a fix in chat")).toHaveLength(2)
   })
 
-  // A surface feed that cannot answer (failed call; a host without in-widget
-  // tools/call) must not take every Ask-AI button with it: the hand-offs are
-  // still offered, naming no tool they cannot confirm.
+  // A failed surface feed must not take the hand-offs with it; they name no unconfirmed tool.
   it("keeps its hand-offs when the surface feed fails — naming no tool", async () => {
     // The shared client retries a failed query with backoff — fail at once.
     queryClient.setQueryDefaults(["camunda7-widget-actions"], { retry: false })
@@ -240,11 +235,7 @@ describe("EngineHealthVerdict (fixture render)", () => {
   })
 })
 
-/**
- * The verdict travels as data (status + counts) and the widget words it in
- * the view's language (#322 U3) — never the server's English sentence under
- * a German title. The status word stays in the KPI badge, not in the line.
- */
+/** The verdict travels as data and the widget words it in the view's language (#322 U3). */
 describe("the verdict line and the hand-offs speak the view's language", () => {
   function renderIn(locale: string, data: EngineHealthData) {
     return render(

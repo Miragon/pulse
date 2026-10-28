@@ -13,7 +13,6 @@ import { Button, usePortalContainer } from "@miragon/mcp-toolkit-ui"
 import { Icon } from "@miragon/pulse-widget-shell/widgets"
 import { Ellipsis } from "lucide-react"
 
-/** Gap between the button and its panel, in px. */
 const GAP = 4
 
 interface Placement {
@@ -21,10 +20,7 @@ interface Placement {
   right: number
 }
 
-/**
- * Where the panel goes: under the button, or over it when the frame has no
- * room below (an inline chat frame is only as tall as its content).
- */
+/** Over the button when there is no room below: an inline chat frame is only as tall as its content. */
 function placePanel(button: DOMRect, panelHeight: number, frameHeight: number): Placement {
   const below = button.bottom + GAP
   const fitsBelow = below + panelHeight <= frameHeight
@@ -34,12 +30,11 @@ function placePanel(button: DOMRect, panelHeight: number, frameHeight: number): 
   }
 }
 
-/** The menu's entries, in order (an entry that rendered nothing is not one). */
+/** An entry that rendered nothing is not one. */
 function menuItems(panel: HTMLElement | null): HTMLElement[] {
   return panel ? [...panel.querySelectorAll<HTMLElement>('[role="menuitem"]')] : []
 }
 
-/** The entry the arrow, Home and End keys move to from `current`, or null for any other key. */
 function nextItem(items: HTMLElement[], current: number, key: string): HTMLElement | null {
   const last = items.length - 1
   if (last < 0) return null
@@ -51,25 +46,10 @@ function nextItem(items: HTMLElement[], current: number, key: string): HTMLEleme
 }
 
 /**
- * A row's secondary actions behind one "more" button (#322 U20): the row
- * keeps its name, its counts and ONE deterministic action on screen; the
- * link into the vendor's app and the chat hand-offs open from here.
- *
- * A menu button (CI §8 "Menüs / Dropdowns", §12): the trigger says
- * `aria-haspopup="menu"` and `aria-expanded`; the panel is a `menu` of
- * plain entries (`variant="menuitem"` on `HandOffButton` and
- * `OpenInCockpitLink`) on the popover surface with `shadow-3`, 6 px inside
- * and a pop-in. Opening it moves the focus to the first entry, the arrow
- * keys (and Home/End) move between the entries, Enter runs one and closes
- * the menu; Escape closes it and returns the focus to the button, Tab
- * closes it and goes on from the button, and a click outside, a scroll or a
- * resize close it.
- *
- * The panel is portaled into the theme scope's overlay node (the toolkit's
- * portal container, else `<body>`) and placed `fixed` at the button: a
- * table's pinned action column is a stacking context per row, so a panel
- * left inside a cell would be painted under the next rows' pinned cells,
- * and their buttons would take its clicks.
+ * #322 U20, CI §8/§12 menu button: arrows/Home/End move, Escape returns focus to the button,
+ * Tab, an outside click, scroll or resize close it. Portaled into the theme scope's overlay node and placed
+ * `fixed`: a pinned action column is a stacking context per row, so an in-cell panel would
+ * paint under the next rows and lose its clicks.
  */
 export function MoreActions({ label, children }: { label: string; children: ReactNode }) {
   const [open, setOpen] = useState(false)
@@ -78,8 +58,6 @@ export function MoreActions({ label, children }: { label: string; children: Reac
   const buttonRef = useRef<HTMLButtonElement>(null)
   const panelRef = useRef<HTMLDivElement | null>(null)
   const portalContainer = usePortalContainer()
-  // Measured once the (hidden) panel is in the document: its height decides
-  // whether it opens below or above the button.
   const measurePanel = useCallback((panel: HTMLDivElement | null) => {
     panelRef.current = panel
     if (!panel || !buttonRef.current) return
@@ -93,7 +71,6 @@ export function MoreActions({ label, children }: { label: string; children: Reac
     if (refocus) buttonRef.current?.focus()
   }, [])
 
-  // Placed: the focus moves into the menu, onto its first entry.
   useEffect(() => {
     if (open && placement) menuItems(panelRef.current)[0]?.focus({ preventScroll: true })
   }, [open, placement])
@@ -109,7 +86,6 @@ export function MoreActions({ label, children }: { label: string; children: Reac
     const onKeyDown = (event: globalThis.KeyboardEvent) => {
       if (event.key === "Escape") close(true)
     }
-    // A scrolled or resized frame moves the button away from the panel.
     const onMove = () => close(false)
     document.addEventListener("pointerdown", onPointerDown)
     document.addEventListener("keydown", onKeyDown)
@@ -125,8 +101,7 @@ export function MoreActions({ label, children }: { label: string; children: Reac
 
   const onMenuKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === "Tab") {
-      // The menu lives at the end of the theme scope, not next to its button:
-      // the Tab goes on from the button, as if the menu had never opened.
+      // The menu lives at the end of the theme scope, so Tab goes on from the button.
       close(true)
       return
     }
@@ -137,7 +112,6 @@ export function MoreActions({ label, children }: { label: string; children: Reac
     next.focus({ preventScroll: true })
   }
 
-  // An entry ran (its own handler first): the menu closes, the focus goes back.
   const onMenuClick = (event: MouseEvent<HTMLDivElement>) => {
     if ((event.target as Element).closest('[role="menuitem"]')) close(true)
   }

@@ -9,12 +9,8 @@ import {
 } from "../tools/test-support/fake-engine.js"
 import { buildIncidentDetailData } from "./incident-detail-data.js"
 
-/**
- * The incident-detail feed reads through the engine contract (#328): the
- * stacktrace as text/plain, the variables serialized, and the remedy the
- * engine accepts — a retry for the built-in incident types, resolve only for
- * custom ones. A real loopback engine sees the requests as sent.
- */
+// A real loopback engine sees the requests as sent (#328): text/plain
+// stacktrace, serialized variables, retry vs. resolve per incident type.
 
 const engines: FakeEngine[] = []
 afterEach(async () => {
@@ -183,9 +179,7 @@ describe("buildIncidentDetailData — the definition's real key", () => {
   })
 })
 
-// One rule with analytics (#322 U13, widget-shell `readBpmnNames`): the
-// Modeler names the pool of a collaboration and writes a line break as
-// `&#10;`, `&` as `&#38;`; the incident head showed "Rechnung&#10;prüfen".
+// One rule with analytics (`readBpmnNames`): the head showed "Rechnung&#10;prüfen".
 describe("buildIncidentDetailData — names from a Modeler diagram", () => {
   it("names the activity with its references decoded and the process by its pool", async () => {
     const xml = `<definitions>

@@ -4,7 +4,6 @@ import type { PrometheusClient, PromSample } from "../prometheus.js"
 
 const v = (value: number): PromSample => ({ metric: {}, value })
 
-/** Mock Prometheus client that dispatches canned samples by the PromQL it sees (durations in ms). */
 function mockClient() {
   const instant = vi.fn(async (q: string): Promise<PromSample[]> => {
     if (q.includes("camunda_activity_ended_total")) {
@@ -157,7 +156,6 @@ describe("comparePeriods", () => {
   it("labels both windows and resolves each KPI from its own historical window", async () => {
     const instant = vi.fn(async (q: string): Promise<PromSample[]> => {
       const count = q.includes(AT_A) ? 10 : 30
-      // count / 10 seconds, in ms
       if (q.includes("histogram_quantile")) return [v(count * 100)]
       if (q.includes("duration_milliseconds_sum")) return [v(count * 100)]
       if (q.includes("incident_created")) return [v(1)]

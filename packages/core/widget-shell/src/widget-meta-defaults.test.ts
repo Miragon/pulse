@@ -15,7 +15,6 @@ type Definition = Record<string, unknown> & {
   _meta?: Record<string, unknown>
 }
 
-/** A server whose `tool()` records the definitions it receives, plus one other member. */
 function recordingServer() {
   const definitions: Definition[] = []
   const server = {

@@ -16,14 +16,14 @@ import { ANALYTICS_SAVE_SETTINGS, ANALYTICS_SETTINGS_DATA } from "./tool-names.j
 import { localizeFor, type ProfileSource } from "./server-locale.js"
 import type { AnalyticsToolset } from "./toolsets.js"
 
-/** A feed's payload as the widget reads it (feeds answer in JSON text only). */
+/** Feeds answer in JSON text only. */
 const feedData = <T = Record<string, unknown>>(result: unknown): T => parseToolResult<T>(result)
 
 afterEach(() => {
   vi.restoreAllMocks()
 })
 
-/** A signed-in caller's handler ctx (mcp-use's flattened `ctx.auth`). */
+/** mcp-use's flattened `ctx.auth`. */
 const CTX = { auth: { user: { id: "user-1" } } }
 
 describe("analyticsSettingsSchema", () => {
@@ -33,9 +33,8 @@ describe("analyticsSettingsSchema", () => {
 })
 
 describe("analyticsSettingsSaveInput", () => {
-  // Zod 4 re-applies `.default()`s through `.partial()` — the save input must
-  // stay default-free so a single-field save can't reset the other saved value
-  // at the tool boundary.
+  // Zod 4 re-applies `.default()`s through `.partial()`: a single-field save
+  // would reset the other saved value.
   it("keeps omitted fields ABSENT instead of materializing defaults", () => {
     expect(analyticsSettingsSaveInput.parse({ minBucketSize: 5 })).toEqual({ minBucketSize: 5 })
     expect(analyticsSettingsSaveInput.parse({})).toEqual({})
@@ -118,8 +117,7 @@ describe("localizeFor", () => {
 })
 
 describe("registerSettingsTools", () => {
-  // `toolset` is a plain string here on purpose: an untyped (JS) caller can
-  // hand the gate any name, and the gate must still resolve it fail-closed.
+  // Plain string on purpose: an untyped caller can pass any name, which must resolve fail-closed.
   function registeredToolNames(store?: ProfileSource, toolset?: string): string[] {
     const tool = vi.fn()
     const server = { tool } as unknown as MCPServer
@@ -153,8 +151,7 @@ describe("registerSettingsTools", () => {
   })
 
   it("fails closed WITHOUT a toolset: a writable store alone registers no save tool", () => {
-    // A missing toolset is the read-only floor (silently — it is the
-    // documented default of a direct caller, not a misconfiguration).
+    // Silently: the documented default of a direct caller, not a misconfiguration.
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
     expect(registeredToolNames(writable)).toEqual([
       "analytics_show_settings",
@@ -195,9 +192,7 @@ describe("registerSettingsTools", () => {
     expect(standard.content[0].text).toBe(
       "Analytics settings: default period 7d, min bucket size 10. Change via analytics_save_settings.",
     )
-    // A caller whose profile names no language follows the host: the server
-    // sets no view title (an English one would sit over a German view), and
-    // the section's own heading names the view (#322 U3).
+    // An English title would sit over a German view (#322 U3).
     expect(standard.structuredContent.title).toBeUndefined()
     expect(standard.structuredContent).toMatchObject({
       layout: [{ row: [{ widget: "analytics:settings" }] }],
@@ -212,8 +207,7 @@ describe("registerSettingsTools", () => {
       },
     })
 
-    // On the read-only floor the save tool does not exist — advertising it to
-    // the model would send it to an unknown tool.
+    // Advertising the save tool here would send the model to an unknown tool.
     const readOnly = await show("read-only")
     expect(readOnly.content[0].text).toBe(
       "Analytics settings: default period 7d, min bucket size 10.",
@@ -241,8 +235,6 @@ describe("registerSettingsTools", () => {
     }
 
     const saved = await handlerFor(ANALYTICS_SAVE_SETTINGS)({ defaultPeriod: "30d" }, CTX)
-    // The widget reads the EFFECTIVE slice back from structuredContent; the
-    // model gets the localized confirmation.
     expect(saved.structuredContent).toEqual({ defaultPeriod: "30d", minBucketSize: 10 })
     expect(saved.content).toEqual([
       {
@@ -250,8 +242,7 @@ describe("registerSettingsTools", () => {
         text: "Analytics settings saved: default period 30d, min bucket size 10.",
       },
     ])
-    // Only the provided field is persisted — no defaults materialized into
-    // storage, so a later default change applies to fields never set.
+    // No defaults in storage, so a later default change applies to fields never set.
     expect((await store.get("user-1"))?.modules).toEqual({
       analytics: { defaultPeriod: "30d" },
     })
@@ -277,14 +268,12 @@ describe("registerSettingsTools", () => {
     expect((await store.get("user-1"))?.modules).toEqual({
       analytics: { defaultPeriod: "30d", minBucketSize: 5 },
     })
-    // The report is the SAVED slice, not just this call's patch.
     expect(saved.structuredContent).toEqual({ defaultPeriod: "30d", minBucketSize: 5 })
   })
 
   it("concurrent saves of the two fields keep both, even when one already held a value", async () => {
-    // Writes land after a round-trip, like a database's: the second save runs
-    // while the first one's write is still in flight. A save that handed the
-    // store a slice pre-read outside its lock would write the stale period back.
+    // The second save runs while the first write is in flight; a slice read outside
+    // the store's lock would write the stale period back.
     const inner = createInMemoryProfileStore()
     await inner.save("user-1", { modules: { analytics: { defaultPeriod: "7d" } } })
     const store: ProfileSource = {

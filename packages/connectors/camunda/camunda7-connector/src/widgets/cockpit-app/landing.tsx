@@ -13,16 +13,11 @@ import { DEFAULT_ENVIRONMENT_ID, groupEnginesByEnvironment } from "../../lib/env
 import { translator } from "../../messages/index.js"
 import { useEngineHealth } from "./engine-health.js"
 
-/** What the landing says about one engine — in words, so colour is never the only signal. */
+/** In words, so colour is never the only signal. */
 export type EngineStatusKind =
   "loading" | "unreachable" | "empty" | "incidents" | "failedJobs" | "idle" | "healthy"
 
-/**
- * One engine's state as the chooser names it (#322 U15): unreachable, still
- * loading, nothing deployed, open incidents, jobs without retries, idle or
- * fine — from the same live health the engine's own overview reads
- * (`useEngineHealth`, the same severity ladder).
- */
+/** #322 U15, from the same live health as the engine's overview. */
 export function engineStatusKind(health: {
   isError: boolean
   summary:
@@ -44,7 +39,7 @@ export function engineStatusKind(health: {
   return "healthy"
 }
 
-/** The status mark: a shape per state, its tone where the state has one (CI §3.7). */
+/** CI §3.7 */
 function StatusMark({ kind }: { kind: EngineStatusKind }) {
   if (kind === "loading") {
     return <Icon icon={LoaderCircle} className="text-muted-foreground motion-safe:animate-spin" />
@@ -64,11 +59,7 @@ function StatusMark({ kind }: { kind: EngineStatusKind }) {
   )
 }
 
-/**
- * One engine of the chooser: its status mark, id and state in words — all
- * inside the button, so the state is part of its accessible name ("test-a,
- * nicht erreichbar"). The saved default engine says so.
- */
+/** The state sits inside the button, so it is part of its accessible name. */
 function EngineRow({
   engineId,
   isDefault,
@@ -117,13 +108,7 @@ function EngineRow({
   )
 }
 
-/**
- * The product signature of an app-level surface (#322 U15, owner decision):
- * the Komet (the company's mark) beside "Pulse" (the product's name, never
- * translated) over "Operations Cockpit". Both hang on the theme slot a
- * customer brand empties (`--brand-mark-display: none`); the page title
- * stays. The landing and the "no engines" surface open with it.
- */
+/** #322 U15: hangs on the theme slot a customer brand empties (`--brand-mark-display: none`). */
 export function LandingHeader({ subtitle, action }: { subtitle?: string; action?: ReactNode }) {
   const locale = useLocale()
   return (
@@ -149,12 +134,7 @@ export function LandingHeader({ subtitle, action }: { subtitle?: string; action?
   )
 }
 
-/**
- * The landing (#322 U15): a dense engine list grouped by environment, each
- * engine with its state in words — the real artefact first, no template
- * hero. The cross-engine view is one secondary entry beside the title (an
- * analytics feature, offered only with analytics confirmed).
- */
+/** The same live health and severity ladder as the engine's own overview (#322 U15). */
 export function LandingChooser({
   engines,
   defaultEngineId,
@@ -163,15 +143,10 @@ export function LandingChooser({
   notice,
 }: {
   engines: Array<{ id: string; environment?: string }>
-  /** The caller's saved default engine — marked in the list; null when none is saved. */
   defaultEngineId?: string | null
   onEnterEngine: (id: string) => void
-  /**
-   * Omitted when the analytics module is inactive: the cross-engine view is an
-   * analytics feature (landscape + fleet analyses).
-   */
+  /** Omitted when analytics is inactive. */
   onOpenFleet?: () => void
-  /** Shown above the chooser — e.g. why the cockpit left the engine it was on. */
   notice?: ReactNode
 }) {
   const locale = useLocale()

@@ -23,9 +23,7 @@ export interface BpmnHeatmapData {
   processDefinitionKey: string
   bpmnXml: string | null
   period: string
-  /** Per-element execution count over the window, keyed by activity id. */
   frequency: Record<string, number>
-  /** Per-element average duration in seconds over the window, keyed by activity id. */
   durationSec: Record<string, number>
 }
 
@@ -36,11 +34,7 @@ function formatHeat(mode: Mode, value: number): string {
   return mode === "frequency" ? formatNumber(value) : formatDuration(value * 1000)
 }
 
-/**
- * The values behind the colours (U16): every element with a value above
- * zero, largest first, under a disclosure below the diagram — the number a
- * colour cannot say, for everyone, and the heatmap's text alternative.
- */
+/** The values behind the colours (U16): the number a colour cannot say, and the heatmap's text alternative. */
 export function HeatValuesTable({
   bpmnXml,
   values,
@@ -100,12 +94,7 @@ export function HeatValuesTable({
   )
 }
 
-/**
- * Data-widget wrapper: one BPMN diagram, a Frequency↔Duration switch that
- * swaps the per-element heat values (both fetched up front), the legend with
- * the smallest and largest value, and the values as a table. Node-only —
- * metrics carry no per-instance path data, so sequence flows are not heated.
- */
+/** Node-only: metrics carry no per-instance path data, so sequence flows are not heated. */
 export function BpmnHeatmapWidget({
   data,
   labels,
@@ -113,18 +102,14 @@ export function BpmnHeatmapWidget({
 }: {
   data: BpmnHeatmapData | null
   labels?: BpmnHeatmapLabels
-  /**
-   * The view's reference frame under the title (a `ViewMeta`: period,
-   * engines, as-of time). Replaces the period badge, whose period it carries.
-   */
+  /** Replaces the period badge, whose period it carries. */
   meta?: ReactNode
 }) {
   const [mode, setMode] = useState<Mode>("frequency")
   const kit = kitLabels(useLocale())
   const l = { ...DEFAULT_HEATMAP_LABELS, ...labels }
   const xml = data?.bpmnXml ?? null
-  // The process's name from its model (U13), by the rule the other analytics
-  // views name it (its own, else its pool's): the key stays a quiet id next to it.
+  // The process's name by the rule the other analytics views use (its own, else its pool's).
   const key = data?.processDefinitionKey
   const processName = useMemo(() => (xml && key ? bpmnProcessName(xml, key) : null), [xml, key])
 

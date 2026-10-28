@@ -26,38 +26,19 @@ type Register = ReturnType<typeof createToolRegistrar<EngineRegistry>>
 
 export interface IncidentIssueConfig {
   /**
-   * The ONE GitHub repository (`owner/repo`) drafts target — operator config
-   * (`CAMUNDA_INCIDENT_ISSUE_REPO`), never a tool or prompt argument: the
-   * prefilled URL carries the whole draft, so a model-chosen target (steered
-   * by injected incident text) would publish diagnostics anywhere. Without it
-   * there is no prefilled URL; the draft itself is tracker-agnostic and never
-   * filed by this server.
+   * Operator config (`CAMUNDA_INCIDENT_ISSUE_REPO`), never an argument: a model-chosen
+   * target, steered by injected incident text, would publish diagnostics anywhere.
    */
   repository?: string
 }
 
-/**
- * A tracker-agnostic ticket draft. `title` + markdown `body` + `labels` work
- * as-is in GitHub, Jira, and most issue trackers; the draft is presented in
- * the chat for review and reuse — WHERE it goes (if anywhere) is the user's
- * decision, via whatever integration their host exposes.
- */
+/** Tracker-agnostic draft; where it goes, if anywhere, is the user's decision. */
 export interface IncidentIssuePayload {
   title: string
   body: string
   labels: string[]
-  /**
-   * GitHub convenience: the configured repository (`owner/repo`), else
-   * `null`. Irrelevant for non-GitHub trackers.
-   */
   suggestedRepository: string | null
-  /**
-   * GitHub convenience: browser URL to the configured repository's "new
-   * issue" page with title/body/labels prefilled via query params — one-click
-   * submission without any integration. `null` without a configured
-   * repository. Its body leaves out the internal cockpit link, and its length
-   * is capped at GitHub's ~8KB limit.
-   */
+  /** Leaves out the internal cockpit link and is capped at GitHub's ~8KB URL limit. */
   prefilledUrl: string | null
   nextStep: string
 }
@@ -66,24 +47,15 @@ interface BuildIssueInput {
   incident: IncidentDto
   processInstance?: ProcessInstanceDto | null
   processDefinition?: ProcessDefinitionDto | null
-  /** Raw failure text: the failed job's stacktrace or the worker's error details. */
   stacktrace?: string | null
-  /** Why the stacktrace could not be loaded — said in the draft instead of "none available". */
+  /** Said in the draft instead of "none available". */
   stacktraceError?: string | null
-  /** Resolved-engine link context for the cockpit deep link (see `lib/cockpit-url.ts`). */
   engine: EngineLink
   repository: string | null
 }
 
 const ISSUE_LABELS = ["bug", "incident"]
 
-/**
- * Pure formatter — no I/O. Produces a structured bug-report layout
- * (description, reproduction, expected/actual, engine context) that reads
- * well in any tracker; the section structure follows the classic bug-report
- * template. Kept side-effect-free so it can be unit-tested without mocking
- * the SDK.
- */
 export function buildIncidentIssuePayload(input: BuildIssueInput): IncidentIssuePayload {
   const { incident, processDefinition, stacktrace, stacktraceError, repository } = input
   const incidentType = incident.incidentType ?? "unknown"
@@ -123,12 +95,10 @@ export function buildIncidentIssuePayload(input: BuildIssueInput): IncidentIssue
   }
 }
 
-/** `failedActivityId` (set for job incidents) wins over the generic `activityId`. */
 function incidentActivityId(incident: IncidentDto): string {
   return incident.failedActivityId ?? incident.activityId ?? "unknown"
 }
 
-/** Cockpit deep link to the instance's incidents tab — `null` when context is missing. */
 function buildIssueCockpitLink(input: BuildIssueInput): string | null {
   const { incident, processInstance, processDefinition, engine } = input
   const instanceId = incident.processInstanceId ?? processInstance?.id
@@ -154,7 +124,6 @@ interface IssueBodyContext {
   cockpitLink: string | null
 }
 
-/** The draft's stacktrace paragraph: the trace, why it is missing, or that there is none. */
 function stacktraceSection({ condensedStack, stacktraceError }: IssueBodyContext): string {
   if (condensedStack) {
     return `Stacktrace (condensed — framework/JDK frames removed):\n\n${codeFence(condensedStack)}`
@@ -164,7 +133,6 @@ function stacktraceSection({ condensedStack, stacktraceError }: IssueBodyContext
     : "_No stacktrace available._"
 }
 
-/** The engine-context table: one row per field, every value in a cell-safe span. */
 function engineContextTable(incident: IncidentDto, context: IssueBodyContext): string[] {
   const rows: Array<[string, string]> = [
     ["Incident ID", incident.id ?? "unknown"],
@@ -184,7 +152,6 @@ function engineContextTable(incident: IncidentDto, context: IssueBodyContext): s
   ]
 }
 
-/** Markdown body of the draft, section by section (see {@link buildIncidentIssuePayload}). */
 function buildIssueBody(input: BuildIssueInput, context: IssueBodyContext): string {
   const { incident, engine } = input
   const { incidentType, definitionKey, cockpitLink } = context
@@ -234,13 +201,7 @@ function buildIssueBody(input: BuildIssueInput, context: IssueBodyContext): stri
     .join("\n")
 }
 
-/**
- * GitHub's "new issue" web form accepts `title`, `body`, and `labels` as query
- * params, letting a user submit a fully-prefilled issue with a single click.
- * URL length is capped at ~8KB by GitHub; if we'd exceed that, we truncate the
- * body and append a notice — the body is still in the tool result for manual
- * paste, this URL is purely the convenience path.
- */
+/** GitHub caps the URL at ~8KB; beyond that the body is truncated with a notice (it stays in the result). */
 const GITHUB_URL_BUDGET = 7500
 function buildPrefilledIssueUrl(
   repository: string,
@@ -274,10 +235,8 @@ function buildPrefilledIssueUrl(
 }
 
 /**
- * Upper bound for the failure text in the draft. A worker's error details are
- * free text of any size (a downstream HTML error page, a whole log), and the
- * draft goes back to the model in full — so a longer text keeps its head
- * (the error) and its tail (the root cause, in a Java trace), with a note.
+ * Worker error details can be any size and the draft reaches the model in full, so a longer
+ * text keeps its head (the error) and its tail (the root cause in a Java trace).
  */
 const MAX_FAILURE_TEXT = 6000
 const FAILURE_TEXT_TAIL = 1500
@@ -290,12 +249,7 @@ export function boundFailureText(text: string): string {
   return `${head}\n… [${cut} characters truncated] …\n${tail}`
 }
 
-/**
- * A fenced code block the text cannot close: the fence is one backtick longer
- * than the longest backtick run inside (at least three). Engine and worker
- * text is untrusted — a plain ``` inside it would end the block, and the rest
- * would render as markdown in the filed ticket (mentions, links, images).
- */
+/** Engine text is untrusted: a plain ``` inside would close the block and render the rest as markdown. */
 function codeFence(text: string): string {
   const fence = "`".repeat(Math.max(3, longestBacktickRun(text) + 1))
   return `${fence}\n${text}\n${fence}`
@@ -308,17 +262,10 @@ function longestBacktickRun(text: string): number {
 }
 
 /**
- * An inline code span the value cannot close. Engine values are arbitrary
- * strings — a custom incident type, a tenant id — and a backtick inside a
- * plain `…` span ends it, so the rest would render as live markdown (images,
- * links, mentions) in the filed ticket. The delimiter is one backtick longer
- * than any run inside; line breaks become spaces (a span is one line, and a
- * table row must stay one); in a table cell a `|` is escaped, since GFM
- * splits cells on it even inside a span. A renderer splits on a pipe behind
- * an EVEN backslash run, so a run directly before a pipe is doubled before
- * the pipe's own escape — the row stays whole, at the price of one extra
- * backslash shown in that rare spot. A value that starts or ends with a
- * backtick is padded with a space, which CommonMark strips again.
+ * Engine values are untrusted: a backtick inside would close the span and render the rest as
+ * markdown. GFM splits table cells on `|` even inside a span, and on a pipe behind an EVEN
+ * backslash run, so such a run is doubled before the pipe's escape. Edge backticks get a
+ * space pad, which CommonMark strips.
  */
 function codeSpan(value: string, { inTable = false }: { inTable?: boolean } = {}): string {
   const oneLine = value.replace(/\r\n?|\n/g, " ")
@@ -330,16 +277,7 @@ function codeSpan(value: string, { inTable = false }: { inTable?: boolean } = {}
   return `${delimiter}${pad}${text}${pad}${delimiter}`
 }
 
-/**
- * Reduces a Java stacktrace to the actionable parts:
- *   - the first exception line (`com.foo.Bar: message`)
- *   - up to N frames per exception, prioritising user code over framework internals
- *   - all `Caused by:` chain heads (each capped the same way)
- *
- * Frames matching common framework/proxy/JDK packages are dropped *unless* doing
- * so would leave the section empty (then we keep them so context isn't lost).
- * Always ends with a "trimmed N lines" note when anything was dropped.
- */
+/** Framework frames are dropped unless that would leave a section empty. */
 const FRAMEWORK_FRAME_PATTERNS = [
   /^\s*at (java|javax|jakarta|jdk|sun|com\.sun)\./,
   /^\s*at org\.springframework\./,
@@ -405,11 +343,7 @@ export function condenseStacktrace(raw: string): string {
   return out.join("\n")
 }
 
-/**
- * The incident's failure text through the engine contract: a failedJob's
- * stacktrace, a failedExternalTask's worker error details. Optional for the
- * draft — but a failed load is reported as such, never as "none available".
- */
+/** A failed load is reported as such, never as "none available". */
 async function fetchFailureText(
   client: Client,
   incident: IncidentDto,
@@ -439,10 +373,7 @@ export function registerIncidentIssueTools(register: Register, config: IncidentI
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     inputSchema: { ...formatIncidentIssueInput.shape, ...engineParamShape },
     handler: withEngine(async (client, args, { baseUrl, cockpitUrl, provider }) => {
-      // The OpenAPI SDK types describe a `{data, error}` envelope, but the
-      // shared client (see `client.ts`) is built with `responseStyle: "data"`
-      // + `throwOnError: true` — so at runtime the call returns the raw DTO.
-      // The cast matches the convention used in `data/incident-scan.ts`.
+      // The client uses `responseStyle: "data"`, so the SDK's `{data, error}` type is wrong at runtime.
       const incident = await getIncident({
         client,
         path: { id: args.incidentId },
@@ -464,7 +395,6 @@ export function registerIncidentIssueTools(register: Register, config: IncidentI
         fetchFailureText(client, incident),
       ])
 
-      // The operator's repository — never an argument (see IncidentIssueConfig).
       const repository = config.repository ?? null
       return buildIncidentIssuePayload({
         incident,
@@ -482,13 +412,7 @@ const incidentIssuePromptSchema = z.object({
   incidentId: z.string().describe("The Camunda 7 / CIB Seven incident ID to draft a ticket for"),
 })
 
-/**
- * Drafting prompt: tells the host agent to build a tracker-agnostic ticket
- * draft via `camunda7_format_incident_issue` and present it in the chat. The
- * draft is the deliverable — filing it (GitHub, Jira, anything else) only
- * happens on the user's explicit request, through whatever integration their
- * host exposes. We never file anything ourselves.
- */
+/** The draft is the deliverable; filing happens only on the user's explicit request, never by this server. */
 export function registerIncidentIssuePrompt(server: MCPServer, config: IncidentIssueConfig) {
   server.prompt(
     {

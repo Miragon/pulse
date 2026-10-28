@@ -7,14 +7,13 @@ import { createEngineScope } from "./engine-ids.js"
 import type { ProfileSource } from "./server-locale.js"
 import type { FetchBpmnXml, NameRequest } from "./bpmn-name-lookup.js"
 
-/** A feed's payload as the widget reads it (feeds answer in JSON text only). */
+/** Feeds answer in JSON text only. */
 const feedData = <T = Record<string, unknown>>(result: unknown): T => parseToolResult<T>(result)
 
 type Cell = { widget: string; props?: Record<string, unknown> }
 type ShowResult = { structuredContent: { layout: Array<{ row: Cell[] }> } }
 type Handler = (args: Record<string, unknown>, ctx: unknown) => Promise<ShowResult>
 
-/** Registers the widget tools on a stand-in server and returns their handlers. */
 function handlers(ch: PrometheusClient): Map<string, Handler> {
   const byName = new Map<string, Handler>()
   const server = {
@@ -26,7 +25,6 @@ function handlers(ch: PrometheusClient): Map<string, Handler> {
   return byName
 }
 
-/** PrometheusClient that records every instant PromQL string and returns no samples. */
 function recordingClient(): { client: PrometheusClient; queries: string[] } {
   const queries: string[] = []
   return {
@@ -42,11 +40,7 @@ function recordingClient(): { client: PrometheusClient; queries: string[] } {
 
 const cells = (result: ShowResult) => result.structuredContent.layout.flatMap((r) => r.row)
 
-/**
- * The engine-health hand-off renders `analytics_show_failure_dashboard` for
- * ONE engine: the cells must know that scope, or their hand-offs and model
- * contexts send the model to every engine (or the saved default) instead.
- */
+// Without the scope, the cells' hand-offs would send the model to every engine.
 describe("analytics_show_failure_dashboard engine scope", () => {
   it("queries the engine and hands it to every cell", async () => {
     const { client, queries } = recordingClient()
@@ -55,9 +49,7 @@ describe("analytics_show_failure_dashboard engine scope", () => {
 
     expect(queries.length).toBeGreaterThan(0)
     for (const query of queries) expect(query).toContain('engine_id="prod-b"')
-    // The cells' self-fetches keep their scope through these props; their
-    // hand-offs and model contexts name the data's `engines` echo
-    // (model-descriptions.test.ts pins the `engine` id they then carry).
+    // model-descriptions.test.ts pins the `engine` id the hand-offs then carry.
     expect(cells(result)).toEqual([
       { widget: "analytics:failure-summary-kpi", props: { engine: "prod-b" } },
       { widget: "analytics:error-patterns-table", props: { engine: "prod-b" } },
@@ -65,8 +57,7 @@ describe("analytics_show_failure_dashboard engine scope", () => {
     ])
   })
 
-  // The aggregate is the CONFIGURED fleet (#336), never the whole Prometheus:
-  // the query names every configured engine, and the data echoes them.
+  // The aggregate is the CONFIGURED fleet (#336), never the whole Prometheus.
   it("reads the configured fleet for the aggregate and leaves the cells unscoped", async () => {
     const { client, queries } = recordingClient()
     const result = await handlers(client).get("analytics_show_failure_dashboard")!({}, {})
@@ -122,19 +113,11 @@ describe("view titles (U3) and the heatmap's as-of stamp (U7)", () => {
   })
 })
 
-/**
- * The heatmap says WHY it has no diagram only when the server knows it: no
- * lookup injected (camunda7 not active), or a lookup that failed or found
- * nothing. The widget picks its text from that and never guesses.
- */
+// The widget words the cause the server knows and never guesses.
 describe("the heatmap's missing-diagram cause", () => {
   type Diagram = { bpmnXml?: string | null; bpmnMissing?: string }
 
-  /**
-   * The diagram fields of the show tool's payload (a cause at most, never the
-   * XML: the model reads that payload on some hosts), of the heat feed (none)
-   * and of the diagram feed the widget reads the XML from.
-   */
+  /** The show payload never carries the XML: the model reads it on some hosts. */
   async function payloads(fetchBpmnXml?: FetchBpmnXml, engines = ["prod-a"]) {
     const byName = new Map<string, Handler>()
     const server = {
@@ -185,8 +168,7 @@ describe("the heatmap's missing-diagram cause", () => {
     expect(diagram).toEqual({ bpmnXml: xml, bpmnMissing: undefined })
   })
 
-  // The process may run on a later engine only: the first engine of the
-  // scope (configuration order) that has the model draws it.
+  // The process may run on a later engine only.
   it("reads the diagram from the engines of its scope in order", async () => {
     const xml = '<?xml version="1.0"?><definitions />'
     const asked: Array<[string, string | undefined]> = []
@@ -205,16 +187,9 @@ describe("the heatmap's missing-diagram cause", () => {
   })
 })
 
-/**
- * The names behind the ids (U13): the dashboard, the failure dashboard and
- * the landscape carry the process (and, for the activity breakdown, the
- * element) names the lookup knows, in the show tool's payload and in its
- * feed alike. The dashboard judges its rate against the caller's saved
- * comparison floor.
- */
+// U13
 describe("the names behind the ids", () => {
   const ORDER = { process_definition_key: "order" }
-  /** One process with one activity, an open incident group and a deployment. */
   const client: PrometheusClient = {
     instant: (query: string) => {
       if (query.includes("by (process_definition_key, activity_id, activity_type)")) {
@@ -263,7 +238,6 @@ describe("the names behind the ids", () => {
     return { content: feedData(result), calls }
   }
 
-  /** The payload of a show tool (its step data) or of a feed (the content itself). */
   const payloadOf = (content: Record<string, unknown>) =>
     ((content.context as { stepData?: { result?: { data?: unknown } } } | undefined)?.stepData
       ?.result?.data ?? content) as Record<string, unknown>
@@ -289,8 +263,7 @@ describe("the names behind the ids", () => {
     expect(failures.calls[0][1]?.elementIds).toEqual({ order: [] })
   })
 
-  // A process that runs only on a later engine is named too: each view says
-  // which engines its rows come from, the landscape per process.
+  // A process that runs only on a later engine is named too.
   it("reads the models on the engines the rows come from", async () => {
     const failures = await run("analytics_failure_dashboard_data")
     expect(failures.calls[0][1]?.engines).toEqual(["prod-a"])

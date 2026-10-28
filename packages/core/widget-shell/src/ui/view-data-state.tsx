@@ -3,10 +3,7 @@ import { cn, EmptyState, ErrorState, Skeleton, useLocale } from "@miragon/mcp-to
 import { describeError } from "./describe-error.js"
 import { kitLabels } from "./kit-labels.js"
 
-/**
- * The default loading skeleton: a heading bar over a block, the rough
- * geometry of a widget body. Pass `skeleton` for one shaped like the result.
- */
+/** The rough geometry of a widget body. */
 function DefaultSkeleton() {
   return (
     <>
@@ -16,10 +13,6 @@ function DefaultSkeleton() {
   )
 }
 
-/**
- * A loading state for screen readers and eyes alike: a polite status with
- * the (visually hidden) text, and the skeleton shown instead of it.
- */
 export function LoadingStatus({
   text,
   skeleton,
@@ -39,29 +32,7 @@ export function LoadingStatus({
   )
 }
 
-/**
- * The canonical loading / error / no-data boundary for widgets driven by
- * `useViewData`-style hooks — the block every widget used to copy inline.
- *
- * - Loading: the `skeleton` (default: a heading bar and a block) under a
- *   polite status whose words ("Ansicht wird geladen…" / "Loading view…",
- *   or `loadingText`) only a screen reader reads.
- * - Error: the toolkit's `ErrorState` from {@link describeError}: what
- *   happened, what you can do, the raw text collapsed under "Details", and a
- *   retry — mandatory, a failed load is never a dead end.
- * - No data: the toolkit's `EmptyState` with `emptyText`.
- *
- * Callers keep their own wrapper (`WidgetShell`, card, …):
- *
- *   if (!data) {
- *     return (
- *       <WidgetShell>
- *         <ViewDataState loading={loading} error={error} onRetry={refetch}
- *           emptyText={t("x.noData")} />
- *       </WidgetShell>
- *     )
- *   }
- */
+/** Loading, error and no-data boundary; the retry is mandatory, a failed load is never a dead end. */
 export function ViewDataState({
   loading,
   error,
@@ -75,19 +46,15 @@ export function ViewDataState({
 }: {
   loading: boolean
   error: Error | null | undefined
-  /** Re-run the failed load (the query's refetch). */
   onRetry: () => void
   /** What is missing when the load finished without data ("No incident found"). */
   emptyText: string
-  /** The loading status for screen readers (default: the active locale's "Loading view…"). */
   loadingText?: string
   /** Shown while loading, shaped like the result (default: a heading bar and a block). */
   skeleton?: ReactNode
   /** Title for an error the kit cannot classify (default: the locale's "Something went wrong"). */
   errorTitle?: string
-  /** Caller-localized retry label (default: the active locale's). */
   retryLabel?: string
-  /** Merged into the state's wrapper (tailwind-merge semantics). */
   className?: string
 }) {
   const locale = useLocale()

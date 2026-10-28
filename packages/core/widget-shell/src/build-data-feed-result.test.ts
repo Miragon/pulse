@@ -2,13 +2,7 @@ import { describe, expect, it } from "vitest"
 import { parseToolResult, parseViewToolResult } from "@miragon/mcp-toolkit-ui"
 import { buildDataFeedResult } from "./server.js"
 
-/**
- * The app-only `*_data` feed result (architecture invariant 5): the payload
- * ONCE, as compact JSON text, and deliberately no widget `_meta` — a result
- * carrying `ui.resourceUri` would be rendered by the host instead of being
- * returned to the in-widget `callTool()`, which is exactly the bug this single
- * shared implementation exists to prevent.
- */
+/** No widget `_meta`: a result with `ui.resourceUri` would be rendered by the host, not returned to `callTool()`. */
 describe("buildDataFeedResult", () => {
   const data = { rows: [{ id: "pi-1" }], total: 1 }
   const result = buildDataFeedResult(data)

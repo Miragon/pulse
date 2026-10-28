@@ -8,7 +8,6 @@ import type { PagedViewData } from "./use-paged-view-data.js"
 
 afterEach(() => cleanup())
 
-/** A settled page 0 of the current filter: two of three rows, nothing in flight. */
 function paged(overrides: Partial<PagedViewData<string, object>> = {}) {
   return {
     items: ["a", "b"],
@@ -29,7 +28,6 @@ function paged(overrides: Partial<PagedViewData<string, object>> = {}) {
   } satisfies PagedViewData<string, object>
 }
 
-/** The count line's wrapper: visually hidden while there is nothing to show. */
 const footerOf = (status: HTMLElement) => status.closest('[data-slot="list-footer"]')!
 
 function renderList(state: PagedViewData<string, object>) {
@@ -45,17 +43,8 @@ function renderList(state: PagedViewData<string, object>) {
 }
 
 /**
- * The kit's PagedRows over the toolkit's PagedListFooter (2.8, which took the
- * widget-shell fork's behaviour; its own suite is `PagedListFooter.test.tsx`
- * in @miragon/mcp-toolkit-ui). `usePagedViewData`'s result passes as is.
- *
- * While a new search or filter is in flight (or has failed) the list keeps the
- * previous result on screen (`stale`). A sighted operator must SEE that —
- * a marked list (a bar in the state's tone, info in flight, warning once it
- * failed; never a dimming that drops muted text under AA), a visible
- * "Updating…" — and no "Showing X of Y" may pair the previous count with the
- * new search (#341 review). The list has ONE live region: the footer's count
- * line.
+ * A stale list must be SEEN as stale, and no "Showing X of Y" may pair the
+ * previous count with the new search (#341 review). ONE live region: the footer.
  */
 describe("PagedListFooter + PagedRows — the stale and in-flight states", () => {
   it("a settled page: the count in the one live region, rows not marked", () => {
@@ -115,11 +104,7 @@ describe("PagedListFooter + PagedRows — the stale and in-flight states", () =>
   })
 })
 
-/**
- * The footer's strings come from the toolkit's catalog: without a caller's
- * texts they follow the active locale like the rest of the kit (#339) — the
- * two failure lines included.
- */
+/** #339: without caller texts the footer follows the active locale. */
 describe("PagedListFooter — the catalog follows the active locale", () => {
   function renderGerman(state: PagedViewData<string, object>) {
     render(

@@ -18,11 +18,8 @@ import { processNameOf } from "../../bpmn-names.js"
 import { StateCount } from "../figure.js"
 
 /**
- * Root cause of ONE group of open incidents. The open-incident gauge carries
- * only the incident type and the process (#336) — the message and the
- * failing activity come from the live incidents, so the hand-off passes no
- * field the data cannot fill. A custom incident type is any string: unless
- * id-shaped it is quoted as untrusted data, never inlined.
+ * The gauge carries only incident type and process (#336), so the hand-off passes no field the data
+ * cannot fill. A custom incident type is quoted as untrusted unless id-shaped.
  */
 export function errorPatternHandOff(
   pattern: ErrorPatternItem,

@@ -18,25 +18,14 @@ import { useDefinitionData } from "./feed.js"
 
 type FlowMode = "incidents" | "frequency" | "duration"
 
-/** The heat values of `analytics_bpmn_heatmap_data`, per activity id. */
 interface HeatValues {
   frequency: Record<string, number>
   durationSec: Record<string, number>
 }
 
 /**
- * Lazily loads the execution heatmap (Prometheus metrics via the analytics
- * module's plain data feed) and paints it on the view's own diagram (the
- * definition it draws, read like every diagram by id). Mounted
- * only when the operator switches the mode toggle off "Incidents" — a mode
- * offered only once the analytics probe confirmed the module — so the
- * metrics query never runs on first paint. `mode` swaps frequency↔duration
- * without refetching (both come in one payload).
- *
- * Tier-2 cross-module reference (architecture invariant 8): the tool name is
- * a raw string, not an import. When the feed fails anyway (Prometheus down)
- * `onUnavailable` tells the parent to hide the heatmap modes with a hint
- * instead of rendering an error.
+ * Mounted only when the operator leaves "Incidents", so the metrics query never runs on
+ * first paint. Tier-2 raw tool name; a failing feed hides the heatmap modes instead of erroring.
  */
 function ProcessHeatmap({
   processDefinitionKey,
@@ -46,7 +35,6 @@ function ProcessHeatmap({
   onUnavailable,
 }: {
   processDefinitionKey: string
-  /** The version the view draws: the heat lands on its diagram. */
   definitionId: string
   engine?: string
   mode: "frequency" | "duration"
@@ -55,8 +43,7 @@ function ProcessHeatmap({
   const t = useT()
   const xml = useDefinitionXml(definitionId, engine)
   const q = useToolQuery<HeatValues>(
-    // Engine + definition key stay in the query key — without them the cache
-    // would leak one definition's (or engine's) heatmap into another's view.
+    // Without engine + key the cache would leak one view's heatmap into another.
     ["camunda7:heatmap", engine ?? null, processDefinitionKey],
     "analytics_bpmn_heatmap_data",
     { processDefinitionKey, period: "30d", engine },
@@ -91,7 +78,6 @@ function ProcessHeatmap({
   )
 }
 
-/** "X of Y activities failing" over the diagram; the key-wide count without one. */
 function activityHint(t: ReturnType<typeof useT>, data: ProcessIncidentsData): string {
   const fraction = diagramActivityFraction(data)
   if (fraction) {
@@ -114,7 +100,6 @@ function FlowModeToolbar({
   mode: FlowMode
   onChange: (mode: FlowMode) => void
   heatmapUnavailable: boolean
-  /** Scope of the incident overlays: the diagram's version vs the key-wide counts. */
   incidentsCaption: string
 }) {
   const t = useT()
@@ -148,14 +133,7 @@ function FlowModeToolbar({
   )
 }
 
-/**
- * The one BPMN widget of the unified definition view. It always leads with
- * "incidents" (live incident overlays from the shared feed — this module's
- * own data, on screen at once); the "frequency"/"duration" execution heatmap
- * (analytics metrics, fetched lazily) joins the kit SegmentedControl only
- * once the analytics module is confirmed active — without it no heatmap call
- * is ever made.
- */
+/** Leads with incidents; the heatmap modes join only once analytics is confirmed active. */
 export function ProcessDefinitionFlow({
   data: initialData = null,
   processDefinitionKey,
@@ -173,15 +151,9 @@ export function ProcessDefinitionFlow({
   )
   const [chosenMode, setMode] = useState<FlowMode>("incidents")
   const [heatmapUnavailable, setHeatmapUnavailable] = useState(false)
-  // The heatmap is an analytics feature: offered only once the probe confirmed
-  // the module (false until it answers, and for good without it).
   const heatmapOffered = useAnalyticsActive() && !heatmapUnavailable
   const mode: FlowMode = heatmapOffered ? chosenMode : "incidents"
-  // The feed failed anyway (Prometheus down) → fall back to the incident
-  // overlays; the two heatmap mode buttons disappear (with a hint), never an
-  // error surface. Both halves belong to the same transition, so they happen
-  // together in the handler — deriving the fallback in an effect would commit
-  // an empty heatmap first.
+  // Both halves in the handler: deriving the fallback in an effect would commit an empty heatmap first.
   const markHeatmapUnavailable = useCallback(() => {
     setHeatmapUnavailable(true)
     setMode("incidents")
@@ -243,8 +215,7 @@ export function ProcessDefinitionFlow({
               <ProcessHeatmap
                 processDefinitionKey={data.processDefinitionKey}
                 definitionId={data.diagramDefinitionId}
-                // Keep the metrics scoped to the engine this view shows —
-                // without it the feed aggregates across the whole fleet.
+                // Without it the feed aggregates across the whole fleet.
                 engine={engine ?? data.engineId}
                 mode={mode}
                 onUnavailable={markHeatmapUnavailable}

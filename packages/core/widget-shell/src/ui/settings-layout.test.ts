@@ -2,13 +2,11 @@ import { describe, expect, it } from "vitest"
 import { collectLayoutWidgets } from "@miragon/mcp-toolkit-core"
 import { filterLayoutToWidgets, settingsLayout } from "./settings-layout.js"
 
-/** The section ids the settings page would render for a given host registry. */
 const sectionsFor = (widgetIds?: string[]) => collectLayoutWidgets(settingsLayout(widgetIds))
 
 describe("settingsLayout", () => {
   it("renders the shell's language section without any host registry", () => {
-    // A host that mounts no HostWidgetsProvider (fixture harnesses, foreign
-    // hosts) still gets the shell's own section — never an empty page.
+    // A host without HostWidgetsProvider still gets the shell's section, never an empty page.
     expect(sectionsFor()).toEqual(["shell:settings"])
     expect(sectionsFor([])).toEqual(["shell:settings"])
   })
@@ -34,9 +32,7 @@ describe("settingsLayout", () => {
   })
 
   it("picks up a CUSTOM module's section nothing else has heard of", () => {
-    // The whole point of the self-assembly: a server composed from the
-    // published packages contributes its own section by registering the
-    // widget, with no edit anywhere else.
+    // A server composed from the published packages contributes its section with no other edit.
     expect(sectionsFor(["analytics:settings", "acme:settings"])).toEqual([
       "shell:settings",
       "analytics:settings",

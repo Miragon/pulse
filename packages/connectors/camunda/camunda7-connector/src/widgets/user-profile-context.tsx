@@ -3,12 +3,7 @@ import { modelContextText, type ToolSurface } from "@miragon/pulse-widget-shell/
 import { CAMUNDA7_SAVE_SETTINGS } from "../tool-names.js"
 import { useHandOff, type ViewContext } from "./lib/hand-off.js"
 
-/**
- * camunda7's settings section the operator is on. The save tool is named only where
- * the caller can save ({@link profileSurface}); `load-dashboard` only where
- * the dashboard tools answer — the model is never told about a tool it
- * lacks, nor about a write that would refuse.
- */
+// The model is never told about a tool it lacks, nor about a write that would refuse.
 export function describeProfile(
   form: { defaultDashboardId: string },
   {
@@ -33,13 +28,8 @@ export function describeProfile(
   }
 }
 
-/**
- * The section's surface: the camunda7 surface, with the save tool only while
- * the caller `canSave` — registered AND an identity to save under (a gateway
- * deployment on `camunda7:operations` without OAuth registers the save, yet
- * every call of it refuses) — plus the framework's `load-dashboard` once
- * `list-dashboards` answered.
- */
+// The save tool only while `canSave`: a gateway deployment on `camunda7:operations` without OAuth
+// registers it, yet every call refuses. `load-dashboard` only once `list-dashboards` answered.
 export function profileSurface(
   surface: ToolSurface,
   { canSave, dashboardsAnswered }: { canSave: boolean; dashboardsAnswered: boolean },
@@ -53,7 +43,6 @@ export function profileSurface(
   }
 }
 
-/** The section's model context — what the operator has set, and what the model may change. */
 export function ProfileModelContext({
   form,
   canSave,

@@ -5,7 +5,6 @@ import { DisplayModeProvider, WidgetShell, useHostDisplayMode } from "./widget-s
 
 afterEach(cleanup)
 
-/** The frame div that carries the max-width — the content's direct parent. */
 const frameOf = (testId: string) => screen.getByTestId(testId).parentElement!
 
 describe("WidgetShell", () => {

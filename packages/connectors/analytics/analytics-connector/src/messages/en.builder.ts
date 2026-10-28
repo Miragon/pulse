@@ -1,14 +1,6 @@
 import type { MessageCatalog } from "@miragon/mcp-toolkit-core"
 
-/**
- * English names for the view builder (toolkit 2.8): how the palette, the
- * canvas, the data sources and the props sheet show analytics' widgets,
- * pipeline steps and props fields to people (`src/builder-texts.ts` reads
- * them into the definitions). A title is the thing's name in a few words, a
- * summary one plain sentence; the definitions' `description`s stay the
- * model's text. Merged into the catalogs in index.ts and held to the voice
- * and the glossary like the widget texts.
- */
+/** People's names in the view builder; the definitions' `description`s stay the model's text. */
 export const enBuilder: MessageCatalog = {
   "builder.app.title": "Analytics",
 

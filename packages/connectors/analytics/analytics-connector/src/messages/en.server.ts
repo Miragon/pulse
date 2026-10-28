@@ -1,10 +1,6 @@
 import type { MessageCatalog } from "@miragon/mcp-toolkit-core"
 
-/**
- * English model-facing analytics tool summaries (aSum.*). Hand-editable; the
- * model may quote them, so they follow the catalog voice rules too (no dash
- * as a connector).
- */
+/** Model-facing, but the model may quote them, so the voice rules apply too. */
 export const enServer: MessageCatalog = {
   "aSum.bpmnHeatmap":
     'BPMN heatmap for "{key}" over {period}{engines}: heat values for {elementCount} element(s){fallbackNote}.',

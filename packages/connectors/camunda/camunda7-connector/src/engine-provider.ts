@@ -1,22 +1,10 @@
 import type { Camunda7AuthType, Client } from "@miragon/pulse-camunda7-client"
 
-/**
- * The provider port: one small object per engine VENDOR of the Camunda-7
- * dialect (CIB Seven, Operaton, Camunda 7). All vendors speak the identical
- * engine-rest API — the generated client is the shared contract — so this
- * interface deliberately contains ONLY the real differences (client
- * construction hook, cockpit deep-link routes, branding). It must never grow
- * into a mirror of the SDK; a different engine DIALECT (e.g. Flowable) is a
- * separate module, not a provider.
- */
+/** One per vendor of the C7 dialect: ONLY the real differences, never a mirror of the SDK. */
 
 export type EngineFlavor = "cibseven" | "operaton" | "camunda7"
 
-/**
- * Per-engine auth override. An engine that carries one is authenticated with
- * exactly these fields; engines without one fall back to the module-wide
- * config ([[Camunda7PluginConfig]]) — the two are never mixed field-by-field.
- */
+/** Never mixed field-by-field with the module-wide fallback. */
 export interface EngineAuth {
   type: Camunda7AuthType
   username?: string
@@ -34,25 +22,14 @@ export interface EngineEntry {
   id: string
   baseUrl: string
   cockpitUrl?: string
-  /**
-   * The environment this engine's service runs in (e.g. "prod-eu"). A grouping
-   * level for the two-stage pick-an-environment-then-an-engine selection —
-   * never part of the engine identity: `id` stays the flat, globally unique
-   * join key against the metrics' `engine_id` label. Absent = the implicit
-   * default environment.
-   */
+  /** Grouping only: `id` stays the globally unique join key against `engine_id`. */
   environment?: string
   /** Engine vendor of the C7 dialect; selects the provider. Default: "camunda7". */
   flavor?: EngineFlavor
   auth?: EngineAuth
 }
 
-/**
- * Reference to a process object for cockpit links. Each flavor's routes pick
- * the fields THEY need (CIB Seven routes by key/version, the classic
- * Camunda/Operaton cockpit by definition/instance id) — a missing required
- * field yields `null` (no link, graceful degradation).
- */
+/** CIB seven routes by key/version, Camunda/Operaton by id; a missing field yields no link. */
 export interface CockpitRef {
   key: string
   version: number | null

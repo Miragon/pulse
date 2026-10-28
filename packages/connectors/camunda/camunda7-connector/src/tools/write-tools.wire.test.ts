@@ -12,14 +12,7 @@ import { RUNTIME_WRITE_CASES, type WireRequest } from "./test-support/write-case
 import { OPERATIONS_WRITE_CASES } from "./test-support/write-cases-operations.js"
 import { FORM_BPMN, TASK, TASK_WRITE_CASES, taskRoutes } from "./test-support/write-cases-tasks.js"
 
-/**
- * Guard for #328: every engine WRITE tool against a recording fake engine — a
- * real loopback server behind the production client, so the assertions see
- * the request exactly as the engine would (path, query, JSON body). Before
- * this, no write tool had a handler test, and the engine contract (paired
- * sorting, engine dates, serialized Json/Object values, the form endpoint,
- * required retries, queued batches) broke silently.
- */
+/** #328: before this, no write tool had a handler test and the engine contract broke silently. */
 
 const tools = captureTools((register) => registerTools(register, { allowDeployments: true }))
 const CASES = [...RUNTIME_WRITE_CASES, ...TASK_WRITE_CASES, ...OPERATIONS_WRITE_CASES]
@@ -41,7 +34,6 @@ function toolConfig(name: string) {
   return config
 }
 
-/** A recorded request in the case table's terms (multipart bodies are opaque here). */
 function asWire(request: RecordedRequest, expected: WireRequest | undefined): WireRequest {
   const wire: WireRequest = { method: request.method, path: request.path }
   if (Object.keys(request.query).length > 0) wire.query = request.query

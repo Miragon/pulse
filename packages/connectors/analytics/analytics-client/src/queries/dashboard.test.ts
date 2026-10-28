@@ -40,7 +40,6 @@ const CANNED_SAMPLES: Array<[(q: string) => boolean, PromSample[]]> = [
     [act("order", "Task_A", 100), act("order", "Task_B", 20), act("invoice", "StartEvent_1", 4)],
   ],
   [(q) => q.includes("activity_id, le"), [act("order", "Task_A", 15), act("order", "Task_B", 6)]],
-  // Definition-level breakdowns
   [(q) => q.includes(BY_KEY) && q.includes("incident_created"), [def("order", 6)]],
   [
     (q) => q.includes(BY_KEY) && q.includes('state="COMPLETED"'),
@@ -63,12 +62,10 @@ const CANNED_SAMPLES: Array<[(q: string) => boolean, PromSample[]]> = [
     (q) => q.includes(BY_KEY) && q.includes("process_instances_running"),
     [def("order", 120), def("invoice", 30), def("longRunning", 6)],
   ],
-  // Live gauges, independent of the window
   [(q) => q.includes("process_instances_running"), [v(156)]],
   [(q) => q.includes("incidents_open"), [v(12)]],
   // The engine-state presence probe: the engine in scope reports.
   [(q) => q.includes("camunda_jobs_executable"), [{ metric: { engine_id: "prod-a" }, value: 3 }]],
-  // Global KPIs
   [(q) => q.includes("histogram_quantile(0.5"), [v(8)]],
   [(q) => q.includes("histogram_quantile(0.95"), [v(30)]],
   [(q) => q.includes("incident_resolved"), [v(4)]],
@@ -78,7 +75,6 @@ const CANNED_SAMPLES: Array<[(q: string) => boolean, PromSample[]]> = [
   [(q) => q.includes("duration_milliseconds_sum"), [v(12)]], // avg = sum/count expression
 ]
 
-/** Mock Prometheus client that dispatches canned samples by the PromQL it sees. */
 function mockClient() {
   const instant = vi.fn(async (q: string): Promise<PromSample[]> => {
     const hit = CANNED_SAMPLES.find(([matches]) => matches(q))
@@ -98,7 +94,6 @@ describe("dashboardData", () => {
       processDefinitionKey: null,
       period: "7d",
       engines: ["prod-a", "prod-b"],
-      // Flows within the window
       totalCount: 100,
       completedCount: 70,
       incidentsCreated: 10,
@@ -389,7 +384,6 @@ describe("failureDashboardData", () => {
             metric: { process_definition_key: "invoice", incident_type: "failedExternalTask" },
             value: 2,
           },
-          // Zero-count patterns are dropped.
           { metric: { process_definition_key: "order", incident_type: "noise" }, value: 0 },
         ]
       }
@@ -403,7 +397,6 @@ describe("failureDashboardData", () => {
       if (q.includes("camunda_jobs_failed")) {
         return [{ metric: { process_definition_key: "order" }, value: 3 }]
       }
-      // camunda_process_instances_running
       return [
         { metric: { process_definition_key: "order" }, value: 70 },
         { metric: { process_definition_key: "invoice" }, value: 10 },

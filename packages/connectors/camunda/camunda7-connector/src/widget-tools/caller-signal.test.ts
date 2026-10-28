@@ -8,15 +8,8 @@ import { CAMUNDA7_OPEN_COCKPIT, CAMUNDA7_WIDGET_ACTIONS_DATA } from "../tool-nam
 import { registerWidgetTools } from "../widget-tools.js"
 
 /**
- * Structural guard for #325: EVERY widget-path tool and `*_data` feed hands
- * the MCP request's `ctx` to `resolveEngine`, so a cancelled request aborts
- * its engine reads. Dropping it compiles (`call` is optional) and the
- * per-feed tests stay green — only a sweep over the whole surface notices.
- *
- * Each handler runs twice against a recording fake engine: unsignalled it
- * must reach the engine; with an already-aborted `ctx.signal` it must not
- * (an aborted read fails before the network, also where a builder swallows
- * the failure). Tools that never read the engine are named explicitly.
+ * #325: dropping `ctx` compiles (`call` is optional) and the per-feed tests stay green; only a
+ * sweep over the whole surface notices.
  */
 
 type ToolCallback = (args: Record<string, unknown>, ctx?: unknown) => Promise<unknown>
@@ -40,7 +33,6 @@ afterAll(async () => {
   await new Promise<void>((resolve) => engine.close(() => resolve()))
 })
 
-/** Arguments every widget tool accepts (each takes the fields it knows). */
 const ARGS = {
   processDefinitionKey: "order",
   processDefinitionId: "order:1:abc",
@@ -78,8 +70,6 @@ describe("widget tools and feeds honor ctx.signal", () => {
         reads: 0,
       })
     }
-    // The cockpit bootstrap only resolves the engine id; the actions feed
-    // answers from the toolset.
     expect(neverRead).toEqual([CAMUNDA7_OPEN_COCKPIT, CAMUNDA7_WIDGET_ACTIONS_DATA])
     expect(tools.size - neverRead.length).toBeGreaterThanOrEqual(24)
   })

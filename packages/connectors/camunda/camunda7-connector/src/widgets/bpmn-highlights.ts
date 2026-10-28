@@ -4,17 +4,7 @@ import {
   type BpmnOverlays,
 } from "@miragon/pulse-widget-shell/widgets"
 
-/**
- * The diagram-overlay colours, by meaning: the kit's ONE BPMN token module
- * (`BPMN_TOKENS`, widget-shell's `bpmn-tokens.ts` — every value a `--cd-*`
- * corporate-design token, drift- and contrast-tested there). Red only for
- * incidents; running and an open user task blue on the info tint (the task
- * with a heavier dashed stroke, standing still — no pulse); counts white on
- * blue or red. The marker classes and badges below are styled by the kit's
- * `BPMN_OVERLAY_CSS` (`injectBpmnOverlayCss`); the legend swatches read the
- * same tokens (`markerSwatch` / `badgeSwatch`), so legend and diagram cannot
- * drift.
- */
+/** Overlay colours from the kit's `BPMN_TOKENS`, so legend and diagram cannot drift. Red only for incidents. */
 export const HIGHLIGHT_COLORS = {
   running: BPMN_TOKENS.running,
   openTask: BPMN_TOKENS.openTask,
@@ -23,30 +13,18 @@ export const HIGHLIGHT_COLORS = {
   incidentBadge: BPMN_TOKENS.incidentBadge,
 } as const
 
-/**
- * Semantic highlight modes for the BpmnDiagram widget. Each kind has one
- * canonical visual treatment so a caller can declare *what* it wants to
- * show without picking colors or overlay positions.
- *
- * When the same activity appears in multiple kinds the priority is
- * `incident > open-task > active`. Lower-priority markers are skipped
- * for that activity so the SVG is never decorated with two competing
- * fills.
- */
+/** Priority `incident > open-task > active`: lower markers are skipped, so no activity gets two competing fills. */
 export type BpmnHighlight =
   | { kind: "active"; activityIds: ReadonlyArray<string> }
   | {
       kind: "incident"
       activityIds: ReadonlyArray<string>
-      /** Optional red count badge per activity (top-left) — open-incident
-       *  count, e.g. how many incidents target this activity. */
+      /** Open-incident count badge per activity. */
       counts?: ReadonlyArray<{ activityId: string; count: number }>
     }
   | {
       kind: "failed-jobs"
-      /** Red count badge per activity (top-left) — number of failed jobs
-       *  attached to this activity, regardless of whether an incident
-       *  exists yet. */
+      /** Failed-job count badge, whether or not an incident exists yet. */
       counts: ReadonlyArray<{ activityId: string; count: number }>
     }
   | { kind: "open-task"; activityIds: ReadonlyArray<string> }
@@ -55,7 +33,7 @@ export type BpmnHighlight =
       counts: ReadonlyArray<{ activityId: string; count: number }>
     }
 
-/** Exposed for unit tests. Order-preserving dedupe. */
+/** Order-preserving dedupe. */
 export function dedupe(values: ReadonlyArray<string>): string[] {
   return Array.from(new Set(values))
 }
@@ -80,13 +58,6 @@ function safeAddOverlay(
   }
 }
 
-/**
- * Exposed for unit tests. Walks the declarative highlight set and
- * applies the matching markers + overlays to the bpmn-js canvas.
- * Priority order between marker classes is `incident > open-task >
- * active`; lower-priority markers are skipped on activities that are
- * already claimed by a higher-priority kind.
- */
 export function applyHighlights(
   canvas: Pick<BpmnCanvas, "addMarker">,
   overlays: BpmnOverlays,

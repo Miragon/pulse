@@ -109,8 +109,7 @@ describe("ConfirmDialog (CI §8 dialogs, §9 destructive)", () => {
   })
 })
 
-// #344 K45: inline, a frame as tall as its content can be far taller than the
-// chat shows; the dialog opens beside its opener, which is in view.
+// #344 K45: the dialog opens beside its opener, which is in view.
 describe("ConfirmDialog placement", () => {
   it("anchoredTop centres on the opener and stays inside the frame", () => {
     expect(anchoredTop({ top: 900, height: 40 }, 300, 2000)).toBe(770)

@@ -26,10 +26,10 @@ import { useIncidentRecovery, type IncidentRecoveryState } from "./use-incident-
 import { InstanceLabel } from "../lib/identity.js"
 import { MoreActions } from "../lib/more-actions.js"
 
-/** Page size — mirrors the feed's server default. */
+/** Mirrors the feed's server default. */
 const INCIDENT_PAGE_SIZE = 10
 
-/** A ticket draft for ONE incident row — its message is engine text, quoted. */
+/** Its message is engine text, quoted. */
 export function draftIncidentTicketHandOff(
   incident: IncidentInstance,
   engine: string | undefined,
@@ -43,7 +43,6 @@ export function draftIncidentTicketHandOff(
   }
 }
 
-/** The row's Resolve/Retry button — absent when the toolset or incident type offers none. */
 function RecoveryButton({
   incident,
   recovery,
@@ -76,23 +75,15 @@ export function IncidentTable({
   vendor,
 }: {
   incidents: IncidentInstance[]
-  /** Row actions + their optimistic state (`useIncidentRecovery`). */
   recovery: IncidentRecoveryState
   onAnalyze: (incidentId: string) => void
-  /**
-   * Drop the instance column (and the grouped view's icon-column indent) when
-   * every row already belongs to one known instance — the instance-detail view.
-   */
   hideInstanceColumn?: boolean
-  /** The engine the rows came from, pinned into the AI handoffs. */
   engine?: string
-  /** The engine product (`engineVendor`) — names the per-row link into its web app. */
   vendor?: string
 }) {
   const t = useT()
   const { ask } = useHandOff()
-  // pl-12 keeps the cells aligned under the activity summary's icon column in
-  // the grouped (per-activity) rendering; standalone the indent would float.
+  // Aligns under the activity summary's icon column; standalone the indent would float.
   const leadPad = hideInstanceColumn ? undefined : "pl-12"
   const columnCount = hideInstanceColumn ? 3 : 4
 
@@ -101,8 +92,7 @@ export function IncidentTable({
       ? []
       : [{ label: t("procIncTable.columnInstance"), className: leadPad }]),
     { label: t("procIncTable.columnErrorMessage") },
-    // The column an inline frame can do without (the activity's summary row
-    // above names first and latest): the error message keeps the room (#322 U2).
+    // The summary row above names first and latest; the message keeps the room (#322 U2).
     { label: t("procIncTable.columnTime"), align: "right" as const, hideBelow: "md" as const },
     { label: t("procIncTable.columnActions"), sticky: true },
   ]
@@ -141,8 +131,7 @@ export function IncidentTable({
                 </Td>
                 <Td>
                   {done ? (
-                    // Done is a success the row says in words, never a dimmed
-                    // row that reads as disabled (#322 U11).
+                    // Done in words, never a dimmed row that reads as disabled (#322 U11).
                     <StatusBadge tone="success" className="whitespace-nowrap">
                       <Icon icon={Check} dense />
                       {retried ? t("procIncTable.retried") : t("procIncTable.resolved")}
@@ -194,17 +183,9 @@ export function IncidentTable({
 }
 
 /**
- * Self-fetching, offset-paged wrapper of {@link IncidentTable} for one
- * activity group of the definition view: pages `camunda7_activity_incidents_data`
- * (exact /incident/count total) with the house Load-more pattern, so a group
- * reaches every incident — not just the definition feed's 200-row scan window.
- * Mounts lazily: GroupCard renders children only while expanded.
- *
- * It owns its rows' remedies: their success marks reset on THIS feed's page 0
- * (a refetch of it drops the appended pages too), never on the definition
- * feed — which can answer the same write's invalidation first while these
- * rows are still the pre-write page, and would bring a cleared row's button
- * back.
+ * Pages `camunda7_activity_incidents_data` so a group reaches every incident, not just the
+ * definition feed's 200-row scan. Success marks reset on THIS feed: the definition feed can
+ * answer the invalidation first with pre-write rows and would bring a cleared button back.
  */
 export function PagedIncidentTable({
   processDefinitionKey,
@@ -215,9 +196,8 @@ export function PagedIncidentTable({
 }: {
   processDefinitionKey: string
   activityId: string
-  /** Explicit engine routing; omitted → the caller's saved default engine. */
+  /** Omitted: the caller's saved default engine. */
   engine?: string
-  /** The engine product of the definition view (`engineVendor`), for the rows' links. */
   vendor?: string
   onAnalyze: (incidentId: string) => void
 }) {
@@ -257,7 +237,7 @@ export function PagedIncidentTable({
           {t("procIncTable.noIncidents")}
         </p>
       ) : (
-        // The rows are the inline head of the list (#396).
+        // #396
         <PagedRows paged={paged}>
           <IncidentTable
             incidents={paged.items}

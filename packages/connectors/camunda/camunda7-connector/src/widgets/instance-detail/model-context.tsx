@@ -3,7 +3,7 @@ import { HostModelContext } from "@miragon/mcp-toolkit-ui/app"
 import type { InstanceDetailData } from "../../view-models.js"
 import { useHandOff, type ViewContext } from "../lib/hand-off.js"
 
-/** `unconfirmed`: a refetch failed — the instance may have ended since the shown read. */
+/** `unconfirmed`: the instance may have ended since the shown read. */
 type InstanceState = "cancelled" | "ended" | "unconfirmed" | "suspended" | "running"
 
 /** The instance the operator is looking at; its writes only as far as the deployment has them. */
@@ -39,10 +39,6 @@ export function describeInstance({
   }
 }
 
-/**
- * Keep the agent aware of what the operator is looking at, so "Analyze"
- * and any follow-up question resolve against this instance for free.
- */
 export function InstanceModelContext({
   instance,
   engineId,

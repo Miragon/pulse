@@ -1,37 +1,19 @@
 import type { EngineFilterInput } from "@miragon/pulse-analytics-client"
 
 /**
- * Which engines analytics may read on this server. A Prometheus (or Thanos /
- * Mimir) is often shared across teams, and every analytics query reads every
- * `engine_id` it holds unless told otherwise — so analytics covers exactly the
- * server's CONFIGURED engine ids, never "whatever Prometheus has":
- *
- * - the composition root injects them (`SharedResources.engineIds`, from the
- *   camunda7 module's engine list) — analytics has no engine-SDK dependency;
- * - a standalone analytics boot names them in `ANALYTICS_ENGINE_IDS`;
- * - with neither, analytics is FAIL-CLOSED: every engine-reading tool refuses
- *   with {@link NO_ENGINE_SCOPE_MESSAGE} (and the boot warns) instead of
- *   reading the whole Prometheus.
- *
- * An omitted `engine` argument resolves to all configured ids (the fleet
- * view, labelled as such in results); an id outside them is refused.
+ * A Prometheus is often shared across teams, so analytics reads only the server's
+ * CONFIGURED engine ids; with none it is FAIL-CLOSED instead of reading everything.
  */
 export interface AnalyticsEngineScope {
-  /** The configured ids, in configuration order; empty when none are configured. */
   readonly ids: readonly string[]
-  /** The concrete ids a query reads for a caller's `engine` filter. Throws on an unknown id. */
+  /** Throws on an unknown id. */
   resolve(requested: EngineFilterInput): string[]
-  /** One configured id (`field` names the argument in the refusal). */
+  /** `field` names the argument in the refusal. */
   require(id: string, field: string): string
-  /** True when `resolved` (a {@link resolve} result) covers every configured engine. */
   coversFleet(resolved: readonly string[]): boolean
 }
 
-/**
- * `args` with `engine` replaced by the concrete configured ids it resolves to
- * — what every engine-reading tool hands its query, so no query ever runs
- * unscoped against a shared Prometheus.
- */
+/** So no query ever runs unscoped against a shared Prometheus. */
 export function withEngineScope<T extends { engine?: EngineFilterInput }>(
   scope: AnalyticsEngineScope,
   args: T,
@@ -42,7 +24,6 @@ export function withEngineScope<T extends { engine?: EngineFilterInput }>(
 export const NO_ENGINE_SCOPE_MESSAGE =
   "Analytics covers no engine: this server configures no engine ids. Activate the camunda7 module (its configured engines scope analytics) or set ANALYTICS_ENGINE_IDS to the engine_id values analytics may read."
 
-/** True when the caller named no engine — the request covers the whole configured fleet. */
 export function isFleetRequest(requested: EngineFilterInput): boolean {
   if (requested === undefined || requested === null) return true
   return (Array.isArray(requested) ? requested : [requested]).every((id) => id.length === 0)

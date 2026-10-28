@@ -20,8 +20,7 @@ function createMockCanvas() {
       addMarker: (activityId: string, marker: string) => {
         calls.push({ activityId, marker })
       },
-      // Stubs for the unused parts of the BpmnCanvas type — the apply
-      // function never touches them, but the type requires them.
+      // Stubs the BpmnCanvas type requires but the apply function never touches.
       zoom: () => 1,
     },
     calls,

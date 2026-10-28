@@ -5,12 +5,7 @@ import { builderText } from "../builder-texts.js"
 import { NO_NAMES } from "../bpmn-name-lookup.js"
 import { namedFailureDashboard } from "../named-views.js"
 
-/**
- * Loads current failure / incident state from Prometheus for the
- * failure-dashboard widgets. Point-in-time (live state gauges), so there is no
- * time-window input. Reads the optional `analytics:engine` key (configured
- * engine id(s); omitted = all of them).
- */
+/** Live state gauges, so no time-window input. */
 export const loadFailureDashboardStep: PipelineStepDefinition<AnalyticsAppConfig> = {
   id: "analytics:load-failure-dashboard",
   ...builderText("step.load-failure-dashboard"),

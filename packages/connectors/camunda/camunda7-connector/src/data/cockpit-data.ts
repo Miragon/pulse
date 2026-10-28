@@ -44,19 +44,7 @@ import {
 } from "./definition-info.js"
 import { countOf, optional, rowsOf } from "./engine-reads.js"
 
-/**
- * Pure data builders shared by the `camunda7_show_*` widget tools, their
- * app-only `*_data` feeds and the pipeline steps. Every one follows the
- * honest-numbers rule (`./engine-reads.ts`): primary rows and counts
- * propagate engine failures, enrichment degrades to null.
- */
-
-/**
- * The process landscape, one row per KEY (#335 N60): instances, failed jobs
- * and incidents summed over every deployed version — the scope of the
- * definition view each row drills into. One engine-wide statistics call; its
- * failure is the view's failure (no "0 instances" fallback).
- */
+/** One row per KEY, summed over every version; the statistics call's failure is the view's (no "0 instances"). */
 export async function buildCockpitDashboardData(
   client: Client,
   engineId: string,
@@ -97,14 +85,8 @@ export async function buildCockpitDashboardData(
   }
 }
 
-/** Filters from the shared feed contract + paging; latestVersion defaults to true. */
 export type ProcessListArgs = ProcessListFilters & PagingArgs
 
-/**
- * One page of deployed process definitions with the exact total from
- * `/process-definition/count` — shared by `camunda7_show_process_list`, its
- * `camunda7_process_list_data` feed and the `camunda7:load-process-definitions` step.
- */
 export async function buildProcessListData(
   client: Client,
   engineId: string,
@@ -145,12 +127,9 @@ export async function buildProcessListData(
 export type ProcessInstancesArgs = ProcessInstancesFilters & InstanceSearchArgs & PagingArgs
 
 // The engine IGNORES `false` for active/suspended/withIncident (HTTP 200, no
-// filter — not a rejection), so a forwarded false would silently list every
-// instance: active/suspended send a false as the complement, withIncident
-// only ever goes out as true. businessKeyLike is a LIKE pattern — a value
-// without `%` would match the business key exactly. The search box finds a
-// business key fragment OR a whole id, and replaces a handed-in
-// businessKeyLike, as the box always did.
+// filter), so a forwarded false would list every instance: active/suspended
+// send the complement, withIncident only goes out as true. businessKeyLike
+// needs `%`, or it matches exactly.
 function toProcessInstanceFilter(args: ProcessInstancesArgs) {
   const { orQueries } = engineInstanceSearch(args.search)
   return {
@@ -163,10 +142,9 @@ function toProcessInstanceFilter(args: ProcessInstancesArgs) {
 }
 
 /**
- * The list's order: by business key, the instance id as the tie-break. Most
- * instances carry no business key, and the engine adds no tie-break of its
- * own once a sort is given, so "Load more" could repeat some of the tied rows
- * and skip others. Only the POST query takes two keys (as the job panel's).
+ * The instance id breaks ties: most instances have no business key and the engine
+ * adds no tie-break once a sort is given, so paging would repeat or skip rows.
+ * Only the POST query takes two keys.
  */
 const INSTANCE_LIST_ORDER = [
   { sortBy: "businessKey", sortOrder: "asc" },
@@ -182,11 +160,7 @@ interface RawInstance {
   suspended?: boolean | null
 }
 
-/**
- * Totals over the WHOLE filtered set (#335 N65) — never counts of the
- * returned page. A filter that already decides a total answers it without a
- * call (`withIncident` = every match, `active` = none suspended).
- */
+/** Totals over the WHOLE filtered set, never the page; a deciding filter answers without a call. */
 function filteredTotals(client: Client, filter: ProcessInstanceFilter) {
   const count = (body: ProcessInstanceFilter) =>
     queryProcessInstancesCount({ client, body }).then(countOf)
@@ -202,10 +176,7 @@ function filteredTotals(client: Client, filter: ProcessInstanceFilter) {
   ])
 }
 
-/**
- * Which of THIS page's instances have an open incident — one query scoped to
- * the page's ids (#335 N65), not an engine-wide incident scan.
- */
+/** Scoped to the page's ids, not an engine-wide incident scan. */
 async function instancesWithIncident(
   client: Client,
   pageIds: string[],
@@ -227,14 +198,7 @@ async function instancesWithIncident(
   return new Set(flagged.map((i) => i.id).filter((id): id is string => !!id))
 }
 
-/**
- * The definition key each row runs on — what the engine-wide list's process
- * column drills into and the root-cause hand-off scopes by. A scoped list's
- * rows all run on its key. Elsewhere a bare generated definition id (long
- * keys) resolves through the statistics — at most ONE read per page, and
- * ENRICHMENT: a failed read leaves those keys null ("—", no drill), never a
- * UUID passed off as a key.
- */
+/** ENRICHMENT: a failed statistics read leaves bare-id keys null ("—", no drill), never a UUID. */
 async function rowKeyResolver(
   client: Client,
   page: RawInstance[],
@@ -248,15 +212,7 @@ async function rowKeyResolver(
   return (await optional(keys)) ?? definitionKeyInId
 }
 
-/**
- * The process name each row runs on — a scoped list's rows all run on its
- * definition (named by the key lookup it already made, which this names in
- * place when the engine knows no name, so the list's title reads it too);
- * the engine-wide list reads the names of the page's definition versions in
- * ONE call. Either way a Modeler pool around an unnamed process names it
- * ({@link nameUnnamedDefinitions}). ENRICHMENT: a failed read leaves the
- * names null, the rows then show their keys.
- */
+/** ENRICHMENT: a failed read leaves the names null; the rows then show their keys. */
 async function rowNameResolver(
   client: Client,
   page: RawInstance[],
@@ -290,8 +246,7 @@ export async function buildProcessInstancesData(
       body: { ...filter, sorting: [...INSTANCE_LIST_ORDER] },
     }).then((rows) => rowsOf<RawInstance>(rows)),
     filteredTotals(client, filter),
-    // A scoped list names its definition — and an unknown key is the
-    // engine's 404, not "0 running instances".
+    // An unknown key is the engine's 404, not "0 running instances".
     args.processDefinitionKey
       ? fetchLatestDefinition(client, args.processDefinitionKey)
       : Promise.resolve(null),
@@ -352,23 +307,16 @@ interface RawJob {
 }
 
 /**
- * The job panel's order: jobs without retries first — the stuck ones are
- * what the panel is opened for (#322 U11) — and the job id as the tie-break.
- * Retries alone is no total order (most jobs share a count), and the engine
- * adds no tie-break of its own once a sort is given, so LIMIT/OFFSET could
- * return the tied rows differently per page and "Mehr laden" would repeat
- * some jobs and skip others. Only the POST query takes two keys.
+ * Jobs without retries first (what the panel is opened for), the job id as the
+ * tie-break: retries alone is no total order and the engine adds none, so
+ * paging would repeat or skip jobs. Only the POST query takes two keys.
  */
 const JOB_PANEL_ORDER = [
   { sortBy: "jobRetries", sortOrder: "asc" },
   { sortBy: "jobId", sortOrder: "asc" },
 ] as const
 
-/**
- * One page of jobs plus the two GLOBAL totals (`/job/count`) behind the KPIs
- * and the "X of Y" footer. All three are primary: an unreachable engine is a
- * tool error, never "0 jobs, 0 failed".
- */
+/** All three reads are primary: an unreachable engine is a tool error, never "0 jobs". */
 export async function buildJobPanelData(
   client: Client,
   engineId: string,
@@ -393,9 +341,7 @@ export async function buildJobPanelData(
       : Promise.resolve(null),
   ])
 
-  // Names before ids (#322 U13): the activities' and processes' names from
-  // the diagrams of the page's definition versions — enrichment, the ids
-  // stand in when a diagram is unreadable.
+  // Names before ids (#322 U13); enrichment, ids stand in for unreadable diagrams.
   const names = await fetchNamesByDefinition(
     client,
     raw.map((j) => j.processDefinitionId),

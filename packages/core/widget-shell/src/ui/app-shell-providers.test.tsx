@@ -9,10 +9,7 @@ import { useHostWidgets } from "./host-widgets.js"
 import { LocalizedAppView } from "./localized-app-view.js"
 import { useHostDisplayMode } from "./widget-shell.js"
 
-// The REAL mcp-use view runtime (bootstrapView), connected to an in-memory
-// SEP-1865 host through its transport seam instead of window.parent — so the
-// provider stack runs exactly as in the bundle, hooks and all, without a
-// browser. (No @testing-library render: bootstrapView owns the React root.)
+// The REAL mcp-use view runtime over an in-memory SEP-1865 host, so the provider stack runs as in the bundle. (No @testing-library render: bootstrapView owns the React root.)
 
 type ViewTransport = NonNullable<NonNullable<Parameters<typeof bootstrapView>[1]>["transport"]>
 
@@ -32,7 +29,6 @@ function profileResult(view: { language?: string }) {
   }
 }
 
-/** A minimal host: answers `ui/initialize` and `tools/call`, records everything the view sent. */
 function createFakeHost(options: {
   hostContext: Record<string, unknown>
   hostCapabilities?: Record<string, unknown>
@@ -82,7 +78,6 @@ function createFakeHost(options: {
 
   return {
     transport: transport as unknown as ViewTransport,
-    /** The methods the view sent, in order (requests and notifications). */
     methods: () => sent.map((m) => m.method),
     toolCalls: () =>
       sent
@@ -122,9 +117,7 @@ const root = document.documentElement
 afterEach(async () => {
   await disposeView()
   document.getElementById("root")?.remove()
-  // The toolkit's query client is a module singleton shared by every mount —
-  // the suite runs on its PRODUCTION defaults (react-query's retries
-  // included); cancelling stops any retry still waiting.
+  // The toolkit's query client is a module singleton on PRODUCTION defaults (retries included); cancelling stops a waiting retry.
   await queryClient.cancelQueries()
   queryClient.clear()
   root.className = ""
@@ -146,13 +139,8 @@ describe("AppShellProviders (real mcp-use view runtime)", () => {
     })
     mount(host)
 
-    // ProfileGate reached the host through the bridge ABOVE it (the profile
-    // locale arrived), the display mode came from the view scope, and the
-    // registry is provided below the gate.
     await vi.waitFor(() => expect(probe()).toBe("de|fullscreen|demo:widget"))
     expect(host.toolCalls()).toEqual([{ name: PROFILE_FEED, arguments: {} }])
-    // The profile language and the host's theme are applied document-wide —
-    // one theme on every channel the CSS, the host and native controls read.
     expect(root.lang).toBe("de")
     expect(root.classList.contains("dark")).toBe(true)
     expect(root.getAttribute("data-theme")).toBe("dark")
@@ -196,10 +184,7 @@ describe("AppShellProviders (real mcp-use view runtime)", () => {
     mount(host)
 
     await vi.waitFor(() => expect(probe()).toBe("en|fullscreen|demo:widget"))
-    // The host's font fills the fallback slot of the theme's font roles
-    // (adoptHostFontVariables), so the stack stays Geist first, then the
-    // host's font, then the system; the role names themselves are not
-    // overwritten.
+    // The host font fills the fallback slot: Geist first, then the host's font, then system.
     expect(root.style.getPropertyValue("--host-font-sans")).toBe("HostSans, sans-serif")
     expect(root.style.getPropertyValue("--host-font-mono")).toBe("HostMono")
     expect(root.style.getPropertyValue("--font-sans")).toBe("")
@@ -223,11 +208,8 @@ describe("AppShellProviders (real mcp-use view runtime)", () => {
   })
 
   it("still renders, in English and the OS theme, on a host that cannot call server tools", async () => {
-    // No `serverTools` capability: every tool call (the profile feed
-    // included) rejects inside the guest — the gate must degrade, not crash,
-    // and not wait out react-query's retries (the toolkit's client keeps the
-    // default 3, ~7 s of backoff): the first failure releases it.
-    // A dark OS, so the theme fallback is observable (light is the default).
+    // No `serverTools`: every tool call rejects, and the gate must degrade without waiting out react-query's ~7 s of retries.
+    // A dark OS makes the theme fallback observable.
     vi.stubGlobal(
       "matchMedia",
       vi.fn().mockReturnValue({
@@ -239,8 +221,7 @@ describe("AppShellProviders (real mcp-use view runtime)", () => {
     const host = createFakeHost({ hostContext: {}, hostCapabilities: {} })
     mount(host)
 
-    // Within 1 s — inside the gate's 1.5 s profile bound, so the bound cannot
-    // be what released it …
+    // Within 1 s, inside the gate's 1.5 s bound, so the bound is not what released it …
     await vi.waitFor(() => expect(probe()).toBe("en|inline|demo:widget"), { timeout: 1_000 })
     // … while the retries still run: the query is pending after one failure.
     expect(queryClient.getQueryState(["shell:settings", {}])).toMatchObject({
@@ -267,13 +248,7 @@ const VIEW_RESULT = {
   },
 }
 
-/**
- * Mount a view the way every composed-server bundle does (AppShellProviders +
- * LocalizedAppView), deliver the tool's result over the real view runtime and
- * return the headings it renders. `toolName` is what the host names in
- * SEP-1865 `toolInfo`; the chain under test is toolInfo → ShellHost.toolName
- * (ViewHostBridge) → viewTitleMode → the toolkit toolbar's title.
- */
+/** The chain under test: SEP-1865 toolInfo → ShellHost.toolName → viewTitleMode → the toolbar's title. */
 async function viewHeadings(toolName: string | undefined): Promise<(string | null)[]> {
   const host = createFakeHost({
     hostContext: toolName

@@ -116,7 +116,6 @@ export function registerTaskTools(register: Register) {
       CUT_VALUE_WRITE_RULE,
     annotations: { destructiveHint: false, openWorldHint: true },
     inputSchema: { ...completeTaskInput.shape, ...engineParamShape },
-    // The endpoint (submit-form / complete / resolve) follows from the task — lib/task-completion.ts.
     handler: withEngine(async (client, args) =>
       completeUserTask(client, args.taskId, args.variables),
     ),

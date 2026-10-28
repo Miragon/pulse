@@ -2,26 +2,19 @@ import { RETENTION_DAYS } from "../prometheus.js"
 
 export const DAY_SECONDS = 86_400
 
-/** Now, in epoch seconds — the upper bound of every window. */
 export const nowSeconds = () => Math.floor(Date.now() / 1000)
 
-/** An explicit time window after clamping, in epoch seconds. */
 export interface ClampedWindow {
   from: number
   to: number
-  /** Actual length after clamping — always > 0 ({@link clampWindow} refuses an empty window). */
   seconds: number
-  /** True when clamping cut the requested window short (it reached past now or retention). */
   partial: boolean
 }
 
 /**
- * Holds `[from, to]` inside `[now − RETENTION_DAYS, now]`: Prometheus answers
- * a future `@` with whatever exists so far and a pre-retention one with
- * nothing, so an unclamped window silently reads a fraction of its span while
- * being reported at full length. Refuses what no clamp can repair — a
- * reversed or empty window, one entirely in the future or entirely before
- * retention — with a message naming `name`.
+ * Prometheus answers a future `@` with whatever exists so far and a
+ * pre-retention one with nothing: an unclamped window silently reads a
+ * fraction of its span while being reported at full length.
  */
 export function clampWindow(
   name: string,
@@ -51,14 +44,8 @@ export function clampWindow(
   }
 }
 
-/**
- * A window counters are read over: a PromQL duration, optionally pinned to the
- * instant it ends at (`@`). Without `at` it ends now.
- */
 export interface CountWindow {
-  /** PromQL duration, e.g. `7d` or `86400s`. */
   range: string
-  /** Epoch seconds the window ends at; now when absent. */
   at?: number
 }
 
@@ -70,7 +57,6 @@ const UNIT_SECONDS: Readonly<Record<string, number>> = {
   w: 7 * DAY_SECONDS,
 }
 
-/** The length of a single-unit PromQL duration (`7d`, `86400s`) in seconds. */
 export function rangeSeconds(range: string): number {
   const match = /^(\d+)([smhdw])$/.exec(range)
   if (!match)
@@ -78,14 +64,11 @@ export function rangeSeconds(range: string): number {
   return Number(match[1]) * UNIT_SECONDS[match[2]]
 }
 
-/** The window reading exactly `w`: `<seconds>s` ending `@ <to>`. */
 export const windowAt = (w: Pick<ClampedWindow, "seconds" | "to">): CountWindow => ({
   range: `${w.seconds}s`,
   at: w.to,
 })
 
-/** A window length in days, two decimals (a clamped window is rarely whole days). */
 export const daysOf = (seconds: number) => Math.round((seconds / DAY_SECONDS) * 100) / 100
 
-/** ISO timestamp of an epoch-second instant. */
 export const isoOf = (seconds: number) => new Date(seconds * 1000).toISOString()

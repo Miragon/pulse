@@ -20,13 +20,8 @@ interface TaskMeta {
 }
 
 export interface BuildTaskFormSchemaOptions {
-  /** When provided, skips the redundant `getTask` round-trip. */
   task?: TaskMeta | null
-  /**
-   * Pre-fetched BPMN XML for the task's process definition. Pass `null`
-   * to skip the BPMN fetch entirely. Leave `undefined` (default) to fetch
-   * on demand.
-   */
+  /** `null` skips the BPMN fetch; `undefined` fetches on demand. */
   bpmnXml?: string | null
 }
 
@@ -47,12 +42,7 @@ export function registerTaskFormTools(register: Register) {
   })
 }
 
-/**
- * The form schema of a task. The task and its BPMN are REQUIRED lookups — a
- * failure (unknown task, no permission, engine down) throws instead of
- * passing for "no form": a caller would otherwise complete the task without
- * its form. Only the variable prefill degrades.
- */
+/** Task and BPMN lookups throw instead of reading as "no form", which would let a caller skip the form. */
 export async function buildTaskFormSchema(
   client: Client,
   taskId: string,
@@ -71,9 +61,7 @@ export async function buildTaskFormSchema(
     bpmnXml && taskDefinitionKey ? extractEmbeddedFormFields(bpmnXml, taskDefinitionKey) : []
   if (fields.length === 0) return { taskId, fields: [], ...ownForm }
 
-  // Populate defaultValue for all fields from current task variables so the
-  // operator sees the actual values (especially important for readonly
-  // fields). Optional: a failed read leaves the fields empty.
+  // Optional: a failed read leaves the fields empty.
   const currentVars = await readTaskVariables(client, taskId).catch((): VariableMap => ({}))
   const filledFields: TaskFormField[] = fields.map((field) => {
     const varEntry = currentVars[field.name]
@@ -86,12 +74,7 @@ export async function buildTaskFormSchema(
   return { taskId, fields: filledFields }
 }
 
-/**
- * The task's own form when it has no `<camunda:formData>` fields: its formKey
- * (embedded/external/deployed Camunda Form), or the key of a Camunda Form it
- * links by `camunda:formRef` — the engine validates neither on submit, so a
- * caller must not read the empty fields as "no form".
- */
+/** The engine validates neither form on submit, so empty fields must not read as "no form". */
 function ownFormOf(task: TaskMeta): Pick<TaskFormSchema, "formKey" | "formRef"> {
   if (task.formKey) return { formKey: task.formKey }
   const formRef = task.camundaFormRef?.key

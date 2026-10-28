@@ -11,22 +11,11 @@ import {
 } from "./settings.js"
 import { allowsDurableWrites, type AnalyticsToolset } from "./toolsets.js"
 
-/**
- * The analytics module's settings section — its own show/data/save tool triple
- * (the three render paths), so the module plugs into the settings page without
- * camunda7 owning any analytics vocabulary. The slice persists under
- * `modules.analytics` in the shared profile record; the shared store merges
- * per module key, so this never touches other modules' slices.
- */
+/** Own tool triple, so camunda7 owns no analytics vocabulary. */
 
-/** What the settings widget renders: the effective slice + whether saving is wired. */
 export interface AnalyticsSettingsView {
   settings: AnalyticsSettings
-  /**
-   * False without a writable store, in the `read-only` toolset (also what a
-   * missing toolset resolves to), or when the request carries no caller
-   * identity (no OAuth — see `resolveProfileKey`) — the widget hides Save.
-   */
+  /** False without a writable store, on the read-only floor or without a caller identity. */
   canSave: boolean
 }
 
@@ -35,10 +24,7 @@ export function registerSettingsTools(
   profileStore?: ProfileSource,
   toolset?: AnalyticsToolset,
 ): void {
-  // The save tool is a durable write registered OUTSIDE the tool registrar, so
-  // it gates itself against the module's toolset (see `allowsDurableWrites`):
-  // only `standard` saves. A missing toolset resolves to the `read-only`
-  // floor, and an unknown name from an untyped caller warns and degrades to it.
+  // Registered outside the registrar, so the save gates itself (`allowsDurableWrites`).
   const store = profileStore
   const save = allowsDurableWrites(toolset) ? store?.save?.bind(store) : undefined
 
@@ -63,8 +49,7 @@ export function registerSettingsTools(
         "Open the analytics settings section: the default look-back period and the minimum comparison bucket size applied when analytics calls omit them.",
       render: async ({ view }, ctx) => {
         const { t, title } = await localizeViewFor(store, ctx)
-        // The view title in the language the profile names (the section
-        // heading's own key); none with "system", where the heading names it.
+        // None with "system": the section heading names it.
         return { title: title("aSettings.heading"), summary: summarize(t, view) }
       },
     },
@@ -74,8 +59,6 @@ export function registerSettingsTools(
       description:
         "Internal JSON feed (no UI) for the analytics settings section's self-fetch. Prefer analytics_show_settings.",
     },
-    // Without a writable store (or on the `read-only` floor) there is nothing
-    // to save into: the section stays read-only (canSave: false).
     save:
       save && store
         ? {

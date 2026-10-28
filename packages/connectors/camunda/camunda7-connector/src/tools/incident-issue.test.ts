@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest"
 import { buildIncidentIssuePayload, condenseStacktrace } from "./incident-issue.js"
 import { cibsevenProvider, operatonProvider } from "../providers/index.js"
 
-/** Engine link with an explicit cockpit base (CIB Seven flavor). */
 const engineWithCockpit = (cockpitUrl: string) => ({
   baseUrl: "http://engine.internal/api",
   cockpitUrl,
@@ -137,8 +136,6 @@ describe("buildIncidentIssuePayload", () => {
     })
     expect(result.suggestedRepository).toBeNull()
     expect(result.prefilledUrl).toBeNull()
-    // Tracker-agnostic: the user decides where the draft goes — the agent
-    // must not steer towards any specific tracker.
     expect(result.nextStep).toMatch(/Do NOT file it anywhere on your own/)
     expect(result.nextStep).not.toContain("GitHub")
   })
@@ -169,7 +166,6 @@ describe("buildIncidentIssuePayload", () => {
     expect(result.prefilledUrl!.length).toBeLessThan(8000)
     const url = new URL(result.prefilledUrl!)
     expect(url.searchParams.get("body")).toContain("body truncated for URL length")
-    // The full untruncated body remains in the tool result for manual paste.
     expect(result.body).toContain(huge)
   })
 
@@ -218,8 +214,7 @@ describe("buildIncidentIssuePayload", () => {
     expect(result.body).toContain("SendInvoiceDelegate")
     expect(result.body).toContain("Caused by: java.net.ConnectException")
     expect(result.body).toContain("HttpClient.connect")
-    // Stacktrace must be in the body BEFORE the engine context table so it
-    // survives URL truncation (which slices from the end).
+    // Before the context table, so it survives URL truncation (which slices from the end).
     expect(result.body.indexOf("Stacktrace (condensed")).toBeLessThan(
       result.body.indexOf("### Engine context"),
     )

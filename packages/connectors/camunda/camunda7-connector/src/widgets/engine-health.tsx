@@ -36,11 +36,7 @@ const STATUS: Record<EngineHealthStatus, { tone: ToneVariant; labelKey: string }
   critical: { tone: "danger", labelKey: "engineHealth.statusCritical" },
 }
 
-/**
- * The verdict as the header badge says it (#322 U14). An engine with nothing
- * deployed is neither stable nor broken: neutral, "Keine Prozesse
- * bereitgestellt" — never a green check over an empty engine.
- */
+/** An engine with nothing deployed is neutral, never a green check over an empty engine (#322 U14). */
 function verdictBadge(data: EngineHealthData): { tone: ToneVariant; labelKey: string } {
   if (data.summary.totalDefinitions === 0 && data.summary.totalIncidents === 0) {
     return { tone: "neutral", labelKey: "engineHealth.statusNothingDeployed" }
@@ -48,17 +44,11 @@ function verdictBadge(data: EngineHealthData): { tone: ToneVariant; labelKey: st
   return STATUS[data.status]
 }
 
-/** The activity ids of the incident clusters, most affected first. */
 function clusterActivities(data: EngineHealthData): string[] {
   return data.clusters.map((c) => c.activityId)
 }
 
-/**
- * Model context so the agent always knows what the operator is looking at —
- * the verdict, the headline numbers, and the dominant cluster — without the
- * operator having to restate it. This is the grounding half of the "ask the AI"
- * loop: when they click a handoff button, the agent already has the picture.
- */
+/** Grounding context, so the operator never restates what they are looking at. */
 export function describeHealth(data: EngineHealthData, engine?: string): ViewContext {
   const { summary, clusters, status } = data
   const top = clusters[0]
@@ -91,7 +81,6 @@ export function describeHealth(data: EngineHealthData, engine?: string): ViewCon
   }
 }
 
-/** Hand the whole verdict to the agent: assess + name the first concrete action. */
 export function triageHandOff(data: EngineHealthData, engine?: string): HandOff {
   const { summary } = data
   return {
@@ -115,12 +104,7 @@ export function triageHandOff(data: EngineHealthData, engine?: string): HandOff 
   }
 }
 
-/**
- * Diagnose handoff for the error state: the engine being unreachable is itself
- * an incident the operator can't assess alone — hand it to the agent instead of
- * leaving them with a bare red box. The error text is the engine's (or the
- * network's) — quoted, never inlined.
- */
+/** An unreachable engine is itself an incident: hand it to the agent. The error text is quoted, never inlined. */
 export function diagnoseHandOff(engine: string | undefined, message: string): HandOff {
   return {
     intent: "askAi.health.diagnoseUnreachable",
@@ -130,14 +114,7 @@ export function diagnoseHandOff(engine: string | undefined, message: string): Ha
   }
 }
 
-/**
- * One cross-process incident cluster (#322 U12): titled by its activity's
- * NAME (the BPMN id a quiet mono line under it), the cause — the cluster's
- * failure message — as the line below, then how many it hit, how many are
- * new and where. The incident type is a neutral chip: the cluster's state
- * is the count, not a red badge on every row. Drill first, the chat
- * hand-off after it.
- */
+/** One cross-process incident cluster (#322 U12): its state is the count, so the type is a neutral chip. */
 function ClusterRow({
   cluster,
   engine,
@@ -152,9 +129,7 @@ function ClusterRow({
   const { handOff, canFix } = remediationHandOff(cluster, engine, surface)
   const primaryKey = cluster.processDefinitionKeys.find((k) => k !== UNKNOWN)
   const name = cluster.activityName ?? cluster.activityId
-  // Drill keeps the cluster scope: activity + type + message signature travel
-  // into the cluster-detail view (instead of falling back to a per-process or
-  // global incident list that loses the root-cause filter).
+  // Drill keeps the cluster scope (activity + type + message signature), not a list that loses the root-cause filter.
   const drill = () =>
     go({
       type: "cluster-detail",
@@ -210,7 +185,6 @@ function ClusterRow({
   )
 }
 
-/** Error / loading / empty rendering for the missing-data case. */
 function HealthUnavailable({
   engine,
   loading,
@@ -243,12 +217,7 @@ function HealthUnavailable({
   )
 }
 
-/**
- * The headline numbers. Only the open incidents carry a state (danger when
- * there are any, the one severity ladder of every view); running instances
- * and the affected activities and processes are counts — neutral, never a
- * coloured digit (#322 U14).
- */
+/** Only open incidents carry a state; the other KPIs are neutral counts (#322 U14). */
 function HealthKpis({ summary, go }: { summary: EngineHealthData["summary"]; go: OnNavigate }) {
   const t = useT()
   return (
@@ -259,8 +228,7 @@ function HealthKpis({ summary, go }: { summary: EngineHealthData["summary"]; go:
         {
           label: t("engineHealth.kpiRunningInstances"),
           value: formatNumber(summary.runningInstances),
-          // The engine-wide instances list — NOT the definitions list: the
-          // KPI counts instances, so the drill must land on instances.
+          // The KPI counts instances, so the drill lands on instances, not definitions.
           onClick: () => go({ type: "process-instances" }),
           // Named by its visible label and value (WCAG 2.5.3); the hint
           // says what the click does.
@@ -296,9 +264,7 @@ function HealthKpis({ summary, go }: { summary: EngineHealthData["summary"]; go:
   )
 }
 
-/* Throughput makes the healthy state earn the screen: even with zero
-   incidents the operator sees the engine actually moving work. Hidden
-   when the history API is unavailable (counts degrade to null). */
+/* Shows the engine moving work even with zero incidents; hidden when history is unavailable. */
 function Throughput24h({ summary }: { summary: EngineHealthData["summary"] }) {
   const t = useT()
   if (summary.started24h === null && summary.completed24h === null) return null
@@ -338,9 +304,7 @@ function ClustersSection({
       </h2>
       <ul className="flex flex-col gap-2">
         {clusters.map((cluster) => (
-          // Fall back to the engine the data was fetched against (standalone
-          // renders pass no `engine` prop) so the remediation prompt never
-          // inlines a placeholder as a tool-call engine id.
+          // Standalone renders pass no `engine`; never inline a placeholder as a tool-call engine id.
           <ClusterRow key={cluster.id} cluster={cluster} engine={engine ?? engineId} go={go} />
         ))}
       </ul>
@@ -348,14 +312,7 @@ function ClustersSection({
   )
 }
 
-/**
- * Shell-less AI-first engine overview. One component, two modes (like the cockpit
- * widgets): standalone the agent's data arrives via `data`; inside the cockpit
- * only `engine` is passed and the view self-fetches its deterministic verdict
- * feed. The verdict + KPIs + incident clusters are deterministic; every element
- * is a launchpad — `go()` drills (client-side in the cockpit, a host follow-up
- * standalone), `HandOffButton` hands the judgment to the agent.
- */
+// Two modes: standalone the data arrives via `data`; inside the cockpit only `engine` and it self-fetches.
 export function EngineHealthView({
   data: initialData = null,
   engine,
@@ -366,14 +323,8 @@ export function EngineHealthView({
   const t = useT()
   const go = useNav()
   const { ask, context } = useHandOff()
-  // Standalone the handed-in verdict SEEDS the feed query, scoped to the
-  // engine it was read from — so the manual refresh (and a write's refetch)
-  // re-reads the same engine in both modes, never the caller's default.
-  // Always ready: unlike the per-process widgets (whose feeds require an id),
-  // the health feed's `engine` is optional — resolveEngine falls back to the
-  // caller's saved default engine or the single configured engine. Gating on
-  // `!!engine` would leave a composed render without props stuck on
-  // "No data available" forever.
+  // Standalone data SEEDS the feed scoped to its engine, so a refresh re-reads that engine.
+  // Always ready: `engine` is optional here, so gating on `!!engine` would stick on "No data".
   const feedEngine = engine ?? initialData?.engineId
   const view = useViewData<EngineHealthData>(
     initialData,

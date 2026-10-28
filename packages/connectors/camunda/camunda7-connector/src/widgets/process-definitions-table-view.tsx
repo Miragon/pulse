@@ -11,36 +11,20 @@ import {
 import { CountPill, TONE_DOT, cn, type ToneVariant } from "@miragon/mcp-toolkit-ui"
 import { useT } from "../messages/use-t.js"
 
-/**
- * Row model of the canonical process-definitions table — a superset both
- * definition lists map onto. The cockpit's per-definition stats carry `counts`
- * (running / failed jobs / incidents); the standalone process list instead
- * carries `suspended`/`versionTag`. Optional fields simply don't render when
- * the source data doesn't provide them.
- */
+// Superset of both lists: cockpit rows carry `counts`, the standalone list `suspended`/`versionTag`.
 export interface ProcessDefinitionsTableRow {
   id: string
   key: string
   name: string | null
   version: number
-  /** Row status dot: severity tone in the cockpit, active/suspended standalone. */
   tone: ToneVariant
-  /** Deployment version tag, rendered as a second chip next to the version. */
   versionTag?: string | null
-  /** Suspension flag (standalone list) — for the optional status column. */
   suspended?: boolean
-  /** Operational counts (cockpit data); the count columns render only when present. */
   counts?: { instances: number; failedJobs: number; totalIncidents: number }
 }
 
-/**
- * THE process-definitions table — the single visual language for a list of
- * process definitions. Presentational core shared by the cockpit definitions
- * table (count columns + drill actions) and the standalone process-list widget
- * (count-less, with a status column instead): same header/row primitives, same
- * name/key/version cells; the optional columns are simply absent when their
- * data (or renderer) isn't provided.
- */
+// The single table for process definitions, shared by the cockpit table and the standalone list;
+// optional columns are absent when their data or renderer isn't provided.
 export function ProcessDefinitionsTableView({
   rows,
   ariaLabel,
@@ -51,9 +35,7 @@ export function ProcessDefinitionsTableView({
   rows: ProcessDefinitionsTableRow[]
   ariaLabel: string
   emptyText: string
-  /** Optional status column (e.g. Active/Suspended in the standalone list). */
   status?: { header: string; render: (row: ProcessDefinitionsTableRow) => ReactNode }
-  /** Optional per-row action cell (drill buttons, Ask-AI). Omit to drop the column. */
   renderActions?: (row: ProcessDefinitionsTableRow) => ReactNode
 }) {
   const t = useT()
@@ -66,10 +48,7 @@ export function ProcessDefinitionsTableView({
 
   const columns: ListTableColumn[] = [
     { label: t("cockpitDefs.colProcess") },
-    // Count rows are one per KEY (every version summed): their chip is the
-    // key's latest version, not the version the counts belong to — the
-    // column a reader can do without in an inline frame, where the counts
-    // and the actions need the room (#322 U2).
+    // Count rows sum every version, so the version chip is not theirs; it yields its room inline (#322 U2).
     showCounts
       ? { label: t("cockpitDefs.colLatestVersion"), hideBelow: "md" }
       : { label: t("cockpitDefs.colVersion") },

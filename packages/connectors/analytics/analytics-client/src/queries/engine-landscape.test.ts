@@ -87,7 +87,6 @@ describe("engineLandscape", () => {
     const res = await engineLandscape(ch)
 
     expect(res.sharedProcessKeys).toEqual(["order"])
-    // Shared keys sort first, then by running instances descending.
     expect(res.processes.map((p) => p.processDefinitionKey)).toEqual([
       "order",
       "onboarding",
@@ -143,7 +142,6 @@ describe("engineLandscape", () => {
       deployedDefinitionKeys: null,
       exclusiveDefinitionKeys: null,
     })
-    // The totals add up the engines that report.
     expect(res.totals).toMatchObject({
       engineCount: 3,
       reportingEngineCount: 2,

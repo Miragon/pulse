@@ -29,18 +29,10 @@ import {
   type Calls,
 } from "./write-path.test-support.js"
 
-/**
- * #341 — the in-widget write path: a write refreshes the data it changed in
- * BOTH modes (a standalone show view seeds its query with the tool result
- * instead of freezing it), the cockpit refreshes and retries instead of
- * dead-ending, and a confirmation names what it acts on with two buttons
- * that cannot be confused. The instance view's current-state gating lives in
- * `write-state.test.tsx`, the refresh's completeness in `write-refresh.test.tsx`.
- */
+// #341. Current-state gating lives in `write-state.test.tsx`, refresh completeness in `write-refresh.test.tsx`.
 
 installWritePathHarness()
 
-/** The instance after its review task completed: the next task is open. */
 const AFTER_REVIEW = instance({
   activeActivityIds: ["approve"],
   openTasks: [task("approve", "Approve invoice")],
@@ -55,7 +47,7 @@ describe("completing a user task refreshes the instance (N99)", () => {
       ...recorder(calls, CAMUNDA7_INSTANCE_DETAIL_DATA, () => AFTER_REVIEW),
     })
     expect(await screen.findByText("Review invoice")).toBeTruthy()
-    // A fresh seed is not refetched on mount: the show tool just read it.
+    // The show tool just read the seed.
     expect(feedCalls(calls)).toHaveLength(0)
 
     await completeTheOpenTask()
@@ -91,9 +83,8 @@ describe("completing a user task refreshes the instance (N99)", () => {
   })
 
   it("offers no Suspend/Cancel from the refetch's FIRST failure on — not after the client's retries", async () => {
-    // Completing the LAST task ends the instance: the runtime read is a 404
-    // now, so the stale snapshot must not keep offering instance actions —
-    // and not for the ~7 s the production client spends retrying either.
+    // The runtime read is a 404 now; the stale snapshot must not offer actions, not even during the
+    // ~7 s of production retries.
     withProductionRetries()
     const calls: Calls = []
     const contexts: string[] = []

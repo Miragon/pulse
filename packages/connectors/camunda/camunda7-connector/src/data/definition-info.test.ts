@@ -10,13 +10,7 @@ import {
   resolveDefinitionKeys,
 } from "./definition-info.js"
 
-/**
- * The key behind a definition id. Ids are `<key>:<version>:<deploymentId>`
- * unless that would exceed 64 characters (keys over ~25 characters with UUID
- * ids): then the engine stores a bare generated id that names no key, and
- * only the definition statistics resolve it — a UUID parsed as a key matches
- * no key filter.
- */
+// Past 64 chars the engine stores a bare id; a UUID parsed as a key matches no filter.
 
 const LONG_KEY = "customerOnboardingApprovalProcess"
 const UUID = "6f1c2a9e-0b7d-4c33-9a51-3d2e8f40b7aa"
@@ -73,12 +67,8 @@ describe("resolveDefinitionKeys", () => {
   })
 })
 
-/**
- * The diagram of a KEY is the latest version over every tenant, read by its
- * id — `GET /process-definition/key/{key}/xml` only finds definitions that
- * belong to NO tenant, so a tenant deployment (which
- * `camunda7_create_deployment` makes) had no diagram (#322 follow-up).
- */
+// `GET /process-definition/key/{key}/xml` only finds tenant-less definitions,
+// so a tenant deployment had no diagram (#322 follow-up).
 describe("fetchLatestDefinitionXml", () => {
   const TENANT_DEFINITION = { id: "leasing:3:t1", key: "leasing", version: 3, tenantId: "acme" }
 

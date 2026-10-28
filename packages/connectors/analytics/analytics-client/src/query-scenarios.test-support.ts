@@ -1,18 +1,6 @@
-/**
- * Test support shared by the behavioural query guards — never imported by
- * runtime code. One recording Prometheus client plus a representative
- * argument set for EVERY exported query function, so each guard runs the
- * same calls:
- *
- * - `metrics-contract-labels.test.ts` (#327) checks every label each sent
- *   PromQL names against the metrics contract;
- * - `query-honesty.test.ts` (#336) checks the time window each PromQL reads
- *   and the shape each function returns when Prometheus has no data.
- */
 import type { PrometheusClient, PromSample } from "./prometheus.js"
 import * as queries from "./queries/index.js"
 
-/** One representative sample carrying every label a query may group or join on. */
 export const REPRESENTATIVE_SAMPLE: PromSample = {
   metric: {
     engine_id: "prod-a",
@@ -28,17 +16,10 @@ export const REPRESENTATIVE_SAMPLE: PromSample = {
 
 export interface RecordingClient {
   ch: PrometheusClient
-  /** Every instant PromQL string, in the order it was sent. */
   sent: string[]
 }
 
-/**
- * PrometheusClient that records every instant PromQL string and answers each
- * one with `answer` — by default a single {@link REPRESENTATIVE_SAMPLE}, so the
- * result mapping runs too (a function that only queries further after
- * non-empty data still gets there). Pass `() => []` for a Prometheus that
- * holds no data at all.
- */
+// Answering with a sample by default runs the result mapping too; `() => []` is a Prometheus without data.
 export function recordingClient(
   answer: (query: string) => PromSample[] = () => [REPRESENTATIVE_SAMPLE],
 ): RecordingClient {
@@ -63,14 +44,7 @@ export type Scenario = (ch: PrometheusClient) => Promise<unknown>
  */
 export const isoDaysAgo = (days: number) => new Date(Date.now() - days * 86_400_000).toISOString()
 
-/**
- * Representative argument sets for EVERY exported query function — typed as a
- * total map over the `queries` namespace, so a new export without a scenario
- * fails `pnpm typecheck` (and the runtime check in each guard). Between them
- * the sets switch on every optional matcher: engine filter (single and multi),
- * element scope, incident type, process scope present and absent, the
- * breakdowns.
- */
+// A total map over `queries`: a new export without a scenario fails `pnpm typecheck`.
 export const SCENARIOS: { [K in keyof typeof queries]: Scenario[] } = {
   analyzePerformance: [
     (ch) =>
@@ -174,7 +148,6 @@ export const SCENARIOS: { [K in keyof typeof queries]: Scenario[] } = {
   ],
 }
 
-/** The exported query functions, by name — what the scenario map must cover. */
 export function exportedQueryFunctions(): string[] {
   return Object.keys(queries).filter(
     (k) => typeof (queries as Record<string, unknown>)[k] === "function",

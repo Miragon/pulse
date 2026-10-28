@@ -1,36 +1,22 @@
 import type { FitSlot } from "./inline-fit-solve.js"
 
-/**
- * The DOM half of the measured inline fit (`inline-fit.tsx`): where a list's
- * rows are, how they are measured, and the bookkeeping of the view's lists.
- */
-
-/** What the fit measures on the rendered view; injected in tests (happy-dom has no layout). */
+/** Injected in tests: happy-dom has no layout. */
 export interface FitMeasure {
-  /** The content height of the view's document box (px). */
   content: (box: HTMLElement) => number
-  /** The bottom edge of each row of a list's rows element, top to bottom. */
   rows: (rowsElement: HTMLElement) => number[]
 }
 
 export const ROWS_ATTRIBUTE = "data-inline-fit-rows"
-/**
- * On a row that belongs to the row before it (an incident's error line under
- * its incident): the fit counts ITEMS, as the cap does, so this row's bottom
- * is its item's bottom, never an item of its own.
- */
+/** A row continuing the one before (an incident's error line): the fit counts ITEMS, as the cap does. */
 export const CONTINUES_ATTRIBUTE = "data-inline-fit-continues"
 
-/** Spread onto such a row: `<tr {...FIT_CONTINUES_ROW}>`. */
 export const FIT_CONTINUES_ROW = { [CONTINUES_ATTRIBUTE]: "" } as const
-/** A paged list's wrapper: its rows when no table inside names its body. */
 export const FALLBACK_ATTRIBUTE = "data-inline-fit-fallback"
 export const LIST_SELECTOR = `[${ROWS_ATTRIBUTE}], [${FALLBACK_ATTRIBUTE}]`
 
 export const DOM_MEASURE: FitMeasure = {
   content(box) {
-    // Inline without a budget the box is `display: contents` (no box of its
-    // own): the content's extent is the union of its children's boxes.
+    // A `display: contents` box has no box of its own: measure its children's union.
     if (getComputedStyle(box).display === "contents") {
       const range = document.createRange()
       range.selectNodeContents(box)
@@ -41,7 +27,7 @@ export const DOM_MEASURE: FitMeasure = {
   rows(rowsElement) {
     const bottoms: number[] = []
     for (const child of Array.from(rowsElement.children)) {
-      // The stale bar of `PagedRows` and anything else laid over the rows.
+      // Skip overlays such as `PagedRows`' stale bar.
       if (getComputedStyle(child).position === "absolute") continue
       const rect = child.getBoundingClientRect()
       if (rect.height === 0) continue
@@ -55,23 +41,16 @@ export const DOM_MEASURE: FitMeasure = {
 
 interface SlotRecord {
   rows: HTMLElement | null
-  /** The paged list's own wrapper: the rows when no table inside names its body. */
   fallback: HTMLElement | null
-  /** Fitted once while its rows were visible. */
   placed: boolean
-  /** The user revealed rows in place: the fit keeps them until the search or filter changes. */
   frozen: boolean
 }
 
-/**
- * The lists of a view and how their rows are found. Plain mutable bookkeeping
- * outside React's state: it changes in ref callbacks and effects, and the fit
- * reads it while measuring.
- */
+/** Mutable bookkeeping outside React state: ref callbacks and effects change it mid-measure. */
 export class SlotRegistry {
   private readonly records = new Map<string, SlotRecord>()
 
-  /** A row element can arrive before its list registers (refs attach before effects). */
+  /** Refs attach before effects, so rows can arrive before their list registers. */
   private recordOf(id: string): SlotRecord {
     let record = this.records.get(id)
     if (!record) {
@@ -97,7 +76,6 @@ export class SlotRegistry {
     this.recordOf(id).frozen = frozen
   }
 
-  /** A new epoch: nothing revealed, nothing placed (a list hidden now fits when it shows). */
   restart(): void {
     for (const record of this.records.values()) {
       record.frozen = false
@@ -105,16 +83,11 @@ export class SlotRegistry {
     }
   }
 
-  /** A new search or filter: the list's rows are placed anew once they show. */
   unplace(id: string): void {
     this.recordOf(id).placed = false
   }
 
-  /**
-   * The lists showing rows now, in document order; marks them placed. `fresh`
-   * says whether one of them was placed for the first time (a list a drill
-   * or a tab just showed).
-   */
+  /** `fresh`: a list was placed for the first time (a drill or tab just showed it). */
   measure(box: HTMLElement, measure: FitMeasure): { slots: FitSlot[]; fresh: boolean } {
     const ordered = Array.from(box.querySelectorAll<HTMLElement>(LIST_SELECTOR))
     const slots: FitSlot[] = []
@@ -131,7 +104,6 @@ export class SlotRegistry {
     return { slots, fresh }
   }
 
-  /** A list that has not been fitted while visible, and shows rows now (a tab shown). */
   hasUnplacedVisible(measure: FitMeasure): boolean {
     for (const record of this.records.values()) {
       const rows = record.rows ?? record.fallback

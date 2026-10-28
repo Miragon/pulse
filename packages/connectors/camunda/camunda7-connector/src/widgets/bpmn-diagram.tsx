@@ -11,30 +11,19 @@ import { useT } from "../messages/use-t.js"
 import { CAMUNDA7_BPMN_XML_DATA } from "../tool-names.js"
 import { applyHighlights, type BpmnHighlight } from "./bpmn-highlights.js"
 
-// The highlight semantics (colors, CSS, priority rules) live in
-// ./bpmn-highlights.ts; re-exported here so widget callers keep importing
-// the diagram and its highlight type from one place.
+// Re-exported so callers import the diagram and its highlight type from one place.
 export { applyHighlights, dedupe, HIGHLIGHT_COLORS, type BpmnHighlight } from "./bpmn-highlights.js"
 
 export interface BpmnDiagramProps {
-  /**
-   * The deployed version to draw (a view's `diagramDefinitionId`). Its XML is
-   * read by id from `camunda7_bpmn_xml_data`, never carried in the view's
-   * payload: a definition's XML never changes, so it is read once and kept.
-   */
+  /** Its XML is read by id from `camunda7_bpmn_xml_data`, never carried in the payload. */
   definitionId: string
   /** The engine the view reads (its payload's `engineId`); the caller's default when absent. */
   engineId?: string
   /** A fixed frame height; default: the diagram's own (240–560 px, the kit's `diagramHeight`). */
   height?: number
-  /**
-   * Declarative highlight set. Empty / undefined renders the diagram as
-   * plain BPMN without overlays.
-   */
   highlights?: ReadonlyArray<BpmnHighlight>
 }
 
-/** The feed's answer: one definition's XML, null when the engine has none. */
 interface DefinitionXml {
   processDefinitionId: string
   bpmnXml: string | null
@@ -43,12 +32,7 @@ interface DefinitionXml {
 /** The frame a loading diagram holds, so the view does not jump when it lands. */
 const LOADING_HEIGHT = 240
 
-/**
- * One deployed definition's BPMN XML. Kept for good once read (`staleTime`
- * Infinity): a redeploy mints a new definition id, so the same id never
- * answers differently, and a write that refreshes the view never reloads
- * its diagram.
- */
+/** Kept for good (`staleTime` Infinity): a redeploy mints a new id, so an id never answers differently. */
 export function useDefinitionXml(definitionId: string, engineId?: string) {
   return useToolQuery<DefinitionXml>(
     ["camunda7:bpmn-xml", engineId ?? null, definitionId],
@@ -81,12 +65,9 @@ export function BpmnDiagram({ definitionId, engineId, height, highlights }: Bpmn
   )
 }
 
-// Stable default: an inline `[]` default would mint a fresh identity per render
-// and, via `reimportKey`, force a full bpmn-js re-import for any non-memoizing
-// caller.
+// Stable default: an inline `[]` would force a bpmn-js re-import on every render via `reimportKey`.
 const NO_HIGHLIGHTS: ReadonlyArray<BpmnHighlight> = []
 
-/** The bpmn-js canvas over XML already in hand, with its highlights and zoom bar. */
 export function BpmnCanvas({
   bpmnXml,
   height,

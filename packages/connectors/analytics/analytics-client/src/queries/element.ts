@@ -15,22 +15,17 @@ export interface ElementBottleneckRow {
   activity_name: string | null
   activity_type: string
   execution_count: number
-  /** Mean duration of the executions that ended in the window; null when none did. */
   avg_duration_sec: number | null
-  /** p95 from the duration histogram; null when it holds no sample. */
   p95_duration_sec: number | null
   total_time_sec: number
   avg_wait_sec: number | null
   total_wait_sec: number | null
-  /** Incidents created at this activity in the window. */
   incident_count: number
-  /** `incident_count` per 100 executions (may exceed 100); null without executions. */
   incident_rate_pct: number | null
   bottleneck_score_sec: number
 }
 
 export interface ElementBottleneckResult {
-  /** The engine ids covered; `null` = every engine Prometheus holds (unscoped library call). */
   engines: string[] | null
   activities: ElementBottleneckRow[]
   minBucketSize: number
@@ -38,13 +33,9 @@ export interface ElementBottleneckResult {
 }
 
 /**
- * Rank activities by time contribution + incident rate over a rolling window,
- * from OTEL metrics.
- *
- * Reduced fidelity vs the event store: queue/wait time between activities needs
- * per-instance event ordering, which metrics cannot reconstruct — so
- * `avg_wait_sec`/`total_wait_sec` are null and `bottleneck_score_sec` is the
- * execution-time contribution only. `activity_name` is not a metric label.
+ * Wait time between activities needs per-instance event ordering, which metrics
+ * cannot reconstruct: the wait fields are null and the score is execution time
+ * only. `activity_name` is not a metric label.
  */
 export async function elementBottleneck(
   ch: PrometheusClient,
@@ -121,25 +112,15 @@ export async function elementBottleneck(
 }
 
 export interface ElementHeatResult {
-  /** Per-element execution count over the window, keyed by activity id. */
   frequency: Record<string, number>
-  /** Per-element average duration in seconds over the window, keyed by activity id. */
   durationSec: Record<string, number>
-  /**
-   * When the figures were read from Prometheus (ISO timestamp): the "Stand"
-   * a view shows. Optional only for payloads recorded before it existed.
-   */
+  /** Optional: payloads recorded before it existed lack it. */
   asOf?: string
 }
 
 /**
- * Per-element heat values for the BPMN heatmap, from OTEL metrics: traversal
- * frequency (`camunda_activity_ended_total`) and average duration
- * (`camunda_activity_duration_milliseconds_sum` / count) per `activity_id`, for one
- * process definition. Returns full maps (no top-N / min-bucket filtering — every
- * element gets a value). Node-level only; metrics carry no per-instance path, so
- * sequence-flow/edge heat is not available. Activity metrics have no version
- * label, so this is per `processDefinitionKey`.
+ * Node-level only: metrics carry no per-instance path, so there is no edge heat.
+ * Activity metrics have no version label, so this is per `processDefinitionKey`.
  */
 export async function elementHeat(
   ch: PrometheusClient,

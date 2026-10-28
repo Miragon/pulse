@@ -8,28 +8,18 @@ import type { IncidentInstance, InstanceDetailData, OpenUserTask } from "../view
 import { InstanceDetailWidget } from "./instance-detail.js"
 import { widgetActionsFeedFor } from "./lib/hand-off.test-support.js"
 
-/**
- * The shared harness of the #341 write-path suites (`write-path`,
- * `write-state`, `write-refresh`): the toolkit's singleton query client reset
- * per test, an admin deployment's gate, the instance fixture, and the
- * interactions the suites repeat.
- */
-
 const toolkitDefaults = queryClient.getDefaultOptions()
 
-/** What an admin deployment's feed answers — every in-widget write is offered. */
 let admin: { allowedActions: string[]; modelTools: string[] }
 
-/** The admin deployment's widget-actions answer (loaded by the harness). */
 export const adminActions = () => admin
 
-/** Registers the per-suite hooks — call once at the top of a write-path suite. */
 export function installWritePathHarness(): void {
   beforeAll(async () => {
     admin = await widgetActionsFeedFor("admin")
   })
   beforeEach(() => {
-    // The shared client retries a failed query with backoff — answer at once.
+    // The shared client retries with backoff: answer at once.
     queryClient.setDefaultOptions({
       ...toolkitDefaults,
       queries: { ...toolkitDefaults.queries, retry: false },
@@ -42,11 +32,7 @@ export function installWritePathHarness(): void {
   })
 }
 
-/**
- * What a real host runs: the toolkit's own query defaults — TanStack retries
- * a failed query 3× with 1 s/2 s/4 s backoff, and `error` stays null all that
- * time (only the attempt's `failureReason` is set).
- */
+// The toolkit's defaults: 3 retries with 1/2/4 s backoff, `error` null all that time (only `failureReason`).
 export function withProductionRetries() {
   queryClient.setDefaultOptions(toolkitDefaults)
 }
@@ -92,7 +78,6 @@ export function instance(over: Partial<InstanceDetailData> = {}): InstanceDetail
   }
 }
 
-/** A failed job of the instance — its remedy is Retry. */
 export const FAILED_JOB_INCIDENT: IncidentInstance = {
   id: "inc-1",
   processInstanceId: "pi-1",
@@ -153,7 +138,6 @@ export function openTab(name: RegExp) {
   fireEvent.mouseDown(screen.getByRole("tab", { name }))
 }
 
-/** Answer the open confirmation with `dialogButton` and wait for it to close. */
 export async function confirmIn(dialogButton: string) {
   const dialog = await screen.findByRole("alertdialog")
   fireEvent.click(within(dialog).getByRole("button", { name: dialogButton }))

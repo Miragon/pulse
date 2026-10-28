@@ -9,13 +9,6 @@ import {
 } from "./composed-server.js"
 import { createShellPlugin } from "./shell-catalogue.js"
 
-/**
- * The HTTP edge as `createComposedServer` wires it, beyond the guard itself
- * (`composed-server.test.ts`): the listener refuses a guarded request before
- * reading its body, the in-flight body budget, the request timeout — and the
- * `Host` half deferred to the CLI under `mcp-use dev`, so its tunnel works.
- */
-
 const composition = composeModules<object>({ label: "edge-test", modules: [], appEnvVars: [] })
 const running: RunningServer[] = []
 let info: MockInstance<(line: string) => void>
@@ -67,11 +60,7 @@ function request(
   })
 }
 
-/**
- * A POST that sends 10 bytes and never finishes: resolves with the answer the
- * server gives while the upload is still open, and fails clearly (instead of
- * hanging) when none comes.
- */
+/** Answers while the upload is still open; fails clearly instead of hanging. */
 function openUpload(
   port: number,
   headers: Record<string, string>,
@@ -192,7 +181,6 @@ describe("createComposedServer — admission before the body", () => {
 describe("createComposedServer — under mcp-use dev (the CLI owns the socket)", () => {
   const TUNNEL_HOST = "k3x9.tunnel.example"
 
-  /** What the dev CLI hands the entry's `fetch` for a tunneled call: the public Host, unchanged. */
   const tunneled = (
     composed: { app: { fetch: (r: Request) => Promise<Response> } },
     origin?: string,

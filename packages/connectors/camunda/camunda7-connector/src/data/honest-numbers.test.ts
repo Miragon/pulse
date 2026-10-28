@@ -29,19 +29,9 @@ import { buildIncidentsDashboardData } from "./incidents-dashboard-data.js"
 import { buildInstanceDetailData } from "./instance-detail-data.js"
 import { buildActivityIncidentsData, buildProcessIncidentsData } from "./process-incidents-data.js"
 
-/**
- * The honest-numbers rule (CLAUDE.md invariant 7, `engine-reads.ts`): a data
- * builder's PRIMARY rows and counts propagate engine failures — a down,
- * unauthorized or overloaded engine is a tool error, never a confident "0
- * jobs" — and an unknown id is a not-found error, never a view of zeros.
- * Only ENRICHMENT degrades, and to null.
- *
- * Each case declares only its enrichment reads; EVERY OTHER read its healthy
- * build makes (method + path + query names, `readOf`) is primary, and the
- * table breaks each of them in turn. A swallowed failure on any read — a new
- * one included — fails here without anyone remembering to list it. The
- * structural check below fails when a builder ships without a case.
- */
+// Each case declares only its enrichment reads; EVERY other read its healthy
+// build makes is primary and broken in turn, so a newly swallowed failure fails
+// here without anyone listing it. A builder without a case fails structurally.
 
 const engines: FakeEngine[] = []
 afterEach(async () => {
@@ -52,7 +42,6 @@ const urls = (baseUrl: string) => ({ baseUrl, provider: cibsevenProvider })
 
 interface Case {
   run: (client: Client, baseUrl: string) => Promise<unknown>
-  /** Replies that differ from the shared world for this case (e.g. a capped scan). */
   world?: (request: RecordedRequest) => FakeReply | undefined
   /** The lookup of the id/key the builder is asked about, answering "nothing there". */
   unknown?: { read: string; reply: FakeReply }
@@ -60,12 +49,10 @@ interface Case {
   enrichment?: Record<string, (data: never) => unknown>
 }
 
-/** The tenant-agnostic latest-version lookup of a key (`findLatestDefinition`). */
 const KEY_LOOKUP = "GET /process-definition?key&latestVersion&maxResults&sortBy&sortOrder"
 const NOT_FOUND = { status: 404, body: { type: "InvalidRequestException", message: "not found" } }
 const NO_ROWS = { body: [] }
 
-/** `count` open incidents of the world's activity, all of them just now. */
 function incidentScan(count: number): unknown[] {
   const now = toEngineDate(new Date())
   return Array.from({ length: count }, (_, n) => ({
@@ -80,10 +67,7 @@ function incidentScan(count: number): unknown[] {
   }))
 }
 
-/**
- * A long key's definition id: `key:version:uuid` would exceed 64 characters,
- * so the engine stored a bare generated id — only the statistics name its key.
- */
+// Past 64 chars the engine stores a bare id; only the statistics name its key.
 const BARE_DEFINITION_ID = "6f1c2a9e-0b7d-4c33-9a51-3d2e8f40b7aa"
 const BARE_ID_STATS: FakeReply = {
   body: [
@@ -100,7 +84,6 @@ const BARE_ID_STATS: FakeReply = {
   ],
 }
 
-/** The world with `rows` on `path` and the statistics that resolve the bare id. */
 function onBareDefinitionId(path: string, rows: unknown[]): Case["world"] {
   return (r) =>
     r.path === path

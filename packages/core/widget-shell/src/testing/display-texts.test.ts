@@ -11,7 +11,6 @@ import { glossaryFindings, PRODUCT_GLOSSARY } from "./glossary.js"
 
 const both = (en: string, de: string) => ({ en, de })
 
-/** A small app: one named widget with nested props fields, one bare step. */
 const APP: AppDefinition = {
   name: "probe",
   title: both("Probe", "Probe"),
@@ -51,10 +50,6 @@ const APP: AppDefinition = {
 
 const display = { title: both("Field", "Feld"), summary: both("A field.", "Ein Feld.") }
 
-/**
- * Builder texts on a top-level field, on array items, in a nested object and
- * in a list — next to a boolean schema, which names nothing.
- */
 const LEAKY_SCHEMA = {
   type: "object",
   properties: {
@@ -69,7 +64,6 @@ const LEAKY_SCHEMA = {
   },
 }
 
-/** The probe app with the leaky schema, plus a widget without props. */
 const NESTED: AppDefinition = {
   ...APP,
   widgets: [
@@ -100,8 +94,7 @@ describe("missingDisplayTexts", () => {
       "prop probe:table.columns: no de title",
       "prop probe:table.columns: no en summary",
       "prop probe:table.columns: no de summary",
-      // The props sheet edits a nested object or array as JSON: its inner
-      // fields (columns[].key, options.dense) are never named.
+      // The props sheet edits nested objects and arrays as JSON, so their fields are never named.
       "prop probe:table.options: no en title",
       "prop probe:table.options: no de title",
       "prop probe:table.options: no en summary",
@@ -128,7 +121,6 @@ describe("missingDisplayTexts", () => {
     const untitled: AppDefinition = { ...APP, title: both("Probe", ""), steps: [], widgets: [] }
     expect(missingDisplayTexts(untitled, ["de"])).toEqual(["app: no de title"])
     expect(missingDisplayTexts(untitled, ["en"])).toEqual([])
-    // A text without the language at all is missing there too.
     expect(missingDisplayTexts({ ...untitled, title: { en: "Probe" } })).toEqual([
       "app: no de title",
     ])
@@ -172,7 +164,6 @@ describe("displayTextsSentToModel", () => {
   })
 })
 
-/** The kit's own catalogue: the generic shell:* widgets every server registers. */
 describe("the shell:* widgets are named for people in en and de", () => {
   it("every widget and props field carries a title and a summary", () => {
     expect(missingDisplayTexts(shellDefinition)).toEqual([])

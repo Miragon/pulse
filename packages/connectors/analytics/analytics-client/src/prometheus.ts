@@ -1,44 +1,30 @@
 export interface PrometheusConfig {
-  /**
-   * Base URL of the Prometheus HTTP API. Userinfo (`https://user:pass@host`)
-   * is moved into a Basic `Authorization` header — fetch rejects credentialed
-   * URLs — and never appears in an error message.
-   */
+  /** Userinfo moves into a Basic `Authorization` header: fetch rejects credentialed URLs. */
   url: string
-  /** Bearer token (`Authorization: Bearer …`); exclusive with basic auth. */
   bearerToken?: string
-  /** Basic-auth user (with `password`); exclusive with `bearerToken` and URL userinfo. */
   username?: string
   password?: string
-  /** Extra request headers, e.g. a tenant header (`X-Scope-OrgID`) for Mimir/Cortex/Thanos. */
   headers?: Record<string, string>
-  /** Per-query deadline in ms (default {@link DEFAULT_PROMETHEUS_TIMEOUT_MS}). */
   timeoutMs?: number
 }
 
-/** Default per-query deadline (`timeoutMs`). */
 export const DEFAULT_PROMETHEUS_TIMEOUT_MS = 30_000
 
 /** The longest delay a Node timer holds — a longer deadline would fire at once. */
 const MAX_TIMEOUT_MS = 2_147_483_647
 
-/** Upper bound for upstream text in an error message (bodies can be pages long). */
 const MAX_ERROR_TEXT = 500
 
-/** One labeled sample from a Prometheus instant query. */
 export interface PromSample {
   metric: Record<string, string>
   value: number
 }
 
-/** Per-query options. */
 export interface PrometheusQueryOptions {
-  /** Aborts the query (combined with the client's deadline), e.g. an MCP request's `ctx.signal`. */
   signal?: AbortSignal
 }
 
 export interface PrometheusClient {
-  /** Run an instant PromQL query and return the labeled samples (NaN/∅ dropped). */
   instant(query: string, options?: PrometheusQueryOptions): Promise<PromSample[]>
 }
 
@@ -52,10 +38,6 @@ interface PromApiResponse {
   }
 }
 
-/**
- * Base URL without userinfo, plus the userinfo it carried. The raw value is
- * never echoed: it may hold credentials.
- */
 function splitUserinfo(raw: string): { base: string; username?: string; password?: string } {
   let url: URL
   try {
@@ -71,10 +53,6 @@ function splitUserinfo(raw: string): { base: string; username?: string; password
   return { base: url.toString().replace(/\/+$/, ""), username, password }
 }
 
-/**
- * The `Authorization` value from bearer token, explicit basic credentials or
- * URL userinfo — exactly one source; ambiguous combinations fail the boot.
- */
 function authorizationFor(
   config: PrometheusConfig,
   userinfo: { username?: string; password?: string },
@@ -130,10 +108,8 @@ function mask(text: string, secrets: readonly string[]): string {
   return masked
 }
 
-/** A Prometheus API `errorType` (`bad_data`, `timeout`, …); anything else is not echoed. */
 const ERROR_TYPE = /^[a-z_]{1,40}$/
 
-/** The request headers (custom + auth) and every secret an upstream could echo back. */
 function buildHeaders(
   config: PrometheusConfig,
   userinfo: { username?: string; password?: string },
@@ -171,7 +147,6 @@ function resolveTimeout(timeoutMs: number | undefined): number {
   return timeoutMs
 }
 
-/** `JSON.parse` that yields `undefined` instead of throwing (bodies may be HTML or empty). */
 function parseJson(text: string): unknown {
   try {
     return JSON.parse(text) as unknown
@@ -180,43 +155,29 @@ function parseJson(text: string): unknown {
   }
 }
 
-/** The OS-level code of a fetch network error (`ECONNREFUSED`, `ENOTFOUND`, …). */
 function networkCode(error: unknown): string {
   const cause = (error as { cause?: { code?: unknown; errors?: Array<{ code?: unknown }> } }).cause
   const code = cause?.code ?? cause?.errors?.find((e) => e.code)?.code
   return typeof code === "string" && code.length > 0 ? code : "network error"
 }
 
-/**
- * Minimal Prometheus HTTP API client. The analytics queries are metric-first:
- * they issue instant PromQL queries (`/api/v1/query`) whose range windows carry
- * the time period, and map the labeled samples into the analytics row shapes.
- *
- * Every query runs under a deadline (`timeoutMs`, combined with an optional
- * caller `signal`), and every failure is an `Error` whose message is safe to
- * hand to the model: no URL, no credentials, upstream text truncated.
- */
+/** Every failure message is safe to hand to the model: no URL, no credentials, upstream text truncated. */
 export function createPrometheusClient(config: PrometheusConfig): PrometheusClient {
   const userinfo = splitUserinfo(config.url)
   const { base } = userinfo
   const { headers, secrets } = buildHeaders(config, userinfo)
   const timeoutMs = resolveTimeout(config.timeoutMs)
 
-  /**
-   * Upstream text with every configured secret masked (before AND after
-   * collapsing whitespace, so neither form slips through), then truncated.
-   */
+  // Masked before AND after collapsing whitespace, so neither form of a secret slips through.
   const safe = (text: string): string => {
     const flat = mask(mask(text, secrets).replace(/\s+/g, " ").trim(), secrets)
     return flat.length > MAX_ERROR_TEXT ? `${flat.slice(0, MAX_ERROR_TEXT)}…` : flat
   }
 
-  /** The envelope's `errorType` when it is a Prometheus one (masked all the same). */
   const errorTypeOf = (value: unknown): string | undefined =>
     typeof value === "string" && ERROR_TYPE.test(value) ? safe(value) : undefined
 
   function httpError(response: Response, text: string): Error {
-    // The API's JSON error envelope when it is one, else the raw text.
     const body = parseJson(text) as Partial<PromApiResponse> | null | undefined
     const errorType = errorTypeOf(body?.errorType)
     const raw = typeof body?.error === "string" ? body.error : text
@@ -229,7 +190,6 @@ export function createPrometheusClient(config: PrometheusConfig): PrometheusClie
     )
   }
 
-  /** Response + body under the deadline (and the caller's signal), failures mapped. */
   async function fetchText(
     url: string,
     caller: AbortSignal | undefined,
@@ -249,7 +209,6 @@ export function createPrometheusClient(config: PrometheusConfig): PrometheusClie
     }
   }
 
-  /** The API envelope of a 2xx response; a non-JSON body (a login page) says so. */
   function parseEnvelope(response: Response, text: string): PromApiResponse {
     const body = parseJson(text)
     if (body !== null && typeof body === "object") return body as PromApiResponse
@@ -286,12 +245,7 @@ export function createPrometheusClient(config: PrometheusConfig): PrometheusClie
   }
 }
 
-/**
- * A view of `client` whose queries honor the caller's `signal` (an MCP
- * request's `ctx.signal`) on top of the client's own deadline — every
- * Prometheus query is a read, so cancelling one is always safe. A per-call
- * `signal` wins. Without a signal the client itself is returned.
- */
+// Every Prometheus query is a read, so cancelling one with the caller is always safe.
 export function withCallerSignal(
   client: PrometheusClient,
   signal: AbortSignal | undefined,
@@ -303,40 +257,22 @@ export function withCallerSignal(
   }
 }
 
-/** Escape a value for safe use inside a PromQL label matcher (`{k="<value>"}`). */
 export function escapeLabelValue(value: string): string {
   return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')
 }
 
-/**
- * Escape RE2 metacharacters so a value matches literally inside a `=~"…"`
- * matcher. Without this, an id like `engine.prod` also matches `engineXprod`,
- * and one containing `|` silently splits into two alternatives.
- */
 function escapeRegexValue(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 }
 
 export type EngineFilterInput = string | string[] | undefined
 
-/**
- * The engine ids a filter names, or `null` for no filter (every engine
- * Prometheus holds). Results echo this so a reader always knows which engines
- * an aggregate covers.
- */
 export function engineIdsOf(engine: EngineFilterInput): string[] | null {
   if (engine === undefined || engine === null) return null
   const ids = (Array.isArray(engine) ? engine : [engine]).filter((id) => id.length > 0)
   return ids.length > 0 ? ids : null
 }
 
-/**
- * Builds a PromQL label matcher fragment for the optional `engine_id` filter,
- * e.g. `engine_id="prod-a"` or `engine_id=~"prod-a|prod-b"` — one id is an
- * exact matcher whether it comes as a string or a one-element list (the
- * analytics tools always resolve `engine` to a list). Returns `undefined`
- * when no filter is set so the caller can aggregate across all engines.
- */
 export function engineMatcher(engine: EngineFilterInput): string | undefined {
   if (engine === undefined || engine === null) return undefined
   if (Array.isArray(engine)) {
@@ -348,29 +284,14 @@ export function engineMatcher(engine: EngineFilterInput): string | undefined {
   return `engine_id="${escapeLabelValue(engine)}"`
 }
 
-/**
- * Assembles a `{...}` PromQL label selector from individual matcher fragments,
- * dropping empties. Returns `""` (no selector) when nothing is set.
- */
 export function selector(...matchers: Array<string | undefined>): string {
   const parts = matchers.filter((m): m is string => !!m && m.length > 0)
   return parts.length ? `{${parts.join(",")}}` : ""
 }
 
-/**
- * The look-back the analytics module assumes Prometheus retains
- * (`--storage.tsdb.retention.time`, 30 days in the repo's stack). Every
- * window — the rolling periods, the compare windows, explicit date ranges —
- * is held inside `[now − RETENTION_DAYS, now]`: data older than that is gone,
- * so a longer window would silently read partial or zero data.
- */
+// The repo stack's `--storage.tsdb.retention.time`; a longer window would silently read partial data.
 export const RETENTION_DAYS = 30
 
-/**
- * PromQL range windows for the analytics `period` inputs, capped at
- * {@link RETENTION_DAYS}; longer look-backs would silently read partial/zero
- * data, so they are not offered.
- */
 export const PERIOD_RANGE = {
   "1d": "1d",
   "3d": "3d",
@@ -380,9 +301,4 @@ export const PERIOD_RANGE = {
 } as const
 export type Period = keyof typeof PERIOD_RANGE
 
-/**
- * The period values as a tuple, derived from {@link PERIOD_RANGE} — the single
- * source of truth for every `z.enum`/step-enum/type that offers the periods.
- * Adding a period to PERIOD_RANGE propagates everywhere.
- */
 export const PERIODS = Object.keys(PERIOD_RANGE) as [Period, ...Period[]]

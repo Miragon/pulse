@@ -5,10 +5,8 @@ import { useEngineAction, type ActionConfirmation, type TargetLine } from "../li
 import { engineTargetLines, useEngineEnvironment } from "../lib/engine-context.js"
 import { instanceName, instanceTargetLines, writeFeedback } from "../lib/write-feedback.js"
 
-/** The button an incident row offers. */
 export type RowAction = "resolve" | "retry"
 
-/** What a recovery acts on: the incident — and, for a retry, its job or external task. */
 export type RecoverableIncident = Pick<
   IncidentInstance,
   "id" | "incidentType" | "processInstanceId" | "recovery"
@@ -32,11 +30,7 @@ interface ExternalTaskRetryArgs extends Record<string, unknown> {
   engine?: string
 }
 
-/**
- * The resolve question, naming the incident, its type, its instance by its
- * label (business key, then short id, #322 U13) and the engine with its
- * environment — a write on prod says so before it runs (#322 U4).
- */
+/** #322 U13, U4: a write on prod says so before it runs. */
 export function resolveConfirmation(
   t: T,
   incident: RecoverableIncident,
@@ -58,18 +52,8 @@ export function resolveConfirmation(
 }
 
 /**
- * The incident remedies of every incident surface (definition view rows,
- * instance detail rows, the incident detail). The ENGINE decides which
- * write clears an incident (the feed's `recovery`, from the engine
- * contract): a custom incident is resolved — after a confirmation that names
- * it — but the built-in types refuse resolve with a 400, so a failedJob /
- * failedExternalTask offers Retry (retries = 1) instead. Each remedy is an
- * `EngineAction`: offered only where the deployment's toolset registers its
- * tool and the incident's surface is `available` (an instance view offers no
- * remedy on a cancelled, ended or unconfirmed instance), refreshing the
- * incident views after it succeeded, its success marks dropped when
- * `resetOn` changes — the data the marked ROWS come from: fresh server data
- * wins, and only that data can say the row is cleared.
+ * The engine decides the remedy (`recovery`): built-in types refuse resolve with a 400, so they
+ * offer Retry. Success marks drop on `resetOn`, since only fresh data can say a row is cleared.
  */
 export function useIncidentRecovery(
   engineId: string | undefined,
@@ -96,7 +80,6 @@ export function useIncidentRecovery(
     available,
   })
 
-  /** The action that clears `incident`, the target it runs on, and how to start it — null when none does. */
   function remedyOf(incident: RecoverableIncident, jobId?: string | null) {
     const recovery = recoveryOf(incident, jobId)
     const instance = instanceName(incident.processInstanceId, incident.businessKey)
@@ -143,14 +126,13 @@ export function useIncidentRecovery(
   }
 
   return {
-    /** The resolve action — its confirmation is rendered by `EngineActionDialog`. */
     resolve,
-    /** The row's button — null when the incident type, the toolset or the state offers none. */
+    /** Null when the incident type, toolset or state offers none. */
     actionFor(incident: RecoverableIncident, jobId?: string | null): RowAction | null {
       const remedy = remedyOf(incident, jobId)
       return remedy?.action.allowed ? remedy.kind : null
     },
-    /** Cleared in this session (until the feed refetches). */
+    /** Until the feed refetches. */
     isDone(incident: RecoverableIncident, jobId?: string | null): boolean {
       const remedy = remedyOf(incident, jobId)
       return remedy !== null && remedy.action.done.has(remedy.target)
@@ -159,12 +141,11 @@ export function useIncidentRecovery(
       const remedy = remedyOf(incident, jobId)
       return remedy !== null && remedy.action.pending(remedy.target)
     },
-    /** The remedy's last failure, shown at the incident. */
     errorOf(incident: RecoverableIncident, jobId?: string | null): string | null {
       const remedy = remedyOf(incident, jobId)
       return remedy ? remedy.action.error(remedy.target) : null
     },
-    /** The row button: Resolve asks first, Retry runs at once. */
+    /** Resolve asks first, Retry runs at once. */
     act(incident: RecoverableIncident, jobId?: string | null) {
       remedyOf(incident, jobId)?.start()
     },

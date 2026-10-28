@@ -8,12 +8,6 @@ import type { FetchBpmnXml } from "./bpmn-name-lookup.js"
 import type { ProfileSource } from "./server-locale.js"
 import { NO_ENGINE_SCOPE_MESSAGE } from "./engine-ids.js"
 
-/**
- * Self-contained module definition for host apps: everything the app needs to
- * mount the analytics module without knowing its config surface. Conforms
- * structurally to the app's `ModuleDefinition` port — no import of the app.
- */
-
 /** The longest delay a Node timer holds — a longer deadline would fire at once. */
 const MAX_TIMEOUT_MS = 2_147_483_647
 
@@ -38,18 +32,12 @@ const headersSchema = z
 
 const analyticsConfigSchema = z.object({
   url: z.string().default("http://localhost:9090"),
-  /**
-   * Prometheus auth (all optional): a bearer token, OR basic auth — explicit
-   * username + password or userinfo in `url` — plus extra headers (tenant
-   * ids). The client rejects ambiguous combinations at boot and keeps every
-   * credential out of model-visible errors.
-   */
+  // Bearer token OR basic auth; the client rejects ambiguous combinations at boot.
   bearerToken: z.string().optional(),
   username: z.string().optional(),
   password: z.string().optional(),
   headers: headersSchema.optional(),
-  // PROMETHEUS_TIMEOUT_MS — strict: a typo fails the boot instead of being
-  // coerced into some other deadline. Unset = the client default (30 s).
+  // Strict: a typo fails the boot instead of being coerced into another deadline.
   timeoutMs: z
     .union([
       z.number(),
@@ -66,12 +54,7 @@ const analyticsConfigSchema = z.object({
         .max(MAX_TIMEOUT_MS, `PROMETHEUS_TIMEOUT_MS must be at most ${MAX_TIMEOUT_MS} ms`),
     )
     .optional(),
-  /**
-   * `ANALYTICS_ENGINE_IDS` — the engine ids a STANDALONE analytics boot may
-   * read (comma-separated `engine_id` values). Only the fallback: when the
-   * composition root injects its configured engines (`shared.engineIds`,
-   * from camunda7) those win. See `engine-ids.ts`.
-   */
+  /** Fallback for a standalone boot; injected `shared.engineIds` win. */
   engineIds: z
     .union([
       z.array(z.string()),
@@ -83,34 +66,18 @@ const analyticsConfigSchema = z.object({
       ),
     ])
     .optional(),
-  /**
-   * The effective toolset the composition root resolved from the
-   * `MCP_ACTIVE_MODULES` suffix — always a concrete declared name there. The
-   * module's tools are read-only by nature; the toolset only gates the one
-   * durable write, `analytics_save_settings` (`standard` only). Kept a plain
-   * string here so a direct caller's unknown name still fails closed (warning
-   * + `read-only`) instead of throwing — `createPlugin` below resolves it.
-   */
+  /** A plain string so a direct caller's unknown name fails closed instead of throwing. */
   toolset: z.string().optional(),
 })
 
-/** Cross-module resources the host app threads in (structural, app-owned). */
 interface AnalyticsModuleShared {
   profileStore?: ProfileSource
   fetchBpmnXml?: FetchBpmnXml
-  /**
-   * The engine ids this server is configured for (the camunda7 module's
-   * engines) — analytics reads only these. Wins over `ANALYTICS_ENGINE_IDS`.
-   */
+  /** camunda7's configured engines; wins over `ANALYTICS_ENGINE_IDS`. */
   engineIds?: readonly string[]
 }
 
-/**
- * The engine ids analytics covers: the injected ones, else
- * `ANALYTICS_ENGINE_IDS`, else none (fail-closed). Warns at boot for the two
- * surprising cases — no scope at all, and an env list the injected one
- * overrides.
- */
+/** Injected ids, else `ANALYTICS_ENGINE_IDS`, else none (fail-closed). */
 function effectiveEngineIds(
   injected: readonly string[] | undefined,
   fromEnv: readonly string[] | undefined,
@@ -131,11 +98,6 @@ function effectiveEngineIds(
 export const analyticsModule = {
   name: "analytics",
 
-  /**
-   * Pure env → raw-config mapping. `PROMETHEUS_URL` is trimmed so an empty
-   * assignment (`PROMETHEUS_URL=` left in a .env or compose env_file) falls
-   * through to the schema default instead of producing an invalid-URL client.
-   */
   configFromEnv(env: NodeJS.ProcessEnv): Record<string, unknown> {
     // Blank = unset for every variable (a `KEY=` left in a .env file).
     // Credentials are passed verbatim otherwise — never trimmed into another secret.
@@ -152,7 +114,6 @@ export const analyticsModule = {
     }
   },
 
-  /** This module's slice of the app's unknown-env-var typo warner. */
   knownEnvVars: [
     "PROMETHEUS_URL",
     "PROMETHEUS_BEARER_TOKEN",
@@ -163,19 +124,9 @@ export const analyticsModule = {
     "ANALYTICS_ENGINE_IDS",
   ] as const,
 
-  /**
-   * `read-only` (the floor) | `standard` (adds the caller's own settings save,
-   * `analytics_save_settings`; everything else is read-only anyway). No suffix
-   * means `read-only` without OAuth and `standard` with it; an empty or unknown
-   * suffix falls back to `read-only`. See `toolsets.ts`.
-   */
   toolsets: analyticsToolsets,
 
-  /**
-   * Boot-time hints for active deployments. The code default (:9090) matches a
-   * bare Prometheus, NOT the repo's compose stack (:8460) — without the hint
-   * every analytics query 404s silently.
-   */
+  /** The default :9090 is a bare Prometheus, not the compose stack's :8460; without the hint queries 404 silently. */
   bootWarnings(env: NodeJS.ProcessEnv): string[] {
     if (env.PROMETHEUS_URL?.trim()) return []
     return [
@@ -183,12 +134,6 @@ export const analyticsModule = {
     ]
   },
 
-  /**
-   * The module's server-instructions snippet: what `engine` means here (a
-   * metric filter over the configured engines — their fleet aggregate when
-   * omitted, camunda7's saved default does not apply), the periods and the
-   * health routing.
-   */
   instructions(): string {
     return analyticsInstructions()
   },
@@ -201,8 +146,7 @@ export const analyticsModule = {
     return createPlugin({
       ...parsed,
       engineIds: effectiveEngineIds(shared.engineIds, engineIds),
-      // Resolved once, here: missing → the read-only floor, unknown → warning +
-      // floor. The plugin only ever sees a declared name.
+      // Resolved once here, so the plugin only ever sees a declared name.
       toolset: analyticsToolsets.resolve(toolset),
       fetchBpmnXml: shared.fetchBpmnXml,
       profileStore: shared.profileStore,

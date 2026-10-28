@@ -12,12 +12,7 @@ import { IncidentTable } from "./process-incidents/incident-table.js"
 import { useIncidentRecovery } from "./process-incidents/use-incident-recovery.js"
 import { widgetActionsFeedFor } from "./lib/hand-off.test-support.js"
 
-/**
- * #328 in the widgets: the engine refuses to resolve its built-in incident
- * types, so those rows offer Retry (the right retries tool) instead; the
- * variable editor writes Json/Object values back serialized, with the
- * valueInfo they were read with, and offers no Edit for binary values.
- */
+/** #328: built-in incident types offer Retry; Json/Object values write back serialized; no Edit for binary. */
 
 afterEach(() => {
   cleanup()

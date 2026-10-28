@@ -11,33 +11,12 @@ import {
 } from "./profile-record.js"
 
 /**
- * Persistence for user profiles, keyed by the profile key (the OAuth caller's
- * id, or `anonymous` for an explicitly declared local caller — see
- * `resolveProfileKey` in `profile.ts`). Deliberately mirrors the
- * toolkit's `DashboardStore` shape: an in-memory default plus a
- * one-file-per-record filesystem store selected by an env var (and a postgres
- * implementation in `profile-store-postgres.ts` selected by `DATABASE_URL` in
- * the composition root). There is no cross-key ownership model — each key owns
- * exactly its own record; the auth layer keeps unrelated callers on different
- * keys.
- *
- * The full store interface is for COMPOSITION ROOTS (apps wiring
- * `SharedResources`); modules consume the narrow {@link ProfileSource} port
- * instead — which this interface satisfies structurally.
+ * Each key owns exactly its own record; the auth layer keeps unrelated callers on different
+ * keys. For composition roots; modules consume the narrow {@link ProfileSource} port.
  */
 export interface ProfileStore {
-  /**
-   * The typed view of the stored record (`parseStoredProfile`): per-field
-   * fail-soft, so an unknown value degrades only its own field and a newer
-   * build's record reads best-effort; `undefined` when nothing is stored.
-   */
   get(key: string): Promise<ProfileRecord | undefined>
-  /**
-   * Merge `input` over the RAW stored record (or defaults) — atomically per
-   * key, so concurrent saves of disjoint fields or module slices all survive
-   * ({@link mergeStoredProfile}); stamps `updatedAt`. `opts.userId` (the
-   * authenticated caller, when known) is stamped as the record's owner.
-   */
+  /** Merges over the RAW stored record atomically per key, so concurrent disjoint saves survive. */
   save(
     key: string,
     input: ProfileRecordSaveInput,
@@ -47,7 +26,6 @@ export interface ProfileStore {
 }
 
 export interface ProfileSaveOptions {
-  /** The authenticated caller, stamped as the record's owner (absent for `anonymous`). */
   userId?: string
 }
 
@@ -62,13 +40,7 @@ function stripUndefined<T extends object>(obj: T): Partial<T> {
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value)
 
-/**
- * One-level module-slice merge: each module key in the patch spreads over the
- * stored slice of the SAME module (non-object slices replace), other modules'
- * slices stay untouched. A field explicitly set to `undefined` overrides the
- * stored value and drops out on serialization — that is how a module's save
- * tool clears a field.
- */
+/** A field explicitly set to `undefined` drops out on serialization: that is how a save tool clears it. */
 function mergeModuleSlices(
   prev: Record<string, unknown> | undefined,
   patch: Record<string, unknown> | undefined,
@@ -81,31 +53,16 @@ function mergeModuleSlices(
   return next
 }
 
-/** The outcome of {@link mergeStoredProfile}: what to persist, and what to return. */
 export interface MergedProfile {
-  /**
-   * The complete document to persist: the RAW stored JSON — keys this build
-   * does not know and values it cannot validate included — with the save
-   * applied on top.
-   */
+  /** The RAW stored JSON, unknown keys and invalid values included, with the save applied. */
   document: Record<string, unknown>
-  /** The typed view of `document` — what a store's `save` returns. */
   record: ProfileRecord
 }
 
 /**
- * Merge a partial save over the RAW stored document (or a fresh default),
- * preserving `id`/`userId`/`createdAt` and re-stamping `updatedAt`. Omitted
- * input fields keep their previous value so single-field updates don't wipe
- * the rest — and because the base is the stored JSON, not its parsed view,
- * nothing this build cannot read is dropped either: a locale a newer build
- * added, a top-level key it introduced, a whole newer-version document during
- * a rolling deploy (whose `schemaVersion` is never stamped down). Shared by
- * every store implementation (in-memory, filesystem, and the postgres sibling
- * in `profile-store-postgres.ts`), each calling it INSIDE its per-key
- * serialization, so the merge semantics stay single-sourced. Record-agnostic
- * on purpose — module-specific normalization (e.g. camunda7's "empty string
- * clears the field") happens at the owning module's save-tool boundary.
+ * Bases on the stored JSON, not its parsed view, so nothing a newer build wrote is dropped
+ * (and its `schemaVersion` is never stamped down). Every store calls it INSIDE its per-key
+ * serialization. Module-specific normalization happens at the module's save-tool boundary.
  */
 export function mergeStoredProfile(
   key: string,
@@ -120,14 +77,8 @@ export function mergeStoredProfile(
   const document: Record<string, unknown> = {
     ...prev,
     ...stripUndefined(input),
-    // Module slices merge per module key, one level deep: a save carrying
-    // `modules.analytics` spreads over the STORED analytics slice (a field
-    // explicitly set to `undefined` clears on serialization) and leaves other
-    // modules' slices intact. Merging here — inside the store's per-key
-    // serialization — rather than replacing means two concurrent saves of
-    // DISJOINT fields in the same slice both survive, as long as each save
-    // carries its patch alone (`saveModuleSlice`): a slice pre-read outside
-    // this lock would carry stale values that win here.
+    // Merged inside the store's lock so concurrent saves of disjoint slice fields both
+    // survive, as long as each carries its patch alone (`saveModuleSlice`).
     modules: mergeModuleSlices(prevRecord.modules, input.modules),
     id: key,
     // A stamped owner sticks: a later save without auth context keeps it.
@@ -139,13 +90,7 @@ export function mergeStoredProfile(
   return { document, record: projectProfileRecord(document, key) }
 }
 
-/**
- * Process-local store. The default when `MCP_PROFILE_DIR` is unset — fine for
- * dev and single-instance deployments; everything is lost on restart, and
- * behind a load balancer each replica sees its own records. Each save runs
- * synchronously inside one microtask, so saves of the same key never
- * interleave.
- */
+/** Lost on restart, per replica behind a load balancer; each save runs in one microtask, so never interleaves. */
 export function createInMemoryProfileStore(): ProfileStore {
   const byKey = new Map<string, Record<string, unknown>>()
   const read = (key: string) => parseStoredProfile(byKey.get(key), key)
@@ -166,18 +111,10 @@ export function createInMemoryProfileStore(): ProfileStore {
   }
 }
 
-/**
- * The tail of each file's pending operations, keyed by absolute path —
- * module-wide, so two store instances on the same directory (in one process)
- * serialize too. An entry is dropped once its chain drains.
- */
+/** Module-wide, so two store instances on the same directory serialize too. */
 const fileLocks = new Map<string, Promise<void>>()
 
-/**
- * Run `fn` once every earlier operation on `file` has settled — a promise
- * chain per file, so a read-merge-write can never interleave with another one
- * for the same key. A failed operation releases the lock like a successful one.
- */
+/** A failed operation releases the lock like a successful one. */
 function withFileLock<T>(file: string, fn: () => Promise<T>): Promise<T> {
   const lockKey = path.resolve(file)
   const run = (fileLocks.get(lockKey) ?? Promise.resolve()).then(fn)
@@ -195,21 +132,14 @@ function withFileLock<T>(file: string, fn: () => Promise<T>): Promise<T> {
 const isMissing = (err: unknown) => (err as NodeJS.ErrnoException).code === "ENOENT"
 
 /**
- * Profiles stored as one JSON file per key under `dir` (`<encodeURIComponent
- * (key)>.json`). Selected when `MCP_PROFILE_DIR` is set so preferences survive
- * restarts. Every operation on a key runs under a per-key lock, so concurrent
- * saves of the same key (two settings sections, two modules' save tools in one
- * model turn) merge one after the other instead of last-write-wins; writes are
- * atomic (temp file + rename in the same directory), so a crash mid-write
- * can't truncate a record. The lock is process-local: the store is
- * SINGLE-WRITER — point one server process at a directory (the postgres store
- * is the multi-instance answer).
+ * Per-key lock so concurrent saves merge instead of last-write-wins; temp file + rename so
+ * a crash can't truncate a record. The lock is process-local: SINGLE-WRITER per directory
+ * (postgres is the multi-instance answer).
  */
 export function createFileSystemProfileStore(options: { dir: string }): ProfileStore {
   const { dir } = options
   const fileFor = (key: string) => path.join(dir, `${encodeURIComponent(key)}.json`)
 
-  /** The stored JSON, `undefined` when there is no file or it is not JSON. */
   const readJson = async (key: string): Promise<unknown> => {
     let raw: string
     try {
@@ -218,9 +148,7 @@ export function createFileSystemProfileStore(options: { dir: string }): ProfileS
       if (isMissing(err)) return undefined
       throw err
     }
-    // A file that is not JSON at all (hand-edited, foreign) cannot be merged
-    // over — it reads as "no record" and the next save replaces it. Valid JSON
-    // is never discarded: unknown keys and values survive every save.
+    // Non-JSON reads as "no record" and the next save replaces it; valid JSON is never discarded.
     try {
       return JSON.parse(raw) as unknown
     } catch {
@@ -235,7 +163,6 @@ export function createFileSystemProfileStore(options: { dir: string }): ProfileS
       return withFileLock(file, async () => {
         const merged = mergeStoredProfile(key, await readJson(key), input, nowIso(), opts)
         await fs.mkdir(dir, { recursive: true })
-        // Unique tmp name per write, renamed over the record in one step.
         const tmp = `${file}.${randomUUID()}.tmp`
         await fs.writeFile(tmp, JSON.stringify(merged.document, null, 2), "utf-8")
         await fs.rename(tmp, file)

@@ -59,11 +59,6 @@ interface DataFeed<TShape extends z.ZodRawShape> {
   read: (input: FeedInput<TShape>, engine: ResolvedEngine) => Promise<object>
 }
 
-/**
- * The app-only `*_data` JSON feeds (SEP-1865) behind every widget: each reads
- * the same builder as its `camunda7_show_*` twin, for the cockpit app's
- * loaders and each widget's own refresh.
- */
 export function registerWidgetDataFeeds(ctx: WidgetToolsContext) {
   const { server, registry, healthThresholds, engineParam } = ctx
 

@@ -29,14 +29,7 @@ const writableStore: ProfileSource = {
   save: () => Promise.resolve({}),
 }
 
-/**
- * Boots the module the way the composition root does — `createPlugin` with a
- * raw config — and records EVERY tool both registration hooks put on the
- * server: the registrar tools (`registerTools`, a raw `createToolRegistrar`
- * with no toolset filter), the `show_*` widget tools, the app-only `*_data`
- * feeds and the settings triple (`registerWidgetTools`). A writable store, so
- * the only thing deciding the settings save is the toolset.
- */
+/** A writable store, so only the toolset decides the settings save. */
 function surfaceFor(config: Record<string, unknown>): RecordedTool[] {
   const tools: RecordedTool[] = []
   const server = {
@@ -221,18 +214,9 @@ describe("analyticsModule Prometheus config validation", () => {
 })
 
 /**
- * Structural guard. Analytics registrar tools are NEVER toolset-filtered
- * (`tools/index.ts` uses a raw `createToolRegistrar`, unlike camunda7's
- * `withToolsetFilter`), so "read-only lists only readOnlyHint tools" holds
- * only as long as every tool the module registers declares itself read-only.
- * This derives the expectation from each tool's OWN annotations — a future
- * tool that writes, or forgets `readOnlyHint`, fails here without anyone
- * updating a list.
- *
- * The one exemption is `analytics_save_settings`: a durable (but merge-only,
- * non-destructive) write of the caller's own settings slice, registered
- * outside the registrar and gated by `allowsDurableWrites` — so it can never
- * appear on the read-only floor.
+ * Registrar tools are never toolset-filtered, so the read-only floor holds only
+ * while every tool declares `readOnlyHint`. Exempt: `analytics_save_settings`,
+ * gated by `allowsDurableWrites`.
  */
 describe("the analytics toolset rule holds structurally for every registered tool", () => {
   const EXEMPT_DURABLE_WRITE = ANALYTICS_SAVE_SETTINGS

@@ -7,13 +7,8 @@ import {
 } from "../tools/test-support/fake-engine.js"
 import { buildBpmnViewerData } from "./bpmn-viewer-data.js"
 
-/**
- * The BPMN viewer's badges are scoped to its target (#335 N66). For an
- * instance they are ITS tokens (activity-instance tree) and ITS failed jobs —
- * the version's statistics (every running instance of it: "55 failed jobs"
- * on an instance that has one) are never read. A bare definition shows the
- * version's statistics, and `statsScope` says which the widget is drawing.
- */
+// Badges are scoped to the target (#335 N66): an instance never shows the
+// version statistics ("55 failed jobs" on an instance that has one).
 
 const engines: FakeEngine[] = []
 afterEach(async () => {
@@ -145,9 +140,8 @@ describe("buildBpmnViewerData — instance-scoped overlays (#335 N66)", () => {
     expect([data.processDefinitionName, data.businessKey]).toEqual([null, null])
   })
 
-  // One rule with analytics (widget-shell `parseBpmnNames`): a Modeler
-  // collaboration names the pool, not the process, and writes a line break
-  // or an ampersand as a character reference.
+  // One rule with analytics (`parseBpmnNames`): the Modeler names the pool and
+  // writes a line break or `&` as a character reference.
   it("names a Modeler collaboration's process by its pool, references decoded", async () => {
     const xml = `<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
   <bpmn:collaboration id="Collaboration_1">

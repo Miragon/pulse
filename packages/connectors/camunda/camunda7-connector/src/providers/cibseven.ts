@@ -2,11 +2,7 @@ import type { EngineProvider } from "../engine-provider.js"
 import { tabSuffix } from "../lib/cockpit-url.js"
 import { createDialectClient } from "./create-client.js"
 
-/**
- * CIB Seven: webapp at `<host>/webapp`, cockpit routes under
- * `/#/seven/auth/…`, addressed by process KEY (+ optional version — omitted
- * version resolves to latest; a "latest" placeholder segment would 404).
- */
+/** Addressed by process KEY; an omitted version resolves to latest, a "latest" segment would 404. */
 export const cibsevenProvider: EngineProvider = {
   flavor: "cibseven",
   branding: { displayName: "CIB seven" },

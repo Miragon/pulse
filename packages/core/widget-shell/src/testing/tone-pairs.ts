@@ -1,5 +1,3 @@
-// The toolkit's tone model (one vocabulary, three roles per tone) — the maps
-// every kit component and widget draws a state with.
 import {
   TONE_BORDER,
   TONE_DOT,
@@ -53,7 +51,7 @@ function surfacePairs(tone: ToneVariant, surface: string): ContrastPair[] {
       min: 3,
     },
   ]
-  // The neutral edge is a decorative line (CI: --cd-linie, no contrast claim).
+  // The neutral edge is decorative (CI: --cd-linie, no contrast claim).
   if (tone !== "neutral") {
     pairs.push({
       label: `TONE_BORDER.${tone} ${on}`,
@@ -66,13 +64,7 @@ function surfacePairs(tone: ToneVariant, surface: string): ContrastPair[] {
   return pairs
 }
 
-/**
- * Every pair the tone model promises, per tone: the tint's text, the ink,
- * dot, icon and edge on the card and the page (text 4.5:1, the rest 3:1),
- * the dot and icon inside the tint, and plain foreground text on the tint
- * (a soft KPI card). Derived from the TONE_* maps themselves, so a new
- * class there is measured without touching the test.
- */
+/** Derived from the TONE_* maps, so a new class there is measured without touching the test. Text 4.5:1, the rest 3:1. */
 export function toneContrastPairs(): ContrastPair[] {
   return TONE_VARIANTS.flatMap((tone) => {
     const tint = classVariable(TONE_SOFT[tone], "bg")
@@ -95,15 +87,7 @@ export function toneContrastPairs(): ContrastPair[] {
   })
 }
 
-/**
- * The neutral and interaction roles of the theme contract (CI §3.2/§12):
- * text on every surface, every `<role>-foreground` on its fill (primary at
- * rest and on hover, secondary, accent — the hover and selected surface —,
- * destructive, popover), the link, both focus indicators (`--focus`, the
- * outline; `--ring`, the `focus-visible:ring-ring` utilities) and the input
- * edge. Text 4.5:1, the rest 3:1. A role a consumer may override belongs in
- * this list, so a brand that breaks it fails the suite that measures it.
- */
+/** Text 4.5:1, the rest 3:1. A role a consumer may override belongs here, so a brand that breaks it fails. */
 export const ROLE_CONTRAST_PAIRS: readonly ContrastPair[] = [
   {
     label: "foreground on background",

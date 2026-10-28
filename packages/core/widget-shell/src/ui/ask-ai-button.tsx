@@ -6,60 +6,23 @@ import { Icon, type LucideIcon } from "./icon.js"
 import { kitLabels } from "./kit-labels.js"
 import { MENU_ITEM } from "./menu-item.js"
 
-/**
- * Placement tiers. All but `menuitem` render as the same secondary outline
- * button (a hand-off is never the view's primary action: the deterministic
- * next step, Retry or Resolve, is); `icon` drops the visible label for dense
- * rows; `menuitem` is an entry of a row's action menu ({@link MENU_ITEM},
- * `role="menuitem"`), whose card is its surface.
- */
+/** A hand-off is never the view's primary action, so every tier but `menuitem` is the same secondary outline button. */
 export type AskAiVariant = "primary" | "subtle" | "icon" | "menuitem"
 
 export interface AskAiButtonProps {
-  /**
-   * The hand-off posted to the agent as the user's chat message (`askAi` →
-   * `sendFollowup`). Only {@link askAiPrompt} builds one: a short localized
-   * intent + ids, engine text fenced as untrusted data, and only the tools
-   * the deployment registers for the model. `null` — nothing in the task is
-   * available here (or not yet known) — renders no button at all.
-   */
+  /** Only {@link askAiPrompt} builds one; `null` renders no button. */
   prompt: AskAiPrompt | null
-  /**
-   * The Lucide icon of the CONCRETE function the chat will do — `FileSearch`
-   * to explain an error, `ClipboardList` to draft a ticket, `GitCompare` to
-   * compare (CI: no sparkles, no generic "AI" symbol). Defaults to a neutral
-   * `MessageSquare` (it goes to the chat).
-   */
+  /** The concrete function's icon (CI: no sparkles, no generic "AI" symbol). */
   icon?: LucideIcon
-  /**
-   * A verb phrase that says the work happens in the chat: "Im Chat
-   * erklären" / "Explain in chat", "Ticket im Chat entwerfen". Defaults to
-   * the locale's "Im Chat analysieren" / "Analyze in chat". For `icon` it
-   * moves to `aria-label`/`title`.
-   */
+  /** A verb phrase naming the chat ("Explain in chat"); for `icon` it moves to `aria-label`. */
   label?: string
-  /**
-   * `primary` = the one surface-level entry of a view; `subtle` = per-row /
-   * per-section (the common case); `icon` = dense table rows (icon only,
-   * label → aria-label); `menuitem` = an entry of a row's action menu.
-   */
   variant?: AskAiVariant
-  /** Tooltip/aria override; defaults to `label`. */
   title?: string
   disabled?: boolean
-  /** Optional hook fired after the handoff is dispatched. */
   onSent?: () => void
 }
 
-/**
- * The single "cross into chat" affordance for the whole cockpit and the ONLY
- * owner of the {@link useHostActions} `askAi` call site (a structural test
- * fails on any other) for analyze / explain / compare / draft / prepare-action
- * handoffs. Renders the same everywhere: an outline button with the icon of
- * the concrete function and a verb that names the chat. Deterministic
- * navigation (`useNav`/`showWidget`) and mutations must NOT use this — they
- * keep their own controls.
- */
+/** The ONLY owner of the `askAi` call site (a structural test fails on any other). Navigation and mutations must not use it. */
 export function AskAiButton({
   prompt,
   icon = MessageSquare,
@@ -72,9 +35,7 @@ export function AskAiButton({
   const host = useHostActions()
   const locale = useLocale()
   if (prompt === null) return null
-  // The kit has no message catalog of its own, so the default verb follows the
-  // ambient locale — otherwise every label-less call site leaks English into a
-  // localized cockpit.
+  // The kit has no catalog, so the default verb follows the ambient locale instead of leaking English.
   const effectiveLabel = label ?? kitLabels(locale).askAiDefault
   const send = () => {
     host.askAi(prompt)

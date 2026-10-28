@@ -19,13 +19,7 @@ const MULTI = [
   { id: "beta", baseUrl: "http://beta/engine-rest" },
 ]
 
-/**
- * Build the step appConfig with an injectable default-engine lookup — the seam
- * production wires to the profile store (`profileDefaultEngineId`). The
- * profile plumbing itself (identity, allow-list) is covered by
- * `engine-preferences` via the engines-tool tests; here we pin the camunda7
- * resolution contract: override > saved default > single configured engine.
- */
+// Profile plumbing is covered via the engines-tool tests; here: override > saved default > single engine.
 function harness(
   engines: Array<{ id: string; baseUrl: string; cockpitUrl?: string }>,
   defaultEngineId?: () => Promise<string | undefined>,
@@ -43,8 +37,7 @@ describe("resolveStepEngine", () => {
     const { client, engineId, baseUrl, cockpitUrl } = await resolveStepEngine(appConfig)
     expect(engineId).toBe("default")
     expect(engineIdOf(client)).toBe("default")
-    // Regression guard: the step must get a real client carrying a non-empty
-    // baseUrl from the registry — never the dropped `appConfig.client`.
+    // Regression guard: a real client from the registry, never the dropped `appConfig.client`.
     expect(baseUrl).toBe("http://e1/engine-rest")
     expect(cockpitUrl).toBe("http://e1/cockpit")
   })
@@ -64,19 +57,15 @@ describe("resolveStepEngine", () => {
     expect(engineId).toBe("alpha")
     expect(engineIdOf(client)).toBe("alpha")
     expect(cockpitUrl).toBe("http://alpha/cockpit")
-    // An explicit override must not even consult the profile — the lookup is
-    // a per-call store read that would be pure waste here.
+    // An override must not even consult the profile (a per-call store read).
     expect(lookup).not.toHaveBeenCalled()
   })
 
   it("throws a clear EngineNotSelectedError for multi-engine with no default and no override", async () => {
     const { appConfig } = harness(MULTI)
     await expect(resolveStepEngine(appConfig)).rejects.toThrow(EngineNotSelectedError)
-    // The message must name the selectable ids — the error path serialises
-    // only code + message, so this is the LLM's one shot at seeing them.
-    // Without a `canSaveDefault` probe the save is never offered: a hint the
-    // caller cannot follow costs a dead round trip. A step has no `engine`
-    // parameter (render-view takes keys), so the hint names its view key.
+    // Only code + message reach the model, so the ids must be named; no save hint without
+    // `canSaveDefault`, and a step's hint names its view key.
     await expect(resolveStepEngine(appConfig)).rejects.toThrow(
       "No engine specified and no default engine saved. Set the `camunda7:engine` view key — one of: alpha, beta.",
     )
@@ -99,9 +88,8 @@ describe("resolveStepEngine", () => {
 })
 
 describe("saved-default validation", () => {
+  // A removed engine degrades to "no default", never fails every call with UnknownEngineError.
   it("ignores a stale saved default that names a no-longer-configured engine", async () => {
-    // A removed engine must degrade to "no default" (NotSelected with the
-    // real ids), never fail every call with UnknownEngineError.
     const { registry } = harness(MULTI, () => Promise.resolve("gone"))
     await expect(resolveEngine(undefined, registry)).rejects.toThrow(EngineNotSelectedError)
   })

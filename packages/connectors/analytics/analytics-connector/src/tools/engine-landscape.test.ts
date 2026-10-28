@@ -5,13 +5,12 @@ import type { RegisteredToolMeta, ToolConfig } from "@miragon/mcp-toolkit-core/t
 import { createEngineScope } from "../engine-ids.js"
 import { registerEngineLandscapeTools } from "./engine-landscape.js"
 
-/** The engines this server is configured for — prod-c reports nothing. */
+/** prod-c reports nothing. */
 const scope = createEngineScope(["prod-a", "prod-b", "prod-c"])
 const register = (r: never) => registerEngineLandscapeTools(r, scope)
 
 type Config = ToolConfig<PrometheusClient>
 
-/** Registrar stand-in that captures each tool's full config instead of an MCPServer. */
 function captureConfigs(registerModule: (register: never) => void): Map<string, Config> {
   const configs = new Map<string, Config>()
   const register = Object.assign(
@@ -121,9 +120,7 @@ describe("analytics_engine_landscape registration", () => {
   })
 
   it("tells the model that counts — not per-engine rates — are the point", () => {
-    // Without this the model would divide the counts back into per-engine
-    // rates and compare them, which is exactly the confound the view exists
-    // to avoid.
+    // Else the model divides counts back into per-engine rates, the confound the view avoids.
     expect(config.description).toContain("counts, not rates")
     expect(config.description).toContain("process mixes")
     expect(config.description).toContain("sharedProcessKeys")

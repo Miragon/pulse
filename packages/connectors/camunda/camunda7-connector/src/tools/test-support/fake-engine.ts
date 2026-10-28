@@ -1,12 +1,6 @@
 /**
- * Test support (imported only by `*.test.ts`): a RECORDING FAKE ENGINE plus
- * the production wiring in front of it. A real loopback `node:http` server
- * plays the engine; the tools run through their real registration, the
- * server's input validation, `withEngine` → `resolveEngine`, the vendor
- * provider's client (`createCamunda7Client`) and the generated SDK — so a test
- * sees each request exactly as it leaves the process (path, query string,
- * headers, JSON body). A fetch stub would sit in front of the transport and
- * miss exactly the serialization bugs these tests exist for.
+ * A real loopback server behind the production wiring: a fetch stub would miss exactly the
+ * serialization bugs these tests exist for.
  */
 import { once } from "node:events"
 import { createServer, type IncomingHttpHeaders, type Server, type ServerResponse } from "node:http"
@@ -19,28 +13,21 @@ import { providerForEntry } from "../../providers/index.js"
 
 export interface RecordedRequest {
   method: string
-  /** Path below `/engine-rest`, e.g. `/process-instance/pi-1`. */
   path: string
   query: Record<string, string>
   headers: IncomingHttpHeaders
-  /** Parsed JSON body; the raw text for any other body; undefined when empty. */
   body: unknown
 }
 
 export interface FakeReply {
   status?: number
-  /** JSON-encoded unless `contentType` says otherwise (then sent as is). */
   body?: unknown
   contentType?: string
 }
 
-/** A fixed reply, or one computed from the recorded request (e.g. by its query). */
 export type FakeRoute = FakeReply | ((request: RecordedRequest) => FakeReply)
 
-/**
- * Replies keyed `"<METHOD> <path>"`. Unknown routes get the engine's
- * `fallback` (default: 204 without a body — a write's usual reply).
- */
+/** Unknown routes get `fallback` (default: 204, a write's usual reply). */
 export type FakeRoutes = Record<string, FakeRoute>
 
 export interface FakeEngine {
@@ -96,9 +83,7 @@ export async function startFakeEngine(
   return {
     baseUrl: `http://127.0.0.1:${port}/engine-rest`,
     requests,
-    // Drops the client's keep-alive sockets too: a builder that failed fast
-    // leaves its parallel reads' connections open, and a plain close() would
-    // wait out the client's keep-alive timeout (seconds per test).
+    // A plain close() would wait out keep-alive sockets a fast-failing builder left open.
     close: () =>
       new Promise<void>((resolve) => {
         server.close(() => resolve())
@@ -109,7 +94,6 @@ export async function startFakeEngine(
 
 type Register = (config: ToolConfig<EngineRegistry>) => void
 
-/** Captures registrar configs instead of serving them. */
 export function captureTools(
   ...registerFns: Array<(register: never) => void>
 ): Map<string, ToolConfig<EngineRegistry>> {
@@ -120,26 +104,19 @@ export function captureTools(
   return tools
 }
 
-/** A single-engine registry over the provider-built client (the plugin's path). */
 export function registryFor(engine: FakeEngine): EngineRegistry {
   return createEngineRegistry([{ id: "fake", baseUrl: engine.baseUrl }], (e) =>
     providerForEntry(e).createClient(e, { type: "none" }),
   )
 }
 
-/** The provider-built client of {@link registryFor} — what a data builder receives. */
 export function clientFor(engine: FakeEngine): Client {
   return registryFor(engine).backends.resolve("fake").client
 }
 
 type Handler = (registry: EngineRegistry, args: Record<string, unknown>) => Promise<unknown>
 
-/**
- * Calls a captured tool the way the server does: the input is validated (and
- * defaulted) by the tool's own schema first — STRICT, like the plugin's
- * registrar (`strictInput`), so an unknown key fails here too — then the
- * handler runs.
- */
+/** Validates STRICT like the registrar (`strictInput`), so an unknown key fails here too. */
 export function callTool(
   config: ToolConfig<EngineRegistry>,
   registry: EngineRegistry,

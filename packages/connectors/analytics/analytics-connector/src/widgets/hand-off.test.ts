@@ -53,9 +53,7 @@ describe("analytics hand-offs", () => {
     expect(alone).not.toContain("camunda7_")
   })
 
-  // The scope named is the scope of the numbers shown: the engines the
-  // server resolved for the data (#336) — never a cell prop, never a
-  // placeholder, and for the fleet aggregate every engine it adds up.
+  // The engines the server resolved (#336), never a cell prop.
   it("name the engines the data on screen covers", () => {
     const fleet = bindHandOff("en", ANALYTICS_ONLY_SURFACE).ask(
       failureSummaryHandOff({ ...FAILURES, engines: ["prod-a", "prod-b"] }),
@@ -67,9 +65,7 @@ describe("analytics hand-offs", () => {
     expect(unscoped).not.toContain("engine")
   })
 
-  // The gauge carries no activity (#336): every id the hand-off passes is one
-  // analytics_find_failed_instances takes too, so an analytics-only
-  // deployment is never invited to a refused call.
+  // No activity on the gauge (#336): an analytics-only deployment is never invited to a refused call.
   it("pass only ids the analytics tool takes, with or without camunda7", () => {
     const clean = { ...PATTERN, incidentType: "failedJob" }
     const expected =
@@ -107,8 +103,7 @@ describe("analytics hand-offs", () => {
 describe("the analytics Ask-AI intent catalogues", () => {
   const intents = Object.entries({ ...enAskAi, ...deAskAi })
 
-  // An intent is NEVER filtered by the surface — a tool named in it would
-  // reach every deployment.
+  // Intents are never filtered: a tool named in one would reach every deployment.
   it("name no tool and inline no data", () => {
     for (const [key, text] of intents) {
       expect(text, key).not.toMatch(/\b(camunda7|analytics)_[a-z0-9_]+/)

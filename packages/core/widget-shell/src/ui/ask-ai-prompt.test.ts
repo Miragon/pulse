@@ -188,9 +188,7 @@ describe("askAiPrompt — tools follow the live surface", () => {
     ).toBeNull()
   })
 
-  // A surface that cannot answer (its feed failed, or the host wires no
-  // in-widget tools/call) must not take every button with it: the hand-off
-  // is still posted — it just names no tool it cannot confirm.
+  // A surface that cannot answer must not take every button with it: the hand-off still posts, naming no tool.
   it("is built without a Tools line while the surface cannot know its tools", () => {
     const unknown: ToolSurface = { has: () => undefined }
     const prompt = askAiPrompt(

@@ -9,13 +9,7 @@ import {
   walkNodes,
 } from "./source-scan.js"
 
-/**
- * The glyph gate (CI: modeler-tool-design §11, brand-review B9/U4/U8). Widget
- * UI draws function icons with Lucide (the kit's `Icon`), never with Unicode
- * glyphs or emoji: they render in whatever font the host has (⚙ and ⏱ came
- * out as colour emoji), carry no accessible name and mix icon styles. ✦ is
- * the AI-sparkle the CI rules out, × the close/remove icon (Lucide `X`).
- */
+/** No Unicode glyphs or emoji as icons: they render in the host's font (⚙ and ⏱ came out as colour emoji) and carry no accessible name. ✦ is the AI sparkle the CI rules out. */
 export const FORBIDDEN_GLYPHS: readonly string[] = [
   "✦",
   "⊡",
@@ -35,22 +29,13 @@ export const FORBIDDEN_GLYPHS: readonly string[] = [
   "×",
 ]
 
-/**
- * Emoji, minus the Arrows block (U+2190–U+21FF): ↔ ↕ ↩ count as pictographic
- * only for their emoji variant. In running text an arrow is typography like
- * →; as an icon it is caught as a lone symbol, and ↗ ↻ are listed above.
- */
+/** Emoji minus the Arrows block: ↔ ↕ ↩ are pictographic only as emoji; an arrow icon is caught as a lone symbol. */
 const EMOJI = /(?![←-⇿])\p{Extended_Pictographic}/u
 
-/**
- * A symbol and nothing else (arrows, −, +, ⌄, ‹ ›, a lone ! or ?). As the
- * whole content of a JSX element that is the glyph-as-icon signature
- * (`<span aria-hidden>→</span>`); in running text the same symbol is
- * typography and stays allowed.
- */
+/** A lone symbol as an element's whole content is the glyph-as-icon signature; in running text it is typography. */
 const LONE_SYMBOL = /^[\p{Sm}\p{So}\p{Pi}\p{Pf}!?]+$/u
 
-/** Lucide's AI sparkle in every export spelling (CI U4: never the AI affordance). */
+/** CI U4: never the AI affordance. */
 const SPARKLE_IMPORT = /^(Lucide)?(Sparkles?|WandSparkles|Wand2)(Icon)?$/
 /** …and as a deep import (`lucide-react/icons/sparkles`). */
 const SPARKLE_PATH = /^lucide-react\/(?:.*\/)?(sparkles?|wand-sparkles|wand-2)(?:\.js)?$/
@@ -66,7 +51,6 @@ function offendingGlyph(text: string): string | undefined {
   return FORBIDDEN_GLYPHS.find((g) => text.includes(g)) ?? EMOJI.exec(text)?.[0]
 }
 
-/** Whether `node` is its JSX parent's only child (whitespace text and empty `{}` aside). */
 function isOnlyJsxChild(node: ts.Node): boolean {
   const parent = node.parent
   if (!(ts.isJsxElement(parent) || ts.isJsxFragment(parent))) return false
@@ -107,7 +91,6 @@ function loneSymbolIcon(node: ts.Node, text: string): string | undefined {
   return whole ? symbol : undefined
 }
 
-/** The sparkle icons an import pulls in from lucide-react, each with its node. */
 function sparkleImports(node: ts.Node): [glyph: string, at: ts.Node][] {
   if (!ts.isImportDeclaration(node) || !ts.isStringLiteral(node.moduleSpecifier)) return []
   const from = node.moduleSpecifier.text
@@ -120,11 +103,7 @@ function sparkleImports(node: ts.Node): [glyph: string, at: ts.Node][] {
     .filter(([name]) => SPARKLE_IMPORT.test(name))
 }
 
-/**
- * Forbidden glyphs and emoji in the string literals and JSX text of one
- * source file, a lone symbol as a JSX element's whole content, and Lucide's
- * sparkle imports (comments are not scanned: a comment may name what it bans).
- */
+/** Comments are not scanned: a comment may name what it bans. */
 export function glyphFindings(source: string, file: string): GlyphFinding[] {
   const sf = parseSource(source, file)
   const findings: GlyphFinding[] = []
@@ -141,11 +120,6 @@ export function glyphFindings(source: string, file: string): GlyphFinding[] {
   return findings
 }
 
-/**
- * Scan every `.ts`/`.tsx` source under `dir` (tests and declarations
- * excluded). Point it at a package's widget and message-catalog folders;
- * findings carry "/"-separated paths relative to `dir`.
- */
 export function scanGlyphs(dir: string): GlyphFinding[] {
   return sourceFiles(dir).flatMap((path) =>
     glyphFindings(readFileSync(path, "utf8"), relativePath(dir, path)),

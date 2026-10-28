@@ -15,11 +15,7 @@ import { useT } from "../../messages/use-t.js"
 import { formatCount } from "../lib/format-count.js"
 import { dashboardScope, incidentsFeed } from "./scope.js"
 
-/**
- * Triage of the open incidents the dashboard counts — every one on the
- * engine, or the filtered set (its filters passed as ids, its total as the
- * matching incidents) — a plan, nothing changed yet.
- */
+/** A filtered total is stated as the matching incidents; a plan, nothing changed yet. */
 export function triageIncidentsHandOff(
   data: IncidentsDashboardData,
   engine: string | undefined,
@@ -49,7 +45,6 @@ export function triageIncidentsHandOff(
   }
 }
 
-/** Shell-less incidents KPI header. Reused standalone and in the cockpit app. */
 export function IncidentOverviewKpiView({
   data: initialData = null,
   engine,
@@ -57,9 +52,7 @@ export function IncidentOverviewKpiView({
   data?: IncidentsDashboardData | null
   engine?: string
 }) {
-  // Shares the process-list feed (key + args) → both incidents panels dedupe
-  // to one fetch in the cockpit; standalone the data comes in via props and
-  // is never refetched (its filters live in the echo, see incidentsFeed).
+  // Shares the process-list feed, so both panels dedupe to one fetch.
   const feed = incidentsFeed(engine)
   const { data, loading, error, refetch } = useViewData<IncidentsDashboardData>(
     initialData,
@@ -88,7 +81,7 @@ export function IncidentOverviewKpiView({
   return (
     <>
       <WidgetHeader
-        // The engine in the title (#322 U4): "prod-leasing · Incidents".
+        // The engine in the title (#322 U4).
         title={
           engineId ? t("incidentsKpi.titleFor", { engine: engineId }) : t("incidentsKpi.title")
         }

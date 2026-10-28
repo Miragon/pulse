@@ -1,50 +1,23 @@
 /**
- * The HTTP edge of a composed server (server path only): WHO may talk to it.
- *
- * DNS-rebinding protection — Origin validation is a MUST of the MCP Streamable
- * HTTP transport — as two allow-lists, resolved once per boot from the env:
- *
- * - `Host` (every request): a rebinding page reaches the server under the
- *   ATTACKER's hostname, so only hostnames the deployment owns pass —
- *   localhost-class always, plus `MCP_URL`'s host and `MCP_ALLOWED_HOSTS`.
- * - `Origin` (non-GET/HEAD requests carrying one): a browser stamps every
- *   cross-origin (and every same-origin POST) request with the page's origin;
- *   localhost-class origins, `MCP_URL`'s origin and `MCP_ALLOWED_ORIGINS`
- *   pass. Requests WITHOUT an `Origin` always pass — non-browser MCP clients
- *   (Claude Code, gateways, `mcp-remote`) never send one.
- *
- * Deliberately app-owned instead of mcp-use's `allowedHosts`/`allowedOrigins`
- * (which guard every path): probes and scrapers address a container by its
- * IP (Kubernetes, Fly), so the operational routes are exempt — see
- * {@link installHttpEdgeGuard}. The size half of the edge (the body cap and the
- * in-flight budget) lives in `node-listener.ts`; both read the one policy
- * resolved here.
+ * DNS-rebinding protection (Origin validation is a MUST of MCP Streamable HTTP) as two allow-lists:
+ * `Host` on every request (a rebinding page arrives under the ATTACKER's hostname), `Origin` on
+ * non-GET/HEAD requests carrying one; requests without `Origin` pass, since non-browser MCP clients
+ * never send one. App-owned instead of mcp-use's `allowedHosts`, which would also guard the
+ * operational routes that probes reach by container IP.
  */
 
-/** Hostnames that always pass both checks — a loopback caller is the machine itself. */
+/** A loopback caller is the machine itself. */
 export const LOCALHOST_HOSTNAMES: readonly string[] = ["localhost", "127.0.0.1", "[::1]"]
 
 /**
- * Default request-body cap (4 MiB): far above any MCP JSON-RPC message, room
- * for a multi-resource BPMN deployment. The cap bounds ONE request, not the
- * process — mcp-use parses a JSON body into a heap graph up to ~20× its size
- * before the OAuth gate runs — so the in-flight budget below bounds the total.
+ * 4 MiB bounds ONE request; mcp-use parses a JSON body into a heap graph up to ~20× its size before
+ * the OAuth gate runs, so the in-flight budget below bounds the total.
  */
 export const DEFAULT_MAX_BODY_BYTES = 4 * 1024 * 1024
 
-/**
- * The in-flight body budget, in cap-sized bodies: the bytes held across all
- * requests whose response is still open (16 MiB by default) — room for
- * thousands of ordinary JSON-RPC calls but only a handful of cap-sized
- * uploads; a request past it gets 503.
- */
+/** In cap-sized bodies held by requests whose response is still open; past it a request gets 503. */
 export const IN_FLIGHT_BODY_MULTIPLE = 4
 
-/**
- * The env vars the shared edge reads. Composition roots spread them into
- * their known-var list (typo warner, `.env.example` guards) instead of
- * re-listing them.
- */
 export const HTTP_EDGE_ENV_VARS = [
   "MCP_URL",
   "MCP_ALLOWED_HOSTS",
@@ -53,23 +26,16 @@ export const HTTP_EDGE_ENV_VARS = [
   "MCP_METRICS_TOKEN",
 ] as const
 
-/** `"*"` switches the check off — an explicit opt-out for edges that validate themselves. */
+/** `"*"` is an explicit opt-out for edges that validate themselves. */
 export type AllowList = readonly string[] | "*"
 
 export interface HttpEdgePolicy {
-  /** Allowed `Host` hostnames (port-agnostic, lower-case), localhost-class first. */
   allowedHosts: AllowList
-  /**
-   * Allowed `Origin`s: an entry with a scheme is an exact origin
-   * (`https://app.example.com`), a bare entry a hostname on any scheme/port —
-   * the localhost-class entries are bare.
-   */
+  /** An entry with a scheme is an exact origin, a bare entry a hostname on any scheme/port. */
   allowedOrigins: AllowList
-  /** Request-body cap in bytes (`MCP_MAX_BODY_BYTES`). */
   maxBodyBytes: number
-  /** Body bytes held across all in-flight requests ({@link IN_FLIGHT_BODY_MULTIPLE} × the cap). */
   maxInFlightBodyBytes: number
-  /** Bearer token `/metrics` requires (`MCP_METRICS_TOKEN`); unset = open. */
+  /** Unset = open. */
   metricsToken?: string
 }
 
@@ -136,10 +102,7 @@ function withDerived(
   return [...new Set(entries)]
 }
 
-/**
- * Resolve the edge policy from the env, ONCE per boot. Invalid values fail the
- * boot instead of silently widening (or narrowing) the edge.
- */
+/** Invalid values fail the boot instead of silently widening (or narrowing) the edge. */
 export function resolveHttpEdgePolicy(env: NodeJS.ProcessEnv = process.env): HttpEdgePolicy {
   const url = publicUrl(env.MCP_URL)
   const metricsToken = env.MCP_METRICS_TOKEN?.trim()
@@ -163,7 +126,7 @@ const formatBytes = (bytes: number): string => {
   return `${Number((bytes / size).toFixed(2))} ${unit}`
 }
 
-/** The one boot line stating the edge, so a 403 in the field is explainable from the log. */
+/** So a 403 in the field is explainable from the log. */
 export function describeHttpEdgePolicy(policy: HttpEdgePolicy): string {
   const list = (allowList: AllowList) =>
     allowList === "*" ? "any (validation off)" : allowList.join(", ")
@@ -174,7 +137,6 @@ export function describeHttpEdgePolicy(policy: HttpEdgePolicy): string {
   )
 }
 
-/** Why a `Host` header is refused, or `undefined` when it passes. */
 export function hostRejection(
   host: string | undefined,
   policy: HttpEdgePolicy,
@@ -194,15 +156,13 @@ export function hostRejection(
   )
 }
 
-/** Why an `Origin` header is refused, or `undefined` when it passes. */
 export function originRejection(
   origin: string | undefined,
   method: string,
   policy: HttpEdgePolicy,
 ): string | undefined {
   if (policy.allowedOrigins === "*" || !origin) return undefined
-  // Safe methods carry no side effects, and sandboxed view iframes send
-  // `Origin: null` on their asset GETs (mcp-use applies the same rule).
+  // Sandboxed view iframes send `Origin: null` on asset GETs (mcp-use applies the same rule).
   if (method === "GET" || method === "HEAD") return undefined
   let url: URL | undefined
   try {
@@ -223,10 +183,9 @@ export function originRejection(
   )
 }
 
-/** What the guard reads from a request — in the hono middleware and the Node listener alike. */
 export interface EdgeRequest {
   method: string
-  /** The URL path, without the query. */
+  /** Without the query. */
   path: string
   host: string | undefined
   origin: string | undefined
@@ -235,12 +194,7 @@ export interface EdgeRequest {
 const isExempt = (path: string, prefixes: readonly string[]): boolean =>
   prefixes.some((prefix) => path === prefix || path.startsWith(`${prefix}/`))
 
-/**
- * THE guard decision: why `request` is refused, or `undefined` when it passes
- * (an exempt path always passes). Single-sourced so the Node listener — which
- * discards a refused request's body unread — and the hono guard — which
- * answers it — never disagree.
- */
+/** Single-sourced so the Node listener (drops the body unread) and the hono guard never disagree. */
 export function edgeRejection(
   request: EdgeRequest,
   policy: HttpEdgePolicy,
@@ -252,7 +206,7 @@ export function edgeRejection(
   )
 }
 
-/** A JSON-RPC-shaped error body, so MCP clients surface the reason verbatim. */
+/** JSON-RPC-shaped, so MCP clients surface the reason verbatim. */
 export function jsonRpcErrorBody(message: string): string {
   return JSON.stringify({ jsonrpc: "2.0", error: { code: -32000, message }, id: null })
 }
@@ -264,12 +218,10 @@ function jsonRpcErrorResponse(status: number, message: string): Response {
   })
 }
 
-/** The slice of hono's context the guard reads — structural, like the other host ports. */
 export interface EdgeGuardContext {
   req: { method: string; path: string; header(name: string): string | undefined }
 }
 
-/** `server.use("*", middleware)` with a middleware that may answer itself. */
 export interface EdgeGuardHost {
   use(
     path: "*",
@@ -278,19 +230,11 @@ export interface EdgeGuardHost {
 }
 
 export interface EdgeGuardOptions {
-  /**
-   * Path prefixes answered regardless of `Host`/`Origin` — the read-only
-   * operational routes, which probes and scrapers reach by container IP.
-   */
+  /** Answered regardless of `Host`/`Origin`: probes and scrapers reach them by container IP. */
   exemptPaths?: readonly string[]
 }
 
-/**
- * Register the Host/Origin guard on every route registered AFTER it (hono
- * runs handlers in registration order) — the MCP endpoint and the view
- * assets are mounted by mcp-use later, so they are always covered. A refused
- * request gets 403 with the reason and the env var that would admit it.
- */
+/** Covers every route registered AFTER it (hono runs in order); mcp-use mounts `/mcp` later. */
 export function installHttpEdgeGuard(
   server: EdgeGuardHost,
   policy: HttpEdgePolicy,

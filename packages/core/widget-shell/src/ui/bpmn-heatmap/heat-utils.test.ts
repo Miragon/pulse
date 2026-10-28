@@ -10,12 +10,7 @@ const shape = (id: string, type = "bpmn:ServiceTask"): BpmnElement => ({
   businessObject: { id, $type: type },
 })
 
-/**
- * The heat maps are keyed by the metrics' `activity_id`, the diagram by BPMN
- * element id — the same id space only as long as both sides agree. A key that
- * matches nothing produces no points and therefore an UNCOLORED diagram, not
- * an error, so the matching is pinned here.
- */
+/** A key matching nothing gives an UNCOLORED diagram, not an error, so the activity_id ↔ element id matching is pinned here. */
 describe("buildHeatPoints", () => {
   it("stamps one centred point per element carrying a positive value", () => {
     const points = buildHeatPoints([shape("Activity_A")], { Activity_A: 2548 }, {})

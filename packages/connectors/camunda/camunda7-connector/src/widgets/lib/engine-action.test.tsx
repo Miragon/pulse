@@ -7,7 +7,6 @@ import { CAMUNDA7_SAVE_SETTINGS, CAMUNDA7_WIDGET_ACTIONS_DATA } from "../../tool
 import { useEngineAction, type ActionConfirmation } from "./engine-action.js"
 import { WRITE_POLICY } from "./write-policy.js"
 
-/** The fake host: the widget-actions feed answers `allowed`, writes go to `write`. */
 let allowed: string[]
 const write = vi.fn<(name: string, args: object) => unknown>()
 

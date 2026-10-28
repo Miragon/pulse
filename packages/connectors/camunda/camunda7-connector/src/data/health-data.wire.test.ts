@@ -11,24 +11,14 @@ import { buildClusterDetailData } from "./cluster-detail-data.js"
 import { CLUSTER_SCAN_LIMIT } from "./cluster-scan.js"
 import { buildEngineHealthData } from "./health-data.js"
 
-/**
- * The health builders against a recording engine: every total is a `/count`
- * or the per-key statistics, the capped scan only feeds the clusters — and a
- * cluster count the capped scan cannot vouch for is null or a `/count`,
- * never the scan's length — and incident timestamps order by instant, never
- * as strings (#335 N71).
- */
+// Totals are `/count` or statistics; unvouched cluster counts are null; timestamps order by instant (#335 N71).
 
 const MINUTE = 60 * 1000
 const HOUR = 60 * MINUTE
 
-/** An engine timestamp `ageMs` ago. */
 const ago = (ageMs: number) => toEngineDate(new Date(Date.now() - ageMs))
 
-/**
- * `/incident/count` keyed on the window it is asked for — the parsed cutoff,
- * not just "has a cutoff" — so swapping the hour and the 24h window shows.
- */
+// Keyed on the parsed cutoff, so swapping the hour and the 24h window shows.
 function windowedCount(counts: { total: number; lastHour: number; last24h: number }) {
   return (r: RecordedRequest) => {
     const cutoff = engineDateMillis(r.query.incidentTimestampAfter)
@@ -418,9 +408,7 @@ describe("buildClusterDetailData — a cluster larger than the scan", () => {
   })
 })
 
-// One rule with analytics (#322 U13, widget-shell `readBpmnNames`): what the
-// Modeler writes (a named pool around an unnamed process, `&#10;` for a line
-// break, `&#38;` for `&`) reads as analytics reads it, never literally.
+// One rule with analytics (`readBpmnNames`): Modeler pool names and `&#10;`/`&#38;` read as analytics reads them.
 describe("names from a Modeler diagram (#322 U13)", () => {
   const MODELER_XML = `<definitions>
   <collaboration id="C"><participant id="Pool" name="Miravelo - Bike Leasing" processRef="order"/></collaboration>

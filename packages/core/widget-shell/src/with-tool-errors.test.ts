@@ -37,8 +37,7 @@ describe("withToolErrors", () => {
 
   it("handles plain errors and non-Error throwables without a code prefix", async () => {
     const plain = withToolErrors(() => Promise.reject(new Error("plain failure")))
-    // Non-Error rejection on purpose: the wrapper must stringify whatever a
-    // misbehaving handler throws instead of crashing on it.
+    // Non-Error on purpose: the wrapper must stringify whatever a handler throws.
     // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
     const thrownString = withToolErrors(() => Promise.reject("string failure"))
     expect(((await plain()) as { content: { text: string }[] }).content[0].text).toBe(

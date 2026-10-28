@@ -14,7 +14,6 @@ interface Fixture {
   pending?: PromSample[]
 }
 
-/** Answers each gauge by its metric name; ALERTS by its alertstate. */
 function mockClient(fixture: Fixture = {}) {
   const scalar = (value: number | undefined) => (value === undefined ? [] : [sample({}, value)])
   const perEngine = (value: number) =>
@@ -68,7 +67,6 @@ describe("engineHealth snapshot", () => {
       openIncidents: 3,
       openIncidentsByType: [{ label: "failedJob", count: 3 }],
       deadJobs: 2,
-      // Summed across the reporting engines.
       executableJobs: 12,
       suspendedJobs: 2,
       openUserTasks: 9,

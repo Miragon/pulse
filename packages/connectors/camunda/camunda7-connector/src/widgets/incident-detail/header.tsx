@@ -8,13 +8,7 @@ import { EngineMeta } from "../lib/engine-context.js"
 import { InstanceLabel } from "../lib/identity.js"
 import { useT } from "../../messages/use-t.js"
 
-/**
- * Diagnose THIS incident: cause, retry verdict, fix. Instance context comes
- * from the model-visible instance tools (the cockpit's own instance feed is
- * app-only); names, the business key and the error are engine text — quoted.
- * The "same failure elsewhere" check scopes by the key, or by the exact
- * definition id when the key is only a bare id's parse.
- */
+/** The cockpit's instance feed is app-only, so context comes from model-visible tools; engine text is quoted. */
 export function diagnoseIncidentHandOff(data: IncidentDetailData): HandOff {
   const key = scopingDefinitionKey(data.processDefinitionKey, data.processDefinitionId)
   return {
@@ -82,8 +76,6 @@ export function IncidentDetailHeader({
           <EngineMeta engineId={data.engineId} />
         </>
       }
-      // One action group, facts stay in the meta line: the engine's own web
-      // app (deterministic) before the chat hand-off.
       actions={
         <>
           {cockpitInstanceUrl && (

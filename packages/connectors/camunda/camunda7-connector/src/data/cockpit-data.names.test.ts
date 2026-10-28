@@ -28,13 +28,8 @@ const statsRow = (key: string, version: number, over: Record<string, unknown> = 
   ...over,
 })
 
-/**
- * One rule with analytics (#322 U13, widget-shell `readBpmnNames`): the
- * engine names a process by its `<process>` element alone, and the Camunda
- * Modeler names the POOL of a collaboration instead. Every list names such a
- * process by its pool, as analytics names it ("Miravelo - Bike Leasing", not
- * `miraveloLeasing`), reading the diagram of an unnamed definition only.
- */
+// One rule with analytics (#322 U13): an unnamed process takes its Modeler
+// pool name ("Miravelo - Bike Leasing", not `miraveloLeasing`).
 describe("the lists name a Modeler pool's unnamed process as analytics does", () => {
   const POOLED_XML = `<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
   <bpmn:collaboration id="Collaboration_1">

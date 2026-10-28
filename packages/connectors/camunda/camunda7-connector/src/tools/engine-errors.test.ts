@@ -13,13 +13,7 @@ import { registerWidgetDataFeeds } from "../widget-tools/data-feeds.js"
 import { registerProcessInstanceTools } from "./process-instances.js"
 import { engineParamShape } from "../lib/with-engine.js"
 
-/**
- * Guard for #325, end to end: the text a MODEL reads when an engine call
- * fails. A real local HTTP server plays the engine; the tools run through
- * the real toolkit registrar (its `withToolErrors`), `withEngine`, the
- * generated SDK and the vendor provider's client — nothing is mocked. Before
- * the fix every one of these read "[object Object]" (or "fetch failed").
- */
+/** #325, end to end with nothing mocked: before the fix these read "[object Object]". */
 
 type ToolCallback = (
   args: Record<string, unknown>,
@@ -82,14 +76,12 @@ afterAll(async () => {
   await new Promise<void>((resolve) => engine.close(() => resolve()))
 })
 
-/** A registry over real provider-built clients (the plugin's construction path). */
 function registryFor(engines: EngineEntry[], timeoutMs = 200) {
   return createEngineRegistry(engines, (e) =>
     providerForEntry(e).createClient(e, { type: "none" }, { timeoutMs }),
   )
 }
 
-/** Captures `server.tool` callbacks instead of serving them. */
 function fakeServer() {
   const tools = new Map<string, ToolCallback>()
   const server = {
@@ -100,7 +92,6 @@ function fakeServer() {
   return { server, tools }
 }
 
-/** The model-facing text of a failing `camunda7_get_process_instance` call. */
 async function getInstanceError(
   processInstanceId: string,
   engines: EngineEntry[],
@@ -184,9 +175,7 @@ describe("engine errors as the model reads them (registrar tool)", () => {
 })
 
 describe("registrar tools honor the MCP request's ctx.signal", () => {
-  // Since toolkit 2.6 the registrar hands mcp-use's ctx to the handler as its
-  // third argument; `withEngine` forwards it to `resolveEngine`, so every
-  // operations tool's engine READS abort with the request.
+  // Since toolkit 2.6 the registrar passes ctx as the third argument, which `withEngine` forwards.
   it("a cancelled request aborts the engine read before the deadline", async () => {
     const { server, tools } = fakeServer()
     registerProcessInstanceTools(

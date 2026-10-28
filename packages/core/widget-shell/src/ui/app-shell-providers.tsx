@@ -11,15 +11,7 @@ export interface AppShellProvidersProps {
   children: ReactNode
 }
 
-/**
- * The provider stack every composed-server host mounts under `bootstrapView`:
- * host context (+ display mode) → host document (style variables, fonts,
- * layout) → host bridge → profile gate (the effective language from
- * profile > host > en, the theme from host > OS) → host widget registry. Order is load-bearing (the
- * bridge reads mcp-use's view-scoped hooks, the document layer and the gate
- * read the host context it provides, the gate needs the host bridge) — hosts
- * compose their app-specific layers (e.g. a standalone drill-in shell) inside.
- */
+/** Order is load-bearing: the bridge reads mcp-use's view-scoped hooks, the document layer and the gate read the host context, the gate needs the bridge. Hosts compose their own layers inside. */
 export function AppShellProviders({ widgets, children }: AppShellProvidersProps) {
   return (
     <ViewHostBridge>

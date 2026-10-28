@@ -4,12 +4,6 @@ import type { MCPServer } from "mcp-use"
 import { runWithMcpRequestInfo } from "./request-context.js"
 import { registerSettingsSection, type SettingsGate } from "./settings-section.js"
 
-/**
- * The contract every module's settings section shares (shell, camunda7,
- * analytics): which tools exist, their render paths and hints, the `canSave`
- * the views report, and how the save treats the caller.
- */
-
 const CTX = { auth: { user: { id: "user-1" } } }
 
 type Result = {

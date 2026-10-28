@@ -3,13 +3,7 @@ import { translator } from "../messages/index.js"
 import type { ViewParams } from "./cockpit-app/views.js"
 import type { NavIntent } from "./navigation.js"
 
-/**
- * Internal, client-side view state — the router's mapping of {@link NavIntent}.
- * Shared by the two client-side navigation hosts: the consolidated cockpit app
- * (scope + stack reducer) and the standalone shell (stack only). Everything in
- * this module is pure — policy that differs between the hosts (the cockpit's
- * top-section reset, the shell's back-to-origin) stays with the host.
- */
+/** Client-side view state shared by the cockpit app and the standalone shell; pure, host policy stays with the host. */
 export type CockpitView =
   | { section: "overview" }
   | { section: "process-list" }
@@ -32,23 +26,16 @@ export type CockpitView =
   | { section: "instance-detail"; processInstanceId: string; label?: string }
   | { section: "incident-detail"; incidentId: string; label?: string }
 
-/** The intent's display label, only when it has one (a view never carries `label: undefined`). */
 function labelOf(intent: { label?: string }): { label?: string } {
   return intent.label ? { label: intent.label } : {}
 }
 
-/**
- * Map the public {@link NavIntent} contract onto a view. Compile-checked
- * exhaustive: a new intent variant fails the `satisfies never` below instead of
- * silently no-oping in a client-side router.
- */
+// Exhaustive via `satisfies never`: a new intent fails to compile instead of no-oping.
 export function intentToView(intent: NavIntent): CockpitView {
   switch (intent.type) {
     case "overview":
       return { section: "overview" }
-    // A real drill view (the searchable, paged process list) — NOT the
-    // overview: the emitting KPIs sit ON the overview, so mapping the intent
-    // there made the click a visible no-op.
+    // A drill view, not the overview: the emitting KPIs sit on the overview, so that was a no-op click.
     case "process-list":
       return { section: "process-list" }
     case "incidents":
@@ -71,8 +58,7 @@ export function intentToView(intent: NavIntent): CockpitView {
       }
     case "process-instances":
       return { section: "process-instances", processDefinitionKey: intent.processDefinitionKey }
-    // The "process-incidents" intent is a KEPT public contract (widgets emit
-    // it) — it lands on the SAME definition view, focused on incidents.
+    // Kept public contract (widgets emit it): same definition view, focused on incidents.
     case "process-incidents":
       return {
         section: "process-detail",
@@ -92,12 +78,7 @@ export function intentToView(intent: NavIntent): CockpitView {
   return intent satisfies never
 }
 
-/**
- * Identity of a view on the stack — navigating to a view that is already in the
- * trail pops back to it instead of growing an A→B→A loop. Deliberately IGNORES
- * the definition view's `focus`: detail → incidents-focus on the same
- * definition updates the stack entry in place instead of stacking a twin.
- */
+// Ignores `focus` on purpose: detail -> incidents-focus on one definition updates the entry instead of stacking a twin.
 export function viewKey(view: CockpitView): string {
   switch (view.section) {
     case "cluster-detail":
@@ -114,14 +95,8 @@ export function viewKey(view: CockpitView): string {
   }
 }
 
-/**
- * Push a drill view onto the trail: an existing entry with the same
- * {@link viewKey} pops back to it (adopting the incoming view's params — same
- * identity, possibly a different focus), otherwise the view is appended. The
- * cockpit's "top sections reset the trail" policy is deliberately NOT here —
- * it belongs to the cockpit's sidebar, while the standalone shell must always
- * keep a way back to its origin widget.
- */
+// An existing entry pops back (adopting the new params). The cockpit's top-section reset stays in its
+// sidebar: the standalone shell must always keep a way back to its origin.
 export function pushView(stack: CockpitView[], view: CockpitView): CockpitView[] {
   const key = viewKey(view)
   const existing = stack.findIndex((v) => viewKey(v) === key)
@@ -133,11 +108,7 @@ export function pushView(stack: CockpitView[], view: CockpitView): CockpitView[]
   return [...stack, view]
 }
 
-/**
- * Pop back to index `to` (defaults to one step back). Clamps: never empties the
- * stack — a host that supports leaving the trail entirely (the standalone
- * shell's back-to-origin) handles that before calling in.
- */
+// Never empties the stack; leaving the trail entirely (shell back-to-origin) is the host's job.
 export function popTo(stack: CockpitView[], to?: number): CockpitView[] {
   const index = Math.min(to ?? stack.length - 2, stack.length - 1)
   return stack.slice(0, Math.max(index, 0) + 1)
@@ -154,9 +125,7 @@ export function crumbLabel(view: CockpitView, locale: string): string {
       return tr("cockpit.crumb.incidents")
     case "settings":
       return tr("cockpit.section.settings")
-    // Names before ids (#322 U13): the label the drill carried — a
-    // process's or an activity's name, an instance's business key — else
-    // the id the view is addressed by.
+    // Names before ids (#322 U13): the drill's label, else the addressing id.
     case "process-detail":
       return view.label ?? view.processDefinitionKey
     case "process-instances":
@@ -172,10 +141,6 @@ export function crumbLabel(view: CockpitView, locale: string): string {
   }
 }
 
-/**
- * Flatten a route + resolved engine into the params bag every view layout
- * reads from. Each view picks only the ids it needs (see views.ts).
- */
 export function buildViewParams(view: CockpitView, engine: string): ViewParams {
   return {
     engine,
@@ -189,12 +154,7 @@ export function buildViewParams(view: CockpitView, engine: string): ViewParams {
   }
 }
 
-/**
- * Pure inverse of {@link intentToView} — turn the view on top of the stack back
- * into the intent that reaches it. Used by the standalone shell's conversational
- * fallback so the prompt always names the view the user actually sees (a stored
- * "last intent" goes stale the moment the user pops the breadcrumb).
- */
+// The shell's conversational fallback names the view on top; a stored "last intent" goes stale on a breadcrumb pop.
 export function viewToIntent(view: CockpitView): NavIntent {
   switch (view.section) {
     case "process-detail":
@@ -232,19 +192,13 @@ export function viewToIntent(view: CockpitView): NavIntent {
   }
 }
 
-/** The entity a client-side routed view has selected — by kind, for the model contexts. */
 export interface SelectedEntity {
   incidentId?: string
   processInstanceId?: string
   processDefinitionKey?: string
 }
 
-/**
- * The selected entity of a client-side routed view, so drill-down views whose
- * widgets carry no leaf model context still resolve "this incident/process"
- * follow-up questions. Shared by the cockpit app and the standalone shell so
- * silent (chat-free) navigation never leaves the model blind.
- */
+// Silent (chat-free) navigation must never leave the model blind to "this incident/process".
 export function selectedEntity(view: CockpitView): SelectedEntity {
   if ("incidentId" in view) return { incidentId: view.incidentId }
   if ("processInstanceId" in view) return { processInstanceId: view.processInstanceId }
@@ -254,10 +208,6 @@ export function selectedEntity(view: CockpitView): SelectedEntity {
   return {}
 }
 
-/**
- * Top-level cockpit scope. Open Cockpit offers two ways in: operate a single
- * engine, or run cross-engine ("fleet") analyses. `landing` is the chooser shown
- * when more than one engine is in the list and none was resolved.
- */
+// `landing` is the chooser when several engines are listed and none resolved.
 export type CockpitScope =
   { kind: "landing" } | { kind: "fleet" } | { kind: "engine"; engineId: string }

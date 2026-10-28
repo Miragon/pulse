@@ -64,8 +64,7 @@ describe("describeEngineLandscape", () => {
   })
 
   it("tells the model why per-engine rates are absent", () => {
-    // The whole point of the view: without this line a model would happily
-    // divide the counts into per-engine rates and compare them again.
+    // Without it a model would divide the counts into per-engine rates and compare them.
     expect(describeEngineLandscape(landscape(), {})).toContain("different process mixes")
   })
 
@@ -140,8 +139,7 @@ describe("describeVersionCompare", () => {
     expect(text).not.toMatch(/failure/i)
   })
 
-  // The tool takes no element scope (#336): the comparison is process-wide,
-  // on the engines it read.
+  // The tool takes no element scope (#336).
   it("re-runs the process-wide comparison on the engines on screen", () => {
     const text = describeVersionCompare(versionCompare([versionKpi(1), versionKpi(2)]), {})
     expect(text).toContain(
@@ -227,8 +225,7 @@ describe("failure-dashboard scope (N83/N116)", () => {
     expect(text).toContain("no message, activity or timestamps")
   })
 
-  // The view spans every process: the largest group's key is a fact, never
-  // the scope the model passes on; the list is capped at 50, the totals not.
+  // The largest group's key is a fact, never a scope; the list is capped at 50, the totals not.
   it("scopes the view by engine only and states the exact group count of a capped list", () => {
     const capped: FailureDashboardData = {
       ...failures(["prod-a", "prod-b"]),

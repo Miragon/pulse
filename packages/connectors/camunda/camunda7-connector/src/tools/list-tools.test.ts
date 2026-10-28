@@ -2,9 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { ToolConfig } from "@miragon/mcp-toolkit-core/tools"
 import type { Client } from "@miragon/pulse-camunda7-client"
 
-// Every SDK operation becomes a mock: the structural guards below capture
-// the FULL registrar surface (every domain file), and no captured handler may
-// reach a real engine.
+// The guards capture the full registrar surface; no handler may reach a real engine.
 vi.mock("@miragon/pulse-camunda7-client/sdk", async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>()
   return Object.fromEntries(Object.keys(actual).map((name) => [name, vi.fn()]))
@@ -23,7 +21,6 @@ import { registerEngineTools } from "./engines.js"
 type Register = Parameters<typeof registerTools>[0]
 type Config = ToolConfig<EngineRegistry>
 
-/** Captures registrar configs instead of registering them on a real server. */
 function captureTools(...registerFns: Array<(register: Register) => void>): Map<string, Config> {
   const tools = new Map<string, Config>()
   const register = Object.assign((config: Config) => tools.set(config.name, config), {
@@ -33,11 +30,7 @@ function captureTools(...registerFns: Array<(register: Register) => void>): Map<
   return tools
 }
 
-/**
- * Every registrar tool the plugin registers (plugin.ts: engines, the domain
- * files behind `registerTools`, the incident issue) — a new domain file or a
- * new tool lands under the guards below without anyone touching this test.
- */
+/** Mirrors plugin.ts, so a new tool lands under the guards without touching this test. */
 const tools = captureTools(
   (register) => registerEngineTools(register, {} as ProfileStore),
   (register) => registerTools(register, { allowDeployments: true }),
@@ -46,7 +39,6 @@ const tools = captureTools(
 
 const fakeClient = { fake: true } as unknown as Client
 
-/** Single-engine registry → resolveEngine falls back to it without a saved default. */
 const registry: EngineRegistry = createEngineRegistry(
   [{ id: "default", baseUrl: "http://localhost:8080/engine-rest" }],
   () => fakeClient,
@@ -58,12 +50,7 @@ function callTool(name: string, args: Record<string, unknown>) {
   return config.handler(registry, args)
 }
 
-/**
- * One row per converted list tool: the mocked page/count endpoints, the
- * filter args, and — where the engine names or encodes them differently —
- * the engine query they must become (`engineQuery`, default: the args as
- * given) on BOTH the page and the count query (without pagination params).
- */
+/** `engineQuery` (default: the args) must reach BOTH the page and the count query. */
 interface ListCase {
   tool: string
   list: (typeof sdk)[keyof typeof sdk]
@@ -137,8 +124,7 @@ const cases: readonly ListCase[] = [
       processDefinitionKey: "invoice",
       activityId: "send-mail",
     },
-    // A false flag is never forwarded (the engine ignores it): it becomes
-    // its complement, which here agrees with the true one already given.
+    // The engine ignores a false flag, so it becomes its complement.
     engineQuery: {
       topicName: "invoice-mail",
       workerId: "worker-1",
@@ -172,11 +158,7 @@ const cases: readonly ListCase[] = [
   },
 ]
 
-/**
- * Structural guards over EVERY registered tool, not the table above: a list
- * tool is whatever takes `maxResults`, so a new one without the envelope or
- * the page cap fails here without anyone updating a list.
- */
+/** A list tool is whatever takes `maxResults`, so a new one is guarded without updating a list. */
 describe("every list/query tool shares one pagination contract", () => {
   const listTools = [...tools.values()].filter(
     (c) => c.inputSchema && "maxResults" in c.inputSchema,
@@ -236,11 +218,8 @@ describe.each(cases)("$tool pagination envelope", ({ tool, list, count, filterAr
 
     const result = await callTool(tool, { ...filterArgs, firstResult: 2, maxResults: 2 })
 
-    // hasMore because totalCount (7) > firstResult (2) + items.length (2)
     expect(result).toEqual({ items: page, totalCount: 7, hasMore: true, nextOffset: 4 })
     expect(paginatedListOutput.safeParse(result).success).toBe(true)
-    // The page query carries the offset; the count query gets the filters
-    // only — no pagination or sorting params.
     expect(mockedList).toHaveBeenCalledWith(
       expect.objectContaining({
         client: fakeClient,
@@ -265,11 +244,7 @@ describe.each(cases)("$tool pagination envelope", ({ tool, list, count, filterAr
   })
 })
 
-/**
- * The engine sorts external tasks only by an explicit sortBy+sortOrder PAIR
- * (either alone is a 400), so the tool pairs them: sortBy alone sorts
- * ascending, a lone sortOrder is dropped.
- */
+/** The engine sorts only by a sortBy+sortOrder PAIR (either alone is a 400). */
 describe("camunda7_list_external_tasks", () => {
   const EXTERNAL = "camunda7_list_external_tasks"
   const pageQuery = async (args: Record<string, unknown>) => {

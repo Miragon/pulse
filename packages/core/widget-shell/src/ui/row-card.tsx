@@ -1,11 +1,6 @@
 import type { ReactNode } from "react"
 import { cn } from "@miragon/mcp-toolkit-ui"
 
-/**
- * Bordered list-row card — truncating title/subtitle block on the left,
- * action buttons pinned right. The row shape the engine-health cluster list
- * and the cluster-detail rows used to copy verbatim.
- */
 export function RowCard({
   title,
   subtitle,

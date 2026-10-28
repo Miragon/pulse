@@ -30,14 +30,7 @@ import {
   SaveBar,
 } from "./user-profile-sections.js"
 
-/**
- * camunda7's settings section (`camunda7:settings`) — one section of the
- * shell's settings page, next to the shell's language and every other
- * module's section. Self-fetches the signed-in caller's camunda7 settings +
- * the configured engine list (or receives them via `initialData` from
- * `camunda7_show_settings`). Where camunda7 is bundled but not active its
- * feed's tool is missing, and the section hides itself like any module's.
- */
+// Bundled but not active, the feed's tool is missing and the section hides itself.
 export function UserProfileWidget({ data: initialData = null }: { data?: UserProfileView | null }) {
   const t = useT()
   const {
@@ -64,12 +57,7 @@ export function UserProfileWidget({ data: initialData = null }: { data?: UserPro
   )
 }
 
-/**
- * The shell-less form body — localized via `useT` (locale from the global
- * ProfileGate). Wrapped in `WidgetShell` by `UserProfileWidget` above. The
- * settings page has ONE title (#322 U27), the shell page's; this section
- * heads itself with an h2 and its cards with h3.
- */
+// #322 U27: the page's one title is the shell's; this section heads itself with h2, its cards h3.
 function ProfilePanel({ view }: { view: UserProfileView }) {
   const t = useT()
   const dashboardsQuery = useToolQuery<{ items: DashboardSummary[] }>(
@@ -82,10 +70,8 @@ function ProfilePanel({ view }: { view: UserProfileView }) {
     view.profile.pinnedDashboardIds ?? [],
   )
 
-  // A read-only deployment never registered camunda7_save_settings — the
-  // fields stay visible but disabled, and the model must not be told about a
-  // write tool it cannot call. The view decides (it also knows the caller),
-  // so the save is gated by `canSave`, not by the engine-write feed.
+  // Read-only deployments never register camunda7_save_settings; the view knows the caller, so
+  // `canSave` gates the save, not the engine-write feed.
   const canSave = view.canSave
   const save = useEngineAction<Record<string, unknown>>({
     tool: CAMUNDA7_SAVE_SETTINGS,
@@ -93,14 +79,10 @@ function ProfilePanel({ view }: { view: UserProfileView }) {
   })
   const engineIds = view.availableEngines.map((e) => e.id)
   const viewForm = () => fromProfile(view.profile, engineIds)
-  // The baseline is what the user last saw persisted: the view's profile,
-  // advanced to the submitted form after each successful save — so reverting
-  // a saved change is a change again even before the profile refetched.
+  // Advanced after each save, so reverting a saved change is a change even before the refetch.
   const [baseline, setBaseline] = useState<FormState>(viewForm)
   const [form, setForm] = useState<FormState>(baseline)
 
-  // Re-sync form and baseline from server truth whenever the view's profile
-  // changes (the save invalidates the profile feed, which refetches).
   useResetOnChange(view.profile.updatedAt, () => {
     const next = viewForm()
     setBaseline(next)
@@ -115,7 +97,7 @@ function ProfilePanel({ view }: { view: UserProfileView }) {
       const next = on
         ? Array.from(new Set([...f.allowedEngineIds, id]))
         : f.allowedEngineIds.filter((e) => e !== id)
-      // Drop a now-disallowed default so we never persist an unreachable default.
+      // Never persist an unreachable default.
       const defaultEngineId = next.includes(f.defaultEngineId) ? f.defaultEngineId : ""
       return { ...f, allowedEngineIds: next, defaultEngineId }
     })

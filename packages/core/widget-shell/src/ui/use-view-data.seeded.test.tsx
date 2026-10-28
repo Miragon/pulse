@@ -5,15 +5,7 @@ import { act, cleanup, renderHook, waitFor } from "@testing-library/react"
 import { AppQueryProvider, queryClient } from "@miragon/mcp-toolkit-ui"
 import { useViewData } from "@miragon/mcp-toolkit-ui/hooks"
 
-/**
- * The seeded view feed every standalone widget relies on (#341): the
- * toolkit's `useViewData` in `initialDataMode: "seed"` (2.8), which replaced
- * widget-shell's own `useSeededToolQuery`. The view's tool result is the
- * feed query's cached answer, the query stays live, an old payload never
- * rolls a refetched answer back, and a Retry is a new read at once. These
- * are the behaviours the kit's views (`useDetailView`, `usePagedViewData`)
- * and camunda7's write refresh build on, so they stay pinned here.
- */
+/** The seeded feed every standalone widget relies on (#341); `useDetailView` and `usePagedViewData` build on it. */
 
 interface Answer {
   value: string
@@ -29,7 +21,6 @@ function wrapper({ children }: { children: ReactNode }) {
   return <AppQueryProvider callTool={callTool}>{children}</AppQueryProvider>
 }
 
-/** Wire-shaped tool result; the toolkit's structured-first parser unwraps it. */
 const answer = (value: string) => ({ structuredContent: { value } })
 
 const SEED = { initialDataMode: "seed" } as const
@@ -180,9 +171,7 @@ describe("useViewData in seed mode", () => {
   })
 
   it("refetch() without data is a new read at once — never a wait for the retry backoff", async () => {
-    // Production retries: a failed first attempt leaves the fetch in its
-    // backoff, the next attempt ~1 s away. TanStack restarts an in-flight
-    // fetch only over data; without, a plain refetch joins that chain.
+    // TanStack restarts an in-flight fetch only over data; without, a plain refetch joins the backoff chain.
     queryClient.setDefaultOptions(toolkitDefaults)
     callTool.mockRejectedValueOnce(new Error("engine down"))
     const { result } = setup(null)

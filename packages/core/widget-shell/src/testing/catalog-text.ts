@@ -1,19 +1,8 @@
 /**
- * The catalog text test: the machine-checkable rules of the Miragon voice
- * (brand-tone; brand-review A1, A2, A10) applied to a message catalog. brand-
- * lint reads Markdown, not strings inside `.ts` modules, so every catalog
- * runs this in its own test:
- *
- *   expect(catalogTextFindings(de, { language: "de" })).toEqual([])
- *
- * German follows brand-tone fully (du, AI, CIB seven, no dash connector);
- * English takes the transferable rules. Function entries are rendered with
- * every parameter set to 1 (and 2), so a "1 incidents" surfaces.
- *
- * Formal address counts at the start of an entry and of a sentence too, which
- * is exactly where a UI catalog puts it ("Ihre Sitzung ist abgelaufen.").
- * The rare sentence-initial she/it/its that reads the same ("Ihre Variablen
- * bleiben erhalten" about an instance) takes an `allow` entry with a reason.
+ * brand-lint reads Markdown, not strings in `.ts`, so every catalog runs this in its own
+ * test. Function entries render with every parameter as 1 (and 2), so "1 incidents"
+ * surfaces. Formal address counts at a sentence start too, where a UI catalog puts it;
+ * a sentence-initial "Ihre" about an instance takes an `allow` entry.
  */
 
 export type CatalogLanguage = "de" | "en"
@@ -34,26 +23,17 @@ export interface CatalogTextFinding {
   text: string
 }
 
-/** One accepted finding: the entry's dotted key, the rule, and why it is fine there. */
 export interface CatalogAllowance {
   key: string
   rule: CatalogRule
-  /** Required: why this entry may break the rule (e.g. "Ihre = the instance's"). */
   reason: string
 }
 
 export interface CatalogTextOptions {
   language: CatalogLanguage
-  /**
-   * Parameters for function entries that need real shapes (an array, an
-   * object) instead of the default "every parameter is the number n".
-   */
+  /** For entries that need real shapes instead of the default "every parameter is n". */
   params?: Readonly<Record<string, unknown>>
-  /**
-   * Findings a reviewer accepted, each with its reason. A shrink-only list:
-   * an allowance that no longer matches a finding comes back as
-   * `unused-allowance`, so a fixed entry drops off it.
-   */
+  /** Shrink-only: an allowance that matches nothing comes back as `unused-allowance`. */
   allow?: readonly CatalogAllowance[]
 }
 
@@ -68,7 +48,6 @@ function sampleParams(n: number): unknown {
   })
 }
 
-/** Render one entry: strings as they are (`{param}` → n), functions called with sample params. */
 function render(value: unknown, n: number, params: unknown): string | undefined {
   if (typeof value === "string") return value.replace(/\{\w+\}/g, String(n))
   if (typeof value === "function") {
@@ -80,7 +59,6 @@ function render(value: unknown, n: number, params: unknown): string | undefined 
 
 const SIE = /(?<![\p{L}\p{N}_])(Sie|Ihnen|Ihr|Ihre|Ihren|Ihrem|Ihrer|Ihres)(?![\p{L}\p{N}_])/gu
 
-/** Whether a match opens the entry or a sentence (quotes and markup before it skipped). */
 function atSentenceStart(text: string, pos: number): boolean {
   const before = text.slice(0, pos).replace(/[\s*_([„"'«]+$/u, "")
   return before === "" || /[.!?:…\n]$/.test(before)
@@ -92,13 +70,7 @@ const PLURAL_VERB = /^\s+(?:sind|tun|[a-zäöüß]+(?:en|eln|ern))(?![\p{L}\p{N}
 /** The team's "ihr" (brand-tone allows it): the ihr-form of a verb follows (habt, könnt, seid). */
 const IHR_VERB = /^\s+(?:seid|[a-zäöüß]+t)(?![\p{L}\p{N}_])/u
 
-/**
- * Whether a Sie/Ihr/Ihnen match addresses the reader. Mid-sentence the
- * capital says so. At the start of an entry or a sentence, "Ihnen" and
- * "Ihre/Ihren/Ihrem/Ihrer/Ihres" count as address, "Sie" when a plural verb
- * follows ("Sie haben", not "Sie ist") and "Ihr" unless the ihr-form of a
- * verb follows ("Ihr Team", not "Ihr könnt").
- */
+/** At a sentence start, "Sie" counts only before a plural verb and "Ihr" unless an ihr-form verb follows. */
 function isFormalAddress(text: string, match: RegExpExecArray): boolean {
   if (!atSentenceStart(text, match.index)) return true
   const rest = text.slice(match.index + match[0].length)
@@ -107,11 +79,9 @@ function isFormalAddress(text: string, match: RegExpExecArray): boolean {
   return true
 }
 
-/** English: "1 incidents", "1 engines" (a plural noun right after the number one). */
 const EN_PLURAL_AFTER_ONE = /(?<![\d.,])\b1\s+([a-z]+s)\b/g
 const EN_NOT_PLURAL = /(ss|us|is|ics|news)$|^(has|was|does|its|this|yes|plus|always)$/
 
-/** German: the counted nouns of this product, in their plural form. */
 const DE_PLURAL_AFTER_ONE =
   /(?<![\d.,])\b1\s+(Incidents|Instanzen|Engines|Jobs|Prozesse|Prozessdefinitionen|Definitionen|Versionen|Tage|Stunden|Minuten|Sekunden|Wochen|Versuche|Einträge|Aufgaben|Tasks|Variablen|Elemente|Aktivitäten|Umgebungen|Deployments)\b/u
 
@@ -162,7 +132,6 @@ function entryFindings(
   return [...findings].map((rule) => ({ key, rule, text: one }))
 }
 
-/** Every rule violation of a (nested) catalog, keys dotted from `prefix`. */
 function walk(catalog: object, options: CatalogTextOptions, prefix: string): CatalogTextFinding[] {
   return Object.entries(catalog as Record<string, unknown>).flatMap(([name, value]) => {
     const key = prefix + name
@@ -174,12 +143,6 @@ function walk(catalog: object, options: CatalogTextOptions, prefix: string): Cat
 const allows = (allowance: CatalogAllowance, finding: CatalogTextFinding) =>
   allowance.key === finding.key && allowance.rule === finding.rule
 
-/**
- * Every rule violation in a catalog. Nested objects are walked with dotted
- * keys; non-string, non-function leaves are ignored. A finding listed in
- * `options.allow` is dropped, an allowance that matches nothing comes back as
- * `unused-allowance`, and an allowance without a reason throws.
- */
 export function catalogTextFindings(
   catalog: object,
   options: CatalogTextOptions,

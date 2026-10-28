@@ -6,10 +6,7 @@ import { WidgetFixtureHost } from "@miragon/mcp-toolkit-ui/app"
 import { ANALYTICS_SAVE_SETTINGS, ANALYTICS_SETTINGS_DATA } from "../tool-names.js"
 import { AnalyticsSettingsWidget, parseMinBucketSize } from "./settings-section.js"
 
-/**
- * The settings section's own error state: when its feed fails it says the
- * SETTINGS could not be loaded, not the figures a data view loads.
- */
+/** A failed feed says the SETTINGS could not be loaded, not the figures. */
 
 beforeAll(() => {
   // One attempt: the error state is what this suite reads, not the retries.
@@ -20,7 +17,6 @@ afterEach(() => {
   queryClient.clear()
 })
 
-/** The section as the settings page mounts it: no pipeline data, it fetches its feed. */
 const Section = () => <AnalyticsSettingsWidget />
 
 function renderIn(language: "de" | "en") {
@@ -39,8 +35,6 @@ function renderIn(language: "de" | "en") {
 }
 
 describe("the analytics settings section when its feed fails", () => {
-  // The kit's error state (U1): the section's own title for a failure the
-  // kit cannot classify, what you can do, the raw cause under Details, Retry.
   it("says the settings could not be loaded, and what you can do (de)", async () => {
     renderIn("de")
     expect(

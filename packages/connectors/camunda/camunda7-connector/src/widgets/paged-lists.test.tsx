@@ -21,23 +21,13 @@ import { ProcessInstancesWidget } from "./process-instances/list.js"
 import { ProcessListWidget } from "./process-list.js"
 import { widgetActionsFeedFor } from "./lib/hand-off.test-support.js"
 
-/**
- * The three searchable paged lists against the REAL toolkit query stack
- * (`useToolQuery` → TanStack, no mock), so a pending page 0 is pending here
- * exactly as in a host (#341):
- *
- * - N123: a search or chip keys a new page 0 that is undefined until it
- *   lands — the list, and the search box the operator is typing into, must
- *   stay mounted with the previous rows meanwhile;
- * - N130: a page-0 failure over rows on screen is its own error with a retry
- *   that re-runs page 0 — never "Couldn't load more entries".
- */
+// Real toolkit query stack (#341). N123: a pending new page 0 keeps the list and search box mounted
+// with the previous rows. N130: a page-0 failure over rows is its own error, retrying page 0.
 
 const toolkitDefaults = queryClient.getDefaultOptions()
 
 beforeEach(() => {
-  // Deterministic error states: the default three retries would hold a failed
-  // feed in "pending" for seconds.
+  // The default three retries would hold a failed feed in "pending" for seconds.
   queryClient.setDefaultOptions({
     ...toolkitDefaults,
     queries: { ...toolkitDefaults.queries, retry: false },
@@ -50,7 +40,6 @@ afterEach(() => {
   queryClient.setDefaultOptions(toolkitDefaults)
 })
 
-/** A feed fixture whose answers the test releases by hand. */
 function deferredFeed<T>() {
   const calls: Array<{ args: Record<string, unknown>; resolve: (value: T) => void }> = []
   const handler = (args: Record<string, unknown>) =>
@@ -208,11 +197,6 @@ describe("a search keeps the list and its search box mounted while page 0 is in 
 })
 
 describe("a page-0 failure over rows on screen is not a load-more failure (N130)", () => {
-  /**
-   * The cockpit's self-fetching process list: page 0 lists two of five
-   * definitions, so Load more is offered. `failPage0` / `failMore` break
-   * the respective call.
-   */
   function selfFetchingList() {
     const state = { failPage0: false, failMore: false }
     const calls: Array<Record<string, unknown>> = []
@@ -239,8 +223,6 @@ describe("a page-0 failure over rows on screen is not a load-more failure (N130)
     state.failPage0 = true
     await queryClient.invalidateQueries({ queryKey: ["camunda7:process-list"] })
 
-    // The toolkit's footer (2.8): what happened and what you can do in its
-    // catalog words, the raw reason under Details.
     const alert = await screen.findByRole("alert")
     expect(alert.textContent).toContain("Couldn't update the list")
     expect(alert.textContent).toContain("You're seeing the previous result.")
@@ -252,7 +234,7 @@ describe("a page-0 failure over rows on screen is not a load-more failure (N130)
     const before = calls.length
     fireEvent.click(within(alert).getByRole("button", { name: "Try again" }))
     await waitFor(() => expect(screen.queryByRole("alert")).toBeNull())
-    // The retry re-ran page 0 — not the next offset.
+    // Page 0, not the next offset.
     expect(calls.slice(before)).toEqual([expect.objectContaining({ firstResult: 0 })])
   })
 
@@ -276,16 +258,11 @@ describe("a page-0 failure over rows on screen is not a load-more failure (N130)
   })
 })
 
-/**
- * While a new chip or search has not answered (in flight, or failed) the
- * instance list shows its PREVIOUS result — so its header count, the filters
- * that count covers, the triage hand-off and the model context must all be
- * that result's: never the new chip next to the old total (#341 review).
- */
+// A pending or failed filter shows the PREVIOUS result, so count, filters, hand-off and context
+// must all be that result's (#341 review).
 describe("the instance list states what is ON SCREEN while a filter is pending or failed", () => {
   const ALL = { ...instances(["pi-1", "pi-2"], 120), processDefinitionKey: null }
 
-  /** A feed whose `suspended` answers the test settles by hand; the rest answer at once. */
   function heldSuspendedFeed() {
     const held: Array<{ args: Record<string, unknown>; settle: Promise<ProcessInstancesData> }> = []
     const control: Array<{
@@ -303,7 +280,6 @@ describe("the instance list states what is ON SCREEN while a filter is pending o
     return { held, control, feed }
   }
 
-  /** The engine-wide cockpit list, settled on the unfiltered 120. */
   async function engineWideList() {
     const { held, control, feed } = heldSuspendedFeed()
     const modelContexts: string[] = []
@@ -323,7 +299,6 @@ describe("the instance list states what is ON SCREEN while a filter is pending o
     )
     await screen.findByText("BK-pi-1")
     await waitFor(() => expect(modelContexts.at(-1)).toContain("matchingInstances=120"))
-    /** The prompt the header's triage button posts right now. */
     const triage = () => {
       fireEvent.click(screen.getByRole("button", { name: /Assess in chat/ }))
       const prompts = actions.flatMap((a) => (a.type === "sendFollowUpMessage" ? [a.prompt] : []))
@@ -349,7 +324,6 @@ describe("the instance list states what is ON SCREEN while a filter is pending o
     expect(prompt).toContain("On screen: matchingInstances=120\n")
     expect(prompt).not.toContain("suspended=true")
 
-    // The filtered page lands: count, filters and context move together.
     control[0].resolve({
       ...instances(["pi-9"], 7),
       processDefinitionKey: null,

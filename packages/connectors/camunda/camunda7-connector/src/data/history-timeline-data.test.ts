@@ -3,11 +3,8 @@ import { clientFor, startFakeEngine, type FakeEngine } from "../tools/test-suppo
 import { ENGINE_FAILURE, WORLD, worldReply } from "../tools/test-support/engine-world.js"
 import { buildHistoryTimelineData } from "./history-timeline-data.js"
 
-/**
- * The timeline marks the steps that failed (#322 U14): the instance's open
- * incidents name their activities — enrichment, so an unreadable incident
- * list leaves the timeline unmarked (null), never "no incidents" ([]).
- */
+// Enrichment (#322 U14): an unreadable incident list leaves the timeline
+// unmarked (null), never "no incidents" ([]).
 
 const engines: FakeEngine[] = []
 afterEach(async () => {
@@ -42,9 +39,7 @@ describe("buildHistoryTimelineData — the failing steps", () => {
   })
 })
 
-// One rule with analytics (#322 U13, widget-shell `readBpmnNames`): the engine
-// names a process by its `<process>` element alone; a Modeler pool names it
-// in the timeline's head as analytics names it.
+// One rule with analytics (`readBpmnNames`): a Modeler pool names the process.
 describe("buildHistoryTimelineData — the process name", () => {
   const instance = (processDefinitionName: string | null) => ({
     id: "pi-1",

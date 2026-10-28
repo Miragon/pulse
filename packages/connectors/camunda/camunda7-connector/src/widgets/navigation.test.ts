@@ -2,12 +2,7 @@ import { describe, expect, it, vi } from "vitest"
 import type { HostActions } from "@miragon/mcp-toolkit-ui/app"
 import { navigateViaHost } from "./navigation.js"
 
-/**
- * The standalone fallback asks the chat to open the target view: the
- * follow-up must name everything the target is addressed by (#344 N115) —
- * a cluster's message signature included, or the chat opens the whole
- * activity's cluster instead of the one failure.
- */
+// #344 N115: without the message signature the chat opens the whole activity's cluster.
 describe("navigateViaHost", () => {
   const followUp = (intent: Parameters<typeof navigateViaHost>[1]) => {
     const showWidget = vi.fn()

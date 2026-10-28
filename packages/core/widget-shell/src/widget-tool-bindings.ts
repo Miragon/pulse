@@ -2,30 +2,10 @@ import { z } from "zod"
 import { appsSdkMeta, viewResourceUri } from "@miragon/mcp-toolkit-core"
 
 /**
- * The two spreads every module's raw `server.tool()` widget registrations
- * compose — the wire-contract halves of architecture invariant 5. One
- * implementation for all modules (they were byte-identical copies before):
- * a module that hand-rolls these drifts out of the widget-contract e2e test's
- * expectations on the first mcp-use change.
- */
-
-/**
- * View binding + Apps-SDK `_meta` half for a widget-RENDERING (model-visible)
- * tool — spread into the `server.tool` definition of every `show_*` tool. The
- * view name IS the tool name: mcp-use derives the entire MCP Apps half of the
- * wire contract (`_meta.ui.resourceUri`, flat `ui/resourceUri`, resource CSP)
- * from the first-class `view` binding — never stamp `ui` keys by hand, mcp-use
- * overwrites that namespace on `tools/list`. What mcp-use does NOT derive is
- * the OpenAI Apps SDK half (`openai/*`): `appsSdkMeta` builds it, pointing
- * `openai/outputTemplate` at the same `ui://views/<name>.html` resource. The
- * `outputSchema` is required by mcp-use for any view-bound tool; `passthrough`
- * matches the free-form `structuredContent` the view builders return without
- * stripping keys on SDK-side validation.
- *
- * The view resource carries its title as `description` (hosts that list
- * resources show it) and asks the host for a border (`prefersBorder`, owner
- * decision 2026-10-12, #344 N159): the cards draw none of their own, so a
- * frame sets them off from the chat around them.
+ * mcp-use derives the MCP Apps half from `view` and overwrites `ui` on
+ * tools/list; `appsSdkMeta` adds only the `openai/*` half. mcp-use requires an
+ * `outputSchema`; `passthrough` keeps free-form `structuredContent` intact.
+ * `prefersBorder`: the cards draw no frame of their own (#344).
  */
 export function showToolBinding(name: string, title: string) {
   return {
@@ -36,17 +16,9 @@ export function showToolBinding(name: string, title: string) {
 }
 
 /**
- * The strict input schema every raw `server.tool()` registration declares —
- * the twin of the toolkit registrar's `strictInput` option for the widget
- * path, which registers outside the registrar. A non-strict `z.object` lets
- * mcp-use STRIP an unknown key before the handler runs: a misnamed optional
- * filter then silently widens the result (#329). Strict, the schema is
- * advertised with `additionalProperties: false`, and an unknown key fails
- * validation with the toolkit's own message — every unknown key plus every
- * valid one — as an `isError` result the model can correct in one retry.
- *
- * The message mirrors the toolkit's `unknownKeysMessage` (not exported);
- * `widget-tool-bindings.test.ts` pins the two to the same text.
+ * A non-strict `z.object` lets mcp-use STRIP an unknown key, so a misnamed
+ * filter silently widens the result (#329). The message mirrors the toolkit's
+ * unexported `unknownKeysMessage`; the test pins both to the same text.
  */
 export function strictToolInput<TShape extends z.ZodRawShape>(shape: TShape) {
   const valid = Object.keys(shape)
@@ -65,19 +37,8 @@ function unknownKeysMessage(unknown: readonly string[], valid: readonly string[]
 }
 
 /**
- * App-only marker for the internal `*_data` feeds — spread into each feed's
- * `server.tool` definition. `visibility: "app"` is mcp-use 2's first-class
- * field (emitted as SEP-1865 `_meta.ui.visibility: ["app"]`): conforming hosts
- * hide these tools from the LLM tool surface while keeping them callable from
- * widgets via `callTool`; the "Internal JSON feed" descriptions stay as
- * fallback for non-conforming hosts. Deliberately no `view` binding — the
- * feeds must return JSON, not render UI.
- *
- * `openai/widgetAccessible` covers the Apps-SDK half of the dual contract:
- * those hosts only allow in-widget callTool on tools carrying the key — a
- * feed without it renders fine but every pagination/search/refresh is denied.
- * The key does NOT render anything (no outputTemplate), so the feeds stay
- * JSON-only. mcp-use passes non-`ui` `_meta` entries through untouched.
+ * SEP-1865 hosts hide `visibility: "app"` tools from the LLM. Apps-SDK hosts
+ * deny in-widget callTool without `openai/widgetAccessible`; it renders nothing.
  */
 export const appOnly = {
   visibility: "app" as const,

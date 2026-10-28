@@ -7,11 +7,7 @@ import { WidgetFixtureHost } from "@miragon/mcp-toolkit-ui/app"
 import { CAMUNDA7_BPMN_XML_DATA } from "../tool-names.js"
 import { BpmnDiagram } from "./bpmn-diagram.js"
 
-/**
- * A view carries only the id of the version it draws (`diagramDefinitionId`,
- * #342): `BpmnDiagram` reads the XML itself from `camunda7_bpmn_xml_data`,
- * once per (engine, definition), and says what happened when it cannot.
- */
+/** A view carries only `diagramDefinitionId` (#342); the diagram reads its XML once per (engine, definition). */
 
 const imported = vi.hoisted(() => ({ xml: [] as string[] }))
 vi.mock("bpmn-js/lib/NavigatedViewer", () => ({

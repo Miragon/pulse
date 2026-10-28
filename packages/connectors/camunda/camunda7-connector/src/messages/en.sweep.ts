@@ -1,13 +1,7 @@
 import type { MessageCatalog } from "@miragon/mcp-toolkit-core"
 import { countOf, isOne } from "./plural.js"
 
-/**
- * English catalog for the leaf widgets. String templates use {name}
- * placeholders interpolated by createTranslator; counts arrive formatted
- * (`formatNumber`) and a function entry puts the noun in the right number
- * (`countOf`). Sentence case, the terms of GLOSSARY.md, and error texts that
- * say what happened and what you can do. Merged into the catalogs in index.ts.
- */
+/** Counts arrive formatted (`formatNumber`); a function entry puts the noun in the right number. */
 export const enSweep: MessageCatalog = {
   "bpmnDiagram.ariaLabel": "BPMN process diagram",
   "bpmnDiagram.loading": "Loading diagram…",
@@ -124,9 +118,7 @@ export const enSweep: MessageCatalog = {
   "engineHealth.throughput24h": "Throughput (24h):",
   "engineHealth.throughputCompleted": "{count} completed",
   "engineHealth.throughputStarted": "{count} started",
-  // The verdict line under the title: built from the verdict's numbers in the
-  // active locale (`widgets/lib/health-verdict.ts`); the status word itself
-  // is the KPI header's badge, never repeated here.
+  // The status word is the KPI header's badge, never repeated here.
   "engineHealth.verdict.nothingDeployed": "No processes deployed",
   "engineHealth.verdict.noIncidents": ({ running }) =>
     `No open incidents, ${countOf(running, "running instance", "running instances")}`,
@@ -440,7 +432,6 @@ export const enSweep: MessageCatalog = {
   "viewState.retry": "Try again",
   "viewState.unknownError": "unknown error",
 
-  // ── The camunda7 CI pass (#322): engine context, names, states ──────────────
   "engineContext.environment": "Environment",
   "confirmDialog.environment": "Environment",
   "engineHealth.titleFor": ({ engine }) => `${String(engine)} · Overview`,

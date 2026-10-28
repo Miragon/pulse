@@ -29,11 +29,7 @@ const CHIP_ALL: InstanceChip = "all"
 const CHIP_INCIDENTS: InstanceChip = "incidents"
 const CHIP_SUSPENDED: InstanceChip = "suspended"
 
-/**
- * The `camunda7_process_instances_data` filter contract, derived from the
- * shared feed shapes (type-only import — no runtime zod here). Paging args
- * are owned by `usePagedViewData`; `engine` by the resolve-engine override.
- */
+/** Type-only import, so no runtime zod in the widget bundle. */
 type InstancesFilterArgs = Partial<ProcessInstancesFilters> & { engine?: string }
 
 function deriveInstancesScope({
@@ -46,10 +42,7 @@ function deriveInstancesScope({
   engine?: string
 }) {
   const pdk = processDefinitionKey ?? initialData?.processDefinitionKey
-  // Standalone renders hand in only `data` (no props), so the scope the show
-  // tool was called with must come from the payload's echo: loadMore/search
-  // must page the SAME engine and filter set as page 0 — not the saved
-  // default and not an unfiltered view.
+  // Standalone gets only `data`, so loadMore/search must page the echoed engine and filters, not the default.
   const echoed = initialData?.filters
   const feedEngine = engine ?? initialData?.engineId
   return { pdk, echoed, feedEngine }
@@ -58,11 +51,8 @@ function deriveInstancesScope({
 type RunState = Pick<InstancesFilterArgs, "active" | "suspended">
 
 /**
- * The run-state pair every refetch sends. The feed maps a `false` onto its
- * complement (`active: false` = only suspended), so the pair travels AS GIVEN
- * — dropping a false would page an unfiltered set under page 0's total.
- * Props win over the echo as a PAIR (a prop and an echoed flag never combine
- * into a contradiction the feed refuses); the Suspended chip replaces it.
+ * The feed maps `false` onto its complement (`active: false` = only suspended), so the pair
+ * travels as given; props win over the echo as a pair so they never contradict.
  */
 function deriveRunState(
   activeChip: InstanceChip,
@@ -74,10 +64,7 @@ function deriveRunState(
   return { active: echoed?.active, suspended: echoed?.suspended }
 }
 
-// Filters are SERVER-side: the chips and the search box re-query the feed
-// (search debounced by the scaffold) so they cover the whole result set, not
-// just the loaded page. Pagination is offset-based with an explicit
-// "Load more" (see footer).
+// Server-side filters, so chips and search cover the whole result set, not the loaded page.
 function deriveInstancesFilters({
   activeChip,
   echoed,
@@ -103,8 +90,7 @@ function buildInstancesFilterArgs(
   scope: ReturnType<typeof deriveInstancesScope>,
   filters: ReturnType<typeof deriveInstancesFilters>,
 ): InstancesFilterArgs {
-  // No definition scope → the ENGINE-WIDE running-instances list (the
-  // overview's "Running instances" KPI drills here).
+  // No definition scope: the engine-wide list the overview KPI drills into.
   const filterArgs: InstancesFilterArgs = {}
   if (scope.pdk) filterArgs.processDefinitionKey = scope.pdk
   if (scope.feedEngine) filterArgs.engine = scope.feedEngine
@@ -115,7 +101,6 @@ function buildInstancesFilterArgs(
   return filterArgs
 }
 
-/** Shell-less running-instances list. Reused standalone and in the cockpit app. */
 export function ProcessInstancesView({
   data: initialData = null,
   processDefinitionKey,
@@ -160,8 +145,7 @@ export function ProcessInstancesView({
     key: ["camunda7:process-instances", feedEngine ?? null, pdk ?? null],
     tool: CAMUNDA7_PROCESS_INSTANCES_DATA,
     args: filterArgs,
-    // A business key fragment or a whole id, as the first column shows them;
-    // the feed lets it replace a handed-in businessKeyLike prefilter.
+    // The feed lets it replace a handed-in businessKeyLike prefilter.
     searchArg: "search",
     filtersActive: activeChip !== CHIP_ALL,
     pageSize: PAGE_SIZE,
@@ -185,9 +169,7 @@ export function ProcessInstancesView({
 
   const scopedKey = data.processDefinitionKey
   const title = data.processDefinitionName ?? scopedKey ?? t("processInstances.allTitle")
-  // The filters `paged.total` covers: the echo of the page ON SCREEN, never
-  // the request — while a new chip or search is in flight or has failed, the
-  // rows, the total and these filters are all the previous result's.
+  // The echo of the page on screen, never the request: an in-flight or failed query still shows the previous result.
   const listFilters = data.filters
 
   const chips: FilterChip[] = [
@@ -254,9 +236,7 @@ export function ProcessInstancesView({
             ariaLabel={t("processInstances.tableAriaLabel", { name: title })}
             columns={[
               { label: t("processInstances.colBusinessKey") },
-              // Engine-wide, each row names its process (its version on the
-              // quiet line) and the state hides in a chat's narrow column (the
-              // first cell then says "Suspended"); a scoped list has room for both.
+              // Engine-wide, the state hides in a chat's narrow column; a scoped list has room for both.
               scopedKey
                 ? { label: t("processInstances.colVersion") }
                 : { label: t("processInstances.colProcess") },

@@ -15,11 +15,8 @@ import { enginesMeta } from "../view-meta.js"
 import { processNameOf } from "../../bpmn-names.js"
 
 /**
- * Assess the dashboard on screen — its echoed scope (process, period,
- * engines) as ids, its headline numbers as facts named for what they measure:
- * window flows (`…InWindow`; incidents, not failed instances) apart from the
- * live gauges (`…Now`). A figure that was not measured is null and left out,
- * never stated as 0 (#336).
+ * Window flows (`…InWindow`: incidents, not failed instances) apart from the live `…Now` gauges; an
+ * unmeasured figure is left out, never 0 (#336).
  */
 export function executionSummaryHandOff(data: AnalyticsDashboardData): HandOff {
   return {

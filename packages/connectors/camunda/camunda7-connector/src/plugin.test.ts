@@ -28,11 +28,6 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-/**
- * Boots the plugin's BOTH registration paths (registrar tools + widget tools)
- * against a mock server — the wiring under test: one resolved toolset reaches
- * every gate, and the deployment flag reaches the registrar.
- */
 async function bootSurface(config: Partial<Camunda7PluginConfig>) {
   const tool = vi.fn()
   const server = { tool, use: vi.fn(), prompt: vi.fn() } as unknown as MCPServer
@@ -103,9 +98,7 @@ describe("createPlugin toolset wiring (fail-closed)", () => {
     expect(allowedActions).toContain("camunda7_resolve_incident")
   })
 
-  // #338: the hand-off surface is what EVERY registration path put on the
-  // server for the model — registrar, widget and profile tools alike — and
-  // never an app-only feed.
+  // #338: every registration path counts, never an app-only feed.
   it.each(["read-only", "operations", "admin"])(
     "%s: the feed's modelTools are exactly the registered model-visible tools",
     async (toolset) => {

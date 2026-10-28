@@ -44,11 +44,6 @@ afterEach(() => {
 
 const invalidate = () => act(() => queryClient.invalidateQueries({ queryKey: ["test:detail"] }))
 
-/**
- * A seeded view (the toolkit's `useViewData` in seed mode, which replaced the
- * kit's own hook in 2.8) and the kit's rule over its refresh state
- * (`viewRefreshState`): what `useDetailView` and the engine overview read.
- */
 describe("useViewData in seed mode + viewRefreshState", () => {
   function setup(seed: Detail | null, ready = true) {
     return renderHook(
@@ -94,8 +89,7 @@ describe("useViewData in seed mode + viewRefreshState", () => {
     callTool.mockReturnValue(new Promise((_, reject) => (fail = reject)))
     const { result } = setup({ name: "seed" })
     expect(result.current.refreshing).toBe(false)
-    // Not awaited (the refetch hangs until `fail`), so not inside act either:
-    // an open act scope would swallow the next test's updates.
+    // Not awaited and not in act: an open act scope would swallow the next test's updates.
     void queryClient.invalidateQueries({ queryKey: ["test:detail"] })
     await waitFor(() => expect(result.current.refreshing).toBe(true))
     act(() => fail(new Error("gone")))
@@ -105,10 +99,7 @@ describe("useViewData in seed mode + viewRefreshState", () => {
   })
 
   it("reports a failed refetch from its FIRST attempt — not after the client's retries", async () => {
-    // The toolkit's production defaults: TanStack retries a failed query 3×
-    // with 1 s/2 s/4 s backoff, and `error` stays null all that time. A view
-    // that gates writes on `refreshError` would keep offering them on a state
-    // it cannot confirm for ~7 s (an instance that just ended).
+    // TanStack retries 3× (~7 s) with `error` null; a view gating writes would keep offering them.
     queryClient.setDefaultOptions(toolkitDefaults)
     callTool.mockRejectedValue(new Error("gone"))
     const { result } = setup({ name: "seed" })

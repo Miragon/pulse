@@ -31,13 +31,8 @@ import {
   type Calls,
 } from "./write-path.test-support.js"
 
-/**
- * #341 — a write's targeted refresh is COMPLETE: every view that shows what
- * the write changed re-reads it (`WRITE_POLICY`), the mounted ones at once
- * and the unmounted ones on their next mount — and the optimistic marks a
- * view shows follow the data their rows come from, never a sibling feed that
- * happens to answer first.
- */
+// #341: a write re-reads every view showing what it changed (`WRITE_POLICY`), mounted ones at once,
+// unmounted on next mount; marks follow the rows' own data, never a sibling feed that answers first.
 
 installWritePathHarness()
 
@@ -63,7 +58,6 @@ const INSTANCE_ROWS: ProcessInstancesData = {
   engineId: "prod",
 }
 
-/** The definition view of `invoice`, one activity with one failed job. */
 const DEFINITION: ProcessIncidentsData = {
   processDefinitionKey: "invoice",
   processDefinitionName: "Invoice",
@@ -102,12 +96,8 @@ function activityRows(incidents: IncidentInstance[]): ActivityIncidentsData {
   }
 }
 
-/**
- * The cockpit renders only its top view: a view the operator left is
- * unmounted, and coming back within the toolkit's 30 s staleTime serves it
- * from the cache unless the write invalidated it. So `view` must re-read
- * `feed` when it is mounted again after `write` ran elsewhere.
- */
+// The cockpit unmounts left views, and a remount within the 30 s staleTime serves the cache unless
+// the write invalidated it.
 async function rereadsAfter(
   view: ComponentType<Record<string, unknown>>,
   feed: string,
@@ -177,8 +167,6 @@ describe("the definition view's remedy marks follow the rows they mark", () => {
         tools={{
           [CAMUNDA7_WIDGET_ACTIONS_DATA]: adminActions(),
           camunda7_set_job_retries: () => ({ success: true }),
-          // The seeded definition feed is live: it answers the write's
-          // invalidation at once, with fresh data (a new identity).
           [CAMUNDA7_PROCESS_INCIDENTS_DATA]: () => ({
             ...DEFINITION,
             activities: [{ ...DEFINITION.activities[0], representativeMessage: "fresh summary" }],

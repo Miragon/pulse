@@ -5,7 +5,7 @@ import { QueryGate } from "../query-gate.js"
 import { useT, type T } from "../../messages/use-t.js"
 import { RATE_UP_IS_WORSE, deltaVerdict, type DeltaVerdict } from "../comparison-shared.js"
 
-/** Incidents per 100 starts, one decimal: "3,4" / "3.4" (no %: a rate may pass 100). */
+/** No %: a rate may pass 100. */
 const rate = (value: number | null) => formatNumber(value, { maximumFractionDigits: 1 })
 
 const VERDICT_KEY: Record<DeltaVerdict, string> = {
@@ -15,19 +15,9 @@ const VERDICT_KEY: Record<DeltaVerdict, string> = {
 }
 
 /**
- * The incident rate judged against the period before (U14/U17): a rate on its
- * own is no verdict, so the cell itself carries no tone. Its trend line names
- * the previous period's rate; only a change from the comparisons' threshold
- * on (1 incident per 100 starts) is "worse" (danger arrow) or "better"
- * (success arrow), a smaller one is flat and neutral, and over fewer starts
- * than the comparison floor it reads "not reliable" without a colour.
- *
- * Only with the process held fixed: over several processes the rate is a
- * total over their mix, so it moves when the mix moves while no process
- * changed, and can even invert the per-process truth (Simpson's paradox, the
- * reason every comparison requires a `processDefinitionKey`). An unscoped
- * dashboard names the previous rate as a plain reference: no verdict, no
- * direction, no colour.
+ * U14/U17: a verdict only from the comparisons' threshold on, and only with the
+ * process fixed: over a mix the rate moves with the mix (Simpson's paradox), so
+ * an unscoped dashboard shows the previous rate without a verdict.
  */
 export function incidentRateTrend(
   t: T,
@@ -80,8 +70,7 @@ export function ExecutionPerformanceKpi({
               { label: t("aExecPerf.p95"), value: formatDuration(data.p95DurationMs) },
               {
                 label: t("aExecPerf.incidentRate"),
-                // Incidents per 100 starts: one instance may carry several, so
-                // the rate can pass 100 and reads as a number, not a share.
+                // One instance may carry several incidents, so the rate can pass 100.
                 value: rate(data.incidentRatePct),
                 ...incidentRateTrend(t, data),
               },

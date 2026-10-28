@@ -23,8 +23,7 @@ import { Figure, FigureLegend } from "../figure.js"
 type ActivityRow = AnalyticsDashboardData["activityBreakdown"][number]
 
 /**
- * Why ONE activity of one process is a bottleneck — over the scope of the
- * data on screen (its `engines` and `period` echo), so the follow-up reads
+ * Over the scope of the data on screen (its `engines` and `period` echo), so the follow-up reads
  * exactly the numbers shown.
  */
 export function activityBottleneckHandOff(
@@ -52,10 +51,8 @@ export function activityBottleneckHandOff(
 }
 
 /**
- * The columns by priority (U2): the activity (named, with its id, type and
- * process below), then the sort key right after it, the executions, and the
- * two duration columns, which give way only below 640 px (the 760 px inline
- * view shows every one). The chat hand-off is pinned at the right edge.
+ * Columns by priority (U2); the duration columns give way only below 640 px, so the 760 px inline
+ * view shows every one.
  */
 function columns(t: T): ListTableColumn[] {
   return [
@@ -69,10 +66,8 @@ function columns(t: T): ListTableColumn[] {
 }
 
 /**
- * One row per (process, activity): BPMN ids are only unique within one model,
- * so the same id in two processes is two rows — the second line says which
- * process when the dashboard spans several. The list is the top of the
- * breakdown by total time; its heading says so when it is cut.
+ * BPMN ids are unique only within one model, so the same id in two processes is two rows, the
+ * second line naming the process.
  */
 export function ActivityBottleneckTable({
   data: initialData,

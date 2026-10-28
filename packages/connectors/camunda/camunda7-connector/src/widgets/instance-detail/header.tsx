@@ -24,7 +24,7 @@ export interface InstanceStatus {
   tone: ToneVariant
 }
 
-/** The single source of the instance's status wording + tone (header and KPI strip). */
+/** Shared by header and KPI strip. */
 export function instanceStatus(
   t: T,
   { cancelled, ended, isSuspended }: { cancelled: boolean; ended: boolean; isSuspended: boolean },
@@ -36,17 +36,12 @@ export function instanceStatus(
       : isSuspended
         ? t("instanceDetail.statusSuspended")
         : t("instanceDetail.statusRunning")
-  // Running is a state in progress — info, the same in every view (#322
-  // U14); green would claim "done well", and ended or cancelled is no alarm.
+  // #322 U14: green would claim "done well", and ended or cancelled is no alarm.
   const tone = cancelled || ended ? ("neutral" as const) : isSuspended ? "warning" : "info"
   return { label, tone }
 }
 
-/**
- * Diagnose ONE instance: why the token is stuck, each incident's cause and
- * the single best fix — a plan, never an execution. The business key is the
- * starter's text — quoted.
- */
+/** A plan, never an execution; the business key is quoted. */
 export function diagnoseInstanceHandOff({
   instance,
   engineId,
@@ -80,7 +75,6 @@ export function diagnoseInstanceHandOff({
   }
 }
 
-/** Header — identity, status badge, and the action home (AI diagnose, suspend, cancel). */
 export function InstanceHeader({
   instance,
   processName,
@@ -95,7 +89,6 @@ export function InstanceHeader({
   onRequestCancel,
 }: {
   instance: InstanceDetailData["instance"]
-  /** The process's name (from its diagram) — null without one. */
   processName: string | null
   status: InstanceStatus
   engineId?: string
@@ -104,9 +97,7 @@ export function InstanceHeader({
   isSuspended: boolean
   isActionable: boolean
   isMutatingInstance: boolean
-  /** Omitted when the deployment's toolset has no suspension tool — no button. */
   onRequestSuspendToggle?: () => void
-  /** Omitted when the deployment's toolset has no cancel tool — no button. */
   onRequestCancel?: () => void
 }) {
   const t = useT()
@@ -116,8 +107,7 @@ export function InstanceHeader({
     <WidgetHeader
       size="detail"
       badge={<StatusBadge tone={status.tone}>{status.label}</StatusBadge>}
-      // The instance by its ONE label (#322 U13): its business key, else its
-      // short id — the process it runs on, by name, right under it.
+      // The instance by its ONE label: business key, else short id (#322 U13).
       title={instanceName(instance.id, instance.businessKey)}
       sub={
         <>
@@ -169,7 +159,6 @@ export function InstanceHeader({
   )
 }
 
-/** The KPI strip below the header. */
 export function InstanceKpis({
   status,
   openTaskCount,

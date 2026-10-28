@@ -18,13 +18,8 @@ import { IncidentProcessList } from "./incidents-dashboard/process-list.js"
 import { ProcessInstancesWidget } from "./process-instances/list.js"
 import { ProcessListWidget } from "./process-list.js"
 
-/**
- * Every camunda7 search box is named by what it searches — the words of its
- * visible placeholder (WCAG 2.5.3, label in name) — never by the toolkit
- * FilterBar's generic "Filter". A placeholder is no name: it disappears while
- * you type, and a voice user says the words they see. The chip rows are named
- * by what they filter.
- */
+// WCAG 2.5.3: named by the placeholder's words, never the FilterBar's generic "Filter"; a placeholder
+// vanishes while typing and voice users say the words they see.
 
 afterEach(() => {
   cleanup()
@@ -191,7 +186,6 @@ describe("every search box is named by what it searches", () => {
     )
 
     const box = screen.getByRole("searchbox", { name: search[locale] })
-    // The name is the placeholder's own words, so a voice user can say what they see.
     expect(box.getAttribute("placeholder")).toBe(`${search[locale]}…`)
     if (chips) expect(screen.getByRole("group", { name: chips[locale] })).toBeTruthy()
   })

@@ -112,8 +112,7 @@ describe("hostTokenOverrides", () => {
   })
 
   it("never lets the host set a brand, interaction or status role", () => {
-    // The host's ring/border/danger colours stay unmapped: the focus ring,
-    // the 3:1 field edge, the selection tint and the tones are the theme's.
+    // Focus ring, 3:1 field edge, selection tint and tones stay the theme's.
     const brandRoles = [
       "--primary",
       "--primary-foreground",

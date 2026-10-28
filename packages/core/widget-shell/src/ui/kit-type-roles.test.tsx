@@ -13,13 +13,7 @@ import { ERROR_KINDS } from "./describe-error.js"
 import { ERROR_LABELS } from "./error-labels.js"
 import { hintNeedsNoRetry, viewErrorDescriber } from "./localized-app-view.js"
 
-/**
- * The kit on the CI's type roles (modeler-tool-design §4 as the toolkit's
- * TYPE_SCALE): a section 21/600 (`text-section`), running text 16
- * (`text-body`), dense tables and controls 14 (`text-dense`), captions 13
- * (`text-small`) — nothing smaller. `brand-gates.test.ts` scans the whole
- * kit for sizes off the scale; these pin the role each piece takes.
- */
+/** `brand-gates.test.ts` scans for off-scale sizes; these pin the role each piece takes. */
 
 afterEach(cleanup)
 
@@ -134,8 +128,7 @@ describe("viewErrorDescriber (the view's own failed call, U1)", () => {
 
   it("never promises a retry the view may not offer: those hints stay the toolkit's", () => {
     const describe = viewErrorDescriber("en")
-    // Retry-shaped next steps: only the title, so the toolkit picks its
-    // retry-aware hint (a Retry button, or "ask in the chat" without one).
+    // Retry-shaped next steps: title only, so the toolkit picks its retry-aware hint.
     for (const reason of [
       "engine prod did not respond within 30000 ms (timeout)",
       "[404 InvalidRequestException] Process instance pi-1 does not exist (engine prod)",

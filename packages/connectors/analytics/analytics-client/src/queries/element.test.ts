@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from "vitest"
 import { elementBottleneck } from "./element.js"
 import type { PrometheusClient, PromSample } from "../prometheus.js"
 
-/** Mock Prometheus client that dispatches canned samples by the PromQL it sees. */
 function mockClient() {
   const instant = vi.fn(async (q: string): Promise<PromSample[]> => {
     if (q.includes("activity_type")) {
@@ -27,7 +26,6 @@ function mockClient() {
     if (q.includes("incident_created")) {
       return [{ metric: { activity_id: "A" }, value: 2 }]
     }
-    // counts: activity_ended_total grouped by activity_id only
     return [
       { metric: { activity_id: "A" }, value: 10 },
       { metric: { activity_id: "B" }, value: 5 },
@@ -62,7 +60,6 @@ describe("elementBottleneck", () => {
       avg_wait_sec: null,
       total_wait_sec: null,
     })
-    // B has fewer/shorter executions → ranked below A
     expect(b.activity_id).toBe("B")
     expect(b.incident_count).toBe(0)
     expect(res.suppressedActivities).toBe(0)
@@ -76,7 +73,6 @@ describe("elementBottleneck", () => {
       minBucketSize: 8,
       maxResults: 10,
     })
-    // only A (count 10) clears the threshold; B (count 5) is suppressed
     expect(res.activities.map((r) => r.activity_id)).toEqual(["A"])
     expect(res.suppressedActivities).toBe(1)
   })

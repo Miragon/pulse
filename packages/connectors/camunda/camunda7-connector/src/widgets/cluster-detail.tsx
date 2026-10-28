@@ -41,11 +41,7 @@ import { useT } from "../messages/use-t.js"
 /** Page size — mirrors the server default (`CLUSTER_DETAIL_ROWS`). */
 const PAGE_SIZE = 50
 
-/**
- * Grounding context: the agent knows exactly which failure cluster the
- * operator is inspecting, so "fix this" or "why?" needs no restating of scope.
- * The sample message is engine text — quoted, never inlined.
- */
+/** Grounding context; the sample message is engine text, quoted, never inlined. */
 export function describeCluster(data: ClusterDetailData): ViewContext {
   // The scanned incidents' keys ("(unknown)" dropped) scope only while the
   // scan held the whole cluster.
@@ -76,11 +72,7 @@ export function describeCluster(data: ClusterDetailData): ViewContext {
   }
 }
 
-/**
- * Cluster identity + engine from props (cockpit drill) or the handed-in
- * data (standalone show-tool render) — loadMore() must always carry both,
- * or it would page the caller's default engine instead of the origin engine.
- */
+/** loadMore() must carry the cluster identity and engine, or it would page the caller's default engine. */
 function clusterFeedParams({
   initialData,
   engine,
@@ -98,8 +90,7 @@ function clusterFeedParams({
   const clusterIncidentType = incidentType ?? initialData?.incidentType
   const clusterSignature = messageSignature ?? initialData?.messageSignature ?? undefined
   const feedEngine = engine ?? initialData?.engineId
-  // Unlike the engine-health feed, this feed REQUIRES the cluster identity —
-  // gate the self-fetch on it (the show tool path passes data instead).
+  // Unlike engine-health, this feed REQUIRES the cluster identity; the show tool passes data instead.
   const ready = !!(clusterActivityId && clusterIncidentType)
   const args: Record<string, unknown> = {}
   if (feedEngine) args.engine = feedEngine
@@ -109,10 +100,7 @@ function clusterFeedParams({
   return { clusterActivityId, clusterIncidentType, clusterSignature, feedEngine, ready, args }
 }
 
-/**
- * The cluster's processes as the sub-line names them: by name where a listed
- * row carries one (#322 U13), else by key — in the cluster's own order.
- */
+/** By name where a row carries one (#322 U13), else by key. */
 function clusterProcesses(data: ClusterDetailData, unknown: string): string {
   const names = new Map<string, string>()
   for (const row of data.incidents) {
@@ -121,7 +109,6 @@ function clusterProcesses(data: ClusterDetailData, unknown: string): string {
   return data.processDefinitionKeys.map((key) => names.get(key) ?? key).join(", ") || unknown
 }
 
-/** Header block: failing activity, incident-type badge, and the guarded remediation hand-off. */
 function ClusterHeader({ data, engineId }: { data: ClusterDetailData; engineId: string }) {
   const t = useT()
   const { ask, surface } = useHandOff()
@@ -163,11 +150,7 @@ function ClusterHeader({ data, engineId }: { data: ClusterDetailData; engineId: 
   )
 }
 
-/**
- * KPI row: affected total plus the last-hour / 24h freshness profile — counts
- * only (when it was first seen is a fact of the head's line). A count a
- * capped scan cannot vouch for renders as a lower bound ("≥2,000") or "—".
- */
+/** A count a capped scan cannot vouch for renders as a lower bound ("≥2,000") or "—". */
 function ClusterKpis({ data }: { data: ClusterDetailData }) {
   const t = useT()
   return (
@@ -187,28 +170,17 @@ function ClusterKpis({ data }: { data: ClusterDetailData }) {
   )
 }
 
-/**
- * The list pages over the scanned incidents: when the cluster outruns the
- * scan (its total is unknown, or larger), the footer's total is the scan's
- * share — said so beneath it instead of passing for the cluster's size.
- */
+/** When the cluster outruns the scan, the footer says its total is the scan's share, not the cluster's size. */
 function listCapped(data: ClusterDetailData): boolean {
   return !clusterScanComplete(data)
 }
 
-/**
- * Whether the rows need a process column: only when the cluster spans more
- * than one process — for one, the head's line already names it.
- */
+/** Only a cluster spanning several processes needs the process column. */
 function spansProcesses(data: ClusterDetailData): boolean {
   return data.processDefinitionKeys.length > 1
 }
 
-/**
- * One affected instance (#322 U2, U13): its one label (business key, the
- * UUID a copyable chip), its process by name where the cluster spans several,
- * when the incident came — and the two drills pinned at the row's end.
- */
+/** One affected instance (#322 U2, U13). */
 function IncidentRow({
   row,
   activityName,
@@ -264,13 +236,7 @@ function IncidentRow({
   )
 }
 
-/**
- * Drill-in for ONE failure cluster — the middle layer between the engine
- * overview's cluster list and the single-incident detail. Shows the affected
- * instances business-key-first (the operator's "order number"), the full
- * sample message, and the time profile; remediation stays a guarded handoff
- * to the agent (same prompt as the overview's cluster hand-off).
- */
+/** Drill-in for ONE failure cluster, between the engine overview's cluster list and the single-incident detail. */
 export function ClusterDetailView({
   data: initialData = null,
   engine,
@@ -287,9 +253,7 @@ export function ClusterDetailView({
   const t = useT()
   const { clusterActivityId, clusterIncidentType, clusterSignature, feedEngine, ready, args } =
     clusterFeedParams({ initialData, engine, activityId, incidentType, messageSignature })
-  // The business-key search is SERVER-side (the feed intersects with a
-  // /process-instance lookup) so it covers the whole cluster, not just the
-  // loaded page.
+  // SERVER-side, so the search covers the whole cluster, not just the loaded page.
   const { paged, search, setSearch, interacted } = usePagedListView<
     ClusterIncidentRow,
     ClusterDetailData
@@ -332,9 +296,7 @@ export function ClusterDetailView({
     <DetailPage
       header={<ClusterHeader data={data} engineId={engineId} />}
       kpi={<ClusterKpis data={data} />}
-      /* Deliberately a single content block, no tabs: splitting the failure
-         message from the affected instances would separate the message from
-         its context. */
+      /* A single content block, no tabs: the failure message stays beside its instances. */
       content={
         <>
           {data.representativeMessage && (
@@ -415,11 +377,6 @@ function ClusterModelContext({ data }: { data: ClusterDetailData }) {
   return <HostModelContext content={context(describeCluster(data))}>{null}</HostModelContext>
 }
 
-/**
- * Shell-owning entry point registered in the widget registry. The
- * {@link DetailPage} inside {@link ClusterDetailView} brings the WidgetShell
- * (nesting-aware under the cockpit app), so this is a plain delegation.
- */
 export function ClusterDetailWidget({
   data,
   engine,

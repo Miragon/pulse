@@ -17,7 +17,6 @@ const bridge: HostBridge = {
   getWidgetData: () => null,
 }
 
-/** The button posts through the host bridge; a minimal one is enough to render it. */
 const render = (ui: ReactNode) =>
   rtlRender(<HostBridgeProvider bridge={bridge}>{ui}</HostBridgeProvider>)
 
@@ -28,7 +27,6 @@ const prompt = askAiPrompt({
   surface: { has: () => true },
 })
 
-/** lucide-react's class for an icon component: `lucide-` + its name in kebab case. */
 const lucideClass = (name: string) =>
   `lucide-${name.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase()}`
 
@@ -67,8 +65,7 @@ describe("HandOffButton: one icon and one verb per function, in every module", (
     expect(new Set(icons).size).toBe(icons.length)
   })
 
-  // The wording the owner decided (#322 U5): a chat hand-off never looks like
-  // an engine action, and the shared functions read the same in every module.
+  // Owner-decided wording (#322 U5): a hand-off never looks like an engine action.
   it.each([
     ["assess", "Im Chat bewerten", "Assess in chat"],
     ["findCause", "Ursache im Chat klären", "Find cause in chat"],

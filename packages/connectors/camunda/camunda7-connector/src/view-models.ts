@@ -1,9 +1,4 @@
-/**
- * View-model contracts shared between the `src/data` builders, the widget
- * tools, and the React widgets (`src/widgets`). These shapes describe what the
- * widgets render — they are not engine API types (those live in
- * `@miragon/pulse-camunda7-client/types`).
- */
+/** What the widgets render, not engine API types (those live in `@miragon/pulse-camunda7-client/types`). */
 import type { IncidentsDashboardFilters, JobsFilters } from "./feed-contracts.js"
 
 export interface IncidentStat {
@@ -11,10 +6,7 @@ export interface IncidentStat {
   incidentCount: number
 }
 
-/**
- * One process definition KEY of the cockpit landscape: every count spans all
- * deployed versions (old versions keep running after a redeploy).
- */
+/** Counts span all versions: old versions keep running after a redeploy. */
 export interface DefinitionStat {
   /** Id of the latest version — the row's link target. */
   id: string
@@ -74,10 +66,7 @@ export interface TaskFormSchema {
 }
 
 export interface OpenUserTask extends TaskData {
-  /**
-   * Null when the server could not build it (the BPMN was unreadable) — the
-   * form then loads it through `camunda7_get_task_form`, never as "no form".
-   */
+  /** Null when the BPMN was unreadable: the form loads via `camunda7_get_task_form`, never as "no form". */
   formSchema: TaskFormSchema | null
 }
 
@@ -114,8 +103,7 @@ export interface JobPanelData {
   totalCount: number
   failedCount: number
   jobs: Job[]
-  /** Filters this page was built with — standalone renders get only `data`,
-   *  so loadMore/search must rebuild the feed args from this echo. */
+  /** Standalone renders get only `data`, so loadMore/search rebuild the feed args from this echo. */
   filters: JobsFilters
   engineId?: string
 }
@@ -127,11 +115,7 @@ export interface ActivityStat {
 }
 
 export interface BpmnViewerData {
-  /**
-   * The deployed version whose diagram the view draws — null when it could not
-   * be read (enrichment). The XML itself is not in the payload: `BpmnDiagram`
-   * reads it by this id from `camunda7_bpmn_xml_data`, once per definition.
-   */
+  /** Null when unreadable; `BpmnDiagram` reads the XML by this id from `camunda7_bpmn_xml_data`. */
   diagramDefinitionId: string | null
   processInstanceId: string | null
   /** The instance's business key — null for a definition target or an instance without one. */
@@ -143,11 +127,7 @@ export interface BpmnViewerData {
   incidentActivityIds: string[]
   /** Per-activity token and failed-job counts, scoped by {@link statsScope}. */
   activityStats: ActivityStat[]
-  /**
-   * Whose counts `activityStats` are: `"instance"` — this instance's own
-   * tokens and failed jobs; `"definition"` — every running instance of the
-   * rendered definition version.
-   */
+  /** `"definition"`: every running instance of the rendered version. */
   statsScope: "instance" | "definition"
   engineId?: string
 }
@@ -166,10 +146,7 @@ export interface ProcessDefinition {
 export interface ProcessListData {
   definitions: ProcessDefinition[]
   totalCount: number
-  /** Filters this page was built with — standalone renders get only `data`,
-   *  so loadMore/search must rebuild the feed args from this echo (a page-2
-   *  fetch without `latestVersion` would mix all versions into a latest-only
-   *  page 0). */
+  /** Echo for loadMore/search: a page 2 without `latestVersion` would mix all versions into a latest-only list. */
   filters: {
     processDefinitionKey?: string
     nameLike?: string
@@ -181,16 +158,12 @@ export interface ProcessListData {
 export interface ProcessInstanceRow {
   id: string
   businessKey: string | null
-  /** Definition key this instance runs on — the engine-wide list renders it
-   *  as its own drillable column. Resolved, never a bare generated definition
-   *  id (long keys) parsed as a key: null when it cannot be resolved. */
+  /** Resolved, never parsed from a generated definition id (long keys): null when unresolvable. */
   processDefinitionKey: string | null
   /** The name of the definition this instance runs on — null without one or unread. */
   processDefinitionName: string | null
-  /** Definition version this instance runs on (parsed from definitionId). */
   version: number | null
   suspended: boolean
-  /** Whether this instance currently has at least one open incident. */
   hasIncident: boolean
 }
 
@@ -200,14 +173,7 @@ export interface CockpitEngineInfo {
   environment: string
 }
 
-/**
- * Bootstrap payload for the consolidated cockpit app (`camunda7_open_cockpit`).
- * Carries the resolved engine (the caller's saved default or the only
- * configured engine) plus the full engine list so the app can offer a
- * switcher / picker. The app threads the chosen `engineId` into every nested
- * tool call via the `engine` override, so client-side navigation works
- * regardless of the saved default.
- */
+/** The app threads the chosen `engineId` into every nested call, so navigation ignores the saved default. */
 export interface CockpitAppData {
   /** Resolved engine id, or null when the user must pick (multiple engines, none selected). */
   engineId: string | null
@@ -220,7 +186,6 @@ export interface ProcessInstancesData {
   processDefinitionName: string | null
   /** Total matching instances on the engine (may exceed `instances.length`). */
   totalCount: number
-  /** Instances actually returned (capped at the tool's maxResults). */
   returnedCount: number
   /** Of `totalCount` (the whole filtered set, not the page): instances with an open incident. */
   withIncidentCount: number
@@ -244,13 +209,7 @@ export interface VariableValue {
   valueInfo?: Record<string, unknown>
 }
 
-/**
- * What clears an incident — the engine contract's `incidentRecovery`
- * (`@miragon/pulse-camunda7-client`): the built-in types are retried
- * (`camunda7_set_job_retries` / `camunda7_set_external_task_retries`), only
- * custom ones resolved; `none` = propagated from a called instance, cleared by
- * retrying its root cause.
- */
+/** The engine contract's `incidentRecovery`; `none`: propagated from a called instance, cleared at its root cause. */
 export type IncidentRecovery =
   | { action: "resolve" }
   | { action: "retry-job"; jobId: string }
@@ -265,14 +224,9 @@ export interface IncidentInstance {
   incidentType: string
   incidentMessage: string | null
   incidentTimestamp: string
-  /**
-   * Always set by the feeds — optional because a result stored before it
-   * existed reaches the current view as is (a reopened conversation). Read it
-   * through `recoveryOf` (`widgets/lib/incident-recovery.ts`).
-   */
+  /** Optional: an older stored result reaches the view as is (reopened conversation). Read via `recoveryOf`. */
   recovery?: IncidentRecovery
-  /** Pre-built jump-out URL into the Cockpit instance page. Null when no
-   *  cockpitUrl is configured or scheme validation rejected the input. */
+  /** Null without cockpitUrl or when scheme validation rejected it. */
   cockpitInstanceUrl: string | null
 }
 
@@ -294,21 +248,14 @@ export interface InstanceDetailData {
   }
   /** The process's name, from the instance's diagram — null without one or unreadable. */
   processDefinitionName: string | null
-  /**
-   * The key the instance's definition id names, null for a bare generated id
-   * (long keys) — the timeline rows' analytics hand-offs, omitted when null.
-   */
+  /** Null for a generated id (long keys); the timeline's analytics hand-offs are omitted then. */
   definitionKey: string | null
   activityTree: ActivityTree | null
   variables: Record<string, VariableValue>
   /** The instance's open incidents (capped list; the total is `incidentCount`). */
   incidents: IncidentInstance[]
   incidentCount: number
-  /**
-   * The deployed version whose diagram the view draws — null when it could not
-   * be read (enrichment). The XML itself is not in the payload: `BpmnDiagram`
-   * reads it by this id from `camunda7_bpmn_xml_data`, once per definition.
-   */
+  /** Null when unreadable; `BpmnDiagram` reads the XML by this id from `camunda7_bpmn_xml_data`. */
   diagramDefinitionId: string | null
   activeActivityIds: string[]
   incidentActivityIds: string[]
@@ -369,13 +316,7 @@ export interface HistoryTimelineData {
   engineId?: string
 }
 
-// === Overview (camunda7_show_incidents_dashboard)
-
-/**
- * One activity with open incidents, as the incident views group them. The
- * timestamps and the message come from the newest-first recency scan — facts
- * it cannot vouch for are null (rendered "—"), never a guess.
- */
+/** From the newest-first recency scan: facts it cannot vouch for are null, never a guess. */
 export interface IncidentActivityFacts {
   activityId: string
   /** Display name from the diagram — null without one (or for an activity only older versions have). */
@@ -388,10 +329,6 @@ export interface IncidentActivityFacts {
   latestIncident: string | null
 }
 
-/**
- * One activity of a dashboard card's breakdown — drawn from the recency scan,
- * so it covers the card's `scannedIncidentCount` incidents.
- */
 export interface IncidentsDashboardActivity extends IncidentActivityFacts {
   /** This activity's incidents within the scan (exact when the card is fully scanned). */
   scannedIncidentCount: number
@@ -419,12 +356,7 @@ export interface IncidentsDashboardProcess {
   activities: IncidentsDashboardActivity[]
 }
 
-/**
- * A view that links into the engine product's own web app. `engineVendor` is
- * the product's display name (`provider.branding.displayName`: "CIB seven",
- * "Camunda 7", "Operaton") — it names that link ("In CIB seven öffnen"),
- * never this app's own "Cockpit".
- */
+/** `provider.branding.displayName`; names the link into the engine's web app, never this app's "Cockpit". */
 export type EngineVendorInfo = { engineVendor: string }
 
 export interface IncidentsDashboardData extends EngineVendorInfo {
@@ -435,9 +367,7 @@ export interface IncidentsDashboardData extends EngineVendorInfo {
   last24hCount: number
   latestIncident: string | null
   processes: IncidentsDashboardProcess[]
-  /** Filters every count above was built with — standalone renders get only
-   *  `data` (and never refetch it), so the hand-offs read the scope from this
-   *  echo (a filtered total is never the engine's open incidents). */
+  /** Standalone renders never refetch, so hand-offs read the scope here: a filtered total is not the engine's. */
   filters: IncidentsDashboardFilters
   engineId?: string
 }
@@ -448,9 +378,6 @@ export interface IncidentsByProcess {
   incidentCount: number
 }
 
-// === Unified definition view (camunda7_show_process_detail / camunda7_show_process_incidents)
-
-/** One activity group of the definition view. */
 export interface ProcessIncidentsActivity extends IncidentActivityFacts {
   /** Exact open incidents of this activity over every version of the key. */
   incidentCount: number
@@ -467,21 +394,12 @@ export interface ActivityIncidentsData {
   engineId: string
 }
 
-/**
- * The unified definition view of ONE process definition KEY. Every count
- * spans all deployed versions; only the diagram is one version
- * (`diagramVersion`, the latest over every tenant).
- */
+/** Counts span all versions; only the diagram is one (`diagramVersion`, latest over every tenant). */
 export interface ProcessIncidentsData extends EngineVendorInfo {
   processDefinitionKey: string
   processDefinitionName: string | null
-  /** Version of the diagram — the latest deployed; the counts cover every version. */
   diagramVersion: number
-  /**
-   * The deployed version whose diagram the view draws — null when it could not
-   * be read (enrichment). The XML itself is not in the payload: `BpmnDiagram`
-   * reads it by this id from `camunda7_bpmn_xml_data`, once per definition.
-   */
+  /** Null when unreadable; `BpmnDiagram` reads the XML by this id from `camunda7_bpmn_xml_data`. */
   diagramDefinitionId: string | null
   cockpitUrl: string | null
   runningInstances: number
@@ -491,36 +409,25 @@ export interface ProcessIncidentsData extends EngineVendorInfo {
   failedJobs: number
   /** Activities in the diagram — null when the diagram is unavailable. */
   totalActivityCount: number | null
-  /**
-   * Activities OF THE DIAGRAM with open incidents — the numerator of
-   * `totalActivityCount`; `activities` may hold more (activities only older
-   * versions have). Null when the diagram is unavailable.
-   */
+  /** Numerator of `totalActivityCount`; `activities` may hold more (only older versions have them). */
   affectedDiagramActivityCount: number | null
   latestIncident: string | null
   activities: ProcessIncidentsActivity[]
-  /** Other process definitions with open incidents — surfaced in the empty
-   *  state so the operator can jump to where the incidents actually are.
-   *  Read only for that empty state (the key has no open incidents); null
-   *  when not read or unreadable. */
+  /** Read only for the empty state, to jump to where incidents are; null when not read. */
   siblingsWithIncidents: IncidentsByProcess[] | null
   engineId?: string
 }
-
-// === Single-incident detail (camunda7_show_incident_detail)
 
 export interface IncidentDetailJob {
   id: string
   retries: number
   exceptionMessage: string | null
-  /** Full stacktrace from `/job/{id}/stacktrace`. May be null if the engine
-   *  rejected the request or the incident is not job-backed. */
+  /** Null when the engine rejected it or the incident is not job-backed. */
   stacktrace: string | null
   dueDate: string | null
 }
 
 export interface IncidentDetailData extends EngineVendorInfo {
-  // Header
   incidentId: string
   incidentType: string
   incidentMessage: string | null
@@ -528,33 +435,22 @@ export interface IncidentDetailData extends EngineVendorInfo {
   activityId: string
   activityName: string | null
 
-  // Process / instance context
   processDefinitionKey: string
   processDefinitionId: string
   processDefinitionName: string | null
   processDefinitionVersion: number | null
   processInstanceId: string
   businessKey: string | null
-  /** Direct deep-link to the instance in the Cockpit (null if no cockpit URL configured). */
   cockpitInstanceUrl: string | null
 
-  // BPMN
-  /**
-   * The deployed version whose diagram the view draws — null when it could not
-   * be read (enrichment). The XML itself is not in the payload: `BpmnDiagram`
-   * reads it by this id from `camunda7_bpmn_xml_data`, once per definition.
-   */
+  /** Null when unreadable; `BpmnDiagram` reads the XML by this id from `camunda7_bpmn_xml_data`. */
   diagramDefinitionId: string | null
 
-  // Failure tab — null when the incident has no associated job (e.g. external-task incidents)
+  // Null for external-task incidents
   job: IncidentDetailJob | null
-  /**
-   * What clears it — retry for the built-in types, resolve for custom ones.
-   * Optional like {@link IncidentInstance.recovery}: read it through `recoveryOf`.
-   */
+  /** Optional like {@link IncidentInstance.recovery}: read it through `recoveryOf`. */
   recovery?: IncidentRecovery
 
-  // Instance tab — same shape as InstanceDetailData
   instance: {
     id: string
     definitionId: string
@@ -565,14 +461,11 @@ export interface IncidentDetailData extends EngineVendorInfo {
   activityTree: ActivityTree | null
   variables: Record<string, VariableValue>
 
-  /** Total historic activity instances (KPI) — the History tab pages the rows
-   *  itself via `camunda7_query_historic_activity_instances`. Null when the
-   *  history API is unavailable (history level "none"). */
+  /** Null on history level "none"; the History tab pages rows itself. */
   historyTotalCount: number | null
 
   engineId?: string
 }
 
-// The engine-health and cluster views' contracts live in their own module;
-// re-exported here so every consumer keeps one import path.
+// Re-exported so every consumer keeps one import path.
 export type * from "./view-models.health.js"

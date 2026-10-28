@@ -9,13 +9,6 @@ import {
   processNameIn,
 } from "./definition-info.js"
 
-/**
- * Names before ids (#322 U13): the display names a view shows instead of
- * BPMN and definition ids come from the diagrams of the versions behind it
- * (`fetchNamesByDefinition`) or from one definition read for a page
- * (`fetchDefinitionsById`) — enrichment the builders degrade to null.
- */
-
 const LONG_KEY = "customerOnboardingApprovalProcess"
 const UUID = "6f1c2a9e-0b7d-4c33-9a51-3d2e8f40b7aa"
 
@@ -58,12 +51,8 @@ describe("fetchNamesByDefinition", () => {
   })
 })
 
-/**
- * What the Camunda Modeler writes (#322 U13, one rule with analytics): a named
- * pool around an unnamed process, a line break as `&#10;`, `&` as `&#38;`.
- * camunda7 used to show these as `miraveloLeasing` and "Rechnung&#10;prüfen"
- * where analytics showed "Miravelo - Bike Leasing" and "Rechnung prüfen".
- */
+// What the Modeler writes (#322 U13): a named pool around an unnamed process,
+// `&#10;` and `&#38;`; camunda7 used to show them literally.
 const MODELER_XML = `<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
   <bpmn:collaboration id="Collaboration_1">
     <bpmn:participant id="Pool" name="Miravelo - Bike Leasing" processRef="miraveloLeasing" />

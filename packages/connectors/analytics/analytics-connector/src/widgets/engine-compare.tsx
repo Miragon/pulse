@@ -18,11 +18,7 @@ import { useHandOff, type HandOff } from "./hand-off.js"
 
 export type EngineCompareData = EngineCompareResult | null
 
-/**
- * Interpret ONE process on two engines. The process is held fixed, so a real
- * gap is the engine's (or its environment's) — confirmed by the comparison,
- * then by each engine's live snapshot.
- */
+/** The process is held fixed, so a real gap is the engine's (or its environment's). */
 export function engineCompareHandOff(data: EngineCompareResult): HandOff {
   return {
     intent: "askAi.engineCompare",

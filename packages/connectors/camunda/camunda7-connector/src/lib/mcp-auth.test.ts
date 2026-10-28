@@ -2,11 +2,7 @@ import { describe, expect, it } from "vitest"
 import { runWithMcpRequestInfo } from "@miragon/pulse-widget-shell/server"
 import { resolveMcpBearerToken } from "./mcp-auth.js"
 
-/**
- * [[resolveMcpBearerToken]] reads the raw `Authorization` header value off the
- * repo-owned ambient request info — `runWithMcpRequestInfo` is that store's
- * test seam (mirrors mcp-use 1.x `runWithContext`).
- */
+// `runWithMcpRequestInfo` is the ambient store's test seam.
 function resolveUnder(authorization?: string): string | undefined {
   return runWithMcpRequestInfo(authorization ? { authorization } : {}, () =>
     resolveMcpBearerToken(),

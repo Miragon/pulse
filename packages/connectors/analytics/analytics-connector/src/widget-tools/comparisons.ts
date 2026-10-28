@@ -20,21 +20,11 @@ import {
   type AnalyticsWidgetToolsContext,
 } from "./shared.js"
 
-/**
- * The comparison family plus the cross-engine landscape they hang off.
- *
- * The three compare views answer "did this get worse?" along one axis at a
- * time — across a deployment (cluster), across two versions of a process
- * (version), across two engines running the SAME process (engine). The
- * landscape is deliberately not a fourth comparison: engines host different
- * process mixes, so it reports what runs where plus mix-independent signals
- * and names the definitions for which an engine comparison actually holds.
- */
+/** The landscape is no fourth comparison: engines host different process mixes. */
 export function registerComparisonWidgetTools(ctx: AnalyticsWidgetToolsContext) {
   const { server, ch, engineScope, profileStore } = ctx
   const namesFor = ctx.namesFor ?? NO_NAMES
 
-  // --- Cluster Compare (Pre/Post deployment diff) ---
   server.tool(
     {
       name: "analytics_show_cluster_compare",
@@ -61,8 +51,7 @@ export function registerComparisonWidgetTools(ctx: AnalyticsWidgetToolsContext) 
         app: "analytics",
         dataType: "analytics:clusterCompare",
         data,
-        // The view title in the language the profile names (the widget heading's
-        // own key); none with "system", where the heading names the view.
+        // None with "system": the widget heading names the view.
         title: title("aClusterCompare.title"),
         summary: t("aSum.clusterCompare", {
           scope: data.processDefinitionKey
@@ -80,7 +69,6 @@ export function registerComparisonWidgetTools(ctx: AnalyticsWidgetToolsContext) 
     }),
   )
 
-  // --- Version Compare (v1 vs v2 of one process) ---
   server.tool(
     {
       name: "analytics_show_version_compare",
@@ -121,7 +109,6 @@ export function registerComparisonWidgetTools(ctx: AnalyticsWidgetToolsContext) 
     }),
   )
 
-  // --- Engine Compare (ONE process, engine A vs engine B) ---
   server.tool(
     {
       name: "analytics_show_engine_compare",
@@ -163,7 +150,7 @@ export function registerComparisonWidgetTools(ctx: AnalyticsWidgetToolsContext) 
     }),
   )
 
-  // --- Engine Landscape (cross-engine overview, NOT an engine ranking) ---
+  // The landscape is an overview, NOT an engine ranking.
   server.tool(
     {
       name: "analytics_show_engine_landscape",

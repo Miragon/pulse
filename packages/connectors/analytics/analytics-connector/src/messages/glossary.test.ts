@@ -17,18 +17,7 @@ import { enServer } from "./en.server.js"
 import { enSweep } from "./en.sweep.js"
 import { GLOSSARY } from "./glossary.js"
 
-/**
- * One term, one word (GLOSSARY.md): no catalog uses a synonym the glossary
- * rules out — "nicht belastbar", never "unzureichendes Signal"; "Zeitraum",
- * never "Fenster". The terms analytics' views share with camunda7's (its
- * landscape sits inside camunda7's cross-engine cockpit) are the kit's
- * `PRODUCT_GLOSSARY`: "Incident", never "Vorfall"; "Jobs ohne Versuche",
- * never "Fehlgeschlagene Jobs" or "tote Jobs"; "bereitgestellt", never
- * "deployt". camunda7 runs the same list over its catalogs. A counted entry
- * is rendered with 1 and 2, so both forms are checked.
- */
-
-/** Every entry as text: strings as they are, counted entries for 1 and for 2. */
+/** Counted entries render for 1 and for 2, so both forms are checked. */
 function texts(catalog: MessageCatalog): [key: string, text: string][] {
   return Object.entries(catalog).flatMap(([key, message]): [string, string][] => {
     if (typeof message === "string") return [[key, message]]
@@ -98,11 +87,7 @@ describe("the catalogs use the glossary's words", () => {
   })
 })
 
-/**
- * The hand-off buttons' labels and icons are the kit's `HandOffButton`
- * vocabulary (one per function, the same as camunda7's). The landscape's
- * per-row title names its process and must say where the work happens too.
- */
+// The landscape's per-row title names its process, so it must say where the work happens too.
 describe("every hand-off title says it goes to the chat", () => {
   it.each([
     ["de", deSweep],

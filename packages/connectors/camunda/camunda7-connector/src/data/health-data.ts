@@ -31,16 +31,9 @@ import {
 } from "./definition-info.js"
 import { countOf, DAY_MS, rowsOf } from "./engine-reads.js"
 
-/**
- * Deterministic thresholds for the traffic-light verdict. Named and
- * deployment-tunable (via the plugin config / `CAMUNDA_HEALTH_*` env vars) so
- * the verdict is explainable per installation — the AI judgment lives in the
- * "ask the AI" handoff, not in these numbers.
- */
+/** Deployment-tunable (`CAMUNDA_HEALTH_*`) so the verdict is explainable per installation. */
 export interface EngineHealthThresholds {
-  /** Total open incidents at or above which the verdict turns "critical". */
   criticalIncidents: number
-  /** Single-cluster size at or above which the verdict turns "critical". */
   criticalClusterSize: number
 }
 
@@ -49,31 +42,25 @@ export const DEFAULT_HEALTH_THRESHOLDS: EngineHealthThresholds = {
   criticalClusterSize: 25,
 }
 
-/** How many incident clusters the overview surfaces (the long tail is one click away). */
 const MAX_CLUSTERS = 6
 
 interface ClusterAcc {
   activityId: string
   incidentType: string
   signature: string
-  /** The cluster's incidents within the scan. */
   count: number
-  /** The cluster's scanned incidents since now − 24h. */
   last24h: number
-  /** processDefinitionKey -> incident count, to rank affected definitions. */
   keys: Map<string, number>
   sampleMessage: string | null
   sampleIncidentId: string
-  /** The sample incident's definition version — whose diagram names the activity. */
+  /** Whose diagram names the activity. */
   sampleDefinitionId: string | null
   latest: string | null
 }
 
 /**
- * The verdict rule in words — stated in the tool description and carried in
- * every payload (`statusRule`), so no reader mistakes this incident-count
- * verdict for analytics_engine_health's alert-based one: the two judge
- * different data by different rules and may disagree for the same engine.
+ * Carried in every payload so no reader mistakes this incident-count verdict for
+ * analytics_engine_health's alert-based one; the two may disagree.
  */
 export function healthVerdictRule(t: EngineHealthThresholds): string {
   return (
@@ -102,8 +89,7 @@ interface IncidentFacts {
   activityId: string
   incidentType: string
   signature: string
-  /** Cluster by activity + type + failure-message signature: same activity,
-   * same type, different exception = different root cause = its own cluster. */
+  /** Same activity and type but a different exception is a different root cause. */
   clusterKey: string
   defKey: string
   ts: string
@@ -111,10 +97,8 @@ interface IncidentFacts {
 }
 
 /**
- * Recency and ordering compare instants, never strings: the engine emits
- * timestamps with its local UTC offset (e.g. `…+0200`), which neither order
- * against a Zulu cutoff nor against each other across a DST change
- * (`engineDateMillis` / `latestEngineDate`, the engine contract's read side).
+ * Compare instants, never strings: engine timestamps carry its local UTC offset
+ * (`…+0200`), which orders neither against a Zulu cutoff nor across a DST change.
  */
 function deriveIncidentFacts(
   inc: IncidentLike,
@@ -138,7 +122,6 @@ function deriveIncidentFacts(
   }
 }
 
-/** One pass over the incident scan: cluster by root-cause key, collect the affected activities. */
 function clusterIncidents(
   incidents: IncidentLike[],
   cutoffMs: number,
@@ -177,14 +160,9 @@ function clusterIncidents(
 }
 
 /**
- * The top clusters, ranked by their scanned share. Their counts are exact
- * only as far as the scan reaches: the total when it read every incident,
- * the 24h count when it reaches back past the cutoff — null otherwise. The
- * names are display enrichment: the activity's from the diagram of the
- * sample incident's version (`names`, one read per version), the process's
- * from the statistics the verdict already read, else (a Modeler pool around
- * an unnamed process) from that same diagram — null when unknown, the id
- * then stands in.
+ * Counts are exact only as far as the scan reaches: the total when it read
+ * everything, the 24h count when it reaches past the cutoff, else null.
+ * Names are enrichment; the id stands in when unknown.
  */
 function toClusterList(
   ranked: ClusterAcc[],
@@ -215,18 +193,11 @@ function toClusterList(
   })
 }
 
-/** The clusters the overview shows: the largest scanned shares, at most {@link MAX_CLUSTERS}. */
 function topClusters(byCluster: Map<string, ClusterAcc>): ClusterAcc[] {
   return [...byCluster.values()].sort((a, b) => b.count - a.count).slice(0, MAX_CLUSTERS)
 }
 
-/**
- * Engine-wide health verdict for the AI-first cockpit overview. Purely
- * deterministic: it counts running instances + open incidents, then clusters
- * incidents cross-process by `(activityId, incidentType)` — the root-cause unit
- * a support operator acts on. No LLM runs here; the widget hands each cluster to
- * the host agent on demand for the plain-language cause + remediation.
- */
+/** Deterministic, no LLM: the widget hands each cluster to the host agent on demand. */
 export async function buildEngineHealthData(
   client: Client,
   engineId: string,
@@ -237,13 +208,10 @@ export async function buildEngineHealthData(
   const dayAgoParam = toEngineDate(new Date(startMs - DAY_MS))
   const hourAgoParam = toEngineDate(new Date(startMs - HOUR_MS))
 
-  // Deliberately NO .catch(() => []) on the verdict inputs: a down or
-  // unauthorized engine must surface as a tool error (via the withToolErrors
-  // wrapper), never as a confident "ok, no open incidents" verdict. The
-  // two throughput counts are OPTIONAL enrichment — history can be disabled
-  // (history level "none") on an otherwise healthy engine, so they degrade to
-  // null instead of failing the whole verdict. Every total is a `/count` or
-  // the statistics — the capped scan only feeds the clusters.
+  // Deliberately NO .catch(() => []) on the verdict inputs: a down engine must
+  // be a tool error, never a confident "ok" verdict. The throughput counts are
+  // optional, since history level "none" is a healthy engine. Totals come from
+  // `/count` or statistics; the capped scan only feeds the clusters.
   const count = (query: { incidentTimestampAfter?: string }) =>
     getIncidentsCount({ client, query }).then(countOf)
   const [
@@ -273,24 +241,19 @@ export async function buildEngineHealthData(
 
   const nowMs = Date.now()
 
-  // Per-KEY definition statistics: running instances over every version, the
-  // deployed keys, and the keys carrying incidents — exact, unlike the scan.
   const keyStats = [...statsByKey.values()]
   const runningInstances = keyStats.reduce((sum, k) => sum + k.instances, 0)
   const affectedDefinitions = keyStats.filter((k) => k.incidentCount > 0).length
 
   const cutoffMs = nowMs - DAY_MS
   const coverage = scanCoverage(incidents)
-  // Rows join their key through the statistics — a bare generated definition
-  // id (long keys) carries no parseable key.
+  // A bare generated definition id (long keys) carries no parseable key.
   const { byCluster, activitySet } = clusterIncidents(
     incidents,
     cutoffMs,
     definitionKeyResolver(statsByKey),
   )
   const ranked = topClusters(byCluster)
-  // Display names of the top clusters' activities — enrichment, one diagram
-  // read per version behind them (a failed read leaves the id on screen).
   const names = await fetchNamesByDefinition(
     client,
     ranked.map((c) => c.sampleDefinitionId),
@@ -299,12 +262,9 @@ export async function buildEngineHealthData(
   // The affected activities are exact only when the scan read every incident.
   const affectedActivities = coverage.complete ? activitySet.size : null
 
-  // The cluster rule judges the top cluster's SCANNED share — a lower bound,
-  // so it never raises a false "critical"; a capped scan means at least
-  // CLUSTER_SCAN_LIMIT open incidents, which the total rule judges exactly.
-  // The verdict travels as data — status + the counts below — and each
-  // reader words it: the widget in the view's locale, the show tool's model
-  // summary from its catalog (#322 U3). No sentence is built here.
+  // The top cluster's SCANNED share is a lower bound, so it never raises a false
+  // "critical"; a capped scan means at least CLUSTER_SCAN_LIMIT incidents, which
+  // the total rule judges. The verdict travels as data; each reader words it.
   const status = statusOf(totalIncidents, clusters[0]?.scannedIncidentCount ?? 0, thresholds)
 
   return {

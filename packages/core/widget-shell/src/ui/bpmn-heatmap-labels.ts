@@ -1,10 +1,4 @@
-/**
- * All user-facing strings of the BPMN heatmap — the shell carries no module
- * i18n, so callers (analytics-connector / camunda7-connector) inject
- * `t()`-resolved values. Every field is optional; the English defaults keep
- * the component usable on its own (and run through the kit's catalog text
- * test).
- */
+/** The shell carries no module i18n, so callers inject `t()`-resolved values; the English defaults keep the component usable alone. */
 export interface BpmnHeatmapLabels {
   title?: string
   window?: string
@@ -14,26 +8,15 @@ export interface BpmnHeatmapLabels {
   durationLegend?: string
   noData?: string
   noHeat?: string
-  /**
-   * Shown when the payload carries no diagram. The kit does not know why (the
-   * caller does), so its default names no cause.
-   */
+  /** The kit does not know why there is no diagram, so its default names no cause. */
   bpmnUnavailable?: string
   less?: string
   more?: string
   diagramAriaLabel?: string
-  /** Headline of the import-error alert: what happened, one line. */
   errorTitle?: string
-  /**
-   * Next step under the import error: what the user can do. No default, so a
-   * caller without a localized hint shows no English sentence in its view.
-   */
+  /** No default, so a caller without a localized hint shows no English sentence. */
   errorHint?: string
-  /**
-   * The values table under the diagram (summary, column heads) and the
-   * frequency/duration switch's group name. Default: the kit's en/de words
-   * (`kitLabels`), so they need no catalog entry.
-   */
+  /** Default: the kit's en/de words (`kitLabels`). */
   valuesTable?: string
   elementColumn?: string
   valueColumn?: string

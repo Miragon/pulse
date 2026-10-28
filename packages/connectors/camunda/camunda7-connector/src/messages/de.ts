@@ -1,14 +1,7 @@
 import type { MessageCatalog } from "@miragon/mcp-toolkit-core"
 import { countOf } from "./plural.js"
 
-/**
- * German message catalog. Missing keys would fall back to {@link en}, so
- * `catalog-text.test.ts` holds both to the same key set. Folgt brand-tone:
- * du, aktiv, kein Gedankenstrich als Verbinder; die Begriffe stehen in
- * GLOSSARY.md.
- */
 export const de: MessageCatalog = {
-  // ── Cockpit shell ──────────────────────────────────────────────────────────
   "cockpit.crumb.processList": "Alle Prozesse",
   "cockpit.section.overview": "Übersicht",
   "cockpit.section.incidents": "Incidents",
@@ -54,7 +47,6 @@ export const de: MessageCatalog = {
   "cockpit.engineGone": ({ engineId }) =>
     `Engine ${String(engineId)} ist nicht mehr in deiner Engine-Liste.`,
 
-  // ── Profil-/Einstellungs-Panel ──────────────────────────────────────────────
   "profile.heading": "Engines und Dashboards",
   "profile.subtitle":
     "Aus welchen Engines du wählst und welche Dashboards zuerst kommen, in jedem Chat.",
@@ -109,7 +101,6 @@ export const de: MessageCatalog = {
   "profile.summary.defaultDashboard": ({ id }) =>
     `, Standard-Dashboard „${String(id)}" (öffnen mit load-dashboard)`,
 
-  // ── Ansichtstitel der Show-Tools (Werkzeugleiste des Hosts) ─────────────────
   "viewTitle.cockpit": "Cockpit",
   "viewTitle.processList": "Prozessdefinitionen",
   "viewTitle.processInstances": "Laufende Instanzen",
@@ -121,7 +112,6 @@ export const de: MessageCatalog = {
   "viewTitle.settings": "Engines und Dashboards",
   "viewTitle.clusterDetail": ({ activity }) => `Cluster: ${String(activity)}`,
 
-  // ── Modellseitige Widget-Tool-Zusammenfassungen (c7sum.*) ────────────────────
   "c7sum.cockpitOpened":
     'Operations Cockpit für Engine "{engineId}" ({engineCount} Engine(s) in der Engine-Liste des Benutzers). Wo der Host die Ansicht zeigt, navigiert der Benutzer darin durch die Prozesslandschaft.',
   "c7sum.cockpitOpenedPicker":

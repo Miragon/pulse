@@ -22,14 +22,7 @@ import { JobPanelWidget } from "./job-panel.js"
 import { ProcessInstancesWidget } from "./process-instances/list.js"
 import { UserProfileWidget } from "./user-profile.js"
 
-/**
- * The leaf widget registry — every CIB Seven widget EXCEPT the consolidated
- * `camunda7:cockpit-app`. The cockpit app renders these generically through the
- * toolkit `WidgetRenderer`, so it imports this base map. Keeping the cockpit-app
- * registration out of here breaks the import cycle (cockpit-app → registry →
- * cockpit-app); `widgets/index.ts` re-exports this and adds the cockpit-app entry
- * for the host bundle.
- */
+// Everything except `camunda7:cockpit-app`, which renders this map; `widgets/index.ts` adds it to avoid an import cycle.
 export const camunda7BaseWidgets: Record<string, WidgetComponent> = {
   "camunda7:process-list": adaptDataWidget(ProcessListWidget, "camunda7:processDefinitionList"),
   "camunda7:incident-overview-kpi": adaptDataWidget(
@@ -57,8 +50,7 @@ export const camunda7BaseWidgets: Record<string, WidgetComponent> = {
     "camunda7:processIncidents",
   ),
   "camunda7:incident-detail": adaptDataWidget(IncidentDetailWidget, "camunda7:incidentDetail"),
-  // Renders its model context in-component: the tools it names follow the
-  // deployment's live surface, which only a mounted widget can query.
+  // Model context in-component: the named tools follow the live surface, which only a mounted widget can query.
   "camunda7:history-timeline": adaptDataWidget(HistoryTimelineWidget, "camunda7:historyTimeline"),
   "camunda7:instance-detail": adaptDataWidget(InstanceDetailWidget, "camunda7:processInstance"),
   "camunda7:engine-health": adaptDataWidget(EngineHealthVerdict, "camunda7:engineHealth"),
@@ -77,8 +69,6 @@ export const camunda7BaseWidgets: Record<string, WidgetComponent> = {
     ProcessInstancesWidget,
     "camunda7:processInstances",
   ),
-  // Self-fetching: loads camunda7_settings_data for the signed-in caller (no
-  // pipeline step), eager-rendered by camunda7_show_settings; a section of the
-  // shell's settings page (`<module>:settings`).
+  // Self-fetching (no pipeline step); a `<module>:settings` section of the shell's page.
   "camunda7:settings": adaptDataWidget(UserProfileWidget, "camunda7:settings"),
 }

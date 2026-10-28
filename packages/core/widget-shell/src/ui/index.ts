@@ -1,11 +1,5 @@
-// The kit's OWN pieces: what widget-shell adds on top of
-// `@miragon/mcp-toolkit-ui`. The toolkit's components, tone maps, `cn` and
-// hooks (KpiGrid, StatusBadge, FilterBar, WidgetHeader, PagedListFooter,
-// TONE_*, useDebouncedValue, useViewData, …) are imported from the toolkit
-// itself, never re-exported or forked here — `toolkit-overlap.test.ts` fails
-// on any export (value or type) that shares a name with one of the toolkit's.
-// Zod-free profile option sets (select/checkbox option lists in settings
-// widgets) — safe for the UI bundle; the zod record schema stays on /server.
+// Only what widget-shell adds to the toolkit (`toolkit-overlap.test.ts`).
+// Profile option sets are zod-free, so safe for the UI bundle.
 export { LANGUAGES, LOCALES, type LanguagePref, type Locale } from "../profile-constants.js"
 export { createUseT, type T } from "./create-use-t.js"
 export { DisplayModeProvider, WidgetShell, useHostDisplayMode } from "./widget-shell.js"

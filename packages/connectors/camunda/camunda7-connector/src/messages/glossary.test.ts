@@ -9,18 +9,7 @@ import {
 } from "@miragon/pulse-widget-shell/testing"
 import { catalogs } from "./index.js"
 
-/**
- * The glossary (GLOSSARY.md) as a gate: one word per thing in every view.
- * Each rule names the synonym the catalogs must not use, the glossary term
- * to write instead, and a probe the rule must catch (so a broken pattern
- * fails instead of passing everything). A rule may spare named keys, each
- * with its reason.
- *
- * The terms camunda7's views share with the other modules' (analytics'
- * landscape sits inside the cross-engine cockpit) are the kit's
- * `PRODUCT_GLOSSARY` — analytics runs the same list over its catalogs; the
- * rules below are camunda7's own.
- */
+/** Each rule carries a probe it must catch, so a broken pattern fails instead of passing everything. */
 
 const DE_RULES: readonly GlossaryRule[] = [
   { pattern: /[Ff]ortsetz|[Ff]ortgesetzt/, use: "aktivieren", probe: "Instanz fortsetzen" },
@@ -32,8 +21,7 @@ const DE_RULES: readonly GlossaryRule[] = [
   { pattern: /Triagier/, use: "nach Dringlichkeit ordnen", probe: "Triagiere die Jobs" },
   { pattern: /Diagnostizier/, use: "die Ursache finden", probe: "Diagnostiziere den Fehler" },
   {
-    // Inflected forms too: „Aktive Instanzen“, „3 aktive“. „aktivieren“ (an
-    // instance that was suspended) and „Aktivität“ stay free.
+    // „aktivieren“ (a suspended instance) and „Aktivität“ stay free.
     pattern: /(?<![\p{L}])[Aa]ktiv(e|em|en|er|es)?(?![\p{L}])/u,
     use: "läuft (Instanz)",
     probe: "Aktive Instanzen",
@@ -68,8 +56,7 @@ const LANGUAGES = [
 ] as const
 
 describe.each(LANGUAGES)("the camunda7 glossary holds in %s", (_language, catalog, rules) => {
-  // Every exception must still spare a real use in this language (shrink-only):
-  // one that spares nothing comes back as an "unused exception" finding.
+  // Shrink-only: an exception that spares nothing comes back as an "unused exception" finding.
   it("uses the glossary terms, never their synonyms", () => {
     expect(glossaryFindings(catalog, rules)).toEqual([])
   })
@@ -100,11 +87,7 @@ describe("the glossary rules spare the glossary terms", () => {
   })
 })
 
-/**
- * The wording the owner decided (#322 U5): marking an incident resolved
- * never claims a fix. The hand-off labels ("Behebung im Chat planen" …) are
- * the kit's `HandOffButton` vocabulary, pinned in its own test.
- */
+/** Owner decision (#322 U5): marking an incident resolved never claims a fix. */
 describe("the decided wording", () => {
   it.each([
     ["incidentDetail.resolved", "Als gelöst markiert", "Marked as resolved"],
@@ -114,8 +97,7 @@ describe("the decided wording", () => {
     ["confirmDialog.resolveConfirm", "Als gelöst markieren", "Mark as resolved"],
     ["value.yes", "Ja", "Yes"],
     ["value.no", "Nein", "No"],
-    // One quantity, one name in both modules' views (the engine's failedJobs,
-    // the metric camunda_jobs_failed): the KPI tile beside analytics' landscape.
+    // Same name as the metric camunda_jobs_failed in analytics' landscape.
     ["fleet.failedJobs", "Jobs ohne Versuche", "Jobs without retries"],
   ])("%s", (key, german, english) => {
     expect(catalogs.de[key]).toBe(german)

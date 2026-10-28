@@ -16,13 +16,6 @@ import { VersionCompareWidget } from "./version-compare.js"
 import { EngineCompareWidget } from "./engine-compare.js"
 import { ClusterCompareWidget } from "./cluster-compare.js"
 
-/**
- * The comparison widgets as a person reads them, in German and English (U6):
- * a volume row (starts) carries no verdict, a quality row is judged only from
- * its threshold on, a suppressed comparison says "nicht belastbar" instead of
- * judging, and the reference frame stands under the title (U7).
- */
-
 const NOW = "2026-10-10T12:40:00.000Z"
 const AS_OF = "2026-10-10T12:32:00.000Z"
 
@@ -53,7 +46,6 @@ function renderIn(language: "de" | "en", Widget: ComponentType<{ data: never }>,
   )
 }
 
-/** The text of one metric row's change cell, spaces normalized. */
 function deltaCell(label: string) {
   const row = screen.getByText(label).closest("tr")!
   const cell = row.querySelector("[data-verdict]")!
@@ -222,11 +214,7 @@ describe("EngineCompareWidget in English", () => {
 const DEPLOYED_AT = Date.parse("2026-10-10T10:40:00.000Z")
 const iso = (ms: number) => new Date(ms).toISOString()
 
-/**
- * A before/after comparison whose windows measured `beforeSec` and `afterSec`
- * around the deployment: the exact bounds, and `window_days` rounded to
- * 0.01 d like the query does.
- */
+/** `window_days` rounded to 0.01 d like the query does. */
 function cluster(beforeSec: number, afterSec: number): ClusterCompareResult {
   const windows = {
     before: { from: DEPLOYED_AT - beforeSec * 1000, to: DEPLOYED_AT, seconds: beforeSec },

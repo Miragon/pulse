@@ -3,18 +3,9 @@ import type { AddressInfo } from "node:net"
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest"
 import { createPrometheusClient, withCallerSignal, type PrometheusConfig } from "./prometheus.js"
 
-/**
- * Guard for #325 on the Prometheus side: the client runs against a REAL
- * local HTTP server that answers like the Prometheus HTTP API. Pins auth
- * (bearer, basic, URL userinfo, custom headers), the per-query deadline and
- * caller cancellation, and the model-facing error texts — which must never
- * carry credentials or unbounded upstream bodies.
- */
-
 const TOKEN = "s3cr3t-token"
 const PASSWORD = "hunter2-pass"
 
-/** Last request's headers, for the auth assertions. */
 let lastHeaders: http.IncomingHttpHeaders = {}
 
 const success = {
@@ -28,13 +19,11 @@ const success = {
   },
 }
 
-/** The credential of an Authorization header: the bearer token / the decoded password. */
 function credentialOf(authorization = ""): string {
   const [scheme, value = ""] = authorization.split(" ")
   return scheme === "Basic" ? Buffer.from(value, "base64").toString().split(":")[1] : value
 }
 
-/** Upstreams that quote a credential back — status, content type, body per query. */
 const echoTable: Record<string, (auth?: string) => [number, string, string]> = {
   // A misbehaving proxy: the whole Authorization header…
   "echo-auth": (auth) => [401, "text/plain", `denied: ${auth ?? ""}`],
@@ -127,7 +116,6 @@ afterAll(async () => {
 const client = (config: Partial<PrometheusConfig> = {}) =>
   createPrometheusClient({ url, ...config })
 
-/** The rejection message of a query. */
 async function failure(promise: Promise<unknown>): Promise<string> {
   const error = await promise.then(
     () => {

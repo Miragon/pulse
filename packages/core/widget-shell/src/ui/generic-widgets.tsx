@@ -5,18 +5,7 @@ import { kitLabels, type KitLabels } from "./kit-labels.js"
 import { ListTable } from "./list-table.js"
 import { TableEmptyState, Td } from "./table.js"
 
-/**
- * Module-agnostic widgets — the standard composition targets for
- * `render-view` and the visual builder: any module or pipeline step produces
- * a context key with plain data, and a layout cell points a generic widget at
- * it via `props.dataKey` — no custom widget needed for a standard KPI row or
- * data table.
- *
- * Registered by the server app under the `shell:` namespace (see
- * `../shell-catalogue.ts`, exported via `@miragon/pulse-widget-shell/server`). Their texts arrive via
- * props; what they say themselves (the empty state, a Boolean's "Yes"/"No",
- * the table's name) follows the active locale through `kitLabels`.
- */
+// The `shell:*` widgets (`../shell-catalogue.ts`): a layout cell points one at plain data via `props.dataKey`.
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v)
@@ -28,7 +17,6 @@ function isPrimitive(v: unknown): v is string | number | boolean {
 
 type YesNo = Pick<KitLabels, "yes" | "no">
 
-/** A cell as shown: numbers and text as they are, a Boolean in words, anything else a dash. */
 function cellValue(v: unknown, words: YesNo): string | number {
   if (typeof v === "number") return v
   if (typeof v === "string") return v
@@ -36,10 +24,7 @@ function cellValue(v: unknown, words: YesNo): string | number {
   return "—"
 }
 
-/**
- * Accepts either an array of `{ label, value, tone?, fraction? }` cells or a
- * plain `{ label: value }` object; everything else renders as empty.
- */
+/** Cells or a plain `{ label: value }` object; anything else is empty. */
 function coerceKpiCells(raw: unknown, words: YesNo): KpiCell[] {
   if (Array.isArray(raw)) {
     return raw
@@ -48,8 +33,7 @@ function coerceKpiCells(raw: unknown, words: YesNo): KpiCell[] {
       .map((r) => ({
         label: r.label as string,
         value: cellValue(r.value, words),
-        // A tone from the wire: the five tones as is, a retired name
-        // (`critical`) onto its tone, anything else neutral (no dot).
+        // `resolveTone` maps retired names (`critical`) and falls back to neutral.
         tone: typeof r.tone === "string" ? resolveTone(r.tone) : undefined,
         fraction: typeof r.fraction === "string" ? r.fraction : undefined,
       }))
@@ -62,11 +46,7 @@ function coerceKpiCells(raw: unknown, words: YesNo): KpiCell[] {
   return []
 }
 
-/**
- * `shell:kpi-grid` — renders `keys[props.dataKey]` as a KPI strip.
- * widgetProps: `dataKey` (required), `boxed?`, `variant?` ("strip" | "soft"),
- * `emptyText?`.
- */
+/** `shell:kpi-grid`. */
 export function GenericKpiGridWidget({ keys, widgetProps }: WidgetProps) {
   const labels = kitLabels(useLocale())
   const dataKey = typeof widgetProps?.dataKey === "string" ? widgetProps.dataKey : undefined
@@ -93,11 +73,7 @@ interface ColumnSpec {
   align: "left" | "right"
 }
 
-/**
- * The table's columns: the `columns` prop as given, else the first row's
- * primitive fields. A header nobody wrote is the key in words ("Total
- * incidents" for `totalIncidents`); a written `label` stays as it is.
- */
+/** The `columns` prop, else the first row's primitive fields; unlabelled keys are humanized. */
 function coerceColumns(raw: unknown, rows: Record<string, unknown>[]): ColumnSpec[] {
   if (Array.isArray(raw)) {
     const cols = raw
@@ -110,7 +86,6 @@ function coerceColumns(raw: unknown, rows: Record<string, unknown>[]): ColumnSpe
       }))
     if (cols.length > 0) return cols
   }
-  // Derive from the first row: primitive-valued keys, capped for readability.
   const first = rows[0]
   if (!first) return []
   return Object.keys(first)
@@ -123,12 +98,7 @@ function coerceColumns(raw: unknown, rows: Record<string, unknown>[]): ColumnSpe
     }))
 }
 
-/**
- * `shell:data-table` — renders `keys[props.dataKey]` (an array of records, or
- * `{ rows: [...] }`) as a cockpit-style table. widgetProps: `dataKey`
- * (required), `columns?` (`[{ key, label?, align? }]`, derived from the first
- * row when omitted; a missing `label` is the key in words), `emptyText?`.
- */
+/** `shell:data-table`: `keys[dataKey]` is an array of records or `{ rows }`. */
 export function GenericDataTableWidget({ keys, widgetProps }: WidgetProps) {
   const labels = kitLabels(useLocale())
   const dataKey = typeof widgetProps?.dataKey === "string" ? widgetProps.dataKey : undefined

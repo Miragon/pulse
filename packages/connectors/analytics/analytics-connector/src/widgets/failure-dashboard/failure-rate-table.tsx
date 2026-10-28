@@ -19,13 +19,7 @@ import { engineIdsOf, useHandOff, type HandOff } from "../hand-off.js"
 import { processNameOf } from "../../bpmn-names.js"
 import { Figure, FigureLegend, StateCount } from "../figure.js"
 
-/**
- * What drives ONE process's open incidents right now (live gauges: open
- * incidents per 100 running instances, dead jobs — #336). The regression
- * check goes to the tools that measure incident rates over time —
- * analytics_version_compare cannot split incidents by version, so its
- * incident rates are null (#327).
- */
+/** analytics_version_compare cannot split incidents by version (#327), so it is no regression target. */
 export function failureRateHandOff(
   proc: ProcessFailureItem,
   data: Pick<FailureDashboardData, "engines">,
@@ -48,12 +42,7 @@ export function failureRateHandOff(
   }
 }
 
-/**
- * The bar's length: the rate against the largest rate in the table, so
- * every bar is comparable and none is cut off. A rate of incidents per 100
- * running instances may pass 100 (one instance can carry several), which a
- * scale capped at 100 would hide.
- */
+/** Scaled to the largest rate, not 100: one instance can carry several incidents. */
 export function rateBarWidth(rate: number, max: number): number {
   if (!(max > 0) || !(rate > 0)) return 0
   return Math.min(100, (rate / max) * 100)
@@ -74,12 +63,7 @@ function columns(t: T): ListTableColumn[] {
   ]
 }
 
-/**
- * The rate as a number over a bar. The bar is a magnitude, not a state: it
- * takes the data-viz blue (decision j), not the danger red. A rate is judged
- * only against a threshold or the period before (U17), and this live ratio
- * has neither; the open incidents beside it already carry the danger.
- */
+/** Data-viz blue, not danger red: a live ratio has no threshold to judge against (U17). */
 function RateCell({ rate, max, t }: { rate: number | null; max: number; t: T }) {
   if (rate === null) return <Figure value={null} why={t("aFigure.noRate")} />
   return (

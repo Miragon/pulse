@@ -26,8 +26,6 @@ export function registerProcessDefinitionTools(register: Register) {
     inputSchema: { ...listProcessDefinitionsInput.shape, ...engineParamShape },
     outputSchema: paginatedListOutput,
     handler: withEngine(async (client, args) => {
-      // The page and its /count share the filters in the engine's format: a
-      // %-less nameLike becomes a substring match, a false flag is dropped.
       const filters = {
         key: args.processDefinitionKey,
         nameLike: engineLike(args.nameLike),

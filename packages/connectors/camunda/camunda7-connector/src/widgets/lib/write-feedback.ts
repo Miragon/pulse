@@ -3,19 +3,12 @@ import type { T } from "../../messages/use-t.js"
 import type { TaskCompletion } from "./complete-task.js"
 import type { TargetLine, WriteFeedback } from "./engine-action.js"
 
-/**
- * An instance as a toast names it: its business key when it has one (what
- * people search for), else its short id ("5f0ce78e…").
- */
+/** The business key is what people search for; else the short id. */
 export function instanceName(id: string, businessKey?: string | null): string {
   return businessKey || shortId(id)
 }
 
-/**
- * An instance as a confirmation names it, the label every view shows
- * (`InstanceLabel`, #322 U13): its business key first, then its short id —
- * never a bare UUID that wraps over two lines.
- */
+/** #322 U13: never a bare UUID that wraps over two lines. */
 export function instanceTargetLines(
   t: T,
   id: string,
@@ -25,11 +18,7 @@ export function instanceTargetLines(
   return businessKey ? [[t("confirmDialog.businessKey"), businessKey], instance] : [instance]
 }
 
-/**
- * The toasts of every widget write (U9), one per write and in one place, so
- * the same write says the same thing on every surface: what happened to
- * which object.
- */
+/** U9: in one place, so the same write says the same thing on every surface. */
 export const writeFeedback = {
   jobRetry: (t: T, instance: string): WriteFeedback<unknown> => ({
     success: t("feedback.jobRetried", { instance }),
@@ -61,7 +50,7 @@ export const writeFeedback = {
     success: t("feedback.variableSaved", { name }),
     failure: t("feedback.variableSaveFailed", { name }),
   }),
-  /** A delegated task is resolved back to its owner, not completed: the result says which. */
+  /** A delegated task is resolved back to its owner, not completed. */
   completeTask: (t: T, name: string): WriteFeedback<TaskCompletion> => ({
     success: (result) =>
       result?.outcome === "resolved" && result.assignee

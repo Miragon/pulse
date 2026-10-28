@@ -111,10 +111,7 @@ describe("activeModules / appEntries", () => {
   })
 
   it("passes no raw suffix through: the removed supportsToolsets flag makes no module toolset-bearing", () => {
-    // The pass-through is gone — a module declares a `toolsets` vocabulary
-    // or has none. A definition still carrying the old flag is a module
-    // WITHOUT toolsets: its suffix is ignored (warning) and its config never
-    // carries an unresolved name it might read as "everything".
+    // A definition still carrying the old pass-through flag is a module WITHOUT toolsets.
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
     const stale = { ...moduleOf("alpha", { toolsets: undefined }), supportsToolsets: true }
     const composition = compose([stale])

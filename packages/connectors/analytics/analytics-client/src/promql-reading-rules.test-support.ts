@@ -1,21 +1,5 @@
-/**
- * Test support for the metrics contract's reading rules — never imported by
- * runtime code. The label checker (`promql-labels.test-support.ts`) asks which
- * labels a query names; this asks HOW it reads a series:
- *
- * - A counter or histogram series is read only inside the born-series count
- *   `increaseIn` builds (contract rule 2): `increase()` alone never counts a
- *   series' first sample, `rate()` neither. The one exception is a plain
- *   `increase()` over a window of an hour or less at the retention edge,
- *   which the caller allows through `plainIncreaseAllowed`.
- * - A gauge is read only node-folded (contract rule 3): directly inside
- *   `max by (<exactly its contract labels>)(…)`.
- *
- * Text-level on purpose: the shapes are fixed strings the helpers emit and the
- * alert rules and dashboards copy, so any other spelling is a violation.
- */
+// Text-level on purpose: the shapes are fixed strings the helpers emit and the alert rules and dashboards copy.
 
-/** The subset of a `metrics-contract.json` entry the rules need. */
 export interface ReadingRuleMetric {
   promName: string
   type: string
@@ -47,7 +31,6 @@ const PLAIN_INCREASE = new RegExp(
   "g",
 )
 
-/** Every violation of the reading rules in one PromQL string. */
 export function readingRuleViolations(
   promql: string,
   metrics: readonly ReadingRuleMetric[],
@@ -87,7 +70,6 @@ function coveredSpans(promql: string, options: ReadingRuleOptions): Array<[numbe
   return spans
 }
 
-/** Start offsets of the metric's series names (histograms: `_sum`/`_count`/`_bucket`). */
 function occurrences(promql: string, metric: ReadingRuleMetric): number[] {
   const names =
     metric.type === "histogram"

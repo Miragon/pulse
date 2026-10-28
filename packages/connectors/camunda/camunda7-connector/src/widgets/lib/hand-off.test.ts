@@ -23,8 +23,7 @@ describe("camunda7Surface", () => {
     expect(camunda7Surface("pending", true).has("camunda7_list_incidents")).toBe(false)
   })
 
-  // A feed that cannot answer must not hide every hand-off: its tools are
-  // unknown — not named, but the hand-off is still built.
+  // A feed that cannot answer must not hide every hand-off.
   it("leaves camunda7 tools unknown — not absent — when the feed cannot answer", () => {
     const surface = camunda7Surface("unknown", false)
     expect(surface.has("camunda7_list_incidents")).toBeUndefined()
@@ -99,8 +98,7 @@ describe("bindHandOff", () => {
   })
 })
 
-// Strict inputs refuse an argument a tool does not take: an id that only the
-// analytics tools take must leave with them (camunda7-only deployments).
+// Strict inputs refuse an argument a tool does not take (camunda7-only deployments).
 describe("tool-bound ids follow their tool", () => {
   const ROW = { key: "order", id: "order:3:abc", version: 3, versionTag: null } as never
 
@@ -148,8 +146,7 @@ describe("the Ask-AI intent catalogues", () => {
     ([key]) => !key.endsWith("Label"),
   )
 
-  // An intent is NEVER filtered by the surface — a tool named in it would
-  // reach every deployment, the read-only floor included.
+  // A tool named in an intent would reach every deployment, the read-only floor included.
   it("name no tool and inline no data", () => {
     for (const [key, text] of intents) {
       expect(text, key).not.toMatch(/\b(camunda7|analytics)_[a-z0-9_]+/)

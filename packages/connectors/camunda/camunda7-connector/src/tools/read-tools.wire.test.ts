@@ -13,12 +13,7 @@ import {
   type FakeRoutes,
 } from "./test-support/fake-engine.js"
 
-/**
- * Guard for #328, read side: the engine-contract rules every READ tool must
- * honour on the wire — paired sorting, engine dates, raw (non-deserialized)
- * variable reads, text/plain endpoints, and errors that are not swallowed
- * into a plausible-looking empty result.
- */
+/** #328, read side: engine-contract rules every READ tool honours on the wire. */
 
 const tools = captureTools(
   (register) => registerTools(register, { allowDeployments: true }),
@@ -42,7 +37,6 @@ function call(engine: FakeEngine, name: string, args: Record<string, unknown>) {
   return callTool(config, registryFor(engine), args)
 }
 
-/** Every list tool that exposes sorting, with the first sort field it offers. */
 const SORTED_TOOLS = [...tools.values()].flatMap((config) => {
   const sortBy = (config.inputSchema as Record<string, z.ZodType>).sortBy
   if (!sortBy) return []
@@ -139,11 +133,7 @@ describe("variable reads never let the engine deserialize Object values", () => 
   })
 })
 
-/**
- * #340: a variable value is user-controlled and unbounded; a model-facing read
- * cuts it at MAX_VARIABLE_VALUE_CHARS and SAYS so — never a silently shorter
- * value that looks complete.
- */
+/** #340: a cut value SAYS so, never a silently shorter value that looks complete. */
 describe("variable reads bound oversized values with a truncation marker", () => {
   const big = "x".repeat(MAX_VARIABLE_VALUE_CHARS + 500)
   const small = { value: "ok", type: "String", valueInfo: {} }
@@ -170,9 +160,7 @@ describe("variable reads bound oversized values with a truncation marker", () =>
     expect(result.small).toEqual(small)
   })
 
-  // The cut read is lossy: a value written back from it overwrites the stored
-  // one with its prefix. Naming the variable is the whole read a write starts
-  // from, and the writes the model feeds from these reads say so.
+  // Lossy: a value written back from the cut read would overwrite the stored one with its prefix.
   it.each([
     [
       "camunda7_get_process_instance_variables",
@@ -246,11 +234,7 @@ describe("camunda7_list_tasks candidate groups", () => {
   })
 })
 
-/**
- * #340: the job stacktrace read goes through the engine contract
- * (`fetchJobStacktrace`: text/plain, 404 → null) and hands the model the
- * condensed trace — exception lines, the Caused-by chain, user frames.
- */
+/** #340: through `fetchJobStacktrace` (text/plain, 404 → null), condensed for the model. */
 describe("camunda7_get_job_stacktrace", () => {
   const TRACE = [
     "org.cibseven.bpm.engine.ProcessEngineException: WMS unreachable",

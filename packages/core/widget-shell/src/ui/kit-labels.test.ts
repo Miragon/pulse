@@ -1,10 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { kitLabels } from "./kit-labels.js"
 
-/**
- * Render the function entries so the whole set compares as plain strings.
- * The hand-off labels have their own test (`hand-off-button.test.tsx`).
- */
+/** Renders the function entries so the set compares as plain strings. */
 function rendered(tag: string | undefined) {
   const { handOff, ...labels } = kitLabels(tag)
   expect(Object.keys(handOff).length).toBeGreaterThan(0)

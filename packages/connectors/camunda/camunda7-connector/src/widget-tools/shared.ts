@@ -13,19 +13,13 @@ import {
   type ProfileStore,
 } from "@miragon/pulse-widget-shell/server"
 
-/** One-line truncation for summaries (incident messages can be stacktrace-sized). */
+/** Incident messages can be stacktrace-sized. */
 export function truncate(s: string, max: number): string {
   const flat = s.replace(/\s+/g, " ").trim()
   return flat.length > max ? `${flat.slice(0, max)}…` : flat
 }
 
-/**
- * The ONE definition view (mirrors the cockpit's "process-detail" route in
- * `widgets/cockpit-app/views.ts`): both show tools render this same composed
- * layout — the entry point only decides the FOCUS, threaded through the layout
- * cells as a widget prop (the list's no-incidents rendering). The flow always
- * leads with the incident overlay.
- */
+/** Mirrors the cockpit's "process-detail" route (`widgets/cockpit-app/views.ts`); the entry only sets the focus. */
 export function definitionViewLayout(focus?: "incidents") {
   return [
     { row: [{ widget: "camunda7:process-detail-header" }] },
@@ -44,23 +38,15 @@ export function definitionViewLayout(focus?: "incidents") {
 
 export type ResolvedEngine = Awaited<ReturnType<typeof resolveEngine>>
 
-// Shared by the cluster-detail show tool + its data feed.
 export const clusterDetailShape = { ...clusterDetailFilterShape, ...pagingShape }
 
-/**
- * What the registration blocks share from the `registerWidgetTools` closure —
- * built once by the entry (`../widget-tools.ts`) and handed to each registrar.
- */
 export interface WidgetToolsContext {
   server: MCPServer
   registry: EngineRegistry
   healthThresholds: EngineHealthThresholds
   profileStore: ProfileStore
-  /** The deployment's resolved toolset (from the `MCP_ACTIVE_MODULES` suffix or the auth-dependent default). */
   toolset: Camunda7Toolset
-  /** The module's model-visible tool names (recorded at registration; read lazily). */
   modelTools: () => string[]
-  /** The `engine` parameter narrowed to the configured ids (`engineParamShapeFor`) — spread it into every input. */
   engineParam: EngineParamShape
 }
 
@@ -77,7 +63,6 @@ interface ShowTool<TShape extends z.ZodRawShape> {
   ) => Promise<ReturnType<typeof buildSingleWidgetView>>
 }
 
-/** A read-only `show_*` tool rendering its view, the `engine` parameter appended to its input. */
 export function registerShowTool<TShape extends z.ZodRawShape>(
   { server, engineParam }: WidgetToolsContext,
   tool: ShowTool<TShape>,

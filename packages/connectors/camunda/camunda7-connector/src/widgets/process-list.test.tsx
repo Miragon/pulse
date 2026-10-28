@@ -39,10 +39,7 @@ const PROCESS_LIST: ProcessListData = {
 const Widget = ProcessListWidget as unknown as ComponentType<Record<string, unknown>>
 
 describe("ProcessListWidget (fixture render)", () => {
-  // NOTE: WidgetFixtureHost always seeds `data` (defaulting to {}), so it drives
-  // the standalone data-provided path — not the in-widget self-fetch path, which
-  // a host fixture can't reach. The self-fetch (`useViewToolQuery`) is exercised
-  // live via the inspector.
+  // WidgetFixtureHost always seeds `data`, so only the data-provided path runs here; the self-fetch is checked in the inspector.
   it("renders process definitions, version, and active/suspended status from data", () => {
     render(
       <WidgetFixtureHost
@@ -53,17 +50,14 @@ describe("ProcessListWidget (fixture render)", () => {
 
     expect(screen.getByText("Process definitions")).toBeTruthy()
 
-    // Renders the canonical definitions-table look (shared with the cockpit).
     expect(
       screen.getByRole("table", { name: "Deployed process definitions with version and status" }),
     ).toBeTruthy()
 
-    // Named definition: name cell, mono key line, and active status.
     expect(screen.getByText("Invoice Process")).toBeTruthy()
     expect(screen.getByText("invoice")).toBeTruthy()
     expect(screen.getByText("Active")).toBeTruthy()
 
-    // Second (suspended) definition rendered — status is unique to it.
     expect(screen.getByText("Suspended")).toBeTruthy()
   })
 })

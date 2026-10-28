@@ -16,11 +16,8 @@ export interface AnalyticsAppConfig {
 }
 
 /*
- * Step keys arrive unchecked: render-view and the builder accept them as a
- * free-form record and pass them through untouched. So each reader below holds
- * the line the tools' strict inputs hold — a malformed value is refused naming
- * its key, never read as "omitted" (which would widen `analytics:engine` to the
- * whole fleet, or swap in a default period nobody asked for).
+ * Step keys arrive unchecked from render-view, so each reader refuses a malformed value naming its
+ * key, never reads it as omitted (that would widen to the whole fleet or swap in a default period).
  */
 
 /** The optional `analytics:engine` scoping key both steps read. */
@@ -49,9 +46,8 @@ export function stepEngines(
 }
 
 /**
- * The step's `analytics:period`: the key when set, else the CALLER's saved
- * analytics default (resolved from the ambient request — a step gets no
- * handler ctx), else the module default — the tools' precedence.
+ * The key, else the caller's saved default (from the ambient request: a step gets no handler ctx),
+ * else the module default.
  */
 export async function stepPeriod(
   keys: Record<string, unknown>,

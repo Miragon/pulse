@@ -23,7 +23,6 @@ import {
   registerShowTool,
 } from "./shared.js"
 
-/** Incident triage: dashboard, per-definition views, detail, engine health, clusters. */
 export function registerIncidentWidgetTools(ctx: WidgetToolsContext) {
   const { registry, healthThresholds, profileStore } = ctx
 

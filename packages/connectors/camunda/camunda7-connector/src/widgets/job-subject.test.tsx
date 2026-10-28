@@ -7,12 +7,7 @@ import { WidgetFixtureHost } from "@miragon/mcp-toolkit-ui/app"
 import type { JobPanelData } from "../view-models.js"
 import { JobPanelWidget } from "./job-panel.js"
 
-/**
- * A job row names what it is about in two lines (#396, inline fit): the
- * activity by name, then its id and, in a panel over several processes, the
- * process. A panel scoped to one process names that process once, in its
- * head, not in every row: three-line rows cost a chat card a row.
- */
+// #396: two lines; a scoped panel names its process once in the head, since three-line rows cost a chat card a row.
 
 afterEach(() => {
   cleanup()

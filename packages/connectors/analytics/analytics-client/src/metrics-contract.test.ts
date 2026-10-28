@@ -4,25 +4,6 @@ import { join } from "node:path"
 import { describe, expect, it } from "vitest"
 import { GAUGE_LABELS, METRIC_NAMES } from "./metric-names.js"
 
-/**
- * TS side of the Kotlin↔TS metric contract (`metrics-contract.json`):
- * - `METRIC_NAMES` mirrors the contract's `promName`s exactly
- * - every `camunda_*` series used by the alert rules and Grafana dashboards
- *   exists in the contract
- * - query sources use `METRIC_NAMES` only — no raw `camunda_*` literals
- * - label values consumers hardcode (`state="COMPLETED"`, `status=~"total|…"`)
- *   in queries, alert rules and dashboards are declared as `knownValues`
- * - PromQL grouping labels (`sum by (…)`) in alert rules and dashboards are
- *   declared on the metric they group, not merely somewhere in the
- *   contract's label union (the queries' PromQL is built at runtime: the
- *   behavioural `metrics-contract-labels.test.ts` checks what they send)
- * - `GAUGE_LABELS` mirrors each gauge's contract labels exactly
- * - every contract metric has at least one consumer (dead-entry guard)
- *
- * Paths are resolved relative to this file (`import.meta.url`), so the test
- * works no matter which directory vitest is started from.
- */
-
 interface ContractMetric {
   otelName: string
   promName: string
@@ -34,14 +15,12 @@ interface ContractMetric {
 }
 
 const here = (rel: string) => fileURLToPath(new URL(rel, import.meta.url))
-// src/ → analytics-client → analytics → connectors → packages → repo root
 const repoRoot = here("../../../../..")
 
 const contract = JSON.parse(readFileSync(here("../metrics-contract.json"), "utf8")) as {
   metrics: ContractMetric[]
 }
 
-/** All Prometheus series names the contract covers (histograms expand to _sum/_count/_bucket). */
 const coveredSeries = new Set(
   contract.metrics.flatMap((m) =>
     m.type === "histogram"
@@ -60,11 +39,6 @@ const stripComments = (src: string) =>
     .filter((line) => !line.trim().startsWith("//"))
     .join("\n")
 
-/**
- * Replace `${M.foo}` / `${METRIC_NAMES.foo}` interpolations and bare
- * `M.foo` arguments (`engineState(M.foo, sel)`) with the real series name, so
- * the plain-text scans below see which series the queries read.
- */
 const resolveMetricInterpolations = (code: string) =>
   code.replace(
     /\$\{(?:M|METRIC_NAMES)\.([A-Za-z0-9_]+)\}|\b(?:M|METRIC_NAMES)\.([A-Za-z0-9_]+)/g,
@@ -76,12 +50,7 @@ const resolveMetricInterpolations = (code: string) =>
     },
   )
 
-/**
- * Every string value in a JSON document — Grafana dashboards keep their PromQL
- * in string fields (`expr`, templating `query`, …); collecting all string
- * values also undoes the JSON escaping (`\"` → `"`) that would defeat the
- * label-matcher regexes.
- */
+// Collecting every string value also undoes the JSON escaping that would defeat the matcher regexes.
 const jsonStringValues = (node: unknown): string[] => {
   if (typeof node === "string") return [node]
   if (Array.isArray(node)) return node.flatMap(jsonStringValues)
@@ -99,7 +68,6 @@ const queriesDir = here("./queries")
 const dashboardsDir = join(repoRoot, "playground/docker/grafana/dashboards")
 const alertsFile = join(repoRoot, "playground/docker/prometheus/alerts.yml")
 
-/** Query sources, comment-stripped, with `METRIC_NAMES` interpolations resolved. */
 const querySources = (): ConsumerSource[] =>
   readdirSync(queriesDir)
     .filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts"))
@@ -123,7 +91,6 @@ const dashboardSources = (): ConsumerSource[] =>
       ).join("\n"),
     }))
 
-/** Every place that consumes the metrics: TS queries, alert rules, dashboards. */
 const allConsumerSources = (): ConsumerSource[] => [
   ...querySources(),
   alertsSource(),
@@ -142,7 +109,6 @@ describe("metrics contract", () => {
         expect(m.labels, `knownValues key ${label} of ${m.promName}`).toContain(label)
       }
       if (m.type === "histogram") {
-        // Whole milliseconds (contract rule 1), with explicit ascending bounds.
         expect(m.unit, `${m.promName} unit`).toBe("ms")
         expect(m.promName, m.otelName).toMatch(/_milliseconds$/)
         const buckets = m.buckets ?? []
@@ -220,14 +186,12 @@ describe("metrics contract", () => {
     }
     expect(knownValues.size).toBeGreaterThan(0)
 
-    /** Regex-matcher alternatives that are regex syntax or Grafana variables, not values. */
     const isWildcard = (alt: string) => alt === ".*" || alt === ".+" || alt.startsWith("$")
 
     let exactChecked = 0
     let regexChecked = 0
     for (const [label, values] of knownValues) {
-      // Exact-match selectors (`label="literal"`); the lookbehind keeps
-      // e.g. `alertstate="firing"` from matching the `state` label.
+      // The lookbehind keeps `alertstate="firing"` from matching the `state` label.
       const exact = new RegExp(`(?<![A-Za-z_])${label}="([A-Za-z_][A-Za-z0-9_]*)"`, "g")
       // Regex selectors (`label=~"total|unassigned"`): every alternative must
       // be a knownValue, except wildcards (`.*`/`.+`) and Grafana variables.
@@ -284,7 +248,6 @@ describe("metrics contract", () => {
       for (const clause of text.matchAll(byClause)) {
         const labelList = clause[1]
         const series = firstSeries.exec(text.slice(clause.index + clause[0].length))?.[0]
-        // Every by-clause must be attributable to a camunda_* series.
         expect(series, `unattributable "${clause[0]}" clause in ${name}`).toBeDefined()
         if (series === undefined) continue
         const metric = seriesToMetric.get(series)

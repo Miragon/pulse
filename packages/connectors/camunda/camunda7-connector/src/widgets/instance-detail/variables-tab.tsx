@@ -3,11 +3,7 @@ import type { VariableValue } from "../../view-models.js"
 import { VariablesTable } from "../instance-sections.js"
 import { useHandOff, type HandOff } from "../lib/hand-off.js"
 
-/**
- * Sanity-check ONE instance's variables. The values stay in the engine: the
- * model reads them through the tool (whose output hosts treat as data), and a
- * fix is only ever proposed.
- */
+/** The model reads values through the tool (hosts treat its output as data); a fix is only proposed. */
 export function checkVariablesHandOff(
   instanceId: string,
   definitionId: string,
@@ -24,7 +20,6 @@ export function checkVariablesHandOff(
   }
 }
 
-/** The "Variables" tab body — AI sanity-check handoff plus the editable table. */
 export function VariablesTab({
   variables,
   instanceId,

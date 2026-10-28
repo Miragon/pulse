@@ -17,17 +17,8 @@ import {
   CAMUNDA7_SHOW_PROCESS_LIST,
 } from "../tool-names.js"
 
-/**
- * A navigation intent emitted by a view component when the user wants to move to
- * another view. The same intent is bound to two different transports depending
- * on who hosts the view:
- *  - standalone widget  → {@link navigateViaHost} (conversational: a host
- *    follow-up message that the agent turns into the matching tool call), or
- *  - the consolidated cockpit app → client-side router (deterministic, no LLM).
- *
- * This is the seam that lets the cockpit app navigate without an LLM round-trip
- * while the individual widgets keep their conversational drill-in behaviour.
- */
+// Standalone widgets bind this to `navigateViaHost` (a chat follow-up), the cockpit to its
+// client-side router, so the cockpit navigates without an LLM round-trip.
 export type NavIntent =
   | { type: "overview" }
   | { type: "process-list" }
@@ -40,28 +31,18 @@ export type NavIntent =
       messageSignature?: string
     } & Labelled)
   | ({ type: "process-detail"; processDefinitionKey: string } & Labelled)
-  /** Omit the key for the engine-wide running-instances list. */
   | { type: "process-instances"; processDefinitionKey?: string }
   | ({ type: "process-incidents"; processDefinitionKey: string } & Labelled)
   | ({ type: "instance-detail"; processInstanceId: string } & Labelled)
   | ({ type: "incident-detail"; incidentId: string } & Labelled)
 
-/**
- * The name the target goes by on screen — its breadcrumb (#322 U13): an
- * instance's business key, a process's or an activity's name. Optional: a
- * drill without one shows the id the target is addressed by.
- */
+// #322 U13: the breadcrumb name; without one the drill shows the id.
 interface Labelled {
   label?: string
 }
 
 export type OnNavigate = (intent: NavIntent) => void
 
-/**
- * Standalone fallback: turn a {@link NavIntent} into a host follow-up message so
- * the agent opens the matching tool's widget as the next chat turn. Used when a
- * view is rendered as its own widget (no client-side router available).
- */
 export function navigateViaHost(host: HostActions, intent: NavIntent): void {
   switch (intent.type) {
     case "overview":
@@ -83,10 +64,7 @@ export function navigateViaHost(host: HostActions, intent: NavIntent): void {
       )
       return
     case "settings":
-      host.showWidget(
-        // The whole page (language + every module's section), the shell's.
-        buildShowWidgetIntent(SHELL_SHOW_SETTINGS, "Open my settings"),
-      )
+      host.showWidget(buildShowWidgetIntent(SHELL_SHOW_SETTINGS, "Open my settings"))
       return
     case "cluster-detail":
       host.showWidget(
@@ -140,19 +118,12 @@ export function navigateViaHost(host: HostActions, intent: NavIntent): void {
       )
       return
   }
-  // Compile-checked exhaustiveness: a new NavIntent variant fails here instead
-  // of silently no-oping in the standalone transport.
+  // Exhaustive: a new variant fails to compile instead of no-oping.
   return intent satisfies never
 }
 
-/**
- * Client-side navigation seam. The consolidated cockpit provides its router via
- * {@link NavProvider}; widgets call {@link useNav} to navigate. Rendered
- * standalone (no provider), `useNav` falls back to the conversational host
- * bridge — so the very same widget drills in-app inside the cockpit and via a
- * chat follow-up on its own. This lets the cockpit render widgets generically
- * (through the toolkit renderer) without threading an `onNavigate` prop.
- */
+// Without a provider `useNav` falls back to the host bridge, so the cockpit renders widgets
+// generically without threading an `onNavigate` prop.
 const NavContext = createContext<OnNavigate | null>(null)
 export const NavProvider = NavContext.Provider
 

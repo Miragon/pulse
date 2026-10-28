@@ -1,15 +1,6 @@
 /**
- * The Ask-AI hand-off intents (#338): the SHORT task each widget hands to the
- * agent as the user's message. Static text on purpose — no parameters, no data,
- * no tool names: ids, on-screen numbers, engine text and the deployment's
- * tools are added by `askAiPrompt` (ids inlined only when id-shaped, engine
- * text fenced as untrusted data, tools filtered by the live surface). Generic
- * playbooks (engine pinning, the guarded remediation) live in the module's
- * server instructions, not here.
- *
- * Plain English in the operator's voice (it posts as their message): no dash
- * connectors, no verdicts in capitals, the guardrail ending ("Change nothing.")
- * kept. The button labels and icons live in the kit (`HandOffButton`, GLOSSARY.md).
+ * Static on purpose (#338): no data or tool names; `askAiPrompt` adds them. Posted as the
+ * user's message, so written in the operator's voice, guardrail ending ("Change nothing.") kept.
  */
 export const enAskAi = {
   "askAi.jobs.triage":

@@ -36,13 +36,7 @@ type Handler = (
   ctx?: unknown,
 ) => Promise<Record<string, unknown>>
 
-/**
- * Registers the real engine tool pair against a recording registrar and
- * exposes the handlers directly — the registrar/toolset mechanics have their
- * own tests (`lib/toolsets.test.ts`: the select write stays out of
- * `read-only`); here we pin the handler contract: what select persists, whom
- * it refuses, and what the list reports.
- */
+/** Toolset mechanics are `lib/toolsets.test.ts`'s; this pins the handler contract. */
 function harness(
   store: ProfileStore = createInMemoryProfileStore(),
   engines: EngineEntry[] = ENGINES,
@@ -99,7 +93,6 @@ describe("the engine tool pair: a read and a write, no action switch", () => {
   })
 })
 
-/** Run `fn` under a fixed caller identity (an authenticated user by default). */
 const under = <T>(info: McpRequestInfo, fn: () => Promise<T>): Promise<T> =>
   runWithMcpRequestInfo(info, fn)
 const USER = { authUserId: "user-1" }
@@ -112,7 +105,6 @@ describe("camunda7_select_engine (durable default)", () => {
 
     const record = await store.get("user-1")
     expect(record?.modules?.[CAMUNDA7_MODULE_KEY]).toMatchObject({ defaultEngineId: "beta" })
-    // The OAuth caller is stamped as the record's owner.
     expect(record?.userId).toBe("user-1")
   })
 
@@ -124,7 +116,6 @@ describe("camunda7_select_engine (durable default)", () => {
       modules: { [CAMUNDA7_MODULE_KEY]: { defaultEngineId: "beta" } },
     })
     expect((await list({ auth: { user: { id: "user-2" } } })).defaultEngineId).toBe("beta")
-    // The default is that caller's alone.
     expect((await list({ auth: { user: { id: "user-3" } } })).defaultEngineId).toBeNull()
   })
 
@@ -153,8 +144,7 @@ describe("camunda7_select_engine (durable default)", () => {
 
   it("refuses without a caller identity, pointing at the per-call override", async () => {
     const { store, select } = harness()
-    // An HTTP request without OAuth, and no request context at all (a missing
-    // middleware install): neither is an identity, neither reaches a record.
+    // No OAuth, or no request context at all (a missing middleware install): neither is an identity.
     for (const selectWithoutIdentity of [
       () => under({}, () => select("beta")),
       () => select("beta"),
@@ -184,10 +174,7 @@ describe("camunda7_select_engine (durable default)", () => {
 
 describe("camunda7_select_engine racing a settings save in the same slice", () => {
   it("keeps both writes: a stale pre-read of the default never reverts the select", async () => {
-    // One model turn, two tools: select changes a field that already holds a
-    // value while the profile save changes another field of the same slice.
-    // Writes land after a round-trip, like a database's, so the profile save
-    // runs while the select's write is still in flight.
+    // Writes land after a round-trip, so the profile save runs while the select's write is in flight.
     const inner = createInMemoryProfileStore()
     const store: ProfileStore = {
       ...inner,
@@ -207,7 +194,6 @@ describe("camunda7_select_engine racing a settings save in the same slice", () =
 
     const [, saved] = await under(USER, async () => {
       const selected = select("beta")
-      // The select has read the profile and is now inside its write.
       await new Promise((resolve) => setTimeout(resolve, 1))
       return Promise.all([selected, saveProfile({ pinnedDashboardIds: ["d1"] })])
     })
@@ -220,7 +206,7 @@ describe("camunda7_select_engine racing a settings save in the same slice", () =
 })
 
 describe("the engine tools during a profile-store outage", () => {
-  /** A preferences database that is down: the driver error names its host:port. */
+  /** The driver error names its host:port. */
   const down = (): ProfileStore => {
     const fail = () =>
       Promise.reject(

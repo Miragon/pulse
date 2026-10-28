@@ -31,12 +31,8 @@ afterEach(async () => {
 })
 
 /**
- * A recording fake engine: a REAL loopback HTTP server that the generated
- * client reaches through the real `fetch`. The assertions therefore see the
- * request exactly as it leaves the process — SDK body serializer, header
- * merging and multipart encoding included. A fetch stub would sit in front of
- * the transport and could not tell a well-formed multipart body from the empty
- * one the FormData-through-`Object.entries` bug produced (#326).
+ * A real loopback server, not a fetch stub: a stub could not tell a well-formed multipart body
+ * from the empty one the FormData-through-`Object.entries` bug produced (#326).
  */
 async function startFakeEngine(reply: unknown) {
   const requests: RecordedRequest[] = []
@@ -61,7 +57,6 @@ async function startFakeEngine(reply: unknown) {
   return { baseUrl: `http://127.0.0.1:${port}/engine-rest`, requests }
 }
 
-/** Decodes a recorded multipart body with the platform's own parser. */
 function decodeForm(request: RecordedRequest): Promise<FormData> {
   return new Response(new Uint8Array(request.body), {
     headers: { "Content-Type": String(request.headers["content-type"]) },
@@ -69,10 +64,8 @@ function decodeForm(request: RecordedRequest): Promise<FormData> {
 }
 
 /**
- * Each file part's filename exactly as the ENGINE's parser reads it: the raw
- * `filename="…"` of the part header. The platform decoder reverses fetch's
- * `%22`/`%0D`/`%0A` escapes and commons-fileupload does not, so on the engine
- * `a"b` and a literal `a%22b` are the same name.
+ * Raw `filename="…"` as the engine reads it: commons-fileupload keeps fetch's `%22`/`%0D`/`%0A`
+ * escapes, so on the engine `a"b` and a literal `a%22b` are the same name.
  */
 function wireFilenames(request: RecordedRequest): string[] {
   return request.body
@@ -83,12 +76,7 @@ function wireFilenames(request: RecordedRequest): string[] {
     )
 }
 
-/**
- * The part names the engine reads as deployment FIELDS (CIB Seven
- * `DeploymentRestServiceImpl.RESERVED_KEYWORDS`): every other part is deployed
- * as a resource. Typed against the generated DTO, so a field the spec adds or
- * renames breaks this list at compile time instead of slipping past it.
- */
+/** CIB seven `DeploymentRestServiceImpl.RESERVED_KEYWORDS`; typed against the DTO so a spec change breaks compile. */
 const RESERVED_FIELDS: ReadonlySet<string> = new Set(
   Object.keys({
     "deployment-name": true,
@@ -101,14 +89,9 @@ const RESERVED_FIELDS: ReadonlySet<string> = new Set(
 )
 
 /**
- * A recorded request as the ENGINE reads it, not merely as the platform
- * decodes it. The engine collects the parts in a map keyed by part NAME (CIB
- * Seven `MultipartFormData`, last part wins), reads the reserved names as
- * fields and deploys every other part as a resource named after its raw
- * filename. So the view fails on what that map would hide before anything is
- * compared: a part name sent twice (all but the last part silently dropped), a
- * file under a reserved name (a resource taking over a field) or a text part
- * posing as a resource.
+ * The request as the engine reads it: parts in a map keyed by name (CIB seven
+ * `MultipartFormData`, last wins). Fails on what that map would hide: a duplicate part name, a
+ * file under a reserved name, a text part posing as a resource.
  */
 async function engineView(request: RecordedRequest) {
   const form = await decodeForm(request)
@@ -162,12 +145,7 @@ type CreateArgs = {
 }
 type Handler = (registry: EngineRegistry, args: CreateArgs) => Promise<unknown>
 
-/**
- * Registers the REAL deployment tools against a recording registrar and wires
- * the registry exactly like production (plugin.ts): each engine's client comes
- * from its provider, so the handler runs withEngine → resolveEngine → the
- * generated SDK → fetch against the fake engines.
- */
+/** Wired like plugin.ts, so the handler runs withEngine → resolveEngine → SDK → fetch. */
 function deploymentTool(engines: EngineEntry[]) {
   const tools = new Map<string, ToolConfig<EngineRegistry>>()
   const recorder = Object.assign(
@@ -201,8 +179,7 @@ describe("camunda7_create_deployment on the wire (recording fake engine)", () =>
     const [request] = engine.requests
     expect(request.method).toBe("POST")
     expect(request.path).toBe("/engine-rest/deployment/create")
-    // The boundary parameter only exists when fetch serialized a FormData
-    // itself — a stale `application/json` default would drop it.
+    // A stale `application/json` default would drop the boundary.
     const contentType = String(request.headers["content-type"])
     const boundary = /^multipart\/form-data; boundary=(\S+)$/.exec(contentType)?.[1]
     expect(boundary, contentType).toBeTruthy()
@@ -266,9 +243,7 @@ describe("camunda7_create_deployment on the wire (recording fake engine)", () =>
       ],
     })
 
-    // Empty strings are omitted like absent fields; the resources named after
-    // reserved fields travel under synthetic part names and keep their own
-    // names only as filenames, so the engine still deploys both of them.
+    // Resources named after reserved fields travel under synthetic part names.
     expect(await engineView(engine.requests[0])).toEqual({
       partNames: ["deployment-name", "resource-0", "resource-1"],
       fields: { "deployment-name": "orders" },
@@ -284,7 +259,6 @@ describe("camunda7_create_deployment on the wire (recording fake engine)", () =>
     const { config, call } = deploymentTool([{ id: "local", baseUrl: engine.baseUrl }])
     const names = ["processes/order process.bpmn", "Größe – Rabattstufen.dmn", "order%22v2.bpmn"]
 
-    // Validated first, exactly as the server validates before the handler runs.
     await call(
       z.object(config.inputSchema).parse({
         deploymentName: "orders",
@@ -307,13 +281,11 @@ describe("camunda7_create_deployment on the wire (recording fake engine)", () =>
       ],
     }
 
-    // Unvalidated, fetch percent-escapes the quote: two distinct names reach
-    // the engine as ONE filename, and the engine keeps only one of them.
+    // Unvalidated, fetch percent-escapes the quote: two names reach the engine as ONE.
     await call(colliding)
     const { resources } = await engineView(engine.requests[0])
     expect(resources.map((r) => r.filename)).toEqual(["order%22v2.bpmn", "order%22v2.bpmn"])
 
-    // The tool's input schema refuses the pair before any request is sent.
     expect(z.object(config.inputSchema).safeParse(colliding).error?.issues).toEqual([
       expect.objectContaining({ path: ["resources", 0, "name"] }),
     ])
@@ -365,7 +337,6 @@ describe("camunda7_create_deployment keeps its gate", () => {
       engine: "local",
       resources: [resource],
     })
-    // Repeated names would collapse engine-side; the schema refuses them up front.
     expect(input.safeParse({ deploymentName: "d", resources: [resource, resource] }).success).toBe(
       false,
     )

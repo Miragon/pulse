@@ -1,31 +1,15 @@
 import type { UserProfile } from "../lib/profile-schema.js"
 
-/**
- * The settings section's form model (#322 U25): what the controls edit, how it
- * maps from the stored profile and back to a save that sends only what the
- * user changed. Pure — `user-profile.tsx` holds the state, the sections in
- * `user-profile-sections.tsx` render it.
- */
-
-/** Subset of a dashboard summary the picker needs (from `list-dashboards`). */
 export interface DashboardSummary {
   id: string
   name: string
   title?: string
-  /**
-   * Set (since toolkit 2.6) when the store holds the record but cannot read
-   * it — a newer `schemaVersion` mid rolling upgrade, a corrupt row. Its
-   * `name` is then just the id, and `load-dashboard` refuses it.
-   */
+  // Since toolkit 2.6: set when the record exists but cannot be read (newer schemaVersion, corrupt row); `load-dashboard` refuses it.
   unreadable?: string
 }
 
-/**
- * The dashboards the picker offers: unreadable records left out (they could
- * be chosen but never opened), pinned ones first — the one behavior the pin
- * promises. A saved default or pin that points at an unreadable record stays
- * in the form state untouched, so it survives until the record reads again.
- */
+// Unreadable records could be chosen but never opened. A default or pin pointing at one stays
+// in the form untouched, so it survives until the record reads again.
 export function pickableDashboards(
   items: DashboardSummary[],
   pinnedIds: string[],
@@ -35,11 +19,9 @@ export function pickableDashboards(
     .sort((a, b) => Number(pinnedIds.includes(b.id)) - Number(pinnedIds.includes(a.id)))
 }
 
-/** The editable preference state mirrored by the form controls. */
 export interface FormState {
-  /** "Alle Engines erlauben" (#322 U25): every configured engine, today's and tomorrow's. */
+  // #322 U25: includes engines configured later.
   allEngines: boolean
-  /** The curated engines while `allEngines` is off. */
   allowedEngineIds: string[]
   defaultEngineId: string
   defaultDashboardId: string
@@ -59,12 +41,10 @@ export function fromProfile(p: UserProfile, engineIds: string[]): FormState {
   }
 }
 
-/** The engines the form allows: every one, or the curated list. */
 export function allowedIn(form: FormState, engineIds: string[]): string[] {
   return form.allEngines ? engineIds : form.allowedEngineIds
 }
 
-/** The form compared with what is stored: has the user changed anything? */
 export function isDirty(form: FormState, baseline: FormState, engineIds: string[]): boolean {
   return Object.keys(changedPreferences(form, baseline, engineIds)).length > 0
 }
@@ -72,17 +52,10 @@ export function isDirty(form: FormState, baseline: FormState, engineIds: string[
 const sameSet = (a: string[], b: string[]) =>
   a.length === b.length && a.every((id) => b.includes(id))
 
-/** The single-valued preferences, compared by value. */
 const SCALAR_FIELDS = ["defaultEngineId", "defaultDashboardId"] as const
 
-/**
- * The save payload: ONLY the preferences the user changed against the form's
- * baseline. The panel may render from a cached (stale) view, and another
- * writer (the model's `camunda7_select_engine`, a second tab) may have
- * changed the profile meanwhile — re-sending untouched fields would silently
- * write the old values back. The save input is default-free, so an omitted
- * field stays unchanged on the server.
- */
+// Only changed fields: the view may be stale and another writer (`camunda7_select_engine`, a
+// second tab) may have saved meanwhile; re-sending untouched fields would write old values back.
 export function changedPreferences(
   form: FormState,
   baseline: FormState,
@@ -97,9 +70,7 @@ export function changedPreferences(
   }
   const allowed = allowedIn(form, engineIds)
   if (!sameSet(allowed, allowedIn(baseline, engineIds))) {
-    // "All engines" — switched on, or everything checked — persists as [],
-    // the documented "all engines" encoding, so engines configured later are
-    // included automatically instead of freezing today's expanded list.
+    // [] is the "all engines" encoding, so engines configured later are included.
     payload.allowedEngineIds = form.allEngines || sameSet(allowed, engineIds) ? [] : allowed
   }
   return payload

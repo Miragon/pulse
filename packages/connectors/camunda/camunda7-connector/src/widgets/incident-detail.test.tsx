@@ -14,13 +14,8 @@ import { IncidentDetailWidget } from "./incident-detail.js"
 import { IncidentTable } from "./process-incidents/incident-table.js"
 import { useIncidentRecovery } from "./process-incidents/use-incident-recovery.js"
 
-/**
- * #328 in the incident DETAIL view: the failure tab offers the remedy the
- * engine accepts — Retry (job or external-task retries) for the built-in
- * types, Resolve only for custom incidents — each only when the toolset has
- * its tool. And a result stored before `recovery` existed still renders: the
- * host hands the current view the old structuredContent of a reopened chat.
- */
+// #328: Retry for built-in types, Resolve only for custom ones, each only with its tool. A result
+// stored before `recovery` existed still renders: a reopened chat hands the old structuredContent.
 
 afterEach(() => {
   cleanup()
@@ -97,7 +92,7 @@ function recording(calls: Calls, ...names: string[]): Record<string, unknown> {
   )
 }
 
-/** Wait until the toolset gate answered, so an absent button is a decision. */
+// So an absent button is a decision.
 async function gateSettled() {
   await waitFor(() =>
     expect(

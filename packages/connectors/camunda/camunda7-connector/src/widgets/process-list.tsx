@@ -27,12 +27,8 @@ import {
 
 export type { ProcessListData }
 
-/**
- * Health check of ONE definition version: its metrics over 7 days (analytics,
- * when active) plus this version's live incidents. The version tag is
- * deployer text — quoted, never inlined. The metrics window goes with the
- * analytics tool only: camunda7_list_incidents refuses it.
- */
+// The version tag is deployer text, quoted. The metrics window goes with the analytics tool only:
+// camunda7_list_incidents refuses it.
 export function healthCheckHandOff(
   row: ProcessDefinitionsTableRow,
   engine: string | undefined,
@@ -55,9 +51,8 @@ export function healthCheckHandOff(
 
 const PAGE_SIZE = 50
 
-// Standalone renders hand in only `data`, so the show tool's scope comes
-// from the payload's echo — a page-2 fetch without `latestVersion` would
-// mix all versions into a latest-only page 0.
+// Standalone renders get only `data`: a page-2 fetch without the echoed `latestVersion` would mix
+// all versions into a latest-only page 0.
 function deriveProcessListScope(
   initialData: ProcessListData | null,
   props: {
@@ -93,13 +88,10 @@ export function ProcessListWidget({
   latestVersion,
 }: {
   data: ProcessListData | null
-  /** Explicit engine routing (cockpit view); omitted → the payload's engine. */
   engine?: string
-  /** Filter by exact process definition key. */
   processDefinitionKey?: string
-  /** Filter by partial process definition name. */
   nameLike?: string
-  /** Restrict to the latest version of each definition (default `true`). */
+  // Default `true`.
   latestVersion?: boolean
 }) {
   const t = useT()
@@ -114,8 +106,7 @@ export function ProcessListWidget({
   const { feedEngine, effectiveKey, baseNameLike, effectiveLatest } = scope
   const args = buildProcessListArgs(scope)
 
-  // The search is SERVER-side (nameLike on the paged feed, overriding a
-  // handed-in prefilter) so it covers all deployed definitions.
+  // Server-side search, so it covers all deployed definitions.
   const { paged, search, setSearch, interacted } = usePagedListView<
     ProcessDefinition,
     ProcessListData
@@ -152,9 +143,6 @@ export function ProcessListWidget({
     )
   }
 
-  // Count-less adapter over the canonical definitions table: the count columns
-  // and drill buttons are simply absent; a status column (active/suspended)
-  // and the per-row Ask-AI handoff take their place.
   const rows: ProcessDefinitionsTableRow[] = paged.items.map((def) => ({
     id: def.id,
     key: def.key,

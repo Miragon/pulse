@@ -20,21 +20,9 @@ import { engineParamShape, withEngine } from "../lib/with-engine.js"
 type Register = ReturnType<typeof createToolRegistrar<EngineRegistry>>
 
 /**
- * The `POST /deployment/create` multipart body, as the generated SDK expects it.
- *
- * A PLAIN record on purpose: the SDK's `formDataBodySerializer` builds the
- * multipart body itself by walking `Object.entries(body)`, so a prebuilt
- * `FormData` (no own enumerable entries) went out as an EMPTY body and no
- * deployment ever succeeded (#326). Here every resource is a `File`, which the
- * serializer appends under its own name as the part's filename — the engine
- * names each deployed resource after that filename. Undefined fields are
- * skipped and booleans go out as "true"/"false"; empty strings are dropped like
- * absent ones so an empty `tenant-id` never reaches the engine.
- *
- * Part NAMES are synthetic (`resource-<n>`): the engine collects the parts in a
- * map keyed by name and treats its reserved names (`deployment-name`,
- * `tenant-id`, …) as fields, so naming a part after its resource would let a
- * resource called e.g. "tenant-id" hijack a field instead of being deployed.
+ * A PLAIN record: the SDK serializer walks `Object.entries(body)`, so a prebuilt `FormData`
+ * went out EMPTY (#326). Part names are synthetic (`resource-<n>`) because the engine reads
+ * reserved part names (`tenant-id`, …) as fields, which a resource could otherwise hijack.
  */
 type DeploymentForm = MultiFormDeploymentDto & Record<`resource-${number}`, File>
 
@@ -77,8 +65,6 @@ export function registerDeploymentTools(
     inputSchema: { ...listDeploymentsInput.shape, ...engineParamShape },
     outputSchema: paginatedListOutput,
     handler: withEngine(async (client, args) => {
-      // The page and its /count share the filters in the engine's format (a
-      // %-less nameLike becomes a substring match).
       const filters = { name: args.name, nameLike: engineLike(args.nameLike) }
       const [items, count] = await Promise.all([
         getDeployments({
@@ -96,11 +82,8 @@ export function registerDeploymentTools(
     }),
   })
 
-  // Deploying IS code execution inside the engine JVM — a deployed model's
-  // expressions (JUEL method calls suffice, no script engine needed), scripts
-  // and listener/delegate references run with the engine's privileges. So the
-  // tool is opt-in (CAMUNDA_ALLOW_DEPLOYMENTS=true) ON TOP of admin-only
-  // (ADMIN_ONLY_TOOLS): without the flag it is not registered in any toolset.
+  // Deploying IS code execution in the engine JVM (JUEL alone suffices), so this is opt-in on
+  // top of admin-only.
   if (!allowDeployments) return
 
   register({

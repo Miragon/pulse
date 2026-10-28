@@ -1,10 +1,8 @@
 import type { AnalyticsAskAiKey } from "./en.ask-ai.js"
 
 /**
- * German analytics Ask-AI intents — same keys as `en.ask-ai.ts` (the type
- * enforces parity). Posted in the user's name, so they ask the AI in plain
- * du-German, with no dash as a connector and the guardrail ending
- * ("Ändere nichts.") kept.
+ * Same keys as `en.ask-ai.ts` (the type enforces parity). Posted in the user's name, so plain du-
+ * German, and the guardrail ending ("Ändere nichts.") stays.
  */
 export const deAskAi: Record<AnalyticsAskAiKey, string> = {
   "askAi.clusterCompare":

@@ -56,33 +56,18 @@ interface RawIncident {
   activityId?: string | null
   failedActivityId?: string | null
   /**
-   * Camunda 7 packs the failure target into `configuration` instead of a typed
-   * field. For `failedJob` incidents this is the job id; for other types
-   * (e.g. `failedExternalTask`) it points at a different resource and must
-   * not be treated as a job id.
+   * The failure target. For `failedJob` it is the job id; for other types
+   * (e.g. `failedExternalTask`) it is some other resource, never a job id.
    */
   configuration?: string | null
-  /**
-   * Set when this incident is a delegated propagation from a sub-process.
-   * The actual failure (job, message, stacktrace) lives on the root cause —
-   * the delegated incident itself carries `null` for `configuration` and
-   * `incidentMessage`.
-   */
+  /** A delegated incident carries `null` configuration and message; the failure lives on the root cause. */
   rootCauseIncidentId?: string | null
   incidentType?: string | null
   incidentMessage?: string | null
   incidentTimestamp?: string | null
 }
 
-/**
- * Build the incident record. For delegated incidents (Camunda's parent
- * process gets an incident pointing at the sub-process root cause), the
- * `configuration` and `incidentMessage` fields are null on the parent —
- * we have to read them from the root cause to surface the real failure.
- *
- * Activity / process context comes from the original (where the operator
- * navigated) so the BPMN highlight stays in the right diagram.
- */
+/** Activity and process come from the original incident, so the BPMN highlight stays in its diagram. */
 function normalizeIncident(
   raw: RawIncident,
   fallbackId: string,
@@ -138,7 +123,6 @@ interface RawDefinition {
   version?: number | null
 }
 
-/** Name + version of the incident's OWN definition — one id lookup; enrichment (null on failure). */
 function fetchDefinitionMeta(
   client: Client,
   processDefinitionId: string,
@@ -149,11 +133,7 @@ function fetchDefinitionMeta(
   )
 }
 
-/**
- * The failing job of a job-backed incident — PRIMARY: a failed read is a tool
- * error, never "this incident has no job". `null` only when the job is gone
- * (the incident was retried meanwhile).
- */
+/** PRIMARY: a failed read is a tool error. `null` only when the job is gone (retried meanwhile). */
 async function fetchJob(client: Client, jobId: string): Promise<IncidentDetailJob | null> {
   const [jobs, rawStacktrace] = await Promise.all([
     getJobs({ client, query: { jobId, maxResults: 1 } }).then((rows) => rowsOf<RawJob>(rows)),
@@ -173,13 +153,7 @@ async function fetchJob(client: Client, jobId: string): Promise<IncidentDetailJo
   }
 }
 
-/**
- * Delegated incidents (sub-process failure propagated to the parent) have
- * null `configuration`/`incidentMessage`. The real failure data lives on
- * the root cause — fetch it and use it as the failure source. PRIMARY: it
- * decides which job (and message) the view shows, so a failed read is a tool
- * error, never "this incident has no job".
- */
+/** PRIMARY: it decides which job and message the view shows, so a failed read is a tool error. */
 async function fetchRootCauseIncident(
   client: Client,
   rawIncident: RawIncident,
@@ -200,12 +174,7 @@ type IncidentContext = [
   job: IncidentDetailJob | null,
 ]
 
-/**
- * The incident's context. The instance it belongs to (state, tokens,
- * variables) and its job are PRIMARY — the tabs present them as facts, so a
- * failed read is a tool error, never "not suspended" or "no variables". The
- * diagram, the definition's name and the history total are enrichment (null).
- */
+/** Instance and job are PRIMARY (the tabs present them as facts); diagram, name and history total are enrichment. */
 function fetchIncidentContext(client: Client, incident: IncidentRecord): Promise<IncidentContext> {
   const { processInstanceId, processDefinitionId, jobId } = incident
   return Promise.all([
@@ -228,9 +197,7 @@ function fetchIncidentContext(client: Client, incident: IncidentRecord): Promise
           })),
         )
       : Promise.resolve(null),
-    // The History tab pages the rows itself (registrar history query); the
-    // payload only carries the honest total for the KPI. Degrades to null
-    // when history is disabled on the engine.
+    // The History tab pages its rows itself; this is the total, null when history is disabled.
     processInstanceId
       ? (getHistoricActivityInstancesCount({ client, query: { processInstanceId } }).catch(
           () => null,
@@ -242,19 +209,16 @@ function fetchIncidentContext(client: Client, incident: IncidentRecord): Promise
 }
 
 /**
- * The incident's definition as the header and the hand-offs name it. The key
- * is the fetched definition's own: a bare generated definition id (long keys)
- * names none, and a key parsed from it would be that id. Only when the
- * lookup failed does the parse stand in for DISPLAY — the hand-offs then
- * scope by the exact id instead (`scopingDefinitionKey`), and the cockpit
- * link, which addresses a key, is built only from `knownKey`.
+ * The key is the fetched definition's own: a bare generated id names none. When
+ * the lookup failed the parse stands in for DISPLAY only; hand-offs then scope by
+ * the exact id and the cockpit link is built only from `knownKey`.
  */
 function deriveDefinitionInfo(
   definitionMeta: RawDefinition | null,
   processDefinitionId: string,
 ): {
   processDefinitionKey: string
-  /** The key the definition or its id vouches for — null for a bare id whose lookup failed. */
+  /** Null for a bare id whose lookup failed. */
   knownKey: string | null
   processDefinitionVersion: number | null
   processDefinitionName: string | null
@@ -273,7 +237,7 @@ function deriveDefinitionInfo(
   }
 }
 
-/** Enrichment: null without an instance or a key it can vouch for — never a UUID as the key. */
+/** Never a UUID as the key. */
 function deriveCockpitInstanceUrl(
   options: BuildOptions,
   incident: IncidentRecord,
@@ -330,8 +294,7 @@ export async function buildIncidentDetailData(
 
   const { processDefinitionKey, knownKey, processDefinitionVersion, processDefinitionName } =
     deriveDefinitionInfo(definitionMeta, processDefinitionId)
-  // The engine names a process by its `<process>` element alone; a Modeler
-  // collaboration names the pool instead, which the diagram already read has.
+  // The engine names a process by `<process>` alone; the Modeler names the pool.
   const processName = processDefinitionName ?? bpmnProcessNameOf(diagramNames, processDefinitionKey)
 
   const cockpitInstanceUrl = deriveCockpitInstanceUrl(
@@ -360,8 +323,6 @@ export async function buildIncidentDetailData(
     cockpitInstanceUrl,
     engineVendor: options.provider.branding.displayName,
 
-    // Drawn by id (`camunda7_bpmn_xml_data`); the XML read here names the
-    // activity and the process.
     diagramDefinitionId: bpmnXml ? processDefinitionId : null,
 
     job,

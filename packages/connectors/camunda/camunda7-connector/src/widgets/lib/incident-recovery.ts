@@ -1,14 +1,8 @@
 import type { IncidentRecovery } from "../../view-models.js"
 
 /**
- * An incident's recovery as the widgets read it. The feeds always set
- * `recovery` (the engine contract's `incidentRecovery`), but a result stored
- * before the field existed still reaches the CURRENT view: a reopened
- * conversation hands it the old structuredContent, and a widget fed initial
- * data never refetches. Without the field, the type decides the same way the
- * contract does — a custom incident is resolved; a built-in one (the engine
- * refuses to resolve it) is retried on `jobId` when the old payload names its
- * job, and offers no action otherwise.
+ * A result stored before `recovery` existed still reaches a reopened view; then the type
+ * decides like the contract (built-ins can't be resolved, so retry on `jobId` or nothing).
  */
 export function recoveryOf(
   incident: { incidentType: string; recovery?: IncidentRecovery },

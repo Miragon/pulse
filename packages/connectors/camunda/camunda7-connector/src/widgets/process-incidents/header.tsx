@@ -15,11 +15,7 @@ import { useT } from "../../messages/use-t.js"
 import { diagramActivityFraction } from "./activity-scope.js"
 import { useDefinitionData } from "./feed.js"
 
-/**
- * Triage of ONE definition's health: cluster its incidents by root cause and
- * recommend a fix per cluster. The problem activities travel as their ids;
- * the definition's name is the deployer's text — quoted.
- */
+/** The definition's name is the deployer's text: quoted. */
 export function triageProcessHandOff(
   data: ProcessIncidentsData,
   engine: string | undefined,
@@ -28,9 +24,7 @@ export function triageProcessHandOff(
   return {
     intent: "askAi.process.triage",
     ids: { engine, processDefinitionKey: data.processDefinitionKey, noRetriesLeft: true },
-    // Every count spans all versions of the key; only the diagram is one
-    // version (#335 N60) — so the activity fraction is the diagram's own
-    // ("1 of 2"), and activities only older versions have are named apart.
+    // Counts span all versions; only the diagram is one version (#335 N60).
     facts: {
       countScope: "allVersions",
       diagramVersion: data.diagramVersion,
@@ -53,10 +47,7 @@ export function triageProcessHandOff(
   }
 }
 
-/**
- * The open-incident badge of the header. The merged view also renders healthy
- * definitions — the badge appears only when there is something on fire.
- */
+/** Healthy definitions render too; the badge shows only when something is on fire. */
 function HeaderBadge({ data }: { data: ProcessIncidentsData }) {
   const t = useT()
   if (data.incidentCount === 0) return null
@@ -67,10 +58,6 @@ function HeaderBadge({ data }: { data: ProcessIncidentsData }) {
   )
 }
 
-/**
- * Sub line: definition key + its scope (every version — the view is key-wide),
- * running-instance count, last event. Facts only: the actions are the head's.
- */
 function HeaderSub({ data, engine }: { data: ProcessIncidentsData; engine?: string }) {
   const t = useT()
   return (
@@ -97,12 +84,7 @@ function HeaderSub({ data, engine }: { data: ProcessIncidentsData; engine?: stri
   )
 }
 
-/**
- * Header of the unified definition view — the single action home, ONE group
- * of one action size: the running-instances drill, the engine's own web app,
- * then the chat hand-off (deterministic first). The section widgets below
- * stay action-free, and the meta line holds facts only.
- */
+/** The view's single action home: deterministic first, then the web app, then the chat. */
 export function ProcessDetailHeader({
   data: initialData = null,
   processDefinitionKey,

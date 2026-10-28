@@ -1,50 +1,25 @@
 import { createContext, useContext, type ReactNode } from "react"
 import { cn } from "@miragon/mcp-toolkit-ui"
 
-/**
- * True below an already-rendered WidgetShell. Widgets wrap themselves in a
- * shell so they work standalone; composed hosts (the cockpit) also wrap the
- * whole app in one — without this flag every embedded widget would stack a
- * second layer of background, padding and max-width inside the first.
- */
+/** Without this flag every embedded widget would stack a second background and padding inside the first. */
 const InsideShellContext = createContext(false)
 
-/**
- * The host's display mode for the current render. mcp-use 2.x's
- * `useDisplayMode` only works inside a `bootstrapView`-mounted view, so the
- * value is provided from the bundle root (where that hook is legal) and
- * defaults to `"inline"` everywhere else (unit renders, fixtures, standalone
- * embeds) — exactly the pre-2.x fallback behaviour.
- */
+/** mcp-use 2.x's `useDisplayMode` only works under `bootstrapView`, so the bundle root provides it. */
 const DisplayModeContext = createContext<string>("inline")
 
-/** Provide the host-reported display mode to the widget tree (bundle root only). */
 export function DisplayModeProvider({ mode, children }: { mode: string; children: ReactNode }) {
   return <DisplayModeContext.Provider value={mode}>{children}</DisplayModeContext.Provider>
 }
 
-/** The host-reported display mode for this subtree (`"inline"` outside a host). */
 export function useHostDisplayMode(): string {
   return useContext(DisplayModeContext)
 }
 
-/**
- * Top-level container for a Miragon-styled widget. Sets max-width, padding,
- * background, and the default text/font conventions used by all dashboards.
- * Nesting-aware: an inner WidgetShell keeps only the section stack (gap), so a
- * widget that owns a shell can be embedded under an app-level shell unchanged.
- *
- * Padding on the CI grid: 24 px, 16 px below 640 px (an inline view on a
- * phone or in a narrow chat column). Every child may shrink below its content
- * (`min-w-0`), so a wide table scrolls inside its own region (`ListTable`)
- * instead of widening the document.
- */
+/** Every child may shrink (`min-w-0`), so a wide table scrolls in its own region instead of widening the document. */
 export function WidgetShell({ children, className }: { children: ReactNode; className?: string }) {
   const nested = useContext(InsideShellContext)
   const displayMode = useContext(DisplayModeContext)
-  // Nested: drop background, padding, max-width and centering (the outer shell
-  // owns those), but keep the internal section stack — widgets rely on the
-  // shell's gap for the spacing between their own header/KPIs/tables.
+  // Nested: keep the section stack; widgets rely on the shell's gap.
   if (nested) {
     return <div className={cn("flex min-w-0 flex-col gap-6", className)}>{children}</div>
   }

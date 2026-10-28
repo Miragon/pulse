@@ -4,12 +4,7 @@ import { createInMemoryProfileStore } from "@miragon/pulse-widget-shell/server"
 import { cockpitEngineScope, EngineNotAvailableError } from "./engine-preferences.js"
 import { createEngineRegistry, type EngineEntry } from "./resolve-engine.js"
 
-/**
- * The cockpit's engine scope (#341): the engine it opens on, over the
- * caller's engine list. The tool-level cases (saved default, curation,
- * outage) live in `widget-tools/cockpit.test.ts`; these pin the error
- * contract and the paths a plugin-built registry never takes.
- */
+// Tool-level cases live in `widget-tools/cockpit.test.ts`; these pin the error contract (#341).
 
 const ENGINES: EngineEntry[] = [
   { id: "a", baseUrl: "http://a.example/engine-rest" },

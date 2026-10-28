@@ -2,18 +2,11 @@ import { readdirSync } from "node:fs"
 import { join, relative, sep } from "node:path"
 import ts from "typescript"
 
-/**
- * The source walk shared by the code gates (`scanGlyphs`, `scanColors`):
- * parse `.ts`/`.tsx` with `typescript` and visit what ends up on screen or in
- * a class list, never comments (a comment may name what a gate bans).
- */
+/** Never visits comments: a comment may name what a gate bans. */
 
 const SKIP_DIRS = new Set(["node_modules", "dist", "coverage"])
 
-/**
- * Every `.ts`/`.tsx` source under `dir`, tests, declarations and build output
- * excluded, in name order (findings come out the same on every file system).
- */
+/** Name order, so findings come out the same on every file system. */
 export function sourceFiles(dir: string): string[] {
   const entries = readdirSync(dir, { withFileTypes: true })
   // Names are unique within a directory: never equal.
@@ -26,7 +19,7 @@ export function sourceFiles(dir: string): string[] {
   })
 }
 
-/** `path` relative to `dir` with "/" separators: stable keys for allow lists on every OS. */
+/** Stable keys for allow lists on every OS. */
 export function relativePath(dir: string, path: string): string {
   return relative(dir, path).split(sep).join("/")
 }
@@ -50,12 +43,10 @@ export function literalText(node: ts.Node): string | undefined {
   return undefined
 }
 
-/** The 1-based line a node starts on. */
 export function lineOf(sf: ts.SourceFile, node: ts.Node): number {
   return sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1
 }
 
-/** Depth-first walk over every node of a source file. */
 export function walkNodes(sf: ts.SourceFile, visit: (node: ts.Node) => void): void {
   const step = (node: ts.Node) => {
     visit(node)

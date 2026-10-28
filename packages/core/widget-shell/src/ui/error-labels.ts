@@ -1,24 +1,14 @@
 import type { Locale } from "../profile-constants.js"
 
-/**
- * Who failed, as the error text names it: a configured engine (with its id
- * when the message carries one), Prometheus, or nothing the kit recognises.
- */
 export type ErrorSource =
   { type: "engine"; id?: string } | { type: "prometheus" } | { type: "unknown" }
 
-/** One error kind's words: what happened (title) and what you can do (hint). */
 export interface ErrorKindLabels {
   title: (p: { source: string; status: string }) => string
   hint: (p: { source: ErrorSource["type"] }) => string
 }
 
-/**
- * The words of `describeError` (en/de). Voice (brand-tone): a title says what
- * happened, a hint what you can do; German addresses you with du; no dash as
- * a connector. Checked branch by branch (every source, the toast lines) by the
- * catalog text and glossary tests in `brand-gates.test.ts`.
- */
+/** Checked branch by branch by the catalog text and glossary tests in `brand-gates.test.ts`. */
 export interface ErrorLabels {
   /** The source as the subject of a title, sentence-initial. */
   source: (p: { source: ErrorSource }) => string
@@ -32,14 +22,9 @@ export interface ErrorLabels {
   notFound: ErrorKindLabels
   failed: ErrorKindLabels
   unknown: ErrorKindLabels
-  /**
-   * A failed write's toast. A toast has a title and one line, no "Details":
-   * these words never point there, and they carry the reason themselves.
-   */
+  /** A toast has no "Details": these words never point there and carry the reason themselves. */
   toast: {
-    /** What happened, then the source's own reason, quoted. */
     reason: (p: { title: string; reason: string }) => string
-    /** `failed`'s next step, without the "Details" sentence. */
     failedHint: () => string
     /** The write's answer never came (timeout, lost connection): it may have gone through. */
     mayHaveApplied: () => string
@@ -169,5 +154,4 @@ const DE: ErrorLabels = {
   },
 }
 
-/** Both label sets, for `describeError` and the catalog text test. */
 export const ERROR_LABELS: Readonly<Record<Locale, ErrorLabels>> = { en: EN, de: DE }

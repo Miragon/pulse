@@ -14,52 +14,29 @@ import { BpmnZoomControls } from "./bpmn-zoom-controls.js"
 import { kitLabels } from "./kit-labels.js"
 import { useBpmnViewer } from "./use-bpmn-viewer.js"
 
-// Stable default for the omitted-edges case: a `= {}` parameter default would
-// be a fresh identity per render and re-trigger the repaint effect every time.
+// A `= {}` parameter default would be a fresh identity per render and re-trigger the repaint effect.
 const EMPTY_EDGES: Record<string, number> = {}
 
 export type { BpmnHeatmapLabels }
 
 export interface BpmnHeatmapProps {
   bpmnXml: string
-  /** Per-element heat value keyed by BPMN element id (frequency or duration). */
   nodeFrequencies: Record<string, number>
   /** Per-edge value keyed by `${sourceId}->${targetId}`. Metrics carry none → `{}`. */
   edgeFrequencies?: Record<string, number>
   /** A fixed frame height; default: the diagram's own (240–560 px, `diagramHeight`). */
   height?: number
-  /** Heat radius in diagram coordinates. Scales with zoom. */
   diagramRadius?: number
   /** Accessible name for the diagram (localize per module; English fallback). */
   diagramAriaLabel?: string
-  /** Title of the import-error state (English fallback): what happened, one line. */
   errorTitle?: string
-  /**
-   * Next step under the import error: what the user can do. No fallback, so
-   * a caller without a localized hint shows no English sentence in its view.
-   */
+  /** No fallback, so a caller without a localized hint shows no English sentence. */
   errorHint?: string
-  /**
-   * Shown over the diagram when NO element carries a positive value. Without
-   * it an empty result (window with no traffic, or a metrics `engine_id` that
-   * doesn't match the configured engine id) is indistinguishable from a
-   * rendered heatmap — the diagram just stays uncolored.
-   */
+  /** Without it an empty result (no traffic, or a mismatched metrics `engine_id`) looks like a rendered heatmap. */
   noHeatLabel?: string
 }
 
-/**
- * Renders a BPMN diagram (bpmn-js NavigatedViewer) with a Cockpit-style heat
- * overlay on a canvas synced to the viewbox. The viewer mounts once per diagram
- * (`bpmnXml`); changing `nodeFrequencies` (e.g. the frequency↔duration toggle)
- * only repaints the overlay — no re-import / refit.
- *
- * The heat is ONE hue (`--cd-info-soft` → `--cd-blau`, never red: red is for
- * incidents), every element with a value above zero at a visible minimum.
- * The whole frame is a forced-light island: the paper, the zoom bar and the
- * "no values" chip stay light in a dark host. Pair it with
- * {@link HeatmapLegend} and the values as a table ({@link HeatValuesTable}).
- */
+/** The viewer mounts once per `bpmnXml`; new heat values only repaint the overlay. One hue, never red (red is for incidents); the frame is a forced-light island. */
 export function BpmnHeatmap({
   bpmnXml,
   nodeFrequencies,
@@ -73,10 +50,7 @@ export function BpmnHeatmap({
 }: BpmnHeatmapProps) {
   const heatCanvasRef = useRef<HTMLCanvasElement>(null)
   const redrawRef = useRef<(() => void) | null>(null)
-  // Latest heat inputs, read by redraw() so we can repaint without re-importing.
-  // Synced in an effect (not during render) so a discarded render can't leak
-  // into the ref; declared before the repaint effect below, so redraw() always
-  // sees the values of the commit that triggered it.
+  // Synced in an effect, not during render, so a discarded render cannot leak into the ref; declared before the repaint effect so redraw() sees this commit's values.
   const dataRef = useRef({ nodeFrequencies, edgeFrequencies, diagramRadius })
   useEffect(() => {
     dataRef.current = { nodeFrequencies, edgeFrequencies, diagramRadius }
@@ -121,7 +95,6 @@ export function BpmnHeatmap({
         const range = weightRange(heatPoints.map((p) => p.weight)) ?? { min: 0, max: 0 }
         const vb = canvas.viewbox()
         const scale = vb.scale
-        // Project diagram coordinates → screen pixels (CSS px).
         const screenPoints: HeatPoint[] = heatPoints.map((p) => ({
           x: (p.x - vb.x) * scale,
           y: (p.y - vb.y) * scale,
@@ -158,13 +131,11 @@ export function BpmnHeatmap({
     },
   })
 
-  // Repaint the overlay when the heat values change (toggle) — viewer stays mounted.
   useEffect(() => {
     redrawRef.current?.()
   }, [nodeFrequencies, edgeFrequencies, diagramRadius])
 
-  // Mirrors the `weight > 0` filter in buildHeatPoints: a map of zeros paints
-  // nothing, so it must read as "no data" too.
+  // Mirrors buildHeatPoints' `weight > 0`: a map of zeros must read as "no data" too.
   const hasHeat =
     Object.values(nodeFrequencies).some((v) => v > 0) ||
     Object.values(edgeFrequencies).some((v) => v > 0)
@@ -213,25 +184,14 @@ export function BpmnHeatmap({
   )
 }
 
-/**
- * The heat ramp's legend: the swatch (on the light paper, at the layer's
- * opacity, so it matches the diagram) between the smallest value above zero
- * and the largest (`min`/`max`, formatted by the caller) — or "Less"/"More"
- * where the values are not at hand. The ends are the values they encode:
- * the layer maps that range linearly onto the swatch (`heatIntensity`), so
- * its middle is the middle value. One value for every element paints at the
- * full end, so it shows once, there. Screen readers hear the range as one
- * sentence ("1 to 1,234").
- */
+/** The layer maps the range linearly onto the swatch, so the ends are the values they encode; one value for every element shows once, at the full end. */
 export function HeatmapLegend({
   min,
   max,
   lessLabel = DEFAULT_HEATMAP_LABELS.less,
   moreLabel = DEFAULT_HEATMAP_LABELS.more,
 }: {
-  /** The smallest value above zero, formatted. */
   min?: string
-  /** The largest value, formatted. */
   max?: string
   lessLabel?: string
   moreLabel?: string

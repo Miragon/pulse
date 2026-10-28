@@ -19,7 +19,6 @@ import { jobsFilterShape, pagingShape } from "../feed-contracts.js"
 import { localizeViewFor } from "../lib/server-locale.js"
 import { type WidgetToolsContext, registerShowTool } from "./shared.js"
 
-/** Single-instance drill-downs: instance detail, BPMN viewer, job panel. */
 export function registerInstanceWidgetTools(ctx: WidgetToolsContext) {
   const { server, registry, profileStore, engineParam } = ctx
 
@@ -96,8 +95,6 @@ export function registerInstanceWidgetTools(ctx: WidgetToolsContext) {
     withToolErrors(async ({ engine, ...diagram }, ctx) => {
       const { t, title } = await localizeViewFor(profileStore, ctx)
       const { client, engineId } = await resolveEngine(engine, registry, ctx)
-      // Shared builder with the `camunda7:load-bpmn-viewer` step — the two
-      // render paths must stay in sync (data/bpmn-viewer-data.ts).
       const data = await buildBpmnViewerData(client, engineId, diagram)
 
       const view = (summary: string) =>
@@ -113,10 +110,8 @@ export function registerInstanceWidgetTools(ctx: WidgetToolsContext) {
         return view(t("c7sum.bpmnViewer.empty"))
       }
 
-      // Model summary only — the (often tens-of-KB) bpmnXml must never reach
-      // the text channel; the widget renders it from structuredContent. An
-      // instance target reports only that instance's facts (statsScope
-      // "instance": its own failed jobs, never the definition's).
+      // The bpmnXml (often tens of KB) never reaches the text channel. An instance target reports
+      // only its own failed jobs, never the definition's.
       const totalFailedJobs = data.activityStats.reduce((sum, s) => sum + s.failedJobs, 0)
       const target = data.processInstanceId
         ? t("c7sum.bpmnViewer.targetInstance", { processInstanceId: data.processInstanceId })

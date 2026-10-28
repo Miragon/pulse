@@ -1,14 +1,7 @@
 /**
- * Why a heatmap payload carries no diagram (`bpmnXml: null`), set by the
- * server that knows it, so the widget names the known cause and never guesses
- * one. Shared by `widget-tools.ts` (server) and `widgets/bpmn-heatmap.tsx`
- * (widget bundle), so it lives outside both.
- *
- * - `no-camunda7`: the server got no BPMN lookup. Analytics loads diagrams
- *   only through the camunda7 module, which is not active.
- * - `not-loaded`: the lookup ran and returned nothing. It asks the engines of
- *   the view in configuration order (`createBpmnXmlFetcher` reads each one),
- *   and none of them answered with the model: unreachable, or the process is
- *   not deployed on them.
+ * Why a heatmap has no diagram, so the widget never guesses. Shared by server and
+ * widget bundle, so it lives outside both.
+ * - `no-camunda7`: diagrams load only through the camunda7 module.
+ * - `not-loaded`: no configured engine answered with the model.
  */
 export type BpmnMissingReason = "no-camunda7" | "not-loaded"

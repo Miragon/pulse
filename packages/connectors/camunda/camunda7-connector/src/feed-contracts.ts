@@ -5,31 +5,15 @@ import {
   MAX_PAGE_SIZE,
 } from "@miragon/pulse-camunda7-client/schemas"
 
-/**
- * SINGLE SOURCE for the feeds' filter contracts. Each filter set used to
- * exist as 3-4 hand-maintained copies with no compile-time link: the feed's
- * zod schema, the show tool's zod schema, the data builder's arg interface,
- * and a widget-side mirror type. The zod shapes here feed both tool schemas
- * (spread into `z.object`), and the `z.infer` types feed the builders and
- * widgets (type-only imports — no runtime zod in widget code paths).
- *
- * Paging args stay separate: `usePagedViewData` owns firstResult/maxResults on
- * the wire, builders default them server-side.
- */
+/** Single source for both tool schemas and (type-only, no runtime zod) the builders and widgets. */
 
-/**
- * Offset paging accepted by every paged `*_data` feed (and its show twin).
- * The page is capped at MAX_PAGE_SIZE like every registrar list: the show
- * twins are model-visible, and a host that keeps `structuredContent` hands
- * the whole page to the model. The widgets page at most that many rows.
- */
+/** Capped: the show twins are model-visible and some hosts hand `structuredContent` to the model. */
 export const pagingShape = {
   firstResult: z.number().int().min(0).optional().describe("Offset for pagination (0-based)."),
   maxResults: z.number().int().positive().max(MAX_PAGE_SIZE).optional().describe("Page size."),
 }
 export type PagingArgs = z.infer<z.ZodObject<typeof pagingShape>>
 
-// ── process instances ─────────────────────────────────────────────────────
 export const processInstancesFilterShape = {
   processDefinitionKey: z
     .string()
@@ -56,13 +40,7 @@ export const processInstancesFilterShape = {
 }
 export type ProcessInstancesFilters = z.infer<z.ZodObject<typeof processInstancesFilterShape>>
 
-/**
- * The instances list's search box — its FEED only, the show tool keeps the
- * model's `businessKeyLike`. The box finds an instance by what the list's
- * first column shows: a business key fragment or the whole id (the engine
- * has no LIKE on ids; `engineInstanceSearch`). Like the box always did, the
- * operator's search replaces a handed-in `businessKeyLike` prefilter.
- */
+/** Feed only: a business key fragment or the whole id (the engine has no LIKE on ids); replaces `businessKeyLike`. */
 export const instanceSearchShape = {
   search: z
     .string()
@@ -73,23 +51,19 @@ export const instanceSearchShape = {
 }
 export type InstanceSearchArgs = z.infer<z.ZodObject<typeof instanceSearchShape>>
 
-// ── jobs ──────────────────────────────────────────────────────────────────
 export const jobsFilterShape = {
   processDefinitionKey: z.string().optional().describe("Filter by process definition key"),
   failedOnly: z.boolean().optional().describe("Show only failed jobs (no retries left)"),
 }
 export type JobsFilters = z.infer<z.ZodObject<typeof jobsFilterShape>>
 
-// ── incidents dashboard ───────────────────────────────────────────────────
-// Composed from the exported client schemas (like the registrar tools) so the
-// describe() texts stay in one place; the payload echoes them (`filters`).
+// From the client schemas so the describe() texts stay in one place.
 export const incidentsDashboardFilterShape = {
   processDefinitionKey: listProcessInstancesInput.shape.processDefinitionKey,
   incidentType: listIncidentsInput.shape.incidentType,
 }
 export type IncidentsDashboardFilters = z.infer<z.ZodObject<typeof incidentsDashboardFilterShape>>
 
-// ── failure cluster detail ────────────────────────────────────────────────
 export const clusterDetailFilterShape = {
   activityId: z.string().describe("Activity id of the failure cluster."),
   incidentType: z.string().describe('Incident type of the cluster, e.g. "failedJob".'),
@@ -108,14 +82,12 @@ export const clusterDetailFilterShape = {
 }
 export type ClusterDetailFilters = z.infer<z.ZodObject<typeof clusterDetailFilterShape>>
 
-// ── per-activity incident rows ────────────────────────────────────────────
 export const activityIncidentsFilterShape = {
   processDefinitionKey: z.string().describe("Process definition key"),
   activityId: z.string().describe("Activity id whose incidents to page"),
 }
 export type ActivityIncidentsFilters = z.infer<z.ZodObject<typeof activityIncidentsFilterShape>>
 
-// ── process definitions list ──────────────────────────────────────────────
 export const processListFilterShape = {
   processDefinitionKey: z.string().optional().describe("Filter by exact process definition key"),
   nameLike: z.string().optional().describe("Filter by name (substring; % wildcards allowed)"),

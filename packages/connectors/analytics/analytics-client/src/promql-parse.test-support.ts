@@ -1,14 +1,4 @@
-/**
- * Test support for the metrics-contract guards — never imported by runtime
- * code. A parser for the PromQL subset the analytics consumers write (TS
- * queries, alert rules, Grafana dashboards) into the small AST the label
- * checker (`promql-labels.test-support.ts`) walks.
- *
- * Anything outside the supported subset throws instead of parsing to
- * something approximate — extend the parser when a new query shape needs it.
- */
-
-// ── Tokenizer ──────────────────────────────────────────────────────────────
+// Anything outside the supported subset throws instead of parsing to something approximate.
 
 type TokenKind = "ident" | "number" | "duration" | "string" | "range" | "punct" | "eof"
 
@@ -67,8 +57,6 @@ function unquote(text: string): string {
   return text.startsWith("`") ? body : body.replace(/\\(.)/g, "$1")
 }
 
-// ── AST ────────────────────────────────────────────────────────────────────
-
 export interface Matcher {
   label: string
   op: "=" | "!=" | "=~" | "!~"
@@ -98,8 +86,6 @@ export type PromNode =
   | { type: "call"; func: string; args: PromNode[] }
   | { type: "aggregate"; op: string; grouping?: Grouping; param?: PromNode; expr: PromNode }
   | { type: "binary"; op: string; lhs: PromNode; rhs: PromNode; matching?: VectorMatching }
-
-// ── Parser ─────────────────────────────────────────────────────────────────
 
 const AGGREGATORS = new Set(
   "sum min max avg group stddev stdvar count count_values bottomk topk quantile limitk limit_ratio".split(
@@ -220,7 +206,6 @@ class Parser {
     return this.parsePostfix(this.parsePrimary())
   }
 
-  /** Range / subquery brackets, `offset <duration>`, `@ <time>` — label-neutral. */
   private parsePostfix(node: PromNode): PromNode {
     for (;;) {
       if (this.peek().kind === "range") {
@@ -313,7 +298,6 @@ class Parser {
     return args
   }
 
-  /** After `{`: `label op "value"` pairs up to the closing `}`. */
   private parseSelectorBody(name: string | undefined): PromNode {
     const matchers: Matcher[] = []
     while (!this.accept("}")) {
@@ -335,7 +319,6 @@ class Parser {
   }
 }
 
-/** Parse one PromQL expression; throws on anything outside the supported subset. */
 export function parsePromql(src: string): PromNode {
   return new Parser(tokenize(src), src).parse()
 }

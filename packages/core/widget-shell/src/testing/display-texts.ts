@@ -11,19 +11,10 @@ import {
 import type { CatalogLanguage } from "./catalog-text.js"
 
 /**
- * The builder gate: the toolkit's view builder (2.8) shows each widget, step
- * and props field by its `title` (and `summary`) — `DisplayText` on the
- * definitions, `x-display` on a top-level propsSchema property — and falls
- * back to the technical id without one. A module's people read those names
- * in both languages, so every one carries an en and a de text, and none of
- * them reaches the model:
- *
- *   expect(missingDisplayTexts(definition)).toEqual([])
- *   expect(displayTextsSentToModel(definition)).toEqual([])
- *   expect(catalogTextFindings(displayTextCatalog(definition, "de"), { language: "de" })).toEqual([])
+ * The view builder falls back to the technical id without a title, so every widget, step
+ * and top-level prop carries en and de texts, and none reaches the model.
  */
 
-/** One place the builder names something: where, which field, and its text. */
 interface DisplayEntry {
   /** `app`, `widget <id>`, `step <id>` or `prop <widget id>.<path>`. */
   where: string
@@ -37,12 +28,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
 }
 
-/**
- * The fields of a propsSchema the builder's props sheet shows: its top-level
- * properties. A nested object or array is edited as JSON there, so its inner
- * fields are never named — and the toolkit strips `x-display` from the top
- * level only, so a text on one would reach the model instead.
- */
+/** Top-level only: the toolkit strips `x-display` at that level only, so a nested one would reach the model. */
 function sheetFields(schema: unknown): [name: string, node: JsonSchema][] {
   if (!isRecord(schema) || !isRecord(schema.properties)) return []
   return Object.entries(schema.properties).filter((entry): entry is [string, JsonSchema] =>
@@ -57,7 +43,6 @@ function displayEntries(where: string, text: DisplayText | undefined): DisplayEn
   ]
 }
 
-/** Every name the builder shows for an app's pieces, with the text it carries (or none). */
 function entriesOf(definition: AppDefinition): DisplayEntry[] {
   return [
     { where: "app", field: "title", text: definition.title },
@@ -80,11 +65,6 @@ function textIn(text: LocalizedText | undefined, language: string): string | und
   return value?.trim() ? value : undefined
 }
 
-/**
- * The pieces the builder would show by id in a language: a widget, step or
- * top-level props field without a title or a summary, the app without a
- * title — `"widget camunda7:job-panel: no de summary"`.
- */
 export function missingDisplayTexts(
   definition: AppDefinition,
   languages: readonly CatalogLanguage[] = ["en", "de"],
@@ -96,11 +76,7 @@ export function missingDisplayTexts(
   )
 }
 
-/**
- * The builder texts of a definition in one language as a message catalog
- * (`"widget camunda7:job-panel.title": "Jobs"`), for the voice and glossary
- * gates (`catalogTextFindings`, `glossaryFindings`).
- */
+/** For the voice and glossary gates. */
 export function displayTextCatalog(
   definition: AppDefinition,
   language: CatalogLanguage,
@@ -113,7 +89,6 @@ export function displayTextCatalog(
   return catalog
 }
 
-/** The path of every `x-display` keyword inside a JSON value. */
 function displayKeywordPaths(node: unknown, path: string): string[] {
   if (Array.isArray(node)) {
     return node.flatMap((item, i) => displayKeywordPaths(item, `${path}[${String(i)}]`))
@@ -126,13 +101,7 @@ function displayKeywordPaths(node: unknown, path: string): string[] {
   )
 }
 
-/**
- * Builder texts the model would read: every `x-display` still in a widget's
- * propsSchema as the toolkit's `get-framework-manifest` hands it to the model
- * (`getFrameworkManifest` strips the keyword from top-level properties only),
- * by widget and the schema path that carries it —
- * `"widget shell:data-table: properties.columns.items.properties.key"`.
- */
+/** `getFrameworkManifest` strips the keyword from top-level properties only. */
 export function displayTextsSentToModel(definition: AppDefinition): string[] {
   const widgets = new WidgetRegistry()
   for (const widget of definition.widgets) widgets.register(widget)

@@ -2,70 +2,42 @@ import { callerCacheKey, parseBpmnNames } from "@miragon/pulse-widget-shell/serv
 import type { NameIndex, ProcessNames } from "./bpmn-names.js"
 
 /**
- * Engine-agnostic BPMN-XML lookup injected by the host app (which owns the
- * engine clients) — this module never talks to an engine itself. Resolves the
- * diagram XML of a process definition key's latest deployed version on the
- * engine `engineId` names (omitted: the host's default engine). `null` is an
- * answer: that engine has no such definition. A read that failed
- * (unreachable, refused, timed out) REJECTS, so a consumer tells "not there"
- * from "not now" and never remembers a failure as an answer.
+ * BPMN-XML lookup injected by the host app. `null` means the engine has no such
+ * definition; a failed read REJECTS, so "not there" never gets cached as "not now".
  */
 export type FetchBpmnXml = (
   processDefinitionKey: string,
   engineId?: string,
 ) => Promise<string | null>
 
-/** What one view asks the lookup for, besides its keys. */
 export interface NameRequest {
   /** Per key, the elements whose names the view shows; a key left out gets every named element. */
   elementIds?: Readonly<Record<string, readonly string[]>>
-  /**
-   * Per key, the engines it runs on, in the order to read them (the
-   * landscape knows them per process). Preferred over {@link NameRequest.engines}.
-   */
+  /** Preferred over {@link NameRequest.engines}. */
   enginesByKey?: Readonly<Record<string, readonly string[]>>
-  /**
-   * The view's engines, in the order to read them, for a key without a list
-   * of its own: the first whose model has the key names it. None: the host's
-   * default engine.
-   */
+  /** Fallback for a key without its own list: the first engine whose model has it names it. */
   engines?: readonly string[] | null
 }
 
-/**
- * Names for the process keys of one view: a {@link NameIndex} holding the keys
- * whose model could be read on one of their engines, each with the elements
- * the request asks for.
- */
 export type NameLookup = (keys: Iterable<string>, request?: NameRequest) => Promise<NameIndex>
 
 /** A lookup that knows no names: what a server without the camunda7 module has. */
 export const NO_NAMES: NameLookup = () => Promise.resolve({})
 
 export interface NameLookupOptions {
-  /**
-   * How long one view waits for its names (ms), over every key and engine.
-   * Names are enrichment: a slow engine must not hold up the figures. A read
-   * still running then finishes for the next view.
-   */
+  /** Names are enrichment: a slow engine must not hold up the figures. */
   timeoutMs?: number
-  /** How long an engine's answer is reused (ms): diagrams change with a deployment, not per call. */
+  /** Diagrams change with a deployment, not per call. */
   ttlMs?: number
   /** The most keys one view looks up, in the order it names them; the rest show their ids. */
   maxKeys?: number
   /** The most answers kept; the oldest go first. */
   maxEntries?: number
   /**
-   * Whose engine permissions a read runs under: the partition of the cache,
-   * so one caller's answer never serves another. Default: the request's
-   * caller and credential (`callerCacheKey`, widget-shell). With passthrough
-   * auth every engine read carries the caller's own token and the engine
-   * answers with THAT caller's permissions: a model one caller may read must
-   * never reach another through the cache, and a caller the engine refused
-   * must not hide the names from everyone else.
+   * Cache partition. With passthrough auth the engine answers with the caller's
+   * permissions, so one caller's answer must never serve another.
    */
   caller?: () => string
-  /** Clock, for tests. */
   now?: () => number
 }
 
@@ -78,13 +50,8 @@ const DEFAULT_MAX_ENTRIES = 2_000
 type Answer = ProcessNames | null | undefined
 
 /**
- * The view's name lookup over the injected BPMN lookup, or {@link NO_NAMES}
- * without one. Reads a key's model on its engines in order until one has it.
- * Each engine's answer is kept per caller for `ttlMs` (a "no such model"
- * too: a key an engine does not know stays unknown there that long); a failed
- * read is not kept, so the next view asks again. Never waits longer than
- * `timeoutMs` and never fails: a key without an answer is left out, and the
- * view shows its id.
+ * Caches each engine's answer (incl. "no such model") per caller for `ttlMs`, never
+ * a failed read. Never fails: a key without an answer shows its id.
  */
 export function createNameLookup(
   fetchBpmnXml: FetchBpmnXml | undefined,
@@ -160,12 +127,11 @@ export function createNameLookup(
   }
 }
 
-/** `record[key]` when the record itself holds it: a key such as `constructor` is no inherited lookup. */
+/** Own property only: a key such as `constructor` is no inherited lookup. */
 function own<T>(record: Readonly<Record<string, T>> | undefined, key: string): T | undefined {
   return record && Object.hasOwn(record, key) ? record[key] : undefined
 }
 
-/** The engines to read `key`'s model on, in order: its own, else the view's, else the default engine. */
 function enginesFor(key: string, request: NameRequest): ReadonlyArray<string | undefined> {
   const mine = own(request.enginesByKey, key)
   if (mine && mine.length > 0) return mine
@@ -173,17 +139,13 @@ function enginesFor(key: string, request: NameRequest): ReadonlyArray<string | u
   return [undefined]
 }
 
-/** The entries of `elements` named in `ids` (what the view shows, nothing else). */
 function pick(elements: Record<string, string>, ids: readonly string[]): Record<string, string> {
   const out: Record<string, string> = {}
   for (const id of ids) if (Object.hasOwn(elements, id)) out[id] = elements[id]
   return out
 }
 
-/**
- * One view's time budget: `passed` resolves `undefined` once `ms` passed, and
- * `clear` stops the timer, so a fast view leaves nothing pending.
- */
+/** `clear` stops the timer, so a fast view leaves nothing pending. */
 function startDeadline(ms: number) {
   let timer: ReturnType<typeof setTimeout> | undefined
   let expired = false

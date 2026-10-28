@@ -26,10 +26,8 @@ import { translator } from "../messages/index.js"
 import { viewLocaleOf } from "../lib/server-locale.js"
 
 /**
- * One-line, model-facing summary of the settings — localized to the record's
- * language (steers the model toward responding in that language; the MCP
- * server cannot force the model's output language). `system` follows the
- * host's locale, a widget-side signal the server never sees — English here.
+ * Localized to steer the model's reply language. `system` is the host's locale, which the
+ * server never sees, so English here.
  */
 function summarize(p: UserProfile, language: LanguagePref): string {
   const locale = explicitLocale(language) ?? "en"
@@ -43,19 +41,7 @@ function summarize(p: UserProfile, language: LanguagePref): string {
   return translator(locale, "profile.summary", { engines, defaultDashboard })
 }
 
-/**
- * Registers camunda7's settings section, a `<module>:settings` section of the
- * shell's settings page like analytics': `camunda7_show_settings`, its feed
- * `camunda7_settings_data` and the partial update `camunda7_save_settings`.
- * The UI language is the shell's (`shell_save_settings`), not this module's.
- * None of them talks to an engine; the registry only lists the configured
- * engines the section offers as availability checkboxes.
- *
- * The save is a durable write registered OUTSIDE the registrar, so it gates
- * itself against the (already concrete) toolset through the one profile-write
- * decision `camunda7_select_engine` shares: absent in `read-only`, present in
- * `operations`/`admin`.
- */
+/** The save lives outside the registrar, so it gates itself by the decision `camunda7_select_engine` shares. */
 export function registerUserProfileTools(
   server: MCPServer,
   store: ProfileStore,
@@ -72,8 +58,7 @@ export function registerUserProfileTools(
       const record = key ? await store.get(key) : undefined
       const view: UserProfileView = {
         profile: record ? toUserProfile(record) : defaultUserProfile(),
-        // By id + environment only — the engine REST baseUrl is internal
-        // topology the settings panel has no use for.
+        // No REST baseUrl: internal topology.
         availableEngines: registry.engines.map((e) => ({
           id: e.id,
           environment: environmentOf(e),
@@ -88,8 +73,7 @@ export function registerUserProfileTools(
       title: "Engine & dashboard settings",
       description:
         "Open camunda7's settings: available engines, the default engine, dashboard preferences.",
-      // Titled only in a language the profile names; "system" sets none, so
-      // no English toolbar title sits over a German section (#322 U3).
+      // "system" sets no title, so no English title sits over a German section (#322 U3).
       render: ({ view, language = "system" }) => ({
         title: viewLocaleOf(language).title("viewTitle.settings"),
         summary: summarize(view.profile, language),
@@ -108,18 +92,12 @@ export function registerUserProfileTools(
           description:
             'Update the caller\'s camunda7 settings. Only the provided fields change; omitted fields keep their value. Use it for requests like "only let me pick the prod engines" (allowedEngineIds) or a default dashboard. Engine availability is curation, not access control.',
           annotations: { destructiveHint: false, idempotentHint: true, openWorldHint: false },
-          // The flat input is a tool-API convenience; the handler writes it
-          // into this module's own slice.
           input: userProfileToolSaveInput.shape,
           write: async (params, { key, userId }) => {
-            // The store is called directly for the record it returns (its
-            // `updatedAt` re-syncs the section's form), with ONLY the given
-            // fields, merged over the RAW stored slice under its per-key lock,
-            // so a concurrent `camunda7_select_engine` is never reverted.
+            // Only the given fields, merged under the store's per-key lock, so a concurrent
+            // `camunda7_select_engine` is never reverted; the returned `updatedAt` re-syncs the form.
             const slicePatch: Record<string, unknown> = { ...params }
-            // The settings UI sends "" for the "(auto)"/"(none)" option of an
-            // optional id field. That CLEARS the stored value: an explicit
-            // `undefined` overrides the stored field in the store's merge.
+            // "" from the "(auto)"/"(none)" option clears: an explicit `undefined` wins in the merge.
             for (const field of ["defaultEngineId", "defaultDashboardId"]) {
               if (slicePatch[field] === "") slicePatch[field] = undefined
             }

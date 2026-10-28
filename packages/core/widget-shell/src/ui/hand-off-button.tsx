@@ -21,16 +21,7 @@ import type { AskAiPrompt } from "./ask-ai-prompt.js"
 import type { LucideIcon } from "./icon.js"
 import { kitLabels } from "./kit-labels.js"
 
-/**
- * The product's ONE hand-off vocabulary: what a hand-off asks the chat to
- * do, one entry per function, each with the Lucide icon of that function.
- * Its label ("Ursache im Chat klären" / "Find cause in chat") is the kit's
- * `handOff` entry, so the same function reads and looks the same in every
- * module, and no icon stands for two functions (CI U4: never a sparkle,
- * never a generic "AI" symbol). A connector widget renders hand-offs only
- * through {@link HandOffButton} (an ESLint gate bans `AskAiButton` there); a
- * new function goes here, with its label in both languages.
- */
+/** One icon per function, no icon for two (CI U4: never a sparkle); labels are the kit's `handOff`. */
 export const HAND_OFF_ACTIONS = {
   assess: ListChecks,
   findCause: ScanSearch,
@@ -51,13 +42,7 @@ export const HAND_OFF_ACTIONS = {
 
 export type HandOffAction = keyof typeof HAND_OFF_ACTIONS
 
-/**
- * A chat hand-off: the kit's {@link AskAiButton} (a secondary outline, so the
- * deterministic next step stays the view's primary action) with the icon and
- * verb of `action`. `icon` variant rows keep the label as the accessible name
- * and tooltip; `title` overrides both when a row needs its subject in them
- * ("Compare “order” across its engines in chat").
- */
+/** `title` overrides name and tooltip when a row needs its subject in them. */
 export function HandOffButton({
   action,
   prompt,

@@ -47,11 +47,6 @@ function renderIn(language: "de" | "en") {
   )
 }
 
-/**
- * The kit's inline error state (U1): what happened as its title, what you
- * can do under it (the kit's `errorHint` label), and the parser's raw cause
- * collapsed under "Details" — never the raw text as the headline.
- */
 describe("the BPMN heatmap — a diagram bpmn-js cannot import", () => {
   it.each([
     [

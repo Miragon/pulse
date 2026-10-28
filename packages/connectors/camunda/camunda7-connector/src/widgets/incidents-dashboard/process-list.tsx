@@ -43,24 +43,17 @@ const TYPE_LAST24H = "last24h"
 
 type IncidentChip = typeof TYPE_ALL | typeof TYPE_LAST24H
 
-/**
- * Root cause of ONE process's open incidents — do the failing activities share
- * a cause, and which fix. The process name is the deployer's text — quoted.
- * On a dashboard filtered by incident type the card counts only that type:
- * the filter travels as an id and the count as the matching incidents.
- */
+/** On a type-filtered dashboard the filter travels as an id and the count as the matching incidents. */
 export function processRootCauseHandOff(
   process: IncidentsDashboardProcess,
   engine: string | undefined,
   filters: IncidentsDashboardData["filters"],
 ): HandOff {
-  // The card IS its key — only the incident-type filter narrows its counts.
   const { incidentType } = dashboardScope(filters)
   return {
     intent: "askAi.incidents.processRootCause",
     ids: { engine, processDefinitionKey: process.processDefinitionKey, incidentType },
-    // Every count spans all versions of the key (#335 N61); null facts (a
-    // scan that does not cover the card) are left out, never a 0.
+    // All versions of the key (#335 N61); null facts are left out, never a 0.
     facts: {
       countScope: "allVersions",
       latestVersion: process.latestVersion,
@@ -83,16 +76,11 @@ export function processRootCauseHandOff(
 
 interface DisplayProcess extends IncidentsDashboardProcess {
   tone: ToneVariant
-  /** The card's count pill: every open incident, or (Last 24h chip) the new ones — null = unknown. */
+  /** Null = unknown. */
   shownCount: number | null
 }
 
-/**
- * One process group (#322 U20): two lines instead of one crowded row. Line
- * one is the process by its full name (never cut to "Mirave…") and its
- * count; line two the facts and the ONE drill, "Öffnen" — the link into the
- * vendor's app and the chat hand-off wait behind "more".
- */
+/** #322 U20: two lines; the full process name, never cut; the cockpit link and hand-off behind "more". */
 function ProcessSummary({
   process,
   expanded,
@@ -103,11 +91,9 @@ function ProcessSummary({
 }: {
   process: DisplayProcess
   expanded: boolean
-  /** The engine product (`engineVendor`) — names the link into its web app. */
   vendor: string
-  /** The engine the dashboard was fetched from — undefined when the default routed it. */
+  /** Undefined when the default routed it. */
   engineId: string | undefined
-  /** The dashboard's echoed filters — the scope of the card's counts. */
   filters: IncidentsDashboardData["filters"]
   onOpenDetail: () => void
 }) {
@@ -182,11 +168,7 @@ function ActivityRow({ activity }: { activity: IncidentsDashboardActivity }) {
   )
 }
 
-/**
- * The card's activity breakdown. It comes from the newest-first recency scan,
- * so when the scan holds only part of the process's incidents the list says
- * so — the exact per-activity counts live in the definition view.
- */
+/** From the newest-first recency scan, so a partial scan says so; exact counts are in the definition view. */
 function ActivityList({ process }: { process: DisplayProcess }) {
   const t = useT()
   return (
@@ -206,7 +188,6 @@ function ActivityList({ process }: { process: DisplayProcess }) {
   )
 }
 
-/** A recency count the scan cannot vouch for (null) may still be non-zero — never filtered out. */
 const mayHaveLast24h = (count: number | null) => count === null || count > 0
 
 function matchesSearch(activity: IncidentsDashboardActivity, q: string): boolean {
@@ -217,13 +198,7 @@ function matchesSearch(activity: IncidentsDashboardActivity, q: string): boolean
   )
 }
 
-/**
- * The cards the chips + search leave. Filters narrow the LIST — the cards and
- * their activity rows — never the numbers: a card keeps its exact key-wide
- * counts (the Last 24h chip shows the key's exact 24h count instead), because
- * a sum over the scanned breakdown would understate any partially scanned
- * process.
- */
+/** Filters narrow the list, never the numbers: a sum over a partial scan would understate. */
 function filterProcesses(
   processes: IncidentsDashboardProcess[],
   search: string,
@@ -247,19 +222,14 @@ function filterProcesses(
         ...p,
         activities,
         shownCount: showLast24h ? p.last24hCount : p.incidentCount,
-        // The one severity ladder (#322 U14): open incidents are danger.
+        // The one severity ladder: open incidents are danger (#322 U14).
         tone: countTone(p.incidentCount),
       }
     })
     .filter((p): p is DisplayProcess => p !== null)
 }
 
-/**
- * Filter bar + grouped process list. Combined into one widget because the
- * search/chip state has to drive the visible process rows — splitting them
- * apart would force the filter state through global storage just to avoid
- * one shared `useState`.
- */
+/** One widget so the search/chip state stays one `useState`. */
 export function IncidentProcessListView({
   data: initialData = null,
   engine,
@@ -269,9 +239,7 @@ export function IncidentProcessListView({
 }) {
   const go = useNav()
   const t = useT()
-  // Shares the overview-kpi feed (key + args) → both incidents panels dedupe
-  // to one fetch in the cockpit; standalone the data comes in via props and
-  // is never refetched (its filters live in the echo, see incidentsFeed).
+  // Shares the overview-kpi feed, so both panels dedupe to one fetch.
   const feed = incidentsFeed(engine)
   const { data, loading, error, refetch } = useViewData<IncidentsDashboardData>(
     initialData,

@@ -1,12 +1,7 @@
 import type { LayoutConfig } from "@miragon/mcp-toolkit-core"
 import { SHELL_SETTINGS_PAGE_WIDGET } from "@miragon/pulse-widget-shell/widgets"
 
-/**
- * Route parameters available to a cockpit view. Each field is optional; a given
- * view reads only what it needs (`engine` is always present once an engine is
- * resolved). Kept as one flat bag so adding a view never means threading a new
- * prop type through the router.
- */
+/** One flat bag, so a new view never threads a new prop type through the router. */
 export interface ViewParams {
   engine: string
   processDefinitionKey?: string
@@ -15,39 +10,22 @@ export interface ViewParams {
   activityId?: string
   incidentType?: string
   messageSignature?: string
-  /** Entry-point focus of the definition view: "incidents" keeps the
-   *  explorative no-incidents empty state (the flow leads with incidents on
-   *  every entry). */
+  /** "incidents" keeps the explorative no-incidents empty state. */
   focus?: "incidents"
 }
 
-/** How every view is built: from the route params, one signature for the router. */
 type CockpitViewBuilder = (params: ViewParams) => LayoutConfig
 
 /**
- * The cockpit's composition layer: each view is a {@link LayoutConfig} of
- * self-fetching widgets, parameterized by the current route. The cockpit renders
- * these generically through the toolkit `WidgetRenderer` — there is no per-view
- * loader code. Widgets receive their scope via the layout cell's `props` (engine
- * + ids), self-fetch under a shared query key (deduped to one call per data
- * type — so the 4-widget process-detail view fetches once), and navigate
- * through `useNav()`.
- *
- * To add a surface: register its widget(s) in `registry.ts`, make the widget
- * self-fetch from these props, and add a row here. That is the whole extension
- * point — the cockpit shell never changes.
+ * Self-fetching widgets under shared query keys (one call per data type). A new surface
+ * registers its widget in `registry.ts` and adds a row here; the shell never changes.
  */
 const views = {
-  // One verdict header, one KPI row: the engine-health widget IS the overview's
-  // verdict surface. The per-definition health detail lives in the definitions
-  // table below (row tones); stacking the old process-health KPI grid on top
-  // would duplicate the same numbers and a second competing AI handoff.
+  // The definitions table carries per-definition health; a second KPI grid would duplicate it.
   overview: ({ engine }: ViewParams): LayoutConfig => [
     { row: [{ widget: "camunda7:engine-health", props: { engine } }] },
     { row: [{ widget: "camunda7:process-definitions-table", props: { engine } }] },
   ],
-  // Drill target of the overview KPIs (running instances / total processes):
-  // the searchable, paged process list as its own page.
   "process-list": ({ engine }: ViewParams): LayoutConfig => [
     { row: [{ widget: "camunda7:process-list", props: { engine } }] },
   ],
@@ -65,11 +43,7 @@ const views = {
       ],
     },
   ],
-  // The ONE definition view — every entry point lands here and leads with the
-  // incident overlay (the heatmap modes join once analytics is confirmed);
-  // `focus` only steers the list's no-incidents rendering.
-  // All four widgets self-fetch the shared ["camunda7:process-incidents", …]
-  // feed, deduped to a single call.
+  // The one definition view; `focus` only steers the list's no-incidents rendering.
   "process-detail": ({ engine, processDefinitionKey, focus }: ViewParams): LayoutConfig => [
     {
       row: [{ widget: "camunda7:process-detail-header", props: { processDefinitionKey, engine } }],
@@ -104,16 +78,9 @@ const views = {
   "incident-detail": ({ engine, incidentId }: ViewParams): LayoutConfig => [
     { row: [{ widget: "camunda7:incident-detail", props: { incidentId, engine } }] },
   ],
-  // The settings tab is the shell's settings page: it assembles one section per
-  // module from the host registry — this package holds no list of other
-  // modules' sections, nor the page itself.
   settings: (): LayoutConfig => [{ row: [{ widget: SHELL_SETTINGS_PAGE_WIDGET, props: {} }] }],
 } satisfies Record<string, CockpitViewBuilder>
 
 export type CockpitViewId = keyof typeof views
 
-/**
- * The view catalogue as the router uses it: one uniform builder signature over
- * the literal view ids.
- */
 export const cockpitViews: Record<CockpitViewId, CockpitViewBuilder> = views

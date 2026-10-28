@@ -6,9 +6,8 @@ import { analyticsModule } from "./module.js"
 import { ANALYTICS_ENGINE_LANDSCAPE_DATA } from "./tool-names.js"
 
 /**
- * #325 through the module: env → config → plugin → Prometheus client → tool.
- * A real local HTTP server plays Prometheus, so the auth headers, the
- * deadline and the caller's cancellation are observed on the wire.
+ * #325 through the module. A real local HTTP server plays Prometheus, so auth headers, deadline and
+ * cancellation are observed on the wire.
  */
 
 type ToolCallback = (
@@ -117,10 +116,8 @@ describe("Prometheus config reaches the wire", () => {
         {},
       )
       .registerWidgetTools?.(server)
-    // Each handler runs twice with args every tool accepts: unsignalled it
-    // must reach Prometheus, with an already-aborted ctx.signal it must not —
-    // a handler that drops ctx would still query. Tools that never query are
-    // named.
+    // Unsignalled a handler must reach Prometheus, with an already-aborted ctx.signal it must not:
+    // a handler that drops ctx would still query.
     const args = {
       processDefinitionKey: "order",
       // Handlers called directly get no schema defaults: the compare windows.

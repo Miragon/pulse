@@ -9,16 +9,7 @@ import { allowsProfileSave, camunda7Toolsets } from "./lib/toolsets.js"
 import { camunda7Instructions } from "./instructions.js"
 import { fetchLatestDefinitionXml } from "./data/definition-info.js"
 
-/**
- * Self-contained module definition for host apps: config schema, env mapping,
- * and known env vars live HERE, next to the plugin they configure — the app
- * only selects modules and wires cross-module resources. Conforms structurally
- * to the app's `ModuleDefinition` port — no import of the app.
- */
-
-// Incomplete credentials must fail the boot, not silently degrade to
-// unauthenticated engine requests — a typo'd CAMUNDA_USERNAME would otherwise
-// only surface as engine 401s (or go unnoticed against an auth-less engine).
+// Incomplete credentials fail the boot instead of silently sending unauthenticated requests.
 const engineAuthSchema = z
   .object({
     type: z.enum(["basic", "bearer", "passthrough", "none"]),
@@ -43,11 +34,7 @@ const engineSchema = z.object({
     ),
   baseUrl: z.string().url(),
   cockpitUrl: z.string().url().optional(),
-  /**
-   * Environment this engine's service runs in — a grouping level for the
-   * two-stage environment→engine selection, never part of the engine identity
-   * (`id` stays the flat join key against the metrics' `engine_id` label).
-   */
+  /** A picker grouping only: `id` stays the flat join key against the metrics' `engine_id`. */
   environment: z
     .string()
     .min(1)
@@ -55,16 +42,10 @@ const engineSchema = z.object({
       /^[a-z0-9][a-z0-9-]*$/,
       "Environment id must be lowercase alphanumeric / dashes, starting with a letter or digit",
     )
-    // A purely numeric id would be an array-index-like JSON key, which JS
-    // object enumeration reorders FIRST — silently breaking the "pickers list
-    // environments in config order" contract and shifting engines[0] (the
-    // BPMN-XML source engine). Reject it loudly instead.
+    // JS enumerates numeric keys first, which would reorder environments and shift engines[0].
     .regex(/^(?!\d+$)/, "Environment id must not be purely numeric")
     .optional(),
-  /**
-   * Engine vendor of the C7 dialect (selects the provider). Default: "camunda7".
-   * The single-engine shorthand takes it from CAMUNDA_ENGINE_FLAVOR.
-   */
+  /** Default "camunda7"; the single-engine shorthand reads CAMUNDA_ENGINE_FLAVOR. */
   flavor: z
     .enum(["cibseven", "operaton", "camunda7"], {
       error:
@@ -86,20 +67,14 @@ export const camunda7ConfigSchema = z
     password: z.string().optional(),
     token: z.string().optional(),
     toolset: z.string().optional(),
-    // CAMUNDA_ALLOW_DEPLOYMENTS — parsed STRICTLY: deploy permission is code
-    // execution inside the engine JVM, so anything but "true"/"false" fails
-    // the boot loudly instead of guessing (z.coerce.boolean would even read
-    // "false" as true). Optional: unset = off; createBpmnXmlFetcher parses
-    // the same schema.
+    // Strict: deploying is code execution in the engine JVM (z.coerce.boolean reads "false" as true).
     allowDeployments: z
       .enum(["true", "false"], {
         error: 'CAMUNDA_ALLOW_DEPLOYMENTS must be exactly "true" or "false" (or unset)',
       })
       .optional()
       .transform((v) => v === "true"),
-    // CAMUNDA_REQUEST_TIMEOUT_MS — per-request engine deadline. Strict like
-    // the flag above: a typo ("30s", "3e4") fails the boot instead of being
-    // coerced into some other deadline. Unset = the client default (30 s).
+    // Strict: a typo ("30s", "3e4") fails the boot instead of becoming another deadline.
     requestTimeoutMs: z
       .union([
         z.number(),
@@ -127,8 +102,7 @@ export const camunda7ConfigSchema = z
       })
       .optional(),
   })
-  // The global credentials are only the fallback for engines without their
-  // own `auth` — when every engine carries one, don't demand them.
+  // Global credentials are only the fallback for engines without their own `auth`.
   .refine(
     (c) =>
       c.authType !== "basic" || c.engines.every((e) => e.auth) || Boolean(c.username && c.password),
@@ -141,9 +115,7 @@ export const camunda7ConfigSchema = z
     message:
       "CAMUNDA_AUTH_TYPE=bearer requires CAMUNDA_TOKEN (unless every engine carries its own auth) — otherwise engine requests would silently run unauthenticated",
   })
-  // Engine ids must be unique ACROSS environments: the id is the flat join key
-  // against the metrics' engine_id label and the per-call `engine` override —
-  // a duplicate would silently route both entries' traffic to one of them.
+  // A duplicate id would silently route both entries' traffic to one of them.
   .refine((c) => new Set(c.engines.map((e) => e.id)).size === c.engines.length, {
     message:
       "Engine ids must be unique across all environments — the id is the per-call `engine` selector and the join key against the metrics' engine_id label",
@@ -160,12 +132,8 @@ function scanJsonString(text: string, openQuote: number): number {
 }
 
 /**
- * Rejects duplicate top-level keys in the environment-map JSON text. JSON.parse
- * resolves duplicates last-wins BEFORE any consumer can see them, so a repeated
- * environment key (a classic hand-edited-ConfigMap slip) would silently drop a
- * whole block of engines — the boot would succeed with fewer engines and the
- * only symptom would be stale defaults failing soft. Only depth-1 keys count:
- * engine entries repeat "id"/"baseUrl" per engine by design.
+ * JSON.parse keeps the last duplicate, so a repeated environment key would silently
+ * drop a block of engines. Only depth-1 keys count: entries repeat "id" by design.
  */
 function assertUniqueTopLevelKeys(rawText: string): void {
   if (!rawText.trimStart().startsWith("{")) return
@@ -197,19 +165,9 @@ function assertUniqueTopLevelKeys(rawText: string): void {
 }
 
 /**
- * Normalizes the two accepted engine-config JSON forms to the flat entry list
- * the config schema validates:
- *   - Array form: `[{id, baseUrl, environment?, …}, …]` — passed through.
- *   - Environment-map form: `{"prod-eu": [{id, baseUrl, …}, …], …}` — each key
- *     is an environment id stamped onto its entries' `environment` field.
- *
- * The map form is the "pick an environment, then an engine" configuration
- * shape: environments hold services, and the services that carry an engine are
- * listed under their environment. A per-entry `environment` inside a map value
- * that contradicts its key is a config error — silently preferring either side
- * would misfile the engine in every picker.
+ * Accepts the array form or the map form `{"prod-eu": [{id, baseUrl}]}`, whose keys
+ * are stamped as `environment`. A contradicting per-entry `environment` is an error.
  */
-
 function normalizeEnginesConfig(raw: unknown): unknown {
   if (Array.isArray(raw) || typeof raw !== "object" || raw === null) return raw
   return Object.entries(raw).flatMap(([environment, engines]) => {
@@ -233,11 +191,7 @@ function normalizeEnginesConfig(raw: unknown): unknown {
   })
 }
 
-/**
- * The configured engines that forward each caller's MCP token (their own
- * `auth`, else `CAMUNDA_AUTH_TYPE`). A config that does not load names none:
- * the boot fails on it with its own error.
- */
+/** A config that does not load names none: the boot fails on it with its own error. */
 function passthroughEngineIds(env: NodeJS.ProcessEnv): string[] {
   let engines: unknown
   try {
@@ -254,26 +208,9 @@ function passthroughEngineIds(env: NodeJS.ProcessEnv): string[] {
 }
 
 /**
- * Resolves the engine list from environment in this order of precedence:
- *   1. `CAMUNDA_ENGINES_FILE` — path to a JSON document (preferred at scale; fits ConfigMap workflows).
- *   2. `CAMUNDA_ENGINES_JSON` — inline JSON.
- *   3. `CAMUNDA_BASE_URL` (+ `CAMUNDA_COCKPIT_URL`) — the single-engine shorthand
- *      (the quick-start path), synthesized as `id: CAMUNDA_ENGINE_ID ?? "default"`
- *      and, when set, `flavor: CAMUNDA_ENGINE_FLAVOR`.
- *
- * Both JSON sources accept the flat array form and the environment-map form
- * (see [[normalizeEnginesConfig]]). Falls back to the local default engine
- * (`http://localhost:8410/engine-rest`) when nothing is set.
- *
- * `CAMUNDA_ENGINE_ID` exists because the engine id is a JOIN KEY, not a label:
- * the metrics plugin stamps its own `ENGINE_ID` onto every series as
- * `engine_id`, and every analytics query scoped to an engine (the cockpit's
- * BPMN heatmap, engine compare, …) matches on it. Without a way to name the
- * single-engine shorthand, the only alignment option was switching to the JSON
- * form — and a mismatch reads as "no data", not as a config error.
- * `CAMUNDA_ENGINE_FLAVOR` names the shorthand's vendor for the same reason: an
- * engine without a `flavor` is Camunda 7, so a CIB seven or Operaton engine
- * would otherwise need the JSON form to get its own cockpit links and name.
+ * Precedence: CAMUNDA_ENGINES_FILE > CAMUNDA_ENGINES_JSON > CAMUNDA_BASE_URL > the local default engine.
+ * CAMUNDA_ENGINE_ID exists because the id is the join key against the metrics'
+ * `engine_id`: a mismatch reads as "no data", not as a config error.
  */
 function loadEnginesFromEnv(env: NodeJS.ProcessEnv): unknown {
   const filePath = env.CAMUNDA_ENGINES_FILE?.trim()
@@ -303,21 +240,12 @@ function loadEnginesFromEnv(env: NodeJS.ProcessEnv): unknown {
   return [{ ...shorthand, baseUrl: "http://localhost:8410/engine-rest" }]
 }
 
-/**
- * CAMUNDA_ENGINE_FLAVOR as the shorthand reads it — trimmed, empty = unset —
- * shared by `loadEnginesFromEnv` (the engine entry) and `bootWarnings` (the
- * zero-config disclosure). Not validated here: the config schema's `flavor`
- * enum fails the boot on an unknown vendor.
- */
+/** Not validated here: the schema's `flavor` enum fails the boot on an unknown vendor. */
 function engineFlavorFromEnv(env: NodeJS.ProcessEnv): string | undefined {
   return env.CAMUNDA_ENGINE_FLAVOR?.trim() || undefined
 }
 
-/**
- * CAMUNDA_ALLOW_DEPLOYMENTS as the module reads it — trimmed, empty = unset —
- * shared by `configFromEnv` (what arms the tool) and `bootWarnings` (what
- * discloses it), so a padded "true" can never arm deployments silently.
- */
+/** Shared by arming and disclosing, so a padded "true" never arms deployments silently. */
 function allowDeploymentsFromEnv(env: NodeJS.ProcessEnv): string | undefined {
   return env.CAMUNDA_ALLOW_DEPLOYMENTS?.trim() || undefined
 }
@@ -334,13 +262,8 @@ export const camunda7Module = {
       password: env.CAMUNDA_PASSWORD,
       token: env.CAMUNDA_TOKEN,
       incidentIssueRepository: env.CAMUNDA_INCIDENT_ISSUE_REPO,
-      // Only trimmed (empty = unset, like the other CAMUNDA_* vars — e.g. a
-      // compose `${CAMUNDA_ALLOW_DEPLOYMENTS:-}`); the schema rejects anything
-      // but "true"/"false".
       allowDeployments: allowDeploymentsFromEnv(env),
       requestTimeoutMs: env.CAMUNDA_REQUEST_TIMEOUT_MS?.trim() || undefined,
-      // Engine-health verdict thresholds — only forwarded when set, so the
-      // module's defaults apply otherwise.
       ...(env.CAMUNDA_HEALTH_CRITICAL_INCIDENTS || env.CAMUNDA_HEALTH_CRITICAL_CLUSTER_SIZE
         ? {
             healthThresholds: {
@@ -352,7 +275,6 @@ export const camunda7Module = {
     }
   },
 
-  /** This module's slice of the app's unknown-env-var typo warner. */
   knownEnvVars: [
     "CAMUNDA_ENGINES_FILE",
     "CAMUNDA_ENGINES_JSON",
@@ -371,28 +293,8 @@ export const camunda7Module = {
     "CAMUNDA_REQUEST_TIMEOUT_MS",
   ] as const,
 
-  /**
-   * The toolset vocabulary — the composition root resolves ONE concrete
-   * toolset per boot with it (fail-closed: `read-only` without a suffix on an
-   * unauthenticated boot, `operations` under OAuth, `read-only` for an empty
-   * or unknown suffix; `admin` only when named) and threads it into
-   * `config.toolset`.
-   */
   toolsets: camunda7Toolsets,
 
-  /**
-   * Boot-time hints for active deployments:
-   *
-   * - With no engine env at all the module silently falls back to
-   *   `http://localhost:8410/engine-rest` — which reaches the repo's Compose
-   *   engine, so BPM tools work while engine-scoped analytics (heatmap,
-   *   engine compare) join on a mismatched `engine_id` and read as "no data",
-   *   not as a config error, and its cockpit links follow the default flavor
-   *   (Camunda 7) although the Compose engine is CIB seven. Mirrors the
-   *   analytics module's PROMETHEUS_URL warning.
-   * - `CAMUNDA_ALLOW_DEPLOYMENTS=true` arms code execution inside the engine
-   *   JVM for every `camunda7:admin` caller — stated on every boot.
-   */
   bootWarnings(env: NodeJS.ProcessEnv): string[] {
     const warnings: string[] = []
     const configured =
@@ -420,15 +322,7 @@ export const camunda7Module = {
     return warnings
   },
 
-  /**
-   * The module's server-instructions snippet for this boot: the engine
-   * routing rule over the CONFIGURED ids (the `engine` parameter itself only
-   * carries a one-line description), the date format, the tool families and
-   * the health routing. Offers saving a default only when a caller can: the
-   * toolset registers the save AND OAuth is installed — without OAuth no
-   * request has a caller identity (#331), so the save would refuse and
-   * ENGINE_NOT_SELECTED does not offer it either.
-   */
+  /** Offers saving a default only under OAuth: without it no request has a caller identity (#331). */
   instructions(config: Record<string, unknown>, { authenticated }: { authenticated: boolean }) {
     const parsed = camunda7ConfigSchema.parse(config)
     const toolset = camunda7Toolsets.resolve(parsed.toolset)
@@ -448,19 +342,9 @@ export const camunda7Module = {
 }
 
 /**
- * Builds an engine-agnostic BPMN-XML lookup from this module's raw config —
- * the piece other modules (analytics' heatmap and the names in its views)
- * consume via injection instead of depending on the engine SDK. Reads on the
- * configured engine `engineId` names (omitted: the FIRST configured engine),
- * with the same per-engine-auth-wins precedence as the plugin's registry
- * clients (one client per engine, made on its first read; under passthrough
- * auth each read carries the current caller's token). The diagram is the
- * definition view's: the key's latest version over every tenant, read by id
- * (`fetchLatestDefinitionXml`). Resolves `null` when that engine has no such
- * definition; a failed read (unreachable, timed out, refused) and an engine
- * id that is not configured REJECT, so the consumer never mistakes a failure
- * for "not deployed" (it degrades on its own: the heatmap draws no diagram,
- * the views show ids).
+ * Lets analytics read BPMN XML without the engine SDK (omitted `engineId`: the first engine).
+ * `null` means not deployed; a failed read or an unknown engine REJECTS, so a failure
+ * never reads as "not deployed".
  */
 export function createBpmnXmlFetcher(
   config: Record<string, unknown>,
@@ -477,8 +361,6 @@ export function createBpmnXmlFetcher(
       password: parsed.password,
       token: parsed.token,
     }
-    // Same client construction (incl. passthrough semantics) as the plugin's
-    // registry clients — via the entry's vendor provider.
     const client = providerForEntry(entry).createClient(entry, auth, {
       timeoutMs: parsed.requestTimeoutMs,
     })

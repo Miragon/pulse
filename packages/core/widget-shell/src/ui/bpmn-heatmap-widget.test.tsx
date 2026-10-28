@@ -76,8 +76,7 @@ describe("BpmnHeatmapWidget (U16)", () => {
     expect(badge.getAttribute("data-slot")).toBe("badge")
   })
 
-  // The Camunda Modeler names a collaboration's pool and leaves its process
-  // unnamed: the dashboards show the pool's name, so the heatmap does too.
+  // The Camunda Modeler names the pool and leaves the process unnamed.
   it("names a process without a name of its own by its pool, like the other views", () => {
     const pooled = XML.replace(
       "<bpmn:process",
@@ -143,7 +142,6 @@ describe("BpmnHeatmap", () => {
   it("sizes its frame from the diagram unless given a height", () => {
     const { container, rerender } = render(<BpmnHeatmap bpmnXml={XML} nodeFrequencies={{}} />)
     const frame = () => container.querySelector('[data-theme-mode="light"]') as HTMLElement
-    // Before the diagram is measured: the default frame.
     expect(frame().style.height).toBe("360px")
     rerender(<BpmnHeatmap bpmnXml={XML} nodeFrequencies={{}} height={300} />)
     expect(frame().style.height).toBe("300px")
@@ -206,7 +204,6 @@ describe("HeatValuesTable", () => {
     )
     expect(screen.getByRole("columnheader", { name: "Schritt" })).toBeTruthy()
     expect(screen.getByRole("columnheader", { name: "Anzahl" })).toBeTruthy()
-    // An element without a name shows its id.
     expect(screen.getByText("Unnamed").className).toContain("font-mono")
   })
 })

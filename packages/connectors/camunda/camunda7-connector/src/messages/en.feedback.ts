@@ -1,12 +1,6 @@
 import type { MessageCatalog } from "@miragon/mcp-toolkit-core"
 
-/**
- * What a widget write says when it is done (U9): the toasts `useEngineAction`
- * raises, each naming the object it acted on — the instance by business key
- * or short id, the variable, the task. A failure's title says what did not
- * happen; the kit's `useActionFeedback` adds why and what to do in the
- * toast's second line. Merged into the catalogs in index.ts.
- */
+/** The toasts of `useEngineAction` (U9); the kit's `useActionFeedback` adds why and what to do. */
 export const enFeedback: MessageCatalog = {
   "feedback.jobRetried": "Job for instance {instance} retried",
   "feedback.jobRetryFailed": "Couldn't retry the job for instance {instance}",

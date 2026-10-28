@@ -11,11 +11,10 @@ export interface BpmnViewerProps {
   processInstanceId?: string
   processDefinitionKey?: string
   version?: number
-  /** Engine to read from; omitted → the caller's saved default or the single engine. */
+  /** Omitted: the caller's saved default or the single engine. */
   engine?: string
 }
 
-/** Tool args for the *_data feed — only the props that are actually set. */
 function feedArgs({
   processInstanceId,
   processDefinitionKey,
@@ -77,9 +76,7 @@ export function BpmnViewerWidget({
 
   const canSelfFetch = Boolean(processInstanceId || processDefinitionKey)
 
-  // Self-fetch of the app-only *_data feed — calling the show_* tool from
-  // inside the iframe is host-defined behavior (hosts honoring
-  // resultCanProduceWidget may render a second widget per refresh).
+  // The app-only feed: calling show_* from the iframe may render a second widget per refresh.
   const query = useToolQuery<BpmnViewerData>(
     feedKey(scope),
     CAMUNDA7_BPMN_VIEWER_DATA,

@@ -21,7 +21,6 @@ describe("SettingsField: inline validation (CI §8/§9, U25)", () => {
     // The danger ink for words on the card, with an icon: colour is not the only signal.
     expect(error.className).toContain("text-danger-ink")
     expect(error.querySelector("svg")?.getAttribute("class")).toContain("lucide-circle-alert")
-    // The control's edge turns to danger while it is invalid.
     expect(FIELD_CONTROL).toContain("aria-invalid:border-danger")
   })
 

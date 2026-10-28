@@ -2,19 +2,9 @@ import { fontFaces } from "@miragon/mcp-toolkit-ui"
 import { getPublicBaseUrl } from "mcp-use/react"
 import { SERVED_FONT_FILES, servedFontBaseUrl } from "../served-fonts.js"
 
-/** The `<style>` that carries the faces — one per document. */
 export const SERVED_FONTS_STYLE_ID = "__miragon-served-fonts"
 
-/**
- * Declare Geist and Geist Mono from the server that served this view (its
- * font route, `installFontAssets`), once per document, `font-display: swap`:
- * the text renders at once in the next family of the role stacks — the
- * host's font (`adoptHostFontVariables`), then the system's — and switches
- * when the files arrive. A host that blocks the server's origin, or a server
- * the browser cannot reach, leaves it there; nothing waits and nothing
- * breaks. Outside a served view document (no public base) nothing is
- * declared. Returns the base URL the faces load from, if any.
- */
+/** `font-display: swap`: the host's or system font renders at once, so a host blocking the server's origin leaves it there and nothing waits. Returns the base URL the faces load from, if any. */
 export function declareServedFonts(
   doc: Document = document,
   publicBase: string = getPublicBaseUrl(),

@@ -1,17 +1,4 @@
-/**
- * Trims the input schemas `tools/list` advertises of keys that tell a model
- * nothing but cost characters on EVERY tool of every turn:
- *
- * - the `$schema` dialect URI zod stamps on each input schema;
- * - the ±`Number.MAX_SAFE_INTEGER` bounds zod emits for every `.int()` — no
- *   caller ever approaches them, and a real bound (`maxResults ≤ 100`, an
- *   offset `≥ 0`) stays untouched.
- *
- * Behaviour-neutral: input validation runs server-side against the zod
- * schemas, never against the advertised JSON. Output schemas stay untouched —
- * a client validates `structuredContent` against them, and the model never
- * reads them. Server path only.
- */
+/** Drops the `$schema` URI and zod's ±MAX_SAFE_INTEGER `.int()` bounds from advertised input schemas: they cost characters on every tool of every turn. Validation runs against the zod schemas, so this is behaviour-neutral; output schemas stay (clients validate against them). */
 
 /** The narrow structural surface the middleware needs (an `MCPServer` satisfies it). */
 export interface ToolListMiddlewareHost {
@@ -32,7 +19,6 @@ function isSafeIntegerBound(key: string, value: unknown): boolean {
   )
 }
 
-/** A copy of `node` without the safe-integer bounds, at every depth. */
 function withoutSafeIntegerBounds(node: unknown): unknown {
   if (Array.isArray(node)) return node.map(withoutSafeIntegerBounds)
   if (!isRecord(node)) return node
@@ -51,7 +37,6 @@ export function trimToolSchema(schema: unknown): unknown {
   return withoutSafeIntegerBounds(rest)
 }
 
-/** One `tools/list` entry with its input schema trimmed. */
 export function trimToolDescriptor(tool: unknown): unknown {
   if (!isRecord(tool) || !("inputSchema" in tool)) return tool
   return { ...tool, inputSchema: trimToolSchema(tool.inputSchema) }

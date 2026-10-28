@@ -4,30 +4,21 @@ import {
   type ProfileStore,
 } from "./profile-store.js"
 
-/**
- * The non-database profile store selection every composition root shares:
- * filesystem-backed when `MCP_PROFILE_DIR` is set (survives restarts),
- * in-memory otherwise. Roots with a database extend the precedence themselves
- * (`DATABASE_URL` → `createPostgresProfileStore` beats this — see the stock
- * app's `initRuntime`); the factories stay pure and injectable.
- */
+/** Roots with a database put `DATABASE_URL` → `createPostgresProfileStore` ahead of this. */
 export function profileStoreFromEnv(env: NodeJS.ProcessEnv = process.env): ProfileStore {
   return env.MCP_PROFILE_DIR
     ? createFileSystemProfileStore({ dir: env.MCP_PROFILE_DIR })
     : createInMemoryProfileStore()
 }
 
-/** Where a composition root keeps a store. */
 export type PersistenceBackend = "postgres" | "filesystem" | "memory"
 
-/** The backend each store selected at boot. */
 export interface PersistenceSelection {
   profiles: PersistenceBackend
   /** Omitted when the server registers no dashboard builder (`frameworkWritesAllowed`). */
   dashboards?: PersistenceBackend
 }
 
-/** The non-database selection {@link profileStoreFromEnv} and the dashboard knob make. */
 export function persistenceFromEnv(
   env: NodeJS.ProcessEnv = process.env,
 ): Required<PersistenceSelection> {
@@ -38,13 +29,8 @@ export function persistenceFromEnv(
 }
 
 /**
- * Announce the selected persistence on EVERY boot path — nobody should have
- * to infer from silence that settings are volatile — and warn loudly when a
- * production process (`NODE_ENV=production`, set by the Docker images) keeps a
- * store in memory: every restart, redeploy or scale-to-zero stop then
- * silently drops saved settings or dashboards. A warning, not a boot failure:
- * failing would break every deployment that accepts volatile settings today.
- * `remedy` names the knobs THIS composition root offers.
+ * Announces on every boot so nobody infers volatility from silence. A warning, not a boot
+ * failure: failing would break deployments that accept volatile settings today.
  */
 export function announcePersistence(
   selection: PersistenceSelection,

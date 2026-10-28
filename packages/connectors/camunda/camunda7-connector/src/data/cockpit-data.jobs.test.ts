@@ -8,12 +8,7 @@ import {
 } from "../tools/test-support/fake-engine.js"
 import { buildJobPanelData } from "./cockpit-data.js"
 
-/**
- * The job panel's builder against a recording engine: the exact totals from
- * `/job/count`, the stuck jobs first on every page, and the names of the
- * failing activities and their processes from the diagrams (#322 U11, U13).
- * The failure half is the rejection table in `honest-numbers.test.ts`.
- */
+// The failure half is the rejection table in `honest-numbers.test.ts`.
 
 const engines: FakeEngine[] = []
 afterEach(async () => {
@@ -28,11 +23,7 @@ async function engineWith(routes: FakeRoutes) {
 
 const calls = (engine: FakeEngine, path: string) => engine.requests.filter((r) => r.path === path)
 
-/**
- * The panel's order (#322 U11): jobs without retries first, the job id as the
- * tie-break. Retries alone is no total order, so LIMIT/OFFSET could repeat
- * and skip tied jobs between two pages of "Mehr laden".
- */
+// Retries alone is no total order, so paging could repeat and skip tied jobs (#322 U11).
 const JOB_ORDER = [
   { sortBy: "jobRetries", sortOrder: "asc" },
   { sortBy: "jobId", sortOrder: "asc" },
@@ -143,9 +134,7 @@ describe("buildJobPanelData — exact totals from /job/count", () => {
     expect(calls(engine, "/process-definition/K1:1:a/xml")).toHaveLength(1)
   })
 
-  // One rule with analytics (widget-shell `readBpmnNames`): the Modeler names
-  // the pool of a collaboration and writes a line break as `&#10;`, `&` as
-  // `&#38;`; the job panel showed them literally ("Rechnung&#10;prüfen").
+  // One rule with analytics (`readBpmnNames`): the job panel showed "Rechnung&#10;prüfen" literally.
   it("names a Modeler diagram's activity and process as analytics does", async () => {
     const xml = `<definitions>
   <collaboration id="C"><participant id="Pool" name="Miravelo - Bike Leasing" processRef="K1"/></collaboration>
