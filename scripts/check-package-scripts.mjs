@@ -29,9 +29,15 @@
  * that selects files, and the json report at reports/mutation-report.json,
  * the one path the CI artifact and scripts/fitness-report.mjs read.
  *
+ * A pnpm filter that matches nothing exits 0 (pnpm 10), so a stale name turns a gate green
+ * without running it, and `--fail-if-no-match` fails only when NO filter of the command
+ * matches. So every filter in a tracked text file (docs included) that names a package names
+ * one of its workspace, and every pnpm filter on a gate path carries the flag (checkFilters).
+ *
  * Runs as `pnpm lint:package-scripts` (chained into the root `pnpm lint`).
  */
-import { existsSync, readFileSync, readdirSync } from "node:fs"
+import { execFileSync } from "node:child_process"
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 
@@ -337,6 +343,97 @@ export function checkWorkspace(root, globs, { noMutationApps = NO_MUTATION_APPS 
   return { errors, sourceDirs }
 }
 
+const FILTER = /(?:--filter(?:=|\s+)|\s-F\s+)\\?["']?([^\s"'`)\\]+)/g
+
+/**
+ * The package a filter target names, selectors stripped (`!x`, `...x`, `x...`, `x^...`): a
+ * scoped `@scope/name` or an unscoped `pulse-<name>` (a VS Code extension). A path selector
+ * (`./apps/x`, `{apps/x}`) and a glob name no package; --fail-if-no-match covers them.
+ */
+const filterTarget = (raw) =>
+  /^(?:@[\w.-]+\/[\w.-]+|pulse-[a-z0-9-]+)$/.exec(
+    raw
+      .replace(/^!/, "")
+      .replace(/^\.\.\.\^?/, "")
+      .replace(/\^?\.\.\.$/, ""),
+  )?.[0]
+
+/** `file:line --filter name` for every package a filter in `text` names that `known` lacks. */
+export const unknownFilters = (file, text, known) =>
+  text.split("\n").flatMap((line, index) =>
+    [...line.matchAll(FILTER)]
+      .map((match) => filterTarget(match[1] ?? ""))
+      .filter((name) => name !== undefined && !known.has(name))
+      .map((name) => `${file}:${index + 1} --filter ${name}`),
+  )
+
+/**
+ * Where a command runs as a gate: the root and every workspace package's scripts, the
+ * Dockerfile, the workflows and their composite actions, the conductor and gate shell scripts.
+ */
+export const GATE_PATH =
+  /^(?:package\.json|(?:apps|packages)\/(?:[^/]+\/)+package\.json|docs\/package\.json|Dockerfile|\.github\/workflows\/[^/]+\.ya?ml|\.github\/actions\/(?:[^/]+\/)*[^/]+\.ya?ml|\.conductor\/[^/]+\.sh|scripts\/[^/]+\.sh)$/
+
+/** A pnpm command whose filter is pnpm's (not one turbo receives after `pnpm turbo`). */
+const pnpmFilters = (command) => {
+  const filter = command.search(/--filter\b|\s-F\s/)
+  const turbo = command.search(/\bturbo\b/)
+  return /\bpnpm\b/.test(command) && filter >= 0 && (turbo < 0 || turbo > filter)
+}
+
+/** `file:line command` for every pnpm filter in `text` that exits 0 when it matches nothing. */
+export const laxFilters = (file, text) =>
+  text.split("\n").flatMap((line, index) =>
+    line.trim().startsWith("#")
+      ? []
+      : line
+          .split(/&&|\|\||;|\|/)
+          .filter((command) => pnpmFilters(command) && !command.includes("--fail-if-no-match"))
+          .map((command) => `${file}:${index + 1} ${command.trim()}`),
+  )
+
+/**
+ * Filter violations over `files` ([{ file, text }], repo-relative). A file under templates/
+ * may also name the template's own packages.
+ */
+export function checkFilters(files) {
+  const names = (inTemplate) =>
+    files
+      .filter(({ file }) => /(?:^|\/)package\.json$/.test(file))
+      .filter(({ file }) => file.startsWith("templates/") === inTemplate)
+      .map(({ text }) => JSON.parse(text).name)
+  const workspace = new Set(names(false))
+  const template = new Set([...workspace, ...names(true)])
+  return files.flatMap(({ file, text }) => [
+    ...unknownFilters(file, text, file.startsWith("templates/") ? template : workspace).map(
+      (hit) => `${hit}: names no workspace package, so the filter matches nothing`,
+    ),
+    ...(GATE_PATH.test(file) ? laxFilters(file, text) : []).map(
+      (hit) => `${hit}: a pnpm filter on a gate path needs --fail-if-no-match`,
+    ),
+  ])
+}
+
+/** Release history, generated and vendored files: no filter in them runs or is copied. */
+const UNFILTERED = /^(?:CHANGELOG\.md|pnpm-lock\.yaml|docs\/\.vitepress\/miragon\/)/
+
+/** Every text file git tracks or would add, as { file, text }. */
+export function repoTextFiles(root) {
+  return execFileSync("git", ["ls-files", "-z", "--cached", "--others", "--exclude-standard"], {
+    cwd: root,
+    encoding: "utf8",
+    maxBuffer: 64 * 1024 * 1024,
+  })
+    .split("\0")
+    .filter((file) => file !== "" && !UNFILTERED.test(file))
+    .flatMap((file) => {
+      const abs = path.join(root, file)
+      if (!existsSync(abs) || !statSync(abs).isFile()) return []
+      const bytes = readFileSync(abs)
+      return bytes.subarray(0, 8000).includes(0) ? [] : [{ file, text: bytes.toString("utf8") }]
+    })
+}
+
 const isMain = process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])
 if (isMain) {
   const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
@@ -346,8 +443,11 @@ if (isMain) {
     process.exit(1)
   }
   const { errors, sourceDirs } = checkWorkspace(root, globs)
+  errors.push(...checkFilters(repoTextFiles(root)))
   if (errors.length > 0) {
-    console.error("Workspace packages with missing or non-canonical gate scripts or configs:\n")
+    console.error(
+      "Workspace packages with missing or non-canonical gate scripts, configs or filters:\n",
+    )
     for (const error of errors) console.error(`  - ${error}`)
     console.error(
       "\nFix the package instead of excluding it: a source package outside " +
@@ -358,6 +458,6 @@ if (isMain) {
   }
   const exempt = Object.keys(NO_MUTATION_APPS).join(", ")
   console.log(
-    `Package scripts: all ${sourceDirs.length} source packages run the canonical lint, typecheck and test, carry a vitest.config.ts and a gated stryker.config.json (exempt from mutation: ${exempt}).`,
+    `Package scripts: all ${sourceDirs.length} source packages run the canonical lint, typecheck and test, carry a vitest.config.ts and a gated stryker.config.json (exempt from mutation: ${exempt}), and every pnpm filter names a workspace package.`,
   )
 }

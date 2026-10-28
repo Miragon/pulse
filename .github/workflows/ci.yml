@@ -373,8 +373,10 @@ jobs:
 
       - run: pnpm format:check
 
-      - name: Repo-wide guards (docs-refs, old-names)
-        run: pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server-camunda7 exec vitest run test/docs-refs.test.ts test/old-names.test.ts --coverage.enabled=false
+      - name: Repo-wide guards (docs-refs, old-names, pnpm filters)
+        run: |
+          pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server-camunda7 exec vitest run test/docs-refs.test.ts test/old-names.test.ts --coverage.enabled=false
+          pnpm lint:package-scripts
 
       - uses: Miragon/pin-npm-dependencies@v1.2.2
 

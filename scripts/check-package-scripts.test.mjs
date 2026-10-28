@@ -5,14 +5,19 @@ import path from "node:path"
 import { describe, it } from "node:test"
 import { fileURLToPath } from "node:url"
 import {
+  GATE_PATH,
   MUTATION_REPORT,
   NO_MUTATION_APPS,
+  checkFilters,
   checkMutationExemptions,
   checkPackageConfigs,
   checkPackageScripts,
   checkStrykerConfig,
   checkWorkspace,
   expandWorkspaceGlobs,
+  laxFilters,
+  repoTextFiles,
+  unknownFilters,
   workspaceGlobs,
 } from "./check-package-scripts.mjs"
 
@@ -515,5 +520,97 @@ describe("checkWorkspace over fixture trees", () => {
       assert.ok(sourceDirs.includes(dir), dir)
     }
     assert.ok(!sourceDirs.includes("docs"))
+  })
+})
+
+// The flag is spelled through a constant, so this file names no stale filter itself.
+const FLAG = "--filter"
+const SHORT = "-F"
+
+describe("unknownFilters: every filter that names a package names one of its workspace", () => {
+  const known = new Set(["@miragon/pulse-widget-shell", "pulse"])
+  for (const [text, stale] of [
+    [`pnpm ${FLAG} pulse build`, []],
+    [`pnpm ${FLAG}=pulse... build`, []],
+    [`pnpm ${FLAG} @miragon/pulse-widget-shell test`, []],
+    [`pnpm ${FLAG} pulse-vsocde build`, ["pulse-vsocde"]],
+    [`pnpm ${FLAG}=pulse-vsocde^... build`, ["pulse-vsocde"]],
+    [`pnpm ${FLAG} "!pulse-vsocde" -r build`, ["pulse-vsocde"]],
+    [`pnpm ${SHORT} pulse-vsocde build`, ["pulse-vsocde"]],
+    [`"x": "pnpm ${FLAG} \\"pulse-vsocde\\" build"`, ["pulse-vsocde"]],
+    // One stale name among valid ones passes --fail-if-no-match, so it is checked on its own.
+    [`pnpm ${FLAG} pulse ${FLAG} pulse-vsocde build`, ["pulse-vsocde"]],
+    [`pnpm ${FLAG} @miragon/pulse-widget-shel test`, ["@miragon/pulse-widget-shel"]],
+    // A path selector names no package: --fail-if-no-match covers it on a gate path.
+    [`pnpm ${FLAG} ./apps/vscod build`, []],
+    [`pnpm ${FLAG} "./modules/**" build`, []],
+    [`pnpm ${FLAG} "{apps/vscod}" build`, []],
+  ]) {
+    it(`reads ${text}`, () => {
+      assert.deepEqual(
+        unknownFilters("x", text, known),
+        stale.map((name) => `x:1 ${FLAG} ${name}`),
+      )
+    })
+  }
+})
+
+describe("laxFilters: a pnpm filter on a gate path fails when it matches nothing", () => {
+  it("knows the gate paths", () => {
+    for (const file of [
+      "package.json",
+      "apps/vscode/package.json",
+      "packages/core/widget-shell/package.json",
+      "docs/package.json",
+      "Dockerfile",
+      ".github/workflows/ci.yml",
+      ".github/actions/release/publish/action.yaml",
+      "scripts/test-template.sh",
+    ])
+      assert.ok(GATE_PATH.test(file), file)
+    for (const file of ["apps/cli/README.md", "apps/vscode/src/package.json.ts", "docs/x.md"])
+      assert.ok(!GATE_PATH.test(file), file)
+  })
+
+  it("flags a package script's or a composite action's filter without the flag", () => {
+    const build = `pnpm ${FLAG} ./packages/core/widget-shell build`
+    assert.deepEqual(
+      laxFilters(
+        "apps/vscode/package.json",
+        [
+          `"vscode:prepublish": "${build} && pnpm run bundle",`,
+          `"ok": "pnpm --fail-if-no-match ${FLAG} ./apps/vscode build",`,
+          `"turbo": "pnpm turbo run build ${FLAG}=./apps/vscode",`,
+        ].join("\n"),
+      ),
+      [`apps/vscode/package.json:1 "vscode:prepublish": "${build}`],
+    )
+    assert.deepEqual(
+      laxFilters(
+        ".github/actions/setup/action.yml",
+        `# pnpm ${FLAG} ./apps/vscode build\n      run: pnpm ${SHORT} ./apps/vscode build`,
+      ),
+      [`.github/actions/setup/action.yml:2 run: pnpm ${SHORT} ./apps/vscode build`],
+    )
+  })
+})
+
+describe("checkFilters over the repo", () => {
+  it("passes the repo's text files", () => {
+    const files = repoTextFiles(repoRoot)
+    assert.ok(files.some(({ file }) => file === "CLAUDE.md"))
+    assert.deepEqual(checkFilters(files), [])
+  })
+
+  it("reads the template's own packages for files under templates/ only", () => {
+    const files = [
+      { file: "package.json", text: JSON.stringify({ name: "@miragon/pulse-x" }) },
+      { file: "templates/t/package.json", text: JSON.stringify({ name: "@acme/server" }) },
+      { file: "templates/t/README.md", text: `pnpm ${FLAG} @acme/server dev` },
+      { file: "docs/x.md", text: `pnpm ${FLAG} @acme/server dev` },
+    ]
+    assert.deepEqual(checkFilters(files), [
+      `docs/x.md:1 ${FLAG} @acme/server: names no workspace package, so the filter matches nothing`,
+    ])
   })
 })
