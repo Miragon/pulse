@@ -19,8 +19,8 @@ handled with checks of the engine name across the code base.
   engine that speaks the Camunda 7 REST API.
 
 **Today every adapter passes through.** `cibseven` is `createCamunda7RestClient('cibseven', …)`. A
-divergence is either a patch in `spec/engines/<name>.patches.json`, which changes only that engine's
-catalog, or a wrapper around the port in its adapter.
+divergence is either a catalog of its own for that engine, generated with an extra spec patch, or a
+wrapper around the port in its adapter.
 
 **The engine is chosen before anything is registered.** `flavor` (profile, `PULSE_CLI_FLAVOR`,
 `--flavor`, default `camunda7`; called `platform` before the move to Pulse) selects the adapter in
@@ -28,18 +28,16 @@ catalog, or a wrapper around the port in its adapter.
 then come from its catalog.
 
 **The rules are checked.** dependency-cruiser fails the build when `workflow` imports an adapter or
-an API, when anything but an adapter imports an API, when adapters or APIs import each other, when
-`engine-port` imports more than types, or when an adapter reads another engine's catalog.
+an API, when anything but an adapter imports an API, when adapters or APIs import each other, or when
+`engine-port` imports more than types.
 
 The overview is in [Architecture](../architecture.md), the engine list in [Engines](../engines.md).
 
 ## Consequences
 
-- A difference of one engine changes one patch file or one adapter. The other engines do not move.
+- A difference of one engine changes its catalog or its adapter. The other engines do not move.
 - The workflow commands are written once, against the port.
-- Three generated catalogs are committed. They are identical while the engine patches are empty,
-  and a test keeps them so. They make the package and the standalone executable about three times
-  as large in catalog data.
+- One generated catalog is committed and every adapter reads it while no engine diverges.
 - Existing profiles keep working: without `flavor` pulse-cli behaves as before. Versions without the
   key reject a config file that contains it.
 - `src/catalog`, `src/operation` and `src/http` still hold the Camunda 7 REST code. They move into

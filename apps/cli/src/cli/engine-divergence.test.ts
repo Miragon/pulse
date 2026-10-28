@@ -1,6 +1,7 @@
 /**
- * Contract of the engine seam: an engine patch that renames a body field (RetriesDto.retries →
- * retryCount) flows through the generator into the commands, help and describe of that engine only.
+ * Contract of the engine seam: a spec patch that renames a body field (RetriesDto.retries →
+ * retryCount) flows through the generator into the commands, help and describe of the adapter that
+ * carries the patched catalog only.
  */
 
 import { readFileSync } from "node:fs"
@@ -17,14 +18,13 @@ const RETRIES = "/components/schemas/RetriesDto/properties/retries"
 const specText = readFileSync(SPEC_FILE, "utf8")
 const retries: unknown = JSON.parse(specText).components.schemas.RetriesDto.properties.retries
 const RENAME_RETRIES = JSON.stringify([
+  ...(JSON.parse(readFileSync(PATCH_FILE, "utf8")) as unknown[]),
   { op: "test", path: RETRIES, value: retries },
   { op: "add", path: "/components/schemas/RetriesDto/properties/retryCount", value: retries },
   { op: "remove", path: RETRIES },
 ])
 
-const diverging = JSON.parse(
-  renderCatalog(specText, readFileSync(PATCH_FILE, "utf8"), RENAME_RETRIES),
-) as Catalog
+const diverging = JSON.parse(renderCatalog(specText, RENAME_RETRIES)) as Catalog
 
 async function output(catalog: Catalog, args: readonly string[]): Promise<string> {
   const runtime = fakeRuntime()

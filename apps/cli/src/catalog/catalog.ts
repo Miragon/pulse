@@ -1,6 +1,6 @@
-/** Access to the generated operation catalog (`loadCatalog`: the one of camunda7). */
+/** Access to the generated operation catalog (`loadCatalog`), shared by every engine. */
 
-import generated from "../generated/catalog.camunda7.json" with { type: "json" }
+import generated from "../generated/catalog.json" with { type: "json" }
 import type { Catalog, GroupSpec, OperationSpec } from "./types.js"
 
 export function loadCatalog(): Catalog {

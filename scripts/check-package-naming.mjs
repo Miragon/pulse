@@ -72,7 +72,7 @@ export const GENERATED_DIRS = {
   "packages/connectors/camunda/camunda7-client/src/generated":
     "the hey-api SDK `pnpm generate` regenerates from the CIB seven OpenAPI spec; never edited by hand",
   "apps/cli/src/generated":
-    "the CLI's command catalog per engine (catalog.<engine>.json), which `pnpm --fail-if-no-match --filter @miragon/pulse-cli catalog` renders from apps/cli/spec; never edited by hand (scripts/catalog/render.test.ts fails on a stale one)",
+    "the CLI's command catalog (catalog.json) of every engine, which `pnpm --fail-if-no-match --filter @miragon/pulse-cli catalog` renders from apps/cli/spec; never edited by hand (scripts/catalog/render.test.ts fails on a stale one)",
 }
 
 /**

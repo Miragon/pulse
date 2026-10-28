@@ -1,51 +1,14 @@
 import { readFileSync } from "node:fs"
 import { describe, expect, it } from "vitest"
-import { FLAVORS } from "../../src/config/types.js"
-import {
-  catalogFile,
-  ENGINES,
-  enginePatchFile,
-  PATCH_FILE,
-  SPEC_FILE,
-  readPatchedSpec,
-} from "./files.js"
+import { CATALOG_FILE, PATCH_FILE, SPEC_FILE, readPatchedSpec } from "./files.js"
 import { SPEC_URL, patchedSpec, renderCatalog } from "./render.js"
 
 const specText = readFileSync(SPEC_FILE, "utf8")
 const patchText = readFileSync(PATCH_FILE, "utf8")
 
-const enginePatchText = (engine: (typeof ENGINES)[number]) =>
-  readFileSync(enginePatchFile(engine), "utf8")
-
 describe("renderCatalog", () => {
-  it.each(ENGINES)(
-    "renders exactly the committed src/generated/catalog.%s.json (run `pnpm --fail-if-no-match --filter @miragon/pulse-cli catalog`)",
-    (engine) => {
-      const rendered = renderCatalog(specText, patchText, enginePatchText(engine))
-      expect(rendered === readFileSync(catalogFile(engine), "utf8")).toBe(true)
-    },
-  )
-
-  // an engine that diverges on purpose gets patches and leaves this list
-  it.each(ENGINES)(
-    "renders the API catalog for %s while its engine patches are empty",
-    (engine) => {
-      expect(JSON.parse(enginePatchText(engine))).toEqual([])
-      expect(readFileSync(catalogFile(engine), "utf8") === renderCatalog(specText, patchText)).toBe(
-        true,
-      )
-    },
-  )
-
-  it("applies the engine patches after those of the API", () => {
-    const rename = JSON.stringify([
-      { op: "test", path: "/info/title", value: JSON.parse(specText).info.title },
-      { op: "replace", path: "/info/title", value: "Engine" },
-    ])
-    const rendered = JSON.parse(renderCatalog(specText, patchText, rename)) as {
-      source: { title: string }
-    }
-    expect(rendered.source.title).toBe("Engine")
+  it("renders exactly the committed src/generated/catalog.json (run `pnpm --fail-if-no-match --filter @miragon/pulse-cli catalog`)", () => {
+    expect(renderCatalog(specText, patchText) === readFileSync(CATALOG_FILE, "utf8")).toBe(true)
   })
 
   it("indents with one space and ends with a single newline", () => {
@@ -94,19 +57,10 @@ describe("patchedSpec", () => {
 })
 
 describe("files", () => {
-  it("points to the vendored spec, the patches and the generated catalogs", () => {
+  it("points to the vendored spec, the patches and the generated catalog", () => {
     expect(SPEC_FILE.pathname.endsWith("/spec/camunda7-rest/api.json")).toBe(true)
     expect(PATCH_FILE.pathname.endsWith("/spec/camunda7-rest/patches.json")).toBe(true)
-    expect(
-      enginePatchFile("cibseven").pathname.endsWith("/spec/engines/cibseven.patches.json"),
-    ).toBe(true)
-    expect(catalogFile("operaton").pathname.endsWith("/src/generated/catalog.operaton.json")).toBe(
-      true,
-    )
-  })
-
-  it("lists the engines of the CLI", () => {
-    expect(ENGINES).toEqual(FLAVORS)
+    expect(CATALOG_FILE.pathname.endsWith("/src/generated/catalog.json")).toBe(true)
   })
 
   it("reads the patched spec", () => {

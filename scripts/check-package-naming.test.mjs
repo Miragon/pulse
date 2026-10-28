@@ -748,7 +748,7 @@ describe("checkLayout", () => {
     "apps/mcp-server-camunda7/src/index.ts",
     "apps/mcp-server-camunda7/test/fixtures/mcp-app.js",
     "apps/cli/package.json",
-    "apps/cli/src/generated/catalog.camunda7.json",
+    "apps/cli/src/generated/catalog.json",
     "packages/core/widget-shell/src/ui/x.tsx",
     `${SDK}/client.gen.ts`,
     `${SDK}/client/index.ts`,

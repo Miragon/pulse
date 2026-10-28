@@ -538,7 +538,7 @@ module.exports = {
       name: "cli-generated-catalog-only-via-catalog-ts-or-adapters",
       severity: "error",
       comment:
-        "The generated command catalogs (apps/cli/src/generated) are read only by " +
+        "The generated command catalog (apps/cli/src/generated) is read only by " +
         "apps/cli/src/catalog/catalog.ts and the engine adapters.",
       from: {
         path: "^apps/cli/",
@@ -548,17 +548,6 @@ module.exports = {
         ],
       },
       to: { path: "^apps/cli/src/generated/" },
-    },
-    {
-      name: "cli-adapter-reads-its-own-catalog",
-      severity: "error",
-      comment:
-        "An engine adapter (apps/cli/src/engines/<name>) reads only apps/cli/src/generated/catalog.<name>.json.",
-      from: { path: "^apps/cli/src/engines/([^/]+)/adapter[.]ts$" },
-      to: {
-        path: "^apps/cli/src/generated/",
-        pathNot: "^apps/cli/src/generated/catalog[.]$1[.]json$",
-      },
     },
     {
       name: "cli-output-only-operation-result",

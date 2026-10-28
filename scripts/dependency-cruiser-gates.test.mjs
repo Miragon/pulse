@@ -125,7 +125,6 @@ const CLI_API_API = "cli-api-not-to-other-api"
 const CLI_ENGINES = "cli-engines-not-to-each-other"
 const CLI_HTTP = "cli-http-not-to-config-cli-operation"
 const CLI_GENERATED = "cli-generated-catalog-only-via-catalog-ts-or-adapters"
-const CLI_OWN_CATALOG = "cli-adapter-reads-its-own-catalog"
 const CLI_OUTPUT = "cli-output-only-operation-result"
 const CLI_OUTPUT_TYPES = "cli-output-operation-result-type-only"
 const CLI_SCRIPTS = "cli-scripts-only-catalog-types-and-schema"
@@ -181,11 +180,7 @@ const LEAVES = [
   `${C7_DOMAIN}/src/model.ts`,
   `${AN_DOMAIN}/src/target.ts`,
 ]
-const JSON_LEAVES = [
-  `${CLI}/src/generated/commands.json`,
-  `${CLI}/src/generated/catalog.a.json`,
-  `${CLI}/src/generated/catalog.b.json`,
-]
+const JSON_LEAVES = [`${CLI}/src/generated/commands.json`, `${CLI}/src/generated/catalog.a.json`]
 
 /**
  * One suite per rule: [importer, specifier, exact rules, form?]. `form` "type" plants an
@@ -740,7 +735,7 @@ const SUITES = [
   },
   {
     rule: CLI_GENERATED,
-    title: "only catalog.ts and the engine adapters read the generated catalogs",
+    title: "only catalog.ts and the engine adapters read the generated catalog",
     cases: [
       [`${CLI}/src/output/to-catalog.ts`, "../generated/catalog.a.json", [CLI_GENERATED]],
       [
@@ -749,14 +744,6 @@ const SUITES = [
         [CLI_GENERATED, CLI_SCRIPTS],
       ],
       [`${CLI}/src/engines/a/adapter.ts`, "../../generated/catalog.a.json", []],
-    ],
-  },
-  {
-    rule: CLI_OWN_CATALOG,
-    title: "an engine adapter reads only its own catalog",
-    cases: [
-      [`${CLI}/src/engines/b/adapter.ts`, "../../generated/catalog.a.json", [CLI_OWN_CATALOG]],
-      [`${CLI}/src/engines/b/adapter.ts`, "../../generated/catalog.b.json", []],
     ],
   },
   {

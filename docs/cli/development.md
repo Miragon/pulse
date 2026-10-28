@@ -56,8 +56,7 @@ The command surface is data, not hand-written code:
 
 1. `apps/cli/spec/camunda7-rest/api.json` is the vendored OpenAPI spec of the Camunda 7 /
    Operaton REST API. `apps/cli/spec/camunda7-rest/patches.json` corrects it with RFC 6902 JSON
-   patches (each with a `test` guard and a `reason`); `apps/cli/spec/engines/` holds one file of
-   differences per engine, today empty.
+   patches (each with a `test` guard and a `reason`).
 2. `catalog` (`apps/cli/scripts/generate-catalog.ts`, `apps/cli/scripts/catalog`) turns it into one
    catalog per engine in `apps/cli/src/generated/`: operations with group, command name, aliases,
    effect, parameters, body and response descriptions, plus the referenced schemas. Naming

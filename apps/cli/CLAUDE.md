@@ -9,8 +9,8 @@ written for the MCP server, so this file holds the CLI's own. The pages for peop
 
 - One command per REST operation of a Camunda 7 engine (Operaton, CIB seven, Camunda 7), plus
   the workflow commands (inspect, wait, advance, retry, deploy, status). The commands are data:
-  `apps/cli/src/generated/` holds one catalog per engine, generated from the vendored OpenAPI
-  spec in `apps/cli/spec/`. Command registration, help, `describe`, input building and body
+  `apps/cli/src/generated/catalog.json`, generated from the vendored OpenAPI spec in
+  `apps/cli/spec/`, serves every engine. Command registration, help, `describe`, input building and body
   validation all read the same catalog.
 - AI first: it never asks a question, previews every write (`--dry-run`), needs `--yes` to
   delete, has a read-only mode, and writes its answers as JSON and its errors as one JSON line on
@@ -30,7 +30,7 @@ cruises `apps/cli/src`, `pnpm lint:architecture:cli` its `scripts/` and `test/`.
 | `apps/cli/src/operation/`   | Input building, guards, requests, execution, paging                       |
 | `apps/cli/src/workflow/`    | The workflow commands, pure, on the engine port only                      |
 | `apps/cli/src/engine-port/` | `EnginePort` and `EngineAdapter`: types only                              |
-| `apps/cli/src/engines/`     | One adapter per engine; each reads only its own catalog                   |
+| `apps/cli/src/engines/`     | One adapter per engine, all on the one generated catalog                  |
 | `apps/cli/src/api/`         | One folder per engine API; only the adapters use one                      |
 | `apps/cli/src/docs/`        | The guide, `describe`, examples, completion: the texts agents read        |
 | `apps/cli/src/catalog/`     | Catalog access (`loadCatalog`), schemas, body validation                  |
