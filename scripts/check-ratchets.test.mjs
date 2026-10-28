@@ -1586,12 +1586,11 @@ describe("package gate scripts are pinned to the merge base", () => {
     "lint:fix": "eslint src --fix",
     typecheck: "tsc --noEmit && tsc -p tsconfig.widgets.json",
     test: "vitest run",
-    "test:mutation": "stryker run",
   }
   const pkg = (scripts) =>
     JSON.stringify({ name: "@miragon/pulse-x", scripts: { ...BASE, ...scripts } })
 
-  it("flags lint/typecheck/test/test:mutation changed in any way", () => {
+  it("flags lint/typecheck/test changed in any way", () => {
     for (const scripts of [
       { test: "vitest run --coverage.enabled=false" },
       { test: "vitest run --coverage.thresholds.lines=0" },
@@ -1599,7 +1598,6 @@ describe("package gate scripts are pinned to the merge base", () => {
       { lint: "eslint src --rule 'complexity: off'" },
       { lint: "eslint src/index.ts" },
       { typecheck: "tsc --noEmit" },
-      { "test:mutation": "stryker run lax.json" },
     ]) {
       const violations = checkRatchetFile(rel, pkg({}), pkg(scripts))
       assert.equal(violations.length, 1, JSON.stringify(scripts))

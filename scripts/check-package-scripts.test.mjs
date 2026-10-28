@@ -105,29 +105,6 @@ describe("checkPackageScripts", () => {
       [],
     )
   })
-
-  it("requires the plain `stryker run` where a stryker.config.json exists", () => {
-    assert.match(
-      checkPackageScripts("packages/x", COMPLETE, { hasStryker: true })[0],
-      /missing "test:mutation"/,
-    )
-    assert.match(
-      checkPackageScripts(
-        "packages/x",
-        { ...COMPLETE, "test:mutation": "stryker run lax.json" },
-        { hasStryker: true },
-      )[0],
-      /"test:mutation" script is "stryker run lax\.json"/,
-    )
-    assert.deepEqual(
-      checkPackageScripts(
-        "packages/x",
-        { ...COMPLETE, "test:mutation": "stryker run" },
-        { hasStryker: true },
-      ),
-      [],
-    )
-  })
 })
 
 describe("workspace discovery", () => {
@@ -356,7 +333,7 @@ describe("checkMutationExemptions: NO_MUTATION_APPS cannot outlive its reason", 
   })
 })
 
-const SCRIPTS = { ...COMPLETE, "test:mutation": "stryker run" }
+const SCRIPTS = COMPLETE
 
 /**
  * A workspace fixture: every package below passes, so each case breaks one
@@ -490,19 +467,6 @@ describe("checkWorkspace over fixture trees", () => {
     const { errors } = workspaceErrors((p) => (p["apps/server"].stryker = GOOD_STRYKER))
     assert.equal(errors.length, 1)
     assert.match(errors[0], /^apps\/server: listed in NO_MUTATION_APPS but carries/)
-  })
-
-  it("still runs the script checks: a stryker app without test:mutation", () => {
-    const root = workspaceFixture()
-    try {
-      const pkg = path.join(root, "apps/cli/package.json")
-      writeFileSync(pkg, JSON.stringify({ name: "@miragon/pulse-cli", scripts: COMPLETE }))
-      const { errors } = checkWorkspace(root, ["apps/*"], { noMutationApps: EXEMPT })
-      assert.equal(errors.length, 1)
-      assert.match(errors[0], /^apps\/cli: missing "test:mutation" script/)
-    } finally {
-      rmSync(root, { recursive: true, force: true })
-    }
   })
 
   it("real repo: every source package passes, the exempt server app included", () => {

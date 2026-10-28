@@ -51,8 +51,7 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
-    "lint:fix": "eslint src --fix",
-    "test:mutation": "stryker run"
+    "lint:fix": "eslint src --fix"
   },
   "peerDependencies": {
     "@miragon/mcp-toolkit-core": "~2.8.1",

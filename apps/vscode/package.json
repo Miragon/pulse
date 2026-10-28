@@ -285,7 +285,6 @@
     "test:engines": "vitest run --config vitest.engines.config.ts",
     "test:smoke": "node scripts/build.mjs && vscode-test --config .vscode-test.mjs",
     "test:e2e": "node scripts/build.mjs && node scripts/e2e.mjs",
-    "test:mutation": "stryker run",
     "engine:up": "node scripts/engine.mjs up",
     "engine:down": "node scripts/engine.mjs down",
     "sandbox:up": "node scripts/sandbox/sandbox.mjs up",

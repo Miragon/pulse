@@ -13,8 +13,7 @@
  * off (`vitest run --coverage.enabled=false`, `eslint src || true`,
  * `eslint src --rule 'complexity: off'`). `typecheck` must cover every extra
  * `tsconfig.<x>.json` project of the package (the widget/UI/test sources only
- * those projects type-check), and a package with a stryker.config.json must
- * run the plain `stryker run` (the mutation diff gate appends its own scope).
+ * those projects type-check).
  * Packages without `src/` (the docs site) carry no source the gates could
  * cover. An EXISTING package's gate scripts are additionally pinned to the
  * merge base by scripts/check-ratchets.mjs.
@@ -22,8 +21,8 @@
  * The same source packages must also carry the configs those scripts measure
  * against, because each tool's default measures nothing: a `vitest.config.ts`
  * (vitest runs with coverage off by default, so no coverage floor would hold
- * the package) and a `stryker.config.json` (without one the mutation diff
- * gate never runs over it), except the apps NO_MUTATION_APPS exempts by name
+ * the package) and a `stryker.config.json` (without one the nightly mutation
+ * run never covers it), except the apps NO_MUTATION_APPS exempts by name
  * with a reason. Every stryker.config.json needs a numeric `thresholds.break`
  * above 0 (Stryker's default null never fails a run), a `mutate` allowlist
  * that selects files, and the json report at reports/mutation-report.json,
@@ -64,18 +63,16 @@ export const REQUIRED_SCRIPTS = {
   },
 }
 
-const MUTATION_SCRIPT = "stryker run"
-
 /**
  * Source packages that carry no stryker.config.json, each with the reason the
  * owner accepted. Apps only: a package under packages/ is a library whose
- * logic the diff gate must be able to mutate. Shrink-only by review. An entry
+ * logic the nightly run must be able to mutate. Shrink-only by review. An entry
  * whose dir is gone, has no src/ or carries a stryker.config.json fails this
  * gate, so the map cannot outlive its reason.
  */
 export const NO_MUTATION_APPS = {
   "apps/mcp-server-camunda7":
-    "the composition root: its logic lives in the packages, which the diff gate mutates, and " +
+    "the composition root: its logic lives in the packages, which the nightly run mutates, and " +
     "the app itself is tested end to end (in-process boots, tools/list goldens, the host simulation)",
 }
 
@@ -90,10 +87,9 @@ const normalizedCommand = (command) =>
 
 /**
  * Violations for one package.json's `scripts` block (pure; unit-tested).
- * `tsconfigs`: the package's extra `tsconfig.<x>.json` files; `hasStryker`:
- * whether it carries a stryker.config.json.
+ * `tsconfigs`: the package's extra `tsconfig.<x>.json` files.
  */
-export function checkPackageScripts(dir, scripts, { tsconfigs = [], hasStryker = false } = {}) {
+export function checkPackageScripts(dir, scripts, { tsconfigs = [] } = {}) {
   const errors = []
   for (const [name, { pattern, expect }] of Object.entries(REQUIRED_SCRIPTS)) {
     const command = normalizedCommand(scripts?.[name])
@@ -115,21 +111,6 @@ export function checkPackageScripts(dir, scripts, { tsconfigs = [], hasStryker =
       )
     }
   }
-  if (hasStryker) {
-    const command = normalizedCommand(scripts?.["test:mutation"])
-    if (command === undefined) {
-      errors.push(
-        `${dir}: missing "test:mutation" script — the package has a stryker.config.json ` +
-          `(expected: \`${MUTATION_SCRIPT}\`)`,
-      )
-    } else if (command !== MUTATION_SCRIPT) {
-      errors.push(
-        `${dir}: "test:mutation" script is "${command}" — expected it to run \`${MUTATION_SCRIPT}\`: ` +
-          `the diff gate appends --mutate/--incrementalFile, and any other argument (a config ` +
-          `path, a lax option) changes what the gate measures`,
-      )
-    }
-  }
   return errors
 }
 
@@ -146,7 +127,7 @@ export function checkStrykerConfig(dir, config) {
   if (typeof threshold !== "number" || !(threshold > 0 && threshold <= 100)) {
     errors.push(
       `${where}: thresholds.break is ${JSON.stringify(threshold) ?? "missing"}; Stryker then ` +
-        `never fails the run, so the diff gate passes any score. Set it to the package's floor, ` +
+        `never fails the run, so the nightly run passes any score. Set it to the package's floor, ` +
         `a number above 0 and at most 100 (raise it as the score rises, never lower it)`,
     )
   }
@@ -154,7 +135,7 @@ export function checkStrykerConfig(dir, config) {
   if (!Array.isArray(mutate) || mutate.some((p) => typeof p !== "string" || p.trim() === "")) {
     errors.push(
       `${where}: "mutate" is not a list of glob strings; without one Stryker mutates its ` +
-        `default globs, which the diff gate cannot mirror. List the files the tests cover, ` +
+        `default globs. List the files the tests cover, ` +
         `e.g. ${MUTATE_EXAMPLE}`,
     )
   } else if (!mutate.some((p) => !p.startsWith("!"))) {
@@ -198,7 +179,7 @@ export function checkPackageConfigs(dir, { hasVitestConfig, stryker, exemptReaso
   if (!stryker.exists) {
     if (exemptReason === undefined) {
       errors.push(
-        `${dir}: no stryker.config.json, so the mutation diff gate never runs over the ` +
+        `${dir}: no stryker.config.json, so the nightly mutation run never covers the ` +
           `package. Add one with a "mutate" allowlist, a numeric thresholds.break and the json ` +
           `report at ${MUTATION_REPORT} (a sibling package's config shows the shape)`,
       )
@@ -232,7 +213,7 @@ export function checkMutationExemptions(sourceDirs, exemptions) {
   for (const [dir, reason] of Object.entries(exemptions)) {
     if (!/^apps\/[^/]+$/.test(dir)) {
       errors.push(
-        `${where}: "${dir}" is not an app (apps/<name>); a package is a library the diff gate ` +
+        `${where}: "${dir}" is not an app (apps/<name>); a package is a library the nightly run ` +
           `must mutate. Remove the entry and give the package a stryker.config.json`,
       )
     } else if (!sourceDirs.includes(dir)) {
@@ -328,10 +309,7 @@ export function checkWorkspace(root, globs, { noMutationApps = NO_MUTATION_APPS 
     const { scripts } = JSON.parse(readFileSync(path.join(abs, "package.json"), "utf8"))
     const stryker = readStrykerConfig(abs)
     errors.push(
-      ...checkPackageScripts(dir, scripts, {
-        tsconfigs: extraTsconfigs(abs),
-        hasStryker: stryker.exists,
-      }),
+      ...checkPackageScripts(dir, scripts, { tsconfigs: extraTsconfigs(abs) }),
       ...checkPackageConfigs(dir, {
         hasVitestConfig: existsSync(path.join(abs, "vitest.config.ts")),
         stryker,

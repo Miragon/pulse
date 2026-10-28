@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Layout + naming gate (CLAUDE.md invariant 8). The dependency-cruiser rules,
- * check-ratchets, mutation-diff and the ESLint budgets key on WHERE a package
+ * check-ratchets and the ESLint budgets key on WHERE a package
  * lives and WHAT it is called. A package that breaks the convention does not
  * fail them: it silently falls out of them while it is still built and
  * shipped. This gate fails on it instead:
@@ -89,7 +89,7 @@ const ROLE_LIST = CONNECTOR_ROLES.map((role) => `-${role}`)
   .replace(/, ([^,]+)$/, " or $1")
 const LAYOUTS = "apps/<dir>, packages/core/<dir> or packages/connectors/<family>/<dir> (plus docs)"
 const GATES_ON_LAYOUT =
-  "dependency-cruiser, check-ratchets, mutation-diff and the ESLint budgets key on " + LAYOUTS
+  "dependency-cruiser, check-ratchets and the ESLint budgets key on " + LAYOUTS
 /** A glob the gates can expand: literal segments and a single-level `*`. */
 const PLAIN_GLOB = /^(?:\*|[A-Za-z0-9_.-]+)(?:\/(?:\*|[A-Za-z0-9_.-]+))*$/
 const PACKAGE_ROOT = "(?:apps/[^/]+|packages/core/[^/]+|packages/connectors/[^/]+/[^/]+)"

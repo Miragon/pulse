@@ -49,8 +49,7 @@
     "lint": "eslint src scripts test *.config.ts",
     "lint:fix": "eslint src scripts test *.config.ts --fix",
     "test": "vitest run",
-    "test:engines": "vitest run --config vitest.integration.config.ts",
-    "test:mutation": "stryker run"
+    "test:engines": "vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {
     "commander": "15.0.0"

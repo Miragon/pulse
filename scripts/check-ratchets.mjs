@@ -74,7 +74,7 @@
  *                                   gates; every chained gate script and the
  *                                   gates CI runs directly are pinned (only an
  *                                   `--exclude` list may shrink); no `knip` key
- *   <pkg>/package.json              lint / typecheck / test / test:mutation pinned
+ *   <pkg>/package.json              lint / typecheck / test pinned
  *   every workspace package.json    no `prettier` key (root, apps, packages,
  *                                   docs; also in a package.json the diff
  *                                   introduces): prettier reads it before any
@@ -130,7 +130,7 @@ const PKG = String.raw`(?:apps/[^/]+|packages/core/[^/]+|packages/connectors/[^/
 
 /** The default message: the tool resolves the shadow first, the ratchet keeps reading `replaces`. */
 const loadedInstead = (replaces) => (relPath) =>
-  `${relPath} would be loaded INSTEAD of ${replaces} — the tool resolves it first, while this check (and mutation-diff.mjs) keep reading the ratcheted file, so every threshold, ignore list and gate in it could be swapped out unseen. Edit ${replaces} instead.`
+  `${relPath} would be loaded INSTEAD of ${replaces} — the tool resolves it first, while this check keeps reading the ratcheted file, so every threshold, ignore list and gate in it could be swapped out unseen. Edit ${replaces} instead.`
 
 /**
  * A directory prefix anywhere below the repo root that is not inside an
@@ -1154,7 +1154,7 @@ function compareStryker(relPath, oldJson, newJson, fileExists) {
   const violations = []
   if (newJson === null) {
     return [
-      `${relPath} was removed. The mutation gate needs it — removing it drops the package out of the diff gate.`,
+      `${relPath} was removed. The mutation gate needs it — removing it drops the package out of the nightly mutation run.`,
     ]
   }
   const oldBreak = oldJson?.thresholds?.break
@@ -1306,11 +1306,11 @@ const excludeList = (script) =>
 /** The root chains whose segments are gates. */
 const ROOT_CHAINS = ["lint", "test"]
 /** Root gates CI (or the docs) run directly, outside the lint/test chains. */
-const DIRECT_ROOT_GATES = ["build", "typecheck", "format:check", "test:pg", "test:mutation"]
+const DIRECT_ROOT_GATES = ["build", "typecheck", "format:check", "test:pg"]
 /** The only shape a NEW chain segment may take. */
 const PLAIN_PNPM_SEGMENT = /^pnpm (?:run )?([\w:-]+)$/
 /** Per-package scripts that turbo runs as gates. */
-const PACKAGE_GATES = ["lint", "typecheck", "test", "test:mutation"]
+const PACKAGE_GATES = ["lint", "typecheck", "test"]
 /**
  * Per-package scripts a CI or release job runs by name (.github/workflows/ci.yml,
  * publish-vscode-extension.yml): the job checks what the command does, so the command is pinned

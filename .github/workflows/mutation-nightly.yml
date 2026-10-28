@@ -2,9 +2,8 @@ name: Mutation (nightly)
 
 # The FULL Stryker run, one leg per workspace package with a stryker.config.json, over the
 # package's whole `mutate` allowlist, and the only mutation testing CI runs (owner decision): no
-# pull request runs Stryker, and this run is no required check. Locally, `pnpm test:mutation`
-# (scripts/mutation-diff.mjs) mutates only the files a branch changed. A red leg means the
-# package scores below its thresholds.break.
+# pull request runs Stryker, and this run is no required check. A red leg means the package
+# scores below its thresholds.break.
 #
 # Each leg keeps its package's Stryker incremental file in the Actions cache (every
 # stryker.config.json sets incremental: true and incrementalFile reports/stryker-incremental.json,
@@ -119,7 +118,7 @@ jobs:
         run: |
           args=()
           if [ "$FORCE" = true ]; then args+=(--force); fi
-          pnpm --fail-if-no-match --filter "./${DIR}" run test:mutation "${args[@]}"
+          pnpm --fail-if-no-match --filter "./${DIR}" exec stryker run "${args[@]}"
 
       # Saved after a red leg too: Stryker writes the file before it checks thresholds.break, and
       # the next night then starts from it.

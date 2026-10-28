@@ -70,9 +70,7 @@ function mutationScore(reportPath) {
     }
   }
   const valid = detected + undetected
-  // The file count travels with the score on purpose: a local
-  // `pnpm test:mutation` covers only the files the branch changed, which reads
-  // as a package-wide number otherwise.
+  // The file count travels with the score: a local run may cover fewer files.
   return valid === 0
     ? null
     : { pct: (detected / valid) * 100, files: Object.keys(report.files).length }
@@ -95,7 +93,7 @@ for (const dir of pkgDirs) {
 }
 put()
 put(
-  "_Coverage from the last `pnpm test`. Mutation scores from the last Stryker run per package, over the file count next to each: in CI only the nightly run (`mutation-nightly.yml`, its Mutation summary job), over the package's whole `mutate` allowlist, so a pull request's rows read (no run); a local `pnpm test:mutation` covers only the files the branch changed. Missing rows: no artifacts yet._",
+  "_Coverage from the last `pnpm test`. Mutation scores from the last Stryker run per package, over the file count next to each: in CI only the nightly run (`mutation-nightly.yml`, its Mutation summary job), over the package's whole `mutate` allowlist, so a pull request's rows read (no run). Missing rows: no artifacts yet._",
 )
 
 const report = lines.join("\n")

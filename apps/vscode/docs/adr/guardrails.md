@@ -109,18 +109,17 @@ repository's CI (`.github/workflows/ci.yml`) next to the server's.
 
 - Measured on 2026-10-24 (18 cores):
 
-  | Command                                         | Time                                                                         |
-  | ----------------------------------------------- | ---------------------------------------------------------------------------- |
-  | `pnpm --filter pulse-cockpit test`              | 16.5 s (84 files, 1 109 unit and browser tests, coverage, the bundle budget) |
-  | `pnpm --filter pulse-cockpit run typecheck`     | 11.3 s (the union, then the seven layer configs)                             |
-  | `pnpm --filter pulse-cockpit run lint`          | 14.7 s                                                                       |
-  | `pnpm --filter pulse-cockpit run test:mutation` | 11.5 min full (11 559 mutants); one file in the diff gate about 6 s          |
-  | `pnpm --filter pulse-cockpit run test:engines`  | 13.5 s per image (measured in the original repository)                       |
+  | Command                                        | Time                                                                         |
+  | ---------------------------------------------- | ---------------------------------------------------------------------------- |
+  | `pnpm --filter pulse-cockpit test`             | 16.5 s (84 files, 1 109 unit and browser tests, coverage, the bundle budget) |
+  | `pnpm --filter pulse-cockpit run typecheck`    | 11.3 s (the union, then the seven layer configs)                             |
+  | `pnpm --filter pulse-cockpit run lint`         | 14.7 s                                                                       |
+  | `pnpm --filter pulse-cockpit exec stryker run` | 11.5 min full (11 559 mutants); one file (`--mutate <file>`) about 6 s       |
+  | `pnpm --filter pulse-cockpit run test:engines` | 13.5 s per image (measured in the original repository)                       |
 
 - A pull request runs no mutation check (owner decision, 2026-10-24). Locally,
-  `pnpm test:mutation` (`scripts/mutation-diff.mjs`) mutates the changed files inside the
-  `mutate` list and fails below `thresholds.break`; more than 25 such files need a reviewed
-  `Mutation-Cap-Exception:` trailer, which only that local run reads. CI mutates nightly in
+  `stryker run --mutate <file>` mutates single files and fails below `thresholds.break`. CI
+  mutates nightly in
   `.github/workflows/mutation-nightly.yml`, one leg per package with a `stryker.config.json`,
   this one included.
 - Thresholds sit just below the measured baseline: coverage lines/statements/functions/

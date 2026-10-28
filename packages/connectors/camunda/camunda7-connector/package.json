@@ -45,8 +45,7 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.widgets.json",
     "lint": "eslint src",
-    "lint:fix": "eslint src --fix",
-    "test:mutation": "stryker run"
+    "lint:fix": "eslint src --fix"
   },
   "dependencies": {
     "@miragon/pulse-camunda7-client": "workspace:*",

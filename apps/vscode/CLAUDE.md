@@ -17,7 +17,7 @@ pnpm --filter pulse-cockpit run lint             # ESLint with the house rules b
 pnpm lint:architecture:vscode                   # the closed-world dependency rules
 pnpm lint:deadcode:vscode                       # knip over the extension, unused exports and types included
 pnpm --filter pulse-cockpit test                 # unit and webview (Chromium) tests, coverage floors
-pnpm --filter pulse-cockpit run test:mutation    # Stryker over contract, core, the C7 adapter and the model adapter
+pnpm --filter pulse-cockpit exec stryker run    # Stryker over contract, core, the C7 adapter and the model adapter
 pnpm --filter pulse-cockpit run test:engines     # adapter conformance on a real engine; needs podman/docker
 pnpm --filter pulse-cockpit run test:smoke       # the extension activates in a real VS Code
 pnpm --filter pulse-cockpit run test:e2e         # VS Code e2e; needs `engine:up`
