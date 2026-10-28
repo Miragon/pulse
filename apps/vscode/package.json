@@ -300,7 +300,6 @@
     "@fontsource-variable/geist": "5.3.0",
     "@fontsource-variable/geist-mono": "5.3.0",
     "@miragon/modeler-shell": "0.5.0",
-    "@miragon/operate": "0.10.0",
     "bpmn-js": "18.31.1",
     "bpmn-moddle": "10.3.1",
     "camunda-bpmn-moddle": "8.0.2",

@@ -1,5 +1,5 @@
 import type { BulkFailure, BulkOperation, BulkOperationId } from "../../../contract/index.js"
-import type { EngineClient } from "../engine-cli/index.js"
+import type { EngineClient } from "../engine-rest/index.js"
 import { ErrorTranslation } from "../errors/error-translation.js"
 import type { BulkFailureMapper } from "../mapping/bulk-failure-mapper.js"
 import type { BulkOperationMapper } from "../mapping/bulk-operation-mapper.js"

@@ -2,7 +2,7 @@ import type { Incident, IncidentFilter, Page, PageRequest } from "../../../contr
 import type { IncidentRowFacts } from "../mapping/incident-row-mapper.js"
 import type { Mapper } from "../mapping/mapper.js"
 import { RootIncident } from "../mapping/root-incident.js"
-import type { IncidentQuery, EngineClient } from "../engine-cli/index.js"
+import type { IncidentQuery, EngineClient } from "../engine-rest/index.js"
 import type { DefinitionReader } from "./definition-reader.js"
 import { OffsetPaging } from "./offset-paging.js"
 

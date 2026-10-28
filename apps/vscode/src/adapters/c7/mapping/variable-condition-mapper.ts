@@ -3,7 +3,7 @@ import type {
   VariableComparison,
   VariableCondition,
 } from "../../../contract/index.js"
-import { LosslessJson, type VariableQueryCondition } from "../engine-cli/index.js"
+import { LosslessJson, type VariableQueryCondition } from "../engine-rest/index.js"
 import type { Mapper } from "./mapper.js"
 
 const OPERATORS: Readonly<Record<VariableComparison, VariableQueryCondition["operator"]>> = {

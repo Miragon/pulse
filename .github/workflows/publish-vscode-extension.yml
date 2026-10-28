@@ -135,7 +135,7 @@ jobs:
         run: |
           vsix="$RUNNER_TEMP/vsix/${VSIX}"
           listing="$(unzip -Z1 "$vsix")"
-          for file in extension/package.json extension/dist/extension.cjs extension/dist/engine-cli.js extension/dist/webview.js extension/dist/webview.css; do
+          for file in extension/package.json extension/dist/extension.cjs extension/dist/webview.js extension/dist/webview.css; do
             if ! grep -qxF "$file" <<<"$listing"; then
               echo "::error::The .vsix lacks ${file}"
               exit 1

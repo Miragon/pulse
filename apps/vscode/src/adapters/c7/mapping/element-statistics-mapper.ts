@@ -1,5 +1,5 @@
 import { ElementId, type ElementStatistics } from "../../../contract/index.js"
-import type { ActivityStatisticsView, IncidentView } from "../engine-cli/index.js"
+import type { ActivityStatisticsView, IncidentView } from "../engine-rest/index.js"
 import type { Mapper } from "./mapper.js"
 import { RootIncident } from "./root-incident.js"
 

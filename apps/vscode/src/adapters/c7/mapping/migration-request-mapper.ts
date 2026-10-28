@@ -1,5 +1,5 @@
 import type { MigrationPlan } from "../../../contract/index.js"
-import type { MigrationPlanView } from "../engine-cli/index.js"
+import type { MigrationPlanView } from "../engine-rest/index.js"
 import type { Mapper } from "./mapper.js"
 
 export class MigrationRequestMapper implements Mapper<MigrationPlan, MigrationPlanView> {

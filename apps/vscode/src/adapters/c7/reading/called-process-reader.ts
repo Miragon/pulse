@@ -3,7 +3,7 @@ import { ErrorTranslation } from "../errors/error-translation.js"
 import type { CalledElement } from "../mapping/called-element-mapper.js"
 import type { CallsOfDefinition } from "../mapping/called-process-mapper.js"
 import type { Mapper } from "../mapping/mapper.js"
-import type { EngineClient } from "../engine-cli/index.js"
+import type { EngineClient } from "../engine-rest/index.js"
 
 export interface CalledProcessMappers {
   readonly calledElements: Mapper<string, CalledElement[]>

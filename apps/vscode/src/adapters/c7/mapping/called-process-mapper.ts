@@ -4,7 +4,7 @@ import {
   type CalledProcess,
   type DefinitionRef,
 } from "../../../contract/index.js"
-import type { DefinitionView } from "../engine-cli/index.js"
+import type { DefinitionView } from "../engine-rest/index.js"
 import type { CalledElement } from "./called-element-mapper.js"
 import type { Mapper } from "./mapper.js"
 

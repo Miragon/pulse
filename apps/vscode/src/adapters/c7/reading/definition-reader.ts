@@ -8,7 +8,7 @@ import type {
 import { ErrorTranslation } from "../errors/error-translation.js"
 import type { Mapper } from "../mapping/mapper.js"
 import type { VersionFacts } from "../mapping/version-summary-mapper.js"
-import type { DefinitionView, EngineClient } from "../engine-cli/index.js"
+import type { DefinitionView, EngineClient } from "../engine-rest/index.js"
 
 export interface DefinitionMappers {
   readonly refs: Mapper<DefinitionView, DefinitionRef>

@@ -1,5 +1,5 @@
 import type { DefinitionId } from "../../../contract/index.js"
-import type { EngineClient } from "../engine-cli/index.js"
+import type { EngineClient } from "../engine-rest/index.js"
 
 const SAMPLED_INSTANCES = 50
 

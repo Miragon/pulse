@@ -22,7 +22,7 @@ import {
   type EngineClient,
   type TimelineEntryView,
   type VariableView,
-} from "../engine-cli/index.js"
+} from "../engine-rest/index.js"
 
 export interface DetailMappers {
   readonly summaries: Mapper<InspectView, InstanceSummary>

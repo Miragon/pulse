@@ -1,75 +1,66 @@
 import { IncidentId, type EngineConnection } from "../../../src/contract/index.js"
 import { describe, expect, test } from "vitest"
 import { C7Adapter } from "../../../src/adapters/c7/index.js"
-import { FAKE_CLI_PATH, FAKE_CONFIG_PATH, fakeEngineCli } from "./support/fake-engine-cli.js"
+import { fakeEngineRest, REST_URL } from "./support/fake-engine-rest.js"
 
-const ENDPOINT = "https://engine.example/engine-rest"
 const TELEMETRY = {
-  command: ["telemetry", "get-data"],
-  stdout: '{"product":{"name":"Operaton","version":"2.1.5"}}',
+  route: "GET /telemetry/data",
+  answer: { product: { name: "Operaton", version: "2.1.5" } },
 }
 const BASIC: EngineConnection = {
-  endpoint: ENDPOINT,
+  endpoint: REST_URL,
   credentials: { kind: "basic", username: "demo", password: "s3cret" },
 }
-
-function adapterOver(cli: ReturnType<typeof fakeEngineCli>): C7Adapter {
-  return new C7Adapter({ cliPath: FAKE_CLI_PATH, configPath: FAKE_CONFIG_PATH }, cli.spawner)
-}
+const BASIC_HEADER = `Basic ${btoa("demo:s3cret")}`
 
 describe("the C7 adapter", () => {
-  test("reads from the endpoint of the connection with its credentials in the environment only", async () => {
-    const cli = fakeEngineCli([TELEMETRY])
-    const runtime = adapterOver(cli).runtime(BASIC)
+  test("reads from the endpoint of the connection with its credentials, never following a redirect", async () => {
+    const engine = fakeEngineRest([TELEMETRY])
+    const runtime = new C7Adapter(engine.send).runtime(BASIC)
 
     expect(await runtime.describeEngine()).toEqual({ product: "Operaton", version: "2.1.5" })
 
-    const [invocation] = cli.invocations
-    expect(invocation?.args[0]).toBe(FAKE_CLI_PATH)
-    expect(invocation?.args.join(" ")).not.toContain("s3cret")
-    expect(invocation?.environment).toMatchObject({
-      OPERATE_URL: ENDPOINT,
-      OPERATE_CONFIG: FAKE_CONFIG_PATH,
-      OPERATE_READ_ONLY: "1",
-      OPERATE_AUTH: "basic",
-      OPERATE_USERNAME: "demo",
-      OPERATE_PASSWORD: "s3cret",
-    })
+    expect(engine.requests).toEqual([
+      expect.objectContaining({
+        route: "GET /telemetry/data",
+        authorization: BASIC_HEADER,
+        redirect: "manual",
+      }),
+    ])
   })
 
-  test("writes to the same endpoint with the same credentials, without the read-only switch", async () => {
-    const cli = fakeEngineCli([
+  test("writes to the same endpoint with the same credentials", async () => {
+    const engine = fakeEngineRest([
       {
-        command: ["retry"],
-        stdout: JSON.stringify({ retried: 1, incidents: [{ result: "retried" }] }),
+        route: "GET /incident/i1",
+        answer: {
+          id: "i1",
+          rootCauseIncidentId: "i1",
+          incidentType: "failedJob",
+          configuration: "j1",
+        },
       },
+      { route: "PUT /job/j1/retries", answer: new Response(null, { status: 204 }) },
     ])
-    const commands = adapterOver(cli).commands(BASIC)
+    const commands = new C7Adapter(engine.send).commands(BASIC)
 
-    await commands.retryIncident(IncidentId("993d2801-cd91-11f1-9c88-32e5612dd01b"))
+    await commands.retryIncident(IncidentId("i1"))
 
-    const environment = cli.invocations[0]?.environment
-    expect(environment).toMatchObject({
-      OPERATE_URL: ENDPOINT,
-      OPERATE_AUTH: "basic",
-      OPERATE_USERNAME: "demo",
-      OPERATE_PASSWORD: "s3cret",
-    })
-    expect(environment).not.toHaveProperty("OPERATE_READ_ONLY")
+    expect(engine.requests.map((request) => [request.route, request.authorization])).toEqual([
+      ["GET /incident/i1", BASIC_HEADER],
+      ["PUT /job/j1/retries", BASIC_HEADER],
+    ])
   })
 
   test("connects without credentials when the connection has none", async () => {
-    const cli = fakeEngineCli([TELEMETRY])
-    const runtime = adapterOver(cli).runtime({
-      endpoint: ENDPOINT,
+    const engine = fakeEngineRest([TELEMETRY])
+    const runtime = new C7Adapter(engine.send).runtime({
+      endpoint: REST_URL,
       credentials: { kind: "none" },
     })
 
     await runtime.describeEngine()
 
-    const environment = cli.invocations[0]?.environment
-    expect(environment).toMatchObject({ OPERATE_AUTH: "none" })
-    expect(environment).not.toHaveProperty("OPERATE_USERNAME")
-    expect(environment).not.toHaveProperty("OPERATE_PASSWORD")
+    expect(engine.requests[0]?.authorization).toBeNull()
   })
 })

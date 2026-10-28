@@ -1,7 +1,7 @@
 import type { DefinitionId, ElementStatistics } from "../../../contract/index.js"
 import type { ElementActivity } from "../mapping/element-statistics-mapper.js"
 import type { Mapper } from "../mapping/mapper.js"
-import type { EngineClient } from "../engine-cli/index.js"
+import type { EngineClient } from "../engine-rest/index.js"
 
 export class ElementStatisticsReader {
   constructor(

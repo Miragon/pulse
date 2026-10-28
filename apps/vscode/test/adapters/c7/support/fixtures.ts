@@ -5,10 +5,6 @@ export function fixture(name: string): string {
   return readFileSync(fileURLToPath(new URL(`../fixtures/${name}`, import.meta.url)), "utf8")
 }
 
-export function compactFixture(name: string): string {
-  return JSON.stringify(JSON.parse(fixture(name)))
-}
-
 export const WORLD_IDS = {
   order1: "pulse-order:1:63b7b305-cd7f-11f1-86d2-667bc3771e0d",
   label1: "pulse-label:1:63b14a61-cd7f-11f1-86d2-667bc3771e0d",

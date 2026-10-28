@@ -6,7 +6,7 @@ import {
   type Incident,
   type IncidentJob,
 } from "../../../contract/index.js"
-import { Present, type IncidentView } from "../engine-cli/index.js"
+import { Present, type IncidentView } from "../engine-rest/index.js"
 import type { Mapper } from "./mapper.js"
 import { Timestamps } from "./timestamps.js"
 

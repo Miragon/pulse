@@ -12,7 +12,7 @@ import {
   type InspectedIncidentView,
   type InspectView,
   type StacktraceView,
-} from "../engine-cli/index.js"
+} from "../engine-rest/index.js"
 import type { Mapper } from "./mapper.js"
 import { Timestamps } from "./timestamps.js"
 

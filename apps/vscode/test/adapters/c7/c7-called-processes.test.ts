@@ -1,21 +1,22 @@
 import { DefinitionId } from "../../../src/contract/index.js"
 import { describe, expect, test } from "vitest"
-import { fakeRuntime } from "./support/fake-engine-cli.js"
-import { compactFixture, fixture, WORLD_IDS } from "./support/fixtures.js"
+import { fakeRuntime } from "./support/fake-engine.js"
+import { engineFailure, type RestRoute } from "./support/fake-engine-rest.js"
+import { fixture, WORLD_IDS } from "./support/fixtures.js"
 
 const INVOICE_V1 = "invoice:1:61c3f9a0-cd7f-11f1-86d2-667bc3771e0d"
 const INVOICE_V2 = "invoice:2:62318889-cd7f-11f1-86d2-667bc3771e0d"
 const REVIEW_V1 = "ReviewInvoice:1:61c4bcf2-cd7f-11f1-86d2-667bc3771e0d"
 
-const DEFINITION_STATISTICS = {
-  command: ["process-definition", "get-statistics"],
-  stdout: fixture("definition-statistics.json"),
+const DEFINITION_STATISTICS: RestRoute = {
+  route: "GET /process-definition/statistics",
+  answer: new Response(fixture("definition-statistics.json")),
 }
 
-function xmlRoute(definitionId: string, file: string) {
+function xmlRoute(definitionId: string, file: string): RestRoute {
   return {
-    command: ["process-definition", "xml-by-id", definitionId],
-    stdout: JSON.stringify({ id: definitionId, bpmn20Xml: fixture(file) }),
+    route: `GET /process-definition/${encodeURIComponent(definitionId)}/xml`,
+    answer: { id: definitionId, bpmn20Xml: fixture(file) },
   }
 }
 
@@ -25,7 +26,7 @@ function ref(id: string, bpmnProcessId: string, version: number, name: string) {
 
 describe("the processes a C7 call activity calls", () => {
   test("names the latest deployed version of the called process", async () => {
-    const { runtime, cli } = fakeRuntime([
+    const { runtime, engine } = fakeRuntime([
       xmlRoute(WORLD_IDS.dispatch1, "../world/dispatch.bpmn"),
       DEFINITION_STATISTICS,
     ])
@@ -39,7 +40,7 @@ describe("the processes a C7 call activity calls", () => {
         definition: ref(WORLD_IDS.label1, "pulse-label", 1, "Print label"),
       },
     ])
-    expect(cli.commands()).toHaveLength(2)
+    expect(engine.requests).toHaveLength(2)
   })
 
   test("resolves each binding and skips what only an expression decides", async () => {
@@ -92,9 +93,12 @@ describe("the processes a C7 call activity calls", () => {
   test("has no calls for an unknown definition", async () => {
     const { runtime } = fakeRuntime([
       {
-        command: ["process-definition", "xml-by-id", "nope:1:x"],
-        exitCode: 5,
-        stderr: compactFixture("error-definition-missing.json"),
+        route: `GET /process-definition/${encodeURIComponent("nope:1:x")}/xml`,
+        answer: engineFailure(
+          404,
+          "InvalidRequestException",
+          "No matching definition with id nope:1:00000000-0000-0000-0000-000000000000",
+        ),
       },
       DEFINITION_STATISTICS,
     ])

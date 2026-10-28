@@ -8,8 +8,15 @@ import {
   PageCursor,
 } from "../../../src/contract/index.js"
 import { describe, expect, test } from "vitest"
-import { fakeRuntime, type FakeEngineCli, type FakeRoute } from "./support/fake-engine-cli.js"
-import { compactFixture, fixture, WORLD_IDS } from "./support/fixtures.js"
+import { C7Adapter } from "../../../src/adapters/c7/index.js"
+import { fakeRuntime } from "./support/fake-engine.js"
+import {
+  engineFailure,
+  REST_URL,
+  type FakeEngineRest,
+  type RestRoute,
+} from "./support/fake-engine-rest.js"
+import { fixture, WORLD_IDS } from "./support/fixtures.js"
 
 interface IncidentRow {
   readonly processDefinitionId: string
@@ -20,22 +27,29 @@ interface HistoricRow {
   readonly businessKey: string
 }
 
-function incidentsOf(definitionId: string): string {
+function incidentsOf(definitionId: string): IncidentRow[] {
   const rows = JSON.parse(fixture("incidents.json")) as IncidentRow[]
-  return JSON.stringify(rows.filter((row) => row.processDefinitionId === definitionId))
+  return rows.filter((row) => row.processDefinitionId === definitionId)
 }
 
 function historicRows(): HistoricRow[] {
   return JSON.parse(fixture("historic-instances-order.json")) as HistoricRow[]
 }
 
-function argAfter(args: readonly string[], flag: string): string | undefined {
-  return args[args.indexOf(flag) + 1]
+function pathOf(id: string): string {
+  return encodeURIComponent(id)
 }
 
-function bodyOf(cli: FakeEngineCli, index = 0): string {
-  return cli.invocations[index]?.input ?? ""
+function bodyOf(engine: FakeEngineRest, index = 0): unknown {
+  return JSON.parse(engine.requests[index]?.body ?? "") as unknown
 }
+
+function routesOf(engine: FakeEngineRest): string[] {
+  return engine.requests.map((request) => request.route)
+}
+
+const INSTANCE_MISSING =
+  "Process instance 00000000-0000 does not exist (neither running nor in the history)"
 
 const ORDER_V1 = {
   id: WORLD_IDS.order1,
@@ -60,58 +74,68 @@ const STACKTRACE_DETAILS = {
 }
 
 const ROUTE = {
-  telemetry: { command: ["telemetry", "get-data"], stdout: fixture("telemetry.json") },
+  telemetry: { route: "GET /telemetry/data", answer: new Response(fixture("telemetry.json")) },
   definitionStatistics: {
-    command: ["process-definition", "get-statistics"],
-    stdout: fixture("definition-statistics.json"),
+    route: "GET /process-definition/statistics",
+    answer: new Response(fixture("definition-statistics.json")),
   },
   incidentInstances: {
-    command: ["incident", "list", "--fields"],
-    stdout: fixture("incidents.json"),
+    route: "GET /incident",
+    when: (url: URL) => !url.searchParams.has("sortBy"),
+    answer: new Response(fixture("incidents.json")),
   },
-  allIncidents: { command: ["incident", "list", "--sort-by"], stdout: fixture("incidents.json") },
+  allIncidents: {
+    route: "GET /incident",
+    when: (url: URL) => url.searchParams.has("sortBy"),
+    answer: new Response(fixture("incidents.json")),
+  },
   incidentsOfDispatch: {
-    command: ["incident", "list", "--process-definition-id", WORLD_IDS.dispatch1],
-    stdout: incidentsOf(WORLD_IDS.dispatch1),
+    route: "GET /incident",
+    when: (url: URL) => url.searchParams.get("processDefinitionId") === WORLD_IDS.dispatch1,
+    answer: incidentsOf(WORLD_IDS.dispatch1),
   },
   incidentsOfOrder: {
-    command: ["incident", "list", "--process-definition-id", WORLD_IDS.order1],
-    stdout: incidentsOf(WORLD_IDS.order1),
+    route: "GET /incident",
+    when: (url: URL) => url.searchParams.get("processDefinitionId") === WORLD_IDS.order1,
+    answer: incidentsOf(WORLD_IDS.order1),
   },
   activitiesOfOrder: {
-    command: ["process-definition", "get-activity-statistics", WORLD_IDS.order1],
-    stdout: JSON.stringify([
+    route: `GET /process-definition/${pathOf(WORLD_IDS.order1)}/statistics`,
+    answer: [
       { id: "Activity_ReviewOrder", instances: 1, failedJobs: 0, incidents: [] },
       { id: "Activity_ChargePayment", instances: 1, failedJobs: 1, incidents: [] },
-    ]),
+    ],
   },
   activitiesOfDispatch: {
-    command: ["process-definition", "get-activity-statistics", WORLD_IDS.dispatch1],
-    stdout: fixture("activity-statistics-dispatch.json"),
+    route: `GET /process-definition/${pathOf(WORLD_IDS.dispatch1)}/statistics`,
+    answer: new Response(fixture("activity-statistics-dispatch.json")),
   },
   labelXml: {
-    command: ["process-definition", "xml-by-id", WORLD_IDS.label1],
-    stdout: fixture("definition-xml.json"),
+    route: `GET /process-definition/${pathOf(WORLD_IDS.label1)}/xml`,
+    answer: new Response(fixture("definition-xml.json")),
   },
   missingXml: {
-    command: ["process-definition", "xml-by-id", "nope:1:x"],
-    exitCode: 5,
-    stderr: compactFixture("error-definition-missing.json"),
+    route: `GET /process-definition/${pathOf("nope:1:x")}/xml`,
+    answer: engineFailure(
+      404,
+      "InvalidRequestException",
+      "No matching definition with id nope:1:x",
+    ),
   },
   flaggedInstances: {
-    command: ["historic-process-instance", "query"],
-    when: (_args: readonly string[], input: string) => input.includes('"incidentStatus":"open"'),
-    stdout: JSON.stringify(historicRows().filter((row) => row.businessKey === "ORD-1002")),
+    route: "POST /history/process-instance",
+    when: (_url: URL, body: string) => body.includes('"incidentStatus":"open"'),
+    answer: historicRows().filter((row) => row.businessKey === "ORD-1002"),
   },
   orderInstances: {
-    command: ["historic-process-instance", "query"],
-    when: (_args: readonly string[], input: string) => !input.includes("processInstanceIds"),
-    stdout: fixture("historic-instances-order.json"),
+    route: "POST /history/process-instance",
+    when: (_url: URL, body: string) => !body.includes("processInstanceIds"),
+    answer: new Response(fixture("historic-instances-order.json")),
   },
   calledLabelInstance: {
-    command: ["historic-process-instance", "query"],
-    when: (_args: readonly string[], input: string) => input.includes(WORLD_IDS.label),
-    stdout: JSON.stringify([
+    route: "POST /history/process-instance",
+    when: (_url: URL, body: string) => body.includes(WORLD_IDS.label),
+    answer: [
       {
         id: WORLD_IDS.label,
         processDefinitionId: WORLD_IDS.label1,
@@ -121,48 +145,52 @@ const ROUTE = {
         state: "ACTIVE",
         startTime: "2026-10-21T18:44:04.587+0000",
       },
-    ]),
+    ],
   },
-  inspectDispatch: {
-    command: ["inspect", WORLD_IDS.dispatch],
-    stdout: fixture("inspect-dispatch.json"),
-  },
-  inspectReview: { command: ["inspect", WORLD_IDS.review], stdout: fixture("inspect-review.json") },
   variablesReview: {
-    command: ["variable-instance", "list", "--process-instance-id-in", WORLD_IDS.review],
-    stdout: fixture("variable-instances-review.json"),
+    route: "GET /variable-instance",
+    when: (url: URL) => url.searchParams.get("processInstanceIdIn") === WORLD_IDS.review,
+    answer: new Response(fixture("variable-instances-review.json")),
   },
-  inspectCharge: { command: ["inspect", WORLD_IDS.charge], stdout: fixture("inspect-charge.json") },
-  inspectEnded: { command: ["inspect", WORLD_IDS.ended], stdout: fixture("inspect-ended.json") },
-  inspectExternalTask: {
-    command: ["inspect", WORLD_IDS.externalTaskInstance],
-    stdout: fixture("inspect-external-task.json"),
+  instanceMissing: {
+    route: "GET /process-instance/00000000-0000",
+    answer: engineFailure(404, "InvalidRequestException", INSTANCE_MISSING),
   },
-  inspectMissing: {
-    command: ["inspect", "00000000-0000"],
-    exitCode: 5,
-    stderr: compactFixture("error-instance-missing.json"),
+  historicInstanceMissing: {
+    route: "GET /history/process-instance/00000000-0000",
+    answer: engineFailure(404, "InvalidRequestException", INSTANCE_MISSING),
   },
   rootIncident: {
-    command: ["incident", "get", WORLD_IDS.chargeIncident],
-    stdout: fixture("incident-root.json"),
+    route: `GET /incident/${WORLD_IDS.chargeIncident}`,
+    answer: new Response(fixture("incident-root.json")),
   },
   propagatedIncident: {
-    command: ["incident", "get", WORLD_IDS.propagatedIncident],
-    stdout: fixture("incident-propagated.json"),
+    route: `GET /incident/${WORLD_IDS.propagatedIncident}`,
+    answer: new Response(fixture("incident-propagated.json")),
   },
   missingIncident: {
-    command: ["incident", "get", "00000000-0000"],
-    exitCode: 5,
-    stderr: compactFixture("error-definition-missing.json"),
+    route: "GET /incident/00000000-0000",
+    answer: engineFailure(
+      404,
+      "InvalidRequestException",
+      "No incident found with id 00000000-0000",
+    ),
   },
   chargeStacktrace: {
-    command: ["job", "get-stacktrace", WORLD_IDS.chargeJob],
-    stdout: fixture("job-stacktrace.txt"),
+    route: `GET /job/${WORLD_IDS.chargeJob}/stacktrace`,
+    answer: new Response(fixture("job-stacktrace.txt")),
   },
-} satisfies Record<string, FakeRoute>
+} satisfies Record<string, RestRoute>
 
-describe("the C7 runtime over recorded engine CLI output", () => {
+const SNAPSHOT = {
+  dispatch: { [WORLD_IDS.dispatch]: fixture("inspect-dispatch.json") },
+  review: { [WORLD_IDS.review]: fixture("inspect-review.json") },
+  charge: { [WORLD_IDS.charge]: fixture("inspect-charge.json") },
+  ended: { [WORLD_IDS.ended]: fixture("inspect-ended.json") },
+  externalTask: { [WORLD_IDS.externalTaskInstance]: fixture("inspect-external-task.json") },
+}
+
+describe("the C7 runtime over recorded engine answers", () => {
   test("describes the engine by its product and version", async () => {
     const { runtime } = fakeRuntime([ROUTE.telemetry])
 
@@ -175,11 +203,10 @@ describe("the C7 runtime over recorded engine CLI output", () => {
   test("falls back to the REST API version when the engine has no telemetry", async () => {
     const { runtime } = fakeRuntime([
       {
-        command: ["telemetry"],
-        exitCode: 5,
-        stderr: compactFixture("error-definition-missing.json"),
+        route: "GET /telemetry/data",
+        answer: engineFailure(404, "InvalidRequestException", "No telemetry data"),
       },
-      { command: ["version", "get"], stdout: '{"version":"7.24.0"}' },
+      { route: "GET /version", answer: { version: "7.24.0" } },
     ])
 
     expect(await runtime.describeEngine()).toEqual({
@@ -189,7 +216,7 @@ describe("the C7 runtime over recorded engine CLI output", () => {
   })
 
   test("summarises each process by its latest version and counts instances with an incident", async () => {
-    const { runtime, cli } = fakeRuntime([ROUTE.definitionStatistics, ROUTE.incidentInstances])
+    const { runtime, engine } = fakeRuntime([ROUTE.definitionStatistics, ROUTE.incidentInstances])
 
     const summaries = await runtime.listDefinitions()
 
@@ -207,7 +234,7 @@ describe("the C7 runtime over recorded engine CLI output", () => {
       ["pulse-order", 2, 3, 1],
       ["ReviewInvoice", 1, 2, 0],
     ])
-    expect(cli.invocations).toHaveLength(2)
+    expect(engine.requests).toHaveLength(2)
   })
 
   test("lists the versions of one process newest first with their own counts", async () => {
@@ -270,7 +297,7 @@ describe("the C7 runtime over recorded engine CLI output", () => {
   })
 
   test("pages instances with two calls per page, flags incidents and normalises timestamps", async () => {
-    const { runtime, cli } = fakeRuntime([ROUTE.orderInstances, ROUTE.flaggedInstances])
+    const { runtime, engine } = fakeRuntime([ROUTE.flaggedInstances, ROUTE.orderInstances])
 
     const page = await runtime.searchInstances(
       { bpmnProcessId: BpmnProcessId("pulse-order") },
@@ -312,23 +339,22 @@ describe("the C7 runtime over recorded engine CLI output", () => {
       ],
       next: PageCursor("3"),
     })
-    expect(cli.invocations).toHaveLength(2)
-    const query = cli.commands()[0] ?? []
-    expect(JSON.parse(bodyOf(cli))).toEqual({
+    expect(engine.requests).toHaveLength(2)
+    expect(bodyOf(engine)).toEqual({
       processDefinitionKey: "pulse-order",
       sorting: [
         { sortBy: "startTime", sortOrder: "desc" },
         { sortBy: "instanceId", sortOrder: "asc" },
       ],
     })
-    expect(argAfter(query, "--max-results")).toBe("4")
+    expect(engine.requests[0]?.query.maxResults).toBe("4")
   })
 
   test("continues after a cursor and skips the flag query when only incidents are asked for", async () => {
-    const { runtime, cli } = fakeRuntime([
+    const { runtime, engine } = fakeRuntime([
       {
         ...ROUTE.orderInstances,
-        when: (_args, input) => input.includes('"incidentStatus":"open"'),
+        when: (_url, body) => body.includes('"incidentStatus":"open"'),
       },
     ])
 
@@ -344,14 +370,13 @@ describe("the C7 runtime over recorded engine CLI output", () => {
       ["ORD-1002", true],
       ["ORD-1001", true],
     ])
-    expect(cli.invocations).toHaveLength(1)
-    const query = cli.commands()[0] ?? []
-    expect(JSON.parse(bodyOf(cli))).toMatchObject({ incidentStatus: "open", unfinished: true })
-    expect(argAfter(query, "--first-result")).toBe("3")
+    expect(engine.requests).toHaveLength(1)
+    expect(bodyOf(engine)).toMatchObject({ incidentStatus: "open", unfinished: true })
+    expect(engine.requests[0]?.query.firstResult).toBe("3")
   })
 
   test("translates lifecycle, business key and active element into the historic query", async () => {
-    const { runtime, cli } = fakeRuntime([ROUTE.orderInstances, ROUTE.flaggedInstances])
+    const { runtime, engine } = fakeRuntime([ROUTE.flaggedInstances, ROUTE.orderInstances])
 
     await runtime.searchInstances(
       {
@@ -362,7 +387,7 @@ describe("the C7 runtime over recorded engine CLI output", () => {
       { limit: 5 },
     )
 
-    expect(JSON.parse(bodyOf(cli))).toEqual({
+    expect(bodyOf(engine)).toEqual({
       finished: true,
       processInstanceBusinessKey: "ORD-1003",
       activityIdIn: ["Activity_ReviewOrder"],
@@ -374,7 +399,7 @@ describe("the C7 runtime over recorded engine CLI output", () => {
   })
 
   test("leaves out instances with an incident when asked for those without", async () => {
-    const { runtime } = fakeRuntime([ROUTE.orderInstances, ROUTE.flaggedInstances])
+    const { runtime } = fakeRuntime([ROUTE.flaggedInstances, ROUTE.orderInstances])
 
     const page = await runtime.searchInstances(
       { bpmnProcessId: BpmnProcessId("pulse-order"), withIncident: false },
@@ -385,8 +410,8 @@ describe("the C7 runtime over recorded engine CLI output", () => {
   })
 
   test("counts instances with one call that carries the filter of the search", async () => {
-    const { runtime, cli } = fakeRuntime([
-      { command: ["historic-process-instance", "query-count"], stdout: '{"count":2}' },
+    const { runtime, engine } = fakeRuntime([
+      { route: "POST /history/process-instance/count", answer: { count: 2 } },
     ])
 
     const count = await runtime.countInstances({
@@ -398,8 +423,8 @@ describe("the C7 runtime over recorded engine CLI output", () => {
     })
 
     expect(count).toBe(2)
-    expect(cli.commands()).toHaveLength(1)
-    expect(JSON.parse(bodyOf(cli))).toEqual({
+    expect(engine.requests).toHaveLength(1)
+    expect(bodyOf(engine)).toEqual({
       processDefinitionId: WORLD_IDS.order1,
       processInstanceBusinessKey: "ORD-1002",
       unfinished: true,
@@ -411,14 +436,14 @@ describe("the C7 runtime over recorded engine CLI output", () => {
   test("counts instances without an incident as all of them minus those with one", async () => {
     const { runtime } = fakeRuntime([
       {
-        command: ["historic-process-instance", "query-count"],
-        when: (_args, input) => input.includes('"incidentStatus":"open"'),
-        stdout: '{"count":1}',
+        route: "POST /history/process-instance/count",
+        when: (_url, body) => body.includes('"incidentStatus":"open"'),
+        answer: { count: 1 },
       },
       {
-        command: ["historic-process-instance", "query-count"],
-        when: (_args, input) => !input.includes("incidentStatus"),
-        stdout: '{"count":3}',
+        route: "POST /history/process-instance/count",
+        when: (_url, body) => !body.includes("incidentStatus"),
+        answer: { count: 3 },
       },
     ])
 
@@ -431,7 +456,7 @@ describe("the C7 runtime over recorded engine CLI output", () => {
   })
 
   test("details a parent with the wait states and the root incident of its called instance", async () => {
-    const { runtime, cli } = fakeRuntime([ROUTE.inspectDispatch, ROUTE.calledLabelInstance])
+    const { runtime, engine } = fakeRuntime([ROUTE.calledLabelInstance], SNAPSHOT.dispatch)
 
     const detail = await runtime.getInstanceDetail(InstanceId(WORLD_IDS.dispatch))
 
@@ -492,11 +517,11 @@ describe("the C7 runtime over recorded engine CLI output", () => {
       },
     ])
     expect(detail?.truncated).toBe(false)
-    expect(cli.commands().filter(([command]) => command === "inspect")).toHaveLength(1)
+    expect(routesOf(engine)).toEqual(["GET /variable-instance", "POST /history/process-instance"])
   })
 
   test("details a user task wait with the typed variables of every scope", async () => {
-    const { runtime, cli } = fakeRuntime([ROUTE.inspectReview, ROUTE.variablesReview])
+    const { runtime, engine } = fakeRuntime([ROUTE.variablesReview], SNAPSHOT.review)
 
     const detail = await runtime.getInstanceDetail(InstanceId(WORLD_IDS.review))
 
@@ -563,12 +588,12 @@ describe("the C7 runtime over recorded engine CLI output", () => {
     ])
     expect(detail?.incidents).toEqual([])
     expect(detail?.instance.hasIncident).toBe(false)
-    expect(cli.commands().map(([command]) => command)).toEqual(["inspect", "variable-instance"])
-    expect(cli.commands()[1]).toContain("--no-deserialize-values")
+    expect(routesOf(engine)).toEqual(["GET /variable-instance"])
+    expect(engine.requests[0]?.query.deserializeValues).toBe("false")
   })
 
   test("details an incident at the failing element of the instance itself", async () => {
-    const { runtime, cli } = fakeRuntime([ROUTE.inspectCharge])
+    const { runtime, engine } = fakeRuntime([], SNAPSHOT.charge)
 
     const detail = await runtime.getInstanceDetail(InstanceId(WORLD_IDS.charge))
 
@@ -602,11 +627,11 @@ describe("the C7 runtime over recorded engine CLI output", () => {
         canceled: false,
       },
     ])
-    expect(cli.commands().filter(([command]) => command === "inspect")).toHaveLength(1)
+    expect(routesOf(engine)).toEqual(["GET /variable-instance"])
   })
 
   test("names the failed external task with its topic and maps the worker wait", async () => {
-    const { runtime } = fakeRuntime([ROUTE.inspectExternalTask])
+    const { runtime } = fakeRuntime([], SNAPSHOT.externalTask)
 
     const detail = await runtime.getInstanceDetail(InstanceId(WORLD_IDS.externalTaskInstance))
 
@@ -640,7 +665,7 @@ describe("the C7 runtime over recorded engine CLI output", () => {
   })
 
   test("details an ended instance without wait states and incidents", async () => {
-    const { runtime } = fakeRuntime([ROUTE.inspectEnded])
+    const { runtime } = fakeRuntime([], SNAPSHOT.ended)
 
     const detail = await runtime.getInstanceDetail(InstanceId(WORLD_IDS.ended))
 
@@ -651,13 +676,13 @@ describe("the C7 runtime over recorded engine CLI output", () => {
   })
 
   test("returns undefined for an unknown instance", async () => {
-    const { runtime } = fakeRuntime([ROUTE.inspectMissing])
+    const { runtime } = fakeRuntime([ROUTE.instanceMissing, ROUTE.historicInstanceMissing])
 
     expect(await runtime.getInstanceDetail(InstanceId("00000000-0000"))).toBeUndefined()
   })
 
   test("lists root incidents only, each with the version it was raised in", async () => {
-    const { runtime, cli } = fakeRuntime([ROUTE.allIncidents, ROUTE.definitionStatistics])
+    const { runtime, engine } = fakeRuntime([ROUTE.allIncidents, ROUTE.definitionStatistics])
 
     const page = await runtime.searchIncidents({}, { limit: 50 })
 
@@ -685,7 +710,7 @@ describe("the C7 runtime over recorded engine CLI output", () => {
         },
       ],
     })
-    expect(cli.invocations).toHaveLength(2)
+    expect(engine.requests).toHaveLength(2)
   })
 
   test("delivers the complete stacktrace of a root incident", async () => {
@@ -700,32 +725,34 @@ describe("the C7 runtime over recorded engine CLI output", () => {
   })
 
   test("delivers the error details of a failed external task, else the incident message", async () => {
-    const externalTaskIncident = (id: string, configuration: string) =>
-      JSON.stringify({
-        ...(JSON.parse(fixture("incident-root.json")) as Record<string, unknown>),
-        id,
-        rootCauseIncidentId: id,
-        incidentType: "failedExternalTask",
-        configuration,
-        incidentMessage: "Customer service is down",
-      })
+    const externalTaskIncident = (id: string, configuration: string) => ({
+      ...(JSON.parse(fixture("incident-root.json")) as Record<string, unknown>),
+      id,
+      rootCauseIncidentId: id,
+      incidentType: "failedExternalTask",
+      configuration,
+      incidentMessage: "Customer service is down",
+    })
     const { runtime } = fakeRuntime([
       {
-        command: ["incident", "get", "with-details"],
-        stdout: externalTaskIncident("with-details", "task-1"),
+        route: "GET /incident/with-details",
+        answer: externalTaskIncident("with-details", "task-1"),
       },
       {
-        command: ["incident", "get", "task-gone"],
-        stdout: externalTaskIncident("task-gone", "task-2"),
+        route: "GET /incident/task-gone",
+        answer: externalTaskIncident("task-gone", "task-2"),
       },
       {
-        command: ["external-task", "get-error-details", "task-1"],
-        stdout: "java.net.ConnectException: Connection refused\n",
+        route: "GET /external-task/task-1/errorDetails",
+        answer: new Response("java.net.ConnectException: Connection refused\n"),
       },
       {
-        command: ["external-task", "get-error-details", "task-2"],
-        exitCode: 7,
-        stderr: compactFixture("error-null-value.json"),
+        route: "GET /external-task/task-2/errorDetails",
+        answer: engineFailure(
+          500,
+          "NullValueException",
+          "No external task found with id task-2: externalTask is null",
+        ),
       },
     ])
 
@@ -752,42 +779,62 @@ describe("the C7 runtime over recorded engine CLI output", () => {
 })
 
 describe("failures of the C7 runtime", () => {
-  const failingWith = async (stderr: string, exitCode: number): Promise<unknown> => {
-    const { runtime } = fakeRuntime([
-      { command: ["process-definition", "get-statistics"], exitCode, stderr },
-      { command: ["incident", "list"], stdout: "[]" },
-    ])
-    return runtime.listDefinitions().then(
-      () => undefined,
-      (error: unknown) => error,
-    )
-  }
+  const CONNECTION = { endpoint: REST_URL, credentials: { kind: "none" } } as const
+  const REFUSED = Object.assign(new TypeError("fetch failed"), {
+    cause: Object.assign(new Error("connect ECONNREFUSED"), { code: "ECONNREFUSED" }),
+  })
+
+  const runtimeAnswering = (answer: Response | Error) =>
+    answer instanceof Error
+      ? new C7Adapter(() => Promise.reject(answer)).runtime(CONNECTION)
+      : fakeRuntime([
+          { route: "GET /process-definition/statistics", answer },
+          { route: "GET /incident", answer: [] },
+        ]).runtime
+
+  const failingWith = async (answer: Response | Error): Promise<unknown> =>
+    runtimeAnswering(answer)
+      .listDefinitions()
+      .then(
+        () => undefined,
+        (error: unknown) => error,
+      )
 
   test.each([
-    ["error-unreachable.json", 8, "unreachable"],
-    ["error-unauthorized.json", 4, "unauthorized"],
-    ["error-routing.json", 5, "misconfigured"],
-    ["error-null-value.json", 7, "engineFailure"],
-  ])('maps %s to "%s"', async (name, exitCode, failure) => {
-    const error = await failingWith(compactFixture(name), exitCode)
+    ["a refused connection", "unreachable", REFUSED],
+    [
+      "a 401",
+      "unauthorized",
+      engineFailure(401, "AuthenticationException", "HTTP 401 Unauthorized"),
+    ],
+    [
+      "a 404 of a wrong REST root",
+      "misconfigured",
+      engineFailure(404, "NotFoundException", "HTTP 404 Not Found"),
+    ],
+    [
+      "a 500 NullValueException",
+      "engineFailure",
+      engineFailure(500, "NullValueException", "No external task found: externalTask is null"),
+    ],
+  ])('maps %s to "%s"', async (_name, failure, answer) => {
+    const error = await failingWith(answer)
 
     expect(RuntimeError.is(error) && error.failure).toBe(failure)
   })
 
   test('maps a forbidden request to "forbidden"', async () => {
-    const forbidden = JSON.stringify({
-      error: { code: "FORBIDDEN", exitCode: 4, message: "HTTP 403 Forbidden", status: 403 },
-    })
-
-    const error = await failingWith(forbidden, 4)
+    const error = await failingWith(
+      engineFailure(403, "AuthorizationException", "HTTP 403 Forbidden"),
+    )
 
     expect(RuntimeError.is(error) && error.failure).toBe("forbidden")
   })
 
   test('maps output it cannot read to "unexpectedResponse"', async () => {
     const { runtime } = fakeRuntime([
-      { command: ["process-definition", "get-statistics"], stdout: '{"not":"a list"}' },
-      { command: ["incident", "list"], stdout: "[]" },
+      { route: "GET /process-definition/statistics", answer: { not: "a list" } },
+      { route: "GET /incident", answer: [] },
     ])
 
     const error = await runtime.listDefinitions().then(
@@ -800,7 +847,7 @@ describe("failures of the C7 runtime", () => {
 
   test('maps a count without a number to "unexpectedResponse"', async () => {
     const { runtime } = fakeRuntime([
-      { command: ["historic-process-instance", "query-count"], stdout: '{"count":"many"}' },
+      { route: "POST /history/process-instance/count", answer: { count: "many" } },
     ])
 
     const error = await runtime.countInstances({}).then(
@@ -811,8 +858,10 @@ describe("failures of the C7 runtime", () => {
     expect(RuntimeError.is(error) && error.failure).toBe("unexpectedResponse")
   })
 
-  test('maps a missing CLI to "misconfigured"', async () => {
-    const error = await failingWith("Error: Cannot find module /opt/pulse/engine-cli.js", 1)
+  test('maps a redirect away from the REST API to "misconfigured"', async () => {
+    const error = await failingWith(
+      new Response("", { status: 302, headers: { Location: "/login" } }),
+    )
 
     expect(RuntimeError.is(error) && error.failure).toBe("misconfigured")
   })

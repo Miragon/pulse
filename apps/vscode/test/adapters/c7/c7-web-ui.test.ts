@@ -23,7 +23,7 @@ function instance(hasIncident: boolean): InstanceSummary {
 }
 
 function webUiAt(webUiUrl: string) {
-  return C7Adapter.create({ cliPath: "engine-cli.js", configPath: "config.json" }).webUi(webUiUrl)
+  return new C7Adapter().webUi(webUiUrl)
 }
 
 describe("links into the Cockpit of a C7 family engine", () => {

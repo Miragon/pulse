@@ -1,5 +1,5 @@
 import { InstanceId, type DefinitionRef, type InstanceSummary } from "../../../contract/index.js"
-import { Present, type DefinitionView, type InspectView } from "../engine-cli/index.js"
+import { Present, type DefinitionView, type InspectView } from "../engine-rest/index.js"
 import { InstanceStates } from "./instance-states.js"
 import type { Mapper } from "./mapper.js"
 import { Timestamps } from "./timestamps.js"

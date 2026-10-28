@@ -29,22 +29,20 @@ flowchart TB
     audit[("Output: Pulse")]
   end
 
-  cli[["engine CLI: child process"]]
   c7engines["Operaton, CIB seven, Camunda 7: /engine-rest"]
   webui["Cockpit in the browser"]
 
   user --> workbench & webview
   workbench <-- "1: tree items, commands" --> extension
   webview <== "2: intents out, state in" ==> extension
-  extension -- "8: targets, models, frames" --> files
-  extension -- "9: credentials" --> secrets
-  extension -- "10: one line per write" --> audit
+  extension -- "7: targets, models, frames" --> files
+  extension -- "8: credentials" --> secrets
+  extension -- "9: one line per write" --> audit
   extension <-- "3: intent in, host actions out" --> core
   extension -- "5: a target becomes runtime, commands, web UI" --> adapters
-  extension -. "11: web UI link" .-> webui
+  extension -. "10: web UI link" .-> webui
   core -- "4: questions and writes, read models back" --> adapters
-  c7 == "6: CLI commands, JSON back" ==> cli
-  cli -. "7: REST JSON" .-> c7engines
+  c7 -. "6: REST JSON" .-> c7engines
   c7 ~~~ webui
   classDef planned stroke-dasharray: 5 5
   class next planned
@@ -54,19 +52,18 @@ Thin lines are calls inside a process (the VS Code API or a port), thick lines a
 messages to another process, dotted lines leave the machine. The dashed box is where the
 next engine plugs in: one more adapter package and one entry in the composition root.
 
-| #   | Who → whom                      | About what                                                                                                                | How                                                                                 |
-| --- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| 1   | VS Code ⇄ extension             | engines and processes in the trees, commands, the status bar, the `.bpmn` file in the editor                              | VS Code API (`TreeDataProvider`, commands)                                          |
-| 2   | webview ⇄ extension             | intents out (`ready`, `filterInstances`, `openCall`, `retryIncident`, …); the complete panel state with a revision back   | `postMessage`, JSON, checked by `MessageGuards`; the webview drops stale revisions  |
-| 3   | extension ⇄ core                | the intent for a panel session; host actions back: open a panel, pick an instance, confirm a write, copy, open the web UI | method calls: `Panel.handle`, `PanelEffects`                                        |
-| 4   | core → adapter                  | engine questions and writes; read models back, or a `RuntimeError`                                                        | the ports `ProcessRuntime` and `ProcessCommands`, async                             |
-| 5   | extension → adapter             | a configured target becomes a runtime, commands (wrapped in the audit) and web UI links                                   | `EngineAdapter`, only in `composition-root.ts`                                      |
-| 6   | adapter-c7 → engine CLI         | one to three CLI commands per question; values on stdin, credentials in environment variables; JSON on stdout             | child process (`execFile` with VS Code's own Node), read-only flag unless it writes |
-| 7   | engine CLI → C7 family          | definitions, instances, incidents, variables; retries and variable changes                                                | HTTP(S) REST `/engine-rest`, basic auth                                             |
-| 8   | extension → your files          | the engines to show, the model to compare with a deployed version, stack frames to link to your sources                   | `.pulse-cli.json` (watched), `.bpmn` files, `pulse.*` settings                      |
-| 9   | extension → SecretStorage       | user name and password per target, bound to the endpoint's origin                                                         | VS Code `SecretStorage`                                                             |
-| 10  | extension → output channel      | one audit line per confirmation and per write, without values                                                             | the "Pulse" output channel                                                          |
-| 11  | extension → the engine's web UI | the shown version or instance, or the engine's start page                                                                 | `vscode.env.openExternal` with a URL built from the target's `cockpitUrl`           |
+| #   | Who → whom                      | About what                                                                                                                | How                                                                                |
+| --- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| 1   | VS Code ⇄ extension             | engines and processes in the trees, commands, the status bar, the `.bpmn` file in the editor                              | VS Code API (`TreeDataProvider`, commands)                                         |
+| 2   | webview ⇄ extension             | intents out (`ready`, `filterInstances`, `openCall`, `retryIncident`, …); the complete panel state with a revision back   | `postMessage`, JSON, checked by `MessageGuards`; the webview drops stale revisions |
+| 3   | extension ⇄ core                | the intent for a panel session; host actions back: open a panel, pick an instance, confirm a write, copy, open the web UI | method calls: `Panel.handle`, `PanelEffects`                                       |
+| 4   | core → adapter                  | engine questions and writes; read models back, or a `RuntimeError`                                                        | the ports `ProcessRuntime` and `ProcessCommands`, async                            |
+| 5   | extension → adapter             | a configured target becomes a runtime, commands (wrapped in the audit) and web UI links                                   | `EngineAdapter`, only in `composition-root.ts`                                     |
+| 6   | adapter-c7 → C7 family          | definitions, instances, incidents, variables; retries and variable changes                                                | HTTP(S) REST `/engine-rest` with VS Code's `fetch`, basic auth; no redirects, 60 s |
+| 7   | extension → your files          | the engines to show, the model to compare with a deployed version, stack frames to link to your sources                   | `.pulse-cli.json` (watched), `.bpmn` files, `pulse.*` settings                     |
+| 8   | extension → SecretStorage       | user name and password per target, bound to the endpoint's origin                                                         | VS Code `SecretStorage`                                                            |
+| 9   | extension → output channel      | one audit line per confirmation and per write, without values                                                             | the "Pulse" output channel                                                         |
+| 10  | extension → the engine's web UI | the shown version or instance, or the engine's start page                                                                 | `vscode.env.openExternal` with a URL built from the target's `cockpitUrl`          |
 
 Pulse reads what an engine is running and shows it next to the models. Writes
 (retry an incident, change a variable) are guarded and audited
@@ -135,12 +132,9 @@ flowchart TB
   core --> contract
   webview -- types only --> protocol[core/protocol]
   adapterC7 --> contract
-  adapterC7 --> engineCli[adapter-c7/src/engine-cli: self-contained wrapper]
-  engineCli -. "starts dist/engine-cli.js" .-> cli[[engine CLI: child process]]
 ```
 
-Every import edge not drawn fails `pnpm lint:architecture:vscode` (dependency-cruiser, closed world). The
-dotted line is no import: the wrapper starts the bundled CLI as a child process.
+Every import edge not drawn fails `pnpm lint:architecture:vscode` (dependency-cruiser, closed world).
 
 ## 4. One adapter for Operaton, CIB seven and Camunda 7
 
@@ -152,23 +146,16 @@ different engine (Zeebe) with a different API, so it would get an adapter of its
 flowchart LR
   subgraph adapter [adapter-c7]
     readers[Readers and mappers: C7 answers to contract read models]
-    wrapper[src/engine-cli: runs the CLI, parses its JSON]
+    rest[src/engine-rest: REST calls, answers checked]
   end
-  cli[[engine CLI by Miragon]]
   subgraph family [Same REST API]
     camunda7[Camunda 7.24]
     operaton[Operaton 2.1]
     cibseven[CIB seven 2.2]
   end
-  readers --> wrapper
-  wrapper -- child process, values on stdin --> cli
-  cli -- HTTP /engine-rest --> family
+  readers --> rest
+  rest -- HTTP /engine-rest --> family
 ```
-
-The engine CLI is Miragon's command-line client for that REST API. Pulse uses it
-instead of its own HTTP client: paging, authentication and the REST details live in one
-tool that the modeler uses too. The wrapper is written so that it can move into
-the CLI as a library later.
 
 | Question                             | Answer                                                                                                                 |
 | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
@@ -185,7 +172,6 @@ sequenceDiagram
   participant host as extension
   participant panel as core: InstancePanel
   participant runtime as ProcessRuntime (C7ProcessRuntime)
-  participant cli as engine CLI
   participant engine as Engine REST
   participant view as Webview
 
@@ -193,10 +179,8 @@ sequenceDiagram
   host->>panel: open the panel for the instance
   view->>panel: intent "ready"
   panel->>runtime: getInstanceDetail(id)
-  runtime->>cli: inspect the instance, list its variables
-  cli->>engine: GET process instance, incidents, variables …
-  engine-->>cli: JSON
-  cli-->>runtime: JSON on stdout
+  runtime->>engine: GET process instance, incidents, variables …
+  engine-->>runtime: JSON
   runtime-->>panel: InstanceDetail (read model)
   panel->>panel: build the view model
   panel-->>view: state, revision n

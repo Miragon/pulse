@@ -1,5 +1,5 @@
 import { ElementId, IncidentId, InstanceId, type WaitState } from "../../../contract/index.js"
-import { Present, type WaitingAtView } from "../engine-cli/index.js"
+import { Present, type WaitingAtView } from "../engine-rest/index.js"
 import type { Mapper } from "./mapper.js"
 import { Timestamps } from "./timestamps.js"
 

@@ -1,5 +1,5 @@
 import type { DefinitionId, MigrationCheck, MigrationPlan } from "../../../contract/index.js"
-import type { EngineClient } from "../engine-cli/index.js"
+import type { EngineClient } from "../engine-rest/index.js"
 import type { MigrationCheckMapper } from "../mapping/migration-check-mapper.js"
 import type { MigrationPlanMapper } from "../mapping/migration-plan-mapper.js"
 import type { MigrationRequestMapper } from "../mapping/migration-request-mapper.js"

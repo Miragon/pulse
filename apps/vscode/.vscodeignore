@@ -1,6 +1,5 @@
 **
 !dist/extension.cjs
-!dist/engine-cli.js
 !dist/webview.js
 !dist/webview.css
 !dist/fonts/**

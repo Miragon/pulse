@@ -24,7 +24,7 @@ host as CommonJS for Node 22, the webview as an IIFE.
 | `contract`    | The `ProcessRuntime`, `ProcessCommands` and `EngineAdapter` ports, the local `ModelSource` and `CodeLocator` ports with the `WorkspaceFiles` seam, read models and `RuntimeError`; folders `apps/vscode/src/contract/conformance` (the kit) and `apps/vscode/src/contract/fake` (in-memory reference engine) | none (no DOM, no Node)                |
 | `core`        | Engine-neutral logic: use cases turn read models into view models, panel sessions handle webview intents; `apps/vscode/src/core/protocol` holds the JSON-only messages and view models                                                                                                                       | none                                  |
 | `webview`     | Preact UI and bpmn-js diagram. Renders protocol view models, sends intents                                                                                                                                                                                                                                   | browser                               |
-| `adapters/c7` | `EngineAdapter`, `ProcessRuntime`, `ProcessCommands` and the Cockpit web UI for the Camunda 7 family ([c7-adapter.md](c7-adapter.md)); `apps/vscode/src/adapters/c7/engine-cli` is a self-contained wrapper around the engine CLI                                                                            | Node                                  |
+| `adapters/c7` | `EngineAdapter`, `ProcessRuntime`, `ProcessCommands` and the Cockpit web UI for the Camunda 7 family ([c7-adapter.md](c7-adapter.md)); `apps/vscode/src/adapters/c7/engine-rest` reads and writes the engine's REST API                                                                                      | Node                                  |
 | `model`       | `ModelSource` and `CodeLocator` for the local workspace: reads `.bpmn` files with bpmn-moddle and its vendor descriptors, finds the implementing code ([local-sources.md](local-sources.md)); the only layer with those libraries                                                                            | none (files through `WorkspaceFiles`) |
 | `host`        | VS Code host: composition root, connections, tree, panels, commands, status bar                                                                                                                                                                                                                              | Node + `vscode`                       |
 
@@ -47,8 +47,7 @@ flowchart TB
   core --> contract
   webview -- types only --> protocol[core/protocol]
   adapterC7 --> contract
-  adapterC7 --> engineCli[adapter-c7/src/engine-cli: self-contained wrapper]
-  engineCli -. "starts dist/engine-cli.js" .-> cli[[engine CLI: child process]]
+  adapterC7 -. "fetch" .-> rest[[engine REST API]]
 ```
 
 ```text
@@ -56,8 +55,7 @@ contract    → (nothing)
 core        → contract (entry only)
 protocol    → (nothing outside protocol)
 webview     → protocol (type-only), preact, bpmn-js, diagram-js, modeler-shell, fonts
-adapters/*  → contract (entry only); only adapters/c7/engine-cli may use Node built-ins
-engine-cli  → (nothing of ours; an in-process engine client replaces it as a whole)
+adapters/*  → contract (entry only)
 model       → contract (entry only), bpmn-moddle, camunda-bpmn-moddle, zeebe-bpmn-moddle
               (nothing else may import these)
 host        → core, protocol, contract, vscode, modeler-shell, Node built-ins
@@ -125,7 +123,6 @@ sequenceDiagram
   participant host as extension
   participant panel as core: InstancePanel
   participant runtime as ProcessRuntime (C7ProcessRuntime)
-  participant cli as engine CLI
   participant engine as Engine REST
   participant view as Webview
 
@@ -133,10 +130,8 @@ sequenceDiagram
   host->>panel: open the panel for the instance
   view->>panel: intent "ready"
   panel->>runtime: getInstanceDetail(id)
-  runtime->>cli: inspect the instance, list its variables
-  cli->>engine: GET process instance, incidents, variables …
-  engine-->>cli: JSON
-  cli-->>runtime: JSON on stdout
+  runtime->>engine: GET process instance, incidents, variables …
+  engine-->>runtime: JSON
   runtime-->>panel: InstanceDetail (read model)
   panel->>panel: build the view model
   panel-->>view: state, revision n

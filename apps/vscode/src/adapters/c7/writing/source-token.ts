@@ -1,5 +1,5 @@
 import { RuntimeError } from "../../../contract/index.js"
-import type { ActivityInstanceView } from "../engine-cli/index.js"
+import type { ActivityInstanceView } from "../engine-rest/index.js"
 
 const MULTI_INSTANCE_BODY = "#multiInstanceBody"
 

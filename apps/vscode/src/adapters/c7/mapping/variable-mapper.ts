@@ -5,7 +5,7 @@ import {
   type Variable,
   type VariableScope,
 } from "../../../contract/index.js"
-import { Present, type VariableView } from "../engine-cli/index.js"
+import { Present, type VariableView } from "../engine-rest/index.js"
 import type { Mapper } from "./mapper.js"
 
 const KIND_OF_TYPE: ReadonlyMap<string, ValueKind> = new Map<string, ValueKind>([

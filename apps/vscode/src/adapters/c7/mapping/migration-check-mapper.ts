@@ -1,5 +1,5 @@
 import type { MigrationCheck, MigrationProblem } from "../../../contract/index.js"
-import type { MigrationReportView } from "../engine-cli/index.js"
+import type { MigrationReportView } from "../engine-rest/index.js"
 import type { Mapper } from "./mapper.js"
 import { MigrationPlanMapper } from "./migration-plan-mapper.js"
 

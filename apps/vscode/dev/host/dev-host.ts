@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto"
-import { readFile, writeFile } from "node:fs/promises"
+import { readFile } from "node:fs/promises"
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http"
-import { tmpdir } from "node:os"
 import { extname, join } from "node:path"
 import { C7Adapter } from "../../src/adapters/c7/index.js"
 import {
@@ -33,7 +32,6 @@ import { renderWebviewHtml } from "@miragon/modeler-shell/vscode/extension"
 const PORT = Number(process.env.PULSE_DEV_PORT ?? "5180")
 const ENGINE_URL = process.env.PULSE_DEV_ENGINE ?? "fake"
 const DIST = process.env.PULSE_DEV_DIST ?? "dist"
-const ENGINE_CLI = process.env.PULSE_ENGINE_CLI ?? join(DIST, "engine-cli.js")
 const ORIGIN = `http://localhost:${PORT}`
 const TYPES: Readonly<Record<string, string>> = {
   ".js": "text/javascript",
@@ -59,19 +57,17 @@ interface DevEngine {
   readonly commands: ProcessCommands
 }
 
-async function createEngine(): Promise<DevEngine> {
+function createEngine(): DevEngine {
   if (ENGINE_URL === "fake") {
     const engine = new FakeEngine(FakeWorld.seed().state)
     return { runtime: engine, commands: engine }
   }
-  const configPath = join(tmpdir(), "pulse-dev-engine-cli-config.json")
-  await writeFile(configPath, JSON.stringify({ profiles: {} }))
-  const adapter = C7Adapter.create({ cliPath: ENGINE_CLI, configPath })
+  const adapter = new C7Adapter()
   const connection = { endpoint: ENGINE_URL, credentials: { kind: "none" as const } }
   return { runtime: adapter.runtime(connection), commands: adapter.commands(connection) }
 }
 
-const { runtime, commands } = await createEngine()
+const { runtime, commands } = createEngine()
 const diagrams = new DiagramCache(runtime)
 const definitions = new SharedDefinitions(runtime, new EngineLane())
 const bulkRuns = new BulkRuns()

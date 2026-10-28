@@ -3,7 +3,7 @@ import { ErrorTranslation } from "../errors/error-translation.js"
 import type { IncidentTexts } from "../mapping/incident-details-mapper.js"
 import type { Mapper } from "../mapping/mapper.js"
 import { RootIncident } from "../mapping/root-incident.js"
-import type { IncidentView, EngineClient } from "../engine-cli/index.js"
+import type { IncidentView, EngineClient } from "../engine-rest/index.js"
 
 export class IncidentDetailsReader {
   constructor(

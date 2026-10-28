@@ -77,29 +77,6 @@ interface Allowance {
 
 /** Hits that are right where they are. Shrink-only: an entry that covers no hit fails. */
 const ALLOWED: Allowance[] = [
-  // The VS Code extension (apps/vscode) bundles the last published operate CLI, 0.9.0, and
-  // spawns it through its engine-cli wrapper until an in-process engine client replaces both
-  // (then these entries go). That release's names are recorded as that release has them.
-  {
-    file: /^apps\/vscode\/(?:package\.json|scripts\/build\.mjs|test\/adapters\/c7\/support\/engine-cli-binary\.ts)$/,
-    rules: ["old operate package", "old operate repo"],
-    line: /@miragon\/operate(?:\/dist\/operate\.js)?["']/,
-    reason:
-      "the extension pins the published operate 0.9.0 (package.json), copies its bundle into dist (build.mjs) and runs it in tests",
-  },
-  {
-    file: /^apps\/vscode\/(?:src\/adapters\/c7\/engine-cli\/running\/engine-cli-environment\.ts|test\/adapters\/c7\/(?:c7-[\w-]+|engine-cli\/[\w-]+)\.test\.ts|test\/adapters\/c7\/fixtures\/error-[\w-]+\.json)$/,
-    rules: ["old operate env var"],
-    line: /\bOPERATE_(?:URL|OUTPUT|READ_ONLY|CONFIG|AUTH|USERNAME|PASSWORD|TOKEN|TOKEN_COMMAND|PROFILE|VARIABLE)\b/,
-    reason:
-      "operate 0.9.0 takes target, credentials and the read-only flag from its OPERATE_* variables: the wrapper sets them and drops inherited ones, its tests assert both, the fixtures record its error output",
-  },
-  {
-    file: /^apps\/vscode\/docs\/adr\/(?:c7-adapter|migrations)\.md$/,
-    rules: ["old operate package", "old operate repo", "old operate env var"],
-    reason:
-      "the C7 adapter and migration records say how the extension runs the bundled operate 0.9.0",
-  },
   {
     file: "apps/cli/README.md",
     rules: ["old operate repo"],

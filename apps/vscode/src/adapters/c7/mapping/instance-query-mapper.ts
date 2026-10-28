@@ -1,5 +1,5 @@
 import type { InstanceFilter } from "../../../contract/index.js"
-import { Present, type HistoricInstanceQuery } from "../engine-cli/index.js"
+import { Present, type HistoricInstanceQuery } from "../engine-rest/index.js"
 import type { Mapper } from "./mapper.js"
 import { VariableConditionMapper } from "./variable-condition-mapper.js"
 

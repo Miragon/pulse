@@ -1,5 +1,5 @@
 import { InstanceId, type BulkFailure } from "../../../contract/index.js"
-import type { FailedJobView } from "../engine-cli/index.js"
+import type { FailedJobView } from "../engine-rest/index.js"
 import type { Mapper } from "./mapper.js"
 
 const MAX_REASON_LENGTH = 300

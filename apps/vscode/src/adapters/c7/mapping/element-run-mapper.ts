@@ -1,5 +1,5 @@
 import { ElementId, type ElementRun } from "../../../contract/index.js"
-import { Present, type TimelineEntryView } from "../engine-cli/index.js"
+import { Present, type TimelineEntryView } from "../engine-rest/index.js"
 import type { Mapper } from "./mapper.js"
 import { Timestamps } from "./timestamps.js"
 

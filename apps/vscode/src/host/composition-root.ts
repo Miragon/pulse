@@ -1,6 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises"
-import { join } from "node:path"
-import { C7Adapter, type C7AdapterOptions } from "../adapters/c7/index.js"
+import { C7Adapter } from "../adapters/c7/index.js"
 import type { LocalSources } from "../core/index.js"
 import { BpmnModelSource, WorkspaceCodeLocator } from "../model/index.js"
 import {
@@ -18,20 +16,13 @@ import type { Credentials, EngineFactories } from "./connections/connection.js"
 import type { EngineKind, EngineTarget } from "./connections/engine-target.js"
 import { TargetPolicy } from "./connections/target-policy.js"
 
-export interface ExtensionPaths {
-  readonly extensionPath: string
-  readonly storagePath: string
-}
-
 type EngineAdapters = Readonly<Record<EngineKind, EngineAdapter>>
 
 export class CompositionRoot implements EngineFactories {
   constructor(private readonly adapters: EngineAdapters) {}
 
-  static async create(paths: ExtensionPaths): Promise<CompositionRoot> {
-    return new CompositionRoot({
-      c7: C7Adapter.create(await CompositionRoot.engineCliOptions(paths)),
-    })
+  static create(): CompositionRoot {
+    return new CompositionRoot({ c7: new C7Adapter() })
   }
 
   runtime(target: EngineTarget, credentials: Credentials): ProcessRuntime {
@@ -56,13 +47,6 @@ export class CompositionRoot implements EngineFactories {
 
   static localSources(files: WorkspaceFiles): LocalSources {
     return { models: new BpmnModelSource(files), code: new WorkspaceCodeLocator(files) }
-  }
-
-  private static async engineCliOptions(paths: ExtensionPaths): Promise<C7AdapterOptions> {
-    const configPath = join(paths.storagePath, "engine-cli-config.json")
-    await mkdir(paths.storagePath, { recursive: true })
-    await writeFile(configPath, `${JSON.stringify({ profiles: {} })}\n`)
-    return { cliPath: join(paths.extensionPath, "dist", "engine-cli.js"), configPath }
   }
 
   private connectionOf(target: EngineTarget, credentials: Credentials): EngineConnection {

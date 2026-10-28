@@ -148,7 +148,7 @@ describe("the lint gates", { timeout: 120_000 }, () => {
 
   test.each([
     "apps/vscode/src/adapters/c7/mapping/timestamps.ts",
-    "apps/vscode/src/adapters/c7/engine-cli/present.ts",
+    "apps/vscode/src/adapters/c7/engine-rest/present.ts",
     "apps/vscode/src/host/notification-text.ts",
     "apps/vscode/src/host/connections/target-hosts.ts",
   ])("hold the adapters and the extension to the same class structure: %s", async (filePath) => {

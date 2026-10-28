@@ -3,7 +3,7 @@ import type {
   DefinitionStatisticsView,
   DefinitionView,
   IncidentInstanceView,
-} from "../engine-cli/index.js"
+} from "../engine-rest/index.js"
 import type { Mapper } from "./mapper.js"
 
 export interface VersionFacts {

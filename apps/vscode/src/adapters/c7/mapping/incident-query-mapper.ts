@@ -1,5 +1,5 @@
 import type { IncidentFilter } from "../../../contract/index.js"
-import type { IncidentQuery } from "../engine-cli/index.js"
+import type { IncidentQuery } from "../engine-rest/index.js"
 import type { Mapper } from "./mapper.js"
 
 export class IncidentQueryMapper implements Mapper<IncidentFilter, IncidentQuery> {

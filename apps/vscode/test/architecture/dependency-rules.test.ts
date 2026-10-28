@@ -29,8 +29,6 @@ const PLANTED: Readonly<Record<string, string>> = {
   "src/adapters/c7/index.ts": "export const adapter = 1;\n",
   "src/adapters/c7/mapping-uses-node.ts":
     "import { spawn } from 'node:child_process';\nexport const run = spawn;\n",
-  "src/adapters/c7/engine-cli/reaches-out.ts":
-    "import { id } from '../../../contract/index.ts';\nexport const reach = id;\n",
   "src/adapters/other/index.ts": "export const adapter = 2;\n",
   "src/adapters/other/peer.ts":
     "import { adapter } from '../c7/index.ts';\nexport const peer = adapter;\n",
@@ -95,7 +93,6 @@ describe("the dependency rules", () => {
         "not-in-allowed: apps/vscode/src/host/not-the-root.ts -> apps/vscode/src/adapters/c7/index.ts",
         `not-in-allowed: apps/vscode/src/host/reads-model-library.ts -> ${library}`,
         "not-in-allowed: apps/vscode/src/webview/runtime-import.ts -> apps/vscode/src/core/protocol/index.ts",
-        "engine-cli-wrapper-is-self-contained: apps/vscode/src/adapters/c7/engine-cli/reaches-out.ts -> apps/vscode/src/contract/index.ts",
         "protocol-imports-nothing: apps/vscode/src/core/protocol/leaky.ts -> apps/vscode/src/contract/index.ts",
       ].sort(),
     )

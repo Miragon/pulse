@@ -3,8 +3,8 @@ import {
   type BulkOperation,
   type BulkOperationKind,
 } from "../../../contract/index.js"
-import type { BatchStatisticsView, BatchView, HistoricBatchView } from "../engine-cli/index.js"
-import { Present } from "../engine-cli/index.js"
+import type { BatchStatisticsView, BatchView, HistoricBatchView } from "../engine-rest/index.js"
+import { Present } from "../engine-rest/index.js"
 import { Timestamps } from "./timestamps.js"
 
 const KINDS: Readonly<Record<string, BulkOperationKind>> = {

@@ -1,34 +1,34 @@
 import { ElementId, InstanceId, RuntimeError } from "../../../src/contract/index.js"
 import { describe, expect, test } from "vitest"
-import { fakeCommands, type FakeRoute } from "./support/fake-engine-cli.js"
+import { fakeCommands } from "./support/fake-engine.js"
+import { engineFailure, type RestRoute } from "./support/fake-engine-rest.js"
 import { fixture, WORLD_IDS } from "./support/fixtures.js"
 
 const REVIEW = InstanceId(WORLD_IDS.review)
 const CHARGE = InstanceId(WORLD_IDS.charge)
 const REVIEW_ORDER = ElementId("Activity_ReviewOrder")
 const CHARGE_PAYMENT = ElementId("Activity_ChargePayment")
-const TREE = ["process-instance", "get-activity-instance-tree"]
-const MODIFY = ["process-instance", "modify"]
+const TREE = `GET /process-instance/${REVIEW}/activity-instances`
+const MODIFY = `POST /process-instance/${REVIEW}/modification`
 const REASON = "Charged by hand after the outage"
-const ACCEPTED: FakeRoute = { command: MODIFY, stdout: "" }
+const ACCEPTED: RestRoute = { route: MODIFY, answer: new Response(null, { status: 204 }) }
 
-function treeOf(name: string): FakeRoute {
-  return { command: TREE, stdout: fixture(name) }
+function treeOf(name: string, instanceId: string = REVIEW): RestRoute {
+  return {
+    route: `GET /process-instance/${instanceId}/activity-instances`,
+    answer: new Response(fixture(name)),
+  }
 }
 
-function treeWith(children: readonly object[], transitions: readonly object[] = []): FakeRoute {
+function treeWith(children: readonly object[], transitions: readonly object[] = []): RestRoute {
   const root = { id: "root", activityId: "pulse-order:1:x" }
   const tree = { ...root, childActivityInstances: children, childTransitionInstances: transitions }
-  return { command: TREE, stdout: JSON.stringify(tree) }
+  return { route: TREE, answer: tree }
 }
 
-function failure(exitCode: number, code: string, message: string): Partial<FakeRoute> {
-  return { exitCode, stderr: JSON.stringify({ error: { code, exitCode, message } }) }
-}
-
-function cancelOf(input: string | undefined): unknown {
-  const body = JSON.parse(input ?? "{}") as { instructions: readonly unknown[] }
-  return body.instructions[1]
+function cancelOf(body: string | undefined): unknown {
+  const modification = JSON.parse(body ?? "{}") as { instructions: readonly unknown[] }
+  return modification.instructions[1]
 }
 
 async function failureOf(attempt: Promise<void>): Promise<string> {
@@ -39,8 +39,8 @@ async function failureOf(attempt: Promise<void>): Promise<string> {
 }
 
 describe("moving a token", () => {
-  test("starts the target and then cancels exactly the token read from the tree, in one request on stdin", async () => {
-    const { commands, cli } = fakeCommands([treeOf("activity-instances-review.json"), ACCEPTED])
+  test("starts the target and then cancels exactly the token read from the tree, in one request", async () => {
+    const { commands, engine } = fakeCommands([treeOf("activity-instances-review.json"), ACCEPTED])
 
     await commands.moveToken(REVIEW, {
       fromElementId: REVIEW_ORDER,
@@ -48,11 +48,8 @@ describe("moving a token", () => {
       reason: ` ${REASON} `,
     })
 
-    expect(cli.commands()).toEqual([
-      [...TREE, REVIEW],
-      [...MODIFY, "--body", "-", "--", REVIEW],
-    ])
-    expect(JSON.parse(cli.invocations[1]?.input ?? "{}")).toEqual({
+    expect(engine.requests.map((request) => request.route)).toEqual([TREE, MODIFY])
+    expect(JSON.parse(engine.requests[1]?.body ?? "{}")).toEqual({
       annotation: REASON,
       instructions: [
         { type: "startBeforeActivity", activityId: "Activity_ReviewOrder" },
@@ -65,7 +62,10 @@ describe("moving a token", () => {
   })
 
   test("cancels a token that waits for its job as a transition instance", async () => {
-    const { commands, cli } = fakeCommands([treeOf("activity-instances-charge.json"), ACCEPTED])
+    const { commands, engine } = fakeCommands([
+      treeOf("activity-instances-charge.json", CHARGE),
+      { route: `POST /process-instance/${CHARGE}/modification`, answer: ACCEPTED.answer },
+    ])
 
     await commands.moveToken(CHARGE, {
       fromElementId: CHARGE_PAYMENT,
@@ -73,14 +73,14 @@ describe("moving a token", () => {
       reason: REASON,
     })
 
-    expect(cancelOf(cli.invocations[1]?.input)).toEqual({
+    expect(cancelOf(engine.requests[1]?.body)).toEqual({
       type: "cancel",
       transitionInstanceId: "63da7d5d-cd7f-11f1-86d2-667bc3771e0d",
     })
   })
 
   test("reads the tree read-only and writes without skipping listeners or mappings", async () => {
-    const { commands, cli } = fakeCommands([treeOf("activity-instances-review.json"), ACCEPTED])
+    const { commands, engine } = fakeCommands([treeOf("activity-instances-review.json"), ACCEPTED])
 
     await commands.moveToken(REVIEW, {
       fromElementId: REVIEW_ORDER,
@@ -88,12 +88,10 @@ describe("moving a token", () => {
       reason: REASON,
     })
 
-    expect(cli.invocations[0]?.environment.OPERATE_READ_ONLY).toBe("1")
-    expect(cli.invocations[1]?.environment).not.toHaveProperty("OPERATE_READ_ONLY")
-    expect(cli.invocations[1]?.args.join(" ")).not.toMatch(
-      /--skip|--yes|--annotation|--no-validate/,
-    )
-    expect(cli.invocations[1]?.input).not.toMatch(/skip/i)
+    expect(engine.requests[0]?.route).toBe(TREE)
+    expect(engine.requests[1]?.route).toBe(MODIFY)
+    expect(engine.requests[1]?.query).toEqual({})
+    expect(engine.requests[1]?.body).not.toMatch(/skip/i)
   })
 
   test.each([
@@ -123,7 +121,7 @@ describe("moving a token", () => {
       ]),
     ],
   ])("is rejected before any write when the source holds %s", async (_what, tree) => {
-    const { commands, cli } = fakeCommands([tree])
+    const { commands, engine } = fakeCommands([tree])
 
     expect(
       await failureOf(
@@ -134,11 +132,11 @@ describe("moving a token", () => {
         }),
       ),
     ).toBe("rejected")
-    expect(cli.commands()).toEqual([[...TREE, REVIEW]])
+    expect(engine.requests.map((request) => request.route)).toEqual([TREE])
   })
 
   test("finds a single token inside a sub-process", async () => {
-    const { commands, cli } = fakeCommands([
+    const { commands, engine } = fakeCommands([
       treeWith([
         {
           id: "sub",
@@ -155,7 +153,7 @@ describe("moving a token", () => {
       reason: REASON,
     })
 
-    expect(cancelOf(cli.invocations[1]?.input)).toEqual({
+    expect(cancelOf(engine.requests[1]?.body)).toEqual({
       type: "cancel",
       activityInstanceId: "a1",
     })
@@ -170,7 +168,7 @@ describe("moving a token", () => {
     "rtl‮override",
     "line separator",
   ])("is rejected before calling the engine for the reason %j", async (reason) => {
-    const { commands, cli } = fakeCommands([])
+    const { commands, engine } = fakeCommands([])
 
     expect(
       await failureOf(
@@ -181,14 +179,18 @@ describe("moving a token", () => {
         }),
       ),
     ).toBe("rejected")
-    expect(cli.invocations).toEqual([])
+    expect(engine.requests).toEqual([])
   })
 
   test("is rejected without a write when the instance is not running", async () => {
-    const { commands, cli } = fakeCommands([
+    const { commands, engine } = fakeCommands([
       {
-        command: TREE,
-        ...failure(5, "NOT_FOUND", "Process instance with id 63d65e9e does not exist"),
+        route: TREE,
+        answer: engineFailure(
+          404,
+          "InvalidRequestException",
+          "Process instance with id 63d65e9e does not exist",
+        ),
       },
     ])
 
@@ -201,11 +203,11 @@ describe("moving a token", () => {
         }),
       ),
     ).toBe("rejected")
-    expect(cli.commands()).toEqual([[...TREE, REVIEW]])
+    expect(engine.requests.map((request) => request.route)).toEqual([TREE])
   })
 
-  test("refuses an instance id that could smuggle more ids into the command", async () => {
-    const { commands, cli } = fakeCommands([])
+  test("refuses an instance id that could smuggle more ids into the request", async () => {
+    const { commands, engine } = fakeCommands([])
 
     expect(
       await failureOf(
@@ -216,24 +218,34 @@ describe("moving a token", () => {
         }),
       ),
     ).toBe("rejected")
-    expect(cli.invocations).toEqual([])
+    expect(engine.requests).toEqual([])
   })
 
-  test("keeps element ids out of the command line", async () => {
+  test("keeps element ids out of the request line", async () => {
     const odd = ElementId("Aktivität_Prüfen --yes")
-    const { commands, cli } = fakeCommands([treeWith([{ id: "a1", activityId: odd }]), ACCEPTED])
+    const { commands, engine } = fakeCommands([treeWith([{ id: "a1", activityId: odd }]), ACCEPTED])
 
     await commands.moveToken(REVIEW, { fromElementId: odd, toElementId: odd, reason: REASON })
 
-    expect(cli.invocations.flatMap((call) => call.args).join(" ")).not.toContain(odd)
+    const requestLines = engine.requests.map(
+      (request) => `${request.route} ${Object.values(request.query).join(" ")}`,
+    )
+    expect(requestLines.join(" ")).not.toContain(odd)
+    expect(JSON.parse(engine.requests[1]?.body ?? "{}")).toMatchObject({
+      instructions: [{ activityId: odd }, { activityInstanceId: "a1" }],
+    })
   })
 
   test('maps an engine refusal to "rejected" and keeps the reason out of the message', async () => {
     const { commands } = fakeCommands([
       treeOf("activity-instances-review.json"),
       {
-        command: MODIFY,
-        ...failure(6, "HTTP_CLIENT_ERROR", `Cannot start Unknown_Element: ${REASON}`),
+        route: MODIFY,
+        answer: engineFailure(
+          400,
+          "InvalidRequestException",
+          `Cannot start Unknown_Element: ${REASON}`,
+        ),
       },
     ])
 
@@ -245,12 +257,12 @@ describe("moving a token", () => {
 
     await expect(attempt).rejects.toMatchObject({
       failure: "rejected",
-      message: "Cannot start Unknown_Element: ‹value›",
+      message: "HTTP 400: Cannot start Unknown_Element: ‹value›",
     })
   })
 
   test("reports a malformed tree as an unexpected response", async () => {
-    const { commands } = fakeCommands([{ command: TREE, stdout: '{"id":"root"}' }])
+    const { commands } = fakeCommands([{ route: TREE, answer: { id: "root" } }])
 
     expect(
       await failureOf(

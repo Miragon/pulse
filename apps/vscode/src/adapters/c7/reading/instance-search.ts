@@ -5,7 +5,7 @@ import type {
   HistoricInstanceQuery,
   HistoricInstanceView,
   EngineClient,
-} from "../engine-cli/index.js"
+} from "../engine-rest/index.js"
 import { OffsetPaging, type OffsetWindow } from "./offset-paging.js"
 
 export interface InstanceSearchMappers {

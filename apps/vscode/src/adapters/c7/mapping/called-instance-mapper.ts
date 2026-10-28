@@ -4,7 +4,7 @@ import {
   InstanceId,
   type CalledInstance,
 } from "../../../contract/index.js"
-import { Present, type CallView, type ChildInstanceView } from "../engine-cli/index.js"
+import { Present, type CallView, type ChildInstanceView } from "../engine-rest/index.js"
 import { InstanceStates } from "./instance-states.js"
 import type { Mapper } from "./mapper.js"
 

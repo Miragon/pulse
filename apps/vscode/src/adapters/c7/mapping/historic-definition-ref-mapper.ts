@@ -1,5 +1,5 @@
 import { BpmnProcessId, DefinitionId, type DefinitionRef } from "../../../contract/index.js"
-import { Present, type HistoricInstanceView } from "../engine-cli/index.js"
+import { Present, type HistoricInstanceView } from "../engine-rest/index.js"
 import type { Mapper } from "./mapper.js"
 
 export class HistoricDefinitionRefMapper implements Mapper<HistoricInstanceView, DefinitionRef> {
