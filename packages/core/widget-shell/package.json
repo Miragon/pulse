@@ -1,6 +1,6 @@
 {
   "name": "@miragon/pulse-widget-shell",
-  "version": "0.24.2",
+  "version": "0.25.0",
   "description": "Shared widget kit for Pulse MCP Apps: UI primitives, view + data-feed builders, and the shell:* widget catalogue.",
   "license": "MIT",
   "keywords": [

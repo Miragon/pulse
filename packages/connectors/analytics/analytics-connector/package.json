@@ -1,6 +1,6 @@
 {
   "name": "@miragon/pulse-analytics-connector",
-  "version": "0.24.2",
+  "version": "0.25.0",
   "description": "Prometheus-backed process-analytics MCP module: tools, dashboards, and comparison widgets.",
   "license": "MIT",
   "keywords": [

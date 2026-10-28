@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.25.0](https://github.com/Miragon/pulse/compare/v0.24.2...v0.25.0) (2026-10-28)
+
+
+### ⚠ BREAKING CHANGES
+
+* **cli:** `pulse-cli completion` is gone and the Homebrew formula no longer installs a completion script, so Tab completion stops working in a plain shell after upgrading.
+* **cli:** the first deploy without --name after the update deploys every resource again under the name pulse-cli, since unchanged files are compared per deployment name; pass --name operate to keep the old deployment line. An external task locked by an earlier advance as operate can be completed once its lock expires, or with --worker-id operate.
+* **cli:** pulse-cli no longer reads the names of operate (up to 0.10.0), earlier than the "first release after 2027-01-31" its warning announced: set PULSE_CLI_* instead of OPERATE_* (PULSE_CLI_URL, PULSE_CLI_TOKEN …), rename .operate.json to .pulse-cli.json (the VS Code extension reads only that name too), move ~/.config/operate/config.json to ~/.config/pulse-cli/config.json (Windows: %APPDATA%\pulse-cli) and run pulse-cli auth login once, and call pulse-cli instead of operate (the Homebrew formula no longer links it).
+
+### Features
+
+* **vscode:** add boards, shared JSON views across engines ([#474](https://github.com/Miragon/pulse/issues/474)) ([237eb97](https://github.com/Miragon/pulse/commit/237eb974e386ad80835ec6df4024cf2aecfa0a9c))
+* **vscode:** search instances by process variables ([#473](https://github.com/Miragon/pulse/issues/473)) ([fe142c9](https://github.com/Miragon/pulse/commit/fe142c9a379607706583bcfb621a6f2a35adffd1))
+
+
+### Bug Fixes
+
+* bump the npm-dependencies group across 1 directory with 7 updates ([#484](https://github.com/Miragon/pulse/issues/484)) ([a52fc64](https://github.com/Miragon/pulse/commit/a52fc64382e43f5176fb695d2806e05c5a8475eb))
+* bump the vscode group with 2 updates ([#478](https://github.com/Miragon/pulse/issues/478)) ([3c5e5bf](https://github.com/Miragon/pulse/commit/3c5e5bf17afa67fc47c56027a261541e075ed61c))
+
+
+### Code Refactoring
+
+* **cli:** name the default worker and deployment pulse-cli ([#472](https://github.com/Miragon/pulse/issues/472)) ([7a5384d](https://github.com/Miragon/pulse/commit/7a5384d3aa5c5a216ca72fd00d000e074a4ffc5e))
+* **cli:** remove operate's names ([caa6589](https://github.com/Miragon/pulse/commit/caa658952f36c14e8eca74af95cb1e4ea4f533c7))
+* **cli:** remove shell completion ([#493](https://github.com/Miragon/pulse/issues/493)) ([29be7fa](https://github.com/Miragon/pulse/commit/29be7fa16c86ae499bf9bb3f4bcee7f3470f9531))
+
 ## [0.24.2](https://github.com/Miragon/pulse/compare/v0.24.1...v0.24.2) (2026-10-26)
 
 
