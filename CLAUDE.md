@@ -1019,9 +1019,7 @@ camunda7-client,analytics-connector,analytics-client}` and `@miragon/pulse-cli` 
   workspace package under `apps/` and `packages/`, and every Claude Code plugin manifest an app
   ships) against the workspace, that every job of `release-please.yml` past the approval waits
   for `gate`, that it calls `publish-cli.yml` and `publish-homebrew.yml`, their triggers and
-  token shape, and with them the Dependabot groups, the ruleset's required checks as job names of pull request workflows, the
-  report artifacts, the nightly run over every package form (incremental, forced only by a manual dispatch, its fingerprinted cache key) and the `incremental`/`incrementalFile` of every
-  `stryker.config.json`.
+  token shape, and the CI scopes of `ci.yml`.
   Afterwards `sync-template-mirror.yml` waits until the versions are visible on npm and
   mirrors `templates/composed-server` to the `Miragon/pulse-starter` repo, the
   customer-facing composition path (own server + own connector on the published
@@ -1041,7 +1039,7 @@ camunda7-client,analytics-connector,analytics-client}` and `@miragon/pulse-cli` 
   organization secrets `VSCE_PUBLISH`/`OVSX_PUBLISH` every Miragon extension publishes with, which
   the caller hands down by name, never `secrets: inherit`; unset, trusted publishing over
   `id-token: write`); a third job attaches it to the release. Every release publishes it as a plain release (no
-  switch, no pre-release); only a dry run publishes nothing. `pnpm lint:github` pins that path.
+  switch, no pre-release); only a dry run publishes nothing. `pnpm lint:github` pins its credential shape.
 - **Engine plugins publish to Maven Central via `publish-to-maven.yml`** (called from the
   release train): the Vanniktech Maven Publish plugin runs
   `publishAndReleaseToMavenCentral` against the Sonatype Central Portal (thin jar +

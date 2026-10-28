@@ -26,8 +26,7 @@ updates:
           - "version-update:semver-minor"
           - "version-update:semver-major"
     # Dependabot assigns each dependency to the FIRST group that matches it: the specific groups
-    # come first, and the catch-all excludes their patterns as well (both pinned by
-    # scripts/check-github-config.mjs).
+    # come first, and the catch-all excludes their patterns as well.
     groups:
       # Toolkit peers `mcp-use` exactly, so bump them together in their own PR (a lone
       # bump breaks the peer + template drift gate, see #270).

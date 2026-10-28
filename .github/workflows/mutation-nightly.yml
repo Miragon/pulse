@@ -13,10 +13,7 @@ name: Mutation (nightly)
 # asserts: such a result can be stale until the package starts cold. No scheduled run forces a
 # full pass (owner decision: incremental nightly only); a dispatch with `force` re-tests every
 # mutant. The cache key fingerprints the lockfile, the vitest, tsconfig and Stryker config and
-# the Node major, so a change there starts the package cold. scripts/check-github-config.mjs
-# (`pnpm lint:github`) pins the triggers, the dispatch-only force, the cache key and path and
-# the package forms the list covers; its test runs the List, Cache key and Stryker steps in
-# fixture trees.
+# the Node major, so a change there starts the package cold.
 on:
   schedule:
     - cron: "0 2 * * *"
@@ -50,9 +47,8 @@ jobs:
         with:
           persist-credentials: false
 
-      # Every package form of pnpm-workspace.yaml (its wildcard globs) at its exact depth: a new
-      # form fails `pnpm lint:github` until it is listed here. The slug names the leg's cache and
-      # artifact, which cannot carry a slash.
+      # Every package form of pnpm-workspace.yaml (its wildcard globs) at its exact depth: list a
+      # new form here. The slug names the leg's cache and artifact, which cannot carry a slash.
       - id: list
         name: List
         run: |

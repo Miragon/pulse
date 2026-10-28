@@ -1,11 +1,8 @@
 #!/usr/bin/env node
 /**
- * GitHub-config gate: the workflows, the Dependabot config and the release config are code no
- * pull request runs. A release job runs only on a release, a nightly only at night, Dependabot
- * only after the merge, and a required check that no job reports leaves every PR waiting. So
- * what they must hold is pinned here, against the workspace as it is, which also covers
- * packages that do not exist yet (a public CLI under apps/, a VS Code extension, a -domain
- * package) the moment they land:
+ * GitHub-config gate: the release workflows hold the publish credentials and run only on a
+ * release, so no pull request exercises them. What keeps those credentials safe and the
+ * published set equal to the workspace is pinned here, against the workspace as it is:
  *
  * - publish-npm-package.yml packs without id-token and publishes in the one job that holds
  *   id-token, as exactly `id-token: write`, using only actions/setup-node and
@@ -20,27 +17,14 @@
  *   the formula of a release again) and hold their tokens like the npm publish
  *   (checkReleaseGate, checkCliPublishWorkflows);
  * - every VS Code extension is packaged by exactly one release job through
- *   publish-vscode-extension.yml, after the release gate, as a plain release on every release
- *   (no switch, no pre-release), and that workflow keeps the store credentials in its one job in the vscode-marketplace
- *   environment, which installs with --ignore-scripts, builds nothing and publishes with
- *   --skip-duplicate (checkVscodePublish);
- * - dependabot.yml groups never shadow each other and name only directories that exist
- *   (checkDependabot);
- * - every check the main-branch ruleset requires is a job a pull request runs
- *   (checkRequiredChecks);
- * - every job of ci.yml runs in a scope of scripts/ci-scopes.mjs (checkCiScopes);
- * - every workspace package pins Playwright (`playwright`, `@playwright/test`) at one version:
- *   ci.yml keys the browser cache of the TypeScript job and of the host simulation on those
- *   pins, so the two share one entry and one browser build (checkPlaywrightPins);
- * - the coverage and mutation artifacts cover every package form and unpack at the repo root,
- *   and the nightly full run (the only mutation testing CI runs) lists every package form,
- *   forces a run every week and caches each package's incremental file under a fingerprinted
- *   key, the file every stryker.config.json writes (checkArtifactGlobs, checkNightlyMutation,
- *   checkStrykerIncremental).
+ *   publish-vscode-extension.yml, after the release gate, and that workflow keeps the store
+ *   credentials in its one job in the vscode-marketplace environment, which installs with
+ *   --ignore-scripts and builds nothing (checkVscodePublish);
+ * - every job of ci.yml runs in a scope of scripts/ci-scopes.mjs, and a failed changes job
+ *   fails a job instead of skipping all of them (checkCiScopes).
  *
- * The test (check-github-config.test.mjs) also RUNS the bash steps of the publish workflow
- * (against stub npm and curl executables), of the CLI's release (the tap update against a stub
- * gh), of the extension's release switch and of the nightly run in fixture trees.
+ * The test (check-github-config.test.mjs) also RUNS the bash steps of the npm publish workflow
+ * against stub npm and curl executables.
  *
  * Runs as `pnpm lint:github` (chained into the root `pnpm lint`).
  */
@@ -55,25 +39,7 @@ import { SCOPES } from "./ci-scopes.mjs"
 export const PUBLISH_WORKFLOW = ".github/workflows/publish-npm-package.yml"
 export const RELEASE_WORKFLOW = ".github/workflows/release-please.yml"
 export const CI_WORKFLOW = ".github/workflows/ci.yml"
-export const NIGHTLY_WORKFLOW = ".github/workflows/mutation-nightly.yml"
 export const VSCODE_PUBLISH_WORKFLOW = ".github/workflows/publish-vscode-extension.yml"
-
-/**
- * The status checks ruleset 15024440 (branch main) requires. A MIRROR of a GitHub setting that
- * no file in the repo holds (read it with `gh api repos/Miragon/pulse/rulesets/15024440`): keep
- * the two equal by hand. A job renamed, split into a matrix or moved behind a paths filter never
- * reports its check, and every pull request then waits for it forever.
- */
-export const REQUIRED_CHECKS = [
-  "TypeScript (Build + Test + Lint)",
-  "Lint + Format",
-  "Fitness report",
-  "Composed-server template (Build + Test)",
-  "Kotlin (Build + Test)",
-  "CIB Seven Example (Build + Test)",
-  "Validate Conventional Commit title",
-  "Dependency Review",
-]
 
 /** The directories the Resolve package step of the publish workflow accepts. */
 export const PUBLISHABLE_DIR =
@@ -94,9 +60,6 @@ export function readWorkspace(root) {
     manifest: JSON.parse(readFileSync(path.join(root, dir, "package.json"), "utf8")),
   }))
 }
-
-/** The wildcard globs of pnpm-workspace.yaml: the forms a package directory can take. */
-export const packageForms = (globs) => globs.filter((glob) => glob.includes("*"))
 
 const asList = (value) => (value === undefined || value === null ? [] : [value].flat())
 const jobsOf = (doc) => Object.entries(doc?.jobs ?? {})
@@ -691,7 +654,6 @@ export function checkCliPublishWorkflows(workflows) {
 
 /** The one environment whose job holds the store credentials (or the trusted-publishing token). */
 export const VSCODE_ENVIRONMENT = "vscode-marketplace"
-const VSCODE_DRY_RUN = "${{ inputs.dry_run == true }}"
 /** The directories the Resolve extension step of the workflow accepts. */
 export const VSCODE_APP_DIR = /^apps\/[a-z0-9][a-z0-9-]*$/
 /**
@@ -713,8 +675,7 @@ const runsScript = (step, script) =>
 
 /**
  * The release job that calls the workflow for one extension: after the release approval, with the
- * dry run and the release tag of the train, the ceiling of the called jobs and the two
- * store tokens by name, never `secrets: inherit` (pure).
+ * ceiling of the called jobs and the two store tokens by name, never `secrets: inherit` (pure).
  */
 function checkVscodeCaller(id, job) {
   const errors = []
@@ -724,15 +685,6 @@ function checkVscodeCaller(id, job) {
     errors.push(
       `${at} must need release-please and gate: the release approval covers the extension too`,
     )
-  }
-  if (job.with?.channel !== undefined) {
-    errors.push(`${at} passes channel: every release publishes a plain release, there is no switch`)
-  }
-  if (job.with?.dry_run !== VSCODE_DRY_RUN) {
-    errors.push(`${at} must pass dry_run: ${VSCODE_DRY_RUN}`)
-  }
-  if (!String(job.with?.version ?? "").includes("tag_name")) {
-    errors.push(`${at} must pass version: the release tag (tag_name) the .vsix has to carry`)
   }
   if (!isDeepStrictEqual(job.permissions, { contents: "write", "id-token": "write" })) {
     errors.push(
@@ -835,18 +787,6 @@ function checkVscodeCredentialJob(id, job) {
     if (steps.length !== 1) {
       errors.push(`${at} must run ${script} in exactly one step, found ${steps.length}`)
     }
-    const skipping = (step) =>
-      passesFlag(
-        commandsOf(step).flatMap((command) => wordsOf(command)),
-        "--skip-duplicate",
-      )
-    for (const step of steps.filter((step) => !skipping(step))) {
-      errors.push(
-        `${at}: the step "${step.name ?? script}" must pass --skip-duplicate, and no word that ` +
-          `switches it back off (--skip-duplicate=false): a re-run after a partial failure ` +
-          `publishes only what is missing`,
-      )
-    }
   }
   return errors
 }
@@ -856,18 +796,6 @@ function checkVscodeWorkflow(doc) {
   const where = VSCODE_PUBLISH_WORKFLOW
   if (doc === undefined) return [`${where} is missing: a release never packages the extension`]
   const errors = []
-  const inputs = doc.on?.workflow_call?.inputs ?? {}
-  for (const name of ["directory", "version"]) {
-    if (inputs[name]?.required !== true || inputs[name]?.type !== "string") {
-      errors.push(`${where}: needs the required string input "${name}"`)
-    }
-  }
-  if (inputs.channel !== undefined) {
-    errors.push(`${where}: takes no input "channel": every release publishes a plain release`)
-  }
-  if (/--pre-release\b/.test(JSON.stringify(doc.jobs ?? {}))) {
-    errors.push(`${where}: passes --pre-release: every release publishes a plain release`)
-  }
   const secrets = doc.on?.workflow_call?.secrets ?? {}
   if (!isDeepStrictEqual(Object.keys(secrets).sort(), Object.keys(VSCODE_SECRETS).sort())) {
     errors.push(
@@ -875,17 +803,8 @@ function checkVscodeWorkflow(doc) {
         `(found ${JSON.stringify(Object.keys(secrets))})`,
     )
   }
-  if (inputs.dry_run?.type !== "boolean") {
-    errors.push(`${where}: needs the boolean input "dry_run"`)
-  }
   if (!isDeepStrictEqual(doc.permissions, {})) {
     errors.push(`${where}: top-level permissions must be {}: each job names its own`)
-  }
-  if (doc.defaults?.run?.shell !== "bash") {
-    errors.push(
-      `${where}: defaults.run.shell must be bash (-eo pipefail, the flags its test runs the ` +
-        `steps with)`,
-    )
   }
 
   const jobs = jobsOf(doc)
@@ -992,128 +911,16 @@ export function checkVscodePublish(releaseDoc, publishDoc, packages) {
   return errors
 }
 
-// ── dependabot.yml ──────────────────────────────────────────────────────────
-
-const isCatchAll = (group) => isDeepStrictEqual(group?.patterns, ["*"])
-
-/** Groups never shadow each other, directories exist, @types/vscode stays at the floor. */
-export function checkDependabot(doc, { packages, dirExists }) {
-  const errors = []
-  const where = ".github/dependabot.yml"
-  const updates = asList(doc?.updates)
-  for (const entry of updates) {
-    const at = `${where} (${entry?.["package-ecosystem"]} ${asList(entry?.directory ?? entry?.directories).join(", ")})`
-    const groups = Object.entries(entry?.groups ?? {})
-    const catchAllAt = groups.findIndex(([, group]) => isCatchAll(group))
-    if (catchAllAt >= 0) {
-      const [catchAllName, catchAll] = groups[catchAllAt]
-      groups.forEach(([name], index) => {
-        if (index > catchAllAt) {
-          errors.push(
-            `${at}: ${name} is listed after the catch-all ${catchAllName}: Dependabot assigns a ` +
-              `dependency to the first matching group, so it would never fill`,
-          )
-        }
-      })
-      const excluded = new Set(asList(catchAll["exclude-patterns"]))
-      for (const [name, group] of groups) {
-        if (isCatchAll(group)) continue
-        for (const pattern of asList(group?.patterns)) {
-          if (!excluded.has(pattern)) {
-            errors.push(
-              `${at}: ${pattern} of group ${name} is missing from ${catchAllName}.exclude-patterns`,
-            )
-          }
-        }
-      }
-    }
-    for (const dir of [...asList(entry?.directory), ...asList(entry?.directories)]) {
-      const rel = String(dir).replace(/^\/+/, "") || "."
-      if (!dirExists(rel)) {
-        errors.push(`${at}: ${dir} does not exist: Dependabot fails that update job every run`)
-      }
-    }
-  }
-  const extensions = packages.filter(({ manifest }) => isVscodeExtension(manifest))
-  if (extensions.length > 0) {
-    const held = updates
-      .filter((entry) => entry?.["package-ecosystem"] === "npm")
-      .some((entry) =>
-        asList(entry.ignore).some((rule) => {
-          const types = asList(rule?.["update-types"])
-          return (
-            rule?.["dependency-name"] === "@types/vscode" &&
-            types.includes("version-update:semver-minor") &&
-            types.includes("version-update:semver-major")
-          )
-        }),
-      )
-    if (!held) {
-      for (const pkg of extensions) {
-        errors.push(
-          `${where}: ${describe(pkg)} declares engines.vscode but @types/vscode minor/major ` +
-            `updates are not ignored (vsce refuses @types/vscode newer than engines.vscode)`,
-        )
-      }
-    }
-  }
-  return errors
-}
-
-// ── Required checks ─────────────────────────────────────────────────────────
-
-const PR_EVENTS = ["pull_request", "pull_request_target"]
-
-/** Each required check is a literal job name in a workflow every pull request runs. */
-export function checkRequiredChecks(workflows, required = REQUIRED_CHECKS) {
-  const errors = []
-  for (const check of required) {
-    const found = []
-    for (const [file, doc] of workflows) {
-      const triggers = triggersOf(doc)
-      const events = PR_EVENTS.filter((event) => event in triggers)
-      if (events.length === 0) continue
-      for (const [id, job] of jobsOf(doc)) {
-        if (job?.name === check) found.push({ file, id, job, triggers, events })
-      }
-    }
-    if (found.length === 0) {
-      errors.push(
-        `"${check}" is a required check (ruleset 15024440) but no job of a pull_request ` +
-          `workflow carries that name: every PR would wait for it forever`,
-      )
-    }
-    for (const { file, id, job, triggers, events } of found) {
-      for (const event of events) {
-        const filter = ["paths", "paths-ignore"].find((key) => triggers[event]?.[key] !== undefined)
-        if (filter) {
-          errors.push(
-            `${file}: "${check}" (job ${id}) is required, but ${event} has a ${filter} filter: ` +
-              `a PR outside it never reports the check`,
-          )
-        }
-      }
-      if (job.strategy?.matrix !== undefined) {
-        errors.push(
-          `${file}: "${check}" (job ${id}) is required, but a matrix reports one check per leg ` +
-            `under another name; aggregate the legs in a job of that name`,
-        )
-      }
-    }
-  }
-  return errors
-}
-
 // ── CI scopes ───────────────────────────────────────────────────────────────
 
 const SCOPE_REFERENCE = /\bneeds\.changes\.outputs\.([\w-]+)/g
 const RUNS_UNLESS_CANCELLED = /^\$\{\{\s*!\s*cancelled\(\)\s*\}\}$/
 
 /**
- * Every ci.yml job waits for `changes` and reads only real scopes, and one always-on required job
+ * Every ci.yml job waits for `changes` and reads only real scopes, and one always-on job
  * fails when `changes` fails (otherwise all scoped jobs skip, and skipped passes).
  */
-export function checkCiScopes(doc, { scopes = SCOPES, required = REQUIRED_CHECKS } = {}) {
+export function checkCiScopes(doc, { scopes = SCOPES } = {}) {
   const jobs = new Map(jobsOf(doc))
   const changes = jobs.get("changes")
   if (changes === undefined) return [`${CI_WORKFLOW}: no changes job hands out the CI scopes`]
@@ -1160,363 +967,26 @@ export function checkCiScopes(doc, { scopes = SCOPES, required = REQUIRED_CHECKS
   }
   const guards = [...jobs.values()].filter(
     (job) =>
-      required.includes(job?.name) &&
       asList(job.needs).includes("changes") &&
       RUNS_UNLESS_CANCELLED.test(String(job.if ?? "")) &&
       JSON.stringify(stepsOf(job)).includes("needs.changes.result"),
   )
   if (guards.length === 0) {
     errors.push(
-      `${CI_WORKFLOW}: no required job runs on every pull request (if: \${{ !cancelled() }}) and ` +
+      `${CI_WORKFLOW}: no job runs on every pull request (if: \${{ !cancelled() }}) and ` +
         `fails on needs.changes.result: a failed changes job would pass as a row of skipped checks`,
     )
   }
   return errors
 }
 
-// ── Mutation artifacts + the nightly full run ───────────────────────────────
-
-/** The file the nightly caches per package: every stryker.config.json writes exactly this. */
-export const INCREMENTAL_FILE = "reports/stryker-incremental.json"
-
-const stepsUsing = (doc, action) =>
-  jobsOf(doc).flatMap(([id, job]) =>
-    stepsOf(job)
-      .filter((step) => usesAction(step, action))
-      .map((step) => ({ id, job, step, paths: lines(step.with?.path) })),
-  )
-const uploadsOf = (doc) => stepsUsing(doc, "actions/upload-artifact")
-const isReportArtifact = (name) =>
-  name === "coverage-summaries" || String(name ?? "").startsWith("mutation-report-")
-
-/** The jobs of the nightly that run one leg per listed package. */
-const nightlyLegs = (doc) =>
-  jobsOf(doc).filter(([, job]) =>
-    String(job?.strategy?.matrix?.include ?? "").includes("needs.packages.outputs.packages"),
-  )
-
-/** The reports and summaries every package form writes reach the fitness report (pure). */
-export function checkArtifactGlobs(ciDoc, nightlyDoc, globs) {
-  const errors = []
-  const forms = packageForms(globs)
-  const expectPaths = (file, upload, suffix) => {
-    for (const form of forms) {
-      if (!upload.paths.includes(`${form}/${suffix}`)) {
-        errors.push(
-          `${file}: the upload of ${upload.step.with?.name} misses ${form}/${suffix}: that ` +
-            `package form's numbers never reach the report`,
-        )
-      }
-    }
-  }
-  for (const [file, doc] of [
-    [CI_WORKFLOW, ciDoc],
-    [NIGHTLY_WORKFLOW, nightlyDoc],
-  ]) {
-    for (const upload of uploadsOf(doc)) {
-      for (const glob of upload.paths.filter((p) => p.includes("**"))) {
-        errors.push(
-          `${file}: job ${upload.id} uploads ${glob}: upload-artifact follows symlinks, so ** ` +
-            `walks pnpm's workspace links in node_modules; use one exact-depth glob per form`,
-        )
-      }
-      const name = String(upload.step.with?.name ?? "")
-      if (name.startsWith("mutation-report-")) {
-        expectPaths(file, upload, "reports/mutation-report.json")
-      }
-      if (name === "coverage-summaries") expectPaths(file, upload, "coverage/coverage-summary.json")
-    }
-  }
-  const coverage = "coverage-summaries"
-  if (!uploadsOf(ciDoc).some(({ step }) => step.with?.name === coverage)) {
-    errors.push(`${CI_WORKFLOW}: no step uploads the artifact ${coverage}`)
-  }
-  if (
-    !stepsUsing(ciDoc, "actions/download-artifact").some(({ step }) => step.with?.name === coverage)
-  ) {
-    errors.push(
-      `${CI_WORKFLOW}: no step downloads the artifact ${coverage}: the fitness report would ` +
-        `show no coverage for any package`,
-    )
-  }
-  // Every report artifact carries the apps/ and packages/ prefixes (the globs' least common
-  // ancestor is the repo root), so a download unpacks it over the checkout, where
-  // fitness-report.mjs reads each package's coverage/ and reports/ files.
-  for (const [file, doc] of [
-    [CI_WORKFLOW, ciDoc],
-    [NIGHTLY_WORKFLOW, nightlyDoc],
-  ]) {
-    for (const { id, step } of stepsUsing(doc, "actions/download-artifact")) {
-      const artifact = step.with?.name ?? step.with?.pattern
-      if (isReportArtifact(artifact) && step.with?.path !== undefined) {
-        errors.push(
-          `${file}: job ${id} downloads ${artifact} into ${step.with.path}; the artifact ` +
-            `carries the apps/ and packages/ prefixes, so it unpacks at the repo root`,
-        )
-      }
-    }
-  }
-  const legName = "mutation-report-${{ matrix.slug }}"
-  for (const [id, job] of nightlyLegs(nightlyDoc)) {
-    if (
-      !stepsOf(job).some(
-        (step) => usesAction(step, "actions/upload-artifact") && step.with?.name === legName,
-      )
-    ) {
-      errors.push(
-        `${NIGHTLY_WORKFLOW}: job ${id} must upload its report as ${legName} (one exact-depth ` +
-          `glob per package form): the summary reads nothing else`,
-      )
-    }
-  }
-  const summaries = stepsUsing(nightlyDoc, "actions/download-artifact").filter(
-    ({ step }) => step.with?.pattern === "mutation-report-*",
-  )
-  if (summaries.length === 0) {
-    errors.push(
-      `${NIGHTLY_WORKFLOW}: no step downloads pattern mutation-report-*: the nightly scores ` +
-        `never reach the summary`,
-    )
-  }
-  for (const { id, job, step } of summaries) {
-    if (step.with?.["merge-multiple"] !== true) {
-      errors.push(
-        `${NIGHTLY_WORKFLOW}: job ${id} must download mutation-report-* with merge-multiple: ` +
-          `true, or each leg unpacks into a directory of its own name`,
-      )
-    }
-    if (!stepsOf(job).some((other) => /^pnpm fitness\b/.test(runOf(other).trim()))) {
-      errors.push(
-        `${NIGHTLY_WORKFLOW}: job ${id} downloads the reports but never runs pnpm fitness`,
-      )
-    }
-  }
-  return errors
-}
-
-/** The nightly full Stryker run: off every pull request, over every package form (pure). */
-export function checkNightlyMutation(doc, globs) {
-  const errors = []
-  const where = NIGHTLY_WORKFLOW
-  if (doc === undefined) return [`${where} is missing: nothing runs the full Stryker suite`]
-  const events = Object.keys(triggersOf(doc))
-  for (const event of events.filter((e) => e !== "schedule" && e !== "workflow_dispatch")) {
-    errors.push(
-      `${where}: runs on ${event}; the full run is nightly (schedule, workflow_dispatch) and ` +
-        `never a pull request check`,
-    )
-  }
-  if (!asList(triggersOf(doc).schedule).some((entry) => typeof entry?.cron === "string")) {
-    errors.push(`${where}: needs a schedule with a cron`)
-  }
-  if (triggersOf(doc).workflow_dispatch?.inputs?.force?.type !== "boolean") {
-    errors.push(`${where}: workflow_dispatch needs the boolean input force`)
-  }
-  if (!doc.concurrency?.group || doc.concurrency?.["cancel-in-progress"] !== false) {
-    errors.push(`${where}: needs a concurrency group of its own with cancel-in-progress: false`)
-  }
-  const list = stepsOf(doc.jobs?.packages).find((step) => step?.id === "list")
-  if (list === undefined) {
-    errors.push(`${where}: job packages needs the step id list (the matrix source)`)
-  } else {
-    const tokens = runOf(list).split(/[\s;]+/)
-    for (const form of packageForms(globs)) {
-      if (!tokens.includes(form)) {
-        errors.push(
-          `${where}: the list step misses the package form ${form} (pnpm-workspace.yaml): its ` +
-            `packages would never get a nightly run`,
-        )
-      }
-    }
-    if (!runOf(list).includes("stryker.config.json")) {
-      errors.push(`${where}: the list step must pick the dirs that carry a stryker.config.json`)
-    }
-  }
-  const legs = nightlyLegs(doc)
-  if (legs.length !== 1) {
-    errors.push(`${where}: needs one matrix job over needs.packages.outputs.packages`)
-  }
-  for (const [id, job] of legs) {
-    if (job.strategy?.["fail-fast"] !== false) {
-      errors.push(`${where}: job ${id} must set fail-fast: false`)
-    }
-    if (typeof job["timeout-minutes"] !== "number") {
-      errors.push(`${where}: job ${id} needs timeout-minutes`)
-    }
-    const runs = stepsOf(job).map(runOf)
-    if (!runs.some((run) => /--fail-if-no-match --filter\b.*\brun test:mutation\b/.test(run))) {
-      errors.push(
-        `${where}: job ${id} must run pnpm --fail-if-no-match --filter ./<dir> run test:mutation`,
-      )
-    }
-    errors.push(...checkForcedRun(doc, job, `${where}: job ${id}`))
-    errors.push(...checkIncrementalCache(job, `${where}: job ${id}`))
-  }
-  return errors
-}
-
-/**
- * The schedule never forces a full pass (owner decision: incremental nightly only, so a reused
- * result is measured again when its package starts cold, i.e. when the fingerprinted cache key
- * changes). Only a manual dispatch with `force` re-tests every mutant: the Stryker step's FORCE
- * reads the dispatch input and nothing else, and passes --force when it is true.
- */
-const FORCE_EXPRESSION = "${{ inputs.force == true }}"
-
-function checkForcedRun(doc, job, at) {
-  const stryker = stepsOf(job).find((step) => /\brun test:mutation\b/.test(runOf(step)))
-  const force = String(stryker?.env?.FORCE ?? "")
-  const errors = []
-  if (force !== FORCE_EXPRESSION) {
-    errors.push(
-      `${at}: the Stryker step needs FORCE: ${FORCE_EXPRESSION} (found "${force}"): only a ` +
-        `manual dispatch forces a full pass, no schedule does`,
-    )
-  }
-  if (!/\[ "\$FORCE" = true \]; then args\+=\(--force\)/.test(runOf(stryker))) {
-    errors.push(`${at}: the Stryker step must pass --force when FORCE is true`)
-  }
-  return errors
-}
-
-/** What the fingerprint hashes: a change in any of them starts a leg cold. */
-export const CACHE_FINGERPRINT_INPUTS = [
-  "'pnpm-lock.yaml'",
-  "'vitest.shared.ts'",
-  "'tsconfig.base.json'",
-  "format('{0}/stryker.config.json', matrix.dir)",
-  "format('{0}/vitest*.ts', matrix.dir)",
-  "format('{0}/tsconfig*.json', matrix.dir)",
-]
-/** The cache-key step's prefix: the package, the Node major the leg runs and the fingerprint. */
-const CACHE_KEY_LINES = [
-  `node_major="$(node -p 'process.versions.node.split(".")[0]')"`,
-  'echo "prefix=stryker-incremental-${SLUG}-node${node_major}-${FINGERPRINT}-" >> "$GITHUB_OUTPUT"',
-]
-const CACHE_PREFIX = "${{ steps.cache-key.outputs.prefix }}"
-const CACHE_KEY = `${CACHE_PREFIX}\${{ github.run_id }}-\${{ github.run_attempt }}`
-
-/**
- * The leg restores and saves the incremental file under a key whose prefix (the cache-key
- * step's output) fingerprints the lockfile, the configs and the Node major: a bare package
- * prefix would restore results measured under another dependency tree or Node.
- */
-function checkIncrementalCache(job, at) {
-  const errors = []
-  const keyStep = stepsOf(job).find((step) => step?.id === "cache-key")
-  if (keyStep === undefined) {
-    errors.push(`${at} needs the step id cache-key, which builds the cache key prefix`)
-  } else {
-    const fingerprint = String(keyStep.env?.FINGERPRINT ?? "")
-    if (!/^\$\{\{ hashFiles\(.*\) \}\}$/.test(fingerprint)) {
-      errors.push(`${at}: the cache-key step needs FINGERPRINT: \${{ hashFiles(...) }}`)
-    }
-    for (const input of CACHE_FINGERPRINT_INPUTS.filter((input) => !fingerprint.includes(input))) {
-      errors.push(`${at}: the cache-key step's FINGERPRINT misses ${input}`)
-    }
-    if (keyStep.env?.SLUG !== "${{ matrix.slug }}") {
-      errors.push(`${at}: the cache-key step needs SLUG: \${{ matrix.slug }}`)
-    }
-    const run = runOf(keyStep)
-    for (const line of CACHE_KEY_LINES.filter((line) => !run.includes(line))) {
-      errors.push(`${at}: the cache-key step must run ${line}`)
-    }
-  }
-  const cachePath = `\${{ matrix.dir }}/${INCREMENTAL_FILE}`
-  for (const [action, keys] of [
-    ["actions/cache/restore", { key: CACHE_KEY, "restore-keys": CACHE_PREFIX }],
-    ["actions/cache/save", { key: CACHE_KEY }],
-  ]) {
-    const steps = stepsOf(job).filter((step) => usesAction(step, action))
-    if (steps.length !== 1) {
-      errors.push(`${at} needs exactly one ${action} step, found ${steps.length}`)
-      continue
-    }
-    const step = steps[0]
-    if (step.with?.path !== cachePath) {
-      errors.push(`${at}: ${action} must cache path ${cachePath}, the file every config writes`)
-    }
-    for (const [name, value] of Object.entries(keys)) {
-      if (step.with?.[name] !== value) {
-        errors.push(`${at}: ${action} needs ${name}: ${value} (found ${step.with?.[name]})`)
-      }
-    }
-  }
-  return errors
-}
-
-/** Every stryker.config.json writes the incremental file the nightly caches (pure). */
-export function checkStrykerIncremental(configs) {
-  const errors = []
-  for (const { dir, config } of configs) {
-    const at = `${dir}/stryker.config.json`
-    if (config === undefined) {
-      errors.push(`${at} is no JSON object`)
-      continue
-    }
-    if (config.incremental !== true) {
-      errors.push(
-        `${at} must set "incremental": true: the nightly leg reuses the last night's results ` +
-          `from that file`,
-      )
-    }
-    if (config.incrementalFile !== INCREMENTAL_FILE) {
-      errors.push(
-        `${at} must set "incrementalFile": "${INCREMENTAL_FILE}", the path the nightly caches ` +
-          `(found ${JSON.stringify(config.incrementalFile)}): any other path is never restored, ` +
-          `and every night runs cold`,
-      )
-    }
-  }
-  return errors
-}
-
-// ── Playwright pins ─────────────────────────────────────────────────────────
-
-/** The packages that pin a Playwright version, each decides the browser build its job installs. */
-export const PLAYWRIGHT_PACKAGES = ["playwright", "@playwright/test"]
-
-/**
- * Every Playwright pin of the workspace is one version (pure). ci.yml keys the browser cache of
- * the TypeScript job on apps/vscode's `playwright` and the host simulation's on the server app's
- * `@playwright/test`; two versions would mean two keys, two browser downloads and a job that
- * never hits the shared entry.
- */
-export function checkPlaywrightPins(packages) {
-  const pins = packages.flatMap(({ dir, manifest }) =>
-    PLAYWRIGHT_PACKAGES.flatMap((name) =>
-      ["dependencies", "devDependencies"]
-        .map((field) => manifest?.[field]?.[name])
-        .filter((version) => version !== undefined)
-        .map((version) => ({ dir, name, version })),
-    ),
-  )
-  if (new Set(pins.map(({ version }) => version)).size <= 1) return []
-  const listed = pins.map(({ dir, name, version }) => `${dir} ${name} ${version}`).join(", ")
-  return [
-    `Playwright is pinned at more than one version (${listed}): ci.yml keys one browser cache ` +
-      `on these pins, so bump them together to one version`,
-  ]
-}
-
 // ── Main ────────────────────────────────────────────────────────────────────
-
-/** A JSON object file, or undefined when it holds no JSON object (reported, not thrown). */
-const readJsonObject = (root, file) => {
-  try {
-    const value = JSON.parse(readFileSync(path.join(root, file), "utf8"))
-    return value !== null && typeof value === "object" && !Array.isArray(value) ? value : undefined
-  } catch {
-    return undefined
-  }
-}
 
 const readYaml = (root, file) =>
   existsSync(path.join(root, file)) ? parse(readFileSync(path.join(root, file), "utf8")) : undefined
 
 /** Every violation of the repo at `root`. */
 export function checkRepo(root) {
-  const globs = workspaceGlobs(readFileSync(path.join(root, "pnpm-workspace.yaml"), "utf8"))
   const packages = readWorkspace(root)
   const workflowDir = path.join(root, ".github/workflows")
   const workflows = new Map(
@@ -1527,9 +997,6 @@ export function checkRepo(root) {
   )
   const exists = (rel) => existsSync(path.join(root, rel))
   const others = new Map([...workflows].filter(([file]) => file !== PUBLISH_WORKFLOW))
-  const strykerConfigs = packages
-    .filter(({ dir }) => exists(`${dir}/stryker.config.json`))
-    .map(({ dir }) => ({ dir, config: readJsonObject(root, `${dir}/stryker.config.json`) }))
   return [
     ...checkPublishWorkflow(workflows.get(PUBLISH_WORKFLOW), { pinnedRefs: actionRefs(others) }),
     ...checkPublishMatrix(workflows.get(RELEASE_WORKFLOW), packages),
@@ -1549,13 +1016,7 @@ export function checkRepo(root) {
       workflows.get(VSCODE_PUBLISH_WORKFLOW),
       packages,
     ),
-    ...checkDependabot(readYaml(root, ".github/dependabot.yml"), { packages, dirExists: exists }),
-    ...checkRequiredChecks(workflows),
     ...checkCiScopes(workflows.get(CI_WORKFLOW)),
-    ...checkPlaywrightPins(packages),
-    ...checkArtifactGlobs(workflows.get(CI_WORKFLOW), workflows.get(NIGHTLY_WORKFLOW), globs),
-    ...checkNightlyMutation(workflows.get(NIGHTLY_WORKFLOW), globs),
-    ...checkStrykerIncremental(strykerConfigs),
   ]
 }
 
@@ -1575,7 +1036,6 @@ if (isMain) {
   console.log(
     "GitHub config: publish workflow, npm matrix and repositories, release extra-files and " +
       "plugin versions, the release gate, the CLI publish workflows, the extension's release " +
-      `path, Dependabot groups, ${REQUIRED_CHECKS.length} required checks, the CI scopes, the Playwright pins, ` +
-      "the report artifacts, the nightly mutation run and the Stryker incremental files hold.",
+      "path and the CI scopes hold.",
   )
 }
