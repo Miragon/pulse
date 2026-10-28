@@ -162,11 +162,6 @@ const widgetHandOffGate = [
   "JSXOpeningElement[name.property.name='AskAiButton']",
 ].map((selector) => ({ selector, message: HAND_OFF_MESSAGE }))
 
-// Invariant 8, domain packages: why a -domain package uses no Node global (the
-// block near the end of this file names each global with its replacement).
-const DOMAIN_GLOBAL_REASON =
-  "A -domain package runs unchanged in the MCP server, the CLI and the VS Code extension host, so it uses no Node global"
-
 // ── The VS Code extension (apps/vscode): its own house rules ───────────────
 // The extension keeps the stricter rules it was built with (apps/vscode/CLAUDE.md,
 // apps/vscode/docs/adr/guardrails.md): no comments (the inline rule below, never
@@ -444,73 +439,6 @@ export default tseslint.config(
     ],
     rules: { "no-restricted-imports": ["error", widgetSparkleGate] },
   },
-  // Invariant 8, domain packages: a packages/connectors/<family>/<name>-domain
-  // package holds pure use cases that run unchanged in the MCP server, the CLI
-  // and the VS Code extension host (and possibly a webview). The dependency
-  // rules (.dependency-cruiser.cjs: domains-are-leaves, domains-are-pure) see
-  // only imports, while the base tsconfig puts Node's globals into every
-  // package, so this block bans the Node globals a domain could use without
-  // an import. Take the capability through the port the caller passes in, or
-  // use the web-standard global named in each message. `globalThis.process`
-  // and friends are caught too (checkGlobalObject). Its own rule, so it never
-  // collides with the no-restricted-syntax unions above; no later block sets it.
-  {
-    files: [
-      "packages/connectors/*/*-domain/src/**/*.ts",
-      "packages/connectors/*/*-domain/src/**/*.tsx",
-    ],
-    rules: {
-      "no-restricted-globals": [
-        "error",
-        {
-          checkGlobalObject: true,
-          globals: [
-            {
-              name: "process",
-              message: `${DOMAIN_GLOBAL_REASON}: take configuration, the environment and the clock through the port the caller passes in.`,
-            },
-            {
-              name: "Buffer",
-              message: `${DOMAIN_GLOBAL_REASON}: use Uint8Array, TextEncoder/TextDecoder or atob/btoa.`,
-            },
-            {
-              name: "__dirname",
-              message: `${DOMAIN_GLOBAL_REASON}: a domain reads no files; take the content through the port.`,
-            },
-            {
-              name: "__filename",
-              message: `${DOMAIN_GLOBAL_REASON}: a domain reads no files; take the content through the port.`,
-            },
-            {
-              name: "require",
-              message: `${DOMAIN_GLOBAL_REASON}: use an ESM import of another module of the same package.`,
-            },
-            {
-              name: "module",
-              message: `${DOMAIN_GLOBAL_REASON}: use ESM export, not CommonJS module.exports.`,
-            },
-            {
-              name: "exports",
-              message: `${DOMAIN_GLOBAL_REASON}: use ESM export, not CommonJS exports.`,
-            },
-            {
-              name: "global",
-              message: `${DOMAIN_GLOBAL_REASON}: take the capability through the port; a web-standard global needs no global object.`,
-            },
-            {
-              name: "setImmediate",
-              message: `${DOMAIN_GLOBAL_REASON}: use queueMicrotask or setTimeout.`,
-            },
-            {
-              name: "clearImmediate",
-              message: `${DOMAIN_GLOBAL_REASON}: use clearTimeout with setTimeout.`,
-            },
-          ],
-        },
-      ],
-    },
-  },
-
   // ── Ratchet metrics: complexity + file-length budgets ───────────────────
   // Global targets for all source code; the ratchet lists above freeze
   // today's offenders at their high-water mark.

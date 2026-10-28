@@ -43,8 +43,8 @@ cruises `apps/cli/src`, `pnpm lint:architecture:cli` its `scripts/` and `test/`.
 
 No cycle, a type-only one included. The pure layers import no Node built-in (WebCrypto and the
 timers are globals). Only the `auth login` command reaches the interactive login (loopback
-server, browser), so no other command can ever wait for a person. From the workspace the CLI may
-import only a `-domain` package, and nothing of the MCP or UI stack.
+server, browser), so no other command can ever wait for a person. The CLI imports no workspace
+package and nothing of the MCP or UI stack.
 
 ## Budgets
 

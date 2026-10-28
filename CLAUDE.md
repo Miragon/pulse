@@ -64,10 +64,9 @@ Three axes decide where code goes, and they stay apart:
 - Vendor (CIB seven, Operaton, Camunda 7): runtime config per engine, `flavor` →
   `EngineProvider` (invariant 8), never a package or an app.
 - Dialect (an engine API family; Camunda 7 today): one package family under
-  `packages/connectors/<family>/`: `<name>-client` (the wire: SDK, schemas, engine contract),
-  `<name>-connector` (the MCP module) and, once two interfaces share a use case,
-  `<name>-domain` (pure use cases with typed results: no MCP, no UI, no zod). A different
-  dialect is a new family plus its own MCP server app.
+  `packages/connectors/<family>/`: `<name>-client` (the wire: SDK, schemas, engine contract)
+  and `<name>-connector` (the MCP module); a package two interfaces share is extracted on its
+  second consumer. A different dialect is a new family plus its own MCP server app.
 - Interface (how a person or an agent reaches an engine): an app under `apps/`, today the
   MCP server, the CLI (`apps/cli`, rules in `apps/cli/CLAUDE.md`) and the VS Code extension
   (`apps/vscode`, rules in `apps/vscode/CLAUDE.md`). Another interface (a second editor
@@ -649,9 +648,7 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    semantics and are load-bearing for the guardrails: connector modules live at
    `packages/connectors/<family>/<name>-connector` (npm `@miragon/pulse-<name>-connector`),
    their SDK leaves at `packages/connectors/<family>/<name>-client`
-   (npm `@miragon/pulse-<name>-client`), a family's interface-neutral use cases at
-   `packages/connectors/<family>/<name>-domain` (npm `@miragon/pulse-<name>-domain`),
-   foundation packages under `packages/core/` (npm `@miragon/pulse-<name>`, no role suffix)
+   (npm `@miragon/pulse-<name>-client`), foundation packages under `packages/core/` (npm `@miragon/pulse-<name>`, no role suffix)
    and apps at `apps/<dir>` (npm `@miragon/pulse-<dir>`). An app whose package.json declares
    `engines.vscode` is a VS Code extension: vsce takes no scope, so it is named
    `pulse-cockpit` (Marketplace id `miragon-gmbh.pulse-cockpit`; Marketplace names are global and
@@ -678,26 +675,20 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    names are those of every `apps/*/package.json`: under pnpm another package reaches a workspace app (an import,
    `require.resolve`, its bin, a spawned process) only through such a declaration, which no
    dependency rule reads. The dependency edges of this invariant (connector
-   peer-isolation, connector→own-client and connector→own-domain only, leaf clients, pure
-   leaf domains, foundation core, no package importing an app, no app importing an app,
-   interface apps reaching only a -domain package, no cross-package deep imports) are
+   peer-isolation, connector→own-client only, leaf clients, foundation core, no package
+   importing an app, no app importing an app, no cross-package deep imports) are
    machine-enforced by `.dependency-cruiser.cjs` via the root `pnpm lint:architecture` and
    `pnpm lint:architecture:cli` (the CLI's `scripts/` and `test/`; both part of `pnpm lint`).
-   A -domain package imports no other workspace package (its own client's wire subpaths are
-   opened when they exist), no zod, no @hey-api, nothing of the MCP/UI stack, no vscode and
-   no commander, and no Node built-in outside its tests; its Node
-   globals (`process`, `Buffer`, `__dirname` …) are banned by a literal `no-restricted-globals`
-   block in `eslint.config.mjs`, since dependency rules see only imports. The interface apps
-   (the CLI, npm `@miragon/pulse-cli`; the extension, `pulse`) import from the
-   workspace only -domain packages and nothing of the MCP/UI/server stack, zod included;
+   The interface apps (the CLI, npm `@miragon/pulse-cli`; the extension, `pulse-cockpit`)
+   import no workspace package and nothing of the MCP/UI/server stack, zod included;
    no module imports them (dependency-cruiser), and no `package.json` declares them (the
    naming gate). An import reaches a rule in three shapes (a relative escape,
    `<importer>/node_modules/<name>/` for a declared dependency imported at its root, a bare
    specifier for a subpath or an undeclared dependency), and the rules name all three: never
    exempt a package's own directory in a `pathNot`, its node_modules holds exactly the
    declared imports a rule is about. Every rule has planted violations in
-   `scripts/dependency-cruiser-gates.test.mjs` (a pnpm-shaped fixture with the future apps
-   and -domain packages, cruised with the real config), and a new app adds its npm name to
+   `scripts/dependency-cruiser-gates.test.mjs` (a pnpm-shaped fixture of the apps and
+   packages, cruised with the real config), and a new app adds its npm name to
    the config's `APP_PACKAGES` or the self-test's sync case fails. Each module exports its definition in
    `src/module.ts` (config schema, `configFromEnv`, `knownEnvVars`, `toolsets`,
    `bootWarnings`, `instructions` (its slice of the MCP server instructions, where rules
@@ -858,8 +849,8 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    per-engine runtime config (`flavor` → `EngineProvider` in
    `packages/connectors/camunda/camunda7-connector/src/providers/`; the port holds ONLY real differences:
    cockpit routes, branding, client hook; never an SDK mirror), never separate packages or apps; a different
-   _dialect_ (Flowable) would be a new package family (client, connector, a domain once two
-   interfaces share a use case) plus its own MCP server app (the axes under "What this repo
+   _dialect_ (Flowable) would be a new package family (client, connector) plus its own MCP
+   server app (the axes under "What this repo
    is"). Extract shared packages on the second concrete
    consumer, never speculatively.
 

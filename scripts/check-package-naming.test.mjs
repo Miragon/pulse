@@ -24,7 +24,7 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."
 const require = createRequire(import.meta.url)
 
 const SDK = "packages/connectors/camunda/camunda7-client/src/generated"
-const DOMAIN = "packages/connectors/camunda/camunda7-domain"
+const CONNECTOR = "packages/connectors/camunda/camunda7-connector"
 const WORKSPACE = [
   "packages:",
   '  - "apps/*"',
@@ -41,7 +41,7 @@ const EXTENSION = {
 }
 const scoped = (dir) => ({ name: `@miragon/pulse-${path.posix.basename(dir)}` })
 
-/** Today's packages plus the CLI, the extension and the first -domain package. */
+/** The repo's packages. */
 const FUTURE = {
   "pnpm-workspace.yaml": WORKSPACE,
   "apps/mcp-server-camunda7/package.json": {
@@ -53,7 +53,6 @@ const FUTURE = {
   "apps/vscode/package.json": EXTENSION,
   "packages/core/widget-shell/package.json": { name: "@miragon/pulse-widget-shell" },
   "packages/connectors/camunda/camunda7-client/package.json": scoped("camunda7-client"),
-  "packages/connectors/camunda/camunda7-domain/package.json": scoped("camunda7-domain"),
   "packages/connectors/camunda/camunda7-connector/package.json": scoped("camunda7-connector"),
   "packages/connectors/analytics/analytics-client/package.json": scoped("analytics-client"),
   "packages/connectors/analytics/analytics-connector/package.json": scoped("analytics-connector"),
@@ -263,7 +262,7 @@ describe("checkPackageName: VS Code extension (an app with engines.vscode)", () 
 
   it("grants no exception outside apps/: engines.vscode there fails on its own", () => {
     const vscode = { private: true, engines: { vscode: "^1.101.0" } }
-    for (const dir of ["packages/core/foo", DOMAIN]) {
+    for (const dir of ["packages/core/foo", CONNECTOR]) {
       const errors = checkPackageName(dir, { ...vscode, name: `pulse-${path.posix.basename(dir)}` })
       assert.equal(errors.length, 2, JSON.stringify(errors))
       assert.match(errors[0], /only an app under apps\/ can be one/)
@@ -283,37 +282,24 @@ describe("checkPackageName: VS Code extension (an app with engines.vscode)", () 
 })
 
 describe("checkPackageName: connector families", () => {
-  it("admits -domain next to -connector and -client, in any family", () => {
-    assert.deepEqual(checkPackageName(DOMAIN, scoped(DOMAIN)), [])
-    assert.deepEqual(
-      checkPackageName("packages/connectors/camunda8/camunda8-domain", {
-        name: "@miragon/pulse-camunda8-domain",
-      }),
-      [],
-    )
-  })
-
   it("rejects every other suffix", () => {
     for (const base of [
       "camunda7-core",
-      "camunda7domain",
-      "camunda7-domains",
-      "camunda7-domain-utils",
+      "camunda7-domain",
+      "camunda7connector",
+      "camunda7-clients",
+      "camunda7-client-utils",
       "client",
     ]) {
       const dir = `packages/connectors/camunda/${base}`
-      assertOne(
-        checkPackageName(dir, scoped(dir)),
-        /must end in -connector, -client or -domain/,
-        base,
-      )
+      assertOne(checkPackageName(dir, scoped(dir)), /must end in -connector or -client/, base)
     }
   })
 
   it("rejects an npm name that does not mirror the directory", () => {
     assertOne(
-      checkPackageName(DOMAIN, { name: "@miragon/pulse-c7-domain" }),
-      /npm name must be '@miragon\/pulse-camunda7-domain'/,
+      checkPackageName(CONNECTOR, { name: "@miragon/pulse-c7-connector" }),
+      /npm name must be '@miragon\/pulse-camunda7-connector'/,
       "c7",
     )
   })
@@ -322,10 +308,9 @@ describe("checkPackageName: connector families", () => {
 describe("checkPackageName: directory rules", () => {
   it("keeps the role suffixes to packages/connectors/<family>/", () => {
     for (const dir of [
-      "packages/core/camunda7-domain",
+      "packages/core/camunda7-connector",
       "packages/core/shared-client",
       "apps/foo-connector",
-      "apps/foo-domain",
     ]) {
       assertOne(checkPackageName(dir, scoped(dir)), /belongs to packages\/connectors/, dir)
     }
@@ -345,8 +330,8 @@ describe("checkPackageName: directory rules", () => {
       ["apps/pulse", { name: "@miragon/pulse-pulse" }],
       ["packages/core/pulse-kit", { name: "@miragon/pulse-pulse-kit" }],
       [
-        "packages/connectors/camunda/pulse-camunda7-domain",
-        { name: "@miragon/pulse-pulse-camunda7-domain" },
+        "packages/connectors/camunda/pulse-camunda7-client",
+        { name: "@miragon/pulse-pulse-camunda7-client" },
       ],
       ["apps/pulse-vscode", { name: "pulse-cockpit", engines: { vscode: "^1.101.0" } }],
     ]) {
@@ -386,7 +371,7 @@ describe("checkPackageName: directory rules", () => {
   it("covers exactly the four layouts", () => {
     assert.equal(packageKind("apps/cli"), "app")
     assert.equal(packageKind("packages/core/widget-shell"), "core")
-    assert.equal(packageKind(DOMAIN), "connector-family")
+    assert.equal(packageKind(CONNECTOR), "connector-family")
     assert.equal(packageKind("docs"), "docs")
     for (const dir of [
       "packages/domains/x",
@@ -581,7 +566,7 @@ describe("checkAppDependencies: no package declares an app", () => {
           extension({
             dependencies: { "some-engine-cli": "0.9.0", "pulse-tools": "1.0.0" },
             devDependencies: {
-              "@miragon/pulse-camunda7-domain": "workspace:*",
+              "@miragon/pulse-camunda7-client": "workspace:*",
               "@miragon/pulse-client": "workspace:*",
               core: "workspace:^1.0.0",
               sibling: "link:../vscode-tools",
@@ -606,9 +591,9 @@ describe("checkAppDependencies: no package declares an app", () => {
 })
 
 describe("checkPackageNaming over a fixture tree", () => {
-  it("passes the future layout: CLI, extension and a -domain package", () => {
+  it("passes the repo's layout: server, CLI, extension, core and connector families", () => {
     inTree(FUTURE, (root) => {
-      assert.deepEqual(checkPackageNaming(root), { errors: [], checked: 10 })
+      assert.deepEqual(checkPackageNaming(root), { errors: [], checked: 9 })
     })
   })
 
@@ -756,7 +741,7 @@ describe("checkLayout", () => {
       ...BASE,
       "apps/vscode/src/generated/catalog.ts",
       "apps/vscode/src/generated/messages.ts",
-      `${DOMAIN}/src/generated/x.ts`,
+      `${CONNECTOR}/src/generated/x.ts`,
       "packages/core/widget-shell/src/Generated/x.ts",
       `${SDK}/nested/generated/x.ts`,
     ])
@@ -765,7 +750,7 @@ describe("checkLayout", () => {
       [
         "apps/vscode/src/generated",
         `${SDK}/nested/generated`,
-        `${DOMAIN}/src/generated`,
+        `${CONNECTOR}/src/generated`,
         "packages/core/widget-shell/src/Generated",
       ],
     )
@@ -811,8 +796,8 @@ describe("checkLayout", () => {
     const offenders = [
       "apps/vscode/src/webview/x.mjs",
       "apps/cli/src/a.js",
-      `${DOMAIN}/src/a.cts`,
-      `${DOMAIN}/src/b.mts`,
+      `${CONNECTOR}/src/a.cts`,
+      `${CONNECTOR}/src/b.mts`,
       "packages/core/widget-shell/src/c.cjs",
       "packages/core/widget-shell/src/d.jsx",
       "apps/cli/src/E.JS",
@@ -833,9 +818,9 @@ describe("checkLayout", () => {
         "apps/vscode/build.mjs",
         "apps/vscode/esbuild.config.js",
         "apps/cli/test/helper.js",
-        `${DOMAIN}/src/a.ts`,
-        `${DOMAIN}/src/b.d.ts`,
-        `${DOMAIN}/src/c.json`,
+        `${CONNECTOR}/src/a.ts`,
+        `${CONNECTOR}/src/b.d.ts`,
+        `${CONNECTOR}/src/c.json`,
         "apps/vscode/src/webview/view.tsx",
       ]),
       [],
@@ -862,7 +847,7 @@ describe("checkLayout", () => {
         ...BASE,
         "apps/cli/package.json",
         "packages/core/x/package.json",
-        "packages/connectors/fam/x-domain/package.json",
+        "packages/connectors/fam/x-client/package.json",
       ]),
       [],
     )
@@ -874,7 +859,7 @@ describe("checkLayout", () => {
       "apps/vscode/pnpm-lock.yaml",
       "apps/cli/package-lock.json",
       "packages/core/x/yarn.lock",
-      `${DOMAIN}/npm-shrinkwrap.json`,
+      `${CONNECTOR}/npm-shrinkwrap.json`,
       "apps/vscode/bun.lock",
       "apps/vscode/bun.lockb",
     ]

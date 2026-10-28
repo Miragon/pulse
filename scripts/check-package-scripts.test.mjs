@@ -253,7 +253,7 @@ const STRYKER_OK = { exists: true, config: GOOD_STRYKER }
 describe("checkPackageConfigs: the configs a source package's scripts measure against", () => {
   it("accepts a package with a vitest.config.ts and a valid stryker.config.json", () => {
     assert.deepEqual(
-      checkPackageConfigs("packages/connectors/camunda/camunda7-domain", {
+      checkPackageConfigs("packages/connectors/camunda/camunda7-connector", {
         hasVitestConfig: true,
         stryker: STRYKER_OK,
       }),
@@ -262,14 +262,14 @@ describe("checkPackageConfigs: the configs a source package's scripts measure ag
   })
 
   it("requires a vitest.config.ts: vitest's default measures no coverage", () => {
-    const errors = checkPackageConfigs("packages/connectors/camunda/camunda7-domain", {
+    const errors = checkPackageConfigs("packages/connectors/camunda/camunda7-connector", {
       hasVitestConfig: false,
       stryker: STRYKER_OK,
     })
     assert.equal(errors.length, 1)
     assert.match(
       errors[0],
-      /^packages\/connectors\/camunda\/camunda7-domain: no vitest\.config\.ts/,
+      /^packages\/connectors\/camunda\/camunda7-connector: no vitest\.config\.ts/,
     )
     assert.match(errors[0], /sharedConfig/)
   })
@@ -356,7 +356,7 @@ const SCRIPTS = { ...COMPLETE, "test:mutation": "stryker run" }
 /**
  * A workspace fixture: every package below passes, so each case breaks one
  * thing. The apps are the ones P1 prepares for (a published CLI and a VS Code
- * extension, which declares engines.vscode), plus a -domain package and an
+ * extension, which declares engines.vscode), plus a connector package and an
  * exempt server app.
  */
 const PACKAGES = {
@@ -367,8 +367,8 @@ const PACKAGES = {
     stryker: GOOD_STRYKER,
   },
   "apps/server": { name: "@miragon/pulse-fixture-root", stryker: null },
-  "packages/connectors/camunda/camunda7-domain": {
-    name: "@miragon/pulse-camunda7-domain",
+  "packages/connectors/camunda/camunda7-connector": {
+    name: "@miragon/pulse-camunda7-connector",
     stryker: GOOD_STRYKER,
   },
 }
@@ -410,21 +410,21 @@ function workspaceErrors(change, { noMutationApps = EXEMPT } = {}) {
   }
 }
 
-const DOMAIN = "packages/connectors/camunda/camunda7-domain"
+const CONNECTOR = "packages/connectors/camunda/camunda7-connector"
 
 describe("checkWorkspace over fixture trees", () => {
   it("passes the fixture as built and checks only packages with src/", () => {
     const { errors, sourceDirs } = workspaceErrors()
     assert.deepEqual(errors, [])
-    assert.deepEqual(sourceDirs, ["apps/cli", "apps/server", "apps/vscode", DOMAIN])
+    assert.deepEqual(sourceDirs, ["apps/cli", "apps/server", "apps/vscode", CONNECTOR])
   })
 
-  it("flags a -domain package without vitest.config.ts", () => {
-    const { errors } = workspaceErrors((p) => (p[DOMAIN].vitest = false))
+  it("flags a connector package without vitest.config.ts", () => {
+    const { errors } = workspaceErrors((p) => (p[CONNECTOR].vitest = false))
     assert.deepEqual(errors.length, 1)
     assert.match(
       errors[0],
-      /^packages\/connectors\/camunda\/camunda7-domain: no vitest\.config\.ts/,
+      /^packages\/connectors\/camunda\/camunda7-connector: no vitest\.config\.ts/,
     )
   })
 
@@ -461,10 +461,10 @@ describe("checkWorkspace over fixture trees", () => {
       /"reporters" does not include "json"/,
     ],
   ]) {
-    it(`flags a -domain package's stryker.config.json with ${label}`, () => {
-      const { errors } = workspaceErrors((p) => (p[DOMAIN].stryker = stryker))
+    it(`flags a connector package's stryker.config.json with ${label}`, () => {
+      const { errors } = workspaceErrors((p) => (p[CONNECTOR].stryker = stryker))
       assert.equal(errors.length, 1, errors.join("\n"))
-      assert.ok(errors[0].startsWith(`${DOMAIN}/stryker.config.json: `), errors[0])
+      assert.ok(errors[0].startsWith(`${CONNECTOR}/stryker.config.json: `), errors[0])
       assert.match(errors[0], pattern)
     })
   }

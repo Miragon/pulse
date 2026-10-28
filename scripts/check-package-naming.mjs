@@ -11,7 +11,7 @@
  *   directory is lowercase kebab-case and never repeats the product prefix
  *   ("pulse-"), and no pnpm-workspace.yaml glob reaches another layout.
  * - A connector-family package ends in a role suffix (CONNECTOR_ROLES:
- *   -connector, -client, -domain); apps and foundation packages carry none,
+ *   -connector, -client); apps and foundation packages carry none,
  *   because the dependency-cruiser rules match the suffix by name.
  * - The npm name is @miragon/pulse-<dir>. The one exception is a VS Code
  *   extension, an app whose package.json declares engines.vscode: vsce takes no
@@ -58,7 +58,7 @@ import { expandWorkspaceGlobs, workspaceGlobs } from "./check-package-scripts.mj
  * dependency-cruiser rule (the lockstep test in check-package-naming.test.mjs
  * fails otherwise): add a role there in the same change as here.
  */
-export const CONNECTOR_ROLES = ["connector", "client", "domain"]
+export const CONNECTOR_ROLES = ["connector", "client"]
 
 /**
  * The only generated/ directories under apps/ or packages/, each with the
@@ -376,8 +376,7 @@ export function checkAppDependencies(packages) {
             `(an import, require.resolve, its bin, a spawned process) only through such a ` +
             `declaration, and the apps stay apart: no CLI inside the MCP server (no argv tool, ` +
             `no process), no extension wired to the CLI, no package on top of an app. Move ` +
-            `what two of them share into a package (engine use cases into a -domain package, ` +
-            `MCP plumbing into packages/core) and drop the declaration`,
+            `what two of them share into a package and drop the declaration`,
         )
       }
     }
