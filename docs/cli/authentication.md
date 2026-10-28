@@ -11,7 +11,7 @@ one, and [headers](#other-headers) for other schemes.
   `PULSE_CLI_URL` set, the profile's credentials go to that URL: check `pulse-cli config show`.
 - Secrets are never plain flags and are masked (`***`) in output unless `--show-secrets`.
 
-The short form for agents: `pulse-cli guide auth`; every option: `pulse-cli auth <command> --help`.
+Every option: `pulse-cli auth <command> --help`.
 
 ## Basic auth
 
@@ -72,6 +72,8 @@ $ pulse-cli process-instance list --profile sso
 | audience      | `PULSE_CLI_OAUTH_AUDIENCE`                                                 | `--oauth-audience <audience>` (Auth0 style parameter)      |
 | redirect port | `PULSE_CLI_OAUTH_REDIRECT_PORT`                                            | `--oauth-redirect-port <port>`, default 0 (any free port)  |
 
+- An agent never runs `auth login` itself: on `LOGIN_REQUIRED` it asks the person to run the
+  command of the hint in a terminal, then retries.
 - `auth login [--no-browser] [--login-timeout <ms>]` prints the URL, opens the browser and waits
   on `127.0.0.1`. Over SSH: set `--oauth-redirect-port 8765`, run
   `ssh -L 8765:127.0.0.1:8765 host` and open the URL locally.
@@ -81,7 +83,7 @@ $ pulse-cli process-instance list --profile sso
 - Tokens are cached in `~/.config/pulse-cli/tokens` (mode `0600`). Changing issuer, client, audience
   or scopes needs a new login.
 - `UNAUTHORIZED` or `FORBIDDEN` after a successful login are gateway (issuer, audience, clock) or
-  permission problems, not login problems. The gateway must expect exactly the issuer URL pulse-cli
+  permission problems, not login problems: do not ask for a new login. The gateway must expect exactly the issuer URL pulse-cli
   logs in with (`localhost` and `127.0.0.1` differ).
 - URLs must use `https://` (`http://` only for loopback).
 

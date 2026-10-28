@@ -1,7 +1,7 @@
 /**
- * Drift protection between the docs and the real command line: every `pulse-cli` command of the guide
- * (the core and every topic), of the README and of every page of docs/ (each page in order on its
- * own fake engine) and every example of every operation must run in the CLI with exit code 0
+ * Drift protection between the docs and the real command line: every `pulse-cli` command of the core
+ * guide, of the README and of every page of docs/ (the guide topics; each page in order on its own
+ * fake engine) and every example of every operation must run in the CLI with exit code 0
  * (examples with --dry-run, whose preview must show the method and path of the operation).
  * src/cli/command-lines.test.ts checks them against the catalog; this test runs them.
  */
@@ -14,11 +14,11 @@ import {
   type FakeRuntime,
   fakeRuntime,
 } from "../../test/support/fake-runtime.js"
-import { GUIDE_PAGES } from "../../test/support/guide-pages.js"
 import { WorkflowEngine } from "../../test/support/workflow-engine.js"
 import { loadCatalog } from "../catalog/catalog.js"
 import type { OperationSpec } from "../catalog/types.js"
 import { examplesFor } from "../docs/examples.js"
+import { GUIDE } from "../docs/guide.js"
 import { commandWords } from "../docs/text.js"
 import { run } from "./run.js"
 
@@ -192,8 +192,8 @@ describe("documented command lines run in the CLI", () => {
     })
   })
 
-  it.each(GUIDE_PAGES)("runs the commands of the guide page %s in order", async (_, text) => {
-    const page = fencedCommands(text)
+  it("runs the commands of the core guide in order", async () => {
+    const page = fencedCommands(GUIDE)
     expect(page.length).toBeGreaterThan(0)
     expect(await failures(page, documentedRuntime(page.flat()))).toEqual([])
   })

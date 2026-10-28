@@ -24,9 +24,7 @@ describe("pulse-cli guide", () => {
   it.each(GUIDE_TOPICS.map((topic) => [topic.name, topic.text] as const))(
     "prints the topic %s as markdown",
     async (name, text) => {
-      const result = await cli(["guide", name])
-      expect(result).toMatchObject({ code: 0, stdout: text, stderr: "" })
-      expect(result.stdout.startsWith(`# pulse-cli guide ${name}: `)).toBe(true)
+      expect(await cli(["guide", name])).toMatchObject({ code: 0, stdout: text, stderr: "" })
     },
   )
 

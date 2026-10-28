@@ -3,8 +3,7 @@
 Every GET, POST, PUT and DELETE operation of the REST API is a command generated from the OpenAPI
 spec: 396 commands in 52 groups. The OPTIONS operations (HATEOAS link discovery) are reachable with
 `pulse-cli api OPTIONS <path>`. This page has the rules for names and values;
-`pulse-cli guide input` prints the short form, and `pulse-cli describe <group> <command>` shows the
-arguments, options and body schema of one command.
+`pulse-cli describe <group> <command>` shows the arguments, options and body schema of one command.
 
 ```text
 pulse-cli <group> <command> [path-args...] [options] [global options]
@@ -33,7 +32,7 @@ Path parameters are positional arguments in path order
 (`pulse-cli process-instance get-variable <id> <var-name>`). Query parameters and body properties
 are kebab-case flags (`businessKey` → `--business-key`); integers, numbers and enums are validated
 before sending. Booleans have a `--no-` form (`--no-with-incident` sends `false`), and arrays are
-comma separated or repeated. The details: `pulse-cli guide input`.
+comma separated or repeated (`--process-instance-ids a,b --process-instance-ids c`).
 
 ## Variables
 

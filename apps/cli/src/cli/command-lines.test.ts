@@ -1,6 +1,6 @@
 /**
  * Every example command line (curated and generic) and every `pulse-cli` command in the code blocks
- * of the guide (the core and every topic) must be valid against the catalog: known group and
+ * of the core guide must be valid against the catalog: known group and
  * command, the right number of positional arguments, only options the command registers (operation
  * options from `operationOptions`, `--no-x` for boolean options, the global options of
  * GLOBAL_FLAGS) and values the CLI accepts. So neither the examples nor the guide can drift from
@@ -9,9 +9,9 @@
 
 import { describe, expect, it } from "vitest"
 import { DOC_PAGES } from "../../test/support/doc-pages.js"
-import { GUIDE_PAGES } from "../../test/support/guide-pages.js"
 import { GLOBAL_OPTIONS } from "./globals.js"
 import { examplesFor } from "../docs/examples.js"
+import { GUIDE } from "../docs/guide.js"
 import { commandWords } from "../docs/text.js"
 import { WORKFLOW_DOCS } from "../docs/workflow.js"
 import { catalog, commandLineChecker, guideCommands } from "../../test/support/command-lines.js"
@@ -161,27 +161,19 @@ describe("workflow examples", () => {
 })
 
 /**
- * The minimum number of command lines over all guide pages: well below their count, so that
+ * The minimum number of command lines of the core guide: well below their count, so that
  * independent edits that each drop a few lines cannot break main by a narrow margin.
  */
-const MIN_GUIDE_COMMANDS = 60
+const MIN_GUIDE_COMMANDS = 15
 
-describe("guide", () => {
-  const commands = GUIDE_PAGES.flatMap(([page, text]) =>
-    guideCommands(text).map((words) => [page, words] as const),
-  )
+describe("core guide", () => {
+  const commands = guideCommands(GUIDE)
 
-  it("has plenty of command lines over all pages, and some on every page", () => {
+  it("has plenty of command lines", () => {
     expect(commands.length).toBeGreaterThanOrEqual(MIN_GUIDE_COMMANDS)
-    expect(new Set(commands.map(([page]) => page))).toEqual(
-      new Set(GUIDE_PAGES.map(([page]) => page)),
-    )
   })
 
-  it.each(commands.map(([page, words]) => [page, words.join(" "), words] as const))(
-    "%s: %s is valid",
-    (_, __, words) => {
-      checkCommandLine(words)
-    },
-  )
+  it.each(commands.map((words) => [words.join(" "), words] as const))("%s is valid", (_, words) => {
+    checkCommandLine(words)
+  })
 })

@@ -84,4 +84,5 @@ Up to 0.10.0 the CLI was operate; pulse-cli reads none of its names.
 A change to a command, an option, an output or an error changes, in the same commit, the guide
 and help texts in `apps/cli/src/docs/`, the page in `docs/cli/` and, where it applies, the skill
 in `apps/cli/skills/pulse-cli/SKILL.md`. Each page in `docs/cli/` has a line budget in
-`apps/mcp-server-camunda7/test/docs-refs.test.ts`.
+`apps/mcp-server-camunda7/test/docs-refs.test.ts`. The topics of `pulse-cli guide <topic>` are pages
+of `docs/cli/`, bundled as text (`GUIDE_TOPICS`): such a page is read by agents offline too.

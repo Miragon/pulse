@@ -2,8 +2,7 @@
 
 ## Output
 
-stdout carries exactly the engine response, stderr everything else. `pulse-cli guide output` prints
-the full rules, also for XML, text and binary responses and `--out-file`.
+stdout carries exactly the engine response, stderr everything else.
 
 - **Format**: JSON when stdout is not a terminal, a table on a terminal. `-o json|table`,
   `PULSE_CLI_OUTPUT` or the profile setting override it. JSON is compact when piped and indented on
@@ -14,6 +13,10 @@ the full rules, also for XML, text and binary responses and `--out-file`.
   fit the terminal (120 characters when piped).
 - **No content** (HTTP 204): stdout stays empty, stderr gets
   `Done: <METHOD> <path> → 204 No Content`.
+- XML commands (`process-definition xml`, ...) print the raw XML unless `-o json` or `--fields`,
+  text responses (`job get-stacktrace`, ...) print raw, binary ones need `--out-file` on a
+  terminal. `--out-file <path>` writes the body as received and prints
+  `{"outFile", "bytes", "contentType"}`.
 - **`--dry-run`** prints the request instead of sending it; `-o table` prints only the `curl`
   command line:
 

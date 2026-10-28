@@ -4,15 +4,14 @@ Every setting is resolved per value: **flag > environment variable > profile > d
 `pulse-cli config show` prints the effective values and where each one comes from. Profiles live in
 your config file and, for a repository, in its [project file](#project-file).
 
-The short form for agents: `pulse-cli guide config`; every option:
-`pulse-cli config <command> --help`.
+Every option: `pulse-cli config <command> --help`.
 
 ## Global options
 
 These work on every API command, `api` and `ping`, after the command path
 (`pulse-cli task list -o table`): target (`--url`, `--engine`, `--flavor`, `--profile`,
 `--config`), output
-(`-o`, `--fields`, `--pretty`, `--out-file`, `--verbose`), guards (`--dry-run`, `--yes`,
+(`-o/--output`, `--fields`, `--pretty`, `--out-file`, `--verbose`), guards (`--dry-run`, `--yes`,
 `--read-only`), requests (`--timeout`, `-H`) and [authentication](authentication.md). The list with
 meanings and variables: `pulse-cli ping --help`.
 

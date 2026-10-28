@@ -9,5 +9,6 @@ export default defineConfig({
   clean: true,
   dts: false,
   sourcemap: false,
+  loader: { ".md": "text" },
   fixedExtension: false,
 })

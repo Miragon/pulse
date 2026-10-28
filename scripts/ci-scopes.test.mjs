@@ -56,8 +56,8 @@ describe("scopesFor: prose reaches only the checks that read it", () => {
     assert.deepEqual(scopes("apps/cli/skills/pulse-cli/SKILL.md"), ["cli", "typescript"])
   })
 
-  it("runs the CLI's tests for its pages of the docs site", () => {
-    assert.deepEqual(scopes("docs/cli/commands.md"), ["brand", "typescript"])
+  it("runs the CLI's tests and builds for its pages of the docs site", () => {
+    assert.deepEqual(scopes("docs/cli/commands.md"), ["brand", "cli", "typescript"])
   })
 
   it("runs the token drift test for the vendored docs kit, not for the rest of the site's config", () => {

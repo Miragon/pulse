@@ -32,8 +32,8 @@ export const PATH_RULES = [
   { pattern: /^(?:\.github\/workflows\/ci\.yml$|\.github\/actions\/|scripts\/)/, scopes: SCOPES },
   // Checked by lint:github only.
   { pattern: /^\.github\//, scopes: ["typescript"] },
-  // Read by the CLI's tests.
-  { pattern: /^docs\/cli\//, scopes: ["typescript", "brand"] },
+  // Read by the CLI's tests and bundled into the CLI as its guide topics.
+  { pattern: /^docs\/cli\//, scopes: ["typescript", "brand", "cli"] },
   // Read by the token drift test.
   { pattern: /^docs\/\.vitepress\/miragon\//, scopes: ["typescript", "brand"] },
   { pattern: /^docs\//, scopes: ["brand"] },
