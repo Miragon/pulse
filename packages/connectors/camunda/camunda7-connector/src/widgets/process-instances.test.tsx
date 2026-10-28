@@ -9,13 +9,8 @@ import { CAMUNDA7_PROCESS_INSTANCES_DATA } from "../tool-names.js"
 import type { ProcessInstancesData } from "../view-models.js"
 import { ProcessInstancesView } from "./process-instances/list.js"
 
-/**
- * #329: the feed maps a `false` run-state flag onto its complement
- * (`complementaryFlags`), so page 0 of `active: false` holds only suspended
- * instances. Every in-widget refetch — Load more, a chip, the search — must
- * reach the feed with the SAME run-state filter, or later pages mix in rows
- * page 0 excluded under page 0's total.
- */
+// #329: the feed maps a `false` run-state flag onto its complement, so every refetch must carry the
+// SAME filter or later pages mix in rows page 0 excluded.
 
 afterEach(() => {
   cleanup()
@@ -24,10 +19,8 @@ afterEach(() => {
 
 type StateFlags = { active?: boolean; suspended?: boolean }
 
-/** What the engine filters a feed call to — the feed's own mapping. */
 const runState = (args: StateFlags) => complementaryFlags(args, "active", "suspended")
 
-/** Page 0 as `buildProcessInstancesData` returns it for these show-tool args. */
 function firstPage(flags: StateFlags): ProcessInstancesData {
   return {
     processDefinitionKey: "invoice",
@@ -50,7 +43,6 @@ function firstPage(flags: StateFlags): ProcessInstancesData {
   }
 }
 
-/** Renders `view` against a feed fixture that records every call's args. */
 function renderWithFeed(view: ComponentType<Record<string, unknown>>) {
   const calls: Array<Record<string, unknown>> = []
   const feed = (args: Record<string, unknown>) => {
@@ -101,13 +93,8 @@ describe("process-instances widget keeps page 0's run-state filter", () => {
   })
 })
 
-/**
- * #396 (inline fit): in a chat's column the engine-wide list gives the
- * process name its width. The version goes onto the process's quiet line,
- * the State column hides below 48rem (container query), and a suspended row
- * then says so in its first cell, never by the dot's colour alone. A scoped
- * list has room for both columns.
- */
+// #396: inline the version moves to the quiet line and State hides below 48rem, so a suspended row
+// says so in its first cell, never by the dot's colour alone.
 describe("the engine-wide list's columns", () => {
   function engineWide(): ProcessInstancesData {
     const page = firstPage({})
@@ -136,7 +123,7 @@ describe("the engine-wide list's columns", () => {
     expect(open.className).toMatch(/\bh-8\b/)
     expect(open.className).toMatch(/\btext-sm\b/)
     expect(open.className).toMatch(/\bfont-semibold\b/)
-    // The button's name replaces its content for a screen reader: it says the version.
+    // The aria-label replaces the content for a screen reader, so it must state the version.
     expect(process.getAttribute("aria-label")).toBe("Open process Invoice receipt, version 7")
   })
 

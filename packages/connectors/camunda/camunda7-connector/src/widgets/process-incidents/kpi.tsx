@@ -6,7 +6,6 @@ import { useT } from "../../messages/use-t.js"
 import { diagramActivityFraction } from "./activity-scope.js"
 import { useDefinitionData } from "./feed.js"
 
-/** The unified definition KPI strip: execution health + incident load in one row. */
 export function ProcessDefinitionKpi({
   data: initialData = null,
   processDefinitionKey,
@@ -41,8 +40,7 @@ export function ProcessDefinitionKpi({
 
   const title = data.processDefinitionName ?? data.processDefinitionKey
   const fraction = diagramActivityFraction(data)
-  // Both sides of the fraction count the diagram's activities; those only
-  // older versions have are named beside it, never folded into it.
+  // Activities only older versions have are named beside the fraction, never folded in.
   const activitiesCell: KpiCell = fraction
     ? {
         label: t("procIncKpi.activitiesAffected"),
@@ -55,17 +53,14 @@ export function ProcessDefinitionKpi({
       }
     : { label: t("procIncKpi.activitiesAffected"), value: formatNumber(data.activities.length) }
 
-  // One severity ladder (#322 U14): open incidents and jobs without retries
-  // are danger while there are any; running instances and the 24 h count are
-  // counts — neutral, never a green or red digit.
+  // #322 U14: counts stay neutral, never a green or red digit.
   const cells: KpiCell[] = [
     {
       label: t("procIncKpi.running"),
       value: formatNumber(data.runningInstances),
       onClick: () =>
         go({ type: "process-instances", processDefinitionKey: data.processDefinitionKey }),
-      // Named by its visible label and value (WCAG 2.5.3); the hint says
-      // what the click does.
+      // WCAG 2.5.3: named by its visible label and value.
       actionHint: t("procIncKpi.runningAria", { name: title }),
     },
     {

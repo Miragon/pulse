@@ -1,9 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { cibsevenProvider } from "../providers/index.js"
 
-// The instance-detail builder with a mocked SDK: the form wiring and the
-// enrichment fallbacks. Its primary reads failing (engine down, unknown id)
-// is the rejection table in `honest-numbers.test.ts`.
+// Primary-read failures are the rejection table in `honest-numbers.test.ts`.
 vi.mock("@miragon/pulse-camunda7-client/sdk", () => ({
   getActivityInstanceTree: vi.fn(),
   getIncidents: vi.fn(),

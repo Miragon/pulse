@@ -11,14 +11,7 @@ import {
   type RecordedRequest,
 } from "./test-support/fake-engine.js"
 
-/**
- * Guard for #329: every filter a tool advertises must REACH the engine, under
- * the engine's own name and encoding — on the page query AND its /count twin
- * (else the total contradicts the page). Before, an undeclared filter was
- * stripped silently and a declared one could still be a no-op on the engine
- * side (a `false` flag, a LIKE value without `%`), so the "filtered" answer
- * was engine-wide.
- */
+/** #329: every advertised filter must reach the page query AND its /count twin, in the engine's encoding. */
 
 const tools = captureTools(
   (register) => registerTools(register, { allowDeployments: true }),
@@ -30,7 +23,6 @@ afterEach(async () => {
   await Promise.all(engines.splice(0).map((engine) => engine.close()))
 })
 
-/** Calls `name` against a fresh recording engine that answers every list with []. */
 async function requestsOf(name: string, args: Record<string, unknown>) {
   const engine = await startFakeEngine({}, { body: [] })
   engines.push(engine)
@@ -40,7 +32,6 @@ async function requestsOf(name: string, args: Record<string, unknown>) {
   return engine.requests
 }
 
-/** The page query and its /count twin both carry `expected`. */
 function expectBothQueries(requests: RecordedRequest[], path: string, expected: object) {
   expect(requests.map((r) => r.path).sort()).toEqual([path, `${path}/count`])
   for (const request of requests) expect(request.query).toMatchObject(expected)
@@ -210,14 +201,9 @@ describe("plain list tools carry their show twins' filters", () => {
   })
 })
 
-/**
- * The engine IGNORES a `false` boolean filter (HTTP 200, unfiltered) — it
- * neither negates nor rejects it. No list tool may forward one: a `false` is
- * either sent as the complementary flag or not at all.
- */
+/** The engine IGNORES a `false` boolean filter (HTTP 200, unfiltered). */
 describe("false boolean filters never reach the engine", () => {
-  // The list/query tools: their booleans are engine query FILTERS (a write's
-  // body flag such as updateEventTriggers=false is an explicit value).
+  // A write's body flag such as updateEventTriggers=false is an explicit value, not a filter.
   const FLAG_TOOLS = [...tools.values()].flatMap((config) => {
     const shape = (config.inputSchema ?? {}) as Record<string, z.ZodType>
     if (!/^camunda7_(list|query)_/.test(config.name)) return []
@@ -273,11 +259,8 @@ describe("false boolean filters never reach the engine", () => {
 })
 
 /**
- * A complementary pair that asks for both states or neither has no honest
- * engine answer: active/suspended and withRetriesLeft/noRetriesLeft set ONE
- * engine field, so the engine keeps the flag it applies last and returns one
- * state as if it were the filtered result; the other pairs return nothing.
- * The tool refuses the contradiction before any request.
+ * active/suspended and withRetriesLeft/noRetriesLeft set ONE engine field, so the engine keeps
+ * the last flag and returns one state as if filtered; the other pairs return nothing.
  */
 describe("a contradictory flag pair is refused, not answered", () => {
   it.each([

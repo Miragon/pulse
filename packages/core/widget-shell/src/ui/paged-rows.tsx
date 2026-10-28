@@ -4,19 +4,9 @@ import { RowsBudgeted } from "./inline-budget.js"
 import type { PagedViewData } from "./use-paged-view-data.js"
 
 /**
- * The rows of a paged list — its table (or row cards) and empty state —
- * marked while they are the PREVIOUS result (`paged.stale`: a new search or
- * filter is in flight or has failed) and `aria-busy` while a page 0 is in
- * flight. The mark is a bar along the left edge in the tone of the state
- * (info while the new page loads, warning once it failed), not a dimming:
- * faded rows push muted text under 4.5:1. Pairs with the toolkit's
- * `PagedListFooter` (`paged` passes as is), whose live count line says in
- * words what the bar marks ("Updating…", the failure above it), so old rows
- * under a new search never read as its answer. The toolkit did not lift this
- * piece: it is the kit's own. Its rows are already the inline head
- * (`usePagedViewData`, #396), so a `ListTable` inside does not cap them again
- * and hands its body to the list's fit; without a table, the wrapper's
- * children (row cards) are the rows the fit measures.
+ * Marks PREVIOUS-result rows with an edge bar, not a dimming: faded rows push
+ * muted text under 4.5:1. The footer says in words what the bar marks, so old
+ * rows never read as the new search's answer.
  */
 export function PagedRows<TItem, TData>({
   paged,
@@ -24,7 +14,6 @@ export function PagedRows<TItem, TData>({
   children,
 }: {
   paged: PagedViewData<TItem, TData>
-  /** Merged into the wrapper (e.g. the `flex flex-col gap-2` of a card list). */
   className?: string
   children: ReactNode
 }) {

@@ -20,12 +20,7 @@ const INCIDENT = {
 
 const onProdB = { ...INCIDENT, engineId: "prod-b" } as IncidentDetailData
 
-/**
- * The incident hand-offs pin the incident's engine as an id (the cockpit never
- * moves the saved default, so an engine-less call would route elsewhere) and
- * only ever send the model to tools it can call: the app-only incident and
- * instance feeds are hidden from it by every SEP-1865 host.
- */
+/** The cockpit never moves the saved default, so an engine-less call would route elsewhere. */
 describe("incident Ask-AI hand-offs", () => {
   it("the ticket draft calls the format tool on the incident's engine", async () => {
     const prompt = (await handOffFor("read-only")).ask(draftTicketHandOff(onProdB))!

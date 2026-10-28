@@ -68,9 +68,7 @@ describe("HostDocument", () => {
     })
     const style = document.documentElement.style
     expect(style.getPropertyValue("--color-text-primary")).toBe("#f5f4ef")
-    // The host's font moves into the fallback slot of the theme's font roles
-    // (the toolkit's adoptHostFontVariables): Geist stays first in the stack,
-    // then the host's font, then the system.
+    // Geist stays first; the host's font moves into the fallback slot.
     expect(style.getPropertyValue("--host-font-sans")).toBe("HostSans")
     expect(style.getPropertyValue("--font-sans")).toBe("")
     expect(style.getPropertyValue("--host-font-mono")).toBe("")

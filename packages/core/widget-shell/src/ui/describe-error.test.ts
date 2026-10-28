@@ -1,13 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { classifyError, describeError, type ErrorKind } from "./describe-error.js"
 
-/**
- * The mapping table (U1): every error text the wire carries into a widget —
- * the camunda7 client's engine responses through `withToolErrors`, its
- * network and deadline failures, Prometheus', a JSON-RPC "tool not found"
- * from a server without the module, a browser's failed fetch — onto one
- * kind, its status and its source.
- */
+/** The mapping table (U1): every error text the wire carries onto one kind, status and source. */
 const TABLE: Array<[raw: string, kind: ErrorKind, status: number | undefined, source: string]> = [
   [
     "[503 ProcessEngineException] Engine is shutting down (engine prod-leasing)",

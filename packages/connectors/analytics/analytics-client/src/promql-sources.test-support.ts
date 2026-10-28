@@ -1,26 +1,9 @@
-/**
- * Test support for the metrics-contract guards — never imported by runtime
- * code. Extracts the PromQL the non-TypeScript consumers send: the alert
- * rules' `expr:` values (alerts.yml) and the Grafana dashboards' panel `expr`s
- * and templating queries, for the label checker
- * (`promql-labels.test-support.ts`).
- *
- * Both extractors fail closed. A source shape they do not understand throws
- * instead of being skipped or passed through raw: a skipped expression is one
- * the label guard never checks, and a still-quoted one parses as a single
- * PromQL string literal that checks zero labels — either way the guard would
- * pass vacuously.
- */
+// Fail closed: a skipped or still-quoted expression is one the label guard never checks.
 
 /** `|`/`>` block-scalar headers, with optional chomping and indentation indicators. */
 const BLOCK_SCALAR = /^[|>](?:[1-9]?[-+]?|[-+][1-9])$/
 
-/**
- * The `expr:` values of the alert rules, as the YAML scalars they denote:
- * plain, single- or double-quoted, or a `|`/`>` block scalar, each possibly
- * running over continuation lines (joined with a space — PromQL does not care
- * about line breaks).
- */
+// Continuation lines join with a space: PromQL does not care about line breaks.
 export function alertExpressions(yaml: string): string[] {
   const lines = yaml.split("\n")
   const out: string[] = []
@@ -89,7 +72,6 @@ export function dashboardQueries(node: unknown): string[] {
   return out
 }
 
-/** The PromQL behind one templating `query`; throws on a label-naming call it cannot read. */
 function templatingQuery(query: string): string[] {
   const fn = /^\s*(label_values|query_result)\s*\(/.exec(query)?.[1]
   if (!fn) return []

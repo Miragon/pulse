@@ -1,25 +1,10 @@
-/**
- * The analytics glossary as data: the word the catalogs use per language and
- * the synonyms they never use. `GLOSSARY.md` documents the same terms for
- * people; `glossary.test.ts` holds every catalog to this list and checks that
- * the document names each term. The terms analytics shares with the other
- * modules' views (Incident, Jobs ohne Versuche, bereitstellen,
- * Geschäftsschlüssel, aussetzen, Versuche, alle Engines) are the kit's
- * `PRODUCT_GLOSSARY` (`@miragon/pulse-widget-shell/testing`), run by the same test.
- */
+/** `GLOSSARY.md` documents the same terms for people; shared terms are the kit's `PRODUCT_GLOSSARY`. */
 export interface GlossaryTerm {
-  /** The German word the catalogs use. */
   de: string
-  /** The English word the catalogs use. */
   en: string
-  /** Synonyms the German catalogs never use. */
   avoidDe: readonly RegExp[]
-  /** Synonyms the English catalogs never use. */
   avoidEn: readonly RegExp[]
-  /**
-   * `ui`: only the widget texts and the Ask-AI intents (what the person
-   * reads); the model-facing summaries keep their technical words.
-   */
+  /** `ui`: the model-facing summaries keep their technical words. */
   scope?: "ui"
 }
 

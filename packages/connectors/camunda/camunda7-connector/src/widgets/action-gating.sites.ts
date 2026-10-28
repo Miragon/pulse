@@ -1,14 +1,7 @@
 import { CAMUNDA7_SAVE_SETTINGS } from "../tool-names.js"
 import type { WidgetWrite } from "./lib/write-policy.js"
 
-/**
- * Every `useEngineAction` call site — `<path under src/widgets>#<tool>` — with
- * the control its write renders. `src/widget-actions.test.ts` holds this list
- * EQUAL to the call sites it finds in the sources, so a new write site cannot
- * ship without an entry; `action-gating.test.tsx` renders every entry (the
- * renderer is keyed by site, exhaustively) with the write offered and with
- * everything BUT the write offered — the control must be there, then gone.
- */
+/** Every `useEngineAction` call site; `src/widget-actions.test.ts` holds this list EQUAL to the sources. */
 export const GATING_SITES = [
   {
     site: "job-panel.tsx#camunda7_set_job_retries",

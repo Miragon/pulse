@@ -3,12 +3,6 @@ import { Badge, cn, FOCUS_RING } from "@miragon/mcp-toolkit-ui"
 import { ChevronRight } from "lucide-react"
 import { Icon } from "./icon.js"
 
-/**
- * Collapsible disclosure section — `<details>`/`<summary>` with the chevron,
- * heading and optional count badge. Lifted from the camunda7 instance detail;
- * the analytics dashboard tables inline-copied the same markup four times
- * before this became shared.
- */
 export function Section({
   title,
   count,
@@ -19,10 +13,9 @@ export function Section({
 }: {
   title: ReactNode
   count?: number
-  /** `destructive` for error/incident counts, `secondary` (default) otherwise. */
   badgeVariant?: "secondary" | "destructive"
   defaultOpen?: boolean
-  /** Notified when the disclosure opens/closes — lets callers lazy-mount content. */
+  /** Lets callers lazy-mount content. */
   onToggle?: (open: boolean) => void
   children: ReactNode
 }) {

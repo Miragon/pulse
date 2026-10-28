@@ -7,14 +7,6 @@ import { engineCompare } from "./engine-compare.js"
 import { engineLandscape } from "./engine-landscape.js"
 import { versionCompare } from "./version-compare.js"
 
-/**
- * U7: every view result says when its figures were read (`asOf`, the "Stand"
- * a widget shows next to the period and the engine set), and the dashboard
- * names the engines in scope that report metrics, so a view can say how many
- * of them send none. Neither is a guess: `asOf` is the evaluation time of the
- * instant queries, `reportingEngines` the presence probe's answer.
- */
-
 const NOW = "2026-10-10T12:32:00.000Z"
 
 beforeEach(() => {
@@ -23,7 +15,6 @@ beforeEach(() => {
 })
 afterEach(() => vi.useRealTimers())
 
-/** A client that answers the engine presence probe for `reporting` and nothing else. */
 function client(reporting: string[] = []): PrometheusClient {
   return {
     instant: vi.fn((q: string): Promise<PromSample[]> =>

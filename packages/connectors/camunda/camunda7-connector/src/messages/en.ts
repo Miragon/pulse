@@ -1,15 +1,8 @@
 import type { MessageCatalog } from "@miragon/mcp-toolkit-core"
 import { countOf } from "./plural.js"
 
-/**
- * English message catalog — the fallback locale. Every key MUST exist here so
- * the translator's `requested → fallback(en) → key` chain always lands on a real
- * string. Keys are dotted by surface (`cockpit.*`, `profile.*`,
- * `role.*`, `viewTitle.*`). Sentence case, active voice, no dash connectors;
- * the terms follow GLOSSARY.md.
- */
+/** The fallback locale: every key MUST exist here. */
 export const en: MessageCatalog = {
-  // ── Cockpit shell ──────────────────────────────────────────────────────────
   "cockpit.crumb.processList": "All processes",
   "cockpit.section.overview": "Overview",
   "cockpit.section.incidents": "Incidents",
@@ -55,7 +48,6 @@ export const en: MessageCatalog = {
   "cockpit.engineGone": ({ engineId }) =>
     `Engine ${String(engineId)} is no longer in your engine list.`,
 
-  // ── Profile / settings panel ────────────────────────────────────────────────
   "profile.heading": "Engines and dashboards",
   "profile.subtitle": "Which engines you pick from and which dashboards come first, in every chat.",
   "profile.save": "Save",
@@ -104,10 +96,7 @@ export const en: MessageCatalog = {
   "profile.summary.defaultDashboard": ({ id }) =>
     `, default dashboard "${String(id)}" (open via load-dashboard)`,
 
-  // ── View titles of the show tools (the host toolbar) ───────────────────────
-  // Only when the profile names a language: with "system" the server does not
-  // know the host locale, so the view carries no title and the widget's own
-  // heading names it (`lib/server-locale.ts` → `localizeViewFor`).
+  // Only used when the profile names a language (`lib/server-locale.ts`).
   "viewTitle.cockpit": "Cockpit",
   "viewTitle.processList": "Process definitions",
   "viewTitle.processInstances": "Running instances",
@@ -119,7 +108,6 @@ export const en: MessageCatalog = {
   "viewTitle.settings": "Engines and dashboards",
   "viewTitle.clusterDetail": ({ activity }) => `Cluster: ${String(activity)}`,
 
-  // ── Model-facing widget-tool summaries (c7sum.*) ─────────────────────────────
   "c7sum.cockpitOpened":
     'Operations cockpit for engine "{engineId}" ({engineCount} engine(s) in the user\'s engine list). Where the host shows the view, the user navigates the process landscape in it.',
   "c7sum.cockpitOpenedPicker":

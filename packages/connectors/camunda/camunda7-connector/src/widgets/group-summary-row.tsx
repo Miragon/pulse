@@ -3,18 +3,12 @@ import { Icon } from "@miragon/pulse-widget-shell/widgets"
 import { ChevronRight, TriangleAlert } from "lucide-react"
 import { cn, CountPill, TONE_DOT, type ToneVariant } from "@miragon/mcp-toolkit-ui"
 
-/** One right-aligned value-over-label stack in a {@link GroupSummaryRow}. */
 export interface GroupSummaryStat {
   value: ReactNode
   label: ReactNode
 }
 
-/**
- * The soft-tinted warning tile (Lucide `TriangleAlert`) that leads incident
- * activity rows — shared so the grouped incident lists (dashboard +
- * definition view) stay pixel-identical. Decorative: the row names the
- * activity and its count.
- */
+/** Shared so the grouped incident lists stay pixel-identical; decorative, the row names the activity. */
 export function IncidentGroupIcon({ tone = "danger" }: { tone?: ToneVariant }) {
   return (
     <div
@@ -28,16 +22,7 @@ export function IncidentGroupIcon({ tone = "danger" }: { tone?: ToneVariant }) {
   )
 }
 
-/**
- * Shared summary-row anatomy for expandable group cards and their inner rows:
- * optional leading icon, tone dot + name with a mono subline, right-aligned
- * stat stacks, a count pill, action cells, and the rotating chevron. Extracted
- * from the previously copy-pasted trio incidents-dashboard/process-list
- * (ProcessSummary + ActivityRow) and process-incidents/activity-summary.
- *
- * `expanded` doubles as the expandability switch: pass a boolean to get the
- * chevron (and the bottom border while open); omit it for plain list rows.
- */
+/** Shared summary-row anatomy; `expanded` doubles as the expandability switch (omit for plain rows). */
 export function GroupSummaryRow({
   icon,
   tone,
@@ -51,9 +36,7 @@ export function GroupSummaryRow({
   expanded,
   className,
 }: {
-  /** Leading icon cell, e.g. {@link IncidentGroupIcon}. */
   icon?: ReactNode
-  /** Tone dot rendered before the title (severity of the group). */
   tone?: ToneVariant
   title: ReactNode
   /** Inline suffix after the title, e.g. a `VersionChip`. */

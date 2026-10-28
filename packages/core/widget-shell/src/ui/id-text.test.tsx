@@ -125,7 +125,6 @@ describe("copyText", () => {
     execCommand.mockReturnValue(true)
     expect(await copyText("x")).toBe(true)
     expect(execCommand).toHaveBeenCalledWith("copy")
-    // The helper textarea is gone again.
     expect(document.querySelector("textarea")).toBeNull()
   })
 

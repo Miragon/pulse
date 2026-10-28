@@ -7,13 +7,7 @@ import {
 import { definition } from "./definition.js"
 import { catalogs } from "./messages/index.js"
 
-/**
- * The view builder (toolkit 2.8) shows people each widget, data source and
- * props field by its title and summary, else by its id. analytics names every
- * one of them in English and German, from the `builder.*` entries of its
- * catalogs — where `brand-gates.test.ts` and `messages/glossary.test.ts` hold
- * them to the voice and the glossary like the widget texts.
- */
+/** Without a title the view builder (toolkit 2.8) shows people the raw id. */
 describe("analytics names every builder piece for people", () => {
   it("every widget, step and props field has an en and a de title and summary", () => {
     expect(missingDisplayTexts(definition)).toEqual([])

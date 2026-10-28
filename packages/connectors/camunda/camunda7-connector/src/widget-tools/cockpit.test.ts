@@ -17,11 +17,6 @@ interface CockpitResult {
 
 type Handler = (args: Record<string, unknown>, ctx?: unknown) => Promise<CockpitResult>
 
-/**
- * Register the cockpit widget tools against a mock server and expose
- * `camunda7_open_cockpit`, routed like the plugin wires it: the caller's
- * saved default comes from `profileStore`.
- */
 function openCockpit(
   engines: EngineEntry[],
   profileStore: ProfileStore = createInMemoryProfileStore(),
@@ -48,7 +43,6 @@ function openCockpit(
 const dataOf = (result: CockpitResult) => result.structuredContent!.context.stepData.result.data
 const textOf = (result: CockpitResult) => result.content.map((c) => c.text).join("\n")
 
-/** A tool call's ctx for a signed-in caller (mcp-use's flattened `ctx.auth`). */
 const callAs = (id: string) => ({ auth: { user: { id } } })
 
 const THREE: EngineEntry[] = [
@@ -91,12 +85,7 @@ describe("camunda7_open_cockpit — the cockpit bootstrap", () => {
   })
 })
 
-/**
- * The engine the cockpit OPENS on (#341 K43/N70/N105): per-call `engine` >
- * the caller's saved default > the only engine in the caller's list, else the
- * picker — and the summary tells the model exactly that, never an engine the
- * user is not looking at.
- */
+/** #341: the summary never names an engine the user is not looking at. */
 describe("camunda7_open_cockpit — the engine it opens on", () => {
   it("honours the `engine` argument", async () => {
     const result = await openCockpit(THREE)({ engine: "beta" })
@@ -118,7 +107,6 @@ describe("camunda7_open_cockpit — the engine it opens on", () => {
     const result = await handler({}, callAs("user-1"))
     expect(dataOf(result)).toMatchObject({ engineId: "gamma" })
     expect(textOf(result)).toContain('cockpit for engine "gamma"')
-    // Another caller has no default: the picker.
     expect(dataOf(await handler({}, callAs("user-2")))).toMatchObject({ engineId: null })
   })
 

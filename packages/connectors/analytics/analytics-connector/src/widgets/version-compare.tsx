@@ -19,10 +19,7 @@ import { enginesMeta } from "./view-meta.js"
 
 export type VersionCompareData = VersionCompareResult | null
 
-/**
- * Interpret a version comparison. The comparison is process-wide: the tool
- * takes no element scope (#336).
- */
+/** Process-wide: the tool takes no element scope (#336). */
 export function versionCompareHandOff(data: VersionCompareResult): HandOff {
   return {
     intent: "askAi.versionCompare",

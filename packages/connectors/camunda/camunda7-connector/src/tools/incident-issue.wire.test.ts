@@ -12,12 +12,7 @@ import {
   type FakeEngine,
 } from "./test-support/fake-engine.js"
 
-/**
- * Guard for #338 / N139: the incident-ticket draft goes to ONE repository the
- * operator configured. The prefilled GitHub URL carries the whole draft — so a
- * model-supplied target (steered by injected incident text) would be a
- * one-click path for internal diagnostics into any public repository.
- */
+/** #338: a model-supplied target would be a one-click path for internal diagnostics into any repository. */
 
 const INCIDENT = {
   id: "inc-1",
@@ -29,10 +24,8 @@ const INCIDENT = {
   configuration: "job-1",
 }
 
-/** An internal cockpit — the kind of host that must never leave in a prefilled URL. */
 const COCKPIT = "http://cockpit.corp.internal/webapp"
 
-/** The fake engine behind a registry that also knows its (internal) cockpit. */
 function registryWithCockpit(engine: FakeEngine) {
   return createEngineRegistry([{ id: "fake", baseUrl: engine.baseUrl, cockpitUrl: COCKPIT }], (e) =>
     providerForEntry(e).createClient(e, { type: "none" }),
@@ -119,17 +112,11 @@ describe("camunda7_format_incident_issue targets the configured repository only"
   })
 })
 
-/**
- * A custom incident type is any string (`POST /execution/{id}/create-incident`),
- * and so is a tenant id. Inside a plain `…` span a backtick closes it, so
- * the rest — an image beacon, a link, a `|` that splits the table — would
- * render as live markdown in the filed ticket (and in its prefilled URL).
- */
+/** A custom incident type and a tenant id are any string (`POST /execution/{id}/create-incident`). */
 describe("camunda7_format_incident_issue keeps engine values inside their spans", () => {
   const HOSTILE_TYPE = "x` ![p](https://evil.example/t.png) `"
   const HOSTILE_TENANT = "acme | injected | cells\n| row \\| x \\\\|"
 
-  /** The text CommonMark renders as literal code: every span of the body, by its delimiter. */
   function spans(markdown: string): string[] {
     const out: string[] = []
     const shape = /(`+)( ?)([\s\S]*?)\2\1(?!`)/g
@@ -152,19 +139,15 @@ describe("camunda7_format_incident_issue keeps engine values inside their spans"
     const prefilled = new URL(draft.prefilledUrl!).searchParams.get("body")!
 
     for (const body of [draft.body, prefilled]) {
-      // Outside the code spans and fences nothing of the payload remains.
       const live = body
         .replace(/(`{3,})[\s\S]*?\n\1/g, "")
         .replace(/(`+)( ?)[\s\S]*?\2\1(?!`)/g, "")
       expect(live).not.toContain("![p]")
       expect(live).not.toContain("evil.example")
       expect(live).not.toContain("injected")
-      // The type is quoted whole in the description, the actual behaviour and the table.
       expect(spans(body).filter((span) => span === HOSTILE_TYPE)).toHaveLength(3)
-      // The table keeps its two columns: the tenant's pipes are escaped, its line break gone.
       const tenantRow = body.split("\n").find((line) => line.startsWith("| Tenant |"))!
-      // A backslash run before a pipe is doubled first, so every pipe sits behind an
-      // ODD run — escaped for a renderer that counts backslashes (marked, GFM).
+      // Every pipe sits behind an ODD backslash run, escaped for renderers that count them (marked, GFM).
       expect(tenantRow).toBe(
         "| Tenant | `acme \\| injected \\| cells \\| row \\\\\\| x \\\\\\\\\\|` |",
       )

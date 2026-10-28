@@ -88,9 +88,7 @@ describe("parseModuleSlice", () => {
   })
 
   it("recovers per FIELD: one invalid value keeps every other saved preference", () => {
-    // The failure mode this guards: a newer build writes a value this build's
-    // schema rejects; resetting the WHOLE slice would silently drop unrelated
-    // preferences (e.g. engine curation next to a bad preferredRole).
+    // Resetting the WHOLE slice on one rejected value would drop unrelated preferences.
     expect(
       parseModuleSlice(schema, { sortOrder: "newest-first", pageSize: 25, tags: ["a"] }),
     ).toEqual({ sortOrder: "asc", pageSize: 25, tags: ["a"] })

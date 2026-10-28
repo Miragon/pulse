@@ -7,7 +7,6 @@ import { BpmnDiagram, type BpmnHighlight } from "../bpmn-diagram.js"
 import { ActivityNode } from "../instance-sections.js"
 import { useT } from "../../messages/use-t.js"
 
-/** The diagram block — BPMN overlay plus the textual activity tree. */
 export function InstanceDiagramSection({
   diagramDefinitionId,
   engineId,

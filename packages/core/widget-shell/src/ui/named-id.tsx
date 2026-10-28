@@ -3,16 +3,8 @@ import { cn } from "@miragon/mcp-toolkit-ui"
 import { BreakableId } from "./id-breaks.js"
 
 /**
- * A named thing with its id, the way every module shows a process or an
- * element (#322 U13): the name first (dense, 600), and under it, quiet, the
- * id in Geist Mono plus whatever else places it (`detail`: its type, its
- * process). Without a known name, or with a name that only repeats the id,
- * the id leads, once, still in mono, so a reader never takes it for a name.
- * An id wraps between its parts first (after `_ - . : /`, before an
- * upper-case letter: `Activity_|Check|Blacklist`) and inside a part only when
- * that part alone is wider than the column (`overflow-wrap: anywhere`), so a
- * long one never widens its column; the words around it break only between
- * words.
+ * #322 U13. Without a real name the id leads once, in mono, so it never reads
+ * as a name. Ids wrap between parts first, so a long one never widens its column.
  */
 export function NamedId({
   name,
@@ -23,9 +15,7 @@ export function NamedId({
 }: {
   name: string | null | undefined
   id: string
-  /** Before the name on its line (a state dot). */
   lead?: ReactNode
-  /** More quiet facts on the second line, after the id ("Service-Task", the process). */
   detail?: ReadonlyArray<ReactNode>
   className?: string
 }) {

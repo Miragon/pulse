@@ -51,12 +51,7 @@ interface Sent {
 /** How long an upload that is never finished may wait for its answer. */
 const OPEN_UPLOAD_ANSWER_MS = 2000
 
-/**
- * POST `chunks` (or a declared length) — the request is ended only when `end`
- * is set. An upload left open must be answered WHILE it is open: a server
- * that waits for the rest of the body fails here with a clear message instead
- * of on vitest's timeout.
- */
+/** An upload left open must be answered WHILE open, failing clearly instead of on vitest's timeout. */
 function post(
   port: number,
   options: {

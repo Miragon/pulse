@@ -2,13 +2,6 @@ import { describe, expect, it } from "vitest"
 import { checkQueryLabels, contractCatalog } from "./promql-labels.test-support.js"
 import { alertExpressions, dashboardQueries } from "./promql-sources.test-support.js"
 
-/**
- * The extractors feeding alert rules and Grafana dashboards into the label
- * guard (`metrics-contract-labels.test.ts`). A shape they skip, or pass on
- * still quoted, is a shape the guard never checks — these cases pin that each
- * one is read or rejected, never silently dropped.
- */
-
 const catalog = contractCatalog([
   { promName: "backlog", type: "gauge", labels: ["engine_id"] },
   { promName: "started_total", type: "counter", labels: ["engine_id", "state"] },

@@ -1,13 +1,4 @@
-/**
- * Best-effort BPMN parser for user task form definitions.
- *
- * `extractEmbeddedFormFields` reads `<camunda:formData>` from a user task and
- * returns structured form fields, with the two constraints a form must honour
- * before submitting: `required` and `readonly` (displayed but not submitted —
- * the engine rejects a submitted value for it). Both come from the standard
- * `<camunda:validation><camunda:constraint name="…"/>`; `readonly` also from
- * the legacy `<camunda:property id="readonly" value="true">`.
- */
+// Best-effort regex parse; `readonly` fields are displayed but not submitted (the engine rejects a value).
 import type { TaskFormField } from "../view-models.js"
 
 interface ConditionLiteral {
@@ -26,16 +17,11 @@ const CAMUNDA_TYPE_MAP: Record<string, string> = {
   long: "Long",
   integer: "Long",
   double: "Double",
-  // A date form field holds a Date variable — typed so a submit never
-  // rewrites it as a String (the value travels as ISO 8601).
+  // Typed so a submit never rewrites a Date variable as a String.
   date: "Date",
   enum: "String",
 }
 
-/**
- * Extract `<camunda:formField>` elements from the user task identified by
- * `taskDefinitionKey`, with their `required`/`readonly` constraints.
- */
 export function extractEmbeddedFormFields(
   bpmnXml: string,
   taskDefinitionKey: string,
@@ -45,27 +31,14 @@ export function extractEmbeddedFormFields(
   )
 }
 
-/**
- * How the engine treats a form field on `/submit-form` — the facts the task
- * completion needs, which the form view model does not carry.
- */
 export interface FormFieldSubmitRule {
   name: string
-  /**
-   * The field declares a `defaultValue`: when it is NOT submitted, the engine
-   * writes that default over the variable's current value
-   * (`FormFieldHandler.handleSubmit`).
-   */
+  /** When NOT submitted, the engine writes the default over the current value (`FormFieldHandler.handleSubmit`). */
   hasDefault: boolean
-  /**
-   * The standard `readonly` constraint: the engine refuses a submitted value.
-   * The legacy `<camunda:property id="readonly">` is a UI hint only — the
-   * engine accepts (and defaults) such a field like any other.
-   */
+  /** The legacy `<camunda:property id="readonly">` is a UI hint only; the engine accepts it. */
   engineReadonly: boolean
 }
 
-/** The submit rules of the user task's `<camunda:formField>`s, in BPMN order. */
 export function formFieldSubmitRules(
   bpmnXml: string,
   taskDefinitionKey: string,
@@ -83,12 +56,10 @@ export function formFieldSubmitRules(
   })
 }
 
-/** The raw `<camunda:formField>` elements (attribute string + inner XML) of a user task. */
 function formFieldElements(
   bpmnXml: string,
   taskDefinitionKey: string,
 ): Array<{ attrs: string; inner: string }> {
-  // Find the user task block
   const blockRe = new RegExp(
     `<(?:[\\w]+:)?userTask\\b[^>]*\\bid="${escapeRegex(taskDefinitionKey)}"[^>]*>([\\s\\S]*?)<\\/(?:[\\w]+:)?userTask>`,
     "m",
@@ -97,14 +68,12 @@ function formFieldElements(
   if (!blockMatch) return []
   const taskBlock = blockMatch[1] ?? ""
 
-  // Find the formData block within the task
   const formDataMatch = taskBlock.match(
     /<(?:[\w]+:)?formData\b[^>]*>([\s\S]*?)<\/(?:[\w]+:)?formData>/,
   )
   if (!formDataMatch) return []
   const formDataBlock = formDataMatch[1] ?? ""
 
-  // Individual formField elements (self-closing and block)
   const fieldBlockRe = /<(?:[\w]+:)?formField\b([^>]*?)(?:\/>|>([\s\S]*?)<\/(?:[\w]+:)?formField>)/g
   return [...formDataBlock.matchAll(fieldBlockRe)].map((match) => ({
     attrs: match[1] ?? "",
@@ -112,7 +81,6 @@ function formFieldElements(
   }))
 }
 
-/** Parse a single `<camunda:formField>` from its attribute string + inner XML. */
 function parseFormField(attrs: string, inner: string): TaskFormField | null {
   const id = readAttr(attrs, "id")
   if (!id) return null
@@ -139,11 +107,7 @@ function parseFormField(attrs: string, inner: string): TaskFormField | null {
   }
 }
 
-/**
- * Names of the `<camunda:constraint>`s in a field's `<camunda:validation>`
- * (`required`, `readonly`, `minlength`, …). Only the two argument-less ones
- * are acted on; the engine enforces every constraint on submit anyway.
- */
+/** Only the argument-less ones are acted on; the engine enforces every constraint on submit anyway. */
 function parseConstraints(inner: string): Set<string> {
   const validation = inner.match(
     /<(?:[\w]+:)?validation\b[^>]*>([\s\S]*?)<\/(?:[\w]+:)?validation>/,
@@ -156,7 +120,6 @@ function parseConstraints(inner: string): Set<string> {
   return names
 }
 
-/** Parse <camunda:values> for suggestedValues */
 function parseSuggestedValues(inner: string): string[] {
   const suggestedValues: string[] = []
   const valuesBlockMatch = inner.match(/<(?:[\w]+:)?values\b[^>]*>([\s\S]*?)<\/(?:[\w]+:)?values>/)
@@ -179,10 +142,7 @@ function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 }
 
-// Identifier on either side, value on the other. Dotted identifiers like
-// `customer.segment` are matched by the regex but dropped below — we
-// can't set nested object paths via a flat task variable, so we'd lie to
-// the user about what their button click does.
+// Dotted identifiers are matched but dropped below: a flat task variable can't set a nested path.
 const COMPARISON_RE =
   /([A-Za-z_$][\w$.]*)\s*(?:==|!=|<=?|>=?)\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|true|false|-?\d+(?:\.\d+)?)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|true|false|-?\d+(?:\.\d+)?)\s*(?:==|!=|<=?|>=?)\s*([A-Za-z_$][\w$.]*)/g
 

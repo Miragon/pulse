@@ -9,12 +9,7 @@ import {
 } from "../tools/test-support/fake-engine.js"
 import { buildActivityIncidentsData, buildProcessIncidentsData } from "./process-incidents-data.js"
 
-/**
- * The definition view is about a KEY (#335 N60): old versions keep running
- * after a redeploy, so every number spans all versions — only the diagram is
- * one version, and it is labelled (`diagramVersion`). The fixture is the
- * playground shape the review measured: `leasing` v1 still runs next to v2.
- */
+// #335 N60: every number spans all versions. Fixture: `leasing` v1 still runs next to v2.
 
 const engines: FakeEngine[] = []
 afterEach(async () => {
@@ -47,7 +42,7 @@ const row = (n: number, activityId: string, definitionId: string) => ({
   configuration: `job-${n}`,
 })
 
-/** The key's counts and a scan; `incidentTotal` is what /incident/count reports. */
+// `incidentTotal` is what /incident/count reports.
 function definitionRoutes(scan: unknown[], incidentTotal: number): FakeRoutes {
   return {
     // The key's latest version over every tenant — the list endpoint.
@@ -131,9 +126,8 @@ describe("buildProcessIncidentsData — key-wide (#335 N60)", () => {
       { processDefinitionKeyIn: KEY },
       { processDefinitionKeyIn: KEY, incidentTimestampAfter: expect.any(String) as string },
     ])
-    // The complete scan already holds every incident: no engine-wide
-    // statistics, no per-version reads — 7 calls. The diagram is read by the
-    // resolved version's id, never through the tenant-less /key/{key}.
+    // A complete scan needs no statistics or per-version reads; the diagram is
+    // read by version id, never the tenant-less /key/{key}.
     expect(requests.map((r) => r.path).sort()).toEqual(
       [
         "/incident",
@@ -348,9 +342,8 @@ describe("buildActivityIncidentsData — one page of an activity's incidents (N6
   })
 })
 
-// One rule with analytics (#322 U13, widget-shell `readBpmnNames`): a
-// definition the engine knows by no name takes its Modeler pool's name, in
-// the view's title and in the empty state's other processes alike.
+// One rule with analytics (`readBpmnNames`): an unnamed definition takes its pool
+// name, in the title and in the empty state alike.
 describe("buildProcessIncidentsData — names from a Modeler pool", () => {
   const pooled = (key: string) =>
     `<definitions><collaboration id="C"><participant id="Pool" name="Pool of ${key}" processRef="${key}"/></collaboration><process id="${key}"/></definitions>`

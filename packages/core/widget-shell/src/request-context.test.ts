@@ -44,11 +44,7 @@ describe("runWithMcpRequestInfo / getMcpRequestInfo", () => {
   })
 })
 
-/**
- * The key a per-caller cache partitions by (analytics' BPMN names under
- * passthrough auth): who calls AND with which credential, never the
- * credential itself.
- */
+/** Who calls AND with which credential, never the credential itself. */
 describe("callerCacheKey", () => {
   const ALICE = { authUserId: "alice", authorization: "Bearer token-alice" }
 
@@ -71,7 +67,6 @@ describe("callerCacheKey", () => {
       { ...ALICE, authUserId: "bob" },
       { authUserId: "alice" },
       { authorization: "Bearer token-alice" },
-      // The two parts never run into each other.
       { authUserId: "alice\nBearer", authorization: "token-alice" },
     ].map((info) => runWithMcpRequestInfo(info, callerCacheKey))
     expect(new Set(keys).size).toBe(keys.length)

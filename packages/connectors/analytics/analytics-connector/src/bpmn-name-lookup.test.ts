@@ -3,12 +3,7 @@ import { getMcpRequestInfo, runWithMcpRequestInfo } from "@miragon/pulse-widget-
 import { NO_NAMES, createNameLookup, type FetchBpmnXml } from "./bpmn-name-lookup.js"
 import { elementNameOf, processNameOf } from "./bpmn-names.js"
 
-/**
- * The names behind the ids (U13): read on the server from the diagram the
- * injected BPMN lookup returns, never a guess, never a failure. The reader
- * itself is the kit's (`parseBpmnNames`, widget-shell's `bpmn-names.test.ts`):
- * the one rule camunda7 names the same process and activities by.
- */
+// The XML reader itself is tested in widget-shell's `bpmn-names.test.ts`.
 
 const LEASING = `<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="Defs_1">
@@ -95,9 +90,7 @@ describe("createNameLookup", () => {
     expect(vi.getTimerCount()).toBe(0)
   })
 
-  // The injected fetcher (camunda7's createBpmnXmlFetcher) REJECTS a failed
-  // read (503, refused, 401) and resolves null only for "no such model": the
-  // engine's failure is no answer to keep for five minutes.
+  // The fetcher rejects a failed read and resolves null only for "no such model".
   it("keeps a 'no such model' answer but never a failure", async () => {
     let engineUp = false
     const fetchBpmnXml = vi.fn((key: string) =>
@@ -194,17 +187,12 @@ describe("createNameLookup", () => {
   })
 })
 
-/**
- * A process may run on any configured engine, not only the default one
- * (#322 review): each model is read on the engines the view's row comes
- * from, in order, until one of them has it.
- */
+// A process may run on any configured engine, not only the default one (#322 review).
 describe("createNameLookup on several engines", () => {
   afterEach(() => {
     vi.useRealTimers()
   })
 
-  /** An engine fleet: which engine holds which model, and which engine is down. */
   function fleet(models: Record<string, Record<string, string>>, down: string[] = []) {
     return vi.fn<FetchBpmnXml>((key, engine) => {
       if (engine && down.includes(engine)) return Promise.reject(new Error("503"))
@@ -279,12 +267,7 @@ describe("createNameLookup on several engines", () => {
   })
 })
 
-/**
- * With passthrough auth the engine answers each caller with that caller's
- * own permissions (#322 review): a model one caller may read never reaches
- * another through the cache, and one caller's refusal never hides the names
- * from the others.
- */
+// Passthrough auth answers with each caller's own permissions (#322 review).
 describe("createNameLookup per caller", () => {
   const ALICE = { authUserId: "alice", authorization: "Bearer token-alice" }
   const BOB = { authUserId: "bob", authorization: "Bearer token-bob" }

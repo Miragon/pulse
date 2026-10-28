@@ -45,13 +45,8 @@ const V2_RECORD = {
 }
 
 /**
- * The baseline as shipped, pinned HERE rather than read from the export: the
- * completeness range below starts at it, so a baseline raised in step with a
- * `PROFILE_SCHEMA_VERSION` bump would empty that range and let the bump pass
- * without its migration — every stored record of the old version would then
- * be adopted at the new one without its reshape. Moving the baseline drops
- * migration history, which is an owner decision of its own, never part of a
- * schema bump.
+ * Pinned HERE, not read from the export: a baseline raised with a schema bump would empty
+ * the completeness range and let the bump pass without its migration.
  */
 const SHIPPED_BASELINE = 3
 
@@ -61,8 +56,6 @@ describe("PROFILE_MIGRATIONS completeness", () => {
   })
 
   it("carries an entry for every version from the baseline up to PROFILE_SCHEMA_VERSION", () => {
-    // The failure mode this guards: a PROFILE_SCHEMA_VERSION bump without its
-    // migration entry ships, and every stored record reads un-migrated.
     const expected = Array.from(
       { length: PROFILE_SCHEMA_VERSION - SHIPPED_BASELINE },
       (_, i) => SHIPPED_BASELINE + i,
@@ -79,8 +72,7 @@ describe("parseStoredProfile", () => {
     expect(parseStoredProfile(CURRENT)).toEqual(CURRENT)
   })
 
-  // No migration history predates the baseline (#322): an older record is
-  // adopted, never upgraded — and must still read without an error.
+  // #322: an older record is adopted, never upgraded, and still reads without an error.
   it.each([
     ["v1", V1_RECORD, {}],
     ["v2", V2_RECORD, V2_RECORD.modules],
@@ -119,8 +111,7 @@ describe("parseStoredProfile", () => {
   })
 
   it("reads a record with the retired theme preference: the key never reaches the view", () => {
-    // Widgets follow the host's theme; a `theme` an earlier build saved is
-    // an unknown key now — no migration, no error, no reset of the rest.
+    // A `theme` an earlier build saved is an unknown key now: no migration, no reset.
     expect(parseStoredProfile({ ...CURRENT, theme: "dark" })).toEqual(CURRENT)
     expect(parseStoredProfile({ ...CURRENT, theme: 42 })).toEqual(CURRENT)
   })
@@ -130,7 +121,6 @@ describe("parseStoredProfile", () => {
   })
 
   it("degrades an invalid field to ITS default and keeps every other field", () => {
-    // The language default is `system` (follow the host), never a forced locale.
     expect(parseStoredProfile({ ...CURRENT, language: "fr" })).toMatchObject({
       language: "system",
       modules: CURRENT.modules,
@@ -160,7 +150,6 @@ describe("parseStoredProfile", () => {
     expect(parseStoredProfile(null)).toBeUndefined()
     expect(parseStoredProfile("nope")).toBeUndefined()
     expect(parseStoredProfile(["an", "array"])).toBeUndefined()
-    // No id stored (or none that is a string) and no store key to fall back to.
     expect(parseStoredProfile({ schemaVersion: 0 })).toBeUndefined()
     expect(parseStoredProfile({ ...CURRENT, id: 42 })).toBeUndefined()
   })
@@ -195,9 +184,7 @@ describe("migrateStoredProfile", () => {
     expect(stored).toEqual(snapshot)
   })
 
-  // The walk itself, against a synthetic history: the shipped one has no
-  // step yet (the baseline IS the current version), but the next
-  // PROFILE_SCHEMA_VERSION bump runs exactly this loop.
+  // Synthetic history: the shipped one has no step yet, but the next bump runs this loop.
   const history = {
     baseline: 1,
     current: 3,

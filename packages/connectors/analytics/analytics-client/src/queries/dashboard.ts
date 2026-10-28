@@ -32,52 +32,20 @@ import type {
   ProcessFailureItem,
 } from "../widgets.js"
 
-/**
- * How many (process, activity) rows the activity breakdown carries: the top
- * ones by total time. The result says how many there were in all
- * (`activityCount`), so a view calls the list what it is ("Top 20 by total
- * time") instead of showing an unexplained count.
- */
 export const ACTIVITY_BREAKDOWN_LIMIT = 20
 
-/**
- * The comparison floor when the caller names none: the analytics settings'
- * default `minBucketSize` (10 instances per window).
- */
+// The analytics settings' default `minBucketSize`.
 const DEFAULT_MIN_BUCKET_SIZE = 10
 
-/** Whole milliseconds, the histograms' unit and the dashboard's. */
 const ms = (value: number) => Math.round(value)
 const msOrNull = (value: number | null) => (value === null ? null : ms(value))
 
 /**
- * Aggregated dashboard KPIs + activity / definition breakdowns, from the
- * engine's process metrics. Shared by the dashboard pipeline step and the
- * `analytics_show_dashboard` widget tool. Two kinds of figures, never mixed:
- *
- * - FLOWS within the window (`period`): starts, completions, incidents created
- *   and resolved, and the durations of the instances that ended — counted over
- *   the range with {@link increaseIn}. Durations are null when nothing ended; `incidentRatePct` is null
- *   when nothing started.
- * - LIVE STATE right now: `runningNow` / `openIncidentsNow` from the state
- *   gauges (`camunda_process_instances_running`, `camunda_incidents_open`) —
- *   the same numbers the failure dashboard, engine health and the landscape
- *   read, independent of the window. A counter difference within the window
- *   is no substitute: it misses every instance started before the window.
- *   The gauges have rows only for what exists, so whether a missing series is
- *   0 or "not reported" (null) is decided by the engine presence probe
- *   ({@link reportingEnginesQuery}): null only while no engine in scope reports.
- *
- * The activity breakdown groups by (process, activity): BPMN ids are only
- * unique within one model, so `StartEvent_1` of two processes are two rows.
- * The result echoes its scope (process key, period, engines).
- *
- * `previous` holds the starts and incidents of the window right before the
- * period: the reference an incident rate is judged against (a rate on its
- * own says nothing about whether it is high). It is null when that window
- * lies wholly before the Prometheus retention (a 30-day period), and
- * `suppressed` when either window started fewer than `minBucketSize`
- * instances: a change of a rate over a handful of starts is noise.
+ * Live state comes from the state gauges, never from a counter difference
+ * within the window: that misses every instance started before the window.
+ * A missing per-key gauge row is 0 while an engine in scope reports, null only while none does.
+ * `previous` is the reference an incident rate is judged against; a rate on
+ * its own says nothing about whether it is high.
  */
 export async function dashboardData(
   ch: PrometheusClient,
@@ -85,7 +53,6 @@ export async function dashboardData(
     processDefinitionKey?: string
     period: Period
     engine?: EngineFilterInput
-    /** The floor per window for judging the rate's change (the caller's saved `minBucketSize`); default 10. */
     minBucketSize?: number
   },
 ): Promise<AnalyticsDashboardData> {
@@ -164,7 +131,6 @@ export async function dashboardData(
   const totalCount = Math.round(first(started))
   const incidentsCreated = Math.round(first(incCreated))
   const engineReports = reporting.length > 0
-  /** A live gauge: its value; else 0 while an engine in scope reports (no row = none); else unknown. */
   const live = (samples: PromSample[]): number | null => {
     const value = firstOrNull(samples)
     if (value !== null) return Math.round(value)
@@ -211,13 +177,8 @@ export async function dashboardData(
   }
 }
 
-/** A period's length in seconds ("7d" → 604 800). */
 const periodSeconds = (period: Period) => Number.parseInt(period, 10) * DAY_SECONDS
 
-/**
- * The window right before `period`, held inside the retention; null when it
- * lies wholly before it (no figures can exist for it).
- */
 function previousWindow(period: Period) {
   const now = nowSeconds()
   const length = periodSeconds(period)
@@ -228,7 +189,6 @@ function previousWindow(period: Period) {
   }
 }
 
-/** The previous window's starts and incidents, or null when it was not read. */
 function previousFlows(
   started: PromSample[] | null,
   incidents: PromSample[] | null,
@@ -245,7 +205,7 @@ function previousFlows(
   }
 }
 
-/** Composite (process, activity) key — activity ids repeat across models. */
+// Activity ids repeat across models, so the process is part of the key.
 const activityKey = (s: PromSample) =>
   `${s.metric.process_definition_key ?? ""}\u0000${s.metric.activity_id ?? ""}`
 
@@ -260,7 +220,6 @@ function buildActivityBreakdown(
   sums: PromSample[],
   p95: PromSample[],
 ): ActivityBreakdownItem[] {
-  // One row per (process, activity); the type is fixed within one model.
   const rows = new Map<string, { key: string; id: string; type: string; count: number }>()
   for (const s of typedCounts) {
     const k = activityKey(s)
@@ -293,11 +252,6 @@ function buildActivityBreakdown(
     .sort((a, b) => b.totalTimeMs - a.totalTimeMs)
 }
 
-/**
- * `runningReported`: an engine in scope reports its state gauges — a key
- * without a running row then runs nothing (0); otherwise its count is
- * unknown (null), not 0.
- */
 function buildDefinitionBreakdown(
   s: {
     started: PromSample[]
@@ -315,8 +269,7 @@ function buildDefinitionBreakdown(
   const sumBy = byLabel(s.durSum, "process_definition_key")
   const countBy = byLabel(s.durCount, "process_definition_key")
   const runningBy = byLabel(s.running, "process_definition_key")
-  // A definition belongs in the breakdown when it started work in the window
-  // OR has work running now — a long-running process must not vanish.
+  // Running keys count too: a long-running process must not vanish from the breakdown.
   const keys = new Set([...Object.keys(startedBy), ...Object.keys(runningBy)])
   return [...keys]
     .map((key) => {
@@ -339,17 +292,7 @@ function buildDefinitionBreakdown(
     )
 }
 
-/**
- * Current failure / incident state, from the live state gauges
- * (`camunda_incidents_open`, `camunda_jobs_failed`, `camunda_process_instances_running`).
- *
- * Point-in-time ("what is failing now"), so it is robust regardless of how the
- * data arrived — unlike a rate window over `incident_created`, which reads zero
- * on backdated/bulk-imported history. Per process: instances running now, dead
- * jobs, open incidents and open incidents per 100 running instances. Groups
- * are (process, incident type) — the gauge carries no message, activity id,
- * timestamps or instance ids, so the rows carry none either.
- */
+// From the live gauges: a counter window over `incident_created` reads zero on backdated or bulk-imported history.
 export async function failureDashboardData(
   ch: PrometheusClient,
   params: { engine?: EngineFilterInput },
@@ -366,8 +309,6 @@ export async function failureDashboardData(
     ch.instant(`sum by (process_definition_key)(${engineState(M.jobsFailed, sel)})`),
   ])
 
-  // Totals are computed over ALL patterns; only the list itself is capped at
-  // the top 50 for display.
   const allPatterns: ErrorPatternItem[] = patterns
     .map((s) => ({
       incidentType: s.metric.incident_type ?? "",

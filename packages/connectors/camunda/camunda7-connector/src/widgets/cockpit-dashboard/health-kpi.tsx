@@ -13,11 +13,6 @@ import { CAMUNDA7_COCKPIT_OVERVIEW_DATA } from "../../tool-names.js"
 import { useHandOff, type HandOff } from "../lib/hand-off.js"
 import { useT } from "../../messages/use-t.js"
 
-/**
- * Triage of the engine's process landscape: the most urgent definition, its
- * likely cause and the first step. The live snapshot comes from analytics when
- * it is active — the engine's own health view otherwise.
- */
 export function triageLandscapeHandOff(
   data: CockpitDashboardData,
   engine: string | undefined,
@@ -26,7 +21,7 @@ export function triageLandscapeHandOff(
   return {
     intent: "askAi.landscape.triage",
     ids: { engine },
-    // Deployed definition KEYS, every count over all their versions (#335).
+    // Every count over all versions of the key (#335).
     facts: {
       definitionKeys: summary.totalDefinitions,
       runningInstances: summary.totalRunningInstances,
@@ -42,13 +37,7 @@ export function triageLandscapeHandOff(
   }
 }
 
-/**
- * Shell-less health overview. One component, two modes: standalone the agent's
- * data is handed in via `data`; in the cockpit only `engine` is passed and the
- * view self-fetches (deduped with the sibling definitions table under a shared
- * key). Navigation flows through {@link useNav} — client-side in the cockpit, a
- * host follow-up standalone.
- */
+/** Standalone gets `data`; in the cockpit it self-fetches, deduped with the definitions table. */
 export function ProcessHealthKpiView({
   data: initialData = null,
   engine,
@@ -57,7 +46,6 @@ export function ProcessHealthKpiView({
   engine?: string
 }) {
   const go = useNav()
-  // Standalone the handed-in overview seeds the query, scoped to its own engine.
   const feedEngine = engine ?? initialData?.engineId
   const { data, loading, error, refetch } = useViewData<CockpitDashboardData>(
     initialData,
@@ -114,8 +102,7 @@ export function ProcessHealthKpiView({
             label: t("cockpitHealth.cellTotalProcesses"),
             value: formatNumber(summary.totalDefinitions),
             onClick: () => go({ type: "process-list" }),
-            // Named by its visible label and value (WCAG 2.5.3); the hint
-            // says what the click does.
+            // WCAG 2.5.3: named by its visible label and value.
             actionHint: t("cockpitHealth.cellTotalProcessesAria"),
           },
           {

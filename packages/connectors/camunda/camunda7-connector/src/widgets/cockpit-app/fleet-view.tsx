@@ -56,10 +56,6 @@ function FleetEngineKpis({
   )
 }
 
-/**
- * One health tile per engine ({@link useEngineHealth} — the same numbers the
- * landing's engine picker shows). Clicking the tile enters that engine's cockpit.
- */
 function FleetEngineCard({
   engineId,
   environment,
@@ -77,9 +73,7 @@ function FleetEngineCard({
     <button
       type="button"
       onClick={onEnter}
-      // No aria-label: it would REPLACE the accessible name and hide the KPI
-      // grid + error text from screen readers — the visible content (engine
-      // name, "Operate", counts) speaks for itself.
+      // No aria-label: it would replace the accessible name and hide the KPIs from screen readers.
       className={cn(
         "border-border bg-card hover:bg-muted flex flex-col gap-3 rounded-xl border p-4 text-left transition-colors",
         FOCUS_RING,
@@ -114,16 +108,9 @@ function FleetEngineCard({
   )
 }
 
-/** Widget id of the analytics module's cross-engine landscape (tier-2 raw reference). */
 const LANDSCAPE_WIDGET = "analytics:engine-landscape"
 
-/**
- * The analytics module's cross-engine landscape, composed by raw widget id.
- * Tier-2 cross-module UI (architecture invariant 8): the id is a string, not an
- * import — `filterLayoutToWidgets` drops the cell when the analytics widgets are
- * not bundled. A bundled but runtime-INACTIVE analytics module never gets here:
- * the cockpit only offers the fleet view once `useAnalyticsActive` confirms it.
- */
+/** Tier-2: `filterLayoutToWidgets` drops the cell when analytics is not bundled. */
 function LandscapeSection({
   engineIds,
   widgets,
@@ -133,16 +120,12 @@ function LandscapeSection({
 }) {
   const t = useT()
   const layout = filterLayoutToWidgets(
-    // The FULL engine list travels as a prop so an engine that reports no
-    // metrics at all still shows up in the landscape instead of silently
-    // dropping out of the overview.
+    // The full list, so an engine without metrics still shows instead of dropping out.
     [{ row: [{ widget: LANDSCAPE_WIDGET, props: { engine: engineIds } }] }],
     widgets,
   )
   if (!(LANDSCAPE_WIDGET in widgets)) return null
-  // The landscape widget heads its own section (its title says what it is and
-  // that it ranks no engines) — a second heading over it said the same twice
-  // (#322 U27).
+  // The landscape heads itself; a second heading said it twice (#322 U27).
   return (
     <section aria-label={t("fleet.landscape.title")}>
       <WidgetRenderer layout={layout} keys={{}} errors={[]} widgets={widgets} />
@@ -150,16 +133,12 @@ function LandscapeSection({
   )
 }
 
-/** The fleet the hand-offs are about: every engine id, plus `environment/engine` pairs when grouped. */
 interface Fleet {
   engineIds: string[]
   environments: string[] | undefined
 }
 
-/**
- * The cross-engine overview. The "never rank engines by a rate" rule is the
- * analytics module's server instruction — the prompt only names the fleet.
- */
+/** The "never rank engines by a rate" rule lives in the analytics instructions. */
 export function fleetOverviewHandOff({ engineIds, environments }: Fleet): HandOff {
   return {
     intent: "askAi.fleet.overview",
@@ -188,16 +167,8 @@ export function fleetPerformanceHandOff({ engineIds, environments }: Fleet): Han
 }
 
 /**
- * The cross-engine ("fleet") cockpit mode — an OVERVIEW across all configured
- * engines, not a scoreboard between them. Engines host different processes, so
- * ranking them by failure rate or duration would rank their process mixes; the
- * landscape section therefore shows what runs where plus absolute load and the
- * process-independent job backlog, and offers the KPI comparison only for the
- * definitions that actually run on more than one engine.
- *
- * Composed from a self-fetched health tile per engine (drill in to operate it),
- * the analytics landscape widget, and the fleet-wide AI analyses the
- * single-engine cockpit can't answer.
+ * An overview, not a scoreboard: engines host different processes, so ranking them by
+ * rate or duration would rank their process mixes.
  */
 export function FleetView({
   engines,
@@ -206,19 +177,14 @@ export function FleetView({
 }: {
   engines: Array<{ id: string; environment?: string }>
   onEnterEngine: (id: string) => void
-  /** Host widget registry — resolves the analytics landscape section (tier-2). */
   widgets: Record<string, WidgetComponent>
 }) {
   const t = useT()
   const { ask } = useHandOff()
   const ids = engines.map((e) => e.id)
-  // Health tiles group by environment (single default group renders flat) —
-  // the fleet itself stays ALL engines: the landscape and the fleet-wide
-  // analyses deliberately span every environment.
+  // The fleet itself stays all engines, across environments.
   const engineGroups = groupEnginesByEnvironment(engines)
   const idList = formatEnginesByEnvironment(engineGroups)
-  // The hand-offs name each engine's environment only when more than one
-  // exists, matching the grouping on screen.
   const fleet: Fleet = { engineIds: ids, environments: enginesByEnvironment(engineGroups) }
 
   return (

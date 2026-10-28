@@ -1,10 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { humanizeKey } from "./humanize-key.js"
 
-/**
- * A derived `shell:data-table` header is read by people: "Total incidents",
- * never the record key `totalIncidents` (#322 U18, en sentence case).
- */
+/** #322 U18: derived headers in sentence case. */
 describe("humanizeKey", () => {
   it.each([
     ["totalIncidents", "Total incidents"],

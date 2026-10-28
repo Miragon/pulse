@@ -241,8 +241,7 @@ export const definition: AppDefinition = {
       propsSchema: activityIncidentListPropsSchema,
     },
     {
-      // Self-fetching: loads camunda7_incident_detail_data for the given
-      // incidentId (no pipeline step), like its camunda7_show_incident_detail tool.
+      // Self-fetching (no pipeline step).
       id: "camunda7:incident-detail",
       ...builderText("widget.incident-detail"),
       description:
@@ -261,8 +260,7 @@ export const definition: AppDefinition = {
       size: "full",
     },
     {
-      // Self-fetching: loads camunda7_engine_health_data for the engine (no
-      // pipeline step), eager-rendered by camunda7_show_engine_health.
+      // Self-fetching (no pipeline step).
       id: "camunda7:engine-health",
       ...builderText("widget.engine-health"),
       description:
@@ -272,8 +270,7 @@ export const definition: AppDefinition = {
       propsSchema: engineHealthPropsSchema,
     },
     {
-      // Self-fetching: loads camunda7_cluster_detail_data for one failure
-      // cluster (no pipeline step), eager-rendered by camunda7_show_cluster_detail.
+      // Self-fetching (no pipeline step).
       id: "camunda7:cluster-detail",
       ...builderText("widget.cluster-detail"),
       description:
@@ -301,8 +298,7 @@ export const definition: AppDefinition = {
       size: "full",
     },
     {
-      // Self-fetching: loads camunda7_process_instances_data for the given
-      // processDefinitionKey (no pipeline step).
+      // Self-fetching (no pipeline step).
       id: "camunda7:process-instances",
       ...builderText("widget.process-instances"),
       description:
@@ -355,9 +351,7 @@ export const definition: AppDefinition = {
       size: "full",
     },
     {
-      // Self-fetching: loads camunda7_settings_data for the signed-in caller
-      // (no pipeline step), eager-rendered by camunda7_show_settings; a
-      // `<module>:settings` section of the shell's settings page.
+      // Self-fetching (no pipeline step).
       id: "camunda7:settings",
       ...builderText("widget.settings"),
       description:
@@ -366,8 +360,6 @@ export const definition: AppDefinition = {
       size: "full",
     },
     {
-      // Consolidated client-side cockpit app (camunda7_open_cockpit). Bootstraps
-      // itself from camunda7_list_engines and the per-view data feeds.
       id: "camunda7:cockpit-app",
       ...builderText("widget.cockpit-app"),
       description:

@@ -21,9 +21,7 @@ describe("resolveLocale", () => {
   })
 
   it("falls back to English on a store OUTAGE (must not fail engine-backed tools)", async () => {
-    // With DATABASE_URL the store is a network call and this runs as the first
-    // `await` of every widget tool — a Postgres hiccup may only cost the
-    // translation, never the tool result.
+    // With DATABASE_URL a store hiccup may only cost the translation, never the tool result.
     expect(await resolveLocale(outageStore, CTX)).toBe("en")
   })
 })
@@ -49,7 +47,6 @@ describe("localizeViewFor", () => {
     const { t, title } = await localizeViewFor(store, CTX)
     expect(title("viewTitle.processList")).toBe("Prozessdefinitionen")
     expect(title("viewTitle.clusterDetail", { activity: "ship" })).toBe("Cluster: ship")
-    // The model summary follows the same language.
     expect(t("profile.heading")).toBe("Engines und Dashboards")
   })
 

@@ -15,30 +15,16 @@ import type { AnalyticsBpmnHeatmapData } from "./bpmn-heatmap.js"
 import { deltaFacts } from "./comparison-shared.js"
 
 /**
- * Model-context descriptions for every analytics widget, attached centrally via
- * `adaptDataWidget(..., describe)` in `widgets/index.ts`. Each one is built by
- * `modelContextText` (#338, CLAUDE.md invariant 6) — a static summary of the
- * view, the ids the follow-up tools take, the headline numbers as facts, and
- * the natural follow-up tools — never a hand-written template: a value is
- * inlined only when id-shaped, and a tool is only ever named in `tools`.
- *
- * The scope comes from the DATA, never from the cell props (#336): every
- * analytics result echoes what it covers (process key, period, `engines`), so
- * a widget that self-fetched, was saved or composed by render-view describes
- * exactly the numbers on screen — including which engines a fleet aggregate
- * adds up. A figure that was not measured is null and left out, never a 0.
- *
- * A pure description cannot query the camunda7 surface, so these name
- * analytics tools only (`ANALYTICS_ONLY_SURFACE`); the Ask-AI hand-offs (live
- * surface) add the camunda7 ones where the deployment has them.
+ * Built by `modelContextText` (#338). The scope comes from the DATA, never the cell props (#336),
+ * so a saved or composed widget describes the numbers on screen; an unmeasured figure is left out,
+ * never 0. Names analytics tools only: a pure description cannot query the camunda7 surface.
  */
 
 /** Said whenever a figure adds up several engines (the deliberate fleet aggregate). */
 const AGGREGATED = " The figures add up every engine listed (aggregated)."
 
 /**
- * Said for an incident rate over several processes: a total over their mix,
- * so the screen judges no change of it (`incidentRateTrend`).
+ * An incident rate over several processes is a total over their mix, so its change is no verdict.
  */
 const MIXED_RATE =
   " The incident rate totals several processes, so its change against the previous period reflects their mix and is not judged; compare per process."
@@ -49,9 +35,8 @@ function definitionCount(data: AnalyticsDashboardData) {
 }
 
 /**
- * The execution summary: flows within the period (`…InWindow` — incidents,
- * not failed instances) kept apart from the live gauges (`…Now`), which do
- * not depend on the period (#336).
+ * Period flows (`…InWindow`: incidents, not failed instances) kept apart from the live `…Now`
+ * gauges, which ignore the period (#336).
  */
 export const describeExecutionSummary: DescribeForModel<AnalyticsDashboardData> = (data) =>
   modelContextText({
@@ -97,8 +82,7 @@ export const describeExecutionPerformance: DescribeForModel<AnalyticsDashboardDa
       medianDurationMs: data.medianDurationMs,
       p95DurationMs: data.p95DurationMs,
       incidentRatePct: data.incidentRatePct,
-      // The reference the rate is judged against on screen (one process
-      // only): the period before.
+      // The reference the rate is judged against on screen: the period before.
       previousPeriodIncidentRatePct: data.previous?.incidentRatePct,
       previousPeriodComparisonNotReliable:
         (data.processDefinitionKey && data.previous?.suppressed) || undefined,
@@ -131,10 +115,7 @@ export const describeDefinitionBreakdown: DescribeForModel<AnalyticsDashboardDat
   })
 }
 
-/**
- * The bottleneck table: one row per (process, activity) — BPMN ids are only
- * unique within one model, so the top row names its process too.
- */
+/** BPMN ids are unique only within one model, so the top row names its process too. */
 export const describeActivityBottlenecks: DescribeForModel<AnalyticsDashboardData> = (data) => {
   const top = [...data.activityBreakdown].sort((a, b) => b.totalTimeMs - a.totalTimeMs)[0]
   return modelContextText({
@@ -162,11 +143,7 @@ export const describeActivityBottlenecks: DescribeForModel<AnalyticsDashboardDat
   })
 }
 
-/**
- * The failure summary (point-in-time). A pure description cannot query the
- * camunda7 surface, so it names analytics tools only; the Ask-AI hand-off
- * (live surface) adds the camunda7 ones where the deployment has them.
- */
+/** The failure summary (point-in-time). */
 export const describeFailureSummary: DescribeForModel<FailureDashboardData> = (data) =>
   modelContextText({
     summary:
@@ -183,11 +160,8 @@ export const describeFailureSummary: DescribeForModel<FailureDashboardData> = (d
   })
 
 /**
- * The open-incident groups. The gauge carries only incident type, process and
- * count — no message, activity or timestamps. A custom incident type is any
- * string: unless id-shaped it is quoted as untrusted data (#338). The view
- * spans every process, so the largest group's key is a fact, never a scope;
- * the group count is the exact one, and a capped list says how much it shows.
+ * The gauge carries only type, process and count. A custom incident type is quoted as untrusted
+ * unless id-shaped (#338); a capped list says how much it shows.
  */
 export const describeErrorPatterns: DescribeForModel<FailureDashboardData> = (data) => {
   const top = [...data.errorPatterns].sort((a, b) => b.incidentCount - a.incidentCount)[0]
@@ -211,11 +185,8 @@ export const describeErrorPatterns: DescribeForModel<FailureDashboardData> = (da
 }
 
 /**
- * Open incidents by process (point-in-time live gauges): open incidents per
- * 100 running instances and dead jobs — incidents, not failed instances
- * (#336). The regression check goes to the tools that measure incident rates
- * over time — not analytics_version_compare: it cannot split incidents by
- * version, so its incident rates are null (#327).
+ * Live gauges. Regressions go elsewhere than analytics_version_compare: it cannot split incidents
+ * by version (#327).
  */
 export const describeFailureRates: DescribeForModel<FailureDashboardData> = (data) => {
   const top = [...data.processBreakdown].sort(
@@ -242,9 +213,8 @@ export const describeFailureRates: DescribeForModel<FailureDashboardData> = (dat
 }
 
 /**
- * The deltas on screen plus the single largest one — the number a user asks
- * about first. The candidates are the {@link deltaFacts} keys: a new
- * `CompareKpiDelta` field must be added there.
+ * The candidates are the {@link deltaFacts} keys: a new `CompareKpiDelta` field must be added
+ * there.
  */
 function comparisonFacts(delta: CompareKpiDelta, suppressed: boolean) {
   const facts = deltaFacts(delta, suppressed)
@@ -261,9 +231,8 @@ function comparisonFacts(delta: CompareKpiDelta, suppressed: boolean) {
 const SUPPRESSED = " The sample is below minBucketSize (suppressed): treat the deltas as noise."
 
 /**
- * Before/after a deployment. The ids re-run the comparison as asked (the
- * requested whole-day windows); the windows actually measured — cut short at
- * now or the retention — are facts (#336).
+ * The ids re-run the comparison as asked; the windows actually measured (cut at now or the
+ * retention) are facts (#336).
  */
 export const describeClusterCompare: DescribeForModel<ClusterCompareData> = (data) =>
   modelContextText({
@@ -382,10 +351,7 @@ function maxEntry(values: Record<string, number>): [string, number] | null {
 }
 
 /**
- * The settings section. Its save tool is named only while the section can
- * save (`canSave`: the toolset registers the write AND the caller has an
- * identity to save under) — the model is never told about a write that fails.
- * Rendered in-component (the section self-fetches), hence a spec, not a text.
+ * The save tool is named only while `canSave`, so the model is never told about a write that fails.
  */
 export function describeAnalyticsSettings(data: AnalyticsSettingsViewData): ModelContextSpec {
   return {

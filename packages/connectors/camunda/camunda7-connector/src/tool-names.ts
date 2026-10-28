@@ -1,80 +1,43 @@
-/**
- * Names of the cibseven widget tools that other widgets navigate to via
- * `host.showWidget(...)`. The bridge `sendMessage` prompt embeds the tool
- * name as a hint to the agent — keeping these as constants means a tool
- * rename in `widget-tools.ts` trips a TS error at every call site.
- */
+// Constants so a tool rename trips a TS error at every navigation and prompt site.
 export const CAMUNDA7_SHOW_PROCESS_DETAIL = "camunda7_show_process_detail"
 export const CAMUNDA7_SHOW_PROCESS_INCIDENTS = "camunda7_show_process_incidents"
 export const CAMUNDA7_SHOW_INCIDENT_DETAIL = "camunda7_show_incident_detail"
 export const CAMUNDA7_SHOW_PROCESS_INSTANCES = "camunda7_show_process_instances"
 export const CAMUNDA7_SHOW_INSTANCE_DETAIL = "camunda7_show_instance_detail"
-// Consolidated cockpit app (client-side navigation) + the granular dashboard it
-// reuses for its overview.
 export const CAMUNDA7_OPEN_COCKPIT = "camunda7_open_cockpit"
-// Per-view data-only feeds (no UI, app-only via _meta.ui.visibility) reused by
-// the cockpit app AND each widget's own self-fetch. A widget tool
-// (_meta.ui.resourceUri) can't be used for this: the host renders it instead of
-// returning data to the in-widget callTool().
+// Feeds, not widget tools: the host would render a widget tool's result instead of returning it to callTool().
 export const CAMUNDA7_COCKPIT_OVERVIEW_DATA = "camunda7_cockpit_overview_data"
 export const CAMUNDA7_PROCESS_INSTANCES_DATA = "camunda7_process_instances_data"
 export const CAMUNDA7_INSTANCE_DETAIL_DATA = "camunda7_instance_detail_data"
 export const CAMUNDA7_JOBS_DATA = "camunda7_jobs_data"
 export const CAMUNDA7_INCIDENTS_DATA = "camunda7_incidents_data"
-// The ONE definition feed — powers every section of the merged definition view
-// (header, KPI strip, flow, activity incident list) under a shared query key.
+// Every section of the definition view reads this one feed under a shared query key.
 export const CAMUNDA7_PROCESS_INCIDENTS_DATA = "camunda7_process_incidents_data"
-// Paged per-activity incident rows behind each expanded activity group of the
-// definition view (offset paging + exact /incident/count total).
 export const CAMUNDA7_ACTIVITY_INCIDENTS_DATA = "camunda7_activity_incidents_data"
 export const CAMUNDA7_INCIDENT_DETAIL_DATA = "camunda7_incident_detail_data"
-// Standalone diagram + timeline views. The BPMN viewer's show tool is
-// registration-only: the widget self-fetches CAMUNDA7_BPMN_VIEWER_DATA.
+// The BPMN viewer's show tool is registration-only: the widget self-fetches CAMUNDA7_BPMN_VIEWER_DATA.
 export const CAMUNDA7_SHOW_HISTORY_TIMELINE = "camunda7_show_history_timeline"
 export const CAMUNDA7_SHOW_BPMN_VIEWER = "camunda7_show_bpmn_viewer"
-// Feed twin of the BPMN viewer — the widget's self-fetch; calling the show
-// tool from inside the iframe is host-defined (a second rendered widget on
-// hosts honoring resultCanProduceWidget).
+// Calling the show tool from the iframe is host-defined (a second widget on some hosts).
 export const CAMUNDA7_BPMN_VIEWER_DATA = "camunda7_bpmn_viewer_data"
-// One deployed definition's BPMN XML, by id. Every diagram a view draws
-// comes from here (`BpmnDiagram`), never inside the view's own payload: a
-// definition's XML never changes, so the widget keeps it for good and the
-// server caches it (`lib/definition-xml.ts`).
+// A definition's XML never changes, so the widget keeps it for good and the server caches it.
 export const CAMUNDA7_BPMN_XML_DATA = "camunda7_bpmn_xml_data"
-// AI-first engine overview: deterministic health verdict + cross-process
-// incident clusters. The cockpit overview's home base; self-fetches its feed.
 export const CAMUNDA7_SHOW_ENGINE_HEALTH = "camunda7_show_engine_health"
 export const CAMUNDA7_ENGINE_HEALTH_DATA = "camunda7_engine_health_data"
-// Cluster drill-in: affected instances (business-key first) of ONE failure
-// cluster — the middle layer between overview clusters and incident detail.
 export const CAMUNDA7_SHOW_CLUSTER_DETAIL = "camunda7_show_cluster_detail"
 export const CAMUNDA7_CLUSTER_DETAIL_DATA = "camunda7_cluster_detail_data"
-// Hub-navigation targets surfaced from the cockpit dashboard.
 export const CAMUNDA7_SHOW_INCIDENTS_DASHBOARD = "camunda7_show_incidents_dashboard"
 export const CAMUNDA7_SHOW_JOB_PANEL = "camunda7_show_job_panel"
 export const CAMUNDA7_SHOW_PROCESS_LIST = "camunda7_show_process_list"
-// Feed twin of the standalone process list (offset paging + /count total) —
-// the widget's self-fetch; a show-tool result would be rendered by the host.
 export const CAMUNDA7_PROCESS_LIST_DATA = "camunda7_process_list_data"
-// User profile & settings: the show tool renders the settings widget, the
-// _data feed backs the widget's self-fetch (app-only), and save persists a
-// partial preference update (model-visible, e.g. "switch the UI to German").
 export const CAMUNDA7_SHOW_SETTINGS = "camunda7_show_settings"
 export const CAMUNDA7_SETTINGS_DATA = "camunda7_settings_data"
 export const CAMUNDA7_SAVE_SETTINGS = "camunda7_save_settings"
-// Engine management: the read-only engine list (+ the saved default) and the
-// durable default-engine save. Widgets call ONLY the list, so its name is
-// load-bearing beyond prompt hints. No widget writes a default: cockpit
-// navigation never saves one; it changes only via the settings page or an
-// explicit model call to the select tool.
+// No widget writes a default: only the settings page or an explicit model call to the select tool.
 export const CAMUNDA7_LIST_ENGINES = "camunda7_list_engines"
 export const CAMUNDA7_SELECT_ENGINE = "camunda7_select_engine"
-// The engine writes widgets trigger in place (`useToolMutation`). The
-// deployment's toolset may not register them (`camunda7:read-only` drops every
-// write, `:operations` the admin-only ones), so the widgets ask the app-only
-// `*_widget_actions_data` feed which of these exist and render only those
-// buttons (`useCanRun`). `src/widget-actions.test.ts` fails on an in-widget
-// write missing from this list.
+// The toolset may not register these, so widgets ask `*_widget_actions_data` which exist.
+// `src/widget-actions.test.ts` fails on an in-widget write missing here.
 export const CAMUNDA7_WIDGET_ACTIONS = [
   "camunda7_set_job_retries",
   // The failedExternalTask incident's remedy — resolve refuses that type.

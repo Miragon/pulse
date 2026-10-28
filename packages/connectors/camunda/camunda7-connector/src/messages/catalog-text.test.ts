@@ -14,12 +14,8 @@ import { catalogs } from "./index.js"
 import { countOf, isOne } from "./plural.js"
 
 /**
- * The camunda7 copy under the voice rules (brand-tone; brand-review A1, A2,
- * A10): every catalog the module renders or posts to the chat, German in
- * full, English the transferable rules. brand-lint reads Markdown, never the
- * strings inside these modules, so this test is the gate. Function entries
- * render with every parameter 1 and 2, so a missing plural shows up as
- * "1 incidents".
+ * brand-lint reads Markdown only, so this test is the gate. Function entries render with 1 and
+ * 2, so a missing plural shows up as "1 incidents".
  */
 describe("camunda7 copy follows the voice rules", () => {
   it.each([
@@ -42,13 +38,11 @@ describe("both languages cover every key", () => {
   const enKeys = Object.keys(catalogs.en)
   const deKeys = Object.keys(catalogs.de)
 
-  // A key missing in German falls back to English: an English line in a
-  // German view (the half-English cockpit of #322 U3).
+  // The half-English cockpit of #322 U3.
   it("every English key has its German entry", () => {
     expect(enKeys.filter((key) => !deKeys.includes(key))).toEqual([])
   })
 
-  // A German-only key falls back to the key itself in an English view.
   it("every German key has its English entry", () => {
     expect(deKeys.filter((key) => !enKeys.includes(key))).toEqual([])
   })

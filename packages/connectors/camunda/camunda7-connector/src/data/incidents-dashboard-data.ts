@@ -24,7 +24,6 @@ import {
   type IncidentScan,
 } from "./incident-scan.js"
 
-/** The engine's URLs + the feed contract's filters (echoed as `filters`). */
 export interface IncidentsDashboardOptions extends IncidentsDashboardFilters {
   baseUrl: string
   cockpitUrl?: string
@@ -32,16 +31,10 @@ export interface IncidentsDashboardOptions extends IncidentsDashboardFilters {
 }
 
 /**
- * The open-incidents overview across process definitions. Every count is
- * exact and KEY-wide (all versions): the totals from `/incident/count`, the
- * process axis and each process's incident + running-instance counts from the
- * definition statistics. The newest-first recency scan only adds the
- * per-activity breakdown and timestamps — and says how much of each process
- * it covers (`scannedIncidentCount`), so a process whose incidents all lie
- * beyond the scan still appears with its exact count (#335 N61). Scanned rows
- * join their card through the statistics' version ids — a bare generated
- * definition id (long keys) carries no parseable key. A scope key no version
- * is deployed for is a not-found error, never "0 open incidents".
+ * Counts are exact and KEY-wide from `/incident/count` and the definition
+ * statistics; the scan only adds the per-activity breakdown and timestamps, so a
+ * process whose incidents lie beyond the scan keeps its exact count (#335 N61).
+ * Rows join cards through the statistics' version ids (bare ids carry no key).
  */
 export async function buildIncidentsDashboardData(
   client: Client,
@@ -108,9 +101,8 @@ function toProcess(
   scanned: IncidentRow[],
   ctx: { scan: IncidentScan; cutoffMs: number; options: IncidentsDashboardOptions },
 ): IncidentsDashboardProcess {
-  // The breakdown is complete only when the scan holds every incident of the
-  // key — measured against the exact count, so a card the scan holds none of
-  // never reports confident zeros next to its N incidents.
+  // Complete only when the scan holds every incident of the key (vs. the exact
+  // count), so a card never reports confident zeros next to its N incidents.
   const fullyScanned = scanned.length >= stats.incidentCount
   const facts = scanFacts(scanned, { fullyScanned, scan: ctx.scan, cutoffMs: ctx.cutoffMs })
   const activities: IncidentsDashboardActivity[] = [

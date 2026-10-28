@@ -2,14 +2,7 @@ import type postgres from "postgres"
 import { parseStoredProfile } from "./profile-migrations.js"
 import { mergeStoredProfile, type ProfileStore } from "./profile-store.js"
 
-/**
- * DDL owned by this store, executed by the composition root's migration runner
- * (which tracks applied names in its `schema_migrations` table). The full
- * profile record lives in one JSONB column — it is tiny (<1 KB) and its shape
- * is governed by `profileRecordSchema`/`schemaVersion`, not by table columns.
- * `user_id` mirrors the record's owner (the OAuth caller; NULL for the
- * declared `anonymous` record).
- */
+/** One JSONB column: the record is tiny and its shape is governed by `schemaVersion`, not columns. */
 export const PROFILE_STORE_MIGRATIONS: ReadonlyArray<{
   name: string
   statements: readonly string[]
@@ -27,21 +20,7 @@ export const PROFILE_STORE_MIGRATIONS: ReadonlyArray<{
   },
 ]
 
-/**
- * Profiles stored one row per key in the `user_profiles` table. Selected when
- * `DATABASE_URL` is set (see the composition root's persistence wiring); the
- * caller owns the `sql` client's lifecycle, so this package carries no runtime
- * dependency on the driver.
- *
- * Reads share the filesystem store's per-field fail-soft gate
- * (`parseStoredProfile`): a value this build cannot validate degrades only its
- * own field, and a newer build's row reads best-effort. Saves run the shared
- * `mergeStoredProfile` over the RAW JSONB inside a per-key locked
- * transaction, so concurrent partial updates of the same key serialize
- * instead of losing fields, and nothing a newer replica wrote is dropped —
- * safe for multiple server instances (and mixed versions) sharing one
- * database.
- */
+/** The caller owns the `sql` client, so this package has no runtime dependency on the driver. */
 export function createPostgresProfileStore(options: { sql: postgres.Sql }): ProfileStore {
   const { sql } = options
 
@@ -54,12 +33,8 @@ export function createPostgresProfileStore(options: { sql: postgres.Sql }): Prof
     },
     async save(key, input, opts) {
       return await sql.begin(async (tx) => {
-        // Advisory lock, not just SELECT…FOR UPDATE: a row that doesn't exist
-        // yet cannot be row-locked, so two concurrent FIRST saves of the same
-        // key would otherwise both merge over defaults and the second upsert
-        // would silently drop the first one's fields. The per-key transaction
-        // lock serializes creates and updates alike (same primitive as the
-        // app's migration runner).
+        // Advisory lock: a row that doesn't exist yet cannot be row-locked, so two concurrent
+        // FIRST saves would both merge over defaults and the second would drop the first's fields.
         await tx`SELECT pg_advisory_xact_lock(hashtextextended('user_profiles:' || ${key}, 0))`
         const rows = await tx<{ profile: unknown }[]>`
           SELECT profile FROM user_profiles WHERE key = ${key} FOR UPDATE
@@ -71,10 +46,7 @@ export function createPostgresProfileStore(options: { sql: postgres.Sql }): Prof
           new Date().toISOString(),
           opts,
         )
-        // sql.json, not JSON.stringify: postgres.js serializes parameters by
-        // the server-described type, and the jsonb serializer stringifies
-        // itself — a pre-stringified value gets double-encoded into a jsonb
-        // string scalar.
+        // sql.json, not JSON.stringify: a pre-stringified value gets double-encoded into a jsonb string.
         await tx`
           INSERT INTO user_profiles (key, user_id, profile, updated_at)
           VALUES (

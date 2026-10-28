@@ -12,14 +12,7 @@ import { PagedRows } from "./paged-rows.js"
 import { Host, ROWS, Table, layout, shownRows } from "./inline-fit.test-support.js"
 import { usePagedViewData } from "./use-paged-view-data.js"
 
-/**
- * Inline in a chat a view is a card, not a page (#396): each list shows the
- * rows that FIT the host's height budget, measured on the rendered view,
- * says how many there are, and offers the rest (fullscreen where the host
- * offers it, else the next rows in place). happy-dom has no layout, so these
- * tests inject one: `chrome` px around the lists, `row` px per row, `footer`
- * px per "k of N" line. The host simulation measures the real thing.
- */
+/** #396 with an injected layout; the host simulation measures the real thing. */
 
 afterEach(() => {
   cleanup()
@@ -152,7 +145,6 @@ describe("a paged list inline", () => {
 
   const seed: Page = { items: ROWS.slice(0, 10), total: 40 }
 
-  /** A paged list as the widgets compose it: `PagedRows` around a `ListTable`, then the footer. */
   function List({ search = "" }: { search?: string }) {
     const paged = usePagedViewData<string, Page>({
       initialData: seed,

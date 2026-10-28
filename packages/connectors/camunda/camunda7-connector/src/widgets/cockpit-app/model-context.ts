@@ -2,10 +2,7 @@ import { enginesByEnvironment } from "../../lib/environments.js"
 import type { ViewContext } from "../lib/hand-off.js"
 import { selectedEntity, type CockpitView } from "../nav-core.js"
 
-/**
- * The single-engine cockpit: the engine every call must target and the view
- * the operator navigated to client-side (no chat turn tells the model).
- */
+/** The view was navigated client-side: no chat turn tells the model. */
 export function cockpitContext(engineId: string, current: CockpitView): ViewContext {
   const selected = selectedEntity(current)
   return {
@@ -29,12 +26,7 @@ export function cockpitContext(engineId: string, current: CockpitView): ViewCont
   }
 }
 
-/**
- * The engine picker: no engine is open, so nothing on screen is scoped to
- * one — the model must not assume an engine (the engine ids are facts, not
- * an `engine` to pin). Each engine's environment is named when more than one
- * exists, the way the picker asks for it first.
- */
+/** No engine is open: the engine ids are facts, not an `engine` to pin. */
 export function landingContext(
   engineGroups: Array<{ id: string; engines: Array<{ id: string }> }>,
 ): ViewContext {
@@ -51,11 +43,7 @@ export function landingContext(
   }
 }
 
-/**
- * The cross-engine (fleet) mode: an overview across engines, never a ranking
- * between them — they run different processes. Each engine's environment is
- * named when more than one exists, the way the widget groups its tiles.
- */
+/** Never a ranking: engines run different processes. */
 export function fleetContext(
   engineGroups: Array<{ id: string; engines: Array<{ id: string }> }>,
 ): ViewContext {
@@ -76,7 +64,6 @@ export function fleetContext(
   }
 }
 
-/** A view the operator drilled into client-side from a standalone widget. */
 export function drillContext(current: CockpitView, engineId: string | undefined): ViewContext {
   const selected = selectedEntity(current)
   return {

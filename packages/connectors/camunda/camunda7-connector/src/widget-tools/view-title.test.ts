@@ -9,14 +9,7 @@ import { CAMUNDA7_SHOW_SETTINGS } from "../tool-names.js"
 import { registerUserProfileTools } from "../tools/user-profile.js"
 import { registerWidgetTools } from "../widget-tools.js"
 
-/**
- * Structural guard for #322 U3 over EVERY camunda7 show tool (each tool with
- * a view binding): the server titles a view only in a language the caller's
- * profile names. "system" follows the host's locale, which the server never
- * sees, so the view carries no title and the widget's own heading names it;
- * a hard-coded English title would sit over a German view. A new show tool
- * that skips `localizeViewFor`/`viewLocaleOf` fails here, not in review.
- */
+/** #322 U3: a hard-coded English title would sit over a German view; sweeps every show tool. */
 
 type ToolCallback = (args: Record<string, unknown>, ctx?: unknown) => Promise<unknown>
 type ViewResult = { structuredContent?: { title?: unknown; layout?: unknown } }
@@ -38,7 +31,6 @@ afterAll(async () => {
   await new Promise<void>((resolve) => engine.close(() => resolve()))
 })
 
-/** Arguments every show tool accepts (each takes the fields it knows). */
 const ARGS = {
   processDefinitionKey: "order",
   processDefinitionId: "order:1:abc",
@@ -68,7 +60,6 @@ async function showTools() {
   return tools
 }
 
-/** Each show tool's view title for one caller, for the tools that rendered a view. */
 async function titlesFor(tools: Map<string, ToolCallback>, ctx: unknown) {
   const titles = new Map<string, unknown>()
   for (const [name, call] of tools) {
@@ -83,16 +74,14 @@ describe("show tools title their view only in a language the profile names", () 
     const tools = await showTools()
     for (const ctx of [undefined, callerCtx("system-user"), callerCtx("nobody-saved-yet")]) {
       const titles = await titlesFor(tools, ctx)
-      // Not vacuous: the fake engine is enough for most views to render, the
-      // settings view among them.
+      // Not vacuous.
       expect(titles.size).toBeGreaterThanOrEqual(9)
       expect(titles.has(CAMUNDA7_SHOW_SETTINGS)).toBe(true)
       expect(Object.fromEntries([...titles].filter(([, title]) => title !== undefined))).toEqual({})
     }
   })
 
-  // Some views set no title in any language (their widget heading names
-  // them); a named language must not change WHICH views carry one.
+  // Some views set no title in any language.
   it("a named language titles the same views, each in that language", async () => {
     const tools = await showTools()
     const de = await titlesFor(tools, callerCtx("de-user"))

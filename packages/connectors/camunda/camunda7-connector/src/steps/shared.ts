@@ -6,7 +6,7 @@ import type {
 import { resolveStepEngine, type Camunda7StepAppConfig } from "../lib/resolve-engine.js"
 import { builderText } from "../builder-texts.js"
 
-/** The engine selector every step reads — declared so render-view can discover it. */
+/** Declared so render-view can discover it. */
 const ENGINE_KEY: OptionalKeyDeclaration = {
   key: "camunda7:engine",
   description:
@@ -25,13 +25,7 @@ interface AdapterStep<TData> {
   read: (context: PipelineContext, engine: StepEngine) => Promise<TData>
 }
 
-/**
- * Every camunda7 step is a THIN ADAPTER over the builder its show tool uses
- * (CLAUDE.md invariant 7) — same reads, same numbers, `engineId` stamped —
- * and fails like it: a builder error propagates out of `execute`, so a step
- * never returns a success-shaped empty payload. `steps.test.ts` holds every
- * step to its twin's output.
- */
+/** A builder error propagates, so a step never returns a success-shaped empty payload. */
 export function adapterStep<TData>(
   step: AdapterStep<TData>,
 ): PipelineStepDefinition<Camunda7StepAppConfig> {
@@ -54,13 +48,12 @@ export function adapterStep<TData>(
   }
 }
 
-/** A string key of the step context; undefined when absent or empty. */
 export function stringKey(context: PipelineContext, key: string): string | undefined {
   const value = context.keys[key]
   return typeof value === "string" && value.length > 0 ? value : undefined
 }
 
-/** A required string key — `requires` gates the step, this keeps the type honest. */
+/** `requires` gates the step; this keeps the type honest. */
 export function requiredKey(context: PipelineContext, key: string): string {
   const value = stringKey(context, key)
   if (value === undefined) throw new Error(`Missing required view key \`${key}\`.`)

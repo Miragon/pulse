@@ -2,15 +2,7 @@
 import { describe, expect, it } from "vitest"
 import * as widgets from "./index.js"
 
-/**
- * The `/widgets` entry a connector builds its views from: the table frame and
- * its helpers, the settings controls, the heatmap, the name-before-id cell and
- * the one severity ladder are reachable from it,
- * not only from their own modules (a piece missing here is a piece no
- * connector can import). The types travel with them (`ListTableColumn`,
- * `ListTableGroup`, `ColumnSort`), checked by `pnpm typecheck` in the
- * connectors that use them.
- */
+/** A piece missing from `/widgets` is a piece no connector can import. */
 describe("the /widgets entry", () => {
   it.each([
     "ListTable",

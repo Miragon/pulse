@@ -15,7 +15,6 @@ import { coerceValue, isEditableVariable } from "./lib/coerce-value.js"
 import { useEngineAction, type EngineAction } from "./lib/engine-action.js"
 import { writeFeedback } from "./lib/write-feedback.js"
 
-/** A serialized Json/Object value, pretty-printed when it is valid JSON. */
 function prettyJson(serialized: string): string {
   try {
     return JSON.stringify(JSON.parse(serialized), null, 2)
@@ -24,7 +23,7 @@ function prettyJson(serialized: string): string {
   }
 }
 
-/** How a Boolean value reads on screen ("Ja"/"Nein"); omitted, `true`/`false` as the engine writes it. */
+// Omitted, `true`/`false` as the engine writes it.
 export interface BooleanLabels {
   yes: string
   no: string
@@ -39,7 +38,6 @@ export function formatVariableValue(
   return valueText(value, type)
 }
 
-/** A value as the engine holds it, Json/Object pretty-printed. */
 function valueText(value: unknown, type?: string): string {
   if (value === null || value === undefined) return "—"
   // The feeds read variables serialized: Json/Object values arrive as strings.
@@ -54,10 +52,7 @@ function valueText(value: unknown, type?: string): string {
   return JSON.stringify(value)
 }
 
-/**
- * The raw value to edit, not its display form: a serialized Json/Object
- * string is edited (and written back) as that very string.
- */
+// A serialized Json/Object string is edited and written back as that very string.
 function editText(value: unknown, type?: string): string {
   if (value === null || value === undefined) return ""
   if (typeof value === "string") return value
@@ -106,12 +101,9 @@ function VariableRow({
   const [editing, setEditing] = useState(false)
   const [editValue, setEditValue] = useState("")
   const [editError, setEditError] = useState<string | null>(null)
-  // Whether this edit session saved — a prior session's failed save must not
-  // reappear when the operator reopens the row.
+  // A prior session's failed save must not reappear when the row reopens.
   const [attempted, setAttempted] = useState(false)
-  // An open editor closes when the row stops being editable (the instance
-  // was cancelled, ended, or its state is unconfirmed) — its Save would
-  // write to an instance whose state no longer allows it.
+  // Closes when the instance stops being editable (cancelled, ended, unconfirmed).
   useResetOnChange(editable, () => setEditing(false))
   const t = useT()
   const saving = action.pending(name)
@@ -125,9 +117,8 @@ function VariableRow({
   }
 
   function save() {
-    // coerceValue passes "" through for untyped/String variables only; an
-    // empty field is not a valid Integer/Boolean/Json either — both cases show
-    // the inline error instead of writing a mistyped value to the engine.
+    // coerceValue passes "" through for untyped/String only; an empty typed field shows the inline error
+    // instead of writing a mistyped value.
     const typed = variable.type !== undefined && variable.type !== "String"
     const parsed = typed && editValue === "" ? undefined : coerceValue(editValue, variable.type)
     if (parsed === undefined) {
@@ -233,16 +224,14 @@ export function VariablesTable({
   readOnly?: boolean
 }) {
   const t = useT()
-  // The saved values shadow the shown ones only until the feed refetches —
-  // fresh server data (new `variables` identity) must win again.
+  // Saved values shadow the shown ones only until the refetch.
   const setVariable = useEngineAction<SetVariableArgs>({
     tool: "camunda7_set_process_instance_variable",
     target: (args) => args.variableName,
     resetOn: variables,
     available: !readOnly,
   })
-  // An ended instance and a toolset without the variable write both mean no
-  // edit column at all — an empty trailing column would read as missing data.
+  // No edit column at all: an empty trailing column would read as missing data.
   const editable = setVariable.allowed
   const entries = Object.entries(variables)
 

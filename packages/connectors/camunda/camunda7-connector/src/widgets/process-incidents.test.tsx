@@ -9,12 +9,8 @@ import type { ProcessIncidentsData } from "../view-models.js"
 
 afterEach(cleanup)
 
-/**
- * The definition view's "activities affected" is a fraction of the DIAGRAM
- * (#335 N60): `activities` spans every version of the key, the diagram is the
- * latest one — so an activity only an older version has must stay out of
- * "X of Y", never turn it into "2/2" (or "3/2").
- */
+// #335 N60: `activities` spans every version, the diagram is the latest, so an older-only activity
+// must stay out of "X of Y".
 const DATA: ProcessIncidentsData = {
   processDefinitionKey: "leasing",
   processDefinitionName: "Leasing",
@@ -58,8 +54,6 @@ describe("definition view — activities affected over the diagram", () => {
   it("counts only the diagram's activities in the fraction and names the older-version ones beside it", () => {
     render(<WidgetFixtureHost widget={Kpi} data={DATA as unknown as Record<string, unknown>} />)
 
-    // The toolkit KpiGrid's cell (label row + value row + trend): a direct
-    // child of the strip's grid.
     const cell = screen
       .getByText("Activities affected")
       .closest<HTMLElement>('[data-slot="kpi-strip"] > div > *')!

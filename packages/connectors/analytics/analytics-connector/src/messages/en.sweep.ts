@@ -1,14 +1,7 @@
 import type { MessageCatalog } from "@miragon/mcp-toolkit-core"
 import { plural } from "./plural.js"
 
-/**
- * English catalog of the analytics widgets. String templates use {name}
- * placeholders interpolated by createTranslator; counted messages are
- * `plural(…)` and take the count formatted for the view's locale. The voice
- * rules (sentence case, active, no dash as a connector) and the terms of
- * GLOSSARY.md are checked by `brand-gates.test.ts` and `glossary.test.ts`.
- * Merged into the catalogs in index.ts.
- */
+/** Counted messages take the count already formatted for the view's locale. */
 export const enSweep: MessageCatalog = {
   "aActivityType.boundaryEvent": "Boundary event",
   "aActivityType.businessRuleTask": "Business rule task",

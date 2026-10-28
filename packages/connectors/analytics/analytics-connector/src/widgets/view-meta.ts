@@ -1,10 +1,8 @@
 import type { ViewMetaEngines } from "@miragon/pulse-widget-shell/widgets"
 
 /**
- * The engine part of an analytics view's meta line (U7) from the result's
- * echo: how many engines the figures add up and, where the result names
- * the reporting ones, how many of them send no metrics. `null` for an
- * unscoped result (every engine Prometheus holds), which names none.
+ * The engine part of the meta line (U7) from the result's echo; `null` for an unscoped result,
+ * which names no engines.
  */
 export function enginesMeta(
   engines: readonly string[] | null | undefined,

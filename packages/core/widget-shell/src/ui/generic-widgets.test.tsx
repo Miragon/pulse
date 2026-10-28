@@ -4,11 +4,7 @@ import { cleanup, render, screen } from "@testing-library/react"
 import type { PipelineContext } from "@miragon/mcp-toolkit-core"
 import { GenericDataTableWidget, GenericKpiGridWidget } from "./generic-widgets.js"
 
-/**
- * The `shell:*` widgets are render-view and builder targets: they render
- * whatever plain data a context key holds, and what they show reads for
- * people, also when nobody wrote the labels (#322 U18).
- */
+/** Labels read for people even when nobody wrote them (#322 U18). */
 
 afterEach(cleanup)
 
@@ -35,7 +31,6 @@ const ROWS = [
 describe("shell:data-table", () => {
   it("derives the columns from the first row, each key in words", () => {
     expect(renderTable(ROWS)).toEqual(["Process", "Total incidents", "Process definition key"])
-    // A number column aligns right, the others left.
     const [process, incidents] = screen.getAllByRole("columnheader")
     expect(incidents.className).toContain("text-right")
     expect(process.className).toContain("text-left")

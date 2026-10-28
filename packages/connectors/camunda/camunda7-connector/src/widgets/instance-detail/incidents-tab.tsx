@@ -4,16 +4,13 @@ import type { IncidentRecoveryState } from "../process-incidents/use-incident-re
 import { useNav } from "../navigation.js"
 import { useT } from "../../messages/use-t.js"
 
-/** The "Incidents" tab body. */
 export function IncidentsTab({
   incidents,
   recovery,
   engine,
 }: {
   incidents: InstanceDetailData["incidents"]
-  /** Row actions + their optimistic state (`useIncidentRecovery`). */
   recovery: IncidentRecoveryState
-  /** The instance's engine, pinned into the rows' AI handoffs. */
   engine?: string
 }) {
   const t = useT()
@@ -21,9 +18,6 @@ export function IncidentsTab({
   if ((incidents ?? []).length === 0) {
     return <p className="text-muted-foreground text-dense">{t("instanceDetail.noIncidents")}</p>
   }
-  /* Same IncidentTable as the definition view — an incident looks
-      identical on both pages. All rows belong to this instance, so
-      the instance column is dropped. */
   return (
     <IncidentTable
       incidents={incidents ?? []}

@@ -1,11 +1,3 @@
-/**
- * Helpers for flattening Camunda activity-instance trees into the activity-id
- * lists the BPMN diagram needs for highlighting active tokens and incident
- * activities. Used by `camunda7_show_instance_detail` and by the shared BPMN
- * viewer builder (`data/bpmn-viewer-data.ts`, behind both the widget tool and
- * the pipeline step) so every render path stays in sync.
- */
-
 interface TreeNode {
   activityId?: string
   childActivityInstances?: TreeNode[]
@@ -27,11 +19,7 @@ function collect(node: TreeNode | null): string[] {
   return ids
 }
 
-/**
- * Token count per activity of ONE instance: its activity and transition
- * instances below the root (the root node is the process instance itself).
- * A multi-instance or parallel activity counts once per token.
- */
+/** The root node is the process instance itself; a multi-instance activity counts once per token. */
 export function countActivityInstances(tree: unknown): Map<string, number> {
   const counts = new Map<string, number>()
   const add = (id: string | undefined) => {

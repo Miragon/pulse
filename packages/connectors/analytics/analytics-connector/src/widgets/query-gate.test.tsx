@@ -6,11 +6,7 @@ import { QueryGate } from "./query-gate.js"
 
 afterEach(cleanup)
 
-/**
- * The split dashboard widgets' self-fetch gate: a failed query is never a
- * dead end (U1). The kit words a Prometheus failure itself; the gate's
- * own title heads only one it cannot classify.
- */
+// U1: the gate's own title heads only a failure the kit cannot classify.
 describe("QueryGate", () => {
   function renderGate(error: Error, refetch = vi.fn()) {
     render(

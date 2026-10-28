@@ -125,7 +125,6 @@ const initialize = (port: number, headers: Record<string, string> = {}) =>
     body: INITIALIZE,
   })
 
-/** The JSON-RPC result of a JSON or single-event SSE response body. */
 function rpcResult(body: string): Record<string, unknown> {
   const json = body.trimStart().startsWith("{")
     ? body
@@ -323,8 +322,7 @@ describe("createComposedServer — graceful drain", () => {
         },
       }),
     })
-    // A slow route standing in for an in-flight tool call (registered before
-    // the first request mounts the app).
+    // Stands in for an in-flight tool call; registered before the first request mounts the app.
     composed.app.get("/slow", async () => {
       await gate
       order.push("slow answered")

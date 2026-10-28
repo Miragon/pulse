@@ -4,7 +4,7 @@ import { PERIODS } from "@miragon/pulse-analytics-client"
 import { loadDashboardStep, loadFailureDashboardStep } from "./steps/index.js"
 import { builderAppTitle, builderText, fieldText } from "./builder-texts.js"
 
-/** The self-fetch's engine scope — a configured engine id or several; omitted = all of them. */
+/** Omitted = all configured engines. */
 const engineScopeProp = z
   .union([z.string(), z.array(z.string())])
   .optional()

@@ -17,12 +17,7 @@ import { CockpitApp } from "./cockpit-app/app.js"
 
 export { Camunda7StandaloneShell } from "./standalone-shell.js"
 
-/**
- * The cockpit's view→layout catalogue. Exported so a composition root can
- * ASSERT over the composition — notably that the settings tab renders the
- * shell's settings page, whose sections the root's registry supplies (see
- * the app's `widget-registry.test.ts`).
- */
+// Exported so a composition root can assert the settings tab renders the shell's page (the app's `widget-registry.test.ts`).
 export { cockpitViews } from "./cockpit-app/views.js"
 
 export type {
@@ -38,12 +33,7 @@ export type {
   ProcessInstancesData,
 }
 
-/**
- * Full widget registry handed to the host bundle: the leaf widgets
- * ({@link camunda7BaseWidgets}) plus the consolidated cockpit app. The cockpit
- * app itself renders the leaf widgets through the toolkit renderer using the base
- * map, so it is added here (and only here) to avoid an import cycle.
- */
+// The cockpit app is added only here to avoid an import cycle with the base map it renders.
 export const camunda7Widgets: Record<string, WidgetComponent> = {
   ...camunda7BaseWidgets,
   "camunda7:cockpit-app": adaptDataWidget(CockpitApp, "camunda7:cockpitApp"),

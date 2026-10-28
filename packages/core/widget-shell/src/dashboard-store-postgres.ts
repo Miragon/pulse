@@ -16,19 +16,9 @@ import type postgres from "postgres"
 import type { Migration } from "./postgres.js"
 
 /**
- * DDL owned by this store, executed by `runMigrations`. Like the profile
- * table, the full record lives in one JSONB column (layout/steps/keys are
- * arbitrarily nested `render-view` input, not relationally decomposable) whose
- * shape is governed by the toolkit's `parseDashboardRecord`/
- * `DASHBOARD_SCHEMA_VERSION` — a toolkit upgrade that adds a layout field
- * needs no migration here. `user_id`/`updated_at` are mirrored out so `list`
- * can filter by owner and sort in SQL, and so a row whose JSONB this build
- * cannot read still has an owner and a timestamp.
- *
- * The `002_` prefix is historical (it shipped after `001_user_profiles` in the
- * stock app) and stays: the name is the key recorded in `schema_migrations` on
- * every existing database, so renaming it would re-run the DDL there. A server
- * that persists dashboards WITHOUT profiles simply has no `001_`.
+ * The record lives in one JSONB column governed by the toolkit's `DASHBOARD_SCHEMA_VERSION`, so a
+ * toolkit layout field needs no migration. `user_id`/`updated_at` are mirrored out for SQL filtering
+ * and so an unreadable row keeps an owner. The `002_` name is a `schema_migrations` key: never rename.
  */
 export const DASHBOARD_STORE_MIGRATIONS: readonly Migration[] = [
   {
@@ -53,7 +43,6 @@ interface DashboardRow {
   updated_at: Date
 }
 
-/** A row as this build sees it: the toolkit's readable/unreadable split. */
 type StoredDashboard =
   | { state: "readable"; record: DashboardRecord }
   | { state: "unreadable"; id: string; reason: string; ownerId?: string; updatedAt: string }
@@ -72,14 +61,12 @@ function classifyRow(row: DashboardRow): StoredDashboard {
       typeof version === "number" && version > DASHBOARD_SCHEMA_VERSION
         ? `written by a newer schemaVersion ${version} (this build reads up to ${DASHBOARD_SCHEMA_VERSION})`
         : "does not match the current record schema",
-    // The mirrored column is written in the same statement as the record, so
-    // it still attributes the row when the payload is unreadable.
+    // Written with the record, so it still attributes an unreadable row.
     ...(row.user_id === null ? {} : { ownerId: row.user_id }),
     updatedAt: new Date(row.updated_at).toISOString(),
   }
 }
 
-/** Whose row it is: the payload's owner when readable, else the mirrored column's. */
 function ownerOf(stored: StoredDashboard): string | undefined {
   return stored.state === "readable" ? stored.record.userId : stored.ownerId
 }
@@ -106,23 +93,9 @@ function toSummary(stored: StoredDashboard): DashboardSummary {
 }
 
 /**
- * Dashboards stored one row per record in the `dashboards` table, implementing
- * the toolkit's `DashboardStore` contract (injected via
- * `frameworkOptions.app.dashboardStore`) — the multi-writer counterpart to the
- * toolkit's filesystem store, whose `save` is documented as racy. Selected
- * next to `createPostgresProfileStore` when the deployment has a
- * `DATABASE_URL`; the caller owns the `sql` client's lifecycle, so this
- * package carries no runtime dependency on the driver.
- *
- * Ownership is the toolkit's rule, never re-derived here: `isDashboardOwnedBy`
- * decides visibility (no caller id = global scope; an identified caller owns
- * exactly the records stamped with its id, and an owner-less record is not
- * one of them), and `resolveSavedRecord` enforces it on updates. A row whose
- * JSONB fails `parseDashboardRecord` (corrupt, or written by a newer build) is
- * a conflict, never "absent": `get`/`save`/`delete` reject with
- * `DashboardUnreadableError` for a caller it belongs to, `list` reports it with
- * `unreadable`, and the row stays in place — so a save can never overwrite it
- * and hand it a new owner.
+ * The multi-writer counterpart to the toolkit's racy filesystem store; the caller owns `sql`.
+ * Ownership is the toolkit's rule (`isDashboardOwnedBy`, `resolveSavedRecord`). An unreadable row is
+ * a conflict, never "absent", so a save can never overwrite it and hand it a new owner.
  */
 export function createPostgresDashboardStore(options: {
   sql: postgres.Sql
@@ -138,11 +111,7 @@ export function createPostgresDashboardStore(options: {
     return stored
   }
 
-  /**
-   * The caller's view of an addressed row: `undefined` when it is absent or
-   * not the caller's, the record when readable, and a thrown
-   * `DashboardUnreadableError` when it is the caller's but unreadable.
-   */
+  /** Throws `DashboardUnreadableError` when the row is the caller's but unreadable. */
   const ownRecord = (
     row: DashboardRow | undefined,
     userId: string | undefined,
@@ -157,13 +126,8 @@ export function createPostgresDashboardStore(options: {
   return {
     async save(input) {
       return await sql.begin(async (tx) => {
-        // Advisory lock, not just SELECT…FOR UPDATE: a row that does not exist
-        // yet cannot be row-locked, so two concurrent FIRST saves of the same
-        // id would both see "no existing record", both take the create branch,
-        // and the second upsert would overwrite the first (including its
-        // createdAt/userId) without ever passing the ownership check. Only
-        // reachable when the caller supplies an id — a generated UUID collides
-        // with nothing. Same primitive as the profile store's per-key lock.
+        // Advisory lock: a not-yet-existing row cannot be row-locked, so two concurrent FIRST saves of a
+        // caller-supplied id would both create and the second would skip the ownership check.
         if (input.id) {
           await tx`SELECT pg_advisory_xact_lock(hashtextextended('dashboards:' || ${input.id}, 0))`
         }
@@ -185,10 +149,7 @@ export function createPostgresDashboardStore(options: {
           throw new DashboardUnreadableError(stored.id, stored.reason)
         }
         const now = new Date().toISOString()
-        // resolveSavedRecord returns null for a create and throws
-        // DashboardOwnershipError when an update would touch a record the
-        // caller doesn't own (another user's, or an owner-less one) — both
-        // semantics come straight from the toolkit.
+        // Ownership semantics come straight from the toolkit (throws DashboardOwnershipError).
         const record: DashboardRecord = resolveSavedRecord(stored?.record, input, now) ?? {
           id: input.id ?? randomUUID(),
           name: input.name,
@@ -202,10 +163,7 @@ export function createPostgresDashboardStore(options: {
           createdAt: now,
           updatedAt: now,
         }
-        // sql.json, not JSON.stringify: postgres.js serializes parameters by
-        // the server-described type, and the jsonb serializer stringifies
-        // itself — a pre-stringified value gets double-encoded into a jsonb
-        // string scalar.
+        // sql.json, not JSON.stringify: a pre-stringified value is double-encoded into a jsonb string.
         await tx`
           INSERT INTO dashboards (id, user_id, record, updated_at)
           VALUES (
@@ -223,9 +181,7 @@ export function createPostgresDashboardStore(options: {
       })
     },
     async list(filter) {
-      // The owner predicate is pushed into SQL so a large table doesn't get
-      // read in full; ordering on the mirrored timestamptz column matches the
-      // toolkit's ISO-string sort.
+      // Ordering on the mirrored timestamptz matches the toolkit's ISO-string sort.
       const rows = filter.userId
         ? await sql<DashboardRow[]>`
             SELECT id, user_id, record, updated_at FROM dashboards
@@ -236,8 +192,7 @@ export function createPostgresDashboardStore(options: {
             SELECT id, user_id, record, updated_at FROM dashboards
             ORDER BY updated_at DESC
           `
-      // The SQL predicate is the fast path, `isDashboardOwnedBy` the authority
-      // — in case the mirrored user_id column ever diverges from the payload.
+      // SQL is the fast path, `isDashboardOwnedBy` the authority, in case the mirror diverges.
       return rows
         .map(classify)
         .filter((stored) => isDashboardOwnedBy(ownerOf(stored), filter.userId))

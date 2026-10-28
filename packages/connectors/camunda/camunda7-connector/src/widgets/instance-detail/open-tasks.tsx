@@ -7,16 +7,7 @@ import { useEngineAction } from "../lib/engine-action.js"
 import { TaskCompleteForm } from "../task-complete-form.js"
 import { useT } from "../../messages/use-t.js"
 
-/**
- * The open-task state of the instance view: the completion write (one
- * `EngineAction` for every task card — it refetches the instance, so the
- * next task, the status, the tokens and the variables follow) plus the single
- * expanded task form. A completed task disappears at once; the mark only
- * bridges the gap until the refetched `openTasks` arrive, then server truth
- * wins. A delegated task is RESOLVED back to its owner and stays listed.
- * `available` is the instance's state: a task of an ended, cancelled,
- * suspended or unconfirmed instance cannot be completed, so none is offered.
- */
+/** The done mark bridges until the refetched `openTasks` arrive; a delegated task resolves back to its owner and stays. */
 export function useOpenTasks(openTasks: OpenUserTask[] | undefined, available: boolean) {
   const complete = useEngineAction<CompleteTaskArgs, TaskCompletion>({
     tool: "camunda7_complete_task",
@@ -54,7 +45,6 @@ function OpenTaskCard({
   task: OpenUserTask
   engine?: string
   complete: CompleteTaskAction
-  /** False when the toolset has no complete tool or the instance's state allows none — no form toggle. */
   canComplete: boolean
   expanded: boolean
   onToggle: () => void
@@ -97,11 +87,6 @@ function OpenTaskCard({
   )
 }
 
-/**
- * The "Tasks" tab body — the open-task cards with their inline complete forms
- * (only where the deployment's toolset exposes `camunda7_complete_task` and
- * the instance's current state allows a completion — `useOpenTasks`).
- */
 export function OpenTasksTab({
   openTasks,
   visibleTasks,

@@ -8,12 +8,7 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-/**
- * The row menu (#322 U20, CI §8/§12): a menu button whose panel is portaled
- * out of the row — a table's pinned action column is a stacking context per
- * row, so a panel left in its cell is painted under the next rows (the host
- * simulation checks the painting at 760 px) — and driven by the keyboard.
- */
+/** The host simulation checks the painting under pinned cells at 760 px. */
 function renderMenu(onExplain = vi.fn(), onDraft = vi.fn()) {
   render(
     <table>

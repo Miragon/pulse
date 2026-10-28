@@ -3,13 +3,8 @@ import { CountPill } from "@miragon/mcp-toolkit-ui"
 import { countTone, formatNumber } from "@miragon/pulse-widget-shell/widgets"
 
 /**
- * One figure in an analytics table (U17). "—" means one thing in every
- * analytics view: no measured value, never a plausible 0 and never "not
- * deployed" (that is an empty cell). Why this one is missing (an engine that
- * sends no metrics, a gauge no engine reports, nothing ended in the period)
- * is TEXT, not only a tooltip: a screen reader reads the reason in place of
- * the dash, a pointer gets it as the tooltip, and the table's
- * {@link FigureLegend} shows it to everyone else (keyboard, touch).
+ * U17: "—" means not measured, never 0 or "not deployed" (an empty cell). The
+ * reason is text, not only a tooltip, so screen readers and touch get it too.
  */
 export function Figure({
   value,
@@ -18,7 +13,6 @@ export function Figure({
 }: {
   value: number | null
   format?: (value: number) => string
-  /** Why the figure is missing: read out in place of the dash, and its tooltip. */
   why: string
 }) {
   if (value === null) {
@@ -32,13 +26,7 @@ export function Figure({
   return <>{format(value)}</>
 }
 
-/**
- * A count that is a state (decision f): open incidents, jobs without retries
- * (dead jobs). On the kit's one ladder (`countTone`, the one camunda7 reads
- * the same counts by): a danger `CountPill` while there is any, the number
- * itself in the foreground; none is a plain count, and a count nobody
- * measured is "—" with its reason ({@link Figure}).
- */
+/** A count that is a state (decision f), on the kit's `countTone` ladder like camunda7. */
 export function StateCount({ value, why }: { value: number | null; why?: string }) {
   if (countTone(value) === "danger") {
     return <CountPill tone="danger">{formatNumber(value)}</CountPill>
@@ -46,7 +34,6 @@ export function StateCount({ value, why }: { value: number | null; why?: string 
   return why === undefined ? <>{formatNumber(value)}</> : <Figure value={value} why={why} />
 }
 
-/** A quiet note under a table: what a sign in it means. */
 export function Legend({ children }: { children: ReactNode }) {
   return (
     <p data-legend="" className="text-muted-foreground text-small mt-2">
@@ -55,12 +42,7 @@ export function Legend({ children }: { children: ReactNode }) {
   )
 }
 
-/**
- * The key under a table that can show "—": one line per reason a figure in
- * it is missing, each once and in the order given, so the dash's meaning is
- * on screen and needs no hover. Renders nothing while no figure is missing
- * (pass `false` for a reason that does not occur).
- */
+/** Puts the dash's meaning on screen, no hover needed; `false` skips a reason. */
 export function FigureLegend({
   reasons,
 }: {

@@ -9,8 +9,7 @@ import {
   toolkitThemeStylesheets,
 } from "./contrast.js"
 
-// Colour parser fixtures: CI token values and synthetic colours are the
-// test data here, not UI colours (closed at the end of the file).
+// Fixtures: CI token values and synthetic colours are test data, not UI colours.
 /* brand-lint-disable */
 
 const WHITE = { r: 1, g: 1, b: 1, a: 1 }
@@ -159,8 +158,7 @@ describe("parseThemeVariables", () => {
   })
 
   it("models html.dark as the browser does: :root and .dark in source order, later wins", () => {
-    // useApplyTheme puts .dark on <html>, so :root and .dark match the same
-    // element with the same specificity. A later light-only :root override
+    // :root and .dark match <html> with the same specificity: a later light-only :root
     // reaches dark too; a later .dark still beats an earlier :root.
     const lightOnly = parseThemeVariables(css, ":root { --ink: #222222; }")
     expect(lightOnly.light.get("--ink")).toBe("#222222")
@@ -189,16 +187,13 @@ describe("parseThemeVariables", () => {
   })
 
   it("models the toolkit's dark scopes on <html> and skips its light islands", () => {
-    // The toolkit's theme.css: light roles on :root plus a light island
-    // nested in a dark scope (a selector list with a :where() group), dark
-    // roles on .dark, [data-theme="dark"] and [data-theme-mode="dark"].
+    // Like the toolkit's theme.css: a light island nested in a dark scope, three dark scopes.
     const toolkitShaped = parseThemeVariables(
       ':root, :where(.dark, [data-theme="dark"], [data-theme-mode="dark"]) [data-theme-mode="light"] { --x: #000001; }',
       '.dark, [data-theme="dark"], [data-theme-mode="dark"] { --x: #000002; }',
     )
     expect(toolkitShaped.light.get("--x")).toBe("#000001")
     expect(toolkitShaped.dark.get("--x")).toBe("#000002")
-    // Each dark scope alone reaches only dark, like .dark.
     for (const scope of ["[data-theme='dark']", '[data-theme-mode="dark"]']) {
       const single = parseThemeVariables(":root { --x: #000001; }", `${scope} { --x: #000002; }`)
       expect(single.light.get("--x")).toBe("#000001")

@@ -1,11 +1,8 @@
 import type { Message } from "@miragon/mcp-toolkit-core"
 
 /**
- * A counted message: `one` when the count param is exactly 1, `other`
- * otherwise — no "1 incidents", no "Instanz(en)" in a view. `{name}`
- * placeholders take the params as given, so a widget passes the count
- * already formatted for the view's locale (`formatNumber(n)`): "1" reads as
- * one in every locale this module speaks, "1.234" and "1,234" as many.
+ * `one` when the count param is exactly 1, else `other`. Widgets pass the count already formatted:
+ * "1" reads as one in every locale this module speaks, "1.234" and "1,234" as many.
  */
 export function plural(param: string, one: string, other: string): Message {
   return (params) => {

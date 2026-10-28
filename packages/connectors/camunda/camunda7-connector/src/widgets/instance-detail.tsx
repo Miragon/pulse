@@ -16,11 +16,7 @@ import { useT } from "../messages/use-t.js"
 
 export type { InstanceDetailData }
 
-/**
- * The instance feed's scope — in the cockpit from the props; standalone from
- * the handed-in data's echo, so a refetch reads the instance and engine the
- * show tool answered for (never the caller's default engine).
- */
+// Standalone from the data's echo, so a refetch reads the engine the show tool answered for, never the caller's default.
 function instanceFeed(
   initialData: InstanceDetailData | null,
   processInstanceId: string | undefined,
@@ -53,7 +49,6 @@ export function InstanceDetailWidget({
     emptyText: t("instanceDetail.noData"),
     retryText: t("viewState.retry"),
   })
-  // Every write is offered for the CURRENT state only (`useInstanceActions`).
   const actions = useInstanceActions({ engine, data, unconfirmed: refreshError !== null })
   const { complete, visibleTasks, activeTaskId, onToggleTask, onTaskCompleted } = useOpenTasks(
     data?.openTasks,
@@ -67,8 +62,7 @@ export function InstanceDetailWidget({
 
   const variableEntries = Object.entries(variables)
   const activeIncidents = incidents.filter((i) => !actions.recovery.isDone(i))
-  // The lists are capped; the counts are the engine's exact totals minus what
-  // this view already resolved/completed — never the length of a capped list.
+  // The lists are capped: exact engine totals minus what this view resolved, never a list length.
   const openIncidentCount = data.incidentCount - (incidents.length - activeIncidents.length)
   const openTaskCount = data.openTaskCount - (data.openTasks.length - visibleTasks.length)
   const status = instanceStatus(t, { cancelled, ended: instance.ended, isSuspended })

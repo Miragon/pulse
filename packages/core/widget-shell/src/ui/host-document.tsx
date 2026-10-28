@@ -6,7 +6,6 @@ import { useShellHost } from "./shell-host.js"
 
 const HOST_FONTS_ID = "__mcp-host-fonts"
 
-/** Fullscreen/PiP: the view owns the viewport — fill it, scroll inside. */
 const FILL_STYLE: CSSProperties = {
   position: "relative",
   height: "100%",
@@ -14,28 +13,12 @@ const FILL_STYLE: CSSProperties = {
   display: "flex",
   flexDirection: "column",
 }
-/** Inline without a host budget: no box of its own — content decides the height. */
 const INLINE_STYLE: CSSProperties = { display: "contents" }
 
 /**
- * The document layer under every view (replaces mcp-use's `ThemeProvider`,
- * whose theme channel wrote only `data-theme` from the host/OS and reset
- * `color-scheme` — the shell's `useApplyTheme` owns the theme now, from ONE
- * resolution):
- *  - Geist and Geist Mono are declared once from the server that served the
- *    view (`declareServedFonts`, `font-display: swap`);
- *  - the host's SEP-1865 style variables land on `<html>` and its font CSS is
- *    injected once; right after, the toolkit's `adoptHostFontVariables` moves
- *    the host's `--font-sans`/`--font-mono` into the fallback slot of the
- *    theme's font roles (`--host-font-*`), so the stack stays Geist first,
- *    then the host's font (what renders while Geist loads, or when the host
- *    blocks the server's origin), then the system;
- *  - inline views size to their content (auto-resize reports it), their lists
- *    show as many rows as fit the host's height budget (`containerDimensions`
- *    → `maxHeight`, else {@link UNSTATED_BUDGET}; the measured fit,
- *    `InlineFitBox`), and a view that still does not fit a stated budget
- *    scrolls inside it instead of being clipped;
- *  - fullscreen/PiP fill the viewport (`html`/`body`/`#root` at 100%).
+ * Replaces mcp-use's `ThemeProvider`, which reset `color-scheme`. Host fonts go
+ * into the fallback slot (`adoptHostFontVariables`), so Geist stays first. A
+ * view that overflows a stated budget scrolls inside it instead of clipping.
  */
 export function HostDocument({ children }: { children: ReactNode }) {
   const { styleVariables, fontCss, displayMode, maxHeight } = useShellHost()
@@ -74,7 +57,6 @@ export function HostDocument({ children }: { children: ReactNode }) {
   )
 }
 
-/** `html`/`body`/`#root` at 100% while the view fills the host; restored on exit. */
 function useFillDocument(fill: boolean): void {
   useLayoutEffect(() => {
     if (!fill) return

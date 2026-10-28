@@ -12,16 +12,9 @@ import type { PagingArgs } from "../feed-contracts.js"
 import { nameUnnamedDefinitions } from "./definition-info.js"
 import { countOf, optional, rowsOf } from "./engine-reads.js"
 
-/** How many of the instance's open incidents mark the timeline (one per failing step). */
 const INCIDENT_MARKS = 100
 
-/**
- * One capped page of an instance's activity history, with the exact total
- * from `/history/activity-instance/count` (the widget pages the rest). THE
- * builder behind `camunda7_show_history_timeline` and the
- * `camunda7:load-history-timeline` step. All three reads are primary: a
- * failed count is a tool error, never the page length passed off as a total.
- */
+/** All three reads are primary: a failed count is never the page length passed off as a total. */
 export async function buildHistoryTimelineData(
   client: Client,
   engineId: string,
@@ -43,7 +36,7 @@ export async function buildHistoryTimelineData(
     getHistoricProcessInstances({ client, query: { processInstanceId, maxResults: 1 } }).then(
       (rows) => rowsOf<NonNullable<HistoryTimelineData["processInstance"]>>(rows),
     ),
-    // The failing steps the timeline marks — enrichment: unread, no marks.
+    // Enrichment: unread, no marks.
     optional(
       getIncidents({ client, query: { processInstanceId, maxResults: INCIDENT_MARKS } }).then(
         (rows) => rowsOf<{ activityId?: string | null }>(rows),
@@ -61,12 +54,6 @@ export async function buildHistoryTimelineData(
 
 type HistoricInstance = NonNullable<HistoryTimelineData["processInstance"]>
 
-/**
- * The instance with its process named: the engine's name, else (a Modeler
- * pool around an unnamed process) its diagram's, by the rule analytics names
- * the same process by ({@link nameUnnamedDefinitions}; enrichment, a named
- * process costs no read).
- */
 async function namedInstance(
   client: Client,
   instance: HistoricInstance | null,

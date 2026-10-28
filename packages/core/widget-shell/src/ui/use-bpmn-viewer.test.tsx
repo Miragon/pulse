@@ -9,17 +9,9 @@ import {
   useBpmnViewer,
 } from "./use-bpmn-viewer.js"
 
-// bpmn-js needs a real SVG engine, which happy-dom does not provide — a
-// recording stub stands in. (The full lifecycle suite runs in the camunda7
-// connector, through the widgets' entry point; this one pins what the hook
-// itself owns for EVERY consumer: the canvas and its frame.)
+// bpmn-js needs a real SVG engine happy-dom lacks; the full lifecycle suite runs in the camunda7 connector.
 const mock = vi.hoisted(() => {
-  /**
-   * diagram-js's Canvas as far as fitting goes: the viewbox — the container's
-   * size (`outer`) included — is cached on first read and only dropped by
-   * `resized()`; `fit-viewport` scales against that cached size, never past
-   * 1:1, and with a centre ("auto") centres the diagram (Canvas.js 15.27).
-   */
+  /** Viewbox cached on first read and dropped only by `resized()` (Canvas.js 15.27). */
   class FakeCanvas {
     static inner = { x: 150, y: 80, width: 400, height: 700 }
     cached: { outer: { width: number; height: number } } | null = null
@@ -115,10 +107,7 @@ const INVOICE_DI = `<?xml version="1.0" encoding="UTF-8"?>
   </bpmndi:BPMNDiagram>
 </bpmn:definitions>`
 
-/**
- * A widget that only attaches the ref — no canvas class, and a themed card
- * background on the container, the way a new BPMN widget would start out.
- */
+/** Starts with a themed card background, the way a new BPMN widget would. */
 function Diagram({
   xml,
   element = "a",
@@ -134,7 +123,6 @@ function Diagram({
   return <div key={element} ref={containerRef} className="bg-card" data-testid="canvas" />
 }
 
-/** A widget that sizes its frame from the hook, like BpmnDiagram and BpmnHeatmap. */
 function Framed({ xml, fitOnResize = false }: { xml: string; fitOnResize?: boolean }) {
   const { containerRef, height } = useBpmnViewer({ bpmnXml: xml, fitOnResize })
   return <div ref={containerRef} data-testid="canvas" style={{ height: `${height}px` }} />
@@ -166,7 +154,6 @@ describe("useBpmnViewer canvas (#339, N122)", () => {
 
   it("paints before any viewer exists, and again when the ref moves to a new element", () => {
     const { rerender } = render(<Diagram xml="" />)
-    // No XML yet, so no viewer — the canvas is light from the first paint.
     expect(mock.MockViewer.containers).toEqual([])
     const first = canvas()
     expectLightCanvas(first)
@@ -193,8 +180,7 @@ describe("diagramHeight (U20: the frame follows the diagram, 240–560 px)", () 
   })
 
   it("never zooms a diagram narrower than the container past 1:1 (bpmn-js does not)", () => {
-    // The invoice diagram at a 710 px container: drawn at 461 × 217, so the
-    // frame is 217 + 48 — not 710 × 0.47 / 0.95 + 48 = 400 with half of it empty.
+    // Drawn at 461 × 217, so the frame is 217 + 48, not a 400 px frame half empty.
     expect(diagramHeight({ width: 461, height: 217 }, 710)).toBe(265)
     // Fullscreen makes no difference to a diagram that already fits.
     expect(diagramHeight({ width: 461, height: 217 }, 1400)).toBe(265)
@@ -259,9 +245,7 @@ describe("useBpmnViewer frame and fit", () => {
   })
 
   it("refits a heatmap-style viewer against the NEW frame once the drawn diagram sized it", async () => {
-    // No DI in the XML: the frame starts at the default, the import fits at
-    // 360 px (and diagram-js caches that size), then the drawn 400 × 700
-    // diagram makes the frame 560 px. The refit must see 560, not the cache.
+    // No DI: the import fits at 360 px (cached), then the drawn diagram makes it 560. The refit must see 560.
     mock.FakeCanvas.inner = { x: 150, y: 80, width: 400, height: 700 }
     render(<Framed xml={XML} />)
     expect(canvas().style.height).toBe("360px")

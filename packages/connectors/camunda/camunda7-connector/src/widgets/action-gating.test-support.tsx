@@ -17,7 +17,6 @@ import { IncidentTable } from "./process-incidents/incident-table.js"
 import { useIncidentRecovery } from "./process-incidents/use-incident-recovery.js"
 import { UserProfileWidget } from "./user-profile.js"
 
-/** A write site's surface, on a deployment whose feed allows `allowedActions`. */
 type Renderer = (allowedActions: readonly string[]) => ReactElement
 
 function host(
@@ -137,11 +136,7 @@ const Variables: ComponentType<Record<string, unknown>> = () => (
   <VariablesTable variables={{ amount: { value: 42, type: "Integer" } }} instanceId="pi-1" />
 )
 
-/**
- * The render-level half of the in-widget write guard (#341): the surface of
- * every write site in `GATING_SITES` — keyed exhaustively, so a listed site
- * without a surface does not compile.
- */
+/** Render-level half of the write guard (#341): keyed exhaustively, so a site without a surface does not compile. */
 export const GATING_RENDERERS: Record<GatingSite, Renderer> = {
   "job-panel.tsx#camunda7_set_job_retries": (allowed) => host(Jobs, allowed, JOBS),
   "instance-sections.tsx#camunda7_set_process_instance_variable": (allowed) =>

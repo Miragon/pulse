@@ -8,7 +8,6 @@ const v = (value: number): PromSample => ({ metric: {}, value })
 /** Canned KPIs per version; durations in ms, the histogram's unit. */
 type Canned = { started: number; completed: number; incidents: number; avg: number; p95: number }
 
-/** Mock Prometheus client with distinct canned KPIs per process_definition_version. */
 function mockClient(byVersion: Record<string, Canned>) {
   const answer = (q: string): PromSample[] => {
     const version = /process_definition_version="(\d+)"/.exec(q)?.[1] ?? ""

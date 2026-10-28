@@ -28,21 +28,9 @@ import { LANGUAGE_NAMES, settingsLabels } from "./settings-labels.js"
 import { useResetOnChange } from "./use-reset-on-change.js"
 import { WidgetShell } from "./widget-shell.js"
 
-/**
- * The query key of `shell_settings_data` — shared by the language section and
- * `ProfileGate`, so a saved language re-fetches ONE entry and every view
- * switches language live.
- */
+/** Shared with `ProfileGate`, so a saved language re-fetches ONE entry and every view switches live. */
 export const SHELL_SETTINGS_KEY = ["shell:settings"] as const
 
-/**
- * The settings page (`shell:settings-page`): the page's one title, then the
- * shell's language section and every `<module>:settings` section the host
- * bundles (`settingsLayout` over the host registry). `shell_show_settings`
- * renders it, and so does the cockpit's settings tab — one page, wherever
- * it opens. Each section self-fetches; a module that is bundled but not
- * active hides its own.
- */
 export function SettingsPageWidget() {
   const labels = settingsLabels(useLocale())
   const widgets = useHostWidgets()
@@ -55,13 +43,7 @@ export function SettingsPageWidget() {
   )
 }
 
-/**
- * The shell's own section (`shell:settings`): the UI language, the
- * record-level preference every module reads. Self-fetches its feed; when the
- * feed TOOL is missing (a root that persists nothing registers no settings
- * tools) the section hides itself, like any module's section. Any other
- * failure stays visible with a retry.
- */
+/** Hides itself when the feed TOOL is missing (a root that persists nothing); other failures stay with a retry. */
 export function ShellSettingsWidget({
   data: initialData = null,
 }: {
@@ -92,7 +74,6 @@ export function ShellSettingsWidget({
   )
 }
 
-/** What the model learns from the section: the language, and the save tool while it may save. */
 export function describeShellSettings(
   view: ShellSettingsView,
   language: LanguagePref,
@@ -111,8 +92,7 @@ function LanguageSection({ view }: { view: ShellSettingsView }) {
   const labels = settingsLabels(useLocale())
   const feedback = useActionFeedback()
   const [language, setLanguage] = useState<LanguagePref>(view.language)
-  // Server truth wins whenever it changes (the refetch after a save, another
-  // session's write).
+  // Server truth wins whenever it changes.
   useResetOnChange(view.language, () => setLanguage(view.language))
   const save = useToolMutation(SHELL_SAVE_SETTINGS, { invalidateKeys: [[...SHELL_SETTINGS_KEY]] })
   const dirty = language !== view.language

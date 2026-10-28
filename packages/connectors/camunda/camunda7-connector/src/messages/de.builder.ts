@@ -1,15 +1,6 @@
 import type { MessageCatalog } from "@miragon/mcp-toolkit-core"
 
-/**
- * Deutsche Namen für den Ansichts-Editor (Toolkit 2.8): wie Palette,
- * Arbeitsfläche, Datenquellen und Eigenschaften die Widgets,
- * Pipeline-Schritte und Felder von camunda7 zeigen (`src/builder-texts.ts`
- * liest sie in die Definitionen). Ein Titel nennt die Sache in wenigen
- * Worten, eine Zusammenfassung sagt in einem Satz, was sie zeigt; die
- * `description` der Definitionen bleibt der Text für das Modell. In index.ts
- * mit den anderen Katalogen zusammengeführt, also gelten brand-tone, Glossar
- * und die Schlüsselgleichheit mit Englisch wie für jeden anderen Text.
- */
+/** Namen für den Ansichts-Editor; die `description` der Definitionen bleibt der Text für das Modell. */
 export const deBuilder: MessageCatalog = {
   "builder.app.title": "Betrieb",
 

@@ -11,12 +11,7 @@ import {
 import { createPostgresProfileStore, PROFILE_STORE_MIGRATIONS } from "./profile-store-postgres.js"
 import { saveModuleSlice } from "./profile-slice.js"
 
-/**
- * Saves merge over the RAW stored document, never over its parsed view — the
- * guard against one unknown value (or one newer build's record) wiping every
- * module's settings on the next save. The store-agnostic behavior contract
- * lives in `profile-store.test.ts`.
- */
+/** Guards against one unknown value or newer record wiping every module's settings on the next save. */
 
 describe("mergeStoredProfile", () => {
   const NOW = "2026-10-09T12:00:00.000Z"
@@ -83,14 +78,7 @@ describe("mergeStoredProfile", () => {
   })
 })
 
-/**
- * What a DURABLE store must do with a stored document it cannot fully
- * validate — a value this build doesn't know (a locale added later), keys it
- * has never heard of, or a whole document from a NEWER build during a rolling
- * deploy or after a rollback. Reads degrade per FIELD; saves merge over the
- * RAW document, so nothing this build doesn't understand is ever dropped.
- * `seedRaw`/`readRaw` reach underneath the store to the persisted JSON.
- */
+/** `seedRaw`/`readRaw` reach underneath the store to the persisted JSON. */
 interface RawHarness {
   store: ProfileStore
   seedRaw: (key: string, doc: Record<string, unknown>) => Promise<void>
@@ -132,7 +120,6 @@ function rawDocumentContract(makeHarness: () => Promise<RawHarness>) {
     const { store, seedRaw, readRaw } = await makeHarness()
     await seedRaw("user-1", STORED)
 
-    // The analytics settings save path, end to end.
     const slice = await saveModuleSlice(
       store,
       "user-1",
@@ -159,7 +146,6 @@ function rawDocumentContract(makeHarness: () => Promise<RawHarness>) {
     }
     await seedRaw("user-1", newer)
 
-    // Read best-effort: every field this build still understands survives.
     expect(await store.get("user-1")).toMatchObject({
       language: "de",
       modules: STORED.modules,
@@ -167,8 +153,7 @@ function rawDocumentContract(makeHarness: () => Promise<RawHarness>) {
 
     const saved = await store.save("user-1", { language: "en" })
     expect(saved).toMatchObject({ language: "en", modules: STORED.modules })
-    // Never stamped down to this build's version: the newer build reads its
-    // own document back without re-running migrations over it.
+    // Never stamped down, so the newer build reads its document back without re-migrating.
     expect(await readRaw("user-1")).toEqual({
       ...newer,
       language: "en",
@@ -190,8 +175,7 @@ describe("createFileSystemProfileStore (raw documents)", () => {
   })
 })
 
-// Opt-in integration slice: only with TEST_DATABASE_URL (`pnpm test:pg`). An
-// own schema isolates it from the other suites sharing that database.
+// Opt-in: only with TEST_DATABASE_URL (`pnpm test:pg`); an own schema isolates it.
 const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL
 const TEST_SCHEMA = "widget_shell_profile_store_raw_test"
 

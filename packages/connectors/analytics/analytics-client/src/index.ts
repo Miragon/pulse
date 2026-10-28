@@ -17,13 +17,9 @@ export {
   type Period,
 } from "./prometheus.js"
 export { METRIC_NAMES, GAUGE_LABELS, type MetricName, type GaugeName } from "./metric-names.js"
-// The reading rules of metrics-contract.json, for PromQL of your own: a
-// counter or histogram through the born-series count, a gauge folded over a
-// clustered engine's nodes.
 export { increaseIn, engineState } from "./queries/helpers.js"
 export type { CountWindow } from "./queries/windows.js"
-// Constants, not queries: kept out of the `queries` namespace, whose every
-// member the query scenarios enumerate.
+// Not in `queries`: the query scenarios enumerate every member of that namespace.
 export { ENGINE_ALERT_NAME_PATTERN, ENGINE_HEALTH_STATUS_RULE } from "./queries/health.js"
 export { ACTIVITY_BREAKDOWN_LIMIT } from "./queries/dashboard.js"
 export * as schemas from "./schemas/index.js"

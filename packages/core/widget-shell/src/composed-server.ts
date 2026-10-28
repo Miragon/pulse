@@ -1,38 +1,10 @@
 /**
- * The composed-server boot sequence, single-sourced (server path only).
- *
- * Every composition root — the stock server, the composed-server template, a
- * customer fork — used to copy the same ~60 lines (selection → boot log →
- * `createFrameworkApp` → request context → logging → metrics → health →
- * listen → signals), and the copies drifted. This factory owns the ORDER;
- * the root keeps what is genuinely its own: the module list
- * (`composeModules`), the OAuth provider it decided to install, and its
- * runtime wiring (plugins with their shared resources, persistence).
- *
- * The order is load-bearing:
- * 1. env-typo warnings, the HTTP edge policy and the OAuth resource check —
- *    misconfiguration fails the boot before any I/O;
- * 2. ONE boot selection (`resolveBoot`, authenticated exactly when the root
- *    handed in an OAuth provider) and its boot log;
- * 3. the root's runtime (`setup(boot)` — e.g. database migrations);
- * 4. `createFrameworkApp` (every view-bound tool advertising the view CSP —
- *    `MCP_URL`'s origin in `resourceDomains`, where the views load their
- *    fonts from), then the mcp-use middleware (request context before
- *    metrics; request logging is mcp-use's own) and the HTTP routes: metrics first
- *    (hono only counts routes registered after its middleware), then the
- *    Host/Origin guard, then the health probes — so `/metrics` and
- *    `/health*` stay reachable by IP-addressed scrapers and probes — and the
- *    font route behind the guard;
- * 5. `listen()` (production only — `mcp-use dev` owns the socket): the
- *    body-capped Node listener with request timeouts, and the graceful drain
- *    on SIGTERM/SIGINT.
- *
- * Under `mcp-use dev` the CLI also owns the `Host` check: on its loopback
- * default it admits localhost-class names plus its own live tunnel host —
- * reserved after this entry is imported, so only the CLI knows it — and
- * `--host 0.0.0.0` is its explicit, loudly warned opt-out. The guard then
- * defers its `Host` half to the CLI (else `mcp-use dev --tunnel` answers every
- * hosted-assistant call 403) and keeps the `Origin` half, which the CLI lacks.
+ * The composed-server boot sequence; roots keep only their module list, OAuth provider and runtime.
+ * The order is load-bearing: config checks fail before any I/O; one `resolveBoot`; `setup(boot)`;
+ * metrics before other routes (hono only counts later routes), then the Host/Origin guard, then
+ * health (reachable by IP-addressed probes), fonts behind the guard; `listen()` in production only.
+ * Under `mcp-use dev` the CLI owns the `Host` check (only it knows its tunnel host), so the guard
+ * keeps just the `Origin` half; else `--tunnel` answers every hosted-assistant call 403.
  */
 import http from "node:http"
 import type { AddressInfo } from "node:net"
@@ -61,33 +33,25 @@ import { honorWidgetMetaDefaults } from "./widget-meta-defaults.js"
 /** What the server reports as `serverInfo` (plus the `instructions` it advertises). */
 export interface ComposedServerInfo {
   name: string
-  /** Read it from the root's `package.json` — release-please keeps that current. */
+  /** Read it from the root's `package.json`; release-please keeps that current. */
   version: string
   title?: string
   description?: string
   websiteUrl?: string
-  /**
-   * The root's own preamble of the server `instructions` (short, factual).
-   * The active modules' snippets (`ComposableModule.instructions`) follow it,
-   * so routing rules each module owns reach the model without the root
-   * restating them.
-   */
+  /** The root's preamble of the server `instructions`; the active modules' snippets follow it. */
   instructions?: string
 }
 
-/** The root's runtime wiring, built once the boot selection is known. */
 export interface ComposedServerRuntime {
-  /** The active modules' plugins (plus any always-on ones, e.g. `createShellPlugin()`). */
   plugins: AppPlugin<MCPServer>[]
   /** `undefined` = the toolkit's in-memory dashboard store. */
   dashboardStore?: DashboardStore
-  /** Readiness checks for the server's OWN dependencies (never engines or Prometheus). */
+  /** The server's OWN dependencies only, never engines or Prometheus. */
   readiness?: Record<string, ReadinessCheck>
-  /** Releases owned resources (DB pool, timers) — runs after HTTP has drained. */
+  /** Runs after HTTP has drained. */
   shutdown?: () => Promise<void>
 }
 
-/** The composition members the boot needs — none depends on the root's shared-resources type. */
 export type BootComposition = Pick<
   ModuleComposition<never>,
   | "warnUnknownEnvVars"
@@ -98,42 +62,26 @@ export type BootComposition = Pick<
 >
 
 export interface ComposedServerOptions {
-  /** Log prefix, e.g. `pulse`. */
   label: string
   info: ComposedServerInfo
   composition: BootComposition
-  /** The compiled widget bundle (read once at boot). */
   bundle: { jsPath: string; cssPath?: string }
   setup: (boot: ResolvedBoot) => ComposedServerRuntime | Promise<ComposedServerRuntime>
-  /**
-   * The OAuth provider the root decided to INSTALL — the one input that makes
-   * the selection authenticated (never inferred from an env var).
-   */
+  /** The OAuth provider the root INSTALLED; never inferred from an env var. */
   oauth?: OAuthProvider<unknown>
   /** Env vars consumed outside the composition (e.g. a secret named in the root's config). */
   extraKnownEnvVars?: Iterable<string>
-  /**
-   * Defaults to `process.env`. mcp-use reads `MCP_URL` from `process.env`
-   * itself, so production passes `process.env` (tests stub it).
-   */
+  /** mcp-use reads `MCP_URL` from `process.env` itself, so production passes `process.env`. */
   env?: NodeJS.ProcessEnv
 }
 
 export interface ListenOptions {
-  /** Default: `PORT`, else 8400 (`resolvePort`). `0` binds an ephemeral port. */
+  /** `0` binds an ephemeral port. */
   port?: number
-  /** Default: `HOST`, else every interface (`0.0.0.0`). */
   host?: string
-  /** Drain on SIGTERM/SIGINT, then exit (production entry points only). */
   handleSignals?: boolean
-  /** Upper bound for in-flight requests to finish once draining (default {@link DEFAULT_DRAIN_TIMEOUT_MS}). */
   drainTimeoutMs?: number
-  /**
-   * Time a client gets to send a whole request, headers and body (default
-   * {@link DEFAULT_REQUEST_TIMEOUT_MS}) — a slow upload cannot pin its
-   * buffered body for Node's 300 s default. Responses (SSE streams, long tool
-   * calls) are not bounded by it.
-   */
+  /** Bounds a request's upload (headers and body), not its response; Node's default is 300 s. */
   requestTimeoutMs?: number
 }
 
@@ -141,23 +89,18 @@ export interface RunningServer {
   port: number
   url: string
   /**
-   * Graceful drain (idempotent): stop accepting at once, let in-flight
-   * requests finish (bounded — readiness answers those 503 `draining`), close
-   * the MCP server, then the root's `runtime.shutdown()`. New connections are
-   * refused from the first moment, so a load balancer that routes until its
+   * Idempotent drain; refuses new connections at once, so a load balancer that routes until its
    * endpoint update lands (Kubernetes) needs a `preStop` sleep in front.
    */
   shutdown(): Promise<void>
 }
 
 export interface ComposedServer {
-  /** The mcp-use server — `mcp-use dev` takes it as the entry's default export. */
+  /** `mcp-use dev` takes it as the entry's default export. */
   app: MCPServer<unknown>
   boot: ResolvedBoot
-  /** Whether the toolkit's dashboard builder is registered (`frameworkWritesAllowed`). */
   builder: boolean
   edge: HttpEdgePolicy
-  /** Serve it (production path): body-capped Node listener + graceful drain. */
   listen(options?: ListenOptions): Promise<RunningServer>
 }
 
@@ -169,22 +112,13 @@ export const DEFAULT_REQUEST_TIMEOUT_MS = 30_000
 
 const HEALTH_PATH = "/health"
 const METRICS_PATH = "/metrics"
-/** The read-only operational routes: probes and scrapers reach them by container IP. */
 const EXEMPT_PATHS = [HEALTH_PATH, METRICS_PATH]
 
-/**
- * The policy the guard enforces: the resolved edge, except that under
- * `mcp-use dev` the `Host` half is the CLI's (see the module comment).
- */
 function guardPolicyFor(edge: HttpEdgePolicy, env: NodeJS.ProcessEnv): HttpEdgePolicy {
   return env.MCP_USE_DEV_CLI ? { ...edge, allowedHosts: "*" } : edge
 }
 
-/**
- * mcp-use resolves the OAuth resource (RFC 8707 audience) from the provider
- * or `MCP_URL`; behind our own listener there is no localhost fallback, and a
- * missing resource would only surface as a failure on the first `/mcp` call.
- */
+/** Behind our own listener a missing OAuth resource would only surface on the first `/mcp` call. */
 function assertOAuthResource(
   oauth: OAuthProvider<unknown> | undefined,
   env: NodeJS.ProcessEnv,
@@ -197,7 +131,6 @@ function assertOAuthResource(
   }
 }
 
-/** The root's preamble, then every active module's snippet — blank-line separated. */
 function serverInstructions(
   options: ComposedServerOptions,
   boot: ResolvedBoot,
@@ -217,8 +150,6 @@ async function buildFrameworkApp(
   const { info, oauth } = options
   const { title, websiteUrl } = info
   const instructions = serverInstructions(options, boot)
-  // The font origin, on render-view's view and — through each plugin's
-  // widget defaults — on every module's view-bound tool.
   const csp = fontAssetsCsp(env)
   const frameworkOptions = {
     name: info.name,
@@ -229,9 +160,7 @@ async function buildFrameworkApp(
       ...(websiteUrl ? { websiteUrl } : {}),
       ...(instructions ? { instructions } : {}),
     },
-    // Cast: the toolkit types `plugins` unparameterized (TServer = unknown);
-    // the factories return `AppPlugin<MCPServer>`, which is what the
-    // framework passes at runtime.
+    // Cast: the toolkit types `plugins` unparameterized; the factories return `AppPlugin<MCPServer>`.
     plugins: runtime.plugins.map(honorWidgetMetaDefaults) as AppPlugin[],
     appConfig: { activeApps: boot.entries, pipelines: {} },
     app: {
@@ -252,7 +181,6 @@ const displayHost = (host: string): string => {
   return host.includes(":") ? `[${host}]` : host
 }
 
-/** Resolves `true` when `promise` settles within `ms`, `false` on timeout. */
 async function settlesWithin(promise: Promise<void>, ms: number): Promise<boolean> {
   let timer: NodeJS.Timeout | undefined
   const timeout = new Promise<false>((resolve) => {
@@ -286,8 +214,7 @@ async function drain(ctx: DrainContext): Promise<void> {
       `[${label}] Drain timed out after ${ctx.drainTimeoutMs}ms — closing ${listener.inFlight} request(s)`,
     )
   }
-  // Closes the MCP handler (open subscription streams included) before the
-  // sockets go, so streams end cleanly instead of being reset.
+  // Closing the MCP handler before the sockets ends streams cleanly instead of resetting them.
   await app.close().catch((error: unknown) => console.error(`[${label}] close failed:`, error))
   server.closeAllConnections()
   await closed
@@ -311,7 +238,6 @@ function installSignalHandlers(shutdown: () => Promise<void>, label: string): vo
 
 async function listen(
   ctx: Omit<DrainContext, "server" | "listener" | "drainTimeoutMs"> & {
-    /** The policy the in-app guard enforces — the listener decides by the same one. */
     guard: HttpEdgePolicy
     env: NodeJS.ProcessEnv
   },
@@ -342,7 +268,6 @@ async function listen(
     {
       requestTimeout,
       headersTimeout: requestTimeout,
-      // Node checks the timeouts on this interval (default 30 s).
       connectionsCheckingInterval: Math.min(requestTimeout, 5000),
     },
     listener,
@@ -370,17 +295,12 @@ async function listen(
   return { port: bound, url, shutdown }
 }
 
-/**
- * Boot a composed server — see the module comment for the sequence. Returns
- * BEFORE listening: `mcp-use dev` serves `app` itself, production calls
- * `listen({ handleSignals: true })`.
- */
+/** Returns BEFORE listening: `mcp-use dev` serves `app` itself, production calls `listen()`. */
 export async function createComposedServer(
   options: ComposedServerOptions,
 ): Promise<ComposedServer> {
   const { label, composition, oauth, env = process.env } = options
-  // mcp-use ships anonymized telemetry enabled by default — an ops server
-  // must not phone home unless explicitly opted in.
+  // mcp-use telemetry is on by default; an ops server must not phone home unless opted in.
   process.env.MCP_USE_ANONYMIZED_TELEMETRY ??= "false"
 
   composition.warnUnknownEnvVars(env, [...HTTP_EDGE_ENV_VARS, ...(options.extraKnownEnvVars ?? [])])
@@ -410,11 +330,7 @@ export async function createComposedServer(
   const app = await buildFrameworkApp(options, boot, builder, runtime, env)
   const state = { draining: false }
 
-  // Ambient per-request info (OAuth caller, Authorization header) for the
-  // consumers without a handler `ctx`; input schemas trimmed of keys a model
-  // never needs (`$schema`, safe-integer bounds); the dev-CLI views-prime
-  // workaround (no-op outside `mcp-use dev`). Request logging is mcp-use's
-  // own (`MCP_USE_LOG_LEVEL`, see `requestLogLevelWarning`).
+  // Request logging is mcp-use's own (`MCP_USE_LOG_LEVEL`).
   installMcpRequestContext(app)
   installToolSchemaTrim(app)
   swallowDevCliViewsPrime(app, env)
@@ -426,8 +342,7 @@ export async function createComposedServer(
     label,
     draining: () => state.draining,
   })
-  // Geist + Geist Mono for the views — behind the guard (a font GET passes
-  // the Origin half, a foreign Host does not), counted by the metrics.
+  // Behind the guard: a font GET passes the Origin half, a foreign Host does not.
   installFontAssets(app, { label })
 
   return {

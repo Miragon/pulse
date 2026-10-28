@@ -7,13 +7,6 @@ import { SHELL_SAVE_SETTINGS, SHELL_SETTINGS_DATA } from "../shell-settings-cont
 import { HostWidgetsProvider } from "./host-widgets.js"
 import { SettingsPageWidget, SHELL_SETTINGS_KEY, ShellSettingsWidget } from "./shell-settings.js"
 
-/**
- * The shell's language section and the settings page (#346): the section
- * reads and saves the record-level language through the shell's own tools,
- * says why it cannot save, and hides where the root registers no settings
- * tools; the page assembles every module's section from the host registry.
- */
-
 beforeAll(() => {
   queryClient.setQueryDefaults([...SHELL_SETTINGS_KEY], { retry: false })
 })

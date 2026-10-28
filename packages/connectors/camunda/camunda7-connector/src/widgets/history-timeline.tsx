@@ -39,12 +39,7 @@ export type HistoryActivity = HistoryTimelineData["activities"][number]
 
 type TimelineInstance = NonNullable<HistoryTimelineData["processInstance"]>
 
-/**
- * Where did this historic instance spend its time — the whole run, against
- * its definition's metrics baseline (analytics, when active). The baseline is
- * read by key — an argument the history query refuses — so the key goes with
- * the analytics tools (here and below).
- */
+/** The baseline is read by key, which the history query refuses, so the key goes with the analytics tools. */
 export function explainInstanceHandOff(
   instance: TimelineInstance,
   engineId: string | undefined,
@@ -72,13 +67,11 @@ export function explainInstanceHandOff(
   }
 }
 
-/** The instance a timeline row belongs to — its id, and its key where known. */
 export interface TimelineInstanceRef {
   id?: string
   processDefinitionKey?: string | null
 }
 
-/** Why ONE step took this long — the outlier row's hand-off. */
 export function explainActivityHandOff(
   activity: HistoryEntry,
   instance: TimelineInstanceRef | null | undefined,
@@ -109,17 +102,7 @@ export function explainActivityHandOff(
   }
 }
 
-/**
- * Shell-less activity history — THE component family for historic activity
- * instances. Two variants of the same rows and formatting:
- *  - `"timeline"` (default): the rich vertical dot timeline with duration
- *    outlier detection and Ask-AI affordances. Reused as the standalone
- *    history widget and as the lazily-loaded "Audit log" section inside the
- *    instance detail; pass `processInstance` to show the summary header
- *    (omitted when embedded).
- *  - `"table"`: the compact Started/Duration/Status grid used by the incident
- *    detail's history tab.
- */
+/** Shell-less activity history: `"timeline"` (outliers, Ask-AI) or the compact `"table"` of the incident detail. */
 export function HistoryTimelineView({
   activities,
   processInstance,
@@ -279,24 +262,15 @@ export function HistoryTimelineView({
 
 /** Page size for the self-paged history tabs (a timeline rarely exceeds one page). */
 const HISTORY_PAGE_SIZE = 100
-/** Registrar history query — returns a `{ items, totalCount }` pagination envelope. */
+/** Returns a `{ items, totalCount }` envelope. */
 const HISTORY_QUERY_TOOL = "camunda7_query_historic_activity_instances"
 
-/** One page of the history query, in its envelope shape. */
 interface HistoryPage {
   items?: HistoryEntry[]
   totalCount?: number
 }
 
-/**
- * Offset-paged entry into the history family: pages the registrar history
- * query with the house Load-more pattern (usePagedViewData + ListFooter)
- * instead of one capped fetch. Self-fetching in the instance detail's audit
- * tab (`variant="timeline"`) and the incident detail's history tab
- * (`variant="table"`), which both mount lazily on first tab activation; the
- * standalone timeline hands in the show tool's first page (`initialPage`) and
- * its instance header.
- */
+/** Pages the history query with Load more instead of one capped fetch; `initialPage` skips the self-fetch. */
 export function PagedHistoryView({
   processInstanceId,
   engine,
@@ -309,12 +283,9 @@ export function PagedHistoryView({
   processInstanceId: string
   /** Explicit engine routing; omitted → the caller's saved default engine. */
   engine?: string
-  /** The instance's definition key, where no header data (`processInstance`) carries it. */
   processDefinitionKey?: string | null
   variant?: "timeline" | "table"
-  /** Page 0 handed in (no self-fetch); "Load more" continues after it. */
   initialPage?: HistoryPage | null
-  /** Instance summary header (timeline variant only). */
   processInstance?: HistoryTimelineData["processInstance"]
   /** Activities with an open incident on this instance — their running step is marked. */
   incidentActivityIds?: readonly string[] | null
@@ -376,17 +347,7 @@ export function PagedHistoryView({
   )
 }
 
-/**
- * The standalone timeline (`camunda7_show_history_timeline`). The show tool
- * returns one capped page — the model may read it whole — so the rest of a
- * long instance is a "Load more" away on the same engine, never a silently
- * cut timeline.
- */
-/**
- * The timeline the operator is looking at, with the definition baseline
- * (analytics, when active) for the "is this normal" follow-up. Rendered
- * in-component — the tool list follows the live surface.
- */
+/** The show tool returns one capped page; the rest is a "Load more" away on the same engine, never silently cut. */
 export function describeHistoryTimeline(data: HistoryTimelineData): ViewContext {
   const pi = data.processInstance
   return {

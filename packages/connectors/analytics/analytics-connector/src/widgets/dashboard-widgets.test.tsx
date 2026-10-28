@@ -22,14 +22,7 @@ import {
   withWidgetClock,
 } from "./widget-render.test-support.js"
 
-/**
- * The analytics dashboard and the heatmap as a person reads them, in German
- * and English: numbers in the view's locale, the reference frame under the
- * title (U7), names before ids (U13), numbers neutral with the state as a dot
- * (U14), and every hand-off named after its function and the chat (U4) with
- * a Lucide icon. The failure dashboard and the landscape:
- * `failure-landscape-widgets.test.tsx`.
- */
+/** The failure dashboard and the landscape: `failure-landscape-widgets.test.tsx`. */
 
 withWidgetClock()
 
@@ -218,11 +211,9 @@ describe("the analytics dashboard in German", () => {
       "Neue Incidents",
       "Durchschn. Dauer",
     ])
-    // The name first, the key below it, quiet and in mono.
     expect(screen.getByText("Bike Leasing")).toBeTruthy()
     const key = screen.getByText("miraveloLeasing")
     expect(key.className).toContain("font-mono")
-    // Without a known name the key leads, still in mono.
     expect(screen.getByText("invoice").className).toContain("font-mono")
     const started = screen.getByText("1.288").closest("td")!
     expect(started.className).toContain("text-right")
@@ -254,7 +245,6 @@ describe("the analytics dashboard in German", () => {
   it("keeps every count neutral, new incidents included", () => {
     const { container } = renderIn("de", ProcessDefinitionBreakdown, DASHBOARD)
     const leasing = screen.getByText("Bike Leasing").closest("tr")!
-    // Running now and new incidents: both a plain tabular figure in its cell.
     for (const figure of within(leasing).getAllByText("1")) {
       expect(figure.tagName).toBe("TD")
       expect(figure.className).toContain("tabular-nums")

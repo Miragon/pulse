@@ -3,7 +3,6 @@ import type { BpmnViewerData } from "../../view-models.js"
 import { useT } from "../../messages/use-t.js"
 import { HIGHLIGHT_COLORS } from "../bpmn-highlights.js"
 
-/** A count badge's swatch: the badge's own fill and text colour, so the legend matches the diagram. */
 function CountSwatch({ badge }: { badge: Parameters<typeof badgeSwatch>[0] }) {
   return (
     <span
@@ -16,13 +15,7 @@ function CountSwatch({ badge }: { badge: Parameters<typeof badgeSwatch>[0] }) {
   )
 }
 
-/**
- * Legend of the BPMN viewer. The count badges say WHOSE counts they are
- * (`statsScope`): an instance's own tokens, or every running instance of the
- * rendered definition version — the same badge means different things in the
- * two modes. Swatch colors come from HIGHLIGHT_COLORS so the legend can never
- * drift from what the diagram overlay actually paints.
- */
+/** The same badge means different things per `statsScope`; colours come from HIGHLIGHT_COLORS so the legend can't drift. */
 export function BpmnViewerLegend({ data }: { data: BpmnViewerData | null }) {
   const t = useT()
   return (

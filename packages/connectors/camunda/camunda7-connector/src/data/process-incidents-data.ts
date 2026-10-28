@@ -42,16 +42,9 @@ export interface ProcessIncidentsOptions {
 }
 
 /**
- * The unified definition view — KEY-wide (#335 N60). Old versions keep
- * running after a redeploy, so every number covers every version of the key:
- * running instances, failed jobs and incidents come from key-scoped `/count`
- * endpoints, the per-activity incident counts are summed over all versions.
- * Only the diagram is one version (the latest over every tenant,
- * `diagramVersion`), read by the resolved id. Two parallel stages (N67): the
- * key lookup with every count and the scan, then what needs their answers —
- * the diagram, the per-activity counts (the engine-wide definition
- * statistics only when the key's incidents outrun the recency scan) and, for
- * the empty state alone, the other processes with incidents.
+ * KEY-wide (#335 N60): old versions keep running after a redeploy, so every
+ * number covers every version; only the diagram is one version. The engine-wide
+ * definition statistics are read only when the key's incidents outrun the scan.
  */
 export async function buildProcessIncidentsData(
   client: Client,
@@ -79,8 +72,7 @@ export async function buildProcessIncidentsData(
   const [bpmnXml, activityCounts, siblingsWithIncidents] = await Promise.all([
     definition.id ? optional(fetchDefinitionXml(client, definition.id)) : Promise.resolve(null),
     activityIncidentCounts(client, key, scan),
-    // Only the empty state shows the processes that DO have incidents — read
-    // for it alone (enrichment); null otherwise, never an unread `[]`.
+    // Read for the empty state alone; null otherwise, never an unread `[]`.
     incidentCount === 0 ? optional(fetchSiblingsWithIncidents(client, key)) : Promise.resolve(null),
   ])
 
@@ -95,8 +87,6 @@ export async function buildProcessIncidentsData(
     // The engine's name, else the diagram's (a Modeler pool around an unnamed process).
     processDefinitionName: definition.name ?? bpmnProcessNameOf(diagramNames, key),
     diagramVersion: definition.version,
-    // Drawn by id (`camunda7_bpmn_xml_data`); the XML read here names the
-    // activities and scopes the counts to the diagram.
     diagramDefinitionId: bpmnXml && definition.id ? definition.id : null,
     cockpitUrl: buildProcessCockpitUrl(
       options,
@@ -109,7 +99,7 @@ export async function buildProcessIncidentsData(
     failedJobs,
     totalActivityCount: diagramIds ? diagramIds.size : null,
     // Same scope as the denominator: an activity only an older version has
-    // stays in `activities`, never in "X of the diagram's Y".
+    // stays out of "X of the diagram's Y".
     affectedDiagramActivityCount: diagramIds
       ? activities.filter((a) => diagramIds.has(a.activityId)).length
       : null,
@@ -146,12 +136,7 @@ function toActivities(
     .sort((a, b) => b.incidentCount - a.incidentCount)
 }
 
-/**
- * Exact open-incident count per activity, over EVERY version of the key. A
- * complete scan already holds every incident; otherwise the activity
- * statistics of each version with incidents are summed (one call per such
- * version, in parallel).
- */
+/** A complete scan already holds every incident; otherwise sum each incident-carrying version's statistics. */
 async function activityIncidentCounts(
   client: Client,
   key: string,
@@ -183,7 +168,6 @@ async function activityIncidentCounts(
   return counts
 }
 
-/** Other keys with open incidents (summed over their versions), most first. */
 async function fetchSiblingsWithIncidents(
   client: Client,
   excludeKey: string,
@@ -203,19 +187,11 @@ async function fetchSiblingsWithIncidents(
   }))
 }
 
-/** Filters from the shared feed contract + paging (page size defaults to 10). */
 export type ActivityIncidentsArgs = ActivityIncidentsFilters & PagingArgs
 
-/** Server default page size of the per-activity incident feed. */
 const ACTIVITY_INCIDENTS_PAGE = 10
 
-/**
- * One page of an activity's incident rows (every version of the key) — the
- * paged feed behind each expanded activity group of the definition view.
- * Engine-side offset paging with the exact total from `/incident/count`; each
- * row links to the instance on its OWN definition version, so no definition
- * lookup runs per page (N67).
- */
+/** Each row links to its OWN definition version, so no definition lookup runs per page (N67). */
 export async function buildActivityIncidentsData(
   client: Client,
   options: {
@@ -241,8 +217,7 @@ export async function buildActivityIncidentsData(
     }).then((rows) => rowsOf<IncidentRow>(rows)),
     getIncidentsCount({ client, query }).then(countOf),
   ])
-  // The rows are named by their instances' business keys — enrichment: a
-  // failed read names them by their short ids.
+  // Enrichment: a failed read names the rows by their short ids.
   const businessKeys = await optional(
     fetchBusinessKeys(
       client,

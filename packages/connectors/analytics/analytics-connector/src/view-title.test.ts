@@ -7,13 +7,9 @@ import { registerSettingsTools } from "./settings-tools.js"
 import { registerWidgetTools } from "./widget-tools.js"
 
 /**
- * Structural guard for #322 U3 over EVERY analytics show tool (each tool with
- * a view binding), the same rule camunda7's show tools follow (the kit's
- * `createLocalizeViewFor`): the server titles a view only in a language the
- * caller's profile names. "system" follows the host's locale, which the
- * server never sees, so the view carries no title and the widget's own
- * heading names it; an English title would sit over a German view. A new
- * show tool that titles with `t(…)` instead of `title(…)` fails here.
+ * #322 U3: the server titles a view only in a language the caller's profile names. "system" follows
+ * the host's locale, which the server never sees, so the widget's own heading names the view.
+ * A new show tool that titles with `t(…)` instead of `title(…)` fails here.
  */
 
 type ToolCallback = (args: Record<string, unknown>, ctx?: unknown) => Promise<unknown>

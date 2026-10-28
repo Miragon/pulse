@@ -1,26 +1,6 @@
 import { CD_TOKENS, type CdTokenName } from "@miragon/mcp-toolkit-ui"
 
-/**
- * THE token module of the BPMN canvas (modeler-tool-design §3.6, §10, §13):
- * every colour the diagram's overlays, badges and heat layer paint is a
- * `--cd-*` corporate-design token, named here once. Two consumers read it:
- *
- * - CSS ({@link BPMN_OVERLAY_CSS}) refers to the tokens as `var(--cd-*)`,
- *   which the toolkit's theme vendors on `:root`;
- * - code that needs numbers (the heat canvas, contrast checks) resolves the
- *   same names through the toolkit's `CD_TOKENS`.
- *
- * `bpmn-tokens.test.ts` is the drift test (every name's `CD_TOKENS` value
- * equals the vendored stylesheet's `--cd-*`) and the contrast test (strokes
- * ≥ 3:1 against the paper and their own fill, badge text ≥ 4.5:1).
- *
- * The semantics (owner decision, #322): an incident is `danger` (stroke,
- * tint, count badge — red only for incidents); running and active activities
- * are blue (`--cd-blau` stroke on the `--cd-info-soft` tint), an open user
- * task the same with a heavier dashed stroke (shape, not colour, tells it
- * apart — and it stands still: no pulse, so `prefers-reduced-motion` has
- * nothing to stop); counts are white on blue or danger.
- */
+/** Every colour the BPMN canvas paints, as a `--cd-*` token named once; `bpmn-tokens.test.ts` checks drift and contrast. Red only for incidents; an open user task differs by a heavier dash (shape, not colour) and does not pulse, so reduced motion has nothing to stop. */
 export const BPMN_TOKENS = {
   /** The paper: always light, in every theme. */
   paper: "weiss",
@@ -41,32 +21,23 @@ export const BPMN_TOKENS = {
   heat: { from: CdTokenName; to: CdTokenName }
 }
 
-/** A token as a CSS value (`var(--cd-danger)`). */
 export function cdVar(name: CdTokenName): string {
   return `var(--cd-${name})`
 }
 
-/** A token's value (`#CD1839`) — for code that paints numbers, never for CSS. */
+/** For code that paints numbers, never for CSS. */
 export function cdValue(name: CdTokenName): string {
   return CD_TOKENS[name]
 }
 
-/**
- * Stroke widths in diagram units: 2 for a state, 3 for an open user task
- * (with its dash), bpmn-js draws plain shapes at 2.
- */
+/** bpmn-js draws plain shapes at 2. */
 const STATE_STROKE = 2
 const OPEN_TASK_STROKE = 3
 const OPEN_TASK_DASH = "8 4"
 
 const { incident, running, openTask, instanceBadge, incidentBadge } = BPMN_TOKENS
 
-/**
- * The overlay stylesheet: marker classes on bpmn-js shapes
- * (`canvas.addMarker(id, "highlight-incident")`) and the count badges added
- * as overlays (`<div class="bpmn-overlay-badge bpmn-overlay-badge--…">`).
- * Inject it once per document with {@link injectBpmnOverlayCss}.
- */
+/** Inject it once per document with {@link injectBpmnOverlayCss}. */
 export const BPMN_OVERLAY_CSS = `
 .highlight-running:not(.djs-connection) .djs-visual > :nth-child(1) {
   fill: ${cdVar(running.fill)} !important;
@@ -110,7 +81,6 @@ export const BPMN_OVERLAY_CSS = `
 
 const STYLE_ID = "bpmn-overlay-css"
 
-/** Add {@link BPMN_OVERLAY_CSS} to the document once (idempotent). */
 export function injectBpmnOverlayCss(doc: Document = document): void {
   if (doc.getElementById(STYLE_ID)) return
   const style = doc.createElement("style")
@@ -127,7 +97,6 @@ export function markerSwatch(marker: { stroke: CdTokenName; fill: CdTokenName })
   return { borderColor: cdVar(marker.stroke), background: cdVar(marker.fill) }
 }
 
-/** The legend swatch of a count badge, as an inline style. */
 export function badgeSwatch(badge: { fill: CdTokenName; text: CdTokenName }): {
   background: string
   color: string

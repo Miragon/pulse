@@ -1,22 +1,11 @@
 /**
- * Completing a user task — the ONE place `camunda7_complete_task` picks its
- * engine endpoint (the source scan in `engine-contract.test.ts` keeps the raw
- * SDK calls here). The three endpoints differ in ways a caller cannot see:
- *
- * - `/task/{id}/submit-form` is the only one that runs the task's
- *   `<camunda:formData>` fields: required/readonly/type validation and the
- *   type conversion. But it also writes every field's BPMN `defaultValue`
- *   over the current value when the field is not submitted, and it RESOLVES
- *   a delegated task instead of completing it (`SubmitTaskFormCmd`).
- * - `/task/{id}/complete` validates nothing and leaves omitted variables as
- *   they are; it completes a delegated task outright, skipping its owner.
- * - `/task/{id}/resolve` hands a delegated task back to its owner.
- *
- * So: a task WITH form fields is submitted as its form, with the current value
- * of every omitted field the engine would otherwise reset; a task without
- * form fields completes through `/complete`; and a delegated task
- * (`delegationState` PENDING) is resolved — through the form when it has one —
- * and reported as such, never as completed.
+ * The one place `camunda7_complete_task` picks its endpoint (`engine-contract.test.ts` scans for it):
+ * - `/submit-form` alone validates form fields, but writes BPMN defaults over omitted fields
+ *   and RESOLVES a delegated task (`SubmitTaskFormCmd`).
+ * - `/complete` validates nothing and completes a delegated task, skipping its owner.
+ * - `/resolve` hands a delegated task back to its owner.
+ * So a form task is submitted with the current value of every omitted field, a formless one
+ * completes, and a delegated one is resolved and reported as such, never as completed.
  */
 import {
   readTaskVariables,
@@ -41,26 +30,14 @@ interface TaskRow {
   owner?: string | null
 }
 
-/**
- * The submit rules of the task's form fields; `[]` for a task without a BPMN
- * user-task form. The BPMN read is REQUIRED: guessing "no form" would complete
- * a form task unvalidated, guessing "form" would reset its defaults.
- */
+/** The BPMN read is REQUIRED: guessing "no form" skips validation, guessing "form" resets defaults. */
 async function formRules(client: Client, task: TaskRow): Promise<FormFieldSubmitRule[]> {
   if (!task.processDefinitionId || !task.taskDefinitionKey) return []
   const xml = await fetchDefinitionXml(client, task.processDefinitionId)
   return xml ? formFieldSubmitRules(xml, task.taskDefinitionKey) : []
 }
 
-/**
- * The current values of the omitted form fields the engine would reset to
- * their BPMN default — sent back unchanged, so an omitted field keeps its
- * value as it did through `/complete`. Read raw (`deserializeValues=false`):
- * the serialized value + `valueInfo` is exactly the shape a write takes. A
- * field whose variable does not exist yet gets its default (the form's own
- * initialization). An engine-readonly field cannot be submitted, so the
- * engine still applies ITS default — the form's own rule, as in Tasklist.
- */
+/** Read raw so the serialized value + `valueInfo` is the shape a write takes. Engine-readonly fields keep the engine's default, as in Tasklist. */
 async function omittedValuesToKeep(
   client: Client,
   taskId: string,
@@ -83,7 +60,6 @@ async function omittedValuesToKeep(
   )
 }
 
-/** The body's `variables`, omitted when there are none (as before). */
 function variablesBody(variables: VariableMap) {
   return { variables: Object.keys(variables).length > 0 ? variables : undefined }
 }

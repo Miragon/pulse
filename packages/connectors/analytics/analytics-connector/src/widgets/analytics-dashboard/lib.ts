@@ -7,24 +7,17 @@ import type {
 import { ANALYTICS_DASHBOARD_DATA } from "../../tool-names.js"
 import type { Named } from "../../bpmn-names.js"
 
-/** The dashboard payload the widgets read: the figures plus the names behind their ids. */
 export type DashboardView = Named<AnalyticsDashboardData>
 
-/** The cell props every split dashboard widget takes — the scope its self-fetch reads. */
 export interface DashboardScopeProps {
   processDefinitionKey?: string
   period?: Period
-  /** Configured engine id(s); omitted = every configured engine (the feed resolves it). */
+  /** Omitted = every configured engine. */
   engine?: EngineFilterInput
 }
 
-// Centralised so all four split dashboard widgets share one self-fetch contract.
-// The cache key includes every scope prop so per-cell instances (e.g. one tab
-// per period or per engine) don't collide on a single shared cache entry — and
-// an engine-scoped cell never reads a fleet-wide entry. Self-fetches the
-// app-only *_data feed — calling the show_* tool from inside the iframe is
-// host-defined behavior (hosts honoring resultCanProduceWidget may render a
-// second widget per refresh).
+// The cache key holds every scope prop so an engine-scoped cell never reads a fleet-wide entry.
+// The *_data feed, not show_*: hosts honoring resultCanProduceWidget may render a second widget.
 export function useDashboardSelfFetch(
   initialData: DashboardView | null,
   props: DashboardScopeProps,

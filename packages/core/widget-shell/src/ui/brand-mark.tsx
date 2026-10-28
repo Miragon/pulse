@@ -5,18 +5,7 @@ import { KOMET_SVG } from "./komet-svg.js"
 /** The Komet never renders smaller than this (CI: legible as the Miragon icon). */
 export const KOMET_MIN_SIZE = 24
 
-/**
- * The Miragon signature for APP-LEVEL surfaces only — the landing, the first
- * start, "no engines" (owner decision; never in every widget): the official
- * Komet icon, inlined unchanged ({@link KOMET_SVG}), at `size` px (at least
- * {@link KOMET_MIN_SIZE}).
- *
- * A theme slot hides it: a customer brand sets
- * `--brand-mark-display: none` in its stylesheet (`brand.css`) and every
- * Miragon mark disappears, without a code change. Decorative by default
- * (the words next to it carry the meaning); pass `label` for a mark that
- * stands alone.
- */
+/** App-level surfaces only (owner decision): the official Komet, inlined unchanged. A customer brand hides it with `--brand-mark-display: none`; decorative unless `label` is passed. */
 export function KometMark({
   size = 48,
   label,
@@ -41,12 +30,7 @@ export function KometMark({
   )
 }
 
-/**
- * The empty state of an APP-LEVEL surface (CI §8 "Empty State / Landing"):
- * the Komet over a 600 title, one help line and up to two actions — the
- * primary one a blue `Button`. Widgets use `TableEmptyState` instead; the
- * Komet belongs to the app, not to every list.
- */
+/** Widgets use `TableEmptyState`: the Komet belongs to the app, not to every list. */
 export function AppEmptyState({
   title,
   description,
@@ -59,7 +43,6 @@ export function AppEmptyState({
   description?: ReactNode
   action?: ReactNode
   secondaryAction?: ReactNode
-  /** Default `"h2"`: it is the surface's heading. */
   titleAs?: StateHeadingLevel
   className?: string
 }) {

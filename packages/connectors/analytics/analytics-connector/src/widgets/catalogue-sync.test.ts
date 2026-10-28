@@ -3,12 +3,6 @@ import { catalogueSyncIssues } from "@miragon/pulse-widget-shell/server"
 import { definition } from "../definition.js"
 import { analyticsWidgets } from "./index.js"
 
-/**
- * Guard against widget-catalogue drift (invariant 3, links 1↔2), mirroring the
- * camunda7 module's test: every widget registered in the host bundle map
- * (`widgets/index.ts`) must be catalogued in `definition.ts` and vice versa —
- * the shared checker lists every drifted id.
- */
 describe("analytics widget catalogue ↔ registry sync", () => {
   it("definition.widgets matches the registered widget components exactly", () => {
     expect(catalogueSyncIssues(definition, analyticsWidgets)).toEqual([])

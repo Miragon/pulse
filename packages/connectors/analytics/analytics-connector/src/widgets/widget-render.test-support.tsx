@@ -5,12 +5,6 @@ import { LocaleProvider, queryClient } from "@miragon/mcp-toolkit-ui"
 import { WidgetFixtureHost } from "@miragon/mcp-toolkit-ui/app"
 import { setFormatLocale } from "@miragon/pulse-widget-shell/testing"
 
-/**
- * Rendering the analytics widgets as a person reads them, for the DOM suites
- * (`*-widgets.test.tsx`): a widget in a language, at a fixed clock, and the
- * readers those suites share.
- */
-
 export const NOW = "2026-10-10T12:40:00.000Z"
 export const AS_OF = "2026-10-10T12:32:00.000Z"
 
@@ -63,10 +57,8 @@ export const kpiTone = (label: string) =>
   screen.getByText(label).closest("[data-tone]")?.getAttribute("data-tone") ?? undefined
 
 /**
- * The column heads, the ones a narrow region hides included: happy-dom has no
- * layout, so every `hideBelow` container query reads as "too narrow". The
- * heads of a column GROUP (the row above, `data-list-table-groups`) are not
- * column heads.
+ * Includes the heads a narrow region hides: happy-dom has no layout, so every `hideBelow` query
+ * reads as too narrow. Group heads are not column heads.
  */
 export const headers = (table: HTMLElement) =>
   within(table)
@@ -84,9 +76,8 @@ export const groupHeads = (table: HTMLElement) =>
     .map((th) => [plain(th.textContent)?.trim(), th.getAttribute("colspan")])
 
 /**
- * Each "—" for a missing figure (`Figure`) as each reader gets it: the sign
- * on screen (hidden from assistive tech), the reason a screen reader reads in
- * its place, and the tooltip.
+ * Each "—" as each reader gets it: the sign (hidden from assistive tech), the reason read out, and
+ * the tooltip.
  */
 export const missingFigures = (root: ParentNode) =>
   [...root.querySelectorAll<HTMLElement>("[data-figure='missing']")].map((el) => ({
@@ -95,7 +86,6 @@ export const missingFigures = (root: ParentNode) =>
     title: el.getAttribute("title"),
   }))
 
-/** One missing figure as {@link missingFigures} reports it: "—", its reason read out and as the tooltip. */
 export const missing = (why: string) => ({ shown: "—", read: why, title: why })
 
 /** The notes under the tables (`Legend`), as text. */

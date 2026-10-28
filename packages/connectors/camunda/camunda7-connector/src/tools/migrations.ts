@@ -15,11 +15,8 @@ import { engineParamShape, withEngine } from "../lib/with-engine.js"
 type Register = ReturnType<typeof createToolRegistrar<EngineRegistry>>
 
 /**
- * The activity mapping a migration runs with. The execute endpoint does NOT
- * derive one: a plan without instructions maps no activity, and every
- * instance with an active activity fails its batch job. So omitted
- * instructions are generated first — by the same engine endpoint
- * `camunda7_create_migration_plan` calls (equal activity ids).
+ * The execute endpoint does NOT derive a mapping: without instructions every instance with an
+ * active activity fails its batch job, so omitted ones are generated first.
  */
 async function migrationInstructions(
   client: Client,

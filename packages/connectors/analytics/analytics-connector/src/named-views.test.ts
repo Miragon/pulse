@@ -65,9 +65,8 @@ describe("named views", () => {
     expect(namesFor.mock.calls[0][1]?.engines).toBeNull()
   })
 
-  // The lookup reads at most 40 models per view: a fleet with more
-  // definitions must not lose the names of its bottleneck activities to the
-  // long tail of the breakdown (sorted by starts).
+  // The lookup reads at most 40 models per view: a big fleet must not lose its bottleneck names to
+  // the long tail of the breakdown.
   it("keeps the activities' names when the fleet has more than 40 definitions", async () => {
     const fetchBpmnXml = vi.fn((key: string) =>
       Promise.resolve(

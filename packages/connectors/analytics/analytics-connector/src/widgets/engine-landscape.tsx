@@ -41,17 +41,8 @@ function engineIdsFromProps(engine: string | string[] | undefined): string[] {
 }
 
 /**
- * The cross-engine overview: what runs where, how much of it, and which engines
- * carry a backlog.
- *
- * Deliberately NOT an engine scoreboard. Two engines run different processes,
- * so a per-engine failure rate or average duration describes the process mix,
- * not the engine — the widget therefore shows absolute counts plus the
- * process-independent job backlog, and offers the KPI comparison only for the
- * definitions that actually run on more than one engine.
- *
- * "—" means one thing here: not measured (an engine that sends no metrics).
- * A process that is not deployed on an engine is an empty matrix cell.
+ * Deliberately NOT an engine scoreboard: engines run different processes, so a per-engine rate
+ * describes the mix. "—" means not measured; an undeployed process is an empty cell.
  */
 export function EngineLandscapeWidget({
   data: initialData,
@@ -126,13 +117,8 @@ function LandscapeSummary({ data, t }: { data: EngineLandscapeView; t: T }) {
 }
 
 /**
- * The per-engine table in its two column groups, headed as such (U17): the
- * load counts are absolute (comparable only as "where the work sits"), while
- * the backlog gauges carry no process label and therefore genuinely compare
- * across engines. The backlog is shown in FULL — it is the only
- * mix-independent evidence this view offers, and the fleet prompt tells the
- * model to judge engines on exactly it — so it never hides; only the
- * inventory column gives way below 768 px.
+ * The backlog gauges carry no process label, so they genuinely compare engines and never hide; only
+ * the inventory column gives way below 768 px.
  */
 function engineColumns(t: T): ListTableColumn[] {
   return [
@@ -166,12 +152,7 @@ function CountCell({ value, t }: { value: number | null; t: T }) {
   )
 }
 
-/**
- * An engine's open incidents or jobs without retries: the states among its
- * counts (decision f), a danger edge while there are any ({@link StateCount},
- * the kit's one ladder), as camunda7's engine tiles show the same counts of
- * the same engines in the cross-engine overview this table sits in.
- */
+/** A danger edge while there are any, as camunda7's engine tiles show the same counts. */
 function StateCountCell({ value, t }: { value: number | null; t: T }) {
   return (
     <Td align="right" className="tabular-nums">
@@ -242,12 +223,8 @@ function EngineTable({ data, t }: { data: EngineLandscapeView; t: T }) {
 }
 
 /**
- * The process × engine inventory. Shared definitions lead the table and are the
- * only rows offering the KPI comparison — everywhere else the two engines have
- * no common workload to compare. Its columns are the engines that send
- * metrics: a silent engine has nothing to show here, the meta line counts it
- * and a note names it. The comparison is pinned at the right edge, so it
- * stays in reach however many engines there are.
+ * Shared definitions lead and alone offer the KPI comparison. Columns are the engines that send
+ * metrics; the comparison is pinned right to stay in reach.
  */
 function ProcessMatrix({ data, t }: { data: EngineLandscapeView; t: T }) {
   if (data.processes.length === 0) {
@@ -326,8 +303,8 @@ function ProcessMatrix({ data, t }: { data: EngineLandscapeView; t: T }) {
 }
 
 /**
- * The one valid engine-vs-engine hand-off: same process, two engines (the
- * further engines it runs on are named so the model can pair them next).
+ * The one valid engine-vs-engine hand-off: same process, two engines (further engines named so the
+ * model can pair them next).
  */
 export function landscapeCompareHandOff(processKey: string, on: readonly string[]): HandOff {
   const [engineA, engineB, ...more] = on

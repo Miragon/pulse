@@ -18,7 +18,6 @@ type Handler = (args: Record<string, unknown>, ctx: unknown) => Promise<ToolResu
 
 const engineScope = createEngineScope(["prod-a", "prod-b"])
 
-/** Registers the comparison widget tools on a stand-in server and returns their handlers. */
 function handlers(ch: PrometheusClient): Map<string, Handler> {
   const byName = new Map<string, Handler>()
   const server = {

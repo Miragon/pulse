@@ -24,12 +24,11 @@ import { recoveryOf } from "../lib/incident-recovery.js"
 import { useHandOff, type HandOff } from "../lib/hand-off.js"
 import { useT } from "../../messages/use-t.js"
 
-/** The engine's error text for the incident — the incident message, else the job's exception. */
 function errorText(data: IncidentDetailData): string | null | undefined {
   return data.incidentMessage ?? data.job?.exceptionMessage
 }
 
-/** A ticket draft for THIS incident — built by the format tool, never filed. */
+/** Built by the format tool, never filed. */
 export function draftTicketHandOff(data: IncidentDetailData): HandOff {
   return {
     intent: "askAi.incident.draftTicket",
@@ -40,12 +39,7 @@ export function draftTicketHandOff(data: IncidentDetailData): HandOff {
   }
 }
 
-/**
- * What this incident's error means. The full failure text is read through a
- * model-visible tool — the job's stacktrace, a worker's error details via the
- * external-task list, or both condensed in the ticket draft — never through
- * the app-only incident feed the host hides from the model.
- */
+/** Reads the failure through a model-visible tool, never the app-only feed the host hides. */
 export function explainErrorHandOff(data: IncidentDetailData): HandOff {
   return {
     intent: "askAi.incident.explainError",
@@ -66,24 +60,17 @@ export function explainErrorHandOff(data: IncidentDetailData): HandOff {
   }
 }
 
-/** The remedy controls of the failure block — the one write that clears THIS incident. */
 export interface RemedyProps {
   resolved: boolean
-  /** Omitted when the deployment's toolset has no resolve tool — no button. */
   onResolve?: () => void
   resolving: boolean
-  /** Omitted when the deployment's toolset has no retry tool — no button. */
   onRetry?: () => void
   retrying: boolean
   retried: boolean
   retryError?: string | null
 }
 
-/**
- * The facts of the incident as ONE wrapping line instead of a KPI strip
- * whose tiles cut "10/10/202" (#322 U12): when it happened, the retries its
- * job has left, how long its history is. The type is the header's badge.
- */
+/** One wrapping line instead of a KPI strip whose tiles cut "10/10/202" (#322 U12). */
 function FactLine({ data }: { data: IncidentDetailData }) {
   const t = useT()
   const facts = [
@@ -96,13 +83,7 @@ function FactLine({ data }: { data: IncidentDetailData }) {
   return <p className="text-muted-foreground text-small break-words">{facts.join(" · ")}</p>
 }
 
-/**
- * The failure first (#322 U12): right under the head, what went wrong — the
- * engine's error text — and what clears it. The deterministic remedy is the
- * view's ONE primary (blue) button (#322 U11): Retry for a failed job or
- * external task, "Als gelöst markieren" for a custom incident; the chat
- * hand-offs follow it as secondary buttons. Done, it says so with a check.
- */
+/** #322 U11/U12: the failure first, the deterministic remedy as the one primary button. */
 export function FailureSummary({
   data,
   resolved,
@@ -115,7 +96,7 @@ export function FailureSummary({
 }: { data: IncidentDetailData } & RemedyProps) {
   const t = useT()
   const { ask } = useHandOff()
-  // Per instance: two incident details on one page keep their own label.
+  // Two incident details on one page keep their own label.
   const headingId = useId()
   return (
     <section aria-labelledby={headingId} className="flex flex-col gap-3">
@@ -160,7 +141,7 @@ export function FailureSummary({
   )
 }
 
-/** Retry — the only remedy for a failedJob / failedExternalTask incident. */
+/** The only remedy for failedJob / failedExternalTask. */
 function RetryButton({
   data,
   onRetry,
@@ -181,10 +162,6 @@ function RetryButton({
   )
 }
 
-/**
- * The technical depth behind the failure: the job (its id to copy) and its
- * full stacktrace — the second look, after the message above.
- */
 export function StacktraceTab({ data }: { data: IncidentDetailData }) {
   const t = useT()
   const job = data.job

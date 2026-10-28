@@ -3,19 +3,13 @@ import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { describe, expect, it } from "vitest"
 
-// Lives outside `src/widgets` on purpose (Node APIs): this guard reads the
-// module's sources from disk, like widget-actions.test.ts.
+// Outside `src/widgets`: it reads sources from disk (Node APIs).
 const SRC = fileURLToPath(new URL("./", import.meta.url))
 
 /**
- * Generated SDK operations whose REST contract differs from the client
- * defaults. Each has ONE wrapper that applies the override — a direct call
- * would silently lose it (#328): the text endpoints answer the default
- * `Accept: application/json` with a 406, the variable reads deserialize
- * Object values eagerly (one missing class fails the whole read) and render
- * Json as Jackson's view of the Spin node. The wrappers live in the engine
- * contract (`@miragon/pulse-camunda7-client`) unless `home` names the one module
- * of this package that may make the raw call.
+ * A direct call would lose the wrapper's override (#328): text endpoints answer JSON
+ * with 406, variable reads deserialize Object values eagerly. `home` names the one
+ * module here allowed the raw call.
  */
 const TASK_COMPLETION = { wrapper: "completeUserTask", home: "lib/task-completion.ts" }
 const CONTRACT_WRAPPED: Record<string, { wrapper: string; home?: string }> = {

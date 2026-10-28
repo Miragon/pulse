@@ -14,26 +14,9 @@ import { WidgetShell } from "./widget-shell.js"
 const SEED = { initialDataMode: "seed" } as const satisfies UseViewDataOptions<unknown>
 
 /**
- * The dual-mode detail scaffold every detail widget repeats: the toolkit's
- * `useViewData` in seed mode (handed-in `initialData` as the seed standalone,
- * self-fetch of `tool` in the cockpit) plus the shell-wrapped
- * loading/error/empty guard ({@link ViewDataState}: a skeleton under a
- * polite status, the described error with its retry). `guard` is null once
- * data is present, so a widget body reduces to:
- *
- *   const { data, guard, notice } = useDetailView<XData>({ … })
- *   if (guard) return guard
- *   // render with non-null data, `notice` on top
- *
- * `notice` is the other half: a REFETCH that failed while data is shown (a
- * write's invalidation, a refresh) — the data may be stale, so the view says
- * so in an inline warning (`ErrorState`: what failed and why, the raw reason
- * under "Details", the retry); null otherwise. `refreshError` is the same
- * fact for the view's own decisions (e.g. offering no state-changing action
- * on a state it cannot confirm), from the refetch's first failed attempt
- * ({@link viewRefreshState}). `loadError` is the failure behind the guard
- * while no data is shown — a section on a composed page hides itself when it
- * says the feed's tool is not on this server (`classifyError(…).kind`).
+ * `notice` reports a failed REFETCH over shown data, which may be stale.
+ * `loadError` lets a section on a composed page hide itself when the feed's
+ * tool is not on this server.
  */
 export function useDetailView<TData>(opts: {
   initialData: TData | null | undefined
@@ -41,15 +24,10 @@ export function useDetailView<TData>(opts: {
   key: ReadonlyArray<unknown>
   tool: string
   args: Record<string, unknown>
-  /** Gate the self-fetch until the required scope (id/key) is present. */
   ready: boolean
-  /** What is missing when the load finished without data. */
   emptyText: string
-  /** The loading status for screen readers (default: the active locale's "Loading view…"). */
   loadingText?: string
-  /** Shown while loading, shaped like the result (default: a heading bar and a block). */
   skeleton?: ReactNode
-  /** The retry label (default: the active locale's). */
   retryText?: string
   /** Title of the stale-data notice (default: the active locale's "Couldn't refresh this view"). */
   refreshErrorTitle?: string

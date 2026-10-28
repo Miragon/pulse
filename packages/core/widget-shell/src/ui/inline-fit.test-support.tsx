@@ -5,13 +5,8 @@ import { InlineBudgetProvider, type InlineBudget } from "./inline-budget.js"
 import { InlineFitBox, type FitMeasure } from "./inline-fit.js"
 import { ListTable } from "./list-table.js"
 
-/**
- * Shared by the inline fit's tests (`inline-fit*.test.tsx`). happy-dom has no
- * layout, so the tests inject one: `chrome` px around the lists, `row` px per
- * row, `footer` px per "k of N" line.
- */
+/** happy-dom has no layout, so the inline-fit tests inject one. */
 
-/** A fake layout: the view is its chrome, its rendered rows and its "more" lines. */
 export function layout({
   chrome,
   row,

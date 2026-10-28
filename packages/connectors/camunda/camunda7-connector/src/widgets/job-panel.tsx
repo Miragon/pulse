@@ -43,10 +43,7 @@ interface RetryArgs extends Record<string, unknown> {
   engine?: string
 }
 
-// Standalone renders hand in only `data`, so the show tool's scope comes
-// from the payload's echo — loadMore must page the same engine and filter
-// set as page 0 (incl. a processDefinitionKey filter the widget has no
-// prop for).
+// Standalone renders get only `data`: loadMore must page the echoed engine and filters (incl. a processDefinitionKey the widget has no prop for).
 function buildJobsFeed(initialData: JobPanelData | null, engine?: string, failedOnly?: boolean) {
   const echoed = initialData?.filters
   const feedEngine = engine ?? initialData?.engineId
@@ -60,13 +57,8 @@ function buildJobsFeed(initialData: JobPanelData | null, engine?: string, failed
 
 type Job = JobPanelData["jobs"][number]
 
-/**
- * The scope the panel's numbers cover, read from the data's own echo (every
- * builder path stamps it; a standalone render has no props): both counts are
- * scoped to the echoed process key, and a failed-only panel's `totalCount` IS
- * its failed count — so the total is stated only for an unfiltered panel,
- * never as "N jobs, all of them failed".
- */
+// A failed-only panel's `totalCount` IS its failed count, so the total is stated only unfiltered,
+// never as "N jobs, all of them failed".
 function jobPanelScope(data: JobPanelData) {
   const failedOnly = data.filters.failedOnly === true
   return {
@@ -76,7 +68,6 @@ function jobPanelScope(data: JobPanelData) {
   }
 }
 
-/** What the operator sees in the job panel — the model's grounding for follow-ups. */
 export function describeJobPanel(
   data: JobPanelData,
   engineId: string | undefined,
@@ -101,14 +92,7 @@ export function describeJobPanel(
   }
 }
 
-/**
- * Triage of the panel's failed jobs — on the whole engine, or of the process
- * the panel is scoped to (the echoed key scopes the model's job list too, so
- * it triages the jobs the counts describe). The batch retry is one of the
- * tools only where the deployment registers it (admin) — elsewhere the
- * surface drops it and per-job retries (operations) or nothing (read-only)
- * remain for the recommendation.
- */
+// The batch retry is a tool only under admin; elsewhere per-job retries (operations) or nothing remain.
 export function triageJobsHandOff(data: JobPanelData, engineId: string | undefined): HandOff {
   const scope = jobPanelScope(data)
   return {
@@ -132,7 +116,7 @@ export function triageJobsHandOff(data: JobPanelData, engineId: string | undefin
   }
 }
 
-/** Why ONE failed job failed — its exception text is engine data, quoted. */
+// Exception text is engine data, quoted.
 export function explainJobHandOff(job: Job, engineId: string | undefined): HandOff {
   return {
     intent: "askAi.jobs.explainFailure",
@@ -154,7 +138,6 @@ export function explainJobHandOff(job: Job, engineId: string | undefined): HandO
   }
 }
 
-/** A ticket draft for the incident behind ONE failed job (found by instance + activity). */
 export function draftJobTicketHandOff(job: Job, engineId: string | undefined): HandOff {
   return {
     intent: "askAi.jobs.draftTicket",
@@ -167,32 +150,18 @@ export function draftJobTicketHandOff(job: Job, engineId: string | undefined): H
   }
 }
 
-/**
- * A job's retries as a state (#322 U14): none left is danger (it holds an
- * incident), a failure with retries left is warning (the engine tries
- * again), anything else a plain count.
- */
+// #322 U14: no retries left holds an incident (danger), retries left means the engine tries again (warning).
 function retriesTone(job: Job): ToneVariant {
   if (job.retries === 0) return "danger"
   return job.exceptionMessage ? "warning" : "neutral"
 }
 
-/**
- * What a job is about, in ONE cell (#322 U2, U13): the failing activity by
- * name (its id the quiet mono line), the process it runs in under it — so an
- * inline frame keeps its width for the error and the retry.
- */
-/**
- * What a job is about: its activity by name, the id and (in a panel over
- * several processes) its process on the quiet line under it. A panel scoped
- * to one process names it in the head, not in every row.
- */
+// A panel scoped to one process names it in the head, not in every row.
 function JobSubject({ job, showProcess }: { job: Job; showProcess: boolean }) {
   const t = useT()
   const process = showProcess ? (job.processDefinitionName ?? job.processDefinitionKey) : null
   const inProcess = process ? t("jobPanel.inProcess", { process }) : null
-  // The cell's floor: names wrap between words, so without one the table
-  // would squeeze them into a column a word wide.
+  // A floor, or wrapping names get squeezed into a column a word wide.
   return (
     <div className="flex min-w-48 flex-col gap-0.5">
       {job.activityId ? (
@@ -209,13 +178,7 @@ function JobSubject({ job, showProcess }: { job: Job; showProcess: boolean }) {
   )
 }
 
-/**
- * One job of the panel (#322 U2, U11, U13): what it is about (activity and
- * process by name), the instance as a copyable id chip, the retries as a
- * state; the retry pinned at the row's end, the two chat hand-offs behind its
- * "more" button. A retry that went through shows "Neu eingeplant" with a
- * check — a success, never a dimmed row that reads as disabled.
- */
+// #322 U2, U11, U13. A done retry shows a check, never a dimmed row that reads as disabled.
 function JobRow({
   job,
   retry,
@@ -225,7 +188,6 @@ function JobRow({
   job: Job
   retry: EngineAction<RetryArgs, unknown>
   engineId: string | undefined
-  /** The panel spans several processes: each row names its own. */
   showProcess: boolean
 }) {
   const t = useT()
@@ -310,7 +272,6 @@ export function JobPanelWidget({
 }: {
   data?: JobPanelData | null
   engine?: string
-  /** Restrict the self-fetched job set to failed jobs (no retries left). */
   failedOnly?: boolean
 }) {
   const { ask, context } = useHandOff()
@@ -320,10 +281,8 @@ export function JobPanelWidget({
     key: ["camunda7:jobs", feedEngine ?? null, effectiveFailedOnly ?? null],
     tool: CAMUNDA7_JOBS_DATA,
     args,
-    // Always ready: the feed's `engine` is optional — resolveEngine falls back
-    // to the caller's saved default engine or the single configured engine (see the
-    // engine-health view for the same rule). Gating on `!!engine` would leave
-    // a composed render without props stuck on "No data available" forever.
+    // Always ready: resolveEngine falls back to the saved/single engine; gating on `!!engine` would
+    // leave a composed render without props stuck on "No data available".
     ready: true,
     selectItems: (d) => d.jobs,
     selectTotal: (d) => d.totalCount,
@@ -331,8 +290,7 @@ export function JobPanelWidget({
   })
   const t = useT()
   const data = paged.firstPage
-  // The retried marks only bridge the gap until the jobs refetch — fresh
-  // server data (new page-0 identity) must win again.
+  // The marks only bridge until the refetch; fresh page-0 data wins.
   const retry = useEngineAction<RetryArgs>({
     tool: "camunda7_set_job_retries",
     target: (args) => args.jobId,
@@ -356,9 +314,7 @@ export function JobPanelWidget({
   const { totalCount, failedCount } = data
   const jobs = paged.items
   const failedJobs = jobs.filter((j) => j.retries === 0 && !retry.done.has(j.id))
-  // Standalone (camunda7_show_job_panel) the `engine` prop is undefined; fall back
-  // to the engine the data was fetched against (the builder always sets it) so the
-  // AI prompts never inline "undefined" into their tool-call arguments.
+  // Standalone renders have no `engine` prop; without this the prompts would inline "undefined".
   const engineId = engine ?? data.engineId
   const scopedKey = data.filters.processDefinitionKey
   const scopedProcess = scopedKey

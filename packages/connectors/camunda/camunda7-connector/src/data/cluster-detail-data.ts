@@ -31,44 +31,27 @@ import {
 import { countOf, DAY_MS, optional, rowsOf } from "./engine-reads.js"
 import { fetchBusinessKeys, isOnOrAfter } from "./incident-scan.js"
 
-/** How many affected incidents the cluster detail lists (the rest is counted). */
 const CLUSTER_DETAIL_ROWS = 50
 
 /**
- * Filters from the shared feed contract + paging. `businessKeyLike`: the
- * `/incident` API has no business-key filter, so the builder resolves matching
- * instance ids via `/process-instance?businessKeyLike=` and intersects with
- * the cluster set — the KPIs keep describing the WHOLE cluster, only the list
- * narrows. `maxResults` defaults to {@link CLUSTER_DETAIL_ROWS}.
+ * `/incident` has no business-key filter: matching instance ids come from
+ * `/process-instance?businessKeyLike=`. Only the list narrows; the KPIs keep
+ * describing the WHOLE cluster.
  */
 export type ClusterDetailArgs = ClusterDetailFilters & PagingArgs
 
 /**
- * Drill-in for ONE failure cluster: server-side filter by activity + incident
- * type, client-side by the same message signature the overview clustered with,
- * then enrich the affected instances with their business keys — the operator's
- * "order number", not an engine UUID.
- *
- * The cluster's process keys scope its guarded remediation, so they resolve
- * exactly — a bare generated definition id (long keys) through the
- * statistics, like the engine-health clusters (`resolveDefinitionKeys`). That
- * read is primary: a key the view cannot vouch for is no scope to hand on.
- *
- * The newest-first scan holds at most {@link CLUSTER_SCAN_LIMIT} incidents.
- * Once it hits that limit — a mass failure, exactly when a cluster gets
- * drilled into — its length is no total: without a message filter the counts
- * come from `/incident/count`, with one the counts the scan cannot vouch for
- * are null, and `scannedIncidentCount` says how much of the cluster the list
- * covers.
+ * The process keys scope guarded remediation, so they resolve exactly (primary).
+ * Once the scan hits {@link CLUSTER_SCAN_LIMIT} (a mass failure, exactly when a
+ * cluster gets drilled into) its length is no total: counts come from
+ * `/incident/count` without a message filter, else are null.
  */
 export async function buildClusterDetailData(
   client: Client,
   engineId: string,
   args: ClusterDetailArgs,
 ): Promise<ClusterDetailData> {
-  // Primary fetch — failures must propagate as tool errors (no silent []).
-  // The business-key search resolves independently: matching instance ids come
-  // from /process-instance (the incident API has no business-key filter).
+  // Primary fetch: failures propagate as tool errors (no silent []).
   const [incidentsRaw, searchHitsRaw] = await Promise.all([
     getIncidents({
       client,
@@ -103,10 +86,9 @@ export async function buildClusterDetailData(
 
   const nowMs = Date.now()
 
-  // Paging slices the in-memory listed set (not an engine-side offset): the
-  // messageSignature/business-key filters are resolved here, so an offset
-  // re-query would change semantics without saving the scan. The list is
-  // therefore bounded by the scan — `scannedIncidentCount` discloses it.
+  // Paging slices the listed set in memory: the signature/business-key filters
+  // are resolved here, so an engine offset would change semantics.
+  // `scannedIncidentCount` discloses that the list is bounded by the scan.
   const first = Math.max(0, args.firstResult ?? 0)
   const pageSize = args.maxResults ?? CLUSTER_DETAIL_ROWS
   const page = listed.slice(first, first + pageSize)
@@ -124,8 +106,7 @@ export async function buildClusterDetailData(
       client,
       matching.map((i) => i.processDefinitionId),
     ),
-    // Names before ids (#322 U13): the activity's from the newest incident's
-    // diagram, each row's process from its own version — enrichment.
+    // Names before ids (#322 U13); enrichment.
     fetchNamesByDefinition(client, [
       matching[0]?.processDefinitionId,
       ...page.map((i) => i.processDefinitionId),
@@ -151,8 +132,7 @@ export async function buildClusterDetailData(
     messageSignature: args.messageSignature ?? null,
     ...counts,
     scannedIncidentCount: matching.length,
-    // The scan is newest first: its oldest row is the cluster's first only
-    // when the scan holds the whole cluster.
+    // Its oldest row is the cluster's first only when the scan holds the whole cluster.
     firstSeen: coverage.complete ? earliestEngineDate(kpis.timestamps) : null,
     latestIncident: latestEngineDate(kpis.timestamps),
     processDefinitionKeys: [...kpis.defCounts.entries()]
@@ -176,7 +156,6 @@ function filterToSearchHits(
   return matching.filter((i) => i.processInstanceId && hitIds.has(i.processInstanceId))
 }
 
-/** The scanned cluster's timestamps and its process keys by scanned incidents. */
 function aggregateClusterKpis(
   matching: IncidentLike[],
   keyOf: (incident: IncidentLike) => string,
@@ -198,11 +177,9 @@ type ClusterWindowCounts = Pick<
 >
 
 /**
- * The cluster's total and its last-hour / 24h profile, each from the scan
- * where the scan can vouch for it (it holds the whole cluster, or reaches
- * back past the window), otherwise from `/incident/count` — which can only
- * answer the cluster WITHOUT a message filter (activity + type are its
- * filters); with one, an unvouched count is null.
+ * From the scan where it can vouch (whole cluster, or reaches past the window),
+ * else `/incident/count`, which only answers WITHOUT a message filter; with
+ * one, an unvouched count is null.
  */
 function clusterCounts(
   client: Client,

@@ -8,51 +8,28 @@ import {
 import { METRIC_NAMES as M, type GaugeName } from "../metric-names.js"
 import { asOfNow, engineState } from "./helpers.js"
 
-/** A per-key gauge summed per (engine, key) — `incidents_open` also carries a type. */
 const byKey = (gauge: GaugeName, sel: string) =>
   `sum by (engine_id, process_definition_key)(${engineState(gauge, sel)})`
 
-/**
- * Per-engine row of the landscape. Absolute counts only — see the module note.
- * Every count is `null` for an engine that reports nothing (`reporting:
- * false`): its figures are unknown, never a plausible 0.
- */
 export interface EngineLandscapeEngine {
   engineId: string
-  /**
-   * `false` when the engine contributed no series at all: the plugin is down,
-   * the engine is unreachable, or it was never scraped. Only reachable when the
-   * caller passes the expected engine ids — an engine that reports nothing is
-   * otherwise indistinguishable from one that does not exist.
-   */
+  /** `false` needs the expected engine ids: a silent engine is otherwise indistinguishable from none. */
   reporting: boolean
-  // ── Absolute load ────────────────────────────────────────────────────────
-  // Counts, not rates: they are additive across engines and stay meaningful
-  // regardless of which processes an engine happens to run.
   runningInstances: number | null
   openIncidents: number | null
   failedJobs: number | null
-  // ── Engine-owned backlog ─────────────────────────────────────────────────
-  // These gauges carry ONLY `engine_id` (no process label), so the process mix
-  // cancels out — the one metric family that IS comparable across engines.
   executableJobs: number | null
   suspendedJobs: number | null
   jobsDueFuture: number | null
   openExternalTasks: number | null
-  // ── Inventory ────────────────────────────────────────────────────────────
   deployedDefinitionKeys: number | null
-  /** Keys present on this engine only — the load no other engine shares. */
   exclusiveDefinitionKeys: number | null
 }
 
-/** One row of the process × engine inventory matrix. */
 export interface EngineLandscapeProcess {
   processDefinitionKey: string
-  /** Engines this key is deployed on (or reports live state for), ascending. */
   engineIds: string[]
-  /** Present on ≥2 engines — the only case where an A/B engine compare holds. */
   shared: boolean
-  /** Running instances per engine id; engines without running work are absent. */
   runningByEngine: Record<string, number>
   runningTotal: number
   openIncidentsTotal: number
@@ -60,62 +37,28 @@ export interface EngineLandscapeProcess {
 }
 
 export interface EngineLandscapeResult {
-  /** Ascending by engine id — deliberately not a ranking (see the module note). */
   engines: EngineLandscapeEngine[]
-  /** Shared keys first, then by running instances descending, then by key. */
   processes: EngineLandscapeProcess[]
-  /** Keys present on ≥2 engines — the valid drill-down targets for engineCompare. */
   sharedProcessKeys: string[]
   totals: {
     engineCount: number
     reportingEngineCount: number
     processKeyCount: number
     sharedProcessKeyCount: number
-    /** The sums over the reporting engines; `null` while no engine reports (unknown, not 0). */
     runningInstances: number | null
     openIncidents: number | null
     failedJobs: number | null
   }
-  /**
-   * When the figures were read from Prometheus (ISO timestamp): the "Stand"
-   * a view shows. Optional only for payloads recorded before it existed.
-   */
+  /** Optional: payloads recorded before it existed lack it. */
   asOf?: string
 }
 
-/** A `(engine_id, process_definition_key)` cell of the matrix. */
 interface Cell {
   engineId: string
   processDefinitionKey: string
   value: number
 }
 
-/**
- * Cross-engine landscape: what runs where, how much of it, and which engines
- * carry a backlog.
- *
- * Deliberately NOT an engine-vs-engine scoreboard. Rates (failure rate,
- * incident rate, duration) aggregated per engine measure that engine's PROCESS
- * MIX, not the engine: an engine hosting an inherently error-prone process
- * reads "unhealthy" while running perfectly. So this query reports the two
- * things that survive a different mix per engine:
- *
- *  1. Absolute counts (running instances, open incidents, failed jobs) — they
- *     say where work and trouble physically sit, which is what an operator
- *     acts on, and they stay additive across engines.
- *  2. The engine-owned backlog gauges (`jobs_executable`, `jobs_suspended`,
- *     `jobs_due_future`, `external_tasks_open`), whose contract labels are
- *     `engine_id` ONLY. With no process dimension there is no mix to confound
- *     them, so these genuinely do rank engines against each other.
- *
- * The inventory matrix then names the one place a KPI comparison IS sound: a
- * process definition key present on two or more engines (`sharedProcessKeys`)
- * — the drill-down {@link engineCompare} requires.
- *
- * Pass `engine` as the array of CONFIGURED engine ids to also surface engines
- * that report nothing (`reporting: false`); without it the landscape can only
- * show engines Prometheus has series for.
- */
 export async function engineLandscape(
   ch: PrometheusClient,
   params: { engine?: EngineFilterInput } = {},
@@ -123,8 +66,6 @@ export async function engineLandscape(
   const asOf = asOfNow()
   const sel = selector(engineMatcher(params.engine))
 
-  // One `sum by (…)` per gauge over its node-folded rows — the joining
-  // happens in TS.
   const [
     deployed,
     running,
@@ -149,13 +90,9 @@ export async function engineLandscape(
   const runningCells = cells(running)
   const incidentCells = cells(incidents)
   const failedCells = cells(failedJobs)
-  // A key counts as present on an engine when it is deployed there OR still has
-  // live state there — a key undeployed while instances keep running would
-  // otherwise drop out of the matrix that is supposed to explain them.
+  // Live state counts as presence: an undeployed key with running instances must stay in the matrix.
   const presence = [...deployedCells, ...runningCells, ...incidentCells, ...failedCells]
 
-  // Every engine id seen anywhere, plus the ones the caller declared — so a
-  // silent engine gets a row instead of vanishing from the overview.
   const reporting = new Set(
     [deployed, running, incidents, failedJobs, executable, suspended, dueFuture, externalTasks]
       .flat()
@@ -215,7 +152,6 @@ export async function engineLandscape(
         failedJobsTotal: forKey(failedCells),
       }
     })
-    // Shared keys lead: they are the only rows offering a valid comparison.
     .sort(
       (a, b) =>
         Number(b.shared) - Number(a.shared) ||
@@ -225,7 +161,6 @@ export async function engineLandscape(
 
   const sharedProcessKeys = processes.filter((p) => p.shared).map((p) => p.processDefinitionKey)
   const reportingEngineCount = engines.filter((e) => e.reporting).length
-  /** A total over the reporting engines; unknown (null) while none reports. */
   const total = (list: Cell[]) => (reportingEngineCount > 0 ? sumBy(list, () => true) : null)
 
   return {
@@ -245,10 +180,7 @@ export async function engineLandscape(
   }
 }
 
-/**
- * The row of a declared engine that sent no series at all: every count is
- * unknown. A row of zeros would read as an idle, healthy engine.
- */
+// A row of zeros would read as an idle, healthy engine.
 function silentEngine(engineId: string): EngineLandscapeEngine {
   return {
     engineId,
@@ -265,24 +197,13 @@ function silentEngine(engineId: string): EngineLandscapeEngine {
   }
 }
 
-/** The engine ids the caller declared, so silent engines still get a row. */
 function expectedEngineIds(engine: EngineFilterInput): string[] {
   if (engine === undefined || engine === null) return []
   const ids = Array.isArray(engine) ? engine : [engine]
   return ids.filter((id) => id.length > 0)
 }
 
-/**
- * `(engine_id, process_definition_key)` samples as flat cells, dropping any
- * sample missing either label. Values are rounded — every source gauge is an
- * integer count.
- *
- * The `sum by (engine_id, process_definition_key)` above already folds every
- * extra dimension away (`incidents_open` carries an `incident_type`), so
- * Prometheus returns exactly ONE sample per pair. The `sumBy` callers therefore
- * add across pairs — all keys of one engine, or all engines of one key — never
- * within a pair.
- */
+// `sum by (engine_id, process_definition_key)` yields one sample per pair, so `sumBy` adds across pairs only.
 function cells(samples: PromSample[]): Cell[] {
   const out: Cell[] = []
   for (const s of samples) {
@@ -297,6 +218,5 @@ function cells(samples: PromSample[]): Cell[] {
 const sumBy = (list: Cell[], match: (c: Cell) => boolean): number =>
   list.reduce((sum, c) => (match(c) ? sum + c.value : sum), 0)
 
-/** Value of the `sum by (engine_id)` sample for one engine, or 0 when absent. */
 const engineValue = (samples: PromSample[], engineId: string): number =>
   Math.round(samples.find((s) => s.metric.engine_id === engineId)?.value ?? 0)

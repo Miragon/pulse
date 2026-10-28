@@ -5,16 +5,14 @@ import { Icon } from "./icon.js"
 import { kitLabels } from "./kit-labels.js"
 import { Td } from "./table.js"
 
-/** Ids up to this length show whole; a longer one (a UUID) shows its first 8 characters. */
 export const ID_FULL_LENGTH = 12
 const ID_SHORT_LENGTH = 8
 
-/** The id as a row shows it: whole up to {@link ID_FULL_LENGTH}, else its head and "…". */
 export function shortId(value: string): string {
   return value.length <= ID_FULL_LENGTH ? value : `${value.slice(0, ID_SHORT_LENGTH)}…`
 }
 
-/** A hidden textarea and the selection copy: the path a sandboxed frame without the Clipboard API still has. */
+/** The path a sandboxed frame without the Clipboard API still has. */
 function selectionCopy(text: string): boolean {
   const area = document.createElement("textarea")
   area.value = text
@@ -33,11 +31,7 @@ function selectionCopy(text: string): boolean {
   return copied
 }
 
-/**
- * Put `text` on the clipboard: the Clipboard API where the frame may use it
- * (a host grants `clipboard-write`), else the selection copy. Resolves to
- * whether it worked — a view says so either way, never silently.
- */
+/** Resolves to whether it worked, so a view never fails silently. */
 export async function copyText(text: string): Promise<boolean> {
   try {
     if (navigator.clipboard?.writeText) {
@@ -50,11 +44,7 @@ export async function copyText(text: string): Promise<boolean> {
   return selectionCopy(text)
 }
 
-/**
- * The whole id in a read-only field, focused and selected the moment it
- * appears — what a failed copy leaves you, so "copy it yourself" works for a
- * shortened id too. Leaving the field (or Escape) folds it back.
- */
+/** After a failed copy, so "copy it yourself" works for a shortened id too. */
 function RevealedId({
   value,
   label,
@@ -62,7 +52,6 @@ function RevealedId({
 }: {
   value: string
   label: string
-  /** Fold back; `refocus` returns the focus to the copy button (Escape). */
   onDone: (refocus: boolean) => void
 }) {
   const fieldRef = useRef<HTMLInputElement>(null)
@@ -90,14 +79,6 @@ function RevealedId({
   )
 }
 
-/**
- * A technical id (instance, job, incident …) the way a row shows it: Geist
- * Mono, shortened when long ("5f0ce78e…", the whole id in `title` and for
- * screen readers), with a copy button. The copy confirms with a toast ("ID
- * kopiert") and the icon turning into a check. A frame without clipboard
- * access says so in a toast instead of failing silently, and shows the whole
- * id selected in a read-only field, ready to copy by hand.
- */
 export function IdText({ value, className }: { value: string; className?: string }) {
   const labels = kitLabels(useLocale())
   const toast = useToast()
@@ -155,7 +136,6 @@ export function IdText({ value, className }: { value: string; className?: string
   )
 }
 
-/** A table cell holding one {@link IdText} — the id column of a list. */
 export function IdCell({
   value,
   align,

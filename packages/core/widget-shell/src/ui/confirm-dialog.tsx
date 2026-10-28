@@ -14,25 +14,20 @@ import { describeError } from "./describe-error.js"
 import { kitLabels } from "./kit-labels.js"
 import { useHostDisplayMode } from "./widget-shell.js"
 
-/** One line of a confirmation's target block: what it is, and its id or name. */
 export type ConfirmTarget = readonly [label: string, value: string]
 
 export interface ConfirmDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  /** The question ("Cancel this instance?"). */
   title: string
-  /** The consequence, in one or two sentences. */
   description: string
   /** What the write acts on, by name — at least one line. */
   target: readonly ConfirmTarget[]
-  /** The write as verb + object ("Cancel instance"). */
   confirmLabel: string
   /** Not doing it, as verb + object ("Keep instance") — never a bare "Cancel". */
   keepLabel: string
   /** The confirm button while the write runs (default: the locale's "Working…"). */
   pendingLabel?: string
-  /** An irreversible write: the confirm button in the danger role. */
   destructive?: boolean
   /** The confirmed write is in flight: both buttons wait, the dialog stays. */
   pending?: boolean
@@ -41,26 +36,7 @@ export interface ConfirmDialogProps {
   onConfirm: () => void
 }
 
-/**
- * The confirmation before an irreversible or state-changing write (CI §8,
- * §9 "Destruktiv"), on the toolkit's `Dialog`: the scrim behind it
- * (`--scrim`, 42 % black plus blur), a centred panel with the md radius and
- * `shadow-3`, the question as its 600 heading, the close button, the buttons
- * right-aligned. It is an `alertdialog`: it interrupts and needs an answer.
- *
- * It names its target as a label/value block (ids in Geist Mono) and labels
- * both buttons with verb + object, so "Keep instance" can never be mistaken
- * for "Cancel instance"; a destructive write's button is in the danger role.
- * While the write runs the dialog cannot be dismissed (its outcome would be
- * hidden); a failure shows inside it (`describeError`, raw text under
- * "Details") and the user can try again or keep.
- *
- * Inline in a chat (#344 K45) it opens beside the element that opened it,
- * not in the middle of the frame: a frame as tall as its content can be far
- * taller than the chat shows, and its middle is then off screen. The opener
- * is in view (it was just used), so the dialog is centred on it, kept inside
- * the frame ({@link anchoredTop}). In fullscreen it stays centred.
- */
+/** An `alertdialog` with verb + object buttons, so "Keep instance" is never mistaken for "Cancel instance"; undismissable while the write runs (its outcome would be hidden). Inline in a chat (#344 K45) it centres on its opener, since a frame as tall as its content can be far taller than the chat shows. */
 export function ConfirmDialog({
   open,
   onOpenChange,
@@ -79,8 +55,7 @@ export function ConfirmDialog({
   const described = error ? describeError(error, locale) : null
   const inline = useHostDisplayMode() === "inline"
   const content = useRef<HTMLDivElement>(null)
-  // When the dialog opens, the focus is still on its opener (Radix fires this
-  // before it moves the focus in).
+  // Radix fires this before it moves the focus in, so the focus is still on the opener.
   const anchor = () => {
     const panel = content.current
     const opener = document.activeElement
@@ -144,10 +119,7 @@ export function ConfirmDialog({
 /** The gap the dialog keeps to the frame's edges (px). */
 const FRAME_MARGIN = 16
 
-/**
- * The top of a dialog `height` px tall, centred on its opener and kept inside
- * a frame `frameHeight` px tall — at the frame's top edge when it does not fit.
- */
+/** At the frame's top edge when it does not fit. */
 export function anchoredTop(
   opener: { top: number; height: number },
   height: number,

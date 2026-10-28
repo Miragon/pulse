@@ -10,7 +10,6 @@ const register = (r: never, store?: never) => registerEngineCompareTools(r, scop
 
 type Config = ToolConfig<PrometheusClient>
 
-/** Registrar stand-in that captures each tool's full config instead of an MCPServer. */
 function captureConfigs(registerModule: (register: never) => void): Map<string, Config> {
   const configs = new Map<string, Config>()
   const register = Object.assign(
@@ -28,7 +27,6 @@ function captureHandlers(registerModule: (register: never) => void) {
   return new Map([...configs].map(([name, c]) => [name, c.handler]))
 }
 
-/** PrometheusClient that records every instant PromQL string and returns no samples. */
 function recordingClient(): { client: PrometheusClient; queries: string[] } {
   const queries: string[] = []
   return {
@@ -42,7 +40,7 @@ function recordingClient(): { client: PrometheusClient; queries: string[] } {
   }
 }
 
-/** The five KPI queries per engine — no duplicate incident query without an element (N85). */
+/** No duplicate incident query without an element (N85). */
 function kpiQueries(sel: string, completedSel: string, range: string) {
   const count = (series: string) => increaseIn(series, { range })
   const duration = "camunda_process_instance_duration_milliseconds"
@@ -97,7 +95,6 @@ describe("analytics_engine_compare PromQL", () => {
     })
 
     const key = 'process_definition_key="order"'
-    // Five KPI queries per engine plus the element-scoped incident count.
     expect(queries).toHaveLength(12)
     expect(queries.every((q) => q.includes(key))).toBe(true)
     const elementScoped = queries.filter((q) => q.includes('activity_id="Task_check"'))
@@ -170,8 +167,7 @@ describe("analytics_engine_compare PromQL", () => {
       windowDays: 7,
     })) as { minBucketSize: number }
 
-    // "explicit arg > saved setting > schema default": without a store or a
-    // resolvable profile key the registrar path lands on the schema default.
+    // No store or profile key: the schema default.
     expect(explicit.minBucketSize).toBe(3)
     expect(fallback.minBucketSize).toBe(10)
   })
@@ -192,9 +188,7 @@ describe("analytics_engine_compare registration", () => {
   })
 
   it("tells the model why the process scope is mandatory", () => {
-    // The description is the only place a model learns that an unscoped
-    // engine-vs-engine comparison measures the process mix — losing it turns
-    // the tool back into the apples-to-oranges comparison it replaced.
+    // The only place a model learns an unscoped comparison measures the process mix.
     expect(config.description).toContain("processDefinitionKey is required")
     expect(config.description).toContain("process mixes")
     expect(config.description).toContain("analytics_engine_landscape")

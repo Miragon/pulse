@@ -9,7 +9,6 @@ const register = (r: never) => registerPerformanceTools(r, scope)
 
 type Handler = ToolConfig<PrometheusClient>["handler"]
 
-/** Registrar stand-in that captures each tool's handler instead of an MCPServer. */
 function captureHandlers(registerModule: (register: never) => void): Map<string, Handler> {
   const handlers = new Map<string, Handler>()
   const register = Object.assign(
@@ -22,7 +21,6 @@ function captureHandlers(registerModule: (register: never) => void): Map<string,
   return handlers
 }
 
-/** PrometheusClient that records every instant PromQL string and returns no samples. */
 function recordingClient(): { client: PrometheusClient; queries: string[] } {
   const queries: string[] = []
   return {

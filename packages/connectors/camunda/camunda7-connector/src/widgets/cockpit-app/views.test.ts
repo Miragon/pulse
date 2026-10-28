@@ -7,9 +7,7 @@ import {
 import { cockpitViews } from "./views.js"
 
 describe("cockpitViews.settings", () => {
-  // The settings tab is the shell's page (#346): it assembles every module's
-  // section itself, so this package keeps no list of them — and engine scope
-  // is irrelevant to per-user preferences.
+  // #346: engine scope is irrelevant to per-user preferences.
   it("renders the shell's settings page, whatever the route", () => {
     expect(collectLayoutWidgets(cockpitViews.settings({ engine: "prod-a" }))).toEqual([
       SHELL_SETTINGS_PAGE_WIDGET,

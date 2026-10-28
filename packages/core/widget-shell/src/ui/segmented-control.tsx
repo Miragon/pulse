@@ -7,16 +7,8 @@ export interface SegmentedControlOption<V extends string = string> {
 }
 
 /**
- * Compact multi-state toggle — a track of segments where the active one is a
- * selection in the info tone (CI: blue contour + tint, black text: an inset
- * info ring on the tint). Modeled on the live/frequency/duration flow toggle
- * in the process-detail widget; `aria-pressed` carries the state.
- *
- * The segments sit 2 px inside the track's edge, each with the track's
- * radius minus that inset (concentric corners), so the contour follows the
- * corner and never touches the track's border. A square segment clipped by a
- * rounded track left light wedges between the two lines at the corners, and
- * a middle segment's contour doubled the border.
+ * Segments sit 2 px inside the track with concentric radii: a square segment
+ * left light wedges at the corners, and a middle one doubled the border.
  */
 export function SegmentedControl<V extends string>({
   options,

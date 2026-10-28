@@ -11,7 +11,6 @@ import { PROFILE_STORE_MIGRATIONS } from "./profile-store-postgres.js"
 
 const LAYOUT = [{ row: [{ widget: "shell:kpi-grid" }] }]
 
-/** A record payload that passes the toolkit's schema — for rows written raw. */
 const validRecord = (id: string) => ({
   id,
   name: id,
@@ -21,13 +20,10 @@ const validRecord = (id: string) => ({
   updatedAt: "2026-10-01T00:00:00.000Z",
 })
 
-/** updatedAt has millisecond precision — space writes out for stable ordering. */
+/** updatedAt has millisecond precision: space writes out for stable ordering. */
 const tick = () => new Promise((resolve) => setTimeout(resolve, 10))
 
-// Opt-in integration slice (like test:host): needs a reachable Postgres, so it
-// only runs when TEST_DATABASE_URL is set — `pnpm test:pg` at the repo root
-// points it at the compose stack's dedicated test database. An own schema
-// isolates it from the other suites sharing that database.
+// Runs only with TEST_DATABASE_URL (`pnpm test:pg`); an own schema isolates it from other suites.
 const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL
 const TEST_SCHEMA = "widget_shell_dashboard_store_test"
 
@@ -48,9 +44,7 @@ describe.skipIf(!TEST_DATABASE_URL)("postgres persistence", () => {
     await sql.end({ timeout: 5 })
   })
 
-  // Runs first (single-file describes execute in order) and doubles as the
-  // table setup for the store tests below — the exact boot sequence of
-  // initRuntime.
+  // Runs first (describes execute in order) and doubles as the table setup, like initRuntime.
   describe("runMigrations", () => {
     it("applies pending migrations in order and records them by name", async () => {
       const applied = await runMigrations(sql, [
@@ -58,7 +52,6 @@ describe.skipIf(!TEST_DATABASE_URL)("postgres persistence", () => {
         ...DASHBOARD_STORE_MIGRATIONS,
       ])
       expect(applied).toEqual(["001_user_profiles", "002_dashboards"])
-      // The created tables are actually usable.
       const rows = await sql<{ n: number }[]>`SELECT count(*)::int AS n FROM dashboards`
       expect(rows[0].n).toBe(0)
     })
@@ -102,14 +95,8 @@ describe.skipIf(!TEST_DATABASE_URL)("postgres persistence", () => {
     })
 
     it("takes the per-id advisory lock before the create branch", async () => {
-      // The row does not exist yet, so SELECT…FOR UPDATE has nothing to lock:
-      // without the advisory lock two concurrent first saves of the same id
-      // both take the create branch and the second upsert overwrites the
-      // first — ownership check included. Racing two saves does NOT prove the
-      // lock is there (postgres serializes them at the unique index either
-      // way), so hold the lock from a separate session and assert the save
-      // WAITS for it: with the lock removed from the store this resolves
-      // immediately and the test fails.
+      // Racing two saves cannot prove the advisory lock (the unique index serializes them anyway), so
+      // hold the lock from another session and assert the save WAITS for it.
       const blocker = postgres(TEST_DATABASE_URL!, {
         max: 1,
         onnotice: () => {},
@@ -141,10 +128,7 @@ describe.skipIf(!TEST_DATABASE_URL)("postgres persistence", () => {
       expect(await store.get(alices.id, {})).toEqual(alices)
     })
 
-    // The toolkit 2.6 DashboardStore contract (isDashboardOwnedBy): an
-    // owner-less record — saved on a boot without OAuth — belongs to no
-    // identified caller. The 2.5 rule handed it to EVERY caller, so after
-    // turning OAuth on, any user could read, overwrite or delete it.
+    // Toolkit 2.6: an owner-less record belongs to no identified caller (2.5 handed it to every caller).
     it("keeps an owner-less record away from identified callers", async () => {
       const global = await store.save({ name: "global", layout: LAYOUT })
 
@@ -155,8 +139,7 @@ describe.skipIf(!TEST_DATABASE_URL)("postgres persistence", () => {
       expect(await store.delete(global.id, { userId: "bob" })).toBe(false)
       expect(await store.get(global.id, {})).toEqual(global)
 
-      // Global scope (no caller id) still reads and writes it — without
-      // adopting an owner.
+      // Global scope still reads and writes it, without adopting an owner.
       const written = await store.save({ id: global.id, name: "edited", layout: LAYOUT })
       expect(written).toMatchObject({ name: "edited" })
       expect(written.userId).toBeUndefined()
@@ -181,8 +164,7 @@ describe.skipIf(!TEST_DATABASE_URL)("postgres persistence", () => {
 
       const forAlice = await store.list({ userId: "alice" })
       expect(forAlice.map((s) => s.name)).toEqual(["alice's"])
-      // Summary shape: the owner (DashboardSummary.userId, which the toolkit's
-      // dashboard tools re-check), no layout/steps/keys payload.
+      // The toolkit's dashboard tools re-check the summary's userId.
       expect(forAlice[0].userId).toBe("alice")
       expect(Object.keys(forAlice[0]).sort()).toEqual([
         "description",
@@ -201,10 +183,7 @@ describe.skipIf(!TEST_DATABASE_URL)("postgres persistence", () => {
       ])
     })
 
-    // A row this build cannot read (corrupt, or written by a NEWER build during
-    // a rolling upgrade) is a conflict, never "absent": treated as absent, a
-    // save with its id would overwrite it and stamp the writer as its owner.
-    // Its mirrored user_id column still attributes it.
+    // Read as absent, a save with its id would overwrite it and stamp the writer as owner.
     describe("an unreadable row", () => {
       const insertRaw = async (id: string, userId: string | null, record: object) => {
         await sql`
@@ -256,10 +235,7 @@ describe.skipIf(!TEST_DATABASE_URL)("postgres persistence", () => {
         expect([await rowOf("alices-corrupt"), await rowOf("global-corrupt")]).toEqual(before)
       })
 
-      // A row written by a NEWER build (mid rolling upgrade) whose payload
-      // carries no owner: only the mirrored user_id column attributes it. Read
-      // as absent, a save would turn into an ownership-free CREATE over it —
-      // whoever writes, it keeps its payload and its owner.
+      // A newer build's ownerless payload: only the mirrored user_id attributes it.
       it("never lets a save turn it into an ownership-free CREATE", async () => {
         await insertRaw("future", "alice", { schemaVersion: 99, name: "v99" })
         await insertRaw("global-future", null, { schemaVersion: 99 })

@@ -1,14 +1,6 @@
 /**
- * The analytics Ask-AI hand-off intents (#338): the SHORT task each widget
- * hands to the agent as the user's message. Static text on purpose — no
- * parameters, no data, no tool names: ids, on-screen numbers, engine text and
- * the deployment's tools are added by `askAiPrompt` (ids inlined only when
- * id-shaped, engine text fenced as untrusted data, tools filtered by the live
- * surface). Generic rules (never compare a rate across engines, `suppressed`
- * means noise) live in the module's server instructions, not here.
- *
- * Posted in the user's name, so it reads like a person asking: plain words,
- * no dash as a connector, the guardrail ending ("Change nothing.") kept.
+ * Static on purpose (#338): `askAiPrompt` adds ids, data and tools. Posted in the
+ * user's name, so plain words and the "Change nothing." guardrail.
  */
 export const enAskAi = {
   "askAi.clusterCompare":

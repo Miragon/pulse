@@ -1,20 +1,9 @@
 import { cn } from "@miragon/mcp-toolkit-ui"
 import { IdText } from "@miragon/pulse-widget-shell/widgets"
 
-/**
- * Names before ids, one instance label everywhere (#322 U13). An operator
- * knows an instance by its business key ("LEA-2026-00424") and an activity or
- * process by its name ("Vertrag prüfen") — the engine's ids are the second,
- * quiet line, in Geist Mono, never the headline. A named activity or process
- * is the kit's `NamedId` (widget-shell `/widgets`), the look every module
- * shares.
- */
+/** #322 U13: names before ids; ids are the quiet second line. */
 
-/**
- * An instance as every view names it: its business key, the UUID beside it
- * as a copyable chip; without a key the chip IS the label (its short id).
- * The words match `instanceName`, which the toasts and confirmations use.
- */
+/** Matches `instanceName`, which toasts and confirmations use. */
 export function InstanceLabel({
   id,
   businessKey,
@@ -32,11 +21,7 @@ export function InstanceLabel({
   )
 }
 
-/**
- * The version segment of a `key:version:deployment` definition id ("3"), or
- * null for a bare generated id — the widget twin of the data layer's parse,
- * which the browser bundle does not import.
- */
+/** Null for a bare generated id; the widget twin of the data layer's parse, which the bundle doesn't import. */
 export function definitionVersionOf(definitionId: string | null | undefined): number | null {
   const segment = definitionId?.split(":")[1]
   return segment && /^\d+$/.test(segment) ? Number(segment) : null

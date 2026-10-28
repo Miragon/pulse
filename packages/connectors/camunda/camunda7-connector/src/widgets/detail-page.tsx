@@ -2,15 +2,7 @@ import type { ReactNode } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@miragon/mcp-toolkit-ui"
 import { WidgetShell } from "@miragon/pulse-widget-shell/widgets"
 
-/**
- * One tab of a {@link DetailPage}. `count` renders as a muted "(n)" suffix
- * after the label — the single count style shared by every detail page.
- * Tab content mounts on first activation (Radix unmounts inactive panels),
- * which is what keeps lazily-fetching tabs (e.g. the instance audit log)
- * from querying before the operator opens them. Tabs holding in-progress
- * user input (forms, edit rows) set `keepMounted` so a tab switch hides
- * them instead of unmounting — otherwise half-filled input is lost.
- */
+/** Tabs mount on first activation, so lazy tabs do not query early; `keepMounted` keeps half-filled input. */
 export interface DetailPageTab {
   id: string
   label: string
@@ -19,13 +11,7 @@ export interface DetailPageTab {
   keepMounted?: boolean
 }
 
-/**
- * Shared page skeleton for the detail views (instance / incident / cluster):
- * Header → optional KPI strip → optional BPMN diagram → EITHER tabs OR a
- * single content block. Pure layout, deliberately dumb — no data fetching, no
- * mutations, no i18n. Callers keep their own ModelContext / ConfirmDialogs as
- * `children` (rendered after the main flow) or above the scaffold.
- */
+/** Shared detail-page skeleton: pure layout, no fetching, no mutations, no i18n. */
 export function DetailPage({
   header,
   kpi,
@@ -42,9 +28,7 @@ export function DetailPage({
   tabs?: DetailPageTab[]
   /** Single-block body for pages where tabs would split cohesive context. */
   content?: ReactNode
-  /** Initial tab id; defaults to the first tab. */
   defaultTab?: string
-  /** Invisible / overlay siblings (ModelContext, ConfirmDialogs). */
   children?: ReactNode
 }) {
   return (

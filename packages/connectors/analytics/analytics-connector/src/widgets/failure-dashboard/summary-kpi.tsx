@@ -14,9 +14,8 @@ import { engineIdsOf, useHandOff, type HandOff } from "../hand-off.js"
 import { enginesMeta } from "../view-meta.js"
 
 /**
- * Triage of the open-incident snapshot. Only the headline numbers travel —
- * the patterns themselves are read through the tools (bounded, and their
- * messages stay tool output instead of the user's own words).
+ * Only the headline numbers travel: the patterns are read through the tools, so their messages stay
+ * tool output instead of the user's own words.
  */
 export function failureSummaryHandOff(data: FailureDashboardData): HandOff {
   return {
@@ -37,10 +36,8 @@ export function failureSummaryHandOff(data: FailureDashboardData): HandOff {
 }
 
 /**
- * The most affected process as a figure: its name (the key below it, quiet),
- * or the key alone in mono when the model's name is unknown. With no open
- * incident no process is affected, and the cell says so in quiet words: "—"
- * means a figure nobody measured (U17), and this one is known.
+ * With no open incident the cell says so in words: "—" means a figure nobody measured (U17), and
+ * this one is known.
  */
 function mostAffectedCell(t: T, data: FailureView): KpiCell {
   const label = t("aFailureSummary.mostAffected")

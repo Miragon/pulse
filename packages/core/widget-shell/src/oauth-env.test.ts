@@ -36,9 +36,7 @@ describe("oauthFromEnv", () => {
     expect(oauthFromEnv()?.oauthMetadata.issuer).toBe("https://kc.example.com/realms/platform")
   })
 
-  // Exact assertions on purpose: the Keycloak factory interpolates
-  // serverUrl/realm, so swapped arguments would still construct — only exact
-  // endpoint values catch that.
+  // Exact values: swapped serverUrl/realm would still construct.
   it("builds a Keycloak provider with the exact realm endpoints", () => {
     const provider = fromEnv(KEYCLOAK)
     expect(provider?.oauthMetadata.issuer).toBe("https://kc.example.com/realms/platform")

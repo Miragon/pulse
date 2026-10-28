@@ -64,9 +64,7 @@ export function registerExternalTaskTools(register: Register) {
     }),
   })
 
-  // Operations-level recovery: the per-task retry knob, the external-task
-  // twin of camunda7_set_job_retries. It never acts AS the worker — the
-  // task goes back to the production workers.
+  // Never acts AS the worker, so it stays in operations.
   register({
     name: "camunda7_set_external_task_retries",
     category: "external-tasks",
@@ -86,8 +84,7 @@ export function registerExternalTaskTools(register: Register) {
     }),
   })
 
-  // The external-task WORKER protocol below is admin-only (ADMIN_ONLY_TOOLS)
-  // and destructive: it acts on a task as if it were the production worker.
+  // Admin-only below: these act on a task as if they were the production worker.
 
   register({
     name: "camunda7_fetch_and_lock",

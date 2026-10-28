@@ -8,12 +8,6 @@ import {
 } from "../tools/test-support/fake-engine.js"
 import { fetchDefinitionXml } from "./definition-xml.js"
 
-/**
- * A deployed definition's XML never changes, so the one XML read keeps it —
- * per engine client and per caller (passthrough auth lets the engine decide
- * per token what a caller may read), never a failed read.
- */
-
 const engines: FakeEngine[] = []
 afterEach(async () => {
   await Promise.all(engines.splice(0).map((engine) => engine.close()))

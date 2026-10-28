@@ -10,30 +10,16 @@ import { SHELL_SETTINGS_PAGE_WIDGET, SHELL_SETTINGS_WIDGET } from "./shell-setti
 import { registerShellSettingsTools, type ShellSettingsToolsOptions } from "./shell-settings.js"
 
 /**
- * The `shell` module: generic, module-agnostic widgets every deployment gets.
- * They render plain data from ANY context key (named via `props.dataKey`) —
- * the standard composition targets for `render-view` and the visual builder,
- * so any module or pipeline step can feed a KPI row or data table without
- * shipping a dedicated widget:
+ * Generic widgets that render plain data from ANY context key (`props.dataKey`), so a
+ * step can feed a KPI row or table without its own widget:
  *
- *   step:   produces ["camunda7:kpis"]
  *   layout: { widget: "shell:kpi-grid", props: { dataKey: "camunda7:kpis" } }
  *
- * Components live next door in `src/ui/generic-widgets.tsx` and
- * `src/ui/shell-settings.tsx` (exported via `@miragon/pulse-widget-shell/widgets`,
- * all four in `shellWidgets`); this file carries their catalogue metadata so
- * host apps register the plugin without owning any domain UI. Its only tools
- * are the settings triple (`shell-settings.ts`), and no step.
- *
- * `description`s are the model's text; the view builder shows people the
- * `title`/`summary` (and each top-level field's `x-display`) in English or
- * German (toolkit 2.8), never sent to the model.
+ * `description`s are the model's; `title`/`summary`/`x-display` are shown to people only.
  */
 
-/** A text in both languages the builder speaks. */
 const both = (en: string, de: string): LocalizedText => ({ en, de })
 
-/** A props field's label and help line in the builder's props sheet. */
 const field = (title: LocalizedText, summary: LocalizedText) => ({
   [PROPS_SCHEMA_DISPLAY_KEYWORD]: { title, summary },
 })
@@ -113,9 +99,8 @@ const dataTablePropsSchema = z.toJSONSchema(
           ),
         ),
       ),
-    // The props sheet edits top-level fields only (an array is JSON there),
-    // and the toolkit strips `x-display` at that level only: the column
-    // fields carry no builder text, or it would reach the model.
+    // The toolkit strips `x-display` at the top level only, so column fields carry no
+    // builder text, or it would reach the model.
     columns: z
       .array(
         z.object({
@@ -200,9 +185,7 @@ export const shellDefinition: AppDefinition = {
       size: "full",
     },
     {
-      // The page itself: the language section, then every `<module>:settings`
-      // section the host bundles — opened by shell_show_settings and the
-      // cockpit's settings tab, not composed into a view.
+      // Opened by shell_show_settings and the cockpit's settings tab, not composed into a view.
       id: SHELL_SETTINGS_PAGE_WIDGET,
       title: both("Settings", "Einstellungen"),
       summary: both(
@@ -220,11 +203,7 @@ export const shellDefinition: AppDefinition = {
 
 export type ShellPluginOptions = ShellSettingsToolsOptions
 
-/**
- * The always-on shell plugin. With a profile store it registers the settings
- * triple; without one (a root that persists nothing) the page renders the
- * module sections alone and `ProfileGate` falls back to the host's locale.
- */
+/** Without a profile store, `ProfileGate` falls back to the host's locale. */
 export function createShellPlugin(options?: ShellPluginOptions): AppPlugin<MCPServer> {
   if (!options) return { definition: shellDefinition }
   return {

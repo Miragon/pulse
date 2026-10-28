@@ -3,21 +3,11 @@ import type { Locale } from "../profile-constants.js"
 import { formatDate, formatNumber, formatPeriod, formatTime, getFormatLocale } from "./format.js"
 
 /**
- * The reference frame of a data view, as one quiet line under its title:
- * "Letzte 7 Tage · 6 Engines (3 ohne Metriken) · Stand 14:32" (U7: real
- * numbers say where they come from). A number without its period, its engine
- * set and the time it was read is a number the reader has to guess about;
- * the model gets the same scope through the view's description.
- *
- * Every part is optional and left out when unknown, never guessed: a live
- * snapshot has no period, an unscoped result no engine count, an old payload
- * no as-of time. Like the other formatters, the words follow the view's
- * format locale (German or English) that the shell's ProfileGate publishes.
+ * Period, engine set and as-of time under a view title (U7). Each part is
+ * left out when unknown, never guessed.
  */
 
-/** The engines the figures add up. */
 export interface ViewMetaEngines {
-  /** How many engines the figures cover. */
   count: number
   /** Of those, how many report no metrics; omit when unknown. */
   silent?: number | null
@@ -26,17 +16,14 @@ export interface ViewMetaEngines {
 export interface ViewMetaParts {
   /** What the figures are about, first on the line (a process key, "v1 → v2"). */
   subject?: string | null
-  /**
-   * The time frame in words: `formatLookback("7d")` → "Letzte 7 Tage", or a
-   * custom window ("7 Tage davor, 7 Tage danach"). Omit for a live snapshot.
-   */
+  /** Omit for a live snapshot. */
   period?: string | null
   engines?: ViewMetaEngines | null
   /** When the figures were read (ISO timestamp); shown as "Stand 14:32". */
   asOf?: string | null
 }
 
-/** The words of the meta line, per language (run through the catalog text test). */
+/** Run through the catalog text test. */
 export interface ViewMetaLabels {
   /** `count` decides the plural, `n` is the formatted number. */
   engines: (p: { count: number; n: string }) => string
@@ -73,12 +60,7 @@ function labels(): ViewMetaLabels {
   return VIEW_META_LABELS[getFormatLocale()?.language.toLowerCase().startsWith("de") ? "de" : "en"]
 }
 
-/**
- * A look-back period token as the frame of a view: "7d" → "Letzte 7 Tage" /
- * "Last 7 days". A single day or week reads as its length ("Letzte 24
- * Stunden", "Letzte 7 Tage"): "Letzter Tag" would read as yesterday. Anything
- * that is not such a token comes back unchanged; empty input renders "".
- */
+/** A single day reads as its length ("Letzte 24 Stunden"): "Letzter Tag" would read as yesterday. */
 export function formatLookback(period: string | null | undefined): string {
   if (!period) return ""
   const match = /^(\d+)\s*([mhdw])$/i.exec(period.trim())
@@ -101,7 +83,6 @@ function asOfTime(iso: string, now: Date): string {
   return sameDay ? time : `${formatDate(iso)}, ${time}`
 }
 
-/** The meta line as text: the known parts joined with " · ", "" when none is known. */
 export function formatViewMeta(parts: ViewMetaParts, now: Date = new Date()): string {
   const l = labels()
   const out: string[] = []
@@ -118,10 +99,6 @@ export function formatViewMeta(parts: ViewMetaParts, now: Date = new Date()): st
   return out.join(SEPARATOR)
 }
 
-/**
- * The quiet meta line under a view title (`WidgetHeader`'s `sub`, or right
- * under a card heading). Renders nothing when no part is known.
- */
 export function ViewMeta({ className, ...parts }: ViewMetaParts & { className?: string }) {
   const text = formatViewMeta(parts)
   if (!text) return null

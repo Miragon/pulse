@@ -15,14 +15,8 @@ import { AppQueryProvider, PagedListFooter, queryClient } from "@miragon/mcp-too
 import { usePagedViewData } from "./use-paged-view-data.js"
 
 /**
- * usePagedViewData on the REAL toolkit query stack (TanStack under
- * `useToolQuery`, the toolkit's production retry defaults), where the two
- * halves of #341 meet: page 0 is SEEDED from the handed-in payload (a live
- * query a write's invalidation refetches), and a new page 0 KEEPS the previous
- * rows of the same list on screen until it lands. A failed page 0 over those
- * rows is reported the same way whatever re-read it — an invalidation or a
- * changed filter — from its first failed attempt, and its Retry is a new read
- * at once, also while the client still waits on its retry backoff.
+ * Under the production retry defaults (#341): a failed page 0 is reported from
+ * its first attempt, and Retry is a new read at once, even during the backoff.
  */
 
 interface Page {
@@ -39,7 +33,6 @@ function wrapper({ children }: { children: ReactNode }) {
   return <AppQueryProvider callTool={callTool}>{children}</AppQueryProvider>
 }
 
-/** Wire-shaped tool result; the toolkit's structured-first parser unwraps it. */
 const answer = (page: Page) => ({ structuredContent: page })
 
 interface Props {
@@ -65,12 +58,10 @@ function setup(props: Props) {
   return renderHook(useList, { wrapper, initialProps: props })
 }
 
-/** The list's footer over the hook — the failure line and the Retry an operator clicks. */
 function ListFooter(props: Props) {
   return <PagedListFooter paged={useList(props)} noun="items" />
 }
 
-/** The page-0 reads the hook sent for `args`. */
 const page0Calls = (args: Record<string, unknown>) =>
   callTool.mock.calls.filter(
     ([, sent]) =>
@@ -80,8 +71,7 @@ const page0Calls = (args: Record<string, unknown>) =>
 const SEARCH = { q: "x" }
 
 beforeEach(() => {
-  // A block, not an expression: a hook that returns a function (the mock)
-  // has it called as its teardown.
+  // A block: a returned function would be called as the teardown.
   callTool.mockReset()
 })
 

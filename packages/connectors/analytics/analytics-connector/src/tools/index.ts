@@ -13,16 +13,8 @@ import { registerEngineLandscapeTools } from "./engine-landscape.js"
 import { registerHealthTools } from "./health.js"
 
 /**
- * `profileStore` feeds the saved analytics defaults (`modules.analytics`) into
- * every tool that takes `period`/`minBucketSize` — the same "explicit arg >
- * saved setting > schema default" resolution as the widget tools, so the
- * settings contract holds across the whole tool surface. The handlers pass the
- * ctx the registrar hands them to `settingsFor`, so the caller resolves
- * exactly like the settings tools' own (`resolveProfileKey`).
- *
- * `engineScope` holds the server's configured engine ids: every tool resolves
- * its `engine` argument through it (omitted = all of them), so no query ever
- * reads an engine this server is not configured for (`engine-ids.ts`).
+ * Same "explicit arg > saved setting > schema default" resolution as the widget
+ * tools; `engineScope` keeps every query on configured engines (`engine-ids.ts`).
  */
 export function registerTools(
   server: MCPServer,
@@ -30,8 +22,7 @@ export function registerTools(
   engineScope: AnalyticsEngineScope,
   profileStore?: ProfileSource,
 ): void {
-  // Strict input: an unknown (e.g. misnamed) key is a tool error naming the
-  // valid keys instead of a silently dropped filter (#329).
+  // An unknown key is a tool error, never a silently dropped filter (#329).
   const register = createToolRegistrar(server, client, { strictInput: true })
   registerPerformanceTools(register, engineScope, profileStore)
   registerFailureTools(register, engineScope)

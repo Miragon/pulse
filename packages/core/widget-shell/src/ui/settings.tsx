@@ -4,19 +4,7 @@ import { CircleAlert } from "lucide-react"
 import { Icon } from "./icon.js"
 import { FIELD_CONTROL } from "./native-select.js"
 
-/**
- * Shared building blocks for settings sections. The settings page composes one
- * section widget per module (camunda7's profile panel, analytics' defaults, …)
- * — these primitives keep the sections visually identical without the modules
- * sharing any code beyond this kit.
- */
-
-/**
- * One titled settings card — the visual unit a module's settings section
- * renders. Its title is an `h3` under the section's own `h2` heading; a
- * section whose cards sit directly under the page title (`h1`) passes
- * `titleAs="h2"`, so the outline never skips a level.
- */
+/** A section whose cards sit directly under the page `h1` passes `titleAs="h2"`, so the outline never skips a level. */
 export function SettingsCard({
   title,
   titleAs: Title = "h3",
@@ -36,23 +24,13 @@ export function SettingsCard({
   )
 }
 
-/** The props a field hands its single control. */
 interface FieldControlProps {
   id?: string
   "aria-describedby"?: string
   "aria-invalid"?: boolean
 }
 
-/**
- * A labelled form field with optional help text. Associates the label with its
- * single child control via `htmlFor`/`id`; checkbox groups (no single control)
- * set `group` and get a `role="group"` labelled by the text instead.
- *
- * `error` is the inline validation of the entry (CI §8/§9: say what is wrong
- * where it is, never correct it silently): a line in the danger ink right
- * under the control with an icon, the control marked `aria-invalid` and
- * described by the line (and by the help text, which stays).
- */
+/** `error` says what is wrong where it is (CI §8/§9), never corrects silently. */
 export function SettingsField({
   label,
   help,
@@ -64,7 +42,7 @@ export function SettingsField({
   help?: string
   /** What is wrong with the entry, in words ("Enter a whole number of 1 or more."). */
   error?: string
-  /** Checkbox-group fields: labelled via role="group" (no single control to point htmlFor at). */
+  /** No single control to point htmlFor at. */
   group?: boolean
   children: ReactElement<FieldControlProps>
 }) {
@@ -110,7 +88,6 @@ export function SettingsField({
   )
 }
 
-/** Styled native `<input>` matching `NativeSelect` — for the rare free-form settings value. */
 export function SettingsInput({ className, ...props }: ComponentProps<"input">) {
   return <input {...props} className={cn(FIELD_CONTROL, className)} />
 }

@@ -12,7 +12,6 @@ import { ShellHostProvider, type ShellHost } from "./shell-host.js"
 const FEED = SHELL_SETTINGS_DATA
 const ISO = "2026-07-22T22:15:30.000Z"
 
-/** What `shell_settings_data` returns: the `*_data` envelope (structuredContent first). */
 function feedResult(view: { language?: string; theme?: string }) {
   return {
     content: [{ type: "text", text: JSON.stringify(view) }],
@@ -57,7 +56,6 @@ function renderGate(callTool: HostBridge["callTool"], options: GateOptions = {})
   return render(gateTree(callTool, options))
 }
 
-/** A profile feed that never answers. */
 const neverAnswers = () => new Promise<never>(() => {})
 
 /** `en|<date in en>` — what the probe shows for a locale (and optional zone). */
@@ -67,7 +65,6 @@ function probeFor(locale: string, timeZone?: string): string {
 
 const probe = () => screen.getByTestId("locale").textContent
 
-/** Stub `matchMedia` with a fixed OS preference (the theme's last fallback). */
 function stubOsPreference(dark: boolean) {
   vi.stubGlobal(
     "matchMedia",
@@ -81,15 +78,12 @@ function stubOsPreference(dark: boolean) {
 
 const isDark = () => document.documentElement.classList.contains("dark")
 
-/** The gate's query, under the feed's module default key (args `{}` appended). */
 const gateQueryStatus = () => queryClient.getQueryState([...SHELL_SETTINGS_KEY, {}])?.status
 
 afterEach(async () => {
   cleanup()
   vi.useRealTimers()
-  // The toolkit's query client is a module singleton shared by every mount —
-  // the suite runs on its PRODUCTION defaults (react-query's retries
-  // included); cancelling stops any retry still waiting.
+  // The query client is a module singleton on PRODUCTION defaults; cancel stops pending retries.
   await queryClient.cancelQueries()
   queryClient.clear()
   setFormatLocale(undefined)
@@ -144,8 +138,7 @@ describe("ProfileGate", () => {
     // Before the handshake the host context is unknown.
     const view = renderGate(neverAnswers, { host: { connected: false }, waitMs: 100 })
 
-    // Far past the profile bound, still no handshake: nothing paints — the
-    // content would render in English and the OS theme, then flip.
+    // No handshake: painting now would render English and the OS theme, then flip.
     act(() => {
       vi.advanceTimersByTime(1_000)
     })
@@ -186,8 +179,6 @@ describe("ProfileGate", () => {
     renderGate(vi.fn().mockResolvedValue(feedResult({ language: "system" })), {
       host: { locale: "de-AT", timeZone: "Asia/Tokyo" },
     })
-    // The full host tag drives the dates, the language the strings; the
-    // host's time zone applies to every formatted date.
     await waitFor(() => expect(probe()).toBe(probeFor("de-AT", "Asia/Tokyo")))
     expect(document.documentElement.lang).toBe("de")
 
@@ -255,8 +246,7 @@ describe("ProfileGate", () => {
 
     await waitFor(() => expect(probe()).toBe(probeFor("de-DE")))
     expect(isDark()).toBe(true)
-    // The toolkit's client retries (react-query's default 3, backing off from
-    // 1 s) and keeps the query PENDING meanwhile — the view did not wait.
+    // react-query keeps the query PENDING through its retries; the view did not wait.
     expect(gateQueryStatus()).toBe("pending")
     expect(callTool).toHaveBeenCalledTimes(1)
   })

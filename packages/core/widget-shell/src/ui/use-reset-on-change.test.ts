@@ -58,9 +58,7 @@ describe("useResetOnChange", () => {
 
     rerender({ k: "b" })
     expect(result.current).toBe("")
-    // Two commits total: the initial one and the one carrying the new key. An
-    // effect-driven reset would add a third, committing "optimistic" against
-    // key "b" first — the flash this hook exists to avoid.
+    // Two commits: an effect-driven reset would add a third, the flash this hook avoids.
     expect(committed.mock.calls).toEqual([["optimistic"], [""]])
   })
 

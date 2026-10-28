@@ -12,41 +12,14 @@ import { analyticsToolsets } from "./toolsets.js"
 import { createEngineScope } from "./engine-ids.js"
 import type { AnalyticsAppConfig } from "./steps/app-config.js"
 
-/**
- * `PrometheusConfig` carries the connection: the base URL (e.g.
- * http://localhost:9090), optional bearer/basic auth + extra headers, and the
- * per-query deadline (`timeoutMs`).
- */
 export interface AnalyticsPluginConfig extends PrometheusConfig {
-  /**
-   * Optional BPMN-XML lookup used by widget tools that enrich metric data with
-   * engine lookups — the BPMN heatmap's diagram, and the process and activity
-   * names the dashboards, the failure dashboard and the landscape show in
-   * place of ids. Injected by the host app (which owns the engine client) so
-   * this module stays free of engine SDKs. When absent, the heatmap degrades
-   * to a non-diagram fallback and the views show ids.
-   */
+  /** Injected by the host so this module stays free of engine SDKs; absent → ids, no diagram. */
   fetchBpmnXml?: FetchBpmnXml
-  /**
-   * Profile store (shared with camunda7): locale for model-facing summaries,
-   * plus this module's own settings slice (`modules.analytics`) — read for
-   * period/minBucketSize defaults, written by `analytics_save_settings`.
-   */
+  /** Shared with camunda7; this module owns `modules.analytics`. */
   profileStore?: ProfileSource
-  /**
-   * The module's toolset (`analyticsModule` passes the one the composition
-   * root resolved). `"read-only"` — also what an ABSENT or unknown toolset
-   * resolves to (an unknown name warns) — registers no settings save tool;
-   * `"standard"` registers it, given a writable `profileStore`. Typed `string`
-   * like camunda7's, so callers can pass a configured value through; it is
-   * resolved fail-closed here.
-   */
+  /** Typed `string` so a configured value passes through; resolved fail-closed here. */
   toolset?: string
-  /**
-   * The engine ids analytics may read — the server's configured engines.
-   * Empty or absent: every engine-reading tool refuses (fail-closed), see
-   * `engine-ids.ts`.
-   */
+  /** Empty or absent: every engine-reading tool refuses (`engine-ids.ts`). */
   engineIds?: readonly string[]
 }
 
@@ -73,10 +46,8 @@ export function createPlugin(config: AnalyticsPluginConfig): AppPlugin<MCPServer
   return {
     definition,
     appConfig,
-    // Tools and feeds resolve the caller (saved defaults, summary locale) from
-    // the handler ctx. The pipeline steps get none, so their saved-period
-    // lookup reads the ambient request info — installed here like camunda7
-    // does (idempotent; the host installs it too).
+    // Pipeline steps get no handler ctx, so they read the ambient request info
+    // (idempotent; the host installs it too).
     registerTools: (server) => {
       installMcpRequestContext(server)
       registerTools(server, client, engineScope, config.profileStore)

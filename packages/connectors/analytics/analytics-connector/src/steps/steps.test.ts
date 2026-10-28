@@ -10,12 +10,8 @@ import type { AnalyticsAppConfig } from "./app-config.js"
 import { loadDashboardStep, loadFailureDashboardStep } from "./index.js"
 
 /**
- * The analytics pipeline steps run under render-view / the dashboard builder,
- * whose step keys are free-form (`z.record(z.string(), z.unknown())`) — no
- * schema checks them before the step does. So the steps hold the line the
- * tools' strict inputs hold: a malformed key is refused naming the key, never
- * read as "omitted" (which for `analytics:engine` would silently widen one
- * engine's view to the whole fleet).
+ * Step keys are free-form, so the steps refuse a malformed key themselves:
+ * read as "omitted", `analytics:engine` would widen one engine's view to the fleet.
  */
 
 function recordingClient() {
@@ -29,7 +25,6 @@ function recordingClient() {
   return { ch, sent }
 }
 
-/** A profile store holding one signed-in user's saved analytics period. */
 const profileStore: ProfileSource = {
   get: (key) =>
     Promise.resolve(
@@ -58,7 +53,6 @@ const STEPS = [
   ["analytics:load-failure-dashboard", loadFailureDashboardStep],
 ] as const
 
-/** Every engine id the `engine_id` matchers of `promql` admit. */
 const enginesRead = (sent: string[]) =>
   new Set(
     sent.flatMap((q) =>

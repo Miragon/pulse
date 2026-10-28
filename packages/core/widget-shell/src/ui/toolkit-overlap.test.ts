@@ -5,23 +5,14 @@ import ts from "typescript"
 import { describe, expect, it } from "vitest"
 
 /**
- * ONE kit (toolkit 2.8): the toolkit's components, tone maps, `cn` and hooks
- * are imported from `@miragon/mcp-toolkit-ui` itself. A widget-shell export
- * under one of the toolkit's names is either a fork — a second StatusBadge or
- * KpiGrid that drifts from the toolkit's — or a second import path for the
- * same piece; neither may come back. Values AND types count (`KpiCell`,
- * `ToneVariant`, `ViewDataResult` …), so both packages' export lists are read
- * through the TypeScript compiler — statically, so the check loads none of
- * the kit's modules (which would count them as uncovered code).
+ * ONE kit: a widget-shell export under a toolkit name is a fork or a second
+ * import path. Read statically via the TS compiler, so no kit module counts as uncovered.
  */
 
 const here = dirname(fileURLToPath(import.meta.url))
 const TOOLKIT_DIR = `${sep}@miragon${sep}mcp-toolkit-ui${sep}`
 
-/**
- * The one deliberate pass-through, with its reason. Shrink-only: an entry
- * leaves when its subpath goes.
- */
+/** Shrink-only: an entry leaves when its subpath goes. */
 const PASS_THROUGH: Readonly<Record<string, string>> = {
   adaptDataWidget:
     "the /ui subpath is the module widget registries' one import of the toolkit's data adapter (CLAUDE.md invariant 3)",
@@ -30,7 +21,6 @@ const PASS_THROUGH: Readonly<Record<string, string>> = {
 
 interface ExportInfo {
   name: string
-  /** The export resolves to a declaration in the installed toolkit (a re-export). */
   fromToolkit: boolean
 }
 
@@ -59,7 +49,6 @@ function exportsOf(entry: string): ExportInfo[] {
   })
 }
 
-/** The toolkit's three entries, as the installed package declares them. */
 function toolkitDeclarations(): string[] {
   const require = createRequire(import.meta.url)
   // The plain-string `./theme.css` export locates the package root.

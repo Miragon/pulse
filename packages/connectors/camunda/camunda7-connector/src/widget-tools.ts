@@ -16,26 +16,12 @@ export interface Camunda7WidgetToolsOptions {
   healthThresholds?: Partial<EngineHealthThresholds>
   /** Profile store for localizing model-facing summaries (locale → profile language). */
   profileStore?: ProfileStore
-  /**
-   * The deployment's resolved toolset — decides which in-widget write buttons
-   * the widgets render (`camunda7_widget_actions_data`). Always concrete: the
-   * plugin resolves it once (`resolveCamunda7Toolset`), so there is no
-   * "omitted = everything" reading.
-   */
+  /** Decides which in-widget write buttons render; always concrete, never "omitted = everything". */
   toolset: Camunda7Toolset
-  /**
-   * The module's model-visible tool names, read when the feed is called (all
-   * registrations are done by then) — what `camunda7_widget_actions_data`
-   * reports as `modelTools`. Omitted (tests, embeds): none.
-   */
+  /** Read lazily, when every registration is done. */
   modelTools?: () => string[]
 }
 
-/**
- * Entry for the widget-tools path: builds the shared context once and hands it
- * to the per-domain registrars under `./widget-tools/`. The tool surface is the
- * union of the five groups; the wire contract per tool lives with its block.
- */
 export function registerWidgetTools(
   server: MCPServer,
   registry: EngineRegistry,
@@ -45,9 +31,6 @@ export function registerWidgetTools(
     ...DEFAULT_HEALTH_THRESHOLDS,
     ...options.healthThresholds,
   }
-  // Resolve the request locale via `await localizeFor(profileStore, ctx)` inside
-  // each handler to localize its model-facing `summary`. Falls back to an empty
-  // in-memory store (→ locale "en") when none is injected (tests/embeds).
   const profileStore = options.profileStore ?? createInMemoryProfileStore()
 
   const ctx: WidgetToolsContext = {

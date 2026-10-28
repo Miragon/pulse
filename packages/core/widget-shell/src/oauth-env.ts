@@ -1,33 +1,14 @@
 /**
- * `MCP_OAUTH` → the OAuth provider a composition root installs. Every root —
- * the stock server, the composed-server template, a customer fork — wires it
- * the SAME way:
- *
- * ```ts
- * const oauth = oauthFromEnv({ env, label })   // boot-time parse + warning
- * createComposedServer({ …, oauth })           // installs it, decides toolsets
- * const APP_ENV_VARS = [...OAUTH_ENV_VARS, …]  // known to the typo warner
- * ```
- *
- * With a provider the server is an OAuth resource server: mcp-use validates
- * the bearer token on every `/mcp` request (401 + `WWW-Authenticate`
- * otherwise) against the IdP's JWKS, checks the RFC 8707 resource audience
- * (the server's canonical MCP URL, `MCP_URL`) and serves the `.well-known`
- * discovery metadata; the server never mints tokens. It is also the ONLY
- * caller-identity source: per-user settings and dashboards exist only with it
- * (`resolveProfileKey`), and an installed provider raises every module's
- * no-suffix toolset from the read-only floor to its standard set. A gateway
- * that terminates auth in front of the server is invisible here — identity
- * reaches the server only through this OAuth.
- *
- * Server path only (`@miragon/pulse-widget-shell/server`).
+ * `MCP_OAUTH` → the OAuth provider a root installs. mcp-use validates the bearer token, the RFC 8707
+ * audience (`MCP_URL`) and serves discovery; the server never mints tokens. It is the ONLY
+ * caller-identity source, and it raises every module's no-suffix toolset to its standard set.
+ * A gateway that terminates auth in front is invisible here: identity arrives only through this OAuth.
  */
 import type { OAuthProvider } from "mcp-use/oauth"
 import { oauthAuth0Provider } from "mcp-use/oauth/auth0"
 import { oauthKeycloakProvider } from "mcp-use/oauth/keycloak"
 import { z } from "zod"
 
-/** The env vars {@link oauthFromEnv} reads — spread them into the root's known-var list. */
 export const OAUTH_ENV_VARS = ["MCP_OAUTH"] as const
 
 const keycloakSchema = z.strictObject({
@@ -38,8 +19,7 @@ const keycloakSchema = z.strictObject({
 
 const auth0Schema = z.strictObject({
   provider: z.literal("auth0"),
-  // Bare hostname, no scheme/path — the form mcp-use's provider builds the
-  // issuer from; a scheme-prefixed value would only 401 at the first call.
+  // Bare hostname: mcp-use builds the issuer from it; a scheme-prefixed value would 401 at first call.
   domain: z
     .string()
     .min(1)
@@ -48,37 +28,24 @@ const auth0Schema = z.strictObject({
     }),
 })
 
-/**
- * Strict on purpose: a key the server does not honor (an `audience`, a
- * client secret) fails the boot instead of being dropped silently — a
- * deployment that asked for a check must never come up without it.
- */
+/** Strict: a key the server does not honor must fail the boot, never be dropped silently. */
 const oauthConfigSchema = z.discriminatedUnion("provider", [keycloakSchema, auth0Schema])
 
 export interface OAuthFromEnvOptions {
-  /** Defaults to `process.env`. */
   env?: NodeJS.ProcessEnv
-  /** Log prefix, e.g. `pulse`. */
   label?: string
 }
 
 /**
- * The provider in the `unknown` user slot `createComposedServer` takes. Since
- * mcp-use 2.7 the provider's optional `setup(host)` hook takes the user type
- * in parameter position, which makes `OAuthProvider<TUser>` invariant — a
- * Keycloak- or Auth0-typed provider no longer widens on its own. Sound: every
- * user the host hands out went through the provider's own `mapAuthInfo`, and
- * every consumer reads it structurally (`resolveCaller`).
+ * Since mcp-use 2.7 `setup(host)` makes `OAuthProvider<TUser>` invariant, so typed providers no
+ * longer widen. Sound: every user went through the provider's `mapAuthInfo` and is read structurally.
  */
 const withUnknownUser = <TUser>(provider: OAuthProvider<TUser>): OAuthProvider<unknown> =>
   provider as unknown as OAuthProvider<unknown>
 
 /**
- * Builds the mcp-use OAuth provider from `MCP_OAUTH` (`keycloak` or `auth0`).
- * Unset or blank → `undefined` plus ONE boot warning naming what that means:
- * an unauthenticated endpoint, read-only defaults, and no saved settings.
- * Invalid JSON, schema violations and stray `MCP_USE_OAUTH_*` fallbacks throw:
- * a deployment that asked for auth must never silently come up without it.
+ * Unset → `undefined` plus ONE boot warning; invalid JSON, schema violations and stray
+ * `MCP_USE_OAUTH_*` throw: a deployment that asked for auth must never come up without it.
  */
 export function oauthFromEnv(
   options: OAuthFromEnvOptions = {},
@@ -105,10 +72,7 @@ export function oauthFromEnv(
     throw new Error(`MCP_OAUTH is invalid:\n${z.prettifyError(parsed.error)}`)
   }
 
-  // mcp-use's provider factories silently fall back to their own
-  // MCP_USE_OAUTH_* variables for omitted fields — read from `process.env`,
-  // whatever `env` this call was handed. MCP_OAUTH is the single config
-  // surface: fail fast on strays.
+  // mcp-use's factories silently fall back to MCP_USE_OAUTH_* from `process.env`: fail fast on strays.
   const strays = Object.keys(process.env).filter((k) => k.startsWith("MCP_USE_OAUTH_"))
   if (strays.length > 0) {
     throw new Error(

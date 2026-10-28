@@ -16,13 +16,7 @@ import { useT, type T } from "../../messages/use-t.js"
 import { processNameOf } from "../../bpmn-names.js"
 import { Figure, FigureLegend } from "../figure.js"
 
-/**
- * The figures side by side (U17): one row per process, the counts in
- * right-aligned tabular columns, so the processes compare at a glance. The
- * average duration gives way below 640 px. Every count here is a volume of
- * the period or a live count without a state, new incidents included, so
- * none carries a tone (U14): the summary above shows them the same way.
- */
+/** No tone on any count: all are volumes or live counts without a state (U14). */
 function columns(t: T): ListTableColumn[] {
   return [
     { label: t("aDefBreakdown.colProcess") },

@@ -50,14 +50,9 @@ describe("ListTable: the table never widens the document (U2, WCAG 1.4.10)", () 
     render(<Jobs />)
     const region = screen.getByRole("region")
     const regionClasses = region.className.split(/\s+/)
-    // The region is the peer and draws no ring of its own: the toolkit's
-    // outset ring is cut away by the `overflow-hidden` cards it fills edge
-    // to edge (shell:data-table, history), and the pinned column covers an
-    // outline of the region itself.
+    // No ring on the region: cards clip an outset ring, and the pinned column covers an outline.
     expect(regionClasses).toContain("peer")
     expect(regionClasses.some((c) => c.includes("ring"))).toBe(false)
-    // The ring: the region's next sibling, over its box, inside its edge,
-    // above the pinned column, never in the accessibility tree or a click's way.
     const ring = region.nextElementSibling as HTMLElement
     expect(ring.hasAttribute("data-list-table-ring")).toBe(true)
     expect(ring.getAttribute("aria-hidden")).toBe("true")
@@ -98,9 +93,7 @@ describe("ListTable: the table never widens the document (U2, WCAG 1.4.10)", () 
       `@container (min-width: ${COLUMN_BREAKPOINTS.sm}) { ${at} tr > :nth-child(2) { display: table-cell; } }`,
     )
     expect(css).toContain(`@container (min-width: 48rem) { ${at} tr > :nth-child(3)`)
-    // The pinned cell paints its row's background, so a hovered, selected or
-    // dimmed row covers it too; the rows' default surface has no specificity,
-    // so a row's own class wins.
+    // The pinned cell inherits its row's background; a row's own class wins.
     expect(css).toContain(
       `${at} tr > :nth-child(4) { position: sticky; right: 0; z-index: 1; background-color: inherit; }`,
     )
@@ -189,8 +182,7 @@ describe("ListTable: column groups (a head over adjacent columns)", () => {
     const groupRow = rows[0]
     expect(groupRow.hasAttribute("data-list-table-groups")).toBe(true)
     const load = screen.getByRole("columnheader", { name: "Load" })
-    // A column header over the columns it spans: `colgroup` needs a
-    // `<colgroup>` element to anchor it, which the table does not have.
+    // `colgroup` would need a `<colgroup>` element, which the table lacks.
     expect(load.getAttribute("scope")).toBe("col")
     expect(load.getAttribute("colspan")).toBe("2")
     expect(screen.getByRole("table").querySelector("colgroup, [scope='colgroup']")).toBeNull()

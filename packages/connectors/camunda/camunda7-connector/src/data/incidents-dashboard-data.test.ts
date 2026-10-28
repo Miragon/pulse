@@ -10,13 +10,7 @@ import {
 } from "../tools/test-support/fake-engine.js"
 import { buildIncidentsDashboardData } from "./incidents-dashboard-data.js"
 
-/**
- * The incidents overview under load (#335 N61): its process axis and every
- * card count come from the definition statistics (exact, key-wide); the
- * 200-row recency scan only adds the per-activity breakdown and says how much
- * of each card it covers. A burst on one process must not push another
- * process off the overview.
- */
+// #335 N61: a burst on one process must not push another off the overview.
 
 const engines: FakeEngine[] = []
 afterEach(async () => {
@@ -238,8 +232,7 @@ describe("buildIncidentsDashboardData — exact cards beyond the scan (#335 N61)
   })
 })
 
-// One rule with analytics (#322 U13, widget-shell `readBpmnNames`): a card
-// whose process the engine knows by no name takes its Modeler pool's name.
+// One rule with analytics (`readBpmnNames`): an unnamed process takes its pool name.
 describe("buildIncidentsDashboardData — names", () => {
   it("names a card's unnamed process by its Modeler pool, reading only that diagram", async () => {
     const pooled = `<definitions><collaboration id="C"><participant id="Pool" name="Miravelo - Bike Leasing" processRef="quiet"/></collaboration><process id="quiet"/></definitions>`

@@ -15,7 +15,7 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-/** Stub `matchMedia` with a fixed OS preference; returns the change-listener registry. */
+/** Returns the change-listener registry. */
 function stubOsPreference(dark: boolean) {
   const query = { matches: dark, addEventListener: vi.fn(), removeEventListener: vi.fn() }
   const matchMedia = vi.fn().mockReturnValue(query)

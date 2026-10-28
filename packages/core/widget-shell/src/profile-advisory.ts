@@ -1,34 +1,19 @@
 /**
- * Advisory profile reads — for paths that only PREFER the profile (the
- * summary locale, a saved default engine) and must keep working without it.
- *
- * With `DATABASE_URL` the profile store is a network call, and a preferences
- * outage must never fail a tool whose data comes from the engine or
- * Prometheus — nor put the driver's error text (internal host:port) into a
- * tool result. Save paths and the settings views stay strict: a write must
- * fail visibly.
+ * For paths that only PREFER the profile: a preferences outage must never fail an engine tool nor
+ * leak the driver's host:port into a result. Save paths stay strict.
  */
 
-/** Stores currently failing, so an outage logs once instead of once per call. */
+/** So an outage logs once instead of once per call. */
 const failingStores = new WeakSet<object>()
 
-/**
- * The error's class and code only — never its message: driver messages carry
- * the database host:port (and can carry user names), and this line must be
- * safe for any log sink. The readiness probe logs the full error for
- * operators.
- */
+/** Class and code only: driver messages carry host:port and user names. */
 function describeStoreError(err: unknown): string {
   if (!(err instanceof Error)) return typeof err
   const code = (err as { code?: unknown }).code
   return typeof code === "string" || typeof code === "number" ? `${err.name} ${code}` : err.name
 }
 
-/**
- * Read `key`'s record, degrading every failure to "no record": no key, or a
- * store that throws (logged once per outage with a sanitized line, and once
- * when it recovers). Never throws.
- */
+/** Never throws; logs once per outage and once on recovery. */
 export async function readProfileAdvisory<T>(
   store: { get(key: string): Promise<T | undefined> },
   key: string | undefined,

@@ -24,14 +24,6 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-/**
- * Registers the real camunda7 tool surface against a recording registrar
- * wrapped in the toolset filter — so these assertions cover the actual tools
- * (and their per-toolset shapes) a deployment with
- * `MCP_ACTIVE_MODULES=camunda7:<toolset>` would advertise. The toolset is
- * threaded through like production wiring (plugin.ts). Deployments stay off
- * unless asked for, exactly like the plugin without CAMUNDA_ALLOW_DEPLOYMENTS.
- */
 function configsFor(toolset: Camunda7Toolset, { allowDeployments = false } = {}): Config[] {
   const configs: Config[] = []
   const recorder = Object.assign((config: Config) => configs.push(config), {
@@ -254,13 +246,7 @@ describe("isToolInToolset (the rule, per branch)", () => {
   })
 })
 
-/**
- * Structural guards: unlike the hand-maintained lists above, these derive the
- * expectation from each tool's OWN annotations — a future tool that forgets
- * its ADMIN_ONLY_TOOLS entry or mis-declares readOnlyHint fails here without
- * anyone updating a test list. Configs are recorded PER toolset, so every
- * tool is judged by what that toolset actually advertises.
- */
+// Derived from each tool's OWN annotations, so a new tool can't slip past a hand-kept list.
 describe("toolset rule holds structurally for every registered tool", () => {
   it("every destructiveHint tool is kept out of operations (i.e. is admin-only)", () => {
     const operations = new Set(toolNamesFor("operations", FULL))
@@ -312,11 +298,6 @@ describe("toolset rule holds structurally for every registered tool", () => {
   })
 })
 
-/**
- * The widgets render their write buttons from `allowedWidgetActions`, not from
- * the tool list — so the two must agree for every toolset, or a button's click
- * resolves to an unknown tool (or a registered write loses its button).
- */
 describe("allowedWidgetActions mirrors the registered tool surface", () => {
   it("every widget action is a real tool of the admin surface", () => {
     const all = toolNamesFor("admin")

@@ -5,11 +5,8 @@ import { translator } from "../../messages/index.js"
 import { crumbLabel, type CockpitScope, type CockpitView } from "../nav-core.js"
 
 /**
- * The breadcrumb IS the stack — every crumb pops back to the view it names, so
- * drilling instance → back → next instance never re-drills from the top.
- * `rootLabel` renders a synthetic leading crumb (the standalone shell's origin
- * widget) that leaves the trail entirely via `onPop(-1)`. Renders nothing while
- * there is only a single entry (a root view without a trail).
+ * Every crumb pops back to the view it names, so back never re-drills from the top.
+ * `rootLabel` adds a leading crumb that leaves the trail via `onPop(-1)`.
  */
 export function NavBreadcrumb({
   stack,
@@ -54,11 +51,7 @@ export function NavBreadcrumb({
   )
 }
 
-/**
- * The cross-engine view's trail: "Alle Engines" (the chooser) and itself,
- * the current page. The cockpit offers the view only with more than one
- * engine, so the chooser is always there to go back to.
- */
+/** Offered only with more than one engine, so the chooser is always there to go back to. */
 export function FleetCrumbs({ locale, onLanding }: { locale: string; onLanding: () => void }) {
   return (
     <nav
@@ -80,7 +73,7 @@ export function FleetCrumbs({ locale, onLanding }: { locale: string; onLanding: 
   )
 }
 
-/** What the cockpit frame is showing: its key (a change is a navigation) and its name. */
+/** A key change is a navigation. */
 export function navigationOf(
   scope: CockpitScope,
   stack: readonly CockpitView[],

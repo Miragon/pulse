@@ -3,13 +3,9 @@ import { Button, useToolkitMessages } from "@miragon/mcp-toolkit-ui"
 import { Maximize2, Minimize2 } from "lucide-react"
 import { Icon } from "./icon.js"
 
-/**
- * The host's display mode as something a view can SWITCH — provided by the
- * host bridge (`ViewHostBridge`); outside a host nothing can be switched.
- */
+/** Outside a host nothing can be switched. */
 export interface DisplayModeControl {
   displayMode: string
-  /** The host offers fullscreen to this view. */
   canFullscreen: boolean
   request: (mode: "inline" | "fullscreen") => void
 }
@@ -40,11 +36,7 @@ export function useDisplayModeControl(): DisplayModeControl {
   return useContext(DisplayModeControlContext)
 }
 
-/**
- * Fullscreen and back, for a surface that hides the view's own chrome (the
- * standalone drill-down, #344 N109): the same words as the toolkit's toolbar
- * toggle, nothing where the host offers no fullscreen.
- */
+/** For a surface that hides the view's own chrome (#344 N109); nothing where the host offers no fullscreen. */
 export function DisplayModeToggle() {
   const { displayMode, canFullscreen, request } = useDisplayModeControl()
   const words = useToolkitMessages().view
@@ -65,10 +57,5 @@ export function DisplayModeToggle() {
   )
 }
 
-/**
- * The display modes every view of the bundle supports, for the roots'
- * `bootstrapView({ default, viewConfig })` (#344 N159): inline as a card,
- * fullscreen for the rest. Not picture-in-picture: no view is laid out for a
- * small floating frame, so a host must not offer one.
- */
+/** #344 N159: no picture-in-picture, since no view is laid out for a small floating frame. */
 export const SHELL_VIEW_CONFIG = { displayModes: ["inline", "fullscreen"] } as const

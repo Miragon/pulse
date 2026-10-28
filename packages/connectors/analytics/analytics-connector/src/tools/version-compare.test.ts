@@ -6,7 +6,6 @@ import { registerVersionCompareTools } from "./version-compare.js"
 
 type Config = ToolConfig<PrometheusClient>
 
-/** Registrar stand-in that captures the tool's full config instead of an MCPServer. */
 function captureConfig(): Config {
   const configs: Config[] = []
   const register = Object.assign((config: Config) => configs.push(config), {
@@ -17,7 +16,7 @@ function captureConfig(): Config {
   return configs[0]
 }
 
-/** PrometheusClient that records every instant PromQL string and answers 20 per query. */
+/** Answers 20 per query. */
 function recordingClient(): { client: PrometheusClient; queries: string[] } {
   const queries: string[] = []
   return {
@@ -34,8 +33,7 @@ function recordingClient(): { client: PrometheusClient; queries: string[] } {
 const args = { processDefinitionKey: "order", versionA: 1, versionB: 2, windowDays: 14 }
 
 describe("analytics_version_compare", () => {
-  // Captured per test (not at collection time), so a registration that
-  // registers nothing fails a test instead of the file's collection.
+  // Per test, so a registration that registers nothing fails a test, not collection.
   let config: Config
   beforeEach(() => {
     config = captureConfig()
@@ -91,7 +89,6 @@ describe("analytics_version_compare", () => {
     })) as VersionCompareResult
     const fallback = (await config.handler(client, { ...args })) as VersionCompareResult
     expect(explicit.minBucketSize).toBe(3)
-    // Without a store the registrar path lands on the schema default.
     expect(fallback.minBucketSize).toBe(10)
   })
 })

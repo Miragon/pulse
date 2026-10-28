@@ -1,29 +1,12 @@
 import { normalizeLayout, type LayoutConfig, type RowDef } from "@miragon/mcp-toolkit-core"
 import { SHELL_SETTINGS_WIDGET } from "../shell-settings-contract.js"
 
-/**
- * The convention that marks a module's settings section: the `<module>:settings`
- * widget id it catalogues for its own section.
- */
 const SETTINGS_SECTION_SUFFIX = ":settings"
 
 /**
- * The settings page, assembled from what the host actually composed: the
- * shell's language section first, then one row per `<module>:settings`
- * widget in the host registry, in registration order (the composition root's
- * module order).
- *
- * This is the host-extension point of the page. A module contributes its
- * section by catalogueing it as `<module>:settings` and having its widget map
- * spread into the host bundle's registry (link 3 of the widget chain) — no
- * edit anywhere else, so a custom module composed from the published packages
- * is a first-class citizen of the page.
- *
- * Section ids stay raw strings on purpose (tier-2 cross-module reference):
- * the host registry resolves them at runtime and {@link filterLayoutToWidgets}
- * drops whatever resolves nowhere. A module that IS bundled but inactive at
- * runtime (`MCP_ACTIVE_MODULES`) still contributes its id; its section widget
- * hides itself once its feed answers "unknown tool".
+ * The host-extension point of the settings page: a module catalogues
+ * `<module>:settings` and needs no other edit. Ids stay raw strings (tier 2);
+ * an inactive module's section hides itself once its feed answers "unknown tool".
  */
 export function settingsLayout(widgetIds: readonly string[] = []): LayoutConfig {
   const sections = widgetIds.filter(
@@ -35,13 +18,7 @@ export function settingsLayout(widgetIds: readonly string[] = []): LayoutConfig 
   }))
 }
 
-/**
- * Drop layout cells whose widget id resolves to no component in `widgets`
- * (cross-module ids in a host that does not bundle that module), then drop
- * emptied rows — the tier-2 degradation for composed views: a missing
- * module's section simply disappears instead of rendering an unknown-widget
- * error.
- */
+/** Tier-2 degradation: a missing module's section disappears instead of an unknown-widget error. */
 export function filterLayoutToWidgets(
   layout: LayoutConfig,
   widgets: Record<string, unknown>,

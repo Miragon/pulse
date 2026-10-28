@@ -4,30 +4,14 @@ import { classifyError, describeError } from "./describe-error.js"
 import { ERROR_LABELS } from "./error-labels.js"
 import { supportedLanguage } from "./host-context.js"
 
-/** What a write says when it is done — the toolkit's toasts, never a silent row change. */
 export interface ActionFeedback {
-  /**
-   * The write worked: a success toast whose title names the object
-   * ("Job für LEA-2026-00424 neu eingeplant", "Einstellungen gespeichert").
-   */
+  /** The title names the object ("Einstellungen gespeichert"). */
   succeeded: (title: string, description?: string) => void
-  /**
-   * The write failed: a danger toast (5 s) whose title names the object
-   * ("Job für LEA-2026-00424 konnte nicht neu eingeplant werden") and whose
-   * second line says why and what you can do ({@link failureLine}).
-   */
+  /** A 5 s danger toast naming the object, its second line from {@link failureLine}. */
   failed: (title: string, error: unknown) => void
 }
 
-/**
- * The toast's second line for a failed write: what happened in words
- * ({@link describeError}), then the next step. A toast has no "Details", so
- * the line carries what an `ErrorState` keeps there: an engine refusal quotes
- * the engine's own reason, without its status code ("Die Engine prod meldet
- * einen Fehler (HTTP 500): „Cannot resolve incident“."), and a write whose
- * answer never came says it may have gone through, so you check before you
- * retry instead of applying it twice.
- */
+/** A toast has no "Details", so the line quotes the engine's reason, and a write whose answer never came says it may have gone through, so you check before retrying instead of applying it twice. */
 export function failureLine(error: unknown, locale: string | undefined): string {
   const described = describeError(error, locale)
   const facts = classifyError(error)
@@ -45,13 +29,7 @@ const MAX_TOAST_REASON = 200
 const clip = (text: string) =>
   text.length > MAX_TOAST_REASON ? `${text.slice(0, MAX_TOAST_REASON).trimEnd()}…` : text
 
-/**
- * Feedback for a write (CI §9: success and failure each a toast, never only
- * a console line). The toasts are the toolkit's (`McpAppView` mounts their
- * provider, a polite live region bottom centre): announced to screen readers,
- * held while hovered or focused. Outside a provider (a bare fixture) the
- * calls are no-ops.
- */
+/** Outside a toolkit toast provider (a bare fixture) the calls are no-ops. */
 export function useActionFeedback(): ActionFeedback {
   const toast = useToast()
   const locale = useLocale()

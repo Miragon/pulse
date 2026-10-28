@@ -1,11 +1,4 @@
-/**
- * A small, deterministic engine for the fake engine (`fake-engine.ts`): one
- * process key (`order`, versions 1 and 2), one running instance (`pi-1` on
- * v1, a token at `charge`), one open incident with its failed job — and a
- * delegated incident (`inc-2`) whose root cause it is. Every builder renders
- * successfully against it, so a test can break exactly ONE read (`readOf`)
- * and watch what the builder does with it.
- */
+/** Every builder renders against this world, so a test can break exactly ONE read (`readOf`). */
 import type { FakeReply, RecordedRequest } from "./fake-engine.js"
 
 export const WORLD = {
@@ -111,14 +104,11 @@ const ROUTES: Record<string, unknown> = {
   "/history/activity-instance": [{ id: "h-1", activityId: "start", activityType: "startEvent" }],
 }
 
-/** A definition's diagram, by id. */
 const XML_BY_ID = /^\/process-definition\/(order:\d:d\d)\/xml$/
-/** A definition, by id. */
 const DEFINITION_BY_ID = /^\/process-definition\/order:(\d):d\d$/
-/** A version's activity statistics. */
 const ACTIVITY_STATS = /^\/process-definition\/order:(\d):d\d\/statistics$/
 
-/** The healthy engine's reply to `request`. Unmapped lists answer `[]`, counts `{count: 1}`. */
+/** Unmapped lists answer `[]`, counts `{count: 1}`. */
 export function worldReply(request: RecordedRequest): FakeReply {
   const { path } = request
   if (path.endsWith("/count")) return { body: { count: 1 } }
@@ -147,18 +137,12 @@ export function worldReply(request: RecordedRequest): FakeReply {
   return { body: [] }
 }
 
-/**
- * A request's READ identity: method, path and the sorted names of its query
- * parameters (values vary — timestamps, page offsets), e.g.
- * `GET /incident/count?incidentTimestampAfter&processDefinitionKeyIn`. Two
- * reads of one endpoint with different filters are different reads.
- */
+/** Query parameter names only, since values vary (timestamps, page offsets). */
 export function readOf(request: Pick<RecordedRequest, "method" | "path" | "query">): string {
   const params = Object.keys(request.query).sort()
   return `${request.method} ${request.path}${params.length > 0 ? `?${params.join("&")}` : ""}`
 }
 
-/** An engine failure (500) — what a broken read answers. */
 export const ENGINE_FAILURE: FakeReply = {
   status: 500,
   body: { type: "ProcessEngineException", message: "boom" },

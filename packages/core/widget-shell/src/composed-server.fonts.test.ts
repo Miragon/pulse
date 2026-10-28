@@ -9,13 +9,6 @@ import { SERVED_FONT_FILES, SERVED_FONT_PATH } from "./served-fonts.js"
 import { createShellPlugin } from "./shell-catalogue.js"
 import { showToolBinding } from "./widget-tool-bindings.js"
 
-/**
- * The font route and the font origin as `createComposedServer` wires them:
- * Geist served behind the HTTP edge guard, and the origin the views load it
- * from advertised on every view-bound tool — `render-view` AND a module's
- * own `*_show_*` tool.
- */
-
 const composition = composeModules<object>({ label: "fonts-test", modules: [], appEnvVars: [] })
 const running: RunningServer[] = []
 const SANS = `${SERVED_FONT_PATH}/${SERVED_FONT_FILES.sans}`
@@ -105,7 +98,6 @@ function request(
   })
 }
 
-/** One JSON-RPC call to `/mcp` (stateless), its `result`. */
 async function rpc(port: number, method: string, params: Record<string, unknown> = {}) {
   const res = await request(port, {
     method: "POST",

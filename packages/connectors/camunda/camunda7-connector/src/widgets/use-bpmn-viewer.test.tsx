@@ -4,9 +4,7 @@ import { useEffect } from "react"
 import { cleanup, render, waitFor } from "@testing-library/react"
 import { useBpmnViewer, type BpmnViewerWithGet } from "@miragon/pulse-widget-shell/widgets"
 
-// Exercises the shared widget-shell viewer lifecycle hook through the same
-// entry point the widgets use, with bpmn-js replaced by a recording stub —
-// bpmn-js itself needs a real SVG engine, which happy-dom does not provide.
+// bpmn-js replaced by a recording stub: it needs a real SVG engine, which happy-dom lacks.
 const mock = vi.hoisted(() => {
   class MockCanvas {
     level = 1
@@ -66,15 +64,12 @@ function Harness({
   reimportKey?: unknown
   onImported?: (viewer: BpmnViewerWithGet) => void | (() => void)
 }) {
-  // Destructured at the call like the real widgets do — the container ref is
-  // only ever handed to JSX, never read during render.
   const { containerRef, height, importError, zoomIn, zoomOut, fit } = useBpmnViewer({
     bpmnXml: xml,
     reimportKey,
     onImported,
   })
-  // Published to the suite from an effect, so the render itself stays pure —
-  // every assertion below reads it after the commit anyway.
+  // From an effect so the render stays pure.
   useEffect(() => {
     latest = { containerRef, height, importError, zoomIn, zoomOut, fit }
   })
@@ -94,8 +89,7 @@ describe("useBpmnViewer", () => {
     const viewer = mock.MockViewer.instances[0]
     expect(viewer.container).toBe(container.firstElementChild)
     expect(viewer.importedXml).toEqual([XML])
-    // fit-to-viewport followed by the shared 0.95 breathing-room factor, on
-    // a viewbox diagram-js recomputes first (it caches the container size).
+    // diagram-js recomputes the viewbox first (it caches the container size), then the 0.95 breathing room.
     await waitFor(() => expect(viewer.canvas.zoomCalls).toEqual(["fit-viewport", 0.8 * 0.95]))
     expect(viewer.canvas.resizedCalls).toBe(1)
     expect(latest.importError).toBeNull()

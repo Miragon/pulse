@@ -5,13 +5,6 @@ import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import type { FitMeasure } from "./inline-fit.js"
 import { Host, ROWS, Table, layout, shownRows } from "./inline-fit.test-support.js"
 
-/**
- * The inline fit over time (#396): a second pass for the line its own cap
- * adds, late growth before and after the user touches the view, a list shown
- * from a hidden tab, a new budget after rows were revealed, a revealed list
- * next to a changing one, and the step "Show more" reveals.
- */
-
 afterEach(() => cleanup())
 
 describe("the fit over time", () => {
@@ -48,7 +41,6 @@ describe("the fit over time", () => {
     vi.unstubAllGlobals()
     observers.length = 0
   })
-  /** The view's content changed size (fonts, a diagram, a tab shown). */
   const resized = () => act(() => observers.forEach((callback) => callback()))
 
   const rowsOf = (prefix: string) => shownRows().filter((text) => text.startsWith(prefix))

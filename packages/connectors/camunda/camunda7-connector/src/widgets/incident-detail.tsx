@@ -24,15 +24,12 @@ import { useT } from "../messages/use-t.js"
 
 export type { IncidentDetailData }
 
-/** The detail's recovery — an old stored payload falls back to its type and job. */
+// An old stored payload falls back to its type and job.
 function detailRecovery(data: IncidentDetailData): IncidentRecovery {
   return recoveryOf(data, data.job?.id)
 }
 
-/**
- * The retry tool that clears this incident (built-in types refuse resolve),
- * or null for a custom or propagated one — from the feed's `recovery`.
- */
+// Built-in types refuse resolve; null for a custom or propagated incident.
 function retryToolFor(data: IncidentDetailData) {
   const { action } = detailRecovery(data)
   if (action === "retry-job") return "camunda7_set_job_retries" as const
@@ -40,11 +37,7 @@ function retryToolFor(data: IncidentDetailData) {
   return null
 }
 
-/**
- * The incident as the shared recovery reads it — with the feed's (or the old
- * payload's) remedy and the instance's business key, so the confirmation and
- * the toasts name the instance as the head does (#322 U13).
- */
+// Business key included so confirmation and toasts name the instance as the head does (#322 U13).
 function recoverable(data: IncidentDetailData): RecoverableIncident {
   return {
     id: data.incidentId,
@@ -55,11 +48,7 @@ function recoverable(data: IncidentDetailData): RecoverableIncident {
   }
 }
 
-/**
- * The incident feed's scope — in the cockpit from the props; standalone from
- * the handed-in data's echo, so a refetch reads the incident and engine the
- * show tool answered for (never the caller's default engine).
- */
+// Standalone from the data's echo, so a refetch reads the engine the show tool answered for, never the caller's default.
 function incidentFeed(
   initialData: IncidentDetailData | null,
   incidentId: string | undefined,
@@ -74,7 +63,6 @@ function incidentFeed(
   }
 }
 
-/** The failure tab's remedy controls: the one write that clears THIS incident, and its state. */
 function remedyProps(recovery: IncidentRecoveryState, incident: RecoverableIncident) {
   const remedy = recovery.actionFor(incident)
   const act = () => recovery.act(incident)
@@ -92,21 +80,14 @@ function remedyProps(recovery: IncidentRecoveryState, incident: RecoverableIncid
   }
 }
 
-/** The writes that clear an incident — only the one that fits its type is ever named. */
 const REMEDY_TOOLS = new Set<string>([
   "camunda7_resolve_incident",
   "camunda7_set_job_retries",
   "camunda7_set_external_task_retries",
 ])
 
-/**
- * The incident the operator is looking at. Only the remedy that clears THIS
- * incident is named (the engine refuses to resolve the built-in types), none
- * once it was cleared in this session — and the surface keeps it only where
- * the deployment registers it. The ticket draft takes the `incidentId` on
- * every toolset, the read-only floor included. Engine text is quoted, never
- * inlined.
- */
+// Only the remedy that clears THIS incident is named (the engine refuses to resolve built-in
+// types), none once cleared. The ticket draft works on every toolset. Engine text is quoted.
 export function describeIncident(data: IncidentDetailData, resolved: boolean): ViewContext {
   const remedy = resolved
     ? null
@@ -173,14 +154,10 @@ export function IncidentDetailWidget({
     emptyText: t("incidentDetail.noData"),
     retryText: t("viewState.retry"),
   })
-  // Mutations must target the exact engine this incident was fetched from (the
-  // prop in the cockpit, the server-resolved id standalone) — never the caller's
-  // default engine, which can differ if the default-engine save raced or failed.
+  // Never the caller's default engine, which can differ if the default-engine save raced or failed.
   const engineId = engine ?? data?.engineId
-  // The remedy's success marks only bridge the gap until the feed refetches —
-  // fresh server data must win again. A cleared incident's own view is not
-  // refetched (it would be a 404): the marks are what it shows. A refetch that
-  // failed leaves the incident unconfirmed (cleared elsewhere?) — no remedy then.
+  // A cleared incident's view is not refetched (404), so the marks are what it shows. A failed
+  // refetch leaves it unconfirmed (cleared elsewhere?): no remedy then.
   const recovery = useIncidentRecovery(engineId, {
     resetOn: data,
     available: refreshError === null,
@@ -196,8 +173,7 @@ export function IncidentDetailWidget({
   const remedy = remedyProps(recovery, recoverable(data))
   const { resolved, retried } = remedy
 
-  // The failure first (#322 U12): what went wrong and what clears it right
-  // under the head — then where it happened (the diagram), then the depth.
+  // #322 U12: the failure and its remedy first, then the diagram, then the depth.
   return (
     <DetailPage
       header={

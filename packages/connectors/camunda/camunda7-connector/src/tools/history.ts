@@ -40,7 +40,6 @@ interface TimeWindow {
   finishedBefore?: string
 }
 
-/** The start/end window a historic query takes: ISO 8601 in, engine dates out. */
 function engineTimeWindow(args: TimeWindow) {
   return {
     startedAfter: toOptionalEngineDate(args.startedAfter),

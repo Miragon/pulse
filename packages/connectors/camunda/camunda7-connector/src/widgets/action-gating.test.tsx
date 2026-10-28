@@ -18,12 +18,11 @@ import { widgetActionsFeedFor } from "./lib/hand-off.test-support.js"
 
 afterEach(() => {
   cleanup()
-  // The toolkit query client is a singleton — one test's feed answer must not
-  // leak into the next test's gate.
+  // The query client is a singleton: one test's feed answer must not leak into the next.
   queryClient.clear()
 })
 
-/** Wait until the gate's feed query has answered, so an absent control is a decision. */
+/** Wait for the feed, so an absent control is a decision. */
 async function feedSettled() {
   await waitFor(() =>
     expect(

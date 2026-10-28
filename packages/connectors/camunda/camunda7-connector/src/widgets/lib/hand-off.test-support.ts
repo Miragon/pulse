@@ -7,13 +7,7 @@ import type { Camunda7Toolset } from "../../lib/toolsets.js"
 import { CAMUNDA7_WIDGET_ACTIONS_DATA } from "../../tool-names.js"
 import { bindHandOff, camunda7Surface } from "./hand-off.js"
 
-/**
- * The camunda7 tool surface a widget sees in a deployment on `toolset`: the
- * plugin's registration paths run against a mock server, and the surface is
- * what `camunda7_widget_actions_data` then reports — the same answer the
- * widgets filter their hand-offs by. Hand-off tests render against THIS, not
- * a hand-written tool list that could drift from the toolsets.
- */
+/** Runs the real registration paths, so tests can't drift from the toolsets like a hand-written list. */
 export async function liveSurface(
   toolset: Camunda7Toolset,
   { analyticsActive = false }: { analyticsActive?: boolean } = {},
@@ -22,10 +16,6 @@ export async function liveSurface(
   return { ...camunda7Surface(tools, analyticsActive), tools }
 }
 
-/**
- * The `camunda7_widget_actions_data` answer of a deployment on `toolset` —
- * the fixture widget tests hand their host for that feed.
- */
 export async function widgetActionsFeedFor(
   toolset: Camunda7Toolset,
 ): Promise<{ allowedActions: string[]; modelTools: string[] }> {
@@ -42,7 +32,6 @@ export async function widgetActionsFeedFor(
   return feedPayload<{ allowedActions: string[]; modelTools: string[] }>(await feed![1]({}))
 }
 
-/** The hand-off builders bound to `toolset`'s live surface and `locale`. */
 export async function handOffFor(
   toolset: Camunda7Toolset,
   options: { locale?: string; analyticsActive?: boolean } = {},

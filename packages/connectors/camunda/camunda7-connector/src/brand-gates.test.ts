@@ -8,13 +8,7 @@ import {
   scanTypeScale,
 } from "@miragon/pulse-widget-shell/testing"
 
-/**
- * The camunda7 package under the kit's code gates (CLAUDE.md invariant 6,
- * "Design-System"): brand-lint cannot read strings in `.ts`/`.tsx`. Lives
- * outside `src/widgets` because it reads the sources from disk (the widget
- * tsconfig is browser-only). The catalogs' voice rules run in
- * `messages/catalog-text.test.ts`, the glossary in `messages/glossary.test.ts`.
- */
+// Outside `src/widgets`: it reads sources from disk (the widget tsconfig is browser-only).
 const SRC = fileURLToPath(new URL(".", import.meta.url))
 
 describe("camunda7 draws function icons with Lucide, never glyphs or emoji", () => {

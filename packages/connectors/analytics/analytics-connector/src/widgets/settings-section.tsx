@@ -29,23 +29,15 @@ import { ANALYTICS_SAVE_SETTINGS, ANALYTICS_SETTINGS_DATA } from "../tool-names.
 import { useT } from "../messages/use-t.js"
 import { describeAnalyticsSettings } from "./model-descriptions.js"
 
-/**
- * Wire shape of the `analytics_settings_data` feed / `analytics_show_settings`
- * data (see `settings-tools.ts`). Declared structurally here so the widget
- * bundle stays free of server-side imports.
- */
+/** Declared structurally so the widget bundle stays free of server-side imports. */
 export interface AnalyticsSettingsViewData {
   settings: { defaultPeriod: Period; minBucketSize: number }
   canSave: boolean
 }
 
 /**
- * The analytics module's settings section — one card the settings page
- * composes next to the camunda7 profile panel. Self-fetches its app-only feed;
- * when the feed TOOL is missing (analytics module inactive) the section hides
- * itself, mirroring the tier-2 graceful degradation of
- * `process-incidents/flow.tsx`. Any other failure (profile store outage,
- * network) stays visible as an error state instead of silently vanishing.
+ * Hides itself when the feed tool is missing (module inactive, as `process-incidents/flow.tsx`);
+ * any other failure stays visible.
  */
 export function AnalyticsSettingsWidget({
   data: initialData = null,
@@ -93,11 +85,7 @@ interface FormState {
   minBucketSize: string
 }
 
-/**
- * The minimum size as the save tool takes it — a whole number of 1 or more —
- * or null for anything else ("abc", "0", "2.5", ""). Never clamped: an entry
- * that is not a valid size is said to be wrong, not silently turned into 1.
- */
+/** A whole number of 1 or more, else null: never clamped, an invalid entry is said to be wrong. */
 export function parseMinBucketSize(raw: string): number | null {
   const text = raw.trim()
   if (!/^\d+$/.test(text)) return null
@@ -105,10 +93,7 @@ export function parseMinBucketSize(raw: string): number | null {
   return Number.isSafeInteger(value) && value >= 1 ? value : null
 }
 
-/**
- * Why the section cannot save, above everything else (U25): the reader meets
- * the reason before the fields it disables, and the way to change them.
- */
+/** Above the fields (U25): the reader meets the reason before the fields it disables. */
 function ReadOnlyNotice() {
   const t = useT()
   return (
@@ -140,10 +125,7 @@ function SettingsPanel({ view }: { view: AnalyticsSettingsViewData }) {
   const feedback = useActionFeedback()
   const minBucketSize = parseMinBucketSize(form.minBucketSize)
 
-  // Re-sync the baseline when server truth changes (feed refetch after save,
-  // refreshCockpitData from the camunda7 panel, another session's write) —
-  // mirrors user-profile.tsx; the feed carries no updatedAt, so the values
-  // themselves are the stamp.
+  // Re-sync when server truth changes; the feed carries no updatedAt, so the values are the stamp.
   const settingsStamp = `${view.settings.defaultPeriod}|${view.settings.minBucketSize}`
   useResetOnChange(settingsStamp, () =>
     setForm({

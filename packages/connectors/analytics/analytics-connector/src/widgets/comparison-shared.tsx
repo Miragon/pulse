@@ -23,16 +23,12 @@ import {
 import type { CompareKpiDelta, CompareKpis } from "@miragon/pulse-analytics-client"
 import { useT, type T } from "../messages/use-t.js"
 
-/**
- * The on-screen deltas as hand-off facts (#338) — null deltas (a zero
- * baseline) are left out, like the em-dash on screen, never sent as 0.
- */
+/** Hand-off facts (#338): a null delta (zero baseline) is never sent as 0. */
 export function deltaFacts(delta: CompareKpiDelta, suppressed: boolean) {
   return {
     // Starts compare PER DAY, so a clamped (shorter) window compares fairly.
     startedPerDayDeltaPct: delta.started_per_day_delta_pct,
     incidentRateDeltaPp: delta.incident_rate_delta_pp,
-    // Non-null only when the comparison was scoped to an element.
     elementIncidentRateDeltaPp: delta.element_incident_rate_delta_pp,
     avgDurationDeltaPct: delta.avg_duration_delta_pct,
     p95DurationDeltaPct: delta.p95_duration_delta_pct,
@@ -41,14 +37,8 @@ export function deltaFacts(delta: CompareKpiDelta, suppressed: boolean) {
 }
 
 /**
- * How a metric's change is judged (U6). Only a QUALITY metric earns a verdict,
- * and only from its own threshold on, so rounding jitter stays neutral:
- *
- *  - `volume` (starts): never better or worse. Fewer starts on a test engine,
- *    or traffic moving to a new version, is no regression.
- *  - `quality`: "worse" or "better" once the change reaches `minChange`, in
- *    the delta's own unit (percent for durations, incidents per 100 starts
- *    for the rates).
+ * U6: only a quality metric gets a verdict, from `minChange` on (in the delta's
+ * unit) so rounding jitter stays neutral. Fewer starts are no regression.
  */
 export type DeltaRule =
   { kind: "volume" } | { kind: "quality"; worseIfUp: boolean; minChange: number }
@@ -60,22 +50,12 @@ export const RATE_MIN_CHANGE = 1
 
 export type DeltaVerdict = "worse" | "better" | "notReliable"
 
-/**
- * A delta as its cell shows it: one decimal, rounded half away from zero
- * like `Intl.NumberFormat`. The verdict judges this number, so the same
- * "+5 %" on screen is never neutral in one row and "schlechter" in another.
- */
+/** Rounded like `Intl.NumberFormat`, so the verdict judges the number on screen. */
 function shownDelta(value: number): number {
   return Math.sign(value) * (Math.round(Math.abs(value) * 10) / 10)
 }
 
-/**
- * The verdict on one delta, or `undefined` for none: a missing (null) delta,
- * a volume, or a change below the metric's threshold. The threshold applies
- * to the delta as shown ({@link shownDelta}). In a suppressed comparison (a
- * side below `minBucketSize`) every quality delta is "not reliable": the
- * screen must not judge what the model is told is noise.
- */
+/** Suppressed comparisons read "not reliable": the screen must not judge what the model is told is noise. */
 export function deltaVerdict(
   value: number | null,
   rule: DeltaRule,
@@ -89,31 +69,18 @@ export function deltaVerdict(
   return bad ? "worse" : "better"
 }
 
-/**
- * `pct`: a relative change in percent (starts per day, durations);
- * `rate`: an absolute change of incidents per 100 starts, the unit of the
- * values themselves.
- */
+/** `pct` is relative; `rate` is absolute, in incidents per 100 starts. */
 type DeltaUnit = "pct" | "rate"
 
-/**
- * A signed delta in the view's locale ("+12,5 %", "−0,4"), or an em-dash when
- * null. It formats {@link shownDelta}, the number the verdict judges.
- */
 export function formatDelta(value: number | null, unit: DeltaUnit): string {
   const shown = value === null ? null : shownDelta(value)
   if (unit === "pct") return formatPercent(shown, { signed: true })
   return formatNumber(shown, { signDisplay: "exceptZero", maximumFractionDigits: 1 })
 }
 
-/**
- * The compare KPIs the table reads. Every rate and duration is nullable — a
- * window in which nothing ended has no duration, one in which nothing started
- * no rate — and a null renders "not measured", never "0,0" or "0 ms".
- */
+/** Nullable rates and durations render "not measured", never "0,0" or "0 ms". */
 type ComparableKpis = Pick<CompareKpis, "instance_count"> & {
   incident_rate_pct: number | null
-  /** Non-null exactly when the comparison was scoped to an element. */
   element_incident_count: number | null
   element_incident_rate_pct: number | null
   avg_duration_sec: number | null
@@ -125,7 +92,6 @@ const rateValue = (n: number | null) =>
   n === null ? null : formatNumber(n, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 const durationValue = (sec: number | null) => (sec === null ? null : formatDuration(sec * 1000))
 
-/** A single metric row: label, the two compared values, and the RAW delta with its rule. */
 export type ComparisonMetric = {
   label: string
   before: string
@@ -146,25 +112,17 @@ const DURATION_UP_IS_WORSE: DeltaRule = {
   minChange: DURATION_MIN_CHANGE_PCT,
 }
 
-/**
- * The one metric table shared by the cluster / version / engine compare
- * widgets — same `CompareKpis`/`CompareKpiDelta` core, so the rows are
- * defined once. Deltas stay numeric here; formatting and the verdict happen
- * at render time in {@link ComparisonCard}.
- */
+/** Deltas stay numeric here; formatting and the verdict happen in {@link ComparisonCard}. */
 const COMPARE_METRICS: Array<{
   labelKey: string
-  /** Formatted value, or null when the KPI is not measured for this comparison. */
   value: (k: ComparableKpis) => string | null
   delta: (d: CompareKpiDelta) => number | null
   unit: DeltaUnit
   rule: DeltaRule
-  /** Shown only when the comparison was scoped to an element. */
   elementOnly?: boolean
 }> = [
   {
-    // The count per window; the delta compares starts PER DAY, so a clamped
-    // (shorter) window still compares fairly. A volume: no verdict.
+    // A volume: no verdict.
     labelKey: "aComparison.metricStarted",
     value: (k) => formatNumber(k.instance_count),
     delta: (d) => d.started_per_day_delta_pct,
@@ -202,7 +160,6 @@ const COMPARE_METRICS: Array<{
   },
 ]
 
-/** Resolve the shared metric rows for one baseline/other KPI pair. */
 export function buildComparisonMetrics(
   t: T,
   before: ComparableKpis,
@@ -226,13 +183,7 @@ const VERDICT_KEY: Record<DeltaVerdict, string> = {
   notReliable: "aComparison.deltaNotReliable",
 }
 
-/**
- * A single delta cell. The number stays neutral (CI: a state is an icon next
- * to black text, never a coloured digit); a verdict shows as a direction
- * icon in its tone plus the word ("schlechter", "besser"), so it never rests
- * on colour alone. A volume or a change below the threshold shows the signed
- * number only; a suppressed comparison mutes it with "nicht belastbar".
- */
+/** The number stays neutral (CI); a verdict adds icon plus word, never colour alone. */
 function DeltaCell({
   delta,
   suppressed,
@@ -267,7 +218,7 @@ function DeltaCell({
   )
 }
 
-/** Neutral "no data" / "incomplete" treatment — destructive is reserved for errors. */
+/** Destructive is reserved for errors. */
 export function ComparisonEmptyState({ children }: { children: ReactNode }) {
   return (
     <Alert>
@@ -276,13 +227,7 @@ export function ComparisonEmptyState({ children }: { children: ReactNode }) {
   )
 }
 
-/**
- * The "too little data" chip of a suppressed comparison: a data-quality note,
- * not an error, so it stays neutral (outline + icon) like the deltas it
- * explains. A plain outline chip, not the toolkit `Badge`: that one forces
- * its icons to 12 px, and the icon keeps the kit's 16 px like every other
- * icon in the view (CI §11, `scanIconSizes`).
- */
+/** Not the toolkit `Badge`: it forces 12 px icons, the view keeps 16 px (`scanIconSizes`). */
 export function SuppressedBadge({ children }: { children: ReactNode }) {
   return (
     <span
@@ -295,13 +240,6 @@ export function SuppressedBadge({ children }: { children: ReactNode }) {
   )
 }
 
-/**
- * Shared comparison card used by the cluster / version / engine compare widgets.
- *
- * Callers resolve their own KPI buckets (`buildComparisonMetrics`) and pass in
- * the metric rows plus the heading, badges, the reference frame (`meta`, a
- * `ViewMeta`) and the two comparison column labels.
- */
 export function ComparisonCard({
   title,
   badges,
@@ -316,7 +254,6 @@ export function ComparisonCard({
 }: {
   title: string
   badges: ReactNode
-  /** The quiet line under the title: period, engines, as-of time. */
   meta?: ReactNode
   beforeLabel: ReactNode
   afterLabel: ReactNode
@@ -324,7 +261,6 @@ export function ComparisonCard({
   metrics: ComparisonMetric[]
   /** A side is below `minBucketSize`: every quality delta reads "not reliable". */
   suppressed: boolean
-  /** Optional header action slot (e.g. an AI affordance), right-aligned. */
   actions?: ReactNode
   /** Optional caveat under the table, e.g. why a metric reads "not measured". */
   note?: ReactNode

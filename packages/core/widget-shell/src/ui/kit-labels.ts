@@ -2,71 +2,40 @@ import type { Locale } from "../profile-constants.js"
 import type { HandOffAction } from "./hand-off-button.js"
 import { supportedLanguage } from "./host-context.js"
 
-/**
- * The kit's own strings. The kit ships no catalog — modules localize through
- * theirs — so the few defaults its components render follow the active
- * locale through this map. Every component still takes a prop override. The
- * toolkit's components (list footer, filter bar, …) speak through the
- * toolkit's own en/de catalog, never through this map.
- *
- * Voice (brand-tone): German addresses you with "du", errors say what
- * happened and what you can do, no dash as a connector; English takes the
- * same rules in sentence case. `kit-labels.test.ts` runs the catalog text
- * test over both sets.
- */
+/** The kit ships no catalog, so its components' few defaults come from here; props override. */
 export interface KitLabels {
   loading: string
-  /** The loading status of a whole view or widget body (`ViewDataState`'s default). */
   loadingView: string
   zoomIn: string
   zoomOut: string
   fitViewport: string
   retry: string
-  /** A refetch failed over data still shown (`useDetailView`'s stale notice). */
+  /** `useDetailView`'s stale notice. */
   refreshFailed: string
-  /** The second half of the stale-data notice: the data on screen stays. */
   refreshStale: string
-  /** `AskAiButton` without a `label`: a verb that says the work happens in the chat. */
   askAiDefault: string
-  /** `OpenInCockpitLink`: the vendor's web app, named after the vendor. */
   openInVendor: (vendor: string | undefined) => string
-  /** Accessible name of a link that leaves the app in a new tab. */
   opensInNewTab: (label: string) => string
-  /**
-   * `HandOffButton`: per function, a verb that says the work happens in the
-   * chat, the same in every module (`HAND_OFF_ACTIONS` holds the icons).
-   */
   handOff: Readonly<Record<HandOffAction, string>>
-  /** `IdText`: the copy button's accessible name, and the toasts after a copy. */
   copyId: (id: string) => string
   idCopied: string
   copyFailed: string
   copyFailedHint: string
-  /** `IdText` after a failed copy: the field showing the whole id, selected. */
   fullId: string
-  /** `ConfirmDialog`'s confirm button while the write runs. */
   working: string
-  /** `shell:data-table`'s table name (it has no caption of its own). */
   dataTable: string
-  /** A boolean cell of `shell:data-table`. */
   yes: string
   no: string
-  /** The generic `shell:*` widgets with nothing under their `dataKey`. */
   noFiguresYet: string
   noRowsYet: string
   noDataHint: string
-  /** `BpmnHeatmap`: the values behind the colours, as a table under the diagram. */
   heatmapValues: string
-  /** An inline table with more rows than its budget (#396): how many it shows. */
   rowsShown: (p: { shown: string; total: string }) => string
-  /** …and the way to the rest: fullscreen where the host offers it, else the next rows. */
   showAll: string
   showMore: string
-  /** The frequency/duration switch's group name. */
   heatmapMetric: string
   heatmapElement: string
   heatmapValue: string
-  /** The legend's range ("1 to 1,234"). */
   heatmapRange: (p: { min: string; max: string }) => string
 }
 
@@ -173,10 +142,8 @@ const LABELS: Record<Locale, KitLabels> = {
   },
 }
 
-/** The kit strings for a locale tag (`de-AT` → German); English for anything unsupported. */
 export function kitLabels(locale: string | undefined): KitLabels {
   return LABELS[supportedLanguage(locale) ?? "en"]
 }
 
-/** Both label sets, for the catalog text test. */
 export const KIT_LABELS: Readonly<Record<Locale, KitLabels>> = LABELS

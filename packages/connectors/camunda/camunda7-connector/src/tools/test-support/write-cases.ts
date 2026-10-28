@@ -1,30 +1,20 @@
-/**
- * Test support (imported only by `write-tools.wire.test.ts`): one or more
- * wire cases per engine WRITE tool — the exact requests the engine must see
- * for given tool arguments. `write-tools.wire.test.ts` fails when a write
- * tool has no case here, so a new write cannot ship without pinning its wire
- * shape against the recording fake engine.
- */
+/** `write-tools.wire.test.ts` fails when a write tool has no case here. */
 import type { FakeRoutes } from "./fake-engine.js"
 
 export interface WireRequest {
   method: string
   path: string
-  /** Exact query string (default: none). */
   query?: Record<string, string>
-  /** Exact JSON body (default: none). `"multipart"`: asserted in deployments.test.ts. */
+  /** `"multipart"`: asserted in deployments.test.ts. */
   body?: unknown
 }
 
 export interface WriteCase {
   toolName: string
-  /** What the case pins — the test title. */
   title: string
   args: Record<string, unknown>
   routes?: FakeRoutes
-  /** Every request the tool sends, in order. */
   wire: WireRequest[]
-  /** The tool's result, when the case pins it. */
   result?: unknown
 }
 

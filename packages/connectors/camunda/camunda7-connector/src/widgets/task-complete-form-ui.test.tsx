@@ -10,19 +10,14 @@ import type { CompleteTaskArgs, TaskCompletion } from "./lib/complete-task.js"
 import { useEngineAction } from "./lib/engine-action.js"
 import { TaskCompleteForm } from "./task-complete-form.js"
 
-/**
- * #328 review findings in the task form: a delegated task is resolved, not
- * completed — the form must say so instead of reporting completion; a linked
- * Camunda Form (formRef) is not "no form"; and a schema the server could not
- * build (null) is loaded through camunda7_get_task_form, whose failure shows.
- */
+// #328: a delegated task is resolved, not completed; a formRef is not "no form"; a null schema is
+// loaded through camunda7_get_task_form, whose failure shows.
 
 afterEach(() => {
   cleanup()
   queryClient.clear()
 })
 
-/** The deployment offers the completion — the form's submit is gated by it. */
 const COMPLETE_ALLOWED = { allowedActions: ["camunda7_complete_task"] }
 
 function renderForm(
@@ -98,7 +93,7 @@ describe("the task form never passes an unknown form for 'no form'", () => {
   })
 
   it("loads a schema the server could not build, and shows that load's failure", async () => {
-    // The shared client retries a failed query with backoff — answer at once.
+    // The shared client retries with backoff: answer at once.
     queryClient.setQueryDefaults(["camunda7", "task-form"], { retry: false })
     const asked: unknown[] = []
     renderForm(null, {
@@ -115,11 +110,7 @@ describe("the task form never passes an unknown form for 'no form'", () => {
   })
 })
 
-/**
- * A Boolean field reads "Ja"/"Nein" ("Yes"/"No") on screen, never the
- * engine's `true`/`false` — the variable still goes to the engine as a
- * Boolean. The choice states its selection (`aria-pressed`).
- */
+// "Ja"/"Nein" on screen, still a Boolean to the engine.
 describe("a Boolean field speaks the view's language", () => {
   const APPROVED: TaskFormSchema = {
     taskId: "t-1",

@@ -1,39 +1,25 @@
 /**
- * The app-level widget defaults (`createFrameworkApp`'s `app.csp`) on EVERY
- * view-bound tool, not only on the framework's own `render-view`.
- *
- * The toolkit threads them into each plugin's `registerWidgetTools(server,
- * metaDefaults)` and leaves it to the plugin to forward them; the modules
- * here register their `*_show_*` tools through `showToolBinding`, which knows
- * nothing about the app. Instead of threading the defaults through every
- * module and call site, `createComposedServer` wraps each plugin once
- * ({@link honorWidgetMetaDefaults}, a Proxy that keeps the plugin as each
- * hook's `this`): the server its hook receives merges the
- * view CSP into each `view` binding (`_meta.ui.csp` on the view resource,
- * `resources/list` included) and the Apps SDK CSP into each widget tool's
- * `openai/widgetCSP` — so a custom module in a composed server advertises
- * the same contract without an edit. What the tool states itself comes
- * first; the defaults are appended, each origin once.
+ * Applies the app's widget CSP defaults to every view-bound tool: modules
+ * register through `showToolBinding`, which knows nothing about the app, so
+ * `createComposedServer` wraps each plugin once. The tool's own entries come first.
  */
 import type { AppPlugin, AppResourceCsp } from "@miragon/mcp-toolkit-core"
 import type { MCPServer } from "mcp-use"
 
-/** The defaults the toolkit hands to `registerWidgetTools` (not exported by the toolkit). */
+/** Not exported by the toolkit. */
 export type WidgetMetaDefaults = NonNullable<
   Parameters<NonNullable<AppPlugin["registerWidgetTools"]>>[1]
 >
 
 type ToolDefinition = Parameters<MCPServer["tool"]>[0]
 type ToolCallback = Parameters<MCPServer["tool"]>[1]
-/** A CSP shape: lists of origins by directive (`AppResourceCsp`, the Apps SDK `WidgetCspMeta`). */
 type DomainLists = object
 type Lists = Readonly<Record<string, readonly string[] | undefined>>
 
-/** The Apps SDK key a widget-rendering tool carries (`appsSdkMeta`) — feeds never do. */
+/** Feeds never carry it. */
 const OUTPUT_TEMPLATE = "openai/outputTemplate"
 const WIDGET_CSP = "openai/widgetCSP"
 
-/** Each list of `defaults` appended to the same list of `own`, each entry once. */
 export function mergeDomainLists<T extends DomainLists>(own: T | undefined, defaults: T): T {
   const mine = (own ?? {}) as Lists
   const merged: Record<string, unknown> = { ...mine }
@@ -47,7 +33,6 @@ export function mergeDomainLists<T extends DomainLists>(own: T | undefined, defa
 const hasDomains = (lists: DomainLists | undefined): lists is DomainLists =>
   lists !== undefined && Object.values(lists as Lists).some((domains) => (domains?.length ?? 0) > 0)
 
-/** `definition` with the defaults merged in — a copy; the caller's object stays as it was. */
 function withDefaults(definition: ToolDefinition, defaults: WidgetMetaDefaults): ToolDefinition {
   const { view, _meta: meta } = definition as {
     view?: { csp?: AppResourceCsp }
@@ -68,12 +53,7 @@ function withDefaults(definition: ToolDefinition, defaults: WidgetMetaDefaults):
   return next as unknown as ToolDefinition
 }
 
-/**
- * A view of `server` whose `tool()` registrations carry `defaults` (see the
- * module comment). Without defaults it is `server` itself. A Proxy, not a
- * copy: every other member is the real server's, bound to it, so mcp-use's
- * internals and the toolkit's per-module tool owner keep working.
- */
+/** A Proxy, not a copy, so mcp-use's internals and the toolkit's per-module tool owner keep working. */
 export function withWidgetMetaDefaults(
   server: MCPServer,
   defaults: WidgetMetaDefaults | undefined,
@@ -94,17 +74,9 @@ export function withWidgetMetaDefaults(
 }
 
 /**
- * `plugin`, its `registerWidgetTools` handed a server that applies the
- * defaults the toolkit passes it ({@link withWidgetMetaDefaults}).
- *
- * A Proxy, not a copy: a spread keeps only own enumerable properties, so a
- * class-based module would lose its prototype hooks (`registerTools`) without
- * a warning. Every hook, the wrapped one included, runs with the plugin
- * itself as `this` — as when the toolkit calls it on the original object —
- * so `this` reads and writes, private fields and method shorthand keep
- * working. The Proxy's target is a child of the plugin, not the plugin, so
- * a frozen plugin can still be wrapped (a Proxy over it could not report a
- * different `registerWidgetTools`).
+ * A Proxy, not a spread: a spread would drop a class-based module's prototype
+ * hooks. Hooks run with the plugin as `this`. The target is a child of the
+ * plugin so a frozen plugin can still be wrapped.
  */
 export function honorWidgetMetaDefaults(plugin: AppPlugin<MCPServer>): AppPlugin<MCPServer> {
   const register = plugin.registerWidgetTools

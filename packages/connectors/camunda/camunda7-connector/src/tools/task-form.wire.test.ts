@@ -11,10 +11,8 @@ import {
 } from "./test-support/fake-engine.js"
 
 /**
- * Guard for #328: lookups a caller acts on must not fail soft. An unknown
- * task used to come back as `{ fields: [] }` — "no form" — and a failed
- * stacktrace read (a 406: the endpoint is text/plain-only) as "no stacktrace
- * available". Only genuinely optional enrichment may degrade.
+ * #328: an unknown task used to read as "no form", a failed stacktrace read (406, the endpoint
+ * is text/plain-only) as "no stacktrace available".
  */
 
 const tools = captureTools(registerTaskFormTools, (register) =>

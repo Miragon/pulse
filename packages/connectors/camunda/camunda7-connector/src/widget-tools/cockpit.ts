@@ -23,7 +23,6 @@ import {
 import { localizeFor, localizeViewFor } from "../lib/server-locale.js"
 import { type WidgetToolsContext, definitionViewLayout, registerShowTool } from "./shared.js"
 
-/** The cockpit entry + the definition/instance list & detail show-tools. */
 export function registerCockpitWidgetTools(ctx: WidgetToolsContext) {
   const { registry, profileStore } = ctx
 
@@ -35,13 +34,8 @@ export function registerCockpitWidgetTools(ctx: WidgetToolsContext) {
     shape: {},
     render: async (args, ctx) => {
       const { t, title } = await localizeViewFor(profileStore, ctx)
-      // Thin bootstrap: the engine the cockpit OPENS on (per-call `engine` >
-      // the caller's saved default > the only engine in their list; null →
-      // the picker) over the caller's engine list — the app seeds its scope
-      // from it. A bad `engine` is a tool error, never a silent picker. The
-      // app threads the chosen engineId into every nested tool call via the
-      // `engine` override, so client-side navigation never depends on the
-      // saved default.
+      // A bad `engine` is a tool error, never a silent picker. The app passes the chosen engineId
+      // to every nested call, so navigation never depends on the saved default.
       const { engines, engineId } = await cockpitEngineScope(
         profileStore,
         registry,
@@ -50,9 +44,8 @@ export function registerCockpitWidgetTools(ctx: WidgetToolsContext) {
       )
       const data: CockpitAppData = {
         engineId,
-        // No REST baseUrl: the app navigates by engine id (internal topology stays server-side).
-        // The explicit return type makes an extra field an excess-property error —
-        // a contextually typed map callback would accept it silently.
+        // No REST baseUrl (internal topology). The explicit return type turns an extra field into
+        // an excess-property error, which a contextually typed callback would accept silently.
         engines: engines.map((e): CockpitEngineInfo => ({
           id: e.id,
           environment: environmentOf(e),
@@ -168,7 +161,6 @@ export function registerCockpitWidgetTools(ctx: WidgetToolsContext) {
     shape: {
       processInstanceId: z.string().describe("The process instance ID"),
       firstResult: pagingShape.firstResult,
-      // One capped page like every list; the widget pages the rest.
       maxResults: pagingShape.maxResults.default(MAX_PAGE_SIZE),
     },
     render: async ({ engine, ...target }, ctx) => {

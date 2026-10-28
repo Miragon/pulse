@@ -1,14 +1,7 @@
 import type { MessageCatalog } from "@miragon/mcp-toolkit-core"
 import { countOf, isOne } from "./plural.js"
 
-/**
- * Deutscher Katalog der Widgets. String-Vorlagen nutzen {name}-Platzhalter,
- * die createTranslator füllt; Zahlen kommen formatiert an (`formatNumber`),
- * und ein Funktionseintrag setzt das Nomen in die passende Zahl (`countOf`).
- * Folgt brand-tone (du, AI, „CIB seven“, kein Gedankenstrich als Verbinder)
- * und dem Glossar (GLOSSARY.md); Fehlertexte sagen, was passiert ist und was
- * du tun kannst. Wird in index.ts mit den übrigen Katalogen zusammengeführt.
- */
+/** Zahlen kommen formatiert an (`formatNumber`); ein Funktionseintrag setzt das Nomen in die passende Zahl. */
 export const deSweep: MessageCatalog = {
   "bpmnDiagram.ariaLabel": "BPMN-Prozessdiagramm",
   "bpmnDiagram.loading": "Diagramm wird geladen…",
@@ -125,9 +118,7 @@ export const deSweep: MessageCatalog = {
   "engineHealth.throughput24h": "Durchsatz (24 Std.):",
   "engineHealth.throughputCompleted": "{count} abgeschlossen",
   "engineHealth.throughputStarted": "{count} gestartet",
-  // Die Urteilszeile unter dem Titel, aus den Zahlen des Urteils in der
-  // aktiven Sprache gebaut (`widgets/lib/health-verdict.ts`); das Statuswort
-  // steht im Badge der KPI-Leiste und wird hier nicht wiederholt.
+  // Das Statuswort steht im Badge der KPI-Leiste und wird hier nicht wiederholt.
   "engineHealth.verdict.nothingDeployed": "Keine Prozesse bereitgestellt",
   "engineHealth.verdict.noIncidents": ({ running }) =>
     `Keine offenen Incidents bei ${countOf(running, "laufender Instanz", "laufenden Instanzen")}`,
@@ -447,7 +438,6 @@ export const deSweep: MessageCatalog = {
   "viewState.retry": "Erneut versuchen",
   "viewState.unknownError": "unbekannter Fehler",
 
-  // ── Der camunda7-Durchgang der CI (#322): Engine-Kontext, Namen, Zustände ────
   "engineContext.environment": "Umgebung",
   "confirmDialog.environment": "Umgebung",
   "engineHealth.titleFor": ({ engine }) => `${String(engine)} · Übersicht`,

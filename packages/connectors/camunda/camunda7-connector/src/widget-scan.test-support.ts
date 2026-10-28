@@ -3,16 +3,8 @@ import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import ts from "typescript"
 
-/**
- * The structural scan behind `widget-actions.test.ts` (#341 / N185): the
- * TypeScript AST of every widget source, read from disk — which tools a
- * widget calls and how, who holds a raw tool caller, which query keys the
- * views use. The rules over it live in the guard; the scanner's own blind
- * spots are pinned there on sources written to hit them (`scanText`).
- */
-
-// Lives outside `src/widgets` on purpose: the widget tsconfig is browser-only
-// (no Node types), and this guard reads the widget sources from disk.
+// The AST scan behind `widget-actions.test.ts` (#341). Outside `src/widgets`: it reads
+// sources from disk and the widget tsconfig has no Node types.
 const SRC_DIR = fileURLToPath(new URL("./", import.meta.url))
 export const WIDGETS_DIR = join(SRC_DIR, "widgets")
 
@@ -153,12 +145,7 @@ function declarationsOf(source: ts.SourceFile): ts.VariableDeclaration[] {
   return found
 }
 
-/**
- * The local names a file binds to a raw tool caller — `useCallTool()`, the
- * `callTool` of a host bridge (destructured, renamed or read off it) and any
- * alias of those — so a call through one is a raw `callTool`, whatever its
- * spelling.
- */
+/** Every local name bound to a raw tool caller, aliases included. */
 function rawCallers(source: ts.SourceFile): Set<string> {
   const callers = new Set<string>()
   const bridges = new Set<string>()
@@ -235,12 +222,7 @@ function returnedBy(source: ts.SourceFile, name: string): ts.Expression[] {
   return returned
 }
 
-/**
- * The query keys a node USES: the key argument of a read hook (a literal, or
- * what a file-local helper returns) and the `key` option of the paged/detail
- * hooks (or of the scope helper that builds it). Nothing else — an array
- * that merely lists namespaces (the write policy's) is not a query.
- */
+/** Only read-hook keys: an array that merely lists namespaces (the write policy's) is not a query. */
 function queryKeys(node: ts.Node, source: ts.SourceFile): ts.Expression[] {
   if (ts.isPropertyAssignment(node) && ts.isIdentifier(node.name) && node.name.text === "key") {
     return [node.initializer]

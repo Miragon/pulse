@@ -15,13 +15,8 @@ import {
   type Calls,
 } from "./write-path.test-support.js"
 
-/**
- * #341 / N99 — the instance view offers a write only where the instance's
- * CURRENT state allows it: no task completion on a suspended instance (the
- * engine refuses it), no incident remedy and no variable edit on a cancelled
- * or unconfirmed one — and an editor opened before the state changed closes
- * instead of keeping a Save that would write anyway.
- */
+// #341 / N99: writes only where the CURRENT state allows (the engine refuses completion on a suspended
+// instance); an editor opened before the state changed closes instead of keeping a Save.
 
 installWritePathHarness()
 

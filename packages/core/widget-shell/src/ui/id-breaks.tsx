@@ -1,16 +1,10 @@
 import { Fragment } from "react"
 
-/** After these an id may break: `Activity_Check`, `order-2026`, `order:3:d`, `a.b`, `a/b`. */
 const BREAK_AFTER = /[_\-.:/]/u
 const LOWER = /\p{Ll}/u
 const UPPER = /\p{Lu}/u
 
-/**
- * Where a long id may wrap without breaking a word: after a separator
- * (`Activity_|CheckBlacklist`, `73059b49-|c64b`) and between a lower- and an
- * upper-case letter (`assess|Creditworthiness`, `miravelo|Leasing`). The
- * segments joined give the id back unchanged.
- */
+/** After a separator and at a lower-to-upper case change; joined, the segments give the id back. */
 export function idBreakSegments(id: string): string[] {
   const segments: string[] = []
   let start = 0
@@ -26,12 +20,7 @@ export function idBreakSegments(id: string): string[] {
   return segments
 }
 
-/**
- * An id that prefers to wrap where {@link idBreakSegments} allows (`<wbr>`):
- * its text and what a copy takes stay the id (some screen readers pause at
- * the breaks, "Activity_ Check Blacklist"). A segment wider than its column
- * still wraps inside itself (the caller's `wrap-anywhere`).
- */
+/** `<wbr>` keeps the copied text the id itself. */
 export function BreakableId({ id }: { id: string }) {
   return (
     <>

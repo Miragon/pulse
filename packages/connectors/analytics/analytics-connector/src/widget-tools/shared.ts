@@ -5,11 +5,8 @@ import type { AnalyticsEngineScope } from "../engine-ids.js"
 import type { NameLookup } from "../bpmn-name-lookup.js"
 
 /**
- * Everything the per-domain widget-tool registrars need, handed over by the
- * `widget-tools.ts` entry — mirrors camunda7's `WidgetToolsContext`. The
- * `_meta`/view bindings are NOT passed through: each registration spreads
- * `showToolBinding()` / `appOnly` from `@miragon/pulse-widget-shell/server`
- * itself, so the dual-protocol contract stays in one place.
+ * The `_meta`/view bindings are not passed: each registration spreads `showToolBinding()`/`appOnly`
+ * itself, keeping the dual-protocol contract in one place.
  */
 export interface AnalyticsWidgetToolsContext {
   server: MCPServer
@@ -28,11 +25,7 @@ function fmtDelta(value: number | null, unit: string): string {
   return `${value > 0 ? "+" : ""}${value}${unit}`
 }
 
-/**
- * Shared delta shape of the three compare queries, for one-line summaries. A
- * null delta reads "n/a" — a side was not measured (nothing ended, nothing
- * started) or the baseline is 0 — never a −100 %.
- */
+/** A null delta reads "n/a" (a side unmeasured or a 0 baseline), never −100 %. */
 export function compareDeltaSummary(delta: CompareKpiDelta): string {
   return [
     `starts/day ${fmtDelta(delta.started_per_day_delta_pct, "%")}`,
@@ -49,9 +42,8 @@ export const suppressedNote = (suppressed: boolean) =>
   suppressed ? "; flagged suppressed (sample below minBucketSize)" : ""
 
 /**
- * The engine scope of a result, for summaries: one engine by name, or — the
- * deliberate fleet aggregate — every engine it adds up, so a fleet-wide figure
- * never reads as one engine's. `fleet` = the caller named no engine.
+ * One engine by name, or every engine a fleet aggregate adds up, so a fleet figure never reads as
+ * one engine's.
  */
 export function engineScopeSummary(
   t: ServerT,

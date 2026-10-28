@@ -1,11 +1,7 @@
 import { parseBpmnNames, readBpmnNames } from "../../bpmn-names.js"
 import { BPMN_TOKENS, cdValue } from "../bpmn-tokens.js"
 
-/**
- * Pure helpers for the BPMN heatmap canvas: gradient LUT, brush stamp,
- * heat-point projection and the two-pass colorize draw. Kept free of React
- * and viewer state so the math is testable and the widget shell stays small.
- */
+/** Kept free of React and viewer state so the math is testable. */
 
 interface BusinessObject {
   id?: string
@@ -49,49 +45,28 @@ const SKIP_TYPES = new Set([
   "bpmn:Group",
 ])
 
-/**
- * The faintest an element with a value above zero ever paints — the
- * smallest value's intensity — so a rarely taken path still shows instead
- * of fading to "never" (U16).
- */
+/** So a rarely taken path still shows instead of fading to "never" (U16). */
 export const MIN_HEAT_INTENSITY = 0.3
 
-/**
- * An element's heat intensity: the range from the smallest value above zero
- * to the largest mapped LINEARLY onto {@link MIN_HEAT_INTENSITY}…1, so the
- * legend's ends ("1 … 1.000") are exactly the values its ends encode and its
- * middle the middle value. (A floor on `weight / max` instead painted
- * everything up to 30 % of the maximum like the minimum.) One value for all
- * elements paints at full intensity.
- */
+/** Linear from the smallest value above zero to the max, so the legend's ends are the values they encode. (A floor on `weight / max` painted everything up to 30 % like the minimum.) */
 export function heatIntensity(weight: number, range: { min: number; max: number }): number {
   if (!(range.max > range.min)) return 1
   const t = Math.max(0, Math.min(1, (weight - range.min) / (range.max - range.min)))
   return MIN_HEAT_INTENSITY + (1 - MIN_HEAT_INTENSITY) * t
 }
 
-/**
- * The heat layer's opacity at full intensity. Below 1 on purpose: the layer
- * multiplies over the diagram, and at 0.75 the darkest step (`--cd-blau`)
- * keeps a black task label above 4.5:1 (`heat-utils.test.ts`).
- */
+/** Below 1 on purpose: at 0.75 the darkest step keeps a black task label above 4.5:1. */
 export const HEAT_PEAK_ALPHA = 0.75
 
 /** Intensity at which the opacity reaches its peak — the soft rim of a blob below it. */
 const HEAT_RIM = 0.2
 
-/** `#RRGGBB` → [r, g, b] (0–255). */
 export function hexChannels(hex: string): [number, number, number] {
   const value = Number.parseInt(hex.replace("#", ""), 16)
   return [(value >> 16) & 0xff, (value >> 8) & 0xff, value & 0xff]
 }
 
-/**
- * The heat ramp (owner decision 2j): ONE hue from `--cd-info-soft` to
- * `--cd-blau`, never a rainbow and never red (red is for incidents). Colour
- * at intensity `t` (0–1) is the linear mix of the two tokens; the opacity
- * rises over the rim to {@link HEAT_PEAK_ALPHA}.
- */
+/** Owner decision 2j: ONE hue, never a rainbow and never red (red is for incidents). */
 export function heatColor(t: number): [number, number, number, number] {
   const clamped = Math.max(0, Math.min(1, t))
   const from = hexChannels(cdValue(BPMN_TOKENS.heat.from))
@@ -101,27 +76,18 @@ export function heatColor(t: number): [number, number, number, number] {
   return [mix(0), mix(1), mix(2), Math.round(alpha * 255)]
 }
 
-/**
- * The ramp as a 256-entry RGBA table (index = the stamped alpha 0–255), so
- * the colorize pass maps a pixel in O(1). Pure: no canvas needed.
- */
+/** Index = the stamped alpha, so the colorize pass maps a pixel in O(1). */
 export function buildGradientLut(): Uint8ClampedArray {
   const lut = new Uint8ClampedArray(256 * 4)
   for (let i = 0; i < 256; i++) lut.set(heatColor(i / 255), i * 4)
   return lut
 }
 
-/**
- * The legend swatch of the ramp as CSS: from the faintest value above zero
- * ({@link MIN_HEAT_INTENSITY}) to full blue, through the same tokens. Paint it
- * at {@link HEAT_PEAK_ALPHA} opacity on the light paper and it matches the
- * diagram.
- */
+/** Painted at HEAT_PEAK_ALPHA on the light paper, it matches the diagram. */
 export const HEAT_GRADIENT_CSS = `linear-gradient(to right, color-mix(in srgb, var(--cd-${BPMN_TOKENS.heat.to}) ${String(
   Math.round(MIN_HEAT_INTENSITY * 100),
 )}%, var(--cd-${BPMN_TOKENS.heat.from})), var(--cd-${BPMN_TOKENS.heat.to}))`
 
-/** Soft radial brush stamp; one draw per heat point. */
 export function buildBrush(radius: number, blur: number): HTMLCanvasElement {
   const r2 = radius + blur
   const canvas = document.createElement("canvas")
@@ -164,7 +130,6 @@ export function buildHeatPoints(
   return points
 }
 
-/** Heat points sampled along a sequence flow's waypoint polyline. */
 function sequenceFlowHeatPoints(
   el: BpmnElement,
   bo: BusinessObject,
@@ -193,7 +158,6 @@ function sequenceFlowHeatPoints(
   return points
 }
 
-/** Single heat point at a shape's center, or `null` when it carries no heat. */
 function nodeHeatPoint(
   el: BpmnElement,
   id: string,
@@ -228,7 +192,6 @@ export function drawHeatLayer(
   const brush = buildBrush(radiusPx, blur)
   const r2 = radiusPx + blur
 
-  // Pass 1: stamp greyscale alpha (the element's intensity, heatIntensity).
   for (const p of points) {
     if (p.x < -r2 || p.y < -r2 || p.x > width + r2 || p.y > height + r2) continue
     ctx.globalAlpha = heatIntensity(p.weight, range)
@@ -236,10 +199,7 @@ export function drawHeatLayer(
   }
   ctx.globalAlpha = 1
 
-  // Pass 2: colorize the alpha channel through the gradient LUT. getImageData
-  // operates in raw backing-store pixels and ignores the dpr transform, so we
-  // must use the canvas's raw dimensions or only the top-left CSS-sized
-  // quadrant gets colorized on retina displays.
+  // getImageData ignores the dpr transform: use raw dimensions, or only the top-left quadrant gets colorized on retina.
   const img = ctx.getImageData(0, 0, rawWidth, rawHeight)
   const data = img.data
   for (let i = 0, n = data.length; i < n; i += 4) {
@@ -259,7 +219,6 @@ export function heatRange(values: Record<string, number>): { min: number; max: n
   return weightRange(Object.values(values))
 }
 
-/** {@link heatRange} over plain weights (the drawn heat points). */
 export function weightRange(weights: readonly number[]): { min: number; max: number } | null {
   let min = Infinity
   let max = -Infinity
@@ -271,25 +230,12 @@ export function weightRange(weights: readonly number[]): { min: number; max: num
   return max > 0 ? { min, max } : null
 }
 
-/**
- * The names the diagram gives its elements (`name` attribute), keyed by id —
- * so a values table can say "Antrag prüfen" instead of `Activity_1x2y`. Read
- * by the one rule every module names an element by (`readBpmnNames`): a
- * Modeler line break (`&#10;`) is a space, `&#38;` an `&`. An unparsable
- * document gives no names (the table falls back to the ids).
- */
+/** Read by the shared rule (`readBpmnNames`); an unparsable document gives no names, the table falls back to ids. */
 export function bpmnElementNames(xml: string): Record<string, string> {
   return readBpmnNames(xml).elements
 }
 
-/**
- * The name of the process `processDefinitionKey` by the rule the server
- * names it by in every module (`parseBpmnNames`, the same reader): the
- * process's own name, else the name of the pool that holds it
- * (`<participant processRef=key>`: a collaboration from the Camunda Modeler
- * names the pool and leaves the process unnamed), else null. Any namespace
- * prefix; line breaks and runs of space folded.
- */
+/** Same rule as the server (`parseBpmnNames`): the process's own name, else its pool's (the Camunda Modeler names the pool only), else null. */
 export function bpmnProcessName(xml: string, processDefinitionKey: string): string | null {
   return parseBpmnNames(xml, processDefinitionKey).name
 }

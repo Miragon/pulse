@@ -15,11 +15,7 @@ afterEach(() => {
   queryClient.clear()
 })
 
-/**
- * The incidents overview renders what the server can vouch for (#335 N61):
- * exact key-wide card counts, the scanned breakdown disclosed as partial, and
- * every unknown (null) number as "—" — never a 0 that reads as a fact.
- */
+// #335 N61: exact card counts, the scanned breakdown marked partial, null as "—", never 0.
 const DATA: IncidentsDashboardData = {
   totalCount: 257,
   processCount: 2,
@@ -76,7 +72,6 @@ describe("incidents dashboard widgets — honest numbers", () => {
   it("shows the unknown affected-activity total as —, never 0", () => {
     render(<WidgetFixtureHost widget={asWidget(IncidentOverviewKpi)} data={data} />)
 
-    // The toolkit KpiGrid's cell: a direct child of the strip's grid.
     const cell = screen
       .getByText("Activities affected")
       .closest<HTMLElement>('[data-slot="kpi-strip"] > div > *')!
@@ -111,15 +106,8 @@ describe("incidents dashboard widgets — honest numbers", () => {
   })
 })
 
-/**
- * A filtered dashboard (`camunda7_show_incidents_dashboard` with a key and an
- * incident type) counts only the filtered set: its hand-offs pass the filters
- * as ids and state the count as the set's — read from the data's own echo,
- * since a standalone render gets no props. It never refetches either (a
- * standalone render has no `engine` prop, so `incidentsFeed` is never ready),
- * so no request can widen it; the only self-fetch is the cockpit's unfiltered
- * dashboard.
- */
+// A filtered standalone view reads its scope from the data echo and never refetches (no `engine`
+// prop, so `incidentsFeed` is never ready), so no request can widen it.
 describe("incidents dashboard — a filtered view keeps its scope", () => {
   const FILTERED: IncidentsDashboardData = {
     ...DATA,
@@ -136,16 +124,11 @@ describe("incidents dashboard — a filtered view keeps its scope", () => {
     tools = { [CAMUNDA7_WIDGET_ACTIONS_DATA]: await widgetActionsFeedFor("read-only") }
   })
 
-  /** Every `camunda7_incidents_data` request a render sends, args as sent. */
   let feedCalls: Array<Record<string, unknown>>
   beforeEach(() => {
     feedCalls = []
   })
 
-  /**
-   * Renders `widget` and returns the hand-off its chat button posts. The
-   * feed answers the engine's unfiltered dashboard and records each request.
-   */
   async function promptOf(widget: unknown, props: { data?: IncidentsDashboardData }) {
     const actions: HostActionLog[] = []
     const feed = (args: Record<string, unknown>) => {
@@ -160,7 +143,7 @@ describe("incidents dashboard — a filtered view keeps its scope", () => {
         onHostAction={(action) => actions.push(action)}
       />,
     )
-    // A card keeps its chat hand-off behind its "more" button (#322 U20).
+    // A card's chat hand-off sits behind its "more" button (#322 U20).
     await waitFor(() =>
       expect(
         screen.queryAllByRole("button", { name: /in chat|^More actions for / }).length,
@@ -168,11 +151,10 @@ describe("incidents dashboard — a filtered view keeps its scope", () => {
     )
     const more = screen.queryAllByRole("button", { name: /^More actions for / })
     if (more.length > 0) {
-      // The card's hand-off is an entry of its menu.
       fireEvent.click(more[0])
       fireEvent.click(await screen.findByRole("menuitem", { name: /in chat/ }))
     } else {
-      // A card's toggle wraps its chat hand-off — click the button itself.
+      // The toggle wraps the hand-off: click the button itself.
       const [analyze] = (await screen.findAllByRole("button", { name: /in chat/ })).sort(
         (a, b) => (a.textContent ?? "").length - (b.textContent ?? "").length,
       )

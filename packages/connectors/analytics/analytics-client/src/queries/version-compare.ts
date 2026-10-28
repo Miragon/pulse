@@ -15,7 +15,6 @@ import {
   type CompareKpis,
 } from "./helpers.js"
 
-/** One version's KPIs. */
 export interface VersionCompareKpi extends CompareKpis {
   version: number
   bucket: "versionA" | "versionB"
@@ -24,7 +23,6 @@ export interface VersionCompareKpi extends CompareKpis {
 export type VersionCompareDelta = CompareKpiDelta
 
 export interface VersionCompareResult {
-  /** The engine ids covered; `null` = every engine Prometheus holds (unscoped library call). */
   engines: string[] | null
   processDefinitionKey: string
   versionA: number
@@ -34,20 +32,11 @@ export interface VersionCompareResult {
   suppressed: boolean
   kpis: VersionCompareKpi[]
   delta: VersionCompareDelta
-  /**
-   * When the figures were read from Prometheus (ISO timestamp): the "Stand"
-   * a view shows. Optional only for payloads recorded before it existed.
-   */
+  /** Optional: payloads recorded before it existed lack it. */
   asOf?: string
 }
 
-/**
- * Side-by-side comparison of two deployed process definition versions, from
- * the engine metrics. Versions are a metric label (`process_definition_version`)
- * on the process-instance AND the incident series, so instance counts,
- * completions, incidents and durations are an exact partition over a shared
- * rolling window. The comparison is process-wide: there is no element scope.
- */
+// Versions are a label on the instance and incident series only, so there is no element scope.
 export async function versionCompare(
   ch: PrometheusClient,
   params: {

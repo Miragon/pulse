@@ -2,18 +2,8 @@ import { z } from "zod"
 import { LANGUAGES, PROFILE_SCHEMA_VERSION, type LanguagePref } from "./profile-constants.js"
 
 /**
- * The persisted profile record — deliberately connector-free: the
- * cross-module preference every module may read (`language`), the per-module
- * `modules.<module>` slice transport, and server-managed metadata. There is
- * no theme preference: widgets follow the host's theme. A record an earlier
- * build saved with a `theme` still reads — the key is unknown here, stays in
- * the raw document and never reaches the typed view.
- * Everything a connector wants to persist lives in ITS slice (validated
- * fail-soft by the owning module), never as a new top-level field here.
- *
- * `id` is the profile key (the OAuth caller's id, or `anonymous` for an
- * explicitly declared local caller — see `resolveProfileKey` in `profile.ts`);
- * `userId` is the owner a save stamped (absent on the anonymous record).
+ * Connector-free: a connector persists into ITS `modules.<module>` slice, never a new
+ * top-level field. `id` is the profile key; `userId` is absent on the anonymous record.
  */
 export const profileRecordSchema = z.object({
   language: z
@@ -40,22 +30,14 @@ export const profileRecordSchema = z.object({
 export type ProfileRecord = z.infer<typeof profileRecordSchema>
 
 /**
- * Save input: any subset of the record's user-settable fields. Omitted fields
- * keep their current value (the store merges over the existing record);
- * `modules` slices merge per module key, one level deep — a save carrying
- * `modules.analytics` spreads over the stored analytics slice (explicit
- * `undefined` clears a field) and leaves other modules' slices untouched.
- *
- * A plain type, not a zod schema: validation happens at each module's TOOL
- * boundary (with a default-free schema — see `withoutDefaults` in
- * `profile.ts`), not in the store.
+ * Omitted fields keep their value; `modules` merge per module key, one level deep.
+ * A plain type: validation happens at each module's tool boundary, not in the store.
  */
 export interface ProfileRecordSaveInput {
   language?: LanguagePref
   modules?: Record<string, unknown>
 }
 
-/** A fully-defaulted record for a key that has never been saved. */
 export function defaultProfileRecord(key: string): ProfileRecord {
   const now = new Date().toISOString()
   return {
@@ -70,22 +52,15 @@ export function defaultProfileRecord(key: string): ProfileRecord {
 const nonEmptyString = (value: unknown): string | undefined =>
   typeof value === "string" && value.length > 0 ? value : undefined
 
-/** The field's own value when it validates, else the field's default. */
 function fieldOrDefault<T>(schema: z.ZodType<T>, value: unknown): T {
   const parsed = schema.safeParse(value)
   return parsed.success ? parsed.data : schema.parse(undefined)
 }
 
 /**
- * The typed VIEW of a stored profile document (current-shape, or written by a
- * NEWER build), degrading per FIELD: a value this build cannot validate — a
- * locale added later, a non-object `modules` — falls back to that field's
- * default while everything else survives. Keys this build does not know are
- * not part of the view, but they stay in the stored document: saves merge over
- * the RAW document (`mergeStoredProfile` in `profile-store.ts`), never over
- * this projection. Timestamps a hand-edited document lacks fall back to each
- * other, then to `""` (the next save stamps both). `id` is the caller's (the
- * store key wins).
+ * Degrades per FIELD to the default; unknown keys stay in the stored document because
+ * saves merge over the RAW document, never this projection. Missing timestamps fall back
+ * to each other, then `""` (the next save stamps both).
  */
 export function projectProfileRecord(doc: Record<string, unknown>, id: string): ProfileRecord {
   const whole = profileRecordSchema.safeParse(doc)

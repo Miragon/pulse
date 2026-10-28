@@ -95,9 +95,7 @@ describe("AskAiButton", () => {
     })
     const item = screen.getByRole("menuitem", { name: "Explain error in chat" })
     expect(item.getAttribute("tabindex")).toBe("-1")
-    // No button chrome: the menu's card is its surface (CI §8): an entry on
-    // the small radius in the dense step, the blue-soft hover, half opacity
-    // when off, its focus ring drawn inside.
+    // No button chrome: the menu's card is its surface (CI §8).
     expect(item.getAttribute("data-slot")).toBeNull()
     const classes = item.className.split(/\s+/)
     for (const role of [

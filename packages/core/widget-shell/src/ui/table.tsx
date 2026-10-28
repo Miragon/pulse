@@ -3,15 +3,7 @@ import { cn, EmptyState, MICRO_LABEL, type StateHeadingLevel } from "@miragon/mc
 import { ArrowDown, ArrowUp, CircleCheck, Inbox } from "lucide-react"
 import { Icon } from "./icon.js"
 
-/** The order a column sorts its rows in (`aria-sort` on its head). */
 export type ColumnSort = "ascending" | "descending"
-
-/**
- * Cockpit table primitives — the `th`/`td` class strings and the bordered
- * empty-state card that the process-instances and definitions tables used to
- * copy per column. Purely presentational; tables keep composing their own
- * `<table>`/`<thead>`/`<tbody>` structure (or the `ListTable` frame).
- */
 
 const TH_LABEL = `border-border text-muted-foreground border-y px-4 py-2.5 ${MICRO_LABEL}`
 
@@ -25,10 +17,6 @@ export function Th({
   align?: "left" | "right"
   /** Bare header cell (e.g. the empty action column) — border/padding only. */
   plain?: boolean
-  /**
-   * The rows are sorted by this column: `aria-sort` for screen readers and a
-   * direction arrow next to the label, so the order is never a guess.
-   */
   sort?: ColumnSort
   className?: string
   children?: ReactNode
@@ -77,13 +65,7 @@ export function Td({
   )
 }
 
-/**
- * What an empty result means:
- * - `empty`: nothing to show (no rows, no data yet) — a quiet `Inbox` icon;
- * - `done`: nothing LEFT to do ("No open incidents", "No failed jobs") — a
- *   `CircleCheck` in the success tone, so "all clear" never reads like
- *   missing data.
- */
+/** `done` uses the success tone, so "all clear" never reads like missing data. */
 export type EmptyVariant = "empty" | "done"
 
 const EMPTY_ICON = {
@@ -91,13 +73,6 @@ const EMPTY_ICON = {
   done: { icon: CircleCheck, tone: "success" },
 } as const
 
-/**
- * The bordered card shown in place of a table (or a list, a chart) when
- * there is nothing to show: the toolkit's `EmptyState` — icon, a title (600),
- * one help line and up to two actions — in the card the table would take.
- * `children` is the title ("No jobs found"); `variant="done"` is the
- * "all done" state.
- */
 export function TableEmptyState({
   children,
   variant = "empty",
@@ -113,13 +88,11 @@ export function TableEmptyState({
   variant?: EmptyVariant
   /** One help line: why it is empty, or what to do next. */
   description?: ReactNode
-  /** The primary next step (a `Button`). */
   action?: ReactNode
-  /** A second, quieter step. */
   secondaryAction?: ReactNode
   /** A Lucide icon for the concrete situation (e.g. `<SearchX />` for no matches). */
   icon?: ReactNode
-  /** Element of the title. Default `"p"`: it stands in for a table, not a section. */
+  /** Default `"p"`: it stands in for a table, not a section. */
   titleAs?: StateHeadingLevel
   className?: string
 }) {
@@ -142,10 +115,6 @@ export function TableEmptyState({
   )
 }
 
-/**
- * The `v3` definition-version chip rendered next to detail-page titles —
- * previously copied character-identical into three hero headers.
- */
 export function VersionChip({
   version,
   className,

@@ -12,7 +12,6 @@ const storeWith = (language?: string): ProfileSource => ({
   get: () => Promise.resolve({ language }),
 })
 
-/** A signed-in caller's handler ctx. */
 const CTX = { auth: { user: { id: "user-1" } } }
 
 describe("resolveProfileLocale", () => {
@@ -60,12 +59,7 @@ describe("createLocalizeFor", () => {
   })
 })
 
-/**
- * The view-title rule every module's show tools share (#322 U3): a title
- * only in a language the profile names. "system" follows the host's locale,
- * which the server never sees, so the view carries no title rather than an
- * English one over a German view.
- */
+/** #322 U3: "system" carries no title rather than an English one over a German view. */
 describe("createLocalizeViewFor / createViewLocaleOf", () => {
   const translator = (locale: string, key: string, params?: Record<string, unknown>) =>
     `${locale}:${key}${params ? `:${JSON.stringify(params)}` : ""}`

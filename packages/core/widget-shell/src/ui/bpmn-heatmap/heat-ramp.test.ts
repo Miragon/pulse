@@ -30,7 +30,6 @@ describe("the heat ramp (owner decision 2j: one hue, --cd-info-soft to --cd-blau
   it("starts on the info tint and ends on full blue", () => {
     expect(heatColor(0).slice(0, 3)).toEqual(hexChannels(CD_TOKENS["info-soft"]))
     expect(heatColor(1).slice(0, 3)).toEqual(hexChannels(CD_TOKENS.blau))
-    // Out-of-range intensities clamp.
     expect(heatColor(-1)).toEqual(heatColor(0))
     expect(heatColor(2)).toEqual(heatColor(1))
   })

@@ -10,12 +10,11 @@ import { UserProfileWidget } from "./user-profile.js"
 
 afterEach(() => {
   cleanup()
-  // The toolkit query client is a singleton — one test's dashboard list must
-  // not leak into the next test's picker.
+  // Singleton client: one test's dashboard list must not leak into the next.
   queryClient.clear()
 })
 
-/** What the panel was rendered from — possibly a cached, stale view. */
+// Possibly a cached, stale view.
 const VIEW: UserProfileView = {
   profile: {
     updatedAt: "2026-10-01T00:00:00.000Z",
@@ -31,12 +30,10 @@ const VIEW: UserProfileView = {
   readOnlyReason: null,
 }
 
-/** Switch "Allow all engines" off — the curated engine list appears. */
 function curate() {
   fireEvent.click(screen.getByRole("switch", { name: "Allow all engines" }))
 }
 
-/** VIEW with profile overrides. */
 function viewWith(overrides: Partial<UserProfileView["profile"]>): UserProfileView {
   return { ...VIEW, profile: { ...VIEW.profile, ...overrides } }
 }
@@ -149,11 +146,8 @@ describe("UserProfileWidget save — only what the user changed", () => {
     expect(await save()).toEqual({ pinnedDashboardIds: ["d1"] })
   })
 
-  // Standalone (camunda7_show_settings) the panel's view is the seed of
-  // the profile feed and stays the ORIGINAL profile until the save's refetch
-  // lands (here never — the fixture serves no feed), so the baseline must
-  // advance with each save: otherwise reverting a saved change compares equal
-  // to the original view and silently saves nothing.
+  // Standalone, the view stays the ORIGINAL profile until a refetch (never, here), so the baseline
+  // must advance per save, or reverting a saved change compares equal and saves nothing.
   it("a saved change can be reverted in the same standalone panel", async () => {
     const { save } = renderPanel()
     fireEvent.change(screen.getByLabelText("Default engine"), { target: { value: "prod-b" } })
@@ -176,8 +170,7 @@ describe("UserProfileWidget save — only what the user changed", () => {
     expect(screen.queryByLabelText("Preferred role")).toBeNull()
   })
 
-  // The page's outline skips no level: the shell page's title (h1 in the
-  // view), this section's h2, then its cards.
+  // The outline skips no level: shell title, this section's h2, then its cards.
   it("heads itself as a section and its cards one step under it", () => {
     renderPanel()
     const outline = screen
@@ -197,7 +190,6 @@ describe("a read-only panel says why, on top, with the way out", () => {
     const notice = screen.getByRole("status")
     expect(notice.textContent).toContain("These settings are read-only here")
     expect(notice.textContent).toMatch(wayOut)
-    // Above the fields, not under them.
     expect(
       notice.compareDocumentPosition(screen.getByLabelText("Default engine")) &
         Node.DOCUMENT_POSITION_FOLLOWING,
@@ -207,8 +199,7 @@ describe("a read-only panel says why, on top, with the way out", () => {
   })
 })
 
-// #346: a section of the shell's page — where camunda7 is bundled but not
-// active, its feed's tool is missing and the section is simply not there.
+// #346: bundled but not active, the feed's tool is missing and the section is absent.
 describe("the section where camunda7 is not active", () => {
   it("hides itself when its feed's tool is missing", async () => {
     queryClient.setQueryDefaults(["camunda7:settings"], { retry: false })
@@ -234,7 +225,7 @@ describe("the section where camunda7 is not active", () => {
   })
 })
 
-/** Wait until `list-dashboards` has answered, so an absent entry is a decision. */
+// So an absent entry is a decision.
 async function dashboardsSettled() {
   await waitFor(() =>
     expect(
@@ -243,12 +234,8 @@ async function dashboardsSettled() {
   )
 }
 
-/**
- * Toolkit 2.6 stores list a record they cannot read (a newer schemaVersion
- * written mid rolling upgrade, a corrupt row) as `{ id, name: id, unreadable }`
- * instead of skipping it. `load-dashboard` refuses such a record, so the
- * picker must not offer it as a default or a pin.
- */
+// Toolkit 2.6 lists unreadable records as `{ id, name: id, unreadable }`; `load-dashboard` refuses
+// them, so the picker must not offer one.
 describe("settings dashboard picker", () => {
   const readable = { id: "d-ops", name: "ops", title: "Ops overview" }
   const unreadable = {

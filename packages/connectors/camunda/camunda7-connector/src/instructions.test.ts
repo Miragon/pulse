@@ -6,11 +6,6 @@ import {
 import { camunda7Module } from "./module.js"
 import { resolveEngine, type Camunda7StepAppConfig } from "./lib/resolve-engine.js"
 
-/**
- * The engine routing rule lives ONCE in the server instructions (the `engine`
- * parameter only carries a one-line description), so the snippet must state
- * it for the boot at hand — and never offer a save the caller cannot make.
- */
 describe("camunda7Module.instructions", () => {
   const TWO = [
     { id: "prod-a", baseUrl: "http://a/engine-rest" },
@@ -54,10 +49,7 @@ describe("camunda7Module.instructions", () => {
     )
   })
 
-  // #338: the prompts AND the model contexts carry only ids; pinning the
-  // viewed engine and the "propose, then confirm" rule are stated once, here.
-  // The model context is covered on purpose: cockpit navigation never moves
-  // the saved default, so an engine-less call would answer from another engine.
+  // Cockpit navigation never moves the saved default, so an engine-less call would answer from another engine.
   it("states the hand-off rules once: engine pinning, fenced data, no write without confirmation", () => {
     const text = snippet(TWO, "operations", true)
     expect(text).toContain(
@@ -107,12 +99,7 @@ describe("camunda7Module.instructions", () => {
     expect(text).not.toContain("ENGINE_NOT_SELECTED")
   })
 
-  /**
-   * The boot-time text and the per-call ENGINE_NOT_SELECTED hint decide the
-   * same question at different times; they must agree for the callers a boot
-   * actually serves — under OAuth a signed-in caller (the tool call's ctx),
-   * without it an HTTP request with no identity.
-   */
+  /** The boot-time text and the per-call ENGINE_NOT_SELECTED hint must agree. */
   it.each([
     ["operations", true],
     ["operations", false],

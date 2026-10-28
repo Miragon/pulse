@@ -1,12 +1,6 @@
 import type { EngineCockpitStrategy } from "../engine-provider.js"
 
-/**
- * Route strategy of the classic Camunda 7 webapp, shared by Camunda 7
- * (`/camunda` context path) and its fork Operaton (`/operaton`): cockpit pages
- * are addressed by definition/instance ID, not key+version, and the classic
- * cockpit has no `?tab=` deep links — the `tab` option is ignored on purpose.
- * Missing id ⇒ `null` ⇒ the consumer renders no link (graceful degradation).
- */
+/** Addressed by ID, not key+version; the classic cockpit has no `?tab=` deep links, so `tab` is ignored. */
 export function classicCockpitStrategy(webappPath: string): EngineCockpitStrategy {
   return {
     deriveWebappBase: (baseUrl) =>

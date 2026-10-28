@@ -11,12 +11,10 @@ import { writeFeedback } from "./lib/write-feedback.js"
 
 interface TaskCompleteFormProps {
   taskId: string
-  /** The task as its toasts name it (its name, else its id). */
+  // Name, else id.
   taskName: string
-  /** Engine the task lives on — threaded into the form fetch and the complete
-   * call so both target the viewed engine, not the session default. */
+  // Both the form fetch and the complete call target the viewed engine, not the session default.
   engine?: string
-  /** Pre-fetched form schema, if the server already provided one. */
   formSchema?: TaskFormSchema | null
   action: CompleteTaskAction
   onCompleted?: () => void
@@ -77,7 +75,6 @@ export function TaskCompleteForm({
   )
 }
 
-/** The form's props once its schema is at hand. */
 type BodyProps = Omit<TaskCompleteFormProps, "formSchema"> & { schema: TaskFormSchema }
 
 function TaskCompleteFormBody({
@@ -95,7 +92,7 @@ function TaskCompleteFormBody({
   )
   const [manualEntries, setManualEntries] = useState<ManualEntry[]>([])
   const [submitError, setSubmitError] = useState<string | null>(null)
-  // A delegated task went back to its owner and stays open — never shown as completed.
+  // A delegated task went back to its owner and stays open: never shown as completed.
   const [resolvedTo, setResolvedTo] = useState<{ owner: string | null } | null>(null)
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -138,8 +135,7 @@ function TaskCompleteFormBody({
       variables[name] = { value: coerced, type: entry.type }
     }
 
-    // The action refreshes the instance either way: a completion opens the
-    // next task, a resolve shows the owner as the assignee again.
+    // A completion opens the next task, a resolve shows the owner as assignee again.
     action.run(
       { taskId, variables, engine },
       {
@@ -239,7 +235,6 @@ function TaskCompleteFormBody({
   )
 }
 
-/** The submit — only where the deployment offers the completion. */
 function CompleteButton({ action, taskId }: { action: CompleteTaskAction; taskId: string }) {
   const t = useT()
   if (!action.allowed) return null

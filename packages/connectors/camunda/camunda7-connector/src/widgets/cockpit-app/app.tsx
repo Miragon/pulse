@@ -49,7 +49,6 @@ export type { CockpitAppData }
 
 interface EnginesResult {
   engines: Array<{ id: string; environment?: string }>
-  /** The caller's saved default engine (profile) — null when none is saved. */
   defaultEngineId: string | null
 }
 
@@ -65,20 +64,11 @@ function isTopSection(section: CockpitView["section"]): section is TopSection {
   return section === "overview" || section === "incidents" || section === "settings"
 }
 
-/**
- * The whole navigation state in one reducer: `scope` decides WHICH cockpit is
- * shown (chooser / fleet / one engine) and is the single authority — no render
- * path second-guesses it. `stack` is the real navigation history inside an
- * engine; the breadcrumb renders it 1:1, so "back" always returns to the view
- * the user actually came from.
- */
+/** `scope` alone decides which cockpit shows; `stack` is the real history, so "back" returns where the user came from. */
 interface CockpitState {
   scope: CockpitScope
   stack: CockpitView[]
-  /**
-   * The engine the scope fell back from because it left the engine list —
-   * said on screen until the next scope change.
-   */
+  /** Said on screen until the next scope change. */
   goneEngineId: string | null
 }
 
@@ -93,11 +83,7 @@ type CockpitAction =
 
 const ROOT_STACK: CockpitView[] = [{ section: "overview" }]
 
-/**
- * The scope the cockpit OPENS on: the bootstrap's resolved engine
- * (`camunda7_open_cockpit` — per-call `engine` > saved default > the only
- * engine in the caller's list), else the chooser.
- */
+/** Opens on the bootstrap's resolved engine (`camunda7_open_cockpit`), else the chooser. */
 function initialState(bootEngineId: string | null): CockpitState {
   return {
     scope: bootEngineId ? { kind: "engine", engineId: bootEngineId } : { kind: "landing" },
@@ -108,18 +94,12 @@ function initialState(bootEngineId: string | null): CockpitState {
 
 interface ScopeFix {
   scope: CockpitScope
-  /** The engine that left the list, when that is why the scope changes. */
   gone: string | null
 }
 
 /**
- * The scope the CURRENT engine list allows, or null when `scope` stands. The
- * list reloads (an engine curated away in Settings, a bootstrap that raced
- * the filtered list): an engine scope whose engine is gone falls back
- * explicitly — to the only engine left, else the chooser — instead of
- * querying a stale id under a switcher that cannot show it. The chooser and
- * the cross-engine view need more than one engine: with one left the cockpit
- * opens on it. An empty list renders the empty state; nothing to fix.
+ * The engine list reloads (curated away in Settings, a racing bootstrap): a gone engine
+ * falls back explicitly instead of querying a stale id. Chooser and fleet need two engines.
  */
 function reconcileScope(scope: CockpitScope, engineIds: readonly string[]): ScopeFix | null {
   if (engineIds.length === 0) return null
@@ -135,9 +115,7 @@ function cockpitReducer(state: CockpitState, action: CockpitAction): CockpitStat
   switch (action.type) {
     case "enter-engine":
     case "switch-engine":
-      // Same transition from two origins (chooser/fleet vs. in-app switcher):
-      // an engine change always restarts at the overview — drill state carried
-      // over would resolve ids that belong to another engine.
+      // Drill state carried over would resolve ids of another engine.
       return initialState(action.id)
     case "to-fleet":
       return { scope: { kind: "fleet" }, stack: ROOT_STACK, goneEngineId: null }
@@ -149,20 +127,14 @@ function cockpitReducer(state: CockpitState, action: CockpitAction): CockpitStat
       return { ...state, stack: popTo(state.stack, action.to) }
     default: {
       const view = intentToView(action)
-      // Top sections are roots, not drills — selecting one resets the trail.
-      // (Cockpit-only policy; the shared pushView deliberately never resets.)
+      // Cockpit-only policy; the shared pushView never resets.
       if (isTopSection(view.section)) return { ...state, stack: [view] }
       return { ...state, stack: pushView(state.stack, view) }
     }
   }
 }
 
-/**
- * The engine the cockpit operates, as its head shows it (#322 U4): the
- * environment as a text chip ("PROD") and the engine, a select over the
- * environment→engine map when there is more than one (optgroups by
- * environment, flat for a single one).
- */
+/** #322 U4: environment chip plus engine select, optgroups by environment. */
 function EngineSwitch({
   engineId,
   environment,
@@ -209,14 +181,7 @@ function EngineSwitch({
   )
 }
 
-/**
- * The cockpit's head (#322 U20): ONE compact row — the section switch on the
- * left; the way across engines, the engine with its environment and the one
- * Refresh on the right. It replaces the sidebar that cost an inline frame
- * some 200 px before the first content. Wraps only when the frame is
- * narrower than its content; the cross-engine label shows from 56rem of head
- * width, below it the button keeps its name in `aria-label`.
- */
+/** #322 U20: one compact head row instead of a sidebar that cost ~200 px inline. */
 function CockpitHead({
   activeSection,
   onSection,
@@ -281,16 +246,11 @@ function CockpitHead({
   )
 }
 
-/**
- * The section the head highlights: the ROOT of the trail — the section the
- * user drilled in from stays active (every stack starts at a top section).
- */
 function activeSectionOf(stack: CockpitView[]): TopSection {
   const root = stack[0].section
   return root === "incidents" || root === "settings" ? root : "overview"
 }
 
-/** Why the cockpit left the engine it was on: that engine left the engine list. Nothing without one. */
 function EngineGoneNotice({ engineId }: { engineId: string | null }) {
   const locale = useLocale()
   if (!engineId) return null
@@ -301,13 +261,7 @@ function EngineGoneNotice({ engineId }: { engineId: string | null }) {
   )
 }
 
-/**
- * No engine to operate: loading or a failed engine list are the kit's view
- * states; an empty one is the app-level "no engines" surface (#322 U15): the
- * landing's product signature (the Komet, "Pulse" over the page's `h1`
- * "Operations Cockpit") over what is missing and what to do, in the card the
- * engine list would fill.
- */
+/** #322 U15: an empty engine list is the app-level "no engines" surface. */
 function EnginesEmptyState({
   hasTransport,
   enginesQuery,
@@ -346,17 +300,10 @@ function EnginesEmptyState({
   )
 }
 
-/**
- * The cockpit's navigation state, opened on the bootstrap's engine and kept
- * consistent with the engine list — both in the RENDER phase, so the chooser
- * never flashes before the bootstrap's engine and a stale engine id never
- * reaches a commit, let alone a query.
- */
+/** Both in the render phase, so the chooser never flashes and a stale engine id never reaches a query. */
 function useCockpitState(data: CockpitAppData | null, engines: ReadonlyArray<{ id: string }>) {
   const bootEngineId = data?.engineId ?? null
   const [state, dispatch] = useReducer(cockpitReducer, bootEngineId, initialState)
-  // A bootstrap delivered into this mount later (or a new one) opens on its
-  // engine too.
   useResetOnChange(bootEngineId, () => {
     if (bootEngineId) dispatch({ type: "enter-engine", id: bootEngineId })
   })
@@ -369,67 +316,39 @@ function useCockpitState(data: CockpitAppData | null, engines: ReadonlyArray<{ i
 }
 
 export function CockpitApp({ data }: { data: CockpitAppData | null }) {
-  // The query transport (AppQueryProvider). Absent when the host wires no
-  // callTool — then every useToolQuery stays disabled (pending forever), so the
-  // loading state below must not wait on the engines query.
+  // Without a host callTool every useToolQuery stays pending, so loading must not wait on it.
   const queryCallTool = useCallTool()
 
-  // Authoritative engine source: the stable, read-only `camunda7_list_engines`
-  // tool (needs no saved default itself). Decoupled from the open_cockpit
-  // bootstrap so the picker/switcher work regardless of how the app was
-  // launched.
+  // Decoupled from the open_cockpit bootstrap so picker and switcher work however the app launched.
   const enginesQuery = useToolQuery<EnginesResult>(["camunda7:engines"], CAMUNDA7_LIST_ENGINES, {})
   const engines = enginesQuery.data?.engines ?? data?.engines ?? []
-  // The environment→engine map (single default group when none is configured)
-  // — drives the sidebar switcher's optgroups.
   const engineGroups = groupEnginesByEnvironment(engines)
 
-  // Active locale from the global ProfileGate (server root) — used for the
-  // shell strings here; the rendered leaf widgets read it the same way. Theme is
-  // applied document-wide by the ProfileGate too, so the cockpit stays unaware.
   const locale = useLocale()
   const { context } = useHandOff()
 
-  // The host root's full widget registry (HostWidgetsProvider) merged under
-  // this module's own widgets: composed views (the settings tab) reference
-  // other modules' section widgets by raw id (tier-2). Own ids always win, and
-  // a host without the provider degrades to camunda7-only rendering.
+  // Composed views reference other modules' widgets by raw id (tier-2); own ids win.
   const hostWidgets = useHostWidgets()
   const cockpitWidgets = { ...hostWidgets, ...camunda7BaseWidgets }
 
   const [{ scope, stack, goneEngineId }, dispatch] = useCockpitState(data, engines)
 
-  // The cross-engine view is an analytics feature (landscape + fleet analyses
-  // need Prometheus) — offered only once the module is confirmed active, both
-  // on the landing and in the sidebar. Per-engine health stays on the picker.
+  // Fleet analyses need Prometheus, so the cross-engine view waits for analytics.
   const offerFleet = useAnalyticsActive() && engines.length > 1
   const openFleet = offerFleet ? () => dispatch({ type: "to-fleet" }) : undefined
 
-  // Pick (or switch) the active engine — navigation only, side-effect free.
-  // The cockpit threads `engine` into every view, and its model context and
-  // every Ask-AI hand-off carry it as an id (the module's server instructions
-  // tell the model to pass it on); the caller's saved
-  // default engine (which retargets every later engine-less tool call)
-  // changes only through an explicit action: the settings page or
-  // `camunda7_select_engine`.
+  // Navigation only: the saved default engine changes only via settings or `camunda7_select_engine`.
   const enterEngine = (id: string) => dispatch({ type: "enter-engine", id })
   const switchEngine = (id: string) => dispatch({ type: "switch-engine", id })
 
-  // Deterministic, client-side navigation — every view is hosted in-app and
-  // routed in-place by the reducer (no LLM round-trip, no chat handoff). Nav
-  // intents from child widgets ARE reducer actions.
   const navigate: OnNavigate = dispatch
 
-  // ── Loading / error / empty ───────────────────────────────────────────────
-  // Only a truly empty engine list blocks the cockpit: with bootstrap engines
-  // from open_cockpit we proceed even if the engines query failed, and without
-  // a query transport the state must resolve instead of loading forever.
+  // Bootstrap engines let us proceed when the engines query failed.
   if (engines.length === 0) {
     return <EnginesEmptyState hasTransport={!!queryCallTool} enginesQuery={enginesQuery} />
   }
 
-  // Every view below renders in ONE frame, so a navigation (a drill, a crumb
-  // pop, a scope change) moves focus to the new view and names it (#344 N107).
+  // #344 N107: one frame, so navigation moves focus to the new view.
   const nav = navigationOf(scope, stack, locale)
 
   if (scope.kind === "landing") {
@@ -448,7 +367,6 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
     )
   }
 
-  // ── Cross-engine (fleet) mode ─────────────────────────────────────────────
   if (scope.kind === "fleet") {
     return (
       <NavigationFocus viewKey={nav.key} label={nav.label}>
@@ -462,7 +380,6 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
   }
 
   const engineId = scope.engineId
-  // The reducer never empties the stack (pop clamps to one element).
   const current = stack[stack.length - 1]
   const activeSection = activeSectionOf(stack)
 

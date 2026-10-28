@@ -1,18 +1,4 @@
-/**
- * Test support for the metrics-contract guards — never imported by runtime
- * code. Resolves every selector of a parsed PromQL expression
- * (`promql-parse.test-support.ts`) to its contract series and asserts that
- * each label the expression names — in a matcher, a `by`/`without` grouping, an
- * `on`/`ignoring` vector match or a `group_left`/`group_right` include list —
- * is a label that operand can carry.
- *
- * Label availability propagates the way PromQL evaluates: a selector carries
- * its series' declared labels (`le` added on `_bucket`), `increase()` keeps
- * them, `sum by (a)` narrows to `a`, `histogram_quantile` consumes `le`, a
- * one-to-one `on (a)` match keeps `a`. So `sum by (a)(sum by (b)(x))` fails
- * even when `a` is declared on `x`. Unknown functions and series are reported
- * as violations instead of passing silently.
- */
+// `sum by (a)(sum by (b)(x))` fails even when `a` is declared on `x`: labels propagate the way PromQL evaluates.
 
 import {
   parsePromql,
@@ -22,18 +8,13 @@ import {
   type VectorMatching,
 } from "./promql-parse.test-support.js"
 
-// ── Series catalogue ───────────────────────────────────────────────────────
-
-/** What a series may carry: its label names plus documented label values. */
 export interface SeriesInfo {
   labels: readonly string[]
   knownValues?: Readonly<Record<string, readonly string[]>>
 }
 
-/** Resolves a series name to its declared labels, or undefined when unknown. */
 export type SeriesCatalog = (series: string) => SeriesInfo | undefined
 
-/** The subset of a `metrics-contract.json` entry the catalogue needs. */
 export interface ContractMetricLike {
   promName: string
   type: string
@@ -41,13 +22,7 @@ export interface ContractMetricLike {
   knownValues?: Record<string, string[]>
 }
 
-/**
- * Catalogue over the contract: counters/gauges by `promName`, histograms as
- * their `_sum`/`_count`/`_bucket` series (`_bucket` adds `le`). The bare
- * histogram name is deliberately absent — classic histograms expose no such
- * series, so a query on it reads nothing. `extra` adds non-contract series
- * (Prometheus' own `ALERTS`, `up`, …) with their documented labels.
- */
+// The bare histogram name is absent: classic histograms expose no such series.
 export function contractCatalog(
   metrics: readonly ContractMetricLike[],
   extra: Readonly<Record<string, SeriesInfo>> = {},
@@ -65,8 +40,6 @@ export function contractCatalog(
   }
   return (name) => series.get(name)
 }
-
-// ── Label checker ──────────────────────────────────────────────────────────
 
 type Scope =
   | { kind: "vector"; labels: ReadonlySet<string>; series: readonly string[] }
@@ -101,13 +74,10 @@ const SAMPLE_SELECTING = new Set(["topk", "bottomk", "limitk", "limit_ratio"])
 const isWildcard = (alt: string) => alt === ".*" || alt === ".+" || alt.startsWith("$")
 
 export interface LabelCheck {
-  /** Human-readable contract violations; empty when the expression is clean. */
   violations: string[]
-  /** Every series the expression selects. */
   series: string[]
   /** Label references verified — lets a caller detect a silently empty scan. */
   checkedLabels: number
-  /** Labels the result can carry (undefined for a scalar/string result). */
   resultLabels: string[] | undefined
 }
 
@@ -168,7 +138,6 @@ class LabelChecker {
     return scope
   }
 
-  /** A hardcoded value of a label with documented `knownValues` must be one of them. */
   private checkKnownValues(series: string, info: SeriesInfo, m: Matcher): void {
     const known = info.knownValues?.[m.label]
     if (!known) return
@@ -283,10 +252,6 @@ function binaryLabels(
   return new Set(lhs.labels)
 }
 
-/**
- * Parse `query` and check every label it names against `catalog`. Throws on a
- * syntax outside the supported subset; everything else lands in `violations`.
- */
 export function checkQueryLabels(query: string, catalog: SeriesCatalog): LabelCheck {
   const checker = new LabelChecker(catalog)
   const result = checker.eval(parsePromql(query))

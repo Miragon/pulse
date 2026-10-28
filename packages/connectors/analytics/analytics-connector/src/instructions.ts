@@ -1,10 +1,8 @@
 import { PERIODS } from "@miragon/pulse-analytics-client"
 
 /**
- * The analytics module's slice of the MCP server `instructions`
- * (`analyticsModule.instructions`, joined by the composition root). States
- * once what the `engine` parameter of every analytics tool means — it shares
- * the camunda7 parameter's NAME but not its semantics.
+ * States once what `engine` means for analytics tools: it shares the camunda7 parameter's NAME but
+ * not its semantics.
  */
 export function analyticsInstructions(): string {
   return [

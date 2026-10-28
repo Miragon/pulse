@@ -11,12 +11,6 @@ import {
   describeExecutionSummary,
 } from "./model-descriptions.js"
 
-/**
- * The analytics-dashboard, comparison and heatmap model descriptions (#336
- * facts in #338's modelContextText): the scope is the data's echo, window
- * flows stay apart from the live gauges, and an unmeasured figure is left out.
- */
-
 const dashboard = (over: Partial<AnalyticsDashboardData> = {}): AnalyticsDashboardData => ({
   processDefinitionKey: null,
   period: "7d",

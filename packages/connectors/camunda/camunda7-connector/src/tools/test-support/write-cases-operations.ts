@@ -1,8 +1,3 @@
-/**
- * Test support (imported only by `write-tools.wire.test.ts`): the wire cases
- * of the operations write tools — external tasks, incidents, jobs, batches,
- * migrations, deployments. See `write-cases.ts` for the case shape.
- */
 import type { WriteCase } from "./write-cases.js"
 
 const BATCH = { id: "b-1", type: "set-job-retries", totalJobs: 2, jobsCreated: 0 }

@@ -8,12 +8,7 @@ import { triageInstancesHandOff } from "./process-instances/list-header.js"
 import { scopingDefinitionKey } from "./lib/hand-off.js"
 import { handOffFor } from "./lib/hand-off.test-support.js"
 
-/**
- * A number a hand-off states and the scope it passes describe the SAME set
- * (#335/#336 numbers in #338 hand-offs): an id only scopes what it really
- * names, and a view's echoed filters travel with its counts — so the model
- * never re-queries a wider (or an empty) set than the one the operator sees.
- */
+/** A hand-off's number and its scope describe the SAME set (#335/#336 in #338). */
 
 // A key over ~25 characters with UUID ids: the engine stores a bare id.
 const LONG_KEY = "invoice_approval_process_main"

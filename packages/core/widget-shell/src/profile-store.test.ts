@@ -26,11 +26,7 @@ describe("defaultProfileRecord", () => {
   })
 })
 
-/**
- * Behavioral contract every ProfileStore implementation must satisfy — run
- * against each store so the implementations cannot drift apart. `makeStore`
- * must return a store whose keys start out absent.
- */
+/** Run against each store so implementations cannot drift; `makeStore` keys start absent. */
 function profileStoreContract(makeStore: () => Promise<ProfileStore>) {
   it("returns undefined for an unknown key", async () => {
     const store = await makeStore()
@@ -42,14 +38,11 @@ function profileStoreContract(makeStore: () => Promise<ProfileStore>) {
 
     const created = await store.save("sess-1", { language: "de" })
     expect(created.language).toBe("de")
-    // Untouched fields keep their defaults.
     expect(created.modules).toEqual({})
 
-    // A single-field update must not reset language.
     const updated = await store.save("sess-1", { modules: { analytics: { defaultPeriod: "7d" } } })
     expect(updated.modules).toEqual({ analytics: { defaultPeriod: "7d" } })
     expect(updated.language).toBe("de")
-    // createdAt is preserved across saves; updatedAt advances (or is unchanged).
     expect(updated.createdAt).toBe(created.createdAt)
     expect(updated.updatedAt >= created.updatedAt).toBe(true)
   })
@@ -62,7 +55,6 @@ function profileStoreContract(makeStore: () => Promise<ProfileStore>) {
       analytics: { defaultPeriod: "30d" },
       other: { flag: true },
     })
-    // A save without `modules` leaves all slices untouched.
     const untouched = await store.save("sess-1", { language: "de" })
     expect(untouched.modules).toEqual(updated.modules)
   })
@@ -73,9 +65,6 @@ function profileStoreContract(makeStore: () => Promise<ProfileStore>) {
       modules: { camunda7: { defaultEngineId: "prod-a" }, analytics: { defaultPeriod: "30d" } },
     })
     const updated = await store.save("sess-1", { modules: { camunda7: { pinned: ["d1"] } } })
-    // Per-key one-level MERGE (inside the store's lock, so concurrent saves
-    // of disjoint fields in the SAME slice both survive); a field clears via
-    // explicit `undefined`, tested below.
     expect(updated.modules).toEqual({
       camunda7: { defaultEngineId: "prod-a", pinned: ["d1"] },
       analytics: { defaultPeriod: "30d" },
@@ -105,8 +94,7 @@ function profileStoreContract(makeStore: () => Promise<ProfileStore>) {
 
   it("keeps both of two concurrent saves of disjoint top-level fields", async () => {
     const store = await makeStore()
-    // The settings page has two independent save buttons — overlapping saves
-    // must both land: every store merges INSIDE its per-key serialization.
+    // The settings page has two independent save buttons; overlapping saves must both land.
     await Promise.all([
       store.save("sess-1", { modules: { analytics: { defaultPeriod: "30d" } } }),
       store.save("sess-1", { language: "de" }),
@@ -118,11 +106,8 @@ function profileStoreContract(makeStore: () => Promise<ProfileStore>) {
 
   it("keeps concurrent saves from DIFFERENT modules — no module's update is lost", async () => {
     const store = await makeStore()
-    // Exactly the tool paths: each module's save tool hands the store its
-    // patch (`saveModuleSlice`); the model may fire camunda7_select_engine
-    // and analytics_save_settings in one turn. Repeated, because an
-    // unserialized read-merge-write loses one of them only when the two
-    // calls interleave.
+    // The model may fire two modules' save tools in one turn. Repeated, because a lost
+    // write shows only when the two calls interleave.
     for (let round = 0; round < 10; round += 1) {
       const key = `user-${round}`
       await store.save(key, { modules: { camunda7: { pinnedDashboardIds: ["d1"] } } })
@@ -142,11 +127,8 @@ function profileStoreContract(makeStore: () => Promise<ProfileStore>) {
 
   it("keeps concurrent saves of different fields in the SAME slice: a stale value never wins", async () => {
     const store = await makeStore()
-    // The model fires camunda7_select_engine and camunda7_save_settings
-    // in one turn, and the field the select changes ALREADY holds a value.
-    // A save tool that hands the store a pre-read slice (read outside the
-    // lock) writes that stale value back. The patch alone, merged inside the
-    // store's per-key serialization, keeps both.
+    // A save tool handing the store a slice pre-read outside the lock would write a stale
+    // value back over the select's change.
     for (let round = 0; round < 10; round += 1) {
       const key = `user-${round}`
       await store.save(key, { modules: { camunda7: { defaultEngineId: "prod-a", extra: 1 } } })
@@ -218,8 +200,6 @@ describe("createFileSystemProfileStore", () => {
     const file = path.join(dir, "early.json")
     await writeFile(file, JSON.stringify(V1_RECORD), "utf-8")
 
-    // No error, no reset: the fields every record carries survive; the flat
-    // module preferences of the pre-baseline shape read as the defaults.
     expect(await store.get("early")).toEqual({
       id: "early",
       language: "de",
@@ -231,8 +211,6 @@ describe("createFileSystemProfileStore", () => {
 
     const saved = await store.save("early", { modules: { analytics: { defaultPeriod: "7d" } } })
     expect(saved).toMatchObject({ language: "de", modules: { analytics: { defaultPeriod: "7d" } } })
-    // Stamped at the baseline; the keys it does not know stay inert, raw —
-    // the retired theme preference included.
     expect(JSON.parse(await readFile(file, "utf-8"))).toMatchObject({
       schemaVersion: 3,
       theme: "dark",
@@ -266,12 +244,10 @@ describe("createFileSystemProfileStore", () => {
     const file = path.join(dir, "themed.json")
     await writeFile(file, JSON.stringify(THEMED_RECORD), "utf-8")
 
-    // The view never carries it (widgets follow the host's theme) …
     const read = await store.get("themed")
     expect(read).toMatchObject({ id: "themed", language: "de", modules: {} })
     expect(read).not.toHaveProperty("theme")
 
-    // … and a save merges over the raw document, so it stays there, unread.
     const saved = await store.save("themed", { language: "en" })
     expect(saved).not.toHaveProperty("theme")
     expect(JSON.parse(await readFile(file, "utf-8"))).toMatchObject({
@@ -281,7 +257,6 @@ describe("createFileSystemProfileStore", () => {
   })
 })
 
-/** A current-shape record an earlier build saved with its theme preference. */
 const THEMED_RECORD = {
   id: "themed",
   language: "de",
@@ -292,7 +267,6 @@ const THEMED_RECORD = {
   schemaVersion: 3,
 }
 
-/** A record as a pre-baseline (v1) build persisted it: flat module fields. */
 const V1_RECORD = {
   id: "early",
   language: "de",
@@ -305,10 +279,7 @@ const V1_RECORD = {
   schemaVersion: 1,
 }
 
-// Opt-in integration slice (like test:host): needs a reachable Postgres, so it
-// only runs when TEST_DATABASE_URL is set — `pnpm test:pg` at the repo root
-// points it at the compose stack's dedicated test database. An own schema
-// isolates it from the other packages' suites sharing that database.
+// Opt-in: only with TEST_DATABASE_URL (`pnpm test:pg`); an own schema isolates it.
 const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL
 const TEST_SCHEMA = "widget_shell_profile_store_test"
 
@@ -373,8 +344,6 @@ describe.skipIf(!TEST_DATABASE_URL)("createPostgresProfileStore", () => {
     const rows = await sql<{ profile: Record<string, unknown> }[]>`
       SELECT profile FROM user_profiles WHERE key = 'early'
     `
-    // The keys this build does not know stay inert in the row, the retired
-    // theme preference included.
     expect(rows[0]?.profile).toMatchObject({
       schemaVersion: 3,
       theme: "dark",
@@ -384,9 +353,7 @@ describe.skipIf(!TEST_DATABASE_URL)("createPostgresProfileStore", () => {
 
   it("merges concurrent saves of disjoint fields in the SAME module slice", async () => {
     const store = createPostgresProfileStore({ sql })
-    // The one-level slice merge runs inside the per-key lock, so neither
-    // field may get lost even though both writers pre-read the same (empty)
-    // slice outside it.
+    // Both writers pre-read the same empty slice; the merge inside the lock keeps both.
     await Promise.all([
       store.save("sess-2", { modules: { camunda7: { defaultEngineId: "prod-a" } } }),
       store.save("sess-2", { modules: { camunda7: { pinned: ["d1"] } } }),

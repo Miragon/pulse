@@ -15,12 +15,10 @@ import { Camunda7StandaloneShell, findStepEngineId } from "./standalone-shell.js
 
 afterEach(() => {
   cleanup()
-  // The toolkit query client is a singleton — clear it so one test's engines
-  // result cannot leak into the next test's resolution path.
+  // Singleton client: one test's engines result must not leak into the next.
   queryClient.clear()
 })
 
-/** Minimal stand-in for a standalone widget that drills via `useNav()`. */
 function DrillProbe() {
   const go = useNav()
   return (
@@ -45,16 +43,11 @@ const Harness: ComponentType<Record<string, unknown>> = () => (
   </Camunda7StandaloneShell>
 )
 
-/** Stand-in for a FOREIGN module's section widget, as the host bundle registers it. */
 const ForeignSection = () => <div>analytics-section</div>
 
-/** A CUSTOM module's section — an id this package has never heard of. */
 const CustomSection = () => <div>acme-section</div>
 
-/**
- * The shell as the host root mounts it: inside the full-registry provider,
- * which bundles the shell's settings page next to the modules' sections.
- */
+// As the host root mounts it, inside the full-registry provider.
 const HarnessWithHostWidgets: ComponentType<Record<string, unknown>> = () => (
   <HostWidgetsProvider
     widgets={{
@@ -69,7 +62,6 @@ const HarnessWithHostWidgets: ComponentType<Record<string, unknown>> = () => (
   </HostWidgetsProvider>
 )
 
-/** Feed fixtures for the drilled views' self-fetching widgets. */
 const PROFILE_FEED = {
   profile: {
     id: "sess-1",
@@ -117,7 +109,6 @@ const followUps = (actions: HostActionLog[]) =>
 
 const originHidden = () => screen.getByText("origin-content").closest("[hidden]") !== null
 
-/** The shell under a host that offers fullscreen, recording what the view asks for. */
 function harnessWithFullscreen(displayMode: string, requests: string[]) {
   const control = {
     displayMode,
@@ -133,8 +124,7 @@ function harnessWithFullscreen(displayMode: string, requests: string[]) {
 }
 
 describe("Camunda7StandaloneShell", () => {
-  // #344 N109: the origin's toolbar is hidden while drilled, so the drill
-  // brings its own fullscreen switch — and only where the host offers it.
+  // #344 N109: the origin's toolbar is hidden while drilled, so the drill brings its own fullscreen switch.
   it("offers fullscreen in a drill, and the way back from it", async () => {
     const requests: string[] = []
     renderShell({}, [], harnessWithFullscreen("inline", requests))
@@ -187,8 +177,7 @@ describe("Camunda7StandaloneShell", () => {
     fireEvent.click(screen.getByText("drill-settings"))
 
     const trail = await screen.findByRole("navigation", { name: "Breadcrumb" })
-    // Root crumb = the origin (fixture output carries no title → fallback),
-    // current crumb = the drilled view.
+    // The fixture output carries no title, so the root crumb is the fallback.
     expect(trail.textContent).toContain("Start")
     expect(trail.textContent).toContain("Settings")
     expect(originHidden()).toBe(true)
@@ -202,9 +191,6 @@ describe("Camunda7StandaloneShell", () => {
     fireEvent.click(screen.getByText("drill-settings"))
 
     await screen.findByRole("navigation", { name: "Breadcrumb" })
-    // The settings view is the shell's page: one row per `<module>:settings`
-    // widget the host registered — including a CUSTOM module's section,
-    // which this package knows nothing about.
     expect(await screen.findByText("analytics-section")).toBeTruthy()
     expect(await screen.findByText("acme-section")).toBeTruthy()
   })
@@ -252,8 +238,7 @@ describe("Camunda7StandaloneShell", () => {
     const actions: HostActionLog[] = []
     renderShell(
       {
-        // A hanging in-widget call (approval gate, broken transport): the shell
-        // must never trap the user on the loading state.
+        // A hanging call (approval gate, broken transport) must not trap the user on loading.
         camunda7_list_engines: () => new Promise(() => {}),
       },
       actions,

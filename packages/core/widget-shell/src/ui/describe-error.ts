@@ -3,16 +3,7 @@ import { ERROR_LABELS, type ErrorKindLabels, type ErrorSource } from "./error-la
 
 export type { ErrorSource } from "./error-labels.js"
 
-/**
- * What kind of failure an error text describes:
- * - `unreachable`: no connection, or the source answered 502/503;
- * - `timeout`: the deadline passed (the client's, or a 408/504);
- * - `notOnServer`: the tool is not on this server (its module is inactive);
- * - `unauthorized` / `forbidden`: the source refused the server (401 / 403);
- * - `notFound`: the entry is gone (404);
- * - `failed`: any other error status or engine exception;
- * - `unknown`: nothing the kit recognises.
- */
+/** `unreachable` covers 502/503, `timeout` 408/504, `notOnServer` an inactive module. */
 export const ERROR_KINDS = [
   "unreachable",
   "timeout",
@@ -26,43 +17,25 @@ export const ERROR_KINDS = [
 
 export type ErrorKind = (typeof ERROR_KINDS)[number]
 
-/** The facts `classifyError` reads from an error, before any words. */
 export interface ErrorFacts {
   kind: ErrorKind
-  /** HTTP status the text names, if any. */
   status?: number
   source: ErrorSource
-  /** The raw text (the error's message), or null for an error without one. */
   raw: string | null
-  /**
-   * The source's own words, readable: the raw text without its bracketed
-   * status code, the engine-id suffix and the write caveat
-   * ("Cannot resolve incident"); null when nothing is left.
-   */
+  /** The raw text without bracketed status, engine-id suffix and write caveat; null when nothing is left. */
   reason: string | null
-  /**
-   * The text says a write may still have gone through (the camunda7
-   * client's caveat for a write whose answer never came: a timeout, a
-   * connection lost mid-request). Retrying blindly could apply it twice.
-   */
+  /** A write whose answer never came may have gone through; retrying blindly could apply it twice. */
   mayHaveApplied: boolean
 }
 
-/** An error in words: for the toolkit's `ErrorState` (title, description, details). */
 export interface DescribedError {
   kind: ErrorKind
   /** What happened, one line ("Die Engine prod ist nicht erreichbar (HTTP 503)"). */
   title: string
-  /** What you can do next. */
   hint: string
-  /** The raw reason for the collapsed "Details"; null when there was none. */
   details: string | null
 }
 
-/**
- * `[503 ProcessEngineException] …` (the camunda7 client's engine responses,
- * `withToolErrors`' `[code] …`) and `Prometheus query failed (503 …)`.
- */
 const BRACKET_STATUS = /\[(\d{3})(?:[\s\]])/
 const PROMETHEUS_STATUS = /Prometheus query failed \((\d{3})\b/
 /** The engine id the camunda7 client appends or leads with. */
@@ -76,19 +49,11 @@ const UNREACHABLE =
   /\bunreachable\b|\bconnection to \S+(?: \S+)? failed\b|ECONNREFUSED|ENOTFOUND|EHOSTUNREACH|ENETUNREACH|EAI_AGAIN|\bfailed to fetch\b|\bfetch failed\b|\bnetworkerror\b|\bload failed\b/i
 /** The camunda7 client's caveat on a write whose outcome is unknown. */
 const WRITE_CAVEAT = /the \w+ may still have been applied\b/i
-/** The bracketed status and exception: `[500 ProcessEngineException] `. */
 const STATUS_CODE = /\[\d{3}(?:\s[^\]\n]{0,120})?\]\s*/
-/** Any other leading bracketed code (`withToolErrors`' `[code] …`). */
 const LEADING_CODE = /^\[[^\]\n]{1,120}\]\s*/
-/** The engine id the camunda7 client appends: ` (engine prod)`. */
 const ENGINE_SUFFIX = /\(engine [^\s)]+\)$/
 
-/*
- * The cuts below trim whitespace with String#trimEnd instead of `\s*` in the
- * patterns: a leading `\s*` on an unanchored pattern backtracks polynomially
- * over a long whitespace run (CodeQL js/polynomial-redos), and these helpers
- * read error text that comes from the wire.
- */
+/** Whitespace is trimmed with trimEnd, not `\s*`: a leading `\s*` on an unanchored pattern backtracks polynomially (CodeQL js/polynomial-redos) on wire text. */
 
 /** The text before the write caveat, without the separator that led into it. */
 function withoutWriteCaveat(text: string): string {
@@ -98,14 +63,12 @@ function withoutWriteCaveat(text: string): string {
   return /[—;-]$/.test(head) ? head.slice(0, -1).trimEnd() : head
 }
 
-/** The text without the trailing ` (engine <id>)` the client appends. */
 function withoutEngineSuffix(text: string): string {
   const trimmed = text.trimEnd()
   const suffix = ENGINE_SUFFIX.exec(trimmed)
   return suffix ? trimmed.slice(0, suffix.index).trimEnd() : text
 }
 
-/** The raw text as the source's own words (see {@link ErrorFacts.reason}). */
 function reasonOf(text: string): string | null {
   const rest = withoutWriteCaveat(text)
   const code = STATUS_CODE.exec(rest)
@@ -144,7 +107,6 @@ function sourceOf(text: string): ErrorSource {
   return { type: "unknown" }
 }
 
-/** The kind an HTTP status stands for. */
 function kindOfStatus(status: number): ErrorKind {
   if (status === 401) return "unauthorized"
   if (status === 403) return "forbidden"
@@ -162,12 +124,7 @@ function kindOf(text: string, status: number | undefined): ErrorKind {
   return "unknown"
 }
 
-/**
- * The facts of an engine or transport error, read from its text (the wire
- * carries text only: a tool's `isError` answer, a JSON-RPC error, a failed
- * fetch) plus a numeric `status`/`httpStatus` when the object has one. Pure:
- * no words, no locale.
- */
+/** The wire carries text only, so the facts are read from it. Pure: no words, no locale. */
 export function classifyError(error: unknown): ErrorFacts {
   const raw = rawText(error)
   const text = raw ?? ""
@@ -183,23 +140,10 @@ export function classifyError(error: unknown): ErrorFacts {
 }
 
 export interface DescribeErrorOptions {
-  /**
-   * The title for an error the kit cannot classify, in the caller's words
-   * ("Die Prozessliste konnte nicht geladen werden"). Default: the kit's
-   * "Das hat nicht geklappt" / "Something went wrong".
-   */
   fallbackTitle?: string
 }
 
-/**
- * An engine or transport error in the words of the active locale (en/de by
- * `supportedLanguage`, English otherwise): what happened, what you can do,
- * and the raw text for a collapsed "Details" — never the raw
- * "[503 ProcessEngineException] …" as the headline. Feed the result to the
- * toolkit's `ErrorState` (`title`, `description` = hint, `details`); the
- * kit's `ViewDataState`, `QueryFallback`, `useDetailView`, `ConfirmDialog`
- * and `useActionFeedback` do.
- */
+/** Never the raw "[503 ProcessEngineException] …" as the headline; feed the result to the toolkit's `ErrorState`. */
 export function describeError(
   error: unknown,
   locale: string | undefined,

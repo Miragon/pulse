@@ -5,7 +5,7 @@ import { describeProfile, profileSurface } from "./user-profile-context.js"
 
 const FORM = { defaultDashboardId: "ops-board" }
 
-/** The section's model context on `operations` (the save tool IS registered there). */
+// The save tool IS registered on `operations`.
 async function contextText(canSave: boolean, dashboardsAnswered = true): Promise<string> {
   const surface = await liveSurface("operations")
   expect(surface.tools).toContain("camunda7_save_settings")
@@ -22,8 +22,7 @@ describe("camunda7's settings section model context", () => {
     expect(text).toContain("Tools: camunda7_save_settings, load-dashboard")
   })
 
-  // A gateway deployment on camunda7:operations without OAuth registers the
-  // save, but no request has an identity to save under: every save refuses.
+  // A gateway deployment without OAuth registers the save, but no request has an identity: every save refuses.
   it("never names the save tool while preferences are read-only for the caller", async () => {
     const text = await contextText(false)
     expect(text).toContain("they are read-only in this deployment")

@@ -1,10 +1,4 @@
-/**
- * Test support (imported only by `write-tools.wire.test.ts`): the wire cases
- * of `camunda7_complete_task`, whose endpoint follows from the task
- * (`lib/task-completion.ts`) — `/submit-form` for a task with form fields,
- * `/complete` without, `/resolve` (or the form) for a delegated task. See
- * `write-cases.ts` for the case shape.
- */
+/** The endpoint follows from the task (`lib/task-completion.ts`). */
 import type { FakeRoutes } from "./fake-engine.js"
 import type { WireRequest, WriteCase } from "./write-cases.js"
 
@@ -127,8 +121,7 @@ export const TASK_WRITE_CASES: WriteCase[] = [
       approved: { type: "Boolean", value: true, valueInfo: {} },
       comment: { type: "String", value: "earlier", valueInfo: {} },
     }),
-    // priority keeps 90 (not its default 50); channel holds no value yet, so
-    // the engine initializes it; approved is readonly and comment has no default.
+    // priority keeps 90 (not its default 50); channel has no value yet, so the engine initializes it.
     wire: [
       READ_TASK,
       READ_BPMN,

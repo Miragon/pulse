@@ -5,12 +5,6 @@ import { act, cleanup, renderHook, waitFor } from "@testing-library/react"
 import { AppQueryProvider, queryClient } from "@miragon/mcp-toolkit-ui"
 import { usePagedListView } from "./use-paged-list-view.js"
 
-/**
- * usePagedListView on the real toolkit query stack (like
- * use-paged-view-data.test.tsx): one fake tool transport, retries off, the
- * 300 ms search debounce on real timers.
- */
-
 interface Page {
   items: string[]
   total: number
@@ -48,21 +42,18 @@ function setup(opts?: { initialData?: Page | null; filtersActive?: boolean }) {
   )
 }
 
-/** The page-0 reads sent with exactly these filter args. */
 const page0Calls = (args: Record<string, unknown>) =>
   callTool.mock.calls.filter(
     ([, sent]) =>
       JSON.stringify(sent) === JSON.stringify({ ...args, firstResult: 0, maxResults: 2 }),
   )
 
-/** A tool answer that waits until the test lands it. */
 function deferred() {
   let land!: (value: unknown) => void
   const promise = new Promise((resolve) => (land = resolve))
   return { promise, land }
 }
 
-/** Past the search box's 300 ms debounce. */
 const debounce = () => act(() => new Promise((resolve) => setTimeout(resolve, 350)))
 
 const toolkitDefaults = queryClient.getDefaultOptions()
@@ -100,8 +91,7 @@ describe("usePagedListView", () => {
 
   it("drops the handed-in page 0 once a search or filter is active", async () => {
     const { result, rerender } = setup({ initialData: PAGE })
-    // Unfiltered: the handed-in page renders — as the seed of the unfiltered
-    // page-0 query, which stays live for a write's refetch.
+    // Unfiltered: the handed-in page is the seed of a query that stays live.
     expect(result.current.paged.items).toEqual(["a", "b"])
     expect(
       queryClient.getQueryData([
@@ -118,8 +108,7 @@ describe("usePagedListView", () => {
     await debounce()
     // The filtered view must come from the feed, not the unfiltered page …
     await waitFor(() => expect(page0Calls({ scope: "s1", nameLike: "x" })).toHaveLength(1))
-    // … but until it answers, the handed-in rows stay on screen (#341 N123):
-    // the list — and the search box above it — never unmounts mid-search.
+    // … but until it answers the handed-in rows stay (#341 N123).
     expect(result.current.paged.firstPage).toBe(PAGE)
     expect(result.current.paged.items).toEqual(["a", "b"])
     expect(result.current.paged.loading).toBe(false)
@@ -138,8 +127,7 @@ describe("usePagedListView", () => {
     const { result, rerender } = setup({ initialData: EMPTY })
     expect(result.current.interacted).toBe(false)
 
-    // A chip is in flight: the unfiltered (empty) result stays on screen, and
-    // its empty state must not read "no match" for a filter nobody answered.
+    // In flight: the empty state must not read "no match" for a filter nobody answered.
     const chip = deferred()
     callTool.mockReturnValueOnce(chip.promise)
     rerender({ filtersActive: true })

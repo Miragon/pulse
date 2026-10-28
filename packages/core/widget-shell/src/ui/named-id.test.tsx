@@ -5,11 +5,7 @@ import { NamedId } from "./named-id.js"
 
 afterEach(cleanup)
 
-/**
- * Names before ids (#322 U13), ONE look in every module: camunda7's tables
- * and analytics' (whose landscape matrix sits inside camunda7's cross-engine
- * overview) render the same process the same way.
- */
+/** #322 U13: ONE look in every module. */
 describe("NamedId", () => {
   it("puts the name first, dense and 600, and the id quietly below in mono", () => {
     const { container } = render(<NamedId name="Bike Leasing" id="miraveloLeasing" />)

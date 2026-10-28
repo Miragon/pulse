@@ -8,60 +8,26 @@ import { withCallerSignal, type Client } from "@miragon/pulse-camunda7-client"
 import type { EngineProvider } from "../engine-provider.js"
 import { providerForEntry } from "../providers/index.js"
 
-// Engine-config vocabulary lives next to the provider port; re-exported here
-// so existing importers keep their stable path.
+// Re-exported so existing importers keep their path.
 export type { EngineAuth, EngineEntry, EngineFlavor } from "../engine-provider.js"
 import type { EngineEntry } from "../engine-provider.js"
 
-/** Per-engine metadata carried on each backend-registry entry. */
 export interface EngineMeta {
   baseUrl: string
   cockpitUrl?: string
-  /** The vendor provider resolved from the entry's `flavor` at boot. */
   provider: EngineProvider
 }
 
-/**
- * Engine routing for the camunda7 module. Wraps the toolkit's generic
- * {@link BackendRegistry} (id validation, single-default fallback) alongside
- * the static configured engine list and the injected default-engine lookup.
- *
- * There is deliberately NO in-memory selection state: the server is
- * stateless, and such state would break behind any load balancer with more
- * than one replica. The durable equivalent is the signed-in caller's
- * `modules.camunda7.defaultEngineId` profile field, surfaced here as
- * {@link EngineRegistry.defaultEngineId} and consulted per call by
- * [[resolveEngine]] when no explicit override is given.
- */
+/** No in-memory selection state: it would break behind more than one replica; the durable equivalent is the caller's saved `defaultEngineId`. */
 export interface EngineRegistry {
   backends: BackendRegistry<Client, EngineMeta>
   engines: EngineEntry[]
-  /**
-   * The caller's saved default engine (undefined when none is saved, no
-   * caller identity resolves, or the store is unreachable — the lookup is
-   * advisory and must never throw). Injected by the plugin so this module's
-   * lib stays free of profile plumbing; async because it reads the profile
-   * store. Handed the tool call's `ctx` when there is one (the caller
-   * resolves from it), nothing for pipeline steps. Not consulted when only
-   * one engine is configured.
-   */
+  /** Advisory, must never throw; not consulted when only one engine is configured. */
   defaultEngineId?: (call?: EngineCallContext) => Promise<string | undefined>
-  /**
-   * Whether the CURRENT caller could save a default engine — the toolset
-   * allows the profile write AND a caller identity resolves (from the tool
-   * call's `ctx`, the same ctx-first rule as `defaultEngineId`). Decides
-   * whether {@link EngineNotSelectedError} points at `camunda7_select_engine`:
-   * a hint the caller cannot follow costs a dead round trip. Absent = no.
-   */
+  /** Gates the `camunda7_select_engine` hint: a hint the caller cannot follow costs a dead round trip. */
   canSaveDefault?: (call?: EngineCallContext) => boolean
 }
 
-/**
- * Builds an {@link EngineRegistry} from the configured engines and a factory
- * that creates the REST client for each. `opts.defaultEngineId` is the saved
- * per-user default lookup (see [[profileDefaultEngineId]]); tests inject a
- * stub, production wires the profile-store read.
- */
 export function createEngineRegistry(
   engines: EngineEntry[],
   clientFor: (engine: EngineEntry) => Client,
@@ -71,8 +37,7 @@ export function createEngineRegistry(
     engines.map((e) => ({
       id: e.id,
       client: clientFor(e),
-      // providerForEntry throws on an unknown flavor — a misconfigured engine
-      // fails the boot instead of producing silently wrong cockpit links.
+      // Throws on an unknown flavor: fail the boot rather than emit wrong cockpit links.
       meta: { baseUrl: e.baseUrl, cockpitUrl: e.cockpitUrl, provider: providerForEntry(e) },
     })),
     { label: "engine" },
@@ -85,21 +50,7 @@ export function createEngineRegistry(
   }
 }
 
-/**
- * Thrown when an operations tool is invoked without a per-call `engine`, no
- * default engine is saved for the caller, and the registry holds more than
- * one engine.
- *
- * The message lists the available engine ids because the error path only
- * serialises code + message (the structured `availableEngines` field never
- * reaches the model) — naming them here saves the LLM a
- * `camunda7_list_engines` roundtrip before it can pick one. It names
- * `camunda7_select_engine` only when `canSaveDefault`: without a caller
- * identity or under a read-only toolset the save would refuse. `selector`
- * names how the caller passes an engine — the tool parameter by default, the
- * `camunda7:engine` view key for a pipeline step (render-view has no
- * `engine` parameter).
- */
+/** Lists the engine ids in the message: only code + message reach the model, so this saves a `camunda7_list_engines` round trip. */
 export class EngineNotSelectedError extends Error {
   readonly code = "ENGINE_NOT_SELECTED" as const
   readonly availableEngines: EngineEntry[]
@@ -133,14 +84,7 @@ export class UnknownEngineError extends Error {
   }
 }
 
-/**
- * The caller's saved default, validated against the CONFIGURED engines: a
- * stored id that no longer matches any engine degrades to "no default"
- * (single-default fallback or {@link EngineNotSelectedError}) instead of
- * failing every call on a stale preference. With one engine configured the
- * preference cannot change the outcome, so the per-call profile read is
- * skipped entirely.
- */
+/** A stale stored id degrades to "no default" instead of failing every call. */
 async function savedDefault(
   registry: EngineRegistry,
   call: EngineCallContext | undefined,
@@ -150,29 +94,15 @@ async function savedDefault(
   return id && registry.engines.some((e) => e.id === id) ? id : undefined
 }
 
-/**
- * The slice of a tool call's context engine calls honor: mcp-use's handler
- * `ctx` satisfies it structurally (`ctx.signal` aborts when the MCP client
- * cancels the request or drops the connection; `ctx.auth` names the caller
- * whose saved default engine routes the call).
- */
+/** mcp-use's handler `ctx` satisfies this structurally. */
 export interface EngineCallContext {
   signal?: AbortSignal
   auth?: unknown
 }
 
 /**
- * Resolves an engine for the current tool call (precedence: explicit `override`
- * > the caller's saved default engine > the only configured engine, else
- * throws). Thin adapter over the toolkit backend registry that re-exposes the
- * camunda7 ergonomic shape and re-throws the toolkit's failures as the
- * module's own `EngineNotSelectedError` / `UnknownEngineError` so the error
- * contract (codes, `availableEngines`, the remediation hint) is preserved.
- *
- * Pass the handler's `ctx` as `call` so the saved default is the CALLER's
- * (resolved from `ctx.auth`) and the returned client's READS abort with the
- * MCP request (`withCallerSignal` — writes always run to completion or the
- * client's own deadline).
+ * Precedence: `override` > the caller's saved default > the only engine.
+ * Pass the handler's `ctx` so reads abort with the MCP request (writes run to completion).
  */
 export async function resolveEngine(
   override: string | undefined,
@@ -192,8 +122,7 @@ export async function resolveEngine(
       engineId: backend.id,
       baseUrl: backend.meta?.baseUrl ?? "",
       cockpitUrl: backend.meta?.cockpitUrl,
-      // Meta is always set by createEngineRegistry; the fallback only guards
-      // registries built outside it (tests) and resolves to the default flavor.
+      // Fallback only for registries built outside createEngineRegistry (tests).
       provider: backend.meta?.provider ?? providerForEntry({ id: backend.id }),
     }
   } catch (e) {
@@ -208,24 +137,12 @@ export async function resolveEngine(
   }
 }
 
-/**
- * AppConfig the camunda7 plugin hands to its pipeline steps (used by the
- * framework `render-view` / builder path). Mirrors the `appConfig` returned from
- * `createPlugin` — the steps must resolve a per-engine client from the registry
- * rather than receiving a single pre-bound client.
- */
 export interface Camunda7StepAppConfig {
   registry: EngineRegistry
   engines: EngineEntry[]
 }
 
-/**
- * Resolve the engine for a pipeline step. Steps have no per-call `engine`
- * argument, so they honour an optional `camunda7:engine` view key, then fall
- * back to the caller's saved default engine or the only configured engine
- * (same precedence as {@link resolveEngine}). With several engines and no
- * default, the error names the view key — the step's only engine selector.
- */
+/** Steps have no `engine` argument, so the error names the `camunda7:engine` view key instead. */
 export async function resolveStepEngine(
   appConfig: Camunda7StepAppConfig,
   override?: string,

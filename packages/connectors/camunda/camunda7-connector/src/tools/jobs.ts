@@ -68,7 +68,6 @@ export function registerJobTools(register: Register) {
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     inputSchema: { ...getJobStacktraceInput.shape, ...engineParamShape },
     handler: withEngine(async (client, args) => {
-      // The engine contract owns the text/plain read (and the 404 → null).
       const raw = await fetchJobStacktrace(client, args.jobId)
       return {
         jobId: args.jobId,

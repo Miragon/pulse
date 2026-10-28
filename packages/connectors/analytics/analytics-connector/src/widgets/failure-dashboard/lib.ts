@@ -12,13 +12,9 @@ export interface FailureScopeProps {
   engine?: EngineFilterInput
 }
 
-// Centralised so the three failure widgets share one self-fetch contract. The
-// failure dashboard is point-in-time (live state gauges), so there is no period
-// scope — only the engine scope, carried in the args AND the cache key so an
-// engine-scoped cell never reads a fleet-wide entry. Self-fetches the app-only
-// *_data feed — calling the show_* tool from inside the iframe is host-defined
-// behavior (hosts honoring resultCanProduceWidget may render a second widget
-// per refresh).
+// Point-in-time, so no period scope; the engine scope sits in the args AND the cache key so an
+// engine-scoped cell never reads a fleet-wide entry. Self-fetches the *_data feed: a show_* call
+// from the iframe may render a second widget per refresh on some hosts.
 export function useFailureDashboardSelfFetch(
   initialData: FailureView | null,
   { engine }: FailureScopeProps,

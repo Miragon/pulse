@@ -19,12 +19,7 @@ import { enginesMeta } from "./view-meta.js"
 
 export type ClusterCompareData = ClusterCompareResult | null
 
-/**
- * Interpret a before/after-deployment comparison — confirm it, then find the
- * driving element. The ids re-run the comparison as asked (the requested
- * whole-day windows, the echoed engines); the windows actually measured — cut
- * short at now or the retention — are facts (#336).
- */
+/** The ids re-run the comparison as asked; the windows actually measured are facts (#336). */
 export function clusterCompareHandOff(data: ClusterCompareResult): HandOff {
   return {
     intent: "askAi.clusterCompare",
@@ -52,22 +47,13 @@ const DAY = 24 * HOUR
 
 type MeasuredWindow = Pick<ClusterCompareKpi, "window_from" | "window_to" | "window_days">
 
-/**
- * A measured window's length in seconds, from its exact bounds. `window_days`
- * is rounded to 0.01 d (about 14 minutes), too coarse for a window cut short
- * at now; it stands in only when the bounds do not parse.
- */
+/** `window_days` (0.01 d, ~14 min) is too coarse for a window cut short at now. */
 function measuredSeconds(measured: MeasuredWindow) {
   const seconds = (Date.parse(measured.window_to) - Date.parse(measured.window_from)) / 1000
   return Number.isFinite(seconds) ? seconds : measured.window_days * DAY
 }
 
-/**
- * A measured window's length in words, in the largest unit it fills: days
- * and tenths ("7 Tage", "1.5 days"), else whole hours, else whole minutes,
- * else "unter 1 Minute". A window cut short at now reads "2 Stunden" or
- * "10 Minuten", never "0,1 Tage" and never a minute window as "1 Stunde".
- */
+/** A short window reads "2 Stunden", never "0,1 Tage". */
 export function windowLength(t: T, measured: MeasuredWindow): string {
   const seconds = measuredSeconds(measured)
   if (seconds >= DAY) {

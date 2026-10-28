@@ -13,18 +13,11 @@ import { definitionVersionFromId } from "./definition-info.js"
 import { INCIDENT_SCAN_LIMIT, rowsOf } from "./engine-reads.js"
 
 /**
- * The incident RECENCY SCAN shared by the incident views: the newest
- * {@link INCIDENT_SCAN_LIMIT} open incidents, newest first. It is enrichment
- * only — the latest message, timestamps, a per-activity breakdown — and it
- * knows exactly how far it reaches: a fact it cannot vouch for is `null`,
- * never a count over a capped page.
+ * The newest {@link INCIDENT_SCAN_LIMIT} open incidents: enrichment only, and a
+ * fact the scan cannot vouch for is `null`, never a count over a capped page.
  */
 
-/**
- * An `/incident` row. It carries the definition id, not the key: a view
- * queried by key uses that key; any other resolves the id
- * (`resolveDefinitionKeys`/`definitionKeyResolver`, definition-info.ts).
- */
+/** Carries the definition id, not the key: resolve it via `resolveDefinitionKeys`. */
 export interface IncidentRow {
   id: string
   processDefinitionId: string
@@ -37,14 +30,10 @@ export interface IncidentRow {
 }
 
 export interface IncidentScan {
-  /** Newest first. */
   rows: IncidentRow[]
-  /** The scan read every matching incident (the engine returned fewer than the limit). */
+  /** The engine returned fewer than the limit. */
   complete: boolean
-  /**
-   * Whether the scan provably reaches back past `sinceMs` — its oldest row
-   * predates it, so every incident at or after `sinceMs` is in `rows`.
-   */
+  /** The oldest row predates `sinceMs`, so every incident since then is in `rows`. */
   reachesBefore: (sinceMs: number) => boolean
 }
 
@@ -64,8 +53,6 @@ export async function scanIncidents(
     }),
   )
   const complete = rows.length < INCIDENT_SCAN_LIMIT
-  // Newest first: once the oldest scanned incident predates `sinceMs`, nothing
-  // newer than it can be missing.
   const oldest = engineDateMillis(earliestEngineDate(rows.map((r) => r.incidentTimestamp)))
   return {
     rows,
@@ -74,7 +61,6 @@ export async function scanIncidents(
   }
 }
 
-/** Bucket rows by the given key (scan order — newest first — kept per bucket). */
 export function groupBy<T>(rows: T[], by: (r: T) => string): Map<string, T[]> {
   const map = new Map<string, T[]>()
   for (const r of rows) {
@@ -86,31 +72,22 @@ export function groupBy<T>(rows: T[], by: (r: T) => string): Map<string, T[]> {
   return map
 }
 
-/** Engine timestamps carry the engine's UTC offset — compare instants, never strings. */
 export function isOnOrAfter(timestamp: string | null | undefined, cutoffMs: number): boolean {
   const ms = engineDateMillis(timestamp)
   return ms !== null && ms >= cutoffMs
 }
 
-/** What the scan can vouch for about one group (a process, an activity) of incidents. */
 export interface ScanFacts {
   representativeMessage: string | null
-  /** Exact whenever the group appears in the scan (it is newest first); null otherwise. */
+  /** Exact whenever the group appears in the scan (newest first). */
   latestIncident: string | null
-  /** Exact only when the scan holds ALL of the group's incidents; null otherwise. */
   firstSeen: string | null
-  /**
-   * Exact when the scan holds ALL of the group's incidents, or reaches back
-   * past the cutoff; null otherwise.
-   */
   last24hCount: number | null
 }
 
 /**
- * `fullyScanned` is the caller's claim that `groupRows` hold every incident
- * of the group — decided against an exact count (statistics, `/count`),
- * never from the scan's completeness alone: a complete scan whose rows a
- * view cannot attribute to the group must not vouch for it.
+ * `fullyScanned` must be decided against an exact count, never the scan's
+ * completeness: a complete scan whose rows a view cannot attribute must not vouch.
  */
 export function scanFacts(
   groupRows: IncidentRow[],
@@ -128,13 +105,7 @@ export function scanFacts(
   }
 }
 
-/**
- * The business keys of `instanceIds` — what an operator calls an instance
- * ("LEA-2026-00424"), ONE `/process-instance?processInstanceIds=` read for
- * the whole page. The read propagates: every caller shows the keys as
- * ENRICHMENT, so it wraps the call in `optional(...)` and labels the rows by
- * their short id without them.
- */
+/** ONE read for the page; propagates, so enrichment callers wrap it in `optional(...)`. */
 export async function fetchBusinessKeys(
   client: Client,
   instanceIds: Iterable<string | null | undefined>,
@@ -154,21 +125,16 @@ export async function fetchBusinessKeys(
   )
 }
 
-/** Cockpit-URL context of an incident row's instance link. */
 export interface IncidentLinkContext {
   baseUrl: string
   cockpitUrl?: string
   provider: EngineProvider
-  /** The key the rows were queried by — every row runs on it. */
   processDefinitionKey: string
 }
 
 /**
- * An incident row of a KEY-scoped query as the widgets list it. The cockpit
- * instance link addresses the view's key — the row's definition id may be a
- * bare generated one (long keys) that names none — and the row's OWN version
- * (the one that instance runs on; unknown for a bare id), not the key's
- * latest: no definition lookup per page.
+ * The cockpit link uses the view's key (a bare definition id names none) and the
+ * row's OWN version, not the key's latest: no definition lookup per page.
  */
 export function toIncidentInstance(
   r: IncidentRow,

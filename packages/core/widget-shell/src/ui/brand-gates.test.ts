@@ -26,12 +26,7 @@ const ERROR_SOURCES: ReadonlyArray<[key: string, source: ErrorSource]> = [
   ["unknown", { type: "unknown" }],
 ]
 
-/**
- * describeError's words with EVERY branch rendered as plain text: each
- * title for each source (with and without an engine id), each hint for each
- * source type, and the toast's lines. The gates' own sample parameters (every
- * property the number 1) would only ever take the fallback branch.
- */
+/** The gates' sample parameters (every property 1) would only reach the fallback branch, so every branch is rendered here. */
 function renderedErrorWords(labels: ErrorLabels): Record<string, string> {
   const status = labels.status({ status: 503 })
   const words: Record<string, string> = { status }
@@ -69,13 +64,7 @@ describe("the error words are rendered branch by branch", () => {
   })
 })
 
-/**
- * The kit's own copy and icons under the brand gates every widget package
- * runs (`@miragon/pulse-widget-shell/testing`): the catalog text test over
- * every string the kit renders or posts to the chat, and the glyph gate
- * over the kit's widget code. brand-lint cannot see either (it reads
- * Markdown, not strings in `.ts`/`.tsx`).
- */
+/** brand-lint reads Markdown only, not strings in `.ts`/`.tsx`. */
 describe("kit copy follows the voice rules", () => {
   it.each([
     ["kit labels (de)", KIT_LABELS.de, "de"],
@@ -86,11 +75,8 @@ describe("kit copy follows the voice rules", () => {
     ["hand-off fence (de)", ASK_AI_PROMPT_LABELS.de, "de"],
     ["hand-off fence (en)", ASK_AI_PROMPT_LABELS.en, "en"],
     ["heatmap defaults (en)", DEFAULT_HEATMAP_LABELS, "en"],
-    // describeError's words (U1): what happened, what you can do — every branch.
     ["error words (de)", ERROR_WORDS.de, "de"],
     ["error words (en)", ERROR_WORDS.en, "en"],
-    // The settings page and the shell's language section, and what the
-    // shell's settings tools tell the model.
     ["settings page (de)", SETTINGS_LABELS.de, "de"],
     ["settings page (en)", SETTINGS_LABELS.en, "en"],
     ["settings summaries (de)", SHELL_SETTINGS_CATALOGS.de, "de"],
@@ -109,15 +95,12 @@ describe("kit widget code draws icons with Lucide, never glyphs or emoji", () =>
 })
 
 describe("kit widget code draws icons at the CI sizes", () => {
-  // 16 px in chrome (the Icon default, `dense` for tight rows), 24 px previews.
   it("src/ui has no icon at a size other than 16 or 24 px", () => {
     expect(scanIconSizes(UI_DIR)).toEqual([])
   })
 })
 
 describe("kit widget code sets text on the type scale", () => {
-  // CI §4 as the toolkit's TYPE_SCALE: title 28, section 21, body 16, dense
-  // 14 (tables, controls), small 13 — the floor. No Tailwind sizes.
   it("src/ui has no text size off the five steps and nothing below 13 px", () => {
     expect(scanTypeScale(UI_DIR)).toEqual([])
   })

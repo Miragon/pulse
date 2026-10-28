@@ -57,15 +57,7 @@ const at = (ref: ToolReference) => `${ref.file}:${ref.line}`
 const isWrite = (name: string | null) => name !== null && registered.get(name)?.readOnly === false
 const actionRefs = () => scan.references.filter((r) => r.via === "action")
 
-/**
- * #341 / N185 — the in-widget write path, structurally. Every widget write
- * goes through `useEngineAction` (src/widgets/lib/engine-action.ts), which
- * carries the deployment gate, the confirmation, the targeted refresh and the
- * optimistic-state reset in ONE place. A write that bypasses it — a raw
- * mutation, a `callTool` of a write tool, a gate read on its own — could skip
- * any of them, so the sources may not contain one. `action-gating.test.tsx`
- * renders every call site this scan finds against a feed that excludes it.
- */
+/** #341: a write that bypasses `useEngineAction` could skip its gate, confirmation or refresh. */
 describe("every in-widget write goes through useEngineAction", () => {
   it("finds the widgets' tool calls and classifies them (the scan is not vacuous)", () => {
     expect(actionRefs().length).toBeGreaterThanOrEqual(CAMUNDA7_WIDGET_ACTIONS.length)

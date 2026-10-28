@@ -1,37 +1,19 @@
 /**
- * Prometheus metrics for composed-server hosts (server path only): a scrape
- * endpoint (pull — a ServiceMonitor target, unlike the engine's OTLP push)
- * fed by three sources:
- *
- * - `mcp:tools/call` middleware → per-tool call counter + duration histogram.
- *   Tool names are a finite catalogue, so the `tool` label stays bounded;
- *   arguments, users and sessions are never labels (cardinality + PII). It
- *   counts the calls that reached a tool's handler: the SDK refuses an unknown
- *   tool or arguments that fail the input schema before that, so those show
- *   only in mcp-use's request log (and as `/mcp` requests below).
- * - hono `*` middleware → HTTP request counter + duration histogram. The
- *   `route` label is folded onto the known route set (`other` for the rest)
- *   because request paths are caller-controlled.
- * - prom-client's default collectors → process/event-loop/heap gauges under
- *   their standard names (`process_*`, `nodejs_*`), which the stock Node.js
- *   Grafana dashboards expect — deliberately NOT prefixed.
- *
- * Outside mcp-use's OAuth gate like the health probes (scoped to the MCP base
- * path): set `token` (the composed server's `MCP_METRICS_TOKEN`) to require
- * `Authorization: Bearer <token>`, or front `/metrics` with network policy.
+ * Labels stay bounded: tool names are a finite catalogue, routes fold onto known ones (paths are
+ * caller-controlled); never arguments, users or sessions. Calls refused by the SDK before the handler
+ * show only in mcp-use's request log. Default collectors keep their standard unprefixed names for
+ * stock Grafana dashboards. Outside the OAuth gate: set `token` or front it with network policy.
  */
 import { createHash, timingSafeEqual } from "node:crypto"
 import { collectDefaultMetrics, Counter, Histogram, Registry } from "prom-client"
 import type { HttpRouteHost } from "./health.js"
 import { toolCallOutcome, toolNameOf, type ToolCallMiddlewareHost } from "./host-boot.js"
 
-/** The slice of hono's context the HTTP middleware reads — structural, like the other host ports. */
 export interface HttpMiddlewareContext {
   req: { method: string; path: string }
   res: { status: number }
 }
 
-/** `server.use("*", middleware)` — hono's catch-all middleware registration. */
 export interface HttpMiddlewareHost {
   use(
     path: "*",
@@ -42,17 +24,13 @@ export interface HttpMiddlewareHost {
 export type MetricsHost = HttpRouteHost & HttpMiddlewareHost & ToolCallMiddlewareHost
 
 export interface MetricsOptions {
-  /** Scrape route (default `/metrics`). */
   path?: string
-  /** Name prefix for the server's own metrics (default `mcp_`). */
   prefix?: string
-  /** Collect prom-client's process/Node.js default metrics (default true). */
   defaultMetrics?: boolean
-  /** Routes kept verbatim in the `route` label; everything else is `other`. */
   routes?: readonly string[]
-  /** Registry to populate (default: a fresh one — never the global registry, so hosts and tests stay isolated). */
+  /** Default: a fresh one, never the global registry, so hosts and tests stay isolated. */
   registry?: Registry
-  /** Bearer token the scrape requires (401 otherwise); unset = open. */
+  /** Unset = open. */
   token?: string
 }
 
@@ -61,33 +39,22 @@ const DURATION_BUCKETS = [0.01, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30]
 
 const digest = (value: string): Buffer => createHash("sha256").update(value).digest()
 
-/** Constant-time `Authorization: Bearer <token>` check (hashing equalizes the lengths). */
+/** Hashing equalizes the lengths for a constant-time compare. */
 export function bearerMatches(authorization: string | undefined, token: string): boolean {
   const match = /^Bearer\s+(.+)$/i.exec(authorization?.trim() ?? "")
   return match !== null && timingSafeEqual(digest(match[1]), digest(token))
 }
 
-/** The `Authorization` header from a hono-shaped route ctx (structural, like the other ports). */
 const authorizationOf = (ctx: unknown): string | undefined =>
   (ctx as { req?: { header?(name: string): string | undefined } } | undefined)?.req?.header?.(
     "authorization",
   )
 
-/** Exact match or a sub-path of a known route keeps its label; anything else folds into `other`. */
 export function routeLabel(path: string, routes: readonly string[] = DEFAULT_ROUTES): string {
   return routes.find((route) => path === route || path.startsWith(`${route}/`)) ?? "other"
 }
 
-/**
- * Register the collectors and the scrape route. Returns the registry so a
- * host can add its own instruments or serve it elsewhere.
- *
- * Call it BEFORE registering routes that should be counted — the health
- * probes included: hono runs handlers in registration order and stops at the
- * first response, so a route registered earlier never reaches the `*`
- * middleware. The MCP transport and the OAuth discovery routes are mounted
- * by `listen()`, i.e. always after this.
- */
+/** Call BEFORE registering routes to count: hono stops at the first response in registration order. */
 export function installMetrics(server: MetricsHost, options: MetricsOptions = {}): Registry {
   const {
     path = "/metrics",
@@ -129,7 +96,7 @@ export function installMetrics(server: MetricsHost, options: MetricsOptions = {}
   server.use("mcp:tools/call", async (ctx, next) => {
     const tool = toolNameOf(ctx)
     const stop = toolDuration.startTimer({ tool })
-    // A throwing handler never reaches the assignment below — it stays `error`.
+    // A throwing handler never reaches the assignment below.
     let outcome = "error"
     try {
       const result = await next()
@@ -145,8 +112,7 @@ export function installMetrics(server: MetricsHost, options: MetricsOptions = {}
     const method = ctx.req.method
     const route = routeLabel(ctx.req.path, routes)
     const stop = httpDuration.startTimer({ method, route })
-    // hono routes handler errors through its error handler (c.res = 500), so
-    // `next()` normally resolves; the fallback covers an error escaping it.
+    // hono routes handler errors to c.res = 500; the fallback covers an error escaping `next()`.
     let status = "500"
     try {
       await next()

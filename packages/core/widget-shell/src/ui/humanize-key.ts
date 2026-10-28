@@ -1,12 +1,4 @@
-/**
- * A record key as a header people read, in sentence case: camelCase,
- * snake_case and kebab-case split into words, the words lower case, the
- * first letter capital, acronyms kept — `totalIncidents` → "Total
- * incidents", `process_definition_key` → "Process definition key",
- * `processURLKey` → "Process URL key". A key that already reads as words
- * stays as written ("Offene Incidents" keeps its German capitals); one
- * without any letter or digit stays as it is.
- */
+/** `processURLKey` → "Process URL key"; a key that already reads as words stays as written. */
 export function humanizeKey(key: string): string {
   if (/\S\s+\S/.test(key)) return key.trim()
   const words = key

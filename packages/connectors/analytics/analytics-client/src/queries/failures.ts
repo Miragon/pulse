@@ -9,10 +9,7 @@ import {
 import { METRIC_NAMES as M } from "../metric-names.js"
 import { engineState } from "./helpers.js"
 
-/**
- * One group of currently-open incidents. Only what the `camunda_incidents_open`
- * gauge carries: no message, activity, timestamps or instance ids exist on it.
- */
+/** The `camunda_incidents_open` gauge carries no message, activity, timestamps or instance ids. */
 export interface ErrorPatternRow {
   incident_type: string
   process_definition_key: string
@@ -20,22 +17,11 @@ export interface ErrorPatternRow {
 }
 
 export interface FailedInstancesResult {
-  /** The engine ids covered; `null` = every engine Prometheus holds (unscoped library call). */
   engines: string[] | null
-  /** Open-incident groups, largest first, capped at `maxResults`. */
   patterns: ErrorPatternRow[]
 }
 
-/**
- * Currently-open incident groups, from the `camunda_incidents_open` state
- * gauge — grouped by `incident_type` + definition. Point-in-time ("what is
- * failing now"), so it is robust regardless of how the data arrived (live or
- * a backdated/bulk import, which no counter window sees).
- *
- * The gauge carries no incident message, activity id, timestamps or instance
- * ids, so the rows carry none either. For the actual failed instances drill
- * in with `camunda7_list_incidents` / `camunda7_query_historic_incidents`.
- */
+// For the failed instances themselves, drill in with camunda7_list_incidents.
 export async function findFailedInstances(
   ch: PrometheusClient,
   params: {

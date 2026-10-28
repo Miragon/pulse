@@ -6,107 +6,53 @@ import { useInlineRows, type InlineRows } from "./inline-fit.js"
 import { kitLabels } from "./kit-labels.js"
 
 /**
- * The pages appended after page 0, tagged with the reset generation they belong
- * to. Every reset starts a new generation, and a resolved page is applied only
- * while its generation is still current — an A→B→A filter round-trip must not
- * append a stale-offset page (comparing the filter *value* would wrongly accept
- * it). The generation lives in state rather than a ref so the render-phase reset
- * stays replay-safe: a discarded render leaves no trace.
+ * Appended pages, tagged with a reset generation: an A→B→A filter round-trip
+ * must not append a stale-offset page. State, not a ref, keeps the reset replay-safe.
  */
 interface PagedState<TItem> {
   gen: number
   items: TItem[]
-  /**
-   * A resolved page whose total lied short-circuits here: a page shorter than
-   * pageSize means the server is out of rows, whatever `total` claims.
-   */
+  /** A page shorter than pageSize means the server is out of rows, whatever `total` claims. */
   exhausted: boolean
   error: Error | null
 }
 
 export interface PagedViewData<TItem, TData = unknown> {
-  /**
-   * The rows to show: every loaded page — inline under a host, at most as
-   * many as fit the view's height budget (the measured fit, #396); `hasMore`
-   * then says there are more and `loadMore` shows them (fullscreen where the
-   * host offers it, else the next rows in place). The footer's "Showing X of
-   * Y" counts what is shown.
-   */
+  /** Inline under a host, at most the rows that fit the height budget (#396). */
   items: TItem[]
-  /**
-   * The page-0 payload (handed-in or self-fetched) for reading list metadata.
-   * While a NEW page 0 is in flight (or has failed), the previous result of
-   * the same list stays here — never null mid-search; {@link stale} says so.
-   */
+  /** While a new page 0 is in flight or failed, the previous result stays ({@link stale}). */
   firstPage: TData | null
-  /**
-   * Server-reported total of {@link firstPage} (drives "X of Y" + hasMore) —
-   * while {@link stale}, the PREVIOUS result's, not the current filter's.
-   */
   total: number
   /**
-   * {@link firstPage} — and with it `items` and `total` — is the PREVIOUS
-   * result of this list, not the current args' page 0: a changed search or
-   * filter is still in flight, or has failed. Whatever the list says about
-   * its rows (a header count, the filters it covers, a model context, an
-   * empty-state text) must then describe that previous result — read it from
-   * the payload on screen, never from the request that has not answered.
-   * (A same-filter refetch is not stale: its last good page is still the
-   * current filter's.)
+   * The rows on screen are the PREVIOUS filter's result: anything said about
+   * them must read the payload on screen, never the request.
    */
   stale: boolean
   hasMore: boolean
   loadMore: () => void
-  /** First page is still loading (self-fetch, nothing to show yet). */
   loading: boolean
   /** A page 0 is in flight while rows are on screen (a changed filter, a refetch). */
   refreshing: boolean
-  /** A subsequent page is in flight. */
   loadingMore: boolean
   /**
-   * The PAGE-0 failure. Without a `firstPage` it is the load error the
-   * caller's guard renders (once the client's retries ran out). With one, the
-   * rows on screen are unconfirmed — the previous filter's ({@link stale}), or
-   * the last good answer of a failed refetch — and it is set from the fetch's
-   * FIRST failed attempt (the toolkit's `failureReason`), like
-   * `viewRefreshState`'s `refreshError`: the same for a refetch of this
-   * filter's page (a write's invalidation, a Retry) and for a changed search
-   * or filter, so the list never presents the rows as current for the length
-   * of the backoff. {@link retry} re-runs page 0.
+   * The page-0 failure. Over rows on screen it is set from the FIRST failed
+   * attempt, so the list never presents them as current through the backoff.
    */
   error: Error | null
-  /**
-   * Re-runs the page-0 fetch: the retry for {@link error}. A new read at
-   * once — also while the client still waits on that fetch's retry backoff
-   * (which `error` already reports), never a wait for the running chain (the
-   * toolkit's `useViewData` refetch cancels it first).
-   */
+  /** A new read at once, also during the client's retry backoff. */
   retry: () => void
-  /** The last load-more failure — `loadMore` retries it; the rows above are current. */
   loadMoreError: Error | null
-  /**
-   * The list's place in the inline fit: `PagedRows` hands it to the table
-   * inside, or a list of its own rows (an `<ol>`) passes `fit.attachRows` to
-   * the element whose children are the rows.
-   */
   fit: InlineRows
-  /**
-   * Words for the toolkit's `PagedListFooter` (`labels`): while `loadMore`
-   * opens fullscreen, its button says "Show all", not "Load more".
-   */
+  /** While `loadMore` opens fullscreen, its button says "Show all". */
   footerLabels: { loadMore: string } | undefined
 }
 
 type PlaceholderOf<TData> = UseViewDataOptions<TData>["placeholderData"]
 
 /**
- * Keep-previous-data for page 0, TanStack's own: a changed search or filter
- * keys a new page 0 whose data is undefined until it lands (a seed is only
- * ever the unfiltered page 0), so without a placeholder the caller's loading
- * guard would unmount the list — and the search box the operator is typing
- * into — for every round-trip. The placeholder is the previous answer of the
- * SAME list only (`scope`, the cache-key prefix): another engine or definition
- * never shows the previous list's rows. `isPlaceholderData` is then `stale`.
+ * Keep-previous-data for page 0: without it the loading guard would unmount
+ * the list and its search box on every round-trip. Same list (`scope`) only,
+ * so another engine never shows the previous list's rows.
  */
 function useSameListPlaceholder<TData>(key: ReadonlyArray<unknown>): {
   scope: string
@@ -125,13 +71,8 @@ function useSameListPlaceholder<TData>(key: ReadonlyArray<unknown>): {
 }
 
 /**
- * The page on screen once a changed search's page 0 FAILED for good. TanStack
- * shows a placeholder only while the query is pending and drops it when the
- * retries ran out, but the failure line over the list says "you're seeing the
- * previous result" (the toolkit's `PagedListFooter`), so those rows must stay:
- * the page last shown for this list (render-phase state, replay-safe) bridges
- * that failure until the list's next answer. In flight it is TanStack's
- * placeholder, never this.
+ * TanStack drops a placeholder once retries ran out, but the failure line says
+ * "you're seeing the previous result", so the last shown page bridges it.
  */
 function useShownPage<TData>(data: TData | null, scope: string, failed: boolean): TData | null {
   const [shown, setShown] = useState<{ scope: string; data: TData } | null>(null)
@@ -141,28 +82,16 @@ function useShownPage<TData>(data: TData | null, scope: string, failed: boolean)
 }
 
 /**
- * Offset-paginated sibling of the toolkit's `useViewData`: one component, both
- * modes, plus "Load more". Page 0 is the feed query in the toolkit's
- * `initialDataMode: "seed"`, seeded with `initialData` (standalone, handed in)
- * or self-fetched (cockpit), so a write's invalidation refetches a standalone
- * list too; `loadMore()` fetches the next offset and appends. Changing `args`
- * (e.g. a server-side search/filter) resets pagination to page 0 while the
- * previous rows of the same list stay on screen (`stale`). The feed must
- * accept `firstResult`/`maxResults` and return the full filtered `total` so
- * the footer is honest and `hasMore` is correct.
- *
- * Deliberately explicit (button-driven), not infinite scroll — see the
- * toolkit's `ListFooter`.
+ * Offset-paginated sibling of the toolkit's `useViewData`; page 0 is seeded so
+ * a write's invalidation refetches a standalone list too. The feed must return
+ * the full filtered `total`. Button-driven, not infinite scroll.
  */
 export function usePagedViewData<TItem, TData>(opts: {
   initialData: TData | null | undefined
-  /** Stable cache-key prefix (e.g. ["camunda7:process-instances", engine, key]). */
   key: ReadonlyArray<unknown>
   tool: string
-  /** Filter args (without firstResult/maxResults); changing these resets paging. */
   args: Record<string, unknown>
   pageSize: number
-  /** Gate the self-fetch until the required scope is present. */
   ready: boolean
   selectItems: (data: TData) => TItem[]
   selectTotal: (data: TData) => number
@@ -180,9 +109,7 @@ export function usePagedViewData<TItem, TData>(opts: {
     ready,
     { initialDataMode: "seed", placeholderData },
   )
-  // `fetched` is THIS filter's page 0 (the seed until the feed answered);
-  // `first` is the page on screen — the previous one of this list while the
-  // new one is in flight (the placeholder) or has failed (the bridge).
+  // `fetched` is THIS filter's page 0; `first` is the page on screen.
   const fetched = page0.isPlaceholderData ? null : page0.data
   const first = useShownPage(page0.data, scope, page0.error !== null)
   const stale = !fetched && !!first
@@ -195,13 +122,7 @@ export function usePagedViewData<TItem, TData>(opts: {
   })
   const [loadingMore, setLoadingMore] = useState(false)
 
-  // Render-phase reset: when the filter identity or the PAGE-0 identity
-  // changes, drop accumulated pages synchronously so we never show stale rows
-  // under a new page-0 result. Page-0 identity covers both a changed
-  // `initialData` and a page-0 REFETCH (e.g. a mutation invalidated the
-  // cache): after a refetch the rows have shifted, so keeping the appended
-  // pages would duplicate or skip rows — collapsing back to one page is the
-  // consistent behavior.
+  // A page-0 refetch shifts rows, so appended pages would duplicate or skip: drop them.
   const [prevReset, setPrevReset] = useState(argsKey)
   const [prevFirst, setPrevFirst] = useState<TData | null>(first)
   if (argsKey !== prevReset || first !== prevFirst) {
@@ -259,21 +180,14 @@ export function usePagedViewData<TItem, TData>(opts: {
     loading: !first && ready && page0.error === null,
     refreshing: !!first && page0.isFetching,
     loadingMore,
-    // Over rows on screen, a fetch's first failed attempt already unconfirms
-    // them; without rows, the guard keeps loading through the retries.
+    // Over rows on screen the first failed attempt unconfirms them; without rows the guard waits out retries.
     error: page0.error ?? (first ? page0.failureReason : null),
     retry: page0.refetch,
     loadMoreError: pages.error,
   }
 }
 
-/**
- * Inline in a chat, the head of a list's rows (#396): as many as fit the
- * view's height budget (`useInlineRows`, measured). More is fullscreen where
- * the host offers it; elsewhere the next rows in place, a fetched page with
- * the click that loaded it. A new search or filter (`resetKey`) starts at the
- * head again. Without a fit (fullscreen, no host) every row.
- */
+/** Inline, the rows that fit the budget (#396); more is fullscreen, else the next rows in place. */
 function useInlineHead<TItem>(opts: {
   items: TItem[]
   hasMore: boolean
@@ -290,7 +204,6 @@ function useInlineHead<TItem>(opts: {
   const { items, hasMore, fetchNext, pageSize, resetKey } = opts
   const { expand } = useInlineBudget()
   const labels = kitLabels(useLocale())
-  // A page that lands (the answer to a search, a refetch) refits on its own rows.
   const fit = useInlineRows(items.length, { resetKey, contentKey: items })
   const { cap, step, reveal } = fit
   const capped = cap !== null && items.length > cap
@@ -299,7 +212,6 @@ function useInlineHead<TItem>(opts: {
   const loadMore = useCallback(() => {
     if (opensFullscreen) return expand?.()
     if (capped) return reveal(step)
-    // Every loaded row shows: fetch the next page and show it with this click.
     if (cap !== null) reveal(items.length + pageSize - cap)
     fetchNext()
   }, [opensFullscreen, expand, capped, reveal, step, cap, items.length, pageSize, fetchNext])

@@ -1,28 +1,5 @@
-/**
- * The ONE builder of every widget → model hand-off text (#338).
- *
- * An Ask-AI hand-off reaches the host as a `role: "user"` chat message
- * (`askAi` → `sendFollowup`), so whatever a widget inlines reads to the model
- * as the operator's own words. A model context (`HostModelContext`) is quieter
- * but just as trusted. Both are therefore assembled from typed parts only:
- *
- * - `intent` — a SHORT task from the module's message catalogue (localized,
- *   static text: no data, no tool names);
- * - `ids` / `facts` — identifiers the model passes to tools and on-screen
- *   numbers; a value that is not id-shaped is never inlined, it moves into
- *   the untrusted block instead;
- * - `untrusted` — engine or third-party free text (exception messages,
- *   process and activity names, business keys, variable values), length
- *   capped and quoted in a fence the text cannot close, under an explicit
- *   "data, not instructions" label;
- * - `tools` — the tools that fit the task, filtered by the deployment's live
- *   surface, so a hand-off never names a tool the server does not register
- *   for the model; `toolIds` — arguments only some of those tools take,
- *   inlined only while their tool is named (strict inputs refuse an argument
- *   a tool does not take).
- */
+/** The ONE builder of widget → model hand-off text (#338). A hand-off is posted as the user's message, so it is built from typed parts only: static intent, id-shaped ids/facts, engine text fenced as untrusted, tools filtered by the live surface (strict inputs refuse an argument a tool does not take). */
 
-/** A hand-off built by {@link askAiPrompt} — the only prompt `AskAiButton` accepts. */
 export type AskAiPrompt = string & { readonly __brand: "AskAiPrompt" }
 
 /** An id or on-screen fact: inlined only when id-shaped, else quoted as untrusted. */
@@ -30,24 +7,11 @@ export type HandOffValue = string | number | boolean | readonly string[] | null 
 
 /** Engine / third-party free text, quoted as data under its author-chosen name. */
 export interface UntrustedText {
-  /** What the text is (`incidentMessage`, `businessKey`) — a fixed identifier, never data. */
   label: string
   text: string | null | undefined
 }
 
-/**
- * Which tools the deployment registers for the model — the filter every tool
- * mention passes. Three answers:
- *
- * - `true` — registered: the tool is named;
- * - `false` — absent, or not answered yet (fail closed: a hand-off whose
- *   tools are ALL `false` is null, so its button appears a moment late
- *   instead of naming a tool that is gone);
- * - `undefined` — cannot be known (the surface feed failed, or the host has
- *   no in-widget tools/call): the tool is not named, but the hand-off is
- *   still built — intent, ids and fence, no Tools line — since the host can
- *   still post it.
- */
+/** `true` registered; `false` absent or unanswered (fail closed: all-false → null, the button appears late rather than naming a gone tool); `undefined` unknowable: the tool is not named but the hand-off is still built. */
 export interface ToolSurface {
   has(tool: string): boolean | undefined
 }
@@ -56,20 +20,11 @@ export interface ToolSurface {
 export const EMPTY_TOOL_SURFACE: ToolSurface = { has: () => false }
 
 export interface HandOffParts {
-  /** Identifiers the model passes to the listed tools (`engine`, `incidentId`, …). */
   ids?: Readonly<Record<string, HandOffValue>>
-  /** On-screen numbers and flags the task refers to (`openIncidents`, …). */
   facts?: Readonly<Record<string, HandOffValue>>
-  /** Engine / third-party free text — only ever inside the fence. */
   untrusted?: readonly UntrustedText[]
-  /** The tools that fit the task; the ones off `surface` are dropped. */
   tools?: readonly string[]
-  /**
-   * Arguments only SOME listed tools take (`period` for an analytics drill),
-   * keyed by tool: inlined into the Ids line only while that tool is named —
-   * a dropped tool must not leave behind an argument the remaining tools'
-   * strict inputs refuse.
-   */
+  /** Inlined only while that tool is named: a dropped tool must not leave an argument the remaining tools' strict inputs refuse. */
   toolIds?: Readonly<Record<string, Readonly<Record<string, HandOffValue>>>>
   surface: ToolSurface
 }
@@ -77,26 +32,18 @@ export interface HandOffParts {
 export interface AskAiPromptSpec extends HandOffParts {
   /** The short task, from the module's catalogue (`t("askAi.…")`) — static text. */
   intent: string
-  /** The active locale — decides the language of the fixed labels. */
   locale: string
 }
 
 export interface ModelContextSpec extends HandOffParts {
-  /** What the operator is looking at — static, model-facing text. */
   summary: string
 }
 
 /** Max characters of ONE untrusted text; longer text keeps its head. */
 export const MAX_UNTRUSTED_CHARS = 600
-/** Max untrusted texts per hand-off. */
 const MAX_UNTRUSTED_ITEMS = 8
 
-/**
- * Inline-safe values: letters, digits and `_ . : / @ # + -` — every engine id,
- * BPMN key (NCName), definition id (`key:version:uuid`), ISO timestamp and
- * period. Whitespace, quotes, backticks and brackets are not: such a value is
- * free text and goes into the fence.
- */
+/** Every engine id, BPMN key, definition id, ISO timestamp and period; anything else is free text for the fence. */
 const ID_SHAPE = /^[\p{L}\p{N}_.:/@#+-]{1,128}$/u
 const NAME_SHAPE = /^[A-Za-z][A-Za-z0-9_]*$/
 // C0/C1 controls except tab and newline, plus the bidi overrides that can make
@@ -159,18 +106,12 @@ function pairs(
   return out.join(", ")
 }
 
-/** Control characters out, line endings unified, length capped. */
 function sanitize(text: string): string {
   const clean = text.replace(/\r\n?/g, "\n").replace(UNSAFE_CHARS, "").trim()
   return clean.length > MAX_UNTRUSTED_CHARS ? `${clean.slice(0, MAX_UNTRUSTED_CHARS)}…` : clean
 }
 
-/**
- * A fenced block the text cannot close: the fence is one backtick longer than
- * the longest backtick run inside (at least three). A closing fence must be at
- * least as long as the opening one, so no line of the text can end the block —
- * whatever it says stays quoted data.
- */
+/** The fence is one backtick longer than the longest run inside, so no line of the text can close it. */
 export function fenceUntrusted(text: string): string {
   let longest = 0
   for (const run of text.matchAll(/`+/g)) longest = Math.max(longest, run[0].length)
@@ -193,7 +134,6 @@ function untrustedBlock(items: readonly UntrustedText[], labels: Labels): string
   ].join("\n")
 }
 
-/** The live-surface subset of `tools`, deduplicated, in the author's order. */
 function liveTools(tools: readonly string[] | undefined, surface: ToolSurface): string[] {
   return [...new Set(tools ?? [])].filter((tool) => surface.has(tool) === true)
 }
@@ -225,14 +165,7 @@ function assemble(lead: string, parts: HandOffParts, tools: string[], labels: La
     .join("\n")
 }
 
-/**
- * Build an Ask-AI hand-off. Returns `null` — and `AskAiButton` renders
- * nothing — when the task named tools and the surface answers `false` for
- * EVERY one: there is nothing the model could do with it in this deployment
- * (or the surface has not answered yet; the button then appears once it
- * has). A tool the surface cannot know (`undefined`) keeps the hand-off,
- * built without naming that tool.
- */
+/** `null` when every named tool is confirmed absent (or not answered yet); an unknowable tool keeps the hand-off without naming it. */
 export function askAiPrompt(spec: AskAiPromptSpec): AskAiPrompt | null {
   const intent = spec.intent.trim()
   if (intent === "") return null
@@ -246,11 +179,7 @@ export function askAiPrompt(spec: AskAiPromptSpec): AskAiPrompt | null {
   ) as AskAiPrompt
 }
 
-/**
- * Build a model-context text (`HostModelContext` content) from the same parts.
- * Never null: the context describes the view whether or not a tool fits.
- * English — it addresses the model, not the user.
- */
+/** Never null. English: it addresses the model, not the user. */
 export function modelContextText(spec: ModelContextSpec): string {
   return assemble(spec.summary, spec, liveTools(spec.tools, spec.surface), ASK_AI_PROMPT_LABELS.en)
 }

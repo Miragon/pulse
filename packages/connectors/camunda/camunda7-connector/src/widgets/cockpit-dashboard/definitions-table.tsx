@@ -12,19 +12,11 @@ import {
   type ProcessDefinitionsTableRow,
 } from "../process-definitions-table-view.js"
 
-/** Rows rendered per "Load more" step. */
 const PAGE_SIZE = 50
 
 /**
- * Shell-less cockpit definitions section. Reused standalone and in the cockpit
- * app. Thin adapter over the canonical {@link ProcessDefinitionsTableView}: it
- * contributes the per-definition operational counts plus the drill actions.
- *
- * Search + paging are CLIENT-side over the full statistics payload —
- * deliberate: `/process-definition/statistics` is uncapped (the feed already
- * carries every definition), has no filter/offset params, and the issue-first
- * sort would be lost with engine-side name paging. The footer's total is the
- * full filtered set, so it stays honest.
+ * Client-side search and paging on purpose: `/process-definition/statistics` is uncapped, has
+ * no filter/offset params, and engine-side paging would lose the issue-first sort.
  */
 export function ProcessDefinitionsSection({
   data: initialData = null,
@@ -39,15 +31,12 @@ export function ProcessDefinitionsSection({
   const [search, setSearch] = useState("")
   const debouncedSearch = useDebouncedValue(search.trim().toLowerCase(), 300)
   const [limit, setLimit] = useState(PAGE_SIZE)
-  // Render-phase reset: a changed search must not keep an expanded limit.
   const [prevSearch, setPrevSearch] = useState(debouncedSearch)
   if (debouncedSearch !== prevSearch) {
     setPrevSearch(debouncedSearch)
     setLimit(PAGE_SIZE)
   }
-  // Shares the health KPI's query key → deduped to a single fetch (see
-  // health-kpi.tsx). Self-fetches in the cockpit; standalone the handed-in
-  // overview seeds the query, scoped to its own engine.
+  // Shares the health KPI's query key, so one fetch.
   const feedEngine = engine ?? initialData?.engineId
   const { data, loading, error, refetch } = useViewData<CockpitDashboardData>(
     initialData,
@@ -92,8 +81,7 @@ export function ProcessDefinitionsSection({
   const rows = filtered.slice(0, limit)
 
   return (
-    // A section of the overview like the failure clusters above it: the same
-    // heading step, a real heading (#322 U27), its scope a quiet note beside.
+    // A real heading on the same step as the failure clusters above it (#322 U27).
     <section aria-labelledby={headingId}>
       <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <h2 id={headingId} className="text-section text-foreground">

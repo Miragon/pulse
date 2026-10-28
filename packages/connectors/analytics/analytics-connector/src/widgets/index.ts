@@ -53,9 +53,6 @@ export const ANALYTICS_DATA_TYPES = {
   settings: "analytics:settings",
 } as const
 
-// Every widget passes a `describeForModel` so the model always knows the view,
-// its active filters (period / engine scope) and the headline numbers — see
-// `model-descriptions.ts` for the house pattern.
 export const analyticsWidgets: Record<string, WidgetComponent> = {
   "analytics:execution-summary-kpi": adaptDataWidget(
     ExecutionSummaryKpi,
@@ -117,8 +114,6 @@ export const analyticsWidgets: Record<string, WidgetComponent> = {
     ANALYTICS_DATA_TYPES.bpmnHeatmap,
     describeBpmnHeatmap,
   ),
-  // No describeForModel here: the widget renders its ModelContext inline (the
-  // settings tab mounts it without pipeline data, so only the component knows
-  // the self-fetched view).
+  // Renders its ModelContext inline: only the component knows the self-fetched view.
   "analytics:settings": adaptDataWidget(AnalyticsSettingsWidget, ANALYTICS_DATA_TYPES.settings),
 }

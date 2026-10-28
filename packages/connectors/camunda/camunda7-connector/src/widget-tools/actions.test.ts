@@ -15,7 +15,6 @@ afterEach(() => {
 
 type Handler = (params: unknown) => Promise<{ structuredContent?: Record<string, unknown> }>
 
-/** Register the feed against a mock server and expose its definition + handler. */
 function registerFeed(toolset: Camunda7Toolset, modelTools: () => string[] = () => []) {
   const tool = vi.fn()
   registerWidgetActionsFeed({
@@ -57,8 +56,7 @@ describe("camunda7_widget_actions_data", () => {
     expect(await allowedActionsFor("read-only")).toEqual([])
   })
 
-  // #338: the hand-offs name only what the model has — read at CALL time, so
-  // the registrations after the feed's own (the profile tools) count too.
+  // Read at CALL time, so registrations after the feed's own count too.
   it("reports the model surface as it stands when the feed is called", async () => {
     const surface = ["camunda7_list_incidents"]
     const { handler } = registerFeed("read-only", () => surface)

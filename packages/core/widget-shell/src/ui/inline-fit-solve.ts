@@ -1,49 +1,27 @@
 /**
- * How many rows each inline list of a view keeps so the view fits the host's
- * height budget (#396): the pure half of the measured inline fit
- * (`inline-fit.tsx` measures, this decides). Inputs are what the rendered
- * view measures, never assumed sizes: the content's height and, per list,
- * the bottom edge of every row it shows. Dropping rows k…n−1 of a list saves
- * the distance between the bottom of its last shown row and the bottom of
- * row k−1.
- *
- * The order rows go in:
- *  1. one row at a time from the list showing the most rows (a tie: the later
- *     list first), down to {@link FitLimits.softMin} each;
- *  2. then the lists after the first one, last first, down to
- *     {@link FitLimits.hardMin}; then the first list.
- * When the view does not fit even at `hardMin` everywhere, cutting below
- * `softMin` buys nothing: the result is the state after step 1 and
- * `fits: false` (the view then scrolls inside the budget, its safety net).
- *
- * A cap never grows here (growth is a new epoch: another budget, width or
- * display mode), never drops below `hardMin`, and a list frozen by the user
- * ("Show more" in place) is never cut.
+ * The pure half of the inline fit (#396), on measured sizes only. Rows go
+ * from the longest list to `softMin`, then later lists first to `hardMin`.
+ * If even that does not fit, cutting below `softMin` buys nothing, so the
+ * result stays at step 1 with `fits: false` (the view scrolls instead).
  */
 
 export interface FitSlot {
   id: string
-  /** Position in the document: lower is earlier. */
   order: number
-  /** The bottom edge (px, any common origin) of each row the list shows, top to bottom. */
+  /** Any common origin. */
   bottoms: readonly number[]
-  /** The user revealed rows in place: keep them. */
   frozen: boolean
 }
 
 export interface FitLimits {
-  /** Rows a list keeps before any list goes below it. */
   softMin: number
-  /** The fewest rows a list ever shows inline. */
   hardMin: number
 }
 
 export const FIT_LIMITS: FitLimits = { softMin: 3, hardMin: 1 }
 
 export interface FitResult {
-  /** The new row count of every list that loses rows; lists not named keep theirs. */
   cuts: Record<string, number>
-  /** The content fits the budget after the cuts (as far as the cuts can tell). */
   fits: boolean
 }
 
@@ -53,7 +31,6 @@ interface Working {
   keep: number
 }
 
-/** What dropping a list's rows below `keep` saves. */
 function savedBy({ slot, shown, keep }: Working): number {
   if (keep >= shown) return 0
   return slot.bottoms[shown - 1] - slot.bottoms[keep - 1]
@@ -62,7 +39,6 @@ function savedBy({ slot, shown, keep }: Working): number {
 const totalSaved = (lists: readonly Working[]) =>
   lists.reduce((sum, list) => sum + savedBy(list), 0)
 
-/** Step 1: the list with the most rows gives one, down to `softMin`. */
 function trimToSoftMin(lists: Working[], over: number, softMin: number): void {
   while (totalSaved(lists) < over) {
     let pick: Working | undefined
@@ -81,7 +57,6 @@ function trimToSoftMin(lists: Working[], over: number, softMin: number): void {
   }
 }
 
-/** Step 2: the later lists, last first, then the first one, down to `hardMin`. */
 function trimToHardMin(lists: Working[], over: number, hardMin: number): void {
   const byOrder = [...lists].sort((a, b) => a.slot.order - b.slot.order)
   const sequence = [...byOrder.slice(1).reverse(), ...byOrder.slice(0, 1)]

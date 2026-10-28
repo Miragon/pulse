@@ -30,8 +30,7 @@ function renderHeader(data: BpmnViewerData) {
   render(<WidgetFixtureHost widget={Header} data={{}} tools={{}} />)
 }
 
-// Names before ids (#322 U13): the view is titled by its process and names
-// the instance by its label, as the instance detail does.
+// Names before ids: the instance by its label, as the instance detail does (#322 U13).
 describe("BpmnViewerHeader", () => {
   it("titles the view by the process and names the instance by its business key", () => {
     renderHeader(VIEW)

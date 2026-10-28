@@ -1,9 +1,8 @@
 import type { MessageCatalog } from "@miragon/mcp-toolkit-core"
 
 /**
- * German model-facing analytics tool summaries (aSum.*). Hand-editable; the
- * model may quote them, so they use the glossary terms ("Incident") and no
- * dash as a connector like every other catalog.
+ * The model may quote these, so they use the glossary terms ("Incident") and no dash as a
+ * connector.
  */
 export const deServer: MessageCatalog = {
   "aSum.bpmnHeatmap":

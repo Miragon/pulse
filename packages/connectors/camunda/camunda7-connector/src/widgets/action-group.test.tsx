@@ -11,15 +11,7 @@ import { IncidentDetailWidget } from "./incident-detail.js"
 import { ProcessDetailHeader } from "./process-incidents/header.js"
 import { widgetActionsFeedFor } from "./lib/hand-off.test-support.js"
 
-/**
- * A view's actions are ONE group in its head, of one size (the design
- * system's buttons: 32 px, 14 px, 600), in one order: the deterministic
- * steps, the engine's own web app, then the chat. The meta line under the
- * title holds facts only. An operator reported the definition view's three
- * actions in three places and three type sizes ("In CIB seven öffnen" in the
- * meta line, the chat beside the title, "Laufende Instanzen anzeigen" in a
- * row of its own).
- */
+/** One action group, one size, one order; an operator reported actions in three places and sizes. */
 
 afterEach(() => {
   cleanup()
@@ -31,7 +23,6 @@ beforeAll(async () => {
   tools = { [CAMUNDA7_WIDGET_ACTIONS_DATA]: await widgetActionsFeedFor("operations") }
 })
 
-/** The head's two parts: the title block (facts) and the action group. */
 function head(container: HTMLElement) {
   const header = container.querySelector<HTMLElement>('[data-slot="widget-header"]')!
   const [facts, group] = Array.from(header.children) as HTMLElement[]

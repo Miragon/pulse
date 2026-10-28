@@ -15,11 +15,7 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-/**
- * #336 / N138: analytics covers exactly the server's CONFIGURED engine ids. A
- * Prometheus (or Thanos / Mimir) is often shared across teams; every query
- * without an `engine_id` matcher reads all of them.
- */
+// #336 / N138: a shared Prometheus (Thanos, Mimir) holds other teams' engines too.
 
 describe("createEngineScope", () => {
   const scope = createEngineScope(["prod-a", " prod-b ", "prod-a", ""])
@@ -61,7 +57,6 @@ type ToolCallback = (
   ctx?: unknown,
 ) => Promise<{ isError?: boolean; content: Array<{ text: string }> }>
 
-/** Every tool both registration hooks put on a stand-in server, over `ch`. */
 function toolsOver(ch: PrometheusClient, engineScope: AnalyticsEngineScope) {
   const tools = new Map<string, ToolCallback>()
   const server = {
@@ -87,11 +82,7 @@ function recordingClient(answer: (q: string) => PromSample[] = () => []) {
 
 const daysAgo = (days: number) => new Date(Date.now() - days * 86_400_000).toISOString()
 
-/**
- * Valid arguments — WITHOUT `engine` — for every tool that reads Prometheus.
- * Total over the registered surface (checked below), so a new tool has to be
- * added here and thereby proves its engine scoping.
- */
+/** Total over the registered surface, so a new tool must prove its engine scoping here. */
 const ARGS: Record<string, Record<string, unknown>> = {
   analytics_analyze_process_performance: {
     processDefinitionKey: "order",
@@ -155,20 +146,18 @@ const ARGS: Record<string, Record<string, unknown>> = {
   analytics_bpmn_heatmap_data: { processDefinitionKey: "order" },
 }
 
-/** Tools that take `engineA`/`engineB` instead of an `engine` filter. */
 const PAIRWISE = new Set(["analytics_engine_compare", "analytics_show_engine_compare"])
 
-/** Tools that read no Prometheus series: the heatmap's diagram comes from the engine. */
+/** The heatmap's diagram comes from the engine. */
 const READS_NO_PROMETHEUS = new Set(["analytics_bpmn_xml_data"])
 
-/** Every engine id an `engine_id` matcher of `promql` admits (`""` = an engine-less series). */
+/** `""` = an engine-less series. */
 function engineIdsMatched(promql: string): string[][] {
   return [...promql.matchAll(/engine_id(=~?)"([^"]*)"/g)].map((m) =>
     m[1] === "=~" ? m[2].split("|") : [m[2]],
   )
 }
 
-/** Runs one tool; a refusal is a thrown error or an error result. */
 async function call(tool: ToolCallback, args: Record<string, unknown>) {
   try {
     const result = await tool(args, {})
@@ -223,10 +212,8 @@ describe("every engine-reading tool is scoped to the configured engines (N138)",
       expect(sent.length).toBeGreaterThan(0)
       for (const promql of sent) {
         const matchers = engineIdsMatched(promql)
-        // Every query carries an engine_id matcher …
         expect({ promql, matchers: matchers.length > 0 }).toEqual({ promql, matchers: true })
-        // … that admits configured engines only (plus the module's
-        // engine-less pipeline alerts, matched as engine_id="").
+        // engine_id="" admits the module's engine-less pipeline alerts.
         for (const id of matchers.flat()) expect(["prod-a", "prod-b", ""]).toContain(id)
       }
       if (!PAIRWISE.has(name)) {
@@ -262,7 +249,6 @@ describe("every engine-reading tool is scoped to the configured engines (N138)",
 describe("the BPMN heatmap names the engines its heat adds up (K33)", () => {
   const scope = createEngineScope(["prod-a", "prod-b"])
   type Payload = { engines?: unknown }
-  /** The heatmap payload of a show-tool view or a data feed. */
   const payloadOf = (result: unknown): Payload => {
     const r = result as {
       structuredContent?: { context?: { stepData: { result: { data: Payload } } } }
@@ -285,7 +271,6 @@ describe("the BPMN heatmap names the engines its heat adds up (K33)", () => {
 })
 
 describe("analyticsModule engine scope wiring", () => {
-  /** The engine ids the booted plugin covers. */
   function fleetOf(config: Record<string, unknown>, shared: { engineIds?: string[] }) {
     const plugin = analyticsModule.createPlugin(
       { url: "http://prometheus.invalid", ...config },

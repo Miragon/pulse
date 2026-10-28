@@ -6,12 +6,7 @@ import { WidgetFixtureHost } from "@miragon/mcp-toolkit-ui/app"
 import type { CockpitDashboardData } from "../view-models.js"
 import { ProcessDefinitionsTable } from "./cockpit-dashboard/definitions-table.js"
 
-/**
- * One sign, one meaning (#322 U14, decision f): a job without retries is a
- * state like an open incident, danger while there is any, a zero a neutral
- * count. camunda7 reads the kit's ladder (`countTone`, widget-shell), the one
- * analytics edges the same counts by in the landscape this cockpit embeds.
- */
+// #322 U14, decision f: camunda7 reads the kit's `countTone`, the ladder analytics uses in the landscape this cockpit embeds.
 
 afterEach(() => {
   cleanup()

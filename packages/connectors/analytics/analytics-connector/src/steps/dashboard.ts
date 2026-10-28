@@ -12,17 +12,9 @@ import {
 } from "./app-config.js"
 import { builderText } from "../builder-texts.js"
 
-/** The period a caller without a saved default gets — the settings schema's default. */
 const MODULE_DEFAULT_PERIOD = analyticsSettingsSchema.shape.defaultPeriod.parse(undefined)
 
-/**
- * Loads the dashboard figures from Prometheus — window flows plus the live
- * state, the same `dashboardData` as `analytics_show_dashboard`. Consumed by
- * `analytics:dashboard`. Reads optional filter keys:
- * - `analytics:processDefinitionKey`
- * - `analytics:period` (1d | 3d | 7d | 14d | 30d; omitted = the caller's saved default)
- * - `analytics:engine` (configured engine id(s); omitted = all of them)
- */
+/** Omitted `analytics:period` = the caller's saved default; omitted `analytics:engine` = all configured. */
 export const loadDashboardStep: PipelineStepDefinition<AnalyticsAppConfig> = {
   id: "analytics:load-dashboard",
   ...builderText("step.load-dashboard"),
@@ -45,12 +37,10 @@ export const loadDashboardStep: PipelineStepDefinition<AnalyticsAppConfig> = {
   ],
   produces: ["analytics:dashboardData"],
   execute: async (context, appConfig) => {
-    // Every key is checked before the first query is sent.
     const processDefinitionKey = stepProcessKey(context.keys)
     const engine = stepEngines(context.keys, appConfig.engineScope)
     const period = await stepPeriod(context.keys, appConfig.profileStore)
-    // The floor for judging the incident rate against the previous period:
-    // the caller's saved minBucketSize, like the tools'.
+    // The caller's saved minBucketSize, like the tools'.
     const { minBucketSize } = await settingsFor(appConfig.profileStore)
 
     const data = await namedDashboard(

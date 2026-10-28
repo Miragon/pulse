@@ -1,24 +1,8 @@
 import type { CatalogLanguage } from "./catalog-text.js"
 
-/**
- * The glossary gate: one word per thing, in every view of every module
- * (brand-tone "Ein Begriff pro Sache"). A rule names the synonym a catalog
- * must not use, the glossary term to write instead, and a probe it must catch
- * (a broken pattern then fails instead of passing everything). A rule may
- * spare named keys, each with its reason.
- *
- * {@link PRODUCT_GLOSSARY} holds the terms the modules' views show side by
- * side: camunda7's cross-engine cockpit embeds analytics' landscape, so one
- * quantity must read the same in both. Each module runs it over its own
- * catalogs next to its local rules (`messages/glossary.test.ts`) and lists
- * the terms in its `messages/GLOSSARY.md`:
- *
- *   expect(glossaryFindings(catalog, PRODUCT_GLOSSARY.de)).toEqual([])
- */
+/** The glossary gate: one word per thing. Each rule carries a probe so a broken pattern fails instead of passing everything; PRODUCT_GLOSSARY holds the terms modules show side by side (camunda7's cockpit embeds analytics' landscape). */
 export interface GlossaryRule {
-  /** The forbidden synonym. */
   pattern: RegExp
-  /** The glossary term that replaces it. */
   use: string
   /** A text with the synonym: the rule is blind if it does not match. */
   probe: string
@@ -36,18 +20,12 @@ export interface GlossaryFinding {
 /** The verb only: "Deployment" stays the engine's noun. */
 const DEPLOY_VERB_DE = /(?<![\p{L}])(ge)?deploy(e|en|st|t|te|ten)?(?![\p{L}])/iu
 
-/**
- * The product-wide terms, per catalog language (the modules' GLOSSARY.md
- * tables name each `use`).
- */
 export const PRODUCT_GLOSSARY: Readonly<Record<CatalogLanguage, readonly GlossaryRule[]>> = {
   de: [
     { pattern: /Vorf[aä]ll/i, use: "Incident", probe: "Offene Vorfälle" },
     { pattern: /(?<![\p{L}])störung/iu, use: "Incident", probe: "Störungen je Prozess" },
     {
-      // The jobs whose retries ran out (`failedJobs` of the engine's
-      // statistics, the metric `camunda_jobs_failed`). A single job that
-      // failed ("dieser Job ist fehlgeschlagen") stays free.
+      // The jobs whose retries ran out; a single failed job ("dieser Job ist fehlgeschlagen") stays free.
       pattern: /(?<![\p{L}])fehlgeschlagene(n|r|\(r\))?\s+Job(s(?![\p{L}])|\(s\))/iu,
       use: "Jobs ohne Versuche",
       probe: "Häufungen fehlgeschlagener Jobs",
@@ -84,10 +62,7 @@ export const PRODUCT_GLOSSARY: Readonly<Record<CatalogLanguage, readonly Glossar
   ],
 }
 
-/**
- * A stand-in argument: every property, and its own primitive value, is `n`
- * (counted entries render as text, a positional string parameter too).
- */
+/** A stand-in argument: every property, and its own primitive value, is `n`. */
 function sampleParams(n: number): unknown {
   return new Proxy(Object.create(null) as object, {
     get: (_target, prop) => {
@@ -98,10 +73,7 @@ function sampleParams(n: number): unknown {
   })
 }
 
-/**
- * A function entry rendered with `n`; undefined when it needs a real shape
- * (the catalog text test reports that as its render-error).
- */
+/** Undefined when the entry needs a real shape (the catalog text test reports that). */
 function renderWith(value: (p: unknown) => unknown, n: number): string | undefined {
   try {
     const text = value(sampleParams(n))
@@ -111,11 +83,7 @@ function renderWith(value: (p: unknown) => unknown, n: number): string | undefin
   }
 }
 
-/**
- * Every entry of a (nested) catalog as text: strings as written, functions
- * rendered with every parameter 1 and 2 (both forms of a counted entry);
- * `{placeholder}` names are code, not copy, and drop out.
- */
+/** Functions render with 1 and 2 (both forms of a counted entry); `{placeholder}` names are code and drop out. */
 function rendered(catalog: object, prefix = ""): [key: string, text: string][] {
   return Object.entries(catalog as Record<string, unknown>).flatMap(
     ([name, value]): [string, string][] => {
@@ -133,11 +101,7 @@ function rendered(catalog: object, prefix = ""): [key: string, text: string][] {
   )
 }
 
-/**
- * Every entry that uses a synonym one of `rules` rules out (a key a rule
- * spares aside), once per entry and rule, plus every exception that no
- * longer spares a real use (shrink-only: a fixed entry drops off its rule).
- */
+/** Also reports exceptions that no longer spare a real use (shrink-only). */
 export function glossaryFindings(
   catalog: object,
   rules: readonly GlossaryRule[],
@@ -164,11 +128,7 @@ export function blindGlossaryRules(rules: readonly GlossaryRule[]): string[] {
   return rules.filter((rule) => !rule.pattern.test(rule.probe)).map((rule) => rule.probe)
 }
 
-/**
- * The glossary words of `rules` (each `use`, split at ", ") that a glossary
- * document does not name, so the document people read and the gate cannot
- * drift apart.
- */
+/** Glossary words a glossary document does not name, so the document and the gate cannot drift apart. */
 export function unnamedGlossaryTerms(doc: string, rules: readonly GlossaryRule[]): string[] {
   const terms = new Set(rules.flatMap((rule) => rule.use.split(", ")))
   return [...terms].filter((term) => !doc.includes(term))

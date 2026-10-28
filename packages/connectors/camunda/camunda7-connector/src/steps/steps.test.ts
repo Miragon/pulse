@@ -21,15 +21,8 @@ import { WORLD, worldReply } from "../tools/test-support/engine-world.js"
 import { registerWidgetTools } from "../widget-tools.js"
 
 /**
- * Every camunda7 pipeline step is a THIN ADAPTER over the builder its show
- * tool uses (#335 N63/N149, CLAUDE.md invariant 7): for the same inputs —
- * view keys on one side, tool arguments on the other — against the same
- * engine, the step's data EQUALS its twin's, `engineId` included, AND it
- * sends the engine exactly the twin's requests (paths and query values). The
- * small world answers most filters alike, so equal payloads alone would let
- * a step drop or misname a scoping key; equal requests would not. A step
- * that forks its own reads (other endpoints, other defaults, a missing
- * stamp) fails here. The table must name every registered step.
+ * Requests are compared too, not only data: the small world answers most filters alike, so
+ * equal payloads alone would let a step drop or misname a scoping key.
  */
 
 const engines: FakeEngine[] = []
@@ -87,10 +80,7 @@ interface ToolResult {
   } & Record<string, unknown>
 }
 
-/**
- * One engine id, the plugin's provider-built client, every widget tool
- * captured. Pass `existing` for a second client on the same fake engine.
- */
+/** Pass `existing` for a second client on the same fake engine. */
 async function world(reply = worldReply, existing?: FakeEngine) {
   const engine = existing ?? (await startFakeEngine({}, reply))
   if (!existing) engines.push(engine)
@@ -108,10 +98,9 @@ async function world(reply = worldReply, existing?: FakeEngine) {
   return { tools, appConfig, engine }
 }
 
-/** An instant in a query (a recency cutoff) — the two runs compute it moments apart. */
+/** The two runs compute a recency cutoff moments apart. */
 const INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/
 
-/** The requests one run sent, order-free (reads run in parallel), instants masked. */
 function requestsOf(engine: FakeEngine, from: number): string[] {
   return engine.requests
     .slice(from)
@@ -125,7 +114,6 @@ function requestsOf(engine: FakeEngine, from: number): string[] {
     .sort()
 }
 
-/** The data a show tool renders (its first view entry), or a feed's payload. */
 function twinData(result: ToolResult): unknown {
   expect(result.isError, JSON.stringify(result)).toBeFalsy()
   const payload = feedPayload<{ context?: { stepData?: Record<string, { data: unknown }> } }>(
@@ -161,8 +149,7 @@ describe("camunda7 pipeline steps are thin adapters over their show tools' build
       )
       const toolRequests = requestsOf(engine, 0)
 
-      // The step on a client of its own (same engine): the XML read is
-      // cached per client, so on the same one it would skip the diagram read.
+      // The XML read is cached per client, so a shared one would skip the diagram read.
       const stepStart = engine.requests.length
       const { appConfig } = await world(worldReply, engine)
       const output = await run(step, twin, appConfig)

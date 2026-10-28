@@ -2,19 +2,7 @@ import { ListTable, Td, formatDuration, formatTimestamp } from "@miragon/pulse-w
 import { StatusBadge, type ToneVariant } from "@miragon/mcp-toolkit-ui"
 import { useT, type T } from "../messages/use-t.js"
 
-/**
- * The steps of an instance's history: the row contract every rendering
- * shares, each step's state (a colour marks state only, #322 U14) and the
- * compact table look. `history-timeline.tsx` composes the timeline from it.
- */
-
-/**
- * Row contract of the history family — the one shape every historic-activity
- * rendering in this module shares. Raw `ActivityData` rows (historic activity
- * instances, also the `camunda7_query_historic_activity_instances` page items)
- * satisfy it structurally, so either source renders through
- * {@link HistoryTimelineView} without mapping.
- */
+/** Raw `ActivityData` rows satisfy it structurally, so either source renders without mapping. */
 export interface HistoryEntry {
   id: string
   activityId: string
@@ -27,13 +15,7 @@ export interface HistoryEntry {
   canceled?: boolean
 }
 
-/**
- * What a step of the history is in: still running, stopped at an open
- * incident, cancelled, or done. The step's TYPE stays text next to it —
- * a colour per BPMN type said nothing a reader could decode, and red on
- * every end event read as an error (#322 U14). Colour marks state only:
- * an incident danger, a running step info, everything else neutral.
- */
+/** Colour marks state only (#322 U14): red on every end event read as an error. */
 export type HistoryStepState = "incident" | "running" | "canceled" | "completed"
 
 export function historyStepState(
@@ -75,12 +57,7 @@ export function instanceStateLabel(t: T, state: string): { label: string; tone: 
   }
 }
 
-/**
- * Compact table look of the family: a real `<table>` (kit `Th`/`Td`) with
- * Started / Duration / Status columns for dense embeddings (the incident
- * detail's history tab). Same {@link HistoryEntry} rows and shared format
- * helpers as the rich timeline.
- */
+/** Compact table look for dense embeddings (the incident detail's history tab). */
 export function HistoryTable({
   entries,
   incidentIds,

@@ -8,8 +8,7 @@ const versionOf = (name: string) => (require(`${name}/package.json`) as { versio
 
 describe("the served-font contract", () => {
   it("names the installed fontsource release in the path, so a font update is a new URL", () => {
-    // The route is cached `immutable`: bumping the font packages without
-    // moving the path would keep every browser on the old files for a year.
+    // Cached `immutable`: bumping fonts without moving the path keeps browsers on old files for a year.
     for (const name of ["@fontsource-variable/geist", "@fontsource-variable/geist-mono"]) {
       expect(SERVED_FONT_PATH, name).toBe(`/fonts/geist-${versionOf(name)}`)
     }

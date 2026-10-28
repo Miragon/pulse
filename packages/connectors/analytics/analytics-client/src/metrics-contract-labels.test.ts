@@ -19,21 +19,9 @@ import {
   recordingClient,
 } from "./query-scenarios.test-support.js"
 
-/**
- * Behavioural half of the metrics contract: instead of scanning source text,
- * run every exported query function against a recording Prometheus client and
- * check each PromQL it actually sends — every matcher label, every
- * `by`/`without` grouping label, every `on`/`ignoring`/`group_*` label — against
- * the labels `metrics-contract.json` declares for that series. The alert rules
- * and Grafana dashboards go through the same checker.
- *
- * A text scan cannot see a label that only exists in a composed selector; this
- * one caught `analytics_version_compare` filtering the incident counter on
- * `process_definition_version`, a label that series never carries (#327).
- */
+// A text scan cannot see a label that only exists in a composed selector (#327).
 
 const here = (rel: string) => fileURLToPath(new URL(rel, import.meta.url))
-// src/ → analytics-client → analytics → connectors → packages → repo root
 const repoRoot = here("../../../../..")
 
 const contract = JSON.parse(readFileSync(here("../metrics-contract.json"), "utf8")) as {
@@ -43,13 +31,7 @@ const contract = JSON.parse(readFileSync(here("../metrics-contract.json"), "utf8
 const alertsFile = join(repoRoot, "playground/docker/prometheus/alerts.yml")
 const dashboardsDir = join(repoRoot, "playground/docker/grafana/dashboards")
 
-/**
- * Non-contract series Prometheus synthesises itself. `up` carries the scrape
- * target labels (no target relabelling in prometheus.yml). `ALERTS` carries
- * `alertname`/`alertstate`, each rule's static `severity` and the labels its
- * expression yields — derived from alerts.yml below, never hand-listed, so a
- * rule that stops aggregating by a label also drops it here.
- */
+// ALERTS labels derive from alerts.yml, never hand-listed: a rule that stops aggregating by a label drops it here.
 const UP_LABELS = ["job", "instance"]
 const ALERTS_BASE_LABELS = ["alertname", "alertstate", "severity"]
 
@@ -66,7 +48,6 @@ const catalog: SeriesCatalog = contractCatalog(contract.metrics, {
   ALERTS: { labels: [...alertLabels] },
 })
 
-/** Violations of one PromQL source, each prefixed with where it came from. */
 function violationsOf(origin: string, promql: string): string[] {
   return checkQueryLabels(promql, catalog).violations.map((v) => `${origin}: ${v}\n    ${promql}`)
 }
@@ -145,13 +126,6 @@ describe("metrics contract — labels in alert rules and dashboards", () => {
   })
 })
 
-/**
- * Contract rules 2 and 3 over every consumer: a counter or histogram is read
- * only through the born-series count, a gauge only folded over its nodes.
- * Queries may read plain `increase()` only over a window of an hour or less
- * at the retention edge (`increaseIn` has no hour to check there); the alert
- * rules and dashboards never.
- */
 describe("metrics contract — reading rules", () => {
   const plainIncreaseAllowed = (range: string, at: number | undefined) => {
     const now = nowSeconds()
@@ -203,7 +177,6 @@ describe("metrics contract — reading rules", () => {
   })
 })
 
-/** Every panel `expr` of a dashboard. */
 function panelExpressions(node: unknown): string[] {
   if (Array.isArray(node)) return node.flatMap(panelExpressions)
   if (node === null || typeof node !== "object") return []

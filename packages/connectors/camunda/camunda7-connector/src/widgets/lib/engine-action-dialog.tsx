@@ -4,11 +4,7 @@ import { useT } from "../../messages/use-t.js"
 import { ConfirmDialog } from "@miragon/pulse-widget-shell/widgets"
 import type { EngineAction } from "./engine-action.js"
 
-/**
- * The confirmation of an {@link EngineAction} — render it once next to the
- * controls that `run` the action. It stays open while the write is pending
- * and shows its failure; it closes when the write succeeds.
- */
+/** Stays open while pending and shows the failure; closes on success. */
 export function EngineActionDialog<TArgs, TResult>({
   action,
 }: {
@@ -16,8 +12,7 @@ export function EngineActionDialog<TArgs, TResult>({
 }) {
   const t = useT()
   const current = action.confirmation
-  // The closing dialog keeps its last content through the exit animation
-  // instead of flashing empty.
+  // Keeps its last content through the exit animation instead of flashing empty.
   const [shown, setShown] = useState(current)
   if (current !== null && current !== shown) setShown(current)
   const view = current ?? shown

@@ -4,13 +4,7 @@ import { parseModuleSlice } from "@miragon/pulse-widget-shell/server"
 import type { ProfileSource } from "./server-locale.js"
 import { resolveSettingsKey } from "./server-locale.js"
 
-/**
- * The analytics module's OWN settings slice, persisted under
- * `profile.modules.analytics` in the shared profile record (see the camunda7
- * `modules` field — the profile transports the slice, this module owns its
- * schema). Read fail-soft: a missing/foreign slice yields the defaults, so a
- * stale or hand-edited record can never break analytics tools.
- */
+/** Read fail-soft: a stale or hand-edited slice yields the defaults, never a broken tool. */
 export const analyticsSettingsSchema = z.object({
   defaultPeriod: z
     .enum(PERIODS)
@@ -29,18 +23,8 @@ export const analyticsSettingsSchema = z.object({
 export type AnalyticsSettings = z.infer<typeof analyticsSettingsSchema>
 
 /**
- * The save tool's input — deliberately default-FREE: zod 4 re-applies
- * `.default()`s through `.partial()` on parse, so a defaulted partial would
- * materialize omitted fields at the tool boundary and a "single-field" save
- * would silently reset the other saved value. With this shape, omitted keys
- * stay absent and the handler's merge keeps them unchanged.
- *
- * Spelled out by hand because the save descriptions differ from the schema's
- * ("Omitted → unchanged" is what the model needs at a write boundary). When the
- * descriptions can be shared, derive it instead:
- * `z.object(withoutDefaults(analyticsSettingsSchema.shape)).partial()`
- * (`withoutDefaults` from `@miragon/pulse-widget-shell/server`) — which is what
- * camunda7's `userProfileSaveInput` does.
+ * Default-free, and spelled out by hand rather than via `withoutDefaults`
+ * because the save descriptions ("Omitted → unchanged") differ from the schema's.
  */
 export const analyticsSettingsSaveInput = z.object({
   defaultPeriod: z
@@ -55,18 +39,12 @@ export const analyticsSettingsSaveInput = z.object({
     .describe("New minimum comparison bucket size. Omitted → unchanged."),
 })
 
-/**
- * `period` at the tool boundary is optional (no zod default) so an omitted
- * value is distinguishable and can fall back to the user's saved analytics
- * default before the schema default applies. Derived from PERIODS — never a
- * copied enum. Shared by the widget tools and the registrar tools.
- */
+/** No zod default, so an omitted value can fall back to the user's saved default first. */
 export const optionalPeriod = z
   .enum(PERIODS)
   .optional()
   .describe("Analysis time period. Omitted → the user's saved analytics default (else 7d).")
 
-/** Same optional-at-the-boundary treatment for `minBucketSize`. */
 export const optionalMinBucketSize = z
   .number()
   .int()
@@ -76,28 +54,16 @@ export const optionalMinBucketSize = z
     "Minimum per-window instance count before results are flagged `suppressed`. Omitted → the user's saved analytics default (else 10).",
   )
 
-/** The module's slice key inside `profile.modules`. */
 export const ANALYTICS_MODULE_KEY = "analytics"
 
-/**
- * The slice parsed leniently: garbage or absence yields the defaults —
- * per FIELD (shared `parseModuleSlice`), so one invalid value keeps the
- * other saved preference intact.
- */
+/** Lenient per FIELD, so one invalid value keeps the other saved preference. */
 export function parseAnalyticsSettings(
   modules: Record<string, unknown> | undefined,
 ): AnalyticsSettings {
   return parseModuleSlice(analyticsSettingsSchema, modules?.[ANALYTICS_MODULE_KEY])
 }
 
-/**
- * Resolve the request's effective analytics settings from the shared profile
- * store — the single place tools apply the "explicit arg > saved setting >
- * schema default" precedence for `period`/`minBucketSize`. Fail-soft on every
- * axis: no store, no resolvable key, or a store OUTAGE all yield the schema
- * defaults — a profile-store hiccup must never fail an analytics read that
- * only needs Prometheus.
- */
+/** Fail-soft: a profile-store outage must never fail a read that only needs Prometheus. */
 export async function settingsFor(
   store: ProfileSource | undefined,
   ctx?: unknown,

@@ -10,14 +10,8 @@ import {
 } from "./shell-settings-contract.js"
 import { registerShellSettingsTools } from "./shell-settings.js"
 
-/**
- * The shell owns the record-level language and the settings page (#346):
- * the triple reads and saves `language` on the shared record, never a
- * module slice, and the save exists only where the composition root allows
- * framework writes.
- */
+/** The save exists only where the composition root allows framework writes (#346). */
 
-/** A signed-in caller's handler ctx (mcp-use's flattened `ctx.auth`). */
 const CTX = { auth: { user: { id: "user-1" } } }
 
 type Handler = (

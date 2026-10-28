@@ -33,15 +33,10 @@ import {
 
 export interface PerformanceKPI {
   process_definition_key: string
-  /** Instances started in the window. */
   total_instances: number
-  /** Instances that ended with state COMPLETED in the window. */
   completed: number
-  /** Incidents created in the window — incidents, not failed instances. */
   incident_count: number
-  /** `incident_count` per 100 started instances (may exceed 100); null when nothing started. */
   incident_rate_pct: number | null
-  /** Durations of the instances that ENDED in the window; null when none did. */
   avg_duration_sec: number | null
   median_duration_sec: number | null
   p95_duration_sec: number | null
@@ -61,18 +56,11 @@ export interface ActivityBreakdownRow {
 
 export interface PeriodComparisonKpi {
   period: string
-  /** The window actually measured, after clamping to now and retention. */
   window_from: string
   window_to: string
   window_days: number
-  /** True when clamping cut the requested window short. */
   partial: boolean
   total_instances: number
-  /**
-   * `total_instances` per day of the window's exact length — the figure to
-   * compare across windows of different length. Always measured: a clamped
-   * window is never empty (`clampWindow` refuses one).
-   */
   started_per_day: number
   completed: number
   incident_count: number
@@ -91,22 +79,18 @@ export interface PeriodActivityComparisonRow {
   p95_sec: number | null
 }
 
-/** Result of {@link analyzePerformance}. */
 export interface PerformanceResult {
-  /** The engine ids covered; `null` = every engine Prometheus holds (unscoped library call). */
   engines: string[] | null
   kpi: PerformanceKPI | null
   activityBreakdown: ActivityBreakdownRow[]
 }
 
 export interface PeriodComparisonResult {
-  /** The engine ids covered; `null` = every engine Prometheus holds (unscoped library call). */
   engines: string[] | null
   kpiComparison: PeriodComparisonKpi[]
   activityComparison?: PeriodActivityComparisonRow[]
 }
 
-/** `{process_definition_key=..., engine_id=...}` plus any extra matchers. */
 function pdkSelector(
   key: string,
   engineId: EngineFilterInput,
@@ -119,15 +103,7 @@ function pdkSelector(
   )
 }
 
-/**
- * Process performance KPIs over a rolling window, from OTEL metrics.
- *
- * Counts come from {@link increaseIn} over the period; durations from the histogram
- * (`histogram_quantile` for p50/p95, sum/count for the mean) and cover the
- * instances that ENDED in the window — `null` when none did. `incident_count`
- * counts incidents created (metrics carry no per-instance terminal-failure
- * state). `kpi` is null only when the window saw no start, end or incident.
- */
+// `incident_count` counts incidents created: metrics carry no per-instance terminal-failure state.
 export async function analyzePerformance(
   ch: PrometheusClient,
   params: {
@@ -225,14 +201,6 @@ async function activityBreakdownRows(
   return rows.sort((a, b) => b.total_time_sec - a.total_time_sec).slice(0, 20)
 }
 
-/**
- * Compare two explicit execution windows. Each is read as a real historical
- * window via the PromQL `@ <end>` modifier, clamped to `[now − retention,
- * now]` and reported with its ACTUAL bounds (`window_*`, `partial`). Windows
- * of different length are not comparable by count, so each KPI row also
- * carries `started_per_day`. A reversed window, or one entirely in the future
- * or before retention, is refused.
- */
 export async function comparePeriods(
   ch: PrometheusClient,
   params: {
@@ -314,8 +282,7 @@ async function periodKpi(
     window_days: daysOf(w.seconds),
     partial: w.partial,
     total_instances: totalInstances,
-    // From the exact length — the rounded window_days is for display: a
-    // 10-minute window is 0.01 d there (−30 %), a 5-minute one 0.00 d.
+    // From the exact length: the rounded window_days of a 5-minute window is 0.00 d.
     started_per_day: round1((totalInstances * DAY_SECONDS) / w.seconds),
     completed: Math.round(first(completed)),
     incident_count: incidentCount,

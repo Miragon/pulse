@@ -14,7 +14,6 @@ interface Canned {
   p95: number | null
 }
 
-/** Mock Prometheus client with distinct canned KPIs per engine_id partition. */
 function mockClient(
   byEngine: Record<"prod-a" | "prod-b", Canned> = {
     "prod-a": { started: 100, completed: 80, incidents: 10, avg: 10, p95: 20 },
@@ -129,7 +128,6 @@ describe("engineCompare", () => {
 
   it("flags the comparison as suppressed when one engine misses minBucketSize", async () => {
     const { ch } = mockClient()
-    // prod-b only has 50 instances
     expect((await engineCompare(ch, { ...params, minBucketSize: 60 })).suppressed).toBe(true)
   })
 

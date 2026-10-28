@@ -61,11 +61,6 @@ describe("truncateVariableMap / truncateVariableRows", () => {
   })
 })
 
-/**
- * A cut value written back overwrites the stored value with its prefix. The
- * model therefore needs ONE lossless read to start a write from: naming the
- * variable returns it whole.
- */
 describe("variableRead", () => {
   const variables = { big: { value: OVER, type: "Json" }, small: { value: "s" } }
 

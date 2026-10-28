@@ -10,15 +10,7 @@ import { Section } from "./section.js"
 import { SegmentedControl } from "./segmented-control.js"
 import { DEFAULT_HEATMAP_LABELS } from "./bpmn-heatmap-labels.js"
 
-/**
- * The kit's OWN tone-aware pieces. The tone model itself (TONE_*, the
- * vocabulary, MICRO_LABEL) and the components the toolkit ships (KpiGrid,
- * StatusBadge, LivePill, CountPill, FilterBar, WidgetHeader) are pinned by
- * the toolkit's own suites since 2.8 (`lib/tone-utils.test.ts`,
- * `lib/typography.test.ts`, `components/{KpiGrid,Pills,FilterBar,
- * WidgetHeader,tone-figures}.test.tsx` in @miragon/mcp-toolkit-ui); their
- * AA contrast over the shipped theme stays here (`tone-contrast.test.ts`).
- */
+/** The kit's OWN tone-aware pieces; the toolkit's components are pinned by its own suites since 2.8. */
 
 afterEach(cleanup)
 

@@ -34,17 +34,10 @@ import { CAMUNDA7_LIST_ENGINES } from "../tool-names.js"
 
 interface EnginesResult {
   engines: Array<{ id: string }>
-  /** The caller's saved default engine (profile) — null when none is saved. */
   defaultEngineId: string | null
 }
 
-/**
- * The `show_*` payloads echo the engine that answered them (`engineId` on every
- * cockpit view-model) — scan the rendered tool result's step data for it so a
- * drill stays on the engine the user is looking at, without an extra tool call.
- * Exported for unit testing (the fixture harness cannot inject a production-
- * shaped `toolOutput`).
- */
+// Payloads echo the answering engine, so a drill stays on it without an extra call. Exported: the fixture harness cannot inject a production-shaped `toolOutput`.
 export function findStepEngineId(toolOutput: unknown): string | undefined {
   if (!toolOutput || typeof toolOutput !== "object") return undefined
   const context = (toolOutput as { context?: { stepData?: unknown } }).context
@@ -58,13 +51,12 @@ export function findStepEngineId(toolOutput: unknown): string | undefined {
   return undefined
 }
 
-/** A complete view tool-result (vs. null / transient partial globals). */
+// Not null or a transient partial global.
 function isViewResult(output: unknown): boolean {
   if (!output || typeof output !== "object") return false
   return "layout" in output || "context" in output
 }
 
-/** The saved default engine, or the sole configured one (the cockpit's pattern). */
 function engineFromQuery(queried: EnginesResult | undefined): string | undefined {
   return (
     queried?.defaultEngineId ??
@@ -72,12 +64,8 @@ function engineFromQuery(queried: EnginesResult | undefined): string | undefined
   )
 }
 
-// Engine unresolvable — no in-widget tool transport at all, the engines
-// query failed, or it settled without a determinable engine (multi-engine
-// without a saved default). Fall back to the conversational transport:
-// the agent's tool call resolves the engine server-side. This is the only
-// path where the shell still emits a prompt. Decided on settled data only
-// (`isFetching` guards the enable-transition refetch).
+// No transport, engines query failed, or multi-engine without a saved default: fall back to the
+// conversational transport, the only path that still emits a prompt. Settled data only (`isFetching`).
 function isEngineUnresolvable({
   needsEngine,
   engineId,
@@ -103,69 +91,36 @@ function isEngineUnresolvable({
 }
 
 /**
- * Client-side drill-in for standalone widget renders — the counterpart to the
- * cockpit app's router for everything rendered OUTSIDE the cockpit. Wraps the
- * whole widget surface (mounted once per iframe, above `McpAppView`):
- *
- * - Depth 0 is the original tool-result render, untouched. The shell only
- *   provides the `NavProvider`, so `useNav()` in any camunda7 widget resolves
- *   here instead of falling back to the conversational host follow-up — the
- *   same click now behaves the same in and outside the cockpit.
- * - A drill renders the matching cockpit view (`cockpitViews`) through the
- *   toolkit renderer; the view's widgets self-fetch their `*_data` feeds. The
- *   origin stays mounted (hidden), so "back" is instant and loses no state.
- * - Like the cockpit, the shell compensates for chat-free navigation with an
- *   app-level `<HostModelContext>` naming the current view — silent navigation
- *   must never leave the model blind (the origin's own model context stays
- *   registered; contexts are additive).
- *
- * The cockpit app is naturally inert here: it mounts its own `NavProvider`
- * deeper in the tree, which shadows this one for its subtree. Non-camunda7
- * widgets never call `useNav()` and render unchanged.
- *
- * Its queries (the engine list, the drilled views' feeds) run on the query
- * client `ProfileGate` provides, so the shell belongs INSIDE
- * `AppShellProviders`, as both host roots mount it. Deliberately not a client
- * of its own: a drilled write invalidates the same cache the origin view and
- * the profile read, and a second client would leave them stale.
+ * Client-side drill-in for standalone renders. Depth 0 is the original render; a drill renders the
+ * cockpit view while the origin stays mounted (hidden) so "back" is instant. An app-level
+ * `<HostModelContext>` keeps the model informed on silent navigation. The cockpit's own deeper
+ * `NavProvider` shadows this one. Belongs inside `AppShellProviders`: a second query client would
+ * leave the origin view and the profile stale after a drilled write.
  */
 export function Camunda7StandaloneShell({ children }: { children: ReactNode }) {
-  // The rendered tool result's structuredContent (SEP-1865), via the
-  // host-portable bridge (the mcp-use view adapter maps it to the rendering
-  // tool's output; the fixture harness to its `data` prop). The 1.x
-  // `toolInput` fallback is gone with `useWidget()` — a per-call `engine`
-  // override now only survives through the payload's engine echo below.
+  // The `toolInput` fallback is gone with `useWidget()`: a per-call `engine` override survives only via the payload's engine echo.
   const bridge = useHostBridge()
   const output = bridge.getWidgetData<unknown>()
   const host = useHostActions()
   const locale = useLocale()
   const { context } = useHandOff()
-  // Absent when the host wires no in-widget tools/call — drills then cannot
-  // self-fetch and must fall back to the conversational transport.
+  // Absent without in-widget tools/call: drills then fall back to the conversational transport.
   const queryCallTool = useCallTool()
   const [stack, setStack] = useState<CockpitView[]>([])
 
-  // A new tool result rendering into this live instance (e.g. an Apps-SDK
-  // fullscreen follow-up) obsoletes the drill trail — reset so the fresh
-  // origin render becomes visible. Identity-checked and guarded to complete
-  // view results so transient host-global re-emissions don't clear the trail.
+  // A new tool result (e.g. Apps-SDK fullscreen follow-up) obsoletes the trail; guarded to complete
+  // view results so transient host-global re-emissions don't clear it.
   useResetOnChange(output, () => {
     if (isViewResult(output)) setStack([])
   })
 
-  // Same registry composition as the cockpit app: the host root's full widget
-  // map (HostWidgetsProvider) under this module's own widgets, so a drilled
-  // COMPOSED view (the settings page) can resolve another module's section by
-  // raw id. Own ids always win; a host without the provider degrades to
-  // camunda7-only rendering, and `filterLayoutToWidgets` drops the unresolvable
-  // cells (and their now-empty rows) below.
+  // Host widgets under our own (own ids win), so a drilled composed view (settings) resolves another
+  // module's section; without the provider unresolvable cells are dropped below.
   const hostWidgets = useHostWidgets()
   const drillWidgets = { ...hostWidgets, ...camunda7BaseWidgets }
 
   const stepEngineId = useMemo(() => findStepEngineId(output), [output])
-  // Second engine source, only consulted once a drill happens without an engine
-  // echo: saved default or sole engine (the cockpit's pattern). Cached by
-  // the toolkit's singleton query client.
+  // Only consulted when a drill has no engine echo.
   const enginesQuery = useToolQuery<EnginesResult>(
     ["camunda7:engines"],
     CAMUNDA7_LIST_ENGINES,
@@ -177,7 +132,6 @@ export function Camunda7StandaloneShell({ children }: { children: ReactNode }) {
   const engineId = stepEngineId ?? queriedEngineId
 
   const current = stack.length > 0 ? stack[stack.length - 1] : undefined
-  // The settings view reads no route params — it must not block on an engine.
   const needsEngine = current !== undefined && current.section !== "settings"
 
   const engineUnresolvable = isEngineUnresolvable({
@@ -188,14 +142,9 @@ export function Camunda7StandaloneShell({ children }: { children: ReactNode }) {
     queried,
     queriedEngineId,
   })
-  // Handing the drill back to the host is a call OUT to an external system, so
-  // it belongs in an effect — and emptying the trail is the other half of that
-  // same handover, not a derived value we could compute during render. The one
-  // extra render this costs is a dead-end path (the drill is leaving anyway).
+  // Handing back to the host is an external call, and emptying the trail is the other half of that handover.
   useEffect(() => {
     if (engineUnresolvable && current) {
-      // Derived from the view on top of the stack — a stored "last intent"
-      // would go stale the moment the user pops the breadcrumb.
       navigateViaHost(host, viewToIntent(current))
       // eslint-disable-next-line react-hooks/set-state-in-effect -- half of the handover above
       setStack([])
@@ -206,13 +155,10 @@ export function Camunda7StandaloneShell({ children }: { children: ReactNode }) {
     setStack((prev) => pushView(prev, intentToView(intent)))
   }
 
-  // Deliberately NOT structuredContent.title: server titles are untranslated
-  // today, and a mixed-language trail (English root next to localized crumbs)
-  // reads broken. One localized label until server-side title i18n lands.
+  // Not structuredContent.title: server titles are untranslated and a mixed-language trail reads broken.
   const originLabel = translator(locale, "cockpit.crumb.origin")
 
-  // A drill and a pop are navigations: focus moves to the view shown and its
-  // name is announced (#344 N107).
+  // #344 N107: focus moves to the shown view and its name is announced.
   const viewKey = JSON.stringify(stack)
   const viewLabel = current ? crumbLabel(current, locale) : originLabel
 

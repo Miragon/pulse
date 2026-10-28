@@ -2,35 +2,14 @@ import type postgres from "postgres"
 import type { ReadinessCheck } from "./health.js"
 
 /**
- * The Postgres infrastructure shared by every store in this package: the one
- * place a postgres.js client is constructed, plus the migration runner that
- * executes the DDL each store exports (`PROFILE_STORE_MIGRATIONS`,
- * `DASHBOARD_STORE_MIGRATIONS`). A composed server that persists to Postgres
- * needs both — exporting the migration arrays without the runner would force
- * every consumer to copy it.
- */
-
-/**
- * Connections are lazy (opened on first query), but a root that persists to
- * Postgres runs `runMigrations` before it listens (the app's `initRuntime`),
- * so an unreachable database fails the
- * boot once the 10 s `connect_timeout` runs out (under a restart policy: a
- * restart loop until the database answers). After boot, reconnects after a
- * scale-to-zero wake need no extra handling.
- *
- * The driver is loaded through a DYNAMIC import and every other reference in
- * this package is `import type` — deliberately, and the reason this function
- * is async: `postgres` is an OPTIONAL peer dependency, but `/server`
- * re-exports this module, so a static import would execute on every consumer's
- * boot and crash the ones that persist to disk or memory (the composed-server
- * template installs no `postgres`) with ERR_MODULE_NOT_FOUND. Never "simplify"
- * it back to a top-level import.
+ * An unreachable database fails the boot once the 10 s `connect_timeout` runs out.
+ * The DYNAMIC import is load-bearing: `postgres` is an OPTIONAL peer and `/server` re-exports this
+ * module, so a static import would crash disk/memory consumers with ERR_MODULE_NOT_FOUND.
  */
 export async function createSql(databaseUrl: string): Promise<postgres.Sql> {
   const { default: postgres } = await import("postgres")
   return postgres(databaseUrl, {
-    // A handful of connections is plenty: every store call is a single short
-    // statement or one SELECT…FOR UPDATE transaction.
+    // Every store call is one short statement or one SELECT…FOR UPDATE transaction.
     max: 5,
     idle_timeout: 30,
     connect_timeout: 10,
@@ -39,12 +18,7 @@ export async function createSql(databaseUrl: string): Promise<postgres.Sql> {
   })
 }
 
-/**
- * The `/health/ready` check for a postgres.js client: one `SELECT 1` round
- * trip through the pool, so a database that goes away after boot turns the
- * server not ready instead of failing the next save. Lives next to `createSql` so
- * every composition root that persists to Postgres wires the same probe.
- */
+/** A database that goes away after boot turns the server not ready instead of failing the next save. */
 export function postgresReadinessCheck(sql: postgres.Sql): ReadinessCheck {
   return async () => {
     await sql`SELECT 1`
@@ -52,33 +26,18 @@ export function postgresReadinessCheck(sql: postgres.Sql): ReadinessCheck {
 }
 
 /**
- * One named, append-only migration. Statements are plain SQL strings compiled
- * into the bundle — .sql files would not survive a `pnpm deploy` + dist-copy
- * packaging. Store owners export their own migrations; the composition root
- * concatenates them in a fixed order.
- *
- * `name` is the identity recorded in `schema_migrations`, so it is a permanent
- * key, not a label: renaming one re-runs it against every existing database
- * (harmless only because the shipped DDL is `IF NOT EXISTS`), and reusing a
- * name for different DDL silently skips it. Numeric prefixes are ordering
- * hints for readers only — the array order decides.
+ * Plain SQL strings: .sql files would not survive `pnpm deploy` packaging. `name` is the permanent
+ * key in `schema_migrations`: a rename re-runs the DDL, a reused name skips it. Array order decides.
  */
 export interface Migration {
   name: string
   statements: readonly string[]
 }
 
-// Arbitrary but stable app-wide key ("mira" in hex) for the boot-time advisory
-// lock — it serializes concurrently booting instances, not tables.
+// Stable key ("mira" in hex); serializes concurrently booting instances, not tables.
 const MIGRATION_LOCK_KEY = 0x6d697261
 
-/**
- * Apply all not-yet-applied migrations in order, tracked by name in
- * `schema_migrations`. Runs as a single transaction under
- * `pg_advisory_xact_lock`, so two instances booting against the same database
- * cannot interleave DDL; the lock releases with the commit. Returns the names
- * that were newly applied (for boot logging).
- */
+/** One transaction under `pg_advisory_xact_lock`, so booting instances cannot interleave DDL. */
 export async function runMigrations(
   sql: postgres.Sql,
   migrations: readonly Migration[],

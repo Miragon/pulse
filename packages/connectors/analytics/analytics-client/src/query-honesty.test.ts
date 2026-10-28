@@ -8,22 +8,6 @@ import {
   recordingClient,
 } from "./query-scenarios.test-support.js"
 
-/**
- * Behavioural honesty guard (#336) over EVERY exported query function, on the
- * shared scenarios (`query-scenarios.test-support.ts`):
- *
- * 1. Time windows — every range a PromQL reads lies inside
- *    `[now − retention, now]`: no `@` anchor in the future, no window
- *    reaching past the retention Prometheus still holds.
- * 2. No data — against a Prometheus that holds nothing, each function says
- *    "unknown"/"not measured" (null, `unknown`, empty) instead of a plausible
- *    healthy 0: no 0 s duration, no 0 % rate, no `healthy` verdict.
- * 3. Scope — every aggregate that takes an engine filter names the engines
- *    it covers, so a fleet figure never reads as one engine's.
- * 4. No placeholders — with every label present, no result carries an empty
- *    string a query could never fill.
- */
-
 const NOW = Date.parse("2026-10-09T12:00:00Z")
 const NOW_SECONDS = NOW / 1000
 const RETENTION_SECONDS = RETENTION_DAYS * 86_400
@@ -38,7 +22,6 @@ afterAll(() => {
 
 const UNIT_SECONDS: Record<string, number> = { s: 1, m: 60, h: 3600, d: 86_400, w: 604_800 }
 
-/** Every `[<n><unit>]` range of a PromQL string, with its `@ <t>` anchor (else now). */
 function windowsOf(promql: string): Array<{ from: number; to: number; text: string }> {
   return [...promql.matchAll(/\[(\d+)([smhdw])\](?:\s*@\s*(\d+))?/g)].map((m) => {
     const to = m[3] === undefined ? NOW_SECONDS : Number(m[3])
@@ -71,11 +54,7 @@ describe("query honesty — time windows", () => {
 
 type Result<K extends keyof typeof queries> = Awaited<ReturnType<(typeof queries)[K]>>
 
-/**
- * What each function must say when Prometheus holds no data at all — a total
- * map over the `queries` namespace, so a new export has to state its no-data
- * shape (`pnpm typecheck`).
- */
+// A total map over `queries`: a new export has to state its no-data shape.
 const NO_DATA: { [K in keyof typeof queries]: (result: Result<K>) => void } = {
   analyzePerformance: (r) => {
     expect(r.kpi).toBeNull()
@@ -187,13 +166,7 @@ describe("query honesty — a Prometheus without data", () => {
   )
 })
 
-/**
- * The commonest live state — an engine that reports, with nothing open. The
- * metrics plugin registers per-key gauge rows only for what exists, so with
- * no incident open `camunda_incidents_open` has NO series at all while the
- * engine's own presence gauges still answer. Every surface reading that state
- * must say the same measured 0, never "not measured".
- */
+// The plugin registers per-key gauge rows only for what exists: nothing open means no series, yet a measured 0.
 describe("query honesty — a reporting engine with nothing open", () => {
   it("dashboard, failure dashboard, engine health and landscape agree on 0", async () => {
     const { ch } = recordingClient((q) =>
@@ -225,12 +198,7 @@ describe("query honesty — a reporting engine with nothing open", () => {
 
 const FLEET = ["prod-a", "prod-b"]
 
-/**
- * How each function states WHICH engines its numbers cover — a total map, so a
- * new export has to decide. With `engine` omitted a figure is a fleet
- * aggregate; unless the result names the engines, nobody reading it can tell
- * one engine from the whole fleet.
- */
+// A total map: unless a result names its engines, a fleet figure reads as one engine's.
 const SCOPE_ECHO: {
   [K in keyof typeof queries]:
     | { echo: (ch: PrometheusClient, engine: string[]) => Promise<{ engines: unknown }> }
@@ -317,7 +285,6 @@ describe("query honesty — every aggregate names the engines it covers", () => 
   })
 })
 
-/** Every path in `value` whose value is the empty string. */
 function emptyStrings(value: unknown, path = "$"): string[] {
   if (value === "") return [path]
   if (Array.isArray(value)) return value.flatMap((v, i) => emptyStrings(v, `${path}[${i}]`))

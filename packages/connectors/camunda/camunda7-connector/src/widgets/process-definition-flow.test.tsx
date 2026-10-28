@@ -12,16 +12,13 @@ import { cockpitViews } from "./cockpit-app/views.js"
 import type * as DiagramModule from "./bpmn-diagram.js"
 import { ProcessDefinitionFlow } from "./process-incidents/flow.js"
 
-// bpmn-js needs a real layout engine; the overlay's presence is what counts.
+// bpmn-js needs a real layout engine.
 vi.mock("./bpmn-diagram.js", async (importOriginal) => ({
-  // The real XML read (the heatmap draws on the view's own diagram)…
   ...(await importOriginal<typeof DiagramModule>()),
-  // …and a stand-in for the incident overlay.
   BpmnDiagram: () => <div data-testid="incident-overlay" />,
 }))
 
-// The heatmap's viewer (the kit's useBpmnViewer) meets a diagram bpmn-js
-// cannot import: the import-error alert is what the last suite reads.
+// An unimportable diagram: the import-error alert is what the last suite reads.
 const viewer = vi.hoisted(() => ({
   MockViewer: class {
     importXML(): Promise<never> {
@@ -35,14 +32,8 @@ const viewer = vi.hoisted(() => ({
 }))
 vi.mock("bpmn-js/lib/NavigatedViewer", () => ({ default: viewer.MockViewer }))
 
-/**
- * The definition view leads with the incident overlay on every entry, and
- * the analytics heatmap modes exist only once the analytics module is
- * CONFIRMED active (#341 N102). Before, the overview entry opened in heatmap
- * mode and called `analytics_bpmn_heatmap_data` by raw name even without
- * analytics: ~7 s of "Loading heatmap…" and four failing calls (TanStack's
- * three retries) in place of the overlay.
- */
+// #341 N102: heatmap modes only once analytics is CONFIRMED active. Before, the overview opened in
+// heatmap mode without analytics: ~7 s of loading and four failing calls instead of the overlay.
 
 const HEATMAP_FEED = "analytics_bpmn_heatmap_data"
 const ANALYTICS_PROBE = "analytics_settings_data"
@@ -90,7 +81,6 @@ const DATA: ProcessIncidentsData = {
   engineId: "prod-a",
 }
 
-/** The flow cell's props in a layout — what an entry point hands the widget. */
 function flowProps(layout: LayoutConfig): Record<string, unknown> {
   expect(collectLayoutWidgets(layout)).toContain("camunda7:process-definition-flow")
   for (const row of layout as Array<{ row: Array<{ widget: string; props?: object }> }>) {
@@ -100,11 +90,7 @@ function flowProps(layout: LayoutConfig): Record<string, unknown> {
   throw new Error("no flow cell")
 }
 
-/**
- * Every entry into the definition view: the cockpit's overview drill and its
- * incidents drill, the show tool's default and incident focus. Cell props of
- * the show tool's layout carry no scope — its widgets read the step data.
- */
+// The show tool's cell props carry no scope; its widgets read the step data.
 const ENTRIES: Array<[string, Record<string, unknown>]> = [
   [
     "cockpit overview drill",
@@ -143,10 +129,8 @@ function renderFlow(
   const heatmapCalls: Array<Record<string, unknown>> = []
   const tools: Record<string, unknown> = {
     [CAMUNDA7_PROCESS_INCIDENTS_DATA]: DATA,
-    // The view's own diagram, which the incident overlay and the heatmap both draw on.
     [CAMUNDA7_BPMN_XML_DATA]: { processDefinitionId: DATA.diagramDefinitionId, bpmnXml },
-    // Registered either way so a call is RECORDED — without analytics it
-    // fails like the unknown tool it is.
+    // Registered either way so a call is RECORDED; without analytics it fails like an unknown tool.
     [HEATMAP_FEED]: (args: Record<string, unknown>) => {
       heatmapCalls.push(args)
       if (!analytics) throw new Error(`Tool ${HEATMAP_FEED} not found`)
@@ -202,8 +186,6 @@ describe("definition view flow — a heatmap diagram bpmn-js cannot import", () 
     expect(await screen.findByTestId("incident-overlay")).toBeTruthy()
     fireEvent.click(await within(modeGroup()).findByRole("button", { name: "Frequency" }))
 
-    // The kit's inline error state: what happened, what to do, the parser's
-    // raw cause collapsed under Details.
     const alert = await screen.findByRole("alert")
     expect(alert.textContent).toBe(
       "The diagram could not be rendered" +

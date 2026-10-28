@@ -13,17 +13,11 @@ interface SettingsTool {
   description: string
 }
 
-/**
- * Whether the caller can save: the module's write gate AND a caller identity.
- * `readOnlyReason` names the way out, the missing sign-in first; a section
- * that declares no reason reports none.
- */
 export interface SettingsGate<TReason extends string> {
   canSave: boolean
   readOnlyReason?: "noSignIn" | TReason | null
 }
 
-/** A section's view, and the profile language its show tool words the result in. */
 interface LoadedSettings<TView extends object> {
   view: TView
   language?: LanguagePref
@@ -42,7 +36,6 @@ interface SettingsSection<
   app: string
   widget: string
   openWorldHint: boolean
-  /** Why a signed-in caller cannot save; omitted, the view carries no `readOnlyReason`. */
   readOnlyReason?: TReason
   load: (
     ctx: unknown,
@@ -53,7 +46,6 @@ interface SettingsSection<
     render: (loaded: LoadedSettings<TView>, ctx: unknown) => ViewText | Promise<ViewText>
   }
   feed: SettingsTool
-  /** The save tool, given only where the module's write gate allows it. */
   save?: SettingsTool & {
     input: TShape
     annotations?: Record<string, boolean>
@@ -72,14 +64,7 @@ const SAVE_ANNOTATIONS = {
   openWorldHint: false,
 }
 
-/**
- * A module's `<module>:settings` section as its tool triple: the show tool,
- * its app-only feed and the save tool, which exists only where the module's
- * write gate allows it. The two view tools report that same decision as
- * `canSave`, so a section never offers a Save that would resolve to an unknown
- * tool. The save refuses a caller without identity and stamps the OAuth
- * caller as the record's owner.
- */
+/** The view tools report the save tool's presence as `canSave`, so no Save resolves to an unknown tool. */
 export function registerSettingsSection<
   TView extends object,
   TShape extends z.ZodRawShape,

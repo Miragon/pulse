@@ -1,21 +1,7 @@
 /**
- * The Node `http` listener of a composed server (production path only):
- * mcp-use's public `toNodeHandler` bridge behind the edge's admission checks.
- *
- * Why: mcp-use 2's Node bridge reads every non-GET body into ONE string
- * before any middleware runs, and its JSON middleware then parses it — into a
- * heap graph up to ~20× the body — all before the OAuth gate. So before a
- * body reaches the bridge:
- *
- * 1. a request the edge guard refuses anyway (foreign `Host`/`Origin`) has
- *    its body discarded unread; the app still answers — and counts — the 403;
- * 2. a body over the cap gets 413 as soon as the declared `Content-Length` or
- *    the bytes actually received exceed it;
- * 3. a body that would push the bytes held across in-flight requests over the
- *    budget gets 503 + `Retry-After`. A request holds its share until its
- *    response closes, so the budget also bounds the parse after the hand-off.
- *
- * A refused upload is drained without keeping a byte and cut after a grace.
+ * mcp-use 2's Node bridge buffers every non-GET body into one string and parses it (up to ~20× on
+ * the heap) before the OAuth gate. So before the bridge: a guard-refused request's body is discarded
+ * unread, an over-cap body gets 413, and a body past the in-flight budget gets 503 + `Retry-After`.
  * `mcp-use dev` serves through its own listener and is NOT capped.
  */
 import type { IncomingMessage, ServerResponse } from "node:http"
@@ -23,44 +9,31 @@ import { Readable } from "node:stream"
 import { toNodeHandler, type NodeIncomingMessageLike } from "mcp-use/node"
 import { IN_FLIGHT_BODY_MULTIPLE, jsonRpcErrorBody } from "./http-edge.js"
 
-/** The fetch face the bridge drives — `MCPServer` satisfies it structurally. */
+/** `MCPServer` satisfies it structurally. */
 export interface FetchTarget {
   fetch: (request: Request) => Promise<Response>
 }
 
 export interface BodyLimitedListenerOptions {
-  /** Body cap in bytes; larger requests get 413 before they are buffered. */
   maxBodyBytes: number
-  /**
-   * Body bytes held across all requests whose response is still open; a body
-   * that would exceed it gets 503 (default {@link IN_FLIGHT_BODY_MULTIPLE} × the cap).
-   */
   maxInFlightBodyBytes?: number
-  /**
-   * Requests the app refuses whatever their body (the Host/Origin guard):
-   * their body is discarded unread and the app answers them bodiless.
-   */
+  /** Requests the guard refuses whatever their body: discarded unread, answered bodiless. */
   refusedBeforeBody?: (req: IncomingMessage) => boolean
-  /** How long the remainder of a refused upload is discarded before the socket is cut (default 2000 ms). */
+  /** Grace before the socket of a refused upload is cut (default 2000 ms). */
   discardGraceMs?: number
-  /** Observes bridge errors (the client still gets a JSON-RPC 500). */
+  /** The client still gets a JSON-RPC 500. */
   onError?: (error: Error) => void
 }
 
-/** A Node request listener that also tells the shutdown path what is still in flight. */
 export interface BodyLimitedListener {
   (req: IncomingMessage, res: ServerResponse): void
-  /** Requests whose response has not closed yet. */
   readonly inFlight: number
-  /** Body bytes those requests hold against the in-flight budget. */
   readonly heldBodyBytes: number
-  /** Resolves once no request is in flight (immediately when idle). */
   idle(): Promise<void>
 }
 
-/** One request's share of the in-flight budget: grows with its body, released on close. */
+/** Grows with its body, released on close. */
 interface BudgetShare {
-  /** Hold `total` bytes in all — `false` (holding nothing more) when the budget has no room. */
   grow(total: number): boolean
   release(): void
 }
@@ -71,7 +44,6 @@ type BodyRead =
   | { kind: "busy" }
   | { kind: "aborted" }
 
-/** Read the body while it stays under the cap and the budget; stop (without buffering) the moment it does not. */
 function readCapped(req: IncomingMessage, limit: number, share: BudgetShare): Promise<BodyRead> {
   return new Promise((resolve) => {
     const chunks: Buffer[] = []
@@ -100,7 +72,6 @@ function readCapped(req: IncomingMessage, limit: number, share: BudgetShare): Pr
   })
 }
 
-/** The bounded body, replayed to the bridge as the async-iterable request it expects. */
 function replay(
   req: IncomingMessage,
   chunks: Buffer[],
@@ -110,9 +81,8 @@ function replay(
 }
 
 /**
- * The request without its body. The body headers go too: nothing may wait for
- * bytes, and mcp-use's JSON middleware — which runs BEFORE the guard — would
- * answer an empty `application/json` body 400 instead of letting the guard 403.
+ * The body headers go too: mcp-use's JSON middleware runs BEFORE the guard and would answer an empty
+ * `application/json` body 400 instead of letting the guard 403.
  */
 function bodiless(req: IncomingMessage): NodeIncomingMessageLike {
   const headers = { ...req.headers }
@@ -142,20 +112,13 @@ function refuse(
     connection: "close",
   })
   res.end(body)
-  // Drain (never keep) what the client is still sending so it can read the
-  // answer instead of a reset, and cut the connection once the grace is up.
+  // Drain so the client reads the answer instead of a reset; cut once the grace is up.
   req.resume()
   const timer = setTimeout(() => req.socket.destroy(), graceMs)
   timer.unref()
   req.socket.once("close", () => clearTimeout(timer))
 }
 
-/**
- * Build the listener: bodies of non-GET/HEAD requests are admitted against the
- * cap (413) and the in-flight budget (503), bodies of requests the guard
- * refuses are never read, everything else goes through mcp-use's
- * `toNodeHandler` unchanged. Pass it to `http.createServer`.
- */
 export function createBodyLimitedListener(
   target: FetchTarget,
   {
@@ -215,7 +178,7 @@ export function createBodyLimitedListener(
     const method = (req.method ?? "GET").toUpperCase()
     if (method === "GET" || method === "HEAD") return bridge(req, res)
     if (refusedBeforeBody?.(req)) {
-      // Discard the body unread; the app's guard answers (and counts) the 403.
+      // The app's guard answers (and counts) the 403.
       req.resume()
       res.setHeader("connection", "close")
       return bridge(bodiless(req), res)
@@ -226,15 +189,13 @@ export function createBodyLimitedListener(
     const read = await readCapped(req, maxBodyBytes, share)
     if (read.kind === "too-large") return refuse(req, res, tooLarge, discardGraceMs)
     if (read.kind === "busy") return refuse(req, res, busy, discardGraceMs)
-    // A client that went away mid-upload has nobody left to answer.
     if (read.kind === "aborted") return
     return bridge(replay(req, read.chunks), res)
   }
 
   const listener = (req: IncomingMessage, res: ServerResponse): void => {
     inFlight += 1
-    // The share exists before the first await, so its release is registered
-    // even for a client that disconnects at once.
+    // Created before the first await, so a client that disconnects at once still releases it.
     const share = budgetShare()
     res.once("close", () => {
       share.release()

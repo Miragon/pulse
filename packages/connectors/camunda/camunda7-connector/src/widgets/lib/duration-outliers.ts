@@ -1,16 +1,7 @@
-/**
- * Below this a step's duration is never worth explaining: gateways, events
- * and fast service tasks run in milliseconds, and "why so long here?" on a
- * 3 ms step is noise (#344 N120).
- */
+/** "Why so long?" on a 3 ms step is noise (#344 N120). */
 export const OUTLIER_FLOOR_MS = 1_000
 
-/**
- * Which durations the timeline offers to explain: the single slowest step and
- * every step at least twice the median of the completed ones — each only from
- * {@link OUTLIER_FLOOR_MS} on. Without the floor a median of 0 (an instance of
- * near-instant steps) made EVERY completed row an outlier.
- */
+/** Without the floor a median of 0 made every completed row an outlier. */
 export function durationOutliers(
   durations: ReadonlyArray<number | null | undefined>,
 ): (ms: number | null | undefined) => boolean {

@@ -16,7 +16,6 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-/** A signed-in caller's handler ctx (mcp-use's flattened `ctx.auth`). */
 const CTX = { auth: { user: { id: "user-1" } } }
 
 type Handler = (
@@ -28,11 +27,6 @@ type Handler = (
   isError?: boolean
 }>
 
-/**
- * Register the triple against a mock server and expose what landed on it. The
- * toolset is always explicit; the default is `operations`, an authenticated
- * boot's no-suffix toolset (profile writes allowed).
- */
 function register(
   toolset: Camunda7Toolset = "operations",
   registry = { engines: [] } as unknown as EngineRegistry,
@@ -116,14 +110,12 @@ describe("caller round-trip", () => {
   it("reads the caller's save back on the next load — and only the caller's", async () => {
     const { handlerFor } = register()
 
-    // The save and the read resolve the SAME record from the handler ctx.
     await handlerFor(CAMUNDA7_SAVE_SETTINGS)({ defaultEngineId: "prod-b" }, CTX)
     const result = await handlerFor(CAMUNDA7_SETTINGS_DATA)({}, CTX)
     const profile = feedPayload(result).profile as { defaultEngineId?: string } | undefined
     expect(profile?.defaultEngineId).toBe("prod-b")
 
     const other = await handlerFor(CAMUNDA7_SETTINGS_DATA)({}, { auth: { user: { id: "u-2" } } })
-    // Another caller sees the default: no default engine.
     expect(
       (feedPayload(other).profile as { defaultEngineId?: string }).defaultEngineId,
     ).toBeUndefined()
@@ -141,15 +133,13 @@ describe("caller round-trip", () => {
     })
   })
 
-  // #346: the language is the shell's — this module reads it to word its
-  // summary and title, and never saves it.
+  // #346: the language is the shell's; this module only reads it.
   it("summarizes in the language the record names, which the shell saves", async () => {
     const store = createInMemoryProfileStore()
     const { handlerFor, definitionFor } = register("operations", undefined, store)
     const saveInput = definitionFor(CAMUNDA7_SAVE_SETTINGS).inputSchema as { shape: object }
     expect(Object.keys(saveInput.shape)).not.toContain("language")
 
-    // Following the host's locale, which never reaches the server: English.
     const system = await handlerFor(CAMUNDA7_SHOW_SETTINGS)({}, CTX)
     expect(system.content?.[0]?.text).toBe("camunda7 settings: all engines.")
     expect(JSON.stringify(system.structuredContent)).not.toContain('"language"')
@@ -160,11 +150,7 @@ describe("caller round-trip", () => {
   })
 })
 
-/**
- * The settings page sends "" for the "(auto)" default engine and the "(none)"
- * default dashboard. That must CLEAR the stored value: a stale default keeps
- * routing every engine-less tool call (writes included) to the old engine.
- */
+/** A stale default would keep routing every engine-less call, writes included, to the old engine. */
 describe("clearing an optional id from the settings page", () => {
   it('"" clears the saved default engine and default dashboard, other fields stay', async () => {
     const store = createInMemoryProfileStore()

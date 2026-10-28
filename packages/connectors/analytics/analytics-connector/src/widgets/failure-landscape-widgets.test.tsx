@@ -21,13 +21,6 @@ import {
   withWidgetClock,
 } from "./widget-render.test-support.js"
 
-/**
- * The failure dashboard and the cross-engine landscape as a person reads
- * them: the live snapshot framed, the one state an open incident (U14), the
- * processes named (U13), a rate never cut at 100, a silent engine unknown
- * rather than zero and the landscape's column groups headed (U17).
- */
-
 withWidgetClock()
 
 const FAILURES: Named<FailureDashboardData> = {
@@ -76,7 +69,6 @@ describe("the failure dashboard", () => {
     expect(kpiTone("Incident-Gruppen")).toBeUndefined()
     expect(kpiTone("Am stärksten betroffen")).toBeUndefined()
     expect(container.querySelector("[class*='-soft']")).toBeNull()
-    // The process by its name, the key quiet below it.
     expect(screen.getByText("Order fulfillment")).toBeTruthy()
     expect(screen.getByText("order").className).toContain("font-mono")
   })
@@ -147,8 +139,7 @@ describe("the failure dashboard", () => {
     expect(rateBarWidth(20, 10)).toBe(100)
   })
 
-  // U17, decision j: a rate without a threshold or a period before is a
-  // magnitude, drawn in the data-viz blue; the danger stays with the open count.
+  // U17, decision j: a rate without a threshold or a period before is a magnitude.
   it("draws the rate bars in the data-viz blue, the open incidents with the danger edge", () => {
     const { container } = renderIn("de", FailureRateTable, FAILURES)
     for (const bar of container.querySelectorAll<HTMLElement>("[style*='width']")) {
@@ -160,9 +151,7 @@ describe("the failure dashboard", () => {
     expect(open.className).not.toMatch(/text-danger/)
   })
 
-  // Decision f, one ladder in every module (`countTone`, widget-shell): a job
-  // without retries is a state like an open incident, danger while there is
-  // any, as camunda7 edges the same count; none is a plain number.
+  // Decision f: one ladder (`countTone`) in every module, as camunda7 edges the same count.
   it("edges the dead jobs and open incidents in danger while there are any, a zero plain", () => {
     renderIn("de", FailureRateTable, {
       ...FAILURES,
@@ -307,8 +296,7 @@ describe("the cross-engine landscape", () => {
     expect(calm.querySelector("[class*='border-danger']")).toBeNull()
   })
 
-  // Decision f: jobs without retries are a state too, edged as camunda7's
-  // engine tiles above this table in the cross-engine overview edge them.
+  // Decision f: as camunda7's engine tiles above this table edge them.
   it("edges an engine's jobs without retries in danger, like its open incidents", () => {
     renderIn("de", EngineLandscapeWidget, {
       ...LANDSCAPE,
@@ -366,7 +354,6 @@ describe("the cross-engine landscape", () => {
     expect(
       screen.getByText("An empty cell means the process is not deployed on that engine."),
     ).toBeTruthy()
-    // Names first in the matrix too.
     expect(screen.getByText("Order fulfillment")).toBeTruthy()
   })
 

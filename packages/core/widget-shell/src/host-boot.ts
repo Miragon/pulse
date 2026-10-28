@@ -1,16 +1,6 @@
-/**
- * Boot helpers shared by composed-server hosts (the stock server and the
- * composed-server template). Server path only — extracted so host apps carry
- * composition, not mcp-use workarounds, and a toolkit/mcp-use migration
- * lands here once instead of in every host fork.
- */
+/** mcp-use workarounds for composed-server hosts, so a migration lands here once. */
 
-/**
- * The narrow structural surface needed for tool-call middleware
- * (`server.use("mcp:tools/call", …)`, the metrics counter) — callers pass an
- * `MCPServer` without this module importing mcp-use (same pattern as
- * `McpMiddlewareHost`).
- */
+/** Structural, so callers pass an `MCPServer` without this module importing mcp-use. */
 export interface ToolCallMiddlewareHost {
   use(
     pattern: "mcp:tools/call",
@@ -18,16 +8,11 @@ export interface ToolCallMiddlewareHost {
   ): unknown
 }
 
-/** The tool name from mcp-use's tools/call middleware ctx (`unknown` when the shape is off). */
 export function toolNameOf(ctx: unknown): string {
   return (ctx as { params?: { name?: string } } | undefined)?.params?.name ?? "unknown"
 }
 
-/**
- * `error` for an `isError` result (the toolkit's `withToolErrors` shape —
- * handlers report failures as results, not throws), `ok` otherwise — what the
- * metrics counter calls an error.
- */
+/** Handlers report failures as `isError` results, not throws. */
 export function toolCallOutcome(result: unknown): "ok" | "error" {
   const isError =
     typeof result === "object" &&
@@ -37,12 +22,8 @@ export function toolCallOutcome(result: unknown): "ok" | "error" {
 }
 
 /**
- * mcp-use logs every request itself (one line per call: method, tool name,
- * status, duration, an error's text), at `info` without any payload. Its
- * `MCP_USE_LOG_LEVEL` raises that to `debug` (truncated tool inputs and
- * outputs) or `trace` (full request and response dumps, headers included):
- * process variables, business keys and bearer tokens then reach the log. The
- * boot says so; `undefined` at `info` or unset.
+ * Above `info`, `MCP_USE_LOG_LEVEL` logs tool inputs/outputs or full dumps with headers: process
+ * variables, business keys and bearer tokens reach the log. The boot says so.
  */
 export function requestLogLevelWarning(env: NodeJS.ProcessEnv): string | undefined {
   const level = env.MCP_USE_LOG_LEVEL?.trim().toLowerCase()
@@ -53,12 +34,8 @@ export function requestLogLevelWarning(env: NodeJS.ProcessEnv): string | undefin
 }
 
 /**
- * `mcp-use dev` imports the host entry, takes the default export, and owns
- * the socket itself. It also primes its own (empty — hosts bundle views via
- * `app.bundle`) views manifest onto the export, which mcp-use rejects as a
- * double prime. Swallow the CLI's prime; scoped to the dev CLI (the env var
- * it sets before loading the entry) so a genuine double-prime still fails
- * loudly.
+ * `mcp-use dev` primes its own empty views manifest onto the default export, which mcp-use rejects
+ * as a double prime. Swallowed only under the dev CLI, so a genuine double prime still fails.
  */
 export function swallowDevCliViewsPrime(
   server: object,
@@ -69,19 +46,12 @@ export function swallowDevCliViewsPrime(
 }
 
 export interface ResolvePortOptions {
-  /** Defaults to `process.env`. */
   env?: NodeJS.ProcessEnv
-  /** Port to bind when `PORT` is unset or empty (default 8400). */
   fallback?: number
-  /** Host label, prefixed onto the error so it reads like the host's other boot lines. */
   label?: string
 }
 
-/**
- * `PORT` from the environment, validated. `||` (not `??`) on purpose: an
- * empty `PORT=` assignment from an env_file must fall back to the default —
- * `Number("")` is 0, which would bind a random OS-assigned port.
- */
+/** `||`, not `??`: an empty `PORT=` must fall back, since `Number("")` is 0 (a random port). */
 export function resolvePort({
   env = process.env,
   fallback = 8400,

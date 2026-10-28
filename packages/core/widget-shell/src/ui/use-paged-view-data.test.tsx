@@ -5,13 +5,7 @@ import { act, cleanup, renderHook, waitFor } from "@testing-library/react"
 import { AppQueryProvider, queryClient } from "@miragon/mcp-toolkit-ui"
 import { usePagedViewData } from "./use-paged-view-data.js"
 
-/**
- * usePagedViewData on the real toolkit query stack (the toolkit's
- * `useViewData` in seed mode with TanStack's placeholderData since 2.8), with
- * one fake tool transport answering both page 0 and the Load-more offsets.
- * Retries are off, so a failure is final at once; the backoff cases run in
- * `use-paged-view-data.seeded.test.tsx` under the production defaults.
- */
+/** Retries are off, so a failure is final at once; backoff cases live in the `.seeded` suite. */
 
 interface Page {
   items: string[]
@@ -19,7 +13,6 @@ interface Page {
 }
 
 const page = (items: string[], total: number): Page => ({ items, total })
-/** Wire-shaped tool result; the real structured-first parser unwraps it. */
 const toolResult = (p: Page) => ({ structuredContent: p })
 
 const selectItems = (data: Page) => data.items
@@ -34,7 +27,6 @@ function wrapper({ children }: { children: ReactNode }) {
 interface HarnessProps {
   initialData: Page | null
   args: Record<string, unknown>
-  /** The cache-key scope; defaults to one list. */
   scope?: string
 }
 
@@ -55,7 +47,6 @@ function setup(props: HarnessProps) {
   )
 }
 
-/** The page-0 reads sent for `args`. */
 const page0Calls = (args: Record<string, unknown>) =>
   callTool.mock.calls.filter(
     ([, sent]) =>
@@ -151,7 +142,6 @@ describe("usePagedViewData", () => {
   })
 
   it("drops accumulated pages when the self-fetched page 0 refetches", async () => {
-    // Self-fetch mode: page 0 from the query, one page appended.
     callTool.mockResolvedValueOnce(toolResult(page(["a", "b"], 4)))
     const { result } = setup({ initialData: null, args: {} })
     await waitFor(() => expect(result.current.items).toEqual(["a", "b"]))
@@ -159,8 +149,7 @@ describe("usePagedViewData", () => {
     act(() => result.current.loadMore())
     await waitFor(() => expect(result.current.items).toEqual(["a", "b", "c", "d"]))
 
-    // A mutation invalidated the cache: page 0 refetches with shifted rows
-    // (one row resolved away). Keeping the appended page would duplicate "c".
+    // A mutation shifted page 0: keeping the appended page would duplicate "c".
     callTool.mockResolvedValueOnce(toolResult(page(["b", "c"], 3)))
     await invalidate()
     await waitFor(() => expect(result.current.items).toEqual(["b", "c"]))
@@ -172,7 +161,6 @@ describe("usePagedViewData", () => {
     act(() => result.current.loadMore())
     await waitFor(() => expect(result.current.items).toEqual(["a", "b", "c", "d"]))
 
-    // Host refresh: same filter, new payload object.
     rerender({ initialData: page(["a2", "b2"], 5), args: {} })
     expect(result.current.items).toEqual(["a2", "b2"])
   })
@@ -232,18 +220,13 @@ describe("usePagedViewData", () => {
 })
 
 /**
- * A new page 0 — a changed search or filter, or a refetch — must never unmount
- * the list (#341 N123): the previous result stays on screen until the new one
- * lands (TanStack's placeholderData, scoped to the list), so the search box
- * above it keeps its focus and keystrokes. A page-0 failure is reported as
- * one, with a retry that re-runs page 0 — never as "Failed to load more" with
- * a retry that fetches the next offset (N130).
+ * A new page 0 must never unmount the list (#341 N123), and a page-0 failure
+ * is never reported as "Failed to load more" (N130).
  */
 describe("usePagedViewData — page-0 fetch states", () => {
   const A = page(["a", "b"], 3)
   const SEARCH = { q: "x" }
 
-  /** Self-fetch mode with page 0 for `{}` settled to A. */
   async function settledOnA() {
     callTool.mockResolvedValueOnce(toolResult(A))
     const hook = setup({ initialData: null, args: {} })
@@ -336,8 +319,7 @@ describe("usePagedViewData — page-0 fetch states", () => {
     callTool.mockRejectedValueOnce(new Error("engine down"))
     rerender({ initialData: null, args: SEARCH })
 
-    // The failure is final (no retries here): TanStack drops its placeholder,
-    // the rows the failure line refers to stay.
+    // Final failure: TanStack drops its placeholder, the rows the failure line refers to stay.
     await waitFor(() => expect(result.current.error?.message).toBe("engine down"))
     expect(result.current.firstPage).toEqual(A)
     expect(result.current.stale).toBe(true)
@@ -351,7 +333,6 @@ describe("usePagedViewData — page-0 fetch states", () => {
     expect(
       callTool.mock.calls.some(([, sent]) => (sent as { firstResult: number }).firstResult > 0),
     ).toBe(false)
-    // While it runs the previous rows stay, marked.
     expect(result.current.firstPage).toEqual(A)
     expect(result.current.stale).toBe(true)
     act(() => again.land(toolResult(page(["x1"], 1))))
@@ -362,7 +343,6 @@ describe("usePagedViewData — page-0 fetch states", () => {
 
   it("a failed background refetch is a page-0 error over the stale rows — never a load-more error", async () => {
     const { result } = await settledOnA()
-    // React Query keeps the last data and sets the error.
     callTool.mockRejectedValueOnce(new Error("timeout"))
     await invalidate()
 

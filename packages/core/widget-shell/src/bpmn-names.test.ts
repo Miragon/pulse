@@ -1,11 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { bpmnProcessNameOf, parseBpmnNames, readBpmnNames } from "./bpmn-names.js"
 
-/**
- * The one naming rule for a BPMN model (#322 U13): camunda7, analytics and
- * the heatmap read the same names from the same diagram.
- */
-
 const LEASING = `<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="Defs_1">
   <!-- <bpmn:userTask id="Task_Commented" name="Never shown" /> -->
@@ -67,8 +62,7 @@ describe("parseBpmnNames", () => {
       <process id="invoice"><task id="Task_A" name="Approve"/></process>
       <process id="other" name="Other process"/>
     </definitions>`
-    // The pool is no element of the process: only the named task is. The
-    // pool of another process of the file never names this one.
+    // The pool is no element; another process's pool never names this one.
     expect(parseBpmnNames(xml, "invoice")).toEqual({
       name: "Invoice handling",
       elements: { Task_A: "Approve" },

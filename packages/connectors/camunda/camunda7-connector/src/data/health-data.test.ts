@@ -38,7 +38,6 @@ interface IncidentRowFixture {
   incidentTimestamp: string
 }
 
-/** Matching incidents, newest first (the builder's fetch order). */
 function incidents(count: number, message = "boom at 'X'"): IncidentRowFixture[] {
   return Array.from({ length: count }, (_, i) => ({
     id: `i${i}`,
@@ -158,10 +157,7 @@ describe("buildClusterDetailData paging", () => {
   })
 })
 
-/**
- * #340: the verdict states its source and thresholds wherever it travels, so
- * it cannot be mistaken for analytics_engine_health's alert-based status.
- */
+// #340: the verdict states its source so it is not mistaken for analytics_engine_health.
 describe("healthVerdictRule", () => {
   it("names the source and the deployment's own thresholds", () => {
     expect(healthVerdictRule({ criticalIncidents: 10, criticalClusterSize: 4 })).toBe(
@@ -170,14 +166,8 @@ describe("healthVerdictRule", () => {
   })
 })
 
-/**
- * The rule text and the verdict logic live apart (healthVerdictRule /
- * statusOf), so they are pinned TOGETHER: every boundary row checks the
- * verdict the builder computes AND that the payload states the rule that
- * produced it. A flipped comparison or a swapped `||` fails here, not only in
- * production, where the stated rule would then describe a verdict the code
- * does not apply.
- */
+// Rule text and verdict logic live apart, so each boundary row pins both: a
+// flipped comparison would otherwise ship a rule that describes another verdict.
 describe("buildEngineHealthData verdict", () => {
   const T: EngineHealthThresholds = { criticalIncidents: 10, criticalClusterSize: 4 }
 

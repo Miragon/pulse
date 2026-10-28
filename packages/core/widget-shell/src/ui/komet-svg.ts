@@ -1,11 +1,6 @@
 /**
- * The official Miragon icon — the green Komet on the blue rounded square —
- * vendored UNCHANGED from the CI (miragon-brand 1.8.0,
- * `corporate-design/assets/logo/miragon-komet-blau.svg`; modeler-tool-design
- * §11: "Übernimm es unverändert"). Never edit this string: re-copy the file
- * and update the version and hash; `komet-mark.test.ts` holds it byte-equal
- * to the plugin's file where a checkout is reachable, to the pinned SHA-256
- * everywhere else.
+ * Vendored UNCHANGED from the CI (`corporate-design/assets/logo/miragon-komet-blau.svg`).
+ * Never edit: re-copy and update version and hash (`komet-mark.test.ts`).
  */
 export const KOMET_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <rect width="512" height="512" rx="112" fill="#335de5"/>
@@ -15,8 +10,6 @@ export const KOMET_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5
 </svg>
 `
 
-/** The miragon-brand release the Komet comes from. */
 export const KOMET_SVG_VERSION = "1.8.0"
 
-/** SHA-256 of the upstream file (and of {@link KOMET_SVG}). */
 export const KOMET_SVG_SHA256 = "c44c4a00f93f4255442bb70afeb8dbcb7eaae6af331ff04b6c685b6d20f587c9"

@@ -9,12 +9,7 @@ import { processRootCauseHandOff } from "./incidents-dashboard/process-list.js"
 import { triageProcessHandOff } from "./process-incidents/header.js"
 import { handOffFor } from "./lib/hand-off.test-support.js"
 
-/**
- * The honest-numbers facts (#335) as the #338 hand-offs state them: key-wide
- * counts say so, the definition view's activity fraction is the diagram's own,
- * the BPMN badges say whose counts they are, and a number the server could
- * not vouch for is left out — never sent as 0.
- */
+/** Honest-numbers facts (#335) in the #338 hand-offs: a number the server cannot vouch for is left out, never 0. */
 
 const PROCESS_VIEW: ProcessIncidentsData = {
   processDefinitionKey: "invoice",

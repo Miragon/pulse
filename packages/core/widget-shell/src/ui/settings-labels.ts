@@ -2,13 +2,7 @@ import type { Locale } from "../profile-constants.js"
 import type { ShellSettingsReadOnlyReason } from "../shell-settings-contract.js"
 import { supportedLanguage } from "./host-context.js"
 
-/**
- * The words of the settings page (`shell:settings-page`) and the shell's
- * language section (`shell:settings`), en/de. Voice (brand-tone): German
- * addresses you with "du", a read-only notice says why and what you can do,
- * no dash as a connector. `brand-gates.test.ts` runs the catalog text test
- * over both sets.
- */
+/** Voice per brand-tone; `brand-gates.test.ts` runs the catalog text test over both sets. */
 export interface SettingsLabels {
   pageTitle: string
   pageSubtitle: string
@@ -82,5 +76,4 @@ export function settingsLabels(locale: string | undefined): SettingsLabels {
   return LABELS[supportedLanguage(locale) ?? "en"]
 }
 
-/** Both label sets, for the catalog text test. */
 export const SETTINGS_LABELS: Readonly<Record<Locale, SettingsLabels>> = LABELS

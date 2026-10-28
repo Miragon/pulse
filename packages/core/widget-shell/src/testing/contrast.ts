@@ -2,24 +2,11 @@ import { readFileSync } from "node:fs"
 import { createRequire } from "node:module"
 
 /**
- * WCAG contrast over the THEME as written: reads the custom properties a
- * stylesheet declares for light (`:root`) and dark (`.dark` and the toolkit's
- * other dark scopes), resolves `var()` chains, hex, `oklch()` and
- * `color-mix()` the way the browser would, and measures text/background and
- * non-text pairs in both modes. Built for tests
- * (`@miragon/pulse-widget-shell/testing`): a brand override that drops a role
- * below AA fails the suite that runs it, not a screenshot review.
+ * WCAG contrast over the THEME as written, resolved the way the browser would, so a brand
+ * override that drops a role below AA fails a test, not a screenshot review.
  */
 
-/**
- * The theme every view ships, as the installed `@miragon/mcp-toolkit-ui`
- * provides it: the vendored Miragon tokens (`cd-tokens.generated.css`,
- * which `theme.css` imports first) and `theme.css` with its light and dark
- * role layer. Pass it to {@link parseThemeVariables} first and a consumer's
- * brand stylesheet after it:
- *
- *   parseThemeVariables(...toolkitThemeStylesheets(), brandCss)
- */
+/** Pass first, then a consumer's brand: `parseThemeVariables(...toolkitThemeStylesheets(), brandCss)`. */
 export function toolkitThemeStylesheets(): string[] {
   const require = createRequire(import.meta.url)
   const read = (entry: string) => readFileSync(require.resolve(entry), "utf8")
@@ -31,7 +18,6 @@ export function toolkitThemeStylesheets(): string[] {
 
 export type ThemeMode = "light" | "dark"
 
-/** An sRGB colour with alpha, channels 0–1. */
 export interface Rgba {
   r: number
   g: number
@@ -39,16 +25,12 @@ export interface Rgba {
   a: number
 }
 
-/** The custom properties of each mode, in cascade order (later wins). */
 export interface ThemeVariables {
   light: Map<string, string>
   dark: Map<string, string>
 }
 
-/**
- * Drop CSS comments (a comment may quote a rule it forbids). A linear scan,
- * not a lazy regex: the helper is exported and reads consumer stylesheets.
- */
+/** A comment may quote a rule it forbids; a linear scan, not a lazy regex, since it reads consumer CSS. */
 function stripComments(css: string): string {
   let out = ""
   let at = 0
@@ -62,14 +44,12 @@ function stripComments(css: string): string {
   }
 }
 
-/** One `{ … }` block: its prelude, the preludes around it, its own custom properties. */
 interface RuleBlock {
   prelude: string
   parents: string[]
   declarations: [string, string][]
 }
 
-/** The `--name: value` declarations of a block body, split linearly (no backtracking regex). */
 function customProperties(body: string): [string, string][] {
   const declarations: [string, string][] = []
   for (const declaration of body.split(";")) {
@@ -82,7 +62,6 @@ function customProperties(body: string): [string, string][] {
   return declarations
 }
 
-/** Split a selector list on its top-level commas (`:where(.a, .b) .c` stays whole). */
 function selectorList(prelude: string): string[] {
   const out: string[] = []
   let depth = 0
@@ -100,19 +79,13 @@ function selectorList(prelude: string): string[] {
   return out
 }
 
-/**
- * Every block of a stylesheet, in source order (by its opening brace),
- * nesting tracked: a block's declarations are the text directly inside it,
- * the preludes of the blocks around it are its `parents`.
- */
 function ruleBlocks(css: string): RuleBlock[] {
   const blocks: RuleBlock[] = []
   const open: { block: RuleBlock; body: string }[] = []
   let text = ""
   for (const ch of css) {
     if (ch === "{") {
-      // Statements before a prelude (`@import …;`, a declaration of the
-      // enclosing block) end in ";".
+      // Statements before a prelude (`@import …;`) end in ";".
       const cut = text.lastIndexOf(";") + 1
       if (open.length > 0) open[open.length - 1].body += text.slice(0, cut)
       const block = {
@@ -136,15 +109,9 @@ function ruleBlocks(css: string): RuleBlock[] {
   return blocks
 }
 
-/** A selector that reaches the document root's theme: html, :root, .dark, a data-theme switch. */
 const ROOT_THEME = /:root|^html(?![\w-])|\.dark(?![\w-])|\[data-(?:theme|mode)|:host/
 
-/**
- * The dark scopes of the toolkit's theme that sit on `<html>` itself:
- * useApplyTheme puts `.dark` AND `data-theme="dark"` there (one dark mode on
- * every channel), and `data-theme-mode="dark"` is the toolkit's own scope
- * attribute. All three carry the same specificity as `.dark`.
- */
+/** useApplyTheme puts `.dark` AND `data-theme="dark"` on `<html>`; all share `.dark`'s specificity. */
 const DARK_ROOT_SCOPES: ReadonlySet<string> = new Set([
   ".dark",
   '[data-theme="dark"]',
@@ -152,13 +119,8 @@ const DARK_ROOT_SCOPES: ReadonlySet<string> = new Set([
 ])
 
 /**
- * Which modes a rule's custom properties reach on `<html>`: `:root` both,
- * the dark scopes ({@link DARK_ROOT_SCOPES}) dark only (`<html>` carries
- * them, where `:root` matches too, with the same specificity). Descendant
- * scopes (`.dark .card`, the toolkit's light islands inside a dark scope)
- * reach no root variable and are skipped; any other root-theme rule (higher
- * specificity, a media query, a cascade layer) would need a model this
- * helper does not have, so it throws instead of measuring the wrong colour.
+ * Descendant scopes reach no root variable and are skipped; any other root-theme rule
+ * (higher specificity, media query, layer) throws instead of measuring the wrong colour.
  */
 function rootScope(block: RuleBlock): { light: boolean; dark: boolean } {
   const selectors = selectorList(block.prelude)
@@ -186,12 +148,8 @@ function rootScope(block: RuleBlock): { light: boolean; dark: boolean } {
 const isThemeBlock = (block: RuleBlock) => /^@theme\b/.test(block.prelude)
 
 /**
- * Collect the theme variables of one or more stylesheets the way an `<html>`
- * element sees them. `@theme` blocks (Tailwind's `--color-*` registrations)
- * sit in Tailwind's theme layer, below every unlayered rule; then the `:root`
- * and `.dark` blocks of all stylesheets apply in source order. Light reads
- * the `:root` blocks; dark (`html.dark`) reads `:root` AND `.dark`, so a later
- * light-only `:root` override reaches dark too, exactly as in the browser.
+ * `@theme` blocks sit below every unlayered rule. Dark reads `:root` AND `.dark`, so a
+ * later light-only `:root` override reaches dark too, as in the browser.
  */
 export function parseThemeVariables(...stylesheets: string[]): ThemeVariables {
   const blocks = stylesheets.flatMap((css) => ruleBlocks(stripComments(css)))
@@ -256,7 +214,6 @@ function rgbToOklab({ r, g, b }: Rgba): [number, number, number] {
   ]
 }
 
-/** `0.5`, `50%` → 0.5 */
 function fraction(token: string): number {
   return token.endsWith("%") ? parseFloat(token) / 100 : parseFloat(token)
 }
@@ -269,7 +226,6 @@ function parseOklch(args: string): Rgba {
   return oklabToRgb(fraction(L), c * Math.cos(hue), c * Math.sin(hue), alpha ? fraction(alpha) : 1)
 }
 
-/** Split a function argument list on top-level commas. */
 function topLevelArgs(args: string): string[] {
   const out: string[] = []
   let depth = 0
@@ -286,7 +242,6 @@ function topLevelArgs(args: string): string[] {
   return out
 }
 
-/** The CSS Color 5 mix with premultiplied alpha, in srgb or oklab. */
 function mix(space: string, a: Rgba, wa: number, b: Rgba, wb: number): Rgba {
   const alpha = a.a * wa + b.a * wb
   if (alpha === 0) return { r: 0, g: 0, b: 0, a: 0 }
@@ -333,10 +288,6 @@ function resolveColorMix(args: string, vars: Map<string, string>, seen: Set<stri
   return mix(space.replace(/^in\s+/, "").trim(), x.color, wx, y.color, y.weight ?? 1 - wx)
 }
 
-/**
- * `var(--name[, fallback])` split without a backtracking regex: the name runs
- * to the first comma, everything after it is the fallback.
- */
 function parseVarReference(value: string): { name: string; fallback?: string } | undefined {
   if (!value.startsWith("var(") || !value.endsWith(")")) return undefined
   const inner = value.slice(4, -1)
@@ -348,13 +299,7 @@ function parseVarReference(value: string): { name: string; fallback?: string } |
   return fallback ? { name, fallback } : { name }
 }
 
-/**
- * Resolve a CSS colour value against a mode's variables. Supports the
- * shapes the theme uses: `var(--x[, fallback])`, `#rgb[a]`/`#rrggbb[aa]`,
- * `oklch(L C H [/ A])`, `color-mix(in srgb|oklab, c1 [p%], c2 [q%])`,
- * `transparent`, `white`, `black`. Anything else throws, so a theme that
- * grows a new shape fails loudly instead of measuring garbage.
- */
+/** Only the shapes the theme uses; anything else throws so a new shape fails loudly, not as garbage. */
 export function resolveColor(
   value: string,
   vars: Map<string, string>,
@@ -371,7 +316,6 @@ export function resolveColor(
   throw new Error(`Unsupported colour value: ${v}`)
 }
 
-/** `fg` painted over an opaque `bg`. */
 export function composite(fg: Rgba, bg: Rgba): Rgba {
   return {
     r: fg.r * fg.a + bg.r * (1 - fg.a),
@@ -385,17 +329,12 @@ function luminance({ r, g, b }: Rgba): number {
   return 0.2126 * srgbToLinear(r) + 0.7152 * srgbToLinear(g) + 0.0722 * srgbToLinear(b)
 }
 
-/** WCAG 2.x contrast ratio of two opaque colours. */
 export function contrastRatio(a: Rgba, b: Rgba): number {
   const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x)
   return (hi + 0.05) / (lo + 0.05)
 }
 
-/**
- * One measured pair. `fg` and `bg` are variable names (`--danger-ink`);
- * a translucent `bg` is painted over `over` first (default `--card`), a
- * translucent `fg` over the result.
- */
+/** A translucent `bg` is painted over `over` (default `--card`) first, a translucent `fg` over that. */
 export interface ContrastPair {
   label: string
   fg: string
@@ -412,7 +351,6 @@ export interface ContrastResult {
   min: number
 }
 
-/** Measure every pair in both modes. */
 export function measureContrast(
   theme: ThemeVariables,
   pairs: readonly ContrastPair[],
@@ -431,7 +369,6 @@ export function measureContrast(
   return results
 }
 
-/** The measured pairs that miss their minimum, as `mode: label` lines. */
 export function contrastFindings(theme: ThemeVariables, pairs: readonly ContrastPair[]): string[] {
   return measureContrast(theme, pairs)
     .filter((r) => r.ratio < r.min)

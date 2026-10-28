@@ -1,13 +1,6 @@
 import type { MessageCatalog } from "@miragon/mcp-toolkit-core"
 
-/**
- * Was ein Schreibzugriff im Widget meldet, wenn er fertig ist (U9): die
- * Toasts von `useEngineAction`, jeder mit dem Objekt, auf das er wirkte —
- * die Instanz per Geschäftsschlüssel oder Kurz-ID, die Variable, die
- * Aufgabe. Ein Fehlschlag sagt im Titel, was nicht passiert ist; den Grund
- * und den nächsten Schritt ergänzt `useActionFeedback` aus dem Kit. In
- * index.ts in die Kataloge gemischt.
- */
+/** Toasts von `useEngineAction` (U9); Grund und nächsten Schritt ergänzt `useActionFeedback`. */
 export const deFeedback: MessageCatalog = {
   "feedback.jobRetried": "Job für Instanz {instance} neu eingeplant",
   "feedback.jobRetryFailed": "Job für Instanz {instance} konnte nicht neu eingeplant werden",

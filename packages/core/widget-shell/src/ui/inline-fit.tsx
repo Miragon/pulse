@@ -23,44 +23,24 @@ export {
 } from "./inline-fit-registry.js"
 
 /**
- * The measured inline fit (#396): an inline view is a card in a chat, and a
- * card taller than the host's height budget turns into one scroll box. So
- * inline, every list of the view shows only as many rows as fit, measured on
- * the rendered view: its real chrome and its real rows (a two-line row with a
- * name and an id is not a one-line row, and a view's header, filters and
- * footer differ per view). The rest is one "Show all" away (fullscreen, or
- * the next rows in place where the host offers no fullscreen).
- *
- * - The fit runs before the first paint (each list's layout effect), so the
- *   host's first size report already has the fitted height; a footer that
- *   appears because of a cap ("3 of 160") is absorbed by the next pass.
- * - Within an EPOCH (the budget, the frame's width, inline vs. fullscreen) a
- *   cap only shrinks; a new epoch starts every list at {@link START_ROWS}
- *   again. Without a stated budget the view is fitted to
- *   {@link UNSTATED_BUDGET} and never capped.
- * - Until the user first touches the view (pointer or key), content that
- *   grows late (a font swap, a diagram, an error line) refits; after that,
- *   only a list's own placement does (mounted, shown from a hidden tab, a new
- *   search or filter), so rows never vanish under the pointer.
- * - Revealing rows in place freezes a list until its search or filter
- *   changes.
- *
- * Outside a host (unit renders, fixtures) and in fullscreen there is no fit:
- * every row shows.
+ * The measured inline fit (#396): a card taller than the host budget becomes
+ * one scroll box, so inline lists show only the rows that fit, measured on
+ * the rendered view.
+ * - Runs before first paint, so the host's first size report is fitted.
+ * - Within an EPOCH (budget, width, display mode) a cap only shrinks.
+ * - After the user's first pointer/key, only a list's own placement refits,
+ *   so rows never vanish under the pointer; until then late content (a font swap, a diagram) refits.
+ * Outside a host and in fullscreen there is no fit: every row shows.
  */
 
-/** Rows a list starts with in an epoch, before the fit takes some away. */
 export const START_ROWS = 10
-/** The height an inline view is fitted to when the host states no budget. */
 export const UNSTATED_BUDGET = 600
-/** A width change smaller than this is the same epoch (scrollbars, rounding). */
+/** Smaller width changes are scrollbars or rounding, not a new epoch. */
 const WIDTH_EPSILON = 8
 const RESIZE_DEBOUNCE_MS = 150
 
 interface SlotCaps {
-  /** Rows the fit leaves the list. */
   fitted: number
-  /** Rows the user revealed in place on top. */
   revealed: number
 }
 
@@ -83,7 +63,6 @@ const FitCapsContext = createContext<FitState | null>(null)
 const capsOf = (state: FitState | null, id: string): SlotCaps =>
   state?.caps[id] ?? { fitted: START_ROWS, revealed: 0 }
 
-/** Applies the solver's cuts; a cap only ever shrinks here. */
 function applyCuts(state: FitState, cuts: Record<string, number>): FitState {
   const entries = Object.entries(cuts).filter(([id, rows]) => rows < capsOf(state, id).fitted)
   if (entries.length === 0) return state
@@ -103,13 +82,7 @@ function withRevealed(
   return { ...state, caps: { ...state.caps, [id]: { ...caps, revealed: next } } }
 }
 
-/**
- * The view's document box with its fit: `HostDocument` renders the view in
- * it in every display mode (the tree never changes with the mode; only
- * `active` and the style do). `data-inline-fit` on the box says whether the
- * last fit made the view fit ("fits") or not ("overflow": it then scrolls
- * inside the budget).
- */
+/** Rendered in every display mode so the tree never changes with the mode. */
 export function InlineFitBox({
   active,
   budget,
@@ -117,9 +90,7 @@ export function InlineFitBox({
   measure = DOM_MEASURE,
   children,
 }: {
-  /** Inline under a host: fit. Fullscreen/PiP: every row. */
   active: boolean
-  /** The host's height budget in px, {@link UNSTATED_BUDGET} when it states none. */
   budget: number
   style?: CSSProperties
   measure?: FitMeasure
@@ -129,16 +100,14 @@ export function InlineFitBox({
   const width = useFrameWidth(active)
   const epoch = `${active}|${budget}|${width}`
   const [state, setState] = useState<FitState>({ epoch, caps: {} })
-  // A new epoch starts every list at START_ROWS again (render-phase reset).
   if (state.epoch !== epoch) setState({ epoch, caps: {} })
 
   const [registry] = useState(() => new SlotRegistry())
   const latched = useRef(false)
-  /** A list asked for a fit before the box's ref was attached (a parent's ref attaches after its children's effects). */
+  /** A parent's ref attaches after its children's effects, so early fits wait here. */
   const pending = useRef(false)
   const current = useRef({ active, budget, measure })
-  // Before any layout effect of the lists (a parent's layout effects run after
-  // its children's): a list that refits on a new budget reads the new one.
+  // Insertion effect: runs before the lists' layout effects, so a refit reads the new budget.
   useInsertionEffect(() => {
     current.current = { active, budget, measure }
   }, [active, budget, measure])
@@ -156,8 +125,7 @@ export function InlineFitBox({
       return
     }
     const { slots, fresh } = registry.measure(element, m)
-    // A list placed for the first time (a drill, a tab, a new search) is a
-    // new view: what loads late in it refits until the user touches it.
+    // A newly placed list is a new view: late content refits until touched.
     if (fresh) latched.current = false
     const { cuts, fits } = solveInlineFit({ budget: limit, content: m.content(element), slots })
     element.setAttribute("data-inline-fit", fits ? "fits" : "overflow")
@@ -182,20 +150,16 @@ export function InlineFitBox({
     [registry, fit],
   )
 
-  // The fits the lists asked for while mounting, now that the box is attached.
   useLayoutEffect(() => {
     if (pending.current) fit()
   })
 
-  // A new epoch is a fresh start for the latch, for rows revealed in place and
-  // for the lists' placement: before the lists' own fits of the epoch run (an
-  // insertion effect precedes every layout effect).
+  // Insertion effect so the restart precedes the lists' own fits of the epoch.
   useInsertionEffect(() => {
     latched.current = false
     registry.restart()
   }, [epoch, registry])
 
-  // The first pointer or key the user gives the view.
   useEffect(() => {
     if (!active) return
     const latch = () => {
@@ -209,9 +173,6 @@ export function InlineFitBox({
     }
   }, [active])
 
-  // Content that changes size after the fit: before the latch everything
-  // refits (fonts, diagrams, late sections); after it only a list that has
-  // not been placed yet (it was hidden, e.g. in another tab, and shows now).
   useEffect(() => {
     const element = box.current
     if (!active || !element || typeof ResizeObserver === "undefined") return
@@ -223,7 +184,6 @@ export function InlineFitBox({
       element.querySelectorAll(LIST_SELECTOR).forEach((rows) => observer.observe(rows))
     }
     observeAll()
-    // Lists mount later (a drill, a tab): observe what appears.
     const mutations = new MutationObserver(observeAll)
     mutations.observe(element, { childList: true, subtree: true })
     return () => {
@@ -241,7 +201,6 @@ export function InlineFitBox({
   )
 }
 
-/** The frame's width, settled (debounced) and only when it changed by more than rounding. */
 function useFrameWidth(active: boolean): number {
   const [width, setWidth] = useState(() =>
     typeof document === "undefined" ? 0 : document.documentElement.clientWidth,
@@ -265,21 +224,16 @@ function useFrameWidth(active: boolean): number {
   return width
 }
 
-/** One list's rows in the fit: how many it shows, and how its rows are found. */
 export interface InlineRows {
-  /** Rows the list shows; null = every row (no fit: fullscreen, no host, or not fitted). */
+  /** null = every row. */
   cap: number | null
-  /** Rows the fit leaves the list: the step "Show more" reveals in place. */
   step: number
-  /** The element whose children are the rows (a `<tbody>`, an `<ol>`). */
   attachRows: (element: HTMLElement | null) => void
-  /** The paged list's wrapper: the rows when no table inside names its body. */
+  /** Used when no table inside names its body. */
   attachFallback: (element: HTMLElement | null) => void
-  /** Shows `rows` more in place and keeps them until the search or filter changes. */
   reveal: (rows: number) => void
 }
 
-/** A list outside the fit: every row, nothing to register. */
 export const NO_FIT_ROWS: InlineRows = {
   cap: null,
   step: 0,
@@ -288,12 +242,7 @@ export const NO_FIT_ROWS: InlineRows = {
   reveal: () => undefined,
 }
 
-/**
- * Registers a list with the view's fit. `available` is how many rows it has
- * (loaded); `resetKey` names its search or filter (a new one drops the rows
- * revealed in place and refits the list's placement). `enabled: false` (a
- * table inside a paged list, which fits as one) registers nothing.
- */
+/** `resetKey` names the search or filter: a new one drops rows revealed in place. */
 export function useInlineRows(
   available: number,
   {
@@ -302,7 +251,6 @@ export function useInlineRows(
     enabled = true,
   }: {
     resetKey?: string
-    /** Changes when the rows' content changes (a page landed): the list refits. */
     contentKey?: unknown
     enabled?: boolean
   } = {},
@@ -320,7 +268,6 @@ export function useInlineRows(
     return api.register(id)
   }, [api, id, enabled])
 
-  // A new search or filter drops the rows revealed in place (before the fit below runs).
   const fittedKey = useRef(resetKey)
   useLayoutEffect(() => {
     if (fittedKey.current === resetKey) return
@@ -342,7 +289,7 @@ export function useInlineRows(
     [api, id],
   )
   const reveal = useCallback((rows: number) => api?.reveal(id, rows), [api, id])
-  // Revealing in place shows at least a soft floor of rows per click.
+
   const step = Math.max(caps.fitted, FIT_LIMITS.softMin)
   return on ? { cap, step, attachRows, attachFallback, reveal } : NO_FIT_ROWS
 }

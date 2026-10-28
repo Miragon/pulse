@@ -6,11 +6,6 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-/**
- * The toolset vocabulary the composition root resolves with: the module's
- * fail-closed POLICY (which toolset an unauthenticated / authenticated boot
- * without a suffix gets, and that `admin` is never implied).
- */
 describe("camunda7Module.toolsets (fail-closed policy)", () => {
   const vocabulary = camunda7Module.toolsets
 
@@ -53,11 +48,7 @@ describe("camunda7Module.toolsets (fail-closed policy)", () => {
   })
 })
 
-/**
- * Deploy permission is code execution inside the engine JVM — the opt-in must
- * parse strictly: a typo fails the boot instead of being guessed either way
- * (`z.coerce.boolean` would even read "false" as true).
- */
+/** Deploying is code execution in the engine JVM, so a typo fails the boot (`z.coerce.boolean` reads "false" as true). */
 describe("CAMUNDA_ALLOW_DEPLOYMENTS", () => {
   const engine = { id: "prod-a", baseUrl: "http://engine.example/engine-rest" }
   const parsedFlag = (allowDeployments?: string) =>
@@ -120,10 +111,6 @@ describe("CAMUNDA_ALLOW_DEPLOYMENTS", () => {
   })
 })
 
-/**
- * The per-request engine deadline: strict like the deployment flag — a typo
- * must fail the boot, not be coerced into some other deadline (or none).
- */
 describe("CAMUNDA_REQUEST_TIMEOUT_MS", () => {
   const engine = { id: "prod-a", baseUrl: "http://engine.example/engine-rest" }
   const parsed = (requestTimeoutMs?: unknown) =>
@@ -164,13 +151,7 @@ describe("CAMUNDA_REQUEST_TIMEOUT_MS", () => {
   })
 })
 
-/**
- * The engine id is a JOIN KEY against the metrics `engine_id` label, not a
- * display name — a mismatch makes every engine-scoped analytics query (BPMN
- * heatmap, engine compare) return empty instead of failing. These lock the
- * resolution so the shorthand path stays alignable with the engine's
- * `ENGINE_ID`.
- */
+/** The id is the join key against `engine_id`: a mismatch makes engine-scoped analytics empty, not failing. */
 describe("camunda7Module.configFromEnv engine ids", () => {
   const enginesOf = (env: NodeJS.ProcessEnv) =>
     camunda7Module.configFromEnv(env).engines as Array<{ id: string; baseUrl: string }>
@@ -210,12 +191,6 @@ describe("camunda7Module.configFromEnv engine ids", () => {
   })
 })
 
-/**
- * The environment-map form is the two-stage selection's config shape:
- * `{"<environment>": [engines…]}` normalizes to the flat entry list with each
- * key stamped as the entries' `environment`. Engine ids stay the flat join
- * key; the environment is grouping only.
- */
 describe("camunda7Module.configFromEnv environment-map form", () => {
   const enginesOf = (env: NodeJS.ProcessEnv) =>
     camunda7Module.configFromEnv(env).engines as Array<Record<string, unknown>>
@@ -298,12 +273,7 @@ describe("camunda7Module.configFromEnv environment-map form", () => {
   })
 })
 
-/**
- * The zero-config fallback is the nastiest first-run state: it reaches the
- * Compose engine, so BPM tools WORK while engine-scoped analytics silently
- * return empty (engine id "default" vs the stamped "prod-a"). The boot warning
- * is the only signal — it must fire exactly when nothing configures an engine.
- */
+/** Zero-config reaches the Compose engine while analytics silently return empty: the warning is the only signal. */
 describe("camunda7Module.bootWarnings", () => {
   it("warns on a fully unconfigured environment, naming the fallback URL and id", () => {
     const warnings = camunda7Module.bootWarnings({})
@@ -408,10 +378,6 @@ describe("camunda7Module.configFromEnv passthrough", () => {
   })
 })
 
-/**
- * Incomplete credentials must fail the boot, not silently degrade to
- * unauthenticated engine requests — these lock the schema refinements.
- */
 describe("camunda7ConfigSchema auth validation", () => {
   const engine = { id: "prod-a", baseUrl: "http://engine.example/engine-rest" }
 

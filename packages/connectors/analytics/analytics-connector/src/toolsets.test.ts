@@ -70,8 +70,6 @@ describe("isAnalyticsToolset", () => {
 
 describe("allowsDurableWrites", () => {
   it("forbids writes when no toolset is configured — a missing toolset is the read-only floor", () => {
-    // Fail-closed: a direct `createPlugin` caller that passes no toolset gets
-    // the floor, never the full surface.
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
     expect(allowsDurableWrites(undefined)).toBe(false)
     expect(allowsDurableWrites()).toBe(false)
@@ -96,9 +94,7 @@ describe("allowsDurableWrites", () => {
   })
 
   it("decides by declared name, not by an ad-hoc string compare", () => {
-    // The regression this guards: a `toolset === "read-only"` check silently
-    // fails open for every name that is NOT that literal. Every declared
-    // toolset is a deliberate decision: only the floor forbids the write.
+    // Guards against `toolset === "read-only"`, which fails open for every other name.
     expect(ANALYTICS_TOOLSETS.map((toolset) => [toolset, allowsDurableWrites(toolset)])).toEqual([
       ["read-only", false],
       ["standard", true],

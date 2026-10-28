@@ -9,7 +9,7 @@ export function EmptyStateWithSiblings({
   onJumpTo,
 }: {
   processName: string
-  /** Other processes with open incidents — null when they could not be read. */
+  /** Null when they could not be read. */
   siblings: IncidentsByProcess[] | null
   onJumpTo: (key: string, label?: string) => void
 }) {

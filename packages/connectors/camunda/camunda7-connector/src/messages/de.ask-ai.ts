@@ -1,11 +1,6 @@
 import type { Camunda7AskAiKey } from "./en.ask-ai.js"
 
-/**
- * German Ask-AI hand-off intents — same keys as `en.ask-ai.ts` (the type
- * enforces parity). Schlichtes du-Deutsch, denn der Text steht als Nachricht
- * der Person im Chat, die klickt: kein Gedankenstrich als Verbinder, keine
- * Urteile in Versalien, die Schlussformel („Ändere nichts.“) bleibt.
- */
+/** Steht als Nachricht der Person im Chat, die klickt; die Schlussformel („Ändere nichts.“) bleibt. */
 export const deAskAi: Record<Camunda7AskAiKey, string> = {
   "askAi.jobs.triage":
     "Ordne die Jobs ohne Versuche nach Ursache: Gruppier sie, nenn je Gruppe die wahrscheinliche Ursache und empfiehl je Gruppe eine Maßnahme. Nur empfehlen, ändere nichts.",

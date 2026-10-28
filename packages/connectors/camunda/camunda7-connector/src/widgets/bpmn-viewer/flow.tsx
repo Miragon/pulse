@@ -4,11 +4,7 @@ import type { BpmnViewerData } from "../../view-models.js"
 import { BpmnDiagram, type BpmnHighlight } from "../bpmn-diagram.js"
 import { useT } from "../../messages/use-t.js"
 
-/**
- * Renders the BPMN canvas with active/incident/failed-job/instance-count
- * overlays computed from the shared `BpmnViewerData` slice. Empty/missing
- * data renders a neutral alert (parent layout still composes header/legend).
- */
+/** Missing data renders a neutral alert; the parent still composes header and legend. */
 export function BpmnFlowViewer({ data }: { data: BpmnViewerData | null }) {
   const highlights = useMemo<BpmnHighlight[]>(
     () => [

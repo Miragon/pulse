@@ -34,11 +34,7 @@ const ENGINES = [
   { id: "prod-b", environment: "default" },
 ]
 
-/**
- * Boots the cockpit with recording engine-list and engine-select fixtures.
- * `bootstrap` is `camunda7_open_cockpit`'s payload; `list` what
- * `camunda7_list_engines` answers — mutable, so a test can reload it.
- */
+/** `list` is mutable, so a test can reload it. */
 function renderCockpit(
   bootstrap: CockpitAppData = { engineId: null, engines: ENGINES },
   list: { engines: CockpitAppData["engines"] } = { engines: ENGINES },
@@ -64,7 +60,6 @@ function renderCockpit(
     definitions: [],
     engineId: args.engine,
   })
-  // A quiet engine: the overview's health verdict renders its full header.
   const health = (args: Record<string, unknown>): EngineHealthData => ({
     status: "ok",
     statusRule: "ok without open incidents",
@@ -104,26 +99,18 @@ describe("CockpitApp navigation is side-effect free", () => {
   it("entering and switching engines never writes the saved default engine", async () => {
     const { listCalls, selectCalls } = renderCockpit()
 
-    // Landing chooser → operate one engine.
     fireEvent.click(await screen.findByRole("button", { name: /prod-a/ }))
-    // Sidebar switcher → another engine.
     const switcher = await screen.findByLabelText("Selected engine")
     fireEvent.change(switcher, { target: { value: "prod-b" } })
     await waitFor(() => expect((switcher as HTMLSelectElement).value).toBe("prod-b"))
 
-    // The transport reached the fixture (the engine list was read) …
     expect(listCalls).toContainEqual({})
-    // … but no navigation step persisted anything: making an engine the
-    // default is an explicit action on the settings page.
+    // Making an engine the default is an explicit settings action.
     await new Promise((resolve) => setTimeout(resolve, 20))
     expect(selectCalls).toEqual([])
   })
 
-  // Navigation no longer moves the saved default (prod-b in this fixture), so
-  // the model must learn the VIEWED engine — an engine-less call would answer
-  // from the default engine instead. The context carries it as an id, and the
-  // module's server instructions tell the model to pass a model context's
-  // `engine` on (pinned in instructions.test.ts).
+  // Navigation no longer moves the saved default, so the model must learn the viewed engine.
   it("tells the model which engine the operator is viewing — and to pin it", async () => {
     const { modelContexts } = renderCockpit()
     fireEvent.click(await screen.findByRole("button", { name: /prod-a/ }))
@@ -139,23 +126,14 @@ describe("CockpitApp navigation is side-effect free", () => {
   })
 })
 
-/** The engine the sidebar shows as active — null while no engine is open. */
 const activeEngine = () =>
   screen.queryByLabelText<HTMLSelectElement>("Selected engine")?.value ?? null
 const onLanding = () =>
   screen.queryByRole("heading", { level: 1, name: "Operations Cockpit" }) !== null
 
-/**
- * The cockpit OPENS where `camunda7_open_cockpit` resolved — the per-call
- * `engine`, else the saved default, else the only engine (#341 K43) — and the
- * model context says exactly what the user sees: an engine, or the picker
- * (N105). Before, a multi-engine cockpit always showed the picker while the
- * summary claimed the engine.
- */
+/** #341 K43 / N105: opens where `camunda7_open_cockpit` resolved, and the context says what is shown. */
 describe("CockpitApp opens on the bootstrap's engine", () => {
   it("a resolved engine (per-call `engine` or saved default): lands on it, not on the picker", async () => {
-    // The list's saved default is prod-b; the bootstrap resolved prod-a
-    // (the model passed it) — the bootstrap wins.
     const { modelContexts } = renderCockpit({ engineId: "prod-a", engines: ENGINES })
     await waitFor(() => expect(activeEngine()).toBe("prod-a"))
     expect(onLanding()).toBe(false)
@@ -174,18 +152,12 @@ describe("CockpitApp opens on the bootstrap's engine", () => {
     expect(onLanding()).toBe(true)
     await waitFor(() => expect(modelContexts.at(-1)).toContain("engine picker"))
     const last = modelContexts.at(-1)!
-    // No single engine is in scope: nothing the model could pin.
     expect(last).not.toMatch(/Ids: engine="/)
     expect(last).toContain('engines=["prod-a","prod-b"]')
   })
 })
 
-/**
- * The scope follows the engine list (#341 N106): when it reloads without the
- * engine the cockpit is on (curated away in Settings, or a bootstrap that
- * raced the list), the cockpit falls back EXPLICITLY — the only engine left,
- * else the picker with a note — never keeps querying a stale id.
- */
+/** #341 N106 */
 describe("CockpitApp reconciles its engine scope with the engine list", () => {
   const THREE = [...ENGINES, { id: "prod-c", environment: "default" }]
 
@@ -224,11 +196,7 @@ describe("CockpitApp reconciles its engine scope with the engine list", () => {
   })
 })
 
-/**
- * #322 U4, U15, U20, U27: the head names the engine and its environment in
- * one compact row, "All engines" leads back to the chooser, and the cockpit
- * has ONE refresh control.
- */
+/** #322 U4, U15, U20, U27 */
 describe("CockpitApp head", () => {
   const ENVIRONMENTS = [
     { id: "prod-a", environment: "prod" },
@@ -242,7 +210,6 @@ describe("CockpitApp head", () => {
       "[data-slot='engine-context'] [data-slot='environment-chip']",
     )
     expect(chip?.textContent).toBe("Environment prod")
-    // Optgroups name the environments in capitals, like the chip.
     expect(screen.getByRole("group", { name: "PROD" })).toBeTruthy()
   })
 
@@ -258,8 +225,7 @@ describe("CockpitApp head", () => {
   it("has one refresh control", async () => {
     renderCockpit({ engineId: "prod-a", engines: ENVIRONMENTS }, { engines: ENVIRONMENTS })
     await waitFor(() => expect(activeEngine()).toBe("prod-a"))
-    // The overview's engine health has rendered its header — the one that
-    // brings its own Refresh outside the cockpit (#322 U27).
+    // The overview header brings its own Refresh outside the cockpit (#322 U27).
     expect(await screen.findByRole("heading", { name: "prod-a · Overview" })).toBeTruthy()
     expect(screen.getAllByRole("button", { name: "Refresh" })).toHaveLength(1)
   })
@@ -269,7 +235,6 @@ describe("CockpitApp head", () => {
     expect(
       await screen.findByRole("heading", { level: 2, name: "No engines configured" }),
     ).toBeTruthy()
-    // The landing's signature: the Komet, "Pulse" over the page's h1.
     expect(screen.getByRole("heading", { level: 1, name: "Operations Cockpit" })).toBeTruthy()
     expect(screen.getByText("Pulse")).toBeTruthy()
     expect(document.querySelectorAll("[data-brand-mark='komet']")).toHaveLength(1)

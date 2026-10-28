@@ -2,11 +2,7 @@ import { afterEach, describe, expect, it } from "vitest"
 import { registryFor, startFakeEngine, type FakeEngine } from "../tools/test-support/fake-engine.js"
 import { loadProcessDefinitionsStep } from "./process-definitions.js"
 
-/**
- * The render-view / saved-dashboard path of the definitions list: its
- * `camunda7:nameLike` key is a substring search like the tool's and the
- * feed's (#329) — the engine itself would match a `%`-less LIKE exactly.
- */
+/** #329: the engine would match a `%`-less LIKE exactly. */
 
 const engines: FakeEngine[] = []
 afterEach(async () => {

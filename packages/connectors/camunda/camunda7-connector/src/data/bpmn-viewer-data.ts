@@ -18,29 +18,17 @@ import { definitionKeyInId, fetchDefinitionXml, findLatestDefinition } from "./d
 import { optional, rowsOf } from "./engine-reads.js"
 
 export interface BpmnViewerTarget {
-  /** Renders the diagram with live overlays (active activities, incidents). */
   processInstanceId?: string
-  /** Renders a definition version's diagram; its badges count every running instance of it. */
+  /** Its badges count every running instance of the version. */
   processDefinitionKey?: string
-  /** Specific definition version; latest when omitted. Needs `processDefinitionKey`. */
+  /** Latest when omitted. Needs `processDefinitionKey`. */
   version?: number
 }
 
 /**
- * Assembles the BPMN viewer data (XML + activity overlays) for a running
- * instance or a bare definition. THE single builder behind BOTH render paths —
- * the `camunda7_show_bpmn_viewer` widget tool and the `camunda7:load-bpmn-viewer`
- * pipeline step — so overlay behavior cannot drift between them.
- *
- * The overlay numbers are scoped to the TARGET (#335 N66): for an instance,
- * token counts come from its activity-instance tree and failed jobs from its
- * own jobs — never from the definition's statistics, which span every running
- * instance of the version. `statsScope` names the scope for the widget.
- *
- * The overlays are primary: an unknown instance is the engine's 404 and a
- * failed overlay read is a tool error, never an instance without tokens. The
- * diagram XML is enrichment (null when unreadable). A definition key with no
- * matching version returns the empty shape (`processDefinitionId: null`).
+ * Overlays are scoped to the TARGET (#335 N66): an instance's tokens and failed
+ * jobs come from its own tree and jobs, never the definition's statistics.
+ * Overlays are primary; the XML is enrichment.
  */
 export async function buildBpmnViewerData(
   client: Client,
@@ -62,13 +50,9 @@ export async function buildBpmnViewerData(
       : definitionOverlays(client, definitionId),
   ])
 
-  // Names before ids (#322 U13): the diagram names the view (no extra read),
-  // by the one rule every module reads a model by: the process's own name,
-  // else its pool's; its key is the target's, or the id's segment.
+  // Names before ids (#322 U13): the diagram names the view, no extra read.
   const processKey = target.processDefinitionKey ?? definitionKeyInId(definitionId)
   return {
-    // The widget draws the diagram by this id (`camunda7_bpmn_xml_data`); the
-    // XML read here only names the view (cached either way).
     diagramDefinitionId: bpmnXml ? definitionId : null,
     processInstanceId,
     businessKey,
@@ -84,7 +68,6 @@ type Overlays = Pick<
   "activeActivityIds" | "incidentActivityIds" | "activityStats" | "statsScope"
 >
 
-/** The instance's own state: its tokens, its incidents, its failed jobs. */
 async function instanceOverlays(client: Client, processInstanceId: string): Promise<Overlays> {
   const [tree, incidents, failedJobs] = await Promise.all([
     getActivityInstanceTree({ client, path: { id: processInstanceId } }),
@@ -111,7 +94,6 @@ async function instanceOverlays(client: Client, processInstanceId: string): Prom
   }
 }
 
-/** A bare definition: the version's activity statistics (every running instance of it). */
 async function definitionOverlays(client: Client, definitionId: string): Promise<Overlays> {
   const stats = rowsOf<{ id?: string | null; instances?: number; failedJobs?: number }>(
     await getActivityStatistics({
@@ -132,11 +114,6 @@ async function definitionOverlays(client: Client, definitionId: string): Promise
   }
 }
 
-/**
- * Resolves the viewer target to a concrete definition id (`null` when
- * nothing matches) — and, for an instance, its business key from the same
- * read.
- */
 async function resolveTarget(
   client: Client,
   target: BpmnViewerTarget,
@@ -154,14 +131,12 @@ async function resolveTarget(
   return { definitionId: await resolveDefinitionId(client, target), businessKey: null }
 }
 
-/** A definition target's concrete definition id, `null` when nothing matches. */
 async function resolveDefinitionId(
   client: Client,
   target: BpmnViewerTarget,
 ): Promise<string | null> {
   if (target.processDefinitionKey === undefined) return null
   if (target.version === undefined) {
-    // The highest version over every tenant — the definition view's lookup.
     return (await findLatestDefinition(client, target.processDefinitionKey))?.id || null
   }
   const matches = rowsOf<{ id?: string }>(
@@ -173,7 +148,6 @@ async function resolveDefinitionId(
   return matches[0]?.id ?? null
 }
 
-/** The empty shape callers detect via `processDefinitionId === null`. */
 function emptyViewerData(processInstanceId: string | null, engineId: string): BpmnViewerData {
   return {
     diagramDefinitionId: null,

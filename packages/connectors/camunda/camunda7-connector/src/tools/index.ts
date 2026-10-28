@@ -17,11 +17,7 @@ import { registerBatchTools } from "./batches.js"
 type Register = ReturnType<typeof createToolRegistrar<EngineRegistry>>
 
 export interface RegisterToolsOptions {
-  /**
-   * Register `camunda7_create_deployment` (`CAMUNDA_ALLOW_DEPLOYMENTS=true`).
-   * Deploying runs code inside the engine JVM, so the tool is opt-in on top
-   * of being admin-only. Default: off.
-   */
+  /** `CAMUNDA_ALLOW_DEPLOYMENTS=true`: deploying runs code inside the engine JVM. */
   allowDeployments?: boolean
 }
 

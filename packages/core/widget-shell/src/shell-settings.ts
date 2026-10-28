@@ -15,23 +15,10 @@ import {
 } from "./shell-settings-contract.js"
 
 /**
- * The shell's settings tools — the record-level preferences every module
- * reads (the UI language) and the settings page, owned by no connector (#346):
- *   - `shell_show_settings`  renders the page (the shell's section first, then
- *     every module's `<module>:settings` section the host bundles);
- *   - `shell_settings_data`  is the section's app-only feed, and what
- *     `ProfileGate` reads the language from in every view;
- *   - `shell_save_settings`  saves the language.
- *
- * The save is a durable write no module toolset filters, so it follows the
- * host rule for those: registered only while the composition root says
- * framework writes are allowed (`frameworkWritesAllowed(boot)`: OAuth
- * installed AND no module on its read-only floor). The two view tools carry
- * the same decision as `canSave`, so the section never offers a Save that
- * would resolve to an unknown tool.
+ * Owned by no connector (#346). The save is a durable write no module toolset filters, so it
+ * registers only while `frameworkWritesAllowed(boot)` holds.
  */
 
-/** The model's summaries, in the profile's language (English for "system"). */
 const catalogs: Catalogs = {
   en: {
     "settings.title": "Settings",
@@ -57,7 +44,7 @@ const catalogs: Catalogs = {
   },
 }
 
-/** The server texts, exported for the brand gates (`catalogTextFindings`). */
+/** Exported for the brand gates (`catalogTextFindings`). */
 export const SHELL_SETTINGS_CATALOGS = catalogs
 const viewLocaleOf = createViewLocaleOf(createTranslator(catalogs))
 
@@ -70,12 +57,7 @@ export const shellSettingsSaveInput = {
 }
 
 export interface ShellSettingsToolsOptions {
-  /** The shared profile store; the language is a field of its record. */
   profileStore: ProfileStore
-  /**
-   * Whether the save tool exists: the composition root passes
-   * `frameworkWritesAllowed(boot)`. False keeps the section read-only.
-   */
   allowSave: boolean
 }
 
@@ -89,8 +71,7 @@ export function registerShellSettingsTools(
     openWorldHint: false,
     readOnlyReason: "readOnly" satisfies ShellSettingsReadOnlyReason,
     load: async (_ctx, key, gate) => {
-      // Same key as the save, so a save is always read back. Without OAuth no
-      // key resolves: the defaults, read-only — the norm on an open server.
+      // Same key as the save; without OAuth no key resolves: defaults, read-only.
       const language = (key ? await store.get(key) : undefined)?.language ?? "system"
       const view: ShellSettingsView = {
         language,
@@ -104,8 +85,6 @@ export function registerShellSettingsTools(
       title: "Settings",
       description: "Open the settings page: the UI language and each module's settings.",
       render: ({ view }) => {
-        // Titled only in a language the profile names; with "system" the
-        // page's own heading names it in the host's language (#322 U3).
         const { t, title } = viewLocaleOf(view.language)
         const hint = view.canSave ? "settings.summary.canSave" : "settings.summary.readOnly"
         return {
@@ -128,8 +107,6 @@ export function registerShellSettingsTools(
             'Set the caller\'s UI language, e.g. "switch the UI to German" (language: "de").',
           input: shellSettingsSaveInput,
           write: async ({ language }, { key, userId }) => {
-            // The store merges the one field over the raw stored record under
-            // its per-key lock, so module slices saved concurrently survive.
             const saved = await store.save(key, { language }, { userId })
             const view: ShellSettingsView = {
               language: saved.language,

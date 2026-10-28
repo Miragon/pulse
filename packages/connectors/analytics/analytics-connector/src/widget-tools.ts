@@ -33,45 +33,33 @@ import { namedDashboard, namedFailureDashboard } from "./named-views.js"
 export type { FetchBpmnXml } from "./bpmn-name-lookup.js"
 
 export interface AnalyticsWidgetToolsOptions {
-  /** The server's configured engine ids — every query resolves `engine` through it. */
   engineScope: AnalyticsEngineScope
-  /** Used by the BPMN heatmap to fetch the diagram XML. Absent → non-diagram fallback. */
+  /** Absent → the heatmap's non-diagram fallback. */
   fetchBpmnXml?: FetchBpmnXml
-  /**
-   * The process and element names behind the ids the dashboards list
-   * (`createNameLookup` over the same BPMN lookup). Absent → the ids.
-   */
+  /** Absent → the dashboards list ids. */
   namesFor?: NameLookup
-  /**
-   * Profile store: locale for model-facing summaries plus the caller's saved
-   * analytics defaults (`modules.analytics`) — the "explicit arg > saved
-   * setting > schema default" resolution for `period`/`minBucketSize`.
-   */
+  /** Locale plus saved defaults: explicit arg > saved setting > schema default. */
   profileStore?: ProfileSource
 }
 
-/**
- * Heatmap inputs shared by `analytics_show_bpmn_heatmap` and its
- * `analytics_bpmn_heatmap_data` feed, composed from the exported client
- * schemas so the describe() texts stay in one place.
- */
+/** Composed from the client schemas so the describe() texts stay in one place. */
 const heatmapInputShape = {
   processDefinitionKey: schemas.elementBottleneckInput.shape.processDefinitionKey,
   period: optionalPeriod,
   ...schemas.engineFilterShape,
 }
 
-/** Dashboard + its feed: one input shape, so the self-fetch can carry every scope the show tool takes. */
+/** One input shape, so the self-fetch can carry every scope the show tool takes. */
 const dashboardInputShape = {
   processDefinitionKey: schemas.clusterCompareInput.shape.processDefinitionKey,
   period: optionalPeriod,
   ...schemas.engineFilterShape,
 }
 
-/** "n/a" for a figure that was not measured — never a plausible 0. */
+/** Never a plausible 0. */
 const orNa = (value: number | null) => value ?? "n/a"
 
-/** The model-facing dashboard summary: window flows and the live state, never mixed. */
+/** Window flows and the live state, never mixed. */
 function dashboardSummary(t: ServerT, data: AnalyticsDashboardData, fleet: boolean): string {
   return t("aSum.dashboard", {
     scope: data.processDefinitionKey
@@ -93,21 +81,13 @@ export function registerWidgetTools(
   ch: PrometheusClient,
   options: AnalyticsWidgetToolsOptions,
 ) {
-  // Each show tool words its result via `await localizeViewFor(profileStore, ctx)`:
-  // `t` for the model-facing `summary` (→ "en" without a store or a caller
-  // identity), `title` for the view title, set only in a language the profile
-  // names (the kit's one rule for every module, #322 U3).
+  // `title` is set only in a language the profile names (#322 U3); `t` falls back to "en".
   const { profileStore, engineScope } = options
   const namesFor = options.namesFor ?? NO_NAMES
 
   /**
-   * Fetches the latest deployed version's BPMN XML for the heatmap overlay via
-   * the injected lookup, from the engines whose heat it shows, in
-   * configuration order: the first that has the model draws it, so a process
-   * that runs only on a later engine still gets its diagram. Without a
-   * lookup, or when every engine fails or finds nothing, the XML is `null`
-   * and `bpmnMissing` says which of the two happened, so the widget's
-   * fallback names the known cause (`heatmap-data.ts`).
+   * The first engine (config order) that has the model draws it, so a process
+   * on a later engine still gets its diagram; `bpmnMissing` names why none did.
    */
   async function loadBpmn(
     processDefinitionKey: string,
@@ -122,7 +102,6 @@ export function registerWidgetTools(
     return { bpmnXml: null, bpmnMissing: "not-loaded" }
   }
 
-  // --- Process Analytics Dashboard ---
   server.tool(
     {
       name: "analytics_show_dashboard",
@@ -145,9 +124,7 @@ export function registerWidgetTools(
         }),
         namesFor,
       )
-      // The RESOLVED period and the requested scope travel as cell props, so a
-      // widget that self-fetches (structuredContent stripped, a saved view)
-      // reads the same scope instead of the fleet default.
+      // A self-fetch (structuredContent stripped, a saved view) keeps this scope.
       const cellProps = {
         period,
         ...(args.processDefinitionKey ? { processDefinitionKey: args.processDefinitionKey } : {}),
@@ -155,8 +132,7 @@ export function registerWidgetTools(
       }
       return buildComposedView({
         app: "analytics",
-        // The view title in the language the profile names (the widget heading's
-        // own key); none with "system", where the heading names the view.
+        // None with "system": the widget heading names the view.
         title: title("aExecSummary.title"),
         layout: [
           { row: [{ widget: "analytics:execution-summary-kpi", props: cellProps }] },
@@ -170,7 +146,6 @@ export function registerWidgetTools(
     }),
   )
 
-  // --- Failure Dashboard ---
   server.tool(
     {
       name: "analytics_show_failure_dashboard",
@@ -217,7 +192,6 @@ export function registerWidgetTools(
 
   registerComparisonWidgetTools({ server, ch, engineScope, profileStore, namesFor })
 
-  // --- BPMN Heatmap (per-element frequency + duration on the diagram) ---
   server.tool(
     {
       name: "analytics_show_bpmn_heatmap",
@@ -236,16 +210,13 @@ export function registerWidgetTools(
         ...scoped,
         period,
       })
-      // Read here only to know whether a diagram exists (and why not); the
-      // XML stays out of the payload — the widget reads it from
-      // `analytics_bpmn_xml_data` (cached by the camunda7 lookup).
+      // Only to know whether a diagram exists; the widget reads the XML from `analytics_bpmn_xml_data`.
       const bpmn = await loadBpmn(args.processDefinitionKey, scoped.engine)
       return buildSingleWidgetView({
         widget: "analytics:bpmn-heatmap",
         app: "analytics",
         dataType: "analytics:bpmnHeatmap",
-        // `AnalyticsBpmnHeatmapData` (widgets/bpmn-heatmap.tsx): the engines
-        // travel with the heat, so the model description names them.
+        // The engines travel with the heat, so the model description names them.
         data: {
           processDefinitionKey: args.processDefinitionKey,
           period,
@@ -318,12 +289,8 @@ export function registerWidgetTools(
     }),
   )
 
-  // ── Per-view data feeds (plain, no UI) ──────────────────────────────────
-  // Backing the dashboard widgets' self-fetch. Self-fetching a show_* tool
-  // instead would be host-defined behavior: hosts honoring
-  // `resultCanProduceWidget` may render a second widget per refresh, and the
-  // show tool's localized model summary is generated for a call the model
-  // never sees.
+  // Self-fetching a show_* tool instead could render a second widget per refresh
+  // on hosts honoring `resultCanProduceWidget`.
 
   server.tool(
     {
