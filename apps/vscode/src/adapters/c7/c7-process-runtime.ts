@@ -24,29 +24,6 @@ import type {
   VersionSummary,
 } from "../../contract/index.js"
 import { ErrorTranslation } from "./errors/error-translation.js"
-import { BulkFailureMapper } from "./mapping/bulk-failure-mapper.js"
-import { BulkOperationMapper } from "./mapping/bulk-operation-mapper.js"
-import { CalledElementMapper } from "./mapping/called-element-mapper.js"
-import { CalledInstanceMapper } from "./mapping/called-instance-mapper.js"
-import { CalledProcessMapper } from "./mapping/called-process-mapper.js"
-import { DefinitionRefMapper } from "./mapping/definition-ref-mapper.js"
-import { DefinitionSummaryMapper } from "./mapping/definition-summary-mapper.js"
-import { ElementRunMapper } from "./mapping/element-run-mapper.js"
-import { ElementStatisticsMapper } from "./mapping/element-statistics-mapper.js"
-import { HistoricDefinitionRefMapper } from "./mapping/historic-definition-ref-mapper.js"
-import { HistoricSummaryMapper } from "./mapping/historic-summary-mapper.js"
-import { IncidentDetailsMapper } from "./mapping/incident-details-mapper.js"
-import { IncidentMapper } from "./mapping/incident-mapper.js"
-import { IncidentQueryMapper } from "./mapping/incident-query-mapper.js"
-import { IncidentRowMapper } from "./mapping/incident-row-mapper.js"
-import { InstanceQueryMapper } from "./mapping/instance-query-mapper.js"
-import { InstanceSummaryMapper } from "./mapping/instance-summary-mapper.js"
-import { MigrationCheckMapper } from "./mapping/migration-check-mapper.js"
-import { MigrationPlanMapper } from "./mapping/migration-plan-mapper.js"
-import { MigrationRequestMapper } from "./mapping/migration-request-mapper.js"
-import { VariableMapper } from "./mapping/variable-mapper.js"
-import { VersionSummaryMapper } from "./mapping/version-summary-mapper.js"
-import { WaitStateMapper } from "./mapping/wait-state-mapper.js"
 import type { EngineClient } from "./engine-rest/index.js"
 import { BulkOperationReader } from "./reading/bulk-operation-reader.js"
 import { CalledProcessReader } from "./reading/called-process-reader.js"
@@ -78,50 +55,19 @@ export class C7ProcessRuntime implements ProcessRuntime {
   constructor(private readonly readers: C7Readers) {}
 
   static create(client: EngineClient): C7ProcessRuntime {
-    const refs = new DefinitionRefMapper()
-    const historicRefs = new HistoricDefinitionRefMapper()
-    const definitions = new DefinitionReader(client, {
-      refs,
-      versions: new VersionSummaryMapper(refs),
-      summaries: new DefinitionSummaryMapper(),
-    })
+    const definitions = new DefinitionReader(client)
     return new C7ProcessRuntime({
       engine: new EngineReader(client),
       definitions,
-      statistics: new ElementStatisticsReader(client, new ElementStatisticsMapper()),
-      calls: new CalledProcessReader(client, {
-        calledElements: new CalledElementMapper(),
-        calledProcesses: new CalledProcessMapper(refs),
-      }),
-      instances: new InstanceSearch(client, {
-        queries: new InstanceQueryMapper(),
-        summaries: new HistoricSummaryMapper(historicRefs),
-      }),
+      statistics: new ElementStatisticsReader(client),
+      calls: new CalledProcessReader(client),
+      instances: new InstanceSearch(client),
       variableNames: new VariableNameReader(client),
-      instanceDetails: new InstanceDetailReader(client, {
-        summaries: new InstanceSummaryMapper(refs),
-        waits: new WaitStateMapper(),
-        incidents: new IncidentMapper(),
-        called: new CalledInstanceMapper(),
-        variables: new VariableMapper(),
-        runs: new ElementRunMapper(),
-        refs,
-        historicRefs,
-      }),
-      incidents: new IncidentSearch(client, definitions, {
-        queries: new IncidentQueryMapper(),
-        rows: new IncidentRowMapper(),
-      }),
-      incidentDetails: new IncidentDetailsReader(client, new IncidentDetailsMapper()),
-      bulkOperations: new BulkOperationReader(client, {
-        operations: new BulkOperationMapper(),
-        failures: new BulkFailureMapper(),
-      }),
-      migrations: new MigrationReader(client, {
-        plans: new MigrationPlanMapper(),
-        requests: new MigrationRequestMapper(),
-        checks: new MigrationCheckMapper(),
-      }),
+      instanceDetails: new InstanceDetailReader(client),
+      incidents: new IncidentSearch(client, definitions),
+      incidentDetails: new IncidentDetailsReader(client),
+      bulkOperations: new BulkOperationReader(client),
+      migrations: new MigrationReader(client),
     })
   }
 

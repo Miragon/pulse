@@ -69,7 +69,7 @@ export interface WaitingAtView {
   readonly eventName?: string
 }
 
-export interface StacktraceView {
+interface StacktraceView {
   readonly lines: readonly string[]
   readonly truncated: boolean
 }
@@ -93,7 +93,7 @@ export interface ChildInstanceView {
   readonly state: string
 }
 
-export interface TimelineEntryView {
+interface TimelineEntryView {
   readonly activityId: string
   readonly activityName?: string
   readonly startTime: string
@@ -101,7 +101,7 @@ export interface TimelineEntryView {
   readonly canceled: boolean
 }
 
-export interface CallView {
+interface CallView {
   readonly activityId: string
   readonly calledProcessInstanceId: string
 }

@@ -12,7 +12,7 @@ spawned Miragon's retired engine CLI per call; it now calls the REST API itself:
 ```mermaid
 flowchart LR
   subgraph adapter [adapter-c7]
-    readers[Readers and mappers: C7 answers to contract read models]
+    readers[Readers: C7 answers to contract read models]
     rest[src/engine-rest: REST calls, parses and checks the JSON]
   end
   subgraph family [Same REST API]
@@ -214,18 +214,17 @@ there are ids.
 
 Classes as in [code-structure.md](code-structure.md). Two places wire: `C7Adapter` builds
 an `EngineHttp` per connection (for reads or for writes) around the `fetch` it is given;
-`C7ProcessRuntime.create(client)` builds the readers and hands each its mappers through the
-constructor. Readers decide which engine calls answer a port method; mappers translate;
-nothing else does either. A mapper that needs the context of one call (the inspected
-instance, the definitions by instance, the open incidents of a page) gets it as part of its
-input object (`IncidentFacts`, `WaitFacts`, `HistoricFacts`, …), never as constructor state.
+`C7ProcessRuntime.create(client)` builds one reader per question. A reader decides which
+engine calls answer a port method and maps their answers to the contract's read models in
+private methods; nothing else does either. What one call needs from another (the inspected
+instance, the definitions by instance) goes in as a parameter, never as constructor state.
 
 | Folder                                            | Classes                                                                                                                                                                                                                             | Job                                                                                                                                            |
 | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | `apps/vscode/src/adapters/c7/web-ui`              | `CockpitWebUi`                                                                                                                                                                                                                      | the routes into Cockpit or the CIB seven webclient                                                                                             |
 | `apps/vscode/src/adapters/c7`                     | `C7Adapter`, `C7ProcessRuntime`, `C7ProcessCommands`                                                                                                                                                                                | the entry and the two ports; every port call runs through `ErrorTranslation`                                                                   |
-| `apps/vscode/src/adapters/c7/reading`             | `EngineReader`, `DefinitionReader`, `ElementStatisticsReader`, `CalledProcessReader`, `InstanceSearch`, `InstanceDetailReader`, `IncidentSearch`, `IncidentDetailsReader`, `BulkOperationReader`, `MigrationReader`, `OffsetPaging` | which engine calls answer a port method, in parallel where possible; offset paging behind the cursor                                           |
-| `apps/vscode/src/adapters/c7/mapping`             | `Mapper<From, To>` and one mapper per translation; utilities `InstanceStates`, `Timestamps`, `RootIncident`                                                                                                                         | engine views to contract read models and contract filters to engine queries, without I/O                                                       |
+| `apps/vscode/src/adapters/c7/reading`             | `EngineReader`, `DefinitionReader`, `ElementStatisticsReader`, `CalledProcessReader`, `InstanceSearch`, `InstanceDetailReader`, `IncidentSearch`, `IncidentDetailsReader`, `BulkOperationReader`, `MigrationReader`, `OffsetPaging` | which engine calls answer a port method, in parallel where possible, and their answers as read models; offset paging behind the cursor         |
+| `apps/vscode/src/adapters/c7/mapping`             | `DefinitionRefs`, `InstanceStates`, `Timestamps`, `RootIncident`                                                                                                                                                                    | the translations several readers share, without I/O                                                                                            |
 | `apps/vscode/src/adapters/c7/writing`             | `VariableBody`, `CancelBody`, `MigrationBody`, `EngineValues`, `Redaction`, `SourceToken`, `MoveBody`                                                                                                                               | the bodies of a variable change, a move, a cancel and a migration, the allowed types and their engine form, what to keep out of error messages |
 | `apps/vscode/src/adapters/c7/errors`              | `ErrorTranslation`                                                                                                                                                                                                                  | engine failures to `RuntimeError`: `translated`, `unlessMissing`, `commanded<Result>`, `submitted<Result>`, `isRefusal`                        |
 | `apps/vscode/src/adapters/c7/engine-rest`         | `EngineClient`/`RestEngineClient`, `EngineWriter`/`RestEngineWriter`, `RequestArguments`, `Present`                                                                                                                                 | one method per engine call; strict ids and variable names                                                                                      |

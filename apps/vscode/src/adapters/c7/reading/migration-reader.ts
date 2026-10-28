@@ -1,28 +1,54 @@
-import type { DefinitionId, MigrationCheck, MigrationPlan } from "../../../contract/index.js"
-import type { EngineClient } from "../engine-rest/index.js"
-import type { MigrationCheckMapper } from "../mapping/migration-check-mapper.js"
-import type { MigrationPlanMapper } from "../mapping/migration-plan-mapper.js"
-import type { MigrationRequestMapper } from "../mapping/migration-request-mapper.js"
-
-export interface MigrationMappers {
-  readonly plans: MigrationPlanMapper
-  readonly requests: MigrationRequestMapper
-  readonly checks: MigrationCheckMapper
-}
+import {
+  DefinitionId,
+  ElementId,
+  type ElementMapping,
+  type MigrationCheck,
+  type MigrationPlan,
+  type MigrationProblem,
+} from "../../../contract/index.js"
+import type { EngineClient, MigrationInstructionView } from "../engine-rest/index.js"
 
 export class MigrationReader {
-  constructor(
-    private readonly client: EngineClient,
-    private readonly mappers: MigrationMappers,
-  ) {}
+  constructor(private readonly client: EngineClient) {}
 
   async proposal(source: DefinitionId, target: DefinitionId): Promise<MigrationPlan> {
-    return this.mappers.plans.map(await this.client.migrationPlan(source, target))
+    const plan = await this.client.migrationPlan(source, target)
+    return {
+      sourceDefinitionId: DefinitionId(plan.sourceProcessDefinitionId),
+      targetDefinitionId: DefinitionId(plan.targetProcessDefinitionId),
+      mappings: plan.instructions.flatMap((instruction) => this.mappingOf(instruction) ?? []),
+    }
   }
 
   async check(plan: MigrationPlan): Promise<MigrationCheck> {
-    return this.mappers.checks.map(
-      await this.client.migrationReport(this.mappers.requests.map(plan)),
-    )
+    const report = await this.client.migrationReport({
+      sourceProcessDefinitionId: plan.sourceDefinitionId,
+      targetProcessDefinitionId: plan.targetDefinitionId,
+      instructions: plan.mappings.map((mapping) => ({
+        sourceActivityIds: [mapping.sourceElementId],
+        targetActivityIds: [mapping.targetElementId],
+      })),
+    })
+    return {
+      problems: report.instructionReports.flatMap((instructionReport) => {
+        const mapping = this.mappingOf(instructionReport.instruction)
+        return instructionReport.failures.map((message): MigrationProblem =>
+          mapping === undefined ? { message } : { mapping, message },
+        )
+      }),
+    }
+  }
+
+  private mappingOf(instruction: MigrationInstructionView): ElementMapping | undefined {
+    const [source, ...otherSources] = instruction.sourceActivityIds
+    const [target, ...otherTargets] = instruction.targetActivityIds
+    if (
+      source === undefined ||
+      target === undefined ||
+      otherSources.length + otherTargets.length > 0
+    ) {
+      return undefined
+    }
+    return { sourceElementId: ElementId(source), targetElementId: ElementId(target) }
   }
 }

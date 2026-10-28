@@ -1,23 +1,37 @@
-import type { InstanceFilter, InstanceSummary, Page, PageRequest } from "../../../contract/index.js"
-import type { HistoricFacts } from "../mapping/historic-summary-mapper.js"
-import type { Mapper } from "../mapping/mapper.js"
-import type {
-  HistoricInstanceQuery,
-  HistoricInstanceView,
-  EngineClient,
+import {
+  InstanceId,
+  type InstanceFilter,
+  type InstanceSummary,
+  type IsoTimestamp,
+  type Page,
+  type PageRequest,
+  type VariableComparison,
+  type VariableCondition,
+} from "../../../contract/index.js"
+import {
+  LosslessJson,
+  Present,
+  type EngineClient,
+  type HistoricInstanceQuery,
+  type HistoricInstanceView,
+  type VariableQueryCondition,
 } from "../engine-rest/index.js"
+import { DefinitionRefs } from "../mapping/definition-refs.js"
+import { InstanceStates } from "../mapping/instance-states.js"
+import { Timestamps } from "../mapping/timestamps.js"
 import { OffsetPaging, type OffsetWindow } from "./offset-paging.js"
 
-export interface InstanceSearchMappers {
-  readonly queries: Mapper<InstanceFilter, HistoricInstanceQuery>
-  readonly summaries: Mapper<HistoricFacts, InstanceSummary>
+const OPERATORS: Readonly<Record<VariableComparison, VariableQueryCondition["operator"]>> = {
+  equals: "eq",
+  notEquals: "neq",
+  greaterThan: "gt",
+  lessThan: "lt",
 }
+const SQL_WILDCARDS = /[\\%_]/g
+const ENGINE_UTC_OFFSET = "+0000"
 
 export class InstanceSearch {
-  constructor(
-    private readonly client: EngineClient,
-    private readonly mappers: InstanceSearchMappers,
-  ) {}
+  constructor(private readonly client: EngineClient) {}
 
   async search(filter: InstanceFilter, page: PageRequest): Promise<Page<InstanceSummary>> {
     if (filter.instanceIds?.length === 0) {
@@ -25,15 +39,13 @@ export class InstanceSearch {
     }
     const paging = new OffsetPaging(page)
     const rows = await this.client.historicInstances(
-      this.mappers.queries.map(filter),
+      this.queryOf(filter),
       this.windowFor(paging, filter),
     )
     const withOpenIncident = await this.idsWithOpenIncident(rows.slice(0, page.limit), filter)
     return paging.pageOf(rows, (pageRows) =>
       pageRows
-        .map((row) =>
-          this.mappers.summaries.map({ row, hasIncident: withOpenIncident.has(row.id) }),
-        )
+        .map((row) => this.summaryOf(row, withOpenIncident.has(row.id)))
         .filter((summary) => filter.withIncident !== false || !summary.hasIncident),
     )
   }
@@ -42,14 +54,69 @@ export class InstanceSearch {
     if (filter.instanceIds?.length === 0) {
       return 0
     }
-    const counted = await this.client.historicInstanceCount(this.mappers.queries.map(filter))
+    const counted = await this.client.historicInstanceCount(this.queryOf(filter))
     if (filter.withIncident !== false) {
       return counted
     }
     const withIncident = await this.client.historicInstanceCount(
-      this.mappers.queries.map({ ...filter, withIncident: true }),
+      this.queryOf({ ...filter, withIncident: true }),
     )
     return counted - withIncident
+  }
+
+  private queryOf(filter: InstanceFilter): HistoricInstanceQuery {
+    return Present.fields({
+      processDefinitionId: filter.definitionId,
+      processDefinitionKey: filter.bpmnProcessId,
+      processInstanceIds: filter.instanceIds,
+      processInstanceBusinessKey: filter.businessKey,
+      unfinished: filter.lifecycle === "running" ? (true as const) : undefined,
+      finished: filter.lifecycle === "ended" ? (true as const) : undefined,
+      incidentStatus: filter.withIncident === true ? ("open" as const) : undefined,
+      activityIdIn: filter.activeElementId === undefined ? undefined : [filter.activeElementId],
+      variables: filter.variables?.map((condition) => this.conditionOf(condition)),
+    })
+  }
+
+  private conditionOf(condition: VariableCondition): VariableQueryCondition {
+    if (condition.operator === "like") {
+      return { name: condition.name, operator: "like", value: this.likeOf(condition.pattern) }
+    }
+    return {
+      name: condition.name,
+      operator: OPERATORS[condition.operator],
+      value:
+        "at" in condition ? this.dateOf(condition.at) : LosslessJson.parse(condition.valueJson),
+    }
+  }
+
+  private dateOf(at: IsoTimestamp): string {
+    return new Date(at).toISOString().replace("Z", ENGINE_UTC_OFFSET)
+  }
+
+  private likeOf(pattern: string): string {
+    return pattern
+      .split("*")
+      .map((part) => part.replace(SQL_WILDCARDS, "\\$&"))
+      .join("%")
+  }
+
+  private summaryOf(row: HistoricInstanceView, hasIncident: boolean): InstanceSummary {
+    return {
+      id: InstanceId(row.id),
+      definition: DefinitionRefs.ofInstance(row),
+      state: InstanceStates.of(row.state),
+      hasIncident,
+      ...Present.fields({
+        businessKey: row.businessKey,
+        startedAt: Timestamps.optional(row.startTime),
+        endedAt: Timestamps.optional(row.endTime),
+        parentInstanceId:
+          row.superProcessInstanceId === undefined
+            ? undefined
+            : InstanceId(row.superProcessInstanceId),
+      }),
+    }
   }
 
   private windowFor(paging: OffsetPaging, filter: InstanceFilter): OffsetWindow {

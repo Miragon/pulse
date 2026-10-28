@@ -145,7 +145,7 @@ different engine (Zeebe) with a different API, so it would get an adapter of its
 ```mermaid
 flowchart LR
   subgraph adapter [adapter-c7]
-    readers[Readers and mappers: C7 answers to contract read models]
+    readers[Readers: C7 answers to contract read models]
     rest[src/engine-rest: REST calls, answers checked]
   end
   subgraph family [Same REST API]
