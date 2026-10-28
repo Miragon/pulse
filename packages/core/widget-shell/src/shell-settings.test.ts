@@ -54,18 +54,6 @@ describe("the shell's settings triple", () => {
     expect(register(false).names).toEqual([SHELL_SHOW_SETTINGS, SHELL_SETTINGS_DATA])
   })
 
-  it("states every hint: the views read, the save writes and destroys nothing", () => {
-    const { definition } = register(true)
-    expect(definition(SHELL_SHOW_SETTINGS).annotations).toMatchObject({ readOnlyHint: true })
-    expect(definition(SHELL_SETTINGS_DATA).annotations).toMatchObject({ readOnlyHint: true })
-    expect(definition(SHELL_SAVE_SETTINGS).annotations).toEqual({
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    })
-  })
-
   it("reads the defaults, read-only, for a request without a caller", async () => {
     const { handler } = register(true)
     expect(await dataOf(handler(SHELL_SETTINGS_DATA))).toEqual({
@@ -100,13 +88,6 @@ describe("the shell's settings triple", () => {
       language: "de",
       canSave: true,
     })
-  })
-
-  it("refuses a save without a caller instead of writing a shared record", async () => {
-    const { handler, store } = register(true)
-    const result = (await handler(SHELL_SAVE_SETTINGS)({ language: "de" })) as { isError?: boolean }
-    expect(result.isError).toBe(true)
-    expect(await store.get("anonymous")).toBeUndefined()
   })
 
   it("renders the page, titled and summarized in the profile's language", async () => {

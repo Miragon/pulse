@@ -167,6 +167,7 @@ export {
   type ViewLocale,
 } from "./server-locale.js"
 export { parseModuleSlice, requireProfileKey, saveModuleSlice } from "./profile-slice.js"
+export { registerSettingsSection } from "./settings-section.js"
 export { catalogueSyncIssues } from "./catalogue-sync.js"
 export {
   bpmnProcessNameOf,

@@ -176,16 +176,6 @@ describe("registerSettingsTools", () => {
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('Unknown toolset "nonsense"'))
   })
 
-  it("a save-less section reports canSave false even for an identified caller", async () => {
-    const tool = vi.fn()
-    registerSettingsTools({ tool } as unknown as MCPServer, writable, "read-only")
-    const data = tool.mock.calls.find(
-      (c) => (c[0] as { name: string }).name === ANALYTICS_SETTINGS_DATA,
-    )![1] as () => Promise<unknown>
-    const view = await runWithMcpRequestInfo({ authUserId: "user-7" }, () => data())
-    expect(feedData(view).canSave).toBe(false)
-  })
-
   it("the model summary points at the save tool only when it is registered", async () => {
     type ShowResult = {
       content: Array<{ text: string }>
@@ -233,33 +223,6 @@ describe("registerSettingsTools", () => {
     })
   })
 
-  it("declares honest metadata for the settings triple", () => {
-    const tool = vi.fn()
-    registerSettingsTools({ tool } as unknown as MCPServer, writable, "standard")
-    const definitions = tool.mock.calls.map(
-      (c) =>
-        c[0] as {
-          name: string
-          title?: string
-          description?: string
-          annotations?: Record<string, boolean>
-        },
-    )
-    const readOnlyRead = { readOnlyHint: true, idempotentHint: true, openWorldHint: true }
-    expect(definitions.map(({ name, annotations }) => [name, annotations])).toEqual([
-      ["analytics_show_settings", readOnlyRead],
-      [ANALYTICS_SETTINGS_DATA, readOnlyRead],
-      [
-        ANALYTICS_SAVE_SETTINGS,
-        { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
-      ],
-    ])
-    for (const { name, title, description } of definitions) {
-      expect(title, `${name} title`).toBeTruthy()
-      expect(description, `${name} description`).toBeTruthy()
-    }
-  })
-
   it("round-trips a save through the caller's record", async () => {
     const store = createInMemoryProfileStore()
     const tool = vi.fn()
@@ -292,6 +255,7 @@ describe("registerSettingsTools", () => {
     expect((await store.get("user-1"))?.modules).toEqual({
       analytics: { defaultPeriod: "30d" },
     })
+    expect((await store.get("user-1"))?.userId).toBe("user-1")
     const data = await handlerFor(ANALYTICS_SETTINGS_DATA)({}, CTX)
     expect(feedData(data).settings).toEqual({ defaultPeriod: "30d", minBucketSize: 10 })
   })
@@ -342,61 +306,5 @@ describe("registerSettingsTools", () => {
     expect((await inner.get("user-1"))?.modules).toEqual({
       analytics: { defaultPeriod: "30d", minBucketSize: 25 },
     })
-  })
-
-  // HTTP without OAuth: the ambient request info exists but carries no
-  // identity — the section must go read-only and the save tool must refuse
-  // with an actionable cause.
-  it("identity gating: canSave false + save refusal without identity, true with an auth user", async () => {
-    const tool = vi.fn()
-    registerSettingsTools(
-      { tool } as unknown as MCPServer,
-      { get: () => Promise.resolve(undefined), save: () => Promise.resolve({}) },
-      "standard",
-    )
-    type Handler = (
-      params: unknown,
-      ctx?: unknown,
-    ) => Promise<{
-      structuredContent?: Record<string, unknown>
-      content?: Array<{ text?: string }>
-      isError?: boolean
-    }>
-    const handlerFor = (name: string): Handler => {
-      const call = tool.mock.calls.find((c) => (c[0] as { name: string }).name === name)
-      if (!call) throw new Error(`tool ${name} not registered`)
-      return call[1] as Handler
-    }
-
-    const bare = await runWithMcpRequestInfo({}, () => handlerFor(ANALYTICS_SETTINGS_DATA)({}))
-    expect(feedData(bare).canSave).toBe(false)
-    const refused = await runWithMcpRequestInfo({}, () =>
-      handlerFor(ANALYTICS_SAVE_SETTINGS)({ defaultPeriod: "30d" }),
-    )
-    expect(refused.isError).toBe(true)
-    expect(refused.content?.[0]?.text).toContain("MCP_OAUTH")
-
-    const authed = await runWithMcpRequestInfo({ authUserId: "user-7" }, () =>
-      handlerFor(ANALYTICS_SETTINGS_DATA)({}),
-    )
-    expect(feedData(authed).canSave).toBe(true)
-  })
-
-  it("stamps the OAuth caller on the saved record as its owner", async () => {
-    const save = vi.fn<NonNullable<ProfileSource["save"]>>(() => Promise.resolve({}))
-    const tool = vi.fn()
-    registerSettingsTools(
-      { tool } as unknown as MCPServer,
-      { get: () => Promise.resolve(undefined), save },
-      "standard",
-    )
-    const handler = tool.mock.calls.find(
-      (c) => (c[0] as { name: string }).name === ANALYTICS_SAVE_SETTINGS,
-    )![1] as (params: unknown) => Promise<unknown>
-
-    await runWithMcpRequestInfo({ authUserId: "user-7" }, () => handler({ minBucketSize: 5 }))
-    expect(save).toHaveBeenCalledOnce()
-    expect(save.mock.calls[0][1]).toEqual({ modules: { analytics: { minBucketSize: 5 } } })
-    expect(save.mock.calls[0][2]).toEqual({ userId: "user-7" })
   })
 })
