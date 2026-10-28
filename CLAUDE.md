@@ -776,9 +776,8 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    name at runtime, so `apps/mcp-server-camunda7/test/tool-name-refs.test.ts` checks every
    `<module>_…` string literal in app and package sources (the shell's `shell_…` tools
    included) against the full booted tool surface. Which apps the source guards read is
-   single-sourced in `apps/mcp-server-camunda7/test/source-scan.ts` (`APP_SCAN`): every scan
-   fails on an app the map does not classify, on an entry that names no app and on a
-   classified app without `src/`. An MCP server app ("mcp-host") is read by every guard; an
+   single-sourced in `apps/mcp-server-camunda7/test/source-scan.ts` (`APP_SCAN`, the apps and
+   their kind). An MCP server app ("mcp-host") is read by every guard; an
    interface app ("interface": a CLI, an editor extension, always an app that declares
    `engines.vscode`) only by the tool-name checks: each `<module>_…` literal it holds must
    name a registered tool, each parameter it quotes for a tool must be one that tool takes,
