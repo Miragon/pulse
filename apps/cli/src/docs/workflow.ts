@@ -1,11 +1,11 @@
 /**
  * The workflow commands: one entry per top-level command that combines catalog
- * operations. The single source of commander registration, `--help`, `describe`, `commands`,
- * completion and the docs drift tests. Pure.
+ * operations. The single source of commander registration, `--help`, `describe`, `commands`
+ * and the docs drift tests. Pure.
  */
 
 import type { Effect } from "../catalog/types.js"
-import type { ArgumentDoc } from "./options.js"
+import type { ArgumentDoc, OptionDoc } from "./options.js"
 import {
   ADVANCE_OPTIONS,
   DEPLOY_OPTIONS,
@@ -13,12 +13,7 @@ import {
   RETRY_OPTIONS,
   STATUS_OPTIONS,
   WAIT_COMMAND_OPTIONS,
-  type WorkflowOptionDoc,
 } from "./workflow-options.js"
-
-interface WorkflowArgumentDoc extends ArgumentDoc {
-  readonly complete?: "files"
-}
 
 export interface WorkflowDoc {
   readonly name: string
@@ -32,14 +27,14 @@ export interface WorkflowDoc {
   /** The base effect (for `commands --effect` and the guards). */
   readonly effect: Effect
   readonly effectNote?: string
-  readonly arguments: readonly WorkflowArgumentDoc[]
-  readonly options: readonly WorkflowOptionDoc[]
+  readonly arguments: readonly ArgumentDoc[]
+  readonly options: readonly OptionDoc[]
   /** Every operationId the command may send. */
   readonly calls: readonly string[]
   readonly examples: readonly string[]
 }
 
-const INSTANCE_ARGUMENT: WorkflowArgumentDoc = {
+const INSTANCE_ARGUMENT: ArgumentDoc = {
   name: "process-instance-id",
   required: false,
   variadic: false,
@@ -231,7 +226,6 @@ export const WORKFLOW_DOCS: readonly WorkflowDoc[] = [
         required: true,
         variadic: true,
         description: "BPMN, DMN and form files and directories to deploy",
-        complete: "files",
       },
     ],
     options: DEPLOY_OPTIONS,

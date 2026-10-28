@@ -173,15 +173,6 @@ describe("packed npm tarball", () => {
     expect(groups).toContainEqual(expect.objectContaining({ group: "process-instance" }))
   })
 
-  it("prints the shell completion scripts and completes from the installed bin", async () => {
-    const script = expectSuccess(await pulseCli(["completion", "bash"]))
-    expect(script.stdout).toContain("complete -o nospace -F _pulse_cli_complete pulse-cli")
-    const candidates = expectSuccess(await pulseCli(["__complete", "proc"]))
-    const values = candidates.stdout.split("\n").map((line) => line.split("\t")[0])
-    expect(values).toEqual(expect.arrayContaining(["process-definition", "process-instance"]))
-    expect(candidates.stderr).toBe("")
-  })
-
   it("prints the agent guide, the body of the skill, and its topics", async () => {
     const result = expectSuccess(await pulseCli(["guide"]))
     expect(result.stdout).toMatch(/^# pulse-cli: /)

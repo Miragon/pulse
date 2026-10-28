@@ -5,15 +5,8 @@
  */
 
 import { type Command, Option } from "commander"
-import {
-  AUTH_TYPES,
-  type ConfigFlags,
-  DEFAULT_FLAVOR,
-  OUTPUT_FORMATS,
-  FLAVORS,
-} from "../config/types.js"
+import { type ConfigFlags, DEFAULT_FLAVOR, FLAVORS } from "../config/types.js"
 import { compact } from "../util.js"
-import { type OptionCompletion, setOptionCompletion } from "./completion-meta.js"
 import { collect } from "./options.js"
 
 export interface GlobalOptionSpec {
@@ -145,26 +138,9 @@ export function optionFlags(spec: GlobalOptionSpec): string {
   return `${short}--${spec.long}${value}`
 }
 
-/** What the values of global options complete to. */
-const COMPLETIONS: Readonly<Record<string, OptionCompletion>> = {
-  output: { values: OUTPUT_FORMATS },
-  flavor: { values: FLAVORS },
-  auth: { values: AUTH_TYPES },
-  profile: { profiles: true },
-  config: { path: "files" },
-  "out-file": { path: "files" },
-}
-
 function createOption(spec: GlobalOptionSpec, group: string): Option {
   const option = new Option(optionFlags(spec), spec.description).helpGroup(group)
-  const completion = Object.hasOwn(COMPLETIONS, spec.long) ? COMPLETIONS[spec.long] : undefined
-  if (completion !== undefined) setOptionCompletion(option, completion)
   return spec.repeatable === true ? option.argParser(collect) : option
-}
-
-/** The global options as commander options (with their completion facts), for completion. */
-export function globalOptionObjects(): Option[] {
-  return GLOBAL_OPTIONS.map((spec) => createOption(spec, GLOBAL_GROUP))
 }
 
 /**

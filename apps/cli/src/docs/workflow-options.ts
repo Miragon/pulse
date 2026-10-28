@@ -1,23 +1,14 @@
 /**
  * The options of the workflow commands, in the option model of options.ts, so
- * registration, `--help`, `describe` and completion share one source. Pure.
+ * registration, `--help` and `describe` share one source. Pure.
  */
 
 import { type OptionDoc, type OptionKind, VARIABLE_HELP } from "./options.js"
-
-/** An option of a workflow command; `complete` names a path value for shell completion. */
-export interface WorkflowOptionDoc extends OptionDoc {
-  readonly complete?: "files" | "dirs"
-  /** Values shell completion offers (not validated, e.g. `task:` of `--until`). */
-  readonly suggest?: readonly string[]
-}
 
 interface Extras {
   readonly valueName?: string
   readonly type?: string
   readonly enum?: readonly string[]
-  readonly complete?: "files" | "dirs"
-  readonly suggest?: readonly string[]
 }
 
 function takesValue(kind: OptionKind): boolean {
@@ -35,8 +26,8 @@ export function option(
   kind: OptionKind,
   description: string,
   extras: Extras = {},
-): WorkflowOptionDoc {
-  const { type, valueName, ...completion } = extras
+): OptionDoc {
+  const { type, valueName, ...choices } = extras
   const name = takesValue(kind) ? (valueName ?? "<value>") : undefined
   return {
     flag,
@@ -47,14 +38,11 @@ export function option(
     required: false,
     source: "workflow",
     description,
-    ...completion,
+    ...choices,
   }
 }
 
-/** Completion values of `--until`. */
-const CONDITIONS = ["idle", "ended", "incident", "task", "task:", "activity:"]
-
-const SELECTION_OPTIONS: readonly WorkflowOptionDoc[] = [
+const SELECTION_OPTIONS: readonly OptionDoc[] = [
   option(
     "business-key",
     "value",
@@ -71,12 +59,12 @@ const SELECTION_OPTIONS: readonly WorkflowOptionDoc[] = [
 ]
 
 /** `--until`, `--wait-timeout` and `--no-fail-on-incident`; `wait` has no `--wait`. */
-const UNTIL_OPTIONS: readonly WorkflowOptionDoc[] = [
+const UNTIL_OPTIONS: readonly OptionDoc[] = [
   option(
     "until",
     "repeatable",
     "Wait until idle, ended, incident, task, task:<taskDefinitionKey> or activity:<activityId>; repeatable, any one ends the wait",
-    { valueName: "<condition>", type: "condition", suggest: CONDITIONS },
+    { valueName: "<condition>", type: "condition" },
   ),
   option(
     "wait-timeout",
@@ -91,7 +79,7 @@ const UNTIL_OPTIONS: readonly WorkflowOptionDoc[] = [
   ),
 ]
 
-const WAIT_OPTIONS: readonly WorkflowOptionDoc[] = [
+const WAIT_OPTIONS: readonly OptionDoc[] = [
   option(
     "wait",
     "presence",
@@ -108,14 +96,14 @@ const VARIABLES_OPTION = option(
   "Leave out the variables of the instance view (and their request)",
 )
 
-function varOption(description: string): WorkflowOptionDoc {
+function varOption(description: string): OptionDoc {
   return option("var", "repeatable", `${description}: ${VARIABLE_HELP}`, {
     valueName: "<name=value>",
     type: "variables",
   })
 }
 
-export const INSPECT_OPTIONS: readonly WorkflowOptionDoc[] = [
+export const INSPECT_OPTIONS: readonly OptionDoc[] = [
   ...SELECTION_OPTIONS,
   VARIABLES_OPTION,
   option(
@@ -126,7 +114,7 @@ export const INSPECT_OPTIONS: readonly WorkflowOptionDoc[] = [
   option("stacktrace", "presence", "Add the stacktrace (at most 200 lines) to each incident"),
 ]
 
-export const WAIT_COMMAND_OPTIONS: readonly WorkflowOptionDoc[] = [
+export const WAIT_COMMAND_OPTIONS: readonly OptionDoc[] = [
   ...SELECTION_OPTIONS,
   ...UNTIL_OPTIONS,
   option(
@@ -140,7 +128,7 @@ export const WAIT_COMMAND_OPTIONS: readonly WorkflowOptionDoc[] = [
   }),
 ]
 
-export const ADVANCE_OPTIONS: readonly WorkflowOptionDoc[] = [
+export const ADVANCE_OPTIONS: readonly OptionDoc[] = [
   ...SELECTION_OPTIONS,
   option(
     "activity-id",
@@ -182,7 +170,7 @@ export const ADVANCE_OPTIONS: readonly WorkflowOptionDoc[] = [
   VARIABLES_OPTION,
 ]
 
-export const RETRY_OPTIONS: readonly WorkflowOptionDoc[] = [
+export const RETRY_OPTIONS: readonly OptionDoc[] = [
   ...SELECTION_OPTIONS,
   option("incident", "repeatable", "Retry these incidents; comma separated, repeatable", {
     valueName: "<ids>",
@@ -202,7 +190,7 @@ export const RETRY_OPTIONS: readonly WorkflowOptionDoc[] = [
   VARIABLES_OPTION,
 ]
 
-export const DEPLOY_OPTIONS: readonly WorkflowOptionDoc[] = [
+export const DEPLOY_OPTIONS: readonly OptionDoc[] = [
   option(
     "name",
     "value",
@@ -211,7 +199,6 @@ export const DEPLOY_OPTIONS: readonly WorkflowOptionDoc[] = [
   ),
   option("base-dir", "value", "Name every resource by its path relative to this directory", {
     valueName: "<dir>",
-    complete: "dirs",
   }),
   option("tenant-id", "value", "Tenant of the deployment (and of the started instance)", {
     valueName: "<id>",
@@ -229,7 +216,7 @@ export const DEPLOY_OPTIONS: readonly WorkflowOptionDoc[] = [
   VARIABLES_OPTION,
 ]
 
-export const STATUS_OPTIONS: readonly WorkflowOptionDoc[] = [
+export const STATUS_OPTIONS: readonly OptionDoc[] = [
   option("process-definition-key", "repeatable", "Only these process definition keys; repeatable", {
     valueName: "<key>",
   }),

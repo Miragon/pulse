@@ -1,6 +1,6 @@
 /**
  * The help texts of the utility commands besides `config` and `auth` (commands, describe, api,
- * guide, completion, ping), word for word, the global options of the operation commands and the
+ * guide, ping), word for word, the global options of the operation commands and the
  * root help.
  */
 
@@ -152,28 +152,6 @@ const HELP: readonly (readonly [string, readonly string[]])[] = [
       "  -o, --output <format>  Format of --list: json or table (the guide itself is",
       "                         always markdown)",
       "  -h, --help             Display help for command",
-    ],
-  ],
-  [
-    "completion",
-    [
-      "Usage: pulse-cli completion <bash|zsh|fish>",
-      "",
-      "Print the shell completion script for bash, zsh or fish. It completes commands,",
-      "groups, options and their fixed values (enums, output formats, profile names,",
-      "files) without contacting the engine.",
-      "",
-      "Install:",
-      '  bash: eval "$(pulse-cli completion bash)"  in ~/.bashrc (also bash 3.2)',
-      "  zsh:  mkdir -p ~/.zfunc && pulse-cli completion zsh > ~/.zfunc/_pulse-cli",
-      "        and fpath=(~/.zfunc $fpath) before compinit in ~/.zshrc",
-      "  fish: pulse-cli completion fish > ~/.config/fish/completions/pulse-cli.fish",
-      "",
-      "Arguments:",
-      "  shell       Shell: bash, zsh, fish",
-      "",
-      "Options:",
-      "  -h, --help  Display help for command",
     ],
   ],
   [

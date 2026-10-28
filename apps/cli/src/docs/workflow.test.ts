@@ -6,17 +6,7 @@ import { findWorkflow, WORKFLOW_DOCS, WORKFLOW_GROUP, workflowDescription } from
 import { option } from "./workflow-options.js"
 
 const catalog = loadCatalog()
-const UTILITIES = [
-  "commands",
-  "describe",
-  "guide",
-  "api",
-  "ping",
-  "config",
-  "completion",
-  "help",
-  "__complete",
-]
+const UTILITIES = ["commands", "describe", "guide", "api", "ping", "config", "help"]
 
 describe("WORKFLOW_DOCS", () => {
   it("has the six workflow commands in help order", () => {
@@ -73,7 +63,7 @@ describe("WORKFLOW_DOCS", () => {
   })
 
   it("builds option docs from a kind", () => {
-    expect(option("until", "repeatable", "desc", { valueName: "<c>", suggest: ["idle"] })).toEqual({
+    expect(option("until", "repeatable", "desc", { valueName: "<c>" })).toEqual({
       flag: "until",
       syntax: "--until <c>",
       kind: "repeatable",
@@ -82,7 +72,6 @@ describe("WORKFLOW_DOCS", () => {
       required: false,
       source: "workflow",
       description: "desc",
-      suggest: ["idle"],
     })
     expect(option("variables", "negated", "d")).toMatchObject({
       syntax: "--no-variables",

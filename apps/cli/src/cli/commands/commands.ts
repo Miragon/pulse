@@ -18,7 +18,6 @@ import { usageError } from "../../errors.js"
 import { renderTable } from "../../output/table.js"
 import { compact } from "../../util.js"
 import { subcommand } from "../command.js"
-import { setPositional } from "../completion-meta.js"
 import { operationSummary } from "../operation.js"
 import type { CliContext } from "../context.js"
 import { type Display, displayOf, displayText } from "../display.js"
@@ -121,7 +120,6 @@ export const commandsCommand: UtilityCommand = {
       )
       .addOption(new Option("--effect <effect>", "Commands with this effect").choices(EFFECTS))
     addGlobalOptions(command, DOCS_OPTIONS, OPTIONS_GROUP)
-    setPositional(command, { kind: "groups" })
     command.action((group: string | undefined) => runCommands(group, command, context))
   },
 }

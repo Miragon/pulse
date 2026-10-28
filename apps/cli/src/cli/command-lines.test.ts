@@ -44,7 +44,6 @@ describe("the command line checker", () => {
     expect(ok("pulse-cli retry --process-definition-key k --dry-run")).not.toThrow()
     expect(ok("pulse-cli deploy a b --start-key k --var x=1")).not.toThrow()
     expect(ok("pulse-cli status --fail-on warning --stale-after 10m")).not.toThrow()
-    expect(ok("pulse-cli completion zsh")).not.toThrow()
     expect(ok("pulse-cli describe inspect")).not.toThrow()
     expect(ok("pulse-cli commands workflow")).not.toThrow()
     expect(ok("pulse-cli guide")).not.toThrow()
@@ -97,7 +96,6 @@ describe("the command line checker", () => {
     expect(ok("pulse-cli deploy")).toThrow()
     expect(ok("pulse-cli retry --process-definition-key k")).toThrow()
     expect(ok("pulse-cli retry a --retries one")).toThrow()
-    expect(ok("pulse-cli completion powershell")).toThrow()
   })
 
   it("finds commands in fenced code blocks only, split at shell operators", () => {
@@ -132,14 +130,14 @@ describe("examples", () => {
   })
 })
 
-const TOP_LEVEL = new Set([...WORKFLOW_DOCS.map((doc) => doc.name), "completion"])
+const TOP_LEVEL = new Set(WORKFLOW_DOCS.map((doc) => doc.name))
 
 describe("workflow command lines of the README and the docs pages", () => {
   const lines = DOC_PAGES.flatMap(([, text]) => guideCommands(text)).filter((words) =>
     TOP_LEVEL.has(words[1] ?? ""),
   )
 
-  it("has the workflow commands and the completion commands", () => {
+  it("has the workflow commands", () => {
     expect(new Set(lines.map((words) => words[1]))).toEqual(TOP_LEVEL)
   })
 

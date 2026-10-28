@@ -18,9 +18,6 @@ const ACTIONS: Readonly<Record<string, WorkflowAction>> = {
   status: runStatus,
 }
 
-/** Names of the workflow commands, in help order. */
-export const WORKFLOW_COMMANDS: readonly string[] = WORKFLOW_DOCS.map((doc) => doc.name)
-
 export function registerWorkflowCommands(program: Command, context: CliContext): void {
   for (const doc of WORKFLOW_DOCS) {
     const action = ACTIONS[doc.name]

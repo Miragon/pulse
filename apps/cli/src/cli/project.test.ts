@@ -151,13 +151,6 @@ describe("the project file in commands", () => {
     expect((await cli(["commands", "-o", "json"], { files })).code).toBe(0)
   })
 
-  it("completes the profiles of the project file too", async () => {
-    const files = { [PROJECT]: PROJECT_FILE, [CONFIG_PATH]: USER_FILE }
-    const result = await cli(["__complete", "ping", "--profile", ""], { files })
-    const names = result.stdout.split("\n").map((line) => line.split("\t")[0])
-    expect(names.filter((line) => line !== "")).toEqual(["mine", "shared", "svc"])
-  })
-
   it("takes the output format of the project's profile for docs commands", async () => {
     const files = {
       [PROJECT]: json5({ defaultProfile: "p", profiles: { p: { output: "table" } } }),

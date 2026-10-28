@@ -120,7 +120,6 @@ describe("registration of every catalog operation", () => {
       "ping",
       "config",
       "auth",
-      "completion",
       "inspect",
       "wait",
       "advance",

@@ -17,7 +17,6 @@ import { commandRef } from "../operation/command-ref.js"
 import { executeOperation } from "../operation/execute.js"
 import { buildInput } from "../operation/input.js"
 import { subcommand } from "./command.js"
-import { setPositional } from "./completion-meta.js"
 import type { CliContext } from "./context.js"
 import { emitResult } from "./emit.js"
 import { addGlobalOptions, readGlobals } from "./globals.js"
@@ -107,8 +106,6 @@ export function registerOperation(
     .description(operationDescription(operation))
     .usage([...args.map(argumentSyntax), "[options]"].join(" "))
   for (const argument of args) command.argument(registeredSyntax(argument), argument.description)
-  if (args.some((argument) => argument.variadic))
-    setPositional(command, { kind: "path", path: "files" })
   const registered = addOperationOptions(
     command,
     operationOptions(operation, context.catalog.schemas),

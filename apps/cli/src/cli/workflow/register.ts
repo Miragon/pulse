@@ -16,7 +16,6 @@ import { dryRunOutput, dryRunText } from "../../workflow/dry-run.js"
 import type { WorkflowResult } from "../../workflow/types.js"
 import type { WaitDeps } from "../../workflow/wait.js"
 import { subcommand } from "../command.js"
-import { setPositional } from "../completion-meta.js"
 import type { CliContext } from "../context.js"
 import { addGlobalOptions, readGlobals } from "../globals.js"
 import { examplesText } from "../help.js"
@@ -115,8 +114,6 @@ export function registerWorkflow(
   for (const argument of doc.arguments) {
     const name = `${argument.name}${argument.variadic ? "..." : ""}`
     command.argument(argument.required ? `<${name}>` : `[${name}]`, argument.description)
-    if (argument.complete !== undefined)
-      setPositional(command, { kind: "path", path: argument.complete })
   }
   const registered = addOperationOptions(command, doc.options)
   addGlobalOptions(command)

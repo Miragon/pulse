@@ -8,7 +8,7 @@
 import { describe, expect, it } from "vitest"
 import { jwtWith, NOW_S, VALID_CLAIMS } from "../../test/support/bearer.js"
 import { errorOf, profiles, server } from "../../test/support/cli-bearer.js"
-import { BASE_URL, fakeServer, json } from "../../test/support/fake-fetch.js"
+import { fakeServer, json } from "../../test/support/fake-fetch.js"
 import {
   CONFIG_PATH,
   execute,
@@ -150,30 +150,5 @@ describe("a bearer token that the auth type does not use", () => {
     const sent = await cli(["task", "list", "--auth", "bearer"], { files: sso, env })
     expect(sent.requests[0]?.headers.authorization).toBe(`Bearer ${JWT}`)
     for (const output of [result, rejected]) expect(output.stderr).not.toContain(JWT)
-  })
-})
-
-describe("completion of the bearer options", () => {
-  async function values(words: readonly string[]): Promise<string[]> {
-    const result = await execute(run, ["__complete", ...words], fakeRuntime())
-    return result.stdout
-      .split("\n")
-      .filter((line) => line !== "")
-      .map((line) => line.split("\t")[0] ?? "")
-  }
-
-  it("offers bearer and the token options", async () => {
-    expect(await values(["ping", "--auth", "b"])).toEqual(["basic", "bearer"])
-    expect(await values(["task", "list", "--auth-to"])).toEqual(["--auth-token-stdin"])
-    expect(await values(["config", "set", "p", "--auth-token"])).toEqual([
-      "--auth-token-env",
-      "--auth-token-stdin",
-    ])
-    expect(await values(["config", "set", "p", "--auth", "be"])).toEqual(["bearer"])
-    expect(await values(["config", "show", "--auth-t"])).toEqual(["--auth-token-stdin"])
-  })
-
-  it("documents the base URL of the fixtures", () => {
-    expect(BASE_URL).toBe("http://localhost:8080/engine-rest")
   })
 })

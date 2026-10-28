@@ -14,7 +14,6 @@ import { describeWorkflow, renderWorkflowDescribeText } from "../../docs/describ
 import { findWorkflow, WORKFLOW_GROUP, type WorkflowDoc } from "../../docs/workflow.js"
 import { type PulseCliError, usageError } from "../../errors.js"
 import { subcommand } from "../command.js"
-import { setPositional } from "../completion-meta.js"
 import type { CliContext } from "../context.js"
 import { type Display, displayOf, displayText } from "../display.js"
 import { addGlobalOptions, readGlobals } from "../globals.js"
@@ -108,7 +107,6 @@ export const describeCommand: UtilityCommand = {
       .argument("<group>", "Group (process-definition), workflow command (inspect) or operationId")
       .argument("[command]", "Command of the group, e.g. start")
     addGlobalOptions(command, DOCS_OPTIONS, OPTIONS_GROUP)
-    setPositional(command, { kind: "describe" })
     command.action((first: string, second: string | undefined) =>
       runDescribe(first, second, command, context),
     )
