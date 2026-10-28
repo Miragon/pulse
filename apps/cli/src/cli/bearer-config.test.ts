@@ -1,6 +1,7 @@
 /**
- * Bearer tokens end to end through `run()`, part 3: `config set|show|unset|list` with a bearer
- * token and the mistyped bearer flags.
+ * Bearer tokens end to end through `run()`, part 3: what the config commands print for a bearer
+ * token (the edits themselves are asserted in src/config/bearer-edit.test.ts) and the mistyped
+ * bearer flags.
  */
 
 import { describe, expect, it } from "vitest"
@@ -24,22 +25,6 @@ async function cli(args: readonly string[], options: FakeRuntimeOptions = {}, st
 }
 
 describe("pulse-cli config with a bearer token", () => {
-  it("stores the name of the variable and warns when it is not set, without naming it", async () => {
-    const result = await cli(["config", "set", "ci", "--auth-token-env", "CI_ENGINE_TOKEN"])
-    expect(result.code).toBe(0)
-    expect(JSON.parse(fileText(result.runtime, CONFIG_PATH) ?? "{}")).toEqual({
-      defaultProfile: "ci",
-      profiles: { ci: { auth: { type: "bearer", tokenEnv: "CI_ENGINE_TOKEN" } } },
-    })
-    expect(result.stderr).toBe(
-      "Warning: the variable named by --auth-token-env is not set in this environment. Pass the name of a variable that holds the token (e.g. CI_ENGINE_TOKEN), never the token itself; commands read it when they run.\n",
-    )
-    const set = await cli(["config", "set", "ci", "--auth", "bearer", "--auth-token-env", "X"], {
-      env: { X: "value" },
-    })
-    expect(set.stderr).toBe("")
-  })
-
   it("stores a token from stdin with a plain text warning and prints it masked", async () => {
     const result = await cli(["config", "set", "ci", "--auth-token-stdin", "-o", "json"], {
       stdin: "Bearer lit.token\n",
@@ -55,13 +40,7 @@ describe("pulse-cli config with a bearer token", () => {
     )
   })
 
-  it("refuses two secrets from stdin and names replaced Basic auth settings", async () => {
-    const both = await cli(["config", "set", "ci", "--auth-token-stdin", "--auth-password-stdin"], {
-      stdin: "x",
-    })
-    expect(errorOf(both.stderr).message).toBe(
-      "--auth-password-stdin and --auth-token-stdin both read stdin",
-    )
+  it("names the replaced Basic auth, OAuth and header settings", async () => {
     const files = {
       [CONFIG_PATH]: profiles({ p: { auth: { type: "basic", username: "u", passwordEnv: "PW" } } }),
     }
@@ -91,51 +70,18 @@ describe("pulse-cli config with a bearer token", () => {
     )
   })
 
-  it("shows the token masked with its source, the real value with --show-secrets", async () => {
-    const env = { PULSE_CLI_TOKEN: "shown.token" }
-    const view = JSON.parse((await cli(["config", "show"], { env })).stdout) as {
-      values: Record<string, unknown>
-    }
-    expect(view.values.auth).toEqual({ value: "bearer", source: "env" })
-    expect(view.values.token).toEqual({ value: "***", source: "env" })
-    const shown = await cli(["config", "show", "--show-secrets"], { env })
-    expect(shown.stdout).toContain('"token":{"value":"shown.token","source":"env"}')
-    const stdin = await cli(["config", "show", "--auth-token-stdin", "-o", "table"], {
-      stdin: "piped",
-    })
-    expect(stdin.stdout).toMatch(/\ntoken +\*\*\* +flag\n/)
-  })
-
-  it("reports a token the auth type does not use", async () => {
+  it("reports a token the auth type does not use in the config show table", async () => {
     const env = {
       PULSE_CLI_TOKEN: "tok",
       PULSE_CLI_USERNAME: "u",
       PULSE_CLI_PASSWORD: "p",
       PULSE_CLI_AUTH: "basic",
     }
-    const json = JSON.parse((await cli(["config", "show"], { env })).stdout) as {
-      values: Record<string, unknown>
-    }
-    expect(json.values.token).toEqual({
-      value: "***",
-      source: "env",
-      unused: "Basic auth is selected by PULSE_CLI_AUTH=basic",
-    })
     const table = await cli(["config", "show", "-o", "table"], { env })
     expect(table.stdout).toMatch(
       /\ntoken +\*\*\* \(unused: Basic auth is selected by PULSE_CLI_AUTH=basic\) +env\n/,
     )
     expect(table.stdout).not.toContain("tok ")
-  })
-
-  it("unsets the token and lists the type", async () => {
-    const files = { [CONFIG_PATH]: profiles({ p: { auth: { type: "bearer", token: "t" } } }) }
-    const list = await cli(["config", "list"], { files })
-    expect(JSON.parse(list.stdout)).toMatchObject([{ name: "p", auth: "bearer" }])
-    const unset = await cli(["config", "unset", "p", "token"], { files })
-    expect(JSON.parse(fileText(unset.runtime, CONFIG_PATH) ?? "{}")).toMatchObject({
-      profiles: { p: { auth: { type: "bearer" } } },
-    })
   })
 })
 

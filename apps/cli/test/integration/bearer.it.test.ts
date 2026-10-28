@@ -6,31 +6,20 @@
  * <token>`: no login, no refresh, no token cache.
  *
  * Token commands fetch such tokens for pulse-cli: PULSE_CLI_TOKEN_COMMAND runs a script
- * that runs the client credentials grant, also for the profiles of a project file,
- * whose directories share the cached token.
+ * that runs the client credentials grant, also for a profile of a project file.
  *
- * The 5 s token of `pulse-cli-short` is issued first, in `beforeAll`, so the 30 s expiry grace of
- * the TOKEN_EXPIRED test mostly passes while the other tests run. Every CLI run is checked against
- * every token the suite has seen (and each JWT's signature on its own); only `--show-secrets` runs
- * may print the one token they send.
+ * Only what needs the gateway or Keycloak is here; the resolution rules and their errors are
+ * asserted by the unit tests of src/config/, src/auth/ and src/cli/. Every CLI run is checked
+ * against every token the suite has seen (and each JWT's signature on its own); only
+ * `--show-secrets` runs may print the one token they send.
  */
 
-import { readFile, realpath, writeFile } from "node:fs/promises"
+import { realpath, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import { afterAll, beforeAll, describe, expect } from "vitest"
 import { registerErrors } from "./bearer/errors.js"
-import { registerProfiles } from "./bearer/profiles.js"
 import { registerSources } from "./bearer/sources.js"
-import {
-  GARBAGE,
-  PROFILE,
-  RUN_TIMEOUT_MS,
-  STRAY_PASSWORD,
-  TOKEN_ENV,
-  type BearerSuite,
-  type StoredConfig,
-  type StoredProfile,
-} from "./bearer/suite.js"
+import { GARBAGE, RUN_TIMEOUT_MS, type BearerSuite } from "./bearer/suite.js"
 import { registerTokenCommands } from "./bearer/token-commands.js"
 import {
   assertCliBuilt,
@@ -41,19 +30,13 @@ import {
 } from "./support/cli.js"
 import { required } from "./support/expect.js"
 import { isJwt, signatureOf } from "./support/jwt.js"
-import {
-  CI_CLIENT_SECRET,
-  clientCredentialsToken,
-  CLIENTS,
-  directLogin,
-} from "./support/keycloak.js"
+import { CI_CLIENT_SECRET, clientCredentialsToken, CLIENTS } from "./support/keycloak.js"
 import {
   oauthEngine,
   startOAuthTopology,
   TOPOLOGY_START_TIMEOUT_MS,
   type OAuthTopology,
 } from "./support/oauth.js"
-import type { EnvOverrides } from "./support/process.js"
 import { makeTempDir, removeTempDir } from "./support/temp.js"
 import { traceOf } from "./support/trace.js"
 
@@ -62,14 +45,10 @@ const engine = oauthEngine()
 describe.skipIf(engine === undefined)(`Bearer tokens from elsewhere at ${engine ?? ""}`, () => {
   let topology: OAuthTopology | undefined
   let workdir: string | undefined
-  /** Config file of the runs without a profile: empty, so only the environment counts. */
+  /** Config file of the runs: empty, so only the environment counts. */
   let configFile = ""
-  /** Config file of the profile tests. */
-  let profilesFile = ""
   /** A CI pipeline's token: client credentials grant of `pulse-ci`, a JWT valid for 300 s. */
   let ciToken = ""
-  /** A person's 5 s token (`pulse-cli-short`), issued first; it expires while the suite runs. */
-  let staleToken = ""
   /** Everything no output may contain (tokens, their signatures, stray credentials). */
   const secrets = new Set<string>()
   let cli: Cli = () => Promise.reject(new Error("the OAuth topology did not start"))
@@ -108,39 +87,16 @@ describe.skipIf(engine === undefined)(`Bearer tokens from elsewhere at ${engine 
     return result
   }
 
-  async function readProfiles(): Promise<StoredConfig["profiles"]> {
-    return (JSON.parse(await readFile(profilesFile, "utf8")) as StoredConfig).profiles
-  }
-
-  /** Adds or replaces a profile in the profiles file directly (not through `config set`). */
-  async function writeProfile(name: string, profile: StoredProfile): Promise<void> {
-    const next = { profiles: { ...(await readProfiles()), [name]: profile } }
-    await writeFile(profilesFile, `${JSON.stringify(next, null, 2)}\n`)
-  }
-
-  /** Options of a run with the profiles file: the profile's URL counts, not PULSE_CLI_URL. */
-  function profiles(env: EnvOverrides = {}, options: CliOptions = {}): CliOptions {
-    return { ...options, configFile: profilesFile, env: { PULSE_CLI_URL: undefined, ...env } }
-  }
-
   beforeAll(async () => {
     assertCliBuilt()
     // resolved, so paths printed by the CLI compare equal (macOS: /var → /private/var)
     workdir = await realpath(await makeTempDir("pulse-cli-it-bearer-"))
     configFile = join(workdir, "config.json")
-    profilesFile = join(workdir, "profiles.json")
     // PULSE_CLI_CONFIG names the file explicitly, so it must exist (an empty one: no profiles)
     await writeFile(configFile, '{"profiles":{}}\n')
-    await writeFile(profilesFile, '{"profiles":{}}\n')
     topology = await startOAuthTopology(required(engine, "an enabled engine"))
-    // first: its expiry and the 30 s grace pass while the other tests run
-    staleToken = (await directLogin(topology.issuer, CLIENTS.short, "openid")).accessToken
     ciToken = await clientCredentialsToken(topology.issuer, CLIENTS.ci, CI_CLIENT_SECRET)
-    remember(staleToken, ciToken, CI_CLIENT_SECRET, GARBAGE, STRAY_PASSWORD)
-    await writeProfile(PROFILE.fixed, {
-      url: topology.url,
-      auth: { type: "bearer", tokenEnv: TOKEN_ENV },
-    })
+    remember(ciToken, CI_CLIENT_SECRET, GARBAGE)
     cli = bindCli({
       url: topology.url,
       configFile,
@@ -148,7 +104,6 @@ describe.skipIf(engine === undefined)(`Bearer tokens from elsewhere at ${engine 
         // no token cache or user config may be read or written outside the suite's directory
         XDG_CONFIG_HOME: workdir,
         APPDATA: workdir,
-        [TOKEN_ENV]: undefined,
       },
     })
   }, TOPOLOGY_START_TIMEOUT_MS)
@@ -167,25 +122,15 @@ describe.skipIf(engine === undefined)(`Bearer tokens from elsewhere at ${engine 
     get configFile() {
       return configFile
     },
-    get profilesFile() {
-      return profilesFile
-    },
     get ciToken() {
       return ciToken
-    },
-    get staleToken() {
-      return staleToken
     },
     trace,
     remember,
     expectHidden,
     run,
-    readProfiles,
-    writeProfile,
-    profiles,
   }
   registerSources(suite)
-  registerProfiles(suite)
   registerErrors(suite)
   registerTokenCommands(suite)
 })
