@@ -1,10 +1,7 @@
 import { z } from "zod"
-// Feed payloads built as named interface types are spread at the call sites
-// (`rawData({ ...data })`): the feed contract takes `Record<string, unknown>`,
-// which interface types don't structurally satisfy.
 import {
   appOnly,
-  buildDataFeedResult as rawData,
+  buildDataFeedResult,
   withToolErrors,
   strictToolInput,
 } from "@miragon/pulse-widget-shell/server"
@@ -50,360 +47,183 @@ import {
   processInstancesFilterShape,
   processListFilterShape,
 } from "../feed-contracts.js"
-import { type WidgetToolsContext, clusterDetailShape } from "./shared.js"
+import { type WidgetToolsContext, type ResolvedEngine, clusterDetailShape } from "./shared.js"
 
-/** The app-only `*_data` JSON feeds (SEP-1865) behind every widget above. */
+type FeedInput<TShape extends z.ZodRawShape> = z.output<z.ZodObject<TShape>>
+
+interface DataFeed<TShape extends z.ZodRawShape> {
+  name: string
+  title: string
+  description: string
+  shape: TShape
+  read: (input: FeedInput<TShape>, engine: ResolvedEngine) => Promise<object>
+}
+
+/**
+ * The app-only `*_data` JSON feeds (SEP-1865) behind every widget: each reads
+ * the same builder as its `camunda7_show_*` twin, for the cockpit app's
+ * loaders and each widget's own refresh.
+ */
 export function registerWidgetDataFeeds(ctx: WidgetToolsContext) {
   const { server, registry, healthThresholds, engineParam } = ctx
 
-  // ── Per-view data feeds (plain, no UI) ──────────────────────────────────
-  // Reused by the cockpit app's loaders AND each widget's own self-fetch. Each
-  // delegates to the shared builder in cockpit-data.ts (same logic the matching
-  // camunda7_show_* widget tool uses for its eager render).
-
-  server.tool(
-    {
-      name: CAMUNDA7_COCKPIT_OVERVIEW_DATA,
-      title: "Cockpit overview data (internal)",
-      description:
-        "Internal JSON feed (no UI) for the cockpit overview — per-definition stats. Prefer camunda7_open_cockpit.",
-      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-      inputSchema: strictToolInput({ ...engineParam }),
-      ...appOnly,
-    },
-    withToolErrors(async (args, ctx) => {
-      const { client, engineId } = await resolveEngine(args.engine, registry, ctx)
-      return rawData({ ...(await buildCockpitDashboardData(client, engineId)) })
-    }),
-  )
-
-  server.tool(
-    {
-      name: CAMUNDA7_ENGINE_HEALTH_DATA,
-      title: "Engine health data (internal)",
-      description:
-        "Internal JSON feed (no UI) for the engine health verdict + incident clusters. Prefer camunda7_show_engine_health / camunda7_open_cockpit.",
-      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-      inputSchema: strictToolInput({ ...engineParam }),
-      ...appOnly,
-    },
-    withToolErrors(async (args, ctx) => {
-      const { client, engineId } = await resolveEngine(args.engine, registry, ctx)
-      return rawData({ ...(await buildEngineHealthData(client, engineId, healthThresholds)) })
-    }),
-  )
-
-  server.tool(
-    {
-      name: CAMUNDA7_CLUSTER_DETAIL_DATA,
-      title: "Cluster detail data (internal)",
-      description:
-        "Internal JSON feed (no UI) for one failure cluster's detail. Prefer camunda7_show_cluster_detail.",
-      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-      inputSchema: strictToolInput({ ...clusterDetailShape, ...engineParam }),
-      ...appOnly,
-    },
-    withToolErrors(async (args, ctx) => {
-      const { client, engineId } = await resolveEngine(args.engine, registry, ctx)
-      return rawData({
-        ...(await buildClusterDetailData(client, engineId, {
-          activityId: args.activityId,
-          incidentType: args.incidentType,
-          messageSignature: args.messageSignature,
-          businessKeyLike: args.businessKeyLike,
-          firstResult: args.firstResult,
-          maxResults: args.maxResults,
-        })),
-      })
-    }),
-  )
-
-  server.tool(
-    {
-      name: CAMUNDA7_PROCESS_INSTANCES_DATA,
-      title: "Process instances data (internal)",
-      description:
-        "Internal JSON feed (no UI) for a definition's running instances. Prefer camunda7_show_process_instances.",
-      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-      inputSchema: strictToolInput({
-        ...processInstancesFilterShape,
-        ...instanceSearchShape,
-        ...pagingShape,
-        ...engineParam,
+  function registerDataFeed<TShape extends z.ZodRawShape>(feed: DataFeed<TShape>) {
+    server.tool(
+      {
+        name: feed.name,
+        title: feed.title,
+        description: feed.description,
+        annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+        inputSchema: strictToolInput({ ...feed.shape, ...engineParam }),
+        ...appOnly,
+      },
+      withToolErrors(async (args, ctx) => {
+        const { engine, ...input } = args as { engine?: string }
+        const resolved = await resolveEngine(engine, registry, ctx)
+        const data = await feed.read(input as FeedInput<TShape>, resolved)
+        return buildDataFeedResult({ ...data })
       }),
-      ...appOnly,
-    },
-    withToolErrors(async (args, ctx) => {
-      const { client, engineId } = await resolveEngine(args.engine, registry, ctx)
-      return rawData({
-        ...(await buildProcessInstancesData(client, engineId, {
-          processDefinitionKey: args.processDefinitionKey,
-          active: args.active,
-          suspended: args.suspended,
-          withIncidents: args.withIncidents,
-          businessKeyLike: args.businessKeyLike,
-          search: args.search,
-          firstResult: args.firstResult,
-          maxResults: args.maxResults,
-        })),
-      })
-    }),
-  )
+    )
+  }
 
-  server.tool(
-    {
-      name: CAMUNDA7_BPMN_VIEWER_DATA,
-      title: "BPMN viewer data (internal)",
-      description:
-        "Internal JSON feed (no UI) for the BPMN viewer — diagram XML plus live overlays. Prefer camunda7_show_bpmn_viewer.",
-      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-      inputSchema: strictToolInput({
-        processInstanceId: z.string().optional().describe("Instance to overlay live state for."),
-        processDefinitionKey: z.string().optional().describe("Definition for a version's diagram."),
-        version: z.number().int().positive().optional(),
-        ...engineParam,
-      }),
-      ...appOnly,
-    },
-    withToolErrors(async (args, ctx) => {
-      const { client, engineId } = await resolveEngine(args.engine, registry, ctx)
-      return rawData({
-        ...(await buildBpmnViewerData(client, engineId, {
-          processInstanceId: args.processInstanceId,
-          processDefinitionKey: args.processDefinitionKey,
-          version: args.version,
-        })),
-      })
-    }),
-  )
+  registerDataFeed({
+    name: CAMUNDA7_COCKPIT_OVERVIEW_DATA,
+    title: "Cockpit overview data (internal)",
+    description:
+      "Internal JSON feed (no UI) for the cockpit overview — per-definition stats. Prefer camunda7_open_cockpit.",
+    shape: {},
+    read: (_, { client, engineId }) => buildCockpitDashboardData(client, engineId),
+  })
 
-  server.tool(
-    {
-      name: CAMUNDA7_BPMN_XML_DATA,
-      title: "BPMN XML data (internal)",
-      description:
-        "Internal JSON feed (no UI): one deployed process definition's BPMN 2.0 XML, by id — what every diagram in the views draws. Use camunda7_get_process_definition_xml for the XML itself.",
-      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-      inputSchema: strictToolInput({
-        processDefinitionId: z
-          .string()
-          .min(1)
-          .describe("The deployed version's id (key:version:deployment)."),
-        ...engineParam,
-      }),
-      ...appOnly,
-    },
-    withToolErrors(async (args, ctx) => {
-      const { client } = await resolveEngine(args.engine, registry, ctx)
-      return rawData({
-        processDefinitionId: args.processDefinitionId,
-        bpmnXml: await fetchDefinitionXml(client, args.processDefinitionId),
-      })
-    }),
-  )
+  registerDataFeed({
+    name: CAMUNDA7_ENGINE_HEALTH_DATA,
+    title: "Engine health data (internal)",
+    description:
+      "Internal JSON feed (no UI) for the engine health verdict + incident clusters. Prefer camunda7_show_engine_health / camunda7_open_cockpit.",
+    shape: {},
+    read: (_, { client, engineId }) => buildEngineHealthData(client, engineId, healthThresholds),
+  })
 
-  server.tool(
-    {
-      name: CAMUNDA7_PROCESS_LIST_DATA,
-      title: "Process list data (internal)",
-      description:
-        "Internal JSON feed (no UI) for deployed process definitions, offset-paged. Prefer camunda7_show_process_list.",
-      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-      inputSchema: strictToolInput({
-        ...processListFilterShape,
-        ...pagingShape,
-        ...engineParam,
-      }),
-      ...appOnly,
-    },
-    withToolErrors(async (args, ctx) => {
-      const { client, engineId } = await resolveEngine(args.engine, registry, ctx)
-      return rawData({
-        ...(await buildProcessListData(client, engineId, {
-          processDefinitionKey: args.processDefinitionKey,
-          nameLike: args.nameLike,
-          latestVersion: args.latestVersion,
-          firstResult: args.firstResult,
-          maxResults: args.maxResults,
-        })),
-      })
-    }),
-  )
+  registerDataFeed({
+    name: CAMUNDA7_CLUSTER_DETAIL_DATA,
+    title: "Cluster detail data (internal)",
+    description:
+      "Internal JSON feed (no UI) for one failure cluster's detail. Prefer camunda7_show_cluster_detail.",
+    shape: clusterDetailShape,
+    read: (cluster, { client, engineId }) => buildClusterDetailData(client, engineId, cluster),
+  })
 
-  server.tool(
-    {
-      name: CAMUNDA7_INSTANCE_DETAIL_DATA,
-      title: "Instance detail data (internal)",
-      description:
-        "Internal JSON feed (no UI) for a single process instance. Prefer camunda7_show_instance_detail.",
-      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-      inputSchema: strictToolInput({
-        processInstanceId: z.string().describe("The process instance ID"),
-        ...engineParam,
-      }),
-      ...appOnly,
-    },
-    withToolErrors(async (args, ctx) => {
-      const { client, engineId, baseUrl, cockpitUrl, provider } = await resolveEngine(
-        args.engine,
-        registry,
-        ctx,
-      )
-      return rawData({
-        ...(await buildInstanceDetailData(
-          client,
-          engineId,
-          { processInstanceId: args.processInstanceId },
-          { baseUrl, cockpitUrl, provider },
-        )),
-      })
-    }),
-  )
+  registerDataFeed({
+    name: CAMUNDA7_PROCESS_INSTANCES_DATA,
+    title: "Process instances data (internal)",
+    description:
+      "Internal JSON feed (no UI) for a definition's running instances. Prefer camunda7_show_process_instances.",
+    shape: { ...processInstancesFilterShape, ...instanceSearchShape, ...pagingShape },
+    read: (filters, { client, engineId }) => buildProcessInstancesData(client, engineId, filters),
+  })
 
-  server.tool(
-    {
-      name: CAMUNDA7_JOBS_DATA,
-      title: "Jobs data (internal)",
-      description: "Internal JSON feed (no UI) for jobs. Prefer camunda7_show_job_panel.",
-      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-      inputSchema: strictToolInput({
-        ...jobsFilterShape,
-        ...pagingShape,
-        ...engineParam,
-      }),
-      ...appOnly,
+  registerDataFeed({
+    name: CAMUNDA7_BPMN_VIEWER_DATA,
+    title: "BPMN viewer data (internal)",
+    description:
+      "Internal JSON feed (no UI) for the BPMN viewer — diagram XML plus live overlays. Prefer camunda7_show_bpmn_viewer.",
+    shape: {
+      processInstanceId: z.string().optional().describe("Instance to overlay live state for."),
+      processDefinitionKey: z.string().optional().describe("Definition for a version's diagram."),
+      version: z.number().int().positive().optional(),
     },
-    withToolErrors(async (args, ctx) => {
-      const { client, engineId } = await resolveEngine(args.engine, registry, ctx)
-      return rawData({
-        ...(await buildJobPanelData(client, engineId, {
-          processDefinitionKey: args.processDefinitionKey,
-          failedOnly: args.failedOnly,
-          firstResult: args.firstResult,
-          maxResults: args.maxResults,
-        })),
-      })
-    }),
-  )
+    read: (target, { client, engineId }) => buildBpmnViewerData(client, engineId, target),
+  })
 
-  server.tool(
-    {
-      name: CAMUNDA7_INCIDENTS_DATA,
-      title: "Incidents dashboard data (internal)",
-      description:
-        "Internal JSON feed (no UI) for the incidents dashboard — open incidents grouped by process. Prefer camunda7_show_incidents_dashboard.",
-      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-      inputSchema: strictToolInput({
-        ...incidentsDashboardFilterShape,
-        ...engineParam,
-      }),
-      ...appOnly,
+  registerDataFeed({
+    name: CAMUNDA7_BPMN_XML_DATA,
+    title: "BPMN XML data (internal)",
+    description:
+      "Internal JSON feed (no UI): one deployed process definition's BPMN 2.0 XML, by id — what every diagram in the views draws. Use camunda7_get_process_definition_xml for the XML itself.",
+    shape: {
+      processDefinitionId: z
+        .string()
+        .min(1)
+        .describe("The deployed version's id (key:version:deployment)."),
     },
-    withToolErrors(async (args, ctx) => {
-      const { client, engineId, baseUrl, cockpitUrl, provider } = await resolveEngine(
-        args.engine,
-        registry,
-        ctx,
-      )
-      const data = await buildIncidentsDashboardData(client, {
-        baseUrl,
-        cockpitUrl,
-        provider,
-        processDefinitionKey: args.processDefinitionKey,
-        incidentType: args.incidentType,
-      })
-      return rawData({ ...data, engineId })
+    read: async ({ processDefinitionId }, { client }) => ({
+      processDefinitionId,
+      bpmnXml: await fetchDefinitionXml(client, processDefinitionId),
     }),
-  )
+  })
 
-  server.tool(
-    {
-      name: CAMUNDA7_PROCESS_INCIDENTS_DATA,
-      title: "Process incidents data (internal)",
-      description:
-        "Internal JSON feed (no UI) for the unified definition view — header, KPIs (incl. failed jobs), BPMN overlays, activity-grouped incidents. Prefer camunda7_show_process_detail / camunda7_show_process_incidents.",
-      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-      inputSchema: strictToolInput({
-        processDefinitionKey: z.string().describe("Process definition key to drill into"),
-        ...engineParam,
-      }),
-      ...appOnly,
-    },
-    withToolErrors(async (args, ctx) => {
-      const { client, engineId, baseUrl, cockpitUrl, provider } = await resolveEngine(
-        args.engine,
-        registry,
-        ctx,
-      )
-      const data = await buildProcessIncidentsData(client, {
-        baseUrl,
-        cockpitUrl,
-        provider,
-        processDefinitionKey: args.processDefinitionKey,
-      })
-      return rawData({ ...data, engineId })
-    }),
-  )
+  registerDataFeed({
+    name: CAMUNDA7_PROCESS_LIST_DATA,
+    title: "Process list data (internal)",
+    description:
+      "Internal JSON feed (no UI) for deployed process definitions, offset-paged. Prefer camunda7_show_process_list.",
+    shape: { ...processListFilterShape, ...pagingShape },
+    read: (filters, { client, engineId }) => buildProcessListData(client, engineId, filters),
+  })
 
-  server.tool(
-    {
-      name: CAMUNDA7_ACTIVITY_INCIDENTS_DATA,
-      title: "Activity incidents data (internal)",
-      description:
-        "Internal JSON feed (no UI) for one activity's incident rows, offset-paged. Prefer camunda7_show_process_incidents.",
-      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-      inputSchema: strictToolInput({
-        ...activityIncidentsFilterShape,
-        ...pagingShape,
-        ...engineParam,
-      }),
-      ...appOnly,
-    },
-    withToolErrors(async (args, ctx) => {
-      const { client, engineId, baseUrl, cockpitUrl, provider } = await resolveEngine(
-        args.engine,
-        registry,
-        ctx,
-      )
-      const data = await buildActivityIncidentsData(client, {
-        baseUrl,
-        cockpitUrl,
-        provider,
-        processDefinitionKey: args.processDefinitionKey,
-        activityId: args.activityId,
-        firstResult: args.firstResult,
-        maxResults: args.maxResults,
-      })
-      return rawData({ ...data, engineId })
-    }),
-  )
+  registerDataFeed({
+    name: CAMUNDA7_INSTANCE_DETAIL_DATA,
+    title: "Instance detail data (internal)",
+    description:
+      "Internal JSON feed (no UI) for a single process instance. Prefer camunda7_show_instance_detail.",
+    shape: { processInstanceId: z.string().describe("The process instance ID") },
+    read: (target, { client, engineId, ...urls }) =>
+      buildInstanceDetailData(client, engineId, target, urls),
+  })
 
-  server.tool(
-    {
-      name: CAMUNDA7_INCIDENT_DETAIL_DATA,
-      title: "Incident detail data (internal)",
-      description:
-        "Internal JSON feed (no UI) for a single incident — stacktrace, BPMN with the failing activity, variables, activity tree, history. Prefer camunda7_show_incident_detail.",
-      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-      inputSchema: strictToolInput({
-        incidentId: z.string().describe("The incident ID to inspect"),
-        ...engineParam,
-      }),
-      ...appOnly,
-    },
-    withToolErrors(async (args, ctx) => {
-      const { client, engineId, baseUrl, cockpitUrl, provider } = await resolveEngine(
-        args.engine,
-        registry,
-        ctx,
-      )
-      const data = await buildIncidentDetailData(client, {
-        baseUrl,
-        cockpitUrl,
-        provider,
-        incidentId: args.incidentId,
-      })
-      return rawData({ ...data, engineId })
+  registerDataFeed({
+    name: CAMUNDA7_JOBS_DATA,
+    title: "Jobs data (internal)",
+    description: "Internal JSON feed (no UI) for jobs. Prefer camunda7_show_job_panel.",
+    shape: { ...jobsFilterShape, ...pagingShape },
+    read: (filters, { client, engineId }) => buildJobPanelData(client, engineId, filters),
+  })
+
+  registerDataFeed({
+    name: CAMUNDA7_INCIDENTS_DATA,
+    title: "Incidents dashboard data (internal)",
+    description:
+      "Internal JSON feed (no UI) for the incidents dashboard — open incidents grouped by process. Prefer camunda7_show_incidents_dashboard.",
+    shape: incidentsDashboardFilterShape,
+    read: async (filters, { client, engineId, ...urls }) => ({
+      ...(await buildIncidentsDashboardData(client, { ...urls, ...filters })),
+      engineId,
     }),
-  )
+  })
+
+  registerDataFeed({
+    name: CAMUNDA7_PROCESS_INCIDENTS_DATA,
+    title: "Process incidents data (internal)",
+    description:
+      "Internal JSON feed (no UI) for the unified definition view — header, KPIs (incl. failed jobs), BPMN overlays, activity-grouped incidents. Prefer camunda7_show_process_detail / camunda7_show_process_incidents.",
+    shape: { processDefinitionKey: z.string().describe("Process definition key to drill into") },
+    read: async (target, { client, engineId, ...urls }) => ({
+      ...(await buildProcessIncidentsData(client, { ...urls, ...target })),
+      engineId,
+    }),
+  })
+
+  registerDataFeed({
+    name: CAMUNDA7_ACTIVITY_INCIDENTS_DATA,
+    title: "Activity incidents data (internal)",
+    description:
+      "Internal JSON feed (no UI) for one activity's incident rows, offset-paged. Prefer camunda7_show_process_incidents.",
+    shape: { ...activityIncidentsFilterShape, ...pagingShape },
+    read: async (filters, { client, engineId, ...urls }) => ({
+      ...(await buildActivityIncidentsData(client, { ...urls, ...filters })),
+      engineId,
+    }),
+  })
+
+  registerDataFeed({
+    name: CAMUNDA7_INCIDENT_DETAIL_DATA,
+    title: "Incident detail data (internal)",
+    description:
+      "Internal JSON feed (no UI) for a single incident — stacktrace, BPMN with the failing activity, variables, activity tree, history. Prefer camunda7_show_incident_detail.",
+    shape: { incidentId: z.string().describe("The incident ID to inspect") },
+    read: async (target, { client, engineId, ...urls }) => ({
+      ...(await buildIncidentDetailData(client, { ...urls, ...target })),
+      engineId,
+    }),
+  })
 }

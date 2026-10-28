@@ -1,47 +1,23 @@
-import type { PipelineStepDefinition } from "@miragon/mcp-toolkit-core"
 import { buildInstanceDetailData } from "../data/instance-detail-data.js"
-import type { Camunda7StepAppConfig } from "../lib/resolve-engine.js"
-import { ENGINE_KEY, requiredKey, stepEngine } from "./shared.js"
-import { builderText } from "../builder-texts.js"
+import { adapterStep, requiredKey } from "./shared.js"
 
-/**
- * One running process instance: state, activity tree, variables, open
- * incidents and user tasks, BPMN. Adapter over {@link buildInstanceDetailData},
- * the builder of `camunda7_show_instance_detail` (cockpit links included).
- * Consumed by `camunda7:instance-detail`.
- */
-export const loadProcessInstanceStep: PipelineStepDefinition<Camunda7StepAppConfig> = {
-  id: "camunda7:load-process-instance",
-  ...builderText("step.load-process-instance"),
+export const loadProcessInstanceStep = adapterStep({
+  name: "load-process-instance",
   description:
     "One running process instance: state, activity tree, variables, open incidents and user tasks, BPMN. Powers camunda7:instance-detail.",
   dataType: "camunda7:processInstance",
   requires: ["camunda7:processInstanceId"],
-  optionalKeys: [ENGINE_KEY],
-  produces: [
-    "camunda7:instance",
-    "camunda7:activityTree",
-    "camunda7:variables",
-    "camunda7:incidents",
-  ],
-  execute: async (context, appConfig) => {
-    const { client, engineId, baseUrl, cockpitUrl, provider } = await stepEngine(context, appConfig)
-    const data = await buildInstanceDetailData(
+  read: (context, { client, engineId, ...urls }) =>
+    buildInstanceDetailData(
       client,
       engineId,
       { processInstanceId: requiredKey(context, "camunda7:processInstanceId") },
-      { baseUrl, cockpitUrl, provider },
-    )
-    return {
-      data,
-      keys: {
-        "camunda7:instance": data.instance,
-        "camunda7:activityTree": data.activityTree,
-        "camunda7:variables": data.variables,
-        "camunda7:incidents": data.incidents,
-      },
-      _app: "camunda7",
-      _step: "load-process-instance",
-    }
+      urls,
+    ),
+  produces: {
+    "camunda7:instance": (data) => data.instance,
+    "camunda7:activityTree": (data) => data.activityTree,
+    "camunda7:variables": (data) => data.variables,
+    "camunda7:incidents": (data) => data.incidents,
   },
-}
+})

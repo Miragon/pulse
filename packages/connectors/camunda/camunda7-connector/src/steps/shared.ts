@@ -1,5 +1,29 @@
-import type { OptionalKeyDeclaration, PipelineContext } from "@miragon/mcp-toolkit-core"
+import type {
+  OptionalKeyDeclaration,
+  PipelineContext,
+  PipelineStepDefinition,
+} from "@miragon/mcp-toolkit-core"
 import { resolveStepEngine, type Camunda7StepAppConfig } from "../lib/resolve-engine.js"
+import { builderText } from "../builder-texts.js"
+
+/** The engine selector every step reads — declared so render-view can discover it. */
+const ENGINE_KEY: OptionalKeyDeclaration = {
+  key: "camunda7:engine",
+  description:
+    "Engine id to read from (one of camunda7_list_engines). Omitted → the caller's saved default engine, or the only configured engine; required when several are configured and none is saved.",
+}
+
+type StepEngine = Awaited<ReturnType<typeof resolveStepEngine>>
+
+interface AdapterStep<TData> {
+  name: string
+  description: string
+  dataType: string
+  requires?: string[]
+  optionalKeys?: OptionalKeyDeclaration[]
+  produces: Record<string, (data: NoInfer<TData>) => unknown>
+  read: (context: PipelineContext, engine: StepEngine) => Promise<TData>
+}
 
 /**
  * Every camunda7 step is a THIN ADAPTER over the builder its show tool uses
@@ -8,17 +32,26 @@ import { resolveStepEngine, type Camunda7StepAppConfig } from "../lib/resolve-en
  * never returns a success-shaped empty payload. `steps.test.ts` holds every
  * step to its twin's output.
  */
-
-/** The engine selector every step reads — declared so render-view can discover it. */
-export const ENGINE_KEY: OptionalKeyDeclaration = {
-  key: "camunda7:engine",
-  description:
-    "Engine id to read from (one of camunda7_list_engines). Omitted → the caller's saved default engine, or the only configured engine; required when several are configured and none is saved.",
-}
-
-/** Resolves the engine a step reads from (its `camunda7:engine` key, else the default). */
-export function stepEngine(context: PipelineContext, appConfig: Camunda7StepAppConfig) {
-  return resolveStepEngine(appConfig, context.keys["camunda7:engine"] as string | undefined)
+export function adapterStep<TData>(
+  step: AdapterStep<TData>,
+): PipelineStepDefinition<Camunda7StepAppConfig> {
+  return {
+    id: `camunda7:${step.name}`,
+    ...builderText(`step.${step.name}`),
+    description: step.description,
+    dataType: step.dataType,
+    requires: step.requires ?? [],
+    optionalKeys: [ENGINE_KEY, ...(step.optionalKeys ?? [])],
+    produces: Object.keys(step.produces),
+    execute: async (context, appConfig) => {
+      const engineOverride = context.keys["camunda7:engine"] as string | undefined
+      const data = await step.read(context, await resolveStepEngine(appConfig, engineOverride))
+      const keys = Object.fromEntries(
+        Object.entries(step.produces).map(([key, select]) => [key, select(data)]),
+      )
+      return { data, keys, _app: "camunda7", _step: step.name }
+    },
+  }
 }
 
 /** A string key of the step context; undefined when absent or empty. */

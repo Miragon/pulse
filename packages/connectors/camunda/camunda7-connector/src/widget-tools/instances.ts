@@ -1,7 +1,4 @@
 import { z } from "zod"
-// Feed payloads built as named interface types are spread at the call sites
-// (`rawData({ ...data })`): the feed contract takes `Record<string, unknown>`,
-// which interface types don't structurally satisfy.
 import {
   buildComposedView,
   buildSingleWidgetView,
@@ -20,38 +17,22 @@ import {
 import { resolveEngine } from "../lib/resolve-engine.js"
 import { jobsFilterShape, pagingShape } from "../feed-contracts.js"
 import { localizeViewFor } from "../lib/server-locale.js"
-import { type WidgetToolsContext } from "./shared.js"
+import { type WidgetToolsContext, registerShowTool } from "./shared.js"
 
 /** Single-instance drill-downs: instance detail, BPMN viewer, job panel. */
 export function registerInstanceWidgetTools(ctx: WidgetToolsContext) {
   const { server, registry, profileStore, engineParam } = ctx
 
-  server.tool(
-    {
-      name: CAMUNDA7_SHOW_INSTANCE_DETAIL,
-      title: "Process Instance Detail",
-      description:
-        "Show detailed view of a single process instance with activity tree, variables, and incidents.",
-      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-      inputSchema: strictToolInput({
-        processInstanceId: z.string().describe("The process instance ID to inspect"),
-        ...engineParam,
-      }),
-      ...showToolBinding(CAMUNDA7_SHOW_INSTANCE_DETAIL, "Process Instance Detail"),
-    },
-    withToolErrors(async (args, ctx) => {
+  registerShowTool(ctx, {
+    name: CAMUNDA7_SHOW_INSTANCE_DETAIL,
+    title: "Process Instance Detail",
+    description:
+      "Show detailed view of a single process instance with activity tree, variables, and incidents.",
+    shape: { processInstanceId: z.string().describe("The process instance ID to inspect") },
+    render: async ({ engine, ...target }, ctx) => {
       const { t, title } = await localizeViewFor(profileStore, ctx)
-      const { client, engineId, baseUrl, cockpitUrl, provider } = await resolveEngine(
-        args.engine,
-        registry,
-        ctx,
-      )
-      const data = await buildInstanceDetailData(
-        client,
-        engineId,
-        { processInstanceId: args.processInstanceId },
-        { baseUrl, cockpitUrl, provider },
-      )
+      const { client, engineId, ...urls } = await resolveEngine(engine, registry, ctx)
+      const data = await buildInstanceDetailData(client, engineId, target, urls)
       const state = data.instance.ended
         ? t("c7sum.state.ended")
         : data.instance.suspended
@@ -74,8 +55,8 @@ export function registerInstanceWidgetTools(ctx: WidgetToolsContext) {
           openTasks: data.openTaskCount,
         }),
       })
-    }),
-  )
+    },
+  })
 
   server.tool(
     {
@@ -112,16 +93,12 @@ export function registerInstanceWidgetTools(ctx: WidgetToolsContext) {
         }),
       ...showToolBinding(CAMUNDA7_SHOW_BPMN_VIEWER, "BPMN Diagram Viewer"),
     },
-    withToolErrors(async (args, ctx) => {
+    withToolErrors(async ({ engine, ...diagram }, ctx) => {
       const { t, title } = await localizeViewFor(profileStore, ctx)
-      const { client, engineId } = await resolveEngine(args.engine, registry, ctx)
+      const { client, engineId } = await resolveEngine(engine, registry, ctx)
       // Shared builder with the `camunda7:load-bpmn-viewer` step — the two
       // render paths must stay in sync (data/bpmn-viewer-data.ts).
-      const data = await buildBpmnViewerData(client, engineId, {
-        processInstanceId: args.processInstanceId,
-        processDefinitionKey: args.processDefinitionKey,
-        version: args.version,
-      })
+      const data = await buildBpmnViewerData(client, engineId, diagram)
 
       const view = (summary: string) =>
         buildComposedView({
@@ -161,30 +138,20 @@ export function registerInstanceWidgetTools(ctx: WidgetToolsContext) {
     }),
   )
 
-  server.tool(
-    {
-      name: CAMUNDA7_SHOW_JOB_PANEL,
-      title: "Job Management Panel",
-      description:
-        "Show jobs with a focus on failed jobs (no retries left). Displays error messages and retry status.",
-      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-      inputSchema: strictToolInput({
-        ...jobsFilterShape,
-        failedOnly: jobsFilterShape.failedOnly.default(false),
-        ...pagingShape,
-        ...engineParam,
-      }),
-      ...showToolBinding(CAMUNDA7_SHOW_JOB_PANEL, "Job Management Panel"),
+  registerShowTool(ctx, {
+    name: CAMUNDA7_SHOW_JOB_PANEL,
+    title: "Job Management Panel",
+    description:
+      "Show jobs with a focus on failed jobs (no retries left). Displays error messages and retry status.",
+    shape: {
+      ...jobsFilterShape,
+      failedOnly: jobsFilterShape.failedOnly.default(false),
+      ...pagingShape,
     },
-    withToolErrors(async (args, ctx) => {
+    render: async ({ engine, ...filters }, ctx) => {
       const { t, title } = await localizeViewFor(profileStore, ctx)
-      const { client, engineId } = await resolveEngine(args.engine, registry, ctx)
-      const data = await buildJobPanelData(client, engineId, {
-        processDefinitionKey: args.processDefinitionKey,
-        failedOnly: args.failedOnly,
-        firstResult: args.firstResult,
-        maxResults: args.maxResults,
-      })
+      const { client, engineId } = await resolveEngine(engine, registry, ctx)
+      const data = await buildJobPanelData(client, engineId, filters)
       return buildSingleWidgetView({
         widget: "camunda7:job-panel",
         app: "camunda7",
@@ -194,12 +161,12 @@ export function registerInstanceWidgetTools(ctx: WidgetToolsContext) {
         summary: t("c7sum.jobPanel", {
           totalCount: data.totalCount,
           failedCount: data.failedCount,
-          forProcess: args.processDefinitionKey
-            ? t("c7sum.jobPanel.forProcess", { processDefinitionKey: args.processDefinitionKey })
+          forProcess: filters.processDefinitionKey
+            ? t("c7sum.jobPanel.forProcess", { processDefinitionKey: filters.processDefinitionKey })
             : "",
-          failedOnly: args.failedOnly ? t("c7sum.jobPanel.failedOnly") : "",
+          failedOnly: filters.failedOnly ? t("c7sum.jobPanel.failedOnly") : "",
         }),
       })
-    }),
-  )
+    },
+  })
 }
