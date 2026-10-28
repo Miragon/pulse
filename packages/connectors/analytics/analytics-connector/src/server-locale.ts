@@ -1,7 +1,6 @@
 import {
   createLocalizeFor,
   createLocalizeViewFor,
-  resolveAuthUserId,
   resolveProfileKey,
 } from "@miragon/pulse-widget-shell/server"
 import { translator } from "./messages/index.js"
@@ -29,12 +28,6 @@ export type { ProfileSlice, ProfileSource } from "@miragon/pulse-widget-shell/se
  * cross-share one record.
  */
 export const resolveSettingsKey = resolveProfileKey
-
-/**
- * Just the OAuth half of {@link resolveSettingsKey} — the save path stamps it
- * onto the record as its owner (`opts.userId`).
- */
-export const resolveSettingsAuthUserId = resolveAuthUserId
 
 /** A locale-bound translate for summaries; a show tool's summary translate + view title. */
 export type { ServerT, ViewLocale } from "@miragon/pulse-widget-shell/server"

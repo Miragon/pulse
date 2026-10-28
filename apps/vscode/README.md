@@ -44,7 +44,7 @@ pnpm test && pnpm lint`) covers the extension too.
 | `pnpm --filter pulse-cockpit run lint`             | ESLint with the extension's house rules                                                      |
 | `pnpm lint:architecture:vscode`                    | the closed-world dependency rules of the layers                                              |
 | `pnpm lint:deadcode:vscode`                        | knip over the extension: no dead file, dependency, export or exported type                   |
-| `pnpm --filter pulse-cockpit run test:mutation`    | Stryker mutation testing of contract, core, the C7 adapter and the model adapter             |
+| `pnpm --filter pulse-cockpit exec stryker run`     | Stryker mutation testing of contract, core, the C7 adapter and the model adapter             |
 | `pnpm --filter pulse-cockpit run test:engines`     | conformance kit against a real engine (`PULSE_ENGINE_IMAGE`, testcontainers)                 |
 | `pnpm --filter pulse-cockpit run test:smoke`       | activation test in VS Code (`@vscode/test-cli`)                                              |
 | `pnpm --filter pulse-cockpit run test:e2e`         | Playwright drives VS Code against `engine:up`                                                |

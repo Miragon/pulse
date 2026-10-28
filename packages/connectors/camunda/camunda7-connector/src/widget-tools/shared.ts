@@ -1,13 +1,17 @@
+import type { z } from "zod"
 import type { MCPServer } from "mcp-use"
 import type { EngineHealthThresholds } from "../data/health-data.js"
 import { clusterDetailFilterShape, pagingShape } from "../feed-contracts.js"
-import type { EngineRegistry } from "../lib/resolve-engine.js"
+import type { EngineCallContext, EngineRegistry, resolveEngine } from "../lib/resolve-engine.js"
 import type { Camunda7Toolset } from "../lib/toolsets.js"
 import type { EngineParamShape } from "../lib/with-engine.js"
-import type { ProfileStore } from "@miragon/pulse-widget-shell/server"
-
-// showToolBinding / appOnly live in @miragon/pulse-widget-shell/server — the one
-// implementation of the invariant-5 wire-contract spreads for all modules.
+import {
+  type buildSingleWidgetView,
+  showToolBinding,
+  strictToolInput,
+  withToolErrors,
+  type ProfileStore,
+} from "@miragon/pulse-widget-shell/server"
 
 /** One-line truncation for summaries (incident messages can be stacktrace-sized). */
 export function truncate(s: string, max: number): string {
@@ -38,6 +42,8 @@ export function definitionViewLayout(focus?: "incidents") {
   ]
 }
 
+export type ResolvedEngine = Awaited<ReturnType<typeof resolveEngine>>
+
 // Shared by the cluster-detail show tool + its data feed.
 export const clusterDetailShape = { ...clusterDetailFilterShape, ...pagingShape }
 
@@ -56,4 +62,35 @@ export interface WidgetToolsContext {
   modelTools: () => string[]
   /** The `engine` parameter narrowed to the configured ids (`engineParamShapeFor`) — spread it into every input. */
   engineParam: EngineParamShape
+}
+
+type ShowArgs<TShape extends z.ZodRawShape> = z.output<z.ZodObject<TShape & EngineParamShape>>
+
+interface ShowTool<TShape extends z.ZodRawShape> {
+  name: string
+  title: string
+  description: string
+  shape: TShape
+  render: (
+    args: ShowArgs<TShape>,
+    ctx: EngineCallContext,
+  ) => Promise<ReturnType<typeof buildSingleWidgetView>>
+}
+
+/** A read-only `show_*` tool rendering its view, the `engine` parameter appended to its input. */
+export function registerShowTool<TShape extends z.ZodRawShape>(
+  { server, engineParam }: WidgetToolsContext,
+  tool: ShowTool<TShape>,
+) {
+  server.tool(
+    {
+      name: tool.name,
+      title: tool.title,
+      description: tool.description,
+      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+      inputSchema: strictToolInput({ ...tool.shape, ...engineParam }),
+      ...showToolBinding(tool.name, tool.title),
+    },
+    withToolErrors((args, ctx) => tool.render(args as ShowArgs<TShape>, ctx)),
+  )
 }

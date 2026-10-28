@@ -39,19 +39,18 @@ dependency-cruiser enforces the boundaries (`pnpm lint:architecture && pnpm lint
 - Only `engines/<name>/adapter.ts` imports `api`.
 - Adapters do not import each other. An API does not import another API.
 - `engine-port` imports types only. `api`, `engine-port` and `engines` use no Node built-ins.
-- An adapter reads only its own catalog, `src/generated/catalog.<name>.json`.
+- Only the adapters and `src/catalog/catalog.ts` read the generated catalog.
 
 ## From spec to request
 
-The commands are data. A generator turns the OpenAPI spec into one catalog per engine. The
-selected adapter hands its catalog to the CLI, which registers commands, help and `describe` from
+The commands are data. A generator turns the OpenAPI spec into one catalog that every engine
+shares. The selected adapter hands it to the CLI, which registers commands, help and `describe` from
 it and sends requests over HTTP.
 
 ```mermaid
 flowchart LR
   spec["spec/camunda7-rest<br/>api.json + patches.json"] --> gen["pnpm catalog<br/>scripts/catalog"]
-  patches["spec/engines<br/>&lt;engine&gt;.patches.json"] --> gen
-  gen --> catalog["src/generated<br/>catalog.&lt;engine&gt;.json"]
+  gen --> catalog["src/generated<br/>catalog.json"]
   catalog -- loaded by --> adapter["src/engines/&lt;engine&gt;/adapter.ts"]
   adapter --> cli["src/cli<br/>commands, help, describe"]
   cli --> http["operation + http<br/>request, auth, errors"]

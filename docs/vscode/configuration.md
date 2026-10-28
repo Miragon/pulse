@@ -50,3 +50,9 @@ never guesses this URL. It must be an `http` or `https` URL without credentials:
 | ---------------------------------------- | ------------------------------------- |
 | Camunda 7, Operaton, CIB seven (Cockpit) | ends in `/app/cockpit/<engine name>/` |
 | CIB seven webclient                      | ends in `/webapp/`                    |
+
+## Proxy and certificates
+
+Pulse calls the engine's REST API from the extension host with VS Code's network settings
+(`http.proxy`, `http.systemCertificates`, `http.proxyStrictSSL`). It never follows a redirect,
+reads at most 64 MiB of an answer and gives up on a call after 60 s.

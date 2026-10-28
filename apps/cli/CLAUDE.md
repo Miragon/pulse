@@ -9,8 +9,8 @@ written for the MCP server, so this file holds the CLI's own. The pages for peop
 
 - One command per REST operation of a Camunda 7 engine (Operaton, CIB seven, Camunda 7), plus
   the workflow commands (inspect, wait, advance, retry, deploy, status). The commands are data:
-  `apps/cli/src/generated/` holds one catalog per engine, generated from the vendored OpenAPI
-  spec in `apps/cli/spec/`. Command registration, help, `describe`, input building and body
+  `apps/cli/src/generated/catalog.json`, generated from the vendored OpenAPI spec in
+  `apps/cli/spec/`, serves every engine. Command registration, help, `describe`, input building and body
   validation all read the same catalog.
 - AI first: it never asks a question, previews every write (`--dry-run`), needs `--yes` to
   delete, has a read-only mode, and writes its answers as JSON and its errors as one JSON line on
@@ -30,7 +30,7 @@ cruises `apps/cli/src`, `pnpm lint:architecture:cli` its `scripts/` and `test/`.
 | `apps/cli/src/operation/`   | Input building, guards, requests, execution, paging                       |
 | `apps/cli/src/workflow/`    | The workflow commands, pure, on the engine port only                      |
 | `apps/cli/src/engine-port/` | `EnginePort` and `EngineAdapter`: types only                              |
-| `apps/cli/src/engines/`     | One adapter per engine; each reads only its own catalog                   |
+| `apps/cli/src/engines/`     | One adapter per engine, all on the one generated catalog                  |
 | `apps/cli/src/api/`         | One folder per engine API; only the adapters use one                      |
 | `apps/cli/src/docs/`        | The guide, `describe`, examples, completion: the texts agents read        |
 | `apps/cli/src/catalog/`     | Catalog access (`loadCatalog`), schemas, body validation                  |
@@ -43,8 +43,8 @@ cruises `apps/cli/src`, `pnpm lint:architecture:cli` its `scripts/` and `test/`.
 
 No cycle, a type-only one included. The pure layers import no Node built-in (WebCrypto and the
 timers are globals). Only the `auth login` command reaches the interactive login (loopback
-server, browser), so no other command can ever wait for a person. From the workspace the CLI may
-import only a `-domain` package, and nothing of the MCP or UI stack.
+server, browser), so no other command can ever wait for a person. The CLI imports no workspace
+package and nothing of the MCP or UI stack.
 
 ## Budgets
 
@@ -84,4 +84,5 @@ Up to 0.10.0 the CLI was operate; pulse-cli reads none of its names.
 A change to a command, an option, an output or an error changes, in the same commit, the guide
 and help texts in `apps/cli/src/docs/`, the page in `docs/cli/` and, where it applies, the skill
 in `apps/cli/skills/pulse-cli/SKILL.md`. Each page in `docs/cli/` has a line budget in
-`apps/mcp-server-camunda7/test/docs-refs.test.ts`.
+`apps/mcp-server-camunda7/test/docs-refs.test.ts`. The topics of `pulse-cli guide <topic>` are pages
+of `docs/cli/`, bundled as text (`GUIDE_TOPICS`): such a page is read by agents offline too.

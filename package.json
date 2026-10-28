@@ -31,7 +31,6 @@
     "docs:dev": "pnpm --fail-if-no-match --filter @miragon/pulse-docs dev",
     "docs:build": "pnpm --fail-if-no-match --filter @miragon/pulse-docs build",
     "docs:preview": "pnpm --fail-if-no-match --filter @miragon/pulse-docs preview",
-    "test:mutation": "node scripts/mutation-diff.mjs",
     "fitness": "node scripts/fitness-report.mjs",
     "lint:deadcode": "knip --exclude exports,types,enumMembers",
     "lint:deadcode:cli": "knip --workspace apps/cli",

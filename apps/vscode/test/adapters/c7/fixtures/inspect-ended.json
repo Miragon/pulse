@@ -2,44 +2,47 @@
   "id": "63de4df1-cd7f-11f1-86d2-667bc3771e0d",
   "businessKey": "ORD-1003",
   "definition": {
+    "id": "pulse-order:1:63b7b305-cd7f-11f1-86d2-667bc3771e0d",
     "key": "pulse-order",
     "version": 1,
-    "name": "Order fulfillment",
-    "id": "pulse-order:1:63b7b305-cd7f-11f1-86d2-667bc3771e0d"
+    "name": "Order fulfillment"
   },
   "state": "COMPLETED",
   "startTime": "2026-10-21T18:44:04.525+0000",
   "endTime": "2026-10-21T18:44:04.526+0000",
-  "durationMs": 1,
   "waitingAt": [],
   "incidents": [],
+  "propagatedIncidents": 0,
   "children": [],
-  "variables": { "route": "express" },
+  "calls": [],
   "timeline": [
     {
       "activityId": "Event_OrderReceived",
       "activityName": "Order received",
-      "activityType": "startEvent",
       "startTime": "2026-10-21T18:44:04.525+0000",
       "endTime": "2026-10-21T18:44:04.525+0000",
-      "durationMs": 0
+      "canceled": false
     },
     {
       "activityId": "Gateway_Route",
       "activityName": "Route?",
-      "activityType": "exclusiveGateway",
       "startTime": "2026-10-21T18:44:04.525+0000",
       "endTime": "2026-10-21T18:44:04.525+0000",
-      "durationMs": 0
+      "canceled": false
     },
     {
       "activityId": "Event_ShippedExpress",
       "activityName": "Shipped express",
-      "activityType": "noneEndEvent",
       "startTime": "2026-10-21T18:44:04.526+0000",
       "endTime": "2026-10-21T18:44:04.526+0000",
-      "durationMs": 0
+      "canceled": false
     }
   ],
-  "next": []
+  "variables": [
+    {
+      "name": "route",
+      "valueJson": "\"express\""
+    }
+  ],
+  "truncated": false
 }

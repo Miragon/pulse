@@ -30,28 +30,21 @@ pulse-cli ping --flavor cibseven
 
 ## Known differences
 
-None that pulse-cli has to handle today. The engine patches in `apps/cli/spec/engines/` are empty,
-and the three generated catalogs are identical.
+None that pulse-cli has to handle today, so every adapter reads the same generated catalog,
+`apps/cli/src/generated/catalog.json`.
 
 ## Adding a difference
 
-1. Describe it as an RFC 6902 patch in `apps/cli/spec/engines/<engine>.patches.json`, with a
-   `test` guard and a `reason`.
-2. Run `pnpm --fail-if-no-match --filter @miragon/pulse-cli catalog`. Only
-   `apps/cli/src/generated/catalog.<engine>.json` changes.
-3. Take that engine out of the test that keeps the catalogs identical
-   (`apps/cli/scripts/catalog/render.test.ts`).
-4. If the difference is in behaviour, not in the API description, wrap the port in
-   `apps/cli/src/engines/<engine>/adapter.ts`.
+1. If the API description differs, give that engine a catalog of its own: an RFC 6902 patch with a
+   `test` guard and a `reason`, applied after `apps/cli/spec/camunda7-rest/patches.json` by
+   `apps/cli/scripts/generate-catalog.ts`, and read by that engine's adapter only.
+2. If the behaviour differs, wrap the port in `apps/cli/src/engines/<engine>/adapter.ts`.
 
 ## Adding an engine
 
-1. Add its name to `FLAVORS` (`apps/cli/src/config/types.ts`) and to `ENGINES`
-   (`apps/cli/scripts/catalog/files.ts`).
-2. Create `apps/cli/spec/engines/<engine>.patches.json` with `[]` and run
-   `pnpm --fail-if-no-match --filter @miragon/pulse-cli catalog`.
-3. Write `apps/cli/src/engines/<engine>/adapter.ts` on the API it speaks and add it to
+1. Add its name to `FLAVORS` (`apps/cli/src/config/types.ts`).
+2. Write `apps/cli/src/engines/<engine>/adapter.ts` on the API it speaks and add it to
    `apps/cli/src/engines/index.ts`.
-4. Add a container to the engine suites (`apps/cli/test/integration/support/engines.ts`).
+3. Add a container to the engine suites (`apps/cli/test/integration/support/engines.ts`).
 
 An engine with another API gets its own folder in `apps/cli/src/api/` first.

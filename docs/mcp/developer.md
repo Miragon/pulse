@@ -45,17 +45,18 @@ write paths, uncomment `MCP_ACTIVE_MODULES=camunda7:admin,analytics:standard` in
 
 ## Common tasks
 
-| Command                       | What it does                                          |
-| ----------------------------- | ----------------------------------------------------- |
-| `pnpm build`                  | Turbo build across the monorepo                       |
-| `pnpm typecheck`              | TypeScript across all packages                        |
-| `pnpm test`                   | Vitest across all packages                            |
-| `pnpm lint` / `pnpm lint:fix` | ESLint                                                |
-| `pnpm format`                 | Prettier                                              |
-| `pnpm test:mutation`          | Stryker over the files your branch changed, on demand |
+| Command                       | What it does                    |
+| ----------------------------- | ------------------------------- |
+| `pnpm build`                  | Turbo build across the monorepo |
+| `pnpm typecheck`              | TypeScript across all packages  |
+| `pnpm test`                   | Vitest across all packages      |
+| `pnpm lint` / `pnpm lint:fix` | ESLint                          |
+| `pnpm format`                 | Prettier                        |
 
-A pull request runs no mutation check: `.github/workflows/mutation-nightly.yml` mutates every
-package each night (incremental, not a required check).
+Mutation testing: `pnpm --fail-if-no-match --filter <package> exec stryker run` (`--mutate <file>`
+narrows it) for `@miragon/pulse-widget-shell`, `-camunda7-client`, `-camunda7-connector`,
+`-analytics-client`, `-analytics-connector`, `-cli` or `pulse-cockpit`. A pull request runs none:
+`.github/workflows/mutation-nightly.yml` mutates every package each night (incremental).
 
 ## Build your own server
 

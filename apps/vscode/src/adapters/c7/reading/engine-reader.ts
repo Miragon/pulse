@@ -1,5 +1,5 @@
 import type { EngineInfo } from "../../../contract/index.js"
-import { EngineCliFailure, type EngineClient } from "../engine-cli/index.js"
+import { EngineRequestError, type EngineClient } from "../engine-rest/index.js"
 
 const GENERIC_PRODUCT = "Camunda 7 REST API"
 
@@ -20,14 +20,10 @@ export class EngineReader {
       const product = await this.client.product()
       return { product: product.name, version: product.version }
     } catch (error: unknown) {
-      if (this.isNotFound(error)) {
+      if (EngineRequestError.statusOf(error) === 404) {
         return undefined
       }
       throw error
     }
-  }
-
-  private isNotFound(error: unknown): boolean {
-    return error instanceof EngineCliFailure && error.code === "NOT_FOUND"
   }
 }

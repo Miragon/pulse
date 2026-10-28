@@ -1,14 +1,5 @@
 import { z } from "zod"
-// Feed payloads built as named interface types are spread at the call sites
-// (`rawData({ ...data })`): the feed contract takes `Record<string, unknown>`,
-// which interface types don't structurally satisfy.
-import {
-  buildComposedView,
-  buildSingleWidgetView,
-  showToolBinding,
-  withToolErrors,
-  strictToolInput,
-} from "@miragon/pulse-widget-shell/server"
+import { buildComposedView, buildSingleWidgetView } from "@miragon/pulse-widget-shell/server"
 import { buildClusterDetailData } from "../data/cluster-detail-data.js"
 import { buildEngineHealthData, healthVerdictRule } from "../data/health-data.js"
 import { buildIncidentsDashboardData } from "../data/incidents-dashboard-data.js"
@@ -29,39 +20,23 @@ import {
   clusterDetailShape,
   truncate,
   definitionViewLayout,
+  registerShowTool,
 } from "./shared.js"
 
 /** Incident triage: dashboard, per-definition views, detail, engine health, clusters. */
 export function registerIncidentWidgetTools(ctx: WidgetToolsContext) {
-  const { server, registry, healthThresholds, profileStore, engineParam } = ctx
+  const { registry, healthThresholds, profileStore } = ctx
 
-  server.tool(
-    {
-      name: CAMUNDA7_SHOW_INCIDENTS_DASHBOARD,
-      title: "Incidents Dashboard",
-      description:
-        "Overview of open incidents across all process definitions: KPIs, filter, per-process group cards with activity summaries. From a card the operator can drill into the per-process detail view. Use for open incidents by process; for an engine verdict with cross-process clusters use camunda7_show_engine_health.",
-      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-      inputSchema: strictToolInput({
-        ...incidentsDashboardFilterShape,
-        ...engineParam,
-      }),
-      ...showToolBinding(CAMUNDA7_SHOW_INCIDENTS_DASHBOARD, "Incidents Dashboard"),
-    },
-    withToolErrors(async (args, ctx) => {
+  registerShowTool(ctx, {
+    name: CAMUNDA7_SHOW_INCIDENTS_DASHBOARD,
+    title: "Incidents Dashboard",
+    description:
+      "Overview of open incidents across all process definitions: KPIs, filter, per-process group cards with activity summaries. From a card the operator can drill into the per-process detail view. Use for open incidents by process; for an engine verdict with cross-process clusters use camunda7_show_engine_health.",
+    shape: incidentsDashboardFilterShape,
+    render: async ({ engine, ...filters }, ctx) => {
       const t = await localizeFor(profileStore, ctx)
-      const { client, engineId, baseUrl, cockpitUrl, provider } = await resolveEngine(
-        args.engine,
-        registry,
-        ctx,
-      )
-      const data = await buildIncidentsDashboardData(client, {
-        baseUrl,
-        cockpitUrl,
-        provider,
-        processDefinitionKey: args.processDefinitionKey,
-        incidentType: args.incidentType,
-      })
+      const { client, engineId, ...urls } = await resolveEngine(engine, registry, ctx)
+      const data = await buildIncidentsDashboardData(client, { ...urls, ...filters })
       return buildComposedView({
         app: "camunda7",
         layout: [
@@ -75,35 +50,19 @@ export function registerIncidentWidgetTools(ctx: WidgetToolsContext) {
           last24hCount: data.last24hCount,
         }),
       })
-    }),
-  )
-
-  server.tool(
-    {
-      name: CAMUNDA7_SHOW_PROCESS_INCIDENTS,
-      title: "Process Incidents",
-      description:
-        "Open the unified process-definition view focused on its incidents: header, KPI strip, BPMN diagram in incident-overlay mode, and the activity-grouped incident table with per-incident actions (resolve, jump to Cockpit). Same view as camunda7_show_process_detail — this entry point sets the incident focus.",
-      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-      inputSchema: strictToolInput({
-        processDefinitionKey: z.string().describe("Process definition key to drill into"),
-        ...engineParam,
-      }),
-      ...showToolBinding(CAMUNDA7_SHOW_PROCESS_INCIDENTS, "Process Incidents"),
     },
-    withToolErrors(async (args, ctx) => {
+  })
+
+  registerShowTool(ctx, {
+    name: CAMUNDA7_SHOW_PROCESS_INCIDENTS,
+    title: "Process Incidents",
+    description:
+      "Open the unified process-definition view focused on its incidents: header, KPI strip, BPMN diagram in incident-overlay mode, and the activity-grouped incident table with per-incident actions (resolve, jump to Cockpit). Same view as camunda7_show_process_detail — this entry point sets the incident focus.",
+    shape: { processDefinitionKey: z.string().describe("Process definition key to drill into") },
+    render: async ({ engine, ...target }, ctx) => {
       const t = await localizeFor(profileStore, ctx)
-      const { client, engineId, baseUrl, cockpitUrl, provider } = await resolveEngine(
-        args.engine,
-        registry,
-        ctx,
-      )
-      const data = await buildProcessIncidentsData(client, {
-        baseUrl,
-        cockpitUrl,
-        provider,
-        processDefinitionKey: args.processDefinitionKey,
-      })
+      const { client, engineId, ...urls } = await resolveEngine(engine, registry, ctx)
+      const data = await buildProcessIncidentsData(client, { ...urls, ...target })
       return buildComposedView({
         app: "camunda7",
         layout: definitionViewLayout("incidents"),
@@ -116,37 +75,19 @@ export function registerIncidentWidgetTools(ctx: WidgetToolsContext) {
           last24hCount: data.last24hCount,
         }),
       })
-    }),
-  )
-
-  server.tool(
-    {
-      name: CAMUNDA7_SHOW_INCIDENT_DETAIL,
-      title: "Incident Detail",
-      description:
-        "Detail view for a single incident: failure stacktrace, BPMN with the failing activity highlighted, instance variables and activity tree, and a history timeline. Drill-in target from camunda7_show_process_incidents.",
-      // Read-only view: the tool only reads data. Mutations (resolve/retry) happen
-      // via separate tool calls from inside the widget, not from this tool.
-      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-      inputSchema: strictToolInput({
-        incidentId: z.string().describe("The incident ID to inspect"),
-        ...engineParam,
-      }),
-      ...showToolBinding(CAMUNDA7_SHOW_INCIDENT_DETAIL, "Incident Detail"),
     },
-    withToolErrors(async (args, ctx) => {
+  })
+
+  registerShowTool(ctx, {
+    name: CAMUNDA7_SHOW_INCIDENT_DETAIL,
+    title: "Incident Detail",
+    description:
+      "Detail view for a single incident: failure stacktrace, BPMN with the failing activity highlighted, instance variables and activity tree, and a history timeline. Drill-in target from camunda7_show_process_incidents.",
+    shape: { incidentId: z.string().describe("The incident ID to inspect") },
+    render: async ({ engine, ...target }, ctx) => {
       const t = await localizeFor(profileStore, ctx)
-      const { client, engineId, baseUrl, cockpitUrl, provider } = await resolveEngine(
-        args.engine,
-        registry,
-        ctx,
-      )
-      const data = await buildIncidentDetailData(client, {
-        baseUrl,
-        cockpitUrl,
-        provider,
-        incidentId: args.incidentId,
-      })
+      const { client, engineId, ...urls } = await resolveEngine(engine, registry, ctx)
+      const data = await buildIncidentDetailData(client, { ...urls, ...target })
       return buildSingleWidgetView({
         widget: "camunda7:incident-detail",
         app: "camunda7",
@@ -161,22 +102,18 @@ export function registerIncidentWidgetTools(ctx: WidgetToolsContext) {
           message: data.incidentMessage ? `: ${truncate(data.incidentMessage, 160)}` : "",
         }),
       })
-    }),
-  )
-
-  server.tool(
-    {
-      name: CAMUNDA7_SHOW_ENGINE_HEALTH,
-      title: "Engine Health Overview",
-      description:
-        "Show ONE engine's health overview: a deterministic verdict (ok / degraded / critical) with running-instance and incident KPIs and the top incident clusters, grouped cross-process by failing activity + incident type; each cluster drills in or hands off to AI. " +
-        `Verdict: ${healthVerdictRule(healthThresholds)} ` +
-        "Use for what is failing on an engine right now; for metric trends, job backlog or firing alerts use analytics_engine_health.",
-      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-      inputSchema: strictToolInput({ ...engineParam }),
-      ...showToolBinding(CAMUNDA7_SHOW_ENGINE_HEALTH, "Engine Health Overview"),
     },
-    withToolErrors(async (args, ctx) => {
+  })
+
+  registerShowTool(ctx, {
+    name: CAMUNDA7_SHOW_ENGINE_HEALTH,
+    title: "Engine Health Overview",
+    description:
+      "Show ONE engine's health overview: a deterministic verdict (ok / degraded / critical) with running-instance and incident KPIs and the top incident clusters, grouped cross-process by failing activity + incident type; each cluster drills in or hands off to AI. " +
+      `Verdict: ${healthVerdictRule(healthThresholds)} ` +
+      "Use for what is failing on an engine right now; for metric trends, job backlog or firing alerts use analytics_engine_health.",
+    shape: {},
+    render: async (args, ctx) => {
       const { t, title } = await localizeViewFor(profileStore, ctx)
       const { client, engineId } = await resolveEngine(args.engine, registry, ctx)
       const data = await buildEngineHealthData(client, engineId, healthThresholds)
@@ -206,30 +143,19 @@ export function registerIncidentWidgetTools(ctx: WidgetToolsContext) {
             : t("c7sum.engineHealth.noIncidents"),
         }),
       })
-    }),
-  )
-
-  server.tool(
-    {
-      name: CAMUNDA7_SHOW_CLUSTER_DETAIL,
-      title: "Failure Cluster Detail",
-      description:
-        "Drill into ONE failure cluster: the affected process instances (business keys first), the full sample failure message, and the time profile (new in last hour / 24h) for an activity failing with a given incident type. The middle layer between the engine health overview and a single incident's detail.",
-      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-      inputSchema: strictToolInput({ ...clusterDetailShape, ...engineParam }),
-      ...showToolBinding(CAMUNDA7_SHOW_CLUSTER_DETAIL, "Failure Cluster Detail"),
     },
-    withToolErrors(async (args, ctx) => {
+  })
+
+  registerShowTool(ctx, {
+    name: CAMUNDA7_SHOW_CLUSTER_DETAIL,
+    title: "Failure Cluster Detail",
+    description:
+      "Drill into ONE failure cluster: the affected process instances (business keys first), the full sample failure message, and the time profile (new in last hour / 24h) for an activity failing with a given incident type. The middle layer between the engine health overview and a single incident's detail.",
+    shape: clusterDetailShape,
+    render: async ({ engine, ...cluster }, ctx) => {
       const { t, title } = await localizeViewFor(profileStore, ctx)
-      const { client, engineId } = await resolveEngine(args.engine, registry, ctx)
-      const data = await buildClusterDetailData(client, engineId, {
-        activityId: args.activityId,
-        incidentType: args.incidentType,
-        messageSignature: args.messageSignature,
-        businessKeyLike: args.businessKeyLike,
-        firstResult: args.firstResult,
-        maxResults: args.maxResults,
-      })
+      const { client, engineId } = await resolveEngine(engine, registry, ctx)
+      const data = await buildClusterDetailData(client, engineId, cluster)
       return buildSingleWidgetView({
         widget: "camunda7:cluster-detail",
         app: "camunda7",
@@ -252,6 +178,6 @@ export function registerIncidentWidgetTools(ctx: WidgetToolsContext) {
             : "",
         }),
       })
-    }),
-  )
+    },
+  })
 }

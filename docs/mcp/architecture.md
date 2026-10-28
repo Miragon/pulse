@@ -52,8 +52,8 @@ second engine dialect cheap:
   (`flavor` on the engine entry, resolved to an `EngineProvider` carrying only the
   real differences: cockpit routes, branding, client hook), never packages or apps.
   A _dialect_ (an engine API family: Camunda 7 today, Flowable would be another) is
-  one package family: its client, its connector (the MCP module) and, once two
-  interfaces share a use case, a domain package. An _interface_ is an app:
+  one package family: its client and its connector (the MCP module); a package two
+  interfaces share is extracted on its second consumer. An _interface_ is an app:
   `apps/mcp-server-camunda7` is the thin composition root of the Camunda-7-dialect
   MCP server (camunda7 + analytics); a different dialect gets its own MCP server app.
   The CLI (`apps/cli`) and the VS Code extension (`apps/vscode`) are interfaces of their own.

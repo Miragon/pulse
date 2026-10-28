@@ -5,14 +5,19 @@ import path from "node:path"
 import { describe, it } from "node:test"
 import { fileURLToPath } from "node:url"
 import {
+  GATE_PATH,
   MUTATION_REPORT,
   NO_MUTATION_APPS,
+  checkFilters,
   checkMutationExemptions,
   checkPackageConfigs,
   checkPackageScripts,
   checkStrykerConfig,
   checkWorkspace,
   expandWorkspaceGlobs,
+  laxFilters,
+  repoTextFiles,
+  unknownFilters,
   workspaceGlobs,
 } from "./check-package-scripts.mjs"
 
@@ -96,29 +101,6 @@ describe("checkPackageScripts", () => {
         "packages/x",
         { ...COMPLETE, typecheck: "tsc --noEmit && tsc -p tsconfig.widgets.json" },
         { tsconfigs },
-      ),
-      [],
-    )
-  })
-
-  it("requires the plain `stryker run` where a stryker.config.json exists", () => {
-    assert.match(
-      checkPackageScripts("packages/x", COMPLETE, { hasStryker: true })[0],
-      /missing "test:mutation"/,
-    )
-    assert.match(
-      checkPackageScripts(
-        "packages/x",
-        { ...COMPLETE, "test:mutation": "stryker run lax.json" },
-        { hasStryker: true },
-      )[0],
-      /"test:mutation" script is "stryker run lax\.json"/,
-    )
-    assert.deepEqual(
-      checkPackageScripts(
-        "packages/x",
-        { ...COMPLETE, "test:mutation": "stryker run" },
-        { hasStryker: true },
       ),
       [],
     )
@@ -253,7 +235,7 @@ const STRYKER_OK = { exists: true, config: GOOD_STRYKER }
 describe("checkPackageConfigs: the configs a source package's scripts measure against", () => {
   it("accepts a package with a vitest.config.ts and a valid stryker.config.json", () => {
     assert.deepEqual(
-      checkPackageConfigs("packages/connectors/camunda/camunda7-domain", {
+      checkPackageConfigs("packages/connectors/camunda/camunda7-connector", {
         hasVitestConfig: true,
         stryker: STRYKER_OK,
       }),
@@ -262,14 +244,14 @@ describe("checkPackageConfigs: the configs a source package's scripts measure ag
   })
 
   it("requires a vitest.config.ts: vitest's default measures no coverage", () => {
-    const errors = checkPackageConfigs("packages/connectors/camunda/camunda7-domain", {
+    const errors = checkPackageConfigs("packages/connectors/camunda/camunda7-connector", {
       hasVitestConfig: false,
       stryker: STRYKER_OK,
     })
     assert.equal(errors.length, 1)
     assert.match(
       errors[0],
-      /^packages\/connectors\/camunda\/camunda7-domain: no vitest\.config\.ts/,
+      /^packages\/connectors\/camunda\/camunda7-connector: no vitest\.config\.ts/,
     )
     assert.match(errors[0], /sharedConfig/)
   })
@@ -351,12 +333,12 @@ describe("checkMutationExemptions: NO_MUTATION_APPS cannot outlive its reason", 
   })
 })
 
-const SCRIPTS = { ...COMPLETE, "test:mutation": "stryker run" }
+const SCRIPTS = COMPLETE
 
 /**
  * A workspace fixture: every package below passes, so each case breaks one
  * thing. The apps are the ones P1 prepares for (a published CLI and a VS Code
- * extension, which declares engines.vscode), plus a -domain package and an
+ * extension, which declares engines.vscode), plus a connector package and an
  * exempt server app.
  */
 const PACKAGES = {
@@ -367,8 +349,8 @@ const PACKAGES = {
     stryker: GOOD_STRYKER,
   },
   "apps/server": { name: "@miragon/pulse-fixture-root", stryker: null },
-  "packages/connectors/camunda/camunda7-domain": {
-    name: "@miragon/pulse-camunda7-domain",
+  "packages/connectors/camunda/camunda7-connector": {
+    name: "@miragon/pulse-camunda7-connector",
     stryker: GOOD_STRYKER,
   },
 }
@@ -410,21 +392,21 @@ function workspaceErrors(change, { noMutationApps = EXEMPT } = {}) {
   }
 }
 
-const DOMAIN = "packages/connectors/camunda/camunda7-domain"
+const CONNECTOR = "packages/connectors/camunda/camunda7-connector"
 
 describe("checkWorkspace over fixture trees", () => {
   it("passes the fixture as built and checks only packages with src/", () => {
     const { errors, sourceDirs } = workspaceErrors()
     assert.deepEqual(errors, [])
-    assert.deepEqual(sourceDirs, ["apps/cli", "apps/server", "apps/vscode", DOMAIN])
+    assert.deepEqual(sourceDirs, ["apps/cli", "apps/server", "apps/vscode", CONNECTOR])
   })
 
-  it("flags a -domain package without vitest.config.ts", () => {
-    const { errors } = workspaceErrors((p) => (p[DOMAIN].vitest = false))
+  it("flags a connector package without vitest.config.ts", () => {
+    const { errors } = workspaceErrors((p) => (p[CONNECTOR].vitest = false))
     assert.deepEqual(errors.length, 1)
     assert.match(
       errors[0],
-      /^packages\/connectors\/camunda\/camunda7-domain: no vitest\.config\.ts/,
+      /^packages\/connectors\/camunda\/camunda7-connector: no vitest\.config\.ts/,
     )
   })
 
@@ -461,10 +443,10 @@ describe("checkWorkspace over fixture trees", () => {
       /"reporters" does not include "json"/,
     ],
   ]) {
-    it(`flags a -domain package's stryker.config.json with ${label}`, () => {
-      const { errors } = workspaceErrors((p) => (p[DOMAIN].stryker = stryker))
+    it(`flags a connector package's stryker.config.json with ${label}`, () => {
+      const { errors } = workspaceErrors((p) => (p[CONNECTOR].stryker = stryker))
       assert.equal(errors.length, 1, errors.join("\n"))
-      assert.ok(errors[0].startsWith(`${DOMAIN}/stryker.config.json: `), errors[0])
+      assert.ok(errors[0].startsWith(`${CONNECTOR}/stryker.config.json: `), errors[0])
       assert.match(errors[0], pattern)
     })
   }
@@ -487,19 +469,6 @@ describe("checkWorkspace over fixture trees", () => {
     assert.match(errors[0], /^apps\/server: listed in NO_MUTATION_APPS but carries/)
   })
 
-  it("still runs the script checks: a stryker app without test:mutation", () => {
-    const root = workspaceFixture()
-    try {
-      const pkg = path.join(root, "apps/cli/package.json")
-      writeFileSync(pkg, JSON.stringify({ name: "@miragon/pulse-cli", scripts: COMPLETE }))
-      const { errors } = checkWorkspace(root, ["apps/*"], { noMutationApps: EXEMPT })
-      assert.equal(errors.length, 1)
-      assert.match(errors[0], /^apps\/cli: missing "test:mutation" script/)
-    } finally {
-      rmSync(root, { recursive: true, force: true })
-    }
-  })
-
   it("real repo: every source package passes, the exempt server app included", () => {
     const globs = workspaceGlobs(readFileSync(path.join(repoRoot, "pnpm-workspace.yaml"), "utf8"))
     const { errors, sourceDirs } = checkWorkspace(repoRoot, globs)
@@ -515,5 +484,97 @@ describe("checkWorkspace over fixture trees", () => {
       assert.ok(sourceDirs.includes(dir), dir)
     }
     assert.ok(!sourceDirs.includes("docs"))
+  })
+})
+
+// The flag is spelled through a constant, so this file names no stale filter itself.
+const FLAG = "--filter"
+const SHORT = "-F"
+
+describe("unknownFilters: every filter that names a package names one of its workspace", () => {
+  const known = new Set(["@miragon/pulse-widget-shell", "pulse"])
+  for (const [text, stale] of [
+    [`pnpm ${FLAG} pulse build`, []],
+    [`pnpm ${FLAG}=pulse... build`, []],
+    [`pnpm ${FLAG} @miragon/pulse-widget-shell test`, []],
+    [`pnpm ${FLAG} pulse-vsocde build`, ["pulse-vsocde"]],
+    [`pnpm ${FLAG}=pulse-vsocde^... build`, ["pulse-vsocde"]],
+    [`pnpm ${FLAG} "!pulse-vsocde" -r build`, ["pulse-vsocde"]],
+    [`pnpm ${SHORT} pulse-vsocde build`, ["pulse-vsocde"]],
+    [`"x": "pnpm ${FLAG} \\"pulse-vsocde\\" build"`, ["pulse-vsocde"]],
+    // One stale name among valid ones passes --fail-if-no-match, so it is checked on its own.
+    [`pnpm ${FLAG} pulse ${FLAG} pulse-vsocde build`, ["pulse-vsocde"]],
+    [`pnpm ${FLAG} @miragon/pulse-widget-shel test`, ["@miragon/pulse-widget-shel"]],
+    // A path selector names no package: --fail-if-no-match covers it on a gate path.
+    [`pnpm ${FLAG} ./apps/vscod build`, []],
+    [`pnpm ${FLAG} "./modules/**" build`, []],
+    [`pnpm ${FLAG} "{apps/vscod}" build`, []],
+  ]) {
+    it(`reads ${text}`, () => {
+      assert.deepEqual(
+        unknownFilters("x", text, known),
+        stale.map((name) => `x:1 ${FLAG} ${name}`),
+      )
+    })
+  }
+})
+
+describe("laxFilters: a pnpm filter on a gate path fails when it matches nothing", () => {
+  it("knows the gate paths", () => {
+    for (const file of [
+      "package.json",
+      "apps/vscode/package.json",
+      "packages/core/widget-shell/package.json",
+      "docs/package.json",
+      "Dockerfile",
+      ".github/workflows/ci.yml",
+      ".github/actions/release/publish/action.yaml",
+      "scripts/test-template.sh",
+    ])
+      assert.ok(GATE_PATH.test(file), file)
+    for (const file of ["apps/cli/README.md", "apps/vscode/src/package.json.ts", "docs/x.md"])
+      assert.ok(!GATE_PATH.test(file), file)
+  })
+
+  it("flags a package script's or a composite action's filter without the flag", () => {
+    const build = `pnpm ${FLAG} ./packages/core/widget-shell build`
+    assert.deepEqual(
+      laxFilters(
+        "apps/vscode/package.json",
+        [
+          `"vscode:prepublish": "${build} && pnpm run bundle",`,
+          `"ok": "pnpm --fail-if-no-match ${FLAG} ./apps/vscode build",`,
+          `"turbo": "pnpm turbo run build ${FLAG}=./apps/vscode",`,
+        ].join("\n"),
+      ),
+      [`apps/vscode/package.json:1 "vscode:prepublish": "${build}`],
+    )
+    assert.deepEqual(
+      laxFilters(
+        ".github/actions/setup/action.yml",
+        `# pnpm ${FLAG} ./apps/vscode build\n      run: pnpm ${SHORT} ./apps/vscode build`,
+      ),
+      [`.github/actions/setup/action.yml:2 run: pnpm ${SHORT} ./apps/vscode build`],
+    )
+  })
+})
+
+describe("checkFilters over the repo", () => {
+  it("passes the repo's text files", () => {
+    const files = repoTextFiles(repoRoot)
+    assert.ok(files.some(({ file }) => file === "CLAUDE.md"))
+    assert.deepEqual(checkFilters(files), [])
+  })
+
+  it("reads the template's own packages for files under templates/ only", () => {
+    const files = [
+      { file: "package.json", text: JSON.stringify({ name: "@miragon/pulse-x" }) },
+      { file: "templates/t/package.json", text: JSON.stringify({ name: "@acme/server" }) },
+      { file: "templates/t/README.md", text: `pnpm ${FLAG} @acme/server dev` },
+      { file: "docs/x.md", text: `pnpm ${FLAG} @acme/server dev` },
+    ]
+    assert.deepEqual(checkFilters(files), [
+      `docs/x.md:1 ${FLAG} @acme/server: names no workspace package, so the filter matches nothing`,
+    ])
   })
 })

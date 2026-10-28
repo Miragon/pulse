@@ -1,7 +1,7 @@
 # Code structure
 
 - Status: accepted
-- Last reviewed: 2026-10-22
+- Last reviewed: 2026-10-28
 
 ## Context
 
@@ -41,15 +41,16 @@ visible responsibility per file.
    `utils.ts` grab bags; a utility class has one topic.
 4. **Roles are interfaces.** A class implements an interface when it plays a role that
    has, or is meant to have, more than one player, or when it is a seam other code
-   depends on: the ports, `Mapper<From, To>` for the adapters' translations,
-   `Panel` in the core, `Command` and the VS Code provider interfaces in the extension.
-   Not every class gets an interface.
+   depends on: the ports, `EngineClient` and `EngineWriter` in the C7 adapter, `Panel` in
+   the core, `Command` and the VS Code provider interfaces in the extension. Not every
+   class gets an interface: a translation with one user is a private method of that
+   class (an adapter's reader maps its own answers), not a class of its own.
 5. **Constructor injection.** Ports and I/O seams come through the constructor (a
-   runtime, an API or CLI client, a spawner, the panel's effects), and so do an
-   adapter's mappers; per-session parts may be built inside, as the core's panels
-   build their `ViewSession`, `CallJumps` and `InstanceWrites` from the context they
-   receive. Wiring happens in a static `create` of an adapter's entry classes
-   (`C7Adapter.create`, `C7ProcessRuntime.create`) or in the composition root. Tests pass fakes the same way.
+   runtime, an engine client, the panel's effects); per-session parts may be built
+   inside, as the core's panels build their `ViewSession`, `CallJumps` and
+   `InstanceWrites` from the context they receive. Wiring happens in a static `create`
+   of an adapter's entry classes (`C7ProcessRuntime.create`) or in the composition root.
+   Tests pass fakes the same way.
 6. **The budgets stay** (complexity 10, 300 lines per file, 60 per function, 4
    parameters, 20 statements). A class that outgrows them splits along its
    responsibilities, not into helper files.
@@ -80,22 +81,17 @@ classDiagram
   }
   class InstanceDetailReader {
     -EngineClient client
-    -DetailMappers mappers
     +read(id) InstanceDetail
     -definitionsOfIncidentInstances(view)
+    -incidentOf(incident, facts)
+    -calledInstanceOf(child, view)
   }
-  class Mapper~From, To~ {
+  class EngineClient {
     <<interface>>
-    map(from) To
   }
-  class IncidentMapper
-  class CalledInstanceMapper
   ProcessRuntime <|.. C7ProcessRuntime
   C7ProcessRuntime --> InstanceDetailReader
-  InstanceDetailReader --> IncidentMapper
-  InstanceDetailReader --> CalledInstanceMapper
-  Mapper <|.. IncidentMapper
-  Mapper <|.. CalledInstanceMapper
+  InstanceDetailReader --> EngineClient
 ```
 
 ### Enforcement
@@ -126,6 +122,6 @@ manager hands the core's `Panel` sessions a `VsCodePanelEffects` per connection.
   composition root picks one by the target's `engine` and nothing else branches on
   engines.
 - Many small files. Navigation goes by class name; the folder says the area
-  (`mapping/`, `reading/`, `views/`, `panels/`).
+  (`reading/`, `views/`, `panels/`).
 - Preact components stay functions: class components are the framework's legacy API
   and would not make the webview clearer.

@@ -1,11 +1,8 @@
 import { RuntimeError, type RuntimeFailure } from "../../../contract/index.js"
-import { EngineCliFailure, EngineCliOutputError } from "../engine-cli/index.js"
+import { EngineRequestError, UnexpectedAnswerError } from "../engine-rest/index.js"
 import { Redaction } from "../writing/redaction.js"
 
-const UNREACHABLE_CODES: ReadonlySet<string> = new Set(["NETWORK", "TIMEOUT"])
-const MISCONFIGURED_CODES: ReadonlySet<string> = new Set(["CLI_FAILED", "NOT_FOUND"])
-const REFUSED_BY_ENGINE: ReadonlySet<number> = new Set([5, 6, 7])
-const REFUSED_BEFORE_WORK: ReadonlySet<number> = new Set([5, 6])
+type Refusal = "byEngine" | "beforeWork"
 
 export class ErrorTranslation {
   static async translated<Result>(work: () => Promise<Result>): Promise<Result> {
@@ -20,7 +17,7 @@ export class ErrorTranslation {
     try {
       return await work()
     } catch (error: unknown) {
-      if (EngineCliFailure.isMissingResource(error)) {
+      if (EngineRequestError.isMissingResource(error)) {
         return undefined
       }
       throw error
@@ -34,7 +31,7 @@ export class ErrorTranslation {
     try {
       return await work()
     } catch (error: unknown) {
-      throw ErrorTranslation.commandErrorOf(error, redaction, REFUSED_BY_ENGINE)
+      throw ErrorTranslation.commandErrorOf(error, redaction, "byEngine")
     }
   }
 
@@ -45,61 +42,56 @@ export class ErrorTranslation {
     try {
       return await work()
     } catch (error: unknown) {
-      throw ErrorTranslation.commandErrorOf(error, redaction, REFUSED_BEFORE_WORK)
+      throw ErrorTranslation.commandErrorOf(error, redaction, "beforeWork")
     }
   }
 
   static isRefusal(error: unknown): boolean {
-    return (
-      error instanceof EngineCliFailure &&
-      error.exitCode !== null &&
-      REFUSED_BY_ENGINE.has(error.exitCode)
-    )
+    return ErrorTranslation.isRefused(error, "byEngine")
   }
 
   private static runtimeErrorOf(error: unknown): RuntimeError {
     if (RuntimeError.is(error)) {
       return error
     }
-    if (error instanceof EngineCliFailure) {
-      return new RuntimeError(ErrorTranslation.failureKindOf(error), error.message, {
-        cause: error,
-      })
+    if (error instanceof EngineRequestError) {
+      return new RuntimeError(ErrorTranslation.failureOf(error), error.message, { cause: error })
     }
-    const message = error instanceof EngineCliOutputError ? error.message : String(error)
+    const message = error instanceof UnexpectedAnswerError ? error.message : String(error)
     return new RuntimeError("unexpectedResponse", message, { cause: error })
   }
 
-  private static failureKindOf(failure: EngineCliFailure): RuntimeFailure {
-    if (UNREACHABLE_CODES.has(failure.code) || failure.exitCode === 8) {
+  private static failureOf(error: EngineRequestError): RuntimeFailure {
+    if (error.failure === "unanswered") {
       return "unreachable"
     }
-    if (failure.exitCode === 4) {
-      return failure.status === 403 ? "forbidden" : "unauthorized"
+    const status = error.status ?? 0
+    if (status === 401 || status === 403) {
+      return status === 403 ? "forbidden" : "unauthorized"
     }
-    if (MISCONFIGURED_CODES.has(failure.code) || failure.exitCode === 3) {
-      return "misconfigured"
+    return status < 400 || status === 404 ? "misconfigured" : "engineFailure"
+  }
+
+  private static isArgument(error: unknown): boolean {
+    return error instanceof EngineRequestError && error.failure === "refused"
+  }
+
+  private static isRefused(error: unknown, refusal: Refusal): boolean {
+    const status = EngineRequestError.statusOf(error)
+    if (status === undefined || status === 401 || status === 403 || status < 400) {
+      return false
     }
-    if (failure.exitCode === 6 || failure.exitCode === 7) {
-      return "engineFailure"
-    }
-    return "unexpectedResponse"
+    return refusal === "byEngine" || status < 500
   }
 
   private static commandErrorOf(
     error: unknown,
     redaction: Redaction,
-    refused: ReadonlySet<number>,
+    refusal: Refusal,
   ): RuntimeError {
-    if (
-      error instanceof EngineCliFailure &&
-      error.exitCode !== null &&
-      refused.has(error.exitCode)
-    ) {
-      return new RuntimeError("rejected", redaction.applyTo(error.message), { cause: error })
-    }
-    if (error instanceof EngineCliFailure && error.code === "NOT_FOUND") {
-      return new RuntimeError("rejected", redaction.applyTo(error.message), { cause: error })
+    if (ErrorTranslation.isArgument(error) || ErrorTranslation.isRefused(error, refusal)) {
+      const message = error instanceof Error ? error.message : String(error)
+      return new RuntimeError("rejected", redaction.applyTo(message), { cause: error })
     }
     const translated = ErrorTranslation.runtimeErrorOf(error)
     return new RuntimeError(translated.failure, redaction.applyTo(translated.message), {

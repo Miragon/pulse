@@ -155,7 +155,8 @@ const signatures = fc
 
 /**
  * A token and the parts of it that must never show: the whole token, a JWT's signature. JWTs
- * expire up to an hour before or after now (`minOffset` -30: none is expired yet).
+ * expire up to an hour before or after now, so the scenarios also meet TOKEN_EXPIRED
+ * (`minOffset` -30: none is expired yet).
  */
 function tokensOf(minOffset: number) {
   return fc.oneof(
@@ -183,20 +184,6 @@ describe("bearer token secrets", () => {
       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 4, 4, 8, 0, 0, 2, 2, 3, 3, 2, 2, 3,
       3, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4,
     ])
-  })
-
-  it("fail before sending when the JWT expired, without showing it", async () => {
-    const token = jwtWith({ ...VALID_CLAIMS, exp: NOW_S - 120 }, "SgExpiredSignature")
-    for (const args of [
-      ["task", "list"],
-      ["auth", "status"],
-      ["ping", "--verbose"],
-    ]) {
-      const result = await outcome({ args, env: { PULSE_CLI_TOKEN: token } })
-      expect(result.code).toBe(4)
-      expect(result.stderr).toContain("TOKEN_EXPIRED")
-      expect(`${result.stdout}${result.stderr}`).not.toContain("SgExpiredSignature")
-    }
   })
 
   it("never appear in any output without --show-secrets", async () => {

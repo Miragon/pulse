@@ -350,9 +350,10 @@ wires them; these files are the documented exception that uses `server.tool()` d
   a bare `z.object`, which strips an unknown key silently;
   `apps/mcp-server-camunda7/test/strict-input.e2e.test.ts` refuses any module tool that
   accepts one.
-- `show_*` tools: spread `...showToolBinding(TOOL_NAME_CONST, "Title")` (from
-  `@miragon/pulse-widget-shell/server`) into the definition and use `inputSchema:` (mcp-use 2
-  field name) — the helper binds a native mcp-use view named after the tool
+- `show_*` tools: register through `registerShowTool` (`src/widget-tools/shared.ts`), which
+  appends the `engine` parameter and spreads `...showToolBinding(TOOL_NAME_CONST, "Title")`
+  (from `@miragon/pulse-widget-shell/server`); a tool whose input needs a refinement spreads
+  it by hand — the helper binds a native mcp-use view named after the tool
   (`view: { name }`, mcp-use then emits all `_meta.ui.*` keys and the
   `ui://views/<tool>.html` resource itself), adds the required passthrough
   `outputSchema`, and stamps the Apps-SDK half via `appsSdkMeta`; **never write
@@ -363,12 +364,12 @@ wires them; these files are the documented exception that uses `server.tool()` d
   `buildComposedView(...)` (both from `@miragon/pulse-widget-shell/server`). The
   `summary` is the model-facing text channel (1-2 sentences, key figures, no raw
   data) — the full payload travels only in `structuredContent`.
-- `*_data` feeds: spread `...appOnly` (from `@miragon/pulse-widget-shell/server` — the native
+- `*_data` feeds: register through `registerDataFeed` in `data-feeds.ts` (`name`, `title`,
+  `description`, `shape`, `read`), which spreads `...appOnly` (the native
   `visibility: "app"` field, emitted as SEP-1865 `_meta.ui.visibility: ["app"]`, plus
-  `openai/widgetAccessible`; **no** view binding) — return `buildDataFeedResult(data)` (from
-  `@miragon/pulse-widget-shell/server`, aliased `rawData` in `src/widget-tools/`) so the
-  in-widget `callTool()` gets JSON back instead of the host rendering a new widget.
-  Wrap every handler in `withToolErrors` (from `@miragon/pulse-widget-shell/server`).
+  `openai/widgetAccessible`; **no** view binding) and returns `buildDataFeedResult(data)` so
+  the in-widget `callTool()` gets JSON back instead of the host rendering a new widget.
+  Wrap every raw handler in `withToolErrors` (from `@miragon/pulse-widget-shell/server`).
 - Shared data paths: every number a view shows comes from ONE builder in `src/data/`
   that its show tool, its `*_data` feed AND its pipeline step call — never fork one.
   Definition lookups (id parsers, the key lookup, the per-KEY fold of the per-version
@@ -402,10 +403,11 @@ wires them; these files are the documented exception that uses `server.tool()` d
   rejection table in `src/data/honest-numbers.test.ts` — the table fails without it. The
   table breaks EVERY read the healthy build makes (method + path + query names), so a
   case declares only its enrichment reads; any other read whose failure is swallowed fails.
-- Pipeline steps (`src/steps/`) are thin adapters over their show tool's builder
-  (`stepEngine`/`requiredKey`/`stringKey` from `src/steps/shared.ts`), stamp `engineId`,
-  and declare a `description` plus `optionalKeys` (always `ENGINE_KEY`, and every scoping
-  key the step reads) so `get-framework-manifest` shows them. A failure throws — never a
+- Pipeline steps (`src/steps/`) are thin adapters over their show tool's builder, built
+  with `adapterStep` (`requiredKey`/`stringKey` from `src/steps/shared.ts`; it adds
+  `ENGINE_KEY` and resolves the engine), stamp `engineId`, and declare a `description`
+  plus every scoping key the step reads in `optionalKeys` so `get-framework-manifest`
+  shows them. A failure throws — never a
   success-shaped empty payload. Add the step to the twin table in
   `src/steps/steps.test.ts`, which holds its output AND its engine requests EQUAL to the
   show tool's — a dropped or misnamed scoping key changes the requests.

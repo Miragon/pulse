@@ -49,7 +49,6 @@ export type {
   InstanceSummary,
   ValueKind,
   Variable,
-  VariableScope,
   VersionSummary,
   WaitState,
   WaitStateKind,

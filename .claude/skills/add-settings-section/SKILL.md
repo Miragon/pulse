@@ -128,8 +128,8 @@ tests) > `undefined` otherwise: a request without OAuth, or no request context a
 never cross-share one record). Nothing a client picks itself (a session id, a header)
 is ever a key. Always pass the handler's `ctx`.
 
-`resolveAuthUserId(ctx)` is the OAuth half alone: the save path stamps it as
-`opts.userId`, the record's owner.
+`resolveAuthUserId(ctx)` is the OAuth half alone: `registerSettingsSection` hands it to
+your save as the record's owner (`userId`).
 
 The store reaches your module via `SharedResources.profileStore`, threaded into
 `createPlugin` by the app (`apps/mcp-server-camunda7/src/module-contract.ts`) — take it
@@ -137,24 +137,29 @@ as an optional config field; without it the section stays read-only.
 
 ## Step 4 — the tool triple (`src/settings-tools.ts`)
 
-Three render paths, three tools — model them on `registerSettingsTools`:
+Register the section through `registerSettingsSection`
+(`@miragon/pulse-widget-shell/server`), never through three hand-written `server.tool()`
+calls — model it on analytics' `registerSettingsTools`:
 
-| Tool                     | Binding / `_meta`                                                       | Returns                                              |
-| ------------------------ | ----------------------------------------------------------------------- | ---------------------------------------------------- |
-| `<module>_show_settings` | `...showToolBinding(name, title)` (view binding + Apps-SDK `_meta`)     | `buildSingleWidgetView({…})` + summary for the model |
-| `<module>_settings_data` | `...appOnly` (`visibility: "app"` + `openai/widgetAccessible`, no view) | `buildDataFeedResult(view)`                          |
-| `<module>_save_settings` | none (plain model-visible tool)                                         | text summary + `structuredContent` = effective slice |
+| Tool                     | What the helper wires                                           | Your callback                                    |
+| ------------------------ | --------------------------------------------------------------- | ------------------------------------------------ |
+| `<module>_show_settings` | `...showToolBinding`, `buildSingleWidgetView` of the `widget`   | `show.render`: the view title + model summary    |
+| `<module>_settings_data` | `...appOnly`, `buildDataFeedResult(view)`                       | `load`: the view, spreading the `gate` it gets   |
+| `<module>_save_settings` | `requireProfileKey`, the owner's `userId`, the effective result | `save.write`: text summary + the effective slice |
 
-All three declare `inputSchema: strictToolInput(…)` (`@miragon/pulse-widget-shell/server`;
-the save tool: `strictToolInput(mySettingsSaveInput.shape)`) — a bare `z.object` would
-strip a misnamed setting and report a save that changed nothing.
+All three get `strictToolInput(…)` (the save tool over `save.input`, your
+`mySettingsSaveInput.shape`) — a bare `z.object` would strip a misnamed setting and report
+a save that changed nothing. Tests for the triple's shared contract (hints, render paths,
+`canSave`, keyless refusal, owner) live with the helper
+(`packages/core/widget-shell/src/settings-section.test.ts`).
 
-Two rules the save tool must honor:
+Two decisions stay yours:
 
-- **Toolset gate.** The save is a durable write registered OUTSIDE the registrar, so the
-  registrar's `withToolsetFilter` never sees it and it must gate itself — against your
-  module's **declared** toolset names, never an `toolset === "read-only"` compare (that
-  fails open for every other name the day a second restrictive toolset appears). Copy
+- **Toolset gate.** Pass `save` only where your module's write gate allows it; the helper
+  then registers the save tool and reports the same decision as `canSave` (and, when you
+  declare `readOnlyReason`, names it). The gate checks your module's **declared** toolset
+  names, never a `toolset === "read-only"` compare (that fails open for every other name
+  the day a second restrictive toolset appears). Copy
   `packages/connectors/analytics/analytics-connector/src/toolsets.ts`: a `<MODULE>_TOOLSETS`
   list, ONE vocabulary from `@miragon/pulse-widget-shell/server` —
 
@@ -168,29 +173,29 @@ Two rules the save tool must honor:
   resolves one concrete toolset per boot (read-only without OAuth, the standard one with
   it), and `allowsDurableWrites(toolset)` built on `myToolsets.resolve`: a MISSING toolset
   resolves to the read-only floor just like an unknown name (which also warns), never to
-  "everything". When it says no, skip registration; the view then reports `canSave: false`
-  and the widget hides its Save button — the tool surface stays honest.
+  "everything".
 
-- **Save the PATCH alone** (`requireProfileKey` + `saveModuleSlice` from
-  `@miragon/pulse-widget-shell/server`), never a slice you read first:
+- **Save the PATCH alone** (`saveModuleSlice` from `@miragon/pulse-widget-shell/server`),
+  never a slice you read first:
 
   ```ts
-  const key = requireProfileKey(ctx)
-  const saved = await saveModuleSlice(
-    { get: (k) => store.get(k), save }, // save = store.save, checked before registering
-    key,
-    MODULE_KEY,
-    params,
-    { userId: resolveSettingsAuthUserId(ctx) },
-  )
-  const effective = parseMySettings({ [MODULE_KEY]: saved })
+  write: async (params, { key, userId }) => {
+    const saved = await saveModuleSlice(
+      { get: (k) => store.get(k), save }, // save = store.save, checked before passing `save`
+      key,
+      MODULE_KEY,
+      params,
+      { userId },
+    )
+    const effective = parseMySettings({ [MODULE_KEY]: saved })
+    return { text: t("…saved", effective), saved: effective }
+  }
   ```
 
   The store merges the patch over the RAW stored slice under its per-key lock: fields a
   newer build wrote survive, no defaults are baked into storage, and a concurrent save of
   another field is never reverted. A slice read before the save runs outside that lock
-  and writes its stale values back. A field patched to `undefined` clears it. A missing
-  key throws — a save must fail visibly.
+  and writes its stale values back. A field patched to `undefined` clears it.
 
 ## Step 5 — the section widget
 
@@ -274,8 +279,8 @@ Mirror `packages/connectors/analytics/analytics-connector/src/settings.test.ts`:
 - `registerSettingsTools`: save tool registered only with a writable store; dropped in the
   restrictive toolset; fails closed (degrades to the restrictive toolset) on unknown names
   AND on a missing toolset
-- a round-trip through a fake store: keyless save → read back; partial save keeps the
-  other saved value
+- a round-trip through a fake store: save → read back; partial save keeps the other saved
+  value (the triple's shared contract is the helper's test, not yours)
 
 Naming is load-bearing: `apps/mcp-server-camunda7/test/widget-contract.e2e.test.ts` checks
 the widget `_meta` on every `*_show_*` tool and app-only visibility on every `*_data` feed

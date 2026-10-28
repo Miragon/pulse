@@ -123,7 +123,7 @@ false`). The table is the primary editor: one native select per source element
     selection holds the instances still on the source and the mapping is kept, so the next
     "Migrate 4 instances…" is one fix away. A tab that was hidden while another panel
     followed the run loads again when it is shown.
-11. **An unknown submit outcome** (`unreachable`, a timeout, exit 7) reads "Unknown
+11. **An unknown submit outcome** (`unreachable`, a timeout, an engine 5xx) reads "Unknown
     whether migrating started." with "Check instances" (the same two counts); Pulse never
     submits again on its own. When the read that filters the ids fails before the submit,
     nothing was sent: the adapter says so and the start counts as refused.
@@ -157,10 +157,9 @@ Element ids are not values; the pairs make a run reproducible in another environ
 until plans exist as files (Markus' condition for "later"). Never the engine's failure
 text: it can carry business data from listeners and expressions.
 
-### Facts from the spikes (Operaton 2.1.5, operate 0.9.0)
+### Facts from the spikes (Operaton 2.1.5)
 
-- `migration generate-plan` and `validate-plan` are reads and pass `OPERATE_READ_ONLY`.
-  Generate maps tasks, call activities and boundary and intermediate catch events by id,
+- `POST /migration/generate` and `/migration/validate` are reads. Generate maps tasks, call activities and boundary and intermediate catch events by id,
   not start or end events or gateways; validate reports only failing instructions
   ("Activities have incompatible types (UserTaskActivityBehavior is not compatible with
   ServiceTaskExpressionActivityBehavior)").
@@ -179,12 +178,12 @@ text: it can carry business data from listeners and expressions.
 
 ### Decisions on the open questions of #17
 
-| Question                            | Decision                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Plan as a versioned workspace file? | Later (unanimous). The mapping pairs go to the audit now. A file will be untrusted input: checked like an intent and by the engine, it carries no ids and no engine, starts nothing and cannot lower the confirmation.                                                                                                                                                                                                                                   |
-| Synchronous below a threshold N?    | No: one code path (unanimous after sign-off; 3:3 in the first round). Sophie vetoed a `wait` flag in the contract: Camunda 8 migrates atomically only one instance per request. Aylin, Eva and Jonas withdrew after the spikes: sync names only one failing instance, has no count in its answer and adds operate's 30 s timeout as an unknown outcome. If users ask for it: an optional `migrateInstancesAtomically?(plan, ids)`, N ≤ 25, never a flag. |
-| Instances with incidents?           | Eligible (unanimous): fixing an instance with a new version is the main case. The dialog says "5 have an incident and keep it; retry them on v3."                                                                                                                                                                                                                                                                                                        |
-| `updateEventTriggers`?              | Fixed `false` (unanimous): due dates stay, nothing fires again; the dialog says which timers start again.                                                                                                                                                                                                                                                                                                                                                |
+| Question                            | Decision                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Plan as a versioned workspace file? | Later (unanimous). The mapping pairs go to the audit now. A file will be untrusted input: checked like an intent and by the engine, it carries no ids and no engine, starts nothing and cannot lower the confirmation.                                                                                                                                                                                                                              |
+| Synchronous below a threshold N?    | No: one code path (unanimous after sign-off; 3:3 in the first round). Sophie vetoed a `wait` flag in the contract: Camunda 8 migrates atomically only one instance per request. Aylin, Eva and Jonas withdrew after the spikes: sync names only one failing instance, has no count in its answer and adds a request timeout as an unknown outcome. If users ask for it: an optional `migrateInstancesAtomically?(plan, ids)`, N ≤ 25, never a flag. |
+| Instances with incidents?           | Eligible (unanimous): fixing an instance with a new version is the main case. The dialog says "5 have an incident and keep it; retry them on v3."                                                                                                                                                                                                                                                                                                   |
+| `updateEventTriggers`?              | Fixed `false` (unanimous): due dates stay, nothing fires again; the dialog says which timers start again.                                                                                                                                                                                                                                                                                                                                           |
 
 ## Consequences
 

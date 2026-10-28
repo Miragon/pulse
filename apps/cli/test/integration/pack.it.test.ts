@@ -190,9 +190,15 @@ describe("packed npm tarball", () => {
     const list = expectSuccess(await pulseCli(["guide", "--list"]))
     const topics = (JSON.parse(list.stdout) as { topic: string }[]).map(({ topic }) => topic)
     expect(topics).toEqual(expect.arrayContaining(["workflow", "auth", "recipes"]))
+    const docsDir = join(REPO_ROOT, "..", "..", "docs", "cli")
+    const docsPages = await Promise.all(
+      (await readdir(docsDir))
+        .filter((name) => name.endsWith(".md"))
+        .map(async (name) => (await readFile(join(docsDir, name), "utf8")).trimEnd()),
+    )
     for (const topic of topics) {
       const page = expectSuccess(await pulseCli(["guide", topic]))
-      expect(page.stdout.startsWith(`# pulse-cli guide ${topic}: `), topic).toBe(true)
+      expect(docsPages, topic).toContain(page.stdout.trimEnd())
       expect(result.stdout).toContain(`\n- \`${topic}\`: `)
     }
   })

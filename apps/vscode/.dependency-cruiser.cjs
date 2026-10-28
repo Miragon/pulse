@@ -45,11 +45,6 @@ module.exports = {
       to: { path: [CONTRACT_ENTRY, MODEL_LIBRARIES] },
     },
     {
-      comment: "Only the engine CLI wrapper of the C7 adapter talks to Node.",
-      from: { path: `${APP}src/adapters/c7/engine-cli/` },
-      to: { dependencyTypes: ["core"] },
-    },
-    {
       comment: "The webview renders protocol view models and nothing else of ours.",
       from: { path: `${APP}src/webview/` },
       to: { path: PROTOCOL_ENTRY, dependencyTypes: ["type-only"] },
@@ -83,14 +78,6 @@ module.exports = {
         "Circular dependency. Extract the shared part into its own module that both sides import.",
       from: {},
       to: { circular: true },
-    },
-    {
-      name: "engine-cli-wrapper-is-self-contained",
-      severity: "error",
-      comment:
-        "apps/vscode/src/adapters/c7/engine-cli must import nothing of ours: the in-process engine client (a -domain package) replaces it as a whole. Pass what it needs in as parameters instead.",
-      from: { path: `${APP}src/adapters/c7/engine-cli/` },
-      to: { path: APP, pathNot: [`${APP}src/adapters/c7/engine-cli/`, `${APP}node_modules/`] },
     },
     {
       name: "model-libraries-stay-in-the-model-adapter",

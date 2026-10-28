@@ -5,9 +5,12 @@ import {
   InstanceId,
   RuntimeError,
   type MigrationPlan,
+  type ProcessCommands,
 } from "../../../src/contract/index.js"
 import { describe, expect, test } from "vitest"
-import { fakeCommands, fakeRuntime, type FakeRoute } from "./support/fake-engine-cli.js"
+import { C7Adapter } from "../../../src/adapters/c7/index.js"
+import { fakeCommands, fakeRuntime } from "./support/fake-engine.js"
+import { engineFailure, REST_URL, type RestRoute } from "./support/fake-engine-rest.js"
 
 const SOURCE = DefinitionId("pulse-order:1:8d0fb34a-cf22-11f1-abf2-ce3814910ef6")
 const TARGET = DefinitionId("pulse-order:3:8d1c0f62-cf22-11f1-abf2-ce3814910ef6")
@@ -16,11 +19,10 @@ const JOB_DEFINITION = "aa8534a9-cf22-11f1-abf2-ce3814910ef6"
 const IDS = [InstanceId("98d32cdf-1"), InstanceId("98d32cdf-2"), InstanceId("98d32cdf-3")]
 const REVIEW = ElementId("Activity_ReviewOrder")
 const CHARGE = ElementId("Activity_ChargePayment")
-const GENERATE = ["migration", "generate-plan", "--body", "-"]
-const VALIDATE = ["migration", "validate-plan", "--body", "-"]
-const EXECUTE = ["migration", "execute-plan-async", "--yes", "--body", "-"]
-const RUNNING_QUERY = ["historic-process-instance", "query"]
-const STATISTICS = ["batch", "get-statistics", "--batch-id", BATCH]
+const GENERATE = "POST /migration/generate"
+const VALIDATE = "POST /migration/validate"
+const EXECUTE = "POST /migration/executeAsync"
+const RUNNING_QUERY = "POST /history/process-instance"
 
 const PLAN: MigrationPlan = {
   sourceDefinitionId: SOURCE,
@@ -37,8 +39,32 @@ const BATCH_FIELDS = {
   startTime: "2026-10-23T20:45:22.182+0000",
 }
 
-function failure(exitCode: number, code: string, message: string): Partial<FakeRoute> {
-  return { exitCode, stderr: JSON.stringify({ error: { code, exitCode, message } }) }
+function statistics(answer: unknown): RestRoute {
+  return {
+    route: "GET /batch/statistics",
+    when: (url) => url.searchParams.get("batchId") === BATCH,
+    answer,
+  }
+}
+
+function bodySent(request: { body: string } | undefined): unknown {
+  return JSON.parse(request?.body ?? "{}") as unknown
+}
+
+function unreachableCommands(): { commands: ProcessCommands; sent: string[] } {
+  const sent: string[] = []
+  const refused = Object.assign(new TypeError("fetch failed"), {
+    cause: Object.assign(new Error("connect ECONNREFUSED"), { code: "ECONNREFUSED" }),
+  })
+  const send: typeof fetch = (input, init) => {
+    const request = new Request(input, init)
+    sent.push(
+      `${request.method} ${new URL(request.url).pathname.replace(new URL(REST_URL).pathname, "")}`,
+    )
+    return Promise.reject(refused)
+  }
+  const connection = { endpoint: REST_URL, credentials: { kind: "none" } } as const
+  return { commands: new C7Adapter(send).commands(connection), sent }
 }
 
 function historicRow(id: string) {
@@ -60,10 +86,10 @@ async function failureOf(attempt: Promise<unknown>): Promise<string> {
 
 describe("proposing a migration", () => {
   test("lets the engine generate the plan, read-only and without changing event triggers", async () => {
-    const { runtime, cli } = fakeRuntime([
+    const { runtime, engine } = fakeRuntime([
       {
-        command: GENERATE,
-        stdout: JSON.stringify({
+        route: GENERATE,
+        answer: {
           sourceProcessDefinitionId: SOURCE,
           targetProcessDefinitionId: TARGET,
           instructions: [
@@ -75,26 +101,25 @@ describe("proposing a migration", () => {
             { sourceActivityIds: ["A", "B"], targetActivityIds: ["C"], updateEventTrigger: false },
           ],
           variables: null,
-        }),
+        },
       },
     ])
 
     expect(await runtime.proposeMigration(SOURCE, TARGET)).toEqual(PLAN)
-    expect(JSON.parse(cli.invocations[0]?.input ?? "{}")).toEqual({
+    expect(bodySent(engine.requests[0])).toEqual({
       sourceProcessDefinitionId: SOURCE,
       targetProcessDefinitionId: TARGET,
       updateEventTriggers: false,
     })
-    expect(cli.invocations[0]?.environment).toHaveProperty("OPERATE_READ_ONLY", "1")
   })
 })
 
 describe("checking a migration", () => {
   test("names the mapping of every failure the engine reports", async () => {
-    const { runtime, cli } = fakeRuntime([
+    const { runtime, engine } = fakeRuntime([
       {
-        command: VALIDATE,
-        stdout: JSON.stringify({
+        route: VALIDATE,
+        answer: {
           instructionReports: [
             {
               instruction: {
@@ -108,7 +133,7 @@ describe("checking a migration", () => {
             },
           ],
           variableReports: {},
-        }),
+        },
       },
     ])
     const plan = { ...PLAN, mappings: [{ sourceElementId: REVIEW, targetElementId: CHARGE }] }
@@ -122,7 +147,7 @@ describe("checking a migration", () => {
         },
       ],
     })
-    expect(JSON.parse(cli.invocations[0]?.input ?? "{}")).toEqual({
+    expect(bodySent(engine.requests[0])).toEqual({
       sourceProcessDefinitionId: SOURCE,
       targetProcessDefinitionId: TARGET,
       instructions: [
@@ -133,12 +158,11 @@ describe("checking a migration", () => {
         },
       ],
     })
-    expect(cli.invocations[0]?.environment).toHaveProperty("OPERATE_READ_ONLY", "1")
   })
 
   test("has no problems when the engine lists none", async () => {
     const { runtime } = fakeRuntime([
-      { command: VALIDATE, stdout: '{"instructionReports":[],"variableReports":{}}' },
+      { route: VALIDATE, answer: { instructionReports: [], variableReports: {} } },
     ])
 
     expect(await runtime.checkMigration(PLAN)).toEqual({ problems: [] })
@@ -146,23 +170,23 @@ describe("checking a migration", () => {
 })
 
 describe("migrating instances", () => {
-  const runningTwo: FakeRoute = {
-    command: RUNNING_QUERY,
-    stdout: JSON.stringify([historicRow(IDS[0]!), historicRow(IDS[2]!)]),
+  const runningTwo: RestRoute = {
+    route: RUNNING_QUERY,
+    answer: [historicRow(IDS[0]!), historicRow(IDS[2]!)],
   }
-  const accepting: FakeRoute = { command: EXECUTE, stdout: JSON.stringify(BATCH_FIELDS) }
+  const accepting: RestRoute = { route: EXECUTE, answer: BATCH_FIELDS }
 
   test("submits only the instances still running on the source as one batch", async () => {
-    const { commands, cli } = fakeCommands([runningTwo, accepting])
+    const { commands, engine } = fakeCommands([runningTwo, accepting])
 
     expect(await commands.migrateInstances(PLAN, IDS)).toBe(BATCH)
-    expect(JSON.parse(cli.invocations[0]?.input ?? "{}")).toMatchObject({
+    expect(bodySent(engine.requests[0])).toMatchObject({
       processDefinitionId: SOURCE,
       processInstanceIds: IDS,
       unfinished: true,
     })
-    expect(cli.commands()[0]!.slice(-2)).toEqual(["--max-results", "3"])
-    expect(JSON.parse(cli.invocations[1]?.input ?? "{}")).toEqual({
+    expect(engine.requests[0]?.query).toMatchObject({ maxResults: "3" })
+    expect(bodySent(engine.requests[1])).toEqual({
       migrationPlan: {
         sourceProcessDefinitionId: SOURCE,
         targetProcessDefinitionId: TARGET,
@@ -178,20 +202,17 @@ describe("migrating instances", () => {
       skipCustomListeners: false,
       skipIoMappings: false,
     })
-    expect(cli.invocations[1]?.environment).not.toHaveProperty("OPERATE_READ_ONLY")
   })
 
   test("is rejected without a batch when none of the instances runs on the source", async () => {
-    const { commands, cli } = fakeCommands([{ command: RUNNING_QUERY, stdout: "[]" }])
+    const { commands, engine } = fakeCommands([{ route: RUNNING_QUERY, answer: [] }])
 
     expect(await failureOf(commands.migrateInstances(PLAN, IDS))).toBe("rejected")
-    expect(cli.commands()).toHaveLength(1)
+    expect(engine.requests).toHaveLength(1)
   })
 
   test("says nothing was submitted when it could not check which instances still run", async () => {
-    const { commands, cli } = fakeCommands([
-      { command: RUNNING_QUERY, ...failure(8, "NETWORK", "connect ECONNREFUSED") },
-    ])
+    const { commands, sent } = unreachableCommands()
 
     const error = await commands.migrateInstances(PLAN, IDS).then(
       () => undefined,
@@ -200,26 +221,26 @@ describe("migrating instances", () => {
 
     expect(error).toMatchObject({ failure: "rejected" })
     expect(error?.message).toContain("so it submitted nothing")
-    expect(cli.commands()).toHaveLength(1)
+    expect(sent).toEqual([RUNNING_QUERY])
   })
 
   test("keeps a refused login of the check as it is", async () => {
     const { commands } = fakeCommands([
-      { command: RUNNING_QUERY, ...failure(4, "UNAUTHORIZED", "no") },
+      { route: RUNNING_QUERY, answer: engineFailure(401, "AuthenticationException", "no") },
     ])
 
     expect(await failureOf(commands.migrateInstances(PLAN, IDS))).toBe("unauthorized")
   })
 
   test.each([
-    [6, "HTTP_CLIENT_ERROR", "rejected"],
-    [7, "HTTP_SERVER_ERROR", "engineFailure"],
+    [400, "InvalidRequestException", "rejected"],
+    [500, "ProcessEngineException", "engineFailure"],
   ])(
-    "leaves the outcome open only when the engine failed after exit %i",
-    async (exitCode, code, kind) => {
+    "leaves the outcome open only when the engine failed with status %i",
+    async (status, type, kind) => {
       const { commands } = fakeCommands([
         runningTwo,
-        { command: EXECUTE, ...failure(exitCode, code, "no") },
+        { route: EXECUTE, answer: engineFailure(status, type, "no") },
       ])
 
       expect(await failureOf(commands.migrateInstances(PLAN, IDS))).toBe(kind)
@@ -230,12 +251,7 @@ describe("migrating instances", () => {
 describe("a migration batch", () => {
   test("reads as a migration", async () => {
     const { runtime } = fakeRuntime([
-      {
-        command: STATISTICS,
-        stdout: JSON.stringify([
-          { ...BATCH_FIELDS, suspended: false, completedJobs: 1, failedJobs: 4 },
-        ]),
-      },
+      statistics([{ ...BATCH_FIELDS, suspended: false, completedJobs: 1, failedJobs: 4 }]),
     ])
 
     expect(await runtime.getBulkOperation(BATCH)).toMatchObject({
@@ -249,16 +265,11 @@ describe("a migration batch", () => {
 
   test("names the failed instances and why, on one line and cut to 300 characters", async () => {
     const long = `ENGINE-23003 Process instance 'nope-9' cannot be migrated. ${"x".repeat(400)}`
-    const { runtime, cli } = fakeRuntime([
+    const { runtime, engine } = fakeRuntime([
+      statistics([{ ...BATCH_FIELDS, suspended: false, completedJobs: 1, failedJobs: 3 }]),
       {
-        command: STATISTICS,
-        stdout: JSON.stringify([
-          { ...BATCH_FIELDS, suspended: false, completedJobs: 1, failedJobs: 3 },
-        ]),
-      },
-      {
-        command: ["job", "list"],
-        stdout: JSON.stringify([
+        route: "GET /job",
+        answer: [
           {
             id: "job-1",
             exceptionMessage:
@@ -266,7 +277,7 @@ describe("a migration batch", () => {
           },
           { id: "job-2", exceptionMessage: long },
           { id: "job-3" },
-        ]),
+        ],
       },
     ])
 
@@ -280,30 +291,21 @@ describe("a migration batch", () => {
     expect(failures[1]?.instanceId).toBe("nope-9")
     expect(failures[1]?.reason).toHaveLength(300)
     expect(failures[2]).toEqual({ reason: "Job job-3 failed without a message." })
-    expect(cli.commands()[1]).toEqual([
-      "job",
-      "list",
-      "--job-definition-id",
-      JOB_DEFINITION,
-      "--with-exception",
-      "--no-retries-left",
-      "--max-results",
-      "100",
-    ])
-    expect(cli.invocations[1]?.environment).toHaveProperty("OPERATE_READ_ONLY", "1")
+    expect(engine.requests[1]?.route).toBe("GET /job")
+    expect(engine.requests[1]?.query).toEqual({
+      jobDefinitionId: JOB_DEFINITION,
+      withException: "true",
+      noRetriesLeft: "true",
+      maxResults: "100",
+    })
   })
 
   test("has no failures to read once it left the runtime or when none failed", async () => {
-    const ended = fakeRuntime([{ command: STATISTICS, stdout: "[]" }])
+    const ended = fakeRuntime([statistics([])])
     expect(await ended.runtime.getBulkFailures(BATCH)).toEqual([])
 
     const clean = fakeRuntime([
-      {
-        command: STATISTICS,
-        stdout: JSON.stringify([
-          { ...BATCH_FIELDS, suspended: false, completedJobs: 5, failedJobs: 0 },
-        ]),
-      },
+      statistics([{ ...BATCH_FIELDS, suspended: false, completedJobs: 5, failedJobs: 0 }]),
     ])
     expect(await clean.runtime.getBulkFailures(BATCH)).toEqual([])
   })

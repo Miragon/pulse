@@ -1,28 +1,63 @@
 /**
- * The usage guide for LLM agents: the core printed by `pulse-cli guide` and the topic
- * pages printed by `pulse-cli guide <topic>` (src/docs/guide-topics). `skills/pulse-cli/SKILL.md` is
+ * The usage guide for LLM agents: the core printed by `pulse-cli guide` and the topics printed by
+ * `pulse-cli guide <topic>`, each a page of docs/cli bundled as text. `skills/pulse-cli/SKILL.md` is
  * a YAML frontmatter followed by exactly the core, which ends with the index of the topics. Every
  * `pulse-cli` command line in the code blocks of every page is checked against the catalog and run in
  * the CLI; unit tests keep all of it true. Markdown, formatted with Prettier.
  */
 
+import AUTH_PAGE from "../../../../docs/cli/authentication.md"
+import INPUT_PAGE from "../../../../docs/cli/commands.md"
+import CONFIG_PAGE from "../../../../docs/cli/configuration.md"
+import OUTPUT_PAGE from "../../../../docs/cli/output-and-errors.md"
+import RECIPES_PAGE from "../../../../docs/cli/recipes.md"
+import WORKFLOW_PAGE from "../../../../docs/cli/workflow-commands.md"
 import { closeNames } from "../util.js"
-import { AUTH_TOPIC } from "./guide-topics/auth.js"
-import { CONFIG_TOPIC } from "./guide-topics/config.js"
-import { INPUT_TOPIC } from "./guide-topics/input.js"
-import { OUTPUT_TOPIC } from "./guide-topics/output.js"
-import { RECIPES_TOPIC } from "./guide-topics/recipes.js"
-import type { GuideTopic } from "./guide-topics/topic.js"
-import { WORKFLOW_TOPIC } from "./guide-topics/workflow.js"
+
+/** A topic of the agent guide, printed by `pulse-cli guide <name>`. */
+export interface GuideTopic {
+  /** The word of `pulse-cli guide <name>`: lowercase letters and dashes. */
+  readonly name: string
+  /** One line for the topic index of the core guide and `pulse-cli guide --list`. */
+  readonly summary: string
+  /** The docs page of the topic, as markdown. */
+  readonly text: string
+}
 
 /** The topics of `pulse-cli guide <topic>`, in the order of the index. */
 export const GUIDE_TOPICS: readonly GuideTopic[] = [
-  WORKFLOW_TOPIC,
-  INPUT_TOPIC,
-  OUTPUT_TOPIC,
-  CONFIG_TOPIC,
-  AUTH_TOPIC,
-  RECIPES_TOPIC,
+  {
+    name: "workflow",
+    summary:
+      "Workflow commands in detail: selection, inspect, wait, advance, retry, deploy, status",
+    text: WORKFLOW_PAGE,
+  },
+  {
+    name: "input",
+    summary: "Arguments, flags, booleans, arrays, dates, variables, request bodies, files, paging",
+    text: INPUT_PAGE,
+  },
+  {
+    name: "output",
+    summary: "JSON and tables, --fields, XML, text and binary responses, --out-file, previews",
+    text: OUTPUT_PAGE,
+  },
+  {
+    name: "config",
+    summary:
+      "Profiles, config and project files, environment variables, engines, headers, timeouts",
+    text: CONFIG_PAGE,
+  },
+  {
+    name: "auth",
+    summary: "Basic auth, bearer tokens and token commands, OAuth logins, what to do on exit 4",
+    text: AUTH_PAGE,
+  },
+  {
+    name: "recipes",
+    summary: "Command lines for everyday tasks: deploy, tasks, incidents, messages, history, api",
+    text: RECIPES_PAGE,
+  },
 ]
 
 /** Shorter words match too many summaries to be worth a suggestion. */

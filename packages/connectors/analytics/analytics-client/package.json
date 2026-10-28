@@ -58,8 +58,7 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
-    "lint:fix": "eslint src --fix",
-    "test:mutation": "stryker run"
+    "lint:fix": "eslint src --fix"
   },
   "peerDependencies": {
     "zod": "^4.4.0"

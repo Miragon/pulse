@@ -14,6 +14,7 @@ export default defineConfig({
   clean: true,
   dts: false,
   sourcemap: false,
+  loader: { ".md": "text" },
   fixedExtension: true,
   // nothing is loaded from node_modules at run time: a SEA can load only built-in modules
   deps: { alwaysBundle: Object.keys(pkg.dependencies), onlyBundle: false },

@@ -11,7 +11,7 @@ import {
   type VariableChange,
 } from "../../contract/index.js"
 import { ErrorTranslation } from "./errors/error-translation.js"
-import type { EngineClient, EngineWriter } from "./engine-cli/index.js"
+import type { EngineClient, EngineWriter } from "./engine-rest/index.js"
 import { CancelBody } from "./writing/cancel-body.js"
 import { MigrationBody } from "./writing/migration-body.js"
 import { MoveBody } from "./writing/move-body.js"
@@ -85,11 +85,10 @@ export class C7ProcessCommands implements ProcessCommands {
 
   private async retry(incidentId: IncidentId): Promise<void> {
     const outcome = await this.writer.retryIncident(incidentId)
-    if (outcome.retried < 1) {
-      const reason = outcome.results.join(", ") || "nothing to retry"
+    if (outcome !== "retried") {
       throw new RuntimeError(
         "rejected",
-        `The engine did not retry incident ${incidentId}: ${reason}.`,
+        `The engine did not retry incident ${incidentId}: ${outcome}.`,
       )
     }
   }

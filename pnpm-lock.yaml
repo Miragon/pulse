@@ -202,9 +202,6 @@ importers:
       '@miragon/modeler-shell':
         specifier: 0.5.0
         version: 0.5.0(@vscode/test-electron@3.1.0)(playwright-core@1.64.1)
-      '@miragon/operate':
-        specifier: 0.10.0
-        version: 0.10.0
       bpmn-js:
         specifier: 18.31.1
         version: 18.31.1
@@ -1962,12 +1959,6 @@ packages:
         optional: true
       playwright-core:
         optional: true
-
-  '@miragon/operate@0.10.0':
-    resolution: {integrity: sha512-IBtXMuD7B+7QbAmqUrA5e99kC3lNtKul81qMWnAM88unNnFcFwMUYLv+gCHKGyT9aBojOu7rAGBqGJ39zfKGuA==}
-    engines: {node: '>=22.12.0'}
-    deprecated: Renamed to @miragon/pulse-cli. Install @miragon/pulse-cli instead.
-    hasBin: true
 
   '@modelcontextprotocol/client@2.0.0':
     resolution: {integrity: sha512-8f1OghQ2rjzIOfqgUCP+8GiUWqRs89njoWLNqAe8kWmDePv3s1fZXseej+QXemssEuuOvLLmLO/kqM3IQHtISw==}
@@ -9502,10 +9493,6 @@ snapshots:
     optionalDependencies:
       '@vscode/test-electron': 3.1.0
       playwright-core: 1.64.1
-
-  '@miragon/operate@0.10.0':
-    dependencies:
-      commander: 15.0.0
 
   '@modelcontextprotocol/client@2.0.0':
     dependencies:

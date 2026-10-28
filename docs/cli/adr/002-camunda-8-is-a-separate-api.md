@@ -12,7 +12,7 @@ operations by id.
 
 **Camunda 8 would be a new API, not a fourth engine.** It would get its own folder
 `src/api/camunda8-rest` with its own spec, catalog and port, and an adapter `src/engines/camunda8`
-on top of it. It would not be a patch file in `spec/engines/`.
+on top of it. It would not be an extra patch of the Camunda 7 spec.
 
 **The port grows only when a second API exists.** Today `EnginePort` calls catalog operations by
 their Camunda 7 operation id. A second API would need ports that describe tasks of the workflow

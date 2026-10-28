@@ -2,9 +2,8 @@ name: Mutation (nightly)
 
 # The FULL Stryker run, one leg per workspace package with a stryker.config.json, over the
 # package's whole `mutate` allowlist, and the only mutation testing CI runs (owner decision): no
-# pull request runs Stryker, and this run is no required check. Locally, `pnpm test:mutation`
-# (scripts/mutation-diff.mjs) mutates only the files a branch changed. A red leg means the
-# package scores below its thresholds.break.
+# pull request runs Stryker, and this run is no required check. A red leg means the package
+# scores below its thresholds.break.
 #
 # Each leg keeps its package's Stryker incremental file in the Actions cache (every
 # stryker.config.json sets incremental: true and incrementalFile reports/stryker-incremental.json,
@@ -13,10 +12,7 @@ name: Mutation (nightly)
 # asserts: such a result can be stale until the package starts cold. No scheduled run forces a
 # full pass (owner decision: incremental nightly only); a dispatch with `force` re-tests every
 # mutant. The cache key fingerprints the lockfile, the vitest, tsconfig and Stryker config and
-# the Node major, so a change there starts the package cold. scripts/check-github-config.mjs
-# (`pnpm lint:github`) pins the triggers, the dispatch-only force, the cache key and path and
-# the package forms the list covers; its test runs the List, Cache key and Stryker steps in
-# fixture trees.
+# the Node major, so a change there starts the package cold.
 on:
   schedule:
     - cron: "0 2 * * *"
@@ -50,9 +46,8 @@ jobs:
         with:
           persist-credentials: false
 
-      # Every package form of pnpm-workspace.yaml (its wildcard globs) at its exact depth: a new
-      # form fails `pnpm lint:github` until it is listed here. The slug names the leg's cache and
-      # artifact, which cannot carry a slash.
+      # Every package form of pnpm-workspace.yaml (its wildcard globs) at its exact depth: list a
+      # new form here. The slug names the leg's cache and artifact, which cannot carry a slash.
       - id: list
         name: List
         run: |
@@ -123,7 +118,7 @@ jobs:
         run: |
           args=()
           if [ "$FORCE" = true ]; then args+=(--force); fi
-          pnpm --fail-if-no-match --filter "./${DIR}" run test:mutation "${args[@]}"
+          pnpm --fail-if-no-match --filter "./${DIR}" exec stryker run "${args[@]}"
 
       # Saved after a red leg too: Stryker writes the file before it checks thresholds.break, and
       # the next night then starts from it.

@@ -5,8 +5,7 @@ several requests for the questions a developer, an operator or an agent asks mos
 process instance by id, `--business-key` or `--process-definition-key <key> --latest`, and their
 views list ready-to-run follow-ups under `next`.
 
-This page is the overview. The CLI has the full text: `pulse-cli guide workflow` for the options and
-rules, `pulse-cli describe <command>` for the requests a command sends.
+`pulse-cli describe <command>` lists every option of a command and the requests it sends.
 
 | Command             | Effect                              | What it does                                                            |
 | ------------------- | ----------------------------------- | ----------------------------------------------------------------------- |
@@ -63,3 +62,7 @@ Next:
   that needs `--yes`.
 - `advance` needs `--activity-id` when the instance waits at several places; the error lists them
   with ready commands.
+- Options worth knowing: `inspect --history --stacktrace`,
+  `wait --until ended|incident|task[:key]|activity:<id>` and `--batch <id>`,
+  `advance --bpmn-error <code>` or `--fail <message>`, `retry --now`, `deploy --start-key <key>`
+  and `status --fail-on warning|critical` for CI.

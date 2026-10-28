@@ -8,9 +8,7 @@ describe("ENGINES", () => {
     for (const [name, adapter] of Object.entries(ENGINES)) expect(adapter.name).toBe(name)
   })
 
-  it("loads the catalog of its engine; they are all the same while no engine diverges", () => {
-    expect(ENGINES.camunda7.catalog).toBe(loadCatalog())
-    expect(ENGINES.operaton.catalog).toEqual(loadCatalog())
-    expect(ENGINES.cibseven.catalog).toEqual(loadCatalog())
+  it("shares the one generated catalog", () => {
+    for (const adapter of Object.values(ENGINES)) expect(adapter.catalog).toBe(loadCatalog())
   })
 })

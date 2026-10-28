@@ -17,7 +17,7 @@ pnpm --filter pulse-cockpit run lint             # ESLint with the house rules b
 pnpm lint:architecture:vscode                   # the closed-world dependency rules
 pnpm lint:deadcode:vscode                       # knip over the extension, unused exports and types included
 pnpm --filter pulse-cockpit test                 # unit and webview (Chromium) tests, coverage floors
-pnpm --filter pulse-cockpit run test:mutation    # Stryker over contract, core, the C7 adapter and the model adapter
+pnpm --filter pulse-cockpit exec stryker run    # Stryker over contract, core, the C7 adapter and the model adapter
 pnpm --filter pulse-cockpit run test:engines     # adapter conformance on a real engine; needs podman/docker
 pnpm --filter pulse-cockpit run test:smoke       # the extension activates in a real VS Code
 pnpm --filter pulse-cockpit run test:e2e         # VS Code e2e; needs `engine:up`
@@ -57,15 +57,15 @@ The app is one package with six layers under `apps/vscode/src`. Each layer has i
 | Add a write                                                                 | `ProcessCommands` + a command law + a saboteur; policy and confirmation per `apps/vscode/docs/adr/writes.md`                                                                                 | authority in a webview intent              |
 | Interpret runtime data (grouping, root cause, view models, panel behaviour) | `apps/vscode/src/core`                                                                                                                                                                       | `vscode`, DOM, Node, engine words          |
 | Change what the webview shows                                               | `apps/vscode/src/core/protocol` (types) and `apps/vscode/src/webview`                                                                                                                        | logic in the webview, `--vscode-*` colours |
-| Talk to Operaton / CIB seven / Camunda 7                                    | `apps/vscode/src/adapters/c7` (mapping) and `apps/vscode/src/adapters/c7/engine-cli` (CLI wrapper)                                                                                           | imports from core, webview or host         |
+| Talk to Operaton / CIB seven / Camunda 7                                    | `apps/vscode/src/adapters/c7` (mapping) and `apps/vscode/src/adapters/c7/engine-rest` (REST client)                                                                                          | imports from core, webview or host         |
 | Add an engine                                                               | `apps/vscode/src/adapters/<engine>` with a class implementing `EngineAdapter` + an `*.engine.test.ts` running the `ConformanceKit` + one entry in `apps/vscode/src/host/composition-root.ts` | branching on engines anywhere else         |
 | Read the local `.bpmn` model or find the implementing code                  | `apps/vscode/src/model` (behind `ModelSource` / `CodeLocator`), per `apps/vscode/docs/adr/local-sources.md`                                                                                  | moddle or bpmn-modeler libs anywhere else  |
 | Wire VS Code                                                                | `apps/vscode/src/host`                                                                                                                                                                       | business rules                             |
 
 The dependency rules are closed-world (`apps/vscode/.dependency-cruiser.cjs`): an import that
 is not explicitly allowed fails `pnpm lint:architecture:vscode` with a message that says where
-it belongs. The repository's rules apply on top (`extension-is-not-an-mcp-host`: no
-widget-shell, no toolkit, no React, no zod, no other workspace package but a `-domain` one).
+it belongs. Nothing outside them is allowed, so no widget-shell, no toolkit, no React, no zod and no
+other workspace package either.
 
 ## Rules
 

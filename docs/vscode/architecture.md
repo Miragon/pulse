@@ -1,8 +1,8 @@
 # Architecture
 
 The core never knows which engine it talks to: it asks the ports of a contract, and one adapter
-per engine family answers. The C7 adapter serves Operaton, CIB seven and Camunda 7 through the
-Pulse CLI; a new engine is one more adapter folder and one entry in the composition root.
+per engine family answers. The C7 adapter serves Operaton, CIB seven and Camunda 7 over their
+REST API; a new engine is one more adapter folder and one entry in the composition root.
 
 ```mermaid
 flowchart LR
@@ -10,7 +10,7 @@ flowchart LR
   host --> core["core: panel sessions, view builders"]
   core --> contract["contract: ports and read models"]
   c7["adapter c7"] -. implements .-> contract
-  c7 --> cli[["Pulse CLI"]] --> engines["Operaton, CIB seven, Camunda 7: /engine-rest"]
+  c7 --> engines["Operaton, CIB seven, Camunda 7: /engine-rest"]
 ```
 
 The extension is one package with six layers under `apps/vscode/src`, each with its own globals

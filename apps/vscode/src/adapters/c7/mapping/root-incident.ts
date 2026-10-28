@@ -1,4 +1,4 @@
-import type { IncidentView } from "../engine-cli/index.js"
+import type { IncidentView } from "../engine-rest/index.js"
 
 export class RootIncident {
   static is(incident: IncidentView): boolean {

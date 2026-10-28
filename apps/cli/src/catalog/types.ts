@@ -1,5 +1,5 @@
 /**
- * Shape of the generated operation catalog (`src/generated/catalog.<engine>.json`).
+ * Shape of the generated operation catalog (`src/generated/catalog.json`).
  * The catalog is produced by `scripts/generate-catalog.ts` from the vendored OpenAPI spec and is the
  * single source of truth for every generated command.
  */

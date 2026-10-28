@@ -112,7 +112,7 @@ export interface CalledInstance {
   readonly calledFromElementId?: ElementId
 }
 
-export type VariableScope =
+type VariableScope =
   { readonly kind: "instance" } | { readonly kind: "element"; readonly elementId: ElementId }
 
 export type ValueKind =

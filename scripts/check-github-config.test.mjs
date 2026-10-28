@@ -1,6 +1,5 @@
 import assert from "node:assert/strict"
 import { execFileSync, spawnSync } from "node:child_process"
-import { createHash } from "node:crypto"
 import {
   existsSync,
   mkdirSync,
@@ -20,8 +19,6 @@ import {
   CI_WORKFLOW,
   CLI_PUBLISH_TRIGGERS,
   CLI_PUBLISH_WORKFLOWS,
-  INCREMENTAL_FILE,
-  NIGHTLY_WORKFLOW,
   PUBLISHABLE_DIR,
   PUBLISH_WORKFLOW,
   RELEASE_WORKFLOW,
@@ -29,20 +26,14 @@ import {
   VSCODE_ENVIRONMENT,
   VSCODE_PUBLISH_WORKFLOW,
   actionRefs,
-  checkArtifactGlobs,
   checkCiScopes,
   checkCliPublishWorkflows,
-  checkDependabot,
-  checkNightlyMutation,
-  checkPlaywrightPins,
   checkPluginVersions,
   checkPublishMatrix,
   checkPublishWorkflow,
   checkReleaseExtraFiles,
   checkReleaseGate,
   checkRepo,
-  checkRequiredChecks,
-  checkStrykerIncremental,
   checkVscodePublish,
   expectedRepository,
   isNpmPublished,
@@ -50,11 +41,9 @@ import {
   pluginManifests,
   readWorkspace,
 } from "./check-github-config.mjs"
-import { workspaceGlobs } from "./check-package-scripts.mjs"
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const readDoc = (file) => parse(readFileSync(path.join(ROOT, file), "utf8"))
-const GLOBS = workspaceGlobs(readFileSync(path.join(ROOT, "pnpm-workspace.yaml"), "utf8"))
 
 /** Scratch dirs under the OS tmpdir: every fixture lives there and is removed afterwards. */
 const scratch = []
@@ -99,14 +88,14 @@ const TODAY = {
   }),
   docs: { name: "@miragon/pulse-docs", private: true },
 }
-/** Packages that do not exist yet: a public CLI, a VS Code extension, a public domain package. */
+/** Packages that do not exist yet: a public CLI, a VS Code extension, a new public package. */
 const CLI = published("apps/cli", {
   name: "@miragon/pulse-cli",
   bin: { "pulse-cli": "dist/cli.js" },
 })
 const VSCODE = { "apps/vscode": { name: "pulse", engines: { vscode: "^1.101.0" } } }
-const DOMAIN = published("packages/connectors/camunda/camunda7-domain", {
-  name: "@miragon/pulse-camunda7-domain",
+const NEW_CLIENT = published("packages/connectors/flowable/flowable-client", {
+  name: "@miragon/pulse-flowable-client",
 })
 
 /** A workspace fixture in a tmpdir, read back the way the gate reads the real one. */
@@ -446,7 +435,7 @@ describe("the Resolve package step", () => {
     ...TODAY,
     ...CLI,
     ...VSCODE,
-    ...DOMAIN,
+    ...NEW_CLIENT,
     "apps/private-app": { name: "@miragon/pulse-private-app", private: true },
   })) {
     writeFile(repo, `${dir}/package.json`, JSON.stringify(manifest))
@@ -461,7 +450,7 @@ describe("the Resolve package step", () => {
 
   for (const [DIR, artifact] of [
     ["packages/core/widget-shell", "npm-miragon-pulse-widget-shell"],
-    ["packages/connectors/camunda/camunda7-domain", "npm-miragon-pulse-camunda7-domain"],
+    ["packages/connectors/flowable/flowable-client", "npm-miragon-pulse-flowable-client"],
     ["apps/cli", "npm-miragon-pulse-cli"],
   ]) {
     it(`resolves ${DIR}`, () => {
@@ -673,12 +662,12 @@ describe("checkPublishMatrix", () => {
     assert.deepEqual(matrixErrors(workspace(TODAY)), [])
   })
 
-  it("demands a public domain package and a public CLI", () => {
-    const domain = matrixErrors(workspace({ ...TODAY, ...DOMAIN }))
-    assert.equal(domain.length, 1)
+  it("demands a new public package and a public CLI", () => {
+    const client = matrixErrors(workspace({ ...TODAY, ...NEW_CLIENT }))
+    assert.equal(client.length, 1)
     assert.match(
-      domain[0],
-      /packages\/connectors\/camunda\/camunda7-domain \(@miragon\/pulse-camunda7-domain\) is published to npm .* add it to the publish-npm matrix/,
+      client[0],
+      /packages\/connectors\/flowable\/flowable-client \(@miragon\/pulse-flowable-client\) is published to npm .* add it to the publish-npm matrix/,
     )
     const cli = matrixErrors(workspace({ ...TODAY, ...CLI }))
     assert.equal(cli.length, 1)
@@ -725,7 +714,7 @@ describe("checkPublishMatrix", () => {
   it("demands the repository npm checks against the provenance", () => {
     for (const [fixture, dir] of [
       [CLI, "apps/cli"],
-      [DOMAIN, "packages/connectors/camunda/camunda7-domain"],
+      [NEW_CLIENT, "packages/connectors/flowable/flowable-client"],
     ]) {
       const { repository, ...manifest } = fixture[dir]
       assert.deepEqual(repository, {
@@ -835,14 +824,14 @@ describe("checkReleaseExtraFiles", () => {
   it("demands every package under apps/ and packages/, published or not", () => {
     const errors = checkReleaseExtraFiles(
       config,
-      workspace({ ...TODAY, ...DOMAIN, ...CLI, ...VSCODE }),
+      workspace({ ...TODAY, ...NEW_CLIENT, ...CLI, ...VSCODE }),
     )
     assert.deepEqual(
       errors.map((error) => /: (\S+\/package\.json) /.exec(error)?.[1]),
       [
         "apps/cli/package.json",
         "apps/vscode/package.json",
-        "packages/connectors/camunda/camunda7-domain/package.json",
+        "packages/connectors/flowable/flowable-client/package.json",
       ],
     )
   })
@@ -954,13 +943,6 @@ describe("checkVscodePublish", () => {
       [/must need release-please and gate/],
     ],
     [
-      "a channel again",
-      ({ caller }) => (caller.with.channel = "${{ vars.VSCODE_PUBLISH }}"),
-      [/passes channel: every release publishes a plain release/],
-    ],
-    ["a constant dry run", ({ caller }) => (caller.with.dry_run = false), [/must pass dry_run/]],
-    ["no version", ({ caller }) => delete caller.with.version, [/must pass version/]],
-    [
       "secrets: inherit",
       ({ caller }) => (caller.secrets = "inherit"),
       [/must pass exactly the secrets .* never secrets: inherit/],
@@ -986,26 +968,6 @@ describe("checkVscodePublish", () => {
       [/exactly \{ contents: write, id-token: write \}/],
     ],
     [
-      "a required input that is not",
-      ({ publish }) => delete publish.on.workflow_call.inputs.version.required,
-      [/required string input "version"/],
-    ],
-    [
-      "a channel input again",
-      ({ publish }) => (publish.on.workflow_call.inputs.channel = { type: "string" }),
-      [/takes no input "channel"/],
-    ],
-    [
-      "a pre-release again",
-      ({ jobs }) => (stepNamed(jobs.package, "Package").run += " --pre-release"),
-      [/passes --pre-release/],
-    ],
-    [
-      "a string dry_run input",
-      ({ publish }) => (publish.on.workflow_call.inputs.dry_run.type = "string"),
-      [/boolean input "dry_run"/],
-    ],
-    [
       "no store token declared",
       ({ publish }) => delete publish.on.workflow_call.secrets.OVSX_PUBLISH,
       [/must declare exactly the secrets VSCE_PUBLISH and OVSX_PUBLISH/],
@@ -1014,11 +976,6 @@ describe("checkVscodePublish", () => {
       "top-level permissions",
       ({ publish }) => (publish.permissions = { contents: "read" }),
       [/top-level permissions must be \{\}/],
-    ],
-    [
-      "no bash default",
-      ({ publish }) => delete publish.defaults,
-      [/defaults\.run\.shell must be bash/],
     ],
     [
       "a publish job without id-token",
@@ -1185,38 +1142,6 @@ describe("checkVscodePublish", () => {
       [/runs "npx @vscode\/vsce@latest --version"/],
     ],
     [
-      "a Marketplace publish without --skip-duplicate",
-      ({ jobs }) => {
-        const step = stepNamed(jobs.publish, "Publish to the Visual Studio Marketplace")
-        step.run = step.run.replace(" --skip-duplicate", "")
-      },
-      [/the step "Publish to the Visual Studio Marketplace" must pass --skip-duplicate/],
-    ],
-    [
-      "an Open VSX publish without --skip-duplicate",
-      ({ jobs }) => {
-        const step = stepNamed(jobs.publish, "Publish to Open VSX")
-        step.run = step.run.replace(" --skip-duplicate", "")
-      },
-      [/the step "Publish to Open VSX" must pass --skip-duplicate/],
-    ],
-    [
-      "a Marketplace publish that switches --skip-duplicate back off",
-      ({ jobs }) => {
-        const step = stepNamed(jobs.publish, "Publish to the Visual Studio Marketplace")
-        step.run = step.run.replace(" --skip-duplicate)", " --skip-duplicate=false)")
-      },
-      [/the step "Publish to the Visual Studio Marketplace" must pass --skip-duplicate/],
-    ],
-    [
-      "an Open VSX publish with --skip-duplicate only in a comment",
-      ({ jobs }) => {
-        const step = stepNamed(jobs.publish, "Publish to Open VSX")
-        step.run = `${step.run.replace(" --skip-duplicate)", ")")}\n# --skip-duplicate`
-      },
-      [/the step "Publish to Open VSX" must pass --skip-duplicate/],
-    ],
-    [
       "no Open VSX publish",
       ({ jobs }) =>
         (jobs.publish.steps = jobs.publish.steps.filter(
@@ -1247,272 +1172,6 @@ describe("checkVscodePublish", () => {
   it("pins the directories the Resolve step accepts", () => {
     const script = stepNamed(VSCODE_PUBLISH.jobs.package, "pkg").run
     assert.ok(script.includes(VSCODE_APP_DIR.source.replaceAll("\\/", "/")))
-  })
-})
-
-// ── Behaviour of the extension workflow's bash steps ────────────────────────
-
-describe("the Resolve extension step", () => {
-  const script = stepNamed(VSCODE_PUBLISH.jobs.package, "pkg").run
-  const repo = tempDir("gh-config-resolve-vsix-")
-  const extension = (manifest) => ({
-    name: "pulse",
-    version: "1.2.3",
-    engines: { vscode: "^1.101.0" },
-    ...manifest,
-  })
-  for (const [dir, manifest] of Object.entries({
-    ...TODAY,
-    "apps/vscode": extension({}),
-    "apps/beta": extension({ name: "pulse-beta", version: "1.2.3-beta.1" }),
-    "apps/plain": { name: "pulse-plain", version: "1.2.3" },
-    "apps/scoped": extension({ name: "@miragon/pulse" }),
-  })) {
-    writeFile(repo, `${dir}/package.json`, JSON.stringify(manifest))
-  }
-  let runs = 0
-  const resolve = (DIR, TAG) => {
-    const output = path.join(repo, `github-output-${(runs += 1)}`)
-    writeFileSync(output, "")
-    const result = runStep(script, { cwd: repo, env: { DIR, TAG, GITHUB_OUTPUT: output } })
-    return { ...result, output: readFileSync(output, "utf8").trim().split("\n").filter(Boolean) }
-  }
-
-  for (const TAG of ["v1.2.3", ""]) {
-    it(`resolves apps/vscode for ${TAG === "" ? "a dry run" : TAG}`, () => {
-      const result = resolve("apps/vscode", TAG)
-      assert.equal(result.status, 0, result.stdout + result.stderr)
-      assert.deepEqual(result.output, [
-        "name=pulse",
-        "version=1.2.3",
-        "vsix=pulse-1.2.3.vsix",
-        "artifact=vsix-pulse",
-      ])
-    })
-  }
-
-  for (const [DIR, TAG, message] of [
-    ["apps/vscode", "v1.2.4", /pulse@1\.2\.3 is not the release v1\.2\.4/],
-    ["apps/beta", "", /pulse-beta@1\.2\.3-beta\.1: the Marketplace takes major\.minor\.patch only/],
-    ["apps/plain", "", /apps\/plain declares no engines\.vscode/],
-    ["apps/scoped", "", /is named "@miragon\/pulse": vsce takes an unscoped lowercase name/],
-    ["apps/..", "", /apps\/\.\. is no app directory/],
-    ["apps/missing", "", /is no app directory/],
-    ["packages/core/widget-shell", "", /is no app directory/],
-    ["apps/vscode; touch pwned", "", /is no app directory/],
-  ]) {
-    it(`refuses ${DIR}${TAG === "" ? "" : ` for ${TAG}`}`, () => {
-      const result = resolve(DIR, TAG)
-      assert.equal(result.status, 1)
-      assert.match(result.stdout, message)
-      assert.deepEqual(result.output, [])
-      assert.equal(existsSync(path.join(repo, "pwned")), false)
-    })
-  }
-})
-
-// ── dependabot.yml ──────────────────────────────────────────────────────────
-
-const DEPENDABOT = readDoc(".github/dependabot.yml")
-const dirExists = (rel) => existsSync(path.join(ROOT, rel))
-/** A Dependabot config in the real one's shape, over fixture groups and directories. */
-const FIXTURE_DEPENDABOT = {
-  version: 2,
-  updates: [
-    {
-      "package-ecosystem": "npm",
-      directory: "/",
-      ignore: [
-        {
-          "dependency-name": "@types/vscode",
-          "update-types": ["version-update:semver-minor", "version-update:semver-major"],
-        },
-      ],
-      groups: {
-        cli: { patterns: ["commander", "tsdown"] },
-        vscode: { patterns: ["@vscode/*", "@types/vscode"] },
-        "npm-dependencies": {
-          patterns: ["*"],
-          "exclude-patterns": ["commander", "tsdown", "@vscode/*", "@types/vscode"],
-        },
-      },
-    },
-    {
-      "package-ecosystem": "docker",
-      directories: ["/playground/docker", "/playground/docker/otel"],
-      groups: { "docker-dependencies": { patterns: ["*"] } },
-    },
-    {
-      "package-ecosystem": "github-actions",
-      directory: "/",
-      groups: { "github-actions": { patterns: ["*"] } },
-    },
-  ],
-}
-const FIXTURE_DIRS = new Set([".", "playground/docker", "playground/docker/otel"])
-const fixtureDirExists = (rel) => FIXTURE_DIRS.has(rel)
-const dependabotErrors = (mutate, options = {}) => {
-  const doc = structuredClone(FIXTURE_DEPENDABOT)
-  mutate(doc)
-  return checkDependabot(doc, {
-    packages: workspace(TODAY),
-    dirExists: fixtureDirExists,
-    ...options,
-  })
-}
-const npmEntry = (doc) => doc.updates.find((entry) => entry["package-ecosystem"] === "npm")
-
-describe("checkDependabot", () => {
-  it("accepts the real config", () => {
-    assert.deepEqual(checkDependabot(DEPENDABOT, { packages: REAL_PACKAGES, dirExists }), [])
-  })
-
-  it("accepts the fixture config", () => {
-    assert.deepEqual(
-      dependabotErrors(() => {}),
-      [],
-    )
-  })
-
-  it("rejects a group listed after the catch-all", () => {
-    const errors = dependabotErrors((doc) => {
-      const { cli, ...rest } = npmEntry(doc).groups
-      npmEntry(doc).groups = { ...rest, cli }
-    })
-    assert.deepEqual(errors.length, 1)
-    assert.match(errors[0], /cli is listed after the catch-all npm-dependencies/)
-  })
-
-  it("rejects a group pattern the catch-all does not exclude", () => {
-    const errors = dependabotErrors((doc) => {
-      const catchAll = npmEntry(doc).groups["npm-dependencies"]
-      catchAll["exclude-patterns"] = catchAll["exclude-patterns"].filter((p) => p !== "tsdown")
-    })
-    assert.deepEqual(errors.length, 1)
-    assert.match(
-      errors[0],
-      /tsdown of group cli is missing from npm-dependencies\.exclude-patterns/,
-    )
-  })
-
-  it("rejects a directory that does not exist yet", () => {
-    const addCliImage = (doc) =>
-      doc.updates.push({
-        "package-ecosystem": "docker",
-        directory: "/apps/cli",
-        groups: { "docker-cli": { patterns: ["*"] } },
-      })
-    assert.ok(matches(dependabotErrors(addCliImage), /\/apps\/cli does not exist/))
-    assert.deepEqual(
-      dependabotErrors(addCliImage, {
-        dirExists: (rel) => rel === "apps/cli" || fixtureDirExists(rel),
-      }),
-      [],
-    )
-    const missing = dependabotErrors((doc) =>
-      doc.updates.find((entry) => entry.directories).directories.push("/playground/docker/missing"),
-    )
-    assert.deepEqual(missing.length, 1)
-    assert.match(missing[0], /\/playground\/docker\/missing does not exist/)
-  })
-
-  it("holds @types/vscode at the floor once an extension exists", () => {
-    const packages = workspace({ ...TODAY, ...VSCODE })
-    const ignoring = (types) => (doc) =>
-      (npmEntry(doc).ignore =
-        types === undefined
-          ? undefined
-          : [{ "dependency-name": "@types/vscode", "update-types": types }])
-    assert.ok(
-      matches(
-        dependabotErrors(ignoring(undefined), { packages }),
-        /apps\/vscode \(pulse\) declares engines\.vscode/,
-      ),
-    )
-    assert.ok(
-      matches(
-        dependabotErrors(ignoring(["version-update:semver-major"]), { packages }),
-        /@types\/vscode/,
-      ),
-    )
-    assert.deepEqual(
-      dependabotErrors(ignoring(["version-update:semver-minor", "version-update:semver-major"]), {
-        packages,
-      }),
-      [],
-    )
-  })
-
-  it("asks nothing of @types/vscode without an extension", () => {
-    assert.deepEqual(
-      dependabotErrors((doc) => delete npmEntry(doc).ignore),
-      [],
-    )
-  })
-
-  it("passes entries whose only group is a catch-all", () => {
-    assert.deepEqual(
-      dependabotErrors((doc) => doc.updates.splice(doc.updates.indexOf(npmEntry(doc)), 1)),
-      [],
-    )
-  })
-})
-
-// ── Required checks ─────────────────────────────────────────────────────────
-
-const WORKFLOWS = new Map(
-  ["ci.yml", "pr-title.yml", "dependency-review.yml", "release-please.yml"].map((name) => [
-    `.github/workflows/${name}`,
-    readDoc(`.github/workflows/${name}`),
-  ]),
-)
-const requiredErrors = (mutate) => {
-  const workflows = structuredClone(WORKFLOWS)
-  mutate(workflows)
-  return checkRequiredChecks(workflows)
-}
-const ci = (workflows) => workflows.get(CI_WORKFLOW)
-
-describe("checkRequiredChecks", () => {
-  it("finds every required check in the real workflows", () => {
-    assert.deepEqual(checkRequiredChecks(WORKFLOWS), [])
-  })
-
-  it("rejects a renamed required job", () => {
-    const errors = requiredErrors((w) => (ci(w).jobs.kotlin.name = "Kotlin"))
-    assert.deepEqual(errors.length, 1)
-    assert.match(errors[0], /"Kotlin \(Build \+ Test\)" is a required check/)
-  })
-
-  it("rejects a required job no pull request runs", () => {
-    const errors = requiredErrors(
-      (w) => (w.get(".github/workflows/dependency-review.yml").on = { push: null }),
-    )
-    assert.ok(matches(errors, /"Dependency Review" is a required check/))
-  })
-
-  it("rejects a paths filter and a matrix on a required job", () => {
-    assert.ok(
-      matches(
-        requiredErrors((w) => (ci(w).on.pull_request.paths = ["apps/**"])),
-        /pull_request has a paths filter/,
-      ),
-    )
-    assert.ok(
-      matches(
-        requiredErrors((w) => (ci(w).jobs.fitness.strategy = { matrix: { pkg: ["a", "b"] } })),
-        /"Fitness report" \(job fitness\) is required, but a matrix/,
-      ),
-    )
-  })
-
-  it("reads every form of on", () => {
-    for (const on of ["pull_request", ["push", "pull_request"], { pull_request_target: null }]) {
-      const errors = requiredErrors(
-        (w) => (w.get(".github/workflows/dependency-review.yml").on = on),
-      )
-      assert.deepEqual(errors, [], JSON.stringify(on))
-    }
   })
 })
 
@@ -1573,475 +1232,6 @@ describe("checkCiScopes", () => {
         /no changes job/,
       ),
     )
-  })
-})
-
-// ── Mutation artifacts + the nightly full run ───────────────────────────────
-
-const CI = readDoc(CI_WORKFLOW)
-const NIGHTLY = readDoc(NIGHTLY_WORKFLOW)
-const artifactErrors = (mutate) => {
-  const docs = { ci: structuredClone(CI), nightly: structuredClone(NIGHTLY) }
-  mutate(docs)
-  return checkArtifactGlobs(docs.ci, docs.nightly, GLOBS)
-}
-const uploadNamed = (doc, name) =>
-  Object.values(doc.jobs)
-    .flatMap((job) => job.steps ?? [])
-    .find(
-      (step) =>
-        step.uses?.startsWith("actions/upload-artifact@") &&
-        String(step.with?.name).startsWith(name),
-    )
-
-describe("checkPlaywrightPins", () => {
-  const SERVER = "apps/mcp-server-camunda7"
-  const pinned = (dir, field, name, version) => ({
-    dir,
-    manifest: { name: dir, [field]: { [name]: version } },
-  })
-
-  it("holds the extension's playwright and the server app's @playwright/test at one version", () => {
-    const pins = readWorkspace(ROOT).flatMap(({ dir, manifest }) =>
-      ["playwright", "@playwright/test"]
-        .map((name) => manifest.devDependencies?.[name])
-        .filter(Boolean)
-        .map((version) => `${dir} ${version}`),
-    )
-    assert.equal(pins.length, 2, pins.join(", "))
-    assert.deepEqual(checkPlaywrightPins(readWorkspace(ROOT)), [])
-  })
-
-  it("passes one version, a single pin and none", () => {
-    const same = [
-      pinned("apps/vscode", "devDependencies", "playwright", "1.64.1"),
-      pinned(SERVER, "devDependencies", "@playwright/test", "1.64.1"),
-    ]
-    assert.deepEqual(checkPlaywrightPins(same), [])
-    assert.deepEqual(checkPlaywrightPins(same.slice(0, 1)), [])
-    assert.deepEqual(checkPlaywrightPins([{ dir: "docs", manifest: { name: "docs" } }]), [])
-  })
-
-  it("fails two versions and names every pin", () => {
-    const errors = checkPlaywrightPins([
-      pinned("apps/vscode", "devDependencies", "playwright", "1.63.0"),
-      pinned(SERVER, "devDependencies", "@playwright/test", "1.64.1"),
-    ])
-    assert.equal(errors.length, 1)
-    assert.match(
-      errors[0],
-      /apps\/vscode playwright 1\.63\.0, apps\/mcp-server-camunda7 @playwright\/test 1\.64\.1\): ci\.yml keys one browser cache/,
-    )
-  })
-
-  it("reads runtime dependencies too", () => {
-    const errors = checkPlaywrightPins([
-      pinned("apps/vscode", "dependencies", "playwright", "1.63.0"),
-      pinned(SERVER, "devDependencies", "@playwright/test", "1.64.1"),
-    ])
-    assert.equal(errors.length, 1)
-  })
-})
-
-describe("checkArtifactGlobs", () => {
-  it("accepts the real workflows", () => {
-    assert.deepEqual(checkArtifactGlobs(CI, NIGHTLY, GLOBS), [])
-  })
-
-  it("rejects ** and a missing package form", () => {
-    const errors = artifactErrors(({ nightly }) => {
-      uploadNamed(nightly, "mutation-report-").with.path =
-        "packages/**/reports/mutation-report.json"
-    })
-    assert.ok(
-      matches(
-        errors,
-        /mutation-nightly\.yml: job mutation uploads packages\/\*\*\/reports\/mutation-report\.json: upload-artifact follows symlinks/,
-      ),
-    )
-    assert.ok(matches(errors, /misses apps\/\*\/reports\/mutation-report\.json/))
-    const coverageGlob = artifactErrors(({ ci }) => {
-      uploadNamed(ci, "coverage-summaries").with.path = "packages/**/coverage/coverage-summary.json"
-    })
-    assert.ok(
-      matches(
-        coverageGlob,
-        /ci\.yml: job typescript uploads packages\/\*\*\/coverage\/coverage-summary\.json: upload-artifact follows symlinks/,
-      ),
-    )
-    const coverage = artifactErrors(({ ci }) => {
-      const upload = uploadNamed(ci, "coverage-summaries")
-      upload.with.path = upload.with.path.replace("apps/*/coverage/coverage-summary.json\n", "")
-    })
-    assert.deepEqual(coverage.length, 1)
-    assert.match(coverage[0], /misses apps\/\*\/coverage\/coverage-summary\.json/)
-    const nightly = artifactErrors(({ nightly }) => {
-      const upload = uploadNamed(nightly, "mutation-report-")
-      upload.with.path = upload.with.path.replace(
-        "packages/core/*/reports/mutation-report.json\n",
-        "",
-      )
-    })
-    assert.deepEqual(nightly.length, 1)
-    assert.match(nightly[0], /mutation-nightly\.yml: .* misses packages\/core\/\*\/reports/)
-  })
-
-  it("rejects a report download below the repo root, in both workflows", () => {
-    const download = (doc, key, value) =>
-      Object.values(doc.jobs)
-        .flatMap((job) => job.steps ?? [])
-        .find((s) => s.uses?.startsWith("actions/download-artifact@") && s.with?.[key] === value)
-    for (const [mutate, message] of [
-      [
-        ({ ci }) => (download(ci, "name", "coverage-summaries").with.path = "packages"),
-        /ci\.yml: job fitness downloads coverage-summaries into packages/,
-      ],
-      [
-        ({ nightly }) => (download(nightly, "pattern", "mutation-report-*").with.path = "packages"),
-        /mutation-nightly\.yml: job summary downloads mutation-report-\* into packages/,
-      ],
-    ]) {
-      const errors = artifactErrors(mutate)
-      assert.deepEqual(errors.length, 1, errors.join("\n"))
-      assert.match(errors[0], message)
-    }
-  })
-
-  it("demands the coverage artifact of ci.yml, uploaded and downloaded", () => {
-    const name = "coverage-summaries"
-    const notDownloaded = artifactErrors(({ ci }) => {
-      ci.jobs.fitness.steps = ci.jobs.fitness.steps.filter((s) => s.with?.name !== name)
-    })
-    assert.deepEqual(notDownloaded.length, 1)
-    assert.match(notDownloaded[0], /no step downloads the artifact coverage-summaries/)
-    const notUploaded = artifactErrors(({ ci }) => {
-      for (const job of Object.values(ci.jobs)) {
-        job.steps = (job.steps ?? []).filter(
-          (s) => !(s.uses?.startsWith("actions/upload-artifact@") && s.with?.name === name),
-        )
-      }
-    })
-    assert.deepEqual(notUploaded.length, 1)
-    assert.match(notUploaded[0], /no step uploads the artifact coverage-summaries/)
-  })
-
-  it("demands the nightly leg's upload and the summary's merged download", () => {
-    const summary = (nightly) =>
-      nightly.jobs.summary.steps.find((s) => s.uses?.startsWith("actions/download-artifact@"))
-    for (const [mutate, message] of [
-      [
-        ({ nightly }) => {
-          nightly.jobs.mutation.steps = nightly.jobs.mutation.steps.filter(
-            (s) => !s.uses?.startsWith("actions/upload-artifact@"),
-          )
-        },
-        /job mutation must upload its report as mutation-report-\$\{\{ matrix\.slug \}\}/,
-      ],
-      [
-        ({ nightly }) => (uploadNamed(nightly, "mutation-report-").with.name = "report"),
-        /job mutation must upload its report as mutation-report-/,
-      ],
-      [
-        ({ nightly }) => delete summary(nightly).with["merge-multiple"],
-        /job summary must download mutation-report-\* with merge-multiple: true/,
-      ],
-      [
-        ({ nightly }) => (summary(nightly).with.pattern = "mutation-*"),
-        /no step downloads pattern mutation-report-\*/,
-      ],
-      [
-        ({ nightly }) => {
-          nightly.jobs.summary.steps = nightly.jobs.summary.steps.filter(
-            (s) => s.run !== "pnpm fitness",
-          )
-        },
-        /job summary downloads the reports but never runs pnpm fitness/,
-      ],
-    ]) {
-      const errors = artifactErrors(mutate)
-      assert.deepEqual(errors.length, 1, errors.join("\n"))
-      assert.match(errors[0], message)
-    }
-  })
-})
-
-// ── stryker.config.json ─────────────────────────────────────────────────────
-
-describe("checkStrykerIncremental", () => {
-  const good = { incremental: true, incrementalFile: INCREMENTAL_FILE, mutate: ["src/**/*.ts"] }
-  const errorsFor = (config) => checkStrykerIncremental([{ dir: "apps/cli", config }])
-
-  it("accepts every real config and a config that writes the cached file", () => {
-    const real = REAL_PACKAGES.filter(({ dir }) =>
-      existsSync(path.join(ROOT, dir, "stryker.config.json")),
-    ).map(({ dir }) => ({
-      dir,
-      config: JSON.parse(readFileSync(path.join(ROOT, dir, "stryker.config.json"), "utf8")),
-    }))
-    assert.ok(real.length > 0)
-    assert.deepEqual(checkStrykerIncremental(real), [])
-    assert.deepEqual(errorsFor(good), [])
-  })
-
-  it("rejects a config without incremental, or with it off", () => {
-    for (const incremental of [undefined, false, "true"]) {
-      const errors = errorsFor({ ...good, incremental })
-      assert.deepEqual(errors.length, 1, String(incremental))
-      assert.match(errors[0], /^apps\/cli\/stryker\.config\.json must set "incremental": true/)
-    }
-  })
-
-  it("rejects an incremental file the nightly does not cache", () => {
-    for (const incrementalFile of [undefined, "reports/mutation/incremental.json"]) {
-      const errors = errorsFor({ ...good, incrementalFile })
-      assert.deepEqual(errors.length, 1, String(incrementalFile))
-      assert.match(
-        errors[0],
-        /must set "incrementalFile": "reports\/stryker-incremental\.json", the path the nightly caches/,
-      )
-    }
-    assert.deepEqual(errorsFor({}).length, 2)
-  })
-
-  it("rejects a config that is no JSON object", () => {
-    assert.deepEqual(errorsFor(undefined), ["apps/cli/stryker.config.json is no JSON object"])
-  })
-})
-
-const nightlyErrors = (mutate) => {
-  const doc = structuredClone(NIGHTLY)
-  mutate(doc)
-  return checkNightlyMutation(doc, GLOBS)
-}
-
-describe("checkNightlyMutation", () => {
-  it("accepts the real workflow", () => {
-    assert.deepEqual(checkNightlyMutation(NIGHTLY, GLOBS), [])
-  })
-
-  it("never runs on a pull request or a push", () => {
-    for (const event of ["pull_request", "push"]) {
-      const errors = nightlyErrors((doc) => (doc.on[event] = null))
-      assert.deepEqual(errors.length, 1)
-      assert.match(errors[0], new RegExp(`runs on ${event}`))
-    }
-    assert.ok(
-      matches(
-        nightlyErrors((doc) => delete doc.on.schedule),
-        /schedule with a cron/,
-      ),
-    )
-  })
-
-  it("lists every package form", () => {
-    const errors = nightlyErrors((doc) => {
-      const list = doc.jobs.packages.steps.find((step) => step.id === "list")
-      list.run = list.run.replace("apps/* ", "")
-    })
-    assert.deepEqual(errors.length, 1)
-    assert.match(errors[0], /misses the package form apps\/\*/)
-    assert.ok(
-      matches(
-        checkNightlyMutation(NIGHTLY, [...GLOBS, "packages/tools/*"]),
-        /misses the package form packages\/tools\/\*/,
-      ),
-    )
-  })
-
-  it("keeps the legs independent and bounded", () => {
-    const leg = (doc) => doc.jobs.mutation
-    assert.ok(
-      matches(
-        nightlyErrors((doc) => (leg(doc).strategy["fail-fast"] = true)),
-        /fail-fast: false/,
-      ),
-    )
-    assert.ok(
-      matches(
-        nightlyErrors((doc) => delete leg(doc)["timeout-minutes"]),
-        /timeout-minutes/,
-      ),
-    )
-    assert.ok(matches(checkNightlyMutation(undefined, GLOBS), /is missing/))
-  })
-
-  const leg = (doc) => doc.jobs.mutation
-  const strykerStep = (doc) => leg(doc).steps.find((step) => step.name === "Stryker")
-  const keyStep = (doc) => leg(doc).steps.find((step) => step.id === "cache-key")
-  const cacheStep = (doc, action) =>
-    leg(doc).steps.find((step) => step.uses?.startsWith(`actions/cache/${action}@`))
-  it("forces a full pass only on a manual dispatch, never on the schedule", () => {
-    assert.equal(strykerStep(NIGHTLY).env.FORCE, "${{ inputs.force == true }}")
-    for (const [mutate, message] of [
-      [
-        (doc) =>
-          (strykerStep(doc).env.FORCE =
-            "${{ inputs.force == true || github.event.schedule == '0 2 * * 0' }}"),
-        /needs FORCE: \$\{\{ inputs\.force == true \}\} .*no schedule does/,
-      ],
-      [(doc) => delete strykerStep(doc).env.FORCE, /needs FORCE: /],
-      [
-        (doc) => (strykerStep(doc).run = strykerStep(doc).run.replace(/^.*--force.*\n/m, "")),
-        /the Stryker step must pass --force when FORCE is true/,
-      ],
-    ]) {
-      const errors = nightlyErrors(mutate)
-      assert.deepEqual(errors.length, 1, errors.join("\n"))
-      assert.match(errors[0], message)
-    }
-  })
-
-  it("caches the pinned incremental file under the fingerprinted key", () => {
-    const bare = "stryker-incremental-${{ matrix.slug }}-"
-    for (const [mutate, message] of [
-      [
-        (doc) => (cacheStep(doc, "restore").with["restore-keys"] = bare),
-        /restore needs restore-keys: /,
-      ],
-      [
-        (doc) => (cacheStep(doc, "restore").with.key = `${bare}\${{ github.run_id }}`),
-        /restore needs key: /,
-      ],
-      [(doc) => (cacheStep(doc, "save").with.key = `${bare}x`), /save needs key: /],
-      [
-        (doc) =>
-          (cacheStep(doc, "save").with.path =
-            "${{ matrix.dir }}/reports/mutation/incremental.json"),
-        /actions\/cache\/save must cache path \$\{\{ matrix\.dir \}\}\/reports\/stryker-incremental\.json/,
-      ],
-      [
-        (doc) => (leg(doc).steps = leg(doc).steps.filter((s) => s !== cacheStep(doc, "save"))),
-        /exactly one actions\/cache\/save step, found 0/,
-      ],
-      [
-        (doc) =>
-          (keyStep(doc).env.FINGERPRINT = keyStep(doc).env.FINGERPRINT.replace(
-            "'pnpm-lock.yaml', ",
-            "",
-          )),
-        /FINGERPRINT misses 'pnpm-lock\.yaml'/,
-      ],
-      [
-        (doc) =>
-          (keyStep(doc).env.FINGERPRINT = keyStep(doc).env.FINGERPRINT.replace(
-            "format('{0}/vitest*.ts', matrix.dir), ",
-            "",
-          )),
-        /FINGERPRINT misses format\('\{0\}\/vitest\*\.ts', matrix\.dir\)/,
-      ],
-      [(doc) => (keyStep(doc).env.SLUG = "${{ matrix.dir }}"), /needs SLUG: /],
-      [
-        (doc) => (keyStep(doc).run = keyStep(doc).run.replace("-node${node_major}", "")),
-        /the cache-key step must run echo "prefix=stryker-incremental-\$\{SLUG\}-node\$\{node_major\}/,
-      ],
-    ]) {
-      const errors = nightlyErrors(mutate)
-      assert.deepEqual(errors.length, 1, errors.join("\n"))
-      assert.match(errors[0], message)
-    }
-    assert.ok(
-      matches(
-        nightlyErrors((doc) => (keyStep(doc).env.FINGERPRINT = "${{ github.sha }}")),
-        /needs FINGERPRINT: \$\{\{ hashFiles\(\.\.\.\) \}\}/,
-      ),
-    )
-    assert.ok(
-      matches(
-        nightlyErrors((doc) => delete keyStep(doc).id),
-        /needs the step id cache-key/,
-      ),
-    )
-  })
-})
-
-describe("the nightly steps", () => {
-  const listScript = NIGHTLY.jobs.packages.steps.find((step) => step.id === "list").run
-  const list = (dirs) => {
-    const repo = tempDir("gh-config-nightly-")
-    for (const [dir, stryker] of Object.entries(dirs)) {
-      writeFile(repo, `${dir}/package.json`, "{}")
-      if (stryker) writeFile(repo, `${dir}/stryker.config.json`, "{}")
-    }
-    const output = path.join(repo, "github-output")
-    writeFileSync(output, "")
-    const result = runStep(listScript, { cwd: repo, env: { GITHUB_OUTPUT: output } })
-    assert.equal(result.status, 0, result.stdout + result.stderr)
-    const line = readFileSync(output, "utf8").trim()
-    assert.match(line, /^packages=/)
-    return JSON.parse(line.slice("packages=".length))
-  }
-
-  it("lists every package form that carries a stryker.config.json", () => {
-    assert.deepEqual(
-      list({
-        "apps/cli": true,
-        "apps/vscode": true,
-        "apps/plain": false,
-        "packages/core/widget-shell": true,
-        "packages/connectors/camunda/camunda7-domain": true,
-        docs: true,
-      }),
-      [
-        { dir: "apps/cli", slug: "apps-cli" },
-        { dir: "apps/vscode", slug: "apps-vscode" },
-        { dir: "packages/core/widget-shell", slug: "packages-core-widget-shell" },
-        {
-          dir: "packages/connectors/camunda/camunda7-domain",
-          slug: "packages-connectors-camunda-camunda7-domain",
-        },
-      ],
-    )
-  })
-
-  it("lists nothing in a tree without Stryker", () => {
-    assert.deepEqual(list({ "apps/plain": false }), [])
-  })
-
-  it("builds the cache key prefix from the slug, the Node major and the fingerprint", () => {
-    const script = NIGHTLY.jobs.mutation.steps.find((step) => step.id === "cache-key").run
-    const dir = tempDir("gh-config-cache-key-")
-    // The node the test runs on first, so the expected major is the one the step reads.
-    const env = { PATH: `${path.dirname(process.execPath)}:${process.env.PATH}` }
-    const output = path.join(dir, "github-output")
-    writeFileSync(output, "")
-    const result = runStep(script, {
-      cwd: dir,
-      env: { ...env, SLUG: "apps-cli", FINGERPRINT: "f1ng3r", GITHUB_OUTPUT: output },
-    })
-    assert.equal(result.status, 0, result.stdout + result.stderr)
-    const major = process.versions.node.split(".")[0]
-    assert.equal(
-      readFileSync(output, "utf8").trim(),
-      `prefix=stryker-incremental-apps-cli-node${major}-f1ng3r-`,
-    )
-    writeFileSync(output, "")
-    const empty = runStep(script, {
-      cwd: dir,
-      env: { ...env, SLUG: "apps-cli", FINGERPRINT: "", GITHUB_OUTPUT: output },
-    })
-    assert.equal(empty.status, 1)
-    assert.match(empty.stdout, /cache fingerprint is empty/)
-    assert.equal(readFileSync(output, "utf8"), "")
-  })
-
-  it("passes --force to Stryker only when dispatched with force", () => {
-    const strykerScript = NIGHTLY.jobs.mutation.steps.find((step) => step.name === "Stryker").run
-    for (const [FORCE, expected] of [
-      ["true", "run test:mutation --force"],
-      ["false", "run test:mutation"],
-    ]) {
-      const dir = tempDir("gh-config-stryker-")
-      writeFile(dir, "bin/pnpm", '#!/bin/bash\necho "$*" > "$STUB/args"\n', 0o755)
-      const result = runStep(strykerScript, {
-        cwd: dir,
-        env: { PATH: `${dir}/bin:${process.env.PATH}`, STUB: dir, DIR: "apps/cli", FORCE },
-      })
-      assert.equal(result.status, 0, result.stdout + result.stderr)
-      assert.equal(
-        readFileSync(path.join(dir, "args"), "utf8").trim(),
-        `--fail-if-no-match --filter ./apps/cli ${expected}`,
-      )
-    }
   })
 })
 
@@ -2209,233 +1399,6 @@ describe("checkPluginVersions", () => {
     assert.match(
       checkPluginVersions({ packages: { ".": { "extra-files": [] } } }, manifests)[0],
       /plugin\.json is missing from extra-files/,
-    )
-  })
-})
-
-// ── Behaviour of the CLI release's bash steps ───────────────────────────────
-
-/** True when `tool` is on PATH: a step that needs it is skipped where it is not. */
-const onPath = (tool) => spawnSync(BASH, ["-c", `command -v ${tool}`]).status === 0
-const CLI_RELEASE = readDoc(CLI_PUBLISH_WORKFLOWS[0])
-const HOMEBREW = readDoc(CLI_PUBLISH_WORKFLOWS[1])
-
-describe("the CLI release's Resolve version step", () => {
-  const script = stepNamed(CLI_RELEASE.jobs.bundle, "version").run
-  const resolve = (VERSION) => {
-    const dir = tempDir("gh-config-cli-version-")
-    writeFile(dir, "apps/cli/package.json", JSON.stringify({ version: "1.2.3" }))
-    const output = path.join(dir, "github-output")
-    writeFileSync(output, "")
-    const env = { PATH: `${path.dirname(process.execPath)}:${process.env.PATH}` }
-    const result = runStep(script, { cwd: dir, env: { ...env, VERSION, GITHUB_OUTPUT: output } })
-    return { ...result, output: readFileSync(output, "utf8").trim() }
-  }
-
-  for (const [VERSION, why] of [
-    ["1.2.3", "the release version, which apps/cli/package.json carries"],
-    ["", "apps/cli/package.json's version on a dry run"],
-  ]) {
-    it(`resolves ${why}`, () => {
-      const result = resolve(VERSION)
-      assert.equal(result.status, 0, result.stdout + result.stderr)
-      assert.equal(result.output, "version=1.2.3")
-    })
-  }
-
-  it("refuses a release that left apps/cli/package.json behind", () => {
-    const result = resolve("1.2.4")
-    assert.equal(result.status, 1)
-    assert.match(result.stdout, /apps\/cli\/package\.json is 1\.2\.3, the release is 1\.2\.4/)
-    assert.equal(result.output, "")
-  })
-})
-
-describe("the CLI release's checksums step", () => {
-  const script = stepNamed(CLI_RELEASE.jobs.assets, "Write pulse-cli-SHA256SUMS").run
-  const BINARIES = CLI_RELEASE.jobs.binaries.strategy.matrix.include.map(({ file }) => file)
-  const ASSETS = [
-    ...BINARIES,
-    ...BINARIES.filter((file) => !file.endsWith(".exe")).map((file) => `${file}.tar.xz`),
-  ].sort()
-  const write = (files) => {
-    const dir = tempDir("gh-config-cli-sums-")
-    for (const file of files) writeFile(dir, file, `${file}\n`)
-    const result = runStep(script, { cwd: dir, env: {} })
-    const sums = path.join(dir, "pulse-cli-SHA256SUMS")
-    return { ...result, sums: existsSync(sums) ? readFileSync(sums, "utf8") : undefined }
-  }
-  const skip = !onPath("sha256sum") && "sha256sum is not on PATH"
-
-  it("checksums the five binaries and the four archives", { skip }, () => {
-    assert.equal(ASSETS.length, 9)
-    const result = write(ASSETS)
-    assert.equal(result.status, 0, result.stdout + result.stderr)
-    const lines = result.sums.trim().split("\n")
-    assert.deepEqual(
-      lines.map((line) => line.split(/\s+/)[1]),
-      ASSETS,
-    )
-    const sha = createHash("sha256").update(`${ASSETS[0]}\n`).digest("hex")
-    assert.equal(lines[0], `${sha}  ${ASSETS[0]}`)
-  })
-
-  it("refuses a set with a binary missing", { skip }, () => {
-    const result = write(ASSETS.slice(1))
-    assert.equal(result.status, 1)
-    assert.match(result.stdout, /Expected 5 binaries and 4 archives, got 8/)
-    assert.equal(result.sums, undefined)
-  })
-})
-
-/** The git blob id, which the contents API reports as a file's sha. */
-const blobSha = (text) =>
-  createHash("sha1")
-    .update(`blob ${Buffer.byteLength(text)}\0${text}`)
-    .digest("hex")
-
-/**
- * A stub gh over a fixture tap (tap.json: path -> content on main): logs every call, answers the
- * contents and ref reads, and prints a 404's body on stdout as gh does. A stub base64 with GNU's
- * -w0 and -d, which macOS lacks.
- */
-const GH_STUB = `#!/usr/bin/env node
-const fs = require("node:fs")
-const path = require("node:path")
-const crypto = require("node:crypto")
-const args = process.argv.slice(2)
-fs.appendFileSync(path.join(process.env.STUB, "calls"), JSON.stringify(args) + "\\n")
-const tap = JSON.parse(fs.readFileSync(path.join(process.env.STUB, "tap.json"), "utf8"))
-const write = args.includes("-X") || args.includes("-f")
-const read = /^repos\\/Miragon\\/homebrew-tap\\/contents\\/(.+)\\?ref=main$/.exec(args[1] ?? "")
-if (args[0] === "api" && !write && read) {
-  const text = tap[read[1]]
-  if (text === undefined) {
-    console.log('{"message":"Not Found","status":"404"}')
-    process.exit(1)
-  }
-  const jq = args[args.indexOf("--jq") + 1]
-  const sha = crypto.createHash("sha1").update("blob " + Buffer.byteLength(text) + "\\0" + text)
-  console.log(jq === ".sha" ? sha.digest("hex") : Buffer.from(text).toString("base64").replace(/.{60}/g, "$&\\n"))
-} else if (args[0] === "api" && !write && args[1] === "repos/Miragon/homebrew-tap/git/ref/heads/main") {
-  console.log("c0ffee")
-}
-`
-const BASE64_STUB = `#!/usr/bin/env node
-const fs = require("node:fs")
-const [flag, file] = process.argv.slice(2)
-if (flag === "-d") process.stdout.write(Buffer.from(fs.readFileSync(0, "utf8").replace(/\\s/g, ""), "base64"))
-else if (flag === "-w0") process.stdout.write(fs.readFileSync(file ?? 0).toString("base64"))
-else process.exit(2)
-`
-
-describe("the CLI release's tap update", () => {
-  const script = stepNamed(HOMEBREW.jobs.publish, "Open and squash-merge the pull request").run
-  const FORMULA = 'class PulseCli < Formula\n  desc "fixture"\nend\n'
-  const OLD = "class Operate < Formula\nend\n"
-  const RENAMED = '{\n  "operate": "pulse-cli"\n}\n'
-  const skip = !onPath("jq") && "jq is not on PATH"
-  const lines = (text) => text.split("\n").filter(Boolean)
-
-  function publish(tap) {
-    const dir = tempDir("gh-config-tap-")
-    writeFile(dir, "formula/pulse-cli.rb", FORMULA)
-    writeFile(dir, "tap.json", JSON.stringify(tap))
-    writeFile(dir, "bin/gh", GH_STUB, 0o755)
-    writeFile(dir, "bin/base64", BASE64_STUB, 0o755)
-    const result = runStep(script, {
-      cwd: dir,
-      env: {
-        PATH: `${dir}/bin:${path.dirname(process.execPath)}:${process.env.PATH}`,
-        STUB: dir,
-        RUNNER_TEMP: dir,
-        VERSION: "1.2.3",
-        TAP: "Miragon/homebrew-tap",
-      },
-    })
-    const log = path.join(dir, "calls")
-    const calls = existsSync(log) ? lines(readFileSync(log, "utf8")).map((l) => JSON.parse(l)) : []
-    return { ...result, calls }
-  }
-  const field = (call, name) =>
-    call
-      .find((arg, index) => call[index - 1] === "-f" && arg.startsWith(`${name}=`))
-      ?.slice(name.length + 1)
-  const writes = (calls) =>
-    calls.filter(
-      (call) => call[0] === "pr" || (call.includes("-X") && call[3]?.includes("/contents/")),
-    )
-  const decoded = (call) => Buffer.from(field(call, "content"), "base64").toString("utf8")
-
-  it(
-    "adds the formula, the rename and the removal of operate.rb on the first publish",
-    { skip },
-    () => {
-      const result = publish({ "Formula/operate.rb": OLD })
-      assert.equal(result.status, 0, result.stdout + result.stderr)
-      const branchFrom = result.calls.find(
-        (call) => call[1] === "repos/Miragon/homebrew-tap/git/refs",
-      )
-      assert.equal(field(branchFrom, "ref"), "refs/heads/pulse-cli-1.2.3")
-      assert.equal(field(branchFrom, "sha"), "c0ffee")
-      const [formula, renames, removal, create, merge] = writes(result.calls)
-      assert.equal(formula[3], "repos/Miragon/homebrew-tap/contents/Formula/pulse-cli.rb")
-      assert.equal(field(formula, "branch"), "pulse-cli-1.2.3")
-      assert.equal(decoded(formula), FORMULA)
-      assert.equal(field(formula, "sha"), undefined)
-      assert.equal(renames[3], "repos/Miragon/homebrew-tap/contents/formula_renames.json")
-      assert.equal(decoded(renames), RENAMED)
-      assert.equal(field(renames, "sha"), undefined)
-      assert.deepEqual(removal.slice(0, 4), [
-        "api",
-        "-X",
-        "DELETE",
-        "repos/Miragon/homebrew-tap/contents/Formula/operate.rb",
-      ])
-      assert.equal(field(removal, "sha"), blobSha(OLD))
-      assert.deepEqual(create.slice(0, 2), ["pr", "create"])
-      assert.match(create.join(" "), /Renames the formula operate to pulse-cli/)
-      assert.deepEqual(merge, [
-        "pr",
-        "merge",
-        "pulse-cli-1.2.3",
-        "--repo",
-        "Miragon/homebrew-tap",
-        "--squash",
-        "--delete-branch",
-      ])
-    },
-  )
-
-  it("keeps the tap's other renames and names the file's sha", { skip }, () => {
-    const renames = '{ "foo": "bar" }\n'
-    const result = publish({ "Formula/operate.rb": OLD, "formula_renames.json": renames })
-    assert.equal(result.status, 0, result.stdout + result.stderr)
-    const write = writes(result.calls).find((call) => call[3]?.endsWith("formula_renames.json"))
-    assert.deepEqual(JSON.parse(decoded(write)), { foo: "bar", operate: "pulse-cli" })
-    assert.equal(field(write, "sha"), blobSha(renames))
-  })
-
-  it("updates only the formula once the rename is in", { skip }, () => {
-    const current = "class PulseCli < Formula\nend\n"
-    const result = publish({ "Formula/pulse-cli.rb": current, "formula_renames.json": RENAMED })
-    assert.equal(result.status, 0, result.stdout + result.stderr)
-    const [formula, create, merge] = writes(result.calls)
-    assert.equal(formula[3], "repos/Miragon/homebrew-tap/contents/Formula/pulse-cli.rb")
-    assert.equal(field(formula, "sha"), blobSha(current))
-    assert.deepEqual(create.slice(0, 2), ["pr", "create"])
-    assert.doesNotMatch(create.join(" "), /Renames/)
-    assert.deepEqual(merge.slice(0, 2), ["pr", "merge"])
-  })
-
-  it("leaves a tap alone that holds this formula and the rename", { skip }, () => {
-    const result = publish({ "Formula/pulse-cli.rb": FORMULA, "formula_renames.json": RENAMED })
-    assert.equal(result.status, 0, result.stdout + result.stderr)
-    assert.match(result.stdout, /already holds pulse-cli 1\.2\.3 and the rename/)
-    assert.deepEqual(writes(result.calls), [])
-    assert.equal(
-      result.calls.filter((call) => call.includes("-X") || call.includes("-f")).length,
-      0,
     )
   })
 })

@@ -4,6 +4,13 @@ import { sharedConfig } from "../../vitest.shared.js"
 export default mergeConfig(
   sharedConfig,
   defineConfig({
+    plugins: [
+      {
+        name: "markdown-as-text",
+        transform: (code: string, id: string) =>
+          id.endsWith(".md") ? `export default ${JSON.stringify(code)}` : undefined,
+      },
+    ],
     test: {
       include: ["src/**/*.test.ts", "scripts/**/*.test.ts"],
       clearMocks: true,

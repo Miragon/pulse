@@ -12,8 +12,7 @@ import extractTSConfig from "dependency-cruiser/config-utl/extract-ts-config"
 /**
  * Self-test of the dependency rules in .dependency-cruiser.cjs (a gate that has never been
  * red is decoration). It builds a pnpm-shaped fixture workspace under os.tmpdir() that holds
- * the apps and packages the rules are about, including the ones the repo does not have yet
- * (an apps/vscode named pulse, two -domain packages), cruises it ONCE with the REAL
+ * the apps and packages the rules are about, cruises it ONCE with the REAL
  * config over the paths of the pinned `pnpm lint:architecture` and `pnpm lint:architecture:cli`
  * commands, and asserts the EXACT set of rules each planted import trips. Exact, so an edge that only
  * no-cross-package-deep-imports catches never passes as "some violation".
@@ -38,13 +37,8 @@ const EXT = "apps/vscode"
 const SHELL = "packages/core/widget-shell"
 const C7_CLIENT = "packages/connectors/camunda/camunda7-client"
 const C7_CONNECTOR = "packages/connectors/camunda/camunda7-connector"
-const C7_DOMAIN = "packages/connectors/camunda/camunda7-domain"
 const AN_CLIENT = "packages/connectors/analytics/analytics-client"
 const AN_CONNECTOR = "packages/connectors/analytics/analytics-connector"
-const AN_DOMAIN = "packages/connectors/analytics/analytics-domain"
-// A legal client whose name merely contains "-domain": the -domain exemption of the
-// interface rules must end at the name's boundary, or this package slips through.
-const C7_DOMAIN_CLIENT = "packages/connectors/camunda/camunda7-domain-client"
 
 const WORKSPACE = {
   [SERVER]: { name: "@miragon/pulse-mcp-server-camunda7", private: true },
@@ -53,11 +47,8 @@ const WORKSPACE = {
   [SHELL]: { name: "@miragon/pulse-widget-shell" },
   [C7_CLIENT]: { name: "@miragon/pulse-camunda7-client" },
   [C7_CONNECTOR]: { name: "@miragon/pulse-camunda7-connector" },
-  [C7_DOMAIN]: { name: "@miragon/pulse-camunda7-domain" },
   [AN_CLIENT]: { name: "@miragon/pulse-analytics-client" },
   [AN_CONNECTOR]: { name: "@miragon/pulse-analytics-connector" },
-  [AN_DOMAIN]: { name: "@miragon/pulse-analytics-domain" },
-  [C7_DOMAIN_CLIENT]: { name: "@miragon/pulse-camunda7-domain-client" },
 }
 
 // Third-party stubs installed into every importer's own node_modules. `vscode` is left out
@@ -89,17 +80,11 @@ const THIRD_PARTY = [
 
 const PEERS = "connectors-are-peers"
 const OWN_CLIENT = "connectors-own-their-client"
-const OWN_DOMAIN = "connectors-own-their-domain"
 const CLIENT_LEAF = "clients-are-leaves"
-const DOMAIN_LEAF = "domains-are-leaves"
-const DOMAIN_PURE = "domains-are-pure"
 const CORE = "core-is-foundation"
 const NO_APP = "packages-never-import-the-app"
 const APP_APP = "apps-never-import-apps"
 const HEADLESS = "cli-is-headless"
-const NO_CLI = "nothing-imports-the-cli"
-const NOT_HOST = "extension-is-not-an-mcp-host"
-const NO_EXT = "nothing-imports-the-extension"
 const DEEP = "no-cross-package-deep-imports"
 const CIRCULAR = "no-circular"
 const CLI_CYCLE = "cli-no-circular"
@@ -125,7 +110,6 @@ const CLI_API_API = "cli-api-not-to-other-api"
 const CLI_ENGINES = "cli-engines-not-to-each-other"
 const CLI_HTTP = "cli-http-not-to-config-cli-operation"
 const CLI_GENERATED = "cli-generated-catalog-only-via-catalog-ts-or-adapters"
-const CLI_OWN_CATALOG = "cli-adapter-reads-its-own-catalog"
 const CLI_OUTPUT = "cli-output-only-operation-result"
 const CLI_OUTPUT_TYPES = "cli-output-operation-result-type-only"
 const CLI_SCRIPTS = "cli-scripts-only-catalog-types-and-schema"
@@ -136,7 +120,6 @@ const EXT_SRC = `${EXT}/src/extension.ts`
 const SHELL_SRC = `${SHELL}/src/index.ts`
 const C7_CLIENT_SRC = `${C7_CLIENT}/src/index.ts`
 const C7_CONNECTOR_SRC = `${C7_CONNECTOR}/src/index.ts`
-const C7_DOMAIN_SRC = `${C7_DOMAIN}/src/index.ts`
 const AN_CONNECTOR_SRC = `${AN_CONNECTOR}/src/index.ts`
 
 // Leaf modules the relative escapes point at. They import nothing, so no probe forms a cycle
@@ -168,24 +151,14 @@ const LEAVES = [
   `${CLI}/src/a.test.ts`,
   `${CLI}/scripts/target.ts`,
   `${CLI}/test/support/fake.ts`,
-  `${EXT}/src/target.ts`,
-  `${EXT}/src/panel.ts`,
   `${SHELL}/src/target.ts`,
   `${C7_CLIENT}/src/target.ts`,
   `${C7_CLIENT}/src/lib.ts`,
   `${C7_CLIENT}/src/x-connector/y.ts`,
   `${C7_CLIENT}/src/generated/sdk.gen.ts`,
-  `${C7_CONNECTOR}/src/order-domain/model.ts`,
   `${C7_CONNECTOR}/src/generated/catalog.ts`,
-  `${C7_DOMAIN}/src/target.ts`,
-  `${C7_DOMAIN}/src/model.ts`,
-  `${AN_DOMAIN}/src/target.ts`,
 ]
-const JSON_LEAVES = [
-  `${CLI}/src/generated/commands.json`,
-  `${CLI}/src/generated/catalog.a.json`,
-  `${CLI}/src/generated/catalog.b.json`,
-]
+const JSON_LEAVES = [`${CLI}/src/generated/commands.json`, `${CLI}/src/generated/catalog.a.json`]
 
 /**
  * One suite per rule: [importer, specifier, exact rules, form?]. `form` "type" plants an
@@ -194,7 +167,7 @@ const JSON_LEAVES = [
 const SUITES = [
   {
     rule: HEADLESS,
-    title: "the CLI imports only -domain packages of the workspace and nothing of the MCP/UI stack",
+    title: "the CLI imports no workspace package and nothing of the MCP/UI stack",
     cases: [
       ...[
         "@miragon/pulse-widget-shell",
@@ -221,22 +194,13 @@ const SUITES = [
         "@miragon/modeler-shell",
         "vscode",
       ].map((spec) => [CLI_SRC, spec, [HEADLESS]]),
-      [CLI_SRC, "pulse-cockpit", [APP_APP, HEADLESS, NO_EXT]],
-      // "-domain" inside a name is no -domain package: declared (through the symlink), as a
-      // subpath and bare (the naming gate admits core names such as order-domains).
-      [CLI_SRC, "@miragon/pulse-camunda7-domain-client", [HEADLESS]],
-      [CLI_SRC, "@miragon/pulse-camunda7-domain-client/sdk", [HEADLESS]],
-      [CLI_SRC, "@miragon/pulse-order-domains", [HEADLESS]],
-      [CLI_SRC, "@miragon/pulse-x-domain-utils", [HEADLESS]],
+      [CLI_SRC, "pulse-cockpit", [APP_APP, HEADLESS]],
       [
         `${CLI}/src/escape-package.ts`,
         "../../../packages/core/widget-shell/src/target.ts",
         [HEADLESS, DEEP],
       ],
-      // Allowed: a -domain package (any subpath), the CLI's own libraries and Node built-ins.
-      [CLI_SRC, "@miragon/pulse-camunda7-domain", []],
-      [CLI_SRC, "@miragon/pulse-camunda7-domain/testing", []],
-      [CLI_SRC, "@miragon/pulse-analytics-domain", []],
+      // Allowed: the CLI's own libraries and Node built-ins.
       [CLI_SRC, "commander", [CLI_COMMANDER]],
       [`${CLI}/src/cli/program.ts`, "commander", []],
       [CLI_SRC, "node:fs", []],
@@ -246,97 +210,11 @@ const SUITES = [
     ],
   },
   {
-    rule: NO_CLI,
-    title: "nothing imports the CLI",
-    cases: [
-      [SERVER_SRC, "@miragon/pulse-cli", [APP_APP, NO_CLI]],
-      [SERVER_SRC, "@miragon/pulse-cli/commands", [APP_APP, NO_CLI]],
-      [`${SERVER}/src/escape-cli.ts`, "../../cli/src/target.ts", [APP_APP, NO_CLI, DEEP]],
-      [EXT_SRC, "@miragon/pulse-cli", [APP_APP, NOT_HOST, NO_CLI]],
-      [SHELL_SRC, "@miragon/pulse-cli", [NO_APP, NO_CLI]],
-      [
-        `${SHELL}/src/escape-cli.ts`,
-        "../../../../apps/cli/src/target.ts",
-        [CORE, NO_APP, NO_CLI, DEEP],
-      ],
-      [C7_DOMAIN_SRC, "@miragon/pulse-cli", [DOMAIN_LEAF, NO_APP, NO_CLI]],
-      // Anchored: a package whose name only starts with the CLI's is not the CLI.
-      [SERVER_SRC, "@miragon/pulse-client", []],
-    ],
-  },
-  {
-    rule: NOT_HOST,
-    title:
-      "the extension imports only -domain packages of the workspace and nothing of the MCP/UI stack",
-    cases: [
-      ...[
-        "@miragon/pulse-widget-shell",
-        "@miragon/pulse-widget-shell/widgets",
-        "@miragon/pulse-camunda7-client",
-        "@miragon/pulse-camunda7-client/sdk",
-        "@miragon/pulse-camunda7-client/routes",
-        "@miragon/pulse-camunda7-connector",
-        "@miragon/pulse-vscode-core",
-        "react",
-        "react-dom",
-        "lucide-react",
-        "@tanstack/react-query",
-        "mcp-use",
-        "@modelcontextprotocol/sdk",
-        "@miragon/mcp-toolkit-ui/app",
-        "hono",
-        "postgres",
-        "prom-client",
-        "zod",
-        "@hey-api/client-fetch",
-      ].map((spec) => [EXT_SRC, spec, [NOT_HOST]]),
-      [EXT_SRC, "@miragon/pulse-mcp-server-camunda7", [APP_APP, NOT_HOST]],
-      [EXT_SRC, "@miragon/pulse-camunda7-domain-client", [NOT_HOST]],
-      [EXT_SRC, "@miragon/pulse-camunda7-domain-client/sdk", [NOT_HOST]],
-      [EXT_SRC, "@miragon/pulse-order-domains", [NOT_HOST]],
-      [EXT_SRC, "@miragon/pulse-x-domain-utils", [NOT_HOST]],
-      [
-        `${EXT}/src/escape-package.ts`,
-        "../../../packages/core/widget-shell/src/target.ts",
-        [NOT_HOST, DEEP],
-      ],
-      [`${EXT}/src/escape-app.ts`, "../../cli/src/target.ts", [APP_APP, NOT_HOST, NO_CLI, DEEP]],
-      // Allowed: a -domain package, the host API, the extension's own UI stack, Node.
-      [EXT_SRC, "@miragon/pulse-camunda7-domain", []],
-      [EXT_SRC, "@miragon/pulse-camunda7-domain/testing", []],
-      [EXT_SRC, "vscode", []],
-      [EXT_SRC, "preact", []],
-      [EXT_SRC, "preact/hooks", []],
-      [EXT_SRC, "bpmn-js", []],
-      [EXT_SRC, "bpmn-js/lib/NavigatedViewer", []],
-      [EXT_SRC, "diagram-js", []],
-      [EXT_SRC, "@miragon/modeler-shell/vscode/extension", []],
-      [EXT_SRC, "node:fs", []],
-      [EXT_SRC, "./panel.ts", []],
-    ],
-  },
-  {
-    rule: NO_EXT,
-    title: "nothing imports the extension",
-    cases: [
-      [SERVER_SRC, "pulse-cockpit", [APP_APP, NO_EXT]],
-      [SERVER_SRC, "pulse-cockpit/out/api", [APP_APP, NO_EXT]],
-      [`${SERVER}/src/escape-extension.ts`, "../../vscode/src/target.ts", [APP_APP, NO_EXT, DEEP]],
-      [SHELL_SRC, "pulse-cockpit", [NO_APP, NO_EXT]],
-      [C7_CLIENT_SRC, "pulse-cockpit", [NO_APP, NO_EXT]],
-      [C7_CLIENT_SRC, "pulse-cockpit/out/api", [NO_APP, NO_EXT]],
-      [C7_DOMAIN_SRC, "pulse-cockpit", [DOMAIN_LEAF, NO_APP, NO_EXT]],
-      // Anchored: the name is unscoped, and a third-party pulse-tools is not the extension.
-      [SERVER_SRC, "pulse-tools", []],
-      [SHELL_SRC, "pulse-tools", []],
-    ],
-  },
-  {
     rule: APP_APP,
     title: "an app never imports an app",
     cases: [
       [CLI_SRC, "@miragon/pulse-mcp-server-camunda7", [APP_APP, HEADLESS]],
-      [EXT_SRC, "@miragon/pulse-mcp-server-camunda7/src/setup", [APP_APP, NOT_HOST]],
+      [EXT_SRC, "@miragon/pulse-mcp-server-camunda7/src/setup", [APP_APP]],
       [
         `${CLI}/src/escape-app.ts`,
         "../../mcp-server-camunda7/src/target.ts",
@@ -369,17 +247,14 @@ const SUITES = [
       ],
       [C7_CLIENT_SRC, "@miragon/pulse-mcp-server-camunda7", [CLIENT_LEAF, NO_APP]],
       [C7_CONNECTOR_SRC, "@miragon/pulse-mcp-server-camunda7", [NO_APP]],
-      [C7_CONNECTOR_SRC, "@miragon/pulse-cli", [NO_APP, NO_CLI]],
-      [C7_CONNECTOR_SRC, "pulse-cockpit", [NO_APP, NO_EXT]],
-      [C7_DOMAIN_SRC, "@miragon/pulse-mcp-server-camunda7", [DOMAIN_LEAF, NO_APP]],
+      [C7_CONNECTOR_SRC, "@miragon/pulse-cli", [NO_APP]],
+      [C7_CONNECTOR_SRC, "pulse-cockpit", [NO_APP]],
     ],
   },
   {
     rule: CORE,
-    title: "packages/core reaches up into no connector, client, -domain package or app",
+    title: "packages/core reaches up into no connector, client or app",
     cases: [
-      [SHELL_SRC, "@miragon/pulse-camunda7-domain", [CORE]],
-      [SHELL_SRC, "@miragon/pulse-camunda7-domain/testing", [CORE]],
       [SHELL_SRC, "@miragon/pulse-camunda7-connector", [CORE]],
       [SHELL_SRC, "@miragon/pulse-analytics-client", [CORE]],
       [SHELL_SRC, "react", []],
@@ -417,102 +292,19 @@ const SUITES = [
     ],
   },
   {
-    rule: OWN_DOMAIN,
-    title: "a connector depends on its own -domain package only",
-    cases: [
-      [C7_CONNECTOR_SRC, "@miragon/pulse-analytics-domain", [OWN_DOMAIN]],
-      [AN_CONNECTOR_SRC, "@miragon/pulse-camunda7-domain", [OWN_DOMAIN]],
-      [AN_CONNECTOR_SRC, "@miragon/pulse-camunda7-domain/testing", [OWN_DOMAIN]],
-      [
-        `${C7_CONNECTOR}/src/escape-domain.ts`,
-        "../../../analytics/analytics-domain/src/target.ts",
-        [OWN_DOMAIN, DEEP],
-      ],
-      [C7_CONNECTOR_SRC, "@miragon/pulse-camunda7-domain", []],
-      [C7_CONNECTOR_SRC, "@miragon/pulse-camunda7-domain/testing", []],
-      [AN_CONNECTOR_SRC, "@miragon/pulse-analytics-domain", []],
-      // The own domain by relative path is only a deep import; a connector folder named
-      // `*-domain/` is no domain at all.
-      [`${C7_CONNECTOR}/src/escape-own-domain.ts`, "../../camunda7-domain/src/target.ts", [DEEP]],
-      [C7_CONNECTOR_SRC, "./order-domain/model.ts", []],
-    ],
-  },
-  {
     rule: CLIENT_LEAF,
     title: "clients are leaves, also for workspace packages in their own node_modules",
     cases: [
       [C7_CLIENT_SRC, "@miragon/pulse-widget-shell", [CLIENT_LEAF]],
-      [C7_CLIENT_SRC, "@miragon/pulse-camunda7-domain", [CLIENT_LEAF]],
       [C7_CLIENT_SRC, "@miragon/pulse-analytics-client", [CLIENT_LEAF]],
       [C7_CLIENT_SRC, "@miragon/pulse-camunda7-connector/widgets", [CLIENT_LEAF]],
-      [`${C7_CLIENT}/src/escape.ts`, "../../camunda7-domain/src/target.ts", [CLIENT_LEAF, DEEP]],
+      [
+        `${C7_CLIENT}/src/escape.ts`,
+        "../../../../core/widget-shell/src/target.ts",
+        [CLIENT_LEAF, DEEP],
+      ],
       [C7_CLIENT_SRC, "zod", []],
       [C7_CLIENT_SRC, "./lib.ts", []],
-    ],
-  },
-  {
-    rule: DOMAIN_LEAF,
-    title: "a -domain package imports no workspace package, no zod and nothing of the MCP/UI stack",
-    cases: [
-      ...[
-        "@miragon/pulse-widget-shell",
-        "@miragon/pulse-widget-shell/server",
-        "@miragon/pulse-camunda7-client",
-        "@miragon/pulse-camunda7-client/sdk",
-        "@miragon/pulse-camunda7-client/routes",
-        "@miragon/pulse-camunda7-connector",
-        "@miragon/pulse-analytics-domain",
-        "zod",
-        "react",
-        "lucide-react",
-        "@tanstack/react-query",
-        "mcp-use",
-        "@modelcontextprotocol/sdk",
-        "@miragon/mcp-toolkit-core",
-        "hono",
-        "postgres",
-        "prom-client",
-        "@hey-api/client-fetch",
-        "vscode",
-        "commander",
-      ].map((spec) => [C7_DOMAIN_SRC, spec, [DOMAIN_LEAF]]),
-      // A type-only import counts too (tsPreCompilationDeps): no `import type` from the SDK.
-      [`${C7_DOMAIN}/src/client-type.ts`, "@miragon/pulse-camunda7-client", [DOMAIN_LEAF], "type"],
-      [`${C7_DOMAIN}/src/escape.ts`, "../../camunda7-client/src/target.ts", [DOMAIN_LEAF, DEEP]],
-      // A relative escape into an app: the rule's own "no app" pattern, not only its neighbours'.
-      [
-        `${C7_DOMAIN}/src/escape-app.ts`,
-        "../../../../../apps/cli/src/target.ts",
-        [DOMAIN_LEAF, NO_APP, NO_CLI, DEEP],
-      ],
-      [
-        `${C7_DOMAIN}/src/escape-server.ts`,
-        "../../../../../apps/mcp-server-camunda7/src/target.ts",
-        [DOMAIN_LEAF, NO_APP, DEEP],
-      ],
-      // Its tests are leaves too: a test imports no zod either.
-      [`${C7_DOMAIN}/src/index.test.ts`, "zod", [DOMAIN_LEAF]],
-      [C7_DOMAIN_SRC, "./model.ts", []],
-      [C7_DOMAIN_SRC, "reactive", []],
-      [`${C7_DOMAIN}/src/index.test.ts`, "vitest", []],
-    ],
-  },
-  {
-    rule: DOMAIN_PURE,
-    title: "a -domain package imports no Node built-in outside its tests",
-    cases: [
-      [`${C7_DOMAIN}/src/node-fs.ts`, "node:fs", [DOMAIN_PURE]],
-      [`${C7_DOMAIN}/src/fs.ts`, "fs", [DOMAIN_PURE]],
-      [`${C7_DOMAIN}/src/crypto.ts`, "node:crypto", [DOMAIN_PURE]],
-      [`${C7_DOMAIN}/src/stream-type.ts`, "node:stream", [DOMAIN_PURE], "type"],
-      [`${C7_DOMAIN}/src/os-dynamic.ts`, "node:os", [DOMAIN_PURE], "dynamic"],
-      [`${AN_DOMAIN}/src/index.ts`, "node:path", [DOMAIN_PURE]],
-      // Only *.test.ts(x) and *.test-support.ts(x) are tests.
-      [`${C7_DOMAIN}/src/latest.ts`, "node:path", [DOMAIN_PURE]],
-      [`${C7_DOMAIN}/src/test.ts`, "node:path", [DOMAIN_PURE]],
-      [`${C7_DOMAIN}/src/index.test.ts`, "node:fs", []],
-      [`${C7_DOMAIN}/src/engine.test-support.ts`, "node:crypto", []],
-      [`${C7_DOMAIN}/src/view.test.tsx`, "node:path", []],
     ],
   },
   {
@@ -520,9 +312,9 @@ const SUITES = [
     title: "no relative escape into a sibling package",
     cases: [
       [
-        `${C7_DOMAIN}/src/escape-shell.ts`,
+        `${C7_CONNECTOR}/src/escape-shell.ts`,
         "../../../../core/widget-shell/src/target.ts",
-        [DOMAIN_LEAF, DEEP],
+        [DEEP],
       ],
       [
         `${SERVER}/src/escape-package.ts`,
@@ -740,7 +532,7 @@ const SUITES = [
   },
   {
     rule: CLI_GENERATED,
-    title: "only catalog.ts and the engine adapters read the generated catalogs",
+    title: "only catalog.ts and the engine adapters read the generated catalog",
     cases: [
       [`${CLI}/src/output/to-catalog.ts`, "../generated/catalog.a.json", [CLI_GENERATED]],
       [
@@ -749,14 +541,6 @@ const SUITES = [
         [CLI_GENERATED, CLI_SCRIPTS],
       ],
       [`${CLI}/src/engines/a/adapter.ts`, "../../generated/catalog.a.json", []],
-    ],
-  },
-  {
-    rule: CLI_OWN_CATALOG,
-    title: "an engine adapter reads only its own catalog",
-    cases: [
-      [`${CLI}/src/engines/b/adapter.ts`, "../../generated/catalog.a.json", [CLI_OWN_CATALOG]],
-      [`${CLI}/src/engines/b/adapter.ts`, "../../generated/catalog.b.json", []],
     ],
   },
   {
@@ -1038,14 +822,14 @@ describe("the self-test covers the whole config", () => {
     assert.deepEqual(soft, [], "a rule below severity error never fails pnpm lint:architecture")
   })
 
-  it("the connector-family roles the rules key on are connector, client and domain", () => {
+  it("the connector-family roles the rules key on are connector and client", () => {
     const roles = new Set(
       config.forbidden
         .flatMap((rule) => [rule.from.path ?? []].flat())
         .map((pattern) => /^\^packages\/connectors\/.*-([a-z]+)\/$/.exec(pattern)?.[1])
         .filter(Boolean),
     )
-    assert.deepEqual([...roles].sort(), ["client", "connector", "domain"])
+    assert.deepEqual([...roles].sort(), ["client", "connector"])
   })
 
   it("every real connector-family package carries one of those roles", () => {
@@ -1062,7 +846,7 @@ describe("the self-test covers the whole config", () => {
           )
           .map((entry) => `packages/connectors/${family.name}/${entry.name}`),
       )
-      .filter((dir) => !/-(?:connector|client|domain)$/.test(dir))
+      .filter((dir) => !/-(?:connector|client)$/.test(dir))
     assert.deepEqual(offenders, [], "a package without a role suffix falls out of every rule")
   })
 })

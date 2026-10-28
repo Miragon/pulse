@@ -14,8 +14,8 @@ pulse-cli guide auth
 ```
 
 - `pulse-cli guide` prints a short usage guide with an index of topics. `pulse-cli guide <topic>`
-  prints one topic (`workflow`, `input`, `output`, `config`, `auth`, `recipes`),
-  `pulse-cli guide --list` lists them. Every command line in the guide is tested against the CLI.
+  prints one topic (`workflow`, `input`, `output`, `config`, `auth`, `recipes`), the page of these
+  docs that covers it, offline; `pulse-cli guide --list` lists them. Every command line in the guide is tested against the CLI.
 - `pulse-cli commands [group]` and `--search <words>` list commands; `pulse-cli describe` returns
   arguments, options, body schema and examples as JSON. `--dry-run` previews a write.
 - `pulse-cli api <METHOD> <path>` sends a raw request with the same guards, output and errors.

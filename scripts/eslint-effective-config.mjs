@@ -1,8 +1,8 @@
 /**
  * The effective-config half of the ESLint ratchet (scripts/check-ratchets.mjs).
  *
- * The AST half reads eslint.config.mjs as source and fails closed on shapes
- * it cannot see into. This half asks ESLint itself: the merge-base config and
+ * The AST half reads only the `ignores` lists and the imports of
+ * eslint.config.mjs. This half asks ESLint itself: the merge-base config and
  * the working-tree config are both evaluated, and for every source file under
  * apps/ and packages/ — plus one sample path per `files`/`ignores` glob that
  * matches no file yet, so an exemption pre-planted for a future file is seen

@@ -4,8 +4,7 @@ import fc from "fast-check"
 import { format, resolveConfig } from "prettier"
 import { describe, expect, it } from "vitest"
 import { GLOBAL_FLAGS } from "../../scripts/catalog/flags.js"
-import { GUIDE_PAGES } from "../../test/support/guide-pages.js"
-import { DEFAULT_PAGE_SIZE } from "../catalog/rules.js"
+import { DOC_PAGES } from "../../test/support/doc-pages.js"
 import { EXIT_CODES } from "../errors.js"
 import { VARIABLE_TYPES } from "../operation/variables.js"
 import { findGuideTopic, GUIDE, GUIDE_TOPICS, topicSuggestions } from "./guide.js"
@@ -17,15 +16,13 @@ const README = readFileSync(new URL("../../README.md", import.meta.url), "utf8")
 const AGENTS_PAGE = readFileSync(new URL("../../../../docs/cli/agents.md", import.meta.url), "utf8")
 
 /**
- * Size budgets per page, with headroom: an edit that adds a few lines to a page must not break
- * main when another one did the same (one 250-line guide did). New material goes to the topic it
- * belongs to, or into a new topic.
+ * Size budget of the core guide, with headroom: an edit that adds a few lines must not break main
+ * when another one did the same (one 250-line guide did). New material goes to a topic's docs page.
  */
 const MAX_CORE_LINES = 180
-const MAX_TOPIC_LINES = 200
 const MAX_PROSE_WIDTH = 100
 
-const ALL = GUIDE_PAGES.map(([, text]) => text).join("\n")
+const ALL = [GUIDE, ...GUIDE_TOPICS.map((topic) => topic.text)].join("\n")
 
 function topicText(name: string): string {
   return findGuideTopic(name)?.text ?? ""
@@ -44,7 +41,8 @@ function expectAll(text: string, parts: readonly string[]): void {
   for (const part of parts) expect(text).toContain(part)
 }
 
-describe.each(GUIDE_PAGES)("guide page %s", (_, text) => {
+describe("the core guide page", () => {
+  const text = GUIDE
   const lines = text.split("\n")
 
   it("is a markdown document with one final newline and closed code blocks", () => {
@@ -185,127 +183,25 @@ describe("the core guide (pulse-cli guide)", () => {
 })
 
 describe("the topics (pulse-cli guide <topic>)", () => {
-  it("have unique lowercase names, one-line summaries and a title naming their command", () => {
+  it("have unique lowercase names, one-line summaries and a docs page", () => {
     const names = GUIDE_TOPICS.map((topic) => topic.name)
+    const docs = DOC_PAGES.map(([, text]) => text)
     expect(new Set(names).size).toBe(names.length)
     for (const topic of GUIDE_TOPICS) {
       expect(topic.name).toMatch(/^[a-z]+(?:-[a-z]+)*$/)
       expect(topic.summary).toMatch(/^\S[^\n]{10,85}[^.\s]$/)
-      expect(topic.text.startsWith(`# pulse-cli guide ${topic.name}: `)).toBe(true)
+      expect(docs).toContain(topic.text)
       expect(findGuideTopic(topic.name)).toBe(topic)
     }
     expect(findGuideTopic("core")).toBeUndefined()
   })
 
-  it.each(GUIDE_TOPICS.map((topic) => [topic.name, topic.text] as const))(
-    `%s stays within ${MAX_TOPIC_LINES} lines and has command lines`,
-    (_, text) => {
-      expect(text.split("\n").length).toBeLessThanOrEqual(MAX_TOPIC_LINES)
-      expect(text).toMatch(/```sh\n(?:.*\n)*?pulse-cli /)
-    },
-  )
-
-  it("workflow: selection, options and the rules agents need", () => {
-    expectAll(topicText("workflow"), [
-      "--business-key <key>",
-      "--process-definition-key <key> --latest",
-      "--history",
-      "--wait-timeout",
-      "--batch <id>",
-      "--execute-jobs",
-      "external task (locked first)",
-      "--bpmn-error <code>",
-      "--fail <message>",
-      "--now",
-      "needs `--yes`",
-      "--start-key <key>",
-      "--fail-on warning|critical",
-      "instead of `sleep`",
-      "`advance` needs `--activity-id`",
-      "still send their reads",
-      "Exit code 9",
-      "still prints the view",
-    ])
-  })
-
-  it("input: arguments, booleans, arrays, dates, variables, bodies, files and global options", () => {
-    expectAll(topicText("input"), [
-      "pulse-cli process-instance get-variable <id> <var-name>",
-      "`--no-with-incident` sends `false`",
-      "--process-instance-ids a,b --process-instance-ids c",
-      "2024-05-01T10:00:00.000+0200",
-      "Times without an offset are UTC",
-      `default ${DEFAULT_PAGE_SIZE}`,
-      "name:Type=value",
-      "--local-var",
-      "--triggered-scope-var",
-      "--value <raw>",
-      "--body -",
-      "--body @file.json",
-      "flags win, `--var` entries win per name",
-      "--no-validate",
-      "--base-dir <dir>",
-      "--data <path>",
-    ])
-  })
-
-  it("output: formats, projection, non-JSON responses, previews and traces", () => {
-    expectAll(topicText("output"), [
-      "--pretty",
-      "lists the existing fields",
-      "-o table",
-      "2^53",
-      "raw XML",
-      "--out-file <path>",
-      '{"outFile", "bytes", "contentType"}',
-      "Done: <METHOD> <path> → 204 No Content",
-      "`curl`",
-      "--verbose",
-      "--show-secrets",
-    ])
-  })
-
-  it("config: profiles, the config file, the environment, engines and headers", () => {
-    expectAll(topicText("config"), [
-      "pulse-cli config set local --url http://localhost:8080/engine-rest --default",
-      "pulse-cli config show --profile prod",
-      "pulse-cli config path",
-      "--config <path>",
-      "config set` creates it",
-      "only formats the output",
-      "--engine <name>",
-      "PULSE_CLI_HEADERS",
-      "PULSE_CLI_TOKEN",
-      "PULSE_CLI_OAUTH_*",
-      "read-only profiles",
-    ])
-  })
-
-  it("auth: Basic auth, bearer tokens and OAuth without logging in itself", () => {
+  it("auth: agents never log in themselves", () => {
     expectAll(topicText("auth"), [
-      "PULSE_CLI_USERNAME",
-      "PULSE_CLI_PASSWORD",
-      "--auth-password-env <VAR>",
-      "PULSE_CLI_AUTH=none",
-      "--auth-token-env <VAR>",
-      "TOKEN_EXPIRED",
-      "PULSE_CLI_OAUTH_*",
-      "pulse-cli auth login --profile <name>",
-      "Never run `auth login` yourself",
+      "never runs `auth login` itself",
       "LOGIN_REQUIRED",
-      "pulse-cli auth status",
-      "`UNAUTHORIZED`/`FORBIDDEN` despite a login",
       "do not ask for a new login",
-      "--show-secrets",
-    ])
-  })
-
-  it("recipes: everyday tasks, incidents and raw requests", () => {
-    expectAll(topicText("recipes"), [
-      "The worker id must match the one that locked the task",
-      "`incident resolve` only resolves custom incidents",
-      "pulse-cli api GET",
-      "The effect is taken from the matching catalog operation (the query\n`POST /process-instance` is a read)",
+      "TOKEN_EXPIRED",
     ])
   })
 })

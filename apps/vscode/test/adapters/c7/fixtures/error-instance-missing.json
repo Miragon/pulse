@@ -1,8 +1,0 @@
-{
-  "error": {
-    "code": "NOT_FOUND",
-    "exitCode": 5,
-    "message": "Process instance 00000000-0000-0000-0000-000000000000 does not exist (neither running nor in the history)",
-    "hint": "List instances with `operate process-instance list` (running) or `operate historic-process-instance list` (also ended); with history level none, ended instances cannot be found."
-  }
-}

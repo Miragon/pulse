@@ -16,7 +16,7 @@ name: Publish VS Code extension
 #   attach   uploads the .vsix to the release v<version> (contents: write, no credentials).
 # Every release publishes a plain release, never a pre-release. --skip-duplicate makes a re-run
 # after a partial failure publish only what is missing. scripts/check-github-config.mjs
-# (`pnpm lint:github`) pins this shape; its test runs the Resolve extension step.
+# (`pnpm lint:github`) pins its credential shape.
 on:
   workflow_call:
     inputs:
@@ -42,7 +42,7 @@ on:
 
 permissions: {}
 
-# Explicit bash: -eo pipefail, the flags scripts/check-github-config.test.mjs runs the steps with.
+# Explicit bash: -eo pipefail.
 defaults:
   run:
     shell: bash
@@ -135,7 +135,7 @@ jobs:
         run: |
           vsix="$RUNNER_TEMP/vsix/${VSIX}"
           listing="$(unzip -Z1 "$vsix")"
-          for file in extension/package.json extension/dist/extension.cjs extension/dist/engine-cli.js extension/dist/webview.js extension/dist/webview.css; do
+          for file in extension/package.json extension/dist/extension.cjs extension/dist/webview.js extension/dist/webview.css; do
             if ! grep -qxF "$file" <<<"$listing"; then
               echo "::error::The .vsix lacks ${file}"
               exit 1

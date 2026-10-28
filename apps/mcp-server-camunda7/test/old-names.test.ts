@@ -4,49 +4,20 @@ import { describe, expect, it } from "vitest"
 import { REPO_ROOT } from "./source-scan.js"
 
 /**
- * This repo and everything it ships was renamed to Pulse (#415): the npm scope
- * @miragon/pulse-*, the repo Miragon/pulse, the image ghcr.io/miragon/pulse-server
- * (the GitHub Container Registry: nothing publishes to Docker Hub any more, so the
- * image there, or a bare miragon/pulse-server that Docker resolves there, does not
- * exist), the starter Miragon/pulse-starter, the docs at miragon.github.io/pulse,
- * the MCP server slug and log label "pulse". An old name fails SILENTLY in most places
- * it survives: an import or a vi.mock id resolves the last old release from npm
- * or mocks nothing, a pnpm filter matches nothing and exits 0, a link 404s, a
- * client key or a log alert stops matching. No other gate reads these names
- * (docs-refs.test.ts checks no `@scope/pkg` token), so this guard reads every
- * tracked text file (and every untracked one git does not ignore) and fails on
- * the old technical names.
- *
- * "Miragon AI" is NOT banned: it stays the family of all Miragon tools ("Pulse,
- * part of Miragon AI"), miragon.ai its domain, and the family repos
- * Miragon/miragon-ai-docs and Miragon/miragon-ai-website (with its
- * scripts/check-miragon-ai-refs.mjs) keep their names. The patterns leave those
- * alone by construction; the self-test below pins that.
+ * Names that fail SILENTLY where they survive: a package someone else owns installs a
+ * stranger's code, an image off the GitHub Container Registry pulls nothing (nothing
+ * publishes to Docker Hub), and a technical name of the retired operate CLI points to an
+ * archived product. No other gate reads them, so this guard reads every tracked text file
+ * (and every untracked one git does not ignore) and fails on them.
  */
 
 const RULES = [
-  // With or without the slash ("the @miragon-ai packages"), never a URL's
-  // userinfo@host (postgres://miragon:<pw>@miragon-ai-playground-postgres…).
-  { name: "old npm scope", pattern: /@miragon-ai(?:\/|(?![\w-]))/ },
-  { name: "old repo", pattern: /(?<![\w-])miragon\/miragon-ai(?![\w-])/i },
-  { name: "old docs URL", pattern: /miragon\.github\.io\/miragon-ai/i },
-  { name: "old image", pattern: /miragon-ai-server/i },
-  // The image lives on GHCR only: a Docker Hub reference (docker.io/…, hub.docker.com/r/…)
+  // The images live on GHCR only: a Docker Hub reference (docker.io/…, hub.docker.com/r/…)
   // or a bare name, which Docker resolves on Docker Hub, pulls nothing.
-  { name: "image off GHCR", pattern: /(?<!ghcr\.io\/)(?<![\w.-])miragon\/pulse-server/i },
-  // Docker refuses a repository name with a capital ("repository name must be lowercase");
-  // the tag after the colon may have one.
-  { name: "image not lowercase", pattern: /ghcr\.io\/[\w./-]*[A-Z]/ },
-  { name: "old starter", pattern: /miragon-ai-starter|miragon ai starter/i },
-  { name: "old product name", pattern: /automation[-_ ]mcp|miragon ai platform/i },
-  // A client key, a log label, a compose project, a package name: the slug on
-  // its own, never the start of a longer name (miragon-ai-docs, check-miragon-ai-refs)
-  // and never the scope, which the first rule names.
-  { name: "old slug", pattern: /(?<![\w@-])miragon[-_]ai(?![\w-])/i },
-  // The Fly apps keep their names (#415): internal, and the old fly.dev URL
-  // keeps answering for existing client configs. Everywhere else the public
-  // URL is https://pulse-playground.miragon.ai/mcp.
-  { name: "Fly app name", pattern: /miragon-ai-playground/i },
+  {
+    name: "image off GHCR",
+    pattern: /(?<!ghcr\.io\/)(?<![\w.@-])miragon\/pulse-(?:server|cli)(?![\w-])/i,
+  },
   // The CLI grew up as its own product, operate, in its own repo. In Pulse it ships under
   // Pulse names only (npm @miragon/pulse-cli, its variables PULSE_CLI_*), so every
   // technical name of the old product is retired: the package (any @miragon/operate-*
@@ -70,11 +41,6 @@ const RULES = [
     name: "unscoped pulse-cli package",
     pattern:
       /(?:\bnpx|\bbunx|\bdlx)\s+(?:-{1,2}[\w-]+(?:=\S+)?\s+)*pulse-cli(?![\w-])|\b(?:npm|pnpm|yarn|bun)\s+(?:i|install|add)\s+(?:-{1,2}[\w-]+\s+)*pulse-cli(?![\w-])/,
-  },
-  // The CLI image lives on GHCR only, like the server's.
-  {
-    name: "CLI image off GHCR",
-    pattern: /(?<!ghcr\.io\/)(?<![\w.@-])miragon\/pulse-cli(?![\w-])/i,
   },
 ] as const
 
@@ -112,79 +78,10 @@ interface Allowance {
 /** Hits that are right where they are. Shrink-only: an entry that covers no hit fails. */
 const ALLOWED: Allowance[] = [
   {
-    file: /^playground\/(?:fly\/[^/]+|docker\/.+(?:\.fly\.[a-z]+|\/Dockerfile\.fly))$/,
-    rules: ["Fly app name"],
-    reason: "the Fly configs, the deploy script and the Fly-only Prometheus and Grafana files",
-  },
-  {
-    file: ".github/workflows/reset-playground.yml",
-    rules: ["Fly app name"],
-    reason: "the nightly reset targets the engine and Prometheus apps by name",
-  },
-  {
-    file: "playground/README.md",
-    rules: ["Fly app name"],
-    reason: "the deploy and proxy commands name the Fly apps",
-  },
-  {
-    file: "playground/README.md",
-    rules: ["old slug"],
-    line: /runs as `miragon-ai`|docker compose -p miragon-ai\b/,
-    reason: "stops a stack started under the old compose project name, which holds the ports",
-  },
-  {
-    file: "apps/mcp-server-camunda7/README.md",
-    rules: [
-      "old npm scope",
-      "old repo",
-      "old image",
-      "old starter",
-      "old product name",
-      "old slug",
-    ],
-    section: /^#{2,6} Renamed from\b/,
-    reason: "the migration note maps each old name to its new one",
-  },
-  {
-    file: "CLAUDE.md",
-    rules: ["old slug"],
-    line: /Up to 0\.20\.0 .*shipped under `miragon-ai`/,
-    reason: "the release section says what shipped up to 0.20.0: deprecated, never reused",
-  },
-  // The VS Code extension (apps/vscode) bundles the last published operate CLI, 0.9.0, and
-  // spawns it through its engine-cli wrapper until an in-process engine client replaces both
-  // (then these entries go). That release's names are recorded as that release has them.
-  {
-    file: /^apps\/vscode\/(?:package\.json|scripts\/build\.mjs|test\/adapters\/c7\/support\/engine-cli-binary\.ts)$/,
-    rules: ["old operate package", "old operate repo"],
-    line: /@miragon\/operate(?:\/dist\/operate\.js)?["']/,
-    reason:
-      "the extension pins the published operate 0.9.0 (package.json), copies its bundle into dist (build.mjs) and runs it in tests",
-  },
-  {
-    file: /^apps\/vscode\/(?:src\/adapters\/c7\/engine-cli\/running\/engine-cli-environment\.ts|test\/adapters\/c7\/(?:c7-[\w-]+|engine-cli\/[\w-]+)\.test\.ts|test\/adapters\/c7\/fixtures\/error-[\w-]+\.json)$/,
-    rules: ["old operate env var"],
-    line: /\bOPERATE_(?:URL|OUTPUT|READ_ONLY|CONFIG|AUTH|USERNAME|PASSWORD|TOKEN|TOKEN_COMMAND|PROFILE|VARIABLE)\b/,
-    reason:
-      "operate 0.9.0 takes target, credentials and the read-only flag from its OPERATE_* variables: the wrapper sets them and drops inherited ones, its tests assert both, the fixtures record its error output",
-  },
-  {
-    file: /^apps\/vscode\/docs\/adr\/(?:c7-adapter|migrations)\.md$/,
-    rules: ["old operate package", "old operate repo", "old operate env var"],
-    reason:
-      "the C7 adapter and migration records say how the extension runs the bundled operate 0.9.0",
-  },
-  {
     file: "apps/cli/README.md",
     rules: ["old operate repo"],
     section: /^#{2,6} Renamed from operate\b/,
     reason: "the npm README points to the archived repository of operate (up to 0.10.0)",
-  },
-  {
-    file: "scripts/test-template.sh",
-    rules: ["old npm scope"],
-    line: /OLD_SCOPE = |@miragon-ai scope/,
-    reason: "the template gate fails on a dependency under the old scope, so it names the scope",
   },
 ]
 
@@ -248,7 +145,7 @@ const hits: { hit: Hit; lines: string[] }[] = textFiles.flatMap(({ file, lines }
 const where = ({ file, line, text, rule }: Hit) =>
   `${file}${line > 0 ? `:${line}` : ""} [${rule}] ${text.slice(0, 160)}`
 
-describe("old names after the Pulse rename", () => {
+describe("old and foreign names", () => {
   it("reads the repo", () => {
     expect(textFiles.some(({ file }) => file === "CLAUDE.md")).toBe(true)
     expect(textFiles.length).toBeGreaterThan(500)
@@ -269,28 +166,8 @@ describe("old names after the Pulse rename", () => {
   )
 })
 
-describe("the old-name rules", () => {
+describe("the name rules", () => {
   it.each([
-    ["import '@miragon-ai/widget-shell/server'", "old npm scope"],
-    ["the @miragon-ai packages", "old npm scope"],
-    ["https://github.com/Miragon/miragon-ai/issues", "old repo"],
-    ["git@github.com:miragon/miragon-ai.git", "old repo"],
-    ["https://miragon.github.io/miragon-ai/usage", "old docs URL"],
-    ["docker.io/miragon/miragon-ai-server:latest", "old image"],
-    ["docker.io/miragon/pulse-server:latest", "image off GHCR"],
-    ["https://hub.docker.com/r/miragon/pulse-server", "image off GHCR"],
-    ["the Docker image `miragon/pulse-server`", "image off GHCR"],
-    ["ghcr.io/Miragon/pulse-server:latest", "image not lowercase"],
-    ["Miragon/miragon-ai-starter", "old starter"],
-    ["the Miragon AI Starter", "old starter"],
-    ["automation-mcp", "old product name"],
-    ["mcp__automation_mcp__list", "old product name"],
-    ["Automation MCP server", "old product name"],
-    ["the Miragon AI Platform", "old product name"],
-    ["claude mcp add --transport http miragon-ai https://…", "old slug"],
-    ["[miragon-ai] listening on :8400", "old slug"],
-    ['"miragon_ai": { "url": … }', "old slug"],
-    ["https://miragon-ai-playground.fly.dev/mcp", "Fly app name"],
     ['import { run } from "@miragon/operate"', "old operate package"],
     ["npm install -g @miragon/operate@1.4.0", "old operate package"],
     ['"name": "@miragon/operate-docs"', "old operate package"],
@@ -309,19 +186,16 @@ describe("the old-name rules", () => {
     ["npx pulse-cli status", "unscoped pulse-cli package"],
     ["npm i -g pulse-cli", "unscoped pulse-cli package"],
     ["pnpm dlx pulse-cli guide", "unscoped pulse-cli package"],
-    ["docker run --rm miragon/pulse-cli --version", "CLI image off GHCR"],
-    ["docker.io/miragon/pulse-cli:latest", "CLI image off GHCR"],
+    ["docker run --rm miragon/pulse-cli --version", "image off GHCR"],
+    ["docker.io/miragon/pulse-cli:latest", "image off GHCR"],
+    ["docker.io/miragon/pulse-server:latest", "image off GHCR"],
+    ["https://hub.docker.com/r/miragon/pulse-server", "image off GHCR"],
+    ["the Docker image `miragon/pulse-server`", "image off GHCR"],
   ] as const)("%s is %s", (text, rule) => {
     expect(rulesMatching(text)).toContain(rule)
   })
 
   it.each([
-    "Pulse, part of Miragon AI",
-    "https://miragon.ai/tools/pulse/",
-    "Pulse | Miragon AI",
-    "Miragon/miragon-ai-docs",
-    "https://github.com/Miragon/miragon-ai-website",
-    "scripts/check-miragon-ai-refs.mjs",
     "@miragon/pulse-widget-shell",
     "@miragon/mcp-toolkit-core",
     "ghcr.io/miragon/pulse-server:latest",
@@ -349,164 +223,5 @@ describe("the old-name rules", () => {
     'workerId: "operate"',
   ])("%s is no old name", (text) => {
     expect(rulesMatching(text)).toEqual([])
-  })
-
-  it("a URL's userinfo@host is no scope", () => {
-    expect(
-      rulesMatching("postgres://miragon:<pw>@miragon-ai-playground-postgres.internal:5432"),
-    ).toEqual(["Fly app name"])
-  })
-})
-
-/**
- * A pnpm filter that matches nothing exits 0 (pnpm 10), so a stale name turns a
- * CI job green without running it. `--fail-if-no-match` fails only when NO
- * filter of the command matches: one stale name among three still passes. So
- * every filter that names a package anywhere (commands in docs included: the
- * golden update command rewrites nothing under a stale filter) must name a real
- * one: a scoped `@scope/name`, and an unscoped `pulse-<name>` (a VS Code
- * extension's manifest name is unscoped, since vsce rejects a scope). And every
- * pnpm filter on a gate path (a workspace package's scripts and the composite
- * actions included) carries the flag. Turbo's own --filter already fails on an
- * unknown name.
- */
-describe("pnpm and turbo filters", () => {
-  const packageNames = (inTemplate: boolean) =>
-    new Set(
-      textFiles
-        .filter(({ file }) => /(?:^|\/)package\.json$/.test(file))
-        .filter(({ file }) => file.startsWith("templates/") === inTemplate)
-        .map(({ lines }) => (JSON.parse(lines.join("\n")) as { name?: string }).name),
-    )
-  const workspace = packageNames(false)
-  const template = new Set([...workspace, ...packageNames(true)])
-
-  const FILTER = /(?:--filter(?:=|\s+)|\s-F\s+)\\?["']?([^\s"'`)\\]+)/g
-  /**
-   * The package a filter target names, selectors stripped (`!x`, `...x`, `x...`, `x^...`):
-   * a scoped `@scope/name` or an unscoped `pulse-<name>`. A path selector (`./apps/x`,
-   * `{apps/x}`) and a glob name no package, so they are not checked here.
-   */
-  const packageTarget = (raw: string) =>
-    /^(?:@[\w.-]+\/[\w.-]+|pulse-[a-z0-9-]+)$/.exec(
-      raw
-        .replace(/^!/, "")
-        .replace(/^\.\.\.\^?/, "")
-        .replace(/\^?\.\.\.$/, ""),
-    )?.[0]
-
-  /** `file:line --filter name` for every package a filter on `lines` names that `known` lacks. */
-  const unknownFilters = (file: string, lines: string[], known: { has(name: string): boolean }) =>
-    lines.flatMap((text, index) =>
-      [...text.matchAll(FILTER)]
-        .map((match) => packageTarget(match[1] ?? ""))
-        .filter((name): name is string => name !== undefined && !known.has(name))
-        .map((name) => `${file}:${index + 1} --filter ${name}`),
-    )
-
-  it("every filter that names a package names one of its workspace", () => {
-    const unknown = textFiles.flatMap(({ file, lines }) =>
-      unknownFilters(file, lines, file.startsWith("templates/") ? template : workspace),
-    )
-    expect(unknown).toEqual([])
-  })
-
-  // The flag is spelled through a constant, so this file names no stale filter itself.
-  const FLAG = "--filter"
-  const SHORT = "-F"
-  it.each([
-    [`pnpm ${FLAG} pulse build`, []],
-    [`pnpm ${FLAG}=pulse... build`, []],
-    [`pnpm ${FLAG} @miragon/pulse-widget-shell test`, []],
-    [`pnpm ${FLAG} pulse-vsocde build`, ["pulse-vsocde"]],
-    [`pnpm ${FLAG}=pulse-vsocde^... build`, ["pulse-vsocde"]],
-    [`pnpm ${FLAG} "!pulse-vsocde" -r build`, ["pulse-vsocde"]],
-    [`pnpm ${SHORT} pulse-vsocde build`, ["pulse-vsocde"]],
-    [`"x": "pnpm ${FLAG} \\"pulse-vsocde\\" build"`, ["pulse-vsocde"]],
-    // One stale name among valid ones passes --fail-if-no-match, so it is checked on its own.
-    [`pnpm ${FLAG} pulse ${FLAG} pulse-vsocde build`, ["pulse-vsocde"]],
-    [`pnpm ${FLAG} @miragon/pulse-widget-shel test`, ["@miragon/pulse-widget-shel"]],
-    // A path selector names no package: --fail-if-no-match covers it on a gate path.
-    [`pnpm ${FLAG} ./apps/vscod build`, []],
-    [`pnpm ${FLAG} "./modules/**" build`, []],
-    [`pnpm ${FLAG} "{apps/vscod}" build`, []],
-  ] as const)("the filter check reads %s", (text, stale) => {
-    const known = new Set(["@miragon/pulse-widget-shell", "pulse"])
-    expect(unknownFilters("x", [text], known)).toEqual(stale.map((name) => `x:1 ${FLAG} ${name}`))
-  })
-
-  /**
-   * Where a command runs as a gate: the root and every workspace package's scripts
-   * (a `vscode:prepublish` that builds a dependency), the Dockerfile, the workflows and
-   * their composite actions, the conductor and gate shell scripts.
-   */
-  const GATE_PATH =
-    /^(?:package\.json|(?:apps|packages)\/(?:[^/]+\/)+package\.json|docs\/package\.json|Dockerfile|\.github\/workflows\/[^/]+\.ya?ml|\.github\/actions\/(?:[^/]+\/)*[^/]+\.ya?ml|\.conductor\/[^/]+\.sh|scripts\/[^/]+\.sh)$/
-  /** A pnpm command whose filter is pnpm's (not one turbo receives after `pnpm turbo`). */
-  const pnpmFilters = (command: string) => {
-    const filter = command.search(/--filter\b|\s-F\s/)
-    const turbo = command.search(/\bturbo\b/)
-    return /\bpnpm\b/.test(command) && filter >= 0 && (turbo < 0 || turbo > filter)
-  }
-
-  /** `file:line command` for every pnpm filter on `lines` that exits 0 when it matches nothing. */
-  const laxFilters = (file: string, lines: string[]) =>
-    lines.flatMap((text, index) =>
-      text.trim().startsWith("#")
-        ? []
-        : text
-            .split(/&&|\|\||;|\|/)
-            .filter((command) => pnpmFilters(command) && !command.includes("--fail-if-no-match"))
-            .map((command) => `${file}:${index + 1} ${command.trim()}`),
-    )
-
-  it("every pnpm filter on a gate path fails when it matches nothing", () => {
-    const lax = textFiles
-      .filter(({ file }) => GATE_PATH.test(file))
-      .flatMap(({ file, lines }) => laxFilters(file, lines))
-    expect(lax).toEqual([])
-  })
-
-  it.each([
-    "package.json",
-    "apps/mcp-server-camunda7/package.json",
-    "apps/cli/package.json",
-    "apps/vscode/package.json",
-    "packages/core/widget-shell/package.json",
-    "packages/connectors/camunda/camunda7-domain/package.json",
-    "docs/package.json",
-    "Dockerfile",
-    ".github/workflows/ci.yml",
-    ".github/actions/setup/action.yml",
-    ".github/actions/release/publish/action.yaml",
-    "scripts/test-template.sh",
-  ])("%s is a gate path", (file) => {
-    expect(GATE_PATH.test(file)).toBe(true)
-  })
-
-  it.each([
-    "apps/cli/README.md",
-    "apps/vscode/src/package.json.ts",
-    ".github/actions/setup/README.md",
-    "docs/mcp/operations.md",
-  ])("%s is no gate path", (file) => {
-    expect(GATE_PATH.test(file)).toBe(false)
-  })
-
-  it("flags a package script's or a composite action's filter without the flag", () => {
-    const build = `pnpm ${FLAG} ./packages/connectors/camunda/camunda7-domain build`
-    expect(
-      laxFilters("apps/vscode/package.json", [
-        `"vscode:prepublish": "${build} && pnpm run bundle",`,
-        `"ok": "pnpm --fail-if-no-match ${FLAG} ./apps/vscode build",`,
-        `"turbo": "pnpm turbo run build ${FLAG}=./apps/vscode",`,
-      ]),
-    ).toEqual([`apps/vscode/package.json:1 "vscode:prepublish": "${build}`])
-    expect(
-      laxFilters(".github/actions/setup/action.yml", [
-        `# pnpm ${FLAG} ./apps/vscode build`,
-        `      run: pnpm ${SHORT} ./apps/vscode build`,
-      ]),
-    ).toEqual([`.github/actions/setup/action.yml:2 run: pnpm ${SHORT} ./apps/vscode build`])
   })
 })

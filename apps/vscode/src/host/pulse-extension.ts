@@ -47,7 +47,7 @@ export class PulseExtension {
     const registry = new ConnectionRegistry(
       this.context.workspaceState,
       credentials,
-      new ConnectionBuilder(await this.engines(), audit),
+      new ConnectionBuilder(CompositionRoot.create(), audit),
     )
     const picker = new ConnectionPicker(registry)
     const setCredentials = new SetCredentialsCommand(registry, credentials, picker)
@@ -93,13 +93,6 @@ export class PulseExtension {
       ]),
     )
     await registry.reload()
-  }
-
-  private engines(): Promise<CompositionRoot> {
-    return CompositionRoot.create({
-      extensionPath: this.context.extensionUri.fsPath,
-      storagePath: this.context.globalStorageUri.fsPath,
-    })
   }
 
   private views(

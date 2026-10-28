@@ -56,8 +56,7 @@
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
     "generate": "openapi-ts",
-    "spec:refresh": "sh ./scripts/refresh-spec.sh",
-    "test:mutation": "stryker run"
+    "spec:refresh": "sh ./scripts/refresh-spec.sh"
   },
   "peerDependencies": {
     "zod": "^4.4.0"

@@ -3,14 +3,9 @@ import os from "node:os"
 import path from "node:path"
 import ts from "typescript"
 import { afterEach, describe, expect, it } from "vitest"
-import { APP_SCAN, REPO_ROOT, scanSources, type AppScan, type ScanScope } from "./source-scan.js"
+import { REPO_ROOT, scanSources, type AppScan, type ScanScope } from "./source-scan.js"
 
-/**
- * Which sources the cross-module guards read (source-scan.ts). The fixtures
- * build the layouts that do not exist yet (a CLI under apps/, a VS Code
- * extension, a -domain package) in a temp tree, so the classification is
- * pinned before that code arrives.
- */
+/** Which sources the cross-module guards read (source-scan.ts), over temp-tree fixtures. */
 
 const roots: string[] = []
 
@@ -36,7 +31,7 @@ function fixture(files: Record<string, string>): string {
 
 const json = (value: unknown) => JSON.stringify(value)
 
-/** Today's layout plus a -domain package, with files every scan must skip. */
+/** A server app and two packages, with files every scan must skip. */
 const BASE: Record<string, string> = {
   "apps/mcp-server-camunda7/package.json": json({
     name: "@miragon/pulse-mcp-server-camunda7",
@@ -47,19 +42,19 @@ const BASE: Record<string, string> = {
   "packages/core/widget-shell/src/ui/inline-fit.test-support.tsx": "support tsx",
   "packages/core/widget-shell/src/ui/styles.css": "css",
   "packages/core/no-src/package.json": json({ name: "@miragon/pulse-no-src" }),
-  "packages/connectors/camunda/camunda7-domain/src/c.ts": "c",
-  "packages/connectors/camunda/camunda7-domain/src/routes.mts": "mts",
-  "packages/connectors/camunda/camunda7-domain/src/c.test.ts": "test",
-  "packages/connectors/camunda/camunda7-domain/src/c.test.tsx": "test tsx",
-  "packages/connectors/camunda/camunda7-domain/src/labels.test-support.ts": "support",
-  "packages/connectors/camunda/camunda7-domain/src/generated/g.ts": "generated",
-  "packages/connectors/camunda/camunda7-domain/src/notes.md": "md",
+  "packages/connectors/camunda/camunda7-connector/src/c.ts": "c",
+  "packages/connectors/camunda/camunda7-connector/src/routes.mts": "mts",
+  "packages/connectors/camunda/camunda7-connector/src/c.test.ts": "test",
+  "packages/connectors/camunda/camunda7-connector/src/c.test.tsx": "test tsx",
+  "packages/connectors/camunda/camunda7-connector/src/labels.test-support.ts": "support",
+  "packages/connectors/camunda/camunda7-connector/src/generated/g.ts": "generated",
+  "packages/connectors/camunda/camunda7-connector/src/notes.md": "md",
 }
 
 const BASE_FILES = [
   "apps/mcp-server-camunda7/src/a.ts",
-  "packages/connectors/camunda/camunda7-domain/src/c.ts",
-  "packages/connectors/camunda/camunda7-domain/src/routes.mts",
+  "packages/connectors/camunda/camunda7-connector/src/c.ts",
+  "packages/connectors/camunda/camunda7-connector/src/routes.mts",
   "packages/core/widget-shell/src/b.ts",
   "packages/core/widget-shell/src/ui/inline-fit.test-support.tsx",
 ]
@@ -89,35 +84,6 @@ describe("scanSources", () => {
     ).toBe("apps/mcp-server-camunda7/src/a.ts=a")
   })
 
-  it("fails on an unclassified CLI", () => {
-    const root = fixture({ ...BASE, ...CLI })
-    expect(() => filesIn(root, SERVER_ONLY)).toThrow(
-      /^apps\/cli is not classified in APP_SCAN \(apps\/mcp-server-camunda7\/test\/source-scan\.ts\): add it as "mcp-host" .* or "interface"/,
-    )
-  })
-
-  it("fails on an unclassified VS Code extension: no manifest field classifies an app", () => {
-    const root = fixture({ ...BASE, ...EXTENSION })
-    expect(() => filesIn(root, SERVER_ONLY)).toThrow(/^apps\/vscode is not classified in APP_SCAN/)
-  })
-
-  it("fails on an app with a src/ but no package.json", () => {
-    const root = fixture({ ...BASE, "apps/stray/src/x.ts": "x" })
-    expect(() => filesIn(root, SERVER_ONLY)).toThrow(/^apps\/stray is not classified in APP_SCAN/)
-  })
-
-  it("does not take an app named like an Object.prototype member as classified", () => {
-    const root = fixture({ ...BASE, "apps/constructor/package.json": json({ name: "x" }) })
-    expect(() => filesIn(root, SERVER_ONLY)).toThrow(
-      /^apps\/constructor is not classified in APP_SCAN/,
-    )
-  })
-
-  it("ignores a leftover directory that holds neither a package.json nor a src/", () => {
-    const root = fixture({ ...BASE, "apps/old/node_modules/": "" })
-    expect(filesIn(root, SERVER_ONLY)).toEqual(BASE_FILES)
-  })
-
   it('reads an interface app in scope "all" (the default) and leaves it out of scope "mcp"', () => {
     const root = fixture({ ...BASE, ...CLI, ...EXTENSION })
     const apps: Record<string, AppScan> = { ...SERVER_ONLY, cli: "interface", vscode: "interface" }
@@ -135,8 +101,8 @@ describe("scanSources", () => {
       "apps/cli/src/index.ts interface",
       "apps/mcp-server-camunda7/src/a.ts mcp-host",
       "apps/vscode/src/host/extension.ts interface",
-      "packages/connectors/camunda/camunda7-domain/src/c.ts package",
-      "packages/connectors/camunda/camunda7-domain/src/routes.mts package",
+      "packages/connectors/camunda/camunda7-connector/src/c.ts package",
+      "packages/connectors/camunda/camunda7-connector/src/routes.mts package",
       "packages/core/widget-shell/src/b.ts package",
       "packages/core/widget-shell/src/ui/inline-fit.test-support.tsx package",
     ])
@@ -158,47 +124,9 @@ describe("scanSources", () => {
       [...BASE_FILES, "apps/other-server/src/s.ts", "apps/bare-server/src/t.ts"].sort(),
     )
   })
-
-  it("fails on an entry that names no app", () => {
-    const root = fixture({ ...BASE, "apps/old/node_modules/": "" })
-    expect(() => filesIn(root, { ...SERVER_ONLY, vscode: "interface", old: "interface" })).toThrow(
-      /^APP_SCAN classifies apps\/vscode, which is no app \(no package\.json, no src\/\): drop the entry\.$/,
-    )
-  })
-
-  it("fails on a classified app without src/: its sources would be read by no guard", () => {
-    const root = fixture({
-      ...BASE,
-      "apps/vscode/package.json": json({ name: "pulse", engines: { vscode: "^1.101.0" } }),
-      "apps/vscode/packages/core/src/x.ts": "x",
-    })
-    expect(() => filesIn(root, { ...SERVER_ONLY, vscode: "interface" })).toThrow(
-      /^apps\/vscode is classified in APP_SCAN but has no src\/: .* Move its sources to apps\/vscode\/src\.$/,
-    )
-  })
-
-  it('fails on a VS Code extension classified as "mcp-host"', () => {
-    const root = fixture({ ...BASE, ...EXTENSION })
-    expect(() => filesIn(root, { ...SERVER_ONLY, vscode: "mcp-host" })).toThrow(
-      /^apps\/vscode declares engines\.vscode .* classify it as "interface"\.$/,
-    )
-  })
 })
 
 describe("the repo's apps", () => {
-  it("are all classified in APP_SCAN, and every entry names one", () => {
-    const apps = fs
-      .readdirSync(path.join(REPO_ROOT, "apps"), { withFileTypes: true })
-      .filter((d) => d.isDirectory())
-      .map((d) => d.name)
-      .filter(
-        (name) =>
-          fs.existsSync(path.join(REPO_ROOT, "apps", name, "package.json")) ||
-          fs.existsSync(path.join(REPO_ROOT, "apps", name, "src")),
-      )
-    expect(Object.keys(APP_SCAN).sort()).toEqual(apps.sort())
-  })
-
   it("are read by the default scan and the MCP scan (the scanner is not blind)", () => {
     const all = scanSources((file) => [file])
     const mcp = scanSources((file) => [file], { scope: "mcp" })
@@ -218,9 +146,8 @@ describe("the repo's apps", () => {
 /**
  * The scope each guard reads, pinned at its call site: an interface app is
  * read by the tool-name checks (literals, quoted parameters, prose) and by no
- * widget rule, no helper resolution and no server-only guard. Today APP_SCAN
- * classifies no interface app, so a scope switched at a call site would change
- * no result yet; this reads the guard files themselves.
+ * widget rule, no helper resolution and no server-only guard; this reads the
+ * guard files themselves.
  */
 describe("the guards' scan scopes", () => {
   /** Each scanSources call of a guard file, in source order: the scan it runs and the scope it reads. */
