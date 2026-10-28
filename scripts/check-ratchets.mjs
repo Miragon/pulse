@@ -50,18 +50,15 @@
  *                                   mutator.excludedMutations shrink-only;
  *                                   every other option that decides which
  *                                   mutants exist or how they count pinned
- *   eslint.config.mjs               complexityRatchet / maxLinesRatchet
- *                                   shrink-only (no new entry, no raised value);
- *                                   the global complexity / max-lines budgets
- *                                   never raised or removed; no new override
- *                                   of either rule; no gate rule newly "off" or
- *                                   "warn"; `ignores` shrink-only per block
- *                                   scope; every shape the AST cannot read (a
- *                                   non-literal `rules`, a spread, a local
- *                                   import, Object.entries(…)) frozen — PLUS
- *                                   the effective config ESLint itself computes
- *                                   per source file, base vs working tree
- *                                   (scripts/eslint-effective-config.mjs)
+ *   eslint.config.mjs               the effective config ESLint itself
+ *                                   computes per source file, base vs working
+ *                                   tree (scripts/eslint-effective-config.mjs:
+ *                                   complexity / max-lines / no-restricted-syntax
+ *                                   never loosened, no file newly ignored);
+ *                                   from the source: `ignores` shrink-only per
+ *                                   block scope (a block of any rule), and no
+ *                                   new local or dynamic import (the base
+ *                                   config is evaluated next to today's files)
  *   knip.jsonc                      every ignore list, the issue-type `exclude`,
  *                                   non-"error" `rules` and `entry` globs
  *                                   shrink-only; `include`/`project` never
@@ -633,152 +630,45 @@ function ignoresScope(block) {
   return `rules ${normalize(rules.getText())}`
 }
 
-/** The `files` of a config block as a comparable key ("<all files>" when absent). */
-function blockFiles(block) {
-  const filesProp = ts.isObjectLiteralExpression(block)
-    ? block.properties.find((p) => ts.isPropertyAssignment(p) && propName(p.name) === "files")
-    : undefined
-  return filesProp ? normalize(filesProp.initializer.getText()) : "<all files>"
-}
-
-/**
- * The config blocks of `export default …`: the arguments of a
- * `tseslint.config(…)`/`defineConfig(…)` call (array arguments flattened) or
- * the elements of an array literal.
- */
-function configElements(sourceFile) {
-  const exported = sourceFile.statements.find(ts.isExportAssignment)
-  if (!exported) return []
-  const expression = exported.expression
-  const items = ts.isCallExpression(expression) ? [...expression.arguments] : [expression]
-  return items.flatMap((item) => (ts.isArrayLiteralExpression(item) ? [...item.elements] : [item]))
-}
-
-const isObjectEntriesCall = (node) =>
-  ts.isCallExpression(node) &&
-  ts.isPropertyAccessExpression(node.expression) &&
-  ts.isIdentifier(node.expression.expression) &&
-  node.expression.expression.text === "Object" &&
-  node.expression.name.text === "entries"
-
 const isDynamicImport = (node) =>
   ts.isCallExpression(node) &&
   (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
     (ts.isIdentifier(node.expression) && node.expression.text === "require"))
 
-const BUDGET_RULES = ["complexity", "max-lines"]
 /** The rules the architecture and budget gates set — never relaxed per file. */
-const GATE_RULES = [...BUDGET_RULES, "no-restricted-syntax"]
-const RATCHET_MAPS = ["complexityRatchet", "maxLinesRatchet"]
-const LAX_SEVERITIES = new Set(["off", "warn", 0, 1])
+const GATE_RULES = ["complexity", "max-lines", "no-restricted-syntax"]
 
 /**
- * The ESLint ratchets of eslint.config.mjs:
- * - `maps`: the exported debt maps (file → frozen value);
- * - `budgets`: every gate-rule setting (complexity, max-lines,
- *   no-restricted-syntax), keyed by rule + `files` + value shape (numbers
- *   masked), with its numeric values and whether it is an exemption
- *   ("off"/"warn");
+ * What the source of eslint.config.mjs shows that the effective-config
+ * comparison cannot:
  * - `ignores`: every entry of every exempting `ignores` list, keyed by the
- *   scope it exempts from (see ignoresScope);
- * - `opaque`: every shape the AST cannot see into — a non-literal or spread
- *   `rules`, a computed rule key, a spread into a config block, a config
- *   element that is not an object literal, a local or dynamic import, the
- *   argument of each Object.entries(…). The comparison freezes them: a new
- *   one fails closed.
+ *   scope it exempts from (see ignoresScope), whatever rule the block sets;
+ * - `imports`: every local or dynamic import. The base config is evaluated
+ *   from a sibling file, so a local module it imports would be today's.
  */
 export function extractEslintRatchets(relPath, text) {
   const sourceFile = parseSource(relPath, text)
-  const maps = {}
-  const errors = []
-  const budgets = {}
   const ignores = []
-  const opaque = []
-
+  const imports = []
   for (const statement of sourceFile.statements) {
     if (ts.isImportDeclaration(statement) && ts.isStringLiteral(statement.moduleSpecifier)) {
       const specifier = statement.moduleSpecifier.text
-      if (specifier.startsWith(".")) opaque.push(`local import "${specifier}"`)
-    }
-    if (!ts.isVariableStatement(statement)) continue
-    for (const decl of statement.declarationList.declarations) {
-      const name = ts.isIdentifier(decl.name) ? decl.name.text : undefined
-      if (!RATCHET_MAPS.includes(name)) continue
-      if (!decl.initializer || !ts.isObjectLiteralExpression(decl.initializer)) {
-        errors.push(`${name} is not an object literal — the ratchet cannot read it`)
-        continue
-      }
-      maps[name] = {}
-      for (const prop of decl.initializer.properties) {
-        const key = ts.isPropertyAssignment(prop) ? propName(prop.name) : undefined
-        const value = key ? literalValue(prop.initializer) : undefined
-        if (key === undefined || typeof value !== "number") {
-          errors.push(`${name}: entry \`${normalize(prop.getText())}\` is not "file": <number>`)
-          continue
-        }
-        maps[name][key] = value
-      }
+      if (specifier.startsWith(".")) imports.push(`local import "${specifier}"`)
     }
   }
-
-  for (const element of configElements(sourceFile)) {
-    if (!ts.isObjectLiteralExpression(element)) {
-      opaque.push(`config element \`${normalize(element.getText())}\``)
-      continue
-    }
-    for (const prop of element.properties)
-      if (ts.isSpreadAssignment(prop))
-        opaque.push(`spread into a config block \`${normalize(prop.getText())}\``)
-  }
-
   const consts = topLevelArrays(sourceFile)
   walk(sourceFile, (node) => {
-    if (isDynamicImport(node)) opaque.push(`dynamic import \`${normalize(node.getText())}\``)
-    if (isObjectEntriesCall(node))
-      opaque.push(`Object.entries(${normalize(node.arguments[0]?.getText() ?? "")})`)
+    if (isDynamicImport(node)) imports.push(`dynamic import \`${normalize(node.getText())}\``)
     if (!ts.isPropertyAssignment(node) && !ts.isShorthandPropertyAssignment(node)) return
-    const name = propName(node.name)
-    const block = node.parent
+    if (propName(node.name) !== "ignores" || !isExemptionBlock(node.parent)) return
     const value = ts.isShorthandPropertyAssignment(node) ? node.name : node.initializer
-    if (name === "ignores" && isExemptionBlock(block)) {
-      const scope = ignoresScope(block)
-      for (const entry of arrayEntries(value, consts) ?? [normalize(value.getText())])
-        ignores.push(`${scope} :: ${entry}`)
-    }
-    if (name !== "rules") return
-    const files = blockFiles(block)
-    if (!ts.isObjectLiteralExpression(value)) {
-      opaque.push(`rules \`${normalize(value.getText())}\` (files ${files})`)
-      return
-    }
-    for (const rule of value.properties) {
-      const ruleName = ts.isPropertyAssignment(rule) ? propName(rule.name) : undefined
-      if (ruleName === undefined) {
-        opaque.push(`rules entry \`${normalize(rule.getText())}\` (files ${files})`)
-        continue
-      }
-      if (!GATE_RULES.includes(ruleName)) continue
-      const valueText = normalize(rule.initializer.getText())
-      const severityNode = ts.isArrayLiteralExpression(rule.initializer)
-        ? rule.initializer.elements[0]
-        : rule.initializer
-      const numbers = []
-      walk(rule.initializer, (n) => {
-        if (ts.isNumericLiteral(n) && n !== severityNode) numbers.push(Number(n.text))
-      })
-      const key = `${ruleName} | files ${files} | ${valueText.replace(/\d+(\.\d+)?/g, "#")}`
-      budgets[key] = {
-        rule: ruleName,
-        numbers,
-        exemption: LAX_SEVERITIES.has(literalValue(severityNode)),
-      }
-    }
+    const scope = ignoresScope(node.parent)
+    for (const entry of arrayEntries(value, consts) ?? [normalize(value.getText())])
+      ignores.push(`${scope} :: ${entry}`)
   })
-
-  return { maps, budgets, ignores, opaque, errors }
+  return { ignores, imports }
 }
 
-/** knip ignore-like entries, flattened to `path.key: value` strings. */
 export function collectKnipIgnores(node, prefix = "", into = new Set()) {
   if (!node || typeof node !== "object") return into
   for (const [key, value] of Object.entries(node)) {
@@ -1323,72 +1213,11 @@ function compareEslint(relPath, oldText, newText) {
   if (newText === null) return [`${relPath} was removed — every ESLint gate goes with it.`]
   const old = extractEslintRatchets(relPath, oldText)
   const cur = extractEslintRatchets(relPath, newText)
-  const violations = cur.errors.map(
-    (e) => `${relPath} -> ${e}. A ratchet the gate cannot read is a disabled ratchet.`,
-  )
-  for (const mapName of RATCHET_MAPS) {
-    const oldMap = old.maps[mapName]
-    const newMap = cur.maps[mapName]
-    if (!oldMap) continue
-    if (!newMap) {
+  const violations = []
+  for (const entry of cur.imports) {
+    if (!old.imports.includes(entry)) {
       violations.push(
-        `${relPath} -> \`export const ${mapName}\` is gone. Keep the (possibly empty) literal — the ratchet reads it.`,
-      )
-      continue
-    }
-    for (const [file, value] of Object.entries(newMap)) {
-      if (!(file in oldMap)) {
-        violations.push(
-          `${relPath} -> new ${mapName} entry "${file}" (${value}). The debt list only shrinks — split/simplify the file instead of freezing new debt.`,
-        )
-      } else if (value > oldMap[file]) {
-        violations.push(
-          `${relPath} -> ${mapName} "${file}": ${oldMap[file]} -> ${value}. The debt list only shrinks — refactor the file back under its frozen value.`,
-        )
-      }
-    }
-  }
-  for (const [key, setting] of Object.entries(cur.budgets)) {
-    const before = old.budgets[key]
-    if (!before) {
-      if (BUDGET_RULES.includes(setting.rule)) {
-        violations.push(
-          `${relPath} -> new ${setting.rule} setting (${key}). New code gets the global budget; an override or exemption is new debt — fix the code instead.`,
-        )
-      } else if (setting.exemption) {
-        violations.push(
-          `${relPath} -> new ${setting.rule} exemption (${key}). Switching a gate rule off or to "warn" for some files exempts them from the gate — fix the code instead.`,
-        )
-      }
-      // A new no-restricted-syntax "error" block may legitimately add a gate;
-      // the effective-config comparison sees one that REPLACES another gate's
-      // selectors for files both match.
-      continue
-    }
-    setting.numbers.forEach((value, i) => {
-      if (typeof before.numbers[i] === "number" && value > before.numbers[i]) {
-        violations.push(
-          `${relPath} -> ${key}: ${before.numbers[i]} -> ${value}. Budgets only tighten.`,
-        )
-      }
-    })
-  }
-  for (const [key, setting] of Object.entries(old.budgets)) {
-    if (
-      BUDGET_RULES.includes(setting.rule) &&
-      !cur.budgets[key] &&
-      !setting.exemption &&
-      setting.numbers.length > 0
-    ) {
-      violations.push(
-        `${relPath} -> the budget setting "${key}" was removed. The global complexity/max-lines budgets are never dropped.`,
-      )
-    }
-  }
-  for (const entry of cur.opaque) {
-    if (!old.opaque.includes(entry)) {
-      violations.push(
-        `${relPath} -> new ${entry}. The ratchet reads literals only — a non-literal rules object, a spread, an import or Object.entries(…) can carry an exemption it cannot see; inline the literal values instead.`,
+        `${relPath} -> new ${entry}. The effective-config comparison evaluates the base config next to today's files, so an imported module would be read in its new state; inline it instead.`,
       )
     }
   }

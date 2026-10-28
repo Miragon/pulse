@@ -39,10 +39,10 @@ export default mergeConfig(sharedConfig, defineConfig({
 `
 const PKG_VITEST = "packages/connectors/camunda/camunda7-client/vitest.config.ts"
 const BASE_THRESHOLDS = "thresholds: { statements: 44, branches: 32, functions: 45, lines: 44 },"
-// Packages that do not exist yet: the ratchet must cover them before they arrive.
+// The apps and a new connector-family package: the ratchet covers each by its layout.
 const CLI_DIR = "apps/cli"
 const VSCODE_DIR = "apps/vscode"
-const DOMAIN_DIR = "packages/connectors/camunda/camunda7-domain"
+const FAMILY_DIR = "packages/connectors/fam/x-connector"
 const REAL_VITEST_CONFIGS = [
   "apps/mcp-server-camunda7/vitest.config.ts",
   "packages/core/widget-shell/vitest.config.ts",
@@ -77,9 +77,8 @@ describe("ratchetKind", () => {
     assert.equal(ratchetKind("templates/composed-server/server/package.json"), null)
   })
 
-  it("already covers the apps and the -domain package that do not exist yet", () => {
-    // A CLI app, a VS Code extension app and a connector's -domain package.
-    for (const pkg of [CLI_DIR, VSCODE_DIR, DOMAIN_DIR]) {
+  it("covers the CLI, the extension and a new connector-family package", () => {
+    for (const pkg of [CLI_DIR, VSCODE_DIR, FAMILY_DIR]) {
       assert.equal(ratchetKind(`${pkg}/vitest.config.ts`), "vitest", pkg)
       assert.equal(ratchetKind(`${pkg}/stryker.config.json`), "stryker", pkg)
       assert.equal(ratchetKind(`${pkg}/package.json`), "package-scripts", pkg)
@@ -153,7 +152,7 @@ describe("shadowing vitest, prettier and editorconfig files", () => {
     for (const rel of [
       `${CLI_DIR}/vitest.config.mts`,
       `${VSCODE_DIR}/vitest.config.js`,
-      `${DOMAIN_DIR}/vitest.config.cjs`,
+      `${FAMILY_DIR}/vitest.config.cjs`,
       "packages/core/widget-shell/vitest.config.mjs",
       "apps/mcp-server-camunda7/vitest.config.cts",
     ])
@@ -182,7 +181,7 @@ describe("shadowing vitest, prettier and editorconfig files", () => {
       `${CLI_DIR}/prettier.config.mjs`,
       `${CLI_DIR}/prettier.config.ts`,
       `${CLI_DIR}/package.yaml`,
-      `${DOMAIN_DIR}/.prettierrc.json`,
+      `${FAMILY_DIR}/.prettierrc.json`,
       "packages/core/widget-shell/src/ui/.prettierrc",
       "apps/.prettierrc",
       // Outside apps/ and packages/ too: `prettier --check .` reads every directory.
@@ -205,7 +204,7 @@ describe("shadowing vitest, prettier and editorconfig files", () => {
   it("flags every .editorconfig below the root (prettier reads it for every option .prettierrc.json leaves open)", () => {
     for (const rel of [
       `${VSCODE_DIR}/.editorconfig`,
-      `${DOMAIN_DIR}/src/.editorconfig`,
+      `${FAMILY_DIR}/src/.editorconfig`,
       "docs/.editorconfig",
       "templates/composed-server/.editorconfig",
       "scripts/.editorconfig",
@@ -349,7 +348,7 @@ describe("vitest coverage thresholds (raise-only, never removed)", () => {
 })
 
 describe("vitest coverage thresholds: glob keys, perFile, the 100 shorthand, count floors", () => {
-  const DOMAIN = `${DOMAIN_DIR}/vitest.config.ts`
+  const DOMAIN = `${FAMILY_DIR}/vitest.config.ts`
   const GLOBAL = "statements: 90, branches: 85, functions: 90, lines: 90"
   const config = (body) => vitestConfig({ thresholds: `thresholds: { ${body} },` })
   const base = config(`${GLOBAL}, "src/core/**": { lines: 98, branches: 95 }`)
@@ -587,7 +586,7 @@ export default defineConfig({
         extra: `enabled: ${enabled},`,
       })
       assert.match(
-        checkRatchetFile(`${DOMAIN_DIR}/vitest.config.ts`, null, merged).join("\n"),
+        checkRatchetFile(`${FAMILY_DIR}/vitest.config.ts`, null, merged).join("\n"),
         /neither merges sharedConfig/,
         enabled,
       )
@@ -596,7 +595,7 @@ export default defineConfig({
 
   it("carries a non-zero floor for each of the four metrics", () => {
     const introduce = (thresholds) =>
-      checkRatchetFile(`${DOMAIN_DIR}/vitest.config.ts`, null, vitestConfig({ thresholds }))
+      checkRatchetFile(`${FAMILY_DIR}/vitest.config.ts`, null, vitestConfig({ thresholds }))
     assert.deepEqual(
       introduce(`thresholds: { ${FLOORS}, "src/core/**": { lines: 98 }, perFile: true },`),
       [],
@@ -1194,127 +1193,36 @@ describe("stryker policy (break raise-only, mutate grow-only)", () => {
   })
 })
 
-describe("eslint ratchets (shrink-only debt, budgets never raised)", () => {
-  const config = ({
-    complexity = "{}",
-    maxLines = '{ "src/a.ts": 420 }',
-    budget = 15,
-    extraBlocks = "",
-    ignores = '"**/dist/**"',
-  } = {}) => `
-export const complexityRatchet = ${complexity}
-export const maxLinesRatchet = ${maxLines}
+describe("eslint ratchets (ignores shrink-only, no local import)", () => {
+  const config = ({ ignores = '"**/dist/**"', pre = "", extraBlocks = "" } = {}) => `${pre}
 export default [
   { ignores: [${ignores}] },
   {
     files: ["packages/*/src/**/*.ts"],
-    rules: {
-      complexity: ["error", ${budget}],
-      "max-lines": ["error", { max: 400, skipBlankLines: true, skipComments: true }],
-    },
+    rules: { complexity: ["error", 15] },
   },
-  { files: ["src/messages/*.sweep.ts"], rules: { "max-lines": "off" } },
   ${extraBlocks}
-  ...Object.entries(complexityRatchet).map(([file, max]) => ({
-    files: [file],
-    rules: { complexity: ["error", max] },
-  })),
-  ...Object.entries(maxLinesRatchet).map(([file, max]) => ({
-    files: [file],
-    rules: { "max-lines": ["error", { max, skipBlankLines: true, skipComments: true }] },
-  })),
 ]`
   const base = config()
 
-  it("reads the real eslint.config.mjs without errors", () => {
-    const { maps, budgets, errors } = extractEslintRatchets(
+  it("reads the real eslint.config.mjs: its ignores and no local import", () => {
+    const { ignores, imports } = extractEslintRatchets(
       "eslint.config.mjs",
       readFileSync("eslint.config.mjs", "utf8"),
     )
-    assert.deepEqual(errors, [])
-    assert.ok("maxLinesRatchet" in maps && "complexityRatchet" in maps)
-    const budgetsOf = (filesKey) =>
-      Object.entries(budgets)
-        .filter(([key, b]) => key.includes(`| files ${filesKey} |`) && !b.exemption)
-        .map(([, b]) => b.numbers[0])
-        .sort((a, b) => a - b)
-    // The global budgets, the CLI's stricter ones (apps/cli: complexity 10, 300 lines for the
-    // shipped code and scripts, the global 400 for its tests in and outside src/) and the VS
-    // Code extension's stricter house budgets (apps/vscode: complexity 10, 300 lines).
-    assert.deepEqual(
-      budgetsOf(
-        '["apps/*/src/**/*.{ts,tsx}","packages/core/*/src/**/*.{ts,tsx}","packages/connectors/*/*/src/**/*.{ts,tsx}"]',
-      ),
-      [15, 400],
-    )
-    assert.deepEqual(budgetsOf('["apps/cli/**/*.ts"]'), [10, 300])
-    assert.deepEqual(budgetsOf('["apps/cli/**/*.test.ts","apps/cli/test/**/*.ts"]'), [400])
-    assert.deepEqual(budgetsOf('["apps/vscode/**/*.{ts,tsx,js,mjs,cjs}"]'), [10])
-    assert.deepEqual(
-      budgetsOf(
-        '["apps/vscode/{src,dev,scripts,sandbox}/**/*.{ts,tsx,js,mjs,cjs}","apps/vscode/test/webview/harness.tsx","apps/vscode/test/smoke/*.cjs"]',
-      ),
-      [300],
-    )
-    const all = Object.values(budgets).filter((b) => !b.exemption && b.numbers.length > 0)
-    assert.equal(
-      all.length,
-      7,
-      "a new complexity/max-lines setting is new debt (or a new app's budget)",
-    )
+    assert.ok(ignores.length > 0)
+    assert.deepEqual(imports, [])
   })
 
-  it("accepts lowering and removing entries, tightening the budget and dropping an exemption", () => {
+  it("accepts a dropped ignore and a dropped block", () => {
+    assert.deepEqual(checkRatchetFile("eslint.config.mjs", base, config({ ignores: "" })), [])
     assert.deepEqual(
-      checkRatchetFile("eslint.config.mjs", base, config({ maxLines: "{}", budget: 12 })),
+      checkRatchetFile(
+        "eslint.config.mjs",
+        config({ extraBlocks: '{ files: ["src/x.ts"], rules: { "max-lines": "off" } },' }),
+        base,
+      ),
       [],
-    )
-    const withoutExemption = base.replace(
-      '{ files: ["src/messages/*.sweep.ts"], rules: { "max-lines": "off" } },',
-      "",
-    )
-    assert.deepEqual(checkRatchetFile("eslint.config.mjs", base, withoutExemption), [])
-  })
-
-  it("flags a new and a raised debt entry", () => {
-    const violations = checkRatchetFile(
-      "eslint.config.mjs",
-      base,
-      config({ maxLines: '{ "src/a.ts": 430, "src/b.ts": 410 }' }),
-    )
-    assert.equal(violations.length, 2)
-    assert.match(violations.join("\n"), /"src\/a\.ts": 420 -> 430/)
-    assert.match(violations.join("\n"), /new maxLinesRatchet entry "src\/b\.ts"/)
-  })
-
-  it("flags a raised global budget", () => {
-    const violations = checkRatchetFile("eslint.config.mjs", base, config({ budget: 20 }))
-    assert.equal(violations.length, 1)
-    assert.match(violations[0], /15 -> 20/)
-  })
-
-  it("flags an override block that bypasses the debt maps", () => {
-    for (const block of [
-      '{ files: ["src/big.ts"], rules: { complexity: ["error", 40] } },',
-      '{ files: ["src/big.ts"], rules: { "max-lines": "off" } },',
-      '{ files: ["src/big.ts"], rules: { complexity: "warn" } },',
-    ]) {
-      const violations = checkRatchetFile("eslint.config.mjs", base, config({ extraBlocks: block }))
-      assert.equal(violations.length, 1, block)
-      assert.match(violations[0], /New code gets the global budget/)
-    }
-  })
-
-  it("flags a removed global budget and a non-literal debt map", () => {
-    const noBudget = base.replace('complexity: ["error", 15],', "")
-    assert.match(
-      checkRatchetFile("eslint.config.mjs", base, noBudget).join("\n"),
-      /budget setting .* was removed/,
-    )
-    const computed = config({ maxLines: "buildDebt()" })
-    assert.match(
-      checkRatchetFile("eslint.config.mjs", base, computed).join("\n"),
-      /maxLinesRatchet is not an object literal/,
     )
   })
 
@@ -1326,6 +1234,21 @@ export default [
     )
     assert.equal(violations.length, 1)
     assert.match(violations[0], /new `ignores` entry "packages\/x\/src\/tools\/raw\.ts"/)
+  })
+
+  it("flags an ignore in a block of a rule the effective-config check does not compare", () => {
+    const block = (ignores) =>
+      `{ files: ["src/**"], ignores: [${ignores}], rules: { "no-restricted-imports": ["error", "x"] } },`
+    const violations = checkRatchetFile(
+      "eslint.config.mjs",
+      config({ extraBlocks: block("") }),
+      config({ extraBlocks: block('"src/widgets/**"') }),
+    )
+    assert.equal(violations.length, 1)
+    assert.match(
+      violations[0],
+      /"src\/widgets\/\*\*" \(exempts from: rules no-restricted-imports\)/,
+    )
   })
 
   it("resolves exemption lists moved into constants, and still sees them grow", () => {
@@ -1375,51 +1298,28 @@ export default [
     assert.match(violations[0], /src\/tools\/\*\*/)
   })
 
-  it("fails closed on every shape the AST cannot read", () => {
-    const cases = {
-      "rules from a const": [
-        'const relaxed = { complexity: "off", "max-lines": "off" }',
-        '{ files: ["src/big.ts"], rules: relaxed },',
-      ],
-      "spread inside rules": [
-        "",
-        '{ files: ["src/big.ts"], rules: { ...{ complexity: "off" } } },',
-      ],
-      "computed rule key": ["", '{ files: ["src/big.ts"], rules: { ["complexity"]: "off" } },'],
-      "shorthand rules": [
-        'const rules = { complexity: "off" }',
-        '{ files: ["src/big.ts"], rules },',
-      ],
-      "spread into a config block": [
-        'const lax = { rules: { complexity: "off" } }',
-        '{ ...lax, files: ["src/big.ts"] },',
-      ],
-      "imported config element": ['import lax from "./lax.mjs"', "...lax,"],
-      "debt smuggled past the frozen map": [
-        "",
-        '...Object.entries({ ...maxLinesRatchet, "src/big.ts": 900 }).map(([file, max]) => ({ files: [file], rules: { "max-lines": ["error", { max }] } })),',
-      ],
+  it("flags a local or dynamic import: the base would be evaluated with today's module", () => {
+    for (const [label, pre, extraBlocks] of [
+      ["local import", 'import lax from "./lax.mjs"', "...lax,"],
+      ["dynamic import", "", '...(await import("./lax.mjs")).default,'],
+      ["require", "", '...require("./lax.cjs"),'],
+    ]) {
+      const violations = checkRatchetFile("eslint.config.mjs", base, config({ pre, extraBlocks }))
+      assert.equal(violations.length, 1, label)
+      assert.match(violations[0], /evaluates the base config next to today's files/, label)
     }
-    for (const [label, [pre, block]] of Object.entries(cases)) {
-      const violations = checkRatchetFile(
+    assert.deepEqual(
+      checkRatchetFile(
         "eslint.config.mjs",
         base,
-        `${pre}\n${config({ extraBlocks: block })}`,
-      )
-      assert.ok(violations.length > 0, label)
-      assert.match(violations.join("\n"), /reads literals only/, label)
-    }
+        config({ pre: 'import tseslint from "typescript-eslint"' }),
+      ),
+      [],
+    )
   })
 
-  it("treats a gate rule switched off or to warn as an exemption", () => {
-    for (const block of [
-      '{ files: ["src/tools/raw.ts"], rules: { "no-restricted-syntax": "off" } },',
-      '{ files: ["src/tools/raw.ts"], rules: { "no-restricted-syntax": ["warn", "X"] } },',
-    ]) {
-      const violations = checkRatchetFile("eslint.config.mjs", base, config({ extraBlocks: block }))
-      assert.equal(violations.length, 1, block)
-      assert.match(violations[0], /exemption/)
-    }
+  it("flags a removed config", () => {
+    assert.match(checkRatchetFile("eslint.config.mjs", base, null)[0], /was removed/)
   })
 
   it("ignores parser-project partitions (no rules) — they route files, not exempt them", () => {

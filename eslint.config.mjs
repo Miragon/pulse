@@ -26,15 +26,6 @@ const serverTestFiles = [
 // layer's tsconfig instead.
 const vscodeBoundaryProbes = ["apps/vscode/test/*/runtime.boundary.ts"]
 
-// Ratchet debt: frozen high-water marks from the 2026-08-07 baseline
-// measurement. Shrink-only lists — refactor a file below the global target
-// (complexity 15 / 400 effective lines), then DELETE its entry. Never raise
-// a value, never add an entry; new code gets the global budget.
-export const complexityRatchet = {}
-
-// Frozen at current length rounded up to the next 10 lines.
-export const maxLinesRatchet = {}
-
 // ── Pattern-gate selectors (`no-restricted-syntax`) ─────────────────────────
 
 const TOOL_MEMBER = "/^(tool|registerTool)$/"
@@ -440,8 +431,8 @@ export default tseslint.config(
     rules: { "no-restricted-imports": ["error", widgetSparkleGate] },
   },
   // ── Ratchet metrics: complexity + file-length budgets ───────────────────
-  // Global targets for all source code; the ratchet lists above freeze
-  // today's offenders at their high-water mark.
+  // Global targets for all source code; scripts/check-ratchets.mjs keeps them
+  // from loosening.
   {
     files: [
       "apps/*/src/**/*.{ts,tsx}",
@@ -664,12 +655,4 @@ export default tseslint.config(
     plugins: { "react-hooks": reactHooks },
     rules: { "react-hooks/rules-of-hooks": "error" },
   },
-  ...Object.entries(complexityRatchet).map(([file, max]) => ({
-    files: [file],
-    rules: { complexity: ["error", max] },
-  })),
-  ...Object.entries(maxLinesRatchet).map(([file, max]) => ({
-    files: [file],
-    rules: { "max-lines": ["error", { max, skipBlankLines: true, skipComments: true }] },
-  })),
 )

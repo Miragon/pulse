@@ -2,7 +2,7 @@
 /**
  * `pnpm fitness` — the repo's fitness-function dashboard. Aggregates what the
  * gates already measure into one report: architecture graph (dependency-
- * cruiser), ratchet debt (eslint.config.mjs), per-package coverage (from the
+ * cruiser), per-package coverage (from the
  * last `pnpm test` run's coverage-summary.json) and mutation scores (from
  * reports/mutation-report.json where a mutation run has happened: in CI only
  * the nightly "Mutation summary", so a pull request's report reads "(no run)").
@@ -12,7 +12,6 @@
  */
 import { execSync } from "node:child_process"
 import { appendFileSync, existsSync, readFileSync, readdirSync } from "node:fs"
-import { complexityRatchet, maxLinesRatchet } from "../eslint.config.mjs"
 
 const lines = []
 const put = (s = "") => lines.push(s)
@@ -37,15 +36,10 @@ const archLine = architectureLine(
 // The VS Code extension's own closed-world rules: the root script, so the command stays one.
 const vscodeArchLine = architectureLine("pnpm --silent run lint:architecture:vscode")
 
-// ── Ratchet debt ────────────────────────────────────────────────────────────
-const complexityDebt = Object.keys(complexityRatchet).length
-const lengthDebt = Object.keys(maxLinesRatchet).length
-
 put("## Fitness report")
 put()
 put(`- Architecture (dependency-cruiser): ${archLine}`)
 put(`- Architecture, VS Code extension (apps/vscode/.dependency-cruiser.cjs): ${vscodeArchLine}`)
-put(`- Ratchet debt: ${complexityDebt} complexity, ${lengthDebt} max-lines entries (shrink-only)`)
 put()
 
 // ── Per-package coverage + mutation ─────────────────────────────────────────
