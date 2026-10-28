@@ -1,6 +1,6 @@
 {
   "name": "pulse-cli",
-  "version": "0.24.2",
+  "version": "0.25.0",
   "description": "Inspect and operate Camunda 7, Operaton and CIB seven process engines through their REST API with pulse-cli: the agent skill for its operations and workflow commands, and /pulse-cli:status for engine triage.",
   "author": {
     "name": "Miragon GmbH",
