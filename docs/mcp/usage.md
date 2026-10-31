@@ -81,13 +81,12 @@ Ask _"open my settings"_ (or click **Settings** in the cockpit) for the full
 page: the language first, then one section per active module, so an assistant
 with only some modules connected shows only those sections.
 
-| Setting             | Section                | Effect                                                                                                   |
-| ------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------- |
-| Language            | Language               | UI language (Automatic: the chat app's); a chosen one also sets the language tool summaries come back in |
-| Engine availability | Engines and dashboards | Which engines appear in pickers, and the default the cockpit opens on                                    |
-| Pinned dashboards   | Engines and dashboards | Which saved dashboards come first in pickers (needs login)                                               |
-| Look-back period    | Analytics              | Applied whenever you ask an analytics question without naming a window                                   |
-| Comparison bucket   | Analytics              | How many instances a window needs before a comparison is trusted                                         |
+| Setting             | Section            | Effect                                                                                                   |
+| ------------------- | ------------------ | -------------------------------------------------------------------------------------------------------- |
+| Language            | Language           | UI language (Automatic: the chat app's); a chosen one also sets the language tool summaries come back in |
+| Engine availability | Engine settings    | Which engines appear in pickers, and the default the cockpit opens on                                    |
+| Look-back period    | Analytics settings | Applied whenever you ask an analytics question without naming a window                                   |
+| Comparison bucket   | Analytics settings | How many instances a window needs before a comparison is trusted                                         |
 
 You can also open a single section (_"open my engine settings"_ or _"show my
 analytics settings"_) or change a value in passing, without any page:
@@ -98,9 +97,7 @@ Settings are saved per user account, so they need a deployment with login:
 signed in, they follow you across conversations. Without a login, and on a
 read-only deployment, the page shows the defaults (widgets follow the chat
 app's language) but hides Save. Light or dark is never a setting: the widgets
-always follow the chat app's theme, and your system's without one. Saved dashboards exist only with
-login on a deployment that allows writes; otherwise the dashboard picker says
-"Saved dashboards are unavailable".
+always follow the chat app's theme, and your system's without one.
 
 ## Tips
 

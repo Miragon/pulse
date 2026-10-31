@@ -16,7 +16,7 @@ import { deltaFacts } from "./comparison-shared.js"
 
 /**
  * Built by `modelContextText` (#338). The scope comes from the DATA, never the cell props (#336),
- * so a saved or composed widget describes the numbers on screen; an unmeasured figure is left out,
+ * so a composed widget describes the numbers on screen; an unmeasured figure is left out,
  * never 0. Names analytics tools only: a pure description cannot query the camunda7 surface.
  */
 

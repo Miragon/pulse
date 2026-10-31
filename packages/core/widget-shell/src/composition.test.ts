@@ -27,7 +27,7 @@ const moduleOf = (
     },
   ),
   createPlugin: (config, shared) =>
-    ({ definition: { name }, config, shared }) as unknown as ReturnType<
+    ({ name, register: () => {}, config, shared }) as ReturnType<
       ComposableModule<TestShared>["createPlugin"]
     >,
   ...overrides,
@@ -44,7 +44,7 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-describe("activeModules / appEntries", () => {
+describe("activeModules / resolveBoot entries", () => {
   it("activates every module when MCP_ACTIVE_MODULES is unset or 'all'", () => {
     expect(compose().activeModules({})).toEqual([{ name: "alpha" }, { name: "beta" }])
     expect(compose().activeModules({ MCP_ACTIVE_MODULES: "all" })).toEqual([
@@ -90,7 +90,7 @@ describe("activeModules / appEntries", () => {
   })
 
   it("threads the EFFECTIVE toolset into every module config; config comes from configFromEnv(env)", () => {
-    const entries = compose().appEntries({
+    const { entries } = compose().resolveBoot({
       MCP_ACTIVE_MODULES: "alpha:admin,beta",
       ALPHA_URL: "http://a",
     })
@@ -103,7 +103,7 @@ describe("activeModules / appEntries", () => {
   it("strips the toolset suffix (warning) for modules without toolsets", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
     const modules = [moduleOf("alpha", { toolsets: undefined })]
-    const entries = compose(modules).appEntries({ MCP_ACTIVE_MODULES: "alpha:read-only" })
+    const { entries } = compose(modules).resolveBoot({ MCP_ACTIVE_MODULES: "alpha:read-only" })
     expect(entries[0].config).not.toHaveProperty("toolset")
     expect(warn).toHaveBeenCalledWith(
       '[test-root] Module "alpha" has no toolsets — ignoring ":read-only"',
@@ -129,17 +129,6 @@ describe("activeModules / appEntries", () => {
     expect(composition.logEffectiveToolsets(boot)).toBe(
       "[test-root] Toolsets — alpha (no toolsets)",
     )
-  })
-
-  it("appConfig wraps the entries in the mcp-use shape", () => {
-    expect(compose().appConfig({ MCP_ACTIVE_MODULES: "alpha" })).toEqual({
-      activeApps: [{ app: "alpha", config: { url: "default", toolset: "read-only" } }],
-      pipelines: {},
-    })
-    expect(compose().appConfig({ MCP_ACTIVE_MODULES: "alpha" }, { authenticated: true })).toEqual({
-      activeApps: [{ app: "alpha", config: { url: "default", toolset: "operations" } }],
-      pipelines: {},
-    })
   })
 })
 
@@ -291,7 +280,7 @@ describe("frameworkWritesAllowed", () => {
       moduleOf("gamma", { toolsets: undefined }),
     ]).resolveBoot(env, { authenticated })
 
-  it("requires OAuth — without a caller identity framework records are ownerless", () => {
+  it("requires OAuth: without a caller identity a saved language has no owner", () => {
     expect(
       frameworkWritesAllowed(boot(false, { MCP_ACTIVE_MODULES: "alpha:admin,beta:admin" })),
     ).toBe(false)
@@ -312,12 +301,21 @@ describe("frameworkWritesAllowed", () => {
 })
 
 describe("pluginsFor", () => {
-  it("instantiates each entry's plugin with the shared resources", () => {
+  it("instantiates each entry's plugin with its config and the shared resources", () => {
     const composition = compose()
-    const entries = composition.appEntries({ MCP_ACTIVE_MODULES: "beta" })
+    const { entries } = composition.resolveBoot({ MCP_ACTIVE_MODULES: "beta" })
     const plugins = composition.pluginsFor(entries, { tag: "shared-1" })
     expect(plugins).toHaveLength(1)
-    expect(plugins[0]).toMatchObject({ shared: { tag: "shared-1" } })
+    expect(plugins[0]).toMatchObject({
+      name: "beta",
+      config: { url: "default", toolset: "read-only" },
+      shared: { tag: "shared-1" },
+    })
+  })
+
+  it("skips an entry no module of this composition owns", () => {
+    const plugins = compose().pluginsFor([{ app: "stranger", config: {} }], { tag: "shared-1" })
+    expect(plugins).toEqual([])
   })
 })
 

@@ -20,13 +20,12 @@ export async function widgetActionsFeedFor(
   toolset: Camunda7Toolset,
 ): Promise<{ allowedActions: string[]; modelTools: string[] }> {
   const tool = vi.fn()
-  const server = { tool, use: vi.fn(), prompt: vi.fn() } as unknown as MCPServer
+  const server = { tool, prompt: vi.fn() } as unknown as MCPServer
   const plugin = createPlugin({
     engines: [{ id: "prod-a", baseUrl: "http://a.example/engine-rest" }],
     toolset,
   })
-  plugin.registerTools?.(server)
-  plugin.registerWidgetTools?.(server)
+  plugin.register(server)
   const calls = tool.mock.calls as Array<[{ name: string }, (p: unknown) => Promise<unknown>]>
   const feed = calls.find(([definition]) => definition.name === CAMUNDA7_WIDGET_ACTIONS_DATA)
   return feedPayload<{ allowedActions: string[]; modelTools: string[] }>(await feed![1]({}))

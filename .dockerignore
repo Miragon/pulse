@@ -3,13 +3,12 @@
 **/.turbo
 **/*.tsbuildinfo
 **/.DS_Store
-# Local credentials and dev persistence (MCP_PROFILE_DIR / MCP_DASHBOARD_DIR
-# records are keyed by user id or e-mail) — in every package, never in the
-# image or the repo. `.env.example` is the committed template.
+# Local credentials and dev persistence (MCP_PROFILE_DIR records are keyed by
+# user id or e-mail) — in every package, never in the image or the repo.
+# `.env.example` is the committed template.
 **/.env*
 !**/.env.example
 **/.profiles
-**/.dashboards
 **/.data
 .git
 .idea

@@ -1,10 +1,9 @@
+import fs from "node:fs"
+import path from "node:path"
+import ts from "typescript"
 import { describe, expect, it } from "vitest"
 import { collectLayoutWidgets } from "@miragon/mcp-toolkit-core"
-import { definition as camunda7Definition } from "@miragon/pulse-camunda7-connector/definition"
-import { definition as analyticsDefinition } from "@miragon/pulse-analytics-connector/definition"
-import { definition as notesDefinition } from "@acme/mcp-notes/definition"
 import { cockpitViews } from "@miragon/pulse-camunda7-connector/widgets"
-import { shellDefinition } from "@miragon/pulse-widget-shell/server"
 import {
   filterLayoutToWidgets,
   settingsLayout,
@@ -12,25 +11,100 @@ import {
 } from "@miragon/pulse-widget-shell/widgets"
 import { widgetRegistry } from "../src/ui/widget-registry.js"
 
-/**
- * Closes link 3 of the four-link widget chain: the per-module catalogue-sync
- * tests guard registry ↔ definition inside each package, but nothing else
- * guards that the host bundle map actually spreads every composed module's
- * widgets. A widget id catalogued in a module definition but absent here
- * renders as an empty slot in the host UI. When you add a module to MODULES
- * in src/setup.ts, add its definition to this list too.
- */
-const catalogued = [
-  ...camunda7Definition.widgets.map((w) => w.id),
-  ...analyticsDefinition.widgets.map((w) => w.id),
-  ...notesDefinition.widgets.map((w) => w.id),
-  ...shellDefinition.widgets.map((w) => w.id),
-]
+const SERVER_ROOT = path.join(import.meta.dirname, "..")
 
-describe("host widget registry covers the module catalogues", () => {
-  it("has an entry for every widget id declared by the composed modules and the shell", () => {
-    const missing = catalogued.filter((id) => !(id in widgetRegistry))
+const WIDGET_ID = /^[a-z0-9-]+:[a-z0-9-]+$/
+
+/**
+ * Every `widget: "<module>:<id>"` in code, never in a comment: the ids a show
+ * tool's view result (or a static layout) hands the host bundle to render.
+ */
+function findWidgetIds(file: string, text: string): string[] {
+  const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true)
+  const ids: string[] = []
+  const visit = (node: ts.Node) => {
+    if (
+      ts.isPropertyAssignment(node) &&
+      (ts.isIdentifier(node.name) || ts.isStringLiteral(node.name)) &&
+      node.name.text === "widget" &&
+      ts.isStringLiteralLike(node.initializer) &&
+      WIDGET_ID.test(node.initializer.text)
+    ) {
+      ids.push(node.initializer.text)
+    }
+    ts.forEachChild(node, visit)
+  }
+  visit(source)
+  return ids
+}
+
+/** Test code may name ids no module renders; only what ships counts. */
+const isShippedSource = (file: string) =>
+  /\.tsx?$/.test(file) && !/\.(?:test|spec|test-support)\.tsx?$/.test(file)
+
+/**
+ * The source directories of the module packages this server depends on: every
+ * entry of `server/package.json` `dependencies` that exports `./widgets` and
+ * ships its `src/` — the Pulse connectors from npm and your workspace modules
+ * alike, so a module wired through its dependency is covered without an edit
+ * here. widget-shell ships `dist/` only; its settings page is checked by id
+ * below.
+ */
+function moduleSourceDirs(): string[] {
+  const read = (file: string) =>
+    JSON.parse(fs.readFileSync(file, "utf8")) as {
+      dependencies?: Record<string, string>
+      exports?: Record<string, unknown>
+    }
+  const { dependencies = {} } = read(path.join(SERVER_ROOT, "package.json"))
+  return Object.keys(dependencies)
+    .map((name) => path.join(SERVER_ROOT, "node_modules", name))
+    .filter((dir) => read(path.join(dir, "package.json")).exports?.["./widgets"] !== undefined)
+    .map((dir) => path.join(dir, "src"))
+    .filter((src) => fs.existsSync(src))
+    .map((src) => fs.realpathSync(src))
+}
+
+/** Every widget id the modules' shipped sources name, in source order, once each. */
+function emittedWidgetIds(): string[] {
+  const ids = moduleSourceDirs().flatMap((dir) =>
+    fs
+      .readdirSync(dir, { recursive: true, encoding: "utf8" })
+      .filter(isShippedSource)
+      .flatMap((file) => findWidgetIds(file, fs.readFileSync(path.join(dir, file), "utf8"))),
+  )
+  return [...new Set(ids)]
+}
+
+const emitted = emittedWidgetIds()
+
+/**
+ * The host bundle map must render every widget a module can put on screen: a
+ * show tool returns its view naming the widget by id, and an id missing from
+ * `widgetRegistry` renders as an empty slot. The ids come from the modules'
+ * sources, so name each one as a string literal (`widget: "<module>:<id>"`)
+ * where the show tool builds its view.
+ */
+describe("host widget registry covers every widget the modules name", () => {
+  it("reads the show tools of the Miragon modules and the notes module (the scan is not blind)", () => {
+    expect(emitted).toContain("notes:list")
+    expect(emitted.some((id) => id.startsWith("camunda7:"))).toBe(true)
+    expect(emitted.some((id) => id.startsWith("analytics:"))).toBe(true)
+  })
+
+  it("has an entry for every widget id a module's sources name", () => {
+    const missing = emitted.filter((id) => !(id in widgetRegistry))
     expect(missing).toEqual([])
+  })
+
+  it("reads code, never a comment or a constant", () => {
+    const text = [
+      'const a = { row: [{ widget: "notes:a", props: {} }] }',
+      '// const b = { widget: "notes:b" }',
+      "const c = { widget: SOME_WIDGET, d: { widget: `notes:${name}` } }",
+      'const e = { dataType: "notes:list", "widget": "notes:e" }',
+    ].join("\n")
+    expect(findWidgetIds("x.ts", text)).toEqual(["notes:a", "notes:e"])
   })
 })
 
@@ -38,19 +112,16 @@ describe("host widget registry covers the module catalogues", () => {
  * The settings page (the shell's) leads with the UI language and composes one
  * section widget per module, assembled from THIS server's widget registry:
  * every widget id ending in `:settings` gets a row, in registration order —
- * YOUR module's section included, with no edit in any package. The failure mode stays
- * SILENT: a section whose widget never reaches `widgetRegistry` is simply
- * absent from the settings tab. The convention check below covers every module
- * whose `definition` is listed in this file — add yours to both describe
- * blocks when you add a module.
+ * YOUR module's section included, with no edit in any package. The failure
+ * mode stays SILENT: a section whose widget never reaches `widgetRegistry` is
+ * simply absent from the settings tab.
  */
 describe("settings page composes every module's settings section", () => {
   // What the page reads at runtime: the ids this bundle can render.
   const hostWidgetIds = Object.keys(widgetRegistry)
-  const settingsLayoutOf = (widgetIds: string[]) => settingsLayout(widgetIds)
-  const sectionIds = collectLayoutWidgets(settingsLayoutOf(hostWidgetIds))
+  const sectionIds = collectLayoutWidgets(settingsLayout(hostWidgetIds))
 
-  const cataloguedSections = catalogued.filter((id) => id.endsWith(":settings"))
+  const emittedSections = emitted.filter((id) => id.endsWith(":settings"))
 
   it("is what the cockpit's settings tab renders, and the bundle has it", () => {
     expect(collectLayoutWidgets(cockpitViews.settings({ engine: "prod-a" }))).toEqual([
@@ -59,8 +130,8 @@ describe("settings page composes every module's settings section", () => {
     expect(widgetRegistry).toHaveProperty(SHELL_SETTINGS_PAGE_WIDGET)
   })
 
-  it("lists every catalogued settings section (a missing row = an invisible section)", () => {
-    const missing = cataloguedSections.filter((id) => !sectionIds.includes(id))
+  it("lists every module's settings section (a missing row = an invisible section)", () => {
+    const missing = emittedSections.filter((id) => !sectionIds.includes(id))
     expect(missing).toEqual([])
   })
 
@@ -70,18 +141,18 @@ describe("settings page composes every module's settings section", () => {
   })
 
   it("survives filtering against the host registry with all sections intact", () => {
-    const filtered = filterLayoutToWidgets(settingsLayoutOf(hostWidgetIds), widgetRegistry)
+    const filtered = filterLayoutToWidgets(settingsLayout(hostWidgetIds), widgetRegistry)
     expect(collectLayoutWidgets(filtered)).toEqual(sectionIds)
   })
 
   it("degrades to the remaining sections when a module is absent", () => {
-    // Tier-2 graceful degradation: a host without the analytics module renders
+    // Graceful degradation: a host without the analytics module renders
     // no analytics section instead of erroring on an unknown widget id.
     const withoutAnalytics = Object.fromEntries(
       Object.entries(widgetRegistry).filter(([id]) => !id.startsWith("analytics:")),
     )
     const filtered = filterLayoutToWidgets(
-      settingsLayoutOf(Object.keys(withoutAnalytics)),
+      settingsLayout(Object.keys(withoutAnalytics)),
       withoutAnalytics,
     )
     const remaining = collectLayoutWidgets(filtered)
@@ -99,7 +170,7 @@ describe("settings page composes every module's settings section", () => {
     const CustomSection = () => null
     const withCustomModule = { ...widgetRegistry, "your-module:settings": CustomSection }
     const composed = collectLayoutWidgets(
-      filterLayoutToWidgets(settingsLayoutOf(Object.keys(withCustomModule)), withCustomModule),
+      filterLayoutToWidgets(settingsLayout(Object.keys(withCustomModule)), withCustomModule),
     )
     expect(composed).toEqual([...sectionIds, "your-module:settings"])
   })

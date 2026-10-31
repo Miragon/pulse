@@ -18,7 +18,7 @@ const FIXTURE_JS = path.join(import.meta.dirname, "fixtures", "mcp-app.js")
  * real engine or Prometheus), no ambient toolset, OAuth, deployment flag or
  * edge override from the developer's shell — each of those changes the
  * surface under test. Persistence is injected (in-memory), so DATABASE_URL
- * and the store directories never matter.
+ * and the profile directory never matter.
  */
 const BASE_ENV: Record<string, string | undefined> = {
   CAMUNDA_BASE_URL: "http://localhost:1",
@@ -37,7 +37,6 @@ const BASE_ENV: Record<string, string | undefined> = {
   MCP_METRICS_TOKEN: undefined,
   DATABASE_URL: undefined,
   MCP_PROFILE_DIR: undefined,
-  MCP_DASHBOARD_DIR: undefined,
 }
 
 /** Bearer tokens the stub IdP accepts, by user id. */
@@ -88,7 +87,6 @@ export function createTestOAuthProvider(): OAuthProvider<unknown> {
 export function createTestRuntime(overrides: Partial<RuntimeBackends> = {}): RuntimeBackends {
   return {
     profileStore: createInMemoryProfileStore(),
-    dashboardStore: undefined,
     readiness: {},
     shutdown: vi.fn(async () => {}),
     ...overrides,

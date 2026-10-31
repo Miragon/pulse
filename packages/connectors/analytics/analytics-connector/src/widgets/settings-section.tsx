@@ -152,7 +152,7 @@ function SettingsPanel({ view }: { view: AnalyticsSettingsViewData }) {
 
   return (
     /* Inline (not via adaptDataWidget): the cockpit settings tab renders this
-       widget without pipeline data, and only the mounted component knows the
+       widget without view data, and only the mounted component knows the
        self-fetched view. HostModelContext renders its children unchanged. */
     <HostModelContext content={modelContextText(describeAnalyticsSettings(view))}>
       <div className="flex flex-col gap-4">

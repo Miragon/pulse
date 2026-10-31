@@ -9,7 +9,7 @@ allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 The camunda7 module never registers operations tools with raw `server.tool()`. Tools go
 through the toolkit registrar; engine access goes through `withEngine`/`resolveEngine`
 (per-call `engine` override > saved default engine (profile) > single default). Widgets hang
-off a four-link registration chain. Follow the steps for the path you need.
+off a three-link registration chain. Follow the steps for the path you need.
 
 ## Step 0 — pick the render path
 
@@ -315,31 +315,22 @@ itself; widget-shell neither forks nor re-exports them) — never re-inline thes
    covers and the model context read the payload's echo (`data.filters`), never the
    request's args (reference: the instance list's `listFilters`).
 
-The registration chain has **four links — miss one and the widget is silently absent
+The registration chain has **three links — miss one and the widget is silently absent
 somewhere**:
 
 1. `src/widgets/registry.ts` — map the component to its dataType:
    `"camunda7:my-widget": adaptDataWidget(MyWidget, "camunda7:myData")`
    (`adaptDataWidget` comes from `@miragon/pulse-widget-shell/ui`).
-2. `src/definition.ts` — add the widget entry (`id`, `requires`, `size`, optional
-   `propsSchema`) to the `widgets` array, with `...builderText("widget.<slug>")` (the view
-   builder's title and summary for people: `builder.widget.<slug>.title|summary` in
-   `messages/{en,de}.builder.ts`) and `.meta(fieldText("<schema>.<field>"))` on every
-   top-level `propsSchema` field (never a nested one: the props sheet edits nested
-   objects and arrays as JSON, and the toolkit strips `x-display` from the top level
-   only, so a nested text would reach the model); a new pipeline step takes
-   `...builderText("step.<slug>")`. `description` stays the model's text;
-   `src/builder-texts.test.ts` fails on anything the builder would still show by its id
-   and on any builder text the model would read.
-3. `apps/mcp-server-camunda7/src/ui/widget-registry.ts` — the host bundle map. It spreads
+2. `apps/mcp-server-camunda7/src/ui/widget-registry.ts` — the host bundle map. It spreads
    `camunda7Widgets` from `src/widgets/index.ts`, which spreads the registry — verify
    your widget actually arrives in the host map.
-4. `src/tool-names.ts` — add a `CAMUNDA7_SHOW_*` / `CAMUNDA7_*_DATA` constant for every
+3. `src/tool-names.ts` — add a `CAMUNDA7_SHOW_*` / `CAMUNDA7_*_DATA` constant for every
    new widget tool, so `host.showWidget(...)` call sites stay rename-safe.
 
-Links 1↔2 are guarded by `src/widgets/catalogue-sync.test.ts`, link 3 by
-`apps/mcp-server-camunda7/test/widget-registry.test.ts` (every catalogued widget id needs a
-host-bundle entry).
+A widget id exists where a show tool or a static layout (the cockpit's
+`src/widgets/cockpit-app/views.ts`) emits it as `widget: "camunda7:<id>"`.
+`apps/mcp-server-camunda7/test/widget-registry.test.ts` scans the connectors' sources for
+those literals and fails on any id the host bundle map lacks.
 
 Then register the widget tool in its area's file under `src/widget-tools/` (`cockpit.ts`,
 `instances.ts`, `incidents.ts`; `*_data` feeds in `data-feeds.ts`). `src/widget-tools.ts`
@@ -371,7 +362,7 @@ wires them; these files are the documented exception that uses `server.tool()` d
   the in-widget `callTool()` gets JSON back instead of the host rendering a new widget.
   Wrap every raw handler in `withToolErrors` (from `@miragon/pulse-widget-shell/server`).
 - Shared data paths: every number a view shows comes from ONE builder in `src/data/`
-  that its show tool, its `*_data` feed AND its pipeline step call — never fork one.
+  that its show tool AND its `*_data` feed call — never fork one.
   Definition lookups (id parsers, the key lookup, the per-KEY fold of the per-version
   statistics) come from `src/data/definition-info.ts`; the BPMN viewer payload from
   `src/data/bpmn-viewer-data.ts`. A key's latest version is `fetchLatestDefinition`
@@ -403,14 +394,6 @@ wires them; these files are the documented exception that uses `server.tool()` d
   rejection table in `src/data/honest-numbers.test.ts` — the table fails without it. The
   table breaks EVERY read the healthy build makes (method + path + query names), so a
   case declares only its enrichment reads; any other read whose failure is swallowed fails.
-- Pipeline steps (`src/steps/`) are thin adapters over their show tool's builder, built
-  with `adapterStep` (`requiredKey`/`stringKey` from `src/steps/shared.ts`; it adds
-  `ENGINE_KEY` and resolves the engine), stamp `engineId`, and declare a `description`
-  plus every scoping key the step reads in `optionalKeys` so `get-framework-manifest`
-  shows them. A failure throws — never a
-  success-shaped empty payload. Add the step to the twin table in
-  `src/steps/steps.test.ts`, which holds its output AND its engine requests EQUAL to the
-  show tool's — a dropped or misnamed scoping key changes the requests.
 - The `show_*`/`*_data` naming is load-bearing:
   `apps/mcp-server-camunda7/test/widget-contract.e2e.test.ts` enforces the widget `_meta` on
   every `*_show_*` tool and app-only visibility on every `*_data` feed **by name**.

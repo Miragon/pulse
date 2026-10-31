@@ -89,8 +89,8 @@ describe("CAMUNDA_ALLOW_DEPLOYMENTS", () => {
   /** The module's createPlugin → plugin → registrar path, as the composition drives it. */
   const registeredNames = (config: Record<string, unknown>): string[] => {
     const tool = vi.fn()
-    const server = { tool, use: vi.fn(), prompt: vi.fn() } as unknown as MCPServer
-    camunda7Module.createPlugin({ engines: [engine], ...config }, {}).registerTools?.(server)
+    const server = { tool, prompt: vi.fn() } as unknown as MCPServer
+    camunda7Module.createPlugin({ engines: [engine], ...config }, {}).register(server)
     return tool.mock.calls.map((c) => (c[0] as { name: string }).name)
   }
 
@@ -142,12 +142,12 @@ describe("CAMUNDA_REQUEST_TIMEOUT_MS", () => {
   })
 
   it("reaches every engine client: a junk value fails createPlugin, a valid one boots", () => {
-    const server = { tool: vi.fn(), use: vi.fn(), prompt: vi.fn() } as unknown as MCPServer
+    const server = { tool: vi.fn(), prompt: vi.fn() } as unknown as MCPServer
     expect(() =>
       camunda7Module.createPlugin({ engines: [engine], requestTimeoutMs: "soon" }, {}),
     ).toThrow(/CAMUNDA_REQUEST_TIMEOUT_MS/)
     const plugin = camunda7Module.createPlugin({ engines: [engine], requestTimeoutMs: "250" }, {})
-    expect(() => plugin.registerTools?.(server)).not.toThrow()
+    expect(() => plugin.register(server)).not.toThrow()
   })
 })
 

@@ -1,6 +1,6 @@
 ---
 name: setup-server
-description: Set up, configure, run, brand, and deploy this composed MCP server. Use whenever connecting a Camunda 7 / CIB Seven engine or Prometheus, selecting modules or toolsets (`MCP_ACTIVE_MODULES`), configuring persistence, renaming the `@acme` scope, building the Docker image, running behind an MCP gateway, or troubleshooting boot warnings, empty analytics, or inspector issues.
+description: Set up, configure, run, brand, and deploy this composed MCP server. Use whenever connecting a Camunda 7 / CIB seven engine or Prometheus, selecting modules or toolsets (`MCP_ACTIVE_MODULES`), configuring persistence, renaming the `@acme` scope, building the Docker image, running behind an MCP gateway, or troubleshooting boot warnings, empty analytics, or inspector issues.
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 ---
 
@@ -132,15 +132,14 @@ vars) fails the boot.
 
 ## Step 4: persistence
 
-Both stores default to **in-memory**: everything is lost on restart. For real
-deployments point them at directories (mounted volumes in Docker):
+The profile store defaults to **in-memory**: every setting is lost on restart.
+For real deployments point it at a directory (a mounted volume in Docker):
 
 ```bash
-MCP_PROFILE_DIR=./.data/profiles       # per-user settings (language, module slices) — filled under MCP_OAUTH
-MCP_DASHBOARD_DIR=./.data/dashboards   # saved builder dashboards — only under MCP_OAUTH (builder is off without it)
+MCP_PROFILE_DIR=./.data/profiles       # per-user settings (language, module slices), filled under MCP_OAUTH
 ```
 
-Postgres stores are deliberately trimmed from this template; the stock server
+A Postgres store is deliberately trimmed from this template; the stock server
 (`apps/mcp-server-camunda7` in the
 [Pulse repo](https://github.com/Miragon/pulse)) is the reference
 (README, "Going further").
@@ -154,8 +153,7 @@ then reinstall so the lockfile matches:
    selects packages by path, no edit there)
 2. `@acme/mcp-notes` in `modules/mcp-notes/package.json`, in
    `server/package.json`'s dependencies, and in every import
-   (`server/src/setup.ts`, `server/src/ui/widget-registry.ts`,
-   `server/test/widget-registry.test.ts`)
+   (`server/src/setup.ts`, `server/src/ui/widget-registry.ts`)
 3. the `acme-mcp` labels in `server/src/app.ts` and `setup.ts`
 4. `pnpm install` to refresh `pnpm-lock.yaml` (the Docker build uses
    `--frozen-lockfile`)

@@ -9,6 +9,7 @@ import {
   type ProfileStore,
 } from "./profile-store.js"
 import { createPostgresProfileStore, PROFILE_STORE_MIGRATIONS } from "./profile-store-postgres.js"
+import { runMigrations } from "./postgres.js"
 import { defaultProfileRecord } from "./profile-record.js"
 import { saveModuleSlice } from "./profile-slice.js"
 
@@ -110,7 +111,7 @@ function profileStoreContract(makeStore: () => Promise<ProfileStore>) {
     // write shows only when the two calls interleave.
     for (let round = 0; round < 10; round += 1) {
       const key = `user-${round}`
-      await store.save(key, { modules: { camunda7: { pinnedDashboardIds: ["d1"] } } })
+      await store.save(key, { modules: { camunda7: { allowedEngineIds: ["prod-a"] } } })
       await Promise.all([
         saveModuleSlice(store, key, "camunda7", { defaultEngineId: "prod-a" }),
         saveModuleSlice(store, key, "analytics", { defaultPeriod: "30d" }),
@@ -118,7 +119,7 @@ function profileStoreContract(makeStore: () => Promise<ProfileStore>) {
       ])
       const profile = await store.get(key)
       expect(profile?.modules).toEqual({
-        camunda7: { pinnedDashboardIds: ["d1"], defaultEngineId: "prod-a" },
+        camunda7: { allowedEngineIds: ["prod-a"], defaultEngineId: "prod-a" },
         analytics: { defaultPeriod: "30d" },
       })
       expect(profile?.language).toBe("de")
@@ -134,11 +135,11 @@ function profileStoreContract(makeStore: () => Promise<ProfileStore>) {
       await store.save(key, { modules: { camunda7: { defaultEngineId: "prod-a", extra: 1 } } })
       await Promise.all([
         saveModuleSlice(store, key, "camunda7", { defaultEngineId: "prod-b" }),
-        saveModuleSlice(store, key, "camunda7", { pinnedDashboardIds: ["d1"] }),
+        saveModuleSlice(store, key, "camunda7", { allowedEngineIds: ["prod-a"] }),
       ])
       expect((await store.get(key))?.modules?.camunda7).toEqual({
         defaultEngineId: "prod-b",
-        pinnedDashboardIds: ["d1"],
+        allowedEngineIds: ["prod-a"],
         extra: 1,
       })
     }
@@ -271,7 +272,6 @@ const V1_RECORD = {
   id: "early",
   language: "de",
   theme: "dark",
-  pinnedDashboardIds: [],
   analyticsDefaultPeriod: "30d",
   analyticsMinBucketSize: 25,
   createdAt: "2026-01-01T00:00:00.000Z",
@@ -294,11 +294,7 @@ describe.skipIf(!TEST_DATABASE_URL)("createPostgresProfileStore", () => {
     })
     await sql.unsafe(`DROP SCHEMA IF EXISTS ${TEST_SCHEMA} CASCADE`)
     await sql.unsafe(`CREATE SCHEMA ${TEST_SCHEMA}`)
-    for (const migration of PROFILE_STORE_MIGRATIONS) {
-      for (const statement of migration.statements) {
-        await sql.unsafe(statement)
-      }
-    }
+    await runMigrations(sql, PROFILE_STORE_MIGRATIONS)
   })
 
   beforeEach(async () => {

@@ -123,7 +123,7 @@ silent (a widget rendering empty, unstyled, or not at all).
 | -------------------- | ---------------------------------------------------------------------------------------- |
 | `server/`            | The composition root: module list (`src/setup.ts`), widget bundle (`src/ui/`), boot code |
 | `server/test/`       | Guard tests: keep them, they cover your modules too                                      |
-| `modules/mcp-notes/` | Example module: tools, an interactive widget, and its guard test                         |
+| `modules/mcp-notes/` | Example module: tools, an interactive widget, and its module test                        |
 
 ## Adding your own module
 
@@ -133,9 +133,9 @@ cp -R modules/mcp-notes modules/mcp-<name>
 
 Rename `notes` to your module name, put your API/SDK access behind the store
 interface, and wire the module into the server: the `workspace:*` dependency
-in `server/package.json`, the module list, the widget registry, and its
-`definition` in the guard test. The `create-module` skill walks through every
-step, and the guard tests fail loudly if a wiring step is missed.
+in `server/package.json`, the module list and the widget registry. The
+`create-module` skill walks through every step, and the guard tests fail
+loudly if a wiring step is missed.
 
 ## Configuration
 
@@ -155,8 +155,8 @@ implied, and `camunda7_create_deployment` additionally needs
 JVM). See the `setup-server` skill before widening a server others can reach.
 
 `MCP_OAUTH` (Keycloak or Auth0) is also the only caller identity: user settings
-and saved dashboards belong to the signed-in user. Without it the settings
-show their defaults and cannot be saved.
+belong to the signed-in user. Without it the settings show their defaults and
+cannot be saved.
 
 | Variable                                     | Effect                                                                                                                         |
 | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
@@ -168,7 +168,6 @@ show their defaults and cannot be saved.
 | `MCP_OAUTH`                                  | OAuth resource server (`keycloak` / `auth0` JSON, needs `MCP_URL`), the only caller identity                                   |
 | `MCP_ACTIVE_MODULES`                         | Modules (default: all), e.g. `camunda7:operations,notes`; no suffix: read-only, `MCP_OAUTH` → standard                         |
 | `MCP_PROFILE_DIR`                            | Filesystem persistence for user profiles (default: in-memory)                                                                  |
-| `MCP_DASHBOARD_DIR`                          | Filesystem persistence for saved dashboards, only used under `MCP_OAUTH` (see below)                                           |
 | `CAMUNDA_*`, `PROMETHEUS_URL`, `NOTES_TITLE` | Module config, see `.env.example` for the full list                                                                            |
 
 ## Deploying
@@ -196,9 +195,7 @@ docker run -p 8400:8400 \
   stay unsaved and any widened toolset is open to whoever passes the gateway.
 - The profile store is in-memory by default: without the volume, user
   settings are lost on every restart (a `NODE_ENV=production` boot warns about
-  it in its log). Saved dashboards need more: the visual
-  builder and its dashboard tools are registered only under `MCP_OAUTH` with no
-  module on read-only (`frameworkWritesAllowed`).
+  it in its log).
 - `/health/live`, `/health/ready` and `/metrics` (Prometheus) are served next
   to `/mcp`, outside any OAuth gate and the `Host` check (`MCP_METRICS_TOKEN`
   protects the scrape); the image's `HEALTHCHECK` polls `/health/ready`;
@@ -218,6 +215,5 @@ docker run -p 8400:8400 \
 
 The stock server (`apps/mcp-server-camunda7` in the
 [Pulse repo](https://github.com/Miragon/pulse)) additionally ships,
-and is the reference for: Postgres profile and dashboard stores for
-multi-instance deployments, and a Playwright host simulation of the widget
-bundle.
+and is the reference for: a Postgres profile store for multi-instance
+deployments, and a Playwright host simulation of the widget bundle.

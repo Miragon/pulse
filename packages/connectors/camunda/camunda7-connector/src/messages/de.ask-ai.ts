@@ -50,8 +50,6 @@ export const deAskAi: Record<Camunda7AskAiKey, string> = {
     "Prüf den Zustand dieser Prozessdefinition: gesund oder beeinträchtigt, die schlechtesten Aktivitäten, die häufigste Incident-Meldung, die wahrscheinlichste Ursache und einen nächsten Schritt. Ändere nichts.",
   "askAi.bpmn.explainState":
     "Erklär den Zustand dieser Instanz im Diagramm: welche Elemente den Fortschritt blockieren, was jeder Incident bedeutet, ob die Häufungen von Jobs ohne Versuche auf einen systematischen Fehler deuten, und die nächsten Schritte nach Priorität.",
-  "askAi.landscape.triage":
-    "Ordne die betroffenen Prozesse dieser Engine nach Schwere: Nenn den dringendsten, seine wahrscheinliche Ursache und den ersten Schritt zur Behebung.",
   "askAi.incidents.processRootCause":
     "Finde die Ursache der offenen Incidents dieses Prozesses: Haben die fehlschlagenden Aktivitäten eine gemeinsame Ursache, ist sie vorübergehend, ein Daten- oder Konfigurationsproblem oder ein fehlerhaftes Modell, und welche Behebung empfiehlst du? Ändere nichts ohne meine Bestätigung.",
   "askAi.incidents.triage":

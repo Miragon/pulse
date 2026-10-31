@@ -9,12 +9,9 @@ import {
 } from "./profile-store-env.js"
 
 describe("persistenceFromEnv", () => {
-  it("reports the non-database selection per store", () => {
-    expect(persistenceFromEnv({})).toEqual({ profiles: "memory", dashboards: "memory" })
-    expect(persistenceFromEnv({ MCP_PROFILE_DIR: "/p", MCP_DASHBOARD_DIR: "/d" })).toEqual({
-      profiles: "filesystem",
-      dashboards: "filesystem",
-    })
+  it("reports the non-database selection", () => {
+    expect(persistenceFromEnv({})).toEqual({ profiles: "memory" })
+    expect(persistenceFromEnv({ MCP_PROFILE_DIR: "/p" })).toEqual({ profiles: "filesystem" })
   })
 })
 
@@ -24,54 +21,40 @@ describe("announcePersistence", () => {
     warn: vi.spyOn(console, "warn").mockImplementation(() => {}),
   })
 
-  it("logs the selected backends on every path", () => {
+  it("logs the selected backend on every path", () => {
     const { log, warn } = capture()
     announcePersistence(
-      { profiles: "postgres", dashboards: "postgres" },
+      { profiles: "postgres" },
       { env: { NODE_ENV: "production" }, label: "root" },
     )
-    expect(log).toHaveBeenCalledWith("[root] persistence: profiles=postgres, dashboards=postgres")
+    expect(log).toHaveBeenCalledWith("[root] persistence: profiles=postgres")
     expect(warn).not.toHaveBeenCalled()
     vi.restoreAllMocks()
   })
 
-  it("warns LOUDLY when a production process keeps a store in memory — naming each", () => {
+  it("warns LOUDLY when a production process keeps the profiles in memory", () => {
     const { warn } = capture()
     announcePersistence(
-      { profiles: "memory", dashboards: "memory" },
+      { profiles: "memory" },
       { env: { NODE_ENV: "production" }, label: "root", remedy: "Set DATABASE_URL." },
     )
     expect(warn).toHaveBeenCalledOnce()
     expect(warn.mock.calls[0][0]).toBe(
-      "[root] WARNING: user profiles and saved dashboards are kept IN MEMORY in a production process — every restart, redeploy or scale-to-zero stop silently drops them. Set DATABASE_URL.",
+      "[root] WARNING: user profiles are kept IN MEMORY in a production process — every restart, redeploy or scale-to-zero stop silently drops them. Set DATABASE_URL.",
     )
 
-    announcePersistence(
-      { profiles: "filesystem", dashboards: "memory" },
-      { env: { NODE_ENV: "production" } },
-    )
-    expect(warn.mock.calls[1][0]).toMatch(/^\[persistence\] WARNING: saved dashboards are kept/)
-    expect(warn.mock.calls[1][0]).toContain("MCP_PROFILE_DIR / MCP_DASHBOARD_DIR")
-    vi.restoreAllMocks()
-  })
-
-  it("leaves dashboards out entirely when the server keeps none", () => {
-    const { log, warn } = capture()
     announcePersistence({ profiles: "memory" }, { env: { NODE_ENV: "production" } })
-    expect(log).toHaveBeenCalledWith("[persistence] persistence: profiles=memory")
-    expect(warn.mock.calls[0][0]).toMatch(/WARNING: user profiles are kept IN MEMORY/)
+    expect(warn.mock.calls[1][0]).toMatch(/^\[persistence\] WARNING: user profiles are kept/)
+    expect(warn.mock.calls[1][0]).toContain("Set MCP_PROFILE_DIR to a directory")
     announcePersistence({ profiles: "filesystem" }, { env: { NODE_ENV: "production" } })
-    expect(warn).toHaveBeenCalledOnce()
+    expect(warn).toHaveBeenCalledTimes(2)
     vi.restoreAllMocks()
   })
 
   it("stays quiet outside production (dev, tests)", () => {
     const { warn } = capture()
-    announcePersistence({ profiles: "memory", dashboards: "memory" }, { env: {} })
-    announcePersistence(
-      { profiles: "memory", dashboards: "memory" },
-      { env: { NODE_ENV: "development" } },
-    )
+    announcePersistence({ profiles: "memory" }, { env: {} })
+    announcePersistence({ profiles: "memory" }, { env: { NODE_ENV: "development" } })
     expect(warn).not.toHaveBeenCalled()
     vi.restoreAllMocks()
   })

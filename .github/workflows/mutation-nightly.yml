@@ -13,9 +13,10 @@ name: Mutation (nightly)
 # full pass (owner decision: incremental nightly only); a dispatch with `force` re-tests every
 # mutant. The cache key fingerprints the lockfile, the vitest, tsconfig and Stryker config and
 # the Node major, so a change there starts the package cold.
+#
+# PAUSED while the MCP server is rebuilt (owner decision, 2026-10-31; scripts/mutation-pause.mjs):
+# no schedule, manual dispatch only. Resuming restores `schedule: - cron: "0 2 * * *"`.
 on:
-  schedule:
-    - cron: "0 2 * * *"
   workflow_dispatch:
     inputs:
       force:

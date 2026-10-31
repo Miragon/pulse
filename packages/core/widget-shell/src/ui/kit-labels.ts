@@ -23,12 +23,6 @@ export interface KitLabels {
   copyFailedHint: string
   fullId: string
   working: string
-  dataTable: string
-  yes: string
-  no: string
-  noFiguresYet: string
-  noRowsYet: string
-  noDataHint: string
   heatmapValues: string
   rowsShown: (p: { shown: string; total: string }) => string
   showAll: string
@@ -75,12 +69,6 @@ const LABELS: Record<Locale, KitLabels> = {
     copyFailedHint: "The full ID is now selected. Copy it yourself.",
     fullId: "Full ID",
     working: "Working…",
-    dataTable: "Data table",
-    yes: "Yes",
-    no: "No",
-    noFiguresYet: "No figures yet",
-    noRowsYet: "No rows yet",
-    noDataHint: "Values appear here once the view has data.",
     heatmapValues: "Values per element",
     heatmapMetric: "Metric",
     heatmapElement: "Element",
@@ -125,12 +113,6 @@ const LABELS: Record<Locale, KitLabels> = {
     copyFailedHint: "Die ganze ID ist jetzt markiert. Kopier sie selbst.",
     fullId: "Ganze ID",
     working: "Wird ausgeführt…",
-    dataTable: "Datentabelle",
-    yes: "Ja",
-    no: "Nein",
-    noFiguresYet: "Noch keine Kennzahlen",
-    noRowsYet: "Noch keine Zeilen",
-    noDataHint: "Die Werte erscheinen hier, sobald die Ansicht Daten hat.",
     heatmapValues: "Werte je Element",
     heatmapMetric: "Kennzahl",
     heatmapElement: "Element",

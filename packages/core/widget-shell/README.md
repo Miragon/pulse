@@ -14,7 +14,7 @@ npm install @miragon/pulse-widget-shell zod bpmn-js@18.31.0 @miragon/mcp-toolkit
 ```
 
 The widgets also need `react`, `react-dom`, `@miragon/mcp-toolkit-ui`, `lucide-react` and
-`@tanstack/react-query`; the Postgres stores need `postgres`.
+`@tanstack/react-query`; the Postgres profile store needs `postgres`.
 
 To build your own MCP server on it, start from [pulse-starter](https://github.com/Miragon/pulse-starter).
 
@@ -42,14 +42,12 @@ package customers build their own connectors and composed servers on (see the
   reads a model's names by, without a DOM (a process's own name, else its Modeler pool's;
   character references such as `&#10;` and `&#38;` decoded, space folded), so two modules never
   name the same process or activity differently.
-- **The `shell:*` catalogue** (`./server`): `shellDefinition` + `createShellPlugin` register the
-  always-on generic `shell:kpi-grid` / `shell:data-table` widgets, the standard
-  `render-view`/builder composition targets fed via `props.dataKey`, and the settings page.
-  `createShellPlugin({ profileStore, allowSave })` adds the settings triple: `shell_show_settings`
-  (the page: the language section, then every `<module>:settings` section the host bundles),
+- **The shell module** (`./server`): `createShellPlugin({ profileStore, allowSave })` is the
+  always-on module `shell` with the settings triple: `shell_show_settings` (the page: the
+  language section, then every `<module>:settings` section the host bundles),
   `shell_settings_data` (what `ProfileGate` reads the language from) and `shell_save_settings`
   (pass `allowSave: frameworkWritesAllowed(boot)`). Hosts spread `shellWidgets` (`./widgets`)
-  into their registry. Apps own no domain UI, so the catalogue lives here.
+  into their registry. Apps own no domain UI, so the settings page lives here.
 - **Shared UI primitives** (`./widgets`): what the kit adds on top of `@miragon/mcp-toolkit-ui`
   (`WidgetShell`, tables, `ListTable` + `PagedRows`, the dual-mode data hooks, formatters,
   hand-offs, the BPMN viewer, `useApplyTheme`, …), reused across both widget packages.
@@ -101,11 +99,14 @@ package customers build their own connectors and composed servers on (see the
 - **Module composition** (`./server`): `composeModules` is the composition-root machinery every
   server shares: `MCP_ACTIVE_MODULES` selection with `module:toolset` suffixes, the env-typo warner
   and boot warnings. `resolveBoot(env, { authenticated })` resolves ONE concrete toolset per module
-  per boot and threads it into the module's `config.toolset`; pass `authenticated: true` only when
-  your server actually installed OAuth. `logEffectiveToolsets(boot)` prints the one boot line that
-  states each module's toolset and why, and `frameworkWritesAllowed(boot)` decides whether
-  framework writes no module toolset filters (the toolkit's dashboard builder) may be registered:
-  only with OAuth and no module on its read-only floor.
+  per boot and threads it into the module's `config.toolset` (`ModuleEntry`); pass
+  `authenticated: true` only when your server actually installed OAuth. A module's
+  `createPlugin(config, shared)` returns a `ModulePlugin`: its `name` and one `register(server)`
+  that registers all its tools on the server the boot owns; `pluginsFor(entries, shared)` builds
+  them for the active modules. `logEffectiveToolsets(boot)` prints the one boot line that states
+  each module's toolset and why, and `frameworkWritesAllowed(boot)` decides whether
+  `shell_save_settings`, a write no module toolset filters, may be registered: only with OAuth
+  and no module on its read-only floor.
 - **Toolset vocabularies** (`./server`): a module declares its toolsets as
   `toolsets: createToolsetVocabulary(module, names, floor, { authenticatedDefault })` on its
   definition; a module without one has no toolsets (a suffix is ignored with a warning). The rule
@@ -119,14 +120,15 @@ oauth? })` is the one boot sequence every composed server shares: env-typo warni
   edge policy, ONE `resolveBoot` (authenticated exactly when you pass the OAuth provider you
   install; build it with `oauthFromEnv({ env, label })` from `MCP_OAUTH` and spread
   `OAUTH_ENV_VARS` into your known vars; it is the only caller identity), the boot log, your
-  `setup(boot)` (plugins + persistence), `createFrameworkApp` with
-  `serverInfo`/`instructions`, request context (request logging is mcp-use's own:
+  `setup(boot)` (plugins + persistence), the `MCPServer` with `serverInfo`/`instructions`, each
+  plugin's `register` (a tool name two modules register fails the boot, naming both), the views
+  every tool binds primed once with your `bundle`, request context (request logging is mcp-use's own:
   `MCP_USE_LOG_LEVEL`, warned at boot above `info`), `/metrics` (optional
   `MCP_METRICS_TOKEN`), the Host/Origin guard, `/health/*` and the font route
   (`installFontAssets`: Geist + Geist Mono as woff2 under `/fonts/geist-<version>/`, cached
   immutable, any origin, behind the guard). Every view-bound tool advertises `MCP_URL`'s origin
-  in its view CSP `resourceDomains` and the Apps SDK `openai/widgetCSP` (`fontAssetsCsp`, applied
-  to every plugin by `honorWidgetMetaDefaults`); without `MCP_URL` mcp-use appends the origin
+  in its view CSP `resourceDomains` and the Apps SDK `openai/widgetCSP` (`fontAssetsCsp`, merged
+  into every view-bound tool as it registers); without `MCP_URL` mcp-use appends the origin
   the host read the view from. `HostDocument` declares the faces from that origin
   (`declareServedFonts`, `font-display: swap`), so a host that blocks it shows its own font, then
   the system's. `mcp-use dev` serves the returned
@@ -137,22 +139,23 @@ oauth? })` is the one boot sequence every composed server shares: env-typo warni
   DNS-rebinding protection: `Host` (and a POST's `Origin`) must be localhost-class, `MCP_URL`'s or
   in `MCP_ALLOWED_HOSTS`/`MCP_ALLOWED_ORIGINS` (spread `HTTP_EDGE_ENV_VARS` into your known vars);
   `/health*` and `/metrics` stay reachable by IP for probes and scrapers.
-- **Persistence** (`./server`): the user-profile store (in-memory / filesystem / Postgres) and the
-  Postgres `DashboardStore` for the toolkit's saved dashboards, plus the `createSql` client and the
-  `runMigrations` runner that applies each store's own `Migration[]` (`PROFILE_STORE_MIGRATIONS`,
-  `DASHBOARD_STORE_MIGRATIONS`) under an advisory lock. A composed server picks its backends from
-  its own env and injects them; it does not reimplement the stores. `postgres` is an **optional**
+- **Persistence** (`./server`): the user-profile store (in-memory / filesystem / Postgres), plus
+  the `createSql` client and the `runMigrations` runner that applies a store's own `Migration[]`
+  (`PROFILE_STORE_MIGRATIONS`) under an advisory lock. That list drops the `dashboards` table the
+  retired dashboard store recorded as `002_dashboards`: a root that still serves dashboards from
+  it moves them to a table of its own first. A composed server picks its backend from
+  its own env and injects it; it does not reimplement the store. `postgres` is an **optional**
   peer dependency: the driver is loaded through a dynamic import inside `createSql`, so servers
   persisting to disk or memory never need it installed.
 
 ## Exports
 
-| Subpath     | Contents                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `./server`  | `buildSingleWidgetView` / `buildComposedView` / `buildDataFeedResult`, `shellDefinition`/`createShellPlugin`, `createBuilderTexts` (the view builder's en/de names from a module's catalogs), `composeModules` / `frameworkWritesAllowed` / `createToolsetVocabulary`, `createComposedServer` and its edge pieces (incl. `installFontAssets`, `fontAssetsCsp`, `honorWidgetMetaDefaults`), `oauthFromEnv`, caller identity (`resolveProfileKey`), the profile + dashboard stores and the Postgres client/migration runner |
-| `./ui`      | `adaptDataWidget`, the data-aware widget wrapper                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| `./widgets` | Shared widget UI primitives incl. the generic `shell:*` components and the host app shell (`AppShellProviders`: the language as explicit profile > host context > English, the theme as host context > OS)                                                                                                                                                                                                                                                                                                                |
-| `./testing` | The brand gates for your widget package's tests: `catalogTextFindings`, `missingDisplayTexts` + `displayTextCatalog` (every widget, step and top-level props field named for the view builder in en and de) + `displayTextsSentToModel` (none of those names reaches the model), `scanGlyphs`, `scanColors`, `stylesheetColorFindings`, `parseThemeVariables` + `contrastFindings` with `toneContrastPairs()` / `ROLE_CONTRAST_PAIRS` over `toolkitThemeStylesheets()`                                                    |
+| Subpath     | Contents                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `./server`  | `buildSingleWidgetView` / `buildComposedView` / `buildDataFeedResult`, `createShellPlugin`, `composeModules` / `frameworkWritesAllowed` / `createToolsetVocabulary` and the module port (`ModulePlugin`, `ModuleEntry`), `createComposedServer` and its edge pieces (incl. `installFontAssets`, `fontAssetsCsp`), `oauthFromEnv`, caller identity (`resolveProfileKey`), the profile store and the Postgres client/migration runner |
+| `./ui`      | `adaptDataWidget`, the data-aware widget wrapper                                                                                                                                                                                                                                                                                                                                                                                    |
+| `./widgets` | Shared widget UI primitives incl. the settings page and the host app shell (`AppShellProviders`: the language as explicit profile > host context > English, the theme as host context > OS)                                                                                                                                                                                                                                         |
+| `./testing` | The brand gates for your widget package's tests: `catalogTextFindings`, `scanGlyphs`, `scanColors`, `stylesheetColorFindings`, `parseThemeVariables` + `contrastFindings` with `toneContrastPairs()` / `ROLE_CONTRAST_PAIRS` over `toolkitThemeStylesheets()`                                                                                                                                                                       |
 
 The `@miragon/mcp-toolkit-*`, `react`/`react-dom`, `zod` and `@tanstack/react-query` deps are
 **peer dependencies**: they must resolve to a single instance across the host bundle (see the
@@ -181,5 +184,5 @@ camunda7-connector / analytics-connector widgets
    @miragon/mcp-toolkit-ui (React + react-query)
 ```
 
-See the architecture invariants in [`CLAUDE.md`](../../../CLAUDE.md) for the four-link widget
-registration chain.
+See the architecture invariants in [`CLAUDE.md`](../../../CLAUDE.md) for the widget registration
+chain.

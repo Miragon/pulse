@@ -1,7 +1,5 @@
 import { useState } from "react"
-import { useToolQuery } from "@miragon/mcp-toolkit-ui"
 import {
-  SettingsCard,
   WidgetShell,
   classifyError,
   useDetailView,
@@ -19,16 +17,9 @@ import {
   changedPreferences,
   fromProfile,
   isDirty,
-  pickableDashboards,
-  type DashboardSummary,
   type FormState,
 } from "./user-profile-form.js"
-import {
-  DashboardsCardBody,
-  EnginesCard,
-  ReadOnlyNotice,
-  SaveBar,
-} from "./user-profile-sections.js"
+import { EnginesCard, ReadOnlyNotice, SaveBar } from "./user-profile-sections.js"
 
 // Bundled but not active, the feed's tool is missing and the section hides itself.
 export function UserProfileWidget({ data: initialData = null }: { data?: UserProfileView | null }) {
@@ -60,15 +51,6 @@ export function UserProfileWidget({ data: initialData = null }: { data?: UserPro
 // #322 U27: the page's one title is the shell's; this section heads itself with h2, its cards h3.
 function ProfilePanel({ view }: { view: UserProfileView }) {
   const t = useT()
-  const dashboardsQuery = useToolQuery<{ items: DashboardSummary[] }>(
-    ["dashboards"],
-    "list-dashboards",
-    {},
-  )
-  const dashboards = pickableDashboards(
-    dashboardsQuery.data?.items ?? [],
-    view.profile.pinnedDashboardIds ?? [],
-  )
 
   // Read-only deployments never register camunda7_save_settings; the view knows the caller, so
   // `canSave` gates the save, not the engine-write feed.
@@ -111,15 +93,6 @@ function ProfilePanel({ view }: { view: UserProfileView }) {
     })
   }
 
-  function togglePinned(id: string, on: boolean) {
-    setForm((f) => {
-      const next = on
-        ? Array.from(new Set([...f.pinnedDashboardIds, id]))
-        : f.pinnedDashboardIds.filter((d) => d !== id)
-      return { ...f, pinnedDashboardIds: next }
-    })
-  }
-
   function handleSave() {
     const submitted = form
     save.run(changedPreferences(submitted, baseline, engineIds), {
@@ -136,10 +109,9 @@ function ProfilePanel({ view }: { view: UserProfileView }) {
   return (
     <>
       <ProfileModelContext
-        form={{ ...form, allowedEngineIds: allowed }}
+        allowedEngineCount={allowed.length}
         canSave={canSave}
         allEnginesAllowed={allEnginesAllowed}
-        dashboardsAnswered={dashboardsQuery.isSuccess}
       />
 
       <div>
@@ -149,27 +121,14 @@ function ProfilePanel({ view }: { view: UserProfileView }) {
 
       {!canSave && view.readOnlyReason && <ReadOnlyNotice reason={view.readOnlyReason} />}
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <EnginesCard
-          view={view}
-          form={form}
-          canSave={canSave}
-          onAllEngines={setAllEngines}
-          onToggleEngine={toggleEngine}
-          onDefaultEngine={(id) => set("defaultEngineId", id)}
-        />
-
-        <SettingsCard title={t("profile.section.dashboards")}>
-          <DashboardsCardBody
-            unavailable={dashboardsQuery.isError}
-            dashboards={dashboards}
-            form={form}
-            canSave={canSave}
-            onSetDefault={(id) => set("defaultDashboardId", id)}
-            onTogglePinned={togglePinned}
-          />
-        </SettingsCard>
-      </div>
+      <EnginesCard
+        view={view}
+        form={form}
+        canSave={canSave}
+        onAllEngines={setAllEngines}
+        onToggleEngine={toggleEngine}
+        onDefaultEngine={(id) => set("defaultEngineId", id)}
+      />
 
       {save.allowed && (
         <SaveBar

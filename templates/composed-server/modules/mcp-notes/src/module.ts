@@ -1,11 +1,8 @@
 import { z } from "zod"
-import type { AppPlugin } from "@miragon/mcp-toolkit-core"
-import type { MCPServer } from "mcp-use"
-import type { ProfileSource } from "@miragon/pulse-widget-shell/server"
+import type { ModulePlugin, ProfileSource } from "@miragon/pulse-widget-shell/server"
 import { createNotesStore } from "./notes-store.js"
 import { registerTools } from "./tools.js"
 import { registerWidgetTools } from "./widget-tools.js"
-import { definition } from "./definition.js"
 
 /**
  * Self-contained module definition: everything the server needs to mount the
@@ -32,15 +29,12 @@ interface NotesModuleShared {
 }
 
 /** Constructs the data source once and hands it to both tool registrations. */
-export function createPlugin(config: NotesPluginConfig): AppPlugin<MCPServer> {
+export function createPlugin(config: NotesPluginConfig): ModulePlugin {
   const store = createNotesStore()
   return {
-    definition,
-    appConfig: { store },
-    registerTools: (server) => {
+    name: "notes",
+    register(server) {
       registerTools(server, store)
-    },
-    registerWidgetTools: (server) => {
       registerWidgetTools(server, store, config.title)
     },
   }
@@ -61,7 +55,7 @@ export const notesModule = {
   // the server ignores a `notes:<toolset>` suffix with a warning. A module
   // with writes declares `toolsets: createToolsetVocabulary(...)` instead.
 
-  createPlugin(config: Record<string, unknown>, _shared: NotesModuleShared): AppPlugin<MCPServer> {
+  createPlugin(config: Record<string, unknown>, _shared: NotesModuleShared): ModulePlugin {
     return createPlugin(notesConfigSchema.parse(config))
   },
 }

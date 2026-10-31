@@ -61,18 +61,17 @@ unknown suffix warns and falls back to read-only, even under OAuth.
 | `analytics:standard`  | Adds `analytics_save_settings`                                                                                                                                                                                                            | with OAuth        |
 
 `camunda7_create_deployment` additionally needs `CAMUNDA_ALLOW_DEPLOYMENTS=true`: deploying a BPMN or
-DMN runs code inside the engine JVM (JUEL expressions, scripts). The full surface of earlier
-releases is `MCP_ACTIVE_MODULES=camunda7:admin,analytics:standard` plus that flag (the dashboard
-builder also needs `MCP_OAUTH`), never on a server the network can reach without authentication.
+DMN runs code inside the engine JVM (JUEL expressions, scripts). The full surface is
+`MCP_ACTIVE_MODULES=camunda7:admin,analytics:standard` plus that flag and `MCP_OAUTH` (for the
+language save), never on a server the network can reach without authentication.
 A gateway or reverse proxy that terminates auth in front of the server is invisible to it, so such
 a deployment runs read-only until it names its toolsets.
 
 The widgets follow the toolset: an action button whose tool the toolset drops (retry, resolve
 incident, complete task, edit variable, suspend, cancel) is hidden, not disabled: the default
-anonymous deployment shows no write buttons. The dashboard builder (`get-builder-catalogue`,
-`save/list/load/delete-dashboard`) and the language save (`shell_save_settings`) exist only under
-`MCP_OAUTH` and while no active module runs read-only; `render-view`, `refresh-view`,
-`get-framework-manifest` and the settings page (`shell_show_settings`) are always there.
+anonymous deployment shows no write buttons. The language save (`shell_save_settings`) exists
+only under `MCP_OAUTH` and while no active module runs read-only; the settings page
+(`shell_show_settings`) is always there.
 
 ## Configuration
 
@@ -83,7 +82,7 @@ The most common variables. See [Operations](operations.md#environment-variables)
 | `PORT`                                                    | `8400`                              | HTTP port the MCP server listens on                                                                                                                                       |
 | `MCP_ACTIVE_MODULES`                                      | all, read-only                      | Comma-separated modules (`camunda7,analytics`), each with an optional [toolset](#toolsets) suffix; no suffix = read-only, under OAuth the standard toolset                |
 | `MCP_URL`                                                 | —                                   | Public base URL: advertised URLs, OAuth audience, the `Host`/`Origin` accepted (else localhost only), and the origin the views load Geist from (`/fonts/…`)               |
-| `MCP_OAUTH`                                               | —                                   | JSON OAuth resource-server config (Keycloak / Auth0) protecting `/mcp`, the only caller identity (per-user settings and dashboards)                                       |
+| `MCP_OAUTH`                                               | —                                   | JSON OAuth resource-server config (Keycloak / Auth0) protecting `/mcp`, the only caller identity (per-user settings)                                                      |
 | `CAMUNDA_ALLOW_DEPLOYMENTS`                               | `false`                             | `true` registers `camunda7_create_deployment` under `camunda7:admin`: code execution in the engine JVM; empty = unset, any value but `true`/`false` fails the boot        |
 | `CAMUNDA_BASE_URL`                                        | `http://localhost:8410/engine-rest` | Single-engine REST base URL                                                                                                                                               |
 | `CAMUNDA_ENGINE_ID`                                       | `default`                           | Id of that engine; must match the engine's `ENGINE_ID` or its analytics stay empty                                                                                        |

@@ -149,13 +149,13 @@ describe("engine errors as the model reads them (registrar tool)", () => {
 
   it("CAMUNDA_REQUEST_TIMEOUT_MS reaches the clients the module boots", async () => {
     const { server, tools } = fakeServer()
-    Object.assign(server, { use: () => {}, prompt: () => {} })
+    Object.assign(server, { prompt: () => {} })
     const config = camunda7Module.configFromEnv({
       CAMUNDA_BASE_URL: baseUrl,
       CAMUNDA_ENGINE_ID: "prod-a",
       CAMUNDA_REQUEST_TIMEOUT_MS: "150",
     })
-    camunda7Module.createPlugin({ ...config, toolset: "read-only" }, {}).registerTools?.(server)
+    camunda7Module.createPlugin({ ...config, toolset: "read-only" }, {}).register(server)
     const result = await tools.get("camunda7_get_process_instance")!({ processInstanceId: "hang" })
     expect(result.content[0].text).toBe("engine prod-a did not respond within 150 ms (timeout)")
   })

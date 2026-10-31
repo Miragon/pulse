@@ -141,7 +141,7 @@ services:
     depends_on:
       - prometheus
 
-  # Postgres — durable user settings + saved dashboards for the MCP server
+  # Postgres — durable user settings for the MCP server
   # (opt-in via DATABASE_URL). Default profile so a locally-run server
   # (`pnpm dev`) reaches it on localhost:8440. The init script creates a
   # second database for the opt-in `pnpm test:pg` suites, so tests never touch
@@ -259,7 +259,7 @@ services:
       - CAMUNDA_USERNAME=demo
       - CAMUNDA_PASSWORD=demo
       - PROMETHEUS_URL=http://prometheus:9090
-      # Durable user settings + dashboards (src/persistence/ in the server app).
+      # Durable user settings (src/persistence/ in the server app).
       - DATABASE_URL=postgres://miragon:miragon@postgres:5432/miragon
     depends_on:
       cibseven:

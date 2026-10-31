@@ -1,17 +1,12 @@
-import { createFileSystemDashboardStore } from "@miragon/mcp-toolkit-core/tools"
-import type { DashboardStore } from "@miragon/mcp-toolkit-core/tools"
 import {
   announcePersistence,
-  createPostgresDashboardStore,
   createPostgresProfileStore,
   createSql,
-  DASHBOARD_STORE_MIGRATIONS,
   persistenceFromEnv,
   postgresReadinessCheck,
   PROFILE_STORE_MIGRATIONS,
   profileStoreFromEnv,
   runMigrations,
-  type PersistenceSelection,
   type ProfileStore,
   type ReadinessCheck,
 } from "@miragon/pulse-widget-shell/server"
@@ -23,14 +18,12 @@ import { SERVER_LABEL } from "../server-label.js"
  * variables are translated into backend selections — a customer packaging
  * that needs a different mix (other database) either sets different env vars
  * or replaces this one module. The backends themselves are NOT app code: the
- * Postgres client, the migration runner and both Postgres stores live in
+ * Postgres client, the migration runner and the Postgres profile store live in
  * `@miragon/pulse-widget-shell/server`, so a composed server gets the same
  * persistence by importing them instead of forking this file.
  */
 export interface RuntimeBackends {
   profileStore: ProfileStore
-  /** `undefined` lets the toolkit fall back to its in-memory default. */
-  dashboardStore: DashboardStore | undefined
   /** Closes owned resources (DB pool); wired to SIGTERM/SIGINT in index.ts. */
   shutdown(): Promise<void>
   /**
@@ -51,70 +44,42 @@ export function createDefaultProfileStore(env: NodeJS.ProcessEnv = process.env):
   return profileStoreFromEnv(env)
 }
 
-/** What the boot that consumes the backends actually keeps. */
-export interface InitRuntimeOptions {
-  /**
-   * Whether the toolkit's dashboard builder is registered
-   * (`frameworkWritesAllowed`) — without it no dashboard is ever saved, so
-   * the dashboard store stays out of the announcement. Default `true`.
-   */
-  dashboards?: boolean
-}
-
-/** The selected backends, logged on every path; volatile ones warn in production. */
-function announce(
-  { profiles, dashboards }: Required<PersistenceSelection>,
-  env: NodeJS.ProcessEnv,
-  options: InitRuntimeOptions,
-): void {
-  announcePersistence(
-    { profiles, ...(options.dashboards === false ? {} : { dashboards }) },
-    {
-      env,
-      label: SERVER_LABEL,
-      remedy:
-        "Set DATABASE_URL (Postgres, both stores), or MCP_PROFILE_DIR / MCP_DASHBOARD_DIR to directories on a persistent volume.",
-    },
-  )
-}
-
 /**
- * Select and initialize the persistence backends. Precedence: `DATABASE_URL`
- * (Postgres, both stores) beats the filesystem knobs `MCP_PROFILE_DIR`/
- * `MCP_DASHBOARD_DIR`, which beat the in-memory defaults. Every path logs its
- * selection; a `NODE_ENV=production` boot that keeps a store in memory warns
- * loudly (`announcePersistence`) — but still boots. With Postgres the
- * pending migrations run here, before the server starts listening — the
- * container/Fly healthcheck grace periods (15–30s) comfortably cover the two
- * small tables.
+ * Select and initialize the profile store. Precedence: `DATABASE_URL`
+ * (Postgres) beats the filesystem knob `MCP_PROFILE_DIR`, which beats the
+ * in-memory default. Every path logs its selection; a `NODE_ENV=production`
+ * boot that keeps the profiles in memory warns loudly (`announcePersistence`)
+ * — but still boots. With Postgres the pending migrations run here, before
+ * the server starts listening — the container/Fly healthcheck grace periods
+ * (15–30s) comfortably cover the small table.
  */
-export async function initRuntime(
-  env: NodeJS.ProcessEnv = process.env,
-  options: InitRuntimeOptions = {},
-): Promise<RuntimeBackends> {
+export async function initRuntime(env: NodeJS.ProcessEnv = process.env): Promise<RuntimeBackends> {
+  const announced = {
+    env,
+    label: SERVER_LABEL,
+    remedy:
+      "Set DATABASE_URL (Postgres), or MCP_PROFILE_DIR to a directory on a persistent volume.",
+  }
   const databaseUrl = env.DATABASE_URL?.trim()
   if (!databaseUrl) {
-    announce(persistenceFromEnv(env), env, options)
+    announcePersistence(persistenceFromEnv(env), announced)
     return {
       profileStore: createDefaultProfileStore(env),
-      dashboardStore: env.MCP_DASHBOARD_DIR
-        ? createFileSystemDashboardStore({ dir: env.MCP_DASHBOARD_DIR })
-        : undefined,
       shutdown: () => Promise.resolve(),
       readiness: {},
     }
   }
 
-  if (env.MCP_PROFILE_DIR || env.MCP_DASHBOARD_DIR) {
+  if (env.MCP_PROFILE_DIR) {
     console.warn(
-      `[${SERVER_LABEL}] DATABASE_URL is set — ignoring MCP_PROFILE_DIR/MCP_DASHBOARD_DIR; profiles and dashboards persist to Postgres.`,
+      `[${SERVER_LABEL}] DATABASE_URL is set — ignoring MCP_PROFILE_DIR; profiles persist to Postgres.`,
     )
   }
 
   const sql = await createSql(databaseUrl)
   let applied: string[]
   try {
-    applied = await runMigrations(sql, [...PROFILE_STORE_MIGRATIONS, ...DASHBOARD_STORE_MIGRATIONS])
+    applied = await runMigrations(sql, PROFILE_STORE_MIGRATIONS)
   } catch (error) {
     // The boot fails here, so nothing else will ever end this client: close
     // it. The production entry (`node dist/index.js`) exits on the rejected
@@ -129,11 +94,10 @@ export async function initRuntime(
   if (applied.length > 0) {
     console.log(`[${SERVER_LABEL}] applied database migrations: ${applied.join(", ")}`)
   }
-  announce({ profiles: "postgres", dashboards: "postgres" }, env, options)
+  announcePersistence({ profiles: "postgres" }, announced)
 
   return {
     profileStore: createPostgresProfileStore({ sql }),
-    dashboardStore: createPostgresDashboardStore({ sql, label: SERVER_LABEL }),
     shutdown: () => sql.end({ timeout: 5 }),
     readiness: { database: postgresReadinessCheck(sql) },
   }

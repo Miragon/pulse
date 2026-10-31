@@ -3,7 +3,6 @@ import path from "node:path"
 import type { OAuthProvider } from "mcp-use/oauth"
 import {
   createComposedServer,
-  frameworkWritesAllowed,
   oauthFromEnv,
   type ComposedServer,
 } from "@miragon/pulse-widget-shell/server"
@@ -86,13 +85,9 @@ export async function createApp(
       // Postgres when DATABASE_URL is set (migrations run here, before the
       // server listens — the healthcheck grace periods cover it), else
       // filesystem/in-memory.
-      const runtime =
-        deps.runtime ?? (await initRuntime(env, { dashboards: frameworkWritesAllowed(boot) }))
+      const runtime = deps.runtime ?? (await initRuntime(env))
       return {
         plugins: getPlugins(runtime.profileStore, boot),
-        // Toolkit dashboards: only registered with the builder (OAuth and no
-        // read-only module); undefined = its in-memory store.
-        dashboardStore: runtime.dashboardStore,
         readiness: runtime.readiness,
         shutdown: () => runtime.shutdown(),
       }

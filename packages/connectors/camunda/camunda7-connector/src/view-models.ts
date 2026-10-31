@@ -70,17 +70,6 @@ export interface OpenUserTask extends TaskData {
   formSchema: TaskFormSchema | null
 }
 
-export interface TaskDashboardData {
-  tasks: TaskData[]
-  totalCount: number
-  filters: {
-    assignee?: string
-    candidateGroup?: string
-    processDefinitionKey?: string
-  }
-  engineId?: string
-}
-
 export interface Job {
   id: string
   processInstanceId: string
@@ -262,26 +251,6 @@ export interface InstanceDetailData {
   /** The instance's open user tasks (capped list; the total is `openTaskCount`). */
   openTasks: OpenUserTask[]
   openTaskCount: number
-  engineId?: string
-}
-
-export interface DeploymentResource {
-  id: string
-  name: string
-}
-
-export interface Deployment {
-  id: string
-  name: string | null
-  deploymentTime: string
-  source: string | null
-  tenantId: string | null
-  resources: DeploymentResource[]
-}
-
-export interface DeploymentBrowserData {
-  totalCount: number
-  deployments: Deployment[]
   engineId?: string
 }
 

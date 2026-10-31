@@ -31,13 +31,12 @@ const RAW_CALLER_HOLDERS: Record<string, string> = {
 /** Every tool the plugin registers on the widest toolset, with its read/write nature. */
 function registeredTools(): Map<string, { readOnly: boolean }> {
   const register = vi.fn()
-  const server = { tool: register, use: vi.fn(), prompt: vi.fn() } as unknown as MCPServer
+  const server = { tool: register, prompt: vi.fn() } as unknown as MCPServer
   const plugin = createPlugin({
     engines: [{ id: "prod", baseUrl: "http://prod.example/engine-rest" }],
     toolset: "admin",
   })
-  plugin.registerTools?.(server)
-  plugin.registerWidgetTools?.(server)
+  plugin.register(server)
   const definitions = register.mock.calls.map(
     ([definition]) => definition as { name: string; annotations?: { readOnlyHint?: boolean } },
   )
@@ -124,7 +123,7 @@ describe("every in-widget write goes through useEngineAction", () => {
   it("seeds every direct useViewData read, so Refresh and a write's invalidation reach it", () => {
     // The toolkit's default ("static") switches the query off under handed-in
     // data: a standalone view would show its tool result forever (#341).
-    expect(scan.viewDataReads.length).toBeGreaterThanOrEqual(6)
+    expect(scan.viewDataReads.length).toBeGreaterThanOrEqual(5)
     expect(
       scan.viewDataReads.filter((read) => !read.seeded).map((read) => `${read.file}:${read.line}`),
       'pass { initialDataMode: "seed" } as a literal option',

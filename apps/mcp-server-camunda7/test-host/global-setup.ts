@@ -26,7 +26,6 @@ async function deploy(env: Record<string, string>): Promise<Deployment> {
     oauth: undefined,
     runtime: {
       profileStore: createInMemoryProfileStore(),
-      dashboardStore: undefined,
       readiness: {},
       shutdown: () => Promise.resolve(),
     },

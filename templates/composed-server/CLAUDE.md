@@ -38,12 +38,14 @@ external infrastructure.
 1. **Modules are self-contained peers; the server is a thin composition root.**
    A module is a package exporting a `ModuleDefinition` (the port type in
    `server/src/setup.ts`; conformance is structural, modules never import
-   the server or each other). Wiring a module touches the server in three
-   places (`MODULES` in `setup.ts`, the spread in `ui/widget-registry.ts`,
-   the definition in `test/widget-registry.test.ts`) plus the `workspace:*`
-   dependency; the `create-module` skill walks through all of them. Tailwind
-   scans workspace modules via the `modules/*/src` glob in `ui/globals.css`;
-   only npm-installed module packages need their own `@source` line.
+   the server or each other). Its `createPlugin` returns a `ModulePlugin`:
+   the module's `name` and one `register(server)` that registers all its
+   tools; the boot refuses a tool name two plugins register and names both.
+   Wiring a module touches the server in two places (`MODULES` in `setup.ts`,
+   the spread in `ui/widget-registry.ts`) plus the `workspace:*` dependency;
+   the `create-module` skill walks through all of them. Tailwind scans
+   workspace modules via the `modules/*/src` glob in `ui/globals.css`; only
+   npm-installed module packages need their own `@source` line.
 2. **Plain tools go through `createToolRegistrar`, never raw `server.tool()`**:
    the raw path is reserved for widget tools (`widget-tools.ts`). Three render
    paths: registrar tools (JSON for the model), `*_show_*` widget tools
@@ -57,10 +59,14 @@ external infrastructure.
    the valid keys, never a silently dropped filter
    (`server/test/strict-input.e2e.test.ts` probes every tool of every module
    on every toolset it declares).
-3. **Widgets hang off a four-link chain** (component map → module catalogue →
-   server registry → `tool-names.ts`); a missed link is a SILENTLY absent
-   widget. Guarded by each module's `catalogue-sync.test.ts` and the server's
-   `widget-registry.test.ts`.
+3. **Widgets hang off a three-link chain**: the show tool names the widget by
+   id (`widget: "<module>:<id>"`, a string literal), the module's component
+   map (`src/widgets/index.ts`) renders that id, and the server's
+   `ui/widget-registry.ts` spreads the map; `tool-names.ts` keeps the tool
+   names widget code calls rename-safe. A missed link is a SILENTLY absent
+   widget. `server/test/widget-registry.test.ts` reads every id from the
+   sources of the modules the server depends on and fails on one the
+   registry cannot render.
 4. **`resolve.dedupe` in `server/vite.config.ts` is load-bearing: never trim
    it.** Without it every in-widget query hangs on "Loading…" (duplicate React
    contexts).
@@ -130,7 +136,7 @@ the Tailwind scan in one shot.
 
 - `modules/mcp-notes/`: the example custom module showing the full house
   pattern (module definition, registrar tool, widget tool + data feed, widget,
-  guard test). Copy it; don't invent a new shape.
+  module test). Copy it; don't invent a new shape.
 - The published Pulse modules ship their **sources**: read
   `node_modules/@miragon/pulse-camunda7-connector/src/` and
   `node_modules/@miragon/pulse-analytics-connector/src/` for the reference

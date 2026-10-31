@@ -26,9 +26,10 @@ export default defineConfig({
     ],
   },
   build: {
-    // Two-file output (ES module + stylesheet) for createFrameworkApp's
-    // `app.bundle`, with all assets inlined so the bundle stays self-contained
-    // inside the sandboxed view iframe.
+    // Two-file output (ES module + stylesheet) for the boot's `bundle`
+    // (`createComposedServer` inlines both into every view), with all assets
+    // inlined so the bundle stays self-contained inside the sandboxed view
+    // iframe.
     assetsInlineLimit: 100_000_000,
     cssCodeSplit: false,
     rollupOptions: {

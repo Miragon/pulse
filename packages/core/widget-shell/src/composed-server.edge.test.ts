@@ -7,7 +7,6 @@ import {
   type ListenOptions,
   type RunningServer,
 } from "./composed-server.js"
-import { createShellPlugin } from "./shell-catalogue.js"
 
 const composition = composeModules<object>({ label: "edge-test", modules: [], appEnvVars: [] })
 const running: RunningServer[] = []
@@ -32,7 +31,7 @@ const compose = (env: NodeJS.ProcessEnv = {}) =>
     // The bundle is read once; a missing file only warns (views render empty).
     bundle: { jsPath: "/nonexistent/mcp-app.js" },
     env,
-    setup: () => ({ plugins: [createShellPlugin()] }),
+    setup: () => ({ plugins: [] }),
   })
 
 async function boot(env: NodeJS.ProcessEnv = {}, listen: ListenOptions = {}) {

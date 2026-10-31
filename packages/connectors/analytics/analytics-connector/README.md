@@ -23,10 +23,10 @@ The **analytics module** for [Pulse](../../../../README.md): Prometheus-backed p
 [`@miragon/pulse-analytics-client`](../analytics-client) and the `@miragon/mcp-toolkit-*` packages.
 
 The server loads this module as `analytics` via `analyticsModule` (`src/module.ts`), which conforms
-structurally to the app's `ModuleDefinition` port. The package is published to npm in lockstep with
-the other `@miragon/pulse-*` packages (pin them all to one version); the
-[pulse-starter](https://github.com/Miragon/pulse-starter) template shows how to compose it
-into your own MCP server.
+structurally to the `ComposableModule` port of `@miragon/pulse-widget-shell/server`. The package is
+published to npm in lockstep with the other `@miragon/pulse-*` packages (pin them all to one
+version); the [pulse-starter](https://github.com/Miragon/pulse-starter) template shows how to
+compose it into your own MCP server.
 
 The consumer-shared libraries are ranged **peer dependencies** so they dedupe against your app's
 copy: `react`/`react-dom` `^19.2.0`, `zod` `^4.4.0`, `@miragon/mcp-toolkit-*` `~2.8.1`,
@@ -96,11 +96,11 @@ and labels are governed by the
 
 ## Layout
 
-| Path                  | Contents                                                    |
-| --------------------- | ----------------------------------------------------------- |
-| `src/tools/`          | Analytics tools (`index.ts` wires them)                     |
-| `src/widget-tools.ts` | `show_*` dashboard/comparison widget tools                  |
-| `src/widgets/`        | React dashboard + comparison widgets                        |
-| `src/definition.ts`   | Widget metadata                                             |
-| `src/module.ts`       | `analyticsModule` (env mapping, `PROMETHEUS_URL` boot hint) |
-| `src/steps/`          | Pipeline steps contributed to the server                    |
+| Path                    | Contents                                                    |
+| ----------------------- | ----------------------------------------------------------- |
+| `src/tools/`            | Analytics tools (`index.ts` wires them)                     |
+| `src/widget-tools.ts`   | `show_*` dashboard/comparison widget tools                  |
+| `src/settings-tools.ts` | The settings section's show, feed and save tools            |
+| `src/widgets/`          | React dashboard + comparison widgets                        |
+| `src/module.ts`         | `analyticsModule` (env mapping, `PROMETHEUS_URL` boot hint) |
+| `src/plugin.ts`         | `createPlugin`: the module's `register(server)`             |

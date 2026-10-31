@@ -23,8 +23,7 @@ simulation (test:host)". It renders exactly what an MCP Apps host renders:
 - A scenario can size the frame (`width=<px>`; default 960): the layout
   scenarios render at the 760 px a chat gives an inline view.
 - The rendering tool is the real `camunda7_show_process_list` against the
-  stub (the BPMN scenario: `camunda7_show_bpmn_viewer`; the KPI one: the
-  framework's `render-view` with a `shell:kpi-grid`; the write one:
+  stub (the BPMN scenario: `camunda7_show_bpmn_viewer`; the write one:
   `camunda7_show_job_panel` on the operations deployment), so the view gets the
   server's real envelope and data shape.
 
@@ -53,7 +52,7 @@ simulation (test:host)". It renders exactly what an MCP Apps host renders:
 | inline fit, real-sized     | realistic engine, 760 px, 600/800/none, de-DE     | instances (all, scoped) and jobs fit as one card: k of N rows, "Show all" in view, no inner scroll; a new budget or width at runtime refits (`inline-fit.spec.ts`) |
 | inline head of a table     | analytics dashboard, `maxHeight: 400` (3 rows)    | 3 of 6 rows and "3 of 6 shown"; Show all requests fullscreen (all 6), without it Show more (#396)                                                                  |
 | bundle budget              | the built `dist/mcp-app.js` / `.css`              | gzip within `test/__golden__/bundle-budget.json`, and within 10 % of it (#344 K39)                                                                                 |
-| inline KPI view            | `render-view` with `shell:kpi-grid`               | settled report < 200 px (K40), the view title as its one heading                                                                                                   |
+| inline list height         | the process list, no height budget                | the settled report (equal to max-content) below the old 600 px floor (#339 K40)                                                                                    |
 | fullscreen                 | `availableDisplayModes: ["inline", "fullscreen"]` | the toggle requests fullscreen and follows the host's switch                                                                                                       |
 | BPMN on a dark host        | `camunda7_show_bpmn_viewer`, `theme: "dark"`      | light canvas, dark flows/labels, every zoom button clickable past the logo                                                                                         |
 | kit foundation             | `camunda7_show_job_panel`, fullscreen offered     | Miragon roles (link `--cd-blau-link`), Lucide stroke 2.5, 2 dense, neutral KPI                                                                                     |

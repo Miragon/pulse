@@ -25,7 +25,6 @@ const V1_RECORD = {
   id: "user-1",
   language: "de",
   theme: "dark",
-  pinnedDashboardIds: ["d1"],
   analyticsDefaultPeriod: "30d",
   analyticsMinBucketSize: 25,
   createdAt: "2026-01-01T00:00:00.000Z",

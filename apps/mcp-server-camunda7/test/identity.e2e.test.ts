@@ -44,7 +44,7 @@ describe("caller identity on the wire (createApp)", () => {
     beforeAll(async () => {
       await runtime.profileStore.save(SESSION, {
         language: "de",
-        modules: { analytics: { defaultPeriod: "30d" }, camunda7: { defaultDashboardId: "d-1" } },
+        modules: { analytics: { defaultPeriod: "30d" }, camunda7: { allowedEngineIds: ["x"] } },
       })
       // Explicit write toolsets: the save tools exist, so only identity can refuse them.
       server = await bootServer({
@@ -67,7 +67,7 @@ describe("caller identity on the wire (createApp)", () => {
       })
       const camunda7 = payload(await call(client, "camunda7_settings_data"))
       expect(camunda7).toMatchObject({ canSave: false })
-      expect(camunda7.profile).not.toHaveProperty("defaultDashboardId")
+      expect(camunda7.profile).not.toHaveProperty("allowedEngineIds")
 
       const analytics = payload(await call(client, "analytics_settings_data"))
       expect(analytics).toEqual({
@@ -80,7 +80,7 @@ describe("caller identity on the wire (createApp)", () => {
       const before = await runtime.profileStore.get(SESSION)
 
       expect(
-        refusal(await call(client, "camunda7_save_settings", { defaultDashboardId: "d-2" })),
+        refusal(await call(client, "camunda7_save_settings", { allowedEngineIds: ["default"] })),
       ).toMatch(/No caller identity/)
       expect(refusal(await call(client, "analytics_save_settings", { minBucketSize: 3 }))).toMatch(
         /No caller identity/,

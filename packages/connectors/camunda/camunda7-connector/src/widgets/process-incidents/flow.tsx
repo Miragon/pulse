@@ -25,7 +25,7 @@ interface HeatValues {
 
 /**
  * Mounted only when the operator leaves "Incidents", so the metrics query never runs on
- * first paint. Tier-2 raw tool name; a failing feed hides the heatmap modes instead of erroring.
+ * first paint. A raw cross-module tool name; a failing feed hides the heatmap modes instead of erroring.
  */
 function ProcessHeatmap({
   processDefinitionKey,

@@ -56,7 +56,8 @@ write paths, uncomment `MCP_ACTIVE_MODULES=camunda7:admin,analytics:standard` in
 Mutation testing: `pnpm --fail-if-no-match --filter <package> exec stryker run` (`--mutate <file>`
 narrows it) for `@miragon/pulse-widget-shell`, `-camunda7-client`, `-camunda7-connector`,
 `-analytics-client`, `-analytics-connector`, `-cli` or `pulse-cockpit`. A pull request runs none:
-`.github/workflows/mutation-nightly.yml` mutates every package each night (incremental).
+`.github/workflows/mutation-nightly.yml` mutates every package each night (incremental). While the
+MCP server is rebuilt, the nightly run and the Stryker gates are paused (`scripts/mutation-pause.mjs`).
 
 ## Build your own server
 

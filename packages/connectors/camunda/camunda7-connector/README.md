@@ -76,7 +76,8 @@ This module has strict house patterns: read the
 [`add-bpm-feature`](../../../../.claude/skills/add-bpm-feature) skill and the architecture invariants in
 [`CLAUDE.md`](../../../../CLAUDE.md) before adding tools, schemas, or widgets. In short: input schemas live
 in [`@miragon/pulse-camunda7-client`](../camunda7-client), tools register via the registrar (never raw
-`server.tool()`), and a widget must be wired across all four registration links.
+`server.tool()`), and a widget is registered in `src/widgets/registry.ts`, in the host bundle map
+and, for its show tool and feed, in `src/tool-names.ts`.
 
 ## Layout
 
@@ -85,13 +86,11 @@ in [`@miragon/pulse-camunda7-client`](../camunda7-client), tools register via th
 | `src/tools/`             | Registrar operations tools, one file per domain (`index.ts` wires them)   |
 | `src/widget-tools.ts`    | `show_*` widget tools and `*_data` feeds                                  |
 | `src/widgets/`           | React widgets + `registry.ts` (component → dataType)                      |
-| `src/definition.ts`      | Widget metadata (`id`, `requires`, `size`, `propsSchema`)                 |
 | `src/tool-names.ts`      | Tool-name constants for rename-safe in-widget navigation                  |
 | `src/lib/`               | `with-engine.ts` (engine routing), `cockpit-url.ts`, `toolsets.ts`        |
 | `src/module.ts`          | `camunda7Module` (config schema, env mapping) + `createBpmnXmlFetcher`    |
 | `src/engine-provider.ts` | The vendor provider port (`EngineProvider`, `CockpitRef`)                 |
 | `src/providers/`         | `cibseven` / `operaton` / `camunda7` providers (cockpit routes, branding) |
-| `src/steps/`             | Pipeline steps contributed to the server                                  |
 
 ## Verify
 

@@ -1,9 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { createSql, runMigrations } from "@miragon/pulse-widget-shell/server"
+import {
+  createSql,
+  PROFILE_STORE_MIGRATIONS,
+  runMigrations,
+} from "@miragon/pulse-widget-shell/server"
 import { initRuntime } from "../src/persistence/index.js"
 
 // Only the two Postgres entry points are replaced; everything else
-// `initRuntime` uses (the stores, the announcement) stays real.
+// `initRuntime` uses (the profile store, the announcement) stays real.
 vi.mock("@miragon/pulse-widget-shell/server", async (importOriginal) => ({
   ...(await importOriginal<object>()),
   createSql: vi.fn(),
@@ -57,13 +61,15 @@ describe("initRuntime (database path, failing migrations)", () => {
     expect(ended).toHaveBeenCalledTimes(1)
   })
 
-  it("keeps the client open after successful migrations — the stores and the shutdown own it", async () => {
+  it("keeps the client open after successful migrations — the profile store and the shutdown own it", async () => {
     vi.spyOn(console, "log").mockImplementation(() => {})
     const { sql, ended } = recordingSql()
     vi.mocked(createSql).mockResolvedValue(sql)
     vi.mocked(runMigrations).mockResolvedValue(["001_user_profiles"])
 
     const runtime = await initRuntime(DATABASE_ENV)
+    // One list: the profile table, then the retired dashboards table's guarded drop.
+    expect(runMigrations).toHaveBeenCalledWith(sql, PROFILE_STORE_MIGRATIONS)
     expect(ended).not.toHaveBeenCalled()
     expect(Object.keys(runtime.readiness)).toEqual(["database"])
     await runtime.shutdown()

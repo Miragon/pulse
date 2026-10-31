@@ -11,10 +11,8 @@ describe("requireProfileKey", () => {
     )
   })
 
-  it("resolves the auth user id when the request carries one", () => {
-    expect(runWithMcpRequestInfo({ authUserId: "user-7" }, () => requireProfileKey())).toBe(
-      "user-7",
-    )
+  it("resolves the OAuth caller from the handler ctx", () => {
+    expect(requireProfileKey({ auth: { user: { id: "user-7" } } })).toBe("user-7")
   })
 
   it("refuses an identity-less HTTP request with the operator-actionable error", () => {

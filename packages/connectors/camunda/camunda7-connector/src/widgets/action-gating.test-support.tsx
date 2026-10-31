@@ -101,7 +101,6 @@ function profileView(canSave: boolean): UserProfileView {
       updatedAt: "2026-10-01T00:00:00.000Z",
       defaultEngineId: "prod",
       allowedEngineIds: [],
-      pinnedDashboardIds: [],
     },
     availableEngines: [{ id: "prod", environment: "default" }],
     canSave,

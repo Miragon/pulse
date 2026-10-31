@@ -1,19 +1,17 @@
 /**
  * Checked-in snapshots of the tool surface per toolset, sorted by name. The
  * E2E tests compare `tools/list` against them, so adding, renaming, removing or
- * re-tiering a tool fails CI until these lists (and the README / definition.ts
- * surface they document) are updated deliberately.
+ * re-tiering a tool fails CI until these lists (and the README surface they
+ * document) are updated deliberately.
  *
  * Layered on purpose — each tier is the one below plus an explicit list, so a
  * review sees exactly what a toolset adds:
  *
  * - READ_ONLY: the unauthenticated default (no suffix, no MCP_OAUTH) =
- *   `camunda7:read-only,analytics:read-only`. Only `readOnlyHint` tools plus
- *   the toolkit's unannotated `render-view`/`refresh-view`.
+ *   `camunda7:read-only,analytics:read-only`. Only `readOnlyHint` tools.
  * - OPERATIONS: the default under OAuth = `camunda7:operations,
- *   analytics:standard` — engine writes, the three settings saves and the
- *   toolkit's dashboard builder (the shell's language save and the builder
- *   need OAuth + no read-only module).
+ *   analytics:standard` — engine writes and the three settings saves (the
+ *   shell's language save needs OAuth + no read-only module).
  * - ADMIN: `camunda7:admin,analytics:standard` + `CAMUNDA_ALLOW_DEPLOYMENTS=true`
  *   under OAuth — the full surface. Never implied by a default.
  *
@@ -99,14 +97,11 @@ export const EXPECTED_TOOLS_READ_ONLY: readonly string[] = [
   "camunda7_show_process_list",
   "camunda7_show_settings",
   "camunda7_widget_actions_data",
-  "get-framework-manifest",
-  "refresh-view",
-  "render-view",
   "shell_settings_data",
   "shell_show_settings",
 ]
 
-/** What `operations` (camunda7) / `standard` (analytics) and the builder add. */
+/** What `operations` (camunda7) / `standard` (analytics) and the shell's language save add. */
 const OPERATIONS_ADDS: readonly string[] = [
   "analytics_save_settings",
   "camunda7_claim_task",
@@ -121,11 +116,6 @@ const OPERATIONS_ADDS: readonly string[] = [
   "camunda7_set_task_assignee",
   "camunda7_start_process_instance",
   "camunda7_unclaim_task",
-  "delete-dashboard",
-  "get-builder-catalogue",
-  "list-dashboards",
-  "load-dashboard",
-  "save-dashboard",
   "shell_save_settings",
 ]
 

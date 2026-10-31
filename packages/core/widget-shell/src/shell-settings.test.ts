@@ -2,13 +2,12 @@ import { describe, expect, it, vi } from "vitest"
 import type { MCPServer } from "mcp-use"
 import { createInMemoryProfileStore, type ProfileStore } from "./profile-store.js"
 import { runWithMcpRequestInfo } from "./request-context.js"
-import { createShellPlugin } from "./shell-catalogue.js"
 import {
   SHELL_SAVE_SETTINGS,
   SHELL_SETTINGS_DATA,
   SHELL_SHOW_SETTINGS,
 } from "./shell-settings-contract.js"
-import { registerShellSettingsTools } from "./shell-settings.js"
+import { createShellPlugin, registerShellSettingsTools } from "./shell-settings.js"
 
 /** The save exists only where the composition root allows framework writes (#346). */
 
@@ -108,19 +107,18 @@ describe("the shell's settings triple", () => {
 })
 
 describe("createShellPlugin", () => {
-  it("registers no tools without a profile store", () => {
-    expect(createShellPlugin().registerWidgetTools).toBeUndefined()
-  })
-
-  it("registers the triple with one", () => {
+  it('is the module "shell" and registers the settings tools on the server it is given', () => {
     const tool = vi.fn()
-    createShellPlugin({
+    const plugin = createShellPlugin({
       profileStore: createInMemoryProfileStore(),
-      allowSave: false,
-    }).registerWidgetTools?.({ tool } as unknown as MCPServer)
+      allowSave: true,
+    })
+    expect(plugin.name).toBe("shell")
+    plugin.register({ tool } as unknown as MCPServer)
     expect(tool.mock.calls.map((c) => (c[0] as { name: string }).name)).toEqual([
       SHELL_SHOW_SETTINGS,
       SHELL_SETTINGS_DATA,
+      SHELL_SAVE_SETTINGS,
     ])
   })
 })

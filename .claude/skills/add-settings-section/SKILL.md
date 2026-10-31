@@ -120,13 +120,12 @@ wire the full store. Alias them to your module's vocabulary if the call sites re
 better that way (`export const resolveSettingsKey = resolveProfileKey`).
 
 `resolveProfileKey(ctx)` precedence, fail-closed: the OAuth caller (`MCP_OAUTH`, read
-from `ctx.auth` through the toolkit's `resolveCaller`; ctx-less paths such as pipeline
-steps fall back to the ambient request info) > `ANONYMOUS_PROFILE_KEY` only for an
-EXPLICITLY declared local caller (`runWithMcpRequestInfo({ anonymousCaller: true }, …)` —
-tests) > `undefined` otherwise: a request without OAuth, or no request context at all
-(reads fall back to defaults, saves fail visibly — callers without an identity must
-never cross-share one record). Nothing a client picks itself (a session id, a header)
-is ever a key. Always pass the handler's `ctx`.
+from `ctx.auth` through the toolkit's `resolveCaller`) > `ANONYMOUS_PROFILE_KEY` only for
+an EXPLICITLY declared local caller (`runWithMcpRequestInfo({ anonymousCaller: true }, …)`,
+in tests) > `undefined` otherwise: a request without OAuth, or no request context at all
+(reads fall back to defaults, saves fail visibly: callers without an identity must never
+cross-share one record). Nothing a client picks itself (a session id, a header) is ever a
+key. Always pass the handler's `ctx`.
 
 `resolveAuthUserId(ctx)` is the OAuth half alone: `registerSettingsSection` hands it to
 your save as the record's owner (`userId`).
@@ -221,7 +220,7 @@ One self-fetching card, composed from `@miragon/pulse-widget-shell/widgets` —
   passes `feedback` to `useEngineAction`).
 - Render `<HostModelContext content={modelContextText(describe…(view))}>` **inline**, not
   through `adaptDataWidget`'s `describeForModel`: the settings tab mounts the widget
-  without pipeline data, so only the mounted component knows the self-fetched view.
+  without data, so only the mounted component knows the self-fetched view.
   `describe…` returns a `ModelContextSpec` (static `summary`, `facts`, `tools`) whose
   `surface` names the save tool only while `canSave` — reference:
   `describeAnalyticsSettings` in `analytics-connector/src/widgets/model-descriptions.ts`
@@ -229,16 +228,14 @@ One self-fetching card, composed from `@miragon/pulse-widget-shell/widgets` —
   rejects a hand-written text).
 - Everything user-visible goes through the module's `useT()` catalogs (`de` + `en`).
 
-## Step 6 — registration (four links; the page assembles itself)
+## Step 6 — registration (three links; the page assembles itself)
 
 1. `src/widgets/index.ts` — add the data-type constant + `adaptDataWidget(Widget, "<module>:settings")`
-2. `src/definition.ts` — widget metadata (`id`, `description`, `requires: []`,
-   `consumes: ["<module>:settings"]`, `size: "full"`); guarded against link 1 by
-   `src/widgets/catalogue-sync.test.ts`
-3. `apps/mcp-server-camunda7/src/ui/widget-registry.ts` — spreads the module's widget map;
-   guarded by `apps/mcp-server-camunda7/test/widget-registry.test.ts` (every catalogued id
-   must have an entry)
-4. `src/tool-names.ts` — constants for the `*_data` feed and the save tool, so a rename
+2. `apps/mcp-server-camunda7/src/ui/widget-registry.ts` — spreads the module's widget map;
+   guarded by `apps/mcp-server-camunda7/test/widget-registry.test.ts` (every
+   `widget: "<module>:<id>"` a connector's source emits, your show tool's
+   `widget: "<module>:settings"` included, must have an entry)
+3. `src/tool-names.ts` — constants for the `*_data` feed and the save tool, so a rename
    trips TS at every widget call site
 
 **The `<module>:settings` id IS the registration on the settings page.** The page is the
@@ -253,11 +250,11 @@ Name the widget anything else and it renders only through your own
 
 The failure mode stays silent (a section whose widget never reaches the host registry is
 simply absent from the tab), so `apps/mcp-server-camunda7/test/widget-registry.test.ts`
-asserts the ASSEMBLED layout against both module catalogues: every catalogued `:settings`
-id must produce a row, and every row must resolve in the host registry. Land link 3 and
+asserts the ASSEMBLED layout against the ids the connectors emit: every emitted `:settings`
+id must produce a row, and every row must resolve in the host registry. Land link 2 and
 that test turns green; forget it and it names exactly what is missing.
 
-Section ids stay raw strings on purpose (tier-2 cross-module reference):
+Section ids stay raw strings on purpose (a cross-module reference by raw name):
 `HostWidgetsProvider` resolves them at runtime and `filterLayoutToWidgets` drops the cell +
 emptied row when one resolves nowhere, so a host without your module degrades to "section
 absent" instead of erroring.

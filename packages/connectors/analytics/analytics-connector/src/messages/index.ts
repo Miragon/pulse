@@ -5,13 +5,11 @@ import { enServer } from "./en.server.js"
 import { deServer } from "./de.server.js"
 import { enAskAi } from "./en.ask-ai.js"
 import { deAskAi } from "./de.ask-ai.js"
-import { enBuilder } from "./en.builder.js"
-import { deBuilder } from "./de.builder.js"
 
 /** `en` is the fallback. */
-export const catalogs: Catalogs = {
-  en: { ...enSweep, ...enServer, ...enAskAi, ...enBuilder },
-  de: { ...deSweep, ...deServer, ...deAskAi, ...deBuilder },
+const catalogs: Catalogs = {
+  en: { ...enSweep, ...enServer, ...enAskAi },
+  de: { ...deSweep, ...deServer, ...deAskAi },
 }
 
 export const translator = createTranslator(catalogs)

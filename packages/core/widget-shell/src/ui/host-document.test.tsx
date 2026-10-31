@@ -107,8 +107,7 @@ describe("viewTitleMode (one title per view)", () => {
     }
   })
 
-  it("keeps it over a composed render-view and where the host does not name the tool", () => {
-    expect(viewTitleMode("render-view")).toBe("show")
+  it("keeps it where the host does not name the tool", () => {
     expect(viewTitleMode(undefined)).toBe("show")
   })
 })

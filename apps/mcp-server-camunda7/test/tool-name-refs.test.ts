@@ -17,7 +17,7 @@ import { scanSources, type ScanOptions } from "./source-scan.js"
  * Raw tool-name references vs the composed tool surface (#322 N187).
  *
  * Modules never import each other (CLAUDE.md invariant 8), so a widget that
- * needs another module's feed names it by raw string — the tier-2 pattern
+ * needs another module's feed names it by raw string
  * (`analytics-probe.ts` → `analytics_settings_data`, `process-incidents/
  * flow.tsx` → `analytics_bpmn_heatmap_data`). Graceful degradation then
  * HIDES a stale name at runtime: the fleet view is silently never offered,
@@ -94,7 +94,7 @@ describe("raw tool-name literals name real tools (full surface)", () => {
   let paramRefs: ParamRef[]
 
   beforeAll(async () => {
-    // The full surface: every module, admin toolset, deployments, builder.
+    // The full surface: every module, admin toolset, deployments, the shell's save.
     server = await bootServer({
       authenticated: true,
       env: {
@@ -130,7 +130,7 @@ describe("raw tool-name literals name real tools (full surface)", () => {
     ).toEqual([])
   })
 
-  it("sees the tier-2 cross-module references (the scanner is not blind)", () => {
+  it("sees the raw cross-module references (the scanner is not blind)", () => {
     const camunda7Refs = refs
       .filter((r) => r.at.startsWith("packages/connectors/camunda/camunda7-connector/src/widgets/"))
       .map((r) => r.name)

@@ -20,6 +20,7 @@ import {
   unknownFilters,
   workspaceGlobs,
 } from "./check-package-scripts.mjs"
+import { MUTATION_PAUSED } from "./mutation-pause.mjs"
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 
@@ -295,6 +296,24 @@ describe("checkPackageConfigs: the configs a source package's scripts measure ag
       /^apps\/cli\/stryker\.config\.json is not valid JSON \(Unexpected token\)/,
     )
   })
+
+  it("skips only the Stryker rules while mutation testing is paused", () => {
+    assert.deepEqual(
+      checkPackageConfigs("apps/cli", {
+        hasVitestConfig: true,
+        stryker: { exists: false },
+        mutationPaused: true,
+      }),
+      [],
+    )
+    const errors = checkPackageConfigs("apps/cli", {
+      hasVitestConfig: false,
+      stryker: { exists: true, parseError: "Unexpected token" },
+      mutationPaused: true,
+    })
+    assert.equal(errors.length, 1)
+    assert.match(errors[0], /^apps\/cli: no vitest\.config\.ts/)
+  })
 })
 
 describe("checkMutationExemptions: NO_MUTATION_APPS cannot outlive its reason", () => {
@@ -471,7 +490,9 @@ describe("checkWorkspace over fixture trees", () => {
 
   it("real repo: every source package passes, the exempt server app included", () => {
     const globs = workspaceGlobs(readFileSync(path.join(repoRoot, "pnpm-workspace.yaml"), "utf8"))
-    const { errors, sourceDirs } = checkWorkspace(repoRoot, globs)
+    const { errors, sourceDirs } = checkWorkspace(repoRoot, globs, {
+      mutationPaused: MUTATION_PAUSED,
+    })
     assert.deepEqual(errors, [])
     for (const dir of [
       "apps/mcp-server-camunda7",

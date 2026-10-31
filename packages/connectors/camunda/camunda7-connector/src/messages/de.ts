@@ -47,16 +47,15 @@ export const de: MessageCatalog = {
   "cockpit.engineGone": ({ engineId }) =>
     `Engine ${String(engineId)} ist nicht mehr in deiner Engine-Liste.`,
 
-  "profile.heading": "Engines und Dashboards",
+  "profile.heading": "Engine-Einstellungen",
   "profile.subtitle":
-    "Aus welchen Engines du wählst und welche Dashboards zuerst kommen, in jedem Chat.",
+    "Aus welchen Engines du wählst und welche deine Standard-Engine ist, in jedem Chat.",
   "profile.save": "Speichern",
   "profile.saving": "Wird gespeichert…",
   "profile.discard": "Änderungen verwerfen",
   "profile.saveBar.label": "Einstellungen speichern",
-  "profile.saveBar.unsaved":
-    "Deine Änderungen an Engines oder Dashboards sind noch nicht gespeichert.",
-  "profile.saveBar.clean": "Engines und Dashboards sind gespeichert.",
+  "profile.saveBar.unsaved": "Deine Engine-Einstellungen sind noch nicht gespeichert.",
+  "profile.saveBar.clean": "Deine Engine-Einstellungen sind gespeichert.",
   "profile.saveError":
     "Die Einstellungen konnten nicht gespeichert werden. Deine Eingaben sind noch da, versuch es noch mal.",
   "profile.readOnly.title": "Die Einstellungen sind hier nur lesbar",
@@ -68,7 +67,6 @@ export const de: MessageCatalog = {
   "profile.none": "Keine Einstellungen verfügbar",
 
   "profile.section.engines": "Engines",
-  "profile.section.dashboards": "Dashboards",
 
   "profile.field.allEngines": "Alle Engines erlauben",
   "profile.field.allEngines.help":
@@ -82,24 +80,10 @@ export const de: MessageCatalog = {
     "Diese Engine nutzen die Tools und das Cockpit, wenn du keine andere wählst.",
   "profile.engine.auto": "(automatisch)",
 
-  "profile.dashboards.unavailable":
-    "Gespeicherte Dashboards sind nicht verfügbar. Dafür braucht der Server eine Anmeldung und muss Änderungen erlauben. Bitte deine Administration, das einzurichten.",
-  "profile.dashboards.empty":
-    "Noch keine Dashboards gespeichert. Lass dir im Chat eins bauen und speichere es.",
-  "profile.field.defaultDashboard": "Standard-Dashboard",
-  "profile.field.defaultDashboard.help":
-    "Dieses Dashboard schlägt die AI als Erstes vor (load-dashboard).",
-  "profile.dashboard.none": "(keins)",
-  "profile.field.pinnedDashboards": "Angepinnte Dashboards",
-  "profile.field.pinnedDashboards.help": "Stehen in Dashboard-Auswahlen oben.",
-
-  "profile.summary": ({ engines, defaultDashboard }) =>
-    `camunda7-Einstellungen: ${String(engines)}${String(defaultDashboard)}.`,
+  "profile.summary": ({ engines }) => `camunda7-Einstellungen: ${String(engines)}.`,
   "profile.summary.allEngines": "alle Engines",
   "profile.summary.someEngines": ({ count }) =>
     countOf(count, "erlaubte Engine", "erlaubte Engines"),
-  "profile.summary.defaultDashboard": ({ id }) =>
-    `, Standard-Dashboard „${String(id)}" (öffnen mit load-dashboard)`,
 
   "viewTitle.cockpit": "Cockpit",
   "viewTitle.processList": "Prozessdefinitionen",
@@ -109,7 +93,7 @@ export const de: MessageCatalog = {
   "viewTitle.bpmnViewer": "BPMN-Diagramm",
   "viewTitle.jobPanel": "Jobs",
   "viewTitle.engineHealth": "Engine-Übersicht",
-  "viewTitle.settings": "Engines und Dashboards",
+  "viewTitle.settings": "Engine-Einstellungen",
   "viewTitle.clusterDetail": ({ activity }) => `Cluster: ${String(activity)}`,
 
   "c7sum.cockpitOpened":

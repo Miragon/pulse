@@ -1,4 +1,4 @@
-# Postgres — durable user settings + saved dashboards for the MCP server
+# Postgres — durable user settings for the MCP server
 # (wired via the server app's DATABASE_URL secret). Private-only (no
 # [http_service]/[services] section, so no public IP; reachable over 6PN as
 # miragon-ai-playground-postgres.internal) and always-on; data persists on a

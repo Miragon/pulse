@@ -152,23 +152,21 @@ describe("caller round-trip", () => {
 
 /** A stale default would keep routing every engine-less call, writes included, to the old engine. */
 describe("clearing an optional id from the settings page", () => {
-  it('"" clears the saved default engine and default dashboard, other fields stay', async () => {
+  it('"" clears the saved default engine, other fields stay', async () => {
     const store = createInMemoryProfileStore()
     const { handlerFor } = register("operations", undefined, store)
     const save = (params: unknown) => handlerFor(CAMUNDA7_SAVE_SETTINGS)(params, CTX)
-    await save({ defaultEngineId: "prod-a", defaultDashboardId: "d1", pinnedDashboardIds: ["d1"] })
+    await save({ defaultEngineId: "prod-a", allowedEngineIds: ["prod-a"] })
 
-    const cleared = await save({ defaultEngineId: "", defaultDashboardId: "" })
+    const cleared = await save({ defaultEngineId: "" })
     expect(feedPayload(cleared).defaultEngineId).toBeUndefined()
-    expect(feedPayload(cleared).defaultDashboardId).toBeUndefined()
-    expect(feedPayload(cleared).pinnedDashboardIds).toEqual(["d1"])
+    expect(feedPayload(cleared).allowedEngineIds).toEqual(["prod-a"])
 
     const view = await handlerFor(CAMUNDA7_SETTINGS_DATA)({}, CTX)
     const profile = feedPayload(view).profile as Record<string, unknown>
     expect(profile.defaultEngineId).toBeUndefined()
-    expect(profile.defaultDashboardId).toBeUndefined()
     expect((await store.get("user-1"))?.modules?.camunda7).toEqual({
-      pinnedDashboardIds: ["d1"],
+      allowedEngineIds: ["prod-a"],
     })
   })
 })

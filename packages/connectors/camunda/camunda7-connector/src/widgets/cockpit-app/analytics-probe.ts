@@ -1,6 +1,6 @@
 import { useToolQuery } from "@miragon/mcp-toolkit-ui"
 
-/** Tier-2 raw name; reads only the profile store, so it answers independent of Prometheus and toolset. */
+/** A raw cross-module name; reads only the profile store, so it answers independent of Prometheus and toolset. */
 const ANALYTICS_PROBE_TOOL = "analytics_settings_data"
 
 /**

@@ -1,6 +1,7 @@
 import { z } from "zod"
 import type { MCPServer } from "mcp-use"
 import { createTranslator, type Catalogs } from "@miragon/mcp-toolkit-core"
+import type { ModulePlugin } from "./composition.js"
 import { LANGUAGES, type LanguagePref } from "./profile-constants.js"
 import type { ProfileStore } from "./profile-store.js"
 import { createViewLocaleOf, type ServerT } from "./server-locale.js"
@@ -56,14 +57,20 @@ export const shellSettingsSaveInput = {
     .describe('"system" follows the chat app. Tool summaries follow it too.'),
 }
 
-export interface ShellSettingsToolsOptions {
+export interface ShellPluginOptions {
   profileStore: ProfileStore
+  /** Pass `frameworkWritesAllowed(boot)`. */
   allowSave: boolean
+}
+
+/** Always on, outside `MCP_ACTIVE_MODULES`: the settings page and the UI language. */
+export function createShellPlugin(options: ShellPluginOptions): ModulePlugin {
+  return { name: "shell", register: (server) => registerShellSettingsTools(server, options) }
 }
 
 export function registerShellSettingsTools(
   server: MCPServer,
-  { profileStore: store, allowSave }: ShellSettingsToolsOptions,
+  { profileStore: store, allowSave }: ShellPluginOptions,
 ): void {
   registerSettingsSection(server, {
     app: "shell",

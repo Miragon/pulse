@@ -28,14 +28,13 @@ describe("resolveProfileKey", () => {
     ).toBeUndefined()
   })
 
-  it("falls back to the ambient OAuth caller for ctx-less paths (pipeline steps)", () => {
-    expect(runWithMcpRequestInfo({ authUserId: "user-7" }, () => resolveProfileKey())).toBe(
-      "user-7",
-    )
-    // A ctx WITHOUT auth (a signed-out call) does not shadow it.
-    expect(runWithMcpRequestInfo({ authUserId: "user-7" }, () => resolveProfileKey({}))).toBe(
-      "user-7",
-    )
+  it("never takes the caller from the ambient request info, only from the handler ctx", () => {
+    expect(
+      runWithMcpRequestInfo({ authUserId: "user-7" }, () => resolveProfileKey()),
+    ).toBeUndefined()
+    expect(
+      runWithMcpRequestInfo({ authUserId: "user-7" }, () => resolveProfileKey({})),
+    ).toBeUndefined()
   })
 
   it("resolves the anonymous key only for an EXPLICITLY declared local caller", () => {
@@ -60,9 +59,9 @@ describe("resolveProfileKey", () => {
 describe("resolveAuthUserId", () => {
   it("returns only the OAuth caller, never the anonymous key", () => {
     expect(resolveAuthUserId(authed({ id: "user-1" }))).toBe("user-1")
-    expect(runWithMcpRequestInfo({ authUserId: "user-7" }, () => resolveAuthUserId())).toBe(
-      "user-7",
-    )
+    expect(
+      runWithMcpRequestInfo({ authUserId: "user-7" }, () => resolveAuthUserId()),
+    ).toBeUndefined()
     expect(runWithMcpRequestInfo({ anonymousCaller: true }, () => resolveAuthUserId())).toBe(
       undefined,
     )

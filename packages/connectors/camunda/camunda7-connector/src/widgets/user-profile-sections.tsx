@@ -5,7 +5,7 @@ import { NativeSelect, SettingsCard, SettingsField } from "@miragon/pulse-widget
 import { groupEnginesByEnvironment } from "../lib/environments.js"
 import type { ProfileReadOnlyReason, UserProfileView } from "../lib/profile-schema.js"
 import { useT } from "../messages/use-t.js"
-import { allowedIn, type DashboardSummary, type FormState } from "./user-profile-form.js"
+import { allowedIn, type FormState } from "./user-profile-form.js"
 
 const helpCls = "text-muted-foreground text-small"
 
@@ -67,70 +67,6 @@ export function SaveBar({
         </Button>
       </div>
     </div>
-  )
-}
-
-export function DashboardsCardBody({
-  unavailable,
-  dashboards,
-  form,
-  canSave,
-  onSetDefault,
-  onTogglePinned,
-}: {
-  unavailable: boolean
-  dashboards: DashboardSummary[]
-  form: Pick<FormState, "defaultDashboardId" | "pinnedDashboardIds">
-  canSave: boolean
-  onSetDefault: (id: string) => void
-  onTogglePinned: (id: string, on: boolean) => void
-}) {
-  const t = useT()
-  if (unavailable) {
-    return <span className={helpCls}>{t("profile.dashboards.unavailable")}</span>
-  }
-  if (dashboards.length === 0) {
-    return <span className={helpCls}>{t("profile.dashboards.empty")}</span>
-  }
-  return (
-    <>
-      <SettingsField
-        label={t("profile.field.defaultDashboard")}
-        help={t("profile.field.defaultDashboard.help")}
-      >
-        <NativeSelect
-          value={form.defaultDashboardId}
-          disabled={!canSave}
-          onChange={(e) => onSetDefault(e.target.value)}
-        >
-          <option value="">{t("profile.dashboard.none")}</option>
-          {dashboards.map((d) => (
-            <option key={d.id} value={d.id}>
-              {d.title ?? d.name}
-            </option>
-          ))}
-        </NativeSelect>
-      </SettingsField>
-      <SettingsField
-        label={t("profile.field.pinnedDashboards")}
-        help={t("profile.field.pinnedDashboards.help")}
-        group
-      >
-        <div className="flex flex-col gap-1.5">
-          {dashboards.map((d) => (
-            <label key={d.id} className="text-dense flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={form.pinnedDashboardIds.includes(d.id)}
-                disabled={!canSave}
-                onChange={(ev) => onTogglePinned(d.id, ev.target.checked)}
-              />
-              <span>{d.title ?? d.name}</span>
-            </label>
-          ))}
-        </div>
-      </SettingsField>
-    </>
   )
 }
 

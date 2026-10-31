@@ -17,7 +17,7 @@ export interface HandOff extends Omit<HandOffParts, "surface"> {
 
 export type ViewContext = Omit<ModelContextSpec, "surface">
 
-/** Tier-2 cross-module reference by raw name; fails when camunda7 is not active, so no camunda7 tool is named. */
+/** A cross-module reference by raw name; fails when camunda7 is not active, so no camunda7 tool is named. */
 const CAMUNDA7_SURFACE_FEED = "camunda7_widget_actions_data"
 
 /**

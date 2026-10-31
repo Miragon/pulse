@@ -124,7 +124,7 @@ export function registerWidgetTools(
         }),
         namesFor,
       )
-      // A self-fetch (structuredContent stripped, a saved view) keeps this scope.
+      // A self-fetch (structuredContent stripped) keeps this scope.
       const cellProps = {
         period,
         ...(args.processDefinitionKey ? { processDefinitionKey: args.processDefinitionKey } : {}),

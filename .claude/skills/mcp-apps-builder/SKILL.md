@@ -11,7 +11,7 @@ mcp-use skill this file used to vendor taught 1.x APIs (`server.uiResource()`, t
 `_meta.ui`), so it is gone. Read these instead, in this order:
 
 1. **The root `CLAUDE.md`**: the architecture invariants. Tools go through the
-   registrar, engine access through `withEngine`, widgets through the four-link
+   registrar, engine access through `withEngine`, widgets through the three-link
    chain, feeds through `buildDataFeedResult`, and there is no federation in this
    server.
 2. **The house skill for the change:**

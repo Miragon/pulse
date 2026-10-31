@@ -4,9 +4,10 @@ import { NotesListWidget } from "./notes-list.js"
 import type { NotesListData } from "../notes-store.js"
 
 /**
- * Component map for the host bundle — link 1 of the four-link widget chain.
- * The host app spreads this into its `widget-registry.ts` (link 3); the ids
- * must match `definition.ts` (link 2, guarded by catalogue-sync.test.ts).
+ * Component map for the host bundle, keyed by the ids the show tools name
+ * (`widget: "notes:list"` in `widget-tools.ts`). The server spreads it into its
+ * `widget-registry.ts`; its `widget-registry.test.ts` reads those ids from this
+ * module's sources and fails on one the registry cannot render.
  */
 
 // Model-context description so the model always knows what the user is

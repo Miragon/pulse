@@ -66,7 +66,6 @@ const PROFILE_FEED = {
   profile: {
     id: "sess-1",
     language: "en",
-    pinnedDashboardIds: [],
     analyticsDefaultPeriod: "7d",
     analyticsMinBucketSize: 10,
     createdAt: "2026-01-01T00:00:00.000Z",

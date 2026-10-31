@@ -1,8 +1,3 @@
-import type { AppConfig, AppConfigEntry, AppPlugin } from "@miragon/mcp-toolkit-core"
-import { createFileSystemDashboardStore } from "@miragon/mcp-toolkit-core/tools"
-import type { DashboardStore } from "@miragon/mcp-toolkit-core/tools"
-import type { MCPServer } from "mcp-use"
-
 import {
   camunda7Module,
   configuredEngineIds,
@@ -18,6 +13,8 @@ import {
   OAUTH_ENV_VARS,
   profileStoreFromEnv,
   type ComposableModule,
+  type ModuleEntry,
+  type ModulePlugin,
   type ProfileStore,
   type ResolvedBoot,
 } from "@miragon/pulse-widget-shell/server"
@@ -30,9 +27,9 @@ import {
  */
 export interface SharedResources {
   /**
-   * One per-user preference store for the whole server (language,
-   * engine and dashboard defaults), keyed by the OAuth caller. Filesystem-backed
-   * when `MCP_PROFILE_DIR` is set, else in-memory.
+   * One per-user preference store for the whole server (language and each
+   * module's settings), keyed by the OAuth caller. Filesystem-backed when
+   * `MCP_PROFILE_DIR` is set, else in-memory.
    */
   profileStore: ProfileStore
   /**
@@ -62,11 +59,11 @@ export type ModuleDefinition = ComposableModule<SharedResources>
  * Which modules THIS server composes. Each module brings its own config
  * schema, env mapping and known env vars — this file only selects and wires.
  *
- * Adding a module touches three places (the `create-module` skill walks
- * through them): this list, the spread in `src/ui/widget-registry.ts`, and
- * the module's `definition` in `test/widget-registry.test.ts` — Tailwind
- * picks up workspace modules automatically via the `modules/` glob in
- * `src/ui/globals.css`.
+ * Adding a module touches two places next to its `workspace:*` dependency
+ * (the `create-module` skill walks through them): this list and the spread
+ * in `src/ui/widget-registry.ts`. Tailwind picks up workspace modules via the
+ * `modules/` glob in `src/ui/globals.css`, and `test/widget-registry.test.ts`
+ * reads the widget ids from the module's sources.
  *
  * Exported for `test/strict-input.e2e.test.ts`, which boots every toolset
  * each listed module declares — yours included, without a test edit.
@@ -84,7 +81,6 @@ const APP_ENV_VARS = [
   ...HTTP_EDGE_ENV_VARS,
   ...OAUTH_ENV_VARS,
   "MCP_ACTIVE_MODULES",
-  "MCP_DASHBOARD_DIR",
   "MCP_PROFILE_DIR",
   // mcp-use's request-log level, read by mcp-use itself (the boot warns at
   // debug/trace).
@@ -107,14 +103,10 @@ export const KNOWN_ENV_VARS = composition.knownEnvVars
  * authenticated exactly when `oauthFromEnv` built a provider from
  * `MCP_OAUTH`; this argument-less default (tests, `getPlugins()`) is the
  * unauthenticated one — every module without an explicit suffix on its
- * read-only floor, the toolkit's dashboard builder off.
+ * read-only floor, the shell's language save off.
  */
 export function resolveBoot(env: NodeJS.ProcessEnv = process.env): ResolvedBoot {
   return composition.resolveBoot(env)
-}
-
-export function getAppConfig(boot: ResolvedBoot = resolveBoot()): AppConfig {
-  return { activeApps: boot.entries, pipelines: {} }
 }
 
 // ── Persistence ──────────────────────────────────────────────────────────
@@ -127,25 +119,13 @@ export function createProfileStore(env: NodeJS.ProcessEnv = process.env): Profil
   return profileStoreFromEnv(env)
 }
 
-/** `undefined` lets the toolkit fall back to its in-memory dashboard store. */
-export function createDashboardStore(
-  env: NodeJS.ProcessEnv = process.env,
-): DashboardStore | undefined {
-  return env.MCP_DASHBOARD_DIR
-    ? createFileSystemDashboardStore({ dir: env.MCP_DASHBOARD_DIR })
-    : undefined
-}
-
 // ── Plugins ──────────────────────────────────────────────────────────────
 
 /**
  * Cross-module wiring — deliberately app-owned: which module's capability
  * reaches which other module is configuration knowledge.
  */
-function buildSharedResources(
-  entries: AppConfigEntry[],
-  profileStore: ProfileStore,
-): SharedResources {
+function buildSharedResources(entries: ModuleEntry[], profileStore: ProfileStore): SharedResources {
   // From camunda7, for modules without an engine-SDK dependency: the BPMN-XML
   // lookup (the analytics heatmap) and the configured engine ids (the only
   // engines analytics reads). Absent when camunda7 is inactive — the heatmap
@@ -167,14 +147,13 @@ function buildSharedResources(
 export function getPlugins(
   profileStore: ProfileStore = createProfileStore(),
   boot: ResolvedBoot = resolveBoot(),
-): AppPlugin<MCPServer>[] {
+): ModulePlugin[] {
   const { entries } = boot
   const shared = buildSharedResources(entries, profileStore)
   return [
-    // Always-on shell (`shell:*`): the generic widgets plus the settings page
-    // and the UI language, deliberately outside the MCP_ACTIVE_MODULES
-    // selection. Its language save is a framework write: OAuth and no module
-    // on its read-only floor.
+    // Always-on shell (`shell:*`): the settings page and the UI language,
+    // deliberately outside the MCP_ACTIVE_MODULES selection. Its language save
+    // is a framework write: OAuth and no module on its read-only floor.
     createShellPlugin({ profileStore, allowSave: frameworkWritesAllowed(boot) }),
     ...composition.pluginsFor(entries, shared),
   ]

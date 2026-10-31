@@ -327,7 +327,7 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
   const locale = useLocale()
   const { context } = useHandOff()
 
-  // Composed views reference other modules' widgets by raw id (tier-2); own ids win.
+  // Composed views reference other modules' widgets by raw id; own ids win.
   const hostWidgets = useHostWidgets()
   const cockpitWidgets = { ...hostWidgets, ...camunda7BaseWidgets }
 

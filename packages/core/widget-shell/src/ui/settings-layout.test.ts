@@ -17,7 +17,6 @@ describe("settingsLayout", () => {
         "camunda7:engine-health",
         "camunda7:settings",
         "analytics:settings",
-        "shell:kpi-grid",
         "shell:settings-page",
       ]),
     ).toEqual(["shell:settings", "camunda7:settings", "analytics:settings"])

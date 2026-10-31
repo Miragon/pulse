@@ -3,10 +3,8 @@ import type { Client } from "@miragon/pulse-camunda7-client"
 import {
   createEngineRegistry,
   resolveEngine,
-  resolveStepEngine,
   EngineNotSelectedError,
   UnknownEngineError,
-  type Camunda7StepAppConfig,
 } from "./resolve-engine.js"
 
 const engineIdOf = (client: Client): string => (client as unknown as { __engine: string }).__engine
@@ -24,36 +22,34 @@ function harness(
   engines: Array<{ id: string; baseUrl: string; cockpitUrl?: string }>,
   defaultEngineId?: () => Promise<string | undefined>,
 ) {
-  const registry = createEngineRegistry(engines, (e) => ({ __engine: e.id }) as unknown as Client, {
+  return createEngineRegistry(engines, (e) => ({ __engine: e.id }) as unknown as Client, {
     defaultEngineId,
   })
-  const appConfig: Camunda7StepAppConfig = { registry, engines }
-  return { appConfig, registry }
 }
 
-describe("resolveStepEngine", () => {
+describe("resolveEngine", () => {
   it("resolves the only engine (with its baseUrl) when one is configured and no default is saved", async () => {
-    const { appConfig } = harness(SINGLE)
-    const { client, engineId, baseUrl, cockpitUrl } = await resolveStepEngine(appConfig)
+    const { client, engineId, baseUrl, cockpitUrl } = await resolveEngine(
+      undefined,
+      harness(SINGLE),
+    )
     expect(engineId).toBe("default")
     expect(engineIdOf(client)).toBe("default")
-    // Regression guard: a real client from the registry, never the dropped `appConfig.client`.
     expect(baseUrl).toBe("http://e1/engine-rest")
     expect(cockpitUrl).toBe("http://e1/cockpit")
   })
 
   it("honours the saved default engine in a multi-engine setup", async () => {
-    const { appConfig } = harness(MULTI, () => Promise.resolve("beta"))
-    const { client, engineId, baseUrl } = await resolveStepEngine(appConfig)
+    const registry = harness(MULTI, () => Promise.resolve("beta"))
+    const { client, engineId, baseUrl } = await resolveEngine(undefined, registry)
     expect(engineId).toBe("beta")
     expect(engineIdOf(client)).toBe("beta")
     expect(baseUrl).toBe("http://beta/engine-rest")
   })
 
-  it("lets an explicit override (the camunda7:engine view key) win over the saved default", async () => {
+  it("lets an explicit override win over the saved default", async () => {
     const lookup = vi.fn(() => Promise.resolve("beta"))
-    const { appConfig } = harness(MULTI, lookup)
-    const { client, engineId, cockpitUrl } = await resolveStepEngine(appConfig, "alpha")
+    const { client, engineId, cockpitUrl } = await resolveEngine("alpha", harness(MULTI, lookup))
     expect(engineId).toBe("alpha")
     expect(engineIdOf(client)).toBe("alpha")
     expect(cockpitUrl).toBe("http://alpha/cockpit")
@@ -62,12 +58,11 @@ describe("resolveStepEngine", () => {
   })
 
   it("throws a clear EngineNotSelectedError for multi-engine with no default and no override", async () => {
-    const { appConfig } = harness(MULTI)
-    await expect(resolveStepEngine(appConfig)).rejects.toThrow(EngineNotSelectedError)
-    // Only code + message reach the model, so the ids must be named; no save hint without
-    // `canSaveDefault`, and a step's hint names its view key.
-    await expect(resolveStepEngine(appConfig)).rejects.toThrow(
-      "No engine specified and no default engine saved. Set the `camunda7:engine` view key — one of: alpha, beta.",
+    const registry = harness(MULTI)
+    await expect(resolveEngine(undefined, registry)).rejects.toThrow(EngineNotSelectedError)
+    // Only code + message reach the model, so the ids must be named; no save hint without `canSaveDefault`.
+    await expect(resolveEngine(undefined, registry)).rejects.toThrow(
+      "No engine specified and no default engine saved. Pass `engine` — one of: alpha, beta.",
     )
   })
 
@@ -82,20 +77,19 @@ describe("resolveStepEngine", () => {
   })
 
   it("throws UnknownEngineError when the override names a non-existent engine", async () => {
-    const { appConfig } = harness(MULTI)
-    await expect(resolveStepEngine(appConfig, "gamma")).rejects.toThrow(UnknownEngineError)
+    await expect(resolveEngine("gamma", harness(MULTI))).rejects.toThrow(UnknownEngineError)
   })
 })
 
 describe("saved-default validation", () => {
   // A removed engine degrades to "no default", never fails every call with UnknownEngineError.
   it("ignores a stale saved default that names a no-longer-configured engine", async () => {
-    const { registry } = harness(MULTI, () => Promise.resolve("gone"))
+    const registry = harness(MULTI, () => Promise.resolve("gone"))
     await expect(resolveEngine(undefined, registry)).rejects.toThrow(EngineNotSelectedError)
   })
 
   it("falls back to the sole configured engine when the saved default is stale", async () => {
-    const { registry } = harness(SINGLE, () => Promise.resolve("gone"))
+    const registry = harness(SINGLE, () => Promise.resolve("gone"))
     const { engineId } = await resolveEngine(undefined, registry)
     expect(engineId).toBe("default")
   })

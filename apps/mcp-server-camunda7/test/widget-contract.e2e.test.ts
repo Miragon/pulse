@@ -30,9 +30,8 @@ describe("widget wire contract (dual-protocol _meta)", () => {
   let serverOrigin: string
 
   beforeAll(async () => {
-    // The widest surface (admin + standard under OAuth), so the contract also
-    // covers the opt-in builder tools; widget tools and *_data feeds are the
-    // same in every toolset.
+    // The widest surface (admin + standard under OAuth); widget tools and
+    // *_data feeds are the same in every toolset.
     server = await bootServer({
       authenticated: true,
       env: { MCP_ACTIVE_MODULES: "camunda7:admin,analytics:standard" },
@@ -53,9 +52,9 @@ describe("widget wire contract (dual-protocol _meta)", () => {
       const ui = uiBlock(meta)
       return typeof ui.resourceUri === "string" && ui.visibility === undefined
     })
-    // render-view plus the camunda7/analytics show_* tools.
+    // The cockpit plus the camunda7/analytics show_* tools.
     expect(widgetTools.length).toBeGreaterThanOrEqual(3)
-    expect(widgetTools.map((t) => t.name)).toContain("render-view")
+    expect(widgetTools.map((t) => t.name)).toContain("camunda7_open_cockpit")
 
     for (const tool of widgetTools) {
       const meta = toolMeta(tool)
@@ -117,14 +116,13 @@ describe("widget wire contract (dual-protocol _meta)", () => {
     }
   })
 
-  it("keeps app-only tools (*_data feeds, refresh-view) free of widget keys", () => {
+  it("keeps app-only tools (*_data feeds) free of widget keys", () => {
     const appOnlyTools = tools.filter((t) => {
       const ui = t._meta ? uiBlock(t._meta) : {}
       return Array.isArray(ui.visibility) && (ui.visibility as unknown[]).includes("app")
     })
-    // refresh-view plus the *_data feeds.
     expect(appOnlyTools.length).toBeGreaterThanOrEqual(3)
-    expect(appOnlyTools.map((t) => t.name)).toContain("refresh-view")
+    expect(appOnlyTools.map((t) => t.name)).toContain("shell_settings_data")
 
     for (const tool of appOnlyTools) {
       const meta = toolMeta(tool)
@@ -211,7 +209,7 @@ async function readResourceDomains(client: Client, uri: string): Promise<string[
 
 /**
  * Behind its public URL (`MCP_URL`) the server declares that origin itself on
- * every view-bound tool — `render-view` and each module's `*_show_*` alike,
+ * every view-bound tool — the cockpit and each module's `*_show_*` alike,
  * listed and read, and in the Apps SDK half (`openai/widgetCSP`) — so a host
  * admits the font route (`/fonts/geist-<version>/…`) the views load Geist from.
  */
@@ -239,7 +237,7 @@ describe("widget wire contract — the font origin under MCP_URL", () => {
     const widgetTools = (await server.client.listTools()).tools.filter(
       (t) => t._meta?.["openai/outputTemplate"] !== undefined,
     )
-    // One view per widget tool: the show tools, the cockpit and render-view.
+    // One view per widget tool: the show tools and the cockpit.
     expect(views).toHaveLength(widgetTools.length)
     expect(views.length).toBeGreaterThanOrEqual(20)
     for (const view of views) {
@@ -257,7 +255,7 @@ describe("widget wire contract — the font origin under MCP_URL", () => {
     const widgetTools = tools.filter((t) => t._meta?.["openai/outputTemplate"] !== undefined)
     expect(widgetTools.map((t) => t.name)).toEqual(
       expect.arrayContaining([
-        "render-view",
+        "camunda7_open_cockpit",
         "camunda7_show_process_list",
         "analytics_show_dashboard",
       ]),

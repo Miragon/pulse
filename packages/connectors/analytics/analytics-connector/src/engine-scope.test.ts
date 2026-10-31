@@ -271,35 +271,45 @@ describe("the BPMN heatmap names the engines its heat adds up (K33)", () => {
 })
 
 describe("analyticsModule engine scope wiring", () => {
-  function fleetOf(config: Record<string, unknown>, shared: { engineIds?: string[] }) {
-    const plugin = analyticsModule.createPlugin(
-      { url: "http://prometheus.invalid", ...config },
-      shared,
-    )
-    return (plugin.appConfig as { engineScope: AnalyticsEngineScope }).engineScope.ids
+  /** The booted module's fleet, as its refusal of an unknown engine names it (before any query). */
+  async function fleetOf(config: Record<string, unknown>, shared: { engineIds?: string[] }) {
+    const tools = new Map<string, ToolCallback>()
+    const server = {
+      tool: (definition: { name: string }, callback: ToolCallback) => {
+        tools.set(definition.name, callback)
+      },
+    } as unknown as MCPServer
+    analyticsModule
+      .createPlugin({ url: "http://prometheus.invalid", ...config }, shared)
+      .register(server)
+    const { refused } = await call(tools.get("analytics_engine_landscape")!, {
+      engine: "not-configured",
+    })
+    if (refused === NO_ENGINE_SCOPE_MESSAGE) return []
+    return /configured engines: (.*)\.$/.exec(refused ?? "")?.[1].split(", ")
   }
 
-  it("takes the engines the composition root injects (camunda7's configured ones)", () => {
+  it("takes the engines the composition root injects (camunda7's configured ones)", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
-    expect(fleetOf({}, { engineIds: ["prod-a", "prod-b"] })).toEqual(["prod-a", "prod-b"])
+    expect(await fleetOf({}, { engineIds: ["prod-a", "prod-b"] })).toEqual(["prod-a", "prod-b"])
     expect(warn).not.toHaveBeenCalled()
   })
 
-  it("falls back to ANALYTICS_ENGINE_IDS for a standalone analytics boot", () => {
+  it("falls back to ANALYTICS_ENGINE_IDS for a standalone analytics boot", async () => {
     const config = analyticsModule.configFromEnv({ ANALYTICS_ENGINE_IDS: " prod-a , prod-b ," })
-    expect(fleetOf(config, {})).toEqual(["prod-a", "prod-b"])
+    expect(await fleetOf(config, {})).toEqual(["prod-a", "prod-b"])
   })
 
-  it("ignores ANALYTICS_ENGINE_IDS — saying so — when the root injects its engines", () => {
+  it("ignores ANALYTICS_ENGINE_IDS — saying so — when the root injects its engines", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
     const config = analyticsModule.configFromEnv({ ANALYTICS_ENGINE_IDS: "tenant-x" })
-    expect(fleetOf(config, { engineIds: ["prod-a"] })).toEqual(["prod-a"])
+    expect(await fleetOf(config, { engineIds: ["prod-a"] })).toEqual(["prod-a"])
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("ANALYTICS_ENGINE_IDS is ignored"))
   })
 
-  it("boots fail-closed — with a warning — when neither names an engine", () => {
+  it("boots fail-closed — with a warning — when neither names an engine", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
-    expect(fleetOf({}, {})).toEqual([])
+    expect(await fleetOf({}, {})).toEqual([])
     expect(warn).toHaveBeenCalledWith(`[analytics] ${NO_ENGINE_SCOPE_MESSAGE}`)
   })
 

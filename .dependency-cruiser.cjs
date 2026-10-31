@@ -9,7 +9,7 @@
  * Layout + naming carry the layer semantics. A connector family under
  * `packages/connectors/<family>/` has two roles, keyed by the directory suffix
  * and the npm name `@miragon/pulse-<name>-<role>`:
- *   - `<name>-connector`: the MCP module (tools, widgets, pipeline steps);
+ *   - `<name>-connector`: the MCP module (tools, widget tools, widgets);
  *   - `<name>-client`: its SDK leaf (generated REST SDK or PromQL queries + Zod schemas).
  * The foundation packages live under `packages/core/` (npm names without a role
  * suffix, e.g. `@miragon/pulse-widget-shell`). The apps under `apps/` sit ON TOP of
@@ -101,8 +101,8 @@ module.exports = {
       comment:
         "Connector modules are self-contained peers and never import each other (CLAUDE.md invariant 8). " +
         "Cross-module needs go through the composition root: shared server data via SharedResources " +
-        "(apps/mcp-server-camunda7/src/module-contract.ts), cross-module UI via shell:* widgets " +
-        "(props.dataKey) or raw tool-name strings with graceful degradation.",
+        "(apps/mcp-server-camunda7/src/module-contract.ts), cross-module UI via raw tool-name strings " +
+        "with graceful degradation.",
       from: { path: "^packages/connectors/[^/]+/([^/]+)-connector/" },
       to: {
         path: ["^packages/connectors/.+-connector/", "@miragon/pulse-[^/]+-connector(/|$)"],

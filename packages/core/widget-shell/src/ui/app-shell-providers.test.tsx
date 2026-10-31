@@ -238,7 +238,7 @@ describe("AppShellProviders (real mcp-use view runtime)", () => {
 const HeadedWidget: WidgetComponent = () => <h2>Widget heading</h2>
 const VIEW_WIDGETS = { "demo:headed": HeadedWidget }
 
-/** A `show_*` / `render-view` result: the server's view title over one widget. */
+/** A `show_*` result: the server's view title over one widget. */
 const VIEW_RESULT = {
   content: [{ type: "text", text: "Rendered the view." }],
   structuredContent: {
@@ -276,10 +276,6 @@ async function viewHeadings(toolName: string | undefined): Promise<(string | nul
 describe("LocalizedAppView: one title per view (real mcp-use view runtime)", () => {
   it("hides the toolbar title over a module view: the widget's heading is the one title", async () => {
     expect(await viewHeadings("camunda7_show_process_list")).toEqual(["Widget heading"])
-  })
-
-  it("keeps the toolbar title over a composed render-view, whose widgets carry none", async () => {
-    expect(await viewHeadings("render-view")).toEqual(["Server view title", "Widget heading"])
   })
 
   it("keeps it where the host does not name the rendering tool", async () => {

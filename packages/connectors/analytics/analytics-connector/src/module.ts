@@ -1,6 +1,5 @@
 import { z } from "zod"
-import type { AppPlugin } from "@miragon/mcp-toolkit-core"
-import type { MCPServer } from "mcp-use"
+import type { ModulePlugin } from "@miragon/pulse-widget-shell/server"
 import { createPlugin } from "./plugin.js"
 import { analyticsToolsets } from "./toolsets.js"
 import { analyticsInstructions } from "./instructions.js"
@@ -138,10 +137,7 @@ export const analyticsModule = {
     return analyticsInstructions()
   },
 
-  createPlugin(
-    config: Record<string, unknown>,
-    shared: AnalyticsModuleShared,
-  ): AppPlugin<MCPServer> {
+  createPlugin(config: Record<string, unknown>, shared: AnalyticsModuleShared): ModulePlugin {
     const { toolset, engineIds, ...parsed } = analyticsConfigSchema.parse(config)
     return createPlugin({
       ...parsed,

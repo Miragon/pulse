@@ -9,14 +9,9 @@ import {
   type McpRequestInfo,
   type ProfileStore,
 } from "@miragon/pulse-widget-shell/server"
-import { createPlugin, type Camunda7PluginConfig } from "./plugin.js"
-import {
-  EngineNotSelectedError,
-  resolveEngine,
-  resolveStepEngine,
-  type Camunda7StepAppConfig,
-} from "./lib/resolve-engine.js"
-import { CAMUNDA7_ADMIN_ONLY_TOOLS } from "./lib/toolsets.js"
+import { createCamunda7EngineRegistry, createPlugin, type Camunda7PluginConfig } from "./plugin.js"
+import { EngineNotSelectedError, resolveEngine } from "./lib/resolve-engine.js"
+import { CAMUNDA7_ADMIN_ONLY_TOOLS, resolveCamunda7Toolset } from "./lib/toolsets.js"
 import {
   CAMUNDA7_LIST_ENGINES,
   CAMUNDA7_SAVE_SETTINGS,
@@ -30,13 +25,12 @@ afterEach(() => {
 
 async function bootSurface(config: Partial<Camunda7PluginConfig>) {
   const tool = vi.fn()
-  const server = { tool, use: vi.fn(), prompt: vi.fn() } as unknown as MCPServer
+  const server = { tool, prompt: vi.fn() } as unknown as MCPServer
   const plugin = createPlugin({
     engines: [{ id: "a", baseUrl: "http://a.example/engine-rest" }],
     ...config,
   })
-  plugin.registerTools?.(server)
-  plugin.registerWidgetTools?.(server)
+  plugin.register(server)
   const calls = tool.mock.calls as Array<
     [
       {
@@ -198,13 +192,9 @@ describe("ENGINE_NOT_SELECTED names camunda7_select_engine only when the caller 
   ]
   /** A tool call's ctx for a signed-in caller (mcp-use's flattened `ctx.auth`). */
   const callAs = (id: string) => ({ auth: { user: { id } } })
-  /**
-   * The failure a tool call (`call` = its ctx) or a ctx-less pipeline step
-   * (`call` omitted) sees under the ambient request info `info`.
-   */
+  /** The failure a tool call (`call` = its ctx) sees; the ambient `info` names no caller. */
   const failure = async (toolset: string, call?: object, info: McpRequestInfo = {}) => {
-    const plugin = createPlugin({ engines: TWO, toolset })
-    const { registry } = plugin.appConfig as unknown as Camunda7StepAppConfig
+    const registry = registryOf({ engines: TWO, toolset })
     return runWithMcpRequestInfo(info, () =>
       resolveEngine(undefined, registry, call).then(
         () => undefined,
@@ -222,15 +212,11 @@ describe("ENGINE_NOT_SELECTED names camunda7_select_engine only when the caller 
     )
   })
 
-  it("a ctx-less pipeline step reads the ambient OAuth caller the same way", async () => {
-    const error = await failure("operations", undefined, { authUserId: "user-1" })
-    expect(error?.message).toContain("camunda7_select_engine")
-  })
-
   it("no caller identity (no OAuth, no declared local caller): only the per-call override", async () => {
     for (const error of [
       await failure("operations", {}),
-      await failure("operations", undefined, {}),
+      // An ambient OAuth id without the handler ctx is no caller.
+      await failure("operations", undefined, { authUserId: "user-1" }),
       await failure("operations"),
     ]) {
       expect(error?.message).toBe(
@@ -260,25 +246,24 @@ describe("createPlugin default-engine routing — the saved default is advisory"
     { id: "a", baseUrl: "http://a.example/engine-rest" },
     { id: "b", baseUrl: "http://b.example/engine-rest" },
   ]
-  const registryOf = (engines: Camunda7PluginConfig["engines"], profileStore: ProfileStore) =>
-    (createPlugin({ engines }, { profileStore }).appConfig as unknown as Camunda7StepAppConfig)
-      .registry
+  const registryFor = (engines: Camunda7PluginConfig["engines"], profileStore: ProfileStore) =>
+    registryOf({ engines }, profileStore)
 
   it("one engine: resolves it without consulting the profile store at all", async () => {
     const store = downStore()
-    const registry = registryOf([MULTI[0]], store)
+    const registry = registryFor([MULTI[0]], store)
     expect((await resolveEngine(undefined, registry)).engineId).toBe("a")
     expect(store.get).not.toHaveBeenCalled()
   })
 
   it("an explicit engine resolves during an outage", async () => {
-    const registry = registryOf(MULTI, downStore())
+    const registry = registryFor(MULTI, downStore())
     expect((await resolveEngine("b", registry)).engineId).toBe("b")
   })
 
   it("several engines, none named: the outage degrades to 'no saved default' — no host:port", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
-    const registry = registryOf(MULTI, downStore())
+    const registry = registryFor(MULTI, downStore())
     const error = await resolveEngine(undefined, registry, callAs("user-1")).then(
       () => undefined,
       (e: unknown) => e as Error,
@@ -293,7 +278,7 @@ describe("createPlugin default-engine routing — the saved default is advisory"
   it("several engines, store healthy: the CALLER's saved default routes — nobody else's", async () => {
     const store = createInMemoryProfileStore()
     await store.save("user-1", { modules: { camunda7: { defaultEngineId: "b" } } })
-    const registry = registryOf(MULTI, store)
+    const registry = registryFor(MULTI, store)
     expect((await resolveEngine(undefined, registry, callAs("user-1"))).engineId).toBe("b")
     // Another signed-in caller, or no caller identity at all, has no default.
     await expect(resolveEngine(undefined, registry, callAs("user-2"))).rejects.toBeInstanceOf(
@@ -301,18 +286,15 @@ describe("createPlugin default-engine routing — the saved default is advisory"
     )
     await expect(resolveEngine(undefined, registry)).rejects.toBeInstanceOf(EngineNotSelectedError)
   })
-
-  it("a ctx-less pipeline step routes by the ambient OAuth caller", async () => {
-    const store = createInMemoryProfileStore()
-    await store.save("user-1", { modules: { camunda7: { defaultEngineId: "b" } } })
-    const appConfig = createPlugin({ engines: MULTI }, { profileStore: store })
-      .appConfig as unknown as Camunda7StepAppConfig
-    const step = await runWithMcpRequestInfo({ authUserId: "user-1" }, () =>
-      resolveStepEngine(appConfig),
-    )
-    expect(step.engineId).toBe("b")
-  })
 })
+
+/** The registry createPlugin builds from the same config: per-engine auth and the saved default. */
+function registryOf(
+  config: Camunda7PluginConfig,
+  profileStore: ProfileStore = createInMemoryProfileStore(),
+) {
+  return createCamunda7EngineRegistry(config, profileStore, resolveCamunda7Toolset(config.toolset))
+}
 
 function authHeader(client: Client): string | null {
   return (client.getConfig().headers as Headers).get("Authorization")
@@ -320,7 +302,7 @@ function authHeader(client: Client): string | null {
 
 describe("createPlugin per-engine auth", () => {
   it("builds each engine's client from its own auth, falling back to the module-wide config", async () => {
-    const plugin = createPlugin({
+    const registry = registryOf({
       engines: [
         { id: "a", baseUrl: "http://a.example/engine-rest" },
         {
@@ -334,7 +316,6 @@ describe("createPlugin per-engine auth", () => {
       username: "demo",
       password: "secret",
     })
-    const { registry } = plugin.appConfig as unknown as Camunda7StepAppConfig
 
     expect(authHeader((await resolveEngine("a", registry)).client)).toBe(
       `Basic ${Buffer.from("demo:secret").toString("base64")}`,
@@ -344,7 +325,7 @@ describe("createPlugin per-engine auth", () => {
   })
 
   it("does not mix per-engine auth fields with the module-wide credentials", async () => {
-    const plugin = createPlugin({
+    const registry = registryOf({
       engines: [
         // Declares its own auth but no token — must NOT inherit the global
         // basic credentials and must send no Authorization header at all.
@@ -354,7 +335,6 @@ describe("createPlugin per-engine auth", () => {
       username: "demo",
       password: "secret",
     })
-    const { registry } = plugin.appConfig as unknown as Camunda7StepAppConfig
 
     expect(authHeader((await resolveEngine("solo", registry)).client)).toBeNull()
   })

@@ -4,8 +4,8 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["test/**/*.test.ts"],
-    // The widget-contract e2e test boots a full framework app (plugin
-    // registration, HTTP listener, MCP handshake) — give it headroom.
+    // The e2e tests boot the whole composed server (plugin registration, HTTP
+    // listener, MCP handshake) — give them headroom.
     testTimeout: 30_000,
     hookTimeout: 30_000,
     server: {

@@ -1,6 +1,3 @@
-import type { AppConfig, AppConfigEntry, AppPlugin } from "@miragon/mcp-toolkit-core"
-import type { MCPServer } from "mcp-use"
-
 import {
   camunda7Module,
   configuredEngineIds,
@@ -13,6 +10,8 @@ import {
   frameworkWritesAllowed,
   HTTP_EDGE_ENV_VARS,
   OAUTH_ENV_VARS,
+  type ModuleEntry,
+  type ModulePlugin,
   type ProfileStore,
   type ResolveBootOptions,
   type ResolvedBoot,
@@ -41,9 +40,8 @@ const APP_ENV_VARS = [
   ...HTTP_EDGE_ENV_VARS,
   ...OAUTH_ENV_VARS,
   "MCP_ACTIVE_MODULES",
-  "MCP_DASHBOARD_DIR",
   "MCP_PROFILE_DIR",
-  // Postgres persistence for profiles + dashboards (src/persistence/). Listed
+  // Postgres persistence for the profiles (src/persistence/). Listed
   // for documentation AND because every known var contributes its prefix to
   // the typo watcher.
   "DATABASE_URL",
@@ -81,20 +79,13 @@ export function resolveBoot(
   return composition.resolveBoot(env, options)
 }
 
-export function getAppConfig(boot: ResolvedBoot = resolveBoot()): AppConfig {
-  return { activeApps: boot.entries, pipelines: {} }
-}
-
 /**
  * Cross-module wiring — the one thing that stays app-owned by design: which
  * module's capability reaches which other module is configuration knowledge
  * (see `module-contract.ts`). Store *selection* lives in
  * `src/persistence/initRuntime`; this only distributes the chosen instance.
  */
-function buildSharedResources(
-  entries: AppConfigEntry[],
-  profileStore: ProfileStore,
-): SharedResources {
+function buildSharedResources(entries: ModuleEntry[], profileStore: ProfileStore): SharedResources {
   // From the camunda7 module, for modules that must not depend on the engine
   // SDK: the BPMN-XML lookup (on any of its engines — the analytics heatmap
   // and the names in the analytics views) and
@@ -119,15 +110,13 @@ function buildSharedResources(
 export function getPlugins(
   profileStore: ProfileStore = createDefaultProfileStore(),
   boot: ResolvedBoot = resolveBoot(),
-): AppPlugin<MCPServer>[] {
+): ModulePlugin[] {
   const { entries } = boot
   const shared = buildSharedResources(entries, profileStore)
   return [
-    // Always-on shell (`shell:*`): the generic widgets plus the settings page
-    // and the UI language, deliberately outside the MCP_ACTIVE_MODULES
-    // selection. Its language save is a framework write: OAuth and no module
-    // on its read-only floor. Catalogue, tools and components live in
-    // @miragon/pulse-widget-shell (apps own no domain UI).
+    // Always-on shell: the settings page and the UI language, deliberately
+    // outside the MCP_ACTIVE_MODULES selection. Its language save is a
+    // framework write: OAuth and no module on its read-only floor.
     createShellPlugin({ profileStore, allowSave: frameworkWritesAllowed(boot) }),
     ...composition.pluginsFor(entries, shared),
   ]

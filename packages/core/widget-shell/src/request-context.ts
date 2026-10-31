@@ -1,8 +1,11 @@
 /**
- * Ambient request info for consumers WITHOUT a handler `ctx`: pipeline steps and the
- * camunda7 passthrough-auth interceptor deep in a hey-api chain. Fail-closed: no
- * middleware or no request means NO identity, never a shared record. `/server` only:
- * `node:async_hooks` must never reach the widget bundle.
+ * Ambient request info for consumers WITHOUT a handler `ctx`: the per-caller caches
+ * (`callerCacheKey`) and the camunda7 passthrough-auth interceptor deep in a hey-api
+ * chain. It names no profile (`resolveProfileKey` reads the handler `ctx`, and here only a
+ * declared `anonymousCaller`). Without the middleware nothing is forwarded (passthrough fails
+ * with the engine's 401) and every caller shares the "" cache partition, which is safe only
+ * because no per-caller token reaches the engine. `/server` only: `node:async_hooks` must
+ * never reach the widget bundle.
  */
 import { AsyncLocalStorage } from "node:async_hooks"
 import { createHash } from "node:crypto"

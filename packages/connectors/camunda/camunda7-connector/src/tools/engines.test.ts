@@ -95,12 +95,13 @@ describe("the engine tool pair: a read and a write, no action switch", () => {
 
 const under = <T>(info: McpRequestInfo, fn: () => Promise<T>): Promise<T> =>
   runWithMcpRequestInfo(info, fn)
-const USER = { authUserId: "user-1" }
+/** A signed-in caller's handler ctx, as the registrar hands it over. */
+const USER = { auth: { user: { id: "user-1" } } }
 
 describe("camunda7_select_engine (durable default)", () => {
   it("persists the default engine into the caller's profile slice and stamps the auth user", async () => {
     const { store, select } = harness()
-    const result = await under(USER, () => select("beta"))
+    const result = await select("beta", USER)
     expect(result).toEqual({ defaultEngineId: "beta" })
 
     const record = await store.get("user-1")
@@ -123,13 +124,13 @@ describe("camunda7_select_engine (durable default)", () => {
     const { store, select } = harness()
     await store.save("user-1", {
       modules: {
-        [CAMUNDA7_MODULE_KEY]: { pinnedDashboardIds: ["d1"], futureField: "kept" },
+        [CAMUNDA7_MODULE_KEY]: { allowedEngineIds: ["alpha", "beta"], futureField: "kept" },
       },
     })
-    await under(USER, () => select("alpha"))
+    await select("alpha", USER)
     expect((await store.get("user-1"))?.modules?.[CAMUNDA7_MODULE_KEY]).toMatchObject({
       defaultEngineId: "alpha",
-      pinnedDashboardIds: ["d1"],
+      allowedEngineIds: ["alpha", "beta"],
       futureField: "kept",
     })
   })
@@ -158,7 +159,7 @@ describe("camunda7_select_engine (durable default)", () => {
 
   it("rejects an unknown engine id with the module's error contract", async () => {
     const { select } = harness()
-    await expect(under(USER, () => select("gamma"))).rejects.toThrow(UnknownEngineError)
+    await expect(select("gamma", USER)).rejects.toThrow(UnknownEngineError)
   })
 
   it("rejects an engine outside the profile's allowedEngineIds curation", async () => {
@@ -166,9 +167,7 @@ describe("camunda7_select_engine (durable default)", () => {
     await store.save("user-1", {
       modules: { [CAMUNDA7_MODULE_KEY]: { allowedEngineIds: ["alpha"] } },
     })
-    await expect(under(USER, () => select("beta"))).rejects.toThrow(
-      /not available for this profile/,
-    )
+    await expect(select("beta", USER)).rejects.toThrow(/not available for this profile/)
   })
 })
 
@@ -190,17 +189,18 @@ describe("camunda7_select_engine racing a settings save in the same slice", () =
     registerUserProfileTools({ tool } as unknown as MCPServer, store, registry, "operations")
     const saveProfile = tool.mock.calls.find(
       (c) => (c[0] as { name: string }).name === CAMUNDA7_SAVE_SETTINGS,
-    )![1] as (params: unknown) => Promise<{ isError?: boolean }>
+    )![1] as (params: unknown, ctx?: unknown) => Promise<{ isError?: boolean }>
 
-    const [, saved] = await under(USER, async () => {
-      const selected = select("beta")
-      await new Promise((resolve) => setTimeout(resolve, 1))
-      return Promise.all([selected, saveProfile({ pinnedDashboardIds: ["d1"] })])
-    })
+    const selected = select("beta", USER)
+    await new Promise((resolve) => setTimeout(resolve, 1))
+    const [, saved] = await Promise.all([
+      selected,
+      saveProfile({ allowedEngineIds: ["alpha", "beta"] }, USER),
+    ])
     expect(saved.isError).toBeUndefined()
     expect((await store.get("user-1"))?.modules?.[CAMUNDA7_MODULE_KEY]).toEqual({
       defaultEngineId: "beta",
-      pinnedDashboardIds: ["d1"],
+      allowedEngineIds: ["alpha", "beta"],
     })
   })
 })
@@ -218,7 +218,7 @@ describe("the engine tools during a profile-store outage", () => {
   it("the list still answers — every engine, no saved default — and leaks no host:port", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
     const { list: listEngines } = harness(down())
-    const list = await under(USER, () => listEngines())
+    const list = await listEngines(USER)
     expect((list.engines as Array<{ id: string }>).map((e) => e.id)).toEqual(["alpha", "beta"])
     expect(list.defaultEngineId).toBeNull()
     expect(JSON.stringify(list)).not.toMatch(/10\.1\.2\.3|5432/)
@@ -228,21 +228,21 @@ describe("the engine tools during a profile-store outage", () => {
 
   it("select (a durable write) still fails visibly", async () => {
     const { select } = harness(down())
-    await expect(under(USER, () => select("beta"))).rejects.toThrow()
+    await expect(select("beta", USER)).rejects.toThrow()
   })
 })
 
 describe("camunda7_list_engines", () => {
   it("reports null when no default is saved", async () => {
     const { list: listEngines } = harness()
-    const list = await under(USER, () => listEngines())
+    const list = await listEngines(USER)
     expect(list.defaultEngineId).toBeNull()
   })
 
   it("reports the default select saved", async () => {
     const { list: listEngines, select } = harness()
-    await under(USER, () => select("beta"))
-    const list = await under(USER, () => listEngines())
+    await select("beta", USER)
+    const list = await listEngines(USER)
     expect(list.defaultEngineId).toBe("beta")
   })
 
@@ -251,7 +251,7 @@ describe("camunda7_list_engines", () => {
     await store.save("user-1", {
       modules: { [CAMUNDA7_MODULE_KEY]: { defaultEngineId: "gone" } },
     })
-    expect((await under(USER, () => listEngines())).defaultEngineId).toBeNull()
+    expect((await listEngines(USER)).defaultEngineId).toBeNull()
   })
 
   it("nulls a default excluded by the allowedEngineIds curation and filters the list", async () => {
@@ -261,7 +261,7 @@ describe("camunda7_list_engines", () => {
         [CAMUNDA7_MODULE_KEY]: { defaultEngineId: "beta", allowedEngineIds: ["alpha"] },
       },
     })
-    const list = await under(USER, () => listEngines())
+    const list = await listEngines(USER)
     expect((list.engines as Array<{ id: string }>).map((e) => e.id)).toEqual(["alpha"])
     expect(list.defaultEngineId).toBeNull()
   })
@@ -271,13 +271,13 @@ describe("camunda7_list_engines", () => {
     await store.save("user-1", {
       modules: { [CAMUNDA7_MODULE_KEY]: { allowedEngineIds: ["gone"] } },
     })
-    const list = await under(USER, () => listEngines())
+    const list = await listEngines(USER)
     expect((list.engines as Array<{ id: string }>).map((e) => e.id)).toEqual(["alpha", "beta"])
   })
 
   it("never hands the model an engine's internal REST baseUrl — only a configured cockpitUrl", async () => {
     const { list: listEngines } = harness()
-    const list = await under(USER, () => listEngines())
+    const list = await listEngines(USER)
     expect(list.engines).toEqual([
       expect.objectContaining({ id: "alpha", cockpitUrl: "http://alpha/cockpit" }),
       expect.objectContaining({ id: "beta" }),
@@ -290,7 +290,7 @@ describe("camunda7_list_engines", () => {
 
   it("groups an environment-less config into the single default environment", async () => {
     const { list: listEngines } = harness()
-    const list = await under(USER, () => listEngines())
+    const list = await listEngines(USER)
     expect((list.engines as Array<{ environment: string }>).map((e) => e.environment)).toEqual([
       "default",
       "default",
@@ -304,7 +304,7 @@ describe("camunda7_list_engines", () => {
       { id: "us-a", baseUrl: "http://us-a/engine-rest", environment: "prod-us" },
       { id: "eu-b", baseUrl: "http://eu-b/engine-rest", environment: "prod-eu" },
     ])
-    const list = await under(USER, () => listEngines())
+    const list = await listEngines(USER)
     expect(
       (list.engines as Array<{ id: string; environment: string }>).map((e) => [
         e.id,

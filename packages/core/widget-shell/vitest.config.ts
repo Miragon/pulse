@@ -28,8 +28,7 @@ export default mergeConfig(
         // measured 94.23 / 93.69 / 96.77 / 95.1. Branches raised with its
         // review fixes (colour gate, cascade model, lone-symbol rule, each
         // with its negative cases): measured 94.64 / 94.06 / 97.01 / 95.48.
-        // Raised again with the toolkit 2.8 review fixes (the generic shell:*
-        // widgets and the builder-text model guard fully covered): measured
+        // Raised again with the toolkit 2.8 review fixes: measured
         // 95.14 / 94.82 / 97.06 / 96.05. Raised again with the kit layout
         // (describeError's mapping table, ListTable's region and column rules,
         // the BPMN token module, the heat ramp and the type-scale gate, each

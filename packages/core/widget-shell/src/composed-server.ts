@@ -1,18 +1,18 @@
 /**
  * The composed-server boot sequence; roots keep only their module list, OAuth provider and runtime.
  * The order is load-bearing: config checks fail before any I/O; one `resolveBoot`; `setup(boot)`;
- * metrics before other routes (hono only counts later routes), then the Host/Origin guard, then
+ * the tool guard before any plugin registers, the views primed once after the last one; metrics
+ * before other routes (hono only counts later routes), then the Host/Origin guard, then
  * health (reachable by IP-addressed probes), fonts behind the guard; `listen()` in production only.
  * Under `mcp-use dev` the CLI owns the `Host` check (only it knows its tunnel host), so the guard
  * keeps just the `Origin` half; else `--tunnel` answers every hosted-assistant call 403.
  */
+import fs from "node:fs/promises"
 import http from "node:http"
 import type { AddressInfo } from "node:net"
-import type { AppPlugin } from "@miragon/mcp-toolkit-core"
-import { createFrameworkApp, type DashboardStore } from "@miragon/mcp-toolkit-core/tools"
-import type { MCPServer } from "mcp-use"
+import { MCPServer, registerViews, type ViewsManifest } from "mcp-use"
 import type { OAuthProvider } from "mcp-use/oauth"
-import { frameworkWritesAllowed, type ModuleComposition, type ResolvedBoot } from "./composition.js"
+import type { ModuleComposition, ModulePlugin, ResolvedBoot } from "./composition.js"
 import { installHealthEndpoints, type ReadinessCheck } from "./health.js"
 import { requestLogLevelWarning, resolvePort, swallowDevCliViewsPrime } from "./host-boot.js"
 import {
@@ -28,7 +28,7 @@ import { createBodyLimitedListener, type BodyLimitedListener } from "./node-list
 import { fontAssetsCsp, installFontAssets } from "./font-assets.js"
 import { installToolSchemaTrim } from "./tool-schema-trim.js"
 import { installMcpRequestContext } from "./request-context.js"
-import { honorWidgetMetaDefaults } from "./widget-meta-defaults.js"
+import { installToolRegistration } from "./tool-registration.js"
 
 /** What the server reports as `serverInfo` (plus the `instructions` it advertises). */
 export interface ComposedServerInfo {
@@ -43,9 +43,7 @@ export interface ComposedServerInfo {
 }
 
 export interface ComposedServerRuntime {
-  plugins: AppPlugin<MCPServer>[]
-  /** `undefined` = the toolkit's in-memory dashboard store. */
-  dashboardStore?: DashboardStore
+  plugins: ModulePlugin[]
   /** The server's OWN dependencies only, never engines or Prometheus. */
   readiness?: Record<string, ReadinessCheck>
   /** Runs after HTTP has drained. */
@@ -99,7 +97,6 @@ export interface ComposedServer {
   /** `mcp-use dev` takes it as the entry's default export. */
   app: MCPServer<unknown>
   boot: ResolvedBoot
-  builder: boolean
   edge: HttpEdgePolicy
   listen(options?: ListenOptions): Promise<RunningServer>
 }
@@ -140,40 +137,62 @@ function serverInstructions(
   return text || undefined
 }
 
-async function buildFrameworkApp(
-  options: ComposedServerOptions,
-  boot: ResolvedBoot,
-  builder: boolean,
-  runtime: ComposedServerRuntime,
-  env: NodeJS.ProcessEnv,
-): Promise<MCPServer<unknown>> {
+function createServer(options: ComposedServerOptions, boot: ResolvedBoot): MCPServer<unknown> {
   const { info, oauth } = options
-  const { title, websiteUrl } = info
   const instructions = serverInstructions(options, boot)
-  const csp = fontAssetsCsp(env)
-  const frameworkOptions = {
+  // No `baseUrl`: mcp-use resolves the serving origin from the request or `MCP_URL`.
+  const config = {
+    ...(info.title ? { title: info.title } : {}),
+    ...(info.websiteUrl ? { websiteUrl: info.websiteUrl } : {}),
+    ...(instructions ? { instructions } : {}),
     name: info.name,
     version: info.version,
     description: info.description,
-    serverOptions: {
-      ...(title ? { title } : {}),
-      ...(websiteUrl ? { websiteUrl } : {}),
-      ...(instructions ? { instructions } : {}),
-    },
-    // Cast: the toolkit types `plugins` unparameterized; the factories return `AppPlugin<MCPServer>`.
-    plugins: runtime.plugins.map(honorWidgetMetaDefaults) as AppPlugin[],
-    appConfig: { activeApps: boot.entries, pipelines: {} },
-    app: {
-      bundle: options.bundle,
-      builder,
-      dashboardStore: runtime.dashboardStore,
-      ...(csp ? { csp } : {}),
-    },
+    host: "localhost",
   }
-  // Two calls because the oauth/no-oauth overloads are distinct.
-  return oauth
-    ? await createFrameworkApp({ ...frameworkOptions, oauth })
-    : await createFrameworkApp(frameworkOptions)
+  return oauth ? new MCPServer<unknown>({ ...config, oauth }) : new MCPServer<never>(config)
+}
+
+/** A missing file only warns, so a dev server boots before the first bundle build. */
+async function readBundleFile(filePath: string, label: string): Promise<string> {
+  try {
+    return await fs.readFile(filePath, "utf-8")
+  } catch {
+    console.warn(
+      `[${label}] No widget bundle at ${filePath}: views render empty until the bundle is built and the server restarts.`,
+    )
+    return ""
+  }
+}
+
+/** Priming is one-shot in mcp-use, so it runs once every plugin bound its views: all share ONE bundle. */
+async function primeViews(
+  server: MCPServer,
+  viewNames: ReadonlySet<string>,
+  bundle: ComposedServerOptions["bundle"],
+  label: string,
+): Promise<void> {
+  if (viewNames.size === 0) return
+  const js = await readBundleFile(bundle.jsPath, label)
+  const css = bundle.cssPath ? await readBundleFile(bundle.cssPath, label) : ""
+  const entry = { kind: "inline", js, css } as const
+  const manifest: ViewsManifest = Object.fromEntries([...viewNames].map((name) => [name, entry]))
+  server[registerViews](manifest)
+}
+
+async function buildServer(
+  options: ComposedServerOptions,
+  boot: ResolvedBoot,
+  runtime: ComposedServerRuntime,
+  env: NodeJS.ProcessEnv,
+): Promise<MCPServer<unknown>> {
+  const app = createServer(options, boot)
+  // Registrars take the OAuth-less type; they read `ctx.auth` structurally (`resolveCaller`).
+  const server = app as unknown as MCPServer
+  const registration = installToolRegistration(server, fontAssetsCsp(env))
+  for (const plugin of runtime.plugins) registration.register(plugin)
+  await primeViews(server, registration.viewNames, options.bundle, options.label)
+  return app
 }
 
 const displayHost = (host: string): string => {
@@ -307,17 +326,12 @@ export async function createComposedServer(
   const edge = resolveHttpEdgePolicy(env)
   assertOAuthResource(oauth, env, label)
 
-  const boot = composition.resolveBoot(env, { authenticated: oauth !== undefined })
-  const builder = frameworkWritesAllowed(boot)
+  // The same test `createServer` installs OAuth on: a boot is authenticated only with the bearer gate.
+  const boot = composition.resolveBoot(env, { authenticated: Boolean(oauth) })
   composition.emitBootWarnings(env)
   const logLevel = requestLogLevelWarning(env)
   if (logLevel) console.warn(`[${label}] ${logLevel}`)
   composition.logEffectiveToolsets(boot)
-  if (!builder) {
-    console.info(
-      `[${label}] Dashboard builder off (needs OAuth and no read-only module) — render-view stays.`,
-    )
-  }
   console.info(`[${label}] ${describeHttpEdgePolicy(edge)}`)
   const guard = guardPolicyFor(edge, env)
   if (guard !== edge) {
@@ -327,7 +341,17 @@ export async function createComposedServer(
   }
 
   const runtime = await options.setup(boot)
-  const app = await buildFrameworkApp(options, boot, builder, runtime, env)
+  let app: MCPServer<unknown>
+  try {
+    app = await buildServer(options, boot, runtime, env)
+  } catch (error) {
+    // Only `drain()` ends what setup opened (a database pool), and a failed boot never listens.
+    // The registration error is what the operator needs, so a failing shutdown only logs.
+    await runtime.shutdown?.().catch((cause: unknown) => {
+      console.error(`[${label}] shutdown failed:`, cause)
+    })
+    throw error
+  }
   const state = { draining: false }
 
   // Request logging is mcp-use's own (`MCP_USE_LOG_LEVEL`).
@@ -348,7 +372,6 @@ export async function createComposedServer(
   return {
     app,
     boot,
-    builder,
     edge,
     listen: (listenOptions = {}) =>
       listen({ label, app, guard, env, runtime, state }, listenOptions),

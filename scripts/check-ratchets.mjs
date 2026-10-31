@@ -121,6 +121,7 @@ import fs from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import ts from "typescript"
+import { MUTATION_PAUSED } from "./mutation-pause.mjs"
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 
@@ -1649,8 +1650,14 @@ async function main() {
   const baseFiles = new Set(ratchets(git("ls-tree", "-r", "--name-only", mergeBase).split("\n")))
   const fileExists = (rel) => fs.existsSync(path.join(repoRoot, rel))
 
+  if (MUTATION_PAUSED) {
+    console.log(
+      "check-ratchets: mutation testing is paused (scripts/mutation-pause.mjs) — Stryker configs are not compared.",
+    )
+  }
   const violations = []
   for (const rel of [...new Set([...baseFiles, ...ratchets(listed)])].sort()) {
+    if (MUTATION_PAUSED && ratchetKind(rel) === "stryker") continue
     const oldText = baseFiles.has(rel) ? git("show", `${mergeBase}:${rel}`) : null
     const abs = path.join(repoRoot, rel)
     const newText = fs.existsSync(abs) ? fs.readFileSync(abs, "utf8") : null

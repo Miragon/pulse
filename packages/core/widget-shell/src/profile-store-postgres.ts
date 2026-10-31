@@ -2,7 +2,12 @@ import type postgres from "postgres"
 import { parseStoredProfile } from "./profile-migrations.js"
 import { mergeStoredProfile, type ProfileStore } from "./profile-store.js"
 
-/** One JSONB column: the record is tiny and its shape is governed by `schemaVersion`, not columns. */
+/**
+ * One JSONB column: the record is tiny and its shape is governed by `schemaVersion`, not columns.
+ * `003_drop_dashboards` DROPS the `dashboards` table that the retired dashboard store created
+ * under `002_dashboards`: a root that still serves dashboards from it moves them to a table of
+ * its own before it runs this list.
+ */
 export const PROFILE_STORE_MIGRATIONS: ReadonlyArray<{
   name: string
   statements: readonly string[]
@@ -16,6 +21,32 @@ export const PROFILE_STORE_MIGRATIONS: ReadonlyArray<{
         profile JSONB NOT NULL,
         updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
       )`,
+    ],
+  },
+  {
+    // Retires the dashboard store's table, only where this server's own `002_dashboards` row says
+    // it ran that migration AND the table still has the shape 002 created: tables live in the
+    // default schema of a possibly shared database, so a foreign `dashboards` table stays. No
+    // CASCADE: a foreign object depending on it fails the boot instead of being dropped. Without
+    // `schema_migrations` (another runner) nothing recorded 002; plpgsql plans the inner SELECT
+    // only when it is reached. A rollback to a release that lists 002 recreates the table, and
+    // this migration, already recorded, never runs again: such a table goes by hand.
+    name: "003_drop_dashboards",
+    statements: [
+      `DO $$
+      BEGIN
+        IF to_regclass('schema_migrations') IS NOT NULL THEN
+          IF EXISTS (SELECT 1 FROM schema_migrations WHERE name = '002_dashboards') THEN
+            IF (SELECT array_agg(attname::text ORDER BY attname::text COLLATE "C") FROM pg_attribute
+                WHERE attrelid = to_regclass('dashboards') AND attnum > 0 AND NOT attisdropped)
+               = ARRAY['id', 'record', 'updated_at', 'user_id'] THEN
+              DROP TABLE dashboards;
+            END IF;
+            DELETE FROM schema_migrations WHERE name = '002_dashboards';
+          END IF;
+        END IF;
+      END
+      $$`,
     ],
   },
 ]

@@ -29,13 +29,12 @@ export default mergeConfig(
         // the incident-detail and task-form widget suites (measured
         // statements 66.56 / branches 52.07 / functions 60.53 / lines 67.96).
         // Raised 2026-10-10 with the #335 honest-numbers guards — the per-
-        // builder rejection table, the recording-engine builder suites and the
-        // step-twin test (measured statements 76.75 / branches 62.91 /
-        // functions 73.30 / lines 78.03). Raised 2026-10-10 with the #335
-        // review guards — every read of every builder broken in turn, the
-        // capped-scan health suites and the step-twin request equality
-        // (measured statements 77.26 / branches 63.80 / functions 74.06 /
-        // lines 78.57). The #338 hand-offs rendered against each toolset's
+        // builder rejection table and the recording-engine builder suites
+        // (measured statements 76.75 / branches 62.91 / functions 73.30 /
+        // lines 78.03). Raised 2026-10-10 with the #335 review guards — every
+        // read of every builder broken in turn and the capped-scan health
+        // suites (measured statements 77.26 / branches 63.80 / functions
+        // 74.06 / lines 78.57). The #338 hand-offs rendered against each toolset's
         // live surface (measured standalone 74.1 / 60.39 / 69.05 / 75.57)
         // stay under the stacked floor. Raised 2026-10-10 with the #341
         // write-path suites — the engine-action primitive, the render-level

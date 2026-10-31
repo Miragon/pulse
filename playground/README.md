@@ -86,10 +86,9 @@ Afterwards, point an MCP client (e.g. claude.ai custom connector) at
 - The MCP endpoint is **unauthenticated** and pinned **read-only**
   (`MCP_ACTIVE_MODULES=camunda7:read-only,analytics:read-only` in
   `fly/server-camunda7.fly.toml`): anyone can query the demo engine, nobody
-  can change it through the server (no engine writes, settings saves or
-  dashboard builder). Never widen it there and never set
-  `CAMUNDA_ALLOW_DEPLOYMENTS` on this app (deploying a BPMN runs code in the
-  engine JVM).
+  can change it through the server (no engine writes or settings saves). Never
+  widen it there and never set `CAMUNDA_ALLOW_DEPLOYMENTS` on this app
+  (deploying a BPMN runs code in the engine JVM).
 - The public host `pulse-playground.miragon.ai` is a custom domain on the
   server app: a Cloudflare record `CNAME pulse-playground →
 miragon-ai-playground.fly.dev` (DNS only, not proxied) and
@@ -106,11 +105,11 @@ miragon-ai-playground`, see `.env.example`); the pin still keeps it
 - The engine keeps its H2 database in memory: every engine restart reseeds
   (~600 instances) and live traffic keeps metrics moving. Prometheus history
   survives restarts on its volume.
-- User settings + saved dashboards persist to the Postgres app once its
-  secrets are set (one-time, see `fly/postgres.fly.toml`):
+- User settings persist to the Postgres app once its secrets are set
+  (one-time, see `fly/postgres.fly.toml`):
   `fly secrets set POSTGRES_PASSWORD=<pw> -a miragon-ai-playground-postgres`
   and the matching `DATABASE_URL` secret on `miragon-ai-playground`. Without
-  the `DATABASE_URL` secret the server keeps its in-memory stores.
+  the `DATABASE_URL` secret the server keeps them in memory.
 - Everything runs single-machine (`--ha=false`), sized for demos, roughly
   $15–25/month; the server scales to zero when idle. Tear down with
   `fly apps destroy <app>` per app.

@@ -5,7 +5,7 @@ export type {
   SingleWidgetViewInput,
 } from "@miragon/mcp-toolkit-core"
 export { withToolErrors } from "@miragon/mcp-toolkit-core/tools"
-export { createShellPlugin, shellDefinition, type ShellPluginOptions } from "./shell-catalogue.js"
+export { createShellPlugin, type ShellPluginOptions } from "./shell-settings.js"
 export {
   SHELL_SAVE_SETTINGS,
   SHELL_SETTINGS_DATA,
@@ -15,7 +15,6 @@ export {
   type ShellSettingsReadOnlyReason,
   type ShellSettingsView,
 } from "./shell-settings-contract.js"
-export { createBuilderTexts, type BuilderTexts } from "./builder-texts.js"
 export {
   ANONYMOUS_PROFILE_KEY,
   resolveAuthUserId,
@@ -74,11 +73,6 @@ export {
 } from "./font-assets.js"
 export { SERVED_FONT_FILES, SERVED_FONT_PATH, servedFontBaseUrl } from "./served-fonts.js"
 export {
-  honorWidgetMetaDefaults,
-  withWidgetMetaDefaults,
-  type WidgetMetaDefaults,
-} from "./widget-meta-defaults.js"
-export {
   createBodyLimitedListener,
   type BodyLimitedListener,
   type BodyLimitedListenerOptions,
@@ -121,10 +115,6 @@ export {
 } from "./profile-store.js"
 export { readProfileAdvisory } from "./profile-advisory.js"
 export { createPostgresProfileStore, PROFILE_STORE_MIGRATIONS } from "./profile-store-postgres.js"
-export {
-  createPostgresDashboardStore,
-  DASHBOARD_STORE_MIGRATIONS,
-} from "./dashboard-store-postgres.js"
 export { createSql, postgresReadinessCheck, runMigrations, type Migration } from "./postgres.js"
 export { appOnly, showToolBinding, strictToolInput } from "./widget-tool-bindings.js"
 export {
@@ -134,6 +124,8 @@ export {
   type ComposableModule,
   type EffectiveToolset,
   type ModuleComposition,
+  type ModuleEntry,
+  type ModulePlugin,
   type ResolveBootOptions,
   type ResolvedBoot,
 } from "./composition.js"
@@ -161,7 +153,6 @@ export {
 } from "./server-locale.js"
 export { parseModuleSlice, requireProfileKey, saveModuleSlice } from "./profile-slice.js"
 export { registerSettingsSection } from "./settings-section.js"
-export { catalogueSyncIssues } from "./catalogue-sync.js"
 export {
   bpmnProcessNameOf,
   parseBpmnNames,

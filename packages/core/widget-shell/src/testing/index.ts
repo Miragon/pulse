@@ -51,10 +51,5 @@ export {
   type ThemeVariables,
 } from "./contrast.js"
 export { ROLE_CONTRAST_PAIRS, toneContrastPairs } from "./tone-pairs.js"
-export {
-  displayTextCatalog,
-  displayTextsSentToModel,
-  missingDisplayTexts,
-} from "./display-texts.js"
 /** For tests that render numbers and dates in a language without booting ProfileGate; reset with `setFormatLocale(undefined)`. */
 export { setFormatLocale, type FormatLocale } from "../ui/format.js"

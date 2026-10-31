@@ -1,34 +1,110 @@
+import ts from "typescript"
 import { describe, expect, it } from "vitest"
 import { collectLayoutWidgets } from "@miragon/mcp-toolkit-core"
-import { definition as camunda7Definition } from "@miragon/pulse-camunda7-connector/definition"
-import { definition as analyticsDefinition } from "@miragon/pulse-analytics-connector/definition"
 import { cockpitViews } from "@miragon/pulse-camunda7-connector/widgets"
-import { shellDefinition } from "@miragon/pulse-widget-shell/server"
 import {
   filterLayoutToWidgets,
   settingsLayout,
   SHELL_SETTINGS_PAGE_WIDGET,
 } from "@miragon/pulse-widget-shell/widgets"
 import { widgetRegistry } from "../src/ui/widget-registry.js"
+import { scanSources } from "./source-scan.js"
+
+interface WidgetIdRef {
+  id: string
+  /** Repo-relative `file:line`. */
+  at: string
+}
+
+const WIDGET_ID = /^[a-z0-9]+:[a-z0-9-]+$/
 
 /**
- * Closes link 3 of the four-link widget chain: the per-module
- * catalogue-sync tests guard registry ↔ definition inside each package, but
- * nothing guarded that the host bundle map actually spreads every module's
- * widgets. A widget id catalogued in a module definition but absent here
- * renders as an empty slot in the host UI.
+ * Every `widget: "<module>:<id>"` in code (not in comments): the ids a show
+ * tool's layout or a static layout (the cockpit's views, a settings section)
+ * hands the host bundle to render.
  */
-/** Every widget id the composed catalogues declare: both modules and the shell. */
-const catalogued = [
-  ...camunda7Definition.widgets.map((w) => w.id),
-  ...analyticsDefinition.widgets.map((w) => w.id),
-  ...shellDefinition.widgets.map((w) => w.id),
-]
+function findWidgetIds(file: string, text: string): WidgetIdRef[] {
+  const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true)
+  const refs: WidgetIdRef[] = []
+  const visit = (node: ts.Node) => {
+    if (
+      ts.isPropertyAssignment(node) &&
+      (ts.isIdentifier(node.name) || ts.isStringLiteral(node.name)) &&
+      node.name.text === "widget" &&
+      ts.isStringLiteralLike(node.initializer) &&
+      WIDGET_ID.test(node.initializer.text)
+    ) {
+      const { line } = source.getLineAndCharacterOfPosition(node.initializer.getStart())
+      refs.push({ id: node.initializer.text, at: `${file}:${line + 1}` })
+    }
+    ts.forEachChild(node, visit)
+  }
+  visit(source)
+  return refs
+}
 
-describe("host widget registry covers the module catalogues", () => {
-  it("has an entry for every widget id declared by the modules and the shell", () => {
-    const missing = catalogued.filter((id) => !(id in widgetRegistry))
-    expect(missing).toEqual([])
+/**
+ * Modules are peers and never import each other, so only the app sees every
+ * module's ids next to the host bundle's registry.
+ */
+const named = scanSources(findWidgetIds, { scope: "mcp" })
+const namedIds = new Set(named.map((ref) => ref.id))
+
+/**
+ * A view names its widgets by id and the host bundle resolves them in
+ * `src/ui/widget-registry.ts`. Both halves fail SILENTLY: an id the bundle
+ * cannot resolve renders as an empty slot, and a registry entry nothing names
+ * is dead code shipped in every view's bundle.
+ */
+describe("host widget registry vs the ids the views name", () => {
+  it("resolves every id a show tool or a static layout names", () => {
+    const missing = named.filter((ref) => !(ref.id in widgetRegistry))
+    expect(missing.map((ref) => `${ref.id} (${ref.at})`)).toEqual([])
+  })
+
+  it("holds no entry nothing renders", () => {
+    // The settings sections are assembled from the registry by convention, and
+    // the shell's page is named by a constant (its show tool, the cockpit tab).
+    const reachable = new Set([
+      ...namedIds,
+      ...collectLayoutWidgets(settingsLayout(Object.keys(widgetRegistry))),
+      SHELL_SETTINGS_PAGE_WIDGET,
+    ])
+    expect(Object.keys(widgetRegistry).filter((id) => !reachable.has(id))).toEqual([])
+  })
+
+  it("sees the show tools, the static layouts and the settings sections (the scanner is not blind)", () => {
+    expect([...namedIds]).toEqual(
+      expect.arrayContaining([
+        "camunda7:cockpit-app",
+        "camunda7:process-list",
+        "camunda7:process-definitions-table",
+        "camunda7:settings",
+        "analytics:execution-summary-kpi",
+        "analytics:engine-landscape",
+        "analytics:settings",
+      ]),
+    )
+    expect(named.some((ref) => ref.at.includes("/widgets/cockpit-app/views.ts:"))).toBe(true)
+    // A cross-module cell: the cockpit's fleet view names the analytics landscape.
+    expect(
+      named
+        .filter((ref) => ref.at.includes("/widgets/cockpit-app/fleet-view.tsx:"))
+        .map((ref) => ref.id),
+    ).toEqual(["analytics:engine-landscape"])
+  })
+
+  it("reads code, never a comment, a constant or a data type", () => {
+    const text = [
+      'const a = { row: [{ widget: "camunda7:a", props: {} }] }',
+      '// const b = { widget: "camunda7:b" }',
+      "const c = { widget: SOME_WIDGET, d: { widget: `analytics:${name}` } }",
+      'const e = { dataType: "analytics:dashboard", "widget": "shell:e" }',
+    ].join("\n")
+    expect(findWidgetIds("x.ts", text)).toEqual([
+      { id: "camunda7:a", at: "x.ts:1" },
+      { id: "shell:e", at: "x.ts:4" },
+    ])
   })
 })
 
@@ -42,19 +118,15 @@ describe("host widget registry covers the module catalogues", () => {
  * dropped by `filterLayoutToWidgets`.
  * Every other check stays green either way, so this test is the only thing
  * standing between a shipped settings section and an invisible one.
- *
- * This test lives in the app because only the composition root may see both
- * module catalogues at once (modules are peers and never import each other).
  */
 describe("settings page composes every module's settings section", () => {
   // The runtime input: the ids this host bundle can render, in registration
   // order — exactly what the page reads from the host registry.
   const hostWidgetIds = Object.keys(widgetRegistry)
-  const settingsLayoutOf = (widgetIds: string[]) => settingsLayout(widgetIds)
-  const sectionIds = collectLayoutWidgets(settingsLayoutOf(hostWidgetIds))
+  const sectionIds = collectLayoutWidgets(settingsLayout(hostWidgetIds))
 
-  /** The convention that identifies a settings section in a catalogue: `<module>:settings`. */
-  const cataloguedSections = catalogued.filter((id) => id.endsWith(":settings"))
+  /** The sections the modules register (`registerSettingsSection`): `<module>:settings`. */
+  const moduleSections = [...namedIds].filter((id) => id.endsWith(":settings"))
 
   it("is what the cockpit's settings tab renders, and the host bundles it", () => {
     expect(collectLayoutWidgets(cockpitViews.settings({ engine: "prod-a" }))).toEqual([
@@ -67,8 +139,11 @@ describe("settings page composes every module's settings section", () => {
     expect(sectionIds[0]).toBe("shell:settings")
   })
 
-  it("lists every catalogued settings section (a missing row = an invisible section)", () => {
-    const missing = cataloguedSections.filter((id) => !sectionIds.includes(id))
+  it("lists every module's settings section (a missing row = an invisible section)", () => {
+    expect(moduleSections).toEqual(
+      expect.arrayContaining(["camunda7:settings", "analytics:settings"]),
+    )
+    const missing = moduleSections.filter((id) => !sectionIds.includes(id))
     expect(missing).toEqual([])
   })
 
@@ -81,18 +156,18 @@ describe("settings page composes every module's settings section", () => {
     // The runtime path: HostWidgetsProvider resolves the raw ids and
     // filterLayoutToWidgets drops whatever it can't. With every module mounted,
     // nothing may be dropped.
-    const filtered = filterLayoutToWidgets(settingsLayoutOf(hostWidgetIds), widgetRegistry)
+    const filtered = filterLayoutToWidgets(settingsLayout(hostWidgetIds), widgetRegistry)
     expect(collectLayoutWidgets(filtered)).toEqual(sectionIds)
   })
 
   it("degrades to the remaining sections when a module is absent", () => {
-    // Tier-2 graceful degradation: a host without the analytics module renders
+    // Graceful degradation: a host without the analytics module renders
     // no analytics section instead of erroring on an unknown widget id.
     const withoutAnalytics = Object.fromEntries(
       Object.entries(widgetRegistry).filter(([id]) => !id.startsWith("analytics:")),
     )
     const filtered = filterLayoutToWidgets(
-      settingsLayoutOf(Object.keys(withoutAnalytics)),
+      settingsLayout(Object.keys(withoutAnalytics)),
       withoutAnalytics,
     )
     const remaining = collectLayoutWidgets(filtered)
@@ -106,7 +181,7 @@ describe("settings page composes every module's settings section", () => {
     const CustomSection = () => null
     const withCustomModule = { ...widgetRegistry, "acme:settings": CustomSection }
     const composed = collectLayoutWidgets(
-      filterLayoutToWidgets(settingsLayoutOf(Object.keys(withCustomModule)), withCustomModule),
+      filterLayoutToWidgets(settingsLayout(Object.keys(withCustomModule)), withCustomModule),
     )
     expect(composed).toEqual([...sectionIds, "acme:settings"])
   })

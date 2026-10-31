@@ -31,12 +31,12 @@ describe("localizeFor", () => {
     const store = createInMemoryProfileStore()
     await store.save("user-1", { language: "de" })
     const t = await localizeFor(store, CTX)
-    expect(t("profile.heading")).toBe("Engines und Dashboards")
+    expect(t("profile.heading")).toBe("Engine-Einstellungen")
   })
 
   it("still returns a working translate when the store is down", async () => {
     const t = await localizeFor(outageStore, CTX)
-    expect(t("profile.heading")).toBe("Engines and dashboards")
+    expect(t("profile.heading")).toBe("Engine settings")
   })
 })
 
@@ -47,7 +47,7 @@ describe("localizeViewFor", () => {
     const { t, title } = await localizeViewFor(store, CTX)
     expect(title("viewTitle.processList")).toBe("Prozessdefinitionen")
     expect(title("viewTitle.clusterDetail", { activity: "ship" })).toBe("Cluster: ship")
-    expect(t("profile.heading")).toBe("Engines und Dashboards")
+    expect(t("profile.heading")).toBe("Engine-Einstellungen")
   })
 
   it("an English profile gets the English title", async () => {
@@ -64,15 +64,15 @@ describe("localizeViewFor", () => {
     await store.save("user-1", { language: "system" })
     const { t, title } = await localizeViewFor(store, CTX)
     expect(title("viewTitle.processList")).toBeUndefined()
-    expect(t("profile.heading")).toBe("Engines and dashboards")
+    expect(t("profile.heading")).toBe("Engine settings")
   })
 
   it("a language already read titles the same way (the settings view's own record)", () => {
-    expect(viewLocaleOf("de").title("viewTitle.settings")).toBe("Engines und Dashboards")
-    expect(viewLocaleOf("en").title("viewTitle.settings")).toBe("Engines and dashboards")
+    expect(viewLocaleOf("de").title("viewTitle.settings")).toBe("Engine-Einstellungen")
+    expect(viewLocaleOf("en").title("viewTitle.settings")).toBe("Engine settings")
     for (const language of ["system", undefined, "fr"]) {
       expect(viewLocaleOf(language).title("viewTitle.settings")).toBeUndefined()
-      expect(viewLocaleOf(language).t("viewTitle.settings")).toBe("Engines and dashboards")
+      expect(viewLocaleOf(language).t("viewTitle.settings")).toBe("Engine settings")
     }
   })
 
@@ -85,7 +85,7 @@ describe("localizeViewFor", () => {
       await localizeViewFor(outageStore, CTX),
     ]) {
       expect(view.title("viewTitle.processList")).toBeUndefined()
-      expect(view.t("profile.heading")).toBe("Engines and dashboards")
+      expect(view.t("profile.heading")).toBe("Engine settings")
     }
   })
 })

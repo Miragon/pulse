@@ -35,10 +35,7 @@ function summarize(p: UserProfile, language: LanguagePref): string {
     p.allowedEngineIds && p.allowedEngineIds.length > 0
       ? translator(locale, "profile.summary.someEngines", { count: p.allowedEngineIds.length })
       : translator(locale, "profile.summary.allEngines")
-  const defaultDashboard = p.defaultDashboardId
-    ? translator(locale, "profile.summary.defaultDashboard", { id: p.defaultDashboardId })
-    : ""
-  return translator(locale, "profile.summary", { engines, defaultDashboard })
+  return translator(locale, "profile.summary", { engines })
 }
 
 /** The save lives outside the registrar, so it gates itself by the decision `camunda7_select_engine` shares. */
@@ -70,9 +67,8 @@ export function registerUserProfileTools(
     },
     show: {
       name: CAMUNDA7_SHOW_SETTINGS,
-      title: "Engine & dashboard settings",
-      description:
-        "Open camunda7's settings: available engines, the default engine, dashboard preferences.",
+      title: "Engine settings",
+      description: "Open camunda7's settings: available engines and the default engine.",
       // "system" sets no title, so no English title sits over a German section (#322 U3).
       render: ({ view, language = "system" }) => ({
         title: viewLocaleOf(language).title("viewTitle.settings"),
@@ -88,19 +84,17 @@ export function registerUserProfileTools(
     save: allowsProfileSave(toolset)
       ? {
           name: CAMUNDA7_SAVE_SETTINGS,
-          title: "Save engine & dashboard settings",
+          title: "Save engine settings",
           description:
-            'Update the caller\'s camunda7 settings. Only the provided fields change; omitted fields keep their value. Use it for requests like "only let me pick the prod engines" (allowedEngineIds) or a default dashboard. Engine availability is curation, not access control.',
+            'Update the caller\'s camunda7 settings. Only the provided fields change; omitted fields keep their value. Use it for requests like "only let me pick the prod engines" (allowedEngineIds). Engine availability is curation, not access control.',
           annotations: { destructiveHint: false, idempotentHint: true, openWorldHint: false },
           input: userProfileToolSaveInput.shape,
           write: async (params, { key, userId }) => {
             // Only the given fields, merged under the store's per-key lock, so a concurrent
             // `camunda7_select_engine` is never reverted; the returned `updatedAt` re-syncs the form.
             const slicePatch: Record<string, unknown> = { ...params }
-            // "" from the "(auto)"/"(none)" option clears: an explicit `undefined` wins in the merge.
-            for (const field of ["defaultEngineId", "defaultDashboardId"]) {
-              if (slicePatch[field] === "") slicePatch[field] = undefined
-            }
+            // "" from the "(auto)" option clears: an explicit `undefined` wins in the merge.
+            if (slicePatch.defaultEngineId === "") slicePatch.defaultEngineId = undefined
             const saved = await store.save(
               key,
               { modules: { [CAMUNDA7_MODULE_KEY]: slicePatch } },

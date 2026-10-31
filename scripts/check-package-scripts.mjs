@@ -39,6 +39,7 @@ import { execFileSync } from "node:child_process"
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
+import { MUTATION_PAUSED } from "./mutation-pause.mjs"
 
 /**
  * The scripts every source package must define, each anchored to the command
@@ -165,9 +166,13 @@ export function checkStrykerConfig(dir, config) {
 /**
  * Violations for the configs one source package must carry (pure; unit-tested).
  * `stryker`: `{ exists, config, parseError }` as read from its
- * stryker.config.json; `exemptReason`: its NO_MUTATION_APPS entry, if any.
+ * stryker.config.json; `exemptReason`: its NO_MUTATION_APPS entry, if any;
+ * `mutationPaused`: skip the Stryker rules (scripts/mutation-pause.mjs).
  */
-export function checkPackageConfigs(dir, { hasVitestConfig, stryker, exemptReason }) {
+export function checkPackageConfigs(
+  dir,
+  { hasVitestConfig, stryker, exemptReason, mutationPaused = false },
+) {
   const errors = []
   if (!hasVitestConfig) {
     errors.push(
@@ -176,6 +181,7 @@ export function checkPackageConfigs(dir, { hasVitestConfig, stryker, exemptReaso
         `sharedConfig from vitest.shared.ts and sets the package's coverage thresholds`,
     )
   }
+  if (mutationPaused) return errors
   if (!stryker.exists) {
     if (exemptReason === undefined) {
       errors.push(
@@ -299,7 +305,11 @@ export function expandWorkspaceGlobs(root, globs) {
  * Every violation in the workspace under `root` (reads the tree; tested over
  * tmpdir fixtures and the real repo). `sourceDirs`: the packages with src/.
  */
-export function checkWorkspace(root, globs, { noMutationApps = NO_MUTATION_APPS } = {}) {
+export function checkWorkspace(
+  root,
+  globs,
+  { noMutationApps = NO_MUTATION_APPS, mutationPaused = false } = {},
+) {
   const errors = []
   const sourceDirs = []
   for (const dir of expandWorkspaceGlobs(root, globs)) {
@@ -314,10 +324,11 @@ export function checkWorkspace(root, globs, { noMutationApps = NO_MUTATION_APPS 
         hasVitestConfig: existsSync(path.join(abs, "vitest.config.ts")),
         stryker,
         exemptReason: Object.hasOwn(noMutationApps, dir) ? noMutationApps[dir] : undefined,
+        mutationPaused,
       }),
     )
   }
-  errors.push(...checkMutationExemptions(sourceDirs, noMutationApps))
+  if (!mutationPaused) errors.push(...checkMutationExemptions(sourceDirs, noMutationApps))
   return { errors, sourceDirs }
 }
 
@@ -420,7 +431,7 @@ if (isMain) {
     console.error("check-package-scripts: no workspace globs found in pnpm-workspace.yaml")
     process.exit(1)
   }
-  const { errors, sourceDirs } = checkWorkspace(root, globs)
+  const { errors, sourceDirs } = checkWorkspace(root, globs, { mutationPaused: MUTATION_PAUSED })
   errors.push(...checkFilters(repoTextFiles(root)))
   if (errors.length > 0) {
     console.error(
@@ -435,7 +446,10 @@ if (isMain) {
     process.exit(1)
   }
   const exempt = Object.keys(NO_MUTATION_APPS).join(", ")
+  const mutation = MUTATION_PAUSED
+    ? "(mutation testing paused, stryker.config.json not checked: scripts/mutation-pause.mjs)"
+    : `and a gated stryker.config.json (exempt from mutation: ${exempt})`
   console.log(
-    `Package scripts: all ${sourceDirs.length} source packages run the canonical lint, typecheck and test, carry a vitest.config.ts and a gated stryker.config.json (exempt from mutation: ${exempt}), and every pnpm filter names a workspace package.`,
+    `Package scripts: all ${sourceDirs.length} source packages run the canonical lint, typecheck and test, carry a vitest.config.ts ${mutation}, and every pnpm filter names a workspace package.`,
   )
 }

@@ -1,13 +1,30 @@
-import type { AppConfig, AppConfigEntry, AppPlugin } from "@miragon/mcp-toolkit-core"
 import type { MCPServer } from "mcp-use"
 import type { ToolsetSource, ToolsetVocabulary } from "./toolsets.js"
+
+/** What a module hands the boot. */
+export interface ModulePlugin {
+  /** The module name; the boot's duplicate tool-name guard names it. */
+  name: string
+  /**
+   * Registers all of the module's tools, prompts and resources on the server the boot owns.
+   * The boot installs the ambient request info (`callerCacheKey`, passthrough auth) on that
+   * server for every module.
+   */
+  register(server: MCPServer): void
+}
+
+/** One active module as the boot resolved it; `config` carries the effective `toolset`. */
+export interface ModuleEntry {
+  app: string
+  config: Record<string, unknown>
+}
 
 /**
  * Composition-root machinery. Each root declares its own shared-resources type, module list and
  * cross-module wiring; modules conform STRUCTURALLY and never import this type.
  */
 export interface ComposableModule<TShared> {
-  /** Key in `MCP_ACTIVE_MODULES` and the `activeApps` entry name. */
+  /** Key in `MCP_ACTIVE_MODULES` and the `app` of its `ModuleEntry`. */
   name: string
   /** Pure env → raw-config mapping; no `process.env`, no I/O side effects. */
   configFromEnv(env: NodeJS.ProcessEnv): Record<string, unknown>
@@ -17,7 +34,7 @@ export interface ComposableModule<TShared> {
   bootWarnings?(env: NodeJS.ProcessEnv): string[]
   /** Model-facing usage notes joined into the server `instructions`, stated ONCE instead of per tool. */
   instructions?(config: Record<string, unknown>, context: InstructionsContext): string | undefined
-  createPlugin(config: Record<string, unknown>, shared: TShared): AppPlugin<MCPServer>
+  createPlugin(config: Record<string, unknown>, shared: TShared): ModulePlugin
 }
 
 export interface InstructionsContext {
@@ -40,7 +57,7 @@ export interface EffectiveToolset {
 
 export interface ResolvedBoot {
   authenticated: boolean
-  entries: AppConfigEntry[]
+  entries: ModuleEntry[]
   toolsets: EffectiveToolset[]
 }
 
@@ -57,11 +74,9 @@ export interface ModuleComposition<TShared> {
   knownEnvVars: ReadonlySet<string>
   /** Unset/`all` = every module; unknown names warn and are skipped. */
   activeModules: (env?: NodeJS.ProcessEnv) => ActiveModuleRef[]
-  /** Call once per boot; derive plugins, `AppConfig` and the boot log from the result. */
+  /** Call once per boot; derive the plugins and the boot log from the result. */
   resolveBoot: (env?: NodeJS.ProcessEnv, options?: ResolveBootOptions) => ResolvedBoot
-  appEntries: (env?: NodeJS.ProcessEnv, options?: ResolveBootOptions) => AppConfigEntry[]
-  appConfig: (env?: NodeJS.ProcessEnv, options?: ResolveBootOptions) => AppConfig
-  pluginsFor: (entries: AppConfigEntry[], shared: TShared) => AppPlugin<MCPServer>[]
+  pluginsFor: (entries: ModuleEntry[], shared: TShared) => ModulePlugin[]
   warnUnknownEnvVars: (env?: NodeJS.ProcessEnv, extraKnown?: Iterable<string>) => string[]
   emitBootWarnings: (env?: NodeJS.ProcessEnv) => string[]
   logEffectiveToolsets: (boot: ResolvedBoot) => string
@@ -162,7 +177,7 @@ export function composeModules<TShared>(options: {
     { authenticated = false }: ResolveBootOptions = {},
   ): ResolvedBoot => {
     const toolsets: EffectiveToolset[] = []
-    const entries = activeModules(env).map(({ name, toolset: suffix }): AppConfigEntry => {
+    const entries = activeModules(env).map(({ name, toolset: suffix }): ModuleEntry => {
       const effective = effectiveToolset(registry[name], suffix, authenticated)
       toolsets.push(effective)
       const { toolset } = effective
@@ -177,17 +192,10 @@ export function composeModules<TShared>(options: {
     return { authenticated, entries, toolsets }
   }
 
-  const appEntries = (env?: NodeJS.ProcessEnv, options?: ResolveBootOptions): AppConfigEntry[] =>
-    resolveBoot(env, options).entries
-
   return {
     knownEnvVars,
     activeModules,
     resolveBoot,
-    appEntries,
-    appConfig(env, options) {
-      return { activeApps: appEntries(env, options), pipelines: {} }
-    },
     pluginsFor(entries, shared) {
       return entries
         .filter((entry) => registry[entry.app])
@@ -250,8 +258,8 @@ export function composeModules<TShared>(options: {
 }
 
 /**
- * Framework durable writes (dashboard builder, `shell_save_settings`) need a caller identity and no
- * module on its read-only floor: the most restrictive module wins.
+ * `shell_save_settings` is a durable write no module toolset filters, so it needs a caller identity
+ * and no module on its read-only floor: the most restrictive module wins.
  */
 export function frameworkWritesAllowed(boot: ResolvedBoot): boolean {
   return boot.authenticated && boot.toolsets.every(({ durableWrites }) => durableWrites)

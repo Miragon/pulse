@@ -21,7 +21,7 @@ export function createModelSurface(): ModelSurface {
   const names = new Set<string>()
   return {
     record(server) {
-      // A Proxy, not a spread, so mcp-use internals and the toolkit's duplicate-name guard keep working.
+      // A Proxy, not a spread, so mcp-use internals and the boot's duplicate-name guard keep working.
       return new Proxy(server, {
         get(target, property) {
           if (property === "tool") {

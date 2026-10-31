@@ -8,7 +8,6 @@ import {
   type ComposedServerOptions,
   type RunningServer,
 } from "./composed-server.js"
-import { createShellPlugin } from "./shell-catalogue.js"
 import { createToolsetVocabulary } from "./toolsets.js"
 
 const alpha: ComposableModule<object> = {
@@ -18,7 +17,7 @@ const alpha: ComposableModule<object> = {
   toolsets: createToolsetVocabulary("alpha", ["read-only", "operations"] as const, "read-only", {
     authenticatedDefault: "operations",
   }),
-  createPlugin: () => ({ definition: { name: "alpha", steps: [], widgets: [] } }),
+  createPlugin: () => ({ name: "alpha", register: () => {} }),
 }
 
 const composition = composeModules<object>({
@@ -55,7 +54,7 @@ function options(overrides: Partial<ComposedServerOptions> = {}): ComposedServer
     // The bundle is read once; a missing file only warns (views render empty).
     bundle: { jsPath: "/nonexistent/mcp-app.js" },
     env: {},
-    setup: () => ({ plugins: [createShellPlugin(), ...composition.pluginsFor([], {})] }),
+    setup: (boot) => ({ plugins: composition.pluginsFor(boot.entries, {}) }),
     ...overrides,
   }
 }
@@ -136,16 +135,12 @@ function rpcResult(body: string): Record<string, unknown> {
 }
 
 describe("createComposedServer — boot", () => {
-  it("resolves ONE unauthenticated selection without OAuth and keeps the builder off", async () => {
+  it("resolves ONE unauthenticated selection without OAuth", async () => {
     const composed = await createComposedServer(options())
     expect(composed.boot.authenticated).toBe(false)
     expect(composed.boot.entries).toEqual([
       { app: "alpha", config: { url: "default", toolset: "read-only" } },
     ])
-    expect(composed.builder).toBe(false)
-    expect(info).toHaveBeenCalledWith(
-      "[test-root] Dashboard builder off (needs OAuth and no read-only module) — render-view stays.",
-    )
     expect(info).toHaveBeenCalledWith(
       expect.stringMatching(/^\[test-root\] HTTP edge — hosts: localhost, 127\.0\.0\.1, \[::1\];/),
     )
@@ -169,7 +164,6 @@ describe("createComposedServer — boot", () => {
     const composed = await createComposedServer(options({ oauth, setup }))
     expect(composed.boot.authenticated).toBe(true)
     expect(composed.boot.entries[0].config).toMatchObject({ toolset: "operations" })
-    expect(composed.builder).toBe(true)
     expect(setup).toHaveBeenCalledWith(composed.boot)
   })
 
@@ -315,7 +309,7 @@ describe("createComposedServer — graceful drain", () => {
     const gate = new Promise<void>((resolve) => (release = resolve))
     const { composed, server } = await boot({
       setup: () => ({
-        plugins: [createShellPlugin()],
+        plugins: [],
         shutdown: () => {
           order.push("runtime.shutdown")
           return Promise.resolve()
@@ -348,7 +342,7 @@ describe("createComposedServer — graceful drain", () => {
   it("stops waiting for a hung request after the drain timeout", async () => {
     const shutdownRuntime = vi.fn(async () => {})
     const { composed, server } = await boot(
-      { setup: () => ({ plugins: [createShellPlugin()], shutdown: shutdownRuntime }) },
+      { setup: () => ({ plugins: [], shutdown: shutdownRuntime }) },
       30,
     )
     composed.app.get("/hang", () => new Promise<Response>(() => {}))
@@ -376,7 +370,7 @@ describe("createComposedServer — graceful drain", () => {
     const exit = vi.spyOn(process, "exit").mockImplementation((() => undefined) as never)
     const shutdownRuntime = vi.fn(async () => {})
     const composed = await createComposedServer(
-      options({ setup: () => ({ plugins: [createShellPlugin()], shutdown: shutdownRuntime }) }),
+      options({ setup: () => ({ plugins: [], shutdown: shutdownRuntime }) }),
     )
     const server = await composed.listen({ port: 0, host: "127.0.0.1", handleSignals: true })
     expect([...handlers.keys()].sort()).toEqual(["SIGINT", "SIGTERM"])
@@ -398,7 +392,7 @@ describe("createComposedServer — graceful drain", () => {
     const composed = await createComposedServer(
       options({
         setup: () => ({
-          plugins: [createShellPlugin()],
+          plugins: [],
           shutdown: () => Promise.reject(new Error("pool stuck")),
         }),
       }),

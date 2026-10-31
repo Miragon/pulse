@@ -4,9 +4,9 @@ import { SHELL_SETTINGS_WIDGET } from "../shell-settings-contract.js"
 const SETTINGS_SECTION_SUFFIX = ":settings"
 
 /**
- * The host-extension point of the settings page: a module catalogues
- * `<module>:settings` and needs no other edit. Ids stay raw strings (tier 2);
- * an inactive module's section hides itself once its feed answers "unknown tool".
+ * The host-extension point of the settings page: a module registers
+ * `<module>:settings` in the host's widget registry and needs no other edit. Ids stay raw strings,
+ * so an inactive module's section hides itself once its feed answers "unknown tool".
  */
 export function settingsLayout(widgetIds: readonly string[] = []): LayoutConfig {
   const sections = widgetIds.filter(
@@ -18,7 +18,7 @@ export function settingsLayout(widgetIds: readonly string[] = []): LayoutConfig 
   }))
 }
 
-/** Tier-2 degradation: a missing module's section disappears instead of an unknown-widget error. */
+/** Graceful degradation: a missing module's section disappears instead of an unknown-widget error. */
 export function filterLayoutToWidgets(
   layout: LayoutConfig,
   widgets: Record<string, unknown>,

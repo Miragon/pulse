@@ -28,7 +28,7 @@ describe("camunda7Surface", () => {
     const surface = camunda7Surface("unknown", false)
     expect(surface.has("camunda7_list_incidents")).toBeUndefined()
     expect(surface.has("analytics_engine_health")).toBe(false)
-    expect(surface.has("load-dashboard")).toBe(false)
+    expect(surface.has("shell_save_settings")).toBe(false)
     const prompt = bindHandOff("en", surface).ask(HAND_OFF)!
     expect(prompt.startsWith(enAskAi["askAi.incident.diagnose"])).toBe(true)
     expect(prompt).toContain('Ids: engine="prod-b", incidentId="inc-1"')
@@ -41,7 +41,7 @@ describe("camunda7Surface", () => {
   })
 
   it("confirms a tool of neither module only if the feed reported it (it never does)", () => {
-    expect(camunda7Surface([], true).has("load-dashboard")).toBe(false)
+    expect(camunda7Surface([], true).has("shell_save_settings")).toBe(false)
   })
 })
 

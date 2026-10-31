@@ -108,9 +108,10 @@ function FleetEngineCard({
   )
 }
 
-const LANDSCAPE_WIDGET = "analytics:engine-landscape"
-
-/** Tier-2: `filterLayoutToWidgets` drops the cell when analytics is not bundled. */
+/**
+ * A raw cross-module id: `filterLayoutToWidgets` drops the cell when analytics is not bundled. The
+ * id stays a literal in the layout, so the app's widget-registry scan sees it.
+ */
 function LandscapeSection({
   engineIds,
   widgets,
@@ -121,10 +122,10 @@ function LandscapeSection({
   const t = useT()
   const layout = filterLayoutToWidgets(
     // The full list, so an engine without metrics still shows instead of dropping out.
-    [{ row: [{ widget: LANDSCAPE_WIDGET, props: { engine: engineIds } }] }],
+    [{ row: [{ widget: "analytics:engine-landscape", props: { engine: engineIds } }] }],
     widgets,
   )
-  if (!(LANDSCAPE_WIDGET in widgets)) return null
+  if ("rows" in layout && layout.rows.length === 0) return null
   // The landscape heads itself; a second heading said it twice (#322 U27).
   return (
     <section aria-label={t("fleet.landscape.title")}>

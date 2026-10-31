@@ -56,7 +56,7 @@ describe("buildSingleWidgetView", () => {
 })
 
 describe("buildComposedView", () => {
-  const layout = [{ row: [{ widget: "kpi-grid" }, { widget: "failure-list" }] }]
+  const layout = [{ row: [{ widget: "incident-kpi" }, { widget: "failure-list" }] }]
 
   it("keys each entry's step data by id (or result_<index>) with _app/_dataType", () => {
     const view = buildComposedView({
@@ -125,7 +125,7 @@ describe("buildComposedView", () => {
       ],
     })
     expect(multi.content[0].text).toBe(
-      'Rendered widget "kpi-grid, failure-list". Full data is shown in the widget.',
+      'Rendered widget "incident-kpi, failure-list". Full data is shown in the widget.',
     )
   })
 

@@ -204,17 +204,11 @@ The widget chain mirrors the camunda7 module:
 2. Register it in `src/widgets/index.ts` in `analyticsWidgets` via
    `adaptDataWidget(MyWidget, "analytics:<dataType>")` (from
    `@miragon/pulse-widget-shell/ui`).
-3. Add the widget entry (`id`, `description`, `requires`/`consumes`, `size`, optional
-   `propsSchema`) to `src/definition.ts`, with `...builderText("widget.<slug>")` — the view
-   builder's title and one-line summary for people, `builder.widget.<slug>.title|summary`
-   in `messages/{en,de}.builder.ts` — and `.meta(fieldText("<schema>.<field>"))` on every
-   top-level `propsSchema` field (`builder.field.*`, the props sheet's label and help
-   line; never a nested one, whose text the toolkit would hand to the model);
-   `description` stays the model's text. `src/builder-texts.test.ts` fails on anything
-   the builder would still show by its id and on any builder text the model would read.
-4. The host map `apps/mcp-server-camunda7/src/ui/widget-registry.ts` spreads
+3. The host map `apps/mcp-server-camunda7/src/ui/widget-registry.ts` spreads
    `analyticsWidgets` — verify your widget arrives there.
-5. Register an `analytics_show_*` tool in `src/widget-tools.ts` with
+   `apps/mcp-server-camunda7/test/widget-registry.test.ts` fails on any
+   `widget: "analytics:<id>"` a show tool emits that the host map lacks.
+4. Register an `analytics_show_*` tool in `src/widget-tools.ts` with
    `inputSchema: strictToolInput({ … })` (strict like the registrar's `strictInput`: an
    unknown key is a tool error listing the valid ones — naming per the guide in the
    add-bpm-feature skill, e.g. `maxResults`, never `limit`; `activityId`, never `elementId`) and spread `...showToolBinding(TOOL_NAME, "Title")` (from
@@ -227,9 +221,6 @@ The widget chain mirrors the camunda7 module:
    `buildDataFeedResult(data)`. Both resolve `engine` through `withEngineScope` like the
    registrar tools, and the payload echoes the resolved `engines` so the widget's
    `describeForModel` names the scope from the DATA (`src/widgets/model-descriptions.ts`).
-   A pipeline step (`src/steps/`) reads its keys through the strict readers in
-   `steps/app-config.ts` (`stepEngines`, `stepPeriod`, …) — step keys arrive unchecked, and a
-   malformed one is refused, never read as "omitted".
 
 Rules while building:
 
@@ -259,8 +250,8 @@ Rules while building:
   for a card heading, `text-dense` for table text, `text-small` (13 px, the floor) for
   captions, never `text-xs` (`scanTypeScale` in `src/brand-gates.test.ts`).
 - Names before ids (U13): metrics carry ids only; a view that lists processes or
-  activities passes its payload through `src/named-views.ts` in the show tool, its feed
-  AND its step (one function each), which adds `names` from the injected BPMN lookup
+  activities passes its payload through `src/named-views.ts` in the show tool AND its feed
+  (one function each), which adds `names` from the injected BPMN lookup
   (`createNameLookup` in `src/bpmn-name-lookup.ts`, reading each diagram through the kit's
   `parseBpmnNames`, the rule camunda7 names the same model by). Each model is read on the engines
   the view's rows come from (`engines`, or `enginesByKey` per process), in order, until
@@ -346,8 +337,7 @@ Rules while building:
   `apps/mcp-server-camunda7/test/hand-off-surface.test.ts` rejects a hand-written text.
 - Naming is load-bearing: `apps/mcp-server-camunda7/test/widget-contract.e2e.test.ts` enforces
   the widget `_meta` on every `*_show_*` tool and app-only visibility on every `*_data`
-  feed **by name**; `src/widgets/catalogue-sync.test.ts` keeps `definition.ts` ↔
-  `analyticsWidgets` in sync.
+  feed **by name**.
 
 ## Step 6 — verify
 

@@ -105,9 +105,9 @@ describe("widget wire contract (dual-protocol _meta)", () => {
       const ui = uiBlock(meta)
       return typeof ui.resourceUri === "string" && ui.visibility === undefined
     })
-    // render-view plus the camunda7/analytics/notes show_* tools.
+    // The camunda7/analytics/notes/shell show_* tools.
     expect(widgetTools.length).toBeGreaterThanOrEqual(3)
-    expect(widgetTools.map((t) => t.name)).toContain("render-view")
+    expect(widgetTools.map((t) => t.name)).toContain("notes_show_notes")
 
     for (const tool of widgetTools) {
       const meta = toolMeta(tool)
@@ -169,14 +169,13 @@ describe("widget wire contract (dual-protocol _meta)", () => {
     }
   })
 
-  it("keeps app-only tools (*_data feeds, refresh-view) free of widget keys", () => {
+  it("keeps app-only tools (*_data feeds) free of widget keys", () => {
     const appOnlyTools = tools.filter((t) => {
       const ui = t._meta ? uiBlock(t._meta) : {}
       return Array.isArray(ui.visibility) && (ui.visibility as unknown[]).includes("app")
     })
-    // refresh-view plus the *_data feeds.
     expect(appOnlyTools.length).toBeGreaterThanOrEqual(3)
-    expect(appOnlyTools.map((t) => t.name)).toContain("refresh-view")
+    expect(appOnlyTools.map((t) => t.name)).toContain("notes_list_data")
 
     for (const tool of appOnlyTools) {
       const meta = toolMeta(tool)
@@ -246,10 +245,9 @@ async function readResourceDomains(client: Client, uri: string): Promise<string[
 
 /**
  * Behind its public URL (`MCP_URL`) the server declares that origin itself on
- * every view-bound tool — the framework's, the Miragon modules' and YOUR
- * modules' alike, listed and read, and in the Apps SDK half
- * (`openai/widgetCSP`) — so a host admits the font route the views load
- * Geist from.
+ * every view-bound tool — the shell's, the Miragon modules' and YOUR modules'
+ * alike, listed and read, and in the Apps SDK half (`openai/widgetCSP`) — so
+ * a host admits the font route the views load Geist from.
  */
 describe("widget wire contract — the font origin under MCP_URL", () => {
   const PUBLIC_ORIGIN = "https://mcp.acme.test"
@@ -287,18 +285,18 @@ describe("widget wire contract — the font origin under MCP_URL", () => {
 /**
  * Toolsets fail closed: without `MCP_OAUTH` (the neutral env clears it) no
  * selection that does not NAME `camunda7:admin` may list an admin-only tool —
- * not unset, not an empty or unknown suffix — and the dashboard writes stay
- * off.
+ * not unset, not an empty or unknown suffix — and the shell's language save,
+ * a framework write, stays off.
  */
 describe("fail-closed toolsets", () => {
   it.each([undefined, "all", "camunda7:", "camunda7:bogus,analytics:,notes"])(
-    "MCP_ACTIVE_MODULES=%j lists no admin-only tool and no dashboard writes",
+    "MCP_ACTIVE_MODULES=%j lists no admin-only tool and no shell_save_settings",
     async (activeModules) => {
       const { app, client, tools } = await bootAndList(activeModules)
       try {
         const names = tools.map((t) => t.name)
         expect(names).toContain("camunda7_list_process_instances")
-        for (const tool of [...CAMUNDA7_ADMIN_ONLY_TOOLS, "save-dashboard", "delete-dashboard"]) {
+        for (const tool of [...CAMUNDA7_ADMIN_ONLY_TOOLS, "shell_save_settings"]) {
           expect(names, `${tool} must not be listed`).not.toContain(tool)
         }
       } finally {

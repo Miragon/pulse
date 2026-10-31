@@ -9,6 +9,7 @@ import {
   type ProfileStore,
 } from "./profile-store.js"
 import { createPostgresProfileStore, PROFILE_STORE_MIGRATIONS } from "./profile-store-postgres.js"
+import { runMigrations } from "./postgres.js"
 import { saveModuleSlice } from "./profile-slice.js"
 
 /** Guards against one unknown value or newer record wiping every module's settings on the next save. */
@@ -190,11 +191,7 @@ describe.skipIf(!TEST_DATABASE_URL)("createPostgresProfileStore (raw documents)"
     })
     await sql.unsafe(`DROP SCHEMA IF EXISTS ${TEST_SCHEMA} CASCADE`)
     await sql.unsafe(`CREATE SCHEMA ${TEST_SCHEMA}`)
-    for (const migration of PROFILE_STORE_MIGRATIONS) {
-      for (const statement of migration.statements) {
-        await sql.unsafe(statement)
-      }
-    }
+    await runMigrations(sql, PROFILE_STORE_MIGRATIONS)
   })
 
   beforeEach(async () => {

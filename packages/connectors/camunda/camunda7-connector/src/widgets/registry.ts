@@ -12,11 +12,7 @@ import { HistoryTimelineWidget } from "./history-timeline.js"
 import { InstanceDetailWidget } from "./instance-detail.js"
 import { ClusterDetailWidget } from "./cluster-detail.js"
 import { EngineHealthVerdict } from "./engine-health.js"
-import { ProcessHealthKpi } from "./cockpit-dashboard/health-kpi.js"
 import { ProcessDefinitionsTable } from "./cockpit-dashboard/definitions-table.js"
-import { BpmnViewerHeader } from "./bpmn-viewer/header.js"
-import { BpmnViewerLegend } from "./bpmn-viewer/legend.js"
-import { BpmnFlowViewer } from "./bpmn-viewer/flow.js"
 import { BpmnViewerWidget } from "./bpmn-viewer/widget.js"
 import { JobPanelWidget } from "./job-panel.js"
 import { ProcessInstancesWidget } from "./process-instances/list.js"
@@ -55,20 +51,16 @@ export const camunda7BaseWidgets: Record<string, WidgetComponent> = {
   "camunda7:instance-detail": adaptDataWidget(InstanceDetailWidget, "camunda7:processInstance"),
   "camunda7:engine-health": adaptDataWidget(EngineHealthVerdict, "camunda7:engineHealth"),
   "camunda7:cluster-detail": adaptDataWidget(ClusterDetailWidget, "camunda7:clusterDetail"),
-  "camunda7:process-health-kpi": adaptDataWidget(ProcessHealthKpi, "camunda7:cockpitDashboard"),
   "camunda7:process-definitions-table": adaptDataWidget(
     ProcessDefinitionsTable,
     "camunda7:cockpitDashboard",
   ),
   "camunda7:bpmn-viewer": adaptDataWidget(BpmnViewerWidget, "camunda7:bpmnViewer"),
-  "camunda7:bpmn-viewer-header": adaptDataWidget(BpmnViewerHeader, "camunda7:bpmnViewer"),
-  "camunda7:bpmn-viewer-legend": adaptDataWidget(BpmnViewerLegend, "camunda7:bpmnViewer"),
-  "camunda7:bpmn-flow-viewer": adaptDataWidget(BpmnFlowViewer, "camunda7:bpmnViewer"),
   "camunda7:job-panel": adaptDataWidget(JobPanelWidget, "camunda7:jobPanel"),
   "camunda7:process-instances": adaptDataWidget(
     ProcessInstancesWidget,
     "camunda7:processInstances",
   ),
-  // Self-fetching (no pipeline step); a `<module>:settings` section of the shell's page.
+  // Self-fetching; a `<module>:settings` section of the shell's page.
   "camunda7:settings": adaptDataWidget(UserProfileWidget, "camunda7:settings"),
 }

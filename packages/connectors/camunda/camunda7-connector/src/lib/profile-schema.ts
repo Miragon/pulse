@@ -21,16 +21,6 @@ export const camunda7SettingsSchema = z.object({
     .describe(
       "Engine ids the user may pick from. Omitted or empty = all configured engines. Curation, not a security boundary — an explicit per-call `engine` override still reaches any configured engine.",
     ),
-  pinnedDashboardIds: z
-    .array(z.string())
-    .default([])
-    .describe("Saved-dashboard ids the user pinned, shown first in dashboard pickers."),
-  defaultDashboardId: z
-    .string()
-    .optional()
-    .describe(
-      "Saved-dashboard id suggested as the user's default — surfaced to the model (open via load-dashboard) and to pickers; the cockpit has no dashboards surface yet.",
-    ),
 })
 
 export type Camunda7Settings = z.infer<typeof camunda7SettingsSchema>

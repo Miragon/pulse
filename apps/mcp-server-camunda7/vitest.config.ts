@@ -6,7 +6,7 @@ export default mergeConfig(
   defineConfig({
     test: {
       include: ["test/**/*.test.ts"],
-      // The E2E smoke test boots a full framework app (plugin registration,
+      // The E2E smoke test boots the full composed server (plugin registration,
       // HTTP listener, MCP handshake), and the repo-wide guards (hand-off-surface,
       // tool-name-refs, docs-refs, old-names) scan every source of every app and
       // package, the CLI and the VS Code extension included. Locally that takes
@@ -28,8 +28,8 @@ export default mergeConfig(
         // composition.test.ts at that package's higher thresholds; the app's
         // percentages shifted without a single line losing tests.
         // Re-baselined UP 2026-08-17: the Postgres persistence (client,
-        // migration runner, dashboard store) moved to @miragon/pulse-widget-shell
-        // too, and what remains here — the env→backend selection — is covered
+        // migration runner) moved to @miragon/pulse-widget-shell too, and
+        // what remains here — the env→backend selection — is covered
         // by persistence-runtime.test.ts; measured statements 82.89 /
         // branches 77.27 / functions 94.44 / lines 83.33. Raised 2026-10-08
         // (#324: `createApp` replaced the e2e re-implementation of the boot,

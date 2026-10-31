@@ -1,35 +1,35 @@
 ---
 name: add-widget
-description: Step-by-step house pattern for adding an interactive widget to a module — the React component built from the widget-shell kit, the `show_*` widget tool, the app-only `*_data` feed, and the four-link registration chain. Use whenever adding or changing widgets, `show_*` tools, `*_data` feeds, in-widget data fetching, or when debugging a widget that renders empty, unstyled, or hangs on "Loading…".
+description: Step-by-step house pattern for adding an interactive widget to a module (the React component built from the widget-shell kit, the `show_*` widget tool, the app-only `*_data` feed, and the three-link registration chain). Use whenever adding or changing widgets, `show_*` tools, `*_data` feeds, in-widget data fetching, or when debugging a widget that renders empty, unstyled, or hangs on "Loading…".
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 ---
 
-# add-widget — an interactive widget in your module
+# add-widget: an interactive widget in your module
 
-**Reference implementation: the notes widget** — `modules/mcp-notes/src/widgets/notes-list.tsx`
-(component), `widgets/index.ts` (component map), `definition.ts` (catalogue),
-`widget-tools.ts` (show tool + data feed), `tool-names.ts` (rename safety).
-Richer patterns (paged lists, KPI grids, BPMN viewers, settings cards) live in
+**Reference implementation: the notes widget.** `modules/mcp-notes/src/widgets/notes-list.tsx`
+(component), `widgets/index.ts` (component map), `widget-tools.ts` (show tool
+and data feed), `tool-names.ts` (rename safety). Richer patterns (paged lists,
+KPI grids, BPMN viewers, settings cards) live in
 `node_modules/@miragon/pulse-{camunda7,analytics}-connector/src/widgets/`.
 
-## Step 0 — pick the render path
+## Step 0: pick the render path
 
-| You need…                                | Path                                                          |
-| ---------------------------------------- | ------------------------------------------------------------- |
-| JSON data for the model                  | Plain registrar tool in `src/tools.ts` — no widget, stop here |
-| A widget rendered for the user + summary | `<module>_show_<thing>` widget tool in `src/widget-tools.ts`  |
-| App-only JSON for in-widget refresh/nav  | `<module>_<thing>_data` feed in `src/widget-tools.ts`         |
+| You need…                                | Path                                                         |
+| ---------------------------------------- | ------------------------------------------------------------ |
+| JSON data for the model                  | Plain registrar tool in `src/tools.ts`; no widget, stop here |
+| A widget rendered for the user + summary | `<module>_show_<thing>` widget tool in `src/widget-tools.ts` |
+| App-only JSON for in-widget refresh/nav  | `<module>_<thing>_data` feed in `src/widget-tools.ts`        |
 
 A widget almost always means **both** widget-path tools: the `show_*` tool
-renders it; the `*_data` feed powers its self-fetch. The `_show_`/`_data`
+renders it, the `*_data` feed powers its self-fetch. The `_show_`/`_data`
 **naming is load-bearing**: `server/test/widget-contract.e2e.test.ts` asserts
 the widget `_meta` contract by name across all composed modules.
 
-## Step 1 — the component
+## Step 1: the component
 
 Widgets live in `src/widgets/` and receive their payload as a `data` prop.
 Compose them from the shared kit `@miragon/pulse-widget-shell/widgets` and the
-toolkit `@miragon/mcp-toolkit-ui` — never re-inline their primitives. The
+toolkit `@miragon/mcp-toolkit-ui`, never re-inline their primitives. The
 toolkit's own components, tone maps and `cn` come from the toolkit itself; the
 kit neither forks nor re-exports them:
 
@@ -43,7 +43,7 @@ kit neither forks nor re-exports them:
   shortened, a copy button); `TableEmptyState` instead of an empty frame
   (`variant="done"` for "nothing left to do"); KPI strips: the toolkit's
   `KpiGrid`
-- Self-fetch fallback: `QueryFallback` + `TableSkeleton` — a missing `isError`
+- Self-fetch fallback: `QueryFallback` + `TableSkeleton`. A missing `isError`
   branch means an eternal skeleton. Its `onRetry` is required, and the error
   speaks for itself: the kit's `describeError` turns an engine or transport
   failure into what happened and what you can do, the raw text under
@@ -76,78 +76,82 @@ a second widget instead of returning JSON), with `{ enabled: !initialData }` so
 a render through the show tool doesn't double-fetch. Import the tool name from
 `src/tool-names.ts`.
 
-## Step 2 — the four-link registration chain
+## Step 2: the three-link registration chain
 
-Every widget appears in four places — **miss one and it is silently absent
-somewhere** (no build error):
+Every widget appears in three places. **Miss one and it is silently absent**
+(no build error):
 
-1. `src/widgets/index.ts` — component map:
-   `"<module>:<widget>": adaptDataWidget(Widget, "<module>:<dataType>", describeForModel)`.
-   The `describeForModel` callback is the model's context line ("what is the
-   user looking at") — always provide it.
-2. `src/definition.ts` — catalogue entry (`id`, `description`, `requires`,
-   `consumes`, `size`). Links 1↔2 are guarded by the module's
-   `widgets/catalogue-sync.test.ts`. `description` is the model's text; the
-   view builder shows people a `title` and `summary` (`{ en, de }`, or from
-   your catalogs via `createBuilderTexts` from `@miragon/pulse-widget-shell/server`)
-   and each top-level `propsSchema` field's `x-display`, else the id;
-   `missingDisplayTexts` from `@miragon/pulse-widget-shell/testing` lists what is
-   still unnamed, `displayTextsSentToModel` any text the model would read (a
-   nested field's `x-display` is never stripped, so leave nested fields bare).
-3. `server/src/ui/widget-registry.ts` — your module's spread must reach the
-   host bundle map; guarded by `server/test/widget-registry.test.ts`.
-4. `src/tool-names.ts` — a constant for every `show_*`/`*_data` tool referenced
-   from widget code, so a rename trips TS at every call site.
+1. The show tool names the widget by id:
+   `buildSingleWidgetView({ widget: "<module>:<widget>", … })` in
+   `src/widget-tools.ts` (Step 3). Write the id as a **string literal**: the
+   server's guard test reads it from your module's sources.
+2. `src/widgets/index.ts`, the component map:
+   `"<module>:<widget>": adaptDataWidget(Widget, "<module>:<dataType>", describeForModel)`,
+   keyed by that same id. The `describeForModel` callback is the model's
+   context line ("what is the user looking at"); always provide it.
+3. `server/src/ui/widget-registry.ts`: your module's map must be spread into
+   the host bundle map. `server/test/widget-registry.test.ts` reads every
+   `widget: "<module>:<id>"` from the sources of the modules the server
+   depends on and fails naming an id the registry cannot render, so a missing
+   spread and a key that differs from the show tool's id both fail there.
 
-Tailwind coverage comes for free for workspace modules — the
+Next to the chain, `src/tool-names.ts` holds a constant for every
+`show_*`/`*_data` tool referenced from widget code, so a rename trips TS at
+every call site.
+
+Tailwind coverage comes for free for workspace modules: the
 `modules/*/src` glob in `server/src/ui/globals.css` scans them all. Only a
 module installed from npm needs its own `@source` entry there (missing means
 silently unstyled).
 
-## Step 3 — the widget tools (`src/widget-tools.ts`)
+## Step 3: the widget tools (`src/widget-tools.ts`)
 
 This file is the documented exception that calls `server.tool()` directly.
 Model both tools on `modules/mcp-notes/src/widget-tools.ts`:
 
 - **`show_*` tool**: spread `...showToolBinding(name, title)` (from
-  `@miragon/pulse-widget-shell/server`) — it binds the mcp-use view, the
+  `@miragon/pulse-widget-shell/server`). It binds the mcp-use view, the
   passthrough `outputSchema`, and the Apps-SDK `_meta` half. **Never hand-write
   `_meta.ui.*` keys**; mcp-use owns and overwrites that namespace. Return
-  `buildSingleWidgetView({ widget, app, dataType, data, title, summary })` —
+  `buildSingleWidgetView({ widget, app, dataType, data, title, summary })`:
   `summary` is the model-facing channel (1–2 sentences, key figures, pointer to
   the plain tool for raw data); the full payload travels only in
   `structuredContent`.
 - **`*_data` feed**: spread `...appOnly` (native `visibility: "app"` +
   `openai/widgetAccessible`, **no** view binding) and return
-  `buildDataFeedResult(data)` — so the in-widget `callTool()` gets JSON back
+  `buildDataFeedResult(data)`, so the in-widget `callTool()` gets JSON back
   instead of the host rendering a new widget.
 - Wrap every handler in `withToolErrors` (all from
   `@miragon/pulse-widget-shell/server`).
 - Share the input shape between the pair (one `const <thing>InputShape`), so
   the widget can re-issue the show tool's arguments against the feed, and
-  declare it as `inputSchema: strictToolInput(<thing>InputShape)` — never a bare
+  declare it as `inputSchema: strictToolInput(<thing>InputShape)`, never a bare
   `z.object`, which silently drops an unknown key instead of refusing it.
+- Register both inside your plugin's `register(server)` (through
+  `registerWidgetTools` in the notes module): the boot applies the server-wide
+  view CSP to every view-bound tool and refuses a tool name another plugin
+  already registered.
 - A widget-path tool that performs a **durable write** must honor the module's
-  toolset itself (the registrar's filter never sees it) — gate it on the
+  toolset itself (the registrar's filter never sees it): gate it on the
   module's `toolsets` vocabulary, where a missing toolset is the read-only
   floor (the no-suffix default without `MCP_OAUTH`), never "everything"; see
   the add-settings-section skill and
   `node_modules/@miragon/pulse-analytics-connector/src/settings-tools.ts`.
 
-## Step 4 — verify
+## Step 4: verify
 
 ```bash
 pnpm build && pnpm typecheck && pnpm test
 ```
 
 - `pnpm typecheck` is the **only** automated check that type-checks widget
-  `.tsx` code — never skip it.
-- `pnpm test` runs the guard tests for links 1–3 plus the wire-contract e2e
-  (naming, `_meta`, app-only visibility). If one fails it names exactly the
-  missing link — fix the link, never the test.
+  `.tsx` code. Never skip it.
+- `pnpm test` runs the registry guard (every id a show tool names renders)
+  plus the wire-contract e2e (naming, `_meta`, app-only visibility). If one
+  fails it names exactly the missing link: fix the link, never the test.
 
 Then a render check (widget rendering is not covered by any automated test).
-Headless, with `pnpm dev` running — from `server/`, needs a local Chrome:
+Headless, with `pnpm dev` running, from `server/` (needs a local Chrome):
 
 ```bash
 pnpm exec mcp-use client connect local http://localhost:8400/mcp  # once
@@ -158,19 +162,20 @@ pnpm exec mcp-use screenshot --mcp http://localhost:8400/mcp \
 
 A styled widget in the PNG proves the bundle, the registry links, and the
 Tailwind scan in one shot. In the inspector
-(`http://localhost:8400/mcp/inspector` — the human/no-Chrome path), also
+(`http://localhost:8400/mcp/inspector`, the human/no-Chrome path), also
 exercise the widget's self-fetch (e.g. change a filter) so the `*_data` path
 runs too. The widget bundle is read once at boot, and the root `pnpm dev`
-rebuilds modules + bundle on every start — restart `pnpm dev` at the repo
+rebuilds modules + bundle on every start: restart `pnpm dev` at the repo
 root to see changes.
 
 ## Troubleshooting
 
-| Symptom                              | Cause                                                                                                                                                                          |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Widget renders as an empty slot      | link 3 missing (module spread not in `server/src/ui/widget-registry.ts`) — the guard test names the id                                                                         |
-| Widget renders unstyled              | widget sources outside the Tailwind scan set — workspace modules are globbed (`modules/*/src`); an npm-installed module needs its own `@source` in `server/src/ui/globals.css` |
-| Hangs on "Loading…" forever          | `resolve.dedupe` trimmed in `server/vite.config.ts` (duplicate React contexts), or a missing `isError` branch in the fallback                                                  |
-| Self-fetch renders a second widget   | the widget calls the `show_*` tool instead of the `*_data` feed                                                                                                                |
-| e2e test fails on `_meta`/visibility | tool name breaks the `_show_`/`_data` convention, or a hand-written `_meta.ui` key — use the helpers                                                                           |
-| Old UI after an edit                 | bundle is read once at boot — restart `pnpm dev` at the repo root (it rebuilds modules + bundle on start)                                                                      |
+| Symptom                              | Cause                                                                                                                                                                         |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Widget renders as an empty slot      | the module's map is not spread in `server/src/ui/widget-registry.ts`, or its key differs from the show tool's id (the guard test names the id)                                |
+| Widget renders unstyled              | widget sources outside the Tailwind scan set: workspace modules are globbed (`modules/*/src`); an npm-installed module needs its own `@source` in `server/src/ui/globals.css` |
+| Hangs on "Loading…" forever          | `resolve.dedupe` trimmed in `server/vite.config.ts` (duplicate React contexts), or a missing `isError` branch in the fallback                                                 |
+| Self-fetch renders a second widget   | the widget calls the `show_*` tool instead of the `*_data` feed                                                                                                               |
+| e2e test fails on `_meta`/visibility | tool name breaks the `_show_`/`_data` convention, or a hand-written `_meta.ui` key: use the helpers                                                                           |
+| Boot fails on a duplicate tool name  | two plugins register the same name; the error names both modules, rename one (keep the `<module>_` prefix)                                                                    |
+| Old UI after an edit                 | bundle is read once at boot: restart `pnpm dev` at the repo root (it rebuilds modules + bundle on start)                                                                      |

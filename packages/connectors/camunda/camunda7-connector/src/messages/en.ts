@@ -48,14 +48,14 @@ export const en: MessageCatalog = {
   "cockpit.engineGone": ({ engineId }) =>
     `Engine ${String(engineId)} is no longer in your engine list.`,
 
-  "profile.heading": "Engines and dashboards",
-  "profile.subtitle": "Which engines you pick from and which dashboards come first, in every chat.",
+  "profile.heading": "Engine settings",
+  "profile.subtitle": "Which engines you pick from and which one is your default, in every chat.",
   "profile.save": "Save",
   "profile.saving": "Saving…",
   "profile.discard": "Discard changes",
   "profile.saveBar.label": "Save settings",
-  "profile.saveBar.unsaved": "Your changes to engines or dashboards aren't saved yet.",
-  "profile.saveBar.clean": "Engines and dashboards are saved.",
+  "profile.saveBar.unsaved": "Your engine settings aren't saved yet.",
+  "profile.saveBar.clean": "Your engine settings are saved.",
   "profile.saveError": "Could not save the settings. Your input is still here, try again.",
   "profile.readOnly.title": "These settings are read-only here",
   "profile.readOnly.toolset":
@@ -66,7 +66,6 @@ export const en: MessageCatalog = {
   "profile.none": "No settings available",
 
   "profile.section.engines": "Engines",
-  "profile.section.dashboards": "Dashboards",
 
   "profile.field.allEngines": "Allow all engines",
   "profile.field.allEngines.help":
@@ -80,21 +79,9 @@ export const en: MessageCatalog = {
     "Tools and the cockpit use this engine when you pick no other.",
   "profile.engine.auto": "(auto)",
 
-  "profile.dashboards.unavailable":
-    "Saved dashboards are unavailable. They need a login and a server that allows changes. Ask your administrator to set this up.",
-  "profile.dashboards.empty": "No saved dashboards yet. Have the chat build one and save it.",
-  "profile.field.defaultDashboard": "Default dashboard",
-  "profile.field.defaultDashboard.help": "The AI suggests this dashboard first (load-dashboard).",
-  "profile.dashboard.none": "(none)",
-  "profile.field.pinnedDashboards": "Pinned dashboards",
-  "profile.field.pinnedDashboards.help": "Listed first in dashboard pickers.",
-
-  "profile.summary": ({ engines, defaultDashboard }) =>
-    `camunda7 settings: ${String(engines)}${String(defaultDashboard)}.`,
+  "profile.summary": ({ engines }) => `camunda7 settings: ${String(engines)}.`,
   "profile.summary.allEngines": "all engines",
   "profile.summary.someEngines": ({ count }) => countOf(count, "allowed engine", "allowed engines"),
-  "profile.summary.defaultDashboard": ({ id }) =>
-    `, default dashboard "${String(id)}" (open via load-dashboard)`,
 
   // Only used when the profile names a language (`lib/server-locale.ts`).
   "viewTitle.cockpit": "Cockpit",
@@ -105,7 +92,7 @@ export const en: MessageCatalog = {
   "viewTitle.bpmnViewer": "BPMN diagram",
   "viewTitle.jobPanel": "Jobs",
   "viewTitle.engineHealth": "Engine overview",
-  "viewTitle.settings": "Engines and dashboards",
+  "viewTitle.settings": "Engine settings",
   "viewTitle.clusterDetail": ({ activity }) => `Cluster: ${String(activity)}`,
 
   "c7sum.cockpitOpened":

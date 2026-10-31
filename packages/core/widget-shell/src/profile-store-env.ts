@@ -15,17 +15,10 @@ export type PersistenceBackend = "postgres" | "filesystem" | "memory"
 
 export interface PersistenceSelection {
   profiles: PersistenceBackend
-  /** Omitted when the server registers no dashboard builder (`frameworkWritesAllowed`). */
-  dashboards?: PersistenceBackend
 }
 
-export function persistenceFromEnv(
-  env: NodeJS.ProcessEnv = process.env,
-): Required<PersistenceSelection> {
-  return {
-    profiles: env.MCP_PROFILE_DIR ? "filesystem" : "memory",
-    dashboards: env.MCP_DASHBOARD_DIR ? "filesystem" : "memory",
-  }
+export function persistenceFromEnv(env: NodeJS.ProcessEnv = process.env): PersistenceSelection {
+  return { profiles: env.MCP_PROFILE_DIR ? "filesystem" : "memory" }
 }
 
 /**
@@ -39,17 +32,11 @@ export function announcePersistence(
   const {
     env = process.env,
     label = "persistence",
-    remedy = "Set MCP_PROFILE_DIR / MCP_DASHBOARD_DIR to directories on a persistent volume.",
+    remedy = "Set MCP_PROFILE_DIR to a directory on a persistent volume.",
   } = options
-  const dashboards = selection.dashboards ? `, dashboards=${selection.dashboards}` : ""
-  console.log(`[${label}] persistence: profiles=${selection.profiles}${dashboards}`)
-  if (env.NODE_ENV !== "production") return
-  const volatile = [
-    ...(selection.profiles === "memory" ? ["user profiles"] : []),
-    ...(selection.dashboards === "memory" ? ["saved dashboards"] : []),
-  ]
-  if (volatile.length === 0) return
+  console.log(`[${label}] persistence: profiles=${selection.profiles}`)
+  if (env.NODE_ENV !== "production" || selection.profiles !== "memory") return
   console.warn(
-    `[${label}] WARNING: ${volatile.join(" and ")} are kept IN MEMORY in a production process — every restart, redeploy or scale-to-zero stop silently drops them. ${remedy}`,
+    `[${label}] WARNING: user profiles are kept IN MEMORY in a production process — every restart, redeploy or scale-to-zero stop silently drops them. ${remedy}`,
   )
 }

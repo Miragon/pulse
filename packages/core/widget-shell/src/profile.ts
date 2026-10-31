@@ -26,22 +26,19 @@ export interface ProfileSlice {
 }
 
 /**
- * Fail-closed: the OAuth caller (an authenticated `ctx` decides ALONE, never a fallback),
- * else the ambient info (ctx-less pipeline steps), else the declared anonymous caller,
- * else `undefined`. `ctx` is `unknown` because mcp-use's handler context shape isn't stable.
+ * Fail-closed: the OAuth caller from the handler `ctx` (an authenticated `ctx` decides ALONE),
+ * else the declared anonymous caller, else `undefined`. `ctx` is `unknown` because mcp-use's
+ * handler context shape isn't stable.
  */
 export function resolveProfileKey(ctx?: unknown): string | undefined {
   const caller = resolveCaller(ctx)
   if (caller) return caller.userId
-  const info = getMcpRequestInfo()
-  if (info?.authUserId) return info.authUserId
-  return info?.anonymousCaller ? ANONYMOUS_PROFILE_KEY : undefined
+  return getMcpRequestInfo()?.anonymousCaller ? ANONYMOUS_PROFILE_KEY : undefined
 }
 
 /** Never the anonymous key; save paths stamp it as the record's owner. */
 export function resolveAuthUserId(ctx?: unknown): string | undefined {
-  const caller = resolveCaller(ctx)
-  return caller ? caller.userId : getMcpRequestInfo()?.authUserId
+  return resolveCaller(ctx)?.userId
 }
 
 /** Zod 4 re-applies defaults THROUGH `.partial()`, so a defaulted save input would silently reset omitted fields. */

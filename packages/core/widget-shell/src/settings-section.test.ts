@@ -153,12 +153,10 @@ describe("registerSettingsSection", () => {
 
   it("saves under the caller's key, stamps the OAuth caller as owner and returns the save", async () => {
     const { handler, write } = register()
-    const saved = await runWithMcpRequestInfo({ authUserId: "user-7" }, () =>
-      handler("demo_save_settings")({ level: 3 }),
-    )
-    expect(write.mock.calls[0]?.[1]).toEqual({ key: "user-7", userId: "user-7" })
+    const saved = await handler("demo_save_settings")({ level: 3 }, CTX)
+    expect(write.mock.calls[0]?.[1]).toEqual({ key: "user-1", userId: "user-1" })
     expect(saved).toEqual({
-      content: [{ type: "text", text: "saved 3 for user-7" }],
+      content: [{ type: "text", text: "saved 3 for user-1" }],
       structuredContent: { level: 3 },
     })
   })

@@ -51,8 +51,6 @@ export const enAskAi = {
     "Check the health of this process definition: healthy or degraded, the worst activities, the most common incident message, the most likely root cause and one next step. Change nothing.",
   "askAi.bpmn.explainState":
     "Explain this instance's state on the diagram: which elements block progress, what each incident means, whether the hotspots of jobs without retries point to a systemic fault, and the next steps by priority.",
-  "askAi.landscape.triage":
-    "Rank the affected processes on this engine by severity: name the most urgent one, its likely root cause and the first step to fix it.",
   "askAi.incidents.processRootCause":
     "Find the root cause of this process's open incidents: do the failing activities share one cause, is it temporary, a data or configuration problem or a broken model, and which fix do you recommend? Change nothing without my confirmation.",
   "askAi.incidents.triage":

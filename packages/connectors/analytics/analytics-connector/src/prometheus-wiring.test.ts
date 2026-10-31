@@ -49,7 +49,6 @@ function boot(env: NodeJS.ProcessEnv) {
     tool: (definition: { name: string }, callback: ToolCallback) => {
       tools.set(definition.name, callback)
     },
-    use: () => {},
   } as unknown as MCPServer
   const plugin = analyticsModule.createPlugin(
     {
@@ -58,8 +57,7 @@ function boot(env: NodeJS.ProcessEnv) {
     },
     {},
   )
-  plugin.registerTools?.(server)
-  plugin.registerWidgetTools?.(server)
+  plugin.register(server)
   return tools
 }
 
@@ -101,21 +99,8 @@ describe("Prometheus config reaches the wire", () => {
 
   it("EVERY widget tool and feed hands ctx.signal to its queries", async () => {
     hang = false
-    const tools = new Map<string, ToolCallback>()
-    const server = {
-      tool: (definition: { name: string }, callback: ToolCallback) => {
-        tools.set(definition.name, callback)
-      },
-    } as unknown as MCPServer
-    analyticsModule
-      .createPlugin(
-        {
-          ...analyticsModule.configFromEnv({ PROMETHEUS_URL: url, ...ENGINES }),
-          toolset: "read-only",
-        },
-        {},
-      )
-      .registerWidgetTools?.(server)
+    // The widget tools and feeds, picked by their load-bearing names.
+    const tools = new Map([...boot({})].filter(([name]) => /^analytics_show_|_data$/.test(name)))
     // Unsignalled a handler must reach Prometheus, with an already-aborted ctx.signal it must not:
     // a handler that drops ctx would still query.
     const args = {

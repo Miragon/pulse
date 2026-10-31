@@ -36,18 +36,26 @@ function surfaceFor(config: Record<string, unknown>): RecordedTool[] {
     tool: (definition: RecordedTool) => {
       tools.push(definition)
     },
-    use: () => {},
   } as unknown as MCPServer
   const plugin = analyticsModule.createPlugin(
     { url: "http://prometheus.invalid", ...config },
     { profileStore: writableStore, engineIds: ["prod-a"] },
   )
-  plugin.registerTools?.(server)
-  plugin.registerWidgetTools?.(server)
+  plugin.register(server)
   return tools
 }
 
 const namesOf = (tools: RecordedTool[]) => tools.map((tool) => tool.name).sort()
+
+describe("analyticsModule plugin", () => {
+  it("names itself for the boot's duplicate tool-name guard", () => {
+    const plugin = analyticsModule.createPlugin(
+      { url: "http://prometheus.invalid" },
+      { engineIds: ["prod-a"] },
+    )
+    expect(plugin.name).toBe("analytics")
+  })
+})
 
 describe("analyticsModule toolset policy", () => {
   it("declares its toolset vocabulary", () => {

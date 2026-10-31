@@ -1,7 +1,9 @@
-import type { AppPlugin } from "@miragon/mcp-toolkit-core"
 import { createToolRegistrar } from "@miragon/mcp-toolkit-core/tools"
-import type { MCPServer } from "mcp-use"
-import { installMcpRequestContext } from "@miragon/pulse-widget-shell/server"
+import {
+  createInMemoryProfileStore,
+  type ModulePlugin,
+  type ProfileStore,
+} from "@miragon/pulse-widget-shell/server"
 import type { Camunda7AuthType } from "@miragon/pulse-camunda7-client"
 import { providerForEntry } from "./providers/index.js"
 import { registerTools } from "./tools/index.js"
@@ -9,11 +11,18 @@ import { registerIncidentIssuePrompt, registerIncidentIssueTools } from "./tools
 import { registerEngineTools } from "./tools/engines.js"
 import { registerUserProfileTools } from "./tools/user-profile.js"
 import { registerWidgetTools } from "./widget-tools.js"
-import { definition } from "./definition.js"
-import { createEngineRegistry, type EngineEntry } from "./lib/resolve-engine.js"
+import {
+  createEngineRegistry,
+  type EngineEntry,
+  type EngineRegistry,
+} from "./lib/resolve-engine.js"
 import { profileDefaultEngineId } from "./lib/engine-preferences.js"
-import { createInMemoryProfileStore, type ProfileStore } from "@miragon/pulse-widget-shell/server"
-import { allowsProfileSave, resolveCamunda7Toolset, withToolsetFilter } from "./lib/toolsets.js"
+import {
+  allowsProfileSave,
+  resolveCamunda7Toolset,
+  withToolsetFilter,
+  type Camunda7Toolset,
+} from "./lib/toolsets.js"
 import { resolveProfileKey } from "./lib/resolve-profile-key.js"
 import { createModelSurface } from "./widget-tools/model-surface.js"
 import { withEngineParam } from "./lib/with-engine.js"
@@ -48,14 +57,13 @@ export interface Camunda7SharedResources {
   profileStore?: ProfileStore
 }
 
-export function createPlugin(
+/** The routing every tool resolves its engine through: per-engine auth, then the caller's saved default. */
+export function createCamunda7EngineRegistry(
   config: Camunda7PluginConfig,
-  shared: Camunda7SharedResources = {},
-): AppPlugin<MCPServer> {
-  const profileStore = shared.profileStore ?? createInMemoryProfileStore()
-  // Resolved once so every gate below reads the same toolset and an unknown name warns once.
-  const toolset = resolveCamunda7Toolset(config.toolset)
-  const registry = createEngineRegistry(
+  profileStore: ProfileStore,
+  toolset: Camunda7Toolset,
+): EngineRegistry {
+  return createEngineRegistry(
     config.engines,
     (e) => {
       // Wholesale: a partial entry must not inherit foreign credentials.
@@ -74,6 +82,16 @@ export function createPlugin(
       canSaveDefault: (call) => allowsProfileSave(toolset) && resolveProfileKey(call) !== undefined,
     },
   )
+}
+
+export function createPlugin(
+  config: Camunda7PluginConfig,
+  shared: Camunda7SharedResources = {},
+): ModulePlugin {
+  const profileStore = shared.profileStore ?? createInMemoryProfileStore()
+  // Resolved once so every gate below reads the same toolset and an unknown name warns once.
+  const toolset = resolveCamunda7Toolset(config.toolset)
+  const registry = createCamunda7EngineRegistry(config, profileStore, toolset)
 
   const incidentIssueConfig = {
     repository: config.incidentIssueRepository,
@@ -83,20 +101,12 @@ export function createPlugin(
   const surface = createModelSurface()
 
   return {
-    definition,
-    appConfig: {
-      registry,
-      engines: config.engines,
-    },
-    registerTools: (server) => {
-      // First: passthrough auth and the pipeline steps read it. Idempotent; the host installs it too.
-      installMcpRequestContext(server)
+    name: "camunda7",
+    register(server) {
+      const recorded = surface.record(server)
       // Strict input: a stripped misnamed filter would widen the result to the whole engine (#329).
       const register = withEngineParam(
-        withToolsetFilter(
-          createToolRegistrar(surface.record(server), registry, { strictInput: true }),
-          toolset,
-        ),
+        withToolsetFilter(createToolRegistrar(recorded, registry, { strictInput: true }), toolset),
         config.engines,
       )
       registerEngineTools(register, profileStore)
@@ -104,9 +114,6 @@ export function createPlugin(
       registerTools(register, { allowDeployments: config.allowDeployments })
       registerIncidentIssueTools(register, incidentIssueConfig)
       registerIncidentIssuePrompt(server, incidentIssueConfig)
-    },
-    registerWidgetTools: (server) => {
-      const recorded = surface.record(server)
       registerWidgetTools(recorded, registry, {
         healthThresholds: config.healthThresholds,
         profileStore,

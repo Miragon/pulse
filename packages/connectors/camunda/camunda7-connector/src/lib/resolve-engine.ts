@@ -54,13 +54,10 @@ export function createEngineRegistry(
 export class EngineNotSelectedError extends Error {
   readonly code = "ENGINE_NOT_SELECTED" as const
   readonly availableEngines: EngineEntry[]
-  constructor(
-    availableEngines: EngineEntry[],
-    { canSaveDefault = false, selector = "Pass `engine`" } = {},
-  ) {
+  constructor(availableEngines: EngineEntry[], { canSaveDefault = false } = {}) {
     const ids = availableEngines.map((e) => e.id).join(", ")
     super(
-      `No engine specified and no default engine saved. ${selector} — one of: ${ids}.` +
+      `No engine specified and no default engine saved. Pass \`engine\` — one of: ${ids}.` +
         (canSaveDefault
           ? " To route later calls without it, save a default with camunda7_select_engine."
           : ""),
@@ -133,34 +130,6 @@ export async function resolveEngine(
     }
     if (e instanceof UnknownBackendError)
       throw new UnknownEngineError(e.requestedId, registry.engines)
-    throw e
-  }
-}
-
-export interface Camunda7StepAppConfig {
-  registry: EngineRegistry
-  engines: EngineEntry[]
-}
-
-/** Steps have no `engine` argument, so the error names the `camunda7:engine` view key instead. */
-export async function resolveStepEngine(
-  appConfig: Camunda7StepAppConfig,
-  override?: string,
-): Promise<{
-  client: Client
-  engineId: string
-  baseUrl: string
-  cockpitUrl?: string
-  provider: EngineProvider
-}> {
-  try {
-    return await resolveEngine(override, appConfig.registry)
-  } catch (e) {
-    if (e instanceof EngineNotSelectedError) {
-      throw new EngineNotSelectedError(appConfig.registry.engines, {
-        selector: "Set the `camunda7:engine` view key",
-      })
-    }
     throw e
   }
 }

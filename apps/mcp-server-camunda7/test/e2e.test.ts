@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
+import { afterAll, beforeAll, describe, expect, it } from "vitest"
 import type { Client } from "@modelcontextprotocol/client"
 import { CAMUNDA7_ADMIN_ONLY_TOOLS } from "@miragon/pulse-camunda7-connector"
 import { bootServer, createTestRuntime, listToolNames, type BootedServer } from "./boot-server.js"
@@ -30,7 +30,7 @@ const FULL_SURFACE = {
  * persistence) and speaks the MCP protocol to it over streamable HTTP.
  * Together with the toolset suites below this is the only coverage of tool
  * *registration* — plugin.ts wiring, setup.ts module activation and the
- * framework tools — rather than the tool implementations.
+ * shell's tools — rather than the tool implementations.
  */
 describe("mcp-server-camunda7 E2E smoke", () => {
   let server: BootedServer
@@ -164,20 +164,12 @@ describe("mcp-server-camunda7 E2E smoke", () => {
       expect(typeof tool.annotations?.destructiveHint, tool.name).toBe("boolean")
     }
   })
-
-  it("answers get-framework-manifest with the active modules", async () => {
-    const result = await client.callTool({ name: "get-framework-manifest", arguments: {} })
-    expect(result.isError).toBeFalsy()
-    const manifest = JSON.stringify(textPayload(result))
-    expect(manifest).toContain("camunda7")
-    expect(manifest).toContain("analytics")
-  })
 })
 
 /**
  * The tool surface per toolset, on the wire: each boot resolves its selection
  * through `createApp` like `src/index.ts` (the shared boot's `resolveBoot` →
- * plugin config → registrar filter + builder decision), so the fail-closed
+ * plugin config → registrar filter + framework-write decision), so the fail-closed
  * defaults are pinned end to end, not just the filter in isolation. The
  * authenticated boots install a stub OAuth provider — the real bearer gate.
  */
@@ -203,19 +195,11 @@ describe("mcp-server-camunda7 E2E toolset surfaces", () => {
     ],
     ["explicit admin + deployments under OAuth", FULL_SURFACE, EXPECTED_TOOLS_ADMIN],
   ])("%s", async (_label, options, expected) => {
-    // mcp-use keeps the LAST registration of a tool name, so a duplicate makes
-    // one tool silently vanish; the toolkit's install guard (2.6+) reports it
-    // as a console warning naming both owners.
-    const warn = vi.spyOn(console, "warn")
+    // A duplicate tool name fails the boot, so a listed surface has none.
     const server = await bootServer(options)
     try {
       expect(await listToolNames(server.client)).toEqual([...expected])
-      const duplicates = warn.mock.calls
-        .map((args) => args.map(String).join(" "))
-        .filter((line) => line.includes("Duplicate tool name"))
-      expect(duplicates).toEqual([])
     } finally {
-      warn.mockRestore()
       await server.close()
     }
   })
@@ -265,10 +249,8 @@ describe("mcp-server-camunda7 E2E fail-closed guard", () => {
         for (const tool of CAMUNDA7_ADMIN_ONLY_TOOLS) {
           expect(names, `${tool} must not be listed`).not.toContain(tool)
         }
-        if (!authenticated) {
-          expect(names).not.toContain("save-dashboard")
-          expect(names).not.toContain("delete-dashboard")
-        }
+        // The framework write needs a caller identity.
+        if (!authenticated) expect(names).not.toContain("shell_save_settings")
       } finally {
         await server.close()
       }
@@ -314,14 +296,9 @@ describe("mcp-server-camunda7 E2E fail-closed guard", () => {
 
 /**
  * "read-only lists only readOnlyHint tools", on the wire — the module tools,
- * the widget tools and the framework tools alike. The ONLY exemptions are the
- * toolkit's `render-view` (model-visible) and `refresh-view` (app-only): both
- * are reads by construction (every registered pipeline step is a `load-*`
- * read) but ship unannotated in @miragon/mcp-toolkit-core 2.6, and a
- * view-bound tool cannot be re-registered app-side (mcp-toolkit#177).
+ * the widget tools and the shell's tools alike, without exemptions.
  */
 describe("mcp-server-camunda7 E2E read-only annotations", () => {
-  const UNANNOTATED_TOOLKIT_READS = new Set(["render-view", "refresh-view"])
   let server: BootedServer
 
   beforeAll(async () => {
@@ -332,13 +309,10 @@ describe("mcp-server-camunda7 E2E read-only annotations", () => {
     await server?.close()
   })
 
-  it("lists only readOnlyHint tools (minus the documented toolkit exemptions)", async () => {
+  it("lists only readOnlyHint tools", async () => {
     const { tools } = await server.client.listTools()
-    const unannotated = tools
-      .filter((t) => t.annotations?.readOnlyHint !== true)
-      .map((t) => t.name)
-      .sort()
-    expect(unannotated).toEqual([...UNANNOTATED_TOOLKIT_READS].sort())
+    const unannotated = tools.filter((t) => t.annotations?.readOnlyHint !== true).map((t) => t.name)
+    expect(unannotated).toEqual([])
   })
 
   it("lists the engines but never the durable camunda7_select_engine", async () => {

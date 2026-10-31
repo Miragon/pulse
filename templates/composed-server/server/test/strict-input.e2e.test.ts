@@ -8,23 +8,6 @@ import { stubNeutralEnv } from "./neutral-env.js"
 
 const FIXTURE_JS = path.join(import.meta.dirname, "fixtures", "mcp-app.js")
 
-/**
- * The toolkit's own framework tools (render-view & co.): registered by
- * `@miragon/mcp-toolkit-core` without a strict-input option, out of this
- * server's reach. Pinned by name so a MODULE tool can never slip into the
- * exemption.
- */
-const TOOLKIT_FRAMEWORK_TOOLS = [
-  "delete-dashboard",
-  "get-builder-catalogue",
-  "get-framework-manifest",
-  "list-dashboards",
-  "load-dashboard",
-  "refresh-view",
-  "render-view",
-  "save-dashboard",
-]
-
 const PROBE_KEY = "__strictInputProbe"
 
 interface WireTool {
@@ -32,7 +15,7 @@ interface WireTool {
   inputSchema: { properties?: Record<string, unknown>; additionalProperties?: unknown }
 }
 
-/** One module tool, probed once in the first boot that lists it. */
+/** One tool, probed once in the first boot that lists it. */
 interface ProbedTool {
   tool: WireTool
   /** The `MCP_ACTIVE_MODULES` selection of that boot. */
@@ -67,8 +50,8 @@ function toolsetSelections(): string[] {
 }
 
 /**
- * Boot the composed server on `selection` and probe every module tool not
- * probed yet with an unknown key. No toolset grants `camunda7_create_deployment`
+ * Boot the composed server on `selection` and probe every tool not probed
+ * yet with an unknown key. No toolset grants `camunda7_create_deployment`
  * on its own — it also needs the `CAMUNDA_ALLOW_DEPLOYMENTS` opt-in, so the
  * guard sets it.
  */
@@ -83,7 +66,7 @@ async function probeBoot(selection: string, probed: Map<string, ProbedTool>): Pr
     )
     const tools = (await client.listTools()).tools as unknown as WireTool[]
     for (const tool of tools) {
-      if (TOOLKIT_FRAMEWORK_TOOLS.includes(tool.name) || probed.has(tool.name)) continue
+      if (probed.has(tool.name)) continue
       const result = await client.callTool({ name: tool.name, arguments: { [PROBE_KEY]: true } })
       probed.set(tool.name, {
         tool,
@@ -99,8 +82,9 @@ async function probeBoot(selection: string, probed: Map<string, ProbedTool>): Pr
 }
 
 /**
- * Strict tool inputs across EVERY composed module, yours included, on EVERY
- * toolset it declares (see {@link toolsetSelections}). A non-strict input
+ * Strict tool inputs on EVERY listed tool: the shell's and every composed
+ * module's, yours included, on EVERY toolset it declares (see
+ * {@link toolsetSelections}). A non-strict input
  * schema lets the server STRIP an unknown key before the handler runs: a
  * misnamed optional filter then silently widens the result and the model
  * never learns. Registrar tools take `{ strictInput: true }`
@@ -131,10 +115,16 @@ describe("strict tool inputs on the wire (every module, every toolset)", () => {
     }
   })
 
-  it("covers the custom notes module next to the Miragon modules, write tools included (the guard is not vacuous)", () => {
+  it("covers the custom notes module next to the Miragon modules and the shell, write tools included (the guard is not vacuous)", () => {
     const names = [...probed.keys()]
     expect(names).toEqual(
-      expect.arrayContaining(["notes_list_notes", "notes_show_notes", "notes_list_data"]),
+      expect.arrayContaining([
+        "notes_list_notes",
+        "notes_show_notes",
+        "notes_list_data",
+        "shell_show_settings",
+        "shell_settings_data",
+      ]),
     )
     expect(names.some((name) => name.startsWith("camunda7_"))).toBe(true)
     expect(names.some((name) => name.startsWith("analytics_"))).toBe(true)
@@ -148,14 +138,14 @@ describe("strict tool inputs on the wire (every module, every toolset)", () => {
     )
   })
 
-  it("every module tool advertises additionalProperties: false", () => {
+  it("every tool advertises additionalProperties: false", () => {
     const open = [...probed.values()]
       .filter(({ tool }) => tool.inputSchema.additionalProperties !== false)
       .map(({ tool, selection }) => `${tool.name} (${selection})`)
     expect(open, "tools whose advertised input accepts unknown keys").toEqual([])
   })
 
-  it("every module tool refuses an unknown key with a tool error naming the valid keys", () => {
+  it("every tool refuses an unknown key with a tool error naming the valid keys", () => {
     const failures: string[] = []
     for (const { tool, selection, isError, text } of probed.values()) {
       const valid = Object.keys(tool.inputSchema.properties ?? {})

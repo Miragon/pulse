@@ -3,12 +3,11 @@ import path from "node:path"
 import {
   announcePersistence,
   createComposedServer,
-  frameworkWritesAllowed,
   oauthFromEnv,
   persistenceFromEnv,
   type ComposedServer,
 } from "@miragon/pulse-widget-shell/server"
-import { composition, createDashboardStore, createProfileStore, getPlugins } from "./setup.js"
+import { composition, createProfileStore, getPlugins } from "./setup.js"
 
 /** `src/` under tsx/vitest, `dist/` when compiled — the package root is one level up either way. */
 const PACKAGE_ROOT = path.join(import.meta.dirname, "..")
@@ -59,9 +58,9 @@ export async function createApp(
     },
     composition,
     env,
-    // MCP_OAUTH → the provider: the only caller identity (per-user settings
-    // and dashboards), and what raises the no-suffix toolsets above the
-    // read-only floor. Unset = unauthenticated, with a boot warning.
+    // MCP_OAUTH → the provider: the only caller identity (per-user settings),
+    // and what raises the no-suffix toolsets above the read-only floor.
+    // Unset = unauthenticated, with a boot warning.
     oauth: oauthFromEnv({ env, label: "acme-mcp" }),
     bundle: deps.bundle ?? {
       // Read ONCE at boot — after rebuilding the bundle, restart the server.
@@ -69,17 +68,11 @@ export async function createApp(
       cssPath: path.join(PACKAGE_ROOT, "dist", "mcp-app.css"),
     },
     setup: (boot) => {
-      // Logs the selection; a NODE_ENV=production boot on in-memory stores
+      // Logs the selection; a NODE_ENV=production boot on an in-memory store
       // warns loudly (settings vanish on every restart) but still boots.
-      // Dashboards only count once the builder is on (OAuth, no read-only module).
-      const { profiles, dashboards } = persistenceFromEnv(env)
-      announcePersistence(
-        { profiles, ...(frameworkWritesAllowed(boot) ? { dashboards } : {}) },
-        { env, label: "acme-mcp" },
-      )
+      announcePersistence(persistenceFromEnv(env), { env, label: "acme-mcp" })
       return {
         plugins: getPlugins(createProfileStore(env), boot),
-        dashboardStore: createDashboardStore(env),
         // Readiness covers the stores YOU wire (a `SELECT 1` round trip for a
         // database) — never upstreams like the engine or Prometheus.
         readiness: {},

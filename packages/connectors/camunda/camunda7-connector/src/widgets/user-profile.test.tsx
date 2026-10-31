@@ -10,7 +10,7 @@ import { UserProfileWidget } from "./user-profile.js"
 
 afterEach(() => {
   cleanup()
-  // Singleton client: one test's dashboard list must not leak into the next.
+  // Singleton client: one test's cached feed must not leak into the next.
   queryClient.clear()
 })
 
@@ -20,7 +20,6 @@ const VIEW: UserProfileView = {
     updatedAt: "2026-10-01T00:00:00.000Z",
     defaultEngineId: "prod-a",
     allowedEngineIds: [],
-    pinnedDashboardIds: [],
   },
   availableEngines: [
     { id: "prod-a", environment: "default" },
@@ -38,7 +37,7 @@ function viewWith(overrides: Partial<UserProfileView["profile"]>): UserProfileVi
   return { ...VIEW, profile: { ...VIEW.profile, ...overrides } }
 }
 
-function renderPanel(view: UserProfileView = VIEW, dashboards: unknown[] = []) {
+function renderPanel(view: UserProfileView = VIEW) {
   const saves: Array<Record<string, unknown>> = []
   const Panel: ComponentType<Record<string, unknown>> = () => <UserProfileWidget data={view} />
   render(
@@ -50,7 +49,6 @@ function renderPanel(view: UserProfileView = VIEW, dashboards: unknown[] = []) {
           saves.push(args)
           return { ...view.profile, ...args }
         },
-        "list-dashboards": { items: dashboards },
       }}
     />,
   )
@@ -114,11 +112,11 @@ describe("UserProfileWidget save — only what the user changed", () => {
   it("the one save bar: Save stays off until a change, Discard takes it back", () => {
     renderPanel()
     const bar = screen.getByRole("region", { name: "Save settings" })
-    expect(bar.textContent).toContain("Engines and dashboards are saved.")
+    expect(bar.textContent).toContain("Your engine settings are saved.")
     expect(screen.getByRole("button", { name: "Save" })).toHaveProperty("disabled", true)
     expect(screen.queryByRole("button", { name: "Discard changes" })).toBeNull()
     fireEvent.change(screen.getByLabelText("Default engine"), { target: { value: "prod-b" } })
-    expect(bar.textContent).toContain("Your changes to engines or dashboards aren't saved yet.")
+    expect(bar.textContent).toContain("Your engine settings aren't saved yet.")
     expect(screen.getByRole("button", { name: "Save" })).toHaveProperty("disabled", false)
     fireEvent.click(screen.getByRole("button", { name: "Discard changes" }))
     expect(screen.getByLabelText("Default engine")).toHaveProperty("value", "prod-a")
@@ -140,12 +138,6 @@ describe("UserProfileWidget save — only what the user changed", () => {
     expect(await save()).toEqual({ allowedEngineIds: [] })
   })
 
-  it("pins a dashboard as a change of its own", async () => {
-    const { save } = renderPanel(VIEW, [{ id: "d1", name: "Ops" }])
-    fireEvent.click(await screen.findByRole("checkbox", { name: "Ops" }))
-    expect(await save()).toEqual({ pinnedDashboardIds: ["d1"] })
-  })
-
   // Standalone, the view stays the ORIGINAL profile until a refetch (never, here), so the baseline
   // must advance per save, or reverting a saved change compares equal and saves nothing.
   it("a saved change can be reverted in the same standalone panel", async () => {
@@ -157,11 +149,12 @@ describe("UserProfileWidget save — only what the user changed", () => {
   })
 
   it("a second save sends only what changed since the first", async () => {
-    const { save } = renderPanel(VIEW, [{ id: "d1", name: "Ops" }])
+    const { save } = renderPanel()
     fireEvent.change(screen.getByLabelText("Default engine"), { target: { value: "prod-b" } })
     expect(await save()).toEqual({ defaultEngineId: "prod-b" })
-    fireEvent.click(await screen.findByRole("checkbox", { name: "Ops" }))
-    expect(await save()).toEqual({ pinnedDashboardIds: ["d1"] })
+    curate()
+    fireEvent.click(screen.getByRole("checkbox", { name: "prod-a" }))
+    expect(await save()).toEqual({ allowedEngineIds: ["prod-b"] })
   })
 
   // #322 U25: the role was a hint nothing read — the field is gone.
@@ -176,7 +169,7 @@ describe("UserProfileWidget save — only what the user changed", () => {
     const outline = screen
       .getAllByRole("heading")
       .map((h) => `${h.tagName.toLowerCase()} ${h.textContent}`)
-    expect(outline).toEqual(["h2 Engines and dashboards", "h3 Engines", "h3 Dashboards"])
+    expect(outline).toEqual(["h2 Engine settings", "h3 Engines"])
   })
 })
 
@@ -222,58 +215,5 @@ describe("the section where camunda7 is not active", () => {
       ).toBe("error"),
     )
     expect(container.textContent).toBe("")
-  })
-})
-
-// So an absent entry is a decision.
-async function dashboardsSettled() {
-  await waitFor(() =>
-    expect(
-      queryClient.getQueryCache().find({ queryKey: ["dashboards"], exact: false })?.state.status,
-    ).toBe("success"),
-  )
-}
-
-// Toolkit 2.6 lists unreadable records as `{ id, name: id, unreadable }`; `load-dashboard` refuses
-// them, so the picker must not offer one.
-describe("settings dashboard picker", () => {
-  const readable = { id: "d-ops", name: "ops", title: "Ops overview" }
-  const unreadable = {
-    id: "5b0c6f1e-unreadable",
-    name: "5b0c6f1e-unreadable",
-    unreadable: "schemaVersion 3 is newer than this server supports (2)",
-  }
-
-  it("offers readable dashboards as default and pin", async () => {
-    renderPanel(VIEW, [readable])
-    // One <option> in the default select, one pin checkbox label.
-    expect(await screen.findAllByText("Ops overview")).toHaveLength(2)
-  })
-
-  it("lists pinned dashboards first", async () => {
-    const pinned = { id: "d-pinned", name: "pinned", title: "Pinned board" }
-    renderPanel(viewWith({ pinnedDashboardIds: ["d-pinned"] }), [readable, pinned])
-    await screen.findAllByText("Pinned board")
-    expect(
-      screen
-        .getAllByRole("checkbox", { name: /board|overview/ })
-        .map((c) => c.closest("label")?.textContent),
-    ).toEqual(["Pinned board", "Ops overview"])
-  })
-
-  it("leaves unreadable dashboards out of the default select and the pins", async () => {
-    renderPanel(VIEW, [readable, unreadable])
-    expect(await screen.findAllByText("Ops overview")).toHaveLength(2)
-    expect(screen.queryByText(unreadable.name)).toBeNull()
-    expect(screen.getAllByRole("checkbox", { name: /Ops overview/ })).toHaveLength(1)
-  })
-
-  it("shows the empty state when every listed dashboard is unreadable", async () => {
-    renderPanel(VIEW, [unreadable])
-    await dashboardsSettled()
-    expect(
-      await screen.findByText("No saved dashboards yet. Have the chat build one and save it."),
-    ).toBeTruthy()
-    expect(screen.queryByText(unreadable.name)).toBeNull()
   })
 })

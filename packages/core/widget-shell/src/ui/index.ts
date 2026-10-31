@@ -35,7 +35,6 @@ export { countTone, severityTone } from "./count-tone.js"
 export { ConfirmDialog, type ConfirmDialogProps, type ConfirmTarget } from "./confirm-dialog.js"
 export { useActionFeedback, type ActionFeedback } from "./action-feedback.js"
 export { KometMark, AppEmptyState, KOMET_MIN_SIZE } from "./brand-mark.js"
-export { GenericKpiGridWidget, GenericDataTableWidget } from "./generic-widgets.js"
 export { QueryFallback, TableSkeleton } from "./query-fallback.js"
 export {
   formatDate,

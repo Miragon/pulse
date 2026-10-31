@@ -7,8 +7,8 @@ import { isModelVisible } from "./golden.js"
  * server STRIP an unknown key before the handler runs: a misnamed optional
  * filter (`processDefinitionKey` on a tool that only knows
  * `processDefinitionId`) then returned engine-wide results with no error, and
- * the model attributed them to the process it asked about. Every module tool
- * — model-facing tools AND the app-only `*_data` feeds, which our own widgets
+ * the model attributed them to the process it asked about. Every tool —
+ * model-facing tools AND the app-only `*_data` feeds, which our own widgets
  * call (a stale widget argument must surface as an error, not as quietly
  * unfiltered data) — must refuse an unknown key with a tool error that names
  * the valid keys, and advertise `additionalProperties: false`.
@@ -20,23 +20,6 @@ interface WireTool {
   _meta?: { ui?: { visibility?: unknown } } & Record<string, unknown>
 }
 
-/**
- * The toolkit's own framework tools (render-view, the dashboard builder, the
- * manifest): registered by `@miragon/mcp-toolkit-core` with no strict-input
- * option — reported upstream, out of this repo's reach. Pinned by name so a
- * MODULE tool can never slip into the exemption.
- */
-const TOOLKIT_FRAMEWORK_TOOLS = [
-  "delete-dashboard",
-  "get-builder-catalogue",
-  "get-framework-manifest",
-  "list-dashboards",
-  "load-dashboard",
-  "refresh-view",
-  "render-view",
-  "save-dashboard",
-]
-
 const PROBE_KEY = "__strictInputProbe"
 
 function errorText(result: unknown): string {
@@ -46,7 +29,7 @@ function errorText(result: unknown): string {
 
 describe("strict tool inputs on the wire (full surface)", () => {
   let server: BootedServer
-  let moduleTools: WireTool[]
+  let tools: WireTool[]
 
   beforeAll(async () => {
     server = await bootServer({
@@ -56,25 +39,20 @@ describe("strict tool inputs on the wire (full surface)", () => {
         CAMUNDA_ALLOW_DEPLOYMENTS: "true",
       },
     })
-    const { tools } = await server.client.listTools()
-    const all = tools as unknown as WireTool[]
-    moduleTools = all.filter((tool) => !TOOLKIT_FRAMEWORK_TOOLS.includes(tool.name))
-    expect(
-      all.filter((tool) => TOOLKIT_FRAMEWORK_TOOLS.includes(tool.name)).map((t) => t.name),
-    ).toEqual(expect.arrayContaining(["render-view", "get-framework-manifest"]))
+    tools = (await server.client.listTools()).tools
   })
 
   afterAll(async () => {
     await server?.close()
   })
 
-  it("covers every module tool, model-facing and app-only (the guard is not vacuous)", () => {
+  it("covers every tool, model-facing and app-only (the guard is not vacuous)", () => {
     // The modules' tools and the shell's settings triple.
-    expect(moduleTools.every((tool) => /^(camunda7|analytics|shell)_/.test(tool.name))).toBe(true)
-    expect(moduleTools.filter(isModelVisible).length).toBeGreaterThanOrEqual(70)
-    expect(moduleTools.filter((tool) => !isModelVisible(tool)).length).toBeGreaterThanOrEqual(15)
+    expect(tools.every((tool) => /^(camunda7|analytics|shell)_/.test(tool.name))).toBe(true)
+    expect(tools.filter(isModelVisible).length).toBeGreaterThanOrEqual(70)
+    expect(tools.filter((tool) => !isModelVisible(tool)).length).toBeGreaterThanOrEqual(15)
     // The split engine pair and the history/stacktrace reads (#340) are probed like the rest.
-    expect(moduleTools.map((tool) => tool.name)).toEqual(
+    expect(tools.map((tool) => tool.name)).toEqual(
       expect.arrayContaining([
         "camunda7_list_engines",
         "camunda7_select_engine",
@@ -84,8 +62,8 @@ describe("strict tool inputs on the wire (full surface)", () => {
     )
   })
 
-  it("every module tool advertises additionalProperties: false", () => {
-    const open = moduleTools
+  it("every tool advertises additionalProperties: false", () => {
+    const open = tools
       .filter((tool) => tool.inputSchema.additionalProperties !== false)
       .map((tool) => tool.name)
     expect(open, "tools whose advertised input accepts unknown keys").toEqual([])
@@ -95,7 +73,7 @@ describe("strict tool inputs on the wire (full surface)", () => {
   // name on one tool is REFUSED on the next tool that spells the same concept
   // differently. The naming guide (add-bpm-feature skill) names one spelling
   // per concept; these are the spellings it retired.
-  it("no module tool takes a name the naming guide replaced", () => {
+  it("no tool takes a name the naming guide replaced", () => {
     const RETIRED: Record<string, string> = {
       key: "processDefinitionKey",
       id: "<entity>Id",
@@ -104,7 +82,7 @@ describe("strict tool inputs on the wire (full surface)", () => {
       taskAssignee: "assignee",
       withIncidentsOnly: "withIncidents",
     }
-    const offenders = moduleTools.flatMap((tool) =>
+    const offenders = tools.flatMap((tool) =>
       Object.keys(tool.inputSchema.properties ?? {})
         .filter((param) => Object.hasOwn(RETIRED, param))
         .map((param) => `${tool.name}.${param} → ${RETIRED[param]}`),
@@ -112,9 +90,9 @@ describe("strict tool inputs on the wire (full surface)", () => {
     expect(offenders).toEqual([])
   })
 
-  it("every module tool refuses an unknown key with a tool error naming the valid keys", async () => {
+  it("every tool refuses an unknown key with a tool error naming the valid keys", async () => {
     const failures: string[] = []
-    for (const tool of moduleTools) {
+    for (const tool of tools) {
       const result = await server.client.callTool({
         name: tool.name,
         arguments: { [PROBE_KEY]: true },

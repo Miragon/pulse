@@ -6,14 +6,13 @@ import { frameworkWritesAllowed } from "@miragon/pulse-widget-shell/server"
 import {
   composition,
   emitBootWarnings,
-  getAppConfig,
   getPlugins,
   logEffectiveToolsets,
   resolveBoot,
   warnUnknownEnvVars,
 } from "../src/setup.js"
 import { createApp } from "../src/app.js"
-import { createTestRuntime } from "./boot-server.js"
+import { bootServer, createTestRuntime } from "./boot-server.js"
 import { REPO_ROOT, scanSources, type ScanOptions } from "./source-scan.js"
 
 const FILE_ENGINES = [{ id: "from-file", baseUrl: "http://file.example/engine-rest" }]
@@ -21,7 +20,7 @@ const JSON_ENGINES = [{ id: "from-json", baseUrl: "http://json.example/engine-re
 
 /** Engines the camunda7 module would boot with, as resolved from the current env. */
 function configuredEngines(): unknown {
-  const entry = getAppConfig().activeApps.find((e) => e.app === "camunda7")
+  const entry = resolveBoot().entries.find((e) => e.app === "camunda7")
   expect(entry, "camunda7 module should be active").toBeDefined()
   return (entry!.config as { engines?: unknown }).engines
 }
@@ -130,7 +129,7 @@ describe("setup.ts MCP_ACTIVE_MODULES module:toolset syntax", () => {
   })
 
   function activeApps() {
-    return getAppConfig().activeApps
+    return resolveBoot().entries
   }
 
   it("threads the suffix into the camunda7 config and the default into the suffix-less analytics", () => {
@@ -160,7 +159,14 @@ describe("setup.ts MCP_ACTIVE_MODULES module:toolset syntax", () => {
       camunda7: "operations",
       analytics: "standard",
     })
-    expect(getAppConfig(boot).activeApps).toBe(boot.entries)
+  })
+
+  it("composes the always-on shell first, then each active module under its name", () => {
+    vi.stubEnv("MCP_ACTIVE_MODULES", undefined)
+    expect(getPlugins().map((plugin) => plugin.name)).toEqual(["shell", "camunda7", "analytics"])
+
+    vi.stubEnv("MCP_ACTIVE_MODULES", "analytics")
+    expect(getPlugins().map((plugin) => plugin.name)).toEqual(["shell", "analytics"])
   })
 
   it.each(["camunda7:", "camunda7: ", "camunda7:bogus", "camunda7:admin:read-only"])(
@@ -191,19 +197,19 @@ describe("setup.ts MCP_ACTIVE_MODULES module:toolset syntax", () => {
     vi.stubEnv("MCP_URL", "https://mcp.example.com")
     const boot = async (raw: string | undefined) => {
       vi.stubEnv("MCP_OAUTH", raw)
-      const { boot: selection, builder } = await createApp(process.env, {
+      const { boot: selection } = await createApp(process.env, {
         runtime: createTestRuntime(),
         bundle: { jsPath: path.join(import.meta.dirname, "fixtures", "mcp-app.js") },
       })
       const toolsets = Object.fromEntries(selection.entries.map((e) => [e.app, e.config.toolset]))
-      return { toolsets, builder }
+      return { toolsets, frameworkWrites: frameworkWritesAllowed(selection) }
     }
 
     // Unset or blank MCP_OAUTH builds no provider → unauthenticated defaults.
     for (const raw of [undefined, "", "   "]) {
       expect(await boot(raw)).toEqual({
         toolsets: { camunda7: "read-only", analytics: "read-only" },
-        builder: false,
+        frameworkWrites: false,
       })
     }
 
@@ -214,7 +220,7 @@ describe("setup.ts MCP_ACTIVE_MODULES module:toolset syntax", () => {
     })
     expect(await boot(keycloak)).toEqual({
       toolsets: { camunda7: "operations", analytics: "standard" },
-      builder: true,
+      frameworkWrites: true,
     })
   })
 
@@ -231,7 +237,7 @@ describe("setup.ts MCP_ACTIVE_MODULES module:toolset syntax", () => {
     )
   })
 
-  it("enables the dashboard builder only under OAuth with no read-only module", () => {
+  it("allows the framework write (the language save) only under OAuth with no read-only module", () => {
     vi.stubEnv("MCP_ACTIVE_MODULES", undefined)
     expect(frameworkWritesAllowed(resolveBoot())).toBe(false)
     expect(frameworkWritesAllowed(resolveBoot({ authenticated: true }))).toBe(true)
@@ -265,50 +271,54 @@ describe("setup.ts MCP_ACTIVE_MODULES module:toolset syntax", () => {
 /**
  * #336 / N138: analytics reads only the server's configured engines — a
  * Prometheus is often shared across teams. The composition root hands it
- * camunda7's engine ids (analytics has no engine-SDK dependency).
+ * camunda7's engine ids (analytics has no engine-SDK dependency). Observed on
+ * the wire: analytics refuses an engine it does not cover, before any query,
+ * and the refusal names the engines it does cover.
  */
 describe("setup.ts scopes analytics to the configured engines", () => {
   beforeEach(() => {
     vi.spyOn(console, "warn").mockImplementation(() => {})
-    vi.stubEnv("MCP_ACTIVE_MODULES", undefined)
-    vi.stubEnv("CAMUNDA_ENGINES_FILE", undefined)
-    vi.stubEnv("CAMUNDA_ENGINES_JSON", undefined)
-    vi.stubEnv("CAMUNDA_BASE_URL", undefined)
-    vi.stubEnv("ANALYTICS_ENGINE_IDS", undefined)
   })
 
   afterEach(() => {
-    vi.unstubAllEnvs()
     vi.restoreAllMocks()
   })
 
-  /** The engine ids the booted analytics plugin covers. */
-  function analyticsEngines(): readonly string[] {
-    const plugin = getPlugins().find((p) => p.definition.name === "analytics")
-    expect(plugin, "analytics module should be active").toBeDefined()
-    return (plugin!.appConfig as { engineScope: { ids: readonly string[] } }).engineScope.ids
+  async function refusalOfAnUnknownEngine(env: Record<string, string>): Promise<string> {
+    const server = await bootServer({ env: { ANALYTICS_ENGINE_IDS: undefined, ...env } })
+    try {
+      const result = await server.client.callTool({
+        name: "analytics_engine_landscape",
+        arguments: { engine: "tenant-x" },
+      })
+      expect(result.isError).toBe(true)
+      return (result.content as Array<{ text?: string }>).map((c) => c.text ?? "").join("\n")
+    } finally {
+      await server.close()
+    }
   }
 
-  it("injects camunda7's configured engine ids", () => {
-    vi.stubEnv(
-      "CAMUNDA_ENGINES_JSON",
-      JSON.stringify([
+  it("injects camunda7's configured engine ids", async () => {
+    const refusal = await refusalOfAnUnknownEngine({
+      CAMUNDA_ENGINES_JSON: JSON.stringify([
         { id: "prod-a", baseUrl: "http://a.example/engine-rest" },
         { id: "prod-b", baseUrl: "http://b.example/engine-rest" },
       ]),
-    )
-    expect(analyticsEngines()).toEqual(["prod-a", "prod-b"])
+    })
+    expect(refusal).toContain("configured engines: prod-a, prod-b.")
   })
 
-  it("falls back to ANALYTICS_ENGINE_IDS when camunda7 is inactive", () => {
-    vi.stubEnv("MCP_ACTIVE_MODULES", "analytics")
-    vi.stubEnv("ANALYTICS_ENGINE_IDS", "prod-a,prod-c")
-    expect(analyticsEngines()).toEqual(["prod-a", "prod-c"])
+  it("falls back to ANALYTICS_ENGINE_IDS when camunda7 is inactive", async () => {
+    const refusal = await refusalOfAnUnknownEngine({
+      MCP_ACTIVE_MODULES: "analytics",
+      ANALYTICS_ENGINE_IDS: "prod-a,prod-c",
+    })
+    expect(refusal).toContain("configured engines: prod-a, prod-c.")
   })
 
-  it("boots analytics fail-closed — no engine readable — when neither names one", () => {
-    vi.stubEnv("MCP_ACTIVE_MODULES", "analytics")
-    expect(analyticsEngines()).toEqual([])
+  it("boots analytics fail-closed — no engine readable — when neither names one", async () => {
+    const refusal = await refusalOfAnUnknownEngine({ MCP_ACTIVE_MODULES: "analytics" })
+    expect(refusal).toContain("Analytics covers no engine")
     expect(console.warn).toHaveBeenCalledWith(expect.stringContaining("Analytics covers no engine"))
   })
 })
@@ -433,7 +443,7 @@ describe("setup.ts module boot hints", () => {
     vi.stubEnv("MCP_ACTIVE_MODULES", undefined)
     vi.stubEnv("PROMETHEUS_URL", "")
 
-    const analytics = getAppConfig().activeApps.find((e) => e.app === "analytics")
+    const analytics = resolveBoot().entries.find((e) => e.app === "analytics")
     expect((analytics?.config as { url?: string }).url).toBeUndefined()
   })
 })
@@ -448,11 +458,11 @@ describe("warnUnknownEnvVars", () => {
 
     const unknown = warnUnknownEnvVars({
       CAMUNDA_ENGINE_JSON: "[]",
-      MCP_DASHBOARDS_DIR: "./x",
+      MCP_PROFILES_DIR: "./x",
       CAMUNDA_BASE_URL: "http://ok.example",
     })
 
-    expect(unknown.sort()).toEqual(["CAMUNDA_ENGINE_JSON", "MCP_DASHBOARDS_DIR"])
+    expect(unknown.sort()).toEqual(["CAMUNDA_ENGINE_JSON", "MCP_PROFILES_DIR"])
     expect(warn).toHaveBeenCalledTimes(2)
   })
 

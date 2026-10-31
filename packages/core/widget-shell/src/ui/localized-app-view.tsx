@@ -4,12 +4,12 @@ import { useMemo, type ComponentProps } from "react"
 import { classifyError, describeError, type ErrorKind, type ErrorSource } from "./describe-error.js"
 import { useShellHost } from "./shell-host.js"
 
-/** Composed layouts whose widgets carry no heading: the view title is their one heading. */
-const COMPOSED_VIEW_TOOLS: ReadonlySet<string> = new Set(["render-view"])
-
-/** ONE title per view: a module's own view renders its widget heading, so the toolbar hides it. */
+/**
+ * ONE title per view: a module's view renders its widget heading, so the toolbar hides it. Where
+ * the host names no tool, the toolbar keeps it, so no view ends up untitled.
+ */
 export function viewTitleMode(toolName: string | undefined): ViewTitleMode {
-  return toolName === undefined || COMPOSED_VIEW_TOOLS.has(toolName) ? "show" : "hide"
+  return toolName === undefined ? "show" : "hide"
 }
 
 /** Every other kit hint says "try again", which a view can only keep where it offers Retry. */

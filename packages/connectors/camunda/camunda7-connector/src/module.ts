@@ -1,7 +1,6 @@
 import fs from "node:fs"
 import { z } from "zod"
-import type { AppPlugin } from "@miragon/mcp-toolkit-core"
-import type { MCPServer } from "mcp-use"
+import type { ModulePlugin } from "@miragon/pulse-widget-shell/server"
 import type { Client } from "@miragon/pulse-camunda7-client"
 import { createPlugin, type Camunda7SharedResources } from "./plugin.js"
 import { DEFAULT_ENGINE_FLAVOR, providerForEntry } from "./providers/index.js"
@@ -333,10 +332,7 @@ export const camunda7Module = {
     })
   },
 
-  createPlugin(
-    config: Record<string, unknown>,
-    shared: Camunda7SharedResources,
-  ): AppPlugin<MCPServer> {
+  createPlugin(config: Record<string, unknown>, shared: Camunda7SharedResources): ModulePlugin {
     return createPlugin(camunda7ConfigSchema.parse(config), { profileStore: shared.profileStore })
   },
 }

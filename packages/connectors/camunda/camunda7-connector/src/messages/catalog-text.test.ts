@@ -6,8 +6,6 @@ import { enSweep } from "./en.sweep.js"
 import { deSweep } from "./de.sweep.js"
 import { enAskAi } from "./en.ask-ai.js"
 import { deAskAi } from "./de.ask-ai.js"
-import { enBuilder } from "./en.builder.js"
-import { deBuilder } from "./de.builder.js"
 import { enFeedback } from "./en.feedback.js"
 import { deFeedback } from "./de.feedback.js"
 import { catalogs } from "./index.js"
@@ -25,8 +23,6 @@ describe("camunda7 copy follows the voice rules", () => {
     ["widgets (de)", deSweep, "de"],
     ["chat hand-offs (en)", enAskAi, "en"],
     ["chat hand-offs (de)", deAskAi, "de"],
-    ["view builder names (en)", enBuilder, "en"],
-    ["view builder names (de)", deBuilder, "de"],
     ["write toasts (en)", enFeedback, "en"],
     ["write toasts (de)", deFeedback, "de"],
   ] as const)("%s", (_, catalog, language) => {

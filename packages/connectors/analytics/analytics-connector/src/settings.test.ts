@@ -1,10 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { parseToolResult } from "@miragon/mcp-toolkit-ui"
 import type { MCPServer } from "mcp-use"
-import {
-  createInMemoryProfileStore,
-  runWithMcpRequestInfo,
-} from "@miragon/pulse-widget-shell/server"
+import { createInMemoryProfileStore } from "@miragon/pulse-widget-shell/server"
 import {
   analyticsSettingsSaveInput,
   analyticsSettingsSchema,
@@ -183,8 +180,8 @@ describe("registerSettingsTools", () => {
       registerSettingsTools({ tool } as unknown as MCPServer, writable, toolset)
       const handler = tool.mock.calls.find(
         (c) => (c[0] as { name: string }).name === "analytics_show_settings",
-      )![1] as () => Promise<ShowResult>
-      return runWithMcpRequestInfo({ authUserId: "user-7" }, () => handler())
+      )![1] as (params: unknown, ctx: unknown) => Promise<ShowResult>
+      return handler({}, { auth: { user: { id: "user-7" } } })
     }
     const defaults = { defaultPeriod: "7d", minBucketSize: 10 }
 

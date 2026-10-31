@@ -1,10 +1,10 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
+import type { MCPServer } from "mcp-use"
 import {
   createInMemoryProfileStore,
   runWithMcpRequestInfo,
 } from "@miragon/pulse-widget-shell/server"
 import { camunda7Module } from "./module.js"
-import { resolveEngine, type Camunda7StepAppConfig } from "./lib/resolve-engine.js"
 
 describe("camunda7Module.instructions", () => {
   const TWO = [
@@ -107,21 +107,21 @@ describe("camunda7Module.instructions", () => {
     ["read-only", true],
     ["read-only", false],
   ])("%s toolset, OAuth %s: instructions and ENGINE_NOT_SELECTED agree", async (toolset, oauth) => {
-    const config = { engines: TWO, toolset }
     const offersSave = snippet(TWO, toolset, oauth).includes("camunda7_select_engine")
-    const plugin = camunda7Module.createPlugin(config, {
-      profileStore: createInMemoryProfileStore(),
-    })
-    const { registry } = plugin.appConfig as unknown as Camunda7StepAppConfig
+    const tool = vi.fn()
+    const server = { tool, prompt: vi.fn() } as unknown as MCPServer
+    camunda7Module
+      .createPlugin({ engines: TWO, toolset }, { profileStore: createInMemoryProfileStore() })
+      .register(server)
+    const calls = tool.mock.calls as Array<
+      [{ name: string }, (args: unknown, ctx: unknown) => Promise<{ content: { text: string }[] }>]
+    >
+    const [, listInstances] = calls.find(([d]) => d.name === "camunda7_list_process_instances")!
     const call = oauth ? { auth: { user: { id: "user-1" } } } : {}
-    const error = await runWithMcpRequestInfo({}, () =>
-      resolveEngine(undefined, registry, call).then(
-        () => undefined,
-        (e: unknown) => e as Error,
-      ),
-    )
-    expect(error?.message).toMatch(/^No engine specified/)
-    expect(error?.message.includes("camunda7_select_engine")).toBe(offersSave)
+    const result = await runWithMcpRequestInfo({}, () => listInstances({}, call))
+    const message = result.content[0].text
+    expect(message).toMatch(/^\[ENGINE_NOT_SELECTED\] No engine specified/)
+    expect(message.includes("camunda7_select_engine")).toBe(offersSave)
     expect(offersSave).toBe(oauth && toolset !== "read-only")
   })
 })

@@ -36,22 +36,22 @@ operations and Prometheus-backed process analytics, including interactive React 
 (MCP Apps), plus a command line interface (`apps/cli`) and a VS Code extension (`apps/vscode`)
 for the same engines.
 
-| Path                                                 | Contents                                                                                                                                                                                                                        |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/mcp-server-camunda7/`                          | The MCP host: composes plugins, bundles the widget UI, serves HTTP on `:8400`                                                                                                                                                   |
-| `apps/cli/`                                          | The CLI (npm `@miragon/pulse-cli`): every REST operation of the engine as a command, generated from its OpenAPI spec, plus the workflow commands; its rules in `apps/cli/CLAUDE.md`                                             |
-| `apps/vscode/`                                       | Pulse for VS Code (`pulse-cockpit`, a .vsix): a Preact webview over an engine-neutral contract and core, the C7 adapter; its rules in `apps/vscode/CLAUDE.md`                                                                   |
-| `packages/connectors/camunda/camunda7-connector/`    | camunda7 module: operations tools, widget tools, widgets, pipeline steps                                                                                                                                                        |
-| `packages/connectors/analytics/analytics-connector/` | analytics module: Prometheus-backed tools, dashboards, comparison widgets                                                                                                                                                       |
-| `packages/connectors/camunda/camunda7-client/`       | Generated CIB seven REST SDK (`src/generated/`) + Zod input schemas (`src/schemas/`)                                                                                                                                            |
-| `packages/connectors/analytics/analytics-client/`    | Prometheus client + PromQL query functions (`src/queries/`) + Zod schemas                                                                                                                                                       |
-| `packages/core/widget-shell/`                        | Shared widget kit: UI primitives incl. `useApplyTheme` + the host app shell `AppShellProviders` (`/widgets`), `adaptDataWidget` (`/ui`), view + data-feed builders, the `shell:*` catalogue + the host-boot helpers (`/server`) |
-| `engine-plugins/`                                    | Kotlin/Gradle: CIB seven OTEL metrics plugin (Java 21)                                                                                                                                                                          |
-| `playground/`                                        | Demo env: CIB seven showcase engine, Compose stack, Fly.io deploy                                                                                                                                                               |
-| `docs/`                                              | Pulse docs, a VitePress site on GitHub Pages (getting started, usage, architecture, developer, operations)                                                                                                                      |
-| `docs/mcp/`                                          | The MCP server's pages of the docs site (getting started, usage, reference, operations, architecture, developer)                                                                                                                |
-| `docs/cli/`                                          | The CLI's pages of the docs site (install, commands, configuration, authentication, AI agents, development)                                                                                                                     |
-| `docs/vscode/`                                       | The VS Code extension's pages of the docs site (installation, configuration, usage, architecture)                                                                                                                               |
+| Path                                                 | Contents                                                                                                                                                                                                              |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/mcp-server-camunda7/`                          | The MCP host: composes plugins, bundles the widget UI, serves HTTP on `:8400`                                                                                                                                         |
+| `apps/cli/`                                          | The CLI (npm `@miragon/pulse-cli`): every REST operation of the engine as a command, generated from its OpenAPI spec, plus the workflow commands; its rules in `apps/cli/CLAUDE.md`                                   |
+| `apps/vscode/`                                       | Pulse for VS Code (`pulse-cockpit`, a .vsix): a Preact webview over an engine-neutral contract and core, the C7 adapter; its rules in `apps/vscode/CLAUDE.md`                                                         |
+| `packages/connectors/camunda/camunda7-connector/`    | camunda7 module: operations tools, widget tools, widgets                                                                                                                                                              |
+| `packages/connectors/analytics/analytics-connector/` | analytics module: Prometheus-backed tools, dashboards, comparison widgets                                                                                                                                             |
+| `packages/connectors/camunda/camunda7-client/`       | Generated CIB seven REST SDK (`src/generated/`) + Zod input schemas (`src/schemas/`)                                                                                                                                  |
+| `packages/connectors/analytics/analytics-client/`    | Prometheus client + PromQL query functions (`src/queries/`) + Zod schemas                                                                                                                                             |
+| `packages/core/widget-shell/`                        | Shared widget kit: UI primitives incl. `useApplyTheme` + the host app shell `AppShellProviders` (`/widgets`), `adaptDataWidget` (`/ui`), view + data-feed builders, the shell's settings tools + the boot (`/server`) |
+| `engine-plugins/`                                    | Kotlin/Gradle: CIB seven OTEL metrics plugin (Java 21)                                                                                                                                                                |
+| `playground/`                                        | Demo env: CIB seven showcase engine, Compose stack, Fly.io deploy                                                                                                                                                     |
+| `docs/`                                              | Pulse docs, a VitePress site on GitHub Pages (getting started, usage, architecture, developer, operations)                                                                                                            |
+| `docs/mcp/`                                          | The MCP server's pages of the docs site (getting started, usage, reference, operations, architecture, developer)                                                                                                      |
+| `docs/cli/`                                          | The CLI's pages of the docs site (install, commands, configuration, authentication, AI agents, development)                                                                                                           |
+| `docs/vscode/`                                       | The VS Code extension's pages of the docs site (installation, configuration, usage, architecture)                                                                                                                     |
 
 Three axes decide where code goes, and they stay apart:
 
@@ -211,20 +211,18 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    issues no session ids). A client you construct or cache yourself breaks multi-engine
    routing; `resolveEngine` (async) already returns `baseUrl`/`cockpitUrl`.
 
-3. **Widget registration is a four-link chain**; a widget that misses a link is silently
+3. **Widget registration is a three-link chain**; a widget that misses a link is silently
    absent somewhere:
    - `packages/connectors/camunda/camunda7-connector/src/widgets/registry.ts`: component →
      dataType via `adaptDataWidget`
-   - `packages/connectors/camunda/camunda7-connector/src/definition.ts`: widget metadata (`id`,
-     `requires`, `size`, `propsSchema`); people's texts come from the catalogs' `builder.*`
-     entries via `createBuilderTexts`, `description` stays the model's
-     (`src/builder-texts.test.ts`)
    - `apps/mcp-server-camunda7/src/ui/widget-registry.ts`: the host bundle map
    - `packages/connectors/camunda/camunda7-connector/src/tool-names.ts`: the tool-name constant
      for every `show_*`/`*_data` tool, so in-widget navigation stays rename-safe
 
-   Links 1↔2: `src/widgets/catalogue-sync.test.ts` in both modules; link 3:
-   `apps/mcp-server-camunda7/test/widget-registry.test.ts`.
+   A widget id exists only where a show tool or a static layout emits it, so
+   `apps/mcp-server-camunda7/test/widget-registry.test.ts` scans the connectors' sources for
+   every `widget: "<module>:<id>"` literal and fails both ways: on an id the host bundle map
+   lacks (an empty slot) and on a map entry nothing names (dead code in every view's bundle).
 
 4. **The `dedupe` array in `apps/mcp-server-camunda7/vite.config.ts` is load-bearing: never
    remove or trim it.** Without it each widget package bundles its own React/toolkit
@@ -241,10 +239,10 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      `buildDataFeedResult(data)`. SEP-1865 hosts hide them from the LLM, and a widget-tool
      result would be rendered by the host instead of returned to the in-widget `callTool()`.
 
-   All three take STRICT input (`strictInput: true`, `strictToolInput(…)`): an unknown key is
-   a tool error listing the valid keys, never a silently stripped filter
-   (`test/strict-input.e2e.test.ts` in the app). Parameter names follow the guide in the
-   add-bpm-feature skill.
+   Every tool takes STRICT input (`strictInput: true`, `strictToolInput(…)`), the shell's
+   included, with no exemption list: an unknown key is a tool error listing the valid keys,
+   never a silently stripped filter (`test/strict-input.e2e.test.ts` in the app). Parameter
+   names follow the guide in the add-bpm-feature skill.
 
 6. **MCP App widgets compose from the shared kit (`@miragon/pulse-widget-shell/widgets`) and
    the toolkit (`@miragon/mcp-toolkit-ui`); never re-inline their primitives.** This covers
@@ -328,8 +326,7 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
 7. **Shared server data paths are single-sourced.**
    - Definition name/version/instance lookups come from
      `packages/connectors/camunda/camunda7-connector/src/data/definition-info.ts`. Every
-     camunda7 view has ONE builder in `src/data/` behind its show tool, `*_data` feed and
-     pipeline step (`steps/steps.test.ts`).
+     camunda7 view has ONE builder in `src/data/` behind its show tool and its `*_data` feed.
    - Honest numbers (`data/engine-reads.ts`): **primary rows/counts propagate errors;
      enrichment degrades to `null` (rendered "—"), never 0**; totals come from `/count` or
      statistics, never a capped page or scan; a definition view spans every version of its key
@@ -356,13 +353,15 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      (`resolveCaller` over the handler `ctx`; always pass it): nothing a client chooses (a
      session id, a header) is a key, and a request without OAuth has NO identity (saves
      refuse), never the `anonymous` record, which only a declared local caller reaches.
-   - Persistence (`createSql`, `runMigrations`, `createPostgresDashboardStore`) lives in
-     widget-shell next to the profile store; the app's `src/persistence/index.ts` only selects
-     the backend (`DATABASE_URL` beats `MCP_PROFILE_DIR`/`MCP_DASHBOARD_DIR` beats in-memory).
-     Migration `name`s are the keys in `schema_migrations`: append-only, never renamed (a
-     rename re-runs the DDL on every database). A write that first-creates a row takes a
-     per-key `pg_advisory_xact_lock`: `SELECT … FOR UPDATE` cannot lock a row that does not
-     exist yet, so two concurrent first saves would both create and the second would win.
+   - Persistence (`createSql`, `runMigrations`) lives in widget-shell next to the profile
+     store; the app's `src/persistence/index.ts` only selects the backend (`DATABASE_URL`
+     beats `MCP_PROFILE_DIR` beats in-memory). Migration `name`s are the keys in
+     `schema_migrations`: never renamed (a rename re-runs the DDL on every database) and never
+     reused (a reused name is skipped as applied). A retired migration leaves the list:
+     `runMigrations` passes over an applied name it no longer knows. A write that first-creates
+     a row takes a per-key `pg_advisory_xact_lock`: `SELECT … FOR UPDATE` cannot lock a row
+     that does not exist yet, so two concurrent first saves would both create and the second
+     would win.
 
 8. **Modules are self-contained peers; an MCP server app is a thin composition root.** The
    package rules hold for every workspace package, the composition-root rules for MCP server
@@ -384,37 +383,42 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      `APP_PACKAGES`. A rule names all three shapes an import reaches it in (a relative escape,
      `<importer>/node_modules/<name>/`, a bare specifier) and never exempts a package's own
      directory in a `pathNot`.
-   - **The module port.** Each module exports its definition in `src/module.ts` (config
-     schema, `configFromEnv`, `knownEnvVars`, `toolsets`, `bootWarnings`, `instructions`, the
-     rules for every tool instead of 60 descriptions; plugin factory), conforming STRUCTURALLY
-     to `ComposableModule<TShared>`. The composition machinery (`composeModules`,
-     `MCP_ACTIVE_MODULES` with `module:toolset` suffixes, `resolveBoot`) lives in
-     `@miragon/pulse-widget-shell/server`. A root passes `authenticated` only when it actually
-     INSTALLED OAuth (`oauthFromEnv`), never inferred from an env var. Framework durable writes
-     (the toolkit builder's dashboard tools, `shell_save_settings`) register only when
+   - **The module port.** Each module exports its definition in `src/module.ts` (config schema,
+     `configFromEnv`, `knownEnvVars`, `toolsets`, `bootWarnings`, `instructions`, the rules for
+     every tool instead of 60 descriptions; plugin factory), conforming STRUCTURALLY to
+     `ComposableModule<TShared>`. Its `createPlugin(config, shared)` returns a `ModulePlugin`,
+     `{ name, register(server) }`: `register` puts every tool, prompt and resource of the module
+     on the server the boot owns, and `name` is the owner the duplicate guard names. The
+     composition machinery (`composeModules`, `MCP_ACTIVE_MODULES` with `module:toolset`
+     suffixes, `resolveBoot`) lives in `@miragon/pulse-widget-shell/server`. A root passes
+     `authenticated` only when it actually INSTALLED OAuth (`oauthFromEnv`), never inferred from
+     an env var. The shell's one durable write, `shell_save_settings`, registers only when
      `frameworkWritesAllowed(boot)` holds: OAuth installed AND no module on its read-only floor.
    - **The app composes, nothing more.** `setup.ts` declares the module list and wires
      `SharedResources` (profile store; `fetchBpmnXml`, camunda7's XML lookup for analytics;
      `engineIds`, the ONLY engines analytics reads, so analytics needs NO engine SDK). Widget
-     catalogues, components and boot plumbing live in packages; the bundle root is
-     `AppShellProviders` + `LocalizedAppView` (provider order load-bearing), the stylesheet the
-     toolkit's `theme.css` after `tailwindcss` (`test/ui-stylesheet.test.ts`).
-   - **One boot.** `createComposedServer` owns the boot order and the production listener.
-     Each MCP server app owns ONE `createApp(env, deps?)` (`src/app.ts`) that `src/index.ts`
-     AND the e2e suites boot, never a test-only re-implementation. Readiness probes the
-     server's OWN dependencies only, never engines or Prometheus; metric labels stay bounded
-     (tool catalogue + known routes, never users or arguments). The HTTP edge guard
+     components and boot plumbing live in packages; the bundle root is `AppShellProviders` +
+     `LocalizedAppView` (provider order load-bearing), the stylesheet the toolkit's `theme.css`
+     after `tailwindcss` (`test/ui-stylesheet.test.ts`).
+   - **One boot.** `createComposedServer` owns the boot order and the production listener. It
+     constructs the `MCPServer` itself and wraps `server.tool` before the first plugin
+     registers: a tool name two registrations share fails the boot naming both owners (`server`
+     for one outside a plugin), and every view-bound tool gets the server-wide view CSP defaults
+     (the served fonts' origin). Once every plugin has registered, it primes the one widget
+     bundle for every view. Each MCP server app owns ONE `createApp(env, deps?)` (`src/app.ts`)
+     that `src/index.ts` AND the e2e suites boot, never a test-only re-implementation. Readiness
+     probes the server's OWN dependencies only, never engines or Prometheus; metric labels stay
+     bounded (tool catalogue + known routes, never users or arguments). The HTTP edge guard
      (`resolveHttpEdgePolicy`) is DNS-rebinding protection that exempts `/health*` and
      `/metrics`; never swap it for mcp-use's `allowedHosts`, which guards those too.
-   - **Cross-module UI is tiered**: `shell:*` widgets via `props.dataKey`; raw tool-name
-     strings with graceful degradation (`process-incidents/flow.tsx` →
-     `analytics_bpmn_heatmap_data`); hard-composed views go in a dedicated package created with
-     the first real view, never in the app, never as module-to-module imports. The host bundle
-     is static, so a surface that needs another module probes one of its cheap feeds
-     (`useAnalyticsActive`). `apps/mcp-server-camunda7/test/tool-name-refs.test.ts` checks every
-     `<module>_…` literal against the booted tools; the apps the source guards read are listed
-     in `APP_SCAN` (`apps/mcp-server-camunda7/test/source-scan.ts`), where a new app adds its
-     entry.
+   - **Cross-module UI is tiered**: raw tool-name strings with graceful degradation
+     (`process-incidents/flow.tsx` → `analytics_bpmn_heatmap_data`); hard-composed views go in a
+     dedicated package created with the first real view, never in the app, never as
+     module-to-module imports. The host bundle is static, so a surface that needs another module
+     probes one of its cheap feeds (`useAnalyticsActive`).
+     `apps/mcp-server-camunda7/test/tool-name-refs.test.ts` checks every `<module>_…` literal
+     against the booted tools; the apps the source guards read are listed in `APP_SCAN`
+     (`apps/mcp-server-camunda7/test/source-scan.ts`), where a new app adds its entry.
    - **Settings.** The page is the shell's (#346, `createShellPlugin`). Each module owns its
      section (widget + `*_data` feed + save tool via `registerSettingsSection`; reference
      `analytics-connector/src/settings-tools.ts`) and persists under
@@ -578,6 +582,11 @@ fails. The one escape is a `Ratchet-Exception: <reason>` commit trailer in the b
 which turns the failures into warnings for the reviewer; never weaken the checker instead.
 `pnpm lint:package-scripts` holds a package's first configs: every package with `src/` has a
 `vitest.config.ts` and a `stryker.config.json` (except the apps `NO_MUTATION_APPS` exempts).
+
+**Mutation testing is paused while the MCP server is rebuilt** (owner decision, 2026-10-31;
+`scripts/mutation-pause.mjs`): the nightly run has no schedule, `lint:ratchets` skips the Stryker
+policies and `lint:package-scripts` neither requires nor checks a `stryker.config.json`. Spend no
+work on allowlists, break floors or mutants until the switch is back to `false`.
 
 Mutation testing runs nightly (`.github/workflows/mutation-nightly.yml`), never on a pull
 request (owner decision); locally `pnpm --fail-if-no-match --filter <package> exec stryker run`

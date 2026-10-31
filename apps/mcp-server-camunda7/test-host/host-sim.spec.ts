@@ -12,9 +12,8 @@ import { BROKEN_ENGINE, ENGINE_CONTROL_ENV, HEALTHY_ENGINE } from "./engines.js"
  * (`resources/read` of `ui://views/<tool>.html` from the real `createApp`,
  * embedding `dist/mcp-app.{js,css}`) in a sandboxed srcdoc iframe, behind a
  * minimal SEP-1865 host whose tool calls go to that same server. The
- * rendering tool is a real camunda7 show tool against a stub engine (or the
- * framework's `render-view`), so the view receives the real envelope and
- * data shape.
+ * rendering tool is a real camunda7 show tool against a stub engine, so the
+ * view receives the real envelope and data shape.
  *
  * Scenarios titled "pinned …" assert the CURRENT behaviour of a known defect
  * that lives outside this repo's fix scope; each names its issue. When the
@@ -781,6 +780,19 @@ test.describe("real camunda7 view (camunda7_show_process_list)", () => {
     expect(container.scrollHeight).toBeLessThanOrEqual(container.clientHeight)
   })
 
+  test("an inline view reports its own height, below the old 600 px floor (#339, K40)", async ({
+    page,
+  }) => {
+    const app = await openView(page)
+
+    await expectProcessList(app)
+    // The old html/body/#root floor reported 600 for every view. `settledHeight`
+    // waits for the report that equals the content's max-content height.
+    const reported = await settledHeight(page, app)
+    expect(reported).toBeLessThan(600)
+    expect(reported).toBeGreaterThan(200)
+  })
+
   test("host with fullscreen: the toggle requests it and follows the host's switch", async ({
     page,
   }) => {
@@ -1034,11 +1046,6 @@ const INLINE_WIDTH = 760
 /** A frame narrow enough that the job table is wider than its region. */
 const NARROW_WIDTH = 420
 
-/** A row of twelve unbroken values: far wider than any inline region. */
-const WIDE_ROW = Object.fromEntries(
-  Array.from({ length: 12 }, (_, i) => [`column${i + 1}`, `value${"x".repeat(24)}${i + 1}`]),
-)
-
 /**
  * Screenshots of the four 4 px strips just inside an element's box (top,
  * bottom, left, right), each without the corners: a focus indicator drawn
@@ -1224,39 +1231,36 @@ test.describe("layout at the inline width (760 px, U2/U20, WCAG 1.4.10)", () => 
     expect((await hostLog(page)).methods).toContain("ui/message")
   })
 
-  test("a table wider than its region scrolls inside it — the document never does", async ({
+  test("a table wider than its region scrolls inside it — its last column comes into view", async ({
     page,
   }) => {
-    const app = await openView(page, {
-      tool: "render-view",
-      width: INLINE_WIDTH,
-      args: {
-        title: "Wide",
-        keys: { "sim:wide": [WIDE_ROW, WIDE_ROW] },
-        layout: [{ row: [{ widget: "shell:data-table", props: { dataKey: "sim:wide" } }] }],
-      },
-    })
-    const region = app.getByRole("region", { name: "Data table" })
+    const app = await openView(page, { tool: "camunda7_show_job_panel", width: NARROW_WIDTH })
+    const region = app.getByRole("region", { name: "Jobs", exact: true })
     await expect(region).toBeVisible({ timeout: 15_000 })
-    const sizes = await region.evaluate((el) => ({
-      scroll: el.scrollWidth,
-      client: el.clientWidth,
-    }))
-    expect(sizes.scroll, "the table really overflows its region").toBeGreaterThan(sizes.client)
     const { scrollWidth, clientWidth } = await documentOverflow(app)
     expect(scrollWidth, "the document never scrolls sideways").toBeLessThanOrEqual(clientWidth)
-    // The card around it clips: without the region's own scroll, the last
-    // columns would be cut off out of reach while the document stays narrow.
-    const end = await region.evaluate((el) => {
-      el.scrollLeft = el.scrollWidth
-      const box = el.getBoundingClientRect()
-      const last = el.querySelector("tbody tr > :last-child")!.getBoundingClientRect()
-      return { scrolled: el.scrollLeft, lastRight: last.right, regionRight: box.right }
-    })
-    expect(end.scrolled, "the region itself scrolls").toBeGreaterThan(0)
-    expect(end.lastRight, "the last column scrolls into view").toBeLessThanOrEqual(
-      end.regionRight + 1,
+    // The last data column against the pinned row actions, at both ends of
+    // the region's scroll: without the region's own scroll it would stay
+    // under the actions, out of reach.
+    const lastColumn = (at: "start" | "end") =>
+      region.evaluate((el, side) => {
+        el.scrollLeft = side === "end" ? el.scrollWidth : 0
+        const cells = [...el.querySelectorAll("tbody tr:first-child > *")].filter(
+          (cell) => getComputedStyle(cell).display !== "none",
+        )
+        return {
+          scrolled: el.scrollLeft,
+          right: cells.at(-2)!.getBoundingClientRect().right,
+          actionsLeft: cells.at(-1)!.getBoundingClientRect().left,
+        }
+      }, at)
+    const start = await lastColumn("start")
+    expect(start.right, "the table really overflows its region").toBeGreaterThan(
+      start.actionsLeft + 1,
     )
+    const end = await lastColumn("end")
+    expect(end.scrolled, "the region itself scrolls").toBeGreaterThan(0)
+    expect(end.right, "the last column scrolls into view").toBeLessThanOrEqual(end.actionsLeft + 1)
   })
 
   test("a job table that overflows: the row actions stay at the region's right edge while it scrolls", async ({
@@ -1295,23 +1299,13 @@ test.describe("layout at the inline width (760 px, U2/U20, WCAG 1.4.10)", () => 
     }
   })
 
-  test("keyboard focus on a table region shows inside its box, even in a clipping card (WCAG 2.4.7)", async ({
-    page,
-  }) => {
-    // shell:data-table sits in an `overflow-hidden` card edge to edge; the
-    // job panel's region pins a column over its right edge.
+  test("keyboard focus on a table region shows inside its box (WCAG 2.4.7)", async ({ page }) => {
+    // The process list's region spans its card; the job panel's region pins a
+    // column over its right edge.
     const views = [
       {
-        scenario: {
-          tool: "render-view",
-          width: INLINE_WIDTH,
-          args: {
-            title: "Wide",
-            keys: { "sim:wide": [WIDE_ROW] },
-            layout: [{ row: [{ widget: "shell:data-table", props: { dataKey: "sim:wide" } }] }],
-          },
-        },
-        name: "Data table",
+        scenario: { width: INLINE_WIDTH },
+        name: "Deployed process definitions with version and status",
       },
       { scenario: { tool: "camunda7_show_job_panel", width: NARROW_WIDTH }, name: "Jobs" },
     ]
@@ -1358,32 +1352,6 @@ test.describe("layout at the inline width (760 px, U2/U20, WCAG 1.4.10)", () => 
       }))
       expect(violations, `${tool} (${theme})`).toEqual([])
     }
-  })
-})
-
-test.describe("framework view (render-view)", () => {
-  test("an inline KPI view sizes to its content — far below the old 600 px floor (#339, K40)", async ({
-    page,
-  }) => {
-    const app = await openView(page, {
-      tool: "render-view",
-      args: {
-        title: "Throughput",
-        keys: { "sim:kpis": { Running: 12, Incidents: 0, "Jobs due": 3 } },
-        layout: [{ row: [{ widget: "shell:kpi-grid", props: { dataKey: "sim:kpis" } }] }],
-      },
-    })
-
-    await expect(app.getByText("Jobs due")).toBeVisible({ timeout: 15_000 })
-    // A composed view's one title is the toolbar's (titleMode "show"); a
-    // module view's is its widget heading (titleMode "hide", unit-tested).
-    await expect(app.getByRole("heading", { name: "Throughput" })).toHaveCount(1)
-    // Toolbar + one KPI strip: ~130 px — below even the gate skeleton's
-    // ~208 px, so the settled report is the view's own. The old
-    // html/body/#root floor reported 600 for every view.
-    const reported = await settledHeight(page, app)
-    expect(reported).toBeLessThan(200)
-    expect(reported).toBeGreaterThan(60)
   })
 })
 

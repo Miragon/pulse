@@ -1,7 +1,7 @@
 # Boards
 
 - Status: accepted
-- Last reviewed: 2026-10-26
+- Last reviewed: 2026-10-31 (the MCP server dropped its saved dashboards)
 
 ## Context
 
@@ -18,13 +18,13 @@ decisions below in one round; a sixth review checked the result against the code
 What they found:
 
 - "Cockpit" names Camunda 7's web app; the extension already says "Open in Cockpit" and
-  [user-interface.md](user-interface.md) rejects the word. "Dashboards" is the MCP server's
-  different format, "Views" is a VS Code term.
-- The MCP dashboards (`render-view`, the builder, `shell:kpi-grid` / `shell:data-table`) live
-  in the toolkit and widget-shell: zod, React, data bound through `keys` and pipeline `steps`,
-  one engine per read. The extension may import none of it, and no second consumer would share
-  a `-domain` package. Only the layout grammar (`rows[].row[]` with `widget` and `props`) is
-  worth sharing as a convention.
+  [user-interface.md](user-interface.md) rejects the word. "Dashboards" names fixed views of
+  the MCP server (the incident and analytics dashboards), "Views" is a VS Code term.
+- The MCP server's saved dashboards of the time lived in the toolkit and widget-shell (zod,
+  React, one engine per read); the server has dropped them since and keeps only fixed layouts.
+  The extension may import none of it, and no second consumer would share a `-domain` package.
+  Only the layout grammar (`rows[].row[]` with `widget` and `props`) is worth sharing as a
+  convention.
 - Every read the widgets need already exists as a port method (`countInstances`,
   `searchInstances`, `listDefinitions`, `describeEngine`). `InstanceSummary` carries no
   variables, so `var:` columns would cost one detail read per row.
@@ -48,9 +48,9 @@ The editor validates with `apps/vscode/schemas/board.schema.json` (`jsonValidati
 the .vsix); `apps/vscode/test/architecture/board-schema.test.ts` holds it equal to
 `BoardVocabulary`.
 
-Not interchangeable with MCP dashboards: same layout grammar, different widgets, data binding
-and engine scope. No per-user boards, no interval in the file (a workspace file must not add
-load), no writes.
+Not interchangeable with the MCP server's layouts: same layout grammar, different widgets, data
+binding and engine scope. No per-user boards, no interval in the file (a workspace file must
+not add load), no writes.
 
 ### Reading
 
