@@ -1,58 +1,5 @@
 [
   {
-    "annotations": {
-      "idempotentHint": true,
-      "openWorldHint": true,
-      "readOnlyHint": true
-    },
-    "description": "Analyze process performance from metrics over a rolling window: starts, completions, incidents created (incidents, not failed instances) per 100 starts, P50/P95 duration of the instances that ENDED in the window (null when none did), and a per-activity breakdown.",
-    "inputSchema": {
-      "additionalProperties": false,
-      "properties": {
-        "engine": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            }
-          ],
-          "description": "Engine id(s) to scope to; omitted = all configured (see server instructions)"
-        },
-        "includeActivityBreakdown": {
-          "default": true,
-          "description": "Include per-activity bottleneck analysis",
-          "type": "boolean"
-        },
-        "period": {
-          "default": "7d",
-          "description": "Analysis time period",
-          "enum": [
-            "1d",
-            "3d",
-            "7d",
-            "14d",
-            "30d"
-          ],
-          "type": "string"
-        },
-        "processDefinitionKey": {
-          "description": "Process definition key to analyze",
-          "type": "string"
-        }
-      },
-      "required": [
-        "processDefinitionKey"
-      ],
-      "type": "object"
-    },
-    "name": "analytics_analyze_process_performance"
-  },
-  {
     "_meta": {
       "openai/widgetAccessible": true,
       "ui": {
@@ -160,245 +107,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Pre/Post deployment correlation from metrics. Given a deployment timestamp and windows before/after, compute instance KPIs per window and the delta, using PromQL historical windows. Windows are clamped to now and the 30-day retention and reported as measured (`windowDays`, `partial`) — right after a deploy the post window holds only the elapsed time; starts compare per day. Results are flagged `suppressed` if either window has fewer than minBucketSize started or completed instances. Typical flow: commit-hash → camunda7_get_deployment → deployment.timestamp → this tool.",
-    "inputSchema": {
-      "additionalProperties": false,
-      "properties": {
-        "activityId": {
-          "description": "Also count the incidents at this BPMN element (element_incident_*; optional)",
-          "type": "string"
-        },
-        "deploymentTimestamp": {
-          "description": "Deployment timestamp (ISO datetime). Pulled from camunda7_get_deployment.",
-          "type": "string"
-        },
-        "engine": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            }
-          ],
-          "description": "Engine id(s) to scope to; omitted = all configured (see server instructions)"
-        },
-        "minBucketSize": {
-          "default": 10,
-          "description": "Minimum started and completed instances per window before results are trusted",
-          "minimum": 1,
-          "type": "integer"
-        },
-        "processDefinitionKey": {
-          "description": "Restrict to a single process definition (optional)",
-          "type": "string"
-        },
-        "windowAfterDays": {
-          "default": 7,
-          "description": "Window size after the deployment, in days (max 30); clamped to now",
-          "maximum": 30,
-          "minimum": 1,
-          "type": "integer"
-        },
-        "windowBeforeDays": {
-          "default": 7,
-          "description": "Window size before the deployment, in days (max 30 — Prometheus retention)",
-          "maximum": 30,
-          "minimum": 1,
-          "type": "integer"
-        }
-      },
-      "required": [
-        "deploymentTimestamp"
-      ],
-      "type": "object"
-    },
-    "name": "analytics_cluster_compare"
-  },
-  {
-    "annotations": {
-      "idempotentHint": true,
-      "openWorldHint": true,
-      "readOnlyHint": true
-    },
-    "description": "Compare process execution metrics between two explicit time windows (before/after a change, regression analysis), using PromQL historical windows. Windows are clamped to now and the 30-day retention and reported as measured (`partial` when cut short); a reversed or wholly out-of-range window is refused. Compare windows of different length by started_per_day.",
-    "inputSchema": {
-      "additionalProperties": false,
-      "properties": {
-        "engine": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            }
-          ],
-          "description": "Engine id(s) to scope to; omitted = all configured (see server instructions)"
-        },
-        "includeActivityBreakdown": {
-          "default": false,
-          "description": "Include per-activity comparison",
-          "type": "boolean"
-        },
-        "periodAFrom": {
-          "description": "Period A start (ISO datetime)",
-          "type": "string"
-        },
-        "periodATo": {
-          "description": "Period A end (ISO datetime)",
-          "type": "string"
-        },
-        "periodBFrom": {
-          "description": "Period B start (ISO datetime)",
-          "type": "string"
-        },
-        "periodBTo": {
-          "description": "Period B end (ISO datetime)",
-          "type": "string"
-        },
-        "processDefinitionKey": {
-          "description": "Process definition key to compare",
-          "type": "string"
-        }
-      },
-      "required": [
-        "processDefinitionKey",
-        "periodAFrom",
-        "periodATo",
-        "periodBFrom",
-        "periodBTo"
-      ],
-      "type": "object"
-    },
-    "name": "analytics_compare_execution_periods"
-  },
-  {
-    "annotations": {
-      "idempotentHint": true,
-      "openWorldHint": true,
-      "readOnlyHint": true
-    },
-    "description": "Rank activities by execution-time contribution and incident rate over a rolling window, from process metrics. Activities with fewer than `minBucketSize` executions are suppressed. Note: queue/wait time is not available from metrics.",
-    "inputSchema": {
-      "additionalProperties": false,
-      "properties": {
-        "engine": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            }
-          ],
-          "description": "Engine id(s) to scope to; omitted = all configured (see server instructions)"
-        },
-        "maxResults": {
-          "default": 20,
-          "description": "Maximum number of activities to return",
-          "maximum": 100,
-          "minimum": 1,
-          "type": "integer"
-        },
-        "minBucketSize": {
-          "default": 10,
-          "description": "Minimum number of executions per activity before it is returned.",
-          "minimum": 1,
-          "type": "integer"
-        },
-        "period": {
-          "default": "7d",
-          "description": "Analysis time period",
-          "enum": [
-            "1d",
-            "3d",
-            "7d",
-            "14d",
-            "30d"
-          ],
-          "type": "string"
-        },
-        "processDefinitionKey": {
-          "description": "Process definition key to analyze",
-          "type": "string"
-        }
-      },
-      "required": [
-        "processDefinitionKey"
-      ],
-      "type": "object"
-    },
-    "name": "analytics_element_bottleneck"
-  },
-  {
-    "annotations": {
-      "idempotentHint": true,
-      "openWorldHint": true,
-      "readOnlyHint": true
-    },
-    "description": "Compare ONE process definition as it runs on two configured CIB Seven engines (e.g. prod-a vs prod-b) over a shared rolling window, from metrics. processDefinitionKey is required: engines host different process mixes, so comparing their whole workloads would measure the mix rather than the engines — holding the process fixed is what makes the delta attributable. Returns per engine starts, completions, incidents per 100 starts (with activityId also at that element) and avg/p95 duration of the instances that ENDED, plus the deltas. Flagged `suppressed` when either engine has fewer than minBucketSize started or completed instances. For the unscoped cross-engine picture (what runs where, load, job backlog, which keys are deployed on several engines) use analytics_engine_landscape first; its `sharedProcessKeys` are the valid inputs here.",
-    "inputSchema": {
-      "additionalProperties": false,
-      "properties": {
-        "activityId": {
-          "description": "Also count the incidents at this BPMN element (element_incident_*; optional).",
-          "type": "string"
-        },
-        "engineA": {
-          "description": "First engine id (the baseline).",
-          "minLength": 1,
-          "type": "string"
-        },
-        "engineB": {
-          "description": "Second engine id (the comparison).",
-          "minLength": 1,
-          "type": "string"
-        },
-        "minBucketSize": {
-          "default": 10,
-          "description": "Minimum instance count per engine before results are trusted.",
-          "minimum": 1,
-          "type": "integer"
-        },
-        "processDefinitionKey": {
-          "description": "The process definition key to compare on both engines — REQUIRED. Engines run different process mixes, so comparing their whole workloads measures the mix, not the engines; scoping to ONE process is what makes the delta attributable. Discover keys deployed on several engines in the `sharedProcessKeys` field of analytics_engine_landscape.",
-          "minLength": 1,
-          "type": "string"
-        },
-        "windowDays": {
-          "default": 14,
-          "description": "Look-back window applied to both engines, in days (max 30 — Prometheus retention).",
-          "maximum": 30,
-          "minimum": 1,
-          "type": "integer"
-        }
-      },
-      "required": [
-        "processDefinitionKey",
-        "engineA",
-        "engineB"
-      ],
-      "type": "object"
-    },
-    "name": "analytics_engine_compare"
-  },
-  {
-    "annotations": {
-      "idempotentHint": true,
-      "openWorldHint": true,
-      "readOnlyHint": true
-    },
-    "description": "Live operational health of the CIB Seven engine(s), from Prometheus state gauges: running WIP, open incidents by type, dead jobs (retries exhausted), executable/suspended job backlog, open/unassigned user tasks, external-task backlog, deployed definitions, and which alert rules are firing/pending. Names the engines judged and the silent ones (`silentEngines`: their counts read 0 because nothing arrives). Status: From Prometheus, over the engines in scope: unknown when none of them reports metrics; critical only while a severity=critical alert fires for them (fleet-wide also an engine-less CibSeven* alert); degraded with any such firing alert, dead job, open incident or an engine in scope that reports nothing; else healthy. Use for fleet-wide or metric-based health; for one engine's live incident clusters use camunda7_show_engine_health.",
+    "description": "Live operational health of the CIB Seven engine(s), from Prometheus state gauges: running WIP, open incidents by type, failed jobs (retries exhausted), executable/suspended job backlog, open/unassigned user tasks, external-task backlog, deployed definitions, and which alert rules are firing/pending. Names the engines judged and the silent ones (`silentEngines`: their counts read 0 because nothing arrives). Status: From Prometheus, over the engines in scope: unknown when none of them reports metrics; critical only while a severity=critical alert fires for them (fleet-wide also an engine-less CibSeven* alert); degraded with any such firing alert, failed job, open incident or an engine in scope that reports nothing; else healthy. Use for fleet-wide or metric-based health; for one engine's live incident clusters use camunda7_show_engine_health.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -420,35 +129,6 @@
       "type": "object"
     },
     "name": "analytics_engine_health"
-  },
-  {
-    "annotations": {
-      "idempotentHint": true,
-      "openWorldHint": true,
-      "readOnlyHint": true
-    },
-    "description": "Cross-engine overview of the process landscape: which process definitions run on which engine (the inventory matrix), the absolute load per engine (running instances, open incidents, failed jobs), and the engine-owned job backlog (executable/suspended/future-due jobs, open external tasks). Reports counts, not rates, on purpose — engines host different process mixes, so a per-engine failure rate or average duration measures the mix rather than the engine. The backlog gauges carry no process label and therefore DO compare across engines. Returns `sharedProcessKeys`: the definitions deployed on more than one engine, the only sound inputs for analytics_engine_compare. Covers the server's configured engines (omitted engine = all of them); an engine reporting no metrics at all comes back with `reporting: false`.",
-    "inputSchema": {
-      "additionalProperties": false,
-      "properties": {
-        "engine": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            }
-          ],
-          "description": "Engine ids to include; omitted = every configured engine. An engine that reports no metrics at all comes back with `reporting: false`."
-        }
-      },
-      "type": "object"
-    },
-    "name": "analytics_engine_landscape"
   },
   {
     "_meta": {
@@ -487,50 +167,6 @@
     },
     "name": "analytics_engine_landscape_data",
     "title": "Engine landscape data (internal)"
-  },
-  {
-    "annotations": {
-      "idempotentHint": true,
-      "openWorldHint": true,
-      "readOnlyHint": true
-    },
-    "description": "List currently-open incident patterns from process metrics, grouped by incident type and process definition (point-in-time — what is failing right now; no message, activity or timestamps). Use for counts across engines; for the actual failed instances (ids, messages) use camunda7_list_incidents, for past ones camunda7_query_historic_incidents.",
-    "inputSchema": {
-      "additionalProperties": false,
-      "properties": {
-        "engine": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            }
-          ],
-          "description": "Engine id(s) to scope to; omitted = all configured (see server instructions)"
-        },
-        "incidentType": {
-          "description": "Filter by incident type (e.g. failedJob)",
-          "type": "string"
-        },
-        "maxResults": {
-          "default": 20,
-          "description": "Maximum results",
-          "exclusiveMinimum": 0,
-          "maximum": 100,
-          "type": "integer"
-        },
-        "processDefinitionKey": {
-          "description": "Filter by process definition key",
-          "type": "string"
-        }
-      },
-      "type": "object"
-    },
-    "name": "analytics_find_failed_instances"
   },
   {
     "_meta": {
@@ -600,88 +236,6 @@
   },
   {
     "_meta": {
-      "openai/outputTemplate": "ui://views/analytics_show_cluster_compare.html",
-      "openai/resultCanProduceWidget": true,
-      "openai/toolInvocation/invoked": "Pre/Post Deployment Comparison ready",
-      "openai/toolInvocation/invoking": "Loading Pre/Post Deployment Comparison…",
-      "openai/widgetAccessible": true,
-      "ui": {
-        "resourceUri": "ui://views/analytics_show_cluster_compare.html"
-      },
-      "ui/resourceUri": "ui://views/analytics_show_cluster_compare.html"
-    },
-    "annotations": {
-      "idempotentHint": true,
-      "openWorldHint": true,
-      "readOnlyHint": true
-    },
-    "description": "Visualize before/after KPI deltas around a deployment timestamp. Windows are clamped to now and the retention (flagged `partial`; starts compare per day). Results are flagged `suppressed` when either window has fewer than minBucketSize started or completed instances.",
-    "inputSchema": {
-      "additionalProperties": false,
-      "properties": {
-        "activityId": {
-          "description": "Also count the incidents at this BPMN element (element_incident_*; optional)",
-          "type": "string"
-        },
-        "deploymentTimestamp": {
-          "description": "Deployment timestamp (ISO datetime). Pulled from camunda7_get_deployment.",
-          "type": "string"
-        },
-        "engine": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            }
-          ],
-          "description": "Engine id(s) to scope to; omitted = all configured (see server instructions)"
-        },
-        "minBucketSize": {
-          "default": 10,
-          "description": "Minimum started and completed instances per window before results are trusted",
-          "minimum": 1,
-          "type": "integer"
-        },
-        "processDefinitionKey": {
-          "description": "Restrict to a single process definition (optional)",
-          "type": "string"
-        },
-        "windowAfterDays": {
-          "default": 7,
-          "description": "Window size after the deployment, in days (max 30); clamped to now",
-          "maximum": 30,
-          "minimum": 1,
-          "type": "integer"
-        },
-        "windowBeforeDays": {
-          "default": 7,
-          "description": "Window size before the deployment, in days (max 30 — Prometheus retention)",
-          "maximum": 30,
-          "minimum": 1,
-          "type": "integer"
-        }
-      },
-      "required": [
-        "deploymentTimestamp"
-      ],
-      "type": "object"
-    },
-    "name": "analytics_show_cluster_compare",
-    "outputSchema": {
-      "$schema": "https://json-schema.org/draft/2020-12/schema",
-      "additionalProperties": {},
-      "properties": {},
-      "type": "object"
-    },
-    "title": "Pre/Post Deployment Comparison"
-  },
-  {
-    "_meta": {
       "openai/outputTemplate": "ui://views/analytics_show_dashboard.html",
       "openai/resultCanProduceWidget": true,
       "openai/toolInvocation/invoked": "Process Analytics Dashboard ready",
@@ -697,7 +251,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Show process metrics from Prometheus: flows within the period (starts, completions, incidents created/resolved, durations of the instances that ended) and the live state right now (instances running, incidents open), per process definition and per (process, activity).",
+    "description": "Show process metrics from Prometheus for a rolling period: starts, completions, incidents created (not failed instances) and resolved, avg/median/p95 duration of the instances that ENDED in it (null when none did), the period before as reference, and the live state now (instances running, incidents open). Broken down per process definition and per (process, activity): executions, total/avg/median/p95 time and incidents created (unscoped: the top 20 by total time).",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -760,12 +314,12 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Visualize KPI deltas for ONE process definition as it runs on two configured CIB Seven engines (e.g. prod-a vs prod-b) over a shared time window. processDefinitionKey is required — engines host different process mixes, so an unscoped engine-vs-engine comparison would measure the mix, not the engines. Results are flagged `suppressed` when either engine has fewer than minBucketSize started or completed instances. For the cross-engine picture use analytics_show_engine_landscape.",
+    "description": "Compare ONE process definition on two configured engines (e.g. prod-a vs prod-b) over a shared rolling window: starts, completions, incidents per 100 starts (with activityId also at that element), avg/median/p95 duration of the instances that ENDED, plus the deltas. processDefinitionKey is required: engines host different process mixes, so comparing whole workloads would measure the mix, not the engines. Flagged `suppressed` when either engine has fewer than minBucketSize started or completed instances. Valid keys are the `sharedProcessKeys` of analytics_show_engine_landscape.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
         "activityId": {
-          "description": "Also count the incidents at this BPMN element (element_incident_*; optional).",
+          "description": "Also count the incidents at this BPMN element (elementIncident*; optional).",
           "type": "string"
         },
         "engineA": {
@@ -780,18 +334,18 @@
         },
         "minBucketSize": {
           "default": 10,
-          "description": "Minimum instance count per engine before results are trusted.",
+          "description": "Minimum started and completed instances per engine",
           "minimum": 1,
           "type": "integer"
         },
         "processDefinitionKey": {
-          "description": "The process definition key to compare on both engines — REQUIRED. Engines run different process mixes, so comparing their whole workloads measures the mix, not the engines; scoping to ONE process is what makes the delta attributable. Discover keys deployed on several engines in the `sharedProcessKeys` field of analytics_engine_landscape.",
+          "description": "The process definition key to compare on both engines, REQUIRED: engines run different process mixes, so comparing their whole workloads measures the mix, not the engines. Keys deployed on several engines are the `sharedProcessKeys` of analytics_show_engine_landscape.",
           "minLength": 1,
           "type": "string"
         },
         "windowDays": {
           "default": 14,
-          "description": "Look-back window applied to both engines, in days (max 30 — Prometheus retention).",
+          "description": "Look-back window applied to both engines, in days (max 30: Prometheus retention).",
           "maximum": 30,
           "minimum": 1,
           "type": "integer"
@@ -830,7 +384,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Show the cross-engine process landscape of the configured engines: which process definitions run on which engine, the absolute load per engine (running instances, open incidents, failed jobs) and the engine-owned job backlog. Counts, not rates — engines host different process mixes, so per-engine rates would measure the mix. Highlights the definitions deployed on several engines, the only sound targets for analytics_show_engine_compare.",
+    "description": "Show the cross-engine landscape of the configured engines: which process definitions run on which engine, the load per engine (running instances, open incidents, failed jobs) and the engine-owned job backlog (executable, suspended and future-due jobs, open external tasks). Counts, not rates: engines host different process mixes, so a per-engine rate would measure the mix; the backlog gauges carry no process label and do compare. `sharedProcessKeys` (deployed on several engines) are the only sound inputs for analytics_show_engine_compare; an engine without metrics has `reporting: false`.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -862,25 +416,29 @@
   },
   {
     "_meta": {
-      "openai/outputTemplate": "ui://views/analytics_show_failure_dashboard.html",
+      "openai/outputTemplate": "ui://views/analytics_show_period_compare.html",
       "openai/resultCanProduceWidget": true,
-      "openai/toolInvocation/invoked": "Failure Analysis Dashboard ready",
-      "openai/toolInvocation/invoking": "Loading Failure Analysis Dashboard…",
+      "openai/toolInvocation/invoked": "Period Comparison ready",
+      "openai/toolInvocation/invoking": "Loading Period Comparison…",
       "openai/widgetAccessible": true,
       "ui": {
-        "resourceUri": "ui://views/analytics_show_failure_dashboard.html"
+        "resourceUri": "ui://views/analytics_show_period_compare.html"
       },
-      "ui/resourceUri": "ui://views/analytics_show_failure_dashboard.html"
+      "ui/resourceUri": "ui://views/analytics_show_period_compare.html"
     },
     "annotations": {
       "idempotentHint": true,
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Show the incidents open right now from Prometheus, grouped by incident type and process definition (no activity, message or timestamps), with each affected process's running instances and dead jobs. Use to show the metric view to the user; for one engine's live incident clusters use camunda7_show_engine_health.",
+    "description": "Compare process KPIs of two periods: A is the baseline, B the candidate (around a deployment, A ends and B starts at its timestamp from camunda7_get_deployment). Per period: starts and starts per day, completions, incidents per 100 starts (with activityId also at that element), avg/median/p95 duration of the instances that ENDED, plus the deltas. Periods are clamped to now and the 30-day retention and reported as measured (`partial`); a reversed or wholly out-of-range period is refused. Flagged `suppressed` when either period has fewer than minBucketSize started or completed instances.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
+        "activityId": {
+          "description": "Also count the incidents at this BPMN element (elementIncident*; optional)",
+          "type": "string"
+        },
         "engine": {
           "anyOf": [
             {
@@ -894,18 +452,50 @@
             }
           ],
           "description": "Engine id(s) to scope to; omitted = all configured (see server instructions)"
+        },
+        "minBucketSize": {
+          "default": 10,
+          "description": "Minimum started and completed instances per period",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "periodAFrom": {
+          "description": "Period A (the baseline) start, ISO datetime",
+          "type": "string"
+        },
+        "periodATo": {
+          "description": "Period A end, ISO datetime",
+          "type": "string"
+        },
+        "periodBFrom": {
+          "description": "Period B start, ISO datetime",
+          "type": "string"
+        },
+        "periodBTo": {
+          "description": "Period B end, ISO datetime; clamped to now",
+          "type": "string"
+        },
+        "processDefinitionKey": {
+          "description": "Restrict to a single process definition (optional)",
+          "type": "string"
         }
       },
+      "required": [
+        "periodAFrom",
+        "periodATo",
+        "periodBFrom",
+        "periodBTo"
+      ],
       "type": "object"
     },
-    "name": "analytics_show_failure_dashboard",
+    "name": "analytics_show_period_compare",
     "outputSchema": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "additionalProperties": {},
       "properties": {},
       "type": "object"
     },
-    "title": "Failure Analysis Dashboard"
+    "title": "Period Comparison"
   },
   {
     "_meta": {
@@ -924,7 +514,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Visualize KPI deltas between two deployed versions of the same processDefinitionKey within a shared time window. Instance counts and durations are exact per version; the incident rates show as n/a — the incident metric carries no version label, so they are not measured per version (never read them as zero). Results are flagged `suppressed` when either version has fewer than minBucketSize started or completed instances.",
+    "description": "Compare KPIs of two deployed versions of one processDefinitionKey over a shared rolling window. The version is an exact label on the instance and incident series, so starts, completions, incidents, incidents per 100 starts and avg/median/p95 duration per version and their deltas are exact; the comparison is process-wide (no element scope). Flagged `suppressed` when either version has fewer than minBucketSize started or completed instances. Find versions with camunda7_list_process_definitions.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -944,12 +534,12 @@
         },
         "minBucketSize": {
           "default": 10,
-          "description": "Minimum instance count per version before results are trusted.",
+          "description": "Minimum started and completed instances per version",
           "minimum": 1,
           "type": "integer"
         },
         "processDefinitionKey": {
-          "description": "Process definition key — versions are only meaningful within a single key.",
+          "description": "Process definition key; versions are only meaningful within a single key.",
           "minLength": 1,
           "type": "string"
         },
@@ -965,7 +555,7 @@
         },
         "windowDays": {
           "default": 14,
-          "description": "Look-back window applied to both versions, in days (max 30 — Prometheus retention).",
+          "description": "Look-back window applied to both versions, in days (max 30: Prometheus retention).",
           "maximum": 30,
           "minimum": 1,
           "type": "integer"
@@ -986,68 +576,6 @@
       "type": "object"
     },
     "title": "Process Version Comparison"
-  },
-  {
-    "annotations": {
-      "idempotentHint": true,
-      "openWorldHint": true,
-      "readOnlyHint": true
-    },
-    "description": "Compare KPIs between two deployed process definition versions of the same processDefinitionKey over a shared rolling window, from metrics. The version is an exact label on the process-instance and incident series, so instance counts, completed counts, incidents, the incident rate and durations (avg, p95) per version plus their deltas are precise. Process-wide: the element_incident_* fields stay null. Flagged `suppressed` when either version has fewer than minBucketSize started or completed instances. Pair with camunda7_list_process_definitions to discover versions.",
-    "inputSchema": {
-      "additionalProperties": false,
-      "properties": {
-        "engine": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            }
-          ],
-          "description": "Engine id(s) to scope to; omitted = all configured (see server instructions)"
-        },
-        "minBucketSize": {
-          "default": 10,
-          "description": "Minimum instance count per version before results are trusted.",
-          "minimum": 1,
-          "type": "integer"
-        },
-        "processDefinitionKey": {
-          "description": "Process definition key — versions are only meaningful within a single key.",
-          "minLength": 1,
-          "type": "string"
-        },
-        "versionA": {
-          "description": "First process definition version (the baseline).",
-          "minimum": 1,
-          "type": "integer"
-        },
-        "versionB": {
-          "description": "Second process definition version (the candidate).",
-          "minimum": 1,
-          "type": "integer"
-        },
-        "windowDays": {
-          "default": 14,
-          "description": "Look-back window applied to both versions, in days (max 30 — Prometheus retention).",
-          "maximum": 30,
-          "minimum": 1,
-          "type": "integer"
-        }
-      },
-      "required": [
-        "processDefinitionKey",
-        "versionA",
-        "versionB"
-      ],
-      "type": "object"
-    },
-    "name": "analytics_version_compare"
   },
   {
     "_meta": {

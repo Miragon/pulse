@@ -39,7 +39,7 @@ export type HistoryActivity = HistoryTimelineData["activities"][number]
 
 type TimelineInstance = NonNullable<HistoryTimelineData["processInstance"]>
 
-/** The baseline is read by key, which the history query refuses, so the key goes with the analytics tools. */
+/** The baseline is read by key, which the history query refuses, so the key goes with the analytics dashboard. */
 export function explainInstanceHandOff(
   instance: TimelineInstance,
   engineId: string | undefined,
@@ -52,18 +52,11 @@ export function explainInstanceHandOff(
       processInstanceId: instance.id,
     },
     toolIds: {
-      analytics_element_bottleneck: { processDefinitionKey: instance.processDefinitionKey },
-      analytics_analyze_process_performance: {
-        processDefinitionKey: instance.processDefinitionKey,
-      },
+      analytics_show_dashboard: { processDefinitionKey: instance.processDefinitionKey },
     },
     facts: { durationMs: instance.durationInMillis, state: instance.state, activityCount },
     untrusted: [{ label: "processName", text: instance.processDefinitionName }],
-    tools: [
-      "camunda7_query_historic_activity_instances",
-      "analytics_element_bottleneck",
-      "analytics_analyze_process_performance",
-    ],
+    tools: ["camunda7_query_historic_activity_instances", "analytics_show_dashboard"],
   }
 }
 
@@ -85,20 +78,13 @@ export function explainActivityHandOff(
       activityId: activity.activityId,
     },
     toolIds: {
-      analytics_element_bottleneck: {
-        processDefinitionKey: instance?.processDefinitionKey ?? undefined,
-      },
-      analytics_analyze_process_performance: {
+      analytics_show_dashboard: {
         processDefinitionKey: instance?.processDefinitionKey ?? undefined,
       },
     },
     facts: { durationMs: activity.durationInMillis, activityType: activity.activityType },
     untrusted: [{ label: "activityName", text: activity.activityName }],
-    tools: [
-      "camunda7_query_historic_activity_instances",
-      "analytics_element_bottleneck",
-      "analytics_analyze_process_performance",
-    ],
+    tools: ["camunda7_query_historic_activity_instances", "analytics_show_dashboard"],
   }
 }
 
@@ -358,7 +344,7 @@ export function describeHistoryTimeline(data: HistoryTimelineData): ViewContext 
       engine: data.engineId,
       processInstanceId: pi?.id,
     },
-    toolIds: { analytics_element_bottleneck: { processDefinitionKey: pi?.processDefinitionKey } },
+    toolIds: { analytics_show_dashboard: { processDefinitionKey: pi?.processDefinitionKey } },
     facts: {
       state: pi?.state,
       activities: data.totalActivities,
@@ -367,7 +353,7 @@ export function describeHistoryTimeline(data: HistoryTimelineData): ViewContext 
       stillRunning: pi ? pi.endTime === null : undefined,
     },
     untrusted: [{ label: "processName", text: pi?.processDefinitionName }],
-    tools: ["camunda7_query_historic_activity_instances", "analytics_element_bottleneck"],
+    tools: ["camunda7_query_historic_activity_instances", "analytics_show_dashboard"],
   }
 }
 

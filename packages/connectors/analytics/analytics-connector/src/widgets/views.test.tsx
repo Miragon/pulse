@@ -25,39 +25,14 @@ vi.mock("./analytics-dashboard/definition-breakdown.js", () => ({
 vi.mock("./analytics-dashboard/activity-bottleneck-table.js", () => ({
   ActivityBottleneckTable: widget("ActivityBottleneckTable"),
 }))
-vi.mock("./failure-dashboard/summary-kpi.js", () => ({
-  FailureSummaryKpi: widget("FailureSummaryKpi"),
-}))
-vi.mock("./failure-dashboard/error-patterns-table.js", () => ({
-  ErrorPatternsTable: widget("ErrorPatternsTable"),
-}))
-vi.mock("./failure-dashboard/failure-rate-table.js", () => ({
-  FailureRateTable: widget("FailureRateTable"),
-}))
-vi.mock("./cluster-compare.js", () => ({ ClusterCompareWidget: widget("ClusterCompareWidget") }))
+vi.mock("./period-compare.js", () => ({ PeriodCompareWidget: widget("PeriodCompareWidget") }))
 vi.mock("./version-compare.js", () => ({ VersionCompareWidget: widget("VersionCompareWidget") }))
 vi.mock("./engine-compare.js", () => ({ EngineCompareWidget: widget("EngineCompareWidget") }))
 vi.mock("./engine-landscape.js", () => ({ EngineLandscapeWidget: widget("EngineLandscapeWidget") }))
 vi.mock("./bpmn-heatmap.js", () => ({ AnalyticsBpmnHeatmap: widget("AnalyticsBpmnHeatmap") }))
-vi.mock("./model-descriptions.js", () => {
-  const describe = (name: string) => (data: unknown) => `${name}(${JSON.stringify(data)})`
-  return Object.fromEntries(
-    [
-      "describeExecutionSummary",
-      "describeExecutionPerformance",
-      "describeDefinitionBreakdown",
-      "describeActivityBottlenecks",
-      "describeFailureSummary",
-      "describeErrorPatterns",
-      "describeFailureRates",
-      "describeClusterCompare",
-      "describeVersionCompare",
-      "describeEngineCompare",
-      "describeEngineLandscape",
-      "describeBpmnHeatmap",
-    ].map((name) => [name, describe(name)]),
-  )
-})
+vi.mock("./model-descriptions.js", () => ({
+  describeBpmnHeatmap: (data: unknown) => `describeBpmnHeatmap(${JSON.stringify(data)})`,
+}))
 
 afterEach(() => {
   cleanup()
@@ -108,22 +83,14 @@ describe("analyticsViews", () => {
         "ProcessDefinitionBreakdown",
         "ActivityBottleneckTable",
       ],
-      [
-        "describeExecutionSummary",
-        "describeExecutionPerformance",
-        "describeDefinitionBreakdown",
-        "describeActivityBottlenecks",
-      ],
+      // The tool result gives the model the figures: no model context.
+      [],
     ],
-    [
-      "analytics_show_failure_dashboard",
-      ["FailureSummaryKpi", "ErrorPatternsTable", "FailureRateTable"],
-      ["describeFailureSummary", "describeErrorPatterns", "describeFailureRates"],
-    ],
-    ["analytics_show_cluster_compare", ["ClusterCompareWidget"], ["describeClusterCompare"]],
-    ["analytics_show_version_compare", ["VersionCompareWidget"], ["describeVersionCompare"]],
-    ["analytics_show_engine_compare", ["EngineCompareWidget"], ["describeEngineCompare"]],
-    ["analytics_show_engine_landscape", ["EngineLandscapeWidget"], ["describeEngineLandscape"]],
+    ["analytics_show_period_compare", ["PeriodCompareWidget"], []],
+    ["analytics_show_version_compare", ["VersionCompareWidget"], []],
+    ["analytics_show_engine_compare", ["EngineCompareWidget"], []],
+    ["analytics_show_engine_landscape", ["EngineLandscapeWidget"], []],
+    // Its tool result is a summary: the view tells the model the hottest and slowest element.
     ["analytics_show_bpmn_heatmap", ["AnalyticsBpmnHeatmap"], ["describeBpmnHeatmap"]],
   ])("%s renders %j on its data and tells the model %j", (name, widgets, descriptions) => {
     const rendered = renderView(name)

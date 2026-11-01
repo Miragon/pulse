@@ -107,15 +107,13 @@ describe("tool-bound ids follow their tool", () => {
       'Ids: engine="prod-a", processDefinitionKey="order", processDefinitionId="order:3:abc"\n',
     )
     expect(alone).toContain("Tools: camunda7_list_incidents")
-    expect(alone).not.toMatch(/period|includeActivityBreakdown/)
+    expect(alone).not.toMatch(/period/)
 
     const withAnalytics = (await handOffFor("read-only", { analyticsActive: true })).ask(
       healthCheckHandOff(ROW, "prod-a"),
     )!
-    expect(withAnalytics).toContain('period="7d", includeActivityBreakdown=true')
-    expect(withAnalytics).toContain(
-      "Tools: analytics_analyze_process_performance, camunda7_list_incidents",
-    )
+    expect(withAnalytics).toContain('period="7d"')
+    expect(withAnalytics).toContain("Tools: analytics_show_dashboard, camunda7_list_incidents")
   })
 
   it("the history hand-offs send the definition key only with the analytics baseline", async () => {

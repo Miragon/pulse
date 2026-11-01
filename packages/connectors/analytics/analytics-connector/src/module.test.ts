@@ -95,17 +95,25 @@ describe("analyticsModule.instructions", () => {
     expect(text).toMatch(/analytics_engine_health judges from metrics and alert rules \(unknown/)
   })
 
-  // Both failure tools run instant queries over the open-incident gauge and
-  // take no period: calling them "over a period" made a model report today's
-  // open incidents as a week's history.
-  it("routes period failure questions away from the point-in-time failure tools", () => {
+  // Engine health reads the open-incident gauge and takes no period: calling
+  // it "over a period" made a model report today's open incidents as a week's history.
+  it("sends period incident questions to the dashboard, never to point-in-time health", () => {
     const text = analyticsModule.instructions()
     expect(text).toContain(
-      "analytics_show_failure_dashboard and analytics_find_failed_instances show the incidents open " +
-        "right now (point-in-time, no period) — for failures over a period use " +
-        "analytics_analyze_process_performance or analytics_element_bottleneck.",
+      "its open incidents are point-in-time, with no period. Incidents over a period: " +
+        "analytics_show_dashboard, per process and per activity.",
     )
     expect(text).not.toMatch(/failure patterns over a period/)
+  })
+
+  // A removed tool named here would send the model to a refused call; `analytics_show_*` is a pattern.
+  it("names only tools the module registers", () => {
+    const named = [
+      ...analyticsModule.instructions().matchAll(/\banalytics_[a-z0-9_]+(?![\w*])/g),
+    ].map((m) => m[0])
+    expect(named.length).toBeGreaterThan(0)
+    const registered = namesOf(surfaceFor())
+    for (const name of named) expect(registered, name).toContain(name)
   })
 
   // #338: the hand-offs are ids + facts + fenced text; the rules for reading
@@ -207,25 +215,16 @@ describe("every analytics tool is a read", () => {
   it("records the whole surface: registrar tools, widget tools, *_data feeds", () => {
     // The exact surface, so the guards below are never vacuous and a new tool is seen here.
     expect(namesOf(surfaceFor())).toEqual([
-      "analytics_analyze_process_performance",
       "analytics_bpmn_heatmap_data",
       "analytics_bpmn_xml_data",
-      "analytics_cluster_compare",
-      "analytics_compare_execution_periods",
-      "analytics_element_bottleneck",
-      "analytics_engine_compare",
       "analytics_engine_health",
-      "analytics_engine_landscape",
       ANALYTICS_ENGINE_LANDSCAPE_DATA,
-      "analytics_find_failed_instances",
       "analytics_show_bpmn_heatmap",
-      "analytics_show_cluster_compare",
       "analytics_show_dashboard",
       "analytics_show_engine_compare",
       "analytics_show_engine_landscape",
-      "analytics_show_failure_dashboard",
+      "analytics_show_period_compare",
       "analytics_show_version_compare",
-      "analytics_version_compare",
     ])
   })
 

@@ -31,18 +31,20 @@ BPM operations across these domains (`category`): `engines`, `process-definition
 
 ### Analytics module (`analytics_*`)
 
-Prometheus-backed analysis over PromQL: `analyze_process_performance`, `compare_execution_periods`,
-`element_bottleneck`, `find_failed_instances`, `cluster_compare`, `version_compare`,
-`engine_landscape` (the cross-engine overview: what runs where, load and job backlog per engine),
-`engine_compare` (one process definition on two engines), and `engine_health` (a live WIP /
-incidents / backlog / alerts snapshot). Widgets: `show_dashboard`, `show_failure_dashboard`,
-`show_cluster_compare`, `show_version_compare`, `show_engine_landscape`, `show_engine_compare`,
-`show_bpmn_heatmap`.
+Prometheus-backed analysis over PromQL, one tool per question: `show_dashboard` (a period's
+flows, durations and live state per process and per activity), `show_period_compare` (two
+periods, e.g. around a deployment), `show_version_compare` (two deployed versions of one
+process), `show_engine_compare` (one process definition on two engines), `show_engine_landscape`
+(what runs where, load and job backlog per engine) and `show_bpmn_heatmap`. Each renders a view
+and returns its figures to the model as JSON (the heatmap: a summary). `engine_health` returns
+JSON without a view: a live WIP, incidents, backlog and alerts snapshot. The incidents open right
+now and their instances come from the camunda7 module.
 
 Across engines the tools report counts, never per-engine rates: engines host different process
 definitions, so an aggregated failure rate or duration describes that engine's process mix rather
-than the engine. `engine_compare` therefore requires a `processDefinitionKey`; `engine_landscape`
-lists the definitions deployed on more than one engine as its valid inputs.
+than the engine. `show_engine_compare` therefore requires a `processDefinitionKey`;
+`show_engine_landscape` lists the definitions deployed on more than one engine as its valid
+inputs.
 
 ### Toolsets
 
@@ -114,7 +116,7 @@ cockpit-link routes and display name.
 
 With several engines, the cockpit landing lists every engine with its live health in words (open
 incidents, empty, unreachable, loading), read from the engine itself. The cross-engine view (process
-landscape plus fleet-wide failure and performance analyses) needs the analytics module; without it
+landscape plus fleet-wide health and performance) needs the analytics module; without it
 (e.g. `MCP_ACTIVE_MODULES=camunda7` where no Prometheus exists) the cockpit does not offer it.
 
 Fleets that span several environments (each environment hosting some services with an engine)

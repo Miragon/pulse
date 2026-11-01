@@ -22,16 +22,15 @@ export function clampWindow(
   to: number,
   now: number = nowSeconds(),
 ): ClampedWindow {
-  if (to <= from) {
-    throw new Error(`${name}: the window ends before it starts — swap from and to`)
-  }
+  if (to < from) throw new Error(`${name} ends before it starts: swap its from and to`)
+  if (to === from) throw new Error(`${name} is empty: give it an end after its start`)
   const oldest = now - RETENTION_DAYS * DAY_SECONDS
   if (from >= now) {
-    throw new Error(`${name}: the window lies in the future — no metrics exist for it yet`)
+    throw new Error(`${name} lies in the future: no metrics exist for it yet`)
   }
   if (to <= oldest) {
     throw new Error(
-      `${name}: the window lies before the ${RETENTION_DAYS}-day Prometheus retention — its metrics are gone`,
+      `${name} lies before the ${RETENTION_DAYS}-day Prometheus retention: its metrics are gone`,
     )
   }
   const clampedFrom = Math.max(from, oldest)

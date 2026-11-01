@@ -13,8 +13,9 @@ import { enginesMeta } from "../view-meta.js"
 import { processNameOf } from "../../bpmn-names.js"
 
 /**
- * Window flows (`…InWindow`: incidents, not failed instances) apart from the live `…Now` gauges; an
- * unmeasured figure is left out, never 0 (#336).
+ * The facts carry the result's own names: the period's flows (incidents, not failed instances)
+ * apart from the live `…Now` gauges; an unmeasured figure is left out, never 0 (#336). `period`
+ * goes to the dashboard only: camunda7_list_incidents refuses it.
  */
 export function executionSummaryHandOff(data: AnalyticsDashboardData): HandOff {
   return {
@@ -22,20 +23,20 @@ export function executionSummaryHandOff(data: AnalyticsDashboardData): HandOff {
     ids: {
       engine: engineIdsOf(data.engines),
       processDefinitionKey: data.processDefinitionKey ?? undefined,
-      period: data.period,
     },
+    toolIds: { analytics_show_dashboard: { period: data.period } },
     facts: {
-      startedInWindow: data.totalCount,
-      completedInWindow: data.completedCount,
-      incidentsCreatedInWindow: data.incidentsCreated,
-      incidentsResolvedInWindow: data.incidentsResolved,
+      startedCount: data.startedCount,
+      completedCount: data.completedCount,
+      incidentsCreated: data.incidentsCreated,
+      incidentsResolved: data.incidentsResolved,
       incidentRatePct: data.incidentRatePct,
       avgDurationMs: data.avgDurationMs,
       p95DurationMs: data.p95DurationMs,
       runningNow: data.runningNow,
       openIncidentsNow: data.openIncidentsNow,
     },
-    tools: ["analytics_analyze_process_performance", "analytics_find_failed_instances"],
+    tools: ["analytics_show_dashboard", "camunda7_list_incidents"],
   }
 }
 
@@ -74,7 +75,7 @@ export function ExecutionSummaryKpi({ data }: { data: DashboardView }) {
         boxed
         header={{ label: t("aExecSummary.headerExecutionSummary") }}
         cells={[
-          { label: t("aExecSummary.cellStarted"), value: formatNumber(data.totalCount) },
+          { label: t("aExecSummary.cellStarted"), value: formatNumber(data.startedCount) },
           {
             label: t("aExecSummary.cellCompleted"),
             value: formatNumber(data.completedCount),

@@ -1,32 +1,18 @@
-import { HostModelContext, ViewStack, type ViewProps } from "@miragon/pulse-widget-shell/widgets"
-import {
-  describeActivityBottlenecks,
-  describeDefinitionBreakdown,
-  describeExecutionPerformance,
-  describeExecutionSummary,
-} from "../model-descriptions.js"
+import { ViewStack, type ViewProps } from "@miragon/pulse-widget-shell/widgets"
 import { ActivityBottleneckTable } from "./activity-bottleneck-table.js"
 import { ProcessDefinitionBreakdown } from "./definition-breakdown.js"
 import { ExecutionPerformanceKpi } from "./execution-performance-kpi.js"
 import { ExecutionSummaryKpi } from "./execution-summary-kpi.js"
 import type { DashboardView } from "./lib.js"
 
-/** `analytics_show_dashboard`: each part brings its own shell and tells the model what it shows. */
+/** `analytics_show_dashboard`: each part brings its own shell; the tool result gives the model the figures. */
 export function AnalyticsDashboardView({ data }: ViewProps<DashboardView>) {
   return (
     <ViewStack>
-      <HostModelContext content={describeExecutionSummary(data)}>
-        <ExecutionSummaryKpi data={data} />
-      </HostModelContext>
-      <HostModelContext content={describeExecutionPerformance(data)}>
-        <ExecutionPerformanceKpi data={data} />
-      </HostModelContext>
-      <HostModelContext content={describeDefinitionBreakdown(data)}>
-        <ProcessDefinitionBreakdown data={data} />
-      </HostModelContext>
-      <HostModelContext content={describeActivityBottlenecks(data)}>
-        <ActivityBottleneckTable data={data} />
-      </HostModelContext>
+      <ExecutionSummaryKpi data={data} />
+      <ExecutionPerformanceKpi data={data} />
+      <ProcessDefinitionBreakdown data={data} />
+      <ActivityBottleneckTable data={data} />
     </ViewStack>
   )
 }

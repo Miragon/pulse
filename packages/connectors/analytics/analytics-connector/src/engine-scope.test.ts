@@ -87,55 +87,14 @@ const daysAgo = (days: number) => new Date(Date.now() - days * 86_400_000).toISO
  * called directly get no schema defaults: the periods and comparison floors are passed.
  */
 const ARGS: Record<string, Record<string, unknown>> = {
-  analytics_analyze_process_performance: {
-    processDefinitionKey: "order",
-    period: "7d",
-    includeActivityBreakdown: true,
-  },
-  analytics_compare_execution_periods: {
-    processDefinitionKey: "order",
+  analytics_engine_health: {},
+  analytics_show_dashboard: { period: "7d" },
+  analytics_show_period_compare: {
     periodAFrom: daysAgo(6),
     periodATo: daysAgo(4),
     periodBFrom: daysAgo(3),
     periodBTo: daysAgo(1),
-    includeActivityBreakdown: true,
-  },
-  analytics_find_failed_instances: { maxResults: 5 },
-  analytics_element_bottleneck: {
-    processDefinitionKey: "order",
-    period: "7d",
-    minBucketSize: 10,
-    maxResults: 5,
-  },
-  analytics_cluster_compare: {
-    deploymentTimestamp: daysAgo(2),
-    windowBeforeDays: 3,
-    windowAfterDays: 3,
     activityId: "Task_check",
-    minBucketSize: 10,
-  },
-  analytics_version_compare: {
-    processDefinitionKey: "order",
-    versionA: 1,
-    versionB: 2,
-    windowDays: 7,
-    minBucketSize: 10,
-  },
-  analytics_engine_compare: {
-    processDefinitionKey: "order",
-    engineA: "prod-a",
-    engineB: "prod-b",
-    windowDays: 7,
-    minBucketSize: 10,
-  },
-  analytics_engine_landscape: {},
-  analytics_engine_health: {},
-  analytics_show_dashboard: { period: "7d" },
-  analytics_show_failure_dashboard: {},
-  analytics_show_cluster_compare: {
-    deploymentTimestamp: daysAgo(2),
-    windowBeforeDays: 3,
-    windowAfterDays: 3,
     minBucketSize: 10,
   },
   analytics_show_version_compare: {
@@ -158,7 +117,7 @@ const ARGS: Record<string, Record<string, unknown>> = {
   analytics_bpmn_heatmap_data: { processDefinitionKey: "order", period: "7d" },
 }
 
-const PAIRWISE = new Set(["analytics_engine_compare", "analytics_show_engine_compare"])
+const PAIRWISE = new Set(["analytics_show_engine_compare"])
 
 /** The heatmap's diagram comes from the engine. */
 const READS_NO_PROMETHEUS = new Set(["analytics_bpmn_xml_data"])
@@ -289,7 +248,7 @@ describe("analyticsModule engine scope wiring", () => {
     analyticsModule
       .createPlugin({ url: "http://prometheus.invalid", ...config }, shared)
       .register(server)
-    const { refused } = await call(tools.get("analytics_engine_landscape")!, {
+    const { refused } = await call(tools.get("analytics_engine_health")!, {
       engine: "not-configured",
     })
     if (refused === NO_ENGINE_SCOPE_MESSAGE) return []

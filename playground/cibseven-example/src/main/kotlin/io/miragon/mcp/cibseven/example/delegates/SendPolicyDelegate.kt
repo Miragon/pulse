@@ -17,7 +17,7 @@ class SendPolicyDelegate : JavaDelegate {
         // in the rollback window with `_simulatePolicyRenderFailure=true`, when
         // the policy template was mis-rendered. Surfaces as a job-level
         // incident on Activity_SendPolicy (asyncBefore) and feeds
-        // analytics.cluster.compare with the REGRESSED verdict for UC5.
+        // the period comparison with the REGRESSED verdict for UC5.
         val rollbackFail = execution.getVariable("_simulatePolicyRenderFailure") as? Boolean ?: false
         if (rollbackFail) {
             log.warn(

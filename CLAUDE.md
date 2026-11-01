@@ -234,10 +234,11 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    - Registrar tools (`src/tools/`): plain JSON data _for the model_.
    - Widget tools (`show_*`, spread `...showToolBinding(name, title)` from
      `@miragon/pulse-widget-shell/server`; camunda7's `registerShowTool` does it): render a
-     view for the user and return a summary for the model, as `buildViewResult(data, summary)`:
-     the `structuredContent` IS the view's data. The view is picked by its name (= the tool's
-     name); a composed view (a dashboard, the process detail) is ONE component that composes
-     its widgets, never a layout the server sends.
+     view for the user, as `buildViewResult(data, text)`: the `structuredContent` IS the view's
+     data and the `content` text is the model-facing result, a short summary or the figures as
+     compact JSON (every analytics view except the heatmap). The view is picked by its name
+     (= the tool's name); a composed view (a dashboard, the process detail) is ONE component
+     that composes its widgets, never a layout the server sends.
    - `*_data` feeds (spread `...appOnly`, **no** view binding; camunda7's `registerDataFeed`):
      app-only JSON for in-widget refresh and navigation, returned as
      `buildDataFeedResult(data)`. SEP-1865 hosts hide them from the LLM, and a widget-tool
@@ -460,8 +461,8 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
   invert the per-process truth. Cross-engine views report absolute counts plus the
   engine-owned backlog gauges (labelled by `engine_id` ONLY): `queries/engine-landscape.ts` +
   `analytics:engine-landscape`. A like-for-like comparison holds the process fixed, which is
-  why `analytics_engine_compare` REQUIRES a `processDefinitionKey`; keep it required
-  (`src/tools/engine-{compare,landscape}.test.ts`).
+  why `analytics_show_engine_compare` REQUIRES a `processDefinitionKey`; keep it required
+  (`src/widget-tools/engine-{compare,landscape}.test.ts`).
 - **Pinning is split by dependency stanza.** `dependencies`/`devDependencies` stay EXACT
   (`save-exact=true` in `.npmrc`). Consumer-shared libraries are RANGED `peerDependencies`, so
   a downstream app dedupes them (`react`/`react-dom` `^19.2.0`, `zod` `^4.4.0`,

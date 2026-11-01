@@ -38,7 +38,7 @@ flowchart LR
 | **CLI** (`apps/cli/`)                                                | Every engine REST operation as a command, generated from the OpenAPI spec, plus the workflow commands; on npm, Homebrew, GHCR and the GitHub release. See the [CLI docs](../cli/index.md); rules in `apps/cli/CLAUDE.md`.   |
 | **VS Code extension** (`apps/vscode/`)                               | Shows what an engine runs next to the BPMN models in VS Code: a Preact webview over an engine-neutral contract and the C7 adapter. Ships as a .vsix on the Marketplace and Open VSX; rules in `apps/vscode/CLAUDE.md`.      |
 | **camunda7** (`packages/connectors/camunda/camunda7-connector/`)     | Wraps the Camunda 7 / CIB seven REST API via an OpenAPI-generated client. Exposes process, task, incident, deployment, and history tools plus widgets.                                                                      |
-| **analytics** (`packages/connectors/analytics/analytics-connector/`) | Queries Prometheus via PromQL for performance, failure, bottleneck, version/cluster comparison, and the cross-engine landscape. Tools + widgets.                                                                            |
+| **analytics** (`packages/connectors/analytics/analytics-connector/`) | Queries Prometheus via PromQL for the process dashboard (per process and per activity), period, version and engine comparisons, the cross-engine landscape and engine health. Tools + widgets.                              |
 | **engine-plugins** (`engine-plugins/`)                               | Kotlin Micrometer plugins for CIB seven: a process-metrics emitter. Independent build (Java 21, Gradle). No engine-side database.                                                                                           |
 | **widgets** (`apps/mcp-server-camunda7/dist/mcp-app.js` + `.css`)    | One Vite-built ES module + stylesheet containing React, Tailwind, and every widget. mcp-use serves it behind one `ui://views/<tool>.html` resource per widget tool, which declares that view on itself (`showToolBinding`). |
 
@@ -91,12 +91,13 @@ second engine dialect cheap:
 
 ## Data flow
 
-1. The MCP host calls a tool on the server (e.g. `analytics_element_bottleneck`).
+1. The MCP host calls a tool on the server (e.g. `analytics_engine_health`).
 2. The server delegates to the matching module's plugin.
 3. The plugin calls the relevant system (REST for the engine, PromQL for
    Prometheus) and returns JSON for the model.
-4. A widget tool (`show_*`) returns a short summary plus the view's data as
-   `structuredContent`; the host renders it in the tool's view, which the shared
+4. A widget tool (`show_*`) returns the view's data as `structuredContent` and
+   its model-facing result (a short summary or the figures as compact JSON) as
+   `content`; the host renders it in the tool's view, which the shared
    bundle picks by the tool's name (re-running the tool once where a host drops
    `structuredContent`). Inside the view, app-only `*_data` feeds refresh and
    page it without a model turn.

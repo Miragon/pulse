@@ -84,7 +84,7 @@ class MiraveloLeasingSeeder(
         val rollbackEraFailureRate: Double,
         // Recent failures inside the last 7 days so analytics_show_dashboard
         // (period=7d default) renders Incidents > 0. Distinct from buggyEra
-        // (15..30 days ago) which anchors the IMPROVED cluster-compare verdict.
+        // (15..30 days ago) which anchors the IMPROVED period comparison verdict.
         val currentEraFailureRate: Double,
     )
 
@@ -183,7 +183,7 @@ class MiraveloLeasingSeeder(
         // Resolve the deployed v1 / v2 process_definition_ids so each instance
         // can be started against a specific version. Camunda's
         // startProcessInstanceByKey would always pick the latest — instead we
-        // dispatch by id so analytics_version_compare sees a real population
+        // dispatch by id so analytics_show_version_compare sees a real population
         // on both versions.
         val v1Id = findVersionId(processKey, version = 1)
         val v2Id = findVersionId(processKey, version = 2)

@@ -161,7 +161,9 @@ describe("widget wire contract (dual-protocol _meta)", () => {
   it("names every module view and asks the host for a border", async () => {
     // Every view-bound tool: the show tools and the cockpit.
     const showTools = tools.filter((t) => typeof uiBlock(t._meta ?? {}).resourceUri === "string")
-    expect(showTools.length).toBeGreaterThanOrEqual(20)
+    // The four view floors in this file are pinned at the post-cut count: cut 6 removed the
+    // failure dashboard, the comparison/dashboard descriptions and nine analytics tools.
+    expect(showTools.length).toBeGreaterThanOrEqual(19)
     for (const tool of showTools) {
       const { contents } = await client.readResource({ uri: viewResourceUri(tool.name) })
       const meta = (contents[0] as { _meta?: Record<string, unknown> })._meta ?? {}
@@ -184,7 +186,7 @@ describe("widget wire contract (dual-protocol _meta)", () => {
   // before the bundle runs, so the bundle mounts that view and re-runs that tool on a stripped result.
   it("names its view in every view document, before the bundle", async () => {
     const viewTools = tools.filter((t) => typeof uiBlock(t._meta ?? {}).resourceUri === "string")
-    expect(viewTools.length).toBeGreaterThanOrEqual(20)
+    expect(viewTools.length).toBeGreaterThanOrEqual(19)
     for (const tool of viewTools) {
       const { contents } = await client.readResource({ uri: viewResourceUri(tool.name) })
       const text = (contents[0] as { text?: string }).text ?? ""
@@ -216,7 +218,7 @@ describe("widget wire contract (dual-protocol _meta)", () => {
     // view resolves its font URLs against the same origin (servedFontBaseUrl).
     const { resources } = await client.listResources()
     const views = resources.filter((r) => r.uri.startsWith(VIEW_RESOURCE_URI_PREFIX))
-    expect(views.length).toBeGreaterThanOrEqual(20)
+    expect(views.length).toBeGreaterThanOrEqual(19)
     for (const view of views) {
       expect(await readResourceDomains(client, view.uri), view.uri).toContain(serverOrigin)
     }
@@ -263,7 +265,7 @@ describe("widget wire contract — the font origin under MCP_URL", () => {
     )
     // One view per widget tool: the show tools and the cockpit.
     expect(views).toHaveLength(widgetTools.length)
-    expect(views.length).toBeGreaterThanOrEqual(20)
+    expect(views.length).toBeGreaterThanOrEqual(19)
     for (const view of views) {
       const listed = uiBlock((view as { _meta?: Record<string, unknown> })._meta ?? {}).csp as
         { resourceDomains?: string[] } | undefined

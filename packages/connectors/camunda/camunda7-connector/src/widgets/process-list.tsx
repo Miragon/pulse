@@ -40,12 +40,10 @@ export function healthCheckHandOff(
       processDefinitionKey: row.key,
       processDefinitionId: row.id,
     },
-    toolIds: {
-      analytics_analyze_process_performance: { period: "7d", includeActivityBreakdown: true },
-    },
+    toolIds: { analytics_show_dashboard: { period: "7d" } },
     facts: { version: row.version },
     untrusted: [{ label: "versionTag", text: row.versionTag }],
-    tools: ["analytics_analyze_process_performance", "camunda7_list_incidents"],
+    tools: ["analytics_show_dashboard", "camunda7_list_incidents"],
   }
 }
 

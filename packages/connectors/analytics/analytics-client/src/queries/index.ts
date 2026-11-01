@@ -1,37 +1,14 @@
 export type { CompareKpis, CompareKpiDelta } from "./helpers.js"
-export { analyzePerformance, comparePeriods } from "./performance.js"
-export type {
-  PerformanceResult,
-  PerformanceKPI,
-  ActivityBreakdownRow,
-  PeriodComparisonKpi,
-  PeriodActivityComparisonRow,
-  PeriodComparisonResult,
-} from "./performance.js"
-export { findFailedInstances } from "./failures.js"
-export type { ErrorPatternRow, FailedInstancesResult } from "./failures.js"
-export { elementBottleneck, elementHeat } from "./element.js"
-export type { ElementBottleneckRow, ElementBottleneckResult, ElementHeatResult } from "./element.js"
-export { clusterCompare } from "./cluster-compare.js"
-export type {
-  ClusterCompareResult,
-  ClusterCompareKpi,
-  ClusterCompareDelta,
-} from "./cluster-compare.js"
+export { periodCompare } from "./period-compare.js"
+export type { PeriodCompareKpi, PeriodCompareResult } from "./period-compare.js"
 export { versionCompare } from "./version-compare.js"
-export type {
-  VersionCompareResult,
-  VersionCompareKpi,
-  VersionCompareDelta,
-} from "./version-compare.js"
+export type { VersionCompareKpi, VersionCompareResult } from "./version-compare.js"
 export { engineCompare } from "./engine-compare.js"
-export type { EngineCompareResult, EngineCompareKpi, EngineCompareDelta } from "./engine-compare.js"
+export type { EngineCompareKpi, EngineCompareResult } from "./engine-compare.js"
 export { engineLandscape } from "./engine-landscape.js"
-export type {
-  EngineLandscapeResult,
-  EngineLandscapeEngine,
-  EngineLandscapeProcess,
-} from "./engine-landscape.js"
-export { dashboardData, failureDashboardData } from "./dashboard.js"
+export type { EngineLandscapeEngine, EngineLandscapeResult } from "./engine-landscape.js"
+export { dashboardData } from "./dashboard.js"
+export type { AnalyticsDashboardData } from "./dashboard.js"
+export { elementHeat } from "./element.js"
 export { engineHealth } from "./health.js"
-export type { EngineHealthResult, HealthCount, HealthAlert } from "./health.js"
+export type { EngineHealthResult } from "./health.js"

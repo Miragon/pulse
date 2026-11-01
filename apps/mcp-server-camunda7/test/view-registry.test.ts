@@ -33,7 +33,9 @@ function viewBoundTools(): string[] {
 describe("the view registry vs the view-bound tools", () => {
   it("holds a view for every view-bound tool, and nothing else", () => {
     const tools = viewBoundTools()
-    expect(tools.length, "the goldens name the view-bound tools").toBeGreaterThanOrEqual(20)
+    // The floor is pinned at the post-cut count: cut 6 removed the failure dashboard, the
+    // comparison/dashboard descriptions and nine analytics tools.
+    expect(tools.length, "the goldens name the view-bound tools").toBeGreaterThanOrEqual(19)
     expect(Object.keys(viewRegistry).sort()).toEqual(tools)
   })
 

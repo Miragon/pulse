@@ -47,7 +47,8 @@ package customers build their own connectors and composed servers on (see the
   (fake tools, a log of host actions and model contexts) in a plain test. Another module's
   widget renders by raw id through the host widgets (`useHostWidget`, `HostWidgetSlot`).
 - **View builders** (`./server`): `buildViewResult(data, summary)` (a show tool's result: the
-  `structuredContent` IS the view's data, the text the model's summary) and
+  `structuredContent` IS the view's data, the text what the model reads: a short summary or,
+  where the model needs the figures, the result as compact JSON) and
   `buildDataFeedResult` (the single implementation of the app-only `*_data` feed result);
   `decodeToolResult` reads either. The view itself is declared on the tool by `showToolBinding`
   (a `view` binding; mcp-use derives the `_meta.ui` keys from it), and the boot primes each

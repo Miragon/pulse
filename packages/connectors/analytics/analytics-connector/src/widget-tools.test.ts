@@ -14,17 +14,6 @@ const feedData = <T = Record<string, unknown>>(result: unknown): T =>
 type ShowResult = { structuredContent: Record<string, unknown> }
 type Handler = (args: Record<string, unknown>, ctx: unknown) => Promise<ShowResult>
 
-function handlers(ch: PrometheusClient): Map<string, Handler> {
-  const byName = new Map<string, Handler>()
-  const server = {
-    tool: (definition: { name: string }, handler: Handler) => {
-      byName.set(definition.name, handler)
-    },
-  } as unknown as MCPServer
-  registerWidgetTools(server, ch, { engineScope: createEngineScope(["prod-a", "prod-b"]) })
-  return byName
-}
-
 function recordingClient(): { client: PrometheusClient; queries: string[] } {
   const queries: string[] = []
   return {
@@ -37,30 +26,6 @@ function recordingClient(): { client: PrometheusClient; queries: string[] } {
     queries,
   }
 }
-
-// Without the scope, the widgets' hand-offs would send the model to every engine.
-describe("analytics_show_failure_dashboard engine scope", () => {
-  it("queries the engine and names it in the view data", async () => {
-    const { client, queries } = recordingClient()
-    const show = handlers(client).get("analytics_show_failure_dashboard")!
-    const result = await show({ engine: "prod-b" }, {})
-
-    expect(queries.length).toBeGreaterThan(0)
-    for (const query of queries) expect(query).toContain('engine_id="prod-b"')
-    // model-descriptions.test.ts pins the `engine` id the hand-offs then carry.
-    expect(result.structuredContent.engines).toEqual(["prod-b"])
-  })
-
-  // The aggregate is the CONFIGURED fleet (#336), never the whole Prometheus.
-  it("reads the configured fleet for the aggregate and names it in the view data", async () => {
-    const { client, queries } = recordingClient()
-    const result = await handlers(client).get("analytics_show_failure_dashboard")!({}, {})
-
-    expect(queries.length).toBeGreaterThan(0)
-    for (const query of queries) expect(query).toContain('engine_id=~"prod-a|prod-b"')
-    expect(result.structuredContent.engines).toEqual(["prod-a", "prod-b"])
-  })
-})
 
 describe("no server titles (U3) and the heatmap's as-of stamp (U7)", () => {
   const CTX = { auth: { user: { id: "user-1" } } }
@@ -79,7 +44,6 @@ describe("no server titles (U3) and the heatmap's as-of stamp (U7)", () => {
   // Handlers called directly get no schema defaults: pass the period.
   const SHOWS: Array<[string, Record<string, unknown>]> = [
     ["analytics_show_dashboard", { period: "7d" }],
-    ["analytics_show_failure_dashboard", {}],
     ["analytics_show_bpmn_heatmap", { processDefinitionKey: "order", period: "7d" }],
   ]
   it("hands the view its data only: the widget heading names it in the host's language", async () => {
@@ -179,13 +143,14 @@ describe("the names behind the ids", () => {
   const ORDER = { process_definition_key: "order" }
   const client: PrometheusClient = {
     instant: (query: string) => {
+      // The engine-state presence probe: prod-a reports.
+      if (query.includes("camunda_jobs_executable")) {
+        return Promise.resolve([{ metric: { engine_id: "prod-a" }, value: 1 }])
+      }
       if (query.includes("by (process_definition_key, activity_id, activity_type)")) {
         return Promise.resolve([
           { metric: { ...ORDER, activity_id: "Task_A", activity_type: "userTask" }, value: 2 },
         ])
-      }
-      if (query.includes("by (process_definition_key, incident_type)")) {
-        return Promise.resolve([{ metric: { ...ORDER, incident_type: "failedJob" }, value: 1 }])
       }
       if (query.includes("by (engine_id, process_definition_key)")) {
         return Promise.resolve([{ metric: { ...ORDER, engine_id: "prod-a" }, value: 1 }])
@@ -219,12 +184,11 @@ describe("the names behind the ids", () => {
     const ctx = { auth: { user: { id: "user-1" } } }
     // Handlers called directly get no schema defaults: pass the period.
     const result = await byName.get(name)!({ period: "7d" }, ctx)
-    return { content: feedData(result), calls }
+    return { content: feedData(result), result, calls }
   }
 
   it.each([
     "analytics_show_dashboard",
-    "analytics_show_failure_dashboard",
     "analytics_show_engine_landscape",
     "analytics_engine_landscape_data",
   ])("%s carries the names", async (name) => {
@@ -237,21 +201,31 @@ describe("the names behind the ids", () => {
   it("asks for the elements of the activity breakdown only", async () => {
     const { calls } = await run("analytics_show_dashboard")
     expect(calls[0][1]?.elementIds).toEqual({ order: ["Task_A"] })
-    const failures = await run("analytics_show_failure_dashboard")
-    expect(failures.calls[0][1]?.elementIds).toEqual({ order: [] })
   })
 
   // A process that runs only on a later engine is named too.
   it("reads the models on the engines the rows come from", async () => {
-    const failures = await run("analytics_show_failure_dashboard")
-    expect(failures.calls[0][1]?.engines).toEqual(["prod-a"])
+    const dashboard = await run("analytics_show_dashboard")
+    expect(dashboard.calls[0][1]?.engines).toEqual(["prod-a"])
     const landscape = await run("analytics_engine_landscape_data")
     expect(landscape.calls[0][1]?.enginesByKey).toEqual({ order: ["prod-a"] })
+  })
+
+  it("returns the dashboard's figures to the model as compact JSON, without the names", async () => {
+    const { result } = await run("analytics_show_dashboard")
+    const text = (result as unknown as { content: Array<{ text: string }> }).content[0].text
+    const { names, ...figures } = result.structuredContent
+    expect(names).toEqual(NAMES)
+    // No pretty printing: one line, the figures exactly as the view gets them.
+    expect(text).not.toContain("\n")
+    expect(JSON.parse(text)).toEqual(figures)
+    expect(text).toBe(JSON.stringify(figures))
+    expect(text).not.toContain("Order fulfillment")
   })
 
   it("judges the dashboard's rate against the comparison floor, the schemas' default 10", async () => {
     const { content } = await run("analytics_show_dashboard")
     // 4 starts in each window, below the floor 10: the rate change is not judged.
-    expect(content.previous).toMatchObject({ totalCount: 4, suppressed: true })
+    expect(content.previous).toMatchObject({ startedCount: 4, suppressed: true })
   })
 })

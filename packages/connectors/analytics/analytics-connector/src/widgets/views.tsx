@@ -4,67 +4,23 @@ import {
   type ViewMap,
   type ViewProps,
 } from "@miragon/pulse-widget-shell/widgets"
-import type {
-  ClusterCompareResult,
-  EngineCompareResult,
-  VersionCompareResult,
-} from "@miragon/pulse-analytics-client"
 import {
   ANALYTICS_SHOW_BPMN_HEATMAP,
-  ANALYTICS_SHOW_CLUSTER_COMPARE,
   ANALYTICS_SHOW_DASHBOARD,
   ANALYTICS_SHOW_ENGINE_COMPARE,
   ANALYTICS_SHOW_ENGINE_LANDSCAPE,
-  ANALYTICS_SHOW_FAILURE_DASHBOARD,
+  ANALYTICS_SHOW_PERIOD_COMPARE,
   ANALYTICS_SHOW_VERSION_COMPARE,
 } from "../tool-names.js"
 import { AnalyticsDashboardView } from "./analytics-dashboard/view.js"
 import { AnalyticsBpmnHeatmap, type AnalyticsBpmnHeatmapData } from "./bpmn-heatmap.js"
-import { ClusterCompareWidget } from "./cluster-compare.js"
 import { EngineCompareWidget } from "./engine-compare.js"
-import { EngineLandscapeWidget, type EngineLandscapeView } from "./engine-landscape.js"
-import { FailureDashboardView } from "./failure-dashboard/view.js"
-import {
-  describeBpmnHeatmap,
-  describeClusterCompare,
-  describeEngineCompare,
-  describeEngineLandscape,
-  describeVersionCompare,
-} from "./model-descriptions.js"
+import { EngineLandscapeWidget } from "./engine-landscape.js"
+import { describeBpmnHeatmap } from "./model-descriptions.js"
+import { PeriodCompareWidget } from "./period-compare.js"
 import { VersionCompareWidget } from "./version-compare.js"
 
-function ClusterCompareView({ data }: ViewProps<ClusterCompareResult>) {
-  return (
-    <HostModelContext content={describeClusterCompare(data)}>
-      <ClusterCompareWidget data={data} />
-    </HostModelContext>
-  )
-}
-
-function VersionCompareView({ data }: ViewProps<VersionCompareResult>) {
-  return (
-    <HostModelContext content={describeVersionCompare(data)}>
-      <VersionCompareWidget data={data} />
-    </HostModelContext>
-  )
-}
-
-function EngineCompareView({ data }: ViewProps<EngineCompareResult>) {
-  return (
-    <HostModelContext content={describeEngineCompare(data)}>
-      <EngineCompareWidget data={data} />
-    </HostModelContext>
-  )
-}
-
-function EngineLandscapeView({ data }: ViewProps<EngineLandscapeView>) {
-  return (
-    <HostModelContext content={describeEngineLandscape(data)}>
-      <EngineLandscapeWidget data={data} />
-    </HostModelContext>
-  )
-}
-
+/** The heatmap's tool result is a summary, so the view tells the model what it shows. */
 function BpmnHeatmapView({ data }: ViewProps<AnalyticsBpmnHeatmapData>) {
   return (
     <HostModelContext content={describeBpmnHeatmap(data)}>
@@ -73,14 +29,16 @@ function BpmnHeatmapView({ data }: ViewProps<AnalyticsBpmnHeatmapData>) {
   )
 }
 
-/** The analytics views by view name (= show tool name). */
+/**
+ * The analytics views by view name (= show tool name). Every view but the heatmap returns its
+ * figures to the model in the tool result, so it needs no model context.
+ */
 export const analyticsViews: ViewMap = {
   [ANALYTICS_SHOW_DASHBOARD]: AnalyticsDashboardView,
-  [ANALYTICS_SHOW_FAILURE_DASHBOARD]: FailureDashboardView,
-  [ANALYTICS_SHOW_CLUSTER_COMPARE]: ClusterCompareView,
-  [ANALYTICS_SHOW_VERSION_COMPARE]: VersionCompareView,
-  [ANALYTICS_SHOW_ENGINE_COMPARE]: EngineCompareView,
-  [ANALYTICS_SHOW_ENGINE_LANDSCAPE]: EngineLandscapeView,
+  [ANALYTICS_SHOW_PERIOD_COMPARE]: PeriodCompareWidget,
+  [ANALYTICS_SHOW_VERSION_COMPARE]: VersionCompareWidget,
+  [ANALYTICS_SHOW_ENGINE_COMPARE]: EngineCompareWidget,
+  [ANALYTICS_SHOW_ENGINE_LANDSCAPE]: EngineLandscapeWidget,
   [ANALYTICS_SHOW_BPMN_HEATMAP]: BpmnHeatmapView,
 }
 

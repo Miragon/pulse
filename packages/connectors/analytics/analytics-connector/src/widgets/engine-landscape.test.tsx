@@ -1,10 +1,7 @@
 // @vitest-environment happy-dom
-import { describe, expect, it } from "vitest"
-import { cleanup, screen, within } from "@testing-library/react"
-import type { EngineLandscapeResult, FailureDashboardData } from "@miragon/pulse-analytics-client"
-import { FailureSummaryKpi } from "./failure-dashboard/summary-kpi.js"
-import { ErrorPatternsTable } from "./failure-dashboard/error-patterns-table.js"
-import { FailureRateTable, rateBarWidth } from "./failure-dashboard/failure-rate-table.js"
+import { describe, expect, it, vi } from "vitest"
+import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react"
+import type { EngineLandscapeResult } from "@miragon/pulse-analytics-client"
 import { EngineLandscapeWidget } from "./engine-landscape.js"
 import type { Named } from "../bpmn-names.js"
 import {
@@ -22,170 +19,6 @@ import {
 } from "./widget-render.test-support.js"
 
 withWidgetClock()
-
-const FAILURES: Named<FailureDashboardData> = {
-  engines: ["prod-a"],
-  totalIncidents: 1234,
-  uniqueErrorPatterns: 2,
-  mostAffectedProcess: "order",
-  errorPatterns: [
-    { incidentType: "failedJob", processDefinitionKey: "order", incidentCount: 1200 },
-    { incidentType: "failedExternalTask", processDefinitionKey: "invoice", incidentCount: 34 },
-  ],
-  processBreakdown: [
-    {
-      processDefinitionKey: "order",
-      runningNow: 3000,
-      deadJobs: 1100,
-      openIncidents: 1200,
-      incidentRatePct: 40,
-    },
-    {
-      processDefinitionKey: "invoice",
-      runningNow: 8,
-      deadJobs: 0,
-      openIncidents: 34,
-      incidentRatePct: 425,
-    },
-  ],
-  asOf: AS_OF,
-  names: { order: { name: "Order fulfillment", elements: {} } },
-}
-
-describe("the failure dashboard", () => {
-  it("frames a live snapshot without a period and hands off to prioritize (de)", () => {
-    renderIn("de", FailureSummaryKpi, FAILURES)
-    expect(metaLine()).toBe("1 Engine · Stand 14:32")
-    expect(screen.getByText("1.234")).toBeTruthy()
-    expect(screen.getByText("Incident-Gruppen")).toBeTruthy()
-    const ask = screen.getByRole("button", { name: /Im Chat priorisieren/ })
-    expect(iconOf(ask)).toContain("lucide-list-ordered")
-  })
-
-  // U14: the tiles are no status board; only open incidents are a state.
-  it("shows the summary as the neutral strip, open incidents as the one state", () => {
-    const { container } = renderIn("de", FailureSummaryKpi, FAILURES)
-    expect(kpiTone("Offene Incidents")).toBe("danger")
-    expect(kpiTone("Incident-Gruppen")).toBeUndefined()
-    expect(kpiTone("Am stärksten betroffen")).toBeUndefined()
-    expect(container.querySelector("[class*='-soft']")).toBeNull()
-    expect(screen.getByText("Order fulfillment")).toBeTruthy()
-    expect(screen.getByText("order").className).toContain("font-mono")
-  })
-
-  it("marks no state when nothing is open, and names no process as affected", () => {
-    renderIn("en", FailureSummaryKpi, {
-      ...FAILURES,
-      totalIncidents: 0,
-      uniqueErrorPatterns: 0,
-      mostAffectedProcess: null,
-    })
-    expect(kpiTone("Open incidents")).toBeUndefined()
-    // Known to be none, so words, quiet: "—" is kept for a figure nobody measured (U17).
-    const none = screen.getByText("No process")
-    expect(none.className).toContain("text-muted-foreground")
-    expect(kpiTone("Most affected")).toBeUndefined()
-    expect(screen.queryByText("—")).toBeNull()
-    cleanup()
-    renderIn("de", FailureSummaryKpi, { ...FAILURES, totalIncidents: 0, mostAffectedProcess: null })
-    expect(screen.getByText("Kein Prozess")).toBeTruthy()
-  })
-
-  it("shows an unnamed most affected process by its key in mono", () => {
-    renderIn("en", FailureSummaryKpi, { ...FAILURES, mostAffectedProcess: "invoice" })
-    expect(screen.getByText("invoice").className).toContain("font-mono")
-  })
-
-  it("finds the cause of an incident group in the chat (en)", () => {
-    renderIn("en", ErrorPatternsTable, FAILURES)
-    expect(screen.getByText("1,200")).toBeTruthy()
-    expect(
-      screen.getByRole("region", { name: "Open incidents by incident type and process" }),
-    ).toBeTruthy()
-    expect(screen.getByText("Order fulfillment")).toBeTruthy()
-    const asks = screen.getAllByRole("button", { name: "Find cause in chat" })
-    expect(asks).toHaveLength(2)
-    expect(iconOf(asks[0])).toContain("lucide-scan-search")
-  })
-
-  it("says all clear when no incident is open (de)", () => {
-    const { container } = renderIn("de", ErrorPatternsTable, {
-      ...FAILURES,
-      errorPatterns: [],
-      processBreakdown: [],
-    })
-    expect(screen.getByText("Keine offenen Incidents")).toBeTruthy()
-    expect(container.querySelector("[data-empty-variant='done']")).not.toBeNull()
-  })
-
-  it("names the jobs without retries and a rate over 100 as a number (de)", () => {
-    renderIn("de", FailureRateTable, FAILURES)
-    expect(screen.getByText("Jobs ohne Versuche")).toBeTruthy()
-    expect(screen.getByText("Incidents je 100 laufende Instanzen")).toBeTruthy()
-    expect(screen.getByText("425")).toBeTruthy()
-    expect(screen.getByText("3.000")).toBeTruthy()
-    const asks = screen.getAllByRole("button", { name: "Ursache im Chat klären" })
-    expect(asks).toHaveLength(2)
-    expect(iconOf(asks[0])).toContain("lucide-scan-search")
-  })
-
-  // U17: a rate may pass 100 — the bars scale to the table's largest, never cut at 100.
-  it("scales the rate bars to the largest rate in the table", () => {
-    const { container } = renderIn("de", FailureRateTable, FAILURES)
-    const bars = [...container.querySelectorAll<HTMLElement>("[style*='width']")]
-    expect(bars.map((el) => el.style.width)).toEqual([`${(40 / 425) * 100}%`, "100%"])
-    expect(rateBarWidth(0, 10)).toBe(0)
-    expect(rateBarWidth(5, 0)).toBe(0)
-    expect(rateBarWidth(20, 10)).toBe(100)
-  })
-
-  // U17, decision j: a rate without a threshold or a period before is a magnitude.
-  it("draws the rate bars in the data-viz blue, the open incidents with the danger edge", () => {
-    const { container } = renderIn("de", FailureRateTable, FAILURES)
-    for (const bar of container.querySelectorAll<HTMLElement>("[style*='width']")) {
-      expect(bar.className).toContain("bg-info")
-      expect(bar.className).not.toContain("danger")
-    }
-    const open = screen.getByText("1.200")
-    expect(open.className).toContain("border-danger")
-    expect(open.className).not.toMatch(/text-danger/)
-  })
-
-  // Decision f: one ladder (`countTone`) in every module, as camunda7 edges the same count.
-  it("edges the dead jobs and open incidents in danger while there are any, a zero plain", () => {
-    renderIn("de", FailureRateTable, {
-      ...FAILURES,
-      processBreakdown: [
-        FAILURES.processBreakdown[0],
-        { ...FAILURES.processBreakdown[1], openIncidents: 0 },
-      ],
-    })
-    const table = screen.getByRole("table")
-    const order = within(table).getByText("Order fulfillment").closest("tr")!
-    expect(within(order).getByText("1.100").className).toContain("border-danger")
-    expect(within(order).getByText("1.200").className).toContain("border-danger")
-    const invoice = within(table).getByText("invoice").closest("tr")!
-    const zeros = within(invoice).getAllByText("0")
-    expect(zeros).toHaveLength(2)
-    for (const zero of zeros) expect(zero.className).not.toContain("border-danger")
-  })
-
-  it("explains a rate over no running instance instead of showing a bare dash (en)", () => {
-    renderIn("en", FailureRateTable, {
-      ...FAILURES,
-      processBreakdown: [{ ...FAILURES.processBreakdown[0], runningNow: 0, incidentRatePct: null }],
-    })
-    expect(missingFigures(document.body)).toEqual([
-      missing("No running instance reported: no rate"),
-    ])
-    expect(legendLines()).toEqual(["— No running instance reported: no rate"])
-  })
-
-  it("shows no key under the rate table while every rate is measured", () => {
-    renderIn("en", FailureRateTable, FAILURES)
-    expect(legendLines()).toEqual([])
-  })
-})
 
 const LANDSCAPE: Named<EngineLandscapeResult> = {
   engines: [
@@ -376,5 +209,42 @@ describe("the cross-engine landscape", () => {
     expect(kpiTone("Open incidents")).toBeUndefined()
     const running = screen.getByText("Running instances").closest("div")!.parentElement!
     expect(running.textContent).toContain("—")
+  })
+})
+
+// U1: the module's own title heads only a failure the kit cannot classify.
+describe("the landscape's self-fetch (the fleet view)", () => {
+  const FEED = "analytics_engine_landscape_data"
+
+  function renderFailing(message: string) {
+    const feed = vi.fn(() => {
+      throw new Error(message)
+    })
+    renderIn("de", EngineLandscapeWidget, null, { [FEED]: feed })
+    return feed
+  }
+
+  it("says Prometheus is unreachable and what to do, and retries the query", async () => {
+    const feed = renderFailing("Prometheus unreachable (ECONNREFUSED)")
+    expect(
+      await screen.findByRole("heading", { name: "Prometheus ist nicht erreichbar" }),
+    ).toBeTruthy()
+    expect(screen.getByText("Prüf, ob Prometheus läuft und erreichbar ist.")).toBeTruthy()
+    expect(feed).toHaveBeenCalledTimes(1)
+    fireEvent.click(screen.getByRole("button", { name: "Erneut versuchen" }))
+    await waitFor(() => expect(feed).toHaveBeenCalledTimes(2))
+  })
+
+  it("heads a failure the kit cannot classify with the module's own words", async () => {
+    renderFailing("odd")
+    expect(
+      await screen.findByRole("heading", { name: "Die Kennzahlen konnten nicht geladen werden." }),
+    ).toBeTruthy()
+  })
+
+  it("renders the landscape once the feed answers", async () => {
+    renderIn("en", EngineLandscapeWidget, null, { [FEED]: LANDSCAPE })
+    expect(await screen.findByText("Order fulfillment")).toBeTruthy()
+    expect(metaLine()).toBe("3 engines (1 without metrics) · As of 14:32")
   })
 })

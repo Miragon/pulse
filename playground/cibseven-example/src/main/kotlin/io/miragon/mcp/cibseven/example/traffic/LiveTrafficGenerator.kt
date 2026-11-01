@@ -21,7 +21,7 @@ import kotlin.random.Random
  * This generator adds the missing *live pulse*: a steady trickle of real-time
  * instances (same variable mix as the seed, including the ~20 % blacklist
  * failures) plus task completions, so throughput, p95 durations, incident
- * rates, and version/cluster comparisons all populate naturally.
+ * rates, and version/period comparisons all populate naturally.
  *
  * Opt-in and self-contained: `@EnableScheduling` is only switched on when
  * `live-traffic.enabled=true`. The job executor runs the async service tasks,

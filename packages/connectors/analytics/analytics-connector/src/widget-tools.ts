@@ -11,7 +11,6 @@ import {
   queries,
   schemas,
   withCallerSignal,
-  type AnalyticsDashboardData,
   type PrometheusClient,
 } from "@miragon/pulse-analytics-client"
 import {
@@ -19,57 +18,35 @@ import {
   ANALYTICS_BPMN_XML_DATA,
   ANALYTICS_SHOW_BPMN_HEATMAP,
   ANALYTICS_SHOW_DASHBOARD,
-  ANALYTICS_SHOW_FAILURE_DASHBOARD,
 } from "./tool-names.js"
 import { summaryT as t } from "./summary.js"
 import { registerComparisonWidgetTools } from "./widget-tools/comparisons.js"
-import { engineScopeSummary } from "./widget-tools/shared.js"
+import { viewWithJson } from "./widget-tools/shared.js"
 import { isFleetRequest, withEngineScope, type AnalyticsEngineScope } from "./engine-ids.js"
 import type { BpmnMissingReason } from "./heatmap-data.js"
 import { NO_NAMES, type FetchBpmnXml, type NameLookup } from "./bpmn-name-lookup.js"
-import { namedDashboard, namedFailureDashboard } from "./named-views.js"
+import { namedDashboard } from "./named-views.js"
 
 export type { FetchBpmnXml } from "./bpmn-name-lookup.js"
+
+/**
+ * One engine by name, or every engine a fleet aggregate adds up, so a fleet figure never reads as
+ * one engine's (the heatmap's summary; the engine scope never resolves to no engine).
+ */
+function engineScopeSummary(engines: readonly string[], fleet: boolean): string {
+  const ids = engines.map((id) => `"${id}"`).join(", ")
+  if (fleet) return t("aSum.engineScopeFleet", { count: engines.length, ids })
+  return engines.length === 1
+    ? t("aSum.engineScopeOne", { id: engines[0] })
+    : t("aSum.engineScopeSubset", { ids })
+}
 
 export interface AnalyticsWidgetToolsOptions {
   engineScope: AnalyticsEngineScope
   /** Absent → the heatmap's non-diagram fallback. */
   fetchBpmnXml?: FetchBpmnXml
-  /** Absent → the dashboards list ids. */
+  /** Absent → the dashboard and the landscape list ids. */
   namesFor?: NameLookup
-}
-
-/** Composed from the client schemas so the describe() texts stay in one place. */
-const heatmapInputShape = {
-  processDefinitionKey: schemas.elementBottleneckInput.shape.processDefinitionKey,
-  period: schemas.periodField,
-  ...schemas.engineFilterShape,
-}
-
-const dashboardInputShape = {
-  processDefinitionKey: schemas.clusterCompareInput.shape.processDefinitionKey,
-  period: schemas.periodField,
-  ...schemas.engineFilterShape,
-}
-
-/** Never a plausible 0. */
-const orNa = (value: number | null) => value ?? "n/a"
-
-/** Window flows and the live state, never mixed. */
-function dashboardSummary(data: AnalyticsDashboardData, fleet: boolean): string {
-  return t("aSum.dashboard", {
-    scope: data.processDefinitionKey
-      ? t("aSum.scopeForProcess", { key: data.processDefinitionKey })
-      : "",
-    period: data.period,
-    engines: engineScopeSummary(data.engines, fleet),
-    totalCount: data.totalCount,
-    completedCount: data.completedCount,
-    incidentsCreated: data.incidentsCreated,
-    incidentRatePct: orNa(data.incidentRatePct),
-    runningNow: orNa(data.runningNow),
-    openIncidentsNow: orNa(data.openIncidentsNow),
-  })
 }
 
 export function registerWidgetTools(
@@ -102,54 +79,17 @@ export function registerWidgetTools(
       name: ANALYTICS_SHOW_DASHBOARD,
       title: "Process Analytics Dashboard",
       description:
-        "Show process metrics from Prometheus: flows within the period (starts, completions, incidents created/resolved, durations of the instances that ended) and the live state right now (instances running, incidents open), per process definition and per (process, activity).",
+        "Show process metrics from Prometheus for a rolling period: starts, completions, incidents created (not failed instances) and resolved, avg/median/p95 duration of the instances that ENDED in it (null when none did), the period before as reference, and the live state now (instances running, incidents open). Broken down per process definition and per (process, activity): executions, total/avg/median/p95 time and incidents created (unscoped: the top 20 by total time).",
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-      inputSchema: strictToolInput(dashboardInputShape),
+      inputSchema: strictToolInput(schemas.dashboardInput.shape),
       ...showToolBinding(ANALYTICS_SHOW_DASHBOARD, "Process Analytics Dashboard"),
     },
     withToolErrors(async (args, ctx) => {
-      const data = await namedDashboard(
-        await queries.dashboardData(
-          withCallerSignal(ch, ctx.signal),
-          withEngineScope(engineScope, args),
-        ),
-        namesFor,
+      const result = await queries.dashboardData(
+        withCallerSignal(ch, ctx.signal),
+        withEngineScope(engineScope, args),
       )
-      return buildViewResult(data, dashboardSummary(data, isFleetRequest(args.engine)))
-    }),
-  )
-
-  server.tool(
-    {
-      name: ANALYTICS_SHOW_FAILURE_DASHBOARD,
-      title: "Failure Analysis Dashboard",
-      description:
-        "Show the incidents open right now from Prometheus, grouped by incident type and process definition (no activity, message or timestamps), with each affected process's running instances and dead jobs. Use to show the metric view to the user; for one engine's live incident clusters use camunda7_show_engine_health.",
-      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-      inputSchema: strictToolInput({
-        ...schemas.engineFilterShape,
-      }),
-      ...showToolBinding(ANALYTICS_SHOW_FAILURE_DASHBOARD, "Failure Analysis Dashboard"),
-    },
-    withToolErrors(async (args, ctx) => {
-      const data = await namedFailureDashboard(
-        await queries.failureDashboardData(
-          withCallerSignal(ch, ctx.signal),
-          withEngineScope(engineScope, args),
-        ),
-        namesFor,
-      )
-      return buildViewResult(
-        data,
-        t("aSum.failureDashboard", {
-          engines: engineScopeSummary(data.engines, isFleetRequest(args.engine)),
-          totalIncidents: data.totalIncidents,
-          uniqueErrorPatterns: data.uniqueErrorPatterns,
-          mostAffected: data.mostAffectedProcess
-            ? t("aSum.mostAffectedProcess", { key: data.mostAffectedProcess })
-            : "",
-        }),
-      )
+      return viewWithJson(await namedDashboard(result, namesFor), result)
     }),
   )
 
@@ -162,7 +102,7 @@ export function registerWidgetTools(
       description:
         "Render a process definition's BPMN diagram with a per-element heat overlay from metrics, with a Frequency↔Duration toggle (traversal count vs average duration per element). Node-level only — sequence-flow/edge heat is not available from metrics — and rendered on the latest deployed version's diagram (activity metrics carry no version label). Needs the camunda7 client to fetch the BPMN XML; otherwise the widget shows a fallback.",
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-      inputSchema: strictToolInput(heatmapInputShape),
+      inputSchema: strictToolInput(schemas.heatmapInput.shape),
       ...showToolBinding(ANALYTICS_SHOW_BPMN_HEATMAP, "BPMN Heatmap"),
     },
     withToolErrors(async (args, ctx) => {
@@ -200,7 +140,7 @@ export function registerWidgetTools(
       description:
         "Internal JSON feed (no UI) for the BPMN heatmap — per-element execution frequency + average duration over a window. Lets another widget (e.g. the CIB Seven cockpit) paint the heat on its own diagram. Prefer analytics_show_bpmn_heatmap for a standalone view.",
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-      inputSchema: strictToolInput(heatmapInputShape),
+      inputSchema: strictToolInput(schemas.heatmapInput.shape),
       ...appOnly,
     },
     withToolErrors(async (args, ctx) => {
@@ -227,7 +167,7 @@ export function registerWidgetTools(
         "Internal JSON feed (no UI): the latest deployed BPMN XML of a process key on the engines in scope, for the heatmap view's diagram.",
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
       inputSchema: strictToolInput({
-        processDefinitionKey: heatmapInputShape.processDefinitionKey,
+        processDefinitionKey: schemas.heatmapInput.shape.processDefinitionKey,
         ...schemas.engineFilterShape,
       }),
       ...appOnly,

@@ -72,12 +72,7 @@ export function describeHealth(data: EngineHealthData, engine?: string): ViewCon
       topClusterIncidentsAtLeast:
         top?.incidentCount === null ? top.scannedIncidentCount : undefined,
     },
-    tools: [
-      "analytics_engine_health",
-      "analytics_show_failure_dashboard",
-      "camunda7_list_incidents",
-      "camunda7_show_cluster_detail",
-    ],
+    tools: ["analytics_engine_health", "camunda7_list_incidents", "camunda7_show_cluster_detail"],
   }
 }
 
@@ -97,7 +92,6 @@ export function triageHandOff(data: EngineHealthData, engine?: string): HandOff 
     },
     tools: [
       "analytics_engine_health",
-      "analytics_show_failure_dashboard",
       "camunda7_list_incidents",
       "camunda7_query_historic_incidents",
     ],

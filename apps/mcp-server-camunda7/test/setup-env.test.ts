@@ -277,7 +277,7 @@ describe("setup.ts scopes analytics to the configured engines", () => {
     const server = await bootServer({ env: { ANALYTICS_ENGINE_IDS: undefined, ...env } })
     try {
       const result = await server.client.callTool({
-        name: "analytics_engine_landscape",
+        name: "analytics_engine_health",
         arguments: { engine: "tenant-x" },
       })
       expect(result.isError).toBe(true)

@@ -5,7 +5,7 @@ import type { ViewMetaEngines } from "@miragon/pulse-widget-shell/widgets"
  * which names no engines.
  */
 export function enginesMeta(
-  engines: readonly string[] | null | undefined,
+  engines: readonly string[] | null,
   reporting?: readonly string[],
 ): ViewMetaEngines | null {
   if (!engines || engines.length === 0) return null

@@ -10,10 +10,7 @@ import {
 
 export interface EngineCompareKpi extends CompareKpis {
   engineId: string
-  bucket: "engineA" | "engineB"
 }
-
-export type EngineCompareDelta = CompareKpiDelta
 
 export interface EngineCompareResult {
   engineA: string
@@ -23,10 +20,9 @@ export interface EngineCompareResult {
   activityId: string | null
   minBucketSize: number
   suppressed: boolean
-  kpis: EngineCompareKpi[]
-  delta: EngineCompareDelta
-  /** Optional: payloads recorded before it existed lack it. */
-  asOf?: string
+  kpis: [EngineCompareKpi, EngineCompareKpi]
+  delta: CompareKpiDelta
+  asOf: string
 }
 
 // `processDefinitionKey` is required: two engines' whole workloads compare their process mixes, not the engines.
@@ -47,8 +43,8 @@ export async function engineCompare(
   const asOf = asOfNow()
 
   const [a, b] = await Promise.all([
-    engineKpi(ch, params, "engineA", params.engineA, range),
-    engineKpi(ch, params, "engineB", params.engineB, range),
+    engineKpi(ch, params, params.engineA, range),
+    engineKpi(ch, params, params.engineB, range),
   ])
 
   return {
@@ -68,7 +64,6 @@ export async function engineCompare(
 async function engineKpi(
   ch: PrometheusClient,
   params: { processDefinitionKey: string; activityId?: string },
-  bucket: "engineA" | "engineB",
   engineId: string,
   range: string,
 ): Promise<EngineCompareKpi> {
@@ -85,5 +80,5 @@ async function engineKpi(
     },
     { range },
   )
-  return { engineId, bucket, ...kpis }
+  return { engineId, ...kpis }
 }

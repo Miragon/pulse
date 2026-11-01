@@ -50,10 +50,10 @@ export function ProcessDefinitionBreakdown({ data }: { data: DashboardView }) {
                 />
               </Td>
               <Td align="right" className="tabular-nums">
-                {formatNumber(def.totalInstances)}
+                {formatNumber(def.startedCount)}
               </Td>
               <Td align="right" className="tabular-nums">
-                {formatNumber(def.completed)}
+                {formatNumber(def.completedCount)}
               </Td>
               {/* Not reported (no engine in scope sends its gauges): "—", never 0. */}
               <Td align="right" className="tabular-nums">

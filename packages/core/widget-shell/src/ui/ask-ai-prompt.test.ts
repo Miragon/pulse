@@ -218,18 +218,15 @@ describe("askAiPrompt — tools follow the live surface", () => {
     const handOff = spec({
       ids: { processDefinitionKey: "order" },
       toolIds: {
-        analytics_analyze_process_performance: { period: "7d", processDefinitionKey: "ignored" },
+        analytics_show_dashboard: { period: "7d", processDefinitionKey: "ignored" },
       },
-      tools: ["analytics_analyze_process_performance", "camunda7_list_incidents"],
+      tools: ["analytics_show_dashboard", "camunda7_list_incidents"],
     })
     // Without analytics only camunda7_list_incidents is named — `period` goes with it.
     expect(askAiPrompt(handOff)).toBe(
       'Diagnose this incident.\nIds: processDefinitionKey="order"\nTools: camunda7_list_incidents',
     )
-    const withAnalytics = surfaceOf(
-      "analytics_analyze_process_performance",
-      "camunda7_list_incidents",
-    )
+    const withAnalytics = surfaceOf("analytics_show_dashboard", "camunda7_list_incidents")
     expect(askAiPrompt({ ...handOff, surface: withAnalytics })).toContain(
       'Ids: processDefinitionKey="order", period="7d"',
     )

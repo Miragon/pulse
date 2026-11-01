@@ -14,6 +14,7 @@ import { Info } from "lucide-react"
 import {
   HandOffButton,
   ListTable,
+  QueryFallback,
   TableSkeleton,
   ViewMeta,
   WidgetShell,
@@ -23,15 +24,14 @@ import {
 } from "@miragon/pulse-widget-shell/widgets"
 import type { EngineLandscapeEngine, EngineLandscapeResult } from "@miragon/pulse-analytics-client"
 import { ANALYTICS_ENGINE_LANDSCAPE_DATA } from "../tool-names.js"
-import { QueryGate } from "./query-gate.js"
 import { useT, type T } from "../messages/use-t.js"
 import { useHandOff, type HandOff } from "./hand-off.js"
 import { processNameOf, type Named } from "../bpmn-names.js"
 import { Figure, FigureLegend, Legend, StateCount } from "./figure.js"
 
 /** The landscape payload: the figures plus the process names behind the matrix's keys. */
-export type EngineLandscapeView = Named<EngineLandscapeResult>
-export type EngineLandscapeData = EngineLandscapeView | null
+type EngineLandscapeView = Named<EngineLandscapeResult>
+type EngineLandscapeData = EngineLandscapeView | null
 
 /** Engine ids from the `engine` prop (a string or a list; the fleet view passes every engine). */
 function engineIdsFromProps(engine: string | string[] | undefined): string[] {
@@ -63,16 +63,26 @@ export function EngineLandscapeWidget({
     { enabled: !initialData },
   )
 
+  const data = initialData ?? query.data ?? null
+  if (!data) {
+    return (
+      <WidgetShell>
+        <QueryFallback
+          isError={query.isError}
+          error={query.error}
+          errorTitle={t("aCommon.loadError")}
+          onRetry={() => void query.refetch()}
+          skeleton={<TableSkeleton />}
+        />
+      </WidgetShell>
+    )
+  }
   return (
-    <QueryGate initialData={initialData} query={query} skeleton={<TableSkeleton />}>
-      {(data) => (
-        <WidgetShell>
-          <LandscapeSummary data={data} t={t} />
-          <EngineTable data={data} t={t} />
-          <ProcessMatrix data={data} t={t} />
-        </WidgetShell>
-      )}
-    </QueryGate>
+    <WidgetShell>
+      <LandscapeSummary data={data} t={t} />
+      <EngineTable data={data} t={t} />
+      <ProcessMatrix data={data} t={t} />
+    </WidgetShell>
   )
 }
 

@@ -1,7 +1,6 @@
 import {
   appOnly,
   buildDataFeedResult,
-  buildViewResult,
   showToolBinding,
   withToolErrors,
   strictToolInput,
@@ -9,21 +8,15 @@ import {
 import { queries, schemas, withCallerSignal } from "@miragon/pulse-analytics-client"
 import {
   ANALYTICS_ENGINE_LANDSCAPE_DATA,
-  ANALYTICS_SHOW_CLUSTER_COMPARE,
   ANALYTICS_SHOW_ENGINE_COMPARE,
   ANALYTICS_SHOW_ENGINE_LANDSCAPE,
+  ANALYTICS_SHOW_PERIOD_COMPARE,
   ANALYTICS_SHOW_VERSION_COMPARE,
 } from "../tool-names.js"
-import { summaryT as t } from "../summary.js"
-import { isFleetRequest, withEngineScope } from "../engine-ids.js"
+import { withEngineScope } from "../engine-ids.js"
 import { namedLandscape } from "../named-views.js"
 import { NO_NAMES } from "../bpmn-name-lookup.js"
-import {
-  compareDeltaSummary,
-  engineScopeSummary,
-  suppressedNote,
-  type AnalyticsWidgetToolsContext,
-} from "./shared.js"
+import { viewWithJson, type AnalyticsWidgetToolsContext } from "./shared.js"
 
 /** The landscape is no fourth comparison: engines host different process mixes. */
 export function registerComparisonWidgetTools(ctx: AnalyticsWidgetToolsContext) {
@@ -32,34 +25,20 @@ export function registerComparisonWidgetTools(ctx: AnalyticsWidgetToolsContext) 
 
   server.tool(
     {
-      name: ANALYTICS_SHOW_CLUSTER_COMPARE,
-      title: "Pre/Post Deployment Comparison",
+      name: ANALYTICS_SHOW_PERIOD_COMPARE,
+      title: "Period Comparison",
       description:
-        "Visualize before/after KPI deltas around a deployment timestamp. Windows are clamped to now and the retention (flagged `partial`; starts compare per day). Results are flagged `suppressed` when either window has fewer than minBucketSize started or completed instances.",
+        "Compare process KPIs of two periods: A is the baseline, B the candidate (around a deployment, A ends and B starts at its timestamp from camunda7_get_deployment). Per period: starts and starts per day, completions, incidents per 100 starts (with activityId also at that element), avg/median/p95 duration of the instances that ENDED, plus the deltas. Periods are clamped to now and the 30-day retention and reported as measured (`partial`); a reversed or wholly out-of-range period is refused. Flagged `suppressed` when either period has fewer than minBucketSize started or completed instances.",
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-      inputSchema: strictToolInput(schemas.clusterCompareInput.shape),
-      ...showToolBinding(ANALYTICS_SHOW_CLUSTER_COMPARE, "Pre/Post Deployment Comparison"),
+      inputSchema: strictToolInput(schemas.periodCompareInput.shape),
+      ...showToolBinding(ANALYTICS_SHOW_PERIOD_COMPARE, "Period Comparison"),
     },
     withToolErrors(async (args, toolCtx) => {
-      const data = await queries.clusterCompare(
+      const data = await queries.periodCompare(
         withCallerSignal(ch, toolCtx.signal),
         withEngineScope(engineScope, args),
       )
-      return buildViewResult(
-        data,
-        t("aSum.clusterCompare", {
-          scope: data.processDefinitionKey
-            ? t("aSum.scopeForProcess", { key: data.processDefinitionKey })
-            : "",
-          engines: engineScopeSummary(data.engines, isFleetRequest(args.engine)),
-          deploymentTimestamp: data.deploymentTimestamp,
-          before: data.windowDays.before,
-          after: data.windowDays.after,
-          partial: data.partial ? t("aSum.clusterComparePartial") : "",
-          delta: compareDeltaSummary(data.delta),
-          suppressed: suppressedNote(data.suppressed),
-        }),
-      )
+      return viewWithJson(data, data)
     }),
   )
 
@@ -68,7 +47,7 @@ export function registerComparisonWidgetTools(ctx: AnalyticsWidgetToolsContext) 
       name: ANALYTICS_SHOW_VERSION_COMPARE,
       title: "Process Version Comparison",
       description:
-        "Visualize KPI deltas between two deployed versions of the same processDefinitionKey within a shared time window. Instance counts and durations are exact per version; the incident rates show as n/a — the incident metric carries no version label, so they are not measured per version (never read them as zero). Results are flagged `suppressed` when either version has fewer than minBucketSize started or completed instances.",
+        "Compare KPIs of two deployed versions of one processDefinitionKey over a shared rolling window. The version is an exact label on the instance and incident series, so starts, completions, incidents, incidents per 100 starts and avg/median/p95 duration per version and their deltas are exact; the comparison is process-wide (no element scope). Flagged `suppressed` when either version has fewer than minBucketSize started or completed instances. Find versions with camunda7_list_process_definitions.",
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
       inputSchema: strictToolInput(schemas.versionCompareInput.shape),
       ...showToolBinding(ANALYTICS_SHOW_VERSION_COMPARE, "Process Version Comparison"),
@@ -78,18 +57,7 @@ export function registerComparisonWidgetTools(ctx: AnalyticsWidgetToolsContext) 
         withCallerSignal(ch, toolCtx.signal),
         withEngineScope(engineScope, args),
       )
-      return buildViewResult(
-        data,
-        t("aSum.versionCompare", {
-          key: data.processDefinitionKey,
-          versionA: data.versionA,
-          versionB: data.versionB,
-          windowDays: data.windowDays,
-          engines: engineScopeSummary(data.engines, isFleetRequest(args.engine)),
-          delta: compareDeltaSummary(data.delta),
-          suppressed: suppressedNote(data.suppressed),
-        }),
-      )
+      return viewWithJson(data, data)
     }),
   )
 
@@ -98,7 +66,7 @@ export function registerComparisonWidgetTools(ctx: AnalyticsWidgetToolsContext) 
       name: ANALYTICS_SHOW_ENGINE_COMPARE,
       title: "Engine Comparison",
       description:
-        "Visualize KPI deltas for ONE process definition as it runs on two configured CIB Seven engines (e.g. prod-a vs prod-b) over a shared time window. processDefinitionKey is required — engines host different process mixes, so an unscoped engine-vs-engine comparison would measure the mix, not the engines. Results are flagged `suppressed` when either engine has fewer than minBucketSize started or completed instances. For the cross-engine picture use analytics_show_engine_landscape.",
+        "Compare ONE process definition on two configured engines (e.g. prod-a vs prod-b) over a shared rolling window: starts, completions, incidents per 100 starts (with activityId also at that element), avg/median/p95 duration of the instances that ENDED, plus the deltas. processDefinitionKey is required: engines host different process mixes, so comparing whole workloads would measure the mix, not the engines. Flagged `suppressed` when either engine has fewer than minBucketSize started or completed instances. Valid keys are the `sharedProcessKeys` of analytics_show_engine_landscape.",
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
       inputSchema: strictToolInput(schemas.engineCompareInput.shape),
       ...showToolBinding(ANALYTICS_SHOW_ENGINE_COMPARE, "Engine Comparison"),
@@ -109,17 +77,7 @@ export function registerComparisonWidgetTools(ctx: AnalyticsWidgetToolsContext) 
         engineA: engineScope.require(args.engineA, "engineA"),
         engineB: engineScope.require(args.engineB, "engineB"),
       })
-      return buildViewResult(
-        data,
-        t("aSum.engineCompare", {
-          engineA: data.engineA,
-          engineB: data.engineB,
-          key: data.processDefinitionKey,
-          windowDays: data.windowDays,
-          delta: compareDeltaSummary(data.delta),
-          suppressed: suppressedNote(data.suppressed),
-        }),
-      )
+      return viewWithJson(data, data)
     }),
   )
 
@@ -129,34 +87,17 @@ export function registerComparisonWidgetTools(ctx: AnalyticsWidgetToolsContext) 
       name: ANALYTICS_SHOW_ENGINE_LANDSCAPE,
       title: "Cross-Engine Landscape",
       description:
-        "Show the cross-engine process landscape of the configured engines: which process definitions run on which engine, the absolute load per engine (running instances, open incidents, failed jobs) and the engine-owned job backlog. Counts, not rates — engines host different process mixes, so per-engine rates would measure the mix. Highlights the definitions deployed on several engines, the only sound targets for analytics_show_engine_compare.",
+        "Show the cross-engine landscape of the configured engines: which process definitions run on which engine, the load per engine (running instances, open incidents, failed jobs) and the engine-owned job backlog (executable, suspended and future-due jobs, open external tasks). Counts, not rates: engines host different process mixes, so a per-engine rate would measure the mix; the backlog gauges carry no process label and do compare. `sharedProcessKeys` (deployed on several engines) are the only sound inputs for analytics_show_engine_compare; an engine without metrics has `reporting: false`.",
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
       inputSchema: strictToolInput(schemas.engineLandscapeInput.shape),
       ...showToolBinding(ANALYTICS_SHOW_ENGINE_LANDSCAPE, "Cross-Engine Landscape"),
     },
     withToolErrors(async (args, toolCtx) => {
-      const data = await namedLandscape(
-        await queries.engineLandscape(
-          withCallerSignal(ch, toolCtx.signal),
-          withEngineScope(engineScope, args),
-        ),
-        namesFor,
+      const result = await queries.engineLandscape(
+        withCallerSignal(ch, toolCtx.signal),
+        withEngineScope(engineScope, args),
       )
-      return buildViewResult(
-        data,
-        t("aSum.engineLandscape", {
-          engineCount: data.totals.engineCount,
-          reportingEngineCount: data.totals.reportingEngineCount,
-          processKeyCount: data.totals.processKeyCount,
-          sharedProcessKeyCount: data.totals.sharedProcessKeyCount,
-          // Unknown while no engine reports: "n/a", never a plausible 0.
-          runningInstances: data.totals.runningInstances ?? "n/a",
-          openIncidents: data.totals.openIncidents ?? "n/a",
-          shared: data.sharedProcessKeys.length
-            ? t("aSum.sharedKeys", { keys: data.sharedProcessKeys.join(", ") })
-            : "",
-        }),
-      )
+      return viewWithJson(await namedLandscape(result, namesFor), result)
     }),
   )
 

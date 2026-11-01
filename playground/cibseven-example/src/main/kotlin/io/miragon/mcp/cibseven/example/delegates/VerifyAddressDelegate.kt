@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component
  * v2-only happy-path service task. Simulates a postal-address verification
  * lookup before the credit subprocess. The delegate body is deliberately
  * lightweight — its purpose is to make v2's avg/p95 measurably higher than
- * v1's so analytics_version_compare shows a real duration delta.
+ * v1's so analytics_show_version_compare shows a real duration delta.
  */
 @Component("verifyAddressDelegate")
 class VerifyAddressDelegate : JavaDelegate {

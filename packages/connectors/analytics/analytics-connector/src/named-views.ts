@@ -1,8 +1,4 @@
-import type {
-  AnalyticsDashboardData,
-  EngineLandscapeResult,
-  FailureDashboardData,
-} from "@miragon/pulse-analytics-client"
+import type { AnalyticsDashboardData, EngineLandscapeResult } from "@miragon/pulse-analytics-client"
 import type { NameLookup } from "./bpmn-name-lookup.js"
 import type { Named } from "./bpmn-names.js"
 
@@ -29,21 +25,6 @@ export async function namedDashboard(
   }
 }
 
-export async function namedFailureDashboard(
-  data: FailureDashboardData,
-  namesFor: NameLookup,
-): Promise<Named<FailureDashboardData>> {
-  const keys = [
-    ...(data.mostAffectedProcess ? [data.mostAffectedProcess] : []),
-    ...data.errorPatterns.map((p) => p.processDefinitionKey),
-    ...data.processBreakdown.map((p) => p.processDefinitionKey),
-  ]
-  return {
-    ...data,
-    names: await namesFor(keys, { elementIds: noElements(keys), engines: data.engines }),
-  }
-}
-
 export async function namedLandscape(
   data: EngineLandscapeResult,
   namesFor: NameLookup,
@@ -64,11 +45,10 @@ function noElements(keys: readonly string[]): Record<string, string[]> {
   return Object.fromEntries(keys.map((key) => [key, []]))
 }
 
-/** A silent engine has no rows; all of the scope when the payload does not say. */
+/** A silent engine has no rows: the lookup reads the reporting engines in the scope's order. */
 function reportingInOrder(
   engines: readonly string[] | null,
-  reporting: readonly string[] | undefined,
-): readonly string[] | null {
-  if (!engines || !reporting) return engines ?? reporting ?? null
-  return engines.filter((id) => reporting.includes(id))
+  reporting: readonly string[],
+): readonly string[] {
+  return engines ? engines.filter((id) => reporting.includes(id)) : reporting
 }

@@ -48,13 +48,13 @@ assistant. Try asking _"show me the open incidents"_. Claude calls
 
 ## What you can ask
 
-| Topic          | Example questions                                                                                      |
-| -------------- | ------------------------------------------------------------------------------------------------------ |
-| **Processes**  | "Show me all process definitions." · "Start a new instance of `loan-approval`."                        |
-| **Tasks**      | "What tasks are assigned to me?" · "Complete task 12345 with `approved=true`."                         |
-| **Incidents**  | "Triage the open incidents." · "Retry all failed jobs from this morning."                              |
-| **Analytics**  | "Where do `loan-approval` instances spend the most time?" · "Find failed instances from the last 24h." |
-| **Migrations** | "Plan a migration from v1 to v2 of `loan-approval`."                                                   |
+| Topic          | Example questions                                                                                                              |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| **Processes**  | "Show me all process definitions." · "Start a new instance of `loan-approval`."                                                |
+| **Tasks**      | "What tasks are assigned to me?" · "Complete task 12345 with `approved=true`."                                                 |
+| **Incidents**  | "Triage the open incidents." · "Retry all failed jobs from this morning."                                                      |
+| **Analytics**  | "Where do `loan-approval` instances spend the most time?" · "Compare the last 7 days of `loan-approval` with the week before." |
+| **Migrations** | "Plan a migration from v1 to v2 of `loan-approval`."                                                                           |
 
 Most data-heavy answers come back as an interactive widget: process lists,
 task inboxes, incident dashboards, instance details, and analytics dashboards

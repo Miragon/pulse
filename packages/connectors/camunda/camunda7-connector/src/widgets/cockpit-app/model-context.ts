@@ -55,10 +55,9 @@ export function fleetContext(
     ids: { engine: engineGroups.flatMap((g) => g.engines.map((e) => e.id)) },
     facts: { environments: enginesByEnvironment(engineGroups) },
     tools: [
-      "analytics_engine_landscape",
+      "analytics_show_engine_landscape",
       "analytics_engine_health",
-      "analytics_engine_compare",
-      "analytics_show_failure_dashboard",
+      "analytics_show_engine_compare",
       "camunda7_show_engine_health",
     ],
   }

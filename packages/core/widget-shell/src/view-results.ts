@@ -9,7 +9,8 @@ export type ViewResult = {
 
 /**
  * A show tool's result: `structuredContent` IS the data its view renders (the view is picked by
- * its name, the tool's name); the text is the model's summary.
+ * its name, the tool's name); the text is what the model reads: a short summary or, where the
+ * model needs the figures, the result as compact JSON.
  */
 export function buildViewResult(data: object, summary: string): ViewResult {
   return {

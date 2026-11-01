@@ -16,8 +16,7 @@ import { enginesMeta } from "./view-meta.js"
 /** The diagram is NOT in it (read from `analytics_bpmn_xml_data`), so the model never sees the XML. */
 export interface AnalyticsBpmnHeatmapData extends Omit<BpmnHeatmapData, "bpmnXml"> {
   engines: string[]
-  /** Absent in payloads recorded before it existed. */
-  asOf?: string
+  asOf: string
   /** Absent when a diagram exists. */
   bpmnMissing?: BpmnMissingReason
 }
@@ -33,23 +32,23 @@ const BPMN_MISSING_KEY: Record<BpmnMissingReason, string> = {
   "not-loaded": "aHeatmap.bpmnNotLoaded",
 }
 
-function bpmnMissingKey(data: Pick<AnalyticsBpmnHeatmapData, "bpmnMissing"> | null) {
-  const reason = data?.bpmnMissing
+function bpmnMissingKey(data: Pick<AnalyticsBpmnHeatmapData, "bpmnMissing">) {
+  const reason = data.bpmnMissing
   return reason && Object.hasOwn(BPMN_MISSING_KEY, reason)
     ? BPMN_MISSING_KEY[reason]
     : "aHeatmap.bpmnUnavailable"
 }
 
 /** The shell carries no module i18n, so this binds `useT()` to it. */
-function useHeatmapWithDiagram(data: AnalyticsBpmnHeatmapData | null) {
-  const hasDiagram = data !== null && data.bpmnMissing === undefined
+function useHeatmapWithDiagram(data: AnalyticsBpmnHeatmapData) {
+  const hasDiagram = data.bpmnMissing === undefined
   const diagram = useToolQuery<HeatmapDiagram>(
-    ["analytics:bpmn-xml", data?.processDefinitionKey ?? null, data?.engines ?? null],
+    ["analytics:bpmn-xml", data.processDefinitionKey, data.engines],
     ANALYTICS_BPMN_XML_DATA,
-    { processDefinitionKey: data?.processDefinitionKey ?? "", engine: data?.engines },
+    { processDefinitionKey: data.processDefinitionKey, engine: data.engines },
     { enabled: hasDiagram },
   )
-  const full: (BpmnHeatmapData & Pick<AnalyticsBpmnHeatmapData, "bpmnMissing">) | null = data && {
+  const full: BpmnHeatmapData & Pick<AnalyticsBpmnHeatmapData, "bpmnMissing"> = {
     ...data,
     bpmnXml: diagram.data?.bpmnXml ?? null,
     bpmnMissing: data.bpmnMissing ?? diagram.data?.bpmnMissing,
@@ -57,7 +56,7 @@ function useHeatmapWithDiagram(data: AnalyticsBpmnHeatmapData | null) {
   return { diagram, pending: hasDiagram && !diagram.data, full }
 }
 
-export function AnalyticsBpmnHeatmap({ data }: { data: AnalyticsBpmnHeatmapData | null }) {
+export function AnalyticsBpmnHeatmap({ data }: { data: AnalyticsBpmnHeatmapData }) {
   const t = useT()
   const { diagram, pending, full } = useHeatmapWithDiagram(data)
   if (pending) {
@@ -75,13 +74,11 @@ export function AnalyticsBpmnHeatmap({ data }: { data: AnalyticsBpmnHeatmapData 
     <BpmnHeatmapWidget
       data={full}
       meta={
-        data && (
-          <ViewMeta
-            period={formatLookback(data.period)}
-            engines={enginesMeta(data.engines)}
-            asOf={data.asOf}
-          />
-        )
+        <ViewMeta
+          period={formatLookback(data.period)}
+          engines={enginesMeta(data.engines)}
+          asOf={data.asOf}
+        />
       }
       labels={{
         title: t("aHeatmap.title"),
@@ -90,7 +87,6 @@ export function AnalyticsBpmnHeatmap({ data }: { data: AnalyticsBpmnHeatmapData 
         duration: t("aHeatmap.duration"),
         frequencyLegend: t("aHeatmap.frequencyLegend"),
         durationLegend: t("aHeatmap.durationLegend"),
-        noData: t("aHeatmap.noData"),
         noHeat: t("aHeatmap.noHeat"),
         bpmnUnavailable: t(bpmnMissingKey(full)),
         less: t("aHeatmap.less"),

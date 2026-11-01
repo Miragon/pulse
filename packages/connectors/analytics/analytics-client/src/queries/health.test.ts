@@ -9,7 +9,7 @@ interface Fixture {
   reporting?: string[]
   running?: PromSample[]
   incidents?: PromSample[]
-  dead?: number
+  failed?: number
   firing?: PromSample[]
   pending?: PromSample[]
 }
@@ -24,7 +24,7 @@ function mockClient(fixture: Fixture = {}) {
     }
     if (q.includes("process_instances_running")) return fixture.running ?? []
     if (q.includes("incidents_open")) return fixture.incidents ?? []
-    if (q.includes("jobs_failed")) return scalar(fixture.dead)
+    if (q.includes("jobs_failed")) return scalar(fixture.failed)
     if (q.includes("jobs_executable")) return perEngine(6.2)
     if (q.includes("jobs_suspended")) return scalar(2)
     if (q.includes('status="total"')) return scalar(9)
@@ -51,7 +51,7 @@ describe("engineHealth snapshot", () => {
         sample({}, 1),
       ],
       incidents: [sample({ incident_type: "failedJob" }, 3)],
-      dead: 1.6,
+      failed: 1.6,
     })
     const result = await engineHealth(ch, {})
     expect(result).toMatchObject({
@@ -66,7 +66,7 @@ describe("engineHealth snapshot", () => {
       ],
       openIncidents: 3,
       openIncidentsByType: [{ label: "failedJob", count: 3 }],
-      deadJobs: 2,
+      failedJobs: 2,
       executableJobs: 12,
       suspendedJobs: 2,
       openUserTasks: 9,
@@ -106,7 +106,7 @@ describe("engineHealth verdict", () => {
   it.each<[string, Fixture, string]>([
     ["a reporting engine without any signal", {}, "healthy"],
     ["one open incident", { incidents: [sample({ incident_type: "failedJob" }, 1)] }, "degraded"],
-    ["one dead job", { dead: 1 }, "degraded"],
+    ["one failed job", { failed: 1 }, "degraded"],
     ["a firing warning", { firing: [alert("Slow", "warning")] }, "degraded"],
     ["a firing critical alert", { firing: [alert("NoMetrics", "critical")] }, "critical"],
     ["a merely PENDING critical alert", { pending: [alert("NoMetrics", "critical")] }, "healthy"],
@@ -150,7 +150,7 @@ describe("engineHealth verdict", () => {
 
   it("states its rule in words", () => {
     expect(ENGINE_HEALTH_STATUS_RULE).toBe(
-      "From Prometheus, over the engines in scope: unknown when none of them reports metrics; critical only while a severity=critical alert fires for them (fleet-wide also an engine-less CibSeven* alert); degraded with any such firing alert, dead job, open incident or an engine in scope that reports nothing; else healthy.",
+      "From Prometheus, over the engines in scope: unknown when none of them reports metrics; critical only while a severity=critical alert fires for them (fleet-wide also an engine-less CibSeven* alert); degraded with any such firing alert, failed job, open incident or an engine in scope that reports nothing; else healthy.",
     )
   })
 })

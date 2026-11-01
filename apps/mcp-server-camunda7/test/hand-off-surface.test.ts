@@ -126,10 +126,12 @@ describe("hand-offs go through the one primitive", () => {
     ).toEqual([])
     // The scanner is not blind: the cockpit and the detail views.
     expect(contents.length).toBeGreaterThanOrEqual(12)
-    // Nor blind to the description functions: the analytics views describe themselves.
+    // Nor blind to the description functions: the heatmap describes itself. The floor is
+    // pinned at the post-cut count: cut 6 removed the failure dashboard, the
+    // comparison/dashboard descriptions and nine analytics tools.
     expect(
       contents.filter((c) => c.callee !== null && describes(c.callee)).length,
-    ).toBeGreaterThanOrEqual(12)
+    ).toBeGreaterThanOrEqual(1)
   })
 })
 
@@ -165,9 +167,11 @@ describe("every hand-off names only tools the model can call", () => {
     await server?.close()
   })
 
+  // Both floors are pinned at the post-cut count: cut 6 removed the failure dashboard, the
+  // comparison/dashboard descriptions and nine analytics tools.
   it("finds the specs (the scanner is not blind)", () => {
-    expect(specs.filter((s) => s.kind === "hand-off").length).toBeGreaterThanOrEqual(35)
-    expect(specs.filter((s) => s.kind === "context").length).toBeGreaterThanOrEqual(15)
+    expect(specs.filter((s) => s.kind === "hand-off").length).toBeGreaterThanOrEqual(32)
+    expect(specs.filter((s) => s.kind === "context").length).toBeGreaterThanOrEqual(12)
   })
 
   it("writes every tool list and id set literally, so they can be checked", () => {

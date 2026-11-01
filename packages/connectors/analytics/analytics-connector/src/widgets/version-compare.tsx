@@ -4,15 +4,12 @@ import { HandOffButton, ViewMeta, formatLookback } from "@miragon/pulse-widget-s
 import { useT } from "../messages/use-t.js"
 import {
   ComparisonCard,
-  ComparisonEmptyState,
   SuppressedBadge,
   buildComparisonMetrics,
   deltaFacts,
 } from "./comparison-shared.js"
 import { engineIdsOf, useHandOff, type HandOff } from "./hand-off.js"
 import { enginesMeta } from "./view-meta.js"
-
-export type VersionCompareData = VersionCompareResult | null
 
 /** Process-wide: the tool takes no element scope (#336). */
 export function versionCompareHandOff(data: VersionCompareResult): HandOff {
@@ -26,21 +23,14 @@ export function versionCompareHandOff(data: VersionCompareResult): HandOff {
       windowDays: data.windowDays,
     },
     facts: deltaFacts(data.delta, data.suppressed),
-    tools: ["analytics_version_compare", "analytics_element_bottleneck"],
+    tools: ["analytics_show_version_compare", "analytics_show_dashboard"],
   }
 }
 
-export function VersionCompareWidget({ data }: { data: VersionCompareData }) {
+export function VersionCompareWidget({ data }: { data: VersionCompareResult }) {
   const t = useT()
   const { ask } = useHandOff()
-  if (!data) return <ComparisonEmptyState>{t("aVersionCompare.emptyNoData")}</ComparisonEmptyState>
-
-  const a = data.kpis.find((k) => k.bucket === "versionA")
-  const b = data.kpis.find((k) => k.bucket === "versionB")
-  if (!a || !b) {
-    return <ComparisonEmptyState>{t("aVersionCompare.emptyIncomplete")}</ComparisonEmptyState>
-  }
-
+  const [a, b] = data.kpis
   const metrics = buildComparisonMetrics(t, a, b, data.delta)
 
   return (

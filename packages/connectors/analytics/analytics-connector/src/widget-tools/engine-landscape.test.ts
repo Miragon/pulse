@@ -1,28 +1,36 @@
 import { describe, expect, it } from "vitest"
-import { z } from "zod"
-import type { PrometheusClient, PromSample } from "@miragon/pulse-analytics-client"
-import type { ToolConfig } from "@miragon/pulse-widget-shell/server"
+import type { z } from "zod"
+import type { MCPServer } from "mcp-use"
+import type {
+  EngineLandscapeResult,
+  PrometheusClient,
+  PromSample,
+} from "@miragon/pulse-analytics-client"
 import { createEngineScope } from "../engine-ids.js"
-import { registerEngineLandscapeTools } from "./engine-landscape.js"
+import { registerWidgetTools } from "../widget-tools.js"
+
+type ToolResult = {
+  isError?: boolean
+  content: Array<{ type: string; text: string }>
+  structuredContent: Record<string, unknown>
+}
+type Definition = { name: string; description: string; inputSchema: z.ZodObject }
+type Handler = (args: Record<string, unknown>, ctx: unknown) => Promise<ToolResult>
+
+const NAME = "analytics_show_engine_landscape"
 
 /** prod-c reports nothing. */
-const scope = createEngineScope(["prod-a", "prod-b", "prod-c"])
-const register = (r: never) => registerEngineLandscapeTools(r, scope)
-
-type Config = ToolConfig<PrometheusClient>
-
-function captureConfigs(registerModule: (register: never) => void): Map<string, Config> {
-  const configs = new Map<string, Config>()
-  const register = (config: Config) => {
-    configs.set(config.name, config)
-  }
-  registerModule(register as never)
-  return configs
-}
-
-function captureHandlers(registerModule: (register: never) => void) {
-  const configs = captureConfigs(registerModule)
-  return new Map([...configs].map(([name, c]) => [name, c.handler]))
+function showLandscape(ch: PrometheusClient): { definition: Definition; handler: Handler } {
+  const tools = new Map<string, { definition: Definition; handler: Handler }>()
+  const server = {
+    tool: (definition: Definition, handler: Handler) => {
+      tools.set(definition.name, { definition, handler })
+    },
+  } as unknown as MCPServer
+  registerWidgetTools(server, ch, {
+    engineScope: createEngineScope(["prod-a", "prod-b", "prod-c"]),
+  })
+  return tools.get(NAME)!
 }
 
 /** Records every PromQL string and answers with a two-engine landscape. */
@@ -49,21 +57,27 @@ function recordingClient(): { client: PrometheusClient; queries: string[] } {
   }
 }
 
-describe("analytics_engine_landscape", () => {
+/** The model's figures: the content text, as compact JSON. */
+const modelResult = (result: ToolResult) =>
+  JSON.parse(result.content[0].text) as EngineLandscapeResult
+
+describe("analytics_show_engine_landscape", () => {
   it("builds the inventory matrix and issues one node-folded query per metric", async () => {
-    const handlers = captureHandlers(register)
     const { client, queries } = recordingClient()
 
-    const result = (await handlers.get("analytics_engine_landscape")!(client, {})) as {
-      engines: Array<{ engineId: string; runningInstances: number }>
-      sharedProcessKeys: string[]
-    }
+    const shown = await showLandscape(client).handler({}, {})
+    const result = modelResult(shown)
 
     // Engine omitted = the configured fleet: the silent prod-c stays visible.
     expect(result.engines.map((e) => e.engineId)).toEqual(["prod-a", "prod-b", "prod-c"])
     expect(result.engines[0].runningInstances).toBe(5)
-    // Each engine runs its own definition — nothing to compare like-for-like.
+    // Each engine runs its own definition: nothing to compare like-for-like.
     expect(result.sharedProcessKeys).toEqual([])
+    // The view renders the same figures.
+    expect(shown.structuredContent).toMatchObject({
+      engines: result.engines,
+      sharedProcessKeys: [],
+    })
     const sel = '{engine_id=~"prod-a|prod-b|prod-c"}'
     // Every gauge folded over its own labels first: a clustered engine's
     // nodes report the same engine-wide rows.
@@ -82,49 +96,38 @@ describe("analytics_engine_landscape", () => {
   })
 
   it("applies the engine filter and keeps a non-reporting engine visible", async () => {
-    const handlers = captureHandlers(register)
     const { client, queries } = recordingClient()
 
-    const result = (await handlers.get("analytics_engine_landscape")!(client, {
-      engine: ["prod-a", "prod-c"],
-    })) as { engines: Array<{ engineId: string; reporting: boolean }> }
+    const result = modelResult(
+      await showLandscape(client).handler({ engine: ["prod-a", "prod-c"] }, {}),
+    )
 
     expect(queries.every((q) => q.includes('{engine_id=~"prod-a|prod-c"}'))).toBe(true)
     expect(result.engines.find((e) => e.engineId === "prod-c")).toMatchObject({ reporting: false })
   })
 
   it("never lists another tenant's engine from a shared Prometheus (N138)", async () => {
-    const handlers = captureHandlers(register)
     const { client, queries } = recordingClient()
 
-    await expect(
-      handlers.get("analytics_engine_landscape")!(client, { engine: ["prod-a", "tenant-x"] }),
-    ).rejects.toThrow(/Unknown engine "tenant-x"/)
+    const result = await showLandscape(client).handler({ engine: ["prod-a", "tenant-x"] }, {})
+    expect(result.isError).toBe(true)
+    expect(result.content[0].text).toMatch(/Unknown engine "tenant-x"/)
     expect(queries).toEqual([])
   })
 })
 
-describe("analytics_engine_landscape registration", () => {
-  const config = captureConfigs(register).get("analytics_engine_landscape")!
+describe("analytics_show_engine_landscape registration", () => {
+  const { definition } = showLandscape(recordingClient().client)
 
-  it("registers under the analytics category as a read-only external read", () => {
-    expect(config.category).toBe("analytics")
-    expect(config.annotations).toEqual({
-      readOnlyHint: true,
-      idempotentHint: true,
-      openWorldHint: true,
-    })
-  })
-
-  it("tells the model that counts — not per-engine rates — are the point", () => {
+  it("tells the model that counts, not per-engine rates, are the point", () => {
     // Else the model divides counts back into per-engine rates, the confound the view avoids.
-    expect(config.description).toContain("counts, not rates")
-    expect(config.description).toContain("process mixes")
-    expect(config.description).toContain("sharedProcessKeys")
+    expect(definition.description).toContain("Counts, not rates")
+    expect(definition.description).toContain("process mixes")
+    expect(definition.description).toContain("sharedProcessKeys")
   })
 
   it("accepts an engine list or nothing at all", () => {
-    const schema = z.object(config.inputSchema)
+    const schema = definition.inputSchema
     expect(schema.safeParse({}).success).toBe(true)
     expect(schema.safeParse({ engine: ["prod-a", "prod-b"] }).success).toBe(true)
     expect(schema.safeParse({ engine: "prod-a" }).success).toBe(true)

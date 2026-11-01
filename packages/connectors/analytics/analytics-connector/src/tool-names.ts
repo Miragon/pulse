@@ -1,8 +1,7 @@
 /** Constants so a tool rename trips a TS error at every call site. */
 // The show tools; each one's name is also its view's name (`views.tsx`).
 export const ANALYTICS_SHOW_DASHBOARD = "analytics_show_dashboard"
-export const ANALYTICS_SHOW_FAILURE_DASHBOARD = "analytics_show_failure_dashboard"
-export const ANALYTICS_SHOW_CLUSTER_COMPARE = "analytics_show_cluster_compare"
+export const ANALYTICS_SHOW_PERIOD_COMPARE = "analytics_show_period_compare"
 export const ANALYTICS_SHOW_VERSION_COMPARE = "analytics_show_version_compare"
 export const ANALYTICS_SHOW_ENGINE_COMPARE = "analytics_show_engine_compare"
 export const ANALYTICS_SHOW_ENGINE_LANDSCAPE = "analytics_show_engine_landscape"

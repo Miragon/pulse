@@ -7,7 +7,8 @@ export const round1 = (n: number) => Math.round(n * 10) / 10
 
 export const secondsOf = (ms: number) => round1(ms / 1000)
 
-export const secondsOrNull = (ms: number | null) => (ms === null ? null : secondsOf(ms))
+/** Whole milliseconds, null stays null (the dashboard's rounding). */
+export const msOrNull = (value: number | null) => (value === null ? null : Math.round(value))
 
 // Long enough that a scrape gap at a window's start does not pass an old series off as born inside it.
 const BORN_LOOKBACK = "1h"
@@ -113,14 +114,17 @@ export function kpiQueries(scope: KpiScope, w: CountWindow) {
 }
 
 export interface CompareKpis {
-  instance_count: number
-  completed_count: number
-  incident_count: number
-  incident_rate_pct: number | null
-  element_incident_count: number | null
-  element_incident_rate_pct: number | null
-  avg_duration_sec: number | null
-  p95_duration_sec: number | null
+  startedCount: number
+  completedCount: number
+  incidentsCreated: number
+  incidentRatePct: number | null
+  /** Null unless the comparison is scoped to an element (`activityId`). */
+  elementIncidentsCreated: number | null
+  elementIncidentRatePct: number | null
+  avgDurationMs: number | null
+  /** Median of the instances that ended; no delta and no widget row. */
+  medianDurationMs: number | null
+  p95DurationMs: number | null
 }
 
 export async function queryCompareKpis(
@@ -130,46 +134,44 @@ export async function queryCompareKpis(
 ): Promise<CompareKpis> {
   const q = kpiQueries(scope, w)
   const element = scope.elementIncidentSel
-  const [total, completed, incidents, avg, p95, elementIncidents] = await Promise.all([
+  const [started, completed, incidents, avg, median, p95, elementIncidents] = await Promise.all([
     ch.instant(q.started),
     ch.instant(q.completed),
     ch.instant(q.incidents),
     ch.instant(q.avgDuration),
+    ch.instant(q.medianDuration),
     ch.instant(q.p95Duration),
     element === undefined
       ? Promise.resolve(null)
       : ch.instant(`sum(${increaseIn(`${M.incidentCreated}${element}`, w)})`),
   ])
-  const instances = Math.round(first(total))
-  const incidentCount = Math.round(first(incidents))
+  const startedCount = Math.round(first(started))
+  const incidentsCreated = Math.round(first(incidents))
   const elementCount = elementIncidents === null ? null : Math.round(first(elementIncidents))
   return {
-    instance_count: instances,
-    completed_count: Math.round(first(completed)),
-    incident_count: incidentCount,
-    incident_rate_pct: ratePct(incidentCount, instances),
-    element_incident_count: elementCount,
-    element_incident_rate_pct: elementCount === null ? null : ratePct(elementCount, instances),
-    avg_duration_sec: secondsOrNull(firstOrNull(avg)),
-    p95_duration_sec: secondsOrNull(firstOrNull(p95)),
+    startedCount,
+    completedCount: Math.round(first(completed)),
+    incidentsCreated,
+    incidentRatePct: ratePct(incidentsCreated, startedCount),
+    elementIncidentsCreated: elementCount,
+    elementIncidentRatePct: elementCount === null ? null : ratePct(elementCount, startedCount),
+    avgDurationMs: msOrNull(firstOrNull(avg)),
+    medianDurationMs: msOrNull(firstOrNull(median)),
+    p95DurationMs: msOrNull(firstOrNull(p95)),
   }
 }
 
 export interface CompareKpiDelta {
-  started_per_day_delta_pct: number | null
-  incident_rate_delta_pp: number | null
-  element_incident_rate_delta_pp: number | null
-  avg_duration_delta_pct: number | null
-  p95_duration_delta_pct: number | null
+  startedPerDayDeltaPct: number | null
+  incidentRateDeltaPp: number | null
+  elementIncidentRateDeltaPp: number | null
+  avgDurationDeltaPct: number | null
+  p95DurationDeltaPct: number | null
 }
 
 type DeltaInput = Pick<
   CompareKpis,
-  | "instance_count"
-  | "incident_rate_pct"
-  | "element_incident_rate_pct"
-  | "avg_duration_sec"
-  | "p95_duration_sec"
+  "startedCount" | "incidentRatePct" | "elementIncidentRatePct" | "avgDurationMs" | "p95DurationMs"
 >
 
 export function compareKpiDelta(
@@ -179,26 +181,24 @@ export function compareKpiDelta(
 ): CompareKpiDelta {
   const perDay = (count: number, d: number) => (d > 0 ? count / d : null)
   return {
-    started_per_day_delta_pct: pctChange(
-      perDay(baseline.instance_count, days.baseline),
-      perDay(other.instance_count, days.other),
+    startedPerDayDeltaPct: pctChange(
+      perDay(baseline.startedCount, days.baseline),
+      perDay(other.startedCount, days.other),
     ),
-    incident_rate_delta_pp: ppDelta(baseline.incident_rate_pct, other.incident_rate_pct),
-    element_incident_rate_delta_pp: ppDelta(
-      baseline.element_incident_rate_pct,
-      other.element_incident_rate_pct,
+    incidentRateDeltaPp: ppDelta(baseline.incidentRatePct, other.incidentRatePct),
+    elementIncidentRateDeltaPp: ppDelta(
+      baseline.elementIncidentRatePct,
+      other.elementIncidentRatePct,
     ),
-    avg_duration_delta_pct: pctChange(baseline.avg_duration_sec, other.avg_duration_sec),
-    p95_duration_delta_pct: pctChange(baseline.p95_duration_sec, other.p95_duration_sec),
+    avgDurationDeltaPct: pctChange(baseline.avgDurationMs, other.avgDurationMs),
+    p95DurationDeltaPct: pctChange(baseline.p95DurationMs, other.p95DurationMs),
   }
 }
 
 // Starts are the rates' base and completions the durations' sample: either below the floor is noise.
 export function belowMinBucket(
-  partitions: ReadonlyArray<Pick<CompareKpis, "instance_count" | "completed_count">>,
+  partitions: ReadonlyArray<Pick<CompareKpis, "startedCount" | "completedCount">>,
   minBucketSize: number,
 ): boolean {
-  return partitions.some(
-    (p) => p.instance_count < minBucketSize || p.completed_count < minBucketSize,
-  )
+  return partitions.some((p) => p.startedCount < minBucketSize || p.completedCount < minBucketSize)
 }

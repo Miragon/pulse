@@ -25,7 +25,7 @@ export const ENGINE_ALERT_NAME_PATTERN = "CibSeven.+"
 
 // Carried in every result so no reader mistakes this verdict for camunda7_show_engine_health's: the two may disagree.
 export const ENGINE_HEALTH_STATUS_RULE =
-  "From Prometheus, over the engines in scope: unknown when none of them reports metrics; critical only while a severity=critical alert fires for them (fleet-wide also an engine-less CibSeven* alert); degraded with any such firing alert, dead job, open incident or an engine in scope that reports nothing; else healthy."
+  "From Prometheus, over the engines in scope: unknown when none of them reports metrics; critical only while a severity=critical alert fires for them (fleet-wide also an engine-less CibSeven* alert); degraded with any such firing alert, failed job, open incident or an engine in scope that reports nothing; else healthy."
 
 export interface EngineHealthResult {
   status: "healthy" | "degraded" | "critical" | "unknown"
@@ -38,7 +38,8 @@ export interface EngineHealthResult {
   runningByDefinition: HealthCount[]
   openIncidents: number
   openIncidentsByType: HealthCount[]
-  deadJobs: number
+  /** Jobs without retries left (the `jobs_failed` gauge, as in the landscape). */
+  failedJobs: number
   executableJobs: number
   suspendedJobs: number
   openUserTasks: number
@@ -89,7 +90,7 @@ export async function engineHealth(
   const [
     runningByDef,
     incidentsByType,
-    deadJobs,
+    failedJobs,
     executableByEngine,
     suspendedJobs,
     openTasks,
@@ -126,7 +127,7 @@ export async function engineHealth(
 
   const openIncidents = openIncidentsByType.reduce((s, c) => s + c.count, 0)
   const runningInstances = runningByDefinition.reduce((s, c) => s + c.count, 0)
-  const dead = first(deadJobs)
+  const failed = first(failedJobs)
 
   const engines = engineIdsOf(params.engine)
   const reportingEngines = [
@@ -143,7 +144,7 @@ export async function engineHealth(
       ? "unknown"
       : firingAlerts.some((a) => a.severity === "critical")
         ? "critical"
-        : firingAlerts.length > 0 || dead > 0 || openIncidents > 0 || silentEngines.length > 0
+        : firingAlerts.length > 0 || failed > 0 || openIncidents > 0 || silentEngines.length > 0
           ? "degraded"
           : "healthy"
 
@@ -157,7 +158,7 @@ export async function engineHealth(
     runningByDefinition,
     openIncidents,
     openIncidentsByType,
-    deadJobs: dead,
+    failedJobs: failed,
     executableJobs: total(executableByEngine),
     suspendedJobs: first(suspendedJobs),
     openUserTasks: first(openTasks),

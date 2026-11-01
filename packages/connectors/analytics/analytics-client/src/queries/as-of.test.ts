@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { PrometheusClient, PromSample } from "../prometheus.js"
-import { clusterCompare } from "./cluster-compare.js"
-import { dashboardData, failureDashboardData } from "./dashboard.js"
+import { dashboardData } from "./dashboard.js"
 import { elementHeat } from "./element.js"
 import { engineCompare } from "./engine-compare.js"
 import { engineLandscape } from "./engine-landscape.js"
+import { periodCompare } from "./period-compare.js"
 import { versionCompare } from "./version-compare.js"
 
 const NOW = "2026-10-10T12:32:00.000Z"
@@ -31,7 +31,6 @@ describe("asOf — when the figures were read", () => {
   it("stamps every view result with the query time", async () => {
     const results = await Promise.all([
       dashboardData(client(), { period: "7d" }),
-      failureDashboardData(client(), {}),
       versionCompare(client(), {
         processDefinitionKey: "order",
         versionA: 1,
@@ -52,15 +51,17 @@ describe("asOf — when the figures were read", () => {
     for (const result of results) expect(result.asOf).toBe(NOW)
   })
 
-  it("stamps a deployment comparison with the `now` its windows were clamped to", async () => {
-    const res = await clusterCompare(client(), {
-      deploymentTimestamp: "2026-10-08T12:00:00Z",
-      windowBeforeDays: 7,
-      windowAfterDays: 7,
+  it("stamps a period comparison with the `now` its periods were clamped to", async () => {
+    const res = await periodCompare(client(), {
+      periodAFrom: "2026-10-01T12:00:00Z",
+      periodATo: "2026-10-08T12:00:00Z",
+      periodBFrom: "2026-10-08T12:00:00Z",
+      periodBTo: "2026-10-15T12:00:00Z",
       minBucketSize: 10,
     })
     expect(res.asOf).toBe(NOW)
-    // The post-deployment window ends at that same `now`.
+    // Period B reaches past now and ends at that same `now`.
+    expect(res.kpis[1].to).toBe(NOW)
     expect(res.partial).toBe(true)
   })
 })

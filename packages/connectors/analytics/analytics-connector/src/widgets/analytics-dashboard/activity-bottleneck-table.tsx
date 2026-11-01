@@ -37,7 +37,7 @@ export function activityBottleneckHandOff(
       processDefinitionKey: act.processDefinitionKey,
       period: data.period,
     },
-    // Durations are null when nothing ended in the window — left out, never 0.
+    // Durations are null when nothing ended in the period: left out, never 0.
     facts: {
       activityId: act.activityId,
       activityType: act.activityType,
@@ -45,8 +45,9 @@ export function activityBottleneckHandOff(
       avgDurationMs: act.avgDurationMs,
       p95DurationMs: act.p95DurationMs,
       totalTimeMs: act.totalTimeMs,
+      incidentsCreated: act.incidentsCreated,
     },
-    tools: ["analytics_element_bottleneck", "analytics_analyze_process_performance"],
+    tools: ["analytics_show_dashboard"],
   }
 }
 

@@ -184,7 +184,7 @@ describe("explainActivityHandOff", () => {
       "prod",
     )
     expect(handOff.ids).toMatchObject({ engine: "prod", processInstanceId: "pi-1" })
-    expect(handOff.toolIds?.analytics_element_bottleneck).toEqual({
+    expect(handOff.toolIds?.analytics_show_dashboard).toEqual({
       processDefinitionKey: "invoice",
     })
   })
@@ -195,7 +195,7 @@ describe("explainActivityHandOff", () => {
       { id: "pi-1", processDefinitionKey: null },
       "prod",
     )
-    expect(handOff.toolIds?.analytics_element_bottleneck).toEqual({
+    expect(handOff.toolIds?.analytics_show_dashboard).toEqual({
       processDefinitionKey: undefined,
     })
   })

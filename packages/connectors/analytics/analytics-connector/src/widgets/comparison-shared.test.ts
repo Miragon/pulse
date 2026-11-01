@@ -25,21 +25,21 @@ const plain = (s: string) => s.replace(/\u00a0/g, " ")
 type Kpis = Parameters<typeof buildComparisonMetrics>[1]
 
 const kpis = (over: Partial<Kpis> = {}): Kpis => ({
-  instance_count: 1240,
-  incident_rate_pct: 5,
-  element_incident_count: null,
-  element_incident_rate_pct: null,
-  avg_duration_sec: 60,
-  p95_duration_sec: 187,
+  startedCount: 1240,
+  incidentRatePct: 5,
+  elementIncidentsCreated: null,
+  elementIncidentRatePct: null,
+  avgDurationMs: 60_000,
+  p95DurationMs: 187_000,
   ...over,
 })
 
 const delta: CompareKpiDelta = {
-  started_per_day_delta_pct: 10,
-  incident_rate_delta_pp: -2,
-  element_incident_rate_delta_pp: null,
-  avg_duration_delta_pct: 5,
-  p95_duration_delta_pct: null,
+  startedPerDayDeltaPct: 10,
+  incidentRateDeltaPp: -2,
+  elementIncidentRateDeltaPp: null,
+  avgDurationDeltaPct: 5,
+  p95DurationDeltaPct: null,
 }
 
 const row = (t: T, metrics: ReturnType<typeof buildComparisonMetrics>, labelKey: string) =>
@@ -52,7 +52,7 @@ const RATE: DeltaRule = { kind: "quality", worseIfUp: true, minChange: RATE_MIN_
 describe("buildComparisonMetrics", () => {
   it("formats the values in the view's locale and keeps the raw deltas with their rule", () => {
     english()
-    const metrics = buildComparisonMetrics(en, kpis(), kpis({ incident_rate_pct: 3 }), delta)
+    const metrics = buildComparisonMetrics(en, kpis(), kpis({ incidentRatePct: 3 }), delta)
 
     expect(row(en, metrics, "aComparison.metricIncidentRate")).toEqual({
       label: "Incidents per 100 starts",
@@ -79,7 +79,7 @@ describe("buildComparisonMetrics", () => {
 
   it("speaks German: grouped digits, decimal comma, German units and labels", () => {
     german()
-    const metrics = buildComparisonMetrics(de, kpis(), kpis({ incident_rate_pct: 3.25 }), delta)
+    const metrics = buildComparisonMetrics(de, kpis(), kpis({ incidentRatePct: 3.25 }), delta)
     expect(row(de, metrics, "aComparison.metricStarted")).toMatchObject({
       label: "Starts (Änderung je Tag)",
       before: "1.240",
@@ -94,10 +94,10 @@ describe("buildComparisonMetrics", () => {
 
   it("renders unmeasured rates as 'not measured' with no delta, never as 0 (#327)", () => {
     english()
-    const unmeasured = kpis({ incident_rate_pct: null })
+    const unmeasured = kpis({ incidentRatePct: null })
     const metrics = buildComparisonMetrics(en, unmeasured, unmeasured, {
       ...delta,
-      incident_rate_delta_pp: null,
+      incidentRateDeltaPp: null,
     })
 
     expect(row(en, metrics, "aComparison.metricIncidentRate")).toMatchObject({
@@ -110,10 +110,10 @@ describe("buildComparisonMetrics", () => {
 
   it("renders 'nothing ended' as an unmeasured duration, never 0 ms (N78)", () => {
     german()
-    const noneEnded = kpis({ avg_duration_sec: null, p95_duration_sec: null })
+    const noneEnded = kpis({ avgDurationMs: null, p95DurationMs: null })
     const metrics = buildComparisonMetrics(de, kpis(), noneEnded, {
       ...delta,
-      avg_duration_delta_pct: null,
+      avgDurationDeltaPct: null,
     })
 
     for (const labelKey of ["aComparison.metricAvgDuration", "aComparison.metricP95Duration"]) {
@@ -135,15 +135,15 @@ describe("buildComparisonMetrics", () => {
       ),
     ).toBeUndefined()
 
-    const scoped = kpis({ element_incident_count: 2, element_incident_rate_pct: 5 })
+    const scoped = kpis({ elementIncidentsCreated: 2, elementIncidentRatePct: 5 })
     expect(
       row(
         en,
         buildComparisonMetrics(
           en,
           scoped,
-          kpis({ element_incident_count: 0, element_incident_rate_pct: 0 }),
-          { ...delta, element_incident_rate_delta_pp: -5 },
+          kpis({ elementIncidentsCreated: 0, elementIncidentRatePct: 0 }),
+          { ...delta, elementIncidentRateDeltaPp: -5 },
         ),
         "aComparison.metricElementIncidentRate",
       ),

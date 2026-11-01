@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
 import { RETENTION_DAYS, type PrometheusClient } from "./prometheus.js"
 import * as queries from "./queries/index.js"
-import type { CompareKpiDelta } from "./queries/index.js"
+import type { CompareKpiDelta, CompareKpis } from "./queries/index.js"
 import {
   SCENARIOS,
   exportedQueryFunctions,
@@ -56,29 +56,12 @@ type Result<K extends keyof typeof queries> = Awaited<ReturnType<(typeof queries
 
 // A total map over `queries`: a new export has to state its no-data shape.
 const NO_DATA: { [K in keyof typeof queries]: (result: Result<K>) => void } = {
-  analyzePerformance: (r) => {
-    expect(r.kpi).toBeNull()
-    expect(r.activityBreakdown).toEqual([])
-  },
-  comparePeriods: (r) => {
-    for (const k of r.kpiComparison) {
-      expect(k).toMatchObject({
-        total_instances: 0,
-        incident_rate_pct: null,
-        avg_duration_sec: null,
-        median_sec: null,
-        p95_sec: null,
-      })
-    }
-  },
-  findFailedInstances: (r) => expect(r.patterns).toEqual([]),
-  elementBottleneck: (r) => expect(r.activities).toEqual([]),
   elementHeat: (r) =>
     expect({ frequency: r.frequency, durationSec: r.durationSec }).toEqual({
       frequency: {},
       durationSec: {},
     }),
-  clusterCompare: (r) => {
+  periodCompare: (r) => {
     expect(r.suppressed).toBe(true)
     expectUnmeasuredCompare(r.kpis, r.delta)
   },
@@ -105,7 +88,7 @@ const NO_DATA: { [K in keyof typeof queries]: (result: Result<K>) => void } = {
   },
   dashboardData: (r) => {
     expect(r).toMatchObject({
-      totalCount: 0,
+      startedCount: 0,
       incidentRatePct: null,
       avgDurationMs: null,
       medianDurationMs: null,
@@ -118,10 +101,7 @@ const NO_DATA: { [K in keyof typeof queries]: (result: Result<K>) => void } = {
       definitionBreakdown: [],
     })
     // Nothing started before either: no rate to judge against, and no verdict.
-    expect(r.previous).toMatchObject({ totalCount: 0, incidentRatePct: null, suppressed: true })
-  },
-  failureDashboardData: (r) => {
-    expect(r).toMatchObject({ totalIncidents: 0, mostAffectedProcess: null, errorPatterns: [] })
+    expect(r.previous).toMatchObject({ startedCount: 0, incidentRatePct: null, suppressed: true })
   },
   engineHealth: (r) => {
     // Silence is not health.
@@ -131,19 +111,13 @@ const NO_DATA: { [K in keyof typeof queries]: (result: Result<K>) => void } = {
   },
 }
 
-function expectUnmeasuredCompare(
-  kpis: ReadonlyArray<{
-    avg_duration_sec: number | null
-    p95_duration_sec: number | null
-    incident_rate_pct: number | null
-  }>,
-  delta: CompareKpiDelta,
-) {
+function expectUnmeasuredCompare(kpis: readonly CompareKpis[], delta: CompareKpiDelta) {
   for (const k of kpis) {
-    // "Nothing ended" is no 0 s duration, "nothing started" no 0 % rate.
-    expect(k.avg_duration_sec).toBeNull()
-    expect(k.p95_duration_sec).toBeNull()
-    expect(k.incident_rate_pct).toBeNull()
+    // "Nothing ended" is no 0 ms duration, "nothing started" no 0 % rate.
+    expect(k.avgDurationMs).toBeNull()
+    expect(k.medianDurationMs).toBeNull()
+    expect(k.p95DurationMs).toBeNull()
+    expect(k.incidentRatePct).toBeNull()
   }
   // …so no delta against them either — never a −100 % from a missing value.
   expect(Object.values(delta).every((v) => v === null)).toBe(true)
@@ -168,16 +142,15 @@ describe("query honesty — a Prometheus without data", () => {
 
 // The plugin registers per-key gauge rows only for what exists: nothing open means no series, yet a measured 0.
 describe("query honesty — a reporting engine with nothing open", () => {
-  it("dashboard, failure dashboard, engine health and landscape agree on 0", async () => {
+  it("dashboard, engine health and landscape agree on 0", async () => {
     const { ch } = recordingClient((q) =>
       q.includes("camunda_jobs_executable") || q.includes("camunda_external_tasks_open")
         ? [{ metric: { engine_id: "prod-a" }, value: 0 }]
         : [],
     )
     const engine = "prod-a"
-    const [dashboard, failures, health, landscape] = await Promise.all([
+    const [dashboard, health, landscape] = await Promise.all([
       queries.dashboardData(ch, { period: "7d", engine }),
-      queries.failureDashboardData(ch, { engine }),
       queries.engineHealth(ch, { engine }),
       queries.engineLandscape(ch, { engine }),
     ])
@@ -185,10 +158,9 @@ describe("query honesty — a reporting engine with nothing open", () => {
     expect(health.status).toBe("healthy")
     expect({
       dashboard: dashboard.openIncidentsNow,
-      failureDashboard: failures.totalIncidents,
       engineHealth: health.openIncidents,
       landscape: landscape.engines.find((e) => e.engineId === engine)?.openIncidents,
-    }).toEqual({ dashboard: 0, failureDashboard: 0, engineHealth: 0, landscape: 0 })
+    }).toEqual({ dashboard: 0, engineHealth: 0, landscape: 0 })
     expect({ dashboard: dashboard.runningNow, engineHealth: health.runningInstances }).toEqual({
       dashboard: 0,
       engineHealth: 0,
@@ -204,50 +176,17 @@ const SCOPE_ECHO: {
     | { echo: (ch: PrometheusClient, engine: string[]) => Promise<{ engines: unknown }> }
     | { exempt: string }
 } = {
-  analyzePerformance: {
-    echo: (ch, engine) =>
-      queries.analyzePerformance(ch, {
-        processDefinitionKey: "invoice",
-        period: "7d",
-        includeActivityBreakdown: false,
-        engine,
-      }),
-  },
-  comparePeriods: {
-    echo: (ch, engine) =>
-      queries.comparePeriods(ch, {
-        processDefinitionKey: "invoice",
-        periodAFrom: "2026-10-01T00:00:00Z",
-        periodATo: "2026-10-02T00:00:00Z",
-        periodBFrom: "2026-10-02T00:00:00Z",
-        periodBTo: "2026-10-03T00:00:00Z",
-        includeActivityBreakdown: false,
-        engine,
-      }),
-  },
-  findFailedInstances: {
-    echo: (ch, engine) => queries.findFailedInstances(ch, { maxResults: 5, engine }),
-  },
-  elementBottleneck: {
-    echo: (ch, engine) =>
-      queries.elementBottleneck(ch, {
-        processDefinitionKey: "invoice",
-        period: "7d",
-        minBucketSize: 1,
-        maxResults: 5,
-        engine,
-      }),
-  },
   elementHeat: {
     exempt:
       "heatmap values only — its show tool and feed carry the scope in their own payload (analytics-connector engine-scope.test.ts)",
   },
-  clusterCompare: {
+  periodCompare: {
     echo: (ch, engine) =>
-      queries.clusterCompare(ch, {
-        deploymentTimestamp: "2026-10-05T00:00:00Z",
-        windowBeforeDays: 3,
-        windowAfterDays: 3,
+      queries.periodCompare(ch, {
+        periodAFrom: "2026-10-01T00:00:00Z",
+        periodATo: "2026-10-02T00:00:00Z",
+        periodBFrom: "2026-10-02T00:00:00Z",
+        periodBTo: "2026-10-03T00:00:00Z",
         minBucketSize: 1,
         engine,
       }),
@@ -267,9 +206,6 @@ const SCOPE_ECHO: {
   engineLandscape: { exempt: "lists every engine it covers, one row each" },
   dashboardData: {
     echo: (ch, engine) => queries.dashboardData(ch, { period: "7d", engine }),
-  },
-  failureDashboardData: {
-    echo: (ch, engine) => queries.failureDashboardData(ch, { engine }),
   },
   engineHealth: { echo: (ch, engine) => queries.engineHealth(ch, { engine }) },
 }

@@ -1,6 +1,6 @@
 ---
 name: add-analytics-feature
-description: Step-by-step house pattern for adding a new analytics capability — a PromQL query function in `packages/connectors/analytics/analytics-client`, a tool in `packages/connectors/analytics/analytics-connector`, and optionally a dashboard widget. Use whenever adding or changing process analytics ("add a query for X", "new KPI/metric analysis", "extend the analytics dashboard"), PromQL queries, Prometheus-backed tools, or analytics widgets. Takes precedence over generic mcp-use examples.
+description: Step-by-step house pattern for adding a new analytics capability, a PromQL query function in `packages/connectors/analytics/analytics-client` and one tool in `packages/connectors/analytics/analytics-connector` (normally a show tool with its view). Use whenever adding or changing process analytics ("add a query for X", "new KPI/metric analysis", "extend the analytics dashboard"), PromQL queries, Prometheus-backed tools, or analytics widgets. Takes precedence over generic mcp-use examples.
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 ---
 
@@ -8,9 +8,8 @@ allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 
 Analytics is metric-first: query functions issue instant PromQL queries against
 Prometheus (`/api/v1/query`) where the range window carries the time period, then map the
-labeled samples into row shapes. There is no event store — anything that needs
-per-instance event ordering is out of reach and must be documented as such (see the
-`avg_wait_sec: null` notes in `queries/element.ts`).
+labeled samples into row shapes. There is no event store: anything that needs
+per-instance event ordering is out of reach; say so in the description.
 
 ## Step 1 — query function in analytics-client
 
@@ -32,10 +31,11 @@ helpers from `src/prometheus.ts` — never concatenate label values by hand:
 - `engineState(gauge, sel)` — the ONE way to read a gauge (contract rule 3): every node
   of a clustered engine reports the same engine-wide rows, so they are folded with
   `max by (<the gauge's contract labels>)` before anything sums them
-- Durations are whole MILLISECONDS on the wire (contract rule 1); the result models stay
-  in seconds (`*_sec`, via `secondsOf`/`secondsOrNull`) or ms (`*Ms`) as they always were
+- Durations are whole MILLISECONDS on the wire (contract rule 1) and in every result
+  (`*Ms`, camelCase; the heatmap's `durationSec` is the one exception, widget-shell's
+  `BpmnHeatmapData`)
 
-Reference shape (from `elementBottleneck` in `src/queries/element.ts`):
+Reference shape (from `elementHeat` in `src/queries/element.ts`):
 
 ```ts
 import { METRIC_NAMES as M } from "../metric-names.js"
@@ -51,7 +51,7 @@ const [counts, sums] = await Promise.all([
   ch.instant(`sum by (activity_id)(${inWindow(`${M.activityEnded}${sel}`)})`),
   ch.instant(`sum by (activity_id)(${inWindow(`${M.activityDuration}_sum${sel}`)})`),
 ])
-// sums are ms: secondsOf(sum / count) for an `*_sec` field
+// sums are ms: `secondsOf(sum / count)` for the heat's seconds
 ```
 
 **Metric-name contract:** series names come from `METRIC_NAMES`
@@ -104,7 +104,7 @@ result so those entries can hold:
 ## Step 2 — PromQL snapshot test
 
 Co-locate `<topic>.test.ts` next to the query. Use the mock-client pattern from
-`src/queries/element.test.ts`: a `vi.fn()`-backed `PrometheusClient` that dispatches
+`src/queries/dashboard.test.ts`: a `vi.fn()`-backed `PrometheusClient` that dispatches
 canned `PromSample[]` by inspecting the PromQL string, plus an assertion that **every**
 issued query is correctly scoped:
 
@@ -132,63 +132,27 @@ Add the tool's input schema to `packages/connectors/analytics/analytics-client/s
 export it from `src/schemas/index.ts`. Reuse `engineFilterShape` from
 `src/schemas/shared.ts` for the optional `engine` filter and `periodField` for the
 `period` input (derived from `PERIODS` — never redeclare the period enum), and
-`.describe()` every field (see `elementBottleneckInput` in `src/schemas/path.ts`).
+`.describe()` every field (see `heatmapInput` in `src/schemas/dashboard.ts`).
 
 **Defaults live in the schema.** `periodField` defaults to `7d` and each schema's
 `minBucketSize` to 10: the tool takes the schema's `.shape` as is, so an omitted value
 reaches the handler already defaulted and the model reads the default in tools/list. Never
 re-add a `?? "7d"` in a handler; read the schema's `z.output` type if a field looks optional.
 
-## Step 4 — tool in analytics-connector
+## Step 4 — show tool and view in analytics-connector (the default)
 
-Register the tool in `packages/connectors/analytics/analytics-connector/src/tools/<topic>.ts` through the registrar
-(wired in `src/tools/index.ts`). Reference — `analytics_element_bottleneck` from
-`src/tools/element.ts`:
-
-```ts
-export function registerElementTools(
-  register: ToolRegistrar<PrometheusClient>,
-  engineScope: AnalyticsEngineScope,
-) {
-  register({
-    name: "analytics_element_bottleneck",
-    category: "analytics",
-    description: "Rank activities by execution-time contribution and incident rate …",
-    annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-    inputSchema: schemas.elementBottleneckInput.shape,
-    handler: async (ch, args) => queries.elementBottleneck(ch, withEngineScope(engineScope, args)),
-  })
-}
-```
-
-**Engine scope:** analytics reads only the server's configured engine ids
-(`src/engine-ids.ts`) — a shared Prometheus holds other teams' engines too. Every handler
-passes its args through `withEngineScope(engineScope, args)` (omitted `engine` = all configured
-engines, any other id refused; with none configured it refuses fail-closed); a tool that takes
-engine ids by another name resolves each with `engineScope.require(id, "<field>")` (see
-`analytics_engine_compare`). Never hand `args` to a query unscoped.
-`src/engine-scope.test.ts` sweeps every registered Prometheus-reading tool: add the new tool
-to its `ARGS` map (total over the registered surface) with valid arguments minus `engine`.
-
-Analytics tools are read-only by nature and talk to an external Prometheus:
-`{ readOnlyHint: true, idempotentHint: true, openWorldHint: true }`. Analytics declares no
-toolsets, so every tool reaches every deployment: each one is a read (`src/module.test.ts`
-pins it). A write would first need a toolset vocabulary on the module.
-New domain file → add the `registerXyzTools(register, engineScope)` call to
-`registerTools` in `src/tools/index.ts`. Name the description honestly about metric
-limitations (e.g. "queue/wait time is not available from metrics").
-
-## Step 5 — dashboard widget (only for UI features)
-
-The view chain mirrors the camunda7 module:
+Each analytics question gets ONE tool, and normally that is a show tool: it renders a view
+for the user and returns its figures to the model. The view chain mirrors the camunda7 module:
 
 1. Component in `packages/connectors/analytics/analytics-connector/src/widgets/`, taking a `data` prop.
 2. Register its view in `src/widgets/views.tsx` in `analyticsViews` under the show tool's
    name (an `ANALYTICS_SHOW_*` constant in `src/tool-names.ts`): one explicit component
-   per view, `<HostModelContext content={describeMyView(data)}><MyWidget data={data} /></HostModelContext>`;
-   a dashboard is ONE component that stacks its widgets (`ViewStack`, each row in its own
-   error boundary), each in its own `HostModelContext`, every part taking the view's data
-   as it is (reference: `src/widgets/analytics-dashboard/view.tsx`).
+   per view, taking `{ data }`. It wraps its widget in
+   `<HostModelContext content={describeMyView(data)}>` only when the tool's `content` does
+   not carry what the view shows (today: the heatmap, whose content is a summary). A
+   dashboard is ONE component that stacks its widgets (`ViewStack`, each row in its own
+   error boundary), every part taking the view's data as it is (reference:
+   `src/widgets/analytics-dashboard/view.tsx`).
 3. The view registry `apps/mcp-server-camunda7/src/ui/view-registry.ts` spreads
    `analyticsViews` — verify your view arrives there.
    `apps/mcp-server-camunda7/test/view-registry.test.ts` fails on any view-bound tool
@@ -199,15 +163,32 @@ The view chain mirrors the camunda7 module:
    add-bpm-feature skill, e.g. `maxResults`, never `limit`; `activityId`, never `elementId`) and spread `...showToolBinding(TOOL_NAME, "Title")` (from
    `@miragon/pulse-widget-shell/server` — native `view` binding named after the tool + required
    passthrough `outputSchema` + the Apps-SDK `_meta` half; never hand-write
-   `_meta.ui` keys, mcp-use owns them), returning `buildViewResult(data, summary)` from
-   `@miragon/pulse-widget-shell/server` (the `structuredContent` IS the view's data; see
-   `analytics_show_dashboard`). Only a widget that reads a feed itself (rendered without
+   `_meta.ui` keys, mcp-use owns them), returning `buildViewResult(view, JSON.stringify(result))`
+   (`viewWithJson` in `src/widget-tools/shared.ts`): the `structuredContent` IS the view's
+   data, the `content` the query result as compact JSON, without the `names` only the view
+   needs (reference: `analytics_show_dashboard`). Only a widget that reads a feed itself (rendered without
    data, like the fleet's landscape, or refreshing in place) needs one: an app-only
    `*_data` feed spreads `...appOnly`
    (`visibility: "app"` + `openai/widgetAccessible`, **no** view binding) and returns
    `buildDataFeedResult(data)`. Both resolve `engine` through `withEngineScope` like the
-   registrar tools, and the payload echoes the resolved `engines` so the view's
-   description names the scope from the DATA (`src/widgets/model-descriptions.ts`).
+   registrar tools, and the payload echoes the resolved `engines` so the view and the
+   model read the scope from the DATA.
+
+**Engine scope:** analytics reads only the server's configured engine ids
+(`src/engine-ids.ts`) — a shared Prometheus holds other teams' engines too. Every handler
+passes its args through `withEngineScope(engineScope, args)` (omitted `engine` = all configured
+engines, any other id refused; with none configured it refuses fail-closed); a tool that takes
+engine ids by another name resolves each with `engineScope.require(id, "<field>")` (see
+`analytics_show_engine_compare`). Never hand `args` to a query unscoped.
+`src/engine-scope.test.ts` sweeps every registered Prometheus-reading tool: add the new tool
+to its `ARGS` map (total over the registered surface) with valid arguments minus `engine`.
+
+Analytics tools are read-only by nature and talk to an external Prometheus:
+`{ readOnlyHint: true, idempotentHint: true, openWorldHint: true }`. Analytics declares no
+toolsets, so every tool reaches every deployment: each one is a read (`src/module.test.ts`
+pins it). A write would first need a toolset vocabulary on the module.
+Name each description honestly about metric limitations (e.g. "queue/wait time is not
+available from metrics").
 
 Rules while building:
 
@@ -270,13 +251,13 @@ Rules while building:
   (`TONE_SOFT`), `TONE_INK` only for words in a tone directly on the card (an inline error);
   volume (starts) and suppressed comparisons stay `neutral`, red is `danger` and only for
   incidents/failures. A count of what happened (new incidents included) carries no tone;
-  the open incident and the job without retries (dead jobs, an engine's failed jobs) are the
-  states: a danger dot on its KPI, `StateCount` in a table (`src/widgets/figure.tsx`: a danger
+  the open incident and the job without retries (`failedJobs` in health and the landscape)
+  are the states: a danger dot on its KPI, `StateCount` in a table (`src/widgets/figure.tsx`: a danger
   `CountPill` while there is any, by widget-shell's `countTone`, the ladder camunda7 edges the same
   counts by; none is a plain number). A rate is judged only against a reference, never on its own: the dashboard's
   incident rate against the period before (`previous` in `dashboardData`, the trend of its
   `KpiCell`, `deltaVerdict` with the comparisons' threshold, "not reliable" under the
-  saved `minBucketSize`), and only with the process held fixed: over several processes
+  comparisons' default `minBucketSize` of 10), and only with the process held fixed: over several processes
   the rate is a total over their mix and moves with it, so the trend names the previous
   rate without a verdict, direction or colour (`incidentRateTrend`). A bar scales to the largest value in its table, never to 100, and is a magnitude
   in the data-viz blue (`TONE_DOT.info`), never a state colour.
@@ -294,8 +275,9 @@ Rules while building:
   (`@miragon/pulse-widget-shell/testing`) shared with camunda7:
   "Incident", "Jobs ohne Versuche", "bereitgestellt" …; `glossary.test.ts` rejects the
   synonyms both rule out), counted entries are `plural(…)` and take the count formatted.
-- A show tool words its summary in English through `summaryT` (`src/summary.ts`, an
-  `aSum.*` entry in `src/messages/en.server.ts`) and sets no title: the widget's heading
+- Only the heatmap words a summary for the model, in English through `summaryT`
+  (`src/summary.ts`, an `aSum.*` entry in `src/messages/en.server.ts`); every other show
+  tool returns its result as JSON. A show tool sets no view title: the widget's heading
   names the view in the host's language.
 - Every data view states its reference frame under its title with widget-shell's `ViewMeta`:
   `formatLookback(data.period)`, `enginesMeta(data.engines, reporting)`
@@ -308,11 +290,12 @@ Rules while building:
   `refetch`) is required. The error words itself through widget-shell's `describeError`:
   "Prometheus ist nicht erreichbar", a timeout, a tool this server lacks … each with
   what you can do, the raw text collapsed under the "Details" of pulse-ui's `ErrorState`;
-  `errorTitle` (`aCommon.loadError` in `QueryGate`) heads only a failure `describeError`
+  `errorTitle` (`aCommon.loadError` in the self-fetch of `EngineLandscapeWidget`) heads only a failure `describeError`
   cannot classify. The heatmap's import error is an inline `ErrorState` (`errorTitle`,
   `errorHint`, the parser's text under Details).
-- The model description (a `describe*` function in `src/widgets/model-descriptions.ts`,
-  named directly in the view's `<HostModelContext content={…}>`) returns `modelContextText(…)` with
+- The model description (today only the heatmap's `describeBpmnHeatmap` in
+  `src/widgets/model-descriptions.ts`, named directly in the view's
+  `<HostModelContext content={…}>`) returns `modelContextText(…)` with
   `surface: ANALYTICS_ONLY_SURFACE` — a static `summary`, data only in
   `ids`/`facts`/`untrusted`, tools only in `tools`; Ask-AI hand-offs go through
   `useHandOff()` (`src/widgets/hand-off.ts`). Both state the scope of the data on
@@ -323,6 +306,37 @@ Rules while building:
 - Naming is load-bearing: `apps/mcp-server-camunda7/test/widget-contract.e2e.test.ts` enforces
   the widget `_meta` on every `*_show_*` tool and app-only visibility on every `*_data`
   feed **by name**.
+
+## Step 5 — registrar tool (the exception: a read without a view)
+
+A read the user does not need to see, today only `analytics_engine_health`, registers
+through the registrar instead of a show tool: in
+`packages/connectors/analytics/analytics-connector/src/tools/<topic>.ts`, wired in
+`src/tools/index.ts`, it returns its result to the model as JSON without a view. Reference:
+`analytics_engine_health` from `src/tools/health.ts`:
+
+```ts
+export function registerHealthTools(
+  register: ToolRegistrar<PrometheusClient>,
+  engineScope: AnalyticsEngineScope,
+) {
+  register({
+    name: "analytics_engine_health",
+    category: "analytics",
+    description: "Live operational health of the CIB Seven engine(s) …",
+    annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    inputSchema: schemas.engineHealthInput.shape,
+    handler: async (ch, args, ctx) =>
+      queries.engineHealth(withCallerSignal(ch, ctx?.signal), {
+        engine: engineScope.resolve(args.engine),
+        // …
+      }),
+  })
+}
+```
+
+A new domain file adds its `registerXyzTools(register, engineScope)` call to `registerTools`
+in `src/tools/index.ts`. Engine scope, annotations and honest descriptions follow Step 4.
 
 ## Step 6 — verify
 

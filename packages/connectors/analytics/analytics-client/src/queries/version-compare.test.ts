@@ -6,13 +6,21 @@ import type { PrometheusClient, PromSample } from "../prometheus.js"
 const v = (value: number): PromSample => ({ metric: {}, value })
 
 /** Canned KPIs per version; durations in ms, the histogram's unit. */
-type Canned = { started: number; completed: number; incidents: number; avg: number; p95: number }
+type Canned = {
+  started: number
+  completed: number
+  incidents: number
+  avg: number
+  median: number
+  p95: number
+}
 
 function mockClient(byVersion: Record<string, Canned>) {
   const answer = (q: string): PromSample[] => {
     const version = /process_definition_version="(\d+)"/.exec(q)?.[1] ?? ""
     const kpi = byVersion[version]
     if (!kpi) return []
+    if (q.includes("histogram_quantile(0.5")) return [v(kpi.median)]
     if (q.includes("histogram_quantile")) return [v(kpi.p95)]
     if (q.includes("duration_milliseconds_sum")) return [v(kpi.avg)]
     if (q.includes("incident_created")) return [v(kpi.incidents)]
@@ -33,8 +41,8 @@ const base = {
 }
 
 const versions = {
-  "1": { started: 99.6, completed: 80.4, incidents: 5, avg: 10_040, p95: 20_000 },
-  "2": { started: 50, completed: 40, incidents: 4, avg: 12_060, p95: 30_000 },
+  "1": { started: 99.6, completed: 80.4, incidents: 5, avg: 10_040, median: 8_000.4, p95: 20_000 },
+  "2": { started: 50, completed: 40, incidents: 4, avg: 12_060, median: 9_000, p95: 30_000 },
 }
 
 describe("versionCompare", () => {
@@ -52,6 +60,7 @@ describe("versionCompare", () => {
       `sum(${count(`camunda_process_instance_ended_total${sel(ver, ',state="COMPLETED"')}`)})`,
       `sum(${count(`camunda_incident_created_total${sel(ver)}`)})`,
       `sum(${count(`${duration}_sum${sel(ver)}`)}) / sum(${count(`${duration}_count${sel(ver)}`)})`,
+      `histogram_quantile(0.5, sum by (le)(${count(`${duration}_bucket${sel(ver)}`)}))`,
       `histogram_quantile(0.95, sum by (le)(${count(`${duration}_bucket${sel(ver)}`)}))`,
     ]
     expect(sent()).toEqual([...queries(1), ...queries(2)])
@@ -61,38 +70,39 @@ describe("versionCompare", () => {
     const { ch } = mockClient(versions)
     const res = await versionCompare(ch, base)
 
+    // Durations in whole milliseconds, the histogram's unit.
     expect(res.kpis).toEqual([
       {
         version: 1,
-        bucket: "versionA",
-        instance_count: 100,
-        completed_count: 80,
-        incident_count: 5,
-        incident_rate_pct: 5,
-        element_incident_count: null,
-        element_incident_rate_pct: null,
-        avg_duration_sec: 10,
-        p95_duration_sec: 20,
+        startedCount: 100,
+        completedCount: 80,
+        incidentsCreated: 5,
+        incidentRatePct: 5,
+        elementIncidentsCreated: null,
+        elementIncidentRatePct: null,
+        avgDurationMs: 10_040,
+        medianDurationMs: 8_000,
+        p95DurationMs: 20_000,
       },
       {
         version: 2,
-        bucket: "versionB",
-        instance_count: 50,
-        completed_count: 40,
-        incident_count: 4,
-        incident_rate_pct: 8,
-        element_incident_count: null,
-        element_incident_rate_pct: null,
-        avg_duration_sec: 12.1,
-        p95_duration_sec: 30,
+        startedCount: 50,
+        completedCount: 40,
+        incidentsCreated: 4,
+        incidentRatePct: 8,
+        elementIncidentsCreated: null,
+        elementIncidentRatePct: null,
+        avgDurationMs: 12_060,
+        medianDurationMs: 9_000,
+        p95DurationMs: 30_000,
       },
     ])
     expect(res.delta).toEqual({
-      started_per_day_delta_pct: -50,
-      incident_rate_delta_pp: 3,
-      element_incident_rate_delta_pp: null,
-      avg_duration_delta_pct: 21,
-      p95_duration_delta_pct: 50,
+      startedPerDayDeltaPct: -50,
+      incidentRateDeltaPp: 3,
+      elementIncidentRateDeltaPp: null,
+      avgDurationDeltaPct: 20.12,
+      p95DurationDeltaPct: 50,
     })
   })
 
@@ -116,10 +126,15 @@ describe("versionCompare", () => {
     const res = await versionCompare(ch, { ...base, minBucketSize: 1 })
 
     // No series for v1 at all: unmeasured, never a 0 s duration.
-    expect(res.kpis[0]).toMatchObject({ instance_count: 0, avg_duration_sec: null })
-    expect(res.delta.started_per_day_delta_pct).toBeNull()
-    expect(res.delta.avg_duration_delta_pct).toBeNull()
-    expect(res.delta.p95_duration_delta_pct).toBeNull()
+    expect(res.kpis[0]).toMatchObject({
+      startedCount: 0,
+      avgDurationMs: null,
+      medianDurationMs: null,
+      p95DurationMs: null,
+    })
+    expect(res.delta.startedPerDayDeltaPct).toBeNull()
+    expect(res.delta.avgDurationDeltaPct).toBeNull()
+    expect(res.delta.p95DurationDeltaPct).toBeNull()
     expect(res.suppressed).toBe(true)
   })
 
@@ -133,6 +148,7 @@ describe("versionCompare", () => {
       completed: started,
       incidents: 0,
       avg: 1,
+      median: 1,
       p95: 1,
     })
     const { ch } = mockClient({ "1": canned(counts["1"]), "2": canned(counts["2"]) })
@@ -166,7 +182,7 @@ describe("versionCompare", () => {
       engine: ["prod-a", "prod-b"],
     })
 
-    expect(sent()).toHaveLength(10)
+    expect(sent()).toHaveLength(12)
     expect(sent().every((q) => q.includes('process_definition_key="my\\"key"'))).toBe(true)
     expect(sent().every((q) => q.includes('engine_id=~"prod-a|prod-b"'))).toBe(true)
   })

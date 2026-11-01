@@ -2,10 +2,8 @@ import { useMemo } from "react"
 import { useLocale } from "@miragon/pulse-ui"
 import {
   askAiPrompt,
-  modelContextText,
   type AskAiPrompt,
   type HandOffParts,
-  type ModelContextSpec,
   type ToolSurface,
   useToolQuery,
 } from "@miragon/pulse-widget-shell/widgets"
@@ -15,8 +13,6 @@ import { translator } from "../messages/use-t.js"
 export interface HandOff extends Omit<HandOffParts, "surface"> {
   intent: AnalyticsAskAiKey
 }
-
-export type ViewContext = Omit<ModelContextSpec, "surface">
 
 /** A cross-module reference by raw name; fails when camunda7 is not active, so no camunda7 tool is named. */
 const CAMUNDA7_SURFACE_FEED = "camunda7_widget_actions_data"
@@ -46,11 +42,9 @@ export function useAnalyticsSurface(): ToolSurface {
 /** The hook's body, testable without React. */
 export function bindHandOff(locale: string, surface: ToolSurface) {
   return {
-    surface,
     /** Null when nothing in it is available here. */
     ask: (handOff: HandOff): AskAiPrompt | null =>
       askAiPrompt({ ...handOff, intent: translator(locale, handOff.intent), locale, surface }),
-    context: (view: ViewContext): string => modelContextText({ ...view, surface }),
   }
 }
 
@@ -64,13 +58,11 @@ export function useHandOff() {
  * The server-resolved `engines` echo (#336), never a cell prop: the scope named
  * must be the scope of the numbers shown.
  */
-export function engineIdsOf(
-  engines: readonly string[] | null | undefined,
-): string | string[] | undefined {
+export function engineIdsOf(engines: readonly string[] | null): string | string[] | undefined {
   if (!engines || engines.length === 0) return undefined
   return engines.length === 1 ? engines[0] : [...engines]
 }
 
-export function isAggregate(engines: readonly string[] | null | undefined): boolean {
-  return (engines?.length ?? 0) > 1
+export function isAggregate(engines: readonly string[]): boolean {
+  return engines.length > 1
 }

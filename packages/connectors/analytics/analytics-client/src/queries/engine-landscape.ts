@@ -49,8 +49,7 @@ export interface EngineLandscapeResult {
     openIncidents: number | null
     failedJobs: number | null
   }
-  /** Optional: payloads recorded before it existed lack it. */
-  asOf?: string
+  asOf: string
 }
 
 interface Cell {
