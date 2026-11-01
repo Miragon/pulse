@@ -29,6 +29,13 @@ import { dirname, isAbsolute, join, relative, sep } from "node:path"
 /** Installs and build output: never repo content (installed copies sit in node_modules). */
 const SKIPPED = ["node_modules", "dist", "cache", ".vitepress-cache", "test-results"]
 
+/**
+ * VitePress's build directory, repo-relative: it exists only while the docs build runs, and turbo
+ * runs that build beside this scan, which would read the bundled kit as a fork. Only this path:
+ * a `.temp` folder anywhere else is scanned.
+ */
+const DOCS_BUILD_DIR = "docs/.vitepress/.temp"
+
 const SHA256 = /^[0-9a-f]{64}$/
 const VERSION = /^\d+\.\d+\.\d+$/
 const CD_DECLARATION = /--cd-[\w-]+\s*:/
@@ -121,11 +128,11 @@ function filesUnder(dir: string): string[] {
 }
 
 /** Every `.css` file under `dir`, skipping installs and build output. */
-function stylesheetsUnder(dir: string): string[] {
+function stylesheetsUnder(root: string, dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
-    if (SKIPPED.includes(name)) return []
     const path = join(dir, name)
-    if (statSync(path).isDirectory()) return stylesheetsUnder(path)
+    if (SKIPPED.includes(name) || posix(relative(root, path)) === DOCS_BUILD_DIR) return []
+    if (statSync(path).isDirectory()) return stylesheetsUnder(root, path)
     return name.endsWith(".css") ? [path] : []
   })
 }
@@ -242,7 +249,7 @@ export function vendoredTokenFindings({
       )
       continue
     }
-    for (const file of stylesheetsUnder(join(root, dir))) {
+    for (const file of stylesheetsUnder(root, join(root, dir))) {
       if (sanctioned.has(file) || !CD_DECLARATION.test(rulesOf(readFileSync(file, "utf8")))) {
         continue
       }

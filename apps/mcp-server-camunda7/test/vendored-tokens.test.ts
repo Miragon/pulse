@@ -153,6 +153,16 @@ describe("vendoredTokenFindings: sanctioned copies pass", () => {
       expect(findings([])).toEqual([])
     },
   )
+
+  it("VitePress's build directory is build output; a .temp folder anywhere else is read", () => {
+    write({
+      "docs/.vitepress/.temp/assets/style.css": TOKENS,
+      "app/.temp/t/cd-tokens.generated.css": TOKENS,
+    })
+    expect(findings([], ["docs", "app"])).toEqual([
+      `app/.temp/t/cd-tokens.generated.css: ${FORK}: ${forkFix()}`,
+    ])
+  })
 })
 
 describe("vendoredTokenFindings: forks fail", () => {
