@@ -1,24 +1,36 @@
 import { z } from "zod"
-import { appsSdkMeta, viewResourceUri } from "@miragon/mcp-toolkit-core"
+
+/** mcp-use's scheme for view resources; it exports none, and the widget-contract e2e pins it. */
+export const VIEW_RESOURCE_URI_PREFIX = "ui://views/"
+
+export function viewResourceUri(viewName: string): string {
+  return `${VIEW_RESOURCE_URI_PREFIX}${viewName}.html`
+}
 
 /**
- * mcp-use derives the MCP Apps half from `view` and overwrites `ui` on
- * tools/list; `appsSdkMeta` adds only the `openai/*` half. mcp-use requires an
- * `outputSchema`; `passthrough` keeps free-form `structuredContent` intact.
- * `prefersBorder`: the cards draw no frame of their own (#344).
+ * mcp-use derives the MCP Apps half of `_meta` from `view` and overwrites `ui` on tools/list; this
+ * stamps only the OpenAI Apps SDK half (`openai/*`), in the wire order hosts read. mcp-use requires
+ * an `outputSchema`; `passthrough` keeps free-form `structuredContent` intact. `prefersBorder`: the
+ * cards draw no frame of their own (#344).
  */
 export function showToolBinding(name: string, title: string) {
   return {
     view: { name, description: title, prefersBorder: true },
     outputSchema: z.object({}).passthrough(),
-    _meta: appsSdkMeta({ resourceUri: viewResourceUri(name), title }),
+    _meta: {
+      "openai/outputTemplate": viewResourceUri(name),
+      "openai/toolInvocation/invoking": `Loading ${title}…`,
+      "openai/toolInvocation/invoked": `${title} ready`,
+      "openai/widgetAccessible": true,
+      "openai/resultCanProduceWidget": true,
+    },
   }
 }
 
 /**
  * A non-strict `z.object` lets mcp-use STRIP an unknown key, so a misnamed
- * filter silently widens the result (#329). The message mirrors the toolkit's
- * unexported `unknownKeysMessage`; the test pins both to the same text.
+ * filter silently widens the result (#329). The registrar and every raw
+ * registration take this one schema.
  */
 export function strictToolInput<TShape extends z.ZodRawShape>(shape: TShape) {
   const valid = Object.keys(shape)

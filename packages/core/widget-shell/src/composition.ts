@@ -114,8 +114,9 @@ export function composeModules<TShared>(options: {
   ]
 
   /**
-   * Not the toolkit's `parseActiveModules`: it reads `camunda7:` as no qualifier instead of failing
-   * closed. A repeated name is refused: two plugins would collide and the winning suffix is a guess.
+   * `camunda7:` keeps its empty suffix, which warns and falls back to the read-only floor instead
+   * of counting as no suffix (the standard toolset under OAuth). A repeated name is refused: two
+   * plugins would collide and the winning suffix is a guess.
    */
   const parseActiveModules = (
     env: NodeJS.ProcessEnv,

@@ -83,9 +83,9 @@ name and the tools its `register` adds. Keep it in step with your tools.
 ## Step 4: tools
 
 `src/tools.ts` holds the plain tools **for the model**, registered through
-`createToolRegistrar(server, store, { strictInput: true })` (from
-`@miragon/mcp-toolkit-core/tools`). The second argument is threaded into
-every handler as its first parameter; `strictInput` refuses unknown keys.
+`createToolRegistrar(server, store)` (from
+`@miragon/pulse-widget-shell/server`). The second argument is threaded into
+every handler as its first parameter; the registrar refuses unknown keys.
 Raw `server.tool()` is reserved for the widget path (`widget-tools.ts`).
 
 Tool conventions (they carry the contract, so they are not cosmetic):

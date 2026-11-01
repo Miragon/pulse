@@ -1,4 +1,4 @@
-import type { MessageCatalog } from "@miragon/mcp-toolkit-core"
+import type { MessageCatalog } from "@miragon/pulse-widget-shell/widgets"
 import { countOf, isOne } from "./plural.js"
 
 /** Counts arrive formatted (`formatNumber`); a function entry puts the noun in the right number. */

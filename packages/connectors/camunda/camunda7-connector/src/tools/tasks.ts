@@ -7,7 +7,7 @@ import {
   setTaskAssigneeInput,
   getTaskVariablesInput,
 } from "@miragon/pulse-camunda7-client/schemas"
-import type { createToolRegistrar } from "@miragon/mcp-toolkit-core/tools"
+import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import {
   complementaryFlags,
   engineSorting,
@@ -32,9 +32,7 @@ import {
 import { completeUserTask } from "../lib/task-completion.js"
 import { engineParamShape, withEngine } from "../lib/with-engine.js"
 
-type Register = ReturnType<typeof createToolRegistrar<EngineRegistry>>
-
-export function registerTaskTools(register: Register) {
+export function registerTaskTools(register: ToolRegistrar<EngineRegistry>) {
   register({
     name: "camunda7_list_tasks",
     category: "tasks",

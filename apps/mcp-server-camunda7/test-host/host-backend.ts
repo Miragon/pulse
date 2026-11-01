@@ -3,7 +3,7 @@ import http from "node:http"
 import type { AddressInfo } from "node:net"
 import path from "node:path"
 import type { Client } from "@modelcontextprotocol/client"
-import { viewResourceUri } from "@miragon/mcp-toolkit-core"
+import { viewResourceUri } from "@miragon/pulse-widget-shell/server"
 
 /** What `GET /host/view` hands the host page: the served view, as a host receives it. */
 export interface HostView {

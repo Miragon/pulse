@@ -1,14 +1,12 @@
 import type { PrometheusClient } from "@miragon/pulse-analytics-client"
 import { schemas, queries } from "@miragon/pulse-analytics-client"
-import type { createToolRegistrar } from "@miragon/mcp-toolkit-core/tools"
+import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import type { ProfileSource } from "../server-locale.js"
 import { optionalPeriod, settingsFor } from "../settings.js"
 import { withEngineScope, type AnalyticsEngineScope } from "../engine-ids.js"
 
-type Register = ReturnType<typeof createToolRegistrar<PrometheusClient>>
-
 export function registerPerformanceTools(
-  register: Register,
+  register: ToolRegistrar<PrometheusClient>,
   engineScope: AnalyticsEngineScope,
   profileStore?: ProfileSource,
 ) {

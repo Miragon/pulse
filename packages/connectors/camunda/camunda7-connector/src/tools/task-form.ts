@@ -1,14 +1,12 @@
 import { readTaskVariables, type Client, type VariableMap } from "@miragon/pulse-camunda7-client"
 import type { TaskFormField, TaskFormSchema } from "../view-models.js"
 import { getTaskFormInput } from "@miragon/pulse-camunda7-client/schemas"
-import type { createToolRegistrar } from "@miragon/mcp-toolkit-core/tools"
+import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import { getTask } from "@miragon/pulse-camunda7-client/sdk"
 import { fetchDefinitionXml } from "../lib/definition-xml.js"
 import { extractEmbeddedFormFields } from "../lib/bpmn-task-form.js"
 import type { EngineRegistry } from "../lib/resolve-engine.js"
 import { engineParamShape, withEngine } from "../lib/with-engine.js"
-
-type Register = ReturnType<typeof createToolRegistrar<EngineRegistry>>
 
 interface TaskMeta {
   taskDefinitionKey?: string | null
@@ -25,7 +23,7 @@ export interface BuildTaskFormSchemaOptions {
   bpmnXml?: string | null
 }
 
-export function registerTaskFormTools(register: Register) {
+export function registerTaskFormTools(register: ToolRegistrar<EngineRegistry>) {
   register({
     name: "camunda7_get_task_form",
     category: "tasks",

@@ -1,10 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import type { ToolConfig } from "@miragon/mcp-toolkit-core/tools"
 import { registerEngineTools } from "../tools/engines.js"
 import { registerTools } from "../tools/index.js"
 import { registerIncidentIssueTools } from "../tools/incident-issue.js"
 import type { EngineRegistry } from "./resolve-engine.js"
-import { createInMemoryProfileStore } from "@miragon/pulse-widget-shell/server"
+import { createInMemoryProfileStore, type ToolConfig } from "@miragon/pulse-widget-shell/server"
 import {
   allowedWidgetActions,
   allowsProfileSave,
@@ -26,9 +25,7 @@ afterEach(() => {
 
 function configsFor(toolset: Camunda7Toolset, { allowDeployments = false } = {}): Config[] {
   const configs: Config[] = []
-  const recorder = Object.assign((config: Config) => configs.push(config), {
-    getRegisteredTools: () => [],
-  }) as unknown as Register
+  const recorder = ((config: Config) => configs.push(config)) as unknown as Register
   const register = withToolsetFilter(recorder, toolset)
   registerEngineTools(register, createInMemoryProfileStore())
   registerTools(register, { allowDeployments })
@@ -120,14 +117,6 @@ describe("withToolsetFilter over the real camunda7 tool surface", () => {
     expect(admin).toEqual(expect.arrayContaining(operations))
     expect(readOnly.length).toBeLessThan(operations.length)
     expect(operations.length).toBeLessThan(admin.length)
-  })
-
-  it("delegates getRegisteredTools to the wrapped registrar", () => {
-    const registered = [{ name: "camunda7_list_jobs", category: "jobs" }]
-    const recorder = Object.assign(() => {}, {
-      getRegisteredTools: () => registered,
-    }) as unknown as Register
-    expect(withToolsetFilter(recorder, "read-only").getRegisteredTools()).toBe(registered)
   })
 })
 

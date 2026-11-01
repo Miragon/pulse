@@ -7,9 +7,10 @@ allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 # add-bpm-feature — new tool/widget in the camunda7 module
 
 The camunda7 module never registers operations tools with raw `server.tool()`. Tools go
-through the toolkit registrar; engine access goes through `withEngine`/`resolveEngine`
-(per-call `engine` override > saved default engine (profile) > single default). A view is
-registered in three places (CLAUDE.md invariant 3). Follow the steps for the path you need.
+through the registrar (`createToolRegistrar` from `@miragon/pulse-widget-shell/server`);
+engine access goes through `withEngine`/`resolveEngine` (per-call `engine` override > saved
+default engine (profile) > single default). A view is registered in three places (CLAUDE.md
+invariant 3). Follow the steps for the path you need.
 
 ## Step 0 — pick the render path
 
@@ -46,11 +47,10 @@ changed and you need `pnpm generate`, not a hand-written fetch.
 
 ### Parameter naming guide
 
-Inputs are STRICT (the registrar runs with `strictInput: true`; raw `server.tool()`
-registrations use `strictToolInput(...)` from `@miragon/pulse-widget-shell/server`): an
-unknown key is a tool error listing the valid keys. So one name per concept across every
-tool — a model that learned `assignee` on one tool must not be refused it on the next.
-Renames ship without aliases.
+Inputs are STRICT (the registrar is always strict; raw `server.tool()` registrations use
+`strictToolInput(...)` from `@miragon/pulse-widget-shell/server`): an unknown key is a tool
+error listing the valid keys. So one name per concept across every tool: a model that learned
+`assignee` on one tool must not be refused it on the next. Renames ship without aliases.
 
 | Concept                  | Name                                                                                                                                                |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -82,16 +82,14 @@ Add the tool in `packages/connectors/camunda/camunda7-connector/src/tools/<domai
 
 ```ts
 import { listProcessInstancesInput } from "@miragon/pulse-camunda7-client/schemas"
-import type { createToolRegistrar } from "@miragon/mcp-toolkit-core/tools"
+import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import { complementaryFlags, engineLike, engineSorting } from "@miragon/pulse-camunda7-client"
 import { getProcessInstances, getProcessInstancesCount } from "@miragon/pulse-camunda7-client/sdk"
 import { paginatedListOutput, toPaginatedList } from "../lib/pagination.js"
 import type { EngineRegistry } from "../lib/resolve-engine.js"
 import { engineParamShape, withEngine } from "../lib/with-engine.js"
 
-type Register = ReturnType<typeof createToolRegistrar<EngineRegistry>>
-
-export function registerProcessInstanceTools(register: Register) {
+export function registerProcessInstanceTools(register: ToolRegistrar<EngineRegistry>) {
   register({
     name: "camunda7_list_process_instances",
     category: "process-instances",
@@ -206,7 +204,7 @@ these primitives:
   query, so Refresh and a write's invalidation re-read it (#341). Widgets import every
   query hook (`useToolQuery`, `useToolMutation`, `useViewData`, `useQueryClient`) and the
   host seam (`useViewHost`, `HostModelContext`) from the view runtime, never from
-  `mcp-use/react` or the retired toolkit UI (ESLint); tests render them under `TestViewHost`
+  `mcp-use/react` or a retired toolkit package (ESLint); tests render them under `TestViewHost`
 - `formatTimestamp`/`formatDate`/`formatTime` (dates) and `formatNumber`/`formatPercent`/
   `formatPercentPoints`/`formatPeriod`/`formatDuration`/`truncate`, all from
   `@miragon/pulse-ui`: no local format
@@ -352,7 +350,7 @@ wires them; these files are the documented exception that uses `server.tool()` d
   it by hand — the helper binds a native mcp-use view named after the tool
   (`view: { name }`, mcp-use then emits all `_meta.ui.*` keys and the
   `ui://views/<tool>.html` resource itself), adds the required passthrough
-  `outputSchema`, and stamps the Apps-SDK half via `appsSdkMeta`; **never write
+  `outputSchema`, and stamps the Apps-SDK half of `_meta`; **never write
   `_meta.ui` keys by hand** (mcp-use owns and overwrites that namespace). Resolve the engine via
   `await resolveEngine(args.engine, registry)` — it already returns `baseUrl`/`cockpitUrl`;
   never fish them out of `registry.engines`. Return `buildViewResult(data, summary)`

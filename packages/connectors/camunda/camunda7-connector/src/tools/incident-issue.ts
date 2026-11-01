@@ -1,5 +1,5 @@
 import { formatIncidentIssueInput } from "@miragon/pulse-camunda7-client/schemas"
-import type { createToolRegistrar } from "@miragon/mcp-toolkit-core/tools"
+import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import {
   fetchExternalTaskErrorDetails,
   fetchJobStacktrace,
@@ -21,8 +21,6 @@ import { z } from "zod"
 import type { EngineRegistry } from "../lib/resolve-engine.js"
 import { buildInstanceCockpitUrl, type EngineLink } from "../lib/cockpit-url.js"
 import { engineParamShape, withEngine } from "../lib/with-engine.js"
-
-type Register = ReturnType<typeof createToolRegistrar<EngineRegistry>>
 
 export interface IncidentIssueConfig {
   /**
@@ -362,7 +360,10 @@ async function fetchFailureText(
   }
 }
 
-export function registerIncidentIssueTools(register: Register, config: IncidentIssueConfig) {
+export function registerIncidentIssueTools(
+  register: ToolRegistrar<EngineRegistry>,
+  config: IncidentIssueConfig,
+) {
   register({
     name: "camunda7_format_incident_issue",
     category: "incidents",

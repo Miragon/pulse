@@ -2,7 +2,7 @@ import { useState } from "react"
 import { Button, cn, useLocale, Icon } from "@miragon/pulse-ui"
 import { useQueryClient } from "@miragon/pulse-widget-shell/widgets"
 import { RefreshCw } from "lucide-react"
-import { translator } from "../../messages/index.js"
+import { translator } from "../../messages/use-t.js"
 import { refreshCockpitData } from "../refresh.js"
 
 /** #322 U27: re-reads every feed of the open view; also the retry of a view stuck in error. */

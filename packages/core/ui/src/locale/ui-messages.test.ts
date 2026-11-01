@@ -3,7 +3,7 @@ import {
   formatCount,
   resolveUiLocale,
   resolveUiMessages,
-  TOOLKIT_LOCALES,
+  UI_LOCALES,
   UI_MESSAGES,
   type UiMessages,
 } from "./ui-messages.js"
@@ -47,11 +47,11 @@ const shape = (messages: UiMessages) =>
 
 describe("kit catalogs", () => {
   it("ship en and de with the identical section/key shape and value kinds", () => {
-    expect(TOOLKIT_LOCALES).toEqual(["en", "de"])
+    expect(UI_LOCALES).toEqual(["en", "de"])
     expect(shape(UI_MESSAGES.de)).toEqual(shape(UI_MESSAGES.en))
   })
 
-  for (const locale of TOOLKIT_LOCALES) {
+  for (const locale of UI_LOCALES) {
     describe(`${locale} copy rules`, () => {
       const entries = flatten(UI_MESSAGES[locale])
 

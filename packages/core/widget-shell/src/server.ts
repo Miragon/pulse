@@ -1,5 +1,6 @@
 /** The `/server` import path for module tools and composition roots. */
-export { withToolErrors } from "@miragon/mcp-toolkit-core/tools"
+export { withToolErrors } from "./tool-errors.js"
+export { createToolRegistrar, type ToolConfig, type ToolRegistrar } from "./tool-registrar.js"
 export { createShellPlugin, type ShellPluginOptions } from "./shell-settings.js"
 export {
   SHELL_SAVE_SETTINGS,
@@ -109,7 +110,13 @@ export {
 export { readProfileAdvisory } from "./profile-advisory.js"
 export { createPostgresProfileStore, PROFILE_STORE_MIGRATIONS } from "./profile-store-postgres.js"
 export { createSql, postgresReadinessCheck, runMigrations, type Migration } from "./postgres.js"
-export { appOnly, showToolBinding, strictToolInput } from "./widget-tool-bindings.js"
+export {
+  appOnly,
+  showToolBinding,
+  strictToolInput,
+  VIEW_RESOURCE_URI_PREFIX,
+  viewResourceUri,
+} from "./widget-tool-bindings.js"
 export {
   composeModules,
   frameworkWritesAllowed,
@@ -135,12 +142,14 @@ export {
   type ToolsetSource,
   type ToolsetVocabulary,
 } from "./toolsets.js"
+export { createLocalizeFor, resolveProfileLocale, type ServerT } from "./server-locale.js"
 export {
-  createLocalizeFor,
-  resolveProfileLocale,
-  type ServerT,
+  createTranslator,
+  type Catalogs,
+  type Message,
+  type MessageCatalog,
   type Translator,
-} from "./server-locale.js"
+} from "./translator.js"
 export { parseModuleSlice, requireProfileKey, saveModuleSlice } from "./profile-slice.js"
 export { registerSettingsSection } from "./settings-section.js"
 export {

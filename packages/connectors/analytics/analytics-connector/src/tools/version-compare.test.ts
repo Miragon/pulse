@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest"
 import type { PrometheusClient, VersionCompareResult } from "@miragon/pulse-analytics-client"
-import type { RegisteredToolMeta, ToolConfig } from "@miragon/mcp-toolkit-core/tools"
+import type { ToolConfig } from "@miragon/pulse-widget-shell/server"
 import { createEngineScope } from "../engine-ids.js"
 import { registerVersionCompareTools } from "./version-compare.js"
 
@@ -8,9 +8,7 @@ type Config = ToolConfig<PrometheusClient>
 
 function captureConfig(): Config {
   const configs: Config[] = []
-  const register = Object.assign((config: Config) => configs.push(config), {
-    getRegisteredTools: (): RegisteredToolMeta[] => [],
-  })
+  const register = (config: Config) => configs.push(config)
   registerVersionCompareTools(register as never, createEngineScope(["prod-a"]))
   expect(configs.map((c) => c.name)).toEqual(["analytics_version_compare"])
   return configs[0]

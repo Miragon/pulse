@@ -1,7 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
-import { VIEW_RESOURCE_URI_PREFIX, viewResourceUri } from "@miragon/mcp-toolkit-core"
 import type { Client } from "@modelcontextprotocol/client"
-import { viewPrelude } from "@miragon/pulse-widget-shell/server"
+import {
+  VIEW_RESOURCE_URI_PREFIX,
+  viewPrelude,
+  viewResourceUri,
+} from "@miragon/pulse-widget-shell/server"
 import { bootServer, type BootedServer } from "./boot-server.js"
 
 type ToolEntry = { name: string; title?: string; _meta?: Record<string, unknown> }
@@ -21,8 +24,9 @@ function uiBlock(meta: Record<string, unknown>): Record<string, unknown> {
  * Since mcp-use 2 the MCP Apps half (`_meta.ui.*`, the `ui://views/<tool>.html`
  * resources, the CSP) is emitted natively from each tool's `view`/`visibility`
  * binding — one view PER TOOL instead of 1.x's single shared app resource —
- * while the toolkit stamps the Apps SDK half (`openai/*`). This is the
- * contract whose absence made every widget hang on its loading skeleton.
+ * while widget-shell's `showToolBinding` stamps the Apps SDK half
+ * (`openai/*`). This is the contract whose absence made every widget hang on
+ * its loading skeleton.
  */
 describe("widget wire contract (dual-protocol _meta)", () => {
   let server: BootedServer
@@ -159,8 +163,14 @@ describe("widget wire contract (dual-protocol _meta)", () => {
     expect(showTools.length).toBeGreaterThanOrEqual(20)
     for (const tool of showTools) {
       const { contents } = await client.readResource({ uri: viewResourceUri(tool.name) })
-      const ui = uiBlock((contents[0] as { _meta?: Record<string, unknown> })._meta ?? {})
-      expect(ui.prefersBorder, tool.name).toBe(true)
+      const meta = (contents[0] as { _meta?: Record<string, unknown> })._meta ?? {}
+      expect(uiBlock(meta).prefersBorder, tool.name).toBe(true)
+      // The Apps SDK half mcp-use derives for the view (since 2.8 and 2.10): the view's
+      // description and its default display modes, inline and fullscreen (pip is no Apps SDK mode).
+      expect(meta["openai/widgetDescription"], tool.name).toBe(tool.title)
+      expect(meta["openai/ui"], tool.name).toEqual({
+        availableDisplayModes: ["inline", "fullscreen"],
+      })
     }
     const { resources } = await client.listResources()
     for (const tool of showTools) {

@@ -9,8 +9,8 @@ import { EngineRequestError, toEngineRequestError } from "./engine-error.js"
  * generated hey-api client built by `createCamunda7Client` against a REAL
  * local HTTP server that answers like an engine does — hey-api throws the
  * parsed ExceptionDto (not an Error) for every 4xx/5xx, which used to reach
- * the model as "[object Object]". Each assertion pins the exact `message` the
- * toolkit's `withToolErrors` hands to the model (`e instanceof Error ?
+ * the model as "[object Object]". Each assertion pins the exact `message`
+ * widget-shell's `withToolErrors` hands to the model (`e instanceof Error ?
  * e.message : …`). The three calls below are what the generated SDK
  * functions of the same name send (`sdk.gen.ts`, not imported here: its ~460
  * thin wrappers would swamp this package's coverage ratchet); the connector's
@@ -157,7 +157,7 @@ describe("engine errors reach the model as actionable text", () => {
       "[500 OptimisticLockingException] ENGINE-03005 Execution of 'UPDATE ExecutionEntity[42]' failed. (engine prod-a)",
     )
     expect(e.engineCode).toBe(1)
-    // `status`/`code` would make the toolkit's withToolErrors prefix a second
+    // `status`/`code` would make widget-shell's withToolErrors prefix a second
     // "[500] " / "[1] " — the message already carries the status.
     expect(e).not.toHaveProperty("status")
     expect(e).not.toHaveProperty("code")

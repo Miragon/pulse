@@ -2,10 +2,9 @@ import { resolveProfileKey } from "./profile.js"
 import type { ProfileSource } from "./profile.js"
 import { readProfileAdvisory } from "./profile-advisory.js"
 import { explicitLocale } from "./profile-constants.js"
+import type { Translator } from "./translator.js"
 
 export type ServerT = (key: string, params?: Record<string, unknown>) => string
-
-export type Translator = (locale: string, key: string, params?: Record<string, unknown>) => string
 
 /**
  * `system` reads as English: the host locale is a widget-side signal the server never sees.

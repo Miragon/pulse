@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
 import { increaseIn, type PrometheusClient } from "@miragon/pulse-analytics-client"
-import type { RegisteredToolMeta, ToolConfig } from "@miragon/mcp-toolkit-core/tools"
+import type { ToolConfig } from "@miragon/pulse-widget-shell/server"
 import { createEngineScope } from "../engine-ids.js"
 import { registerPerformanceTools } from "./performance.js"
 
@@ -11,12 +11,9 @@ type Handler = ToolConfig<PrometheusClient>["handler"]
 
 function captureHandlers(registerModule: (register: never) => void): Map<string, Handler> {
   const handlers = new Map<string, Handler>()
-  const register = Object.assign(
-    (config: ToolConfig<PrometheusClient>) => {
-      handlers.set(config.name, config.handler)
-    },
-    { getRegisteredTools: (): RegisteredToolMeta[] => [] },
-  )
+  const register = (config: ToolConfig<PrometheusClient>) => {
+    handlers.set(config.name, config.handler)
+  }
   registerModule(register as never)
   return handlers
 }

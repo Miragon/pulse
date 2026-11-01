@@ -1,13 +1,11 @@
 import { getBatchInput } from "@miragon/pulse-camunda7-client/schemas"
-import type { createToolRegistrar } from "@miragon/mcp-toolkit-core/tools"
+import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import { readBatch } from "@miragon/pulse-camunda7-client"
 import type { EngineRegistry } from "../lib/resolve-engine.js"
 import { engineParamShape, withEngine } from "../lib/with-engine.js"
 
-type Register = ReturnType<typeof createToolRegistrar<EngineRegistry>>
-
 /** Batch writes only report a QUEUED batch; this read says what became of it. */
-export function registerBatchTools(register: Register) {
+export function registerBatchTools(register: ToolRegistrar<EngineRegistry>) {
   register({
     name: "camunda7_get_batch",
     category: "batches",

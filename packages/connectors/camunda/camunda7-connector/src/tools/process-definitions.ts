@@ -2,7 +2,7 @@ import {
   listProcessDefinitionsInput,
   getProcessDefinitionXmlInput,
 } from "@miragon/pulse-camunda7-client/schemas"
-import type { createToolRegistrar } from "@miragon/mcp-toolkit-core/tools"
+import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import { engineLike, engineSorting, trueOnly } from "@miragon/pulse-camunda7-client"
 import {
   getProcessDefinitions,
@@ -13,9 +13,7 @@ import type { EngineRegistry } from "../lib/resolve-engine.js"
 import { engineParamShape, withEngine } from "../lib/with-engine.js"
 import { fetchDefinitionXml } from "../lib/definition-xml.js"
 
-type Register = ReturnType<typeof createToolRegistrar<EngineRegistry>>
-
-export function registerProcessDefinitionTools(register: Register) {
+export function registerProcessDefinitionTools(register: ToolRegistrar<EngineRegistry>) {
   register({
     name: "camunda7_list_process_definitions",
     category: "process-definitions",

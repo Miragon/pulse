@@ -30,7 +30,7 @@ const vscodeBoundaryProbes = ["apps/vscode/test/*/runtime.boundary.ts"]
 
 const TOOL_MEMBER = "/^(tool|registerTool)$/"
 const REGISTRAR_MESSAGE =
-  "Operations tools are registered through createToolRegistrar in src/tools/ (see .claude/skills/add-bpm-feature); raw server.tool() — also via a computed key, .call/.bind/.apply, destructuring or Reflect.get — is reserved for the widget-tools files."
+  "Operations tools are registered through createToolRegistrar (@miragon/pulse-widget-shell/server) in src/tools/ (see .claude/skills/add-bpm-feature); raw server.tool() — also via a computed key, .call/.bind/.apply, destructuring or Reflect.get — is reserved for the widget-tools files."
 
 // Invariant 1. Not just the canonical `x.tool(...)`: every syntactic route
 // to the member that names it literally (an agent "working around" the gate
@@ -136,17 +136,18 @@ const widgetSparkleGate = {
   ],
 }
 
-// Invariant 6: the toolkit's UI package is retired, every subpath with it. The design kit
-// is @miragon/pulse-ui, the view runtime @miragon/pulse-widget-shell/widgets. Widgets reach
-// the host only through widget-shell's view host (`useViewHost`, `HostModelContext`) and
-// query hooks, never `mcp-use/react` itself: its hooks throw outside `bootstrapView`, so a
-// widget importing it could not render under `TestViewHost`. The ONE adapter is
-// widget-shell's `mcp-use-host.tsx` + `view-root.tsx`.
-const TOOLKIT_UI_MESSAGE =
-  "@miragon/mcp-toolkit-ui is retired: import the design kit from @miragon/pulse-ui and the view runtime (useViewHost, HostModelContext, useToolQuery, useToolMutation, useViewData, useQueryClient; TestViewHost in tests) from @miragon/pulse-widget-shell/widgets (CLAUDE.md invariant 6)."
-const toolkitUiGate = {
-  paths: [{ name: "@miragon/mcp-toolkit-ui", message: TOOLKIT_UI_MESSAGE }],
-  patterns: [{ regex: "^@miragon/mcp-toolkit-ui/", message: TOOLKIT_UI_MESSAGE }],
+// Invariants 1 and 6: every toolkit package is retired, every subpath with it; Pulse owns what
+// it used. The registrar, tool errors, view meta, server i18n and caller identity are
+// @miragon/pulse-widget-shell/server, the design kit @miragon/pulse-ui, the view runtime
+// @miragon/pulse-widget-shell/widgets. Widgets reach the host only through widget-shell's view
+// host (`useViewHost`, `HostModelContext`) and query hooks, never `mcp-use/react` itself: its
+// hooks throw outside `bootstrapView`, so a widget importing it could not render under
+// `TestViewHost`. The ONE adapter is widget-shell's `mcp-use-host.tsx` + `view-root.tsx`.
+const TOOLKIT_MESSAGE =
+  "The @miragon/mcp-toolkit-* packages are retired: Pulse owns what it used. The registrar, tool errors, view meta, server i18n and caller identity (resolveProfileKey, resolveAuthUserId) come from @miragon/pulse-widget-shell/server, the design kit from @miragon/pulse-ui and the view runtime (useViewHost, HostModelContext, useToolQuery, useToolMutation, useViewData, useQueryClient; TestViewHost in tests) from @miragon/pulse-widget-shell/widgets (CLAUDE.md invariants 1 and 6)."
+const toolkitGate = {
+  paths: [],
+  patterns: [{ regex: "^@miragon/mcp-toolkit-", message: TOOLKIT_MESSAGE }],
 }
 const mcpUseReactGate = {
   paths: [
@@ -455,7 +456,7 @@ export default tseslint.config(
     files: ["packages/core/ui/src/kit/format.ts", "packages/core/ui/src/locale/ui-messages.ts"],
     rules: { "no-restricted-syntax": ["error", ...widgetNumberGateForFormatters] },
   },
-  // Invariant 6, imports: the toolkit UI gate in every MCP source and test,
+  // Invariants 1 and 6, imports: the toolkit gate in every MCP source and test,
   // plus the sparkle gate (AI affordance) in every widget tree, the one
   // `no-restricted-imports` union per glob; widget-shell's mcp-use adapter is
   // the one place `mcp-use/react` is allowed. Its own rule, so it never
@@ -468,7 +469,7 @@ export default tseslint.config(
       "packages/connectors/*/*/src/**/*.{ts,tsx}",
     ],
     rules: {
-      "no-restricted-imports": ["error", importGates(toolkitUiGate, mcpUseReactGate)],
+      "no-restricted-imports": ["error", importGates(toolkitGate, mcpUseReactGate)],
     },
   },
   {
@@ -482,7 +483,7 @@ export default tseslint.config(
     rules: {
       "no-restricted-imports": [
         "error",
-        importGates(toolkitUiGate, mcpUseReactGate, widgetSparkleGate),
+        importGates(toolkitGate, mcpUseReactGate, widgetSparkleGate),
       ],
     },
   },
@@ -493,7 +494,7 @@ export default tseslint.config(
       "packages/core/widget-shell/src/ui/view-root.test.tsx",
     ],
     rules: {
-      "no-restricted-imports": ["error", importGates(toolkitUiGate, widgetSparkleGate)],
+      "no-restricted-imports": ["error", importGates(toolkitGate, widgetSparkleGate)],
     },
   },
   // ── Ratchet metrics: complexity + file-length budgets ───────────────────
@@ -569,6 +570,12 @@ export default tseslint.config(
   {
     files: ["apps/cli/scripts/**/*.ts"],
     rules: { "no-console": "off" },
+  },
+  // Invariant 8: the CLI imports nothing of the MCP stack, the retired toolkit packages
+  // included (the dependency-cruiser rule `cli-is-headless` holds the rest).
+  {
+    files: ["apps/cli/**/*.ts"],
+    rules: { "no-restricted-imports": ["error", importGates(toolkitGate)] },
   },
   // ── The VS Code extension (apps/vscode) ─────────────────────────────────
   {

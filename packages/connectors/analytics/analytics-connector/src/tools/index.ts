@@ -1,5 +1,5 @@
 import type { MCPServer } from "mcp-use"
-import { createToolRegistrar } from "@miragon/mcp-toolkit-core/tools"
+import { createToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import type { PrometheusClient } from "@miragon/pulse-analytics-client"
 import type { ProfileSource } from "../server-locale.js"
 import type { AnalyticsEngineScope } from "../engine-ids.js"
@@ -22,8 +22,7 @@ export function registerTools(
   engineScope: AnalyticsEngineScope,
   profileStore?: ProfileSource,
 ): void {
-  // An unknown key is a tool error, never a silently dropped filter (#329).
-  const register = createToolRegistrar(server, client, { strictInput: true })
+  const register = createToolRegistrar(server, client)
   registerPerformanceTools(register, engineScope, profileStore)
   registerFailureTools(register, engineScope)
   registerElementTools(register, engineScope, profileStore)

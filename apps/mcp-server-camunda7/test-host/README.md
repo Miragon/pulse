@@ -84,6 +84,6 @@ pnpm --filter @miragon/pulse-mcp-server-camunda7 test:host                      
 ```
 
 Not part of `pnpm test` (needs the Vite bundle and a browser). Run it locally for
-any change to the widget shell, pulse-ui, `src/ui/`, the toolkit or mcp-use pins.
+any change to the widget shell, pulse-ui, `src/ui/` or the mcp-use pin.
 Failed scenarios leave a trace and a screenshot in `apps/mcp-server-camunda7/test-results/`
 (`pnpm exec playwright show-trace <zip>`).

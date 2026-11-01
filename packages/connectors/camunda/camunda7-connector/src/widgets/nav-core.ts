@@ -1,5 +1,5 @@
 import { truncate } from "@miragon/pulse-ui"
-import { translator } from "../messages/index.js"
+import { translator } from "../messages/use-t.js"
 import type { NavIntent } from "./navigation.js"
 
 /** Client-side view state shared by the cockpit app and the standalone shell; pure, host policy stays with the host. */

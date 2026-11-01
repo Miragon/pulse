@@ -1,6 +1,6 @@
-import { createToolRegistrar } from "@miragon/mcp-toolkit-core/tools"
 import {
   createInMemoryProfileStore,
+  createToolRegistrar,
   type ModulePlugin,
   type ProfileStore,
 } from "@miragon/pulse-widget-shell/server"
@@ -104,9 +104,8 @@ export function createPlugin(
     name: "camunda7",
     register(server) {
       const recorded = surface.record(server)
-      // Strict input: a stripped misnamed filter would widen the result to the whole engine (#329).
       const register = withEngineParam(
-        withToolsetFilter(createToolRegistrar(recorded, registry, { strictInput: true }), toolset),
+        withToolsetFilter(createToolRegistrar(recorded, registry), toolset),
         config.engines,
       )
       registerEngineTools(register, profileStore)

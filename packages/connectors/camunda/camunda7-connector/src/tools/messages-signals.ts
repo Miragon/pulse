@@ -1,13 +1,11 @@
 import { correlateMessageInput, throwSignalInput } from "@miragon/pulse-camunda7-client/schemas"
-import type { createToolRegistrar } from "@miragon/mcp-toolkit-core/tools"
+import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import { toEngineVariables } from "@miragon/pulse-camunda7-client"
 import { deliverMessage, throwSignal } from "@miragon/pulse-camunda7-client/sdk"
 import type { EngineRegistry } from "../lib/resolve-engine.js"
 import { engineParamShape, withEngine } from "../lib/with-engine.js"
 
-type Register = ReturnType<typeof createToolRegistrar<EngineRegistry>>
-
-export function registerMessageSignalTools(register: Register) {
+export function registerMessageSignalTools(register: ToolRegistrar<EngineRegistry>) {
   register({
     name: "camunda7_correlate_message",
     category: "messages-signals",

@@ -149,10 +149,8 @@ Register the tool in `packages/connectors/analytics/analytics-connector/src/tool
 `src/tools/element.ts`:
 
 ```ts
-type Register = ReturnType<typeof createToolRegistrar<PrometheusClient>>
-
 export function registerElementTools(
-  register: Register,
+  register: ToolRegistrar<PrometheusClient>,
   engineScope: AnalyticsEngineScope,
   profileStore?: ProfileSource,
 ) {
@@ -212,7 +210,7 @@ The view chain mirrors the camunda7 module:
    `apps/mcp-server-camunda7/test/view-registry.test.ts` fails on any view-bound tool
    without a view.
 4. Register an `analytics_show_*` tool in `src/widget-tools.ts` with
-   `inputSchema: strictToolInput({ … })` (strict like the registrar's `strictInput`: an
+   `inputSchema: strictToolInput({ … })` (strict like the registrar: an
    unknown key is a tool error listing the valid ones — naming per the guide in the
    add-bpm-feature skill, e.g. `maxResults`, never `limit`; `activityId`, never `elementId`) and spread `...showToolBinding(TOOL_NAME, "Title")` (from
    `@miragon/pulse-widget-shell/server` — native `view` binding named after the tool + required

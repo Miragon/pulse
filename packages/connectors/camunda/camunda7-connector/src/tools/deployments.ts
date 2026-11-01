@@ -4,7 +4,7 @@ import {
   createDeploymentInput,
   getDeploymentInput,
 } from "@miragon/pulse-camunda7-client/schemas"
-import type { createToolRegistrar } from "@miragon/mcp-toolkit-core/tools"
+import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import { engineLike, engineSorting } from "@miragon/pulse-camunda7-client"
 import {
   getDeployments,
@@ -16,8 +16,6 @@ import type { MultiFormDeploymentDto } from "@miragon/pulse-camunda7-client/type
 import { paginatedListOutput, toPaginatedList } from "../lib/pagination.js"
 import type { EngineRegistry } from "../lib/resolve-engine.js"
 import { engineParamShape, withEngine } from "../lib/with-engine.js"
-
-type Register = ReturnType<typeof createToolRegistrar<EngineRegistry>>
 
 /**
  * A PLAIN record: the SDK serializer walks `Object.entries(body)`, so a prebuilt `FormData`
@@ -41,7 +39,7 @@ function deploymentForm(args: z.infer<typeof createDeploymentInput>): Deployment
 }
 
 export function registerDeploymentTools(
-  register: Register,
+  register: ToolRegistrar<EngineRegistry>,
   { allowDeployments }: { allowDeployments: boolean },
 ) {
   register({

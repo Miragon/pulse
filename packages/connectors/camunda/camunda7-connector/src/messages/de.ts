@@ -1,4 +1,4 @@
-import type { MessageCatalog } from "@miragon/mcp-toolkit-core"
+import type { MessageCatalog } from "@miragon/pulse-widget-shell/widgets"
 import { countOf } from "./plural.js"
 
 export const de: MessageCatalog = {

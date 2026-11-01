@@ -4,7 +4,7 @@ import {
   setJobRetriesInput,
   setJobRetriesBatchInput,
 } from "@miragon/pulse-camunda7-client/schemas"
-import type { createToolRegistrar } from "@miragon/mcp-toolkit-core/tools"
+import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import {
   complementaryFlags,
   engineSorting,
@@ -23,9 +23,7 @@ import type { EngineRegistry } from "../lib/resolve-engine.js"
 import { engineParamShape, withEngine } from "../lib/with-engine.js"
 import { boundFailureText, condenseStacktrace } from "./incident-issue.js"
 
-type Register = ReturnType<typeof createToolRegistrar<EngineRegistry>>
-
-export function registerJobTools(register: Register) {
+export function registerJobTools(register: ToolRegistrar<EngineRegistry>) {
   register({
     name: "camunda7_list_jobs",
     category: "jobs",

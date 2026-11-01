@@ -22,7 +22,7 @@ import {
 } from "../lib/profile-schema.js"
 import { environmentOf } from "../lib/environments.js"
 import type { EngineRegistry } from "../lib/resolve-engine.js"
-import { translator } from "../messages/index.js"
+import { translator } from "../lib/server-locale.js"
 
 /**
  * Localized to steer the model's reply language. `system` is the host's locale, which the

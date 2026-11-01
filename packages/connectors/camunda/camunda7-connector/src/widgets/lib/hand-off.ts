@@ -9,7 +9,7 @@ import {
   type ToolSurface,
 } from "@miragon/pulse-widget-shell/widgets"
 import type { Camunda7AskAiKey } from "../../messages/en.ask-ai.js"
-import { translator } from "../../messages/index.js"
+import { translator } from "../../messages/use-t.js"
 import { useModelToolsAnswer, type ModelToolsAnswer } from "../widget-actions.js"
 import { useAnalyticsActive } from "../cockpit-app/analytics-probe.js"
 

@@ -11,7 +11,7 @@ comparisons from Prometheus as `analytics_*` tools and dashboards.
 
 ```sh
 npm install @miragon/pulse-analytics-connector @miragon/pulse-widget-shell
-npm install react react-dom zod lucide-react bpmn-js@18.31.0 @miragon/mcp-toolkit-core @miragon/pulse-ui mcp-use@2.7.3
+npm install react react-dom zod lucide-react bpmn-js@18.31.0 @miragon/pulse-ui mcp-use@2.12.2
 ```
 
 To build your own MCP server on it, start from [pulse-starter](https://github.com/Miragon/pulse-starter).
@@ -20,7 +20,8 @@ To build your own MCP server on it, start from [pulse-starter](https://github.co
 
 The **analytics module** for [Pulse](../../../../README.md): Prometheus-backed process analytics as
 `analytics_*` MCP tools, plus dashboard and comparison widgets. Built on
-[`@miragon/pulse-analytics-client`](../analytics-client), `@miragon/pulse-ui` and `@miragon/mcp-toolkit-core`.
+[`@miragon/pulse-analytics-client`](../analytics-client), `@miragon/pulse-ui` and
+`@miragon/pulse-widget-shell`.
 
 The server loads this module as `analytics` via `analyticsModule` (`src/module.ts`), which conforms
 structurally to the `ComposableModule` port of `@miragon/pulse-widget-shell/server`. The package is
@@ -29,13 +30,12 @@ version); the [pulse-starter](https://github.com/Miragon/pulse-starter) template
 compose it into your own MCP server.
 
 The consumer-shared libraries are ranged **peer dependencies** so they dedupe against your app's
-copy: `react`/`react-dom` `^19.2.0`, `zod` `^4.4.0`, `@miragon/mcp-toolkit-core` `~2.8.1`,
-`@miragon/pulse-ui` `^<this release>` (the design kit the widgets compose from),
-`lucide-react` `^0.562.0 || ^1.0.0` (the widgets' icons; add it to your `dedupe` list like the
-widget-shell asks, and pin a 1.x copy (this repo pins 1.61.0): widget-shell's view root imports
-`LucideProvider`, which 0.x lacks, so a deduped 0.x copy fails the bundle build). **`mcp-use` is exactly pinned**:
-pin it to `mcp-use@2.7.3` in your app. A duplicate `mcp-use` instance breaks the React context and
-hangs every in-widget query on "Loading…".
+copy: `react`/`react-dom` `^19.2.0`, `zod` `^4.4.0`, `@miragon/pulse-ui` `^<this release>` (the
+design kit the widgets compose from), `lucide-react` `^0.562.0 || ^1.0.0` (the widgets' icons; add
+it to your `dedupe` list like the widget-shell asks, and pin a 1.x copy (this repo pins 1.61.0):
+widget-shell's view root imports `LucideProvider`, which 0.x lacks, so a deduped 0.x copy fails the
+bundle build). **`mcp-use` is exactly pinned**: pin it to `mcp-use@2.12.2` in your app. A duplicate
+`mcp-use` instance breaks the React context and hangs every in-widget query on "Loading…".
 
 ## What it provides
 

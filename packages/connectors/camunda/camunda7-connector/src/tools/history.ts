@@ -5,7 +5,7 @@ import {
   queryHistoricVariableInstancesInput,
   queryHistoricIncidentsInput,
 } from "@miragon/pulse-camunda7-client/schemas"
-import type { createToolRegistrar } from "@miragon/mcp-toolkit-core/tools"
+import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import {
   RAW_VARIABLES,
   complementaryFlags,
@@ -31,8 +31,6 @@ import type { EngineRegistry } from "../lib/resolve-engine.js"
 import { truncateVariableRows, VARIABLE_TRUNCATION_NOTE } from "../lib/variable-truncation.js"
 import { engineParamShape, withEngine } from "../lib/with-engine.js"
 
-type Register = ReturnType<typeof createToolRegistrar<EngineRegistry>>
-
 interface TimeWindow {
   startedAfter?: string
   startedBefore?: string
@@ -49,7 +47,7 @@ function engineTimeWindow(args: TimeWindow) {
   }
 }
 
-export function registerHistoryTools(register: Register) {
+export function registerHistoryTools(register: ToolRegistrar<EngineRegistry>) {
   register({
     name: "camunda7_query_historic_process_instances",
     category: "history",

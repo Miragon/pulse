@@ -2,8 +2,7 @@ import http from "node:http"
 import type { AddressInfo } from "node:net"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 import type { MCPServer } from "mcp-use"
-import { createToolRegistrar } from "@miragon/mcp-toolkit-core/tools"
-import { createInMemoryProfileStore } from "@miragon/pulse-widget-shell/server"
+import { createInMemoryProfileStore, createToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import { DEFAULT_HEALTH_THRESHOLDS } from "../data/health-data.js"
 import { createEngineRegistry, type EngineEntry } from "../lib/resolve-engine.js"
 import { camunda7Module, createBpmnXmlFetcher } from "../module.js"
@@ -175,7 +174,7 @@ describe("engine errors as the model reads them (registrar tool)", () => {
 })
 
 describe("registrar tools honor the MCP request's ctx.signal", () => {
-  // Since toolkit 2.6 the registrar passes ctx as the third argument, which `withEngine` forwards.
+  // The registrar passes ctx as the third argument, which `withEngine` forwards.
   it("a cancelled request aborts the engine read before the deadline", async () => {
     const { server, tools } = fakeServer()
     registerProcessInstanceTools(

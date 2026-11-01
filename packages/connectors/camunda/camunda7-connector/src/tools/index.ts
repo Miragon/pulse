@@ -1,4 +1,4 @@
-import type { createToolRegistrar } from "@miragon/mcp-toolkit-core/tools"
+import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import type { EngineRegistry } from "../lib/resolve-engine.js"
 
 import { registerProcessDefinitionTools } from "./process-definitions.js"
@@ -14,14 +14,15 @@ import { registerHistoryTools } from "./history.js"
 import { registerMigrationTools } from "./migrations.js"
 import { registerBatchTools } from "./batches.js"
 
-type Register = ReturnType<typeof createToolRegistrar<EngineRegistry>>
-
 export interface RegisterToolsOptions {
   /** `CAMUNDA_ALLOW_DEPLOYMENTS=true`: deploying runs code inside the engine JVM. */
   allowDeployments?: boolean
 }
 
-export function registerTools(register: Register, opts: RegisterToolsOptions = {}): void {
+export function registerTools(
+  register: ToolRegistrar<EngineRegistry>,
+  opts: RegisterToolsOptions = {},
+): void {
   registerProcessDefinitionTools(register)
   registerProcessInstanceTools(register)
   registerTaskTools(register)

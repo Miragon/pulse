@@ -154,8 +154,8 @@ describe("sparkle gate (invariant 6, CI U4) in every widget tree", () => {
   })
 })
 
-describe("toolkit UI gate (invariant 6): the retired package in every spelling", () => {
-  const isToolkitUiHit = (m) => m.includes("@miragon/mcp-toolkit-ui is retired")
+describe("toolkit gate (invariants 1 and 6): every retired package in every spelling", () => {
+  const isToolkitHit = (m) => m.includes("@miragon/mcp-toolkit-* packages are retired")
   const isMcpUseReactHit = (m) => m.includes("imports mcp-use/react")
   const MCP_PATHS = [
     `${C7}/widgets/__probe__.tsx`,
@@ -169,9 +169,15 @@ describe("toolkit UI gate (invariant 6): the retired package in every spelling",
     "apps/mcp-server-camunda7/test/__probe__.test.ts",
     "apps/mcp-server-camunda7/test-host/__probe__.spec.ts",
   ]
+  /** The MCP sources and tests plus the CLI, the paths dependency-cruiser held until the family left. */
+  const TOOLKIT_PATHS = [
+    ...MCP_PATHS,
+    "apps/cli/src/__probe__.ts",
+    "apps/cli/test/__probe__.test.ts",
+  ]
   const TOOLKIT = '"@miragon/mcp-toolkit-ui"'
 
-  it("bans the root, its type and value imports, re-exports and every subpath", async () => {
+  it("bans every package of the family: roots, type and value imports, re-exports, subpaths", async () => {
     const escapes = [
       `import { Button } from ${TOOLKIT}`,
       `import type { ToneVariant } from ${TOOLKIT}`,
@@ -182,12 +188,32 @@ describe("toolkit UI gate (invariant 6): the retired package in every spelling",
       'import { x } from "@miragon/mcp-toolkit-ui/app"',
       'import { y } from "@miragon/mcp-toolkit-ui/hooks"',
       'import { z } from "@miragon/mcp-toolkit-ui/app/widget-fixture"',
+      'import { createToolRegistrar } from "@miragon/mcp-toolkit-core/tools"',
+      'import type { MessageCatalog } from "@miragon/mcp-toolkit-core"',
+      'import { createTranslator as t } from "@miragon/mcp-toolkit-core"',
+      'export { withToolErrors } from "@miragon/mcp-toolkit-core/tools"',
+      'export * from "@miragon/mcp-toolkit-core"',
+      'import { createRestTool } from "@miragon/mcp-toolkit-core/rest"',
+      'import "@miragon/mcp-toolkit-anything"',
     ]
-    for (const rel of MCP_PATHS) {
+    for (const rel of TOOLKIT_PATHS) {
       for (const code of escapes) {
         const messages = await gateMessages(rel, code, "no-restricted-imports")
-        assert.equal(messages.filter(isToolkitUiHit).length, 1, `${rel}: "${code}" passed the gate`)
+        assert.equal(messages.filter(isToolkitHit).length, 1, `${rel}: "${code}" passed the gate`)
       }
+    }
+  })
+
+  it("leaves Pulse's own packages, other Miragon packages and mcp-use alone", async () => {
+    const code = [
+      'import { Button } from "@miragon/pulse-ui"',
+      'import { createToolRegistrar } from "@miragon/pulse-widget-shell/server"',
+      'import { ModelerShell } from "@miragon/modeler-shell"',
+      'import { MCPServer } from "mcp-use"',
+    ].join("\n")
+    for (const rel of TOOLKIT_PATHS) {
+      const messages = await gateMessages(rel, code, "no-restricted-imports")
+      assert.deepEqual(messages.filter(isToolkitHit), [], rel)
     }
   })
 
@@ -206,14 +232,14 @@ describe("toolkit UI gate (invariant 6): the retired package in every spelling",
     }
   })
 
-  it("keeps the toolkit UI ban and the sparkle gate on the adapter files", async () => {
+  it("keeps the toolkit ban and the sparkle gate on the adapter files", async () => {
     for (const rel of [`${WS}/mcp-use-host.tsx`, `${WS}/view-root.tsx`]) {
       const messages = await gateMessages(
         rel,
         `import { Button } from ${TOOLKIT}\nimport { Sparkles } from "lucide-react"`,
         "no-restricted-imports",
       )
-      assert.equal(messages.filter(isToolkitUiHit).length, 1, rel)
+      assert.equal(messages.filter(isToolkitHit).length, 1, rel)
       assert.equal(messages.filter((m) => m.includes("Sparkles")).length, 1, rel)
     }
   })
@@ -231,7 +257,7 @@ describe("toolkit UI gate (invariant 6): the retired package in every spelling",
     }
   })
 
-  it("widget trees carry the toolkit UI AND the sparkle gate in one union", async () => {
+  it("widget trees carry the toolkit AND the sparkle gate in one union", async () => {
     const code = `import { Button } from ${TOOLKIT}\nimport { Sparkles } from "lucide-react"`
     for (const rel of [
       `${C7}/widgets/__probe__.tsx`,
@@ -240,7 +266,7 @@ describe("toolkit UI gate (invariant 6): the retired package in every spelling",
       `${WS}/__probe__.tsx`,
     ]) {
       const messages = await gateMessages(rel, code, "no-restricted-imports")
-      assert.equal(messages.filter(isToolkitUiHit).length, 1, `${rel}: toolkit UI gate dropped`)
+      assert.equal(messages.filter(isToolkitHit).length, 1, `${rel}: toolkit gate dropped`)
       assert.equal(
         messages.filter((m) => m.includes("Sparkles")).length,
         1,

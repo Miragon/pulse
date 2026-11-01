@@ -1,11 +1,12 @@
 import type { PrometheusClient } from "@miragon/pulse-analytics-client"
 import { ENGINE_HEALTH_STATUS_RULE, schemas, queries } from "@miragon/pulse-analytics-client"
-import type { createToolRegistrar } from "@miragon/mcp-toolkit-core/tools"
+import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import type { AnalyticsEngineScope } from "../engine-ids.js"
 
-type Register = ReturnType<typeof createToolRegistrar<PrometheusClient>>
-
-export function registerHealthTools(register: Register, engineScope: AnalyticsEngineScope) {
+export function registerHealthTools(
+  register: ToolRegistrar<PrometheusClient>,
+  engineScope: AnalyticsEngineScope,
+) {
   register({
     name: "analytics_engine_health",
     category: "analytics",

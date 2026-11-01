@@ -9,7 +9,7 @@
  */
 import { AsyncLocalStorage } from "node:async_hooks"
 import { createHash } from "node:crypto"
-import { resolveCallerId } from "@miragon/mcp-toolkit-core"
+import { resolveCaller } from "./caller.js"
 
 export interface McpRequestInfo {
   authUserId?: string
@@ -56,7 +56,7 @@ function deriveInfo(ctx: MiddlewareCtxLike): McpRequestInfo {
     }
   }
   return {
-    authUserId: resolveCallerId(ctx),
+    authUserId: resolveCaller(ctx)?.userId,
     authorization: header("Authorization") ?? header("authorization"),
   }
 }

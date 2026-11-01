@@ -197,7 +197,7 @@ describe("the name rules", () => {
 
   it.each([
     "@miragon/pulse-widget-shell",
-    "@miragon/mcp-toolkit-core",
+    "@miragon/modeler-shell",
     "ghcr.io/miragon/pulse-server:latest",
     "ghcr.io/miragon/pulse-server:0.21.0-RC1",
     "https://github.com/Miragon/pulse/pkgs/container/pulse-server",

@@ -1,11 +1,12 @@
 ---
 name: mcp-apps-builder
-description: Where to look before changing MCP server code in this repo (tools, resources, prompts, widgets, auth). Points to the house skills, the CLAUDE.md invariants, widget-shell's view runtime and the toolkit's mcp-use 2 guide; it teaches no framework API itself.
+description: Where to look before changing MCP server code in this repo (tools, resources, prompts, widgets, auth). Points to the house skills, the CLAUDE.md invariants, widget-shell's view runtime and the mcp-use typings; it teaches no framework API itself.
 ---
 
 # MCP server work in this repo
 
-This repo runs `mcp-use@2.7.3` with `@miragon/mcp-toolkit-core@2.8.1`; the UI is
+This repo runs `mcp-use@2.12.2`; what Pulse adds on the server (registrar, tool errors, view
+meta, server i18n, caller identity) lives in `@miragon/pulse-widget-shell/server`, the UI in
 `@miragon/pulse-ui`. The generic mcp-use skill this file used to vendor taught 1.x APIs
 (`server.uiResource()`, the `text()`/`widget()` response helpers, `server.proxy()`, the
 1.x widget hook, hand-stamped `_meta.ui`), so it is gone. Read these instead, in this order:
@@ -23,11 +24,9 @@ This repo runs `mcp-use@2.7.3` with `@miragon/mcp-toolkit-core@2.8.1`; the UI is
 3. **widget-shell's view runtime** (`packages/core/widget-shell/README.md`) for
    everything a widget does: the bundle root, the view host seam, the query
    hooks and `TestViewHost`; its UI comes from the design kit
-   (`packages/core/ui/README.md`). Widgets never import `mcp-use/react` or the
-   retired toolkit UI. The toolkit's guides
-   ([migrating to mcp-use 2](https://github.com/Miragon/mcp-toolkit/blob/main/docs/guides/migrating-to-mcp-use-2.md))
-   cover only the server-side halves it still owns (the registrar,
-   `appsSdkMeta`).
+   (`packages/core/ui/README.md`). Widgets never import `mcp-use/react` or a
+   retired toolkit package. The server half (the registrar, `showToolBinding`,
+   the server i18n) is in the same README, under `./server`.
 4. **mcp-use itself** ([github.com/mcp-use/mcp-use](https://github.com/mcp-use/mcp-use)):
    read the 2.x typings in `node_modules/mcp-use` before you trust an example
    from the web.

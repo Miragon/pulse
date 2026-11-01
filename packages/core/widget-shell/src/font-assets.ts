@@ -5,7 +5,7 @@
  */
 import { readFileSync } from "node:fs"
 import { createRequire } from "node:module"
-import type { AppResourceCsp } from "@miragon/mcp-toolkit-core"
+import type { AppResourceCsp } from "./tool-registration.js"
 import type { HttpRouteHost } from "./health.js"
 import { SERVED_FONT_FILES, SERVED_FONT_PATH } from "./served-fonts.js"
 

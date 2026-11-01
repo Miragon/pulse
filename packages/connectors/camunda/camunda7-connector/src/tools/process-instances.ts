@@ -9,7 +9,7 @@ import {
   setProcessInstanceVariableInput,
   setProcessInstanceSuspensionInput,
 } from "@miragon/pulse-camunda7-client/schemas"
-import type { createToolRegistrar } from "@miragon/mcp-toolkit-core/tools"
+import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import {
   complementaryFlags,
   engineLike,
@@ -39,9 +39,7 @@ import {
 } from "../lib/variable-truncation.js"
 import { engineParamShape, withEngine } from "../lib/with-engine.js"
 
-type Register = ReturnType<typeof createToolRegistrar<EngineRegistry>>
-
-export function registerProcessInstanceTools(register: Register) {
+export function registerProcessInstanceTools(register: ToolRegistrar<EngineRegistry>) {
   register({
     name: "camunda7_start_process_instance",
     category: "process-instances",

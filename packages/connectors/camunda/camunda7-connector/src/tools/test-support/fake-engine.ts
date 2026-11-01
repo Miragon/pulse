@@ -6,7 +6,7 @@ import { once } from "node:events"
 import { createServer, type IncomingHttpHeaders, type Server, type ServerResponse } from "node:http"
 import type { AddressInfo } from "node:net"
 import { z } from "zod"
-import type { ToolConfig } from "@miragon/mcp-toolkit-core/tools"
+import type { ToolConfig } from "@miragon/pulse-widget-shell/server"
 import type { Client } from "@miragon/pulse-camunda7-client"
 import { createEngineRegistry, type EngineRegistry } from "../../lib/resolve-engine.js"
 import { providerForEntry } from "../../providers/index.js"
@@ -99,8 +99,7 @@ export function captureTools(
 ): Map<string, ToolConfig<EngineRegistry>> {
   const tools = new Map<string, ToolConfig<EngineRegistry>>()
   const register: Register = (config) => tools.set(config.name, config)
-  const recorder = Object.assign(register, { getRegisteredTools: () => [] })
-  for (const fn of registerFns) fn(recorder as never)
+  for (const fn of registerFns) fn(register as never)
   return tools
 }
 
@@ -111,12 +110,12 @@ export function registryFor(engine: FakeEngine): EngineRegistry {
 }
 
 export function clientFor(engine: FakeEngine): Client {
-  return registryFor(engine).backends.resolve("fake").client
+  return registryFor(engine).backends.get("fake")!.client
 }
 
 type Handler = (registry: EngineRegistry, args: Record<string, unknown>) => Promise<unknown>
 
-/** Validates STRICT like the registrar (`strictInput`), so an unknown key fails here too. */
+/** Validates STRICT like the registrar, so an unknown key fails here too. */
 export function callTool(
   config: ToolConfig<EngineRegistry>,
   registry: EngineRegistry,

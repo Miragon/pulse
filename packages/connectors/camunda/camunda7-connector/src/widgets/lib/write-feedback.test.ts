@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { translator } from "../../messages/index.js"
-import type { T } from "../../messages/use-t.js"
+import { translator, type T } from "../../messages/use-t.js"
 import { instanceName, instanceTargetLines, writeFeedback } from "./write-feedback.js"
 
 const tFor =

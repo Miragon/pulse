@@ -53,8 +53,8 @@ external infrastructure.
    (JSON the widget re-reads or fetches in place). The `_show_`/`_data` **naming is
    load-bearing**: `server/test/widget-contract.e2e.test.ts` asserts the widget
    `_meta` contract by name across ALL composed modules, including yours.
-   All three take **strict input** (the registrar with `{ strictInput: true }`,
-   raw `server.tool()` with `strictToolInput(shape)` from
+   All three take **strict input** (the registrar always, raw
+   `server.tool()` with `strictToolInput(shape)`, both from
    `@miragon/pulse-widget-shell/server`), so an unknown key is a tool error naming
    the valid keys, never a silently dropped filter
    (`server/test/strict-input.e2e.test.ts` probes every tool of every module
@@ -85,10 +85,10 @@ external infrastructure.
 5. **Exact version pins** (`save-exact` in `.npmrc`) for `dependencies`/
    `devDependencies`: upgrade all `@miragon/pulse-*` packages together to one
    version. The consumer-shared libraries are ranged `peerDependencies`
-   instead (`react`/`react-dom` `^19.2.0`, `zod` `^4.4.0` and
-   `@miragon/mcp-toolkit-core` `~2.8.1`), so they dedupe against your app's
-   copy; keep an exact copy of each in `devDependencies` for local builds.
-   **`mcp-use` stays exactly pinned** even as a peer (`2.7.3`): a duplicate
+   instead (`react`/`react-dom` `^19.2.0` and `zod` `^4.4.0`), so they
+   dedupe against your app's copy; keep an exact copy of each in
+   `devDependencies` for local builds.
+   **`mcp-use` stays exactly pinned** even as a peer (`2.12.2`): a duplicate
    `mcp-use` instance breaks the React context and hangs every in-widget query
    on "Loading…" (invariant #4). `@mcp-use/client` (a dev dependency of `server/`) is
    pre-pinned to the newest version mcp-use's optional peer range accepts, so

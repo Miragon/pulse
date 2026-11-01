@@ -1,5 +1,5 @@
 import { z } from "zod"
-import type { createToolRegistrar, ToolConfig } from "@miragon/mcp-toolkit-core/tools"
+import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import type { Client } from "@miragon/pulse-camunda7-client"
 import type { EngineProvider } from "../engine-provider.js"
 import { resolveEngine, type EngineCallContext, type EngineRegistry } from "./resolve-engine.js"
@@ -28,23 +28,22 @@ export function engineParamShapeFor(engines: readonly { id: string }[]): EngineP
   }
 }
 
-type Register = ReturnType<typeof createToolRegistrar<EngineRegistry>>
-type ZodRawShape = Record<string, z.ZodType>
-
 /** Swaps only the exact placeholder; a tool with its own `engine` field keeps it. */
-export function withEngineParam(register: Register, engines: readonly { id: string }[]): Register {
+export function withEngineParam(
+  register: ToolRegistrar<EngineRegistry>,
+  engines: readonly { id: string }[],
+): ToolRegistrar<EngineRegistry> {
   const { engine } = engineParamShapeFor(engines)
-  const narrowed = <TShape extends ZodRawShape>(config: ToolConfig<EngineRegistry, TShape>) => {
+  return (config) => {
     const shape = config.inputSchema
     if (shape?.engine !== engineParamShape.engine) return register(config)
     // Same field, narrower values: the handler's `engine?: string` holds.
-    const narrowedConfig: ToolConfig<EngineRegistry, TShape> = {
+    const narrowedConfig: typeof config = {
       ...config,
       inputSchema: { ...shape, engine },
     }
     return register(narrowedConfig)
   }
-  return Object.assign(narrowed, { getRegisteredTools: () => register.getRegisteredTools() })
 }
 
 export interface EngineContext {

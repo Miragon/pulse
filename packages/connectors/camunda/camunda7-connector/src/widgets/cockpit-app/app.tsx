@@ -33,7 +33,7 @@ import {
 } from "../nav-core.js"
 import { useHandOff } from "../lib/hand-off.js"
 import { cockpitContext, fleetContext, landingContext } from "./model-context.js"
-import { translator } from "../../messages/index.js"
+import { translator } from "../../messages/use-t.js"
 import { CAMUNDA7_LIST_ENGINES } from "../../tool-names.js"
 import { FleetCrumbs, NavBreadcrumb, navigationOf } from "./breadcrumb.js"
 import { CockpitRoute } from "./routes.js"

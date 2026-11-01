@@ -1,11 +1,18 @@
-import type { AppResourceCsp } from "@miragon/mcp-toolkit-core"
 import type { MCPServer, ToolDefinition } from "mcp-use"
 import type { ModulePlugin } from "./composition.js"
 
 /** Owner of a tool registered outside a plugin's `register`. */
 export const SERVER_TOOL_OWNER = "server"
 
-/** The Apps SDK spelling of {@link AppResourceCsp}; the toolkit does not export its converter. */
+/** A view's CSP in the SEP-1865 spelling mcp-use takes on `view.csp`: origins other than the server's own. */
+export interface AppResourceCsp {
+  connectDomains?: string[]
+  resourceDomains?: string[]
+  frameDomains?: string[]
+  baseUriDomains?: string[]
+}
+
+/** The Apps SDK spelling of {@link AppResourceCsp}. */
 export interface WidgetCspMeta {
   connect_domains?: string[]
   resource_domains?: string[]

@@ -81,6 +81,12 @@ export {
 } from "./tool-query.js"
 export { decodeToolResult, type ToolResult } from "../tool-result.js"
 export {
+  createTranslator,
+  type Catalogs,
+  type Message,
+  type MessageCatalog,
+} from "../translator.js"
+export {
   createTestQueryClient,
   TestViewHost,
   type HostAction,

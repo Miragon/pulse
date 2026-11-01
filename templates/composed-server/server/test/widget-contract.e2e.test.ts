@@ -1,9 +1,13 @@
 import path from "node:path"
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
-import { VIEW_RESOURCE_URI_PREFIX, viewResourceUri } from "@miragon/mcp-toolkit-core"
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client"
 import { CAMUNDA7_ADMIN_ONLY_TOOLS } from "@miragon/pulse-camunda7-connector"
-import { viewPrelude, type RunningServer } from "@miragon/pulse-widget-shell/server"
+import {
+  VIEW_RESOURCE_URI_PREFIX,
+  viewPrelude,
+  viewResourceUri,
+  type RunningServer,
+} from "@miragon/pulse-widget-shell/server"
 import { createApp, packageVersion, SERVER_INSTRUCTIONS } from "../src/app.js"
 import { stubNeutralEnv } from "./neutral-env.js"
 
@@ -52,12 +56,12 @@ function uiBlock(meta: Record<string, unknown>): Record<string, unknown> {
  * Since mcp-use 2 the MCP Apps half (`_meta.ui.*`, the `ui://views/<tool>.html`
  * resources, the CSP) is emitted natively from each tool's `view`/`visibility`
  * binding — one view PER TOOL instead of 1.x's single shared app resource —
- * while the toolkit stamps the Apps SDK half (`openai/*`). The name-based
- * checks are the load-bearing part — they cover every module this app
- * composes, including custom ones, without listing tools by hand: a `*_show_*`
- * tool without its view binding hangs on the host's loading skeleton; a
- * model-visible `*_data` feed gets rendered by the host instead of feeding the
- * in-widget callTool.
+ * while widget-shell's `showToolBinding` stamps the Apps SDK half
+ * (`openai/*`). The name-based checks are the load-bearing part — they cover
+ * every module this app composes, including custom ones, without listing tools
+ * by hand: a `*_show_*` tool without its view binding hangs on the host's
+ * loading skeleton; a model-visible `*_data` feed gets rendered by the host
+ * instead of feeding the in-widget callTool.
  */
 describe("widget wire contract (dual-protocol _meta)", () => {
   let app: RunningServer
@@ -202,6 +206,24 @@ describe("widget wire contract (dual-protocol _meta)", () => {
       expect(resource, `view resource for ${tool.name} should be listed`).toBeDefined()
       expect(resource!.mimeType).toBe("text/html;profile=mcp-app")
     }
+  })
+
+  // The Apps SDK half mcp-use derives for each view resource (since 2.8 and 2.10): the view's
+  // description (showToolBinding's title) and its default display modes, inline and fullscreen.
+  it("reads every view with its Apps SDK description and display modes", async () => {
+    const showTools = tools.filter((t) => t.name.includes("_show_"))
+    expect(showTools.map((t) => t.name)).toContain("notes_show_notes")
+    for (const tool of showTools) {
+      const { contents } = await client.readResource({ uri: viewResourceUri(tool.name) })
+      const meta = (contents[0] as { _meta?: Record<string, unknown> })._meta ?? {}
+      expect(meta["openai/widgetDescription"], tool.name).toEqual(expect.stringMatching(/\S/))
+      expect(meta["openai/ui"], tool.name).toEqual({
+        availableDisplayModes: ["inline", "fullscreen"],
+      })
+    }
+    const { contents } = await client.readResource({ uri: viewResourceUri("notes_show_notes") })
+    const notesMeta = (contents[0] as { _meta?: Record<string, unknown> })._meta ?? {}
+    expect(notesMeta["openai/widgetDescription"]).toBe("Team Notes")
   })
 
   // The one bundle serves every view: the document's prelude names the view (= its show tool),

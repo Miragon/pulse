@@ -119,13 +119,13 @@ in the app's `module-contract.ts`) — modules stick to the narrow port, composi
 wire the full store. Alias them to your module's vocabulary if the call sites read
 better that way (`export const resolveSettingsKey = resolveProfileKey`).
 
-`resolveProfileKey(ctx)` precedence, fail-closed: the OAuth caller (`MCP_OAUTH`, read
-from `ctx.auth` through the toolkit's `resolveCaller`) > `ANONYMOUS_PROFILE_KEY` only for
-an EXPLICITLY declared local caller (`runWithMcpRequestInfo({ anonymousCaller: true }, …)`,
-in tests) > `undefined` otherwise: a request without OAuth, or no request context at all
-(reads fall back to defaults, saves fail visibly: callers without an identity must never
-cross-share one record). Nothing a client picks itself (a session id, a header) is ever a
-key. Always pass the handler's `ctx`.
+`resolveProfileKey(ctx)` precedence, fail-closed: the OAuth caller (`MCP_OAUTH`, read from
+`ctx.auth` through `resolveCaller` in `packages/core/widget-shell/src/caller.ts`) >
+`ANONYMOUS_PROFILE_KEY` only for an EXPLICITLY declared local caller
+(`runWithMcpRequestInfo({ anonymousCaller: true }, …)`, in tests) > `undefined` otherwise: a
+request without OAuth, or no request context at all (reads fall back to defaults, saves fail
+visibly: callers without an identity must never cross-share one record). Nothing a client
+picks itself (a session id, a header) is ever a key. Always pass the handler's `ctx`.
 
 `resolveAuthUserId(ctx)` is the OAuth half alone: `registerSettingsSection` hands it to
 your save as the record's owner (`userId`).

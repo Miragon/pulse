@@ -34,14 +34,10 @@ pkg_name() { node -p "require('$ROOT/packages/$1/package.json').name"; }
 # does not publish would install whatever npm holds under that name (the old
 # scope's last release, 0.20.0) and stay green. Both fail, in every
 # package.json of the template (server, modules, root).
-# The toolkit family and mcp-use are checked too, but the pin SHAPE differs by
-# stanza: toolkit-core (and react/react-dom/zod) are ranged peerDependencies so
-# consumers dedupe them, while the exact devDependency copy stays pinned
-# (save-exact; a drifted second instance resurrects the duplicate-React-context
-# hang). mcp-use is exact everywhere. release-please does NOT bump these — a
-# repo-wide toolkit/mcp-use bump must include the template by hand. The check is
-# stanza-aware: template peerDependencies compare against the connector's peer
-# ranges, template deps/devDeps against its exact pins.
+# mcp-use is checked too: it is exact in every stanza, peers included (a drifted
+# second instance resurrects the duplicate-React-context hang). release-please
+# does NOT bump it, so a repo-wide mcp-use bump must include the template by
+# hand. The camunda7 connector's pin is the canonical one.
 ROOT="$ROOT" node - <<'EOF'
 const fs = require("fs")
 const root = process.env.ROOT
@@ -59,19 +55,14 @@ const versions = Object.fromEntries(
     .map((p) => read(`${root}/packages/${p}/package.json`))
     .map((pj) => [pj.name, pj.version]),
 )
-const tracked = (name) => name.startsWith("@miragon/mcp-toolkit-") || name === "mcp-use"
-// The camunda7 connector declares the canonical pins for the toolkit family and
-// mcp-use; peer pins (ranges) and exact pins (deps/devDeps) are tracked apart.
 const camunda7 = read(`${root}/packages/connectors/camunda/camunda7-connector/package.json`)
-const peerPins = {}
-const exactPins = {}
-for (const [name, pin] of Object.entries(camunda7.peerDependencies ?? {})) {
-  if (tracked(name)) peerPins[name] = pin
-}
-for (const deps of [camunda7.dependencies, camunda7.devDependencies]) {
-  for (const [name, pin] of Object.entries(deps ?? {})) {
-    if (tracked(name)) exactPins[name] = pin
-  }
+const MCP_USE = camunda7.peerDependencies?.["mcp-use"]
+if (!MCP_USE || MCP_USE !== camunda7.devDependencies?.["mcp-use"]) {
+  console.error(
+    `The camunda7 connector must pin mcp-use exactly, peer and dev alike ` +
+      `(peer ${MCP_USE}, dev ${camunda7.devDependencies?.["mcp-use"]}).`,
+  )
+  process.exit(1)
 }
 // Every package.json of the template, found on disk: a module added later is
 // checked without an edit here.
@@ -96,11 +87,11 @@ const bad = []
 const unknown = []
 for (const file of manifests) {
   const pj = read(`${templateRoot}/${file}`)
-  for (const [stanza, pins] of [
-    ["dependencies", exactPins],
-    ["devDependencies", exactPins],
-    ["peerDependencies", peerPins],
-    ["optionalDependencies", exactPins],
+  for (const stanza of [
+    "dependencies",
+    "devDependencies",
+    "peerDependencies",
+    "optionalDependencies",
   ]) {
     for (const [name, pin] of Object.entries(pj[stanza] ?? {})) {
       if (name.startsWith(OLD_SCOPE)) {
@@ -111,7 +102,7 @@ for (const file of manifests) {
         unknown.push(`${file} (${stanza}): ${name} is no package of this workspace`)
         continue
       }
-      const expected = versions[name] ?? pins[name]
+      const expected = versions[name] ?? (name === "mcp-use" ? MCP_USE : undefined)
       if (expected && pin !== expected) {
         bad.push(`${file} (${stanza}): ${name} pinned ${pin}, workspace is ${expected}`)
       }
@@ -130,7 +121,7 @@ if (unknown.length) {
 if (bad.length) {
   console.error(
     "Template pins drifted from the workspace versions (missing release-please extra-files " +
-      "entry, or a toolkit/mcp-use bump that skipped the template?):\n" +
+      "entry, or an mcp-use bump that skipped the template?):\n" +
       bad.join("\n"),
   )
 }

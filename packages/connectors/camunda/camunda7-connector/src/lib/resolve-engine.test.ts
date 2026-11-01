@@ -79,6 +79,32 @@ describe("resolveEngine", () => {
   it("throws UnknownEngineError when the override names a non-existent engine", async () => {
     await expect(resolveEngine("gamma", harness(MULTI))).rejects.toThrow(UnknownEngineError)
   })
+
+  it("reads an empty override as none: the only engine answers", async () => {
+    const { engineId } = await resolveEngine("", harness(SINGLE))
+    expect(engineId).toBe("default")
+  })
+})
+
+describe("createEngineRegistry", () => {
+  const clientFor = (e: { id: string }) => ({ __engine: e.id }) as unknown as Client
+
+  // Programmer errors fail the boot, not the first tool call.
+  it("refuses an empty engine list", () => {
+    expect(() => createEngineRegistry([], clientFor)).toThrow(
+      "createEngineRegistry needs at least one engine",
+    )
+  })
+
+  it("refuses a duplicate engine id", () => {
+    expect(() => createEngineRegistry([...MULTI, MULTI[0]], clientFor)).toThrow(
+      'createEngineRegistry: duplicate engine id "alpha"',
+    )
+  })
+
+  it("keeps the engines in configuration order", () => {
+    expect([...createEngineRegistry(MULTI, clientFor).backends.keys()]).toEqual(["alpha", "beta"])
+  })
 })
 
 describe("saved-default validation", () => {

@@ -1,15 +1,14 @@
-import type { createToolRegistrar, ToolConfig } from "@miragon/mcp-toolkit-core/tools"
-import type { z } from "zod"
-import { createToolsetVocabulary } from "@miragon/pulse-widget-shell/server"
+import {
+  createToolsetVocabulary,
+  type ToolConfig,
+  type ToolRegistrar,
+} from "@miragon/pulse-widget-shell/server"
 import type { EngineRegistry } from "./resolve-engine.js"
 import {
   CAMUNDA7_SAVE_SETTINGS,
   CAMUNDA7_WIDGET_ACTIONS,
   type Camunda7WidgetAction,
 } from "../tool-names.js"
-
-type Register = ReturnType<typeof createToolRegistrar<EngineRegistry>>
-type ZodRawShape = Record<string, z.ZodType>
 
 export const CAMUNDA7_TOOLSETS = ["read-only", "operations", "admin"] as const
 export type Camunda7Toolset = (typeof CAMUNDA7_TOOLSETS)[number]
@@ -74,9 +73,11 @@ export function allowedWidgetActions(toolset: Camunda7Toolset): Camunda7WidgetAc
   return CAMUNDA7_WIDGET_ACTIONS.filter((name) => isToolInToolset({ name }, toolset))
 }
 
-export function withToolsetFilter(register: Register, toolset: Camunda7Toolset): Register {
-  const filtered = <TShape extends ZodRawShape>(config: ToolConfig<EngineRegistry, TShape>) => {
+export function withToolsetFilter(
+  register: ToolRegistrar<EngineRegistry>,
+  toolset: Camunda7Toolset,
+): ToolRegistrar<EngineRegistry> {
+  return (config) => {
     if (isToolInToolset(config, toolset)) register(config)
   }
-  return Object.assign(filtered, { getRegisteredTools: () => register.getRegisteredTools() })
 }

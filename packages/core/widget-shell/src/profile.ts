@@ -3,8 +3,8 @@
  * keys would silently split one user's settings across two records. `/server` only:
  * the ambient request info pulls in `node:async_hooks`.
  */
-import { resolveCaller } from "@miragon/mcp-toolkit-core"
 import { z } from "zod"
+import { resolveCaller } from "./caller.js"
 import { getMcpRequestInfo } from "./request-context.js"
 
 /** Only an explicitly declared local caller (stdio, tests); never an HTTP request. */

@@ -5,7 +5,7 @@ import {
   type PrometheusClient,
   type PromSample,
 } from "@miragon/pulse-analytics-client"
-import type { RegisteredToolMeta, ToolConfig } from "@miragon/mcp-toolkit-core/tools"
+import type { ToolConfig } from "@miragon/pulse-widget-shell/server"
 import { createEngineScope } from "../engine-ids.js"
 import { registerHealthTools } from "./health.js"
 
@@ -15,9 +15,7 @@ const scope = createEngineScope(["prod-a", "prod-b"])
 
 function captureConfig(): Config {
   const configs: Config[] = []
-  const register = Object.assign((config: Config) => configs.push(config), {
-    getRegisteredTools: (): RegisteredToolMeta[] => [],
-  })
+  const register = (config: Config) => configs.push(config)
   registerHealthTools(register as never, scope)
   return configs[0]
 }

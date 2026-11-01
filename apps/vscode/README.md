@@ -70,7 +70,7 @@ plain release to the Visual Studio Marketplace and Open VSX and attaches it to t
 release. Every pull
 request packages it too (CI job "VS Code package (vsce dry run)"); to check the release path by
 hand, run the Release workflow with `dry_run`. The whole train:
-[the repository's CLAUDE.md](../../CLAUDE.md#releases--toolkit-contributions).
+[the repository's CLAUDE.md](../../CLAUDE.md#releases).
 
 ## License
 

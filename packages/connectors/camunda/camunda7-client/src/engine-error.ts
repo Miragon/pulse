@@ -30,7 +30,7 @@ const EXCEPTION_TYPE = /^[\w$.]{1,120}$/
  * - `engine prod-a did not respond within 30000 ms (timeout)`
  *
  * The HTTP status is `httpStatus`, deliberately NOT `status` (and the
- * engine's numeric error code is `engineCode`, not `code`): the toolkit's
+ * engine's numeric error code is `engineCode`, not `code`): widget-shell's
  * `withToolErrors` prefixes any `status`/`code` property as `[…] `, which
  * would print the status twice — the message is complete on its own.
  */

@@ -10,7 +10,7 @@ import {
   useToolQuery,
 } from "@miragon/pulse-widget-shell/widgets"
 import type { AnalyticsAskAiKey } from "../messages/en.ask-ai.js"
-import { translator } from "../messages/index.js"
+import { translator } from "../messages/use-t.js"
 
 export interface HandOff extends Omit<HandOffParts, "surface"> {
   intent: AnalyticsAskAiKey

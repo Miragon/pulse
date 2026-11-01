@@ -6,7 +6,7 @@ import {
   ViewErrorBoundary,
   WidgetShell,
 } from "@miragon/pulse-widget-shell/widgets"
-import { translator } from "../messages/index.js"
+import { translator } from "../messages/use-t.js"
 import { CAMUNDA7_LIST_ENGINES } from "../tool-names.js"
 import { CockpitRoute } from "./cockpit-app/routes.js"
 import { NavBreadcrumb } from "./cockpit-app/breadcrumb.js"

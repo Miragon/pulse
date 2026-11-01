@@ -11,7 +11,7 @@ Its UI builds on the design kit [`@miragon/pulse-ui`](../ui).
 ## Install
 
 ```sh
-npm install @miragon/pulse-widget-shell zod bpmn-js@18.31.0 @miragon/mcp-toolkit-core mcp-use@2.7.3
+npm install @miragon/pulse-widget-shell zod bpmn-js@18.31.0 mcp-use@2.12.2
 ```
 
 The widgets also need `react`, `react-dom`, `@miragon/pulse-ui`, `lucide-react` and
@@ -152,25 +152,25 @@ oauth? })` is the one boot sequence every composed server shares: env-typo warni
 
 ## Exports
 
-| Subpath     | Contents                                                                                                                                                                                                                                                                                                                                                                                                                |
-| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `./server`  | `buildViewResult` / `buildDataFeedResult` / `viewPrelude`, `createShellPlugin`, `composeModules` / `frameworkWritesAllowed` / `createToolsetVocabulary` and the module port (`ModulePlugin`, `ModuleEntry`), `createComposedServer` and its edge pieces (incl. `installFontAssets`, `fontAssetsCsp`), `oauthFromEnv`, caller identity (`resolveProfileKey`), the profile store and the Postgres client/migration runner |
-| `./widgets` | The view runtime (`mountViews`, the view host, the query hooks, `TestViewHost`; the language as explicit profile > host context > English, the theme as host context > OS), the host-bound UI and the settings page                                                                                                                                                                                                     |
-| `./testing` | The product glossary: `PRODUCT_GLOSSARY`, `glossaryFindings`, `blindGlossaryRules`, `unnamedGlossaryTerms`                                                                                                                                                                                                                                                                                                              |
+| Subpath     | Contents                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `./server`  | `buildViewResult` / `buildDataFeedResult` / `viewPrelude`, `createShellPlugin`, `composeModules` / `frameworkWritesAllowed` / `createToolsetVocabulary` and the module port (`ModulePlugin`, `ModuleEntry`), `createComposedServer` and its edge pieces (incl. `installFontAssets`, `fontAssetsCsp`), `oauthFromEnv`, caller identity (`resolveProfileKey`), the tool registrar (`createToolRegistrar`, `withToolErrors`), the view meta (`showToolBinding`, `appOnly`, `viewResourceUri`), the server i18n (`createTranslator`), the profile store and the Postgres client/migration runner |
+| `./widgets` | The view runtime (`mountViews`, the view host, the query hooks, `TestViewHost`; the language as explicit profile > host context > English, the theme as host context > OS), the host-bound UI, the settings page and `createTranslator`                                                                                                                                                                                                                                                                                                                                                      |
+| `./testing` | The product glossary: `PRODUCT_GLOSSARY`, `glossaryFindings`, `blindGlossaryRules`, `unnamedGlossaryTerms`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 
-`@miragon/mcp-toolkit-core`, `@miragon/pulse-ui`, `react`/`react-dom`, `zod` and
-`@tanstack/react-query` are **peer dependencies**: they must resolve to a single instance across
-the host bundle (see the `dedupe` array in the server app's `vite.config.ts`), otherwise the React
-contexts diverge and in-widget queries hang. They are published as ranges (`react`/`react-dom`
-`^19.2.0`, `zod` `^4.4.0`, `@miragon/mcp-toolkit-core` `~2.8.1`, `@miragon/pulse-ui` `^<this release>`,
-`lucide-react` `^0.562.0 || ^1.0.0`) so they dedupe against your app's copy;
+`@miragon/pulse-ui`, `react`/`react-dom`, `zod` and `@tanstack/react-query` are **peer
+dependencies**: they must resolve to a single instance across the host bundle (see the `dedupe`
+array in the server app's `vite.config.ts`), otherwise the React contexts diverge and in-widget
+queries hang. They are published as ranges (`react`/`react-dom` `^19.2.0`, `zod` `^4.4.0`,
+`@miragon/pulse-ui` `^<this release>`, `lucide-react` `^0.562.0 || ^1.0.0`) so they dedupe against
+your app's copy;
 add `lucide-react` to your `dedupe` list too. **A host bundle that dedupes `lucide-react` needs a
 1.x copy that exports `LucideProvider`** (this repo pins 1.61.0): widget-shell's view root imports
 `LucideProvider`, which 0.x does not export, so a deduped 0.x copy fails the bundle build with a
 missing export. The peer range still admits 0.562 only for this repo's own test graph; no package
 manager warns you about it.
 
-`mcp-use` is the exception: it is an **exactly pinned** peer dependency. Pin it to `mcp-use@2.7.3`
+`mcp-use` is the exception: it is an **exactly pinned** peer dependency. Pin it to `mcp-use@2.12.2`
 in your app. A duplicate `mcp-use` instance breaks the React context and hangs every in-widget query
 on "Loading…".
 

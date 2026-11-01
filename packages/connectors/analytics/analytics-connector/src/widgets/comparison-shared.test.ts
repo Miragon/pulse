@@ -1,8 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest"
 import type { CompareKpiDelta } from "@miragon/pulse-analytics-client"
 import { setFormatLocale } from "@miragon/pulse-ui"
-import { translator } from "../messages/index.js"
-import type { T } from "../messages/use-t.js"
+import { translator, type T } from "../messages/use-t.js"
 import {
   DURATION_MIN_CHANGE_PCT,
   RATE_MIN_CHANGE,

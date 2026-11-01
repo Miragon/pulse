@@ -31,28 +31,27 @@ lives in Miragon/miragon-ai-docs; a change it shows needs a PR there too.
 ## What this repo is
 
 Pulse (part of the Miragon AI tool family) is a pnpm + Turbo monorepo that ships an MCP server
-(built on `mcp-use` and `@miragon/mcp-toolkit-core`, with its UI on `@miragon/pulse-ui`) for Camunda
-7 / CIB seven BPM operations and Prometheus-backed process analytics, including interactive React
-widgets (MCP Apps), plus a command line interface (`apps/cli`) and a VS Code extension
-(`apps/vscode`) for the same engines.
+(built on `mcp-use`, with its UI on `@miragon/pulse-ui`) for Camunda 7 / CIB seven BPM operations
+and Prometheus-backed process analytics, including interactive React widgets (MCP Apps), plus a
+command line interface (`apps/cli`) and a VS Code extension (`apps/vscode`) for the same engines.
 
-| Path                                                 | Contents                                                                                                                                                                                                                                                          |
-| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/mcp-server-camunda7/`                          | The MCP host: composes plugins, bundles the widget UI, serves HTTP on `:8400`                                                                                                                                                                                     |
-| `apps/cli/`                                          | The CLI (npm `@miragon/pulse-cli`): every REST operation of the engine as a command, generated from its OpenAPI spec, plus the workflow commands; its rules in `apps/cli/CLAUDE.md`                                                                               |
-| `apps/vscode/`                                       | Pulse for VS Code (`pulse-cockpit`, a .vsix): a Preact webview over an engine-neutral contract and core, the C7 adapter; its rules in `apps/vscode/CLAUDE.md`                                                                                                     |
-| `packages/connectors/camunda/camunda7-connector/`    | camunda7 module: operations tools, widget tools, widgets                                                                                                                                                                                                          |
-| `packages/connectors/analytics/analytics-connector/` | analytics module: Prometheus-backed tools, dashboards, comparison widgets                                                                                                                                                                                         |
-| `packages/connectors/camunda/camunda7-client/`       | Generated CIB seven REST SDK (`src/generated/`) + Zod input schemas (`src/schemas/`)                                                                                                                                                                              |
-| `packages/connectors/analytics/analytics-client/`    | Prometheus client + PromQL query functions (`src/queries/`) + Zod schemas                                                                                                                                                                                         |
-| `packages/core/ui/`                                  | Pulse's design kit (npm `@miragon/pulse-ui`): primitives, components, tone model, type scale, locale, toasts, formatters and the Miragon theme (`theme.css` over the vendored `--cd-*` tokens) for Pulse views and customer UIs; the brand gates under `/testing` |
-| `packages/core/widget-shell/`                        | The view runtime (`/widgets`: `mountViews`, the view host, the query hooks, `TestViewHost`, `ListTable`, hand-offs, the settings page, BPMN), view + data-feed builders, the shell's settings tools and the boot (`/server`), the product glossary (`/testing`)   |
-| `engine-plugins/`                                    | Kotlin/Gradle: CIB seven OTEL metrics plugin (Java 21)                                                                                                                                                                                                            |
-| `playground/`                                        | Demo env: CIB seven showcase engine, Compose stack, Fly.io deploy                                                                                                                                                                                                 |
-| `docs/`                                              | Pulse docs, a VitePress site on GitHub Pages (getting started, usage, architecture, developer, operations)                                                                                                                                                        |
-| `docs/mcp/`                                          | The MCP server's pages of the docs site (getting started, usage, reference, operations, architecture, developer)                                                                                                                                                  |
-| `docs/cli/`                                          | The CLI's pages of the docs site (install, commands, configuration, authentication, AI agents, development)                                                                                                                                                       |
-| `docs/vscode/`                                       | The VS Code extension's pages of the docs site (installation, configuration, usage, architecture)                                                                                                                                                                 |
+| Path                                                 | Contents                                                                                                                                                                                                                                                                                                    |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/mcp-server-camunda7/`                          | The MCP host: composes plugins, bundles the widget UI, serves HTTP on `:8400`                                                                                                                                                                                                                               |
+| `apps/cli/`                                          | The CLI (npm `@miragon/pulse-cli`): every REST operation of the engine as a command, generated from its OpenAPI spec, plus the workflow commands; its rules in `apps/cli/CLAUDE.md`                                                                                                                         |
+| `apps/vscode/`                                       | Pulse for VS Code (`pulse-cockpit`, a .vsix): a Preact webview over an engine-neutral contract and core, the C7 adapter; its rules in `apps/vscode/CLAUDE.md`                                                                                                                                               |
+| `packages/connectors/camunda/camunda7-connector/`    | camunda7 module: operations tools, widget tools, widgets                                                                                                                                                                                                                                                    |
+| `packages/connectors/analytics/analytics-connector/` | analytics module: Prometheus-backed tools, dashboards, comparison widgets                                                                                                                                                                                                                                   |
+| `packages/connectors/camunda/camunda7-client/`       | Generated CIB seven REST SDK (`src/generated/`) + Zod input schemas (`src/schemas/`)                                                                                                                                                                                                                        |
+| `packages/connectors/analytics/analytics-client/`    | Prometheus client + PromQL query functions (`src/queries/`) + Zod schemas                                                                                                                                                                                                                                   |
+| `packages/core/ui/`                                  | Pulse's design kit (npm `@miragon/pulse-ui`): primitives, components, tone model, type scale, locale, toasts, formatters and the Miragon theme (`theme.css` over the vendored `--cd-*` tokens) for Pulse views and customer UIs; the brand gates under `/testing`                                           |
+| `packages/core/widget-shell/`                        | The view runtime (`/widgets`: `mountViews`, the view host, the query hooks, `TestViewHost`, `ListTable`, hand-offs, the settings page, BPMN), view + data-feed builders, the tool registrar (`createToolRegistrar`), the shell's settings tools and the boot (`/server`), the product glossary (`/testing`) |
+| `engine-plugins/`                                    | Kotlin/Gradle: CIB seven OTEL metrics plugin (Java 21)                                                                                                                                                                                                                                                      |
+| `playground/`                                        | Demo env: CIB seven showcase engine, Compose stack, Fly.io deploy                                                                                                                                                                                                                                           |
+| `docs/`                                              | Pulse docs, a VitePress site on GitHub Pages (getting started, usage, architecture, developer, operations)                                                                                                                                                                                                  |
+| `docs/mcp/`                                          | The MCP server's pages of the docs site (getting started, usage, reference, operations, architecture, developer)                                                                                                                                                                                            |
+| `docs/cli/`                                          | The CLI's pages of the docs site (install, commands, configuration, authentication, AI agents, development)                                                                                                                                                                                                 |
+| `docs/vscode/`                                       | The VS Code extension's pages of the docs site (installation, configuration, usage, architecture)                                                                                                                                                                                                           |
 
 Three axes decide where code goes, and they stay apart:
 
@@ -176,10 +175,10 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
 1. **New operations tools go through the registrar, never raw `server.tool()`.** Add the Zod
    input schema in `packages/connectors/camunda/camunda7-client/src/schemas/`, then register
    the tool in `packages/connectors/camunda/camunda7-connector/src/tools/<domain>.ts` via the
-   `register` callback of `createToolRegistrar` (wired in `src/tools/index.ts`): a `category`
-   matching its domain file (`"analytics"` in the analytics module), `...engineParamShape` in
-   the input schema, the handler wrapped in `withEngine(...)` (both from
-   `src/lib/with-engine.ts`). Canonical shape: `camunda7_list_process_instances` in
+   `register` callback of `createToolRegistrar` (`@miragon/pulse-widget-shell/server`, wired in
+   `src/tools/index.ts`): a `category` matching its domain file (`"analytics"` in the analytics
+   module), `...engineParamShape` in the input schema, the handler wrapped in `withEngine(...)`
+   (both from `src/lib/with-engine.ts`). Canonical shape: `camunda7_list_process_instances` in
    `packages/connectors/camunda/camunda7-connector/src/tools/process-instances.ts`. ESLint
    (`no-restricted-syntax` in `eslint.config.mjs`) blocks raw `server.tool()` in every spelling
    outside the widget-path files its `ignores` lists. `no-restricted-syntax` is ONE rule: a
@@ -228,8 +227,8 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    view's bundle).
 
 4. **The `dedupe` array in `apps/mcp-server-camunda7/vite.config.ts` is load-bearing: never remove
-   or trim it.** Without it each widget package bundles its own React, TanStack Query, mcp-use,
-   pulse-ui or toolkit instance, the React contexts no longer match, a widget finds no view host and
+   or trim it.** Without it each widget package bundles its own React, TanStack Query, mcp-use
+   or pulse-ui instance, the React contexts no longer match, a widget finds no view host and
    no `QueryClient`, and every in-widget query hangs on "Loading…".
 
 5. **There are three render paths; pick deliberately:**
@@ -245,10 +244,11 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      `buildDataFeedResult(data)`. SEP-1865 hosts hide them from the LLM, and a widget-tool
      result would be rendered by the host instead of returned to the in-widget `callTool()`.
 
-   Every tool takes STRICT input (`strictInput: true`, `strictToolInput(…)`), the shell's
-   included, with no exemption list: an unknown key is a tool error listing the valid keys,
-   never a silently stripped filter (`test/strict-input.e2e.test.ts` in the app). Parameter
-   names follow the guide in the add-bpm-feature skill.
+   Every tool takes STRICT input (the registrar always, a raw registration through
+   `strictToolInput(…)`), the shell's included, with no exemption list: an unknown key is a tool
+   error listing the valid keys, never a silently stripped filter
+   (`test/strict-input.e2e.test.ts` in the app). Parameter names follow the guide in the
+   add-bpm-feature skill.
 
 6. **MCP App widgets compose from the design kit `@miragon/pulse-ui` and the view runtime of
    `@miragon/pulse-widget-shell/widgets`; never re-inline their primitives.** This covers
@@ -270,7 +270,7 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      its own error boundary, so one crashing widget never takes its view down. Widgets reach
      the host only through `useViewHost`/`HostModelContext` and the query hooks
      (`useToolQuery`, `useToolMutation`, `useViewData`), test under `TestViewHost`, and never import
-     `mcp-use/react` or the retired toolkit UI (ESLint `no-restricted-imports`,
+     `mcp-use/react` or a retired toolkit package (ESLint `no-restricted-imports`,
      `scripts/eslint-gates.test.mjs`).
    - **States and feedback** (#322). Loading, error and no data go through `ViewDataState`, or
      `QueryFallback` + `TableSkeleton` in a self-fetching widget (without an `isError` branch
@@ -370,9 +370,10 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    - **Whose** profile a request touches is decided in one place for all modules
      (`resolveProfileKey` in `packages/core/widget-shell/src/profile.ts`); a module-local copy
      would split one user's settings across two records. The only identity is the OAuth caller
-     (`resolveCaller` over the handler `ctx`; always pass it): nothing a client chooses (a
-     session id, a header) is a key, and a request without OAuth has NO identity (saves
-     refuse), never the `anonymous` record, which only a declared local caller reaches.
+     (`resolveCaller` in `packages/core/widget-shell/src/caller.ts`, over the handler `ctx`;
+     always pass it): nothing a client chooses (a session id, a header) is a key, and a request
+     without OAuth has NO identity (saves refuse), never the `anonymous` record, which only a
+     declared local caller reaches.
    - Persistence (`createSql`, `runMigrations`) lives in widget-shell next to the profile
      store; the app's `src/persistence/index.ts` only selects the backend (`DATABASE_URL`
      beats `MCP_PROFILE_DIR` beats in-memory). Migration `name`s are the keys in
@@ -392,8 +393,8 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      their SDK leaves at `packages/connectors/<family>/<name>-client`, foundation packages
      under `packages/core/` (npm `@miragon/pulse-<name>`), apps at `apps/<dir>` (npm
      `@miragon/pulse-<dir>`); the VS Code extension is `pulse-cockpit` (vsce takes no scope).
-     Rules key on `@miragon/pulse-`, never on bare `@miragon/`, which the toolkit shares. Gate:
-     `scripts/check-package-naming.mjs` (`pnpm lint:naming`).
+     Rules key on `@miragon/pulse-`, never on bare `@miragon/`, which other Miragon packages
+     share. Gate: `scripts/check-package-naming.mjs` (`pnpm lint:naming`).
    - **Dependency edges** (`.dependency-cruiser.cjs`, `pnpm lint:architecture` +
      `pnpm lint:architecture:cli`): connectors never import each other, a connector imports only its
      own client, clients are leaves, core is the foundation and pulse-ui its leaf, no package or app
@@ -492,21 +493,21 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
 - **Pinning is split by dependency stanza.** `dependencies`/`devDependencies` stay EXACT
   (`save-exact=true` in `.npmrc`). Consumer-shared libraries are RANGED `peerDependencies`, so
   a downstream app dedupes them (`react`/`react-dom` `^19.2.0`, `zod` `^4.4.0`,
-  `@miragon/mcp-toolkit-core` `~2.8.1`, `@miragon/pulse-ui` as `workspace:^`, packed to
-  `^<version>`), each also an EXACT devDependency. A published package
-  imports only what its `dependencies` or `peerDependencies` declare
-  (`apps/mcp-server-camunda7/test/published-imports.test.ts`). **`mcp-use` is exactly pinned
-  even as a peer** (`2.7.3`): a duplicate instance breaks the React context and hangs every
+  `@miragon/pulse-ui` as `workspace:^`, packed to `^<version>`), each also an EXACT
+  devDependency. A published package imports only what its `dependencies` or `peerDependencies`
+  declare (`apps/mcp-server-camunda7/test/published-imports.test.ts`). **`mcp-use` is exactly pinned
+  even as a peer** (`2.12.2`): a duplicate instance breaks the React context and hangs every
   in-widget query (invariant 4). Name the required `mcp-use` version in each package README and
-  the release changelog. The toolkit peers `mcp-use` exactly, so a toolkit minor or major bump
-  is a joint toolkit + `mcp-use` bump across every package incl. `templates/composed-server`
-  (`scripts/test-template.sh`), never one package in isolation.
+  the release changelog. An `mcp-use` bump moves every package and `templates/composed-server`
+  together (`scripts/test-template.sh` checks the template's pins), never one package in
+  isolation.
 - **The widget `_meta` contract is split since mcp-use 2; never hand-write the `ui` half.**
   mcp-use emits the MCP-Apps keys from the tool's `view`/`visibility` fields and OVERWRITES
-  the `ui` namespace on tools/list; the toolkit's `appsSdkMeta` stamps only the `openai/*`
-  half. `apps/mcp-server-camunda7/test/widget-contract.e2e.test.ts` checks the wire **by
-  name** (every `*_show_*` tool carries the widget `_meta`, every `*_data` feed is app-only),
-  so the naming convention is load-bearing.
+  the `ui` namespace on tools/list; widget-shell's `showToolBinding` stamps only the `openai/*`
+  half.
+  `apps/mcp-server-camunda7/test/widget-contract.e2e.test.ts` checks the wire **by name**
+  (every `*_show_*` tool carries the widget `_meta`, every `*_data` feed is app-only), so the
+  naming convention is load-bearing.
 - **The tools/list wire payload is a golden, per toolset**
   (`apps/mcp-server-camunda7/test/tools-list.golden.test.ts`). The ONLY update path is
   `GOLDEN_UPDATE=1 pnpm --filter @miragon/pulse-mcp-server-camunda7 test` (refused in CI);
@@ -528,7 +529,7 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
   into its own family (`CAMUNDA_*`, `PROMETHEUS_*`, `ANALYTICS_*`, `MCP_*`, `DATABASE_URL`;
   `apps/mcp-server-camunda7/test/setup-env.test.ts`).
 
-## Releases & toolkit contributions
+## Releases
 
 The release workflows hold the publish credentials and no pull request runs them;
 `scripts/check-github-config.mjs` (`pnpm lint:github`) pins their security shape against the
@@ -565,12 +566,6 @@ workspace (its header lists each check).
   for a stable release, the formula `miragon/tap/pulse-cli` as a pull request to
   Miragon/homebrew-tap. The jobs that hold a token install nothing. A new GHCR package starts
   private; an organization owner makes it public once.
-- **`@miragon/mcp-toolkit-core` lives in a separate repository** (semver): exact in
-  `devDependencies` (`2.8.1`), ranged as a peer (`~2.8.1`), bumped deliberately and repo-wide.
-  To validate unreleased toolkit changes, `pnpm pack` the toolkit package, point temporary
-  `overrides` in `pnpm-workspace.yaml` at the `file:` tarballs (park any `patchedDependencies`
-  entry for the same package), run the full bar plus `test:host`, then revert the workspace
-  yaml and lockfile. Never commit the overrides.
 
 ## Verification: what each check actually covers
 
@@ -582,7 +577,7 @@ workspace (its header lists each check).
 | `pnpm lint`       | ESLint per package incl. the pattern gates, then dependency-cruiser (`lint:architecture`, `:cli`, `:vscode`), `lint:naming`, `lint:package-scripts`, `lint:ratchets` (needs `git fetch origin`), knip (`lint:deadcode`, `:cli`, `:vscode`) and `lint:github`                                                                                                                                                               |
 | `pnpm fitness`    | Report: architecture graph, per-package coverage and mutation scores; on a pull request the "Fitness report" job (mutation "(no run)"), nightly the "Mutation summary" job of `.github/workflows/mutation-nightly.yml`                                                                                                                                                                                                     |
 | `./gradlew build` | Kotlin compile + unit tests + Konsist architecture tests (run in `engine-plugins/`)                                                                                                                                                                                                                                                                                                                                        |
-| `test:host`       | `pnpm --filter @miragon/pulse-mcp-server-camunda7 test:host`: Playwright host simulation of the **built** widget bundle behind a SEP-1865 host shim, a real camunda7 show tool against a stub engine (`pinned …` scenarios are known defects, flipped when fixed); CI "Widget host simulation (test:host)"; run it for changes to widget-shell, pulse-ui, `src/ui/` or the toolkit pin                                     |
+| `test:host`       | `pnpm --filter @miragon/pulse-mcp-server-camunda7 test:host`: Playwright host simulation of the **built** widget bundle behind a SEP-1865 host shim, a real camunda7 show tool against a stub engine (`pinned …` scenarios are known defects, flipped when fixed); CI "Widget host simulation (test:host)"; run it for changes to widget-shell, pulse-ui, `src/ui/` or the mcp-use pin                                     |
 | `pnpm test:pg`    | Reruns the suites with `TEST_DATABASE_URL` set, which un-skips the Postgres tests: **the only check that executes the Postgres adapters**; CI "Postgres adapters (test:pg)"; run it for changes to `postgres.ts` or any `*-store-postgres.ts`                                                                                                                                                                              |
 | Docker build      | `.github/workflows/docker-build.yml`: plain `docker build` of the root `Dockerfile` (no push) on every PR touching what the build stage copies                                                                                                                                                                                                                                                                             |
 | Engines           | `Engines (<flavor>)` in `.github/workflows/ci.yml`: Camunda 7, CIB seven and Operaton in Testcontainers, running the CLI's suites and the VS Code extension's conformance laws (`test:engines`; images pinned in `apps/cli/test/integration/support/engines.ts`); the `Engines` job aggregates the legs                                                                                                                    |

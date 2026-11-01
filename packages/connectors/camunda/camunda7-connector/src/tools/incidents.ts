@@ -1,5 +1,5 @@
 import { listIncidentsInput, resolveIncidentInput } from "@miragon/pulse-camunda7-client/schemas"
-import type { createToolRegistrar } from "@miragon/mcp-toolkit-core/tools"
+import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import { engineKeyList, engineSorting, toOptionalEngineDate } from "@miragon/pulse-camunda7-client"
 import {
   getIncidents,
@@ -10,9 +10,7 @@ import { paginatedListOutput, toPaginatedList } from "../lib/pagination.js"
 import type { EngineRegistry } from "../lib/resolve-engine.js"
 import { engineParamShape, withEngine } from "../lib/with-engine.js"
 
-type Register = ReturnType<typeof createToolRegistrar<EngineRegistry>>
-
-export function registerIncidentTools(register: Register) {
+export function registerIncidentTools(register: ToolRegistrar<EngineRegistry>) {
   register({
     name: "camunda7_list_incidents",
     category: "incidents",

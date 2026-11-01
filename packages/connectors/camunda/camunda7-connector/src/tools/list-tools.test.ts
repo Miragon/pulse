@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import type { ToolConfig } from "@miragon/mcp-toolkit-core/tools"
 import type { Client } from "@miragon/pulse-camunda7-client"
 
 // The guards capture the full registrar surface; no handler may reach a real engine.
@@ -17,18 +16,7 @@ import type { ProfileStore } from "@miragon/pulse-widget-shell/server"
 import { registerTools } from "./index.js"
 import { registerIncidentIssueTools } from "./incident-issue.js"
 import { registerEngineTools } from "./engines.js"
-
-type Register = Parameters<typeof registerTools>[0]
-type Config = ToolConfig<EngineRegistry>
-
-function captureTools(...registerFns: Array<(register: Register) => void>): Map<string, Config> {
-  const tools = new Map<string, Config>()
-  const register = Object.assign((config: Config) => tools.set(config.name, config), {
-    getRegisteredTools: () => [],
-  }) as unknown as Register
-  for (const fn of registerFns) fn(register)
-  return tools
-}
+import { captureTools } from "./test-support/fake-engine.js"
 
 /** Mirrors plugin.ts, so a new tool lands under the guards without touching this test. */
 const tools = captureTools(

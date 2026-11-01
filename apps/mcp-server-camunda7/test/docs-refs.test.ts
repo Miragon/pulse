@@ -13,7 +13,7 @@ import { REPO_ROOT } from "./source-scan.js"
  * agent files and the skills (isCheckedDoc below) and checks it against the
  * repo: tool names against the full surface, repo paths against the tree
  * (from the repo root, in a nested file too), the identifiers of the skills
- * and of the nested agent files against the sources and the toolkit/mcp-use
+ * and of the nested agent files against the sources and the mcp-use
  * typings (a nested agent file's also against its package's own
  * tsconfig*.json), and each page of the docs site (every Markdown file under docs/,
  * built by VitePress to https://miragon.github.io/pulse/) against its line
@@ -274,9 +274,7 @@ describe("identifiers in the skills and the nested agent files", () => {
     ...["apps", "packages", "scripts", "templates", "engine-plugins"].flatMap((dir) =>
       walk(path.join(REPO_ROOT, dir), isSource),
     ),
-    ...["@miragon/mcp-toolkit-core", "mcp-use"].flatMap((name) =>
-      walk(path.join(packageDir(name), "dist"), (file) => file.endsWith(".d.ts")),
-    ),
+    ...walk(path.join(packageDir("mcp-use"), "dist"), (file) => file.endsWith(".d.ts")),
   ])
 
   it("name only functions, hooks and types that exist", () => {

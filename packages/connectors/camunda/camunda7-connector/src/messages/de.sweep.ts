@@ -1,4 +1,4 @@
-import type { MessageCatalog } from "@miragon/mcp-toolkit-core"
+import type { MessageCatalog } from "@miragon/pulse-widget-shell/widgets"
 import { countOf, isOne } from "./plural.js"
 
 /** Zahlen kommen formatiert an (`formatNumber`); ein Funktionseintrag setzt das Nomen in die passende Zahl. */

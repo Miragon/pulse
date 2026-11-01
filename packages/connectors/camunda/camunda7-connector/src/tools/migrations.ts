@@ -2,7 +2,7 @@ import {
   createMigrationPlanInput,
   migrateProcessInstancesAsyncInput,
 } from "@miragon/pulse-camunda7-client/schemas"
-import type { createToolRegistrar } from "@miragon/mcp-toolkit-core/tools"
+import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import { queuedBatch, type Client } from "@miragon/pulse-camunda7-client"
 import {
   generateMigrationPlan,
@@ -11,8 +11,6 @@ import {
 import type { MigrationInstructionDto } from "@miragon/pulse-camunda7-client/types"
 import type { EngineRegistry } from "../lib/resolve-engine.js"
 import { engineParamShape, withEngine } from "../lib/with-engine.js"
-
-type Register = ReturnType<typeof createToolRegistrar<EngineRegistry>>
 
 /**
  * The execute endpoint does NOT derive a mapping: without instructions every instance with an
@@ -37,7 +35,7 @@ async function migrationInstructions(
   return plan.instructions ?? []
 }
 
-export function registerMigrationTools(register: Register) {
+export function registerMigrationTools(register: ToolRegistrar<EngineRegistry>) {
   register({
     name: "camunda7_create_migration_plan",
     category: "migrations",

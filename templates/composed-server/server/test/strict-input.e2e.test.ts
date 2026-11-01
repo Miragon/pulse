@@ -87,11 +87,10 @@ async function probeBoot(selection: string, probed: Map<string, ProbedTool>): Pr
  * {@link toolsetSelections}). A non-strict input
  * schema lets the server STRIP an unknown key before the handler runs: a
  * misnamed optional filter then silently widens the result and the model
- * never learns. Registrar tools take `{ strictInput: true }`
- * (`createToolRegistrar`), raw `server.tool()` registrations
- * `strictToolInput(shape)` (`@miragon/pulse-widget-shell/server`) — then an
- * unknown key is a tool error naming the valid keys, which the model fixes
- * in one retry.
+ * never learns. Registrar tools (`createToolRegistrar`) are always strict,
+ * raw `server.tool()` registrations take `strictToolInput(shape)` (both from
+ * `@miragon/pulse-widget-shell/server`) — then an unknown key is a tool error
+ * naming the valid keys, which the model fixes in one retry.
  */
 describe("strict tool inputs on the wire (every module, every toolset)", () => {
   const selections = toolsetSelections()

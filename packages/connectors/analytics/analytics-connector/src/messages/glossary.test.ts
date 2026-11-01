@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs"
 import { describe, expect, it } from "vitest"
-import type { MessageCatalog } from "@miragon/mcp-toolkit-core"
+import type { MessageCatalog } from "@miragon/pulse-widget-shell/widgets"
 import {
   blindGlossaryRules,
   glossaryFindings,

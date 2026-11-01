@@ -1,6 +1,5 @@
 import { describe, it, expect, vi } from "vitest"
 import { z } from "zod"
-import type { ToolConfig } from "@miragon/mcp-toolkit-core/tools"
 import {
   ANONYMOUS_PROFILE_KEY,
   createInMemoryProfileStore,
@@ -12,6 +11,7 @@ import type { Client } from "@miragon/pulse-camunda7-client"
 import type { MCPServer } from "mcp-use"
 import { registerEngineTools } from "./engines.js"
 import { registerUserProfileTools } from "./user-profile.js"
+import { captureTools } from "./test-support/fake-engine.js"
 import {
   createEngineRegistry,
   UnknownEngineError,
@@ -42,14 +42,7 @@ function harness(
   engines: EngineEntry[] = ENGINES,
 ) {
   const registry = createEngineRegistry(engines, (e) => ({ __engine: e.id }) as unknown as Client)
-  const configs = new Map<string, ToolConfig<EngineRegistry>>()
-  const recorder = Object.assign(
-    (config: ToolConfig<EngineRegistry>) => {
-      configs.set(config.name, config)
-    },
-    { getRegisteredTools: () => [] },
-  )
-  registerEngineTools(recorder as never, store)
+  const configs = captureTools((register) => registerEngineTools(register, store))
   const handlerOf = (name: string) => {
     const config = configs.get(name)
     if (!config) throw new Error(`${name} did not register`)

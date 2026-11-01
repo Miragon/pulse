@@ -1,9 +1,3 @@
-import {
-  BackendNotSelectedError,
-  UnknownBackendError,
-  createBackendRegistry,
-  type BackendRegistry,
-} from "@miragon/mcp-toolkit-core/tools"
 import { withCallerSignal, type Client } from "@miragon/pulse-camunda7-client"
 import type { EngineProvider } from "../engine-provider.js"
 import { providerForEntry } from "../providers/index.js"
@@ -12,7 +6,8 @@ import { providerForEntry } from "../providers/index.js"
 export type { EngineAuth, EngineEntry, EngineFlavor } from "../engine-provider.js"
 import type { EngineEntry } from "../engine-provider.js"
 
-export interface EngineMeta {
+interface EngineBackend {
+  client: Client
   baseUrl: string
   cockpitUrl?: string
   provider: EngineProvider
@@ -20,7 +15,8 @@ export interface EngineMeta {
 
 /** No in-memory selection state: it would break behind more than one replica; the durable equivalent is the caller's saved `defaultEngineId`. */
 export interface EngineRegistry {
-  backends: BackendRegistry<Client, EngineMeta>
+  /** Engine id to client, URLs and provider, in configuration order. */
+  backends: ReadonlyMap<string, EngineBackend>
   engines: EngineEntry[]
   /** Advisory, must never throw; not consulted when only one engine is configured. */
   defaultEngineId?: (call?: EngineCallContext) => Promise<string | undefined>
@@ -33,15 +29,19 @@ export function createEngineRegistry(
   clientFor: (engine: EngineEntry) => Client,
   opts?: Pick<EngineRegistry, "defaultEngineId" | "canSaveDefault">,
 ): EngineRegistry {
-  const backends = createBackendRegistry<Client, EngineMeta>(
-    engines.map((e) => ({
-      id: e.id,
+  // Programmer errors fail the boot, not the first call.
+  if (engines.length === 0) throw new Error("createEngineRegistry needs at least one engine")
+  const backends = new Map<string, EngineBackend>()
+  for (const e of engines) {
+    if (backends.has(e.id)) throw new Error(`createEngineRegistry: duplicate engine id "${e.id}"`)
+    backends.set(e.id, {
       client: clientFor(e),
+      baseUrl: e.baseUrl,
+      cockpitUrl: e.cockpitUrl,
       // Throws on an unknown flavor: fail the boot rather than emit wrong cockpit links.
-      meta: { baseUrl: e.baseUrl, cockpitUrl: e.cockpitUrl, provider: providerForEntry(e) },
-    })),
-    { label: "engine" },
-  )
+      provider: providerForEntry(e),
+    })
+  }
   return {
     backends,
     engines,
@@ -105,31 +105,24 @@ export async function resolveEngine(
   override: string | undefined,
   registry: EngineRegistry,
   call?: EngineCallContext,
-): Promise<{
-  client: Client
-  engineId: string
-  baseUrl: string
-  cockpitUrl?: string
-  provider: EngineProvider
-}> {
-  try {
-    const backend = registry.backends.resolve(override ?? (await savedDefault(registry, call)))
-    return {
-      client: withCallerSignal(backend.client, call?.signal),
-      engineId: backend.id,
-      baseUrl: backend.meta?.baseUrl ?? "",
-      cockpitUrl: backend.meta?.cockpitUrl,
-      // Fallback only for registries built outside createEngineRegistry (tests).
-      provider: backend.meta?.provider ?? providerForEntry({ id: backend.id }),
-    }
-  } catch (e) {
-    if (e instanceof BackendNotSelectedError) {
-      throw new EngineNotSelectedError(registry.engines, {
-        canSaveDefault: registry.canSaveDefault?.(call) ?? false,
-      })
-    }
-    if (e instanceof UnknownBackendError)
-      throw new UnknownEngineError(e.requestedId, registry.engines)
-    throw e
-  }
+): Promise<EngineBackend & { engineId: string }> {
+  const engineId = await pickEngineId(override, registry, call)
+  const backend = registry.backends.get(engineId)
+  if (!backend) throw new UnknownEngineError(engineId, registry.engines)
+  return { ...backend, client: withCallerSignal(backend.client, call?.signal), engineId }
+}
+
+/** An empty `""` override counts as no engine named; it still skips the saved default. */
+async function pickEngineId(
+  override: string | undefined,
+  registry: EngineRegistry,
+  call: EngineCallContext | undefined,
+): Promise<string> {
+  const id = override ?? (await savedDefault(registry, call))
+  if (id) return id
+  const [only] = registry.engines
+  if (only && registry.engines.length === 1) return only.id
+  throw new EngineNotSelectedError(registry.engines, {
+    canSaveDefault: registry.canSaveDefault?.(call) ?? false,
+  })
 }

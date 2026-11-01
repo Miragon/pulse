@@ -65,8 +65,8 @@ const APP_NAMES = APP_PACKAGES.map(escapeRegExp).join("|")
 
 /**
  * What makes a package an MCP host or a widget: the UI runtime, the MCP framework and
- * protocol SDK, the toolkit, the server's HTTP, persistence and metrics stack, zod and
- * the generated REST SDK's runtime. The CLI imports none of it.
+ * protocol SDK, the server's HTTP, persistence and metrics stack, zod and the generated
+ * REST SDK's runtime. The CLI imports none of it.
  */
 const MCP_STACK = [
   "react",
@@ -75,7 +75,6 @@ const MCP_STACK = [
   "@tanstack/[^/]+",
   "mcp-use",
   "@modelcontextprotocol/[^/]+",
-  "@miragon/mcp-toolkit-[^/]+",
   "hono",
   "postgres",
   "prom-client",
@@ -170,7 +169,7 @@ module.exports = {
       comment:
         "packages/core/ui (@miragon/pulse-ui) is the design kit every Pulse view and every customer UI " +
         "builds on: it imports no workspace package and nothing of the MCP, query, server or schema " +
-        "stack (mcp-use, @modelcontextprotocol, the toolkit, TanStack, zod, hono, postgres, prom-client, " +
+        "stack (mcp-use, @modelcontextprotocol, TanStack, zod, hono, postgres, prom-client, " +
         "@hey-api, bpmn-js, diagram-js). What needs the host, a tool call or BPMN belongs in widget-shell, " +
         "which imports pulse-ui, never the other way round (CLAUDE.md invariants 6 and 8).",
       from: { path: "^packages/core/ui/" },
@@ -180,7 +179,7 @@ module.exports = {
           "^apps/",
           "@miragon/pulse-(?!ui(?:/|$))",
           ...npm(
-            "mcp-use|@modelcontextprotocol/[^/]+|@miragon/mcp-toolkit-[^/]+|@tanstack/[^/]+|zod|hono|postgres|prom-client|@hey-api/[^/]+|bpmn-js|diagram-js",
+            "mcp-use|@modelcontextprotocol/[^/]+|@tanstack/[^/]+|zod|hono|postgres|prom-client|@hey-api/[^/]+|bpmn-js|diagram-js",
           ),
         ],
       },
@@ -215,7 +214,7 @@ module.exports = {
       comment:
         "The CLI (apps/cli) is a terminal interface, not an MCP host: it imports no workspace " +
         "package and nothing of the MCP/UI/server stack (react, react-dom, lucide-react, preact, bpmn-js, diagram-js, " +
-        "mcp-use, @modelcontextprotocol, the toolkit, TanStack, hono, postgres, prom-client, " +
+        "mcp-use, @modelcontextprotocol, TanStack, hono, postgres, prom-client, " +
         "zod, @hey-api, vscode, @miragon/modeler-shell).",
       from: { path: "^apps/cli/" },
       to: {

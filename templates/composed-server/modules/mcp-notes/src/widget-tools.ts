@@ -14,7 +14,7 @@ import type { NotesStore } from "./notes-store.js"
 /**
  * Inputs shared by `notes_show_notes` and its `notes_list_data` feed —
  * declared through `strictToolInput`, the raw-path twin of the registrar's
- * `strictInput`: an unknown key is refused, never stripped.
+ * strict input: an unknown key is refused, never stripped.
  */
 const notesInputShape = {
   query: z

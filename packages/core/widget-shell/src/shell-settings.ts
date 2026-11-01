@@ -1,6 +1,6 @@
 import { z } from "zod"
 import type { MCPServer } from "mcp-use"
-import { createTranslator, type Catalogs } from "@miragon/mcp-toolkit-core"
+import { createTranslator, type Catalogs } from "./translator.js"
 import type { ModulePlugin } from "./composition.js"
 import { LANGUAGES, type LanguagePref } from "./profile-constants.js"
 import type { ProfileStore } from "./profile-store.js"

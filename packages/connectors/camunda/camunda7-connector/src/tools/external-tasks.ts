@@ -5,7 +5,7 @@ import {
   completeExternalTaskInput,
   handleExternalTaskFailureInput,
 } from "@miragon/pulse-camunda7-client/schemas"
-import type { createToolRegistrar } from "@miragon/mcp-toolkit-core/tools"
+import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import {
   complementaryFlags,
   engineSorting,
@@ -23,9 +23,7 @@ import { paginatedListOutput, toPaginatedList } from "../lib/pagination.js"
 import type { EngineRegistry } from "../lib/resolve-engine.js"
 import { engineParamShape, withEngine } from "../lib/with-engine.js"
 
-type Register = ReturnType<typeof createToolRegistrar<EngineRegistry>>
-
-export function registerExternalTaskTools(register: Register) {
+export function registerExternalTaskTools(register: ToolRegistrar<EngineRegistry>) {
   register({
     name: "camunda7_list_external_tasks",
     category: "external-tasks",

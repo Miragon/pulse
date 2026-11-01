@@ -1,6 +1,6 @@
 import { FOCUS_RING, cn, Icon } from "@miragon/pulse-ui"
 import { ChevronRight } from "lucide-react"
-import { translator } from "../../messages/index.js"
+import { translator } from "../../messages/use-t.js"
 import { crumbLabel, type CockpitScope, type CockpitView } from "../nav-core.js"
 
 /**

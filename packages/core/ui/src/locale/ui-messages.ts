@@ -24,8 +24,8 @@ export type UiMessagesOverride = {
 }
 
 /** The locales the kit ships a catalog for. English is the fallback. */
-export const TOOLKIT_LOCALES = ["en", "de"] as const
-export type UiLocale = (typeof TOOLKIT_LOCALES)[number]
+export const UI_LOCALES = ["en", "de"] as const
+export type UiLocale = (typeof UI_LOCALES)[number]
 
 /** The shipped catalogs, keyed by {@link UiLocale}. */
 export const UI_MESSAGES: Readonly<Record<UiLocale, UiMessages>> = { en, de }
@@ -36,9 +36,7 @@ export const UI_MESSAGES: Readonly<Record<UiLocale, UiMessages>> = { en, de }
  */
 export function resolveUiLocale(locale: string | undefined): UiLocale {
   const primary = (locale ?? "").trim().toLowerCase().split(/[-_]/)[0]
-  return (TOOLKIT_LOCALES as readonly string[]).includes(primary ?? "")
-    ? (primary as UiLocale)
-    : "en"
+  return (UI_LOCALES as readonly string[]).includes(primary ?? "") ? (primary as UiLocale) : "en"
 }
 
 /**

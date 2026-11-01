@@ -7,9 +7,9 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
     // LOAD-BEARING: never trim this list. The widget packages each resolve
-    // their own pnpm instance of React, TanStack Query, mcp-use, the kit
-    // (@miragon/pulse-ui) and the toolkit; bundling two copies gives each its
-    // own React context, a widget's `useViewHost()`/`useToolQuery()` reads the
+    // their own pnpm instance of React, TanStack Query, mcp-use and the kit
+    // (@miragon/pulse-ui); bundling two copies gives each its own React
+    // context, a widget's `useViewHost()`/`useToolQuery()` reads the
     // wrong one (no view host, no QueryClient), and every in-widget query
     // hangs on "Loading…". Dedupe collapses them to a single instance.
     // @miragon/pulse-ui and @miragon/pulse-widget-shell are listed because
@@ -21,7 +21,6 @@ export default defineConfig({
       "@tanstack/react-query",
       "mcp-use",
       "@miragon/pulse-ui",
-      "@miragon/mcp-toolkit-core",
       "@miragon/pulse-widget-shell",
       // The kit's Lucide icons and mcp-use's: one instance.
       "lucide-react",

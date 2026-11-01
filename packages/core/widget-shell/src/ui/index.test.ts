@@ -26,6 +26,7 @@ describe("the /widgets entry", () => {
     "createViewQueryClient",
     "useQueryClient",
     "decodeToolResult",
+    "createTranslator",
     "TestViewHost",
     "createTestQueryClient",
     "SettingsPage",

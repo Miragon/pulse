@@ -1,4 +1,4 @@
-import type { MessageCatalog } from "@miragon/mcp-toolkit-core"
+import type { MessageCatalog } from "@miragon/pulse-widget-shell/widgets"
 
 /**
  * The model may quote these, so they use the glossary terms ("Incident") and no dash as a

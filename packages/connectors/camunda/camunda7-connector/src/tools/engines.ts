@@ -1,6 +1,9 @@
 import { z } from "zod"
-import type { createToolRegistrar } from "@miragon/mcp-toolkit-core/tools"
-import { saveModuleSlice, type ProfileStore } from "@miragon/pulse-widget-shell/server"
+import {
+  saveModuleSlice,
+  type ToolRegistrar,
+  type ProfileStore,
+} from "@miragon/pulse-widget-shell/server"
 import { UnknownEngineError, type EngineRegistry, type EngineEntry } from "../lib/resolve-engine.js"
 import { environmentOf, groupEnginesByEnvironment } from "../lib/environments.js"
 import { providerForEntry } from "../providers/index.js"
@@ -13,10 +16,11 @@ import { CAMUNDA7_MODULE_KEY } from "../lib/profile-schema.js"
 import { resolveAuthUserId, resolveProfileKey } from "../lib/resolve-profile-key.js"
 import { CAMUNDA7_LIST_ENGINES, CAMUNDA7_SELECT_ENGINE } from "../tool-names.js"
 
-type Register = ReturnType<typeof createToolRegistrar<EngineRegistry>>
-
 /** List is a read, so even a read-only multi-engine deployment can route; select is a write. */
-export function registerEngineTools(register: Register, profileStore: ProfileStore): void {
+export function registerEngineTools(
+  register: ToolRegistrar<EngineRegistry>,
+  profileStore: ProfileStore,
+): void {
   // Advisory: a profile-store outage lists every engine instead of failing the one tool a
   // multi-engine caller needs to route (select still fails visibly at its write).
   const allowedEnginesFor = async (reg: EngineRegistry, ctx: unknown): Promise<EngineEntry[]> =>

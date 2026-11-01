@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { translator } from "../messages/index.js"
+import { translator } from "../messages/use-t.js"
 import { activityTypeKey, activityTypeLabel } from "./names.js"
 
 describe("activity types in words", () => {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { z } from "zod"
 import { increaseIn, type PrometheusClient } from "@miragon/pulse-analytics-client"
-import type { RegisteredToolMeta, ToolConfig } from "@miragon/mcp-toolkit-core/tools"
+import type { ToolConfig } from "@miragon/pulse-widget-shell/server"
 import { createEngineScope } from "../engine-ids.js"
 import { registerEngineCompareTools } from "./engine-compare.js"
 
@@ -12,12 +12,9 @@ type Config = ToolConfig<PrometheusClient>
 
 function captureConfigs(registerModule: (register: never) => void): Map<string, Config> {
   const configs = new Map<string, Config>()
-  const register = Object.assign(
-    (config: Config) => {
-      configs.set(config.name, config)
-    },
-    { getRegisteredTools: (): RegisteredToolMeta[] => [] },
-  )
+  const register = (config: Config) => {
+    configs.set(config.name, config)
+  }
   registerModule(register as never)
   return configs
 }

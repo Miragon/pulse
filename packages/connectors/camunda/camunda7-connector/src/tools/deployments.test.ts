@@ -3,7 +3,6 @@ import { createServer, type IncomingHttpHeaders } from "node:http"
 import type { AddressInfo } from "node:net"
 import { afterEach, describe, expect, it } from "vitest"
 import { z } from "zod"
-import type { ToolConfig } from "@miragon/mcp-toolkit-core/tools"
 import type {
   CreateDeploymentResponse,
   MultiFormDeploymentDto,
@@ -15,6 +14,7 @@ import {
 } from "../lib/resolve-engine.js"
 import { providerForEntry } from "../providers/index.js"
 import { registerDeploymentTools } from "./deployments.js"
+import { captureTools } from "./test-support/fake-engine.js"
 
 const DEPLOY = "camunda7_create_deployment"
 
@@ -147,12 +147,9 @@ type Handler = (registry: EngineRegistry, args: CreateArgs) => Promise<unknown>
 
 /** Wired like plugin.ts, so the handler runs withEngine → resolveEngine → SDK → fetch. */
 function deploymentTool(engines: EngineEntry[]) {
-  const tools = new Map<string, ToolConfig<EngineRegistry>>()
-  const recorder = Object.assign(
-    (config: ToolConfig<EngineRegistry>) => tools.set(config.name, config),
-    { getRegisteredTools: () => [] },
+  const tools = captureTools((register) =>
+    registerDeploymentTools(register, { allowDeployments: true }),
   )
-  registerDeploymentTools(recorder as never, { allowDeployments: true })
   const config = tools.get(DEPLOY)
   if (!config) throw new Error(`${DEPLOY} did not register`)
   const registry = createEngineRegistry(engines, (e) =>

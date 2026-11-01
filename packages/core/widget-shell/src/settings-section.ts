@@ -1,6 +1,6 @@
 import type { z } from "zod"
 import type { MCPServer } from "mcp-use"
-import { withToolErrors } from "@miragon/mcp-toolkit-core/tools"
+import { withToolErrors } from "./tool-errors.js"
 import type { LanguagePref } from "./profile-constants.js"
 import { requireProfileKey } from "./profile-slice.js"
 import { resolveAuthUserId, resolveProfileKey } from "./profile.js"

@@ -1,4 +1,4 @@
-import type { MessageCatalog } from "@miragon/mcp-toolkit-core"
+import type { MessageCatalog } from "@miragon/pulse-widget-shell/widgets"
 
 /** The toasts of `useEngineAction` (U9); the kit's `useActionFeedback` adds why and what to do. */
 export const enFeedback: MessageCatalog = {
