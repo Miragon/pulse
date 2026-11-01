@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 import type { Client } from "@modelcontextprotocol/client"
 import { CAMUNDA7_ADMIN_ONLY_TOOLS } from "@miragon/pulse-camunda7-connector"
-import { bootServer, createTestRuntime, listToolNames, type BootedServer } from "./boot-server.js"
+import { bootServer, listToolNames, type BootedServer } from "./boot-server.js"
 import {
   EXPECTED_TOOLS_ADMIN,
   EXPECTED_TOOLS_OPERATIONS,
@@ -19,18 +19,18 @@ function textPayload(result: { content?: unknown }): unknown {
 const FULL_SURFACE = {
   authenticated: true,
   env: {
-    MCP_ACTIVE_MODULES: "camunda7:admin,analytics:standard",
+    MCP_ACTIVE_MODULES: "camunda7:admin,analytics",
     CAMUNDA_ALLOW_DEPLOYMENTS: "true",
   },
 }
 
 /**
  * E2E smoke test: boots the real composition in-process (`createApp`, the
- * exact boot `src/index.ts` runs, with a stand-in widget bundle and in-memory
- * persistence) and speaks the MCP protocol to it over streamable HTTP.
+ * exact boot `src/index.ts` runs, with a stand-in widget bundle) and speaks
+ * the MCP protocol to it over streamable HTTP.
  * Together with the toolset suites below this is the only coverage of tool
- * *registration* — plugin.ts wiring, setup.ts module activation and the
- * shell's tools — rather than the tool implementations.
+ * *registration* (plugin.ts wiring, setup.ts module activation) rather than
+ * the tool implementations.
  */
 describe("mcp-server-camunda7 E2E smoke", () => {
   let server: BootedServer
@@ -38,10 +38,7 @@ describe("mcp-server-camunda7 E2E smoke", () => {
   let port: number
 
   beforeAll(async () => {
-    server = await bootServer({
-      ...FULL_SURFACE,
-      runtime: createTestRuntime({ readiness: { always: () => {} } }),
-    })
+    server = await bootServer(FULL_SURFACE)
     ;({ client, port } = server)
   })
 
@@ -132,7 +129,7 @@ describe("mcp-server-camunda7 E2E smoke", () => {
 
     const ready = await fetch(`${base}/health/ready`)
     expect(ready.status).toBe(200)
-    expect(await ready.json()).toEqual({ status: "up", checks: { always: "up" } })
+    expect(await ready.json()).toEqual({ status: "up", checks: {} })
 
     // A real tools/call through the transport must reach the metrics middleware.
     const call = await client.callTool({ name: "camunda7_list_engines", arguments: {} })
@@ -169,7 +166,7 @@ describe("mcp-server-camunda7 E2E smoke", () => {
 /**
  * The tool surface per toolset, on the wire: each boot resolves its selection
  * through `createApp` like `src/index.ts` (the shared boot's `resolveBoot` →
- * plugin config → registrar filter + framework-write decision), so the fail-closed
+ * plugin config → registrar filter), so the fail-closed
  * defaults are pinned end to end, not just the filter in isolation. The
  * authenticated boots install a stub OAuth provider — the real bearer gate.
  */
@@ -178,18 +175,18 @@ describe("mcp-server-camunda7 E2E toolset surfaces", () => {
     ["no suffix, no OAuth → read-only", {}, EXPECTED_TOOLS_READ_ONLY],
     ["no suffix, OAuth → operations", { authenticated: true }, EXPECTED_TOOLS_OPERATIONS],
     [
-      "explicit camunda7:read-only,analytics:read-only under OAuth",
+      "explicit camunda7:read-only,analytics under OAuth",
       {
         authenticated: true,
-        env: { MCP_ACTIVE_MODULES: "camunda7:read-only,analytics:read-only" },
+        env: { MCP_ACTIVE_MODULES: "camunda7:read-only,analytics" },
       },
       EXPECTED_TOOLS_READ_ONLY,
     ],
     [
-      "explicit camunda7:operations,analytics:standard under OAuth",
+      "explicit camunda7:operations,analytics under OAuth",
       {
         authenticated: true,
-        env: { MCP_ACTIVE_MODULES: "camunda7:operations,analytics:standard" },
+        env: { MCP_ACTIVE_MODULES: "camunda7:operations,analytics" },
       },
       EXPECTED_TOOLS_OPERATIONS,
     ],
@@ -249,8 +246,6 @@ describe("mcp-server-camunda7 E2E fail-closed guard", () => {
         for (const tool of CAMUNDA7_ADMIN_ONLY_TOOLS) {
           expect(names, `${tool} must not be listed`).not.toContain(tool)
         }
-        // The framework write needs a caller identity.
-        if (!authenticated) expect(names).not.toContain("shell_save_settings")
       } finally {
         await server.close()
       }
@@ -262,7 +257,7 @@ describe("mcp-server-camunda7 E2E fail-closed guard", () => {
     async (camunda7) => {
       const server = await bootServer({
         authenticated: true,
-        env: { MCP_ACTIVE_MODULES: `${camunda7},analytics:read-only` },
+        env: { MCP_ACTIVE_MODULES: `${camunda7},analytics` },
       })
       try {
         expect(await listToolNames(server.client)).toEqual([...EXPECTED_TOOLS_READ_ONLY])
@@ -295,8 +290,8 @@ describe("mcp-server-camunda7 E2E fail-closed guard", () => {
 })
 
 /**
- * "read-only lists only readOnlyHint tools", on the wire — the module tools,
- * the widget tools and the shell's tools alike, without exemptions.
+ * "read-only lists only readOnlyHint tools", on the wire: the module tools
+ * and the widget tools alike, without exemptions.
  */
 describe("mcp-server-camunda7 E2E read-only annotations", () => {
   let server: BootedServer
@@ -315,10 +310,9 @@ describe("mcp-server-camunda7 E2E read-only annotations", () => {
     expect(unannotated).toEqual([])
   })
 
-  it("lists the engines but never the durable camunda7_select_engine", async () => {
+  it("lists the engines", async () => {
     const names = await listToolNames(server.client)
     expect(names).toContain("camunda7_list_engines")
-    expect(names).not.toContain("camunda7_select_engine")
   })
 })
 

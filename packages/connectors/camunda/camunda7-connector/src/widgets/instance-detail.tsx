@@ -16,7 +16,7 @@ import { useT } from "../messages/use-t.js"
 
 export type { InstanceDetailData }
 
-// Standalone from the data's echo, so a refetch reads the engine the show tool answered for, never the caller's default.
+// Standalone from the data's echo, so a refetch reads the engine the show tool answered for, never the default engine.
 function instanceFeed(
   initialData: InstanceDetailData | null,
   processInstanceId: string | undefined,

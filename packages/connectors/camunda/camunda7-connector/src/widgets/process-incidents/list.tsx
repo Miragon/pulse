@@ -57,7 +57,7 @@ export function ActivityIncidentList({
     engine,
   )
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
-  // Writes target the data's engine, never the caller's default.
+  // Writes target the data's engine, never the default engine.
   const engineId = engine ?? data?.engineId
 
   if (!data) {

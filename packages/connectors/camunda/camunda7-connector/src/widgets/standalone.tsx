@@ -35,7 +35,7 @@ function engineFromQuery(queried: EnginesResult | undefined): string | undefined
   )
 }
 
-// The engines query failed, or several engines and no saved default: hand the drill to the chat,
+// The engines query failed, or several engines and no default engine: hand the drill to the chat,
 // the only path that still reaches the view. Settled data only (`isFetching`).
 function isEngineUnresolvable({
   needsEngine,
@@ -89,7 +89,7 @@ export function Camunda7Standalone({
   const engineId = echoedEngineId ?? queriedEngineId
 
   const current = stack.length > 0 ? stack[stack.length - 1] : undefined
-  const needsEngine = current !== undefined && current.section !== "settings"
+  const needsEngine = current !== undefined
 
   const engineUnresolvable = isEngineUnresolvable({
     needsEngine,

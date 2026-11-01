@@ -7,8 +7,7 @@ export default mergeConfig(
     test: {
       include: ["src/**/*.test.{ts,tsx}"],
       coverage: {
-        // Ratchet: frozen 2 points under the baseline (default run without
-        // TEST_DATABASE_URL; the pg run covers strictly more). Raise when you
+        // Ratchet: frozen 2 points under the baseline. Raise when you
         // push coverage up; never lower. Documented re-baseline 2026-08-13:
         // the profile store + migrations (a well-tested surface) moved to
         // @miragon/pulse-widget-shell, where the SAME code is now held to that

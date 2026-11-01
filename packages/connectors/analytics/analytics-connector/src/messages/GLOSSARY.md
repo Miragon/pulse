@@ -1,8 +1,8 @@
 # Glossar der Analytics-Texte
 
 Ein Begriff, ein Wort: Die Kataloge in diesem Ordner (`*.sweep.ts` für die Widgets,
-`*.ask-ai.ts` für die Übergaben an den Chat, `*.server.ts` für die Zusammenfassungen an
-das Modell) benutzen genau die Wörter dieser Tabellen. Die Schreibregeln (du, AI, „CIB
+`*.ask-ai.ts` für die Übergaben an den Chat, `en.server.ts` für die Zusammenfassungen an
+das Modell, die es nur auf Englisch gibt) benutzen genau die Wörter dieser Tabellen. Die Schreibregeln (du, AI, „CIB
 seven“, kein Gedankenstrich als Verbinder) prüft `brand-gates.test.ts`, die Begriffe
 `glossary.test.ts` über `glossary.ts` und die gemeinsamen Regeln des Kits. Wer hier einen
 Begriff ändert, ändert ihn auch dort.

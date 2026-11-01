@@ -3,7 +3,7 @@
 import type { MCPServer } from "mcp-use"
 import { createApp } from "./app.js"
 
-// The whole boot — module selection, persistence, the mcp-use server with its
+// The whole boot — module selection, the mcp-use server with its
 // middleware, the Host/Origin guard and the operational routes — is
 // `createApp`, which the tests boot too.
 const composed = await createApp()

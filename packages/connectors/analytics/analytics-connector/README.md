@@ -53,11 +53,9 @@ bundle build). **`mcp-use` is exactly pinned**: pin it to `mcp-use@2.12.2` in yo
   a shared Prometheus holds. Every tool takes an optional `engine` filter (one configured id or a
   list); omitted, it covers all configured engines and the result's `engines` names them; any
   other id is refused. Analytics are session-independent.
-- **Toolsets** (`src/toolsets.ts`, declared as the module's `toolsets` vocabulary): `read-only`
-  (every analytics tool and widget, no settings save) and `standard` (adds
-  `analytics_save_settings`). With no `analytics:<toolset>` suffix the module runs `read-only` on an
-  unauthenticated server and `standard` under OAuth; an empty or unknown suffix falls back to
-  `read-only`.
+- **No toolsets:** every analytics tool is a read (`src/module.test.ts` pins it), so the module
+  declares no toolset vocabulary and a suffix on it (`:read-only`, `:standard`) is ignored with a
+  warning.
 
 ### Cross-engine: overview, not scoreboard
 
@@ -97,11 +95,10 @@ and labels are governed by the
 
 ## Layout
 
-| Path                    | Contents                                                    |
-| ----------------------- | ----------------------------------------------------------- |
-| `src/tools/`            | Analytics tools (`index.ts` wires them)                     |
-| `src/widget-tools.ts`   | `show_*` dashboard/comparison widget tools                  |
-| `src/settings-tools.ts` | The settings section's show, feed and save tools            |
-| `src/widgets/`          | React dashboard + comparison widgets                        |
-| `src/module.ts`         | `analyticsModule` (env mapping, `PROMETHEUS_URL` boot hint) |
-| `src/plugin.ts`         | `createPlugin`: the module's `register(server)`             |
+| Path                  | Contents                                                    |
+| --------------------- | ----------------------------------------------------------- |
+| `src/tools/`          | Analytics tools (`index.ts` wires them)                     |
+| `src/widget-tools.ts` | `show_*` dashboard/comparison widget tools                  |
+| `src/widgets/`        | React dashboard + comparison widgets                        |
+| `src/module.ts`       | `analyticsModule` (env mapping, `PROMETHEUS_URL` boot hint) |
+| `src/plugin.ts`       | `createPlugin`: the module's `register(server)`             |

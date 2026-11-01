@@ -3,7 +3,7 @@ import { join } from "node:path"
 import { beforeAll, describe, expect, it, vi } from "vitest"
 import type { MCPServer } from "mcp-use"
 import { createPlugin } from "./plugin.js"
-import { CAMUNDA7_SAVE_SETTINGS, CAMUNDA7_WIDGET_ACTIONS } from "./tool-names.js"
+import { CAMUNDA7_WIDGET_ACTIONS } from "./tool-names.js"
 import { GATING_SITES } from "./widgets/action-gating.sites.js"
 import { WRITE_POLICY } from "./widgets/lib/write-policy.js"
 import {
@@ -85,8 +85,8 @@ describe("every in-widget write goes through useEngineAction", () => {
     ).toEqual([])
   })
 
-  it("runs only registered writes, each one listed in CAMUNDA7_WIDGET_ACTIONS (or self-gated)", () => {
-    const listed = new Set<string>([...CAMUNDA7_WIDGET_ACTIONS, CAMUNDA7_SAVE_SETTINGS])
+  it("runs only registered writes, each one listed in CAMUNDA7_WIDGET_ACTIONS", () => {
+    const listed = new Set<string>(CAMUNDA7_WIDGET_ACTIONS)
     for (const ref of actionRefs()) {
       expect(isWrite(ref.name), `${at(ref)}: ${ref.name} is not a registered write`).toBe(true)
       expect(

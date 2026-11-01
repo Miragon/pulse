@@ -11,8 +11,6 @@ export interface ToolsetVocabulary<T extends string> {
   resolve(toolset: string | undefined): T
   /** `undefined` = no suffix, `""` = present but empty. */
   effective(suffix: string | undefined, options: { authenticated: boolean }): EffectiveSelection<T>
-  /** Whether the toolset permits durable writes — every toolset above the read-only floor. */
-  allowsDurableWrites(toolset: T): boolean
 }
 
 /** Where an effective toolset came from — the reason the boot log names. */
@@ -59,9 +57,6 @@ export function createToolsetVocabulary<T extends string>(
       if (isKnown(name)) return { toolset: name, source: "suffix" }
       const reason = name === "" ? "Empty toolset suffix" : `Unknown toolset "${name}"`
       return { toolset: degrade(reason), source: "fallback" }
-    },
-    allowsDurableWrites(toolset) {
-      return toolset !== fallback
     },
   }
 }

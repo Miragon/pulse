@@ -281,7 +281,7 @@ export function PagedHistoryView({
   incidentActivityIds,
 }: {
   processInstanceId: string
-  /** Explicit engine routing; omitted → the caller's saved default engine. */
+  /** Explicit engine routing; omitted → the default engine. */
   engine?: string
   processDefinitionKey?: string | null
   variant?: "timeline" | "table"

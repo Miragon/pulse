@@ -8,6 +8,7 @@ import {
   type GlossaryRule,
 } from "@miragon/pulse-widget-shell/testing"
 import { catalogs } from "./index.js"
+import { enServer } from "./en.server.js"
 
 /** Each rule carries a probe it must catch, so a broken pattern fails instead of passing everything. */
 
@@ -52,7 +53,8 @@ const EN_RULES: readonly GlossaryRule[] = [
 
 const LANGUAGES = [
   ["German", catalogs.de, [...PRODUCT_GLOSSARY.de, ...DE_RULES]],
-  ["English", catalogs.en, [...PRODUCT_GLOSSARY.en, ...EN_RULES]],
+  // The model summaries are English only (`en.server.ts`); the widget catalogs come in both.
+  ["English", { ...catalogs.en, ...enServer }, [...PRODUCT_GLOSSARY.en, ...EN_RULES]],
 ] as const
 
 describe.each(LANGUAGES)("the camunda7 glossary holds in %s", (_language, catalog, rules) => {

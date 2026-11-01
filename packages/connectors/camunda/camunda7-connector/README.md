@@ -53,7 +53,9 @@ bundle build). **`mcp-use` is exactly pinned**: pin it to `mcp-use@2.12.2` in yo
 - **Widgets** (`src/widgets/`): React components (cockpit dashboard, process & incident panels, BPMN
   viewer, history timeline, job panel); `src/widgets/views.tsx` maps each show tool to its view.
 - **Multi-engine routing:** every tool resolves its engine through `withEngine` / `resolveEngine`
-  (`src/lib/`): per-call override → saved default engine (profile) → single configured default.
+  (`src/lib/`): per-call override → `CAMUNDA_DEFAULT_ENGINE` (it must name a configured engine,
+  else the boot fails) → the only configured engine, else `ENGINE_NOT_SELECTED` listing the
+  engines.
 - **Engine providers** (`src/engine-provider.ts`, `src/providers/`): each engine entry carries a
   vendor `flavor` (`cibseven` | `operaton` | `camunda7`, default `camunda7`; the `CAMUNDA_BASE_URL`
   shorthand takes `CAMUNDA_ENGINE_FLAVOR`) resolved to an `EngineProvider` holding only the real

@@ -35,7 +35,7 @@ function errorText(result: unknown): string {
  * no more; a module without toolsets by its bare name). Together the boots
  * register every tool any toolset registers. The default boot would not: it
  * puts every module on its read-only floor, which hides every write tool
- * above it — a `<module>_save_settings`, a destructive registrar tool —
+ * above it — an engine write, a destructive registrar tool —
  * exactly the tools where a dropped scoping key hurts most. Derived from
  * `MODULES`, not hand-listed: your module's toolsets are covered the moment
  * it declares them.
@@ -82,8 +82,8 @@ async function probeBoot(selection: string, probed: Map<string, ProbedTool>): Pr
 }
 
 /**
- * Strict tool inputs on EVERY listed tool: the shell's and every composed
- * module's, yours included, on EVERY toolset it declares (see
+ * Strict tool inputs on EVERY listed tool: every composed module's, yours
+ * included, on EVERY toolset it declares (see
  * {@link toolsetSelections}). A non-strict input
  * schema lets the server STRIP an unknown key before the handler runs: a
  * misnamed optional filter then silently widens the result and the model
@@ -114,16 +114,10 @@ describe("strict tool inputs on the wire (every module, every toolset)", () => {
     }
   })
 
-  it("covers the custom notes module next to the Miragon modules and the shell, write tools included (the guard is not vacuous)", () => {
+  it("covers the custom notes module next to the Miragon modules, write tools included (the guard is not vacuous)", () => {
     const names = [...probed.keys()]
     expect(names).toEqual(
-      expect.arrayContaining([
-        "notes_list_notes",
-        "notes_show_notes",
-        "notes_list_data",
-        "shell_show_settings",
-        "shell_settings_data",
-      ]),
+      expect.arrayContaining(["notes_list_notes", "notes_show_notes", "notes_list_data"]),
     )
     expect(names.some((name) => name.startsWith("camunda7_"))).toBe(true)
     expect(names.some((name) => name.startsWith("analytics_"))).toBe(true)
@@ -131,8 +125,8 @@ describe("strict tool inputs on the wire (every module, every toolset)", () => {
     expect(names).toEqual(
       expect.arrayContaining([
         ...CAMUNDA7_ADMIN_ONLY_TOOLS,
-        "camunda7_save_settings",
-        "analytics_save_settings",
+        "camunda7_set_job_retries",
+        "camunda7_resolve_incident",
       ]),
     )
   })

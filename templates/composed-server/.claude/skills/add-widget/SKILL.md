@@ -10,7 +10,7 @@ allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 (component), `widgets/views.tsx` (the view map), `widgets/notes-list.test.tsx`
 (the widget test), `widget-tools.ts` (show tool and data feed), `tool-names.ts`
 (rename safety). Richer patterns (paged lists,
-KPI grids, BPMN viewers, settings cards) live in
+KPI grids, BPMN viewers) live in
 `node_modules/@miragon/pulse-{camunda7,analytics}-connector/src/widgets/`.
 
 ## Step 0: pick the render path
@@ -145,12 +145,9 @@ Model both tools on `modules/mcp-notes/src/widget-tools.ts`:
   `registerWidgetTools` in the notes module): the boot applies the server-wide
   view CSP to every view-bound tool and refuses a tool name another plugin
   already registered.
-- A widget-path tool that performs a **durable write** must honor the module's
-  toolset itself (the registrar's filter never sees it): gate it on the
-  module's `toolsets` vocabulary, where a missing toolset is the read-only
-  floor (the no-suffix default without `MCP_OAUTH`), never "everything"; see
-  the add-settings-section skill and
-  `node_modules/@miragon/pulse-analytics-connector/src/settings-tools.ts`.
+- A widget-path tool never writes: the registrar's toolset filter never sees
+  it. A write is a registrar tool (the `create-module` skill, Step 5), which
+  the filter drops outside its toolset.
 
 ## Step 4: verify
 

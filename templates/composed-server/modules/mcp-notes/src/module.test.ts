@@ -16,7 +16,7 @@ function registeredToolNames(plugin: { register(server: MCPServer): void }): str
  * (`server/test/`); they cover this module through its dependency.
  */
 describe("notes module", () => {
-  const plugin = notesModule.createPlugin(notesModule.configFromEnv({}), {})
+  const plugin = notesModule.createPlugin(notesModule.configFromEnv({}))
 
   it("names its plugin after the module: the owner the boot names on a duplicate tool name", () => {
     expect(plugin.name).toBe(notesModule.name)

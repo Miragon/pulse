@@ -33,12 +33,8 @@ export interface ComposableModule<TShared> {
   toolsets?: ToolsetVocabulary<string>
   bootWarnings?(env: NodeJS.ProcessEnv): string[]
   /** Model-facing usage notes joined into the server `instructions`, stated ONCE instead of per tool. */
-  instructions?(config: Record<string, unknown>, context: InstructionsContext): string | undefined
+  instructions?(config: Record<string, unknown>): string | undefined
   createPlugin(config: Record<string, unknown>, shared: TShared): ModulePlugin
-}
-
-export interface InstructionsContext {
-  authenticated: boolean
 }
 
 export interface ActiveModuleRef {
@@ -51,8 +47,6 @@ export interface EffectiveToolset {
   module: string
   toolset?: string
   source: ToolsetSource | "none"
-  /** A module without toolsets declares no restriction (`true`). */
-  durableWrites: boolean
 }
 
 export interface ResolvedBoot {
@@ -160,17 +154,12 @@ export function composeModules<TShared>(options: {
     const vocabulary = module.toolsets
     if (vocabulary) {
       const { toolset, source } = vocabulary.effective(suffix, { authenticated })
-      return {
-        module: module.name,
-        toolset,
-        source,
-        durableWrites: vocabulary.allowsDurableWrites(toolset),
-      }
+      return { module: module.name, toolset, source }
     }
     if (suffix !== undefined) {
       console.warn(`[${label}] Module "${module.name}" has no toolsets — ignoring ":${suffix}"`)
     }
-    return { module: module.name, source: "none", durableWrites: true }
+    return { module: module.name, source: "none" }
   }
 
   const resolveBoot = (
@@ -204,7 +193,7 @@ export function composeModules<TShared>(options: {
     },
     warnUnknownEnvVars(env = process.env, extraKnown = []) {
       const known = new Set([...knownEnvVars, ...extraKnown])
-      // `<KNOWN_VAR>_*` (DATABASE_URL_FILE, …) addresses OTHER processes, never a typo.
+      // `<KNOWN_VAR>_*` (PROMETHEUS_PASSWORD_FILE, …) addresses OTHER processes, never a typo.
       const extendsKnownVar = (name: string) =>
         [...known].some((knownName) => name.startsWith(`${knownName}_`))
       const unknown = Object.keys(env).filter(
@@ -249,19 +238,10 @@ export function composeModules<TShared>(options: {
       return line
     },
     instructions(boot) {
-      const context: InstructionsContext = { authenticated: boot.authenticated }
       const snippets = boot.entries
-        .map((entry) => registry[entry.app]?.instructions?.(entry.config, context)?.trim())
+        .map((entry) => registry[entry.app]?.instructions?.(entry.config)?.trim())
         .filter((snippet): snippet is string => Boolean(snippet))
       return snippets.length > 0 ? snippets.join("\n\n") : undefined
     },
   }
-}
-
-/**
- * `shell_save_settings` is a durable write no module toolset filters, so it needs a caller identity
- * and no module on its read-only floor: the most restrictive module wins.
- */
-export function frameworkWritesAllowed(boot: ResolvedBoot): boolean {
-  return boot.authenticated && boot.toolsets.every(({ durableWrites }) => durableWrites)
 }

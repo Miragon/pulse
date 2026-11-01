@@ -89,14 +89,13 @@ the `setup-server` skill shows.
 
 Open this repo in Claude Code (or any agent that reads `CLAUDE.md`) and
 describe what you want: the skills in `.claude/skills/` walk the agent
-through the four common tasks step by step:
+through the three common tasks step by step:
 
-| Skill                  | For…                                                   |
-| ---------------------- | ------------------------------------------------------ |
-| `setup-server`         | configuring, running, branding, and deploying          |
-| `create-module`        | building a connector module for your own API or system |
-| `add-widget`           | adding an interactive widget to a module               |
-| `add-settings-section` | per-user settings for your module                      |
+| Skill           | For…                                                   |
+| --------------- | ------------------------------------------------------ |
+| `setup-server`  | configuring, running, branding, and deploying          |
+| `create-module` | building a connector module for your own API or system |
+| `add-widget`    | adding an interactive widget to a module               |
 
 Everything works the same when done by hand: `CLAUDE.md` is the compact
 architecture reference, and the guard tests in `server/test/` catch the
@@ -153,16 +152,15 @@ read prints a warning at boot, so typos surface immediately.
 
 Toolsets fail closed: without `MCP_OAUTH` camunda7 and analytics run
 **read-only** without a `module:toolset` suffix (queries, widgets, analytics,
-no writes; a module without toolsets, like notes, registers all its tools);
-with it they run their standard toolset (camunda7 `operations`, analytics
-`standard`). The boot log names the effective toolsets. `admin` is never
+no writes; a module without toolsets, like notes or analytics, registers all
+its tools); with it camunda7 runs its standard toolset, `operations`. The boot
+log names the effective toolsets. `admin` is never
 implied, and `camunda7_create_deployment` additionally needs
 `CAMUNDA_ALLOW_DEPLOYMENTS=true` (deploying a BPMN runs code in the engine
 JVM). See the `setup-server` skill before widening a server others can reach.
 
-`MCP_OAUTH` (Keycloak or Auth0) is also the only caller identity: user settings
-belong to the signed-in user. Without it the settings show their defaults and
-cannot be saved.
+`MCP_OAUTH` (Keycloak or Auth0) is also the only caller identity: passthrough
+engine auth and the per-caller caches key on it.
 
 | Variable                                     | Effect                                                                                                                         |
 | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
@@ -173,19 +171,16 @@ cannot be saved.
 | `MCP_METRICS_TOKEN`                          | Bearer token `/metrics` requires (default: open)                                                                               |
 | `MCP_OAUTH`                                  | OAuth resource server (`keycloak` / `auth0` JSON, needs `MCP_URL`), the only caller identity                                   |
 | `MCP_ACTIVE_MODULES`                         | Modules (default: all), e.g. `camunda7:operations,notes`; no suffix: read-only, `MCP_OAUTH` → standard                         |
-| `MCP_PROFILE_DIR`                            | Filesystem persistence for user profiles (default: in-memory)                                                                  |
 | `CAMUNDA_*`, `PROMETHEUS_URL`, `NOTES_TITLE` | Module config, see `.env.example` for the full list                                                                            |
 
 ## Deploying
 
 The image built in the [Quickstart](#2-as-a-container) is the deployment
-artifact. Two things to add beyond the local run:
+artifact. One thing to add beyond the local run:
 
 ```bash
 docker run -p 8400:8400 \
   -e MCP_URL=https://mcp.example.com \
-  -e MCP_PROFILE_DIR=/data/profiles \
-  -v mcp-data:/data \
   my-mcp-server
 ```
 
@@ -195,13 +190,10 @@ docker run -p 8400:8400 \
   `MCP_ALLOWED_HOSTS`/`MCP_ALLOWED_ORIGINS` (DNS-rebinding protection), so a
   deployment reached under any other name must set them.
 - Without `MCP_OAUTH` the server boots read-only and unauthenticated. Set
-  `MCP_OAUTH` (plus `MCP_URL`, the token audience) to require sign-in, save
-  per-user settings and raise the default toolsets. An authenticating gateway
-  in front is invisible to the server: it still sees no identity, so settings
-  stay unsaved and any widened toolset is open to whoever passes the gateway.
-- The profile store is in-memory by default: without the volume, user
-  settings are lost on every restart (a `NODE_ENV=production` boot warns about
-  it in its log).
+  `MCP_OAUTH` (plus `MCP_URL`, the token audience) to require sign-in and
+  raise the default toolsets. An authenticating gateway in front is invisible
+  to the server: it still sees no identity, so any widened toolset is open to
+  whoever passes the gateway.
 - `/health/live`, `/health/ready` and `/metrics` (Prometheus) are served next
   to `/mcp`, outside any OAuth gate and the `Host` check (`MCP_METRICS_TOKEN`
   protects the scrape); the image's `HEALTHCHECK` polls `/health/ready`;
@@ -220,6 +212,5 @@ docker run -p 8400:8400 \
 ## Going further
 
 The stock server (`apps/mcp-server-camunda7` in the
-[Pulse repo](https://github.com/Miragon/pulse)) additionally ships,
-and is the reference for: a Postgres profile store for multi-instance
-deployments, and a Playwright host simulation of the widget bundle.
+[Pulse repo](https://github.com/Miragon/pulse)) additionally ships a
+Playwright host simulation of the widget bundle.

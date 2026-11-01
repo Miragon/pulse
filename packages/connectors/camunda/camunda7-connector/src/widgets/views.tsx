@@ -1,17 +1,11 @@
 import type { ComponentType } from "react"
-import type {
-  HostWidgets,
-  ViewComponent,
-  ViewMap,
-  ViewProps,
-} from "@miragon/pulse-widget-shell/widgets"
+import type { ViewComponent, ViewMap } from "@miragon/pulse-widget-shell/widgets"
 import type {
   BpmnViewerData,
   IncidentsDashboardData,
   ProcessIncidentsData,
 } from "../view-models.js"
 import type { ClusterDetailData, EngineHealthData } from "../view-models.health.js"
-import type { UserProfileView } from "../lib/profile-schema.js"
 import {
   CAMUNDA7_OPEN_COCKPIT,
   CAMUNDA7_SHOW_BPMN_VIEWER,
@@ -26,7 +20,6 @@ import {
   CAMUNDA7_SHOW_PROCESS_INCIDENTS,
   CAMUNDA7_SHOW_PROCESS_INSTANCES,
   CAMUNDA7_SHOW_PROCESS_LIST,
-  CAMUNDA7_SHOW_SETTINGS,
 } from "../tool-names.js"
 import { BpmnViewerWidget } from "./bpmn-viewer/widget.js"
 import { ClusterDetailWidget } from "./cluster-detail.js"
@@ -41,7 +34,6 @@ import { ProcessDefinitionView } from "./process-incidents/view.js"
 import { ProcessInstancesWidget, type ProcessInstancesData } from "./process-instances/list.js"
 import { ProcessListWidget, type ProcessListData } from "./process-list.js"
 import { Camunda7Standalone } from "./standalone.js"
-import { UserProfileWidget } from "./user-profile.js"
 
 /** A camunda7 view on its show tool's data, with the client-side drill-in of `Camunda7Standalone`. */
 function standalone<TData extends { engineId?: string | null }>(
@@ -58,10 +50,6 @@ function standalone<TData extends { engineId?: string | null }>(
 
 function ProcessIncidentsFocus({ data }: { data: ProcessIncidentsData }) {
   return <ProcessDefinitionView data={data} focus="incidents" />
-}
-
-function SettingsView({ data }: ViewProps<UserProfileView>) {
-  return <UserProfileWidget data={data} />
 }
 
 /**
@@ -82,14 +70,4 @@ export const camunda7Views: ViewMap = {
   [CAMUNDA7_SHOW_CLUSTER_DETAIL]: standalone<ClusterDetailData>(ClusterDetailWidget),
   [CAMUNDA7_SHOW_BPMN_VIEWER]: standalone<BpmnViewerData>(BpmnViewerWidget),
   [CAMUNDA7_SHOW_JOB_PANEL]: standalone<JobPanelData>(JobPanelWidget),
-  [CAMUNDA7_SHOW_SETTINGS]: SettingsView,
-}
-
-/** The shell's settings page renders this section by its `<module>:settings` id. */
-function Camunda7SettingsSection() {
-  return <UserProfileWidget />
-}
-
-export const camunda7HostWidgets: HostWidgets = {
-  "camunda7:settings": Camunda7SettingsSection,
 }

@@ -19,6 +19,4 @@ export const enFeedback: MessageCatalog = {
   "feedback.taskCompleted": "Task {name} completed",
   "feedback.taskReturned": "Task {name} handed back to {owner}",
   "feedback.taskCompleteFailed": "Couldn't complete task {name}",
-  "feedback.settingsSaved": "Settings saved",
-  "feedback.settingsSaveFailed": "Couldn't save the settings",
 }

@@ -29,7 +29,8 @@
           "type": "boolean"
         },
         "period": {
-          "description": "Analysis time period. Omitted → the user's saved analytics default (else 7d).",
+          "default": "7d",
+          "description": "Analysis time period",
           "enum": [
             "1d",
             "3d",
@@ -84,7 +85,8 @@
           "description": "Engine id(s) to scope to; omitted = all configured (see server instructions)"
         },
         "period": {
-          "description": "Analysis time period. Omitted → the user's saved analytics default (else 7d).",
+          "default": "7d",
+          "description": "Analysis time period",
           "enum": [
             "1d",
             "3d",
@@ -185,7 +187,8 @@
           "description": "Engine id(s) to scope to; omitted = all configured (see server instructions)"
         },
         "minBucketSize": {
-          "description": "Minimum per-window instance count before results are flagged `suppressed`. Omitted → the user's saved analytics default (else 10).",
+          "default": 10,
+          "description": "Minimum started and completed instances per window before results are trusted",
           "minimum": 1,
           "type": "integer"
         },
@@ -308,12 +311,14 @@
           "type": "integer"
         },
         "minBucketSize": {
-          "description": "Minimum per-window instance count before results are flagged `suppressed`. Omitted → the user's saved analytics default (else 10).",
+          "default": 10,
+          "description": "Minimum number of executions per activity before it is returned.",
           "minimum": 1,
           "type": "integer"
         },
         "period": {
-          "description": "Analysis time period. Omitted → the user's saved analytics default (else 7d).",
+          "default": "7d",
+          "description": "Analysis time period",
           "enum": [
             "1d",
             "3d",
@@ -360,7 +365,8 @@
           "type": "string"
         },
         "minBucketSize": {
-          "description": "Minimum per-window instance count before results are flagged `suppressed`. Omitted → the user's saved analytics default (else 10).",
+          "default": 10,
+          "description": "Minimum instance count per engine before results are trusted.",
           "minimum": 1,
           "type": "integer"
         },
@@ -527,62 +533,6 @@
     "name": "analytics_find_failed_instances"
   },
   {
-    "annotations": {
-      "destructiveHint": false,
-      "idempotentHint": true,
-      "openWorldHint": false,
-      "readOnlyHint": false
-    },
-    "description": "Update the caller's analytics defaults. Only the provided fields change; omitted fields keep their value. The saved defaults apply whenever an analytics call omits `period` or `minBucketSize`.",
-    "inputSchema": {
-      "additionalProperties": false,
-      "properties": {
-        "defaultPeriod": {
-          "description": "New default look-back period. Omitted → unchanged.",
-          "enum": [
-            "1d",
-            "3d",
-            "7d",
-            "14d",
-            "30d"
-          ],
-          "type": "string"
-        },
-        "minBucketSize": {
-          "description": "New minimum comparison bucket size. Omitted → unchanged.",
-          "minimum": 1,
-          "type": "integer"
-        }
-      },
-      "type": "object"
-    },
-    "name": "analytics_save_settings",
-    "title": "Save analytics settings"
-  },
-  {
-    "_meta": {
-      "openai/widgetAccessible": true,
-      "ui": {
-        "visibility": [
-          "app"
-        ]
-      }
-    },
-    "annotations": {
-      "idempotentHint": true,
-      "openWorldHint": true,
-      "readOnlyHint": true
-    },
-    "description": "Internal JSON feed (no UI) for the analytics settings section's self-fetch. Prefer analytics_show_settings.",
-    "inputSchema": {
-      "additionalProperties": false,
-      "properties": {},
-      "type": "object"
-    },
-    "name": "analytics_settings_data",
-    "title": "Analytics settings data (internal)"
-  },
-  {
     "_meta": {
       "openai/outputTemplate": "ui://views/analytics_show_bpmn_heatmap.html",
       "openai/resultCanProduceWidget": true,
@@ -618,7 +568,8 @@
           "description": "Engine id(s) to scope to; omitted = all configured (see server instructions)"
         },
         "period": {
-          "description": "Analysis time period. Omitted → the user's saved analytics default (else 7d).",
+          "default": "7d",
+          "description": "Analysis time period",
           "enum": [
             "1d",
             "3d",
@@ -691,7 +642,8 @@
           "description": "Engine id(s) to scope to; omitted = all configured (see server instructions)"
         },
         "minBucketSize": {
-          "description": "Minimum per-window instance count before results are flagged `suppressed`. Omitted → the user's saved analytics default (else 10).",
+          "default": 10,
+          "description": "Minimum started and completed instances per window before results are trusted",
           "minimum": 1,
           "type": "integer"
         },
@@ -764,7 +716,8 @@
           "description": "Engine id(s) to scope to; omitted = all configured (see server instructions)"
         },
         "period": {
-          "description": "Analysis time period. Omitted → the user's saved analytics default (else 7d).",
+          "default": "7d",
+          "description": "Analysis time period",
           "enum": [
             "1d",
             "3d",
@@ -826,7 +779,8 @@
           "type": "string"
         },
         "minBucketSize": {
-          "description": "Minimum per-window instance count before results are flagged `suppressed`. Omitted → the user's saved analytics default (else 10).",
+          "default": 10,
+          "description": "Minimum instance count per engine before results are trusted.",
           "minimum": 1,
           "type": "integer"
         },
@@ -955,38 +909,6 @@
   },
   {
     "_meta": {
-      "openai/outputTemplate": "ui://views/analytics_show_settings.html",
-      "openai/resultCanProduceWidget": true,
-      "openai/toolInvocation/invoked": "Analytics Settings ready",
-      "openai/toolInvocation/invoking": "Loading Analytics Settings…",
-      "openai/widgetAccessible": true,
-      "ui": {
-        "resourceUri": "ui://views/analytics_show_settings.html"
-      },
-      "ui/resourceUri": "ui://views/analytics_show_settings.html"
-    },
-    "annotations": {
-      "idempotentHint": true,
-      "openWorldHint": true,
-      "readOnlyHint": true
-    },
-    "description": "Open the analytics settings section: the default look-back period and the minimum comparison bucket size applied when analytics calls omit them.",
-    "inputSchema": {
-      "additionalProperties": false,
-      "properties": {},
-      "type": "object"
-    },
-    "name": "analytics_show_settings",
-    "outputSchema": {
-      "$schema": "https://json-schema.org/draft/2020-12/schema",
-      "additionalProperties": {},
-      "properties": {},
-      "type": "object"
-    },
-    "title": "Analytics Settings"
-  },
-  {
-    "_meta": {
       "openai/outputTemplate": "ui://views/analytics_show_version_compare.html",
       "openai/resultCanProduceWidget": true,
       "openai/toolInvocation/invoked": "Process Version Comparison ready",
@@ -1021,7 +943,8 @@
           "description": "Engine id(s) to scope to; omitted = all configured (see server instructions)"
         },
         "minBucketSize": {
-          "description": "Minimum per-window instance count before results are flagged `suppressed`. Omitted → the user's saved analytics default (else 10).",
+          "default": 10,
+          "description": "Minimum instance count per version before results are trusted.",
           "minimum": 1,
           "type": "integer"
         },
@@ -1089,7 +1012,8 @@
           "description": "Engine id(s) to scope to; omitted = all configured (see server instructions)"
         },
         "minBucketSize": {
-          "description": "Minimum per-window instance count before results are flagged `suppressed`. Omitted → the user's saved analytics default (else 10).",
+          "default": 10,
+          "description": "Minimum instance count per version before results are trusted.",
           "minimum": 1,
           "type": "integer"
         },
@@ -2103,7 +2027,7 @@
       "openWorldHint": false,
       "readOnlyHint": true
     },
-    "description": "List the engines available to this profile, grouped by environment (`environments` maps each to its engine ids), plus the caller's saved default engine (`defaultEngineId`, null when none).",
+    "description": "List the configured engines, grouped by environment (`environments` maps each to its engine ids), plus the default engine (`defaultEngineId`, null when none).",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {},
@@ -3650,56 +3574,6 @@
     "annotations": {
       "destructiveHint": false,
       "idempotentHint": true,
-      "openWorldHint": false
-    },
-    "description": "Update the caller's camunda7 settings. Only the provided fields change; omitted fields keep their value. Use it for requests like \"only let me pick the prod engines\" (allowedEngineIds). Engine availability is curation, not access control.",
-    "inputSchema": {
-      "additionalProperties": false,
-      "properties": {
-        "allowedEngineIds": {
-          "description": "Engine ids the user may pick from. Omitted or empty = all configured engines. Curation, not a security boundary — an explicit per-call `engine` override still reaches any configured engine.",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "defaultEngineId": {
-          "description": "Default engine: operations tools route here when no per-call `engine` override is given, and the cockpit lands on it. Saved via the settings page or camunda7_select_engine.",
-          "type": "string"
-        }
-      },
-      "type": "object"
-    },
-    "name": "camunda7_save_settings",
-    "title": "Save engine settings"
-  },
-  {
-    "annotations": {
-      "destructiveHint": false,
-      "idempotentHint": true,
-      "openWorldHint": false
-    },
-    "description": "Save an engine as the caller's default: camunda7 tool calls without `engine` then route to it (a durable per-user setting, the same field the settings page edits). Needs a signed-in caller.",
-    "inputSchema": {
-      "additionalProperties": false,
-      "properties": {
-        "engineId": {
-          "description": "Engine id to save as the default, e.g. \"prod-a\"",
-          "minLength": 1,
-          "type": "string"
-        }
-      },
-      "required": [
-        "engineId"
-      ],
-      "type": "object"
-    },
-    "name": "camunda7_select_engine"
-  },
-  {
-    "annotations": {
-      "destructiveHint": false,
-      "idempotentHint": true,
       "openWorldHint": true
     },
     "description": "Set the retries of an external task. Retries > 0 hand a failed task back to its workers and clear its failedExternalTask incident (camunda7_resolve_incident cannot resolve that incident type); 0 raises an incident. Never locks, completes or fails the task itself.",
@@ -3849,29 +3723,6 @@
       "type": "object"
     },
     "name": "camunda7_set_task_assignee"
-  },
-  {
-    "_meta": {
-      "openai/widgetAccessible": true,
-      "ui": {
-        "visibility": [
-          "app"
-        ]
-      }
-    },
-    "annotations": {
-      "idempotentHint": true,
-      "openWorldHint": true,
-      "readOnlyHint": true
-    },
-    "description": "Internal JSON feed (no UI) for the caller's camunda7 settings + the configured engine list. Prefer camunda7_show_settings.",
-    "inputSchema": {
-      "additionalProperties": false,
-      "properties": {},
-      "type": "object"
-    },
-    "name": "camunda7_settings_data",
-    "title": "Settings data (internal)"
   },
   {
     "_meta": {
@@ -4529,38 +4380,6 @@
     "title": "Process Definitions"
   },
   {
-    "_meta": {
-      "openai/outputTemplate": "ui://views/camunda7_show_settings.html",
-      "openai/resultCanProduceWidget": true,
-      "openai/toolInvocation/invoked": "Engine settings ready",
-      "openai/toolInvocation/invoking": "Loading Engine settings…",
-      "openai/widgetAccessible": true,
-      "ui": {
-        "resourceUri": "ui://views/camunda7_show_settings.html"
-      },
-      "ui/resourceUri": "ui://views/camunda7_show_settings.html"
-    },
-    "annotations": {
-      "idempotentHint": true,
-      "openWorldHint": true,
-      "readOnlyHint": true
-    },
-    "description": "Open camunda7's settings: available engines and the default engine.",
-    "inputSchema": {
-      "additionalProperties": false,
-      "properties": {},
-      "type": "object"
-    },
-    "name": "camunda7_show_settings",
-    "outputSchema": {
-      "$schema": "https://json-schema.org/draft/2020-12/schema",
-      "additionalProperties": {},
-      "properties": {},
-      "type": "object"
-    },
-    "title": "Engine settings"
-  },
-  {
     "annotations": {
       "destructiveHint": false,
       "openWorldHint": true
@@ -4673,89 +4492,5 @@
     },
     "name": "camunda7_widget_actions_data",
     "title": "Widget actions (internal)"
-  },
-  {
-    "annotations": {
-      "destructiveHint": false,
-      "idempotentHint": true,
-      "openWorldHint": false,
-      "readOnlyHint": false
-    },
-    "description": "Set the caller's UI language, e.g. \"switch the UI to German\" (language: \"de\").",
-    "inputSchema": {
-      "additionalProperties": false,
-      "properties": {
-        "language": {
-          "description": "\"system\" follows the chat app. Tool summaries follow it too.",
-          "enum": [
-            "system",
-            "en",
-            "de"
-          ],
-          "type": "string"
-        }
-      },
-      "required": [
-        "language"
-      ],
-      "type": "object"
-    },
-    "name": "shell_save_settings",
-    "title": "Save settings"
-  },
-  {
-    "_meta": {
-      "openai/widgetAccessible": true,
-      "ui": {
-        "visibility": [
-          "app"
-        ]
-      }
-    },
-    "annotations": {
-      "idempotentHint": true,
-      "openWorldHint": false,
-      "readOnlyHint": true
-    },
-    "description": "Internal JSON feed (no UI) for the settings page's language section. Prefer shell_show_settings.",
-    "inputSchema": {
-      "additionalProperties": false,
-      "properties": {},
-      "type": "object"
-    },
-    "name": "shell_settings_data",
-    "title": "Settings data (internal)"
-  },
-  {
-    "_meta": {
-      "openai/outputTemplate": "ui://views/shell_show_settings.html",
-      "openai/resultCanProduceWidget": true,
-      "openai/toolInvocation/invoked": "Settings ready",
-      "openai/toolInvocation/invoking": "Loading Settings…",
-      "openai/widgetAccessible": true,
-      "ui": {
-        "resourceUri": "ui://views/shell_show_settings.html"
-      },
-      "ui/resourceUri": "ui://views/shell_show_settings.html"
-    },
-    "annotations": {
-      "idempotentHint": true,
-      "openWorldHint": false,
-      "readOnlyHint": true
-    },
-    "description": "Open the settings page: the UI language and each module's settings.",
-    "inputSchema": {
-      "additionalProperties": false,
-      "properties": {},
-      "type": "object"
-    },
-    "name": "shell_show_settings",
-    "outputSchema": {
-      "$schema": "https://json-schema.org/draft/2020-12/schema",
-      "additionalProperties": {},
-      "properties": {},
-      "type": "object"
-    },
-    "title": "Settings"
   }
 ]

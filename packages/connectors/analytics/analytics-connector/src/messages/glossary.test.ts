@@ -8,7 +8,6 @@ import {
   unnamedGlossaryTerms,
 } from "@miragon/pulse-widget-shell/testing"
 import { deAskAi } from "./de.ask-ai.js"
-import { deServer } from "./de.server.js"
 import { deSweep } from "./de.sweep.js"
 import { enAskAi } from "./en.ask-ai.js"
 import { enServer } from "./en.server.js"
@@ -28,20 +27,18 @@ function texts(catalog: MessageCatalog): [key: string, text: string][] {
   })
 }
 
-const CATALOGS = {
-  de: { ui: [deSweep, deAskAi], model: [deServer] },
-  en: { ui: [enSweep, enAskAi], model: [enServer] },
-} as const
+const UI = { de: [deSweep, deAskAi], en: [enSweep, enAskAi] } as const
+
+/** The widget catalogs, plus the model summaries (`en.server.ts`, English only) when asked. */
+function catalogsOf(language: "de" | "en", withModel: boolean): readonly MessageCatalog[] {
+  return withModel && language === "en" ? [...UI.en, enServer] : UI[language]
+}
 
 function offenders(language: "de" | "en"): string[] {
   const found: string[] = []
   for (const term of GLOSSARY) {
     const avoid = language === "de" ? term.avoidDe : term.avoidEn
-    const catalogs =
-      term.scope === "ui"
-        ? CATALOGS[language].ui
-        : [...CATALOGS[language].ui, ...CATALOGS[language].model]
-    for (const catalog of catalogs) {
+    for (const catalog of catalogsOf(language, term.scope !== "ui")) {
       for (const [key, text] of texts(catalog)) {
         for (const pattern of avoid) {
           const hit = pattern.exec(text)
@@ -60,8 +57,7 @@ describe("the catalogs use the glossary's words", () => {
 
   // Widget texts, hand-off intents and model summaries alike.
   it.each(["de", "en"] as const)("%s: the product-wide terms shared with camunda7", (language) => {
-    const { ui, model } = CATALOGS[language]
-    for (const catalog of [...ui, ...model]) {
+    for (const catalog of catalogsOf(language, true)) {
       expect(glossaryFindings(catalog, PRODUCT_GLOSSARY[language])).toEqual([])
     }
     expect(blindGlossaryRules(PRODUCT_GLOSSARY[language])).toEqual([])
@@ -98,8 +94,7 @@ describe("every hand-off title says it goes to the chat", () => {
 })
 
 describe("the German and English catalogs carry the same keys", () => {
-  it("sweep and server", () => {
+  it("sweep", () => {
     expect(Object.keys(deSweep).sort()).toEqual(Object.keys(enSweep).sort())
-    expect(Object.keys(deServer).sort()).toEqual(Object.keys(enServer).sort())
   })
 })

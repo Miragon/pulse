@@ -1,7 +1,6 @@
 import fs from "node:fs"
 import path from "node:path"
 import { describe, expect, it } from "vitest"
-import { settingsSections } from "@miragon/pulse-widget-shell/widgets"
 import { CAMUNDA7_HOST_WIDGET_REFS } from "@miragon/pulse-camunda7-connector/widgets"
 import { hostWidgets, viewRegistry } from "../src/ui/view-registry.js"
 import { GOLDEN_DIR } from "./golden.js"
@@ -24,8 +23,6 @@ function viewBoundGoldens(): GoldenTool[] {
 function viewBoundTools(): string[] {
   return [...new Set(viewBoundGoldens().map((tool) => tool.name))].sort()
 }
-
-const SETTINGS_SHOW = /^([a-z0-9]+)_show_settings$/
 
 /**
  * The bundle picks a view by its name (= the show tool's name, primed under
@@ -53,38 +50,12 @@ describe("the view registry vs the view-bound tools", () => {
   })
 })
 
-/**
- * The settings page (the shell's, #346) renders the language section and then
- * every `<module>:settings` host widget, in registration order. A module whose
- * section never reaches the host widgets is simply absent from the page, so
- * this pairing is the only thing between a shipped section and an invisible one.
- */
+/** A cross-module widget no module renders is dead code in every view's bundle. */
 describe("the host widgets", () => {
-  it("hold a settings section for every module's settings view", () => {
-    const modules = viewBoundTools()
-      .map((name) => SETTINGS_SHOW.exec(name)?.[1])
-      .filter((module): module is string => module !== undefined && module !== "shell")
-    expect(modules).toEqual(expect.arrayContaining(["camunda7", "analytics"]))
-    for (const module of modules) {
-      expect(hostWidgets, `${module}_show_settings has no section`).toHaveProperty(
-        `${module}:settings`,
-      )
-    }
-  })
-
-  it("hold nothing but settings sections and the cross-module widgets a module renders", () => {
+  it("hold nothing but the cross-module widgets a module renders", () => {
     const refs: readonly string[] = CAMUNDA7_HOST_WIDGET_REFS
-    const stray = Object.keys(hostWidgets).filter(
-      (id) => !id.endsWith(":settings") && !refs.includes(id),
-    )
+    const stray = Object.keys(hostWidgets).filter((id) => !refs.includes(id))
     expect(stray).toEqual([])
     for (const ref of refs) expect(hostWidgets, `${ref} is rendered but absent`).toHaveProperty(ref)
-  })
-
-  it("put the sections on the settings page in registration order", () => {
-    expect(settingsSections(hostWidgets).map(([id]) => id)).toEqual([
-      "camunda7:settings",
-      "analytics:settings",
-    ])
   })
 })

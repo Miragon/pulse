@@ -20,7 +20,6 @@ meta, server i18n, caller identity) lives in `@miragon/pulse-widget-shell/server
      a widget.
    - `add-analytics-feature`: a PromQL query, an analytics tool or a dashboard
      widget.
-   - `add-settings-section`: a module's user settings slice and its section.
 3. **widget-shell's view runtime** (`packages/core/widget-shell/README.md`) for
    everything a widget does: the bundle root, the view host seam, the query
    hooks and `TestViewHost`; its UI comes from the design kit

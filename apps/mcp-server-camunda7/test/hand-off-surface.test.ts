@@ -124,7 +124,7 @@ describe("hand-offs go through the one primitive", () => {
       "Build the text with useHandOff().context(…), modelContextText(…) or a function " +
         "whose every return is modelContextText(…) (a name declared twice cannot be resolved).",
     ).toEqual([])
-    // The scanner is not blind: the cockpit, the detail views and the settings.
+    // The scanner is not blind: the cockpit and the detail views.
     expect(contents.length).toBeGreaterThanOrEqual(12)
     // Nor blind to the description functions: the analytics views describe themselves.
     expect(
@@ -141,13 +141,13 @@ describe("every hand-off names only tools the model can call", () => {
   let specs: HandOffSpec[]
 
   beforeAll(async () => {
-    // The FULL surface (every module, admin, deployments) — what a spec may
-    // name at all; the read-only floor — what the analytics part may assume;
-    // operations — the default under OAuth.
+    // The FULL surface (every module, admin, deployments): what a spec may
+    // name at all; the read-only floor: the default without OAuth;
+    // operations: the default under OAuth.
     server = await bootServer({
       authenticated: true,
       env: {
-        MCP_ACTIVE_MODULES: "camunda7:admin,analytics:standard",
+        MCP_ACTIVE_MODULES: "camunda7:admin,analytics",
         CAMUNDA_ALLOW_DEPLOYMENTS: "true",
       },
     })
@@ -262,26 +262,6 @@ describe("every hand-off names only tools the model can call", () => {
     ).toEqual([])
   })
 
-  // Widgets treat analytics tools as present whenever the analytics module is
-  // (camunda7's probe; analytics' own widgets): so a spec may only name the
-  // analytics tools its read-only floor registers too. The one exception is
-  // the settings section's save, which its own surface gates on `canSave`.
-  it("names only analytics tools every analytics toolset registers", () => {
-    const gated = new Map([
-      [
-        "analytics_save_settings",
-        "packages/connectors/analytics/analytics-connector/src/widgets/model-descriptions.ts",
-      ],
-    ])
-    const wrong = specs.flatMap((s) =>
-      (s.tools ?? [])
-        .filter((tool) => tool.startsWith("analytics_") && !floor.has(tool))
-        .filter((tool) => !s.at.startsWith(`${gated.get(tool)}:`))
-        .map((tool) => `${tool} (${s.at})`),
-    )
-    expect(wrong).toEqual([])
-  })
-
   // The original bug class: a prompt telling the model to "read the full
   // trace with camunda7_incident_detail_data" — a feed the host hides from
   // it. No model-facing text (prose: a string with whitespace) may name one,
@@ -289,7 +269,7 @@ describe("every hand-off names only tools the model can call", () => {
   it("no prose anywhere sends the model to an app-only feed", () => {
     const appOnly = new Set(full.filter((t) => !isModelVisible(t)).map((t) => t.name))
     const prose = scanSources((file, text) =>
-      findProseToolNames(file, text, ["camunda7", "analytics", "shell"]),
+      findProseToolNames(file, text, ["camunda7", "analytics"]),
     )
     expect(prose.length, "the scanner is not blind").toBeGreaterThanOrEqual(20)
     expect(
@@ -306,7 +286,7 @@ const TOOLSETS: ReadonlyArray<{ label: string; options: BootOptions }> = [
     options: {
       authenticated: true,
       env: {
-        MCP_ACTIVE_MODULES: "camunda7:admin,analytics:standard",
+        MCP_ACTIVE_MODULES: "camunda7:admin,analytics",
         CAMUNDA_ALLOW_DEPLOYMENTS: "true",
       },
     },

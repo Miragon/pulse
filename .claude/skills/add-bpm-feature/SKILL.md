@@ -8,8 +8,8 @@ allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 
 The camunda7 module never registers operations tools with raw `server.tool()`. Tools go
 through the registrar (`createToolRegistrar` from `@miragon/pulse-widget-shell/server`);
-engine access goes through `withEngine`/`resolveEngine` (per-call `engine` override > saved
-default engine (profile) > single default). A view is registered in three places (CLAUDE.md
+engine access goes through `withEngine`/`resolveEngine` (per-call `engine` override >
+`CAMUNDA_DEFAULT_ENGINE` > the only configured engine). A view is registered in three places (CLAUDE.md
 invariant 3). Follow the steps for the path you need.
 
 ## Step 0 — pick the render path
@@ -165,8 +165,8 @@ Non-negotiables:
 MCP reads an ABSENT `destructiveHint` as `true`, so every write states it — `false` is a
 deliberate claim, not a default. `idempotentHint: true` marks writes that repeat to the
 same state. Every engine tool carries `openWorldHint: true` (it talks to an external
-engine); tools that only touch the local profile store (`camunda7_select_engine`, the
-settings saves) say `openWorldHint: false`.
+engine); a tool that only reads the server's own config (`camunda7_list_engines`) says
+`openWorldHint: false`.
 
 ## Step 3 — wire a new domain file
 
@@ -276,7 +276,8 @@ these primitives:
   errors say what happened and what you can do, `Ja`/`Nein` for Booleans) and the terms of
   `src/messages/GLOSSARY.md`; counts go in formatted (`formatNumber`) and the entry picks
   the noun's number (`countOf` from `messages/plural.ts`). The gates: `catalogTextFindings`
-  over every catalog and en/de key parity (`messages/catalog-text.test.ts`), the glossary
+  over every catalog and en/de key parity of the widget catalogs (`messages/catalog-text.test.ts`;
+  the model summaries are English only), the glossary
   (`messages/glossary.test.ts`), `scanGlyphs` over all of `src` and `scanColors` over
   `src/widgets` (`src/brand-gates.test.ts`; the gates come from `@miragon/pulse-ui/testing`,
   the glossary from `@miragon/pulse-widget-shell/testing`)
@@ -352,12 +353,13 @@ wires them; these files are the documented exception that uses `server.tool()` d
   `ui://views/<tool>.html` resource itself), adds the required passthrough
   `outputSchema`, and stamps the Apps-SDK half of `_meta`; **never write
   `_meta.ui` keys by hand** (mcp-use owns and overwrites that namespace). Resolve the engine via
-  `await resolveEngine(args.engine, registry)` — it already returns `baseUrl`/`cockpitUrl`;
+  `resolveEngine(args.engine, registry, ctx)` — it already returns `baseUrl`/`cockpitUrl`;
   never fish them out of `registry.engines`. Return `buildViewResult(data, summary)`
   (from `@miragon/pulse-widget-shell/server`): `data` IS the view's data, no title (the
   widget's heading names the view). The `summary` is the model-facing text channel (1-2
   sentences, key figures, no raw data) — the full payload travels only in
-  `structuredContent`.
+  `structuredContent`. It is English only: a `c7sum.*` entry in `src/messages/en.server.ts`,
+  worded through `summaryT` (`src/lib/summary.ts`).
 - `*_data` feeds: register through `registerDataFeed` in `data-feeds.ts` (`name`, `title`,
   `description`, `shape`, `read`), which spreads `...appOnly` (the native
   `visibility: "app"` field, emitted as SEP-1865 `_meta.ui.visibility: ["app"]`, plus
@@ -400,10 +402,9 @@ wires them; these files are the documented exception that uses `server.tool()` d
 - The `show_*`/`*_data` naming is load-bearing:
   `apps/mcp-server-camunda7/test/widget-contract.e2e.test.ts` enforces the widget `_meta` on
   every `*_show_*` tool and app-only visibility on every `*_data` feed **by name**.
-- A widget-path tool that performs a durable write must honor the toolset itself —
-  follow `camunda7_save_settings` in `src/tools/user-profile.ts`
-  (`resolveCamunda7Toolset` + `isToolInToolset`): a missing toolset resolves to
-  `read-only` exactly like an unknown name — never treat `undefined` as "everything".
+- A widget-path tool never writes. A write is a registrar tool, so the toolset filter
+  (`withToolsetFilter`/`isToolInToolset`) drops it outside its toolset, and an in-widget
+  write calls it through `useEngineAction`, gated by `camunda7_widget_actions_data`.
 - Every in-widget write runs through `useEngineAction({ tool, target, resetOn, available })`
   (`src/widgets/lib/engine-action.ts`) — never a raw `useToolMutation`/`callTool`. Its
   `allowed` is the gate — the toolset AND the subject's current state (`available`:
@@ -455,6 +456,6 @@ If `char-budgets.json` grew, `pnpm lint` fails until the commit carries a
 check: `docker compose -f playground/docker/docker-compose.yml up -d`, `pnpm dev`, then call the
 tool in the inspector at `http://localhost:8400/mcp/inspector`. The default `pnpm dev` boot
 is read-only (the boot log names the toolsets) — to exercise a write tool or button, set
-`MCP_ACTIVE_MODULES=camunda7:admin,analytics:standard` in `.env` (plus
+`MCP_ACTIVE_MODULES=camunda7:admin,analytics` in `.env` (plus
 `CAMUNDA_ALLOW_DEPLOYMENTS=true` for deployments). Run `pnpm format:check` (or
 `pnpm format`) before committing.

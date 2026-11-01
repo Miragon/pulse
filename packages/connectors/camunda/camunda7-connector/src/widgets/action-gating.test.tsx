@@ -2,11 +2,7 @@
 import { afterEach, beforeAll, describe, expect, it } from "vitest"
 import { createElement, type ComponentType } from "react"
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
-import {
-  CAMUNDA7_SAVE_SETTINGS,
-  CAMUNDA7_WIDGET_ACTIONS,
-  CAMUNDA7_WIDGET_ACTIONS_DATA,
-} from "../tool-names.js"
+import { CAMUNDA7_WIDGET_ACTIONS, CAMUNDA7_WIDGET_ACTIONS_DATA } from "../tool-names.js"
 import type { JobPanelData } from "../view-models.js"
 import { GATING_SITES } from "./action-gating.sites.js"
 import { GATING_RENDERERS } from "./action-gating.test-support.js"
@@ -33,8 +29,8 @@ async function feedSettled() {
   )
 }
 
-/** Every widget write offered — the profile save is the view's own `canSave`. */
-const EVERY_WRITE = [...CAMUNDA7_WIDGET_ACTIONS, CAMUNDA7_SAVE_SETTINGS]
+/** Every widget write offered. */
+const EVERY_WRITE = [...CAMUNDA7_WIDGET_ACTIONS]
 
 describe("every in-widget write renders its control only where it is allowed", () => {
   it.each(GATING_SITES)(

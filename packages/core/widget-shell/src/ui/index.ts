@@ -1,6 +1,4 @@
 // Only what touches the host; the design kit is `@miragon/pulse-ui` (`pulse-ui-overlap.test.ts`).
-// Profile option sets are zod-free, so safe for the UI bundle.
-export { LANGUAGES, LOCALES, type LanguagePref, type Locale } from "../profile-constants.js"
 export { DisplayModeProvider, WidgetShell, useHostDisplayMode } from "./widget-shell.js"
 export { ViewDataState, LoadingStatus } from "./view-data-state.js"
 export {
@@ -36,26 +34,12 @@ export {
 export {
   HostWidgetSlot,
   HostWidgetsProvider,
-  settingsSections,
   useHostWidget,
   useHostWidgets,
   type HostWidget,
   type HostWidgets,
 } from "./host-widgets.js"
-export {
-  SettingsPage,
-  SHELL_SETTINGS_KEY,
-  describeShellSettings,
-  shellViews,
-} from "./shell-settings.js"
-export {
-  SHELL_SAVE_SETTINGS,
-  SHELL_SETTINGS_DATA,
-  SHELL_SHOW_SETTINGS,
-  type ShellSettingsReadOnlyReason,
-  type ShellSettingsView,
-} from "../shell-settings-contract.js"
-export { ProfileGate, type ProfileGateProps } from "./profile-gate.js"
+export { LocaleGate } from "./locale-gate.js"
 export { ShellHostProvider, useShellHost, type ShellHost } from "./shell-host.js"
 // The view runtime: the bundle root, the host seam, the data layer and the test host.
 export {

@@ -11,9 +11,7 @@ import {
   type ComposedServerOptions,
   type RunningServer,
 } from "./composed-server.js"
-import { createInMemoryProfileStore } from "./profile-store.js"
 import { getMcpRequestInfo } from "./request-context.js"
-import { createShellPlugin } from "./shell-settings.js"
 import { createToolsetVocabulary } from "./toolsets.js"
 import { viewPrelude } from "./view-name.js"
 import { showToolBinding } from "./widget-tool-bindings.js"
@@ -50,8 +48,21 @@ const composition = composeModules<object>({
   appEnvVars: ["MCP_ACTIVE_MODULES"],
 })
 
-const shellPlugin = () =>
-  createShellPlugin({ profileStore: createInMemoryProfileStore(), allowSave: false })
+/** A plugin outside the module selection, owning a plain feed and a view-bound show tool. */
+const panelPlugin = (): ModulePlugin => ({
+  name: "panel",
+  register: (server) => {
+    server.tool({ name: "panel_data", description: "Feeds the panel." }, answer)
+    server.tool(
+      {
+        name: "panel_show_panel",
+        description: "Shows the panel.",
+        ...showToolBinding("panel_show_panel", "Panel"),
+      },
+      answer,
+    )
+  },
+})
 
 const pluginOf = (name: string, ...toolNames: string[]): ModulePlugin => ({
   name,
@@ -60,12 +71,7 @@ const pluginOf = (name: string, ...toolNames: string[]): ModulePlugin => ({
   },
 })
 
-const PLUGIN_TOOLS = [
-  "alpha_ping",
-  "alpha_show_thing",
-  "shell_settings_data",
-  "shell_show_settings",
-]
+const PLUGIN_TOOLS = ["alpha_ping", "alpha_show_thing", "panel_data", "panel_show_panel"]
 
 const running: RunningServer[] = []
 
@@ -87,7 +93,7 @@ function options(overrides: Partial<ComposedServerOptions> = {}): ComposedServer
     composition,
     bundle: { jsPath: "/nonexistent/mcp-app.js" },
     env: {},
-    setup: (boot) => ({ plugins: [shellPlugin(), ...composition.pluginsFor(boot.entries, {})] }),
+    setup: (boot) => ({ plugins: [panelPlugin(), ...composition.pluginsFor(boot.entries, {})] }),
     ...overrides,
   }
 }
@@ -197,8 +203,8 @@ describe("createComposedServer: the plugins' tools", () => {
     await expect(twice(pluginOf("one", "x_dup"), pluginOf("two", "x_dup"))).rejects.toThrow(
       'Tool "x_dup" is registered twice: by "one" and again by "two".',
     )
-    await expect(twice(shellPlugin(), pluginOf("alpha", "shell_show_settings"))).rejects.toThrow(
-      'by "shell" and again by "alpha"',
+    await expect(twice(panelPlugin(), pluginOf("alpha", "panel_show_panel"))).rejects.toThrow(
+      'by "panel" and again by "alpha"',
     )
   })
 
@@ -248,7 +254,7 @@ describe("createComposedServer: the views", () => {
       bundle,
       setup: (resolved) => ({
         plugins: [
-          shellPlugin(),
+          panelPlugin(),
           ...composition.pluginsFor(resolved.entries, {}),
           pluginOf("late", "late_list"),
         ],
@@ -257,9 +263,9 @@ describe("createComposedServer: the views", () => {
     expect(prime).toHaveBeenCalledOnce()
     expect(Object.keys(prime.mock.calls[0][0]).sort()).toEqual([
       "alpha_show_thing",
-      "shell_show_settings",
+      "panel_show_panel",
     ])
-    for (const uri of ["ui://views/alpha_show_thing.html", "ui://views/shell_show_settings.html"]) {
+    for (const uri of ["ui://views/alpha_show_thing.html", "ui://views/panel_show_panel.html"]) {
       const { contents } = (await rpc(server.port, "resources/read", { uri })) as {
         contents: { text: string }[]
       }

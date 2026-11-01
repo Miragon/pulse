@@ -1,6 +1,6 @@
 ---
 name: create-module
-description: Step-by-step house pattern for building your own connector module under `modules/`, a self-contained package exporting a module definition plus tools, wired into the server composition. Use whenever integrating a new system ("build a connector for X", "add tools for our API", "new module"), or wiring a module into the server. For the widget path see the add-widget skill; for per-user settings see add-settings-section.
+description: Step-by-step house pattern for building your own connector module under `modules/`, a self-contained package exporting a module definition plus tools, wired into the server composition. Use whenever integrating a new system ("build a connector for X", "add tools for our API", "new module"), or wiring a module into the server. For the widget path see the add-widget skill.
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 ---
 
@@ -15,8 +15,8 @@ each other; anything shared goes through `@miragon/pulse-ui` (the design kit),
 
 **Reference implementation: `modules/mcp-notes`.** Copy it rather than
 inventing a new shape; every step below points at the file that shows the
-pattern. For patterns the notes module doesn't cover (toolsets, settings,
-paged lists), the published Miragon modules ship their sources under
+pattern. For patterns the notes module doesn't cover (toolsets, paged
+lists), the published Miragon modules ship their sources under
 `node_modules/@miragon/pulse-{camunda7,analytics}-connector/src/`.
 
 ## Step 1: scaffold the package
@@ -67,11 +67,11 @@ The contract, field by field (see `notesModule`):
   it to `registerTools`, then to `registerWidgetTools`. `name` is the module's
   name: the boot refuses a tool name two plugins register and names both
   owners. `shared` is the app-wired cross-module resource bag; type the fields
-  you consume structurally (e.g. `profileStore?: ProfileSource`) and tolerate
-  their absence.
+  you consume structurally (e.g. `fetchBpmnXml?: FetchBpmnXml`, as analytics
+  does) and tolerate their absence.
 - Optional `bootWarnings(env)`: return actionable hints for misconfigured
   deployments (see the analytics module's Prometheus-URL warning).
-- Optional `instructions(config, { authenticated })`: a short snippet the
+- Optional `instructions(config)`: a short snippet the
   server appends to its MCP `instructions` (the rules that hold for EVERY tool
   of your module: routing, argument conventions, which tool answers what), so
   tool descriptions stay one-liners. `config` carries the effective `toolset`;
@@ -121,21 +121,22 @@ export const myToolsets = createToolsetVocabulary("<name>", MY_TOOLSETS, "read-o
 
 - Accept it in your config schema (`toolset: z.string().optional()`) and
   resolve it once in `createPlugin` with `myToolsets.resolve(config.toolset)`.
-- The third argument is your READ-ONLY FLOOR (it must permit no durable
-  write). No suffix on a boot without `MCP_OAUTH`, an empty or unknown suffix
+- The third argument is your READ-ONLY FLOOR (it must permit no write). No suffix on a boot without `MCP_OAUTH`, an empty or unknown suffix
   (with a warning), and a direct `createPlugin` caller passing no toolset all
   land there.
 - `authenticatedDefault` is the no-suffix default under `MCP_OAUTH` (which
   `server/src/app.ts` wires through `oauthFromEnv`), so every OAuth boot
   that names no suffix runs it: your standard non-admin toolset. Never make it
   your widest one: an admin-like toolset must only be reachable by naming it.
-- Filter registrar tools by their annotations (read-only ⇔
-  `readOnlyHint: true`), and gate durable writes registered outside the
-  registrar on `myToolsets.allowsDurableWrites(myToolsets.resolve(config.toolset))`,
-  never on a `toolset === "read-only"` compare (fails open for every name you
-  add later) or a `toolset === undefined` shortcut (an absent toolset is the
-  floor, not "everything"). Reference:
-  `node_modules/@miragon/pulse-analytics-connector/src/toolsets.ts`.
+- Write ONE rule function for the module, `isToolInToolset(config, toolset)`
+  over the toolset `resolve` returned: admin-only names first, then the
+  annotations (read-only ⇔ `readOnlyHint: true`). Apply it through ONE
+  registrar wrapper, `withToolsetFilter`, so every tool, writes included,
+  registers through the registrar and the filter decides it. Never a scattered
+  `toolset === "read-only"` compare (fails open for every name you add later)
+  or a `toolset === undefined` shortcut (an absent toolset is the floor, not
+  "everything"). Reference:
+  `node_modules/@miragon/pulse-camunda7-connector/src/lib/toolsets.ts`.
 
 ## Step 6: wire the module into the server
 
@@ -145,8 +146,7 @@ Three edits, plus the env documentation:
    then `pnpm install`.
 2. `server/src/setup.ts`: add your module to `MODULES`.
 3. `server/src/ui/view-registry.ts`: spread your `<name>Views` map into
-   `viewRegistry` (needed once you have show tools; harmless before), and a
-   settings section into `hostWidgets`.
+   `viewRegistry` (needed once you have show tools; harmless before).
 
 A missed spread is **silent** (tools work, the view says it can't show
 itself), which is why `server/test/view-registry.test.ts` covers you

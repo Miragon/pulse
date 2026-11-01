@@ -137,14 +137,14 @@ const widgetSparkleGate = {
 }
 
 // Invariants 1 and 6: every toolkit package is retired, every subpath with it; Pulse owns what
-// it used. The registrar, tool errors, view meta, server i18n and caller identity are
+// it used. The registrar, tool errors, view meta and server i18n are
 // @miragon/pulse-widget-shell/server, the design kit @miragon/pulse-ui, the view runtime
 // @miragon/pulse-widget-shell/widgets. Widgets reach the host only through widget-shell's view
 // host (`useViewHost`, `HostModelContext`) and query hooks, never `mcp-use/react` itself: its
 // hooks throw outside `bootstrapView`, so a widget importing it could not render under
 // `TestViewHost`. The ONE adapter is widget-shell's `mcp-use-host.tsx` + `view-root.tsx`.
 const TOOLKIT_MESSAGE =
-  "The @miragon/mcp-toolkit-* packages are retired: Pulse owns what it used. The registrar, tool errors, view meta, server i18n and caller identity (resolveProfileKey, resolveAuthUserId) come from @miragon/pulse-widget-shell/server, the design kit from @miragon/pulse-ui and the view runtime (useViewHost, HostModelContext, useToolQuery, useToolMutation, useViewData, useQueryClient; TestViewHost in tests) from @miragon/pulse-widget-shell/widgets (CLAUDE.md invariants 1 and 6)."
+  "The @miragon/mcp-toolkit-* packages are retired: Pulse owns what it used. The registrar, tool errors, view meta and server i18n come from @miragon/pulse-widget-shell/server, the design kit from @miragon/pulse-ui and the view runtime (useViewHost, HostModelContext, useToolQuery, useToolMutation, useViewData, useQueryClient; TestViewHost in tests) from @miragon/pulse-widget-shell/widgets (CLAUDE.md invariants 1 and 6)."
 const toolkitGate = {
   paths: [],
   patterns: [{ regex: "^@miragon/mcp-toolkit-", message: TOOLKIT_MESSAGE }],
@@ -386,8 +386,7 @@ export default tseslint.config(
 
   // Invariant 1: operations tools go through createToolRegistrar. Raw
   // server.tool() is reserved for the widget-tools path (show_* / *_data
-  // feeds + module settings) — exactly the ignores list below. A durable
-  // write registered there must gate itself against the module's toolset.
+  // feeds), exactly the ignores list below.
   {
     files: [
       "packages/connectors/analytics/analytics-connector/src/**/*.{ts,tsx}",
@@ -396,10 +395,8 @@ export default tseslint.config(
     ignores: [
       "packages/connectors/analytics/analytics-connector/src/widget-tools.ts",
       "packages/connectors/analytics/analytics-connector/src/widget-tools/**",
-      "packages/connectors/analytics/analytics-connector/src/settings-tools.ts",
       "packages/connectors/camunda/camunda7-connector/src/widget-tools.ts",
       "packages/connectors/camunda/camunda7-connector/src/widget-tools/**",
-      "packages/connectors/camunda/camunda7-connector/src/tools/user-profile.ts",
     ],
     rules: { "no-restricted-syntax": ["error", ...registrarGate] },
   },
@@ -449,7 +446,7 @@ export default tseslint.config(
     files: ["packages/core/widget-shell/src/ui/**/*.{ts,tsx}"],
     rules: { "no-restricted-syntax": ["error", ...widgetNumberGate] },
   },
-  // The kit's two number formatters: `format.ts` (the view's locale, set by ProfileGate)
+  // The kit's two number formatters: `format.ts` (the view's locale, set by LocaleGate)
   // and `formatCount` in `ui-messages.ts` (the components' own locale). After the
   // general pulse-ui block: a later block replaces `no-restricted-syntax` for both files.
   {

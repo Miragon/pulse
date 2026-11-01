@@ -162,7 +162,7 @@ export interface CockpitEngineInfo {
   environment: string
 }
 
-/** The app threads the chosen `engineId` into every nested call, so navigation ignores the saved default. */
+/** The app threads the chosen `engineId` into every nested call, so navigation ignores the default engine. */
 export interface CockpitAppData {
   /** Resolved engine id, or null when the user must pick (multiple engines, none selected). */
   engineId: string | null

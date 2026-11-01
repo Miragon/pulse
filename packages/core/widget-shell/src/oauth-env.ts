@@ -54,7 +54,7 @@ export function oauthFromEnv(
   const raw = env.MCP_OAUTH?.trim()
   if (!raw) {
     console.warn(
-      `[${label}] MCP_OAUTH is unset — there is no caller identity: modules without an explicit toolset run read-only, and user settings cannot be saved. Set MCP_OAUTH, or widen with MCP_ACTIVE_MODULES=<module>:<toolset> (anyone who reaches this port gets that surface).`,
+      `[${label}] MCP_OAUTH is unset, so there is no caller identity: modules without an explicit toolset run read-only. Set MCP_OAUTH, or widen with MCP_ACTIVE_MODULES=<module>:<toolset> (anyone who reaches this port gets that surface).`,
     )
     return undefined
   }

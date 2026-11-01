@@ -9,7 +9,6 @@ import {
   showToolBinding,
   strictToolInput,
   withToolErrors,
-  type ProfileStore,
   type ViewResult,
 } from "@miragon/pulse-widget-shell/server"
 
@@ -19,7 +18,7 @@ export function truncate(s: string, max: number): string {
   return flat.length > max ? `${flat.slice(0, max)}…` : flat
 }
 
-export type ResolvedEngine = Awaited<ReturnType<typeof resolveEngine>>
+export type ResolvedEngine = ReturnType<typeof resolveEngine>
 
 export const clusterDetailShape = { ...clusterDetailFilterShape, ...pagingShape }
 
@@ -27,7 +26,6 @@ export interface WidgetToolsContext {
   server: MCPServer
   registry: EngineRegistry
   healthThresholds: EngineHealthThresholds
-  profileStore: ProfileStore
   toolset: Camunda7Toolset
   modelTools: () => string[]
   engineParam: EngineParamShape
@@ -40,7 +38,7 @@ interface ShowTool<TShape extends z.ZodRawShape> {
   title: string
   description: string
   shape: TShape
-  render: (args: ShowArgs<TShape>, ctx: EngineCallContext) => Promise<ViewResult>
+  render: (args: ShowArgs<TShape>, ctx: EngineCallContext) => ViewResult | Promise<ViewResult>
 }
 
 export function registerShowTool<TShape extends z.ZodRawShape>(
@@ -56,6 +54,6 @@ export function registerShowTool<TShape extends z.ZodRawShape>(
       inputSchema: strictToolInput({ ...tool.shape, ...engineParam }),
       ...showToolBinding(tool.name, tool.title),
     },
-    withToolErrors((args, ctx) => tool.render(args as ShowArgs<TShape>, ctx)),
+    withToolErrors(async (args, ctx) => tool.render(args as ShowArgs<TShape>, ctx)),
   )
 }

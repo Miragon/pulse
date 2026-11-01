@@ -1,8 +1,10 @@
 import fs from "node:fs"
+import { createServer } from "node:http"
+import type { AddressInfo } from "node:net"
 import path from "node:path"
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
+import { afterAll, beforeAll, describe, expect, it } from "vitest"
 import { SERVER_INSTRUCTIONS } from "../src/app.js"
-import { bootServer, createTestRuntime, TEST_TOKENS, type BootedServer } from "./boot-server.js"
+import { bootServer, TEST_TOKENS, type BootedServer } from "./boot-server.js"
 import { initializeRequest, rawRequest, streamOversizedBody } from "./raw-http.js"
 
 const MIB = 1024 * 1024
@@ -164,39 +166,46 @@ describe("HTTP edge — MCP_URL and the explicit allow-lists", () => {
   })
 })
 
+/**
+ * The readiness 503 while draining and the runtime shutdown after it are widget-shell's
+ * (`composed-server.test.ts`, `health.test.ts`); here the real composition drains a tool call.
+ */
 describe("graceful drain", () => {
-  it("finishes in-flight requests, answers readiness 503 draining, then closes the runtime", async () => {
-    let checkStarted!: () => void
-    const started = new Promise<void>((resolve) => (checkStarted = resolve))
-    const shutdownRuntime = vi.fn(async () => {})
-    const runtime = createTestRuntime({
-      shutdown: shutdownRuntime,
-      readiness: {
-        slow: async () => {
-          checkStarted()
-          await new Promise((resolve) => setTimeout(resolve, 300))
-        },
-      },
+  it("finishes an in-flight tool call, then stops accepting connections", async () => {
+    let reached!: () => void
+    const inEngine = new Promise<void>((resolve) => (reached = resolve))
+    // A slow engine: the call is still in flight when the drain begins.
+    const engine = createServer((req, res) => {
+      reached()
+      setTimeout(() => {
+        res.setHeader("content-type", "application/json")
+        res.end(req.url?.includes("/process-definition/count") ? '{"count":0}' : "[]")
+      }, 300)
     })
-    const server = await bootServer({ runtime })
-    await server.client.close()
+    await new Promise<void>((resolve) => engine.listen(0, "127.0.0.1", resolve))
+    const { port } = engine.address() as AddressInfo
+    const server = await bootServer({
+      env: { CAMUNDA_BASE_URL: `http://127.0.0.1:${port}/engine-rest` },
+    })
+    try {
+      const call = server.client.callTool({
+        name: "camunda7_list_process_definitions",
+        arguments: {},
+      })
+      await inEngine
+      const shutdown = server.running.shutdown()
+      const result = await call
+      expect(result.isError).toBeFalsy()
 
-    // A probe in flight when the drain begins: it must complete (not be cut
-    // off) and must already report the drain.
-    const inFlight = rawRequest({ port: server.port, path: "/health/ready" })
-    await started
-    const shutdown = server.running.shutdown()
-    const res = await inFlight
-    expect(res.status).toBe(503)
-    expect(JSON.parse(res.body)).toMatchObject({ status: "draining" })
-
-    await shutdown
-    expect(shutdownRuntime).toHaveBeenCalledTimes(1)
-    // Stopped accepting: new connections are refused.
-    await expect(rawRequest({ port: server.port, path: "/health/live" })).rejects.toThrow(
-      /ECONNREFUSED/,
-    )
-    await server.close()
+      await shutdown
+      // Stopped accepting: new connections are refused.
+      await expect(rawRequest({ port: server.port, path: "/health/live" })).rejects.toThrow(
+        /ECONNREFUSED/,
+      )
+    } finally {
+      await server.close()
+      await new Promise<void>((resolve) => engine.close(() => resolve()))
+    }
   })
 })
 

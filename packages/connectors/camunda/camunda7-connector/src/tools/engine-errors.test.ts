@@ -2,7 +2,7 @@ import http from "node:http"
 import type { AddressInfo } from "node:net"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 import type { MCPServer } from "mcp-use"
-import { createInMemoryProfileStore, createToolRegistrar } from "@miragon/pulse-widget-shell/server"
+import { createToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import { DEFAULT_HEALTH_THRESHOLDS } from "../data/health-data.js"
 import { createEngineRegistry, type EngineEntry } from "../lib/resolve-engine.js"
 import { camunda7Module, createBpmnXmlFetcher } from "../module.js"
@@ -75,7 +75,8 @@ afterAll(async () => {
   await new Promise<void>((resolve) => engine.close(() => resolve()))
 })
 
-function registryFor(engines: EngineEntry[], timeoutMs = 200) {
+/** Generous by default: only the hung-engine case asks for a short deadline, so a loaded run never turns a 404 into a timeout. */
+function registryFor(engines: EngineEntry[], timeoutMs = 10_000) {
   return createEngineRegistry(engines, (e) =>
     providerForEntry(e).createClient(e, { type: "none" }, { timeoutMs }),
   )
@@ -95,9 +96,10 @@ async function getInstanceError(
   processInstanceId: string,
   engines: EngineEntry[],
   engine?: string,
+  timeoutMs?: number,
 ) {
   const { server, tools } = fakeServer()
-  registerProcessInstanceTools(createToolRegistrar(server, registryFor(engines)))
+  registerProcessInstanceTools(createToolRegistrar(server, registryFor(engines, timeoutMs)))
   const result = await tools.get("camunda7_get_process_instance")!({ processInstanceId, engine })
   expect(result.isError).toBe(true)
   return result.content[0].text
@@ -141,7 +143,7 @@ describe("engine errors as the model reads them (registrar tool)", () => {
   })
 
   it("a hung engine ends at the per-request deadline", async () => {
-    expect(await getInstanceError("hang", prodA())).toBe(
+    expect(await getInstanceError("hang", prodA(), undefined, 200)).toBe(
       "engine prod-a did not respond within 200 ms (timeout)",
     )
   })
@@ -154,7 +156,7 @@ describe("engine errors as the model reads them (registrar tool)", () => {
       CAMUNDA_ENGINE_ID: "prod-a",
       CAMUNDA_REQUEST_TIMEOUT_MS: "150",
     })
-    camunda7Module.createPlugin({ ...config, toolset: "read-only" }, {}).register(server)
+    camunda7Module.createPlugin({ ...config, toolset: "read-only" }).register(server)
     const result = await tools.get("camunda7_get_process_instance")!({ processInstanceId: "hang" })
     expect(result.content[0].text).toBe("engine prod-a did not respond within 150 ms (timeout)")
   })
@@ -200,7 +202,6 @@ describe("widget-path feeds honor the MCP request's ctx.signal", () => {
       server,
       registry: registryFor([{ id: "prod-a", baseUrl }], 10_000),
       healthThresholds: DEFAULT_HEALTH_THRESHOLDS,
-      profileStore: createInMemoryProfileStore(),
       toolset: "read-only",
       modelTools: () => [],
       engineParam: engineParamShape,

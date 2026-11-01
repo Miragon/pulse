@@ -6,18 +6,14 @@ import {
 import { analyticsModule } from "@miragon/pulse-analytics-connector"
 import {
   composeModules,
-  createShellPlugin,
-  frameworkWritesAllowed,
   HTTP_EDGE_ENV_VARS,
   OAUTH_ENV_VARS,
   type ModuleEntry,
   type ModulePlugin,
-  type ProfileStore,
   type ResolveBootOptions,
   type ResolvedBoot,
 } from "@miragon/pulse-widget-shell/server"
 import type { ModuleDefinition, SharedResources } from "./module-contract.js"
-import { createDefaultProfileStore } from "./persistence/index.js"
 import { SERVER_LABEL } from "./server-label.js"
 
 /**
@@ -40,11 +36,6 @@ const APP_ENV_VARS = [
   ...HTTP_EDGE_ENV_VARS,
   ...OAUTH_ENV_VARS,
   "MCP_ACTIVE_MODULES",
-  "MCP_PROFILE_DIR",
-  // Postgres persistence for the profiles (src/persistence/). Listed
-  // for documentation AND because every known var contributes its prefix to
-  // the typo watcher.
-  "DATABASE_URL",
   // mcp-use's request-log level, read by mcp-use itself (the boot warns at
   // debug/trace).
   "MCP_USE_LOG_LEVEL",
@@ -82,10 +73,9 @@ export function resolveBoot(
 /**
  * Cross-module wiring — the one thing that stays app-owned by design: which
  * module's capability reaches which other module is configuration knowledge
- * (see `module-contract.ts`). Store *selection* lives in
- * `src/persistence/initRuntime`; this only distributes the chosen instance.
+ * (see `module-contract.ts`).
  */
-function buildSharedResources(entries: ModuleEntry[], profileStore: ProfileStore): SharedResources {
+function buildSharedResources(entries: ModuleEntry[]): SharedResources {
   // From the camunda7 module, for modules that must not depend on the engine
   // SDK: the BPMN-XML lookup (on any of its engines — the analytics heatmap
   // and the names in the analytics views) and
@@ -93,31 +83,19 @@ function buildSharedResources(entries: ModuleEntry[], profileStore: ProfileStore
   // possibly shared Prometheus). Absent when camunda7 is inactive: the heatmap
   // degrades, analytics falls back to ANALYTICS_ENGINE_IDS, else fails closed.
   const camunda7Entry = entries.find((e) => e.app === camunda7Module.name)
-  if (!camunda7Entry) return { profileStore }
+  if (!camunda7Entry) return {}
   return {
-    profileStore,
     fetchBpmnXml: createBpmnXmlFetcher(camunda7Entry.config),
     engineIds: configuredEngineIds(camunda7Entry.config),
   }
 }
 
 /**
- * `createApp` passes the store `initRuntime` selected (possibly Postgres) and
- * the once-per-boot selection; the defaults keep argument-less callers (tests)
- * on the filesystem/in-memory path and the unauthenticated defaults without
- * duplicating either selection here.
+ * `createApp` passes the once-per-boot selection; the default keeps
+ * argument-less callers (tests) on the unauthenticated defaults without
+ * duplicating the selection here.
  */
-export function getPlugins(
-  profileStore: ProfileStore = createDefaultProfileStore(),
-  boot: ResolvedBoot = resolveBoot(),
-): ModulePlugin[] {
+export function getPlugins(boot: ResolvedBoot = resolveBoot()): ModulePlugin[] {
   const { entries } = boot
-  const shared = buildSharedResources(entries, profileStore)
-  return [
-    // Always-on shell: the settings page and the UI language, deliberately
-    // outside the MCP_ACTIVE_MODULES selection. Its language save is a
-    // framework write: OAuth and no module on its read-only floor.
-    createShellPlugin({ profileStore, allowSave: frameworkWritesAllowed(boot) }),
-    ...composition.pluginsFor(entries, shared),
-  ]
+  return composition.pluginsFor(entries, buildSharedResources(entries))
 }

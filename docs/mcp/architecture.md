@@ -72,45 +72,13 @@ second engine dialect cheap:
   packages are published to npm, so external composition roots can mount them next to their own
   modules. The reference is `templates/composed-server/`.
 - The MCP server app owns no domain UI. Widgets live in packages: `pulse-ui`
-  carries the design kit, `widget-shell` the view runtime and the settings page;
+  carries the design kit, `widget-shell` the view runtime;
   each module carries its own. Cross-module UI has two sanctioned tiers: tool-name string references
   with graceful degradation, and hard-composed views in a dedicated package
   (created with the first real view).
 - Extract on the second consumer, never speculatively. A composed-views
   package appears with the first cross-module view, a shared domain-widget
   package with a second dialect, a host-kit with a second MCP server app.
-
-## User settings
-
-Preferences live in one profile record per user, shared by every module and
-persisted in Postgres (`DATABASE_URL`), on disk (`MCP_PROFILE_DIR`), or in
-memory, in that order of precedence. The record is keyed by the signed-in user:
-`MCP_OAUTH` is the only caller identity, so without it settings show their
-defaults and cannot be saved.
-
-| Part                     | Owner        | Contents                                                                   |
-| ------------------------ | ------------ | -------------------------------------------------------------------------- |
-| Core record + store      | widget-shell | Language and its `shell_*` tools, record metadata, slice transport, stores |
-| `modules.<module>` slice | that module  | Whatever only it understands, e.g. camunda7's engine picks                 |
-
-Each module owns its slice end to end: its own schema, its own save tool, and
-its own section on the settings page. Nothing central knows what a slice
-contains. The record only transports it, and a save merges per module key
-over the raw stored record, one save per user at a time, so one module can
-never overwrite another's settings and fields a newer server version wrote
-survive. Reads are fail-soft throughout: an unreadable value or an unreachable
-store yields defaults rather than an error (the saved default engine included),
-so a profile-store hiccup can't break a call that only needs the engine or
-Prometheus. Navigating the cockpit never changes the default engine; only the
-settings page or `camunda7_select_engine` does.
-
-The settings page belongs to the shell (`shell_show_settings`, and the
-cockpit's settings tab): the language section first, then one section widget
-per module, taken from the host widgets the server's bundle registers: every
-host widget id ending in `:settings` becomes a row. A module that isn't mounted
-has no section, and a custom module in a composed server contributes
-its section by that convention alone. The language save is the shell's only
-write: it needs `MCP_OAUTH` and no module on read-only.
 
 ## External systems
 

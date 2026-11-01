@@ -11,8 +11,8 @@ describe("buildViewResult", () => {
   })
 
   it("carries no envelope: no layout, no step data, no title", () => {
-    const { structuredContent } = buildViewResult({ language: "de" }, "Settings.")
-    expect(Object.keys(structuredContent)).toEqual(["language"])
+    const { structuredContent } = buildViewResult({ engineId: "prod" }, "Cockpit opened.")
+    expect(Object.keys(structuredContent)).toEqual(["engineId"])
   })
 })
 

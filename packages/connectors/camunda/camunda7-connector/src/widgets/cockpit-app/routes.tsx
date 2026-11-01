@@ -1,4 +1,4 @@
-import { SettingsPage, ViewStack } from "@miragon/pulse-widget-shell/widgets"
+import { ViewStack } from "@miragon/pulse-widget-shell/widgets"
 import type { CockpitView } from "../nav-core.js"
 import { ClusterDetailWidget } from "../cluster-detail.js"
 import { ProcessDefinitionsTable } from "../cockpit-dashboard/definitions-table.js"
@@ -58,9 +58,6 @@ export function CockpitRoute({ view, engine }: { view: CockpitView; engine: stri
       return <InstanceDetailWidget processInstanceId={view.processInstanceId} engine={engine} />
     case "incident-detail":
       return <IncidentDetailWidget incidentId={view.incidentId} engine={engine} />
-    // #346: engine scope is irrelevant to per-user preferences.
-    case "settings":
-      return <SettingsPage />
   }
   return view satisfies never
 }

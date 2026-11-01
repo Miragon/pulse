@@ -48,7 +48,7 @@ async function build(routes: FakeRoutes) {
     { status: 404, body: { message: "not here" } },
   )
   engines.push(engine)
-  const { client } = await resolveEngine(undefined, registryFor(engine))
+  const { client } = resolveEngine(undefined, registryFor(engine))
   const data = await buildIncidentDetailData(client, {
     baseUrl: engine.baseUrl,
     provider: cibsevenProvider,

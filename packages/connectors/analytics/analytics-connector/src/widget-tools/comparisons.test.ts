@@ -6,7 +6,6 @@ import type {
   VersionCompareResult,
 } from "@miragon/pulse-analytics-client"
 import { createEngineScope } from "../engine-ids.js"
-import type { ProfileSource } from "../server-locale.js"
 import { registerComparisonWidgetTools } from "./comparisons.js"
 
 type ToolResult = {
@@ -120,17 +119,7 @@ describe("analytics_show_engine_compare — engine scope (N138)", () => {
 
 describe("no server titles (U3): the widget heading names the view in the host's language", () => {
   const CTX = { auth: { user: { id: "user-1" } } }
-  const titledHandlers = (language: string) => {
-    const byName = new Map<string, Handler>()
-    const server = {
-      tool: (definition: { name: string }, handler: Handler) => {
-        byName.set(definition.name, handler)
-      },
-    } as unknown as MCPServer
-    const profileStore: ProfileSource = { get: () => Promise.resolve({ language }) }
-    registerComparisonWidgetTools({ server, ch, engineScope, profileStore })
-    return byName
-  }
+  const titledHandlers = () => handlers(ch)
   const CALLS: Array<[string, Record<string, unknown>]> = [
     // Handlers called directly get no schema defaults: pass the window.
     [
@@ -145,13 +134,11 @@ describe("no server titles (U3): the widget heading names the view in the host's
   ]
 
   it("hands each comparison and the landscape its data only", async () => {
-    for (const language of ["de", "en"]) {
-      const tools = titledHandlers(language)
-      for (const [name, args] of CALLS) {
-        const { structuredContent } = await tools.get(name)!(args, CTX)
-        expect(Object.keys(structuredContent)).not.toContain("title")
-        expect(Object.keys(structuredContent)).not.toContain("layout")
-      }
+    const tools = titledHandlers()
+    for (const [name, args] of CALLS) {
+      const { structuredContent } = await tools.get(name)!(args, CTX)
+      expect(Object.keys(structuredContent)).not.toContain("title")
+      expect(Object.keys(structuredContent)).not.toContain("layout")
     }
   })
 })

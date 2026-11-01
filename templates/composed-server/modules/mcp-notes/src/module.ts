@@ -1,5 +1,5 @@
 import { z } from "zod"
-import type { ModulePlugin, ProfileSource } from "@miragon/pulse-widget-shell/server"
+import type { ModulePlugin } from "@miragon/pulse-widget-shell/server"
 import { createNotesStore } from "./notes-store.js"
 import { registerTools } from "./tools.js"
 import { registerWidgetTools } from "./widget-tools.js"
@@ -17,15 +17,6 @@ const notesConfigSchema = z.object({
 export interface NotesPluginConfig {
   /** Heading shown in the notes widget. */
   title: string
-}
-
-/**
- * Cross-module resources the server threads in. This simple module uses none
- * of them; modules that persist per-user settings consume `profileStore`
- * (compare the analytics module).
- */
-interface NotesModuleShared {
-  profileStore?: ProfileSource
 }
 
 /** Constructs the data source once and hands it to both tool registrations. */
@@ -55,7 +46,8 @@ export const notesModule = {
   // the server ignores a `notes:<toolset>` suffix with a warning. A module
   // with writes declares `toolsets: createToolsetVocabulary(...)` instead.
 
-  createPlugin(config: Record<string, unknown>, _shared: NotesModuleShared): ModulePlugin {
+  // The server's shared resources are not needed: this module takes the config alone.
+  createPlugin(config: Record<string, unknown>): ModulePlugin {
     return createPlugin(notesConfigSchema.parse(config))
   },
 }

@@ -1,7 +1,8 @@
 # Glossar der camunda7-Texte
 
 Ein Begriff pro Sache, in jeder Ansicht gleich. Gilt für die Kataloge in diesem Ordner
-(`en*.ts`, `de*.ts`): Widget-Texte, Ask-AI-Übergaben und Server-Zusammenfassungen.
+(`en*.ts`, `de*.ts`): Widget-Texte, Ask-AI-Übergaben und Server-Zusammenfassungen (die nur
+auf Englisch, `en.server.ts`).
 `glossary.test.ts` prüft die verbotenen Synonyme (in jeder Flexion, jede Regel mit einer Probe,
 die sie fangen muss), `catalog-text.test.ts` die Regeln aus
 brand-tone (du, AI, „CIB seven“, kein Gedankenstrich als Verbinder, Plural nach

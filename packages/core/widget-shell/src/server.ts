@@ -1,22 +1,6 @@
 /** The `/server` import path for module tools and composition roots. */
 export { withToolErrors } from "./tool-errors.js"
 export { createToolRegistrar, type ToolConfig, type ToolRegistrar } from "./tool-registrar.js"
-export { createShellPlugin, type ShellPluginOptions } from "./shell-settings.js"
-export {
-  SHELL_SAVE_SETTINGS,
-  SHELL_SETTINGS_DATA,
-  SHELL_SHOW_SETTINGS,
-  type ShellSettingsReadOnlyReason,
-  type ShellSettingsView,
-} from "./shell-settings-contract.js"
-export {
-  ANONYMOUS_PROFILE_KEY,
-  resolveAuthUserId,
-  resolveProfileKey,
-  withoutDefaults,
-  type ProfileSlice,
-  type ProfileSource,
-} from "./profile.js"
 export {
   callerCacheKey,
   getMcpRequestInfo,
@@ -85,32 +69,6 @@ export {
   type RunningServer,
 } from "./composed-server.js"
 export {
-  explicitLocale,
-  LANGUAGES,
-  LOCALES,
-  PROFILE_SCHEMA_VERSION,
-  type LanguagePref,
-  type Locale,
-} from "./profile-constants.js"
-export {
-  defaultProfileRecord,
-  profileRecordSchema,
-  type ProfileRecord,
-  type ProfileRecordSaveInput,
-} from "./profile-record.js"
-export { parseStoredProfile } from "./profile-migrations.js"
-export {
-  createFileSystemProfileStore,
-  createInMemoryProfileStore,
-  mergeStoredProfile,
-  type MergedProfile,
-  type ProfileSaveOptions,
-  type ProfileStore,
-} from "./profile-store.js"
-export { readProfileAdvisory } from "./profile-advisory.js"
-export { createPostgresProfileStore, PROFILE_STORE_MIGRATIONS } from "./profile-store-postgres.js"
-export { createSql, postgresReadinessCheck, runMigrations, type Migration } from "./postgres.js"
-export {
   appOnly,
   showToolBinding,
   strictToolInput,
@@ -119,7 +77,6 @@ export {
 } from "./widget-tool-bindings.js"
 export {
   composeModules,
-  frameworkWritesAllowed,
   type ActiveModuleRef,
   type ComposableModule,
   type EffectiveToolset,
@@ -130,19 +87,11 @@ export {
   type ResolvedBoot,
 } from "./composition.js"
 export {
-  announcePersistence,
-  persistenceFromEnv,
-  profileStoreFromEnv,
-  type PersistenceBackend,
-  type PersistenceSelection,
-} from "./profile-store-env.js"
-export {
   createToolsetVocabulary,
   type EffectiveSelection,
   type ToolsetSource,
   type ToolsetVocabulary,
 } from "./toolsets.js"
-export { createLocalizeFor, resolveProfileLocale, type ServerT } from "./server-locale.js"
 export {
   createTranslator,
   type Catalogs,
@@ -150,8 +99,6 @@ export {
   type MessageCatalog,
   type Translator,
 } from "./translator.js"
-export { parseModuleSlice, requireProfileKey, saveModuleSlice } from "./profile-slice.js"
-export { registerSettingsSection } from "./settings-section.js"
 export {
   bpmnProcessNameOf,
   parseBpmnNames,

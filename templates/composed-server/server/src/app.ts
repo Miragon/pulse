@@ -1,13 +1,11 @@
 import { readFileSync } from "node:fs"
 import path from "node:path"
 import {
-  announcePersistence,
   createComposedServer,
   oauthFromEnv,
-  persistenceFromEnv,
   type ComposedServer,
 } from "@miragon/pulse-widget-shell/server"
-import { composition, createProfileStore, getPlugins } from "./setup.js"
+import { composition, getPlugins } from "./setup.js"
 
 /** `src/` under tsx/vitest, `dist/` when compiled — the package root is one level up either way. */
 const PACKAGE_ROOT = path.join(import.meta.dirname, "..")
@@ -41,8 +39,7 @@ export interface AppDeps {
  * logging, `/metrics`, the Host/Origin guard, `/health/*`, the body-capped
  * listener and the graceful drain — lives in `createComposedServer`, the
  * OAuth wiring in `oauthFromEnv` (both `@miragon/pulse-widget-shell/server`);
- * this file only wires what is yours: persistence and the plugins
- * (`setup.ts`).
+ * this file only wires what is yours: the plugins (`setup.ts`).
  */
 export async function createApp(
   env: NodeJS.ProcessEnv = process.env,
@@ -58,7 +55,7 @@ export async function createApp(
     },
     composition,
     env,
-    // MCP_OAUTH → the provider: the only caller identity (per-user settings),
+    // MCP_OAUTH → the provider: the only caller identity (passthrough auth, per-caller caches),
     // and what raises the no-suffix toolsets above the read-only floor.
     // Unset = unauthenticated, with a boot warning.
     oauth: oauthFromEnv({ env, label: "acme-mcp" }),
@@ -67,16 +64,11 @@ export async function createApp(
       jsPath: path.join(PACKAGE_ROOT, "dist", "mcp-app.js"),
       cssPath: path.join(PACKAGE_ROOT, "dist", "mcp-app.css"),
     },
-    setup: (boot) => {
-      // Logs the selection; a NODE_ENV=production boot on an in-memory store
-      // warns loudly (settings vanish on every restart) but still boots.
-      announcePersistence(persistenceFromEnv(env), { env, label: "acme-mcp" })
-      return {
-        plugins: getPlugins(createProfileStore(env), boot),
-        // Readiness covers the stores YOU wire (a `SELECT 1` round trip for a
-        // database) — never upstreams like the engine or Prometheus.
-        readiness: {},
-      }
-    },
+    setup: (boot) => ({
+      plugins: getPlugins(boot),
+      // Readiness covers the stores YOU wire (a `SELECT 1` round trip for a
+      // database) — never upstreams like the engine or Prometheus.
+      readiness: {},
+    }),
   })
 }

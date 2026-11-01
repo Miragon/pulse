@@ -21,8 +21,7 @@ import {
   ANALYTICS_SHOW_DASHBOARD,
   ANALYTICS_SHOW_FAILURE_DASHBOARD,
 } from "./tool-names.js"
-import { localizeFor, type ProfileSource, type ServerT } from "./server-locale.js"
-import { optionalPeriod, settingsFor } from "./settings.js"
+import { summaryT as t } from "./summary.js"
 import { registerComparisonWidgetTools } from "./widget-tools/comparisons.js"
 import { engineScopeSummary } from "./widget-tools/shared.js"
 import { isFleetRequest, withEngineScope, type AnalyticsEngineScope } from "./engine-ids.js"
@@ -38,20 +37,18 @@ export interface AnalyticsWidgetToolsOptions {
   fetchBpmnXml?: FetchBpmnXml
   /** Absent → the dashboards list ids. */
   namesFor?: NameLookup
-  /** Locale plus saved defaults: explicit arg > saved setting > schema default. */
-  profileStore?: ProfileSource
 }
 
 /** Composed from the client schemas so the describe() texts stay in one place. */
 const heatmapInputShape = {
   processDefinitionKey: schemas.elementBottleneckInput.shape.processDefinitionKey,
-  period: optionalPeriod,
+  period: schemas.periodField,
   ...schemas.engineFilterShape,
 }
 
 const dashboardInputShape = {
   processDefinitionKey: schemas.clusterCompareInput.shape.processDefinitionKey,
-  period: optionalPeriod,
+  period: schemas.periodField,
   ...schemas.engineFilterShape,
 }
 
@@ -59,13 +56,13 @@ const dashboardInputShape = {
 const orNa = (value: number | null) => value ?? "n/a"
 
 /** Window flows and the live state, never mixed. */
-function dashboardSummary(t: ServerT, data: AnalyticsDashboardData, fleet: boolean): string {
+function dashboardSummary(data: AnalyticsDashboardData, fleet: boolean): string {
   return t("aSum.dashboard", {
     scope: data.processDefinitionKey
       ? t("aSum.scopeForProcess", { key: data.processDefinitionKey })
       : "",
     period: data.period,
-    engines: engineScopeSummary(t, data.engines, fleet),
+    engines: engineScopeSummary(data.engines, fleet),
     totalCount: data.totalCount,
     completedCount: data.completedCount,
     incidentsCreated: data.incidentsCreated,
@@ -80,8 +77,7 @@ export function registerWidgetTools(
   ch: PrometheusClient,
   options: AnalyticsWidgetToolsOptions,
 ) {
-  // The summary follows the language the profile names; `t` falls back to "en".
-  const { profileStore, engineScope } = options
+  const { engineScope } = options
   const namesFor = options.namesFor ?? NO_NAMES
 
   /**
@@ -112,18 +108,14 @@ export function registerWidgetTools(
       ...showToolBinding(ANALYTICS_SHOW_DASHBOARD, "Process Analytics Dashboard"),
     },
     withToolErrors(async (args, ctx) => {
-      const t = await localizeFor(profileStore, ctx)
-      const settings = await settingsFor(profileStore, ctx)
-      const period = args.period ?? settings.defaultPeriod
       const data = await namedDashboard(
-        await queries.dashboardData(withCallerSignal(ch, ctx.signal), {
-          ...withEngineScope(engineScope, args),
-          period,
-          minBucketSize: settings.minBucketSize,
-        }),
+        await queries.dashboardData(
+          withCallerSignal(ch, ctx.signal),
+          withEngineScope(engineScope, args),
+        ),
         namesFor,
       )
-      return buildViewResult(data, dashboardSummary(t, data, isFleetRequest(args.engine)))
+      return buildViewResult(data, dashboardSummary(data, isFleetRequest(args.engine)))
     }),
   )
 
@@ -140,7 +132,6 @@ export function registerWidgetTools(
       ...showToolBinding(ANALYTICS_SHOW_FAILURE_DASHBOARD, "Failure Analysis Dashboard"),
     },
     withToolErrors(async (args, ctx) => {
-      const t = await localizeFor(profileStore, ctx)
       const data = await namedFailureDashboard(
         await queries.failureDashboardData(
           withCallerSignal(ch, ctx.signal),
@@ -151,7 +142,7 @@ export function registerWidgetTools(
       return buildViewResult(
         data,
         t("aSum.failureDashboard", {
-          engines: engineScopeSummary(t, data.engines, isFleetRequest(args.engine)),
+          engines: engineScopeSummary(data.engines, isFleetRequest(args.engine)),
           totalIncidents: data.totalIncidents,
           uniqueErrorPatterns: data.uniqueErrorPatterns,
           mostAffected: data.mostAffectedProcess
@@ -162,7 +153,7 @@ export function registerWidgetTools(
     }),
   )
 
-  registerComparisonWidgetTools({ server, ch, engineScope, profileStore, namesFor })
+  registerComparisonWidgetTools({ server, ch, engineScope, namesFor })
 
   server.tool(
     {
@@ -175,13 +166,9 @@ export function registerWidgetTools(
       ...showToolBinding(ANALYTICS_SHOW_BPMN_HEATMAP, "BPMN Heatmap"),
     },
     withToolErrors(async (args, ctx) => {
-      const t = await localizeFor(profileStore, ctx)
-      const period = args.period ?? (await settingsFor(profileStore, ctx)).defaultPeriod
+      const { period } = args
       const scoped = withEngineScope(engineScope, args)
-      const heat = await queries.elementHeat(withCallerSignal(ch, ctx.signal), {
-        ...scoped,
-        period,
-      })
+      const heat = await queries.elementHeat(withCallerSignal(ch, ctx.signal), scoped)
       // Only to know whether a diagram exists; the widget reads the XML from `analytics_bpmn_xml_data`.
       const bpmn = await loadBpmn(args.processDefinitionKey, scoped.engine)
       // The engines travel with the heat, so the model description names them.
@@ -198,7 +185,7 @@ export function registerWidgetTools(
         t("aSum.bpmnHeatmap", {
           key: args.processDefinitionKey,
           period,
-          engines: engineScopeSummary(t, scoped.engine, isFleetRequest(args.engine)),
+          engines: engineScopeSummary(scoped.engine, isFleetRequest(args.engine)),
           elementCount: Object.keys(heat.frequency).length,
           fallbackNote: bpmn.bpmnXml ? "" : t("aSum.bpmnHeatmapNoXml"),
         }),
@@ -217,12 +204,9 @@ export function registerWidgetTools(
       ...appOnly,
     },
     withToolErrors(async (args, ctx) => {
-      const period = args.period ?? (await settingsFor(profileStore, ctx)).defaultPeriod
+      const { period } = args
       const scoped = withEngineScope(engineScope, args)
-      const heat = await queries.elementHeat(withCallerSignal(ch, ctx.signal), {
-        ...scoped,
-        period,
-      })
+      const heat = await queries.elementHeat(withCallerSignal(ch, ctx.signal), scoped)
       const data = {
         processDefinitionKey: args.processDefinitionKey,
         period,

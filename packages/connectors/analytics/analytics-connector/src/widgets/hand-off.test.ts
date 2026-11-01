@@ -37,7 +37,7 @@ describe("analyticsSurface", () => {
 })
 
 describe("analytics hand-offs", () => {
-  it("render the intent in the active locale — German for a German profile", () => {
+  it("render the intent in the active locale — German for a German host locale", () => {
     const prompt = bindHandOff("de", ANALYTICS_ONLY_SURFACE).ask(failureSummaryHandOff(FAILURES))!
     expect(prompt.startsWith(deAskAi["askAi.failureSummary"])).toBe(true)
     expect(prompt).toContain('IDs: engine="prod-a"')

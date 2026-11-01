@@ -2,20 +2,13 @@ import type { MCPServer } from "mcp-use"
 import type { ModulePlugin } from "@miragon/pulse-widget-shell/server"
 import { createPrometheusClient, type PrometheusConfig } from "@miragon/pulse-analytics-client"
 import { registerTools } from "./tools/index.js"
-import { registerSettingsTools } from "./settings-tools.js"
 import { registerWidgetTools } from "./widget-tools.js"
 import { createNameLookup, type FetchBpmnXml } from "./bpmn-name-lookup.js"
-import type { ProfileSource } from "./server-locale.js"
-import { analyticsToolsets } from "./toolsets.js"
 import { createEngineScope } from "./engine-ids.js"
 
 export interface AnalyticsPluginConfig extends PrometheusConfig {
   /** Injected by the host so this module stays free of engine SDKs; absent → ids, no diagram. */
   fetchBpmnXml?: FetchBpmnXml
-  /** Shared with camunda7; this module owns `modules.analytics`. */
-  profileStore?: ProfileSource
-  /** Typed `string` so a configured value passes through; resolved fail-closed here. */
-  toolset?: string
   /** Empty or absent: every engine-reading tool refuses (`engine-ids.ts`). */
   engineIds?: readonly string[]
 }
@@ -33,14 +26,12 @@ export function createPlugin(config: AnalyticsPluginConfig): ModulePlugin {
   return {
     name: "analytics",
     register(server: MCPServer) {
-      registerTools(server, client, engineScope, config.profileStore)
+      registerTools(server, client, engineScope)
       registerWidgetTools(server, client, {
         fetchBpmnXml: config.fetchBpmnXml,
         namesFor: createNameLookup(config.fetchBpmnXml),
-        profileStore: config.profileStore,
         engineScope,
       })
-      registerSettingsTools(server, config.profileStore, analyticsToolsets.resolve(config.toolset))
     },
   }
 }

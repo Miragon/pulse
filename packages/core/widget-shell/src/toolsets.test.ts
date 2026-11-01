@@ -94,11 +94,4 @@ describe("createToolsetVocabulary", () => {
       },
     )
   })
-
-  it("permits durable writes on every toolset above the read-only floor", () => {
-    const v = vocab()
-    expect(v.allowsDurableWrites("read-only")).toBe(false)
-    expect(v.allowsDurableWrites("operations")).toBe(true)
-    expect(v.allowsDurableWrites("admin")).toBe(true)
-  })
 })

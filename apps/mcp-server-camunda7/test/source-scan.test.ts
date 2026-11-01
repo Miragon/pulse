@@ -134,7 +134,7 @@ describe("the repo's apps", () => {
       expect(files).toEqual(
         expect.arrayContaining([
           "apps/mcp-server-camunda7/src/index.ts",
-          "packages/core/widget-shell/src/profile.ts",
+          "packages/core/widget-shell/src/caller.ts",
           "packages/connectors/camunda/camunda7-connector/src/module.ts",
         ]),
       )

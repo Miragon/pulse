@@ -51,10 +51,7 @@ function boot(env: NodeJS.ProcessEnv) {
     },
   } as unknown as MCPServer
   const plugin = analyticsModule.createPlugin(
-    {
-      ...analyticsModule.configFromEnv({ PROMETHEUS_URL: url, ...ENGINES, ...env }),
-      toolset: "read-only",
-    },
+    analyticsModule.configFromEnv({ PROMETHEUS_URL: url, ...ENGINES, ...env }),
     {},
   )
   plugin.register(server)
@@ -105,7 +102,9 @@ describe("Prometheus config reaches the wire", () => {
     // a handler that drops ctx would still query.
     const args = {
       processDefinitionKey: "order",
-      // Handlers called directly get no schema defaults: the compare windows.
+      // Handlers called directly get no schema defaults: the period, the compare windows and floor.
+      period: "7d",
+      minBucketSize: 10,
       windowDays: 7,
       windowBeforeDays: 3,
       windowAfterDays: 3,
@@ -130,12 +129,8 @@ describe("Prometheus config reaches the wire", () => {
         queries: 0,
       })
     }
-    // The settings and the heatmap's diagram (read from the engine) never ask Prometheus.
-    expect(neverQuery.sort()).toEqual([
-      "analytics_bpmn_xml_data",
-      "analytics_settings_data",
-      "analytics_show_settings",
-    ])
+    // The heatmap's diagram (read from the engine) never asks Prometheus.
+    expect(neverQuery.sort()).toEqual(["analytics_bpmn_xml_data"])
     expect(tools.size - neverQuery.length).toBeGreaterThanOrEqual(9)
   })
 

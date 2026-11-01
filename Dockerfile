@@ -41,7 +41,7 @@ EXPOSE 8400
 USER node
 
 # Readiness over HTTP: /health/ready answers 200 once the MCP transport serves
-# and the server's own dependencies (database) respond — the same route Compose
+# and the server's own dependencies respond — the same route Compose
 # and Fly poll; /health/live is the liveness-only variant for orchestrators
 # that split the two. Node's global fetch keeps the image curl-free.
 HEALTHCHECK --interval=30s --timeout=3s --start-period=20s --retries=3 \

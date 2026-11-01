@@ -1,14 +1,11 @@
 import type { PrometheusClient } from "@miragon/pulse-analytics-client"
 import { schemas, queries } from "@miragon/pulse-analytics-client"
 import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
-import type { ProfileSource } from "../server-locale.js"
-import { optionalPeriod, settingsFor } from "../settings.js"
 import { withEngineScope, type AnalyticsEngineScope } from "../engine-ids.js"
 
 export function registerPerformanceTools(
   register: ToolRegistrar<PrometheusClient>,
   engineScope: AnalyticsEngineScope,
-  profileStore?: ProfileSource,
 ) {
   register({
     name: "analytics_analyze_process_performance",
@@ -16,12 +13,8 @@ export function registerPerformanceTools(
     description:
       "Analyze process performance from metrics over a rolling window: starts, completions, incidents created (incidents, not failed instances) per 100 starts, P50/P95 duration of the instances that ENDED in the window (null when none did), and a per-activity breakdown.",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-    inputSchema: { ...schemas.analyzePerformanceInput.shape, period: optionalPeriod },
-    handler: async (ch, args, ctx) =>
-      queries.analyzePerformance(ch, {
-        ...withEngineScope(engineScope, args),
-        period: args.period ?? (await settingsFor(profileStore, ctx)).defaultPeriod,
-      }),
+    inputSchema: schemas.analyzePerformanceInput.shape,
+    handler: async (ch, args) => queries.analyzePerformance(ch, withEngineScope(engineScope, args)),
   })
 
   register({

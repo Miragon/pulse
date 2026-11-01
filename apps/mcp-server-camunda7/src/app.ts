@@ -6,7 +6,6 @@ import {
   oauthFromEnv,
   type ComposedServer,
 } from "@miragon/pulse-widget-shell/server"
-import { initRuntime, type RuntimeBackends } from "./persistence/index.js"
 import { SERVER_LABEL } from "./server-label.js"
 import { composition, getPlugins } from "./setup.js"
 
@@ -40,20 +39,17 @@ export interface AppDeps {
    * provider so authenticated boots run the real bearer gate.
    */
   oauth?: OAuthProvider<unknown>
-  /** Persistence backends; default: `initRuntime(env)` (Postgres / filesystem / memory). */
-  runtime?: RuntimeBackends
   /** Widget bundle; default: the compiled `dist/mcp-app.{js,css}`. */
   bundle?: { jsPath: string; cssPath?: string }
 }
 
 /**
  * The composition root — the ONE boot sequence `src/index.ts` (production and
- * `mcp-use dev`) and the e2e suites share. App-owned here: persistence
- * (`initRuntime`) and the plugins with their cross-module wiring
- * (`setup.ts`); the OAuth provider comes from the shared `oauthFromEnv` and
- * the order of everything else lives in the shared `createComposedServer`
- * (both `@miragon/pulse-widget-shell/server`) — wired exactly like the
- * composed-server template.
+ * `mcp-use dev`) and the e2e suites share. App-owned here: the plugins with
+ * their cross-module wiring (`setup.ts`); the OAuth provider comes from the
+ * shared `oauthFromEnv` and the order of everything else lives in the shared
+ * `createComposedServer` (both `@miragon/pulse-widget-shell/server`) — wired
+ * exactly like the composed-server template.
  */
 export async function createApp(
   env: NodeJS.ProcessEnv = process.env,
@@ -61,7 +57,7 @@ export async function createApp(
 ): Promise<ComposedServer> {
   // MCP_OAUTH → the provider (the only caller-identity source). Whether one
   // was BUILT decides every module's default toolset, and a bad MCP_OAUTH
-  // fails the boot before migrations.
+  // fails the boot before anything listens.
   const oauth = "oauth" in deps ? deps.oauth : oauthFromEnv({ env, label: SERVER_LABEL })
 
   return createComposedServer({
@@ -81,16 +77,6 @@ export async function createApp(
       jsPath: path.join(PACKAGE_ROOT, "dist", "mcp-app.js"),
       cssPath: path.join(PACKAGE_ROOT, "dist", "mcp-app.css"),
     },
-    setup: async (boot) => {
-      // Postgres when DATABASE_URL is set (migrations run here, before the
-      // server listens — the healthcheck grace periods cover it), else
-      // filesystem/in-memory.
-      const runtime = deps.runtime ?? (await initRuntime(env))
-      return {
-        plugins: getPlugins(runtime.profileStore, boot),
-        readiness: runtime.readiness,
-        shutdown: () => runtime.shutdown(),
-      }
-    },
+    setup: (boot) => ({ plugins: getPlugins(boot) }),
   })
 }

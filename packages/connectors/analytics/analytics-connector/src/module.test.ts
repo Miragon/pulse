@@ -2,13 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import type { MCPServer } from "mcp-use"
 import { composeModules } from "@miragon/pulse-widget-shell/server"
 import { analyticsModule } from "./module.js"
-import { allowsDurableWrites, ANALYTICS_TOOLSETS, analyticsToolsets } from "./toolsets.js"
-import {
-  ANALYTICS_ENGINE_LANDSCAPE_DATA,
-  ANALYTICS_SAVE_SETTINGS,
-  ANALYTICS_SETTINGS_DATA,
-} from "./tool-names.js"
-import type { ProfileSource } from "./server-locale.js"
+import { ANALYTICS_ENGINE_LANDSCAPE_DATA } from "./tool-names.js"
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -24,13 +18,8 @@ interface RecordedTool {
   }
 }
 
-const writableStore: ProfileSource = {
-  get: () => Promise.resolve(undefined),
-  save: () => Promise.resolve({}),
-}
-
-/** A writable store, so only the toolset decides the settings save. */
-function surfaceFor(config: Record<string, unknown>): RecordedTool[] {
+/** The whole surface the plugin registers: registrar tools, widget tools and feeds. */
+function surfaceFor(config: Record<string, unknown> = {}): RecordedTool[] {
   const tools: RecordedTool[] = []
   const server = {
     tool: (definition: RecordedTool) => {
@@ -39,7 +28,7 @@ function surfaceFor(config: Record<string, unknown>): RecordedTool[] {
   } as unknown as MCPServer
   const plugin = analyticsModule.createPlugin(
     { url: "http://prometheus.invalid", ...config },
-    { profileStore: writableStore, engineIds: ["prod-a"] },
+    { engineIds: ["prod-a"] },
   )
   plugin.register(server)
   return tools
@@ -57,49 +46,38 @@ describe("analyticsModule plugin", () => {
   })
 })
 
-describe("analyticsModule toolset policy", () => {
-  it("declares its toolset vocabulary", () => {
-    expect(analyticsModule.toolsets).toBe(analyticsToolsets)
-  })
-
-  it("resolves the toolset in createPlugin: standard saves, a missing toolset is the floor", () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
-    expect(namesOf(surfaceFor({ toolset: "standard" }))).toContain(ANALYTICS_SAVE_SETTINGS)
-    expect(namesOf(surfaceFor({ toolset: "read-only" }))).not.toContain(ANALYTICS_SAVE_SETTINGS)
-    expect(namesOf(surfaceFor({}))).not.toContain(ANALYTICS_SAVE_SETTINGS)
-    expect(warn).not.toHaveBeenCalled()
-  })
-
-  it("fails closed on an unknown toolset from a direct caller, with ONE warning", () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
-    expect(namesOf(surfaceFor({ toolset: "admin" }))).toEqual(
-      namesOf(surfaceFor({ toolset: "read-only" })),
-    )
-    expect(warn).toHaveBeenCalledOnce()
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('Unknown toolset "admin"'))
+/** Every analytics tool is a read, so one toolset would name them all: the module declares none. */
+describe("analyticsModule declares no toolsets", () => {
+  it("has no toolset vocabulary", () => {
+    expect("toolsets" in analyticsModule).toBe(false)
   })
 
   describe("through the composition root (composeModules)", () => {
     const composition = composeModules({ label: "test", modules: [analyticsModule] })
-    const bootConfig = (env: NodeJS.ProcessEnv, authenticated: boolean) =>
-      composition.resolveBoot(env, { authenticated }).entries[0].config
 
-    it("no suffix: read-only without OAuth, standard with it", () => {
-      expect(bootConfig({}, false)).toMatchObject({ toolset: "read-only" })
-      expect(bootConfig({}, true)).toMatchObject({ toolset: "standard" })
-      expect(namesOf(surfaceFor(bootConfig({}, false)))).not.toContain(ANALYTICS_SAVE_SETTINGS)
-      expect(namesOf(surfaceFor(bootConfig({}, true)))).toContain(ANALYTICS_SAVE_SETTINGS)
+    it("ignores a suffix with one warning and passes no toolset to the module", () => {
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+      for (const suffix of ["read-only", "standard"]) {
+        const boot = composition.resolveBoot(
+          { MCP_ACTIVE_MODULES: `analytics:${suffix}` },
+          { authenticated: true },
+        )
+        expect(boot.entries[0].config).not.toHaveProperty("toolset")
+        expect(warn).toHaveBeenLastCalledWith(
+          `[test] Module "analytics" has no toolsets — ignoring ":${suffix}"`,
+        )
+      }
+      expect(warn).toHaveBeenCalledTimes(2)
     })
 
-    it("an explicit suffix wins; an empty one falls back to read-only even under OAuth", () => {
-      const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
-      expect(bootConfig({ MCP_ACTIVE_MODULES: "analytics:standard" }, false)).toMatchObject({
-        toolset: "standard",
-      })
-      expect(bootConfig({ MCP_ACTIVE_MODULES: "analytics:" }, true)).toMatchObject({
-        toolset: "read-only",
-      })
-      expect(warn).toHaveBeenCalledOnce()
+    it("logs the module without a toolset, with or without OAuth", () => {
+      vi.spyOn(console, "info").mockImplementation(() => {})
+      for (const authenticated of [false, true]) {
+        const boot = composition.resolveBoot({}, { authenticated })
+        expect(composition.logEffectiveToolsets(boot)).toBe(
+          "[test] Toolsets — analytics (no toolsets)",
+        )
+      }
     })
   })
 })
@@ -109,8 +87,8 @@ describe("analyticsModule.instructions", () => {
     const text = analyticsModule.instructions()
     expect(text).toContain(
       "`engine` is a metric filter over this server's configured engines, not routing: omitted = " +
-        "the aggregate over all of them, named in each result's `engines` (camunda7's saved " +
-        "default engine does not apply)",
+        "the aggregate over all of them, named in each result's `engines` (camunda7's default " +
+        "engine does not apply)",
     )
     expect(text).toContain("period is one of 1d, 3d, 7d, 14d, 30d")
     expect(text).toContain("null means not measured")
@@ -222,90 +200,43 @@ describe("analyticsModule Prometheus config validation", () => {
 })
 
 /**
- * Registrar tools are never toolset-filtered, so the read-only floor holds only
- * while every tool declares `readOnlyHint`. Exempt: `analytics_save_settings`,
- * gated by `allowsDurableWrites`.
+ * Analytics registers every tool unfiltered, so the module stays safe only while each one is a
+ * read. A write needs a toolset vocabulary on the module first.
  */
-describe("the analytics toolset rule holds structurally for every registered tool", () => {
-  const EXEMPT_DURABLE_WRITE = ANALYTICS_SAVE_SETTINGS
-
-  it("records the whole surface: registrar tools, widget tools, *_data feeds, settings", () => {
-    const names = namesOf(surfaceFor({ toolset: "standard" }))
-    // Sanity: otherwise the guards below are vacuous.
-    expect(names.length).toBeGreaterThanOrEqual(20)
-    expect(names).toEqual(
-      expect.arrayContaining([
-        "analytics_analyze_process_performance",
-        "analytics_show_dashboard",
-        ANALYTICS_ENGINE_LANDSCAPE_DATA,
-        "analytics_show_settings",
-        ANALYTICS_SETTINGS_DATA,
-        EXEMPT_DURABLE_WRITE,
-      ]),
-    )
+describe("every analytics tool is a read", () => {
+  it("records the whole surface: registrar tools, widget tools, *_data feeds", () => {
+    // The exact surface, so the guards below are never vacuous and a new tool is seen here.
+    expect(namesOf(surfaceFor())).toEqual([
+      "analytics_analyze_process_performance",
+      "analytics_bpmn_heatmap_data",
+      "analytics_bpmn_xml_data",
+      "analytics_cluster_compare",
+      "analytics_compare_execution_periods",
+      "analytics_element_bottleneck",
+      "analytics_engine_compare",
+      "analytics_engine_health",
+      "analytics_engine_landscape",
+      ANALYTICS_ENGINE_LANDSCAPE_DATA,
+      "analytics_find_failed_instances",
+      "analytics_show_bpmn_heatmap",
+      "analytics_show_cluster_compare",
+      "analytics_show_dashboard",
+      "analytics_show_engine_compare",
+      "analytics_show_engine_landscape",
+      "analytics_show_failure_dashboard",
+      "analytics_show_version_compare",
+      "analytics_version_compare",
+    ])
   })
 
-  it.each([...ANALYTICS_TOOLSETS, undefined])(
-    "toolset %s: every tool but the gated settings save declares readOnlyHint: true",
-    (toolset) => {
-      for (const tool of surfaceFor({ toolset })) {
-        if (tool.name === EXEMPT_DURABLE_WRITE) continue
-        expect(
-          tool.annotations?.readOnlyHint,
-          `${tool.name} is registered by the analytics module without readOnlyHint: true — ` +
-            "analytics tools are not toolset-filtered, so it would leak into analytics:read-only",
-        ).toBe(true)
-      }
-    },
-  )
-
-  it.each([...ANALYTICS_TOOLSETS, undefined])(
-    "toolset %s: the exempt write is registered exactly when allowsDurableWrites says so",
-    (toolset) => {
-      const registered = namesOf(surfaceFor({ toolset })).includes(EXEMPT_DURABLE_WRITE)
-      expect(registered).toBe(allowsDurableWrites(toolset))
-    },
-  )
-
-  it("the read-only floor lists ONLY readOnlyHint tools — no exemption needed", () => {
-    for (const tool of surfaceFor({ toolset: "read-only" })) {
-      expect(tool.annotations?.readOnlyHint, tool.name).toBe(true)
+  it("every tool declares readOnlyHint: true and none is destructive", () => {
+    for (const tool of surfaceFor()) {
+      expect(
+        tool.annotations?.readOnlyHint,
+        `${tool.name} is registered by the analytics module without readOnlyHint: true: ` +
+          "analytics declares no toolsets, so a write would reach every deployment",
+      ).toBe(true)
+      expect(tool.annotations?.destructiveHint, tool.name).not.toBe(true)
     }
-  })
-
-  it("standard is the read-only surface plus exactly the settings save", () => {
-    const readOnly = namesOf(surfaceFor({ toolset: "read-only" }))
-    expect(namesOf(surfaceFor({ toolset: "standard" }))).toEqual(
-      [...readOnly, EXEMPT_DURABLE_WRITE].sort(),
-    )
-  })
-
-  it("the exempt write declares itself an idempotent, NON-destructive write", () => {
-    const save = surfaceFor({ toolset: "standard" }).find(
-      (tool) => tool.name === EXEMPT_DURABLE_WRITE,
-    )
-    expect(save?.annotations).toEqual({
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    })
-  })
-
-  it("every write states destructiveHint explicitly — MCP reads an absent hint as TRUE", () => {
-    const writes = surfaceFor({ toolset: "standard" }).filter(
-      (tool) => tool.annotations?.readOnlyHint !== true,
-    )
-    expect(writes.map((tool) => tool.name)).toEqual([EXEMPT_DURABLE_WRITE])
-    for (const tool of writes) {
-      expect(typeof tool.annotations?.destructiveHint, tool.name).toBe("boolean")
-    }
-  })
-
-  it("no analytics tool is destructive — the module has no admin tier to hold one", () => {
-    const destructive = surfaceFor({ toolset: "standard" }).filter(
-      (tool) => tool.annotations?.destructiveHint === true,
-    )
-    expect(destructive.map((tool) => tool.name)).toEqual([])
   })
 })

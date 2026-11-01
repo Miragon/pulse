@@ -28,8 +28,8 @@ describe("viewPrelude", () => {
 
 describe("readViewName", () => {
   it("reads what the prelude set", () => {
-    global[VIEW_NAME_GLOBAL] = "shell_show_settings"
-    expect(readViewName()).toBe("shell_show_settings")
+    global[VIEW_NAME_GLOBAL] = "demo_show_thing"
+    expect(readViewName()).toBe("demo_show_thing")
   })
 
   it("is undefined without a prelude, for an empty name and for a non-string", () => {

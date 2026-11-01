@@ -1,8 +1,11 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
+import { z } from "zod"
 import { increaseIn, type PrometheusClient } from "@miragon/pulse-analytics-client"
 import type { ToolConfig } from "@miragon/pulse-widget-shell/server"
 import { createEngineScope } from "../engine-ids.js"
 import { registerPerformanceTools } from "./performance.js"
+import { registerElementTools } from "./element.js"
+import { registerClusterCompareTools } from "./cluster-compare.js"
 
 const scope = createEngineScope(["prod-a", "prod-b"])
 const register = (r: never) => registerPerformanceTools(r, scope)
@@ -181,25 +184,50 @@ describe("analytics_compare_execution_periods windows (N79)", () => {
   })
 })
 
-describe("analytics_analyze_process_performance saved defaults", () => {
-  it("resolves the CALLER's saved period from the handler ctx the registrar hands it", async () => {
-    const store = {
-      get: (key: string) =>
-        Promise.resolve(
-          key === "user-1" ? { modules: { analytics: { defaultPeriod: "30d" } } } : undefined,
-        ),
-    }
-    const handlers = captureHandlers((r) => registerPerformanceTools(r, scope, store))
-    const handler = handlers.get("analytics_analyze_process_performance")!
-    const firstQueryFor = async (ctx?: unknown) => {
+/** mcp-use parses the input before the handler runs, so an omitted value takes the schema default. */
+describe("analytics schema defaults", () => {
+  function parsedCall(registerModule: (register: never) => void, name: string) {
+    const configs = new Map<string, ToolConfig<PrometheusClient>>()
+    registerModule(((config: ToolConfig<PrometheusClient>) => {
+      configs.set(config.name, config)
+    }) as never)
+    const config = configs.get(name)!
+    return async (input: Record<string, unknown>) => {
       const { client, queries } = recordingClient()
-      await handler(client, { processDefinitionKey: "order" }, ctx as never)
-      return queries[0]
+      const args = z.object(config.inputSchema ?? {}).parse(input) as Record<string, unknown>
+      const result = await config.handler(client, args)
+      return { args, queries, result }
     }
+  }
 
-    expect(await firstQueryFor({ auth: { user: { id: "user-1" } } })).toContain("[30d]")
-    // Another caller, and a request without any identity, get the schema default.
-    expect(await firstQueryFor({ auth: { user: { id: "user-2" } } })).toContain("[7d]")
-    expect(await firstQueryFor()).toContain("[7d]")
+  it("an omitted period queries 7d", async () => {
+    const call = parsedCall(register, "analytics_analyze_process_performance")
+    const { args, queries } = await call({ processDefinitionKey: "order" })
+    expect(args.period).toBe("7d")
+    expect(queries[0]).toContain("[7d]")
+    expect((await call({ processDefinitionKey: "order", period: "30d" })).queries[0]).toContain(
+      "[30d]",
+    )
+  })
+
+  it("an omitted period and minBucketSize take 7d and 10 in the bottleneck ranking", async () => {
+    const call = parsedCall((r) => registerElementTools(r, scope), "analytics_element_bottleneck")
+    const { args, queries } = await call({ processDefinitionKey: "order" })
+    expect(args).toMatchObject({ period: "7d", minBucketSize: 10 })
+    expect(queries.every((query) => !query.includes("[undefined]"))).toBe(true)
+    expect(queries.some((query) => query.includes("[7d]"))).toBe(true)
+  })
+
+  it("an omitted minBucketSize is 10 in the deployment comparison", async () => {
+    const call = parsedCall(
+      (r) => registerClusterCompareTools(r, scope),
+      "analytics_cluster_compare",
+    )
+    const { args, result } = await call({
+      processDefinitionKey: "order",
+      deploymentTimestamp: new Date(Date.now() - 86_400_000).toISOString(),
+    })
+    expect(args.minBucketSize).toBe(10)
+    expect((result as { minBucketSize?: number }).minBucketSize).toBe(10)
   })
 })

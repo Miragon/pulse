@@ -1,10 +1,8 @@
 import { z } from "zod"
 import type { ModulePlugin } from "@miragon/pulse-widget-shell/server"
 import { createPlugin } from "./plugin.js"
-import { analyticsToolsets } from "./toolsets.js"
 import { analyticsInstructions } from "./instructions.js"
 import type { FetchBpmnXml } from "./bpmn-name-lookup.js"
-import type { ProfileSource } from "./server-locale.js"
 import { NO_ENGINE_SCOPE_MESSAGE } from "./engine-ids.js"
 
 /** The longest delay a Node timer holds — a longer deadline would fire at once. */
@@ -65,12 +63,9 @@ const analyticsConfigSchema = z.object({
       ),
     ])
     .optional(),
-  /** A plain string so a direct caller's unknown name fails closed instead of throwing. */
-  toolset: z.string().optional(),
 })
 
 interface AnalyticsModuleShared {
-  profileStore?: ProfileSource
   fetchBpmnXml?: FetchBpmnXml
   /** camunda7's configured engines; wins over `ANALYTICS_ENGINE_IDS`. */
   engineIds?: readonly string[]
@@ -123,8 +118,6 @@ export const analyticsModule = {
     "ANALYTICS_ENGINE_IDS",
   ] as const,
 
-  toolsets: analyticsToolsets,
-
   /** The default :9090 is a bare Prometheus, not the compose stack's :8460; without the hint queries 404 silently. */
   bootWarnings(env: NodeJS.ProcessEnv): string[] {
     if (env.PROMETHEUS_URL?.trim()) return []
@@ -138,14 +131,11 @@ export const analyticsModule = {
   },
 
   createPlugin(config: Record<string, unknown>, shared: AnalyticsModuleShared): ModulePlugin {
-    const { toolset, engineIds, ...parsed } = analyticsConfigSchema.parse(config)
+    const { engineIds, ...parsed } = analyticsConfigSchema.parse(config)
     return createPlugin({
       ...parsed,
       engineIds: effectiveEngineIds(shared.engineIds, engineIds),
-      // Resolved once here, so the plugin only ever sees a declared name.
-      toolset: analyticsToolsets.resolve(toolset),
       fetchBpmnXml: shared.fetchBpmnXml,
-      profileStore: shared.profileStore,
     })
   },
 }

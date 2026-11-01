@@ -72,7 +72,7 @@ export function describeCluster(data: ClusterDetailData): ViewContext {
   }
 }
 
-/** loadMore() must carry the cluster identity and engine, or it would page the caller's default engine. */
+/** loadMore() must carry the cluster identity and engine, or it would page the default engine. */
 function clusterFeedParams({
   initialData,
   engine,

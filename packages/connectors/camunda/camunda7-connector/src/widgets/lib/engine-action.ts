@@ -7,9 +7,9 @@ import {
   type ConfirmTarget,
   type QueryClient,
 } from "@miragon/pulse-widget-shell/widgets"
-import type { CAMUNDA7_SAVE_SETTINGS, Camunda7WidgetAction } from "../../tool-names.js"
+import type { Camunda7WidgetAction } from "../../tool-names.js"
 import { useCanRun } from "../widget-actions.js"
-import { WRITE_POLICY, type WidgetWrite } from "./write-policy.js"
+import { WRITE_POLICY } from "./write-policy.js"
 
 export type TargetLine = ConfirmTarget
 
@@ -38,12 +38,9 @@ export interface RunOptions<TResult> {
   onError?: (error: Error) => void
 }
 
-/** Engine writes ask the toolset (`camunda7_widget_actions_data`); the profile save its view's `canSave`. */
-type ActionGate =
-  | { tool: Camunda7WidgetAction; allowed?: never }
-  | { tool: typeof CAMUNDA7_SAVE_SETTINGS; allowed: boolean }
-
-export type EngineActionOptions<TArgs> = ActionGate & {
+/** The toolset decides (`camunda7_widget_actions_data`), AND `available`. */
+export interface EngineActionOptions<TArgs> {
+  tool: Camunda7WidgetAction
   target?: (args: TArgs) => string
   /** The optimistic success marks drop when its identity changes. */
   resetOn?: unknown
@@ -98,7 +95,7 @@ function withoutMember<K>(set: ReadonlySet<K>, key: K): Set<K> {
 }
 
 /** By key namespace across every engine: a cheap over-approximation. */
-function invalidateAfter(client: QueryClient, tool: WidgetWrite): void {
+function invalidateAfter(client: QueryClient, tool: Camunda7WidgetAction): void {
   for (const namespace of WRITE_POLICY[tool].invalidates) {
     void client.invalidateQueries({ queryKey: [namespace] })
   }
@@ -107,13 +104,12 @@ function invalidateAfter(client: QueryClient, tool: WidgetWrite): void {
 /** The one in-widget write primitive (`src/widget-actions.test.ts`); fail-closed until the gate feed answered. */
 export function useEngineAction<TArgs extends Record<string, unknown>, TResult = unknown>({
   tool,
-  allowed: viewAllows,
   target = SINGLE_TARGET,
   resetOn,
   available = true,
 }: EngineActionOptions<TArgs>): EngineAction<TArgs, TResult> {
   const canRun = useCanRun()
-  const allowed = (viewAllows ?? canRun(tool)) && available
+  const allowed = canRun(tool) && available
   const mutation = useToolMutation<TResult>(tool)
   const client = useQueryClient()
   const toasts = useActionFeedback()

@@ -94,44 +94,6 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  # Postgres suites skip without TEST_DATABASE_URL; same DB as the compose stack.
-  postgres:
-    name: Postgres adapters (test:pg)
-    needs: changes
-    if: needs.changes.outputs.mcp == 'true'
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:18.1-alpine
-        env:
-          POSTGRES_USER: miragon
-          POSTGRES_PASSWORD: miragon
-          POSTGRES_DB: miragon_test
-        ports:
-          - 8440:5432
-        options: >-
-          --health-cmd "pg_isready -U miragon -d miragon_test"
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 12
-    env:
-      TEST_DATABASE_URL: postgres://miragon:miragon@localhost:8440/miragon_test
-    steps:
-      - uses: actions/checkout@v7.0.1
-
-      - uses: pnpm/action-setup@v6.1.0
-
-      - uses: actions/setup-node@v7.1.0
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - run: pnpm install --frozen-lockfile
-
-      - run: pnpm build
-
-      - run: pnpm test:pg
-
   # Playwright host simulation of the built widget bundle (test-host/README.md).
   host-sim:
     name: Widget host simulation (test:host)

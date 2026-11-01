@@ -35,7 +35,12 @@ const TABLE: Array<[raw: string, kind: ErrorKind, status: number | undefined, so
   ["MCP error -32001: Request timed out", "timeout", undefined, "unknown"],
   ["[504] Gateway Timeout (engine prod)", "timeout", 504, "engine:prod"],
   ["Tool camunda7_process_list_data not found", "notOnServer", undefined, "unknown"],
-  ["MCP error -32602: Tool analytics_settings_data not found", "notOnServer", undefined, "unknown"],
+  [
+    "MCP error -32602: Tool analytics_engine_landscape_data not found",
+    "notOnServer",
+    undefined,
+    "unknown",
+  ],
   ["Unknown tool: camunda7_jobs_data", "notOnServer", undefined, "unknown"],
   [
     "[401] Unauthorized (engine prod). Check CAMUNDA_ENGINES_JSON credentials",
@@ -63,7 +68,7 @@ const TABLE: Array<[raw: string, kind: ErrorKind, status: number | undefined, so
   ],
   ["[400 InvalidRequestException] Invalid variable value", "failed", 400, "unknown"],
   [
-    "[ENGINE_NOT_SELECTED] No engine specified and no default engine saved.",
+    "[ENGINE_NOT_SELECTED] No engine specified and no default engine configured. Pass `engine`, one of: prod-a, prod-b.",
     "unknown",
     undefined,
     "engine",

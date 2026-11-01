@@ -7,15 +7,11 @@ import { analyticsModule, type FetchBpmnXml } from "@miragon/pulse-analytics-con
 import { notesModule } from "@acme/mcp-notes"
 import {
   composeModules,
-  createShellPlugin,
-  frameworkWritesAllowed,
   HTTP_EDGE_ENV_VARS,
   OAUTH_ENV_VARS,
-  profileStoreFromEnv,
   type ComposableModule,
   type ModuleEntry,
   type ModulePlugin,
-  type ProfileStore,
   type ResolvedBoot,
 } from "@miragon/pulse-widget-shell/server"
 
@@ -26,12 +22,6 @@ import {
  * never import each other.
  */
 export interface SharedResources {
-  /**
-   * One per-user preference store for the whole server (language and each
-   * module's settings), keyed by the OAuth caller. Filesystem-backed when
-   * `MCP_PROFILE_DIR` is set, else in-memory.
-   */
-  profileStore: ProfileStore
   /**
    * BPMN-XML lookup from the camunda7 module (on any of its engines),
    * consumed by the analytics heatmap and the names in the analytics views.
@@ -81,7 +71,6 @@ const APP_ENV_VARS = [
   ...HTTP_EDGE_ENV_VARS,
   ...OAUTH_ENV_VARS,
   "MCP_ACTIVE_MODULES",
-  "MCP_PROFILE_DIR",
   // mcp-use's request-log level, read by mcp-use itself (the boot warns at
   // debug/trace).
   "MCP_USE_LOG_LEVEL",
@@ -102,21 +91,11 @@ export const KNOWN_ENV_VARS = composition.knownEnvVars
  * effective toolset threaded into its config. `createApp`'s boot is
  * authenticated exactly when `oauthFromEnv` built a provider from
  * `MCP_OAUTH`; this argument-less default (tests, `getPlugins()`) is the
- * unauthenticated one — every module without an explicit suffix on its
- * read-only floor, the shell's language save off.
+ * unauthenticated one: every module without an explicit suffix on its
+ * read-only floor.
  */
 export function resolveBoot(env: NodeJS.ProcessEnv = process.env): ResolvedBoot {
   return composition.resolveBoot(env)
-}
-
-// ── Persistence ──────────────────────────────────────────────────────────
-// Deliberately minimal: filesystem-backed when the env knob is set (survives
-// restarts), in-memory otherwise. For Postgres stores with migrations, see
-// the stock server (`apps/mcp-server-camunda7/src/persistence/` in the
-// Pulse repo).
-
-export function createProfileStore(env: NodeJS.ProcessEnv = process.env): ProfileStore {
-  return profileStoreFromEnv(env)
 }
 
 // ── Plugins ──────────────────────────────────────────────────────────────
@@ -125,36 +104,24 @@ export function createProfileStore(env: NodeJS.ProcessEnv = process.env): Profil
  * Cross-module wiring — deliberately app-owned: which module's capability
  * reaches which other module is configuration knowledge.
  */
-function buildSharedResources(entries: ModuleEntry[], profileStore: ProfileStore): SharedResources {
+function buildSharedResources(entries: ModuleEntry[]): SharedResources {
   // From camunda7, for modules without an engine-SDK dependency: the BPMN-XML
   // lookup (the analytics heatmap) and the configured engine ids (the only
   // engines analytics reads). Absent when camunda7 is inactive — the heatmap
   // degrades, analytics falls back to ANALYTICS_ENGINE_IDS, else fails closed.
   const camunda7Entry = entries.find((e) => e.app === camunda7Module.name)
-  if (!camunda7Entry) return { profileStore }
+  if (!camunda7Entry) return {}
   return {
-    profileStore,
     fetchBpmnXml: createBpmnXmlFetcher(camunda7Entry.config),
     engineIds: configuredEngineIds(camunda7Entry.config),
   }
 }
 
 /**
- * `createApp` passes the store it built and the once-per-boot selection; the
- * defaults keep argument-less callers (tests) working without duplicating
- * either here.
+ * `createApp` passes the once-per-boot selection; the default keeps
+ * argument-less callers (tests) working without duplicating it here.
  */
-export function getPlugins(
-  profileStore: ProfileStore = createProfileStore(),
-  boot: ResolvedBoot = resolveBoot(),
-): ModulePlugin[] {
+export function getPlugins(boot: ResolvedBoot = resolveBoot()): ModulePlugin[] {
   const { entries } = boot
-  const shared = buildSharedResources(entries, profileStore)
-  return [
-    // Always-on shell (`shell:*`): the settings page and the UI language,
-    // deliberately outside the MCP_ACTIVE_MODULES selection. Its language save
-    // is a framework write: OAuth and no module on its read-only floor.
-    createShellPlugin({ profileStore, allowSave: frameworkWritesAllowed(boot) }),
-    ...composition.pluginsFor(entries, shared),
-  ]
+  return composition.pluginsFor(entries, buildSharedResources(entries))
 }

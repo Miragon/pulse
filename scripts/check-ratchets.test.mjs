@@ -1014,7 +1014,7 @@ export const sharedConfig = defineConfig({
     )
     assert.equal(enabled, true)
     assert.ok(exclude.includes("...coverageConfigDefaults.exclude"))
-    assert.ok(exclude.includes("**/src/postgres.ts"))
+    assert.deepEqual(exclude, ["...coverageConfigDefaults.exclude"])
   })
 
   it("flags a coverage.include that appears in the shared config", () => {

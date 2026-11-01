@@ -2,7 +2,7 @@ import { useMemo } from "react"
 import { useLocale, useToast } from "@miragon/pulse-ui"
 import { classifyError, describeError } from "./describe-error.js"
 import { ERROR_LABELS } from "./error-labels.js"
-import { supportedLanguage } from "./host-context.js"
+import { resolveLanguage } from "./host-context.js"
 
 export interface ActionFeedback {
   /** The title names the object ("Einstellungen gespeichert"). */
@@ -15,7 +15,7 @@ export interface ActionFeedback {
 export function failureLine(error: unknown, locale: string | undefined): string {
   const described = describeError(error, locale)
   const facts = classifyError(error)
-  const toast = ERROR_LABELS[supportedLanguage(locale) ?? "en"].toast
+  const toast = ERROR_LABELS[resolveLanguage(locale)].toast
   const happened = described.kind === "unknown" ? "" : `${described.title}. `
   if (facts.mayHaveApplied) return `${happened}${toast.mayHaveApplied()}`
   if (described.kind !== "failed") return `${happened}${described.hint}`

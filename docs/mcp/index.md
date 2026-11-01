@@ -9,7 +9,7 @@ read-only; writes need a toolset you name. Commands and configs call the server 
 | Page                                    | What it covers                                                                       |
 | --------------------------------------- | ------------------------------------------------------------------------------------ |
 | [Getting started](./getting-started.md) | Connect your Claude to the public playground, then run the server on your own engine |
-| [Usage](./usage.md)                     | Connect an assistant, what to ask, your own settings                                 |
+| [Usage](./usage.md)                     | Connect an assistant, what to ask, language and theme                                |
 | [Reference](./reference.md)             | Every tool, the toolsets and the common settings                                     |
 | [Operations](./operations.md)           | The Docker image, security, environment variables, toolsets, health routes           |
 | [Architecture](./architecture.md)       | The server, its two modules and the systems they talk to                             |

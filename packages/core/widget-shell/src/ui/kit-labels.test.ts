@@ -21,7 +21,6 @@ describe("kitLabels — the kit's own strings follow the active locale", () => {
   it("speaks German for any German tag", () => {
     for (const tag of ["de", "de-AT", "DE-ch"]) {
       expect(rendered(tag)).toEqual({
-        loading: "Wird geladen…",
         loadingView: "Ansicht wird geladen…",
         zoomIn: "Vergrößern",
         zoomOut: "Verkleinern",
@@ -62,7 +61,6 @@ describe("kitLabels — the kit's own strings follow the active locale", () => {
   it("falls back to English for English, unsupported and missing locales", () => {
     for (const tag of ["en-US", "fr-FR", undefined]) {
       expect(rendered(tag)).toEqual({
-        loading: "Loading…",
         loadingView: "Loading view…",
         zoomIn: "Zoom in",
         zoomOut: "Zoom out",

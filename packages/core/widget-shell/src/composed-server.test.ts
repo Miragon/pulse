@@ -228,14 +228,13 @@ describe("createComposedServer — on the wire", () => {
       modules: [
         {
           ...alpha,
-          instructions: (config, { authenticated }) =>
-            `alpha routes to ${String(config.url)} (${authenticated ? "signed in" : "anonymous"}).`,
+          instructions: (config) => `alpha routes to ${String(config.url)}.`,
         },
       ],
     })
     const { server } = await boot({ composition: instructed })
     const result = rpcResult((await initialize(server.port)).body)
-    expect(result.instructions).toBe("Be brief.\n\nalpha routes to default (anonymous).")
+    expect(result.instructions).toBe("Be brief.\n\nalpha routes to default.")
   })
 
   it("guards /mcp by Host and Origin but leaves the probes and the scrape to IP callers", async () => {
@@ -317,7 +316,10 @@ describe("createComposedServer — graceful drain", () => {
       }),
     })
     // Stands in for an in-flight tool call; registered before the first request mounts the app.
+    let arrived!: () => void
+    const received = new Promise<void>((resolve) => (arrived = resolve))
     composed.app.get("/slow", async () => {
+      arrived()
       await gate
       order.push("slow answered")
       return new Response("done")
@@ -327,7 +329,8 @@ describe("createComposedServer — graceful drain", () => {
       const ready = await request(server.port, { path: "/health/ready" })
       expect(ready.status).toBe(200)
     })
-    await new Promise((resolve) => setTimeout(resolve, 20))
+    // The request is in flight once its handler runs; a fixed sleep would race a loaded machine.
+    await received
 
     const shutdown = server.shutdown()
     expect(server.shutdown()).toBe(shutdown)
@@ -345,9 +348,15 @@ describe("createComposedServer — graceful drain", () => {
       { setup: () => ({ plugins: [], shutdown: shutdownRuntime }) },
       30,
     )
-    composed.app.get("/hang", () => new Promise<Response>(() => {}))
+    let arrived!: () => void
+    const received = new Promise<void>((resolve) => (arrived = resolve))
+    composed.app.get("/hang", () => {
+      arrived()
+      return new Promise<Response>(() => {})
+    })
     const hung = request(server.port, { path: "/hang" }).catch((error: Error) => error)
-    await new Promise((resolve) => setTimeout(resolve, 30))
+    // Shut down only once the request is in flight; a fixed sleep raced a loaded machine.
+    await received
 
     await server.shutdown()
     expect(console.warn).toHaveBeenCalledWith(

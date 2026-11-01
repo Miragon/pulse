@@ -28,12 +28,7 @@ export const CAMUNDA7_SHOW_INCIDENTS_DASHBOARD = "camunda7_show_incidents_dashbo
 export const CAMUNDA7_SHOW_JOB_PANEL = "camunda7_show_job_panel"
 export const CAMUNDA7_SHOW_PROCESS_LIST = "camunda7_show_process_list"
 export const CAMUNDA7_PROCESS_LIST_DATA = "camunda7_process_list_data"
-export const CAMUNDA7_SHOW_SETTINGS = "camunda7_show_settings"
-export const CAMUNDA7_SETTINGS_DATA = "camunda7_settings_data"
-export const CAMUNDA7_SAVE_SETTINGS = "camunda7_save_settings"
-// No widget writes a default: only the settings page or an explicit model call to the select tool.
 export const CAMUNDA7_LIST_ENGINES = "camunda7_list_engines"
-export const CAMUNDA7_SELECT_ENGINE = "camunda7_select_engine"
 // The toolset may not register these, so widgets ask `*_widget_actions_data` which exist.
 // `src/widget-actions.test.ts` fails on an in-widget write missing here.
 export const CAMUNDA7_WIDGET_ACTIONS = [

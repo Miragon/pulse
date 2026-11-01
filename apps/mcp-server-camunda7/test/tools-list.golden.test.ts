@@ -47,7 +47,7 @@ const TOOLSETS: ReadonlyArray<{
     options: {
       authenticated: true,
       env: {
-        MCP_ACTIVE_MODULES: "camunda7:admin,analytics:standard",
+        MCP_ACTIVE_MODULES: "camunda7:admin,analytics",
         CAMUNDA_ALLOW_DEPLOYMENTS: "true",
       },
     },

@@ -16,18 +16,7 @@ export const sharedConfig = defineConfig({
       // json-summary feeds scripts/fitness-report.mjs (pnpm fitness).
       reporter: ["text-summary", "json-summary"],
       reportsDirectory: "./coverage",
-      exclude: [
-        ...coverageConfigDefaults.exclude,
-        // Postgres adapters + the migration runner: executable ONLY against a
-        // real database, so their suites are the opt-in `pnpm test:pg` slice
-        // (skipped without TEST_DATABASE_URL) — exactly like the Playwright
-        // host simulation, which also stays out of these numbers. Counting
-        // them would make every ratchet depend on whether a database happened
-        // to be reachable: the same commit would measure ~10 points apart on a
-        // developer machine with the compose stack up and in CI without it.
-        "**/src/postgres.ts",
-        "**/src/*-store-postgres.ts",
-      ],
+      exclude: [...coverageConfigDefaults.exclude],
     },
   },
 })

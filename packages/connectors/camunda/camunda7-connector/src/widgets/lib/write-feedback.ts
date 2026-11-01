@@ -58,8 +58,4 @@ export const writeFeedback = {
         : t("feedback.taskCompleted", { name }),
     failure: t("feedback.taskCompleteFailed", { name }),
   }),
-  settings: (t: T): WriteFeedback<unknown> => ({
-    success: t("feedback.settingsSaved"),
-    failure: t("feedback.settingsSaveFailed"),
-  }),
 }

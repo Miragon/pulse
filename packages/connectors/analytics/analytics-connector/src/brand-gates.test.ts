@@ -8,7 +8,6 @@ import {
   scanTypeScale,
 } from "@miragon/pulse-ui/testing"
 import { deAskAi } from "./messages/de.ask-ai.js"
-import { deServer } from "./messages/de.server.js"
 import { deSweep } from "./messages/de.sweep.js"
 import { enAskAi } from "./messages/en.ask-ai.js"
 import { enServer } from "./messages/en.server.js"
@@ -21,7 +20,6 @@ describe("analytics copy follows the voice rules", () => {
     ["widget texts (en)", enSweep, "en"],
     ["Ask-AI intents (de)", deAskAi, "de"],
     ["Ask-AI intents (en)", enAskAi, "en"],
-    ["model summaries (de)", deServer, "de"],
     ["model summaries (en)", enServer, "en"],
   ] as const)("%s", (_, catalog, language) => {
     expect(catalogTextFindings(catalog, { language })).toEqual([])

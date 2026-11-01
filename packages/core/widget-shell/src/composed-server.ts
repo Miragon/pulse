@@ -190,7 +190,7 @@ async function buildServer(
   env: NodeJS.ProcessEnv,
 ): Promise<MCPServer<unknown>> {
   const app = createServer(options, boot)
-  // Registrars take the OAuth-less type; they read `ctx.auth` structurally (`resolveCaller`).
+  // Registrars take the OAuth-less type: no handler reads `ctx.auth`, only the request middleware.
   const server = app as unknown as MCPServer
   const registration = installToolRegistration(server, fontAssetsCsp(env))
   for (const plugin of runtime.plugins) registration.register(plugin)
@@ -348,7 +348,7 @@ export async function createComposedServer(
   try {
     app = await buildServer(options, boot, runtime, env)
   } catch (error) {
-    // Only `drain()` ends what setup opened (a database pool), and a failed boot never listens.
+    // Only `drain()` ends what setup opened (a connection pool, say), and a failed boot never listens.
     // The registration error is what the operator needs, so a failing shutdown only logs.
     await runtime.shutdown?.().catch((cause: unknown) => {
       console.error(`[${label}] shutdown failed:`, cause)

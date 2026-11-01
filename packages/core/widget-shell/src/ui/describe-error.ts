@@ -1,4 +1,4 @@
-import { supportedLanguage } from "./host-context.js"
+import { resolveLanguage } from "./host-context.js"
 import { ERROR_LABELS, type ErrorKindLabels, type ErrorSource } from "./error-labels.js"
 
 export type { ErrorSource } from "./error-labels.js"
@@ -149,7 +149,7 @@ export function describeError(
   locale: string | undefined,
   options: DescribeErrorOptions = {},
 ): DescribedError {
-  const labels = ERROR_LABELS[supportedLanguage(locale) ?? "en"]
+  const labels = ERROR_LABELS[resolveLanguage(locale)]
   const facts = classifyError(error)
   const words: ErrorKindLabels = labels[facts.kind]
   const source = labels.source({ source: facts.source })

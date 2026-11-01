@@ -18,15 +18,13 @@ import { scanSources, type ScanOptions } from "./source-scan.js"
  *
  * Modules never import each other (CLAUDE.md invariant 8), so a widget that
  * needs another module's feed names it by raw string
- * (`analytics-probe.ts` → `analytics_settings_data`, `process-incidents/
+ * (`analytics-probe.ts` → `analytics_engine_landscape_data`, `process-incidents/
  * flow.tsx` → `analytics_bpmn_heatmap_data`). Graceful degradation then
  * HIDES a stale name at runtime: the fleet view is silently never offered,
  * the heatmap overlay silently absent — and the module's own tests stub the
  * same stale literal. Only the app sees every module at once, so this is
  * where the names are checked: every `<module>_…` string literal in any
- * package's or app's non-test source must name a tool of the full surface —
- * the shell's own tools (`shell_…`, widget-shell's settings contract, which
- * `ProfileGate` reads the language from in every view) included.
+ * package's or app's non-test source must name a tool of the full surface.
  */
 
 interface ToolNameRef {
@@ -94,11 +92,11 @@ describe("raw tool-name literals name real tools (full surface)", () => {
   let paramRefs: ParamRef[]
 
   beforeAll(async () => {
-    // The full surface: every module, admin toolset, deployments, the shell's save.
+    // The full surface: every module, admin toolset, deployments.
     server = await bootServer({
       authenticated: true,
       env: {
-        MCP_ACTIVE_MODULES: "camunda7:admin,analytics:standard",
+        MCP_ACTIVE_MODULES: "camunda7:admin,analytics",
         CAMUNDA_ALLOW_DEPLOYMENTS: "true",
       },
     })
@@ -108,9 +106,9 @@ describe("raw tool-name literals name real tools (full surface)", () => {
     toolParams = new Map(
       listed.map((tool) => [tool.name, Object.keys(tool.inputSchema.properties ?? {})]),
     )
-    // Prefixes come from the surface itself: `camunda7_…`, `analytics_…`, `shell_…`.
+    // Prefixes come from the surface itself: `camunda7_…`, `analytics_…`.
     const prefixes = [...new Set(names.flatMap((n) => /^([a-z0-9]+)_/.exec(n)?.[1] ?? []))]
-    expect(prefixes.sort()).toEqual(["analytics", "camunda7", "shell"])
+    expect(prefixes.sort()).toEqual(["analytics", "camunda7"])
     // Every app is read for the literals, an interface app (a CLI, an editor
     // extension) included: where it names a tool, that tool must exist.
     refs = scanSources((file, text) => findToolNameLiterals(file, text, prefixes))
@@ -135,15 +133,8 @@ describe("raw tool-name literals name real tools (full surface)", () => {
       .filter((r) => r.at.startsWith("packages/connectors/camunda/camunda7-connector/src/widgets/"))
       .map((r) => r.name)
     expect(camunda7Refs).toEqual(
-      expect.arrayContaining(["analytics_settings_data", "analytics_bpmn_heatmap_data"]),
+      expect.arrayContaining(["analytics_engine_landscape_data", "analytics_bpmn_heatmap_data"]),
     )
-  })
-
-  it("sees the shell's settings contract (the core package is scanned too)", () => {
-    const shellRefs = refs
-      .filter((r) => r.at.startsWith("packages/core/widget-shell/src/shell-settings-contract.ts:"))
-      .map((r) => r.name)
-    expect(shellRefs).toEqual(["shell_show_settings", "shell_settings_data", "shell_save_settings"])
   })
 
   // #329: a prompt that tells the model to pass a filter the tool does not

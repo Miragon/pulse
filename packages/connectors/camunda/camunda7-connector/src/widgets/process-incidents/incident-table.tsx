@@ -201,7 +201,7 @@ export function PagedIncidentTable({
 }: {
   processDefinitionKey: string
   activityId: string
-  /** Omitted: the caller's saved default engine. */
+  /** Omitted: the default engine. */
   engine?: string
   vendor?: string
   onAnalyze: (incidentId: string) => void

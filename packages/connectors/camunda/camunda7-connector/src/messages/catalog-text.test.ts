@@ -8,6 +8,7 @@ import { enAskAi } from "./en.ask-ai.js"
 import { deAskAi } from "./de.ask-ai.js"
 import { enFeedback } from "./en.feedback.js"
 import { deFeedback } from "./de.feedback.js"
+import { enServer } from "./en.server.js"
 import { catalogs } from "./index.js"
 import { countOf, isOne } from "./plural.js"
 
@@ -17,8 +18,9 @@ import { countOf, isOne } from "./plural.js"
  */
 describe("camunda7 copy follows the voice rules", () => {
   it.each([
-    ["shell + summaries (en)", en, "en"],
-    ["shell + summaries (de)", de, "de"],
+    ["cockpit shell (en)", en, "en"],
+    ["cockpit shell (de)", de, "de"],
+    ["model summaries (en)", enServer, "en"],
     ["widgets (en)", enSweep, "en"],
     ["widgets (de)", deSweep, "de"],
     ["chat hand-offs (en)", enAskAi, "en"],

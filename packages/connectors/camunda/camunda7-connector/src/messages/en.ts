@@ -6,7 +6,6 @@ export const en: MessageCatalog = {
   "cockpit.crumb.processList": "All processes",
   "cockpit.section.overview": "Overview",
   "cockpit.section.incidents": "Incidents",
-  "cockpit.section.settings": "Settings",
   "cockpit.crumb.overview": "Overview",
   "cockpit.crumb.incidents": "Incidents",
   "cockpit.crumb.instances": "Instances",
@@ -46,91 +45,5 @@ export const en: MessageCatalog = {
   "cockpit.crumb.allEngines": "All engines",
   "cockpit.crumb.fleet": "Cross-engine overview",
   "cockpit.engineGone": ({ engineId }) =>
-    `Engine ${String(engineId)} is no longer in your engine list.`,
-
-  "profile.heading": "Engine settings",
-  "profile.subtitle": "Which engines you pick from and which one is your default, in every chat.",
-  "profile.save": "Save",
-  "profile.saving": "Saving…",
-  "profile.discard": "Discard changes",
-  "profile.saveBar.label": "Save settings",
-  "profile.saveBar.unsaved": "Your engine settings aren't saved yet.",
-  "profile.saveBar.clean": "Your engine settings are saved.",
-  "profile.saveError": "Could not save the settings. Your input is still here, try again.",
-  "profile.readOnly.title": "These settings are read-only here",
-  "profile.readOnly.toolset":
-    "This connection runs the read-only toolset. With the operations toolset you can change them: ask your administrator to switch the connection.",
-  "profile.readOnly.noSignIn":
-    "This connection has no sign-in, so it has no one to save settings for. Saving needs a connection with sign-in: ask your administrator to set one up.",
-  "profile.loading": "Loading…",
-  "profile.none": "No settings available",
-
-  "profile.section.engines": "Engines",
-
-  "profile.field.allEngines": "Allow all engines",
-  "profile.field.allEngines.help":
-    "Every configured engine appears in your pickers, engines added later too. Your permissions stay the same.",
-  "profile.field.allowedEngines": "Your engines",
-  "profile.field.allowedEngines.help": "Only these engines appear in your pickers.",
-  "profile.engines.noneChosen": "Pick at least one engine, or allow all engines.",
-  "profile.engines.none": "No engines configured.",
-  "profile.field.defaultEngine": "Default engine",
-  "profile.field.defaultEngine.help":
-    "Tools and the cockpit use this engine when you pick no other.",
-  "profile.engine.auto": "(auto)",
-
-  "profile.summary": ({ engines }) => `camunda7 settings: ${String(engines)}.`,
-  "profile.summary.allEngines": "all engines",
-  "profile.summary.someEngines": ({ count }) => countOf(count, "allowed engine", "allowed engines"),
-
-  "c7sum.cockpitOpened":
-    'Operations cockpit for engine "{engineId}" ({engineCount} engine(s) in the user\'s engine list). Where the host shows the view, the user navigates the process landscape in it.',
-  "c7sum.cockpitOpenedPicker":
-    "Operations cockpit at its engine picker: {engineCount} engine(s) in the user's engine list, none preselected (no `engine` passed, no saved default). Where the host shows the view, the user picks one there; pass `engine` to open it on a specific engine.",
-  "c7sum.processList":
-    'Process list: {totalCount} deployed definition(s){filters} on engine "{engineId}".',
-  "c7sum.state.active": "running",
-  "c7sum.state.suspended": "suspended",
-  "c7sum.state.ended": "ended",
-  "c7sum.instanceDetail":
-    "Process instance {instanceId}{businessKey}: {state}; running activities: {activeActivities}, open incidents: {openIncidents}, open user tasks: {openTasks}.",
-  "c7sum.processInstances":
-    '{totalCount} running instance(s) of "{processDefinitionKey}", of them {withIncidentCount} with incidents and {suspendedCount} suspended; this page holds {returnedCount}.',
-  "c7sum.incidentsDashboard":
-    "Incidents dashboard: {totalCount} open incident(s) across {processCount} process definition(s), {last24hCount} in the last 24h.",
-  "c7sum.processIncidents":
-    'Process incidents for "{processDefinitionKey}" (all versions; diagram v{diagramVersion}): {incidentCount} open incident(s), affected activities: {activities}, {last24hCount} in the last 24h.',
-  "c7sum.incidentDetail":
-    'Incident {incidentId} ({incidentType}) at activity "{activity}" in "{processDefinitionKey}", instance {processInstanceId}{message}.',
-  "c7sum.processDetail":
-    'Process "{processDefinitionKey}" (all versions; diagram v{diagramVersion}): {runningInstances} running instance(s), {openIncidents} open incident(s), {failedJobs} job(s) without retries.',
-  "c7sum.historyTimeline":
-    "History timeline for process instance {processInstanceId}: historic activities: {totalActivities}{notFound}.",
-  "c7sum.historyTimeline.notFound": " (no historic process instance found)",
-  "c7sum.engineHealth":
-    'Engine "{engineId}": {status} ({rule}). Open incidents: {totalIncidents}, affected activities: {affectedActivities}, running instances: {runningInstances}.{topCluster}',
-  "c7sum.engineHealth.topCluster":
-    ' Top cluster: activity "{activityId}" / {incidentType}, incidents: {incidentCount}.',
-  "c7sum.engineHealth.noIncidents": " No open incidents.",
-  "c7sum.unknownNumberOf": "an unknown number of",
-  "c7sum.atLeast": "at least {count}",
-  "c7sum.unknown": "unknown",
-  "c7sum.clusterDetail":
-    'Failure cluster on engine "{engineId}": activity "{activityId}" / {incidentType}. Incidents: {incidentCount} ({lastHourCount} in the last hour), processes: {processes}.{sample}',
-  "c7sum.clusterDetail.unknownProcesses": "unknown processes",
-  "c7sum.clusterDetail.sample": " Sample: {message}",
-  "c7sum.bpmnViewer": "BPMN diagram for {target}{overlayInfo}{xmlUnavailable}.",
-  "c7sum.bpmnViewer.empty":
-    "BPMN viewer: no matching process definition found, so the diagram is empty.",
-  "c7sum.bpmnViewer.targetInstance": "process instance {processInstanceId}",
-  "c7sum.bpmnViewer.targetDefinition": "process definition {definitionId}",
-  "c7sum.bpmnViewer.overlays":
-    "; running activities: {activeActivities}, activities with incidents: {incidentActivities}, jobs without retries in this instance: {failedJobs}",
-  "c7sum.bpmnViewer.noOverlays":
-    " (no instance overlays; the badges count all running instances of this version)",
-  "c7sum.bpmnViewer.xmlUnavailable": "; diagram XML unavailable",
-  "c7sum.jobPanel":
-    "Job panel: {totalCount} job(s), {failedCount} without retries{forProcess}{failedOnly}.",
-  "c7sum.jobPanel.forProcess": ' for "{processDefinitionKey}"',
-  "c7sum.jobPanel.failedOnly": " (only jobs without retries)",
+    `Engine ${String(engineId)} is no longer configured on this server.`,
 }

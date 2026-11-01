@@ -2,9 +2,9 @@ import fs from "node:fs"
 import { z } from "zod"
 import type { ModulePlugin } from "@miragon/pulse-widget-shell/server"
 import type { Client } from "@miragon/pulse-camunda7-client"
-import { createPlugin, type Camunda7SharedResources } from "./plugin.js"
+import { createPlugin } from "./plugin.js"
 import { DEFAULT_ENGINE_FLAVOR, providerForEntry } from "./providers/index.js"
-import { allowsProfileSave, camunda7Toolsets } from "./lib/toolsets.js"
+import { camunda7Toolsets } from "./lib/toolsets.js"
 import { camunda7Instructions } from "./instructions.js"
 import { fetchLatestDefinitionXml } from "./data/definition-info.js"
 
@@ -65,6 +65,7 @@ export const camunda7ConfigSchema = z
     username: z.string().optional(),
     password: z.string().optional(),
     token: z.string().optional(),
+    defaultEngine: z.string().optional(),
     toolset: z.string().optional(),
     // Strict: deploying is code execution in the engine JVM (z.coerce.boolean reads "false" as true).
     allowDeployments: z
@@ -118,6 +119,17 @@ export const camunda7ConfigSchema = z
   .refine((c) => new Set(c.engines.map((e) => e.id)).size === c.engines.length, {
     message:
       "Engine ids must be unique across all environments — the id is the per-call `engine` selector and the join key against the metrics' engine_id label",
+  })
+  // No quotes around the ids: ZodError.message is the issues JSON, which would escape them.
+  .superRefine((c, issues) => {
+    const ids = c.engines.map((e) => e.id)
+    if (c.defaultEngine !== undefined && !ids.includes(c.defaultEngine)) {
+      issues.addIssue({
+        code: "custom",
+        path: ["defaultEngine"],
+        message: `CAMUNDA_DEFAULT_ENGINE=${c.defaultEngine} names no configured engine (configured: ${ids.join(", ")}).`,
+      })
+    }
   })
 
 /** End index of the JSON string literal opening at `openQuote` (escape-aware). */
@@ -260,6 +272,7 @@ export const camunda7Module = {
       username: env.CAMUNDA_USERNAME,
       password: env.CAMUNDA_PASSWORD,
       token: env.CAMUNDA_TOKEN,
+      defaultEngine: env.CAMUNDA_DEFAULT_ENGINE?.trim() || undefined,
       incidentIssueRepository: env.CAMUNDA_INCIDENT_ISSUE_REPO,
       allowDeployments: allowDeploymentsFromEnv(env),
       requestTimeoutMs: env.CAMUNDA_REQUEST_TIMEOUT_MS?.trim() || undefined,
@@ -280,6 +293,7 @@ export const camunda7Module = {
     "CAMUNDA_BASE_URL",
     "CAMUNDA_ENGINE_ID",
     "CAMUNDA_ENGINE_FLAVOR",
+    "CAMUNDA_DEFAULT_ENGINE",
     "CAMUNDA_COCKPIT_URL",
     "CAMUNDA_AUTH_TYPE",
     "CAMUNDA_USERNAME",
@@ -321,19 +335,17 @@ export const camunda7Module = {
     return warnings
   },
 
-  /** Offers saving a default only under OAuth: without it no request has a caller identity (#331). */
-  instructions(config: Record<string, unknown>, { authenticated }: { authenticated: boolean }) {
+  instructions(config: Record<string, unknown>) {
     const parsed = camunda7ConfigSchema.parse(config)
-    const toolset = camunda7Toolsets.resolve(parsed.toolset)
     return camunda7Instructions({
       engineIds: parsed.engines.map((e) => e.id),
-      canSaveDefault: authenticated && allowsProfileSave(toolset),
-      toolset,
+      defaultEngine: parsed.defaultEngine,
+      toolset: camunda7Toolsets.resolve(parsed.toolset),
     })
   },
 
-  createPlugin(config: Record<string, unknown>, shared: Camunda7SharedResources): ModulePlugin {
-    return createPlugin(camunda7ConfigSchema.parse(config), { profileStore: shared.profileStore })
+  createPlugin(config: Record<string, unknown>): ModulePlugin {
+    return createPlugin(camunda7ConfigSchema.parse(config))
   },
 }
 

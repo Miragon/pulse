@@ -86,8 +86,7 @@ export function App() {
   catalogs in English and German) and the toasts (`ToastProvider`, `useToast`); the formatters
   (`formatNumber`, `formatDuration`, `formatTimestamp`, … in the locale `setFormatLocale` sets,
   see the minimal example); the pieces every list and form shares (`Th`/`Td`, `TableEmptyState`,
-  `NamedId`, `Icon`, `Section`, `RowCard`, `SettingsCard`/`SettingsField`/`SettingsInput`,
-  `NativeSelect`, `SegmentedControl`, `LogText`); the Komet for app-level surfaces only
+  `NamedId`, `Icon`, `Section`, `RowCard`, `NativeSelect`, `SegmentedControl`, `LogText`); the Komet for app-level surfaces only
   (`KometMark`/`AppEmptyState`: a landing, a first start, never in a widget); the font helpers
   (`fontFaces`, `GEIST_FONT_FILES`, `adoptHostFontVariables`) and the tokens as data
   (`CD_TOKENS`, `ROLE_TOKENS`).
@@ -125,7 +124,7 @@ Measure a brand in a test: `parseThemeVariables(...themeStylesheets(), brandCss)
 ## What it is not
 
 Pure React: no `mcp-use`, no TanStack Query, no zod and no host. The view runtime (a view
-mounted in an MCP host, its tool calls, the settings page) is
+mounted in an MCP host and its tool calls) is
 [`@miragon/pulse-widget-shell`](../widget-shell) (`/widgets`), which builds on this kit.
 
 ## License

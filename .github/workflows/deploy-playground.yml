@@ -21,7 +21,6 @@ on:
           - engine
           - prometheus
           - grafana
-          - postgres
           - server
 
 permissions:

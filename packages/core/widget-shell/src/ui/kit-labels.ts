@@ -1,10 +1,8 @@
-import type { Locale } from "../profile-constants.js"
 import type { HandOffAction } from "./hand-off-button.js"
-import { supportedLanguage } from "./host-context.js"
+import { resolveLanguage, type Locale } from "./host-context.js"
 
 /** The kit ships no catalog, so its components' few defaults come from here; props override. */
 export interface KitLabels {
-  loading: string
   loadingView: string
   zoomIn: string
   zoomOut: string
@@ -44,7 +42,6 @@ export interface KitLabels {
 
 const LABELS: Record<Locale, KitLabels> = {
   en: {
-    loading: "Loading…",
     loadingView: "Loading view…",
     zoomIn: "Zoom in",
     zoomOut: "Zoom out",
@@ -96,7 +93,6 @@ const LABELS: Record<Locale, KitLabels> = {
     reloadedAt: (time) => `Reloaded at ${time}`,
   },
   de: {
-    loading: "Wird geladen…",
     loadingView: "Ansicht wird geladen…",
     zoomIn: "Vergrößern",
     zoomOut: "Verkleinern",
@@ -150,7 +146,7 @@ const LABELS: Record<Locale, KitLabels> = {
 }
 
 export function kitLabels(locale: string | undefined): KitLabels {
-  return LABELS[supportedLanguage(locale) ?? "en"]
+  return LABELS[resolveLanguage(locale)]
 }
 
 export const KIT_LABELS: Readonly<Record<Locale, KitLabels>> = LABELS

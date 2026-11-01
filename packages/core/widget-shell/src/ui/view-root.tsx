@@ -14,7 +14,7 @@ import { SHELL_VIEW_CONFIG } from "./display-mode-toggle.js"
 import { HostDocument } from "./host-document.js"
 import { HostWidgetsProvider, type HostWidgets } from "./host-widgets.js"
 import { McpUseViewHost, useMcpUseViewCall } from "./mcp-use-host.js"
-import { ProfileGate } from "./profile-gate.js"
+import { LocaleGate } from "./locale-gate.js"
 import { createViewQueryClient } from "./tool-query.js"
 import { ViewFrame } from "./view-frame.js"
 import type { ViewComponent, ViewMap } from "./views.js"
@@ -60,7 +60,7 @@ function McpUseViewFrame({
 /**
  * The provider order is load-bearing: the host first (every hook below reads it), ONE query client
  * per document, the document layer (theme, fonts, the inline budget box), the gate that resolves
- * the locale from the profile feed, then the kit's icon stroke and toasts.
+ * the locale from the host context, then the kit's icon stroke and toasts.
  */
 export function ViewRoot({
   name,
@@ -74,7 +74,7 @@ export function ViewRoot({
       <McpUseViewHost>
         <QueryClientProvider client={client}>
           <HostDocument>
-            <ProfileGate>
+            <LocaleGate>
               <LucideProvider strokeWidth={ICON_STROKE}>
                 <ToastProvider>
                   <HostWidgetsProvider widgets={hostWidgets ?? NO_WIDGETS}>
@@ -82,7 +82,7 @@ export function ViewRoot({
                   </HostWidgetsProvider>
                 </ToastProvider>
               </LucideProvider>
-            </ProfileGate>
+            </LocaleGate>
           </HostDocument>
         </QueryClientProvider>
       </McpUseViewHost>

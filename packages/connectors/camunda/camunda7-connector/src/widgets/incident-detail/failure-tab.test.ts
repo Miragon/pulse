@@ -20,7 +20,7 @@ const INCIDENT = {
 
 const onProdB = { ...INCIDENT, engineId: "prod-b" } as IncidentDetailData
 
-/** The cockpit never moves the saved default, so an engine-less call would route elsewhere. */
+/** The cockpit never moves the default engine, so an engine-less call would route elsewhere. */
 describe("incident Ask-AI hand-offs", () => {
   it("the ticket draft calls the format tool on the incident's engine", async () => {
     const prompt = (await handOffFor("read-only")).ask(draftTicketHandOff(onProdB))!

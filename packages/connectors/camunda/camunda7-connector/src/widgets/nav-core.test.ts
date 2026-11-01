@@ -15,7 +15,6 @@ describe("intentToView", () => {
       [{ type: "overview" }, { section: "overview" }],
       [{ type: "process-list" }, { section: "process-list" }],
       [{ type: "incidents" }, { section: "incidents" }],
-      [{ type: "settings" }, { section: "settings" }],
       [
         { type: "cluster-detail", activityId: "a1", incidentType: "failedJob" },
         {
@@ -107,7 +106,6 @@ describe("viewToIntent", () => {
       { type: "overview" },
       { type: "process-list" },
       { type: "incidents" },
-      { type: "settings" },
       {
         type: "cluster-detail",
         activityId: "a1",

@@ -8,7 +8,7 @@ export function analyticsInstructions(): string {
   return [
     "analytics (Prometheus metrics of the engines):",
     "- `engine` is a metric filter over this server's configured engines, not routing: omitted = " +
-      "the aggregate over all of them, named in each result's `engines` (camunda7's saved default " +
+      "the aggregate over all of them, named in each result's `engines` (camunda7's default " +
       "engine does not apply); pass one id or a list to scope a query — other ids are refused.",
     "- Never compare a rate across engines: analytics_engine_landscape gives counts and backlog per " +
       "engine, analytics_engine_compare holds one process fixed.",

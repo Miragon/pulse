@@ -198,9 +198,9 @@ describe("TestViewHost: providers", () => {
   it("hands out the host widgets: a slot renders one with its props, or nothing", () => {
     const Section = (props: Record<string, unknown>) => <p>{`section ${String(props.engine)}`}</p>
     render(
-      <TestViewHost hostWidgets={{ "demo:settings": Section }}>
-        <HostWidgetSlot id="demo:settings" props={{ engine: "prod" }} />
-        <HostWidgetSlot id="missing:settings" />
+      <TestViewHost hostWidgets={{ "demo:panel": Section }}>
+        <HostWidgetSlot id="demo:panel" props={{ engine: "prod" }} />
+        <HostWidgetSlot id="missing:panel" />
         <HostWidgetSlot id="toString" />
       </TestViewHost>,
     )

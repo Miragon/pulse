@@ -1,24 +1,5 @@
-import type {
-  ComposableModule,
-  ProfileSource,
-  ProfileStore,
-} from "@miragon/pulse-widget-shell/server"
+import type { ComposableModule } from "@miragon/pulse-widget-shell/server"
 import type { FetchBpmnXml } from "@miragon/pulse-analytics-connector"
-
-/**
- * Compile-time proof that the concrete profile store this app wires still
- * satisfies the narrow port foreign modules consume
- * (`@miragon/pulse-widget-shell/server`). Modules take the store structurally and
- * never import each other, so nothing else would catch a `ProfileStore` change
- * that breaks e.g. the analytics settings section — it would surface as a
- * runtime failure in a module the change never touched. Both types live in
- * widget-shell since the store extraction; the assertion keeps guarding the
- * seam regardless of where either side moves next.
- */
-type Assert<T extends true> = T
-export type ProfileStoreSatisfiesModulePort = Assert<
-  ProfileStore extends ProfileSource ? true : false
->
 
 /**
  * Cross-module resources this app wires at boot and threads into every
@@ -28,13 +9,6 @@ export type ProfileStoreSatisfiesModulePort = Assert<
  * never import each other.
  */
 export interface SharedResources {
-  /**
-   * One per-user preference store for the whole server, so engine
-   * availability, locale and analytics defaults come from one source.
-   * Postgres with `DATABASE_URL`, filesystem-backed when `MCP_PROFILE_DIR` is
-   * set (survives restarts), else in-memory.
-   */
-  profileStore: ProfileStore
   /**
    * Engine-agnostic BPMN-XML lookup (on any of the camunda7 module's
    * engines, its first one by default) consumed by the analytics heatmap and

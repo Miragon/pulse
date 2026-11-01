@@ -34,7 +34,7 @@ import type {
 
 export const ACTIVITY_BREAKDOWN_LIMIT = 20
 
-// The analytics settings' default `minBucketSize`.
+// The comparison schemas' default `minBucketSize`.
 const DEFAULT_MIN_BUCKET_SIZE = 10
 
 const ms = (value: number) => Math.round(value)

@@ -1,7 +1,4 @@
-import type { CAMUNDA7_SAVE_SETTINGS, Camunda7WidgetAction } from "../../tool-names.js"
-
-/** The profile save gates itself in its view (`canSave` also needs a signed-in caller). */
-export type WidgetWrite = Camunda7WidgetAction | typeof CAMUNDA7_SAVE_SETTINGS
+import type { Camunda7WidgetAction } from "../../tool-names.js"
 
 export interface WritePolicy {
   /**
@@ -38,7 +35,7 @@ function views(...namespaces: string[]): readonly string[] {
 }
 
 /** A property of the write, never of its button, so two surfaces running the same tool agree. */
-export const WRITE_POLICY: Record<WidgetWrite, WritePolicy> = {
+export const WRITE_POLICY: Record<Camunda7WidgetAction, WritePolicy> = {
   camunda7_set_job_retries: { invalidates: INCIDENT_VIEWS, confirm: false },
   camunda7_set_external_task_retries: { invalidates: INCIDENT_VIEWS, confirm: false },
   camunda7_resolve_incident: { invalidates: INCIDENT_VIEWS, confirm: true },
@@ -74,10 +71,5 @@ export const WRITE_POLICY: Record<WidgetWrite, WritePolicy> = {
       ...INCIDENT_VIEWS.filter((key) => key !== "camunda7:instance-detail"),
     ),
     confirm: true,
-  },
-  // The language is the shell's.
-  camunda7_save_settings: {
-    invalidates: ["camunda7:settings", "camunda7:engines"],
-    confirm: false,
   },
 }

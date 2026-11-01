@@ -12,19 +12,18 @@ import {
   CAMUNDA7_SHOW_PROCESS_INSTANCES,
   CAMUNDA7_SHOW_PROCESS_LIST,
 } from "../tool-names.js"
-import { resolveEngine } from "../lib/resolve-engine.js"
-import { cockpitEngineScope } from "../lib/engine-preferences.js"
+import { cockpitEngineId, resolveEngine } from "../lib/resolve-engine.js"
 import { environmentOf } from "../lib/environments.js"
 import {
   pagingShape,
   processInstancesFilterShape,
   processListFilterShape,
 } from "../feed-contracts.js"
-import { localizeFor } from "../lib/server-locale.js"
+import { summaryT as t } from "../lib/summary.js"
 import { type WidgetToolsContext, registerShowTool } from "./shared.js"
 
 export function registerCockpitWidgetTools(ctx: WidgetToolsContext) {
-  const { registry, profileStore } = ctx
+  const { registry } = ctx
 
   registerShowTool(ctx, {
     name: CAMUNDA7_OPEN_COCKPIT,
@@ -32,21 +31,15 @@ export function registerCockpitWidgetTools(ctx: WidgetToolsContext) {
     description:
       "Open the consolidated CIB Seven operations cockpit — a single app that navigates client-side (no extra tool calls) across the process landscape: overview, per-definition running instances, instance detail, plus quick access to human tasks, jobs and deployments. Use to browse and act; for a health verdict use camunda7_show_engine_health.",
     shape: {},
-    render: async (args, ctx) => {
-      const t = await localizeFor(profileStore, ctx)
+    render: (args) => {
       // A bad `engine` is a tool error, never a silent picker. The app passes the chosen engineId
-      // to every nested call, so navigation never depends on the saved default.
-      const { engines, engineId } = await cockpitEngineScope(
-        profileStore,
-        registry,
-        args.engine,
-        ctx,
-      )
+      // to every nested call, so navigation never depends on the default engine.
+      const engineId = cockpitEngineId(args.engine, registry)
       const data: CockpitAppData = {
         engineId,
         // No REST baseUrl (internal topology). The explicit return type turns an extra field into
         // an excess-property error, which a contextually typed callback would accept silently.
-        engines: engines.map((e): CockpitEngineInfo => ({
+        engines: registry.engines.map((e): CockpitEngineInfo => ({
           id: e.id,
           environment: environmentOf(e),
         })),
@@ -70,8 +63,7 @@ export function registerCockpitWidgetTools(ctx: WidgetToolsContext) {
       ...pagingShape,
     },
     render: async ({ engine, ...filters }, ctx) => {
-      const t = await localizeFor(profileStore, ctx)
-      const { client, engineId } = await resolveEngine(engine, registry, ctx)
+      const { client, engineId } = resolveEngine(engine, registry, ctx)
       const data = await buildProcessListData(client, engineId, filters)
       const matching = [
         filters.processDefinitionKey && `key "${filters.processDefinitionKey}"`,
@@ -101,8 +93,7 @@ export function registerCockpitWidgetTools(ctx: WidgetToolsContext) {
       maxResults: pagingShape.maxResults.default(50),
     },
     render: async ({ engine, ...filters }, ctx) => {
-      const t = await localizeFor(profileStore, ctx)
-      const { client, engineId } = await resolveEngine(engine, registry, ctx)
+      const { client, engineId } = resolveEngine(engine, registry, ctx)
       const data = await buildProcessInstancesData(client, engineId, filters)
       return buildViewResult(
         data,
@@ -124,8 +115,7 @@ export function registerCockpitWidgetTools(ctx: WidgetToolsContext) {
       "Open the unified process-definition view: header with actions, KPI strip (running instances, incidents, failed jobs), BPMN flow (incident overlays or execution heatmap) and the activity-grouped incident list. Drill-in target from cockpit-dashboard rows; camunda7_show_process_incidents opens the same view with incident focus.",
     shape: { processDefinitionKey: z.string().describe("Process definition key to display") },
     render: async ({ engine, ...target }, ctx) => {
-      const t = await localizeFor(profileStore, ctx)
-      const { client, engineId, ...urls } = await resolveEngine(engine, registry, ctx)
+      const { client, engineId, ...urls } = resolveEngine(engine, registry, ctx)
       const data = await buildProcessIncidentsData(client, { ...urls, ...target })
       return buildViewResult(
         { ...data, engineId },
@@ -150,8 +140,7 @@ export function registerCockpitWidgetTools(ctx: WidgetToolsContext) {
       maxResults: pagingShape.maxResults.default(MAX_PAGE_SIZE),
     },
     render: async ({ engine, ...target }, ctx) => {
-      const t = await localizeFor(profileStore, ctx)
-      const { client, engineId } = await resolveEngine(engine, registry, ctx)
+      const { client, engineId } = resolveEngine(engine, registry, ctx)
       const data = await buildHistoryTimelineData(client, engineId, target)
       return buildViewResult(
         data,

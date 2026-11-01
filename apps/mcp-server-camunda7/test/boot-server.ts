@@ -3,22 +3,16 @@ import { vi } from "vitest"
 import type { MCPServer } from "mcp-use"
 import { OAuthError, OAuthErrorCode, oauthCustomProvider, type OAuthProvider } from "mcp-use/oauth"
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client"
-import {
-  createInMemoryProfileStore,
-  type ComposedServer,
-  type RunningServer,
-} from "@miragon/pulse-widget-shell/server"
+import type { ComposedServer, RunningServer } from "@miragon/pulse-widget-shell/server"
 import { createApp } from "../src/app.js"
-import type { RuntimeBackends } from "../src/persistence/index.js"
 
 const FIXTURE_JS = path.join(import.meta.dirname, "fixtures", "mcp-app.js")
 
 /**
  * Neutral env for every in-process boot: a dummy engine (nothing may reach a
- * real engine or Prometheus), no ambient toolset, OAuth, deployment flag or
- * edge override from the developer's shell — each of those changes the
- * surface under test. Persistence is injected (in-memory), so DATABASE_URL
- * and the profile directory never matter.
+ * real engine or Prometheus), no ambient toolset, OAuth, default engine,
+ * deployment flag or edge override from the developer's shell — each of
+ * those changes the surface under test.
  */
 const BASE_ENV: Record<string, string | undefined> = {
   CAMUNDA_BASE_URL: "http://localhost:1",
@@ -27,6 +21,7 @@ const BASE_ENV: Record<string, string | undefined> = {
   CAMUNDA_ENGINES_FILE: undefined,
   CAMUNDA_ENGINES_JSON: undefined,
   CAMUNDA_COCKPIT_URL: undefined,
+  CAMUNDA_DEFAULT_ENGINE: undefined,
   CAMUNDA_ALLOW_DEPLOYMENTS: undefined,
   MCP_ACTIVE_MODULES: undefined,
   MCP_OAUTH: undefined,
@@ -35,8 +30,6 @@ const BASE_ENV: Record<string, string | undefined> = {
   MCP_ALLOWED_ORIGINS: undefined,
   MCP_MAX_BODY_BYTES: undefined,
   MCP_METRICS_TOKEN: undefined,
-  DATABASE_URL: undefined,
-  MCP_PROFILE_DIR: undefined,
 }
 
 /** Bearer tokens the stub IdP accepts, by user id. */
@@ -83,16 +76,6 @@ export function createTestOAuthProvider(): OAuthProvider<unknown> {
   })
 }
 
-/** In-memory persistence with an observable shutdown — what `initRuntime` returns without DATABASE_URL. */
-export function createTestRuntime(overrides: Partial<RuntimeBackends> = {}): RuntimeBackends {
-  return {
-    profileStore: createInMemoryProfileStore(),
-    readiness: {},
-    shutdown: vi.fn(async () => {}),
-    ...overrides,
-  }
-}
-
 /**
  * Modern-envelope MCP client against the in-process server (mcp-use 2 wire).
  * `headers` go out on every request (e.g. a client-chosen `Mcp-Session-Id`).
@@ -117,7 +100,6 @@ export interface BootedServer {
   app: MCPServer<unknown>
   composed: ComposedServer
   running: RunningServer
-  runtime: RuntimeBackends
   client: Client
   port: number
   /** Stops client + server (graceful drain) and restores the env. */
@@ -128,7 +110,6 @@ export interface BootOptions {
   env?: Record<string, string | undefined>
   /** Install the stub OAuth provider; the client then calls as `alice`. */
   authenticated?: boolean
-  runtime?: RuntimeBackends
   drainTimeoutMs?: number
 }
 
@@ -136,16 +117,14 @@ export interface BootOptions {
  * Boots the REAL composition — `createApp` from `src/app.ts`, i.e. exactly
  * what `src/index.ts` runs (selection, plugins, the Host/Origin guard, the
  * operational routes, the body-capped listener) — on an ephemeral loopback
- * port, with a stand-in widget bundle and in-memory persistence.
+ * port, with a stand-in widget bundle.
  */
 export async function bootServer(options: BootOptions = {}): Promise<BootedServer> {
   for (const [name, value] of Object.entries({ ...BASE_ENV, ...options.env })) {
     vi.stubEnv(name, value)
   }
-  const runtime = options.runtime ?? createTestRuntime()
   const composed = await createApp(process.env, {
     oauth: options.authenticated ? createTestOAuthProvider() : undefined,
-    runtime,
     bundle: { jsPath: FIXTURE_JS },
   })
   const running = await composed.listen({
@@ -161,7 +140,6 @@ export async function bootServer(options: BootOptions = {}): Promise<BootedServe
     app: composed.app,
     composed,
     running,
-    runtime,
     client,
     port: running.port,
     async close() {

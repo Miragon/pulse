@@ -1,5 +1,4 @@
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client"
-import { createInMemoryProfileStore } from "@miragon/pulse-widget-shell/server"
 import { createApp } from "../src/app.js"
 import {
   BROKEN_ENGINE,
@@ -22,14 +21,7 @@ interface Deployment {
  * `env`, with the host's server side in front of it.
  */
 async function deploy(env: Record<string, string>): Promise<Deployment> {
-  const composed = await createApp(env, {
-    oauth: undefined,
-    runtime: {
-      profileStore: createInMemoryProfileStore(),
-      readiness: {},
-      shutdown: () => Promise.resolve(),
-    },
-  })
+  const composed = await createApp(env, { oauth: undefined })
   const running = await composed.listen({ port: 0, host: "127.0.0.1", drainTimeoutMs: 1000 })
   const client = new Client({ name: "host-sim", version: "1.0.0" })
   await client.connect(

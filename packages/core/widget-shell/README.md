@@ -4,7 +4,7 @@
 [![CI](https://img.shields.io/github/actions/workflow/status/Miragon/pulse/ci.yml?style=flat-square&label=ci)](https://github.com/Miragon/pulse/actions/workflows/ci.yml)
 [![Docs](https://img.shields.io/badge/docs-miragon.github.io%2Fpulse-335DE5?style=flat-square)](https://miragon.github.io/pulse/)
 
-The base for your own Pulse server: the view runtime, the settings page and the server boot that
+The base for your own Pulse server: the view runtime and the server boot that
 the Pulse connectors and the [pulse-starter](https://github.com/Miragon/pulse-starter) build on.
 Its UI builds on the design kit [`@miragon/pulse-ui`](../ui).
 
@@ -15,7 +15,7 @@ npm install @miragon/pulse-widget-shell zod bpmn-js@18.31.0 mcp-use@2.12.2
 ```
 
 The widgets also need `react`, `react-dom`, `@miragon/pulse-ui`, `lucide-react` and
-`@tanstack/react-query`; the Postgres profile store needs `postgres`.
+`@tanstack/react-query`.
 
 To build your own MCP server on it, start from [pulse-starter](https://github.com/Miragon/pulse-starter).
 
@@ -34,8 +34,9 @@ package customers build their own connectors and composed servers on (see the
 - **The view runtime** (`./widgets`): the bundle root `mountViews({ views, hostWidgets })` picks
   the view the document's prelude names (the show tool's name) from your view map and mounts it
   under the view root (the mcp-use adapter, ONE `QueryClient` per document, `HostDocument`,
-  `ProfileGate`, toasts); `mountView` mounts one view without a map. The root's call hook
-  (`useMcpUseViewCall` over `resolveViewCall`) owns the stripped-result recovery: a host that
+  `LocaleGate`, toasts); `mountView` mounts one view without a map. `LocaleGate` renders German
+  for a host locale whose language is `de` (`de`, `de-DE`, `de_AT`) and English otherwise. The
+  root's call hook (`useMcpUseViewCall` over `resolveViewCall`) owns the stripped-result recovery: a host that
   drops `structuredContent` (claude.ai) gets the view re-running its own show tool ONCE (every
   view-bound tool is a read), stamped "Reloaded at"; the view frame renders the phases (waiting,
   error with a retry, cancelled, ready) and keeps a crashing view, and each `ViewStack` row and
@@ -44,8 +45,7 @@ package customers build their own connectors and composed servers on (see the
   hooks (`useToolQuery`, `useToolMutation`, `useViewData` (which seeds a feed with the view's
   data), `useQueryClient`), never `mcp-use/react`, so a widget renders under `TestViewHost`
   (fake tools, a log of host actions and model contexts) in a plain test. Another module's
-  widget renders by raw id through the host widgets (`useHostWidget`, `HostWidgetSlot`,
-  `settingsSections`).
+  widget renders by raw id through the host widgets (`useHostWidget`, `HostWidgetSlot`).
 - **View builders** (`./server`): `buildViewResult(data, summary)` (a show tool's result: the
   `structuredContent` IS the view's data, the text the model's summary) and
   `buildDataFeedResult` (the single implementation of the app-only `*_data` feed result);
@@ -56,15 +56,8 @@ package customers build their own connectors and composed servers on (see the
   reads a model's names by, without a DOM (a process's own name, else its Modeler pool's;
   character references such as `&#10;` and `&#38;` decoded, space folded), so two modules never
   name the same process or activity differently.
-- **The shell module** (`./server`): `createShellPlugin({ profileStore, allowSave })` is the
-  always-on module `shell` with the settings triple: `shell_show_settings` (the page: the
-  language section, then every `<module>:settings` section the host bundles),
-  `shell_settings_data` (what `ProfileGate` reads the language from) and `shell_save_settings`
-  (pass `allowSave: frameworkWritesAllowed(boot)`). Hosts spread `shellViews` (`./widgets`)
-  into their view map; `SettingsPage` renders the language section and then every
-  `<module>:settings` host widget. Apps own no domain UI, so the settings page lives here.
 - **Host-bound UI** (`./widgets`): what widget-shell adds on top of the design kit
-  `@miragon/pulse-ui`, the pieces that touch the host, a tool call, the profile or BPMN
+  `@miragon/pulse-ui`, the pieces that touch the host, a tool call or BPMN
   (`WidgetShell`, `ListTable` + `PagedRows`, the dual-mode data hooks, hand-offs, the BPMN
   viewer, `useApplyTheme`, …), reused across both widget packages.
   Inline in a chat a view is a card (#396): `HostDocument`'s measured fit (`InlineFitBox`,
@@ -106,24 +99,21 @@ package customers build their own connectors and composed servers on (see the
   `createPlugin(config, shared)` returns a `ModulePlugin`: its `name` and one `register(server)`
   that registers all its tools on the server the boot owns; `pluginsFor(entries, shared)` builds
   them for the active modules. `logEffectiveToolsets(boot)` prints the one boot line that states
-  each module's toolset and why, and `frameworkWritesAllowed(boot)` decides whether
-  `shell_save_settings`, a write no module toolset filters, may be registered: only with OAuth
-  and no module on its read-only floor.
+  each module's toolset and why.
 - **Toolset vocabularies** (`./server`): a module declares its toolsets as
   `toolsets: createToolsetVocabulary(module, names, floor, { authenticatedDefault })` on its
   definition; a module without one has no toolsets (a suffix is ignored with a warning). The rule
   is fail-closed: no suffix →
   `floor` without OAuth, `authenticatedDefault` (default: `floor`) with it; an empty or unknown
   suffix → `floor` with a warning; `resolve(undefined)` → `floor`. Nothing resolves to
-  "everything" (a module's widest toolset is reachable only by naming it), and
-  `allowsDurableWrites(toolset)` is true for every toolset above the floor.
+  "everything" (a module's widest toolset is reachable only by naming it).
 - **Server boot** (`./server`): `createComposedServer({ label, info, composition, bundle, setup,
 oauth? })` is the one boot sequence every composed server shares: env-typo warnings, the HTTP
   edge policy, ONE `resolveBoot` (authenticated exactly when you pass the OAuth provider you
   install; build it with `oauthFromEnv({ env, label })` from `MCP_OAUTH` and spread
   `OAUTH_ENV_VARS` into your known vars; it is the only caller identity), the boot log, your
-  `setup(boot)` (plugins + persistence), the `MCPServer` with `serverInfo`/`instructions`, each
-  plugin's `register` (a tool name two modules register fails the boot, naming both), the views
+  `setup(boot)` (the plugins, plus readiness checks and a shutdown for what it opens), the
+  `MCPServer` with `serverInfo`/`instructions`, each plugin's `register` (a tool name two modules register fails the boot, naming both), the views
   every tool binds primed once with your `bundle`, request context (request logging is mcp-use's own:
   `MCP_USE_LOG_LEVEL`, warned at boot above `info`), `/metrics` (optional
   `MCP_METRICS_TOKEN`), the Host/Origin guard, `/health/*` and the font route
@@ -141,22 +131,14 @@ oauth? })` is the one boot sequence every composed server shares: env-typo warni
   DNS-rebinding protection: `Host` (and a POST's `Origin`) must be localhost-class, `MCP_URL`'s or
   in `MCP_ALLOWED_HOSTS`/`MCP_ALLOWED_ORIGINS` (spread `HTTP_EDGE_ENV_VARS` into your known vars);
   `/health*` and `/metrics` stay reachable by IP for probes and scrapers.
-- **Persistence** (`./server`): the user-profile store (in-memory / filesystem / Postgres), plus
-  the `createSql` client and the `runMigrations` runner that applies a store's own `Migration[]`
-  (`PROFILE_STORE_MIGRATIONS`) under an advisory lock. That list drops the `dashboards` table the
-  retired dashboard store recorded as `002_dashboards`: a root that still serves dashboards from
-  it moves them to a table of its own first. A composed server picks its backend from
-  its own env and injects it; it does not reimplement the store. `postgres` is an **optional**
-  peer dependency: the driver is loaded through a dynamic import inside `createSql`, so servers
-  persisting to disk or memory never need it installed.
 
 ## Exports
 
-| Subpath     | Contents                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `./server`  | `buildViewResult` / `buildDataFeedResult` / `viewPrelude`, `createShellPlugin`, `composeModules` / `frameworkWritesAllowed` / `createToolsetVocabulary` and the module port (`ModulePlugin`, `ModuleEntry`), `createComposedServer` and its edge pieces (incl. `installFontAssets`, `fontAssetsCsp`), `oauthFromEnv`, caller identity (`resolveProfileKey`), the tool registrar (`createToolRegistrar`, `withToolErrors`), the view meta (`showToolBinding`, `appOnly`, `viewResourceUri`), the server i18n (`createTranslator`), the profile store and the Postgres client/migration runner |
-| `./widgets` | The view runtime (`mountViews`, the view host, the query hooks, `TestViewHost`; the language as explicit profile > host context > English, the theme as host context > OS), the host-bound UI, the settings page and `createTranslator`                                                                                                                                                                                                                                                                                                                                                      |
-| `./testing` | The product glossary: `PRODUCT_GLOSSARY`, `glossaryFindings`, `blindGlossaryRules`, `unnamedGlossaryTerms`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Subpath     | Contents                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `./server`  | `buildViewResult` / `buildDataFeedResult` / `viewPrelude`, `composeModules` / `createToolsetVocabulary` and the module port (`ModulePlugin`, `ModuleEntry`), `createComposedServer` and its edge pieces (incl. `installFontAssets`, `fontAssetsCsp`), `oauthFromEnv`, the per-caller request info (`callerCacheKey`, `getMcpRequestInfo`), the tool registrar (`createToolRegistrar`, `withToolErrors`), the view meta (`showToolBinding`, `appOnly`, `viewResourceUri`), the server i18n (`createTranslator`) |
+| `./widgets` | The view runtime (`mountViews`, the view host, the query hooks, `TestViewHost`; the language from the host locale (`de…` German, else English), the theme as host context > OS), the host-bound UI and `createTranslator`                                                                                                                                                                                                                                                                                      |
+| `./testing` | The product glossary: `PRODUCT_GLOSSARY`, `glossaryFindings`, `blindGlossaryRules`, `unnamedGlossaryTerms`                                                                                                                                                                                                                                                                                                                                                                                                     |
 
 `@miragon/pulse-ui`, `react`/`react-dom`, `zod` and `@tanstack/react-query` are **peer
 dependencies**: they must resolve to a single instance across the host bundle (see the `dedupe`

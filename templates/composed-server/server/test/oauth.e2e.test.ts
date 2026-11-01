@@ -23,7 +23,7 @@ const toolsetsOf = (composed: Awaited<ReturnType<typeof createApp>>) =>
 /**
  * `MCP_OAUTH` reaches this server through the SAME shared helper the stock
  * server uses (`oauthFromEnv`, `@miragon/pulse-widget-shell/server`): it is the
- * only caller identity — per-user settings exist only with it — and it raises
+ * only caller identity (passthrough auth, per-caller caches) and it raises
  * the no-suffix toolsets above the read-only floor.
  */
 describe("OAuth via MCP_OAUTH (createApp)", () => {
@@ -36,7 +36,8 @@ describe("OAuth via MCP_OAUTH (createApp)", () => {
     vi.spyOn(console, "info").mockImplementation(() => {})
     const composed = await boot(KEYCLOAK)
     expect(composed.boot.authenticated).toBe(true)
-    expect(toolsetsOf(composed)).toMatchObject({ camunda7: "operations", analytics: "standard" })
+    // Analytics declares no toolsets, so it has none to raise.
+    expect(toolsetsOf(composed)).toMatchObject({ camunda7: "operations", analytics: undefined })
 
     const res = await composed.app.fetch(
       new Request("http://localhost/mcp", {
@@ -52,14 +53,14 @@ describe("OAuth via MCP_OAUTH (createApp)", () => {
     expect(res.headers.get("www-authenticate")).toMatch(/^Bearer /)
   })
 
-  it("without MCP_OAUTH boots unauthenticated and says that settings cannot be saved", async () => {
+  it("without MCP_OAUTH boots unauthenticated and says so", async () => {
     vi.spyOn(console, "info").mockImplementation(() => {})
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
     const composed = await boot(undefined)
     expect(composed.boot.authenticated).toBe(false)
-    expect(toolsetsOf(composed)).toMatchObject({ camunda7: "read-only", analytics: "read-only" })
+    expect(toolsetsOf(composed)).toMatchObject({ camunda7: "read-only", analytics: undefined })
     expect(warn).toHaveBeenCalledWith(
-      expect.stringMatching(/^\[acme-mcp\] MCP_OAUTH is unset .*user settings cannot be saved/),
+      expect.stringMatching(/^\[acme-mcp\] MCP_OAUTH is unset, so there is no caller identity/),
     )
   })
 

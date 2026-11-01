@@ -246,7 +246,7 @@ function hasAutoFocus(file: string, source: string): boolean {
 describe("overlay focus gates", () => {
   it("scans the kit's components", () => {
     expect(Object.keys(SOURCES)).toContain("../primitives/dialog.tsx")
-    expect(Object.keys(SOURCES)).toContain("../kit/settings.tsx")
+    expect(Object.keys(SOURCES)).toContain("../kit/native-select.tsx")
   })
 
   it("imports Radix's Dialog only in the primitive that adds the hand-back", () => {

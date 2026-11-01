@@ -201,27 +201,6 @@ export const deSweep: MessageCatalog = {
     "Keine Spalten für {engines}: Diese Engines melden keine Metriken.",
   ),
   "aLandscape.unknown": "Keine Metriken von dieser Engine: Wert unbekannt",
-  "aSettings.heading": "Analyse-Einstellungen",
-  "aSettings.loadError": "Die Einstellungen konnten nicht geladen werden.",
-  "aSettings.minBucket": "Mindestgröße für Vergleiche",
-  "aSettings.minBucket.help":
-    "So viele Instanzen braucht jede Seite eines Vergleichs, bevor er eine Bewertung zeigt.",
-  "aSettings.minBucket.invalid": "Gib eine ganze Zahl ab 1 ein.",
-  "aSettings.period": "Standard-Zeitraum",
-  "aSettings.period.help": "Gilt, wenn du Analysen ohne Zeitraum anfragst.",
-  "aSettings.readOnly":
-    "Diese Verbindung kann keine Einstellungen speichern. Ändern kannst du sie, wenn du dich über eine Verbindung mit dem Analytics-Toolset standard anmeldest.",
-  "aSettings.readOnlyTitle": "Nur lesen",
-  "aSettings.save": "Speichern",
-  "aSettings.saveError":
-    "Die Einstellungen konnten nicht gespeichert werden. Deine Eingaben sind noch da, versuch es noch mal.",
-  "aSettings.saveFailed":
-    "Speichern hat nicht geklappt: {reason}. Deine Eingaben sind noch da, versuch es noch mal.",
-  "aSettings.savedToast": "Einstellungen gespeichert",
-  "aSettings.saveFailedToast": "Einstellungen konnten nicht gespeichert werden",
-  "aSettings.saving": "Wird gespeichert…",
-  "aSettings.section": "Standardwerte",
-  "aSettings.subtitle": "Standardwerte für Analysen, die einen Wert offenlassen.",
   "aVersionCompare.badgeInsufficientSignal": plural(
     "min",
     "Zu wenig Daten: weniger als 1 Instanz je Version",

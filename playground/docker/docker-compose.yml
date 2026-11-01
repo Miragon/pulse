@@ -1,7 +1,7 @@
 # Local demo stack — LOOPBACK-ONLY BY DESIGN. Every published port binds to
 # 127.0.0.1: the engine REST API accepts anonymous requests (anyone who reaches
 # it can deploy and start processes), Grafana runs as anonymous Admin, and
-# Postgres, Keycloak and the OTEL Collector use demo-grade credentials or none.
+# Keycloak and the OTEL Collector use demo-grade credentials or none.
 # Don't drop the 127.0.0.1: prefixes to reach the stack from another machine —
 # tunnel instead, e.g. `ssh -L 8400:127.0.0.1:8400 -L 8470:127.0.0.1:8470 <host>`.
 name: pulse
@@ -141,31 +141,6 @@ services:
     depends_on:
       - prometheus
 
-  # Postgres — durable user settings for the MCP server
-  # (opt-in via DATABASE_URL). Default profile so a locally-run server
-  # (`pnpm dev`) reaches it on localhost:8440. The init script creates a
-  # second database for the opt-in `pnpm test:pg` suites, so tests never touch
-  # the playground's own data. demo-grade credentials, matching demo/demo.
-  postgres:
-    image: postgres:18.1-alpine
-    environment:
-      - POSTGRES_USER=miragon
-      - POSTGRES_PASSWORD=miragon
-      - POSTGRES_DB=miragon
-    volumes:
-      # The 18+ image keeps PGDATA in a versioned subdirectory of
-      # /var/lib/postgresql — mount the parent, not .../data.
-      - postgres-data:/var/lib/postgresql
-      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-    ports:
-      - "127.0.0.1:8440:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U miragon -d miragon"]
-      interval: 5s
-      timeout: 3s
-      retries: 12
-      start_period: 10s
-
   # Keycloak — the local IdP for the server's opt-in OAuth (MCP_OAUTH,
   # provider "keycloak": the server only validates bearer tokens; MCP clients
   # log in at Keycloak directly, by Dynamic Client Registration or with the
@@ -233,7 +208,7 @@ services:
       # No MCP_OAUTH and no toolset suffix ⇒ every module boots READ-ONLY (the
       # boot log names the effective toolsets). To exercise write paths, name
       # the toolsets explicitly — e.g. add
-      #   - MCP_ACTIVE_MODULES=camunda7:operations,analytics:standard
+      #   - MCP_ACTIVE_MODULES=camunda7:operations,analytics
       # (camunda7:admin for delete/modify/migrations/signals; deployments also
       # need CAMUNDA_ALLOW_DEPLOYMENTS=true). Safe here only because the port is
       # bound to 127.0.0.1 — never widen an unauthenticated server reachable
@@ -259,15 +234,11 @@ services:
       - CAMUNDA_USERNAME=demo
       - CAMUNDA_PASSWORD=demo
       - PROMETHEUS_URL=http://prometheus:9090
-      # Durable user settings (src/persistence/ in the server app).
-      - DATABASE_URL=postgres://miragon:miragon@postgres:5432/miragon
     depends_on:
       cibseven:
         condition: service_healthy
       prometheus:
         condition: service_started
-      postgres:
-        condition: service_healthy
     healthcheck:
       # Readiness over HTTP (the server's /health/ready — mirrors the Dockerfile
       # HEALTHCHECK); the image ships no curl, Node's global fetch does the probe.
@@ -285,4 +256,3 @@ services:
 
 volumes:
   prometheus-data:
-  postgres-data:

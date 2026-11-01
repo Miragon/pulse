@@ -1,7 +1,6 @@
 import { createElement, type ComponentType, type ReactElement } from "react"
 
-import type { UserProfileView } from "../lib/profile-schema.js"
-import { CAMUNDA7_SAVE_SETTINGS, CAMUNDA7_WIDGET_ACTIONS_DATA } from "../tool-names.js"
+import { CAMUNDA7_WIDGET_ACTIONS_DATA } from "../tool-names.js"
 import type {
   IncidentInstance,
   IncidentRecovery,
@@ -14,7 +13,6 @@ import { VariablesTable } from "./instance-sections.js"
 import { JobPanelWidget } from "./job-panel.js"
 import { IncidentTable } from "./process-incidents/incident-table.js"
 import { useIncidentRecovery } from "./process-incidents/use-incident-recovery.js"
-import { UserProfileWidget } from "./user-profile.js"
 import { TestViewHost, type QueryClient } from "@miragon/pulse-widget-shell/widgets"
 
 /** `client` is the test's, so it can wait for the gate feed to settle. */
@@ -98,19 +96,6 @@ const JOBS: JobPanelData = {
   engineId: "prod",
 }
 
-function profileView(canSave: boolean): UserProfileView {
-  return {
-    profile: {
-      updatedAt: "2026-10-01T00:00:00.000Z",
-      defaultEngineId: "prod",
-      allowedEngineIds: [],
-    },
-    availableEngines: [{ id: "prod", environment: "default" }],
-    canSave,
-    readOnlyReason: canSave ? null : "toolset",
-  }
-}
-
 /** One incident row whose remedy is `recovery`. */
 function incidentRows(incidentType: string, recovery: IncidentRecovery) {
   const rows: IncidentInstance[] = [
@@ -167,10 +152,4 @@ export const GATING_RENDERERS: Record<GatingSite, Renderer> = {
       allowed,
       client,
     ),
-  // Self-gated: rendered as allowed exactly when the list holds the save.
-  "user-profile.tsx#camunda7_save_settings": (allowed, client) => {
-    const view = profileView(allowed.includes(CAMUNDA7_SAVE_SETTINGS))
-    const Panel: ComponentType<Record<string, unknown>> = () => <UserProfileWidget data={view} />
-    return host(Panel, allowed, client)
-  },
 }

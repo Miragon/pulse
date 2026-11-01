@@ -134,13 +134,10 @@ export it from `src/schemas/index.ts`. Reuse `engineFilterShape` from
 `period` input (derived from `PERIODS` — never redeclare the period enum), and
 `.describe()` every field (see `elementBottleneckInput` in `src/schemas/path.ts`).
 
-**No zod default on an input a user setting supplies.** `periodField` defaults to `7d`
-for the query's own callers; at the TOOL boundary a default would fill an omitted
-`period` before the handler sees it, and the user's saved look-back
-(`profile.modules.analytics.defaultPeriod`) would never apply. The tool therefore
-overrides `period` and `minBucketSize` with `optionalPeriod` / `optionalMinBucketSize`
-from `analytics-connector/src/settings.ts` and falls back through `settingsFor` (Step 4).
-The same holds for any new setting: optional at the boundary, defaulted in the handler.
+**Defaults live in the schema.** `periodField` defaults to `7d` and each schema's
+`minBucketSize` to 10: the tool takes the schema's `.shape` as is, so an omitted value
+reaches the handler already defaulted and the model reads the default in tools/list. Never
+re-add a `?? "7d"` in a handler; read the schema's `z.output` type if a field looks optional.
 
 ## Step 4 — tool in analytics-connector
 
@@ -152,26 +149,14 @@ Register the tool in `packages/connectors/analytics/analytics-connector/src/tool
 export function registerElementTools(
   register: ToolRegistrar<PrometheusClient>,
   engineScope: AnalyticsEngineScope,
-  profileStore?: ProfileSource,
 ) {
   register({
     name: "analytics_element_bottleneck",
     category: "analytics",
     description: "Rank activities by execution-time contribution and incident rate …",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-    inputSchema: {
-      ...schemas.elementBottleneckInput.shape,
-      period: optionalPeriod,
-      minBucketSize: optionalMinBucketSize,
-    },
-    handler: async (ch, args, ctx) => {
-      const settings = await settingsFor(profileStore, ctx)
-      return queries.elementBottleneck(ch, {
-        ...withEngineScope(engineScope, args),
-        period: args.period ?? settings.defaultPeriod,
-        minBucketSize: args.minBucketSize ?? settings.minBucketSize,
-      })
-    },
+    inputSchema: schemas.elementBottleneckInput.shape,
+    handler: async (ch, args) => queries.elementBottleneck(ch, withEngineScope(engineScope, args)),
   })
 }
 ```
@@ -186,11 +171,10 @@ engine ids by another name resolves each with `engineScope.require(id, "<field>"
 to its `ARGS` map (total over the registered surface) with valid arguments minus `engine`.
 
 Analytics tools are read-only by nature and talk to an external Prometheus:
-`{ readOnlyHint: true, idempotentHint: true, openWorldHint: true }`. The analytics registrar
-is not toolset-filtered — `analytics:read-only`, the default without OAuth, stays honest only
-while every registrar tool is a read. Anything that writes durably gates itself like
-`analytics_save_settings` (`allowsDurableWrites` in `src/toolsets.ts`).
-New domain file → add the `registerXyzTools(register, engineScope, profileStore)` call to
+`{ readOnlyHint: true, idempotentHint: true, openWorldHint: true }`. Analytics declares no
+toolsets, so every tool reaches every deployment: each one is a read (`src/module.test.ts`
+pins it). A write would first need a toolset vocabulary on the module.
+New domain file → add the `registerXyzTools(register, engineScope)` call to
 `registerTools` in `src/tools/index.ts`. Name the description honestly about metric
 limitations (e.g. "queue/wait time is not available from metrics").
 
@@ -310,9 +294,9 @@ Rules while building:
   (`@miragon/pulse-widget-shell/testing`) shared with camunda7:
   "Incident", "Jobs ohne Versuche", "bereitgestellt" …; `glossary.test.ts` rejects the
   synonyms both rule out), counted entries are `plural(…)` and take the count formatted.
-- A show tool words its summary with `const t = await localizeFor(store, ctx)` (the
-  language the profile names, else English) and sets no title: the widget's heading names
-  the view in the host's language.
+- A show tool words its summary in English through `summaryT` (`src/summary.ts`, an
+  `aSum.*` entry in `src/messages/en.server.ts`) and sets no title: the widget's heading
+  names the view in the host's language.
 - Every data view states its reference frame under its title with widget-shell's `ViewMeta`:
   `formatLookback(data.period)`, `enginesMeta(data.engines, reporting)`
   (`src/widgets/view-meta.ts`) and the result's `asOf` (every analytics-client view
@@ -327,8 +311,6 @@ Rules while building:
   `errorTitle` (`aCommon.loadError` in `QueryGate`) heads only a failure `describeError`
   cannot classify. The heatmap's import error is an inline `ErrorState` (`errorTitle`,
   `errorHint`, the parser's text under Details).
-- A save confirms in a toast and says why it failed there too (widget-shell's
-  `useActionFeedback().succeeded/failed`, reference: `settings-section.tsx`).
 - The model description (a `describe*` function in `src/widgets/model-descriptions.ts`,
   named directly in the view's `<HostModelContext content={…}>`) returns `modelContextText(…)` with
   `surface: ANALYTICS_ONLY_SURFACE` — a static `summary`, data only in

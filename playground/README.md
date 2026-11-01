@@ -27,7 +27,7 @@ pnpm dev                                                       # MCP server on :
   (`ssh -L 8400:127.0.0.1:8400 <host>`).
 - The server boots **read-only** (no `MCP_OAUTH`, no toolset suffix; the boot
   log names the effective toolsets). To exercise write paths, set
-  `MCP_ACTIVE_MODULES=camunda7:admin,analytics:standard` in `.env` (see the
+  `MCP_ACTIVE_MODULES=camunda7:admin,analytics` in `.env` (see the
   commented line there); deployments additionally need
   `CAMUNDA_ALLOW_DEPLOYMENTS=true`.
 - Compose profiles: `--profile multi-engine` (second engine on :8411),
@@ -41,7 +41,7 @@ pnpm dev                                                       # MCP server on :
 
 ## Deploy to Fly.io
 
-The stack maps to six Fly apps in one org, wired over Fly's private 6PN
+The stack maps to five Fly apps in one org, wired over Fly's private 6PN
 network. Only the server is public: everything else has no public IP, but
 6PN is shared by every app in the org: the anonymous engine REST API is
 reachable from all of them, so keep untrusted apps out of the org.
@@ -53,7 +53,6 @@ reachable from all of them, so keep untrusted apps out of the org.
 | `miragon-ai-playground-otel`       | OTEL Collector | private (`….internal:4318` / `:9464`)             |
 | `miragon-ai-playground-prometheus` | Prometheus     | private (`….internal:9090`), 3 GB volume          |
 | `miragon-ai-playground-grafana`    | Grafana        | private: `flyctl proxy 8470:3000 -a <app>`        |
-| `miragon-ai-playground-postgres`   | Postgres       | private (`….internal:5432`), 1 GB volume          |
 
 ### Via GitHub Actions (recommended)
 
@@ -74,19 +73,19 @@ One-time setup:
 ```sh
 fly auth login
 (cd playground/cibseven-example && ./gradlew bootJar)   # engine image copies the jar
-./playground/fly/deploy.sh all                          # or: otel|engine|prometheus|grafana|postgres|server
+./playground/fly/deploy.sh all                          # or: otel|engine|prometheus|grafana|server
 ```
 
-First deploy creates the apps and the Prometheus + Postgres volumes.
+First deploy creates the apps and the Prometheus volume.
 Afterwards, point an MCP client (e.g. claude.ai custom connector) at
 `https://pulse-playground.miragon.ai/mcp`.
 
 ### Notes
 
 - The MCP endpoint is **unauthenticated** and pinned **read-only**
-  (`MCP_ACTIVE_MODULES=camunda7:read-only,analytics:read-only` in
+  (`MCP_ACTIVE_MODULES=camunda7:read-only,analytics` in
   `fly/server-camunda7.fly.toml`): anyone can query the demo engine, nobody
-  can change it through the server (no engine writes or settings saves). Never
+  can change it through the server (no engine writes). Never
   widen it there and never set `CAMUNDA_ALLOW_DEPLOYMENTS` on this app
   (deploying a BPMN runs code in the engine JVM).
 - The public host `pulse-playground.miragon.ai` is a custom domain on the
@@ -105,11 +104,6 @@ miragon-ai-playground`, see `.env.example`); the pin still keeps it
 - The engine keeps its H2 database in memory: every engine restart reseeds
   (~600 instances) and live traffic keeps metrics moving. Prometheus history
   survives restarts on its volume.
-- User settings persist to the Postgres app once its secrets are set
-  (one-time, see `fly/postgres.fly.toml`):
-  `fly secrets set POSTGRES_PASSWORD=<pw> -a miragon-ai-playground-postgres`
-  and the matching `DATABASE_URL` secret on `miragon-ai-playground`. Without
-  the `DATABASE_URL` secret the server keeps them in memory.
 - Everything runs single-machine (`--ha=false`), sized for demos, roughly
   $15–25/month; the server scales to zero when idle. Tear down with
   `fly apps destroy <app>` per app.

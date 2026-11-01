@@ -2,7 +2,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { bootstrapView, disposeView } from "mcp-use/react"
 import { useLocale } from "@miragon/pulse-ui"
-import { SHELL_SETTINGS_DATA } from "../shell-settings-contract.js"
 import { createCallObserver, type CallObserver } from "./call-observer.js"
 import { SERVED_FONTS_STYLE_ID } from "./declare-served-fonts.js"
 import { useHostWidget } from "./host-widgets.js"
@@ -37,7 +36,6 @@ const result = (data: unknown) => ({
   content: [{ type: "text", text: "Two rows." }],
   structuredContent: data,
 })
-const profile = (language: string) => result({ language })
 
 function createFakeHost(options: {
   hostContext?: Record<string, unknown>
@@ -116,7 +114,7 @@ function createFakeHost(options: {
 
 /** Everything the stack provides, in one line: locale | display mode | host widget. */
 const ProbeView: ViewComponent<{ rows: string[] }> = ({ data }) => {
-  const Widget = useHostWidget("demo:settings")
+  const Widget = useHostWidget("demo:panel")
   return (
     <HostModelContext content="Probe view.">
       <output data-testid="probe">
@@ -136,7 +134,7 @@ function mount(host: Host, view: ViewComponent | null = ProbeView as ViewCompone
           name={VIEW_TOOL}
           view={view ?? undefined}
           observer={host.observer}
-          hostWidgets={{ "demo:settings": () => null }}
+          hostWidgets={{ "demo:panel": () => null }}
         />
       ),
     },
@@ -170,10 +168,10 @@ describe("ViewRoot: the host's own result", () => {
     const host = createFakeHost({
       hostContext: {
         theme: "dark",
+        locale: "de-DE",
         displayMode: "fullscreen",
         availableDisplayModes: ["inline", "fullscreen"],
       },
-      tools: { [SHELL_SETTINGS_DATA]: profile("de") },
     })
     mount(host)
     await connected(host)
@@ -181,8 +179,8 @@ describe("ViewRoot: the host's own result", () => {
     host.notify("ui/notifications/tool-result", result(ROWS))
 
     await vi.waitFor(() => expect(probe()).toBe("de|fullscreen|a,b|widget"))
-    // The profile feed went through the pool; the view's own tool never re-ran.
-    expect(host.toolCalls()).toEqual([{ name: SHELL_SETTINGS_DATA, arguments: {} }])
+    // The view's own tool never re-ran, and the gate calls none.
+    expect(host.toolCalls()).toEqual([])
     expect(root.lang).toBe("de")
     expect(root.classList.contains("dark")).toBe(true)
     expect(text()).not.toContain("Neu geladen")
@@ -205,7 +203,6 @@ describe("ViewRoot: the host's own result", () => {
           css: { fonts: "@font-face { font-family: HostSans; src: local(Arial); }" },
         },
       },
-      tools: { [SHELL_SETTINGS_DATA]: profile("system") },
     })
     mount(host)
     await connected(host)
@@ -223,7 +220,7 @@ describe("ViewRoot: the host's own result", () => {
   })
 
   it("offers no fullscreen where the host offers none", async () => {
-    const host = createFakeHost({ tools: { [SHELL_SETTINGS_DATA]: profile("en") } })
+    const host = createFakeHost({})
     mount(host)
     await connected(host)
     host.notify("ui/notifications/tool-result", result(ROWS))
@@ -236,7 +233,6 @@ describe("ViewRoot: the host's own result", () => {
     mount(host)
     await connected(host)
     host.notify("ui/notifications/tool-result", result(ROWS))
-    // Inside the gate's 1.5 s bound: the profile feed's first failure released it.
     await vi.waitFor(() => expect(probe()).toBe("en|inline|a,b|widget"), { timeout: 1_000 })
     expect(host.toolCalls()).toEqual([])
   })
@@ -245,7 +241,7 @@ describe("ViewRoot: the host's own result", () => {
 describe("ViewRoot: the stripped-result recovery", () => {
   it("re-runs the view's own tool ONCE with the call's complete args, then stamps it", async () => {
     const host = createFakeHost({
-      tools: { [SHELL_SETTINGS_DATA]: profile("en"), [VIEW_TOOL]: result(ROWS) },
+      tools: { [VIEW_TOOL]: result(ROWS) },
     })
     mount(host)
     await connected(host)
@@ -266,7 +262,7 @@ describe("ViewRoot: the stripped-result recovery", () => {
 
   it("never re-runs a slow tool: no result arrived, so none is missing", async () => {
     const host = createFakeHost({
-      tools: { [SHELL_SETTINGS_DATA]: profile("en"), [VIEW_TOOL]: result(ROWS) },
+      tools: { [VIEW_TOOL]: result(ROWS) },
     })
     mount(host)
     await connected(host)
@@ -284,7 +280,6 @@ describe("ViewRoot: the stripped-result recovery", () => {
     let answers = 0
     const host = createFakeHost({
       tools: {
-        [SHELL_SETTINGS_DATA]: profile("en"),
         [VIEW_TOOL]: () => {
           answers += 1
           return { isError: true, content: [{ type: "text", text: "[503] down (engine prod)" }] }
@@ -313,7 +308,7 @@ describe("ViewRoot: the stripped-result recovery", () => {
 
   it("notes a cancelled call and never re-runs it", async () => {
     const host = createFakeHost({
-      tools: { [SHELL_SETTINGS_DATA]: profile("en"), [VIEW_TOOL]: result(ROWS) },
+      tools: { [VIEW_TOOL]: result(ROWS) },
     })
     mount(host)
     await connected(host)
@@ -325,7 +320,7 @@ describe("ViewRoot: the stripped-result recovery", () => {
   })
 
   it("says the app can't show a view it has no component for", async () => {
-    const host = createFakeHost({ tools: { [SHELL_SETTINGS_DATA]: profile("en") } })
+    const host = createFakeHost({})
     mount(host, null)
     await connected(host)
     host.notify("ui/notifications/tool-result", result(ROWS))
@@ -369,7 +364,6 @@ describe("ViewRoot: what a widget asks the host", () => {
     const host = createFakeHost({
       hostCapabilities: capabilities,
       hostContext: { availableDisplayModes: ["inline", "fullscreen"] },
-      tools: { [SHELL_SETTINGS_DATA]: profile("en") },
     })
     mount(host, ActionsView)
     await connected(host)
@@ -389,7 +383,7 @@ describe("ViewRoot: what a widget asks the host", () => {
 
   it("never throws where the host lacks a capability: it warns", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
-    const host = createFakeHost({ tools: { [SHELL_SETTINGS_DATA]: profile("en") } })
+    const host = createFakeHost({})
     mount(host, ActionsView)
     await connected(host)
     host.notify("ui/notifications/tool-result", result(ROWS))
@@ -405,7 +399,7 @@ describe("ViewRoot: what a widget asks the host", () => {
   it("a recovery that brings no view data is an error; its retry stamps the re-loaded figures", async () => {
     let answer: unknown = result(["not", "a", "view"])
     const host = createFakeHost({
-      tools: { [SHELL_SETTINGS_DATA]: profile("en"), [VIEW_TOOL]: () => answer },
+      tools: { [VIEW_TOOL]: () => answer },
     })
     mount(host)
     await connected(host)

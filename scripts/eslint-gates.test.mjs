@@ -350,10 +350,8 @@ describe("registrar gate (invariant 1) catches every spelling", () => {
     for (const rel of [
       `${C7}/widget-tools.ts`,
       `${C7}/widget-tools/__probe__.ts`,
-      `${C7}/tools/user-profile.ts`,
       `${AN}/widget-tools.ts`,
       `${AN}/widget-tools/__probe__.ts`,
-      `${AN}/settings-tools.ts`,
     ]) {
       const messages = await gateMessages(rel, 'server.tool("x", {}, handler)')
       assert.equal(messages.filter(isRegistrarHit).length, 0, rel)

@@ -49,9 +49,6 @@
       //                             handshake)
       //   width=<px>                the frame's width (default 960: the inline
       //                             column a chat gives a view is ~760)
-      //   failTools=a,b             answer the view's tools/call for these
-      //                             names with an error, as a server without
-      //                             them would (e.g. an analytics-only boot)
       //   resourceDomains=ignore    build the CSP without the resource's
       //                             resourceDomains (a host that does not
       //                             honour them): the server's font route is
@@ -72,7 +69,6 @@
         maxHeight: q.has("maxHeight") ? Number(q.get("maxHeight")) : undefined,
         availableDisplayModes: q.has("displayModes") ? q.get("displayModes").split(",") : undefined,
         initDelayMs: Number(q.get("initDelayMs") ?? 0),
-        failTools: (q.get("failTools") ?? "").split(",").filter(Boolean),
         ignoreResourceDomains: q.get("resourceDomains") === "ignore",
         width: q.has("width") ? Number(q.get("width")) : undefined,
       }
@@ -93,8 +89,6 @@
         originalResult: null,
         // Every tools/call the view made ({ name, arguments }).
         toolCalls: [],
-        // The calls answered with an error per `failTools` ({ name, at }).
-        failedToolCalls: [],
         displayModeRequests: [],
         // Every size report ({ width, height, at }; `at` = Date.now()).
         sizeChanges: [],
@@ -195,15 +189,6 @@
 
       async function answerToolCall(m) {
         log.toolCalls.push({ name: m.params?.name, arguments: m.params?.arguments ?? {} })
-        if (scenario.failTools.includes(m.params?.name)) {
-          log.failedToolCalls.push({ name: m.params?.name, at: Date.now() })
-          post({
-            jsonrpc: "2.0",
-            id: m.id,
-            error: { code: -32602, message: `Tool ${m.params?.name} not found` },
-          })
-          return
-        }
         const outcome = await backendCall(m.params?.name, m.params?.arguments ?? {})
         post(
           outcome.error

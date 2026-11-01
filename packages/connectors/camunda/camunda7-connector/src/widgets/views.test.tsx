@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { createElement } from "react"
-import { cleanup, render, screen, waitFor } from "@testing-library/react"
+import { cleanup, render, screen } from "@testing-library/react"
 import type { MCPServer } from "mcp-use"
 import {
   TestViewHost,
@@ -14,10 +14,9 @@ import {
   CAMUNDA7_PROCESS_INCIDENTS_DATA,
   CAMUNDA7_SHOW_INCIDENTS_DASHBOARD,
   CAMUNDA7_SHOW_PROCESS_INCIDENTS,
-  CAMUNDA7_SHOW_SETTINGS,
 } from "../tool-names.js"
 import type { IncidentsDashboardData, ProcessIncidentsData } from "../view-models.js"
-import { camunda7HostWidgets, camunda7Views } from "./views.js"
+import { camunda7Views } from "./views.js"
 
 afterEach(() => {
   cleanup()
@@ -96,41 +95,5 @@ describe("camunda7Views", () => {
     renderView(CAMUNDA7_SHOW_INCIDENTS_DASHBOARD, dashboard, actions)
     expect(await screen.findByRole("heading", { name: "prod-a · Incidents" })).toBeTruthy()
     expect(actions.filter((a) => a.type === "sendFollowUp")).toEqual([])
-  })
-
-  it("renders the settings view from its data", async () => {
-    renderView(CAMUNDA7_SHOW_SETTINGS, {
-      profile: {
-        updatedAt: "2026-10-01T00:00:00.000Z",
-        defaultEngineId: "prod-a",
-        allowedEngineIds: [],
-      },
-      availableEngines: [{ id: "prod-a", environment: "default" }],
-      canSave: false,
-      readOnlyReason: "toolset",
-    })
-    expect(await screen.findByText("prod-a")).toBeTruthy()
-  })
-})
-
-describe("camunda7HostWidgets", () => {
-  it("offers the settings section under the page's `<module>:settings` id", () => {
-    expect(Object.keys(camunda7HostWidgets)).toEqual(["camunda7:settings"])
-  })
-
-  it("renders the section self-fetching", async () => {
-    const actions: HostAction[] = []
-    render(
-      <TestViewHost onHostAction={(action) => actions.push(action)}>
-        {createElement(camunda7HostWidgets["camunda7:settings"])}
-      </TestViewHost>,
-    )
-    await waitFor(() =>
-      expect(actions).toContainEqual({
-        type: "callTool",
-        name: "camunda7_settings_data",
-        args: {},
-      }),
-    )
   })
 })

@@ -3,7 +3,7 @@
  * model context it reported. It mounts the same host contexts as the mcp-use adapter
  * (`HostContexts`: display mode, fullscreen switch, inline budget, view host), a query client,
  * the host widgets, the icon stroke and toasts, so a widget test needs no `bootstrapView`. Not
- * mounted: `HostDocument` (theme, fonts, the measured inline fit) and `ProfileGate` (pass
+ * mounted: `HostDocument` (theme, fonts, the measured inline fit) and `LocaleGate` (pass
  * `locale` instead).
  */
 import {

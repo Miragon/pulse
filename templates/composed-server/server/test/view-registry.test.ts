@@ -1,7 +1,6 @@
 import path from "node:path"
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client"
-import { settingsSections } from "@miragon/pulse-widget-shell/widgets"
 import type { RunningServer } from "@miragon/pulse-widget-shell/server"
 import { CAMUNDA7_HOST_WIDGET_REFS } from "@miragon/pulse-camunda7-connector/widgets"
 import { createApp } from "../src/app.js"
@@ -47,46 +46,14 @@ describe("the view registry vs the view-bound tools", () => {
     expect(viewTools).toContain("notes_show_notes")
     expect(Object.keys(viewRegistry).sort()).toEqual([...viewTools].sort())
   })
-
-  it("holds a settings section for every module's settings view", () => {
-    for (const name of viewTools) {
-      const module = /^([a-z0-9-]+)_show_settings$/.exec(name)?.[1]
-      if (module === undefined || module === "shell") continue
-      expect(hostWidgets, `${name} has no section`).toHaveProperty(`${module}:settings`)
-    }
-  })
 })
 
-/**
- * The settings page (the shell's) leads with the UI language and then renders
- * every `<module>:settings` host widget, in registration order: YOUR module's
- * section included, with no edit in any package. A section that never reaches
- * `hostWidgets` is simply absent from the page.
- */
+/** A cross-module widget no module renders is dead code in every view's bundle. */
 describe("the host widgets", () => {
-  it("hold nothing but settings sections and the cross-module widgets a module renders", () => {
+  it("hold nothing but the cross-module widgets a module renders", () => {
     const refs: readonly string[] = CAMUNDA7_HOST_WIDGET_REFS
-    const stray = Object.keys(hostWidgets).filter(
-      (id) => !id.endsWith(":settings") && !refs.includes(id),
-    )
+    const stray = Object.keys(hostWidgets).filter((id) => !refs.includes(id))
     expect(stray).toEqual([])
     for (const ref of refs) expect(hostWidgets).toHaveProperty(ref)
-  })
-
-  it("put the sections on the settings page in registration order", () => {
-    expect(settingsSections(hostWidgets).map(([id]) => id)).toEqual([
-      "camunda7:settings",
-      "analytics:settings",
-    ])
-  })
-
-  it("grow the page by a custom module's `<module>:settings` widget", () => {
-    // The extension point: give your section the `<module>:settings` id and
-    // spread it into `hostWidgets`; the settings page picks it up.
-    const CustomSection = () => null
-    const ids = settingsSections({ ...hostWidgets, "your-module:settings": CustomSection }).map(
-      ([id]) => id,
-    )
-    expect(ids).toEqual(["camunda7:settings", "analytics:settings", "your-module:settings"])
   })
 })

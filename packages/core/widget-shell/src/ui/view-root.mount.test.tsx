@@ -16,7 +16,7 @@ vi.mock("mcp-use/react", async (importOriginal) => ({
 const global = globalThis as Record<string, unknown>
 const Rows: ViewComponent = () => null
 const Other: ViewComponent = () => null
-const hostWidgets = { "demo:settings": () => null }
+const hostWidgets = { "demo:panel": () => null }
 
 /** The element `bootstrapView` would render, with its props. */
 function mounted(): ReactElement<MountViewOptions & { observer: unknown }> {

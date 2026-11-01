@@ -18,7 +18,7 @@ const EMPTY = "—"
 
 afterEach(() => setFormatLocale(undefined))
 
-describe("the published format locale (set by the shell's ProfileGate)", () => {
+describe("the published format locale (set by the shell's LocaleGate)", () => {
   const iso = "2026-07-22T22:15:30.000Z"
 
   it("renders every date helper in the published locale and time zone, not the browser's", () => {

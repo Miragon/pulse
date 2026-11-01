@@ -1,10 +1,5 @@
 import { createContext, useCallback, useContext } from "react"
-import {
-  fenceUntrusted,
-  SHELL_SHOW_SETTINGS,
-  useViewHost,
-  type ViewHost,
-} from "@miragon/pulse-widget-shell/widgets"
+import { fenceUntrusted, useViewHost, type ViewHost } from "@miragon/pulse-widget-shell/widgets"
 import {
   CAMUNDA7_SHOW_CLUSTER_DETAIL,
   CAMUNDA7_SHOW_ENGINE_HEALTH,
@@ -23,7 +18,6 @@ export type NavIntent =
   | { type: "overview" }
   | { type: "process-list" }
   | { type: "incidents" }
-  | { type: "settings" }
   | ({
       type: "cluster-detail"
       activityId: string
@@ -78,8 +72,6 @@ function showViewRequest(intent: NavIntent): ShowViewRequest {
         CAMUNDA7_SHOW_INCIDENTS_DASHBOARD,
         "Show the incidents dashboard across all processes",
       )
-    case "settings":
-      return showViewIntent(SHELL_SHOW_SETTINGS, "Open my settings")
     case "cluster-detail":
       return showViewIntent(
         CAMUNDA7_SHOW_CLUSTER_DETAIL,

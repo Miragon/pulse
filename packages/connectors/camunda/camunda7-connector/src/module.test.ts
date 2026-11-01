@@ -40,12 +40,6 @@ describe("camunda7Module.toolsets (fail-closed policy)", () => {
       })
     }
   })
-
-  it("durable writes are allowed in every toolset above the read-only floor", () => {
-    expect(vocabulary.allowsDurableWrites("read-only")).toBe(false)
-    expect(vocabulary.allowsDurableWrites("operations")).toBe(true)
-    expect(vocabulary.allowsDurableWrites("admin")).toBe(true)
-  })
 })
 
 /** Deploying is code execution in the engine JVM, so a typo fails the boot (`z.coerce.boolean` reads "false" as true). */
@@ -90,7 +84,7 @@ describe("CAMUNDA_ALLOW_DEPLOYMENTS", () => {
   const registeredNames = (config: Record<string, unknown>): string[] => {
     const tool = vi.fn()
     const server = { tool, prompt: vi.fn() } as unknown as MCPServer
-    camunda7Module.createPlugin({ engines: [engine], ...config }, {}).register(server)
+    camunda7Module.createPlugin({ engines: [engine], ...config }).register(server)
     return tool.mock.calls.map((c) => (c[0] as { name: string }).name)
   }
 
@@ -144,9 +138,9 @@ describe("CAMUNDA_REQUEST_TIMEOUT_MS", () => {
   it("reaches every engine client: a junk value fails createPlugin, a valid one boots", () => {
     const server = { tool: vi.fn(), prompt: vi.fn() } as unknown as MCPServer
     expect(() =>
-      camunda7Module.createPlugin({ engines: [engine], requestTimeoutMs: "soon" }, {}),
+      camunda7Module.createPlugin({ engines: [engine], requestTimeoutMs: "soon" }),
     ).toThrow(/CAMUNDA_REQUEST_TIMEOUT_MS/)
-    const plugin = camunda7Module.createPlugin({ engines: [engine], requestTimeoutMs: "250" }, {})
+    const plugin = camunda7Module.createPlugin({ engines: [engine], requestTimeoutMs: "250" })
     expect(() => plugin.register(server)).not.toThrow()
   })
 })

@@ -15,11 +15,11 @@ import {
 } from "../tool-names.js"
 import { resolveEngine } from "../lib/resolve-engine.js"
 import { jobsFilterShape, pagingShape } from "../feed-contracts.js"
-import { localizeFor } from "../lib/server-locale.js"
+import { summaryT as t } from "../lib/summary.js"
 import { type WidgetToolsContext, registerShowTool } from "./shared.js"
 
 export function registerInstanceWidgetTools(ctx: WidgetToolsContext) {
-  const { server, registry, profileStore, engineParam } = ctx
+  const { server, registry, engineParam } = ctx
 
   registerShowTool(ctx, {
     name: CAMUNDA7_SHOW_INSTANCE_DETAIL,
@@ -28,8 +28,7 @@ export function registerInstanceWidgetTools(ctx: WidgetToolsContext) {
       "Show detailed view of a single process instance with activity tree, variables, and incidents.",
     shape: { processInstanceId: z.string().describe("The process instance ID to inspect") },
     render: async ({ engine, ...target }, ctx) => {
-      const t = await localizeFor(profileStore, ctx)
-      const { client, engineId, ...urls } = await resolveEngine(engine, registry, ctx)
+      const { client, engineId, ...urls } = resolveEngine(engine, registry, ctx)
       const data = await buildInstanceDetailData(client, engineId, target, urls)
       const state = data.instance.ended
         ? t("c7sum.state.ended")
@@ -88,8 +87,7 @@ export function registerInstanceWidgetTools(ctx: WidgetToolsContext) {
       ...showToolBinding(CAMUNDA7_SHOW_BPMN_VIEWER, "BPMN Diagram Viewer"),
     },
     withToolErrors(async ({ engine, ...diagram }, ctx) => {
-      const t = await localizeFor(profileStore, ctx)
-      const { client, engineId } = await resolveEngine(engine, registry, ctx)
+      const { client, engineId } = resolveEngine(engine, registry, ctx)
       const data = await buildBpmnViewerData(client, engineId, diagram)
 
       const view = (summary: string) => buildViewResult(data, summary)
@@ -132,8 +130,7 @@ export function registerInstanceWidgetTools(ctx: WidgetToolsContext) {
       ...pagingShape,
     },
     render: async ({ engine, ...filters }, ctx) => {
-      const t = await localizeFor(profileStore, ctx)
-      const { client, engineId } = await resolveEngine(engine, registry, ctx)
+      const { client, engineId } = resolveEngine(engine, registry, ctx)
       const data = await buildJobPanelData(client, engineId, filters)
       return buildViewResult(
         data,

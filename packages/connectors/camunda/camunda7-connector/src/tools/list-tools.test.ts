@@ -12,7 +12,6 @@ import * as sdk from "@miragon/pulse-camunda7-client/sdk"
 import { MAX_PAGE_SIZE } from "@miragon/pulse-camunda7-client/schemas"
 import { paginatedListOutput } from "../lib/pagination.js"
 import { createEngineRegistry, type EngineRegistry } from "../lib/resolve-engine.js"
-import type { ProfileStore } from "@miragon/pulse-widget-shell/server"
 import { registerTools } from "./index.js"
 import { registerIncidentIssueTools } from "./incident-issue.js"
 import { registerEngineTools } from "./engines.js"
@@ -20,7 +19,7 @@ import { captureTools } from "./test-support/fake-engine.js"
 
 /** Mirrors plugin.ts, so a new tool lands under the guards without touching this test. */
 const tools = captureTools(
-  (register) => registerEngineTools(register, {} as ProfileStore),
+  (register) => registerEngineTools(register),
   (register) => registerTools(register, { allowDeployments: true }),
   (register) => registerIncidentIssueTools(register, {}),
 )

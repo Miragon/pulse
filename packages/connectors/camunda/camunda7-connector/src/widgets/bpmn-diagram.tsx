@@ -18,7 +18,7 @@ export { applyHighlights, dedupe, HIGHLIGHT_COLORS, type BpmnHighlight } from ".
 export interface BpmnDiagramProps {
   /** Its XML is read by id from `camunda7_bpmn_xml_data`, never carried in the payload. */
   definitionId: string
-  /** The engine the view reads (its payload's `engineId`); the caller's default when absent. */
+  /** The engine the view reads (its payload's `engineId`); the default engine when absent. */
   engineId?: string
   /** A fixed frame height; default: the diagram's own (240–560 px, the kit's `diagramHeight`). */
   height?: number

@@ -30,8 +30,8 @@ describe("useActionFeedback (U9: a write is never silent)", () => {
 
   it("passes a success's second line on", () => {
     const feedback = renderIn("en")
-    act(() => feedback.succeeded("Settings saved", "They apply to every view."))
-    expect(screen.getByText("They apply to every view.")).toBeTruthy()
+    act(() => feedback.succeeded("Job rescheduled", "It runs within the next minute."))
+    expect(screen.getByText("It runs within the next minute.")).toBeTruthy()
   })
 
   it("reports a failure as a danger toast: the object, then why and what to do — not the raw text", () => {

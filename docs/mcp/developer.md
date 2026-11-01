@@ -40,7 +40,7 @@ pnpm dev
 
 This starts the MCP server on `:8400`. Connect any MCP host to `http://localhost:8400/mcp` and
 call a tool. It boots read-only (no `MCP_OAUTH`, no toolset suffix, as the boot log says); to test
-write paths, uncomment `MCP_ACTIVE_MODULES=camunda7:admin,analytics:standard` in `.env`.
+write paths, uncomment `MCP_ACTIVE_MODULES=camunda7:admin,analytics` in `.env`.
 `pnpm dev` binds 127.0.0.1; `pnpm start` and Docker listen on all interfaces.
 
 ## Common tasks

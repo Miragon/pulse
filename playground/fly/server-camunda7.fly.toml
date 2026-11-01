@@ -20,14 +20,14 @@ primary_region = "fra"
   MCP_ALLOWED_HOSTS = "miragon-ai-playground.fly.dev"
   MCP_ALLOWED_ORIGINS = "https://miragon-ai-playground.fly.dev"
   # Public + unauthenticated ⇒ read-only BY DESIGN: queries, widgets and
-  # analytics, no engine or settings writes. An unauthenticated boot already
+  # analytics, no engine writes. An unauthenticated boot already
   # defaults to read-only; the explicit pin keeps it that way should someone
   # add MCP_OAUTH or widen a default. Never widen it here and never set
   # CAMUNDA_ALLOW_DEPLOYMENTS on this app — deploying a BPMN runs code inside
   # the engine JVM. A Fly SECRET of the same name
   # overrides [env]: if `fly secrets list -a miragon-ai-playground` shows
   # MCP_ACTIVE_MODULES, keep it in sync with this value (or unset it).
-  MCP_ACTIVE_MODULES = "camunda7:read-only,analytics:read-only"
+  MCP_ACTIVE_MODULES = "camunda7:read-only,analytics"
   # demo/demo is the engine's seeded admin user; its REST API does not enforce
   # auth. The engine has no public IP, but it sits on the org's private 6PN
   # network, which other apps in the org share — treat it as reachable by

@@ -153,7 +153,7 @@ export {
 } from "./locale/ui-messages.js"
 export { createUseT, type T } from "./kit/create-use-t.js"
 
-// The pieces every list and settings form shares
+// The pieces every list and form shares
 export { Icon, ICON_STROKE, type LucideIcon } from "./kit/icon.js"
 export {
   Th,
@@ -164,7 +164,6 @@ export {
   type EmptyVariant,
 } from "./kit/table.js"
 export { Section } from "./kit/section.js"
-export { SettingsCard, SettingsField, SettingsInput } from "./kit/settings.js"
 export { NativeSelect } from "./kit/native-select.js"
 export { SegmentedControl, type SegmentedControlOption } from "./kit/segmented-control.js"
 export { RowCard } from "./kit/row-card.js"

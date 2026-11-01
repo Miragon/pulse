@@ -34,7 +34,7 @@ vi.mock("bpmn-js/lib/NavigatedViewer", () => ({ default: viewer.MockViewer }))
 // heatmap mode without analytics: ~7 s of loading and four failing calls instead of the overlay.
 
 const HEATMAP_FEED = "analytics_bpmn_heatmap_data"
-const ANALYTICS_PROBE = "analytics_settings_data"
+const ANALYTICS_PROBE = "analytics_engine_landscape_data"
 
 afterEach(() => {
   cleanup()
@@ -89,7 +89,7 @@ function renderFlow(
       if (!analytics) throw new Error(`Tool ${HEATMAP_FEED} not found`)
       return { frequency: {}, durationSec: {} }
     },
-    ...(analytics ? { [ANALYTICS_PROBE]: { settings: {}, canSave: false } } : {}),
+    ...(analytics ? { [ANALYTICS_PROBE]: { engines: [] } } : {}),
   }
   render(
     <TestViewHost tools={tools} client={queryClient}>

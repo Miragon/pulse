@@ -21,6 +21,4 @@ export const deFeedback: MessageCatalog = {
   "feedback.taskCompleted": "Aufgabe {name} abgeschlossen",
   "feedback.taskReturned": "Aufgabe {name} an {owner} zurückgegeben",
   "feedback.taskCompleteFailed": "Aufgabe {name} konnte nicht abgeschlossen werden",
-  "feedback.settingsSaved": "Einstellungen gespeichert",
-  "feedback.settingsSaveFailed": "Einstellungen konnten nicht gespeichert werden",
 }

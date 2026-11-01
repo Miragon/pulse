@@ -1,11 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from "vitest"
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
-import {
-  TestViewHost,
-  type HostAction,
-  type HostWidgets,
-} from "@miragon/pulse-widget-shell/widgets"
+import { TestViewHost, type HostAction } from "@miragon/pulse-widget-shell/widgets"
 import { useNav } from "./navigation.js"
 import { Camunda7Standalone } from "./standalone.js"
 
@@ -18,9 +14,6 @@ function DrillProbe() {
   return (
     <div>
       <div>origin-content</div>
-      <button type="button" onClick={() => go({ type: "settings" })}>
-        drill-settings
-      </button>
       <button
         type="button"
         onClick={() => go({ type: "process-instances", processDefinitionKey: "invoice" })}
@@ -29,30 +22,6 @@ function DrillProbe() {
       </button>
     </div>
   )
-}
-
-const ForeignSection = () => <div>analytics-section</div>
-
-const CustomSection = () => <div>acme-section</div>
-
-// As the bundle root mounts it, with every module's settings section.
-const HOST_WIDGETS: HostWidgets = {
-  "analytics:settings": ForeignSection,
-  "acme:settings": CustomSection,
-}
-
-const PROFILE_FEED = {
-  profile: {
-    id: "sess-1",
-    language: "en",
-    analyticsDefaultPeriod: "7d",
-    analyticsMinBucketSize: 10,
-    createdAt: "2026-01-01T00:00:00.000Z",
-    updatedAt: "2026-01-01T00:00:00.000Z",
-    schemaVersion: 1,
-  },
-  availableEngines: [{ id: "prod-a", environment: "default" }],
-  canSave: true,
 }
 
 const INSTANCES_FEED = {
@@ -70,17 +39,12 @@ const INSTANCES_FEED = {
 function renderShell(
   tools: Record<string, unknown>,
   actions: HostAction[],
-  {
-    engineId,
-    hostWidgets,
-    displayMode,
-  }: { engineId?: string; hostWidgets?: HostWidgets; displayMode?: string } = {},
+  { engineId, displayMode }: { engineId?: string; displayMode?: string } = {},
 ) {
   return render(
     <TestViewHost
       tools={tools}
       onHostAction={(action) => actions.push(action)}
-      hostWidgets={hostWidgets}
       host={displayMode ? { displayMode, availableDisplayModes: ["inline", "fullscreen"] } : {}}
     >
       <Camunda7Standalone engineId={engineId}>
@@ -94,23 +58,26 @@ const followUps = (actions: HostAction[]) => actions.filter((a) => a.type === "s
 
 const originHidden = () => screen.getByText("origin-content").closest("[hidden]") !== null
 
+/** A drill whose engine the view data names, so it stays client-side. */
+const INSTANCES = { camunda7_process_instances_data: INSTANCES_FEED }
+
 describe("Camunda7Standalone", () => {
   // The view frame's toolbar stays above a drill, so the drill brings no second fullscreen switch.
   it("offers no fullscreen switch of its own in a drill", async () => {
-    renderShell({}, [], { displayMode: "inline" })
-    fireEvent.click(screen.getByText("drill-settings"))
+    renderShell(INSTANCES, [], { engineId: "prod-a", displayMode: "inline" })
+    fireEvent.click(screen.getByText("drill-instances"))
     await screen.findByRole("navigation", { name: "Breadcrumb" })
     expect(screen.queryByRole("button", { name: "Fullscreen" })).toBeNull()
   })
 
   // #344 N107: a drill and a pop move focus to the view shown and name it.
   it("moves focus to the drilled view and names it, and back on a pop", async () => {
-    renderShell({}, [])
-    fireEvent.click(screen.getByText("drill-settings"))
+    renderShell(INSTANCES, [], { engineId: "prod-a" })
+    fireEvent.click(screen.getByText("drill-instances"))
     await screen.findByRole("navigation", { name: "Breadcrumb" })
     const frame = document.activeElement as HTMLElement
     expect(frame.getAttribute("tabindex")).toBe("-1")
-    expect(within(frame).getAllByRole("status")[0]?.textContent).toBe("Settings")
+    expect(within(frame).getAllByRole("status")[0]?.textContent).toBe("Instances")
 
     fireEvent.click(screen.getByRole("button", { name: "Start" }))
     expect(document.activeElement).toBe(frame)
@@ -127,43 +94,22 @@ describe("Camunda7Standalone", () => {
 
   it("drills client-side without a chat follow-up and keeps the origin mounted", async () => {
     const actions: HostAction[] = []
-    renderShell({ camunda7_settings_data: PROFILE_FEED }, actions)
+    renderShell(INSTANCES, actions, { engineId: "prod-a" })
 
-    fireEvent.click(screen.getByText("drill-settings"))
+    fireEvent.click(screen.getByText("drill-instances"))
 
     const trail = await screen.findByRole("navigation", { name: "Breadcrumb" })
     expect(trail.textContent).toContain("Start")
-    expect(trail.textContent).toContain("Settings")
+    expect(trail.textContent).toContain("Instances")
     expect(originHidden()).toBe(true)
     expect(followUps(actions)).toHaveLength(0)
   })
 
-  it("renders every module's settings section on the drilled settings page", async () => {
-    const actions: HostAction[] = []
-    renderShell({ camunda7_settings_data: PROFILE_FEED }, actions, { hostWidgets: HOST_WIDGETS })
-
-    fireEvent.click(screen.getByText("drill-settings"))
-
-    await screen.findByRole("navigation", { name: "Breadcrumb" })
-    expect(await screen.findByText("analytics-section")).toBeTruthy()
-    expect(await screen.findByText("acme-section")).toBeTruthy()
-  })
-
-  it("renders no foreign section when the bundle has none", async () => {
-    const actions: HostAction[] = []
-    renderShell({ camunda7_settings_data: PROFILE_FEED }, actions)
-
-    fireEvent.click(screen.getByText("drill-settings"))
-
-    await screen.findByRole("navigation", { name: "Breadcrumb" })
-    expect(screen.queryByText("analytics-section")).toBeNull()
-  })
-
   it("pops back to the origin via the root crumb", async () => {
     const actions: HostAction[] = []
-    renderShell({ camunda7_settings_data: PROFILE_FEED }, actions)
+    renderShell(INSTANCES, actions, { engineId: "prod-a" })
 
-    fireEvent.click(screen.getByText("drill-settings"))
+    fireEvent.click(screen.getByText("drill-instances"))
     await screen.findByRole("navigation", { name: "Breadcrumb" })
 
     fireEvent.click(screen.getByRole("button", { name: "Start" }))
@@ -173,9 +119,7 @@ describe("Camunda7Standalone", () => {
 
   it("drills on the engine the view data names", async () => {
     const actions: HostAction[] = []
-    renderShell({ camunda7_process_instances_data: INSTANCES_FEED }, actions, {
-      engineId: "prod-a",
-    })
+    renderShell(INSTANCES, actions, { engineId: "prod-a" })
 
     fireEvent.click(screen.getByText("drill-instances"))
 

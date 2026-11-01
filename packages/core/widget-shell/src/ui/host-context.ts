@@ -1,7 +1,3 @@
-import { explicitLocale, type Locale } from "../profile-constants.js"
-
-// The profile's `system` language is NOT an explicit choice: it defers to the host.
-
 export type EffectiveTheme = "light" | "dark"
 
 export function hostThemeOf(value: unknown): EffectiveTheme | undefined {
@@ -16,15 +12,19 @@ export function resolveTheme(
   return hostTheme ?? (osPrefersDark ? "dark" : "light")
 }
 
-export function supportedLanguage(tag: string | undefined): Locale | undefined {
-  return explicitLocale(tag?.split(/[-_]/)[0]?.toLowerCase())
+/** The languages the widgets ship catalogs for. */
+const LOCALES = ["en", "de"] as const
+export type Locale = (typeof LOCALES)[number]
+
+/** The tag's primary language when the UI ships it (`de`, `de-DE`, `DE-ch`, `de_AT`). */
+function shippedLanguage(tag: string | undefined): Locale | undefined {
+  const primary = tag?.split(/[-_]/)[0]?.toLowerCase()
+  return LOCALES.find((locale) => locale === primary)
 }
 
-export function resolveLanguage(
-  profileLanguage: string | undefined,
-  hostLocale: string | undefined,
-): Locale {
-  return explicitLocale(profileLanguage) ?? supportedLanguage(hostLocale) ?? "en"
+/** The host locale's primary language when the UI ships it, else English. */
+export function resolveLanguage(hostLocale: string | undefined): Locale {
+  return shippedLanguage(hostLocale) ?? "en"
 }
 
 function canonicalTag(tag: string): string | undefined {
@@ -35,9 +35,13 @@ function canonicalTag(tag: string): string | undefined {
   }
 }
 
-/** The host's full tag only when it speaks the language: a German profile in `en-US` formats German. */
-export function formattingLocale(language: Locale, hostLocale: string | undefined): string {
-  if (!hostLocale || supportedLanguage(hostLocale) !== language) return language
+/**
+ * The host's canonical tag when the UI ships its language (the bare language for a malformed
+ * tag), else English.
+ */
+export function formattingLocale(hostLocale: string | undefined): string {
+  const language = shippedLanguage(hostLocale)
+  if (!hostLocale || !language) return "en"
   return canonicalTag(hostLocale) ?? language
 }
 

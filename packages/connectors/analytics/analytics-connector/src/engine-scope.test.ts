@@ -82,7 +82,10 @@ function recordingClient(answer: (q: string) => PromSample[] = () => []) {
 
 const daysAgo = (days: number) => new Date(Date.now() - days * 86_400_000).toISOString()
 
-/** Total over the registered surface, so a new tool must prove its engine scoping here. */
+/**
+ * Total over the registered surface, so a new tool must prove its engine scoping here. Handlers
+ * called directly get no schema defaults: the periods and comparison floors are passed.
+ */
 const ARGS: Record<string, Record<string, unknown>> = {
   analytics_analyze_process_performance: {
     processDefinitionKey: "order",
@@ -98,50 +101,61 @@ const ARGS: Record<string, Record<string, unknown>> = {
     includeActivityBreakdown: true,
   },
   analytics_find_failed_instances: { maxResults: 5 },
-  analytics_element_bottleneck: { processDefinitionKey: "order", maxResults: 5 },
+  analytics_element_bottleneck: {
+    processDefinitionKey: "order",
+    period: "7d",
+    minBucketSize: 10,
+    maxResults: 5,
+  },
   analytics_cluster_compare: {
     deploymentTimestamp: daysAgo(2),
     windowBeforeDays: 3,
     windowAfterDays: 3,
     activityId: "Task_check",
+    minBucketSize: 10,
   },
   analytics_version_compare: {
     processDefinitionKey: "order",
     versionA: 1,
     versionB: 2,
     windowDays: 7,
+    minBucketSize: 10,
   },
   analytics_engine_compare: {
     processDefinitionKey: "order",
     engineA: "prod-a",
     engineB: "prod-b",
     windowDays: 7,
+    minBucketSize: 10,
   },
   analytics_engine_landscape: {},
   analytics_engine_health: {},
-  analytics_show_dashboard: {},
+  analytics_show_dashboard: { period: "7d" },
   analytics_show_failure_dashboard: {},
   analytics_show_cluster_compare: {
     deploymentTimestamp: daysAgo(2),
     windowBeforeDays: 3,
     windowAfterDays: 3,
+    minBucketSize: 10,
   },
   analytics_show_version_compare: {
     processDefinitionKey: "order",
     versionA: 1,
     versionB: 2,
     windowDays: 7,
+    minBucketSize: 10,
   },
   analytics_show_engine_compare: {
     processDefinitionKey: "order",
     engineA: "prod-a",
     engineB: "prod-b",
     windowDays: 7,
+    minBucketSize: 10,
   },
   analytics_show_engine_landscape: {},
   analytics_engine_landscape_data: {},
-  analytics_show_bpmn_heatmap: { processDefinitionKey: "order" },
-  analytics_bpmn_heatmap_data: { processDefinitionKey: "order" },
+  analytics_show_bpmn_heatmap: { processDefinitionKey: "order", period: "7d" },
+  analytics_bpmn_heatmap_data: { processDefinitionKey: "order", period: "7d" },
 }
 
 const PAIRWISE = new Set(["analytics_engine_compare", "analytics_show_engine_compare"])
@@ -254,8 +268,8 @@ describe("the BPMN heatmap names the engines its heat adds up (K33)", () => {
     "%s echoes the resolved engines in its payload",
     async (name) => {
       const tool = toolsOver(recordingClient().ch, scope).get(name)!
-      const fleet = await tool({ processDefinitionKey: "order" }, {})
-      const one = await tool({ processDefinitionKey: "order", engine: "prod-b" }, {})
+      const fleet = await tool({ processDefinitionKey: "order", period: "7d" }, {})
+      const one = await tool({ processDefinitionKey: "order", period: "7d", engine: "prod-b" }, {})
 
       expect(payloadOf(fleet).engines).toEqual(["prod-a", "prod-b"])
       expect(payloadOf(one).engines).toEqual(["prod-b"])

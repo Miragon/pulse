@@ -13,21 +13,19 @@ interface EngineBackend {
   provider: EngineProvider
 }
 
-/** No in-memory selection state: it would break behind more than one replica; the durable equivalent is the caller's saved `defaultEngineId`. */
+/** No in-memory selection state: it would break behind more than one replica; the operator sets `defaultEngineId` instead. */
 export interface EngineRegistry {
   /** Engine id to client, URLs and provider, in configuration order. */
   backends: ReadonlyMap<string, EngineBackend>
   engines: EngineEntry[]
-  /** Advisory, must never throw; not consulted when only one engine is configured. */
-  defaultEngineId?: (call?: EngineCallContext) => Promise<string | undefined>
-  /** Gates the `camunda7_select_engine` hint: a hint the caller cannot follow costs a dead round trip. */
-  canSaveDefault?: (call?: EngineCallContext) => boolean
+  /** `CAMUNDA_DEFAULT_ENGINE`; the config schema already refused an id no engine carries. */
+  defaultEngineId?: string
 }
 
 export function createEngineRegistry(
   engines: EngineEntry[],
   clientFor: (engine: EngineEntry) => Client,
-  opts?: Pick<EngineRegistry, "defaultEngineId" | "canSaveDefault">,
+  opts?: Pick<EngineRegistry, "defaultEngineId">,
 ): EngineRegistry {
   // Programmer errors fail the boot, not the first call.
   if (engines.length === 0) throw new Error("createEngineRegistry needs at least one engine")
@@ -42,26 +40,16 @@ export function createEngineRegistry(
       provider: providerForEntry(e),
     })
   }
-  return {
-    backends,
-    engines,
-    defaultEngineId: opts?.defaultEngineId,
-    canSaveDefault: opts?.canSaveDefault,
-  }
+  return { backends, engines, defaultEngineId: opts?.defaultEngineId }
 }
 
 /** Lists the engine ids in the message: only code + message reach the model, so this saves a `camunda7_list_engines` round trip. */
 export class EngineNotSelectedError extends Error {
   readonly code = "ENGINE_NOT_SELECTED" as const
   readonly availableEngines: EngineEntry[]
-  constructor(availableEngines: EngineEntry[], { canSaveDefault = false } = {}) {
+  constructor(availableEngines: EngineEntry[]) {
     const ids = availableEngines.map((e) => e.id).join(", ")
-    super(
-      `No engine specified and no default engine saved. Pass \`engine\` — one of: ${ids}.` +
-        (canSaveDefault
-          ? " To route later calls without it, save a default with camunda7_select_engine."
-          : ""),
-    )
+    super(`No engine specified and no default engine configured. Pass \`engine\`, one of: ${ids}.`)
     this.name = "EngineNotSelectedError"
     this.availableEngines = availableEngines
   }
@@ -81,48 +69,44 @@ export class UnknownEngineError extends Error {
   }
 }
 
-/** A stale stored id degrades to "no default" instead of failing every call. */
-async function savedDefault(
-  registry: EngineRegistry,
-  call: EngineCallContext | undefined,
-): Promise<string | undefined> {
-  if (registry.engines.length <= 1) return undefined
-  const id = await registry.defaultEngineId?.(call)
-  return id && registry.engines.some((e) => e.id === id) ? id : undefined
-}
-
 /** mcp-use's handler `ctx` satisfies this structurally. */
 export interface EngineCallContext {
   signal?: AbortSignal
-  auth?: unknown
 }
 
 /**
- * Precedence: `override` > the caller's saved default > the only engine.
+ * Precedence: `override` > `CAMUNDA_DEFAULT_ENGINE` > the only engine.
  * Pass the handler's `ctx` so reads abort with the MCP request (writes run to completion).
  */
-export async function resolveEngine(
+export function resolveEngine(
   override: string | undefined,
   registry: EngineRegistry,
   call?: EngineCallContext,
-): Promise<EngineBackend & { engineId: string }> {
-  const engineId = await pickEngineId(override, registry, call)
+): EngineBackend & { engineId: string } {
+  const engineId = pickEngineId(override, registry)
   const backend = registry.backends.get(engineId)
   if (!backend) throw new UnknownEngineError(engineId, registry.engines)
   return { ...backend, client: withCallerSignal(backend.client, call?.signal), engineId }
 }
 
-/** An empty `""` override counts as no engine named; it still skips the saved default. */
-async function pickEngineId(
-  override: string | undefined,
-  registry: EngineRegistry,
-  call: EngineCallContext | undefined,
-): Promise<string> {
-  const id = override ?? (await savedDefault(registry, call))
+/** An empty `""` override counts as no engine named; it still skips the default. */
+function pickEngineId(override: string | undefined, registry: EngineRegistry): string {
+  const id = override ?? registry.defaultEngineId
   if (id) return id
   const [only] = registry.engines
   if (only && registry.engines.length === 1) return only.id
-  throw new EngineNotSelectedError(registry.engines, {
-    canSaveDefault: registry.canSaveDefault?.(call) ?? false,
-  })
+  throw new EngineNotSelectedError(registry.engines)
+}
+
+/** Where the cockpit opens: the engine every call would route to, or `null` for the picker. Any error but "no engine selected" propagates. */
+export function cockpitEngineId(
+  override: string | undefined,
+  registry: EngineRegistry,
+): string | null {
+  try {
+    return resolveEngine(override, registry).engineId
+  } catch (e) {
+    if (e instanceof EngineNotSelectedError) return null
+    throw e
+  }
 }

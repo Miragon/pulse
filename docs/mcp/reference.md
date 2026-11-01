@@ -46,8 +46,8 @@ lists the definitions deployed on more than one engine as its valid inputs.
 
 ### Toolsets
 
-Each module runs exactly one toolset per boot, chosen by a suffix in `MCP_ACTIVE_MODULES`
-(`camunda7:operations,analytics:standard`) and stated in the boot log. Without a suffix the default
+A module with toolsets runs exactly one per boot, chosen by a suffix in `MCP_ACTIVE_MODULES`
+(`camunda7:operations,analytics`) and stated in the boot log. Without a suffix the default
 fails closed: the read-only toolset on an unauthenticated server, the standard one under
 `MCP_OAUTH`. `admin` is never implied (only naming it grants it), and an empty (`camunda7:`) or
 unknown suffix warns and falls back to read-only, even under OAuth.
@@ -55,23 +55,20 @@ unknown suffix warns and falls back to read-only, even under OAuth.
 | Toolset               | Surface                                                                                                                                                                                                                                   | No-suffix default |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
 | `camunda7:read-only`  | Queries only (`list_*`, `get_*`, `query_*`, incl. `camunda7_list_engines`): monitoring without writes                                                                                                                                     | without OAuth     |
-| `camunda7:operations` | Read-only plus day-to-day writes: start instances, claim/assign/complete tasks, variables, job and external-task retries, resolve incidents, correlate messages, the saved default engine                                                 | with OAuth        |
+| `camunda7:operations` | Read-only plus day-to-day writes: start instances, claim/assign/complete tasks, variables, job and external-task retries, resolve incidents, correlate messages                                                                           | with OAuth        |
 | `camunda7:admin`      | Everything: adds delete/modify/suspend, migrations, batch retries, `throw_signal` (engine-wide broadcast), the external-task worker protocol (`fetch_and_lock`, `complete_external_task`, `handle_external_task_failure`) and deployments | never             |
-| `analytics:read-only` | Every analytics tool and widget; no settings save                                                                                                                                                                                         | without OAuth     |
-| `analytics:standard`  | Adds `analytics_save_settings`                                                                                                                                                                                                            | with OAuth        |
 
 `camunda7_create_deployment` additionally needs `CAMUNDA_ALLOW_DEPLOYMENTS=true`: deploying a BPMN or
 DMN runs code inside the engine JVM (JUEL expressions, scripts). The full surface is
-`MCP_ACTIVE_MODULES=camunda7:admin,analytics:standard` plus that flag and `MCP_OAUTH` (for the
-language save), never on a server the network can reach without authentication.
+`MCP_ACTIVE_MODULES=camunda7:admin,analytics` plus that flag, never on a server the network can
+reach without authentication. Analytics declares no toolsets: every analytics tool is a read, and
+a suffix on it is ignored with a warning.
 A gateway or reverse proxy that terminates auth in front of the server is invisible to it, so such
 a deployment runs read-only until it names its toolsets.
 
 The widgets follow the toolset: an action button whose tool the toolset drops (retry, resolve
 incident, complete task, edit variable, suspend, cancel) is hidden, not disabled: the default
-anonymous deployment shows no write buttons. The language save (`shell_save_settings`) exists
-only under `MCP_OAUTH` and while no active module runs read-only; the settings page
-(`shell_show_settings`) is always there.
+anonymous deployment shows no write buttons.
 
 ## Configuration
 
@@ -82,12 +79,13 @@ The most common variables. See [Operations](operations.md#environment-variables)
 | `PORT`                                                    | `8400`                              | HTTP port the MCP server listens on                                                                                                                                       |
 | `MCP_ACTIVE_MODULES`                                      | all, read-only                      | Comma-separated modules (`camunda7,analytics`), each with an optional [toolset](#toolsets) suffix; no suffix = read-only, under OAuth the standard toolset                |
 | `MCP_URL`                                                 | —                                   | Public base URL: advertised URLs, OAuth audience, the `Host`/`Origin` accepted (else localhost only), and the origin the views load Geist from (`/fonts/…`)               |
-| `MCP_OAUTH`                                               | —                                   | JSON OAuth resource-server config (Keycloak / Auth0) protecting `/mcp`, the only caller identity (per-user settings)                                                      |
+| `MCP_OAUTH`                                               | —                                   | JSON OAuth resource-server config (Keycloak / Auth0) protecting `/mcp`, the only caller identity                                                                          |
 | `CAMUNDA_ALLOW_DEPLOYMENTS`                               | `false`                             | `true` registers `camunda7_create_deployment` under `camunda7:admin`: code execution in the engine JVM; empty = unset, any value but `true`/`false` fails the boot        |
 | `CAMUNDA_BASE_URL`                                        | `http://localhost:8410/engine-rest` | Single-engine REST base URL                                                                                                                                               |
 | `CAMUNDA_ENGINE_ID`                                       | `default`                           | Id of that engine; must match the engine's `ENGINE_ID` or its analytics stay empty                                                                                        |
 | `CAMUNDA_ENGINE_FLAVOR`                                   | `camunda7`                          | Vendor of that engine (`cibseven`, `operaton` or `camunda7`): picks its cockpit links and product name                                                                    |
 | `CAMUNDA_ENGINES_JSON` / `CAMUNDA_ENGINES_FILE`           | —                                   | Register multiple engines (see [Multi-engine](#multi-engine))                                                                                                             |
+| `CAMUNDA_DEFAULT_ENGINE`                                  | —                                   | Where a call without `engine` routes when several engines are configured; must name a configured engine, else the boot fails                                              |
 | `CAMUNDA_COCKPIT_URL`                                     | derived                             | Cockpit web base for jump-out links                                                                                                                                       |
 | `CAMUNDA_AUTH_TYPE`                                       | `none`                              | `basic`, `bearer`, `passthrough`, or `none`: fallback for engines without an `auth`                                                                                       |
 | `CAMUNDA_USERNAME` / `CAMUNDA_PASSWORD` / `CAMUNDA_TOKEN` | —                                   | Credentials for `basic`/`bearer`; `passthrough` forwards each caller's bearer token (trusted single-audience setups only: the engine could replay it against this server) |
@@ -102,12 +100,13 @@ The server can route to several engines: CIB seven, Operaton and Camunda 7 mixed
 Tag each engine in its metrics plugin
 (`ENGINE_ID`), register them in the server (`CAMUNDA_ENGINES_JSON` / `CAMUNDA_ENGINES_FILE`;
 `ENGINE_ID` must match the registered `id`, or that engine's analytics come back empty), and the
-host discovers them via `camunda7_list_engines` (read-only); `camunda7_select_engine` saves an
-engine as the caller's default (a per-user profile setting, so it needs `MCP_OAUTH` identity and a
-toolset that allows writes). Every operations tool also accepts a per-call `engine` override
-(advertised as an enum of the configured ids), which works without any identity. Analytics tools
-take an optional `engine` filter to aggregate or compare. The server `instructions` state the
-routing rule once for every tool. Each engine entry may carry its own `auth`
+host discovers them via `camunda7_list_engines` (read-only), which lists every configured engine.
+Every operations tool also accepts a per-call `engine` override
+(advertised as an enum of the configured ids). A call routes to its `engine` argument, else to
+`CAMUNDA_DEFAULT_ENGINE`, else to the only configured engine, else fails with
+`ENGINE_NOT_SELECTED` listing the engines; a default that names no configured engine fails the
+boot. Analytics tools take an optional `engine` filter to aggregate or compare. The server
+`instructions` state the routing rule once for every tool. Each engine entry may carry its own `auth`
 (`{type, username?, password?, token?}`); entries without one use the global `CAMUNDA_*` settings.
 Entries may also declare their vendor via `flavor` (`cibseven` | `operaton` | `camunda7`, default
 `camunda7`; the single-engine shorthand takes `CAMUNDA_ENGINE_FLAVOR`), which selects the engine's
@@ -120,7 +119,7 @@ landscape plus fleet-wide failure and performance analyses) needs the analytics 
 
 Fleets that span several environments (each environment hosting some services with an engine)
 group their engines per environment: the cockpit landing lists the engines under their
-environment, the engine switcher, the settings page and `camunda7_list_engines` group them by
+environment, the engine switcher and `camunda7_list_engines` group them by
 environment, and every engine view names the environment as a chip ("PROD") next to the engine,
 write confirmations included. Either write the
 engines JSON as a map keyed by environment id, or tag entries individually:

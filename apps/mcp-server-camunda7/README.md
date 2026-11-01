@@ -43,11 +43,12 @@ The package itself is `private` and not published to npm.
 
 - **Composes modules:** loads the modules named in `MCP_ACTIVE_MODULES` (default: all) and
   registers their tools and widgets on one server; a tool name two modules share fails the boot.
-  Each module runs one fail-closed toolset per boot: the suffix if given (`camunda7:operations`,
-  …), otherwise read-only without `MCP_OAUTH` and its standard toolset (camunda7 `operations`,
-  analytics `standard`) with it; `admin` is never implied, an empty or unknown suffix falls back
-  to read-only, and the boot log states the result. The shell's language save is registered
-  only under OAuth while no module runs read-only. Modules self-describe via their
+  A module with toolsets runs one fail-closed toolset per boot: the suffix if given (`camunda7:operations`,
+  …), otherwise read-only without `MCP_OAUTH` and its standard toolset (camunda7 `operations`)
+  with it; `admin` is never implied, an empty or unknown suffix falls back to read-only, and the
+  boot log states the result. Analytics declares none (every analytics tool is a read), so a
+  suffix on it is ignored with a warning.
+  Modules self-describe via their
   `src/module.ts` (`configFromEnv`, `knownEnvVars`, `bootWarnings`, `instructions`, plugin
   factory) against the app-owned port in [`src/module-contract.ts`](src/module-contract.ts); the
   app only selects modules and wires shared resources.
@@ -86,7 +87,7 @@ Pulse assumes a Camunda 7 engine. For CIB seven or Operaton add `-e CAMUNDA_ENGI
 Configuration is entirely environment-driven. See
 [Configuration](../../docs/mcp/reference.md#configuration), [Toolsets](../../docs/mcp/reference.md#toolsets) and
 [`docs/mcp/operations.md`](../../docs/mcp/operations.md). To exercise write paths locally, set
-`MCP_ACTIVE_MODULES=camunda7:admin,analytics:standard` in `.env` (plus
+`MCP_ACTIVE_MODULES=camunda7:admin,analytics` in `.env` (plus
 `CAMUNDA_ALLOW_DEPLOYMENTS=true` for deployments).
 
 ## Layout
@@ -94,8 +95,8 @@ Configuration is entirely environment-driven. See
 | Path                     | Contents                                                                                                 |
 | ------------------------ | -------------------------------------------------------------------------------------------------------- |
 | `src/index.ts`           | Server entry: `createApp()`, then `listen()` (body cap, drain) unless `mcp-use dev` serves it            |
-| `src/app.ts`             | `createApp(env, deps?)`: OAuth, persistence, plugins into the shared boot; the e2e suites boot it too    |
-| `src/module-contract.ts` | App-owned port: `ModuleDefinition` + `SharedResources { profileStore, fetchBpmnXml? }`                   |
+| `src/app.ts`             | `createApp(env, deps?)`: OAuth and the plugins into the shared boot; the e2e suites boot it too          |
+| `src/module-contract.ts` | App-owned port: `ModuleDefinition` + `SharedResources { fetchBpmnXml?, engineIds? }`                     |
 | `src/setup.ts`           | Module selection (`MCP_ACTIVE_MODULES`), env-typo warner + boot warnings from the modules, shared wiring |
 | `src/ui/`                | Widget host bundle: `view-registry.ts` (views + host widgets) + `main.tsx` (`mountViews`)                |
 | `vite.config.ts`         | Single-file widget bundle config (keep the `dedupe` array)                                               |

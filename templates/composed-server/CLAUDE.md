@@ -5,15 +5,14 @@ from the published `@miragon/pulse-*` modules (camunda7 BPM operations, Promethe
 process analytics) plus your own custom modules. `README.md` is the quick tour
 for humans; this file plus the skills carry the architecture rules.
 
-The skills in `.claude/skills/` are step-by-step walkthroughs for the four main
+The skills in `.claude/skills/` are step-by-step walkthroughs for the three main
 task paths. Read the matching one BEFORE starting:
 
-| Skill                  | Use when…                                                                                       |
-| ---------------------- | ----------------------------------------------------------------------------------------------- |
-| `setup-server`         | configuring, running, branding, or deploying this server (env, modules, toolsets, Docker)       |
-| `create-module`        | building your own connector module: tools for your own API or system                            |
-| `add-widget`           | adding or changing an interactive widget (`show_*` tool + `*_data` feed + React component)      |
-| `add-settings-section` | persisting per-user preferences for a module (a `profile.modules.<module>` slice + tool triple) |
+| Skill           | Use when…                                                                                  |
+| --------------- | ------------------------------------------------------------------------------------------ |
+| `setup-server`  | configuring, running, branding, or deploying this server (env, modules, toolsets, Docker)  |
+| `create-module` | building your own connector module: tools for your own API or system                       |
+| `add-widget`    | adding or changing an interactive widget (`show_*` tool + `*_data` feed + React component) |
 
 ## Commands
 
@@ -109,10 +108,12 @@ external infrastructure.
    concrete toolset per module per boot and logs it. Without `MCP_OAUTH`
    (`oauthFromEnv` in `server/src/app.ts`) a module without a suffix runs its
    read-only floor, an empty/unknown suffix falls back to it, and an
-   admin-like toolset is only reachable by naming it. Gate durable writes on the vocabulary
-   (`allowsDurableWrites(resolve(toolset))`), never on a name compare or on
-   `toolset === undefined`, both of which fail open. Details: `create-module`
-   Step 5.
+   admin-like toolset is only reachable by naming it. Gate a write by the
+   module's toolset rule at registration (camunda7's
+   `withToolsetFilter`/`isToolInToolset` in
+   `node_modules/@miragon/pulse-camunda7-connector/src/lib/toolsets.ts`), never
+   on a name compare or on `toolset === undefined`, both of which fail open.
+   Details: `create-module` Step 5.
 
 ## Verification
 
@@ -152,5 +153,5 @@ the Tailwind scan in one shot.
 - The published Pulse modules ship their **sources**: read
   `node_modules/@miragon/pulse-camunda7-connector/src/` and
   `node_modules/@miragon/pulse-analytics-connector/src/` for the reference
-  implementations of anything the notes module doesn't cover (toolsets,
-  settings sections, paged lists, BPMN widgets).
+  implementations of anything the notes module doesn't cover (toolsets, paged
+  lists, BPMN widgets).

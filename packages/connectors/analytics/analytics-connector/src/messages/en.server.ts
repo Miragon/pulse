@@ -25,11 +25,6 @@ export const enServer: MessageCatalog = {
   "aSum.scopeForProcess": ' for "{key}"',
   "aSum.sharedKeys":
     " Deployed on several engines (the only sound engine-vs-engine comparisons): {keys}.",
-  "aSum.settings":
-    "Analytics settings: default period {period}, min bucket size {minBucketSize}.{changeHint}",
-  "aSum.settingsChangeHint": " Change via analytics_save_settings.",
-  "aSum.settingsSaved":
-    "Analytics settings saved: default period {period}, min bucket size {minBucketSize}.",
   "aSum.versionCompare":
     'Version comparison for "{key}" v{versionA} vs v{versionB} over {windowDays}d{engines}: {delta}{suppressed}.',
 }

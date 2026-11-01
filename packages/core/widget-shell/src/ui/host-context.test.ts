@@ -8,7 +8,6 @@ import {
   hostTokenOverrides,
   resolveLanguage,
   resolveTheme,
-  supportedLanguage,
   validTimeZone,
 } from "./host-context.js"
 
@@ -31,46 +30,33 @@ describe("resolveTheme — host > OS, no in-app switch", () => {
   })
 })
 
-describe("resolveLanguage — explicit profile > host locale > English", () => {
-  it("an explicit profile language wins over the host locale", () => {
-    expect(resolveLanguage("en", "de-DE")).toBe("en")
-    expect(resolveLanguage("de", "en-US")).toBe("de")
-  })
-
-  it("system, a missing profile and an unshipped language follow the host locale", () => {
-    for (const profile of ["system", undefined, "fr"]) {
-      expect(resolveLanguage(profile, "de-AT")).toBe("de")
+describe("resolveLanguage: host locale, else English", () => {
+  it("a host locale whose primary language is de renders German", () => {
+    for (const locale of ["de", "de-DE", "DE-ch", "de_AT"]) {
+      expect(resolveLanguage(locale), locale).toBe("de")
     }
   })
 
-  it("falls back to English for an unsupported or missing host locale", () => {
-    expect(resolveLanguage("system", "fr-FR")).toBe("en")
-    expect(resolveLanguage(undefined, undefined)).toBe("en")
-    expect(resolveLanguage("system", "")).toBe("en")
-  })
-
-  it("normalizes a host tag to its shipped language", () => {
-    expect(supportedLanguage("de")).toBe("de")
-    expect(supportedLanguage("DE-ch")).toBe("de")
-    expect(supportedLanguage("en_GB")).toBe("en")
-    expect(supportedLanguage("pt-BR")).toBeUndefined()
-    expect(supportedLanguage(undefined)).toBeUndefined()
+  it("anything else, including no locale, renders English", () => {
+    for (const locale of ["en-US", "fr-FR", "pt-BR", "deu", "dev", "", undefined]) {
+      expect(resolveLanguage(locale), String(locale)).toBe("en")
+    }
   })
 })
 
 describe("formattingLocale", () => {
-  it("keeps the host's full tag when it speaks the effective language", () => {
-    expect(formattingLocale("de", "de-AT")).toBe("de-AT")
-    expect(formattingLocale("en", "en-gb")).toBe("en-GB")
+  it("keeps the host's canonical tag when the UI ships its language", () => {
+    expect(formattingLocale("de-AT")).toBe("de-AT")
+    expect(formattingLocale("en-gb")).toBe("en-GB")
   })
 
-  it("uses the bare language when the host speaks another one or reports none", () => {
-    expect(formattingLocale("de", "en-US")).toBe("de")
-    expect(formattingLocale("en", undefined)).toBe("en")
+  it("formats in English when the host speaks another language or reports none", () => {
+    expect(formattingLocale("pt-BR")).toBe("en")
+    expect(formattingLocale(undefined)).toBe("en")
   })
 
   it("never hands the formatters a malformed tag", () => {
-    expect(formattingLocale("de", "de-")).toBe("de")
+    expect(formattingLocale("de-")).toBe("de")
   })
 })
 

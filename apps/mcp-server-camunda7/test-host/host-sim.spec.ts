@@ -22,7 +22,6 @@ import { BROKEN_ENGINE, ENGINE_CONTROL_ENV, HEALTHY_ENGINE } from "./engines.js"
  */
 
 const RENDER_TOOL = "camunda7_show_process_list"
-const PROFILE_FEED = "shell_settings_data"
 /**
  * How long every re-execution count waits after the last lifecycle event
  * (delivery, recovered render), so a duplicate call lands before the check.
@@ -64,8 +63,6 @@ interface HostLog {
   delivered: "result" | "cancelled" | null
   originalResult: { isError?: boolean; content?: { type: string; text?: string }[] } | null
   toolCalls: { name: string; arguments: Record<string, unknown> }[]
-  /** Calls the host answered with an error per `failTools`; `at` = host Date.now(). */
-  failedToolCalls: { name: string; at: number }[]
   displayModeRequests: string[]
   sizeChanges: { width?: number; height?: number; at: number }[]
   methods: string[]
@@ -89,8 +86,6 @@ interface Scenario {
   displayModes?: string[]
   /** Answer `ui/initialize` this many ms late (a slow handshake). */
   initDelayMs?: number
-  /** Answer the view's calls to these tools with an error (a server without them). */
-  failTools?: string[]
   /** Build the frame's CSP without the resource's resourceDomains (a host that ignores them). */
   ignoreResourceDomains?: boolean
   /** The frame's width in px (the host sim's default: 960). */
@@ -113,7 +108,6 @@ async function openView(page: Page, scenario: Scenario = {}): Promise<FrameLocat
   if (scenario.maxHeight !== undefined) query.set("maxHeight", String(scenario.maxHeight))
   if (scenario.displayModes) query.set("displayModes", scenario.displayModes.join(","))
   if (scenario.initDelayMs) query.set("initDelayMs", String(scenario.initDelayMs))
-  if (scenario.failTools) query.set("failTools", scenario.failTools.join(","))
   if (scenario.ignoreResourceDomains) query.set("resourceDomains", "ignore")
   if (scenario.width) query.set("width", String(scenario.width))
   await page.goto(`${base}/?${query.toString()}`)
@@ -215,8 +209,8 @@ async function reportedHeight(page: Page): Promise<number> {
  * The height the view reported for what it renders NOW. bootstrapView's
  * auto-resize reports one frame after a resize (ResizeObserver → rAF →
  * postMessage), so right after the content became visible the last report can
- * still be an earlier state's — the ProfileGate skeleton's ~208 px, which
- * would satisfy any "small enough" bound by itself. Measure the document
+ * still be an earlier state's (the view's loading state), which would
+ * satisfy any "small enough" bound by itself. Measure the document
  * exactly as the auto-resize does (`<html>` at max-content, rounded up) and
  * wait until the last report equals it.
  */
@@ -349,10 +343,8 @@ test.describe("real camunda7 view (camunda7_show_process_list)", () => {
     expect(await reExecutions(page)).toHaveLength(0)
     // The chat's own answer carries no "Reloaded at" line.
     await expect(app.getByText(CHROME.reloadedAt)).toHaveCount(0)
-    // The provider stack works in the real bundle: ProfileGate fetched the
-    // profile through the view host (the ViewRoot order) …
-    expect(log.toolCalls.map((c) => c.name)).toContain(PROFILE_FEED)
-    // … and bootstrapView's auto-resize reports the rendered height to the host.
+    // The provider stack works in the real bundle: bootstrapView's auto-resize
+    // reports the rendered height to the host.
     expect(await settledHeight(page, app)).toBeGreaterThan(200)
     expect(log.errors).toEqual([])
     // Nothing the served document needs is blocked by its own declared CSP,
@@ -450,9 +442,8 @@ test.describe("real camunda7 view (camunda7_show_process_list)", () => {
     page,
   }) => {
     // The host holds the result for seconds: the check below runs at a
-    // fixed point on the HOST's clock, so neither the profile round trip
-    // before the skeleton nor Playwright's poll lag can push it past the
-    // delivery.
+    // fixed point on the HOST's clock, so Playwright's poll lag cannot push
+    // it past the delivery.
     const checkAfterMs = 3_000
     const app = await openView(page, { resultDelayMs: checkAfterMs + 3_500 })
 
@@ -593,9 +584,8 @@ test.describe("real camunda7 view (camunda7_show_process_list)", () => {
     }
   })
 
-  test("host locale de-DE without a saved profile: a German view (#339)", async ({ page }) => {
-    // The default deployment has no OAuth, so the profile is the default
-    // `language: "system"` — the host's locale decides.
+  test("host locale de-DE: a German view (#339)", async ({ page }) => {
+    // The host's locale decides the view's language.
     const app = await openView(page, { locale: "de-DE", displayModes: ["inline", "fullscreen"] })
 
     const table = germanDefinitionsTable(app)
@@ -603,7 +593,7 @@ test.describe("real camunda7 view (camunda7_show_process_list)", () => {
     await expect(table.getByRole("row")).toHaveCount(4)
     await expect(app.getByText("3 bereitgestellt")).toBeVisible()
     // One German title and no English toolbar title over it: the server
-    // titles a view only in a language the profile names (#322 U3).
+    // never titles a view (#322 U3).
     await expect(
       app.getByRole("heading", { name: "Prozessdefinitionen", exact: true }),
     ).toHaveCount(1)
@@ -613,36 +603,15 @@ test.describe("real camunda7 view (camunda7_show_process_list)", () => {
     expect(await app.locator("html").getAttribute("lang")).toBe("de")
   })
 
-  test("a profile feed the server lacks (e.g. an analytics-only boot): the view paints at its first failure, from the host context (#339)", async ({
-    page,
-  }) => {
-    const app = await openView(page, { failTools: [PROFILE_FEED], theme: "dark", locale: "de-DE" })
-
-    // The host's locale and theme — the gate fell back to the host context …
-    await expect(germanDefinitionsTable(app).getByRole("row")).toHaveCount(4, { timeout: 15_000 })
-    expect(await documentTheme(app)).toEqual({ dark: true, dataTheme: "dark", colorScheme: "dark" })
-    // … at the failure itself: the content's size report precedes react-query's
-    // first retry (1 s after it). Waiting out the gate's 1.5 s bound, or the
-    // ~7 s of retries, would report it only after that retry.
-    const painted = await settledHeight(page, app)
-    await expect.poll(async () => (await hostLog(page)).failedToolCalls.length).toBeGreaterThan(1)
-    const log = await hostLog(page)
-    const [failure, retry] = log.failedToolCalls
-    expect(failure.name).toBe(PROFILE_FEED)
-    const contentAt = log.sizeChanges.find((s) => s.height === painted)?.at ?? Infinity
-    expect(contentAt, "the view waited for the profile's retries").toBeLessThan(retry.at)
-  })
-
   test("a slow handshake: nothing paints before the host context arrives — no English or OS-theme flash (#339)", async ({
     page,
   }) => {
     const app = await openView(page, { initDelayMs: 3_000, theme: "dark", locale: "de-DE" })
 
     await expect.poll(async () => (await hostLog(page)).initializeRequested).toBe(true)
-    // Past the profile's 1.5 s wait, the host has not answered yet: the gate
-    // times the profile from the CONNECTION, so the shell's document layer is
-    // still empty instead of painting English on the OS theme, to flip a
-    // moment later.
+    // Two seconds in, the host has not answered yet: the gate waits for the
+    // host context, so the shell's document layer is still empty instead of
+    // painting English on the OS theme, to flip a moment later.
     await page.waitForTimeout(2_000)
     const documentLayer = await app.locator("#root").evaluate((root) => ({
       children: root.firstElementChild?.childElementCount,

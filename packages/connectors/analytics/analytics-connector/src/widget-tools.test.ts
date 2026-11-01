@@ -4,7 +4,6 @@ import type { MCPServer } from "mcp-use"
 import type { PrometheusClient } from "@miragon/pulse-analytics-client"
 import { registerWidgetTools } from "./widget-tools.js"
 import { createEngineScope } from "./engine-ids.js"
-import type { ProfileSource } from "./server-locale.js"
 import type { FetchBpmnXml, NameRequest } from "./bpmn-name-lookup.js"
 
 /** Feeds answer in JSON text only. */
@@ -65,39 +64,36 @@ describe("analytics_show_failure_dashboard engine scope", () => {
 
 describe("no server titles (U3) and the heatmap's as-of stamp (U7)", () => {
   const CTX = { auth: { user: { id: "user-1" } } }
-  function localizedHandlers(language: string): Map<string, Handler> {
+  function viewHandlers(): Map<string, Handler> {
     const byName = new Map<string, Handler>()
     const server = {
       tool: (definition: { name: string }, handler: Handler) => {
         byName.set(definition.name, handler)
       },
     } as unknown as MCPServer
-    const profileStore: ProfileSource = { get: () => Promise.resolve({ language }) }
     registerWidgetTools(server, recordingClient().client, {
       engineScope: createEngineScope(["prod-a"]),
-      profileStore,
     })
     return byName
   }
+  // Handlers called directly get no schema defaults: pass the period.
   const SHOWS: Array<[string, Record<string, unknown>]> = [
-    ["analytics_show_dashboard", {}],
+    ["analytics_show_dashboard", { period: "7d" }],
     ["analytics_show_failure_dashboard", {}],
-    ["analytics_show_bpmn_heatmap", { processDefinitionKey: "order" }],
+    ["analytics_show_bpmn_heatmap", { processDefinitionKey: "order", period: "7d" }],
   ]
   it("hands the view its data only: the widget heading names it in the host's language", async () => {
-    for (const language of ["de", "en"]) {
-      const tools = localizedHandlers(language)
-      for (const [name, args] of SHOWS) {
-        const { structuredContent } = await tools.get(name)!(args, CTX)
-        expect(Object.keys(structuredContent)).not.toContain("title")
-        expect(Object.keys(structuredContent)).not.toContain("layout")
-      }
+    const tools = viewHandlers()
+    for (const [name, args] of SHOWS) {
+      const { structuredContent } = await tools.get(name)!(args, CTX)
+      expect(Object.keys(structuredContent)).not.toContain("title")
+      expect(Object.keys(structuredContent)).not.toContain("layout")
     }
   })
 
   it("stamps the heatmap with the time its values were read, in the view and the feed", async () => {
-    const tools = localizedHandlers("en")
-    const args = { processDefinitionKey: "order" }
+    const tools = viewHandlers()
+    const args = { processDefinitionKey: "order", period: "7d" }
     const show = await tools.get("analytics_show_bpmn_heatmap")!(args, CTX)
     const feed = await tools.get("analytics_bpmn_heatmap_data")!(args, CTX)
     const iso = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/
@@ -122,7 +118,7 @@ describe("the heatmap's missing-diagram cause", () => {
       engineScope: createEngineScope(engines),
       fetchBpmnXml,
     })
-    const args = { processDefinitionKey: "order" }
+    const args = { processDefinitionKey: "order", period: "7d" }
     const show = await byName.get("analytics_show_bpmn_heatmap")!(args, {})
     const heat = feedData<Diagram>(await byName.get("analytics_bpmn_heatmap_data")!(args, {}))
     const diagram = feedData<Diagram>(await byName.get("analytics_bpmn_xml_data")!(args, {}))
@@ -213,19 +209,16 @@ describe("the names behind the ids", () => {
       },
     } as unknown as MCPServer
     const calls: Array<[string[], NameRequest | undefined]> = []
-    const profileStore: ProfileSource = {
-      get: () => Promise.resolve({ modules: { analytics: { minBucketSize: 3 } } }),
-    }
     registerWidgetTools(server, client, {
       engineScope: createEngineScope(["prod-a"]),
-      profileStore,
       namesFor: (keys, request) => {
         calls.push([[...keys], request])
         return Promise.resolve(NAMES)
       },
     })
     const ctx = { auth: { user: { id: "user-1" } } }
-    const result = await byName.get(name)!({}, ctx)
+    // Handlers called directly get no schema defaults: pass the period.
+    const result = await byName.get(name)!({ period: "7d" }, ctx)
     return { content: feedData(result), calls }
   }
 
@@ -256,9 +249,9 @@ describe("the names behind the ids", () => {
     expect(landscape.calls[0][1]?.enginesByKey).toEqual({ order: ["prod-a"] })
   })
 
-  it("judges the dashboard's rate against the caller's saved comparison floor", async () => {
+  it("judges the dashboard's rate against the comparison floor, the schemas' default 10", async () => {
     const { content } = await run("analytics_show_dashboard")
-    // 4 starts in each window, the saved floor 3: a change of the rate is judged.
-    expect(content.previous).toMatchObject({ totalCount: 4, suppressed: false })
+    // 4 starts in each window, below the floor 10: the rate change is not judged.
+    expect(content.previous).toMatchObject({ totalCount: 4, suppressed: true })
   })
 })

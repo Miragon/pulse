@@ -58,12 +58,8 @@ describe("writeFeedback — every write names its object (U9)", () => {
     )
   })
 
-  it("a variable, the settings", () => {
+  it("a variable", () => {
     expect(writeFeedback.variable(de, "amount").success).toBe("Variable amount gespeichert")
-    expect(writeFeedback.settings(en)).toEqual({
-      success: "Settings saved",
-      failure: "Couldn't save the settings",
-    })
   })
 
   it("a task: completed, or handed back to its owner when it was delegated", () => {

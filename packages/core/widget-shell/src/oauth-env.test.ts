@@ -25,9 +25,11 @@ describe("oauthFromEnv", () => {
     for (const raw of [undefined, "", "   "]) expect(fromEnv(raw)).toBeUndefined()
     expect(warn).toHaveBeenCalledTimes(3)
     expect(warn.mock.calls[0][0]).toMatch(
-      /^\[test-root\] MCP_OAUTH is unset — there is no caller identity/,
+      /^\[test-root\] MCP_OAUTH is unset, so there is no caller identity/,
     )
-    expect(warn.mock.calls[0][0]).toContain("user settings cannot be saved")
+    expect(warn.mock.calls[0][0]).toContain(
+      "modules without an explicit toolset run read-only. Set MCP_OAUTH",
+    )
   })
 
   it("reads process.env by default", () => {
@@ -48,7 +50,7 @@ describe("oauthFromEnv", () => {
     )
   })
 
-  it("maps the token subject as the caller id (`user.id`, the spelling resolveCaller reads)", () => {
+  it("maps the token subject as the caller id (`user.id`, the spelling callerUserId reads)", () => {
     const extra = fromEnv(KEYCLOAK)!.mapAuthInfo({
       token: "t",
       clientId: "c",

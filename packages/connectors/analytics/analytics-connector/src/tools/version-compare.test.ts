@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest"
+import { z } from "zod"
 import type { PrometheusClient, VersionCompareResult } from "@miragon/pulse-analytics-client"
 import type { ToolConfig } from "@miragon/pulse-widget-shell/server"
 import { createEngineScope } from "../engine-ids.js"
@@ -64,7 +65,7 @@ describe("analytics_version_compare", () => {
     expect(config.description).toContain("element_incident_* fields stay null")
   })
 
-  it("accepts the version-compare input plus the optional minBucketSize override", () => {
+  it("accepts the version-compare input, minBucketSize included", () => {
     expect(Object.keys(config.inputSchema ?? {})).toEqual(
       expect.arrayContaining(["processDefinitionKey", "versionA", "versionB", "minBucketSize"]),
     )
@@ -79,13 +80,16 @@ describe("analytics_version_compare", () => {
     })
   })
 
-  it("prefers an explicit minBucketSize over the resolved setting", async () => {
+  it("prefers an explicit minBucketSize over the schema default", async () => {
     const { client } = recordingClient()
-    const explicit = (await config.handler(client, {
-      ...args,
-      minBucketSize: 3,
-    })) as VersionCompareResult
-    const fallback = (await config.handler(client, { ...args })) as VersionCompareResult
+    // mcp-use parses the input before the handler runs, so an omitted value takes the default.
+    const parsed = (input: Record<string, unknown>) =>
+      z.object(config.inputSchema ?? {}).parse(input) as Record<string, unknown>
+    const explicit = (await config.handler(
+      client,
+      parsed({ ...args, minBucketSize: 3 }),
+    )) as VersionCompareResult
+    const fallback = (await config.handler(client, parsed(args))) as VersionCompareResult
     expect(explicit.minBucketSize).toBe(3)
     expect(fallback.minBucketSize).toBe(10)
   })

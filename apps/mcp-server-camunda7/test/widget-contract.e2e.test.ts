@@ -35,11 +35,11 @@ describe("widget wire contract (dual-protocol _meta)", () => {
   let serverOrigin: string
 
   beforeAll(async () => {
-    // The widest surface (admin + standard under OAuth); widget tools and
+    // The widest surface (admin under OAuth); widget tools and
     // *_data feeds are the same in every toolset.
     server = await bootServer({
       authenticated: true,
-      env: { MCP_ACTIVE_MODULES: "camunda7:admin,analytics:standard" },
+      env: { MCP_ACTIVE_MODULES: "camunda7:admin,analytics" },
     })
     client = server.client
     serverOrigin = `http://127.0.0.1:${server.port}`
@@ -127,7 +127,7 @@ describe("widget wire contract (dual-protocol _meta)", () => {
       return Array.isArray(ui.visibility) && (ui.visibility as unknown[]).includes("app")
     })
     expect(appOnlyTools.length).toBeGreaterThanOrEqual(3)
-    expect(appOnlyTools.map((t) => t.name)).toContain("shell_settings_data")
+    expect(appOnlyTools.map((t) => t.name)).toContain("camunda7_widget_actions_data")
 
     for (const tool of appOnlyTools) {
       const meta = toolMeta(tool)
@@ -159,7 +159,8 @@ describe("widget wire contract (dual-protocol _meta)", () => {
   // #344 N159: every module view names itself and asks the host for a border
   // (owner decision 2026-10-12) — the cards draw none of their own.
   it("names every module view and asks the host for a border", async () => {
-    const showTools = tools.filter((t) => t.name.includes("_show_"))
+    // Every view-bound tool: the show tools and the cockpit.
+    const showTools = tools.filter((t) => typeof uiBlock(t._meta ?? {}).resourceUri === "string")
     expect(showTools.length).toBeGreaterThanOrEqual(20)
     for (const tool of showTools) {
       const { contents } = await client.readResource({ uri: viewResourceUri(tool.name) })
@@ -244,7 +245,7 @@ describe("widget wire contract — the font origin under MCP_URL", () => {
     server = await bootServer({
       authenticated: true,
       env: {
-        MCP_ACTIVE_MODULES: "camunda7:admin,analytics:standard",
+        MCP_ACTIVE_MODULES: "camunda7:admin,analytics",
         MCP_URL: `${PUBLIC_ORIGIN}/mcp`,
       },
     })

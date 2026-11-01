@@ -6,7 +6,7 @@ import { createEngineScope } from "../engine-ids.js"
 import { registerEngineCompareTools } from "./engine-compare.js"
 
 const scope = createEngineScope(["prod-a", "prod-b"])
-const register = (r: never, store?: never) => registerEngineCompareTools(r, scope, store)
+const register = (r: never) => registerEngineCompareTools(r, scope)
 
 type Config = ToolConfig<PrometheusClient>
 
@@ -146,25 +146,19 @@ describe("analytics_engine_compare PromQL", () => {
     })
   })
 
-  it("prefers an explicit minBucketSize over the resolved setting", async () => {
-    const handlers = captureHandlers(register)
+  it("prefers an explicit minBucketSize over the schema default", async () => {
+    const config = captureConfigs(register).get("analytics_engine_compare")!
     const { client } = recordingClient()
+    // mcp-use parses the input before the handler runs, so an omitted value takes the default.
+    const parsed = (input: Record<string, unknown>) =>
+      z.object(config.inputSchema ?? {}).parse(input) as Record<string, unknown>
+    const input = { processDefinitionKey: "order", engineA: "prod-a", engineB: "prod-b" }
 
-    const explicit = (await handlers.get("analytics_engine_compare")!(client, {
-      processDefinitionKey: "order",
-      engineA: "prod-a",
-      engineB: "prod-b",
-      windowDays: 7,
-      minBucketSize: 3,
-    })) as { minBucketSize: number }
-    const fallback = (await handlers.get("analytics_engine_compare")!(client, {
-      processDefinitionKey: "order",
-      engineA: "prod-a",
-      engineB: "prod-b",
-      windowDays: 7,
-    })) as { minBucketSize: number }
+    const explicit = (await config.handler(client, parsed({ ...input, minBucketSize: 3 }))) as {
+      minBucketSize: number
+    }
+    const fallback = (await config.handler(client, parsed(input))) as { minBucketSize: number }
 
-    // No store or profile key: the schema default.
     expect(explicit.minBucketSize).toBe(3)
     expect(fallback.minBucketSize).toBe(10)
   })

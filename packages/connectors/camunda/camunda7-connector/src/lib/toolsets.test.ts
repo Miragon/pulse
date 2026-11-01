@@ -3,10 +3,9 @@ import { registerEngineTools } from "../tools/engines.js"
 import { registerTools } from "../tools/index.js"
 import { registerIncidentIssueTools } from "../tools/incident-issue.js"
 import type { EngineRegistry } from "./resolve-engine.js"
-import { createInMemoryProfileStore, type ToolConfig } from "@miragon/pulse-widget-shell/server"
+import type { ToolConfig } from "@miragon/pulse-widget-shell/server"
 import {
   allowedWidgetActions,
-  allowsProfileSave,
   CAMUNDA7_ADMIN_ONLY_TOOLS,
   CAMUNDA7_TOOLSETS,
   isToolInToolset,
@@ -27,7 +26,7 @@ function configsFor(toolset: Camunda7Toolset, { allowDeployments = false } = {})
   const configs: Config[] = []
   const recorder = ((config: Config) => configs.push(config)) as unknown as Register
   const register = withToolsetFilter(recorder, toolset)
-  registerEngineTools(register, createInMemoryProfileStore())
+  registerEngineTools(register)
   registerTools(register, { allowDeployments })
   registerIncidentIssueTools(register, {})
   return configs
@@ -60,8 +59,6 @@ const ADMIN_ONLY = [
 ]
 
 const ENGINE_WRITES = [
-  // the saved default engine (a profile write, like camunda7_save_settings)
-  "camunda7_select_engine",
   "camunda7_start_process_instance",
   "camunda7_complete_task",
   "camunda7_claim_task",
@@ -226,12 +223,6 @@ describe("isToolInToolset (the rule, per branch)", () => {
     [WRITE_TOOL, READ, "read-only", true],
   ] as const)("%s %o in %s → %s", (name, annotations, toolset, expected) => {
     expect(isToolInToolset({ name, annotations }, toolset)).toBe(expected)
-  })
-
-  it("allowsProfileSave: every toolset above the read-only floor", () => {
-    expect(allowsProfileSave("read-only")).toBe(false)
-    expect(allowsProfileSave("operations")).toBe(true)
-    expect(allowsProfileSave("admin")).toBe(true)
   })
 })
 

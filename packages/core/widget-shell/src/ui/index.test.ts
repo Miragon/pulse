@@ -19,7 +19,7 @@ describe("the /widgets entry", () => {
     "useViewHost",
     "HostModelContext",
     "useHostWidget",
-    "settingsSections",
+    "LocaleGate",
     "useToolQuery",
     "useToolMutation",
     "useViewData",
@@ -29,8 +29,6 @@ describe("the /widgets entry", () => {
     "createTranslator",
     "TestViewHost",
     "createTestQueryClient",
-    "SettingsPage",
-    "shellViews",
   ])("exports %s", (name) => {
     expect(widgets).toHaveProperty(name)
     expect(widgets[name as keyof typeof widgets]).toBeDefined()

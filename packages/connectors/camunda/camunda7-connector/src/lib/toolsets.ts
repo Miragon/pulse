@@ -4,11 +4,7 @@ import {
   type ToolRegistrar,
 } from "@miragon/pulse-widget-shell/server"
 import type { EngineRegistry } from "./resolve-engine.js"
-import {
-  CAMUNDA7_SAVE_SETTINGS,
-  CAMUNDA7_WIDGET_ACTIONS,
-  type Camunda7WidgetAction,
-} from "../tool-names.js"
+import { CAMUNDA7_WIDGET_ACTIONS, type Camunda7WidgetAction } from "../tool-names.js"
 
 export const CAMUNDA7_TOOLSETS = ["read-only", "operations", "admin"] as const
 export type Camunda7Toolset = (typeof CAMUNDA7_TOOLSETS)[number]
@@ -61,11 +57,6 @@ export function isToolInToolset(
   if (ADMIN_ONLY_TOOLS.has(config.name)) return false
   if (toolset === "operations") return true
   return config.annotations?.readOnlyHint === true
-}
-
-/** `camunda7_select_engine` writes the same profile field, so this is the one profile-write decision. */
-export function allowsProfileSave(toolset: Camunda7Toolset): boolean {
-  return isToolInToolset({ name: CAMUNDA7_SAVE_SETTINGS }, toolset)
 }
 
 /** Widget buttons render from this, so a button and the tool surface never disagree. */

@@ -3,21 +3,10 @@ import { feedPayload } from "./tools/test-support/feed-payload.js"
 import type { MCPServer } from "mcp-use"
 import type { Client } from "@miragon/pulse-camunda7-client"
 import { z } from "zod"
-import {
-  createInMemoryProfileStore,
-  runWithMcpRequestInfo,
-  type McpRequestInfo,
-  type ProfileStore,
-} from "@miragon/pulse-widget-shell/server"
 import { createCamunda7EngineRegistry, createPlugin, type Camunda7PluginConfig } from "./plugin.js"
 import { EngineNotSelectedError, resolveEngine } from "./lib/resolve-engine.js"
-import { CAMUNDA7_ADMIN_ONLY_TOOLS, resolveCamunda7Toolset } from "./lib/toolsets.js"
-import {
-  CAMUNDA7_LIST_ENGINES,
-  CAMUNDA7_SAVE_SETTINGS,
-  CAMUNDA7_SELECT_ENGINE,
-  CAMUNDA7_WIDGET_ACTIONS_DATA,
-} from "./tool-names.js"
+import { CAMUNDA7_ADMIN_ONLY_TOOLS } from "./lib/toolsets.js"
+import { CAMUNDA7_LIST_ENGINES, CAMUNDA7_WIDGET_ACTIONS_DATA } from "./tool-names.js"
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -61,13 +50,11 @@ describe("createPlugin toolset wiring (fail-closed)", () => {
     const { names, byName, allowedActions } = await bootSurface({})
     for (const admin of CAMUNDA7_ADMIN_ONLY_TOOLS) expect(names).not.toContain(admin)
     expect(names).not.toContain("camunda7_start_process_instance")
-    expect(names).not.toContain(CAMUNDA7_SAVE_SETTINGS)
     expect(allowedActions).toEqual([])
-    // The engine list is a read; saving a default is a write the floor drops.
+    // The engine list is a read, so the floor keeps it.
     expect(byName.get(CAMUNDA7_LIST_ENGINES)?.definition.annotations).toMatchObject({
       readOnlyHint: true,
     })
-    expect(names).not.toContain(CAMUNDA7_SELECT_ENGINE)
   })
 
   it("resolves an unknown toolset ONCE (one warning) and degrades every path to read-only", async () => {
@@ -76,18 +63,15 @@ describe("createPlugin toolset wiring (fail-closed)", () => {
     expect(warn).toHaveBeenCalledOnce()
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('Unknown toolset "superuser"'))
     expect(names).not.toContain("camunda7_start_process_instance")
-    expect(names).not.toContain(CAMUNDA7_SAVE_SETTINGS)
     expect(allowedActions).toEqual([])
   })
 
-  it("operations: engine writes + profile save, no admin-only tool", async () => {
+  it("operations: engine writes, no admin-only tool", async () => {
     const { names, allowedActions } = await bootSurface({
       toolset: "operations",
       allowDeployments: true,
     })
     expect(names).toContain("camunda7_start_process_instance")
-    expect(names).toContain(CAMUNDA7_SAVE_SETTINGS)
-    expect(names).toContain(CAMUNDA7_SELECT_ENGINE)
     for (const admin of CAMUNDA7_ADMIN_ONLY_TOOLS) expect(names).not.toContain(admin)
     expect(allowedActions).toContain("camunda7_resolve_incident")
   })
@@ -106,7 +90,7 @@ describe("createPlugin toolset wiring (fail-closed)", () => {
         expect.arrayContaining([
           "camunda7_list_incidents",
           "camunda7_show_engine_health",
-          "camunda7_show_settings",
+          "camunda7_open_cockpit",
         ]),
       )
       expect(modelTools).not.toContain(CAMUNDA7_WIDGET_ACTIONS_DATA)
@@ -185,115 +169,32 @@ describe("camunda7_show_engine_health states its verdict rule (#340)", () => {
   })
 })
 
-describe("ENGINE_NOT_SELECTED names camunda7_select_engine only when the caller could save", () => {
-  const TWO = [
-    { id: "a", baseUrl: "http://a.example/engine-rest" },
-    { id: "b", baseUrl: "http://b.example/engine-rest" },
-  ]
-  /** A tool call's ctx for a signed-in caller (mcp-use's flattened `ctx.auth`). */
-  const callAs = (id: string) => ({ auth: { user: { id } } })
-  /** The failure a tool call (`call` = its ctx) sees; the ambient `info` names no caller. */
-  const failure = async (toolset: string, call?: object, info: McpRequestInfo = {}) => {
-    const registry = registryOf({ engines: TWO, toolset })
-    return runWithMcpRequestInfo(info, () =>
-      resolveEngine(undefined, registry, call).then(
-        () => undefined,
-        (e: unknown) => e as Error,
-      ),
-    )
-  }
-
-  it("signed-in caller (the tool call's ctx) under operations: points at the save", async () => {
-    const error = await failure("operations", callAs("user-1"))
-    expect(error).toBeInstanceOf(EngineNotSelectedError)
-    expect(error?.message).toBe(
-      "No engine specified and no default engine saved. Pass `engine` — one of: a, b. " +
-        "To route later calls without it, save a default with camunda7_select_engine.",
-    )
-  })
-
-  it("no caller identity (no OAuth, no declared local caller): only the per-call override", async () => {
-    for (const error of [
-      await failure("operations", {}),
-      // An ambient OAuth id without the handler ctx is no caller.
-      await failure("operations", undefined, { authUserId: "user-1" }),
-      await failure("operations"),
-    ]) {
-      expect(error?.message).toBe(
-        "No engine specified and no default engine saved. Pass `engine` — one of: a, b.",
-      )
-    }
-  })
-
-  it("read-only toolset: only the per-call override, even when signed in", async () => {
-    const error = await failure("read-only", callAs("user-1"))
-    expect(error?.message).not.toContain("camunda7_select_engine")
-  })
-})
-
-describe("createPlugin default-engine routing — the saved default is advisory", () => {
-  /** A preferences database that is down: the driver error names its host:port. */
-  const downStore = () => {
-    const fail = () =>
-      Promise.reject(
-        Object.assign(new Error("connect ECONNREFUSED 10.1.2.3:5432"), { code: "ECONNREFUSED" }),
-      )
-    return { get: vi.fn(fail), save: fail, delete: fail }
-  }
-  /** A tool call's ctx for a signed-in caller (mcp-use's flattened `ctx.auth`). */
-  const callAs = (id: string) => ({ auth: { user: { id } } })
+describe("createPlugin default-engine routing: the operator default", () => {
   const MULTI = [
     { id: "a", baseUrl: "http://a.example/engine-rest" },
     { id: "b", baseUrl: "http://b.example/engine-rest" },
   ]
-  const registryFor = (engines: Camunda7PluginConfig["engines"], profileStore: ProfileStore) =>
-    registryOf({ engines }, profileStore)
 
-  it("one engine: resolves it without consulting the profile store at all", async () => {
-    const store = downStore()
-    const registry = registryFor([MULTI[0]], store)
-    expect((await resolveEngine(undefined, registry)).engineId).toBe("a")
-    expect(store.get).not.toHaveBeenCalled()
+  it("one engine: resolves it without a default", () => {
+    const registry = registryOf({ engines: [MULTI[0]] })
+    expect(resolveEngine(undefined, registry).engineId).toBe("a")
   })
 
-  it("an explicit engine resolves during an outage", async () => {
-    const registry = registryFor(MULTI, downStore())
-    expect((await resolveEngine("b", registry)).engineId).toBe("b")
+  it("several engines with `defaultEngine`: a call without `engine` routes to it", () => {
+    const registry = registryOf({ engines: MULTI, defaultEngine: "b" })
+    expect(resolveEngine(undefined, registry).engineId).toBe("b")
+    expect(resolveEngine("a", registry).engineId).toBe("a")
   })
 
-  it("several engines, none named: the outage degrades to 'no saved default' — no host:port", async () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
-    const registry = registryFor(MULTI, downStore())
-    const error = await resolveEngine(undefined, registry, callAs("user-1")).then(
-      () => undefined,
-      (e: unknown) => e as Error,
-    )
-    expect(error).toBeInstanceOf(EngineNotSelectedError)
-    expect(error?.message).not.toMatch(/10\.1\.2\.3|5432|ECONNREFUSED/)
-    // Logged for operators — sanitized to the error class + code.
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining("Error ECONNREFUSED"))
-    expect(warn.mock.calls.flat().join(" ")).not.toMatch(/10\.1\.2\.3|5432/)
-  })
-
-  it("several engines, store healthy: the CALLER's saved default routes — nobody else's", async () => {
-    const store = createInMemoryProfileStore()
-    await store.save("user-1", { modules: { camunda7: { defaultEngineId: "b" } } })
-    const registry = registryFor(MULTI, store)
-    expect((await resolveEngine(undefined, registry, callAs("user-1"))).engineId).toBe("b")
-    // Another signed-in caller, or no caller identity at all, has no default.
-    await expect(resolveEngine(undefined, registry, callAs("user-2"))).rejects.toBeInstanceOf(
-      EngineNotSelectedError,
-    )
-    await expect(resolveEngine(undefined, registry)).rejects.toBeInstanceOf(EngineNotSelectedError)
+  it("several engines, no default: a call without `engine` fails with ENGINE_NOT_SELECTED", () => {
+    const registry = registryOf({ engines: MULTI })
+    expect(() => resolveEngine(undefined, registry)).toThrow(EngineNotSelectedError)
   })
 })
 
-/** The registry createPlugin builds from the same config: per-engine auth and the saved default. */
-function registryOf(
-  config: Camunda7PluginConfig,
-  profileStore: ProfileStore = createInMemoryProfileStore(),
-) {
-  return createCamunda7EngineRegistry(config, profileStore, resolveCamunda7Toolset(config.toolset))
+/** The registry createPlugin builds from the same config: per-engine auth and the default engine. */
+function registryOf(config: Camunda7PluginConfig) {
+  return createCamunda7EngineRegistry(config)
 }
 
 function authHeader(client: Client): string | null {
@@ -301,7 +202,7 @@ function authHeader(client: Client): string | null {
 }
 
 describe("createPlugin per-engine auth", () => {
-  it("builds each engine's client from its own auth, falling back to the module-wide config", async () => {
+  it("builds each engine's client from its own auth, falling back to the module-wide config", () => {
     const registry = registryOf({
       engines: [
         { id: "a", baseUrl: "http://a.example/engine-rest" },
@@ -317,14 +218,14 @@ describe("createPlugin per-engine auth", () => {
       password: "secret",
     })
 
-    expect(authHeader((await resolveEngine("a", registry)).client)).toBe(
+    expect(authHeader(resolveEngine("a", registry).client)).toBe(
       `Basic ${Buffer.from("demo:secret").toString("base64")}`,
     )
-    expect(authHeader((await resolveEngine("b", registry)).client)).toBe("Bearer tok-b")
-    expect(authHeader((await resolveEngine("c", registry)).client)).toBeNull()
+    expect(authHeader(resolveEngine("b", registry).client)).toBe("Bearer tok-b")
+    expect(authHeader(resolveEngine("c", registry).client)).toBeNull()
   })
 
-  it("does not mix per-engine auth fields with the module-wide credentials", async () => {
+  it("does not mix per-engine auth fields with the module-wide credentials", () => {
     const registry = registryOf({
       engines: [
         // Declares its own auth but no token — must NOT inherit the global
@@ -336,6 +237,6 @@ describe("createPlugin per-engine auth", () => {
       password: "secret",
     })
 
-    expect(authHeader((await resolveEngine("solo", registry)).client)).toBeNull()
+    expect(authHeader(resolveEngine("solo", registry).client)).toBeNull()
   })
 })

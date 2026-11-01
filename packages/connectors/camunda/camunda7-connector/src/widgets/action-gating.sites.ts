@@ -1,5 +1,4 @@
-import { CAMUNDA7_SAVE_SETTINGS } from "../tool-names.js"
-import type { WidgetWrite } from "./lib/write-policy.js"
+import type { Camunda7WidgetAction } from "../tool-names.js"
 
 /** Every `useEngineAction` call site; `src/widget-actions.test.ts` holds this list EQUAL to the sources. */
 export const GATING_SITES = [
@@ -43,12 +42,6 @@ export const GATING_SITES = [
     write: "camunda7_set_external_task_retries",
     control: "Retry",
   },
-  {
-    // Self-gated: the view's `canSave` (toolset AND a signed-in caller).
-    site: "user-profile.tsx#camunda7_save_settings",
-    write: CAMUNDA7_SAVE_SETTINGS,
-    control: "Save",
-  },
-] as const satisfies ReadonlyArray<{ site: string; write: WidgetWrite; control: string }>
+] as const satisfies ReadonlyArray<{ site: string; write: Camunda7WidgetAction; control: string }>
 
 export type GatingSite = (typeof GATING_SITES)[number]["site"]

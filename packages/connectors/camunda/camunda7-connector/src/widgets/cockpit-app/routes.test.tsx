@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from "vitest"
-import { cleanup, render, screen, waitFor } from "@testing-library/react"
+import { cleanup, render, waitFor } from "@testing-library/react"
 import { TestViewHost, type HostAction } from "@miragon/pulse-widget-shell/widgets"
 import {
   CAMUNDA7_CLUSTER_DETAIL_DATA,
@@ -65,16 +65,5 @@ describe("CockpitRoute", () => {
         args: expect.objectContaining({ ...args, engine: "prod-a" }) as unknown,
       }),
     )
-  })
-
-  // #346: engine scope is irrelevant to per-user preferences.
-  it("renders the shell's settings page with every module's section", async () => {
-    render(
-      <TestViewHost hostWidgets={{ "acme:settings": () => <p>acme-section</p> }}>
-        <CockpitRoute view={{ section: "settings" }} engine="prod-a" />
-      </TestViewHost>,
-    )
-    expect(screen.getByRole("heading", { name: "Settings" })).toBeTruthy()
-    expect(await screen.findByText("acme-section")).toBeTruthy()
   })
 })

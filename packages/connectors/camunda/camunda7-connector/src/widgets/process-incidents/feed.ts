@@ -4,7 +4,7 @@ import { useViewData, type ViewDataResult } from "@miragon/pulse-widget-shell/wi
 
 /**
  * One key for the view's four widgets. Standalone reads scope from the data's echo, never the
- * caller's default, and the data seeds the feed so a write's invalidation refetches it too.
+ * default engine, and the data seeds the feed so a write's invalidation refetches it too.
  */
 export function useDefinitionData(
   initialData: ProcessIncidentsData | null,

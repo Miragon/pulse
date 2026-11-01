@@ -13,8 +13,6 @@ import { DEFAULT_HEATMAP_LABELS } from "./bpmn-heatmap-labels.js"
 import { ERROR_KINDS } from "./describe-error.js"
 import { ERROR_LABELS, type ErrorLabels, type ErrorSource } from "./error-labels.js"
 import { KIT_LABELS } from "./kit-labels.js"
-import { SETTINGS_LABELS } from "./settings-labels.js"
-import { SHELL_SETTINGS_CATALOGS } from "../shell-settings.js"
 
 /** Every source the words branch on, with a key for the rendered entry. */
 const ERROR_SOURCES: ReadonlyArray<[key: string, source: ErrorSource]> = [
@@ -72,10 +70,6 @@ describe("kit copy follows the voice rules", () => {
     ["heatmap defaults (en)", DEFAULT_HEATMAP_LABELS, "en"],
     ["error words (de)", ERROR_WORDS.de, "de"],
     ["error words (en)", ERROR_WORDS.en, "en"],
-    ["settings page (de)", SETTINGS_LABELS.de, "de"],
-    ["settings page (en)", SETTINGS_LABELS.en, "en"],
-    ["settings summaries (de)", SHELL_SETTINGS_CATALOGS.de, "de"],
-    ["settings summaries (en)", SHELL_SETTINGS_CATALOGS.en, "en"],
   ] as const)("%s", (_, catalog, language) => {
     expect(catalogTextFindings(catalog, { language })).toEqual([])
   })
@@ -109,10 +103,6 @@ describe("kit copy uses the product glossary", () => {
 
   it.each(["de", "en"] as const)("error words (%s)", (language) => {
     expect(glossaryFindings(ERROR_WORDS[language], PRODUCT_GLOSSARY[language])).toEqual([])
-  })
-
-  it.each(["de", "en"] as const)("settings page (%s)", (language) => {
-    expect(glossaryFindings(SETTINGS_LABELS[language], PRODUCT_GLOSSARY[language])).toEqual([])
   })
 })
 

@@ -1,6 +1,6 @@
 import type { MCPServer } from "mcp-use"
 import type { CompareKpiDelta, PrometheusClient } from "@miragon/pulse-analytics-client"
-import type { ProfileSource, ServerT } from "../server-locale.js"
+import { summaryT } from "../summary.js"
 import type { AnalyticsEngineScope } from "../engine-ids.js"
 import type { NameLookup } from "../bpmn-name-lookup.js"
 
@@ -13,8 +13,6 @@ export interface AnalyticsWidgetToolsContext {
   ch: PrometheusClient
   /** The server's configured engine ids — every query resolves `engine` through it. */
   engineScope: AnalyticsEngineScope
-  /** Locale for model-facing summaries plus the saved analytics defaults. */
-  profileStore?: ProfileSource
   /** The process names behind the ids a view lists (`bpmn-name-lookup.ts`); absent → ids. */
   namesFor?: NameLookup
 }
@@ -45,15 +43,11 @@ export const suppressedNote = (suppressed: boolean) =>
  * One engine by name, or every engine a fleet aggregate adds up, so a fleet figure never reads as
  * one engine's.
  */
-export function engineScopeSummary(
-  t: ServerT,
-  engines: readonly string[] | null,
-  fleet: boolean,
-): string {
+export function engineScopeSummary(engines: readonly string[] | null, fleet: boolean): string {
   if (!engines || engines.length === 0) return ""
   const ids = engines.map((id) => `"${id}"`).join(", ")
-  if (fleet) return t("aSum.engineScopeFleet", { count: engines.length, ids })
+  if (fleet) return summaryT("aSum.engineScopeFleet", { count: engines.length, ids })
   return engines.length === 1
-    ? t("aSum.engineScopeOne", { id: engines[0] })
-    : t("aSum.engineScopeSubset", { ids })
+    ? summaryT("aSum.engineScopeOne", { id: engines[0] })
+    : summaryT("aSum.engineScopeSubset", { ids })
 }

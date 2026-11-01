@@ -1,7 +1,7 @@
 {
   "name": "@miragon/pulse-widget-shell",
   "version": "0.24.2",
-  "description": "The Pulse view runtime and server boot: mountViews, the view host, the query hooks and TestViewHost, view and data-feed builders, the settings page, BPMN views, the composed-server boot, the tool registrar and server i18n. Its UI builds on @miragon/pulse-ui.",
+  "description": "The Pulse view runtime and server boot: mountViews, the view host, the query hooks and TestViewHost, view and data-feed builders, BPMN views, the composed-server boot, the tool registrar and server i18n. Its UI builds on @miragon/pulse-ui.",
   "license": "MIT",
   "keywords": [
     "mcp",
@@ -55,7 +55,6 @@
     "bpmn-js": "18.31.1",
     "lucide-react": "^0.562.0 || ^1.0.0",
     "mcp-use": "2.12.2",
-    "postgres": "3.4.9",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "zod": "^4.4.0"
@@ -68,9 +67,6 @@
       "optional": true
     },
     "lucide-react": {
-      "optional": true
-    },
-    "postgres": {
       "optional": true
     },
     "react": {
@@ -91,7 +87,6 @@
     "happy-dom": "21.0.4",
     "lucide-react": "1.61.0",
     "mcp-use": "2.12.2",
-    "postgres": "3.4.9",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "typescript": "6.0.3",

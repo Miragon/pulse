@@ -319,18 +319,17 @@ describe("widget wire contract — the font origin under MCP_URL", () => {
 /**
  * Toolsets fail closed: without `MCP_OAUTH` (the neutral env clears it) no
  * selection that does not NAME `camunda7:admin` may list an admin-only tool —
- * not unset, not an empty or unknown suffix — and the shell's language save,
- * a framework write, stays off.
+ * not unset, not an empty or unknown suffix.
  */
 describe("fail-closed toolsets", () => {
   it.each([undefined, "all", "camunda7:", "camunda7:bogus,analytics:,notes"])(
-    "MCP_ACTIVE_MODULES=%j lists no admin-only tool and no shell_save_settings",
+    "MCP_ACTIVE_MODULES=%j lists no admin-only tool",
     async (activeModules) => {
       const { app, client, tools } = await bootAndList(activeModules)
       try {
         const names = tools.map((t) => t.name)
         expect(names).toContain("camunda7_list_process_instances")
-        for (const tool of [...CAMUNDA7_ADMIN_ONLY_TOOLS, "shell_save_settings"]) {
+        for (const tool of CAMUNDA7_ADMIN_ONLY_TOOLS) {
           expect(names, `${tool} must not be listed`).not.toContain(tool)
         }
       } finally {

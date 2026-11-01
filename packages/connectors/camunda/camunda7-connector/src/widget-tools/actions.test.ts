@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { feedPayload } from "../tools/test-support/feed-payload.js"
 import type { MCPServer } from "mcp-use"
-import { createInMemoryProfileStore } from "@miragon/pulse-widget-shell/server"
 import { DEFAULT_HEALTH_THRESHOLDS } from "../data/health-data.js"
 import type { EngineRegistry } from "../lib/resolve-engine.js"
 import { resolveCamunda7Toolset, type Camunda7Toolset } from "../lib/toolsets.js"
@@ -21,7 +20,6 @@ function registerFeed(toolset: Camunda7Toolset, modelTools: () => string[] = () 
     server: { tool } as unknown as MCPServer,
     registry: { engines: [] } as unknown as EngineRegistry,
     healthThresholds: DEFAULT_HEALTH_THRESHOLDS,
-    profileStore: createInMemoryProfileStore(),
     toolset,
     modelTools,
     engineParam: engineParamShape,
@@ -60,11 +58,11 @@ describe("camunda7_widget_actions_data", () => {
   it("reports the model surface as it stands when the feed is called", async () => {
     const surface = ["camunda7_list_incidents"]
     const { handler } = registerFeed("read-only", () => surface)
-    surface.push("camunda7_show_settings")
+    surface.push("camunda7_show_engine_health")
     const result = await handler({})
     expect(feedPayload(result).modelTools).toEqual([
       "camunda7_list_incidents",
-      "camunda7_show_settings",
+      "camunda7_show_engine_health",
     ])
   })
 

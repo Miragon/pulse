@@ -1,14 +1,9 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { createElement } from "react"
-import { cleanup, render, screen } from "@testing-library/react"
+import { cleanup, render } from "@testing-library/react"
 import type { MCPServer } from "mcp-use"
-import {
-  settingsSections,
-  TestViewHost,
-  type HostAction,
-  type ViewComponent,
-} from "@miragon/pulse-widget-shell/widgets"
+import { TestViewHost, type ViewComponent } from "@miragon/pulse-widget-shell/widgets"
 import { createPlugin } from "../plugin.js"
 import { analyticsHostWidgets, analyticsViews, FleetLandscape } from "./views.js"
 
@@ -44,9 +39,6 @@ vi.mock("./version-compare.js", () => ({ VersionCompareWidget: widget("VersionCo
 vi.mock("./engine-compare.js", () => ({ EngineCompareWidget: widget("EngineCompareWidget") }))
 vi.mock("./engine-landscape.js", () => ({ EngineLandscapeWidget: widget("EngineLandscapeWidget") }))
 vi.mock("./bpmn-heatmap.js", () => ({ AnalyticsBpmnHeatmap: widget("AnalyticsBpmnHeatmap") }))
-vi.mock("./settings-section.js", () => ({
-  AnalyticsSettingsWidget: widget("AnalyticsSettingsWidget"),
-}))
 vi.mock("./model-descriptions.js", () => {
   const describe = (name: string) => (data: unknown) => `${name}(${JSON.stringify(data)})`
   return Object.fromEntries(
@@ -133,7 +125,6 @@ describe("analyticsViews", () => {
     ["analytics_show_engine_compare", ["EngineCompareWidget"], ["describeEngineCompare"]],
     ["analytics_show_engine_landscape", ["EngineLandscapeWidget"], ["describeEngineLandscape"]],
     ["analytics_show_bpmn_heatmap", ["AnalyticsBpmnHeatmap"], ["describeBpmnHeatmap"]],
-    ["analytics_show_settings", ["AnalyticsSettingsWidget"], []],
   ])("%s renders %j on its data and tells the model %j", (name, widgets, descriptions) => {
     const rendered = renderView(name)
     expect(rendered.widgets).toEqual(widgets.map((w) => [w, { data: DATA }]))
@@ -142,22 +133,8 @@ describe("analyticsViews", () => {
 })
 
 describe("analyticsHostWidgets", () => {
-  it("offers the settings section and the fleet's landscape by raw id", () => {
-    expect(Object.keys(analyticsHostWidgets)).toEqual([
-      "analytics:settings",
-      "analytics:engine-landscape",
-    ])
-    expect(settingsSections(analyticsHostWidgets).map(([id]) => id)).toEqual(["analytics:settings"])
-  })
-
-  it("renders the settings section self-fetching", () => {
-    const actions: HostAction[] = []
-    render(
-      <TestViewHost onHostAction={(action) => actions.push(action)}>
-        {createElement(analyticsHostWidgets["analytics:settings"])}
-      </TestViewHost>,
-    )
-    expect(screen.getByText("{}")).toBeTruthy()
+  it("offers the fleet's landscape by raw id", () => {
+    expect(Object.keys(analyticsHostWidgets)).toEqual(["analytics:engine-landscape"])
   })
 
   it.each([

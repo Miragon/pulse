@@ -38,7 +38,9 @@ describe("navigateViaHost", () => {
   })
 
   it("names the show tool, so the agent opens that view", () => {
-    expect(followUp({ type: "settings" })).toBe("Open my settings (use shell_show_settings)")
+    expect(followUp({ type: "incidents" })).toBe(
+      "Show the incidents dashboard across all processes (use camunda7_show_incidents_dashboard)",
+    )
     expect(showViewIntent("x_show", "Show it")).toBe("Show it (use x_show)")
   })
 })

@@ -588,7 +588,17 @@ describe("what the guard reads", () => {
       ]),
     )
     expect(docFiles.length).toBeGreaterThanOrEqual(28)
-    expect(skillFiles.length).toBeGreaterThanOrEqual(10)
+    // Every skill by name: the scanner reads each one, not just enough of them.
+    expect([...skillFiles].sort()).toEqual([
+      ".claude/skills/add-analytics-feature/SKILL.md",
+      ".claude/skills/add-bpm-feature/SKILL.md",
+      ".claude/skills/create-ticket/SKILL.md",
+      ".claude/skills/mcp-apps-builder/SKILL.md",
+      ".claude/skills/shadcn/SKILL.md",
+      "templates/composed-server/.claude/skills/add-widget/SKILL.md",
+      "templates/composed-server/.claude/skills/create-module/SKILL.md",
+      "templates/composed-server/.claude/skills/setup-server/SKILL.md",
+    ])
     expect(docsPages.map(pageKey)).toContain("index.md")
   })
 })

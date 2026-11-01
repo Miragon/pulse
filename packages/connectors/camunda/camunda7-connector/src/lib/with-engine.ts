@@ -61,7 +61,7 @@ export function withEngine<TArgs extends { engine?: string }, TResult>(
   fn: (client: Client, args: TArgs, ctx: EngineContext) => Promise<TResult>,
 ): (registry: EngineRegistry, args: TArgs, call?: EngineCallContext) => Promise<TResult> {
   return async (registry, args, call) => {
-    const { client, engineId, baseUrl, cockpitUrl, provider } = await resolveEngine(
+    const { client, engineId, baseUrl, cockpitUrl, provider } = resolveEngine(
       args.engine,
       registry,
       call,

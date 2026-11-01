@@ -6,7 +6,7 @@ import {
   formatTime,
   getFormatLocale,
 } from "@miragon/pulse-ui"
-import type { Locale } from "../profile-constants.js"
+import type { Locale } from "./host-context.js"
 
 /**
  * Period, engine set and as-of time under a view title (U7). Each part is

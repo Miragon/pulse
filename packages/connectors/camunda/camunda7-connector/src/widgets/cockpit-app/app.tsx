@@ -18,7 +18,7 @@ import {
   ViewErrorBoundary,
   WidgetShell,
 } from "@miragon/pulse-widget-shell/widgets"
-import { Layers, LayoutDashboard, Settings, TriangleAlert } from "lucide-react"
+import { Layers, LayoutDashboard, TriangleAlert } from "lucide-react"
 import type { CockpitAppData } from "../../view-models.js"
 import { groupEnginesByEnvironment } from "../../lib/environments.js"
 import { EngineChromeProvider, EnvironmentChip, environmentIn } from "../lib/engine-context.js"
@@ -49,16 +49,15 @@ interface EnginesResult {
   defaultEngineId: string | null
 }
 
-type TopSection = "overview" | "incidents" | "settings"
+type TopSection = "overview" | "incidents"
 
 const SECTIONS: Array<{ id: TopSection; intent: NavIntent; icon: LucideIcon }> = [
   { id: "overview", intent: { type: "overview" }, icon: LayoutDashboard },
   { id: "incidents", intent: { type: "incidents" }, icon: TriangleAlert },
-  { id: "settings", intent: { type: "settings" }, icon: Settings },
 ]
 
 function isTopSection(section: CockpitView["section"]): section is TopSection {
-  return section === "overview" || section === "incidents" || section === "settings"
+  return section === "overview" || section === "incidents"
 }
 
 /** `scope` alone decides which cockpit shows; `stack` is the real history, so "back" returns where the user came from. */
@@ -95,7 +94,7 @@ interface ScopeFix {
 }
 
 /**
- * The engine list reloads (curated away in Settings, a racing bootstrap): a gone engine
+ * The engine list reloads (a racing bootstrap or a restarted server): a gone engine
  * falls back explicitly instead of querying a stale id. Chooser and fleet need two engines.
  */
 function reconcileScope(scope: CockpitScope, engineIds: readonly string[]): ScopeFix | null {
@@ -245,7 +244,7 @@ function CockpitHead({
 
 function activeSectionOf(stack: CockpitView[]): TopSection {
   const root = stack[0].section
-  return root === "incidents" || root === "settings" ? root : "overview"
+  return root === "incidents" ? root : "overview"
 }
 
 function EngineGoneNotice({ engineId }: { engineId: string | null }) {
@@ -325,7 +324,6 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
   const offerFleet = useAnalyticsActive() && engines.length > 1
   const openFleet = offerFleet ? () => dispatch({ type: "to-fleet" }) : undefined
 
-  // Navigation only: the saved default engine changes only via settings or `camunda7_select_engine`.
   const enterEngine = (id: string) => dispatch({ type: "enter-engine", id })
   const switchEngine = (id: string) => dispatch({ type: "switch-engine", id })
 

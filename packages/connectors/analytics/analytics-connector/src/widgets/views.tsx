@@ -16,7 +16,6 @@ import {
   ANALYTICS_SHOW_ENGINE_COMPARE,
   ANALYTICS_SHOW_ENGINE_LANDSCAPE,
   ANALYTICS_SHOW_FAILURE_DASHBOARD,
-  ANALYTICS_SHOW_SETTINGS,
   ANALYTICS_SHOW_VERSION_COMPARE,
 } from "../tool-names.js"
 import { AnalyticsDashboardView } from "./analytics-dashboard/view.js"
@@ -32,7 +31,6 @@ import {
   describeEngineLandscape,
   describeVersionCompare,
 } from "./model-descriptions.js"
-import { AnalyticsSettingsWidget, type AnalyticsSettingsViewData } from "./settings-section.js"
 import { VersionCompareWidget } from "./version-compare.js"
 
 function ClusterCompareView({ data }: ViewProps<ClusterCompareResult>) {
@@ -75,11 +73,6 @@ function BpmnHeatmapView({ data }: ViewProps<AnalyticsBpmnHeatmapData>) {
   )
 }
 
-// The section tells the model about itself: only it knows the view it fetched.
-function SettingsView({ data }: ViewProps<AnalyticsSettingsViewData>) {
-  return <AnalyticsSettingsWidget data={data} />
-}
-
 /** The analytics views by view name (= show tool name). */
 export const analyticsViews: ViewMap = {
   [ANALYTICS_SHOW_DASHBOARD]: AnalyticsDashboardView,
@@ -89,7 +82,6 @@ export const analyticsViews: ViewMap = {
   [ANALYTICS_SHOW_ENGINE_COMPARE]: EngineCompareView,
   [ANALYTICS_SHOW_ENGINE_LANDSCAPE]: EngineLandscapeView,
   [ANALYTICS_SHOW_BPMN_HEATMAP]: BpmnHeatmapView,
-  [ANALYTICS_SHOW_SETTINGS]: SettingsView,
 }
 
 function isEngineList(value: unknown): value is string[] {
@@ -106,12 +98,7 @@ export function FleetLandscape(props: Record<string, unknown>) {
   return <EngineLandscapeWidget data={null} engine={engine} />
 }
 
-function AnalyticsSettingsSection() {
-  return <AnalyticsSettingsWidget />
-}
-
-/** Rendered by raw id from another module: the settings page and camunda7's fleet view. */
+/** Rendered by raw id from another module: camunda7's fleet view. */
 export const analyticsHostWidgets: HostWidgets = {
-  "analytics:settings": AnalyticsSettingsSection,
   "analytics:engine-landscape": FleetLandscape,
 }

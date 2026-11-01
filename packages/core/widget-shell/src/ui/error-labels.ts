@@ -1,4 +1,4 @@
-import type { Locale } from "../profile-constants.js"
+import type { Locale } from "./host-context.js"
 
 export type ErrorSource =
   { type: "engine"; id?: string } | { type: "prometheus" } | { type: "unknown" }

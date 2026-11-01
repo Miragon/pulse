@@ -8,12 +8,12 @@
  * review sees exactly what a toolset adds:
  *
  * - READ_ONLY: the unauthenticated default (no suffix, no MCP_OAUTH) =
- *   `camunda7:read-only,analytics:read-only`. Only `readOnlyHint` tools.
- * - OPERATIONS: the default under OAuth = `camunda7:operations,
- *   analytics:standard` — engine writes and the three settings saves (the
- *   shell's language save needs OAuth + no read-only module).
- * - ADMIN: `camunda7:admin,analytics:standard` + `CAMUNDA_ALLOW_DEPLOYMENTS=true`
- *   under OAuth — the full surface. Never implied by a default.
+ *   `camunda7:read-only` plus analytics (which declares no toolsets). Only
+ *   `readOnlyHint` tools.
+ * - OPERATIONS: the default under OAuth = `camunda7:operations,analytics`,
+ *   which adds the camunda7 engine writes.
+ * - ADMIN: `camunda7:admin,analytics` + `CAMUNDA_ALLOW_DEPLOYMENTS=true`
+ *   under OAuth: the full surface. Never implied by a default.
  *
  * Regenerate by running the E2E tests and copying the sorted names from the
  * assertion diffs. These lists pin WHICH tools a toolset exposes; the full
@@ -33,14 +33,12 @@ export const EXPECTED_TOOLS_READ_ONLY: readonly string[] = [
   "analytics_engine_landscape",
   "analytics_engine_landscape_data",
   "analytics_find_failed_instances",
-  "analytics_settings_data",
   "analytics_show_bpmn_heatmap",
   "analytics_show_cluster_compare",
   "analytics_show_dashboard",
   "analytics_show_engine_compare",
   "analytics_show_engine_landscape",
   "analytics_show_failure_dashboard",
-  "analytics_show_settings",
   "analytics_show_version_compare",
   "analytics_version_compare",
   "camunda7_activity_incidents_data",
@@ -79,7 +77,6 @@ export const EXPECTED_TOOLS_READ_ONLY: readonly string[] = [
   "camunda7_query_historic_process_instances",
   "camunda7_query_historic_task_instances",
   "camunda7_query_historic_variable_instances",
-  "camunda7_settings_data",
   "camunda7_show_bpmn_viewer",
   "camunda7_show_cluster_detail",
   "camunda7_show_engine_health",
@@ -92,28 +89,21 @@ export const EXPECTED_TOOLS_READ_ONLY: readonly string[] = [
   "camunda7_show_process_incidents",
   "camunda7_show_process_instances",
   "camunda7_show_process_list",
-  "camunda7_show_settings",
   "camunda7_widget_actions_data",
-  "shell_settings_data",
-  "shell_show_settings",
 ]
 
-/** What `operations` (camunda7) / `standard` (analytics) and the shell's language save add. */
+/** What `camunda7:operations` adds: the engine writes. */
 const OPERATIONS_ADDS: readonly string[] = [
-  "analytics_save_settings",
   "camunda7_claim_task",
   "camunda7_complete_task",
   "camunda7_correlate_message",
   "camunda7_resolve_incident",
-  "camunda7_save_settings",
-  "camunda7_select_engine",
   "camunda7_set_external_task_retries",
   "camunda7_set_job_retries",
   "camunda7_set_process_instance_variable",
   "camunda7_set_task_assignee",
   "camunda7_start_process_instance",
   "camunda7_unclaim_task",
-  "shell_save_settings",
 ]
 
 /** What `camunda7:admin` (+ CAMUNDA_ALLOW_DEPLOYMENTS=true) adds — never implied. */

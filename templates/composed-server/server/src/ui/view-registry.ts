@@ -1,6 +1,5 @@
 import type { HostWidgets, ViewMap } from "@miragon/pulse-widget-shell/widgets"
-import { shellViews } from "@miragon/pulse-widget-shell/widgets"
-import { camunda7HostWidgets, camunda7Views } from "@miragon/pulse-camunda7-connector/widgets"
+import { camunda7Views } from "@miragon/pulse-camunda7-connector/widgets"
 import { analyticsHostWidgets, analyticsViews } from "@miragon/pulse-analytics-connector/widgets"
 import { notesViews } from "@acme/mcp-notes/widgets"
 
@@ -14,16 +13,9 @@ export const viewRegistry: ViewMap = {
   ...camunda7Views,
   ...analyticsViews,
   ...notesViews,
-  // The shell's view: the settings page with its language section.
-  ...shellViews,
 }
 
-/**
- * The widgets one module renders of another by raw id: every module's
- * `<module>:settings` section (the shell's settings page renders them in this
- * order) and analytics' engine landscape (camunda7's fleet view).
- */
+/** The widgets one module renders of another by raw id: analytics' engine landscape (camunda7's fleet view). */
 export const hostWidgets: HostWidgets = {
-  ...camunda7HostWidgets,
   ...analyticsHostWidgets,
 }

@@ -35,7 +35,7 @@ describe("strict tool inputs on the wire (full surface)", () => {
     server = await bootServer({
       authenticated: true,
       env: {
-        MCP_ACTIVE_MODULES: "camunda7:admin,analytics:standard",
+        MCP_ACTIVE_MODULES: "camunda7:admin,analytics",
         CAMUNDA_ALLOW_DEPLOYMENTS: "true",
       },
     })
@@ -47,15 +47,14 @@ describe("strict tool inputs on the wire (full surface)", () => {
   })
 
   it("covers every tool, model-facing and app-only (the guard is not vacuous)", () => {
-    // The modules' tools and the shell's settings triple.
-    expect(tools.every((tool) => /^(camunda7|analytics|shell)_/.test(tool.name))).toBe(true)
+    // The modules' tools.
+    expect(tools.every((tool) => /^(camunda7|analytics)_/.test(tool.name))).toBe(true)
     expect(tools.filter(isModelVisible).length).toBeGreaterThanOrEqual(70)
     expect(tools.filter((tool) => !isModelVisible(tool)).length).toBeGreaterThanOrEqual(15)
-    // The split engine pair and the history/stacktrace reads (#340) are probed like the rest.
+    // The engine list and the history/stacktrace reads (#340) are probed like the rest.
     expect(tools.map((tool) => tool.name)).toEqual(
       expect.arrayContaining([
         "camunda7_list_engines",
-        "camunda7_select_engine",
         "camunda7_query_historic_incidents",
         "camunda7_get_job_stacktrace",
       ]),

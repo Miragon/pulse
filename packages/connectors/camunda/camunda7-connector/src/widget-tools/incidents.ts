@@ -14,7 +14,7 @@ import {
 } from "../tool-names.js"
 import { incidentsDashboardFilterShape } from "../feed-contracts.js"
 import { resolveEngine } from "../lib/resolve-engine.js"
-import { localizeFor } from "../lib/server-locale.js"
+import { summaryT as t } from "../lib/summary.js"
 import {
   type WidgetToolsContext,
   clusterDetailShape,
@@ -23,7 +23,7 @@ import {
 } from "./shared.js"
 
 export function registerIncidentWidgetTools(ctx: WidgetToolsContext) {
-  const { registry, healthThresholds, profileStore } = ctx
+  const { registry, healthThresholds } = ctx
 
   registerShowTool(ctx, {
     name: CAMUNDA7_SHOW_INCIDENTS_DASHBOARD,
@@ -32,8 +32,7 @@ export function registerIncidentWidgetTools(ctx: WidgetToolsContext) {
       "Overview of open incidents across all process definitions: KPIs, filter, per-process group cards with activity summaries. From a card the operator can drill into the per-process detail view. Use for open incidents by process; for an engine verdict with cross-process clusters use camunda7_show_engine_health.",
     shape: incidentsDashboardFilterShape,
     render: async ({ engine, ...filters }, ctx) => {
-      const t = await localizeFor(profileStore, ctx)
-      const { client, engineId, ...urls } = await resolveEngine(engine, registry, ctx)
+      const { client, engineId, ...urls } = resolveEngine(engine, registry, ctx)
       const data = await buildIncidentsDashboardData(client, { ...urls, ...filters })
       return buildViewResult(
         { ...data, engineId },
@@ -53,8 +52,7 @@ export function registerIncidentWidgetTools(ctx: WidgetToolsContext) {
       "Open the unified process-definition view focused on its incidents: header, KPI strip, BPMN diagram in incident-overlay mode, and the activity-grouped incident table with per-incident actions (resolve, jump to Cockpit). Same view as camunda7_show_process_detail — this entry point sets the incident focus.",
     shape: { processDefinitionKey: z.string().describe("Process definition key to drill into") },
     render: async ({ engine, ...target }, ctx) => {
-      const t = await localizeFor(profileStore, ctx)
-      const { client, engineId, ...urls } = await resolveEngine(engine, registry, ctx)
+      const { client, engineId, ...urls } = resolveEngine(engine, registry, ctx)
       const data = await buildProcessIncidentsData(client, { ...urls, ...target })
       return buildViewResult(
         { ...data, engineId },
@@ -76,8 +74,7 @@ export function registerIncidentWidgetTools(ctx: WidgetToolsContext) {
       "Detail view for a single incident: failure stacktrace, BPMN with the failing activity highlighted, instance variables and activity tree, and a history timeline. Drill-in target from camunda7_show_process_incidents.",
     shape: { incidentId: z.string().describe("The incident ID to inspect") },
     render: async ({ engine, ...target }, ctx) => {
-      const t = await localizeFor(profileStore, ctx)
-      const { client, engineId, ...urls } = await resolveEngine(engine, registry, ctx)
+      const { client, engineId, ...urls } = resolveEngine(engine, registry, ctx)
       const data = await buildIncidentDetailData(client, { ...urls, ...target })
       return buildViewResult(
         { ...data, engineId },
@@ -102,8 +99,7 @@ export function registerIncidentWidgetTools(ctx: WidgetToolsContext) {
       "Use for what is failing on an engine right now; for metric trends, job backlog or firing alerts use analytics_engine_health.",
     shape: {},
     render: async (args, ctx) => {
-      const t = await localizeFor(profileStore, ctx)
-      const { client, engineId } = await resolveEngine(args.engine, registry, ctx)
+      const { client, engineId } = resolveEngine(args.engine, registry, ctx)
       const data = await buildEngineHealthData(client, engineId, healthThresholds)
       const top = data.clusters[0]
       return buildViewResult(
@@ -137,8 +133,7 @@ export function registerIncidentWidgetTools(ctx: WidgetToolsContext) {
       "Drill into ONE failure cluster: the affected process instances (business keys first), the full sample failure message, and the time profile (new in last hour / 24h) for an activity failing with a given incident type. The middle layer between the engine health overview and a single incident's detail.",
     shape: clusterDetailShape,
     render: async ({ engine, ...cluster }, ctx) => {
-      const t = await localizeFor(profileStore, ctx)
-      const { client, engineId } = await resolveEngine(engine, registry, ctx)
+      const { client, engineId } = resolveEngine(engine, registry, ctx)
       const data = await buildClusterDetailData(client, engineId, cluster)
       return buildViewResult(
         data,

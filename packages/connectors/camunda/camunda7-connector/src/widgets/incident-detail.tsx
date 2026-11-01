@@ -47,7 +47,7 @@ function recoverable(data: IncidentDetailData): RecoverableIncident {
   }
 }
 
-// Standalone from the data's echo, so a refetch reads the engine the show tool answered for, never the caller's default.
+// Standalone from the data's echo, so a refetch reads the engine the show tool answered for, never the default engine.
 function incidentFeed(
   initialData: IncidentDetailData | null,
   incidentId: string | undefined,
@@ -153,7 +153,7 @@ export function IncidentDetailWidget({
     emptyText: t("incidentDetail.noData"),
     retryText: t("viewState.retry"),
   })
-  // Never the caller's default engine, which can differ if the default-engine save raced or failed.
+  // Never the default engine.
   const engineId = engine ?? data?.engineId
   // A cleared incident's view is not refetched (404), so the marks are what it shows. A failed
   // refetch leaves it unconfirmed (cleared elsewhere?): no remedy then.

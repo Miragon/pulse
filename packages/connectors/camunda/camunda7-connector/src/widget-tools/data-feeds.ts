@@ -72,7 +72,7 @@ export function registerWidgetDataFeeds(ctx: WidgetToolsContext) {
       },
       withToolErrors(async (args, ctx) => {
         const { engine, ...input } = args as { engine?: string }
-        const resolved = await resolveEngine(engine, registry, ctx)
+        const resolved = resolveEngine(engine, registry, ctx)
         const data = await feed.read(input as FeedInput<TShape>, resolved)
         return buildDataFeedResult({ ...data })
       }),

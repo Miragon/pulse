@@ -4,19 +4,19 @@ Playwright gate for the **built** widget bundle, run in CI as "Widget host
 simulation (test:host)". It renders exactly what an MCP Apps host renders:
 
 - `global-setup.ts` boots the real composition root (`createApp` from
-  `src/app.ts`, default read-only deployment — plus a `camunda7:operations`
-  one for the write scenario) serving `dist/mcp-app.{js,css}`, a CIB Seven
+  `src/app.ts`, default read-only deployment, plus a `camunda7:operations`
+  one for the write scenario) serving `dist/mcp-app.{js,css}`, a CIB seven
   REST stub (`stub-engine.ts`, `fixtures/process-definitions.json` plus the
   `invoice` diagram `fixtures/invoice.bpmn`, three failed jobs), a Prometheus
   stub (`stub-prometheus.ts`: two engines, two processes, the `invoice`
   activities, evaluating the exact PromQL shapes analytics sends) and the host's
-  server side (`host-backend.ts`, a real MCP client) — all on ephemeral
+  server side (`host-backend.ts`, a real MCP client), all on ephemeral
   loopback ports. A scenario can hold the stub's answers to one search term
   and release them later (`POST /__control/hold|release?nameLike=<term>` at
   `HOST_SIM_ENGINE_URL`), so an in-flight state is asserted without a timing
   window.
 - `host-sim.html` is a minimal SEP-1865 host. It reads the view resource
-  (`resources/read` of `ui://views/<tool>.html` — mcp-use's synthesized inline
+  (`resources/read` of `ui://views/<tool>.html`, mcp-use's synthesized inline
   document), renders it as `srcdoc` in a `sandbox="allow-scripts"` iframe
   under the CSP built from the resource's `_meta.ui.csp`, answers
   `ui/initialize`, and proxies every `tools/call` the view makes to the server.
@@ -40,8 +40,7 @@ simulation (test:host)". It renders exactly what an MCP Apps host renders:
 | dark host + light OS       | `theme: "dark"`, OS light                         | the host wins: `.dark`, `data-theme`, `color-scheme` dark, light text (#339)                                                                                       |
 | light host + dark OS       | `theme: "light"`, OS dark                         | the host wins the other way: all three light, dark text                                                                                                            |
 | no fullscreen              | `availableDisplayModes` `["inline"]` / absent     | no Fullscreen button (the frame gates it on `availableDisplayModes`), no request                                                                                   |
-| host locale `de-DE`        | `locale: "de-DE"`, no saved profile               | German widget and chrome strings, `<html lang="de">` (#339)                                                                                                        |
-| profile feed missing       | `failTools`: the profile feed answers an error    | German, dark view from the host context, painted before the feed's first retry                                                                                     |
+| host locale `de-DE`        | `locale: "de-DE"`                                 | German widget and chrome strings, `<html lang="de">` (#339)                                                                                                        |
 | slow handshake             | `initDelayMs: 3000`                               | nothing painted before `ui/initialize` is answered, then the German, dark view                                                                                     |
 | host font                  | `styles.variables["--font-sans"]`                 | stack Geist → host font → system, ids Geist Mono → monospace                                                                                                       |
 | served stylesheet          | —                                                 | no forced or inlined font (Geist by URL from the font route), no 600 px floor, the `--cd-*` values                                                                 |
@@ -63,20 +62,20 @@ simulation (test:host)". It renders exactly what an MCP Apps host renders:
 | axe                        | process list + job panel, light and dark, 760 px  | zero WCAG 2.1 A/AA violations (`@axe-core/playwright`)                                                                                                             |
 | write refresh (operations) | `camunda7_show_job_panel`, user clicks Retry      | the retry refetches the seeded feed and re-renders, **zero** re-executions                                                                                         |
 | cockpit on an engine       | `camunda7_open_cockpit` with `engine`             | opens on that engine (the head's engine select), not on the engine picker                                                                                          |
-| cockpit picker             | `camunda7_open_cockpit` without `engine`          | the engine list (two engines, no saved default), each engine's state in its accessible name                                                                        |
+| cockpit picker             | `camunda7_open_cockpit` without `engine`          | the engine list (two engines, no default engine configured), each engine's state in its accessible name                                                            |
 | analytics dashboard        | `analytics_show_dashboard` at 760 px              | every activity column shown inside its region, names from the diagram, no document scroll                                                                          |
 | analytics landscape        | `analytics_show_engine_landscape` at 760 px       | the column groups headed, the backlog columns and the compare action inside their regions                                                                          |
 | axe (analytics)            | dashboard + landscape, light and dark, 760 px     | zero WCAG 2.1 A/AA violations (`analytics.spec.ts`)                                                                                                                |
 
-Height checks read the **settled** report — the one equal to the document's current
-max-content height — since the ProfileGate skeleton's earlier report (~208 px) can
-still be the last one when the content is already visible.
+Height checks read the **settled** report, the one equal to the document's current
+max-content height: auto-resize reports one frame late, so right after the content becomes
+visible the last report can still be an earlier state's (the view's loading state).
 
 **Pinned scenarios** assert the CURRENT behaviour of a known defect outside
-this repo's fix scope. They fail on purpose once the fix lands — flip them to
+this repo's fix scope. They fail on purpose once the fix lands: flip them to
 the expected behaviour named in their assertion message.
 
-Run it (after `pnpm build` — the server imports the workspace packages' dist):
+Run it after `pnpm build` (the server imports the workspace packages' dist):
 
 ```bash
 pnpm --filter @miragon/pulse-mcp-server-camunda7 exec playwright install chromium   # once

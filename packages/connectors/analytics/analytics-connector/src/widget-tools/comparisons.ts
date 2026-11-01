@@ -14,8 +14,7 @@ import {
   ANALYTICS_SHOW_ENGINE_LANDSCAPE,
   ANALYTICS_SHOW_VERSION_COMPARE,
 } from "../tool-names.js"
-import { localizeFor } from "../server-locale.js"
-import { optionalMinBucketSize, settingsFor } from "../settings.js"
+import { summaryT as t } from "../summary.js"
 import { isFleetRequest, withEngineScope } from "../engine-ids.js"
 import { namedLandscape } from "../named-views.js"
 import { NO_NAMES } from "../bpmn-name-lookup.js"
@@ -28,7 +27,7 @@ import {
 
 /** The landscape is no fourth comparison: engines host different process mixes. */
 export function registerComparisonWidgetTools(ctx: AnalyticsWidgetToolsContext) {
-  const { server, ch, engineScope, profileStore } = ctx
+  const { server, ch, engineScope } = ctx
   const namesFor = ctx.namesFor ?? NO_NAMES
 
   server.tool(
@@ -38,27 +37,21 @@ export function registerComparisonWidgetTools(ctx: AnalyticsWidgetToolsContext) 
       description:
         "Visualize before/after KPI deltas around a deployment timestamp. Windows are clamped to now and the retention (flagged `partial`; starts compare per day). Results are flagged `suppressed` when either window has fewer than minBucketSize started or completed instances.",
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-      inputSchema: strictToolInput({
-        ...schemas.clusterCompareInput.shape,
-        minBucketSize: optionalMinBucketSize,
-      }),
+      inputSchema: strictToolInput(schemas.clusterCompareInput.shape),
       ...showToolBinding(ANALYTICS_SHOW_CLUSTER_COMPARE, "Pre/Post Deployment Comparison"),
     },
     withToolErrors(async (args, toolCtx) => {
-      const t = await localizeFor(profileStore, toolCtx)
-      const minBucketSize =
-        args.minBucketSize ?? (await settingsFor(profileStore, toolCtx)).minBucketSize
-      const data = await queries.clusterCompare(withCallerSignal(ch, toolCtx.signal), {
-        ...withEngineScope(engineScope, args),
-        minBucketSize,
-      })
+      const data = await queries.clusterCompare(
+        withCallerSignal(ch, toolCtx.signal),
+        withEngineScope(engineScope, args),
+      )
       return buildViewResult(
         data,
         t("aSum.clusterCompare", {
           scope: data.processDefinitionKey
             ? t("aSum.scopeForProcess", { key: data.processDefinitionKey })
             : "",
-          engines: engineScopeSummary(t, data.engines, isFleetRequest(args.engine)),
+          engines: engineScopeSummary(data.engines, isFleetRequest(args.engine)),
           deploymentTimestamp: data.deploymentTimestamp,
           before: data.windowDays.before,
           after: data.windowDays.after,
@@ -77,20 +70,14 @@ export function registerComparisonWidgetTools(ctx: AnalyticsWidgetToolsContext) 
       description:
         "Visualize KPI deltas between two deployed versions of the same processDefinitionKey within a shared time window. Instance counts and durations are exact per version; the incident rates show as n/a — the incident metric carries no version label, so they are not measured per version (never read them as zero). Results are flagged `suppressed` when either version has fewer than minBucketSize started or completed instances.",
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-      inputSchema: strictToolInput({
-        ...schemas.versionCompareInput.shape,
-        minBucketSize: optionalMinBucketSize,
-      }),
+      inputSchema: strictToolInput(schemas.versionCompareInput.shape),
       ...showToolBinding(ANALYTICS_SHOW_VERSION_COMPARE, "Process Version Comparison"),
     },
     withToolErrors(async (args, toolCtx) => {
-      const t = await localizeFor(profileStore, toolCtx)
-      const minBucketSize =
-        args.minBucketSize ?? (await settingsFor(profileStore, toolCtx)).minBucketSize
-      const data = await queries.versionCompare(withCallerSignal(ch, toolCtx.signal), {
-        ...withEngineScope(engineScope, args),
-        minBucketSize,
-      })
+      const data = await queries.versionCompare(
+        withCallerSignal(ch, toolCtx.signal),
+        withEngineScope(engineScope, args),
+      )
       return buildViewResult(
         data,
         t("aSum.versionCompare", {
@@ -98,7 +85,7 @@ export function registerComparisonWidgetTools(ctx: AnalyticsWidgetToolsContext) 
           versionA: data.versionA,
           versionB: data.versionB,
           windowDays: data.windowDays,
-          engines: engineScopeSummary(t, data.engines, isFleetRequest(args.engine)),
+          engines: engineScopeSummary(data.engines, isFleetRequest(args.engine)),
           delta: compareDeltaSummary(data.delta),
           suppressed: suppressedNote(data.suppressed),
         }),
@@ -113,21 +100,14 @@ export function registerComparisonWidgetTools(ctx: AnalyticsWidgetToolsContext) 
       description:
         "Visualize KPI deltas for ONE process definition as it runs on two configured CIB Seven engines (e.g. prod-a vs prod-b) over a shared time window. processDefinitionKey is required — engines host different process mixes, so an unscoped engine-vs-engine comparison would measure the mix, not the engines. Results are flagged `suppressed` when either engine has fewer than minBucketSize started or completed instances. For the cross-engine picture use analytics_show_engine_landscape.",
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-      inputSchema: strictToolInput({
-        ...schemas.engineCompareInput.shape,
-        minBucketSize: optionalMinBucketSize,
-      }),
+      inputSchema: strictToolInput(schemas.engineCompareInput.shape),
       ...showToolBinding(ANALYTICS_SHOW_ENGINE_COMPARE, "Engine Comparison"),
     },
     withToolErrors(async (args, toolCtx) => {
-      const t = await localizeFor(profileStore, toolCtx)
-      const minBucketSize =
-        args.minBucketSize ?? (await settingsFor(profileStore, toolCtx)).minBucketSize
       const data = await queries.engineCompare(withCallerSignal(ch, toolCtx.signal), {
         ...args,
         engineA: engineScope.require(args.engineA, "engineA"),
         engineB: engineScope.require(args.engineB, "engineB"),
-        minBucketSize,
       })
       return buildViewResult(
         data,
@@ -155,7 +135,6 @@ export function registerComparisonWidgetTools(ctx: AnalyticsWidgetToolsContext) 
       ...showToolBinding(ANALYTICS_SHOW_ENGINE_LANDSCAPE, "Cross-Engine Landscape"),
     },
     withToolErrors(async (args, toolCtx) => {
-      const t = await localizeFor(profileStore, toolCtx)
       const data = await namedLandscape(
         await queries.engineLandscape(
           withCallerSignal(ch, toolCtx.signal),

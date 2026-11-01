@@ -7,7 +7,6 @@ export type CockpitView =
   | { section: "overview" }
   | { section: "process-list" }
   | { section: "incidents" }
-  | { section: "settings" }
   | {
       section: "cluster-detail"
       activityId: string
@@ -39,8 +38,6 @@ export function intentToView(intent: NavIntent): CockpitView {
       return { section: "process-list" }
     case "incidents":
       return { section: "incidents" }
-    case "settings":
-      return { section: "settings" }
     case "cluster-detail":
       return {
         section: "cluster-detail",
@@ -122,8 +119,6 @@ export function crumbLabel(view: CockpitView, locale: string): string {
       return tr("cockpit.crumb.processList")
     case "incidents":
       return tr("cockpit.crumb.incidents")
-    case "settings":
-      return tr("cockpit.section.settings")
     // Names before ids (#322 U13): the drill's label, else the addressing id.
     case "process-detail":
       return view.label ?? view.processDefinitionKey

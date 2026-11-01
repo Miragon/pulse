@@ -104,7 +104,7 @@ export function useInstanceActions({
     available: isActionable,
   })
 
-  // Standalone has no `engine` prop; writes must target the data's engine, never the caller's default.
+  // Standalone has no `engine` prop; writes must target the data's engine, never the default engine.
   const engineId = engine ?? data?.engineId
   const where: WriteTarget = { engineId, environment: useEngineEnvironment(engineId) }
   const recovery = useIncidentRecovery(engineId, { resetOn: data, available: isActionable })

@@ -3,13 +3,12 @@ import type {
   CompareKpiDelta,
   FailureDashboardData,
 } from "@miragon/pulse-analytics-client"
-import { modelContextText, type ModelContextSpec } from "@miragon/pulse-widget-shell/widgets"
+import { modelContextText } from "@miragon/pulse-widget-shell/widgets"
 import { ANALYTICS_ONLY_SURFACE, engineIdsOf, isAggregate } from "./hand-off.js"
 import type { ClusterCompareData } from "./cluster-compare.js"
 import type { VersionCompareData } from "./version-compare.js"
 import type { EngineCompareData } from "./engine-compare.js"
 import type { EngineLandscapeData } from "./engine-landscape.js"
-import type { AnalyticsSettingsViewData } from "./settings-section.js"
 import type { AnalyticsBpmnHeatmapData } from "./bpmn-heatmap.js"
 import { deltaFacts } from "./comparison-shared.js"
 
@@ -350,23 +349,6 @@ function maxEntry(values: Record<string, number>): [string, number] | null {
     if (!best || value > best[1]) best = [key, value]
   }
   return best
-}
-
-/**
- * The save tool is named only while `canSave`, so the model is never told about a write that fails.
- */
-export function describeAnalyticsSettings(data: AnalyticsSettingsViewData): ModelContextSpec {
-  return {
-    summary:
-      "The operator is viewing the analytics settings: the defaults every analytics call uses when it omits period or minBucketSize.",
-    facts: {
-      defaultPeriod: data.settings.defaultPeriod,
-      minBucketSize: data.settings.minBucketSize,
-      editable: data.canSave,
-    },
-    tools: ["analytics_save_settings"],
-    surface: { has: (tool) => tool === "analytics_save_settings" && data.canSave },
-  }
 }
 
 /** The BPMN heatmap — over the engines its heat adds up (the `engines` echo, #336). */

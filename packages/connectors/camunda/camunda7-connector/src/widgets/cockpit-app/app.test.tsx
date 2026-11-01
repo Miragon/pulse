@@ -7,7 +7,6 @@ import {
   CAMUNDA7_COCKPIT_OVERVIEW_DATA,
   CAMUNDA7_ENGINE_HEALTH_DATA,
   CAMUNDA7_LIST_ENGINES,
-  CAMUNDA7_SELECT_ENGINE,
 } from "../../tool-names.js"
 import { camunda7Instructions } from "../../instructions.js"
 import { CockpitApp } from "./app.js"
@@ -31,17 +30,8 @@ function renderCockpit(
   bootstrap: CockpitAppData = { engineId: null, engines: ENGINES },
   list: { engines: CockpitAppData["engines"] } = { engines: ENGINES },
 ) {
-  const listCalls: Array<Record<string, unknown>> = []
-  const selectCalls: Array<Record<string, unknown>> = []
   const modelContexts: string[] = []
-  const listEngines = (args: Record<string, unknown>) => {
-    listCalls.push(args)
-    return { engines: list.engines, environments: [], defaultEngineId: "prod-b" }
-  }
-  const selectEngine = (args: Record<string, unknown>) => {
-    selectCalls.push(args)
-    return { defaultEngineId: args.engineId ?? null }
-  }
+  const listEngines = () => ({ engines: list.engines, environments: [], defaultEngineId: "prod-b" })
   const overview = (args: Record<string, unknown>) => ({
     summary: {
       totalDefinitions: 0,
@@ -75,7 +65,6 @@ function renderCockpit(
     <TestViewHost
       tools={{
         [CAMUNDA7_LIST_ENGINES]: listEngines,
-        [CAMUNDA7_SELECT_ENGINE]: selectEngine,
         [CAMUNDA7_COCKPIT_OVERVIEW_DATA]: overview,
         [CAMUNDA7_ENGINE_HEALTH_DATA]: health,
       }}
@@ -85,32 +74,17 @@ function renderCockpit(
       <Cockpit />
     </TestViewHost>,
   )
-  return { listCalls, selectCalls, modelContexts }
+  return { modelContexts }
 }
 
 describe("CockpitApp navigation is side-effect free", () => {
-  it("entering and switching engines never writes the saved default engine", async () => {
-    const { listCalls, selectCalls } = renderCockpit()
-
-    fireEvent.click(await screen.findByRole("button", { name: /prod-a/ }))
-    const switcher = await screen.findByLabelText("Selected engine")
-    fireEvent.change(switcher, { target: { value: "prod-b" } })
-    await waitFor(() => expect((switcher as HTMLSelectElement).value).toBe("prod-b"))
-
-    expect(listCalls).toContainEqual({})
-    // Making an engine the default is an explicit settings action.
-    await new Promise((resolve) => setTimeout(resolve, 20))
-    expect(selectCalls).toEqual([])
-  })
-
-  // Navigation no longer moves the saved default, so the model must learn the viewed engine.
+  // Navigation never moves the default engine, so the model must learn the viewed engine.
   it("tells the model which engine the operator is viewing — and to pin it", async () => {
     const { modelContexts } = renderCockpit()
     fireEvent.click(await screen.findByRole("button", { name: /prod-a/ }))
     await waitFor(() => expect(modelContexts.at(-1)).toContain('Ids: engine="prod-a"'))
     const instructions = camunda7Instructions({
       engineIds: ["prod-a", "prod-b"],
-      canSaveDefault: true,
       toolset: "operations",
     })
     expect(instructions).toContain(
@@ -126,7 +100,7 @@ const onLanding = () =>
 
 /** #341 K43 / N105: opens where `camunda7_open_cockpit` resolved, and the context says what is shown. */
 describe("CockpitApp opens on the bootstrap's engine", () => {
-  it("a resolved engine (per-call `engine` or saved default): lands on it, not on the picker", async () => {
+  it("a resolved engine (per-call `engine` or default engine): lands on it, not on the picker", async () => {
     const { modelContexts } = renderCockpit({ engineId: "prod-a", engines: ENGINES })
     await waitFor(() => expect(activeEngine()).toBe("prod-a"))
     expect(onLanding()).toBe(false)
@@ -167,7 +141,7 @@ describe("CockpitApp reconciles its engine scope with the engine list", () => {
     await reloadEngines(list, THREE.slice(1))
 
     await waitFor(() => expect(onLanding()).toBe(true))
-    expect(screen.getByText(/prod-a is no longer in your engine list/)).toBeTruthy()
+    expect(screen.getByText(/prod-a is no longer configured on this server/)).toBeTruthy()
     await waitFor(() => expect(modelContexts.at(-1)).toContain("engine picker"))
   })
 
@@ -179,13 +153,13 @@ describe("CockpitApp reconciles its engine scope with the engine list", () => {
     await reloadEngines(list, [ENGINES[1]])
 
     await waitFor(() => expect(modelContexts.at(-1)).toContain('Ids: engine="prod-b"'))
-    expect(screen.getByText(/prod-a is no longer in your engine list/)).toBeTruthy()
+    expect(screen.getByText(/prod-a is no longer configured on this server/)).toBeTruthy()
   })
 
   it("a bootstrap engine the loaded list does not carry falls back the same way", async () => {
     renderCockpit({ engineId: "prod-a", engines: THREE }, { engines: THREE.slice(1) })
     await waitFor(() => expect(onLanding()).toBe(true))
-    expect(screen.getByText(/prod-a is no longer in your engine list/)).toBeTruthy()
+    expect(screen.getByText(/prod-a is no longer configured on this server/)).toBeTruthy()
   })
 })
 

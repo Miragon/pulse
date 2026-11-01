@@ -1,7 +1,6 @@
 import type { MCPServer } from "mcp-use"
 import { createToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import type { PrometheusClient } from "@miragon/pulse-analytics-client"
-import type { ProfileSource } from "../server-locale.js"
 import type { AnalyticsEngineScope } from "../engine-ids.js"
 import { registerPerformanceTools } from "./performance.js"
 import { registerFailureTools } from "./failures.js"
@@ -13,22 +12,21 @@ import { registerEngineLandscapeTools } from "./engine-landscape.js"
 import { registerHealthTools } from "./health.js"
 
 /**
- * Same "explicit arg > saved setting > schema default" resolution as the widget
- * tools; `engineScope` keeps every query on configured engines (`engine-ids.ts`).
+ * An omitted value takes the client schema's default, as in the widget tools;
+ * `engineScope` keeps every query on configured engines (`engine-ids.ts`).
  */
 export function registerTools(
   server: MCPServer,
   client: PrometheusClient,
   engineScope: AnalyticsEngineScope,
-  profileStore?: ProfileSource,
 ): void {
   const register = createToolRegistrar(server, client)
-  registerPerformanceTools(register, engineScope, profileStore)
+  registerPerformanceTools(register, engineScope)
   registerFailureTools(register, engineScope)
-  registerElementTools(register, engineScope, profileStore)
-  registerClusterCompareTools(register, engineScope, profileStore)
-  registerVersionCompareTools(register, engineScope, profileStore)
-  registerEngineCompareTools(register, engineScope, profileStore)
+  registerElementTools(register, engineScope)
+  registerClusterCompareTools(register, engineScope)
+  registerVersionCompareTools(register, engineScope)
+  registerEngineCompareTools(register, engineScope)
   registerEngineLandscapeTools(register, engineScope)
   registerHealthTools(register, engineScope)
 }

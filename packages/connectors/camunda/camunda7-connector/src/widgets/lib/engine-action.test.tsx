@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { ReactNode } from "react"
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react"
 import { createTestQueryClient, TestViewHost } from "@miragon/pulse-widget-shell/widgets"
-import { CAMUNDA7_SAVE_SETTINGS, CAMUNDA7_WIDGET_ACTIONS_DATA } from "../../tool-names.js"
+import { CAMUNDA7_WIDGET_ACTIONS_DATA } from "../../tool-names.js"
 import { useEngineAction, type ActionConfirmation } from "./engine-action.js"
 import { WRITE_POLICY } from "./write-policy.js"
 
@@ -16,7 +16,7 @@ let queryClient = createTestQueryClient()
 const TOOLS: Record<string, unknown> = {
   [CAMUNDA7_WIDGET_ACTIONS_DATA]: () => ({ allowedActions: allowed, modelTools: [] }),
   ...Object.fromEntries(
-    [...Object.keys(WRITE_POLICY), CAMUNDA7_SAVE_SETTINGS].map((name) => [
+    Object.keys(WRITE_POLICY).map((name) => [
       name,
       (args: object) =>
         Promise.resolve(write(name, args)).then((result) => ({ structuredContent: result })),
@@ -79,14 +79,6 @@ describe("useEngineAction — the gate", () => {
     expect(result.current.allowed).toBe(false)
     act(() => result.current.run({ jobId: "job-1", retries: 1 }, { feedback: FEEDBACK }))
     expect(write).not.toHaveBeenCalled()
-  })
-
-  it("takes a self-gated write's decision from the view", () => {
-    const { result } = renderHook(
-      () => useEngineAction({ tool: CAMUNDA7_SAVE_SETTINGS, allowed: true }),
-      { wrapper },
-    )
-    expect(result.current.allowed).toBe(true)
   })
 
   it("is closed while the subject's state does not allow the write — the gate notwithstanding", async () => {

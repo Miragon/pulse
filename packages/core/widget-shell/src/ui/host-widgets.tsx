@@ -3,8 +3,8 @@ import { ViewErrorBoundary } from "./view-error-boundary.js"
 
 /**
  * Another module's widget, rendered by a raw id without a module-to-module import: it takes its
- * scope as props and fetches its own data. Only cross-module surfaces use it: each module's
- * `<module>:settings` section on the settings page, and `analytics:engine-landscape` in the fleet.
+ * scope as props and fetches its own data. Only cross-module surfaces use it, today
+ * `analytics:engine-landscape` in camunda7's fleet view.
  */
 export type HostWidget = ComponentType<Record<string, unknown>>
 export type HostWidgets = Readonly<Record<string, HostWidget>>
@@ -47,16 +47,4 @@ export function HostWidgetSlot({
 }) {
   const widget = useHostWidget(id)
   return widget ? <ViewErrorBoundary>{createElement(widget, props)}</ViewErrorBoundary> : null
-}
-
-const SETTINGS_SECTION_SUFFIX = ":settings"
-
-/**
- * The settings page's extension point: every `<module>:settings` entry, in registration order. A
- * module adds its section to the host widgets and needs no other edit.
- */
-export function settingsSections(
-  widgets: HostWidgets,
-): ReadonlyArray<readonly [string, HostWidget]> {
-  return Object.entries(widgets).filter(([id]) => id.endsWith(SETTINGS_SECTION_SUFFIX))
 }

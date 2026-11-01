@@ -2,7 +2,6 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { frameworkWritesAllowed } from "@miragon/pulse-widget-shell/server"
 import {
   composition,
   emitBootWarnings,
@@ -12,7 +11,7 @@ import {
   warnUnknownEnvVars,
 } from "../src/setup.js"
 import { createApp } from "../src/app.js"
-import { bootServer, createTestRuntime } from "./boot-server.js"
+import { bootServer } from "./boot-server.js"
 import { REPO_ROOT, scanSources, type ScanOptions } from "./source-scan.js"
 
 const FILE_ENGINES = [{ id: "from-file", baseUrl: "http://file.example/engine-rest" }]
@@ -37,6 +36,7 @@ describe("setup.ts engine resolution precedence (ENGINES_FILE > ENGINES_JSON > B
 
   beforeEach(() => {
     // Neutral baseline so ambient shell env can't leak into the assertions.
+    vi.stubEnv("CAMUNDA_DEFAULT_ENGINE", undefined)
     vi.stubEnv("MCP_ACTIVE_MODULES", undefined)
     vi.stubEnv("CAMUNDA_ENGINES_FILE", undefined)
     vi.stubEnv("CAMUNDA_ENGINES_JSON", undefined)
@@ -118,6 +118,7 @@ describe("setup.ts engine resolution precedence (ENGINES_FILE > ENGINES_JSON > B
 
 describe("setup.ts MCP_ACTIVE_MODULES module:toolset syntax", () => {
   beforeEach(() => {
+    vi.stubEnv("CAMUNDA_DEFAULT_ENGINE", undefined)
     vi.stubEnv("CAMUNDA_ENGINES_FILE", undefined)
     vi.stubEnv("CAMUNDA_ENGINES_JSON", undefined)
     vi.stubEnv("CAMUNDA_BASE_URL", undefined)
@@ -132,13 +133,13 @@ describe("setup.ts MCP_ACTIVE_MODULES module:toolset syntax", () => {
     return resolveBoot().entries
   }
 
-  it("threads the suffix into the camunda7 config and the default into the suffix-less analytics", () => {
+  it("threads the suffix into the camunda7 config; analytics, which declares no toolsets, gets none", () => {
     vi.stubEnv("MCP_ACTIVE_MODULES", "camunda7:operations,analytics")
 
     const camunda7 = activeApps().find((e) => e.app === "camunda7")
     expect(camunda7?.config).toMatchObject({ toolset: "operations" })
     const analytics = activeApps().find((e) => e.app === "analytics")
-    expect(analytics?.config).toMatchObject({ toolset: "read-only" })
+    expect(analytics?.config).not.toHaveProperty("toolset")
   })
 
   it("activates all modules on their read-only floor when MCP_ACTIVE_MODULES is unset (no OAuth)", () => {
@@ -146,9 +147,10 @@ describe("setup.ts MCP_ACTIVE_MODULES module:toolset syntax", () => {
 
     const apps = activeApps()
     expect(apps.map((e) => e.app).sort()).toEqual(["analytics", "camunda7"])
-    for (const entry of apps) {
-      expect(entry.config).toMatchObject({ toolset: "read-only" })
-    }
+    expect(Object.fromEntries(apps.map((e) => [e.app, e.config.toolset]))).toEqual({
+      camunda7: "read-only",
+      analytics: undefined,
+    })
   })
 
   it("defaults to each module's standard toolset under OAuth — never admin", () => {
@@ -157,16 +159,16 @@ describe("setup.ts MCP_ACTIVE_MODULES module:toolset syntax", () => {
     const boot = resolveBoot({ authenticated: true })
     expect(Object.fromEntries(boot.entries.map((e) => [e.app, e.config.toolset]))).toEqual({
       camunda7: "operations",
-      analytics: "standard",
+      analytics: undefined,
     })
   })
 
-  it("composes the always-on shell first, then each active module under its name", () => {
+  it("composes each active module under its name", () => {
     vi.stubEnv("MCP_ACTIVE_MODULES", undefined)
-    expect(getPlugins().map((plugin) => plugin.name)).toEqual(["shell", "camunda7", "analytics"])
+    expect(getPlugins().map((plugin) => plugin.name)).toEqual(["camunda7", "analytics"])
 
     vi.stubEnv("MCP_ACTIVE_MODULES", "analytics")
-    expect(getPlugins().map((plugin) => plugin.name)).toEqual(["shell", "analytics"])
+    expect(getPlugins().map((plugin) => plugin.name)).toEqual(["analytics"])
   })
 
   it.each(["camunda7:", "camunda7: ", "camunda7:bogus", "camunda7:admin:read-only"])(
@@ -185,7 +187,7 @@ describe("setup.ts MCP_ACTIVE_MODULES module:toolset syntax", () => {
     vi.stubEnv("MCP_ACTIVE_MODULES", "camunda7:admin,analytics")
 
     expect(logEffectiveToolsets(resolveBoot())).toBe(
-      "[pulse] Toolsets — camunda7:admin (suffix), analytics:read-only (default without OAuth)",
+      "[pulse] Toolsets — camunda7:admin (suffix), analytics (no toolsets)",
     )
     expect(info).toHaveBeenCalledTimes(1)
   })
@@ -198,19 +200,14 @@ describe("setup.ts MCP_ACTIVE_MODULES module:toolset syntax", () => {
     const boot = async (raw: string | undefined) => {
       vi.stubEnv("MCP_OAUTH", raw)
       const { boot: selection } = await createApp(process.env, {
-        runtime: createTestRuntime(),
         bundle: { jsPath: path.join(import.meta.dirname, "fixtures", "mcp-app.js") },
       })
-      const toolsets = Object.fromEntries(selection.entries.map((e) => [e.app, e.config.toolset]))
-      return { toolsets, frameworkWrites: frameworkWritesAllowed(selection) }
+      return Object.fromEntries(selection.entries.map((e) => [e.app, e.config.toolset]))
     }
 
     // Unset or blank MCP_OAUTH builds no provider → unauthenticated defaults.
     for (const raw of [undefined, "", "   "]) {
-      expect(await boot(raw)).toEqual({
-        toolsets: { camunda7: "read-only", analytics: "read-only" },
-        frameworkWrites: false,
-      })
+      expect(await boot(raw)).toEqual({ camunda7: "read-only", analytics: undefined })
     }
 
     const keycloak = JSON.stringify({
@@ -218,10 +215,7 @@ describe("setup.ts MCP_ACTIVE_MODULES module:toolset syntax", () => {
       serverUrl: "https://kc.example.com",
       realm: "r",
     })
-    expect(await boot(keycloak)).toEqual({
-      toolsets: { camunda7: "operations", analytics: "standard" },
-      frameworkWrites: true,
-    })
+    expect(await boot(keycloak)).toEqual({ camunda7: "operations", analytics: undefined })
   })
 
   it("fails the boot when OAuth is installed without MCP_URL (no token audience)", async () => {
@@ -232,26 +226,20 @@ describe("setup.ts MCP_ACTIVE_MODULES module:toolset syntax", () => {
       "MCP_OAUTH",
       JSON.stringify({ provider: "keycloak", serverUrl: "https://kc.example.com", realm: "r" }),
     )
-    await expect(createApp(process.env, { runtime: createTestRuntime() })).rejects.toThrow(
-      /OAuth needs MCP_URL/,
-    )
+    await expect(createApp(process.env)).rejects.toThrow(/OAuth needs MCP_URL/)
   })
 
-  it("allows the framework write (the language save) only under OAuth with no read-only module", () => {
-    vi.stubEnv("MCP_ACTIVE_MODULES", undefined)
-    expect(frameworkWritesAllowed(resolveBoot())).toBe(false)
-    expect(frameworkWritesAllowed(resolveBoot({ authenticated: true }))).toBe(true)
-
-    vi.stubEnv("MCP_ACTIVE_MODULES", "camunda7:admin,analytics:read-only")
-    expect(frameworkWritesAllowed(resolveBoot({ authenticated: true }))).toBe(false)
-  })
-
-  it("passes the toolset through for modules that support it (analytics:read-only)", () => {
+  it("ignores a suffix on a module without toolsets, with one warning (analytics:read-only)", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
     vi.stubEnv("MCP_ACTIVE_MODULES", "analytics:read-only")
 
     const analytics = activeApps().find((e) => e.app === "analytics")
     expect(analytics).toBeDefined()
-    expect(analytics?.config).toMatchObject({ toolset: "read-only" })
+    expect(analytics?.config).not.toHaveProperty("toolset")
+    expect(warn).toHaveBeenCalledOnce()
+    expect(warn).toHaveBeenCalledWith(
+      '[pulse] Module "analytics" has no toolsets — ignoring ":read-only"',
+    )
   })
 
   it("still skips unknown modules, with or without a toolset suffix", () => {
@@ -277,6 +265,7 @@ describe("setup.ts MCP_ACTIVE_MODULES module:toolset syntax", () => {
  */
 describe("setup.ts scopes analytics to the configured engines", () => {
   beforeEach(() => {
+    vi.stubEnv("CAMUNDA_DEFAULT_ENGINE", undefined)
     vi.spyOn(console, "warn").mockImplementation(() => {})
   })
 
@@ -325,6 +314,7 @@ describe("setup.ts scopes analytics to the configured engines", () => {
 
 describe("setup.ts engine credential enforcement (fail fast, no silent anonymous requests)", () => {
   beforeEach(() => {
+    vi.stubEnv("CAMUNDA_DEFAULT_ENGINE", undefined)
     vi.spyOn(console, "warn").mockImplementation(() => {})
     vi.stubEnv("MCP_ACTIVE_MODULES", undefined)
     vi.stubEnv("CAMUNDA_ENGINES_FILE", undefined)
@@ -404,6 +394,32 @@ describe("setup.ts engine credential enforcement (fail fast, no silent anonymous
 
     expect(() => getPlugins()).toThrow(/requires username and password/)
   })
+
+  it("fails the boot when CAMUNDA_DEFAULT_ENGINE names no configured engine", () => {
+    vi.stubEnv(
+      "CAMUNDA_ENGINES_JSON",
+      JSON.stringify([
+        { id: "prod-a", baseUrl: "http://a.example/engine-rest" },
+        { id: "prod-b", baseUrl: "http://b.example/engine-rest" },
+      ]),
+    )
+    vi.stubEnv("CAMUNDA_DEFAULT_ENGINE", "prod-z")
+
+    expect(() => getPlugins()).toThrow(/CAMUNDA_DEFAULT_ENGINE=prod-z names no configured engine/)
+  })
+
+  it("boots when CAMUNDA_DEFAULT_ENGINE names a configured engine", () => {
+    vi.stubEnv(
+      "CAMUNDA_ENGINES_JSON",
+      JSON.stringify([
+        { id: "prod-a", baseUrl: "http://a.example/engine-rest" },
+        { id: "prod-b", baseUrl: "http://b.example/engine-rest" },
+      ]),
+    )
+    vi.stubEnv("CAMUNDA_DEFAULT_ENGINE", "prod-b")
+
+    expect(getPlugins().length).toBeGreaterThan(0)
+  })
 })
 
 describe("setup.ts module boot hints", () => {
@@ -458,11 +474,11 @@ describe("warnUnknownEnvVars", () => {
 
     const unknown = warnUnknownEnvVars({
       CAMUNDA_ENGINE_JSON: "[]",
-      MCP_PROFILES_DIR: "./x",
+      MCP_URLX: "http://x.example",
       CAMUNDA_BASE_URL: "http://ok.example",
     })
 
-    expect(unknown.sort()).toEqual(["CAMUNDA_ENGINE_JSON", "MCP_PROFILES_DIR"])
+    expect(unknown.sort()).toEqual(["CAMUNDA_ENGINE_JSON", "MCP_URLX"])
     expect(warn).toHaveBeenCalledTimes(2)
   })
 
@@ -492,7 +508,7 @@ describe("warnUnknownEnvVars", () => {
  * the prefix of every known variable, so ONE server name under PULSE_ would make
  * every server in a shared environment (a devcontainer, a Compose file, a shell
  * that also runs the CLI) warn about both. Name a server setting in its own
- * family instead (CAMUNDA_*, PROMETHEUS_*, ANALYTICS_*, MCP_*, DATABASE_URL).
+ * family instead (CAMUNDA_*, PROMETHEUS_*, ANALYTICS_*, MCP_*).
  */
 describe("the server reads no PULSE_* variable", () => {
   /** A PULSE_ name on its own (IMPULSE_RATE, MY_PULSE_X and the word Pulse are no hit). */

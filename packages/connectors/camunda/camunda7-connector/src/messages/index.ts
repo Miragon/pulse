@@ -9,9 +9,9 @@ import { enFeedback } from "./en.feedback.js"
 import { deFeedback } from "./de.feedback.js"
 
 /**
- * Catalogs only: the widgets (`use-t.ts`) and the server (`lib/server-locale.ts`) each build their
- * own translator, so neither bundle loads the other side's barrel. On a key clash the sweep
- * catalogs win (last spread).
+ * The widget catalogs (`use-t.ts` builds the translator). The model summaries live apart in
+ * `en.server.ts`, so the widget bundle carries none. On a key clash the sweep catalogs win
+ * (last spread).
  */
 export const catalogs: Catalogs = {
   en: { ...en, ...enSweep, ...enAskAi, ...enFeedback },
