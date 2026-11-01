@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@miragon/mcp-toolkit-ui"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@miragon/pulse-ui"
 import { WidgetShell } from "@miragon/pulse-widget-shell/widgets"
 
 /** Tabs mount on first activation, so lazy tabs do not query early; `keepMounted` keeps half-filled input. */

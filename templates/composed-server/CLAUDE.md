@@ -69,7 +69,10 @@ external infrastructure.
 4. **`resolve.dedupe` in `server/vite.config.ts` is load-bearing: never trim
    it.** Without it every in-widget query hangs on "Loading…" (duplicate React
    contexts).
-   **Widgets reach the host only through widget-shell's view runtime**:
+   **Widgets compose their UI from the design kit `@miragon/pulse-ui`**
+   (primitives, `WidgetHeader`, `KpiGrid`, the pills, the `TONE_*` maps, `cn`,
+   `Th`/`Td`, `TableEmptyState`, the formatters) and **reach the host only
+   through widget-shell's view runtime**:
    `useViewHost()` (`callTool`, `sendFollowUp`, `openExternal`),
    `HostModelContext` and the query hooks (`useViewData`, `useToolQuery`,
    `useToolMutation`, `useQueryClient`), all from
@@ -83,7 +86,7 @@ external infrastructure.
    `devDependencies`: upgrade all `@miragon/pulse-*` packages together to one
    version. The consumer-shared libraries are ranged `peerDependencies`
    instead (`react`/`react-dom` `^19.2.0`, `zod` `^4.4.0` and
-   `@miragon/mcp-toolkit-*` `~2.8.1`), so they dedupe against your app's
+   `@miragon/mcp-toolkit-core` `~2.8.1`), so they dedupe against your app's
    copy; keep an exact copy of each in `devDependencies` for local builds.
    **`mcp-use` stays exactly pinned** even as a peer (`2.7.3`): a duplicate
    `mcp-use` instance breaks the React context and hangs every in-widget query

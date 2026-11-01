@@ -1,4 +1,4 @@
-import { type ToneVariant } from "@miragon/mcp-toolkit-ui"
+import type { ToneVariant } from "@miragon/pulse-ui"
 import { severityTone } from "@miragon/pulse-widget-shell/widgets"
 import type { CockpitDashboardData, DefinitionStat } from "../../view-models.js"
 

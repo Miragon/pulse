@@ -11,7 +11,10 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."
 const pkg = (dir, name, dependencies = {}) => ({ dir, manifest: { name, dependencies } })
 
 const PACKAGES = [
-  pkg("packages/core/widget-shell", "@miragon/pulse-widget-shell"),
+  pkg("packages/core/ui", "@miragon/pulse-ui"),
+  pkg("packages/core/widget-shell", "@miragon/pulse-widget-shell", {
+    "@miragon/pulse-ui": "workspace:*",
+  }),
   pkg("packages/connectors/camunda/camunda7-client", "@miragon/pulse-camunda7-client"),
   pkg("packages/connectors/camunda/camunda7-connector", "@miragon/pulse-camunda7-connector", {
     "@miragon/pulse-camunda7-client": "workspace:*",
@@ -70,6 +73,11 @@ describe("scopesFor: prose reaches only the checks that read it", () => {
 })
 
 describe("scopesFor: a package's code reaches its dependents", () => {
+  it("runs the MCP server's checks and the template for pulse-ui's stylesheet, through widget-shell", () => {
+    assert.deepEqual(scopes("packages/core/ui/src/theme.css"), ["mcp", "template", "typescript"])
+    assert.ok(withDependents(["packages/core/ui"], PACKAGES).has("packages/core/widget-shell"))
+  })
+
   it("runs the MCP server's checks and the template for a client, through its connector", () => {
     assert.deepEqual(scopes("packages/connectors/camunda/camunda7-client/src/index.ts"), [
       "mcp",

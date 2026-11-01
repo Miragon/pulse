@@ -1,5 +1,5 @@
 import { useEffect } from "react"
-import { ErrorState, Skeleton } from "@miragon/mcp-toolkit-ui"
+import { ErrorState, Skeleton } from "@miragon/pulse-ui"
 import {
   BpmnZoomControls,
   QueryFallback,

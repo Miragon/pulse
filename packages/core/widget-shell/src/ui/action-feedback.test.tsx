@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it } from "vitest"
 import { act, cleanup, renderHook, screen } from "@testing-library/react"
 import type { ReactNode } from "react"
-import { LocaleProvider, ToastProvider } from "@miragon/mcp-toolkit-ui"
+import { LocaleProvider, ToastProvider } from "@miragon/pulse-ui"
 import { failureLine, useActionFeedback, type ActionFeedback } from "./action-feedback.js"
 
 afterEach(cleanup)
@@ -63,7 +63,7 @@ describe("useActionFeedback (U9: a write is never silent)", () => {
     expect(toast?.textContent).not.toContain("Details")
   })
 
-  it("announces through the toolkit's polite live region", () => {
+  it("announces through pulse-ui's polite live region", () => {
     const feedback = renderIn("en")
     act(() => feedback.succeeded("Saved"))
     const viewport = document.querySelector('[data-slot="toast-viewport"]')

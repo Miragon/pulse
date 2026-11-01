@@ -1,12 +1,16 @@
 import {
+  formatNumber,
+  formatTimestamp,
+  StatusBadge,
+  WidgetHeader,
+  DrillButton,
+} from "@miragon/pulse-ui"
+import {
   HandOffButton,
   OpenInCockpitLink,
   ViewDataState,
   WidgetShell,
-  formatNumber,
-  formatTimestamp,
 } from "@miragon/pulse-widget-shell/widgets"
-import { StatusBadge, WidgetHeader, DrillButton } from "@miragon/mcp-toolkit-ui"
 import type { ProcessIncidentsData } from "../../view-models.js"
 import { useNav } from "../navigation.js"
 import { useHandOff, type HandOff } from "../lib/hand-off.js"

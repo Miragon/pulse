@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react"
-import { useLocale } from "@miragon/mcp-toolkit-ui"
+import { useLocale } from "@miragon/pulse-ui"
 import { decodeToolResult } from "../tool-result.js"
 import { useInlineBudget } from "./inline-budget.js"
 import { useInlineRows, type InlineRows } from "./inline-fit.js"

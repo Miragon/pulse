@@ -57,7 +57,7 @@ The package itself is `private` and not published to npm.
   each with a prelude naming its view, so `mountViews` picks the tool's view from
   [`src/ui/view-registry.ts`](src/ui/view-registry.ts). The `dedupe` array in
   [`vite.config.ts`](vite.config.ts) is load-bearing: it keeps a single React / TanStack Query /
-  mcp-use / toolkit instance, so a widget finds the view host and the one `QueryClient`.
+  mcp-use / pulse-ui / toolkit instance, so a widget finds the view host and the one `QueryClient`.
 - **Serves HTTP:** streamable-HTTP MCP on `:8400/mcp`; the `mcp-use` inspector (`:8400/mcp/inspector`) ships with `mcp-use dev` only, never with the production entrypoint
   in dev.
 

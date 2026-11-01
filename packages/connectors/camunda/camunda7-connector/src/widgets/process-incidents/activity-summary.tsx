@@ -1,4 +1,4 @@
-import { formatNumber, formatTimestamp } from "@miragon/pulse-widget-shell/widgets"
+import { formatNumber, formatTimestamp } from "@miragon/pulse-ui"
 
 import type { ProcessIncidentsActivity } from "../../view-models.js"
 import { GroupSummaryRow, IncidentGroupIcon } from "../group-summary-row.js"

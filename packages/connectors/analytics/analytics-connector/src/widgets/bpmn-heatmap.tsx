@@ -1,4 +1,4 @@
-import { Skeleton } from "@miragon/mcp-toolkit-ui"
+import { Skeleton } from "@miragon/pulse-ui"
 import {
   BpmnHeatmapWidget,
   QueryFallback,

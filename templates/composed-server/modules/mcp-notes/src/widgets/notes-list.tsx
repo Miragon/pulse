@@ -1,12 +1,9 @@
-import { WidgetHeader } from "@miragon/mcp-toolkit-ui"
+import { WidgetHeader, TableEmptyState, Td, formatTimestamp } from "@miragon/pulse-ui"
 import {
   ListTable,
   QueryFallback,
-  TableEmptyState,
   TableSkeleton,
-  Td,
   WidgetShell,
-  formatTimestamp,
   useViewData,
 } from "@miragon/pulse-widget-shell/widgets"
 import { NOTES_LIST_DATA } from "../tool-names.js"

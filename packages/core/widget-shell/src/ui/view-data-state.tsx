@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import { cn, EmptyState, ErrorState, Skeleton, useLocale } from "@miragon/mcp-toolkit-ui"
+import { cn, EmptyState, ErrorState, Skeleton, useLocale } from "@miragon/pulse-ui"
 import { describeError } from "./describe-error.js"
 import { kitLabels } from "./kit-labels.js"
 

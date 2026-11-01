@@ -2,9 +2,8 @@
 import { afterEach, beforeAll, describe, expect, it } from "vitest"
 import type { ComponentType } from "react"
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react"
-import { LocaleProvider } from "@miragon/mcp-toolkit-ui"
+import { LocaleProvider, formatNumber } from "@miragon/pulse-ui"
 import {
-  formatNumber,
   TestViewHost,
   type HostAction,
   createTestQueryClient,

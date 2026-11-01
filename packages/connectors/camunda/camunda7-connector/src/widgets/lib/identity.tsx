@@ -1,4 +1,4 @@
-import { cn } from "@miragon/mcp-toolkit-ui"
+import { cn } from "@miragon/pulse-ui"
 import { IdText } from "@miragon/pulse-widget-shell/widgets"
 
 /** #322 U13: names before ids; ids are the quiet second line. */

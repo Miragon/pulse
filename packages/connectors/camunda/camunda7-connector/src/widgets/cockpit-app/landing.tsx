@@ -6,8 +6,11 @@ import {
   TONE_DOT,
   TONE_ICON,
   useLocale,
-} from "@miragon/mcp-toolkit-ui"
-import { Icon, KometMark, WidgetShell, formatNumber } from "@miragon/pulse-widget-shell/widgets"
+  Icon,
+  KometMark,
+  formatNumber,
+} from "@miragon/pulse-ui"
+import { WidgetShell } from "@miragon/pulse-widget-shell/widgets"
 import { ArrowRight, CircleDashed, Layers, LoaderCircle, Unplug } from "lucide-react"
 import { DEFAULT_ENVIRONMENT_ID, groupEnginesByEnvironment } from "../../lib/environments.js"
 import { translator } from "../../messages/index.js"

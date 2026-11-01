@@ -1,5 +1,5 @@
 import { useMemo } from "react"
-import { useLocale } from "@miragon/mcp-toolkit-ui"
+import { useLocale } from "@miragon/pulse-ui"
 import {
   askAiPrompt,
   modelContextText,

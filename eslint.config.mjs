@@ -62,33 +62,33 @@ const widgetDateGate = [
     selector:
       ":matches(NewExpression, CallExpression)[callee.object.name='Intl'][callee.property.name='DateTimeFormat']",
     message:
-      "Use formatTimestamp/formatDate/formatTime from @miragon/pulse-widget-shell/widgets — the single source for timestamp rendering (CLAUDE.md invariant 6).",
+      "Use formatTimestamp/formatDate/formatTime from @miragon/pulse-ui — the single source for timestamp rendering (CLAUDE.md invariant 6).",
   },
   {
     selector: "CallExpression[callee.property.name='toLocaleDateString']",
     message:
-      "Use formatDate from @miragon/pulse-widget-shell/widgets instead of Date#toLocaleDateString (CLAUDE.md invariant 6).",
+      "Use formatDate from @miragon/pulse-ui instead of Date#toLocaleDateString (CLAUDE.md invariant 6).",
   },
   {
     selector: "CallExpression[callee.property.name='toLocaleTimeString']",
     message:
-      "Use formatTime from @miragon/pulse-widget-shell/widgets instead of Date#toLocaleTimeString (CLAUDE.md invariant 6).",
+      "Use formatTime from @miragon/pulse-ui instead of Date#toLocaleTimeString (CLAUDE.md invariant 6).",
   },
 ]
 
-// Invariant 6: numbers in widget code render through the kit formatters
+// Invariant 6: numbers in widget code render through pulse-ui's formatters
 // (formatNumber/formatPercent/formatPercentPoints/formatPeriod/formatDuration),
 // which read the view's locale. Number#toFixed formats in no locale; a
 // toLocaleString() without a locale (no argument, `undefined`, `null`, `[]`)
 // in the browser's; a hand-built Intl.NumberFormat bypasses the formatters
-// (only the kit's format.ts builds one — see its block below).
+// (only pulse-ui's two formatters build one: see their block below).
 const NUMBER_FORMAT_SELECTOR =
   ":matches(NewExpression, CallExpression)[callee.object.name='Intl'][callee.property.name='NumberFormat']"
 const widgetNumberGate = [
   {
     selector: "CallExpression[callee.property.name='toFixed']",
     message:
-      "Use formatNumber/formatPercent/formatPercentPoints from the widget-shell kit instead of Number#toFixed: it ignores the view's locale (CLAUDE.md invariant 6).",
+      "Use formatNumber/formatPercent/formatPercentPoints from the pulse-ui kit instead of Number#toFixed: it ignores the view's locale (CLAUDE.md invariant 6).",
   },
   {
     // Each alternative pins the node type: esquery compares String(value), so
@@ -97,12 +97,12 @@ const widgetNumberGate = [
     selector:
       "CallExpression[callee.property.name='toLocaleString']:matches([arguments.length=0], [arguments.0.type='Identifier'][arguments.0.name='undefined'], [arguments.0.type='Literal'][arguments.0.raw='null'], [arguments.0.type='ArrayExpression'][arguments.0.elements.length=0])",
     message:
-      "Use formatNumber from the widget-shell kit instead of toLocaleString() without a locale: it formats in the browser's locale, not the view's (CLAUDE.md invariant 6).",
+      "Use formatNumber from the pulse-ui kit instead of toLocaleString() without a locale: it formats in the browser's locale, not the view's (CLAUDE.md invariant 6).",
   },
   {
     selector: NUMBER_FORMAT_SELECTOR,
     message:
-      "Use formatNumber/formatPercent/formatPercentPoints from the widget-shell kit instead of a hand-built Intl.NumberFormat: they read the view's locale (CLAUDE.md invariant 6).",
+      "Use formatNumber/formatPercent/formatPercentPoints from the pulse-ui kit instead of a hand-built Intl.NumberFormat: they read the view's locale (CLAUDE.md invariant 6).",
   },
 ]
 // The kit's formatters themselves: the same gate minus Intl.NumberFormat.
@@ -112,7 +112,7 @@ const widgetNumberGateForFormatters = widgetNumberGate.filter(
 
 // Invariant 6 / CI U4: the AI affordance is the Lucide icon of the concrete
 // function plus a verb that names the chat, never a sparkle. Every export
-// spelling of lucide-react's sparkle icons, and their deep imports. (The kit's
+// spelling of lucide-react's sparkle icons, and their deep imports. (pulse-ui's
 // scanGlyphs checks the same imports for packages outside this config.)
 const SPARKLE_MESSAGE =
   "No Sparkles/WandSparkles as the AI affordance (CI U4): use the Lucide icon of the concrete function (e.g. FileSearch) and a verb that names the chat (CLAUDE.md invariant 6)."
@@ -136,39 +136,17 @@ const widgetSparkleGate = {
   ],
 }
 
-// Invariant 6, the view runtime: Pulse owns it. Widgets reach the host only through
-// widget-shell's view host (`useViewHost`, `HostModelContext`) and query hooks, never the
-// toolkit's app/hooks layer or its root query and host exports, and never `mcp-use/react`
-// itself: its hooks throw outside `bootstrapView`, so a widget importing it could not render
-// under `TestViewHost`. The ONE adapter is widget-shell's `mcp-use-host.tsx` + `view-root.tsx`.
-const VIEW_RUNTIME_MESSAGE =
-  "Use the view runtime of @miragon/pulse-widget-shell/widgets (useViewHost, HostModelContext, useToolQuery, useToolMutation, useViewData, useQueryClient; TestViewHost in tests), never the toolkit's app/hooks layer or its query exports (CLAUDE.md invariant 6)."
-const TOOLKIT_RUNTIME_NAMES = [
-  "AppQueryProvider",
-  "useToolQuery",
-  "useToolQueryKey",
-  "useToolMutation",
-  "useCallTool",
-  "queryClient",
-  "parseToolResult",
-  "parseViewToolResult",
-  "toolQueryKey",
-  "shouldRetryToolCall",
-  "ToolResultError",
-  "isToolError",
-  "keepPreviousData",
-]
-const toolkitRuntimeGate = {
-  paths: [
-    {
-      name: "@miragon/mcp-toolkit-ui",
-      importNames: TOOLKIT_RUNTIME_NAMES,
-      message: VIEW_RUNTIME_MESSAGE,
-    },
-  ],
-  patterns: [
-    { regex: "^@miragon/mcp-toolkit-ui/(?:app|hooks)(?:/.*)?$", message: VIEW_RUNTIME_MESSAGE },
-  ],
+// Invariant 6: the toolkit's UI package is retired, every subpath with it. The design kit
+// is @miragon/pulse-ui, the view runtime @miragon/pulse-widget-shell/widgets. Widgets reach
+// the host only through widget-shell's view host (`useViewHost`, `HostModelContext`) and
+// query hooks, never `mcp-use/react` itself: its hooks throw outside `bootstrapView`, so a
+// widget importing it could not render under `TestViewHost`. The ONE adapter is
+// widget-shell's `mcp-use-host.tsx` + `view-root.tsx`.
+const TOOLKIT_UI_MESSAGE =
+  "@miragon/mcp-toolkit-ui is retired: import the design kit from @miragon/pulse-ui and the view runtime (useViewHost, HostModelContext, useToolQuery, useToolMutation, useViewData, useQueryClient; TestViewHost in tests) from @miragon/pulse-widget-shell/widgets (CLAUDE.md invariant 6)."
+const toolkitUiGate = {
+  paths: [{ name: "@miragon/mcp-toolkit-ui", message: TOOLKIT_UI_MESSAGE }],
+  patterns: [{ regex: "^@miragon/mcp-toolkit-ui/", message: TOOLKIT_UI_MESSAGE }],
 }
 const mcpUseReactGate = {
   paths: [
@@ -187,7 +165,7 @@ const importGates = (...gates) => ({
 })
 
 // Invariant 6 / CI U4, the other half: ONE hand-off vocabulary across the
-// product. A connector widget renders a chat hand-off only through the kit's
+// product. A connector widget renders a chat hand-off only through widget-shell's
 // HandOffButton, whose function table (HAND_OFF_ACTIONS + kitLabels().handOff)
 // gives every function one Lucide icon and one label in every module; an
 // AskAiButton with a hand-picked icon and verb let the same function drift
@@ -196,7 +174,7 @@ const importGates = (...gates) => ({
 // renamed) and the element (also through a namespace) are both banned in both
 // connectors' widgets.
 const HAND_OFF_MESSAGE =
-  "Render a chat hand-off with the kit's HandOffButton (`action` from HAND_OFF_ACTIONS: one Lucide icon and one verb that names the chat per function, in every module), not AskAiButton (CI U4, CLAUDE.md invariant 6)."
+  "Render a chat hand-off with widget-shell's HandOffButton (`action` from HAND_OFF_ACTIONS: one Lucide icon and one verb that names the chat per function, in every module), not AskAiButton (CI U4, CLAUDE.md invariant 6)."
 const widgetHandOffGate = [
   "ImportSpecifier[imported.name='AskAiButton']",
   "JSXOpeningElement[name.name='AskAiButton']",
@@ -314,6 +292,7 @@ export default tseslint.config(
             "packages/connectors/camunda/camunda7-client/vitest.config.ts",
             "packages/connectors/camunda/camunda7-client/vitest.stryker.config.ts",
             "packages/connectors/camunda/camunda7-client/openapi-ts.config.ts",
+            "packages/core/ui/vitest.config.ts",
             "packages/core/widget-shell/vitest.config.ts",
             "packages/core/widget-shell/vitest.stryker.config.ts",
             "docs/.vitepress/config.ts",
@@ -424,16 +403,16 @@ export default tseslint.config(
     rules: { "no-restricted-syntax": ["error", ...registrarGate] },
   },
 
-  // Invariant 6: all date/time rendering in widgets goes through the
-  // widget-shell format helpers so every module renders timestamps the same
+  // Invariant 6: all date/time rendering in widgets goes through pulse-ui's
+  // format helpers so every module renders timestamps the same
   // way. Number#toLocaleString (thousands separators) is deliberately allowed.
   {
     files: ["apps/mcp-server-camunda7/src/ui/**/*.{ts,tsx}"],
     rules: { "no-restricted-syntax": ["error", ...widgetDateGate] },
   },
   // Connector widgets sit under the registrar AND date gates, render every
-  // number through the kit formatters (number gate) and every hand-off through
-  // the kit's HandOffButton (hand-off gate) — one block per connector, each with the union,
+  // number through pulse-ui's formatters (number gate) and every hand-off through
+  // widget-shell's HandOffButton (hand-off gate): one block per connector, each with the union,
   // after the registrar block (whose options it replaces for these files).
   {
     files: ["packages/connectors/camunda/camunda7-connector/src/widgets/**/*.{ts,tsx}"],
@@ -459,17 +438,24 @@ export default tseslint.config(
       ],
     },
   },
-  // Invariant 6, numbers: the kit's own widget code, and both connectors'
-  // widgets in their union blocks above.
+  // Invariant 6, numbers: pulse-ui's code, widget-shell's widget code, and both
+  // connectors' widgets in their union blocks above.
+  {
+    files: ["packages/core/ui/src/**/*.{ts,tsx}"],
+    rules: { "no-restricted-syntax": ["error", ...widgetNumberGate] },
+  },
   {
     files: ["packages/core/widget-shell/src/ui/**/*.{ts,tsx}"],
     rules: { "no-restricted-syntax": ["error", ...widgetNumberGate] },
   },
+  // The kit's two number formatters: `format.ts` (the view's locale, set by ProfileGate)
+  // and `formatCount` in `ui-messages.ts` (the components' own locale). After the
+  // general pulse-ui block: a later block replaces `no-restricted-syntax` for both files.
   {
-    files: ["packages/core/widget-shell/src/ui/format.ts"],
+    files: ["packages/core/ui/src/kit/format.ts", "packages/core/ui/src/locale/ui-messages.ts"],
     rules: { "no-restricted-syntax": ["error", ...widgetNumberGateForFormatters] },
   },
-  // Invariant 6, imports: the view runtime gate in every MCP source and test,
+  // Invariant 6, imports: the toolkit UI gate in every MCP source and test,
   // plus the sparkle gate (AI affordance) in every widget tree, the one
   // `no-restricted-imports` union per glob; widget-shell's mcp-use adapter is
   // the one place `mcp-use/react` is allowed. Its own rule, so it never
@@ -477,16 +463,18 @@ export default tseslint.config(
   {
     files: [
       "apps/mcp-server-camunda7/{src,test,test-host}/**/*.{ts,tsx}",
+      "packages/core/ui/src/**/*.{ts,tsx}",
       "packages/core/widget-shell/src/**/*.{ts,tsx}",
       "packages/connectors/*/*/src/**/*.{ts,tsx}",
     ],
     rules: {
-      "no-restricted-imports": ["error", importGates(toolkitRuntimeGate, mcpUseReactGate)],
+      "no-restricted-imports": ["error", importGates(toolkitUiGate, mcpUseReactGate)],
     },
   },
   {
     files: [
       "apps/mcp-server-camunda7/src/ui/**/*.{ts,tsx}",
+      "packages/core/ui/src/**/*.{ts,tsx}",
       "packages/core/widget-shell/src/ui/**/*.{ts,tsx}",
       "packages/connectors/analytics/analytics-connector/src/widgets/**/*.{ts,tsx}",
       "packages/connectors/camunda/camunda7-connector/src/widgets/**/*.{ts,tsx}",
@@ -494,7 +482,7 @@ export default tseslint.config(
     rules: {
       "no-restricted-imports": [
         "error",
-        importGates(toolkitRuntimeGate, mcpUseReactGate, widgetSparkleGate),
+        importGates(toolkitUiGate, mcpUseReactGate, widgetSparkleGate),
       ],
     },
   },
@@ -505,7 +493,7 @@ export default tseslint.config(
       "packages/core/widget-shell/src/ui/view-root.test.tsx",
     ],
     rules: {
-      "no-restricted-imports": ["error", importGates(toolkitRuntimeGate, widgetSparkleGate)],
+      "no-restricted-imports": ["error", importGates(toolkitUiGate, widgetSparkleGate)],
     },
   },
   // ── Ratchet metrics: complexity + file-length budgets ───────────────────

@@ -1,6 +1,6 @@
 import { createRequire } from "node:module"
 import { describe, expect, it } from "vitest"
-import { GEIST_FONT_FILES } from "@miragon/mcp-toolkit-ui"
+import { GEIST_FONT_FILES } from "@miragon/pulse-ui"
 import { SERVED_FONT_FILES, SERVED_FONT_PATH, servedFontBaseUrl } from "./served-fonts.js"
 
 const require = createRequire(import.meta.url)
@@ -14,7 +14,7 @@ describe("the served-font contract", () => {
     }
   })
 
-  it("serves the files the toolkit's fontFaces() names", () => {
+  it("serves the files pulse-ui's fontFaces() names", () => {
     expect(SERVED_FONT_FILES).toEqual(GEIST_FONT_FILES)
   })
 })

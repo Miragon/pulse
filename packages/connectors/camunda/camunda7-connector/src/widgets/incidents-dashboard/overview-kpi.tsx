@@ -1,12 +1,10 @@
+import { formatNumber, formatTimestamp, KpiGrid, LivePill, WidgetHeader } from "@miragon/pulse-ui"
 import {
   HandOffButton,
   ViewDataState,
   WidgetShell,
-  formatNumber,
-  formatTimestamp,
   useViewData,
 } from "@miragon/pulse-widget-shell/widgets"
-import { KpiGrid, LivePill, WidgetHeader } from "@miragon/mcp-toolkit-ui"
 import type { IncidentsDashboardData } from "../../view-models.js"
 import { CAMUNDA7_INCIDENTS_DATA } from "../../tool-names.js"
 import { useHandOff, type HandOff } from "../lib/hand-off.js"

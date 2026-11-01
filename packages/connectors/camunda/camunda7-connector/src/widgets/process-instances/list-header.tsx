@@ -1,5 +1,5 @@
-import { HandOffButton, formatNumber } from "@miragon/pulse-widget-shell/widgets"
-import { LivePill, WidgetHeader } from "@miragon/mcp-toolkit-ui"
+import { formatNumber, LivePill, WidgetHeader } from "@miragon/pulse-ui"
+import { HandOffButton } from "@miragon/pulse-widget-shell/widgets"
 import { useHandOff, type HandOff } from "../lib/hand-off.js"
 import { EngineMeta } from "../lib/engine-context.js"
 import { useT } from "../../messages/use-t.js"

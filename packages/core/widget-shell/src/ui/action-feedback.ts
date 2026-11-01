@@ -1,5 +1,5 @@
 import { useMemo } from "react"
-import { useLocale, useToast } from "@miragon/mcp-toolkit-ui"
+import { useLocale, useToast } from "@miragon/pulse-ui"
 import { classifyError, describeError } from "./describe-error.js"
 import { ERROR_LABELS } from "./error-labels.js"
 import { supportedLanguage } from "./host-context.js"
@@ -29,7 +29,7 @@ const MAX_TOAST_REASON = 200
 const clip = (text: string) =>
   text.length > MAX_TOAST_REASON ? `${text.slice(0, MAX_TOAST_REASON).trimEnd()}…` : text
 
-/** Outside a toolkit toast provider (a bare fixture) the calls are no-ops. */
+/** Outside a pulse-ui toast provider (a bare fixture) the calls are no-ops. */
 export function useActionFeedback(): ActionFeedback {
   const toast = useToast()
   const locale = useLocale()

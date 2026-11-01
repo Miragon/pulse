@@ -1,6 +1,5 @@
-import { cn, FOCUS_RING_INSET, useLocale } from "@miragon/mcp-toolkit-ui"
+import { cn, FOCUS_RING_INSET, useLocale, Icon } from "@miragon/pulse-ui"
 import { Scan, ZoomIn, ZoomOut } from "lucide-react"
-import { Icon } from "./icon.js"
 import { kitLabels } from "./kit-labels.js"
 
 export interface BpmnZoomControlsLabels {

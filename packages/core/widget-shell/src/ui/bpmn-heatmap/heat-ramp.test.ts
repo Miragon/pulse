@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from "vitest"
-import { CD_TOKENS } from "@miragon/mcp-toolkit-ui"
-import { composite, contrastRatio, type Rgba } from "../../testing/index.js"
+import { CD_TOKENS } from "@miragon/pulse-ui"
+import { composite, contrastRatio, type Rgba } from "@miragon/pulse-ui/testing"
 import {
   bpmnElementNames,
   bpmnProcessName,

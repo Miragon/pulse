@@ -4,14 +4,14 @@ import {
   StatusBadge,
   WidgetHeader,
   DrillButton,
-} from "@miragon/mcp-toolkit-ui"
+  formatNumber,
+} from "@miragon/pulse-ui"
 import {
   HandOffButton,
   PagedRows,
   QueryFallback,
   TableSkeleton,
   WidgetShell,
-  formatNumber,
   usePagedListView,
 } from "@miragon/pulse-widget-shell/widgets"
 import { useNav } from "./navigation.js"

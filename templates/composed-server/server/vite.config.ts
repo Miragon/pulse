@@ -6,23 +6,24 @@ import tailwindcss from "@tailwindcss/vite"
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
-    // LOAD-BEARING — never trim this list. The widget packages each resolve
-    // their own pnpm instance of React, TanStack Query, mcp-use and the
-    // toolkit; bundling two copies gives each its own React context, a
-    // widget's `useViewHost()`/`useToolQuery()` reads the wrong one (no view
-    // host, no QueryClient), and every in-widget query hangs on "Loading…".
-    // Dedupe collapses them to a single instance. @miragon/pulse-widget-shell
-    // is listed because it is installed from npm here and carries the view
-    // runtime's React contexts.
+    // LOAD-BEARING: never trim this list. The widget packages each resolve
+    // their own pnpm instance of React, TanStack Query, mcp-use, the kit
+    // (@miragon/pulse-ui) and the toolkit; bundling two copies gives each its
+    // own React context, a widget's `useViewHost()`/`useToolQuery()` reads the
+    // wrong one (no view host, no QueryClient), and every in-widget query
+    // hangs on "Loading…". Dedupe collapses them to a single instance.
+    // @miragon/pulse-ui and @miragon/pulse-widget-shell are listed because
+    // they are installed from npm here: pulse-ui carries the locale and toast
+    // contexts, widget-shell the view runtime's.
     dedupe: [
       "react",
       "react-dom",
       "@tanstack/react-query",
       "mcp-use",
-      "@miragon/mcp-toolkit-ui",
+      "@miragon/pulse-ui",
       "@miragon/mcp-toolkit-core",
       "@miragon/pulse-widget-shell",
-      // The kit's Lucide icons and the toolkit's: one instance.
+      // The kit's Lucide icons and mcp-use's: one instance.
       "lucide-react",
     ],
   },

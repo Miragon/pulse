@@ -5,10 +5,10 @@ description: Where to look before changing MCP server code in this repo (tools, 
 
 # MCP server work in this repo
 
-This repo runs `mcp-use@2.7.3` with `@miragon/mcp-toolkit-*@2.8.1`. The generic
-mcp-use skill this file used to vendor taught 1.x APIs (`server.uiResource()`, the
-`text()`/`widget()` response helpers, `server.proxy()`, `useWidget`, hand-stamped
-`_meta.ui`), so it is gone. Read these instead, in this order:
+This repo runs `mcp-use@2.7.3` with `@miragon/mcp-toolkit-core@2.8.1`; the UI is
+`@miragon/pulse-ui`. The generic mcp-use skill this file used to vendor taught 1.x APIs
+(`server.uiResource()`, the `text()`/`widget()` response helpers, `server.proxy()`, the
+1.x widget hook, hand-stamped `_meta.ui`), so it is gone. Read these instead, in this order:
 
 1. **The root `CLAUDE.md`**: the architecture invariants. Tools go through the
    registrar, engine access through `withEngine`, a view through the module's
@@ -22,8 +22,9 @@ mcp-use skill this file used to vendor taught 1.x APIs (`server.uiResource()`, t
    - `add-settings-section`: a module's user settings slice and its section.
 3. **widget-shell's view runtime** (`packages/core/widget-shell/README.md`) for
    everything a widget does: the bundle root, the view host seam, the query
-   hooks and `TestViewHost`. Widgets never import `mcp-use/react` or the
-   toolkit's app/hooks layer. The toolkit's guides
+   hooks and `TestViewHost`; its UI comes from the design kit
+   (`packages/core/ui/README.md`). Widgets never import `mcp-use/react` or the
+   retired toolkit UI. The toolkit's guides
    ([migrating to mcp-use 2](https://github.com/Miragon/mcp-toolkit/blob/main/docs/guides/migrating-to-mcp-use-2.md))
    cover only the server-side halves it still owns (the registrar,
    `appsSdkMeta`).

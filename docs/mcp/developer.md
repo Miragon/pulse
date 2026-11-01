@@ -62,8 +62,8 @@ MCP server is rebuilt, the nightly run and the Stryker gates are paused (`script
 ## Build your own server
 
 The modules ship on public npm: `@miragon/pulse-camunda7-connector`,
-`@miragon/pulse-analytics-connector`, `@miragon/pulse-widget-shell` plus the two client packages,
-released in lockstep (pin one version across all of them).
+`@miragon/pulse-analytics-connector`, `@miragon/pulse-widget-shell`, `@miragon/pulse-ui` plus the
+two client packages, released in lockstep (pin one version across all of them).
 [`templates/composed-server/`](https://github.com/Miragon/pulse/tree/main/templates/composed-server)
 is a ready-to-copy pnpm workspace that composes them with an example custom module (tools,
 widget, guard tests included); its `CLAUDE.md` and `.claude/skills/` document the module

@@ -1,4 +1,4 @@
-import { Card, CardContent, SectionHeading } from "@miragon/mcp-toolkit-ui"
+import { Card, CardContent, SectionHeading } from "@miragon/pulse-ui"
 
 import type { IncidentDetailData } from "../../view-models.js"
 

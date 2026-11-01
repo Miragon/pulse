@@ -7,14 +7,14 @@ import {
   WidgetHeader,
   type ToneVariant,
   DrillButton,
-} from "@miragon/mcp-toolkit-ui"
-import {
-  HandOffButton,
   Icon,
   NamedId,
+  formatNumber,
+} from "@miragon/pulse-ui"
+import {
+  HandOffButton,
   ViewDataState,
   WidgetShell,
-  formatNumber,
   viewRefreshState,
   HostModelContext,
   useViewData,

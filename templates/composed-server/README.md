@@ -110,7 +110,7 @@ silent (a widget rendering empty, unstyled, or not at all).
    packages by path, no edit there); then re-run `pnpm install` to refresh
    `pnpm-lock.yaml`.
 2. Set your brand in `server/src/ui/brand.css`: it starts from the Miragon
-   theme the toolkit ships, and you override role variables only (`--primary`,
+   theme `@miragon/pulse-ui` ships, and you override role variables only (`--primary`,
    `--link`, `--focus`, `--accent`, the status tones, radii, fonts) for light
    and dark. The neutral surfaces, their text and `--border` are the host's:
    a host that sends its palette overrides them, so set them only for hosts
@@ -136,6 +136,12 @@ interface, and wire the module into the server: the `workspace:*` dependency
 in `server/package.json`, the module list and the view registry. The
 `create-module` skill walks through every step, and the guard tests fail
 loudly if a wiring step is missed.
+
+A widget takes its UI from the design kit `@miragon/pulse-ui` (primitives,
+`WidgetHeader`, `KpiGrid`, the table cells, the formatters, the theme) and
+reaches the host through the view runtime `@miragon/pulse-widget-shell/widgets`
+(`useViewData`, `ListTable`, `QueryFallback`, `TestViewHost` for tests).
+`modules/mcp-notes/src/widgets/notes-list.tsx` shows both imports.
 
 ## Configuration
 

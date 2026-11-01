@@ -71,9 +71,9 @@ second engine dialect cheap:
   fail-closed toolset per module per boot (read-only unless widened) and logs it. The module
   packages are published to npm, so external composition roots can mount them next to their own
   modules. The reference is `templates/composed-server/`.
-- The MCP server app owns no domain UI. Widgets live in packages: `widget-shell`
-  carries the generic primitives and the settings page; each module carries its
-  own. Cross-module UI has two sanctioned tiers: tool-name string references
+- The MCP server app owns no domain UI. Widgets live in packages: `pulse-ui`
+  carries the design kit, `widget-shell` the view runtime and the settings page;
+  each module carries its own. Cross-module UI has two sanctioned tiers: tool-name string references
   with graceful degradation, and hard-composed views in a dedicated package
   (created with the first real view).
 - Extract on the second consumer, never speculatively. A composed-views
@@ -140,11 +140,11 @@ served by the engine REST history API, not the metrics.
 
 ## Repository layout
 
-| Path                        | Description                                             |
-| --------------------------- | ------------------------------------------------------- |
-| `apps/mcp-server-camunda7/` | The MCP server entry point and the widget bundle.       |
-| `packages/`                 | Reusable libraries: clients, MCP plugins, widget-shell. |
-| `engine-plugins/`           | Kotlin Micrometer plugins (process metrics).            |
-| `playground/`               | Demo env: showcases, Compose stack, Fly.io deployment.  |
+| Path                        | Description                                                       |
+| --------------------------- | ----------------------------------------------------------------- |
+| `apps/mcp-server-camunda7/` | The MCP server entry point and the widget bundle.                 |
+| `packages/`                 | Reusable libraries: clients, MCP plugins, widget-shell, pulse-ui. |
+| `engine-plugins/`           | Kotlin Micrometer plugins (process metrics).                      |
+| `playground/`               | Demo env: showcases, Compose stack, Fly.io deployment.            |
 
 For deeper detail, [Reference](reference.md) lists every tool and toolset.

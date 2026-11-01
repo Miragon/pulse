@@ -1,14 +1,12 @@
 import {
-  ListTable,
   NamedId,
   Section,
   TableEmptyState,
   Td,
-  WidgetShell,
   formatDuration,
   formatNumber,
-  type ListTableColumn,
-} from "@miragon/pulse-widget-shell/widgets"
+} from "@miragon/pulse-ui"
+import { ListTable, WidgetShell, type ListTableColumn } from "@miragon/pulse-widget-shell/widgets"
 import type { DashboardView } from "./lib.js"
 import { useT, type T } from "../../messages/use-t.js"
 import { processNameOf } from "../../bpmn-names.js"

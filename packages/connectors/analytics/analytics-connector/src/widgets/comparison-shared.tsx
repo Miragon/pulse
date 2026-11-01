@@ -12,14 +12,12 @@ import {
   TableRow,
   cn,
   TONE_ICON,
-} from "@miragon/mcp-toolkit-ui"
-import { CircleAlert, TrendingDown, TrendingUp } from "lucide-react"
-import {
   Icon,
   formatDuration,
   formatNumber,
   formatPercent,
-} from "@miragon/pulse-widget-shell/widgets"
+} from "@miragon/pulse-ui"
+import { CircleAlert, TrendingDown, TrendingUp } from "lucide-react"
 import type { CompareKpiDelta, CompareKpis } from "@miragon/pulse-analytics-client"
 import { useT, type T } from "../messages/use-t.js"
 
@@ -227,7 +225,7 @@ export function ComparisonEmptyState({ children }: { children: ReactNode }) {
   )
 }
 
-/** Not the toolkit `Badge`: it forces 12 px icons, the view keeps 16 px (`scanIconSizes`). */
+/** Not the kit's `Badge`: it forces 12 px icons, the view keeps 16 px (`scanIconSizes`). */
 export function SuppressedBadge({ children }: { children: ReactNode }) {
   return (
     <span

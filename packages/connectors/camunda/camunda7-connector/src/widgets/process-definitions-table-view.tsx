@@ -1,14 +1,15 @@
 import type { ReactNode } from "react"
 import {
-  ListTable,
   NamedId,
   TableEmptyState,
   Td,
-  countTone,
   formatNumber,
-  type ListTableColumn,
-} from "@miragon/pulse-widget-shell/widgets"
-import { CountPill, TONE_DOT, cn, type ToneVariant } from "@miragon/mcp-toolkit-ui"
+  CountPill,
+  TONE_DOT,
+  cn,
+  type ToneVariant,
+} from "@miragon/pulse-ui"
+import { ListTable, countTone, type ListTableColumn } from "@miragon/pulse-widget-shell/widgets"
 import { useT } from "../messages/use-t.js"
 
 // Superset of both lists: cockpit rows carry `counts`, the standalone list `suspended`/`versionTag`.

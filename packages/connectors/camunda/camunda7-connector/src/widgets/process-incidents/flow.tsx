@@ -1,13 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Alert, AlertDescription, SectionHeading } from "@miragon/mcp-toolkit-ui"
+import {
+  Alert,
+  AlertDescription,
+  SectionHeading,
+  SegmentedControl,
+  formatNumber,
+  type SegmentedControlOption,
+} from "@miragon/pulse-ui"
 import {
   BpmnHeatmap,
   HeatmapLegend,
-  SegmentedControl,
   ViewDataState,
   WidgetShell,
-  formatNumber,
-  type SegmentedControlOption,
   useToolQuery,
 } from "@miragon/pulse-widget-shell/widgets"
 import type { ProcessIncidentsData } from "../../view-models.js"

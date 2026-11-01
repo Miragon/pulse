@@ -1,8 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
-import { LocaleProvider } from "@miragon/mcp-toolkit-ui"
-import { setFormatLocale } from "../testing/index.js"
+import { LocaleProvider, setFormatLocale } from "@miragon/pulse-ui"
 import { BpmnHeatmap, HeatmapLegend } from "./bpmn-heatmap.js"
 import { BpmnHeatmapWidget, HeatValuesTable, type BpmnHeatmapData } from "./bpmn-heatmap-widget.js"
 

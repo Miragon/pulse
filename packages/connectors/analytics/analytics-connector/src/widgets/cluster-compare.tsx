@@ -1,11 +1,6 @@
-import { Badge } from "@miragon/mcp-toolkit-ui"
+import { Badge, formatNumber, formatTimestamp } from "@miragon/pulse-ui"
 import type { ClusterCompareKpi, ClusterCompareResult } from "@miragon/pulse-analytics-client"
-import {
-  HandOffButton,
-  ViewMeta,
-  formatNumber,
-  formatTimestamp,
-} from "@miragon/pulse-widget-shell/widgets"
+import { HandOffButton, ViewMeta } from "@miragon/pulse-widget-shell/widgets"
 import { useT, type T } from "../messages/use-t.js"
 import {
   ComparisonCard,

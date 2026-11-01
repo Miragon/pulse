@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { useState } from "react"
-import { setFormatLocale } from "./format.js"
+import { setFormatLocale } from "@miragon/pulse-ui"
 import type { ShellHost } from "./shell-host.js"
 import { TestViewHost, type HostAction } from "./test-view-host.js"
 import type { ViewCall, ViewPhase } from "./view-call.js"

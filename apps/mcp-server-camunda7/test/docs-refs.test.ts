@@ -274,7 +274,7 @@ describe("identifiers in the skills and the nested agent files", () => {
     ...["apps", "packages", "scripts", "templates", "engine-plugins"].flatMap((dir) =>
       walk(path.join(REPO_ROOT, dir), isSource),
     ),
-    ...["@miragon/mcp-toolkit-core", "@miragon/mcp-toolkit-ui", "mcp-use"].flatMap((name) =>
+    ...["@miragon/mcp-toolkit-core", "mcp-use"].flatMap((name) =>
       walk(path.join(packageDir(name), "dist"), (file) => file.endsWith(".d.ts")),
     ),
   ])

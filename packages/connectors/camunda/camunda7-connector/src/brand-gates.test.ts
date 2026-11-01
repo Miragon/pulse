@@ -1,12 +1,7 @@
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { describe, expect, it } from "vitest"
-import {
-  scanColors,
-  scanGlyphs,
-  scanIconSizes,
-  scanTypeScale,
-} from "@miragon/pulse-widget-shell/testing"
+import { scanColors, scanGlyphs, scanIconSizes, scanTypeScale } from "@miragon/pulse-ui/testing"
 
 // Outside `src/widgets`: it reads sources from disk (the widget tsconfig is browser-only).
 const SRC = fileURLToPath(new URL(".", import.meta.url))
@@ -36,8 +31,8 @@ describe("camunda7 widget code colours through role names only", () => {
 })
 
 describe("camunda7 widget code sets text on the type scale", () => {
-  // CI §4 as the toolkit's TYPE_SCALE (#322 M6): title 28, section 21, body
-  // 16, dense 14 (tables, controls), small 13 — the floor. No Tailwind sizes.
+  // CI §4 as pulse-ui's TYPE_SCALE (#322 M6): title 28, section 21, body
+  // 16, dense 14 (tables, controls), small 13 (the floor). No Tailwind sizes.
   it("no text size off the five steps and nothing below 13 px", () => {
     expect(scanTypeScale(join(SRC, "widgets"))).toEqual([])
   })

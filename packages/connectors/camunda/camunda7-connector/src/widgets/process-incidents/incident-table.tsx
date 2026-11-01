@@ -1,16 +1,21 @@
 import { Fragment } from "react"
-import { Button, StatusBadge, PagedListFooter, DrillButton } from "@miragon/mcp-toolkit-ui"
+import {
+  Button,
+  StatusBadge,
+  PagedListFooter,
+  DrillButton,
+  formatTimestamp,
+  Icon,
+  LogText,
+  Td,
+} from "@miragon/pulse-ui"
 import {
   FIT_CONTINUES_ROW,
-  formatTimestamp,
   HandOffButton,
-  Icon,
   ListTable,
   type ListTableColumn,
-  LogText,
   OpenInCockpitLink,
   PagedRows,
-  Td,
   usePagedViewData,
   ViewDataState,
 } from "@miragon/pulse-widget-shell/widgets"

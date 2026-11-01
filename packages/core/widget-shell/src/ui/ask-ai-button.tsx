@@ -1,9 +1,7 @@
-import { Button, useLocale } from "@miragon/mcp-toolkit-ui"
+import { Button, useLocale, Icon, type LucideIcon, MENU_ITEM } from "@miragon/pulse-ui"
 import { MessageSquare } from "lucide-react"
 import type { AskAiPrompt } from "./ask-ai-prompt.js"
-import { Icon, type LucideIcon } from "./icon.js"
 import { kitLabels } from "./kit-labels.js"
-import { MENU_ITEM } from "./menu-item.js"
 import { useViewHost } from "./view-host.js"
 
 /** A hand-off is never the view's primary action, so every tier but `menuitem` is the same secondary outline button. */

@@ -1,5 +1,11 @@
-import { ListTable, Td, formatDuration, formatTimestamp } from "@miragon/pulse-widget-shell/widgets"
-import { StatusBadge, type ToneVariant } from "@miragon/mcp-toolkit-ui"
+import {
+  Td,
+  formatDuration,
+  formatTimestamp,
+  StatusBadge,
+  type ToneVariant,
+} from "@miragon/pulse-ui"
+import { ListTable } from "@miragon/pulse-widget-shell/widgets"
 import { useT, type T } from "../messages/use-t.js"
 
 /** Raw `ActivityData` rows satisfy it structurally, so either source renders without mapping. */

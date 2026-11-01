@@ -6,7 +6,7 @@ import {
   scanGlyphs,
   scanIconSizes,
   scanTypeScale,
-} from "@miragon/pulse-widget-shell/testing"
+} from "@miragon/pulse-ui/testing"
 import { deAskAi } from "./messages/de.ask-ai.js"
 import { deServer } from "./messages/de.server.js"
 import { deSweep } from "./messages/de.sweep.js"

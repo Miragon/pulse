@@ -6,21 +6,21 @@ import {
   StatusBadge,
   WidgetHeader,
   type ToneVariant,
-} from "@miragon/mcp-toolkit-ui"
+  formatNumber,
+  formatTimestamp,
+  Icon,
+  LogText,
+  NamedId,
+  TableEmptyState,
+  Td,
+} from "@miragon/pulse-ui"
 
 import type { JobPanelData } from "../view-models.js"
 import {
-  formatNumber,
-  formatTimestamp,
   HandOffButton,
-  Icon,
   IdText,
   ListTable,
-  LogText,
-  NamedId,
   PagedRows,
-  TableEmptyState,
-  Td,
   usePagedViewData,
   ViewDataState,
   WidgetShell,

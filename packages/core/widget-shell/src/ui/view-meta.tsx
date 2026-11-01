@@ -1,6 +1,12 @@
-import { cn } from "@miragon/mcp-toolkit-ui"
+import {
+  cn,
+  formatDate,
+  formatNumber,
+  formatPeriod,
+  formatTime,
+  getFormatLocale,
+} from "@miragon/pulse-ui"
 import type { Locale } from "../profile-constants.js"
-import { formatDate, formatNumber, formatPeriod, formatTime, getFormatLocale } from "./format.js"
 
 /**
  * Period, engine set and as-of time under a view title (U7). Each part is

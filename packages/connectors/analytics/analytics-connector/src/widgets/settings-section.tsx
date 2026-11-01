@@ -1,17 +1,23 @@
 import { useRef, useState } from "react"
-import { Alert, AlertDescription, Button, ErrorState, Skeleton } from "@miragon/mcp-toolkit-ui"
-import { Lock } from "lucide-react"
 import {
+  Alert,
+  AlertDescription,
+  Button,
+  ErrorState,
+  Skeleton,
   NativeSelect,
-  QueryFallback,
   SettingsCard,
   SettingsField,
   SettingsInput,
-  WidgetShell,
   formatPeriod,
+  useResetOnChange,
+} from "@miragon/pulse-ui"
+import { Lock } from "lucide-react"
+import {
+  QueryFallback,
+  WidgetShell,
   modelContextText,
   useActionFeedback,
-  useResetOnChange,
   useToolMutation,
   useToolQuery,
   HostModelContext,
@@ -114,8 +120,8 @@ function SettingsPanel({ view }: { view: AnalyticsSettingsViewData }) {
     minBucketSize: String(view.settings.minBucketSize),
   })
   const bucketRef = useRef<HTMLInputElement>(null)
-  // The save confirms in a toast (the toolkit's polite live region), a
-  // failure says why there too — and stays in the panel next to the entries.
+  // The save confirms in a toast (pulse-ui's polite live region), a
+  // failure says why there too and stays in the panel next to the entries.
   const feedback = useActionFeedback()
   const minBucketSize = parseMinBucketSize(form.minBucketSize)
 

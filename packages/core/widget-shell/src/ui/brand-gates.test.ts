@@ -1,15 +1,13 @@
 import { fileURLToPath } from "node:url"
 import { describe, expect, it } from "vitest"
-import { TOOLKIT_MESSAGES } from "@miragon/mcp-toolkit-ui"
 import {
   catalogTextFindings,
-  glossaryFindings,
-  PRODUCT_GLOSSARY,
   scanColors,
   scanGlyphs,
   scanIconSizes,
   scanTypeScale,
-} from "../testing/index.js"
+} from "@miragon/pulse-ui/testing"
+import { glossaryFindings, PRODUCT_GLOSSARY } from "../testing/index.js"
 import { ASK_AI_PROMPT_LABELS } from "./ask-ai-prompt.js"
 import { DEFAULT_HEATMAP_LABELS } from "./bpmn-heatmap-labels.js"
 import { ERROR_KINDS } from "./describe-error.js"
@@ -69,12 +67,6 @@ describe("kit copy follows the voice rules", () => {
   it.each([
     ["kit labels (de)", KIT_LABELS.de, "de"],
     ["kit labels (en)", KIT_LABELS.en, "en"],
-    // The view frame speaks the kit's labels; the toolkit components it keeps (ErrorState,
-    // PagedListFooter) still read the toolkit's catalog.
-    ["toolkit common (de)", TOOLKIT_MESSAGES.de.common, "de"],
-    ["toolkit common (en)", TOOLKIT_MESSAGES.en.common, "en"],
-    ["toolkit list footer (de)", TOOLKIT_MESSAGES.de.listFooter, "de"],
-    ["toolkit list footer (en)", TOOLKIT_MESSAGES.en.listFooter, "en"],
     ["hand-off fence (de)", ASK_AI_PROMPT_LABELS.de, "de"],
     ["hand-off fence (en)", ASK_AI_PROMPT_LABELS.en, "en"],
     ["heatmap defaults (en)", DEFAULT_HEATMAP_LABELS, "en"],
@@ -125,16 +117,7 @@ describe("kit copy uses the product glossary", () => {
 })
 
 describe("kit widget code colours through role names only", () => {
-  it("src/ui has no palette class or raw colour outside the reasoned allowances", () => {
-    // Shrink-only: a file that loses its raw colours fails here until its
-    // entry is deleted.
-    expect(
-      scanColors(UI_DIR, {
-        allow: {
-          "komet-svg.ts":
-            "the CI's Komet icon, vendored byte for byte (modeler-tool-design §11), sha-pinned in brand-mark.test.tsx",
-        },
-      }),
-    ).toEqual([])
+  it("src/ui has no palette class or raw colour", () => {
+    expect(scanColors(UI_DIR)).toEqual([])
   })
 })

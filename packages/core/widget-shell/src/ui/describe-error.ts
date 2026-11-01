@@ -143,7 +143,7 @@ export interface DescribeErrorOptions {
   fallbackTitle?: string
 }
 
-/** Never the raw "[503 ProcessEngineException] …" as the headline; feed the result to the toolkit's `ErrorState`. */
+/** Never the raw "[503 ProcessEngineException] …" as the headline; feed the result to pulse-ui's `ErrorState`. */
 export function describeError(
   error: unknown,
   locale: string | undefined,

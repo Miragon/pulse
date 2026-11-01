@@ -142,19 +142,20 @@ Rules the save tool must honor:
 
 ## Step 5: the section widget
 
-One self-fetching card composed from `@miragon/pulse-widget-shell/widgets`
-(`SettingsCard` / `SettingsField` / `SettingsInput` / `NativeSelect`):
+One self-fetching card: its fields from the design kit `@miragon/pulse-ui`
+(`SettingsCard` / `SettingsField` / `SettingsInput` / `NativeSelect`), its data
+and save through the view runtime `@miragon/pulse-widget-shell/widgets`:
 
 - Self-fetch the `*_data` feed via `useToolQuery`, `{ enabled: !initialData }`.
 - Show errors through `QueryFallback` (its `onRetry` is the query's refetch):
   a missing `isError` branch is an eternal skeleton.
 - Save via `useToolMutation(SAVE_TOOL, { invalidateKeys: [[…]] })` and re-sync
   the form baseline from server truth after the refetch with
-  `useResetOnChange(stamp, reset)` from `@miragon/pulse-widget-shell/widgets` (the
+  `useResetOnChange(stamp, reset)` from `@miragon/pulse-ui` (the
   saved values as the stamp), never `useEffect(reset, [data])`, which commits
   the stale baseline once before correcting it. Confirm the save in a
   toast (`useActionFeedback().succeeded("Settings saved")`, a failure with
-  `.failed(title, error)`): the toolkit's toasts are the polite live region a
+  `.failed(title, error)`): pulse-ui's toasts are the polite live region a
   screen reader hears.
 - Hide Save (render disabled fields) when the view says `canSave: false`.
 

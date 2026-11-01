@@ -150,8 +150,9 @@ module.exports = {
       name: "core-is-foundation",
       severity: "error",
       comment:
-        "packages/core/* is the shared foundation underneath every connector: it depends on the " +
-        "toolkit (and core siblings) only, never on a connector, a client or an app. When a connector needs something a sibling already has, extract it INTO a core " +
+        "packages/core/* is the shared foundation underneath every connector: it depends on core " +
+        "siblings and third-party libraries only (pulse-ui is the leaf among them), never on a " +
+        "connector, a client or an app. When a connector needs something a sibling already has, extract it INTO a core " +
         "package (on the second concrete consumer), never make core reach up into a connector.",
       from: { path: "^packages/core/" },
       to: {
@@ -160,6 +161,27 @@ module.exports = {
           "^apps/",
           "@miragon/pulse-[^/]+-(connector|client)(/|$)",
           "@miragon/pulse-mcp-server-camunda7",
+        ],
+      },
+    },
+    {
+      name: "ui-is-a-leaf",
+      severity: "error",
+      comment:
+        "packages/core/ui (@miragon/pulse-ui) is the design kit every Pulse view and every customer UI " +
+        "builds on: it imports no workspace package and nothing of the MCP, query, server or schema " +
+        "stack (mcp-use, @modelcontextprotocol, the toolkit, TanStack, zod, hono, postgres, prom-client, " +
+        "@hey-api, bpmn-js, diagram-js). What needs the host, a tool call or BPMN belongs in widget-shell, " +
+        "which imports pulse-ui, never the other way round (CLAUDE.md invariants 6 and 8).",
+      from: { path: "^packages/core/ui/" },
+      to: {
+        path: [
+          "^packages/(?!core/ui/)",
+          "^apps/",
+          "@miragon/pulse-(?!ui(?:/|$))",
+          ...npm(
+            "mcp-use|@modelcontextprotocol/[^/]+|@miragon/mcp-toolkit-[^/]+|@tanstack/[^/]+|zod|hono|postgres|prom-client|@hey-api/[^/]+|bpmn-js|diagram-js",
+          ),
         ],
       },
     },

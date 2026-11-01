@@ -1,7 +1,6 @@
 import { createContext, useContext, type ReactNode } from "react"
-import { Button, useLocale } from "@miragon/mcp-toolkit-ui"
+import { Button, useLocale, Icon } from "@miragon/pulse-ui"
 import { Maximize2, Minimize2 } from "lucide-react"
-import { Icon } from "./icon.js"
 import { kitLabels } from "./kit-labels.js"
 
 /** Outside a host nothing can be switched. */

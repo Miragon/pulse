@@ -1,8 +1,8 @@
 import { useState } from "react"
+import { useResetOnChange } from "@miragon/pulse-ui"
 import {
   useActionFeedback,
   useQueryClient,
-  useResetOnChange,
   useToolMutation,
   type ConfirmTarget,
   type QueryClient,

@@ -10,7 +10,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react"
-import { useLocale } from "@miragon/mcp-toolkit-ui"
+import { useLocale } from "@miragon/pulse-ui"
 import { useDisplayModeControl } from "./display-mode-toggle.js"
 import { HostWidgetSlot } from "./host-widgets.js"
 import { useInlineBudget } from "./inline-budget.js"

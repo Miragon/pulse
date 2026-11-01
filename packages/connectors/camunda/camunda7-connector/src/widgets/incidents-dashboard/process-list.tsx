@@ -10,7 +10,10 @@ import {
   type FilterChip,
   type ToneVariant,
   DrillButton,
-} from "@miragon/mcp-toolkit-ui"
+  TableEmptyState,
+  formatNumber,
+  formatTimestamp,
+} from "@miragon/pulse-ui"
 import type {
   IncidentsDashboardActivity,
   IncidentsDashboardData,
@@ -29,12 +32,9 @@ import { dashboardScope, incidentsFeed } from "./scope.js"
 import {
   HandOffButton,
   OpenInCockpitLink,
-  TableEmptyState,
   ViewDataState,
   WidgetShell,
   countTone,
-  formatNumber,
-  formatTimestamp,
   useViewData,
 } from "@miragon/pulse-widget-shell/widgets"
 

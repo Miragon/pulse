@@ -35,6 +35,7 @@ const SERVER = "apps/mcp-server-camunda7"
 const CLI = "apps/cli"
 const EXT = "apps/vscode"
 const SHELL = "packages/core/widget-shell"
+const UI = "packages/core/ui"
 const C7_CLIENT = "packages/connectors/camunda/camunda7-client"
 const C7_CONNECTOR = "packages/connectors/camunda/camunda7-connector"
 const AN_CLIENT = "packages/connectors/analytics/analytics-client"
@@ -45,6 +46,7 @@ const WORKSPACE = {
   [CLI]: { name: "@miragon/pulse-cli" },
   [EXT]: { name: "pulse-cockpit", engines: { vscode: "^1.101.0" } },
   [SHELL]: { name: "@miragon/pulse-widget-shell" },
+  [UI]: { name: "@miragon/pulse-ui" },
   [C7_CLIENT]: { name: "@miragon/pulse-camunda7-client" },
   [C7_CONNECTOR]: { name: "@miragon/pulse-camunda7-connector" },
   [AN_CLIENT]: { name: "@miragon/pulse-analytics-client" },
@@ -62,7 +64,6 @@ const THIRD_PARTY = [
   "mcp-use",
   "@modelcontextprotocol/sdk",
   "@miragon/mcp-toolkit-core",
-  "@miragon/mcp-toolkit-ui",
   "hono",
   "postgres",
   "prom-client",
@@ -82,6 +83,7 @@ const PEERS = "connectors-are-peers"
 const OWN_CLIENT = "connectors-own-their-client"
 const CLIENT_LEAF = "clients-are-leaves"
 const CORE = "core-is-foundation"
+const UI_LEAF = "ui-is-a-leaf"
 const NO_APP = "packages-never-import-the-app"
 const APP_APP = "apps-never-import-apps"
 const HEADLESS = "cli-is-headless"
@@ -118,6 +120,7 @@ const CLI_SRC = `${CLI}/src/index.ts`
 const SERVER_SRC = `${SERVER}/src/index.ts`
 const EXT_SRC = `${EXT}/src/extension.ts`
 const SHELL_SRC = `${SHELL}/src/index.ts`
+const UI_SRC = `${UI}/src/index.ts`
 const C7_CLIENT_SRC = `${C7_CLIENT}/src/index.ts`
 const C7_CONNECTOR_SRC = `${C7_CONNECTOR}/src/index.ts`
 const AN_CONNECTOR_SRC = `${AN_CONNECTOR}/src/index.ts`
@@ -152,6 +155,8 @@ const LEAVES = [
   `${CLI}/scripts/target.ts`,
   `${CLI}/test/support/fake.ts`,
   `${SHELL}/src/target.ts`,
+  `${UI}/src/target.ts`,
+  `${UI}/src/lib.ts`,
   `${C7_CLIENT}/src/target.ts`,
   `${C7_CLIENT}/src/lib.ts`,
   `${C7_CLIENT}/src/x-connector/y.ts`,
@@ -182,7 +187,7 @@ const SUITES = [
         "@tanstack/react-query",
         "mcp-use/react",
         "@modelcontextprotocol/sdk/server",
-        "@miragon/mcp-toolkit-ui",
+        "@miragon/mcp-toolkit-core",
         "hono",
         "postgres",
         "prom-client",
@@ -195,6 +200,7 @@ const SUITES = [
         "vscode",
       ].map((spec) => [CLI_SRC, spec, [HEADLESS]]),
       [CLI_SRC, "pulse-cockpit", [APP_APP, HEADLESS]],
+      [CLI_SRC, "@miragon/pulse-ui", [HEADLESS]],
       [
         `${CLI}/src/escape-package.ts`,
         "../../../packages/core/widget-shell/src/target.ts",
@@ -260,7 +266,38 @@ const SUITES = [
       [SHELL_SRC, "react", []],
       [SHELL_SRC, "zod", []],
       [SHELL_SRC, "mcp-use", []],
-      [SHELL_SRC, "@miragon/mcp-toolkit-ui", []],
+      [SHELL_SRC, "@miragon/pulse-ui", []],
+    ],
+  },
+  {
+    rule: UI_LEAF,
+    title: "pulse-ui imports no workspace package and nothing of the MCP stack",
+    cases: [
+      [UI_SRC, "@miragon/pulse-widget-shell", [UI_LEAF]],
+      [UI_SRC, "@miragon/pulse-widget-shell/widgets", [UI_LEAF]],
+      [UI_SRC, "@miragon/pulse-camunda7-connector", [CORE, UI_LEAF]],
+      [UI_SRC, "@miragon/pulse-analytics-client", [CORE, UI_LEAF]],
+      [UI_SRC, "@miragon/pulse-mcp-server-camunda7", [CORE, NO_APP, UI_LEAF]],
+      ...[
+        "mcp-use",
+        "mcp-use/react",
+        "@tanstack/react-query",
+        "zod",
+        "@miragon/mcp-toolkit-core",
+        "@modelcontextprotocol/sdk/server",
+        "hono",
+        "postgres",
+        "prom-client",
+        "bpmn-js",
+      ].map((spec) => [UI_SRC, spec, [UI_LEAF]]),
+      [`${UI}/src/escape.ts`, "../../widget-shell/src/target.ts", [UI_LEAF, DEEP]],
+      // Allowed: React, Lucide, its own modules; every Pulse package may import it.
+      [UI_SRC, "react", []],
+      [UI_SRC, "react-dom/client", []],
+      [UI_SRC, "lucide-react", []],
+      [UI_SRC, "./lib.ts", []],
+      [C7_CONNECTOR_SRC, "@miragon/pulse-ui", []],
+      [SERVER_SRC, "@miragon/pulse-ui", []],
     ],
   },
   {
@@ -321,6 +358,7 @@ const SUITES = [
         "../../../packages/core/widget-shell/src/target.ts",
         [DEEP],
       ],
+      [`${SHELL}/src/escape-ui.ts`, "../../ui/src/target.ts", [DEEP]],
     ],
   },
   {

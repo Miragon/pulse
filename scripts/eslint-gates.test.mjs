@@ -51,14 +51,23 @@ async function gateMessages(rel, code, rule = "no-restricted-syntax") {
 }
 
 const isRegistrarHit = (m) => m.includes("createToolRegistrar")
-const isDateHit = (m) => m.includes("widget-shell/widgets")
+const isDateHit = (m) =>
+  /^Use format(?:Timestamp|Date|Time)\b/.test(m) && m.includes("@miragon/pulse-ui")
 const isNumberHit = (m) => m.includes("view's locale") || m.includes("browser's locale")
 
 const WS = "packages/core/widget-shell/src/ui"
+const UI = "packages/core/ui/src"
+/** The number gate's probes: pulse-ui's code and widget-shell's widget code. */
+const NUMBER_PATHS = [
+  `${UI}/__probe__.ts`,
+  `${UI}/__probe__.tsx`,
+  `${WS}/__probe__.ts`,
+  `${WS}/__probe__.tsx`,
+]
 
-describe("number gate (invariant 6) in the kit's widget code", () => {
+describe("number gate (invariant 6) in pulse-ui and widget-shell's widget code", () => {
   it("catches toFixed and an argument-less toLocaleString in .ts and .tsx", async () => {
-    for (const rel of [`${WS}/__probe__.ts`, `${WS}/__probe__.tsx`]) {
+    for (const rel of NUMBER_PATHS) {
       const messages = await gateMessages(
         rel,
         "const a = n.toFixed(1)\nconst b = n.toLocaleString()\nconst c = (x as number).toFixed()",
@@ -76,7 +85,7 @@ describe("number gate (invariant 6) in the kit's widget code", () => {
       "new Intl.NumberFormat(undefined, { style: 'percent' }).format(r)",
       'Intl.NumberFormat("de").format(n)',
     ]
-    for (const rel of [`${WS}/__probe__.ts`, `${WS}/__probe__.tsx`]) {
+    for (const rel of NUMBER_PATHS) {
       for (const code of escapes) {
         const messages = await gateMessages(rel, code)
         assert.equal(messages.filter(isNumberHit).length, 1, `${rel}: "${code}" passed the gate`)
@@ -85,26 +94,34 @@ describe("number gate (invariant 6) in the kit's widget code", () => {
   })
 
   it("leaves a locale-bound toLocaleString (the kit's own date helpers) alone", async () => {
-    const messages = await gateMessages(
-      `${WS}/__probe__.ts`,
-      'const a = d.toLocaleString(locale, opts)\nconst b = n.toLocaleString("de")\nconst c = d.toLocaleString(current?.locale, zoned())',
-    )
-    assert.deepEqual(messages, [])
+    for (const rel of [`${UI}/__probe__.ts`, `${WS}/__probe__.ts`]) {
+      const messages = await gateMessages(
+        rel,
+        'const a = d.toLocaleString(locale, opts)\nconst b = n.toLocaleString("de")\nconst c = d.toLocaleString(current?.locale, zoned())',
+      )
+      assert.deepEqual(messages, [], rel)
+    }
   })
 
-  it("lets exactly the kit's formatters build an Intl.NumberFormat, toFixed stays banned there", async () => {
-    const messages = await gateMessages(
-      `${WS}/format.ts`,
-      "new Intl.NumberFormat(current?.locale, options)\nconst a = n.toFixed(1)",
-    )
-    assert.equal(messages.filter(isNumberHit).length, 1)
-    assert.ok(messages.every((m) => !m.includes("Intl.NumberFormat")))
+  it("lets exactly the kit's two formatters build an Intl.NumberFormat, toFixed stays banned there", async () => {
+    for (const rel of [`${UI}/kit/format.ts`, `${UI}/locale/ui-messages.ts`]) {
+      const messages = await gateMessages(
+        rel,
+        "new Intl.NumberFormat(current?.locale, options)\nconst a = n.toFixed(1)",
+      )
+      assert.equal(messages.filter(isNumberHit).length, 1, rel)
+      assert.ok(
+        messages.every((m) => !m.includes("Intl.NumberFormat")),
+        rel,
+      )
+    }
   })
 })
 
 describe("sparkle gate (invariant 6, CI U4) in every widget tree", () => {
   const isSparkleHit = (m) => m.includes("Sparkles")
   const WIDGET_PATHS = [
+    `${UI}/__probe__.tsx`,
     `${WS}/__probe__.tsx`,
     `${C7}/widgets/__probe__.tsx`,
     `${AN}/widgets/__probe__.ts`,
@@ -137,13 +154,15 @@ describe("sparkle gate (invariant 6, CI U4) in every widget tree", () => {
   })
 })
 
-describe("view runtime gate (invariant 6): Pulse owns the view runtime", () => {
-  const isRuntimeHit = (m) => m.includes("view runtime of @miragon/pulse-widget-shell/widgets")
+describe("toolkit UI gate (invariant 6): the retired package in every spelling", () => {
+  const isToolkitUiHit = (m) => m.includes("@miragon/mcp-toolkit-ui is retired")
   const isMcpUseReactHit = (m) => m.includes("imports mcp-use/react")
   const MCP_PATHS = [
     `${C7}/widgets/__probe__.tsx`,
     `${AN}/widgets/__probe__.ts`,
     `${C7}/widget-tools/__probe__.ts`,
+    `${UI}/__probe__.tsx`,
+    `${UI}/testing/__probe__.ts`,
     `${WS}/__probe__.tsx`,
     "packages/core/widget-shell/src/__probe__.ts",
     "apps/mcp-server-camunda7/src/ui/__probe__.tsx",
@@ -152,24 +171,22 @@ describe("view runtime gate (invariant 6): Pulse owns the view runtime", () => {
   ]
   const TOOLKIT = '"@miragon/mcp-toolkit-ui"'
 
-  it("bans the toolkit's app and hooks layers and its root query and host exports", async () => {
+  it("bans the root, its type and value imports, re-exports and every subpath", async () => {
     const escapes = [
-      'import { WidgetFixtureHost } from "@miragon/mcp-toolkit-ui/app"',
-      'import type { HostActionLog } from "@miragon/mcp-toolkit-ui/app"',
-      'import { useViewData } from "@miragon/mcp-toolkit-ui/hooks"',
-      'import { x } from "@miragon/mcp-toolkit-ui/app/widget-fixture"',
-      `import { useToolQuery } from ${TOOLKIT}`,
-      `import { useToolMutation as useWrite } from ${TOOLKIT}`,
-      `import { queryClient } from ${TOOLKIT}`,
-      `import { AppQueryProvider } from ${TOOLKIT}`,
-      `import { useCallTool } from ${TOOLKIT}`,
-      `import { parseToolResult } from ${TOOLKIT}`,
-      `import { keepPreviousData } from ${TOOLKIT}`,
+      `import { Button } from ${TOOLKIT}`,
+      `import type { ToneVariant } from ${TOOLKIT}`,
+      `import { useToolQuery as q } from ${TOOLKIT}`,
+      'import "@miragon/mcp-toolkit-ui/theme.css"',
+      `export { cn } from ${TOOLKIT}`,
+      `export * from ${TOOLKIT}`,
+      'import { x } from "@miragon/mcp-toolkit-ui/app"',
+      'import { y } from "@miragon/mcp-toolkit-ui/hooks"',
+      'import { z } from "@miragon/mcp-toolkit-ui/app/widget-fixture"',
     ]
     for (const rel of MCP_PATHS) {
       for (const code of escapes) {
         const messages = await gateMessages(rel, code, "no-restricted-imports")
-        assert.equal(messages.filter(isRuntimeHit).length, 1, `${rel}: "${code}" passed the gate`)
+        assert.equal(messages.filter(isToolkitUiHit).length, 1, `${rel}: "${code}" passed the gate`)
       }
     }
   })
@@ -189,21 +206,22 @@ describe("view runtime gate (invariant 6): Pulse owns the view runtime", () => {
     }
   })
 
-  it("keeps the toolkit runtime ban and the sparkle gate on the adapter files", async () => {
+  it("keeps the toolkit UI ban and the sparkle gate on the adapter files", async () => {
     for (const rel of [`${WS}/mcp-use-host.tsx`, `${WS}/view-root.tsx`]) {
       const messages = await gateMessages(
         rel,
-        `import { queryClient } from ${TOOLKIT}\nimport { Sparkles } from "lucide-react"`,
+        `import { Button } from ${TOOLKIT}\nimport { Sparkles } from "lucide-react"`,
         "no-restricted-imports",
       )
-      assert.equal(messages.filter(isRuntimeHit).length, 1, rel)
+      assert.equal(messages.filter(isToolkitUiHit).length, 1, rel)
       assert.equal(messages.filter((m) => m.includes("Sparkles")).length, 1, rel)
     }
   })
 
-  it("leaves the toolkit's design kit, the server package and the kit's runtime alone", async () => {
+  it("leaves pulse-ui, the server package and widget-shell's entries alone", async () => {
     const code = [
-      `import { Button, WidgetHeader, LocaleProvider, ToastProvider, type ToneVariant } from ${TOOLKIT}`,
+      'import { Button, WidgetHeader, LocaleProvider, ToastProvider, type ToneVariant } from "@miragon/pulse-ui"',
+      'import { scanColors, themeStylesheets } from "@miragon/pulse-ui/testing"',
       'import { MCPServer } from "mcp-use"',
       'import { useToolQuery, useViewHost, TestViewHost } from "@miragon/pulse-widget-shell/widgets"',
       'import { buildViewResult } from "@miragon/pulse-widget-shell/server"',
@@ -213,15 +231,16 @@ describe("view runtime gate (invariant 6): Pulse owns the view runtime", () => {
     }
   })
 
-  it("widget trees carry the runtime AND the sparkle gate in one union", async () => {
-    const code = `import { useToolQuery } from ${TOOLKIT}\nimport { Sparkles } from "lucide-react"`
+  it("widget trees carry the toolkit UI AND the sparkle gate in one union", async () => {
+    const code = `import { Button } from ${TOOLKIT}\nimport { Sparkles } from "lucide-react"`
     for (const rel of [
       `${C7}/widgets/__probe__.tsx`,
       `${AN}/widgets/__probe__.tsx`,
+      `${UI}/__probe__.tsx`,
       `${WS}/__probe__.tsx`,
     ]) {
       const messages = await gateMessages(rel, code, "no-restricted-imports")
-      assert.equal(messages.filter(isRuntimeHit).length, 1, `${rel}: runtime gate dropped`)
+      assert.equal(messages.filter(isToolkitUiHit).length, 1, `${rel}: toolkit UI gate dropped`)
       assert.equal(
         messages.filter((m) => m.includes("Sparkles")).length,
         1,

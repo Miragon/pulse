@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react"
-import { Button, Card, CardContent } from "@miragon/mcp-toolkit-ui"
+import { Button, Card, CardContent } from "@miragon/pulse-ui"
 
 import type { OpenUserTask } from "../../view-models.js"
 import type { CompleteTaskAction, CompleteTaskArgs, TaskCompletion } from "../lib/complete-task.js"

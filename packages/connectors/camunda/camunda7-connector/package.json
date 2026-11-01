@@ -52,7 +52,7 @@
   },
   "peerDependencies": {
     "@miragon/mcp-toolkit-core": "~2.8.1",
-    "@miragon/mcp-toolkit-ui": "~2.8.1",
+    "@miragon/pulse-ui": "workspace:^",
     "lucide-react": "^0.562.0 || ^1.0.0",
     "mcp-use": "2.7.3",
     "react": "^19.2.0",
@@ -60,7 +60,7 @@
     "zod": "^4.4.0"
   },
   "peerDependenciesMeta": {
-    "@miragon/mcp-toolkit-ui": {
+    "@miragon/pulse-ui": {
       "optional": true
     },
     "lucide-react": {
@@ -75,7 +75,7 @@
   },
   "devDependencies": {
     "@miragon/mcp-toolkit-core": "2.8.1",
-    "@miragon/mcp-toolkit-ui": "2.8.1",
+    "@miragon/pulse-ui": "workspace:*",
     "@stryker-mutator/core": "10.1.1",
     "@stryker-mutator/vitest-runner": "10.1.1",
     "@testing-library/react": "16.3.3",

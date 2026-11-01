@@ -1,4 +1,4 @@
-import type { CatalogLanguage } from "./catalog-text.js"
+import type { CatalogLanguage } from "@miragon/pulse-ui/testing"
 
 /** The glossary gate: one word per thing. Each rule carries a probe so a broken pattern fails instead of passing everything; PRODUCT_GLOSSARY holds the terms modules show side by side (camunda7's cockpit embeds analytics' landscape). */
 export interface GlossaryRule {

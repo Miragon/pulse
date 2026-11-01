@@ -229,18 +229,17 @@ The view chain mirrors the camunda7 module:
 
 Rules while building:
 
-- Compose the component from `@miragon/pulse-widget-shell/widgets` and the toolkit
-  `@miragon/mcp-toolkit-ui` — `ViewDataState` for the loading/error/no-data guard
-  (`onRetry` required, a `skeleton` slot under a polite sr-only status),
-  `Section`, `Th`/`Td`, `WidgetShell` from the kit; `WidgetHeader` (no
-  icon tile, `as` for the heading level), `KpiGrid` (incl. `variant="soft"`),
-  `StatusBadge`/`CountPill`, the `TONE_*` maps and `cn` from the toolkit;
-  formatting via `formatTimestamp`/`formatNumber`/`formatPercent`/`formatPercentPoints`/
+- Compose the component from the design kit `@miragon/pulse-ui` and the view runtime
+  `@miragon/pulse-widget-shell/widgets`: `ViewDataState` for the loading/error/no-data guard
+  (`onRetry` required, a `skeleton` slot under a polite sr-only status) and `WidgetShell`
+  from the view runtime; `Section`, `Th`/`Td`, `WidgetHeader` (no icon tile, `as` for the
+  heading level), `KpiGrid` (incl. `variant="soft"`), `StatusBadge`/`CountPill`, the
+  `TONE_*` maps and `cn` from pulse-ui; formatting via pulse-ui's `formatTimestamp`/`formatNumber`/`formatPercent`/`formatPercentPoints`/
   `formatPeriod`/`formatDuration`/`truncate` (canonical duration style "3m 7s", German
   "3 Min. 7 s"; "3,7 %", "+0,2 Pp.", "7 Tage"). Never re-inline these primitives, write
   local format helpers, or call `toFixed`, a `toLocaleString()` without a locale or a
   hand-built `Intl.NumberFormat`.
-- Tables: the kit's `ListTable` (a named, keyboard-reachable scroll region with a
+- Tables: widget-shell's `ListTable` (a named, keyboard-reachable scroll region with a
   required `ariaLabel`, so a wide breakdown never widens the document at 760 px;
   `hideBelow: "sm" | "md" | "lg"` on a column a narrow view can do without, by the
   region's width; `sticky: true` on the last column when it holds row actions; `sort` on
@@ -250,14 +249,14 @@ Rules while building:
   column, then the sort key, then what can give way (`hideBelow`); the host simulation
   (`apps/mcp-server-camunda7/test-host/analytics.spec.ts`, against `stub-prometheus.ts`)
   checks at 760 px that the promised columns show inside their region. Nothing to
-  show: `TableEmptyState` (`variant="done"` for "nothing failing", the quiet default for
-  no data, the next step as `description`). Type on the toolkit's scale: `text-section`
+  show: pulse-ui's `TableEmptyState` (`variant="done"` for "nothing failing", the quiet default for
+  no data, the next step as `description`). Type on pulse-ui's scale: `text-section`
   for a card heading, `text-dense` for table text, `text-small` (13 px, the floor) for
   captions, never `text-xs` (`scanTypeScale` in `src/brand-gates.test.ts`).
 - Names before ids (U13): metrics carry ids only; a view that lists processes or
   activities passes its payload through `src/named-views.ts` in the show tool AND its feed
   (one function each), which adds `names` from the injected BPMN lookup
-  (`createNameLookup` in `src/bpmn-name-lookup.ts`, reading each diagram through the kit's
+  (`createNameLookup` in `src/bpmn-name-lookup.ts`, reading each diagram through widget-shell's
   `parseBpmnNames`, the rule camunda7 names the same model by). Each model is read on the engines
   the view's rows come from (`engines`, or `enginesByKey` per process), in order, until
   one has it, so a process that runs only on a later engine is named too. An engine's
@@ -266,8 +265,8 @@ Rules while building:
   another); `null` from the injected `FetchBpmnXml` means "not deployed there" and is
   kept, a failed read REJECTS and is never kept. A view waits 2 s at most and reads up
   to 40 keys, named by priority (the dashboard: its scope, then the activities'
-  processes, then the breakdown's). The widget shows the kit's `NamedId`
-  (`@miragon/pulse-widget-shell/widgets`: the name first, the id quiet in mono below, the id
+  processes, then the breakdown's). The widget shows the design kit's `NamedId`
+  (`@miragon/pulse-ui`: the name first, the id quiet in mono below, the id
   alone in mono without a name; one look with camunda7) and an activity's type in words
   (`activityTypeLabel`, `src/widgets/names.ts`).
 - A count nobody measured is `null` and renders "—" through `Figure`
@@ -277,21 +276,21 @@ Rules while building:
   engine's counts are null, never 0. A known "none" is words, never "—" ("Kein
   Prozess"). A different state (a process not deployed on an engine) gets its own sign
   and a legend line.
-- The heatmap is the kit's `BpmnHeatmapWidget`: ONE hue from `--cd-info-soft` to
+- The heatmap is widget-shell's `BpmnHeatmapWidget`: ONE hue from `--cd-info-soft` to
   `--cd-blau` (red is for incidents), every element above zero at a visible minimum, a
   legend with the smallest and largest value (`HeatmapLegend` `min`/`max`, formatted),
   the values per element as a table under the diagram (`HeatValuesTable`), the frame
   height from the diagram's size (its height at the scale bpmn-js draws it, 240–560 px)
   and the paper light in every theme; the legend's ends are exact: the ramp maps the
   range linearly (`heatIntensity`).
-- Status and comparison colour come from the toolkit's tone model (`ToneVariant`, `TONE_*`
+- Status and comparison colour come from pulse-ui's tone model (`ToneVariant`, `TONE_*`
   maps, `resolveTone` for a tone from the wire, CLAUDE.md invariant 6): a dot, edge or icon next to neutral digits, black text on a tint
   (`TONE_SOFT`), `TONE_INK` only for words in a tone directly on the card (an inline error);
   volume (starts) and suppressed comparisons stay `neutral`, red is `danger` and only for
   incidents/failures. A count of what happened (new incidents included) carries no tone;
   the open incident and the job without retries (dead jobs, an engine's failed jobs) are the
   states: a danger dot on its KPI, `StateCount` in a table (`src/widgets/figure.tsx`: a danger
-  `CountPill` while there is any, by the kit's `countTone`, the ladder camunda7 edges the same
+  `CountPill` while there is any, by widget-shell's `countTone`, the ladder camunda7 edges the same
   counts by; none is a plain number). A rate is judged only against a reference, never on its own: the dashboard's
   incident rate against the period before (`previous` in `dashboardData`, the trend of its
   `KpiCell`, `deltaVerdict` with the comparisons' threshold, "not reliable" under the
@@ -302,20 +301,21 @@ Rules while building:
   No palette classes or raw colours.
 - Icons are Lucide via `Icon` (devDependency `lucide-react` `1.61.0`, see invariant 6), never
   glyphs or emoji, at 16 px (`dense` in rows and chips; no `size` other than 16 or 24). A chat
-  hand-off is the kit's `<HandOffButton action="findCause" prompt={ask(…)} />`: the product's
+  hand-off is widget-shell's `<HandOffButton action="findCause" prompt={ask(…)} />`: the product's
   one table of functions with their Lucide icon and a label that names the chat, the same as
-  camunda7's (`AskAiButton` is banned in connector widgets; a new function goes into the
-  kit). Copy follows the brand voice in en + de; the package's brand-gate test
+  camunda7's (`AskAiButton` is banned in connector widgets; a new function goes into
+  widget-shell). Copy follows the brand voice in en + de; the package's brand-gate test
   runs `catalogTextFindings` over both catalogs, `scanGlyphs` over `src/widgets` +
   `src/messages`, `scanIconSizes` and `scanColors` over `src/widgets`
-  (`@miragon/pulse-widget-shell/testing`). The words come from `src/messages/GLOSSARY.md`
-  ("nicht belastbar", "Zeitraum" …, plus the kit's `PRODUCT_GLOSSARY` shared with camunda7:
+  (`@miragon/pulse-ui/testing`). The words come from `src/messages/GLOSSARY.md`
+  ("nicht belastbar", "Zeitraum" …, plus widget-shell's `PRODUCT_GLOSSARY`
+  (`@miragon/pulse-widget-shell/testing`) shared with camunda7:
   "Incident", "Jobs ohne Versuche", "bereitgestellt" …; `glossary.test.ts` rejects the
   synonyms both rule out), counted entries are `plural(…)` and take the count formatted.
 - A show tool words its summary with `const t = await localizeFor(store, ctx)` (the
   language the profile names, else English) and sets no title: the widget's heading names
   the view in the host's language.
-- Every data view states its reference frame under its title with the kit's `ViewMeta`:
+- Every data view states its reference frame under its title with widget-shell's `ViewMeta`:
   `formatLookback(data.period)`, `enginesMeta(data.engines, reporting)`
   (`src/widgets/view-meta.ts`) and the result's `asOf` (every analytics-client view
   result carries it). A comparison judges only quality metrics, from their threshold on
@@ -323,13 +323,13 @@ Rules while building:
   suppressed comparison reads "nicht belastbar".
 - Self-fetching widgets guard skeleton + error via `QueryFallback` (+ `TableSkeleton`):
   a missing `isError` branch means an eternal skeleton, and `onRetry` (the query's
-  `refetch`) is required. The error words itself through the kit's `describeError`:
+  `refetch`) is required. The error words itself through widget-shell's `describeError`:
   "Prometheus ist nicht erreichbar", a timeout, a tool this server lacks … each with
-  what you can do, the raw text collapsed under the toolkit `ErrorState`'s "Details";
-  `errorTitle` (`aCommon.loadError` in `QueryGate`) heads only a failure the kit cannot
-  classify. The heatmap's import error is an inline `ErrorState` (`errorTitle`,
+  what you can do, the raw text collapsed under the "Details" of pulse-ui's `ErrorState`;
+  `errorTitle` (`aCommon.loadError` in `QueryGate`) heads only a failure `describeError`
+  cannot classify. The heatmap's import error is an inline `ErrorState` (`errorTitle`,
   `errorHint`, the parser's text under Details).
-- A save confirms in a toast and says why it failed there too (the kit's
+- A save confirms in a toast and says why it failed there too (widget-shell's
   `useActionFeedback().succeeded/failed`, reference: `settings-section.tsx`).
 - The model description (a `describe*` function in `src/widgets/model-descriptions.ts`,
   named directly in the view's `<HostModelContext content={…}>`) returns `modelContextText(…)` with

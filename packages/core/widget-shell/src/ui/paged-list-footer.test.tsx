@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
-import { LocaleProvider, PagedListFooter } from "@miragon/mcp-toolkit-ui"
+import { LocaleProvider, PagedListFooter } from "@miragon/pulse-ui"
 import { NO_FIT_ROWS } from "./inline-fit.js"
 import { PagedRows } from "./paged-rows.js"
 import type { PagedViewData } from "./use-paged-view-data.js"

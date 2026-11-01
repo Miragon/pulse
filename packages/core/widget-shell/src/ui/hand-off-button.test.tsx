@@ -2,7 +2,7 @@
 import type { ReactNode } from "react"
 import { afterEach, describe, expect, it } from "vitest"
 import { cleanup, render as rtlRender, screen } from "@testing-library/react"
-import { LocaleProvider } from "@miragon/mcp-toolkit-ui"
+import { LocaleProvider } from "@miragon/pulse-ui"
 import { askAiPrompt } from "./ask-ai-prompt.js"
 import { HAND_OFF_ACTIONS, HandOffButton, type HandOffAction } from "./hand-off-button.js"
 import { KIT_LABELS } from "./kit-labels.js"

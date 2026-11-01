@@ -1,6 +1,6 @@
-import { StatusBadge, WidgetHeader } from "@miragon/mcp-toolkit-ui"
+import { StatusBadge, WidgetHeader, formatNumber } from "@miragon/pulse-ui"
 import type { BpmnViewerData } from "../../view-models.js"
-import { HandOffButton, formatNumber } from "@miragon/pulse-widget-shell/widgets"
+import { HandOffButton } from "@miragon/pulse-widget-shell/widgets"
 import { useHandOff, type HandOff } from "../lib/hand-off.js"
 import { EngineMeta } from "../lib/engine-context.js"
 import { InstanceLabel } from "../lib/identity.js"

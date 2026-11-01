@@ -1,4 +1,4 @@
-import { truncate } from "@miragon/pulse-widget-shell/widgets"
+import { truncate } from "@miragon/pulse-ui"
 import { translator } from "../messages/index.js"
 import type { NavIntent } from "./navigation.js"
 

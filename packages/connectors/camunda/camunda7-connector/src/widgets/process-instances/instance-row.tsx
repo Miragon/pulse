@@ -1,19 +1,17 @@
 import {
   formatNumber,
-  HandOffButton,
   Icon,
   NamedId,
   Td,
   VersionChip,
-} from "@miragon/pulse-widget-shell/widgets"
-import { TriangleAlert } from "lucide-react"
-import {
   CountPill,
   StatusBadge,
   TONE_DOT,
   type ToneVariant,
   DrillButton,
-} from "@miragon/mcp-toolkit-ui"
+} from "@miragon/pulse-ui"
+import { HandOffButton } from "@miragon/pulse-widget-shell/widgets"
+import { TriangleAlert } from "lucide-react"
 import type { ProcessInstanceRow } from "../../view-models.js"
 import { useHandOff } from "../lib/hand-off.js"
 import { InstanceLabel } from "../lib/identity.js"

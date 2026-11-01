@@ -1,6 +1,6 @@
 import { useState } from "react"
-import { Button, cn, useLocale } from "@miragon/mcp-toolkit-ui"
-import { Icon, useQueryClient } from "@miragon/pulse-widget-shell/widgets"
+import { Button, cn, useLocale, Icon } from "@miragon/pulse-ui"
+import { useQueryClient } from "@miragon/pulse-widget-shell/widgets"
 import { RefreshCw } from "lucide-react"
 import { translator } from "../../messages/index.js"
 import { refreshCockpitData } from "../refresh.js"

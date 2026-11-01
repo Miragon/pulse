@@ -1,10 +1,6 @@
 import { useState } from "react"
-import {
-  WidgetShell,
-  classifyError,
-  useDetailView,
-  useResetOnChange,
-} from "@miragon/pulse-widget-shell/widgets"
+import { useResetOnChange } from "@miragon/pulse-ui"
+import { WidgetShell, classifyError, useDetailView } from "@miragon/pulse-widget-shell/widgets"
 
 import { CAMUNDA7_SAVE_SETTINGS, CAMUNDA7_SETTINGS_DATA } from "../tool-names.js"
 import type { UserProfileView } from "../lib/profile-schema.js"

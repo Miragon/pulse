@@ -1,15 +1,14 @@
+import { TableEmptyState, FilterBar, PagedListFooter, type FilterChip } from "@miragon/pulse-ui"
 import {
   ListTable,
   PagedRows,
   QueryFallback,
-  TableEmptyState,
   TableSkeleton,
   WidgetShell,
   usePagedListView,
   HostModelContext,
 } from "@miragon/pulse-widget-shell/widgets"
 import { useState } from "react"
-import { FilterBar, PagedListFooter, type FilterChip } from "@miragon/mcp-toolkit-ui"
 import type { ProcessInstanceRow, ProcessInstancesData } from "../../view-models.js"
 import type { ProcessInstancesFilters } from "../../feed-contracts.js"
 import { useNav } from "../navigation.js"

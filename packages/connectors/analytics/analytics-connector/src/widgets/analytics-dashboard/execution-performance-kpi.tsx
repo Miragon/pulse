@@ -1,5 +1,5 @@
-import { WidgetShell, formatDuration, formatNumber } from "@miragon/pulse-widget-shell/widgets"
-import { KpiGrid, type KpiCell } from "@miragon/mcp-toolkit-ui"
+import { formatDuration, formatNumber, KpiGrid, type KpiCell } from "@miragon/pulse-ui"
+import { WidgetShell } from "@miragon/pulse-widget-shell/widgets"
 import type { DashboardView } from "./lib.js"
 import { useT, type T } from "../../messages/use-t.js"
 import { RATE_UP_IS_WORSE, deltaVerdict, type DeltaVerdict } from "../comparison-shared.js"

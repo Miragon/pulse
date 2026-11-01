@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState } from "react"
-import { cn, FOCUS_RING, useLocale, useToast } from "@miragon/mcp-toolkit-ui"
+import { cn, FOCUS_RING, useLocale, useToast, Icon, Td } from "@miragon/pulse-ui"
 import { Check, Copy } from "lucide-react"
-import { Icon } from "./icon.js"
 import { kitLabels } from "./kit-labels.js"
-import { Td } from "./table.js"
 
 export const ID_FULL_LENGTH = 12
 const ID_SHORT_LENGTH = 8

@@ -1,10 +1,7 @@
+import { NamedId, Section, TableEmptyState, Td } from "@miragon/pulse-ui"
 import {
   HandOffButton,
   ListTable,
-  NamedId,
-  Section,
-  TableEmptyState,
-  Td,
   WidgetShell,
   type ListTableColumn,
 } from "@miragon/pulse-widget-shell/widgets"

@@ -6,16 +6,13 @@ import {
   MICRO_LABEL,
   StatusBadge,
   cn,
-} from "@miragon/mcp-toolkit-ui"
-import {
   formatNumber,
   formatTimestamp,
-  HandOffButton,
   Icon,
-  IdText,
   LogText,
   TEXT_BLOCK_FRAME,
-} from "@miragon/pulse-widget-shell/widgets"
+} from "@miragon/pulse-ui"
+import { HandOffButton, IdText } from "@miragon/pulse-widget-shell/widgets"
 import { Check, RotateCcw } from "lucide-react"
 
 import type { IncidentDetailData, IncidentDetailJob } from "../../view-models.js"

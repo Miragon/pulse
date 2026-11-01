@@ -16,12 +16,11 @@ import {
   type ReactNode,
 } from "react"
 import { QueryClientProvider, type QueryClient } from "@tanstack/react-query"
-import { LocaleProvider, ToastProvider } from "@miragon/mcp-toolkit-ui"
+import { LocaleProvider, ToastProvider, ICON_STROKE } from "@miragon/pulse-ui"
 import { LucideProvider } from "lucide-react"
 import type { ToolResult } from "../tool-result.js"
 import { HostContexts, type RequestDisplayMode } from "./host-contexts.js"
 import { HostWidgetsProvider, type HostWidgets } from "./host-widgets.js"
-import { ICON_STROKE } from "./icon.js"
 import type { ShellHost } from "./shell-host.js"
 import { createViewQueryClient } from "./tool-query.js"
 import type { ViewHost } from "./view-host.js"

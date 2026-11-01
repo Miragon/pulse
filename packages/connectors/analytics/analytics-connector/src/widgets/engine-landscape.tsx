@@ -1,16 +1,22 @@
-import { Badge, KpiGrid, SectionHeading, StatusBadge, type KpiCell } from "@miragon/mcp-toolkit-ui"
+import {
+  Badge,
+  KpiGrid,
+  SectionHeading,
+  StatusBadge,
+  type KpiCell,
+  Icon,
+  NamedId,
+  TableEmptyState,
+  Td,
+  formatNumber,
+} from "@miragon/pulse-ui"
 import { Info } from "lucide-react"
 import {
   HandOffButton,
-  Icon,
   ListTable,
-  NamedId,
-  TableEmptyState,
   TableSkeleton,
-  Td,
   ViewMeta,
   WidgetShell,
-  formatNumber,
   type ListTableColumn,
   type ListTableGroup,
   useToolQuery,

@@ -36,3 +36,7 @@ apps/cli/spec/
 # scripts/screenshots/screenshots.mjs writes.
 apps/vscode/src/webview/theme/
 apps/vscode/docs/screenshots/README.md
+
+# pulse-ui (packages/core/ui): the Miragon tokens every view ships, vendored byte for byte and
+# pinned by their manifest (the token drift test in apps/mcp-server-camunda7/test/ui-stylesheet.test.ts).
+packages/core/ui/src/tokens/

@@ -1,8 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react"
-import { useLocale } from "@miragon/mcp-toolkit-ui"
+import { useLocale, NavigationFocus } from "@miragon/pulse-ui"
 import {
   HostModelContext,
-  NavigationFocus,
   useToolQuery,
   ViewErrorBoundary,
   WidgetShell,

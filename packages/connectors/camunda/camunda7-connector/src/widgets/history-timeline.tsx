@@ -9,13 +9,13 @@ import {
   PagedListFooter,
   WidgetHeader,
   cn,
-} from "@miragon/mcp-toolkit-ui"
-import {
-  HandOffButton,
   TableEmptyState,
-  WidgetShell,
   formatDuration,
   formatTimestamp,
+} from "@miragon/pulse-ui"
+import {
+  HandOffButton,
+  WidgetShell,
   RowsBudgeted,
   usePagedViewData,
   HostModelContext,

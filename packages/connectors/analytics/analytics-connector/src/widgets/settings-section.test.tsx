@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeAll, describe, expect, it } from "vitest"
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
-import { LocaleProvider, ToastProvider } from "@miragon/mcp-toolkit-ui"
+import { LocaleProvider, ToastProvider } from "@miragon/pulse-ui"
 import { ANALYTICS_SAVE_SETTINGS, ANALYTICS_SETTINGS_DATA } from "../tool-names.js"
 import { AnalyticsSettingsWidget, parseMinBucketSize } from "./settings-section.js"
 import { TestViewHost, createTestQueryClient } from "@miragon/pulse-widget-shell/widgets"

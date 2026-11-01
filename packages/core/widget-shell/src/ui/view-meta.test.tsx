@@ -1,8 +1,8 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from "vitest"
 import { cleanup, render } from "@testing-library/react"
-import { catalogTextFindings } from "../testing/index.js"
-import { setFormatLocale } from "./format.js"
+import { setFormatLocale } from "@miragon/pulse-ui"
+import { catalogTextFindings } from "@miragon/pulse-ui/testing"
 import { VIEW_META_LABELS, ViewMeta, formatLookback, formatViewMeta } from "./view-meta.js"
 
 afterEach(() => {

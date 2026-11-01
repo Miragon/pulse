@@ -4,13 +4,10 @@ import {
   StatusBadge,
   WidgetHeader,
   type ToneVariant,
-} from "@miragon/mcp-toolkit-ui"
-import {
-  HandOffButton,
-  IdText,
   VersionChip,
   formatNumber,
-} from "@miragon/pulse-widget-shell/widgets"
+} from "@miragon/pulse-ui"
+import { HandOffButton, IdText } from "@miragon/pulse-widget-shell/widgets"
 
 import type { InstanceDetailData } from "../../view-models.js"
 import { type T, useT } from "../../messages/use-t.js"

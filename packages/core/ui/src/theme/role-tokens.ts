@@ -1,0 +1,57 @@
+type CssVarName = `--${string}`
+
+/**
+ * The role-token contract: every variable the kit defines for components
+ * to use (`src/theme.css`), in light and, for colours, dark. Components in this
+ * package, and in apps built on it, style through these names only, never
+ * through raw colours or Tailwind palette classes.
+ */
+export const ROLE_TOKENS = [
+  "--background",
+  "--card",
+  "--popover",
+  "--muted",
+  "--secondary",
+  "--foreground",
+  "--muted-foreground",
+  "--border",
+  "--input",
+  "--primary",
+  "--primary-foreground",
+  "--primary-hover",
+  "--link",
+  "--ring",
+  "--focus",
+  "--success",
+  "--warning",
+  "--danger",
+  "--info",
+  "--success-soft",
+  "--warning-soft",
+  "--danger-soft",
+  "--info-soft",
+  "--success-ink",
+  "--warning-ink",
+  "--danger-ink",
+  "--info-ink",
+  "--destructive",
+  "--radius-sm",
+  "--radius-md",
+  "--radius-lg",
+  "--radius-pill",
+  "--shadow-1",
+  "--shadow-2",
+  "--shadow-3",
+  "--scrim",
+  "--motion-fast",
+  "--motion-base",
+  "--motion-slow",
+  "--ease",
+  "--font-sans",
+  "--font-mono",
+  "--text-title",
+  "--text-section",
+  "--text-body",
+  "--text-dense",
+  "--text-small",
+] as const satisfies readonly CssVarName[]

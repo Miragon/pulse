@@ -1,11 +1,12 @@
 import { useId, useState } from "react"
 import {
-  ViewDataState,
-  WidgetShell,
   formatNumber,
-  useViewData,
-} from "@miragon/pulse-widget-shell/widgets"
-import { FilterBar, ListFooter, useDebouncedValue, DrillButton } from "@miragon/mcp-toolkit-ui"
+  FilterBar,
+  ListFooter,
+  useDebouncedValue,
+  DrillButton,
+} from "@miragon/pulse-ui"
+import { ViewDataState, WidgetShell, useViewData } from "@miragon/pulse-widget-shell/widgets"
 import type { CockpitDashboardData } from "../../view-models.js"
 import { buildRows } from "./lib.js"
 import { useNav } from "../navigation.js"

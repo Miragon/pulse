@@ -158,7 +158,7 @@ then reinstall so the lockfile matches:
 4. `pnpm install` to refresh `pnpm-lock.yaml` (the Docker build uses
    `--frozen-lockfile`)
 
-Branding: `server/src/ui/brand.css` imports the toolkit's Miragon theme (the
+Branding: `server/src/ui/brand.css` imports pulse-ui's Miragon theme (the
 default) and has one override block for light and one for dark. Set ROLE
 variables there only (`--primary`, `--primary-hover`, `--link`, `--focus`,
 `--ring`, `--accent`/`--accent-foreground`, `--input`, `--<tone>`/`-soft`/
@@ -266,7 +266,7 @@ missing-URL warnings) is part of done.
 
 | Symptom                                   | Cause                                                                                                                                                                                                              |
 | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Every in-widget query hangs on "Loading…" | `resolve.dedupe` in `server/vite.config.ts` was trimmed, or a second copy of React/toolkit/mcp-use got installed                                                                                                   |
+| Every in-widget query hangs on "Loading…" | `resolve.dedupe` in `server/vite.config.ts` was trimmed, or a second copy of React, the kit or mcp-use got installed                                                                                               |
 | Widgets render unstyled                   | widget sources outside the Tailwind scan set (workspace modules are globbed; npm-installed ones need an `@source` in `server/src/ui/globals.css`)                                                                  |
 | Analytics tools return empty results      | `CAMUNDA_ENGINE_ID` doesn't match the engine's metrics `ENGINE_ID`, or `PROMETHEUS_URL` points at the wrong port                                                                                                   |
 | Cockpit links open the wrong web app      | the engine's vendor: without `CAMUNDA_ENGINE_FLAVOR` (or a `flavor` per engine entry) it counts as Camunda 7                                                                                                       |

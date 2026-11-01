@@ -7,21 +7,23 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
     // The widget packages (camunda7-connector, widget-shell, analytics-connector) and this
-    // app each resolve their own pnpm instance of React, TanStack Query, mcp-use and the
-    // toolkit (differing peer-dep hashes). Bundling several copies gives each its own React
-    // context: the view root (widget-shell's copy) provides the view host and the ONE
-    // QueryClient, but a widget's `useViewHost`/`useToolQuery` would read a *different*
-    // context → no client, no host → every in-widget query hangs on "Loading…". Same trap
-    // for the module-scoped view runtime in `mcp-use/react` (the guide's "hooks require a
-    // browser view" crash). Dedupe collapses them to a single instance so the context matches.
+    // app each resolve their own pnpm instance of React, TanStack Query, mcp-use, the kit
+    // (pulse-ui) and the toolkit (differing peer-dep hashes). Bundling several copies gives
+    // each its own React context: the view root (widget-shell's copy) provides the view host
+    // and the ONE QueryClient, but a widget's `useViewHost`/`useToolQuery` would read a
+    // *different* context → no client, no host → every in-widget query hangs on "Loading…".
+    // Same trap for the module-scoped view runtime in `mcp-use/react` (the guide's "hooks
+    // require a browser view" crash). Dedupe collapses them to a single instance so the
+    // context matches.
     dedupe: [
       "react",
       "react-dom",
       "@tanstack/react-query",
       "mcp-use",
-      "@miragon/mcp-toolkit-ui",
+      // pulse-ui carries the locale and toast contexts every widget reads.
+      "@miragon/pulse-ui",
       "@miragon/mcp-toolkit-core",
-      // The kit's Lucide icons and the toolkit's: one copy in the bundle, the
+      // The kit's Lucide icons and mcp-use's: one copy in the bundle, the
       // version this app pins. That devDependency is load-bearing twice: it
       // also keeps mcp-use's lucide peer on ONE pnpm instance (mcp-use 2
       // migration guide §1; without it the view runtime exists twice).

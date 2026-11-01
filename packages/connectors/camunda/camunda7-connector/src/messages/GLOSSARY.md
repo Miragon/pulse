@@ -11,7 +11,7 @@ der Zahl). Neue Begriffe kommen erst hier hinein, dann in den Test, dann in den 
 
 Diese Begriffe stehen in den Ansichten mehrerer Module nebeneinander: Die Engine-übergreifende
 Übersicht von camunda7 bettet die Prozesslandschaft von analytics ein. Sie gelten deshalb in
-jedem Modul gleich. Die Regeln stehen einmal im Kit (`PRODUCT_GLOSSARY` in
+jedem Modul gleich. Die Regeln stehen einmal in widget-shell (`PRODUCT_GLOSSARY` in
 `@miragon/pulse-widget-shell/testing`), und `glossary.test.ts` jedes Moduls prüft damit seine
 Kataloge. Das Glossar von analytics führt dieselbe Tabelle.
 
@@ -42,7 +42,7 @@ Kataloge. Das Glossar von analytics führt dieselbe Tabelle.
 ## Übergaben an den Chat
 
 Eine Übergabe zeigt das Lucide-Icon der konkreten Funktion und ein Verb, das sagt, dass die
-Arbeit im Chat passiert. Beides steht einmal im Kit: `HandOffButton` mit seiner Tabelle
+Arbeit im Chat passiert. Beides steht einmal in widget-shell: `HandOffButton` mit seiner Tabelle
 `HAND_OFF_ACTIONS` (Icon) und `kitLabels().handOff` (Label, de und en) in
 `@miragon/pulse-widget-shell/widgets`. Jede Funktion hat in jedem Modul dasselbe Icon und dasselbe
 Label, kein Icon steht für zwei Funktionen. Ein Widget eines Connectors rendert Übergaben nur

@@ -1,13 +1,13 @@
 import { readFileSync } from "node:fs"
 import { createRequire } from "node:module"
 import { describe, expect, it } from "vitest"
-import { CD_TOKENS, type CdTokenName } from "@miragon/mcp-toolkit-ui"
+import { CD_TOKENS, type CdTokenName } from "@miragon/pulse-ui"
 import {
   contrastRatio,
   parseThemeVariables,
   resolveColor,
-  toolkitThemeStylesheets,
-} from "../testing/index.js"
+  themeStylesheets,
+} from "@miragon/pulse-ui/testing"
 import {
   BPMN_OVERLAY_CSS,
   BPMN_TOKENS,
@@ -25,20 +25,17 @@ function tokenNames(value: unknown): CdTokenName[] {
 
 const USED = [...new Set(tokenNames(BPMN_TOKENS))]
 
-/** The vendored corporate-design stylesheet, as the toolkit ships it. */
+/** The vendored corporate-design stylesheet, as pulse-ui ships it. */
 function vendoredTokens(): Map<string, string> {
   const require = createRequire(import.meta.url)
-  const css = readFileSync(
-    require.resolve("@miragon/mcp-toolkit-ui/cd-tokens.generated.css"),
-    "utf8",
-  )
+  const css = readFileSync(require.resolve("@miragon/pulse-ui/cd-tokens.generated.css"), "utf8")
   return new Map(
     [...css.matchAll(/--cd-([\w-]+):\s*([^;]+);/g)].map(([, name, value]) => [name, value.trim()]),
   )
 }
 
 /** A token on the light paper (the canvas is light in every theme). */
-const light = parseThemeVariables(...toolkitThemeStylesheets()).light
+const light = parseThemeVariables(...themeStylesheets()).light
 const color = (name: CdTokenName) => resolveColor(cdVar(name), light)
 const ratio = (a: CdTokenName, b: CdTokenName) => contrastRatio(color(a), color(b))
 

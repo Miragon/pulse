@@ -10,7 +10,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react"
-import { PagedListFooter } from "@miragon/mcp-toolkit-ui"
+import { PagedListFooter } from "@miragon/pulse-ui"
 import { spyHost } from "./tool-host.test-support.js"
 import { usePagedViewData } from "./use-paged-view-data.js"
 

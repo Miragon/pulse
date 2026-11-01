@@ -1,12 +1,6 @@
 import { useState } from "react"
-import { Button, Input } from "@miragon/mcp-toolkit-ui"
-import {
-  Icon,
-  ListTable,
-  TableEmptyState,
-  Td,
-  useResetOnChange,
-} from "@miragon/pulse-widget-shell/widgets"
+import { Button, Input, Icon, TableEmptyState, Td, useResetOnChange } from "@miragon/pulse-ui"
+import { ListTable } from "@miragon/pulse-widget-shell/widgets"
 import { X } from "lucide-react"
 
 import type { ActivityTree, VariableValue } from "../view-models.js"

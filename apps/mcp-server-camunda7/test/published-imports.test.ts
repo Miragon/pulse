@@ -456,10 +456,11 @@ describe("published packages declare what their shipped source imports", () => {
     })
   })
 
-  it("reads the repo's five npm packages (the scanner is not blind)", () => {
+  it("reads the repo's six npm packages (the scanner is not blind)", () => {
     const names = publishedPackages().map(({ manifest }) => manifest.name)
     expect(names).toEqual(
       expect.arrayContaining([
+        "@miragon/pulse-ui",
         "@miragon/pulse-widget-shell",
         "@miragon/pulse-camunda7-connector",
         "@miragon/pulse-camunda7-client",

@@ -36,6 +36,11 @@
         },
         {
           "type": "json",
+          "path": "packages/core/ui/package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
           "path": "packages/core/widget-shell/package.json",
           "jsonpath": "$.version"
         },
@@ -66,8 +71,18 @@
         },
         {
           "type": "json",
+          "path": "templates/composed-server/server/package.json",
+          "jsonpath": "$.devDependencies['@miragon/pulse-ui']"
+        },
+        {
+          "type": "json",
           "path": "templates/composed-server/modules/mcp-notes/package.json",
           "jsonpath": "$.dependencies['@miragon/pulse-widget-shell']"
+        },
+        {
+          "type": "json",
+          "path": "templates/composed-server/modules/mcp-notes/package.json",
+          "jsonpath": "$.devDependencies['@miragon/pulse-ui']"
         },
         { "type": "json", "path": "apps/cli/package.json", "jsonpath": "$.version" },
         {

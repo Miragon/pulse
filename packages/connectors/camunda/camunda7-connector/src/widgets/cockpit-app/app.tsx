@@ -1,12 +1,18 @@
 import { useReducer, type ReactNode } from "react"
-import { Button, cn, EmptyState, FOCUS_RING, useLocale } from "@miragon/mcp-toolkit-ui"
 import {
-  HostModelContext,
+  Button,
+  cn,
+  EmptyState,
+  FOCUS_RING,
+  useLocale,
   Icon,
   type LucideIcon,
   NativeSelect,
   NavigationFocus,
   useResetOnChange,
+} from "@miragon/pulse-ui"
+import {
+  HostModelContext,
   useToolQuery,
   ViewDataState,
   ViewErrorBoundary,

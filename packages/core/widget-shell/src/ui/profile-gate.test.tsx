@@ -1,12 +1,11 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react"
-import { useLocale } from "@miragon/mcp-toolkit-ui"
+import { useLocale, formatTimestamp, setFormatLocale } from "@miragon/pulse-ui"
 import type { ToolResult } from "../tool-result.js"
 import { SHELL_SETTINGS_DATA } from "../shell-settings-contract.js"
 import { ProfileGate } from "./profile-gate.js"
 import { SHELL_SETTINGS_KEY } from "./shell-settings.js"
-import { formatTimestamp, setFormatLocale } from "./format.js"
 import type { ShellHost } from "./shell-host.js"
 import { TestViewHost } from "./test-view-host.js"
 import { createViewQueryClient, type QueryClient } from "./tool-query.js"

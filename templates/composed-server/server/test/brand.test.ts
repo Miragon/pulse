@@ -5,21 +5,21 @@ import {
   parseThemeVariables,
   ROLE_CONTRAST_PAIRS,
   toneContrastPairs,
-  toolkitThemeStylesheets,
-} from "@miragon/pulse-widget-shell/testing"
+  themeStylesheets,
+} from "@miragon/pulse-ui/testing"
 
 /**
  * Your brand stays readable. src/ui/brand.css overrides role variables on top
- * of the toolkit's Miragon theme; this measures the result in light AND dark,
- * the way the browser resolves it on <html> — text and each -foreground on
- * its fill 4.5:1, edges, dots, icons and the focus ring 3:1 — for the
+ * of pulse-ui's Miragon theme; this measures the result in light AND dark,
+ * the way the browser resolves it on <html> (text and each -foreground on
+ * its fill 4.5:1, edges, dots, icons and the focus ring 3:1) for the
  * overrides you set and for the file's own example. The surfaces are the
  * Miragon neutrals; inside a host that sends its palette the host's replace
  * them (see brand.css), so check your colours against those too.
  */
 
 const brandCss = readFileSync(new URL("../src/ui/brand.css", import.meta.url), "utf8")
-const miragon = toolkitThemeStylesheets()
+const miragon = themeStylesheets()
 
 /**
  * The CI's own exemption: on a light ground success green and amber reach
@@ -81,8 +81,8 @@ describe("brand.css", () => {
     },
   )
 
-  it("builds on the toolkit's Miragon theme", () => {
-    expect(brandCss).toContain('@import "@miragon/mcp-toolkit-ui/theme.css"')
+  it("builds on pulse-ui's Miragon theme", () => {
+    expect(brandCss).toContain('@import "@miragon/pulse-ui/theme.css"')
   })
 
   it("sets role variables only — never a --cd-* token, never a variable the theme lacks", () => {

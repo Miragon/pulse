@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
-import { CountPill } from "@miragon/mcp-toolkit-ui"
-import { countTone, formatNumber } from "@miragon/pulse-widget-shell/widgets"
+import { CountPill, formatNumber } from "@miragon/pulse-ui"
+import { countTone } from "@miragon/pulse-widget-shell/widgets"
 
 /**
  * U17: "—" means not measured, never 0 or "not deployed" (an empty cell). The

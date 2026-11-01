@@ -1,6 +1,6 @@
 ---
 name: add-widget
-description: Step-by-step house pattern for adding an interactive widget to a module (the React component built from the widget-shell kit, the `show_*` widget tool, the app-only `*_data` feed, the view map keyed by the show tool's name, and a widget test under `TestViewHost`). Use whenever adding or changing widgets, `show_*` tools, `*_data` feeds, in-widget data fetching, or when debugging a widget that renders empty, unstyled, or hangs on "Loading…".
+description: Step-by-step house pattern for adding an interactive widget to a module (the React component built from the design kit `@miragon/pulse-ui` and widget-shell's view runtime, the `show_*` widget tool, the app-only `*_data` feed, the view map keyed by the show tool's name, and a widget test under `TestViewHost`). Use whenever adding or changing widgets, `show_*` tools, `*_data` feeds, in-widget data fetching, or when debugging a widget that renders empty, unstyled, or hangs on "Loading…".
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 ---
 
@@ -30,50 +30,53 @@ the widget `_meta` contract by name across all composed modules.
 ## Step 1: the component
 
 Widgets live in `src/widgets/` and receive their payload as a `data` prop.
-Compose them from the shared kit `@miragon/pulse-widget-shell/widgets` and the
-toolkit `@miragon/mcp-toolkit-ui`, never re-inline their primitives. The
-toolkit's own components, tone maps and `cn` come from the toolkit itself; the
-kit neither forks nor re-exports them:
+Compose them from the design kit `@miragon/pulse-ui` and the view runtime
+`@miragon/pulse-widget-shell/widgets`, never re-inline their primitives. The
+kit holds everything that touches no host (primitives, components, tone
+maps, `cn`, the formatters, `Icon`, the table cells); the view runtime holds
+what reads the host or calls a tool. Neither re-exports the other's names:
 
-- `WidgetShell` (container) and `Section` from the kit; `WidgetHeader`
-  (title/sub/badge, no icon tile, `as` for the heading level) from the toolkit
-- Tables: `ListTable` (the frame: a named, keyboard-reachable scroll region so
-  a wide table never widens the view; `hideBelow` on a column a narrow view
-  can do without; `sticky` on the last column, the row actions; `sort` on the
-  column the rows are ordered by; `groups` to head adjacent columns) with
-  hand-composed `<tr>` + `Td` rows; `IdCell` for an id column (Geist Mono,
-  shortened, a copy button); `TableEmptyState` instead of an empty frame
-  (`variant="done"` for "nothing left to do"); KPI strips: the toolkit's
+- `WidgetShell` (container) from the view runtime; `WidgetHeader`
+  (title/sub/badge, no icon tile, `as` for the heading level) and `Section`
+  from the kit
+- Tables: the view runtime's `ListTable` (the frame: a named,
+  keyboard-reachable scroll region so a wide table never widens the view;
+  `hideBelow` on a column a narrow view can do without; `sticky` on the last
+  column, the row actions; `sort` on the column the rows are ordered by;
+  `groups` to head adjacent columns) with hand-composed `<tr>` + the kit's
+  `Td` rows; `IdCell` (view runtime) for an id column (Geist Mono, shortened,
+  a copy button); the kit's `TableEmptyState` instead of an empty frame
+  (`variant="done"` for "nothing left to do"); KPI strips: the kit's
   `KpiGrid`
-- No data yet (a widget mounted without the show tool's data): `QueryFallback`
-  - `TableSkeleton`. A missing `isError` branch means an eternal skeleton. Its
-    `onRetry` is required, and the error
-    speaks for itself: the kit's `describeError` turns an engine or transport
-    failure into what happened and what you can do, the raw text under
-    "Details"; `errorTitle` heads only a failure it cannot classify
+- No data yet (a widget mounted without the show tool's data): the view
+  runtime's `QueryFallback` + `TableSkeleton`. A missing `isError` branch
+  means an eternal skeleton. Its `onRetry` is required, and the error speaks
+  for itself: `describeError` turns an engine or transport failure into what
+  happened and what you can do, the raw text under "Details"; `errorTitle`
+  heads only a failure it cannot classify
 - Writes: confirm with the toast (`useActionFeedback().succeeded/failed`,
-  naming the object), ask first with the kit's `ConfirmDialog` (verb + object
-  on both buttons)
-- Formatting: `formatTimestamp`/`formatDate`/`formatTime` for dates,
-  `formatNumber`/`formatPercent`/`formatPercentPoints`/`formatPeriod`/
+  naming the object), ask first with `ConfirmDialog` (verb + object on both
+  buttons), both from the view runtime
+- Formatting, from the kit: `formatTimestamp`/`formatDate`/`formatTime` for
+  dates, `formatNumber`/`formatPercent`/`formatPercentPoints`/`formatPeriod`/
   `formatDuration`/`truncate` for the rest, all in the view's locale; no
   local helpers, no `Intl.DateTimeFormat`/`toLocaleDateString`/`toFixed` in
   widget code
 - Status: a tone (`danger`/`warning`/`success`/`info`/`neutral`) via the
-  toolkit's `StatusBadge`/`CountPill`/`KpiCell.tone` or its `TONE_*` maps, next to
-  readable words; colours come from the role variables (override them in
+  kit's `StatusBadge`/`CountPill`/`KpiCell.tone` or its `TONE_*` maps, next
+  to readable words; colours come from the role variables (override them in
   `server/src/ui/brand.css`, light and dark, to brand), never palette
   classes or raw colours in widgets
 - Icons: Lucide through the kit's `Icon` (add `lucide-react` to the module's
   dependencies at the exact version `server/package.json` pins), never Unicode
   glyphs or emoji
-- Long paged lists: `usePagedListView` + `ListTable` inside `PagedRows` + the
-  toolkit's `PagedListFooter` (the feed must accept `firstResult`/`maxResults` and return
-  an honest total). A new search keeps the previous rows on screen
-  (`paged.stale`): read counts and filters from the payload shown, not from
-  the request
+- Long paged lists: the view runtime's `usePagedListView` + `ListTable` inside
+  `PagedRows` + the kit's `PagedListFooter` (the feed must accept
+  `firstResult`/`maxResults` and return an honest total). A new search keeps
+  the previous rows on screen (`paged.stale`): read counts and filters from
+  the payload shown, not from the request
 
-Data rule (see `NotesListWidget`): read through the kit's
+Data rule (see `NotesListWidget`): read through the view runtime's
 `useViewData(data, key, FEED, args, ready)` against the **`*_data` feed, never
 the `show_*` tool** (the host would render its result as a second view instead
 of returning JSON). The show tool's data SEEDS the feed's cache entry, so a
@@ -82,7 +85,7 @@ re-reads the feed; mounted without data, the widget fetches it. Build `args`
 from the data on screen (the notes view carries its `query`), so a re-read
 asks for what the view shows. Import the tool name from `src/tool-names.ts`.
 
-Widgets reach the host only through the kit: `useViewHost()` (`callTool`,
+Widgets reach the host only through the view runtime: `useViewHost()` (`callTool`,
 `sendFollowUp`, `openExternal`), `HostModelContext` and the query hooks
 (`useViewData`, `useToolQuery`, `useToolMutation`, `useQueryClient`). Never
 import `mcp-use/react` in a widget: its hooks throw outside the bundle root

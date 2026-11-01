@@ -16,7 +16,7 @@ interactive views that show incidents, instances and diagrams right in the chat.
 
 ```sh
 npm install @miragon/pulse-camunda7-connector @miragon/pulse-widget-shell
-npm install react react-dom zod lucide-react bpmn-js@18.31.0 @miragon/mcp-toolkit-core @miragon/mcp-toolkit-ui mcp-use@2.7.3
+npm install react react-dom zod lucide-react bpmn-js@18.31.0 @miragon/mcp-toolkit-core @miragon/pulse-ui mcp-use@2.7.3
 ```
 
 To build your own MCP server on it, start from [pulse-starter](https://github.com/Miragon/pulse-starter).
@@ -25,7 +25,7 @@ To build your own MCP server on it, start from [pulse-starter](https://github.co
 
 The **camunda7 module** for [Pulse](../../../../README.md): Camunda 7 / CIB Seven BPM operations as
 `camunda7_*` MCP tools, plus the interactive cockpit widgets (MCP Apps). Built on
-[`@miragon/pulse-camunda7-client`](../camunda7-client) and the `@miragon/mcp-toolkit-*` packages.
+[`@miragon/pulse-camunda7-client`](../camunda7-client), `@miragon/pulse-ui` and `@miragon/mcp-toolkit-core`.
 
 The server loads this module as `camunda7` via `camunda7Module` (`src/module.ts`), which conforms
 structurally to the app's `ModuleDefinition` port. The package is published to npm in lockstep with
@@ -34,10 +34,11 @@ the other `@miragon/pulse-*` packages (pin them all to one version); the
 into your own MCP server.
 
 The consumer-shared libraries are ranged **peer dependencies** so they dedupe against your app's
-copy: `react`/`react-dom` `^19.2.0`, `zod` `^4.4.0`, `@miragon/mcp-toolkit-*` `~2.8.1`,
+copy: `react`/`react-dom` `^19.2.0`, `zod` `^4.4.0`, `@miragon/mcp-toolkit-core` `~2.8.1`,
+`@miragon/pulse-ui` `^<this release>` (the design kit the widgets compose from),
 `lucide-react` `^0.562.0 || ^1.0.0` (the widgets' icons; add it to your `dedupe` list like the
-widget-shell kit asks, and pin 1.47.0 or newer: the toolkit's chrome (2.7 and later) imports `LucideProvider`,
-which 0.x lacks, so a deduped 0.x copy fails the bundle build). **`mcp-use` is exactly pinned**:
+widget-shell asks, and pin a 1.x copy (this repo pins 1.61.0): widget-shell's view root imports
+`LucideProvider`, which 0.x lacks, so a deduped 0.x copy fails the bundle build). **`mcp-use` is exactly pinned**:
 pin it to `mcp-use@2.7.3` in your app. A duplicate `mcp-use` instance breaks the React context and
 hangs every in-widget query on "Loading…".
 

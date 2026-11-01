@@ -91,7 +91,7 @@ export interface DocumentThemeInput {
   hostVariables?: HostStyleVariables
 }
 
-/** The toolkit's dark scope keys on `.dark` and `data-theme`; SEP-1865 hosts read `data-theme`. */
+/** pulse-ui's dark scope keys on `.dark` and `data-theme`; SEP-1865 hosts read `data-theme`. */
 export function applyDocumentTheme(
   root: HTMLElement,
   { theme, hostTheme, hostVariables }: DocumentThemeInput,

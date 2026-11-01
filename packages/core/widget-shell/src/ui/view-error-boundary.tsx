@@ -1,5 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from "react"
-import { ErrorState, useLocale } from "@miragon/mcp-toolkit-ui"
+import { ErrorState, useLocale } from "@miragon/pulse-ui"
 import { kitLabels } from "./kit-labels.js"
 
 interface BoundaryState {

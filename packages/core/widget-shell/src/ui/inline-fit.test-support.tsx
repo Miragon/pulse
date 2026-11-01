@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import { screen } from "@testing-library/react"
-import { LocaleProvider } from "@miragon/mcp-toolkit-ui"
+import { LocaleProvider } from "@miragon/pulse-ui"
 import { InlineBudgetProvider, type InlineBudget } from "./inline-budget.js"
 import { InlineFitBox, type FitMeasure } from "./inline-fit.js"
 import { ListTable } from "./list-table.js"

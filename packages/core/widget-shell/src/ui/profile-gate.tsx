@@ -6,13 +6,14 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from "react"
-import { LocaleProvider, Skeleton } from "@miragon/mcp-toolkit-ui"
 import {
+  LocaleProvider,
+  Skeleton,
   getFormatLocale,
   setFormatLocale,
   subscribeFormatLocale,
   type FormatLocale,
-} from "./format.js"
+} from "@miragon/pulse-ui"
 import { formattingLocale, resolveLanguage, validTimeZone } from "./host-context.js"
 import { SHELL_SETTINGS_DATA } from "../shell-settings-contract.js"
 import { kitLabels } from "./kit-labels.js"

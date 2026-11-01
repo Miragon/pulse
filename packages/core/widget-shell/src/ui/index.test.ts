@@ -7,16 +7,8 @@ describe("the /widgets entry", () => {
   it.each([
     "ListTable",
     "COLUMN_BREAKPOINTS",
-    "Th",
-    "Td",
-    "TableEmptyState",
-    "SettingsCard",
-    "SettingsField",
-    "SettingsInput",
-    "NativeSelect",
     "BpmnHeatmapWidget",
     "HeatValuesTable",
-    "NamedId",
     "countTone",
     "severityTone",
     // The view runtime.

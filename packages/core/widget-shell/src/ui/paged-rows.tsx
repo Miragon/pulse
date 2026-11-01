@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import { cn, TONE_DOT } from "@miragon/mcp-toolkit-ui"
+import { cn, TONE_DOT } from "@miragon/pulse-ui"
 import { RowsBudgeted } from "./inline-budget.js"
 import type { PagedViewData } from "./use-paged-view-data.js"
 

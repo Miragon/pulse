@@ -6,7 +6,7 @@
 /** Names the fontsource release so the route can be cached `immutable`; `served-fonts.test.ts` pins it. */
 export const SERVED_FONT_PATH = "/fonts/geist-5.3.0"
 
-/** The latin variable woff2 files under {@link SERVED_FONT_PATH} (the toolkit's `GEIST_FONT_FILES`). */
+/** The latin variable woff2 files under {@link SERVED_FONT_PATH} (pulse-ui's `GEIST_FONT_FILES`). */
 export const SERVED_FONT_FILES = {
   sans: "geist-latin-wght-normal.woff2",
   mono: "geist-mono-latin-wght-normal.woff2",

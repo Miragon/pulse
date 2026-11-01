@@ -7,17 +7,19 @@ import {
   FOCUS_RING,
   useLocale,
   WidgetHeader,
-} from "@miragon/mcp-toolkit-ui"
+  formatDuration,
+  formatNumber,
+  Icon,
+  SegmentedControl,
+  TableEmptyState,
+  Td,
+} from "@miragon/pulse-ui"
 import { ChevronRight } from "lucide-react"
 import { BpmnHeatmap, HeatmapLegend } from "./bpmn-heatmap.js"
 import { bpmnElementNames, bpmnProcessName, heatRange } from "./bpmn-heatmap/heat-utils.js"
 import { DEFAULT_HEATMAP_LABELS, type BpmnHeatmapLabels } from "./bpmn-heatmap-labels.js"
-import { formatDuration, formatNumber } from "./format.js"
-import { Icon } from "./icon.js"
 import { kitLabels } from "./kit-labels.js"
 import { ListTable } from "./list-table.js"
-import { SegmentedControl } from "./segmented-control.js"
-import { TableEmptyState, Td } from "./table.js"
 
 export interface BpmnHeatmapData {
   processDefinitionKey: string

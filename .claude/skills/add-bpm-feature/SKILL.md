@@ -179,38 +179,41 @@ Only when you created a new `src/tools/<domain>.ts`: add
 ## Step 4 — widget path (only for UI features)
 
 Widget components live in `packages/connectors/camunda/camunda7-connector/src/widgets/` and receive their data as
-a `data` prop. Compose them from the shared kit `@miragon/pulse-widget-shell/widgets` and the
-toolkit `@miragon/mcp-toolkit-ui` (its components, tone maps and `cn` come from the toolkit
-itself; widget-shell neither forks nor re-exports them) — never re-inline these primitives:
+a `data` prop. Compose them from the design kit `@miragon/pulse-ui` and the view runtime
+`@miragon/pulse-widget-shell/widgets` (pulse-ui holds what touches no host: primitives,
+components, tone maps, `cn`, the formatters, `Icon`, the table cells; widget-shell holds what
+reads the host or calls a tool, and neither re-exports the other's names); never re-inline
+these primitives:
 
 - `ViewDataState` — the loading/error/no-data guard (no inline Alert/loading ternary):
   `onRetry` is required (`paged.retry`, a query's `refetch`), loading is a `skeleton`
   slot under a polite sr-only status ("Ansicht wird geladen…" unless `loadingText`),
-  no data the toolkit's `EmptyState`
+  no data pulse-ui's `EmptyState`
 - Self-fetching widgets: skeleton + error via `QueryFallback` (+ `TableSkeleton`) — a
   missing `isError` branch means an eternal skeleton; `onRetry` is required
-- Errors speak through the kit's `describeError(error, locale)`: an engine or transport
+- Errors speak through widget-shell's `describeError(error, locale)`: an engine or transport
   failure (503/unreachable, timeout, a tool this server lacks, 401/403, 404, an engine
   exception) becomes what happened ("Die Engine prod ist nicht erreichbar (HTTP 503)")
   and what you can do, the raw "[503 ProcessEngineException] …" collapsed under the
-  toolkit `ErrorState`'s "Details": never raw engine text as a headline or in a toast.
+  "Details" of pulse-ui's `ErrorState`: never raw engine text as a headline or in a toast.
   `ViewDataState`, `QueryFallback`, `useDetailView` (its stale notice: an inline warning
   `ErrorState`), `ConfirmDialog`, `useActionFeedback` and the view's own failed call
   (`ViewFrame`) all use it; a widget's own error line does too
-  (`ErrorState` with `describeError(...)`), and `errorTitle` heads only a failure the kit
-  cannot classify
-- A view that reads its feed directly calls the kit's `useViewData` (from
+  (`ErrorState` with `describeError(...)`), and `errorTitle` heads only a failure
+  `describeError` cannot classify
+- A view that reads its feed directly calls widget-shell's `useViewData` (from
   `@miragon/pulse-widget-shell/widgets`): the handed-in tool result always seeds a live
   query, so Refresh and a write's invalidation re-read it (#341). Widgets import every
   query hook (`useToolQuery`, `useToolMutation`, `useViewData`, `useQueryClient`) and the
-  host seam (`useViewHost`, `HostModelContext`) from the kit, never from the toolkit's
-  app/hooks layer or `mcp-use/react` (ESLint); tests render them under `TestViewHost`
+  host seam (`useViewHost`, `HostModelContext`) from the view runtime, never from
+  `mcp-use/react` or the retired toolkit UI (ESLint); tests render them under `TestViewHost`
 - `formatTimestamp`/`formatDate`/`formatTime` (dates) and `formatNumber`/`formatPercent`/
-  `formatPercentPoints`/`formatPeriod`/`formatDuration`/`truncate`: no local format
+  `formatPercentPoints`/`formatPeriod`/`formatDuration`/`truncate`, all from
+  `@miragon/pulse-ui`: no local format
   helpers, no `toFixed`, no `toLocaleString()` without a locale, no hand-built
   `Intl.NumberFormat` (canonical duration style
   "3m 7s" / German "3 Min. 7 s"; "3,7 %", "+0,2 Pp.", "7 Tage")
-- Tables: `ListTable` is the frame: a named, keyboard-reachable scroll region
+- Tables: widget-shell's `ListTable` is the frame: a named, keyboard-reachable scroll region
   (`role="region"`, `tabIndex=0`; `ariaLabel` is required), so a wide table never widens
   the document at 760 px (the host simulation pins it). A column a narrow view can do
   without takes `hideBelow: "sm" | "md" | "lg"` (the REGION's width: 640/768/1024 px;
@@ -219,34 +222,34 @@ itself; widget-shell neither forks nor re-exports them) — never re-inline thes
   stay hand-composed `<tr>` + `Td`, one cell per column (the rules address cell
   positions). An id column is `IdCell` (`IdText` inline): Geist Mono, shortened
   ("5f0ce78e…", whole for screen readers and in `title`), a copy button with a toast.
-  Nothing to show: `TableEmptyState`, `variant="done"` (`CircleCheck`, success) for
+  Nothing to show: pulse-ui's `TableEmptyState`, `variant="done"` (`CircleCheck`, success) for
   "nothing left to do" ("Keine offenen Incidents"), the default `empty` (quiet `Inbox`)
   for no data; `description`, `action`. The Komet (`KometMark`, `AppEmptyState`) only on
   APP-level surfaces (landing, first start, "no engines"), never in a widget
-- Type roles (the toolkit's `TYPE_SCALE`): a widget's page title is the `WidgetHeader`
+- Type roles (pulse-ui's `TYPE_SCALE`): a widget's page title is the `WidgetHeader`
   (28/700, an h2 below the view, `as`), a section `text-section` (21/600), running text
   `text-body` (16), dense tables and controls `text-dense` (14), captions and meta
   `text-small` (13, the floor); no `text-xs`/`text-[11px]`, no Tailwind sizes in kit
-  code (`scanTypeScale` from `/testing`; connectors adopt it with `rules:
+  code (`scanTypeScale` from `@miragon/pulse-ui/testing`; connectors adopt it with `rules:
 ["below-floor"]` first)
-- `Section` (collapsibles); `Th`/`Td` (cells); the toolkit's
+- From pulse-ui: `Section` (collapsibles); `Th`/`Td` (cells);
   `WidgetHeader` (`badge`/`titleSuffix`/`size="detail"`/`as`, no icon tile) + `VersionChip`
-  (hero/detail headers); the toolkit's `KpiGrid` (KPI strips, incl. `variant="soft"`; a
-  clickable cell says what the click does in `actionHint`, never `ariaLabel`);
-  `WidgetShell` (page container, split into View + Shell only when the body is embedded
-  elsewhere)
+  (hero/detail headers); `KpiGrid` (KPI strips, incl. `variant="soft"`; a
+  clickable cell says what the click does in `actionHint`, never `ariaLabel`). From the view
+  runtime: `WidgetShell` (page container, split into View + Shell only when the body is
+  embedded elsewhere)
 - Where and what (#322 U4, U13): a show view's `WidgetHeader` `sub` starts with
   `<EngineMeta engineId={…} asOf={…} />` (`widgets/lib/engine-context.tsx`: the
-  environment as a text chip, "PROD", and the engine through the kit's `ViewMeta`; inside
+  environment as a text chip, "PROD", and the engine through widget-shell's `ViewMeta`; inside
   the cockpit, whose head names the engine, only the time); a write confirmation adds
   `engineTargetLines(t, engineId, useEngineEnvironment(engineId))`. Names before ids: the
-  kit's `NamedId` (`@miragon/pulse-widget-shell/widgets`: an activity's or process's name, the
+  design kit's `NamedId` (`@miragon/pulse-ui`: an activity's or process's name, the
   id a quiet mono line; the same look analytics uses), `InstanceLabel`
   (`widgets/lib/identity.tsx`: the business key, the UUID a copyable `IdText` chip; the
   words of `instanceName`); a drill passes the target's `label` so its breadcrumb reads
   the name. The builder reads names as enrichment (`fetchNamesByDefinition` with
   `processNameIn`/`elementNameIn`, `fetchDefinitionsById`, `fetchBusinessKeys`), every
-  diagram name through the kit's `readBpmnNames`/`parseBpmnNames` (never a regex of your
+  diagram name through widget-shell's `readBpmnNames`/`parseBpmnNames` (never a regex of your
   own: analytics reads the same diagrams), and a view that shows the engine's definition
   name passes its rows through `nameUnnamedDefinitions` (a Modeler pool around an unnamed
   process names it, as analytics does). A row keeps ONE deterministic action;
@@ -257,7 +260,7 @@ itself; widget-shell neither forks nor re-exports them) — never re-inline thes
   failed job without retries = `danger` — `severityTone`/`countTone` from
   `@miragon/pulse-widget-shell/widgets` is the one ladder for incident and job counts in every
   module, a count without a state stays neutral —, retries left or degraded = `warning`) shown via
-  the toolkit's `StatusBadge` (tone and words required)/`CountPill`/`KpiCell.tone` or its
+  pulse-ui's `StatusBadge` (tone and words required)/`CountPill`/`KpiCell.tone` or its
   `TONE_DOT`/`TONE_BORDER`/`TONE_ICON`/`TONE_TINT`/`TONE_SOFT`/`TONE_INK` maps (a tone
   from the wire through `resolveTone`), next to readable words; never a coloured
   number, never a palette class or raw colour; text on a tint is black (`TONE_SOFT`), the
@@ -265,11 +268,11 @@ itself; widget-shell neither forks nor re-exports them) — never re-inline thes
 - Icons: Lucide via `Icon` (`import { FileSearch } from "lucide-react"`; the package pins
   devDependency `lucide-react` `1.61.0`, see CLAUDE.md invariant 6), never a Unicode glyph
   or emoji, at 16 px (`dense` in rows; `scanIconSizes` allows 16 and 24 only); a chat
-  hand-off is the kit's `<HandOffButton action="explainError" prompt={ask(…)} />`
+  hand-off is widget-shell's `<HandOffButton action="explainError" prompt={ask(…)} />`
   (`@miragon/pulse-widget-shell/widgets`: the product's one table of functions, each with its
   Lucide icon and a label that names the chat, "Fehler im Chat erklären" / "Explain error in
   chat", the same in every module; `AskAiButton` is banned in connector widgets, so a new
-  function gets its entry and both labels in the kit), placed after the deterministic action; `OpenInCockpitLink` gets `vendor={data.engineVendor}` (the
+  function gets its entry and both labels in widget-shell), placed after the deterministic action; `OpenInCockpitLink` gets `vendor={data.engineVendor}` (the
   builder sets it from `provider.branding.displayName`)
 - Copy: en + de catalogs in the brand voice (du, AI, "CIB seven", no dash connector,
   errors say what happened and what you can do, `Ja`/`Nein` for Booleans) and the terms of
@@ -277,14 +280,15 @@ itself; widget-shell neither forks nor re-exports them) — never re-inline thes
   the noun's number (`countOf` from `messages/plural.ts`). The gates: `catalogTextFindings`
   over every catalog and en/de key parity (`messages/catalog-text.test.ts`), the glossary
   (`messages/glossary.test.ts`), `scanGlyphs` over all of `src` and `scanColors` over
-  `src/widgets` (`src/brand-gates.test.ts`, `@miragon/pulse-widget-shell/testing`)
+  `src/widgets` (`src/brand-gates.test.ts`; the gates come from `@miragon/pulse-ui/testing`,
+  the glossary from `@miragon/pulse-widget-shell/testing`)
 - BPMN: viewer lifecycle and the fixed light canvas via `useBpmnViewer` (the container
   is a forced-light island, `data-theme-mode="light"`, on the paper token) +
   `BpmnZoomControls` (light in every theme, Lucide). The frame height comes from the
   diagram's size (`height` from the hook: its height at the scale bpmn-js draws it, never
   past 1:1, 240–560 px, read from the XML's DI before the import, so the frame does not
   jump): pass no fixed `height` to `BpmnDiagram` or `BpmnHeatmap` unless a layout needs
-  one. Overlay and legend colours are the kit's ONE
+  one. Overlay and legend colours are widget-shell's ONE
   token module (`BPMN_TOKENS`, `widget-shell/src/ui/bpmn-tokens.ts`: incident = danger,
   running/open task = blue on the info tint, counts white on blue or danger; strokes
   ≥ 3:1, badge text ≥ 4.5:1, drift- and contrast-tested) through `HIGHLIGHT_COLORS`
@@ -300,12 +304,12 @@ itself; widget-shell neither forks nor re-exports them) — never re-inline thes
 2. Widget: `usePagedListView` (owns search state, 300 ms debounce, the server-side
    `searchArg`, and the drop-initialData-on-interaction rule; chips go into
    `filtersActive` + the `args`) → `FilterBar` (with `searchAriaLabel`, the placeholder's
-   words without the ellipsis, and `chipsAriaLabel` for a chip row: the toolkit's default
+   words without the ellipsis, and `chipsAriaLabel` for a chip row: pulse-ui's default
    name is a generic "Filter"; `src/widgets/search-labels.test.tsx` pins every search box
    by its name) → `PagedRows` (marks the rows while they
    are the previous result) around `ListTable` (frame + `Th` header row;
    rows stay hand-composed `<tr>` + `Td`) or a `RowCard` stack → `TableEmptyState`
-   (distinguish "no match" when `interacted`) → the toolkit's `PagedListFooter`
+   (distinguish "no match" when `interacted`) → pulse-ui's `PagedListFooter`
    (`paged` as is, `noun` from the catalog — the stale page-0 error and the load-more
    error, each with its own retry and the raw reason under Details, + "Showing X of Y" in
    the list's one live region + Load more; deliberately not infinite scroll; rendered
@@ -412,7 +416,7 @@ wires them; these files are the documented exception that uses `server.tool()` d
   `WRITE_POLICY` entry (`src/widgets/lib/write-policy.ts`: the query namespaces it
   changes, and `confirm: true` for irreversible/state-changing writes — then `run`
   needs a confirmation naming its target, rendered by `EngineActionDialog`, with
-  verb + object on both buttons: the kit's `ConfirmDialog`, an `alertdialog` over the
+  verb + object on both buttons: widget-shell's `ConfirmDialog`, an `alertdialog` over the
   scrim, the destructive confirm in the danger role, a failure shown inside it). Every
   `run` passes `feedback`, the toasts' titles naming the object, from
   `src/widgets/lib/write-feedback.ts` (`writeFeedback.jobRetry(t, instanceName(id,

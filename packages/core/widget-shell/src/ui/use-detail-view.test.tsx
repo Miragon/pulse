@@ -9,7 +9,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react"
-import { LocaleProvider } from "@miragon/mcp-toolkit-ui"
+import { LocaleProvider } from "@miragon/pulse-ui"
 import { spyHost } from "./tool-host.test-support.js"
 import { useViewData } from "./tool-query.js"
 import { useDetailView } from "./use-detail-view.js"

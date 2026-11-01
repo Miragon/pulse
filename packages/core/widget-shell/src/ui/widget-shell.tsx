@@ -1,5 +1,5 @@
 import { createContext, useContext, type ReactNode } from "react"
-import { cn } from "@miragon/mcp-toolkit-ui"
+import { cn } from "@miragon/pulse-ui"
 
 /** Without this flag every embedded widget would stack a second background and padding inside the first. */
 const InsideShellContext = createContext(false)

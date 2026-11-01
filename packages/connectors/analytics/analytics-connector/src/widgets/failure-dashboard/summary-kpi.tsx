@@ -1,11 +1,6 @@
-import {
-  HandOffButton,
-  ViewMeta,
-  WidgetShell,
-  formatNumber,
-} from "@miragon/pulse-widget-shell/widgets"
+import { formatNumber, KpiGrid, WidgetHeader, cn, type KpiCell } from "@miragon/pulse-ui"
+import { HandOffButton, ViewMeta, WidgetShell } from "@miragon/pulse-widget-shell/widgets"
 import type { FailureDashboardData } from "@miragon/pulse-analytics-client"
-import { KpiGrid, WidgetHeader, cn, type KpiCell } from "@miragon/mcp-toolkit-ui"
 import type { FailureView } from "./lib.js"
 import { useT, type T } from "../../messages/use-t.js"
 import { processNameOf } from "../../bpmn-names.js"

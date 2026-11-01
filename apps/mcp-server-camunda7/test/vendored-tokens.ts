@@ -5,9 +5,9 @@ import { dirname, isAbsolute, join, relative, sep } from "node:path"
 /**
  * The verifier behind the token drift guard (`ui-stylesheet.test.ts`;
  * modeler-tool-design §13: vendor the CI tokens unchanged, never fork a
- * value). Besides the toolkit's copy (installed, so never scanned) a `--cd-*`
- * token may be declared only in a vendored copy of a CI file that a SANCTIONED
- * manifest lists. The manifest has the docs kit's format (`version` x.y.z,
+ * value). A `--cd-*` token may be declared only in a vendored copy of a CI
+ * file that a SANCTIONED manifest lists (pulse-ui's copy, the token file every
+ * view ships, is one of them). The manifest has the docs kit's format (`version` x.y.z,
  * `dateien: [{ pfad, quelle, sha256 }]`, at least one file; extra keys such as
  * `$kommentar` are fine) and sanctions a stylesheet only when it lies inside
  * the manifest's own folder and matches its sha256 byte for byte. A manifest
@@ -26,7 +26,7 @@ import { dirname, isAbsolute, join, relative, sep } from "node:path"
  * change it.
  */
 
-/** Installs and build output: never repo content (the toolkit's own copy sits in node_modules). */
+/** Installs and build output: never repo content (installed copies sit in node_modules). */
 const SKIPPED = ["node_modules", "dist", "cache", ".vitepress-cache", "test-results"]
 
 const SHA256 = /^[0-9a-f]{64}$/
@@ -58,7 +58,7 @@ export interface VendoredTokenOptions {
   /** Repo-relative folders whose `.css` files must not declare a `--cd-*` of their own. */
   scanRoots: readonly string[]
   /**
-   * The toolkit copy's top-level `:root` tokens (`rootTokens`): a sanctioned
+   * The top-level `:root` tokens of pulse-ui's copy (`rootTokens`): a sanctioned
    * copy keeps each value, and a manifest whose copies declare tokens declares
    * all of them.
    */
@@ -178,7 +178,7 @@ export function rootTokens(css: string): Map<string, string> {
 
 /**
  * Findings for the vendored token copies, empty when every `--cd-*` in the
- * scanned stylesheets lives in a sanctioned, unedited copy on the toolkit's
+ * scanned stylesheets lives in a sanctioned, unedited copy on pulse-ui's
  * palette. Each finding names the offending path and the fix.
  */
 export function vendoredTokenFindings({
@@ -247,7 +247,7 @@ export function vendoredTokenFindings({
         continue
       }
       findings.push(
-        `${posix(relative(root, file))}: declares --cd-* outside a sanctioned vendored copy (a fork): reference the toolkit's tokens and roles with var(), or vendor the CI file unchanged with a manifest listed in SANCTIONED_TOKEN_MANIFESTS`,
+        `${posix(relative(root, file))}: declares --cd-* outside a sanctioned vendored copy (a fork): reference pulse-ui's tokens and roles with var(), or vendor the CI file unchanged with a manifest listed in SANCTIONED_TOKEN_MANIFESTS`,
       )
     }
   }
@@ -263,7 +263,7 @@ export function vendoredTokenFindings({
         const expected = palette.get(name)
         if (expected !== undefined && expected !== value) {
           findings.push(
-            `${posix(relative(root, file))}: ${name} is ${value}, the toolkit's copy says ${expected}: vendor both from the same CI release (a toolkit bump or a re-vendor), never change a value in the repo`,
+            `${posix(relative(root, file))}: ${name} is ${value}, pulse-ui's copy says ${expected}: vendor both from the same CI release (a re-vendor), never change a value in the repo`,
           )
         }
       }
@@ -271,7 +271,7 @@ export function vendoredTokenFindings({
     const missing = [...palette.keys()].filter((name) => !declared.has(name))
     if (declaresTokens && missing.length > 0) {
       findings.push(
-        `${manifest}: its vendored stylesheets declare --cd-* tokens, but no top-level :root among them declares ${missing.join(", ")}, which the toolkit's copy does: a copy without a palette token forks the palette by omission, so vendor the CI token file whole (a toolkit bump or a re-vendor), never trim it`,
+        `${manifest}: its vendored stylesheets declare --cd-* tokens, but no top-level :root among them declares ${missing.join(", ")}, which pulse-ui's copy does: a copy without a palette token forks the palette by omission, so vendor the CI token file whole (a re-vendor), never trim it`,
       )
     }
   }

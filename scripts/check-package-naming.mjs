@@ -26,7 +26,7 @@
  *   where GENERATED_DIRS lists it with its reason.
  * - No .mts/.cts/.js/.mjs/.cjs/.jsx source under a package's src/: the ESLint
  *   complexity/max-lines budgets and pattern gates (globbed *.{ts,tsx}) and
- *   widget-shell's brand-gate scans (scanGlyphs, scanColors, scanIconSizes,
+ *   pulse-ui's brand-gate scans (scanGlyphs, scanColors, scanIconSizes,
  *   scanTypeScale) read .ts and .tsx only.
  * - No package.json declares an app (the npm name of an apps/<dir>) in dependencies, devDependencies, peerDependencies or
  *   optionalDependencies: not by its name, not as an npm: or workspace: alias,
@@ -428,7 +428,7 @@ export function checkLayout(files, { generatedDirs = GENERATED_DIRS } = {}) {
     errors.push(
       `${file}: a ${path.posix.extname(file)} source under src/ escapes the ESLint ` +
         `complexity and max-lines budgets and pattern gates (globbed *.{ts,tsx}) and ` +
-        `widget-shell's brand-gate scans, which read .ts and .tsx only; write it as .ts or ` +
+        `pulse-ui's brand-gate scans, which read .ts and .tsx only; write it as .ts or ` +
         `.tsx (a build script lives at the package root, outside src/)`,
     )
   }

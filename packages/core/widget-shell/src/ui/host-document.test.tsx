@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from "vitest"
 import { cleanup, render, screen } from "@testing-library/react"
-import { LocaleProvider } from "@miragon/mcp-toolkit-ui"
+import { LocaleProvider } from "@miragon/pulse-ui"
 import { SERVED_FONTS_STYLE_ID } from "./declare-served-fonts.js"
 import { HostDocument } from "./host-document.js"
 import { BpmnZoomControls } from "./bpmn-zoom-controls.js"

@@ -38,7 +38,7 @@ async function expectOneGroup(container: HTMLElement, names: RegExp[]) {
   expect(facts.querySelectorAll("a")).toHaveLength(0)
   expect(actions.map(nameOf)).toEqual(names.map((name) => expect.stringMatching(name)))
   for (const action of actions) {
-    // The toolkit's button size sm: 32 px, 14 px, semibold.
+    // The kit's button size sm: 32 px, 14 px, semibold.
     expect(action.className, nameOf(action)).toMatch(/\bh-8\b/)
     expect(action.className, nameOf(action)).toMatch(/\btext-sm\b/)
     expect(action.className, nameOf(action)).toMatch(/\bfont-semibold\b/)

@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it } from "vitest"
 import type { ComponentType } from "react"
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
-import { LocaleProvider } from "@miragon/mcp-toolkit-ui"
+import { LocaleProvider } from "@miragon/pulse-ui"
 import { CAMUNDA7_WIDGET_ACTIONS_DATA } from "../tool-names.js"
 import type { TaskFormSchema } from "../view-models.js"
 import type { CompleteTaskArgs, TaskCompletion } from "./lib/complete-task.js"

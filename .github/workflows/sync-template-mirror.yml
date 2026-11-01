@@ -65,7 +65,7 @@ jobs:
         run: |
           version="${TAG#v}"
           deadline=$((SECONDS + 600))
-          for p in camunda7-client analytics-client widget-shell camunda7-connector analytics-connector; do
+          for p in ui camunda7-client analytics-client widget-shell camunda7-connector analytics-connector; do
             tarball="https://registry.npmjs.org/@miragon/pulse-$p/-/pulse-$p-$version.tgz"
             until npm view "@miragon/pulse-$p@$version" version >/dev/null 2>&1 &&
               curl -sfI "$tarball" >/dev/null; do

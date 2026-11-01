@@ -1,4 +1,4 @@
-import { formatNumber } from "@miragon/pulse-widget-shell/widgets"
+import { formatNumber } from "@miragon/pulse-ui"
 
 /** `null` is a number the server could not vouch for: "—", never a `0` that reads as fact. */
 export function formatCount(value: number | null | undefined): string {

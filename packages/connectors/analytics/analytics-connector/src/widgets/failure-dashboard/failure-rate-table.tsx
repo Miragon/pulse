@@ -1,13 +1,16 @@
-import { TONE_DOT, cn } from "@miragon/mcp-toolkit-ui"
 import {
-  HandOffButton,
-  ListTable,
+  TONE_DOT,
+  cn,
   NamedId,
   Section,
   TableEmptyState,
   Td,
-  WidgetShell,
   formatNumber,
+} from "@miragon/pulse-ui"
+import {
+  HandOffButton,
+  ListTable,
+  WidgetShell,
   type ListTableColumn,
 } from "@miragon/pulse-widget-shell/widgets"
 import type { FailureDashboardData, ProcessFailureItem } from "@miragon/pulse-analytics-client"

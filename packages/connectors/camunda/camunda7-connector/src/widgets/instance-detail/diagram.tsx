@@ -1,7 +1,6 @@
 import { useMemo } from "react"
-import { Section } from "@miragon/pulse-widget-shell/widgets"
+import { Section, SectionHeading } from "@miragon/pulse-ui"
 
-import { SectionHeading } from "@miragon/mcp-toolkit-ui"
 import type { InstanceDetailData, OpenUserTask } from "../../view-models.js"
 import { BpmnDiagram, type BpmnHighlight } from "../bpmn-diagram.js"
 import { ActivityNode } from "../instance-sections.js"

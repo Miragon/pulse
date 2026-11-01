@@ -88,6 +88,7 @@ jobs:
       # a repo-relative directory: pinned by scripts/check-github-config.mjs.
       matrix:
         directory:
+          - packages/core/ui
           - packages/connectors/camunda/camunda7-client
           - packages/connectors/analytics/analytics-client
           - packages/core/widget-shell

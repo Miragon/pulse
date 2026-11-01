@@ -1,6 +1,6 @@
 import { useState } from "react"
-import { ViewDataState, WidgetShell, formatNumber } from "@miragon/pulse-widget-shell/widgets"
-import { GroupCard, SectionHeading, TONE_DOT } from "@miragon/mcp-toolkit-ui"
+import { formatNumber, GroupCard, SectionHeading, TONE_DOT } from "@miragon/pulse-ui"
+import { ViewDataState, WidgetShell } from "@miragon/pulse-widget-shell/widgets"
 import type { ProcessIncidentsData } from "../../view-models.js"
 import { useNav } from "../navigation.js"
 import { ActivitySummary } from "./activity-summary.js"

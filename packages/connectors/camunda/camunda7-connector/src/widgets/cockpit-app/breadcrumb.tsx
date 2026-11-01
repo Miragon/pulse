@@ -1,5 +1,4 @@
-import { FOCUS_RING, cn } from "@miragon/mcp-toolkit-ui"
-import { Icon } from "@miragon/pulse-widget-shell/widgets"
+import { FOCUS_RING, cn, Icon } from "@miragon/pulse-ui"
 import { ChevronRight } from "lucide-react"
 import { translator } from "../../messages/index.js"
 import { crumbLabel, type CockpitScope, type CockpitView } from "../nav-core.js"

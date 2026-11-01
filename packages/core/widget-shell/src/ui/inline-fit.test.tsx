@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { useState, type ReactNode } from "react"
 import { act, cleanup, fireEvent, render, renderHook, screen } from "@testing-library/react"
-import { LocaleProvider, PagedListFooter } from "@miragon/mcp-toolkit-ui"
+import { LocaleProvider, PagedListFooter } from "@miragon/pulse-ui"
 import { PagedRows } from "./paged-rows.js"
 import { Host, ROWS, Table, layout, shownRows } from "./inline-fit.test-support.js"
 import { spyHost } from "./tool-host.test-support.js"

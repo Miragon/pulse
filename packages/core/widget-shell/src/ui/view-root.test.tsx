@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { bootstrapView, disposeView } from "mcp-use/react"
-import { useLocale } from "@miragon/mcp-toolkit-ui"
+import { useLocale } from "@miragon/pulse-ui"
 import { SHELL_SETTINGS_DATA } from "../shell-settings-contract.js"
 import { createCallObserver, type CallObserver } from "./call-observer.js"
 import { SERVED_FONTS_STYLE_ID } from "./declare-served-fonts.js"

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react"
-import { ErrorState, useLocale } from "@miragon/mcp-toolkit-ui"
+import { ErrorState, useLocale } from "@miragon/pulse-ui"
 import {
   buildGradientLut,
   buildHeatPoints,

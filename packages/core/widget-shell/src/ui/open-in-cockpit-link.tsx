@@ -1,9 +1,7 @@
 import type { MouseEvent } from "react"
-import { buttonVariants, useLocale } from "@miragon/mcp-toolkit-ui"
+import { buttonVariants, useLocale, Icon, MENU_ITEM } from "@miragon/pulse-ui"
 import { ExternalLink } from "lucide-react"
-import { Icon } from "./icon.js"
 import { kitLabels } from "./kit-labels.js"
-import { MENU_ITEM } from "./menu-item.js"
 import { useViewHost } from "./view-host.js"
 
 /** Named after the vendor, not "Cockpit", which is this app's own name. */

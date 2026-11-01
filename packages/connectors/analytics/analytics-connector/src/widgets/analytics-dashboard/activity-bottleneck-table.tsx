@@ -1,13 +1,15 @@
 import {
-  HandOffButton,
-  ListTable,
   NamedId,
   Section,
   TableEmptyState,
   Td,
-  WidgetShell,
   formatDuration,
   formatNumber,
+} from "@miragon/pulse-ui"
+import {
+  HandOffButton,
+  ListTable,
+  WidgetShell,
   type ListTableColumn,
 } from "@miragon/pulse-widget-shell/widgets"
 import type { AnalyticsDashboardData } from "@miragon/pulse-analytics-client"

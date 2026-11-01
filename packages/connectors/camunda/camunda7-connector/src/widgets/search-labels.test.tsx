@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it } from "vitest"
 import { createElement, type ComponentType } from "react"
 import { cleanup, render, screen } from "@testing-library/react"
-import { LocaleProvider } from "@miragon/mcp-toolkit-ui"
+import { LocaleProvider } from "@miragon/pulse-ui"
 import type {
   ClusterDetailData,
   CockpitDashboardData,

@@ -4,11 +4,11 @@ import { describe, expect, it } from "vitest"
 
 /**
  * Every action a view shows, in its head and in its rows, has one size: the
- * toolkit's `Button` scale (32 px, 14 px, 600), so a row's "Open" sits level
- * with the chat icon button beside it. A drill is the toolkit's `DrillButton`,
- * the outline `Button` at that scale since toolkit 2.8.1
- * (Miragon/mcp-toolkit#194), never a `Button` dressed up with a trailing
- * arrow: one drill control, the toolkit's (CLAUDE.md invariant 6).
+ * kit's `Button` scale (32 px, 14 px, 600), so a row's "Open" sits level
+ * with the chat icon button beside it. A drill is pulse-ui's `DrillButton`,
+ * the outline `Button` at that scale (Miragon/mcp-toolkit#194), never a
+ * `Button` dressed up with a trailing arrow: one drill control, the kit's
+ * (CLAUDE.md invariant 6).
  */
 
 const WIDGETS = join(import.meta.dirname, "widgets")
@@ -26,7 +26,7 @@ const DRESSED_DRILL =
   /<Button\b[^>]*>(?:(?!<\/Button>)[\s\S])*?<Icon icon=\{ArrowRight\}[^>]*\/>\s*<\/Button>/
 
 describe("one drill control, at the one action size", () => {
-  it("every drill is the toolkit's DrillButton, never a Button with a trailing arrow", () => {
+  it("every drill is pulse-ui's DrillButton, never a Button with a trailing arrow", () => {
     const offenders = sources(WIDGETS)
       .filter((path) => DRESSED_DRILL.test(readFileSync(path, "utf8")))
       .map((path) => relative(WIDGETS, path))

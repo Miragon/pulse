@@ -1,12 +1,11 @@
+import { formatNumber, KpiGrid, WidgetHeader } from "@miragon/pulse-ui"
 import {
   HandOffButton,
   ViewMeta,
   WidgetShell,
   formatLookback,
-  formatNumber,
 } from "@miragon/pulse-widget-shell/widgets"
 import type { AnalyticsDashboardData } from "@miragon/pulse-analytics-client"
-import { KpiGrid, WidgetHeader } from "@miragon/mcp-toolkit-ui"
 import type { DashboardView } from "./lib.js"
 import { useT } from "../../messages/use-t.js"
 import { engineIdsOf, useHandOff, type HandOff } from "../hand-off.js"

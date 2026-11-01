@@ -9,7 +9,7 @@ import {
   DialogTitle,
   ErrorState,
   useLocale,
-} from "@miragon/mcp-toolkit-ui"
+} from "@miragon/pulse-ui"
 import { describeError } from "./describe-error.js"
 import { kitLabels } from "./kit-labels.js"
 import { useHostDisplayMode } from "./widget-shell.js"

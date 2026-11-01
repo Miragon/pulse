@@ -1,6 +1,12 @@
 import { useId } from "react"
-import { Button, ErrorState, Switch } from "@miragon/mcp-toolkit-ui"
-import { NativeSelect, SettingsCard, SettingsField } from "@miragon/pulse-widget-shell/widgets"
+import {
+  Button,
+  ErrorState,
+  Switch,
+  NativeSelect,
+  SettingsCard,
+  SettingsField,
+} from "@miragon/pulse-ui"
 
 import { groupEnginesByEnvironment } from "../lib/environments.js"
 import type { ProfileReadOnlyReason, UserProfileView } from "../lib/profile-schema.js"

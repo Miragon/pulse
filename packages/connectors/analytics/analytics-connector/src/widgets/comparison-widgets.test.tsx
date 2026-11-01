@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { ComponentType } from "react"
 import { cleanup, render, screen, within } from "@testing-library/react"
-import { LocaleProvider } from "@miragon/mcp-toolkit-ui"
+import { LocaleProvider, setFormatLocale } from "@miragon/pulse-ui"
 import type {
   ClusterCompareResult,
   CompareKpiDelta,
@@ -10,7 +10,6 @@ import type {
   VersionCompareKpi,
   VersionCompareResult,
 } from "@miragon/pulse-analytics-client"
-import { setFormatLocale } from "@miragon/pulse-widget-shell/testing"
 import { VersionCompareWidget } from "./version-compare.js"
 import { EngineCompareWidget } from "./engine-compare.js"
 import { ClusterCompareWidget } from "./cluster-compare.js"

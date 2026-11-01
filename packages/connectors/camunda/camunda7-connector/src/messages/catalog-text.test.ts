@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { catalogTextFindings } from "@miragon/pulse-widget-shell/testing"
+import { catalogTextFindings } from "@miragon/pulse-ui/testing"
 import { en } from "./en.js"
 import { de } from "./de.js"
 import { enSweep } from "./en.sweep.js"

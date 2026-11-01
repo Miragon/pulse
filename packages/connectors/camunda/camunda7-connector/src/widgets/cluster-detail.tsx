@@ -1,26 +1,26 @@
 import {
-  HandOffButton,
-  ListTable,
   LogText,
   NamedId,
-  PagedRows,
   TableEmptyState,
   Td,
-  ViewDataState,
-  WidgetShell,
   formatNumber,
   formatTimestamp,
-  usePagedListView,
-  HostModelContext,
-} from "@miragon/pulse-widget-shell/widgets"
-import {
   FilterBar,
   KpiGrid,
   StatusBadge,
   WidgetHeader,
   PagedListFooter,
   DrillButton,
-} from "@miragon/mcp-toolkit-ui"
+} from "@miragon/pulse-ui"
+import {
+  HandOffButton,
+  ListTable,
+  PagedRows,
+  ViewDataState,
+  WidgetShell,
+  usePagedListView,
+  HostModelContext,
+} from "@miragon/pulse-widget-shell/widgets"
 import type { ClusterDetailData, ClusterIncidentRow } from "../view-models.js"
 import { DetailPage } from "./detail-page.js"
 import { useNav } from "./navigation.js"

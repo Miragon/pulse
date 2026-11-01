@@ -43,16 +43,13 @@ const CHROME = {
 }
 
 /**
- * The Miragon corporate-design tokens as the toolkit vendors them
- * (`--cd-blau: #335DE5` …), colour values only — the drift guard's
+ * The Miragon corporate-design tokens as pulse-ui vendors them
+ * (`--cd-blau: #335DE5` …), colour values only: the drift guard's
  * reference for what the BUILT stylesheet must carry.
  */
 function vendoredColourTokens(): [string, string][] {
   const require = createRequire(import.meta.url)
-  const css = readFileSync(
-    require.resolve("@miragon/mcp-toolkit-ui/cd-tokens.generated.css"),
-    "utf8",
-  )
+  const css = readFileSync(require.resolve("@miragon/pulse-ui/cd-tokens.generated.css"), "utf8")
   return [...css.matchAll(/(--cd-[\w-]+):\s*(#[0-9a-fA-F]{3,8});/g)].map(([, name, value]) => [
     name,
     value,
@@ -716,8 +713,8 @@ test.describe("real camunda7 view (camunda7_show_process_list)", () => {
     expect(faces).not.toContain("data:")
 
     // Drift guard on the BUILT bundle: every Miragon colour token resolves to
-    // the value the toolkit vendors (normalized by a canvas, so a minified
-    // `#fff` equals `#FFFFFF`) — no fork, no stale copy.
+    // the value pulse-ui vendors (normalized by a canvas, so a minified
+    // `#fff` equals `#FFFFFF`): no fork, no stale copy.
     const tokens = vendoredColourTokens()
     expect(tokens.length).toBeGreaterThan(15)
     const drift = await app.locator("html").evaluate((html, expected) => {
@@ -961,11 +958,11 @@ test.describe("real BPMN view (camunda7_show_bpmn_viewer)", () => {
 
 /**
  * The kit's design-system foundation in the BUILT bundle (#322): the Miragon
- * role variables reach the view (the toolkit theme survived Tailwind), Lucide
- * icons draw at the CI stroke through lucide-react's own strokeWidth — never a
- * CSS rule — (2.5; 2 in dense rows and the view frame's toolbar, whose
+ * role variables reach the view (pulse-ui's theme survived Tailwind), Lucide
+ * icons draw at the CI stroke through lucide-react's own strokeWidth, never a
+ * CSS rule (2.5; 2 in dense rows and the view frame's toolbar, whose
  * dense icon sets it), and a KPI's state is a tinted, edged card around
- * neutral digits — never a coloured number.
+ * neutral digits, never a coloured number.
  */
 test.describe("kit foundation (camunda7_show_job_panel)", () => {
   test("role variables, Lucide strokes and the tone model reach the rendered view", async ({
@@ -1013,7 +1010,7 @@ test.describe("kit foundation (camunda7_show_job_panel)", () => {
     await expect(blocked).toBeVisible()
     const card = await blocked.evaluate((el) => {
       const style = getComputedStyle(el)
-      // The toolkit's KpiGrid (2.8): the figure on the type scale's title step.
+      // pulse-ui's KpiGrid: the figure on the type scale's title step.
       const digits = getComputedStyle(el.querySelector(".text-title")!)
       const page = getComputedStyle(document.body)
       return {

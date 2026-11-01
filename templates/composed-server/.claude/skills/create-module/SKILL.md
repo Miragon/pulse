@@ -10,8 +10,8 @@ A module is a workspace package that exports a module-definition object
 conforming **structurally** to the server's port (the `ModuleDefinition` type
 in `server/src/setup.ts`). Your module never imports the server, and the
 server never reaches into your module. Modules are peers: they never import
-each other; anything shared goes through `@miragon/pulse-widget-shell` or the
-app-wired `SharedResources`.
+each other; anything shared goes through `@miragon/pulse-ui` (the design kit),
+`@miragon/pulse-widget-shell` or the app-wired `SharedResources`.
 
 **Reference implementation: `modules/mcp-notes`.** Copy it rather than
 inventing a new shape; every step below points at the file that shows the
@@ -192,4 +192,4 @@ without `MCP_OAUTH` and its `authenticatedDefault` with it (the boot log's
 - Naming a plain tool `*_data` or `*_show_*`: the e2e naming contract will
   fail it, correctly.
 - Talking to your backend from widget code: widgets read through `*_data`
-  feeds only, via the kit's query hooks (see the add-widget skill).
+  feeds only, via the view runtime's query hooks (see the add-widget skill).

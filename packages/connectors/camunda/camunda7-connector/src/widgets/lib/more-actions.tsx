@@ -9,8 +9,7 @@ import {
   type ReactNode,
 } from "react"
 import { createPortal } from "react-dom"
-import { Button, usePortalContainer } from "@miragon/mcp-toolkit-ui"
-import { Icon } from "@miragon/pulse-widget-shell/widgets"
+import { Button, usePortalContainer, Icon } from "@miragon/pulse-ui"
 import { Ellipsis } from "lucide-react"
 
 const GAP = 4

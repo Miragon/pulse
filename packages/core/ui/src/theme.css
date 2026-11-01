@@ -1,0 +1,344 @@
+/*
+ * @miragon/pulse-ui/theme.css: the kit's design tokens and base layer, without
+ * Tailwind's entry point. `globals.css` is this file plus `@import "tailwindcss"`
+ * and the kit's `@source`; import THIS file instead when your own stylesheet
+ * already imports Tailwind:
+ *
+ *   @import "tailwindcss";
+ *   @source "<path>/node_modules/@miragon/pulse-ui/dist";
+ *   @import "@miragon/pulse-ui/theme.css";
+ *
+ * Three layers (modeler-tool-design §13):
+ *   1. `--cd-*`  the Miragon corporate-design tokens, vendored unchanged.
+ *   2. Roles     `--primary`, `--link`, `--focus`, `--<tone>`, `--<tone>-soft`,
+ *                `--<tone>-ink`, radii, shadows, motion, fonts, light AND dark,
+ *                each pointing at `--cd-*` only (never at another role, so a
+ *                role overridden on a scope cannot leave a stale alias behind;
+ *                the font roles also name the host's font, `--host-font-*`).
+ *   3. Utilities Tailwind's `@theme` maps utilities onto the roles.
+ * A brand (a customer's, or a host's neutral palette) overrides layer 2 only:
+ * see the Theme section of the package README. Components use role names
+ * exclusively.
+ */
+@import "tw-animate-css";
+/* Vendort aus Miragon/corporate-identity. Nicht bearbeiten, zum Aktualisieren neu kopieren. */
+@import "./tokens/cd-tokens.generated.css";
+
+/*
+ * Dark mode follows the host: a `.dark` class (a shell that mirrors the host
+ * theme) or `data-theme="dark"` (what SEP-1865 hosts write on <html>).
+ * `data-theme-mode="light"` marks a forced-light island: an always-light
+ * surface such as a diagram's paper and its zoom chrome.
+ *
+ * `dark:` follows the NEAREST mode scope: an element is dark when it sits in a
+ * dark scope with no light island in between. The second branch is a dark
+ * scope nested in a light island (a dark preview inside a light app); one
+ * such re-nesting is supported, which also covers a light island inside it.
+ */
+@custom-variant dark (&:is(:is(.dark, [data-theme="dark"], [data-theme-mode="dark"]) *:not([data-theme-mode="light"] *), [data-theme-mode="light"] :is(.dark, [data-theme="dark"], [data-theme-mode="dark"]) *:not([data-theme-mode="light"] :is(.dark, [data-theme="dark"], [data-theme-mode="dark"]) [data-theme-mode="light"] *)));
+
+@theme inline {
+  --font-heading: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-focus: var(--focus);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary: var(--primary);
+  --color-link: var(--link);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --color-scrim: var(--scrim);
+  /* Status tones, three roles each (CI §3.3): the colour itself for fills,
+     dots, borders and icons (`bg-danger`, `border-danger`); a tint for
+     surfaces (`bg-danger-soft`, the text on it is the foreground); and the
+     TEXT colour of a tone on a plain surface (`text-danger-ink`, e.g. a
+     field error). Success and warning reach only 1.67:1 / 1.83:1 on white,
+     so their ink is the foreground. Figures never take a tone colour. */
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-ink: var(--danger-ink);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-ink: var(--warning-ink);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-success-ink: var(--success-ink);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-info-ink: var(--info-ink);
+  /* Larger legacy steps keep deriving from the base `--radius`. */
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+  --default-transition-duration: var(--motion-fast);
+  --default-transition-timing-function: var(--ease);
+}
+
+/* Utilities whose role carries the utility's own name (`rounded-md` →
+   `var(--radius-md)`, `shadow-2` → `var(--shadow-2)`, `font-mono` →
+   `var(--font-mono)`). `reference` keeps Tailwind from emitting the
+   self-referencing theme variable; the roles below define the values.
+   The type scale works the same way: `text-small` sets the font size, line
+   height and weight of the `--text-small` role. */
+@theme inline reference {
+  --text-title: var(--text-title);
+  --text-title--line-height: var(--text-title--line-height);
+  --text-title--font-weight: var(--text-title--font-weight);
+  --text-section: var(--text-section);
+  --text-section--line-height: var(--text-section--line-height);
+  --text-section--font-weight: var(--text-section--font-weight);
+  --text-body: var(--text-body);
+  --text-body--line-height: var(--text-body--line-height);
+  --text-dense: var(--text-dense);
+  --text-dense--line-height: var(--text-dense--line-height);
+  --text-small: var(--text-small);
+  --text-small--line-height: var(--text-small--line-height);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-pill: var(--radius-pill);
+  --shadow-1: var(--shadow-1);
+  --shadow-2: var(--shadow-2);
+  --shadow-3: var(--shadow-3);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+}
+
+/* ── Mode-independent roles ───────────────────────────────────────────────── */
+:root {
+  --radius: var(--cd-radius-md);
+  --radius-sm: var(--cd-radius-sm);
+  --radius-md: var(--cd-radius-md);
+  --radius-lg: var(--cd-radius-lg);
+  --radius-pill: var(--cd-radius-pill);
+  --shadow-1: var(--cd-shadow-1);
+  --shadow-2: var(--cd-shadow-2);
+  --shadow-3: var(--cd-shadow-3);
+  --motion-fast: var(--cd-motion-fast);
+  --motion-base: var(--cd-motion-base);
+  --motion-slow: var(--cd-motion-slow);
+  --ease: var(--cd-ease);
+  /* Type scale (modeler-tool-design §4, adapted for embedded widgets: the
+     page title is the CI h2, dense tables keep 14 px as the documented
+     product exception). 13 px is the floor: nothing renders smaller. In rem,
+     so a reader's font-size setting scales it. */
+  --text-title: 1.75rem; /* 28px */
+  --text-title--line-height: 1.2;
+  --text-title--font-weight: 700;
+  --text-section: 1.3125rem; /* 21px */
+  --text-section--line-height: 1.3;
+  --text-section--font-weight: 600;
+  --text-body: 1rem; /* 16px */
+  --text-body--line-height: 1.6;
+  --text-dense: 0.875rem; /* 14px */
+  --text-dense--line-height: 1.5;
+  --text-small: 0.8125rem; /* 13px */
+  --text-small--line-height: 1.5;
+  /* Geist first, then the host's font, then the system stack. Loading Geist
+     is opt-in (fonts.css or fontFaces()); where it is not loaded the next
+     family renders. A SEP-1865 host sends its font as --font-sans and
+     --font-mono, the same names as these roles: adoptHostFontVariables moves
+     it to --host-font-sans / --host-font-mono, so it
+     fills the fallback slot instead of replacing the whole stack. A brand
+     sets --font-sans itself. */
+  --font-sans:
+    "Geist", "Geist Variable", var(--host-font-sans, ui-sans-serif), system-ui, sans-serif;
+  --font-mono:
+    "Geist Mono", "Geist Mono Variable", var(--host-font-mono, ui-monospace), SFMono-Regular, Menlo,
+    Consolas, monospace;
+}
+
+/* ── Light roles ──────────────────────────────────────────────────────────── */
+/* Re-declared on a forced-light island only where it sits inside a dark
+   scope, so it stays light there. A light scope in a light document
+   re-declares nothing and inherits what the document set, a consumer's
+   `:root` brand included. `:where()` keeps the island selector at (0,1,0):
+   a brand rule on `[data-theme-mode="light"]` after this file still wins. */
+:root,
+:where(.dark, [data-theme="dark"], [data-theme-mode="dark"]) [data-theme-mode="light"] {
+  --background: var(--cd-weiss);
+  --foreground: var(--cd-schwarz);
+  --card: var(--cd-weiss);
+  --card-foreground: var(--cd-schwarz);
+  --popover: var(--cd-weiss);
+  --popover-foreground: var(--cd-schwarz);
+  --primary: var(--cd-blau);
+  --primary-foreground: var(--cd-weiss);
+  --primary-hover: var(--cd-blau-link);
+  --secondary: var(--cd-grau);
+  --secondary-foreground: var(--cd-schwarz);
+  --muted: var(--cd-grau);
+  --muted-foreground: var(--cd-text-leise);
+  --accent: var(--cd-info-soft);
+  --accent-foreground: var(--cd-blau-link);
+  --link: var(--cd-blau-link);
+  --destructive: var(--cd-danger);
+  --destructive-foreground: var(--cd-weiss);
+  --border: var(--cd-linie);
+  --input: var(--cd-kontur);
+  --ring: var(--cd-blau-link);
+  --focus: var(--cd-blau-link);
+  --success: var(--cd-success);
+  --success-soft: var(--cd-success-soft);
+  --success-ink: var(--cd-schwarz);
+  --warning: var(--cd-warning);
+  --warning-soft: var(--cd-warning-soft);
+  --warning-ink: var(--cd-schwarz);
+  --danger: var(--cd-danger);
+  --danger-soft: var(--cd-danger-soft);
+  --danger-ink: var(--cd-danger);
+  --info: var(--cd-info);
+  --info-soft: var(--cd-info-soft);
+  --info-ink: var(--cd-info);
+  --chart-1: var(--cd-blau);
+  --chart-2: var(--cd-gruen);
+  --chart-3: var(--cd-blau-hell);
+  --chart-4: var(--cd-kontur);
+  --chart-5: var(--cd-schwarz);
+  --sidebar: var(--cd-grau);
+  --sidebar-foreground: var(--cd-schwarz);
+  --sidebar-primary: var(--cd-blau);
+  --sidebar-primary-foreground: var(--cd-weiss);
+  --sidebar-accent: var(--cd-info-soft);
+  --sidebar-accent-foreground: var(--cd-blau-link);
+  --sidebar-border: var(--cd-linie);
+  --sidebar-ring: var(--cd-blau-link);
+  --scrim: color-mix(in srgb, var(--cd-schwarz) 42%, transparent);
+}
+
+/* ── Dark roles (CI dark-ground rules) ────────────────────────────────────── */
+/* --cd-schwarz is the ground; quiet surfaces lift it with white. Text white,
+   links and accent text green, buttons stay blue with white text, focus
+   blau-hell, status in the -hell values WITHOUT tinted fills, quiet text
+   --cd-kontur. --cd-kontur keeps 4.5:1 only up to a 3 % lift, so the quiet
+   surfaces quiet text sits on (--muted, --sidebar) lift 3 %. The
+   hover/selected (--accent) and secondary surfaces lift 10 % to stay
+   visible; quiet text on them switches to their foreground (both pinned in
+   theme-css.test.ts). --popover stays on the ground: --cd-blau (a checked
+   Switch in a sheet) reaches 3:1 only there (3.08:1; 2.92:1 at a 2 % lift).
+   Overlays stand off the page by their border and a scrim that pushes the
+   page back harder than on light. A destructive action keeps the
+   --cd-danger fill: white on --cd-danger-hell is 2.79:1. */
+.dark,
+[data-theme="dark"],
+[data-theme-mode="dark"] {
+  --background: var(--cd-schwarz);
+  --foreground: var(--cd-weiss);
+  --card: var(--cd-schwarz);
+  --card-foreground: var(--cd-weiss);
+  --popover: var(--cd-schwarz);
+  --popover-foreground: var(--cd-weiss);
+  --primary: var(--cd-blau);
+  --primary-foreground: var(--cd-weiss);
+  --primary-hover: var(--cd-blau-link);
+  --secondary: color-mix(in srgb, var(--cd-weiss) 10%, var(--cd-schwarz));
+  --secondary-foreground: var(--cd-weiss);
+  --muted: color-mix(in srgb, var(--cd-weiss) 3%, var(--cd-schwarz));
+  --muted-foreground: var(--cd-kontur);
+  --accent: color-mix(in srgb, var(--cd-weiss) 10%, var(--cd-schwarz));
+  --accent-foreground: var(--cd-weiss);
+  --link: var(--cd-gruen);
+  --destructive: var(--cd-danger);
+  --destructive-foreground: var(--cd-weiss);
+  --border: color-mix(in srgb, var(--cd-weiss) 14%, transparent);
+  --input: var(--cd-kontur);
+  --ring: var(--cd-blau-hell);
+  --focus: var(--cd-blau-hell);
+  --success: var(--cd-success-hell);
+  --success-soft: transparent;
+  --success-ink: var(--cd-success-hell);
+  --warning: var(--cd-warning-hell);
+  --warning-soft: transparent;
+  --warning-ink: var(--cd-warning-hell);
+  --danger: var(--cd-danger-hell);
+  --danger-soft: transparent;
+  --danger-ink: var(--cd-danger-hell);
+  --info: var(--cd-info-hell);
+  --info-soft: transparent;
+  --info-ink: var(--cd-info-hell);
+  --chart-1: var(--cd-blau-hell);
+  --chart-2: var(--cd-gruen);
+  --chart-3: var(--cd-blau);
+  --chart-4: var(--cd-kontur);
+  --chart-5: var(--cd-weiss);
+  --sidebar: color-mix(in srgb, var(--cd-weiss) 3%, var(--cd-schwarz));
+  --sidebar-foreground: var(--cd-weiss);
+  --sidebar-primary: var(--cd-blau);
+  --sidebar-primary-foreground: var(--cd-weiss);
+  --sidebar-accent: color-mix(in srgb, var(--cd-weiss) 10%, var(--cd-schwarz));
+  --sidebar-accent-foreground: var(--cd-weiss);
+  --sidebar-border: color-mix(in srgb, var(--cd-weiss) 14%, transparent);
+  --sidebar-ring: var(--cd-blau-hell);
+  --scrim: color-mix(in srgb, var(--cd-schwarz) 72%, transparent);
+}
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    @apply border-border outline-focus;
+  }
+  html,
+  body {
+    @apply bg-background text-foreground;
+  }
+  /* An opaque focus ring (>= 3:1 in both modes) on every focusable element,
+     including raw <button>s. Components with their own ring (FOCUS_RING) win:
+     utilities are a later layer. */
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+  /* Native controls and scrollbars follow the mode. Declared on <body> and
+     the mode scopes, never on <html>: a root color-scheme that differs from
+     the host's iframe element makes the browser paint an opaque canvas
+     behind the view, which the host keeps transparent on purpose. */
+  body,
+  :where(body) [data-theme-mode="light"] {
+    color-scheme: light;
+  }
+  :is(.dark, [data-theme="dark"]) body,
+  body:is(.dark, [data-theme="dark"], [data-theme-mode="dark"]),
+  :where(body) :is(.dark, [data-theme="dark"], [data-theme-mode="dark"]) {
+    color-scheme: dark;
+  }
+}
+
+/* Reduced motion, always (modeler-tool-design §7). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

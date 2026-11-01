@@ -198,24 +198,25 @@ Two decisions stay yours:
 
 ## Step 5 — the section widget
 
-One self-fetching card, composed from `@miragon/pulse-widget-shell/widgets` —
-`SettingsCard` / `SettingsField` / `SettingsInput` / `NativeSelect`, never re-inlined:
+One self-fetching card: its fields from the design kit `@miragon/pulse-ui` (`SettingsCard` /
+`SettingsField` / `SettingsInput` / `NativeSelect`, never re-inlined), its data and save through
+the view runtime `@miragon/pulse-widget-shell/widgets`:
 
 - Self-fetch the `*_data` feed via `useToolQuery`, skipped when `data` props arrive from
   the `show_*` path (`{ enabled: !initialData }`).
 - **Hide on unknown-tool, error on everything else**: an "…not found" rejection naming
   your feed means the module is inactive → `return null`. Any other failure stays visible
   through `QueryFallback` (a missing `isError` branch = eternal skeleton; `onRetry` is the
-  query's `refetch`, required; the kit's `describeError` words the failure).
-- Re-sync the form baseline from server truth with the kit's
+  query's `refetch`, required; widget-shell's `describeError` words the failure).
+- Re-sync the form baseline from server truth with pulse-ui's
   `useResetOnChange(stamp, reset)`, the saved values as the stamp (feed refetch after
   save, another session's write; reference: analytics' `settings-section.tsx`). Never
   `useEffect(reset, [data])`: `react-hooks/set-state-in-effect` rejects it, and it
   commits the stale baseline once before correcting it.
 - Write via `useToolMutation(SAVE_TOOL, { invalidateKeys: [[…]] })` so a remount seeds
   from the saved truth, not a stale cache entry. Confirm the save in a toast and say why
-  it failed there too: the kit's `useActionFeedback().succeeded(t("…savedToast"))` /
-  `.failed(t("…saveFailedToast"), error)` (the toolkit's toasts are the polite live region
+  it failed there too: widget-shell's `useActionFeedback().succeeded(t("…savedToast"))` /
+  `.failed(t("…saveFailedToast"), error)` (pulse-ui's toasts are the polite live region
   a screen reader hears; reference: analytics' `settings-section.tsx`; camunda7's panel
   passes `feedback` to `useEngineAction`).
 - Render `<HostModelContext content={modelContextText(describe…(view))}>` **inline** in the

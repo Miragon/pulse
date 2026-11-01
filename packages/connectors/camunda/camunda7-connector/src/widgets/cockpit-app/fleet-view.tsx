@@ -1,13 +1,19 @@
 import {
-  countTone,
   formatNumber,
+  Icon,
+  CountPill,
+  FOCUS_RING,
+  SectionHeading,
+  TONE_DOT,
+  cn,
+} from "@miragon/pulse-ui"
+import {
+  countTone,
   HandOffButton,
   HostWidgetSlot,
-  Icon,
   useHostWidget,
 } from "@miragon/pulse-widget-shell/widgets"
 import { ArrowRight } from "lucide-react"
-import { CountPill, FOCUS_RING, SectionHeading, TONE_DOT, cn } from "@miragon/mcp-toolkit-ui"
 import type { CockpitDashboardData } from "../../view-models.js"
 import {
   enginesByEnvironment,

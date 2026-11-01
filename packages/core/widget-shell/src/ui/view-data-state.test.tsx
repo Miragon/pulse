@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
-import { LocaleProvider } from "@miragon/mcp-toolkit-ui"
+import { LocaleProvider } from "@miragon/pulse-ui"
 import { ViewDataState } from "./view-data-state.js"
 
 afterEach(cleanup)
@@ -96,7 +96,7 @@ describe("ViewDataState: loading (U22)", () => {
 })
 
 describe("ViewDataState: no data (U10)", () => {
-  it("renders the toolkit's empty state with the given text", () => {
+  it("renders pulse-ui's empty state with the given text", () => {
     const { container } = render(
       <ViewDataState
         loading={false}

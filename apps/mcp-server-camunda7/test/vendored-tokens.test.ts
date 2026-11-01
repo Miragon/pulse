@@ -147,7 +147,7 @@ describe("vendoredTokenFindings: sanctioned copies pass", () => {
   })
 
   it.each(["node_modules", "dist", "cache", ".vitepress-cache", "test-results"])(
-    "a copy under %s/ is install or build output and not read (the toolkit's copy stays out)",
+    "a copy under %s/ is install or build output and not read (installed copies stay out)",
     (dir) => {
       write({ [`app/${dir}/t/cd-tokens.generated.css`]: TOKENS })
       expect(findings([])).toEqual([])
@@ -303,9 +303,9 @@ describe("vendoredTokenFindings: the palette rule", () => {
       "app/theme/manifest.json": manifestOf({ "app/theme/cd-tokens.generated.css": drifted }),
     })
     expect(findings(["app/theme/manifest.json"])).toEqual([
-      "app/theme/cd-tokens.generated.css: --cd-blau is #1D1D1D, the toolkit's copy says #335DE5: vendor both from the same CI release (a toolkit bump or a re-vendor), never change a value in the repo",
+      "app/theme/cd-tokens.generated.css: --cd-blau is #1D1D1D, pulse-ui's copy says #335DE5: vendor both from the same CI release (a re-vendor), never change a value in the repo",
       // --cd-gruen sits in the dark scope only: no top-level :root declares it.
-      "app/theme/manifest.json: its vendored stylesheets declare --cd-* tokens, but no top-level :root among them declares --cd-gruen, which the toolkit's copy does: a copy without a palette token forks the palette by omission, so vendor the CI token file whole (a toolkit bump or a re-vendor), never trim it",
+      "app/theme/manifest.json: its vendored stylesheets declare --cd-* tokens, but no top-level :root among them declares --cd-gruen, which pulse-ui's copy does: a copy without a palette token forks the palette by omission, so vendor the CI token file whole (a re-vendor), never trim it",
     ])
   })
 
@@ -327,7 +327,7 @@ describe("vendoredTokenFindings: the palette rule", () => {
       "app/theme/manifest.json": manifestOf({ "app/theme/cd-tokens.generated.css": scoped }),
     })
     expect(findings(["app/theme/manifest.json"])).toEqual([
-      expect.stringMatching(/declares --cd-gruen, which the toolkit's copy does/),
+      expect.stringMatching(/declares --cd-gruen, which pulse-ui's copy does/),
     ])
   })
 
@@ -414,5 +414,5 @@ describe("rootTokens", () => {
 })
 
 function forkFix(): string {
-  return "reference the toolkit's tokens and roles with var(), or vendor the CI file unchanged with a manifest listed in SANCTIONED_TOKEN_MANIFESTS"
+  return "reference pulse-ui's tokens and roles with var(), or vendor the CI file unchanged with a manifest listed in SANCTIONED_TOKEN_MANIFESTS"
 }

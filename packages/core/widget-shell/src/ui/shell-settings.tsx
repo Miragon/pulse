@@ -1,5 +1,15 @@
 import { useState } from "react"
-import { Button, ErrorState, Skeleton, WidgetHeader, useLocale } from "@miragon/mcp-toolkit-ui"
+import {
+  Button,
+  ErrorState,
+  Skeleton,
+  WidgetHeader,
+  useLocale,
+  NativeSelect,
+  SettingsCard,
+  SettingsField,
+  useResetOnChange,
+} from "@miragon/pulse-ui"
 import { Lock } from "lucide-react"
 import { LANGUAGES, explicitLocale, type LanguagePref } from "../profile-constants.js"
 import {
@@ -12,12 +22,9 @@ import { useActionFeedback } from "./action-feedback.js"
 import { modelContextText, type ModelContextSpec } from "./ask-ai-prompt.js"
 import { classifyError } from "./describe-error.js"
 import { HostWidgetSlot, settingsSections, useHostWidgets } from "./host-widgets.js"
-import { NativeSelect } from "./native-select.js"
 import { QueryFallback } from "./query-fallback.js"
-import { SettingsCard, SettingsField } from "./settings.js"
 import { LANGUAGE_NAMES, settingsLabels } from "./settings-labels.js"
 import { useToolMutation, useToolQuery } from "./tool-query.js"
-import { useResetOnChange } from "./use-reset-on-change.js"
 import { HostModelContext } from "./view-host.js"
 import type { ViewMap } from "./views.js"
 import { WidgetShell } from "./widget-shell.js"

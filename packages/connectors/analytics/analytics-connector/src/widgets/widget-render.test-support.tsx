@@ -1,8 +1,7 @@
 import { afterEach, beforeEach, vi } from "vitest"
 import type { ComponentType } from "react"
 import { cleanup, render, screen, within } from "@testing-library/react"
-import { LocaleProvider } from "@miragon/mcp-toolkit-ui"
-import { setFormatLocale } from "@miragon/pulse-widget-shell/testing"
+import { LocaleProvider, setFormatLocale } from "@miragon/pulse-ui"
 import { TestViewHost } from "@miragon/pulse-widget-shell/widgets"
 
 export const NOW = "2026-10-10T12:40:00.000Z"
