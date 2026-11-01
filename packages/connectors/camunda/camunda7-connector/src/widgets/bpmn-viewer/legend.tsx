@@ -16,7 +16,7 @@ function CountSwatch({ badge }: { badge: Parameters<typeof badgeSwatch>[0] }) {
 }
 
 /** The same badge means different things per `statsScope`; colours come from HIGHLIGHT_COLORS so the legend can't drift. */
-export function BpmnViewerLegend({ data }: { data: BpmnViewerData | null }) {
+export function BpmnViewerLegend({ data }: { data: BpmnViewerData }) {
   const t = useT()
   return (
     <ul role="list" className="text-small flex flex-wrap items-center gap-4">
@@ -39,7 +39,7 @@ export function BpmnViewerLegend({ data }: { data: BpmnViewerData | null }) {
       <li className="flex items-center gap-1.5">
         <CountSwatch badge={HIGHLIGHT_COLORS.instanceBadge} />
         <span className="text-muted-foreground">
-          {data?.statsScope === "instance"
+          {data.statsScope === "instance"
             ? t("bpmnLegend.instanceTokens")
             : t("bpmnLegend.instanceCount")}
         </span>

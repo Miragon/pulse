@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { parseToolResult } from "@miragon/mcp-toolkit-ui"
+import { decodeToolResult, type ToolResult } from "@miragon/pulse-widget-shell/server"
 import type { MCPServer } from "mcp-use"
 import { createInMemoryProfileStore } from "@miragon/pulse-widget-shell/server"
 import {
@@ -14,7 +14,8 @@ import { localizeFor, type ProfileSource } from "./server-locale.js"
 import type { AnalyticsToolset } from "./toolsets.js"
 
 /** Feeds answer in JSON text only. */
-const feedData = <T = Record<string, unknown>>(result: unknown): T => parseToolResult<T>(result)
+const feedData = <T = Record<string, unknown>>(result: unknown): T =>
+  decodeToolResult<T>(result as ToolResult)
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -189,29 +190,15 @@ describe("registerSettingsTools", () => {
     expect(standard.content[0].text).toBe(
       "Analytics settings: default period 7d, min bucket size 10. Change via analytics_save_settings.",
     )
-    // An English title would sit over a German view (#322 U3).
-    expect(standard.structuredContent.title).toBeUndefined()
-    expect(standard.structuredContent).toMatchObject({
-      layout: [{ row: [{ widget: "analytics:settings" }] }],
-      context: {
-        stepData: {
-          result: {
-            data: { settings: defaults, canSave: true },
-            _app: "analytics",
-            _dataType: "analytics:settings",
-          },
-        },
-      },
-    })
+    // The view's data only: the section heading names it in the host's language (#322 U3).
+    expect(standard.structuredContent).toEqual({ settings: defaults, canSave: true })
 
     // Advertising the save tool here would send the model to an unknown tool.
     const readOnly = await show("read-only")
     expect(readOnly.content[0].text).toBe(
       "Analytics settings: default period 7d, min bucket size 10.",
     )
-    expect(readOnly.structuredContent).toMatchObject({
-      context: { stepData: { result: { data: { settings: defaults, canSave: false } } } },
-    })
+    expect(readOnly.structuredContent).toEqual({ settings: defaults, canSave: false })
   })
 
   it("round-trips a save through the caller's record", async () => {

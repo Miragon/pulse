@@ -1,10 +1,9 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest"
-import type { ComponentType } from "react"
 import { cleanup, render, screen } from "@testing-library/react"
-import { LocaleProvider, queryClient } from "@miragon/mcp-toolkit-ui"
-import { WidgetFixtureHost } from "@miragon/mcp-toolkit-ui/app"
+import { LocaleProvider } from "@miragon/mcp-toolkit-ui"
 import { AnalyticsBpmnHeatmap, type AnalyticsBpmnHeatmapData } from "./bpmn-heatmap.js"
+import { TestViewHost } from "@miragon/pulse-widget-shell/widgets"
 
 // The kit's viewer meets a diagram bpmn-js cannot import: the import-error
 // alert is what this suite reads.
@@ -23,7 +22,6 @@ vi.mock("bpmn-js/lib/NavigatedViewer", () => ({ default: viewer.MockViewer }))
 
 afterEach(() => {
   cleanup()
-  queryClient.clear()
 })
 
 const HEATMAP: AnalyticsBpmnHeatmapData = {
@@ -37,12 +35,11 @@ const HEATMAP: AnalyticsBpmnHeatmapData = {
 function renderIn(language: "de" | "en") {
   return render(
     <LocaleProvider locale={language}>
-      <WidgetFixtureHost
-        widget={AnalyticsBpmnHeatmap as unknown as ComponentType<Record<string, unknown>>}
-        data={HEATMAP as unknown as Record<string, unknown>}
-        // The view reads its diagram from the feed, never from its payload.
+      <TestViewHost // The view reads its diagram from the feed, never from its payload.
         tools={{ analytics_bpmn_xml_data: { bpmnXml: "<broken/>" } }}
-      />
+      >
+        <AnalyticsBpmnHeatmap data={HEATMAP as never} />
+      </TestViewHost>
     </LocaleProvider>,
   )
 }

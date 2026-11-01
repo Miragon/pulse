@@ -77,6 +77,5 @@ mit ihrem Icon und beiden Labels ins Kit. Das Glossar von analytics führt diese
 - Zahlen kommen formatiert in den Katalog (`formatNumber` im Widget); der Plural hängt an der
   Zahl (`countOf` in `plural.ts`), nie an zwei Schlüsseln `…One`/`…Other`.
 - Englisch in Sentence case: „Open incidents“, nicht „Open Incidents“.
-- Ein Show-Tool setzt den Titel seiner Ansicht nur in einer Sprache, die das Profil nennt
-  (`localizeViewFor`); mit „system“ setzt es keinen, und die Überschrift des Widgets nennt die
-  Ansicht in der Sprache des Hosts. Das gilt für die Show-Tools jedes Moduls.
+- Der Server setzt keinen Titel über eine Ansicht: die Überschrift des Widgets nennt sie in
+  der Sprache des Hosts. Das gilt für die Show-Tools jedes Moduls.

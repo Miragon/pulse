@@ -198,29 +198,34 @@ limitations (e.g. "queue/wait time is not available from metrics").
 
 ## Step 5 — dashboard widget (only for UI features)
 
-The widget chain mirrors the camunda7 module:
+The view chain mirrors the camunda7 module:
 
 1. Component in `packages/connectors/analytics/analytics-connector/src/widgets/`, taking a `data` prop.
-2. Register it in `src/widgets/index.ts` in `analyticsWidgets` via
-   `adaptDataWidget(MyWidget, "analytics:<dataType>")` (from
-   `@miragon/pulse-widget-shell/ui`).
-3. The host map `apps/mcp-server-camunda7/src/ui/widget-registry.ts` spreads
-   `analyticsWidgets` — verify your widget arrives there.
-   `apps/mcp-server-camunda7/test/widget-registry.test.ts` fails on any
-   `widget: "analytics:<id>"` a show tool emits that the host map lacks.
+2. Register its view in `src/widgets/views.tsx` in `analyticsViews` under the show tool's
+   name (an `ANALYTICS_SHOW_*` constant in `src/tool-names.ts`): one explicit component
+   per view, `<HostModelContext content={describeMyView(data)}><MyWidget data={data} /></HostModelContext>`;
+   a dashboard is ONE component that stacks its widgets (`ViewStack`, each row in its own
+   error boundary), each in its own `HostModelContext`, every part taking the view's data
+   as it is (reference: `src/widgets/analytics-dashboard/view.tsx`).
+3. The view registry `apps/mcp-server-camunda7/src/ui/view-registry.ts` spreads
+   `analyticsViews` — verify your view arrives there.
+   `apps/mcp-server-camunda7/test/view-registry.test.ts` fails on any view-bound tool
+   without a view.
 4. Register an `analytics_show_*` tool in `src/widget-tools.ts` with
    `inputSchema: strictToolInput({ … })` (strict like the registrar's `strictInput`: an
    unknown key is a tool error listing the valid ones — naming per the guide in the
    add-bpm-feature skill, e.g. `maxResults`, never `limit`; `activityId`, never `elementId`) and spread `...showToolBinding(TOOL_NAME, "Title")` (from
    `@miragon/pulse-widget-shell/server` — native `view` binding named after the tool + required
    passthrough `outputSchema` + the Apps-SDK `_meta` half; never hand-write
-   `_meta.ui` keys, mcp-use owns them), returning `buildComposedView(...)` /
-   `buildSingleWidgetView(...)` from `@miragon/pulse-widget-shell/server` (see
-   `analytics_show_dashboard`). An app-only `*_data` feed spreads `...appOnly`
+   `_meta.ui` keys, mcp-use owns them), returning `buildViewResult(data, summary)` from
+   `@miragon/pulse-widget-shell/server` (the `structuredContent` IS the view's data; see
+   `analytics_show_dashboard`). Only a widget that reads a feed itself (rendered without
+   data, like the fleet's landscape, or refreshing in place) needs one: an app-only
+   `*_data` feed spreads `...appOnly`
    (`visibility: "app"` + `openai/widgetAccessible`, **no** view binding) and returns
    `buildDataFeedResult(data)`. Both resolve `engine` through `withEngineScope` like the
-   registrar tools, and the payload echoes the resolved `engines` so the widget's
-   `describeForModel` names the scope from the DATA (`src/widgets/model-descriptions.ts`).
+   registrar tools, and the payload echoes the resolved `engines` so the view's
+   description names the scope from the DATA (`src/widgets/model-descriptions.ts`).
 
 Rules while building:
 
@@ -307,9 +312,9 @@ Rules while building:
   ("nicht belastbar", "Zeitraum" …, plus the kit's `PRODUCT_GLOSSARY` shared with camunda7:
   "Incident", "Jobs ohne Versuche", "bereitgestellt" …; `glossary.test.ts` rejects the
   synonyms both rule out), counted entries are `plural(…)` and take the count formatted.
-- A show tool words its result with `const { t, title } = await localizeViewFor(store, ctx)`:
-  `title("…")` for the view title (none while the profile follows the host),
-  `t("…")` for the model summary; `src/view-title.test.ts` sweeps every show tool.
+- A show tool words its summary with `const t = await localizeFor(store, ctx)` (the
+  language the profile names, else English) and sets no title: the widget's heading names
+  the view in the host's language.
 - Every data view states its reference frame under its title with the kit's `ViewMeta`:
   `formatLookback(data.period)`, `enginesMeta(data.engines, reporting)`
   (`src/widgets/view-meta.ts`) and the result's `asOf` (every analytics-client view
@@ -326,13 +331,13 @@ Rules while building:
   `errorHint`, the parser's text under Details).
 - A save confirms in a toast and says why it failed there too (the kit's
   `useActionFeedback().succeeded/failed`, reference: `settings-section.tsx`).
-- The model description (`adaptDataWidget`'s third argument, in
-  `src/widgets/model-descriptions.ts`) returns `modelContextText(…)` with
+- The model description (a `describe*` function in `src/widgets/model-descriptions.ts`,
+  named directly in the view's `<HostModelContext content={…}>`) returns `modelContextText(…)` with
   `surface: ANALYTICS_ONLY_SURFACE` — a static `summary`, data only in
   `ids`/`facts`/`untrusted`, tools only in `tools`; Ask-AI hand-offs go through
   `useHandOff()` (`src/widgets/hand-off.ts`). Both state the scope of the data on
   screen: `engine: engineIdsOf(data.engines)` (the resolved, configured ids — never
-  the cell's `engine` prop, which only feeds the self-fetch), `period`/key from the
+  a widget's `engine` prop, which only feeds its self-fetch), `period`/key from the
   echo; a null figure is left out, never sent as 0. CLAUDE.md invariant 6;
   `apps/mcp-server-camunda7/test/hand-off-surface.test.ts` rejects a hand-written text.
 - Naming is load-bearing: `apps/mcp-server-camunda7/test/widget-contract.e2e.test.ts` enforces

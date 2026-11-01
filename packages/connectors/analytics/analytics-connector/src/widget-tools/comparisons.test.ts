@@ -12,7 +12,7 @@ import { registerComparisonWidgetTools } from "./comparisons.js"
 type ToolResult = {
   isError?: boolean
   content: Array<{ type: string; text: string }>
-  structuredContent: { context: { stepData: { result: { data: unknown } } } }
+  structuredContent: Record<string, unknown>
 }
 type Handler = (args: Record<string, unknown>, ctx: unknown) => Promise<ToolResult>
 
@@ -29,7 +29,7 @@ function handlers(ch: PrometheusClient): Map<string, Handler> {
   return byName
 }
 
-const dataOf = <T>(result: ToolResult) => result.structuredContent.context.stepData.result.data as T
+const dataOf = <T>(result: ToolResult) => result.structuredContent as T
 
 /** Every query answers 20, so instance counts and durations are equal across versions. */
 const ch: PrometheusClient = { instant: () => Promise.resolve([{ metric: {}, value: 20 }]) }
@@ -118,7 +118,7 @@ describe("analytics_show_engine_compare — engine scope (N138)", () => {
   })
 })
 
-describe("view titles (U3): the toolbar speaks the caller's language", () => {
+describe("no server titles (U3): the widget heading names the view in the host's language", () => {
   const CTX = { auth: { user: { id: "user-1" } } }
   const titledHandlers = (language: string) => {
     const byName = new Map<string, Handler>()
@@ -131,9 +131,6 @@ describe("view titles (U3): the toolbar speaks the caller's language", () => {
     registerComparisonWidgetTools({ server, ch, engineScope, profileStore })
     return byName
   }
-  const titleOf = (result: ToolResult) =>
-    (result.structuredContent as unknown as { title?: string }).title
-
   const CALLS: Array<[string, Record<string, unknown>]> = [
     // Handlers called directly get no schema defaults: pass the window.
     [
@@ -146,24 +143,15 @@ describe("view titles (U3): the toolbar speaks the caller's language", () => {
     ],
     ["analytics_show_engine_landscape", {}],
   ]
-  const titles = async (language: string) => {
-    const tools = titledHandlers(language)
-    return Promise.all(CALLS.map(([name, args]) => tools.get(name)!(args, CTX).then(titleOf)))
-  }
 
-  it("titles each comparison and the landscape in German", async () => {
-    expect(await titles("de")).toEqual([
-      "Versionsvergleich",
-      "Engine-Vergleich",
-      "Engine-übergreifende Übersicht",
-    ])
-  })
-
-  it("and in English, in sentence case", async () => {
-    expect(await titles("en")).toEqual([
-      "Version comparison",
-      "Engine comparison",
-      "Cross-engine landscape",
-    ])
+  it("hands each comparison and the landscape its data only", async () => {
+    for (const language of ["de", "en"]) {
+      const tools = titledHandlers(language)
+      for (const [name, args] of CALLS) {
+        const { structuredContent } = await tools.get(name)!(args, CTX)
+        expect(Object.keys(structuredContent)).not.toContain("title")
+        expect(Object.keys(structuredContent)).not.toContain("layout")
+      }
+    }
   })
 })

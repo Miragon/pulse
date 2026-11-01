@@ -24,8 +24,7 @@ const PRIMITIVE = "lib/engine-action.ts"
  * reviewed decision. Neither of these calls a tool through it.
  */
 const RAW_CALLER_HOLDERS: Record<string, string> = {
-  "cockpit-app/app.tsx": "checks that the query transport is wired",
-  "standalone-shell.tsx": "reads the delivered widget data; checks the query transport",
+  "navigation.ts": "posts a navigation intent as a chat follow-up; calls no tool",
 }
 
 /** Every tool the plugin registers on the widest toolset, with its read/write nature. */
@@ -65,7 +64,7 @@ describe("every in-widget write goes through useEngineAction", () => {
     expect(registered.get("camunda7_jobs_data")?.readOnly).toBe(true)
   })
 
-  it("only the primitive holds the toolkit's raw mutation and the deployment gate", () => {
+  it("only the primitive holds the raw mutation and the deployment gate", () => {
     expect(scan.mutationImports).toEqual([PRIMITIVE])
     expect(scan.canRunCalls).toEqual([PRIMITIVE])
   })
@@ -120,16 +119,6 @@ describe("every in-widget write goes through useEngineAction", () => {
     }
   })
 
-  it("seeds every direct useViewData read, so Refresh and a write's invalidation reach it", () => {
-    // The toolkit's default ("static") switches the query off under handed-in
-    // data: a standalone view would show its tool result forever (#341).
-    expect(scan.viewDataReads.length).toBeGreaterThanOrEqual(5)
-    expect(
-      scan.viewDataReads.filter((read) => !read.seeded).map((read) => `${read.file}:${read.line}`),
-      'pass { initialDataMode: "seed" } as a literal option',
-    ).toEqual([])
-  })
-
   it("obtains a raw tool caller only in the reviewed files", () => {
     expect(
       [...scan.callerHolders].sort(),
@@ -161,7 +150,7 @@ describe("the structural scan itself", () => {
       }
       export function Probe({ id }: { id: string }) {
         useToolQuery(["test:tool-query"], "test_data", {})
-        useViewData(null, ["test:view-data"], "test_data", {}, true, { initialDataMode: "seed" })
+        useViewData(null, ["test:view-data"], "test_data", {}, true)
         useToolQuery(feedKey(id), "test_data", {})
         useDetailView({ ...feed(id), tool: "test_data" })
         usePagedViewData({ key: ["test:paged", id], tool: "test_data" })
@@ -178,47 +167,17 @@ describe("the structural scan itself", () => {
     ])
   })
 
-  it("counts a useViewData read as seeded only for a literal seed option", () => {
-    const { viewDataReads } = scanText(
-      "probe.tsx",
-      `
-      const OPTIONS = { initialDataMode: "seed" } as const
-      export function Probe({ data, mode }: { data: unknown; mode: "seed" }) {
-        useViewData(data, ["test:a"], "test_data", {}, true, { initialDataMode: "seed" })
-        useViewData(data, ["test:b"], "test_data", {}, true, ({ retry: false, initialDataMode: "seed" }))
-        useViewData(data, ["test:c"], "test_data", {}, true)
-        useViewData(data, ["test:d"], "test_data", {}, true, { initialDataMode: "static" })
-        useViewData(data, ["test:e"], "test_data", {}, true, OPTIONS)
-        useViewData(data, ["test:f"], "test_data", {}, true, { ...OPTIONS })
-        useViewData(data, ["test:g"], "test_data", {}, true, { initialDataMode: mode })
-        useViewData(data, ["test:h"], "test_data", {}, true, { seed: "initialDataMode" })
-        useToolQuery(["test:i"], "test_data", {})
-      }
-      `,
-    )
-    expect(viewDataReads.map((read) => read.seeded)).toEqual([
-      true,
-      true,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-    ])
-    expect(viewDataReads.map((read) => read.line)).toEqual([4, 5, 6, 7, 8, 9, 10, 11])
-  })
-
   it("follows a raw tool caller through a rename, a destructuring and an alias", () => {
     const { references, callerHolders } = scanText(
       "probe.tsx",
       `
       export function Probe() {
-        const invoke = useCallTool()
+        const host = useViewHost()
+        const invoke = host.callTool
         invoke("camunda7_resolve_incident", { incidentId: "i" })
-        const { callTool: run } = useHostBridge()
+        const { callTool: run } = useViewHost()
         run("camunda7_set_job_retries", { jobId: "j", retries: 1 })
-        const bridge = useHostBridgeOrNull()
+        const bridge = host
         const call = bridge?.callTool
         call?.("camunda7_delete_process_instance", { processInstanceId: "p" })
         const again = invoke

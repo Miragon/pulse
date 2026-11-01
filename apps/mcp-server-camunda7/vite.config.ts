@@ -7,15 +7,13 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
     // The widget packages (camunda7-connector, widget-shell, analytics-connector) and this
-    // app each resolve their own pnpm instance of the toolkit/React/Query libs
-    // (differing peer-dep hashes). Bundling multiple copies of @miragon/mcp-
-    // toolkit-ui gives each its own React context: McpAppView (this app's copy)
-    // sets the AppQueryProvider's CallToolContext, but a widget's useToolQuery
-    // (its package's copy) reads a *different* context → useCallTool() is
-    // undefined → every in-widget query is disabled and hangs on "Loading…".
-    // Same trap since mcp-use 2 for the module-scoped view runtime in
-    // `mcp-use/react` (the guide's "hooks require a browser view" crash).
-    // Dedupe collapses them to a single instance so the context matches.
+    // app each resolve their own pnpm instance of React, TanStack Query, mcp-use and the
+    // toolkit (differing peer-dep hashes). Bundling several copies gives each its own React
+    // context: the view root (widget-shell's copy) provides the view host and the ONE
+    // QueryClient, but a widget's `useViewHost`/`useToolQuery` would read a *different*
+    // context → no client, no host → every in-widget query hangs on "Loading…". Same trap
+    // for the module-scoped view runtime in `mcp-use/react` (the guide's "hooks require a
+    // browser view" crash). Dedupe collapses them to a single instance so the context matches.
     dedupe: [
       "react",
       "react-dom",

@@ -1,9 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeAll, describe, expect, it } from "vitest"
-import type { ComponentType } from "react"
+import { createElement, type ComponentType } from "react"
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
-import { queryClient } from "@miragon/mcp-toolkit-ui"
-import { WidgetFixtureHost } from "@miragon/mcp-toolkit-ui/app"
 import {
   CAMUNDA7_SAVE_SETTINGS,
   CAMUNDA7_WIDGET_ACTIONS,
@@ -15,11 +13,14 @@ import { GATING_RENDERERS } from "./action-gating.test-support.js"
 import { VariablesTable } from "./instance-sections.js"
 import { JobPanelWidget } from "./job-panel.js"
 import { widgetActionsFeedFor } from "./lib/hand-off.test-support.js"
+import { TestViewHost, createTestQueryClient } from "@miragon/pulse-widget-shell/widgets"
+
+// One retry-free client per test; the test reads and pokes its cache.
+let queryClient = createTestQueryClient()
 
 afterEach(() => {
   cleanup()
-  // The query client is a singleton: one test's feed answer must not leak into the next.
-  queryClient.clear()
+  queryClient = createTestQueryClient()
 })
 
 /** Wait for the feed, so an absent control is a decision. */
@@ -39,7 +40,7 @@ describe("every in-widget write renders its control only where it is allowed", (
   it.each(GATING_SITES)(
     "$site — shown when the deployment offers it",
     async ({ site, control }) => {
-      render(GATING_RENDERERS[site](EVERY_WRITE))
+      render(GATING_RENDERERS[site](EVERY_WRITE, queryClient))
       expect(await screen.findByRole("button", { name: control })).toBeTruthy()
     },
   )
@@ -47,7 +48,12 @@ describe("every in-widget write renders its control only where it is allowed", (
   it.each(GATING_SITES)(
     "$site — hidden (not disabled) when everything but it is offered",
     async ({ site, control, write }) => {
-      render(GATING_RENDERERS[site](EVERY_WRITE.filter((offered) => offered !== write)))
+      render(
+        GATING_RENDERERS[site](
+          EVERY_WRITE.filter((offered) => offered !== write),
+          queryClient,
+        ),
+      )
       await feedSettled()
       expect(screen.queryByRole("button", { name: control })).toBeNull()
     },
@@ -95,13 +101,10 @@ const Variables: ComponentType<Record<string, unknown>> = () => (
 )
 
 function renderWith(widget: ComponentType<Record<string, unknown>>, feed: unknown) {
-  const data = widget === JobPanel ? (JOBS as unknown as Record<string, unknown>) : {}
   render(
-    <WidgetFixtureHost
-      widget={widget}
-      data={data}
-      tools={{ [CAMUNDA7_WIDGET_ACTIONS_DATA]: feed }}
-    />,
+    <TestViewHost tools={{ [CAMUNDA7_WIDGET_ACTIONS_DATA]: feed }} client={queryClient}>
+      {createElement(widget, widget === JobPanel ? { data: JOBS } : {})}
+    </TestViewHost>,
   )
 }
 
@@ -126,7 +129,7 @@ describe("the gate fails closed and hides only the write", () => {
     expect(await screen.findByText("Edit")).toBeTruthy()
     expect(screen.getAllByRole("columnheader")).toHaveLength(4)
     cleanup()
-    queryClient.clear()
+    queryClient = createTestQueryClient()
 
     renderWith(Variables, { allowedActions: [] })
     await feedSettled()

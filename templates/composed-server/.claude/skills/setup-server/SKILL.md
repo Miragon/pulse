@@ -153,7 +153,7 @@ then reinstall so the lockfile matches:
    selects packages by path, no edit there)
 2. `@acme/mcp-notes` in `modules/mcp-notes/package.json`, in
    `server/package.json`'s dependencies, and in every import
-   (`server/src/setup.ts`, `server/src/ui/widget-registry.ts`)
+   (`server/src/setup.ts`, `server/src/ui/view-registry.ts`)
 3. the `acme-mcp` labels in `server/src/app.ts` and `setup.ts`
 4. `pnpm install` to refresh `pnpm-lock.yaml` (the Docker build uses
    `--frozen-lockfile`)

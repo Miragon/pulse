@@ -244,6 +244,19 @@ describe("useBpmnViewer frame and fit", () => {
     expect(mock.MockViewer.canvases[0].fits[0]).toMatchObject({ center: "auto", outerHeight: 265 })
   })
 
+  it("never fits a hidden container (no layout box), so a drill's hidden origin view keeps its diagram", async () => {
+    const rects = vi
+      .spyOn(HTMLElement.prototype, "getClientRects")
+      .mockReturnValue([] as unknown as DOMRectList)
+    try {
+      render(<Framed xml={INVOICE_DI} fitOnResize />)
+      await act(async () => {})
+      expect(mock.MockViewer.canvases[0]?.fits ?? []).toEqual([])
+    } finally {
+      rects.mockRestore()
+    }
+  })
+
   it("refits a heatmap-style viewer against the NEW frame once the drawn diagram sized it", async () => {
     // No DI: the import fits at 360 px (cached), then the drawn diagram makes it 560. The refit must see 560.
     mock.FakeCanvas.inner = { x: 150, y: 80, width: 400, height: 700 }

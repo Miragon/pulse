@@ -2,14 +2,12 @@
 import { afterEach, describe, expect, it } from "vitest"
 import type { ComponentType } from "react"
 import { cleanup, render, screen } from "@testing-library/react"
-import { queryClient } from "@miragon/mcp-toolkit-ui"
-import { WidgetFixtureHost } from "@miragon/mcp-toolkit-ui/app"
 import type { BpmnViewerData } from "../../view-models.js"
 import { BpmnViewerHeader } from "./header.js"
+import { TestViewHost } from "@miragon/pulse-widget-shell/widgets"
 
 afterEach(() => {
   cleanup()
-  queryClient.clear()
 })
 
 const VIEW: BpmnViewerData = {
@@ -27,7 +25,11 @@ const VIEW: BpmnViewerData = {
 
 function renderHeader(data: BpmnViewerData) {
   const Header: ComponentType<Record<string, unknown>> = () => <BpmnViewerHeader data={data} />
-  render(<WidgetFixtureHost widget={Header} data={{}} tools={{}} />)
+  render(
+    <TestViewHost tools={{}}>
+      <Header />
+    </TestViewHost>,
+  )
 }
 
 // Names before ids: the instance by its label, as the instance detail does (#322 U13).

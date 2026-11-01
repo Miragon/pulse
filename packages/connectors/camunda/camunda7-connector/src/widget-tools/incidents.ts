@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { buildComposedView, buildSingleWidgetView } from "@miragon/pulse-widget-shell/server"
+import { buildViewResult } from "@miragon/pulse-widget-shell/server"
 import { buildClusterDetailData } from "../data/cluster-detail-data.js"
 import { buildEngineHealthData, healthVerdictRule } from "../data/health-data.js"
 import { buildIncidentsDashboardData } from "../data/incidents-dashboard-data.js"
@@ -14,12 +14,11 @@ import {
 } from "../tool-names.js"
 import { incidentsDashboardFilterShape } from "../feed-contracts.js"
 import { resolveEngine } from "../lib/resolve-engine.js"
-import { localizeFor, localizeViewFor } from "../lib/server-locale.js"
+import { localizeFor } from "../lib/server-locale.js"
 import {
   type WidgetToolsContext,
   clusterDetailShape,
   truncate,
-  definitionViewLayout,
   registerShowTool,
 } from "./shared.js"
 
@@ -36,19 +35,14 @@ export function registerIncidentWidgetTools(ctx: WidgetToolsContext) {
       const t = await localizeFor(profileStore, ctx)
       const { client, engineId, ...urls } = await resolveEngine(engine, registry, ctx)
       const data = await buildIncidentsDashboardData(client, { ...urls, ...filters })
-      return buildComposedView({
-        app: "camunda7",
-        layout: [
-          { row: [{ widget: "camunda7:incident-overview-kpi" }] },
-          { row: [{ widget: "camunda7:incident-process-list" }] },
-        ],
-        entries: [{ dataType: "camunda7:incidentsDashboard", data: { ...data, engineId } }],
-        summary: t("c7sum.incidentsDashboard", {
+      return buildViewResult(
+        { ...data, engineId },
+        t("c7sum.incidentsDashboard", {
           totalCount: data.totalCount,
           processCount: data.processCount,
           last24hCount: data.last24hCount,
         }),
-      })
+      )
     },
   })
 
@@ -62,18 +56,16 @@ export function registerIncidentWidgetTools(ctx: WidgetToolsContext) {
       const t = await localizeFor(profileStore, ctx)
       const { client, engineId, ...urls } = await resolveEngine(engine, registry, ctx)
       const data = await buildProcessIncidentsData(client, { ...urls, ...target })
-      return buildComposedView({
-        app: "camunda7",
-        layout: definitionViewLayout("incidents"),
-        entries: [{ dataType: "camunda7:processIncidents", data: { ...data, engineId } }],
-        summary: t("c7sum.processIncidents", {
+      return buildViewResult(
+        { ...data, engineId },
+        t("c7sum.processIncidents", {
           processDefinitionKey: data.processDefinitionKey,
           diagramVersion: data.diagramVersion,
           incidentCount: data.incidentCount,
           activities: data.activities.length,
           last24hCount: data.last24hCount,
         }),
-      })
+      )
     },
   })
 
@@ -87,12 +79,9 @@ export function registerIncidentWidgetTools(ctx: WidgetToolsContext) {
       const t = await localizeFor(profileStore, ctx)
       const { client, engineId, ...urls } = await resolveEngine(engine, registry, ctx)
       const data = await buildIncidentDetailData(client, { ...urls, ...target })
-      return buildSingleWidgetView({
-        widget: "camunda7:incident-detail",
-        app: "camunda7",
-        dataType: "camunda7:incidentDetail",
-        data: { ...data, engineId },
-        summary: t("c7sum.incidentDetail", {
+      return buildViewResult(
+        { ...data, engineId },
+        t("c7sum.incidentDetail", {
           incidentId: data.incidentId,
           incidentType: data.incidentType,
           activity: data.activityName ?? data.activityId,
@@ -100,7 +89,7 @@ export function registerIncidentWidgetTools(ctx: WidgetToolsContext) {
           processInstanceId: data.processInstanceId,
           message: data.incidentMessage ? `: ${truncate(data.incidentMessage, 160)}` : "",
         }),
-      })
+      )
     },
   })
 
@@ -113,17 +102,13 @@ export function registerIncidentWidgetTools(ctx: WidgetToolsContext) {
       "Use for what is failing on an engine right now; for metric trends, job backlog or firing alerts use analytics_engine_health.",
     shape: {},
     render: async (args, ctx) => {
-      const { t, title } = await localizeViewFor(profileStore, ctx)
+      const t = await localizeFor(profileStore, ctx)
       const { client, engineId } = await resolveEngine(args.engine, registry, ctx)
       const data = await buildEngineHealthData(client, engineId, healthThresholds)
       const top = data.clusters[0]
-      return buildSingleWidgetView({
-        widget: "camunda7:engine-health",
-        app: "camunda7",
-        dataType: "camunda7:engineHealth",
+      return buildViewResult(
         data,
-        title: title("viewTitle.engineHealth"),
-        summary: t("c7sum.engineHealth", {
+        t("c7sum.engineHealth", {
           engineId,
           status: data.status,
           rule: data.statusRule,
@@ -141,7 +126,7 @@ export function registerIncidentWidgetTools(ctx: WidgetToolsContext) {
               })
             : t("c7sum.engineHealth.noIncidents"),
         }),
-      })
+      )
     },
   })
 
@@ -152,16 +137,12 @@ export function registerIncidentWidgetTools(ctx: WidgetToolsContext) {
       "Drill into ONE failure cluster: the affected process instances (business keys first), the full sample failure message, and the time profile (new in last hour / 24h) for an activity failing with a given incident type. The middle layer between the engine health overview and a single incident's detail.",
     shape: clusterDetailShape,
     render: async ({ engine, ...cluster }, ctx) => {
-      const { t, title } = await localizeViewFor(profileStore, ctx)
+      const t = await localizeFor(profileStore, ctx)
       const { client, engineId } = await resolveEngine(engine, registry, ctx)
       const data = await buildClusterDetailData(client, engineId, cluster)
-      return buildSingleWidgetView({
-        widget: "camunda7:cluster-detail",
-        app: "camunda7",
-        dataType: "camunda7:clusterDetail",
+      return buildViewResult(
         data,
-        title: title("viewTitle.clusterDetail", { activity: data.activityId }),
-        summary: t("c7sum.clusterDetail", {
+        t("c7sum.clusterDetail", {
           engineId,
           activityId: data.activityId,
           incidentType: data.incidentType,
@@ -176,7 +157,7 @@ export function registerIncidentWidgetTools(ctx: WidgetToolsContext) {
               })
             : "",
         }),
-      })
+      )
     },
   })
 }

@@ -1,6 +1,6 @@
-import { useViewData, type ViewDataResult } from "@miragon/mcp-toolkit-ui/hooks"
 import type { ProcessIncidentsData } from "../../view-models.js"
 import { CAMUNDA7_PROCESS_INCIDENTS_DATA } from "../../tool-names.js"
+import { useViewData, type ViewDataResult } from "@miragon/pulse-widget-shell/widgets"
 
 /**
  * One key for the view's four widgets. Standalone reads scope from the data's echo, never the
@@ -19,6 +19,5 @@ export function useDefinitionData(
     CAMUNDA7_PROCESS_INCIDENTS_DATA,
     { processDefinitionKey: key, engine: feedEngine },
     !!key,
-    { initialDataMode: "seed" },
   )
 }

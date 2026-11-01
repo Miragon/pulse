@@ -2,9 +2,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import type { ComponentType } from "react"
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react"
-import { WidgetFixtureHost } from "@miragon/mcp-toolkit-ui/app"
 import { explainActivityHandOff, HistoryTimelineWidget } from "./history-timeline.js"
 import type { HistoryTimelineData } from "../view-models.js"
+import { TestViewHost } from "@miragon/pulse-widget-shell/widgets"
 
 afterEach(cleanup)
 
@@ -52,7 +52,11 @@ const Widget = HistoryTimelineWidget as unknown as ComponentType<Record<string, 
 
 describe("HistoryTimelineWidget (fixture render)", () => {
   it("renders the process header and per-activity rows from fixture data", () => {
-    render(<WidgetFixtureHost widget={Widget} data={DATA as unknown as Record<string, unknown>} />)
+    render(
+      <TestViewHost>
+        <Widget data={DATA as never} />
+      </TestViewHost>,
+    )
 
     // Process header (processInstance.processDefinitionName + its state in words).
     expect(screen.getByText("Invoice Process")).toBeTruthy()
@@ -88,15 +92,16 @@ describe("HistoryTimelineWidget (fixture render)", () => {
       activityType: "endEvent",
     }
     const { container } = render(
-      <WidgetFixtureHost
-        widget={Widget}
-        data={{
-          ...DATA,
-          activities: [DATA.activities[0], running, end],
-          totalActivities: 3,
-          incidentActivityIds: ["charge"],
-        }}
-      />,
+      <TestViewHost>
+        <Widget
+          data={{
+            ...DATA,
+            activities: [DATA.activities[0], running, end],
+            totalActivities: 3,
+            incidentActivityIds: ["charge"],
+          }}
+        />
+      </TestViewHost>,
     )
     const stuck = screen.getByText("Charge card").closest("li")!
     expect(within(stuck).getByText("Incident")).toBeTruthy()
@@ -129,11 +134,9 @@ describe("HistoryTimelineWidget paging", () => {
   it("pages the rest of a long timeline from the history query", async () => {
     const history = vi.fn(() => ({ items: [nextActivity], totalCount: 3 }))
     render(
-      <WidgetFixtureHost
-        widget={Widget}
-        data={{ ...DATA, totalActivities: 3 }}
-        tools={{ camunda7_query_historic_activity_instances: history }}
-      />,
+      <TestViewHost tools={{ camunda7_query_historic_activity_instances: history }}>
+        <Widget data={{ ...DATA, totalActivities: 3 }} />
+      </TestViewHost>,
     )
     expect(screen.getByText("Invoice Process")).toBeTruthy()
     expect(screen.getByText(/Showing 2 of 3 activities/)).toBeTruthy()
@@ -153,7 +156,11 @@ describe("HistoryTimelineWidget paging", () => {
   })
 
   it("offers no Load more when the page is the whole timeline", () => {
-    render(<WidgetFixtureHost widget={Widget} data={DATA as unknown as Record<string, unknown>} />)
+    render(
+      <TestViewHost>
+        <Widget data={DATA as never} />
+      </TestViewHost>,
+    )
     expect(screen.queryByText("Load more")).toBeNull()
   })
 })

@@ -4,3 +4,5 @@
  * camunda7/analytics modules' tool-names.ts).
  */
 export const NOTES_LIST_DATA = "notes_list_data"
+/** The show tool; its name is also its view's name (`widgets/index.ts`). */
+export const NOTES_SHOW_NOTES = "notes_show_notes"

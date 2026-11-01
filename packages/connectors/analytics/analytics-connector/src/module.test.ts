@@ -4,7 +4,7 @@ import { composeModules } from "@miragon/pulse-widget-shell/server"
 import { analyticsModule } from "./module.js"
 import { allowsDurableWrites, ANALYTICS_TOOLSETS, analyticsToolsets } from "./toolsets.js"
 import {
-  ANALYTICS_DASHBOARD_DATA,
+  ANALYTICS_ENGINE_LANDSCAPE_DATA,
   ANALYTICS_SAVE_SETTINGS,
   ANALYTICS_SETTINGS_DATA,
 } from "./tool-names.js"
@@ -237,7 +237,7 @@ describe("the analytics toolset rule holds structurally for every registered too
       expect.arrayContaining([
         "analytics_analyze_process_performance",
         "analytics_show_dashboard",
-        ANALYTICS_DASHBOARD_DATA,
+        ANALYTICS_ENGINE_LANDSCAPE_DATA,
         "analytics_show_settings",
         ANALYTICS_SETTINGS_DATA,
         EXEMPT_DURABLE_WRITE,

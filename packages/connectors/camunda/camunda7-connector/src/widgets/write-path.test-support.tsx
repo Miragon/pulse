@@ -1,14 +1,18 @@
-import { afterEach, beforeAll, beforeEach, expect } from "vitest"
-import type { ComponentType } from "react"
+import { afterEach, beforeAll, expect } from "vitest"
+import { createElement, type ComponentType } from "react"
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
-import { queryClient } from "@miragon/mcp-toolkit-ui"
-import { WidgetFixtureHost } from "@miragon/mcp-toolkit-ui/app"
 import { CAMUNDA7_INSTANCE_DETAIL_DATA, CAMUNDA7_WIDGET_ACTIONS_DATA } from "../tool-names.js"
 import type { IncidentInstance, InstanceDetailData, OpenUserTask } from "../view-models.js"
 import { InstanceDetailWidget } from "./instance-detail.js"
 import { widgetActionsFeedFor } from "./lib/hand-off.test-support.js"
+import {
+  TestViewHost,
+  createTestQueryClient,
+  createViewQueryClient,
+} from "@miragon/pulse-widget-shell/widgets"
 
-const toolkitDefaults = queryClient.getDefaultOptions()
+// One retry-free client per test, so a failing feed answers at once.
+let queryClient = createTestQueryClient()
 
 let admin: { allowedActions: string[]; modelTools: string[] }
 
@@ -18,23 +22,15 @@ export function installWritePathHarness(): void {
   beforeAll(async () => {
     admin = await widgetActionsFeedFor("admin")
   })
-  beforeEach(() => {
-    // The shared client retries with backoff: answer at once.
-    queryClient.setDefaultOptions({
-      ...toolkitDefaults,
-      queries: { ...toolkitDefaults.queries, retry: false },
-    })
-  })
   afterEach(() => {
     cleanup()
-    queryClient.clear()
-    queryClient.setDefaultOptions(toolkitDefaults)
+    queryClient = createTestQueryClient()
   })
 }
 
-// The toolkit's defaults: 3 retries with 1/2/4 s backoff, `error` null all that time (only `failureReason`).
+// The view's production client: 3 retries with 1/2/4 s backoff, `error` null all that time (only `failureReason`).
 export function withProductionRetries() {
-  queryClient.setDefaultOptions(toolkitDefaults)
+  queryClient = createViewQueryClient()
 }
 
 export function task(id: string, name: string): OpenUserTask {
@@ -116,12 +112,13 @@ export function renderInstance(
   onModelContext?: (text: string) => void,
 ) {
   return render(
-    <WidgetFixtureHost
-      widget={widget}
-      data={(data ?? {}) as unknown as Record<string, unknown>}
+    <TestViewHost
       tools={{ [CAMUNDA7_WIDGET_ACTIONS_DATA]: admin, ...tools }}
       onModelContext={onModelContext}
-    />,
+      client={queryClient}
+    >
+      {createElement(widget, data ? { data } : {})}
+    </TestViewHost>,
   )
 }
 

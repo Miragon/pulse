@@ -100,7 +100,7 @@ wire-contract e2e test asserts by name):
 
 | Tool                     | Binding                           | Returns                                              |
 | ------------------------ | --------------------------------- | ---------------------------------------------------- |
-| `<module>_show_settings` | `...showToolBinding(name, title)` | `buildSingleWidgetView({…})` + summary for the model |
+| `<module>_show_settings` | `...showToolBinding(name, title)` | `buildViewResult(view, summary)`                     |
 | `<module>_settings_data` | `...appOnly`                      | `buildDataFeedResult(view)`                          |
 | `<module>_save_settings` | none (plain model-visible tool)   | text summary + `structuredContent` = effective slice |
 
@@ -158,29 +158,28 @@ One self-fetching card composed from `@miragon/pulse-widget-shell/widgets`
   screen reader hears.
 - Hide Save (render disabled fields) when the view says `canSave: false`.
 
-Register it like any widget (the add-widget skill, Step 2): your
-`<module>_show_settings` tool names it as the string literal
-`widget: "<module>:settings"`, and your component map renders that id.
+Register it twice: as the view of your `<module>_show_settings` tool in the
+module's view map (the add-widget skill, Step 2), and as a self-fetching
+section in its host widgets: `"<module>:settings": () => <MySettingsWidget />`,
+spread into `hostWidgets` in `server/src/ui/view-registry.ts`.
 **The `<module>:settings` id IS the registration on the settings page:** the
-page (`shell_show_settings`, also the cockpit's settings tab) assembles itself
-from THIS server's widget registry: the shell's language section first, then
-one row per widget id ending in `:settings`, in registration order. No
-published package lists your module, which is exactly why your section gets
-a first-class row with no edit beyond the normal module wiring. Two
-consequences:
+page (`shell_show_settings`, also the cockpit's settings tab) renders the
+shell's language section first, then every host widget whose id ends in
+`:settings`, in registration order. No published package lists your module,
+which is exactly why your section gets a first-class row with no edit beyond
+the normal module wiring. Two consequences:
 
-- Name your section widget `<module>:settings` and it appears on the settings
-  tab as soon as your module's widget map is spread into the host registry
-  (it stays reachable through your own `<module>_show_settings` tool too; any
-  other id renders ONLY through that tool).
+- Name your section `<module>:settings` and it appears on the settings tab as
+  soon as your module's host widgets are spread (it stays reachable through
+  your own `<module>_show_settings` tool too; any other id renders ONLY
+  through that tool).
 - The suffix alone earns the row: never use `:settings` for a widget that is
   not a settings section.
 
-The failure mode stays silent (a section whose widget never reaches the host
-registry is simply absent from the tab). `server/test/widget-registry.test.ts`
-covers it without an edit: it reads the `widget: "<module>:settings"` your
-show tool names from your module's sources and fails, naming the id, when
-the registry or the settings page lacks it.
+The failure mode stays silent (a section that never reaches `hostWidgets` is
+simply absent from the tab). `server/test/view-registry.test.ts` covers it
+without an edit: it boots the real composition and fails, naming the tool,
+when a `<module>_show_settings` has no `<module>:settings` host widget.
 
 ## Step 6: tests, then verify
 

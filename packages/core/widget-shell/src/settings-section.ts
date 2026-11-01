@@ -4,7 +4,7 @@ import { withToolErrors } from "@miragon/mcp-toolkit-core/tools"
 import type { LanguagePref } from "./profile-constants.js"
 import { requireProfileKey } from "./profile-slice.js"
 import { resolveAuthUserId, resolveProfileKey } from "./profile.js"
-import { buildDataFeedResult, buildSingleWidgetView } from "./view-results.js"
+import { buildDataFeedResult, buildViewResult } from "./view-results.js"
 import { appOnly, showToolBinding, strictToolInput } from "./widget-tool-bindings.js"
 
 interface SettingsTool {
@@ -23,18 +23,11 @@ interface LoadedSettings<TView extends object> {
   language?: LanguagePref
 }
 
-interface ViewText {
-  title: string | undefined
-  summary: string
-}
-
 interface SettingsSection<
   TView extends object,
   TShape extends z.ZodRawShape,
   TReason extends string,
 > {
-  app: string
-  widget: string
   openWorldHint: boolean
   readOnlyReason?: TReason
   load: (
@@ -43,7 +36,8 @@ interface SettingsSection<
     gate: SettingsGate<TReason>,
   ) => Promise<LoadedSettings<TView>>
   show: SettingsTool & {
-    render: (loaded: LoadedSettings<TView>, ctx: unknown) => ViewText | Promise<ViewText>
+    /** The model's summary; the view names itself in the host's language. */
+    render: (loaded: LoadedSettings<TView>, ctx: unknown) => string | Promise<string>
   }
   feed: SettingsTool
   save?: SettingsTool & {
@@ -97,13 +91,7 @@ export function registerSettingsSection<
     },
     withToolErrors(async (_params, ctx) => {
       const loaded = await load(ctx)
-      return buildSingleWidgetView({
-        widget: section.widget,
-        app: section.app,
-        dataType: `${section.app}:settings`,
-        data: { ...loaded.view },
-        ...(await render(loaded, ctx)),
-      })
+      return buildViewResult({ ...loaded.view }, await render(loaded, ctx))
     }),
   )
 

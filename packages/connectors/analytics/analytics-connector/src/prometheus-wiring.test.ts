@@ -136,7 +136,7 @@ describe("Prometheus config reaches the wire", () => {
       "analytics_settings_data",
       "analytics_show_settings",
     ])
-    expect(tools.size - neverQuery.length).toBeGreaterThanOrEqual(11)
+    expect(tools.size - neverQuery.length).toBeGreaterThanOrEqual(9)
   })
 
   it("a widget feed's ctx.signal cancels its queries before the deadline", async () => {

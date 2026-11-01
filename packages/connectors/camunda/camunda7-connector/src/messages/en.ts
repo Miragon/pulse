@@ -83,18 +83,6 @@ export const en: MessageCatalog = {
   "profile.summary.allEngines": "all engines",
   "profile.summary.someEngines": ({ count }) => countOf(count, "allowed engine", "allowed engines"),
 
-  // Only used when the profile names a language (`lib/server-locale.ts`).
-  "viewTitle.cockpit": "Cockpit",
-  "viewTitle.processList": "Process definitions",
-  "viewTitle.processInstances": "Running instances",
-  "viewTitle.historyTimeline": "History",
-  "viewTitle.instanceDetail": "Process instance",
-  "viewTitle.bpmnViewer": "BPMN diagram",
-  "viewTitle.jobPanel": "Jobs",
-  "viewTitle.engineHealth": "Engine overview",
-  "viewTitle.settings": "Engine settings",
-  "viewTitle.clusterDetail": ({ activity }) => `Cluster: ${String(activity)}`,
-
   "c7sum.cockpitOpened":
     'Operations cockpit for engine "{engineId}" ({engineCount} engine(s) in the user\'s engine list). Where the host shows the view, the user navigates the process landscape in it.',
   "c7sum.cockpitOpenedPicker":

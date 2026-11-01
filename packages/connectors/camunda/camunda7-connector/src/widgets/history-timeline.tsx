@@ -10,7 +10,6 @@ import {
   WidgetHeader,
   cn,
 } from "@miragon/mcp-toolkit-ui"
-import { HostModelContext } from "@miragon/mcp-toolkit-ui/app"
 import {
   HandOffButton,
   TableEmptyState,
@@ -19,6 +18,7 @@ import {
   formatTimestamp,
   RowsBudgeted,
   usePagedViewData,
+  HostModelContext,
 } from "@miragon/pulse-widget-shell/widgets"
 import type { HistoryTimelineData } from "../view-models.js"
 import { useHandOff, type HandOff, type ViewContext } from "./lib/hand-off.js"

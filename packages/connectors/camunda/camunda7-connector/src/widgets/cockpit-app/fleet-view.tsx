@@ -1,10 +1,10 @@
-import { WidgetRenderer, type WidgetComponent } from "@miragon/mcp-toolkit-ui/app"
 import {
   countTone,
-  filterLayoutToWidgets,
   formatNumber,
   HandOffButton,
+  HostWidgetSlot,
   Icon,
+  useHostWidget,
 } from "@miragon/pulse-widget-shell/widgets"
 import { ArrowRight } from "lucide-react"
 import { CountPill, FOCUS_RING, SectionHeading, TONE_DOT, cn } from "@miragon/mcp-toolkit-ui"
@@ -109,27 +109,20 @@ function FleetEngineCard({
 }
 
 /**
- * A raw cross-module id: `filterLayoutToWidgets` drops the cell when analytics is not bundled. The
- * id stays a literal in the layout, so the app's widget-registry scan sees it.
+ * Another module's widget by its raw id, without a module-to-module import: the section is
+ * absent when analytics is not in the bundle. The app's `view-registry.test.ts` holds the id
+ * to a registered host widget.
  */
-function LandscapeSection({
-  engineIds,
-  widgets,
-}: {
-  engineIds: string[]
-  widgets: Record<string, WidgetComponent>
-}) {
+export const ENGINE_LANDSCAPE_WIDGET = "analytics:engine-landscape"
+
+function LandscapeSection({ engineIds }: { engineIds: string[] }) {
   const t = useT()
-  const layout = filterLayoutToWidgets(
-    // The full list, so an engine without metrics still shows instead of dropping out.
-    [{ row: [{ widget: "analytics:engine-landscape", props: { engine: engineIds } }] }],
-    widgets,
-  )
-  if ("rows" in layout && layout.rows.length === 0) return null
-  // The landscape heads itself; a second heading said it twice (#322 U27).
+  if (!useHostWidget(ENGINE_LANDSCAPE_WIDGET)) return null
+  // The landscape heads itself; a second heading said it twice (#322 U27). The full list, so an
+  // engine without metrics still shows instead of dropping out.
   return (
     <section aria-label={t("fleet.landscape.title")}>
-      <WidgetRenderer layout={layout} keys={{}} errors={[]} widgets={widgets} />
+      <HostWidgetSlot id={ENGINE_LANDSCAPE_WIDGET} props={{ engine: engineIds }} />
     </section>
   )
 }
@@ -174,11 +167,9 @@ export function fleetPerformanceHandOff({ engineIds, environments }: Fleet): Han
 export function FleetView({
   engines,
   onEnterEngine,
-  widgets,
 }: {
   engines: Array<{ id: string; environment?: string }>
   onEnterEngine: (id: string) => void
-  widgets: Record<string, WidgetComponent>
 }) {
   const t = useT()
   const { ask } = useHandOff()
@@ -223,7 +214,7 @@ export function FleetView({
         ))}
       </section>
 
-      <LandscapeSection engineIds={ids} widgets={widgets} />
+      <LandscapeSection engineIds={ids} />
 
       <section>
         <SectionHeading

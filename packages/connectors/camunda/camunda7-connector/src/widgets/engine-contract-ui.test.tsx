@@ -1,9 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeAll, describe, expect, it } from "vitest"
-import type { ComponentType } from "react"
+import { createElement, type ComponentType } from "react"
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
-import { queryClient } from "@miragon/mcp-toolkit-ui"
-import { WidgetFixtureHost, type HostActionLog } from "@miragon/mcp-toolkit-ui/app"
 import { CAMUNDA7_WIDGET_ACTIONS, CAMUNDA7_WIDGET_ACTIONS_DATA } from "../tool-names.js"
 import type { IncidentInstance, VariableValue } from "../view-models.js"
 import { IncidentsTab } from "./instance-detail/incidents-tab.js"
@@ -11,12 +9,12 @@ import { VariablesTable } from "./instance-sections.js"
 import { IncidentTable } from "./process-incidents/incident-table.js"
 import { useIncidentRecovery } from "./process-incidents/use-incident-recovery.js"
 import { widgetActionsFeedFor } from "./lib/hand-off.test-support.js"
+import { TestViewHost, type HostAction } from "@miragon/pulse-widget-shell/widgets"
 
 /** #328: built-in incident types offer Retry; Json/Object values write back serialized; no Edit for binary. */
 
 afterEach(() => {
   cleanup()
-  queryClient.clear()
 })
 
 const ALL_ACTIONS: { allowedActions: string[]; modelTools: string[] } = {
@@ -61,7 +59,7 @@ function renderWidget(
   widget: ComponentType<Record<string, unknown>>,
   tools: Record<string, unknown>,
 ) {
-  render(<WidgetFixtureHost widget={widget} data={{}} tools={tools} />)
+  render(<TestViewHost tools={tools}>{createElement(widget)}</TestViewHost>)
 }
 
 /** The action button in the row that shows `message`. */
@@ -113,18 +111,18 @@ describe("incident rows offer the action the engine accepts", () => {
   it("keeps the row's ticket handoff on the instance's engine next to its recovery action", async () => {
     // Every Ask-AI hand-off carries the viewed engine as an id (#338); #328
     // swapped the rows' resolve props for `recovery`. The instance tab carries both.
-    const actions: HostActionLog[] = []
+    const actions: HostAction[] = []
     const OnProdB: ComponentType<Record<string, unknown>> = () => {
       const recovery = useIncidentRecovery("prod-b", { resetOn: INCIDENTS })
       return <IncidentsTab incidents={INCIDENTS} recovery={recovery} engine="prod-b" />
     }
     render(
-      <WidgetFixtureHost
-        widget={OnProdB}
-        data={{}}
+      <TestViewHost
         tools={{ [CAMUNDA7_WIDGET_ACTIONS_DATA]: ALL_ACTIONS }}
         onHostAction={(action) => actions.push(action)}
-      />,
+      >
+        <OnProdB />
+      </TestViewHost>,
     )
     await waitFor(async () => expect(await rowButtons("message job")).toContain("Retry"))
     expect(await rowButtons("message custom")).toContain("Mark as resolved")
@@ -133,7 +131,7 @@ describe("incident rows offer the action the engine accepts", () => {
     fireEvent.click(within(row).getByRole("button", { name: "More actions for this incident" }))
     fireEvent.click(screen.getByRole("menuitem", { name: "Draft ticket in chat" }))
     const prompts = actions
-      .filter((a) => a.type === "sendFollowUpMessage")
+      .filter((a) => a.type === "sendFollowUp")
       .map((a) => (a as { prompt: string }).prompt)
     expect(prompts).toHaveLength(1)
     expect(prompts[0]).toContain('Ids: engine="prod-b", incidentId="job"')

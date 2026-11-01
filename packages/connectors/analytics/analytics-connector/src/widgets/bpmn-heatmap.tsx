@@ -1,10 +1,11 @@
-import { Skeleton, useToolQuery } from "@miragon/mcp-toolkit-ui"
+import { Skeleton } from "@miragon/mcp-toolkit-ui"
 import {
   BpmnHeatmapWidget,
   QueryFallback,
   ViewMeta,
   formatLookback,
   type BpmnHeatmapData,
+  useToolQuery,
 } from "@miragon/pulse-widget-shell/widgets"
 
 import type { BpmnMissingReason } from "../heatmap-data.js"

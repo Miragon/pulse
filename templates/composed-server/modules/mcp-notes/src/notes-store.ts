@@ -13,9 +13,13 @@ export interface Note {
   updatedAt: string
 }
 
-/** The data shape the notes widget consumes (`dataType: "notes:list"`). */
+/**
+ * The notes view's data: the show tool's `structuredContent` and the feed's answer. It carries
+ * the filter it was read with, so the widget re-reads its feed with the same arguments.
+ */
 export interface NotesListData {
   title: string
+  query: string | null
   notes: Note[]
 }
 

@@ -31,6 +31,7 @@
     "@miragon/mcp-toolkit-ui": "2.8.1",
     "@modelcontextprotocol/client": "2.3.0",
     "@tailwindcss/vite": "4.3.3",
+    "@tanstack/react-query": "5.103.2",
     "@types/node": "22.19.15",
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",

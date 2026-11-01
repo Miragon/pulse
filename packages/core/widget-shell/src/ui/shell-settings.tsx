@@ -1,64 +1,60 @@
 import { useState } from "react"
-import {
-  Button,
-  ErrorState,
-  Skeleton,
-  WidgetHeader,
-  useLocale,
-  useToolMutation,
-  useToolQuery,
-} from "@miragon/mcp-toolkit-ui"
-import { HostModelContext, WidgetRenderer } from "@miragon/mcp-toolkit-ui/app"
+import { Button, ErrorState, Skeleton, WidgetHeader, useLocale } from "@miragon/mcp-toolkit-ui"
 import { Lock } from "lucide-react"
 import { LANGUAGES, explicitLocale, type LanguagePref } from "../profile-constants.js"
 import {
   SHELL_SAVE_SETTINGS,
   SHELL_SETTINGS_DATA,
+  SHELL_SHOW_SETTINGS,
   type ShellSettingsView,
 } from "../shell-settings-contract.js"
 import { useActionFeedback } from "./action-feedback.js"
 import { modelContextText, type ModelContextSpec } from "./ask-ai-prompt.js"
 import { classifyError } from "./describe-error.js"
-import { useHostWidgets } from "./host-widgets.js"
+import { HostWidgetSlot, settingsSections, useHostWidgets } from "./host-widgets.js"
 import { NativeSelect } from "./native-select.js"
 import { QueryFallback } from "./query-fallback.js"
 import { SettingsCard, SettingsField } from "./settings.js"
-import { filterLayoutToWidgets, settingsLayout } from "./settings-layout.js"
 import { LANGUAGE_NAMES, settingsLabels } from "./settings-labels.js"
+import { useToolMutation, useToolQuery } from "./tool-query.js"
 import { useResetOnChange } from "./use-reset-on-change.js"
+import { HostModelContext } from "./view-host.js"
+import type { ViewMap } from "./views.js"
 import { WidgetShell } from "./widget-shell.js"
 
 /** Shared with `ProfileGate`, so a saved language re-fetches ONE entry and every view switches live. */
 export const SHELL_SETTINGS_KEY = ["shell:settings"] as const
 
-export function SettingsPageWidget() {
+/**
+ * The settings page: the UI language, then every module's `<module>:settings` section from the
+ * host widgets, in registration order. A crashing section never takes the page down (each slot
+ * has its own error boundary). Every section fetches its own feed, the cockpit's settings route
+ * included, so the page takes no view data.
+ */
+export function SettingsPage() {
   const labels = settingsLabels(useLocale())
-  const widgets = useHostWidgets()
-  const layout = filterLayoutToWidgets(settingsLayout(Object.keys(widgets)), widgets)
+  const sections = settingsSections(useHostWidgets())
   return (
     <WidgetShell>
       <WidgetHeader title={labels.pageTitle} sub={<span>{labels.pageSubtitle}</span>} />
-      <WidgetRenderer layout={layout} keys={{}} errors={[]} widgets={widgets} />
+      <div className="flex flex-col gap-4">
+        <ShellSettingsWidget />
+        {sections.map(([id]) => (
+          <HostWidgetSlot key={id} id={id} />
+        ))}
+      </div>
     </WidgetShell>
   )
 }
 
+/** The shell's views: `shell_show_settings` renders the settings page. */
+export const shellViews = { [SHELL_SHOW_SETTINGS]: SettingsPage } satisfies ViewMap
+
 /** Hides itself when the feed TOOL is missing (a root that persists nothing); other failures stay with a retry. */
-export function ShellSettingsWidget({
-  data: initialData = null,
-}: {
-  data?: ShellSettingsView | null
-}) {
+export function ShellSettingsWidget() {
   const labels = settingsLabels(useLocale())
-  const query = useToolQuery<ShellSettingsView>(
-    [...SHELL_SETTINGS_KEY],
-    SHELL_SETTINGS_DATA,
-    {},
-    {
-      enabled: !initialData,
-    },
-  )
-  const view = initialData ?? query.data ?? null
+  const query = useToolQuery<ShellSettingsView>([...SHELL_SETTINGS_KEY], SHELL_SETTINGS_DATA, {})
+  const view = query.data ?? null
   if (view) return <LanguageSection view={view} />
   if (query.isError && classifyError(query.error).kind === "notOnServer") return null
   return (

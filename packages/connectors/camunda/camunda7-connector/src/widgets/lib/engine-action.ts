@@ -1,11 +1,12 @@
 import { useState } from "react"
-import { queryClient, useToolMutation } from "@miragon/mcp-toolkit-ui"
 import {
   useActionFeedback,
+  useQueryClient,
   useResetOnChange,
+  useToolMutation,
   type ConfirmTarget,
+  type QueryClient,
 } from "@miragon/pulse-widget-shell/widgets"
-
 import type { CAMUNDA7_SAVE_SETTINGS, Camunda7WidgetAction } from "../../tool-names.js"
 import { useCanRun } from "../widget-actions.js"
 import { WRITE_POLICY, type WidgetWrite } from "./write-policy.js"
@@ -97,9 +98,9 @@ function withoutMember<K>(set: ReadonlySet<K>, key: K): Set<K> {
 }
 
 /** By key namespace across every engine: a cheap over-approximation. */
-function invalidateAfter(tool: WidgetWrite): void {
+function invalidateAfter(client: QueryClient, tool: WidgetWrite): void {
   for (const namespace of WRITE_POLICY[tool].invalidates) {
-    void queryClient.invalidateQueries({ queryKey: [namespace] })
+    void client.invalidateQueries({ queryKey: [namespace] })
   }
 }
 
@@ -114,6 +115,7 @@ export function useEngineAction<TArgs extends Record<string, unknown>, TResult =
   const canRun = useCanRun()
   const allowed = (viewAllows ?? canRun(tool)) && available
   const mutation = useToolMutation<TResult>(tool)
+  const client = useQueryClient()
   const toasts = useActionFeedback()
   const [state, setState] = useState<ActionState<TArgs, TResult>>({
     pending: new Set(),
@@ -149,7 +151,7 @@ export function useEngineAction<TArgs extends Record<string, unknown>, TResult =
           typeof feedback.success === "function" ? feedback.success(result) : feedback.success,
         )
         runOptions.onSuccess?.(result)
-        invalidateAfter(tool)
+        invalidateAfter(client, tool)
       },
       (err: unknown) => {
         const error = err instanceof Error ? err : new Error(String(err))

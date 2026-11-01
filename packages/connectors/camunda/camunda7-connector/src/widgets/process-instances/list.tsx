@@ -1,4 +1,3 @@
-import { HostModelContext } from "@miragon/mcp-toolkit-ui/app"
 import {
   ListTable,
   PagedRows,
@@ -7,6 +6,7 @@ import {
   TableSkeleton,
   WidgetShell,
   usePagedListView,
+  HostModelContext,
 } from "@miragon/pulse-widget-shell/widgets"
 import { useState } from "react"
 import { FilterBar, PagedListFooter, type FilterChip } from "@miragon/mcp-toolkit-ui"

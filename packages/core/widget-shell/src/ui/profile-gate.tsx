@@ -1,5 +1,4 @@
 import {
-  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -7,8 +6,7 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from "react"
-import { AppQueryProvider, LocaleProvider, Skeleton, useToolQuery } from "@miragon/mcp-toolkit-ui"
-import { useHostBridge } from "@miragon/mcp-toolkit-ui/app"
+import { LocaleProvider, Skeleton } from "@miragon/mcp-toolkit-ui"
 import {
   getFormatLocale,
   setFormatLocale,
@@ -20,6 +18,7 @@ import { SHELL_SETTINGS_DATA } from "../shell-settings-contract.js"
 import { kitLabels } from "./kit-labels.js"
 import { SHELL_SETTINGS_KEY } from "./shell-settings.js"
 import { useShellHost } from "./shell-host.js"
+import { useToolQuery } from "./tool-query.js"
 import { useApplyTheme } from "./use-apply-theme.js"
 
 interface ProfileFeed {
@@ -35,26 +34,6 @@ export interface ProfileGateProps {
   /** Counted from the host connection, so a slow handshake never eats into it. */
   profileWaitMs?: number
   children: ReactNode
-}
-
-/**
- * Resolves the view's ONE effective locale and theme at the app root. Shares
- * the language section's query key, so a saved language flips views live.
- * The first paint waits (bounded) for host and profile, so a German profile
- * or dark host never flashes English or the OS theme. A failing feed releases
- * the gate at its FIRST failure: react-query stays pending through retries.
- */
-export function ProfileGate({ profileWaitMs, children }: ProfileGateProps) {
-  const { callTool } = useHostBridge()
-  const callToolFn = useCallback(
-    (name: string, args: object) => callTool(name, args as Record<string, unknown>),
-    [callTool],
-  )
-  return (
-    <AppQueryProvider callTool={callToolFn}>
-      <ProfileGateInner profileWaitMs={profileWaitMs}>{children}</ProfileGateInner>
-    </AppQueryProvider>
-  )
 }
 
 /** The clock starts once and never restarts; the result never flips back. */
@@ -82,10 +61,15 @@ function useFirstPaintSettled(
   return (connected && profileAnswered) || hostWaitedOut
 }
 
-function ProfileGateInner({
-  profileWaitMs = PROFILE_WAIT_MS,
-  children,
-}: Omit<ProfileGateProps, "children"> & { children: ReactNode }) {
+/**
+ * Resolves the view's ONE effective locale and theme at the app root. Shares
+ * the language section's query key, so a saved language flips views live.
+ * The first paint waits (bounded) for host and profile, so a German profile
+ * or dark host never flashes English or the OS theme. A failing feed releases
+ * the gate at its FIRST failure: react-query stays pending through retries.
+ * It reads through the view's host and query client (`ViewRoot`; `TestViewHost` in tests).
+ */
+export function ProfileGate({ profileWaitMs = PROFILE_WAIT_MS, children }: ProfileGateProps) {
   const host = useShellHost()
   const query = useToolQuery<ProfileFeed>([...SHELL_SETTINGS_KEY], SHELL_SETTINGS_DATA, {})
   const profile = query.data

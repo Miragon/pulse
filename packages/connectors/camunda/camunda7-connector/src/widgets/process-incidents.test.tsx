@@ -2,10 +2,10 @@
 import { afterEach, describe, expect, it } from "vitest"
 import type { ComponentType } from "react"
 import { cleanup, render, screen, within } from "@testing-library/react"
-import { WidgetFixtureHost } from "@miragon/mcp-toolkit-ui/app"
 import { ProcessDefinitionKpi } from "./process-incidents/kpi.js"
 import { diagramActivityFraction } from "./process-incidents/activity-scope.js"
 import type { ProcessIncidentsData } from "../view-models.js"
+import { TestViewHost } from "@miragon/pulse-widget-shell/widgets"
 
 afterEach(cleanup)
 
@@ -52,7 +52,11 @@ const Kpi = ProcessDefinitionKpi as unknown as ComponentType<Record<string, unkn
 
 describe("definition view — activities affected over the diagram", () => {
   it("counts only the diagram's activities in the fraction and names the older-version ones beside it", () => {
-    render(<WidgetFixtureHost widget={Kpi} data={DATA as unknown as Record<string, unknown>} />)
+    render(
+      <TestViewHost>
+        <Kpi data={DATA as never} />
+      </TestViewHost>,
+    )
 
     const cell = screen
       .getByText("Activities affected")

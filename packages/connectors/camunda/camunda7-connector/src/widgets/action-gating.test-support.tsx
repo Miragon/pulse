@@ -1,5 +1,4 @@
-import type { ComponentType, ReactElement } from "react"
-import { WidgetFixtureHost } from "@miragon/mcp-toolkit-ui/app"
+import { createElement, type ComponentType, type ReactElement } from "react"
 
 import type { UserProfileView } from "../lib/profile-schema.js"
 import { CAMUNDA7_SAVE_SETTINGS, CAMUNDA7_WIDGET_ACTIONS_DATA } from "../tool-names.js"
@@ -16,22 +15,26 @@ import { JobPanelWidget } from "./job-panel.js"
 import { IncidentTable } from "./process-incidents/incident-table.js"
 import { useIncidentRecovery } from "./process-incidents/use-incident-recovery.js"
 import { UserProfileWidget } from "./user-profile.js"
+import { TestViewHost, type QueryClient } from "@miragon/pulse-widget-shell/widgets"
 
-type Renderer = (allowedActions: readonly string[]) => ReactElement
+/** `client` is the test's, so it can wait for the gate feed to settle. */
+type Renderer = (allowedActions: readonly string[], client: QueryClient) => ReactElement
 
 function host(
   widget: ComponentType<Record<string, unknown>>,
   allowedActions: readonly string[],
-  data: unknown = {},
+  client: QueryClient,
+  data?: unknown,
 ): ReactElement {
   return (
-    <WidgetFixtureHost
-      widget={widget}
-      data={data as Record<string, unknown>}
+    <TestViewHost
       tools={{
         [CAMUNDA7_WIDGET_ACTIONS_DATA]: { allowedActions: [...allowedActions], modelTools: [] },
       }}
-    />
+      client={client}
+    >
+      {createElement(widget, data === undefined ? {} : { data })}
+    </TestViewHost>
   )
 }
 
@@ -137,31 +140,37 @@ const Variables: ComponentType<Record<string, unknown>> = () => (
 
 /** Render-level half of the write guard (#341): keyed exhaustively, so a site without a surface does not compile. */
 export const GATING_RENDERERS: Record<GatingSite, Renderer> = {
-  "job-panel.tsx#camunda7_set_job_retries": (allowed) => host(Jobs, allowed, JOBS),
-  "instance-sections.tsx#camunda7_set_process_instance_variable": (allowed) =>
-    host(Variables, allowed),
-  "instance-detail/open-tasks.tsx#camunda7_complete_task": (allowed) =>
-    host(Instance, allowed, INSTANCE),
-  "instance-detail/use-instance-actions.ts#camunda7_set_process_instance_suspension": (allowed) =>
-    host(Instance, allowed, INSTANCE),
-  "instance-detail/use-instance-actions.ts#camunda7_delete_process_instance": (allowed) =>
-    host(Instance, allowed, INSTANCE),
-  "process-incidents/use-incident-recovery.ts#camunda7_resolve_incident": (allowed) =>
-    host(incidentRows("invoiceMismatch", { action: "resolve" }), allowed),
-  "process-incidents/use-incident-recovery.ts#camunda7_set_job_retries": (allowed) =>
-    host(incidentRows("failedJob", { action: "retry-job", jobId: "job-1" }), allowed),
-  "process-incidents/use-incident-recovery.ts#camunda7_set_external_task_retries": (allowed) =>
+  "job-panel.tsx#camunda7_set_job_retries": (allowed, client) => host(Jobs, allowed, client, JOBS),
+  "instance-sections.tsx#camunda7_set_process_instance_variable": (allowed, client) =>
+    host(Variables, allowed, client),
+  "instance-detail/open-tasks.tsx#camunda7_complete_task": (allowed, client) =>
+    host(Instance, allowed, client, INSTANCE),
+  "instance-detail/use-instance-actions.ts#camunda7_set_process_instance_suspension": (
+    allowed,
+    client,
+  ) => host(Instance, allowed, client, INSTANCE),
+  "instance-detail/use-instance-actions.ts#camunda7_delete_process_instance": (allowed, client) =>
+    host(Instance, allowed, client, INSTANCE),
+  "process-incidents/use-incident-recovery.ts#camunda7_resolve_incident": (allowed, client) =>
+    host(incidentRows("invoiceMismatch", { action: "resolve" }), allowed, client),
+  "process-incidents/use-incident-recovery.ts#camunda7_set_job_retries": (allowed, client) =>
+    host(incidentRows("failedJob", { action: "retry-job", jobId: "job-1" }), allowed, client),
+  "process-incidents/use-incident-recovery.ts#camunda7_set_external_task_retries": (
+    allowed,
+    client,
+  ) =>
     host(
       incidentRows("failedExternalTask", {
         action: "retry-external-task",
         externalTaskId: "ext-1",
       }),
       allowed,
+      client,
     ),
   // Self-gated: rendered as allowed exactly when the list holds the save.
-  "user-profile.tsx#camunda7_save_settings": (allowed) => {
+  "user-profile.tsx#camunda7_save_settings": (allowed, client) => {
     const view = profileView(allowed.includes(CAMUNDA7_SAVE_SETTINGS))
     const Panel: ComponentType<Record<string, unknown>> = () => <UserProfileWidget data={view} />
-    return host(Panel, allowed)
+    return host(Panel, allowed, client)
   },
 }

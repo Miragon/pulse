@@ -1,26 +1,22 @@
-import {
-  buildComposedView as buildComposedViewCore,
-  buildSingleWidgetView as buildSingleWidgetViewCore,
-  type ComposedViewInput,
-  type SingleWidgetViewInput,
-} from "@miragon/mcp-toolkit-core"
-
-/** Kept out of the `/server` barrel so the shell's own tools import it directly. */
-
 /**
- * TypeScript synthesizes the index signature mcp-use's callback expects for
- * anonymous types but NOT for the named `ViewToolResult`; re-annotated to stay assignable.
+ * A type alias, NOT an interface: TypeScript synthesizes the index signature mcp-use's tool
+ * callback expects for anonymous types only.
  */
-type ViewResult = {
+export type ViewResult = {
   content: { type: "text"; text: string }[]
   structuredContent: Record<string, unknown>
 }
 
-export const buildSingleWidgetView = (input: SingleWidgetViewInput): ViewResult =>
-  buildSingleWidgetViewCore(input)
-
-export const buildComposedView = (input: ComposedViewInput): ViewResult =>
-  buildComposedViewCore(input)
+/**
+ * A show tool's result: `structuredContent` IS the data its view renders (the view is picked by
+ * its name, the tool's name); the text is the model's summary.
+ */
+export function buildViewResult(data: object, summary: string): ViewResult {
+  return {
+    content: [{ type: "text", text: summary }],
+    structuredContent: data as Record<string, unknown>,
+  }
+}
 
 type FeedResult = { content: { type: "text"; text: string }[] }
 

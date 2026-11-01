@@ -16,10 +16,10 @@ import {
   WidgetShell,
   formatNumber,
   viewRefreshState,
+  HostModelContext,
+  useViewData,
 } from "@miragon/pulse-widget-shell/widgets"
 import { RefreshCw, TriangleAlert } from "lucide-react"
-import { HostModelContext } from "@miragon/mcp-toolkit-ui/app"
-import { useViewData } from "@miragon/mcp-toolkit-ui/hooks"
 import type { EngineHealthCluster, EngineHealthData, EngineHealthStatus } from "../view-models.js"
 import { useNav, type OnNavigate } from "./navigation.js"
 import { CAMUNDA7_ENGINE_HEALTH_DATA } from "../tool-names.js"
@@ -332,7 +332,6 @@ export function EngineHealthView({
     CAMUNDA7_ENGINE_HEALTH_DATA,
     { engine: feedEngine },
     true,
-    { initialDataMode: "seed" },
   )
   const { data, loading, error, refetch } = view
   const { refreshError, refreshing } = viewRefreshState(view)

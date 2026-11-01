@@ -1,5 +1,8 @@
-import { HostModelContext } from "@miragon/mcp-toolkit-ui/app"
-import { modelContextText, type ToolSurface } from "@miragon/pulse-widget-shell/widgets"
+import {
+  modelContextText,
+  type ToolSurface,
+  HostModelContext,
+} from "@miragon/pulse-widget-shell/widgets"
 import { CAMUNDA7_SAVE_SETTINGS } from "../tool-names.js"
 import { useHandOff, type ViewContext } from "./lib/hand-off.js"
 

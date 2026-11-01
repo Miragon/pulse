@@ -5,15 +5,13 @@ import {
   NamedId,
   Section,
   TableEmptyState,
-  TableSkeleton,
   Td,
   WidgetShell,
   formatNumber,
   type ListTableColumn,
 } from "@miragon/pulse-widget-shell/widgets"
 import type { FailureDashboardData, ProcessFailureItem } from "@miragon/pulse-analytics-client"
-import { useFailureDashboardSelfFetch, type FailureScopeProps, type FailureView } from "./lib.js"
-import { QueryGate } from "../query-gate.js"
+import type { FailureView } from "./lib.js"
 import { useT, type T } from "../../messages/use-t.js"
 import { engineIdsOf, useHandOff, type HandOff } from "../hand-off.js"
 import { processNameOf } from "../../bpmn-names.js"
@@ -79,76 +77,61 @@ function RateCell({ rate, max, t }: { rate: number | null; max: number; t: T }) 
   )
 }
 
-export function FailureRateTable({
-  data: initialData,
-  engine,
-}: { data: FailureView | null } & FailureScopeProps) {
-  const fallbackQuery = useFailureDashboardSelfFetch(initialData, { engine })
+export function FailureRateTable({ data }: { data: FailureView }) {
   const t = useT()
   const { ask } = useHandOff()
+  if (data.processBreakdown.length === 0) {
+    return (
+      <WidgetShell>
+        <TableEmptyState variant="done">{t("aFailureRate.emptyState")}</TableEmptyState>
+      </WidgetShell>
+    )
+  }
+  const max = Math.max(0, ...data.processBreakdown.map((p) => p.incidentRatePct ?? 0))
   return (
-    <QueryGate initialData={initialData} query={fallbackQuery} skeleton={<TableSkeleton />}>
-      {(data) => {
-        if (data.processBreakdown.length === 0) {
-          return (
-            <WidgetShell>
-              <TableEmptyState variant="done">{t("aFailureRate.emptyState")}</TableEmptyState>
-            </WidgetShell>
-          )
-        }
-        const max = Math.max(0, ...data.processBreakdown.map((p) => p.incidentRatePct ?? 0))
-        return (
-          <WidgetShell>
-            <Section
-              title={t("aFailureRate.heading")}
-              count={data.processBreakdown.length}
-              defaultOpen
-            >
-              <ListTable ariaLabel={t("aFailureRate.tableLabel")} columns={columns(t)}>
-                {data.processBreakdown.map((proc) => (
-                  <tr key={proc.processDefinitionKey}>
-                    <Td>
-                      <NamedId
-                        name={processNameOf(data.names, proc.processDefinitionKey)}
-                        id={proc.processDefinitionKey}
-                      />
-                    </Td>
-                    <Td align="right" className="tabular-nums">
-                      {formatNumber(proc.runningNow)}
-                    </Td>
-                    {/* The states of a process (decision f), on the kit's one
+    <WidgetShell>
+      <Section title={t("aFailureRate.heading")} count={data.processBreakdown.length} defaultOpen>
+        <ListTable ariaLabel={t("aFailureRate.tableLabel")} columns={columns(t)}>
+          {data.processBreakdown.map((proc) => (
+            <tr key={proc.processDefinitionKey}>
+              <Td>
+                <NamedId
+                  name={processNameOf(data.names, proc.processDefinitionKey)}
+                  id={proc.processDefinitionKey}
+                />
+              </Td>
+              <Td align="right" className="tabular-nums">
+                {formatNumber(proc.runningNow)}
+              </Td>
+              {/* The states of a process (decision f), on the kit's one
                         ladder: open incidents and dead jobs (no retries left)
                         edged in danger while there are any, as camunda7 and
                         the landscape show them; none is a plain count. */}
-                    <Td align="right" className="tabular-nums">
-                      <StateCount value={proc.openIncidents} />
-                    </Td>
-                    <Td align="right" className="tabular-nums">
-                      <StateCount value={proc.deadJobs} />
-                    </Td>
-                    <Td align="right">
-                      <RateCell rate={proc.incidentRatePct} max={max} t={t} />
-                    </Td>
-                    <Td align="right">
-                      <HandOffButton
-                        action="findCause"
-                        variant="icon"
-                        prompt={ask(failureRateHandOff(proc, data))}
-                      />
-                    </Td>
-                  </tr>
-                ))}
-              </ListTable>
-              <FigureLegend
-                reasons={[
-                  data.processBreakdown.some((p) => p.incidentRatePct === null) &&
-                    t("aFigure.noRate"),
-                ]}
-              />
-            </Section>
-          </WidgetShell>
-        )
-      }}
-    </QueryGate>
+              <Td align="right" className="tabular-nums">
+                <StateCount value={proc.openIncidents} />
+              </Td>
+              <Td align="right" className="tabular-nums">
+                <StateCount value={proc.deadJobs} />
+              </Td>
+              <Td align="right">
+                <RateCell rate={proc.incidentRatePct} max={max} t={t} />
+              </Td>
+              <Td align="right">
+                <HandOffButton
+                  action="findCause"
+                  variant="icon"
+                  prompt={ask(failureRateHandOff(proc, data))}
+                />
+              </Td>
+            </tr>
+          ))}
+        </ListTable>
+        <FigureLegend
+          reasons={[
+            data.processBreakdown.some((p) => p.incidentRatePct === null) && t("aFigure.noRate"),
+          ]}
+        />
+      </Section>
+    </WidgetShell>
   )
 }

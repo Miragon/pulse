@@ -4,9 +4,9 @@ import {
   WidgetShell,
   formatNumber,
   formatTimestamp,
+  useViewData,
 } from "@miragon/pulse-widget-shell/widgets"
 import { KpiGrid, LivePill, WidgetHeader } from "@miragon/mcp-toolkit-ui"
-import { useViewData } from "@miragon/mcp-toolkit-ui/hooks"
 import type { IncidentsDashboardData } from "../../view-models.js"
 import { CAMUNDA7_INCIDENTS_DATA } from "../../tool-names.js"
 import { useHandOff, type HandOff } from "../lib/hand-off.js"
@@ -60,7 +60,6 @@ export function IncidentOverviewKpiView({
     CAMUNDA7_INCIDENTS_DATA,
     feed.args,
     feed.ready,
-    { initialDataMode: "seed" },
   )
   const t = useT()
   const { ask } = useHandOff()

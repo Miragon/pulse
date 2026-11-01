@@ -199,6 +199,9 @@ export function useBpmnViewer({
   const fit = useCallback(() => {
     const canvas = getCanvas()
     if (!canvas) return
+    // A hidden container (`display: none`: the origin view behind a drill) has no layout box, and
+    // bpmn-js throws on the non-finite scale it would compute; showing it again resizes and refits.
+    if (containerRef.current?.getClientRects().length === 0) return
     canvas.resized()
     canvas.zoom("fit-viewport", "auto")
     canvas.zoom(canvas.zoom() * 0.95)

@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 import { VIEW_RESOURCE_URI_PREFIX, viewResourceUri } from "@miragon/mcp-toolkit-core"
 import type { Client } from "@modelcontextprotocol/client"
+import { viewPrelude } from "@miragon/pulse-widget-shell/server"
 import { bootServer, type BootedServer } from "./boot-server.js"
 
 type ToolEntry = { name: string; title?: string; _meta?: Record<string, unknown> }
@@ -165,6 +166,18 @@ describe("widget wire contract (dual-protocol _meta)", () => {
     for (const tool of showTools) {
       const resource = resources.find((r) => r.uri === viewResourceUri(tool.name))
       expect(resource?.description, tool.name).toBe(tool.title)
+    }
+  })
+
+  // The one bundle serves every view: the document's prelude names the view (= its show tool),
+  // before the bundle runs, so the bundle mounts that view and re-runs that tool on a stripped result.
+  it("names its view in every view document, before the bundle", async () => {
+    const viewTools = tools.filter((t) => typeof uiBlock(t._meta ?? {}).resourceUri === "string")
+    expect(viewTools.length).toBeGreaterThanOrEqual(20)
+    for (const tool of viewTools) {
+      const { contents } = await client.readResource({ uri: viewResourceUri(tool.name) })
+      const text = (contents[0] as { text?: string }).text ?? ""
+      expect(text, tool.name).toContain(viewPrelude(tool.name))
     }
   })
 

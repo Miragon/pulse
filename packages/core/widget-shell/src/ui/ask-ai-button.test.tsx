@@ -1,11 +1,10 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
-import { LocaleProvider } from "@miragon/mcp-toolkit-ui"
-import { HostBridgeProvider, type HostBridge } from "@miragon/mcp-toolkit-ui/app"
 import { FileSearch } from "lucide-react"
 import { AskAiButton, type AskAiButtonProps } from "./ask-ai-button.js"
 import { askAiPrompt, type AskAiPrompt } from "./ask-ai-prompt.js"
+import { TestViewHost, type HostAction } from "./test-view-host.js"
 
 afterEach(cleanup)
 
@@ -14,21 +13,13 @@ function renderButton(
   locale = "en",
   props: Omit<AskAiButtonProps, "prompt"> = {},
 ) {
-  const sendFollowup = vi.fn()
-  const bridge: HostBridge = {
-    callTool: vi.fn(),
-    sendFollowup,
-    openExternal: vi.fn(),
-    getWidgetData: () => null,
-  }
+  const actions: HostAction[] = []
   const view = render(
-    <HostBridgeProvider bridge={bridge}>
-      <LocaleProvider locale={locale}>
-        <AskAiButton prompt={prompt} {...props} />
-      </LocaleProvider>
-    </HostBridgeProvider>,
+    <TestViewHost locale={locale} onHostAction={(action) => actions.push(action)}>
+      <AskAiButton prompt={prompt} {...props} />
+    </TestViewHost>,
   )
-  return { ...view, sendFollowup }
+  return { ...view, actions }
 }
 
 const prompt = (locale = "en") =>
@@ -41,9 +32,11 @@ const prompt = (locale = "en") =>
 
 describe("AskAiButton", () => {
   it("posts the built hand-off unchanged as the follow-up", () => {
-    const { sendFollowup } = renderButton(prompt())
+    const { actions } = renderButton(prompt())
     fireEvent.click(screen.getByRole("button", { name: "Analyze in chat" }))
-    expect(sendFollowup).toHaveBeenCalledWith('Explain this.\nIds: incidentId="i1"')
+    expect(actions).toEqual([
+      { type: "sendFollowUp", prompt: 'Explain this.\nIds: incidentId="i1"' },
+    ])
   })
 
   it("renders nothing for a hand-off with nothing available in this deployment", () => {
@@ -87,7 +80,7 @@ describe("AskAiButton", () => {
 
   it("the menuitem variant is a plain entry of a menu that posts the same hand-off", () => {
     const onSent = vi.fn()
-    const { container, sendFollowup } = renderButton(prompt(), "en", {
+    const { container, actions } = renderButton(prompt(), "en", {
       variant: "menuitem",
       icon: FileSearch,
       label: "Explain error in chat",
@@ -109,7 +102,9 @@ describe("AskAiButton", () => {
     }
     expect(container.querySelector("svg")!.getAttribute("class")).toContain("lucide-file-search")
     fireEvent.click(item)
-    expect(sendFollowup).toHaveBeenCalledWith('Explain this.\nIds: incidentId="i1"')
+    expect(actions).toEqual([
+      { type: "sendFollowUp", prompt: 'Explain this.\nIds: incidentId="i1"' },
+    ])
     expect(onSent).toHaveBeenCalledTimes(1)
   })
 

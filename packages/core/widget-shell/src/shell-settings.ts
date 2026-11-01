@@ -4,12 +4,11 @@ import { createTranslator, type Catalogs } from "@miragon/mcp-toolkit-core"
 import type { ModulePlugin } from "./composition.js"
 import { LANGUAGES, type LanguagePref } from "./profile-constants.js"
 import type { ProfileStore } from "./profile-store.js"
-import { createViewLocaleOf, type ServerT } from "./server-locale.js"
+import { createLanguageT, type ServerT } from "./server-locale.js"
 import { registerSettingsSection } from "./settings-section.js"
 import {
   SHELL_SAVE_SETTINGS,
   SHELL_SETTINGS_DATA,
-  SHELL_SETTINGS_PAGE_WIDGET,
   SHELL_SHOW_SETTINGS,
   type ShellSettingsReadOnlyReason,
   type ShellSettingsView,
@@ -22,7 +21,6 @@ import {
 
 const catalogs: Catalogs = {
   en: {
-    "settings.title": "Settings",
     "settings.language.system": "automatic (follows the chat app)",
     "settings.language.en": "English",
     "settings.language.de": "German",
@@ -33,7 +31,6 @@ const catalogs: Catalogs = {
     "settings.saved": ({ language }) => `UI language saved: ${String(language)}.`,
   },
   de: {
-    "settings.title": "Einstellungen",
     "settings.language.system": "automatisch (folgt der Chat-App)",
     "settings.language.en": "Englisch",
     "settings.language.de": "Deutsch",
@@ -47,7 +44,7 @@ const catalogs: Catalogs = {
 
 /** Exported for the brand gates (`catalogTextFindings`). */
 export const SHELL_SETTINGS_CATALOGS = catalogs
-const viewLocaleOf = createViewLocaleOf(createTranslator(catalogs))
+const languageT = createLanguageT(createTranslator(catalogs))
 
 const languageName = (t: ServerT, language: LanguagePref) => t(`settings.language.${language}`)
 
@@ -73,8 +70,6 @@ export function registerShellSettingsTools(
   { profileStore: store, allowSave }: ShellPluginOptions,
 ): void {
   registerSettingsSection(server, {
-    app: "shell",
-    widget: SHELL_SETTINGS_PAGE_WIDGET,
     openWorldHint: false,
     readOnlyReason: "readOnly" satisfies ShellSettingsReadOnlyReason,
     load: async (_ctx, key, gate) => {
@@ -92,12 +87,9 @@ export function registerShellSettingsTools(
       title: "Settings",
       description: "Open the settings page: the UI language and each module's settings.",
       render: ({ view }) => {
-        const { t, title } = viewLocaleOf(view.language)
+        const t = languageT(view.language)
         const hint = view.canSave ? "settings.summary.canSave" : "settings.summary.readOnly"
-        return {
-          title: title("settings.title"),
-          summary: t("settings.summary", { language: languageName(t, view.language) }) + t(hint),
-        }
+        return t("settings.summary", { language: languageName(t, view.language) }) + t(hint)
       },
     },
     feed: {
@@ -120,7 +112,7 @@ export function registerShellSettingsTools(
               canSave: true,
               readOnlyReason: null,
             }
-            const { t } = viewLocaleOf(saved.language)
+            const t = languageT(saved.language)
             return {
               text: t("settings.saved", { language: languageName(t, saved.language) }),
               saved: view,

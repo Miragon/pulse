@@ -11,8 +11,8 @@ import {
   formatNumber,
   formatTimestamp,
   usePagedListView,
+  HostModelContext,
 } from "@miragon/pulse-widget-shell/widgets"
-import { HostModelContext } from "@miragon/mcp-toolkit-ui/app"
 import {
   FilterBar,
   KpiGrid,

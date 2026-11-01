@@ -1,8 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from "vitest"
-import type { ComponentType } from "react"
+import { createElement, type ComponentType } from "react"
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
-import { WidgetFixtureHost } from "@miragon/mcp-toolkit-ui/app"
 import {
   CAMUNDA7_ACTIVITY_INCIDENTS_DATA,
   CAMUNDA7_PROCESS_INCIDENTS_DATA,
@@ -30,6 +29,7 @@ import {
   renderInstance,
   type Calls,
 } from "./write-path.test-support.js"
+import { TestViewHost } from "@miragon/pulse-widget-shell/widgets"
 
 // #341: a write re-reads every view showing what it changed (`WRITE_POLICY`), mounted ones at once,
 // unmounted on next mount; marks follow the rows' own data, never a sibling feed that answers first.
@@ -109,7 +109,7 @@ async function rereadsAfter(
     [CAMUNDA7_WIDGET_ACTIONS_DATA]: adminActions(),
     ...recorder(reads, feed, () => answer),
   }
-  const first = render(<WidgetFixtureHost widget={view} data={{}} tools={tools} />)
+  const first = render(<TestViewHost tools={tools}>{createElement(view)}</TestViewHost>)
   await waitFor(() => expect(reads).toHaveLength(1))
   first.unmount()
 
@@ -117,7 +117,7 @@ async function rereadsAfter(
   await write.run()
   detail.unmount()
 
-  render(<WidgetFixtureHost widget={view} data={{}} tools={tools} />)
+  render(<TestViewHost tools={tools}>{createElement(view)}</TestViewHost>)
   await waitFor(() => expect(reads).toHaveLength(2))
 }
 
@@ -161,9 +161,7 @@ describe("the definition view's remedy marks follow the rows they mark", () => {
     let rowReads = 0
     let releaseRows!: (rows: ActivityIncidentsData) => void
     render(
-      <WidgetFixtureHost
-        widget={ActivityIncidentList as unknown as ComponentType<Record<string, unknown>>}
-        data={DEFINITION as unknown as Record<string, unknown>}
+      <TestViewHost
         tools={{
           [CAMUNDA7_WIDGET_ACTIONS_DATA]: adminActions(),
           camunda7_set_job_retries: () => ({ success: true }),
@@ -178,7 +176,9 @@ describe("the definition view's remedy marks follow the rows they mark", () => {
             return new Promise((resolve) => (releaseRows = resolve))
           },
         }}
-      />,
+      >
+        <ActivityIncidentList data={DEFINITION as never} />
+      </TestViewHost>,
     )
     fireEvent.click(await screen.findByText("Charge card"))
     fireEvent.click(await screen.findByRole("button", { name: "Retry" }))

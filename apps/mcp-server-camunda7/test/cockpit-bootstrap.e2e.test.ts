@@ -16,13 +16,10 @@ interface CockpitPayload {
 
 type CallResult = Awaited<ReturnType<BootedServer["client"]["callTool"]>>
 
-/** The bootstrap the app receives (the single-widget view's step data). */
+/** The bootstrap the app receives: the view's structuredContent IS its data. */
 function bootstrapOf(result: CallResult): CockpitPayload {
   expect(result.isError, JSON.stringify(result.content)).toBeFalsy()
-  const view = result.structuredContent as {
-    context: { stepData: { result: { data: CockpitPayload } } }
-  }
-  return view.context.stepData.result.data
+  return result.structuredContent as CockpitPayload
 }
 
 const textOf = (result: CallResult) =>

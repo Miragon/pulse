@@ -106,8 +106,8 @@ settings page or `camunda7_select_engine` does.
 
 The settings page belongs to the shell (`shell_show_settings`, and the
 cockpit's settings tab): the language section first, then one section widget
-per module, assembled from the widgets the server actually bundles: every
-widget id ending in `:settings` becomes a row. A module that isn't mounted
+per module, taken from the host widgets the server's bundle registers: every
+host widget id ending in `:settings` becomes a row. A module that isn't mounted
 has no section, and a custom module in a composed server contributes
 its section by that convention alone. The language save is the shell's only
 write: it needs `MCP_OAUTH` and no module on read-only.
@@ -127,10 +127,11 @@ write: it needs `MCP_OAUTH` and no module on read-only.
 2. The server delegates to the matching module's plugin.
 3. The plugin calls the relevant system (REST for the engine, PromQL for
    Prometheus) and returns JSON for the model.
-4. A widget tool (`show_*`) returns a short summary for the model plus a
-   `structuredContent` layout; the host renders it in the view the tool
-   declares, from the shared bundle. Inside the view, app-only `*_data` feeds
-   refresh and page it without a model turn.
+4. A widget tool (`show_*`) returns a short summary plus the view's data as
+   `structuredContent`; the host renders it in the tool's view, which the shared
+   bundle picks by the tool's name (re-running the tool once where a host drops
+   `structuredContent`). Inside the view, app-only `*_data` feeds refresh and
+   page it without a model turn.
 
 Process metrics originate in the engine: the Kotlin plugin maps history events
 to Micrometer counters/histograms (100 % coverage, model-bounded labels), the

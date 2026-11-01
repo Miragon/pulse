@@ -31,6 +31,15 @@ export interface KitLabels {
   heatmapElement: string
   heatmapValue: string
   heatmapRange: (p: { min: string; max: string }) => string
+  /** The view frame (`ViewFrame`): its waiting, cancel, error and toolbar words. */
+  slowHint: string
+  cancelled: string
+  viewErrorTitle: string
+  viewMissing: string
+  viewCrashed: string
+  enterFullscreen: string
+  exitFullscreen: string
+  reloadedAt: (time: string) => string
 }
 
 const LABELS: Record<Locale, KitLabels> = {
@@ -77,6 +86,14 @@ const LABELS: Record<Locale, KitLabels> = {
     rowsShown: ({ shown, total }) => `${shown} of ${total} shown`,
     showAll: "Show all",
     showMore: "Show more",
+    slowHint: "This is taking longer than usual. If nothing happens, ask in the chat again.",
+    cancelled: "Cancelled. Ask in the chat to open this view again.",
+    viewErrorTitle: "This view couldn't be loaded",
+    viewMissing: "This app can't show this view. Ask in the chat to open it again.",
+    viewCrashed: "This element couldn't be displayed.",
+    enterFullscreen: "Fullscreen",
+    exitFullscreen: "Exit fullscreen",
+    reloadedAt: (time) => `Reloaded at ${time}`,
   },
   de: {
     loading: "Wird geladen…",
@@ -121,6 +138,14 @@ const LABELS: Record<Locale, KitLabels> = {
     rowsShown: ({ shown, total }) => `${shown} von ${total} angezeigt`,
     showAll: "Alle anzeigen",
     showMore: "Mehr anzeigen",
+    slowHint: "Das dauert länger als üblich. Wenn nichts passiert, frag im Chat noch mal nach.",
+    cancelled: "Abgebrochen. Frag im Chat noch mal nach dieser Ansicht.",
+    viewErrorTitle: "Die Ansicht konnte nicht geladen werden",
+    viewMissing: "Diese App kann die Ansicht nicht anzeigen. Frag im Chat noch mal nach ihr.",
+    viewCrashed: "Dieses Element konnte nicht angezeigt werden.",
+    enterFullscreen: "Vollbild",
+    exitFullscreen: "Vollbild verlassen",
+    reloadedAt: (time) => `Neu geladen um ${time} Uhr`,
   },
 }
 

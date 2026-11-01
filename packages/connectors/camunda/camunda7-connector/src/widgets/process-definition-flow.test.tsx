@@ -1,16 +1,14 @@
 // @vitest-environment happy-dom
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import type { ComponentType } from "react"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
-import { queryClient } from "@miragon/mcp-toolkit-ui"
-import { WidgetFixtureHost } from "@miragon/mcp-toolkit-ui/app"
-import { collectLayoutWidgets, type LayoutConfig } from "@miragon/mcp-toolkit-core"
 import { CAMUNDA7_BPMN_XML_DATA, CAMUNDA7_PROCESS_INCIDENTS_DATA } from "../tool-names.js"
 import type { ProcessIncidentsData } from "../view-models.js"
-import { definitionViewLayout } from "../widget-tools/shared.js"
-import { cockpitViews } from "./cockpit-app/views.js"
 import type * as DiagramModule from "./bpmn-diagram.js"
 import { ProcessDefinitionFlow } from "./process-incidents/flow.js"
+import { TestViewHost, createTestQueryClient } from "@miragon/pulse-widget-shell/widgets"
+
+// One retry-free client per test; the test reads and pokes its cache.
+let queryClient = createTestQueryClient()
 
 // bpmn-js needs a real layout engine.
 vi.mock("./bpmn-diagram.js", async (importOriginal) => ({
@@ -38,19 +36,9 @@ vi.mock("bpmn-js/lib/NavigatedViewer", () => ({ default: viewer.MockViewer }))
 const HEATMAP_FEED = "analytics_bpmn_heatmap_data"
 const ANALYTICS_PROBE = "analytics_settings_data"
 
-const toolkitDefaults = queryClient.getDefaultOptions()
-
-beforeEach(() => {
-  queryClient.setDefaultOptions({
-    ...toolkitDefaults,
-    queries: { ...toolkitDefaults.queries, retry: false },
-  })
-})
-
 afterEach(() => {
   cleanup()
-  queryClient.clear()
-  queryClient.setDefaultOptions(toolkitDefaults)
+  queryClient = createTestQueryClient()
 })
 
 const DATA: ProcessIncidentsData = {
@@ -81,45 +69,10 @@ const DATA: ProcessIncidentsData = {
   engineId: "prod-a",
 }
 
-function flowProps(layout: LayoutConfig): Record<string, unknown> {
-  expect(collectLayoutWidgets(layout)).toContain("camunda7:process-definition-flow")
-  for (const row of layout as Array<{ row: Array<{ widget: string; props?: object }> }>) {
-    const cell = row.row.find((c) => c.widget === "camunda7:process-definition-flow")
-    if (cell) return { ...cell.props }
-  }
-  throw new Error("no flow cell")
-}
-
-// The show tool's cell props carry no scope; its widgets read the step data.
+// The cockpit route scopes the flow; the two show tools hand it their data (`ProcessDefinitionView`).
 const ENTRIES: Array<[string, Record<string, unknown>]> = [
-  [
-    "cockpit overview drill",
-    flowProps(
-      cockpitViews["process-detail"]({ engine: "prod-a", processDefinitionKey: "leasing" }),
-    ),
-  ],
-  [
-    "cockpit incidents drill",
-    flowProps(
-      cockpitViews["process-detail"]({
-        engine: "prod-a",
-        processDefinitionKey: "leasing",
-        focus: "incidents",
-      }),
-    ),
-  ],
-  [
-    "camunda7_show_process_detail",
-    { ...flowProps(definitionViewLayout()), processDefinitionKey: "leasing", engine: "prod-a" },
-  ],
-  [
-    "camunda7_show_process_incidents",
-    {
-      ...flowProps(definitionViewLayout("incidents")),
-      processDefinitionKey: "leasing",
-      engine: "prod-a",
-    },
-  ],
+  ["cockpit drill", { processDefinitionKey: "leasing", engine: "prod-a" }],
+  ["camunda7_show_process_detail and _incidents", { data: DATA }],
 ]
 
 function renderFlow(
@@ -138,8 +91,11 @@ function renderFlow(
     },
     ...(analytics ? { [ANALYTICS_PROBE]: { settings: {}, canSave: false } } : {}),
   }
-  const Flow: ComponentType<Record<string, unknown>> = () => <ProcessDefinitionFlow {...props} />
-  render(<WidgetFixtureHost widget={Flow} data={{}} tools={tools} />)
+  render(
+    <TestViewHost tools={tools} client={queryClient}>
+      <ProcessDefinitionFlow {...props} />
+    </TestViewHost>,
+  )
   return heatmapCalls
 }
 

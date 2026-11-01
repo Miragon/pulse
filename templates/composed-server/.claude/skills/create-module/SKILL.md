@@ -36,8 +36,8 @@ needed. Then adjust:
   build; `tsconfig.widgets.json` type-checks the widget `.tsx` (wired into the
   `typecheck` script, the only check that covers widget code).
 - Do a global rename `notes` → `<name>` across `src/` (module name, plugin
-  name, tool prefixes, widget ids, data types), `src/module.test.ts`
-  included.
+  name, tool prefixes and thus view names, query keys), `src/module.test.ts`
+  and the widget test included.
 
 ## Step 2: the data layer
 
@@ -144,13 +144,14 @@ Three edits, plus the env documentation:
 1. `server/package.json`: add `"@<your-scope>/mcp-<name>": "workspace:*"`,
    then `pnpm install`.
 2. `server/src/setup.ts`: add your module to `MODULES`.
-3. `server/src/ui/widget-registry.ts`: spread your `<name>Widgets` map
-   (needed once you have widgets; harmless before).
+3. `server/src/ui/view-registry.ts`: spread your `<name>Views` map into
+   `viewRegistry` (needed once you have show tools; harmless before), and a
+   settings section into `hostWidgets`.
 
-A missed spread is **silent** (tools work, widgets render empty), which is
-why `server/test/widget-registry.test.ts` covers you without an edit: it
-reads every `widget: "<module>:<id>"` from the sources of each module the
-server depends on (edit 1) and fails naming an id the registry cannot render.
+A missed spread is **silent** (tools work, the view says it can't show
+itself), which is why `server/test/view-registry.test.ts` covers you
+without an edit: it boots the real composition (edit 2) and fails naming a
+view-bound tool without a view.
 
 Tailwind needs no edit: `server/src/ui/globals.css` scans every workspace
 module through the `modules/*/src` glob. Only an npm-installed module
@@ -190,5 +191,5 @@ without `MCP_OAUTH` and its `authenticatedDefault` with it (the boot log's
   contract; the raw path is for widget tools only.
 - Naming a plain tool `*_data` or `*_show_*`: the e2e naming contract will
   fail it, correctly.
-- Talking to your backend from widget code: widgets self-fetch through
-  `*_data` feeds only (see the add-widget skill).
+- Talking to your backend from widget code: widgets read through `*_data`
+  feeds only, via the kit's query hooks (see the add-widget skill).

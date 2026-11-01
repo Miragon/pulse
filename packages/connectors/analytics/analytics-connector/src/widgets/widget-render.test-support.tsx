@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, vi } from "vitest"
 import type { ComponentType } from "react"
 import { cleanup, render, screen, within } from "@testing-library/react"
-import { LocaleProvider, queryClient } from "@miragon/mcp-toolkit-ui"
-import { WidgetFixtureHost } from "@miragon/mcp-toolkit-ui/app"
+import { LocaleProvider } from "@miragon/mcp-toolkit-ui"
 import { setFormatLocale } from "@miragon/pulse-widget-shell/testing"
+import { TestViewHost } from "@miragon/pulse-widget-shell/widgets"
 
 export const NOW = "2026-10-10T12:40:00.000Z"
 export const AS_OF = "2026-10-10T12:32:00.000Z"
@@ -16,7 +16,6 @@ export function withWidgetClock() {
   })
   afterEach(() => {
     cleanup()
-    queryClient.clear()
     setFormatLocale(undefined)
     vi.useRealTimers()
   })
@@ -36,11 +35,9 @@ export function renderIn(
   })
   return render(
     <LocaleProvider locale={language}>
-      <WidgetFixtureHost
-        widget={Widget as unknown as ComponentType<Record<string, unknown>>}
-        data={data as Record<string, unknown>}
-        tools={tools}
-      />
+      <TestViewHost tools={tools}>
+        <Widget data={data as never} />
+      </TestViewHost>
     </LocaleProvider>,
   )
 }

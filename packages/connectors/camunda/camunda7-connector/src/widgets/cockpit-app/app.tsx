@@ -1,23 +1,15 @@
 import { useReducer, type ReactNode } from "react"
+import { Button, cn, EmptyState, FOCUS_RING, useLocale } from "@miragon/mcp-toolkit-ui"
 import {
-  Button,
-  cn,
-  EmptyState,
-  FOCUS_RING,
-  useCallTool,
-  useLocale,
-  useToolQuery,
-} from "@miragon/mcp-toolkit-ui"
-import { HostModelContext, WidgetRenderer } from "@miragon/mcp-toolkit-ui/app"
-import {
-  filterLayoutToWidgets,
+  HostModelContext,
   Icon,
   type LucideIcon,
   NativeSelect,
   NavigationFocus,
-  useHostWidgets,
   useResetOnChange,
+  useToolQuery,
   ViewDataState,
+  ViewErrorBoundary,
   WidgetShell,
 } from "@miragon/pulse-widget-shell/widgets"
 import { Layers, LayoutDashboard, Settings, TriangleAlert } from "lucide-react"
@@ -26,20 +18,19 @@ import { groupEnginesByEnvironment } from "../../lib/environments.js"
 import { EngineChromeProvider, EnvironmentChip, environmentIn } from "../lib/engine-context.js"
 import { NavProvider, type NavIntent, type OnNavigate } from "../navigation.js"
 import {
-  buildViewParams,
   type CockpitScope,
   type CockpitView,
   intentToView,
   popTo,
   pushView,
+  viewKey,
 } from "../nav-core.js"
-import { camunda7BaseWidgets } from "../registry.js"
 import { useHandOff } from "../lib/hand-off.js"
 import { cockpitContext, fleetContext, landingContext } from "./model-context.js"
 import { translator } from "../../messages/index.js"
 import { CAMUNDA7_LIST_ENGINES } from "../../tool-names.js"
 import { FleetCrumbs, NavBreadcrumb, navigationOf } from "./breadcrumb.js"
-import { cockpitViews } from "./views.js"
+import { CockpitRoute } from "./routes.js"
 import { useAnalyticsActive } from "./analytics-probe.js"
 import { FleetView } from "./fleet-view.js"
 import { LandingChooser, LandingHeader } from "./landing.js"
@@ -263,14 +254,12 @@ function EngineGoneNotice({ engineId }: { engineId: string | null }) {
 
 /** #322 U15: an empty engine list is the app-level "no engines" surface. */
 function EnginesEmptyState({
-  hasTransport,
   enginesQuery,
 }: {
-  hasTransport: boolean
   enginesQuery: { isError: boolean; error: Error | null; data: unknown; refetch: () => unknown }
 }) {
   const locale = useLocale()
-  const loading = hasTransport && !enginesQuery.isError && enginesQuery.data === undefined
+  const loading = !enginesQuery.isError && enginesQuery.data === undefined
   if (loading || enginesQuery.error) {
     return (
       <WidgetShell>
@@ -316,9 +305,6 @@ function useCockpitState(data: CockpitAppData | null, engines: ReadonlyArray<{ i
 }
 
 export function CockpitApp({ data }: { data: CockpitAppData | null }) {
-  // Without a host callTool every useToolQuery stays pending, so loading must not wait on it.
-  const queryCallTool = useCallTool()
-
   // Decoupled from the open_cockpit bootstrap so picker and switcher work however the app launched.
   const enginesQuery = useToolQuery<EnginesResult>(["camunda7:engines"], CAMUNDA7_LIST_ENGINES, {})
   const engines = enginesQuery.data?.engines ?? data?.engines ?? []
@@ -326,10 +312,6 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
 
   const locale = useLocale()
   const { context } = useHandOff()
-
-  // Composed views reference other modules' widgets by raw id; own ids win.
-  const hostWidgets = useHostWidgets()
-  const cockpitWidgets = { ...hostWidgets, ...camunda7BaseWidgets }
 
   const [{ scope, stack, goneEngineId }, dispatch] = useCockpitState(data, engines)
 
@@ -345,7 +327,7 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
 
   // Bootstrap engines let us proceed when the engines query failed.
   if (engines.length === 0) {
-    return <EnginesEmptyState hasTransport={!!queryCallTool} enginesQuery={enginesQuery} />
+    return <EnginesEmptyState enginesQuery={enginesQuery} />
   }
 
   // #344 N107: one frame, so navigation moves focus to the new view.
@@ -373,7 +355,7 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
         <WidgetShell>
           <HostModelContext content={context(fleetContext(engineGroups))}>{null}</HostModelContext>
           <FleetCrumbs locale={locale} onLanding={() => dispatch({ type: "to-landing" })} />
-          <FleetView engines={engines} onEnterEngine={enterEngine} widgets={cockpitWidgets} />
+          <FleetView engines={engines} onEnterEngine={enterEngine} />
         </WidgetShell>
       </NavigationFocus>
     )
@@ -419,22 +401,16 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
             onPop={(to) => dispatch(to < 0 ? { type: "to-landing" } : { type: "pop", to })}
           />
 
-          {/* Every view is a layout of self-fetching widgets rendered through the
-            toolkit renderer. The NavProvider is the client-side navigation
-            seam: widgets call `useNav()`, which resolves to this in-app router
-            instead of a chat follow-up. The head names the engine, so the
-            views leave it out of their own meta line (EngineChromeProvider). */}
+          {/* Every view is a route of self-fetching widgets. The NavProvider is
+            the client-side navigation seam: widgets call `useNav()`, which
+            resolves to this in-app router instead of a chat follow-up. The head
+            names the engine, so the views leave it out of their own meta line
+            (EngineChromeProvider). A crashing view never takes the cockpit down. */}
           <NavProvider value={navigate}>
             <EngineChromeProvider>
-              <WidgetRenderer
-                layout={filterLayoutToWidgets(
-                  cockpitViews[current.section](buildViewParams(current, engineId)),
-                  cockpitWidgets,
-                )}
-                keys={{}}
-                errors={[]}
-                widgets={cockpitWidgets}
-              />
+              <ViewErrorBoundary resetKey={viewKey(current)}>
+                <CockpitRoute view={current} engine={engineId} />
+              </ViewErrorBoundary>
             </EngineChromeProvider>
           </NavProvider>
         </main>

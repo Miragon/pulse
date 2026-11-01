@@ -2,9 +2,9 @@
 import { afterEach, describe, expect, it } from "vitest"
 import type { ComponentType } from "react"
 import { cleanup, render, screen } from "@testing-library/react"
-import { WidgetFixtureHost } from "@miragon/mcp-toolkit-ui/app"
 import { ProcessListWidget } from "./process-list.js"
 import type { ProcessListData } from "../view-models.js"
+import { TestViewHost } from "@miragon/pulse-widget-shell/widgets"
 
 afterEach(cleanup)
 
@@ -39,13 +39,12 @@ const PROCESS_LIST: ProcessListData = {
 const Widget = ProcessListWidget as unknown as ComponentType<Record<string, unknown>>
 
 describe("ProcessListWidget (fixture render)", () => {
-  // WidgetFixtureHost always seeds `data`, so only the data-provided path runs here; the self-fetch is checked in the inspector.
+  // The view's data only: the self-fetch is covered by paged-lists.test.tsx.
   it("renders process definitions, version, and active/suspended status from data", () => {
     render(
-      <WidgetFixtureHost
-        widget={Widget}
-        data={PROCESS_LIST as unknown as Record<string, unknown>}
-      />,
+      <TestViewHost>
+        <Widget data={PROCESS_LIST as never} />
+      </TestViewHost>,
     )
 
     expect(screen.getByText("Process definitions")).toBeTruthy()

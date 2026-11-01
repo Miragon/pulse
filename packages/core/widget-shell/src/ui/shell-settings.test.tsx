@@ -1,29 +1,28 @@
 // @vitest-environment happy-dom
-import { afterEach, beforeAll, describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
-import { LocaleProvider, queryClient, ToastProvider } from "@miragon/mcp-toolkit-ui"
-import { WidgetFixtureHost } from "@miragon/mcp-toolkit-ui/app"
-import { SHELL_SAVE_SETTINGS, SHELL_SETTINGS_DATA } from "../shell-settings-contract.js"
-import { HostWidgetsProvider } from "./host-widgets.js"
-import { SettingsPageWidget, SHELL_SETTINGS_KEY, ShellSettingsWidget } from "./shell-settings.js"
+import {
+  SHELL_SAVE_SETTINGS,
+  SHELL_SETTINGS_DATA,
+  SHELL_SHOW_SETTINGS,
+} from "../shell-settings-contract.js"
+import { settingsSections } from "./host-widgets.js"
+import {
+  SettingsPage,
+  SHELL_SETTINGS_KEY,
+  ShellSettingsWidget,
+  shellViews,
+} from "./shell-settings.js"
+import { createTestQueryClient, TestViewHost, type TestViewHostProps } from "./test-view-host.js"
+import type { ViewComponent } from "./views.js"
 
-beforeAll(() => {
-  queryClient.setQueryDefaults([...SHELL_SETTINGS_KEY], { retry: false })
-})
-afterEach(() => {
-  cleanup()
-  queryClient.clear()
-})
+afterEach(cleanup)
 
-const Section = () => <ShellSettingsWidget />
-
-function renderSection(tools: Record<string, (args: Record<string, unknown>) => unknown>) {
+function renderSection(tools: TestViewHostProps["tools"], client = createTestQueryClient()) {
   return render(
-    <LocaleProvider locale="en">
-      <ToastProvider>
-        <WidgetFixtureHost widget={Section} tools={tools} />
-      </ToastProvider>
-    </LocaleProvider>,
+    <TestViewHost tools={tools} locale="en" client={client}>
+      <ShellSettingsWidget />
+    </TestViewHost>,
   )
 }
 
@@ -32,7 +31,7 @@ describe("the language section", () => {
     const saves: unknown[] = []
     renderSection({
       [SHELL_SETTINGS_DATA]: () => ({ language: "system", canSave: true, readOnlyReason: null }),
-      [SHELL_SAVE_SETTINGS]: (args) => {
+      [SHELL_SAVE_SETTINGS]: (args: unknown) => {
         saves.push(args)
         return { language: "de", canSave: true, readOnlyReason: null }
       },
@@ -49,6 +48,24 @@ describe("the language section", () => {
 
     await waitFor(() => expect(saves).toEqual([{ language: "de" }]))
     expect(await screen.findByText("Language saved")).toBeTruthy()
+  })
+
+  it("re-reads the language after a save, so every view switches live", async () => {
+    let language = "system"
+    const feed = vi.fn(() => ({ language, canSave: true, readOnlyReason: null }))
+    renderSection({
+      [SHELL_SETTINGS_DATA]: feed,
+      [SHELL_SAVE_SETTINGS]: (args: unknown) => {
+        language = (args as { language: string }).language
+        return { language, canSave: true, readOnlyReason: null }
+      },
+    })
+    const select = await screen.findByRole<HTMLSelectElement>("combobox", { name: "Language" })
+    fireEvent.change(select, { target: { value: "de" } })
+    fireEvent.click(screen.getByRole("button", { name: "Save" }))
+
+    await waitFor(() => expect(feed).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(select.value).toBe("de"))
   })
 
   it("names each language in itself and the automatic one in the view's language", async () => {
@@ -80,13 +97,17 @@ describe("the language section", () => {
   })
 
   it("hides itself where the root registers no settings tools", async () => {
-    const { container } = renderSection({
-      [SHELL_SETTINGS_DATA]: () => {
-        throw new Error(`Tool ${SHELL_SETTINGS_DATA} not found`)
+    const client = createTestQueryClient()
+    const { container } = renderSection(
+      {
+        [SHELL_SETTINGS_DATA]: () => {
+          throw new Error(`Tool ${SHELL_SETTINGS_DATA} not found`)
+        },
       },
-    })
+      client,
+    )
     await waitFor(() =>
-      expect(queryClient.getQueryState([...SHELL_SETTINGS_KEY, {}])?.status).toBe("error"),
+      expect(client.getQueryState([...SHELL_SETTINGS_KEY, {}])?.status).toBe("error"),
     )
     expect(container.textContent).toBe("")
   })
@@ -103,28 +124,74 @@ describe("the language section", () => {
 
 describe("the settings page", () => {
   const stub = (label: string) => () => <p>{label}</p>
+  const LANGUAGE = { language: "en", canSave: true, readOnlyReason: null }
 
-  it("renders its one title, then the shell's section and every module section in the host registry", async () => {
-    const widgets = {
-      "camunda7:engine-health": stub("engine health"),
+  it("renders its one title, then the language section and every module section in registration order", async () => {
+    const hostWidgets = {
+      "analytics:engine-landscape": stub("landscape"),
       "acme:settings": stub("acme section"),
-      "shell:settings": stub("language section"),
       "analytics:settings": stub("analytics section"),
     }
     render(
-      <LocaleProvider locale="de">
-        <HostWidgetsProvider widgets={widgets}>
-          <WidgetFixtureHost widget={() => <SettingsPageWidget />} />
-        </HostWidgetsProvider>
-      </LocaleProvider>,
+      <TestViewHost
+        tools={{ [SHELL_SETTINGS_DATA]: LANGUAGE }}
+        hostWidgets={hostWidgets}
+        locale="de"
+      >
+        <SettingsPage />
+      </TestViewHost>,
     )
 
     expect(await screen.findByRole("heading", { name: "Einstellungen" })).toBeTruthy()
-    expect(screen.getAllByText(/section$/).map((p) => p.textContent)).toEqual([
-      "language section",
-      "acme section",
-      "analytics section",
-    ])
-    expect(screen.queryByText("engine health")).toBeNull()
+    await screen.findByRole("combobox", { name: "Sprache" })
+    const order = [...document.querySelectorAll("select, p")]
+      .map((el) => (el.tagName === "SELECT" ? "language" : el.textContent))
+      .filter((text) => text === "language" || text?.endsWith("section"))
+    expect(order).toEqual(["language", "acme section", "analytics section"])
+    expect(screen.queryByText("landscape")).toBeNull()
+  })
+
+  it("isolates a crashing section: the others and the page stay", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {})
+    const Broken = () => {
+      throw new Error("section bug")
+    }
+    render(
+      <TestViewHost
+        tools={{ [SHELL_SETTINGS_DATA]: LANGUAGE }}
+        hostWidgets={{ "broken:settings": Broken, "acme:settings": stub("acme section") }}
+        locale="en"
+      >
+        <SettingsPage />
+      </TestViewHost>,
+    )
+    expect(await screen.findByText("This element couldn't be displayed.")).toBeTruthy()
+    expect(screen.getByText("acme section")).toBeTruthy()
+    expect(screen.getByRole("heading", { name: "Settings" })).toBeTruthy()
+    error.mockRestore()
+  })
+
+  it("is the shell's one view, under its show tool's name", async () => {
+    const View: ViewComponent = shellViews[SHELL_SHOW_SETTINGS]
+    render(
+      <TestViewHost tools={{ [SHELL_SETTINGS_DATA]: LANGUAGE }} locale="en">
+        <View data={LANGUAGE as never} />
+      </TestViewHost>,
+    )
+    expect(await screen.findByRole("heading", { name: "Settings" })).toBeTruthy()
+    expect(Object.keys(shellViews)).toEqual([SHELL_SHOW_SETTINGS])
+  })
+})
+
+describe("settingsSections", () => {
+  it("keeps the <module>:settings entries in registration order and nothing else", () => {
+    const Widget = () => null
+    const sections = settingsSections({
+      "camunda7:settings": Widget,
+      "analytics:engine-landscape": Widget,
+      "analytics:settings": Widget,
+      "settings:other": Widget,
+    })
+    expect(sections.map(([id]) => id)).toEqual(["camunda7:settings", "analytics:settings"])
   })
 })

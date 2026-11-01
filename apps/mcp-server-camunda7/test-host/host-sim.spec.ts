@@ -13,7 +13,7 @@ import { BROKEN_ENGINE, ENGINE_CONTROL_ENV, HEALTHY_ENGINE } from "./engines.js"
  * embedding `dist/mcp-app.{js,css}`) in a sandboxed srcdoc iframe, behind a
  * minimal SEP-1865 host whose tool calls go to that same server. The
  * rendering tool is a real camunda7 show tool against a stub engine, so the
- * view receives the real envelope and data shape.
+ * view receives the real structuredContent and data shape.
  *
  * Scenarios titled "pinned …" assert the CURRENT behaviour of a known defect
  * that lives outside this repo's fix scope; each names its issue. When the
@@ -23,18 +23,15 @@ import { BROKEN_ENGINE, ENGINE_CONTROL_ENV, HEALTHY_ENGINE } from "./engines.js"
 
 const RENDER_TOOL = "camunda7_show_process_list"
 const PROFILE_FEED = "shell_settings_data"
-/** The toolkit's `DEFAULT_ASSUME_STRIPPED_AFTER_MS` — the recovery grace timer. */
-const RECOVERY_GRACE_MS = 2_500
 /**
- * Long enough after the last lifecycle event (delivery, recovered render) for
- * a grace timer armed or RE-armed by it to fire — the window every
- * re-execution count must outlast, or a duplicate call lands after the check.
+ * How long every re-execution count waits after the last lifecycle event
+ * (delivery, recovered render), so a duplicate call lands before the check.
+ * The view re-runs its tool only on an OBSERVED stripped result, never on a
+ * timer, so nothing may fire in this window.
  */
-const OUTLAST_GRACE_MS = RECOVERY_GRACE_MS + 1_000
-const TOOLKIT_LIFECYCLE_ISSUE = "https://github.com/Miragon/mcp-toolkit/issues/176"
-const TOOLKIT_HOST_CONTEXT_ISSUE = "https://github.com/Miragon/mcp-toolkit/issues/178"
+const OUTLAST_MS = 3_500
 const HOST_THEME_ISSUE = "https://github.com/Miragon/pulse/issues/339"
-/** The toolkit's English view chrome (its en catalog, toolkit 2.8). */
+/** The view frame's English chrome (widget-shell's kit labels). */
 const CHROME = {
   loading: "Loading view…",
   cancelled: "Cancelled. Ask in the chat to open this view again.",
@@ -324,33 +321,39 @@ test.describe("real camunda7 view (camunda7_show_process_list)", () => {
     const app = await openView(page)
 
     await expectProcessList(app)
-    // The layout is the server's single-widget layout, not an empty one. The
-    // profile follows the host's locale ("system"), which only the view sees,
-    // so the server sets no toolbar title (#322 U3): the widget's own heading
-    // is the view's one title, never under an English toolbar title.
+    // The show tool's own view, picked by the name the document's prelude
+    // sets. The server never titles a view (#322 U3): the widget's own heading
+    // is the view's one title, in the host's language.
     await expect(
       app.getByRole("heading", { name: "Process definitions", exact: true }),
     ).toHaveCount(1)
     // Harness self-checks: the frame runs mcp-use's synthesized document
-    // (its inline view config), sandboxed to an opaque origin, under the
-    // host's CSP — the first element of <head>, ahead of every script.
+    // (its inline view config) with the view's name from the prelude,
+    // sandboxed to an opaque origin, under the host's CSP — the first element
+    // of <head>, ahead of every script.
     expect(
       await app.locator("html").evaluate(() => ({
         viewConfig: "__mcpUseViewConfig" in globalThis,
+        view: (globalThis as { __pulseView?: unknown }).__pulseView,
         origin: window.origin,
         csp: document.head.firstElementChild?.getAttribute("http-equiv") ?? null,
       })),
-    ).toEqual({ viewConfig: true, origin: "null", csp: "Content-Security-Policy" })
+    ).toEqual({
+      viewConfig: true,
+      view: RENDER_TOOL,
+      origin: "null",
+      csp: "Content-Security-Policy",
+    })
     await waitForDelivery(page, "result")
-    // Outlast the recovery grace timer: a conforming host must never trigger it.
-    await page.waitForTimeout(OUTLAST_GRACE_MS)
+    // Outlast the re-execution window: a conforming host never triggers a re-run.
+    await page.waitForTimeout(OUTLAST_MS)
 
     const log = await hostLog(page)
     expect(await reExecutions(page)).toHaveLength(0)
     // The chat's own answer carries no "Reloaded at" line.
     await expect(app.getByText(CHROME.reloadedAt)).toHaveCount(0)
     // The provider stack works in the real bundle: ProfileGate fetched the
-    // profile through the host bridge (AppShellProviders order) …
+    // profile through the view host (the ViewRoot order) …
     expect(log.toolCalls.map((c) => c.name)).toContain(PROFILE_FEED)
     // … and bootstrapView's auto-resize reports the rendered height to the host.
     expect(await settledHeight(page, app)).toBeGreaterThan(200)
@@ -436,101 +439,95 @@ test.describe("real camunda7 view (camunda7_show_process_list)", () => {
 
     await expectProcessList(app)
     // The view loaded these figures itself, so they can differ from the
-    // chat's answer: the toolkit's "Reloaded at" line says so (2.8), also with
-    // the toolbar title hidden.
+    // chat's answer: the frame's "Reloaded at" line says so.
     await expect(app.getByText(CHROME.reloadedAt)).toBeVisible()
-    // The recovered render is the last event: a grace timer re-armed by the
-    // recovered payload would fire a second call inside this window.
-    await page.waitForTimeout(OUTLAST_GRACE_MS)
+    // The recovered render is the last event: a second recovery would land
+    // inside this window.
+    await page.waitForTimeout(OUTLAST_MS)
     expect(await reExecutions(page)).toEqual([
       { name: RENDER_TOOL, arguments: { engine: HEALTHY_ENGINE } },
     ])
   })
 
-  test(
-    "a slow tool on a compliant host is never re-executed: the view waits for the host's result (toolkit#176 K13, fixed in 2.8)",
-    { annotation: { type: "issue", description: TOOLKIT_LIFECYCLE_ISSUE } },
-    async ({ page }) => {
-      // The host holds the result well past the old grace timer: the check
-      // below runs at a fixed point on the HOST's clock, so neither the
-      // profile round trip before the skeleton nor Playwright's poll lag
-      // can push it past the delivery.
-      const checkAfterMs = RECOVERY_GRACE_MS + 500
-      const app = await openView(page, { resultDelayMs: checkAfterMs + 3_500 })
+  test("a slow tool on a compliant host is never re-executed: the view waits for the host's result", async ({
+    page,
+  }) => {
+    // The host holds the result for seconds: the check below runs at a
+    // fixed point on the HOST's clock, so neither the profile round trip
+    // before the skeleton nor Playwright's poll lag can push it past the
+    // delivery.
+    const checkAfterMs = 3_000
+    const app = await openView(page, { resultDelayMs: checkAfterMs + 3_500 })
 
-      // Past the old grace timer, the host is still running the tool: the
-      // view keeps waiting (the toolkit's observer saw no stripped result)
-      // instead of loading the view itself.
-      await expect(app.getByText(CHROME.loading)).toBeVisible({ timeout: 15_000 })
-      const { initializedAt } = await hostLog(page)
-      expect(initializedAt).not.toBeNull()
-      await page.waitForFunction((at) => Date.now() >= at, (initializedAt ?? 0) + checkAfterMs)
-      expect((await hostLog(page)).delivered).toBeNull()
-      expect(await reExecutions(page)).toHaveLength(0)
-      await expect(definitionsTable(app)).toHaveCount(0)
+    // The host is still running the tool: the view keeps waiting (the call
+    // observer saw no stripped result) instead of loading the view itself.
+    await expect(app.getByText(CHROME.loading)).toBeVisible({ timeout: 15_000 })
+    const { initializedAt } = await hostLog(page)
+    expect(initializedAt).not.toBeNull()
+    await page.waitForFunction((at) => Date.now() >= at, (initializedAt ?? 0) + checkAfterMs)
+    expect((await hostLog(page)).delivered).toBeNull()
+    expect(await reExecutions(page)).toHaveLength(0)
+    await expect(definitionsTable(app)).toHaveCount(0)
 
-      // Rendered from the host's late delivery, once.
-      await waitForDelivery(page, "result")
-      await expectProcessList(app)
-      // The delivery is the last event; outlast a timer it could re-arm.
-      await page.waitForTimeout(OUTLAST_GRACE_MS)
-      await expect(definitionsTable(app)).toHaveCount(1)
-      expect(await reExecutions(page)).toHaveLength(0)
-      // The host's own answer: no "Reloaded at" line, which marks a payload
-      // the view loaded itself.
-      await expect(app.getByText(CHROME.reloadedAt)).toHaveCount(0)
-    },
-  )
+    // Rendered from the host's late delivery, once.
+    await waitForDelivery(page, "result")
+    await expectProcessList(app)
+    // The delivery is the last event; outlast a call it could cause.
+    await page.waitForTimeout(OUTLAST_MS)
+    await expect(definitionsTable(app)).toHaveCount(1)
+    expect(await reExecutions(page)).toHaveLength(0)
+    // The host's own answer: no "Reloaded at" line, which marks a payload
+    // the view loaded itself.
+    await expect(app.getByText(CHROME.reloadedAt)).toHaveCount(0)
+  })
 
-  test(
-    "a tool error is never re-executed: the error state with a retry replaces the skeleton (toolkit#176 K14, fixed in 2.7)",
-    { annotation: { type: "issue", description: TOOLKIT_LIFECYCLE_ISSUE } },
-    async ({ page }) => {
-      const app = await openView(page, { args: { engine: BROKEN_ENGINE } })
-      // The kit's words for the engine's 503 (describeError, U1): what
-      // happened and what to do; the raw engine text only under "Details".
-      const described = app.getByRole("heading", {
-        name: `Engine ${BROKEN_ENGINE} is unreachable (HTTP 503)`,
-      })
+  test("a tool error is never re-executed: the error state with a retry replaces the skeleton", async ({
+    page,
+  }) => {
+    const app = await openView(page, { args: { engine: BROKEN_ENGINE } })
+    // The kit's words for the engine's 503 (describeError, U1): what
+    // happened and what to do; the raw engine text only under "Details".
+    const described = app.getByRole("heading", {
+      name: `Engine ${BROKEN_ENGINE} is unreachable (HTTP 503)`,
+    })
 
-      await waitForDelivery(page, "result")
-      const log = await hostLog(page)
-      // A genuine isError result from the real server (engine 503).
-      expect(log.originalResult?.isError).toBe(true)
-      // Outlast the recovery grace twice over: a recovery that still fired on
-      // an error result (the 2.6 behaviour) would show as a re-execution.
-      await page.waitForTimeout(RECOVERY_GRACE_MS + OUTLAST_GRACE_MS)
+    await waitForDelivery(page, "result")
+    const log = await hostLog(page)
+    // A genuine isError result from the real server (engine 503).
+    expect(log.originalResult?.isError).toBe(true)
+    // Outlast the window twice over: a recovery that fired on an error
+    // result would show as a re-execution.
+    await page.waitForTimeout(2 * OUTLAST_MS)
 
-      expect(await reExecutions(page)).toHaveLength(0)
-      await expect(described).toBeVisible()
-      await expect(
-        app.getByText("Check that the engine is running, or pick another engine."),
-      ).toBeVisible()
-      const raw = app.getByText(/^\[503 ProcessEngineException\] Engine is shutting down/)
-      await expect(raw).toBeHidden()
-      await app.getByText("Details", { exact: true }).click()
-      await expect(raw).toBeVisible()
-      await expect(app.getByText("Loading view…")).toHaveCount(0)
-      await expect(definitionsTable(app)).toHaveCount(0)
+    expect(await reExecutions(page)).toHaveLength(0)
+    await expect(described).toBeVisible()
+    await expect(
+      app.getByText("Check that the engine is running, or pick another engine."),
+    ).toBeVisible()
+    const raw = app.getByText(/^\[503 ProcessEngineException\] Engine is shutting down/)
+    await expect(raw).toBeHidden()
+    await app.getByText("Details", { exact: true }).click()
+    await expect(raw).toBeVisible()
+    await expect(app.getByText("Loading view…")).toHaveCount(0)
+    await expect(definitionsTable(app)).toHaveCount(0)
 
-      // The retry is the user's: one call with the invocation's arguments, and
-      // the engine still down brings the error state back, not a skeleton.
-      await app.getByRole("button", { name: CHROME.retry }).click()
-      await expect
-        .poll(() => reExecutions(page))
-        .toEqual([{ name: RENDER_TOOL, arguments: { engine: BROKEN_ENGINE } }])
-      await expect(described).toBeVisible()
-      await page.waitForTimeout(OUTLAST_GRACE_MS)
-      expect(await reExecutions(page)).toHaveLength(1)
-    },
-  )
+    // The retry is the user's: one call with the invocation's arguments, and
+    // the engine still down brings the error state back, not a skeleton.
+    await app.getByRole("button", { name: CHROME.retry }).click()
+    await expect
+      .poll(() => reExecutions(page))
+      .toEqual([{ name: RENDER_TOOL, arguments: { engine: BROKEN_ENGINE } }])
+    await expect(described).toBeVisible()
+    await page.waitForTimeout(OUTLAST_MS)
+    expect(await reExecutions(page)).toHaveLength(1)
+  })
 
   test("cancelled call: shows the cancellation and never re-executes", async ({ page }) => {
     const app = await openView(page, { cancel: true })
 
     await waitForDelivery(page, "cancelled")
     await expect(app.getByText(CHROME.cancelled)).toBeVisible()
-    await page.waitForTimeout(OUTLAST_GRACE_MS)
+    await page.waitForTimeout(OUTLAST_MS)
     expect(await reExecutions(page)).toHaveLength(0)
     await expect(app.getByText(CHROME.cancelled)).toBeVisible()
   })
@@ -585,23 +582,19 @@ test.describe("real camunda7 view (camunda7_show_process_list)", () => {
     expect(await textLuminance(definitionsTable(app).getByRole("row").nth(2))).toBeLessThan(0.5)
   })
 
-  test(
-    "host without fullscreen: no Fullscreen button (the toolkit gates it on availableDisplayModes, toolkit#178 K22)",
-    { annotation: { type: "issue", description: TOOLKIT_HOST_CONTEXT_ISSUE } },
-    async ({ page }) => {
-      for (const displayModes of [["inline"], undefined]) {
-        const app = await openView(page, { displayModes })
+  test("host without fullscreen: no Fullscreen button (the view gates it on availableDisplayModes)", async ({
+    page,
+  }) => {
+    for (const displayModes of [["inline"], undefined]) {
+      const app = await openView(page, { displayModes })
 
-        await expectProcessList(app)
-        // The view itself stays.
-        await expect(
-          app.getByRole("heading", { name: "Process definitions" }).first(),
-        ).toBeVisible()
-        await expect(app.getByRole("button", { name: CHROME.enterFullscreen })).toHaveCount(0)
-        expect((await hostLog(page)).displayModeRequests).toEqual([])
-      }
-    },
-  )
+      await expectProcessList(app)
+      // The view itself stays.
+      await expect(app.getByRole("heading", { name: "Process definitions" }).first()).toBeVisible()
+      await expect(app.getByRole("button", { name: CHROME.enterFullscreen })).toHaveCount(0)
+      expect((await hostLog(page)).displayModeRequests).toEqual([])
+    }
+  })
 
   test("host locale de-DE without a saved profile: a German view (#339)", async ({ page }) => {
     // The default deployment has no OAuth, so the profile is the default
@@ -618,7 +611,7 @@ test.describe("real camunda7 view (camunda7_show_process_list)", () => {
       app.getByRole("heading", { name: "Prozessdefinitionen", exact: true }),
     ).toHaveCount(1)
     await expect(app.getByRole("heading", { name: /Process definitions/i })).toHaveCount(0)
-    // The view chrome (toolkit McpAppView) follows the same locale.
+    // The view chrome (the frame's toolbar) follows the same locale.
     await expect(app.getByRole("button", { name: "Vollbild" })).toBeVisible()
     expect(await app.locator("html").getAttribute("lang")).toBe("de")
   })
@@ -970,8 +963,8 @@ test.describe("real BPMN view (camunda7_show_bpmn_viewer)", () => {
  * The kit's design-system foundation in the BUILT bundle (#322): the Miragon
  * role variables reach the view (the toolkit theme survived Tailwind), Lucide
  * icons draw at the CI stroke through lucide-react's own strokeWidth — never a
- * CSS rule — (2.5; 2 in dense rows and the toolkit's toolbar, whose
- * LucideProvider sets it), and a KPI's state is a tinted, edged card around
+ * CSS rule — (2.5; 2 in dense rows and the view frame's toolbar, whose
+ * dense icon sets it), and a KPI's state is a tinted, edged card around
  * neutral digits — never a coloured number.
  */
 test.describe("kit foundation (camunda7_show_job_panel)", () => {

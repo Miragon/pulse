@@ -11,7 +11,7 @@ import { registerCockpitWidgetTools } from "./cockpit.js"
 
 interface CockpitResult {
   isError?: boolean
-  structuredContent?: { context: { stepData: { result: { data: Record<string, unknown> } } } }
+  structuredContent?: Record<string, unknown>
   content: Array<{ type: string; text: string }>
 }
 
@@ -40,7 +40,7 @@ function openCockpit(
   return call![1] as Handler
 }
 
-const dataOf = (result: CockpitResult) => result.structuredContent!.context.stepData.result.data
+const dataOf = (result: CockpitResult) => result.structuredContent!
 const textOf = (result: CockpitResult) => result.content.map((c) => c.text).join("\n")
 
 const callAs = (id: string) => ({ auth: { user: { id } } })

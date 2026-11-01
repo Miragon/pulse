@@ -1,11 +1,11 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
-import { buttonVariants, LocaleProvider } from "@miragon/mcp-toolkit-ui"
-import { HostBridgeProvider, type HostBridge } from "@miragon/mcp-toolkit-ui/app"
+import { buttonVariants } from "@miragon/mcp-toolkit-ui"
 import { TriangleAlert } from "lucide-react"
 import { Icon } from "./icon.js"
 import { OpenInCockpitLink } from "./open-in-cockpit-link.js"
+import { TestViewHost, type HostAction } from "./test-view-host.js"
 import { Section } from "./section.js"
 import { SegmentedControl } from "./segmented-control.js"
 import { DEFAULT_HEATMAP_LABELS } from "./bpmn-heatmap-labels.js"
@@ -126,18 +126,13 @@ describe("OpenInCockpitLink", () => {
     props: { vendor?: string; label?: string; variant?: "outline" | "menuitem" },
   ) {
     const openExternal = vi.fn()
-    const bridge: HostBridge = {
-      callTool: vi.fn(),
-      sendFollowup: vi.fn(),
-      openExternal,
-      getWidgetData: () => null,
+    const onHostAction = (action: HostAction) => {
+      if (action.type === "openExternal") openExternal(action.url)
     }
     render(
-      <HostBridgeProvider bridge={bridge}>
-        <LocaleProvider locale={locale}>
-          <OpenInCockpitLink url="https://engine.example/cockpit" {...props} />
-        </LocaleProvider>
-      </HostBridgeProvider>,
+      <TestViewHost locale={locale} onHostAction={onHostAction}>
+        <OpenInCockpitLink url="https://engine.example/cockpit" {...props} />
+      </TestViewHost>,
     )
     return openExternal
   }

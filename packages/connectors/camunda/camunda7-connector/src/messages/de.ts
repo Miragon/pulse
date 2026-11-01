@@ -85,17 +85,6 @@ export const de: MessageCatalog = {
   "profile.summary.someEngines": ({ count }) =>
     countOf(count, "erlaubte Engine", "erlaubte Engines"),
 
-  "viewTitle.cockpit": "Cockpit",
-  "viewTitle.processList": "Prozessdefinitionen",
-  "viewTitle.processInstances": "Laufende Instanzen",
-  "viewTitle.historyTimeline": "Verlauf",
-  "viewTitle.instanceDetail": "Prozessinstanz",
-  "viewTitle.bpmnViewer": "BPMN-Diagramm",
-  "viewTitle.jobPanel": "Jobs",
-  "viewTitle.engineHealth": "Engine-Übersicht",
-  "viewTitle.settings": "Engine-Einstellungen",
-  "viewTitle.clusterDetail": ({ activity }) => `Cluster: ${String(activity)}`,
-
   "c7sum.cockpitOpened":
     'Operations Cockpit für Engine "{engineId}" ({engineCount} Engine(s) in der Engine-Liste des Benutzers). Wo der Host die Ansicht zeigt, navigiert der Benutzer darin durch die Prozesslandschaft.',
   "c7sum.cockpitOpenedPicker":

@@ -1,14 +1,15 @@
 ---
 name: add-widget
-description: Step-by-step house pattern for adding an interactive widget to a module (the React component built from the widget-shell kit, the `show_*` widget tool, the app-only `*_data` feed, and the three-link registration chain). Use whenever adding or changing widgets, `show_*` tools, `*_data` feeds, in-widget data fetching, or when debugging a widget that renders empty, unstyled, or hangs on "Loading…".
+description: Step-by-step house pattern for adding an interactive widget to a module (the React component built from the widget-shell kit, the `show_*` widget tool, the app-only `*_data` feed, the view map keyed by the show tool's name, and a widget test under `TestViewHost`). Use whenever adding or changing widgets, `show_*` tools, `*_data` feeds, in-widget data fetching, or when debugging a widget that renders empty, unstyled, or hangs on "Loading…".
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 ---
 
 # add-widget: an interactive widget in your module
 
 **Reference implementation: the notes widget.** `modules/mcp-notes/src/widgets/notes-list.tsx`
-(component), `widgets/index.ts` (component map), `widget-tools.ts` (show tool
-and data feed), `tool-names.ts` (rename safety). Richer patterns (paged lists,
+(component), `widgets/views.tsx` (the view map), `widgets/notes-list.test.tsx`
+(the widget test), `widget-tools.ts` (show tool and data feed), `tool-names.ts`
+(rename safety). Richer patterns (paged lists,
 KPI grids, BPMN viewers, settings cards) live in
 `node_modules/@miragon/pulse-{camunda7,analytics}-connector/src/widgets/`.
 
@@ -21,7 +22,8 @@ KPI grids, BPMN viewers, settings cards) live in
 | App-only JSON for in-widget refresh/nav  | `<module>_<thing>_data` feed in `src/widget-tools.ts`        |
 
 A widget almost always means **both** widget-path tools: the `show_*` tool
-renders it, the `*_data` feed powers its self-fetch. The `_show_`/`_data`
+renders it, the `*_data` feed is what it re-reads (a retry, an invalidation
+after a write) and fetches when it is mounted without data. The `_show_`/`_data`
 **naming is load-bearing**: `server/test/widget-contract.e2e.test.ts` asserts
 the widget `_meta` contract by name across all composed modules.
 
@@ -43,11 +45,12 @@ kit neither forks nor re-exports them:
   shortened, a copy button); `TableEmptyState` instead of an empty frame
   (`variant="done"` for "nothing left to do"); KPI strips: the toolkit's
   `KpiGrid`
-- Self-fetch fallback: `QueryFallback` + `TableSkeleton`. A missing `isError`
-  branch means an eternal skeleton. Its `onRetry` is required, and the error
-  speaks for itself: the kit's `describeError` turns an engine or transport
-  failure into what happened and what you can do, the raw text under
-  "Details"; `errorTitle` heads only a failure it cannot classify
+- No data yet (a widget mounted without the show tool's data): `QueryFallback`
+  - `TableSkeleton`. A missing `isError` branch means an eternal skeleton. Its
+    `onRetry` is required, and the error
+    speaks for itself: the kit's `describeError` turns an engine or transport
+    failure into what happened and what you can do, the raw text under
+    "Details"; `errorTitle` heads only a failure it cannot classify
 - Writes: confirm with the toast (`useActionFeedback().succeeded/failed`,
   naming the object), ask first with the kit's `ConfirmDialog` (verb + object
   on both buttons)
@@ -70,30 +73,38 @@ kit neither forks nor re-exports them:
   (`paged.stale`): read counts and filters from the payload shown, not from
   the request
 
-Self-fetch rule (see `NotesListWidget`): fetch via `useToolQuery` against the
-**`*_data` feed, never the `show_*` tool** (the host would render its result as
-a second widget instead of returning JSON), with `{ enabled: !initialData }` so
-a render through the show tool doesn't double-fetch. Import the tool name from
-`src/tool-names.ts`.
+Data rule (see `NotesListWidget`): read through the kit's
+`useViewData(data, key, FEED, args, ready)` against the **`*_data` feed, never
+the `show_*` tool** (the host would render its result as a second view instead
+of returning JSON). The show tool's data SEEDS the feed's cache entry, so a
+render never double-fetches, while a retry or a write's invalidation of `key`
+re-reads the feed; mounted without data, the widget fetches it. Build `args`
+from the data on screen (the notes view carries its `query`), so a re-read
+asks for what the view shows. Import the tool name from `src/tool-names.ts`.
 
-## Step 2: the three-link registration chain
+Widgets reach the host only through the kit: `useViewHost()` (`callTool`,
+`sendFollowUp`, `openExternal`), `HostModelContext` and the query hooks
+(`useViewData`, `useToolQuery`, `useToolMutation`, `useQueryClient`). Never
+import `mcp-use/react` in a widget: its hooks throw outside the bundle root
+(`mountViews`), and the seam is what lets a test render the widget without a
+host (Step 4).
 
-Every widget appears in three places. **Miss one and it is silently absent**
+## Step 2: the three links
+
+Every view appears in three places. **Miss one and it is silently absent**
 (no build error):
 
-1. The show tool names the widget by id:
-   `buildSingleWidgetView({ widget: "<module>:<widget>", … })` in
-   `src/widget-tools.ts` (Step 3). Write the id as a **string literal**: the
-   server's guard test reads it from your module's sources.
-2. `src/widgets/index.ts`, the component map:
-   `"<module>:<widget>": adaptDataWidget(Widget, "<module>:<dataType>", describeForModel)`,
-   keyed by that same id. The `describeForModel` callback is the model's
-   context line ("what is the user looking at"); always provide it.
-3. `server/src/ui/widget-registry.ts`: your module's map must be spread into
-   the host bundle map. `server/test/widget-registry.test.ts` reads every
-   `widget: "<module>:<id>"` from the sources of the modules the server
-   depends on and fails naming an id the registry cannot render, so a missing
-   spread and a key that differs from the show tool's id both fail there.
+1. The show tool returns its view's data: `buildViewResult(data, summary)` in
+   `src/widget-tools.ts` (Step 3). Its NAME is the view's name.
+2. `src/widgets/views.tsx`, the module's view map (re-exported by
+   `src/widgets/index.ts`): `[MY_SHOW_TOOL]: MyView`, keyed by the show tool's
+   name, where `MyView({ data })` renders the widget inside
+   `<HostModelContext content={describeMy(data)}>`. The description is the
+   model's context line ("what is the user looking at"); always provide it.
+3. `server/src/ui/view-registry.ts`: your module's view map must be spread
+   into `viewRegistry`. `server/test/view-registry.test.ts` boots the real
+   composition and fails naming a view-bound tool without a view, so a missing
+   spread and a key that differs from the show tool's name both fail there.
 
 Next to the chain, `src/tool-names.ts` holds a constant for every
 `show_*`/`*_data` tool referenced from widget code, so a rename trips TS at
@@ -113,10 +124,10 @@ Model both tools on `modules/mcp-notes/src/widget-tools.ts`:
   `@miragon/pulse-widget-shell/server`). It binds the mcp-use view, the
   passthrough `outputSchema`, and the Apps-SDK `_meta` half. **Never hand-write
   `_meta.ui.*` keys**; mcp-use owns and overwrites that namespace. Return
-  `buildSingleWidgetView({ widget, app, dataType, data, title, summary })`:
-  `summary` is the model-facing channel (1–2 sentences, key figures, pointer to
-  the plain tool for raw data); the full payload travels only in
-  `structuredContent`.
+  `buildViewResult(data, summary)`: the `structuredContent` IS the view's
+  data (no title: the widget's heading names the view), and `summary` is the
+  model-facing channel (1–2 sentences, key figures, pointer to the plain tool
+  for raw data).
 - **`*_data` feed**: spread `...appOnly` (native `visibility: "app"` +
   `openai/widgetAccessible`, **no** view binding) and return
   `buildDataFeedResult(data)`, so the in-widget `callTool()` gets JSON back
@@ -146,12 +157,21 @@ pnpm build && pnpm typecheck && pnpm test
 
 - `pnpm typecheck` is the **only** automated check that type-checks widget
   `.tsx` code. Never skip it.
-- `pnpm test` runs the registry guard (every id a show tool names renders)
-  plus the wire-contract e2e (naming, `_meta`, app-only visibility). If one
-  fails it names exactly the missing link: fix the link, never the test.
+- `pnpm test` runs the view-registry guard (every view-bound tool has a view
+  under its name, and every view a tool) plus the wire-contract e2e (naming,
+  `_meta`, app-only visibility). If one fails it names exactly the missing
+  link: fix the link, never the test.
+- Write a widget test next to the widget, as
+  `modules/mcp-notes/src/widgets/notes-list.test.tsx` does: `// @vitest-environment
+happy-dom`, then render the view or widget under `TestViewHost` from
+  `@miragon/pulse-widget-shell/widgets` with fake `tools`, and assert what it
+  shows, what it asked the host (`onHostAction`: tool calls, follow-ups,
+  links) and what it told the model (`onModelContext`). No server, no host,
+  no `bootstrapView`.
 
-Then a render check (widget rendering is not covered by any automated test).
-Headless, with `pnpm dev` running, from `server/` (needs a local Chrome):
+Then a render check of the real bundle (the widget test renders the component,
+not the built bundle in a host). Headless, with `pnpm dev` running, from
+`server/` (needs a local Chrome):
 
 ```bash
 pnpm exec mcp-use client connect local http://localhost:8400/mcp  # once
@@ -163,8 +183,8 @@ pnpm exec mcp-use screenshot --mcp http://localhost:8400/mcp \
 A styled widget in the PNG proves the bundle, the registry links, and the
 Tailwind scan in one shot. In the inspector
 (`http://localhost:8400/mcp/inspector`, the human/no-Chrome path), also
-exercise the widget's self-fetch (e.g. change a filter) so the `*_data` path
-runs too. The widget bundle is read once at boot, and the root `pnpm dev`
+exercise the widget's feed (a retry, or a write that invalidates it) so the
+`*_data` path runs too. The widget bundle is read once at boot, and the root `pnpm dev`
 rebuilds modules + bundle on every start: restart `pnpm dev` at the repo
 root to see changes.
 
@@ -172,10 +192,10 @@ root to see changes.
 
 | Symptom                              | Cause                                                                                                                                                                         |
 | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Widget renders as an empty slot      | the module's map is not spread in `server/src/ui/widget-registry.ts`, or its key differs from the show tool's id (the guard test names the id)                                |
+| "Can't show this view"               | the module's view map is not spread in `server/src/ui/view-registry.ts`, or its key differs from the show tool's name (the guard test names the tool)                         |
 | Widget renders unstyled              | widget sources outside the Tailwind scan set: workspace modules are globbed (`modules/*/src`); an npm-installed module needs its own `@source` in `server/src/ui/globals.css` |
 | Hangs on "Loading…" forever          | `resolve.dedupe` trimmed in `server/vite.config.ts` (duplicate React contexts), or a missing `isError` branch in the fallback                                                 |
-| Self-fetch renders a second widget   | the widget calls the `show_*` tool instead of the `*_data` feed                                                                                                               |
+| A refresh renders a second view      | the widget calls the `show_*` tool instead of the `*_data` feed                                                                                                               |
 | e2e test fails on `_meta`/visibility | tool name breaks the `_show_`/`_data` convention, or a hand-written `_meta.ui` key: use the helpers                                                                           |
 | Boot fails on a duplicate tool name  | two plugins register the same name; the error names both modules, rename one (keep the `<module>_` prefix)                                                                    |
 | Old UI after an edit                 | bundle is read once at boot: restart `pnpm dev` at the repo root (it rebuilds modules + bundle on start)                                                                      |

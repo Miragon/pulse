@@ -21,11 +21,11 @@ const INLINE_STYLE: CSSProperties = { display: "contents" }
  * view that overflows a stated budget scrolls inside it instead of clipping.
  */
 export function HostDocument({ children }: { children: ReactNode }) {
-  const { styleVariables, fontCss, displayMode, maxHeight } = useShellHost()
+  const { styleVariables, fontCss, displayMode, maxHeight, publicBase } = useShellHost()
 
   useLayoutEffect(() => {
-    declareServedFonts()
-  }, [])
+    declareServedFonts(document, publicBase ?? "")
+  }, [publicBase])
 
   useLayoutEffect(() => {
     if (!styleVariables) return

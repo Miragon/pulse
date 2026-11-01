@@ -9,7 +9,6 @@ export const enSweep: MessageCatalog = {
   "bpmnDiagram.unavailable": "The engine has no diagram for this version.",
   "bpmnDiagram.renderError":
     "The BPMN diagram cannot be rendered. Refresh the view, or open the model in your modeler.",
-  "bpmnFlow.noData": "No data available",
   "bpmnFlow.noDiagram": "No BPMN diagram available",
   "bpmnHeader.activeCount": ({ count }) => countOf(count, "activity running", "activities running"),
   "bpmnHeader.incidentsCount": ({ count }) => countOf(count, "incident", "incidents"),
@@ -19,9 +18,6 @@ export const enSweep: MessageCatalog = {
   "bpmnLegend.instanceCount": "Running instances (this version)",
   "bpmnLegend.instanceTokens": "Tokens (this instance)",
   "bpmnLegend.running": "Running",
-  "bpmnWidget.loadError":
-    "Could not load the BPMN diagram ({message}). Open the view again, or check that the engine is reachable.",
-  "bpmnWidget.loading": "Loading BPMN diagram…",
   "clusterDetail.affectedAcross": "{count} affected · in {keys}",
   "clusterDetail.affectedInstances": "Affected instances",
   "clusterDetail.failureMessage": "Failure message",

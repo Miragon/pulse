@@ -1,21 +1,18 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeAll, describe, expect, it } from "vitest"
-import type { ComponentType } from "react"
 import { cleanup, render, waitFor } from "@testing-library/react"
-import { queryClient } from "@miragon/mcp-toolkit-ui"
-import { WidgetFixtureHost } from "@miragon/mcp-toolkit-ui/app"
 import type { EngineHealthData, IncidentDetailData, ProcessIncidentsData } from "../view-models.js"
 import { CAMUNDA7_WIDGET_ACTIONS_DATA } from "../tool-names.js"
 import { EngineHealthView } from "./engine-health.js"
 import { IncidentDetailWidget } from "./incident-detail.js"
 import { ProcessDetailHeader } from "./process-incidents/header.js"
 import { widgetActionsFeedFor } from "./lib/hand-off.test-support.js"
+import { TestViewHost } from "@miragon/pulse-widget-shell/widgets"
 
 /** One action group, one size, one order; an operator reported actions in three places and sizes. */
 
 afterEach(() => {
   cleanup()
-  queryClient.clear()
 })
 
 let tools: Record<string, unknown>
@@ -69,11 +66,9 @@ describe("one action group per view, one action size", () => {
       engineId: "prod-a",
     }
     const { container } = render(
-      <WidgetFixtureHost
-        widget={ProcessDetailHeader as unknown as ComponentType<Record<string, unknown>>}
-        data={data as unknown as Record<string, unknown>}
-        tools={tools}
-      />,
+      <TestViewHost tools={tools}>
+        <ProcessDetailHeader data={data as never} />
+      </TestViewHost>,
     )
     await expectOneGroup(container, [/^View running instances$/, /^Open in CIB seven/, /chat/i])
   })
@@ -110,11 +105,9 @@ describe("one action group per view, one action size", () => {
       engineId: "prod",
     }
     const { container } = render(
-      <WidgetFixtureHost
-        widget={IncidentDetailWidget as unknown as ComponentType<Record<string, unknown>>}
-        data={data as unknown as Record<string, unknown>}
-        tools={tools}
-      />,
+      <TestViewHost tools={tools}>
+        <IncidentDetailWidget data={data as never} />
+      </TestViewHost>,
     )
     await expectOneGroup(container, [/^Open instance in CIB seven/, /chat/i])
   })
@@ -139,11 +132,9 @@ describe("one action group per view, one action size", () => {
       engineId: "prod",
     }
     const { container } = render(
-      <WidgetFixtureHost
-        widget={EngineHealthView as unknown as ComponentType<Record<string, unknown>>}
-        data={data as unknown as Record<string, unknown>}
-        tools={tools}
-      />,
+      <TestViewHost tools={tools}>
+        <EngineHealthView data={data as never} />
+      </TestViewHost>,
     )
     await expectOneGroup(container, [/^View incidents$/, /^Refresh$/, /chat/i])
   })

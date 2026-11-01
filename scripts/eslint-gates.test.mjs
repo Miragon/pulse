@@ -137,6 +137,100 @@ describe("sparkle gate (invariant 6, CI U4) in every widget tree", () => {
   })
 })
 
+describe("view runtime gate (invariant 6): Pulse owns the view runtime", () => {
+  const isRuntimeHit = (m) => m.includes("view runtime of @miragon/pulse-widget-shell/widgets")
+  const isMcpUseReactHit = (m) => m.includes("imports mcp-use/react")
+  const MCP_PATHS = [
+    `${C7}/widgets/__probe__.tsx`,
+    `${AN}/widgets/__probe__.ts`,
+    `${C7}/widget-tools/__probe__.ts`,
+    `${WS}/__probe__.tsx`,
+    "packages/core/widget-shell/src/__probe__.ts",
+    "apps/mcp-server-camunda7/src/ui/__probe__.tsx",
+    "apps/mcp-server-camunda7/test/__probe__.test.ts",
+    "apps/mcp-server-camunda7/test-host/__probe__.spec.ts",
+  ]
+  const TOOLKIT = '"@miragon/mcp-toolkit-ui"'
+
+  it("bans the toolkit's app and hooks layers and its root query and host exports", async () => {
+    const escapes = [
+      'import { WidgetFixtureHost } from "@miragon/mcp-toolkit-ui/app"',
+      'import type { HostActionLog } from "@miragon/mcp-toolkit-ui/app"',
+      'import { useViewData } from "@miragon/mcp-toolkit-ui/hooks"',
+      'import { x } from "@miragon/mcp-toolkit-ui/app/widget-fixture"',
+      `import { useToolQuery } from ${TOOLKIT}`,
+      `import { useToolMutation as useWrite } from ${TOOLKIT}`,
+      `import { queryClient } from ${TOOLKIT}`,
+      `import { AppQueryProvider } from ${TOOLKIT}`,
+      `import { useCallTool } from ${TOOLKIT}`,
+      `import { parseToolResult } from ${TOOLKIT}`,
+      `import { keepPreviousData } from ${TOOLKIT}`,
+    ]
+    for (const rel of MCP_PATHS) {
+      for (const code of escapes) {
+        const messages = await gateMessages(rel, code, "no-restricted-imports")
+        assert.equal(messages.filter(isRuntimeHit).length, 1, `${rel}: "${code}" passed the gate`)
+      }
+    }
+  })
+
+  it("bans mcp-use/react everywhere but widget-shell's adapter", async () => {
+    const code = 'import { useCallTool, bootstrapView } from "mcp-use/react"'
+    for (const rel of MCP_PATHS) {
+      const messages = await gateMessages(rel, code, "no-restricted-imports")
+      assert.equal(messages.filter(isMcpUseReactHit).length, 1, rel)
+    }
+    for (const rel of [
+      `${WS}/mcp-use-host.tsx`,
+      `${WS}/view-root.tsx`,
+      `${WS}/view-root.test.tsx`,
+    ]) {
+      assert.deepEqual(await gateMessages(rel, code, "no-restricted-imports"), [], rel)
+    }
+  })
+
+  it("keeps the toolkit runtime ban and the sparkle gate on the adapter files", async () => {
+    for (const rel of [`${WS}/mcp-use-host.tsx`, `${WS}/view-root.tsx`]) {
+      const messages = await gateMessages(
+        rel,
+        `import { queryClient } from ${TOOLKIT}\nimport { Sparkles } from "lucide-react"`,
+        "no-restricted-imports",
+      )
+      assert.equal(messages.filter(isRuntimeHit).length, 1, rel)
+      assert.equal(messages.filter((m) => m.includes("Sparkles")).length, 1, rel)
+    }
+  })
+
+  it("leaves the toolkit's design kit, the server package and the kit's runtime alone", async () => {
+    const code = [
+      `import { Button, WidgetHeader, LocaleProvider, ToastProvider, type ToneVariant } from ${TOOLKIT}`,
+      'import { MCPServer } from "mcp-use"',
+      'import { useToolQuery, useViewHost, TestViewHost } from "@miragon/pulse-widget-shell/widgets"',
+      'import { buildViewResult } from "@miragon/pulse-widget-shell/server"',
+    ].join("\n")
+    for (const rel of MCP_PATHS) {
+      assert.deepEqual(await gateMessages(rel, code, "no-restricted-imports"), [], rel)
+    }
+  })
+
+  it("widget trees carry the runtime AND the sparkle gate in one union", async () => {
+    const code = `import { useToolQuery } from ${TOOLKIT}\nimport { Sparkles } from "lucide-react"`
+    for (const rel of [
+      `${C7}/widgets/__probe__.tsx`,
+      `${AN}/widgets/__probe__.tsx`,
+      `${WS}/__probe__.tsx`,
+    ]) {
+      const messages = await gateMessages(rel, code, "no-restricted-imports")
+      assert.equal(messages.filter(isRuntimeHit).length, 1, `${rel}: runtime gate dropped`)
+      assert.equal(
+        messages.filter((m) => m.includes("Sparkles")).length,
+        1,
+        `${rel}: sparkle gate dropped`,
+      )
+    }
+  })
+})
+
 describe("hand-off gate (invariant 6, CI U4) in both connectors' widgets", () => {
   const isHandOffHit = (m) => m.includes("HandOffButton") && m.includes("not AskAiButton")
   const HAND_OFF_PATHS = [`${C7}/widgets/__probe__.tsx`, `${AN}/widgets/__probe__.tsx`]

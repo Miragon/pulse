@@ -15,11 +15,9 @@ export const CAMUNDA7_INCIDENTS_DATA = "camunda7_incidents_data"
 export const CAMUNDA7_PROCESS_INCIDENTS_DATA = "camunda7_process_incidents_data"
 export const CAMUNDA7_ACTIVITY_INCIDENTS_DATA = "camunda7_activity_incidents_data"
 export const CAMUNDA7_INCIDENT_DETAIL_DATA = "camunda7_incident_detail_data"
-// The BPMN viewer's show tool is registration-only: the widget self-fetches CAMUNDA7_BPMN_VIEWER_DATA.
+// Views without a live feed: their show tool's data is all they render.
 export const CAMUNDA7_SHOW_HISTORY_TIMELINE = "camunda7_show_history_timeline"
 export const CAMUNDA7_SHOW_BPMN_VIEWER = "camunda7_show_bpmn_viewer"
-// Calling the show tool from the iframe is host-defined (a second widget on some hosts).
-export const CAMUNDA7_BPMN_VIEWER_DATA = "camunda7_bpmn_viewer_data"
 // A definition's XML never changes, so the widget keeps it for good and the server caches it.
 export const CAMUNDA7_BPMN_XML_DATA = "camunda7_bpmn_xml_data"
 export const CAMUNDA7_SHOW_ENGINE_HEALTH = "camunda7_show_engine_health"

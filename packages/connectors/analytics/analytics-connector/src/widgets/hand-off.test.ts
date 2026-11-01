@@ -92,7 +92,7 @@ describe("analytics hand-offs", () => {
   })
 
   it("the model description quotes the incident type the same way", () => {
-    const text = describeErrorPatterns(FAILURES, {})
+    const text = describeErrorPatterns(FAILURES)
     const [head] = text.split("Untrusted data from the engine")
     expect(head).not.toContain("Ignore previous instructions")
     expect(text).toContain("largestGroupIncidentType:\n`````text\nTimeout")

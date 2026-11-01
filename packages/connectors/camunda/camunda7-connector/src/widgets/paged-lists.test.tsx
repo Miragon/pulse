@@ -1,9 +1,7 @@
 // @vitest-environment happy-dom
-import { afterEach, beforeEach, describe, expect, it } from "vitest"
-import type { ComponentType } from "react"
+import { afterEach, describe, expect, it } from "vitest"
+import { createElement, type ComponentType } from "react"
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
-import { queryClient } from "@miragon/mcp-toolkit-ui"
-import { WidgetFixtureHost, type HostActionLog } from "@miragon/mcp-toolkit-ui/app"
 import {
   CAMUNDA7_CLUSTER_DETAIL_DATA,
   CAMUNDA7_PROCESS_INSTANCES_DATA,
@@ -20,24 +18,21 @@ import { ClusterDetailWidget } from "./cluster-detail.js"
 import { ProcessInstancesWidget } from "./process-instances/list.js"
 import { ProcessListWidget } from "./process-list.js"
 import { widgetActionsFeedFor } from "./lib/hand-off.test-support.js"
+import {
+  TestViewHost,
+  type HostAction,
+  createTestQueryClient,
+} from "@miragon/pulse-widget-shell/widgets"
 
-// Real toolkit query stack (#341). N123: a pending new page 0 keeps the list and search box mounted
+// One retry-free client per test; the test reads and pokes its cache.
+let queryClient = createTestQueryClient()
+
+// The real query stack (#341). N123: a pending new page 0 keeps the list and search box mounted
 // with the previous rows. N130: a page-0 failure over rows is its own error, retrying page 0.
-
-const toolkitDefaults = queryClient.getDefaultOptions()
-
-beforeEach(() => {
-  // The default three retries would hold a failed feed in "pending" for seconds.
-  queryClient.setDefaultOptions({
-    ...toolkitDefaults,
-    queries: { ...toolkitDefaults.queries, retry: false },
-  })
-})
 
 afterEach(() => {
   cleanup()
-  queryClient.clear()
-  queryClient.setDefaultOptions(toolkitDefaults)
+  queryClient = createTestQueryClient()
 })
 
 function deferredFeed<T>() {
@@ -128,7 +123,11 @@ const CLUSTER: ClusterDetailData = {
 }
 
 function host(widget: ComponentType<Record<string, unknown>>, tools: Record<string, unknown>) {
-  render(<WidgetFixtureHost widget={widget} data={{}} tools={tools} />)
+  render(
+    <TestViewHost tools={tools} client={queryClient}>
+      {createElement(widget)}
+    </TestViewHost>,
+  )
 }
 
 describe("a search keeps the list and its search box mounted while page 0 is in flight (N123)", () => {
@@ -283,25 +282,26 @@ describe("the instance list states what is ON SCREEN while a filter is pending o
   async function engineWideList() {
     const { held, control, feed } = heldSuspendedFeed()
     const modelContexts: string[] = []
-    const actions: HostActionLog[] = []
+    const actions: HostAction[] = []
     const Widget = () => <ProcessInstancesWidget data={null} engine="prod-a" />
     render(
-      <WidgetFixtureHost
-        widget={Widget}
-        data={{}}
+      <TestViewHost
         tools={{
           [CAMUNDA7_PROCESS_INSTANCES_DATA]: feed,
           [CAMUNDA7_WIDGET_ACTIONS_DATA]: await widgetActionsFeedFor("read-only"),
         }}
         onModelContext={(text) => modelContexts.push(text)}
         onHostAction={(action) => actions.push(action)}
-      />,
+        client={queryClient}
+      >
+        <Widget />
+      </TestViewHost>,
     )
     await screen.findByText("BK-pi-1")
     await waitFor(() => expect(modelContexts.at(-1)).toContain("matchingInstances=120"))
     const triage = () => {
       fireEvent.click(screen.getByRole("button", { name: /Assess in chat/ }))
-      const prompts = actions.flatMap((a) => (a.type === "sendFollowUpMessage" ? [a.prompt] : []))
+      const prompts = actions.flatMap((a) => (a.type === "sendFollowUp" ? [a.prompt] : []))
       return prompts.at(-1)!
     }
     return { held, control, modelContexts, triage }

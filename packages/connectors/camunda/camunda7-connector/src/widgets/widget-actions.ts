@@ -1,5 +1,5 @@
-import { useToolQuery } from "@miragon/mcp-toolkit-ui"
 import { CAMUNDA7_WIDGET_ACTIONS_DATA, type Camunda7WidgetAction } from "../tool-names.js"
+import { useToolQuery } from "@miragon/pulse-widget-shell/widgets"
 
 export interface WidgetActionsFeed {
   allowedActions?: string[]

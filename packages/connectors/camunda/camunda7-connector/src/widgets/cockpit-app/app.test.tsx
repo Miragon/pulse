@@ -1,10 +1,8 @@
 // @vitest-environment happy-dom
-import { afterEach, beforeEach, describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it } from "vitest"
 import type { ComponentType } from "react"
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import type { CockpitAppData, EngineHealthData } from "../../view-models.js"
-import { queryClient } from "@miragon/mcp-toolkit-ui"
-import { WidgetFixtureHost } from "@miragon/mcp-toolkit-ui/app"
 import {
   CAMUNDA7_COCKPIT_OVERVIEW_DATA,
   CAMUNDA7_ENGINE_HEALTH_DATA,
@@ -13,20 +11,14 @@ import {
 } from "../../tool-names.js"
 import { camunda7Instructions } from "../../instructions.js"
 import { CockpitApp } from "./app.js"
+import { TestViewHost, createTestQueryClient } from "@miragon/pulse-widget-shell/widgets"
 
-const toolkitDefaults = queryClient.getDefaultOptions()
-
-beforeEach(() => {
-  queryClient.setDefaultOptions({
-    ...toolkitDefaults,
-    queries: { ...toolkitDefaults.queries, retry: false },
-  })
-})
+// One retry-free client per test; the test reads and pokes its cache.
+let queryClient = createTestQueryClient()
 
 afterEach(() => {
   cleanup()
-  queryClient.clear()
-  queryClient.setDefaultOptions(toolkitDefaults)
+  queryClient = createTestQueryClient()
 })
 
 const ENGINES = [
@@ -80,9 +72,7 @@ function renderCockpit(
   })
   const Cockpit: ComponentType<Record<string, unknown>> = () => <CockpitApp data={bootstrap} />
   render(
-    <WidgetFixtureHost
-      widget={Cockpit}
-      data={{}}
+    <TestViewHost
       tools={{
         [CAMUNDA7_LIST_ENGINES]: listEngines,
         [CAMUNDA7_SELECT_ENGINE]: selectEngine,
@@ -90,7 +80,10 @@ function renderCockpit(
         [CAMUNDA7_ENGINE_HEALTH_DATA]: health,
       }}
       onModelContext={(text) => modelContexts.push(text)}
-    />,
+      client={queryClient}
+    >
+      <Cockpit />
+    </TestViewHost>,
   )
   return { listCalls, selectCalls, modelContexts }
 }

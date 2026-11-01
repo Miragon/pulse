@@ -27,8 +27,6 @@ function register({ withSave = true, withReason = true, annotations }: Options =
     }),
   )
   registerSettingsSection({ tool } as unknown as MCPServer, {
-    app: "demo",
-    widget: "demo:settings",
     openWorldHint: true,
     readOnlyReason: withReason ? "toolset" : undefined,
     load: (_ctx, key, gate: SettingsGate<"toolset">) =>
@@ -37,7 +35,7 @@ function register({ withSave = true, withReason = true, annotations }: Options =
       name: "demo_show_settings",
       title: "Demo settings",
       description: "Open the demo settings.",
-      render: ({ view, language }) => ({ title: language, summary: JSON.stringify(view) }),
+      render: ({ view, language }) => `${language}: ${JSON.stringify(view)}`,
     },
     feed: { name: "demo_settings_data", title: "Demo data", description: "Feed." },
     save: withSave
@@ -139,16 +137,12 @@ describe("registerSettingsSection", () => {
     expect(await feed(handler, CTX)).toEqual({ key: "user-1", canSave: true })
   })
 
-  it("renders the section's view with the module's title and summary", async () => {
+  it("renders the section's view: its data as structuredContent, the module's summary as text", async () => {
     const result = await register().handler("demo_show_settings")({}, CTX)
-    expect(result.content?.[0]?.text).toBe(
-      JSON.stringify({ key: "user-1", canSave: true, readOnlyReason: null }),
-    )
-    expect(result.structuredContent).toMatchObject({
-      title: "de",
-      layout: [{ row: [{ widget: "demo:settings" }] }],
-      context: { stepData: { result: { _app: "demo", _dataType: "demo:settings" } } },
-    })
+    const view = { key: "user-1", canSave: true, readOnlyReason: null }
+    expect(result.content).toEqual([{ type: "text", text: `de: ${JSON.stringify(view)}` }])
+    // No envelope and no server title: the view is the data, named by its tool.
+    expect(result.structuredContent).toEqual(view)
   })
 
   it("saves under the caller's key, stamps the OAuth caller as owner and returns the save", async () => {

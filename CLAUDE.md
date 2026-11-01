@@ -45,7 +45,7 @@ for the same engines.
 | `packages/connectors/analytics/analytics-connector/` | analytics module: Prometheus-backed tools, dashboards, comparison widgets                                                                                                                                             |
 | `packages/connectors/camunda/camunda7-client/`       | Generated CIB seven REST SDK (`src/generated/`) + Zod input schemas (`src/schemas/`)                                                                                                                                  |
 | `packages/connectors/analytics/analytics-client/`    | Prometheus client + PromQL query functions (`src/queries/`) + Zod schemas                                                                                                                                             |
-| `packages/core/widget-shell/`                        | Shared widget kit: UI primitives incl. `useApplyTheme` + the host app shell `AppShellProviders` (`/widgets`), `adaptDataWidget` (`/ui`), view + data-feed builders, the shell's settings tools + the boot (`/server`) |
+| `packages/core/widget-shell/`                        | Shared widget kit: UI primitives incl. `useApplyTheme` + the view runtime (`mountViews`, `TestViewHost`) (`/widgets`), `buildViewResult` + data-feed builders, the shell's settings tools + the full boot (`/server`) |
 | `engine-plugins/`                                    | Kotlin/Gradle: CIB seven OTEL metrics plugin (Java 21)                                                                                                                                                                |
 | `playground/`                                        | Demo env: CIB seven showcase engine, Compose stack, Fly.io deploy                                                                                                                                                     |
 | `docs/`                                              | Pulse docs, a VitePress site on GitHub Pages (getting started, usage, architecture, developer, operations)                                                                                                            |
@@ -211,29 +211,34 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    issues no session ids). A client you construct or cache yourself breaks multi-engine
    routing; `resolveEngine` (async) already returns `baseUrl`/`cockpitUrl`.
 
-3. **Widget registration is a three-link chain**; a widget that misses a link is silently
-   absent somewhere:
-   - `packages/connectors/camunda/camunda7-connector/src/widgets/registry.ts`: component →
-     dataType via `adaptDataWidget`
-   - `apps/mcp-server-camunda7/src/ui/widget-registry.ts`: the host bundle map
+3. **A view is registered in three places**; a view that misses one is silently absent:
+   - the module's view map, keyed by the show tool's name (camunda7:
+     `packages/connectors/camunda/camunda7-connector/src/widgets/views.tsx`)
+   - `apps/mcp-server-camunda7/src/ui/view-registry.ts`: every module's views plus the host
+     widgets (cross-module widgets by raw id)
    - `packages/connectors/camunda/camunda7-connector/src/tool-names.ts`: the tool-name constant
      for every `show_*`/`*_data` tool, so in-widget navigation stays rename-safe
 
-   A widget id exists only where a show tool or a static layout emits it, so
-   `apps/mcp-server-camunda7/test/widget-registry.test.ts` scans the connectors' sources for
-   every `widget: "<module>:<id>"` literal and fails both ways: on an id the host bundle map
-   lacks (an empty slot) and on a map entry nothing names (dead code in every view's bundle).
+   A view is picked by its NAME, the show tool's name (`showToolBinding`, primed under
+   `ui://views/<name>.html` with a prelude naming it), so
+   `apps/mcp-server-camunda7/test/view-registry.test.ts` holds the view registry to the
+   view-bound tools of the tools/list goldens and fails both ways: on a tool without a view
+   (the "can't show this view" state) and on a view no tool opens (dead code in every
+   view's bundle).
 
 4. **The `dedupe` array in `apps/mcp-server-camunda7/vite.config.ts` is load-bearing: never
-   remove or trim it.** Without it each widget package bundles its own React/toolkit
-   instance, the React contexts no longer match, `useCallTool()` is undefined, and every
-   in-widget query hangs on "Loading…".
+   remove or trim it.** Without it each widget package bundles its own React, TanStack Query,
+   mcp-use or toolkit instance, the React contexts no longer match, a widget finds no view host
+   and no `QueryClient`, and every in-widget query hangs on "Loading…".
 
 5. **There are three render paths; pick deliberately:**
    - Registrar tools (`src/tools/`): plain JSON data _for the model_.
    - Widget tools (`show_*`, spread `...showToolBinding(name, title)` from
      `@miragon/pulse-widget-shell/server`; camunda7's `registerShowTool` does it): render a
-     widget for the user and return a summary for the model.
+     view for the user and return a summary for the model, as `buildViewResult(data, summary)`:
+     the `structuredContent` IS the view's data. The view is picked by its name (= the tool's
+     name); a composed view (a dashboard, the process detail) is ONE component that composes
+     its widgets, never a layout the server sends.
    - `*_data` feeds (spread `...appOnly`, **no** view binding; camunda7's `registerDataFeed`):
      app-only JSON for in-widget refresh and navigation, returned as
      `buildDataFeedResult(data)`. SEP-1865 hosts hide them from the LLM, and a widget-tool
@@ -254,6 +259,16 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      (`src/ui/toolkit-overlap.test.ts`). Settings sections use `SettingsCard`/`SettingsField`/
      `SettingsInput`: an invalid entry is said inline (`error`), never clamped silently, and a
      section that cannot save says why above its disabled fields.
+   - **The view runtime is widget-shell's.** The root's call hook (`useMcpUseViewCall` over
+     `resolveViewCall`) owns the stripped-result recovery: a host that drops
+     `structuredContent` gets ONE re-run of the view's own show tool, so every view-bound tool
+     is a read (`apps/mcp-server-camunda7/test/view-registry.test.ts`). `ViewFrame` renders the
+     phases (waiting, error, cancelled, ready); every `ViewStack` row and `HostWidgetSlot` has
+     its own error boundary, so one crashing widget never takes its view down. Widgets reach
+     the host only through `useViewHost`/`HostModelContext` and the query hooks
+     (`useToolQuery`, `useToolMutation`, `useViewData`), test under `TestViewHost`, and never import
+     `mcp-use/react` or the toolkit's app/hooks layer (ESLint `no-restricted-imports`,
+     `scripts/eslint-gates.test.mjs`).
    - **States and feedback** (#322). Loading, error and no data go through `ViewDataState`, or
      `QueryFallback` + `TableSkeleton` in a self-fetching widget (without an `isError` branch
      the skeleton never ends); both take a required `onRetry` and word a failure with
@@ -311,9 +326,9 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      "Jobs ohne Versuche" / "jobs without retries", "bereitstellen", Geschäftsschlüssel,
      aussetzen, Versuche, alle Engines), checked with each connector's own terms by
      `src/messages/glossary.test.ts` and listed in `src/messages/GLOSSARY.md`.
-   - **Locale on the server.** A verdict travels as data and the widget words it. A show tool
-     titles its view only in a language the profile names (`createLocalizeViewFor`;
-     `view-title.test.ts`); otherwise the widget's heading names it in the host's language.
+   - **Locale on the server.** A verdict travels as data and the widget words it. The server
+     never titles a view: the widget's heading names it in the host's language, and a show
+     tool's summary follows the language the profile names (`createLocalizeFor`).
    - **Everything a widget tells the model is built by `askAiPrompt`/`modelContextText`**
      (`packages/core/widget-shell/src/ui/ask-ai-prompt.ts`). A hand-off is posted as the
      USER's message, so engine text (messages, names, business keys) goes into `untrusted`,
@@ -397,9 +412,9 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    - **The app composes, nothing more.** `setup.ts` declares the module list and wires
      `SharedResources` (profile store; `fetchBpmnXml`, camunda7's XML lookup for analytics;
      `engineIds`, the ONLY engines analytics reads, so analytics needs NO engine SDK). Widget
-     components and boot plumbing live in packages; the bundle root is `AppShellProviders` +
-     `LocalizedAppView` (provider order load-bearing), the stylesheet the toolkit's `theme.css`
-     after `tailwindcss` (`test/ui-stylesheet.test.ts`).
+     components and boot plumbing live in packages; the bundle root is
+     `mountViews({ views, hostWidgets })` (its `ViewRoot` provider order is load-bearing), the
+     stylesheet the toolkit's `theme.css` after `tailwindcss` (`test/ui-stylesheet.test.ts`).
    - **One boot.** `createComposedServer` owns the boot order and the production listener. It
      constructs the `MCPServer` itself and wraps `server.tool` before the first plugin
      registers: a tool name two registrations share fails the boot naming both owners (`server`
@@ -412,19 +427,22 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      (`resolveHttpEdgePolicy`) is DNS-rebinding protection that exempts `/health*` and
      `/metrics`; never swap it for mcp-use's `allowedHosts`, which guards those too.
    - **Cross-module UI is tiered**: raw tool-name strings with graceful degradation
-     (`process-incidents/flow.tsx` → `analytics_bpmn_heatmap_data`); hard-composed views go in a
-     dedicated package created with the first real view, never in the app, never as
-     module-to-module imports. The host bundle is static, so a surface that needs another module
-     probes one of its cheap feeds (`useAnalyticsActive`).
+     (`process-incidents/flow.tsx` → `analytics_bpmn_heatmap_data`); another module's widget
+     only through the host widget map by raw id (`useHostWidget`/`HostWidgetSlot`: the
+     `<module>:settings` sections and `analytics:engine-landscape` in camunda7's fleet view);
+     hard-composed views go in a dedicated package created with the first real view, never in
+     the app, never as module-to-module imports. The host bundle is static, so a surface that
+     needs another module probes one of its cheap feeds (`useAnalyticsActive`).
      `apps/mcp-server-camunda7/test/tool-name-refs.test.ts` checks every `<module>_…` literal
      against the booted tools; the apps the source guards read are listed in `APP_SCAN`
      (`apps/mcp-server-camunda7/test/source-scan.ts`), where a new app adds its entry.
-   - **Settings.** The page is the shell's (#346, `createShellPlugin`). Each module owns its
-     section (widget + `*_data` feed + save tool via `registerSettingsSection`; reference
-     `analytics-connector/src/settings-tools.ts`) and persists under
-     `profile.modules.<module>`. `settingsLayout` assembles the page from every
-     `<module>:settings` id, so that convention is load-bearing
-     (`apps/mcp-server-camunda7/test/widget-registry.test.ts`). Save-input schemas are
+   - **Settings.** The page is the shell's (#346, `createShellPlugin`, `SettingsPage`). Each
+     module owns its section (widget + `*_data` feed + save tool via `registerSettingsSection`;
+     reference `analytics-connector/src/settings-tools.ts`) and persists under
+     `profile.modules.<module>`. The page renders every `<module>:settings` host widget
+     (`settingsSections`), so that convention is load-bearing; the view registry test pairs
+     each `<module>_show_settings` with its section
+     (`apps/mcp-server-camunda7/test/view-registry.test.ts`). Save-input schemas are
      default-FREE (`withoutDefaults`): zod 4 re-applies `.default()`s through `.partial()` and
      turns omitted fields into silent resets.
    - **Writes outside the registrar** gate themselves against the module's declared toolset
@@ -436,9 +454,10 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      (`camunda7-connector/src/widgets/lib/engine-action.ts`): the gate (`allowed` from
      `camunda7_widget_actions_data`, AND `available`: no write on an ended, cancelled or
      unconfirmed instance), the confirmation that names its target, the targeted invalidation
-     and the optimistic marks (`WRITE_POLICY`); controls are hidden, not disabled
-     (`src/widget-actions.test.ts`, `widgets/action-gating.test.tsx`). A standalone view
-     refreshes after a write because its tool result seeds a live feed query.
+     through the view's one `QueryClient` (`useQueryClient`) and the optimistic marks
+     (`WRITE_POLICY`); controls are hidden, not disabled (`src/widget-actions.test.ts`,
+     `widgets/action-gating.test.tsx`). A standalone view refreshes after a write because its
+     tool result seeds a live feed query (`useViewData` always seeds).
    - **Vendors** are per-engine runtime config (`flavor` → `EngineProvider` in
      `packages/connectors/camunda/camunda7-connector/src/providers/`); the port holds ONLY real
      differences (cockpit routes, branding, client hook), never an SDK mirror.

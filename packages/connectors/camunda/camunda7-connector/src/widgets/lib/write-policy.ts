@@ -23,7 +23,6 @@ const INCIDENT_VIEWS = [
   "camunda7:jobs",
   "camunda7:instance-detail",
   "camunda7:process-instances",
-  "camunda7:bpmn-viewer",
   "camunda7:cockpit-overview",
   "camunda7:process-list",
 ] as const
@@ -32,7 +31,6 @@ const INSTANCE_LISTS = [
   "camunda7:process-instances",
   "camunda7:process-list",
   "camunda7:cockpit-overview",
-  "camunda7:bpmn-viewer",
 ] as const
 
 function views(...namespaces: string[]): readonly string[] {

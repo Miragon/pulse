@@ -1,9 +1,8 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from "vitest"
-import type { ComponentType } from "react"
+import { createElement, type ComponentType } from "react"
 import { cleanup, render, screen } from "@testing-library/react"
-import { LocaleProvider, queryClient } from "@miragon/mcp-toolkit-ui"
-import { WidgetFixtureHost } from "@miragon/mcp-toolkit-ui/app"
+import { LocaleProvider } from "@miragon/mcp-toolkit-ui"
 import type {
   ClusterDetailData,
   CockpitDashboardData,
@@ -17,13 +16,13 @@ import { ProcessDefinitionsTable } from "./cockpit-dashboard/definitions-table.j
 import { IncidentProcessList } from "./incidents-dashboard/process-list.js"
 import { ProcessInstancesWidget } from "./process-instances/list.js"
 import { ProcessListWidget } from "./process-list.js"
+import { TestViewHost } from "@miragon/pulse-widget-shell/widgets"
 
 // WCAG 2.5.3: named by the placeholder's words, never the FilterBar's generic "Filter"; a placeholder
 // vanishes while typing and voice users say the words they see.
 
 afterEach(() => {
   cleanup()
-  queryClient.clear()
 })
 
 const PROCESS_LIST: ProcessListData = {
@@ -181,7 +180,7 @@ describe("every search box is named by what it searches", () => {
     const { widget, search, chips } = SITES[site]
     render(
       <LocaleProvider locale={locale}>
-        <WidgetFixtureHost widget={widget} data={{}} />
+        <TestViewHost>{createElement(widget)}</TestViewHost>
       </LocaleProvider>,
     )
 

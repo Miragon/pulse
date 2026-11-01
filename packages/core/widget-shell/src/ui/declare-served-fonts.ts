@@ -1,14 +1,14 @@
 import { fontFaces } from "@miragon/mcp-toolkit-ui"
-import { getPublicBaseUrl } from "mcp-use/react"
 import { SERVED_FONT_FILES, servedFontBaseUrl } from "../served-fonts.js"
 
 export const SERVED_FONTS_STYLE_ID = "__miragon-served-fonts"
 
-/** `font-display: swap`: the host's or system font renders at once, so a host blocking the server's origin leaves it there and nothing waits. Returns the base URL the faces load from, if any. */
-export function declareServedFonts(
-  doc: Document = document,
-  publicBase: string = getPublicBaseUrl(),
-): string | undefined {
+/**
+ * `font-display: swap`: the host's or system font renders at once, so a host blocking the server's
+ * origin leaves it there and nothing waits. `publicBase` is the view host's (`ShellHost`); returns
+ * the base URL the faces load from, if any.
+ */
+export function declareServedFonts(doc: Document, publicBase: string): string | undefined {
   const existing = doc.getElementById(SERVED_FONTS_STYLE_ID)
   if (existing) return existing.dataset.baseUrl
   const baseUrl = servedFontBaseUrl(publicBase)

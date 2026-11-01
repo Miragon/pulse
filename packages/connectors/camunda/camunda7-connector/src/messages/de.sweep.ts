@@ -9,7 +9,6 @@ export const deSweep: MessageCatalog = {
   "bpmnDiagram.unavailable": "Die Engine hat für diese Version kein Diagramm.",
   "bpmnDiagram.renderError":
     "Das BPMN-Diagramm lässt sich nicht darstellen. Aktualisiere die Ansicht, oder öffne das Modell in deinem Modeler.",
-  "bpmnFlow.noData": "Keine Daten verfügbar",
   "bpmnFlow.noDiagram": "Kein BPMN-Diagramm verfügbar",
   "bpmnHeader.activeCount": ({ count }) => countOf(count, "Aktivität läuft", "Aktivitäten laufen"),
   "bpmnHeader.incidentsCount": ({ count }) => countOf(count, "Incident", "Incidents"),
@@ -19,9 +18,6 @@ export const deSweep: MessageCatalog = {
   "bpmnLegend.instanceCount": "Laufende Instanzen (diese Version)",
   "bpmnLegend.instanceTokens": "Token (diese Instanz)",
   "bpmnLegend.running": "Läuft",
-  "bpmnWidget.loadError":
-    "Das BPMN-Diagramm konnte nicht geladen werden ({message}). Öffne die Ansicht noch mal, oder prüf, ob die Engine erreichbar ist.",
-  "bpmnWidget.loading": "BPMN-Diagramm wird geladen…",
   "clusterDetail.affectedAcross": "{count} betroffen · in {keys}",
   "clusterDetail.affectedInstances": "Betroffene Instanzen",
   "clusterDetail.failureMessage": "Fehlermeldung",

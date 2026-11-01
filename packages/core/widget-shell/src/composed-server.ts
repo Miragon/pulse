@@ -29,6 +29,7 @@ import { fontAssetsCsp, installFontAssets } from "./font-assets.js"
 import { installToolSchemaTrim } from "./tool-schema-trim.js"
 import { installMcpRequestContext } from "./request-context.js"
 import { installToolRegistration } from "./tool-registration.js"
+import { viewPrelude } from "./view-name.js"
 
 /** What the server reports as `serverInfo` (plus the `instructions` it advertises). */
 export interface ComposedServerInfo {
@@ -165,7 +166,7 @@ async function readBundleFile(filePath: string, label: string): Promise<string> 
   }
 }
 
-/** Priming is one-shot in mcp-use, so it runs once every plugin bound its views: all share ONE bundle. */
+/** Priming is one-shot in mcp-use, so it runs once every plugin bound its views: all share ONE bundle, each behind its name's prelude. */
 async function primeViews(
   server: MCPServer,
   viewNames: ReadonlySet<string>,
@@ -175,8 +176,10 @@ async function primeViews(
   if (viewNames.size === 0) return
   const js = await readBundleFile(bundle.jsPath, label)
   const css = bundle.cssPath ? await readBundleFile(bundle.cssPath, label) : ""
-  const entry = { kind: "inline", js, css } as const
-  const manifest: ViewsManifest = Object.fromEntries([...viewNames].map((name) => [name, entry]))
+  // The prelude names the view before the bundle runs (`mountViews` reads it).
+  const manifest: ViewsManifest = Object.fromEntries(
+    [...viewNames].map((name) => [name, { kind: "inline", js: viewPrelude(name) + js, css }]),
+  )
   server[registerViews](manifest)
 }
 

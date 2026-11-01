@@ -4,7 +4,6 @@ import type {
   FailureDashboardData,
 } from "@miragon/pulse-analytics-client"
 import { modelContextText, type ModelContextSpec } from "@miragon/pulse-widget-shell/widgets"
-import type { DescribeForModel } from "@miragon/pulse-widget-shell/ui"
 import { ANALYTICS_ONLY_SURFACE, engineIdsOf, isAggregate } from "./hand-off.js"
 import type { ClusterCompareData } from "./cluster-compare.js"
 import type { VersionCompareData } from "./version-compare.js"
@@ -14,8 +13,11 @@ import type { AnalyticsSettingsViewData } from "./settings-section.js"
 import type { AnalyticsBpmnHeatmapData } from "./bpmn-heatmap.js"
 import { deltaFacts } from "./comparison-shared.js"
 
+/** A view's model description: the data it shows, never its props. */
+type Describe<T> = (data: NonNullable<T>) => string
+
 /**
- * Built by `modelContextText` (#338). The scope comes from the DATA, never the cell props (#336),
+ * Built by `modelContextText` (#338). The scope comes from the DATA, never a widget's props (#336),
  * so a composed widget describes the numbers on screen; an unmeasured figure is left out,
  * never 0. Names analytics tools only: a pure description cannot query the camunda7 surface.
  */
@@ -38,7 +40,7 @@ function definitionCount(data: AnalyticsDashboardData) {
  * Period flows (`…InWindow`: incidents, not failed instances) kept apart from the live `…Now`
  * gauges, which ignore the period (#336).
  */
-export const describeExecutionSummary: DescribeForModel<AnalyticsDashboardData> = (data) =>
+export const describeExecutionSummary: Describe<AnalyticsDashboardData> = (data) =>
   modelContextText({
     summary:
       "The operator is viewing the execution summary of the process analytics: flows within the period (incidents, not failed instances) apart from the live state right now, which does not depend on the period." +
@@ -62,7 +64,7 @@ export const describeExecutionSummary: DescribeForModel<AnalyticsDashboardData> 
   })
 
 /** The performance KPIs: durations of the instances that ENDED in the period (null when none did). */
-export const describeExecutionPerformance: DescribeForModel<AnalyticsDashboardData> = (data) =>
+export const describeExecutionPerformance: Describe<AnalyticsDashboardData> = (data) =>
   modelContextText({
     summary:
       "The operator is viewing the performance KPIs of the process analytics: durations of the instances that ended in the period, and incidents per 100 started instances." +
@@ -91,7 +93,7 @@ export const describeExecutionPerformance: DescribeForModel<AnalyticsDashboardDa
     surface: ANALYTICS_ONLY_SURFACE,
   })
 
-export const describeDefinitionBreakdown: DescribeForModel<AnalyticsDashboardData> = (data) => {
+export const describeDefinitionBreakdown: Describe<AnalyticsDashboardData> = (data) => {
   const top = [...data.definitionBreakdown].sort((a, b) => b.totalInstances - a.totalInstances)[0]
   return modelContextText({
     summary:
@@ -116,7 +118,7 @@ export const describeDefinitionBreakdown: DescribeForModel<AnalyticsDashboardDat
 }
 
 /** BPMN ids are unique only within one model, so the top row names its process too. */
-export const describeActivityBottlenecks: DescribeForModel<AnalyticsDashboardData> = (data) => {
+export const describeActivityBottlenecks: Describe<AnalyticsDashboardData> = (data) => {
   const top = [...data.activityBreakdown].sort((a, b) => b.totalTimeMs - a.totalTimeMs)[0]
   return modelContextText({
     summary:
@@ -144,7 +146,7 @@ export const describeActivityBottlenecks: DescribeForModel<AnalyticsDashboardDat
 }
 
 /** The failure summary (point-in-time). */
-export const describeFailureSummary: DescribeForModel<FailureDashboardData> = (data) =>
+export const describeFailureSummary: Describe<FailureDashboardData> = (data) =>
   modelContextText({
     summary:
       "The operator is viewing the failure dashboard: the incidents open right now (point-in-time, no period), grouped by incident type and process." +
@@ -163,7 +165,7 @@ export const describeFailureSummary: DescribeForModel<FailureDashboardData> = (d
  * The gauge carries only type, process and count. A custom incident type is quoted as untrusted
  * unless id-shaped (#338); a capped list says how much it shows.
  */
-export const describeErrorPatterns: DescribeForModel<FailureDashboardData> = (data) => {
+export const describeErrorPatterns: Describe<FailureDashboardData> = (data) => {
   const top = [...data.errorPatterns].sort((a, b) => b.incidentCount - a.incidentCount)[0]
   const listed = data.errorPatterns.length
   return modelContextText({
@@ -188,7 +190,7 @@ export const describeErrorPatterns: DescribeForModel<FailureDashboardData> = (da
  * Live gauges. Regressions go elsewhere than analytics_version_compare: it cannot split incidents
  * by version (#327).
  */
-export const describeFailureRates: DescribeForModel<FailureDashboardData> = (data) => {
+export const describeFailureRates: Describe<FailureDashboardData> = (data) => {
   const top = [...data.processBreakdown].sort(
     (a, b) => (b.incidentRatePct ?? -1) - (a.incidentRatePct ?? -1),
   )[0]
@@ -234,7 +236,7 @@ const SUPPRESSED = " The sample is below minBucketSize (suppressed): treat the d
  * The ids re-run the comparison as asked; the windows actually measured (cut at now or the
  * retention) are facts (#336).
  */
-export const describeClusterCompare: DescribeForModel<ClusterCompareData> = (data) =>
+export const describeClusterCompare: Describe<ClusterCompareData> = (data) =>
   modelContextText({
     summary:
       "The operator is comparing KPIs before vs after a deployment (cluster-wide unless a " +
@@ -262,7 +264,7 @@ export const describeClusterCompare: DescribeForModel<ClusterCompareData> = (dat
   })
 
 /** Version compare: process-wide (the tool takes no element scope, #336). */
-export const describeVersionCompare: DescribeForModel<VersionCompareData> = (data) =>
+export const describeVersionCompare: Describe<VersionCompareData> = (data) =>
   modelContextText({
     summary:
       "The operator is comparing two versions of one process (versionA is the baseline); every " +
@@ -281,7 +283,7 @@ export const describeVersionCompare: DescribeForModel<VersionCompareData> = (dat
     surface: ANALYTICS_ONLY_SURFACE,
   })
 
-export const describeEngineCompare: DescribeForModel<EngineCompareData> = (data) =>
+export const describeEngineCompare: Describe<EngineCompareData> = (data) =>
   modelContextText({
     summary:
       "The operator is comparing one process on two engines (engineA is the baseline). The " +
@@ -300,7 +302,7 @@ export const describeEngineCompare: DescribeForModel<EngineCompareData> = (data)
     surface: ANALYTICS_ONLY_SURFACE,
   })
 
-export const describeEngineLandscape: DescribeForModel<EngineLandscapeData> = (data) => {
+export const describeEngineLandscape: Describe<EngineLandscapeData> = (data) => {
   const { totals } = data
   const silent = data.engines.filter((e) => !e.reporting).map((e) => e.engineId)
   // Ranked among the engines that report: a silent engine's counts are unknown (null).
@@ -368,7 +370,7 @@ export function describeAnalyticsSettings(data: AnalyticsSettingsViewData): Mode
 }
 
 /** The BPMN heatmap — over the engines its heat adds up (the `engines` echo, #336). */
-export const describeBpmnHeatmap: DescribeForModel<AnalyticsBpmnHeatmapData> = (data) => {
+export const describeBpmnHeatmap: Describe<AnalyticsBpmnHeatmapData> = (data) => {
   const hottest = maxEntry(data.frequency)
   const slowest = maxEntry(data.durationSec)
   return modelContextText({

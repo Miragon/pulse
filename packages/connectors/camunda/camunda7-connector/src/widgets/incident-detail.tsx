@@ -1,7 +1,6 @@
 import { useMemo } from "react"
-import { HostModelContext } from "@miragon/mcp-toolkit-ui/app"
 import { Alert, AlertDescription, SectionHeading } from "@miragon/mcp-toolkit-ui"
-import { useDetailView } from "@miragon/pulse-widget-shell/widgets"
+import { useDetailView, HostModelContext } from "@miragon/pulse-widget-shell/widgets"
 
 import type { IncidentDetailData, IncidentRecovery } from "../view-models.js"
 
@@ -232,8 +231,8 @@ export function IncidentDetailWidget({
       ]}
       defaultTab="stacktrace"
     >
-      {/* Rendered in-component (not via the adapter's describeForModel) because
-          this widget self-fetches in the cockpit, where the adapter has no data. */}
+      {/* Described from what is on screen: in the cockpit the widget self-fetches,
+          so only it knows the data. */}
       <IncidentModelContext data={data} resolved={resolved || retried} />
 
       <EngineActionDialog action={recovery.resolve} />

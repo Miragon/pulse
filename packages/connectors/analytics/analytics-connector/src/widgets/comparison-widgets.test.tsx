@@ -2,8 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { ComponentType } from "react"
 import { cleanup, render, screen, within } from "@testing-library/react"
-import { LocaleProvider, queryClient } from "@miragon/mcp-toolkit-ui"
-import { WidgetFixtureHost } from "@miragon/mcp-toolkit-ui/app"
+import { LocaleProvider } from "@miragon/mcp-toolkit-ui"
 import type {
   ClusterCompareResult,
   CompareKpiDelta,
@@ -15,6 +14,7 @@ import { setFormatLocale } from "@miragon/pulse-widget-shell/testing"
 import { VersionCompareWidget } from "./version-compare.js"
 import { EngineCompareWidget } from "./engine-compare.js"
 import { ClusterCompareWidget } from "./cluster-compare.js"
+import { TestViewHost } from "@miragon/pulse-widget-shell/widgets"
 
 const NOW = "2026-10-10T12:40:00.000Z"
 const AS_OF = "2026-10-10T12:32:00.000Z"
@@ -25,7 +25,6 @@ beforeEach(() => {
 })
 afterEach(() => {
   cleanup()
-  queryClient.clear()
   setFormatLocale(undefined)
   vi.useRealTimers()
 })
@@ -38,10 +37,9 @@ function renderIn(language: "de" | "en", Widget: ComponentType<{ data: never }>,
   })
   return render(
     <LocaleProvider locale={language}>
-      <WidgetFixtureHost
-        widget={Widget as unknown as ComponentType<Record<string, unknown>>}
-        data={data as Record<string, unknown>}
-      />
+      <TestViewHost>
+        <Widget data={data as never} />
+      </TestViewHost>
     </LocaleProvider>,
   )
 }

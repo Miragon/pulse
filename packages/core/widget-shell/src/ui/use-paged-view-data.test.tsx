@@ -1,8 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import type { ReactNode } from "react"
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react"
-import { AppQueryProvider, queryClient } from "@miragon/mcp-toolkit-ui"
+import { spyHost } from "./tool-host.test-support.js"
 import { usePagedViewData } from "./use-paged-view-data.js"
 
 /** Retries are off, so a failure is final at once; backoff cases live in the `.seeded` suite. */
@@ -20,9 +19,8 @@ const selectTotal = (data: Page) => data.total
 
 const callTool = vi.fn()
 
-function wrapper({ children }: { children: ReactNode }) {
-  return <AppQueryProvider callTool={callTool}>{children}</AppQueryProvider>
-}
+const host = spyHost("test_list_data", callTool)
+const wrapper = host.wrapper
 
 interface HarnessProps {
   initialData: Page | null
@@ -64,25 +62,18 @@ function deferred() {
   return { promise, land, fail }
 }
 
-const toolkitDefaults = queryClient.getDefaultOptions()
-
 beforeEach(() => {
   callTool.mockReset()
-  queryClient.setDefaultOptions({
-    ...toolkitDefaults,
-    queries: { ...toolkitDefaults.queries, retry: false },
-  })
+  host.reset()
 })
 
-afterEach(() => {
+afterEach(async () => {
   cleanup()
-  // The seed lands in the toolkit's singleton client — never across tests.
-  queryClient.clear()
-  queryClient.setDefaultOptions(toolkitDefaults)
+  await host.dispose()
 })
 
 const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 20)))
-const invalidate = () => act(() => queryClient.invalidateQueries({ queryKey: ["test:list"] }))
+const invalidate = () => act(() => host.client().invalidateQueries({ queryKey: ["test:list"] }))
 
 describe("usePagedViewData", () => {
   it("serves page 0 from handed-in initialData — as the SEED of a live page-0 query", async () => {
@@ -94,7 +85,7 @@ describe("usePagedViewData", () => {
     expect(result.current.loading).toBe(false)
     expect(result.current.stale).toBe(false)
     const page0Key = ["test:list", "list-1", "{}", "page0", { firstResult: 0, maxResults: 2 }]
-    expect(queryClient.getQueryData(page0Key)).toBe(initialData)
+    expect(host.client().getQueryData(page0Key)).toBe(initialData)
     // A fresh seed is not refetched on mount …
     await settle()
     expect(callTool).not.toHaveBeenCalled()

@@ -1,9 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from "vitest"
-import type { ComponentType } from "react"
+import { createElement, type ComponentType } from "react"
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
-import { queryClient } from "@miragon/mcp-toolkit-ui"
-import { WidgetFixtureHost } from "@miragon/mcp-toolkit-ui/app"
 import {
   CAMUNDA7_INCIDENT_DETAIL_DATA,
   CAMUNDA7_WIDGET_ACTIONS,
@@ -13,13 +11,17 @@ import type { IncidentDetailData, IncidentInstance } from "../view-models.js"
 import { IncidentDetailWidget } from "./incident-detail.js"
 import { IncidentTable } from "./process-incidents/incident-table.js"
 import { useIncidentRecovery } from "./process-incidents/use-incident-recovery.js"
+import { TestViewHost, createTestQueryClient } from "@miragon/pulse-widget-shell/widgets"
+
+// One retry-free client per test; the test reads and pokes its cache.
+let queryClient = createTestQueryClient()
 
 // #328: Retry for built-in types, Resolve only for custom ones, each only with its tool. A result
 // stored before `recovery` existed still renders: a reopened chat hands the old structuredContent.
 
 afterEach(() => {
   cleanup()
-  queryClient.clear()
+  queryClient = createTestQueryClient()
 })
 
 const ALL_ACTIONS = { allowedActions: [...CAMUNDA7_WIDGET_ACTIONS] }
@@ -72,11 +74,9 @@ type Calls = Array<[string, Record<string, unknown>]>
 function renderDetail(data: IncidentDetailData, tools: Record<string, unknown>) {
   const widget = IncidentDetailWidget as unknown as ComponentType<Record<string, unknown>>
   render(
-    <WidgetFixtureHost
-      widget={widget}
-      data={data as unknown as Record<string, unknown>}
-      tools={tools}
-    />,
+    <TestViewHost tools={tools} client={queryClient}>
+      {createElement(widget, { data })}
+    </TestViewHost>,
   )
 }
 
@@ -147,7 +147,11 @@ describe("the incident detail offers the remedy the engine accepts", () => {
         <IncidentDetailWidget data={{ ...CUSTOM, incidentId: "inc-2" }} />
       </>
     )
-    render(<WidgetFixtureHost widget={Two} data={{}} tools={{}} />)
+    render(
+      <TestViewHost tools={{}} client={queryClient}>
+        <Two />
+      </TestViewHost>,
+    )
     const sections = await screen.findAllByRole("region", { name: "Error message" })
     expect(sections).toHaveLength(2)
     const ids = sections.map((s) => s.getAttribute("aria-labelledby"))
@@ -215,7 +219,7 @@ describe("a result stored before `recovery` existed still renders", () => {
     renderDetail(stored(FAILED_JOB), { [CAMUNDA7_WIDGET_ACTIONS_DATA]: ALL_ACTIONS })
     expect(await screen.findByText("Retry job")).toBeTruthy()
     cleanup()
-    queryClient.clear()
+    queryClient = createTestQueryClient()
     renderDetail(stored(CUSTOM), { [CAMUNDA7_WIDGET_ACTIONS_DATA]: ALL_ACTIONS })
     expect(await screen.findByText("Mark as resolved")).toBeTruthy()
   })
@@ -244,11 +248,9 @@ describe("a result stored before `recovery` existed still renders", () => {
       return <IncidentTable incidents={rows} recovery={recovery} onAnalyze={() => {}} />
     }
     render(
-      <WidgetFixtureHost
-        widget={Rows}
-        data={{}}
-        tools={{ [CAMUNDA7_WIDGET_ACTIONS_DATA]: ALL_ACTIONS }}
-      />,
+      <TestViewHost tools={{ [CAMUNDA7_WIDGET_ACTIONS_DATA]: ALL_ACTIONS }} client={queryClient}>
+        <Rows />
+      </TestViewHost>,
     )
     const buttonsOf = async (message: string) =>
       [...(await screen.findByText(message)).closest("tr")!.querySelectorAll("button")].map(

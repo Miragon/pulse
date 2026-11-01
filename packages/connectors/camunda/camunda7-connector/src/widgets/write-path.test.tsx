@@ -2,7 +2,6 @@
 import { describe, expect, it } from "vitest"
 import type { ComponentType } from "react"
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
-import { WidgetFixtureHost } from "@miragon/mcp-toolkit-ui/app"
 import {
   CAMUNDA7_COCKPIT_OVERVIEW_DATA,
   CAMUNDA7_ENGINE_HEALTH_DATA,
@@ -28,6 +27,7 @@ import {
   withProductionRetries,
   type Calls,
 } from "./write-path.test-support.js"
+import { TestViewHost } from "@miragon/pulse-widget-shell/widgets"
 
 // #341. Current-state gating lives in `write-state.test.tsx`, refresh completeness in `write-refresh.test.tsx`.
 
@@ -215,9 +215,7 @@ describe("the cockpit refreshes and retries instead of dead-ending (N103)", () =
       <CockpitApp data={{ engineId: "prod", engines: [{ id: "prod", environment: "default" }] }} />
     )
     render(
-      <WidgetFixtureHost
-        widget={Cockpit}
-        data={{}}
+      <TestViewHost
         tools={{
           [CAMUNDA7_LIST_ENGINES]: { engines: [{ id: "prod" }], defaultEngineId: null },
           [CAMUNDA7_ENGINE_HEALTH_DATA]: (args: Record<string, unknown>) => {
@@ -238,7 +236,9 @@ describe("the cockpit refreshes and retries instead of dead-ending (N103)", () =
             }
           },
         }}
-      />,
+      >
+        <Cockpit />
+      </TestViewHost>,
     )
     const refresh = await screen.findByRole("button", { name: "Refresh" })
     await waitFor(() => expect(overviewCalls.length).toBeGreaterThan(0))
@@ -277,15 +277,15 @@ describe("a standalone show view refreshes after a write (K46)", () => {
     const calls: Calls = []
     const AFTER_RETRY: JobPanelData = { ...JOBS, totalCount: 0, failedCount: 0, jobs: [] }
     render(
-      <WidgetFixtureHost
-        widget={JobPanelWidget as unknown as ComponentType<Record<string, unknown>>}
-        data={JOBS as unknown as Record<string, unknown>}
+      <TestViewHost
         tools={{
           [CAMUNDA7_WIDGET_ACTIONS_DATA]: adminActions(),
           ...recorder(calls, "camunda7_set_job_retries", () => ({ success: true })),
           ...recorder(calls, CAMUNDA7_JOBS_DATA, () => AFTER_RETRY),
         }}
-      />,
+      >
+        <JobPanelWidget data={JOBS as never} />
+      </TestViewHost>,
     )
     fireEvent.click(await screen.findByRole("button", { name: "Retry job" }))
 

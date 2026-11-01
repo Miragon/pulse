@@ -7,12 +7,13 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
     // LOAD-BEARING — never trim this list. The widget packages each resolve
-    // their own pnpm instance of the toolkit/React/Query libs; bundling two
-    // copies gives each its own React context, `useCallTool()` reads the
-    // wrong one, and every in-widget query hangs on "Loading…". Dedupe
-    // collapses them to a single instance. @miragon/pulse-widget-shell is listed
-    // because it is installed from npm here and carries a React context of
-    // its own.
+    // their own pnpm instance of React, TanStack Query, mcp-use and the
+    // toolkit; bundling two copies gives each its own React context, a
+    // widget's `useViewHost()`/`useToolQuery()` reads the wrong one (no view
+    // host, no QueryClient), and every in-widget query hangs on "Loading…".
+    // Dedupe collapses them to a single instance. @miragon/pulse-widget-shell
+    // is listed because it is installed from npm here and carries the view
+    // runtime's React contexts.
     dedupe: [
       "react",
       "react-dom",

@@ -2,10 +2,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { ComponentType } from "react"
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
-import { queryClient } from "@miragon/mcp-toolkit-ui"
-import { WidgetFixtureHost } from "@miragon/mcp-toolkit-ui/app"
 import { CAMUNDA7_BPMN_XML_DATA } from "../tool-names.js"
 import { BpmnDiagram } from "./bpmn-diagram.js"
+import { TestViewHost, createTestQueryClient } from "@miragon/pulse-widget-shell/widgets"
+
+// One retry-free client per test; the test reads and pokes its cache.
+let queryClient = createTestQueryClient()
 
 /** A view carries only `diagramDefinitionId` (#342); the diagram reads its XML once per (engine, definition). */
 
@@ -29,20 +31,13 @@ vi.mock("bpmn-js/lib/NavigatedViewer", () => ({
   },
 }))
 
-const toolkitDefaults = queryClient.getDefaultOptions()
-
 beforeEach(() => {
   imported.xml.length = 0
-  queryClient.setDefaultOptions({
-    ...toolkitDefaults,
-    queries: { ...toolkitDefaults.queries, retry: false },
-  })
 })
 
 afterEach(() => {
   cleanup()
-  queryClient.clear()
-  queryClient.setDefaultOptions(toolkitDefaults)
+  queryClient = createTestQueryClient()
 })
 
 const DIAGRAM = '<definitions id="d"/>'
@@ -62,7 +57,11 @@ function renderDiagram(feed: (args: Record<string, unknown>) => unknown, copies 
       ))}
     </>
   )
-  render(<WidgetFixtureHost widget={View} data={{}} tools={tools} />)
+  render(
+    <TestViewHost tools={tools} client={queryClient}>
+      <View />
+    </TestViewHost>,
+  )
   return calls
 }
 

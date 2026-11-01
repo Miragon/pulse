@@ -1,22 +1,16 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from "vitest"
-import type { ComponentType } from "react"
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
-import { queryClient } from "@miragon/mcp-toolkit-ui"
-import { WidgetFixtureHost, type HostActionLog } from "@miragon/mcp-toolkit-ui/app"
 import {
-  DisplayModeControlProvider,
-  HostWidgetsProvider,
-  SettingsPageWidget,
-  SHELL_SETTINGS_PAGE_WIDGET,
+  TestViewHost,
+  type HostAction,
+  type HostWidgets,
 } from "@miragon/pulse-widget-shell/widgets"
 import { useNav } from "./navigation.js"
-import { Camunda7StandaloneShell, findStepEngineId } from "./standalone-shell.js"
+import { Camunda7Standalone } from "./standalone.js"
 
 afterEach(() => {
   cleanup()
-  // Singleton client: one test's engines result must not leak into the next.
-  queryClient.clear()
 })
 
 function DrillProbe() {
@@ -37,30 +31,15 @@ function DrillProbe() {
   )
 }
 
-const Harness: ComponentType<Record<string, unknown>> = () => (
-  <Camunda7StandaloneShell>
-    <DrillProbe />
-  </Camunda7StandaloneShell>
-)
-
 const ForeignSection = () => <div>analytics-section</div>
 
 const CustomSection = () => <div>acme-section</div>
 
-// As the host root mounts it, inside the full-registry provider.
-const HarnessWithHostWidgets: ComponentType<Record<string, unknown>> = () => (
-  <HostWidgetsProvider
-    widgets={{
-      [SHELL_SETTINGS_PAGE_WIDGET]: SettingsPageWidget,
-      "analytics:settings": ForeignSection,
-      "acme:settings": CustomSection,
-    }}
-  >
-    <Camunda7StandaloneShell>
-      <DrillProbe />
-    </Camunda7StandaloneShell>
-  </HostWidgetsProvider>
-)
+// As the bundle root mounts it, with every module's settings section.
+const HOST_WIDGETS: HostWidgets = {
+  "analytics:settings": ForeignSection,
+  "acme:settings": CustomSection,
+}
 
 const PROFILE_FEED = {
   profile: {
@@ -90,54 +69,38 @@ const INSTANCES_FEED = {
 
 function renderShell(
   tools: Record<string, unknown>,
-  actions: HostActionLog[],
-  widget: ComponentType<Record<string, unknown>> = Harness,
+  actions: HostAction[],
+  {
+    engineId,
+    hostWidgets,
+    displayMode,
+  }: { engineId?: string; hostWidgets?: HostWidgets; displayMode?: string } = {},
 ) {
   return render(
-    <WidgetFixtureHost
-      widget={widget}
-      data={{}}
+    <TestViewHost
       tools={tools}
       onHostAction={(action) => actions.push(action)}
-    />,
+      hostWidgets={hostWidgets}
+      host={displayMode ? { displayMode, availableDisplayModes: ["inline", "fullscreen"] } : {}}
+    >
+      <Camunda7Standalone engineId={engineId}>
+        <DrillProbe />
+      </Camunda7Standalone>
+    </TestViewHost>,
   )
 }
 
-const followUps = (actions: HostActionLog[]) =>
-  actions.filter((a) => a.type === "sendFollowUpMessage")
+const followUps = (actions: HostAction[]) => actions.filter((a) => a.type === "sendFollowUp")
 
 const originHidden = () => screen.getByText("origin-content").closest("[hidden]") !== null
 
-function harnessWithFullscreen(displayMode: string, requests: string[]) {
-  const control = {
-    displayMode,
-    canFullscreen: true,
-    request: (mode: string) => requests.push(mode),
-  }
-  const Widget: ComponentType<Record<string, unknown>> = () => (
-    <DisplayModeControlProvider control={control}>
-      <Harness />
-    </DisplayModeControlProvider>
-  )
-  return Widget
-}
-
-describe("Camunda7StandaloneShell", () => {
-  // #344 N109: the origin's toolbar is hidden while drilled, so the drill brings its own fullscreen switch.
-  it("offers fullscreen in a drill, and the way back from it", async () => {
-    const requests: string[] = []
-    renderShell({}, [], harnessWithFullscreen("inline", requests))
+describe("Camunda7Standalone", () => {
+  // The view frame's toolbar stays above a drill, so the drill brings no second fullscreen switch.
+  it("offers no fullscreen switch of its own in a drill", async () => {
+    renderShell({}, [], { displayMode: "inline" })
+    fireEvent.click(screen.getByText("drill-settings"))
+    await screen.findByRole("navigation", { name: "Breadcrumb" })
     expect(screen.queryByRole("button", { name: "Fullscreen" })).toBeNull()
-
-    fireEvent.click(screen.getByText("drill-settings"))
-    fireEvent.click(await screen.findByRole("button", { name: "Fullscreen" }))
-    expect(requests).toEqual(["fullscreen"])
-
-    cleanup()
-    renderShell({}, [], harnessWithFullscreen("fullscreen", requests))
-    fireEvent.click(screen.getByText("drill-settings"))
-    fireEvent.click(await screen.findByRole("button", { name: "Exit fullscreen" }))
-    expect(requests).toEqual(["fullscreen", "inline"])
   })
 
   // #344 N107: a drill and a pop move focus to the view shown and name it.
@@ -154,15 +117,8 @@ describe("Camunda7StandaloneShell", () => {
     expect(within(frame).getAllByRole("status")[0]?.textContent).toBe("Start")
   })
 
-  it("offers no fullscreen switch where the host has none", async () => {
-    renderShell({}, [])
-    fireEvent.click(screen.getByText("drill-settings"))
-    await screen.findByRole("navigation", { name: "Breadcrumb" })
-    expect(screen.queryByRole("button", { name: "Fullscreen" })).toBeNull()
-  })
-
-  it("renders the origin untouched at depth 0 — no trail, no chrome", () => {
-    const actions: HostActionLog[] = []
+  it("renders the origin untouched at depth 0, no trail, no chrome", () => {
+    const actions: HostAction[] = []
     renderShell({}, actions)
     expect(originHidden()).toBe(false)
     expect(screen.queryByRole("navigation")).toBeNull()
@@ -170,22 +126,21 @@ describe("Camunda7StandaloneShell", () => {
   })
 
   it("drills client-side without a chat follow-up and keeps the origin mounted", async () => {
-    const actions: HostActionLog[] = []
+    const actions: HostAction[] = []
     renderShell({ camunda7_settings_data: PROFILE_FEED }, actions)
 
     fireEvent.click(screen.getByText("drill-settings"))
 
     const trail = await screen.findByRole("navigation", { name: "Breadcrumb" })
-    // The fixture output carries no title, so the root crumb is the fallback.
     expect(trail.textContent).toContain("Start")
     expect(trail.textContent).toContain("Settings")
     expect(originHidden()).toBe(true)
     expect(followUps(actions)).toHaveLength(0)
   })
 
-  it("resolves a composed view's FOREIGN section widget from the host registry", async () => {
-    const actions: HostActionLog[] = []
-    renderShell({ camunda7_settings_data: PROFILE_FEED }, actions, HarnessWithHostWidgets)
+  it("renders every module's settings section on the drilled settings page", async () => {
+    const actions: HostAction[] = []
+    renderShell({ camunda7_settings_data: PROFILE_FEED }, actions, { hostWidgets: HOST_WIDGETS })
 
     fireEvent.click(screen.getByText("drill-settings"))
 
@@ -194,8 +149,8 @@ describe("Camunda7StandaloneShell", () => {
     expect(await screen.findByText("acme-section")).toBeTruthy()
   })
 
-  it("degrades to own widgets when the host provides no registry", async () => {
-    const actions: HostActionLog[] = []
+  it("renders no foreign section when the bundle has none", async () => {
+    const actions: HostAction[] = []
     renderShell({ camunda7_settings_data: PROFILE_FEED }, actions)
 
     fireEvent.click(screen.getByText("drill-settings"))
@@ -205,7 +160,7 @@ describe("Camunda7StandaloneShell", () => {
   })
 
   it("pops back to the origin via the root crumb", async () => {
-    const actions: HostActionLog[] = []
+    const actions: HostAction[] = []
     renderShell({ camunda7_settings_data: PROFILE_FEED }, actions)
 
     fireEvent.click(screen.getByText("drill-settings"))
@@ -216,8 +171,27 @@ describe("Camunda7StandaloneShell", () => {
     expect(screen.queryByRole("navigation")).toBeNull()
   })
 
-  it("resolves the engine via the engines feed when the tool result carries no echo", async () => {
-    const actions: HostActionLog[] = []
+  it("drills on the engine the view data names", async () => {
+    const actions: HostAction[] = []
+    renderShell({ camunda7_process_instances_data: INSTANCES_FEED }, actions, {
+      engineId: "prod-a",
+    })
+
+    fireEvent.click(screen.getByText("drill-instances"))
+
+    await screen.findByRole("navigation", { name: "Breadcrumb" })
+    await waitFor(() =>
+      expect(actions).toContainEqual({
+        type: "callTool",
+        name: "camunda7_process_instances_data",
+        args: expect.objectContaining({ engine: "prod-a" }) as unknown,
+      }),
+    )
+    expect(followUps(actions)).toHaveLength(0)
+  })
+
+  it("resolves the engine via the engines feed when the view data carries no echo", async () => {
+    const actions: HostAction[] = []
     renderShell(
       {
         camunda7_list_engines: { engines: [{ id: "prod-a" }], defaultEngineId: "prod-a" },
@@ -234,7 +208,7 @@ describe("Camunda7StandaloneShell", () => {
   })
 
   it("keeps the way back available while the engines query never settles", async () => {
-    const actions: HostActionLog[] = []
+    const actions: HostAction[] = []
     renderShell(
       {
         // A hanging call (approval gate, broken transport) must not trap the user on loading.
@@ -254,8 +228,8 @@ describe("Camunda7StandaloneShell", () => {
     expect(originHidden()).toBe(false)
   })
 
-  it("falls back to the conversational transport when no engine is resolvable", async () => {
-    const actions: HostActionLog[] = []
+  it("falls back to a chat follow-up when no engine is resolvable", async () => {
+    const actions: HostAction[] = []
     renderShell(
       {
         // Multi-engine, no default saved: the shell cannot pick one.
@@ -269,29 +243,25 @@ describe("Camunda7StandaloneShell", () => {
     await waitFor(() => expect(followUps(actions)).toHaveLength(1))
     const prompt = (followUps(actions)[0] as { prompt: string }).prompt
     expect(prompt).toContain("camunda7_show_process_instances")
-    // The trail resets — the origin is visible again, exactly like before.
+    // The trail resets: the origin is visible again, exactly like before.
     expect(originHidden()).toBe(false)
     expect(screen.queryByRole("navigation")).toBeNull()
   })
-})
 
-describe("findStepEngineId", () => {
-  it("finds the engine echo in a production-shaped structuredContent", () => {
-    expect(
-      findStepEngineId({
-        layout: [],
-        context: {
-          stepData: {
-            result: { _dataType: "camunda7:processList", data: { engineId: "prod-a" } },
-          },
+  it("falls back to the chat when the engines feed fails", async () => {
+    const actions: HostAction[] = []
+    renderShell(
+      {
+        camunda7_list_engines: () => {
+          throw new Error("Tool camunda7_list_engines not found")
         },
-      }),
-    ).toBe("prod-a")
-  })
+      },
+      actions,
+    )
 
-  it("returns undefined for results without an echo", () => {
-    expect(findStepEngineId(null)).toBeUndefined()
-    expect(findStepEngineId({ context: { stepData: { s: { data: {} } } } })).toBeUndefined()
-    expect(findStepEngineId({ context: {} })).toBeUndefined()
+    fireEvent.click(screen.getByText("drill-instances"))
+
+    await waitFor(() => expect(followUps(actions)).toHaveLength(1))
+    expect(originHidden()).toBe(false)
   })
 })

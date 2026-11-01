@@ -83,7 +83,7 @@ describe("the shell's settings triple", () => {
     })
   })
 
-  it("renders the page, titled and summarized in the profile's language", async () => {
+  it("renders the page with its data, summarized in the profile's language", async () => {
     const { handler, store } = register(true)
     await store.save("user-1", { language: "de" })
 
@@ -92,14 +92,22 @@ describe("the shell's settings triple", () => {
     expect(result.content[0]?.text).toBe(
       "Einstellungen: Sprache der Oberfläche Deutsch, danach der Abschnitt jedes Moduls. Du kannst sie auf der Seite ändern oder den Chat darum bitten.",
     )
-    expect(JSON.stringify(result.structuredContent)).toContain('"shell:settings-page"')
-    expect(result.structuredContent?.title).toBe("Einstellungen")
+    // The view IS its data: no envelope, no server title (the page names itself).
+    expect(result.structuredContent).toEqual({
+      language: "de",
+      canSave: true,
+      readOnlyReason: null,
+    })
   })
 
-  it("sets no title over the page while the profile follows the chat app", async () => {
+  it("summarizes in English while the profile follows the chat app", async () => {
     const { handler } = register(false)
     const result = await handler(SHELL_SHOW_SETTINGS)({}, CTX)
-    expect(result.structuredContent?.title).toBeUndefined()
+    expect(result.structuredContent).toEqual({
+      language: "system",
+      canSave: false,
+      readOnlyReason: "readOnly",
+    })
     expect(result.content[0]?.text).toBe(
       "Settings page: UI language automatic (follows the chat app), then each module's settings section. Settings can't be saved on this server.",
     )

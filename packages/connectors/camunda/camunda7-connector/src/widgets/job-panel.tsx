@@ -1,4 +1,3 @@
-import { HostModelContext } from "@miragon/mcp-toolkit-ui/app"
 import {
   Button,
   CountPill,
@@ -25,6 +24,7 @@ import {
   usePagedViewData,
   ViewDataState,
   WidgetShell,
+  HostModelContext,
 } from "@miragon/pulse-widget-shell/widgets"
 import { Check } from "lucide-react"
 import { CAMUNDA7_JOBS_DATA } from "../tool-names.js"
@@ -281,8 +281,8 @@ export function JobPanelWidget({
     key: ["camunda7:jobs", feedEngine ?? null, effectiveFailedOnly ?? null],
     tool: CAMUNDA7_JOBS_DATA,
     args,
-    // Always ready: resolveEngine falls back to the saved/single engine; gating on `!!engine` would
-    // leave a composed render without props stuck on "No data available".
+    // Always ready: resolveEngine falls back to the saved/single engine, so a render without an
+    // engine still reads the feed instead of waiting for one.
     ready: true,
     selectItems: (d) => d.jobs,
     selectTotal: (d) => d.totalCount,
@@ -323,8 +323,8 @@ export function JobPanelWidget({
 
   return (
     <WidgetShell>
-      {/* Rendered in-component (not via the adapter's describeForModel) because
-          this widget self-fetches in the cockpit, where the adapter has no data. */}
+      {/* Described from what is on screen: in the cockpit the widget self-fetches,
+          so only it knows the data. */}
       <HostModelContext content={context(describeJobPanel(data, engineId, jobs.length))}>
         {null}
       </HostModelContext>

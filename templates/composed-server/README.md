@@ -123,7 +123,7 @@ silent (a widget rendering empty, unstyled, or not at all).
 | -------------------- | ---------------------------------------------------------------------------------------- |
 | `server/`            | The composition root: module list (`src/setup.ts`), widget bundle (`src/ui/`), boot code |
 | `server/test/`       | Guard tests: keep them, they cover your modules too                                      |
-| `modules/mcp-notes/` | Example module: tools, an interactive widget, and its module test                        |
+| `modules/mcp-notes/` | Example module: tools, an interactive widget, its module test and its widget test        |
 
 ## Adding your own module
 
@@ -133,7 +133,7 @@ cp -R modules/mcp-notes modules/mcp-<name>
 
 Rename `notes` to your module name, put your API/SDK access behind the store
 interface, and wire the module into the server: the `workspace:*` dependency
-in `server/package.json`, the module list and the widget registry. The
+in `server/package.json`, the module list and the view registry. The
 `create-module` skill walks through every step, and the guard tests fail
 loudly if a wiring step is missed.
 

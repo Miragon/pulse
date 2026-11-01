@@ -61,28 +61,59 @@ export { Icon, type LucideIcon } from "./icon.js"
 export { RowCard } from "./row-card.js"
 export { NativeSelect } from "./native-select.js"
 export { SettingsCard, SettingsField, SettingsInput } from "./settings.js"
-export { HostWidgetsProvider, useHostWidgets } from "./host-widgets.js"
 export {
-  SettingsPageWidget,
-  ShellSettingsWidget,
+  HostWidgetSlot,
+  HostWidgetsProvider,
+  settingsSections,
+  useHostWidget,
+  useHostWidgets,
+  type HostWidget,
+  type HostWidgets,
+} from "./host-widgets.js"
+export {
+  SettingsPage,
   SHELL_SETTINGS_KEY,
   describeShellSettings,
+  shellViews,
 } from "./shell-settings.js"
-export { settingsLayout, filterLayoutToWidgets } from "./settings-layout.js"
-export { shellWidgets } from "./shell-widgets.js"
 export {
   SHELL_SAVE_SETTINGS,
   SHELL_SETTINGS_DATA,
-  SHELL_SETTINGS_PAGE_WIDGET,
-  SHELL_SETTINGS_WIDGET,
   SHELL_SHOW_SETTINGS,
   type ShellSettingsReadOnlyReason,
   type ShellSettingsView,
 } from "../shell-settings-contract.js"
 export { ProfileGate, type ProfileGateProps } from "./profile-gate.js"
-export { LocalizedAppView } from "./localized-app-view.js"
-export { AppShellProviders, type AppShellProvidersProps } from "./app-shell-providers.js"
-export { ShellHostProvider, ViewHostBridge, useShellHost, type ShellHost } from "./shell-host.js"
+export { ShellHostProvider, useShellHost, type ShellHost } from "./shell-host.js"
+// The view runtime: the bundle root, the host seam, the data layer and the test host.
+export {
+  mountView,
+  mountViews,
+  type MountViewOptions,
+  type MountViewsOptions,
+} from "./view-root.js"
+export { ViewStack, type ViewComponent, type ViewMap, type ViewProps } from "./views.js"
+export { ViewErrorBoundary } from "./view-error-boundary.js"
+export { HostModelContext, useViewHost, type ViewHost } from "./view-host.js"
+export {
+  createViewQueryClient,
+  useQueryClient,
+  useToolMutation,
+  useToolQuery,
+  useViewData,
+  type QueryClient,
+  type ToolMutationOptions,
+  type ToolQueryOptions,
+  type ViewDataOptions,
+  type ViewDataResult,
+} from "./tool-query.js"
+export { decodeToolResult, type ToolResult } from "../tool-result.js"
+export {
+  createTestQueryClient,
+  TestViewHost,
+  type HostAction,
+  type TestViewHostProps,
+} from "./test-view-host.js"
 export { HostDocument } from "./host-document.js"
 export { declareServedFonts, SERVED_FONTS_STYLE_ID } from "./declare-served-fonts.js"
 export { SERVED_FONT_FILES, SERVED_FONT_PATH, servedFontBaseUrl } from "../served-fonts.js"

@@ -1,11 +1,4 @@
-import {
-  Badge,
-  KpiGrid,
-  SectionHeading,
-  StatusBadge,
-  useToolQuery,
-  type KpiCell,
-} from "@miragon/mcp-toolkit-ui"
+import { Badge, KpiGrid, SectionHeading, StatusBadge, type KpiCell } from "@miragon/mcp-toolkit-ui"
 import { Info } from "lucide-react"
 import {
   HandOffButton,
@@ -20,6 +13,7 @@ import {
   formatNumber,
   type ListTableColumn,
   type ListTableGroup,
+  useToolQuery,
 } from "@miragon/pulse-widget-shell/widgets"
 import type { EngineLandscapeEngine, EngineLandscapeResult } from "@miragon/pulse-analytics-client"
 import { ANALYTICS_ENGINE_LANDSCAPE_DATA } from "../tool-names.js"
@@ -33,7 +27,7 @@ import { Figure, FigureLegend, Legend, StateCount } from "./figure.js"
 export type EngineLandscapeView = Named<EngineLandscapeResult>
 export type EngineLandscapeData = EngineLandscapeView | null
 
-/** Engine ids from the layout cell props (`engine` may be a string or a list). */
+/** Engine ids from the `engine` prop (a string or a list; the fleet view passes every engine). */
 function engineIdsFromProps(engine: string | string[] | undefined): string[] {
   if (typeof engine === "string") return engine.length > 0 ? [engine] : []
   if (Array.isArray(engine)) return engine.filter((id) => typeof id === "string" && id.length > 0)

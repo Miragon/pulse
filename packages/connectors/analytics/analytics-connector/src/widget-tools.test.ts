@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { parseToolResult } from "@miragon/mcp-toolkit-ui"
+import { decodeToolResult, type ToolResult } from "@miragon/pulse-widget-shell/server"
 import type { MCPServer } from "mcp-use"
 import type { PrometheusClient } from "@miragon/pulse-analytics-client"
 import { registerWidgetTools } from "./widget-tools.js"
@@ -8,10 +8,11 @@ import type { ProfileSource } from "./server-locale.js"
 import type { FetchBpmnXml, NameRequest } from "./bpmn-name-lookup.js"
 
 /** Feeds answer in JSON text only. */
-const feedData = <T = Record<string, unknown>>(result: unknown): T => parseToolResult<T>(result)
+const feedData = <T = Record<string, unknown>>(result: unknown): T =>
+  decodeToolResult<T>(result as ToolResult)
 
-type Cell = { widget: string; props?: Record<string, unknown> }
-type ShowResult = { structuredContent: { layout: Array<{ row: Cell[] }> } }
+/** A show tool's structuredContent IS the view's data. */
+type ShowResult = { structuredContent: Record<string, unknown> }
 type Handler = (args: Record<string, unknown>, ctx: unknown) => Promise<ShowResult>
 
 function handlers(ch: PrometheusClient): Map<string, Handler> {
@@ -38,11 +39,9 @@ function recordingClient(): { client: PrometheusClient; queries: string[] } {
   }
 }
 
-const cells = (result: ShowResult) => result.structuredContent.layout.flatMap((r) => r.row)
-
-// Without the scope, the cells' hand-offs would send the model to every engine.
+// Without the scope, the widgets' hand-offs would send the model to every engine.
 describe("analytics_show_failure_dashboard engine scope", () => {
-  it("queries the engine and hands it to every cell", async () => {
+  it("queries the engine and names it in the view data", async () => {
     const { client, queries } = recordingClient()
     const show = handlers(client).get("analytics_show_failure_dashboard")!
     const result = await show({ engine: "prod-b" }, {})
@@ -50,25 +49,21 @@ describe("analytics_show_failure_dashboard engine scope", () => {
     expect(queries.length).toBeGreaterThan(0)
     for (const query of queries) expect(query).toContain('engine_id="prod-b"')
     // model-descriptions.test.ts pins the `engine` id the hand-offs then carry.
-    expect(cells(result)).toEqual([
-      { widget: "analytics:failure-summary-kpi", props: { engine: "prod-b" } },
-      { widget: "analytics:error-patterns-table", props: { engine: "prod-b" } },
-      { widget: "analytics:failure-rate-table", props: { engine: "prod-b" } },
-    ])
+    expect(result.structuredContent.engines).toEqual(["prod-b"])
   })
 
   // The aggregate is the CONFIGURED fleet (#336), never the whole Prometheus.
-  it("reads the configured fleet for the aggregate and leaves the cells unscoped", async () => {
+  it("reads the configured fleet for the aggregate and names it in the view data", async () => {
     const { client, queries } = recordingClient()
     const result = await handlers(client).get("analytics_show_failure_dashboard")!({}, {})
 
     expect(queries.length).toBeGreaterThan(0)
     for (const query of queries) expect(query).toContain('engine_id=~"prod-a|prod-b"')
-    expect(cells(result).every((cell) => cell.props === undefined)).toBe(true)
+    expect(result.structuredContent.engines).toEqual(["prod-a", "prod-b"])
   })
 })
 
-describe("view titles (U3) and the heatmap's as-of stamp (U7)", () => {
+describe("no server titles (U3) and the heatmap's as-of stamp (U7)", () => {
   const CTX = { auth: { user: { id: "user-1" } } }
   function localizedHandlers(language: string): Map<string, Handler> {
     const byName = new Map<string, Handler>()
@@ -89,26 +84,24 @@ describe("view titles (U3) and the heatmap's as-of stamp (U7)", () => {
     ["analytics_show_failure_dashboard", {}],
     ["analytics_show_bpmn_heatmap", { processDefinitionKey: "order" }],
   ]
-  const titles = async (language: string) => {
-    const tools = localizedHandlers(language)
-    const results = await Promise.all(SHOWS.map(([name, args]) => tools.get(name)!(args, CTX)))
-    return results.map((r) => (r.structuredContent as unknown as { title?: string }).title)
-  }
-
-  it("titles each view in the caller's language, like the widget heading", async () => {
-    expect(await titles("de")).toEqual(["Prozessanalyse", "Fehleranalyse", "BPMN-Heatmap"])
-    expect(await titles("en")).toEqual(["Process analytics", "Failure analysis", "BPMN heatmap"])
+  it("hands the view its data only: the widget heading names it in the host's language", async () => {
+    for (const language of ["de", "en"]) {
+      const tools = localizedHandlers(language)
+      for (const [name, args] of SHOWS) {
+        const { structuredContent } = await tools.get(name)!(args, CTX)
+        expect(Object.keys(structuredContent)).not.toContain("title")
+        expect(Object.keys(structuredContent)).not.toContain("layout")
+      }
+    }
   })
 
   it("stamps the heatmap with the time its values were read, in the view and the feed", async () => {
     const tools = localizedHandlers("en")
     const args = { processDefinitionKey: "order" }
-    const show = (await tools.get("analytics_show_bpmn_heatmap")!(args, CTX)) as unknown as {
-      structuredContent: { context: { stepData: { result: { data: { asOf?: string } } } } }
-    }
+    const show = await tools.get("analytics_show_bpmn_heatmap")!(args, CTX)
     const feed = await tools.get("analytics_bpmn_heatmap_data")!(args, CTX)
     const iso = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/
-    expect(show.structuredContent.context.stepData.result.data.asOf).toMatch(iso)
+    expect(show.structuredContent.asOf).toMatch(iso)
     expect(feedData<{ asOf?: string }>(feed).asOf).toMatch(iso)
   })
 })
@@ -130,14 +123,12 @@ describe("the heatmap's missing-diagram cause", () => {
       fetchBpmnXml,
     })
     const args = { processDefinitionKey: "order" }
-    const show = (await byName.get("analytics_show_bpmn_heatmap")!(args, {})) as unknown as {
-      structuredContent: { context: { stepData: { result: { data: Diagram } } } }
-    }
+    const show = await byName.get("analytics_show_bpmn_heatmap")!(args, {})
     const heat = feedData<Diagram>(await byName.get("analytics_bpmn_heatmap_data")!(args, {}))
     const diagram = feedData<Diagram>(await byName.get("analytics_bpmn_xml_data")!(args, {}))
     const fields = ({ bpmnXml, bpmnMissing }: Diagram) => ({ bpmnXml, bpmnMissing })
     return {
-      show: fields(show.structuredContent.context.stepData.result.data),
+      show: fields(show.structuredContent),
       heat: fields(heat),
       diagram: fields(diagram),
     }
@@ -238,15 +229,9 @@ describe("the names behind the ids", () => {
     return { content: feedData(result), calls }
   }
 
-  const payloadOf = (content: Record<string, unknown>) =>
-    ((content.context as { stepData?: { result?: { data?: unknown } } } | undefined)?.stepData
-      ?.result?.data ?? content) as Record<string, unknown>
-
   it.each([
     "analytics_show_dashboard",
-    "analytics_dashboard_data",
     "analytics_show_failure_dashboard",
-    "analytics_failure_dashboard_data",
     "analytics_show_engine_landscape",
     "analytics_engine_landscape_data",
   ])("%s carries the names", async (name) => {
@@ -257,23 +242,23 @@ describe("the names behind the ids", () => {
   })
 
   it("asks for the elements of the activity breakdown only", async () => {
-    const { calls } = await run("analytics_dashboard_data")
+    const { calls } = await run("analytics_show_dashboard")
     expect(calls[0][1]?.elementIds).toEqual({ order: ["Task_A"] })
-    const failures = await run("analytics_failure_dashboard_data")
+    const failures = await run("analytics_show_failure_dashboard")
     expect(failures.calls[0][1]?.elementIds).toEqual({ order: [] })
   })
 
   // A process that runs only on a later engine is named too.
   it("reads the models on the engines the rows come from", async () => {
-    const failures = await run("analytics_failure_dashboard_data")
+    const failures = await run("analytics_show_failure_dashboard")
     expect(failures.calls[0][1]?.engines).toEqual(["prod-a"])
     const landscape = await run("analytics_engine_landscape_data")
     expect(landscape.calls[0][1]?.enginesByKey).toEqual({ order: ["prod-a"] })
   })
 
   it("judges the dashboard's rate against the caller's saved comparison floor", async () => {
-    const { content } = await run("analytics_dashboard_data")
+    const { content } = await run("analytics_show_dashboard")
     // 4 starts in each window, the saved floor 3: a change of the rate is judged.
-    expect(payloadOf(content).previous).toMatchObject({ totalCount: 4, suppressed: false })
+    expect(content.previous).toMatchObject({ totalCount: 4, suppressed: false })
   })
 })

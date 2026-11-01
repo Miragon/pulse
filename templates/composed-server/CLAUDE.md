@@ -42,7 +42,7 @@ external infrastructure.
    the module's `name` and one `register(server)` that registers all its
    tools; the boot refuses a tool name two plugins register and names both.
    Wiring a module touches the server in two places (`MODULES` in `setup.ts`,
-   the spread in `ui/widget-registry.ts`) plus the `workspace:*` dependency;
+   the spread in `ui/view-registry.ts`) plus the `workspace:*` dependency;
    the `create-module` skill walks through all of them. Tailwind scans
    workspace modules via the `modules/*/src` glob in `ui/globals.css`; only
    npm-installed module packages need their own `@source` line.
@@ -50,7 +50,7 @@ external infrastructure.
    the raw path is reserved for widget tools (`widget-tools.ts`). Three render
    paths: registrar tools (JSON for the model), `*_show_*` widget tools
    (widget for the user + summary for the model), app-only `*_data` feeds
-   (JSON for in-widget self-fetch). The `_show_`/`_data` **naming is
+   (JSON the widget re-reads or fetches in place). The `_show_`/`_data` **naming is
    load-bearing**: `server/test/widget-contract.e2e.test.ts` asserts the widget
    `_meta` contract by name across ALL composed modules, including yours.
    All three take **strict input** (the registrar with `{ strictInput: true }`,
@@ -59,17 +59,26 @@ external infrastructure.
    the valid keys, never a silently dropped filter
    (`server/test/strict-input.e2e.test.ts` probes every tool of every module
    on every toolset it declares).
-3. **Widgets hang off a three-link chain**: the show tool names the widget by
-   id (`widget: "<module>:<id>"`, a string literal), the module's component
-   map (`src/widgets/index.ts`) renders that id, and the server's
-   `ui/widget-registry.ts` spreads the map; `tool-names.ts` keeps the tool
-   names widget code calls rename-safe. A missed link is a SILENTLY absent
-   widget. `server/test/widget-registry.test.ts` reads every id from the
-   sources of the modules the server depends on and fails on one the
-   registry cannot render.
+3. **A view hangs off three links**: the show tool returns its view's data
+   (`buildViewResult(data, summary)`), the module's view map
+   (`src/widgets/index.ts`) renders it under the show tool's NAME, and the
+   server's `ui/view-registry.ts` spreads the map; `tool-names.ts` keeps the
+   tool names rename-safe. A missed link is a SILENTLY absent view.
+   `server/test/view-registry.test.ts` boots the real composition and fails
+   on a view-bound tool without a view, and on a view no tool opens.
 4. **`resolve.dedupe` in `server/vite.config.ts` is load-bearing: never trim
    it.** Without it every in-widget query hangs on "Loading…" (duplicate React
    contexts).
+   **Widgets reach the host only through widget-shell's view runtime**:
+   `useViewHost()` (`callTool`, `sendFollowUp`, `openExternal`),
+   `HostModelContext` and the query hooks (`useViewData`, `useToolQuery`,
+   `useToolMutation`, `useQueryClient`), all from
+   `@miragon/pulse-widget-shell/widgets`. Never import `mcp-use/react` in a
+   widget: its hooks throw outside the bundle root (`mountViews`), so the
+   widget would only render inside a host. That seam is what makes a widget
+   testable without one: render it under `TestViewHost` (fake tools, a log of
+   host actions and model contexts), as
+   `modules/mcp-notes/src/widgets/notes-list.test.tsx` does.
 5. **Exact version pins** (`save-exact` in `.npmrc`) for `dependencies`/
    `devDependencies`: upgrade all `@miragon/pulse-*` packages together to one
    version. The consumer-shared libraries are ranged `peerDependencies`
@@ -136,7 +145,7 @@ the Tailwind scan in one shot.
 
 - `modules/mcp-notes/`: the example custom module showing the full house
   pattern (module definition, registrar tool, widget tool + data feed, widget,
-  module test). Copy it; don't invent a new shape.
+  module test, widget test under `TestViewHost`). Copy it; don't invent a new shape.
 - The published Pulse modules ship their **sources**: read
   `node_modules/@miragon/pulse-camunda7-connector/src/` and
   `node_modules/@miragon/pulse-analytics-connector/src/` for the reference

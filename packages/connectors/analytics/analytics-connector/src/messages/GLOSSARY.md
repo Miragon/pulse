@@ -83,6 +83,5 @@ Das Glossar von camunda7 führt dieselbe Tabelle.
   belastbar“.
 - Unter jedem Titel steht der Bezugsrahmen: Zeitraum, Engines (und wie viele davon ohne
   Metriken), Stand.
-- Ein Show-Tool setzt den Titel seiner Ansicht nur in einer Sprache, die das Profil nennt
-  (`localizeViewFor`); mit „system“ setzt es keinen, und die Überschrift des Widgets nennt die
-  Ansicht in der Sprache des Hosts. Das gilt für die Show-Tools jedes Moduls.
+- Der Server setzt keinen Titel über eine Ansicht: die Überschrift des Widgets nennt sie in
+  der Sprache des Hosts. Das gilt für die Show-Tools jedes Moduls.

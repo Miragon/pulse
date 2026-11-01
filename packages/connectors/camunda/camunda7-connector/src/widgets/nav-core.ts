@@ -1,6 +1,5 @@
 import { truncate } from "@miragon/pulse-widget-shell/widgets"
 import { translator } from "../messages/index.js"
-import type { ViewParams } from "./cockpit-app/views.js"
 import type { NavIntent } from "./navigation.js"
 
 /** Client-side view state shared by the cockpit app and the standalone shell; pure, host policy stays with the host. */
@@ -138,19 +137,6 @@ export function crumbLabel(view: CockpitView, locale: string): string {
         : tr("cockpit.crumb.incident", { id: truncate(view.incidentId, 8) })
     case "cluster-detail":
       return view.label ?? tr("cockpit.crumb.cluster", { activity: view.activityId })
-  }
-}
-
-export function buildViewParams(view: CockpitView, engine: string): ViewParams {
-  return {
-    engine,
-    processDefinitionKey: "processDefinitionKey" in view ? view.processDefinitionKey : undefined,
-    processInstanceId: "processInstanceId" in view ? view.processInstanceId : undefined,
-    incidentId: "incidentId" in view ? view.incidentId : undefined,
-    activityId: "activityId" in view ? view.activityId : undefined,
-    incidentType: "incidentType" in view ? view.incidentType : undefined,
-    messageSignature: "messageSignature" in view ? view.messageSignature : undefined,
-    focus: "focus" in view ? view.focus : undefined,
   }
 }
 

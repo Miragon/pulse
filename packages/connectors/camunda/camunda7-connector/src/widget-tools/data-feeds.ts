@@ -20,11 +20,9 @@ import {
   buildProcessIncidentsData,
 } from "../data/process-incidents-data.js"
 import { buildIncidentDetailData } from "../data/incident-detail-data.js"
-import { buildBpmnViewerData } from "../data/bpmn-viewer-data.js"
 import { fetchDefinitionXml } from "../data/definition-info.js"
 import {
   CAMUNDA7_ACTIVITY_INCIDENTS_DATA,
-  CAMUNDA7_BPMN_VIEWER_DATA,
   CAMUNDA7_BPMN_XML_DATA,
   CAMUNDA7_CLUSTER_DETAIL_DATA,
   CAMUNDA7_COCKPIT_OVERVIEW_DATA,
@@ -115,19 +113,6 @@ export function registerWidgetDataFeeds(ctx: WidgetToolsContext) {
       "Internal JSON feed (no UI) for a definition's running instances. Prefer camunda7_show_process_instances.",
     shape: { ...processInstancesFilterShape, ...instanceSearchShape, ...pagingShape },
     read: (filters, { client, engineId }) => buildProcessInstancesData(client, engineId, filters),
-  })
-
-  registerDataFeed({
-    name: CAMUNDA7_BPMN_VIEWER_DATA,
-    title: "BPMN viewer data (internal)",
-    description:
-      "Internal JSON feed (no UI) for the BPMN viewer — diagram XML plus live overlays. Prefer camunda7_show_bpmn_viewer.",
-    shape: {
-      processInstanceId: z.string().optional().describe("Instance to overlay live state for."),
-      processDefinitionKey: z.string().optional().describe("Definition for a version's diagram."),
-      version: z.number().int().positive().optional(),
-    },
-    read: (target, { client, engineId }) => buildBpmnViewerData(client, engineId, target),
   })
 
   registerDataFeed({

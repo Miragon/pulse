@@ -1,7 +1,6 @@
-import { HostModelContext } from "@miragon/mcp-toolkit-ui/app"
-
 import type { InstanceDetailData } from "../../view-models.js"
 import { useHandOff, type ViewContext } from "../lib/hand-off.js"
+import { HostModelContext } from "@miragon/pulse-widget-shell/widgets"
 
 /** `unconfirmed`: the instance may have ended since the shown read. */
 type InstanceState = "cancelled" | "ended" | "unconfirmed" | "suspended" | "running"

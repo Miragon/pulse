@@ -1,13 +1,15 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react"
-import { queryClient, useLocale } from "@miragon/mcp-toolkit-ui"
-import { HostBridgeProvider, type HostBridge } from "@miragon/mcp-toolkit-ui/app"
+import { useLocale } from "@miragon/mcp-toolkit-ui"
+import type { ToolResult } from "../tool-result.js"
 import { SHELL_SETTINGS_DATA } from "../shell-settings-contract.js"
 import { ProfileGate } from "./profile-gate.js"
 import { SHELL_SETTINGS_KEY } from "./shell-settings.js"
 import { formatTimestamp, setFormatLocale } from "./format.js"
-import { ShellHostProvider, type ShellHost } from "./shell-host.js"
+import type { ShellHost } from "./shell-host.js"
+import { TestViewHost } from "./test-view-host.js"
+import { createViewQueryClient, type QueryClient } from "./tool-query.js"
 
 const FEED = SHELL_SETTINGS_DATA
 const ISO = "2026-07-22T22:15:30.000Z"
@@ -19,40 +21,38 @@ function feedResult(view: { language?: string; theme?: string }) {
   }
 }
 
-function bridgeWith(callTool: HostBridge["callTool"]): HostBridge {
-  return {
-    callTool,
-    sendFollowup: vi.fn(),
-    openExternal: vi.fn(),
-    getWidgetData: () => null,
-  }
-}
+/** The host's tool transport, as the view host calls it. */
+type CallTool = (name: string, args: Record<string, unknown>) => Promise<ToolResult>
 
 /** The locale the tree reads AND the date the shared formatter renders, in one line. */
 function LocaleProbe() {
   return <p data-testid="locale">{`${useLocale()}|${formatTimestamp(ISO)}`}</p>
 }
 
-const NO_HOST: ShellHost = { connected: true, displayMode: "inline", availableDisplayModes: [] }
-
 interface GateOptions {
   host?: Partial<ShellHost>
   waitMs?: number
 }
 
-function gateTree(callTool: HostBridge["callTool"], options: GateOptions = {}) {
+/** The view's PRODUCTION client (retries included), one per render, as `ViewRoot` creates it. */
+let client: QueryClient = createViewQueryClient()
+
+function gateTree(callTool: CallTool, options: GateOptions = {}) {
   return (
-    <ShellHostProvider host={{ ...NO_HOST, ...options.host }}>
-      <HostBridgeProvider bridge={bridgeWith(callTool)}>
-        <ProfileGate profileWaitMs={options.waitMs}>
-          <LocaleProbe />
-        </ProfileGate>
-      </HostBridgeProvider>
-    </ShellHostProvider>
+    <TestViewHost
+      client={client}
+      host={options.host}
+      tools={{ [FEED]: (args: Record<string, unknown>) => callTool(FEED, args) }}
+    >
+      <ProfileGate profileWaitMs={options.waitMs}>
+        <LocaleProbe />
+      </ProfileGate>
+    </TestViewHost>
   )
 }
 
-function renderGate(callTool: HostBridge["callTool"], options: GateOptions = {}) {
+function renderGate(callTool: CallTool, options: GateOptions = {}) {
+  client = createViewQueryClient()
   return render(gateTree(callTool, options))
 }
 
@@ -78,14 +78,14 @@ function stubOsPreference(dark: boolean) {
 
 const isDark = () => document.documentElement.classList.contains("dark")
 
-const gateQueryStatus = () => queryClient.getQueryState([...SHELL_SETTINGS_KEY, {}])?.status
+const gateQueryStatus = () => client.getQueryState([...SHELL_SETTINGS_KEY, {}])?.status
 
 afterEach(async () => {
   cleanup()
   vi.useRealTimers()
-  // The query client is a module singleton on PRODUCTION defaults; cancel stops pending retries.
-  await queryClient.cancelQueries()
-  queryClient.clear()
+  // PRODUCTION defaults: cancelling stops pending retries.
+  await client.cancelQueries()
+  client.clear()
   setFormatLocale(undefined)
   const root = document.documentElement
   root.className = ""
@@ -183,7 +183,6 @@ describe("ProfileGate", () => {
     expect(document.documentElement.lang).toBe("de")
 
     cleanup()
-    queryClient.clear()
     renderGate(vi.fn().mockResolvedValue(feedResult({ language: "system" })), {
       host: { locale: "fr-FR" },
     })
@@ -218,7 +217,6 @@ describe("ProfileGate", () => {
     expect(isDark()).toBe(false)
 
     cleanup()
-    queryClient.clear()
     stubOsPreference(false)
     renderGate(vi.fn().mockResolvedValue(feedResult({ theme: "light" })), {
       host: { theme: "dark" },
@@ -275,7 +273,7 @@ describe("ProfileGate", () => {
 
     // What the shell's language section does after shell_save_settings.
     await act(async () => {
-      await queryClient.invalidateQueries({ queryKey: [...SHELL_SETTINGS_KEY] })
+      await client.invalidateQueries({ queryKey: [...SHELL_SETTINGS_KEY] })
     })
 
     await waitFor(() => expect(probe()).toBe(probeFor("de")))
@@ -291,7 +289,7 @@ describe("ProfileGate", () => {
 
     await waitFor(() => expect(probe()).toBe(probeFor("de")))
     expect(callTool).toHaveBeenCalledWith(SHELL_SETTINGS_DATA, {})
-    const keys = queryClient
+    const keys = client
       .getQueryCache()
       .getAll()
       .map((q) => q.queryKey[0])

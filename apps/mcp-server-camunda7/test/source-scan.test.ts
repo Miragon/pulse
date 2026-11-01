@@ -222,10 +222,8 @@ describe("the guards' scan scopes", () => {
   it("hand-off-surface: the widget rules read the MCP side, the prose check every app", () => {
     expect(scanCalls("hand-off-surface.test.ts")).toEqual([
       ["findIdentifiers", "mcp"],
-      ["findIdentifiers", "mcp"],
       ["findModelContextContents", "mcp"],
       ["findContextFunctions", "mcp"],
-      ["findDescribeForModelArgs", "mcp"],
       ["findHandOffSpecs", "mcp"],
       ["findProseToolNames", "all"],
     ])

@@ -1,5 +1,3 @@
-import { adaptDataWidget } from "@miragon/pulse-widget-shell/ui"
-import type { WidgetComponent } from "@miragon/mcp-toolkit-ui/app"
 import type {
   IncidentsDashboardData,
   ProcessIncidentsData,
@@ -12,13 +10,12 @@ import type { HistoryTimelineData } from "./history-timeline.js"
 import type { InstanceDetailData } from "./instance-detail.js"
 import type { JobPanelData } from "./job-panel.js"
 import type { ProcessInstancesData } from "./process-instances/list.js"
-import { camunda7BaseWidgets } from "./registry.js"
-import { CockpitApp } from "./cockpit-app/app.js"
+import { ENGINE_LANDSCAPE_WIDGET } from "./cockpit-app/fleet-view.js"
 
-export { Camunda7StandaloneShell } from "./standalone-shell.js"
+export { camunda7HostWidgets, camunda7Views } from "./views.js"
 
-// Exported so a composition root can assert the settings tab renders the shell's page (the app's `widget-registry.test.ts`).
-export { cockpitViews } from "./cockpit-app/views.js"
+/** Other modules' host widgets camunda7 renders by raw id; a composition root checks each exists. */
+export const CAMUNDA7_HOST_WIDGET_REFS = [ENGINE_LANDSCAPE_WIDGET] as const
 
 export type {
   ProcessListData,
@@ -31,10 +28,4 @@ export type {
   BpmnViewerData,
   JobPanelData,
   ProcessInstancesData,
-}
-
-// The cockpit app is added only here to avoid an import cycle with the base map it renders.
-export const camunda7Widgets: Record<string, WidgetComponent> = {
-  ...camunda7BaseWidgets,
-  "camunda7:cockpit-app": adaptDataWidget(CockpitApp, "camunda7:cockpitApp"),
 }

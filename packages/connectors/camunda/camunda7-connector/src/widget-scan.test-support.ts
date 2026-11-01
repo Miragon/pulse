@@ -21,19 +21,14 @@ export interface ToolReference {
 
 export interface WidgetScan {
   references: ToolReference[]
-  /** Files importing the toolkit's raw `useToolMutation`. */
+  /** Files importing the view runtime's raw `useToolMutation`. */
   mutationImports: string[]
   /** Files calling the deployment gate directly. */
   canRunCalls: string[]
-  /** Files obtaining a raw tool caller (`useCallTool()`, `useHostBridge()` …). */
+  /** Files obtaining the view host (`useViewHost()`), which holds a raw `callTool`. */
   callerHolders: Set<string>
   /** The first segment of every query key a read site uses. */
   keyRoots: Set<string>
-  /**
-   * Every direct `useViewData(…)` read, and whether it seeds its query with the
-   * handed-in data (`{ initialDataMode: "seed" }` written as a literal option).
-   */
-  viewDataReads: { file: string; line: number; seeded: boolean }[]
 }
 
 function emptyScan(): WidgetScan {
@@ -43,30 +38,7 @@ function emptyScan(): WidgetScan {
     canRunCalls: [],
     callerHolders: new Set(),
     keyRoots: new Set(),
-    viewDataReads: [],
   }
-}
-
-/** Which positional argument of `useViewData` holds its options. */
-const VIEW_DATA_OPTIONS_ARG = 5
-
-/**
- * The read seeds its query: its options are an object literal whose
- * `initialDataMode` is the string `"seed"`. Anything the scan cannot read as
- * that — no options, a variable, a spread, another mode — does not count.
- */
-function seedsViewData(call: ts.CallExpression): boolean {
-  const arg = call.arguments[VIEW_DATA_OPTIONS_ARG]
-  const options = arg ? bare(arg) : undefined
-  if (!options || !ts.isObjectLiteralExpression(options)) return false
-  return options.properties.some(
-    (p) =>
-      ts.isPropertyAssignment(p) &&
-      ts.isIdentifier(p.name) &&
-      p.name.text === "initialDataMode" &&
-      ts.isStringLiteral(p.initializer) &&
-      p.initializer.text === "seed",
-  )
 }
 
 /** A file's top-level `const NAME = "value"` declarations. */
@@ -98,21 +70,17 @@ const POSITIONAL_TOOL_ARG = new Map<string, { via: Via; index: number }>([
   ["useToolMutation", { via: "mutation", index: 0 }],
   ["callTool", { via: "callTool", index: 0 }],
   ["useToolQuery", { via: "read", index: 1 }],
-  ["useViewToolQuery", { via: "read", index: 1 }],
   ["useViewData", { via: "read", index: 2 }],
 ])
 
 /** Which positional argument of which read hook is its query key. */
 const KEY_ARG = new Map<string, number>([
   ["useToolQuery", 0],
-  ["useViewToolQuery", 0],
   ["useViewData", 1],
 ])
 
-/** Hooks handing out a raw tool caller — the function itself. */
-const CALLER_HOOKS = new Set(["useCallTool"])
-/** Hooks handing out a host bridge, which holds one as `callTool`. */
-const BRIDGE_HOOKS = new Set(["useHostBridge", "useHostBridgeOrNull"])
+/** Hooks handing out the view host, which holds one as `callTool`. */
+const BRIDGE_HOOKS = new Set(["useViewHost"])
 
 function calleeName(call: ts.CallExpression): string | null {
   const callee = call.expression
@@ -157,7 +125,7 @@ function rawCallers(source: ts.SourceFile): Set<string> {
   const isCaller = (expr: ts.Expression) => {
     const inner = bare(expr)
     if (ts.isPropertyAccessExpression(inner)) return inner.name.text === "callTool"
-    return callsHook(inner, CALLER_HOOKS) || named(inner, callers)
+    return named(inner, callers)
   }
   const bindingsOf = ({
     name,
@@ -198,9 +166,7 @@ function positionalTool(
 ): { via: Via; arg: ts.Expression } | null {
   const name = calleeName(call)
   if (name === null) return null
-  const raw =
-    (ts.isIdentifier(call.expression) && callers.has(name)) ||
-    (/callTool$/i.test(name) && name !== "useCallTool")
+  const raw = (ts.isIdentifier(call.expression) && callers.has(name)) || /callTool$/i.test(name)
   const known =
     POSITIONAL_TOOL_ARG.get(name) ?? (raw ? { via: "callTool" as const, index: 0 } : null)
   const arg = known ? call.arguments[known.index] : undefined
@@ -257,7 +223,7 @@ function toolOption(node: ts.Node): { via: Via; arg: ts.Expression } | null {
 
 function importsRawMutation(node: ts.Node): boolean {
   if (!ts.isImportDeclaration(node) || !ts.isStringLiteral(node.moduleSpecifier)) return false
-  if (!node.moduleSpecifier.text.startsWith("@miragon/mcp-toolkit-ui")) return false
+  if (node.moduleSpecifier.text !== "@miragon/pulse-widget-shell/widgets") return false
   const bindings = node.importClause?.namedBindings
   return (
     bindings !== undefined &&
@@ -287,15 +253,11 @@ function scanSource(
     if (importsRawMutation(node)) scan.mutationImports.push(file)
     if (ts.isCallExpression(node)) {
       if (calleeName(node) === "useCanRun") scan.canRunCalls.push(file)
-      if (callsHook(node, CALLER_HOOKS) || callsHook(node, BRIDGE_HOOKS)) {
+      if (callsHook(node, BRIDGE_HOOKS)) {
         scan.callerHolders.add(file)
       }
       const ref = positionalTool(node, callers)
       if (ref) record(node, ref)
-      if (calleeName(node) === "useViewData") {
-        const { line } = source.getLineAndCharacterOfPosition(node.getStart(source))
-        scan.viewDataReads.push({ file, line: line + 1, seeded: seedsViewData(node) })
-      }
     }
     const option = toolOption(node)
     if (option) record(node, option)

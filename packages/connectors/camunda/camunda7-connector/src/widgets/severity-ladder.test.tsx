@@ -1,16 +1,15 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from "vitest"
 import { cleanup, render, screen, within } from "@testing-library/react"
-import { LocaleProvider, queryClient } from "@miragon/mcp-toolkit-ui"
-import { WidgetFixtureHost } from "@miragon/mcp-toolkit-ui/app"
+import { LocaleProvider } from "@miragon/mcp-toolkit-ui"
 import type { CockpitDashboardData } from "../view-models.js"
 import { ProcessDefinitionsTable } from "./cockpit-dashboard/definitions-table.js"
+import { TestViewHost } from "@miragon/pulse-widget-shell/widgets"
 
 // #322 U14, decision f: camunda7 reads the kit's `countTone`, the ladder analytics uses in the landscape this cockpit embeds.
 
 afterEach(() => {
   cleanup()
-  queryClient.clear()
 })
 
 const row = (key: string, failedJobs: number, incidentCount: number) => ({
@@ -33,7 +32,9 @@ describe("the definitions table's jobs without retries", () => {
   it("edges them in danger while there are any and leaves a zero neutral", () => {
     render(
       <LocaleProvider locale="en">
-        <WidgetFixtureHost widget={() => <ProcessDefinitionsTable data={LANDSCAPE} />} data={{}} />
+        <TestViewHost>
+          <ProcessDefinitionsTable data={LANDSCAPE} />
+        </TestViewHost>
       </LocaleProvider>,
     )
     const table = screen.getByRole("table")

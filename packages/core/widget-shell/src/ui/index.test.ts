@@ -19,6 +19,25 @@ describe("the /widgets entry", () => {
     "NamedId",
     "countTone",
     "severityTone",
+    // The view runtime.
+    "mountViews",
+    "mountView",
+    "ViewStack",
+    "ViewErrorBoundary",
+    "useViewHost",
+    "HostModelContext",
+    "useHostWidget",
+    "settingsSections",
+    "useToolQuery",
+    "useToolMutation",
+    "useViewData",
+    "createViewQueryClient",
+    "useQueryClient",
+    "decodeToolResult",
+    "TestViewHost",
+    "createTestQueryClient",
+    "SettingsPage",
+    "shellViews",
   ])("exports %s", (name) => {
     expect(widgets).toHaveProperty(name)
     expect(widgets[name as keyof typeof widgets]).toBeDefined()

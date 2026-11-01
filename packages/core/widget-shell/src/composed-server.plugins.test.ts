@@ -15,6 +15,7 @@ import { createInMemoryProfileStore } from "./profile-store.js"
 import { getMcpRequestInfo } from "./request-context.js"
 import { createShellPlugin } from "./shell-settings.js"
 import { createToolsetVocabulary } from "./toolsets.js"
+import { viewPrelude } from "./view-name.js"
 import { showToolBinding } from "./widget-tool-bindings.js"
 
 const answer = () => ({ content: [{ type: "text" as const, text: "ok" }], structuredContent: {} })
@@ -237,7 +238,7 @@ describe("createComposedServer: the plugins' tools", () => {
 })
 
 describe("createComposedServer: the views", () => {
-  it("primes every bound view once, after the last plugin, with the one bundle", async () => {
+  it("primes every bound view once, after the last plugin, with the one bundle behind its name", async () => {
     const dir = await mkdtemp(path.join(tmpdir(), "composed-bundle-"))
     const bundle = { jsPath: path.join(dir, "app.js"), cssPath: path.join(dir, "app.css") }
     await writeFile(bundle.jsPath, "globalThis.bundleMarker = 41")
@@ -262,8 +263,14 @@ describe("createComposedServer: the views", () => {
       const { contents } = (await rpc(server.port, "resources/read", { uri })) as {
         contents: { text: string }[]
       }
-      expect(contents[0].text, uri).toContain("globalThis.bundleMarker = 41")
-      expect(contents[0].text, uri).toContain(".bundle-marker { color: inherit }")
+      const text = contents[0].text
+      expect(text, uri).toContain("globalThis.bundleMarker = 41")
+      expect(text, uri).toContain(".bundle-marker { color: inherit }")
+      // The prelude names THIS view, and runs before the bundle reads it.
+      const name = uri.slice("ui://views/".length, -".html".length)
+      const prelude = viewPrelude(name).trim()
+      expect(text.indexOf(prelude), uri).toBeGreaterThanOrEqual(0)
+      expect(text.indexOf(prelude), uri).toBeLessThan(text.indexOf("globalThis.bundleMarker"))
     }
   })
 

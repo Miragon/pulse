@@ -1,16 +1,9 @@
 /** The `/server` import path for module tools and composition roots. */
-export type {
-  ComposedViewEntry,
-  ComposedViewInput,
-  SingleWidgetViewInput,
-} from "@miragon/mcp-toolkit-core"
 export { withToolErrors } from "@miragon/mcp-toolkit-core/tools"
 export { createShellPlugin, type ShellPluginOptions } from "./shell-settings.js"
 export {
   SHELL_SAVE_SETTINGS,
   SHELL_SETTINGS_DATA,
-  SHELL_SETTINGS_PAGE_WIDGET,
-  SHELL_SETTINGS_WIDGET,
   SHELL_SHOW_SETTINGS,
   type ShellSettingsReadOnlyReason,
   type ShellSettingsView,
@@ -144,12 +137,9 @@ export {
 } from "./toolsets.js"
 export {
   createLocalizeFor,
-  createLocalizeViewFor,
-  createViewLocaleOf,
   resolveProfileLocale,
   type ServerT,
   type Translator,
-  type ViewLocale,
 } from "./server-locale.js"
 export { parseModuleSlice, requireProfileKey, saveModuleSlice } from "./profile-slice.js"
 export { registerSettingsSection } from "./settings-section.js"
@@ -161,4 +151,6 @@ export {
   type BpmnNames,
 } from "./bpmn-names.js"
 
-export { buildComposedView, buildDataFeedResult, buildSingleWidgetView } from "./view-results.js"
+export { buildDataFeedResult, buildViewResult, type ViewResult } from "./view-results.js"
+export { viewPrelude } from "./view-name.js"
+export { decodeToolResult, type ToolResult } from "./tool-result.js"

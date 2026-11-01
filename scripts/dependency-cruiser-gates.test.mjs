@@ -182,7 +182,7 @@ const SUITES = [
         "@tanstack/react-query",
         "mcp-use/react",
         "@modelcontextprotocol/sdk/server",
-        "@miragon/mcp-toolkit-ui/app",
+        "@miragon/mcp-toolkit-ui",
         "hono",
         "postgres",
         "prom-client",

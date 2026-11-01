@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react"
-import { Alert, AlertDescription, Button, Input, useToolQuery } from "@miragon/mcp-toolkit-ui"
-import { Icon, NativeSelect } from "@miragon/pulse-widget-shell/widgets"
+import { Alert, AlertDescription, Button, Input } from "@miragon/mcp-toolkit-ui"
+import { Icon, NativeSelect, useToolQuery } from "@miragon/pulse-widget-shell/widgets"
 import { Plus, X } from "lucide-react"
 
 import { useT } from "../messages/use-t.js"

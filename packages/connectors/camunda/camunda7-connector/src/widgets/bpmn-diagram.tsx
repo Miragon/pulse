@@ -1,11 +1,12 @@
 import { useEffect } from "react"
-import { ErrorState, Skeleton, useToolQuery } from "@miragon/mcp-toolkit-ui"
+import { ErrorState, Skeleton } from "@miragon/mcp-toolkit-ui"
 import {
   BpmnZoomControls,
   QueryFallback,
   injectBpmnOverlayCss,
   useBpmnViewer,
   useHostDisplayMode,
+  useToolQuery,
 } from "@miragon/pulse-widget-shell/widgets"
 import { useT } from "../messages/use-t.js"
 import { CAMUNDA7_BPMN_XML_DATA } from "../tool-names.js"

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Alert, AlertDescription, useToolQuery, SectionHeading } from "@miragon/mcp-toolkit-ui"
+import { Alert, AlertDescription, SectionHeading } from "@miragon/mcp-toolkit-ui"
 import {
   BpmnHeatmap,
   HeatmapLegend,
@@ -8,6 +8,7 @@ import {
   WidgetShell,
   formatNumber,
   type SegmentedControlOption,
+  useToolQuery,
 } from "@miragon/pulse-widget-shell/widgets"
 import type { ProcessIncidentsData } from "../../view-models.js"
 import { BpmnDiagram, useDefinitionXml, type BpmnHighlight } from "../bpmn-diagram.js"

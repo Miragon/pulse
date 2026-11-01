@@ -136,6 +136,56 @@ const widgetSparkleGate = {
   ],
 }
 
+// Invariant 6, the view runtime: Pulse owns it. Widgets reach the host only through
+// widget-shell's view host (`useViewHost`, `HostModelContext`) and query hooks, never the
+// toolkit's app/hooks layer or its root query and host exports, and never `mcp-use/react`
+// itself: its hooks throw outside `bootstrapView`, so a widget importing it could not render
+// under `TestViewHost`. The ONE adapter is widget-shell's `mcp-use-host.tsx` + `view-root.tsx`.
+const VIEW_RUNTIME_MESSAGE =
+  "Use the view runtime of @miragon/pulse-widget-shell/widgets (useViewHost, HostModelContext, useToolQuery, useToolMutation, useViewData, useQueryClient; TestViewHost in tests), never the toolkit's app/hooks layer or its query exports (CLAUDE.md invariant 6)."
+const TOOLKIT_RUNTIME_NAMES = [
+  "AppQueryProvider",
+  "useToolQuery",
+  "useToolQueryKey",
+  "useToolMutation",
+  "useCallTool",
+  "queryClient",
+  "parseToolResult",
+  "parseViewToolResult",
+  "toolQueryKey",
+  "shouldRetryToolCall",
+  "ToolResultError",
+  "isToolError",
+  "keepPreviousData",
+]
+const toolkitRuntimeGate = {
+  paths: [
+    {
+      name: "@miragon/mcp-toolkit-ui",
+      importNames: TOOLKIT_RUNTIME_NAMES,
+      message: VIEW_RUNTIME_MESSAGE,
+    },
+  ],
+  patterns: [
+    { regex: "^@miragon/mcp-toolkit-ui/(?:app|hooks)(?:/.*)?$", message: VIEW_RUNTIME_MESSAGE },
+  ],
+}
+const mcpUseReactGate = {
+  paths: [
+    {
+      name: "mcp-use/react",
+      message:
+        "Only widget-shell's view root (view-root.tsx, mcp-use-host.tsx) imports mcp-use/react; a widget uses the view host (useViewHost) and renders under TestViewHost in tests (CLAUDE.md invariant 6).",
+    },
+  ],
+  patterns: [],
+}
+/** `no-restricted-imports` is ONE rule too: a glob two import gates share gets their union. */
+const importGates = (...gates) => ({
+  paths: gates.flatMap((gate) => gate.paths),
+  patterns: gates.flatMap((gate) => gate.patterns),
+})
+
 // Invariant 6 / CI U4, the other half: ONE hand-off vocabulary across the
 // product. A connector widget renders a chat hand-off only through the kit's
 // HandOffButton, whose function table (HAND_OFF_ACTIONS + kitLabels().handOff)
@@ -419,8 +469,21 @@ export default tseslint.config(
     files: ["packages/core/widget-shell/src/ui/format.ts"],
     rules: { "no-restricted-syntax": ["error", ...widgetNumberGateForFormatters] },
   },
-  // Invariant 6, AI affordance: no sparkle icon in any widget tree (its own
-  // rule, so it never collides with the no-restricted-syntax unions above).
+  // Invariant 6, imports: the view runtime gate in every MCP source and test,
+  // plus the sparkle gate (AI affordance) in every widget tree, the one
+  // `no-restricted-imports` union per glob; widget-shell's mcp-use adapter is
+  // the one place `mcp-use/react` is allowed. Its own rule, so it never
+  // collides with the no-restricted-syntax unions above.
+  {
+    files: [
+      "apps/mcp-server-camunda7/{src,test,test-host}/**/*.{ts,tsx}",
+      "packages/core/widget-shell/src/**/*.{ts,tsx}",
+      "packages/connectors/*/*/src/**/*.{ts,tsx}",
+    ],
+    rules: {
+      "no-restricted-imports": ["error", importGates(toolkitRuntimeGate, mcpUseReactGate)],
+    },
+  },
   {
     files: [
       "apps/mcp-server-camunda7/src/ui/**/*.{ts,tsx}",
@@ -428,7 +491,22 @@ export default tseslint.config(
       "packages/connectors/analytics/analytics-connector/src/widgets/**/*.{ts,tsx}",
       "packages/connectors/camunda/camunda7-connector/src/widgets/**/*.{ts,tsx}",
     ],
-    rules: { "no-restricted-imports": ["error", widgetSparkleGate] },
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        importGates(toolkitRuntimeGate, mcpUseReactGate, widgetSparkleGate),
+      ],
+    },
+  },
+  {
+    files: [
+      "packages/core/widget-shell/src/ui/mcp-use-host.tsx",
+      "packages/core/widget-shell/src/ui/view-root.tsx",
+      "packages/core/widget-shell/src/ui/view-root.test.tsx",
+    ],
+    rules: {
+      "no-restricted-imports": ["error", importGates(toolkitRuntimeGate, widgetSparkleGate)],
+    },
   },
   // ── Ratchet metrics: complexity + file-length budgets ───────────────────
   // Global targets for all source code; scripts/check-ratchets.mjs keeps them

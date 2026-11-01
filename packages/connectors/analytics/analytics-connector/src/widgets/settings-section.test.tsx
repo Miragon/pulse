@@ -1,10 +1,13 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeAll, describe, expect, it } from "vitest"
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
-import { LocaleProvider, queryClient, ToastProvider } from "@miragon/mcp-toolkit-ui"
-import { WidgetFixtureHost } from "@miragon/mcp-toolkit-ui/app"
+import { LocaleProvider, ToastProvider } from "@miragon/mcp-toolkit-ui"
 import { ANALYTICS_SAVE_SETTINGS, ANALYTICS_SETTINGS_DATA } from "../tool-names.js"
 import { AnalyticsSettingsWidget, parseMinBucketSize } from "./settings-section.js"
+import { TestViewHost, createTestQueryClient } from "@miragon/pulse-widget-shell/widgets"
+
+// One retry-free client per test; the test reads and pokes its cache.
+let queryClient = createTestQueryClient()
 
 /** A failed feed says the SETTINGS could not be loaded, not the figures. */
 
@@ -14,7 +17,7 @@ beforeAll(() => {
 })
 afterEach(() => {
   cleanup()
-  queryClient.clear()
+  queryClient = createTestQueryClient()
 })
 
 const Section = () => <AnalyticsSettingsWidget />
@@ -22,14 +25,16 @@ const Section = () => <AnalyticsSettingsWidget />
 function renderIn(language: "de" | "en") {
   return render(
     <LocaleProvider locale={language}>
-      <WidgetFixtureHost
-        widget={Section}
+      <TestViewHost
         tools={{
           [ANALYTICS_SETTINGS_DATA]: () => {
             throw new Error("profile store unavailable")
           },
         }}
-      />
+        client={queryClient}
+      >
+        <Section />
+      </TestViewHost>
     </LocaleProvider>,
   )
 }
@@ -68,10 +73,12 @@ describe("the analytics settings section when it saves (U9: a save is never sile
     return render(
       <LocaleProvider locale="en">
         <ToastProvider>
-          <WidgetFixtureHost
-            widget={Section}
+          <TestViewHost
             tools={{ [ANALYTICS_SETTINGS_DATA]: () => VIEW, [ANALYTICS_SAVE_SETTINGS]: save }}
-          />
+            client={queryClient}
+          >
+            <Section />
+          </TestViewHost>
         </ToastProvider>
       </LocaleProvider>,
     )
@@ -135,10 +142,9 @@ describe("the analytics settings section without the right to save (U25)", () =>
   it("says why first, above the fields it cannot change, and offers no Save (de)", async () => {
     render(
       <LocaleProvider locale="de">
-        <WidgetFixtureHost
-          widget={Section}
-          tools={{ [ANALYTICS_SETTINGS_DATA]: () => READ_ONLY }}
-        />
+        <TestViewHost tools={{ [ANALYTICS_SETTINGS_DATA]: () => READ_ONLY }} client={queryClient}>
+          <Section />
+        </TestViewHost>
       </LocaleProvider>,
     )
     const notice = await screen.findByText("Nur lesen")

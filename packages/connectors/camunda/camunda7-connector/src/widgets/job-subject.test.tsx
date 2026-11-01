@@ -1,17 +1,14 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from "vitest"
-import type { ComponentType } from "react"
 import { cleanup, render, screen } from "@testing-library/react"
-import { queryClient } from "@miragon/mcp-toolkit-ui"
-import { WidgetFixtureHost } from "@miragon/mcp-toolkit-ui/app"
 import type { JobPanelData } from "../view-models.js"
 import { JobPanelWidget } from "./job-panel.js"
+import { TestViewHost } from "@miragon/pulse-widget-shell/widgets"
 
 // #396: two lines; a scoped panel names its process once in the head, since three-line rows cost a chat card a row.
 
 afterEach(() => {
   cleanup()
-  queryClient.clear()
 })
 
 const JOB: JobPanelData["jobs"][number] = {
@@ -39,10 +36,9 @@ function renderPanel(filters: JobPanelData["filters"]) {
     engineId: "prod",
   }
   render(
-    <WidgetFixtureHost
-      widget={JobPanelWidget as unknown as ComponentType<Record<string, unknown>>}
-      data={data as unknown as Record<string, unknown>}
-    />,
+    <TestViewHost>
+      <JobPanelWidget data={data as never} />
+    </TestViewHost>,
   )
   return screen.getByText("Charge card").closest("td")!
 }
@@ -75,10 +71,9 @@ describe("a job's subject", () => {
       engineId: "prod",
     }
     render(
-      <WidgetFixtureHost
-        widget={JobPanelWidget as unknown as ComponentType<Record<string, unknown>>}
-        data={data as unknown as Record<string, unknown>}
-      />,
+      <TestViewHost>
+        <JobPanelWidget data={data as never} />
+      </TestViewHost>,
     )
     expect(screen.getByText("in Invoice receipt")).toBeTruthy()
   })

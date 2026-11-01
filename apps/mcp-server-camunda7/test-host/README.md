@@ -25,20 +25,21 @@ simulation (test:host)". It renders exactly what an MCP Apps host renders:
 - The rendering tool is the real `camunda7_show_process_list` against the
   stub (the BPMN scenario: `camunda7_show_bpmn_viewer`; the write one:
   `camunda7_show_job_panel` on the operations deployment), so the view gets the
-  server's real envelope and data shape.
+  server's real `structuredContent` and data shape (the view picked by the name its
+  document's prelude sets).
 
 | Scenario                   | Host behaviour                                    | Pass criterion                                                                                                                                                     |
 | -------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| keep                       | result WITH `structuredContent`                   | real table renders, **zero** re-executions, no "Reloaded at", no console error                                                                                     |
+| keep                       | result WITH `structuredContent`                   | real table renders, the prelude names the view, **zero** re-executions, no "Reloaded at", no console error                                                         |
 | in-widget query            | user types; the stub holds the search's answer    | feed refetches + filters (`dedupe`); in flight: focus kept, rows marked                                                                                            |
 | strip                      | result WITHOUT `structuredContent` (claude.ai)    | **exactly one** re-execution with the invocation's arguments, then renders with "Reloaded at"                                                                      |
-| slow tool                  | result 4 s after `initialized`                    | waits past the old grace timer, renders once, **zero** re-executions (K13, 2.8)                                                                                    |
+| slow tool                  | result 4 s after `initialized`                    | waits for the host's result (no timer re-runs the tool), renders once, **zero** re-executions                                                                      |
 | `isError`                  | real engine 503 through the server                | **zero** re-executions, the kit's words (`describeError`), raw text under Details, a retry                                                                         |
 | cancel                     | `ui/notifications/tool-cancelled`                 | cancellation text, **zero** re-executions                                                                                                                          |
 | dark host + dark OS        | `theme: "dark"`, OS dark                          | dark tokens (control for the scenario below)                                                                                                                       |
 | dark host + light OS       | `theme: "dark"`, OS light                         | the host wins: `.dark`, `data-theme`, `color-scheme` dark, light text (#339)                                                                                       |
 | light host + dark OS       | `theme: "light"`, OS dark                         | the host wins the other way: all three light, dark text                                                                                                            |
-| no fullscreen              | `availableDisplayModes` `["inline"]` / absent     | no Fullscreen button (the toolkit gates it, toolkit#178 K22), no request                                                                                           |
+| no fullscreen              | `availableDisplayModes` `["inline"]` / absent     | no Fullscreen button (the frame gates it on `availableDisplayModes`), no request                                                                                   |
 | host locale `de-DE`        | `locale: "de-DE"`, no saved profile               | German widget and chrome strings, `<html lang="de">` (#339)                                                                                                        |
 | profile feed missing       | `failTools`: the profile feed answers an error    | German, dark view from the host context, painted before the feed's first retry                                                                                     |
 | slow handshake             | `initDelayMs: 3000`                               | nothing painted before `ui/initialize` is answered, then the German, dark view                                                                                     |

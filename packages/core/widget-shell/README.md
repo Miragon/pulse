@@ -30,14 +30,27 @@ package customers build their own connectors and composed servers on (see the
 
 ## What it provides
 
-- **`adaptDataWidget`** (`./ui`): wraps a presentational React component into a data-aware widget:
-  handles the initial structured-content payload, in-widget `callTool()` refresh via the `*_data`
-  feeds, and loading / error states. This is what keeps widgets rename-safe and refreshable.
-- **View builders** (`./server`): `buildSingleWidgetView`, `buildComposedView` and
-  `buildDataFeedResult` (the single implementation of the app-only `*_data` feed result), the
-  server-side helpers that assemble a widget tool's result: a summary for the model plus the
-  `structuredContent` layout its view renders. The view itself is declared on the tool by
-  `showToolBinding` (a `view` binding; mcp-use derives the `_meta.ui` keys from it).
+- **The view runtime** (`./widgets`): the bundle root `mountViews({ views, hostWidgets })` picks
+  the view the document's prelude names (the show tool's name) from your view map and mounts it
+  under the view root (the mcp-use adapter, ONE `QueryClient` per document, `HostDocument`,
+  `ProfileGate`, toasts); `mountView` mounts one view without a map. The root's call hook
+  (`useMcpUseViewCall` over `resolveViewCall`) owns the stripped-result recovery: a host that
+  drops `structuredContent` (claude.ai) gets the view re-running its own show tool ONCE (every
+  view-bound tool is a read), stamped "Reloaded at"; the view frame renders the phases (waiting,
+  error with a retry, cancelled, ready) and keeps a crashing view, and each `ViewStack` row and
+  `HostWidgetSlot`, inside its own error boundary. Widgets reach the host only through the view
+  host seam (`useViewHost`: `callTool`, `sendFollowUp`, `openExternal`; `HostModelContext`) and the query
+  hooks (`useToolQuery`, `useToolMutation`, `useViewData` (which seeds a feed with the view's
+  data), `useQueryClient`), never `mcp-use/react`, so a widget renders under `TestViewHost`
+  (fake tools, a log of host actions and model contexts) in a plain test. Another module's
+  widget renders by raw id through the host widgets (`useHostWidget`, `HostWidgetSlot`,
+  `settingsSections`).
+- **View builders** (`./server`): `buildViewResult(data, summary)` (a show tool's result: the
+  `structuredContent` IS the view's data, the text the model's summary) and
+  `buildDataFeedResult` (the single implementation of the app-only `*_data` feed result);
+  `decodeToolResult` reads either. The view itself is declared on the tool by `showToolBinding`
+  (a `view` binding; mcp-use derives the `_meta.ui` keys from it), and the boot primes each
+  view with `viewPrelude(name)` ahead of the bundle.
 - **BPMN names** (`./server`): `readBpmnNames` / `parseBpmnNames`: the one rule every module
   reads a model's names by, without a DOM (a process's own name, else its Modeler pool's;
   character references such as `&#10;` and `&#38;` decoded, space folded), so two modules never
@@ -46,8 +59,9 @@ package customers build their own connectors and composed servers on (see the
   always-on module `shell` with the settings triple: `shell_show_settings` (the page: the
   language section, then every `<module>:settings` section the host bundles),
   `shell_settings_data` (what `ProfileGate` reads the language from) and `shell_save_settings`
-  (pass `allowSave: frameworkWritesAllowed(boot)`). Hosts spread `shellWidgets` (`./widgets`)
-  into their registry. Apps own no domain UI, so the settings page lives here.
+  (pass `allowSave: frameworkWritesAllowed(boot)`). Hosts spread `shellViews` (`./widgets`)
+  into their view map; `SettingsPage` renders the language section and then every
+  `<module>:settings` host widget. Apps own no domain UI, so the settings page lives here.
 - **Shared UI primitives** (`./widgets`): what the kit adds on top of `@miragon/mcp-toolkit-ui`
   (`WidgetShell`, tables, `ListTable` + `PagedRows`, the dual-mode data hooks, formatters,
   hand-offs, the BPMN viewer, `useApplyTheme`, …), reused across both widget packages.
@@ -150,12 +164,11 @@ oauth? })` is the one boot sequence every composed server shares: env-typo warni
 
 ## Exports
 
-| Subpath     | Contents                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `./server`  | `buildSingleWidgetView` / `buildComposedView` / `buildDataFeedResult`, `createShellPlugin`, `composeModules` / `frameworkWritesAllowed` / `createToolsetVocabulary` and the module port (`ModulePlugin`, `ModuleEntry`), `createComposedServer` and its edge pieces (incl. `installFontAssets`, `fontAssetsCsp`), `oauthFromEnv`, caller identity (`resolveProfileKey`), the profile store and the Postgres client/migration runner |
-| `./ui`      | `adaptDataWidget`, the data-aware widget wrapper                                                                                                                                                                                                                                                                                                                                                                                    |
-| `./widgets` | Shared widget UI primitives incl. the settings page and the host app shell (`AppShellProviders`: the language as explicit profile > host context > English, the theme as host context > OS)                                                                                                                                                                                                                                         |
-| `./testing` | The brand gates for your widget package's tests: `catalogTextFindings`, `scanGlyphs`, `scanColors`, `stylesheetColorFindings`, `parseThemeVariables` + `contrastFindings` with `toneContrastPairs()` / `ROLE_CONTRAST_PAIRS` over `toolkitThemeStylesheets()`                                                                                                                                                                       |
+| Subpath     | Contents                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `./server`  | `buildViewResult` / `buildDataFeedResult` / `viewPrelude`, `createShellPlugin`, `composeModules` / `frameworkWritesAllowed` / `createToolsetVocabulary` and the module port (`ModulePlugin`, `ModuleEntry`), `createComposedServer` and its edge pieces (incl. `installFontAssets`, `fontAssetsCsp`), `oauthFromEnv`, caller identity (`resolveProfileKey`), the profile store and the Postgres client/migration runner |
+| `./widgets` | Shared widget UI primitives incl. the settings page and the view runtime (`mountViews`, the view host, the query hooks, `TestViewHost`; the language as explicit profile > host context > English, the theme as host context > OS)                                                                                                                                                                                      |
+| `./testing` | The brand gates for your widget package's tests: `catalogTextFindings`, `scanGlyphs`, `scanColors`, `stylesheetColorFindings`, `parseThemeVariables` + `contrastFindings` with `toneContrastPairs()` / `ROLE_CONTRAST_PAIRS` over `toolkitThemeStylesheets()`                                                                                                                                                           |
 
 The `@miragon/mcp-toolkit-*`, `react`/`react-dom`, `zod` and `@tanstack/react-query` deps are
 **peer dependencies**: they must resolve to a single instance across the host bundle (see the
@@ -178,11 +191,11 @@ on "Loading…".
 camunda7-connector / analytics-connector widgets
             │  use
             ▼
-   @miragon/pulse-widget-shell   ──  adaptDataWidget · view builders · UI primitives
+   @miragon/pulse-widget-shell   ──  view runtime · view builders · UI primitives
             │  build on
             ▼
-   @miragon/mcp-toolkit-ui (React + react-query)
+   mcp-use/react (the view's host) · @tanstack/react-query · @miragon/mcp-toolkit-ui (design kit)
 ```
 
-See the architecture invariants in [`CLAUDE.md`](../../../CLAUDE.md) for the widget registration
-chain.
+See the architecture invariants in [`CLAUDE.md`](../../../CLAUDE.md) for how a view is
+registered.

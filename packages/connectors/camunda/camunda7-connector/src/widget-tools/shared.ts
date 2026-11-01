@@ -6,34 +6,17 @@ import type { EngineCallContext, EngineRegistry, resolveEngine } from "../lib/re
 import type { Camunda7Toolset } from "../lib/toolsets.js"
 import type { EngineParamShape } from "../lib/with-engine.js"
 import {
-  type buildSingleWidgetView,
   showToolBinding,
   strictToolInput,
   withToolErrors,
   type ProfileStore,
+  type ViewResult,
 } from "@miragon/pulse-widget-shell/server"
 
 /** Incident messages can be stacktrace-sized. */
 export function truncate(s: string, max: number): string {
   const flat = s.replace(/\s+/g, " ").trim()
   return flat.length > max ? `${flat.slice(0, max)}…` : flat
-}
-
-/** Mirrors the cockpit's "process-detail" route (`widgets/cockpit-app/views.ts`); the entry only sets the focus. */
-export function definitionViewLayout(focus?: "incidents") {
-  return [
-    { row: [{ widget: "camunda7:process-detail-header" }] },
-    { row: [{ widget: "camunda7:process-definition-kpi" }] },
-    { row: [{ widget: "camunda7:process-definition-flow" }] },
-    {
-      row: [
-        {
-          widget: "camunda7:activity-incident-list",
-          props: { emptyVariant: focus === "incidents" ? "siblings" : "note" },
-        },
-      ],
-    },
-  ]
 }
 
 export type ResolvedEngine = Awaited<ReturnType<typeof resolveEngine>>
@@ -57,10 +40,7 @@ interface ShowTool<TShape extends z.ZodRawShape> {
   title: string
   description: string
   shape: TShape
-  render: (
-    args: ShowArgs<TShape>,
-    ctx: EngineCallContext,
-  ) => Promise<ReturnType<typeof buildSingleWidgetView>>
+  render: (args: ShowArgs<TShape>, ctx: EngineCallContext) => Promise<ViewResult>
 }
 
 export function registerShowTool<TShape extends z.ZodRawShape>(

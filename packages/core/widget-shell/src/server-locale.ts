@@ -31,30 +31,14 @@ export function createLocalizeFor(
   }
 }
 
-/** What a show tool needs to word its result: the model summary and the view title. */
-export interface ViewLocale {
-  t: ServerT
-  /** Undefined for "system": the server never sees the host locale, so the widget heading names the view (#322 U3). */
-  title: (key: string, params?: Record<string, unknown>) => string | undefined
-}
-
-export function createViewLocaleOf(
-  translator: Translator,
-): (language: string | undefined) => ViewLocale {
+/**
+ * A translator bound to the language a profile names; `system` and no profile read as English,
+ * since the server never sees the host locale. The server never titles a view: views carry their
+ * own heading in the host's language.
+ */
+export function createLanguageT(translator: Translator): (language: string | undefined) => ServerT {
   return (language) => {
-    const named = explicitLocale(language)
-    const t: ServerT = (key, params) => translator(named ?? "en", key, params)
-    return { t, title: (key, params) => (named ? t(key, params) : undefined) }
-  }
-}
-
-/** One profile read for summary and title; fail-soft like {@link resolveProfileLocale}. */
-export function createLocalizeViewFor(
-  translator: Translator,
-): (store?: ProfileSource, ctx?: unknown) => Promise<ViewLocale> {
-  const viewLocaleOf = createViewLocaleOf(translator)
-  return async (store, ctx) => {
-    const record = store ? await readProfileAdvisory(store, resolveProfileKey(ctx)) : undefined
-    return viewLocaleOf(record?.language)
+    const locale = explicitLocale(language) ?? "en"
+    return (key, params) => translator(locale, key, params)
   }
 }

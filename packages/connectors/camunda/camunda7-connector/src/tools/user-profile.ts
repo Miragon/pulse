@@ -23,7 +23,6 @@ import {
 import { environmentOf } from "../lib/environments.js"
 import type { EngineRegistry } from "../lib/resolve-engine.js"
 import { translator } from "../messages/index.js"
-import { viewLocaleOf } from "../lib/server-locale.js"
 
 /**
  * Localized to steer the model's reply language. `system` is the host's locale, which the
@@ -46,12 +45,10 @@ export function registerUserProfileTools(
   toolset: Camunda7Toolset,
 ): void {
   registerSettingsSection(server, {
-    app: "camunda7",
-    widget: "camunda7:settings",
     openWorldHint: true,
     readOnlyReason: "toolset" satisfies ProfileReadOnlyReason,
     load: async (_ctx, key, gate) => {
-      // The record's language words the summary and the title; it is not part of the view.
+      // The record's language words the summary; it is not part of the view.
       const record = key ? await store.get(key) : undefined
       const view: UserProfileView = {
         profile: record ? toUserProfile(record) : defaultUserProfile(),
@@ -69,11 +66,7 @@ export function registerUserProfileTools(
       name: CAMUNDA7_SHOW_SETTINGS,
       title: "Engine settings",
       description: "Open camunda7's settings: available engines and the default engine.",
-      // "system" sets no title, so no English title sits over a German section (#322 U3).
-      render: ({ view, language = "system" }) => ({
-        title: viewLocaleOf(language).title("viewTitle.settings"),
-        summary: summarize(view.profile, language),
-      }),
+      render: ({ view, language = "system" }) => summarize(view.profile, language),
     },
     feed: {
       name: CAMUNDA7_SETTINGS_DATA,

@@ -1,5 +1,5 @@
 import { useMemo } from "react"
-import { useLocale, useToolQuery } from "@miragon/mcp-toolkit-ui"
+import { useLocale } from "@miragon/mcp-toolkit-ui"
 import {
   askAiPrompt,
   modelContextText,
@@ -7,6 +7,7 @@ import {
   type HandOffParts,
   type ModelContextSpec,
   type ToolSurface,
+  useToolQuery,
 } from "@miragon/pulse-widget-shell/widgets"
 import type { AnalyticsAskAiKey } from "../messages/en.ask-ai.js"
 import { translator } from "../messages/index.js"
@@ -30,7 +31,7 @@ export function analyticsSurface(camunda7ModelTools: readonly string[] | undefin
   }
 }
 
-/** `describeForModel` is pure, so it gets analytics tools only. */
+/** A view's `describe*` function is pure, so it gets analytics tools only. */
 export const ANALYTICS_ONLY_SURFACE = analyticsSurface(undefined)
 
 export function useAnalyticsSurface(): ToolSurface {

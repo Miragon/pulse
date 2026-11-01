@@ -2,20 +2,23 @@
 import { afterEach, describe, expect, it } from "vitest"
 import type { ComponentType } from "react"
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
-import { LocaleProvider, queryClient } from "@miragon/mcp-toolkit-ui"
-import { WidgetFixtureHost } from "@miragon/mcp-toolkit-ui/app"
+import { LocaleProvider } from "@miragon/mcp-toolkit-ui"
 import { CAMUNDA7_WIDGET_ACTIONS_DATA } from "../tool-names.js"
 import type { TaskFormSchema } from "../view-models.js"
 import type { CompleteTaskArgs, TaskCompletion } from "./lib/complete-task.js"
 import { useEngineAction } from "./lib/engine-action.js"
 import { TaskCompleteForm } from "./task-complete-form.js"
+import { TestViewHost, createTestQueryClient } from "@miragon/pulse-widget-shell/widgets"
+
+// One retry-free client per test; the test reads and pokes its cache.
+let queryClient = createTestQueryClient()
 
 // #328: a delegated task is resolved, not completed; a formRef is not "no form"; a null schema is
 // loaded through camunda7_get_task_form, whose failure shows.
 
 afterEach(() => {
   cleanup()
-  queryClient.clear()
+  queryClient = createTestQueryClient()
 })
 
 const COMPLETE_ALLOWED = { allowedActions: ["camunda7_complete_task"] }
@@ -42,11 +45,12 @@ function renderForm(
     )
   }
   render(
-    <WidgetFixtureHost
-      widget={Form}
-      data={{}}
+    <TestViewHost
       tools={{ [CAMUNDA7_WIDGET_ACTIONS_DATA]: COMPLETE_ALLOWED, ...tools }}
-    />,
+      client={queryClient}
+    >
+      <Form />
+    </TestViewHost>,
   )
 }
 
@@ -139,9 +143,7 @@ describe("a Boolean field speaks the view's language", () => {
     }
     render(
       <LocaleProvider locale={locale}>
-        <WidgetFixtureHost
-          widget={Form}
-          data={{}}
+        <TestViewHost
           tools={{
             [CAMUNDA7_WIDGET_ACTIONS_DATA]: COMPLETE_ALLOWED,
             camunda7_complete_task: (args: unknown) => {
@@ -149,7 +151,10 @@ describe("a Boolean field speaks the view's language", () => {
               return { success: true, taskId: "t-1", outcome: "completed" }
             },
           }}
-        />
+          client={queryClient}
+        >
+          <Form />
+        </TestViewHost>
       </LocaleProvider>,
     )
     const yesButton = await screen.findByRole("button", { name: yes })

@@ -1,17 +1,11 @@
 import type { ReactElement, ReactNode } from "react"
 import { ErrorState, useLocale } from "@miragon/mcp-toolkit-ui"
-import { useViewData, type UseViewDataOptions } from "@miragon/mcp-toolkit-ui/hooks"
 import { describeError } from "./describe-error.js"
 import { kitLabels } from "./kit-labels.js"
+import { useViewData } from "./tool-query.js"
 import { viewRefreshState } from "./view-refresh-state.js"
 import { ViewDataState } from "./view-data-state.js"
 import { WidgetShell } from "./widget-shell.js"
-
-/**
- * The handed-in tool result SEEDS the feed query instead of switching it off,
- * so a write's invalidation, a Retry or a refresh re-reads a standalone view.
- */
-const SEED = { initialDataMode: "seed" } as const satisfies UseViewDataOptions<unknown>
 
 /**
  * `notice` reports a failed REFETCH over shown data, which may be stale.
@@ -41,7 +35,8 @@ export function useDetailView<TData>(opts: {
   const locale = useLocale()
   const defaults = kitLabels(locale)
   const { initialData, key, tool, args, ready, emptyText, loadingText, skeleton, retryText } = opts
-  const view = useViewData<TData>(initialData, key, tool, args, ready, SEED)
+  // The handed-in result SEEDS the feed: a write's invalidation or a Retry re-reads the view.
+  const view = useViewData<TData>(initialData, key, tool, args, ready)
   const { data, loading, error, refetch } = view
   const retry = () => void refetch()
   const { refreshError } = viewRefreshState(view)

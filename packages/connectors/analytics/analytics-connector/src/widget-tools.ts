@@ -1,9 +1,8 @@
 import type { MCPServer } from "mcp-use"
 import {
   appOnly,
-  buildComposedView,
   buildDataFeedResult,
-  buildSingleWidgetView,
+  buildViewResult,
   showToolBinding,
   withToolErrors,
   strictToolInput,
@@ -18,10 +17,11 @@ import {
 import {
   ANALYTICS_BPMN_HEATMAP_DATA,
   ANALYTICS_BPMN_XML_DATA,
-  ANALYTICS_DASHBOARD_DATA,
-  ANALYTICS_FAILURE_DASHBOARD_DATA,
+  ANALYTICS_SHOW_BPMN_HEATMAP,
+  ANALYTICS_SHOW_DASHBOARD,
+  ANALYTICS_SHOW_FAILURE_DASHBOARD,
 } from "./tool-names.js"
-import { localizeViewFor, type ProfileSource, type ServerT } from "./server-locale.js"
+import { localizeFor, type ProfileSource, type ServerT } from "./server-locale.js"
 import { optionalPeriod, settingsFor } from "./settings.js"
 import { registerComparisonWidgetTools } from "./widget-tools/comparisons.js"
 import { engineScopeSummary } from "./widget-tools/shared.js"
@@ -49,7 +49,6 @@ const heatmapInputShape = {
   ...schemas.engineFilterShape,
 }
 
-/** One input shape, so the self-fetch can carry every scope the show tool takes. */
 const dashboardInputShape = {
   processDefinitionKey: schemas.clusterCompareInput.shape.processDefinitionKey,
   period: optionalPeriod,
@@ -81,7 +80,7 @@ export function registerWidgetTools(
   ch: PrometheusClient,
   options: AnalyticsWidgetToolsOptions,
 ) {
-  // `title` is set only in a language the profile names (#322 U3); `t` falls back to "en".
+  // The summary follows the language the profile names; `t` falls back to "en".
   const { profileStore, engineScope } = options
   const namesFor = options.namesFor ?? NO_NAMES
 
@@ -104,16 +103,16 @@ export function registerWidgetTools(
 
   server.tool(
     {
-      name: "analytics_show_dashboard",
+      name: ANALYTICS_SHOW_DASHBOARD,
       title: "Process Analytics Dashboard",
       description:
         "Show process metrics from Prometheus: flows within the period (starts, completions, incidents created/resolved, durations of the instances that ended) and the live state right now (instances running, incidents open), per process definition and per (process, activity).",
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
       inputSchema: strictToolInput(dashboardInputShape),
-      ...showToolBinding("analytics_show_dashboard", "Process Analytics Dashboard"),
+      ...showToolBinding(ANALYTICS_SHOW_DASHBOARD, "Process Analytics Dashboard"),
     },
     withToolErrors(async (args, ctx) => {
-      const { t, title } = await localizeViewFor(profileStore, ctx)
+      const t = await localizeFor(profileStore, ctx)
       const settings = await settingsFor(profileStore, ctx)
       const period = args.period ?? settings.defaultPeriod
       const data = await namedDashboard(
@@ -124,31 +123,13 @@ export function registerWidgetTools(
         }),
         namesFor,
       )
-      // A self-fetch (structuredContent stripped) keeps this scope.
-      const cellProps = {
-        period,
-        ...(args.processDefinitionKey ? { processDefinitionKey: args.processDefinitionKey } : {}),
-        ...(isFleetRequest(args.engine) ? {} : { engine: args.engine }),
-      }
-      return buildComposedView({
-        app: "analytics",
-        // None with "system": the widget heading names the view.
-        title: title("aExecSummary.title"),
-        layout: [
-          { row: [{ widget: "analytics:execution-summary-kpi", props: cellProps }] },
-          { row: [{ widget: "analytics:execution-performance-kpi", props: cellProps }] },
-          { row: [{ widget: "analytics:process-definition-breakdown", props: cellProps }] },
-          { row: [{ widget: "analytics:activity-bottleneck-table", props: cellProps }] },
-        ],
-        entries: [{ dataType: "analytics:dashboard", data }],
-        summary: dashboardSummary(t, data, isFleetRequest(args.engine)),
-      })
+      return buildViewResult(data, dashboardSummary(t, data, isFleetRequest(args.engine)))
     }),
   )
 
   server.tool(
     {
-      name: "analytics_show_failure_dashboard",
+      name: ANALYTICS_SHOW_FAILURE_DASHBOARD,
       title: "Failure Analysis Dashboard",
       description:
         "Show the incidents open right now from Prometheus, grouped by incident type and process definition (no activity, message or timestamps), with each affected process's running instances and dead jobs. Use to show the metric view to the user; for one engine's live incident clusters use camunda7_show_engine_health.",
@@ -156,10 +137,10 @@ export function registerWidgetTools(
       inputSchema: strictToolInput({
         ...schemas.engineFilterShape,
       }),
-      ...showToolBinding("analytics_show_failure_dashboard", "Failure Analysis Dashboard"),
+      ...showToolBinding(ANALYTICS_SHOW_FAILURE_DASHBOARD, "Failure Analysis Dashboard"),
     },
     withToolErrors(async (args, ctx) => {
-      const { t, title } = await localizeViewFor(profileStore, ctx)
+      const t = await localizeFor(profileStore, ctx)
       const data = await namedFailureDashboard(
         await queries.failureDashboardData(
           withCallerSignal(ch, ctx.signal),
@@ -167,18 +148,9 @@ export function registerWidgetTools(
         ),
         namesFor,
       )
-      // The requested scope travels as cell props so a self-fetch keeps it.
-      const cellProps = isFleetRequest(args.engine) ? undefined : { engine: args.engine }
-      return buildComposedView({
-        app: "analytics",
-        title: title("aFailureSummary.title"),
-        layout: [
-          { row: [{ widget: "analytics:failure-summary-kpi", props: cellProps }] },
-          { row: [{ widget: "analytics:error-patterns-table", props: cellProps }] },
-          { row: [{ widget: "analytics:failure-rate-table", props: cellProps }] },
-        ],
-        entries: [{ dataType: "analytics:failureDashboard", data }],
-        summary: t("aSum.failureDashboard", {
+      return buildViewResult(
+        data,
+        t("aSum.failureDashboard", {
           engines: engineScopeSummary(t, data.engines, isFleetRequest(args.engine)),
           totalIncidents: data.totalIncidents,
           uniqueErrorPatterns: data.uniqueErrorPatterns,
@@ -186,7 +158,7 @@ export function registerWidgetTools(
             ? t("aSum.mostAffectedProcess", { key: data.mostAffectedProcess })
             : "",
         }),
-      })
+      )
     }),
   )
 
@@ -194,16 +166,16 @@ export function registerWidgetTools(
 
   server.tool(
     {
-      name: "analytics_show_bpmn_heatmap",
+      name: ANALYTICS_SHOW_BPMN_HEATMAP,
       title: "BPMN Heatmap",
       description:
         "Render a process definition's BPMN diagram with a per-element heat overlay from metrics, with a Frequency↔Duration toggle (traversal count vs average duration per element). Node-level only — sequence-flow/edge heat is not available from metrics — and rendered on the latest deployed version's diagram (activity metrics carry no version label). Needs the camunda7 client to fetch the BPMN XML; otherwise the widget shows a fallback.",
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
       inputSchema: strictToolInput(heatmapInputShape),
-      ...showToolBinding("analytics_show_bpmn_heatmap", "BPMN Heatmap"),
+      ...showToolBinding(ANALYTICS_SHOW_BPMN_HEATMAP, "BPMN Heatmap"),
     },
     withToolErrors(async (args, ctx) => {
-      const { t, title } = await localizeViewFor(profileStore, ctx)
+      const t = await localizeFor(profileStore, ctx)
       const period = args.period ?? (await settingsFor(profileStore, ctx)).defaultPeriod
       const scoped = withEngineScope(engineScope, args)
       const heat = await queries.elementHeat(withCallerSignal(ch, ctx.signal), {
@@ -212,12 +184,9 @@ export function registerWidgetTools(
       })
       // Only to know whether a diagram exists; the widget reads the XML from `analytics_bpmn_xml_data`.
       const bpmn = await loadBpmn(args.processDefinitionKey, scoped.engine)
-      return buildSingleWidgetView({
-        widget: "analytics:bpmn-heatmap",
-        app: "analytics",
-        dataType: "analytics:bpmnHeatmap",
-        // The engines travel with the heat, so the model description names them.
-        data: {
+      // The engines travel with the heat, so the model description names them.
+      return buildViewResult(
+        {
           processDefinitionKey: args.processDefinitionKey,
           period,
           engines: scoped.engine,
@@ -226,15 +195,14 @@ export function registerWidgetTools(
           durationSec: heat.durationSec,
           asOf: heat.asOf,
         },
-        title: title("aHeatmap.title"),
-        summary: t("aSum.bpmnHeatmap", {
+        t("aSum.bpmnHeatmap", {
           key: args.processDefinitionKey,
           period,
           engines: engineScopeSummary(t, scoped.engine, isFleetRequest(args.engine)),
           elementCount: Object.keys(heat.frequency).length,
           fallbackNote: bpmn.bpmnXml ? "" : t("aSum.bpmnHeatmapNoXml"),
         }),
-      })
+      )
     }),
   )
 
@@ -286,57 +254,6 @@ export function registerWidgetTools(
         processDefinitionKey: args.processDefinitionKey,
         ...(await loadBpmn(args.processDefinitionKey, scoped.engine)),
       })
-    }),
-  )
-
-  // Self-fetching a show_* tool instead could render a second widget per refresh
-  // on hosts honoring `resultCanProduceWidget`.
-
-  server.tool(
-    {
-      name: ANALYTICS_DASHBOARD_DATA,
-      title: "Analytics dashboard data (internal)",
-      description:
-        "Internal JSON feed (no UI) for the analytics dashboard widgets' self-fetch. Prefer analytics_show_dashboard.",
-      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-      inputSchema: strictToolInput(dashboardInputShape),
-      ...appOnly,
-    },
-    withToolErrors(async (args, ctx) => {
-      const settings = await settingsFor(profileStore, ctx)
-      const data = await namedDashboard(
-        await queries.dashboardData(withCallerSignal(ch, ctx.signal), {
-          ...withEngineScope(engineScope, args),
-          period: args.period ?? settings.defaultPeriod,
-          minBucketSize: settings.minBucketSize,
-        }),
-        namesFor,
-      )
-      return buildDataFeedResult({ ...data })
-    }),
-  )
-
-  server.tool(
-    {
-      name: ANALYTICS_FAILURE_DASHBOARD_DATA,
-      title: "Failure dashboard data (internal)",
-      description:
-        "Internal JSON feed (no UI) for the failure dashboard widgets' self-fetch. Prefer analytics_show_failure_dashboard.",
-      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-      inputSchema: strictToolInput({
-        ...schemas.engineFilterShape,
-      }),
-      ...appOnly,
-    },
-    withToolErrors(async (args, ctx) => {
-      const data = await namedFailureDashboard(
-        await queries.failureDashboardData(
-          withCallerSignal(ch, ctx.signal),
-          withEngineScope(engineScope, args),
-        ),
-        namesFor,
-      )
-      return buildDataFeedResult({ ...data })
     }),
   )
 }

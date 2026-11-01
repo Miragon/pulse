@@ -2,17 +2,24 @@
 import { afterEach, beforeAll, describe, expect, it } from "vitest"
 import type { ComponentType } from "react"
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react"
-import { LocaleProvider, queryClient } from "@miragon/mcp-toolkit-ui"
-import { WidgetFixtureHost, type HostActionLog } from "@miragon/mcp-toolkit-ui/app"
-import { formatNumber } from "@miragon/pulse-widget-shell/widgets"
+import { LocaleProvider } from "@miragon/mcp-toolkit-ui"
+import {
+  formatNumber,
+  TestViewHost,
+  type HostAction,
+  createTestQueryClient,
+} from "@miragon/pulse-widget-shell/widgets"
 import { EngineHealthVerdict } from "./engine-health.js"
 import type { EngineHealthData } from "../view-models.js"
 import { CAMUNDA7_WIDGET_ACTIONS_DATA } from "../tool-names.js"
 import { widgetActionsFeedFor } from "./lib/hand-off.test-support.js"
 
+// One retry-free client per test; the test reads and pokes its cache.
+let queryClient = createTestQueryClient()
+
 afterEach(() => {
   cleanup()
-  queryClient.clear()
+  queryClient = createTestQueryClient()
 })
 
 /** The hand-offs follow the deployment's surface — these fixtures run as `operations`. */
@@ -103,7 +110,11 @@ describe("EngineHealthVerdict (fixture render)", () => {
         <EngineHealthVerdict data={{ ...DEGRADED, engineId: "other" }} />
       </>
     )
-    render(<WidgetFixtureHost widget={Two} data={{}} tools={tools} />)
+    render(
+      <TestViewHost tools={tools} client={queryClient}>
+        <Two />
+      </TestViewHost>,
+    )
     const sections = screen.getAllByRole("region", { name: "Top failures, grouped by cause" })
     expect(sections).toHaveLength(2)
     const ids = sections.map((s) => s.getAttribute("aria-labelledby"))
@@ -112,11 +123,9 @@ describe("EngineHealthVerdict (fixture render)", () => {
 
   it("renders the verdict header, KPIs and the incident clusters with drill + ask handoffs", async () => {
     render(
-      <WidgetFixtureHost
-        widget={Widget}
-        data={DEGRADED as unknown as Record<string, unknown>}
-        tools={tools}
-      />,
+      <TestViewHost tools={tools} client={queryClient}>
+        <Widget data={DEGRADED as never} />
+      </TestViewHost>,
     )
 
     // Verdict header (#322 U4), the one primary next step and the AI hand-off.
@@ -146,19 +155,16 @@ describe("EngineHealthVerdict (fixture render)", () => {
   it("keeps its hand-offs when the surface feed fails — naming no tool", async () => {
     // The shared client retries a failed query with backoff — fail at once.
     queryClient.setQueryDefaults(["camunda7-widget-actions"], { retry: false })
-    const actions: HostActionLog[] = []
+    const actions: HostAction[] = []
     render(
-      <WidgetFixtureHost
-        widget={Widget}
-        data={DEGRADED as unknown as Record<string, unknown>}
-        tools={{}}
-        onHostAction={(action) => actions.push(action)}
-      />,
+      <TestViewHost tools={{}} onHostAction={(action) => actions.push(action)} client={queryClient}>
+        <Widget data={DEGRADED as never} />
+      </TestViewHost>,
     )
     fireEvent.click(await screen.findByRole("button", { name: /Assess in chat/ }))
     // Without a confirmed retry tool the clusters offer the diagnosis.
     expect(await screen.findAllByRole("button", { name: /Explain error in chat/ })).toHaveLength(2)
-    const prompts = actions.flatMap((a) => (a.type === "sendFollowUpMessage" ? [a.prompt] : []))
+    const prompts = actions.flatMap((a) => (a.type === "sendFollowUp" ? [a.prompt] : []))
     expect(prompts).toHaveLength(1)
     expect(prompts[0]).toContain('Ids: engine="default"')
     expect(prompts[0]).not.toContain("Tools:")
@@ -177,7 +183,11 @@ describe("EngineHealthVerdict (fixture render)", () => {
         },
       ],
     }
-    render(<WidgetFixtureHost widget={Widget} data={named as unknown as Record<string, unknown>} />)
+    render(
+      <TestViewHost client={queryClient}>
+        <Widget data={named as never} />
+      </TestViewHost>,
+    )
     const cluster = screen.getByText("Call warehouse").closest("li")!
     // The BPMN id is the quiet second line; the cause and the process follow.
     expect(within(cluster).getByText("callWMS")).toBeTruthy()
@@ -192,7 +202,11 @@ describe("EngineHealthVerdict (fixture render)", () => {
       ...HEALTHY,
       summary: { ...HEALTHY.summary, runningInstances: 0, totalDefinitions: 0 },
     }
-    render(<WidgetFixtureHost widget={Widget} data={empty as unknown as Record<string, unknown>} />)
+    render(
+      <TestViewHost client={queryClient}>
+        <Widget data={empty as never} />
+      </TestViewHost>,
+    )
     const badge = screen.getByText("Empty").closest("[data-slot='status-badge']")!
     expect(badge.getAttribute("data-tone")).toBe("neutral")
     expect(screen.getByText("No processes deployed")).toBeTruthy()
@@ -202,7 +216,9 @@ describe("EngineHealthVerdict (fixture render)", () => {
 
   it("renders the stable verdict with no cluster list when there are no incidents", () => {
     render(
-      <WidgetFixtureHost widget={Widget} data={HEALTHY as unknown as Record<string, unknown>} />,
+      <TestViewHost client={queryClient}>
+        <Widget data={HEALTHY as never} />
+      </TestViewHost>,
     )
 
     expect(screen.getByText("No open incidents, 312 running instances")).toBeTruthy()
@@ -226,7 +242,9 @@ describe("EngineHealthVerdict (fixture render)", () => {
       ],
     }
     render(
-      <WidgetFixtureHost widget={Widget} data={capped as unknown as Record<string, unknown>} />,
+      <TestViewHost client={queryClient}>
+        <Widget data={capped as never} />
+      </TestViewHost>,
     )
 
     expect(screen.getByText(`≥${formatNumber(1400)} affected`, { exact: false })).toBeTruthy()
@@ -240,11 +258,9 @@ describe("the verdict line and the hand-offs speak the view's language", () => {
   function renderIn(locale: string, data: EngineHealthData) {
     return render(
       <LocaleProvider locale={locale}>
-        <WidgetFixtureHost
-          widget={Widget}
-          data={data as unknown as Record<string, unknown>}
-          tools={tools}
-        />
+        <TestViewHost tools={tools} client={queryClient}>
+          <Widget data={data as never} />
+        </TestViewHost>
       </LocaleProvider>,
     )
   }
@@ -306,11 +322,12 @@ describe("the verdict line and the hand-offs speak the view's language", () => {
   it("a read-only deployment explains the cluster instead of planning a fix", async () => {
     render(
       <LocaleProvider locale="de">
-        <WidgetFixtureHost
-          widget={Widget}
-          data={DEGRADED as unknown as Record<string, unknown>}
+        <TestViewHost
           tools={{ [CAMUNDA7_WIDGET_ACTIONS_DATA]: await widgetActionsFeedFor("read-only") }}
-        />
+          client={queryClient}
+        >
+          <Widget data={DEGRADED as never} />
+        </TestViewHost>
       </LocaleProvider>,
     )
     const explain = await screen.findAllByRole("button", { name: "Fehler im Chat erklären" })

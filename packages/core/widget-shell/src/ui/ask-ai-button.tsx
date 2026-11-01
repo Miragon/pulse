@@ -1,10 +1,10 @@
 import { Button, useLocale } from "@miragon/mcp-toolkit-ui"
 import { MessageSquare } from "lucide-react"
-import { useHostActions } from "@miragon/mcp-toolkit-ui/app"
 import type { AskAiPrompt } from "./ask-ai-prompt.js"
 import { Icon, type LucideIcon } from "./icon.js"
 import { kitLabels } from "./kit-labels.js"
 import { MENU_ITEM } from "./menu-item.js"
+import { useViewHost } from "./view-host.js"
 
 /** A hand-off is never the view's primary action, so every tier but `menuitem` is the same secondary outline button. */
 export type AskAiVariant = "primary" | "subtle" | "icon" | "menuitem"
@@ -22,7 +22,7 @@ export interface AskAiButtonProps {
   onSent?: () => void
 }
 
-/** The ONLY owner of the `askAi` call site (a structural test fails on any other). Navigation and mutations must not use it. */
+/** The ONLY owner of the hand-off follow-up (a structural test fails on any other). Navigation and mutations must not use it. */
 export function AskAiButton({
   prompt,
   icon = MessageSquare,
@@ -32,13 +32,13 @@ export function AskAiButton({
   disabled,
   onSent,
 }: AskAiButtonProps) {
-  const host = useHostActions()
+  const { sendFollowUp } = useViewHost()
   const locale = useLocale()
   if (prompt === null) return null
   // The kit has no catalog, so the default verb follows the ambient locale instead of leaking English.
   const effectiveLabel = label ?? kitLabels(locale).askAiDefault
   const send = () => {
-    host.askAi(prompt)
+    sendFollowUp(prompt)
     onSent?.()
   }
   if (variant === "menuitem") {

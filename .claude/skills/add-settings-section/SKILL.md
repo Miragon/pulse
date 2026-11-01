@@ -142,7 +142,7 @@ calls — model it on analytics' `registerSettingsTools`:
 
 | Tool                     | What the helper wires                                           | Your callback                                    |
 | ------------------------ | --------------------------------------------------------------- | ------------------------------------------------ |
-| `<module>_show_settings` | `...showToolBinding`, `buildSingleWidgetView` of the `widget`   | `show.render`: the view title + model summary    |
+| `<module>_show_settings` | `...showToolBinding`, `buildViewResult` of the loaded view      | `show.render`: the model summary (no title)      |
 | `<module>_settings_data` | `...appOnly`, `buildDataFeedResult(view)`                       | `load`: the view, spreading the `gate` it gets   |
 | `<module>_save_settings` | `requireProfileKey`, the owner's `userId`, the effective result | `save.write`: text summary + the effective slice |
 
@@ -218,9 +218,9 @@ One self-fetching card, composed from `@miragon/pulse-widget-shell/widgets` —
   `.failed(t("…saveFailedToast"), error)` (the toolkit's toasts are the polite live region
   a screen reader hears; reference: analytics' `settings-section.tsx`; camunda7's panel
   passes `feedback` to `useEngineAction`).
-- Render `<HostModelContext content={modelContextText(describe…(view))}>` **inline**, not
-  through `adaptDataWidget`'s `describeForModel`: the settings tab mounts the widget
-  without data, so only the mounted component knows the self-fetched view.
+- Render `<HostModelContext content={modelContextText(describe…(view))}>` **inline** in the
+  section, not in the view that wraps it: the settings page mounts the section without
+  data, so only the mounted component knows the self-fetched view.
   `describe…` returns a `ModelContextSpec` (static `summary`, `facts`, `tools`) whose
   `surface` names the save tool only while `canSave` — reference:
   `describeAnalyticsSettings` in `analytics-connector/src/widgets/model-descriptions.ts`
@@ -230,33 +230,33 @@ One self-fetching card, composed from `@miragon/pulse-widget-shell/widgets` —
 
 ## Step 6 — registration (three links; the page assembles itself)
 
-1. `src/widgets/index.ts` — add the data-type constant + `adaptDataWidget(Widget, "<module>:settings")`
-2. `apps/mcp-server-camunda7/src/ui/widget-registry.ts` — spreads the module's widget map;
-   guarded by `apps/mcp-server-camunda7/test/widget-registry.test.ts` (every
-   `widget: "<module>:<id>"` a connector's source emits, your show tool's
-   `widget: "<module>:settings"` included, must have an entry)
-3. `src/tool-names.ts` — constants for the `*_data` feed and the save tool, so a rename
-   trips TS at every widget call site
+1. `src/widgets/views.tsx` — the `<module>_show_settings` view in the module's view map
+   (`[MY_SHOW_SETTINGS]: ({ data }) => <MySettingsWidget data={data} />`) AND the section in
+   its host widgets (`"<module>:settings": () => <MySettingsWidget />`, self-fetching)
+2. `apps/mcp-server-camunda7/src/ui/view-registry.ts` — spreads the module's views and host
+   widgets; guarded by `apps/mcp-server-camunda7/test/view-registry.test.ts` (every
+   view-bound tool has a view, and every `<module>_show_settings` has its
+   `<module>:settings` host widget)
+3. `src/tool-names.ts` — constants for the show tool, the `*_data` feed and the save tool,
+   so a rename trips TS at every call site
 
 **The `<module>:settings` id IS the registration on the settings page.** The page is the
-shell's (`shell_show_settings`, also the cockpit's settings tab): `settingsLayout`
-(`@miragon/pulse-widget-shell/widgets`) assembles it from the HOST's widget registry — the
-shell's language section (`shell:settings`) first, then one row per id ending in
-`:settings`, in registration order (the composition root's module order in
-`widget-registry.ts`). Nothing lists your module — which is exactly why a custom module in
-a composed server gets a first-class section too.
-Name the widget anything else and it renders only through your own
-`<module>_show_settings` tool.
+shell's (`shell_show_settings`, also the cockpit's settings tab): `SettingsPage`
+(`@miragon/pulse-widget-shell/widgets`) renders the shell's language section first, then
+every host widget whose id ends in `:settings` (`settingsSections`), in registration order
+(the composition root's module order in `view-registry.ts`), each in its own error
+boundary. Nothing lists your module — which is exactly why a custom module in a composed
+server gets a first-class section too. Name the host widget anything else and the section
+renders only through your own `<module>_show_settings` tool.
 
-The failure mode stays silent (a section whose widget never reaches the host registry is
-simply absent from the tab), so `apps/mcp-server-camunda7/test/widget-registry.test.ts`
-asserts the ASSEMBLED layout against the ids the connectors emit: every emitted `:settings`
-id must produce a row, and every row must resolve in the host registry. Land link 2 and
-that test turns green; forget it and it names exactly what is missing.
+The failure mode stays silent (a section that never reaches the host widgets is simply
+absent from the tab), so `apps/mcp-server-camunda7/test/view-registry.test.ts` pairs every
+`<module>_show_settings` tool with its `<module>:settings` host widget and pins the page's
+section order. Land link 2 and that test turns green; forget it and it names exactly what
+is missing.
 
-Section ids stay raw strings on purpose (a cross-module reference by raw name):
-`HostWidgetsProvider` resolves them at runtime and `filterLayoutToWidgets` drops the cell +
-emptied row when one resolves nowhere, so a host without your module degrades to "section
+Section ids stay raw strings on purpose (a cross-module reference by raw name): the host
+widgets resolve them at runtime, so a host without your module degrades to "section
 absent" instead of erroring.
 
 Also add the three tool names to `apps/mcp-server-camunda7/test/expected-tools.ts`, refresh

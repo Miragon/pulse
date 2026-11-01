@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { parseToolResult } from "@miragon/mcp-toolkit-ui"
+import { decodeToolResult, type ToolResult } from "@miragon/pulse-widget-shell/server"
 import type { MCPServer } from "mcp-use"
 import type { PrometheusClient, PromSample } from "@miragon/pulse-analytics-client"
 import {
@@ -120,9 +120,7 @@ const ARGS: Record<string, Record<string, unknown>> = {
   analytics_engine_landscape: {},
   analytics_engine_health: {},
   analytics_show_dashboard: {},
-  analytics_dashboard_data: {},
   analytics_show_failure_dashboard: {},
-  analytics_failure_dashboard_data: {},
   analytics_show_cluster_compare: {
     deploymentTimestamp: daysAgo(2),
     windowBeforeDays: 3,
@@ -249,13 +247,8 @@ describe("every engine-reading tool is scoped to the configured engines (N138)",
 describe("the BPMN heatmap names the engines its heat adds up (K33)", () => {
   const scope = createEngineScope(["prod-a", "prod-b"])
   type Payload = { engines?: unknown }
-  const payloadOf = (result: unknown): Payload => {
-    const r = result as {
-      structuredContent?: { context?: { stepData: { result: { data: Payload } } } }
-    }
-    // A view carries it in its step data; a feed answers in JSON text.
-    return r.structuredContent?.context?.stepData.result.data ?? parseToolResult<Payload>(result)
-  }
+  // A view carries it as its structuredContent; a feed answers in JSON text.
+  const payloadOf = (result: unknown): Payload => decodeToolResult<Payload>(result as ToolResult)
 
   it.each(["analytics_show_bpmn_heatmap", "analytics_bpmn_heatmap_data"])(
     "%s echoes the resolved engines in its payload",

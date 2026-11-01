@@ -4,7 +4,6 @@ import { cleanup, render, screen } from "@testing-library/react"
 import { LocaleProvider } from "@miragon/mcp-toolkit-ui"
 import { SERVED_FONTS_STYLE_ID } from "./declare-served-fonts.js"
 import { HostDocument } from "./host-document.js"
-import { viewTitleMode } from "./localized-app-view.js"
 import { BpmnZoomControls } from "./bpmn-zoom-controls.js"
 import { ShellHostProvider, type ShellHost } from "./shell-host.js"
 
@@ -28,7 +27,6 @@ afterEach(() => {
   document.body.removeAttribute("style")
   document.getElementById("__mcp-host-fonts")?.remove()
   document.getElementById(SERVED_FONTS_STYLE_ID)?.remove()
-  delete globalThis.__mcpUseViewConfig
 })
 
 describe("HostDocument", () => {
@@ -79,8 +77,10 @@ describe("HostDocument", () => {
   })
 
   it("declares Geist from the server that served the view, before the host's font", () => {
-    globalThis.__mcpUseViewConfig = { publicBase: "https://mcp.example.com/mcp/_mcp-use/public/" }
-    renderDocument({ fontCss: "@font-face { font-family: HostSans; src: local(Arial); }" })
+    renderDocument({
+      publicBase: "https://mcp.example.com/mcp/_mcp-use/public/",
+      fontCss: "@font-face { font-family: HostSans; src: local(Arial); }",
+    })
     const served = document.getElementById(SERVED_FONTS_STYLE_ID)!
     expect(served.textContent).toContain(
       'url("https://mcp.example.com/fonts/geist-5.3.0/geist-latin-wght-normal.woff2")',
@@ -92,23 +92,6 @@ describe("HostDocument", () => {
   it("declares no face outside a served view document", () => {
     renderDocument({})
     expect(document.getElementById(SERVED_FONTS_STYLE_ID)).toBeNull()
-  })
-})
-
-describe("viewTitleMode (one title per view)", () => {
-  it("hides the toolbar title over a module's view, whose widget renders its own heading", () => {
-    for (const tool of [
-      "camunda7_show_process_list",
-      "camunda7_open_cockpit",
-      "analytics_show_dashboard",
-      "notes_show_list",
-    ]) {
-      expect(viewTitleMode(tool)).toBe("hide")
-    }
-  })
-
-  it("keeps it where the host does not name the tool", () => {
-    expect(viewTitleMode(undefined)).toBe("show")
   })
 })
 

@@ -31,10 +31,9 @@ export function explainDiagramHandOff(data: BpmnViewerData): HandOff {
   }
 }
 
-export function BpmnViewerHeader({ data }: { data: BpmnViewerData | null }) {
+export function BpmnViewerHeader({ data }: { data: BpmnViewerData }) {
   const t = useT()
   const { ask } = useHandOff()
-  if (!data) return null
   const totalActive = data.activeActivityIds.length
   const totalIncidents = data.incidentActivityIds.length
 

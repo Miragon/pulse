@@ -1,28 +1,20 @@
 // @vitest-environment happy-dom
-import { afterEach, beforeEach, describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it } from "vitest"
 import type { ComponentType } from "react"
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react"
-import { queryClient } from "@miragon/mcp-toolkit-ui"
-import { WidgetFixtureHost } from "@miragon/mcp-toolkit-ui/app"
 import { CAMUNDA7_COCKPIT_OVERVIEW_DATA } from "../../tool-names.js"
 import { useAnalyticsActive } from "./analytics-probe.js"
 import { LandingChooser } from "./landing.js"
+import { TestViewHost, createTestQueryClient } from "@miragon/pulse-widget-shell/widgets"
+
+// One retry-free client per test; the test reads and pokes its cache.
+let queryClient = createTestQueryClient()
 
 // The query client is a singleton: restore it so no feed answer leaks across tests.
-const toolkitDefaults = queryClient.getDefaultOptions()
-
-beforeEach(() => {
-  // The default three retries would hold a failed feed in "pending" for seconds.
-  queryClient.setDefaultOptions({
-    ...toolkitDefaults,
-    queries: { ...toolkitDefaults.queries, retry: false },
-  })
-})
 
 afterEach(() => {
   cleanup()
-  queryClient.clear()
-  queryClient.setDefaultOptions(toolkitDefaults)
+  queryClient = createTestQueryClient()
 })
 
 const ENGINES = [
@@ -63,11 +55,9 @@ function renderLanding(
     />
   )
   render(
-    <WidgetFixtureHost
-      widget={Landing}
-      data={{}}
-      tools={{ [CAMUNDA7_COCKPIT_OVERVIEW_DATA]: overviewFeed }}
-    />,
+    <TestViewHost tools={{ [CAMUNDA7_COCKPIT_OVERVIEW_DATA]: overviewFeed }} client={queryClient}>
+      <Landing />
+    </TestViewHost>,
   )
 }
 
@@ -127,18 +117,20 @@ describe("useAnalyticsActive", () => {
 
   it("is true once the analytics settings feed answers", async () => {
     render(
-      <WidgetFixtureHost
-        widget={ProbeWidget}
-        data={{}}
-        tools={{ analytics_settings_data: { settings: {} } }}
-      />,
+      <TestViewHost tools={{ analytics_settings_data: { settings: {} } }} client={queryClient}>
+        <ProbeWidget />
+      </TestViewHost>,
     )
     expect(screen.getByText("analytics:false")).toBeTruthy()
     expect(await screen.findByText("analytics:true")).toBeTruthy()
   })
 
   it("stays false when the module is not active (unknown tool)", async () => {
-    render(<WidgetFixtureHost widget={ProbeWidget} data={{}} tools={{}} />)
+    render(
+      <TestViewHost tools={{}} client={queryClient}>
+        <ProbeWidget />
+      </TestViewHost>,
+    )
     await waitFor(() =>
       expect(
         queryClient.getQueryCache().find({ queryKey: ["analytics-probe"], exact: false })?.state

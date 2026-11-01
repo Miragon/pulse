@@ -1,7 +1,11 @@
 import type { MCPServer } from "mcp-use"
 import { registerSettingsSection, saveModuleSlice } from "@miragon/pulse-widget-shell/server"
-import { ANALYTICS_SAVE_SETTINGS, ANALYTICS_SETTINGS_DATA } from "./tool-names.js"
-import { localizeFor, localizeViewFor, type ProfileSource, type ServerT } from "./server-locale.js"
+import {
+  ANALYTICS_SAVE_SETTINGS,
+  ANALYTICS_SETTINGS_DATA,
+  ANALYTICS_SHOW_SETTINGS,
+} from "./tool-names.js"
+import { localizeFor, type ProfileSource, type ServerT } from "./server-locale.js"
 import {
   ANALYTICS_MODULE_KEY,
   analyticsSettingsSaveInput,
@@ -36,22 +40,16 @@ export function registerSettingsTools(
     })
 
   registerSettingsSection(server, {
-    app: "analytics",
-    widget: "analytics:settings",
     openWorldHint: true,
     load: async (ctx, _key, gate) => ({
       view: { settings: await settingsFor(store, ctx), ...gate } satisfies AnalyticsSettingsView,
     }),
     show: {
-      name: "analytics_show_settings",
+      name: ANALYTICS_SHOW_SETTINGS,
       title: "Analytics Settings",
       description:
         "Open the analytics settings section: the default look-back period and the minimum comparison bucket size applied when analytics calls omit them.",
-      render: async ({ view }, ctx) => {
-        const { t, title } = await localizeViewFor(store, ctx)
-        // None with "system": the section heading names it.
-        return { title: title("aSettings.heading"), summary: summarize(t, view) }
-      },
+      render: async ({ view }, ctx) => summarize(await localizeFor(store, ctx), view),
     },
     feed: {
       name: ANALYTICS_SETTINGS_DATA,

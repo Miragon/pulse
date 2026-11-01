@@ -1,7 +1,7 @@
 {
   "name": "@miragon/pulse-widget-shell",
   "version": "0.24.2",
-  "description": "Shared widget kit for Pulse MCP Apps: UI primitives, view + data-feed builders, the settings page and the composed-server boot.",
+  "description": "Shared widget kit for Pulse MCP Apps: UI primitives, the view runtime (mountViews, the view host, the query hooks, TestViewHost), view + data-feed builders, the settings page and the composed-server boot.",
   "license": "MIT",
   "keywords": [
     "mcp",
@@ -33,10 +33,6 @@
       "types": "./dist/server.d.ts",
       "import": "./dist/server.js"
     },
-    "./ui": {
-      "types": "./dist/adapt-data-widget.d.ts",
-      "import": "./dist/adapt-data-widget.js"
-    },
     "./widgets": {
       "types": "./dist/ui/index.d.ts",
       "import": "./dist/ui/index.js"
@@ -56,7 +52,7 @@
   "peerDependencies": {
     "@miragon/mcp-toolkit-core": "~2.8.1",
     "@miragon/mcp-toolkit-ui": "~2.8.1",
-    "@tanstack/react-query": "5.102.8",
+    "@tanstack/react-query": "^5.103.2",
     "bpmn-js": "18.31.1",
     "lucide-react": "^0.562.0 || ^1.0.0",
     "mcp-use": "2.7.3",
@@ -94,6 +90,7 @@
     "@miragon/mcp-toolkit-ui": "2.8.1",
     "@stryker-mutator/core": "10.1.1",
     "@stryker-mutator/vitest-runner": "10.1.1",
+    "@tanstack/react-query": "5.103.2",
     "@testing-library/react": "16.3.3",
     "@types/react": "19.3.0",
     "bpmn-js": "18.31.1",

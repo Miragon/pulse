@@ -61,9 +61,9 @@ export type ModuleDefinition = ComposableModule<SharedResources>
  *
  * Adding a module touches two places next to its `workspace:*` dependency
  * (the `create-module` skill walks through them): this list and the spread
- * in `src/ui/widget-registry.ts`. Tailwind picks up workspace modules via the
- * `modules/` glob in `src/ui/globals.css`, and `test/widget-registry.test.ts`
- * reads the widget ids from the module's sources.
+ * in `src/ui/view-registry.ts`. Tailwind picks up workspace modules via the
+ * `modules/` glob in `src/ui/globals.css`, and `test/view-registry.test.ts`
+ * holds the views to the view-bound tools this list registers.
  *
  * Exported for `test/strict-input.e2e.test.ts`, which boots every toolset
  * each listed module declares — yours included, without a test edit.

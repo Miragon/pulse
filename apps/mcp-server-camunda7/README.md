@@ -53,9 +53,11 @@ The package itself is `private` and not published to npm.
   app only selects modules and wires shared resources.
 - **Bundles the widget UI:** Vite builds the two-file bundle `dist/mcp-app.js` + `dist/mcp-app.css`,
   a self-contained bundle (React, Tailwind, all widgets). mcp-use serves it behind one
-  `ui://views/<tool>.html` view resource per widget tool (derived from each tool's `view` binding).
-  The `dedupe` array in [`vite.config.ts`](vite.config.ts) is load-bearing: it keeps a single React /
-  toolkit instance so in-widget `useCallTool()` works.
+  `ui://views/<tool>.html` view resource per widget tool (derived from each tool's `view` binding),
+  each with a prelude naming its view, so `mountViews` picks the tool's view from
+  [`src/ui/view-registry.ts`](src/ui/view-registry.ts). The `dedupe` array in
+  [`vite.config.ts`](vite.config.ts) is load-bearing: it keeps a single React / TanStack Query /
+  mcp-use / toolkit instance, so a widget finds the view host and the one `QueryClient`.
 - **Serves HTTP:** streamable-HTTP MCP on `:8400/mcp`; the `mcp-use` inspector (`:8400/mcp/inspector`) ships with `mcp-use dev` only, never with the production entrypoint
   in dev.
 
@@ -95,7 +97,7 @@ Configuration is entirely environment-driven. See
 | `src/app.ts`             | `createApp(env, deps?)`: OAuth, persistence, plugins into the shared boot; the e2e suites boot it too    |
 | `src/module-contract.ts` | App-owned port: `ModuleDefinition` + `SharedResources { profileStore, fetchBpmnXml? }`                   |
 | `src/setup.ts`           | Module selection (`MCP_ACTIVE_MODULES`), env-typo warner + boot warnings from the modules, shared wiring |
-| `src/ui/`                | Widget host bundle: `widget-registry.ts` (the host map) + `McpAppView` dispatcher                        |
+| `src/ui/`                | Widget host bundle: `view-registry.ts` (views + host widgets) + `main.tsx` (`mountViews`)                |
 | `vite.config.ts`         | Single-file widget bundle config (keep the `dedupe` array)                                               |
 | `Dockerfile`             | Lives at the repo root; multi-stage build that produces the published image                              |
 

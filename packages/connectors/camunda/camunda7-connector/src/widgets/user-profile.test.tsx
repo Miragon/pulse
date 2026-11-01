@@ -2,16 +2,18 @@
 import { afterEach, describe, expect, it } from "vitest"
 import type { ComponentType } from "react"
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
-import { queryClient } from "@miragon/mcp-toolkit-ui"
-import { WidgetFixtureHost } from "@miragon/mcp-toolkit-ui/app"
 import { CAMUNDA7_SAVE_SETTINGS, CAMUNDA7_SETTINGS_DATA } from "../tool-names.js"
 import type { UserProfileView } from "../lib/profile-schema.js"
 import { UserProfileWidget } from "./user-profile.js"
+import { TestViewHost, createTestQueryClient } from "@miragon/pulse-widget-shell/widgets"
+
+// One retry-free client per test; the test reads and pokes its cache.
+let queryClient = createTestQueryClient()
 
 afterEach(() => {
   cleanup()
   // Singleton client: one test's cached feed must not leak into the next.
-  queryClient.clear()
+  queryClient = createTestQueryClient()
 })
 
 // Possibly a cached, stale view.
@@ -41,16 +43,17 @@ function renderPanel(view: UserProfileView = VIEW) {
   const saves: Array<Record<string, unknown>> = []
   const Panel: ComponentType<Record<string, unknown>> = () => <UserProfileWidget data={view} />
   render(
-    <WidgetFixtureHost
-      widget={Panel}
-      data={{}}
+    <TestViewHost
       tools={{
         [CAMUNDA7_SAVE_SETTINGS]: (args: Record<string, unknown>) => {
           saves.push(args)
           return { ...view.profile, ...args }
         },
       }}
-    />,
+      client={queryClient}
+    >
+      <Panel />
+    </TestViewHost>,
   )
   const save = async () => {
     const before = saves.length
@@ -198,15 +201,16 @@ describe("the section where camunda7 is not active", () => {
     queryClient.setQueryDefaults(["camunda7:settings"], { retry: false })
     const Section: ComponentType<Record<string, unknown>> = () => <UserProfileWidget />
     const { container } = render(
-      <WidgetFixtureHost
-        widget={Section}
-        data={{}}
+      <TestViewHost
         tools={{
           [CAMUNDA7_SETTINGS_DATA]: () => {
             throw new Error(`Tool ${CAMUNDA7_SETTINGS_DATA} not found`)
           },
         }}
-      />,
+        client={queryClient}
+      >
+        <Section />
+      </TestViewHost>,
     )
     await waitFor(() =>
       expect(

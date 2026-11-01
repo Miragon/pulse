@@ -2,8 +2,9 @@ import { defineConfig } from "vitest/config"
 
 export default defineConfig({
   test: {
+    // Node by default; a widget test opts into a DOM with `// @vitest-environment happy-dom`.
     environment: "node",
-    include: ["src/**/*.test.ts"],
+    include: ["src/**/*.test.{ts,tsx}"],
     server: {
       deps: {
         // Run the @miragon/pulse-* packages through Vite's resolver instead of

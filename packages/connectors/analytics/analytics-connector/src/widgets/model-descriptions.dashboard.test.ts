@@ -51,7 +51,7 @@ const dashboard = (over: Partial<AnalyticsDashboardData> = {}): AnalyticsDashboa
 
 describe("dashboard model descriptions", () => {
   it("labels the fleet aggregate with its engines and the period it covers (K33)", () => {
-    const text = describeExecutionSummary(dashboard(), {})
+    const text = describeExecutionSummary(dashboard())
     expect(text).toContain('Ids: engine=["prod-a","prod-b"], period="7d"\n')
     expect(text).toContain("(aggregated)")
     expect(text).toContain(
@@ -59,10 +59,9 @@ describe("dashboard model descriptions", () => {
     )
   })
 
-  it("reads the scope from the data, never from the cell props", () => {
+  it("reads the scope from the data it describes", () => {
     const text = describeExecutionSummary(
       dashboard({ processDefinitionKey: "order", engines: ["prod-a"], period: "1d" }),
-      { engine: "prod-b", period: "30d" },
     )
     expect(text).toContain('Ids: engine="prod-a", processDefinitionKey="order", period="1d"\n')
     expect(text).not.toContain("prod-b")
@@ -71,7 +70,7 @@ describe("dashboard model descriptions", () => {
   })
 
   it("keeps window flows and the live gauges apart (N77)", () => {
-    const text = describeExecutionSummary(dashboard(), {})
+    const text = describeExecutionSummary(dashboard())
     expect(text).toContain(
       "processDefinitions=2, startedInWindow=40, completedInWindow=30, incidentsCreatedInWindow=5, incidentsResolvedInWindow=2, runningNow=156, openIncidentsNow=12",
     )
@@ -79,10 +78,7 @@ describe("dashboard model descriptions", () => {
   })
 
   it("never reads an unreported gauge or an empty duration window as 0 (N78)", () => {
-    const text = describeExecutionSummary(
-      dashboard({ runningNow: null, openIncidentsNow: null }),
-      {},
-    )
+    const text = describeExecutionSummary(dashboard({ runningNow: null, openIncidentsNow: null }))
     expect(text).not.toMatch(/runningNow|openIncidentsNow/)
     const perf = describeExecutionPerformance(
       dashboard({
@@ -91,11 +87,10 @@ describe("dashboard model descriptions", () => {
         p95DurationMs: null,
         incidentRatePct: null,
       }),
-      {},
     )
     expect(perf).toContain("No instance ended in the period")
     expect(perf).not.toMatch(/DurationMs|incidentRatePct/)
-    expect(describeExecutionPerformance(dashboard(), {})).toContain(
+    expect(describeExecutionPerformance(dashboard())).toContain(
       "avgDurationMs=60000, medianDurationMs=45000, p95DurationMs=187000, incidentRatePct=12.5",
     )
   })
@@ -109,13 +104,12 @@ describe("dashboard model descriptions", () => {
       suppressed: false,
     }
     const scoped = { processDefinitionKey: "order" }
-    const text = describeExecutionPerformance(dashboard({ ...scoped, previous }), {})
+    const text = describeExecutionPerformance(dashboard({ ...scoped, previous }))
     expect(text).toContain("incidentRatePct=12.5, previousPeriodIncidentRatePct=6.7")
     expect(text).not.toContain("NotReliable")
     expect(text).not.toContain("mix")
     const noisy = describeExecutionPerformance(
       dashboard({ ...scoped, previous: { ...previous, suppressed: true } }),
-      {},
     )
     expect(noisy).toContain("previousPeriodComparisonNotReliable=true")
   })
@@ -129,14 +123,14 @@ describe("dashboard model descriptions", () => {
       partial: false,
       suppressed: true,
     }
-    const text = describeExecutionPerformance(dashboard({ previous }), {})
+    const text = describeExecutionPerformance(dashboard({ previous }))
     expect(text).toContain("reflects their mix and is not judged")
     expect(text).toContain("previousPeriodIncidentRatePct=6.7")
     expect(text).not.toContain("NotReliable")
   })
 
   it("names the busiest definition with its window flows and live state", () => {
-    const text = describeDefinitionBreakdown(dashboard(), {})
+    const text = describeDefinitionBreakdown(dashboard())
     expect(text).toContain(
       'busiestProcessDefinitionKey="order", busiestStartedInWindow=30, busiestIncidentsCreatedInWindow=4, busiestRunningNow=100',
     )
@@ -158,7 +152,6 @@ describe("dashboard model descriptions", () => {
           },
         ],
       }),
-      {},
     )
     expect(text).toContain('topProcessDefinitionKey="invoice", topActivityId="StartEvent_1"')
     expect(text).toContain('Ids: engine=["prod-a","prod-b"], period="7d"')
@@ -178,7 +171,6 @@ describe("dashboard model descriptions", () => {
     }
     const text = describeActivityBottlenecks(
       dashboard({ activityBreakdown: [row], activityCount: 37 }),
-      {},
     )
     expect(text).toContain("rows=1, activitiesInAll=37")
   })
@@ -194,22 +186,19 @@ const delta: CompareKpiDelta = {
 
 describe("the comparison descriptions", () => {
   it("cluster compare: re-runs as asked, states the windows as measured", () => {
-    const text = describeClusterCompare(
-      {
-        engines: ["prod-a"],
-        processDefinitionKey: null,
-        activityId: null,
-        deploymentTimestamp: "2026-07-01T12:00:00Z",
-        requestedWindowDays: { before: 7, after: 7 },
-        windowDays: { before: 7, after: 0.42 },
-        partial: true,
-        minBucketSize: 10,
-        suppressed: true,
-        kpis: [],
-        delta,
-      },
-      {},
-    )
+    const text = describeClusterCompare({
+      engines: ["prod-a"],
+      processDefinitionKey: null,
+      activityId: null,
+      deploymentTimestamp: "2026-07-01T12:00:00Z",
+      requestedWindowDays: { before: 7, after: 7 },
+      windowDays: { before: 7, after: 0.42 },
+      partial: true,
+      minBucketSize: 10,
+      suppressed: true,
+      kpis: [],
+      delta,
+    })
     // The tool takes whole days: the requested windows, never the measured 0.42.
     expect(text).toContain(
       'Ids: engine="prod-a", deploymentTimestamp="2026-07-01T12:00:00Z", windowBeforeDays=7, windowAfterDays=7\n',
@@ -223,20 +212,17 @@ describe("the comparison descriptions", () => {
   })
 
   it("engine compare: the process is held fixed", () => {
-    const text = describeEngineCompare(
-      {
-        engineA: "prod-a",
-        engineB: "prod-b",
-        processDefinitionKey: "order",
-        windowDays: 14,
-        activityId: null,
-        minBucketSize: 10,
-        suppressed: false,
-        kpis: [],
-        delta,
-      },
-      {},
-    )
+    const text = describeEngineCompare({
+      engineA: "prod-a",
+      engineB: "prod-b",
+      processDefinitionKey: "order",
+      windowDays: 14,
+      activityId: null,
+      minBucketSize: 10,
+      suppressed: false,
+      kpis: [],
+      delta,
+    })
     expect(text).toContain(
       'Ids: processDefinitionKey="order", engineA="prod-a", engineB="prod-b", windowDays=14',
     )
@@ -255,18 +241,18 @@ describe("describeBpmnHeatmap", () => {
   })
 
   it("names the engines whose heat it adds up (K33)", () => {
-    const fleet = describeBpmnHeatmap(heatmap(["prod-a", "prod-b"]), {})
+    const fleet = describeBpmnHeatmap(heatmap(["prod-a", "prod-b"]))
     expect(fleet).toContain(
       'Ids: engine=["prod-a","prod-b"], processDefinitionKey="order", period="7d"',
     )
     expect(fleet).toContain("(aggregated)")
-    expect(describeBpmnHeatmap(heatmap(["prod-b"]), {})).toContain(
+    expect(describeBpmnHeatmap(heatmap(["prod-b"]))).toContain(
       'Ids: engine="prod-b", processDefinitionKey="order", period="7d"',
     )
   })
 
   it("the hottest and slowest element as facts", () => {
-    const text = describeBpmnHeatmap(heatmap(["prod-a"]), {})
+    const text = describeBpmnHeatmap(heatmap(["prod-a"]))
     expect(text).toContain('hottestActivityId="Task_A", hottestExecutions=12')
     expect(text).toContain('slowestActivityId="Task_B", slowestAvgSec=9.3')
     expect(text).toContain("Tools: analytics_element_bottleneck")

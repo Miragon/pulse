@@ -1,4 +1,4 @@
-import { useToolQuery } from "@miragon/mcp-toolkit-ui"
+import { useToolQuery } from "@miragon/pulse-widget-shell/widgets"
 
 /** A raw cross-module name; reads only the profile store, so it answers independent of Prometheus and toolset. */
 const ANALYTICS_PROBE_TOOL = "analytics_settings_data"

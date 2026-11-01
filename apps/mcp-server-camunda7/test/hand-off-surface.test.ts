@@ -3,7 +3,6 @@ import { bootServer, type BootOptions, type BootedServer } from "./boot-server.j
 import { isModelVisible } from "./golden.js"
 import {
   findContextFunctions,
-  findDescribeForModelArgs,
   findHandOffSpecs,
   findIdentifiers,
   findModelContextContents,
@@ -40,8 +39,36 @@ import { scanSources, type ScanOptions } from "./source-scan.js"
 const MCP: ScanOptions = { scope: "mcp" }
 
 const PRIMITIVE = "packages/core/widget-shell/src/ui/ask-ai-button.tsx"
-/** Deterministic navigation (`useNav` standalone fallback) — the one other follow-up path. */
+/** Deterministic navigation (`useNav` standalone fallback): the one other follow-up path. */
 const NAVIGATION = "packages/connectors/camunda/camunda7-connector/src/widgets/navigation.ts"
+/** Its ONE follow-up: a show-view request (`showViewIntent`, engine text fenced), never free text. */
+const NAVIGATION_FOLLOW_UP = "host.sendFollowUp(showViewRequest(intent))"
+/** The view runtime: the host seam, its mcp-use adapter and the test host only pass the pen on. */
+const RUNTIME = [
+  "packages/core/widget-shell/src/ui/view-host.tsx",
+  "packages/core/widget-shell/src/ui/mcp-use-host.tsx",
+  "packages/core/widget-shell/src/ui/test-view-host.tsx",
+]
+const FOLLOW_UP_HOLDERS = [PRIMITIVE, ...RUNTIME]
+const FOLLOW_UP_NAMES = new Set([
+  "askAi",
+  "sendFollowup",
+  "sendFollowUp",
+  "sendFollowUpMessage",
+  "useSendFollowUp",
+])
+
+/** Every follow-up reference in the MCP sources with the source line it sits on. */
+function followUpRefs() {
+  return scanSources(
+    (file, text) =>
+      findIdentifiers(file, text, FOLLOW_UP_NAMES).map((ref) => ({
+        ...ref,
+        line: text.split("\n")[Number(ref.at.slice(file.length + 1)) - 1]?.trim() ?? "",
+      })),
+    MCP,
+  )
+}
 
 interface WireTool {
   name: string
@@ -57,69 +84,52 @@ const modelTools = (tools: readonly WireTool[]) =>
   tools.filter((tool) => isModelVisible(tool)).map((tool) => tool.name)
 
 describe("hand-offs go through the one primitive", () => {
-  // `askAi`/`sendFollowup` post a USER-role message: only AskAiButton (which
-  // accepts nothing but an `askAiPrompt` result) may hold that pen.
-  it("no source but AskAiButton posts a follow-up", () => {
-    const raw = scanSources(
-      (file, text) =>
-        findIdentifiers(
-          file,
-          text,
-          new Set([
-            "askAi",
-            "sendFollowup",
-            "sendFollowUp",
-            "sendFollowUpMessage",
-            "useSendFollowUp",
-          ]),
-        ),
-      MCP,
-    ).filter((ref) => !ref.at.startsWith(`${PRIMITIVE}:`))
+  // `askAi`/`sendFollowUp` post a USER-role message: only AskAiButton (which
+  // accepts nothing but an `askAiPrompt` result) may hold that pen; the runtime
+  // hands it over, and the navigation seam posts its one show-view request.
+  it("no source but AskAiButton and the navigation seam's one line posts a follow-up", () => {
+    const raw = followUpRefs()
+      .filter((ref) => !FOLLOW_UP_HOLDERS.some((holder) => ref.at.startsWith(`${holder}:`)))
+      .filter((ref) => !(ref.at.startsWith(`${NAVIGATION}:`) && ref.line === NAVIGATION_FOLLOW_UP))
     expect(
       raw.map((ref) => `${ref.name} (${ref.at})`),
       "Post a hand-off only through <AskAiButton prompt={ask(…)}> (askAiPrompt).",
     ).toEqual([])
   })
 
-  it("only the navigation seam sends a show-widget follow-up", () => {
-    const raw = scanSources(
-      (file, text) => findIdentifiers(file, text, new Set(["showWidget"])),
-      MCP,
-    ).filter((ref) => !ref.at.startsWith(`${NAVIGATION}:`))
-    expect(raw.map((ref) => ref.at)).toEqual([])
+  // The pin the old show-widget seam gave: navigation posts nothing but a
+  // request `showViewIntent` built (a branded type), never engine text in place.
+  it("navigation posts exactly one follow-up, the show-view request", () => {
+    const navigation = followUpRefs().filter((ref) => ref.at.startsWith(`${NAVIGATION}:`))
+    expect(navigation.map((ref) => ref.line)).toEqual([NAVIGATION_FOLLOW_UP])
   })
 
+  // A view's description function (the analytics `describe*`) is held to the
+  // same rule: every return hands back modelContextText(…).
   it("every HostModelContext text is assembled by modelContextText, never written in place", () => {
     const contents = scanSources(findModelContextContents, MCP)
+    const functions = scanSources(findContextFunctions, MCP)
+    const describes = (callee: string) => {
+      const declared = functions.filter((f) => f.name === callee)
+      return declared.length === 1 && declared[0].returnsModelContext
+    }
     const written = contents.filter(
-      (c) => c.callee !== "context" && c.callee !== "modelContextText",
+      (c) =>
+        c.callee !== "context" &&
+        c.callee !== "modelContextText" &&
+        (c.callee === null || !describes(c.callee)),
     )
     expect(
       written.map((c) => `${c.at} (${c.callee ?? "literal"})`),
-      "Build the text with useHandOff().context(…) or modelContextText(…).",
+      "Build the text with useHandOff().context(…), modelContextText(…) or a function " +
+        "whose every return is modelContextText(…) (a name declared twice cannot be resolved).",
     ).toEqual([])
     // The scanner is not blind: the cockpit, the detail views and the settings.
     expect(contents.length).toBeGreaterThanOrEqual(12)
-  })
-
-  // The toolkit renders `adaptDataWidget`'s third argument as the widget's
-  // model context — the analytics widgets attach theirs this way — so it is
-  // held to the same rule as a HostModelContext text.
-  it("every adaptDataWidget model description returns modelContextText(…)", () => {
-    const functions = scanSources(findContextFunctions, MCP)
-    const args = scanSources(findDescribeForModelArgs, MCP)
-    const verdict = (ref: string) => {
-      const declared = functions.filter((f) => f.name === ref)
-      return declared.length === 1 ? declared[0].returnsModelContext : null
-    }
-    const written = args.filter((arg) => (arg.ref ? verdict(arg.ref) : arg.inline) !== true)
+    // Nor blind to the description functions: the analytics views describe themselves.
     expect(
-      written.map((arg) => `${arg.at} (${arg.ref ?? "inline"})`),
-      "Return modelContextText({ summary, ids, facts, untrusted, tools, surface }) — " +
-        "never a hand-written text (a name declared twice cannot be resolved either).",
-    ).toEqual([])
-    // The scanner is not blind: the analytics widgets describe themselves.
-    expect(args.filter((arg) => arg.ref !== null).length).toBeGreaterThanOrEqual(12)
+      contents.filter((c) => c.callee !== null && describes(c.callee)).length,
+    ).toBeGreaterThanOrEqual(12)
   })
 })
 
@@ -360,7 +370,7 @@ describe("the hand-off readers", () => {
   })
 
   it("find a raw follow-up and a hand-written model context", () => {
-    const raw = "const { askAi } = useHostActions(); askAi(`Fix ${id}`)"
+    const raw = "const { askAi } = useHandOff(); askAi(`Fix ${id}`)"
     expect(findIdentifiers("x.tsx", raw, new Set(["askAi"]))).toHaveLength(2)
     const written = "<HostModelContext content={`Viewing ${id}`}>{null}</HostModelContext>"
     expect(findModelContextContents("x.tsx", written)).toEqual([
@@ -424,23 +434,22 @@ describe("the hand-off readers", () => {
     ])
   })
 
-  it("resolve an adaptDataWidget description and judge what it returns", () => {
+  it("judge what a description function returns, and read the callee of a model context", () => {
     const text = [
       "export const good = (d) => modelContextText({ summary: 's', tools: [], surface })",
       "export function mixed(d) { if (d) return modelContextText(x); return `Viewing ${d}` }",
       "export const bad = (d) => `Viewing ${d.key}. Drill with analytics_x.`",
-      "const w = { a: adaptDataWidget(A, 't', good), b: adaptDataWidget(B, 't', bad) }",
-      "const v = { c: adaptDataWidget(C, 't', (d) => `x`), d: adaptDataWidget(D, 't') }",
+      "const a = <HostModelContext content={good(data)}><A /></HostModelContext>",
+      "const b = <HostModelContext content={`x`}>{null}</HostModelContext>",
     ].join("\n")
-    expect(findContextFunctions("x.ts", text)).toEqual([
-      { name: "good", at: "x.ts:1", returnsModelContext: true },
-      { name: "mixed", at: "x.ts:2", returnsModelContext: false },
-      { name: "bad", at: "x.ts:3", returnsModelContext: false },
+    expect(findContextFunctions("x.tsx", text)).toEqual([
+      { name: "good", at: "x.tsx:1", returnsModelContext: true },
+      { name: "mixed", at: "x.tsx:2", returnsModelContext: false },
+      { name: "bad", at: "x.tsx:3", returnsModelContext: false },
     ])
-    expect(findDescribeForModelArgs("x.ts", text)).toEqual([
-      { at: "x.ts:4", ref: "good", inline: null },
-      { at: "x.ts:4", ref: "bad", inline: null },
-      { at: "x.ts:5", ref: null, inline: false },
+    expect(findModelContextContents("x.tsx", text)).toEqual([
+      { name: "content", at: "x.tsx:4", callee: "good" },
+      { name: "content", at: "x.tsx:5", callee: null },
     ])
   })
 })

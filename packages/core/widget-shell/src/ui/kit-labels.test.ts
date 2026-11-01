@@ -13,6 +13,7 @@ function rendered(tag: string | undefined) {
     copyId: labels.copyId("5f0ce78e…"),
     heatmapRange: labels.heatmapRange({ min: "1", max: "1.234" }),
     rowsShown: labels.rowsShown({ shown: "8", total: "23" }),
+    reloadedAt: labels.reloadedAt("14:32"),
   }
 }
 
@@ -46,6 +47,14 @@ describe("kitLabels — the kit's own strings follow the active locale", () => {
         rowsShown: "8 von 23 angezeigt",
         showAll: "Alle anzeigen",
         showMore: "Mehr anzeigen",
+        slowHint: "Das dauert länger als üblich. Wenn nichts passiert, frag im Chat noch mal nach.",
+        cancelled: "Abgebrochen. Frag im Chat noch mal nach dieser Ansicht.",
+        viewErrorTitle: "Die Ansicht konnte nicht geladen werden",
+        viewMissing: "Diese App kann die Ansicht nicht anzeigen. Frag im Chat noch mal nach ihr.",
+        viewCrashed: "Dieses Element konnte nicht angezeigt werden.",
+        enterFullscreen: "Vollbild",
+        exitFullscreen: "Vollbild verlassen",
+        reloadedAt: "Neu geladen um 14:32 Uhr",
       })
     }
   })
@@ -79,6 +88,14 @@ describe("kitLabels — the kit's own strings follow the active locale", () => {
         rowsShown: "8 of 23 shown",
         showAll: "Show all",
         showMore: "Show more",
+        slowHint: "This is taking longer than usual. If nothing happens, ask in the chat again.",
+        cancelled: "Cancelled. Ask in the chat to open this view again.",
+        viewErrorTitle: "This view couldn't be loaded",
+        viewMissing: "This app can't show this view. Ask in the chat to open it again.",
+        viewCrashed: "This element couldn't be displayed.",
+        enterFullscreen: "Fullscreen",
+        exitFullscreen: "Exit fullscreen",
+        reloadedAt: "Reloaded at 14:32",
       })
     }
   })

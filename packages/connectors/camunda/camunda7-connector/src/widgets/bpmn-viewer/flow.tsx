@@ -4,36 +4,29 @@ import type { BpmnViewerData } from "../../view-models.js"
 import { BpmnDiagram, type BpmnHighlight } from "../bpmn-diagram.js"
 import { useT } from "../../messages/use-t.js"
 
-/** Missing data renders a neutral alert; the parent still composes header and legend. */
-export function BpmnFlowViewer({ data }: { data: BpmnViewerData | null }) {
+/** A view without a deployed diagram renders a neutral alert; the parent still composes header and legend. */
+export function BpmnFlowViewer({ data }: { data: BpmnViewerData }) {
+  const { activeActivityIds, incidentActivityIds, activityStats } = data
   const highlights = useMemo<BpmnHighlight[]>(
     () => [
-      { kind: "active", activityIds: data?.activeActivityIds ?? [] },
-      { kind: "incident", activityIds: data?.incidentActivityIds ?? [] },
+      { kind: "active", activityIds: activeActivityIds },
+      { kind: "incident", activityIds: incidentActivityIds },
       {
         kind: "failed-jobs",
-        counts: (data?.activityStats ?? [])
+        counts: activityStats
           .filter((s) => s.failedJobs > 0)
           .map((s) => ({ activityId: s.id, count: s.failedJobs })),
       },
       {
         kind: "instance-count",
-        counts: (data?.activityStats ?? [])
+        counts: activityStats
           .filter((s) => s.instances > 0)
           .map((s) => ({ activityId: s.id, count: s.instances })),
       },
     ],
-    [data?.activeActivityIds, data?.incidentActivityIds, data?.activityStats],
+    [activeActivityIds, incidentActivityIds, activityStats],
   )
   const t = useT()
-
-  if (!data) {
-    return (
-      <Alert>
-        <AlertDescription>{t("bpmnFlow.noData")}</AlertDescription>
-      </Alert>
-    )
-  }
 
   if (!data.diagramDefinitionId) {
     return (

@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { ReactNode } from "react"
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react"
-import { AppQueryProvider, queryClient, ToastProvider } from "@miragon/mcp-toolkit-ui"
+import { createTestQueryClient, TestViewHost } from "@miragon/pulse-widget-shell/widgets"
 import { CAMUNDA7_SAVE_SETTINGS, CAMUNDA7_WIDGET_ACTIONS_DATA } from "../../tool-names.js"
 import { useEngineAction, type ActionConfirmation } from "./engine-action.js"
 import { WRITE_POLICY } from "./write-policy.js"
@@ -10,15 +10,26 @@ import { WRITE_POLICY } from "./write-policy.js"
 let allowed: string[]
 const write = vi.fn<(name: string, args: object) => unknown>()
 
-function callTool(name: string, args: object) {
-  if (name === CAMUNDA7_WIDGET_ACTIONS_DATA) {
-    return Promise.resolve({ structuredContent: { allowedActions: allowed, modelTools: [] } })
-  }
-  return Promise.resolve(write(name, args)).then((result) => ({ structuredContent: result }))
+// One retry-free client per test; the test reads and spies on its cache.
+let queryClient = createTestQueryClient()
+
+const TOOLS: Record<string, unknown> = {
+  [CAMUNDA7_WIDGET_ACTIONS_DATA]: () => ({ allowedActions: allowed, modelTools: [] }),
+  ...Object.fromEntries(
+    [...Object.keys(WRITE_POLICY), CAMUNDA7_SAVE_SETTINGS].map((name) => [
+      name,
+      (args: object) =>
+        Promise.resolve(write(name, args)).then((result) => ({ structuredContent: result })),
+    ]),
+  ),
 }
 
 function wrapper({ children }: { children: ReactNode }) {
-  return <AppQueryProvider callTool={callTool}>{children}</AppQueryProvider>
+  return (
+    <TestViewHost tools={TOOLS} client={queryClient}>
+      {children}
+    </TestViewHost>
+  )
 }
 
 interface RetryArgs extends Record<string, unknown> {
@@ -56,7 +67,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup()
-  queryClient.clear()
+  queryClient = createTestQueryClient()
   vi.restoreAllMocks()
 })
 
@@ -280,13 +291,8 @@ describe("useEngineAction — a write that asks first", () => {
 })
 
 describe("useEngineAction — the feedback (U9: a write is never silent)", () => {
-  function toastWrapper({ children }: { children: ReactNode }) {
-    return (
-      <AppQueryProvider callTool={callTool}>
-        <ToastProvider>{children}</ToastProvider>
-      </AppQueryProvider>
-    )
-  }
+  // The test host brings the toast stack.
+  const toastWrapper = wrapper
 
   const toast = (title: string) =>
     document.querySelector(`[data-slot="toast"]`)?.textContent?.includes(title)

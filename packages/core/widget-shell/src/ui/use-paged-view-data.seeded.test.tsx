@@ -1,6 +1,5 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import type { ReactNode } from "react"
 import {
   act,
   cleanup,
@@ -11,7 +10,8 @@ import {
   waitFor,
   within,
 } from "@testing-library/react"
-import { AppQueryProvider, PagedListFooter, queryClient } from "@miragon/mcp-toolkit-ui"
+import { PagedListFooter } from "@miragon/mcp-toolkit-ui"
+import { spyHost } from "./tool-host.test-support.js"
 import { usePagedViewData } from "./use-paged-view-data.js"
 
 /**
@@ -29,9 +29,8 @@ const SEED: Page = { items: ["a", "b"], total: 4 }
 
 const callTool = vi.fn()
 
-function wrapper({ children }: { children: ReactNode }) {
-  return <AppQueryProvider callTool={callTool}>{children}</AppQueryProvider>
-}
+const host = spyHost("test_list_data", callTool, { retries: true })
+const wrapper = host.wrapper
 
 const answer = (page: Page) => ({ structuredContent: page })
 
@@ -73,12 +72,13 @@ const SEARCH = { q: "x" }
 beforeEach(() => {
   // A block: a returned function would be called as the teardown.
   callTool.mockReset()
+  host.reset()
 })
 
-afterEach(() => {
+afterEach(async () => {
   cleanup()
   // Also cancels a retry still waiting on its backoff.
-  queryClient.clear()
+  await host.dispose()
 })
 
 describe("usePagedViewData — a seeded page 0 that keeps its rows (real query stack)", () => {
@@ -93,7 +93,7 @@ describe("usePagedViewData — a seeded page 0 that keeps its rows (real query s
     await waitFor(() => expect(result.current.items).toEqual(["a", "b", "c", "d"]))
 
     callTool.mockResolvedValue(answer({ items: ["b", "c"], total: 3 }))
-    await act(() => queryClient.invalidateQueries({ queryKey: ["test:paged"] }))
+    await act(() => host.client().invalidateQueries({ queryKey: ["test:paged"] }))
     await waitFor(() => expect(result.current.items).toEqual(["b", "c"]))
     expect(result.current.total).toBe(3)
     expect(result.current.stale).toBe(false)
@@ -123,7 +123,7 @@ describe("usePagedViewData — a seeded page 0 that keeps its rows (real query s
   it("a cleared search shows the refetched page 0 again — the old seed never rolls it back", async () => {
     const { result, rerender } = setup({ initialData: SEED, args: {} })
     callTool.mockResolvedValue(answer({ items: ["a2", "b2"], total: 4 }))
-    await act(() => queryClient.invalidateQueries({ queryKey: ["test:paged"] }))
+    await act(() => host.client().invalidateQueries({ queryKey: ["test:paged"] }))
     await waitFor(() => expect(result.current.items).toEqual(["a2", "b2"]))
 
     callTool.mockResolvedValue(answer({ items: ["x1"], total: 1 }))
@@ -142,7 +142,7 @@ describe("usePagedViewData — a failed page 0 over the rows on screen, from its
     const { result } = setup({ initialData: SEED, args: {} })
     callTool.mockRejectedValue(new Error("engine down"))
     // Not awaited: the invalidation settles only once the retries ran out.
-    act(() => void queryClient.invalidateQueries({ queryKey: ["test:paged"] }))
+    act(() => void host.client().invalidateQueries({ queryKey: ["test:paged"] }))
 
     await waitFor(() => expect(result.current.error?.message).toBe("engine down"))
     expect(callTool).toHaveBeenCalledTimes(1)

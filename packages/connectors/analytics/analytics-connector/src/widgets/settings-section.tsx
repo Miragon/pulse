@@ -1,14 +1,5 @@
 import { useRef, useState } from "react"
-import {
-  Alert,
-  AlertDescription,
-  Button,
-  ErrorState,
-  Skeleton,
-  useToolMutation,
-  useToolQuery,
-} from "@miragon/mcp-toolkit-ui"
-import { HostModelContext } from "@miragon/mcp-toolkit-ui/app"
+import { Alert, AlertDescription, Button, ErrorState, Skeleton } from "@miragon/mcp-toolkit-ui"
 import { Lock } from "lucide-react"
 import {
   NativeSelect,
@@ -21,6 +12,9 @@ import {
   modelContextText,
   useActionFeedback,
   useResetOnChange,
+  useToolMutation,
+  useToolQuery,
+  HostModelContext,
 } from "@miragon/pulse-widget-shell/widgets"
 // The leaf, not the barrel: the barrel's value graph carries every tool's zod
 // input schema, which a widget never needs (#344 K50).
@@ -151,8 +145,8 @@ function SettingsPanel({ view }: { view: AnalyticsSettingsViewData }) {
   }
 
   return (
-    /* Inline (not via adaptDataWidget): the cockpit settings tab renders this
-       widget without view data, and only the mounted component knows the
+    /* Inline (not in the view that wraps it): the settings page renders this
+       section without view data, and only the mounted component knows the
        self-fetched view. HostModelContext renders its children unchanged. */
     <HostModelContext content={modelContextText(describeAnalyticsSettings(view))}>
       <div className="flex flex-col gap-4">

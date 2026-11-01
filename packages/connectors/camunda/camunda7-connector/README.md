@@ -50,7 +50,7 @@ hangs every in-widget query on "Loading…".
   and return a compact summary for the model, plus app-only `*_data` feeds for in-widget refresh and
   navigation.
 - **Widgets** (`src/widgets/`): React components (cockpit dashboard, process & incident panels, BPMN
-  viewer, history timeline, job panel) wired in `registry.ts` via `adaptDataWidget`.
+  viewer, history timeline, job panel); `src/widgets/views.tsx` maps each show tool to its view.
 - **Multi-engine routing:** every tool resolves its engine through `withEngine` / `resolveEngine`
   (`src/lib/`): per-call override → saved default engine (profile) → single configured default.
 - **Engine providers** (`src/engine-provider.ts`, `src/providers/`): each engine entry carries a
@@ -76,8 +76,8 @@ This module has strict house patterns: read the
 [`add-bpm-feature`](../../../../.claude/skills/add-bpm-feature) skill and the architecture invariants in
 [`CLAUDE.md`](../../../../CLAUDE.md) before adding tools, schemas, or widgets. In short: input schemas live
 in [`@miragon/pulse-camunda7-client`](../camunda7-client), tools register via the registrar (never raw
-`server.tool()`), and a widget is registered in `src/widgets/registry.ts`, in the host bundle map
-and, for its show tool and feed, in `src/tool-names.ts`.
+`server.tool()`), and a view is registered in `src/widgets/views.tsx` under its show tool's name, in
+the host's view registry and, for its show tool and feed, in `src/tool-names.ts`.
 
 ## Layout
 
@@ -85,7 +85,7 @@ and, for its show tool and feed, in `src/tool-names.ts`.
 | ------------------------ | ------------------------------------------------------------------------- |
 | `src/tools/`             | Registrar operations tools, one file per domain (`index.ts` wires them)   |
 | `src/widget-tools.ts`    | `show_*` widget tools and `*_data` feeds                                  |
-| `src/widgets/`           | React widgets + `registry.ts` (component → dataType)                      |
+| `src/widgets/`           | React widgets + `views.tsx` (show tool → view)                            |
 | `src/tool-names.ts`      | Tool-name constants for rename-safe in-widget navigation                  |
 | `src/lib/`               | `with-engine.ts` (engine routing), `cockpit-url.ts`, `toolsets.ts`        |
 | `src/module.ts`          | `camunda7Module` (config schema, env mapping) + `createBpmnXmlFetcher`    |

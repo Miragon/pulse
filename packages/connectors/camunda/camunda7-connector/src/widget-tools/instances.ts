@@ -1,7 +1,6 @@
 import { z } from "zod"
 import {
-  buildComposedView,
-  buildSingleWidgetView,
+  buildViewResult,
   showToolBinding,
   withToolErrors,
   strictToolInput,
@@ -16,7 +15,7 @@ import {
 } from "../tool-names.js"
 import { resolveEngine } from "../lib/resolve-engine.js"
 import { jobsFilterShape, pagingShape } from "../feed-contracts.js"
-import { localizeViewFor } from "../lib/server-locale.js"
+import { localizeFor } from "../lib/server-locale.js"
 import { type WidgetToolsContext, registerShowTool } from "./shared.js"
 
 export function registerInstanceWidgetTools(ctx: WidgetToolsContext) {
@@ -29,7 +28,7 @@ export function registerInstanceWidgetTools(ctx: WidgetToolsContext) {
       "Show detailed view of a single process instance with activity tree, variables, and incidents.",
     shape: { processInstanceId: z.string().describe("The process instance ID to inspect") },
     render: async ({ engine, ...target }, ctx) => {
-      const { t, title } = await localizeViewFor(profileStore, ctx)
+      const t = await localizeFor(profileStore, ctx)
       const { client, engineId, ...urls } = await resolveEngine(engine, registry, ctx)
       const data = await buildInstanceDetailData(client, engineId, target, urls)
       const state = data.instance.ended
@@ -37,13 +36,9 @@ export function registerInstanceWidgetTools(ctx: WidgetToolsContext) {
         : data.instance.suspended
           ? t("c7sum.state.suspended")
           : t("c7sum.state.active")
-      return buildSingleWidgetView({
-        widget: "camunda7:instance-detail",
-        app: "camunda7",
-        dataType: "camunda7:processInstance",
+      return buildViewResult(
         data,
-        title: title("viewTitle.instanceDetail"),
-        summary: t("c7sum.instanceDetail", {
+        t("c7sum.instanceDetail", {
           instanceId: data.instance.id,
           businessKey: data.instance.businessKey
             ? ` (business key "${data.instance.businessKey}")`
@@ -53,7 +48,7 @@ export function registerInstanceWidgetTools(ctx: WidgetToolsContext) {
           openIncidents: data.incidentCount,
           openTasks: data.openTaskCount,
         }),
-      })
+      )
     },
   })
 
@@ -93,18 +88,11 @@ export function registerInstanceWidgetTools(ctx: WidgetToolsContext) {
       ...showToolBinding(CAMUNDA7_SHOW_BPMN_VIEWER, "BPMN Diagram Viewer"),
     },
     withToolErrors(async ({ engine, ...diagram }, ctx) => {
-      const { t, title } = await localizeViewFor(profileStore, ctx)
+      const t = await localizeFor(profileStore, ctx)
       const { client, engineId } = await resolveEngine(engine, registry, ctx)
       const data = await buildBpmnViewerData(client, engineId, diagram)
 
-      const view = (summary: string) =>
-        buildComposedView({
-          app: "camunda7",
-          title: title("viewTitle.bpmnViewer"),
-          layout: [{ row: [{ widget: "camunda7:bpmn-viewer" }] }],
-          entries: [{ dataType: "camunda7:bpmnViewer", data }],
-          summary,
-        })
+      const view = (summary: string) => buildViewResult(data, summary)
 
       if (!data.processDefinitionId) {
         return view(t("c7sum.bpmnViewer.empty"))
@@ -144,16 +132,12 @@ export function registerInstanceWidgetTools(ctx: WidgetToolsContext) {
       ...pagingShape,
     },
     render: async ({ engine, ...filters }, ctx) => {
-      const { t, title } = await localizeViewFor(profileStore, ctx)
+      const t = await localizeFor(profileStore, ctx)
       const { client, engineId } = await resolveEngine(engine, registry, ctx)
       const data = await buildJobPanelData(client, engineId, filters)
-      return buildSingleWidgetView({
-        widget: "camunda7:job-panel",
-        app: "camunda7",
-        dataType: "camunda7:jobPanel",
-        title: title("viewTitle.jobPanel"),
+      return buildViewResult(
         data,
-        summary: t("c7sum.jobPanel", {
+        t("c7sum.jobPanel", {
           totalCount: data.totalCount,
           failedCount: data.failedCount,
           forProcess: filters.processDefinitionKey
@@ -161,7 +145,7 @@ export function registerInstanceWidgetTools(ctx: WidgetToolsContext) {
             : "",
           failedOnly: filters.failedOnly ? t("c7sum.jobPanel.failedOnly") : "",
         }),
-      })
+      )
     },
   })
 }

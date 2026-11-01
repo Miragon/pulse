@@ -4,14 +4,12 @@ import {
   NamedId,
   Section,
   TableEmptyState,
-  TableSkeleton,
   Td,
   WidgetShell,
   type ListTableColumn,
 } from "@miragon/pulse-widget-shell/widgets"
 import type { ErrorPatternItem, FailureDashboardData } from "@miragon/pulse-analytics-client"
-import { useFailureDashboardSelfFetch, type FailureScopeProps, type FailureView } from "./lib.js"
-import { QueryGate } from "../query-gate.js"
+import type { FailureView } from "./lib.js"
 import { useT, type T } from "../../messages/use-t.js"
 import { engineIdsOf, useHandOff, type HandOff } from "../hand-off.js"
 import { processNameOf } from "../../bpmn-names.js"
@@ -55,65 +53,51 @@ function columns(t: T): ListTableColumn[] {
   ]
 }
 
-export function ErrorPatternsTable({
-  data: initialData,
-  engine,
-}: { data: FailureView | null } & FailureScopeProps) {
+export function ErrorPatternsTable({ data }: { data: FailureView }) {
   const t = useT()
   const { ask } = useHandOff()
-  const fallbackQuery = useFailureDashboardSelfFetch(initialData, { engine })
-  return (
-    <QueryGate initialData={initialData} query={fallbackQuery} skeleton={<TableSkeleton />}>
-      {(data) => {
-        if (data.errorPatterns.length === 0) {
-          // Nothing open is "all clear", not missing data.
-          return (
-            <WidgetShell>
-              {data.processBreakdown.length === 0 ? (
-                <TableEmptyState variant="done" description={t("aErrorPatterns.emptyDescription")}>
-                  {t("aErrorPatterns.emptyTitle")}
-                </TableEmptyState>
-              ) : (
-                <TableEmptyState>{t("aErrorPatterns.emptyNoPatterns")}</TableEmptyState>
-              )}
-            </WidgetShell>
-          )
-        }
+  if (data.errorPatterns.length === 0) {
+    // Nothing open is "all clear", not missing data.
+    return (
+      <WidgetShell>
+        {data.processBreakdown.length === 0 ? (
+          <TableEmptyState variant="done" description={t("aErrorPatterns.emptyDescription")}>
+            {t("aErrorPatterns.emptyTitle")}
+          </TableEmptyState>
+        ) : (
+          <TableEmptyState>{t("aErrorPatterns.emptyNoPatterns")}</TableEmptyState>
+        )}
+      </WidgetShell>
+    )
+  }
 
-        return (
-          <WidgetShell>
-            <Section
-              title={t("aErrorPatterns.heading")}
-              count={data.errorPatterns.length}
-              defaultOpen
-            >
-              <ListTable ariaLabel={t("aErrorPatterns.tableAriaLabel")} columns={columns(t)}>
-                {data.errorPatterns.map((pattern) => (
-                  <tr key={`${pattern.processDefinitionKey}:${pattern.incidentType}`}>
-                    <Td className="font-mono break-all">{pattern.incidentType}</Td>
-                    <Td>
-                      <NamedId
-                        name={processNameOf(data.names, pattern.processDefinitionKey)}
-                        id={pattern.processDefinitionKey}
-                      />
-                    </Td>
-                    <Td align="right" className="tabular-nums">
-                      <StateCount value={pattern.incidentCount} />
-                    </Td>
-                    <Td align="right">
-                      <HandOffButton
-                        action="findCause"
-                        variant="icon"
-                        prompt={ask(errorPatternHandOff(pattern, data))}
-                      />
-                    </Td>
-                  </tr>
-                ))}
-              </ListTable>
-            </Section>
-          </WidgetShell>
-        )
-      }}
-    </QueryGate>
+  return (
+    <WidgetShell>
+      <Section title={t("aErrorPatterns.heading")} count={data.errorPatterns.length} defaultOpen>
+        <ListTable ariaLabel={t("aErrorPatterns.tableAriaLabel")} columns={columns(t)}>
+          {data.errorPatterns.map((pattern) => (
+            <tr key={`${pattern.processDefinitionKey}:${pattern.incidentType}`}>
+              <Td className="font-mono break-all">{pattern.incidentType}</Td>
+              <Td>
+                <NamedId
+                  name={processNameOf(data.names, pattern.processDefinitionKey)}
+                  id={pattern.processDefinitionKey}
+                />
+              </Td>
+              <Td align="right" className="tabular-nums">
+                <StateCount value={pattern.incidentCount} />
+              </Td>
+              <Td align="right">
+                <HandOffButton
+                  action="findCause"
+                  variant="icon"
+                  prompt={ask(errorPatternHandOff(pattern, data))}
+                />
+              </Td>
+            </tr>
+          ))}
+        </ListTable>
+      </Section>
+    </WidgetShell>
   )
 }

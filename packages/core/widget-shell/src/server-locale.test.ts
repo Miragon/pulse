@@ -1,10 +1,5 @@
 import { describe, expect, it, vi } from "vitest"
-import {
-  createLocalizeFor,
-  createLocalizeViewFor,
-  createViewLocaleOf,
-  resolveProfileLocale,
-} from "./server-locale.js"
+import { createLanguageT, createLocalizeFor, resolveProfileLocale } from "./server-locale.js"
 import { runWithMcpRequestInfo } from "./request-context.js"
 import type { ProfileSource } from "./profile.js"
 
@@ -59,47 +54,20 @@ describe("createLocalizeFor", () => {
   })
 })
 
-/** #322 U3: "system" carries no title rather than an English one over a German view. */
-describe("createLocalizeViewFor / createViewLocaleOf", () => {
+/** A language already read (a settings section's own record): no second profile read. */
+describe("createLanguageT", () => {
   const translator = (locale: string, key: string, params?: Record<string, unknown>) =>
     `${locale}:${key}${params ? `:${JSON.stringify(params)}` : ""}`
-  const localizeViewFor = createLocalizeViewFor(translator)
-  const viewLocaleOf = createViewLocaleOf(translator)
+  const languageT = createLanguageT(translator)
 
-  it("titles the view in the language the profile names, the summary alike", async () => {
-    for (const language of ["de", "en"]) {
-      const { t, title } = await localizeViewFor(storeWith(language), CTX)
-      expect(title("view.title")).toBe(`${language}:view.title`)
-      expect(title("view.title", { n: 2 })).toBe(`${language}:view.title:{"n":2}`)
-      expect(t("summary")).toBe(`${language}:summary`)
-    }
+  it("translates in the language the profile names", () => {
+    expect(languageT("de")("summary")).toBe("de:summary")
+    expect(languageT("en")("count", { n: 2 })).toBe('en:count:{"n":2}')
   })
 
-  it("sets no title for system, no saved language or one without a catalog; summaries in English", async () => {
+  it("reads system, no language and one without a catalog as English", () => {
     for (const language of ["system", undefined, "fr"]) {
-      const { t, title } = await localizeViewFor(storeWith(language), CTX)
-      expect(title("view.title")).toBeUndefined()
-      expect(t("summary")).toBe("en:summary")
-      expect(viewLocaleOf(language).title("view.title")).toBeUndefined()
+      expect(languageT(language)("summary")).toBe("en:summary")
     }
-  })
-
-  it("no store, no caller or a store outage reads as system: no title", async () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
-    const broken: ProfileSource = { get: () => Promise.reject(new Error("pg down")) }
-    for (const view of [
-      await localizeViewFor(undefined, CTX),
-      await localizeViewFor(storeWith("de")),
-      await localizeViewFor(broken, CTX),
-    ]) {
-      expect(view.title("view.title")).toBeUndefined()
-      expect(view.t("summary")).toBe("en:summary")
-    }
-    warn.mockRestore()
-  })
-
-  it("a language already read titles the same way", () => {
-    expect(viewLocaleOf("de").title("view.title")).toBe("de:view.title")
-    expect(viewLocaleOf("en").t("summary")).toBe("en:summary")
   })
 })

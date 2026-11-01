@@ -1,18 +1,16 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest"
-import type { ComponentType } from "react"
+import { createElement, type ComponentType } from "react"
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
-import { queryClient } from "@miragon/mcp-toolkit-ui"
-import { WidgetFixtureHost, type HostActionLog } from "@miragon/mcp-toolkit-ui/app"
 import { IncidentOverviewKpi } from "./incidents-dashboard/overview-kpi.js"
 import { IncidentProcessList } from "./incidents-dashboard/process-list.js"
 import type { IncidentsDashboardData } from "../view-models.js"
 import { CAMUNDA7_INCIDENTS_DATA, CAMUNDA7_WIDGET_ACTIONS_DATA } from "../tool-names.js"
 import { widgetActionsFeedFor } from "./lib/hand-off.test-support.js"
+import { TestViewHost, type HostAction } from "@miragon/pulse-widget-shell/widgets"
 
 afterEach(() => {
   cleanup()
-  queryClient.clear()
 })
 
 // #335 N61: exact card counts, the scanned breakdown marked partial, null as "—", never 0.
@@ -70,7 +68,9 @@ const data = DATA as unknown as Record<string, unknown>
 
 describe("incidents dashboard widgets — honest numbers", () => {
   it("shows the unknown affected-activity total as —, never 0", () => {
-    render(<WidgetFixtureHost widget={asWidget(IncidentOverviewKpi)} data={data} />)
+    render(
+      <TestViewHost>{createElement(asWidget(IncidentOverviewKpi), { data: data })}</TestViewHost>,
+    )
 
     const cell = screen
       .getByText("Activities affected")
@@ -80,7 +80,9 @@ describe("incidents dashboard widgets — honest numbers", () => {
   })
 
   it("keeps a process beyond the scan with its exact count and discloses a partial breakdown", () => {
-    render(<WidgetFixtureHost widget={asWidget(IncidentProcessList)} data={data} />)
+    render(
+      <TestViewHost>{createElement(asWidget(IncidentProcessList), { data: data })}</TestViewHost>,
+    )
 
     expect(screen.getByText("250")).toBeTruthy()
     // quiet's incidents all lie beyond the scan — still listed, with its exact 7.
@@ -96,7 +98,9 @@ describe("incidents dashboard widgets — honest numbers", () => {
   })
 
   it("the Last 24h chip shows the key's 24h count (— when unknown) and drops a process without any", () => {
-    render(<WidgetFixtureHost widget={asWidget(IncidentProcessList)} data={data} />)
+    render(
+      <TestViewHost>{createElement(asWidget(IncidentProcessList), { data: data })}</TestViewHost>,
+    )
 
     fireEvent.click(screen.getByText("Last 24h"))
 
@@ -130,18 +134,18 @@ describe("incidents dashboard — a filtered view keeps its scope", () => {
   })
 
   async function promptOf(widget: unknown, props: { data?: IncidentsDashboardData }) {
-    const actions: HostActionLog[] = []
+    const actions: HostAction[] = []
     const feed = (args: Record<string, unknown>) => {
       feedCalls.push(args)
       return DATA
     }
     render(
-      <WidgetFixtureHost
-        widget={asWidget(widget)}
-        data={(props.data ?? {}) as unknown as Record<string, unknown>}
+      <TestViewHost
         tools={{ ...tools, [CAMUNDA7_INCIDENTS_DATA]: feed }}
         onHostAction={(action) => actions.push(action)}
-      />,
+      >
+        {createElement(asWidget(widget), { data: props.data ?? {} })}
+      </TestViewHost>,
     )
     // A card's chat hand-off sits behind its "more" button (#322 U20).
     await waitFor(() =>
@@ -160,7 +164,7 @@ describe("incidents dashboard — a filtered view keeps its scope", () => {
       )
       fireEvent.click(analyze)
     }
-    const prompts = actions.flatMap((a) => (a.type === "sendFollowUpMessage" ? [a.prompt] : []))
+    const prompts = actions.flatMap((a) => (a.type === "sendFollowUp" ? [a.prompt] : []))
     expect(prompts).toHaveLength(1)
     return prompts[0]
   }

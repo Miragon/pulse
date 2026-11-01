@@ -277,59 +277,6 @@
     "name": "analytics_compare_execution_periods"
   },
   {
-    "_meta": {
-      "openai/widgetAccessible": true,
-      "ui": {
-        "visibility": [
-          "app"
-        ]
-      }
-    },
-    "annotations": {
-      "idempotentHint": true,
-      "openWorldHint": true,
-      "readOnlyHint": true
-    },
-    "description": "Internal JSON feed (no UI) for the analytics dashboard widgets' self-fetch. Prefer analytics_show_dashboard.",
-    "inputSchema": {
-      "additionalProperties": false,
-      "properties": {
-        "engine": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            }
-          ],
-          "description": "Engine id(s) to scope to; omitted = all configured (see server instructions)"
-        },
-        "period": {
-          "description": "Analysis time period. Omitted → the user's saved analytics default (else 7d).",
-          "enum": [
-            "1d",
-            "3d",
-            "7d",
-            "14d",
-            "30d"
-          ],
-          "type": "string"
-        },
-        "processDefinitionKey": {
-          "description": "Restrict to a single process definition (optional)",
-          "type": "string"
-        }
-      },
-      "type": "object"
-    },
-    "name": "analytics_dashboard_data",
-    "title": "Analytics dashboard data (internal)"
-  },
-  {
     "annotations": {
       "idempotentHint": true,
       "openWorldHint": true,
@@ -534,44 +481,6 @@
     },
     "name": "analytics_engine_landscape_data",
     "title": "Engine landscape data (internal)"
-  },
-  {
-    "_meta": {
-      "openai/widgetAccessible": true,
-      "ui": {
-        "visibility": [
-          "app"
-        ]
-      }
-    },
-    "annotations": {
-      "idempotentHint": true,
-      "openWorldHint": true,
-      "readOnlyHint": true
-    },
-    "description": "Internal JSON feed (no UI) for the failure dashboard widgets' self-fetch. Prefer analytics_show_failure_dashboard.",
-    "inputSchema": {
-      "additionalProperties": false,
-      "properties": {
-        "engine": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            }
-          ],
-          "description": "Engine id(s) to scope to; omitted = all configured (see server instructions)"
-        }
-      },
-      "type": "object"
-    },
-    "name": "analytics_failure_dashboard_data",
-    "title": "Failure dashboard data (internal)"
   },
   {
     "annotations": {
@@ -1236,49 +1145,6 @@
     },
     "name": "camunda7_activity_incidents_data",
     "title": "Activity incidents data (internal)"
-  },
-  {
-    "_meta": {
-      "openai/widgetAccessible": true,
-      "ui": {
-        "visibility": [
-          "app"
-        ]
-      }
-    },
-    "annotations": {
-      "idempotentHint": true,
-      "openWorldHint": true,
-      "readOnlyHint": true
-    },
-    "description": "Internal JSON feed (no UI) for the BPMN viewer — diagram XML plus live overlays. Prefer camunda7_show_bpmn_viewer.",
-    "inputSchema": {
-      "additionalProperties": false,
-      "properties": {
-        "engine": {
-          "description": "Engine id (see server instructions)",
-          "enum": [
-            "default"
-          ],
-          "type": "string"
-        },
-        "processDefinitionKey": {
-          "description": "Definition for a version's diagram.",
-          "type": "string"
-        },
-        "processInstanceId": {
-          "description": "Instance to overlay live state for.",
-          "type": "string"
-        },
-        "version": {
-          "exclusiveMinimum": 0,
-          "type": "integer"
-        }
-      },
-      "type": "object"
-    },
-    "name": "camunda7_bpmn_viewer_data",
-    "title": "BPMN viewer data (internal)"
   },
   {
     "_meta": {

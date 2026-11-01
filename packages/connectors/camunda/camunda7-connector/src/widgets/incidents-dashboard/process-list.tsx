@@ -11,7 +11,6 @@ import {
   type ToneVariant,
   DrillButton,
 } from "@miragon/mcp-toolkit-ui"
-import { useViewData } from "@miragon/mcp-toolkit-ui/hooks"
 import type {
   IncidentsDashboardActivity,
   IncidentsDashboardData,
@@ -36,6 +35,7 @@ import {
   countTone,
   formatNumber,
   formatTimestamp,
+  useViewData,
 } from "@miragon/pulse-widget-shell/widgets"
 
 const TYPE_ALL = "all"
@@ -247,7 +247,6 @@ export function IncidentProcessListView({
     CAMUNDA7_INCIDENTS_DATA,
     feed.args,
     feed.ready,
-    { initialDataMode: "seed" },
   )
 
   const [search, setSearch] = useState("")

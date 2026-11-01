@@ -69,9 +69,12 @@ describe("kit copy follows the voice rules", () => {
   it.each([
     ["kit labels (de)", KIT_LABELS.de, "de"],
     ["kit labels (en)", KIT_LABELS.en, "en"],
-    // The view chrome every view shows is the toolkit's own catalog now.
-    ["view chrome (toolkit, de)", TOOLKIT_MESSAGES.de.view, "de"],
-    ["view chrome (toolkit, en)", TOOLKIT_MESSAGES.en.view, "en"],
+    // The view frame speaks the kit's labels; the toolkit components it keeps (ErrorState,
+    // PagedListFooter) still read the toolkit's catalog.
+    ["toolkit common (de)", TOOLKIT_MESSAGES.de.common, "de"],
+    ["toolkit common (en)", TOOLKIT_MESSAGES.en.common, "en"],
+    ["toolkit list footer (de)", TOOLKIT_MESSAGES.de.listFooter, "de"],
+    ["toolkit list footer (en)", TOOLKIT_MESSAGES.en.listFooter, "en"],
     ["hand-off fence (de)", ASK_AI_PROMPT_LABELS.de, "de"],
     ["hand-off fence (en)", ASK_AI_PROMPT_LABELS.en, "en"],
     ["heatmap defaults (en)", DEFAULT_HEATMAP_LABELS, "en"],

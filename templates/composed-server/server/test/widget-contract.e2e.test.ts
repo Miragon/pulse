@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
 import { VIEW_RESOURCE_URI_PREFIX, viewResourceUri } from "@miragon/mcp-toolkit-core"
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client"
 import { CAMUNDA7_ADMIN_ONLY_TOOLS } from "@miragon/pulse-camunda7-connector"
-import type { RunningServer } from "@miragon/pulse-widget-shell/server"
+import { viewPrelude, type RunningServer } from "@miragon/pulse-widget-shell/server"
 import { createApp, packageVersion, SERVER_INSTRUCTIONS } from "../src/app.js"
 import { stubNeutralEnv } from "./neutral-env.js"
 
@@ -201,6 +201,18 @@ describe("widget wire contract (dual-protocol _meta)", () => {
       const resource = viewResources.find((r) => r.uri === viewResourceUri(tool.name))
       expect(resource, `view resource for ${tool.name} should be listed`).toBeDefined()
       expect(resource!.mimeType).toBe("text/html;profile=mcp-app")
+    }
+  })
+
+  // The one bundle serves every view: the document's prelude names the view (= its show tool),
+  // before the bundle runs, so the bundle mounts that view and re-runs that tool on a stripped result.
+  it("names its view in every view document, before the bundle", async () => {
+    const viewTools = tools.filter((t) => typeof uiBlock(t._meta ?? {}).resourceUri === "string")
+    expect(viewTools.map((t) => t.name)).toContain("notes_show_notes")
+    for (const tool of viewTools) {
+      const { contents } = await client.readResource({ uri: viewResourceUri(tool.name) })
+      const text = (contents[0] as { text?: string }).text ?? ""
+      expect(text, tool.name).toContain(viewPrelude(tool.name))
     }
   })
 

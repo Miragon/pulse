@@ -8,8 +8,8 @@ allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 
 The camunda7 module never registers operations tools with raw `server.tool()`. Tools go
 through the toolkit registrar; engine access goes through `withEngine`/`resolveEngine`
-(per-call `engine` override > saved default engine (profile) > single default). Widgets hang
-off a three-link registration chain. Follow the steps for the path you need.
+(per-call `engine` override > saved default engine (profile) > single default). A view is
+registered in three places (CLAUDE.md invariant 3). Follow the steps for the path you need.
 
 ## Step 0 — pick the render path
 
@@ -196,14 +196,15 @@ itself; widget-shell neither forks nor re-exports them) — never re-inline thes
   toolkit `ErrorState`'s "Details": never raw engine text as a headline or in a toast.
   `ViewDataState`, `QueryFallback`, `useDetailView` (its stale notice: an inline warning
   `ErrorState`), `ConfirmDialog`, `useActionFeedback` and the view's own failed call
-  (`LocalizedAppView`) all use it; a widget's own error line does too
+  (`ViewFrame`) all use it; a widget's own error line does too
   (`ErrorState` with `describeError(...)`), and `errorTitle` heads only a failure the kit
   cannot classify
-- A view that reads its feed directly calls the toolkit's `useViewData` with
-  `{ initialDataMode: "seed" }` as its last argument: the handed-in tool result seeds a
-  live query, so Refresh and a write's invalidation re-read it. Without the option the
-  toolkit returns the handed-in data forever (#341); `src/widget-actions.test.ts` fails
-  on a `useViewData` call that does not seed by a literal option
+- A view that reads its feed directly calls the kit's `useViewData` (from
+  `@miragon/pulse-widget-shell/widgets`): the handed-in tool result always seeds a live
+  query, so Refresh and a write's invalidation re-read it (#341). Widgets import every
+  query hook (`useToolQuery`, `useToolMutation`, `useViewData`, `useQueryClient`) and the
+  host seam (`useViewHost`, `HostModelContext`) from the kit, never from the toolkit's
+  app/hooks layer or `mcp-use/react` (ESLint); tests render them under `TestViewHost`
 - `formatTimestamp`/`formatDate`/`formatTime` (dates) and `formatNumber`/`formatPercent`/
   `formatPercentPoints`/`formatPeriod`/`formatDuration`/`truncate`: no local format
   helpers, no `toFixed`, no `toLocaleString()` without a locale, no hand-built
@@ -315,22 +316,22 @@ itself; widget-shell neither forks nor re-exports them) — never re-inline thes
    covers and the model context read the payload's echo (`data.filters`), never the
    request's args (reference: the instance list's `listFilters`).
 
-The registration chain has **three links — miss one and the widget is silently absent
-somewhere**:
+A view is registered in **three places — miss one and it is silently absent**:
 
-1. `src/widgets/registry.ts` — map the component to its dataType:
-   `"camunda7:my-widget": adaptDataWidget(MyWidget, "camunda7:myData")`
-   (`adaptDataWidget` comes from `@miragon/pulse-widget-shell/ui`).
-2. `apps/mcp-server-camunda7/src/ui/widget-registry.ts` — the host bundle map. It spreads
-   `camunda7Widgets` from `src/widgets/index.ts`, which spreads the registry — verify
-   your widget actually arrives in the host map.
+1. `src/widgets/views.tsx` — map the show tool's name to its view component:
+   `[CAMUNDA7_SHOW_MY_VIEW]: MyView`, where `MyView({ data })` gets the show tool's
+   `structuredContent` and wraps the widget in `Camunda7Standalone` (its client-side
+   drill-in). A composed view (a dashboard, the process detail) is ONE component that
+   composes its widgets in a `ViewStack` and also serves the cockpit route
+   (`src/widgets/cockpit-app/routes.tsx`).
+2. `apps/mcp-server-camunda7/src/ui/view-registry.ts` — the view registry. It spreads
+   `camunda7Views` from `src/widgets/index.ts` — verify your view actually arrives.
 3. `src/tool-names.ts` — add a `CAMUNDA7_SHOW_*` / `CAMUNDA7_*_DATA` constant for every
-   new widget tool, so `host.showWidget(...)` call sites stay rename-safe.
+   new widget tool, so the view map and navigation stay rename-safe.
 
-A widget id exists where a show tool or a static layout (the cockpit's
-`src/widgets/cockpit-app/views.ts`) emits it as `widget: "camunda7:<id>"`.
-`apps/mcp-server-camunda7/test/widget-registry.test.ts` scans the connectors' sources for
-those literals and fails on any id the host bundle map lacks.
+A view is picked by its name, the show tool's name.
+`apps/mcp-server-camunda7/test/view-registry.test.ts` holds the view registry to the
+view-bound tools of the tools/list goldens and fails on a tool without a view.
 
 Then register the widget tool in its area's file under `src/widget-tools/` (`cockpit.ts`,
 `instances.ts`, `incidents.ts`; `*_data` feeds in `data-feeds.ts`). `src/widget-tools.ts`
@@ -350,11 +351,11 @@ wires them; these files are the documented exception that uses `server.tool()` d
   `outputSchema`, and stamps the Apps-SDK half via `appsSdkMeta`; **never write
   `_meta.ui` keys by hand** (mcp-use owns and overwrites that namespace). Resolve the engine via
   `await resolveEngine(args.engine, registry)` — it already returns `baseUrl`/`cockpitUrl`;
-  never fish them out of `registry.engines`. Return
-  `buildSingleWidgetView({ widget, app: "camunda7", dataType, data, title, summary })` or
-  `buildComposedView(...)` (both from `@miragon/pulse-widget-shell/server`). The
-  `summary` is the model-facing text channel (1-2 sentences, key figures, no raw
-  data) — the full payload travels only in `structuredContent`.
+  never fish them out of `registry.engines`. Return `buildViewResult(data, summary)`
+  (from `@miragon/pulse-widget-shell/server`): `data` IS the view's data, no title (the
+  widget's heading names the view). The `summary` is the model-facing text channel (1-2
+  sentences, key figures, no raw data) — the full payload travels only in
+  `structuredContent`.
 - `*_data` feeds: register through `registerDataFeed` in `data-feeds.ts` (`name`, `title`,
   `description`, `shape`, `read`), which spreads `...appOnly` (the native
   `visibility: "app"` field, emitted as SEP-1865 `_meta.ui.visibility: ["app"]`, plus

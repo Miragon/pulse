@@ -1,20 +1,18 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from "vitest"
-import type { ComponentType } from "react"
+import { createElement, type ComponentType } from "react"
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
-import { queryClient } from "@miragon/mcp-toolkit-ui"
-import { WidgetFixtureHost } from "@miragon/mcp-toolkit-ui/app"
 import { complementaryFlags } from "@miragon/pulse-camunda7-client"
 import { CAMUNDA7_PROCESS_INSTANCES_DATA } from "../tool-names.js"
 import type { ProcessInstancesData } from "../view-models.js"
 import { ProcessInstancesView } from "./process-instances/list.js"
+import { TestViewHost } from "@miragon/pulse-widget-shell/widgets"
 
 // #329: the feed maps a `false` run-state flag onto its complement, so every refetch must carry the
 // SAME filter or later pages mix in rows page 0 excluded.
 
 afterEach(() => {
   cleanup()
-  queryClient.clear()
 })
 
 type StateFlags = { active?: boolean; suspended?: boolean }
@@ -50,11 +48,9 @@ function renderWithFeed(view: ComponentType<Record<string, unknown>>) {
     return { ...firstPage({}), instances: [], returnedCount: 0 }
   }
   render(
-    <WidgetFixtureHost
-      widget={view}
-      data={{}}
-      tools={{ [CAMUNDA7_PROCESS_INSTANCES_DATA]: feed }}
-    />,
+    <TestViewHost tools={{ [CAMUNDA7_PROCESS_INSTANCES_DATA]: feed }}>
+      {createElement(view)}
+    </TestViewHost>,
   )
   return calls
 }
@@ -112,7 +108,9 @@ describe("the engine-wide list's columns", () => {
 
   it("names the version on the process line instead of a column of its own", () => {
     render(
-      <WidgetFixtureHost widget={() => <ProcessInstancesView data={engineWide()} />} data={{}} />,
+      <TestViewHost>
+        <ProcessInstancesView data={engineWide()} />
+      </TestViewHost>,
     )
     expect(headers()).not.toContain("Version")
     expect(headers()).toContain("Process")
@@ -129,7 +127,9 @@ describe("the engine-wide list's columns", () => {
 
   it("hides the State column in a narrow region, and a suspended row says so in its first cell", () => {
     const { container } = render(
-      <WidgetFixtureHost widget={() => <ProcessInstancesView data={engineWide()} />} data={{}} />,
+      <TestViewHost>
+        <ProcessInstancesView data={engineWide()} />
+      </TestViewHost>,
     )
     // The rule that hides the third column (State) below 48rem.
     const rules = container.querySelector("[data-list-table] style")?.textContent ?? ""
@@ -143,7 +143,9 @@ describe("the engine-wide list's columns", () => {
 
   it("keeps the Version and State columns in a list scoped to one process", () => {
     render(
-      <WidgetFixtureHost widget={() => <ProcessInstancesView data={firstPage({})} />} data={{}} />,
+      <TestViewHost>
+        <ProcessInstancesView data={firstPage({})} />
+      </TestViewHost>,
     )
     expect(headers()).toEqual(expect.arrayContaining(["Version", "State"]))
     expect(headers()).not.toContain("Process")

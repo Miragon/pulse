@@ -249,38 +249,6 @@ export function findContextFunctions(file: string, text: string): ContextFunctio
   return found
 }
 
-/**
- * Every `adaptDataWidget(Widget, dataType, describe)` — the toolkit renders
- * `describe`'s text as the widget's model context, so it is one too: `ref`
- * names the function (resolved against {@link findContextFunctions}), an
- * inline function carries its own verdict, anything else is `opaque`.
- */
-export function findDescribeForModelArgs(
-  file: string,
-  text: string,
-): Array<{ at: string; ref: string | null; inline: boolean | null }> {
-  const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true)
-  const found: Array<{ at: string; ref: string | null; inline: boolean | null }> = []
-  const visit = (node: ts.Node) => {
-    if (
-      ts.isCallExpression(node) &&
-      ts.isIdentifier(node.expression) &&
-      node.expression.text === "adaptDataWidget" &&
-      node.arguments.length >= 3
-    ) {
-      const describe = node.arguments[2]
-      const at = `${file}:${lineOf(source, describe)}`
-      if (ts.isIdentifier(describe)) found.push({ at, ref: describe.text, inline: null })
-      else if (ts.isArrowFunction(describe) || ts.isFunctionExpression(describe)) {
-        found.push({ at, ref: null, inline: verdictOf(describe) })
-      } else found.push({ at, ref: null, inline: null })
-    }
-    ts.forEachChild(node, visit)
-  }
-  visit(source)
-  return found
-}
-
 export interface SourceRef {
   name: string
   /** Repo-relative `file:line`. */

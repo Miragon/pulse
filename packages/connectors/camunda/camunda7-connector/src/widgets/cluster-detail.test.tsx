@@ -2,9 +2,7 @@
 import { afterEach, beforeAll, describe, expect, it } from "vitest"
 import type { ComponentType } from "react"
 import { cleanup, render, screen } from "@testing-library/react"
-import { queryClient } from "@miragon/mcp-toolkit-ui"
-import { WidgetFixtureHost } from "@miragon/mcp-toolkit-ui/app"
-import { formatNumber, formatTimestamp } from "@miragon/pulse-widget-shell/widgets"
+import { formatNumber, formatTimestamp, TestViewHost } from "@miragon/pulse-widget-shell/widgets"
 import { ClusterDetailWidget, describeCluster } from "./cluster-detail.js"
 import type { ClusterDetailData } from "../view-models.js"
 import { CAMUNDA7_WIDGET_ACTIONS_DATA } from "../tool-names.js"
@@ -12,7 +10,6 @@ import { handOffFor, widgetActionsFeedFor } from "./lib/hand-off.test-support.js
 
 afterEach(() => {
   cleanup()
-  queryClient.clear()
 })
 
 /** The hand-offs follow the deployment's surface — this fixture runs as `operations`. */
@@ -62,11 +59,9 @@ const Widget = ClusterDetailWidget as unknown as ComponentType<Record<string, un
 describe("ClusterDetailWidget (fixture render)", () => {
   it("renders the cluster header, message, and business-key-first instance rows", async () => {
     render(
-      <WidgetFixtureHost
-        widget={Widget}
-        data={CLUSTER as unknown as Record<string, unknown>}
-        tools={tools}
-      />,
+      <TestViewHost tools={tools}>
+        <Widget data={CLUSTER as never} />
+      </TestViewHost>,
     )
 
     // Cluster identity + the guarded remediation handoff.
@@ -102,7 +97,11 @@ describe("ClusterDetailWidget (fixture render)", () => {
         processDefinitionName: "Ship order",
       })),
     }
-    render(<WidgetFixtureHost widget={Widget} data={named as unknown as Record<string, unknown>} />)
+    render(
+      <TestViewHost>
+        <Widget data={named as never} />
+      </TestViewHost>,
+    )
 
     const firstSeen = formatTimestamp("2026-06-11T08:00:00.000Z")
     expect(
@@ -116,7 +115,9 @@ describe("ClusterDetailWidget (fixture render)", () => {
 
   it("leaves the process column out when the cluster spans one process", () => {
     render(
-      <WidgetFixtureHost widget={Widget} data={CLUSTER as unknown as Record<string, unknown>} />,
+      <TestViewHost>
+        <Widget data={CLUSTER as never} />
+      </TestViewHost>,
     )
     expect(screen.queryByText("Process", { selector: "th" })).toBeNull()
     expect(screen.getByText(/^40 affected · in shipping · first seen /)).toBeTruthy()
@@ -133,7 +134,9 @@ describe("ClusterDetailWidget (fixture render)", () => {
       totalMatching: 1000,
     }
     render(
-      <WidgetFixtureHost widget={Widget} data={capped as unknown as Record<string, unknown>} />,
+      <TestViewHost>
+        <Widget data={capped as never} />
+      </TestViewHost>,
     )
 
     // Never the scanned 1,000 passed off as the cluster's size (counts render
