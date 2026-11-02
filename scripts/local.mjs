@@ -66,6 +66,8 @@ const CLI_PACKAGE = "@miragon/pulse-cli"
 const CLI_ENTRY = "apps/cli/dist/pulse-cli.js"
 const STACK_TIMEOUT_MS = 10 * 60_000
 const SERVER_TIMEOUT_MS = 3 * 60_000
+/** The MCP server's port when PORT is unset (the `dev` script's default). */
+const DEFAULT_PORT = 8400
 /** Served by `mcp-use dev` only. */
 const INSPECTOR = "/mcp/inspector"
 
@@ -330,7 +332,7 @@ async function stackStatus() {
   const rows = await Promise.all(
     [...SERVICES, server].map(async (service) => {
       const owner = owners.get(service.ports[0])
-      const up = service === server ? await portBound(8400) : await answers(service.probe)
+      const up = service === server ? await portBound(DEFAULT_PORT) : await answers(service.probe)
       const start =
         service.start ?? `pnpm stack:up${service.profile ? ` --${service.profile}` : ""}`
       const state = up ? "up" : owner ? "starting or unhealthy" : `not running (${start})`
@@ -371,11 +373,15 @@ function signalTree(child, signal) {
   }
 }
 
-/** Fail before the install and the build when the server's port is taken. */
-async function ensurePortFree(port) {
+/**
+ * Fail before the install and the build when the server's port is taken. The message names the
+ * port only when it is the default: a value from the caller's environment is never logged.
+ */
+async function ensurePortFree(port, fromEnv) {
   if (await portBound(port)) {
+    const which = fromEnv ? "The port your PORT names" : `Port ${DEFAULT_PORT}`
     throw new Failure(
-      `Port ${port} is taken (another pnpm play or pnpm dev?). Stop it, or set PORT to another port.`,
+      `${which} is taken (another pnpm play or pnpm dev?). Stop it, or set PORT to another port.`,
     )
   }
 }
@@ -391,18 +397,24 @@ function sayOverrides({ overridden, outranking }) {
 }
 
 async function play(options) {
-  const { env, ...overrides } = withPreset(serverPreset(options), process.env)
-  const port = Number(env.PORT ?? 8400)
+  const preset = serverPreset(options)
+  const { env, ...overrides } = withPreset(preset, process.env)
+  const portFromEnv = process.env.PORT !== undefined
+  const port = Number(env.PORT ?? DEFAULT_PORT)
   await ensureDocker()
-  await ensurePortFree(port)
+  await ensurePortFree(port, portFromEnv)
   await install()
   await ensureStack(options)
   say("Building the server's packages ...")
   await turboBuild(`${SERVER_PACKAGE}^...`)
-  await ensurePortFree(port)
+  await ensurePortFree(port, portFromEnv)
   sayOverrides(overrides)
+  // Named from the preset, never echoed from the caller's environment (sayOverrides names it).
   const toolsets =
-    env.MCP_ACTIVE_MODULES ?? (options.auth ? "the default under OAuth" : "the read-only default")
+    process.env.MCP_ACTIVE_MODULES !== undefined
+      ? "from your MCP_ACTIVE_MODULES"
+      : (preset.MCP_ACTIVE_MODULES ??
+        (options.auth ? "the default under OAuth" : "the read-only default"))
   say(`Starting the MCP server (toolsets: ${toolsets}) ...`)
   const [command, ...args] = pnpmArgv(["--fail-if-no-match", "--filter", SERVER_PACKAGE, "dev"])
   const child = spawn(command, args, {
