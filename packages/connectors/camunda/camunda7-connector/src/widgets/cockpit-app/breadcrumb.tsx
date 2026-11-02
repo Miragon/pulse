@@ -13,11 +13,13 @@ export function NavBreadcrumb({
   locale,
   onPop,
   rootLabel,
+  className,
 }: {
   stack: CockpitView[]
   locale: string
   onPop: (to: number) => void
   rootLabel?: string
+  className?: string
 }) {
   const entries = [
     ...(rootLabel !== undefined ? [{ label: rootLabel, index: -1 }] : []),
@@ -27,7 +29,10 @@ export function NavBreadcrumb({
   return (
     <nav
       aria-label={translator(locale, "cockpit.aria.breadcrumb")}
-      className="text-muted-foreground text-dense mb-4 flex flex-wrap items-center gap-1.5"
+      className={cn(
+        "text-muted-foreground text-dense flex min-w-0 flex-wrap items-center gap-1.5",
+        className,
+      )}
     >
       {entries.map((entry, position) => (
         <span key={position} className="inline-flex items-center gap-1.5">

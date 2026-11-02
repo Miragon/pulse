@@ -1,27 +1,16 @@
-import { useReducer, type ReactNode } from "react"
-import {
-  Button,
-  cn,
-  EmptyState,
-  FOCUS_RING,
-  useLocale,
-  Icon,
-  type LucideIcon,
-  NativeSelect,
-  NavigationFocus,
-  useResetOnChange,
-} from "@miragon/pulse-ui"
+import { useReducer } from "react"
+import { EmptyState, NavigationFocus, useLocale, useResetOnChange } from "@miragon/pulse-ui"
 import {
   HostModelContext,
+  useHostDisplayMode,
   useToolQuery,
   ViewDataState,
   ViewErrorBoundary,
   WidgetShell,
 } from "@miragon/pulse-widget-shell/widgets"
-import { Cog, Layers, LayoutDashboard, TriangleAlert } from "lucide-react"
 import type { CockpitAppData, CockpitStart, CockpitView } from "../../view-models.js"
 import { groupEnginesByEnvironment } from "../../lib/environments.js"
-import { EnvironmentChip, environmentIn } from "../lib/engine-context.js"
+import { environmentIn } from "../lib/engine-context.js"
 import { NavProvider, type NavIntent, type OnNavigate } from "../navigation.js"
 import { type CockpitScope, intentToView, popTo, pushView, viewKey } from "../nav-core.js"
 import { useHandOff } from "../lib/hand-off.js"
@@ -29,11 +18,11 @@ import { cockpitContext, fleetContext, landingContext } from "./model-context.js
 import { translator } from "../../messages/use-t.js"
 import { CAMUNDA7_LIST_ENGINES } from "../../tool-names.js"
 import { FleetCrumbs, NavBreadcrumb, navigationOf } from "./breadcrumb.js"
+import { CockpitHead, EngineSwitch, type TopSection } from "./head.js"
 import { CockpitRoute } from "./routes.js"
 import { useAnalyticsActive } from "./analytics-probe.js"
 import { FleetView } from "./fleet-view.js"
 import { LandingChooser, LandingHeader } from "./landing.js"
-import { CockpitRefreshButton } from "./refresh-button.js"
 
 export type { CockpitAppData }
 
@@ -41,14 +30,6 @@ interface EnginesResult {
   engines: Array<{ id: string; environment?: string }>
   defaultEngineId: string | null
 }
-
-type TopSection = "overview" | "incidents" | "jobs"
-
-const SECTIONS: Array<{ id: TopSection; intent: NavIntent; icon: LucideIcon }> = [
-  { id: "overview", intent: { type: "overview" }, icon: LayoutDashboard },
-  { id: "incidents", intent: { type: "incidents" }, icon: TriangleAlert },
-  { id: "jobs", intent: { type: "jobs" }, icon: Cog },
-]
 
 /** A head section's own view; the jobs of one process are a drill, not the head section. */
 function isTopSection(view: CockpitView): view is CockpitView & { section: TopSection } {
@@ -156,118 +137,6 @@ function cockpitReducer(state: CockpitState, action: CockpitAction): CockpitStat
   }
 }
 
-/** #322 U4: environment chip plus engine select, optgroups by environment. */
-function EngineSwitch({
-  engineId,
-  environment,
-  engineGroups,
-  onSwitch,
-}: {
-  engineId: string
-  environment: string | null
-  engineGroups: Array<{ id: string; engines: Array<{ id: string }> }>
-  onSwitch: (id: string) => void
-}) {
-  const locale = useLocale()
-  const engines = engineGroups.flatMap((g) => g.engines)
-  return (
-    <div data-slot="engine-context" className="flex min-w-0 items-center gap-2">
-      {environment && <EnvironmentChip environment={environment} />}
-      {engines.length > 1 ? (
-        <NativeSelect
-          aria-label={translator(locale, "cockpit.aria.activeEngine")}
-          value={engineId}
-          onChange={(e) => onSwitch(e.target.value)}
-          className="h-8 max-w-56 font-semibold"
-        >
-          {engineGroups.length > 1
-            ? engineGroups.map((g) => (
-                <optgroup key={g.id} label={g.id.toUpperCase()}>
-                  {g.engines.map((e) => (
-                    <option key={e.id} value={e.id}>
-                      {e.id}
-                    </option>
-                  ))}
-                </optgroup>
-              ))
-            : engines.map((e) => (
-                <option key={e.id} value={e.id}>
-                  {e.id}
-                </option>
-              ))}
-        </NativeSelect>
-      ) : (
-        <span className="text-dense text-foreground truncate font-semibold">{engineId}</span>
-      )}
-    </div>
-  )
-}
-
-/** #322 U20: one compact head row instead of a sidebar that cost ~200 px inline. */
-function CockpitHead({
-  activeSection,
-  onSection,
-  engineSwitch,
-  onOpenFleet,
-}: {
-  activeSection: TopSection
-  onSection: (intent: NavIntent) => void
-  engineSwitch: ReactNode
-  onOpenFleet?: () => void
-}) {
-  const locale = useLocale()
-  const crossEngine = translator(locale, "cockpit.nav.crossEngine")
-  return (
-    <div className="border-border @container mb-4 border-b pb-3">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <nav
-          aria-label={translator(locale, "cockpit.aria.sections")}
-          className="flex flex-wrap items-center gap-1"
-        >
-          {SECTIONS.map((s) => {
-            const isActive = activeSection === s.id
-            return (
-              <button
-                key={s.id}
-                type="button"
-                aria-current={isActive ? "page" : undefined}
-                onClick={() => onSection(s.intent)}
-                className={cn(
-                  "text-dense inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 font-medium transition-colors",
-                  FOCUS_RING,
-                  isActive
-                    ? "bg-accent text-accent-foreground font-semibold"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                )}
-              >
-                <Icon icon={s.icon} />
-                {translator(locale, `cockpit.section.${s.id}`)}
-              </button>
-            )
-          })}
-        </nav>
-        <div className="ms-auto flex min-w-0 flex-wrap items-center gap-2">
-          {onOpenFleet && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={onOpenFleet}
-              aria-label={crossEngine}
-              title={crossEngine}
-            >
-              <Icon icon={Layers} />
-              <span className="hidden @4xl:inline">{crossEngine}</span>
-            </Button>
-          )}
-          {engineSwitch}
-          <CockpitRefreshButton />
-        </div>
-      </div>
-    </div>
-  )
-}
-
 function activeSectionOf(stack: CockpitView[]): TopSection {
   const root = stack[0]
   return isTopSection(root) ? root.section : "overview"
@@ -357,6 +226,7 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
 
   const locale = useLocale()
   const { context } = useHandOff()
+  const inline = useHostDisplayMode() === "inline"
 
   const [state, dispatch] = useCockpitState(data, engines)
   const { scope, stack, goneEngineId } = state
@@ -412,6 +282,19 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
 
   const environment = environmentIn(engines, engineId)
 
+  // "All engines" leads back to the chooser (#322 U15) when there is more than one engine.
+  const trail = (className?: string) => (
+    <NavBreadcrumb
+      stack={stack}
+      locale={locale}
+      rootLabel={engines.length > 1 ? translator(locale, "cockpit.crumb.allEngines") : undefined}
+      onPop={(to) => dispatch(to < 0 ? { type: "to-landing" } : { type: "pop", to })}
+      className={className}
+    />
+  )
+  // Inline is a card (#396): a drilled view's trail takes the sections' row, a head section shows none.
+  const drilled = stack.length > 1
+
   return (
     <NavigationFocus viewKey={nav.key} label={nav.label}>
       <WidgetShell>
@@ -422,6 +305,7 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
           activeSection={activeSection}
           onSection={(intent) => dispatch(intent)}
           onOpenFleet={openFleet}
+          trail={inline && drilled ? trail() : undefined}
           engineSwitch={
             <EngineSwitch
               engineId={engineId}
@@ -434,17 +318,7 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
 
         <main className="min-w-0">
           <EngineGoneNotice engineId={goneEngineId} />
-          {/* "Alle Engines" leads back to the chooser (#322 U15) whenever there
-            is more than one engine to choose from; a root view with a single
-            engine renders no trail (NavBreadcrumb handles that). */}
-          <NavBreadcrumb
-            stack={stack}
-            locale={locale}
-            rootLabel={
-              engines.length > 1 ? translator(locale, "cockpit.crumb.allEngines") : undefined
-            }
-            onPop={(to) => dispatch(to < 0 ? { type: "to-landing" } : { type: "pop", to })}
-          />
+          {!inline && trail("mb-4")}
 
           {/* Every view is a route of self-fetching widgets. The NavProvider is
             the client-side navigation seam: widgets call `useNav()`, which

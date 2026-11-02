@@ -207,8 +207,8 @@ test.describe("inline fit on real-sized data (760 px column)", () => {
     page,
   }) => {
     const view = VIEWS[0]
-    // Under the cockpit's head and breadcrumb one row of these fits 600 px at 760 px, so the
-    // list refits within an 800 px budget, where a narrower column can show fewer.
+    // Under the cockpit's head few rows of these fit 600 px at 760 px, so the list refits
+    // within an 800 px budget, where a narrower column can show fewer.
     const app = await openView(page, view, { maxHeight: 800 })
     const at760 = await expectFits(page, app, view, 800)
     expect(at760, "room to show fewer").toBeGreaterThan(1)

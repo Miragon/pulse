@@ -193,9 +193,10 @@ const STUB_JOBS = ["Card declined", "Card expired", "Billing address unknown"]
  * The cockpit's jobs route rendered the stub engine's three failed jobs, the first job first:
  * inline exactly the `shown` rows the host's budget leaves room for under the cockpit's head
  * and the KPI strip (#396), and the count line says how many of the three. At 960 px a 600 px
- * budget (and the unstated one, fitted as 600 px) leaves room for one; 800 px fits all three.
+ * budget (and the unstated one, fitted as 600 px) leaves room for two; 800 px fits all three.
+ * A head section shows no trail inline, so the head is the only row above the view.
  */
-async function expectJobs(app: FrameLocator, shown: 1 | 3) {
+async function expectJobs(app: FrameLocator, shown: 2 | 3) {
   const region = app.getByRole("region", { name: "Jobs", exact: true })
   await expect(region).toBeVisible({ timeout: 15_000 })
   await expect(region.getByRole("row")).toHaveCount(shown + 1)
@@ -773,7 +774,7 @@ test.describe("real camunda7 view (camunda7_open_cockpit, the overview)", () => 
   }) => {
     const app = await openView(page, { args: JOBS_ARGS, maxHeight: 600 })
 
-    await expectJobs(app, 1)
+    await expectJobs(app, 2)
     const container = await app.locator("#root").evaluate((root) => {
       const el = root.firstElementChild as HTMLElement
       return { scrollHeight: el.scrollHeight, clientHeight: el.clientHeight }
@@ -786,7 +787,7 @@ test.describe("real camunda7 view (camunda7_open_cockpit, the overview)", () => 
   }) => {
     const app = await openView(page, { args: JOBS_ARGS })
 
-    await expectJobs(app, 1)
+    await expectJobs(app, 2)
     // The old html/body/#root floor reported 600 for every view. `settledHeight`
     // waits for the report that equals the content's max-content height.
     const reported = await settledHeight(page, app)
@@ -1372,7 +1373,7 @@ test.describe("cockpit (camunda7_open_cockpit)", () => {
 
   test("opens on its start view: the head section current, no picker", async ({ page }) => {
     const app = await openView(page, { args: JOBS_ARGS })
-    await expectJobs(app, 1)
+    await expectJobs(app, 2)
     const sections = app.getByRole("navigation", { name: "Cockpit sections" })
     await expect(sections.getByRole("button", { name: "Jobs" })).toHaveAttribute(
       "aria-current",

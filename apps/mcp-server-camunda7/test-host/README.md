@@ -72,9 +72,9 @@ simulation (test:host)". It renders exactly what an MCP Apps host renders:
 | axe (analytics)            | dashboard + landscape, light and dark, 760 px     | zero WCAG 2.1 A/AA violations (`analytics.spec.ts`)                                                                                                                |
 
 **The cockpit's chrome inline.** Every camunda7 scenario renders the cockpit, whose head
-(sections, engine switch, Refresh) and breadcrumb sit above the route: at 760 px they take
-about 120 px of the inline budget. A 600 px budget then shows one or two rows of the
-realistic instance list and one job row; the host scenarios pin the job count. The width refit
+(sections, engine switch, Refresh) sits above the route. Inline the head is the only row: a
+drilled view's breadcrumb takes the sections' place, a head section shows none. A 600 px budget
+then shows two job rows; the host scenarios pin the job count. The width refit
 (`inline-fit.spec.ts`) and the row menu run at 800 px, where several rows fit.
 
 Height checks read the **settled** report, the one equal to the document's current

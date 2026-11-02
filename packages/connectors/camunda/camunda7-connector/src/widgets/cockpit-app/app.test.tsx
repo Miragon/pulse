@@ -48,10 +48,15 @@ function boot(
   return { engineId, engines, start: view ? ({ view, data } as CockpitStart) : null }
 }
 
+/** Stable objects: the test host memoizes on them. Fullscreen shows the head and the trail apart. */
+const FULLSCREEN = { displayMode: "fullscreen" } as const
+const INLINE = { displayMode: "inline" } as const
+
 /** `list` is mutable, so a test can reload it. */
 function renderCockpit(
   bootstrap: CockpitAppData = boot(null, ENGINES),
   list: { engines: CockpitAppData["engines"] } = { engines: ENGINES },
+  displayMode: typeof FULLSCREEN | typeof INLINE = FULLSCREEN,
 ) {
   const modelContexts: string[] = []
   const actions: HostAction[] = []
@@ -96,6 +101,7 @@ function renderCockpit(
       onModelContext={(text) => modelContexts.push(text)}
       onHostAction={(action) => actions.push(action)}
       client={queryClient}
+      host={displayMode}
     >
       <CockpitApp data={data} />
     </TestViewHost>
@@ -340,5 +346,34 @@ describe("CockpitApp opens on the start view", () => {
     fireEvent.click(headSection("Jobs"))
     await waitFor(() => expect(reads(CAMUNDA7_JOBS_DATA)).toHaveLength(1))
     expect(reads(CAMUNDA7_JOBS_DATA)[0]).toMatchObject({ engine: "prod-a" })
+  })
+})
+
+/** #396: inline is a card, so the head and the trail share one row. */
+describe("CockpitApp inline", () => {
+  const sections = () => screen.queryByRole("navigation", { name: "Cockpit sections" })
+  const trail = () => screen.queryByRole("navigation", { name: "Breadcrumb" })
+
+  it("a drilled view's trail takes the sections' place in the head", async () => {
+    const instances = { section: "process-instances", processDefinitionKey: "invoice" } as const
+    renderCockpit(boot("prod-a", ENGINES, instances), { engines: ENGINES }, INLINE)
+    await waitFor(() => expect(trailLabels()).toEqual(["All engines", "Overview", "Instances"]))
+    expect(sections()).toBeNull()
+  })
+
+  it("a head section shows its sections and no trail", async () => {
+    renderCockpit(boot("prod-a", ENGINES, { section: "jobs" }, JOBS_DATA), undefined, INLINE)
+    await waitFor(() => expect(headSection("Jobs").getAttribute("aria-current")).toBe("page"))
+    expect(trail()).toBeNull()
+  })
+
+  it("the trail's first crumb leads back to the sections", async () => {
+    const detail = { section: "process-detail", processDefinitionKey: "invoice" } as const
+    renderCockpit(boot("prod-a", ENGINES, detail), undefined, INLINE)
+    fireEvent.click(
+      within(await screen.findByRole("navigation", { name: "Breadcrumb" })).getByText("Overview"),
+    )
+    await waitFor(() => expect(headSection("Overview").getAttribute("aria-current")).toBe("page"))
+    expect(trail()).toBeNull()
   })
 })
