@@ -94,7 +94,7 @@ export function registerJobTools(register: ToolRegistrar<EngineRegistry>) {
     name: "camunda7_set_job_retries_batch",
     category: "jobs",
     description:
-      'Queue a batch that sets retries on multiple jobs. Returns { batchId, status: "queued" } — not the outcome: ' +
+      'Queue a batch that sets retries on multiple jobs. Returns { batchId, status: "queued" }, not the outcome: ' +
       "follow it with camunda7_get_batch.",
     annotations: { destructiveHint: true, openWorldHint: true },
     inputSchema: { ...setJobRetriesBatchInput.shape, ...engineParamShape },

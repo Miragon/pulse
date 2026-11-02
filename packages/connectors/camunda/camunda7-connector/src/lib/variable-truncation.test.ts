@@ -72,14 +72,14 @@ describe("variableRead", () => {
     "fails for a name the read does not hold (%s) instead of an empty map",
     (name) => {
       expect(() => variableRead(variables, name)).toThrow(
-        `No variable named "${name}" — omit variableName to list them all.`,
+        `No variable named "${name}"; omit variableName to list them all.`,
       )
     },
   )
 
   it("the write rule forbids sending a cut value back and names the whole read", () => {
     expect(CUT_VALUE_WRITE_RULE).toBe(
-      "Never write back a value read with truncated: true — it is incomplete; read it whole first (variableName).",
+      "Never write back a value read with truncated: true. It is incomplete; read it whole first (variableName).",
     )
   })
 })

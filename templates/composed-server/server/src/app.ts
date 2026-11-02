@@ -16,7 +16,7 @@ const PACKAGE_ROOT = path.join(import.meta.dirname, "..")
  * e.g. camunda7's engine routing), and tool descriptions carry the rest.
  */
 export const SERVER_INSTRUCTIONS =
-  "Camunda 7 / CIB Seven operations, process analytics and team notes. " +
+  "Camunda 7 / CIB seven operations, process analytics and team notes. " +
   "Toolsets fail closed: a tool missing from tools/list is not enabled on this deployment. " +
   "On hosts that render MCP Apps, prefer the view tools (*_show_*, *_open_*) to present results to the user."
 

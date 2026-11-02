@@ -74,7 +74,7 @@ describe("toEngineDate", () => {
   ])("refuses %j, naming the accepted forms", (input) => {
     expect(isEngineDateInput(input)).toBe(false)
     expect(() => toEngineDate(input)).toThrow(
-      `Invalid date "${input}" — expected ${ENGINE_DATE_INPUT_FORMS}`,
+      `Invalid date "${input}": expected ${ENGINE_DATE_INPUT_FORMS}`,
     )
   })
 

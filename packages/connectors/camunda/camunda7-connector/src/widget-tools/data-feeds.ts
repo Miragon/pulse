@@ -80,7 +80,7 @@ export function registerWidgetDataFeeds(ctx: WidgetToolsContext) {
     name: CAMUNDA7_COCKPIT_OVERVIEW_DATA,
     title: "Cockpit overview data (internal)",
     description:
-      "Internal JSON feed (no UI) for the cockpit overview — per-definition stats. Prefer camunda7_open_cockpit.",
+      "Internal JSON feed (no UI) for the cockpit overview: per-definition stats. Prefer camunda7_open_cockpit.",
     shape: {},
     read: readCockpitOverview,
   })
@@ -116,7 +116,7 @@ export function registerWidgetDataFeeds(ctx: WidgetToolsContext) {
     name: CAMUNDA7_BPMN_XML_DATA,
     title: "BPMN XML data (internal)",
     description:
-      "Internal JSON feed (no UI): one deployed process definition's BPMN 2.0 XML, by id — what every diagram in the views draws. Use camunda7_get_process_definition_xml for the XML itself.",
+      "Internal JSON feed (no UI): one deployed process definition's BPMN 2.0 XML, by id, which every diagram in the views draws. Use camunda7_get_process_definition_xml for the XML itself.",
     shape: {
       processDefinitionId: z
         .string()
@@ -159,7 +159,7 @@ export function registerWidgetDataFeeds(ctx: WidgetToolsContext) {
     name: CAMUNDA7_INCIDENTS_DATA,
     title: "Incidents dashboard data (internal)",
     description:
-      "Internal JSON feed (no UI) for the incidents dashboard — open incidents grouped by process. Prefer camunda7_open_cockpit.",
+      "Internal JSON feed (no UI) for the incidents dashboard: open incidents grouped by process. Prefer camunda7_open_cockpit.",
     shape: incidentsDashboardFilterShape,
     read: readIncidents,
   })
@@ -168,7 +168,7 @@ export function registerWidgetDataFeeds(ctx: WidgetToolsContext) {
     name: CAMUNDA7_PROCESS_INCIDENTS_DATA,
     title: "Process incidents data (internal)",
     description:
-      "Internal JSON feed (no UI) for the unified definition view — header, KPIs (incl. failed jobs), BPMN overlays, activity-grouped incidents. Prefer camunda7_open_cockpit.",
+      "Internal JSON feed (no UI) for the unified definition view: header, KPIs (incl. failed jobs), BPMN overlays, activity-grouped incidents. Prefer camunda7_open_cockpit.",
     shape: { processDefinitionKey: z.string().describe("Process definition key to drill into") },
     read: readProcessIncidents,
   })
@@ -189,7 +189,7 @@ export function registerWidgetDataFeeds(ctx: WidgetToolsContext) {
     name: CAMUNDA7_INCIDENT_DETAIL_DATA,
     title: "Incident detail data (internal)",
     description:
-      "Internal JSON feed (no UI) for a single incident — stacktrace, BPMN with the failing activity, variables, activity tree, history. Prefer camunda7_open_cockpit.",
+      "Internal JSON feed (no UI) for a single incident: stacktrace, BPMN with the failing activity, variables, activity tree, history. Prefer camunda7_open_cockpit.",
     shape: { incidentId: z.string().describe("The incident ID to inspect") },
     read: readIncidentDetail,
   })

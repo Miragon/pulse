@@ -87,7 +87,7 @@ export function registerExternalTaskTools(register: ToolRegistrar<EngineRegistry
     category: "external-tasks",
     description:
       "External-task WORKER protocol: fetch and lock external tasks for the given worker id. Locked tasks are withheld " +
-      "from the production workers until the lock expires (default 5 minutes) or the task is completed or failed — " +
+      "from the production workers until the lock expires (default 5 minutes) or the task is completed or failed; " +
       "there is no unlock. To inspect external tasks without locking them, use camunda7_list_external_tasks.",
     annotations: { destructiveHint: true, openWorldHint: true },
     inputSchema: { ...fetchAndLockInput.shape, ...engineParamShape },
@@ -108,7 +108,7 @@ export function registerExternalTaskTools(register: ToolRegistrar<EngineRegistry
     category: "external-tasks",
     description:
       "External-task WORKER protocol: complete an external task that was previously fetched and locked by the given " +
-      "worker, optionally setting variables — the process continues as if the worker had done the work.",
+      "worker, optionally setting variables. The process continues as if the worker had done the work.",
     annotations: { destructiveHint: true, openWorldHint: true },
     inputSchema: { ...completeExternalTaskInput.shape, ...engineParamShape },
     handler: withEngine(async (client, args) => {

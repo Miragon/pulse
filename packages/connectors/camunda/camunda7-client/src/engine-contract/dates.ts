@@ -80,7 +80,7 @@ export function toEngineDate(input: string | Date): string {
     return input.toISOString().replace("Z", "+0000")
   }
   const parts = parse(input)
-  if (!parts) throw new RangeError(`Invalid date "${input}" — expected ${ENGINE_DATE_INPUT_FORMS}`)
+  if (!parts) throw new RangeError(`Invalid date "${input}": expected ${ENGINE_DATE_INPUT_FORMS}`)
   const date = `${pad(parts.year, 4)}-${pad(parts.month)}-${pad(parts.day)}`
   const time = `${pad(parts.hour)}:${pad(parts.minute)}:${pad(parts.second)}.${parts.millis}`
   return `${date}T${time}${parts.offset}`

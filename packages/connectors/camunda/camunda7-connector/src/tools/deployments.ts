@@ -46,7 +46,7 @@ export function registerDeploymentTools(
     name: "camunda7_get_deployment",
     category: "deployments",
     description:
-      "Get a deployment by ID — returns deployment timestamp + source, used for pre/post deployment correlation (commit-hash → deployment-ID → timestamp).",
+      "Get a deployment by ID: its timestamp and source, for pre/post deployment correlation (commit hash → deployment ID → timestamp).",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     inputSchema: { ...getDeploymentInput.shape, ...engineParamShape },
     handler: withEngine(async (client, args) =>
@@ -88,7 +88,7 @@ export function registerDeploymentTools(
     category: "deployments",
     description:
       "Deploy BPMN process definitions and other resources to the engine. Supports duplicate filtering and deploy-changed-only. " +
-      "WARNING: deploying runs code inside the engine JVM — expressions, scripts and listener/delegate references in the " +
+      "WARNING: deploying runs code inside the engine JVM, since expressions, scripts and listener/delegate references in the " +
       "deployed models execute with the engine's privileges. Available only in the admin toolset with CAMUNDA_ALLOW_DEPLOYMENTS=true.",
     annotations: { destructiveHint: true, openWorldHint: true },
     inputSchema: { ...createDeploymentInput.shape, ...engineParamShape },

@@ -94,7 +94,7 @@ function remediationRule(toolset: Camunda7Toolset): string {
 
 export function camunda7Instructions(input: Camunda7InstructionsInput): string {
   return [
-    "camunda7 (Camunda 7 / CIB Seven engine REST API):",
+    "camunda7 (Camunda 7 / CIB seven engine REST API):",
     `- Engine routing: ${routingRule(input)}`,
     "- Dates are ISO 8601: a date (2026-07-01) or a date-time with offset (2026-07-01T12:00:00Z).",
     FILTER_RULE,

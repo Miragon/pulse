@@ -35,7 +35,7 @@ export function registerMessageSignalTools(register: ToolRegistrar<EngineRegistr
     name: "camunda7_throw_signal",
     category: "messages-signals",
     description:
-      "Throw a signal — an ENGINE-WIDE broadcast, not a targeted call: it triggers every matching signal catch event " +
+      "Throw a signal: an ENGINE-WIDE broadcast, not a targeted call. It triggers every matching signal catch event " +
       "in every running process instance and starts a new instance through every matching signal start event. " +
       "Cannot be undone or scoped to one instance (use camunda7_correlate_message for targeted delivery).",
     // Engine-wide side effects (admin-only via ADMIN_ONLY_TOOLS).

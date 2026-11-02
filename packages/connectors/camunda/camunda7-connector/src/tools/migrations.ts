@@ -60,7 +60,7 @@ export function registerMigrationTools(register: ToolRegistrar<EngineRegistry>) 
     category: "migrations",
     description:
       "Queue a batch that migrates process instances to another definition version (mapping generated from equal " +
-      'activity ids unless instructions are given). Returns { batchId, status: "queued" } — not the outcome: ' +
+      'activity ids unless instructions are given). Returns { batchId, status: "queued" }, not the outcome: ' +
       "follow it with camunda7_get_batch.",
     annotations: { destructiveHint: true, openWorldHint: true },
     inputSchema: { ...migrateProcessInstancesAsyncInput.shape, ...engineParamShape },

@@ -106,7 +106,7 @@ export function registerComparisonWidgetTools(ctx: AnalyticsWidgetToolsContext) 
       name: ANALYTICS_ENGINE_LANDSCAPE_DATA,
       title: "Engine landscape data (internal)",
       description:
-        "Internal JSON feed (no UI) for the cross-engine landscape widget's self-fetch — also consumed by the camunda7 cockpit's cross-engine mode. Prefer analytics_show_engine_landscape.",
+        "Internal JSON feed (no UI) for the cross-engine landscape widget's self-fetch, also consumed by the camunda7 cockpit's cross-engine mode. Prefer analytics_show_engine_landscape.",
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
       inputSchema: strictToolInput(schemas.engineLandscapeInput.shape),
       ...appOnly,

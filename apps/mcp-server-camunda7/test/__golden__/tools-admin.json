@@ -13,7 +13,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Internal JSON feed (no UI) for the BPMN heatmap — per-element execution frequency + average duration over a window. Lets another widget (e.g. the CIB Seven cockpit) paint the heat on its own diagram. Prefer analytics_show_bpmn_heatmap for a standalone view.",
+    "description": "Internal JSON feed (no UI) for the BPMN heatmap: per-element execution frequency + average duration over a window. Lets another widget (e.g. the CIB seven cockpit) paint the heat on its own diagram. Prefer analytics_show_bpmn_heatmap for a standalone view.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -102,7 +102,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Live operational health of the CIB Seven engine(s), from Prometheus state gauges: running WIP, open incidents by type, failed jobs (retries exhausted), executable/suspended job backlog, open/unassigned user tasks, external-task backlog, deployed definitions, and which alert rules are firing/pending. Names the engines judged and the silent ones (`silentEngines`: their counts read 0 because nothing arrives). Status: From Prometheus, over the engines in scope: unknown when none of them reports metrics; critical only while a severity=critical alert fires for them (fleet-wide also an engine-less CibSeven* alert); degraded with any such firing alert, failed job, open incident or an engine in scope that reports nothing; else healthy. Use for fleet-wide or metric-based health; for one engine's live incident clusters use camunda7_open_cockpit.",
+    "description": "Live operational health of the CIB seven engine(s), from Prometheus state gauges: running WIP, open incidents by type, failed jobs (retries exhausted), executable/suspended job backlog, open/unassigned user tasks, external-task backlog, deployed definitions, and which alert rules are firing/pending. Names the engines judged and the silent ones (`silentEngines`: their counts read 0 because nothing arrives). Status: From Prometheus, over the engines in scope: unknown when none of them reports metrics; critical only while a severity=critical alert fires for them (fleet-wide also an engine-less CibSeven* alert); degraded with any such firing alert, failed job, open incident or an engine in scope that reports nothing; else healthy. Use for fleet-wide or metric-based health; for one engine's live incident clusters use camunda7_open_cockpit.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -138,7 +138,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Internal JSON feed (no UI) for the cross-engine landscape widget's self-fetch — also consumed by the camunda7 cockpit's cross-engine mode. Prefer analytics_show_engine_landscape.",
+    "description": "Internal JSON feed (no UI) for the cross-engine landscape widget's self-fetch, also consumed by the camunda7 cockpit's cross-engine mode. Prefer analytics_show_engine_landscape.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -179,7 +179,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Render a process definition's BPMN diagram with a per-element heat overlay from metrics, with a Frequency↔Duration toggle (traversal count vs average duration per element). Node-level only — sequence-flow/edge heat is not available from metrics — and rendered on the latest deployed version's diagram (activity metrics carry no version label). Needs the camunda7 client to fetch the BPMN XML; otherwise the widget shows a fallback.",
+    "description": "Render a process definition's BPMN diagram with a per-element heat overlay from metrics, with a Frequency↔Duration toggle (traversal count vs average duration per element). Node-level only (sequence-flow/edge heat is not available from metrics) and rendered on the latest deployed version's diagram (activity metrics carry no version label). Needs the camunda7 client to fetch the BPMN XML; otherwise the widget shows a fallback.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -615,7 +615,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Internal JSON feed (no UI): one deployed process definition's BPMN 2.0 XML, by id — what every diagram in the views draws. Use camunda7_get_process_definition_xml for the XML itself.",
+    "description": "Internal JSON feed (no UI): one deployed process definition's BPMN 2.0 XML, by id, which every diagram in the views draws. Use camunda7_get_process_definition_xml for the XML itself.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -745,7 +745,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Internal JSON feed (no UI) for the cockpit overview — per-definition stats. Prefer camunda7_open_cockpit.",
+    "description": "Internal JSON feed (no UI) for the cockpit overview: per-definition stats. Prefer camunda7_open_cockpit.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -766,7 +766,7 @@
       "destructiveHint": true,
       "openWorldHint": true
     },
-    "description": "External-task WORKER protocol: complete an external task that was previously fetched and locked by the given worker, optionally setting variables — the process continues as if the worker had done the work.",
+    "description": "External-task WORKER protocol: complete an external task that was previously fetched and locked by the given worker, optionally setting variables. The process continues as if the worker had done the work.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -821,7 +821,7 @@
       "destructiveHint": false,
       "openWorldHint": true
     },
-    "description": "Complete a user task by ID, optionally setting variables. A task with form fields is submitted as its form: the engine enforces them (required, readonly, types); omitted fields keep their value. A delegated task (delegationState PENDING) is resolved back to its owner instead and stays open (outcome \"resolved\"). Never write back a value read with truncated: true — it is incomplete; read it whole first (variableName).",
+    "description": "Complete a user task by ID, optionally setting variables. A task with form fields is submitted as its form: the engine enforces them (required, readonly, types); omitted fields keep their value. A delegated task (delegationState PENDING) is resolved back to its owner instead and stays open (outcome \"resolved\"). Never write back a value read with truncated: true. It is incomplete; read it whole first (variableName).",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -962,7 +962,7 @@
       "destructiveHint": true,
       "openWorldHint": true
     },
-    "description": "Deploy BPMN process definitions and other resources to the engine. Supports duplicate filtering and deploy-changed-only. WARNING: deploying runs code inside the engine JVM — expressions, scripts and listener/delegate references in the deployed models execute with the engine's privileges. Available only in the admin toolset with CAMUNDA_ALLOW_DEPLOYMENTS=true.",
+    "description": "Deploy BPMN process definitions and other resources to the engine. Supports duplicate filtering and deploy-changed-only. WARNING: deploying runs code inside the engine JVM, since expressions, scripts and listener/delegate references in the deployed models execute with the engine's privileges. Available only in the admin toolset with CAMUNDA_ALLOW_DEPLOYMENTS=true.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -1127,7 +1127,7 @@
       "destructiveHint": true,
       "openWorldHint": true
     },
-    "description": "External-task WORKER protocol: fetch and lock external tasks for the given worker id. Locked tasks are withheld from the production workers until the lock expires (default 5 minutes) or the task is completed or failed — there is no unlock. To inspect external tasks without locking them, use camunda7_list_external_tasks.",
+    "description": "External-task WORKER protocol: fetch and lock external tasks for the given worker id. Locked tasks are withheld from the production workers until the lock expires (default 5 minutes) or the task is completed or failed; there is no unlock. To inspect external tasks without locking them, use camunda7_list_external_tasks.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -1187,7 +1187,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Build a structured, tracker-agnostic ticket draft (title, markdown body, labels) from a Camunda 7 / CIB Seven incident. Does NOT file anything — present the draft in the chat for review and reuse; the user decides where it goes (their issue tracker via whatever integration is available, the prefilled GitHub URL of the configured repository, or copy-paste).",
+    "description": "Build a structured, tracker-agnostic ticket draft (title, markdown body, labels) from a Camunda 7 / CIB seven incident. Does NOT file anything: present the draft in the chat for review and reuse; the user decides where it goes (their issue tracker via whatever integration is available, the prefilled GitHub URL of the configured repository, or copy-paste).",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -1269,7 +1269,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Get a deployment by ID — returns deployment timestamp + source, used for pre/post deployment correlation (commit-hash → deployment-ID → timestamp).",
+    "description": "Get a deployment by ID: its timestamp and source, for pre/post deployment correlation (commit hash → deployment ID → timestamp).",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -1586,7 +1586,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Internal JSON feed (no UI) for a single incident — stacktrace, BPMN with the failing activity, variables, activity tree, history. Prefer camunda7_open_cockpit.",
+    "description": "Internal JSON feed (no UI) for a single incident: stacktrace, BPMN with the failing activity, variables, activity tree, history. Prefer camunda7_open_cockpit.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -1623,7 +1623,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Internal JSON feed (no UI) for the incidents dashboard — open incidents grouped by process. Prefer camunda7_open_cockpit.",
+    "description": "Internal JSON feed (no UI) for the incidents dashboard: open incidents grouped by process. Prefer camunda7_open_cockpit.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -2449,7 +2449,7 @@
       "destructiveHint": true,
       "openWorldHint": true
     },
-    "description": "Queue a batch that migrates process instances to another definition version (mapping generated from equal activity ids unless instructions are given). Returns { batchId, status: \"queued\" } — not the outcome: follow it with camunda7_get_batch.",
+    "description": "Queue a batch that migrates process instances to another definition version (mapping generated from equal activity ids unless instructions are given). Returns { batchId, status: \"queued\" }, not the outcome: follow it with camunda7_get_batch.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -2690,7 +2690,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Internal JSON feed (no UI) for the unified definition view — header, KPIs (incl. failed jobs), BPMN overlays, activity-grouped incidents. Prefer camunda7_open_cockpit.",
+    "description": "Internal JSON feed (no UI) for the unified definition view: header, KPIs (incl. failed jobs), BPMN overlays, activity-grouped incidents. Prefer camunda7_open_cockpit.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -3319,7 +3319,7 @@
       "destructiveHint": false,
       "openWorldHint": true
     },
-    "description": "Resolve a custom incident by ID. The engine refuses failedJob/failedExternalTask (400) — retry those: camunda7_set_job_retries / camunda7_set_external_task_retries on the incident's configuration id.",
+    "description": "Resolve a custom incident by ID. The engine refuses failedJob/failedExternalTask (400); retry those instead: camunda7_set_job_retries / camunda7_set_external_task_retries on the incident's configuration id.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -3409,7 +3409,7 @@
       "destructiveHint": true,
       "openWorldHint": true
     },
-    "description": "Queue a batch that sets retries on multiple jobs. Returns { batchId, status: \"queued\" } — not the outcome: follow it with camunda7_get_batch.",
+    "description": "Queue a batch that sets retries on multiple jobs. Returns { batchId, status: \"queued\" }, not the outcome: follow it with camunda7_get_batch.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -3480,7 +3480,7 @@
       "idempotentHint": true,
       "openWorldHint": true
     },
-    "description": "Set a single variable on a process instance; pass back the valueInfo read. Never write back a value read with truncated: true — it is incomplete; read it whole first (variableName).",
+    "description": "Set a single variable on a process instance; pass back the valueInfo read. Never write back a value read with truncated: true. It is incomplete; read it whole first (variableName).",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -3607,7 +3607,7 @@
       "destructiveHint": true,
       "openWorldHint": true
     },
-    "description": "Throw a signal — an ENGINE-WIDE broadcast, not a targeted call: it triggers every matching signal catch event in every running process instance and starts a new instance through every matching signal start event. Cannot be undone or scoped to one instance (use camunda7_correlate_message for targeted delivery).",
+    "description": "Throw a signal: an ENGINE-WIDE broadcast, not a targeted call. It triggers every matching signal catch event in every running process instance and starts a new instance through every matching signal start event. Cannot be undone or scoped to one instance (use camunda7_correlate_message for targeted delivery).",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {

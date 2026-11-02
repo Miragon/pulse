@@ -88,8 +88,8 @@ export function buildIncidentIssuePayload(input: BuildIssueInput): IncidentIssue
     suggestedRepository: repository,
     prefilledUrl,
     nextStep: repository
-      ? `Present this draft to the user in the chat (title, full body, labels) for review and reuse. Do NOT file it anywhere on your own — the user decides where it goes. If they ask to file it, use whatever issue-tracker capability is available; for GitHub, repository "${repository}" is preconfigured and prefilledUrl offers one-click submission without any integration.`
-      : "Present this draft to the user in the chat (title, full body, labels) for review and reuse. Do NOT file it anywhere on your own — the user decides where it goes (their issue tracker, e-mail, or nowhere). Only file it if the user explicitly asks, using whatever issue-tracker capability is available.",
+      ? `Present this draft to the user in the chat (title, full body, labels) for review and reuse. Do NOT file it anywhere on your own; the user decides where it goes. If they ask to file it, use whatever issue-tracker capability is available; for GitHub, repository "${repository}" is preconfigured and prefilledUrl offers one-click submission without any integration.`
+      : "Present this draft to the user in the chat (title, full body, labels) for review and reuse. Do NOT file it anywhere on your own; the user decides where it goes (their issue tracker, e-mail, or nowhere). Only file it if the user explicitly asks, using whatever issue-tracker capability is available.",
   }
 }
 
@@ -368,8 +368,8 @@ export function registerIncidentIssueTools(
     name: "camunda7_format_incident_issue",
     category: "incidents",
     description:
-      "Build a structured, tracker-agnostic ticket draft (title, markdown body, labels) from a Camunda 7 / CIB Seven incident. " +
-      "Does NOT file anything — present the draft in the chat for review and reuse; the user decides where it goes " +
+      "Build a structured, tracker-agnostic ticket draft (title, markdown body, labels) from a Camunda 7 / CIB seven incident. " +
+      "Does NOT file anything: present the draft in the chat for review and reuse; the user decides where it goes " +
       "(their issue tracker via whatever integration is available, the prefilled GitHub URL of the configured repository, or copy-paste).",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     inputSchema: { ...formatIncidentIssueInput.shape, ...engineParamShape },
@@ -410,7 +410,7 @@ export function registerIncidentIssueTools(
 }
 
 const incidentIssuePromptSchema = z.object({
-  incidentId: z.string().describe("The Camunda 7 / CIB Seven incident ID to draft a ticket for"),
+  incidentId: z.string().describe("The Camunda 7 / CIB seven incident ID to draft a ticket for"),
 })
 
 /** The draft is the deliverable; filing happens only on the user's explicit request, never by this server. */
@@ -419,9 +419,9 @@ export function registerIncidentIssuePrompt(server: MCPServer, config: IncidentI
     {
       name: "draft_incident_ticket",
       description:
-        "Draft a structured ticket from a Camunda 7 / CIB Seven engine incident and present it in the chat for review. " +
+        "Draft a structured ticket from a Camunda 7 / CIB seven engine incident and present it in the chat for review. " +
         "Tracker-agnostic: the user decides where to file it (their issue tracker via any available integration, " +
-        "a prefilled GitHub link, or copy-paste) — filing only happens on explicit request.",
+        "a prefilled GitHub link, or copy-paste). Filing only happens on explicit request.",
       schema: incidentIssuePromptSchema,
     },
     async ({ incidentId }) => {
@@ -430,16 +430,16 @@ export function registerIncidentIssuePrompt(server: MCPServer, config: IncidentI
         ? `If they choose GitHub without naming a repository, default to \`${target}\`; without any GitHub integration, offer \`prefilledUrl\` as a one-click link (\`[Create issue on GitHub](<prefilledUrl>)\`).`
         : "If they choose GitHub, ask which `owner/repo` should receive it."
       const text = [
-        `You will draft a ticket for Camunda 7 / CIB Seven incident \`${incidentId}\`.`,
+        `You will draft a ticket for Camunda 7 / CIB seven incident \`${incidentId}\`.`,
         "",
         "Steps:",
         `1. Call the \`camunda7_format_incident_issue\` tool with \`incidentId="${incidentId}"\`.`,
-        "2. Present the draft to the user in the chat: the title, the full markdown body, and the labels. The draft is the deliverable — it must be reviewable and reusable as-is (copy-paste into any tracker).",
+        "2. Present the draft to the user in the chat: the title, the full markdown body, and the labels. The draft is the deliverable: it must be reviewable and reusable as-is (copy-paste into any tracker).",
         "3. Ask the user whether and where it should be filed. Do NOT file it anywhere on your own.",
-        `4. Only if the user names a destination, use whatever matching capability is exposed to you (a GitHub MCP server / connector, a Jira or other tracker integration, or a CLI tool) — do NOT insist on a specific tool name. ${githubClause}`,
+        `4. Only if the user names a destination, use whatever matching capability is exposed to you (a GitHub MCP server / connector, a Jira or other tracker integration, or a CLI tool); do NOT insist on a specific tool name. ${githubClause}`,
         "5. After filing, confirm to the user with the link/id of the created ticket.",
         "",
-        "Do NOT modify the title or body — they follow the bug-report structure. Only set additional fields (e.g. assignees) if the user explicitly asks.",
+        "Do NOT modify the title or body: they follow the bug-report structure. Only set additional fields (e.g. assignees) if the user explicitly asks.",
       ].join("\n")
 
       return {

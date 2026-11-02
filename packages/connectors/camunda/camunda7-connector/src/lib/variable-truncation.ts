@@ -4,7 +4,7 @@ export const MAX_VARIABLE_VALUE_CHARS = 2000
 
 /** A cut value written back would overwrite the stored value with its prefix. */
 export const CUT_VALUE_WRITE_RULE =
-  "Never write back a value read with truncated: true — it is incomplete; read it whole first (variableName)."
+  "Never write back a value read with truncated: true. It is incomplete; read it whole first (variableName)."
 
 export interface TruncationMarker {
   truncated: true
@@ -46,7 +46,7 @@ export function variableRead<T extends { value?: unknown }>(
 ): Record<string, T | (T & TruncationMarker)> {
   if (variableName === undefined) return truncateVariableMap(variables)
   if (!Object.hasOwn(variables, variableName)) {
-    throw new Error(`No variable named "${variableName}" — omit variableName to list them all.`)
+    throw new Error(`No variable named "${variableName}"; omit variableName to list them all.`)
   }
   return { [variableName]: variables[variableName] }
 }

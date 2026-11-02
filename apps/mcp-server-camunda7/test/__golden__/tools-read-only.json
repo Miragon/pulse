@@ -13,7 +13,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Internal JSON feed (no UI) for the BPMN heatmap — per-element execution frequency + average duration over a window. Lets another widget (e.g. the CIB Seven cockpit) paint the heat on its own diagram. Prefer analytics_show_bpmn_heatmap for a standalone view.",
+    "description": "Internal JSON feed (no UI) for the BPMN heatmap: per-element execution frequency + average duration over a window. Lets another widget (e.g. the CIB seven cockpit) paint the heat on its own diagram. Prefer analytics_show_bpmn_heatmap for a standalone view.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -102,7 +102,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Live operational health of the CIB Seven engine(s), from Prometheus state gauges: running WIP, open incidents by type, failed jobs (retries exhausted), executable/suspended job backlog, open/unassigned user tasks, external-task backlog, deployed definitions, and which alert rules are firing/pending. Names the engines judged and the silent ones (`silentEngines`: their counts read 0 because nothing arrives). Status: From Prometheus, over the engines in scope: unknown when none of them reports metrics; critical only while a severity=critical alert fires for them (fleet-wide also an engine-less CibSeven* alert); degraded with any such firing alert, failed job, open incident or an engine in scope that reports nothing; else healthy. Use for fleet-wide or metric-based health; for one engine's live incident clusters use camunda7_open_cockpit.",
+    "description": "Live operational health of the CIB seven engine(s), from Prometheus state gauges: running WIP, open incidents by type, failed jobs (retries exhausted), executable/suspended job backlog, open/unassigned user tasks, external-task backlog, deployed definitions, and which alert rules are firing/pending. Names the engines judged and the silent ones (`silentEngines`: their counts read 0 because nothing arrives). Status: From Prometheus, over the engines in scope: unknown when none of them reports metrics; critical only while a severity=critical alert fires for them (fleet-wide also an engine-less CibSeven* alert); degraded with any such firing alert, failed job, open incident or an engine in scope that reports nothing; else healthy. Use for fleet-wide or metric-based health; for one engine's live incident clusters use camunda7_open_cockpit.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -138,7 +138,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Internal JSON feed (no UI) for the cross-engine landscape widget's self-fetch — also consumed by the camunda7 cockpit's cross-engine mode. Prefer analytics_show_engine_landscape.",
+    "description": "Internal JSON feed (no UI) for the cross-engine landscape widget's self-fetch, also consumed by the camunda7 cockpit's cross-engine mode. Prefer analytics_show_engine_landscape.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -179,7 +179,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Render a process definition's BPMN diagram with a per-element heat overlay from metrics, with a Frequency↔Duration toggle (traversal count vs average duration per element). Node-level only — sequence-flow/edge heat is not available from metrics — and rendered on the latest deployed version's diagram (activity metrics carry no version label). Needs the camunda7 client to fetch the BPMN XML; otherwise the widget shows a fallback.",
+    "description": "Render a process definition's BPMN diagram with a per-element heat overlay from metrics, with a Frequency↔Duration toggle (traversal count vs average duration per element). Node-level only (sequence-flow/edge heat is not available from metrics) and rendered on the latest deployed version's diagram (activity metrics carry no version label). Needs the camunda7 client to fetch the BPMN XML; otherwise the widget shows a fallback.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -615,7 +615,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Internal JSON feed (no UI): one deployed process definition's BPMN 2.0 XML, by id — what every diagram in the views draws. Use camunda7_get_process_definition_xml for the XML itself.",
+    "description": "Internal JSON feed (no UI): one deployed process definition's BPMN 2.0 XML, by id, which every diagram in the views draws. Use camunda7_get_process_definition_xml for the XML itself.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -714,7 +714,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Internal JSON feed (no UI) for the cockpit overview — per-definition stats. Prefer camunda7_open_cockpit.",
+    "description": "Internal JSON feed (no UI) for the cockpit overview: per-definition stats. Prefer camunda7_open_cockpit.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -766,7 +766,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Build a structured, tracker-agnostic ticket draft (title, markdown body, labels) from a Camunda 7 / CIB Seven incident. Does NOT file anything — present the draft in the chat for review and reuse; the user decides where it goes (their issue tracker via whatever integration is available, the prefilled GitHub URL of the configured repository, or copy-paste).",
+    "description": "Build a structured, tracker-agnostic ticket draft (title, markdown body, labels) from a Camunda 7 / CIB seven incident. Does NOT file anything: present the draft in the chat for review and reuse; the user decides where it goes (their issue tracker via whatever integration is available, the prefilled GitHub URL of the configured repository, or copy-paste).",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -820,7 +820,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Get a deployment by ID — returns deployment timestamp + source, used for pre/post deployment correlation (commit-hash → deployment-ID → timestamp).",
+    "description": "Get a deployment by ID: its timestamp and source, for pre/post deployment correlation (commit hash → deployment ID → timestamp).",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -1091,7 +1091,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Internal JSON feed (no UI) for a single incident — stacktrace, BPMN with the failing activity, variables, activity tree, history. Prefer camunda7_open_cockpit.",
+    "description": "Internal JSON feed (no UI) for a single incident: stacktrace, BPMN with the failing activity, variables, activity tree, history. Prefer camunda7_open_cockpit.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -1128,7 +1128,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Internal JSON feed (no UI) for the incidents dashboard — open incidents grouped by process. Prefer camunda7_open_cockpit.",
+    "description": "Internal JSON feed (no UI) for the incidents dashboard: open incidents grouped by process. Prefer camunda7_open_cockpit.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -2051,7 +2051,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Internal JSON feed (no UI) for the unified definition view — header, KPIs (incl. failed jobs), BPMN overlays, activity-grouped incidents. Prefer camunda7_open_cockpit.",
+    "description": "Internal JSON feed (no UI) for the unified definition view: header, KPIs (incl. failed jobs), BPMN overlays, activity-grouped incidents. Prefer camunda7_open_cockpit.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {

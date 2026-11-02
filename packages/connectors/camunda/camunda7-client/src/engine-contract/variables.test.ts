@@ -104,7 +104,7 @@ describe("toEngineVariable", () => {
 
   it("refuses a Date the engine could not parse, naming the variable", () => {
     expect(() => toEngineVariable("due", { value: "tomorrow", type: "Date" })).toThrow(
-      /^Variable "due": Invalid date "tomorrow" — expected ISO 8601/,
+      /^Variable "due": Invalid date "tomorrow": expected ISO 8601/,
     )
     expect(() => toEngineVariable("due", { value: 1_700_000_000_000, type: "Date" })).toThrow(
       'Variable "due": a Date value must be an ISO 8601 string',

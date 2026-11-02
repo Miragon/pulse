@@ -52,7 +52,7 @@ export function registerIncidentTools(register: ToolRegistrar<EngineRegistry>) {
     name: "camunda7_resolve_incident",
     category: "incidents",
     description:
-      "Resolve a custom incident by ID. The engine refuses failedJob/failedExternalTask (400) — retry those: " +
+      "Resolve a custom incident by ID. The engine refuses failedJob/failedExternalTask (400); retry those instead: " +
       "camunda7_set_job_retries / camunda7_set_external_task_retries on the incident's configuration id.",
     annotations: { destructiveHint: false, openWorldHint: true },
     inputSchema: { ...resolveIncidentInput.shape, ...engineParamShape },

@@ -111,7 +111,7 @@ describe("writes the engine would misread are refused before any request", () =>
         taskId: "t-1",
         variables: { due: { value: "next friday", type: "Date" } },
       }),
-    ).rejects.toThrow(/Variable "due": Invalid date "next friday" — expected ISO 8601/)
+    ).rejects.toThrow(/Variable "due": Invalid date "next friday": expected ISO 8601/)
     expect(engine.requests).toHaveLength(0)
   })
 
