@@ -12,7 +12,6 @@ import { HandOffButton, IdText } from "@miragon/pulse-widget-shell/widgets"
 import type { InstanceDetailData } from "../../view-models.js"
 import { type T, useT } from "../../messages/use-t.js"
 import { useHandOff, type HandOff } from "../lib/hand-off.js"
-import { EngineMeta } from "../lib/engine-context.js"
 import { definitionVersionOf } from "../lib/identity.js"
 import { instanceName } from "../lib/write-feedback.js"
 
@@ -59,16 +58,6 @@ export function diagnoseInstanceHandOff({
     },
     facts: { activeActivities: activeActivityIds, incidentActivities: incidentActivityIds },
     untrusted: [{ label: "businessKey", text: instance.businessKey }],
-    tools: [
-      "camunda7_get_process_instance",
-      "camunda7_get_activity_instance_tree",
-      "camunda7_get_process_instance_variables",
-      "camunda7_list_incidents",
-      "camunda7_get_job_stacktrace",
-      "camunda7_set_job_retries",
-      "camunda7_set_process_instance_variable",
-      "camunda7_modify_process_instance",
-    ],
   }
 }
 
@@ -113,7 +102,6 @@ export function InstanceHeader({
             {version !== null && <VersionChip version={version} />}
           </span>
           <IdText value={instance.id} />
-          <EngineMeta engineId={engineId} />
         </>
       }
       actions={

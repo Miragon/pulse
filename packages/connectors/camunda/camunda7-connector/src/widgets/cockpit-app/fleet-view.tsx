@@ -144,11 +144,6 @@ export function fleetOverviewHandOff({ engineIds, environments }: Fleet): HandOf
     intent: "askAi.fleet.overview",
     ids: { engine: engineIds },
     facts: { environments },
-    tools: [
-      "analytics_show_engine_landscape",
-      "analytics_engine_health",
-      "analytics_show_engine_compare",
-    ],
   }
 }
 
@@ -157,16 +152,14 @@ export function fleetFailuresHandOff({ engineIds, environments }: Fleet): HandOf
     intent: "askAi.fleet.failures",
     ids: { engine: engineIds },
     facts: { environments },
-    tools: ["analytics_engine_health", "camunda7_list_incidents"],
   }
 }
 
 export function fleetPerformanceHandOff({ engineIds, environments }: Fleet): HandOff {
   return {
     intent: "askAi.fleet.performance",
-    ids: { engine: engineIds, period: "7d" },
+    ids: { engine: engineIds },
     facts: { environments },
-    tools: ["analytics_show_dashboard"],
   }
 }
 

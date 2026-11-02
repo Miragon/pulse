@@ -20,8 +20,9 @@ import {
   WidgetShell,
   usePagedListView,
   HostModelContext,
+  ViewMeta,
 } from "@miragon/pulse-widget-shell/widgets"
-import type { ClusterDetailData, ClusterIncidentRow } from "../view-models.js"
+import { LIST_PAGE_SIZE, type ClusterDetailData, type ClusterIncidentRow } from "../view-models.js"
 import { DetailPage } from "./detail-page.js"
 import { useNav } from "./navigation.js"
 import { CAMUNDA7_CLUSTER_DETAIL_DATA } from "../tool-names.js"
@@ -31,15 +32,12 @@ import {
   clusterScanComplete,
   remediationHandOff,
 } from "./remediation.js"
+import { useActionAllowed } from "./lib/engine-action.js"
 import { useHandOff, type ViewContext } from "./lib/hand-off.js"
 import { formatCount, formatCountAtLeast } from "./lib/format-count.js"
-import { EngineMeta } from "./lib/engine-context.js"
 import { InstanceLabel } from "./lib/identity.js"
 import { instanceName } from "./lib/write-feedback.js"
 import { useT } from "../messages/use-t.js"
-
-/** Page size — mirrors the server default (`CLUSTER_DETAIL_ROWS`). */
-const PAGE_SIZE = 50
 
 /** Grounding context; the sample message is engine text, quoted, never inlined. */
 export function describeCluster(data: ClusterDetailData): ViewContext {
@@ -68,36 +66,21 @@ export function describeCluster(data: ClusterDetailData): ViewContext {
       listCoversNewest: listCapped(data) ? data.scannedIncidentCount : undefined,
     },
     untrusted: [{ label: "sampleMessage", text: data.representativeMessage }],
-    tools: ["camunda7_list_incidents", "camunda7_get_process_instance"],
   }
 }
 
-/** loadMore() must carry the cluster identity and engine, or it would page the default engine. */
-function clusterFeedParams({
-  initialData,
-  engine,
-  activityId,
-  incidentType,
-  messageSignature,
-}: {
-  initialData: ClusterDetailData | null
-  engine?: string
-  activityId?: string
-  incidentType?: string
+/** The route's cluster identity and engine: loadMore() pages that cluster, never the default engine. */
+interface ClusterRoute {
+  engine: string
+  activityId: string
+  incidentType: string
   messageSignature?: string
-}) {
-  const clusterActivityId = activityId ?? initialData?.activityId
-  const clusterIncidentType = incidentType ?? initialData?.incidentType
-  const clusterSignature = messageSignature ?? initialData?.messageSignature ?? undefined
-  const feedEngine = engine ?? initialData?.engineId
-  // Unlike engine-health, this feed REQUIRES the cluster identity; the show tool passes data instead.
-  const ready = !!(clusterActivityId && clusterIncidentType)
-  const args: Record<string, unknown> = {}
-  if (feedEngine) args.engine = feedEngine
-  if (clusterActivityId) args.activityId = clusterActivityId
-  if (clusterIncidentType) args.incidentType = clusterIncidentType
-  if (clusterSignature) args.messageSignature = clusterSignature
-  return { clusterActivityId, clusterIncidentType, clusterSignature, feedEngine, ready, args }
+}
+
+function clusterFeedArgs({ engine, activityId, incidentType, messageSignature }: ClusterRoute) {
+  const args: Record<string, unknown> = { engine, activityId, incidentType }
+  if (messageSignature) args.messageSignature = messageSignature
+  return args
 }
 
 /** By name where a row carries one (#322 U13), else by key. */
@@ -111,8 +94,9 @@ function clusterProcesses(data: ClusterDetailData, unknown: string): string {
 
 function ClusterHeader({ data, engineId }: { data: ClusterDetailData; engineId: string }) {
   const t = useT()
-  const { ask, surface } = useHandOff()
-  const { handOff, canFix } = remediationHandOff(
+  const { ask } = useHandOff()
+  const canFix = useActionAllowed("camunda7_set_job_retries")
+  const handOff = remediationHandOff(
     {
       activityId: data.activityId,
       incidentType: data.incidentType,
@@ -123,7 +107,7 @@ function ClusterHeader({ data, engineId }: { data: ClusterDetailData; engineId: 
       representativeMessage: data.representativeMessage,
     },
     engineId,
-    surface,
+    canFix,
   )
   return (
     <WidgetHeader
@@ -132,7 +116,7 @@ function ClusterHeader({ data, engineId }: { data: ClusterDetailData; engineId: 
       title={data.activityName ?? <span className="font-mono">{data.activityId}</span>}
       sub={
         <>
-          <EngineMeta engineId={engineId} asOf={data.fetchedAt} />
+          <ViewMeta asOf={data.fetchedAt} />
           <span>
             {t("clusterDetail.affectedAcross", {
               count: formatCountAtLeast(data.incidentCount, data.scannedIncidentCount),
@@ -239,38 +223,22 @@ function IncidentRow({
 /** Drill-in for ONE failure cluster, between the engine overview's cluster list and the single-incident detail. */
 export function ClusterDetailView({
   data: initialData = null,
-  engine,
-  activityId,
-  incidentType,
-  messageSignature,
-}: {
-  data?: ClusterDetailData | null
-  engine?: string
-  activityId?: string
-  incidentType?: string
-  messageSignature?: string
-}) {
+  ...route
+}: ClusterRoute & { data?: ClusterDetailData | null }) {
   const t = useT()
-  const { clusterActivityId, clusterIncidentType, clusterSignature, feedEngine, ready, args } =
-    clusterFeedParams({ initialData, engine, activityId, incidentType, messageSignature })
+  const { engine, activityId, incidentType, messageSignature } = route
   // SERVER-side, so the search covers the whole cluster, not just the loaded page.
   const { paged, search, setSearch, interacted } = usePagedListView<
     ClusterIncidentRow,
     ClusterDetailData
   >({
     initialData,
-    key: [
-      "camunda7:cluster-detail",
-      feedEngine ?? null,
-      clusterActivityId ?? null,
-      clusterIncidentType ?? null,
-      clusterSignature ?? null,
-    ],
+    key: ["camunda7:cluster-detail", engine, activityId, incidentType, messageSignature ?? null],
     tool: CAMUNDA7_CLUSTER_DETAIL_DATA,
-    args,
+    args: clusterFeedArgs(route),
     searchArg: "businessKeyLike",
-    pageSize: PAGE_SIZE,
-    ready,
+    pageSize: LIST_PAGE_SIZE,
+    ready: true,
     selectItems: (d) => d.incidents,
     selectTotal: (d) => d.totalMatching,
   })
@@ -290,11 +258,9 @@ export function ClusterDetailView({
     )
   }
 
-  const engineId = engine ?? data.engineId
-
   return (
     <DetailPage
-      header={<ClusterHeader data={data} engineId={engineId} />}
+      header={<ClusterHeader data={data} engineId={engine} />}
       kpi={<ClusterKpis data={data} />}
       /* A single content block, no tabs: the failure message stays beside its instances. */
       content={
@@ -377,26 +343,6 @@ function ClusterModelContext({ data }: { data: ClusterDetailData }) {
   return <HostModelContext content={context(describeCluster(data))}>{null}</HostModelContext>
 }
 
-export function ClusterDetailWidget({
-  data,
-  engine,
-  activityId,
-  incidentType,
-  messageSignature,
-}: {
-  data: ClusterDetailData | null
-  engine?: string
-  activityId?: string
-  incidentType?: string
-  messageSignature?: string
-}) {
-  return (
-    <ClusterDetailView
-      data={data}
-      engine={engine}
-      activityId={activityId}
-      incidentType={incidentType}
-      messageSignature={messageSignature}
-    />
-  )
+export function ClusterDetailWidget(props: ClusterRoute & { data: ClusterDetailData | null }) {
+  return <ClusterDetailView {...props} />
 }

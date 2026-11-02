@@ -28,14 +28,6 @@ function detailRecovery(data: IncidentDetailData): IncidentRecovery {
   return recoveryOf(data, data.job?.id)
 }
 
-// Built-in types refuse resolve; null for a custom or propagated incident.
-function retryToolFor(data: IncidentDetailData) {
-  const { action } = detailRecovery(data)
-  if (action === "retry-job") return "camunda7_set_job_retries" as const
-  if (action === "retry-external-task") return "camunda7_set_external_task_retries" as const
-  return null
-}
-
 // Business key included so confirmation and toasts name the instance as the head does (#322 U13).
 function recoverable(data: IncidentDetailData): RecoverableIncident {
   return {
@@ -44,21 +36,6 @@ function recoverable(data: IncidentDetailData): RecoverableIncident {
     processInstanceId: data.processInstanceId,
     businessKey: data.businessKey,
     recovery: detailRecovery(data),
-  }
-}
-
-// Standalone from the data's echo, so a refetch reads the engine the show tool answered for, never the default engine.
-function incidentFeed(
-  initialData: IncidentDetailData | null,
-  incidentId: string | undefined,
-  engine: string | undefined,
-) {
-  const id = incidentId ?? initialData?.incidentId
-  const feedEngine = engine ?? initialData?.engineId
-  return {
-    key: ["camunda7:incident-detail", feedEngine ?? null, id ?? null],
-    args: { incidentId: id, engine: feedEngine },
-    ready: !!id,
   }
 }
 
@@ -79,20 +56,8 @@ function remedyProps(recovery: IncidentRecoveryState, incident: RecoverableIncid
   }
 }
 
-const REMEDY_TOOLS = new Set<string>([
-  "camunda7_resolve_incident",
-  "camunda7_set_job_retries",
-  "camunda7_set_external_task_retries",
-])
-
-// Only the remedy that clears THIS incident is named (the engine refuses to resolve built-in
-// types), none once cleared. The ticket draft works on every toolset. Engine text is quoted.
+// The ticket draft and the remedy follow the module instructions. Engine text is quoted.
 export function describeIncident(data: IncidentDetailData, resolved: boolean): ViewContext {
-  const remedy = resolved
-    ? null
-    : detailRecovery(data).action === "resolve"
-      ? "camunda7_resolve_incident"
-      : retryToolFor(data)
   // A key parsed from a bare definition id is that id — stated as what it is.
   const key = scopingDefinitionKey(data.processDefinitionKey, data.processDefinitionId)
   return {
@@ -117,14 +82,6 @@ export function describeIncident(data: IncidentDetailData, resolved: boolean): V
       { label: "activityName", text: data.activityName },
       { label: "processName", text: data.processDefinitionName },
     ],
-    tools: [
-      "camunda7_show_instance_detail",
-      "camunda7_get_job_stacktrace",
-      "camunda7_format_incident_issue",
-      "camunda7_resolve_incident",
-      "camunda7_set_job_retries",
-      "camunda7_set_external_task_retries",
-    ].filter((tool) => !REMEDY_TOOLS.has(tool) || tool === remedy),
   }
 }
 
@@ -141,23 +98,24 @@ export function IncidentDetailWidget({
   engine,
 }: {
   data?: IncidentDetailData | null
-  incidentId?: string
-  engine?: string
+  incidentId: string
+  engine: string
 }) {
   const t = useT()
+  // The route's engine: a refetch never reads the default engine.
   const { data, guard, notice, refreshError } = useDetailView<IncidentDetailData>({
     initialData,
-    ...incidentFeed(initialData, incidentId, engine),
+    key: ["camunda7:incident-detail", engine, incidentId],
+    args: { incidentId, engine },
+    ready: true,
     tool: CAMUNDA7_INCIDENT_DETAIL_DATA,
     loadingText: t("incidentDetail.loading"),
     emptyText: t("incidentDetail.noData"),
     retryText: t("viewState.retry"),
   })
-  // Never the default engine.
-  const engineId = engine ?? data?.engineId
   // A cleared incident's view is not refetched (404), so the marks are what it shows. A failed
   // refetch leaves it unconfirmed (cleared elsewhere?): no remedy then.
-  const recovery = useIncidentRecovery(engineId, {
+  const recovery = useIncidentRecovery(engine, {
     resetOn: data,
     available: refreshError === null,
   })
@@ -193,7 +151,7 @@ export function IncidentDetailWidget({
           {data.diagramDefinitionId ? (
             <BpmnDiagram
               definitionId={data.diagramDefinitionId}
-              engineId={engineId}
+              engineId={engine}
               highlights={highlights}
             />
           ) : (
@@ -212,7 +170,7 @@ export function IncidentDetailWidget({
         {
           id: "instance",
           label: t("incidentDetail.tabInstance"),
-          content: <InstanceTab data={data} engineId={engineId} />,
+          content: <InstanceTab data={data} engineId={engine} />,
         },
         {
           id: "history",
@@ -222,7 +180,7 @@ export function IncidentDetailWidget({
           content: (
             <PagedHistoryView
               processInstanceId={data.processInstanceId}
-              engine={engineId}
+              engine={engine}
               variant="table"
               incidentActivityIds={resolved || retried ? [] : [data.activityId]}
             />

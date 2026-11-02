@@ -31,7 +31,7 @@ const nameOf = (el: HTMLElement) =>
   el.getAttribute("aria-label") ?? el.getAttribute("title") ?? (el.textContent ?? "").trim()
 
 async function expectOneGroup(container: HTMLElement, names: RegExp[]) {
-  // The chat hand-off shows once the surface feed answered.
+  // A write action shows once the widget-actions feed answered; a hand-off renders at once.
   await waitFor(() => expect(head(container).actions).toHaveLength(names.length))
   const { facts, actions } = head(container)
   // Facts only: no link and no action in the meta line.
@@ -67,7 +67,7 @@ describe("one action group per view, one action size", () => {
     }
     const { container } = render(
       <TestViewHost tools={tools}>
-        <ProcessDetailHeader data={data as never} />
+        <ProcessDetailHeader data={data as never} processDefinitionKey="leasing" engine="prod-a" />
       </TestViewHost>,
     )
     await expectOneGroup(container, [/^View running instances$/, /^Open in CIB seven/, /chat/i])
@@ -106,13 +106,14 @@ describe("one action group per view, one action size", () => {
     }
     const { container } = render(
       <TestViewHost tools={tools}>
-        <IncidentDetailWidget data={data as never} />
+        <IncidentDetailWidget data={data as never} incidentId="inc-1" engine="prod" />
       </TestViewHost>,
     )
     await expectOneGroup(container, [/^Open instance in CIB seven/, /chat/i])
   })
 
-  it("engine status: the incidents, a fresh read, then the chat", async () => {
+  // The cockpit's head holds the one Refresh (#322 U27), so the overview has none of its own.
+  it("engine status: the incidents, then the chat", async () => {
     const data: EngineHealthData = {
       status: "degraded",
       statusRule: "degraded with any open incident",
@@ -133,9 +134,9 @@ describe("one action group per view, one action size", () => {
     }
     const { container } = render(
       <TestViewHost tools={tools}>
-        <EngineHealthView data={data as never} />
+        <EngineHealthView data={data as never} engine="prod" />
       </TestViewHost>,
     )
-    await expectOneGroup(container, [/^View incidents$/, /^Refresh$/, /chat/i])
+    await expectOneGroup(container, [/^View incidents$/, /chat/i])
   })
 })

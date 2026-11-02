@@ -1,5 +1,13 @@
 /** What the widgets render, not engine API types (those live in `@miragon/pulse-camunda7-client/types`). */
 import type { IncidentsDashboardFilters, JobsFilters } from "./feed-contracts.js"
+import type { ClusterDetailData, EngineHealthData } from "./view-models.health.js"
+
+/**
+ * Page sizes the server and the widgets share: the start view is built with the size its widget
+ * pages by, so the seed is always that widget's page 0.
+ */
+export const LIST_PAGE_SIZE = 50
+export const HISTORY_PAGE_SIZE = 100
 
 export interface IncidentStat {
   incidentType: string
@@ -92,55 +100,8 @@ export interface JobPanelData {
   totalCount: number
   failedCount: number
   jobs: Job[]
-  /** Standalone renders get only `data`, so loadMore/search rebuild the feed args from this echo. */
+  /** The filters the page on screen was read with; hand-offs and model contexts state its scope. */
   filters: JobsFilters
-  engineId?: string
-}
-
-export interface ActivityStat {
-  id: string
-  instances: number
-  failedJobs: number
-}
-
-export interface BpmnViewerData {
-  /** Null when unreadable; `BpmnDiagram` reads the XML by this id from `camunda7_bpmn_xml_data`. */
-  diagramDefinitionId: string | null
-  processInstanceId: string | null
-  /** The instance's business key — null for a definition target or an instance without one. */
-  businessKey: string | null
-  processDefinitionId: string | null
-  /** The process's name from its diagram (the view's title) — null when unnamed or unreadable. */
-  processDefinitionName: string | null
-  activeActivityIds: string[]
-  incidentActivityIds: string[]
-  /** Per-activity token and failed-job counts, scoped by {@link statsScope}. */
-  activityStats: ActivityStat[]
-  /** `"definition"`: every running instance of the rendered version. */
-  statsScope: "instance" | "definition"
-  engineId?: string
-}
-
-export interface ProcessDefinition {
-  id: string
-  key: string
-  name: string | null
-  version: number
-  deploymentId: string | null
-  suspended: boolean
-  versionTag: string | null
-  tenantId: string | null
-}
-
-export interface ProcessListData {
-  definitions: ProcessDefinition[]
-  totalCount: number
-  /** Echo for loadMore/search: a page 2 without `latestVersion` would mix all versions into a latest-only list. */
-  filters: {
-    processDefinitionKey?: string
-    nameLike?: string
-    latestVersion: boolean
-  }
   engineId?: string
 }
 
@@ -162,11 +123,65 @@ export interface CockpitEngineInfo {
   environment: string
 }
 
+/** Where the cockpit is: one route per section, with the ids that route reads. */
+export type CockpitView =
+  | { section: "overview" }
+  | { section: "incidents" }
+  | {
+      section: "cluster-detail"
+      activityId: string
+      incidentType: string
+      messageSignature?: string
+      label?: string
+    }
+  | {
+      section: "process-detail"
+      processDefinitionKey: string
+      focus?: "incidents"
+      label?: string
+    }
+  | { section: "process-instances"; processDefinitionKey?: string }
+  | { section: "instance-detail"; processInstanceId: string; label?: string }
+  | { section: "incident-detail"; incidentId: string; label?: string }
+  | { section: "jobs"; processDefinitionKey?: string; failedOnly?: boolean }
+  | { section: "history"; processInstanceId: string }
+
+export type CockpitSection = CockpitView["section"]
+
+/** The overview's two widgets: the health verdict and the definitions table. */
+export interface CockpitOverviewData {
+  health: EngineHealthData
+  definitions: CockpitDashboardData
+}
+
+/** Each route's data: exactly the payload its `*_data` feed returns for the route's first page. */
+export interface CockpitStartData {
+  overview: CockpitOverviewData
+  incidents: IncidentsDashboardData
+  "cluster-detail": ClusterDetailData
+  "process-detail": ProcessIncidentsData
+  "process-instances": ProcessInstancesData
+  "instance-detail": InstanceDetailData
+  "incident-detail": IncidentDetailData
+  jobs: JobPanelData
+  history: HistoryTimelineData
+}
+
+/**
+ * The start view of `camunda7_open_cockpit` and its data, one pair discriminated by the view's
+ * section; the route seeds its feed with the data.
+ */
+export type CockpitStart = {
+  [S in CockpitSection]: { view: Extract<CockpitView, { section: S }>; data: CockpitStartData[S] }
+}[CockpitSection]
+
 /** The app threads the chosen `engineId` into every nested call, so navigation ignores the default engine. */
 export interface CockpitAppData {
   /** Resolved engine id, or null when the user must pick (multiple engines, none selected). */
   engineId: string | null
   engines: CockpitEngineInfo[]
+  /** Where the cockpit opens, with that view's data; null exactly on the engine picker. */
+  start: CockpitStart | null
 }
 
 export interface ProcessInstancesData {
@@ -336,7 +351,7 @@ export interface IncidentsDashboardData extends EngineVendorInfo {
   last24hCount: number
   latestIncident: string | null
   processes: IncidentsDashboardProcess[]
-  /** Standalone renders never refetch, so hand-offs read the scope here: a filtered total is not the engine's. */
+  /** Hand-offs read the scope here: a filtered total is not the engine's. */
   filters: IncidentsDashboardFilters
   engineId?: string
 }

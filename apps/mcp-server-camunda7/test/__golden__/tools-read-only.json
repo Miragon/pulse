@@ -107,7 +107,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Live operational health of the CIB Seven engine(s), from Prometheus state gauges: running WIP, open incidents by type, failed jobs (retries exhausted), executable/suspended job backlog, open/unassigned user tasks, external-task backlog, deployed definitions, and which alert rules are firing/pending. Names the engines judged and the silent ones (`silentEngines`: their counts read 0 because nothing arrives). Status: From Prometheus, over the engines in scope: unknown when none of them reports metrics; critical only while a severity=critical alert fires for them (fleet-wide also an engine-less CibSeven* alert); degraded with any such firing alert, failed job, open incident or an engine in scope that reports nothing; else healthy. Use for fleet-wide or metric-based health; for one engine's live incident clusters use camunda7_show_engine_health.",
+    "description": "Live operational health of the CIB Seven engine(s), from Prometheus state gauges: running WIP, open incidents by type, failed jobs (retries exhausted), executable/suspended job backlog, open/unassigned user tasks, external-task backlog, deployed definitions, and which alert rules are firing/pending. Names the engines judged and the silent ones (`silentEngines`: their counts read 0 because nothing arrives). Status: From Prometheus, over the engines in scope: unknown when none of them reports metrics; critical only while a severity=critical alert fires for them (fleet-wide also an engine-less CibSeven* alert); degraded with any such firing alert, failed job, open incident or an engine in scope that reports nothing; else healthy. Use for fleet-wide or metric-based health; for one engine's live incident clusters use camunda7_open_cockpit.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -591,7 +591,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Internal JSON feed (no UI) for one activity's incident rows, offset-paged. Prefer camunda7_show_process_incidents.",
+    "description": "Internal JSON feed (no UI) for one activity's incident rows, offset-paged. Prefer camunda7_open_cockpit.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -684,7 +684,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Internal JSON feed (no UI) for one failure cluster's detail. Prefer camunda7_show_cluster_detail.",
+    "description": "Internal JSON feed (no UI) for one failure cluster's detail. Prefer camunda7_open_cockpit.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -777,7 +777,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Internal JSON feed (no UI) for the engine health verdict + incident clusters. Prefer camunda7_show_engine_health / camunda7_open_cockpit.",
+    "description": "Internal JSON feed (no UI) for the engine health verdict + incident clusters. Prefer camunda7_open_cockpit.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -1108,7 +1108,45 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Internal JSON feed (no UI) for a single incident — stacktrace, BPMN with the failing activity, variables, activity tree, history. Prefer camunda7_show_incident_detail.",
+    "description": "Internal JSON feed (no UI) for one process instance's activity history, ended instances included. Prefer camunda7_open_cockpit.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "description": "Engine id (see server instructions)",
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "processInstanceId": {
+          "description": "The process instance ID",
+          "type": "string"
+        }
+      },
+      "required": [
+        "processInstanceId"
+      ],
+      "type": "object"
+    },
+    "name": "camunda7_history_timeline_data",
+    "title": "History timeline data (internal)"
+  },
+  {
+    "_meta": {
+      "openai/widgetAccessible": true,
+      "ui": {
+        "visibility": [
+          "app"
+        ]
+      }
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Internal JSON feed (no UI) for a single incident — stacktrace, BPMN with the failing activity, variables, activity tree, history. Prefer camunda7_open_cockpit.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -1146,7 +1184,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Internal JSON feed (no UI) for the incidents dashboard — open incidents grouped by process. Prefer camunda7_show_incidents_dashboard.",
+    "description": "Internal JSON feed (no UI) for the incidents dashboard — open incidents grouped by process. Prefer camunda7_open_cockpit.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -1185,7 +1223,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Internal JSON feed (no UI) for a single process instance. Prefer camunda7_show_instance_detail.",
+    "description": "Internal JSON feed (no UI) for a single process instance. Prefer camunda7_open_cockpit.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -1223,7 +1261,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Internal JSON feed (no UI) for jobs. Prefer camunda7_show_job_panel.",
+    "description": "Internal JSON feed (no UI) for jobs. Prefer camunda7_open_cockpit.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -2081,14 +2119,64 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Open the consolidated CIB Seven operations cockpit — a single app that navigates client-side (no extra tool calls) across the process landscape: overview, per-definition running instances, instance detail, plus quick access to human tasks, jobs and deployments. Use to browse and act; for a health verdict use camunda7_show_engine_health.",
+    "description": "Show the user the operations cockpit on one engine; they navigate it without further tool calls. `view` picks where it opens, by default the overview: the health verdict from the open incidents, the top failure clusters and every process. instance-detail needs a running instance; history shows ended ones too. You get that view's facts as compact JSON.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
+        "activityId": {
+          "description": "cluster-detail (required): the failing activity id.",
+          "type": "string"
+        },
         "engine": {
           "description": "Engine id (see server instructions)",
           "enum": [
             "default"
+          ],
+          "type": "string"
+        },
+        "failedOnly": {
+          "description": "jobs: only jobs without retries.",
+          "type": "boolean"
+        },
+        "focus": {
+          "description": "process-detail: focus on its incidents; if none, list processes that have some.",
+          "enum": [
+            "incidents"
+          ],
+          "type": "string"
+        },
+        "incidentId": {
+          "description": "incident-detail (required): the incident id.",
+          "type": "string"
+        },
+        "incidentType": {
+          "description": "cluster-detail (required): the incident type, e.g. failedJob.",
+          "type": "string"
+        },
+        "messageSignature": {
+          "description": "cluster-detail: a failure message signature (the overview's topCluster); omitted: all.",
+          "type": "string"
+        },
+        "processDefinitionKey": {
+          "description": "process-detail (required), process-instances, jobs: the process definition key.",
+          "type": "string"
+        },
+        "processInstanceId": {
+          "description": "instance-detail, history (required): the process instance id.",
+          "type": "string"
+        },
+        "view": {
+          "description": "Where it opens (default overview).",
+          "enum": [
+            "overview",
+            "incidents",
+            "cluster-detail",
+            "process-detail",
+            "process-instances",
+            "instance-detail",
+            "incident-detail",
+            "jobs",
+            "history"
           ],
           "type": "string"
         }
@@ -2118,7 +2206,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Internal JSON feed (no UI) for the unified definition view — header, KPIs (incl. failed jobs), BPMN overlays, activity-grouped incidents. Prefer camunda7_show_process_detail / camunda7_show_process_incidents.",
+    "description": "Internal JSON feed (no UI) for the unified definition view — header, KPIs (incl. failed jobs), BPMN overlays, activity-grouped incidents. Prefer camunda7_open_cockpit.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -2156,7 +2244,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Internal JSON feed (no UI) for a definition's running instances. Prefer camunda7_show_process_instances.",
+    "description": "Internal JSON feed (no UI) for a definition's running instances. Prefer camunda7_open_cockpit.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -2207,60 +2295,6 @@
     },
     "name": "camunda7_process_instances_data",
     "title": "Process instances data (internal)"
-  },
-  {
-    "_meta": {
-      "openai/widgetAccessible": true,
-      "ui": {
-        "visibility": [
-          "app"
-        ]
-      }
-    },
-    "annotations": {
-      "idempotentHint": true,
-      "openWorldHint": true,
-      "readOnlyHint": true
-    },
-    "description": "Internal JSON feed (no UI) for deployed process definitions, offset-paged. Prefer camunda7_show_process_list.",
-    "inputSchema": {
-      "additionalProperties": false,
-      "properties": {
-        "engine": {
-          "description": "Engine id (see server instructions)",
-          "enum": [
-            "default"
-          ],
-          "type": "string"
-        },
-        "firstResult": {
-          "description": "Offset for pagination (0-based).",
-          "minimum": 0,
-          "type": "integer"
-        },
-        "latestVersion": {
-          "description": "true = only the latest version of each definition, false = all versions",
-          "type": "boolean"
-        },
-        "maxResults": {
-          "description": "Page size.",
-          "exclusiveMinimum": 0,
-          "maximum": 100,
-          "type": "integer"
-        },
-        "nameLike": {
-          "description": "Filter by name (substring; % wildcards allowed)",
-          "type": "string"
-        },
-        "processDefinitionKey": {
-          "description": "Filter by exact process definition key",
-          "type": "string"
-        }
-      },
-      "type": "object"
-    },
-    "name": "camunda7_process_list_data",
-    "title": "Process list data (internal)"
   },
   {
     "annotations": {
@@ -2875,661 +2909,6 @@
   },
   {
     "_meta": {
-      "openai/outputTemplate": "ui://views/camunda7_show_bpmn_viewer.html",
-      "openai/resultCanProduceWidget": true,
-      "openai/toolInvocation/invoked": "BPMN Diagram Viewer ready",
-      "openai/toolInvocation/invoking": "Loading BPMN Diagram Viewer…",
-      "openai/widgetAccessible": true,
-      "ui": {
-        "resourceUri": "ui://views/camunda7_show_bpmn_viewer.html"
-      },
-      "ui/resourceUri": "ui://views/camunda7_show_bpmn_viewer.html"
-    },
-    "annotations": {
-      "idempotentHint": true,
-      "openWorldHint": true,
-      "readOnlyHint": true
-    },
-    "description": "Show an interactive BPMN diagram: `processInstanceId` overlays one running instance's active activities, incidents and failed jobs; `processDefinitionKey` (optional `version`) shows a definition version, its badges counting every running instance of that version.",
-    "inputSchema": {
-      "additionalProperties": false,
-      "properties": {
-        "engine": {
-          "description": "Engine id (see server instructions)",
-          "enum": [
-            "default"
-          ],
-          "type": "string"
-        },
-        "processDefinitionKey": {
-          "description": "Process definition key. Badges count every running instance of the version.",
-          "type": "string"
-        },
-        "processInstanceId": {
-          "description": "Process instance ID. Renders diagram with live overlays.",
-          "type": "string"
-        },
-        "version": {
-          "description": "Specific definition version. Requires `processDefinitionKey`. Defaults to the latest version when omitted.",
-          "exclusiveMinimum": 0,
-          "type": "integer"
-        }
-      },
-      "type": "object"
-    },
-    "name": "camunda7_show_bpmn_viewer",
-    "outputSchema": {
-      "$schema": "https://json-schema.org/draft/2020-12/schema",
-      "additionalProperties": {},
-      "properties": {},
-      "type": "object"
-    },
-    "title": "BPMN Diagram Viewer"
-  },
-  {
-    "_meta": {
-      "openai/outputTemplate": "ui://views/camunda7_show_cluster_detail.html",
-      "openai/resultCanProduceWidget": true,
-      "openai/toolInvocation/invoked": "Failure Cluster Detail ready",
-      "openai/toolInvocation/invoking": "Loading Failure Cluster Detail…",
-      "openai/widgetAccessible": true,
-      "ui": {
-        "resourceUri": "ui://views/camunda7_show_cluster_detail.html"
-      },
-      "ui/resourceUri": "ui://views/camunda7_show_cluster_detail.html"
-    },
-    "annotations": {
-      "idempotentHint": true,
-      "openWorldHint": true,
-      "readOnlyHint": true
-    },
-    "description": "Drill into ONE failure cluster: the affected process instances (business keys first), the full sample failure message, and the time profile (new in last hour / 24h) for an activity failing with a given incident type. The middle layer between the engine health overview and a single incident's detail.",
-    "inputSchema": {
-      "additionalProperties": false,
-      "properties": {
-        "activityId": {
-          "description": "Activity id of the failure cluster.",
-          "type": "string"
-        },
-        "businessKeyLike": {
-          "description": "Narrow the affected-instance list by business key (substring; % wildcards allowed).",
-          "type": "string"
-        },
-        "engine": {
-          "description": "Engine id (see server instructions)",
-          "enum": [
-            "default"
-          ],
-          "type": "string"
-        },
-        "firstResult": {
-          "description": "Offset for pagination (0-based).",
-          "minimum": 0,
-          "type": "integer"
-        },
-        "incidentType": {
-          "description": "Incident type of the cluster, e.g. \"failedJob\".",
-          "type": "string"
-        },
-        "maxResults": {
-          "description": "Page size.",
-          "exclusiveMinimum": 0,
-          "maximum": 100,
-          "type": "integer"
-        },
-        "messageSignature": {
-          "description": "Normalized failure-message signature (as produced by the engine-health clusters). Omitted → all messages for this activity + type.",
-          "type": "string"
-        }
-      },
-      "required": [
-        "activityId",
-        "incidentType"
-      ],
-      "type": "object"
-    },
-    "name": "camunda7_show_cluster_detail",
-    "outputSchema": {
-      "$schema": "https://json-schema.org/draft/2020-12/schema",
-      "additionalProperties": {},
-      "properties": {},
-      "type": "object"
-    },
-    "title": "Failure Cluster Detail"
-  },
-  {
-    "_meta": {
-      "openai/outputTemplate": "ui://views/camunda7_show_engine_health.html",
-      "openai/resultCanProduceWidget": true,
-      "openai/toolInvocation/invoked": "Engine Health Overview ready",
-      "openai/toolInvocation/invoking": "Loading Engine Health Overview…",
-      "openai/widgetAccessible": true,
-      "ui": {
-        "resourceUri": "ui://views/camunda7_show_engine_health.html"
-      },
-      "ui/resourceUri": "ui://views/camunda7_show_engine_health.html"
-    },
-    "annotations": {
-      "idempotentHint": true,
-      "openWorldHint": true,
-      "readOnlyHint": true
-    },
-    "description": "Show ONE engine's health overview: a deterministic verdict (ok / degraded / critical) with running-instance and incident KPIs and the top incident clusters, grouped cross-process by failing activity + incident type; each cluster drills in or hands off to AI. Verdict: From the engine's open incidents, read live: critical at >=50 open or >=25 in one cluster, degraded with any, else ok. Use for what is failing on an engine right now; for metric trends, job backlog or firing alerts use analytics_engine_health.",
-    "inputSchema": {
-      "additionalProperties": false,
-      "properties": {
-        "engine": {
-          "description": "Engine id (see server instructions)",
-          "enum": [
-            "default"
-          ],
-          "type": "string"
-        }
-      },
-      "type": "object"
-    },
-    "name": "camunda7_show_engine_health",
-    "outputSchema": {
-      "$schema": "https://json-schema.org/draft/2020-12/schema",
-      "additionalProperties": {},
-      "properties": {},
-      "type": "object"
-    },
-    "title": "Engine Health Overview"
-  },
-  {
-    "_meta": {
-      "openai/outputTemplate": "ui://views/camunda7_show_history_timeline.html",
-      "openai/resultCanProduceWidget": true,
-      "openai/toolInvocation/invoked": "History Timeline ready",
-      "openai/toolInvocation/invoking": "Loading History Timeline…",
-      "openai/widgetAccessible": true,
-      "ui": {
-        "resourceUri": "ui://views/camunda7_show_history_timeline.html"
-      },
-      "ui/resourceUri": "ui://views/camunda7_show_history_timeline.html"
-    },
-    "annotations": {
-      "idempotentHint": true,
-      "openWorldHint": true,
-      "readOnlyHint": true
-    },
-    "description": "Show activity timeline for a process instance.",
-    "inputSchema": {
-      "additionalProperties": false,
-      "properties": {
-        "engine": {
-          "description": "Engine id (see server instructions)",
-          "enum": [
-            "default"
-          ],
-          "type": "string"
-        },
-        "firstResult": {
-          "description": "Offset for pagination (0-based).",
-          "minimum": 0,
-          "type": "integer"
-        },
-        "maxResults": {
-          "default": 100,
-          "description": "Page size.",
-          "exclusiveMinimum": 0,
-          "maximum": 100,
-          "type": "integer"
-        },
-        "processInstanceId": {
-          "description": "The process instance ID",
-          "type": "string"
-        }
-      },
-      "required": [
-        "processInstanceId"
-      ],
-      "type": "object"
-    },
-    "name": "camunda7_show_history_timeline",
-    "outputSchema": {
-      "$schema": "https://json-schema.org/draft/2020-12/schema",
-      "additionalProperties": {},
-      "properties": {},
-      "type": "object"
-    },
-    "title": "History Timeline"
-  },
-  {
-    "_meta": {
-      "openai/outputTemplate": "ui://views/camunda7_show_incident_detail.html",
-      "openai/resultCanProduceWidget": true,
-      "openai/toolInvocation/invoked": "Incident Detail ready",
-      "openai/toolInvocation/invoking": "Loading Incident Detail…",
-      "openai/widgetAccessible": true,
-      "ui": {
-        "resourceUri": "ui://views/camunda7_show_incident_detail.html"
-      },
-      "ui/resourceUri": "ui://views/camunda7_show_incident_detail.html"
-    },
-    "annotations": {
-      "idempotentHint": true,
-      "openWorldHint": true,
-      "readOnlyHint": true
-    },
-    "description": "Detail view for a single incident: failure stacktrace, BPMN with the failing activity highlighted, instance variables and activity tree, and a history timeline. Drill-in target from camunda7_show_process_incidents.",
-    "inputSchema": {
-      "additionalProperties": false,
-      "properties": {
-        "engine": {
-          "description": "Engine id (see server instructions)",
-          "enum": [
-            "default"
-          ],
-          "type": "string"
-        },
-        "incidentId": {
-          "description": "The incident ID to inspect",
-          "type": "string"
-        }
-      },
-      "required": [
-        "incidentId"
-      ],
-      "type": "object"
-    },
-    "name": "camunda7_show_incident_detail",
-    "outputSchema": {
-      "$schema": "https://json-schema.org/draft/2020-12/schema",
-      "additionalProperties": {},
-      "properties": {},
-      "type": "object"
-    },
-    "title": "Incident Detail"
-  },
-  {
-    "_meta": {
-      "openai/outputTemplate": "ui://views/camunda7_show_incidents_dashboard.html",
-      "openai/resultCanProduceWidget": true,
-      "openai/toolInvocation/invoked": "Incidents Dashboard ready",
-      "openai/toolInvocation/invoking": "Loading Incidents Dashboard…",
-      "openai/widgetAccessible": true,
-      "ui": {
-        "resourceUri": "ui://views/camunda7_show_incidents_dashboard.html"
-      },
-      "ui/resourceUri": "ui://views/camunda7_show_incidents_dashboard.html"
-    },
-    "annotations": {
-      "idempotentHint": true,
-      "openWorldHint": true,
-      "readOnlyHint": true
-    },
-    "description": "Overview of open incidents across all process definitions: KPIs, filter, per-process group cards with activity summaries. From a card the operator can drill into the per-process detail view. Use for open incidents by process; for an engine verdict with cross-process clusters use camunda7_show_engine_health.",
-    "inputSchema": {
-      "additionalProperties": false,
-      "properties": {
-        "engine": {
-          "description": "Engine id (see server instructions)",
-          "enum": [
-            "default"
-          ],
-          "type": "string"
-        },
-        "incidentType": {
-          "description": "Filter by incident type (e.g. failedJob, failedExternalTask)",
-          "type": "string"
-        },
-        "processDefinitionKey": {
-          "description": "Filter by process definition key",
-          "type": "string"
-        }
-      },
-      "type": "object"
-    },
-    "name": "camunda7_show_incidents_dashboard",
-    "outputSchema": {
-      "$schema": "https://json-schema.org/draft/2020-12/schema",
-      "additionalProperties": {},
-      "properties": {},
-      "type": "object"
-    },
-    "title": "Incidents Dashboard"
-  },
-  {
-    "_meta": {
-      "openai/outputTemplate": "ui://views/camunda7_show_instance_detail.html",
-      "openai/resultCanProduceWidget": true,
-      "openai/toolInvocation/invoked": "Process Instance Detail ready",
-      "openai/toolInvocation/invoking": "Loading Process Instance Detail…",
-      "openai/widgetAccessible": true,
-      "ui": {
-        "resourceUri": "ui://views/camunda7_show_instance_detail.html"
-      },
-      "ui/resourceUri": "ui://views/camunda7_show_instance_detail.html"
-    },
-    "annotations": {
-      "idempotentHint": true,
-      "openWorldHint": true,
-      "readOnlyHint": true
-    },
-    "description": "Show detailed view of a single process instance with activity tree, variables, and incidents.",
-    "inputSchema": {
-      "additionalProperties": false,
-      "properties": {
-        "engine": {
-          "description": "Engine id (see server instructions)",
-          "enum": [
-            "default"
-          ],
-          "type": "string"
-        },
-        "processInstanceId": {
-          "description": "The process instance ID to inspect",
-          "type": "string"
-        }
-      },
-      "required": [
-        "processInstanceId"
-      ],
-      "type": "object"
-    },
-    "name": "camunda7_show_instance_detail",
-    "outputSchema": {
-      "$schema": "https://json-schema.org/draft/2020-12/schema",
-      "additionalProperties": {},
-      "properties": {},
-      "type": "object"
-    },
-    "title": "Process Instance Detail"
-  },
-  {
-    "_meta": {
-      "openai/outputTemplate": "ui://views/camunda7_show_job_panel.html",
-      "openai/resultCanProduceWidget": true,
-      "openai/toolInvocation/invoked": "Job Management Panel ready",
-      "openai/toolInvocation/invoking": "Loading Job Management Panel…",
-      "openai/widgetAccessible": true,
-      "ui": {
-        "resourceUri": "ui://views/camunda7_show_job_panel.html"
-      },
-      "ui/resourceUri": "ui://views/camunda7_show_job_panel.html"
-    },
-    "annotations": {
-      "idempotentHint": true,
-      "openWorldHint": true,
-      "readOnlyHint": true
-    },
-    "description": "Show jobs with a focus on failed jobs (no retries left). Displays error messages and retry status.",
-    "inputSchema": {
-      "additionalProperties": false,
-      "properties": {
-        "engine": {
-          "description": "Engine id (see server instructions)",
-          "enum": [
-            "default"
-          ],
-          "type": "string"
-        },
-        "failedOnly": {
-          "default": false,
-          "description": "Show only failed jobs (no retries left)",
-          "type": "boolean"
-        },
-        "firstResult": {
-          "description": "Offset for pagination (0-based).",
-          "minimum": 0,
-          "type": "integer"
-        },
-        "maxResults": {
-          "description": "Page size.",
-          "exclusiveMinimum": 0,
-          "maximum": 100,
-          "type": "integer"
-        },
-        "processDefinitionKey": {
-          "description": "Filter by process definition key",
-          "type": "string"
-        }
-      },
-      "type": "object"
-    },
-    "name": "camunda7_show_job_panel",
-    "outputSchema": {
-      "$schema": "https://json-schema.org/draft/2020-12/schema",
-      "additionalProperties": {},
-      "properties": {},
-      "type": "object"
-    },
-    "title": "Job Management Panel"
-  },
-  {
-    "_meta": {
-      "openai/outputTemplate": "ui://views/camunda7_show_process_detail.html",
-      "openai/resultCanProduceWidget": true,
-      "openai/toolInvocation/invoked": "Process Definition Detail ready",
-      "openai/toolInvocation/invoking": "Loading Process Definition Detail…",
-      "openai/widgetAccessible": true,
-      "ui": {
-        "resourceUri": "ui://views/camunda7_show_process_detail.html"
-      },
-      "ui/resourceUri": "ui://views/camunda7_show_process_detail.html"
-    },
-    "annotations": {
-      "idempotentHint": true,
-      "openWorldHint": true,
-      "readOnlyHint": true
-    },
-    "description": "Open the unified process-definition view: header with actions, KPI strip (running instances, incidents, failed jobs), BPMN flow (incident overlays or execution heatmap) and the activity-grouped incident list. Drill-in target from cockpit-dashboard rows; camunda7_show_process_incidents opens the same view with incident focus.",
-    "inputSchema": {
-      "additionalProperties": false,
-      "properties": {
-        "engine": {
-          "description": "Engine id (see server instructions)",
-          "enum": [
-            "default"
-          ],
-          "type": "string"
-        },
-        "processDefinitionKey": {
-          "description": "Process definition key to display",
-          "type": "string"
-        }
-      },
-      "required": [
-        "processDefinitionKey"
-      ],
-      "type": "object"
-    },
-    "name": "camunda7_show_process_detail",
-    "outputSchema": {
-      "$schema": "https://json-schema.org/draft/2020-12/schema",
-      "additionalProperties": {},
-      "properties": {},
-      "type": "object"
-    },
-    "title": "Process Definition Detail"
-  },
-  {
-    "_meta": {
-      "openai/outputTemplate": "ui://views/camunda7_show_process_incidents.html",
-      "openai/resultCanProduceWidget": true,
-      "openai/toolInvocation/invoked": "Process Incidents ready",
-      "openai/toolInvocation/invoking": "Loading Process Incidents…",
-      "openai/widgetAccessible": true,
-      "ui": {
-        "resourceUri": "ui://views/camunda7_show_process_incidents.html"
-      },
-      "ui/resourceUri": "ui://views/camunda7_show_process_incidents.html"
-    },
-    "annotations": {
-      "idempotentHint": true,
-      "openWorldHint": true,
-      "readOnlyHint": true
-    },
-    "description": "Open the unified process-definition view focused on its incidents: header, KPI strip, BPMN diagram in incident-overlay mode, and the activity-grouped incident table with per-incident actions (resolve, jump to Cockpit). Same view as camunda7_show_process_detail — this entry point sets the incident focus.",
-    "inputSchema": {
-      "additionalProperties": false,
-      "properties": {
-        "engine": {
-          "description": "Engine id (see server instructions)",
-          "enum": [
-            "default"
-          ],
-          "type": "string"
-        },
-        "processDefinitionKey": {
-          "description": "Process definition key to drill into",
-          "type": "string"
-        }
-      },
-      "required": [
-        "processDefinitionKey"
-      ],
-      "type": "object"
-    },
-    "name": "camunda7_show_process_incidents",
-    "outputSchema": {
-      "$schema": "https://json-schema.org/draft/2020-12/schema",
-      "additionalProperties": {},
-      "properties": {},
-      "type": "object"
-    },
-    "title": "Process Incidents"
-  },
-  {
-    "_meta": {
-      "openai/outputTemplate": "ui://views/camunda7_show_process_instances.html",
-      "openai/resultCanProduceWidget": true,
-      "openai/toolInvocation/invoked": "Process Instances ready",
-      "openai/toolInvocation/invoking": "Loading Process Instances…",
-      "openai/widgetAccessible": true,
-      "ui": {
-        "resourceUri": "ui://views/camunda7_show_process_instances.html"
-      },
-      "ui/resourceUri": "ui://views/camunda7_show_process_instances.html"
-    },
-    "annotations": {
-      "idempotentHint": true,
-      "openWorldHint": true,
-      "readOnlyHint": true
-    },
-    "description": "List running process instances as a filterable table (business key, version, suspended/incident state). Scope to one definition via processDefinitionKey, or omit it for ALL running instances engine-wide. Drill-in target from the cockpit definitions table and process-detail; each row opens camunda7_show_instance_detail.",
-    "inputSchema": {
-      "additionalProperties": false,
-      "properties": {
-        "active": {
-          "description": "true = only running (non-suspended) instances, false = only suspended.",
-          "type": "boolean"
-        },
-        "businessKeyLike": {
-          "description": "Filter by business key (substring; % wildcards allowed).",
-          "type": "string"
-        },
-        "engine": {
-          "description": "Engine id (see server instructions)",
-          "enum": [
-            "default"
-          ],
-          "type": "string"
-        },
-        "firstResult": {
-          "description": "Offset for pagination (0-based).",
-          "minimum": 0,
-          "type": "integer"
-        },
-        "maxResults": {
-          "default": 50,
-          "description": "Page size.",
-          "exclusiveMinimum": 0,
-          "maximum": 100,
-          "type": "integer"
-        },
-        "processDefinitionKey": {
-          "description": "Process definition key whose instances to list. Omit for ALL running instances engine-wide.",
-          "type": "string"
-        },
-        "suspended": {
-          "description": "true = only suspended instances, false = only running.",
-          "type": "boolean"
-        },
-        "withIncidents": {
-          "description": "true = only instances that currently have an open incident.",
-          "type": "boolean"
-        }
-      },
-      "type": "object"
-    },
-    "name": "camunda7_show_process_instances",
-    "outputSchema": {
-      "$schema": "https://json-schema.org/draft/2020-12/schema",
-      "additionalProperties": {},
-      "properties": {},
-      "type": "object"
-    },
-    "title": "Process Instances"
-  },
-  {
-    "_meta": {
-      "openai/outputTemplate": "ui://views/camunda7_show_process_list.html",
-      "openai/resultCanProduceWidget": true,
-      "openai/toolInvocation/invoked": "Process Definitions ready",
-      "openai/toolInvocation/invoking": "Loading Process Definitions…",
-      "openai/widgetAccessible": true,
-      "ui": {
-        "resourceUri": "ui://views/camunda7_show_process_list.html"
-      },
-      "ui/resourceUri": "ui://views/camunda7_show_process_list.html"
-    },
-    "annotations": {
-      "idempotentHint": true,
-      "openWorldHint": true,
-      "readOnlyHint": true
-    },
-    "description": "Show deployed process definitions as a card grid view.",
-    "inputSchema": {
-      "additionalProperties": false,
-      "properties": {
-        "engine": {
-          "description": "Engine id (see server instructions)",
-          "enum": [
-            "default"
-          ],
-          "type": "string"
-        },
-        "firstResult": {
-          "description": "Offset for pagination (0-based).",
-          "minimum": 0,
-          "type": "integer"
-        },
-        "latestVersion": {
-          "default": true,
-          "description": "true = only the latest version of each definition, false = all versions",
-          "type": "boolean"
-        },
-        "maxResults": {
-          "description": "Page size.",
-          "exclusiveMinimum": 0,
-          "maximum": 100,
-          "type": "integer"
-        },
-        "nameLike": {
-          "description": "Filter by name (substring; % wildcards allowed)",
-          "type": "string"
-        },
-        "processDefinitionKey": {
-          "description": "Filter by exact process definition key",
-          "type": "string"
-        }
-      },
-      "type": "object"
-    },
-    "name": "camunda7_show_process_list",
-    "outputSchema": {
-      "$schema": "https://json-schema.org/draft/2020-12/schema",
-      "additionalProperties": {},
-      "properties": {},
-      "type": "object"
-    },
-    "title": "Process Definitions"
-  },
-  {
-    "_meta": {
       "openai/widgetAccessible": true,
       "ui": {
         "visibility": [
@@ -3542,7 +2921,7 @@
       "openWorldHint": false,
       "readOnlyHint": true
     },
-    "description": "Internal JSON feed (no UI): which engine write actions the widgets may offer and which tools the model has in this deployment.",
+    "description": "Internal JSON feed (no UI): which engine write actions the widgets may offer in this deployment.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {},

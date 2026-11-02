@@ -32,7 +32,6 @@ export function draftTicketHandOff(data: IncidentDetailData): HandOff {
     ids: { engine: data.engineId, incidentId: data.incidentId },
     facts: { incidentType: data.incidentType },
     untrusted: [{ label: "incidentMessage", text: errorText(data) }],
-    tools: ["camunda7_format_incident_issue"],
   }
 }
 
@@ -49,11 +48,6 @@ export function explainErrorHandOff(data: IncidentDetailData): HandOff {
     },
     facts: { incidentType: data.incidentType },
     untrusted: [{ label: "incidentMessage", text: errorText(data) }],
-    tools: [
-      "camunda7_get_job_stacktrace",
-      "camunda7_list_external_tasks",
-      "camunda7_format_incident_issue",
-    ],
   }
 }
 

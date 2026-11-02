@@ -7,7 +7,7 @@ import {
 
 /** Single source for both tool schemas and (type-only, no runtime zod) the builders and widgets. */
 
-/** Capped: the show twins are model-visible and some hosts hand `structuredContent` to the model. */
+/** Capped on every tool on the wire: some hosts hand a view's `structuredContent` to the model. */
 export const pagingShape = {
   firstResult: z.number().int().min(0).optional().describe("Offset for pagination (0-based)."),
   maxResults: z.number().int().positive().max(MAX_PAGE_SIZE).optional().describe("Page size."),
@@ -87,13 +87,3 @@ export const activityIncidentsFilterShape = {
   activityId: z.string().describe("Activity id whose incidents to page"),
 }
 export type ActivityIncidentsFilters = z.infer<z.ZodObject<typeof activityIncidentsFilterShape>>
-
-export const processListFilterShape = {
-  processDefinitionKey: z.string().optional().describe("Filter by exact process definition key"),
-  nameLike: z.string().optional().describe("Filter by name (substring; % wildcards allowed)"),
-  latestVersion: z
-    .boolean()
-    .optional()
-    .describe("true = only the latest version of each definition, false = all versions"),
-}
-export type ProcessListFilters = z.infer<z.ZodObject<typeof processListFilterShape>>

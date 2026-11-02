@@ -1,6 +1,6 @@
 ---
 name: add-bpm-feature
-description: Step-by-step house pattern for adding a new BPM operations tool, widget tool, or widget to the camunda7 module (`packages/connectors/camunda/camunda7-connector` + `packages/connectors/camunda/camunda7-client`). Use whenever adding or changing Camunda 7 / CIB Seven tools ("add a tool to suspend jobs", "expose X from the engine REST API"), input schemas, `show_*` widget tools, `*_data` feeds, or React widgets in the cockpit. Takes precedence over generic mcp-use examples.
+description: Step-by-step house pattern for adding a new BPM operations tool, widget tool, or widget to the camunda7 module (`packages/connectors/camunda/camunda7-connector` + `packages/connectors/camunda/camunda7-client`). Use whenever adding or changing Camunda 7 / CIB seven tools ("add a tool to suspend jobs", "expose X from the engine REST API"), input schemas, cockpit routes, `*_data` feeds, or React widgets in the cockpit. Takes precedence over generic mcp-use examples.
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 ---
 
@@ -14,11 +14,11 @@ invariant 3). Follow the steps for the path you need.
 
 ## Step 0 — pick the render path
 
-| You need…                                | Path                                                                     |
-| ---------------------------------------- | ------------------------------------------------------------------------ |
-| JSON data for the model                  | Registrar tool in `src/tools/<domain>.ts` (Steps 1–3)                    |
-| A widget rendered for the user + summary | `show_*` widget tool in `src/widget-tools/<area>.ts` (Step 4)            |
-| App-only JSON for in-widget refresh/nav  | `*_data` feed in `src/widget-tools/data-feeds.ts`, `...appOnly` (Step 4) |
+| You need…                               | Path                                                                                  |
+| --------------------------------------- | ------------------------------------------------------------------------------------- |
+| JSON data for the model                 | Registrar tool in `src/tools/<domain>.ts` (Steps 1–3)                                 |
+| A view for the user                     | a cockpit route plus its builder and `*_data` feed (Step 4); never a second view tool |
+| App-only JSON for in-widget refresh/nav | `*_data` feed in `src/widget-tools/data-feeds.ts`, `...appOnly` (Step 4)              |
 
 ## Step 1 — input schema in camunda7-client
 
@@ -236,11 +236,12 @@ these primitives:
   clickable cell says what the click does in `actionHint`, never `ariaLabel`). From the view
   runtime: `WidgetShell` (page container, split into View + Shell only when the body is
   embedded elsewhere)
-- Where and what (#322 U4, U13): a show view's `WidgetHeader` `sub` starts with
-  `<EngineMeta engineId={…} asOf={…} />` (`widgets/lib/engine-context.tsx`: the
-  environment as a text chip, "PROD", and the engine through widget-shell's `ViewMeta`; inside
-  the cockpit, whose head names the engine, only the time); a write confirmation adds
-  `engineTargetLines(t, engineId, useEngineEnvironment(engineId))`. Names before ids: the
+- Where and what (#322 U4, U13): the cockpit's head names the engine and its environment (a
+  text chip, "PROD"), so a route view's `WidgetHeader` `sub` carries only the time it read
+  (widget-shell's `ViewMeta` with `asOf`) and its own facts; a route widget takes `engine` and
+  its ids as required props and builds its feed args from them alone. A write confirmation
+  adds `engineTargetLines(t, engineId, useEngineEnvironment(engineId))`
+  (`widgets/lib/engine-context.tsx`). Names before ids: the
   design kit's `NamedId` (`@miragon/pulse-ui`: an activity's or process's name, the
   id a quiet mono line; the same look analytics uses), `InstanceLabel`
   (`widgets/lib/identity.tsx`: the business key, the UUID a copyable `IdText` chip; the
@@ -276,8 +277,8 @@ these primitives:
   errors say what happened and what you can do, `Ja`/`Nein` for Booleans) and the terms of
   `src/messages/GLOSSARY.md`; counts go in formatted (`formatNumber`) and the entry picks
   the noun's number (`countOf` from `messages/plural.ts`). The gates: `catalogTextFindings`
-  over every catalog and en/de key parity of the widget catalogs (`messages/catalog-text.test.ts`;
-  the model summaries are English only), the glossary
+  over every catalog and en/de key parity of the widget catalogs (`messages/catalog-text.test.ts`),
+  the glossary
   (`messages/glossary.test.ts`), `scanGlyphs` over all of `src` and `scanColors` over
   `src/widgets` (`src/brand-gates.test.ts`; the gates come from `@miragon/pulse-ui/testing`,
   the glossary from `@miragon/pulse-widget-shell/testing`)
@@ -291,7 +292,7 @@ these primitives:
   token module (`BPMN_TOKENS`, `widget-shell/src/ui/bpmn-tokens.ts`: incident = danger,
   running/open task = blue on the info tint, counts white on blue or danger; strokes
   ≥ 3:1, badge text ≥ 4.5:1, drift- and contrast-tested) through `HIGHLIGHT_COLORS`
-  (`src/widgets/bpmn-highlights.ts`) and `markerSwatch`/`badgeSwatch`; the CSS is
+  (`src/widgets/bpmn-highlights.ts`); the CSS is
   `injectBpmnOverlayCss()`. No pulse: an open user task is a heavier dashed stroke
 
 **Paged list recipe** (every list that can exceed one page follows it — reference:
@@ -319,47 +320,59 @@ these primitives:
    covers and the model context read the payload's echo (`data.filters`), never the
    request's args (reference: the instance list's `listFilters`).
 
-A view is registered in **three places — miss one and it is silently absent**:
+camunda7 has ONE view, `camunda7_open_cockpit` → `CockpitApp` (CLAUDE.md invariant 3). New
+UI is a **cockpit route**, never a second view tool; a route touches five places, and the
+exhaustive maps fail to compile until each has it:
 
-1. `src/widgets/views.tsx` — map the show tool's name to its view component:
-   `[CAMUNDA7_SHOW_MY_VIEW]: MyView`, where `MyView({ data })` gets the show tool's
-   `structuredContent` and wraps the widget in `Camunda7Standalone` (its client-side
-   drill-in). A composed view (a dashboard, the process detail) is ONE component that
-   composes its widgets in a `ViewStack` and also serves the cockpit route
-   (`src/widgets/cockpit-app/routes.tsx`).
-2. `apps/mcp-server-camunda7/src/ui/view-registry.ts` — the view registry. It spreads
-   `camunda7Views` from `src/widgets/index.ts` — verify your view actually arrives.
-3. `src/tool-names.ts` — add a `CAMUNDA7_SHOW_*` / `CAMUNDA7_*_DATA` constant for every
-   new widget tool, so the view map and navigation stay rename-safe.
+1. `src/view-models.ts`: a section in `CockpitView` with the ids the route reads, and its
+   data type in `CockpitStartData`.
+2. `src/data/`: ONE builder for the route's data and its read in `src/data/route-reads.ts`,
+   which the route's `*_data` feed (`src/widget-tools/data-feeds.ts`, a `CAMUNDA7_*_DATA`
+   constant in `src/tool-names.ts`) and the start view share.
+3. `src/widgets/cockpit-app/routes.tsx`: a case in `CockpitRoute` that renders the
+   route's widget with `seedOf(seed, section)` as its `data` and the route's `engine` and
+   ids as required props. A composed view (a dashboard,
+   the process detail) is ONE component that composes its widgets in a `ViewStack`.
+4. `src/widget-tools/cockpit.ts`: an entry in `START_VIEW_PARAMS` (the ids the route
+   `needs` and also `takes`), so `camunda7_open_cockpit` can open on it.
+5. `src/data/cockpit-start.ts`: the route's start data in `buildCockpitStart` (its read
+   with the first page's args) and its facts in `cockpitFacts`.
 
-A view is picked by its name, the show tool's name.
-`apps/mcp-server-camunda7/test/view-registry.test.ts` holds the view registry to the
-view-bound tools of the tools/list goldens and fails on a tool without a view.
+The start data is exactly the feed's page-0 payload: build it with the size the widget
+pages by (`LIST_PAGE_SIZE`, `HISTORY_PAGE_SIZE` in `src/view-models.ts`), so the route's
+widget seeds its feed with it and refreshes after a write without a fetch on mount
+(`src/data/cockpit-start.test.ts` pins the seed against the feed). The facts are the
+model-facing result: compact JSON, English keys, ids and counts (a `null` count is
+unknown, never 0), engine text clipped, never XML. A route needs an emitter in the cockpit
+too: a `DrillButton`, a KPI cell's `onClick`, or a head section in
+`src/widgets/cockpit-app/app.tsx`, each through `useNav()` with a `NavIntent`
+(`src/widgets/navigation.ts`) that `intentToView` (`src/widgets/nav-core.ts`) maps onto the
+route. A route that nothing emits and `camunda7_open_cockpit` cannot open is dead.
 
-Then register the widget tool in its area's file under `src/widget-tools/` (`cockpit.ts`,
-`instances.ts`, `incidents.ts`; `*_data` feeds in `data-feeds.ts`). `src/widget-tools.ts`
-wires them; these files are the documented exception that uses `server.tool()` directly:
+`apps/mcp-server-camunda7/test/view-registry.test.ts` holds the view registry
+(`apps/mcp-server-camunda7/src/ui/view-registry.ts`, which spreads `camunda7Views` from
+`src/widgets/index.ts`) to the view-bound tools of the tools/list goldens.
 
-- Every widget-path tool (show tool AND feed) declares
+`src/widget-tools.ts` wires the cockpit tool (`src/widget-tools/cockpit.ts`), the `*_data`
+feeds (`data-feeds.ts`) and the actions feed; these files are the documented exception that
+uses `server.tool()` directly:
+
+- Every widget-path tool (the cockpit AND each feed) declares
   `inputSchema: strictToolInput({ … })` (from `@miragon/pulse-widget-shell/server`) — never
   a bare `z.object`, which strips an unknown key silently;
   `apps/mcp-server-camunda7/test/strict-input.e2e.test.ts` refuses any module tool that
   accepts one.
-- `show_*` tools: register through `registerShowTool` (`src/widget-tools/shared.ts`), which
-  appends the `engine` parameter and spreads `...showToolBinding(TOOL_NAME_CONST, "Title")`
-  (from `@miragon/pulse-widget-shell/server`); a tool whose input needs a refinement spreads
-  it by hand — the helper binds a native mcp-use view named after the tool
-  (`view: { name }`, mcp-use then emits all `_meta.ui.*` keys and the
-  `ui://views/<tool>.html` resource itself), adds the required passthrough
-  `outputSchema`, and stamps the Apps-SDK half of `_meta`; **never write
-  `_meta.ui` keys by hand** (mcp-use owns and overwrites that namespace). Resolve the engine via
-  `resolveEngine(args.engine, registry, ctx)` — it already returns `baseUrl`/`cockpitUrl`;
-  never fish them out of `registry.engines`. Return `buildViewResult(data, summary)`
+- `camunda7_open_cockpit` spreads `...showToolBinding(CAMUNDA7_OPEN_COCKPIT, "Open Cockpit")`
+  (from `@miragon/pulse-widget-shell/server`), which binds a native mcp-use view named after
+  the tool (`view: { name }`, mcp-use then emits all `_meta.ui.*` keys and the
+  `ui://views/<tool>.html` resource itself), adds the required passthrough `outputSchema`,
+  and stamps the Apps-SDK half of `_meta`; **never write `_meta.ui` keys by hand** (mcp-use
+  owns and overwrites that namespace). Resolve the engine via
+  `resolveEngine(args.engine, registry, ctx)`, which already returns `baseUrl`/`cockpitUrl`;
+  never fish them out of `registry.engines`. It returns `buildViewResult(data, facts)`
   (from `@miragon/pulse-widget-shell/server`): `data` IS the view's data, no title (the
-  widget's heading names the view). The `summary` is the model-facing text channel (1-2
-  sentences, key figures, no raw data) — the full payload travels only in
-  `structuredContent`. It is English only: a `c7sum.*` entry in `src/messages/en.server.ts`,
-  worded through `summaryT` (`src/lib/summary.ts`).
+  widget's heading names the view); the facts are the compact JSON of `cockpitFacts`, the
+  model-facing text channel, while the full payload travels only in `structuredContent`.
 - `*_data` feeds: register through `registerDataFeed` in `data-feeds.ts` (`name`, `title`,
   `description`, `shape`, `read`), which spreads `...appOnly` (the native
   `visibility: "app"` field, emitted as SEP-1865 `_meta.ui.visibility: ["app"]`, plus
@@ -367,10 +380,10 @@ wires them; these files are the documented exception that uses `server.tool()` d
   the in-widget `callTool()` gets JSON back instead of the host rendering a new widget.
   Wrap every raw handler in `withToolErrors` (from `@miragon/pulse-widget-shell/server`).
 - Shared data paths: every number a view shows comes from ONE builder in `src/data/`
-  that its show tool AND its `*_data` feed call — never fork one.
-  Definition lookups (id parsers, the key lookup, the per-KEY fold of the per-version
-  statistics) come from `src/data/definition-info.ts`; the BPMN viewer payload from
-  `src/data/bpmn-viewer-data.ts`. A key's latest version is `fetchLatestDefinition`
+  that its `*_data` feed AND the cockpit's start view (`buildCockpitStart`) call; never
+  fork one. Definition lookups (id parsers, the key lookup, the per-KEY fold of the
+  per-version statistics) come from `src/data/definition-info.ts`. A key's latest version is
+  `fetchLatestDefinition`
   (every tenant) — never `/process-definition/key/{key}`, which only knows tenant-less
   definitions. A long key's (over ~25 characters) definition id is a bare generated
   UUID that names no key, so ANY key that scopes a query, a drill, a hand-off or a
@@ -382,13 +395,14 @@ wires them; these files are the documented exception that uses `server.tool()` d
   reads the statistics resolves through `definitionKeyResolver` over them.
   `processDefinitionKeyFromId` is a display fallback only.
 - **Honest numbers** (`src/data/engine-reads.ts`): PRIMARY rows and counts — what the
-  view exists to show, and every number its `summary` reports — propagate engine
+  view exists to show, and every number its facts report — propagate engine
   failures (read them through `countOf`/`rowsOf`; `withToolErrors` turns the throw into
   a tool error), and an unknown id or key is a not-found error — never a view of zeros. Only
   ENRICHMENT (display names, diagram XML, cockpit links, optional history) degrades, via
   `optional(...)`, and to `null` — never to a `0`, `[]` or `{}` that reads as a fact.
   Widgets render that null as "—" (`formatCount`, `src/widgets/lib/format-count.ts`),
-  summaries as "unknown". Totals come from `/count` endpoints or statistics, never from
+  the facts keep it `null` (the instructions read it as unknown). Totals come from `/count`
+  endpoints or statistics, never from
   the length of a capped page or scan: a recency scan (`INCIDENT_SCAN_LIMIT`, the health
   views' `CLUSTER_SCAN_LIMIT`) only enriches and says how far it reaches
   (`scannedIncidentCount`, null facts, "≥N" via `formatCountAtLeast`). A view about
@@ -401,7 +415,8 @@ wires them; these files are the documented exception that uses `server.tool()` d
   case declares only its enrichment reads; any other read whose failure is swallowed fails.
 - The `show_*`/`*_data` naming is load-bearing:
   `apps/mcp-server-camunda7/test/widget-contract.e2e.test.ts` enforces the widget `_meta` on
-  every `*_show_*` tool and app-only visibility on every `*_data` feed **by name**.
+  every `*_show_*` tool and on `camunda7_open_cockpit`, and app-only visibility on every
+  `*_data` feed **by name**.
 - A widget-path tool never writes. A write is a registrar tool, so the toolset filter
   (`withToolsetFilter`/`isToolInToolset`) drops it outside its toolset, and an in-widget
   write calls it through `useEngineAction`, gated by `camunda7_widget_actions_data`.
@@ -430,9 +445,9 @@ businessKey))` …; add an entry and its `feedback.*` keys in `messages/{en,de}.
   (`src/widgets/lib/hand-off.ts`): `<HandOffButton action="…" prompt={ask(handOff)} />` and
   `<HostModelContext content={context(view)}>`. A hand-off is a typed spec — an `intent`
   key from `messages/{en,de}.ask-ai.ts` (static, no tool names) or a static view
-  `summary`, plus `ids` (arguments every named tool may take), `toolIds` (arguments only
-  one tool takes, inlined only while it is named), `facts`, `untrusted` (engine text —
-  fenced) and `tools` (filtered by the live surface). Reference:
+  `summary`, plus `ids`, `facts`, `untrusted` (engine text, fenced); no `tools`: a hand-off
+  names no tool, the module instructions and the tool descriptions steer the model.
+  Reference:
   `src/widgets/remediation.ts`; the rules are CLAUDE.md invariant 6, enforced by
   `apps/mcp-server-camunda7/test/hand-off-surface.test.ts`.
 

@@ -334,7 +334,6 @@ const ActionsView: ViewComponent = () => {
   const prompt = askAiPrompt({
     intent: "Explain this.",
     locale: "en",
-    surface: { has: () => true },
   })
   return (
     <div>

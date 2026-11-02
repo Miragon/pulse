@@ -5,17 +5,15 @@ import {
   trueOnly,
   type Client,
 } from "@miragon/pulse-camunda7-client"
-import type {
-  CockpitDashboardData,
-  DefinitionStat,
-  JobPanelData,
-  ProcessInstanceRow,
-  ProcessInstancesData,
-  ProcessListData,
+import {
+  LIST_PAGE_SIZE,
+  type CockpitDashboardData,
+  type DefinitionStat,
+  type JobPanelData,
+  type ProcessInstanceRow,
+  type ProcessInstancesData,
 } from "../view-models.js"
 import {
-  getProcessDefinitions,
-  getProcessDefinitionsCount,
   getProcessInstances,
   getJobsCount,
   queryJobs,
@@ -27,7 +25,6 @@ import type {
   JobsFilters,
   PagingArgs,
   ProcessInstancesFilters,
-  ProcessListFilters,
 } from "../feed-contracts.js"
 import {
   definitionKeyInId,
@@ -81,45 +78,6 @@ export async function buildCockpitDashboardData(
       ),
     },
     definitions,
-    engineId,
-  }
-}
-
-export type ProcessListArgs = ProcessListFilters & PagingArgs
-
-export async function buildProcessListData(
-  client: Client,
-  engineId: string,
-  args: ProcessListArgs,
-): Promise<ProcessListData> {
-  const latestVersion = args.latestVersion ?? true
-  const filters = {
-    key: args.processDefinitionKey,
-    nameLike: engineLike(args.nameLike),
-    latestVersion: trueOnly(latestVersion),
-  }
-  const [definitions, totalCount] = await Promise.all([
-    getProcessDefinitions({
-      client,
-      query: {
-        ...filters,
-        firstResult: Math.max(0, args.firstResult ?? 0),
-        maxResults: args.maxResults ?? 50,
-        sortBy: "name",
-        sortOrder: "asc",
-      },
-    }).then((rows) => rowsOf<ProcessListData["definitions"][number]>(rows)),
-    getProcessDefinitionsCount({ client, query: filters }).then(countOf),
-  ])
-  return {
-    // A Modeler pool around an unnamed process names it, as analytics names it.
-    definitions: await nameUnnamedDefinitions(client, definitions),
-    totalCount,
-    filters: {
-      processDefinitionKey: args.processDefinitionKey,
-      nameLike: args.nameLike,
-      latestVersion,
-    },
     engineId,
   }
 }
@@ -242,7 +200,7 @@ export async function buildProcessInstancesData(
   const [raw, [totalCount, withIncidentCount, suspendedCount], definition] = await Promise.all([
     queryProcessInstances({
       client,
-      query: { firstResult: args.firstResult ?? 0, maxResults: args.maxResults ?? 50 },
+      query: { firstResult: args.firstResult ?? 0, maxResults: args.maxResults ?? LIST_PAGE_SIZE },
       body: { ...filter, sorting: [...INSTANCE_LIST_ORDER] },
     }).then((rows) => rowsOf<RawInstance>(rows)),
     filteredTotals(client, filter),
@@ -326,7 +284,7 @@ export async function buildJobPanelData(
   const [raw, failedCount, allCount] = await Promise.all([
     queryJobs({
       client,
-      query: { firstResult: args.firstResult ?? 0, maxResults: args.maxResults ?? 50 },
+      query: { firstResult: args.firstResult ?? 0, maxResults: args.maxResults ?? LIST_PAGE_SIZE },
       body: {
         ...baseQuery,
         noRetriesLeft: args.failedOnly ? true : undefined,

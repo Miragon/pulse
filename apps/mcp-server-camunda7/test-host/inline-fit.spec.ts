@@ -22,20 +22,24 @@ interface View {
 const VIEWS: View[] = [
   {
     name: "instances, engine-wide",
-    tool: "camunda7_show_process_instances",
-    args: { engine: REALISTIC_ENGINE },
+    tool: "camunda7_open_cockpit",
+    args: { engine: REALISTIC_ENGINE, view: "process-instances" },
     count: /^Showing (\d+) of (\d+) instances$/,
   },
   {
     name: "instances of one process",
-    tool: "camunda7_show_process_instances",
-    args: { engine: REALISTIC_ENGINE, processDefinitionKey: "assessCreditworthiness" },
+    tool: "camunda7_open_cockpit",
+    args: {
+      engine: REALISTIC_ENGINE,
+      view: "process-instances",
+      processDefinitionKey: "assessCreditworthiness",
+    },
     count: /^Showing (\d+) of (\d+) instances$/,
   },
   {
     name: "jobs",
-    tool: "camunda7_show_job_panel",
-    args: { engine: REALISTIC_ENGINE },
+    tool: "camunda7_open_cockpit",
+    args: { engine: REALISTIC_ENGINE, view: "jobs" },
     count: /^Showing (\d+) of (\d+) jobs$/,
   },
 ]
@@ -203,8 +207,11 @@ test.describe("inline fit on real-sized data (760 px column)", () => {
     page,
   }) => {
     const view = VIEWS[0]
-    const app = await openView(page, view, { maxHeight: 600 })
-    const at760 = await expectFits(page, app, view, 600)
+    // Under the cockpit's head and breadcrumb one row of these fits 600 px at 760 px, so the
+    // list refits within an 800 px budget, where a narrower column can show fewer.
+    const app = await openView(page, view, { maxHeight: 800 })
+    const at760 = await expectFits(page, app, view, 800)
+    expect(at760, "room to show fewer").toBeGreaterThan(1)
     // The user touches the view: from now on only a new epoch refits.
     await app.locator("body").dispatchEvent("pointerdown")
 
@@ -219,12 +226,12 @@ test.describe("inline fit on real-sized data (760 px column)", () => {
     // Narrower: the rows wrap taller, fewer fit.
     await setWidth(560)
     await expect.poll(() => tableRows(app).count()).toBeLessThan(at760)
-    await expectFits(page, app, view, 600)
+    await expectFits(page, app, view, 800)
 
     // Wide enough for the State column again (hidden below 48rem).
     await setWidth(960)
     await expect(app.getByRole("columnheader", { name: "State" })).toBeVisible()
-    await expectFits(page, app, view, 600)
+    await expectFits(page, app, view, 800)
   })
 
   test("German: the same card, in German", async ({ page }) => {

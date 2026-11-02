@@ -15,7 +15,7 @@ import {
   Td,
 } from "@miragon/pulse-ui"
 
-import type { JobPanelData } from "../view-models.js"
+import { LIST_PAGE_SIZE, type JobPanelData } from "../view-models.js"
 import {
   HandOffButton,
   IdText,
@@ -29,7 +29,6 @@ import {
 import { Check } from "lucide-react"
 import { CAMUNDA7_JOBS_DATA } from "../tool-names.js"
 import { useEngineAction, type EngineAction } from "./lib/engine-action.js"
-import { EngineMeta } from "./lib/engine-context.js"
 import { MoreActions } from "./lib/more-actions.js"
 import { instanceName, writeFeedback } from "./lib/write-feedback.js"
 import { useHandOff, type HandOff, type ViewContext } from "./lib/hand-off.js"
@@ -43,16 +42,18 @@ interface RetryArgs extends Record<string, unknown> {
   engine?: string
 }
 
-// Standalone renders get only `data`: loadMore must page the echoed engine and filters (incl. a processDefinitionKey the widget has no prop for).
-function buildJobsFeed(initialData: JobPanelData | null, engine?: string, failedOnly?: boolean) {
-  const echoed = initialData?.filters
-  const feedEngine = engine ?? initialData?.engineId
-  const effectiveFailedOnly = failedOnly ?? echoed?.failedOnly
-  const args: Record<string, unknown> = {}
-  if (feedEngine) args.engine = feedEngine
-  if (effectiveFailedOnly !== undefined) args.failedOnly = effectiveFailedOnly
-  if (echoed?.processDefinitionKey) args.processDefinitionKey = echoed.processDefinitionKey
-  return { feedEngine, effectiveFailedOnly, args }
+/** The route's scope: loadMore() pages its engine and filters, never the default engine. */
+interface JobsRoute {
+  engine: string
+  processDefinitionKey?: string
+  failedOnly?: boolean
+}
+
+function jobsFeedArgs({ engine, processDefinitionKey, failedOnly }: JobsRoute) {
+  const args: Record<string, unknown> = { engine }
+  if (failedOnly !== undefined) args.failedOnly = failedOnly
+  if (processDefinitionKey) args.processDefinitionKey = processDefinitionKey
+  return args
 }
 
 type Job = JobPanelData["jobs"][number]
@@ -83,16 +84,10 @@ export function describeJobPanel(
       loaded,
       failedOnly: scope.failedOnly,
     },
-    tools: [
-      "camunda7_list_jobs",
-      "camunda7_list_incidents",
-      "camunda7_set_job_retries",
-      "camunda7_set_job_retries_batch",
-    ],
   }
 }
 
-// The batch retry is a tool only under admin; elsewhere per-job retries (operations) or nothing remain.
+// Which retry the toolset offers (batch, per job or none) is the module instructions' playbook.
 export function triageJobsHandOff(data: JobPanelData, engineId: string | undefined): HandOff {
   const scope = jobPanelScope(data)
   return {
@@ -100,19 +95,8 @@ export function triageJobsHandOff(data: JobPanelData, engineId: string | undefin
     ids: {
       engine: engineId,
       processDefinitionKey: scope.processDefinitionKey,
-      noRetriesLeft: true,
     },
     facts: { totalJobs: scope.totalJobs, failedJobs: data.failedCount },
-    tools: [
-      "camunda7_list_jobs",
-      "camunda7_get_job_stacktrace",
-      "camunda7_list_incidents",
-      "camunda7_query_historic_incidents",
-      "camunda7_set_process_instance_variable",
-      "camunda7_set_job_retries",
-      "camunda7_set_job_retries_batch",
-      "camunda7_format_incident_issue",
-    ],
   }
 }
 
@@ -129,12 +113,6 @@ export function explainJobHandOff(job: Job, engineId: string | undefined): HandO
     },
     facts: { retries: job.retries },
     untrusted: [{ label: "exceptionMessage", text: job.exceptionMessage }],
-    tools: [
-      "camunda7_get_job_stacktrace",
-      "camunda7_get_process_instance",
-      "camunda7_get_process_instance_variables",
-      "camunda7_list_incidents",
-    ],
   }
 }
 
@@ -146,7 +124,6 @@ export function draftJobTicketHandOff(job: Job, engineId: string | undefined): H
       processInstanceId: job.processInstanceId,
       activityId: job.activityId,
     },
-    tools: ["camunda7_list_incidents", "camunda7_format_incident_issue"],
   }
 }
 
@@ -187,7 +164,7 @@ function JobRow({
 }: {
   job: Job
   retry: EngineAction<RetryArgs, unknown>
-  engineId: string | undefined
+  engineId: string
   showProcess: boolean
 }) {
   const t = useT()
@@ -267,26 +244,19 @@ function JobRow({
 
 export function JobPanelWidget({
   data: initialData = null,
-  engine,
-  failedOnly,
-}: {
-  data?: JobPanelData | null
-  engine?: string
-  failedOnly?: boolean
-}) {
+  ...route
+}: JobsRoute & { data?: JobPanelData | null }) {
   const { ask, context } = useHandOff()
-  const { feedEngine, effectiveFailedOnly, args } = buildJobsFeed(initialData, engine, failedOnly)
+  const { engine, processDefinitionKey, failedOnly } = route
   const paged = usePagedViewData<JobPanelData["jobs"][number], JobPanelData>({
     initialData,
-    key: ["camunda7:jobs", feedEngine ?? null, effectiveFailedOnly ?? null],
+    key: ["camunda7:jobs", engine, processDefinitionKey ?? null, failedOnly ?? null],
     tool: CAMUNDA7_JOBS_DATA,
-    args,
-    // Always ready: resolveEngine falls back to the saved/single engine, so a render without an
-    // engine still reads the feed instead of waiting for one.
+    args: jobsFeedArgs(route),
     ready: true,
     selectItems: (d) => d.jobs,
     selectTotal: (d) => d.totalCount,
-    pageSize: 50,
+    pageSize: LIST_PAGE_SIZE,
   })
   const t = useT()
   const data = paged.firstPage
@@ -314,25 +284,22 @@ export function JobPanelWidget({
   const { totalCount, failedCount } = data
   const jobs = paged.items
   const failedJobs = jobs.filter((j) => j.retries === 0 && !retry.done.has(j.id))
-  // Standalone renders have no `engine` prop; without this the prompts would inline "undefined".
-  const engineId = engine ?? data.engineId
-  const scopedKey = data.filters.processDefinitionKey
-  const scopedProcess = scopedKey
-    ? (jobs.find((j) => j.processDefinitionName)?.processDefinitionName ?? scopedKey)
+  const shownKey = data.filters.processDefinitionKey
+  const scopedProcess = shownKey
+    ? (jobs.find((j) => j.processDefinitionName)?.processDefinitionName ?? shownKey)
     : null
 
   return (
     <WidgetShell>
       {/* Described from what is on screen: in the cockpit the widget self-fetches,
           so only it knows the data. */}
-      <HostModelContext content={context(describeJobPanel(data, engineId, jobs.length))}>
+      <HostModelContext content={context(describeJobPanel(data, engine, jobs.length))}>
         {null}
       </HostModelContext>
       <WidgetHeader
         title={t("jobPanel.title")}
         sub={
           <>
-            <EngineMeta engineId={engineId} />
             <span>{t("jobPanel.badgeTotal", { count: formatNumber(totalCount) })}</span>
             {/* A panel scoped to one process names it here, once, not in every row. */}
             {scopedProcess && <span>{t("jobPanel.inProcess", { process: scopedProcess })}</span>}
@@ -340,7 +307,7 @@ export function JobPanelWidget({
         }
         actions={
           failedJobs.length > 0 && (
-            <HandOffButton action="assess" prompt={ask(triageJobsHandOff(data, engineId))} />
+            <HandOffButton action="assess" prompt={ask(triageJobsHandOff(data, engine))} />
           )
         }
       />
@@ -383,7 +350,7 @@ export function JobPanelWidget({
                   key={job.id}
                   job={job}
                   retry={retry}
-                  engineId={engineId}
+                  engineId={engine}
                   showProcess={!data.filters.processDefinitionKey}
                 />
               ))}

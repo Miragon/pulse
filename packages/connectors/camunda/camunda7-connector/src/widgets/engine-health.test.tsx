@@ -1,6 +1,5 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeAll, describe, expect, it } from "vitest"
-import type { ComponentType } from "react"
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react"
 import { LocaleProvider, formatNumber } from "@miragon/pulse-ui"
 import {
@@ -21,7 +20,7 @@ afterEach(() => {
   queryClient = createTestQueryClient()
 })
 
-/** The hand-offs follow the deployment's surface — these fixtures run as `operations`. */
+/** The fix-or-diagnose offer follows the deployment's gate: these fixtures run as `operations`. */
 let tools: Record<string, unknown>
 beforeAll(async () => {
   tools = { [CAMUNDA7_WIDGET_ACTIONS_DATA]: await widgetActionsFeedFor("operations") }
@@ -99,14 +98,17 @@ const HEALTHY: EngineHealthData = {
   engineId: "default",
 }
 
-const Widget = EngineHealthVerdict as unknown as ComponentType<Record<string, unknown>>
+/** The overview's verdict on the cockpit's engine, the fixtures' `default`. */
+const Widget = ({ data }: { data: EngineHealthData }) => (
+  <EngineHealthVerdict data={data} engine="default" />
+)
 
 describe("EngineHealthVerdict (fixture render)", () => {
   it("labels each view's clusters section by its own heading — two views on one page included", () => {
     const Two = () => (
       <>
-        <EngineHealthVerdict data={DEGRADED} />
-        <EngineHealthVerdict data={{ ...DEGRADED, engineId: "other" }} />
+        <EngineHealthVerdict data={DEGRADED} engine="default" />
+        <EngineHealthVerdict data={{ ...DEGRADED, engineId: "other" }} engine="other" />
       </>
     )
     render(
@@ -135,9 +137,9 @@ describe("EngineHealthVerdict (fixture render)", () => {
 
     expect(screen.getByText("Running instances")).toBeTruthy()
 
-    // Freshness affordances: the "as of" stamp + a manual refresh button.
+    // Freshness: the "as of" stamp; the cockpit's head holds the one Refresh (#322 U27).
     expect(screen.getByText(/As of/)).toBeTruthy()
-    expect(screen.getByRole("button", { name: "Refresh" })).toBeTruthy()
+    expect(screen.queryByRole("button", { name: "Refresh" })).toBeNull()
 
     // Clustered incidents (cross-process, by activity + type).
     expect(screen.getByText("Top failures, grouped by cause")).toBeTruthy()
@@ -150,8 +152,8 @@ describe("EngineHealthVerdict (fixture render)", () => {
     expect(await screen.findAllByText("Plan a fix in chat")).toHaveLength(2)
   })
 
-  // A failed surface feed must not take the hand-offs with it; they name no unconfirmed tool.
-  it("keeps its hand-offs when the surface feed fails — naming no tool", async () => {
+  // A failed widget-actions feed keeps the hand-offs; the gate stays closed, so the clusters diagnose.
+  it("offers the diagnosis until the widget-actions feed answers", async () => {
     // The shared client retries a failed query with backoff — fail at once.
     queryClient.setQueryDefaults(["camunda7-widget-actions"], { retry: false })
     const actions: HostAction[] = []
@@ -166,7 +168,7 @@ describe("EngineHealthVerdict (fixture render)", () => {
     const prompts = actions.flatMap((a) => (a.type === "sendFollowUp" ? [a.prompt] : []))
     expect(prompts).toHaveLength(1)
     expect(prompts[0]).toContain('Ids: engine="default"')
-    expect(prompts[0]).not.toContain("Tools:")
+    expect(prompts[0]).not.toMatch(/\b(camunda7|analytics)_[a-z0-9_]+/)
     queryClient.setQueryDefaults(["camunda7-widget-actions"], {})
   })
 
@@ -310,7 +312,6 @@ describe("the verdict line and the hand-offs speak the view's language", () => {
     const fixes = await screen.findAllByRole("button", { name: "Behebung im Chat planen" })
     expect(fixes).toHaveLength(2)
     expect(fixes[0].querySelector("svg")!.getAttribute("class")).toContain("lucide-wrench")
-    expect(screen.getByRole("button", { name: "Aktualisieren" })).toBeTruthy()
     for (const english of ["Engine overview", "open incidents", "Degraded", "Assess", "Refresh"]) {
       expect(container.textContent).not.toContain(english)
     }

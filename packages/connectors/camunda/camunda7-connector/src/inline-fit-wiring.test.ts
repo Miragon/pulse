@@ -34,7 +34,6 @@ describe("every paged list reaches the inline fit", () => {
       "job-panel.tsx",
       "process-incidents/incident-table.tsx",
       "process-instances/list.tsx",
-      "process-list.tsx",
     ])
   })
 

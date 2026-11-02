@@ -8,16 +8,12 @@ import {
 import type { IncidentsDashboardData } from "../../view-models.js"
 import { CAMUNDA7_INCIDENTS_DATA } from "../../tool-names.js"
 import { useHandOff, type HandOff } from "../lib/hand-off.js"
-import { EngineMeta } from "../lib/engine-context.js"
 import { useT } from "../../messages/use-t.js"
 import { formatCount } from "../lib/format-count.js"
 import { dashboardScope, incidentsFeed } from "./scope.js"
 
 /** A filtered total is stated as the matching incidents; a plan, nothing changed yet. */
-export function triageIncidentsHandOff(
-  data: IncidentsDashboardData,
-  engine: string | undefined,
-): HandOff {
+export function triageIncidentsHandOff(data: IncidentsDashboardData, engine: string): HandOff {
   const scope = dashboardScope(data.filters)
   return {
     intent: scope.filtered ? "askAi.incidents.triageFiltered" : "askAi.incidents.triage",
@@ -34,12 +30,6 @@ export function triageIncidentsHandOff(
       last24h: data.last24hCount,
       latestIncident: data.latestIncident,
     },
-    tools: [
-      "camunda7_list_incidents",
-      "camunda7_query_historic_incidents",
-      "camunda7_query_historic_activity_instances",
-      "camunda7_show_cluster_detail",
-    ],
   }
 }
 
@@ -48,7 +38,7 @@ export function IncidentOverviewKpiView({
   engine,
 }: {
   data?: IncidentsDashboardData | null
-  engine?: string
+  engine: string
 }) {
   // Shares the process-list feed, so both panels dedupe to one fetch.
   const feed = incidentsFeed(engine)
@@ -57,7 +47,7 @@ export function IncidentOverviewKpiView({
     feed.key,
     CAMUNDA7_INCIDENTS_DATA,
     feed.args,
-    feed.ready,
+    true,
   )
   const t = useT()
   const { ask } = useHandOff()
@@ -74,17 +64,13 @@ export function IncidentOverviewKpiView({
     )
   }
 
-  const engineId = engine ?? data.engineId
   return (
     <>
       <WidgetHeader
         // The engine in the title (#322 U4).
-        title={
-          engineId ? t("incidentsKpi.titleFor", { engine: engineId }) : t("incidentsKpi.title")
-        }
+        title={t("incidentsKpi.titleFor", { engine })}
         sub={
           <>
-            <EngineMeta engineId={engineId} />
             <LivePill>{t("incidentsKpi.live")}</LivePill>
             <span>
               {t("incidentsKpi.openSummary", {
@@ -103,7 +89,7 @@ export function IncidentOverviewKpiView({
           </>
         }
         actions={
-          <HandOffButton action="assess" prompt={ask(triageIncidentsHandOff(data, engineId))} />
+          <HandOffButton action="assess" prompt={ask(triageIncidentsHandOff(data, engine))} />
         }
       />
       {/* Only the open incidents carry a state (#322 U14); the rest are counts. */}
@@ -139,7 +125,7 @@ export function IncidentOverviewKpi({
   engine,
 }: {
   data: IncidentsDashboardData | null
-  engine?: string
+  engine: string
 }) {
   return (
     <WidgetShell>

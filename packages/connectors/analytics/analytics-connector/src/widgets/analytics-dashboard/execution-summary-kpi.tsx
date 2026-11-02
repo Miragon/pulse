@@ -14,8 +14,7 @@ import { processNameOf } from "../../bpmn-names.js"
 
 /**
  * The facts carry the result's own names: the period's flows (incidents, not failed instances)
- * apart from the live `…Now` gauges; an unmeasured figure is left out, never 0 (#336). `period`
- * goes to the dashboard only: camunda7_list_incidents refuses it.
+ * apart from the live `…Now` gauges; an unmeasured figure is left out, never 0 (#336).
  */
 export function executionSummaryHandOff(data: AnalyticsDashboardData): HandOff {
   return {
@@ -23,8 +22,8 @@ export function executionSummaryHandOff(data: AnalyticsDashboardData): HandOff {
     ids: {
       engine: engineIdsOf(data.engines),
       processDefinitionKey: data.processDefinitionKey ?? undefined,
+      period: data.period,
     },
-    toolIds: { analytics_show_dashboard: { period: data.period } },
     facts: {
       startedCount: data.startedCount,
       completedCount: data.completedCount,
@@ -36,7 +35,6 @@ export function executionSummaryHandOff(data: AnalyticsDashboardData): HandOff {
       runningNow: data.runningNow,
       openIncidentsNow: data.openIncidentsNow,
     },
-    tools: ["analytics_show_dashboard", "camunda7_list_incidents"],
   }
 }
 

@@ -22,7 +22,6 @@ export function engineCompareHandOff(data: EngineCompareResult): HandOff {
       activityId: data.activityId,
     },
     facts: deltaFacts(data.delta, data.suppressed),
-    tools: ["analytics_show_engine_compare", "analytics_engine_health"],
   }
 }
 

@@ -69,7 +69,9 @@ const data = DATA as unknown as Record<string, unknown>
 describe("incidents dashboard widgets — honest numbers", () => {
   it("shows the unknown affected-activity total as —, never 0", () => {
     render(
-      <TestViewHost>{createElement(asWidget(IncidentOverviewKpi), { data: data })}</TestViewHost>,
+      <TestViewHost>
+        {createElement(asWidget(IncidentOverviewKpi), { data, engine: "prod-a" })}
+      </TestViewHost>,
     )
 
     const cell = screen
@@ -81,7 +83,9 @@ describe("incidents dashboard widgets — honest numbers", () => {
 
   it("keeps a process beyond the scan with its exact count and discloses a partial breakdown", () => {
     render(
-      <TestViewHost>{createElement(asWidget(IncidentProcessList), { data: data })}</TestViewHost>,
+      <TestViewHost>
+        {createElement(asWidget(IncidentProcessList), { data, engine: "prod-a" })}
+      </TestViewHost>,
     )
 
     expect(screen.getByText("250")).toBeTruthy()
@@ -99,7 +103,9 @@ describe("incidents dashboard widgets — honest numbers", () => {
 
   it("the Last 24h chip shows the key's 24h count (— when unknown) and drops a process without any", () => {
     render(
-      <TestViewHost>{createElement(asWidget(IncidentProcessList), { data: data })}</TestViewHost>,
+      <TestViewHost>
+        {createElement(asWidget(IncidentProcessList), { data, engine: "prod-a" })}
+      </TestViewHost>,
     )
 
     fireEvent.click(screen.getByText("Last 24h"))
@@ -110,8 +116,8 @@ describe("incidents dashboard widgets — honest numbers", () => {
   })
 })
 
-// A filtered standalone view reads its scope from the data echo and never refetches (no `engine`
-// prop, so `incidentsFeed` is never ready), so no request can widen it.
+// A filtered view without an `engine` prop reads its scope from the data echo and never refetches
+// (`incidentsFeed` is never ready), so no request can widen it.
 describe("incidents dashboard — a filtered view keeps its scope", () => {
   const FILTERED: IncidentsDashboardData = {
     ...DATA,
@@ -144,7 +150,7 @@ describe("incidents dashboard — a filtered view keeps its scope", () => {
         tools={{ ...tools, [CAMUNDA7_INCIDENTS_DATA]: feed }}
         onHostAction={(action) => actions.push(action)}
       >
-        {createElement(asWidget(widget), { data: props.data ?? {} })}
+        {createElement(asWidget(widget), { data: props.data ?? {}, engine: "prod-a" })}
       </TestViewHost>,
     )
     // A card's chat hand-off sits behind its "more" button (#322 U20).
@@ -178,7 +184,7 @@ describe("incidents dashboard — a filtered view keeps its scope", () => {
     expect(prompt).toContain("On screen: matchingIncidents=7, processes=1")
     expect(prompt).not.toContain("openIncidents")
     expect(prompt).not.toMatch(/all open incidents on this engine/)
-    // Standalone, the scope lives in the data alone — never in a request.
+    // Without an engine prop, the scope lives in the data alone: never in a request.
     expect(feedCalls).toEqual([])
   })
 

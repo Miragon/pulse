@@ -1,17 +1,19 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 import { bootServer, type BootedServer } from "./boot-server.js"
+import { startLoopbackEngine, type LoopbackEngine } from "./loopback-engine.js"
 
 /**
  * `camunda7_open_cockpit` on the wire (#341 K43/N70/N105): the cockpit OPENS
- * on the engine the call resolves — the `engine` argument, else the default
- * engine (`CAMUNDA_DEFAULT_ENGINE`), else the only configured engine — and the
- * summary says exactly that. A bad `engine` is a tool error the model can act
- * on, never a silent engine picker under a summary that names the engine anyway.
+ * on the engine the call resolves (the `engine` argument, else the default
+ * engine `CAMUNDA_DEFAULT_ENGINE`, else the only configured engine) and on the
+ * start view the call names, and its facts say exactly that. A bad `engine` is
+ * a tool error the model can act on, never a silent engine picker.
  */
 
 interface CockpitPayload {
   engineId: string | null
   engines: Array<{ id: string; environment: string }>
+  start: { view: { section: string }; data: unknown } | null
 }
 
 type CallResult = Awaited<ReturnType<BootedServer["client"]["callTool"]>>
@@ -25,10 +27,23 @@ function bootstrapOf(result: CallResult): CockpitPayload {
 const textOf = (result: CallResult) =>
   (result.content as Array<{ text?: string }>).map((c) => c.text ?? "").join("\n")
 
+/** The model-facing result: the start view's facts as compact JSON. */
+const factsOf = (result: CallResult) => JSON.parse(textOf(result)) as Record<string, unknown>
+
 const ENGINES = ["prod-a", "prod-b", "prod-c"]
-const ENGINES_JSON = JSON.stringify(
-  ENGINES.map((id, i) => ({ id, baseUrl: `http://localhost:${i + 1}/engine-rest` })),
-)
+
+let engine: LoopbackEngine
+let enginesJson: string
+
+beforeAll(async () => {
+  // Every engine entry points at one empty loopback engine: opening the cockpit reads it.
+  engine = await startLoopbackEngine()
+  enginesJson = JSON.stringify(ENGINES.map((id) => ({ id, baseUrl: engine.baseUrl })))
+})
+
+afterAll(async () => {
+  await engine?.close()
+})
 
 const opener =
   (server: () => BootedServer) =>
@@ -41,7 +56,7 @@ describe("camunda7_open_cockpit with a default engine (createApp)", () => {
 
   beforeAll(async () => {
     server = await bootServer({
-      env: { CAMUNDA_ENGINES_JSON: ENGINES_JSON, CAMUNDA_DEFAULT_ENGINE: "prod-c" },
+      env: { CAMUNDA_ENGINES_JSON: enginesJson, CAMUNDA_DEFAULT_ENGINE: "prod-c" },
     })
   })
 
@@ -49,16 +64,19 @@ describe("camunda7_open_cockpit with a default engine (createApp)", () => {
     await server?.close()
   })
 
-  it("opens on the `engine` argument — and says so", async () => {
+  it("opens on the `engine` argument, and its facts say so", async () => {
     const result = await open({ engine: "prod-b" })
-    expect(bootstrapOf(result).engineId).toBe("prod-b")
-    expect(textOf(result)).toContain('cockpit for engine "prod-b"')
+    expect(bootstrapOf(result)).toMatchObject({
+      engineId: "prod-b",
+      start: { view: { section: "overview" } },
+    })
+    expect(factsOf(result)).toMatchObject({ engine: "prod-b", view: "overview", status: "ok" })
   })
 
   it("without one, opens on the default engine", async () => {
     const result = await open()
     expect(bootstrapOf(result).engineId).toBe("prod-c")
-    expect(textOf(result)).toContain('cockpit for engine "prod-c"')
+    expect(factsOf(result)).toMatchObject({ engine: "prod-c", view: "overview" })
   })
 
   it("an unknown engine is refused as a tool error", async () => {
@@ -71,6 +89,24 @@ describe("camunda7_open_cockpit with a default engine (createApp)", () => {
     const engines = (JSON.parse(textOf(listed)) as { engines: Array<{ id: string }> }).engines
     expect(bootstrapOf(await open()).engines.map((e) => e.id)).toEqual(engines.map((e) => e.id))
   })
+
+  it("opens on the start view the call names", async () => {
+    const result = await open({ engine: "prod-a", view: "jobs", failedOnly: true })
+    expect(bootstrapOf(result).start?.view).toEqual({ section: "jobs", failedOnly: true })
+    expect(factsOf(result)).toEqual({
+      engine: "prod-a",
+      view: "jobs",
+      failedOnly: true,
+      totalCount: 0,
+      failedCount: 0,
+    })
+  })
+
+  it("a view without the id it needs is refused", async () => {
+    const result = await open({ view: "instance-detail" })
+    expect(result.isError).toBe(true)
+    expect(textOf(result)).toContain('view "instance-detail" needs processInstanceId.')
+  })
 })
 
 describe("camunda7_open_cockpit without a default engine (createApp)", () => {
@@ -78,18 +114,24 @@ describe("camunda7_open_cockpit without a default engine (createApp)", () => {
   const open = opener(() => server)
 
   beforeAll(async () => {
-    server = await bootServer({ env: { CAMUNDA_ENGINES_JSON: ENGINES_JSON } })
+    server = await bootServer({ env: { CAMUNDA_ENGINES_JSON: enginesJson } })
   })
 
   afterAll(async () => {
     await server?.close()
   })
 
-  it("no default, several engines: the picker, and the summary names no engine", async () => {
+  it("no default, several engines: the picker, and the facts name no engine", async () => {
     const result = await open()
-    expect(bootstrapOf(result)).toMatchObject({ engineId: null })
+    expect(bootstrapOf(result)).toMatchObject({ engineId: null, start: null })
+    expect(Object.keys(bootstrapOf(result)).sort()).toEqual(["engineId", "engines", "start"])
     expect(bootstrapOf(result).engines.map((e) => e.id)).toEqual(ENGINES)
-    expect(textOf(result)).toContain("engine picker")
-    expect(textOf(result)).not.toMatch(/for engine "/)
+    expect(textOf(result)).toBe('{"engine":null,"engines":["prod-a","prod-b","prod-c"]}')
+  })
+
+  it("a view without an engine is ENGINE_NOT_SELECTED", async () => {
+    const result = await open({ view: "incidents" })
+    expect(result.isError).toBe(true)
+    expect(textOf(result)).toContain("ENGINE_NOT_SELECTED")
   })
 })

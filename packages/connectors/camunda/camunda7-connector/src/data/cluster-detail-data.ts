@@ -10,7 +10,7 @@ import {
   getIncidentsCount,
   getProcessInstances,
 } from "@miragon/pulse-camunda7-client/sdk"
-import type { ClusterDetailData, ClusterIncidentRow } from "../view-models.js"
+import { LIST_PAGE_SIZE, type ClusterDetailData, type ClusterIncidentRow } from "../view-models.js"
 import type { ClusterDetailFilters, PagingArgs } from "../feed-contracts.js"
 import {
   CLUSTER_SCAN_LIMIT,
@@ -30,8 +30,6 @@ import {
 } from "./definition-info.js"
 import { countOf, DAY_MS, optional, rowsOf } from "./engine-reads.js"
 import { fetchBusinessKeys, isOnOrAfter } from "./incident-scan.js"
-
-const CLUSTER_DETAIL_ROWS = 50
 
 /**
  * `/incident` has no business-key filter: matching instance ids come from
@@ -90,7 +88,7 @@ export async function buildClusterDetailData(
   // are resolved here, so an engine offset would change semantics.
   // `scannedIncidentCount` discloses that the list is bounded by the scan.
   const first = Math.max(0, args.firstResult ?? 0)
-  const pageSize = args.maxResults ?? CLUSTER_DETAIL_ROWS
+  const pageSize = args.maxResults ?? LIST_PAGE_SIZE
   const page = listed.slice(first, first + pageSize)
 
   const [counts, businessKeyById, keyOf, names] = await Promise.all([

@@ -23,7 +23,6 @@ export function versionCompareHandOff(data: VersionCompareResult): HandOff {
       windowDays: data.windowDays,
     },
     facts: deltaFacts(data.delta, data.suppressed),
-    tools: ["analytics_show_version_compare", "analytics_show_dashboard"],
   }
 }
 

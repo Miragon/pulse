@@ -26,15 +26,6 @@ export function describeInstance({
     },
     facts: { state, openIncidents: openIncidentCount },
     untrusted: [{ label: "businessKey", text: instance.businessKey }],
-    tools: [
-      "camunda7_list_incidents",
-      "camunda7_query_historic_activity_instances",
-      "camunda7_resolve_incident",
-      "camunda7_set_job_retries",
-      "camunda7_set_process_instance_suspension",
-      "camunda7_delete_process_instance",
-      "camunda7_modify_process_instance",
-    ],
   }
 }
 

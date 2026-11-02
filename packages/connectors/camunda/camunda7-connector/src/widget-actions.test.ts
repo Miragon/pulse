@@ -21,11 +21,9 @@ const PRIMITIVE = "lib/engine-action.ts"
  * The files that may obtain a raw tool caller at all. Calls through one are
  * tracked by name (aliases and renames included), but a caller handed on as a
  * value — a parameter, a prop — leaves that reach, so every new holder is a
- * reviewed decision. Neither of these calls a tool through it.
+ * reviewed decision. None today: navigation stays inside the cockpit.
  */
-const RAW_CALLER_HOLDERS: Record<string, string> = {
-  "navigation.ts": "posts a navigation intent as a chat follow-up; calls no tool",
-}
+const RAW_CALLER_HOLDERS: Record<string, string> = {}
 
 /** Every tool the plugin registers on the widest toolset, with its read/write nature. */
 function registeredTools(): Map<string, { readOnly: boolean }> {

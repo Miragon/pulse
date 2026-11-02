@@ -8,7 +8,6 @@ import {
   type GlossaryRule,
 } from "@miragon/pulse-widget-shell/testing"
 import { catalogs } from "./index.js"
-import { enServer } from "./en.server.js"
 
 /** Each rule carries a probe it must catch, so a broken pattern fails instead of passing everything. */
 
@@ -26,9 +25,6 @@ const DE_RULES: readonly GlossaryRule[] = [
     pattern: /(?<![\p{L}])[Aa]ktiv(e|em|en|er|es)?(?![\p{L}])/u,
     use: "läuft (Instanz)",
     probe: "Aktive Instanzen",
-    except: {
-      "processList.statusActive": "a deployed definition is active or suspended, it does not run",
-    },
   },
 ]
 
@@ -45,16 +41,12 @@ const EN_RULES: readonly GlossaryRule[] = [
     pattern: /\bactive\b/i,
     use: "running (instance)",
     probe: "3 active instances",
-    except: {
-      "processList.statusActive": "a deployed definition is active or suspended, it does not run",
-    },
   },
 ]
 
 const LANGUAGES = [
   ["German", catalogs.de, [...PRODUCT_GLOSSARY.de, ...DE_RULES]],
-  // The model summaries are English only (`en.server.ts`); the widget catalogs come in both.
-  ["English", { ...catalogs.en, ...enServer }, [...PRODUCT_GLOSSARY.en, ...EN_RULES]],
+  ["English", catalogs.en, [...PRODUCT_GLOSSARY.en, ...EN_RULES]],
 ] as const
 
 describe.each(LANGUAGES)("the camunda7 glossary holds in %s", (_language, catalog, rules) => {

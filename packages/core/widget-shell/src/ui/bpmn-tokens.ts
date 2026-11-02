@@ -88,18 +88,3 @@ export function injectBpmnOverlayCss(doc: Document = document): void {
   style.textContent = BPMN_OVERLAY_CSS
   doc.head.appendChild(style)
 }
-
-/** The legend swatch of a marker: its tint with a stroke-coloured edge, as an inline style. */
-export function markerSwatch(marker: { stroke: CdTokenName; fill: CdTokenName }): {
-  borderColor: string
-  background: string
-} {
-  return { borderColor: cdVar(marker.stroke), background: cdVar(marker.fill) }
-}
-
-export function badgeSwatch(badge: { fill: CdTokenName; text: CdTokenName }): {
-  background: string
-  color: string
-} {
-  return { background: cdVar(badge.fill), color: cdVar(badge.text) }
-}

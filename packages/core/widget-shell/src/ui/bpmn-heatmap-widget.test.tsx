@@ -55,7 +55,7 @@ const DATA: BpmnHeatmapData = {
   bpmnXml: XML,
   period: "7d",
   frequency: { Task_A: 1234, Task_B: 3, End: 0 },
-  durationSec: { Task_A: 187, Task_B: 2 },
+  durationMs: { Task_A: 187000, Task_B: 2000 },
 }
 
 describe("BpmnHeatmapWidget (U16)", () => {
@@ -129,11 +129,11 @@ describe("BpmnHeatmapWidget (U16)", () => {
     expect(frame?.getAttribute("data-theme-mode")).toBe("light")
   })
 
-  it("says so in an empty state without data or a diagram", () => {
-    const { rerender } = render(<BpmnHeatmapWidget data={null} />)
-    expect(screen.getByText("No heatmap data.").closest("[data-empty-variant]")).toBeTruthy()
-    rerender(<BpmnHeatmapWidget data={{ ...DATA, bpmnXml: null }} />)
-    expect(screen.getByText(/The BPMN diagram is not available/)).toBeTruthy()
+  it("says so in an empty state without a diagram", () => {
+    render(<BpmnHeatmapWidget data={{ ...DATA, bpmnXml: null }} />)
+    expect(
+      screen.getByText(/The BPMN diagram is not available/).closest("[data-empty-variant]"),
+    ).toBeTruthy()
   })
 })
 

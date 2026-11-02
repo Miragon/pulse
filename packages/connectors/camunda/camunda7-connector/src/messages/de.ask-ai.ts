@@ -46,10 +46,6 @@ export const deAskAi: Record<Camunda7AskAiKey, string> = {
     "Entwirf ein Incident-Ticket für diesen Incident und zeig mir Titel, Text und Labels zur Prüfung. Reich es nirgends ein.",
   "askAi.process.triage":
     "Ordne die Incidents dieser Prozessdefinition nach Ursache, trenn Symptome von Quellen und empfiehl je Cluster eine Behebung. Nur Diagnose.",
-  "askAi.process.healthCheck":
-    "Prüf den Zustand dieser Prozessdefinition: gesund oder beeinträchtigt, die schlechtesten Aktivitäten, die häufigste Incident-Meldung, die wahrscheinlichste Ursache und einen nächsten Schritt. Ändere nichts.",
-  "askAi.bpmn.explainState":
-    "Erklär den Zustand dieser Instanz im Diagramm: welche Elemente den Fortschritt blockieren, was jeder Incident bedeutet, ob die Häufungen von Jobs ohne Versuche auf einen systematischen Fehler deuten, und die nächsten Schritte nach Priorität.",
   "askAi.incidents.processRootCause":
     "Finde die Ursache der offenen Incidents dieses Prozesses: Haben die fehlschlagenden Aktivitäten eine gemeinsame Ursache, ist sie vorübergehend, ein Daten- oder Konfigurationsproblem oder ein fehlerhaftes Modell, und welche Behebung empfiehlst du? Ändere nichts ohne meine Bestätigung.",
   "askAi.incidents.triage":

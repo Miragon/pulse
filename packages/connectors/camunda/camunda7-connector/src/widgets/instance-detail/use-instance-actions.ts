@@ -78,11 +78,11 @@ function suspensionConfirmation(
  * while a failed refetch leaves it `unconfirmed` (completing the last task makes the runtime read 404).
  */
 export function useInstanceActions({
-  engine,
+  engine: engineId,
   data,
   unconfirmed,
 }: {
-  engine?: string
+  engine: string
   data: InstanceDetailData | null
   unconfirmed: boolean
 }) {
@@ -104,8 +104,7 @@ export function useInstanceActions({
     available: isActionable,
   })
 
-  // Standalone has no `engine` prop; writes must target the data's engine, never the default engine.
-  const engineId = engine ?? data?.engineId
+  // The route's engine: a write never reaches the default engine.
   const where: WriteTarget = { engineId, environment: useEngineEnvironment(engineId) }
   const recovery = useIncidentRecovery(engineId, { resetOn: data, available: isActionable })
   const isSuspended =

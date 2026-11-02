@@ -9,8 +9,7 @@ import { enFeedback } from "./en.feedback.js"
 import { deFeedback } from "./de.feedback.js"
 
 /**
- * The widget catalogs (`use-t.ts` builds the translator). The model summaries live apart in
- * `en.server.ts`, so the widget bundle carries none. On a key clash the sweep catalogs win
+ * The widget catalogs (`use-t.ts` builds the translator). On a key clash the sweep catalogs win
  * (last spread).
  */
 export const catalogs: Catalogs = {

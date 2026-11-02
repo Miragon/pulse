@@ -8,14 +8,7 @@ import {
   resolveColor,
   themeStylesheets,
 } from "@miragon/pulse-ui/testing"
-import {
-  BPMN_OVERLAY_CSS,
-  BPMN_TOKENS,
-  badgeSwatch,
-  cdValue,
-  cdVar,
-  markerSwatch,
-} from "./bpmn-tokens.js"
+import { BPMN_OVERLAY_CSS, BPMN_TOKENS, cdValue, cdVar } from "./bpmn-tokens.js"
 
 /** Every `--cd-*` token name the module uses. */
 function tokenNames(value: unknown): CdTokenName[] {
@@ -81,17 +74,6 @@ describe("BPMN token module ↔ the vendored CSS (modeler-tool-design §13 drift
   it("an open task stands still: a dashed stroke, no animation (prefers-reduced-motion)", () => {
     expect(BPMN_OVERLAY_CSS).not.toMatch(/animation|@keyframes|transition/)
     expect(BPMN_OVERLAY_CSS).toMatch(/highlight-open-user-task[^}]*stroke-dasharray/)
-  })
-
-  it("the legend swatches paint what the diagram paints", () => {
-    expect(markerSwatch(BPMN_TOKENS.incident)).toEqual({
-      borderColor: "var(--cd-danger)",
-      background: "var(--cd-danger-soft)",
-    })
-    expect(badgeSwatch(BPMN_TOKENS.instanceBadge)).toEqual({
-      background: "var(--cd-blau)",
-      color: "var(--cd-weiss)",
-    })
   })
 })
 

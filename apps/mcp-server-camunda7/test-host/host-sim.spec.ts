@@ -3,7 +3,13 @@ import { createRequire } from "node:module"
 import AxeBuilder from "@axe-core/playwright"
 import { expect, test, type FrameLocator, type Locator, type Page } from "@playwright/test"
 import { SERVED_FONT_PATH } from "@miragon/pulse-widget-shell/server"
-import { BROKEN_ENGINE, ENGINE_CONTROL_ENV, HEALTHY_ENGINE } from "./engines.js"
+import {
+  BROKEN_ENGINE,
+  ENGINE_CONTROL_ENV,
+  HEALTHY_ENGINE,
+  REALISTIC_ENGINE,
+  REALISTIC_HOST_ENV,
+} from "./engines.js"
 
 /**
  * Host-simulation gate for the built widget bundle (see test-host/README.md).
@@ -12,8 +18,9 @@ import { BROKEN_ENGINE, ENGINE_CONTROL_ENV, HEALTHY_ENGINE } from "./engines.js"
  * (`resources/read` of `ui://views/<tool>.html` from the real `createApp`,
  * embedding `dist/mcp-app.{js,css}`) in a sandboxed srcdoc iframe, behind a
  * minimal SEP-1865 host whose tool calls go to that same server. The
- * rendering tool is a real camunda7 show tool against a stub engine, so the
- * view receives the real structuredContent and data shape.
+ * rendering tool is the real `camunda7_open_cockpit` against a stub engine,
+ * opened on the route a scenario names, so the view receives the real
+ * structuredContent and data shape.
  *
  * Scenarios titled "pinned …" assert the CURRENT behaviour of a known defect
  * that lives outside this repo's fix scope; each names its issue. When the
@@ -21,7 +28,9 @@ import { BROKEN_ENGINE, ENGINE_CONTROL_ENV, HEALTHY_ENGINE } from "./engines.js"
  * stated in its assertion message.
  */
 
-const RENDER_TOOL = "camunda7_show_process_list"
+const RENDER_TOOL = "camunda7_open_cockpit"
+/** The cockpit opened on its engine-wide jobs (the stub's three failed jobs). */
+const JOBS_ARGS = { engine: HEALTHY_ENGINE, view: "jobs" }
 /**
  * How long every re-execution count waits after the last lifecycle event
  * (delivery, recovered render), so a duplicate call lands before the check.
@@ -72,6 +81,8 @@ interface HostLog {
 interface Scenario {
   /** The view-bound tool the "model" invoked (default: {@link RENDER_TOOL}). */
   tool?: string
+  /** The host page's deployment env var (default: `HOST_SIM_URL`). */
+  hostEnv?: string
   args?: Record<string, unknown>
   structuredContent?: "keep" | "strip"
   resultDelayMs?: number
@@ -93,8 +104,9 @@ interface Scenario {
 }
 
 async function openView(page: Page, scenario: Scenario = {}): Promise<FrameLocator> {
-  const base = process.env.HOST_SIM_URL
-  if (!base) throw new Error("HOST_SIM_URL is unset — run via `playwright test -c test-host`")
+  const hostEnv = scenario.hostEnv ?? "HOST_SIM_URL"
+  const base = process.env[hostEnv]
+  if (!base) throw new Error(`${hostEnv} is unset — run via \`playwright test -c test-host\``)
   const query = new URLSearchParams({
     tool: scenario.tool ?? RENDER_TOOL,
     args: JSON.stringify(scenario.args ?? { engine: HEALTHY_ENGINE }),
@@ -122,7 +134,7 @@ async function engineControl(action: "hold" | "release", term: string): Promise<
   const base = process.env[ENGINE_CONTROL_ENV]
   if (!base)
     throw new Error(`${ENGINE_CONTROL_ENV} is unset — run via \`playwright test -c test-host\``)
-  const query = new URLSearchParams({ nameLike: term })
+  const query = new URLSearchParams({ term })
   const res = await fetch(`${base}/__control/${action}?${query.toString()}`, { method: "POST" })
   expect(res.ok, `stub engine ${action} "${term}"`).toBe(true)
 }
@@ -150,28 +162,47 @@ function collectErrors(page: Page): string[] {
   return errors
 }
 
+const DEFINITIONS_TABLE =
+  "Deployed process definitions with running instances, jobs without retries and incidents"
+
 function definitionsTable(app: FrameLocator): Locator {
-  return app.getByRole("table", { name: "Deployed process definitions with version and status" })
+  return app.getByRole("table", { name: DEFINITIONS_TABLE })
 }
 
 function germanDefinitionsTable(app: FrameLocator): Locator {
   return app.getByRole("table", {
-    name: "Bereitgestellte Prozessdefinitionen mit Version und Status",
+    name: "Bereitgestellte Prozessdefinitionen mit laufenden Instanzen, Jobs ohne Versuche und Incidents",
   })
 }
 
-/** The process-list widget rendered the stub engine's three definitions. */
-async function expectProcessList(app: FrameLocator): Promise<void> {
+/** The cockpit's overview rendered the stub engine's three definitions. */
+async function expectOverview(app: FrameLocator): Promise<void> {
   const table = definitionsTable(app)
   await expect(table).toBeVisible({ timeout: 15_000 })
-  // Header + one row per fixture definition, sorted by name like the engine.
+  // Header + one row per fixture definition, issues then running instances first (the stub's order).
   await expect(table.getByRole("row")).toHaveCount(4)
   await expect(table.getByRole("row").nth(1)).toContainText("Customer Onboarding")
-  await expect(table.getByRole("row").nth(1)).toContainText("Suspended")
   await expect(table.getByRole("row").nth(2)).toContainText("Invoice Receipt")
-  await expect(table.getByRole("row").nth(2)).toContainText("V3.0")
   await expect(table.getByRole("row").nth(3)).toContainText("Order Fulfillment")
-  await expect(app.getByText("3 deployed")).toBeVisible()
+  await expect(app.getByText("3 deployed · counts span all versions")).toBeVisible()
+}
+
+const STUB_JOBS = ["Card declined", "Card expired", "Billing address unknown"]
+
+/**
+ * The cockpit's jobs route rendered the stub engine's three failed jobs, the first job first:
+ * inline exactly the `shown` rows the host's budget leaves room for under the cockpit's head
+ * and the KPI strip (#396), and the count line says how many of the three. At 960 px a 600 px
+ * budget (and the unstated one, fitted as 600 px) leaves room for one; 800 px fits all three.
+ */
+async function expectJobs(app: FrameLocator, shown: 1 | 3) {
+  const region = app.getByRole("region", { name: "Jobs", exact: true })
+  await expect(region).toBeVisible({ timeout: 15_000 })
+  await expect(region.getByRole("row")).toHaveCount(shown + 1)
+  for (const message of STUB_JOBS.slice(0, shown)) {
+    await expect(region.getByText(message)).toBeVisible()
+  }
+  await expect(app.getByText(`Showing ${shown} of 3 jobs`)).toBeVisible()
 }
 
 /** Relative luminance (0 = black, 1 = white) of an element's computed color property. */
@@ -304,20 +335,18 @@ function expectWithin(actual: number, expected: number, tolerance: number, label
   )
 }
 
-test.describe("real camunda7 view (camunda7_show_process_list)", () => {
+test.describe("real camunda7 view (camunda7_open_cockpit, the overview)", () => {
   test("compliant host (structuredContent kept): renders from the notification, never re-executes", async ({
     page,
   }) => {
     const errors = collectErrors(page)
     const app = await openView(page)
 
-    await expectProcessList(app)
-    // The show tool's own view, picked by the name the document's prelude
-    // sets. The server never titles a view (#322 U3): the widget's own heading
-    // is the view's one title, in the host's language.
-    await expect(
-      app.getByRole("heading", { name: "Process definitions", exact: true }),
-    ).toHaveCount(1)
+    await expectOverview(app)
+    // The tool's own view, picked by the name the document's prelude sets.
+    // The server never titles a view (#322 U3): the widget's own heading is
+    // the view's one title, in the host's language.
+    await expect(app.getByRole("heading", { name: "All processes", exact: true })).toHaveCount(1)
     // Harness self-checks: the frame runs mcp-use's synthesized document
     // (its inline view config) with the view's name from the prelude,
     // sandboxed to an opaque origin, under the host's CSP — the first element
@@ -373,52 +402,67 @@ test.describe("real camunda7 view (camunda7_show_process_list)", () => {
   }) => {
     // The path the vite `dedupe` list protects (CLAUDE.md invariant 4): the
     // widget package's useToolQuery must see the shell's CallToolContext, or
-    // every in-widget query hangs on its skeleton.
-    const app = await openView(page)
-    await expectProcessList(app)
+    // every in-widget query hangs on its skeleton. The cockpit opens on the
+    // realistic engine's instance list (160 instances, business keys to search).
+    const app = await openView(page, {
+      hostEnv: REALISTIC_HOST_ENV,
+      args: { engine: REALISTIC_ENGINE, view: "process-instances" },
+    })
+    const rows = app.locator("tbody > tr")
+    await expect(rows.first()).toBeVisible({ timeout: 15_000 })
 
     // Named by the placeholder's words, never the kit's generic "Filter".
-    const search = app.getByRole("searchbox", { name: "Filter by name" })
-    const table = definitionsTable(app)
+    const search = app.getByRole("searchbox", { name: "Search by business key or ID" })
+    const before = await rows.count()
     // The stub engine holds its answer to this search until the in-flight
-    // state has been looked at — no timing window to race.
-    await engineControl("hold", "invoice")
+    // state has been looked at: no timing window to race.
+    const term = "CUST-120"
+    await engineControl("hold", term)
     try {
-      await search.fill("invoice")
+      await search.fill(term)
 
       // While the search is in flight the list stays mounted with the
       // previous rows, and the operator keeps typing into the same, still
       // focused box (#341 N123) …
       const searched = async () =>
         (await hostLog(page)).toolCalls.some(
-          (c) => c.name === "camunda7_process_list_data" && c.arguments.nameLike === "invoice",
+          (c) => c.name === "camunda7_process_instances_data" && c.arguments.search === term,
         )
       await expect.poll(searched, { timeout: 15_000 }).toBe(true)
       await expect(search).toBeFocused()
-      await expect(search).toHaveValue("invoice")
-      await expect(table.getByRole("row")).toHaveCount(4)
+      await expect(search).toHaveValue(term)
+      await expect(rows).toHaveCount(before)
       // … and SHOWS that they are not its answer yet: the rows are marked (an
       // info bar, no dimming) and busy, "Updating…" is visible, and no
-      // "Showing 3 of 3" sits beside the new search.
+      // "Showing … of" sits beside the new search.
       await expect(app.locator("[data-stale]")).toHaveAttribute("aria-busy", "true")
       await expect(app.locator('[data-stale] > [data-tone="info"]')).toHaveCount(1)
       await expect(app.getByText("Updating…")).toBeVisible()
       await expect(app.getByText(/Showing \d+ of/)).toHaveCount(0)
     } finally {
-      await engineControl("release", "invoice")
+      await engineControl("release", term)
     }
 
-    await expect(table.getByRole("row")).toHaveCount(2)
-    await expect(table.getByRole("row").nth(1)).toContainText("Invoice Receipt")
+    // Only the matching rows remain: every business key holds the term.
     await expect(app.locator("[data-stale]")).toHaveCount(0)
-    await expect(app.getByText("Showing 1 of 1 definitions")).toBeVisible()
+    await expect.poll(async () => (await rows.allTextContents()).length).toBeGreaterThan(0)
+    await expect
+      .poll(async () => (await rows.allTextContents()).every((text) => text.includes(term)))
+      .toBe(true)
+    // The count line states the filtered total, never the unfiltered one: the realistic engine
+    // holds five CUST-120… business keys, and it counts the rows on screen.
+    const countLine = app.getByText(/^Showing \d+ of 5 instances$/)
+    await expect(countLine).toBeVisible()
+    await expect
+      .poll(
+        async () =>
+          (await countLine.textContent()) === `Showing ${await rows.count()} of 5 instances`,
+      )
+      .toBe(true)
     const feedCalls = (await hostLog(page)).toolCalls.filter(
-      (c) => c.name === "camunda7_process_list_data",
+      (c) => c.name === "camunda7_process_instances_data",
     )
-    expect(feedCalls.at(-1)?.arguments).toMatchObject({
-      engine: HEALTHY_ENGINE,
-      nameLike: "invoice",
-    })
+    expect(feedCalls.at(-1)?.arguments).toMatchObject({ engine: REALISTIC_ENGINE, search: term })
   })
 
   test("stripping host (claude.ai behaviour): recovers via exactly one re-execution with the invocation's arguments", async ({
@@ -426,7 +470,7 @@ test.describe("real camunda7 view (camunda7_show_process_list)", () => {
   }) => {
     const app = await openView(page, { structuredContent: "strip" })
 
-    await expectProcessList(app)
+    await expectOverview(app)
     // The view loaded these figures itself, so they can differ from the
     // chat's answer: the frame's "Reloaded at" line says so.
     await expect(app.getByText(CHROME.reloadedAt)).toBeVisible()
@@ -459,7 +503,7 @@ test.describe("real camunda7 view (camunda7_show_process_list)", () => {
 
     // Rendered from the host's late delivery, once.
     await waitForDelivery(page, "result")
-    await expectProcessList(app)
+    await expectOverview(app)
     // The delivery is the last event; outlast a call it could cause.
     await page.waitForTimeout(OUTLAST_MS)
     await expect(definitionsTable(app)).toHaveCount(1)
@@ -525,7 +569,7 @@ test.describe("real camunda7 view (camunda7_show_process_list)", () => {
     await page.emulateMedia({ colorScheme: "dark" })
     const app = await openView(page, { theme: "dark" })
 
-    await expectProcessList(app)
+    await expectOverview(app)
     expect(await textLuminance(definitionsTable(app).getByRole("row").nth(2))).toBeGreaterThan(0.5)
   })
 
@@ -535,7 +579,7 @@ test.describe("real camunda7 view (camunda7_show_process_list)", () => {
     async ({ page }, testInfo) => {
       const app = await openView(page, { theme: "dark" })
 
-      await expectProcessList(app)
+      await expectOverview(app)
       await testInfo.attach("dark-host-light-os", {
         body: await page.screenshot(),
         contentType: "image/png",
@@ -552,7 +596,7 @@ test.describe("real camunda7 view (camunda7_show_process_list)", () => {
         0.5,
       )
       expect(
-        await textLuminance(app.getByRole("heading", { name: "Process definitions" }).first()),
+        await textLuminance(app.getByRole("heading", { name: "All processes" }).first()),
       ).toBeGreaterThan(0.5)
     },
   )
@@ -561,7 +605,7 @@ test.describe("real camunda7 view (camunda7_show_process_list)", () => {
     await page.emulateMedia({ colorScheme: "dark" })
     const app = await openView(page, { theme: "light" })
 
-    await expectProcessList(app)
+    await expectOverview(app)
     expect(await documentTheme(app)).toEqual({
       dark: false,
       dataTheme: "light",
@@ -576,9 +620,9 @@ test.describe("real camunda7 view (camunda7_show_process_list)", () => {
     for (const displayModes of [["inline"], undefined]) {
       const app = await openView(page, { displayModes })
 
-      await expectProcessList(app)
+      await expectOverview(app)
       // The view itself stays.
-      await expect(app.getByRole("heading", { name: "Process definitions" }).first()).toBeVisible()
+      await expect(app.getByRole("heading", { name: "All processes" }).first()).toBeVisible()
       await expect(app.getByRole("button", { name: CHROME.enterFullscreen })).toHaveCount(0)
       expect((await hostLog(page)).displayModeRequests).toEqual([])
     }
@@ -591,13 +635,11 @@ test.describe("real camunda7 view (camunda7_show_process_list)", () => {
     const table = germanDefinitionsTable(app)
     await expect(table).toBeVisible({ timeout: 15_000 })
     await expect(table.getByRole("row")).toHaveCount(4)
-    await expect(app.getByText("3 bereitgestellt")).toBeVisible()
+    await expect(app.getByText("3 bereitgestellt · Zahlen über alle Versionen")).toBeVisible()
     // One German title and no English toolbar title over it: the server
     // never titles a view (#322 U3).
-    await expect(
-      app.getByRole("heading", { name: "Prozessdefinitionen", exact: true }),
-    ).toHaveCount(1)
-    await expect(app.getByRole("heading", { name: /Process definitions/i })).toHaveCount(0)
+    await expect(app.getByRole("heading", { name: "Alle Prozesse", exact: true })).toHaveCount(1)
+    await expect(app.getByRole("heading", { name: /All processes/i })).toHaveCount(0)
     // The view chrome (the frame's toolbar) follows the same locale.
     await expect(app.getByRole("button", { name: "Vollbild" })).toBeVisible()
     expect(await app.locator("html").getAttribute("lang")).toBe("de")
@@ -628,7 +670,7 @@ test.describe("real camunda7 view (camunda7_show_process_list)", () => {
   }) => {
     const app = await openView(page, { fontSans: '"Host Sim Sans", serif' })
 
-    await expectProcessList(app)
+    await expectOverview(app)
     const fonts = await app.locator("body").evaluate((body) => {
       const mono = document.createElement("code")
       mono.className = "font-mono"
@@ -658,7 +700,7 @@ test.describe("real camunda7 view (camunda7_show_process_list)", () => {
     page,
   }) => {
     const app = await openView(page)
-    await expectProcessList(app)
+    await expectOverview(app)
 
     const { css, faces } = await app.locator("html").evaluate(() => {
       const styles = [...document.querySelectorAll("style")]
@@ -706,7 +748,7 @@ test.describe("real camunda7 view (camunda7_show_process_list)", () => {
   }) => {
     const app = await openView(page, { maxHeight: 220 })
 
-    await expectProcessList(app)
+    await expectOverview(app)
     // The shell's document layer is the scroll container, capped at the budget.
     const container = await app.locator("#root").evaluate((root) => {
       const el = root.firstElementChild as HTMLElement
@@ -729,9 +771,9 @@ test.describe("real camunda7 view (camunda7_show_process_list)", () => {
   test("a 600 px budget: the list view fits as a card, without a scroll of its own", async ({
     page,
   }) => {
-    const app = await openView(page, { maxHeight: 600 })
+    const app = await openView(page, { args: JOBS_ARGS, maxHeight: 600 })
 
-    await expectProcessList(app)
+    await expectJobs(app, 1)
     const container = await app.locator("#root").evaluate((root) => {
       const el = root.firstElementChild as HTMLElement
       return { scrollHeight: el.scrollHeight, clientHeight: el.clientHeight }
@@ -742,9 +784,9 @@ test.describe("real camunda7 view (camunda7_show_process_list)", () => {
   test("an inline view reports its own height, below the old 600 px floor (#339, K40)", async ({
     page,
   }) => {
-    const app = await openView(page)
+    const app = await openView(page, { args: JOBS_ARGS })
 
-    await expectProcessList(app)
+    await expectJobs(app, 1)
     // The old html/body/#root floor reported 600 for every view. `settledHeight`
     // waits for the report that equals the content's max-content height.
     const reported = await settledHeight(page, app)
@@ -757,12 +799,12 @@ test.describe("real camunda7 view (camunda7_show_process_list)", () => {
   }) => {
     const app = await openView(page, { displayModes: ["inline", "fullscreen"] })
 
-    await expectProcessList(app)
+    await expectOverview(app)
     await app.getByRole("button", { name: CHROME.enterFullscreen }).click()
 
     await expect.poll(async () => (await hostLog(page)).displayModeRequests).toEqual(["fullscreen"])
     await expect(app.getByRole("button", { name: CHROME.exitFullscreen })).toBeVisible()
-    await expectProcessList(app)
+    await expectOverview(app)
   })
 })
 
@@ -810,7 +852,7 @@ test.describe("served fonts (Geist from the server's font route)", () => {
     const errors = collectErrors(page)
     const requests = fontRequests(page)
     const app = await openView(page)
-    await expectProcessList(app)
+    await expectOverview(app)
 
     await expect
       .poll(() => servedFaces(app), { timeout: 15_000 })
@@ -831,7 +873,7 @@ test.describe("served fonts (Geist from the server's font route)", () => {
   }) => {
     const fontSans = '"Host Sim Sans", serif'
     const allowed = await openView(page, { fontSans })
-    await expectProcessList(allowed)
+    await expectOverview(allowed)
     await expect
       .poll(() => servedFaces(allowed), { timeout: 15_000 })
       .toEqual({ Geist: "loaded", "Geist Mono": "loaded" })
@@ -839,7 +881,7 @@ test.describe("served fonts (Geist from the server's font route)", () => {
 
     const errors = collectErrors(page)
     const blocked = await openView(page, { fontSans, ignoreResourceDomains: true })
-    await expectProcessList(blocked)
+    await expectOverview(blocked)
     // The CSP refuses both files; the faces fail instead of hanging.
     await expect
       .poll(() => servedFaces(blocked), { timeout: 15_000 })
@@ -870,7 +912,7 @@ test.describe("served fonts (Geist from the server's font route)", () => {
     // Held, never answered: nothing may wait for the files.
     await page.route(`**${SERVED_FONT_PATH}/**`, () => {})
     const app = await openView(page)
-    await expectProcessList(app)
+    await expectOverview(app)
 
     expect(await servedFaces(app)).toEqual({ Geist: "loading", "Geist Mono": "loading" })
     const name = await renderedFonts(page, nameCell(app))
@@ -879,13 +921,12 @@ test.describe("served fonts (Geist from the server's font route)", () => {
   })
 })
 
-test.describe("real BPMN view (camunda7_show_bpmn_viewer)", () => {
+test.describe("real BPMN view (camunda7_open_cockpit, a process)", () => {
   test("dark host: a light canvas keeps flows and labels readable, the logo clear of the zoom controls (#339, N122/N129)", async ({
     page,
   }, testInfo) => {
     const app = await openView(page, {
-      tool: "camunda7_show_bpmn_viewer",
-      args: { engine: HEALTHY_ENGINE, processDefinitionKey: "invoice" },
+      args: { engine: HEALTHY_ENGINE, view: "process-detail", processDefinitionKey: "invoice" },
       theme: "dark",
     })
 
@@ -933,12 +974,12 @@ test.describe("real BPMN view (camunda7_show_bpmn_viewer)", () => {
  * dense icon sets it), and a KPI's state is a tinted, edged card around
  * neutral digits, never a coloured number.
  */
-test.describe("kit foundation (camunda7_show_job_panel)", () => {
+test.describe("kit foundation (camunda7_open_cockpit, the jobs)", () => {
   test("role variables, Lucide strokes and the tone model reach the rendered view", async ({
     page,
   }) => {
     const app = await openView(page, {
-      tool: "camunda7_show_job_panel",
+      args: JOBS_ARGS,
       displayModes: ["inline", "fullscreen"],
     })
     const handOff = app.getByRole("button", { name: "Assess in chat" })
@@ -1092,16 +1133,14 @@ async function documentOverflow(app: FrameLocator) {
 }
 
 test.describe("layout at the inline width (760 px, U2/U20, WCAG 1.4.10)", () => {
-  test("the process list: no horizontal document scroll, the table in a named region", async ({
+  test("the overview: no horizontal document scroll, the table in a named region", async ({
     page,
   }) => {
     const app = await openView(page, { width: INLINE_WIDTH })
-    await expectProcessList(app)
+    await expectOverview(app)
     const { scrollWidth, clientWidth } = await documentOverflow(app)
     expect(scrollWidth, "the document never scrolls sideways").toBeLessThanOrEqual(clientWidth)
-    const region = app.getByRole("region", {
-      name: "Deployed process definitions with version and status",
-    })
+    const region = app.getByRole("region", { name: DEFINITIONS_TABLE })
     await expect(region).toBeVisible()
     expect(await region.getAttribute("tabindex")).toBe("0")
     // The shell pads on the CI grid: 24 px at this width (16 px below 640).
@@ -1115,7 +1154,7 @@ test.describe("layout at the inline width (760 px, U2/U20, WCAG 1.4.10)", () => 
   test("the job panel: low-priority columns hide, the row actions stay pinned and reachable", async ({
     page,
   }) => {
-    const app = await openView(page, { tool: "camunda7_show_job_panel", width: INLINE_WIDTH })
+    const app = await openView(page, { args: JOBS_ARGS, width: INLINE_WIDTH })
     const region = app.getByRole("region", { name: "Jobs", exact: true })
     await expect(region).toBeVisible({ timeout: 15_000 })
     const { scrollWidth, clientWidth } = await documentOverflow(app)
@@ -1144,7 +1183,10 @@ test.describe("layout at the inline width (760 px, U2/U20, WCAG 1.4.10)", () => 
   test("a row's menu lies over the next rows' pinned cells: its entries take the clicks (U20)", async ({
     page,
   }) => {
-    const app = await openView(page, { tool: "camunda7_show_job_panel", width: INLINE_WIDTH })
+    // The cockpit's head and the KPI strip take the room of two rows at the default 600 px fit
+    // (#396): an 800 px budget fits all three jobs, so a middle row has a row under it.
+    const app = await openView(page, { args: JOBS_ARGS, width: INLINE_WIDTH, maxHeight: 800 })
+    await expectJobs(app, 3)
     // The stub's job-2 (never written), with job-3's row under it.
     const row = app.getByRole("row").filter({ hasText: "Card expired" })
     const next = app.getByRole("row").filter({ hasText: "Billing address unknown" })
@@ -1193,7 +1235,7 @@ test.describe("layout at the inline width (760 px, U2/U20, WCAG 1.4.10)", () => 
   test("a table wider than its region scrolls inside it — its last column comes into view", async ({
     page,
   }) => {
-    const app = await openView(page, { tool: "camunda7_show_job_panel", width: NARROW_WIDTH })
+    const app = await openView(page, { args: JOBS_ARGS, width: NARROW_WIDTH })
     const region = app.getByRole("region", { name: "Jobs", exact: true })
     await expect(region).toBeVisible({ timeout: 15_000 })
     const { scrollWidth, clientWidth } = await documentOverflow(app)
@@ -1225,7 +1267,7 @@ test.describe("layout at the inline width (760 px, U2/U20, WCAG 1.4.10)", () => 
   test("a job table that overflows: the row actions stay at the region's right edge while it scrolls", async ({
     page,
   }) => {
-    const app = await openView(page, { tool: "camunda7_show_job_panel", width: NARROW_WIDTH })
+    const app = await openView(page, { args: JOBS_ARGS, width: NARROW_WIDTH })
     const region = app.getByRole("region", { name: "Jobs", exact: true })
     await expect(region).toBeVisible({ timeout: 15_000 })
     const sizes = await region.evaluate((el) => ({
@@ -1259,14 +1301,11 @@ test.describe("layout at the inline width (760 px, U2/U20, WCAG 1.4.10)", () => 
   })
 
   test("keyboard focus on a table region shows inside its box (WCAG 2.4.7)", async ({ page }) => {
-    // The process list's region spans its card; the job panel's region pins a
+    // The overview's definitions region spans its card; the jobs region pins a
     // column over its right edge.
     const views = [
-      {
-        scenario: { width: INLINE_WIDTH },
-        name: "Deployed process definitions with version and status",
-      },
-      { scenario: { tool: "camunda7_show_job_panel", width: NARROW_WIDTH }, name: "Jobs" },
+      { scenario: { width: INLINE_WIDTH }, name: DEFINITIONS_TABLE },
+      { scenario: { args: JOBS_ARGS, width: NARROW_WIDTH }, name: "Jobs" },
     ]
     for (const { scenario, name } of views) {
       const app = await openView(page, scenario)
@@ -1293,13 +1332,13 @@ test.describe("layout at the inline width (760 px, U2/U20, WCAG 1.4.10)", () => 
   })
 
   test("axe: the inline views pass WCAG 2.1 A/AA (light and dark)", async ({ page }) => {
-    for (const [tool, theme] of [
-      ["camunda7_show_process_list", "light"],
-      ["camunda7_show_job_panel", "light"],
-      ["camunda7_show_process_list", "dark"],
-      ["camunda7_show_job_panel", "dark"],
+    for (const [view, args, theme] of [
+      ["overview", { engine: HEALTHY_ENGINE }, "light"],
+      ["jobs", JOBS_ARGS, "light"],
+      ["overview", { engine: HEALTHY_ENGINE }, "dark"],
+      ["jobs", JOBS_ARGS, "dark"],
     ] as const) {
-      const app = await openView(page, { tool, theme, width: INLINE_WIDTH })
+      const app = await openView(page, { args, theme, width: INLINE_WIDTH })
       await expect(app.getByRole("table").first()).toBeVisible({ timeout: 15_000 })
       const results = await new AxeBuilder({ page })
         .include("#app")
@@ -1309,7 +1348,7 @@ test.describe("layout at the inline width (760 px, U2/U20, WCAG 1.4.10)", () => 
         id: v.id,
         nodes: v.nodes.map((n) => n.target.join(" ")).slice(0, 5),
       }))
-      expect(violations, `${tool} (${theme})`).toEqual([])
+      expect(violations, `${view} (${theme})`).toEqual([])
     }
   })
 })
@@ -1317,7 +1356,8 @@ test.describe("layout at the inline width (760 px, U2/U20, WCAG 1.4.10)", () => 
 /**
  * The cockpit opens where `camunda7_open_cockpit` resolved (#341 K43): this
  * deployment has two engines, so without an `engine` the user picks one; with
- * one, the cockpit is already on it — the engine the summary told the model.
+ * one, the cockpit is already on it (the engine its facts told the model), on
+ * the start view the call names.
  */
 test.describe("cockpit (camunda7_open_cockpit)", () => {
   test("opens on the `engine` argument, not on the picker", async ({ page }) => {
@@ -1327,6 +1367,17 @@ test.describe("cockpit (camunda7_open_cockpit)", () => {
     })
     await expect(app.getByLabel("Selected engine")).toHaveValue(HEALTHY_ENGINE, { timeout: 15_000 })
     await expect(app.getByRole("navigation", { name: "Cockpit sections" })).toBeVisible()
+    await expect(app.getByRole("heading", { level: 1, name: "Operations Cockpit" })).toHaveCount(0)
+  })
+
+  test("opens on its start view: the head section current, no picker", async ({ page }) => {
+    const app = await openView(page, { args: JOBS_ARGS })
+    await expectJobs(app, 1)
+    const sections = app.getByRole("navigation", { name: "Cockpit sections" })
+    await expect(sections.getByRole("button", { name: "Jobs" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    )
     await expect(app.getByRole("heading", { level: 1, name: "Operations Cockpit" })).toHaveCount(0)
   })
 

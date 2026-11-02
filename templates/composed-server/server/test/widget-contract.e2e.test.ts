@@ -139,7 +139,8 @@ describe("widget wire contract (dual-protocol _meta)", () => {
     // hang on the host's loading skeleton. The naming convention is the
     // invariant we can enforce unconditionally.
     const showTools = tools.filter((t) => t.name.includes("_show_"))
-    expect(showTools.length).toBeGreaterThanOrEqual(10)
+    // 6 analytics show tools and notes_show_notes; camunda7's one view is camunda7_open_cockpit.
+    expect(showTools.length).toBeGreaterThanOrEqual(7)
     for (const tool of showTools) {
       const ui = uiBlock(toolMeta(tool))
       expect(ui.resourceUri, `${tool.name}: show tools must bind their own view`).toBe(

@@ -37,7 +37,11 @@ function renderPanel(filters: JobPanelData["filters"]) {
   }
   render(
     <TestViewHost>
-      <JobPanelWidget data={data as never} />
+      <JobPanelWidget
+        data={data as never}
+        engine="prod"
+        processDefinitionKey={filters.processDefinitionKey}
+      />
     </TestViewHost>,
   )
   return screen.getByText("Charge card").closest("td")!
@@ -72,7 +76,7 @@ describe("a job's subject", () => {
     }
     render(
       <TestViewHost>
-        <JobPanelWidget data={data as never} />
+        <JobPanelWidget data={data as never} engine="prod" />
       </TestViewHost>,
     )
     expect(screen.getByText("in Invoice receipt")).toBeTruthy()

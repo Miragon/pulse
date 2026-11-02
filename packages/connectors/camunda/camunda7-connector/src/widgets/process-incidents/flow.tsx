@@ -19,13 +19,13 @@ import { BpmnDiagram, useDefinitionXml, type BpmnHighlight } from "../bpmn-diagr
 import { useT } from "../../messages/use-t.js"
 import { useAnalyticsActive } from "../cockpit-app/analytics-probe.js"
 import { diagramActivityFraction } from "./activity-scope.js"
-import { useDefinitionData } from "./feed.js"
+import { useDefinitionData, type DefinitionScope } from "./feed.js"
 
 type FlowMode = "incidents" | "frequency" | "duration"
 
 interface HeatValues {
   frequency: Record<string, number>
-  durationSec: Record<string, number>
+  durationMs: Record<string, number>
 }
 
 /**
@@ -41,7 +41,7 @@ function ProcessHeatmap({
 }: {
   processDefinitionKey: string
   definitionId: string
-  engine?: string
+  engine: string
   mode: "frequency" | "duration"
   onUnavailable: () => void
 }) {
@@ -49,7 +49,7 @@ function ProcessHeatmap({
   const xml = useDefinitionXml(definitionId, engine)
   const q = useToolQuery<HeatValues>(
     // Without engine + key the cache would leak one view's heatmap into another.
-    ["camunda7:heatmap", engine ?? null, processDefinitionKey],
+    ["camunda7:heatmap", engine, processDefinitionKey],
     "analytics_bpmn_heatmap_data",
     { processDefinitionKey, period: "30d", engine },
   )
@@ -70,7 +70,7 @@ function ProcessHeatmap({
       <div className="text-muted-foreground text-dense p-6">{t("procIncFlow.heatmapLoading")}</div>
     )
   }
-  const values = mode === "frequency" ? q.data.frequency : q.data.durationSec
+  const values = mode === "frequency" ? q.data.frequency : q.data.durationMs
   return (
     <BpmnHeatmap
       bpmnXml={xml.data.bpmnXml}
@@ -139,21 +139,10 @@ function FlowModeToolbar({
 }
 
 /** Leads with incidents; the heatmap modes join only once analytics is confirmed active. */
-export function ProcessDefinitionFlow({
-  data: initialData = null,
-  processDefinitionKey,
-  engine,
-}: {
-  data?: ProcessIncidentsData | null
-  processDefinitionKey?: string
-  engine?: string
-}) {
+export function ProcessDefinitionFlow(scope: DefinitionScope) {
   const t = useT()
-  const { data, loading, error, refetch } = useDefinitionData(
-    initialData,
-    processDefinitionKey,
-    engine,
-  )
+  const { engine } = scope
+  const { data, loading, error, refetch } = useDefinitionData(scope)
   const [chosenMode, setMode] = useState<FlowMode>("incidents")
   const [heatmapUnavailable, setHeatmapUnavailable] = useState(false)
   const heatmapOffered = useAnalyticsActive() && !heatmapUnavailable
@@ -213,7 +202,7 @@ export function ProcessDefinitionFlow({
             {mode === "incidents" ? (
               <BpmnDiagram
                 definitionId={data.diagramDefinitionId}
-                engineId={engine ?? data.engineId}
+                engineId={engine}
                 highlights={highlights}
               />
             ) : (
@@ -221,7 +210,7 @@ export function ProcessDefinitionFlow({
                 processDefinitionKey={data.processDefinitionKey}
                 definitionId={data.diagramDefinitionId}
                 // Without it the feed aggregates across the whole fleet.
-                engine={engine ?? data.engineId}
+                engine={engine}
                 mode={mode}
                 onUnavailable={markHeatmapUnavailable}
               />

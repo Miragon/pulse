@@ -3,18 +3,19 @@ import { countOf } from "./plural.js"
 
 /** The fallback locale: every key MUST exist here. */
 export const en: MessageCatalog = {
-  "cockpit.crumb.processList": "All processes",
   "cockpit.section.overview": "Overview",
   "cockpit.section.incidents": "Incidents",
+  "cockpit.section.jobs": "Jobs",
   "cockpit.crumb.overview": "Overview",
   "cockpit.crumb.incidents": "Incidents",
   "cockpit.crumb.instances": "Instances",
-  "cockpit.crumb.origin": "Start",
+  "cockpit.crumb.jobs": "Jobs",
   // The {id} arrives pre-truncated (kit `truncate` appends the ellipsis).
   "cockpit.crumb.instance": ({ id }) => `Instance ${String(id)}`,
   "cockpit.crumb.incident": ({ id }) => `Incident ${String(id)}`,
   "cockpit.crumb.cluster": ({ activity }) => `Cluster: ${String(activity)}`,
   "cockpit.crumb.incidentAt": ({ activity }) => `Incident at ${String(activity)}`,
+  "cockpit.crumb.history": ({ id }) => `History ${String(id)}`,
   "cockpit.loading.engines": "Loading engines…",
   "cockpit.empty.enginesTitle": "No engines configured",
   "cockpit.empty.engines":

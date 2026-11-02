@@ -1,7 +1,6 @@
 import { formatNumber, LivePill, WidgetHeader } from "@miragon/pulse-ui"
 import { HandOffButton } from "@miragon/pulse-widget-shell/widgets"
 import { useHandOff, type HandOff } from "../lib/hand-off.js"
-import { EngineMeta } from "../lib/engine-context.js"
 import { useT } from "../../messages/use-t.js"
 import { instancesFilterFacts, type InstancesListFilters } from "./hand-offs.js"
 
@@ -30,18 +29,12 @@ export function triageInstancesHandOff({
         ids: { engine, processDefinitionKey: scopedKey },
         facts,
         untrusted: [{ label: "processName", text: processName }, ...operatorText],
-        tools: [
-          "camunda7_list_incidents",
-          "camunda7_query_historic_incidents",
-          "camunda7_query_historic_activity_instances",
-        ],
       }
     : {
         intent: "askAi.instances.triageEngine",
         ids: { engine },
         facts,
         untrusted: operatorText,
-        tools: ["camunda7_list_incidents", "camunda7_query_historic_incidents"],
       }
 }
 
@@ -57,8 +50,7 @@ export function InstancesHeader({
   processName: string | null
   scopedKey: string | null
   total: number
-  /** Undefined when the default routed it. */
-  engine: string | undefined
+  engine: string
   filters: InstancesListFilters
 }) {
   const t = useT()
@@ -68,7 +60,6 @@ export function InstancesHeader({
       title={title}
       sub={
         <>
-          <EngineMeta engineId={engine} />
           <LivePill tone="info">
             {t("processInstances.runningCount", { count: formatNumber(total) })}
           </LivePill>

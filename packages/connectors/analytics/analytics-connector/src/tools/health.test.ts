@@ -136,12 +136,12 @@ describe("analytics_engine_health verdict labeling", () => {
     )
   })
 
-  it("states the rule, the engine scope and the routing to camunda7_show_engine_health", () => {
+  it("states the rule, the engine scope and the routing to camunda7_open_cockpit", () => {
     const { description } = captureConfig()
     expect(description).toContain(`Status: ${ENGINE_HEALTH_STATUS_RULE}`)
     expect(description).toContain("the silent ones (`silentEngines`")
     expect(description).toContain(
-      "Use for fleet-wide or metric-based health; for one engine's live incident clusters use camunda7_show_engine_health.",
+      "Use for fleet-wide or metric-based health; for one engine's live incident clusters use camunda7_open_cockpit.",
     )
   })
 })

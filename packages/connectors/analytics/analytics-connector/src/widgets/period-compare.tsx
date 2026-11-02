@@ -31,7 +31,6 @@ export function periodCompareHandOff(data: PeriodCompareResult): HandOff {
       partial: data.partial || undefined,
       ...deltaFacts(data.delta, data.suppressed),
     },
-    tools: ["analytics_show_period_compare", "analytics_show_dashboard"],
   }
 }
 

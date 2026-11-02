@@ -16,34 +16,22 @@ import { useT } from "../messages/use-t.js"
 
 export type { InstanceDetailData }
 
-// Standalone from the data's echo, so a refetch reads the engine the show tool answered for, never the default engine.
-function instanceFeed(
-  initialData: InstanceDetailData | null,
-  processInstanceId: string | undefined,
-  engine: string | undefined,
-) {
-  const instanceId = processInstanceId ?? initialData?.instance.id
-  const feedEngine = engine ?? initialData?.engineId
-  return {
-    key: ["camunda7:instance-detail", feedEngine ?? null, instanceId ?? null],
-    args: { processInstanceId: instanceId, engine: feedEngine },
-    ready: !!instanceId,
-  }
-}
-
 export function InstanceDetailWidget({
   data: initialData = null,
   processInstanceId,
   engine,
 }: {
   data?: InstanceDetailData | null
-  processInstanceId?: string
-  engine?: string
+  processInstanceId: string
+  engine: string
 }) {
   const t = useT()
+  // The route's engine: a refetch never reads the default engine.
   const { data, guard, notice, refreshError } = useDetailView<InstanceDetailData>({
     initialData,
-    ...instanceFeed(initialData, processInstanceId, engine),
+    key: ["camunda7:instance-detail", engine, processInstanceId],
+    args: { processInstanceId, engine },
+    ready: true,
     tool: CAMUNDA7_INSTANCE_DETAIL_DATA,
     loadingText: t("instanceDetail.loading"),
     emptyText: t("instanceDetail.noData"),

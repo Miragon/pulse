@@ -8,14 +8,12 @@ import type {
   CockpitDashboardData,
   IncidentsDashboardData,
   ProcessInstancesData,
-  ProcessListData,
 } from "../view-models.js"
 import { catalogs } from "../messages/index.js"
 import { ClusterDetailWidget } from "./cluster-detail.js"
 import { ProcessDefinitionsTable } from "./cockpit-dashboard/definitions-table.js"
 import { IncidentProcessList } from "./incidents-dashboard/process-list.js"
 import { ProcessInstancesWidget } from "./process-instances/list.js"
-import { ProcessListWidget } from "./process-list.js"
 import { TestViewHost } from "@miragon/pulse-widget-shell/widgets"
 
 // WCAG 2.5.3: named by the placeholder's words, never the FilterBar's generic "Filter"; a placeholder
@@ -24,24 +22,6 @@ import { TestViewHost } from "@miragon/pulse-widget-shell/widgets"
 afterEach(() => {
   cleanup()
 })
-
-const PROCESS_LIST: ProcessListData = {
-  definitions: [
-    {
-      id: "invoice:1:d",
-      key: "invoice",
-      name: "Invoice Process",
-      version: 1,
-      deploymentId: "dep",
-      suspended: false,
-      versionTag: null,
-      tenantId: null,
-    },
-  ],
-  totalCount: 1,
-  filters: { latestVersion: true },
-  engineId: "prod-a",
-}
 
 const INSTANCES: ProcessInstancesData = {
   processDefinitionKey: "invoice",
@@ -144,25 +124,31 @@ interface SearchSite {
 }
 
 const SITES: Record<string, SearchSite> = {
-  "process list": {
-    widget: () => <ProcessListWidget data={PROCESS_LIST} />,
-    search: { en: "Filter by name", de: "Nach Name filtern" },
-  },
   "process instances": {
-    widget: () => <ProcessInstancesWidget data={INSTANCES} />,
+    widget: () => (
+      <ProcessInstancesWidget data={INSTANCES} processDefinitionKey="invoice" engine="prod-a" />
+    ),
     search: { en: "Search by business key or ID", de: "Nach Geschäftsschlüssel oder ID suchen" },
     chips: { en: "Instance filters", de: "Instanzfilter" },
   },
   "cluster detail": {
-    widget: () => <ClusterDetailWidget data={CLUSTER} />,
+    widget: () => (
+      <ClusterDetailWidget
+        data={CLUSTER}
+        engine="prod-a"
+        activityId={CLUSTER.activityId}
+        incidentType={CLUSTER.incidentType}
+        messageSignature={CLUSTER.messageSignature ?? undefined}
+      />
+    ),
     search: { en: "Filter by business key", de: "Nach Geschäftsschlüssel filtern" },
   },
   "cockpit definitions": {
-    widget: () => <ProcessDefinitionsTable data={LANDSCAPE} />,
+    widget: () => <ProcessDefinitionsTable data={LANDSCAPE} engine="prod-a" />,
     search: { en: "Filter by name or key", de: "Nach Name oder Key filtern" },
   },
   "incidents list": {
-    widget: () => <IncidentProcessList data={INCIDENTS} />,
+    widget: () => <IncidentProcessList data={INCIDENTS} engine="prod-a" />,
     search: {
       en: "Filter incidents by process, activity or error message",
       de: "Incidents nach Prozess, Aktivität oder Fehlermeldung filtern",

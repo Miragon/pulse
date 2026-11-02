@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest"
 import type { Client } from "@modelcontextprotocol/client"
 import { CAMUNDA7_ADMIN_ONLY_TOOLS } from "@miragon/pulse-camunda7-connector"
 import { bootServer, listToolNames, type BootedServer } from "./boot-server.js"
+import { startLoopbackEngine } from "./loopback-engine.js"
 import {
   EXPECTED_TOOLS_ADMIN,
   EXPECTED_TOOLS_OPERATIONS,
@@ -80,10 +81,8 @@ describe("mcp-server-camunda7 E2E smoke", () => {
     }
   })
 
-  // Structural, not a list: the show tools are model-visible too, and a host
-  // that keeps structuredContent hands their whole page to the model — so
-  // every tool on the wire that takes a page size caps it, show tools and
-  // app-only feeds included.
+  // Structural, not a list: every tool on the wire that takes a page size caps
+  // it, the registrar reads and the app-only feeds alike.
   it("caps maxResults at 100 on every tool that takes it", async () => {
     const { tools } = await client.listTools()
     const paged = tools.filter(
@@ -92,9 +91,9 @@ describe("mcp-server-camunda7 E2E smoke", () => {
     expect(paged.map((t) => t.name)).toEqual(
       expect.arrayContaining([
         "camunda7_list_process_instances",
-        "camunda7_show_history_timeline",
-        "camunda7_show_process_instances",
         "camunda7_process_instances_data",
+        "camunda7_jobs_data",
+        "camunda7_cluster_detail_data",
       ]),
     )
     for (const tool of paged) {
@@ -343,7 +342,9 @@ describe("mcp-server-camunda7 E2E engine parameter", () => {
     })
     try {
       const params = await engineEnums(server.client)
-      expect(params.length).toBeGreaterThan(40)
+      // Pinned at the post-cut count of the read-only boot: cut 7 removed the twelve camunda7
+      // show tools and the process-list feed and added the history feed.
+      expect(params.length).toBeGreaterThanOrEqual(35)
       for (const { name, engine } of params) {
         expect(engine.enum, name).toEqual(["prod-a", "prod-b"])
       }
@@ -354,7 +355,9 @@ describe("mcp-server-camunda7 E2E engine parameter", () => {
   })
 
   it("a single-engine boot keeps `engine` and accepts the explicit id", async () => {
-    const server = await bootServer()
+    // Opening the cockpit reads its start view, so the one engine must answer.
+    const engine = await startLoopbackEngine()
+    const server = await bootServer({ env: { CAMUNDA_BASE_URL: engine.baseUrl } })
     try {
       for (const { name, engine } of await engineEnums(server.client)) {
         expect(engine.enum, name).toEqual(["default"])
@@ -371,6 +374,7 @@ describe("mcp-server-camunda7 E2E engine parameter", () => {
       expect(unknown.isError).toBe(true)
     } finally {
       await server.close()
+      await engine.close()
     }
   })
 })

@@ -1,155 +1,175 @@
 import { z } from "zod"
-import { buildViewResult } from "@miragon/pulse-widget-shell/server"
-import type { CockpitAppData, CockpitEngineInfo } from "../view-models.js"
-import { MAX_PAGE_SIZE } from "@miragon/pulse-camunda7-client/schemas"
-import { buildProcessInstancesData, buildProcessListData } from "../data/cockpit-data.js"
-import { buildHistoryTimelineData } from "../data/history-timeline-data.js"
-import { buildProcessIncidentsData } from "../data/process-incidents-data.js"
 import {
-  CAMUNDA7_OPEN_COCKPIT,
-  CAMUNDA7_SHOW_HISTORY_TIMELINE,
-  CAMUNDA7_SHOW_PROCESS_DETAIL,
-  CAMUNDA7_SHOW_PROCESS_INSTANCES,
-  CAMUNDA7_SHOW_PROCESS_LIST,
-} from "../tool-names.js"
+  buildViewResult,
+  showToolBinding,
+  strictToolInput,
+  withToolErrors,
+} from "@miragon/pulse-widget-shell/server"
+import type {
+  CockpitAppData,
+  CockpitEngineInfo,
+  CockpitSection,
+  CockpitView,
+} from "../view-models.js"
+import { buildCockpitStart, cockpitFacts } from "../data/cockpit-start.js"
+import { CAMUNDA7_OPEN_COCKPIT } from "../tool-names.js"
 import { cockpitEngineId, resolveEngine } from "../lib/resolve-engine.js"
 import { environmentOf } from "../lib/environments.js"
-import {
-  pagingShape,
-  processInstancesFilterShape,
-  processListFilterShape,
-} from "../feed-contracts.js"
-import { summaryT as t } from "../lib/summary.js"
-import { type WidgetToolsContext, registerShowTool } from "./shared.js"
+import type { WidgetToolsContext } from "./shared.js"
 
-export function registerCockpitWidgetTools(ctx: WidgetToolsContext) {
-  const { registry } = ctx
+/** The ids a start view may carry, besides `view` itself. */
+type StartParam =
+  | "processDefinitionKey"
+  | "focus"
+  | "activityId"
+  | "incidentType"
+  | "messageSignature"
+  | "processInstanceId"
+  | "incidentId"
+  | "failedOnly"
 
-  registerShowTool(ctx, {
-    name: CAMUNDA7_OPEN_COCKPIT,
-    title: "Open Cockpit",
-    description:
-      "Open the consolidated CIB Seven operations cockpit — a single app that navigates client-side (no extra tool calls) across the process landscape: overview, per-definition running instances, instance detail, plus quick access to human tasks, jobs and deployments. Use to browse and act; for a health verdict use camunda7_show_engine_health.",
-    shape: {},
-    render: (args) => {
-      // A bad `engine` is a tool error, never a silent picker. The app passes the chosen engineId
-      // to every nested call, so navigation never depends on the default engine.
-      const engineId = cockpitEngineId(args.engine, registry)
-      const data: CockpitAppData = {
-        engineId,
-        // No REST baseUrl (internal topology). The explicit return type turns an extra field into
-        // an excess-property error, which a contextually typed callback would accept silently.
-        engines: registry.engines.map((e): CockpitEngineInfo => ({
-          id: e.id,
-          environment: environmentOf(e),
-        })),
+/**
+ * What each route reads; total over the sections, so a new route fails to compile until it is
+ * listed, and its key order is the order of the `view` enum.
+ */
+const START_VIEW_PARAMS: Record<
+  CockpitSection,
+  { needs: readonly StartParam[]; takes: readonly StartParam[] }
+> = {
+  overview: { needs: [], takes: [] },
+  incidents: { needs: [], takes: [] },
+  "cluster-detail": { needs: ["activityId", "incidentType"], takes: ["messageSignature"] },
+  "process-detail": { needs: ["processDefinitionKey"], takes: ["focus"] },
+  "process-instances": { needs: [], takes: ["processDefinitionKey"] },
+  "instance-detail": { needs: ["processInstanceId"], takes: [] },
+  "incident-detail": { needs: ["incidentId"], takes: [] },
+  jobs: { needs: [], takes: ["processDefinitionKey", "failedOnly"] },
+  history: { needs: ["processInstanceId"], takes: [] },
+}
+
+const START_VIEWS = Object.keys(START_VIEW_PARAMS) as [CockpitSection, ...CockpitSection[]]
+
+const startViewShape = {
+  view: z.enum(START_VIEWS).optional().describe("Where it opens (default overview)."),
+  processDefinitionKey: z
+    .string()
+    .optional()
+    .describe("process-detail (required), process-instances, jobs: the process definition key."),
+  focus: z
+    .enum(["incidents"])
+    .optional()
+    .describe("process-detail: focus on its incidents; if none, list processes that have some."),
+  activityId: z.string().optional().describe("cluster-detail (required): the failing activity id."),
+  incidentType: z
+    .string()
+    .optional()
+    .describe("cluster-detail (required): the incident type, e.g. failedJob."),
+  messageSignature: z
+    .string()
+    .optional()
+    .describe(
+      "cluster-detail: a failure message signature (the overview's topCluster); omitted: all.",
+    ),
+  processInstanceId: z
+    .string()
+    .optional()
+    .describe("instance-detail, history (required): the process instance id."),
+  incidentId: z.string().optional().describe("incident-detail (required): the incident id."),
+  failedOnly: z.boolean().optional().describe("jobs: only jobs without retries."),
+} satisfies Record<StartParam | "view", z.ZodType>
+
+type StartIds = Partial<z.output<z.ZodObject<typeof startViewShape>>>
+
+const START_PARAMS = Object.keys(startViewShape).filter((key): key is StartParam => key !== "view")
+
+const given = (value: unknown) => value !== undefined && value !== ""
+
+const acceptedBy = (view: CockpitSection) => [
+  ...START_VIEW_PARAMS[view].needs,
+  ...START_VIEW_PARAMS[view].takes,
+]
+
+/**
+ * Zod reports an unknown key and still runs this, so it reads only the keys it knows. An invalid
+ * `view` stops the parse before it gets here.
+ */
+function checkStartView(input: StartIds & { view?: CockpitSection }, ctx: z.RefinementCtx) {
+  const view = input.view ?? "overview"
+  const accepted = acceptedBy(view)
+  for (const param of START_VIEW_PARAMS[view].needs) {
+    if (!given(input[param])) {
+      ctx.addIssue({ code: "custom", path: [param], message: `view "${view}" needs ${param}.` })
+    }
+  }
+  for (const param of START_PARAMS) {
+    if (accepted.includes(param) || !given(input[param])) continue
+    const message =
+      accepted.length === 0
+        ? `view "${view}" takes no ${param}.`
+        : `view "${view}" takes no ${param} (it takes ${accepted.join(", ")}).`
+    ctx.addIssue({ code: "custom", path: [param], message })
+  }
+}
+
+/** The route the ids name; `checkStartView` already held them to the view's needs. */
+function toStartView(section: CockpitSection, ids: StartIds): CockpitView {
+  const view: Record<string, unknown> = { section }
+  for (const param of acceptedBy(section)) {
+    if (given(ids[param])) view[param] = ids[param]
+  }
+  return view as CockpitView
+}
+
+export function registerCockpitWidgetTools({
+  server,
+  registry,
+  healthThresholds,
+  engineParam,
+}: WidgetToolsContext) {
+  server.tool(
+    {
+      name: CAMUNDA7_OPEN_COCKPIT,
+      title: "Open Cockpit",
+      description:
+        "Show the user the operations cockpit on one engine; they navigate it without further tool calls. `view` picks where it opens, by default the overview: the health verdict from the open incidents, the top failure clusters and every process. instance-detail needs a running instance; history shows ended ones too. You get that view's facts as compact JSON.",
+      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+      inputSchema: strictToolInput({ ...startViewShape, ...engineParam }).superRefine(
+        checkStartView,
+      ),
+      ...showToolBinding(CAMUNDA7_OPEN_COCKPIT, "Open Cockpit"),
+    },
+    withToolErrors(async (args, ctx) => {
+      const { engine, view, ...ids } = args
+      // No REST baseUrl (internal topology). The explicit return type turns an extra field into
+      // an excess-property error, which a contextually typed callback would accept silently.
+      const engines = registry.engines.map((e): CockpitEngineInfo => ({
+        id: e.id,
+        environment: environmentOf(e),
+      }))
+      // A named view needs an engine (ENGINE_NOT_SELECTED names them); without one the picker
+      // stays. A bad `engine` is a tool error, never a silent picker.
+      const engineId =
+        view === undefined
+          ? cockpitEngineId(engine, registry)
+          : resolveEngine(engine, registry).engineId
+      if (engineId === null) {
+        const picker: CockpitAppData = { engineId: null, engines, start: null }
+        return buildViewResult(
+          picker,
+          JSON.stringify({ engine: null, engines: engines.map((e) => e.id) }),
+        )
       }
+      const start = await buildCockpitStart(
+        toStartView(view ?? "overview", ids),
+        resolveEngine(engineId, registry, ctx),
+        healthThresholds,
+      )
+      // The app passes `engineId` to every nested call, so navigation never depends on the default engine.
+      const data: CockpitAppData = { engineId, engines, start }
       return buildViewResult(
         data,
-        engineId
-          ? t("c7sum.cockpitOpened", { engineId, engineCount: data.engines.length })
-          : t("c7sum.cockpitOpenedPicker", { engineCount: data.engines.length }),
+        JSON.stringify({ engine: engineId, view: start.view.section, ...cockpitFacts(start) }),
       )
-    },
-  })
-
-  registerShowTool(ctx, {
-    name: CAMUNDA7_SHOW_PROCESS_LIST,
-    title: "Process Definitions",
-    description: "Show deployed process definitions as a card grid view.",
-    shape: {
-      ...processListFilterShape,
-      latestVersion: processListFilterShape.latestVersion.default(true),
-      ...pagingShape,
-    },
-    render: async ({ engine, ...filters }, ctx) => {
-      const { client, engineId } = resolveEngine(engine, registry, ctx)
-      const data = await buildProcessListData(client, engineId, filters)
-      const matching = [
-        filters.processDefinitionKey && `key "${filters.processDefinitionKey}"`,
-        filters.nameLike && `name like "${filters.nameLike}"`,
-      ]
-        .filter(Boolean)
-        .join(" and ")
-      return buildViewResult(
-        data,
-        t("c7sum.processList", {
-          totalCount: data.totalCount,
-          filters: matching ? ` matching ${matching}` : "",
-          engineId,
-        }),
-      )
-    },
-  })
-
-  registerShowTool(ctx, {
-    name: CAMUNDA7_SHOW_PROCESS_INSTANCES,
-    title: "Process Instances",
-    description:
-      "List running process instances as a filterable table (business key, version, suspended/incident state). Scope to one definition via processDefinitionKey, or omit it for ALL running instances engine-wide. Drill-in target from the cockpit definitions table and process-detail; each row opens camunda7_show_instance_detail.",
-    shape: {
-      ...processInstancesFilterShape,
-      firstResult: pagingShape.firstResult,
-      maxResults: pagingShape.maxResults.default(50),
-    },
-    render: async ({ engine, ...filters }, ctx) => {
-      const { client, engineId } = resolveEngine(engine, registry, ctx)
-      const data = await buildProcessInstancesData(client, engineId, filters)
-      return buildViewResult(
-        data,
-        t("c7sum.processInstances", {
-          totalCount: data.totalCount,
-          processDefinitionKey: data.processDefinitionKey ?? "(all definitions)",
-          withIncidentCount: data.withIncidentCount,
-          suspendedCount: data.suspendedCount,
-          returnedCount: data.returnedCount,
-        }),
-      )
-    },
-  })
-
-  registerShowTool(ctx, {
-    name: CAMUNDA7_SHOW_PROCESS_DETAIL,
-    title: "Process Definition Detail",
-    description:
-      "Open the unified process-definition view: header with actions, KPI strip (running instances, incidents, failed jobs), BPMN flow (incident overlays or execution heatmap) and the activity-grouped incident list. Drill-in target from cockpit-dashboard rows; camunda7_show_process_incidents opens the same view with incident focus.",
-    shape: { processDefinitionKey: z.string().describe("Process definition key to display") },
-    render: async ({ engine, ...target }, ctx) => {
-      const { client, engineId, ...urls } = resolveEngine(engine, registry, ctx)
-      const data = await buildProcessIncidentsData(client, { ...urls, ...target })
-      return buildViewResult(
-        { ...data, engineId },
-        t("c7sum.processDetail", {
-          processDefinitionKey: data.processDefinitionKey,
-          diagramVersion: data.diagramVersion,
-          runningInstances: data.runningInstances,
-          openIncidents: data.incidentCount,
-          failedJobs: data.failedJobs,
-        }),
-      )
-    },
-  })
-
-  registerShowTool(ctx, {
-    name: CAMUNDA7_SHOW_HISTORY_TIMELINE,
-    title: "History Timeline",
-    description: "Show activity timeline for a process instance.",
-    shape: {
-      processInstanceId: z.string().describe("The process instance ID"),
-      firstResult: pagingShape.firstResult,
-      maxResults: pagingShape.maxResults.default(MAX_PAGE_SIZE),
-    },
-    render: async ({ engine, ...target }, ctx) => {
-      const { client, engineId } = resolveEngine(engine, registry, ctx)
-      const data = await buildHistoryTimelineData(client, engineId, target)
-      return buildViewResult(
-        data,
-        t("c7sum.historyTimeline", {
-          processInstanceId: target.processInstanceId,
-          totalActivities: data.totalActivities,
-          notFound: data.processInstance ? "" : t("c7sum.historyTimeline.notFound"),
-        }),
-      )
-    },
-  })
+    }),
+  )
 }

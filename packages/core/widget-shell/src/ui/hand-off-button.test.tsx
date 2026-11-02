@@ -16,7 +16,6 @@ const prompt = askAiPrompt({
   intent: "Explain this.",
   locale: "en",
   ids: { incidentId: "i1" },
-  surface: { has: () => true },
 })
 
 const lucideClass = (name: string) =>

@@ -26,8 +26,10 @@ BPM operations across these domains (`category`): `engines`, `process-definition
   ones), migration tools; batch tools return a queued `batchId` that `get_batch` follows
 - **Lists:** one page as `{ items, totalCount, hasMore, nextOffset? }`, `maxResults` ≤ 100;
   variable reads cut values over 2000 characters (`truncated: true`); `variableName` reads one whole
-- **Widgets:** `open_cockpit` (the cockpit app), `show_process_list`/`detail`, `show_incidents_dashboard`,
-  `show_bpmn_viewer`, `show_history_timeline`, `show_job_panel`, …
+- **View:** `open_cockpit`, the operations cockpit and the module's one view: `view` opens it on
+  the overview (default), the incidents, a failure cluster, a process, its instances, an
+  instance, an incident, the jobs or an instance's history; the result carries that view's facts
+  as compact JSON
 
 ### Analytics module (`analytics_*`)
 

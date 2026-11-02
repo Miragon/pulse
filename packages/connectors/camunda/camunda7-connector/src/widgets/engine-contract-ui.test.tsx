@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { afterEach, beforeAll, describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it } from "vitest"
 import { createElement, type ComponentType } from "react"
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { CAMUNDA7_WIDGET_ACTIONS, CAMUNDA7_WIDGET_ACTIONS_DATA } from "../tool-names.js"
@@ -8,7 +8,6 @@ import { IncidentsTab } from "./instance-detail/incidents-tab.js"
 import { VariablesTable } from "./instance-sections.js"
 import { IncidentTable } from "./process-incidents/incident-table.js"
 import { useIncidentRecovery } from "./process-incidents/use-incident-recovery.js"
-import { widgetActionsFeedFor } from "./lib/hand-off.test-support.js"
 import { TestViewHost, type HostAction } from "@miragon/pulse-widget-shell/widgets"
 
 /** #328: built-in incident types offer Retry; Json/Object values write back serialized; no Edit for binary. */
@@ -17,14 +16,9 @@ afterEach(() => {
   cleanup()
 })
 
-const ALL_ACTIONS: { allowedActions: string[]; modelTools: string[] } = {
+const ALL_ACTIONS: { allowedActions: string[] } = {
   allowedActions: [...CAMUNDA7_WIDGET_ACTIONS],
-  modelTools: [],
 }
-// The hand-offs name what an admin deployment registers for the model.
-beforeAll(async () => {
-  ALL_ACTIONS.modelTools = (await widgetActionsFeedFor("admin")).modelTools
-})
 
 function incident(id: string, over: Partial<IncidentInstance>): IncidentInstance {
   return {
@@ -135,7 +129,7 @@ describe("incident rows offer the action the engine accepts", () => {
       .map((a) => (a as { prompt: string }).prompt)
     expect(prompts).toHaveLength(1)
     expect(prompts[0]).toContain('Ids: engine="prod-b", incidentId="job"')
-    expect(prompts[0]).toContain("Tools: camunda7_format_incident_issue")
+    expect(prompts[0]).not.toMatch(/\b(camunda7|analytics)_[a-z0-9_]+/)
   })
 
   it("hides Retry when the toolset lacks the retries tool", async () => {

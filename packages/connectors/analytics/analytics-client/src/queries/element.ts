@@ -7,11 +7,12 @@ import {
   type PrometheusClient,
 } from "../prometheus.js"
 import { METRIC_NAMES as M } from "../metric-names.js"
-import { asOfNow, byLabel, increaseIn, secondsOf } from "./helpers.js"
+import { asOfNow, byLabel, increaseIn } from "./helpers.js"
 
 export interface ElementHeatResult {
   frequency: Record<string, number>
-  durationSec: Record<string, number>
+  /** Average duration per activity in whole milliseconds. */
+  durationMs: Record<string, number>
   asOf: string
 }
 
@@ -41,12 +42,12 @@ export async function elementHeat(
   const sumBy = byLabel(sums, "activity_id")
 
   const frequency: Record<string, number> = {}
-  const durationSec: Record<string, number> = {}
+  const durationMs: Record<string, number> = {}
   for (const [id, count] of Object.entries(countBy)) {
     const c = Math.round(count)
     if (c <= 0) continue
     frequency[id] = c
-    durationSec[id] = secondsOf((sumBy[id] ?? 0) / c)
+    durationMs[id] = Math.round((sumBy[id] ?? 0) / c)
   }
-  return { frequency, durationSec, asOf }
+  return { frequency, durationMs, asOf }
 }

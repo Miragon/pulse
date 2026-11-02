@@ -320,9 +320,8 @@ export function landscapeCompareHandOff(processKey: string, on: readonly string[
   const [engineA, engineB, ...more] = on
   return {
     intent: "askAi.landscapeCompare",
-    ids: { processDefinitionKey: processKey, engineA, engineB, windowDays: 14 },
+    ids: { processDefinitionKey: processKey, engineA, engineB },
     facts: { alsoRunsOn: more.length > 0 ? more : undefined },
-    tools: ["analytics_show_engine_compare"],
   }
 }
 

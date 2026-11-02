@@ -20,7 +20,7 @@ import { ActivityIncidentList } from "./process-incidents/list.js"
 import { ProcessInstancesWidget } from "./process-instances/list.js"
 import {
   FAILED_JOB_INCIDENT,
-  Standalone,
+  Seeded,
   adminActions,
   completeTheOpenTask,
   installWritePathHarness,
@@ -113,7 +113,7 @@ async function rereadsAfter(
   await waitFor(() => expect(reads).toHaveLength(1))
   first.unmount()
 
-  const detail = renderInstance(Standalone, write.data, write.tools)
+  const detail = renderInstance(Seeded, write.data, write.tools)
   await write.run()
   detail.unmount()
 
@@ -177,7 +177,11 @@ describe("the definition view's remedy marks follow the rows they mark", () => {
           },
         }}
       >
-        <ActivityIncidentList data={DEFINITION as never} />
+        <ActivityIncidentList
+          data={DEFINITION as never}
+          processDefinitionKey="invoice"
+          engine="prod"
+        />
       </TestViewHost>,
     )
     fireEvent.click(await screen.findByText("Charge card"))

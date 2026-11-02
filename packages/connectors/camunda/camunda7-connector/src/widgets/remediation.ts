@@ -1,6 +1,5 @@
-// The prompt carries only ids and available tools; the playbook lives in the module instructions,
-// gated by the same toolset. A widget never one-clicks a destructive batch.
-import type { ToolSurface } from "@miragon/pulse-widget-shell/widgets"
+// The prompt carries only ids and facts; the playbook lives in the module instructions, gated by
+// the same toolset. A widget never one-clicks a destructive batch.
 import type { HandOff } from "./lib/hand-off.js"
 
 import type { ClusterCounts } from "../view-models.js"
@@ -44,52 +43,30 @@ export function clusterKeyParts(
   return keys.length === 1 ? { processDefinitionKey: keys[0] } : { processDefinitionKeyIn: keys }
 }
 
-export interface RemediationHandOff {
-  handOff: HandOff
-  // Without a retry tool the hand-off is diagnosis + ticket draft, and the button says so.
-  canFix: boolean
-}
-
-// `engine` is a boot-time enum, so a placeholder would be a refused call.
+// `engine` is a boot-time enum, so a placeholder would be a refused call. `canFix` is the
+// deployment gate of the retry write (`useActionAllowed`): fail-closed, so an unanswered gate
+// offers the diagnosis, and the caller's button says which hand-off it is.
 export function remediationHandOff(
   cluster: RemediationCluster,
   engine: string | undefined,
-  surface: ToolSurface,
-): RemediationHandOff {
+  canFix: boolean,
+): HandOff {
   const keys = clusterKeyParts(cluster, cluster.processDefinitionKeys)
-  // Confirmed only: a surface that cannot know offers the diagnosis.
-  const canFix =
-    surface.has("camunda7_set_job_retries") === true ||
-    surface.has("camunda7_set_job_retries_batch") === true
   return {
-    canFix,
-    handOff: {
-      intent: canFix ? "askAi.cluster.fix" : "askAi.cluster.diagnose",
-      ids: {
-        engine,
-        activityId: cluster.activityId,
-        incidentType: cluster.incidentType,
-        processDefinitionKey: keys.processDefinitionKey,
-        processDefinitionKeyIn: keys.processDefinitionKeyIn,
-      },
-      facts: {
-        ...clusterCountFacts(cluster),
-        scannedProcessDefinitionKeys: keys.scannedProcessDefinitionKeys,
-        // An unknown 24h count is left out, never a 0 (#335).
-        last24h: cluster.last24hCount ? cluster.last24hCount : undefined,
-      },
-      untrusted: [{ label: "sampleMessage", text: cluster.representativeMessage }],
-      tools: [
-        "camunda7_list_incidents",
-        "camunda7_query_historic_incidents",
-        "camunda7_get_job_stacktrace",
-        "camunda7_list_jobs",
-        "camunda7_get_process_instance_variables",
-        "camunda7_set_process_instance_variable",
-        "camunda7_set_job_retries",
-        "camunda7_set_job_retries_batch",
-        "camunda7_format_incident_issue",
-      ],
+    intent: canFix ? "askAi.cluster.fix" : "askAi.cluster.diagnose",
+    ids: {
+      engine,
+      activityId: cluster.activityId,
+      incidentType: cluster.incidentType,
+      processDefinitionKey: keys.processDefinitionKey,
+      processDefinitionKeyIn: keys.processDefinitionKeyIn,
     },
+    facts: {
+      ...clusterCountFacts(cluster),
+      scannedProcessDefinitionKeys: keys.scannedProcessDefinitionKeys,
+      // An unknown 24h count is left out, never a 0 (#335).
+      last24h: cluster.last24hCount ? cluster.last24hCount : undefined,
+    },
+    untrusted: [{ label: "sampleMessage", text: cluster.representativeMessage }],
   }
 }

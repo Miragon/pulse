@@ -27,7 +27,6 @@ const prompt = (locale = "en") =>
     intent: "Explain this.",
     locale,
     ids: { incidentId: "i1" },
-    surface: { has: () => true },
   })
 
 describe("AskAiButton", () => {

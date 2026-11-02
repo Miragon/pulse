@@ -49,9 +49,9 @@ describe("strict tool inputs on the wire (full surface)", () => {
   it("covers every tool, model-facing and app-only (the guard is not vacuous)", () => {
     // The modules' tools.
     expect(tools.every((tool) => /^(camunda7|analytics)_/.test(tool.name))).toBe(true)
-    // The model-visible floor is pinned at the post-cut count: cut 6 removed the failure
-    // dashboard, the comparison/dashboard descriptions and nine analytics tools.
-    expect(tools.filter(isModelVisible).length).toBeGreaterThanOrEqual(65)
+    // The model-visible floor is pinned at the post-cut count: cut 7 removed the twelve
+    // camunda7 show tools.
+    expect(tools.filter(isModelVisible).length).toBeGreaterThanOrEqual(53)
     expect(tools.filter((tool) => !isModelVisible(tool)).length).toBeGreaterThanOrEqual(15)
     // The engine list and the history/stacktrace reads (#340) are probed like the rest.
     expect(tools.map((tool) => tool.name)).toEqual(

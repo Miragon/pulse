@@ -28,7 +28,7 @@ export function ProcessDefinitionsSection({
   engine,
 }: {
   data?: CockpitDashboardData | null
-  engine?: string
+  engine: string
 }) {
   const t = useT()
   const go = useNav()
@@ -42,13 +42,12 @@ export function ProcessDefinitionsSection({
     setLimit(PAGE_SIZE)
   }
   // Shares the health KPI's query key, so one fetch.
-  const feedEngine = engine ?? initialData?.engineId
   const { data, loading, error, refetch } = useViewData<CockpitDashboardData>(
     initialData,
-    ["camunda7:cockpit-overview", feedEngine ?? null],
+    ["camunda7:cockpit-overview", engine],
     CAMUNDA7_COCKPIT_OVERVIEW_DATA,
-    { engine: feedEngine },
-    !!feedEngine,
+    { engine },
+    true,
   )
 
   if (!data) {
@@ -147,7 +146,7 @@ export function ProcessDefinitionsTable({
   engine,
 }: {
   data: CockpitDashboardData | null
-  engine?: string
+  engine: string
 }) {
   return (
     <WidgetShell>

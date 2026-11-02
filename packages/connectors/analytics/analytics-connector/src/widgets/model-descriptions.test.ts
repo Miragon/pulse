@@ -8,7 +8,7 @@ describe("describeBpmnHeatmap", () => {
     period: "7d",
     engines,
     frequency: { Task_A: 12, Task_B: 4 },
-    durationSec: { Task_A: 1.04, Task_B: 9.26 },
+    durationMs: { Task_A: 1040, Task_B: 9260 },
     asOf: "2026-10-10T12:32:00.000Z",
   })
 
@@ -26,7 +26,7 @@ describe("describeBpmnHeatmap", () => {
   it("the hottest and slowest element as facts", () => {
     const text = describeBpmnHeatmap(heatmap(["prod-a"]))
     expect(text).toContain('hottestActivityId="Task_A", hottestExecutions=12')
-    expect(text).toContain('slowestActivityId="Task_B", slowestAvgSec=9.3')
-    expect(text).toContain("Tools: analytics_show_dashboard")
+    expect(text).toContain('slowestActivityId="Task_B", slowestAvgMs=9260')
+    expect(text).not.toMatch(/\b(camunda7|analytics)_[a-z0-9_]+/)
   })
 })

@@ -34,7 +34,7 @@ const TABLE: Array<[raw: string, kind: ErrorKind, status: number | undefined, so
   ["Prometheus did not respond within 10000 ms (timeout)", "timeout", undefined, "prometheus"],
   ["MCP error -32001: Request timed out", "timeout", undefined, "unknown"],
   ["[504] Gateway Timeout (engine prod)", "timeout", 504, "engine:prod"],
-  ["Tool camunda7_process_list_data not found", "notOnServer", undefined, "unknown"],
+  ["Tool camunda7_jobs_data not found", "notOnServer", undefined, "unknown"],
   [
     "MCP error -32602: Tool analytics_engine_landscape_data not found",
     "notOnServer",

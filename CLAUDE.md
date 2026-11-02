@@ -211,14 +211,23 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    `baseUrl`/`cockpitUrl`.
 
 3. **A view is registered in three places**; a view that misses one is silently absent:
-   - the module's view map, keyed by the show tool's name (camunda7:
+   - the module's view map, keyed by its view tool's name (camunda7 has ONE view,
+     `camunda7_open_cockpit` → `CockpitApp` in
      `packages/connectors/camunda/camunda7-connector/src/widgets/views.tsx`)
    - `apps/mcp-server-camunda7/src/ui/view-registry.ts`: every module's views plus the host
      widgets (cross-module widgets by raw id)
    - `packages/connectors/camunda/camunda7-connector/src/tool-names.ts`: the tool-name constant
-     for every `show_*`/`*_data` tool, so in-widget navigation stays rename-safe
+     for the view tool and every `*_data` feed, so in-widget feed calls stay rename-safe
 
-   A view is picked by its NAME, the show tool's name (`showToolBinding`, primed under
+   New camunda7 UI is a cockpit route, never a second view: a section in `CockpitView`
+   (`src/view-models.ts`) and a case in `CockpitRoute` (`src/widgets/cockpit-app/routes.tsx`),
+   its builder in `src/data/` with its read in `src/data/route-reads.ts` (its `*_data` feed and
+   the start view share it), an entry in `START_VIEW_PARAMS`
+   (`src/widget-tools/cockpit.ts`) and in `buildCockpitStart`/`cockpitFacts`
+   (`src/data/cockpit-start.ts`); the exhaustive maps fail to compile until each has it. A
+   route that nothing emits and `camunda7_open_cockpit` cannot open is dead.
+
+   A view is picked by its NAME, the view tool's name (`showToolBinding`, primed under
    `ui://views/<name>.html` with a prelude naming it), so
    `apps/mcp-server-camunda7/test/view-registry.test.ts` holds the view registry to the
    view-bound tools of the tools/list goldens and fails both ways: on a tool without a view
@@ -232,11 +241,13 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
 
 5. **There are three render paths; pick deliberately:**
    - Registrar tools (`src/tools/`): plain JSON data _for the model_.
-   - Widget tools (`show_*`, spread `...showToolBinding(name, title)` from
-     `@miragon/pulse-widget-shell/server`; camunda7's `registerShowTool` does it): render a
+   - Widget tools (`show_*` in analytics, `camunda7_open_cockpit` in camunda7; spread
+     `...showToolBinding(name, title)` from `@miragon/pulse-widget-shell/server`): render a
      view for the user, as `buildViewResult(data, text)`: the `structuredContent` IS the view's
-     data and the `content` text is the model-facing result, a short summary or the figures as
-     compact JSON (every analytics view except the heatmap). The view is picked by its name
+     data and the `content` text is the model-facing result as compact JSON (the analytics
+     heatmap: a short English summary). `camunda7_open_cockpit`'s `view` picks the start
+     route, its `structuredContent` carries that route's data (the route's widgets seed their
+     feeds with it) and its `content` that route's facts. The view is picked by its name
      (= the tool's name); a composed view (a dashboard, the process detail) is ONE component
      that composes its widgets, never a layout the server sends.
    - `*_data` feeds (spread `...appOnly`, **no** view binding; camunda7's `registerDataFeed`):
@@ -263,7 +274,7 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      entry inline next to the control it marks `aria-invalid`, never clamps it silently.
    - **The view runtime is widget-shell's.** The root's call hook (`useMcpUseViewCall` over
      `resolveViewCall`) owns the stripped-result recovery: a host that drops
-     `structuredContent` gets ONE re-run of the view's own show tool, so every view-bound tool
+     `structuredContent` gets ONE re-run of the view's own view tool, so every view-bound tool
      is a read (`apps/mcp-server-camunda7/test/view-registry.test.ts`). `ViewFrame` renders the
      phases (waiting, error, cancelled, ready); every `ViewStack` row and `HostWidgetSlot` has
      its own error boundary, so one crashing widget never takes its view down. Widgets reach
@@ -330,27 +341,29 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      "Jobs ohne Versuche" / "jobs without retries", "bereitstellen", Geschäftsschlüssel,
      aussetzen, Versuche, alle Engines), checked with each connector's own terms by
      `src/messages/glossary.test.ts` and listed in `src/messages/GLOSSARY.md`.
-   - **Locale on the server.** Tool results and show-tool summaries for the model are English
-     only (each connector's `summaryT`); a verdict travels as data and the widget words it in
-     the host's language. The server never titles a view.
+   - **Locale on the server.** Tool results for the model are English only (camunda7's
+     cockpit facts are JSON keys, analytics' heatmap summary goes through its `summaryT`); a
+     verdict travels as data and the widget words it in the host's language. The server never
+     titles a view.
    - **Everything a widget tells the model is built by `askAiPrompt`/`modelContextText`**
      (`packages/core/widget-shell/src/ui/ask-ai-prompt.ts`). A hand-off is posted as the
      USER's message, so engine text (messages, names, business keys) goes into `untrusted`,
-     fenced and length-capped; intents and summaries are static catalogue text without tool
-     names, and the `tools` a prompt names are filtered by the live surface (a prompt whose
-     tools are all absent renders nothing). Playbooks and the engine-pinning rule live in the
-     module `instructions`. `apps/mcp-server-camunda7/test/hand-off-surface.test.ts` checks it
-     against tools/list per toolset.
+     fenced and length-capped; ids and facts go in as typed values (a value that is not
+     id-shaped is demoted to `untrusted`); intents and summaries are static catalogue text. A
+     hand-off names no tool of any module: playbooks, the engine-pinning rule and when to use
+     which tool live in the module `instructions` and the tool descriptions.
+     `apps/mcp-server-camunda7/test/hand-off-surface.test.ts` checks every widget source for it.
 
 7. **Shared server data paths are single-sourced.**
    - Definition name/version/instance lookups come from
      `packages/connectors/camunda/camunda7-connector/src/data/definition-info.ts`. Every
-     camunda7 view has ONE builder in `src/data/` behind its show tool and its `*_data` feed.
+     cockpit route has ONE builder in `src/data/` behind its `*_data` feed and the start view of
+     `camunda7_open_cockpit` (`buildCockpitStart`).
    - Honest numbers (`data/engine-reads.ts`): **primary rows/counts propagate errors;
      enrichment degrades to `null` (rendered "—"), never 0**; totals come from `/count` or
      statistics, never a capped page or scan; a definition view spans every version of its key
      (`data/honest-numbers.test.ts`).
-   - No view payload carries BPMN XML (a show tool's `structuredContent` reaches the model on
+   - No view payload carries BPMN XML (a view tool's `structuredContent` reaches the model on
      some hosts): a view names the version it draws (`diagramDefinitionId`) and `BpmnDiagram`
      reads the XML from the app-only `camunda7_bpmn_xml_data` (the heatmap from
      `analytics_bpmn_xml_data`). The ONE XML read is `lib/definition-xml.ts`, cached per engine
@@ -426,6 +439,8 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      `apps/mcp-server-camunda7/test/tool-name-refs.test.ts` checks every `<module>_…` literal
      against the booted tools; the apps the source guards read are listed in `APP_SCAN`
      (`apps/mcp-server-camunda7/test/source-scan.ts`), where a new app adds its entry.
+     Hand-offs and model contexts name no tool of either module (invariant 6), so the only raw
+     cross-module names are feeds and host widget ids.
    - **A write registers only through the registrar**, whose toolset filter decides it
      (`withToolsetFilter`/`isToolInToolset` in camunda7), never an ad-hoc `toolset === …`
      compare; an in-widget write asks `camunda7_widget_actions_data` whether it exists.
@@ -435,8 +450,8 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      unconfirmed instance), the confirmation that names its target, the targeted invalidation
      through the view's one `QueryClient` (`useQueryClient`) and the optimistic marks
      (`WRITE_POLICY`); controls are hidden, not disabled (`src/widget-actions.test.ts`,
-     `widgets/action-gating.test.tsx`). A standalone view refreshes after a write because its
-     tool result seeds a live feed query (`useViewData` always seeds).
+     `widgets/action-gating.test.tsx`). The cockpit's start route refreshes after a write
+     because the tool result seeds its live feed query (`useViewData` always seeds).
    - **Vendors** are per-engine runtime config (`flavor` → `EngineProvider` in
      `packages/connectors/camunda/camunda7-connector/src/providers/`); the port holds ONLY real
      differences (cockpit routes, branding, client hook), never an SDK mirror.
@@ -479,8 +494,8 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
   the `ui` namespace on tools/list; widget-shell's `showToolBinding` stamps only the `openai/*`
   half.
   `apps/mcp-server-camunda7/test/widget-contract.e2e.test.ts` checks the wire **by name**
-  (every `*_show_*` tool carries the widget `_meta`, every `*_data` feed is app-only), so the
-  naming convention is load-bearing.
+  (every `*_show_*` tool and `camunda7_open_cockpit` carry the widget `_meta`, every `*_data`
+  feed is app-only), so the naming convention is load-bearing.
 - **The tools/list wire payload is a golden, per toolset**
   (`apps/mcp-server-camunda7/test/tools-list.golden.test.ts`). The ONLY update path is
   `GOLDEN_UPDATE=1 pnpm --filter @miragon/pulse-mcp-server-camunda7 test` (refused in CI);
@@ -550,7 +565,7 @@ workspace (its header lists each check).
 | `pnpm lint`       | ESLint per package incl. the pattern gates, then dependency-cruiser (`lint:architecture`, `:cli`, `:vscode`), `lint:naming`, `lint:package-scripts`, `lint:ratchets` (needs `git fetch origin`), knip (`lint:deadcode`, `:cli`, `:vscode`) and `lint:github`                                                                                                                                                               |
 | `pnpm fitness`    | Report: architecture graph, per-package coverage and mutation scores; on a pull request the "Fitness report" job (mutation "(no run)"), nightly the "Mutation summary" job of `.github/workflows/mutation-nightly.yml`                                                                                                                                                                                                     |
 | `./gradlew build` | Kotlin compile + unit tests + Konsist architecture tests (run in `engine-plugins/`)                                                                                                                                                                                                                                                                                                                                        |
-| `test:host`       | `pnpm --filter @miragon/pulse-mcp-server-camunda7 test:host`: Playwright host simulation of the **built** widget bundle behind a SEP-1865 host shim, a real camunda7 show tool against a stub engine (`pinned …` scenarios are known defects, flipped when fixed); CI "Widget host simulation (test:host)"; run it for changes to widget-shell, pulse-ui, `src/ui/` or the mcp-use pin                                     |
+| `test:host`       | `pnpm --filter @miragon/pulse-mcp-server-camunda7 test:host`: Playwright host simulation of the **built** widget bundle behind a SEP-1865 host shim, the real `camunda7_open_cockpit` against a stub engine (`pinned …` scenarios are known defects, flipped when fixed); CI "Widget host simulation (test:host)"; run it for changes to widget-shell, pulse-ui, `src/ui/` or the mcp-use pin                              |
 | Docker build      | `.github/workflows/docker-build.yml`: plain `docker build` of the root `Dockerfile` (no push) on every PR touching what the build stage copies                                                                                                                                                                                                                                                                             |
 | Engines           | `Engines (<flavor>)` in `.github/workflows/ci.yml`: Camunda 7, CIB seven and Operaton in Testcontainers, running the CLI's suites and the VS Code extension's conformance laws (`test:engines`; images pinned in `apps/cli/test/integration/support/engines.ts`); the `Engines` job aggregates the legs                                                                                                                    |
 | VS Code smoke     | activation + every contributed command in VS Code stable under Xvfb, `test:smoke` (`.github/workflows/ci.yml`)                                                                                                                                                                                                                                                                                                             |

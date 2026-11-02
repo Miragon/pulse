@@ -3,26 +3,22 @@ import ts from "typescript"
 /**
  * Source readers for the hand-off guard (#338). Every Ask-AI prompt and model
  * context is assembled by widget-shell's `askAiPrompt`/`modelContextText` from
- * a typed spec — an object literal with an `intent` (hand-off) or `summary`
- * (view context) next to its `ids` and the `tools` it may name. These readers
- * find those specs and every way around the primitive, so the guard can check
- * them against the booted server.
+ * a typed spec: an object literal with an `intent` (hand-off) or `summary`
+ * (view context) next to its `ids`, `facts` and `untrusted` engine text. These
+ * readers find those specs and every way around the primitive, so the guard
+ * can hold them to static text that names no tool.
  */
 
 export interface HandOffSpec {
   kind: "hand-off" | "context"
   /** Repo-relative `file:line`. */
   at: string
-  /** The tool names, or null when the list is not written literally. */
-  tools: string[] | null
-  /** The `ids` keys, or null when the object is not written literally. */
-  ids: string[] | null
-  /** `toolIds`: each tool's own id keys, or null when not written literally. */
-  toolIds: Record<string, string[]> | null
   /** Whether the `intent`/`summary` is static text (literals, `+`, `?:`, same-file consts). */
   staticText: boolean
-  /** Tool names written anywhere in the spec but its `tools`/`toolIds` (summary, facts, …). */
-  namedOutsideTools: string[]
+  /** Every `<module>_…` tool name in the spec: its resolved lead or any member. */
+  namedTools: string[]
+  /** Members besides `intent`/`summary`, `ids`, `facts` and `untrusted` (a `tools` list, say). */
+  extraMembers: string[]
 }
 
 function lineOf(source: ts.SourceFile, node: ts.Node): number {
@@ -69,20 +65,6 @@ function staticTextOf(expr: ts.Expression, consts: Map<string, ts.Expression>): 
   return null
 }
 
-/** `{ tool: { id: … } }` → tool → id keys; null for anything not literal. */
-function literalToolIds(expr: ts.Expression): Record<string, string[]> | null {
-  if (!ts.isObjectLiteralExpression(expr)) return null
-  const out: Record<string, string[]> = {}
-  for (const prop of expr.properties) {
-    const tool = propertyName(prop)
-    if (tool === null || !ts.isPropertyAssignment(prop)) return null
-    const keys = literalKeys(prop.initializer)
-    if (keys === null) return null
-    out[tool] = keys
-  }
-  return out
-}
-
 /** Every `<module>_…` tool name in the string literals and templates under `node`. */
 function toolNamesUnder(node: ts.Node, prefixes: readonly string[]): string[] {
   const names: string[] = []
@@ -108,75 +90,113 @@ function propertyName(node: ts.ObjectLiteralElementLike): string | null {
   return null
 }
 
-/** `[...]` or `[...].filter(...)` of string literals → the names; anything else → null. */
-function literalToolList(expr: ts.Expression): string[] | null {
-  let list: ts.Expression = expr
-  if (
-    ts.isCallExpression(list) &&
-    ts.isPropertyAccessExpression(list.expression) &&
-    list.expression.name.text === "filter"
-  ) {
-    list = list.expression.expression
-  }
-  if (!ts.isArrayLiteralExpression(list)) return null
-  const names = list.elements.map((element) =>
-    ts.isStringLiteral(element) || ts.isNoSubstitutionTemplateLiteral(element)
-      ? element.text
-      : null,
-  )
-  return names.every((name) => name !== null) ? names : null
+/** The members a spec is made of; any other member on an object with a lead is a finding. */
+const SPEC_MEMBERS = new Set(["intent", "summary", "ids", "facts", "untrusted"])
+
+/** The caller's own keys around a spec (`askAiPrompt({ ...handOff, intent, locale })`). */
+const PLUMBING_MEMBERS = new Set(["locale", "isError"])
+
+/** Members the hand-off API once had: an object with a lead that carries one is always a spec. */
+const RETIRED_MEMBERS = new Set(["tools", "toolIds", "surface"])
+
+/** A spread or a caller's key makes an object plumbing that passes a spec on, not a spec. */
+function isPlumbing(node: ts.ObjectLiteralExpression): boolean {
+  return node.properties.some((p) => {
+    if (ts.isSpreadAssignment(p)) return true
+    const name = propertyName(p)
+    return name !== null && PLUMBING_MEMBERS.has(name)
+  })
 }
 
-/** The keys of an `ids: { … }` literal (shorthand included); null for a spread or non-literal. */
-function literalKeys(expr: ts.Expression): string[] | null {
-  if (!ts.isObjectLiteralExpression(expr)) return null
-  const keys = expr.properties.map(propertyName)
-  return keys.every((key) => key !== null) ? keys : null
+/** An object or array literal, directly or through a same-file const: data, never a lead's text. */
+function isDataLiteral(expr: ts.Expression, consts: Map<string, ts.Expression>): boolean {
+  if (ts.isObjectLiteralExpression(expr) || ts.isArrayLiteralExpression(expr)) return true
+  if (ts.isParenthesizedExpression(expr)) return isDataLiteral(expr.expression, consts)
+  const initializer = ts.isIdentifier(expr) ? consts.get(expr.text) : undefined
+  return initializer !== undefined && isDataLiteral(initializer, consts)
+}
+
+/** Text, static or not: a string or template literal, `+` or `?:` over one, a const of one. */
+function isTextShaped(expr: ts.Expression, consts: Map<string, ts.Expression>): boolean {
+  if (ts.isStringLiteral(expr) || ts.isNoSubstitutionTemplateLiteral(expr)) return true
+  if (ts.isTemplateExpression(expr)) return true
+  if (ts.isParenthesizedExpression(expr)) return isTextShaped(expr.expression, consts)
+  if (ts.isBinaryExpression(expr) && expr.operatorToken.kind === ts.SyntaxKind.PlusToken) {
+    return isTextShaped(expr.left, consts) || isTextShaped(expr.right, consts)
+  }
+  if (ts.isConditionalExpression(expr)) {
+    return isTextShaped(expr.whenTrue, consts) || isTextShaped(expr.whenFalse, consts)
+  }
+  const initializer = ts.isIdentifier(expr) ? consts.get(expr.text) : undefined
+  return initializer !== undefined && isTextShaped(initializer, consts)
 }
 
 /**
- * Every hand-off / view-context spec (an object literal with `tools` and
- * `intent`/`summary`). Its `intent`/`summary` must be static text and no
- * part of it but `tools`/`toolIds` may name a tool: a tool travels through
- * `tools` only, where the live surface filters it.
+ * Whether an object with a lead is a spec. A lead holding data (a nav intent's `{ type }`, a
+ * view model's `summary: { … }`) is not one. A summary that is no text and stands without
+ * `ids`/`facts`/`untrusted` is a data field too (`{ query, summary, … }`), unless the object
+ * carries a retired member.
+ */
+function isSpec(
+  kind: HandOffSpec["kind"],
+  lead: ts.Expression,
+  members: ReadonlyMap<string, ts.Expression>,
+  extraMembers: readonly string[],
+  consts: Map<string, ts.Expression>,
+): boolean {
+  if (isDataLiteral(lead, consts)) return false
+  if (kind === "hand-off" || isTextShaped(lead, consts)) return true
+  const parts = ["ids", "facts", "untrusted"].some((name) => members.has(name))
+  return parts || extraMembers.some((name) => RETIRED_MEMBERS.has(name))
+}
+
+/** The value of a spec member: an assignment's initializer, a shorthand's own name. */
+function memberValue(p: ts.ObjectLiteralElementLike): ts.Expression | null {
+  if (ts.isPropertyAssignment(p)) return p.initializer
+  if (ts.isShorthandPropertyAssignment(p)) return p.name
+  return null
+}
+
+/**
+ * Every hand-off / view-context spec: an object literal with an `intent`
+ * (hand-off) or a `summary` (context) next to its `ids`, `facts` and
+ * `untrusted`. Only a spread or a caller's key (`locale`, `isError`) makes it
+ * plumbing (`{ ...handOff, intent, locale }`, `{ isError, summary }`); any
+ * other member stays a spec and is reported (`extraMembers`), so a spec that
+ * regains a `tools` list fails the guard instead of leaving it. Its
+ * `intent`/`summary` must be static text, and no part of it may name a tool:
+ * the instructions and the tool descriptions steer the model.
  */
 export function findHandOffSpecs(file: string, text: string): HandOffSpec[] {
   const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true)
   const consts = constInitializers(source)
   const specs: HandOffSpec[] = []
   const visit = (node: ts.Node) => {
-    if (ts.isObjectLiteralExpression(node)) {
-      const props = new Map(
-        node.properties.flatMap((p) => {
-          const name = propertyName(p)
-          return name !== null && ts.isPropertyAssignment(p) ? [[name, p.initializer] as const] : []
-        }),
-      )
-      const names = new Set(node.properties.map(propertyName))
-      const kind = names.has("intent") ? "hand-off" : names.has("summary") ? "context" : null
-      const tools = props.get("tools")
-      if (kind && names.has("tools")) {
-        const ids = props.get("ids")
-        const toolIds = props.get("toolIds")
-        const lead = props.get(kind === "hand-off" ? "intent" : "summary")
-        const leadText = lead ? staticTextOf(lead, consts) : null
+    if (ts.isObjectLiteralExpression(node) && !isPlumbing(node)) {
+      const members = new Map<string, ts.Expression>()
+      const extraMembers: string[] = []
+      for (const p of node.properties) {
+        const name = propertyName(p)
+        const value = memberValue(p)
+        if (name !== null && value !== null && SPEC_MEMBERS.has(name)) members.set(name, value)
+        else extraMembers.push(name ?? "<computed>")
+      }
+      const kind = members.has("intent") ? "hand-off" : members.has("summary") ? "context" : null
+      const lead = kind && members.get(kind === "hand-off" ? "intent" : "summary")!
+      const leadText = lead ? staticTextOf(lead, consts) : null
+      if (kind && lead && isSpec(kind, lead, members, extraMembers, consts)) {
         specs.push({
           kind,
           at: `${file}:${lineOf(source, node)}`,
-          tools: tools ? literalToolList(tools) : null,
-          ids: ids ? literalKeys(ids) : names.has("ids") ? null : [],
-          toolIds: toolIds ? literalToolIds(toolIds) : names.has("toolIds") ? null : {},
           staticText: leadText !== null,
           // The lead's resolved text covers a summary held in a const.
-          namedOutsideTools: [
+          namedTools: [
             ...new Set([
               ...(leadText ? toolNamesIn(leadText, TOOL_PREFIXES) : []),
-              ...node.properties
-                // `surface` only narrows the listed tools; it names nothing new.
-                .filter((p) => !["tools", "toolIds", "surface"].includes(propertyName(p) ?? ""))
-                .flatMap((p) => toolNamesUnder(p, TOOL_PREFIXES)),
+              ...node.properties.flatMap((p) => toolNamesUnder(p, TOOL_PREFIXES)),
             ]),
           ],
+          extraMembers,
         })
       }
     }
@@ -313,7 +333,7 @@ export function findModelContextContents(
 
 /**
  * Every `<module>_…` tool name inside a server-instructions text — a family
- * wildcard (`camunda7_show_*`) names no single tool and is skipped.
+ * wildcard (`camunda7_query_historic_*`) names no single tool and is skipped.
  */
 export function toolNamesIn(text: string, prefixes: readonly string[]): string[] {
   const shape = new RegExp(

@@ -5,18 +5,11 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import {
   CAMUNDA7_CLUSTER_DETAIL_DATA,
   CAMUNDA7_PROCESS_INSTANCES_DATA,
-  CAMUNDA7_PROCESS_LIST_DATA,
   CAMUNDA7_WIDGET_ACTIONS_DATA,
 } from "../tool-names.js"
-import type {
-  ClusterDetailData,
-  ProcessDefinition,
-  ProcessInstancesData,
-  ProcessListData,
-} from "../view-models.js"
+import type { ClusterDetailData, ProcessInstancesData } from "../view-models.js"
 import { ClusterDetailWidget } from "./cluster-detail.js"
 import { ProcessInstancesWidget } from "./process-instances/list.js"
-import { ProcessListWidget } from "./process-list.js"
 import { widgetActionsFeedFor } from "./lib/hand-off.test-support.js"
 import {
   TestViewHost,
@@ -42,26 +35,6 @@ function deferredFeed<T>() {
       calls.push({ args, resolve })
     })
   return { calls, handler }
-}
-
-function definition(key: string, name: string): ProcessDefinition {
-  return {
-    id: `${key}:1:d`,
-    key,
-    name,
-    version: 1,
-    deploymentId: "dep",
-    suspended: false,
-    versionTag: null,
-    tenantId: null,
-  }
-}
-
-const DEFINITIONS: ProcessListData = {
-  definitions: [definition("invoice", "Invoice Process"), definition("order", "Order Process")],
-  totalCount: 2,
-  filters: { latestVersion: true },
-  engineId: "prod-a",
 }
 
 function instances(ids: string[], total: number): ProcessInstancesData {
@@ -131,33 +104,15 @@ function host(widget: ComponentType<Record<string, unknown>>, tools: Record<stri
 }
 
 describe("a search keeps the list and its search box mounted while page 0 is in flight (N123)", () => {
-  it("process list", async () => {
-    const feed = deferredFeed<ProcessListData>()
-    const Widget = () => <ProcessListWidget data={DEFINITIONS} />
-    host(Widget, { [CAMUNDA7_PROCESS_LIST_DATA]: feed.handler })
-
-    const search = screen.getByRole("searchbox", { name: "Filter by name" })
-    search.focus()
-    fireEvent.change(search, { target: { value: "inv" } })
-    // The debounced, server-side search reaches the feed …
-    await waitFor(() => expect(feed.calls).toHaveLength(1), { timeout: 2_000 })
-    expect(feed.calls[0].args).toMatchObject({ nameLike: "inv" })
-
-    // … and while it is pending the operator keeps typing into the SAME box,
-    // above the previous rows.
-    expect(search.isConnected).toBe(true)
-    expect(document.activeElement).toBe(search)
-    expect(screen.getByText("Order Process")).toBeTruthy()
-
-    feed.calls[0].resolve({ ...DEFINITIONS, definitions: [DEFINITIONS.definitions[0]] })
-    await waitFor(() => expect(screen.queryByText("Order Process")).toBeNull())
-    expect(screen.getByText("Invoice Process")).toBeTruthy()
-    expect(screen.getByRole("searchbox", { name: "Filter by name" })).toBe(search)
-  })
-
   it("process instances (search and chip)", async () => {
     const feed = deferredFeed<ProcessInstancesData>()
-    const Widget = () => <ProcessInstancesWidget data={instances(["pi-1", "pi-2"], 2)} />
+    const Widget = () => (
+      <ProcessInstancesWidget
+        data={instances(["pi-1", "pi-2"], 2)}
+        processDefinitionKey="invoice"
+        engine="prod-a"
+      />
+    )
     host(Widget, { [CAMUNDA7_PROCESS_INSTANCES_DATA]: feed.handler })
 
     const search = screen.getByRole("searchbox", { name: "Search by business key or ID" })
@@ -179,7 +134,15 @@ describe("a search keeps the list and its search box mounted while page 0 is in 
 
   it("cluster detail", async () => {
     const feed = deferredFeed<ClusterDetailData>()
-    const Widget = () => <ClusterDetailWidget data={CLUSTER} />
+    const Widget = () => (
+      <ClusterDetailWidget
+        data={CLUSTER}
+        engine="prod-a"
+        activityId={CLUSTER.activityId}
+        incidentType={CLUSTER.incidentType}
+        messageSignature={CLUSTER.messageSignature ?? undefined}
+      />
+    )
     host(Widget, { [CAMUNDA7_CLUSTER_DETAIL_DATA]: feed.handler })
 
     const search = screen.getByRole("searchbox", { name: "Filter by business key" })
@@ -205,29 +168,27 @@ describe("a page-0 failure over rows on screen is not a load-more failure (N130)
       if (more ? state.failMore : state.failPage0) {
         throw new Error(more ? "page 2 timed out" : "engine down")
       }
-      return more
-        ? { ...DEFINITIONS, definitions: [definition("pay", "Payment Process")], totalCount: 5 }
-        : { ...DEFINITIONS, totalCount: 5 }
+      return more ? instances(["pi-3"], 5) : instances(["pi-1", "pi-2"], 5)
     }
-    const Widget = () => <ProcessListWidget data={null} engine="prod-a" />
-    host(Widget, { [CAMUNDA7_PROCESS_LIST_DATA]: feed })
+    const Widget = () => <ProcessInstancesWidget data={null} engine="prod-a" />
+    host(Widget, { [CAMUNDA7_PROCESS_INSTANCES_DATA]: feed })
     return { state, calls }
   }
 
   it("a failed refetch keeps the rows, says so, and its retry re-runs page 0", async () => {
     const { state, calls } = selfFetchingList()
-    await screen.findByText("Invoice Process")
+    await screen.findByText("BK-pi-1")
 
     // A write elsewhere invalidated the cockpit's lists; the refetch fails.
     state.failPage0 = true
-    await queryClient.invalidateQueries({ queryKey: ["camunda7:process-list"] })
+    await queryClient.invalidateQueries({ queryKey: ["camunda7:process-instances"] })
 
     const alert = await screen.findByRole("alert")
     expect(alert.textContent).toContain("Couldn't update the list")
     expect(alert.textContent).toContain("You're seeing the previous result.")
     expect(alert.querySelector("details pre")?.textContent).toBe("engine down")
     expect(alert.textContent).not.toContain("Couldn't load more entries")
-    expect(screen.getByText("Invoice Process")).toBeTruthy()
+    expect(screen.getByText("BK-pi-1")).toBeTruthy()
 
     state.failPage0 = false
     const before = calls.length
@@ -239,7 +200,7 @@ describe("a page-0 failure over rows on screen is not a load-more failure (N130)
 
   it("a failed Load more says so, and its retry fetches the next offset", async () => {
     const { state, calls } = selfFetchingList()
-    await screen.findByText("Invoice Process")
+    await screen.findByText("BK-pi-1")
 
     state.failMore = true
     fireEvent.click(screen.getByRole("button", { name: "Load more" }))
@@ -251,7 +212,7 @@ describe("a page-0 failure over rows on screen is not a load-more failure (N130)
 
     state.failMore = false
     fireEvent.click(within(alert).getByRole("button", { name: "Try again" }))
-    await screen.findByText("Payment Process")
+    await screen.findByText("BK-pi-3")
     expect(screen.queryByRole("alert")).toBeNull()
     expect(calls.at(-1)).toMatchObject({ firstResult: 2 })
   })
@@ -317,11 +278,11 @@ describe("the instance list states what is ON SCREEN while a filter is pending o
     // The rows on screen are the unfiltered 120 — so is everything said about them.
     await waitFor(() => expect(modelContexts.at(-1)).toContain("PREVIOUS result"))
     const context = modelContexts.at(-1)!
-    expect(context).toContain("On screen: loaded=2, matchingInstances=120\n")
+    expect(context.split("\n")).toContain("On screen: loaded=2, matchingInstances=120")
     expect(context).not.toContain("suspended=true")
     expect(screen.getByText("120 running")).toBeTruthy()
     const prompt = triage()
-    expect(prompt).toContain("On screen: matchingInstances=120\n")
+    expect(prompt.split("\n")).toContain("On screen: matchingInstances=120")
     expect(prompt).not.toContain("suspended=true")
 
     control[0].resolve({
@@ -337,7 +298,7 @@ describe("the instance list states what is ON SCREEN while a filter is pending o
     )
     expect(modelContexts.at(-1)).not.toContain("PREVIOUS result")
     expect(screen.getByText("7 running")).toBeTruthy()
-    expect(triage()).toContain("On screen: matchingInstances=7, suspended=true\n")
+    expect(triage().split("\n")).toContain("On screen: matchingInstances=7, suspended=true")
   })
 
   it("a failed chip keeps saying so — to the operator and to the model", async () => {
@@ -410,12 +371,6 @@ describe("a failed first load says what happened, why, and what you can do", () 
   }
 
   it.each([
-    [
-      "process list",
-      () => <ProcessListWidget data={null} engine="prod-a" />,
-      CAMUNDA7_PROCESS_LIST_DATA,
-      "Could not load the process definitions",
-    ],
     [
       "process instances",
       () => <ProcessInstancesWidget data={null} engine="prod-a" />,

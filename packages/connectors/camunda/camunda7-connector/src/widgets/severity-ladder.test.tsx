@@ -33,7 +33,7 @@ describe("the definitions table's jobs without retries", () => {
     render(
       <LocaleProvider locale="en">
         <TestViewHost>
-          <ProcessDefinitionsTable data={LANDSCAPE} />
+          <ProcessDefinitionsTable data={LANDSCAPE} engine="prod-a" />
         </TestViewHost>
       </LocaleProvider>,
     )

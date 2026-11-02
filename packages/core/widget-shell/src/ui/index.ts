@@ -86,15 +86,12 @@ export { HAND_OFF_ACTIONS, HandOffButton, type HandOffAction } from "./hand-off-
 export {
   askAiPrompt,
   modelContextText,
-  fenceUntrusted,
-  EMPTY_TOOL_SURFACE,
   MAX_UNTRUSTED_CHARS,
   type AskAiPrompt,
   type AskAiPromptSpec,
   type HandOffParts,
   type HandOffValue,
   type ModelContextSpec,
-  type ToolSurface,
   type UntrustedText,
 } from "./ask-ai-prompt.js"
 export { OpenInCockpitLink } from "./open-in-cockpit-link.js"
@@ -132,14 +129,7 @@ export {
   type BpmnHeatmapLabels,
 } from "./bpmn-heatmap.js"
 export { BpmnHeatmapWidget, HeatValuesTable, type BpmnHeatmapData } from "./bpmn-heatmap-widget.js"
-export {
-  BPMN_TOKENS,
-  BPMN_OVERLAY_CSS,
-  injectBpmnOverlayCss,
-  markerSwatch,
-  badgeSwatch,
-  cdVar,
-} from "./bpmn-tokens.js"
+export { BPMN_TOKENS, BPMN_OVERLAY_CSS, injectBpmnOverlayCss, cdVar } from "./bpmn-tokens.js"
 export {
   useBpmnViewer,
   diagramHeight,

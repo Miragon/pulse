@@ -34,14 +34,15 @@ async function bootSurface(config: Partial<Camunda7PluginConfig>) {
   const byName = new Map(
     calls.map(([definition, handler]) => [definition.name, { definition, handler }]),
   )
-  const feed = feedPayload<{ allowedActions: string[]; modelTools: string[] }>(
+  const feed = feedPayload<{ allowedActions: string[] }>(
     await byName.get(CAMUNDA7_WIDGET_ACTIONS_DATA)!.handler({}),
   )
+  // The feed answers one question, which writes the widgets may offer; its shape is the contract.
+  expect(Object.keys(feed)).toEqual(["allowedActions"])
   return {
     names: [...byName.keys()],
     byName,
     allowedActions: feed.allowedActions,
-    modelTools: feed.modelTools,
   }
 }
 
@@ -76,29 +77,6 @@ describe("createPlugin toolset wiring (fail-closed)", () => {
     expect(allowedActions).toContain("camunda7_resolve_incident")
   })
 
-  // #338: every registration path counts, never an app-only feed.
-  it.each(["read-only", "operations", "admin"])(
-    "%s: the feed's modelTools are exactly the registered model-visible tools",
-    async (toolset) => {
-      const { byName, modelTools } = await bootSurface({ toolset, allowDeployments: true })
-      const visible = [...byName.values()]
-        .filter(({ definition }) => definition.visibility !== "app")
-        .map(({ definition }) => definition.name)
-        .sort()
-      expect(modelTools).toEqual(visible)
-      expect(modelTools).toEqual(
-        expect.arrayContaining([
-          "camunda7_list_incidents",
-          "camunda7_show_engine_health",
-          "camunda7_open_cockpit",
-        ]),
-      )
-      expect(modelTools).not.toContain(CAMUNDA7_WIDGET_ACTIONS_DATA)
-      expect(modelTools.includes("camunda7_set_job_retries")).toBe(toolset !== "read-only")
-      expect(modelTools.includes("camunda7_set_job_retries_batch")).toBe(toolset === "admin")
-    },
-  )
-
   it("threads allowDeployments to the registrar: create_deployment needs it on top of admin", async () => {
     expect((await bootSurface({ toolset: "admin" })).names).not.toContain(
       "camunda7_create_deployment",
@@ -130,7 +108,7 @@ describe("createPlugin advertises `engine` as the boot-time enum of configured i
     expect(params.map((p) => p.name)).toEqual(
       expect.arrayContaining([
         "camunda7_list_process_instances",
-        "camunda7_show_engine_health",
+        "camunda7_open_cockpit",
         "camunda7_jobs_data",
       ]),
     )
@@ -151,21 +129,6 @@ describe("createPlugin advertises `engine` as the boot-time enum of configured i
       expect((z.toJSONSchema(engine) as { enum?: string[] }).enum, name).toEqual(["prod-a"])
       expect(engine.safeParse("prod-a").success, name).toBe(true)
     }
-  })
-})
-
-describe("camunda7_show_engine_health states its verdict rule (#340)", () => {
-  it("names the source and the deployment's OWN thresholds, and routes to analytics", async () => {
-    const { byName } = await bootSurface({ healthThresholds: { criticalIncidents: 10 } })
-    const description = (
-      byName.get("camunda7_show_engine_health")?.definition as {
-        description?: string
-      }
-    )?.description
-    expect(description).toContain(
-      "Verdict: From the engine's open incidents, read live: critical at >=10 open or >=25 in one cluster, degraded with any, else ok.",
-    )
-    expect(description).toContain("use analytics_engine_health")
   })
 })
 

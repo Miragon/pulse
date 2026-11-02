@@ -11,7 +11,6 @@ import {
   type EngineRegistry,
 } from "./lib/resolve-engine.js"
 import { resolveCamunda7Toolset, withToolsetFilter } from "./lib/toolsets.js"
-import { createModelSurface } from "./widget-tools/model-surface.js"
 import { withEngineParam } from "./lib/with-engine.js"
 
 export interface Camunda7PluginConfig {
@@ -68,15 +67,11 @@ export function createPlugin(config: Camunda7PluginConfig): ModulePlugin {
     repository: config.incidentIssueRepository,
     // No cockpit URL here: issue links use the resolved engine's.
   }
-  // The widgets filter every tool their hand-offs name by it (#338).
-  const surface = createModelSurface()
-
   return {
     name: "camunda7",
     register(server) {
-      const recorded = surface.record(server)
       const register = withEngineParam(
-        withToolsetFilter(createToolRegistrar(recorded, registry), toolset),
+        withToolsetFilter(createToolRegistrar(server, registry), toolset),
         config.engines,
       )
       registerEngineTools(register)
@@ -84,10 +79,9 @@ export function createPlugin(config: Camunda7PluginConfig): ModulePlugin {
       registerTools(register, { allowDeployments: config.allowDeployments })
       registerIncidentIssueTools(register, incidentIssueConfig)
       registerIncidentIssuePrompt(server, incidentIssueConfig)
-      registerWidgetTools(recorded, registry, {
+      registerWidgetTools(server, registry, {
         healthThresholds: config.healthThresholds,
         toolset,
-        modelTools: surface.tools,
       })
     },
   }

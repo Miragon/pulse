@@ -1,6 +1,6 @@
 import type { IncidentsDashboardData } from "../../view-models.js"
 
-/** From the data's echo (standalone gets no props), so the model re-queries the set the counts describe. */
+/** From the data's echo, so the model re-queries the set the counts describe. */
 export function dashboardScope(filters: IncidentsDashboardData["filters"]): {
   processDefinitionKey?: string
   incidentType?: string
@@ -15,14 +15,7 @@ export function dashboardScope(filters: IncidentsDashboardData["filters"]): {
   }
 }
 
-/**
- * One key, so the cockpit's two panels dedupe. Standalone never fetches: the engine-only feed
- * cannot re-read a filtered dashboard, whose scope lives only in the echo.
- */
-export function incidentsFeed(engine: string | undefined) {
-  return {
-    key: ["camunda7:incidents", engine ?? null],
-    args: { engine },
-    ready: !!engine,
-  }
+/** One key, so the cockpit's two panels dedupe to one read of the route's engine. */
+export function incidentsFeed(engine: string) {
+  return { key: ["camunda7:incidents", engine], args: { engine } }
 }

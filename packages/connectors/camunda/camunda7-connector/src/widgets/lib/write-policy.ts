@@ -21,14 +21,9 @@ const INCIDENT_VIEWS = [
   "camunda7:instance-detail",
   "camunda7:process-instances",
   "camunda7:cockpit-overview",
-  "camunda7:process-list",
 ] as const
 
-const INSTANCE_LISTS = [
-  "camunda7:process-instances",
-  "camunda7:process-list",
-  "camunda7:cockpit-overview",
-] as const
+const INSTANCE_LISTS = ["camunda7:process-instances", "camunda7:cockpit-overview"] as const
 
 function views(...namespaces: string[]): readonly string[] {
   return [...new Set(namespaces)]
@@ -45,6 +40,7 @@ export const WRITE_POLICY: Record<Camunda7WidgetAction, WritePolicy> = {
       "camunda7:instance-detail",
       "camunda7:incident-detail",
       "camunda7:instance-history",
+      "camunda7:history-timeline",
       "camunda7:jobs",
       "camunda7:process-incidents",
       "camunda7:engine-health",
@@ -57,6 +53,7 @@ export const WRITE_POLICY: Record<Camunda7WidgetAction, WritePolicy> = {
       "camunda7:instance-detail",
       "camunda7:incident-detail",
       "camunda7:instance-history",
+      "camunda7:history-timeline",
     ],
     confirm: false,
   },

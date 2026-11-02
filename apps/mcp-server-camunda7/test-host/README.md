@@ -6,13 +6,15 @@ simulation (test:host)". It renders exactly what an MCP Apps host renders:
 - `global-setup.ts` boots the real composition root (`createApp` from
   `src/app.ts`, default read-only deployment, plus a `camunda7:operations`
   one for the write scenario) serving `dist/mcp-app.{js,css}`, a CIB seven
-  REST stub (`stub-engine.ts`, `fixtures/process-definitions.json` plus the
-  `invoice` diagram `fixtures/invoice.bpmn`, three failed jobs), a Prometheus
+  REST stub (`stub-engine.ts`, `fixtures/process-definitions.json` with their
+  statistics and no open incident, the `invoice` diagram `fixtures/invoice.bpmn`,
+  three failed jobs; under `/realistic`, real-sized data in
+  `realistic-engine.ts`), a Prometheus
   stub (`stub-prometheus.ts`: two engines, two processes, the `invoice`
   activities, evaluating the exact PromQL shapes analytics sends) and the host's
   server side (`host-backend.ts`, a real MCP client), all on ephemeral
   loopback ports. A scenario can hold the stub's answers to one search term
-  and release them later (`POST /__control/hold|release?nameLike=<term>` at
+  and release them later (`POST /__control/hold|release?term=<term>` at
   `HOST_SIM_ENGINE_URL`), so an in-flight state is asserted without a timing
   window.
 - `host-sim.html` is a minimal SEP-1865 host. It reads the view resource
@@ -22,16 +24,17 @@ simulation (test:host)". It renders exactly what an MCP Apps host renders:
   `ui/initialize`, and proxies every `tools/call` the view makes to the server.
 - A scenario can size the frame (`width=<px>`; default 960): the layout
   scenarios render at the 760 px a chat gives an inline view.
-- The rendering tool is the real `camunda7_show_process_list` against the
-  stub (the BPMN scenario: `camunda7_show_bpmn_viewer`; the write one:
-  `camunda7_show_job_panel` on the operations deployment), so the view gets the
-  server's real `structuredContent` and data shape (the view picked by the name its
-  document's prelude sets).
+- The rendering tool is the real `camunda7_open_cockpit` against the stub,
+  opened on its overview unless a scenario names a `view` (the jobs, a process
+  for the BPMN scenario, the instances on the realistic engine for the
+  in-widget query; the write one: the failed jobs on the operations
+  deployment), so the view gets the server's real `structuredContent` and data
+  shape (the view picked by the name its document's prelude sets).
 
 | Scenario                   | Host behaviour                                    | Pass criterion                                                                                                                                                     |
 | -------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| keep                       | result WITH `structuredContent`                   | real table renders, the prelude names the view, **zero** re-executions, no "Reloaded at", no console error                                                         |
-| in-widget query            | user types; the stub holds the search's answer    | feed refetches + filters (`dedupe`); in flight: focus kept, rows marked                                                                                            |
+| keep                       | result WITH `structuredContent`                   | the overview's table renders, the prelude names the view, **zero** re-executions, no "Reloaded at", no console error                                               |
+| in-widget query            | instances (realistic engine), user types a search | feed refetches + filters (`dedupe`); in flight: focus kept, rows marked; then the matching rows and their filtered total                                           |
 | strip                      | result WITHOUT `structuredContent` (claude.ai)    | **exactly one** re-execution with the invocation's arguments, then renders with "Reloaded at"                                                                      |
 | slow tool                  | result 4 s after `initialized`                    | waits for the host's result (no timer re-runs the tool), renders once, **zero** re-executions                                                                      |
 | `isError`                  | real engine 503 through the server                | **zero** re-executions, the kit's words (`describeError`), raw text under Details, a retry                                                                         |
@@ -48,24 +51,31 @@ simulation (test:host)". It renders exactly what an MCP Apps host renders:
 | fonts blocked              | `resourceDomains=ignore` (CSP without them)       | faces fail, the host's font is drawn, rows and height within 5 % of the Geist render                                                                               |
 | font route unreachable     | the font requests are held, never answered        | the list paints at once in the fallback (`font-display: swap`), nothing waits                                                                                      |
 | height budget              | `containerDimensions.maxHeight: 220`              | settled report ≤ 220 and ≥ the capped container, the shell scrolls inside it                                                                                       |
-| list fits a 600 px budget  | `containerDimensions.maxHeight: 600`              | the list view fits as a card: the shell's container has no scroll of its own (#396)                                                                                |
+| list fits a 600 px budget  | the jobs, `containerDimensions.maxHeight: 600`    | the list view fits as a card: exactly one job row, the shell's container has no scroll of its own (#396)                                                           |
 | inline fit, real-sized     | realistic engine, 760 px, 600/800/none, de-DE     | instances (all, scoped) and jobs fit as one card: k of N rows, "Show all" in view, no inner scroll; a new budget or width at runtime refits (`inline-fit.spec.ts`) |
 | inline head of a table     | analytics dashboard, `maxHeight: 400` (3 rows)    | 3 of 6 rows and "3 of 6 shown"; Show all requests fullscreen (all 6), without it Show more (#396)                                                                  |
 | bundle budget              | the built `dist/mcp-app.js` / `.css`              | gzip within `test/__golden__/bundle-budget.json`, and within 10 % of it (#344 K39)                                                                                 |
-| inline list height         | the process list, no height budget                | the settled report (equal to max-content) below the old 600 px floor (#339 K40)                                                                                    |
+| inline list height         | the jobs, no height budget                        | the settled report (equal to max-content) below the old 600 px floor (#339 K40)                                                                                    |
 | fullscreen                 | `availableDisplayModes: ["inline", "fullscreen"]` | the toggle requests fullscreen and follows the host's switch                                                                                                       |
-| BPMN on a dark host        | `camunda7_show_bpmn_viewer`, `theme: "dark"`      | light canvas, dark flows/labels, every zoom button clickable past the logo                                                                                         |
-| kit foundation             | `camunda7_show_job_panel`, fullscreen offered     | Miragon roles (link `--cd-blau-link`), Lucide stroke 2.5, 2 dense, neutral KPI                                                                                     |
+| BPMN on a dark host        | a process (`invoice`), `theme: "dark"`            | light canvas, dark flows/labels, every zoom button clickable past the logo                                                                                         |
+| kit foundation             | the jobs, fullscreen offered                      | Miragon roles (link `--cd-blau-link`), Lucide stroke 2.5, 2 dense, neutral KPI                                                                                     |
 | layout at 760 px           | `width: 760` (a chat's inline column)             | no horizontal document scroll, the table in a named region, 24 px shell padding                                                                                    |
-| column priority            | `camunda7_show_job_panel` at 760 px               | `hideBelow` column hidden, the row actions `sticky` and inside the region                                                                                          |
-| row menu                   | job panel at 760 px, "more" on a middle row       | the menu lies over the next rows' pinned cells: its entries take the clicks, focus, Escape                                                                         |
-| axe                        | process list + job panel, light and dark, 760 px  | zero WCAG 2.1 A/AA violations (`@axe-core/playwright`)                                                                                                             |
-| write refresh (operations) | `camunda7_show_job_panel`, user clicks Retry      | the retry refetches the seeded feed and re-renders, **zero** re-executions                                                                                         |
+| column priority            | the jobs at 760 px                                | `hideBelow` column hidden, the row actions `sticky` and inside the region                                                                                          |
+| row menu                   | the jobs at 760 px, "more" on a middle row        | the menu lies over the next rows' pinned cells: its entries take the clicks, focus, Escape                                                                         |
+| axe                        | overview + jobs, light and dark, 760 px           | zero WCAG 2.1 A/AA violations (`@axe-core/playwright`)                                                                                                             |
+| write refresh (operations) | the failed jobs, user clicks Retry                | the retry refetches the seeded feed and re-renders, **zero** re-executions                                                                                         |
 | cockpit on an engine       | `camunda7_open_cockpit` with `engine`             | opens on that engine (the head's engine select), not on the engine picker                                                                                          |
+| cockpit start view         | `camunda7_open_cockpit` with `view: "jobs"`       | the Jobs head section is current, the jobs table renders, no engine picker                                                                                         |
 | cockpit picker             | `camunda7_open_cockpit` without `engine`          | the engine list (two engines, no default engine configured), each engine's state in its accessible name                                                            |
 | analytics dashboard        | `analytics_show_dashboard` at 760 px              | every activity column shown inside its region, names from the diagram, no document scroll                                                                          |
 | analytics landscape        | `analytics_show_engine_landscape` at 760 px       | the column groups headed, the backlog columns and the compare action inside their regions                                                                          |
 | axe (analytics)            | dashboard + landscape, light and dark, 760 px     | zero WCAG 2.1 A/AA violations (`analytics.spec.ts`)                                                                                                                |
+
+**The cockpit's chrome inline.** Every camunda7 scenario renders the cockpit, whose head
+(sections, engine switch, Refresh) and breadcrumb sit above the route: at 760 px they take
+about 120 px of the inline budget. A 600 px budget then shows one or two rows of the
+realistic instance list and one job row; the host scenarios pin the job count. The width refit
+(`inline-fit.spec.ts`) and the row menu run at 800 px, where several rows fit.
 
 Height checks read the **settled** report, the one equal to the document's current
 max-content height: auto-resize reports one frame late, so right after the content becomes

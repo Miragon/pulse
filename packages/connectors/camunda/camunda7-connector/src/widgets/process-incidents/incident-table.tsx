@@ -44,7 +44,6 @@ export function draftIncidentTicketHandOff(
     ids: { engine, incidentId: incident.id },
     facts: { incidentType: incident.incidentType, processInstanceId: incident.processInstanceId },
     untrusted: [{ label: "incidentMessage", text: incident.incidentMessage }],
-    tools: ["camunda7_format_incident_issue"],
   }
 }
 
@@ -88,7 +87,7 @@ export function IncidentTable({
 }) {
   const t = useT()
   const { ask } = useHandOff()
-  // Aligns under the activity summary's icon column; standalone the indent would float.
+  // Aligns under the activity summary's icon column; without that column the indent would float.
   const leadPad = hideInstanceColumn ? undefined : "pl-12"
   const columnCount = hideInstanceColumn ? 3 : 4
 
@@ -201,21 +200,19 @@ export function PagedIncidentTable({
 }: {
   processDefinitionKey: string
   activityId: string
-  /** Omitted: the default engine. */
-  engine?: string
+  /** The route's engine: a page never reads the default engine. */
+  engine: string
   vendor?: string
   onAnalyze: (incidentId: string) => void
 }) {
   const t = useT()
-  const args: Record<string, unknown> = { processDefinitionKey, activityId }
-  if (engine) args.engine = engine
   const paged = usePagedViewData<IncidentInstance, ActivityIncidentsData>({
     initialData: null,
-    key: ["camunda7:activity-incidents", engine ?? null, processDefinitionKey, activityId],
+    key: ["camunda7:activity-incidents", engine, processDefinitionKey, activityId],
     tool: CAMUNDA7_ACTIVITY_INCIDENTS_DATA,
-    args,
+    args: { processDefinitionKey, activityId, engine },
     pageSize: INCIDENT_PAGE_SIZE,
-    ready: !!(processDefinitionKey && activityId),
+    ready: true,
     selectItems: (d) => d.incidents,
     selectTotal: (d) => d.totalCount,
   })

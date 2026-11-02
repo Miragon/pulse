@@ -1,19 +1,13 @@
 import { describe, expect, it } from "vitest"
-import {
-  intentToView,
-  selectedEntity,
-  popTo,
-  pushView,
-  viewToIntent,
-  type CockpitView,
-} from "./nav-core.js"
+import { truncate } from "@miragon/pulse-ui"
+import { crumbLabel, intentToView, selectedEntity, popTo, pushView, viewKey } from "./nav-core.js"
 import type { NavIntent } from "./navigation.js"
+import type { CockpitView } from "../view-models.js"
 
 describe("intentToView", () => {
   it("maps every intent variant onto its view", () => {
     const cases: Array<[NavIntent, CockpitView]> = [
       [{ type: "overview" }, { section: "overview" }],
-      [{ type: "process-list" }, { section: "process-list" }],
       [{ type: "incidents" }, { section: "incidents" }],
       [
         { type: "cluster-detail", activityId: "a1", incidentType: "failedJob" },
@@ -40,6 +34,11 @@ describe("intentToView", () => {
         { type: "incident-detail", incidentId: "inc-1" },
         { section: "incident-detail", incidentId: "inc-1" },
       ],
+      [
+        { type: "jobs", processDefinitionKey: "invoice", failedOnly: true },
+        { section: "jobs", processDefinitionKey: "invoice", failedOnly: true },
+      ],
+      [{ type: "jobs" }, { section: "jobs" }],
     ]
     for (const [intent, view] of cases) {
       expect(intentToView(intent)).toEqual(view)
@@ -100,28 +99,34 @@ describe("popTo", () => {
   })
 })
 
-describe("viewToIntent", () => {
-  it("round-trips every intent through intentToView", () => {
-    const intents: NavIntent[] = [
-      { type: "overview" },
-      { type: "process-list" },
-      { type: "incidents" },
-      {
-        type: "cluster-detail",
-        activityId: "a1",
-        incidentType: "failedJob",
-        messageSignature: "sig",
-      },
-      { type: "process-detail", processDefinitionKey: "invoice" },
-      { type: "process-instances", processDefinitionKey: "invoice" },
-      { type: "process-instances" },
-      { type: "process-incidents", processDefinitionKey: "invoice" },
-      { type: "instance-detail", processInstanceId: "pi-1" },
-      { type: "incident-detail", incidentId: "inc-1" },
-    ]
-    for (const intent of intents) {
-      expect(viewToIntent(intentToView(intent))).toEqual(intent)
+describe("viewKey", () => {
+  it("keys the jobs by scope and filter, the history by instance", () => {
+    expect(viewKey({ section: "jobs" })).toBe("jobs:*:all")
+    expect(viewKey({ section: "jobs", processDefinitionKey: "invoice", failedOnly: true })).toBe(
+      "jobs:invoice:failed",
+    )
+    expect(viewKey({ section: "history", processInstanceId: "pi-1" })).toBe("history:pi-1")
+  })
+
+  it("stacks the engine's jobs and one process's failed jobs as two entries", () => {
+    const engineJobs: CockpitView = { section: "jobs" }
+    const processJobs: CockpitView = {
+      section: "jobs",
+      processDefinitionKey: "invoice",
+      failedOnly: true,
     }
+    expect(pushView([engineJobs], processJobs)).toEqual([engineJobs, processJobs])
+  })
+})
+
+describe("crumbLabel", () => {
+  it("names the jobs, and the history by its instance", () => {
+    expect(crumbLabel({ section: "jobs", processDefinitionKey: "invoice" }, "en")).toBe("Jobs")
+    expect(crumbLabel({ section: "jobs" }, "de")).toBe("Jobs")
+    expect(crumbLabel({ section: "history", processInstanceId: "0123456789abcdef" }, "en")).toBe(
+      `History ${truncate("0123456789abcdef", 8)}`,
+    )
+    expect(crumbLabel({ section: "history", processInstanceId: "pi-1" }, "de")).toBe("Verlauf pi-1")
   })
 })
 
@@ -135,5 +140,15 @@ describe("selectedEntity", () => {
 
   it("has none for the engine-wide instances view (no key)", () => {
     expect(selectedEntity({ section: "process-instances" })).toEqual({})
+  })
+
+  it("names the history's instance and a scoped job list's process", () => {
+    expect(selectedEntity({ section: "history", processInstanceId: "pi-1" })).toEqual({
+      processInstanceId: "pi-1",
+    })
+    expect(selectedEntity({ section: "jobs", processDefinitionKey: "invoice" })).toEqual({
+      processDefinitionKey: "invoice",
+    })
+    expect(selectedEntity({ section: "jobs" })).toEqual({})
   })
 })

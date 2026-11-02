@@ -46,7 +46,7 @@ type IncidentChip = typeof TYPE_ALL | typeof TYPE_LAST24H
 /** On a type-filtered dashboard the filter travels as an id and the count as the matching incidents. */
 export function processRootCauseHandOff(
   process: IncidentsDashboardProcess,
-  engine: string | undefined,
+  engine: string,
   filters: IncidentsDashboardData["filters"],
 ): HandOff {
   const { incidentType } = dashboardScope(filters)
@@ -65,12 +65,6 @@ export function processRootCauseHandOff(
       runningInstances: process.runningInstances,
     },
     untrusted: [{ label: "processName", text: process.processDefinitionName }],
-    tools: [
-      "camunda7_list_incidents",
-      "camunda7_get_job_stacktrace",
-      "camunda7_query_historic_incidents",
-      "camunda7_query_historic_activity_instances",
-    ],
   }
 }
 
@@ -92,8 +86,7 @@ function ProcessSummary({
   process: DisplayProcess
   expanded: boolean
   vendor: string
-  /** Undefined when the default routed it. */
-  engineId: string | undefined
+  engineId: string
   filters: IncidentsDashboardData["filters"]
   onOpenDetail: () => void
 }) {
@@ -235,7 +228,7 @@ export function IncidentProcessListView({
   engine,
 }: {
   data?: IncidentsDashboardData | null
-  engine?: string
+  engine: string
 }) {
   const go = useNav()
   const t = useT()
@@ -246,7 +239,7 @@ export function IncidentProcessListView({
     feed.key,
     CAMUNDA7_INCIDENTS_DATA,
     feed.args,
-    feed.ready,
+    true,
   )
 
   const [search, setSearch] = useState("")
@@ -336,7 +329,7 @@ export function IncidentProcessListView({
                 <ProcessSummary
                   process={p}
                   expanded={expanded.has(p.processDefinitionKey)}
-                  engineId={engine ?? data.engineId}
+                  engineId={engine}
                   vendor={data.engineVendor}
                   filters={data.filters}
                   onOpenDetail={() => openDetail(p)}
@@ -357,7 +350,7 @@ export function IncidentProcessList({
   engine,
 }: {
   data: IncidentsDashboardData | null
-  engine?: string
+  engine: string
 }) {
   return (
     <WidgetShell>

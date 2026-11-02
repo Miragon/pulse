@@ -2,18 +2,19 @@ import type { MessageCatalog } from "@miragon/pulse-widget-shell/widgets"
 import { countOf } from "./plural.js"
 
 export const de: MessageCatalog = {
-  "cockpit.crumb.processList": "Alle Prozesse",
   "cockpit.section.overview": "Übersicht",
   "cockpit.section.incidents": "Incidents",
+  "cockpit.section.jobs": "Jobs",
   "cockpit.crumb.overview": "Übersicht",
   "cockpit.crumb.incidents": "Incidents",
   "cockpit.crumb.instances": "Instanzen",
-  "cockpit.crumb.origin": "Start",
+  "cockpit.crumb.jobs": "Jobs",
   // Die {id} kommt bereits gekürzt an (Kit-`truncate` ergänzt die Ellipse).
   "cockpit.crumb.instance": ({ id }) => `Instanz ${String(id)}`,
   "cockpit.crumb.incident": ({ id }) => `Incident ${String(id)}`,
   "cockpit.crumb.cluster": ({ activity }) => `Cluster: ${String(activity)}`,
   "cockpit.crumb.incidentAt": ({ activity }) => `Incident bei ${String(activity)}`,
+  "cockpit.crumb.history": ({ id }) => `Verlauf ${String(id)}`,
   "cockpit.loading.engines": "Engines werden geladen…",
   "cockpit.empty.enginesTitle": "Keine Engines konfiguriert",
   "cockpit.empty.engines":

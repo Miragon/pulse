@@ -29,7 +29,7 @@ const HEATMAP: AnalyticsBpmnHeatmapData = {
   period: "14d",
   engines: ["prod-a"],
   frequency: { Task_A: 12 },
-  durationSec: { Task_A: 3.5 },
+  durationMs: { Task_A: 3500 },
   asOf: "2026-10-10T12:32:00.000Z",
 }
 

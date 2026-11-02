@@ -47,7 +47,6 @@ export function activityBottleneckHandOff(
       totalTimeMs: act.totalTimeMs,
       incidentsCreated: act.incidentsCreated,
     },
-    tools: ["analytics_show_dashboard"],
   }
 }
 

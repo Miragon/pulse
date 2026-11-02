@@ -12,11 +12,6 @@ export function checkVariablesHandOff(
   return {
     intent: "askAi.instance.checkVariables",
     ids: { engine: engineId, processInstanceId: instanceId, processDefinitionId: definitionId },
-    tools: [
-      "camunda7_get_process_instance_variables",
-      "camunda7_list_incidents",
-      "camunda7_set_process_instance_variable",
-    ],
   }
 }
 

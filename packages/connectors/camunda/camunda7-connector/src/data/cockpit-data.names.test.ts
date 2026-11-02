@@ -5,11 +5,7 @@ import {
   type FakeEngine,
   type FakeRoutes,
 } from "../tools/test-support/fake-engine.js"
-import {
-  buildCockpitDashboardData,
-  buildProcessInstancesData,
-  buildProcessListData,
-} from "./cockpit-data.js"
+import { buildCockpitDashboardData, buildProcessInstancesData } from "./cockpit-data.js"
 
 const engines: FakeEngine[] = []
 afterEach(async () => {
@@ -67,23 +63,6 @@ describe("the lists name a Modeler pool's unnamed process as analytics does", ()
       "/process-definition/statistics",
       `/process-definition/${LEASING}/xml`,
     ])
-  })
-
-  it("in the definitions list", async () => {
-    const { client } = await engineWith({
-      ...xmlRoute,
-      "GET /process-definition": {
-        body: [
-          { id: "order:1:d", key: "order", name: "Order", version: 1 },
-          { id: LEASING, key: "miraveloLeasing", name: null, version: 3 },
-        ],
-      },
-      "GET /process-definition/count": { body: { count: 2 } },
-    })
-
-    const data = await buildProcessListData(client, "engine-a", {})
-
-    expect(data.definitions.map((d) => d.name)).toEqual(["Order", "Miravelo - Bike Leasing"])
   })
 
   it("in the instance list, its rows and its title", async () => {

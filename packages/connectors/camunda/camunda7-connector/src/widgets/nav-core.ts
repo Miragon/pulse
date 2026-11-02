@@ -1,28 +1,7 @@
 import { truncate } from "@miragon/pulse-ui"
 import { translator } from "../messages/use-t.js"
+import type { CockpitView } from "../view-models.js"
 import type { NavIntent } from "./navigation.js"
-
-/** Client-side view state shared by the cockpit app and the standalone shell; pure, host policy stays with the host. */
-export type CockpitView =
-  | { section: "overview" }
-  | { section: "process-list" }
-  | { section: "incidents" }
-  | {
-      section: "cluster-detail"
-      activityId: string
-      incidentType: string
-      messageSignature?: string
-      label?: string
-    }
-  | {
-      section: "process-detail"
-      processDefinitionKey: string
-      focus?: "incidents"
-      label?: string
-    }
-  | { section: "process-instances"; processDefinitionKey?: string }
-  | { section: "instance-detail"; processInstanceId: string; label?: string }
-  | { section: "incident-detail"; incidentId: string; label?: string }
 
 function labelOf(intent: { label?: string }): { label?: string } {
   return intent.label ? { label: intent.label } : {}
@@ -33,9 +12,6 @@ export function intentToView(intent: NavIntent): CockpitView {
   switch (intent.type) {
     case "overview":
       return { section: "overview" }
-    // A drill view, not the overview: the emitting KPIs sit on the overview, so that was a no-op click.
-    case "process-list":
-      return { section: "process-list" }
     case "incidents":
       return { section: "incidents" }
     case "cluster-detail":
@@ -70,6 +46,12 @@ export function intentToView(intent: NavIntent): CockpitView {
       }
     case "incident-detail":
       return { section: "incident-detail", incidentId: intent.incidentId, ...labelOf(intent) }
+    case "jobs":
+      return {
+        section: "jobs",
+        processDefinitionKey: intent.processDefinitionKey,
+        failedOnly: intent.failedOnly,
+      }
   }
   return intent satisfies never
 }
@@ -86,13 +68,17 @@ export function viewKey(view: CockpitView): string {
       return `instance-detail:${view.processInstanceId}`
     case "incident-detail":
       return `incident-detail:${view.incidentId}`
+    case "jobs":
+      return `jobs:${view.processDefinitionKey ?? "*"}:${view.failedOnly ? "failed" : "all"}`
+    case "history":
+      return `history:${view.processInstanceId}`
     default:
       return view.section
   }
 }
 
-// An existing entry pops back (adopting the new params). The cockpit's top-section reset stays in its
-// sidebar: the standalone shell must always keep a way back to its origin.
+// An existing entry pops back (adopting the new params). The top-section reset is the cockpit
+// reducer's policy, not this one's.
 export function pushView(stack: CockpitView[], view: CockpitView): CockpitView[] {
   const key = viewKey(view)
   const existing = stack.findIndex((v) => viewKey(v) === key)
@@ -104,7 +90,7 @@ export function pushView(stack: CockpitView[], view: CockpitView): CockpitView[]
   return [...stack, view]
 }
 
-// Never empties the stack; leaving the trail entirely (shell back-to-origin) is the host's job.
+// Never empties the stack; leaving the engine (the "all engines" crumb) is the cockpit's job.
 export function popTo(stack: CockpitView[], to?: number): CockpitView[] {
   const index = Math.min(to ?? stack.length - 2, stack.length - 1)
   return stack.slice(0, Math.max(index, 0) + 1)
@@ -115,8 +101,6 @@ export function crumbLabel(view: CockpitView, locale: string): string {
   switch (view.section) {
     case "overview":
       return tr("cockpit.crumb.overview")
-    case "process-list":
-      return tr("cockpit.crumb.processList")
     case "incidents":
       return tr("cockpit.crumb.incidents")
     // Names before ids (#322 U13): the drill's label, else the addressing id.
@@ -132,44 +116,10 @@ export function crumbLabel(view: CockpitView, locale: string): string {
         : tr("cockpit.crumb.incident", { id: truncate(view.incidentId, 8) })
     case "cluster-detail":
       return view.label ?? tr("cockpit.crumb.cluster", { activity: view.activityId })
-  }
-}
-
-// The shell's conversational fallback names the view on top; a stored "last intent" goes stale on a breadcrumb pop.
-export function viewToIntent(view: CockpitView): NavIntent {
-  switch (view.section) {
-    case "process-detail":
-      return view.focus === "incidents"
-        ? {
-            type: "process-incidents",
-            processDefinitionKey: view.processDefinitionKey,
-            ...labelOf(view),
-          }
-        : {
-            type: "process-detail",
-            processDefinitionKey: view.processDefinitionKey,
-            ...labelOf(view),
-          }
-    case "process-instances":
-      return { type: "process-instances", processDefinitionKey: view.processDefinitionKey }
-    case "instance-detail":
-      return {
-        type: "instance-detail",
-        processInstanceId: view.processInstanceId,
-        ...labelOf(view),
-      }
-    case "incident-detail":
-      return { type: "incident-detail", incidentId: view.incidentId, ...labelOf(view) }
-    case "cluster-detail":
-      return {
-        type: "cluster-detail",
-        activityId: view.activityId,
-        incidentType: view.incidentType,
-        messageSignature: view.messageSignature,
-        ...labelOf(view),
-      }
-    default:
-      return { type: view.section }
+    case "jobs":
+      return tr("cockpit.crumb.jobs")
+    case "history":
+      return tr("cockpit.crumb.history", { id: truncate(view.processInstanceId, 8) })
   }
 }
 

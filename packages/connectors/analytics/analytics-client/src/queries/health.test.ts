@@ -99,7 +99,7 @@ describe("engineHealth snapshot", () => {
 
 /**
  * #340: the verdict is alert-based and says so — the same engine may be
- * "critical" in camunda7_show_engine_health (incident counts) and only
+ * "critical" in camunda7_open_cockpit's overview (incident counts) and only
  * "degraded" here. #336: silence is not health.
  */
 describe("engineHealth verdict", () => {

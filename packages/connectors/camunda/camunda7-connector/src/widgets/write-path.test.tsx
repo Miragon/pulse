@@ -15,7 +15,7 @@ import { CockpitApp } from "./cockpit-app/app.js"
 import { JobPanelWidget } from "./job-panel.js"
 import {
   InCockpit,
-  Standalone,
+  Seeded,
   adminActions,
   completeTheOpenTask,
   feedCalls,
@@ -40,14 +40,14 @@ const AFTER_REVIEW = instance({
 })
 
 describe("completing a user task refreshes the instance (N99)", () => {
-  it("standalone: the tool result is a seed — the view refetches and shows the next task", async () => {
+  it("seeded: the start data is a seed, and the view refetches and shows the next task", async () => {
     const calls: Calls = []
-    renderInstance(Standalone, instance(), {
+    renderInstance(Seeded, instance(), {
       ...recorder(calls, "camunda7_complete_task", () => ({ success: true, outcome: "completed" })),
       ...recorder(calls, CAMUNDA7_INSTANCE_DETAIL_DATA, () => AFTER_REVIEW),
     })
     expect(await screen.findByText("Review invoice")).toBeTruthy()
-    // The show tool just read the seed.
+    // The tool result just carried the seed.
     expect(feedCalls(calls)).toHaveLength(0)
 
     await completeTheOpenTask()
@@ -89,7 +89,7 @@ describe("completing a user task refreshes the instance (N99)", () => {
     const calls: Calls = []
     const contexts: string[] = []
     renderInstance(
-      Standalone,
+      Seeded,
       instance(),
       {
         camunda7_complete_task: () => ({ success: true, outcome: "completed" }),
@@ -120,7 +120,7 @@ describe("completing a user task refreshes the instance (N99)", () => {
 describe("a confirmation names its target (N108)", () => {
   it("cancel: names instance, business key and engine; Keep instance vs Cancel instance", async () => {
     const calls: Calls = []
-    renderInstance(Standalone, instance(), {
+    renderInstance(Seeded, instance(), {
       ...recorder(calls, "camunda7_delete_process_instance", () => ({ success: true })),
     })
     fireEvent.click(await screen.findByRole("button", { name: "Cancel instance" }))
@@ -144,7 +144,7 @@ describe("a confirmation names its target (N108)", () => {
 
   it("suspend: names the instance; Keep running vs Suspend instance", async () => {
     const calls: Calls = []
-    renderInstance(Standalone, instance(), {
+    renderInstance(Seeded, instance(), {
       ...recorder(calls, "camunda7_set_process_instance_suspension", () => ({ success: true })),
       [CAMUNDA7_INSTANCE_DETAIL_DATA]: () => instance(),
     })
@@ -179,7 +179,7 @@ describe("a confirmation names its target (N108)", () => {
       openTasks: [],
       openTaskCount: 0,
     })
-    renderInstance(Standalone, withIncident, {
+    renderInstance(Seeded, withIncident, {
       ...recorder(calls, "camunda7_resolve_incident", () => ({ success: true })),
     })
     fireEvent.click(await screen.findByRole("button", { name: "Mark as resolved" }))
@@ -212,7 +212,13 @@ describe("the cockpit refreshes and retries instead of dead-ending (N103)", () =
   it("the cockpit's Refresh re-reads the open view's feed", async () => {
     const overviewCalls: unknown[] = []
     const Cockpit: ComponentType<Record<string, unknown>> = () => (
-      <CockpitApp data={{ engineId: "prod", engines: [{ id: "prod", environment: "default" }] }} />
+      <CockpitApp
+        data={{
+          engineId: "prod",
+          engines: [{ id: "prod", environment: "default" }],
+          start: null,
+        }}
+      />
     )
     render(
       <TestViewHost
@@ -272,7 +278,7 @@ const JOBS: JobPanelData = {
   engineId: "prod",
 }
 
-describe("a standalone show view refreshes after a write (K46)", () => {
+describe("the cockpit's seeded start view refreshes after a write (K46)", () => {
   it("job panel: Retry refetches the seeded page — the retried job leaves the failed-only list", async () => {
     const calls: Calls = []
     const AFTER_RETRY: JobPanelData = { ...JOBS, totalCount: 0, failedCount: 0, jobs: [] }
@@ -284,7 +290,7 @@ describe("a standalone show view refreshes after a write (K46)", () => {
           ...recorder(calls, CAMUNDA7_JOBS_DATA, () => AFTER_RETRY),
         }}
       >
-        <JobPanelWidget data={JOBS as never} />
+        <JobPanelWidget data={JOBS as never} engine="prod" failedOnly />
       </TestViewHost>,
     )
     fireEvent.click(await screen.findByRole("button", { name: "Retry job" }))

@@ -1,6 +1,5 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from "vitest"
-import type { ComponentType } from "react"
 import { cleanup, render, screen, within } from "@testing-library/react"
 import { ProcessDefinitionKpi } from "./process-incidents/kpi.js"
 import { diagramActivityFraction } from "./process-incidents/activity-scope.js"
@@ -48,7 +47,10 @@ const DATA: ProcessIncidentsData = {
   engineId: "prod-a",
 }
 
-const Kpi = ProcessDefinitionKpi as unknown as ComponentType<Record<string, unknown>>
+/** The process detail's KPI strip on the route's process and engine. */
+const Kpi = ({ data }: { data: ProcessIncidentsData }) => (
+  <ProcessDefinitionKpi data={data} processDefinitionKey="leasing" engine="prod-a" />
+)
 
 describe("definition view — activities affected over the diagram", () => {
   it("counts only the diagram's activities in the fraction and names the older-version ones beside it", () => {

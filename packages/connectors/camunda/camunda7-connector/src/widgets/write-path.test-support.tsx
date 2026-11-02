@@ -14,7 +14,7 @@ import {
 // One retry-free client per test, so a failing feed answers at once.
 let queryClient = createTestQueryClient()
 
-let admin: { allowedActions: string[]; modelTools: string[] }
+let admin: { allowedActions: string[] }
 
 export const adminActions = () => admin
 
@@ -100,7 +100,10 @@ export function recorder(
   }
 }
 
-export const Standalone = InstanceDetailWidget as unknown as ComponentType<Record<string, unknown>>
+/** The instance view opened on its start data, as `camunda7_open_cockpit` seeds it. */
+export const Seeded: ComponentType<Record<string, unknown>> = ({ data }) => (
+  <InstanceDetailWidget data={data as InstanceDetailData} processInstanceId="pi-1" engine="prod" />
+)
 export const InCockpit: ComponentType<Record<string, unknown>> = () => (
   <InstanceDetailWidget processInstanceId="pi-1" engine="prod" />
 )

@@ -80,13 +80,16 @@ const JOBS: JobPanelData = {
   engineId: "default",
 }
 
-/** What a read-only deployment registers for the model — the hand-offs' surface there. */
-let readOnlyModelTools: string[]
+/** What a read-only deployment's widget-actions feed answers: no write. */
+let readOnlyFeed: { allowedActions: string[] }
 beforeAll(async () => {
-  readOnlyModelTools = (await widgetActionsFeedFor("read-only")).modelTools
+  readOnlyFeed = await widgetActionsFeedFor("read-only")
 })
 
-const JobPanel = JobPanelWidget as unknown as ComponentType<Record<string, unknown>>
+/** The jobs route on the fixture's engine. */
+const JobPanel: ComponentType<Record<string, unknown>> = ({ data }) => (
+  <JobPanelWidget data={data as JobPanelData} engine="default" />
+)
 
 const Variables: ComponentType<Record<string, unknown>> = () => (
   <VariablesTable
@@ -106,7 +109,7 @@ function renderWith(widget: ComponentType<Record<string, unknown>>, feed: unknow
 
 describe("the gate fails closed and hides only the write", () => {
   it("hides the job retry button in read-only but keeps the AI handoffs", async () => {
-    renderWith(JobPanel, { allowedActions: [], modelTools: readOnlyModelTools })
+    renderWith(JobPanel, readOnlyFeed)
     await feedSettled()
     expect(screen.queryByText("Retry job")).toBeNull()
     // The hand-offs wait behind the row's "more" button (#322 U11).

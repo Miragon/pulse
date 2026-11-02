@@ -27,7 +27,7 @@ function host(
   return (
     <TestViewHost
       tools={{
-        [CAMUNDA7_WIDGET_ACTIONS_DATA]: { allowedActions: [...allowedActions], modelTools: [] },
+        [CAMUNDA7_WIDGET_ACTIONS_DATA]: { allowedActions: [...allowedActions] },
       }}
       client={client}
     >
@@ -117,8 +117,13 @@ function incidentRows(incidentType: string, recovery: IncidentRecovery) {
   return Rows
 }
 
-const Instance = InstanceDetailWidget as unknown as ComponentType<Record<string, unknown>>
-const Jobs = JobPanelWidget as unknown as ComponentType<Record<string, unknown>>
+/** The instance and jobs routes on the fixtures' engine. */
+const Instance: ComponentType<Record<string, unknown>> = ({ data }) => (
+  <InstanceDetailWidget data={data as InstanceDetailData} processInstanceId="pi-1" engine="prod" />
+)
+const Jobs: ComponentType<Record<string, unknown>> = ({ data }) => (
+  <JobPanelWidget data={data as JobPanelData} engine="prod" />
+)
 const Variables: ComponentType<Record<string, unknown>> = () => (
   <VariablesTable variables={{ amount: { value: 42, type: "Integer" } }} instanceId="pi-1" />
 )

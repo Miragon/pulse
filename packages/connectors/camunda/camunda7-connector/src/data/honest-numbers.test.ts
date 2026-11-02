@@ -12,17 +12,16 @@ import {
   type RecordedRequest,
 } from "../tools/test-support/fake-engine.js"
 import { ENGINE_FAILURE, readOf, WORLD, worldReply } from "../tools/test-support/engine-world.js"
-import { buildBpmnViewerData } from "./bpmn-viewer-data.js"
 import {
   buildCockpitDashboardData,
   buildJobPanelData,
   buildProcessInstancesData,
-  buildProcessListData,
 } from "./cockpit-data.js"
+import { buildCockpitStart } from "./cockpit-start.js"
 import { buildClusterDetailData } from "./cluster-detail-data.js"
 import { CLUSTER_SCAN_LIMIT } from "./cluster-scan.js"
 import { countOf, INCIDENT_SCAN_LIMIT, optional, rowsOf } from "./engine-reads.js"
-import { buildEngineHealthData } from "./health-data.js"
+import { buildEngineHealthData, DEFAULT_HEALTH_THRESHOLDS } from "./health-data.js"
 import { buildHistoryTimelineData } from "./history-timeline-data.js"
 import { buildIncidentDetailData } from "./incident-detail-data.js"
 import { buildIncidentsDashboardData } from "./incidents-dashboard-data.js"
@@ -134,9 +133,6 @@ const CASES: Record<string, Case> = {
   buildCockpitDashboardData: {
     run: (client) => buildCockpitDashboardData(client, "fake"),
   },
-  buildProcessListData: {
-    run: (client) => buildProcessListData(client, "fake", {}),
-  },
   buildProcessInstancesData: {
     run: (client) => buildProcessInstancesData(client, "fake", { processDefinitionKey: WORLD.key }),
     unknown: { read: KEY_LOOKUP, reply: NO_ROWS },
@@ -186,15 +182,6 @@ const CASES: Record<string, Case> = {
         data.incidentActivityIds,
     },
   },
-  buildBpmnViewerData: {
-    run: (client) => buildBpmnViewerData(client, "fake", { processInstanceId: WORLD.instanceId }),
-    unknown: { read: `GET /process-instance/${WORLD.instanceId}`, reply: NOT_FOUND },
-    enrichment: {
-      [`GET /process-definition/${WORLD.instanceDefinitionId}/xml`]: (data: {
-        diagramDefinitionId: unknown
-      }) => data.diagramDefinitionId,
-    },
-  },
   buildEngineHealthData: {
     run: (client) => buildEngineHealthData(client, "fake"),
     enrichment: {
@@ -208,6 +195,26 @@ const CASES: Record<string, Case> = {
       [namesFrom(WORLD.instanceDefinitionId)]: (data: {
         clusters: Array<{ activityName: unknown }>
       }) => data.clusters[0]?.activityName,
+    },
+  },
+  // The cockpit's start view: the overview reads the health verdict and the definitions table.
+  "buildCockpitStart (overview)": {
+    run: (client, baseUrl) =>
+      buildCockpitStart(
+        { section: "overview" },
+        { client, engineId: "fake", ...urls(baseUrl) },
+        DEFAULT_HEALTH_THRESHOLDS,
+      ),
+    enrichment: {
+      "GET /history/process-instance/count?startedAfter": (data: {
+        data: { health: { summary: { started24h: unknown } } }
+      }) => data.data.health.summary.started24h,
+      "GET /history/process-instance/count?finishedAfter": (data: {
+        data: { health: { summary: { completed24h: unknown } } }
+      }) => data.data.health.summary.completed24h,
+      [namesFrom(WORLD.instanceDefinitionId)]: (data: {
+        data: { health: { clusters: Array<{ activityName: unknown }> } }
+      }) => data.data.health.clusters[0]?.activityName,
     },
   },
   buildClusterDetailData: { run: clusterDetail, enrichment: clusterNames },

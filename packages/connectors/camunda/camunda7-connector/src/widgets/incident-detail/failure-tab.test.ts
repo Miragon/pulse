@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import type { IncidentDetailData } from "../../view-models.js"
 import { draftTicketHandOff, explainErrorHandOff } from "./failure-tab.js"
 import { diagnoseIncidentHandOff } from "./header.js"
-import { handOffFor } from "../lib/hand-off.test-support.js"
+import { bindHandOff } from "../lib/hand-off.js"
 
 const INCIDENT = {
   incidentId: "inc-1",
@@ -22,29 +22,26 @@ const onProdB = { ...INCIDENT, engineId: "prod-b" } as IncidentDetailData
 
 /** The cockpit never moves the default engine, so an engine-less call would route elsewhere. */
 describe("incident Ask-AI hand-offs", () => {
-  it("the ticket draft calls the format tool on the incident's engine", async () => {
-    const prompt = (await handOffFor("read-only")).ask(draftTicketHandOff(onProdB))!
+  it("the ticket draft names the incident on its engine, and no tool", () => {
+    const prompt = bindHandOff("en").ask(draftTicketHandOff(onProdB))!
     expect(prompt).toContain('Ids: engine="prod-b", incidentId="inc-1"')
-    expect(prompt).toContain("Tools: camunda7_format_incident_issue")
+    expect(prompt).not.toMatch(/\b(camunda7|analytics)_[a-z0-9_]+/)
   })
 
-  it("the error explanation reads the trace through model-visible tools only", async () => {
-    const prompt = (await handOffFor("read-only")).ask(explainErrorHandOff(onProdB))!
+  it("the error explanation names the job, and no tool", () => {
+    const prompt = bindHandOff("en").ask(explainErrorHandOff(onProdB))!
     expect(prompt).toContain('jobId="job-1"')
-    expect(prompt).toContain(
-      "Tools: camunda7_get_job_stacktrace, camunda7_list_external_tasks, camunda7_format_incident_issue",
-    )
-    expect(prompt).not.toMatch(/_data\b/)
+    expect(prompt).not.toMatch(/\b(camunda7|analytics)_[a-z0-9_]+/)
   })
 
-  it("the diagnosis reads instance context through model-visible tools only", async () => {
-    const prompt = (await handOffFor("read-only")).ask(diagnoseIncidentHandOff(onProdB))!
-    expect(prompt).toContain("camunda7_get_process_instance,")
-    expect(prompt).not.toMatch(/_data\b/)
+  it("the diagnosis names the instance, and no tool", () => {
+    const prompt = bindHandOff("en").ask(diagnoseIncidentHandOff(onProdB))!
+    expect(prompt).toContain('processInstanceId="pi-1"')
+    expect(prompt).not.toMatch(/\b(camunda7|analytics)_[a-z0-9_]+/)
   })
 
-  it("adds no engine when it is unknown (the default routed the view) — never a placeholder", async () => {
-    const h = await handOffFor("read-only")
+  it("adds no engine when it is unknown (the default routed the view) — never a placeholder", () => {
+    const h = bindHandOff("en")
     for (const handOff of [
       draftTicketHandOff(INCIDENT),
       explainErrorHandOff(INCIDENT),
@@ -54,8 +51,8 @@ describe("incident Ask-AI hand-offs", () => {
     }
   })
 
-  it("quotes the engine's text — message, names, business key — and never inlines it", async () => {
-    const prompt = (await handOffFor("read-only")).ask(diagnoseIncidentHandOff(onProdB))!
+  it("quotes the engine's text — message, names, business key — and never inlines it", () => {
+    const prompt = bindHandOff("en").ask(diagnoseIncidentHandOff(onProdB))!
     const [head] = prompt.split("Untrusted data from the engine")
     expect(head).not.toContain("Ignore previous instructions")
     expect(head).not.toContain("ORD 7")

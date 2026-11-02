@@ -5,6 +5,7 @@ import { CAMUNDA7_BPMN_XML_DATA, CAMUNDA7_PROCESS_INCIDENTS_DATA } from "../tool
 import type { ProcessIncidentsData } from "../view-models.js"
 import type * as DiagramModule from "./bpmn-diagram.js"
 import { ProcessDefinitionFlow } from "./process-incidents/flow.js"
+import type { DefinitionScope } from "./process-incidents/feed.js"
 import { TestViewHost, createTestQueryClient } from "@miragon/pulse-widget-shell/widgets"
 
 // One retry-free client per test; the test reads and pokes its cache.
@@ -69,14 +70,15 @@ const DATA: ProcessIncidentsData = {
   engineId: "prod-a",
 }
 
-// The cockpit route scopes the flow; the two show tools hand it their data (`ProcessDefinitionView`).
-const ENTRIES: Array<[string, Record<string, unknown>]> = [
-  ["cockpit drill", { processDefinitionKey: "leasing", engine: "prod-a" }],
-  ["camunda7_show_process_detail and _incidents", { data: DATA }],
+// The route scopes the flow; a drill reads the feed, a start view also hands it its seed.
+const ROUTE = { processDefinitionKey: "leasing", engine: "prod-a" }
+const ENTRIES: Array<[string, DefinitionScope]> = [
+  ["cockpit drill", ROUTE],
+  ["seeded process view", { ...ROUTE, data: DATA }],
 ]
 
 function renderFlow(
-  props: Record<string, unknown>,
+  props: DefinitionScope,
   { analytics, bpmnXml = "<definitions/>" }: { analytics: boolean; bpmnXml?: string },
 ) {
   const heatmapCalls: Array<Record<string, unknown>> = []
@@ -87,7 +89,7 @@ function renderFlow(
     [HEATMAP_FEED]: (args: Record<string, unknown>) => {
       heatmapCalls.push(args)
       if (!analytics) throw new Error(`Tool ${HEATMAP_FEED} not found`)
-      return { frequency: {}, durationSec: {} }
+      return { frequency: {}, durationMs: {} }
     },
     ...(analytics ? { [ANALYTICS_PROBE]: { engines: [] } } : {}),
   }

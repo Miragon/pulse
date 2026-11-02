@@ -1,6 +1,7 @@
 import { enginesByEnvironment } from "../../lib/environments.js"
 import type { ViewContext } from "../lib/hand-off.js"
-import { selectedEntity, type CockpitView } from "../nav-core.js"
+import type { CockpitView } from "../../view-models.js"
+import { selectedEntity } from "../nav-core.js"
 
 /** The view was navigated client-side: no chat turn tells the model. */
 export function cockpitContext(engineId: string, current: CockpitView): ViewContext {
@@ -17,12 +18,6 @@ export function cockpitContext(engineId: string, current: CockpitView): ViewCont
       processDefinitionKey: selected.processDefinitionKey,
     },
     facts: { view: current.section },
-    tools: [
-      "camunda7_show_incident_detail",
-      "camunda7_show_instance_detail",
-      "camunda7_show_process_detail",
-      "camunda7_format_incident_issue",
-    ],
   }
 }
 
@@ -39,7 +34,6 @@ export function landingContext(
       engines: engineGroups.flatMap((g) => g.engines.map((e) => e.id)),
       environments: enginesByEnvironment(engineGroups),
     },
-    tools: ["camunda7_list_engines", "camunda7_show_engine_health"],
   }
 }
 
@@ -54,32 +48,5 @@ export function fleetContext(
       "its single-engine cockpit.",
     ids: { engine: engineGroups.flatMap((g) => g.engines.map((e) => e.id)) },
     facts: { environments: enginesByEnvironment(engineGroups) },
-    tools: [
-      "analytics_show_engine_landscape",
-      "analytics_engine_health",
-      "analytics_show_engine_compare",
-      "camunda7_show_engine_health",
-    ],
-  }
-}
-
-export function drillContext(current: CockpitView, engineId: string | undefined): ViewContext {
-  const selected = selectedEntity(current)
-  return {
-    summary:
-      "The operator drilled here client-side from this turn's widget (no chat turn); the origin " +
-      "view is still reachable via the breadcrumb.",
-    ids: {
-      engine: engineId,
-      incidentId: selected.incidentId,
-      processInstanceId: selected.processInstanceId,
-      processDefinitionKey: selected.processDefinitionKey,
-    },
-    facts: { view: current.section },
-    tools: [
-      "camunda7_show_incident_detail",
-      "camunda7_show_instance_detail",
-      "camunda7_show_process_detail",
-    ],
   }
 }

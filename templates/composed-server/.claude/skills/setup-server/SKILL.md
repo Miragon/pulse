@@ -241,7 +241,7 @@ pnpm build && pnpm typecheck && pnpm test
 
 Then a functional pass in the inspector: `camunda7_list_engines` (engines
 configured), one cheap read such as `camunda7_list_process_definitions` (engine
-reachable, auth works), one `camunda7_show_*` widget, one analytics tool (Prometheus
+reachable, auth works), the cockpit (`camunda7_open_cockpit`), one analytics tool (Prometheus
 reachable, `engine_id` matches). A clean boot log (no unknown-var or
 missing-URL warnings) is part of done.
 

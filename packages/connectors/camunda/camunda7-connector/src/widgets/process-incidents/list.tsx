@@ -4,7 +4,7 @@ import { ViewDataState, WidgetShell } from "@miragon/pulse-widget-shell/widgets"
 import type { ProcessIncidentsData } from "../../view-models.js"
 import { useNav } from "../navigation.js"
 import { ActivitySummary } from "./activity-summary.js"
-import { useDefinitionData } from "./feed.js"
+import { useDefinitionData, type DefinitionScope } from "./feed.js"
 import { PagedIncidentTable } from "./incident-table.js"
 import { EmptyStateWithSiblings } from "./empty-state.js"
 import { useT } from "../../messages/use-t.js"
@@ -38,27 +38,16 @@ function NoIncidentsState({
 }
 
 export function ActivityIncidentList({
-  data: initialData = null,
-  processDefinitionKey,
-  engine,
   emptyVariant = "note",
-}: {
-  data?: ProcessIncidentsData | null
-  processDefinitionKey?: string
-  engine?: string
+  ...scope
+}: DefinitionScope & {
   /** "note" is the default slim success line; "siblings" the explorative empty state of the incidents focus. */
   emptyVariant?: "siblings" | "note"
 }) {
   const t = useT()
   const go = useNav()
-  const { data, loading, error, refetch } = useDefinitionData(
-    initialData,
-    processDefinitionKey,
-    engine,
-  )
+  const { data, loading, error, refetch } = useDefinitionData(scope)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
-  // Writes target the data's engine, never the default engine.
-  const engineId = engine ?? data?.engineId
 
   if (!data) {
     return (
@@ -120,7 +109,7 @@ export function ActivityIncidentList({
               <PagedIncidentTable
                 processDefinitionKey={data.processDefinitionKey}
                 activityId={activity.activityId}
-                engine={engineId}
+                engine={scope.engine}
                 vendor={data.engineVendor}
                 onAnalyze={(incidentId) => analyzeIncident(incidentId, activity.activityName)}
               />

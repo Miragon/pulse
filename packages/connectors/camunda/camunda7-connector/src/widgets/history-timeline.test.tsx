@@ -1,10 +1,10 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest"
-import type { ComponentType } from "react"
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { explainActivityHandOff, HistoryTimelineWidget } from "./history-timeline.js"
 import type { HistoryTimelineData } from "../view-models.js"
-import { TestViewHost } from "@miragon/pulse-widget-shell/widgets"
+import { CAMUNDA7_HISTORY_TIMELINE_DATA } from "../tool-names.js"
+import { TestViewHost, createTestQueryClient } from "@miragon/pulse-widget-shell/widgets"
 
 afterEach(cleanup)
 
@@ -47,8 +47,10 @@ const DATA: HistoryTimelineData = {
   engineId: "default",
 }
 
-// The fixture-host prop type is intentionally loose.
-const Widget = HistoryTimelineWidget as unknown as ComponentType<Record<string, unknown>>
+/** The history route on the cockpit's engine, the fixture's `default`, for the fixture's instance. */
+const Widget = ({ data }: { data: HistoryTimelineData }) => (
+  <HistoryTimelineWidget data={data} processInstanceId="pi-1" engine="default" />
+)
 
 describe("HistoryTimelineWidget (fixture render)", () => {
   it("renders the process header and per-activity rows from fixture data", () => {
@@ -114,10 +116,44 @@ describe("HistoryTimelineWidget (fixture render)", () => {
       /bg-(purple|indigo|pink|cyan|teal|orange|amber|yellow|blue)-/,
     )
   })
+})
 
-  it("renders the empty state when data is null", () => {
-    render(<HistoryTimelineWidget data={null} />)
-    expect(screen.getByText("No data available")).toBeTruthy()
+/** The history route: no seed, so the widget reads its own feed on the cockpit's engine. */
+describe("HistoryTimelineWidget self-fetch", () => {
+  it("reads the timeline feed for its instance on its engine", async () => {
+    const feed = vi.fn(() => DATA)
+    render(
+      <TestViewHost tools={{ [CAMUNDA7_HISTORY_TIMELINE_DATA]: feed }}>
+        <HistoryTimelineWidget processInstanceId="pi-1" engine="prod-a" />
+      </TestViewHost>,
+    )
+    expect(await screen.findByText("Invoice Process")).toBeTruthy()
+    expect(feed).toHaveBeenCalledWith({ processInstanceId: "pi-1", engine: "prod-a" })
+  })
+
+  it("says it is loading while the feed has not answered", () => {
+    render(
+      <TestViewHost tools={{ [CAMUNDA7_HISTORY_TIMELINE_DATA]: () => new Promise(() => {}) }}>
+        <HistoryTimelineWidget processInstanceId="pi-1" engine="prod-a" />
+      </TestViewHost>,
+    )
+    expect(screen.getByText("Loading activity history…")).toBeTruthy()
+  })
+
+  it("shows a failed read with a retry that reads again", async () => {
+    const feed = vi.fn(() => {
+      throw new Error("engine unreachable")
+    })
+    render(
+      <TestViewHost
+        tools={{ [CAMUNDA7_HISTORY_TIMELINE_DATA]: feed }}
+        client={createTestQueryClient()}
+      >
+        <HistoryTimelineWidget processInstanceId="pi-1" engine="prod-a" />
+      </TestViewHost>,
+    )
+    fireEvent.click(await screen.findByRole("button", { name: "Try again" }))
+    await waitFor(() => expect(feed).toHaveBeenCalledTimes(2))
   })
 })
 
@@ -183,8 +219,9 @@ describe("explainActivityHandOff", () => {
       { id: "pi-1", processDefinitionKey: "invoice" },
       "prod",
     )
-    expect(handOff.ids).toMatchObject({ engine: "prod", processInstanceId: "pi-1" })
-    expect(handOff.toolIds?.analytics_show_dashboard).toEqual({
+    expect(handOff.ids).toMatchObject({
+      engine: "prod",
+      processInstanceId: "pi-1",
       processDefinitionKey: "invoice",
     })
   })
@@ -195,8 +232,6 @@ describe("explainActivityHandOff", () => {
       { id: "pi-1", processDefinitionKey: null },
       "prod",
     )
-    expect(handOff.toolIds?.analytics_show_dashboard).toEqual({
-      processDefinitionKey: undefined,
-    })
+    expect(handOff.ids?.processDefinitionKey).toBeUndefined()
   })
 })

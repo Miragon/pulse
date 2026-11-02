@@ -2,9 +2,7 @@ import type {
   IncidentsDashboardData,
   ProcessIncidentsData,
   CockpitDashboardData,
-  BpmnViewerData,
 } from "../view-models.js"
-import type { ProcessListData } from "./process-list.js"
 import type { IncidentDetailData } from "./incident-detail.js"
 import type { HistoryTimelineData } from "./history-timeline.js"
 import type { InstanceDetailData } from "./instance-detail.js"
@@ -18,14 +16,12 @@ export { camunda7Views } from "./views.js"
 export const CAMUNDA7_HOST_WIDGET_REFS = [ENGINE_LANDSCAPE_WIDGET] as const
 
 export type {
-  ProcessListData,
   IncidentsDashboardData,
   ProcessIncidentsData,
   IncidentDetailData,
   HistoryTimelineData,
   InstanceDetailData,
   CockpitDashboardData,
-  BpmnViewerData,
   JobPanelData,
   ProcessInstancesData,
 }

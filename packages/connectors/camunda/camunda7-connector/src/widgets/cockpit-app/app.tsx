@@ -18,19 +18,12 @@ import {
   ViewErrorBoundary,
   WidgetShell,
 } from "@miragon/pulse-widget-shell/widgets"
-import { Layers, LayoutDashboard, TriangleAlert } from "lucide-react"
-import type { CockpitAppData } from "../../view-models.js"
+import { Cog, Layers, LayoutDashboard, TriangleAlert } from "lucide-react"
+import type { CockpitAppData, CockpitStart, CockpitView } from "../../view-models.js"
 import { groupEnginesByEnvironment } from "../../lib/environments.js"
-import { EngineChromeProvider, EnvironmentChip, environmentIn } from "../lib/engine-context.js"
+import { EnvironmentChip, environmentIn } from "../lib/engine-context.js"
 import { NavProvider, type NavIntent, type OnNavigate } from "../navigation.js"
-import {
-  type CockpitScope,
-  type CockpitView,
-  intentToView,
-  popTo,
-  pushView,
-  viewKey,
-} from "../nav-core.js"
+import { type CockpitScope, intentToView, popTo, pushView, viewKey } from "../nav-core.js"
 import { useHandOff } from "../lib/hand-off.js"
 import { cockpitContext, fleetContext, landingContext } from "./model-context.js"
 import { translator } from "../../messages/use-t.js"
@@ -49,15 +42,21 @@ interface EnginesResult {
   defaultEngineId: string | null
 }
 
-type TopSection = "overview" | "incidents"
+type TopSection = "overview" | "incidents" | "jobs"
 
 const SECTIONS: Array<{ id: TopSection; intent: NavIntent; icon: LucideIcon }> = [
   { id: "overview", intent: { type: "overview" }, icon: LayoutDashboard },
   { id: "incidents", intent: { type: "incidents" }, icon: TriangleAlert },
+  { id: "jobs", intent: { type: "jobs" }, icon: Cog },
 ]
 
-function isTopSection(section: CockpitView["section"]): section is TopSection {
-  return section === "overview" || section === "incidents"
+/** A head section's own view; the jobs of one process are a drill, not the head section. */
+function isTopSection(view: CockpitView): view is CockpitView & { section: TopSection } {
+  return (
+    view.section === "overview" ||
+    view.section === "incidents" ||
+    (view.section === "jobs" && !view.processDefinitionKey)
+  )
 }
 
 /** `scope` alone decides which cockpit shows; `stack` is the real history, so "back" returns where the user came from. */
@@ -66,10 +65,17 @@ interface CockpitState {
   stack: CockpitView[]
   /** Said on screen until the next scope change. */
   goneEngineId: string | null
+  /**
+   * The start view's key while the stack still shows the entry the boot created; the first
+   * action that leaves it clears this, so a later visit reads live instead of the tool call's
+   * snapshot (a garbage-collected cache entry would take the old seed as fresh data).
+   */
+  seededKey: string | null
 }
 
 type CockpitAction =
   | NavIntent
+  | { type: "boot"; engineId: string | null; view: CockpitView | null }
   | { type: "enter-engine"; id: string }
   | { type: "switch-engine"; id: string }
   | { type: "to-fleet" }
@@ -79,13 +85,32 @@ type CockpitAction =
 
 const ROOT_STACK: CockpitView[] = [{ section: "overview" }]
 
-/** Opens on the bootstrap's resolved engine (`camunda7_open_cockpit`), else the chooser. */
-function initialState(bootEngineId: string | null): CockpitState {
+/** A head section's view is the root; any other start sits on the overview, so the trail leads back. */
+function startStack(view: CockpitView | null): CockpitView[] {
+  if (!view) return ROOT_STACK
+  return isTopSection(view) ? [view] : [{ section: "overview" }, view]
+}
+
+interface Boot {
+  engineId: string | null
+  view?: CockpitView | null
+}
+
+/** Opens on the bootstrap's resolved engine and start view (`camunda7_open_cockpit`), else the chooser. */
+function initialState({ engineId, view = null }: Boot): CockpitState {
   return {
-    scope: bootEngineId ? { kind: "engine", engineId: bootEngineId } : { kind: "landing" },
-    stack: ROOT_STACK,
+    scope: engineId ? { kind: "engine", engineId } : { kind: "landing" },
+    stack: startStack(view),
     goneEngineId: null,
+    seededKey: engineId && view ? viewKey(view) : null,
   }
+}
+
+/** The new stack, and the seed only while its top is still the seeded start view. */
+function withStack(state: CockpitState, stack: CockpitView[]): CockpitState {
+  const stillSeeded =
+    state.seededKey !== null && viewKey(stack[stack.length - 1]) === state.seededKey
+  return { ...state, stack, seededKey: stillSeeded ? state.seededKey : null }
 }
 
 interface ScopeFix {
@@ -109,23 +134,24 @@ function reconcileScope(scope: CockpitScope, engineIds: readonly string[]): Scop
 
 function cockpitReducer(state: CockpitState, action: CockpitAction): CockpitState {
   switch (action.type) {
+    case "boot":
+      return initialState(action)
     case "enter-engine":
     case "switch-engine":
       // Drill state carried over would resolve ids of another engine.
-      return initialState(action.id)
+      return initialState({ engineId: action.id })
     case "to-fleet":
-      return { scope: { kind: "fleet" }, stack: ROOT_STACK, goneEngineId: null }
+      return { scope: { kind: "fleet" }, stack: ROOT_STACK, goneEngineId: null, seededKey: null }
     case "to-landing":
-      return initialState(null)
+      return initialState({ engineId: null })
     case "reconcile":
-      return { scope: action.scope, stack: ROOT_STACK, goneEngineId: action.gone }
+      return { scope: action.scope, stack: ROOT_STACK, goneEngineId: action.gone, seededKey: null }
     case "pop":
-      return { ...state, stack: popTo(state.stack, action.to) }
+      return withStack(state, popTo(state.stack, action.to))
     default: {
       const view = intentToView(action)
       // Cockpit-only policy; the shared pushView never resets.
-      if (isTopSection(view.section)) return { ...state, stack: [view] }
-      return { ...state, stack: pushView(state.stack, view) }
+      return withStack(state, isTopSection(view) ? [view] : pushView(state.stack, view))
     }
   }
 }
@@ -243,8 +269,8 @@ function CockpitHead({
 }
 
 function activeSectionOf(stack: CockpitView[]): TopSection {
-  const root = stack[0].section
-  return root === "incidents" ? root : "overview"
+  const root = stack[0]
+  return isTopSection(root) ? root.section : "overview"
 }
 
 function EngineGoneNotice({ engineId }: { engineId: string | null }) {
@@ -296,17 +322,31 @@ function EnginesEmptyState({
 
 /** Both in the render phase, so the chooser never flashes and a stale engine id never reaches a query. */
 function useCockpitState(data: CockpitAppData | null, engines: ReadonlyArray<{ id: string }>) {
-  const bootEngineId = data?.engineId ?? null
-  const [state, dispatch] = useReducer(cockpitReducer, bootEngineId, initialState)
-  useResetOnChange(bootEngineId, () => {
-    if (bootEngineId) dispatch({ type: "enter-engine", id: bootEngineId })
-  })
+  const boot = { engineId: data?.engineId ?? null, view: data?.start?.view ?? null }
+  const [state, dispatch] = useReducer(cockpitReducer, boot, initialState)
+  // A re-delivered bootstrap (another engine, start view or focus) opens where it names.
+  useResetOnChange(bootKey(boot), () => dispatch({ type: "boot", ...boot }))
   const scopeFix = reconcileScope(
     state.scope,
     engines.map((e) => e.id),
   )
   if (scopeFix) dispatch({ type: "reconcile", ...scopeFix })
   return [state, dispatch] as const
+}
+
+/** The whole view, not `viewKey`: that ignores the process detail's focus on purpose. */
+function bootKey({ engineId, view }: Boot): string {
+  return `${engineId ?? ""}|${view ? JSON.stringify(view) : ""}`
+}
+
+/** The start view's data while the stack still shows the entry the boot seeded; else nothing. */
+function startSeed(
+  data: CockpitAppData | null,
+  { scope, stack, seededKey }: CockpitState,
+): CockpitStart | null {
+  if (!data?.start || seededKey === null) return null
+  if (scope.kind !== "engine" || scope.engineId !== data.engineId) return null
+  return viewKey(stack[stack.length - 1]) === seededKey ? data.start : null
 }
 
 export function CockpitApp({ data }: { data: CockpitAppData | null }) {
@@ -318,7 +358,8 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
   const locale = useLocale()
   const { context } = useHandOff()
 
-  const [{ scope, stack, goneEngineId }, dispatch] = useCockpitState(data, engines)
+  const [state, dispatch] = useCockpitState(data, engines)
+  const { scope, stack, goneEngineId } = state
 
   // Fleet analyses need Prometheus, so the cross-engine view waits for analytics.
   const offerFleet = useAnalyticsActive() && engines.length > 1
@@ -408,14 +449,12 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
           {/* Every view is a route of self-fetching widgets. The NavProvider is
             the client-side navigation seam: widgets call `useNav()`, which
             resolves to this in-app router instead of a chat follow-up. The head
-            names the engine, so the views leave it out of their own meta line
-            (EngineChromeProvider). A crashing view never takes the cockpit down. */}
+            names the engine, so the views leave it out of their own meta line.
+            A crashing view never takes the cockpit down. */}
           <NavProvider value={navigate}>
-            <EngineChromeProvider>
-              <ViewErrorBoundary resetKey={viewKey(current)}>
-                <CockpitRoute view={current} engine={engineId} />
-              </ViewErrorBoundary>
-            </EngineChromeProvider>
+            <ViewErrorBoundary resetKey={viewKey(current)}>
+              <CockpitRoute view={current} engine={engineId} seed={startSeed(data, state)} />
+            </ViewErrorBoundary>
           </NavProvider>
         </main>
       </WidgetShell>

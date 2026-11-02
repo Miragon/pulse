@@ -40,25 +40,48 @@ function definitionResource(pathname: string): { status: number; body: unknown }
   const definition = DEFINITIONS.find((d) => d.id === id)
   if (!definition) return { status: 404, body: { type: "RestException", message: `No ${id}` } }
   if (match[2] === "statistics") return { status: 200, body: [] }
-  if (definition.key !== "invoice") return null
+  // The other definitions have no diagram here: their names stay the engine's (enrichment).
+  if (definition.key !== "invoice") {
+    return { status: 404, body: { type: "RestException", message: `No diagram for ${id}` } }
+  }
   return { status: 200, body: { id, bpmn20Xml: INVOICE_BPMN } }
 }
 
 /**
- * `nameLike` follows the engine's SQL LIKE (case-insensitive here): `%` is the
- * only wildcard, so a value WITHOUT one matches the whole name exactly — the
- * server must send a search as `%…%` (`engineLike`), or the search finds nothing.
+ * Per-definition statistics: distinct instance counts (2, 1, 0 in the fixture's order, 3 in
+ * all, as `/process-instance/count` says), so the overview's issue-then-instances order is
+ * the fixture's; no failed job and no incident.
  */
-function likePattern(value: string): RegExp {
-  const escaped = value.split("%").map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
-  return new RegExp(`^${escaped.join(".*")}$`, "i")
+function definitionStatistics() {
+  return DEFINITIONS.map((definition, i) => ({
+    id: definition.id,
+    instances: DEFINITIONS.length - 1 - i,
+    failedJobs: 0,
+    incidents: [],
+    definition,
+  }))
+}
+
+/** The overview's engine-wide reads: statistics, the open incidents (none) and the counts. */
+function overviewResource(pathname: string): { status: number; body: unknown } | null {
+  switch (pathname) {
+    case "/engine-rest/process-definition/statistics":
+      return { status: 200, body: definitionStatistics() }
+    case "/engine-rest/incident":
+      return { status: 200, body: [] }
+    case "/engine-rest/incident/count":
+    case "/engine-rest/history/process-instance/count":
+      return { status: 200, body: { count: 0 } }
+    case "/engine-rest/process-instance/count":
+      return { status: 200, body: { count: 3 } }
+    default:
+      return null
+  }
 }
 
 function filterDefinitions(query: URLSearchParams): ProcessDefinition[] {
   const key = query.get("key")
-  const nameLike = query.get("nameLike")
-  const like = nameLike ? likePattern(nameLike) : null
-  return DEFINITIONS.filter((d) => (!key || d.key === key) && (!like || like.test(d.name ?? "")))
+  return DEFINITIONS.filter((d) => !key || d.key === key)
 }
 
 function route(url: URL): { status: number; body: unknown } {
@@ -77,7 +100,7 @@ function route(url: URL): { status: number; body: unknown } {
     const max = Number(searchParams.get("maxResults") ?? DEFINITIONS.length)
     return { status: 200, body: filterDefinitions(searchParams).slice(first, first + max) }
   }
-  const resource = definitionResource(pathname)
+  const resource = overviewResource(pathname) ?? definitionResource(pathname)
   if (resource) return resource
   // Unmapped on purpose (and logged): a widget that starts needing another
   // endpoint shows its error state instead of rendering made-up data.
@@ -174,9 +197,16 @@ async function readJson(req: http.IncomingMessage): Promise<unknown> {
   return text ? (JSON.parse(text) as unknown) : undefined
 }
 
-/** What a request searches for: its `nameLike` without the `%` wildcards, lower-cased ("" = none). */
-function searchTerm(url: URL): string {
-  return (url.searchParams.get("nameLike") ?? "").replaceAll("%", "").toLowerCase()
+/**
+ * What a request searches for, without the `%` wildcards and lower-cased ("" = none): an
+ * instance search's business key (`orQueries[0]`), or a control route's `term`.
+ */
+function searchTerm(url: URL, body: unknown): string {
+  const businessKeyLike = (body as { orQueries?: Array<{ businessKeyLike?: unknown }> } | undefined)
+    ?.orQueries?.[0]?.businessKeyLike
+  const term =
+    url.searchParams.get("term") ?? (typeof businessKeyLike === "string" ? businessKeyLike : "")
+  return term.replaceAll("%", "").toLowerCase()
 }
 
 /**
@@ -213,18 +243,19 @@ function createSearchHolds() {
 }
 
 /**
- * A CIB Seven REST stand-in for the host simulation: the real show tools run
+ * A CIB Seven REST stand-in for the host simulation: the real cockpit tool runs
  * against it through the real server, so the view renders the payload the
  * server ACTUALLY builds (view envelope, data shape, engine id) from a fixed
- * engine response (`fixtures/process-definitions.json`, plus the `invoice`
- * diagram `fixtures/invoice.bpmn` with empty statistics and three failed jobs).
+ * engine response (`fixtures/process-definitions.json` with their statistics,
+ * no open incident, the `invoice` diagram `fixtures/invoice.bpmn` with empty
+ * activity statistics and three failed jobs).
  * The broken base URL turns any tool into a genuine `isError` result — an
  * engine 503 through the server's own error mapping.
  *
  * Scenario control, so an in-flight state is observable without a timing
- * window: `POST /__control/hold?nameLike=<term>` makes every request that
- * searches for `<term>` (its `nameLike` without the `%` wildcards, case
- * insensitive) wait; `POST /__control/release?nameLike=<term>` drops that
+ * window: `POST /__control/hold?term=<term>` makes every request that
+ * searches for `<term>` (its business-key search without the `%` wildcards,
+ * case insensitive) wait; `POST /__control/release?term=<term>` drops that
  * hold, and the last release answers the waiting ones and lets later ones
  * through. Holds are per term, so scenarios searching for other terms never
  * wait on each other.
@@ -239,7 +270,7 @@ export async function startStubEngine(): Promise<StubEngine> {
         res.writeHead(status, { "content-type": "application/json" })
         res.end(body === undefined ? undefined : JSON.stringify(body))
       }
-      const term = searchTerm(url)
+      const term = searchTerm(url, requestBody)
       if (req.method === "POST" && url.pathname === "/__control/hold") {
         holds.hold(term)
         send(200, { held: term })

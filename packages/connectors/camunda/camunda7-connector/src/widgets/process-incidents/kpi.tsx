@@ -1,27 +1,14 @@
 import { formatNumber, KpiGrid, type KpiCell } from "@miragon/pulse-ui"
 import { ViewDataState, WidgetShell } from "@miragon/pulse-widget-shell/widgets"
-import type { ProcessIncidentsData } from "../../view-models.js"
 import { useNav } from "../navigation.js"
 import { useT } from "../../messages/use-t.js"
 import { diagramActivityFraction } from "./activity-scope.js"
-import { useDefinitionData } from "./feed.js"
+import { useDefinitionData, type DefinitionScope } from "./feed.js"
 
-export function ProcessDefinitionKpi({
-  data: initialData = null,
-  processDefinitionKey,
-  engine,
-}: {
-  data?: ProcessIncidentsData | null
-  processDefinitionKey?: string
-  engine?: string
-}) {
+export function ProcessDefinitionKpi(scope: DefinitionScope) {
   const t = useT()
   const go = useNav()
-  const { data, loading, error, refetch } = useDefinitionData(
-    initialData,
-    processDefinitionKey,
-    engine,
-  )
+  const { data, loading, error, refetch } = useDefinitionData(scope)
 
   if (!data) {
     return (
@@ -76,6 +63,10 @@ export function ProcessDefinitionKpi({
       label: t("procIncKpi.failedJobs"),
       value: formatNumber(data.failedJobs),
       tone: data.failedJobs > 0 ? "danger" : undefined,
+      // The drill shows what the cell counts: this process's jobs without retries.
+      onClick: () =>
+        go({ type: "jobs", processDefinitionKey: data.processDefinitionKey, failedOnly: true }),
+      actionHint: t("procIncKpi.failedJobsAria", { name: title }),
     },
     activitiesCell,
   ]

@@ -1,6 +1,7 @@
 /**
- * Static on purpose (#338): no data or tool names; `askAiPrompt` adds them. Posted as the
- * user's message, so written in the operator's voice, guardrail ending ("Change nothing.") kept.
+ * Static on purpose (#338): no data and no tool names; `askAiPrompt` adds the ids, facts and
+ * fenced engine text, and a hand-off names no tool. Posted as the user's message, so written in
+ * the operator's voice, guardrail ending ("Change nothing.") kept.
  */
 export const enAskAi = {
   "askAi.jobs.triage":
@@ -47,10 +48,6 @@ export const enAskAi = {
     "Draft an incident ticket for this incident and show me its title, body and labels for review. Don't file it anywhere.",
   "askAi.process.triage":
     "Sort this process definition's incidents by root cause, separate symptoms from sources and recommend a fix per cluster. Diagnosis only.",
-  "askAi.process.healthCheck":
-    "Check the health of this process definition: healthy or degraded, the worst activities, the most common incident message, the most likely root cause and one next step. Change nothing.",
-  "askAi.bpmn.explainState":
-    "Explain this instance's state on the diagram: which elements block progress, what each incident means, whether the hotspots of jobs without retries point to a systemic fault, and the next steps by priority.",
   "askAi.incidents.processRootCause":
     "Find the root cause of this process's open incidents: do the failing activities share one cause, is it temporary, a data or configuration problem or a broken model, and which fix do you recommend? Change nothing without my confirmation.",
   "askAi.incidents.triage":

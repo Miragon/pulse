@@ -44,7 +44,7 @@ server listens on IPv4.
 
 Once connected, you'll see Camunda and analytics tools available in the
 assistant. Try asking _"show me the open incidents"_. Claude calls
-`camunda7_show_incidents_dashboard` and renders the result in the incidents widget.
+`camunda7_open_cockpit` on its incidents view and shows the cockpit there.
 
 ## What you can ask
 
@@ -56,11 +56,12 @@ assistant. Try asking _"show me the open incidents"_. Claude calls
 | **Analytics**  | "Where do `loan-approval` instances spend the most time?" · "Compare the last 7 days of `loan-approval` with the week before." |
 | **Migrations** | "Plan a migration from v1 to v2 of `loan-approval`."                                                                           |
 
-Most data-heavy answers come back as an interactive widget: process lists,
-task inboxes, incident dashboards, instance details, and analytics dashboards
-all render inline. Inline a widget stays a compact card: a list shows its
-first rows and how many there are, and **Show all** opens it fullscreen where
-your chat app offers that.
+Most data-heavy answers come back as an interactive view: the camunda7
+operations cockpit (opened on its overview, the incidents, a process, an
+instance, an incident, the jobs or an instance's history, then navigated by
+clicking) and the analytics dashboards and comparisons render inline. Inline a
+view stays a compact card: a list shows its first rows and how many there are,
+and **Show all** opens it fullscreen where your chat app offers that.
 
 What the assistant may _change_ depends on the deployment's toolset. A
 read-only deployment (the playground, or any server without login unless its

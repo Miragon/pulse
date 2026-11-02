@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import type { VersionCompareKpi, VersionCompareResult } from "@miragon/pulse-analytics-client"
 import { versionCompareHandOff } from "./version-compare.js"
-import { ANALYTICS_ONLY_SURFACE, bindHandOff } from "./hand-off.js"
+import { bindHandOff } from "./hand-off.js"
 
 const versionKpi = (version: number, incidentRatePct: number): VersionCompareKpi => ({
   version,
@@ -35,8 +35,7 @@ const result: VersionCompareResult = {
   asOf: "2026-10-10T12:32:00.000Z",
 }
 
-const prompt = (data: VersionCompareResult) =>
-  bindHandOff("en", ANALYTICS_ONLY_SURFACE).ask(versionCompareHandOff(data))!
+const prompt = (data: VersionCompareResult) => bindHandOff("en").ask(versionCompareHandOff(data))!
 
 describe("versionCompareHandOff", () => {
   it("re-runs the process-wide comparison on the engines on screen — never an element scope", () => {
@@ -61,9 +60,7 @@ describe("versionCompareHandOff", () => {
     expect(text).not.toContain("p95DurationDeltaPct")
   })
 
-  it("names the confirming comparison and the element ranking", () => {
-    expect(prompt(result)).toContain(
-      "Tools: analytics_show_version_compare, analytics_show_dashboard",
-    )
+  it("names no tool", () => {
+    expect(prompt(result)).not.toMatch(/\b(camunda7|analytics)_[a-z0-9_]+/)
   })
 })

@@ -14,7 +14,7 @@ const write = vi.fn<(name: string, args: object) => unknown>()
 let queryClient = createTestQueryClient()
 
 const TOOLS: Record<string, unknown> = {
-  [CAMUNDA7_WIDGET_ACTIONS_DATA]: () => ({ allowedActions: allowed, modelTools: [] }),
+  [CAMUNDA7_WIDGET_ACTIONS_DATA]: () => ({ allowedActions: allowed }),
   ...Object.fromEntries(
     Object.keys(WRITE_POLICY).map((name) => [
       name,

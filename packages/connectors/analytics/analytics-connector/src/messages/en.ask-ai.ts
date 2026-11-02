@@ -1,6 +1,7 @@
 /**
- * Static on purpose (#338): `askAiPrompt` adds ids, data and tools. Posted in the
- * user's name, so plain words and the "Change nothing." guardrail.
+ * Static on purpose (#338): no data and no tool names; `askAiPrompt` adds the ids, facts and
+ * fenced engine text, and a hand-off names no tool. Posted in the user's name, so plain words
+ * and the "Change nothing." guardrail.
  */
 export const enAskAi = {
   "askAi.periodCompare":

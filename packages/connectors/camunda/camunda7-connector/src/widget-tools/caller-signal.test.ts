@@ -4,7 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest"
 import type { MCPServer } from "mcp-use"
 import { createEngineRegistry } from "../lib/resolve-engine.js"
 import { providerForEntry } from "../providers/index.js"
-import { CAMUNDA7_OPEN_COCKPIT, CAMUNDA7_WIDGET_ACTIONS_DATA } from "../tool-names.js"
+import { CAMUNDA7_WIDGET_ACTIONS_DATA } from "../tool-names.js"
 import { registerWidgetTools } from "../widget-tools.js"
 
 /**
@@ -70,7 +70,9 @@ describe("widget tools and feeds honor ctx.signal", () => {
         reads: 0,
       })
     }
-    expect(neverRead).toEqual([CAMUNDA7_OPEN_COCKPIT, CAMUNDA7_WIDGET_ACTIONS_DATA])
-    expect(tools.size - neverRead.length).toBeGreaterThanOrEqual(24)
+    // camunda7_open_cockpit reads its start view, so it honours the signal like every feed.
+    expect(neverRead).toEqual([CAMUNDA7_WIDGET_ACTIONS_DATA])
+    // Cut 7: twelve view tools and one feed went, the history feed came (24 → 13).
+    expect(tools.size - neverRead.length).toBeGreaterThanOrEqual(13)
   })
 })

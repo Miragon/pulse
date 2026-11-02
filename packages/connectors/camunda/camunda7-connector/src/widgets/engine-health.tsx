@@ -14,20 +14,21 @@ import {
 import {
   HandOffButton,
   ViewDataState,
+  ViewMeta,
   WidgetShell,
   viewRefreshState,
   HostModelContext,
   useViewData,
 } from "@miragon/pulse-widget-shell/widgets"
-import { RefreshCw, TriangleAlert } from "lucide-react"
+import { TriangleAlert } from "lucide-react"
 import type { EngineHealthCluster, EngineHealthData, EngineHealthStatus } from "../view-models.js"
 import { useNav, type OnNavigate } from "./navigation.js"
 import { CAMUNDA7_ENGINE_HEALTH_DATA } from "../tool-names.js"
 import { remediationHandOff, UNKNOWN_KEY as UNKNOWN } from "./remediation.js"
+import { useActionAllowed } from "./lib/engine-action.js"
 import { useHandOff, type HandOff, type ViewContext } from "./lib/hand-off.js"
 import { formatCount, formatCountAtLeast } from "./lib/format-count.js"
 import { healthVerdictLine } from "./lib/health-verdict.js"
-import { EngineMeta, useEngineInChrome } from "./lib/engine-context.js"
 import { useT } from "../messages/use-t.js"
 
 const STATUS: Record<EngineHealthStatus, { tone: ToneVariant; labelKey: string }> = {
@@ -49,12 +50,12 @@ function clusterActivities(data: EngineHealthData): string[] {
 }
 
 /** Grounding context, so the operator never restates what they are looking at. */
-export function describeHealth(data: EngineHealthData, engine?: string): ViewContext {
+export function describeHealth(data: EngineHealthData, engine: string): ViewContext {
   const { summary, clusters, status } = data
   const top = clusters[0]
   return {
     summary: "The operator is viewing the engine health overview of one engine.",
-    ids: { engine: engine ?? data.engineId },
+    ids: { engine },
     facts: {
       verdict: status,
       openIncidents: summary.totalIncidents,
@@ -72,15 +73,14 @@ export function describeHealth(data: EngineHealthData, engine?: string): ViewCon
       topClusterIncidentsAtLeast:
         top?.incidentCount === null ? top.scannedIncidentCount : undefined,
     },
-    tools: ["analytics_engine_health", "camunda7_list_incidents", "camunda7_show_cluster_detail"],
   }
 }
 
-export function triageHandOff(data: EngineHealthData, engine?: string): HandOff {
+export function triageHandOff(data: EngineHealthData, engine: string): HandOff {
   const { summary } = data
   return {
     intent: "askAi.health.triage",
-    ids: { engine: engine ?? data.engineId },
+    ids: { engine },
     facts: {
       openIncidents: summary.totalIncidents,
       lastHour: summary.lastHourIncidents,
@@ -90,21 +90,15 @@ export function triageHandOff(data: EngineHealthData, engine?: string): HandOff 
       runningInstances: summary.runningInstances,
       clusterActivities: clusterActivities(data),
     },
-    tools: [
-      "analytics_engine_health",
-      "camunda7_list_incidents",
-      "camunda7_query_historic_incidents",
-    ],
   }
 }
 
 /** An unreachable engine is itself an incident: hand it to the agent. The error text is quoted, never inlined. */
-export function diagnoseHandOff(engine: string | undefined, message: string): HandOff {
+export function diagnoseHandOff(engine: string, message: string): HandOff {
   return {
     intent: "askAi.health.diagnoseUnreachable",
-    ids: { engine, maxResults: 1 },
+    ids: { engine },
     untrusted: [{ label: "error", text: message }],
-    tools: ["camunda7_list_engines", "camunda7_list_process_definitions"],
   }
 }
 
@@ -115,12 +109,13 @@ function ClusterRow({
   go,
 }: {
   cluster: EngineHealthCluster
-  engine?: string
+  engine: string
   go: OnNavigate
 }) {
   const t = useT()
-  const { ask, surface } = useHandOff()
-  const { handOff, canFix } = remediationHandOff(cluster, engine, surface)
+  const { ask } = useHandOff()
+  const canFix = useActionAllowed("camunda7_set_job_retries")
+  const handOff = remediationHandOff(cluster, engine, canFix)
   const primaryKey = cluster.processDefinitionKeys.find((k) => k !== UNKNOWN)
   const name = cluster.activityName ?? cluster.activityId
   // Drill keeps the cluster scope (activity + type + message signature), not a list that loses the root-cause filter.
@@ -185,7 +180,7 @@ function HealthUnavailable({
   error,
   onRetry,
 }: {
-  engine?: string
+  engine: string
   loading: boolean
   error: Error | null
   onRetry: () => void
@@ -279,12 +274,10 @@ function Throughput24h({ summary }: { summary: EngineHealthData["summary"] }) {
 function ClustersSection({
   clusters,
   engine,
-  engineId,
   go,
 }: {
   clusters: EngineHealthCluster[]
-  engine?: string
-  engineId: string
+  engine: string
   go: OnNavigate
 }) {
   const t = useT()
@@ -298,47 +291,40 @@ function ClustersSection({
       </h2>
       <ul className="flex flex-col gap-2">
         {clusters.map((cluster) => (
-          // Standalone renders pass no `engine`; never inline a placeholder as a tool-call engine id.
-          <ClusterRow key={cluster.id} cluster={cluster} engine={engine ?? engineId} go={go} />
+          <ClusterRow key={cluster.id} cluster={cluster} engine={engine} go={go} />
         ))}
       </ul>
     </section>
   )
 }
 
-// Two modes: standalone the data arrives via `data`; inside the cockpit only `engine` and it self-fetches.
+// Seeded through `data` (the start view), else self-fetching on the cockpit's engine.
 export function EngineHealthView({
   data: initialData = null,
   engine,
 }: {
   data?: EngineHealthData | null
-  engine?: string
+  engine: string
 }) {
   const t = useT()
   const go = useNav()
   const { ask, context } = useHandOff()
-  // Standalone data SEEDS the feed scoped to its engine, so a refresh re-reads that engine.
-  // Always ready: `engine` is optional here, so gating on `!!engine` would stick on "No data".
-  const feedEngine = engine ?? initialData?.engineId
+  // Start data SEEDS the feed scoped to its engine, so a refresh re-reads that engine.
   const view = useViewData<EngineHealthData>(
     initialData,
-    ["camunda7:engine-health", feedEngine ?? null],
+    ["camunda7:engine-health", engine],
     CAMUNDA7_ENGINE_HEALTH_DATA,
-    { engine: feedEngine },
+    { engine },
     true,
   )
   const { data, loading, error, refetch } = view
   const { refreshError, refreshing } = viewRefreshState(view)
-  // Inside the cockpit its head holds the one Refresh (#322 U27); a
-  // standalone overview keeps its own.
-  const inCockpit = useEngineInChrome()
 
   if (!data) {
     return <HealthUnavailable engine={engine} loading={loading} error={error} onRetry={refetch} />
   }
 
   const badge = verdictBadge(data)
-  const engineId = engine ?? data.engineId
 
   return (
     <>
@@ -347,34 +333,22 @@ export function EngineHealthView({
         badge={<StatusBadge tone={badge.tone}>{t(badge.labelKey)}</StatusBadge>}
         // The engine in the title (#322 U4): prod-leasing and test-leasing
         // never share a heading.
-        title={t("engineHealth.titleFor", { engine: engineId })}
+        title={t("engineHealth.titleFor", { engine })}
         sub={
           <>
-            <EngineMeta engineId={engineId} asOf={data.fetchedAt} />
+            <ViewMeta asOf={data.fetchedAt} />
             <span>{healthVerdictLine(t, data)}</span>
           </>
         }
         actions={
           <>
-            {/* The deterministic next step leads (#322 U11): with open
-                incidents, look at them; a fresh read (standalone; the
-                cockpit's bar has its own) and the chat assessment follow. */}
+            {/* The deterministic next step leads (#322 U11): with open incidents, look at
+                them; the chat assessment follows. The cockpit's head holds the one Refresh
+                (#322 U27). */}
             {data.summary.totalIncidents > 0 && (
               <Button type="button" size="sm" onClick={() => go({ type: "incidents" })}>
                 <Icon icon={TriangleAlert} />
                 {t("engineHealth.openIncidents")}
-              </Button>
-            )}
-            {!inCockpit && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={refetch}
-                disabled={refreshing}
-              >
-                <Icon icon={RefreshCw} />
-                {refreshing ? t("engineHealth.refreshing") : t("engineHealth.refresh")}
               </Button>
             )}
             <HandOffButton action="assess" prompt={ask(triageHandOff(data, engine))} />
@@ -398,7 +372,7 @@ export function EngineHealthView({
 
       <Throughput24h summary={data.summary} />
 
-      <ClustersSection clusters={data.clusters} engine={engine} engineId={data.engineId} go={go} />
+      <ClustersSection clusters={data.clusters} engine={engine} go={go} />
     </>
   )
 }
@@ -408,7 +382,7 @@ export function EngineHealthVerdict({
   engine,
 }: {
   data: EngineHealthData | null
-  engine?: string
+  engine: string
 }) {
   return (
     <WidgetShell>

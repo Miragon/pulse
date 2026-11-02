@@ -32,8 +32,7 @@ helpers from `src/prometheus.ts` — never concatenate label values by hand:
   of a clustered engine reports the same engine-wide rows, so they are folded with
   `max by (<the gauge's contract labels>)` before anything sums them
 - Durations are whole MILLISECONDS on the wire (contract rule 1) and in every result
-  (`*Ms`, camelCase; the heatmap's `durationSec` is the one exception, widget-shell's
-  `BpmnHeatmapData`)
+  (`*Ms`, camelCase, the heatmap included: widget-shell's `BpmnHeatmapData.durationMs`)
 
 Reference shape (from `elementHeat` in `src/queries/element.ts`):
 
@@ -51,7 +50,7 @@ const [counts, sums] = await Promise.all([
   ch.instant(`sum by (activity_id)(${inWindow(`${M.activityEnded}${sel}`)})`),
   ch.instant(`sum by (activity_id)(${inWindow(`${M.activityDuration}_sum${sel}`)})`),
 ])
-// sums are ms: `secondsOf(sum / count)` for the heat's seconds
+// sums are ms: `Math.round(sum / count)` for the heat's whole milliseconds
 ```
 
 **Metric-name contract:** series names come from `METRIC_NAMES`
@@ -295,9 +294,8 @@ Rules while building:
   `errorHint`, the parser's text under Details).
 - The model description (today only the heatmap's `describeBpmnHeatmap` in
   `src/widgets/model-descriptions.ts`, named directly in the view's
-  `<HostModelContext content={…}>`) returns `modelContextText(…)` with
-  `surface: ANALYTICS_ONLY_SURFACE` — a static `summary`, data only in
-  `ids`/`facts`/`untrusted`, tools only in `tools`; Ask-AI hand-offs go through
+  `<HostModelContext content={…}>`) returns `modelContextText(…)`: a static `summary`, data
+  only in `ids`/`facts`/`untrusted`, no tool named; Ask-AI hand-offs go through
   `useHandOff()` (`src/widgets/hand-off.ts`). Both state the scope of the data on
   screen: `engine: engineIdsOf(data.engines)` (the resolved, configured ids — never
   a widget's `engine` prop, which only feeds its self-fetch), `period`/key from the

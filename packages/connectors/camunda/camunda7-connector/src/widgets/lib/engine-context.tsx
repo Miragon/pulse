@@ -1,6 +1,5 @@
-import { createContext, useContext, type ReactNode } from "react"
 import { cn } from "@miragon/pulse-ui"
-import { ViewMeta, useToolQuery } from "@miragon/pulse-widget-shell/widgets"
+import { useToolQuery } from "@miragon/pulse-widget-shell/widgets"
 import { CAMUNDA7_LIST_ENGINES } from "../../tool-names.js"
 import { DEFAULT_ENVIRONMENT_ID } from "../../lib/environments.js"
 import { useT, type T } from "../../messages/use-t.js"
@@ -53,41 +52,6 @@ export function EnvironmentChip({
       <span className="sr-only">{t("engineContext.environment")} </span>
       {environment}
     </span>
-  )
-}
-
-/** Set by chrome that already names the engine, so views don't repeat it under every title. */
-const EngineInChrome = createContext(false)
-
-export function EngineChromeProvider({ children }: { children: ReactNode }) {
-  return <EngineInChrome.Provider value={true}>{children}</EngineInChrome.Provider>
-}
-
-export function useEngineInChrome(): boolean {
-  return useContext(EngineInChrome)
-}
-
-export function EngineMeta({
-  engineId,
-  asOf,
-  className,
-}: {
-  engineId: string | null | undefined
-  asOf?: string | null
-  className?: string
-}) {
-  const inChrome = useEngineInChrome()
-  const environment = useEngineEnvironment(inChrome ? null : engineId)
-  const subject = inChrome ? null : (engineId ?? null)
-  if (!subject && !asOf) return null
-  return (
-    <div
-      data-slot="engine-meta"
-      className={cn("inline-flex min-w-0 flex-wrap items-center gap-2", className)}
-    >
-      {environment && subject && <EnvironmentChip environment={environment} />}
-      <ViewMeta subject={subject} asOf={asOf} />
-    </div>
   )
 }
 

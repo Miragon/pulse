@@ -25,7 +25,7 @@ function viewBoundTools(): string[] {
 }
 
 /**
- * The bundle picks a view by its name (= the show tool's name, primed under
+ * The bundle picks a view by its name (= the view tool's name, primed under
  * `ui://views/<name>.html`). Both halves fail SILENTLY: a view-bound tool
  * without a view renders the "can't show this view" state, and a view no tool
  * opens is dead code in every view's bundle.
@@ -33,13 +33,13 @@ function viewBoundTools(): string[] {
 describe("the view registry vs the view-bound tools", () => {
   it("holds a view for every view-bound tool, and nothing else", () => {
     const tools = viewBoundTools()
-    // The floor is pinned at the post-cut count: cut 6 removed the failure dashboard, the
-    // comparison/dashboard descriptions and nine analytics tools.
-    expect(tools.length, "the goldens name the view-bound tools").toBeGreaterThanOrEqual(19)
+    // The floor is pinned at the post-cut count: cut 7 removed the twelve camunda7 show tools
+    // (camunda7_open_cockpit and the six analytics show tools remain).
+    expect(tools.length, "the goldens name the view-bound tools").toBeGreaterThanOrEqual(7)
     expect(Object.keys(viewRegistry).sort()).toEqual(tools)
   })
 
-  // On a host that strips `structuredContent` (claude.ai) the view re-runs its own show tool ONCE
+  // On a host that strips `structuredContent` (claude.ai) the view re-runs its own view tool ONCE
   // by itself, with no annotation check (`resolveViewCall`): only a read may be re-run unasked.
   it("binds a view to read-only tools only, since a stripped result re-runs the tool", () => {
     const writes = viewBoundGoldens()

@@ -101,6 +101,15 @@ function invalidateAfter(client: QueryClient, tool: Camunda7WidgetAction): void 
   }
 }
 
+/**
+ * The deployment gate of one write, for a surface that only words an offer (fix or diagnose)
+ * without running the write itself. Fail-closed until the gate feed answered; the gate stays in
+ * this primitive (`src/widget-actions.test.ts`).
+ */
+export function useActionAllowed(tool: Camunda7WidgetAction): boolean {
+  return useCanRun()(tool)
+}
+
 /** The one in-widget write primitive (`src/widget-actions.test.ts`); fail-closed until the gate feed answered. */
 export function useEngineAction<TArgs extends Record<string, unknown>, TResult = unknown>({
   tool,
@@ -108,8 +117,7 @@ export function useEngineAction<TArgs extends Record<string, unknown>, TResult =
   resetOn,
   available = true,
 }: EngineActionOptions<TArgs>): EngineAction<TArgs, TResult> {
-  const canRun = useCanRun()
-  const allowed = canRun(tool) && available
+  const allowed = useActionAllowed(tool) && available
   const mutation = useToolMutation<TResult>(tool)
   const client = useQueryClient()
   const toasts = useActionFeedback()

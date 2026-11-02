@@ -21,7 +21,7 @@ const PACKAGE_ROOT = path.join(import.meta.dirname, "..")
 export const SERVER_INSTRUCTIONS =
   "Camunda 7 / CIB Seven operations and Prometheus-backed process analytics. " +
   "Toolsets fail closed: a tool missing from tools/list is not enabled on this deployment. " +
-  "On hosts that render MCP Apps, prefer the *_show_* tools to present results to the user."
+  "On hosts that render MCP Apps, prefer the view tools (*_show_*, *_open_*) to present results to the user."
 
 /** The version release-please maintains in `package.json` — never a hard-coded copy. */
 export function packageVersion(): string {

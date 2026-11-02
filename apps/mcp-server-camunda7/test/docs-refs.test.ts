@@ -163,7 +163,7 @@ const where = (ref: Ref) => `${ref.file}:${ref.line} \`${ref.token}\``
 
 describe("tool names in the docs", () => {
   const tools = new Set(EXPECTED_TOOLS_ADMIN)
-  // A short form (`show_process_list`, `bpmn_heatmap_data`) names the module's tool.
+  // A short form (`show_dashboard`, `bpmn_heatmap_data`) names the module's tool.
   const known = (name: string) =>
     tools.has(name) || tools.has(`camunda7_${name}`) || tools.has(`analytics_${name}`)
   const looksLikeTool = (token: string) =>

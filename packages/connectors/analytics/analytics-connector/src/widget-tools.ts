@@ -119,7 +119,7 @@ export function registerWidgetTools(
           engines: scoped.engine,
           ...(bpmn.bpmnMissing ? { bpmnMissing: bpmn.bpmnMissing } : {}),
           frequency: heat.frequency,
-          durationSec: heat.durationSec,
+          durationMs: heat.durationMs,
           asOf: heat.asOf,
         },
         t("aSum.bpmnHeatmap", {
@@ -152,7 +152,7 @@ export function registerWidgetTools(
         period,
         engines: scoped.engine,
         frequency: heat.frequency,
-        durationSec: heat.durationSec,
+        durationMs: heat.durationMs,
         asOf: heat.asOf,
       }
       return buildDataFeedResult(data)

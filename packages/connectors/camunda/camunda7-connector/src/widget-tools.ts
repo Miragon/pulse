@@ -5,8 +5,6 @@ import { engineParamShapeFor } from "./lib/with-engine.js"
 import type { Camunda7Toolset } from "./lib/toolsets.js"
 import type { WidgetToolsContext } from "./widget-tools/shared.js"
 import { registerCockpitWidgetTools } from "./widget-tools/cockpit.js"
-import { registerInstanceWidgetTools } from "./widget-tools/instances.js"
-import { registerIncidentWidgetTools } from "./widget-tools/incidents.js"
 import { registerWidgetDataFeeds } from "./widget-tools/data-feeds.js"
 import { registerWidgetActionsFeed } from "./widget-tools/actions.js"
 
@@ -15,8 +13,6 @@ export interface Camunda7WidgetToolsOptions {
   healthThresholds?: Partial<EngineHealthThresholds>
   /** Decides which in-widget write buttons render; always concrete, never "omitted = everything". */
   toolset: Camunda7Toolset
-  /** Read lazily, when every registration is done. */
-  modelTools?: () => string[]
 }
 
 export function registerWidgetTools(
@@ -34,12 +30,9 @@ export function registerWidgetTools(
     registry,
     healthThresholds,
     toolset: options.toolset,
-    modelTools: options.modelTools ?? (() => []),
     engineParam: engineParamShapeFor(registry.engines),
   }
   registerCockpitWidgetTools(ctx)
-  registerInstanceWidgetTools(ctx)
-  registerIncidentWidgetTools(ctx)
   registerWidgetDataFeeds(ctx)
   registerWidgetActionsFeed(ctx)
 }

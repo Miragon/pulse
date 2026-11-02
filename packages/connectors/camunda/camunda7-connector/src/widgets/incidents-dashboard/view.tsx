@@ -3,13 +3,13 @@ import type { IncidentsDashboardData } from "../../view-models.js"
 import { IncidentOverviewKpi } from "./overview-kpi.js"
 import { IncidentProcessList } from "./process-list.js"
 
-/** The incidents dashboard, for its show tool and the cockpit route: KPIs over the per-process list. */
+/** The incidents dashboard, the cockpit's incidents route: KPIs over the per-process list. */
 export function IncidentsDashboard({
   data = null,
   engine,
 }: {
   data?: IncidentsDashboardData | null
-  engine?: string
+  engine: string
 }) {
   return (
     <ViewStack>

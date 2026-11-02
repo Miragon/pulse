@@ -1,5 +1,5 @@
 /** The rendering call's lifecycle as plain logic: what the frame shows, and when it re-runs. */
-import { EMPTY_TOOL_SURFACE, type ModelContextSpec } from "./ask-ai-prompt.js"
+import type { ModelContextSpec } from "./ask-ai-prompt.js"
 import type { CallObservation } from "./call-observer.js"
 
 export type ViewPhase =
@@ -71,10 +71,9 @@ export function resolveViewCall(inputs: ViewCallInputs): { phase: ViewPhase; rec
 /**
  * The frame's own model line (read by the model, never shown, so English): an error or cancel
  * the user sees instead of the view, or figures the view re-loaded itself. `null` while waiting
- * and for a plain host-delivered view. No tool names: the surface confirms none.
+ * and for a plain host-delivered view.
  */
 export function viewCallContext(phase: ViewPhase): ModelContextSpec | null {
-  const surface = EMPTY_TOOL_SURFACE
   switch (phase.phase) {
     case "waiting":
       return null
@@ -82,14 +81,12 @@ export function viewCallContext(phase: ViewPhase): ModelContextSpec | null {
       return {
         summary:
           "The view was cancelled before it rendered. The user sees a note that the call was cancelled.",
-        surface,
       }
     case "error":
       return {
         summary:
           "The view could not be shown. The user sees an error message with a retry button instead of the view.",
         untrusted: [{ label: "reason", text: phase.error.message }],
-        surface,
       }
     case "ready":
       if (phase.reloadedAt === null) return null
@@ -97,7 +94,6 @@ export function viewCallContext(phase: ViewPhase): ModelContextSpec | null {
         summary:
           "The view re-ran its tool because the host did not pass the result to the view; its figures are live as of liveAsOf and can differ from the result in the chat.",
         facts: { liveAsOf: new Date(phase.reloadedAt).toISOString() },
-        surface,
       }
   }
 }

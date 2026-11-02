@@ -10,12 +10,16 @@ import {
 } from "@miragon/pulse-widget-shell/widgets"
 import { createPlugin } from "../plugin.js"
 import {
+  CAMUNDA7_INCIDENTS_DATA,
   CAMUNDA7_OPEN_COCKPIT,
   CAMUNDA7_PROCESS_INCIDENTS_DATA,
-  CAMUNDA7_SHOW_INCIDENTS_DASHBOARD,
-  CAMUNDA7_SHOW_PROCESS_INCIDENTS,
 } from "../tool-names.js"
-import type { IncidentsDashboardData, ProcessIncidentsData } from "../view-models.js"
+import type {
+  CockpitAppData,
+  CockpitStart,
+  IncidentsDashboardData,
+  ProcessIncidentsData,
+} from "../view-models.js"
 import { camunda7Views } from "./views.js"
 
 afterEach(() => {
@@ -54,32 +58,45 @@ const DEFINITION: ProcessIncidentsData = {
   engineId: "prod-a",
 }
 
-function renderView(name: string, data: unknown, actions: HostAction[] = []) {
-  const view = camunda7Views[name] as ViewComponent<unknown>
+/** The one camunda7 view as `camunda7_open_cockpit` delivers it, opened on its start view. */
+function renderCockpit(start: CockpitStart, actions: HostAction[] = []) {
+  const cockpit = camunda7Views[CAMUNDA7_OPEN_COCKPIT] as ViewComponent<CockpitAppData>
+  const data: CockpitAppData = {
+    engineId: "prod-a",
+    engines: [{ id: "prod-a", environment: "default" }],
+    start,
+  }
   return render(
     <TestViewHost onHostAction={(action) => actions.push(action)}>
-      {createElement(view, { data })}
+      {createElement(cockpit, { data })}
     </TestViewHost>,
   )
 }
 
+const feedReads = (actions: HostAction[], feed: string) =>
+  actions.filter((a) => a.type === "callTool" && a.name === feed)
+
 describe("camunda7Views", () => {
   it("holds a view for every view-bound camunda7 tool, and nothing else", () => {
     expect(Object.keys(camunda7Views).sort()).toEqual(viewTools().sort())
-    expect(Object.keys(camunda7Views)).toContain(CAMUNDA7_OPEN_COCKPIT)
+    expect(Object.keys(camunda7Views)).toEqual([CAMUNDA7_OPEN_COCKPIT])
   })
 
-  it("renders the process incidents view on its data, focused on incidents", async () => {
+  it("opens the cockpit on a process focused on incidents, from its seed", async () => {
     const actions: HostAction[] = []
-    renderView(CAMUNDA7_SHOW_PROCESS_INCIDENTS, DEFINITION, actions)
+    renderCockpit(
+      {
+        view: { section: "process-detail", processDefinitionKey: "leasing", focus: "incidents" },
+        data: DEFINITION,
+      },
+      actions,
+    )
     expect(await screen.findAllByText("Leasing")).not.toHaveLength(0)
-    // The data seeds the feed: no read until something invalidates it.
-    expect(
-      actions.some((a) => a.type === "callTool" && a.name === CAMUNDA7_PROCESS_INCIDENTS_DATA),
-    ).toBe(false)
+    // The start data seeds the feed: no read until something invalidates it.
+    expect(feedReads(actions, CAMUNDA7_PROCESS_INCIDENTS_DATA)).toEqual([])
   })
 
-  it("renders the incidents dashboard: its KPIs over its process list", async () => {
+  it("opens the cockpit on the incidents dashboard: its KPIs over its process list", async () => {
     const actions: HostAction[] = []
     const dashboard: IncidentsDashboardData = {
       totalCount: 0,
@@ -92,8 +109,10 @@ describe("camunda7Views", () => {
       engineVendor: "CIB seven",
       engineId: "prod-a",
     }
-    renderView(CAMUNDA7_SHOW_INCIDENTS_DASHBOARD, dashboard, actions)
+    renderCockpit({ view: { section: "incidents" }, data: dashboard }, actions)
+    // The title keeps the engine (#322 U4), in the cockpit as before.
     expect(await screen.findByRole("heading", { name: "prod-a · Incidents" })).toBeTruthy()
+    expect(feedReads(actions, CAMUNDA7_INCIDENTS_DATA)).toEqual([])
     expect(actions.filter((a) => a.type === "sendFollowUp")).toEqual([])
   })
 })

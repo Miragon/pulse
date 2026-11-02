@@ -1,7 +1,8 @@
 import { FOCUS_RING, cn, Icon } from "@miragon/pulse-ui"
 import { ChevronRight } from "lucide-react"
 import { translator } from "../../messages/use-t.js"
-import { crumbLabel, type CockpitScope, type CockpitView } from "../nav-core.js"
+import type { CockpitView } from "../../view-models.js"
+import { crumbLabel, type CockpitScope } from "../nav-core.js"
 
 /**
  * Every crumb pops back to the view it names, so back never re-drills from the top.

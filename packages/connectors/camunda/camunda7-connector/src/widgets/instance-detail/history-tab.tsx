@@ -11,7 +11,6 @@ export function explainTimelineHandOff(
   return {
     intent: "askAi.instance.explainTimeline",
     ids: { engine: engineId, processInstanceId: instanceId, processDefinitionId: definitionId },
-    tools: ["camunda7_query_historic_activity_instances"],
   }
 }
 
@@ -26,7 +25,7 @@ export function HistoryTab({
   definitionId: string
   /** Null for a bare id. */
   definitionKey: string | null
-  engineId?: string
+  engineId: string
   incidentActivityIds: readonly string[]
 }) {
   const { ask } = useHandOff()

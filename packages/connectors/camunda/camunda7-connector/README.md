@@ -47,11 +47,12 @@ bundle build). **`mcp-use` is exactly pinned**: pin it to `mcp-use@2.12.2` in yo
 - **Operations tools** (`src/tools/`): one file per domain (`process-instances`, `tasks`,
   `incidents`, `jobs`, `history`, …), registered through `createToolRegistrar`. Plain JSON for the
   model.
-- **Widget tools** (`src/widget-tools.ts`): `show_*` tools that render a cockpit widget for the user
-  and return a compact summary for the model, plus app-only `*_data` feeds for in-widget refresh and
-  navigation.
-- **Widgets** (`src/widgets/`): React components (cockpit dashboard, process & incident panels, BPMN
-  viewer, history timeline, job panel); `src/widgets/views.tsx` maps each show tool to its view.
+- **The view** (`src/widget-tools/cockpit.ts`): `camunda7_open_cockpit` renders the operations
+  cockpit, opening on any of its views, and returns that view's facts as compact JSON; app-only
+  `*_data` feeds refresh and navigate inside it.
+- **Widgets** (`src/widgets/`): the cockpit app and its routes (overview, incidents, failure
+  cluster, process, instances, instance, incident, jobs, history); `src/widgets/views.tsx` maps
+  the tool to the cockpit.
 - **Multi-engine routing:** every tool resolves its engine through `withEngine` / `resolveEngine`
   (`src/lib/`): per-call override → `CAMUNDA_DEFAULT_ENGINE` (it must name a configured engine,
   else the boot fails) → the only configured engine, else `ENGINE_NOT_SELECTED` listing the
@@ -79,17 +80,17 @@ This module has strict house patterns: read the
 [`add-bpm-feature`](../../../../.claude/skills/add-bpm-feature) skill and the architecture invariants in
 [`CLAUDE.md`](../../../../CLAUDE.md) before adding tools, schemas, or widgets. In short: input schemas live
 in [`@miragon/pulse-camunda7-client`](../camunda7-client), tools register via the registrar (never raw
-`server.tool()`), and a view is registered in `src/widgets/views.tsx` under its show tool's name, in
-the host's view registry and, for its show tool and feed, in `src/tool-names.ts`.
+`server.tool()`), and a view is a cockpit route (its section, its builder and `*_data` feed, its
+start view), never a second view tool: see the add-bpm-feature skill.
 
 ## Layout
 
 | Path                     | Contents                                                                  |
 | ------------------------ | ------------------------------------------------------------------------- |
 | `src/tools/`             | Registrar operations tools, one file per domain (`index.ts` wires them)   |
-| `src/widget-tools.ts`    | `show_*` widget tools and `*_data` feeds                                  |
-| `src/widgets/`           | React widgets + `views.tsx` (show tool → view)                            |
-| `src/tool-names.ts`      | Tool-name constants for rename-safe in-widget navigation                  |
+| `src/widget-tools.ts`    | `camunda7_open_cockpit` and the `*_data` feeds                            |
+| `src/widgets/`           | The cockpit app, its routes and widgets + `views.tsx`                     |
+| `src/tool-names.ts`      | Tool-name constants for rename-safe in-widget feed calls                  |
 | `src/lib/`               | `with-engine.ts` (engine routing), `cockpit-url.ts`, `toolsets.ts`        |
 | `src/module.ts`          | `camunda7Module` (config schema, env mapping) + `createBpmnXmlFetcher`    |
 | `src/engine-provider.ts` | The vendor provider port (`EngineProvider`, `CockpitRef`)                 |

@@ -217,7 +217,7 @@ describe("buildIncidentsDashboardData — exact cards beyond the scan (#335 N61)
     )
 
     expect(data.processes.map((p) => p.processDefinitionKey)).toEqual(["quiet"])
-    // Echoed: a standalone render (data only) re-queries and hands off this scope.
+    // Echoed: a hand-off states this scope, since a filtered total is not the engine's.
     expect(data.filters).toEqual({ processDefinitionKey: "quiet", incidentType: "failedJob" })
     const filter = { processDefinitionKeyIn: "quiet", incidentType: "failedJob" }
     expect(requests.filter((r) => r.path === "/incident/count").map((r) => r.query)).toEqual([

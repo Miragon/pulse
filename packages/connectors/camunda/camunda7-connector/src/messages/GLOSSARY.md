@@ -1,8 +1,7 @@
 # Glossar der camunda7-Texte
 
 Ein Begriff pro Sache, in jeder Ansicht gleich. Gilt für die Kataloge in diesem Ordner
-(`en*.ts`, `de*.ts`): Widget-Texte, Ask-AI-Übergaben und Server-Zusammenfassungen (die nur
-auf Englisch, `en.server.ts`).
+(`en*.ts`, `de*.ts`): Widget-Texte und Ask-AI-Übergaben.
 `glossary.test.ts` prüft die verbotenen Synonyme (in jeder Flexion, jede Regel mit einer Probe,
 die sie fangen muss), `catalog-text.test.ts` die Regeln aus
 brand-tone (du, AI, „CIB seven“, kein Gedankenstrich als Verbinder, Plural nach
@@ -79,4 +78,4 @@ mit ihrem Icon und beiden Labels ins Kit. Das Glossar von analytics führt diese
   Zahl (`countOf` in `plural.ts`), nie an zwei Schlüsseln `…One`/`…Other`.
 - Englisch in Sentence case: „Open incidents“, nicht „Open Incidents“.
 - Der Server setzt keinen Titel über eine Ansicht: die Überschrift des Widgets nennt sie in
-  der Sprache des Hosts. Das gilt für die Show-Tools jedes Moduls.
+  der Sprache des Hosts. Das gilt für jedes Tool, das eine Ansicht zeigt.

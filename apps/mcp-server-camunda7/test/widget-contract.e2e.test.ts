@@ -87,7 +87,9 @@ describe("widget wire contract (dual-protocol _meta)", () => {
     // hang on the host's loading skeleton. The naming convention is the
     // invariant we can enforce unconditionally.
     const showTools = tools.filter((t) => t.name.includes("_show_"))
-    expect(showTools.length).toBeGreaterThanOrEqual(10)
+    // Pinned at the post-cut count: cut 7 removed the twelve camunda7 show tools; the six
+    // analytics ones remain (camunda7's one view, camunda7_open_cockpit, is checked above).
+    expect(showTools.length).toBeGreaterThanOrEqual(6)
     for (const tool of showTools) {
       const ui = uiBlock(toolMeta(tool))
       expect(ui.resourceUri, `${tool.name}: show tools must bind their own view`).toBe(
@@ -161,9 +163,9 @@ describe("widget wire contract (dual-protocol _meta)", () => {
   it("names every module view and asks the host for a border", async () => {
     // Every view-bound tool: the show tools and the cockpit.
     const showTools = tools.filter((t) => typeof uiBlock(t._meta ?? {}).resourceUri === "string")
-    // The four view floors in this file are pinned at the post-cut count: cut 6 removed the
-    // failure dashboard, the comparison/dashboard descriptions and nine analytics tools.
-    expect(showTools.length).toBeGreaterThanOrEqual(19)
+    // The four view floors in this file are pinned at the post-cut count: cut 7 removed the
+    // twelve camunda7 show tools (camunda7_open_cockpit and six analytics views remain).
+    expect(showTools.length).toBeGreaterThanOrEqual(7)
     for (const tool of showTools) {
       const { contents } = await client.readResource({ uri: viewResourceUri(tool.name) })
       const meta = (contents[0] as { _meta?: Record<string, unknown> })._meta ?? {}
@@ -182,11 +184,11 @@ describe("widget wire contract (dual-protocol _meta)", () => {
     }
   })
 
-  // The one bundle serves every view: the document's prelude names the view (= its show tool),
+  // The one bundle serves every view: the document's prelude names the view (= its view tool),
   // before the bundle runs, so the bundle mounts that view and re-runs that tool on a stripped result.
   it("names its view in every view document, before the bundle", async () => {
     const viewTools = tools.filter((t) => typeof uiBlock(t._meta ?? {}).resourceUri === "string")
-    expect(viewTools.length).toBeGreaterThanOrEqual(19)
+    expect(viewTools.length).toBeGreaterThanOrEqual(7)
     for (const tool of viewTools) {
       const { contents } = await client.readResource({ uri: viewResourceUri(tool.name) })
       const text = (contents[0] as { text?: string }).text ?? ""
@@ -218,7 +220,7 @@ describe("widget wire contract (dual-protocol _meta)", () => {
     // view resolves its font URLs against the same origin (servedFontBaseUrl).
     const { resources } = await client.listResources()
     const views = resources.filter((r) => r.uri.startsWith(VIEW_RESOURCE_URI_PREFIX))
-    expect(views.length).toBeGreaterThanOrEqual(19)
+    expect(views.length).toBeGreaterThanOrEqual(7)
     for (const view of views) {
       expect(await readResourceDomains(client, view.uri), view.uri).toContain(serverOrigin)
     }
@@ -265,7 +267,7 @@ describe("widget wire contract — the font origin under MCP_URL", () => {
     )
     // One view per widget tool: the show tools and the cockpit.
     expect(views).toHaveLength(widgetTools.length)
-    expect(views.length).toBeGreaterThanOrEqual(19)
+    expect(views.length).toBeGreaterThanOrEqual(7)
     for (const view of views) {
       const listed = uiBlock((view as { _meta?: Record<string, unknown> })._meta ?? {}).csp as
         { resourceDomains?: string[] } | undefined
@@ -280,11 +282,7 @@ describe("widget wire contract — the font origin under MCP_URL", () => {
     const { tools } = await server.client.listTools()
     const widgetTools = tools.filter((t) => t._meta?.["openai/outputTemplate"] !== undefined)
     expect(widgetTools.map((t) => t.name)).toEqual(
-      expect.arrayContaining([
-        "camunda7_open_cockpit",
-        "camunda7_show_process_list",
-        "analytics_show_dashboard",
-      ]),
+      expect.arrayContaining(["camunda7_open_cockpit", "analytics_show_dashboard"]),
     )
     for (const tool of widgetTools) {
       expect(tool._meta?.["openai/widgetCSP"], tool.name).toEqual({

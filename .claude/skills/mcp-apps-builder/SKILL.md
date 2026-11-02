@@ -13,11 +13,11 @@ meta, server i18n, caller identity) lives in `@miragon/pulse-widget-shell/server
 
 1. **The root `CLAUDE.md`**: the architecture invariants. Tools go through the
    registrar, engine access through `withEngine`, a view through the module's
-   view map under its show tool's name (invariant 3), feeds through
+   view map under its view tool's name (invariant 3), feeds through
    `buildDataFeedResult`, and there is no federation in this server.
 2. **The house skill for the change:**
-   - `add-bpm-feature`: a camunda7 tool, a `show_*` widget tool, a `*_data` feed or
-     a widget.
+   - `add-bpm-feature`: a camunda7 tool, a cockpit route, a `*_data` feed or a
+     widget.
    - `add-analytics-feature`: a PromQL query, an analytics tool or a dashboard
      widget.
 3. **widget-shell's view runtime** (`packages/core/widget-shell/README.md`) for

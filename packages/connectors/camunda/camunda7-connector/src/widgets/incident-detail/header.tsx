@@ -4,7 +4,6 @@ import { HandOffButton, OpenInCockpitLink } from "@miragon/pulse-widget-shell/wi
 import type { IncidentDetailData } from "../../view-models.js"
 
 import { scopingDefinitionKey, useHandOff, type HandOff } from "../lib/hand-off.js"
-import { EngineMeta } from "../lib/engine-context.js"
 import { InstanceLabel } from "../lib/identity.js"
 import { useT } from "../../messages/use-t.js"
 
@@ -31,13 +30,6 @@ export function diagnoseIncidentHandOff(data: IncidentDetailData): HandOff {
       { label: "activityName", text: data.activityName },
       { label: "processName", text: data.processDefinitionName },
       { label: "businessKey", text: data.businessKey },
-    ],
-    tools: [
-      "camunda7_get_process_instance",
-      "camunda7_get_process_instance_variables",
-      "camunda7_get_job_stacktrace",
-      "camunda7_list_incidents",
-      "camunda7_query_historic_incidents",
     ],
   }
 }
@@ -73,7 +65,6 @@ export function IncidentDetailHeader({
           <span aria-hidden="true">·</span>
           {/* One instance label: its business key, the UUID a copyable chip. */}
           <InstanceLabel id={data.processInstanceId} businessKey={data.businessKey} />
-          <EngineMeta engineId={data.engineId} />
         </>
       }
       actions={

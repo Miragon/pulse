@@ -1,12 +1,11 @@
 import { modelContextText } from "@miragon/pulse-widget-shell/widgets"
-import { ANALYTICS_ONLY_SURFACE, engineIdsOf, isAggregate } from "./hand-off.js"
+import { engineIdsOf, isAggregate } from "./hand-off.js"
 import type { AnalyticsBpmnHeatmapData } from "./bpmn-heatmap.js"
 
 /**
  * Built by `modelContextText` (#338). Only for a view whose tool result does not carry what it
  * shows: every other analytics view returns its figures to the model as JSON. The scope comes
- * from the DATA, never a widget's props (#336); an unmeasured figure is left out, never 0. Names
- * analytics tools only: a pure description cannot query the camunda7 surface.
+ * from the DATA, never a widget's props (#336); an unmeasured figure is left out, never 0.
  */
 
 /** Said whenever a figure adds up several engines (the deliberate fleet aggregate). */
@@ -26,7 +25,7 @@ function maxEntry(values: Record<string, number>): [string, number] | null {
  */
 export function describeBpmnHeatmap(data: AnalyticsBpmnHeatmapData): string {
   const hottest = maxEntry(data.frequency)
-  const slowest = maxEntry(data.durationSec)
+  const slowest = maxEntry(data.durationMs)
   return modelContextText({
     summary:
       "The operator is viewing the BPMN heatmap of one process (the frequency ↔ duration toggle " +
@@ -42,9 +41,7 @@ export function describeBpmnHeatmap(data: AnalyticsBpmnHeatmapData): string {
       hottestActivityId: hottest?.[0],
       hottestExecutions: hottest?.[1],
       slowestActivityId: slowest?.[0],
-      slowestAvgSec: slowest ? Math.round(slowest[1] * 10) / 10 : undefined,
+      slowestAvgMs: slowest?.[1],
     },
-    tools: ["analytics_show_dashboard"],
-    surface: ANALYTICS_ONLY_SURFACE,
   })
 }

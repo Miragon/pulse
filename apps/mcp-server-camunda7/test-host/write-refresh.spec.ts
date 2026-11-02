@@ -3,9 +3,9 @@ import { HEALTHY_ENGINE } from "./engines.js"
 
 /**
  * #341 in the BUILT bundle, behind the minimal SEP-1865 host (see
- * test-host/README.md): an in-widget write in a STANDALONE show view
+ * test-host/README.md): an in-widget write on the cockpit's START view
  * refreshes the view. The tool result the host delivered is the seed of the
- * view's feed query — not a frozen snapshot — so the write's targeted
+ * route's feed query — not a frozen snapshot — so the write's targeted
  * invalidation re-reads the feed through the host's `tools/call` and the view
  * re-renders, without the host re-executing the rendering tool. Guards the
  * whole chain the unit suites only fake: the seed lands in the ONE query
@@ -17,7 +17,7 @@ import { HEALTHY_ENGINE } from "./engines.js"
  * `job-1`, which this scenario owns (its other failed jobs are never written).
  */
 
-const RENDER_TOOL = "camunda7_show_job_panel"
+const RENDER_TOOL = "camunda7_open_cockpit"
 
 interface HostLog {
   delivered: "result" | "cancelled" | null
@@ -29,13 +29,13 @@ async function hostLog(page: Page): Promise<HostLog> {
   return await page.evaluate(() => (window as unknown as { __hostLog: HostLog }).__hostLog)
 }
 
-test("a write in a standalone view refetches its feed and re-renders — no re-execution", async ({
+test("a write on the cockpit's start view refetches its feed and re-renders — no re-execution", async ({
   page,
 }) => {
   const base = process.env.HOST_SIM_OPERATIONS_URL
   if (!base)
     throw new Error("HOST_SIM_OPERATIONS_URL is unset — run via `playwright test -c test-host`")
-  const args = { engine: HEALTHY_ENGINE, failedOnly: true }
+  const args = { engine: HEALTHY_ENGINE, view: "jobs", failedOnly: true }
   await page.goto(
     `${base}/?${new URLSearchParams({ tool: RENDER_TOOL, args: JSON.stringify(args) }).toString()}`,
   )
@@ -60,7 +60,7 @@ test("a write in a standalone view refetches its feed and re-renders — no re-e
     failedOnly: true,
     firstResult: 0,
   })
-  // A fresh seed is not refetched on mount, and the host never re-runs the show tool.
+  // A fresh seed is not refetched on mount, and the host never re-runs the rendering tool.
   expect(calls.slice(0, write).map((c) => c.name)).not.toContain("camunda7_jobs_data")
   expect(calls.map((c) => c.name)).not.toContain(RENDER_TOOL)
   expect(log.errors).toEqual([])

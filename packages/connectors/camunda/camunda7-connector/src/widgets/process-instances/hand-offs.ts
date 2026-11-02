@@ -40,13 +40,6 @@ export function rootCauseHandOff(
     },
     facts: { version: row.version },
     untrusted: [{ label: "businessKey", text: row.businessKey }],
-    tools: [
-      "camunda7_get_process_instance",
-      "camunda7_list_incidents",
-      "camunda7_get_job_stacktrace",
-      "camunda7_query_historic_incidents",
-      "camunda7_get_process_instance_variables",
-    ],
   }
 }
 
@@ -86,13 +79,6 @@ export function describeInstancesView({
       { label: "processName", text: processName },
       { label: "businessKeyLike", text: filters.businessKeyLike },
       { label: "search", text: filters.search },
-    ],
-    tools: [
-      "camunda7_show_instance_detail",
-      "camunda7_list_incidents",
-      "camunda7_set_process_instance_suspension",
-      "camunda7_delete_process_instance",
-      "camunda7_set_job_retries",
     ],
   }
 }

@@ -6,11 +6,7 @@ import {
   type FakeRoutes,
   type RecordedRequest,
 } from "../tools/test-support/fake-engine.js"
-import {
-  buildCockpitDashboardData,
-  buildProcessInstancesData,
-  buildProcessListData,
-} from "./cockpit-data.js"
+import { buildCockpitDashboardData, buildProcessInstancesData } from "./cockpit-data.js"
 
 // The failure half is the rejection table in `honest-numbers.test.ts`.
 
@@ -105,60 +101,6 @@ describe("buildCockpitDashboardData — one row per KEY (#335 N60)", () => {
         incidents: [],
       },
     ])
-  })
-})
-
-describe("buildProcessListData", () => {
-  it("forwards the filters and reports the engine-side total", async () => {
-    const { engine, client } = await engineWith({
-      "GET /process-definition": { body: [{ id: "K1:1:a", key: "K1" }] },
-      "GET /process-definition/count": { body: { count: 42 } },
-    })
-
-    const data = await buildProcessListData(client, "engine-a", {
-      processDefinitionKey: "K1",
-      nameLike: "Ord",
-      latestVersion: false,
-      firstResult: 20,
-      maxResults: 10,
-    })
-
-    const [list] = calls(engine, "/process-definition")
-    // A LIKE value without % would match the name exactly; latestVersion=false
-    // is ignored by the engine — "all versions" means: not sent.
-    expect(list.query).toEqual({
-      key: "K1",
-      nameLike: "%Ord%",
-      firstResult: "20",
-      maxResults: "10",
-      sortBy: "name",
-      sortOrder: "asc",
-    })
-    expect(calls(engine, "/process-definition/count")[0].query).toEqual({
-      key: "K1",
-      nameLike: "%Ord%",
-    })
-    expect(data.totalCount).toBe(42)
-    expect(data.filters).toEqual({
-      processDefinitionKey: "K1",
-      nameLike: "Ord",
-      latestVersion: false,
-    })
-  })
-
-  it("defaults latestVersion to true and paging to the first page of 50 (negative offset → 0)", async () => {
-    const { engine, client } = await engineWith({
-      "GET /process-definition/count": { body: { count: 0 } },
-    })
-
-    const data = await buildProcessListData(client, "engine-a", { firstResult: -5 })
-
-    expect(calls(engine, "/process-definition")[0].query).toMatchObject({
-      latestVersion: "true",
-      firstResult: "0",
-      maxResults: "50",
-    })
-    expect(data.filters.latestVersion).toBe(true)
   })
 })
 

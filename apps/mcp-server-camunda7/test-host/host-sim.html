@@ -32,7 +32,7 @@
       // tool lifecycle the way the scenario asks for:
       //
       //   tool=<name>               the view-bound tool the "model" invoked
-      //                             (default: camunda7_show_process_list)
+      //                             (default: camunda7_open_cockpit)
       //   args=<json>               its arguments
       //   structuredContent=strip   deliver the result WITHOUT structuredContent
       //                             (claude.ai / Claude Desktop behaviour)
@@ -58,7 +58,7 @@
       // the host backend; the spec reads `window.__hostLog`.
       const q = new URLSearchParams(location.search)
       const scenario = {
-        tool: q.get("tool") ?? "camunda7_show_process_list",
+        tool: q.get("tool") ?? "camunda7_open_cockpit",
         args: JSON.parse(q.get("args") ?? "{}"),
         strip: q.get("structuredContent") === "strip",
         resultDelayMs: Number(q.get("resultDelayMs") ?? 0),

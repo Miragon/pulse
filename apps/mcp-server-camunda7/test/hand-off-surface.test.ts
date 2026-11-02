@@ -13,17 +13,17 @@ import {
 import { scanSources, type ScanOptions } from "./source-scan.js"
 
 /**
- * The Ask-AI hand-offs and model contexts vs the LIVE tool surface (#338).
+ * The Ask-AI hand-offs and model contexts (#338).
  *
- * A hand-off reaches the model as the user's own message, so it must never
- * send the model to a tool the deployment does not give it: an app-only
- * `*_data` feed (SEP-1865 hosts hide those), an admin-only write on an
- * operations deployment, any write on the read-only floor. Widgets therefore
- * build every prompt with widget-shell's `askAiPrompt` from a typed spec whose
- * `tools` pass the deployment's surface at render time — this guard pins both
- * halves: the specs (every tool they can name exists for the model, every id
- * is a parameter of one of them) and the surface (per toolset, what the
- * widgets filter by IS what tools/list advertises).
+ * A hand-off reaches the model as the user's own message, so only one
+ * primitive posts it (AskAiButton, accepting nothing but an `askAiPrompt`
+ * result), and every prompt and model context is built by widget-shell's
+ * `askAiPrompt`/`modelContextText` from a typed spec: static text, id-shaped
+ * ids and facts, engine text fenced as untrusted. A spec names no tool of any
+ * module, so no deployment's surface can make it wrong; the module
+ * instructions and the tool descriptions steer the model. This guard pins
+ * that, keeps prose anywhere from sending the model to an app-only feed, and
+ * holds the server instructions to the tools each toolset registers.
  */
 
 /**
@@ -39,10 +39,6 @@ import { scanSources, type ScanOptions } from "./source-scan.js"
 const MCP: ScanOptions = { scope: "mcp" }
 
 const PRIMITIVE = "packages/core/widget-shell/src/ui/ask-ai-button.tsx"
-/** Deterministic navigation (`useNav` standalone fallback): the one other follow-up path. */
-const NAVIGATION = "packages/connectors/camunda/camunda7-connector/src/widgets/navigation.ts"
-/** Its ONE follow-up: a show-view request (`showViewIntent`, engine text fenced), never free text. */
-const NAVIGATION_FOLLOW_UP = "host.sendFollowUp(showViewRequest(intent))"
 /** The view runtime: the host seam, its mcp-use adapter and the test host only pass the pen on. */
 const RUNTIME = [
   "packages/core/widget-shell/src/ui/view-host.tsx",
@@ -58,16 +54,9 @@ const FOLLOW_UP_NAMES = new Set([
   "useSendFollowUp",
 ])
 
-/** Every follow-up reference in the MCP sources with the source line it sits on. */
+/** Every follow-up reference in the MCP sources. */
 function followUpRefs() {
-  return scanSources(
-    (file, text) =>
-      findIdentifiers(file, text, FOLLOW_UP_NAMES).map((ref) => ({
-        ...ref,
-        line: text.split("\n")[Number(ref.at.slice(file.length + 1)) - 1]?.trim() ?? "",
-      })),
-    MCP,
-  )
+  return scanSources((file, text) => findIdentifiers(file, text, FOLLOW_UP_NAMES), MCP)
 }
 
 interface WireTool {
@@ -80,28 +69,21 @@ async function surfaceOf(server: BootedServer): Promise<WireTool[]> {
   return (await server.client.listTools()).tools
 }
 
-const modelTools = (tools: readonly WireTool[]) =>
+const modelVisibleNames = (tools: readonly WireTool[]) =>
   tools.filter((tool) => isModelVisible(tool)).map((tool) => tool.name)
 
 describe("hand-offs go through the one primitive", () => {
   // `askAi`/`sendFollowUp` post a USER-role message: only AskAiButton (which
-  // accepts nothing but an `askAiPrompt` result) may hold that pen; the runtime
-  // hands it over, and the navigation seam posts its one show-view request.
-  it("no source but AskAiButton and the navigation seam's one line posts a follow-up", () => {
-    const raw = followUpRefs()
-      .filter((ref) => !FOLLOW_UP_HOLDERS.some((holder) => ref.at.startsWith(`${holder}:`)))
-      .filter((ref) => !(ref.at.startsWith(`${NAVIGATION}:`) && ref.line === NAVIGATION_FOLLOW_UP))
+  // accepts nothing but an `askAiPrompt` result) may hold that pen, and the
+  // runtime hands it over. Navigation stays inside the cockpit and posts none.
+  it("no source but AskAiButton and the view runtime posts a follow-up", () => {
+    const raw = followUpRefs().filter(
+      (ref) => !FOLLOW_UP_HOLDERS.some((holder) => ref.at.startsWith(`${holder}:`)),
+    )
     expect(
       raw.map((ref) => `${ref.name} (${ref.at})`),
       "Post a hand-off only through <AskAiButton prompt={ask(…)}> (askAiPrompt).",
     ).toEqual([])
-  })
-
-  // The pin the old show-widget seam gave: navigation posts nothing but a
-  // request `showViewIntent` built (a branded type), never engine text in place.
-  it("navigation posts exactly one follow-up, the show-view request", () => {
-    const navigation = followUpRefs().filter((ref) => ref.at.startsWith(`${NAVIGATION}:`))
-    expect(navigation.map((ref) => ref.line)).toEqual([NAVIGATION_FOLLOW_UP])
   })
 
   // A view's description function (the analytics `describe*`) is held to the
@@ -135,17 +117,13 @@ describe("hand-offs go through the one primitive", () => {
   })
 })
 
-describe("every hand-off names only tools the model can call", () => {
+describe("every hand-off names no tool", () => {
   let server: BootedServer
   let full: WireTool[]
-  let floor: Set<string>
-  let operations: Set<string>
   let specs: HandOffSpec[]
 
   beforeAll(async () => {
-    // The FULL surface (every module, admin, deployments): what a spec may
-    // name at all; the read-only floor: the default without OAuth;
-    // operations: the default under OAuth.
+    // The FULL surface (every module, admin, deployments): every feed a text could name.
     server = await bootServer({
       authenticated: true,
       env: {
@@ -154,12 +132,6 @@ describe("every hand-off names only tools the model can call", () => {
       },
     })
     full = await surfaceOf(server)
-    await server.close()
-    server = await bootServer({ authenticated: true })
-    operations = new Set(modelTools(await surfaceOf(server)))
-    await server.close()
-    server = await bootServer({})
-    floor = new Set(modelTools(await surfaceOf(server)))
     specs = scanSources(findHandOffSpecs, MCP)
   })
 
@@ -167,102 +139,27 @@ describe("every hand-off names only tools the model can call", () => {
     await server?.close()
   })
 
-  // Both floors are pinned at the post-cut count: cut 6 removed the failure dashboard, the
-  // comparison/dashboard descriptions and nine analytics tools.
+  // The hand-off floor is pinned at the post-cut count: cut 7 removed the BPMN viewer's and the
+  // process list's hand-offs with their views.
   it("finds the specs (the scanner is not blind)", () => {
-    expect(specs.filter((s) => s.kind === "hand-off").length).toBeGreaterThanOrEqual(32)
+    expect(specs.filter((s) => s.kind === "hand-off").length).toBeGreaterThanOrEqual(30)
     expect(specs.filter((s) => s.kind === "context").length).toBeGreaterThanOrEqual(12)
   })
 
-  it("writes every tool list and id set literally, so they can be checked", () => {
-    const opaque = specs
-      .filter((s) => s.tools === null || s.ids === null || s.toolIds === null)
-      .map((s) => s.at)
-    expect(
-      opaque,
-      'Write `tools: ["…"]`, `ids: { … }` and `toolIds: { tool: { … } }` as literals.',
-    ).toEqual([])
-  })
-
-  // The intent/summary reaches every deployment unfiltered: it must be
-  // static text, and a tool may only travel through `tools`, where the live
-  // surface filters it — never through the summary, a fact or an id value.
-  it("states the view in static text and names tools through `tools` only", () => {
+  // The intent/summary reaches every deployment as is: it must be static
+  // text, and no part of a spec may name a tool, since no surface filters it.
+  it("states the view in static text and names no tool", () => {
     expect(
       specs.filter((s) => !s.staticText).map((s) => s.at),
       "An intent/summary is static text (literals, +, ?:, same-file consts); data goes into ids/facts/untrusted.",
     ).toEqual([])
     expect(
-      specs.flatMap((s) => s.namedOutsideTools.map((tool) => `${tool} (${s.at})`)),
-      "Name a tool in `tools` only — the live surface filters nothing else.",
+      specs.flatMap((s) => s.namedTools.map((tool) => `${tool} (${s.at})`)),
+      "A hand-off names no tool: the module instructions and the tool descriptions steer the model.",
     ).toEqual([])
-  })
-
-  it("names only tools the model can call — never an app-only feed or an unknown name", () => {
-    const visible = new Set(modelTools(full))
-    const wrong = specs.flatMap((s) =>
-      (s.tools ?? [])
-        .filter((tool) => !visible.has(tool))
-        .map(
-          (tool) =>
-            `${tool} (${s.at}) — ${
-              full.some((t) => t.name === tool)
-                ? "app-only: hosts hide it from the model"
-                : "no such tool"
-            }`,
-        ),
-    )
-    expect(wrong).toEqual([])
-  })
-
-  // The surface drops tools per deployment, and strict inputs refuse an
-  // argument a tool does not take: so on EVERY surface a hand-off renders on
-  // (each toolset; the other module active or not), each id it inlines must
-  // be taken by a tool still named there. An argument only some tools take
-  // belongs in `toolIds`, inlined only while its tool is named.
-  it("passes each id to a tool still named on every surface it renders on", () => {
-    const params = new Map(full.map((t) => [t.name, Object.keys(t.inputSchema.properties ?? {})]))
-    const takes = (tool: string, id: string) => params.get(tool)?.includes(id) ?? false
-    // A camunda7 widget renders with camunda7 active, an analytics one with analytics.
-    const otherModule = (at: string) =>
-      at.startsWith("packages/connectors/camunda/")
-        ? "analytics_"
-        : at.startsWith("packages/connectors/analytics/")
-          ? "camunda7_"
-          : null
-    const surfaces = (at: string) =>
-      [
-        ["read-only", floor],
-        ["operations", operations],
-        ["admin", new Set(modelTools(full))],
-      ].flatMap(([label, tools]) => {
-        const other = otherModule(at)
-        const without = other && new Set([...tools].filter((t) => !t.startsWith(other)))
-        return [
-          { label: label as string, tools: tools as Set<string> },
-          ...(without ? [{ label: `${label as string} without ${other}*`, tools: without }] : []),
-        ]
-      })
-    const wrong = specs.flatMap((s) => {
-      const toolIds = Object.entries(s.toolIds ?? {}).flatMap(([tool, ids]) => [
-        ...(s.tools?.includes(tool) ? [] : [`toolIds.${tool} (${s.at}) — not a listed tool`]),
-        ...ids
-          .filter((id) => !takes(tool, id))
-          .map((id) => `toolIds.${tool}.${id} (${s.at}) — ${tool} does not take it`),
-      ])
-      const ids = surfaces(s.at).flatMap(({ label, tools }) => {
-        const named = (s.tools ?? []).filter((tool) => tools.has(tool))
-        if (named.length === 0) return [] // no Tools line — nothing to pass the ids to
-        return (s.ids ?? [])
-          .filter((id) => !named.some((tool) => takes(tool, id)))
-          .map((id) => `${id} (${s.at}) — on ${label} only ${named.join(", ")} remain`)
-      })
-      return [...toolIds, ...ids]
-    })
     expect(
-      [...new Set(wrong)],
-      "An id no named tool takes is refused by strict inputs: move it to `toolIds` " +
-        "(an argument of one tool) or to `facts` (a number on screen).",
+      specs.flatMap((s) => s.extraMembers.map((member) => `${member} (${s.at})`)),
+      "A spec is its intent/summary, ids, facts and untrusted; a hand-off carries no tool list.",
     ).toEqual([])
   })
 
@@ -310,32 +207,32 @@ describe.each(TOOLSETS)("the live surface on $label", ({ options }) => {
     await server?.close()
   })
 
-  // The widgets filter every camunda7 tool a hand-off names by this feed: it
-  // must report exactly what tools/list gives the model — no app-only feed,
-  // no tool the toolset withholds, none missing.
-  it("camunda7_widget_actions_data reports exactly the model's camunda7 tools", async () => {
-    const result = await server.client.callTool({
-      name: "camunda7_widget_actions_data",
-      arguments: {},
-    })
-    // A feed answers in JSON text only.
-    const [{ text }] = result.content as Array<{ text: string }>
-    const reported = (JSON.parse(text) as { modelTools: string[] }).modelTools
-    expect(reported).toEqual(
-      modelTools(tools)
-        .filter((name) => name.startsWith("camunda7_"))
-        .sort(),
-    )
-  })
-
-  // The playbooks moved from the prompts into the server instructions, which
-  // no surface filters: each must name only what this boot registers.
+  // The playbooks live in the server instructions, which no surface filters:
+  // each must name only what this boot registers.
   it("the server instructions name only tools this deployment gives the model", () => {
     const instructions = server.client.getInstructions() ?? ""
     const named = toolNamesIn(instructions, ["camunda7", "analytics"])
-    expect(named.length).toBeGreaterThanOrEqual(10)
-    const visible = new Set(modelTools(tools))
+    // Pinned at the post-cut count of the read-only boot: cut 7's instructions stopped naming
+    // the two camunda7 show tools they routed to.
+    expect(named.length).toBeGreaterThanOrEqual(8)
+    const visible = new Set(modelVisibleNames(tools))
     expect(named.filter((name) => !visible.has(name))).toEqual([])
+  })
+})
+
+// The preamble and every module's snippet reach a deployment as one text: without camunda7,
+// none of it may name a camunda7 tool (the boots above all carry both modules).
+describe("the live surface without camunda7", () => {
+  it("the server instructions name only tools this deployment gives the model", async () => {
+    const server = await bootServer({ env: { MCP_ACTIVE_MODULES: "analytics" } })
+    try {
+      const named = toolNamesIn(server.client.getInstructions() ?? "", ["camunda7", "analytics"])
+      expect(named.length, "the scanner is not blind").toBeGreaterThanOrEqual(4)
+      const visible = new Set(modelVisibleNames(await surfaceOf(server)))
+      expect(named.filter((name) => !visible.has(name))).toEqual([])
+    } finally {
+      await server.close()
+    }
   })
 })
 
@@ -362,65 +259,62 @@ describe("the hand-off readers", () => {
     ])
   })
 
-  it("read a spec's tools and ids — and flag a list it cannot read", () => {
+  it("read a spec, and skip plumbing and data", () => {
     const text = [
-      'const a = { intent: "k", ids: { engine, jobId: j }, tools: ["camunda7_get_job_stacktrace"] }',
-      'const b = { summary: "s", tools: ["camunda7_x", "camunda7_y"].filter(keep) }',
-      'const c = { intent: "k", ids: { ...rest }, tools: names, toolIds: own }',
-      'const d = { intent: "k", tools: ["analytics_x"], toolIds: { analytics_x: { period: p } } }',
+      'const a = { intent: "k", ids: { engine, jobId: j }, untrusted: [{ label: "m", text: m }] }',
+      "const b = { summary, facts: { count } }",
+      'const c = { ...handOff, intent: "k", locale }',
+      'const d = { isError, summary: "s" }',
+      // A nav intent and view-model summaries are data, not a lead's text.
+      'const e = { id: "jobs", intent: { type: "jobs" }, icon }',
+      "const f = { summary: { total: 1 }, definitions }",
+      "const g = { query, summary, tone }",
     ].join("\n")
-    const clean = { staticText: true, namedOutsideTools: [] }
     expect(findHandOffSpecs("x.ts", text)).toEqual([
-      {
-        kind: "hand-off",
-        at: "x.ts:1",
-        tools: ["camunda7_get_job_stacktrace"],
-        ids: ["engine", "jobId"],
-        toolIds: {},
-        ...clean,
-      },
-      {
-        kind: "context",
-        at: "x.ts:2",
-        tools: ["camunda7_x", "camunda7_y"],
-        ids: [],
-        toolIds: {},
-        ...clean,
-      },
-      { kind: "hand-off", at: "x.ts:3", tools: null, ids: null, toolIds: null, ...clean },
-      {
-        kind: "hand-off",
-        at: "x.ts:4",
-        tools: ["analytics_x"],
-        ids: [],
-        toolIds: { analytics_x: ["period"] },
-        ...clean,
-      },
+      { kind: "hand-off", at: "x.ts:1", staticText: true, namedTools: [], extraMembers: [] },
+      // A shorthand summary resolves through the file's consts: here there is none.
+      { kind: "context", at: "x.ts:2", staticText: false, namedTools: [], extraMembers: [] },
     ])
   })
 
+  // A spec that regains a tool list stays a spec, so the guard fails on it.
+  it("report a spec's members besides its lead, ids, facts and untrusted", () => {
+    const text = [
+      'const a = { intent: "k", tools: ["camunda7_x"] }',
+      "const b = { summary, ids: { engine }, toolIds: { camunda7_y: [] } }",
+      'const c = { summary: "s", surface }',
+    ].join("\n")
+    expect(findHandOffSpecs("x.ts", text).map((s) => [s.at, s.extraMembers, s.namedTools])).toEqual(
+      [
+        ["x.ts:1", ["tools"], ["camunda7_x"]],
+        ["x.ts:2", ["toolIds"], []],
+        ["x.ts:3", ["surface"], []],
+      ],
+    )
+  })
+
   // The N118 shape: a write tool in the summary, data interpolated into it.
-  it("flag a summary that carries data or names a tool outside `tools`", () => {
+  it("flag a summary that carries data and a tool named anywhere in a spec", () => {
     const text = [
       'const LEAD = "Viewing jobs."',
-      'const a = { summary: LEAD + (x ? " Retry." : ""), tools: [] }',
-      "const b = { summary: `Viewing ${engine}`, tools: [] }",
-      'const c = { summary: "Act via camunda7_delete_process_instance", tools: [] }',
-      'const d = { summary: "s", facts: { hint: "use analytics_x" }, tools: [] }',
-      'const e = { summary: "s", tools: [], surface: { has: (t) => t === "analytics_y" } }',
+      'const a = { summary: LEAD + (x ? " Retry." : ""), ids: { engine } }',
+      "const b = { summary: `Viewing ${engine}` }",
+      'const c = { summary: "Act via camunda7_delete_process_instance" }',
+      'const d = { summary: "s", facts: { hint: "use analytics_x" } }',
+      'const e = { intent: "k", ids: { tool: "camunda7_list_jobs" } }',
     ].join("\n")
-    expect(findHandOffSpecs("x.ts", text).map((s) => [s.staticText, s.namedOutsideTools])).toEqual([
+    expect(findHandOffSpecs("x.ts", text).map((s) => [s.staticText, s.namedTools])).toEqual([
       [true, []],
       [false, []],
       [true, ["camunda7_delete_process_instance"]],
       [true, ["analytics_x"]],
-      [true, []],
+      [true, ["camunda7_list_jobs"]],
     ])
   })
 
   it("judge what a description function returns, and read the callee of a model context", () => {
     const text = [
-      "export const good = (d) => modelContextText({ summary: 's', tools: [], surface })",
+      "export const good = (d) => modelContextText({ summary: 's', ids: { engine } })",
       "export function mixed(d) { if (d) return modelContextText(x); return `Viewing ${d}` }",
       "export const bad = (d) => `Viewing ${d.key}. Drill with analytics_x.`",
       "const a = <HostModelContext content={good(data)}><A /></HostModelContext>",

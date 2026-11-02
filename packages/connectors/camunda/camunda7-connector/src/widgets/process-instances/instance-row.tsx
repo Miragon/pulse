@@ -35,8 +35,7 @@ export function InstanceRow({
 }: {
   row: ProcessInstanceRow
   processDefinitionKey: string | null
-  /** Undefined when the default routed it. */
-  engine: string | undefined
+  engine: string
   showProcessColumn: boolean
   onOpen: (row: ProcessInstanceRow) => void
   onOpenProcess: (row: ProcessInstanceRow) => void

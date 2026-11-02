@@ -5,8 +5,6 @@ import { DAY_SECONDS, nowSeconds, rangeSeconds, type CountWindow } from "./windo
 
 export const round1 = (n: number) => Math.round(n * 10) / 10
 
-export const secondsOf = (ms: number) => round1(ms / 1000)
-
 /** Whole milliseconds, null stays null (the dashboard's rounding). */
 export const msOrNull = (value: number | null) => (value === null ? null : Math.round(value))
 

@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from "vitest"
-import { createElement, type ComponentType } from "react"
+import type { ComponentType } from "react"
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import {
   CAMUNDA7_INCIDENT_DETAIL_DATA,
@@ -71,11 +71,11 @@ const CUSTOM = detail({ incidentType: "invoiceMismatch" })
 
 type Calls = Array<[string, Record<string, unknown>]>
 
+/** The incident-detail route on the fixtures' engine. */
 function renderDetail(data: IncidentDetailData, tools: Record<string, unknown>) {
-  const widget = IncidentDetailWidget as unknown as ComponentType<Record<string, unknown>>
   render(
     <TestViewHost tools={tools} client={queryClient}>
-      {createElement(widget, { data })}
+      <IncidentDetailWidget data={data} incidentId={data.incidentId} engine="prod" />
     </TestViewHost>,
   )
 }
@@ -143,8 +143,12 @@ describe("the incident detail offers the remedy the engine accepts", () => {
   it("labels each detail's failure section by its own heading — two details on one page included", async () => {
     const Two = () => (
       <>
-        <IncidentDetailWidget data={CUSTOM} />
-        <IncidentDetailWidget data={{ ...CUSTOM, incidentId: "inc-2" }} />
+        <IncidentDetailWidget data={CUSTOM} incidentId={CUSTOM.incidentId} engine="prod" />
+        <IncidentDetailWidget
+          data={{ ...CUSTOM, incidentId: "inc-2" }}
+          incidentId="inc-2"
+          engine="prod"
+        />
       </>
     )
     render(

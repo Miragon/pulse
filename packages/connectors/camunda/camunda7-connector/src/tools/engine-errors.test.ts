@@ -203,7 +203,6 @@ describe("widget-path feeds honor the MCP request's ctx.signal", () => {
       registry: registryFor([{ id: "prod-a", baseUrl }], 10_000),
       healthThresholds: DEFAULT_HEALTH_THRESHOLDS,
       toolset: "read-only",
-      modelTools: () => [],
       engineParam: engineParamShape,
     })
     const controller = new AbortController()

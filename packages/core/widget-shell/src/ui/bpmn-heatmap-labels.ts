@@ -6,7 +6,6 @@ export interface BpmnHeatmapLabels {
   duration?: string
   frequencyLegend?: string
   durationLegend?: string
-  noData?: string
   noHeat?: string
   /** The kit does not know why there is no diagram, so its default names no cause. */
   bpmnUnavailable?: string
@@ -36,7 +35,6 @@ export const DEFAULT_HEATMAP_LABELS: Required<DefaultedLabels> = {
   duration: "Duration",
   frequencyLegend: "Executions per element",
   durationLegend: "Avg duration per element",
-  noData: "No heatmap data.",
   noHeat: "No metric data in this window.",
   bpmnUnavailable:
     "The BPMN diagram is not available. Ask in the chat for the figures per element instead.",

@@ -1,19 +1,19 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeAll, describe, expect, it } from "vitest"
-import type { ComponentType } from "react"
 import { cleanup, render, screen } from "@testing-library/react"
 import { formatNumber, formatTimestamp } from "@miragon/pulse-ui"
 import { TestViewHost } from "@miragon/pulse-widget-shell/widgets"
 import { ClusterDetailWidget, describeCluster } from "./cluster-detail.js"
 import type { ClusterDetailData } from "../view-models.js"
 import { CAMUNDA7_WIDGET_ACTIONS_DATA } from "../tool-names.js"
-import { handOffFor, widgetActionsFeedFor } from "./lib/hand-off.test-support.js"
+import { bindHandOff } from "./lib/hand-off.js"
+import { widgetActionsFeedFor } from "./lib/hand-off.test-support.js"
 
 afterEach(() => {
   cleanup()
 })
 
-/** The hand-offs follow the deployment's surface — this fixture runs as `operations`. */
+/** The fix-or-diagnose offer follows the deployment's gate: this fixture runs as `operations`. */
 let tools: Record<string, unknown>
 beforeAll(async () => {
   tools = { [CAMUNDA7_WIDGET_ACTIONS_DATA]: await widgetActionsFeedFor("operations") }
@@ -55,7 +55,16 @@ const CLUSTER: ClusterDetailData = {
   engineId: "default",
 }
 
-const Widget = ClusterDetailWidget as unknown as ComponentType<Record<string, unknown>>
+/** The cluster route on the fixtures' engine, for the fixture's cluster. */
+const Widget = ({ data }: { data: ClusterDetailData }) => (
+  <ClusterDetailWidget
+    data={data}
+    engine="default"
+    activityId={CLUSTER.activityId}
+    incidentType={CLUSTER.incidentType}
+    messageSignature={CLUSTER.messageSignature ?? undefined}
+  />
+)
 
 describe("ClusterDetailWidget (fixture render)", () => {
   it("renders the cluster header, message, and business-key-first instance rows", async () => {
@@ -158,15 +167,15 @@ describe("ClusterDetailWidget (fixture render)", () => {
 // #335 facts in #338's model context: a capped scan's count is a lower bound,
 // counts it cannot vouch for are left out (never 0), the list's coverage said.
 describe("describeCluster", () => {
-  it("states an exact cluster as exact, with its whole list", async () => {
-    const text = (await handOffFor("operations")).context(describeCluster(CLUSTER))
+  it("states an exact cluster as exact, with its whole list", () => {
+    const text = bindHandOff("en").context(describeCluster(CLUSTER))
     expect(text).toContain('processDefinitionKey="shipping"')
     expect(text).toContain("On screen: incidentCount=40, lastHour=9, last24h=12")
     expect(text).not.toMatch(/AtLeast|listCoversNewest|scannedProcessDefinitionKeys/)
   })
 
-  it("states a capped cluster as at least its scanned share", async () => {
-    const text = (await handOffFor("operations")).context(
+  it("states a capped cluster as at least its scanned share", () => {
+    const text = bindHandOff("en").context(
       describeCluster({
         ...CLUSTER,
         incidentCount: null,

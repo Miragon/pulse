@@ -57,9 +57,9 @@ type Result<K extends keyof typeof queries> = Awaited<ReturnType<(typeof queries
 // A total map over `queries`: a new export has to state its no-data shape.
 const NO_DATA: { [K in keyof typeof queries]: (result: Result<K>) => void } = {
   elementHeat: (r) =>
-    expect({ frequency: r.frequency, durationSec: r.durationSec }).toEqual({
+    expect({ frequency: r.frequency, durationMs: r.durationMs }).toEqual({
       frequency: {},
-      durationSec: {},
+      durationMs: {},
     }),
   periodCompare: (r) => {
     expect(r.suppressed).toBe(true)

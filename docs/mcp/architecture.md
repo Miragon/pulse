@@ -95,12 +95,13 @@ second engine dialect cheap:
 2. The server delegates to the matching module's plugin.
 3. The plugin calls the relevant system (REST for the engine, PromQL for
    Prometheus) and returns JSON for the model.
-4. A widget tool (`show_*`) returns the view's data as `structuredContent` and
-   its model-facing result (a short summary or the figures as compact JSON) as
-   `content`; the host renders it in the tool's view, which the shared
-   bundle picks by the tool's name (re-running the tool once where a host drops
-   `structuredContent`). Inside the view, app-only `*_data` feeds refresh and
-   page it without a model turn.
+4. A view tool (camunda7's `open_cockpit`, analytics' `show_*`) returns the
+   view's data as `structuredContent` and its model-facing result (the facts or
+   figures as compact JSON; the heatmap: a short summary) as `content`; the host
+   renders it in the tool's view, which the shared bundle picks by the tool's
+   name (re-running the tool once where a host drops `structuredContent`).
+   Inside the view, app-only `*_data` feeds refresh and page it without a model
+   turn.
 
 Process metrics originate in the engine: the Kotlin plugin maps history events
 to Micrometer counters/histograms (100 % coverage, model-bounded labels), the

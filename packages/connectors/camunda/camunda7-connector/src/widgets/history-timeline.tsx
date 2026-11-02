@@ -18,12 +18,14 @@ import {
   WidgetShell,
   RowsBudgeted,
   usePagedViewData,
+  useViewData,
   HostModelContext,
+  ViewDataState,
 } from "@miragon/pulse-widget-shell/widgets"
-import type { HistoryTimelineData } from "../view-models.js"
+import { HISTORY_PAGE_SIZE, type HistoryTimelineData } from "../view-models.js"
+import { CAMUNDA7_HISTORY_TIMELINE_DATA } from "../tool-names.js"
 import { useHandOff, type HandOff, type ViewContext } from "./lib/hand-off.js"
 import { durationOutliers } from "./lib/duration-outliers.js"
-import { EngineMeta } from "./lib/engine-context.js"
 import { useT } from "../messages/use-t.js"
 import {
   HistoryTable,
@@ -39,7 +41,6 @@ export type HistoryActivity = HistoryTimelineData["activities"][number]
 
 type TimelineInstance = NonNullable<HistoryTimelineData["processInstance"]>
 
-/** The baseline is read by key, which the history query refuses, so the key goes with the analytics dashboard. */
 export function explainInstanceHandOff(
   instance: TimelineInstance,
   engineId: string | undefined,
@@ -50,13 +51,10 @@ export function explainInstanceHandOff(
     ids: {
       engine: engineId,
       processInstanceId: instance.id,
-    },
-    toolIds: {
-      analytics_show_dashboard: { processDefinitionKey: instance.processDefinitionKey },
+      processDefinitionKey: instance.processDefinitionKey,
     },
     facts: { durationMs: instance.durationInMillis, state: instance.state, activityCount },
     untrusted: [{ label: "processName", text: instance.processDefinitionName }],
-    tools: ["camunda7_query_historic_activity_instances", "analytics_show_dashboard"],
   }
 }
 
@@ -75,16 +73,11 @@ export function explainActivityHandOff(
     ids: {
       engine: engineId,
       processInstanceId: instance?.id,
+      processDefinitionKey: instance?.processDefinitionKey ?? undefined,
       activityId: activity.activityId,
-    },
-    toolIds: {
-      analytics_show_dashboard: {
-        processDefinitionKey: instance?.processDefinitionKey ?? undefined,
-      },
     },
     facts: { durationMs: activity.durationInMillis, activityType: activity.activityType },
     untrusted: [{ label: "activityName", text: activity.activityName }],
-    tools: ["camunda7_query_historic_activity_instances", "analytics_show_dashboard"],
   }
 }
 
@@ -103,7 +96,7 @@ export function HistoryTimelineView({
   processInstance?: HistoryTimelineData["processInstance"]
   /** The instance the rows belong to, for their hand-offs where no header data is shown. */
   instanceRef?: TimelineInstanceRef
-  engineId?: string
+  engineId: string
   totalActivities?: number
   /** Activities with an open incident on this instance — their running step is marked. */
   incidentActivityIds?: readonly string[] | null
@@ -142,7 +135,6 @@ export function HistoryTimelineView({
           title={processInstance.processDefinitionName ?? processInstance.processDefinitionKey}
           sub={
             <>
-              <EngineMeta engineId={engineId} />
               <span>
                 {t("historyTimeline.started", {
                   time: formatTimestamp(processInstance.startTime),
@@ -246,8 +238,6 @@ export function HistoryTimelineView({
   )
 }
 
-/** Page size for the self-paged history tabs (a timeline rarely exceeds one page). */
-const HISTORY_PAGE_SIZE = 100
 /** Returns a `{ items, totalCount }` envelope. */
 const HISTORY_QUERY_TOOL = "camunda7_query_historic_activity_instances"
 
@@ -267,8 +257,8 @@ export function PagedHistoryView({
   incidentActivityIds,
 }: {
   processInstanceId: string
-  /** Explicit engine routing; omitted → the default engine. */
-  engine?: string
+  /** The route's engine: a page never reads the default engine. */
+  engine: string
   processDefinitionKey?: string | null
   variant?: "timeline" | "table"
   initialPage?: HistoryPage | null
@@ -277,19 +267,14 @@ export function PagedHistoryView({
   incidentActivityIds?: readonly string[] | null
 }) {
   const t = useT()
-  const args: Record<string, unknown> = {
-    processInstanceId,
-    sortBy: "startTime",
-    sortOrder: "asc",
-  }
-  if (engine) args.engine = engine
+  const args = { processInstanceId, sortBy: "startTime", sortOrder: "asc", engine }
   const paged = usePagedViewData<HistoryEntry, HistoryPage>({
     initialData: initialPage,
-    key: ["camunda7:instance-history", engine ?? null, processInstanceId],
+    key: ["camunda7:instance-history", engine, processInstanceId],
     tool: HISTORY_QUERY_TOOL,
     args,
     pageSize: HISTORY_PAGE_SIZE,
-    ready: !!processInstanceId,
+    ready: true,
     selectItems: (d) => d.items ?? [],
     selectTotal: (d) => d.totalCount ?? 0,
   })
@@ -333,7 +318,7 @@ export function PagedHistoryView({
   )
 }
 
-/** The show tool returns one capped page; the rest is a "Load more" away on the same engine, never silently cut. */
+/** The feed returns one capped page; the rest is a "Load more" away on the same engine, never silently cut. */
 export function describeHistoryTimeline(data: HistoryTimelineData): ViewContext {
   const pi = data.processInstance
   return {
@@ -343,8 +328,8 @@ export function describeHistoryTimeline(data: HistoryTimelineData): ViewContext 
     ids: {
       engine: data.engineId,
       processInstanceId: pi?.id,
+      processDefinitionKey: pi?.processDefinitionKey,
     },
-    toolIds: { analytics_show_dashboard: { processDefinitionKey: pi?.processDefinitionKey } },
     facts: {
       state: pi?.state,
       activities: data.totalActivities,
@@ -353,7 +338,6 @@ export function describeHistoryTimeline(data: HistoryTimelineData): ViewContext 
       stillRunning: pi ? pi.endTime === null : undefined,
     },
     untrusted: [{ label: "processName", text: pi?.processDefinitionName }],
-    tools: ["camunda7_query_historic_activity_instances", "analytics_show_dashboard"],
   }
 }
 
@@ -364,8 +348,26 @@ function HistoryModelContext({ data }: { data: HistoryTimelineData }) {
   )
 }
 
-export function HistoryTimelineWidget({ data }: { data: HistoryTimelineData | null }) {
+/** The history route: the instance's timeline, ended instances included, seeded by the start view. */
+export function HistoryTimelineWidget({
+  data: initialData = null,
+  processInstanceId,
+  engine,
+}: {
+  data?: HistoryTimelineData | null
+  processInstanceId: string
+  engine: string
+}) {
   const t = useT()
+  // The route's engine, never the default engine.
+  const view = useViewData<HistoryTimelineData>(
+    initialData,
+    ["camunda7:history-timeline", engine, processInstanceId],
+    CAMUNDA7_HISTORY_TIMELINE_DATA,
+    { processInstanceId, engine },
+    true,
+  )
+  const data = view.data
   // Stable identity per payload: the paged hook resets on a new page 0.
   const initialPage = useMemo<HistoryPage | null>(
     () => (data ? { items: data.activities, totalCount: data.totalActivities } : null),
@@ -374,20 +376,24 @@ export function HistoryTimelineWidget({ data }: { data: HistoryTimelineData | nu
   if (!data) {
     return (
       <WidgetShell>
-        <Alert>
-          <AlertDescription>{t("historyTimeline.noData")}</AlertDescription>
-        </Alert>
+        <ViewDataState
+          loading={view.loading}
+          error={view.error}
+          loadingText={t("historyTimeline.loading")}
+          emptyText={t("historyTimeline.noData")}
+          onRetry={view.refetch}
+          retryLabel={t("viewState.retry")}
+        />
       </WidgetShell>
     )
   }
-
   return (
     <WidgetShell>
       <HistoryModelContext data={data} />
       {data.processInstance ? (
         <PagedHistoryView
           processInstanceId={data.processInstance.id}
-          engine={data.engineId}
+          engine={engine}
           initialPage={initialPage}
           processInstance={data.processInstance}
           incidentActivityIds={data.incidentActivityIds}
@@ -396,7 +402,7 @@ export function HistoryTimelineWidget({ data }: { data: HistoryTimelineData | nu
         // Unknown to history: nothing to page (and no id to scope a page by).
         <HistoryTimelineView
           activities={data.activities}
-          engineId={data.engineId}
+          engineId={engine}
           totalActivities={data.totalActivities}
           incidentActivityIds={data.incidentActivityIds}
         />

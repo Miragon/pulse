@@ -26,14 +26,15 @@ export interface BpmnHeatmapData {
   bpmnXml: string | null
   period: string
   frequency: Record<string, number>
-  durationSec: Record<string, number>
+  /** Average duration per element in whole milliseconds. */
+  durationMs: Record<string, number>
 }
 
 type Mode = "frequency" | "duration"
 
 /** A heat value in the mode's unit: a count, or a duration ("3m 7s" / "3 Min. 7 s"). */
 function formatHeat(mode: Mode, value: number): string {
-  return mode === "frequency" ? formatNumber(value) : formatDuration(value * 1000)
+  return mode === "frequency" ? formatNumber(value) : formatDuration(value)
 }
 
 /** The values behind the colours (U16): the number a colour cannot say, and the heatmap's text alternative. */
@@ -102,7 +103,7 @@ export function BpmnHeatmapWidget({
   labels,
   meta,
 }: {
-  data: BpmnHeatmapData | null
+  data: BpmnHeatmapData
   labels?: BpmnHeatmapLabels
   /** Replaces the period badge, whose period it carries. */
   meta?: ReactNode
@@ -110,15 +111,14 @@ export function BpmnHeatmapWidget({
   const [mode, setMode] = useState<Mode>("frequency")
   const kit = kitLabels(useLocale())
   const l = { ...DEFAULT_HEATMAP_LABELS, ...labels }
-  const xml = data?.bpmnXml ?? null
+  const xml = data.bpmnXml
   // The process's name by the rule the other analytics views use (its own, else its pool's).
-  const key = data?.processDefinitionKey
-  const processName = useMemo(() => (xml && key ? bpmnProcessName(xml, key) : null), [xml, key])
+  const key = data.processDefinitionKey
+  const processName = useMemo(() => (xml ? bpmnProcessName(xml, key) : null), [xml, key])
 
-  if (!data) return <TableEmptyState>{l.noData}</TableEmptyState>
   if (!data.bpmnXml) return <TableEmptyState>{l.bpmnUnavailable}</TableEmptyState>
 
-  const values = mode === "frequency" ? data.frequency : data.durationSec
+  const values = mode === "frequency" ? data.frequency : data.durationMs
   const legendLabel = mode === "frequency" ? l.frequencyLegend : l.durationLegend
   const range = heatRange(values)
   const format = (value: number) => formatHeat(mode, value)
