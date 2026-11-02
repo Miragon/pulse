@@ -4,7 +4,37 @@ import { blankComments, stylesheetColorFindings } from "./colors.js"
 export const stylesheetRules = (css: string): string => blankComments(css)
 
 /** A retired accent declared again (`--m-blue: …`, `--critical-soft: …`) would style nothing. */
-const RETIRED_ACCENT_DECLARATION = /--(?:color-)?(?:m-(?:blue|green)|critical)[\w-]*\s*:/
+const RETIRED_ACCENT_DECLARATION = /^\s*--(?:color-)?(?:m-(?:blue|green)|critical)[\w-]*\s*:/
+
+/** A `--cd-*` token declared in the stylesheet. */
+const CD_TOKEN_DECLARATION = /^\s*--cd-[\w-]+\s*:/
+
+/**
+ * The stylesheet cut at every `;`, `{` and `}`: each piece holds at most one declaration, so the
+ * declaration patterns stay anchored and linear (unanchored, they backtrack on repeated names).
+ */
+const declarations = (rules: string): string[] => rules.split(/[;{}]/)
+
+/** `font-family … !important` within one declaration. */
+function forcesFont(declaration: string): boolean {
+  const name = declaration.indexOf("font-family")
+  return name >= 0 && declaration.lastIndexOf("!important") >= name + "font-family".length
+}
+
+/**
+ * Every innermost block as `{ prelude, body }`: each piece before a `}` that holds a `{` is a
+ * block, its prelude running back to the previous `{` or `}`. Brace by brace, never a regex
+ * over a long run without braces.
+ */
+function innermostBlocks(rules: string): { prelude: string; body: string }[] {
+  const blocks: { prelude: string; body: string }[] = []
+  for (const piece of rules.split("}").slice(0, -1)) {
+    const open = piece.lastIndexOf("{")
+    const prelude = open < 0 ? "" : piece.slice(piece.lastIndexOf("{", open - 1) + 1, open)
+    if (prelude) blocks.push({ prelude, body: piece.slice(open + 1) })
+  }
+  return blocks
+}
 
 /**
  * Every rule block whose selector list targets html, body or #root, as `selector { body }`. The
@@ -12,8 +42,8 @@ const RETIRED_ACCENT_DECLARATION = /--(?:color-)?(?:m-(?:blue|green)|critical)[\
  * is dropped first.
  */
 function documentRules(rules: string): string[] {
-  return [...rules.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
-    .map(([, prelude, body]) => ({ selector: (prelude.split(";").pop() ?? "").trim(), body }))
+  return innermostBlocks(rules)
+    .map(({ prelude, body }) => ({ selector: (prelude.split(";").pop() ?? "").trim(), body }))
     .filter(({ selector }) => selector.split(",").some((s) => /^\s*(html|body|#root)\s*$/.test(s)))
     .map(({ selector, body }) => `${selector} { ${body.trim().replace(/\s+/g, " ")} }`)
 }
@@ -33,14 +63,17 @@ export function stylesheetShapeFindings(css: string, file: string): string[] {
   const findings = documentRules(rules)
     .filter((rule) => /min-height/.test(rule))
     .map((rule) => `${file}: a min-height floor on html, body or #root: ${rule}`)
-  if (/font-family[^;}]*!important/.test(rules)) {
+  const pieces = declarations(rules)
+  if (pieces.some(forcesFont)) {
     findings.push(`${file}: a forced font (font-family with !important)`)
   }
   if (/@fontsource|pulse-ui\/fonts\.css|@font-face/.test(rules)) {
     findings.push(`${file}: an inlined font (@fontsource, pulse-ui/fonts.css or @font-face)`)
   }
-  if (/--cd-[\w-]+\s*:/.test(rules)) findings.push(`${file}: declares a --cd-* token`)
-  if (RETIRED_ACCENT_DECLARATION.test(rules)) {
+  if (pieces.some((piece) => CD_TOKEN_DECLARATION.test(piece))) {
+    findings.push(`${file}: declares a --cd-* token`)
+  }
+  if (pieces.some((piece) => RETIRED_ACCENT_DECLARATION.test(piece))) {
     findings.push(`${file}: declares a retired accent (--m-*, --critical)`)
   }
   for (const { line, match } of stylesheetColorFindings(css, file)) {

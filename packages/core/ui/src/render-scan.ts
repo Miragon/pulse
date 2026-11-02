@@ -45,10 +45,23 @@ export interface MarkupText {
   value: string
 }
 
+const RAW_TEXT_ELEMENT = /<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi
+
+/** The markup without its script and style elements, removed until none is left (a removal can join a new one). */
+function withoutScriptsAndStyles(html: string): string {
+  let previous: string
+  let current = html
+  do {
+    previous = current
+    current = previous.replace(RAW_TEXT_ELEMENT, "")
+  } while (current !== previous)
+  return current
+}
+
 /** Every non-blank text node and text-bearing attribute value, decoded. */
 export function userFacingTexts(html: string): MarkupText[] {
   const out: MarkupText[] = []
-  const withoutRawText = html.replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, "")
+  const withoutRawText = withoutScriptsAndStyles(html)
   for (const chunk of withoutRawText.split(/<[^>]*>/)) {
     const value = decodeEntities(chunk).trim()
     if (value) out.push({ source: "text", value })
@@ -69,7 +82,7 @@ export function openingTags(html: string, tag: string): string[] {
 
 /** The decoded value of `name` on one opening tag, `undefined` when absent. */
 export function attribute(openingTag: string, name: string): string | undefined {
-  const escaped = name.replace(/[-]/g, "\\-")
+  const escaped = name.replace(/[.*+?^${}()|[\]\\-]/g, "\\$&")
   const match = new RegExp(`\\s${escaped}="([^"]*)"`, "i").exec(openingTag)
   return match ? decodeEntities(match[1] ?? "") : undefined
 }

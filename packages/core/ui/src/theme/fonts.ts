@@ -32,8 +32,15 @@ export interface FontFacesOptions {
 /** Characters that could break out of the CSS `url("…")` the helper writes. */
 const UNSAFE_URL_CHARS = /["'\\()\s<>]/
 
+/** `value` without its trailing slashes, in linear time (`/\/+$/` backtracks on a long run of them). */
+function withoutTrailingSlashes(value: string): string {
+  let end = value.length
+  while (end > 0 && value[end - 1] === "/") end--
+  return value.slice(0, end)
+}
+
 function fontUrl(baseUrl: string, file: string): string {
-  const url = `${baseUrl.replace(/\/+$/, "")}/${file.replace(/^\/+/, "")}`
+  const url = `${withoutTrailingSlashes(baseUrl)}/${file.replace(/^\/+/, "")}`
   if (UNSAFE_URL_CHARS.test(url)) {
     throw new Error(`fontFaces: refusing a font URL with quote, bracket or whitespace: ${url}`)
   }

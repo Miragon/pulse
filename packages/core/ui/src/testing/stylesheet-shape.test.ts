@@ -43,6 +43,33 @@ describe("stylesheetShapeFindings: a stylesheet every view inlines keeps the vie
     ])
   })
 
+  // A backtracking pattern takes well over the 5 s test timeout on each of these (measured on
+  // Node 24); the linear reading takes milliseconds.
+  it.each([
+    ["a long run without braces", "z".repeat(150_000)],
+    ["font-family repeated", "font-family".repeat(60_000)],
+    ["--cd- repeated", "--cd-".repeat(60_000)],
+    ["a retired accent repeated", `--critical${"--m-blue".repeat(50_000)}`],
+  ])("reads %s in linear time", (_, css) => {
+    const shapeFindings = stylesheetShapeFindings(css, "a.css").filter(
+      (finding) => !finding.startsWith("a.css:1:"),
+    )
+    expect(shapeFindings).toEqual([])
+  })
+
+  it("finds each declaration it forbids within one declaration only", () => {
+    expect(stylesheetShapeFindings("a { --cd-x : 1 }", "a.css")).toEqual([
+      "a.css: declares a --cd-* token",
+    ])
+    expect(stylesheetShapeFindings("a { color: var(--cd-x); font-family: x }", "a.css")).toEqual([])
+    expect(stylesheetShapeFindings("a { font-family: x; color: red !important }", "a.css")).toEqual(
+      [],
+    )
+    expect(stylesheetShapeFindings("a{font-family:x!important}", "a.css")).toEqual([
+      "a.css: a forced font (font-family with !important)",
+    ])
+  })
+
   it("blanks comments in place, so offsets and lines stay true", () => {
     const css = "/* a */\n@import x;"
     expect(stylesheetRules(css)).toBe("       \n@import x;")

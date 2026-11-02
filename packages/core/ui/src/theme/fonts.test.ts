@@ -61,6 +61,14 @@ describe("fontFaces (opt-in Geist by URL)", () => {
     expect(out).toContain('url("/fonts/b.woff2")')
   })
 
+  it("reads a base URL with a long run of inner slashes in linear time", () => {
+    // A backtracking trailing-slash pattern takes minutes here; the test timeout catches it.
+    const baseUrl = `/f${"/".repeat(100_000)}x`
+    expect(fontFaces({ baseUrl, files: { sans: "a.woff2", mono: "b.woff2" } })).toContain(
+      'x/a.woff2")',
+    )
+  })
+
   it("honours a custom font-display strategy", () => {
     expect(fontFaces({ baseUrl: "/f", display: "optional" })).toContain("font-display: optional;")
   })
