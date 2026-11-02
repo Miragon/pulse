@@ -5,7 +5,7 @@
  * cruiser), per-package coverage (from the
  * last `pnpm test` run's coverage-summary.json) and mutation scores (from
  * reports/mutation-report.json where a mutation run has happened: in CI only
- * the nightly "Mutation summary", so a pull request's report reads "(no run)").
+ * the nightly "Mutation summary"; no pull request runs it).
  *
  * Read-only over existing artifacts except the architecture check, which is
  * fast enough to run inline. Appends the report to $GITHUB_STEP_SUMMARY in CI.
