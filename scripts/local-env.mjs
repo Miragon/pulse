@@ -1,0 +1,205 @@
+/**
+ * The playground stack as scripts/local.mjs sees it: its services, ports and URLs, the settings
+ * the server and the CLI get against it, and who holds a port (pure;
+ * scripts/local-env.test.mjs).
+ */
+
+export const COMPOSE_FILE = "playground/docker/docker-compose.yml"
+
+/** The `name:` of the Compose file: a stack started by hand runs under it too. */
+export const COMPOSE_PROJECT = "pulse"
+
+/**
+ * The stack's services. `probe` answers 200 once the service is ready (asked on 127.0.0.1: the
+ * stack binds only there), `ports` are every host port it publishes, `profile` the Compose
+ * profile that adds it. `waitFor: false`: shown by stack:status, not waited for.
+ */
+export const SERVICES = [
+  {
+    id: "engine",
+    ports: [8410],
+    probe: "http://127.0.0.1:8410/engine-rest/engine",
+    url: "http://localhost:8410/webapp",
+    note: "REST http://localhost:8410/engine-rest, login demo / demo",
+  },
+  {
+    id: "otel-collector",
+    ports: [8430, 8431, 8450, 8451],
+    probe: "http://127.0.0.1:8450/metrics",
+    url: "http://localhost:8431",
+    note: "OTLP over HTTP",
+    waitFor: false,
+  },
+  {
+    id: "prometheus",
+    ports: [8460],
+    probe: "http://127.0.0.1:8460/-/ready",
+    url: "http://localhost:8460",
+  },
+  {
+    id: "grafana",
+    ports: [8470],
+    probe: "http://127.0.0.1:8470/api/health",
+    url: "http://localhost:8470",
+  },
+  {
+    id: "engine-b",
+    profile: "multi-engine",
+    ports: [8411],
+    probe: "http://127.0.0.1:8411/engine-rest/engine",
+    url: "http://localhost:8411/webapp",
+    note: "second engine, login demo / demo",
+  },
+  {
+    id: "keycloak",
+    profile: "auth",
+    ports: [8480],
+    probe: "http://127.0.0.1:8480/realms/miragon",
+    url: "http://localhost:8480",
+    note: "realm miragon, user demo / demo, admin console admin / admin",
+  },
+]
+
+/** The Compose profiles the options switch on. */
+export const profilesFor = ({ multiEngine = false, auth = false } = {}) => [
+  ...(multiEngine ? ["multi-engine"] : []),
+  ...(auth ? ["auth"] : []),
+]
+
+/** The services a stack with these options runs. */
+export const servicesFor = (options = {}) => {
+  const profiles = profilesFor(options)
+  return SERVICES.filter((service) => !service.profile || profiles.includes(service.profile))
+}
+
+/** `docker compose` arguments for the stack file under `repoRoot`. */
+export const composeArgs = (composeFile, profiles, ...command) => [
+  "compose",
+  "-f",
+  composeFile,
+  ...profiles.flatMap((profile) => ["--profile", profile]),
+  ...command,
+]
+
+const ENGINE_A = {
+  id: "prod-a",
+  baseUrl: "http://localhost:8410/engine-rest",
+  cockpitUrl: "http://localhost:8410/webapp",
+}
+const ENGINE_B = {
+  id: "prod-b",
+  baseUrl: "http://localhost:8411/engine-rest",
+  cockpitUrl: "http://localhost:8411/webapp",
+}
+
+/**
+ * The MCP server's settings against the playground: the playground's public demo login, its
+ * Prometheus, loopback only. `admin` widens the toolset, `deploy` registers deployments, `auth`
+ * puts the server behind the playground's Keycloak (.env.example, "Local playground").
+ */
+export function serverPreset({
+  multiEngine = false,
+  admin = false,
+  deploy = false,
+  auth = false,
+} = {}) {
+  const engines = multiEngine
+    ? {
+        ENGINES_JSON: JSON.stringify(
+          [ENGINE_A, ENGINE_B].map(({ id, baseUrl, cockpitUrl }) => ({
+            id,
+            baseUrl,
+            flavor: "cibseven",
+            cockpitUrl,
+          })),
+        ),
+      }
+    : {
+        ENGINE_BASE_URL: ENGINE_A.baseUrl,
+        ENGINE_ID: ENGINE_A.id,
+        ENGINE_FLAVOR: "cibseven",
+        ENGINE_COCKPIT_URL: ENGINE_A.cockpitUrl,
+      }
+  return {
+    ...engines,
+    ENGINE_AUTH_TYPE: "basic",
+    ENGINE_USERNAME: "demo",
+    ENGINE_PASSWORD: "demo",
+    PROMETHEUS_URL: "http://localhost:8460",
+    HOST: "127.0.0.1",
+    ...(admin ? { MCP_ACTIVE_MODULES: "engine:admin,analytics" } : {}),
+    ...(deploy ? { ENGINE_ALLOW_DEPLOYMENTS: "true" } : {}),
+    ...(auth
+      ? {
+          MCP_USE_OAUTH_KEYCLOAK_SERVER_URL: "http://localhost:8480",
+          MCP_USE_OAUTH_KEYCLOAK_REALM: "miragon",
+        }
+      : {}),
+  }
+}
+
+/** Where the engine module reads its engines from, the first one set wins (its module.ts). */
+export const ENGINE_SOURCES = ["ENGINES_FILE", "ENGINES_JSON", "ENGINE_BASE_URL"]
+
+/** The CLI's settings against the playground engine. */
+export const cliPreset = () => ({
+  PULSE_CLI_URL: ENGINE_A.baseUrl,
+  PULSE_CLI_FLAVOR: "cibseven",
+  PULSE_CLI_AUTH: "basic",
+  PULSE_CLI_USERNAME: "demo",
+  PULSE_CLI_PASSWORD: "demo",
+})
+
+/**
+ * `env` over `preset`: a variable the caller already set wins. `overridden` names the preset
+ * variables the caller's environment replaced, `outranking` the engine sources it sets that the
+ * engine module reads before the preset's own (ENGINE_SOURCES), so the playground engines are
+ * not used (names only, a value may be a secret).
+ */
+export function withPreset(preset, env) {
+  const overridden = Object.keys(preset).filter(
+    (name) => env[name] !== undefined && env[name] !== preset[name],
+  )
+  const presetSource = ENGINE_SOURCES.findIndex((name) => name in preset)
+  const outranking =
+    presetSource < 0
+      ? []
+      : ENGINE_SOURCES.slice(0, presetSource).filter((name) => env[name]?.trim())
+  return { env: { ...preset, ...env }, overridden, outranking }
+}
+
+/**
+ * Host port → `{ container, project }` from `docker ps --format` lines of
+ * `<name>\t<compose project>\t<ports>` (the project is empty for a plain container).
+ */
+export function portOwners(psText) {
+  const owners = new Map()
+  for (const line of psText.split("\n")) {
+    const [container, project = "", ports = ""] = line.split("\t")
+    if (!container) continue
+    for (const match of ports.matchAll(/:(\d+)(?:-(\d+))?->/g)) {
+      const first = Number(match[1])
+      const last = Number(match[2] ?? match[1])
+      for (let port = first; port <= last; port += 1) owners.set(port, { container, project })
+    }
+  }
+  return owners
+}
+
+/**
+ * Why `port` blocks the stack, or undefined when it does not: a port held by a container of
+ * this stack's Compose project is the stack itself (Compose recreates it in place).
+ */
+export function portConflict(port, owner) {
+  if (owner === undefined) {
+    return `port ${port} is taken by a process outside Docker; stop it and try again`
+  }
+  if (owner.project === COMPOSE_PROJECT) return undefined
+  const stop =
+    owner.project === ""
+      ? `docker stop ${owner.container}`
+      : `docker compose -p ${owner.project} down`
+  return `port ${port} is taken by the container ${owner.container}${
+    owner.project === "" ? "" : ` (Compose project ${owner.project})`
+  }; stop it with \`${stop}\` and try again`
+}

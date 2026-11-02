@@ -357,6 +357,6 @@ fails there.
 
 `pnpm test` runs the query snapshot tests; `pnpm typecheck` is the **only** check that
 covers widget `.tsx` code (`tsc -p tsconfig.widgets.json`). For end-to-end verification:
-`docker compose -f playground/docker/docker-compose.yml up -d` (engines + Prometheus emit real
-metrics), `pnpm dev`, then call the tool in the inspector at
+`pnpm play` (the playground's engine and Prometheus emit real metrics; it builds and starts the
+server against them), then call the tool in the inspector at
 `http://localhost:8400/mcp/inspector`. Run `pnpm format:check` before committing.

@@ -77,12 +77,13 @@ The product page is [miragon.ai/tools/pulse](https://miragon.ai/tools/pulse/).
 
 ## Development
 
+A fresh clone needs Node.js 22.22.2 or later, pnpm (`corepack enable`) and Docker; no JDK, no `.env`:
+
 ```bash
-pnpm install --frozen-lockfile
-docker compose -f playground/docker/docker-compose.yml up -d   # CIB seven, OTEL, Prometheus, Grafana
-cp .env.example .env
-pnpm dev                                                        # MCP server on :8400, inspector at /mcp/inspector
-pnpm build && pnpm typecheck && pnpm test && pnpm lint          # the bar for every change
+pnpm play               # installs, starts the playground, builds, MCP server on :8400, inspector at /mcp/inspector
+pnpm play:cli -- ping   # the CLI against the playground engine
+pnpm stack:status       # what runs; pnpm stack:up / stack:down start and stop the playground
+pnpm check              # the bar for every change: build, typecheck, test, lint, format
 ```
 
 Details: [developer guide](docs/mcp/developer.md); the rules for code changes are in [`CLAUDE.md`](CLAUDE.md).

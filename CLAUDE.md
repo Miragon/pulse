@@ -79,6 +79,14 @@ package; another interface app keeps its own rules in its own CLAUDE.md.
 ## Commands
 
 ```bash
+# From a fresh clone with Node, pnpm and Docker only (no JDK, no .env; scripts/local.mjs):
+pnpm play                            # install, playground up, build, MCP server + inspector on :8400
+pnpm play:cli -- ping                # the built CLI against the playground engine
+pnpm stack:up | stack:down | stack:status   # the playground in Docker (--multi-engine, --auth)
+pnpm check                           # the local bar, one log per step in reports/check/
+pnpm check:all                       # plus test:host, template, Gradle, docs build, engine suites
+# The VS Code extension's own engines: pnpm --fail-if-no-match --filter pulse-cockpit sandbox:up
+
 pnpm install --frozen-lockfile       # all deps are public; no registry credential needed
 
 pnpm build                           # turbo build across the monorepo (runs `generate` first)
@@ -88,8 +96,7 @@ pnpm lint                            # eslint per package (`pnpm lint:fix` to au
 pnpm format:check                    # prettier check (`pnpm format` to write)
 pnpm generate                        # regenerate the CIB seven SDK from the OpenAPI spec
 
-# Run the server locally (needs the Docker infra + a .env file, see .env.example):
-docker compose -f playground/docker/docker-compose.yml up -d
+# The server with your own settings (a .env file, see .env.example; playground: pnpm stack:up):
 pnpm dev                             # MCP server on :8400
 
 # Kotlin engine plugins (Java 21):
@@ -103,7 +110,7 @@ pnpm --fail-if-no-match --filter @miragon/pulse-cli catalog       # regenerate t
 pnpm --fail-if-no-match --filter @miragon/pulse-cli test:engines  # Testcontainers suites
 ```
 
-`pnpm dev` serves the MCP endpoint at `http://localhost:8400/mcp` and the `mcp-use`
+`pnpm play` and `pnpm dev` serve the MCP endpoint at `http://localhost:8400/mcp` and the `mcp-use`
 inspector UI at `http://localhost:8400/mcp/inspector` (served by `mcp-use dev` only;
 the production entrypoint mounts no inspector). Use the inspector to call tools and
 render widgets manually.
@@ -606,9 +613,9 @@ workspace (its header lists each check).
 | VS Code package   | `vsce package` dry run of the production build (`.github/workflows/ci.yml`): bundles in, no sources, maps or node_modules; the webview budget is `pnpm test`'s (`apps/vscode/test/architecture/bundle-budget.test.ts`)                                                                                                                                                                                                                                                                                                                   |
 | CLI jobs          | `ci.yml` in the `cli` scope: `CLI binary (<target>)` (single executable on Linux x64, macOS arm64, Windows x64), `CLI image (build + smoke)`, `CLI plugin (validate)`, aggregated by `CLI (all checks)`                                                                                                                                                                                                                                                                                                                                  |
 | CI scopes         | The `changes` job runs `scripts/ci-scopes.mjs` over a PR's files and every other job runs only in its scope (a skipped job reports success); "Lint + Format" runs on every PR. A new job gets `needs: changes` and a scope; a test that starts reading a file outside its package adds that path to `PATH_RULES` or `ALSO_READ_BY`                                                                                                                                                                                                       |
-| Manual            | `docker compose -f playground/docker/docker-compose.yml up -d` + `pnpm dev`, then exercise tools/widgets in the inspector. The default boot is read-only; write paths need an explicit suffix, e.g. `MCP_ACTIVE_MODULES=engine:admin,analytics` in `.env`                                                                                                                                                                                                                                                                                |
+| Manual            | `pnpm play` (or the playground + `pnpm dev` with a `.env`), then exercise tools/widgets in the inspector. The default boot is read-only; write paths need an explicit suffix: `pnpm play --admin`, or `MCP_ACTIVE_MODULES=engine:admin,analytics` in `.env`                                                                                                                                                                                                                                                                              |
 
-A green `pnpm build && pnpm typecheck && pnpm test && pnpm lint` is the minimum bar for
+A green `pnpm build && pnpm typecheck && pnpm test && pnpm lint` (`pnpm check` runs them) is the minimum bar for
 every change, in that order (`scripts/published-imports.test.mjs` reads the built CLI bundle);
 widget changes additionally need `test:host` plus a manual render check via the inspector (the
 host simulation renders one real view, not every widget's data path).

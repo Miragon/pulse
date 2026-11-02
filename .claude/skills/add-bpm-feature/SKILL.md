@@ -514,9 +514,8 @@ toolset. If `char-budgets.json` grew, `pnpm lint` fails until the commit carries
 
 `pnpm typecheck` is the **only** automated check that type-checks widget `.tsx` code
 (`tsc -p tsconfig.widgets.json`) — never skip it. For widgets also do a manual render
-check: `docker compose -f playground/docker/docker-compose.yml up -d`, `pnpm dev`, then call the
-tool in the inspector at `http://localhost:8400/mcp/inspector`. The default `pnpm dev` boot
-is read-only (the boot log names the toolsets) — to exercise a write tool or button, set
-`MCP_ACTIVE_MODULES=engine:admin,analytics` in `.env` (plus
-`ENGINE_ALLOW_DEPLOYMENTS=true` for deployments). Run `pnpm format:check` (or
+check: `pnpm play` (playground, build and server in one command), then call the
+tool in the inspector at `http://localhost:8400/mcp/inspector`. The default boot
+is read-only (the boot log names the toolsets) — to exercise a write tool or button, run
+`pnpm play --admin` (`--deploy` for deployments). Run `pnpm format:check` (or
 `pnpm format`) before committing.
