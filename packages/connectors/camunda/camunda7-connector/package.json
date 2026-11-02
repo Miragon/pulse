@@ -48,6 +48,7 @@
   },
   "dependencies": {
     "@miragon/pulse-camunda7-client": "workspace:*",
+    "@miragon/pulse-engine-core": "workspace:*",
     "@miragon/pulse-widget-shell": "workspace:*"
   },
   "peerDependencies": {

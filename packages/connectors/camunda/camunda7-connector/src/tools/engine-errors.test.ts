@@ -100,7 +100,10 @@ async function getInstanceError(
 ) {
   const { server, tools } = fakeServer()
   registerProcessInstanceTools(createToolRegistrar(server, registryFor(engines, timeoutMs)))
-  const result = await tools.get("camunda7_get_process_instance")!({ processInstanceId, engine })
+  const result = await tools.get("camunda7_get_process_instance_variables")!({
+    processInstanceId,
+    engine,
+  })
   expect(result.isError).toBe(true)
   return result.content[0].text
 }
@@ -157,7 +160,9 @@ describe("engine errors as the model reads them (registrar tool)", () => {
       CAMUNDA_REQUEST_TIMEOUT_MS: "150",
     })
     camunda7Module.createPlugin({ ...config, toolset: "read-only" }).register(server)
-    const result = await tools.get("camunda7_get_process_instance")!({ processInstanceId: "hang" })
+    const result = await tools.get("camunda7_get_process_instance_variables")!({
+      processInstanceId: "hang",
+    })
     expect(result.content[0].text).toBe("engine prod-a did not respond within 150 ms (timeout)")
   })
 
@@ -185,7 +190,7 @@ describe("registrar tools honor the MCP request's ctx.signal", () => {
     const controller = new AbortController()
     setTimeout(() => controller.abort(), 30)
     const started = Date.now()
-    const result = await tools.get("camunda7_get_process_instance")!(
+    const result = await tools.get("camunda7_get_process_instance_variables")!(
       { processInstanceId: "hang" },
       { signal: controller.signal },
     )

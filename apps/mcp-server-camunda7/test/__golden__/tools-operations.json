@@ -938,6 +938,33 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
+    "description": "Triage of one engine: findings by severity, overall status and counts.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "processDefinitionKeyIn": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "name": "camunda7_engine_status"
+  },
+  {
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
     "description": "Build a structured, tracker-agnostic ticket draft (title, markdown body, labels) from a Camunda 7 / CIB seven incident. Does NOT file anything: present the draft in the chat for review and reuse; the user decides where it goes (their issue tracker via whatever integration is available, the prefilled GitHub URL of the configured repository, or copy-paste).",
     "inputSchema": {
       "additionalProperties": false,
@@ -958,33 +985,6 @@
       "type": "object"
     },
     "name": "camunda7_format_incident_issue"
-  },
-  {
-    "annotations": {
-      "idempotentHint": true,
-      "openWorldHint": true,
-      "readOnlyHint": true
-    },
-    "description": "Get the activity instance tree of a running process instance. Shows which activities are currently active.",
-    "inputSchema": {
-      "additionalProperties": false,
-      "properties": {
-        "engine": {
-          "enum": [
-            "default"
-          ],
-          "type": "string"
-        },
-        "processInstanceId": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "processInstanceId"
-      ],
-      "type": "object"
-    },
-    "name": "camunda7_get_activity_instance_tree"
   },
   {
     "annotations": {
@@ -1068,33 +1068,6 @@
       "type": "object"
     },
     "name": "camunda7_get_process_definition_xml"
-  },
-  {
-    "annotations": {
-      "idempotentHint": true,
-      "openWorldHint": true,
-      "readOnlyHint": true
-    },
-    "description": "Get details of a single process instance by ID.",
-    "inputSchema": {
-      "additionalProperties": false,
-      "properties": {
-        "engine": {
-          "enum": [
-            "default"
-          ],
-          "type": "string"
-        },
-        "processInstanceId": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "processInstanceId"
-      ],
-      "type": "object"
-    },
-    "name": "camunda7_get_process_instance"
   },
   {
     "annotations": {
@@ -1321,6 +1294,48 @@
     },
     "name": "camunda7_incidents_data",
     "title": "Incidents dashboard data (internal)"
+  },
+  {
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Where one process instance waits and why, running or ended: root-cause incidents, called instances. Select by processInstanceId, businessKey or processDefinitionKey.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "businessKey": {
+          "type": "string"
+        },
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "includeHistory": {
+          "type": "boolean"
+        },
+        "includeStacktraces": {
+          "type": "boolean"
+        },
+        "includeVariables": {
+          "type": "boolean"
+        },
+        "latest": {
+          "type": "boolean"
+        },
+        "processDefinitionKey": {
+          "type": "string"
+        },
+        "processInstanceId": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "name": "camunda7_inspect_process_instance"
   },
   {
     "_meta": {

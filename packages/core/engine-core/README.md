@@ -12,6 +12,9 @@ It runs on an engine port you implement and returns data.
 
 [pulse-cli](https://www.npmjs.com/package/@miragon/pulse-cli) bundles it: `inspect`, `status`,
 `wait`, `advance` and `retry` run on it and word its results as command lines and CLI errors.
+[@miragon/pulse-camunda7-connector](https://www.npmjs.com/package/@miragon/pulse-camunda7-connector)
+runs inspect and status on it over its client, as the MCP tools `camunda7_inspect_process_instance`
+and `camunda7_engine_status`.
 It is the shared domain of every Pulse interface to this API family, so an MCP tool and a CLI
 command answer the same question by the same rules.
 

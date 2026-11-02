@@ -45,7 +45,7 @@ command line interface (`apps/cli`) and a VS Code extension (`apps/vscode`) for 
 | `packages/connectors/analytics/analytics-client/`    | Prometheus client + PromQL query functions (`src/queries/`) + Zod schemas                                                                                                                                                                                         |
 | `packages/core/ui/`                                  | Pulse's design kit (npm `@miragon/pulse-ui`): primitives, components, tone model, type scale, locale, toasts, formatters and the Miragon theme (`theme.css` over the vendored `--cd-*` tokens) for Pulse views and customer UIs; the brand gates under `/testing` |
 | `packages/core/widget-shell/`                        | The view runtime (`/widgets`: `mountViews`, the view host, the query hooks, `TestViewHost`, `ListTable`, hand-offs, BPMN), view + data-feed builders, the tool registrar (`createToolRegistrar`) and the boot (`/server`), the product glossary (`/testing`)      |
-| `packages/core/engine-core/`                         | The Camunda 7 REST API family's workflow domain (npm `@miragon/pulse-engine-core`): engine port, selection, inspect view, status triage, root causes, retry and advance plans, as data, no runtime dependency. The CLI bundles it                                 |
+| `packages/core/engine-core/`                         | The Camunda 7 REST API family's workflow domain (npm `@miragon/pulse-engine-core`): engine port, selection, inspect view, status triage, root causes, retry and advance plans, as data, no runtime dependency. The CLI bundles it, the camunda7 connector runs it |
 | `engine-plugins/`                                    | Kotlin/Gradle: CIB seven OTEL metrics plugin (Java 21)                                                                                                                                                                                                            |
 | `playground/`                                        | Demo env: CIB seven showcase engine, Compose stack, Fly.io deploy                                                                                                                                                                                                 |
 | `docs/`                                              | Pulse docs, a VitePress site on GitHub Pages (getting started, usage, architecture, developer, operations)                                                                                                                                                        |
@@ -201,7 +201,10 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      `camunda7_throw_signal` and the external-task worker protocol (`camunda7_fetch_and_lock`,
      `camunda7_complete_external_task`, `camunda7_handle_external_task_failure`); the read path
      `camunda7_list_external_tasks` and the recovery `camunda7_set_external_task_retries` stay
-     in `operations`.
+     in `operations`. Reads that only feed an admin write are admin-only too:
+     `camunda7_create_migration_plan`, `camunda7_get_batch` and
+     `camunda7_get_activity_instance_tree` (the instance ids `camunda7_modify_process_instance`
+     takes); below admin, `camunda7_inspect_process_instance` shows where an instance waits.
    - `camunda7_create_deployment` registers only with `CAMUNDA_ALLOW_DEPLOYMENTS=true`:
      deploying BPMN/DMN is code execution inside the engine JVM (JUEL, scripts). Never relax
      that gate or fold it into a toolset.
@@ -381,6 +384,16 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      the engine contract, `packages/connectors/camunda/camunda7-client/src/engine-contract/`,
      used by `tools/` AND `data/`; every write tool has a recording-fake-engine case in
      `src/tools/*.wire.test.ts`. Analytics periods derive from `PERIODS`/`PERIOD_RANGE`.
+   - The workflow rules the CLI and the read composites (`camunda7_inspect_process_instance`,
+     `camunda7_engine_status`, `src/lib/composites.ts`) share live in `@miragon/pulse-engine-core`:
+     selection, root cause, the composites' paging and caps; the connector's port
+     (`src/lib/engine-port.ts`) maps each operation to an SDK or contract read. Deliberate
+     carve-outs: the composites read definitions by id inside inspect (not `data/definition-info.ts`;
+     `definitionKeyOf` only as a fallback), send UTC `+0000` dates (`engineFormat`, not
+     `toEngineDate`), and count overdue jobs from a capped scan of 1,000 per key, named in
+     `truncated` (not a `/count`). The MCP side caps the result lists engine-core leaves uncapped
+     for the CLI (wait states, incidents, timeline, variables, definitions, topics) and names each
+     cut in `truncated`; engine-core still loads them whole.
    - **Caller identity** is read once per request by the MCP middleware
      (`installMcpRequestContext` → `callerUserId` in `packages/core/widget-shell/src/caller.ts`),
      from the server's own OAuth only: nothing a client chooses (a session id, a header)

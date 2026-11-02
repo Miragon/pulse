@@ -27,12 +27,16 @@ export function resolveCamunda7Toolset(toolset?: string): Camunda7Toolset {
 /**
  * Admin regardless of annotations: irreversible, deploying (code in the engine JVM),
  * engine-wide broadcasts, and the external-task worker protocol (fetch-and-lock withholds
- * tasks from production workers). `camunda7_create_migration_plan` and `camunda7_get_batch`
- * are reads but useless without their admin partners, so they stay together.
+ * tasks from production workers). `camunda7_create_migration_plan`, `camunda7_get_batch` and
+ * `camunda7_get_activity_instance_tree` (the activity and transition instance ids
+ * `camunda7_modify_process_instance` takes) are reads but useless without their admin
+ * partners, so they stay together; below admin, `camunda7_inspect_process_instance` shows
+ * where an instance waits.
  */
 const ADMIN_ONLY_TOOLS: ReadonlySet<string> = new Set([
   "camunda7_delete_process_instance",
   "camunda7_modify_process_instance",
+  "camunda7_get_activity_instance_tree",
   "camunda7_set_process_instance_suspension",
   "camunda7_create_deployment",
   "camunda7_create_migration_plan",

@@ -253,7 +253,8 @@ module.exports = {
       comment:
         "engine-core's shipped code (src/ without its tests and without the ./testing export) never " +
         "imports a test file or src/testing/ (fixtures, the fake port): they would ship in the " +
-        "package entry and in the CLI's bundle. Only its tests and ./testing itself import ./testing.",
+        "package entry the camunda7 connector runs and in the CLI's bundle. Only its tests and " +
+        "./testing itself import ./testing.",
       from: {
         path: "^packages/core/engine-core/src/",
         pathNot: ["[.]test[.]ts$", "^packages/core/engine-core/src/testing/"],
@@ -297,6 +298,19 @@ module.exports = {
         "The CLI's shipped code never imports @miragon/pulse-engine-core/testing (fixtures and " +
         "the fake port): they would end up in the bundle. Tests import it.",
       from: { path: "^apps/cli/src/", pathNot: CLI_TEST_CODE },
+      to: { path: npm(`${ENGINE_CORE}/testing`) },
+    },
+    {
+      name: "connector-src-not-to-engine-core-testing",
+      severity: "error",
+      comment:
+        "The camunda7 connector's shipped code never imports @miragon/pulse-engine-core/testing " +
+        "(fixtures and the fake port): test code, which would run in every server that composes " +
+        "the connector. Tests and their test-support import it.",
+      from: {
+        path: "^packages/connectors/camunda/camunda7-connector/src/",
+        pathNot: ["[.]test[.]tsx?$", "/test-support/"],
+      },
       to: { path: npm(`${ENGINE_CORE}/testing`) },
     },
     {

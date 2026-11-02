@@ -1,10 +1,13 @@
+import { engineStatusInput } from "@miragon/pulse-camunda7-client/schemas"
 import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
+import { engineStatusForModel } from "../lib/composites.js"
 import type { EngineRegistry } from "../lib/resolve-engine.js"
+import { engineParamShape, withEngine } from "../lib/with-engine.js"
 import { environmentOf, groupEnginesByEnvironment } from "../lib/environments.js"
 import { providerForEntry } from "../providers/index.js"
 import { CAMUNDA7_LIST_ENGINES } from "../tool-names.js"
 
-/** A read, so even a read-only multi-engine deployment can route. */
+/** Reads: the engine list (so even a read-only multi-engine deployment can route) and the triage. */
 export function registerEngineTools(register: ToolRegistrar<EngineRegistry>): void {
   register({
     name: CAMUNDA7_LIST_ENGINES,
@@ -33,5 +36,16 @@ export function registerEngineTools(register: ToolRegistrar<EngineRegistry>): vo
         })),
         defaultEngineId: reg.defaultEngineId ?? null,
       }),
+  })
+
+  register({
+    name: "camunda7_engine_status",
+    category: "engines",
+    description: "Triage of one engine: findings by severity, overall status and counts.",
+    annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    inputSchema: { ...engineStatusInput.shape, ...engineParamShape },
+    handler: withEngine((client, args, { engineId }) =>
+      engineStatusForModel(client, args, engineId),
+    ),
   })
 }

@@ -39,6 +39,28 @@ export function truncateVariableRows(rows: unknown): unknown {
   )
 }
 
+/**
+ * A plain variable map (engine-core's view: scalars flattened, other types `{ type, value, … }`)
+ * cut like the other reads: a string over the limit becomes `{ value, truncated, valueLength }`.
+ */
+export function truncatePlainVariables(
+  variables: Readonly<Record<string, unknown>>,
+): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(variables).map(([name, value]) => {
+      if (typeof value === "string") {
+        const plain = { value }
+        const cut = truncateVariable(plain)
+        return [name, cut === plain ? value : cut]
+      }
+      if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+        return [name, truncateVariable(value as { value?: unknown })]
+      }
+      return [name, value]
+    }),
+  )
+}
+
 /** An unknown name fails rather than returning an empty map that looks like "no such data". */
 export function variableRead<T extends { value?: unknown }>(
   variables: Record<string, T>,

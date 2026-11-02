@@ -14,9 +14,12 @@ BPM operations across these domains (`category`): `engines`, `process-definition
 `process-instances`, `tasks`, `external-tasks`, `messages-signals`, `deployments`, `incidents`,
 `jobs`, `history`, `migrations`, `batches`. Highlights:
 
+- **Engines:** `list_engines`, `engine_status` (the triage of one engine: findings by severity,
+  overall status, counts)
 - **Process definitions:** `list_process_definitions`, `get_process_definition_xml`
-- **Process instances:** `start`, `list`, `get`, `delete`, `modify`, `set_*_suspension`,
-  `get_activity_instance_tree`, variables
+- **Process instances:** `start`, `list`, `inspect_process_instance` (where one instance waits and
+  why, running or ended, by id, business key or definition key), `delete`, `modify`,
+  `set_*_suspension`, `get_activity_instance_tree` (admin, the ids `modify` takes), variables
 - **User & external tasks:** `list/get/claim/unclaim/complete`, `list_external_tasks`,
   `set_external_task_retries`
 - **Incidents & jobs:** `list_incidents`, `resolve_incident` (custom incidents; the engine's
@@ -58,11 +61,11 @@ fails closed: the read-only toolset on an unauthenticated server, the standard o
 OAuth. `admin` is never implied (only naming it grants it), and an empty (`camunda7:`) or
 unknown suffix warns and falls back to read-only, even under OAuth.
 
-| Toolset               | Surface                                                                                                                                                                                                                                   | No-suffix default |
-| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
-| `camunda7:read-only`  | Queries only (`list_*`, `get_*`, `query_*`, incl. `camunda7_list_engines`): monitoring without writes                                                                                                                                     | without OAuth     |
-| `camunda7:operations` | Read-only plus day-to-day writes: start instances, claim/assign/complete tasks, variables, job and external-task retries, resolve incidents, correlate messages                                                                           | with OAuth        |
-| `camunda7:admin`      | Everything: adds delete/modify/suspend, migrations, batch retries, `throw_signal` (engine-wide broadcast), the external-task worker protocol (`fetch_and_lock`, `complete_external_task`, `handle_external_task_failure`) and deployments | never             |
+| Toolset               | Surface                                                                                                                                                                                                                                                                     | No-suffix default |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| `camunda7:read-only`  | Queries only (`list_*`, `get_*` except `get_batch` and `get_activity_instance_tree`, `query_*`, `inspect_process_instance`, `engine_status`, incl. `camunda7_list_engines`): monitoring without writes                                                                      | without OAuth     |
+| `camunda7:operations` | Read-only plus day-to-day writes: start instances, claim/assign/complete tasks, variables, job and external-task retries, resolve incidents, correlate messages                                                                                                             | with OAuth        |
+| `camunda7:admin`      | Everything: adds delete/modify/suspend with `get_activity_instance_tree`, migrations, batch retries, `throw_signal` (engine-wide broadcast), the external-task worker protocol (`fetch_and_lock`, `complete_external_task`, `handle_external_task_failure`) and deployments | never             |
 
 `camunda7_create_deployment` additionally needs `CAMUNDA_ALLOW_DEPLOYMENTS=true`: deploying a BPMN or
 DMN runs code inside the engine JVM (JUEL expressions, scripts). The full surface is

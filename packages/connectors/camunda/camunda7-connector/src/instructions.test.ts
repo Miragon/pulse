@@ -31,7 +31,10 @@ describe("camunda7Module.instructions", () => {
       "- The facts camunda7_open_cockpit returns as JSON: null is unknown, never 0; incidentCount null beside scannedIncidentCount N means at least N; a process's counts span every deployed version, diagramVersion names only the drawn diagram.\n",
     )
     expect(text).toContain(
-      "history (camunda7_query_historic_*) covers finished instances, activities, tasks, variables and resolved incidents.\n",
+      "- Engine state: camunda7_engine_status triages, camunda7_open_cockpit shows the user.\n",
+    )
+    expect(text).toContain(
+      "- History (camunda7_query_historic_*) covers finished instances, activities, tasks, variables and resolved incidents.\n",
     )
   })
 

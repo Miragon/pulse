@@ -93,6 +93,7 @@ const ENGINE_TESTS = "engine-core-shipped-not-to-tests"
 const ENGINE_USERS = "engine-core-consumers"
 const CLI_ENGINE_CORE = "cli-engine-core-only-in-workflow"
 const CLI_ENGINE_TESTING = "cli-src-not-to-engine-core-testing"
+const C7_ENGINE_TESTING = "connector-src-not-to-engine-core-testing"
 const DEEP = "no-cross-package-deep-imports"
 const CIRCULAR = "no-circular"
 const CLI_CYCLE = "cli-no-circular"
@@ -299,6 +300,17 @@ const SUITES = [
     cases: [
       [`${CLI}/src/workflow/fixture.ts`, `${ENGINE_CORE}/testing`, [CLI_ENGINE_TESTING]],
       [`${CLI}/test/support/fixture.ts`, `${ENGINE_CORE}/testing`, []],
+    ],
+  },
+  {
+    rule: C7_ENGINE_TESTING,
+    title: "the camunda7 connector's shipped code never imports the fixtures of engine-core",
+    cases: [
+      [`${C7_CONNECTOR}/src/lib/composites.ts`, `${ENGINE_CORE}/testing`, [C7_ENGINE_TESTING]],
+      [C7_CONNECTOR_SRC, `${ENGINE_CORE}/testing`, [C7_ENGINE_TESTING]],
+      // Allowed: the tests and their test-support.
+      [`${C7_CONNECTOR}/src/lib/composites.wire.test.ts`, `${ENGINE_CORE}/testing`, []],
+      [`${C7_CONNECTOR}/src/tools/test-support/fake-engine.ts`, `${ENGINE_CORE}/testing`, []],
     ],
   },
   {

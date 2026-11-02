@@ -203,6 +203,8 @@ async function roundOne(deps: StatusDeps, all: Requests) {
     externalTaskCount: countOf(externalTaskCount),
     executableJobs: jobCounts.reduce((sum, count) => sum + count, 0),
     staleJobs: staleJobs.flat(),
+    // a key's page that reached the cap may hide more overdue jobs, whatever the other keys hold
+    staleJobsCut: staleJobs.some((page) => page.length >= STALE_JOBS),
     openTasks: countOf(openTasks),
     ...compact({ batches: batches === undefined ? undefined : records(batches) }),
   }
@@ -218,8 +220,7 @@ function truncation(data: RoundOne, groups: number, options: Resolved): string[]
     notes.push(
       `externalTasks: ${data.externalTasks.items.length} of ${data.externalTaskCount} loaded`,
     )
-  if (data.staleJobs.length >= STALE_JOBS * Math.max(1, options.keys.length))
-    notes.push(`jobs: the first ${STALE_JOBS} overdue candidates loaded`)
+  if (data.staleJobsCut) notes.push(`jobs: the first ${STALE_JOBS} overdue candidates loaded`)
   if (groups > options.maxGroups)
     notes.push(`incident groups: ${options.maxGroups} of ${groups} shown`)
   return notes

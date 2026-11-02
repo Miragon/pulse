@@ -402,6 +402,9 @@ importers:
       '@miragon/pulse-camunda7-client':
         specifier: workspace:*
         version: link:../camunda7-client
+      '@miragon/pulse-engine-core':
+        specifier: workspace:*
+        version: link:../../../core/engine-core
       '@miragon/pulse-widget-shell':
         specifier: workspace:*
         version: link:../../../core/widget-shell

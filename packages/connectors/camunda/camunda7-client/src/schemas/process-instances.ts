@@ -31,8 +31,18 @@ export const listProcessInstancesInput = z.object({
   sortOrder: sortOrderParam,
 })
 
-export const getProcessInstanceInput = z.object({
-  processInstanceId: z.string(),
+/**
+ * The inspect composite: select the instance by id, by business key (optionally with its key), or
+ * by key with `latest`; the selection rules are engine-core's `checkSelection`, one rule, one place.
+ */
+export const inspectProcessInstanceInput = z.object({
+  processInstanceId: z.string().optional(),
+  businessKey: z.string().optional(),
+  processDefinitionKey: z.string().optional(),
+  latest: z.boolean().optional(),
+  includeVariables: z.boolean().optional(),
+  includeHistory: z.boolean().optional(),
+  includeStacktraces: z.boolean().optional(),
 })
 
 export const getActivityInstanceTreeInput = z.object({

@@ -14,11 +14,12 @@ invariant 3). Follow the steps for the path you need.
 
 ## Step 0 — pick the render path
 
-| You need…                               | Path                                                                                  |
-| --------------------------------------- | ------------------------------------------------------------------------------------- |
-| JSON data for the model                 | Registrar tool in `src/tools/<domain>.ts` (Steps 1–3)                                 |
-| A view for the user                     | a cockpit route plus its builder and `*_data` feed (Step 4); never a second view tool |
-| App-only JSON for in-widget refresh/nav | `*_data` feed in `src/widget-tools/data-feeds.ts`, `...appOnly` (Step 4)              |
+| You need…                                                        | Path                                                                                  |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| JSON data for the model                                          | Registrar tool in `src/tools/<domain>.ts` (Steps 1–3)                                 |
+| A view for the user                                              | a cockpit route plus its builder and `*_data` feed (Step 4); never a second view tool |
+| App-only JSON for in-widget refresh/nav                          | `*_data` feed in `src/widget-tools/data-feeds.ts`, `...appOnly` (Step 4)              |
+| An answer the CLI's workflow commands give too (inspect, status) | a composite on `@miragon/pulse-engine-core` over `src/lib/engine-port.ts` (Step 2b)   |
 
 ## Step 1 — input schema in camunda7-client
 
@@ -157,7 +158,9 @@ Non-negotiables:
 - Write tools that only flip state return a small `{ success: true, … }` object instead
   of the raw (often empty) REST response.
 - Destructive/admin-grade tools (delete, modify, suspension, deployments, migrations,
-  batches, engine-wide broadcasts like signals, the external-task worker protocol) must
+  batches, engine-wide broadcasts like signals, the external-task worker protocol) and
+  reads that only feed an admin write (`camunda7_get_batch`,
+  `camunda7_get_activity_instance_tree`) must
   be added to `ADMIN_ONLY_TOOLS` in `src/lib/toolsets.ts` so the
   `camunda7:read-only|operations|admin` toolset filtering stays correct — `read-only`
   membership is derived from `readOnlyHint: true`. `src/lib/toolsets.test.ts` enforces
@@ -189,6 +192,26 @@ deliberate claim, not a default. `idempotentHint: true` marks writes that repeat
 same state. Every engine tool carries `openWorldHint: true` (it talks to an external
 engine); a tool that only reads the server's own config (`camunda7_list_engines`) says
 `openWorldHint: false`.
+
+## Step 2b — a read composite on engine-core
+
+A question the CLI answers too (where an instance waits, how an engine is doing) runs on
+`@miragon/pulse-engine-core`, the workflow domain both share, never on a second copy here.
+The pattern is `camunda7_inspect_process_instance` and `camunda7_engine_status`
+(`src/lib/composites.ts`, registered like any registrar tool):
+
+- Map every operation the composite sends in `READS` of `src/lib/engine-port.ts`, one typed
+  SDK read each; text/plain and variable reads go through the engine contract wrappers
+  (`fetchJobStacktrace`, `readProcessInstanceVariables`), as `engine-contract.test.ts`
+  demands. `src/lib/engine-port.test.ts` holds `READS` to engine-core's operation lists.
+- Word engine-core's error reasons in `src/lib/workflow-errors.ts` (`[CODE] message` in the
+  tool's parameter names, no tool names).
+- Return data for the model: drop `next` (it would name tools a toolset may lack), cut
+  variables with `truncatePlainVariables`, and cap every list engine-core leaves uncapped for
+  the CLI (today wait states, incidents, timeline, variables, definitions, topics), naming each
+  cut in `truncated`. The cap bounds the result, not the reads. Pin the wire and each cap in
+  `src/lib/composites.wire.test.ts` (inspect) and `src/lib/composites-status.wire.test.ts`
+  (status), over the helpers of `src/tools/test-support/composites.ts`.
 
 ## Step 3 — wire a new domain file
 

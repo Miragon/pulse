@@ -3,7 +3,7 @@ export { listProcessDefinitionsInput, getProcessDefinitionXmlInput } from "./pro
 export {
   startProcessInstanceInput,
   listProcessInstancesInput,
-  getProcessInstanceInput,
+  inspectProcessInstanceInput,
   getActivityInstanceTreeInput,
   deleteProcessInstanceInput,
   modifyProcessInstanceInput,
@@ -53,3 +53,4 @@ export {
 } from "./history.js"
 export { createMigrationPlanInput, migrateProcessInstancesAsyncInput } from "./migrations.js"
 export { getBatchInput } from "./batches.js"
+export { engineStatusInput } from "./engines.js"

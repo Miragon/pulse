@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import {
   CUT_VALUE_WRITE_RULE,
   MAX_VARIABLE_VALUE_CHARS,
+  truncatePlainVariables,
   truncateVariable,
   truncateVariableMap,
   truncateVariableRows,
@@ -81,5 +82,35 @@ describe("variableRead", () => {
     expect(CUT_VALUE_WRITE_RULE).toBe(
       "Never write back a value read with truncated: true. It is incomplete; read it whole first (variableName).",
     )
+  })
+})
+
+describe("truncatePlainVariables", () => {
+  it("cuts plain and typed strings over the cap, keeps everything else", () => {
+    const typed = { type: "Json", value: OVER }
+    expect(
+      truncatePlainVariables({
+        short: "x",
+        long: OVER,
+        amount: 5,
+        none: null,
+        list: [OVER],
+        typed,
+        small: { type: "Json", value: "{}" },
+      }),
+    ).toEqual({
+      short: "x",
+      long: { value: AT_CAP, truncated: true, valueLength: MAX_VARIABLE_VALUE_CHARS + 1 },
+      amount: 5,
+      none: null,
+      list: [OVER],
+      typed: {
+        ...typed,
+        value: AT_CAP,
+        truncated: true,
+        valueLength: MAX_VARIABLE_VALUE_CHARS + 1,
+      },
+      small: { type: "Json", value: "{}" },
+    })
   })
 })

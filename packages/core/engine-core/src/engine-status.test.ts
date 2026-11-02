@@ -116,6 +116,18 @@ describe("readStatus", () => {
     expect(incidents?.input.query.processDefinitionKeyIn).toBe("order,nope")
   })
 
+  it("names the overdue-job cut when one key's page is full, whatever the other keys hold", async () => {
+    const port = engine({
+      getJobs: (input) =>
+        input.query.processDefinitionKey === "order"
+          ? Array.from({ length: 1000 }, () => ({ dueDate: "2026-01-01T11:00:00.000+0000" }))
+          : [],
+    })
+    const data = await readStatus({ port, now: clock() }, { ...OPTIONS, keys: ["order", "pay"] })
+    expect(data.jobs.overdue).toBe(1000)
+    expect(data.truncated).toEqual(["jobs: the first 1000 overdue candidates loaded"])
+  })
+
   it("counts batches with failed jobs and keeps their incidents out of the groups", async () => {
     const data = await readStatus(
       {

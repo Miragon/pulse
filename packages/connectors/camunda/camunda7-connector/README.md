@@ -25,8 +25,9 @@ To build your own MCP server on it, start from [pulse-starter](https://github.co
 
 The **camunda7 module** for [Pulse](../../../../README.md): Camunda 7 / CIB Seven BPM operations as
 `camunda7_*` MCP tools, plus the interactive cockpit widgets (MCP Apps). Built on
-[`@miragon/pulse-camunda7-client`](../camunda7-client), `@miragon/pulse-ui` and
-`@miragon/pulse-widget-shell`.
+[`@miragon/pulse-camunda7-client`](../camunda7-client), `@miragon/pulse-ui`,
+`@miragon/pulse-widget-shell` and [`@miragon/pulse-engine-core`](../../../core/engine-core), the
+workflow domain pulse-cli runs too, which this module runs over its client.
 
 The server loads this module as `camunda7` via `camunda7Module` (`src/module.ts`), which conforms
 structurally to the app's `ModuleDefinition` port. The package is published to npm in lockstep with
@@ -47,6 +48,11 @@ bundle build). **`mcp-use` is exactly pinned**: pin it to `mcp-use@2.12.2` in yo
 - **Operations tools** (`src/tools/`): one file per domain (`process-instances`, `tasks`,
   `incidents`, `jobs`, `history`, …), registered through `createToolRegistrar`. Plain JSON for the
   model.
+- **Read composites** (`src/lib/composites.ts`): `camunda7_inspect_process_instance` (where one
+  instance waits and why, running or ended, selected by id, business key or definition key) and
+  `camunda7_engine_status` (the triage of one engine: findings by severity, overall status,
+  counts) answer in one call what took several reads. Both run `@miragon/pulse-engine-core` over
+  the client, return data without next steps and cap long lists, naming each cut in `truncated`.
 - **The view** (`src/widget-tools/cockpit.ts`): `camunda7_open_cockpit` renders the operations
   cockpit, opening on any of its views, and returns that view's facts as compact JSON; app-only
   `*_data` feeds refresh and navigate inside it.
@@ -66,7 +72,8 @@ bundle build). **`mcp-use` is exactly pinned**: pin it to `mcp-use@2.12.2` in yo
   `read-only` on an unauthenticated server and `operations` under OAuth; an empty or unknown suffix
   falls back to `read-only`. `admin` (delete/modify/suspension, migrations, batch retries,
   `throw_signal` (engine-wide), the external-task worker protocol (`fetch_and_lock`,
-  `complete_external_task`, `handle_external_task_failure`) and deployments) is never implied;
+  `complete_external_task`, `handle_external_task_failure`), deployments and the reads that only
+  feed them: the migration plan, `get_batch` and `get_activity_instance_tree`) is never implied;
   `camunda7_list_external_tasks` is the read-only view of external tasks. Widget action buttons
   render only for tools the toolset registers.
 - **Deployments are opt-in:** `camunda7_create_deployment` is registered only with
@@ -92,6 +99,7 @@ start view), never a second view tool: see the add-bpm-feature skill.
 | `src/widgets/`           | The cockpit app, its routes and widgets + `views.tsx`                     |
 | `src/tool-names.ts`      | Tool-name constants for rename-safe in-widget feed calls                  |
 | `src/lib/`               | `with-engine.ts` (engine routing), `cockpit-url.ts`, `toolsets.ts`        |
+| `src/lib/engine-port.ts` | engine-core's port over the client; `workflow-errors.ts` words its errors |
 | `src/module.ts`          | `camunda7Module` (config schema, env mapping) + `createBpmnXmlFetcher`    |
 | `src/engine-provider.ts` | The vendor provider port (`EngineProvider`, `CockpitRef`)                 |
 | `src/providers/`         | `cibseven` / `operaton` / `camunda7` providers (cockpit routes, branding) |

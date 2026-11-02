@@ -54,8 +54,9 @@ second engine dialect cheap:
   A _dialect_ (an engine API family: Camunda 7 today, Flowable would be another) is
   one package family: its client and its connector (the MCP module); a package two
   interfaces share is extracted on its second consumer, like `@miragon/pulse-engine-core`,
-  the Camunda 7 family's workflow domain that the CLI bundles (one port per API family; it
-  names no command, flag or tool). An _interface_ is an app:
+  the Camunda 7 family's workflow domain that the CLI bundles and the camunda7 connector runs
+  over its client (one port per API family; it names no command, flag or tool). An
+  _interface_ is an app:
   `apps/mcp-server-camunda7` is the thin composition root of the Camunda-7-dialect
   MCP server (camunda7 + analytics); a different dialect gets its own MCP server app.
   The CLI (`apps/cli`) and the VS Code extension (`apps/vscode`) are interfaces of their own.

@@ -101,9 +101,9 @@ export function camunda7Instructions(input: Camunda7InstructionsInput): string {
     FLAG_RULE,
     PAGING_RULE,
     ...(input.toolset === "read-only" ? [] : [VARIABLE_INPUT_RULE]),
-    "- Tool families: process definitions and instances, tasks (incl. forms), incidents, jobs " +
-      "(incl. stacktraces), external tasks, deployments; history (camunda7_query_historic_*) covers " +
-      "finished instances, activities, tasks, variables and resolved incidents.",
+    // The tool families are tools/list's; only what history covers is said here.
+    "- History (camunda7_query_historic_*) covers finished instances, activities, tasks, variables " +
+      "and resolved incidents.",
     // How to read one whole and never to write a cut value back are said where they apply: the
     // runtime reads' `variableName` and the variable writes (`CUT_VALUE_WRITE_RULE`).
     `- Variable reads cut string values over ${MAX_VARIABLE_VALUE_CHARS} chars (truncated: true).`,
@@ -112,6 +112,8 @@ export function camunda7Instructions(input: Camunda7InstructionsInput): string {
     "- The facts camunda7_open_cockpit returns as JSON: null is unknown, never 0; incidentCount " +
       "null beside scannedIncidentCount N means at least N; a process's counts span every deployed " +
       "version, diagramVersion names only the drawn diagram.",
+    // Which tool answers "how is the engine": the triage for the model, the cockpit for the user.
+    "- Engine state: camunda7_engine_status triages, camunda7_open_cockpit shows the user.",
     HAND_OFF_RULE,
     remediationRule(input.toolset),
   ].join("\n")

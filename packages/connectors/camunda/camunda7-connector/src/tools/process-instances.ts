@@ -1,7 +1,7 @@
 import {
   startProcessInstanceInput,
   listProcessInstancesInput,
-  getProcessInstanceInput,
+  inspectProcessInstanceInput,
   getActivityInstanceTreeInput,
   deleteProcessInstanceInput,
   modifyProcessInstanceInput,
@@ -23,13 +23,13 @@ import {
   startProcessInstanceByKey,
   getProcessInstances,
   getProcessInstancesCount,
-  getProcessInstance,
   deleteProcessInstance,
   modifyProcessInstance,
   getActivityInstanceTree,
   setProcessInstanceVariable,
   updateSuspensionStateById,
 } from "@miragon/pulse-camunda7-client/sdk"
+import { inspectForModel } from "../lib/composites.js"
 import { paginatedListOutput, toPaginatedList } from "../lib/pagination.js"
 import type { EngineRegistry } from "../lib/resolve-engine.js"
 import { CUT_VALUE_WRITE_RULE, variableRead } from "../lib/variable-truncation.js"
@@ -87,14 +87,14 @@ export function registerProcessInstanceTools(register: ToolRegistrar<EngineRegis
   })
 
   register({
-    name: "camunda7_get_process_instance",
+    name: "camunda7_inspect_process_instance",
     category: "process-instances",
-    description: "Get details of a single process instance by ID.",
+    description:
+      "Where one process instance waits and why, running or ended: root-cause incidents, called " +
+      "instances. Select by processInstanceId, businessKey or processDefinitionKey.",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-    inputSchema: { ...getProcessInstanceInput.shape, ...engineParamShape },
-    handler: withEngine(async (client, args) =>
-      getProcessInstance({ client, path: { id: args.processInstanceId } }),
-    ),
+    inputSchema: { ...inspectProcessInstanceInput.shape, ...engineParamShape },
+    handler: withEngine((client, args, { engineId }) => inspectForModel(client, args, engineId)),
   })
 
   register({

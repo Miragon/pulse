@@ -44,6 +44,8 @@ const FULL = { allowDeployments: true }
 const ADMIN_ONLY = [
   "camunda7_delete_process_instance",
   "camunda7_modify_process_instance",
+  // a read that feeds modify's activity and transition instance ids
+  "camunda7_get_activity_instance_tree",
   "camunda7_set_process_instance_suspension",
   "camunda7_create_deployment",
   "camunda7_create_migration_plan",
@@ -81,7 +83,8 @@ describe("withToolsetFilter over the real camunda7 tool surface", () => {
       expect.arrayContaining([
         "camunda7_list_engines",
         "camunda7_list_process_instances",
-        "camunda7_get_process_instance",
+        "camunda7_inspect_process_instance",
+        "camunda7_engine_status",
         "camunda7_query_historic_process_instances",
         "camunda7_list_incidents",
         "camunda7_list_jobs",
