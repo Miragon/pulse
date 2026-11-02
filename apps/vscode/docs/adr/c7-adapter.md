@@ -240,6 +240,11 @@ routes and so run every class above.
 - The conformance kit passes all laws against `operaton/operaton:2.1.5`,
   `cibseven/cibseven:run-2.2.0` and `camunda/camunda-bpm-platform:run-7.24.0`
   (`PULSE_ENGINE_IMAGE=… pnpm --filter pulse-cockpit run test:engines`).
+  The engines under test (`test:engines`, `engine:up`) run without their bundled invoice
+  example: it sets the engine's global clock back by days while it seeds itself, after the
+  REST API already answers, so instances seeded in that window got timestamps from the
+  rewound clock, up to an end before their start. `startEngine` refuses an engine on which
+  the example is deployed.
 - A call costs its HTTP round trip, no process start. Certificates and proxies come from
   VS Code's settings, no longer from environment variables such as `NODE_EXTRA_CA_CERTS`.
 - OAuth2 targets are refused with a clear message in v0.1.
