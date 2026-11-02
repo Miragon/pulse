@@ -23,8 +23,8 @@ meta, server i18n, caller identity) lives in `@miragon/pulse-widget-shell/server
 3. **widget-shell's view runtime** (`packages/core/widget-shell/README.md`) for
    everything a widget does: the bundle root, the view host seam, the query
    hooks and `TestViewHost`; its UI comes from the design kit
-   (`packages/core/ui/README.md`). Widgets never import `mcp-use/react` or a
-   retired toolkit package. The server half (the registrar, `showToolBinding`,
+   (`packages/core/ui/README.md`). Widgets never import `mcp-use/react`. The
+   server half (the registrar, `showToolBinding`,
    the server i18n) is in the same README, under `./server`.
 4. **mcp-use itself** ([github.com/mcp-use/mcp-use](https://github.com/mcp-use/mcp-use)):
    read the 2.x typings in `node_modules/mcp-use` before you trust an example

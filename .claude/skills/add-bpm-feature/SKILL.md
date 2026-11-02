@@ -86,13 +86,12 @@ The engine's own query names may differ (`taskAssignee`, `processInstanceBusines
 `withIncident`): the handler maps them, the schema keeps the guide's name. Every
 filter a tool advertises is pinned on the wire in `src/tools/filters.wire.test.ts`
 (page query AND `/count`); a retired spelling (`key`, `id`, `limit`, `elementId`, …) on
-any module tool fails `apps/mcp-server/test/strict-input.e2e.test.ts`; a tool
-description, server-instructions text or server prompt that quotes a tool's parameter is
-checked against its schema in the admin golden by `scripts/tool-name-refs.test.mjs` (so a new
-tool's golden is refreshed first; see Step 5); write quoted arguments in call notation with
-literal names, `tool({ param: value })` (an
-interpolated name is reported as `${…}`). Widget Ask-AI hand-offs and model contexts
-never quote parameters: they pass typed `ids` (see Step 4).
+any module tool fails `apps/mcp-server/test/strict-input.e2e.test.ts`, so a parameter that
+instructions or a description quote but the tool does not take turns into a refused call.
+The one quoted filter set in the instructions (the retry playbook's `engine_list_jobs`
+filters) is held to `listJobsInput` by `src/instructions.test.ts`; a newly quoted parameter
+gets its own pin there. Widget Ask-AI hand-offs and model contexts never quote parameters:
+they pass typed `ids` (see Step 4).
 
 ## Step 2 — register the tool
 
@@ -249,7 +248,7 @@ these primitives:
   query, so Refresh and a write's invalidation re-read it (#341). Widgets import every
   query hook (`useToolQuery`, `useToolMutation`, `useViewData`, `useQueryClient`) and the
   host seam (`useViewHost`, `HostModelContext`) from the view runtime, never from
-  `mcp-use/react` or a retired toolkit package (ESLint); tests render them under `TestViewHost`
+  `mcp-use/react` (ESLint); tests render them under `TestViewHost`
 - `formatTimestamp`/`formatDate`/`formatTime` (dates) and `formatNumber`/`formatPercent`/
   `formatPercentPoints`/`formatPeriod`/`formatDuration`/`truncate`, all from
   `@miragon/pulse-ui`: no local format

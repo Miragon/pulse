@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Ratchet self-protection — ported from mcp-toolkit's scripts/check-ratchets.mjs
- * (FITNESS.md phase 2b) and adapted to where this repo keeps its ratchets.
+ * and adapted to where this repo keeps its ratchets.
  *
  * The fastest way to turn a red gate green is to loosen the gate in the same
  * diff — a rule-shaped edit nobody reads as a regression. This check compares

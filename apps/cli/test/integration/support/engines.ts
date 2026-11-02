@@ -25,6 +25,12 @@ export interface EngineDefinition {
    * of `<prefix>.bpm.run.auth.*`). The users are the engine's identity service, e.g. {@link ADMIN}.
    */
   readonly basicAuthEnv: Readonly<Record<string, string>>
+  /**
+   * Environment that keeps the Run distribution's invoice example from starting. The example
+   * sets the engine's clock back while it seeds itself, after the REST API already answers, so
+   * data a suite creates in that window gets timestamps from the rewound clock.
+   */
+  readonly withoutExampleEnv: Readonly<Record<string, string>>
 }
 
 export interface RunningEngine {
@@ -54,6 +60,7 @@ export const ENGINES: Readonly<Record<EngineName, EngineDefinition>> = {
     restPath: "/engine-rest",
     version: "2.1.5",
     basicAuthEnv: { OPERATON_BPM_RUN_AUTH_ENABLED: "true" },
+    withoutExampleEnv: { OPERATON_BPM_RUN_EXAMPLE_ENABLED: "false" },
   },
   cibseven: {
     name: "cibseven",
@@ -67,6 +74,7 @@ export const ENGINES: Readonly<Record<EngineName, EngineDefinition>> = {
       CAMUNDA_BPM_RUN_AUTH_ENABLED: "true",
       CAMUNDA_BPM_RUN_AUTH_AUTHENTICATION: "basic",
     },
+    withoutExampleEnv: { CAMUNDA_BPM_RUN_EXAMPLE_ENABLED: "false" },
   },
   camunda: {
     name: "camunda",
@@ -76,8 +84,12 @@ export const ENGINES: Readonly<Record<EngineName, EngineDefinition>> = {
     restPath: "/engine-rest",
     version: "7.24.0",
     basicAuthEnv: { CAMUNDA_BPM_RUN_AUTH_ENABLED: "true" },
+    withoutExampleEnv: { CAMUNDA_BPM_RUN_EXAMPLE_ENABLED: "false" },
   },
 }
+
+/** The process the Run distributions' example application deploys. */
+const EXAMPLE_PROCESS_KEY = "invoice"
 
 function isEngineName(value: string): value is EngineName {
   return ENGINE_NAMES.some((name) => name === value)
@@ -114,9 +126,27 @@ export interface StartOptions {
   readonly alias?: string
 }
 
+/** Fails when the example application deployed its process: it must not run (withoutExampleEnv). */
+async function ensureWithoutExample(url: string, basicAuth: boolean, image: string): Promise<void> {
+  const credentials = btoa(`${ADMIN.username}:${ADMIN.password}`)
+  const headers: Record<string, string> = basicAuth ? { authorization: `Basic ${credentials}` } : {}
+  const response = await fetch(`${url}/process-definition/count?key=${EXAMPLE_PROCESS_KEY}`, {
+    headers,
+  })
+  if (!response.ok) {
+    throw new Error(`GET ${url}/process-definition/count: HTTP ${response.status}`)
+  }
+  if (((await response.json()) as { readonly count: number }).count > 0) {
+    throw new Error(
+      `${image} runs its example application, which sets the engine clock back while a suite seeds; disable it in withoutExampleEnv`,
+    )
+  }
+}
+
 /**
- * Starts the engine container and waits until `GET <rest-root>/version` answers 200 (with the
- * {@link ADMIN} credentials when the REST API requires authentication).
+ * Starts the engine container without its example application and waits until
+ * `GET <rest-root>/version` answers 200 (with the {@link ADMIN} credentials when the REST API
+ * requires authentication). An engine that still deployed the example is refused.
  */
 export async function startEngine(
   name: EngineName,
@@ -127,7 +157,10 @@ export async function startEngine(
   const ready = Wait.forHttp(`${definition.restPath}/version`, definition.port).forStatusCode(200)
   const image = new GenericContainer(definition.image)
     .withExposedPorts(definition.port)
-    .withEnvironment(basicAuth ? definition.basicAuthEnv : {})
+    .withEnvironment({
+      ...definition.withoutExampleEnv,
+      ...(basicAuth ? definition.basicAuthEnv : {}),
+    })
     .withWaitStrategy(
       basicAuth ? ready.withBasicCredentials(ADMIN.username, ADMIN.password) : ready,
     )
@@ -136,6 +169,12 @@ export async function startEngine(
   if (options.alias !== undefined) image.withNetworkAliases(options.alias)
   const container = await image.start()
   const url = `http://${container.getHost()}:${container.getMappedPort(definition.port)}${definition.restPath}`
+  try {
+    await ensureWithoutExample(url, basicAuth, definition.image)
+  } catch (error) {
+    await container.stop()
+    throw error
+  }
   return {
     name,
     flavor: definition.flavor,

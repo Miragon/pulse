@@ -49,7 +49,9 @@ describe("useResetOnChange", () => {
       ({ k }) => {
         const [shadow, setShadow] = useState("optimistic")
         useResetOnChange(k, () => setShadow(""))
-        useEffect(() => committed(shadow))
+        useEffect(() => {
+          committed(shadow)
+        })
         return shadow
       },
       { initialProps: { k: "a" } },

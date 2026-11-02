@@ -2,6 +2,7 @@ import fs from "node:fs"
 import path from "node:path"
 import { describe, expect, it, vi } from "vitest"
 import type { MCPServer } from "mcp-use"
+import { listJobsInput } from "@miragon/pulse-engine-client/schemas"
 import { runWithMcpRequestInfo } from "@miragon/pulse-widget-shell/server"
 import { engineModule } from "./module.js"
 
@@ -172,6 +173,19 @@ describe("engineModule.instructions", () => {
       )
     }
     expect(text).not.toContain("\u2014")
+  })
+
+  // The playbook names engine_list_jobs's filters (pinned above). Strict input refuses a call
+  // with a parameter the tool does not take, so a renamed filter would turn the playbook into a
+  // refused call: the names the text quotes ("engine_list_jobs with a, b and c: …") are read
+  // from the text itself and held to the tool's input schema here.
+  it("quotes only filters engine_list_jobs takes", () => {
+    const text = snippet(TWO, "operations")
+    const quoted = [...text.matchAll(/engine_list_jobs with ([^:]+):/g)].flatMap((match) =>
+      match[1].split(/, | and /),
+    )
+    expect(quoted.length).toBeGreaterThan(0)
+    for (const param of quoted) expect(Object.keys(listJobsInput.shape)).toContain(param)
   })
 
   it("one engine: `engine` may be omitted — no routing lecture", () => {

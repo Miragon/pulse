@@ -224,7 +224,11 @@ describe.each(cases)("$tool pagination envelope", ({ tool, list, count, filterAr
     expect(mockedList).toHaveBeenCalledWith(
       expect.objectContaining({
         client: fakeClient,
-        query: expect.objectContaining({ ...engineQuery, firstResult: 2, maxResults: 2 }),
+        query: expect.objectContaining({
+          ...engineQuery,
+          firstResult: 2,
+          maxResults: 2,
+        }) as Record<string, unknown>,
       }),
     )
     expect(mockedCount).toHaveBeenCalledWith({ client: fakeClient, query: engineQuery })

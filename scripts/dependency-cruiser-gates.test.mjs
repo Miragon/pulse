@@ -66,8 +66,6 @@ const THIRD_PARTY = [
   "@tanstack/react-query",
   "mcp-use",
   "@modelcontextprotocol/sdk",
-  "hono",
-  "postgres",
   "prom-client",
   "zod",
   "@hey-api/client-fetch",
@@ -201,8 +199,6 @@ const SUITES = [
         "@tanstack/react-query",
         "mcp-use/react",
         "@modelcontextprotocol/sdk/server",
-        "hono",
-        "postgres",
         "prom-client",
         "zod",
         "@hey-api/client-fetch",
@@ -212,7 +208,8 @@ const SUITES = [
         "@miragon/modeler-shell",
         "vscode",
       ].map((spec) => [CLI_SRC, spec, [HEADLESS]]),
-      [CLI_SRC, "pulse-cockpit", [APP_APP, HEADLESS]],
+      // An app is the app rule's (apps-never-import-apps), not this one's.
+      [CLI_SRC, "pulse-cockpit", [APP_APP]],
       [CLI_SRC, "@miragon/pulse-ui", [HEADLESS]],
       [
         `${CLI}/src/escape-package.ts`,
@@ -328,7 +325,7 @@ const SUITES = [
     cases: [
       [CLI_SRC, "@miragon/pulse-mcp-server", [APP_APP, HEADLESS]],
       [EXT_SRC, "@miragon/pulse-mcp-server/src/setup", [APP_APP]],
-      [`${CLI}/src/escape-app.ts`, "../../mcp-server/src/target.ts", [APP_APP, HEADLESS, DEEP]],
+      [`${CLI}/src/escape-app.ts`, "../../mcp-server/src/target.ts", [APP_APP, DEEP]],
       // Its own npm name is no way around the rule either: import own modules relatively.
       [`${SERVER}/src/self.ts`, "@miragon/pulse-mcp-server", [APP_APP]],
       [`${EXT}/src/self.ts`, "pulse-cockpit", [APP_APP]],
@@ -348,12 +345,18 @@ const SUITES = [
     rule: NO_APP,
     title: "no package imports an app",
     cases: [
-      [SHELL_SRC, "@miragon/pulse-mcp-server", [CORE, NO_APP]],
+      // The app rules own every edge into an app: core, pulse-ui and the clients name none.
+      [SHELL_SRC, "@miragon/pulse-mcp-server", [NO_APP]],
+      [`${SHELL}/src/escape-app.ts`, "../../../../apps/mcp-server/src/target.ts", [NO_APP, DEEP]],
+      [`${UI}/src/escape-app.ts`, "../../../../apps/mcp-server/src/target.ts", [NO_APP, DEEP]],
       [
-        `${SHELL}/src/escape-app.ts`,
-        "../../../../apps/mcp-server/src/target.ts",
-        [CORE, NO_APP, DEEP],
+        `${ENGINE_CLIENT}/src/escape-app.ts`,
+        "../../../../../apps/mcp-server/src/target.ts",
+        [NO_APP, DEEP],
       ],
+      [SHELL_SRC, "pulse-cockpit", [NO_APP]],
+      [UI_SRC, "pulse-cockpit", [NO_APP]],
+      [ENGINE_CLIENT_SRC, "pulse-cockpit", [NO_APP]],
       [ENGINE_CLIENT_SRC, "@miragon/pulse-mcp-server", [CLIENT_LEAF, NO_APP]],
       [ENGINE_CONNECTOR_SRC, "@miragon/pulse-mcp-server", [NO_APP]],
       [ENGINE_CONNECTOR_SRC, "@miragon/pulse-cli", [NO_APP]],
@@ -383,15 +386,14 @@ const SUITES = [
       [UI_SRC, "@miragon/pulse-widget-shell/widgets", [UI_LEAF]],
       [UI_SRC, "@miragon/pulse-engine-connector", [CORE, UI_LEAF]],
       [UI_SRC, "@miragon/pulse-analytics-client", [CORE, UI_LEAF]],
-      [UI_SRC, "@miragon/pulse-mcp-server", [CORE, NO_APP, UI_LEAF]],
+      // A scoped app name is a workspace package name as well: the leaf rule bites with the app rule.
+      [UI_SRC, "@miragon/pulse-mcp-server", [NO_APP, UI_LEAF]],
       ...[
         "mcp-use",
         "mcp-use/react",
         "@tanstack/react-query",
         "zod",
         "@modelcontextprotocol/sdk/server",
-        "hono",
-        "postgres",
         "prom-client",
         "bpmn-js",
       ].map((spec) => [UI_SRC, spec, [UI_LEAF]]),

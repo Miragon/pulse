@@ -85,6 +85,10 @@ services:
       - "127.0.0.1:8410:8080"
     environment:
       - CIBSEVEN_BPM_RUN_AUTH_ENABLED=true
+      # Without the invoice example: it sets the engine clock back while it seeds itself,
+      # after the REST API already answers, so data created then gets rewound timestamps.
+      # CIB seven's Run reads camunda.bpm.*, so this variable keeps the CAMUNDA_ prefix.
+      - CAMUNDA_BPM_RUN_EXAMPLE_ENABLED=false
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:8080/engine-rest/engine || exit 1"]
       interval: 10s

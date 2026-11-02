@@ -9,7 +9,8 @@ import { repoTextFiles } from "./check-package-scripts.mjs"
  * publishes to Docker Hub), a technical name of the retired operate CLI points to an
  * archived product, the retired OAuth JSON variable configures nothing, and a name of the
  * retired camunda7 module (its tools, module name, packages, variables and metric names) names
- * nothing the server registers, reads or exports any more. No other gate
+ * nothing the server registers, reads or exports any more, and a package of the retired MCP
+ * toolkit installs a library Pulse no longer builds on. No other gate
  * reads them, so this guard reads every tracked text file (and every untracked one git does
  * not ignore) and fails on them.
  */
@@ -50,6 +51,12 @@ const RULES = [
   // sends an operator into a failed boot. Only the refusal and the operations page's upgrade
   // note name it (ALLOWED).
   { name: "retired MCP_OAUTH", pattern: /\bMCP_OAUTH\b/ },
+  // Pulse grew out of the @miragon/mcp-toolkit-* packages and owns what it used: the registrar,
+  // the view meta and the server i18n are @miragon/pulse-widget-shell/server, the design kit
+  // @miragon/pulse-ui, the view runtime @miragon/pulse-widget-shell/widgets. No package depends
+  // on the toolkit any more (an import of it fails to resolve); a doc or a skill that names one
+  // installs the old library next to Pulse. The toolkit's repository stays citable as the origin.
+  { name: "retired toolkit package", pattern: /@miragon\/mcp-toolkit-/ },
   // The engine module was the camunda7 module up to 0.24: one REST API family three vendors
   // implement, named after one of them. Every technical name of it is retired; the vendor stays
   // (the flavor value `camunda7`, `camunda7Provider`, "Camunda 7"), and so do Camunda's own names
@@ -304,6 +311,9 @@ describe("the name rules", () => {
     ['MCP_OAUTH={"provider":"keycloak"}', "retired MCP_OAUTH"],
     ["fly secrets set MCP_OAUTH=… -a app", "retired MCP_OAUTH"],
     ["- MCP_OAUTH", "retired MCP_OAUTH"],
+    ['import { Button } from "@miragon/mcp-toolkit-ui"', "retired toolkit package"],
+    ['"@miragon/mcp-toolkit-core": "2.6.0"', "retired toolkit package"],
+    ["pnpm add @miragon/mcp-toolkit-ui@2.8.1", "retired toolkit package"],
     ["MCP_ACTIVE_MODULES=camunda7:operations,analytics", "retired camunda7 module"],
     ["MCP_ACTIVE_MODULES=analytics,camunda7", "retired camunda7 module"],
     ["Ohne das camunda7-Modul", "retired camunda7 module"],
@@ -371,6 +381,9 @@ describe("the name rules", () => {
     "MCP_USE_OAUTH_KEYCLOAK_SERVER_URL=https://kc.example.com",
     "MCP_USE_OAUTH_*",
     "MCP_OAUTH_KEYCLOAK_SERVER_URL",
+    // The toolkit as the origin of ported code stays citable.
+    "ported from mcp-toolkit's examples/test/helpers/golden.ts",
+    "the outline `Button` at that scale (Miragon/mcp-toolkit#194)",
     // The vendor and Camunda's own names stay; so do the new names.
     'flavor: "camunda7"',
     "export const camunda7: EngineAdapter",

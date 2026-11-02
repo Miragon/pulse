@@ -91,25 +91,84 @@ function loneSymbolIcon(node: ts.Node, text: string): string | undefined {
   return whole ? symbol : undefined
 }
 
-function sparkleImports(node: ts.Node): [glyph: string, at: ts.Node][] {
-  if (!ts.isImportDeclaration(node) || !ts.isStringLiteral(node.moduleSpecifier)) return []
-  const from = node.moduleSpecifier.text
-  const deep = SPARKLE_PATH.exec(from)
-  if (deep) return [[deep[1], node]]
-  const named = node.importClause?.namedBindings
-  if (from !== "lucide-react" || !named || !ts.isNamedImports(named)) return []
-  return named.elements
-    .map((el): [string, ts.Node] => [(el.propertyName ?? el.name).text, el])
+type SparkleHit = [glyph: string, at: ts.Node]
+
+/** The module a lucide-react import or re-export names, with the icon of a deep path. */
+function lucideSpecifier(node: ts.Node): { from: string; deep?: string } | undefined {
+  if (!(ts.isImportDeclaration(node) || ts.isExportDeclaration(node))) return undefined
+  const spec = node.moduleSpecifier
+  if (!spec || !ts.isStringLiteral(spec)) return undefined
+  const deep = SPARKLE_PATH.exec(spec.text)?.[1]
+  return deep || spec.text === "lucide-react" ? { from: spec.text, deep } : undefined
+}
+
+/** Named bindings that pick a sparkle: `import { Sparkles as X }`, `export { Sparkles as X } from`. */
+function namedSparkles(elements: ts.NodeArray<ts.ImportSpecifier | ts.ExportSpecifier>) {
+  return elements
+    .map((el): SparkleHit => [(el.propertyName ?? el.name).text, el])
     .filter(([name]) => SPARKLE_IMPORT.test(name))
+}
+
+/**
+ * The sparkle in an import or re-export of lucide-react: a named binding, a deep path, or
+ * `export *` (which hands every sparkle on under another module's name). A namespace import
+ * is no finding by itself; its sparkle member is (`namespaceSparkle`).
+ */
+function sparkleImports(node: ts.Node): SparkleHit[] {
+  const lucide = lucideSpecifier(node)
+  if (!lucide) return []
+  if (lucide.deep) return [[lucide.deep, node]]
+  if (ts.isExportDeclaration(node)) {
+    const clause = node.exportClause
+    if (!clause || ts.isNamespaceExport(clause)) return [["*", node]]
+    return namedSparkles(clause.elements)
+  }
+  const named = (node as ts.ImportDeclaration).importClause?.namedBindings
+  return named && ts.isNamedImports(named) ? namedSparkles(named.elements) : []
+}
+
+/** Local names of `import * as Icons from "lucide-react"`. */
+function lucideNamespaces(sf: ts.SourceFile): Set<string> {
+  const names = new Set<string>()
+  for (const statement of sf.statements) {
+    const lucide = lucideSpecifier(statement)
+    const named = ts.isImportDeclaration(statement)
+      ? statement.importClause?.namedBindings
+      : undefined
+    if (lucide && !lucide.deep && named && ts.isNamespaceImport(named)) {
+      names.add(named.name.text)
+    }
+  }
+  return names
+}
+
+/** A sparkle read off a lucide-react namespace: `Icons.Sparkles`, `<Icons.Sparkles />`, `Icons["Sparkles"]`. */
+function namespaceSparkle(node: ts.Node, namespaces: Set<string>): string | undefined {
+  let target: ts.Expression
+  let member: string
+  if (ts.isPropertyAccessExpression(node)) {
+    target = node.expression
+    member = node.name.text
+  } else if (ts.isElementAccessExpression(node) && ts.isStringLiteral(node.argumentExpression)) {
+    target = node.expression
+    member = node.argumentExpression.text
+  } else return undefined
+  const fromLucide = ts.isIdentifier(target) && namespaces.has(target.text)
+  return fromLucide && SPARKLE_IMPORT.test(member) ? member : undefined
 }
 
 /** Comments are not scanned: a comment may name what it bans. */
 export function glyphFindings(source: string, file: string): GlyphFinding[] {
   const sf = parseSource(source, file)
   const findings: GlyphFinding[] = []
+  const namespaces = lucideNamespaces(sf)
   walkNodes(sf, (node) => {
     for (const [glyph, at] of sparkleImports(node)) {
       findings.push({ file, line: lineOf(sf, at), glyph, text: node.getText(sf).slice(0, 80) })
+    }
+    const member = namespaceSparkle(node, namespaces)
+    if (member) {
+      findings.push({ file, line: lineOf(sf, node), glyph: member, text: node.getText(sf) })
     }
     const text = literalText(node) ?? (ts.isJsxText(node) ? node.text : undefined)
     if (text === undefined) return

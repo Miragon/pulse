@@ -45,7 +45,7 @@ pnpm stack:down     # stop (volumes kept; --wipe drops them)
 - Compose profiles: `--profile multi-engine` (second engine on :8411;
   `pnpm stack:up --multi-engine`, `pnpm play --multi-engine`),
   `--profile full` (containerized server on :8400), `--profile dev` (plain
-  CIB seven image, no analytics), `--profile auth` (Keycloak on :8480 for
+  CIB seven image, no analytics, without its invoice example, so it starts empty), `--profile auth` (Keycloak on :8480 for
   trying OAuth locally: `pnpm play --auth` puts the server behind it, `pnpm stack:up --auth`
   starts it alone; see the commented block in `.env.example`)
 - The Compose project is `pulse`. A stack started before the rename still

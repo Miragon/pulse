@@ -50,7 +50,12 @@ function answer(res: ServerResponse, reply: FakeReply | undefined) {
   const contentType = reply.contentType ?? "application/json"
   res.writeHead(reply.status ?? 200, { "Content-Type": contentType })
   if (reply.body === undefined) return res.end()
-  res.end(contentType === "application/json" ? JSON.stringify(reply.body) : String(reply.body))
+  // A text reply (a stacktrace, an empty body) goes out as it is; everything else as JSON.
+  res.end(
+    typeof reply.body === "string" && contentType !== "application/json"
+      ? reply.body
+      : JSON.stringify(reply.body),
+  )
 }
 
 export async function startFakeEngine(

@@ -70,8 +70,8 @@ const ENGINE_CORE = escapeRegExp(ENGINE_CORE_PACKAGE)
 
 /**
  * What makes a package an MCP host or a widget: the UI runtime, the MCP framework and
- * protocol SDK, the server's HTTP, persistence and metrics stack, zod and the generated
- * REST SDK's runtime. The CLI imports none of it.
+ * protocol SDK, the server's metrics, zod and the generated REST SDK's runtime. The CLI
+ * imports none of it.
  */
 const MCP_STACK = [
   "react",
@@ -80,8 +80,6 @@ const MCP_STACK = [
   "@tanstack/[^/]+",
   "mcp-use",
   "@modelcontextprotocol/[^/]+",
-  "hono",
-  "postgres",
   "prom-client",
   "zod",
   "@hey-api/[^/]+",
@@ -137,11 +135,11 @@ module.exports = {
       severity: "error",
       comment:
         "*-client packages are SDK leaves (generated REST SDK / PromQL queries + Zod schemas): " +
-        "they never import connectors, the core packages, sibling clients, or an app. Shared " +
+        "they never import connectors, the core packages or sibling clients. Shared " +
         "logic that grows here belongs in the connector layer or a core package, not in a client.",
       from: { path: "^packages/connectors/[^/]+/([^/]+)-client/" },
       to: {
-        path: ["^packages/(core|connectors)/", "^apps/", "@miragon/pulse-"],
+        path: ["^packages/(core|connectors)/", "@miragon/pulse-"],
         // The own tree (src, own third-party node_modules such as zod) stays exempt
         // EXCEPT any @miragon/pulse-* package declared in its own node_modules (shape 2).
         pathNot: [
@@ -156,16 +154,11 @@ module.exports = {
       comment:
         "packages/core/* is the shared foundation underneath every connector: it depends on core " +
         "siblings and third-party libraries only (pulse-ui is the leaf among them), never on a " +
-        "connector, a client or an app. When a connector needs something a sibling already has, extract it INTO a core " +
+        "connector or a client. When a connector needs something a sibling already has, extract it INTO a core " +
         "package (on the second concrete consumer), never make core reach up into a connector.",
       from: { path: "^packages/core/" },
       to: {
-        path: [
-          "^packages/connectors/",
-          "^apps/",
-          "@miragon/pulse-[^/]+-(connector|client)(/|$)",
-          ...npm(escapeRegExp(SERVER_PACKAGE)),
-        ],
+        path: ["^packages/connectors/", "@miragon/pulse-[^/]+-(connector|client)(/|$)"],
       },
     },
     {
@@ -174,17 +167,16 @@ module.exports = {
       comment:
         "packages/core/ui (@miragon/pulse-ui) is the design kit every Pulse view and every customer UI " +
         "builds on: it imports no workspace package and nothing of the MCP, query, server or schema " +
-        "stack (mcp-use, @modelcontextprotocol, TanStack, zod, hono, postgres, prom-client, " +
+        "stack (mcp-use, @modelcontextprotocol, TanStack, zod, prom-client, " +
         "@hey-api, bpmn-js, diagram-js). What needs the host, a tool call or BPMN belongs in widget-shell, " +
         "which imports pulse-ui, never the other way round (CLAUDE.md invariants 6 and 8).",
       from: { path: "^packages/core/ui/" },
       to: {
         path: [
           "^packages/(?!core/ui/)",
-          "^apps/",
           "@miragon/pulse-(?!ui(?:/|$))",
           ...npm(
-            "mcp-use|@modelcontextprotocol/[^/]+|@tanstack/[^/]+|zod|hono|postgres|prom-client|@hey-api/[^/]+|bpmn-js|diagram-js",
+            "mcp-use|@modelcontextprotocol/[^/]+|@tanstack/[^/]+|zod|prom-client|@hey-api/[^/]+|bpmn-js|diagram-js",
           ),
         ],
       },
@@ -220,18 +212,15 @@ module.exports = {
         "The CLI (apps/cli) is a terminal interface, not an MCP host: it imports no workspace " +
         "package except @miragon/pulse-engine-core, its workflow domain, which tsdown bundles, and " +
         "nothing of the MCP/UI/server stack (react, react-dom, lucide-react, preact, bpmn-js, diagram-js, " +
-        "mcp-use, @modelcontextprotocol, TanStack, hono, postgres, prom-client, " +
+        "mcp-use, @modelcontextprotocol, TanStack, prom-client, " +
         "zod, @hey-api, vscode, @miragon/modeler-shell). A relative escape into " +
         "packages/core/engine-core is still a violation: import the package.",
       from: { path: "^apps/cli/" },
       to: {
         path: [
           "^packages/",
-          "^apps/(?!cli/)",
           "@miragon/pulse-",
-          ...npm(
-            `${MCP_STACK}|preact|bpmn-js|diagram-js|@miragon/modeler-shell|vscode|${escapeRegExp(EXTENSION_PACKAGE)}`,
-          ),
+          ...npm(`${MCP_STACK}|preact|bpmn-js|diagram-js|@miragon/modeler-shell|vscode`),
         ],
         pathNot: npm(ENGINE_CORE),
       },

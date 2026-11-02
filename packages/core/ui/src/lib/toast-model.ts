@@ -1,7 +1,7 @@
 /**
  * Pure model behind `ToastProvider` / `useToast`: the toast list as a reducer
- * plus the timing rules, so both are testable without a DOM (the house path,
- * FITNESS.md) and the component stays a thin view over them.
+ * plus the timing rules, so both are testable without a DOM and the component
+ * stays a thin view over them.
  */
 
 import { resolveTone } from "./tone-utils.js"

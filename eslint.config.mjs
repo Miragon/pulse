@@ -107,45 +107,11 @@ const widgetNumberGateForFormatters = widgetNumberGate.filter(
   (gate) => gate.selector !== NUMBER_FORMAT_SELECTOR,
 )
 
-// Invariant 6 / CI U4: the AI affordance is the Lucide icon of the concrete
-// function plus a verb that names the chat, never a sparkle. Every export
-// spelling of lucide-react's sparkle icons, and their deep imports. (pulse-ui's
-// scanGlyphs checks the same imports for packages outside this config.)
-const SPARKLE_MESSAGE =
-  "No Sparkles/WandSparkles as the AI affordance (CI U4): use the Lucide icon of the concrete function (e.g. FileSearch) and a verb that names the chat (CLAUDE.md invariant 6)."
-const widgetSparkleGate = {
-  paths: [
-    {
-      name: "lucide-react",
-      importNames: ["Sparkle", "Sparkles", "WandSparkles", "Wand2"].flatMap((icon) => [
-        icon,
-        `${icon}Icon`,
-        `Lucide${icon}`,
-      ]),
-      message: SPARKLE_MESSAGE,
-    },
-  ],
-  patterns: [
-    {
-      regex: "^lucide-react/(?:.*/)?(?:sparkles?|wand-sparkles|wand-2)(?:\\.js)?$",
-      message: SPARKLE_MESSAGE,
-    },
-  ],
-}
-
-// Invariants 1 and 6: every toolkit package is retired, every subpath with it; Pulse owns what
-// it used. The registrar, tool errors, view meta and server i18n are
-// @miragon/pulse-widget-shell/server, the design kit @miragon/pulse-ui, the view runtime
-// @miragon/pulse-widget-shell/widgets. Widgets reach the host only through widget-shell's view
-// host (`useViewHost`, `HostModelContext`) and query hooks, never `mcp-use/react` itself: its
-// hooks throw outside `bootstrapView`, so a widget importing it could not render under
-// `TestViewHost`. The ONE adapter is widget-shell's `mcp-use-host.tsx` + `view-root.tsx`.
-const TOOLKIT_MESSAGE =
-  "The @miragon/mcp-toolkit-* packages are retired: Pulse owns what it used. The registrar, tool errors, view meta and server i18n come from @miragon/pulse-widget-shell/server, the design kit from @miragon/pulse-ui and the view runtime (useViewHost, HostModelContext, useToolQuery, useToolMutation, useViewData, useQueryClient; TestViewHost in tests) from @miragon/pulse-widget-shell/widgets (CLAUDE.md invariants 1 and 6)."
-const toolkitGate = {
-  paths: [],
-  patterns: [{ regex: "^@miragon/mcp-toolkit-", message: TOOLKIT_MESSAGE }],
-}
+// Invariant 6: widgets reach the host only through widget-shell's view host (`useViewHost`,
+// `HostModelContext`) and query hooks, never `mcp-use/react` itself: its hooks throw outside
+// `bootstrapView`, so a widget importing it could not render under `TestViewHost`. The ONE
+// adapter is widget-shell's `mcp-use-host.tsx` + `view-root.tsx`. (The AI sparkle is banned by
+// pulse-ui's scanGlyphs, which every widget tree runs in its brand-gates test.)
 const mcpUseReactGate = {
   paths: [
     {
@@ -154,13 +120,7 @@ const mcpUseReactGate = {
         "Only widget-shell's view root (view-root.tsx, mcp-use-host.tsx) imports mcp-use/react; a widget uses the view host (useViewHost) and renders under TestViewHost in tests (CLAUDE.md invariant 6).",
     },
   ],
-  patterns: [],
 }
-/** `no-restricted-imports` is ONE rule too: a glob two import gates share gets their union. */
-const importGates = (...gates) => ({
-  paths: gates.flatMap((gate) => gate.paths),
-  patterns: gates.flatMap((gate) => gate.patterns),
-})
 
 // Invariant 6 / CI U4, the other half: ONE hand-off vocabulary across the
 // product. A connector widget renders a chat hand-off only through widget-shell's
@@ -347,15 +307,14 @@ export default tseslint.config(
 
   {
     rules: {
-      "@typescript-eslint/no-explicit-any": "warn",
-      // Downgraded to warn: mcp-use has poor type coverage (Phase 1)
-      "@typescript-eslint/no-unsafe-argument": "warn",
-      "@typescript-eslint/no-unsafe-assignment": "warn",
-      "@typescript-eslint/no-unsafe-call": "warn",
-      "@typescript-eslint/no-unsafe-member-access": "warn",
-      "@typescript-eslint/no-unsafe-return": "warn",
-      "@typescript-eslint/require-await": "warn",
-      "@typescript-eslint/no-base-to-string": "warn",
+      // The type-safety rules (no-explicit-any, no-unsafe-*, no-base-to-string) stay at the
+      // recommendedTypeChecked level, error. require-await is off everywhere but the CLI,
+      // engine-core and the VS Code extension, whose blocks below set it at error again: in the
+      // MCP trees an async function without await is how they satisfy a Promise-returning
+      // signature (mcp-use's tool, prompt and resource callbacks, the health probes, fetch stubs
+      // and the Prometheus fakes of the tests), where the rule only asks for a Promise.resolve
+      // wrapper.
+      "@typescript-eslint/require-await": "off",
       "@typescript-eslint/consistent-type-imports": [
         "error",
         { prefer: "type-imports", fixStyle: "inline-type-imports" },
@@ -451,11 +410,9 @@ export default tseslint.config(
     files: ["packages/core/ui/src/kit/format.ts", "packages/core/ui/src/locale/ui-messages.ts"],
     rules: { "no-restricted-syntax": ["error", ...widgetNumberGateForFormatters] },
   },
-  // Invariants 1 and 6, imports: the toolkit gate in every MCP source and test,
-  // plus the sparkle gate (AI affordance) in every widget tree, the one
-  // `no-restricted-imports` union per glob; widget-shell's mcp-use adapter is
-  // the one place `mcp-use/react` is allowed. Its own rule, so it never
-  // collides with the no-restricted-syntax unions above.
+  // Invariant 6, imports: no `mcp-use/react` in any MCP source or test but widget-shell's
+  // adapter. Its own rule (`no-restricted-imports` is ONE rule too: a glob two import gates
+  // share gets their union), so it never collides with the no-restricted-syntax unions above.
   {
     files: [
       "apps/mcp-server/{src,test,test-host}/**/*.{ts,tsx}",
@@ -463,24 +420,7 @@ export default tseslint.config(
       "packages/core/widget-shell/src/**/*.{ts,tsx}",
       "packages/connectors/*/*/src/**/*.{ts,tsx}",
     ],
-    rules: {
-      "no-restricted-imports": ["error", importGates(toolkitGate, mcpUseReactGate)],
-    },
-  },
-  {
-    files: [
-      "apps/mcp-server/src/ui/**/*.{ts,tsx}",
-      "packages/core/ui/src/**/*.{ts,tsx}",
-      "packages/core/widget-shell/src/ui/**/*.{ts,tsx}",
-      "packages/connectors/analytics/analytics-connector/src/widgets/**/*.{ts,tsx}",
-      "packages/connectors/engine/engine-connector/src/widgets/**/*.{ts,tsx}",
-    ],
-    rules: {
-      "no-restricted-imports": [
-        "error",
-        importGates(toolkitGate, mcpUseReactGate, widgetSparkleGate),
-      ],
-    },
+    rules: { "no-restricted-imports": ["error", mcpUseReactGate] },
   },
   {
     files: [
@@ -488,9 +428,7 @@ export default tseslint.config(
       "packages/core/widget-shell/src/ui/view-root.tsx",
       "packages/core/widget-shell/src/ui/view-root.test.tsx",
     ],
-    rules: {
-      "no-restricted-imports": ["error", importGates(toolkitGate, widgetSparkleGate)],
-    },
+    rules: { "no-restricted-imports": "off" },
   },
   // ── Ratchet metrics: complexity + file-length budgets ───────────────────
   // Global targets for all source code; scripts/check-ratchets.mjs keeps them
@@ -514,25 +452,16 @@ export default tseslint.config(
   // ── The CLI (apps/cli) ───────────────────────────────────────────────────
   // Brought along from the operate repository, where the CLI grew up: typescript-eslint's
   // strict and stylistic type-checked sets for every CLI file (src, scripts, test, the configs),
-  // the rules the global block above downgrades for mcp-use (no-unsafe-*, require-await, ...)
-  // back at error (the CLI touches neither mcp-use nor the toolkit), and budgets stricter than
-  // the global ones: complexity 10 (global 15) and 300 effective lines per file (global 400) for
-  // the shipped code and the scripts, plus depth, parameter, nesting, function length and
-  // statement budgets. No `ignores` and no no-restricted-syntax here: the tests get their own
+  // which set the type-safety rules and require-await (off in the global block above) at error,
+  // and budgets stricter than the global ones: complexity 10 (global 15) and 300 effective
+  // lines per file (global 400) for the shipped code and the scripts, plus depth, parameter,
+  // nesting, function length and statement budgets. No `ignores` and no no-restricted-syntax here: the tests get their own
   // block below, and a no-restricted-syntax setting would REPLACE the pattern gates. The CLI's
   // workflow domain, @miragon/pulse-engine-core (packages/core/engine-core), keeps these budgets.
   {
     files: ["apps/cli/**/*.ts", "packages/core/engine-core/**/*.ts"],
     extends: [tseslint.configs.strictTypeChecked, tseslint.configs.stylisticTypeChecked],
     rules: {
-      "@typescript-eslint/no-explicit-any": "error",
-      "@typescript-eslint/no-unsafe-argument": "error",
-      "@typescript-eslint/no-unsafe-assignment": "error",
-      "@typescript-eslint/no-unsafe-call": "error",
-      "@typescript-eslint/no-unsafe-member-access": "error",
-      "@typescript-eslint/no-unsafe-return": "error",
-      "@typescript-eslint/require-await": "error",
-      "@typescript-eslint/no-base-to-string": "error",
       "@typescript-eslint/restrict-template-expressions": ["error", { allowNumber: true }],
       "no-console": "error",
       eqeqeq: ["error", "always"],
@@ -572,12 +501,6 @@ export default tseslint.config(
   {
     files: ["apps/cli/scripts/**/*.ts"],
     rules: { "no-console": "off" },
-  },
-  // Invariant 8: the CLI imports nothing of the MCP stack, the retired toolkit packages
-  // included (the dependency-cruiser rule `cli-is-headless` holds the rest).
-  {
-    files: ["apps/cli/**/*.ts"],
-    rules: { "no-restricted-imports": ["error", importGates(toolkitGate)] },
   },
   // ── The VS Code extension (apps/vscode) ─────────────────────────────────
   {

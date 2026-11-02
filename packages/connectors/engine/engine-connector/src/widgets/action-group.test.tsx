@@ -36,7 +36,7 @@ async function expectOneGroup(container: HTMLElement, names: RegExp[]) {
   const { facts, actions } = head(container)
   // Facts only: no link and no action in the meta line.
   expect(facts.querySelectorAll("a")).toHaveLength(0)
-  expect(actions.map(nameOf)).toEqual(names.map((name) => expect.stringMatching(name)))
+  expect(actions.map(nameOf)).toEqual(names.map((name) => expect.stringMatching(name) as string))
   for (const action of actions) {
     // The kit's button size sm: 32 px, 14 px, semibold.
     expect(action.className, nameOf(action)).toMatch(/\bh-8\b/)

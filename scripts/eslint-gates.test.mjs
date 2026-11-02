@@ -118,44 +118,7 @@ describe("number gate (invariant 6) in pulse-ui and widget-shell's widget code",
   })
 })
 
-describe("sparkle gate (invariant 6, CI U4) in every widget tree", () => {
-  const isSparkleHit = (m) => m.includes("Sparkles")
-  const WIDGET_PATHS = [
-    `${UI}/__probe__.tsx`,
-    `${WS}/__probe__.tsx`,
-    `${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.tsx`,
-    `${AN}/widgets/__probe__.ts`,
-    "apps/mcp-server/src/ui/__probe__.tsx",
-  ]
-
-  it("bans Lucide's AI sparkle, named, renamed or deep-imported", async () => {
-    const escapes = [
-      'import { Sparkles } from "lucide-react"',
-      'import { SparklesIcon as Ai } from "lucide-react"',
-      'import { LucideSparkle } from "lucide-react"',
-      'import { WandSparkles } from "lucide-react"',
-      'import { Wand2 } from "lucide-react"',
-      'import Sparkles from "lucide-react/icons/sparkles"',
-      'import Wand from "lucide-react/dist/esm/icons/wand-sparkles.js"',
-    ]
-    for (const rel of WIDGET_PATHS) {
-      for (const code of escapes) {
-        const messages = await gateMessages(rel, code, "no-restricted-imports")
-        assert.equal(messages.filter(isSparkleHit).length, 1, `${rel}: "${code}" passed the gate`)
-      }
-    }
-  })
-
-  it("leaves every other Lucide icon alone", async () => {
-    const code = 'import { FileSearch, MessageSquare, X, ArrowRight } from "lucide-react"'
-    for (const rel of WIDGET_PATHS) {
-      assert.deepEqual(await gateMessages(rel, code, "no-restricted-imports"), [], rel)
-    }
-  })
-})
-
-describe("toolkit gate (invariants 1 and 6): every retired package in every spelling", () => {
-  const isToolkitHit = (m) => m.includes("@miragon/mcp-toolkit-* packages are retired")
+describe("mcp-use/react gate (invariant 6): only widget-shell's adapter imports it", () => {
   const isMcpUseReactHit = (m) => m.includes("imports mcp-use/react")
   const MCP_PATHS = [
     `${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.tsx`,
@@ -169,53 +132,6 @@ describe("toolkit gate (invariants 1 and 6): every retired package in every spel
     "apps/mcp-server/test/__probe__.test.ts",
     "apps/mcp-server/test-host/__probe__.spec.ts",
   ]
-  /** The MCP sources and tests plus the CLI, the paths dependency-cruiser held until the family left. */
-  const TOOLKIT_PATHS = [
-    ...MCP_PATHS,
-    "apps/cli/src/__probe__.ts",
-    "apps/cli/test/__probe__.test.ts",
-  ]
-  const TOOLKIT = '"@miragon/mcp-toolkit-ui"'
-
-  it("bans every package of the family: roots, type and value imports, re-exports, subpaths", async () => {
-    const escapes = [
-      `import { Button } from ${TOOLKIT}`,
-      `import type { ToneVariant } from ${TOOLKIT}`,
-      `import { useToolQuery as q } from ${TOOLKIT}`,
-      'import "@miragon/mcp-toolkit-ui/theme.css"',
-      `export { cn } from ${TOOLKIT}`,
-      `export * from ${TOOLKIT}`,
-      'import { x } from "@miragon/mcp-toolkit-ui/app"',
-      'import { y } from "@miragon/mcp-toolkit-ui/hooks"',
-      'import { z } from "@miragon/mcp-toolkit-ui/app/widget-fixture"',
-      'import { createToolRegistrar } from "@miragon/mcp-toolkit-core/tools"',
-      'import type { MessageCatalog } from "@miragon/mcp-toolkit-core"',
-      'import { createTranslator as t } from "@miragon/mcp-toolkit-core"',
-      'export { withToolErrors } from "@miragon/mcp-toolkit-core/tools"',
-      'export * from "@miragon/mcp-toolkit-core"',
-      'import { createRestTool } from "@miragon/mcp-toolkit-core/rest"',
-      'import "@miragon/mcp-toolkit-anything"',
-    ]
-    for (const rel of TOOLKIT_PATHS) {
-      for (const code of escapes) {
-        const messages = await gateMessages(rel, code, "no-restricted-imports")
-        assert.equal(messages.filter(isToolkitHit).length, 1, `${rel}: "${code}" passed the gate`)
-      }
-    }
-  })
-
-  it("leaves Pulse's own packages, other Miragon packages and mcp-use alone", async () => {
-    const code = [
-      'import { Button } from "@miragon/pulse-ui"',
-      'import { createToolRegistrar } from "@miragon/pulse-widget-shell/server"',
-      'import { ModelerShell } from "@miragon/modeler-shell"',
-      'import { MCPServer } from "mcp-use"',
-    ].join("\n")
-    for (const rel of TOOLKIT_PATHS) {
-      const messages = await gateMessages(rel, code, "no-restricted-imports")
-      assert.deepEqual(messages.filter(isToolkitHit), [], rel)
-    }
-  })
 
   it("bans mcp-use/react everywhere but widget-shell's adapter", async () => {
     const code = 'import { useCallTool, bootstrapView } from "mcp-use/react"'
@@ -232,18 +148,6 @@ describe("toolkit gate (invariants 1 and 6): every retired package in every spel
     }
   })
 
-  it("keeps the toolkit ban and the sparkle gate on the adapter files", async () => {
-    for (const rel of [`${WS}/mcp-use-host.tsx`, `${WS}/view-root.tsx`]) {
-      const messages = await gateMessages(
-        rel,
-        `import { Button } from ${TOOLKIT}\nimport { Sparkles } from "lucide-react"`,
-        "no-restricted-imports",
-      )
-      assert.equal(messages.filter(isToolkitHit).length, 1, rel)
-      assert.equal(messages.filter((m) => m.includes("Sparkles")).length, 1, rel)
-    }
-  })
-
   it("leaves pulse-ui, the server package and widget-shell's entries alone", async () => {
     const code = [
       'import { Button, WidgetHeader, LocaleProvider, ToastProvider, type ToneVariant } from "@miragon/pulse-ui"',
@@ -254,24 +158,6 @@ describe("toolkit gate (invariants 1 and 6): every retired package in every spel
     ].join("\n")
     for (const rel of MCP_PATHS) {
       assert.deepEqual(await gateMessages(rel, code, "no-restricted-imports"), [], rel)
-    }
-  })
-
-  it("widget trees carry the toolkit AND the sparkle gate in one union", async () => {
-    const code = `import { Button } from ${TOOLKIT}\nimport { Sparkles } from "lucide-react"`
-    for (const rel of [
-      `${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.tsx`,
-      `${AN}/widgets/__probe__.tsx`,
-      `${UI}/__probe__.tsx`,
-      `${WS}/__probe__.tsx`,
-    ]) {
-      const messages = await gateMessages(rel, code, "no-restricted-imports")
-      assert.equal(messages.filter(isToolkitHit).length, 1, `${rel}: toolkit gate dropped`)
-      assert.equal(
-        messages.filter((m) => m.includes("Sparkles")).length,
-        1,
-        `${rel}: sparkle gate dropped`,
-      )
     }
   })
 })
@@ -434,5 +320,65 @@ describe("engine-core keeps the CLI's budgets (the CLI block of eslint.config.mj
     const rel = `${ENGINE}/__probe__.test.ts`
     assert.equal((await budget(rel, "max-lines"))?.max, 400)
     assert.equal(await ruleOptionsFor(rel, "max-lines-per-function"), null)
+  })
+})
+
+// D10 of the architecture review (2026-11-02): the type-safety rules are errors in every tree;
+// require-await is off in the MCP trees only (the reason sits next to it in eslint.config.mjs).
+// Planted code linted with the real config at existing paths, so the typed rules run.
+describe("type-safety rules: errors everywhere, require-await off in the MCP trees only", () => {
+  const TYPE_SAFETY = [
+    "@typescript-eslint/no-explicit-any",
+    "@typescript-eslint/no-unsafe-argument",
+    "@typescript-eslint/no-unsafe-assignment",
+    "@typescript-eslint/no-unsafe-call",
+    "@typescript-eslint/no-unsafe-member-access",
+    "@typescript-eslint/no-unsafe-return",
+    "@typescript-eslint/no-base-to-string",
+  ]
+  const REQUIRE_AWAIT = "@typescript-eslint/require-await"
+  const PLANTED = [
+    "declare const a: any",
+    "export const b = a",
+    "export const c: unknown = a.c",
+    "export const d: unknown = a()",
+    "export const e = Math.max(a)",
+    "export const f = () => a.f",
+    "const o: object = {}",
+    "export const s = String(o)",
+    "export async function g() { return 1 }",
+  ].join("\n")
+  const errorsAt = async (rel) => {
+    const [result] = await eslint.lintText(PLANTED, { filePath: path.join(repoRoot, rel) })
+    return new Set(result.messages.filter((m) => m.severity === 2).map((m) => m.ruleId))
+  }
+  const MCP_TREES = [
+    "apps/mcp-server/src/setup.ts",
+    "apps/mcp-server/test/golden.ts",
+    "packages/core/widget-shell/src/caller.ts",
+    "packages/core/ui/src/kit/format.ts",
+    "packages/connectors/engine/engine-connector/src/widgets/lib/engine-action.ts",
+    "packages/connectors/analytics/analytics-client/src/metric-names.ts",
+  ]
+  const STRICT_TREES = [
+    "apps/cli/src/util.ts",
+    "packages/core/engine-core/src/index.ts",
+    "apps/vscode/src/core/boards/board-filters.ts",
+  ]
+
+  it("reports every type-safety rule as an error, in the MCP trees and the strict ones", async () => {
+    for (const rel of [...MCP_TREES, ...STRICT_TREES]) {
+      const errors = await errorsAt(rel)
+      assert.deepEqual(
+        TYPE_SAFETY.filter((rule) => !errors.has(rule)),
+        [],
+        `${rel}: a type-safety rule is no error`,
+      )
+    }
+  })
+
+  it("leaves require-await off in the MCP trees and at error in the CLI, engine-core and VS Code", async () => {
+    for (const rel of MCP_TREES) assert.equal(await ruleOptionsFor(rel, REQUIRE_AWAIT), null, rel)
+    for (const rel of STRICT_TREES) assert.ok((await errorsAt(rel)).has(REQUIRE_AWAIT), rel)
   })
 })

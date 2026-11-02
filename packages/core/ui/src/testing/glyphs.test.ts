@@ -108,6 +108,30 @@ describe("glyphFindings — no Unicode glyphs or emoji as icons", () => {
     ])
   })
 
+  it("finds the AI sparkle re-exported or read off a lucide-react namespace", () => {
+    const source = [
+      'export { Sparkles as AiIcon, FileSearch } from "lucide-react"',
+      'export * from "lucide-react"',
+      'export * as Icons from "lucide-react"',
+      'export { default as Wand } from "lucide-react/icons/wand-2"',
+      'import * as Lucide from "lucide-react"',
+      "export const a = <Lucide.Sparkles />",
+      'export const b = Lucide["WandSparkles"]',
+      "export const c = <Lucide.FileSearch />",
+      'import * as Other from "./not-lucide"',
+      "export const d = <Other.Sparkles />",
+      'export { Sparkles } from "./not-lucide"',
+    ].join("\n")
+    expect(glyphFindings(source, "w.tsx").map((f) => [f.line, f.glyph])).toEqual([
+      [1, "Sparkles"],
+      [2, "*"],
+      [3, "*"],
+      [4, "wand-2"],
+      [6, "Sparkles"],
+      [7, "WandSparkles"],
+    ])
+  })
+
   it("covers exactly the glyphs the cockpit used as icons", () => {
     expect(FORBIDDEN_GLYPHS).toEqual(
       expect.arrayContaining([
