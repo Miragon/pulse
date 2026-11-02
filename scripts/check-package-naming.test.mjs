@@ -21,8 +21,8 @@ import {
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const require = createRequire(import.meta.url)
 
-const SDK = "packages/connectors/camunda/camunda7-client/src/generated"
-const CONNECTOR = "packages/connectors/camunda/camunda7-connector"
+const SDK = "packages/connectors/engine/engine-client/src/generated"
+const CONNECTOR = "packages/connectors/engine/engine-connector"
 const WORKSPACE = [
   "packages:",
   '  - "apps/*"',
@@ -41,16 +41,16 @@ const scoped = (dir) => ({ name: `@miragon/pulse-${path.posix.basename(dir)}` })
 /** The repo's packages. */
 const FUTURE = {
   "pnpm-workspace.yaml": WORKSPACE,
-  "apps/mcp-server-camunda7/package.json": {
-    name: "@miragon/pulse-mcp-server-camunda7",
+  "apps/mcp-server/package.json": {
+    name: "@miragon/pulse-mcp-server",
     private: true,
-    bin: { "mcp-server-camunda7": "dist/index.js" },
+    bin: { "mcp-server": "dist/index.js" },
   },
   "apps/cli/package.json": { name: "@miragon/pulse-cli", bin: { "pulse-cli": "dist/cli.js" } },
   "apps/vscode/package.json": EXTENSION,
   "packages/core/widget-shell/package.json": { name: "@miragon/pulse-widget-shell" },
-  "packages/connectors/camunda/camunda7-client/package.json": scoped("camunda7-client"),
-  "packages/connectors/camunda/camunda7-connector/package.json": scoped("camunda7-connector"),
+  "packages/connectors/engine/engine-client/package.json": scoped("engine-client"),
+  "packages/connectors/engine/engine-connector/package.json": scoped("engine-connector"),
   "packages/connectors/analytics/analytics-client/package.json": scoped("analytics-client"),
   "packages/connectors/analytics/analytics-connector/package.json": scoped("analytics-connector"),
   "docs/package.json": { name: "@miragon/pulse-docs", private: true },
@@ -90,13 +90,13 @@ describe("checkPackageName: today's packages", () => {
   it("accepts every package the repo has", () => {
     for (const [dir, manifest] of [
       [
-        "apps/mcp-server-camunda7",
-        { name: "@miragon/pulse-mcp-server-camunda7", private: true, bin: { x: "dist/index.js" } },
+        "apps/mcp-server",
+        { name: "@miragon/pulse-mcp-server", private: true, bin: { x: "dist/index.js" } },
       ],
       ["packages/core/widget-shell", { name: "@miragon/pulse-widget-shell" }],
       ["packages/core/engine-core", { name: "@miragon/pulse-engine-core" }],
-      ["packages/connectors/camunda/camunda7-client", scoped("camunda7-client")],
-      ["packages/connectors/camunda/camunda7-connector", scoped("camunda7-connector")],
+      ["packages/connectors/engine/engine-client", scoped("engine-client")],
+      ["packages/connectors/engine/engine-connector", scoped("engine-connector")],
       ["packages/connectors/analytics/analytics-client", scoped("analytics-client")],
       ["packages/connectors/analytics/analytics-connector", scoped("analytics-connector")],
       ["docs", { name: "@miragon/pulse-docs", private: true }],
@@ -205,14 +205,14 @@ describe("checkPackageName: VS Code extension (an app with engines.vscode)", () 
 describe("checkPackageName: connector families", () => {
   it("rejects every other suffix", () => {
     for (const base of [
-      "camunda7-core",
-      "camunda7-domain",
-      "camunda7connector",
-      "camunda7-clients",
-      "camunda7-client-utils",
+      "engine-core",
+      "engine-domain",
+      "engineconnector",
+      "engine-clients",
+      "engine-client-utils",
       "client",
     ]) {
-      const dir = `packages/connectors/camunda/${base}`
+      const dir = `packages/connectors/engine/${base}`
       assertOne(checkPackageName(dir, scoped(dir)), /must end in -connector or -client/, base)
     }
   })
@@ -220,7 +220,7 @@ describe("checkPackageName: connector families", () => {
   it("rejects an npm name that does not mirror the directory", () => {
     assertOne(
       checkPackageName(CONNECTOR, { name: "@miragon/pulse-c7-connector" }),
-      /npm name must be '@miragon\/pulse-camunda7-connector'/,
+      /npm name must be '@miragon\/pulse-engine-connector'/,
       "c7",
     )
   })
@@ -229,7 +229,7 @@ describe("checkPackageName: connector families", () => {
 describe("checkPackageName: directory rules", () => {
   it("keeps the role suffixes to packages/connectors/<family>/", () => {
     for (const dir of [
-      "packages/core/camunda7-connector",
+      "packages/core/engine-connector",
       "packages/core/shared-client",
       "apps/foo-connector",
     ]) {
@@ -251,8 +251,8 @@ describe("checkPackageName: directory rules", () => {
       ["apps/pulse", { name: "@miragon/pulse-pulse" }],
       ["packages/core/pulse-kit", { name: "@miragon/pulse-pulse-kit" }],
       [
-        "packages/connectors/camunda/pulse-camunda7-client",
-        { name: "@miragon/pulse-pulse-camunda7-client" },
+        "packages/connectors/engine/pulse-engine-client",
+        { name: "@miragon/pulse-pulse-engine-client" },
       ],
       ["apps/pulse-vscode", { name: "pulse-cockpit", engines: { vscode: "^1.101.0" } }],
     ]) {
@@ -302,7 +302,7 @@ describe("checkPackageName: directory rules", () => {
       "docs/sub",
       "apps",
       "packages/core",
-      "packages/connectors/camunda/camunda7-client/sub",
+      "packages/connectors/engine/engine-client/sub",
     ]) {
       assert.equal(packageKind(dir), undefined, dir)
       assertOne(checkPackageName(dir, scoped(dir)), /no naming rule covers/, dir)
@@ -311,8 +311,8 @@ describe("checkPackageName: directory rules", () => {
 })
 
 describe("checkAppDependencies: no package declares an app", () => {
-  const SERVER = "apps/mcp-server-camunda7"
-  const server = (extra = {}) => [SERVER, { name: "@miragon/pulse-mcp-server-camunda7", ...extra }]
+  const SERVER = "apps/mcp-server"
+  const server = (extra = {}) => [SERVER, { name: "@miragon/pulse-mcp-server", ...extra }]
   const cli = (extra = {}) => ["apps/cli", { name: "@miragon/pulse-cli", ...extra }]
   const extension = (extra = {}) => ["apps/vscode", { ...EXTENSION, ...extra }]
   const shell = (extra = {}) => [
@@ -353,13 +353,13 @@ describe("checkAppDependencies: no package declares an app", () => {
   })
 
   it("fails a package or another app declaring the server", () => {
-    const declared = { devDependencies: { "@miragon/pulse-mcp-server-camunda7": "workspace:*" } }
+    const declared = { devDependencies: { "@miragon/pulse-mcp-server": "workspace:*" } }
     const errors = checkAppDependencies(future(shell(declared), cli(declared)))
     assert.deepEqual(errors.map((error) => error.split(":")[0]).sort(), [
       "apps/cli/package.json",
       "packages/core/widget-shell/package.json",
     ])
-    assert.match(errors[0], /@miragon\/pulse-mcp-server-camunda7 \(apps\/mcp-server-camunda7\)/)
+    assert.match(errors[0], /@miragon\/pulse-mcp-server \(apps\/mcp-server\)/)
   })
 
   it("fails the root package.json declaring an app (Node resolves it from every directory below)", () => {
@@ -390,7 +390,7 @@ describe("checkAppDependencies: no package declares an app", () => {
             local: "workspace:@miragon/pulse-cli@*",
             linked: "link:../cli",
             built: "file:../cli/dist",
-            portal: "portal:../mcp-server-camunda7",
+            portal: "portal:../mcp-server",
             relative: "workspace:../cli",
           },
         }),
@@ -404,7 +404,7 @@ describe("checkAppDependencies: no package declares an app", () => {
         ["@miragon/pulse-cli", "local"],
         ["@miragon/pulse-cli", "linked"],
         ["@miragon/pulse-cli", "built"],
-        ["@miragon/pulse-mcp-server-camunda7", "portal"],
+        ["@miragon/pulse-mcp-server", "portal"],
         ["@miragon/pulse-cli", "relative"],
       ],
     )
@@ -417,7 +417,7 @@ describe("checkAppDependencies: no package declares an app", () => {
           extension({
             dependencies: { "some-engine-cli": "0.9.0", "pulse-tools": "1.0.0" },
             devDependencies: {
-              "@miragon/pulse-camunda7-client": "workspace:*",
+              "@miragon/pulse-engine-client": "workspace:*",
               "@miragon/pulse-client": "workspace:*",
               core: "workspace:^1.0.0",
               sibling: "link:../vscode-tools",
@@ -463,8 +463,8 @@ describe("checkPackageNaming over a fixture tree", () => {
     const errors = namingErrors({
       ...FUTURE,
       "package.json": { name: "pulse", devDependencies: { "@miragon/pulse-cli": "workspace:*" } },
-      "apps/mcp-server-camunda7/package.json": {
-        ...FUTURE["apps/mcp-server-camunda7/package.json"],
+      "apps/mcp-server/package.json": {
+        ...FUTURE["apps/mcp-server/package.json"],
         dependencies: { "@miragon/pulse-cli": "workspace:*" },
       },
       "docs/package.json": {
@@ -474,7 +474,7 @@ describe("checkPackageNaming over a fixture tree", () => {
     })
     assert.deepEqual(
       errors.map((error) => error.split(":")[0]),
-      ["package.json", "apps/mcp-server-camunda7/package.json", "docs/package.json"],
+      ["package.json", "apps/mcp-server/package.json", "docs/package.json"],
     )
     assertOne(
       namingErrors({ ...FUTURE, "package.json": "{ not json" }),
@@ -494,7 +494,7 @@ describe("checkPackageNaming over a fixture tree", () => {
 
   it("fails a workspace glob that reaches outside the known layouts", () => {
     for (const [glob, manifestPath] of [
-      ["packages/domains/*", "packages/domains/camunda7-domain/package.json"],
+      ["packages/domains/*", "packages/domains/engine-domain/package.json"],
       ["apps/*/packages/*", "apps/vscode/packages/core/package.json"],
       ["templates/*", "templates/composed-server/package.json"],
       ["packages/*", undefined],
@@ -532,7 +532,7 @@ describe("checkPackageNaming over a fixture tree", () => {
     })
     assert.deepEqual(
       errors.map((error) => error.split(":")[0]),
-      ["apps/cli", "apps/mcp-server-camunda7", "apps/vscode", "docs"],
+      ["apps/cli", "apps/mcp-server", "apps/vscode", "docs"],
     )
     assert.match(errors[0], /no pnpm-workspace\.yaml glob includes it/)
   })
@@ -570,9 +570,9 @@ describe("checkLayout", () => {
     "package.json",
     "pnpm-lock.yaml",
     "pnpm-workspace.yaml",
-    "apps/mcp-server-camunda7/package.json",
-    "apps/mcp-server-camunda7/src/index.ts",
-    "apps/mcp-server-camunda7/test/fixtures/mcp-app.js",
+    "apps/mcp-server/package.json",
+    "apps/mcp-server/src/index.ts",
+    "apps/mcp-server/test/fixtures/mcp-app.js",
     "apps/cli/package.json",
     "apps/cli/src/generated/catalog.json",
     "packages/core/widget-shell/src/ui/x.tsx",
@@ -681,9 +681,9 @@ describe("checkLayout", () => {
   it("fails a package.json anywhere but a workspace package root", () => {
     const offenders = [
       "apps/vscode/packages/core/package.json",
-      "packages/domain/camunda7/package.json",
+      "packages/domain/engine/package.json",
       "packages/package.json",
-      "packages/connectors/camunda/package.json",
+      "packages/connectors/engine/package.json",
       "apps/cli/test/fixtures/x/package.json",
       "apps/package.json",
     ]

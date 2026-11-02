@@ -12,14 +12,14 @@ flowchart LR
   Host[MCP Host<br/>Claude · ChatGPT] -->|MCP / HTTP| Server[MCP Server<br/>:8400]
 
   subgraph Modules
-    Camunda7[camunda7<br/>tools + widgets]
+    EngineModule[engine<br/>tools + widgets]
     Analytics[analytics<br/>tools + widgets]
   end
 
-  Server --> Camunda7
+  Server --> EngineModule
   Server --> Analytics
 
-  Camunda7 -->|REST| Engine[(Camunda 7 / CIB seven)]
+  EngineModule -->|REST| Engine[(Camunda 7 / CIB seven)]
   Analytics -->|PromQL| Prom[(Prometheus)]
 
   Engine -. history events .-> Plugin[Kotlin metrics plugin]
@@ -34,13 +34,13 @@ flowchart LR
 
 | Module                                                               | Role                                                                                                                                                                                                                        |
 | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **MCP Server** (`apps/mcp-server-camunda7/`)                         | Hosts the HTTP transport on port `8400`, loads modules from `MCP_ACTIVE_MODULES`, and serves the Vite-built React widget bundle (see **widgets**).                                                                          |
+| **MCP Server** (`apps/mcp-server/`)                                  | Hosts the HTTP transport on port `8400`, loads modules from `MCP_ACTIVE_MODULES`, and serves the Vite-built React widget bundle (see **widgets**).                                                                          |
 | **CLI** (`apps/cli/`)                                                | Every engine REST operation as a command, generated from the OpenAPI spec, plus the workflow commands; on npm, Homebrew, GHCR and the GitHub release. See the [CLI docs](../cli/index.md); rules in `apps/cli/CLAUDE.md`.   |
 | **VS Code extension** (`apps/vscode/`)                               | Shows what an engine runs next to the BPMN models in VS Code: a Preact webview over an engine-neutral contract and the C7 adapter. Ships as a .vsix on the Marketplace and Open VSX; rules in `apps/vscode/CLAUDE.md`.      |
-| **camunda7** (`packages/connectors/camunda/camunda7-connector/`)     | Wraps the Camunda 7 / CIB seven REST API via an OpenAPI-generated client. Exposes process, task, incident, deployment, and history tools plus widgets.                                                                      |
+| **engine** (`packages/connectors/engine/engine-connector/`)          | Wraps the Camunda 7 / CIB seven REST API via an OpenAPI-generated client. Exposes process, task, incident, deployment, and history tools plus widgets.                                                                      |
 | **analytics** (`packages/connectors/analytics/analytics-connector/`) | Queries Prometheus via PromQL for the process dashboard (per process and per activity), period, version and engine comparisons, the cross-engine landscape and engine health. Tools + widgets.                              |
 | **engine-plugins** (`engine-plugins/`)                               | Kotlin Micrometer plugins for CIB seven: a process-metrics emitter. Independent build (Java 21, Gradle). No engine-side database.                                                                                           |
-| **widgets** (`apps/mcp-server-camunda7/dist/mcp-app.js` + `.css`)    | One Vite-built ES module + stylesheet containing React, Tailwind, and every widget. mcp-use serves it behind one `ui://views/<tool>.html` resource per widget tool, which declares that view on itself (`showToolBinding`). |
+| **widgets** (`apps/mcp-server/dist/mcp-app.js` + `.css`)             | One Vite-built ES module + stylesheet containing React, Tailwind, and every widget. mcp-use serves it behind one `ui://views/<tool>.html` resource per widget tool, which declares that view on itself (`showToolBinding`). |
 
 ## Composition rules
 
@@ -54,14 +54,15 @@ second engine dialect cheap:
   A _dialect_ (an engine API family: Camunda 7 today, Flowable would be another) is
   one package family: its client and its connector (the MCP module); a package two
   interfaces share is extracted on its second consumer, like `@miragon/pulse-engine-core`,
-  the Camunda 7 family's workflow domain that the CLI bundles and the camunda7 connector runs
+  the Camunda 7 family's workflow domain that the CLI bundles and the engine connector runs
   over its client (one port per API family; it names no command, flag or tool). An
   _interface_ is an app:
-  `apps/mcp-server-camunda7` is the thin composition root of the Camunda-7-dialect
-  MCP server (camunda7 + analytics); a different dialect gets its own MCP server app.
+  `apps/mcp-server` is the thin composition root of the Camunda-7-dialect
+  MCP server (engine + analytics); a different dialect gets a family and an MCP server app
+  named after it.
   The CLI (`apps/cli`) and the VS Code extension (`apps/vscode`) are interfaces of their own.
 - Modules are peers. Connector packages (`*-connector`) never import each other. Cross-module
-  capabilities are injected by the app, e.g. the camunda7 module's BPMN-XML lookup feeding the
+  capabilities are injected by the app, e.g. the engine module's BPMN-XML lookup feeding the
   analytics heatmap and the names in its views (`SharedResources.fetchBpmnXml`) and its
   configured engine ids, the only engines analytics reads (`engineIds`).
 - Modules are self-contained. Each exports a module definition: config schema, env mapping,
@@ -69,7 +70,7 @@ second engine dialect cheap:
   (`packages/connectors/<family>/<name>-connector/src/module.ts`). A plugin is a name plus a
   `register(server)` that puts the module's tools on the one server the shared boot builds;
   the boot refuses a tool name two modules register. The app only lists its modules and wires
-  their shared resources (`apps/mcp-server-camunda7/src/setup.ts`); the shared boot selects the
+  their shared resources (`apps/mcp-server/src/setup.ts`); the shared boot selects the
   modules (`MCP_ACTIVE_MODULES`), installs OAuth from the env and resolves one fail-closed
   toolset per module per boot (read-only unless widened) and logs it. The module
   packages are published to npm, so external composition roots can mount them next to their own
@@ -98,7 +99,7 @@ second engine dialect cheap:
 2. The server delegates to the matching module's plugin.
 3. The plugin calls the relevant system (REST for the engine, PromQL for
    Prometheus) and returns JSON for the model.
-4. A view tool (camunda7's `open_cockpit`, analytics' `show_*`) returns the
+4. A view tool (the engine module's `open_cockpit`, analytics' `show_*`) returns the
    view's data as `structuredContent` and its model-facing result (the facts or
    figures as compact JSON; the heatmap: a short summary) as `content`; the host
    renders it in the tool's view, which the shared bundle picks by the tool's
@@ -113,11 +114,11 @@ served by the engine REST history API, not the metrics.
 
 ## Repository layout
 
-| Path                        | Description                                                                    |
-| --------------------------- | ------------------------------------------------------------------------------ |
-| `apps/mcp-server-camunda7/` | The MCP server entry point and the widget bundle.                              |
-| `packages/`                 | Reusable libraries: clients, MCP plugins, widget-shell, pulse-ui, engine-core. |
-| `engine-plugins/`           | Kotlin Micrometer plugins (process metrics).                                   |
-| `playground/`               | Demo env: showcases, Compose stack, Fly.io deployment.                         |
+| Path               | Description                                                                    |
+| ------------------ | ------------------------------------------------------------------------------ |
+| `apps/mcp-server/` | The MCP server entry point and the widget bundle.                              |
+| `packages/`        | Reusable libraries: clients, MCP plugins, widget-shell, pulse-ui, engine-core. |
+| `engine-plugins/`  | Kotlin Micrometer plugins (process metrics).                                   |
+| `playground/`      | Demo env: showcases, Compose stack, Fly.io deployment.                         |
 
 For deeper detail, [Reference](reference.md) lists every tool and toolset.

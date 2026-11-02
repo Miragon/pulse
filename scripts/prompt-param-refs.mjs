@@ -1,4 +1,5 @@
 import ts from "typescript"
+import { metricVocabulary } from "./tool-surface.mjs"
 
 /**
  * Parameter names a source text QUOTES for a tool it names (#329): the
@@ -270,6 +271,9 @@ export function quotedParams(rest) {
   return /[a-z][A-Z]/.test(prose[1]) ? [prose[1]] : []
 }
 
+/** The contract's metric names and labels share the tool prefix (`engine_id`): never a tool. */
+const METRIC_VOCABULARY = metricVocabulary()
+
 /** Every (tool, quoted parameter) pair in the string texts of one source file. */
 export function findParamRefs(file, text, prefixes, helpers = new Map()) {
   const toolName = new RegExp(
@@ -294,6 +298,7 @@ export function findParamRefs(file, text, prefixes, helpers = new Map()) {
         branch,
       })
       for (const match of content.matchAll(toolName)) {
+        if (METRIC_VOCABULARY.has(match[0])) continue
         const at = `${file}:${line + 1 + content.slice(0, match.index).split("\n").length - 1}`
         for (const param of quotedParams(content.slice(match.index + match[0].length))) {
           const key = `${match[0]}.${param}@${at}`

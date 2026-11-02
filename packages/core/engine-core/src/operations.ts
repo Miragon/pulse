@@ -1,6 +1,6 @@
 /**
  * The operations each composite may send, by operation id: the contract with a port adapter that
- * maps operations one by one (the camunda7 connector holds its table equal to the union).
+ * maps operations one by one (the engine connector holds its table equal to the union).
  */
 
 /** `inspectInstance`: the selection reads, the rounds of the instance view and its root causes. */

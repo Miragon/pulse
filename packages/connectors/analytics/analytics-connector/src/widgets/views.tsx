@@ -47,7 +47,7 @@ function isEngineList(value: unknown): value is string[] {
 }
 
 /**
- * camunda7's fleet view renders the landscape by its raw id with `{ engine: string[] }`, every
+ * the engine module's fleet view renders the landscape by its raw id with `{ engine: string[] }`, every
  * configured engine, so an engine without metrics still shows. Anything else is no engine list:
  * the landscape then reads every engine.
  */
@@ -56,7 +56,7 @@ export function FleetLandscape(props: Record<string, unknown>) {
   return <EngineLandscapeWidget data={null} engine={engine} />
 }
 
-/** Rendered by raw id from another module: camunda7's fleet view. */
+/** Rendered by raw id from another module: the engine module's fleet view. */
 export const analyticsHostWidgets: HostWidgets = {
   "analytics:engine-landscape": FleetLandscape,
 }

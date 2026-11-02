@@ -28,7 +28,7 @@ export function registerComparisonWidgetTools(ctx: AnalyticsWidgetToolsContext) 
       name: ANALYTICS_SHOW_PERIOD_COMPARE,
       title: "Period Comparison",
       description:
-        "Compare process KPIs of two periods (around a deployment, A ends and B starts at its timestamp from camunda7_get_deployment). Per period: starts and starts per day, completions, incidents per 100 starts, avg/median/p95 duration, plus the deltas. Periods are clamped to now and the 30-day retention and reported as measured (`partial`); a reversed or wholly out-of-range period is refused.",
+        "Compare process KPIs of two periods (around a deployment, A ends and B starts at its timestamp from engine_get_deployment). Per period: starts and starts per day, completions, incidents per 100 starts, avg/median/p95 duration, plus the deltas. Periods are clamped to now and the 30-day retention and reported as measured (`partial`); a reversed or wholly out-of-range period is refused.",
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
       inputSchema: strictToolInput(schemas.periodCompareInput.shape),
       ...showToolBinding(ANALYTICS_SHOW_PERIOD_COMPARE, "Period Comparison"),
@@ -47,7 +47,7 @@ export function registerComparisonWidgetTools(ctx: AnalyticsWidgetToolsContext) 
       name: ANALYTICS_SHOW_VERSION_COMPARE,
       title: "Process Version Comparison",
       description:
-        "Compare KPIs of two deployed versions of one processDefinitionKey over a shared rolling window. The version is an exact label on the instance and incident series, so starts, completions, incidents, incidents per 100 starts and avg/median/p95 duration per version and their deltas are exact; the comparison is process-wide (no element scope). Find versions with camunda7_list_process_definitions.",
+        "Compare KPIs of two deployed versions of one processDefinitionKey over a shared rolling window. The version is an exact label on the instance and incident series, so starts, completions, incidents, incidents per 100 starts and avg/median/p95 duration per version and their deltas are exact; the comparison is process-wide (no element scope). Find versions with engine_list_process_definitions.",
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
       inputSchema: strictToolInput(schemas.versionCompareInput.shape),
       ...showToolBinding(ANALYTICS_SHOW_VERSION_COMPARE, "Process Version Comparison"),
@@ -106,7 +106,7 @@ export function registerComparisonWidgetTools(ctx: AnalyticsWidgetToolsContext) 
       name: ANALYTICS_ENGINE_LANDSCAPE_DATA,
       title: "Engine landscape data (internal)",
       description:
-        "Internal JSON feed (no UI) for the cross-engine landscape widget's self-fetch, also consumed by the camunda7 cockpit's cross-engine mode. Prefer analytics_show_engine_landscape.",
+        "Internal JSON feed (no UI) for the cross-engine landscape widget's self-fetch, also consumed by the engine cockpit's cross-engine mode. Prefer analytics_show_engine_landscape.",
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
       inputSchema: strictToolInput(schemas.engineLandscapeInput.shape),
       ...appOnly,

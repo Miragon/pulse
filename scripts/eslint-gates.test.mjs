@@ -15,7 +15,7 @@ import tseslint from "typescript-eslint"
  */
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
-const C7 = "packages/connectors/camunda/camunda7-connector/src"
+const ENGINE_CONNECTOR_SRC_DIR = "packages/connectors/engine/engine-connector/src"
 const AN = "packages/connectors/analytics/analytics-connector/src"
 
 const eslint = new ESLint({ cwd: repoRoot })
@@ -123,9 +123,9 @@ describe("sparkle gate (invariant 6, CI U4) in every widget tree", () => {
   const WIDGET_PATHS = [
     `${UI}/__probe__.tsx`,
     `${WS}/__probe__.tsx`,
-    `${C7}/widgets/__probe__.tsx`,
+    `${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.tsx`,
     `${AN}/widgets/__probe__.ts`,
-    "apps/mcp-server-camunda7/src/ui/__probe__.tsx",
+    "apps/mcp-server/src/ui/__probe__.tsx",
   ]
 
   it("bans Lucide's AI sparkle, named, renamed or deep-imported", async () => {
@@ -158,16 +158,16 @@ describe("toolkit gate (invariants 1 and 6): every retired package in every spel
   const isToolkitHit = (m) => m.includes("@miragon/mcp-toolkit-* packages are retired")
   const isMcpUseReactHit = (m) => m.includes("imports mcp-use/react")
   const MCP_PATHS = [
-    `${C7}/widgets/__probe__.tsx`,
+    `${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.tsx`,
     `${AN}/widgets/__probe__.ts`,
-    `${C7}/widget-tools/__probe__.ts`,
+    `${ENGINE_CONNECTOR_SRC_DIR}/widget-tools/__probe__.ts`,
     `${UI}/__probe__.tsx`,
     `${UI}/testing/__probe__.ts`,
     `${WS}/__probe__.tsx`,
     "packages/core/widget-shell/src/__probe__.ts",
-    "apps/mcp-server-camunda7/src/ui/__probe__.tsx",
-    "apps/mcp-server-camunda7/test/__probe__.test.ts",
-    "apps/mcp-server-camunda7/test-host/__probe__.spec.ts",
+    "apps/mcp-server/src/ui/__probe__.tsx",
+    "apps/mcp-server/test/__probe__.test.ts",
+    "apps/mcp-server/test-host/__probe__.spec.ts",
   ]
   /** The MCP sources and tests plus the CLI, the paths dependency-cruiser held until the family left. */
   const TOOLKIT_PATHS = [
@@ -260,7 +260,7 @@ describe("toolkit gate (invariants 1 and 6): every retired package in every spel
   it("widget trees carry the toolkit AND the sparkle gate in one union", async () => {
     const code = `import { Button } from ${TOOLKIT}\nimport { Sparkles } from "lucide-react"`
     for (const rel of [
-      `${C7}/widgets/__probe__.tsx`,
+      `${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.tsx`,
       `${AN}/widgets/__probe__.tsx`,
       `${UI}/__probe__.tsx`,
       `${WS}/__probe__.tsx`,
@@ -278,7 +278,10 @@ describe("toolkit gate (invariants 1 and 6): every retired package in every spel
 
 describe("hand-off gate (invariant 6, CI U4) in both connectors' widgets", () => {
   const isHandOffHit = (m) => m.includes("HandOffButton") && m.includes("not AskAiButton")
-  const HAND_OFF_PATHS = [`${C7}/widgets/__probe__.tsx`, `${AN}/widgets/__probe__.tsx`]
+  const HAND_OFF_PATHS = [
+    `${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.tsx`,
+    `${AN}/widgets/__probe__.tsx`,
+  ]
   const KIT = '"@miragon/pulse-widget-shell/widgets"'
 
   it("bans AskAiButton in every spelling: import, renamed import, element, namespace", async () => {
@@ -328,7 +331,10 @@ const REGISTRAR_ESCAPES = {
 }
 
 describe("registrar gate (invariant 1) catches every spelling", () => {
-  for (const rel of [`${C7}/tools/__probe__.ts`, `${AN}/tools/__probe__.tsx`]) {
+  for (const rel of [
+    `${ENGINE_CONNECTOR_SRC_DIR}/tools/__probe__.ts`,
+    `${AN}/tools/__probe__.tsx`,
+  ]) {
     for (const [label, code] of Object.entries(REGISTRAR_ESCAPES)) {
       it(`${label} — ${path.extname(rel)}`, async () => {
         const messages = await gateMessages(rel, code)
@@ -343,13 +349,16 @@ describe("registrar gate (invariant 1) catches every spelling", () => {
       "const fn = ({ tool, list }: Case) => [tool, list]",
       "const name = tool.name + toolName + obj.tools.length",
     ].join("\n")
-    assert.deepEqual(await gateMessages(`${C7}/tools/__probe__.test.ts`, code), [])
+    assert.deepEqual(
+      await gateMessages(`${ENGINE_CONNECTOR_SRC_DIR}/tools/__probe__.test.ts`, code),
+      [],
+    )
   })
 
   it("exempts exactly the widget-tools path", async () => {
     for (const rel of [
-      `${C7}/widget-tools.ts`,
-      `${C7}/widget-tools/__probe__.ts`,
+      `${ENGINE_CONNECTOR_SRC_DIR}/widget-tools.ts`,
+      `${ENGINE_CONNECTOR_SRC_DIR}/widget-tools/__probe__.ts`,
       `${AN}/widget-tools.ts`,
       `${AN}/widget-tools/__probe__.ts`,
     ]) {
@@ -364,7 +373,7 @@ describe("gates sharing a glob are merged, not overridden", () => {
   let widgetTsx
   before(async () => {
     const code = 'server.tool("x")\nnew Intl.DateTimeFormat("de")\nd.toLocaleDateString()'
-    widgetTs = await gateMessages(`${C7}/widgets/__probe__.ts`, code)
+    widgetTs = await gateMessages(`${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.ts`, code)
     widgetTsx = await gateMessages(`${AN}/widgets/__probe__.tsx`, code)
   })
 
@@ -385,8 +394,8 @@ describe("gates sharing a glob are merged, not overridden", () => {
       "const d = new Intl.NumberFormat('de').format(n)",
     ].join("\n")
     for (const rel of [
-      `${C7}/widgets/__probe__.ts`,
-      `${C7}/widgets/__probe__.tsx`,
+      `${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.ts`,
+      `${ENGINE_CONNECTOR_SRC_DIR}/widgets/__probe__.tsx`,
       `${AN}/widgets/__probe__.ts`,
       `${AN}/widgets/__probe__.tsx`,
     ]) {
@@ -399,7 +408,7 @@ describe("gates sharing a glob are merged, not overridden", () => {
 
   it("the app's UI keeps the date gate", async () => {
     const messages = await gateMessages(
-      "apps/mcp-server-camunda7/src/ui/__probe__.tsx",
+      "apps/mcp-server/src/ui/__probe__.tsx",
       "d.toLocaleTimeString()",
     )
     assert.equal(messages.filter(isDateHit).length, 1)

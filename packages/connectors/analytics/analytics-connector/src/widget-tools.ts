@@ -66,7 +66,7 @@ export function registerWidgetTools(
     engines: readonly string[],
   ): Promise<{ bpmnXml: string | null; bpmnMissing?: BpmnMissingReason }> {
     const fetchBpmnXml = options.fetchBpmnXml
-    if (!fetchBpmnXml) return { bpmnXml: null, bpmnMissing: "no-camunda7" }
+    if (!fetchBpmnXml) return { bpmnXml: null, bpmnMissing: "no-engine-module" }
     for (const engine of engines.length > 0 ? engines : [undefined]) {
       const bpmnXml = await fetchBpmnXml(processDefinitionKey, engine).catch(() => null)
       if (bpmnXml) return { bpmnXml }
@@ -100,7 +100,7 @@ export function registerWidgetTools(
       name: ANALYTICS_SHOW_BPMN_HEATMAP,
       title: "BPMN Heatmap",
       description:
-        "Render a process definition's BPMN diagram with a per-element heat overlay from metrics, with a Frequency↔Duration toggle (traversal count vs average duration per element). Node-level only (sequence-flow/edge heat is not available from metrics) and rendered on the latest deployed version's diagram (activity metrics carry no version label). Needs the camunda7 client to fetch the BPMN XML; otherwise the widget shows a fallback.",
+        "Render a process definition's BPMN diagram with a per-element heat overlay from metrics, with a Frequency↔Duration toggle (traversal count vs average duration per element). Node-level only (sequence-flow/edge heat is not available from metrics) and rendered on the latest deployed version's diagram (activity metrics carry no version label). Needs the engine module to fetch the BPMN XML; otherwise the widget shows a fallback.",
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
       inputSchema: strictToolInput(schemas.heatmapInput.shape),
       ...showToolBinding(ANALYTICS_SHOW_BPMN_HEATMAP, "BPMN Heatmap"),

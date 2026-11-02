@@ -106,7 +106,7 @@ jobs:
 
       # Browser cache keyed on the @playwright/test pin.
       - id: playwright
-        run: echo "version=$(node -p "require('./apps/mcp-server-camunda7/package.json').devDependencies['@playwright/test']")" >> "$GITHUB_OUTPUT"
+        run: echo "version=$(node -p "require('./apps/mcp-server/package.json').devDependencies['@playwright/test']")" >> "$GITHUB_OUTPUT"
 
       - id: playwright-cache
         uses: actions/cache@v6.1.0
@@ -115,18 +115,18 @@ jobs:
           key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium-shell
 
       - if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server-camunda7 exec playwright install --with-deps --only-shell chromium
+        run: pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server exec playwright install --with-deps --only-shell chromium
 
       - if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server-camunda7 exec playwright install-deps chromium
+        run: pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server exec playwright install-deps chromium
 
-      - run: pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server-camunda7 test:host
+      - run: pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server test:host
 
       - if: failure()
         uses: actions/upload-artifact@v7.0.2
         with:
           name: host-sim-results
-          path: apps/mcp-server-camunda7/test-results/
+          path: apps/mcp-server/test-results/
           if-no-files-found: ignore
           retention-days: 7
 

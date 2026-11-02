@@ -26,7 +26,7 @@ export function Figure({
   return <>{format(value)}</>
 }
 
-/** A count that is a state (decision f), on the kit's `countTone` ladder like camunda7. */
+/** A count that is a state (decision f), on the kit's `countTone` ladder like the engine module. */
 export function StateCount({ value, why }: { value: number | null; why?: string }) {
   if (countTone(value) === "danger") {
     return <CountPill tone="danger">{formatNumber(value)}</CountPill>

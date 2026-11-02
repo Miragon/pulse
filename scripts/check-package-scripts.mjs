@@ -72,7 +72,7 @@ export const REQUIRED_SCRIPTS = {
  * gate, so the map cannot outlive its reason.
  */
 export const NO_MUTATION_APPS = {
-  "apps/mcp-server-camunda7":
+  "apps/mcp-server":
     "the composition root: its logic lives in the packages, which the nightly run mutates, and " +
     "the app itself is tested end to end (in-process boots, tools/list goldens, the host simulation)",
 }

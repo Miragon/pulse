@@ -121,19 +121,19 @@ class MetricsContractTest {
 
     @Test
     fun `usertask status values match the contract knownValues`() {
-        val emitted = registry.find("camunda.usertasks.open").gauges().map { it.id.getTag("status") }.toSet()
+        val emitted = registry.find("engine.usertasks.open").gauges().map { it.id.getTag("status") }.toSet()
         val declared = contract
-            .single { it.path("otelName").asText() == "camunda.usertasks.open" }
+            .single { it.path("otelName").asText() == "engine.usertasks.open" }
             .path("knownValues").path("status")
             .map { it.asText() }
             .toSet()
 
-        assertEquals(declared, emitted, "status values of camunda.usertasks.open")
+        assertEquals(declared, emitted, "status values of engine.usertasks.open")
     }
 
     @Test
     fun `durations are recorded in whole milliseconds`() {
-        val summary = RequiredSearch.`in`(registry).name("camunda.process.instance.duration").summary()
+        val summary = RequiredSearch.`in`(registry).name("engine.process.instance.duration").summary()
         assertEquals(1, summary.count(), "one process end event carried a duration")
         assertEquals(3000.0, summary.totalAmount(), "3000 ms must be recorded as 3000 ms")
     }
@@ -162,7 +162,7 @@ class MetricsContractTest {
         repeat(90) { handler.handleEvent(activityEnd(durationMillis = 120)) }
         repeat(10) { handler.handleEvent(activityEnd(durationMillis = 5 * HOUR_MS)) }
 
-        val snapshot = RequiredSearch.`in`(quantileRegistry).name("camunda.activity.duration").summary().takeSnapshot()
+        val snapshot = RequiredSearch.`in`(quantileRegistry).name("engine.activity.duration").summary().takeSnapshot()
         val p50 = histogramQuantile(0.5, snapshot)
         val p95 = histogramQuantile(0.95, snapshot)
         assertTrue(p50 > 100.0 && p50 <= 250.0, "p50 $p50 ms must lie in (100, 250] ms")

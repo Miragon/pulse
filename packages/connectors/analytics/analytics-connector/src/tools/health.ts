@@ -19,7 +19,7 @@ export function registerHealthTools(
       "Live operational health of the CIB seven engine(s), from Prometheus state gauges: running WIP, open incidents by type, failed jobs (retries exhausted), executable/suspended job backlog, open/unassigned user tasks, external-task backlog, deployed definitions, and which alert rules are firing/pending. " +
       "Names the engines judged and the silent ones (`silentEngines`: their counts read 0 because nothing arrives). " +
       `Status: ${ENGINE_HEALTH_STATUS_RULE} ` +
-      "Use for fleet-wide or metric-based health; for one engine's live incident clusters use camunda7_open_cockpit.",
+      "Use for fleet-wide or metric-based health; for one engine's live incident clusters use engine_open_cockpit.",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     inputSchema: schemas.engineHealthInput.shape,
     handler: async (ch, args, ctx) => {

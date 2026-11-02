@@ -15,7 +15,7 @@ on:
       version:
         type: string
         default: ""
-        description: "Image version (e.g. release-please tag_name `v1.2.0`); falls back to apps/mcp-server-camunda7/package.json"
+        description: "Image version (e.g. release-please tag_name `v1.2.0`); falls back to apps/mcp-server/package.json"
   workflow_dispatch:
     inputs:
       dry_run:
@@ -25,7 +25,7 @@ on:
       version:
         type: string
         default: ""
-        description: "Image version; falls back to apps/mcp-server-camunda7/package.json"
+        description: "Image version; falls back to apps/mcp-server/package.json"
 
 permissions:
   contents: read
@@ -49,7 +49,7 @@ jobs:
           VERSION="${{ inputs.version }}"
           VERSION="${VERSION#v}"   # release-please tag_name is `v1.2.0` → image tag `1.2.0`
           if [ -z "$VERSION" ]; then
-            VERSION="$(node -p "require('./apps/mcp-server-camunda7/package.json').version")"
+            VERSION="$(node -p "require('./apps/mcp-server/package.json').version")"
           fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Resolved image version: $VERSION"

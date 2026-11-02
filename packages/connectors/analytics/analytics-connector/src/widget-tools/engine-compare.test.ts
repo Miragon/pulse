@@ -46,11 +46,11 @@ function recordingClient(): { client: PrometheusClient; queries: string[] } {
 /** No duplicate incident query without an element (N85). */
 function kpiQueries(sel: string, completedSel: string, range: string) {
   const count = (series: string) => increaseIn(series, { range })
-  const duration = "camunda_process_instance_duration_milliseconds"
+  const duration = "engine_process_instance_duration_milliseconds"
   return [
-    `sum(${count(`camunda_process_instance_started_total${sel}`)})`,
-    `sum(${count(`camunda_process_instance_ended_total${completedSel}`)})`,
-    `sum(${count(`camunda_incident_created_total${sel}`)})`,
+    `sum(${count(`engine_process_instance_started_total${sel}`)})`,
+    `sum(${count(`engine_process_instance_ended_total${completedSel}`)})`,
+    `sum(${count(`engine_incident_created_total${sel}`)})`,
     `sum(${count(`${duration}_sum${sel}`)}) / sum(${count(`${duration}_count${sel}`)})`,
     `histogram_quantile(0.5, sum by (le)(${count(`${duration}_bucket${sel}`)}))`,
     `histogram_quantile(0.95, sum by (le)(${count(`${duration}_bucket${sel}`)}))`,
@@ -109,7 +109,7 @@ describe("analytics_show_engine_compare PromQL", () => {
     expect(queries.every((q) => q.includes(key))).toBe(true)
     const elementScoped = queries.filter((q) => q.includes('activity_id="Task_check"'))
     const incidents = (engine: string) =>
-      `sum(${increaseIn(`camunda_incident_created_total{${key},activity_id="Task_check",engine_id="${engine}"}`, { range: "7d" })})`
+      `sum(${increaseIn(`engine_incident_created_total{${key},activity_id="Task_check",engine_id="${engine}"}`, { range: "7d" })})`
     expect(elementScoped).toEqual([incidents("prod-a"), incidents("prod-b")])
   })
 

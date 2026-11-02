@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { composedEnvVars } from "@miragon/pulse-widget-shell/server"
+import { composedEnvVars, retiredEnvVars } from "@miragon/pulse-widget-shell/server"
+import { createApp } from "../src/app.js"
 import { MODULES } from "../src/setup.js"
 import { stubNeutralEnv } from "./neutral-env.js"
 
@@ -25,7 +26,21 @@ describe("stubNeutralEnv", () => {
     expect(Object.entries(process.env).filter(([, value]) => value === "from-the-shell")).toEqual(
       [],
     )
-    expect(process.env.CAMUNDA_BASE_URL).toBe("http://localhost:1")
+    expect(process.env.ENGINE_BASE_URL).toBe("http://localhost:1")
     expect(process.env.MCP_ACTIVE_MODULES).toBe("notes")
+  })
+
+  it("clears a retired variable from the shell, which the boot would refuse", async () => {
+    vi.spyOn(console, "info").mockImplementation(() => {})
+    vi.spyOn(console, "warn").mockImplementation(() => {})
+    const retired = [...retiredEnvVars(MODULES)]
+    expect(retired.length).toBeGreaterThan(0)
+    for (const name of retired) vi.stubEnv(name, "from-the-shell")
+
+    stubNeutralEnv()
+
+    for (const name of retired) expect(process.env[name]).toBeUndefined()
+    const composed = await createApp(process.env, { bundle: { jsPath: "/nonexistent/mcp-app.js" } })
+    expect(composed.boot.entries.length).toBeGreaterThan(0)
   })
 })

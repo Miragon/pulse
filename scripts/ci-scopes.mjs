@@ -68,7 +68,7 @@ export const ALSO_READ_BY = [
 export function packageScopes(dir) {
   const scopes = ["typescript"]
   if (dir.startsWith("packages/")) scopes.push("mcp", "template")
-  if (dir === "apps/mcp-server-camunda7") scopes.push("mcp")
+  if (dir === "apps/mcp-server") scopes.push("mcp")
   if (dir === "apps/cli") scopes.push("cli")
   if (dir === "apps/vscode") scopes.push("vscode", "vscode-package")
   return scopes

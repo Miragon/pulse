@@ -22,7 +22,7 @@ export function withEngineScope<T extends { engine?: EngineFilterInput }>(
 }
 
 export const NO_ENGINE_SCOPE_MESSAGE =
-  "Analytics covers no engine: this server configures no engine ids. Activate the camunda7 module (its configured engines scope analytics) or set ANALYTICS_ENGINE_IDS to the engine_id values analytics may read."
+  "Analytics covers no engine: this server configures no engine ids. Activate the engine module (its configured engines scope analytics) or set ANALYTICS_ENGINE_IDS to the engine_id values analytics may read."
 
 export function isFleetRequest(requested: EngineFilterInput): boolean {
   if (requested === undefined || requested === null) return true

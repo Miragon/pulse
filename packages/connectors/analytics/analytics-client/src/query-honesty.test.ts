@@ -144,7 +144,7 @@ describe("query honesty — a Prometheus without data", () => {
 describe("query honesty — a reporting engine with nothing open", () => {
   it("dashboard, engine health and landscape agree on 0", async () => {
     const { ch } = recordingClient((q) =>
-      q.includes("camunda_jobs_executable") || q.includes("camunda_external_tasks_open")
+      q.includes("engine_jobs_executable") || q.includes("engine_external_tasks_open")
         ? [{ metric: { engine_id: "prod-a" }, value: 0 }]
         : [],
     )

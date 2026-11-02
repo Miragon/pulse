@@ -16,15 +16,15 @@ const PACKAGES = [
   pkg("packages/core/widget-shell", "@miragon/pulse-widget-shell", {
     "@miragon/pulse-ui": "workspace:*",
   }),
-  pkg("packages/connectors/camunda/camunda7-client", "@miragon/pulse-camunda7-client"),
-  pkg("packages/connectors/camunda/camunda7-connector", "@miragon/pulse-camunda7-connector", {
-    "@miragon/pulse-camunda7-client": "workspace:*",
+  pkg("packages/connectors/engine/engine-client", "@miragon/pulse-engine-client"),
+  pkg("packages/connectors/engine/engine-connector", "@miragon/pulse-engine-connector", {
+    "@miragon/pulse-engine-client": "workspace:*",
     "@miragon/pulse-engine-core": "workspace:*",
     "@miragon/pulse-widget-shell": "workspace:*",
   }),
   pkg("packages/connectors/analytics/analytics-client", "@miragon/pulse-analytics-client"),
-  pkg("apps/mcp-server-camunda7", "@miragon/pulse-mcp-server-camunda7", {
-    "@miragon/pulse-camunda7-connector": "workspace:*",
+  pkg("apps/mcp-server", "@miragon/pulse-mcp-server", {
+    "@miragon/pulse-engine-connector": "workspace:*",
   }),
   // The CLI bundles engine-core: a devDependency reaches it too.
   {
@@ -58,7 +58,7 @@ describe("scopesFor: prose reaches only the checks that read it", () => {
 
   it("treats prose inside a package's code as code (a glossary its test reads)", () => {
     assert.deepEqual(
-      scopes("packages/connectors/camunda/camunda7-connector/src/messages/GLOSSARY.md"),
+      scopes("packages/connectors/engine/engine-connector/src/messages/GLOSSARY.md"),
       ["mcp", "template", "typescript"],
     )
   })
@@ -92,7 +92,7 @@ describe("scopesFor: a package's code reaches its dependents", () => {
   })
 
   it("runs the MCP server's checks and the template for a client, through its connector", () => {
-    assert.deepEqual(scopes("packages/connectors/camunda/camunda7-client/src/index.ts"), [
+    assert.deepEqual(scopes("packages/connectors/engine/engine-client/src/index.ts"), [
       "mcp",
       "template",
       "typescript",
@@ -106,6 +106,10 @@ describe("scopesFor: a package's code reaches its dependents", () => {
       "template",
       "typescript",
     ])
+  })
+
+  it("runs the MCP server's checks for the server app itself, not only through a package", () => {
+    assert.deepEqual(scopes("apps/mcp-server/src/app.ts"), ["mcp", "typescript"])
   })
 
   it("runs only the CLI's checks for the CLI", () => {
@@ -174,8 +178,8 @@ describe("scopesFor fails closed", () => {
 describe("withDependents", () => {
   it("adds every package that depends on a changed one, transitively", () => {
     assert.deepEqual([...withDependents(["packages/core/widget-shell"], PACKAGES)].sort(), [
-      "apps/mcp-server-camunda7",
-      "packages/connectors/camunda/camunda7-connector",
+      "apps/mcp-server",
+      "packages/connectors/engine/engine-connector",
       "packages/core/widget-shell",
     ])
   })

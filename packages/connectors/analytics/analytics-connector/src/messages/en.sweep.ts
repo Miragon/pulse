@@ -88,8 +88,8 @@ export const enSweep: MessageCatalog = {
   "aExecSummary.title": "Process analytics",
   "aFigure.notReported": "No engine reports this figure: unknown",
   "aFigure.nothingEnded": "Nothing ended in this period: no duration",
-  "aHeatmap.bpmnNoCamunda7":
-    "The diagram is not available here: without the camunda7 module, analytics cannot load BPMN files. Ask in the chat for the figures per activity instead.",
+  "aHeatmap.bpmnNoEngineModule":
+    "The diagram is not available here: without the engine module, analytics cannot load BPMN files. Ask in the chat for the figures per activity instead.",
   "aHeatmap.bpmnNotLoaded":
     "Could not load the diagram: no engine in this view returned it. Check that the engines are reachable and the process is deployed, or ask in the chat for the figures per activity.",
   "aHeatmap.bpmnUnavailable":

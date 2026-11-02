@@ -37,11 +37,11 @@ Pulse brings the engine to you instead:
 
 ## Get started
 
-| Client        | Install                                                                     | Read on                                                                                  |
-| ------------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Your AI chat  | `docker run ghcr.io/miragon/pulse-server`, or try the public playground     | [Server README](apps/mcp-server-camunda7/README.md), [docs](docs/mcp/getting-started.md) |
-| Your terminal | `npm install -g @miragon/pulse-cli` or `brew install miragon/tap/pulse-cli` | [CLI README](apps/cli/README.md), [docs](docs/cli/getting-started.md)                    |
-| VS Code       | Pulse from the Marketplace or Open VSX (early prototype)                    | [Extension README](apps/vscode/README.md), [docs](docs/vscode/installation.md)           |
+| Client        | Install                                                                     | Read on                                                                         |
+| ------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Your AI chat  | `docker run ghcr.io/miragon/pulse-server`, or try the public playground     | [Server README](apps/mcp-server/README.md), [docs](docs/mcp/getting-started.md) |
+| Your terminal | `npm install -g @miragon/pulse-cli` or `brew install miragon/tap/pulse-cli` | [CLI README](apps/cli/README.md), [docs](docs/cli/getting-started.md)           |
+| VS Code       | Pulse from the Marketplace or Open VSX (early prototype)                    | [Extension README](apps/vscode/README.md), [docs](docs/vscode/installation.md)  |
 
 No engine at hand? [Connect your Claude to the public playground](docs/mcp/getting-started.md), or
 start one locally with `docker run -p 8080:8080 operaton/operaton:2.1.5`.
@@ -50,12 +50,12 @@ start one locally with `docker run -p 8080:8080 operaton/operaton:2.1.5`.
 
 | Path                                                                                                      | Package                                   | Role                                                         |
 | --------------------------------------------------------------------------------------------------------- | ----------------------------------------- | ------------------------------------------------------------ |
-| [`apps/mcp-server-camunda7/`](apps/mcp-server-camunda7)                                                   | `ghcr.io/miragon/pulse-server`            | The MCP server: composes the modules, serves HTTP on `:8400` |
+| [`apps/mcp-server/`](apps/mcp-server)                                                                     | `ghcr.io/miragon/pulse-server`            | The MCP server: composes the modules, serves HTTP on `:8400` |
 | [`apps/cli/`](apps/cli)                                                                                   | `@miragon/pulse-cli`                      | The command line interface                                   |
 | [`apps/vscode/`](apps/vscode)                                                                             | `pulse` (a .vsix)                         | Pulse for VS Code                                            |
-| [`packages/connectors/camunda/camunda7-connector/`](packages/connectors/camunda/camunda7-connector)       | `@miragon/pulse-camunda7-connector`       | Operations tools and widgets for Camunda 7 engines           |
+| [`packages/connectors/engine/engine-connector/`](packages/connectors/engine/engine-connector)             | `@miragon/pulse-engine-connector`         | Operations tools and widgets for Camunda 7 engines           |
 | [`packages/connectors/analytics/analytics-connector/`](packages/connectors/analytics/analytics-connector) | `@miragon/pulse-analytics-connector`      | Prometheus-backed analytics tools and dashboards             |
-| [`packages/connectors/camunda/camunda7-client/`](packages/connectors/camunda/camunda7-client)             | `@miragon/pulse-camunda7-client`          | Typed REST SDK for the engine, with Zod input schemas        |
+| [`packages/connectors/engine/engine-client/`](packages/connectors/engine/engine-client)                   | `@miragon/pulse-engine-client`            | Typed REST SDK for the engine, with Zod input schemas        |
 | [`packages/connectors/analytics/analytics-client/`](packages/connectors/analytics/analytics-client)       | `@miragon/pulse-analytics-client`         | Prometheus client, PromQL queries and the metrics contract   |
 | [`packages/core/ui/`](packages/core/ui)                                                                   | `@miragon/pulse-ui`                       | Design kit for Pulse views and your own React UIs            |
 | [`packages/core/widget-shell/`](packages/core/widget-shell)                                               | `@miragon/pulse-widget-shell`             | View runtime and server boot for composed MCP servers        |
@@ -69,7 +69,7 @@ start one locally with `docker run -p 8080:8080 operaton/operaton:2.1.5`.
 The docs site, [miragon.github.io/pulse](https://miragon.github.io/pulse/), is built from [`docs/`](docs/README.md),
 one section per client:
 
-- [MCP server](docs/mcp/index.md): getting started, usage, every tool, operations, architecture
+- [MCP server](docs/mcp/index.md): getting started, usage, every tool, operations, upgrading, architecture
 - [CLI](docs/cli/index.md): install, commands, configuration, authentication, AI agents
 - [VS Code](docs/vscode/index.md): installation, configuration, usage, architecture
 
@@ -93,7 +93,7 @@ Details: [developer guide](docs/mcp/developer.md); the rules for code changes ar
 semantic commits on `main` open a release PR, and merging it publishes the server image, the npm
 packages, the CLI (npm, binaries, image, Homebrew `miragon/tap/pulse-cli`), the VS Code extension
 (Marketplace and Open VSX) and the engine plugin (Maven Central). Up to 0.20.0 the server and its
-packages shipped as "Miragon AI"; the [rename note](apps/mcp-server-camunda7/README.md#renamed-from-miragon-ai)
+packages shipped as "Miragon AI"; the [rename note](apps/mcp-server/README.md#renamed-from-miragon-ai)
 maps each old name to its new one.
 
 ## Contributing

@@ -1,0 +1,93 @@
+{
+  "name": "@miragon/pulse-engine-connector",
+  "version": "0.24.2",
+  "description": "Camunda 7 / CIB Seven MCP module: operations tools, widget tools, and cockpit widgets.",
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "camunda",
+    "camunda7",
+    "cib-seven",
+    "bpmn",
+    "widgets"
+  ],
+  "homepage": "https://github.com/Miragon/pulse/tree/main/packages/connectors/engine/engine-connector#readme",
+  "bugs": "https://github.com/Miragon/pulse/issues",
+  "engines": {
+    "node": ">=22.22.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Miragon/pulse.git",
+    "directory": "packages/connectors/engine/engine-connector"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./widgets": "./src/widgets/index.ts"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.widgets.json",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix"
+  },
+  "dependencies": {
+    "@miragon/pulse-engine-client": "workspace:*",
+    "@miragon/pulse-engine-core": "workspace:*",
+    "@miragon/pulse-widget-shell": "workspace:*"
+  },
+  "peerDependencies": {
+    "@miragon/pulse-ui": "workspace:^",
+    "lucide-react": "^0.562.0 || ^1.0.0",
+    "mcp-use": "2.12.2",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "zod": "^4.4.0"
+  },
+  "peerDependenciesMeta": {
+    "@miragon/pulse-ui": {
+      "optional": true
+    },
+    "lucide-react": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@miragon/pulse-ui": "workspace:*",
+    "@stryker-mutator/core": "10.1.1",
+    "@stryker-mutator/vitest-runner": "10.1.1",
+    "@testing-library/react": "16.3.3",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "bpmn-js": "18.31.1",
+    "happy-dom": "21.0.4",
+    "lucide-react": "1.61.0",
+    "mcp-use": "2.12.2",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "typescript": "6.0.3",
+    "vitest": "5.0.5",
+    "zod": "4.6.7"
+  }
+}

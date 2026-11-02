@@ -28,7 +28,7 @@ interface HeatmapDiagram {
 
 /** The widget never guesses why the diagram is missing. */
 const BPMN_MISSING_KEY: Record<BpmnMissingReason, string> = {
-  "no-camunda7": "aHeatmap.bpmnNoCamunda7",
+  "no-engine-module": "aHeatmap.bpmnNoEngineModule",
   "not-loaded": "aHeatmap.bpmnNotLoaded",
 }
 

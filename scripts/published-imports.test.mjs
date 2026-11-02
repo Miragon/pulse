@@ -341,11 +341,11 @@ describe("published packages declare what their shipped source imports", () => {
       "apps/cli/src/test-support/b.ts": "import { it } from 'vitest'",
       "apps/vscode/package.json": json({ name: "pulse", engines: { vscode: "^1.101.0" } }),
       "apps/vscode/src/extension.ts": "import * as vscode from 'vscode'",
-      "apps/mcp-server-camunda7/package.json": json({
-        name: "@miragon/pulse-mcp-server-camunda7",
+      "apps/mcp-server/package.json": json({
+        name: "@miragon/pulse-mcp-server",
         private: true,
       }),
-      "apps/mcp-server-camunda7/src/index.ts": "import 'undeclared-but-private'",
+      "apps/mcp-server/src/index.ts": "import 'undeclared-but-private'",
       "apps/leftover/node_modules/": "",
       "packages/core/widget-shell/package.json": json({
         name: "@miragon/pulse-widget-shell",
@@ -371,7 +371,7 @@ describe("published packages declare what their shipped source imports", () => {
         // By directory: apps/, docs, packages/connectors/, packages/core/.
         [
           "@miragon/pulse-cli",
-          "@miragon/pulse-mcp-server-camunda7",
+          "@miragon/pulse-mcp-server",
           "pulse",
           "@miragon/pulse-docs",
           "@miragon/pulse-engine-core",
@@ -407,16 +407,14 @@ describe("published packages declare what their shipped source imports", () => {
       const root = fixture({
         ...LAYOUT,
         "apps/vscode/package.json": json({ name: "pulse", engines: { node: ">=22" } }),
-        "apps/mcp-server-camunda7/package.json": json({
-          name: "@miragon/pulse-mcp-server-camunda7",
+        "apps/mcp-server/package.json": json({
+          name: "@miragon/pulse-mcp-server",
           private: "true",
         }),
       })
       const found = findings(root)
       assert.deepEqual(found.pulse, ["extension.ts: vscode"])
-      assert.deepEqual(found["@miragon/pulse-mcp-server-camunda7"], [
-        "index.ts: undeclared-but-private",
-      ])
+      assert.deepEqual(found["@miragon/pulse-mcp-server"], ["index.ts: undeclared-but-private"])
     })
 
     it("reports a published package without src/", () => {
@@ -483,20 +481,20 @@ describe("published packages declare what their shipped source imports", () => {
       "@miragon/pulse-engine-core",
       "@miragon/pulse-ui",
       "@miragon/pulse-widget-shell",
-      "@miragon/pulse-camunda7-connector",
-      "@miragon/pulse-camunda7-client",
+      "@miragon/pulse-engine-connector",
+      "@miragon/pulse-engine-client",
       "@miragon/pulse-analytics-connector",
       "@miragon/pulse-analytics-client",
     ]) {
       assert.ok(names.includes(name), name)
     }
-    assert.ok(!names.includes("@miragon/pulse-mcp-server-camunda7"))
+    assert.ok(!names.includes("@miragon/pulse-mcp-server"))
     assert.ok(!names.includes("@miragon/pulse-docs"))
     // The workspace globs reach the server app too (private, so not published).
     assert.ok(
       workspacePackages()
         .map(({ manifest }) => manifest.name)
-        .includes("@miragon/pulse-mcp-server-camunda7"),
+        .includes("@miragon/pulse-mcp-server"),
     )
   })
 

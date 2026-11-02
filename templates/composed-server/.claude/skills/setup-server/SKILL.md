@@ -14,7 +14,7 @@ Configuration ground rules first:
   it is the configuration reference, kept honest by
   `server/test/env-example.test.ts`.
 - The server **warns at boot about unknown env vars** under any watched prefix
-  (`MCP_`, `CAMUNDA_`, `PROMETHEUS_`, plus each custom module's prefix); a
+  (`MCP_`, `ENGINE_`, `ENGINES_`, `PROMETHEUS_`, plus each custom module's prefix); a
   boot warning means a typo or a var this build doesn't read, never noise.
 
 ## Step 1: install and first run
@@ -30,7 +30,7 @@ call `notes_show_notes`: the example module needs no external infrastructure,
 so a rendered notes widget proves server, widget bundle, and inspector work.
 Then read the boot log: every warning there is actionable (unknown env var,
 missing Prometheus URL, engine auth problems), and one info line
-(`[acme-mcp] Toolsets — camunda7:read-only (default without OAuth), …`) states
+(`[acme-mcp] Toolsets — engine:read-only (default without OAuth), …`) states
 what each module may do, read-only until you widen it or set up OAuth
 (Step 3).
 
@@ -38,40 +38,40 @@ what each module may do, read-only until you widen it or set up OAuth
 
 Edit `.env` (every field is documented inline in `.env.example`):
 
-- `CAMUNDA_BASE_URL`: the engine REST endpoint.
-- `CAMUNDA_ENGINE_ID`: **must match the `ENGINE_ID` the engine stamps onto its
-  metrics.** Analytics reads only the configured engine ids, so the mismatch
+- `ENGINE_BASE_URL`: the engine REST endpoint.
+- `ENGINE_ID`: **must equal the engine container's own `ENGINE_ID`, the
+  `engine_id` label it stamps onto its metrics.** Analytics reads only the configured engine ids, so the mismatch
   is silent: every analytics tool returns nothing for that engine and its
   health reads `unknown`.
-- `CAMUNDA_ENGINE_FLAVOR`: the engine's vendor, `camunda7` (default), `cibseven` or `operaton`. It
+- `ENGINE_FLAVOR`: the engine's vendor, `camunda7` (default), `cibseven` or `operaton`. It
   picks the cockpit-link routes and the product name the views show, so a CIB seven engine (the
   playground's) sets `cibseven`.
-- `CAMUNDA_AUTH_TYPE`: `none | basic | bearer | passthrough`; `basic` needs
-  `CAMUNDA_USERNAME`/`CAMUNDA_PASSWORD`, `bearer` needs `CAMUNDA_TOKEN` (both
+- `ENGINE_AUTH_TYPE`: `none | basic | bearer | passthrough`; `basic` needs
+  `ENGINE_USERNAME`/`ENGINE_PASSWORD`, `bearer` needs `ENGINE_TOKEN` (both
   enforced at boot); `passthrough` forwards each MCP caller's own bearer token.
-- `CAMUNDA_COCKPIT_URL`: set explicitly whenever the engine URL is not
+- `ENGINE_COCKPIT_URL`: set explicitly whenever the engine URL is not
   reachable from the user's browser (container hostname), otherwise "open in
   cockpit" links point nowhere.
-- Multiple engines: `CAMUNDA_ENGINES_JSON` (or `CAMUNDA_ENGINES_FILE`) with
+- Multiple engines: `ENGINES_JSON` (or `ENGINES_FILE`) with
   per-engine `id`, `baseUrl`, optional `environment`, `flavor` (`cibseven |
 operaton | camunda7`, default `camunda7`) and `auth`; overrides the single-engine shorthand
   above. To group engines by environment, either set `environment` per entry
   or write the JSON as a map keyed by environment id
-  (`{"<environment>": [engines…]}`); pickers and `camunda7_list_engines`
+  (`{"<environment>": [engines…]}`); pickers and `engine_list_engines`
   then group the engines by environment. Engine ids stay
   globally unique across environments. A call without `engine` routes to
-  `CAMUNDA_DEFAULT_ENGINE` (it must name a configured engine, else the boot
+  `ENGINE_DEFAULT` (it must name a configured engine, else the boot
   fails); without one it fails with `ENGINE_NOT_SELECTED` listing the engines.
 - `PROMETHEUS_URL`: unset defaults to `http://localhost:9090`, which does
   **not** match the playground stack (host port 8460); every analytics query
   then fails. The server warns at boot when unset. A protected Prometheus takes
   `PROMETHEUS_BEARER_TOKEN` or `PROMETHEUS_USERNAME`/`PROMETHEUS_PASSWORD`
   (plus `PROMETHEUS_HEADERS`, a JSON object, e.g. for a tenant id).
-- Analytics reads only the server's configured engines, camunda7's engine ids
-  (a shared Prometheus never exposes other teams' engines). Without camunda7,
+- Analytics reads only the server's configured engines, the engine module's engine ids
+  (a shared Prometheus never exposes other teams' engines). Without the engine module,
   name them in `ANALYTICS_ENGINE_IDS` (comma-separated `engine_id`s); with
   neither, every analytics tool refuses.
-- `CAMUNDA_REQUEST_TIMEOUT_MS` / `PROMETHEUS_TIMEOUT_MS`: per-request
+- `ENGINE_REQUEST_TIMEOUT_MS` / `PROMETHEUS_TIMEOUT_MS`: per-request
   deadlines (default 30000 ms); a hung upstream then fails the tool call with
   a timeout error instead of holding it.
 
@@ -86,19 +86,19 @@ defaults match this template's `.env.example`.
 A module with toolsets runs ONE of them per boot, named by a `module:toolset` suffix:
 
 ```bash
-MCP_ACTIVE_MODULES=camunda7:operations,analytics,notes
+MCP_ACTIVE_MODULES=engine:operations,analytics,notes
 ```
 
-- camunda7 supports `read-only | operations | admin`; analytics and notes
+- The engine module supports `read-only | operations | admin`; analytics and notes
   declare none (every analytics tool is a read), so a suffix on them is ignored
   with a warning.
 - **Fail-closed default.** Without OAuth a module without a suffix runs
-  `read-only`; with it, its standard toolset (camunda7 `operations`). An empty (`camunda7:`) or unknown suffix warns and falls back to
+  `read-only`; with it, its standard toolset (engine `operations`). An empty (`engine:`) or unknown suffix warns and falls back to
   `read-only`; `admin` (delete/modify, migrations, signals, the external-task
   worker protocol) is only ever reached by naming it. Check the boot log's
   `Toolsets —` line after every change.
-- `camunda7_create_deployment` additionally needs `CAMUNDA_ALLOW_DEPLOYMENTS=true`
-  next to `camunda7:admin`: deploying a BPMN/DMN runs code inside the engine
+- `engine_create_deployment` additionally needs `ENGINE_ALLOW_DEPLOYMENTS=true`
+  next to `engine:admin`: deploying a BPMN/DMN runs code inside the engine
   JVM (JUEL expressions, scripts). Strict `true`/`false` (empty = unset); junk fails the boot.
 - Widening is a security decision: without OAuth the server listens on
   all interfaces with no auth, so write toolsets are open to anyone who
@@ -123,7 +123,7 @@ MCP_USE_OAUTH_KEYCLOAK_SERVER_URL=https://kc.example.com
 MCP_USE_OAUTH_KEYCLOAK_REALM=platform
 ```
 
-`/mcp` then answers 401 without a valid bearer token and the default camunda7
+`/mcp` then answers 401 without a valid bearer token and the default engine
 toolset rises to `operations`. Without a provider there is no caller identity. A
 provider config the boot cannot honor fails the boot, naming the variables.
 
@@ -164,8 +164,8 @@ host's theme; there is no theme switch in the app.
 pnpm install                    # once, then COMMIT pnpm-lock.yaml
 docker build -t my-mcp-server .
 docker run -p 127.0.0.1:8400:8400 \
-  -e CAMUNDA_BASE_URL=http://host.docker.internal:8410/engine-rest \
-  -e CAMUNDA_ENGINE_FLAVOR=cibseven \
+  -e ENGINE_BASE_URL=http://host.docker.internal:8410/engine-rest \
+  -e ENGINE_FLAVOR=cibseven \
   my-mcp-server
 ```
 
@@ -238,21 +238,21 @@ needs `MCP_URL` set to the public URL, else every call gets 403.
 pnpm build && pnpm typecheck && pnpm test
 ```
 
-Then a functional pass in the inspector: `camunda7_list_engines` (engines
-configured), one cheap read such as `camunda7_list_process_definitions` (engine
-reachable, auth works), the cockpit (`camunda7_open_cockpit`), one analytics tool (Prometheus
+Then a functional pass in the inspector: `engine_list_engines` (engines
+configured), one cheap read such as `engine_list_process_definitions` (engine
+reachable, auth works), the cockpit (`engine_open_cockpit`), one analytics tool (Prometheus
 reachable, `engine_id` matches). A clean boot log (no unknown-var or
 missing-URL warnings) is part of done.
 
 ## Troubleshooting
 
-| Symptom                                   | Cause                                                                                                                                                                                                        |
-| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Every in-widget query hangs on "Loading…" | `resolve.dedupe` in `server/vite.config.ts` was trimmed, or a second copy of React, the kit or mcp-use got installed                                                                                         |
-| Widgets render unstyled                   | widget sources outside the Tailwind scan set (workspace modules are globbed; npm-installed ones need an `@source` in `server/src/ui/globals.css`)                                                            |
-| Analytics tools return empty results      | `CAMUNDA_ENGINE_ID` doesn't match the engine's metrics `ENGINE_ID`, or `PROMETHEUS_URL` points at the wrong port                                                                                             |
-| Cockpit links open the wrong web app      | the engine's vendor: without `CAMUNDA_ENGINE_FLAVOR` (or a `flavor` per engine entry) it counts as Camunda 7                                                                                                 |
-| "Unknown environment variable" at boot    | typo, or a var this build doesn't read; `.env.example` is the authoritative list                                                                                                                             |
-| Widget UI changes don't show up           | the bundle is read once at boot; restart `pnpm dev` at the repo root (it rebuilds modules + bundle on start)                                                                                                 |
-| A tool is missing                         | module not in `MCP_ACTIVE_MODULES`, or its toolset filtered it; with no suffix and no OAuth it is `read-only` (see the boot log's `Toolsets —` line); deployments also need `CAMUNDA_ALLOW_DEPLOYMENTS=true` |
-| Claude Desktop shows no tools at all      | a `"url"` entry in `claude_desktop_config.json` (stdio only, use the `mcp-remote` bridge from Step 6), or the app wasn't restarted                                                                           |
+| Symptom                                   | Cause                                                                                                                                                                                                       |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Every in-widget query hangs on "Loading…" | `resolve.dedupe` in `server/vite.config.ts` was trimmed, or a second copy of React, the kit or mcp-use got installed                                                                                        |
+| Widgets render unstyled                   | widget sources outside the Tailwind scan set (workspace modules are globbed; npm-installed ones need an `@source` in `server/src/ui/globals.css`)                                                           |
+| Analytics tools return empty results      | `ENGINE_ID` differs from the engine container's `ENGINE_ID` (its `engine_id` label), or `PROMETHEUS_URL` points at the wrong port                                                                           |
+| Cockpit links open the wrong web app      | the engine's vendor: without `ENGINE_FLAVOR` (or a `flavor` per engine entry) it counts as Camunda 7                                                                                                        |
+| "Unknown environment variable" at boot    | typo, or a var this build doesn't read; `.env.example` is the authoritative list                                                                                                                            |
+| Widget UI changes don't show up           | the bundle is read once at boot; restart `pnpm dev` at the repo root (it rebuilds modules + bundle on start)                                                                                                |
+| A tool is missing                         | module not in `MCP_ACTIVE_MODULES`, or its toolset filtered it; with no suffix and no OAuth it is `read-only` (see the boot log's `Toolsets —` line); deployments also need `ENGINE_ALLOW_DEPLOYMENTS=true` |
+| Claude Desktop shows no tools at all      | a `"url"` entry in `claude_desktop_config.json` (stdio only, use the `mcp-remote` bridge from Step 6), or the app wasn't restarted                                                                          |

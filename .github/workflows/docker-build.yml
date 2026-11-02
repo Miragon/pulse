@@ -14,7 +14,7 @@ on:
       - pnpm-workspace.yaml
       - turbo.json
       - tsconfig.base.json
-      - apps/mcp-server-camunda7/**
+      - apps/mcp-server/**
       - apps/*/package.json
       - packages/**
       - .github/workflows/docker-build.yml

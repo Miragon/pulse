@@ -4,7 +4,7 @@
 [![CI](https://img.shields.io/github/actions/workflow/status/Miragon/pulse/ci.yml?style=flat-square&label=ci)](https://github.com/Miragon/pulse/actions/workflows/ci.yml)
 [![Docs](https://img.shields.io/badge/docs-miragon.github.io%2Fpulse-335DE5?style=flat-square)](https://miragon.github.io/pulse/)
 
-Typed PromQL queries over the `camunda_*` metrics of the Pulse engine plugin.
+Typed PromQL queries over the `engine_*` metrics of the Pulse engine plugin.
 
 ## Install
 
@@ -16,7 +16,7 @@ npm install @miragon/pulse-analytics-client zod
 
 Prometheus client and PromQL query layer for Camunda 7 / CIB Seven process analytics. It pairs a thin
 HTTP client for the Prometheus query API with a set of typed, purpose-built query functions and the
-**metrics contract**, the single source of truth for the `camunda_*` metric names and labels the
+**metrics contract**, the single source of truth for the `engine_*` metric names and labels the
 [engine plugin](../../../../engine-plugins) emits.
 
 Used by [`@miragon/pulse-analytics-connector`](../analytics-connector) to power the `analytics_*` MCP tools, but
@@ -63,7 +63,7 @@ caller's signal as well.
 
 [`metrics-contract.json`](metrics-contract.json) is the **single source of truth** for metric names
 and labels. The Kotlin plugin emits the OTEL instruments (`otelName`) that surface in Prometheus as
-`camunda_*` series (`promName`), and the queries reference them through `METRIC_NAMES`
+`engine_*` series (`promName`), and the queries reference them through `METRIC_NAMES`
 ([`src/metric-names.ts`](src/metric-names.ts)), **never raw strings**. Both sides are verified
 against the contract:
 

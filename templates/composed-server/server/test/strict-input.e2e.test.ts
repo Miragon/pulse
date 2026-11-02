@@ -1,7 +1,7 @@
 import path from "node:path"
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client"
-import { CAMUNDA7_ADMIN_ONLY_TOOLS } from "@miragon/pulse-camunda7-connector"
+import { ENGINE_ADMIN_ONLY_TOOLS } from "@miragon/pulse-engine-connector"
 import { createApp } from "../src/app.js"
 import { MODULES } from "../src/setup.js"
 import { stubNeutralEnv } from "./neutral-env.js"
@@ -51,12 +51,12 @@ function toolsetSelections(): string[] {
 
 /**
  * Boot the composed server on `selection` and probe every tool not probed
- * yet with an unknown key. No toolset grants `camunda7_create_deployment`
- * on its own — it also needs the `CAMUNDA_ALLOW_DEPLOYMENTS` opt-in, so the
+ * yet with an unknown key. No toolset grants `engine_create_deployment`
+ * on its own — it also needs the `ENGINE_ALLOW_DEPLOYMENTS` opt-in, so the
  * guard sets it.
  */
 async function probeBoot(selection: string, probed: Map<string, ProbedTool>): Promise<void> {
-  stubNeutralEnv({ MCP_ACTIVE_MODULES: selection, CAMUNDA_ALLOW_DEPLOYMENTS: "true" })
+  stubNeutralEnv({ MCP_ACTIVE_MODULES: selection, ENGINE_ALLOW_DEPLOYMENTS: "true" })
   const composed = await createApp(process.env, { bundle: { jsPath: FIXTURE_JS } })
   const app = await composed.listen({ port: 0, host: "127.0.0.1" })
   const client = new Client({ name: "strict-input-test", version: "0.0.0" })
@@ -119,14 +119,14 @@ describe("strict tool inputs on the wire (every module, every toolset)", () => {
     expect(names).toEqual(
       expect.arrayContaining(["notes_list_notes", "notes_show_notes", "notes_list_data"]),
     )
-    expect(names.some((name) => name.startsWith("camunda7_"))).toBe(true)
+    expect(names.some((name) => name.startsWith("engine_"))).toBe(true)
     expect(names.some((name) => name.startsWith("analytics_"))).toBe(true)
     // Registered only above the read-only floor: the floor boot alone never lists them.
     expect(names).toEqual(
       expect.arrayContaining([
-        ...CAMUNDA7_ADMIN_ONLY_TOOLS,
-        "camunda7_set_job_retries",
-        "camunda7_resolve_incident",
+        ...ENGINE_ADMIN_ONLY_TOOLS,
+        "engine_set_job_retries",
+        "engine_resolve_incident",
       ]),
     )
   })

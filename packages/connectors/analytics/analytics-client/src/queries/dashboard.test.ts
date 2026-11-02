@@ -27,7 +27,7 @@ const BY_KEY = "by (process_definition_key)"
 const CANNED_SAMPLES: Array<[(q: string) => boolean, PromSample[]]> = [
   // Activity-level breakdowns — `StartEvent_1` exists in two processes.
   [
-    (q) => q.includes("camunda_activity_ended_total"),
+    (q) => q.includes("engine_activity_ended_total"),
     [
       act("order", "Task_A", 10, "serviceTask"),
       act("order", "Task_B", 5, "userTask"),
@@ -36,7 +36,7 @@ const CANNED_SAMPLES: Array<[(q: string) => boolean, PromSample[]]> = [
     ],
   ],
   [
-    (q) => q.includes("camunda_activity_duration_milliseconds_sum"),
+    (q) => q.includes("engine_activity_duration_milliseconds_sum"),
     [act("order", "Task_A", 100), act("order", "Task_B", 20), act("invoice", "StartEvent_1", 4)],
   ],
   // Only Task_A's buckets moved enough for a median.
@@ -75,7 +75,7 @@ const CANNED_SAMPLES: Array<[(q: string) => boolean, PromSample[]]> = [
   [(q) => q.includes("process_instances_running"), [v(156)]],
   [(q) => q.includes("incidents_open"), [v(12)]],
   // The engine-state presence probe: the engine in scope reports.
-  [(q) => q.includes("camunda_jobs_executable"), [{ metric: { engine_id: "prod-a" }, value: 3 }]],
+  [(q) => q.includes("engine_jobs_executable"), [{ metric: { engine_id: "prod-a" }, value: 3 }]],
   [(q) => q.includes("histogram_quantile(0.5"), [v(8)]],
   [(q) => q.includes("histogram_quantile(0.95"), [v(30)]],
   [(q) => q.includes("incident_resolved"), [v(4)]],
@@ -224,14 +224,14 @@ describe("dashboardData", () => {
   it("reads a reporting engine's missing gauge series as a measured 0, not as unreported", async () => {
     // The metrics plugin registers an open-incident row only per (key, type)
     // that HAS incidents, and a running row only per deployed key — so a
-    // healthy engine with nothing open sends no camunda_incidents_open series
+    // healthy engine with nothing open sends no engine_incidents_open series
     // at all. Its presence probe still answers: that is a 0, the same 0 engine
     // health and the landscape report.
     const instant = vi.fn(async (q: string): Promise<PromSample[]> =>
-      q.includes("camunda_jobs_executable")
+      q.includes("engine_jobs_executable")
         ? [{ metric: { engine_id: "prod-a" }, value: 0 }]
         : q ===
-            'sum(max by (process_definition_key, engine_id)(camunda_process_instances_running{engine_id="prod-a"}))'
+            'sum(max by (process_definition_key, engine_id)(engine_process_instances_running{engine_id="prod-a"}))'
           ? [v(156)]
           : [],
     )
@@ -251,7 +251,7 @@ describe("dashboardData", () => {
     // A key that started work in the window but has no running row: 0
     // running while the engine reports, never "not reported".
     const instant = vi.fn(async (q: string): Promise<PromSample[]> =>
-      q.includes("camunda_jobs_executable")
+      q.includes("engine_jobs_executable")
         ? [{ metric: { engine_id: "prod-a" }, value: 0 }]
         : q.includes(BY_KEY) && q.includes("started_total")
           ? [def("order", 5)]
@@ -285,7 +285,7 @@ describe("dashboardData", () => {
     expect(queries.every((q) => q.includes('engine_id="prod-a"'))).toBe(true)
     // The presence probe asks whether the ENGINE reports — its gauge carries
     // engine_id only; every other query is scoped to the process.
-    const probe = 'max by (engine_id)(camunda_jobs_executable{engine_id="prod-a"})'
+    const probe = 'max by (engine_id)(engine_jobs_executable{engine_id="prod-a"})'
     expect(queries.filter((q) => q === probe)).toHaveLength(1)
     expect(
       queries.filter((q) => q !== probe).every((q) => q.includes('process_definition_key="myKey"')),
@@ -293,9 +293,9 @@ describe("dashboardData", () => {
     // The live gauges are point-in-time (no range at all), each node-folded.
     const gauges = queries.filter((q) => !q.includes("increase("))
     expect(gauges).toEqual([
-      'sum(max by (process_definition_key, engine_id)(camunda_process_instances_running{process_definition_key="myKey",engine_id="prod-a"}))',
-      'sum(max by (process_definition_key, incident_type, engine_id)(camunda_incidents_open{process_definition_key="myKey",engine_id="prod-a"}))',
-      'sum by (process_definition_key)(max by (process_definition_key, engine_id)(camunda_process_instances_running{process_definition_key="myKey",engine_id="prod-a"}))',
+      'sum(max by (process_definition_key, engine_id)(engine_process_instances_running{process_definition_key="myKey",engine_id="prod-a"}))',
+      'sum(max by (process_definition_key, incident_type, engine_id)(engine_incidents_open{process_definition_key="myKey",engine_id="prod-a"}))',
+      'sum by (process_definition_key)(max by (process_definition_key, engine_id)(engine_process_instances_running{process_definition_key="myKey",engine_id="prod-a"}))',
       probe,
     ])
     const flows = queries.filter((q) => q.includes("increase("))

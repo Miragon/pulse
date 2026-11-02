@@ -70,7 +70,7 @@ class CommitBoundaryTest {
     @Test
     fun `a job attempt that rolls back counts nothing, the attempt that commits counts once`() {
         engine.runtimeService.startProcessInstanceByKey("payment")
-        assertEquals(1.0, counter("camunda.process.instance.started"), "the start committed at the async boundary")
+        assertEquals(1.0, counter("engine.process.instance.started"), "the start committed at the async boundary")
 
         val jobId = engine.managementService.createJobQuery().singleResult().id
         charge.failuresLeft = 2
@@ -82,8 +82,8 @@ class CommitBoundaryTest {
         engine.managementService.executeJob(jobId)
         assertEquals(1.0, activityEnded("prepare"))
         assertEquals(1.0, activityEnded("chargeCard"))
-        assertEquals(1.0, counter("camunda.process.instance.ended"))
-        assertEquals(1L, registry.find("camunda.process.instance.duration").tag("engine_id", engineId).summary()?.count())
+        assertEquals(1.0, counter("engine.process.instance.ended"))
+        assertEquals(1L, registry.find("engine.process.instance.duration").tag("engine_id", engineId).summary()?.count())
     }
 
     @Test
@@ -95,7 +95,7 @@ class CommitBoundaryTest {
         repeat(3) {
             assertFailsWith<RuntimeException> { engine.managementService.executeJob(jobId) }
         }
-        val created = registry.find("camunda.incident.created").tag("engine_id", engineId).counter()
+        val created = registry.find("engine.incident.created").tag("engine_id", engineId).counter()
         assertEquals(1.0, created?.count(), "one failedJob incident")
         assertEquals("1", created?.id?.getTag("process_definition_version"))
         assertEquals("failedJob", created?.id?.getTag("incident_type"))
@@ -103,14 +103,14 @@ class CommitBoundaryTest {
         charge.failuresLeft = 0
         engine.managementService.setJobRetries(jobId, 1)
         engine.managementService.executeJob(jobId)
-        assertEquals(1.0, counter("camunda.incident.resolved"))
+        assertEquals(1.0, counter("engine.incident.resolved"))
         assertEquals(1.0, activityEnded("prepare"), "only the attempt that committed counted prepare")
     }
 
     private fun counter(name: String): Double = registry.find(name).tag("engine_id", engineId).counters().sumOf { it.count() }
 
     private fun activityEnded(activityId: String): Double =
-        registry.find("camunda.activity.ended").tag("engine_id", engineId).tag("activity_id", activityId).counters().sumOf { it.count() }
+        registry.find("engine.activity.ended").tag("engine_id", engineId).tag("activity_id", activityId).counters().sumOf { it.count() }
 
     /** The `charge` bean: throws while [failuresLeft] is positive. */
     class FlakyCharge {

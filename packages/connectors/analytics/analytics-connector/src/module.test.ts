@@ -60,11 +60,11 @@ describe("analyticsModule declares no toolsets", () => {
 })
 
 describe("analyticsModule.instructions", () => {
-  it("states once that `engine` is a metric filter the camunda7 default does not touch", () => {
+  it("states once that `engine` is a metric filter the engine default does not touch", () => {
     const text = analyticsModule.instructions()
     expect(text).toContain(
       "`engine` is a metric filter over this server's configured engines, not routing: omitted = " +
-        "the aggregate over all of them, named in each result's `engines` (camunda7's default " +
+        "the aggregate over all of them, named in each result's `engines` (the engine module's default " +
         "engine does not apply)",
     )
     expect(text).toContain(
@@ -240,7 +240,7 @@ describe("every analytics tool is a read", () => {
     }
   })
 
-  // Structural, like camunda7's: no analytics tool pages today, so a new one that does caps too.
+  // Structural, like the engine module's: no analytics tool pages today, so a new one that does caps too.
   it("a tool that takes maxResults caps it at 100", () => {
     for (const tool of surfaceFor()) {
       const maxResults = tool.inputSchema?.shape.maxResults as z.ZodType | undefined

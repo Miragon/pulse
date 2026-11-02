@@ -13,7 +13,7 @@
       "entry": ["scripts/*.mjs", "vitest.shared.ts"],
     },
 
-    "apps/mcp-server-camunda7": {
+    "apps/mcp-server": {
       // The UI bundle entries are declared explicitly and the vite plugin
       // stays off (historical: the pre-2.x config needed an INPUT env var);
       // the explicit list is stable and cheap to keep.
@@ -61,7 +61,7 @@
       "ignore": ["sandbox/**"],
     },
 
-    "packages/connectors/camunda/camunda7-client": {
+    "packages/connectors/engine/engine-client": {
       "vitest": {
         "config": ["vitest.config.ts", "vitest.stryker.config.ts"],
       },
@@ -76,7 +76,7 @@
       },
     },
 
-    "packages/connectors/camunda/camunda7-connector": {
+    "packages/connectors/engine/engine-connector": {
       "vitest": {
         "config": ["vitest.config.ts", "vitest.stryker.config.ts"],
       },

@@ -56,7 +56,7 @@ deploy_grafana() {
 }
 
 deploy_server() {
-  deploy miragon-ai-playground . playground/fly/server-camunda7.fly.toml
+  deploy miragon-ai-playground . playground/fly/server.fly.toml
 }
 
 case "$TARGET" in

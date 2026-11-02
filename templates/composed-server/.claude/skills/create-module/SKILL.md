@@ -17,7 +17,7 @@ each other; anything shared goes through `@miragon/pulse-ui` (the design kit),
 inventing a new shape; every step below points at the file that shows the
 pattern. For patterns the notes module doesn't cover (toolsets, paged
 lists), the published Miragon modules ship their sources under
-`node_modules/@miragon/pulse-{camunda7,analytics}-connector/src/`.
+`node_modules/@miragon/pulse-{engine,analytics}-connector/src/`.
 
 ## Step 1: scaffold the package
 
@@ -138,7 +138,7 @@ export const myToolsets = createToolsetVocabulary("<name>", MY_TOOLSETS, "read-o
   `toolset === "read-only"` compare (fails open for every name you add later)
   or a `toolset === undefined` shortcut (an absent toolset is the floor, not
   "everything"). Reference:
-  `node_modules/@miragon/pulse-camunda7-connector/src/lib/toolsets.ts`.
+  `node_modules/@miragon/pulse-engine-connector/src/lib/toolsets.ts`.
 
 ## Step 6: wire the module into the server
 

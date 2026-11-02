@@ -54,7 +54,7 @@ const [counts, sums] = await Promise.all([
 ```
 
 **Metric-name contract:** series names come from `METRIC_NAMES`
-(`src/metric-names.ts`) — never raw `camunda_*` literals; a guard test in
+(`src/metric-names.ts`) — never raw `engine_*` literals; a guard test in
 `src/metrics-contract.test.ts` fails on them. Histogram entries are the base name —
 append `_sum`/`_count`/`_bucket` at the call site. The single source of truth is
 `packages/connectors/analytics/analytics-client/metrics-contract.json`: if you need a _new_ metric or label,
@@ -144,7 +144,7 @@ re-add a `?? "7d"` in a handler; read the schema's `z.output` type if a field lo
 ## Step 4 — show tool and view in analytics-connector (the default)
 
 Each analytics question gets ONE tool, and normally that is a show tool: it renders a view
-for the user and returns its figures to the model. The view chain mirrors the camunda7 module:
+for the user and returns its figures to the model. The view chain mirrors the engine module:
 
 1. Component in `packages/connectors/analytics/analytics-connector/src/widgets/`, taking a `data` prop.
 2. Register its view in `src/widgets/views.tsx` in `analyticsViews` under the show tool's
@@ -155,9 +155,9 @@ for the user and returns its figures to the model. The view chain mirrors the ca
    dashboard is ONE component that stacks its widgets (`ViewStack`, each row in its own
    error boundary), every part taking the view's data as it is (reference:
    `src/widgets/analytics-dashboard/view.tsx`).
-3. The view registry `apps/mcp-server-camunda7/src/ui/view-registry.ts` spreads
+3. The view registry `apps/mcp-server/src/ui/view-registry.ts` spreads
    `analyticsViews` — verify your view arrives there.
-   `apps/mcp-server-camunda7/test/view-registry.test.ts` fails on any view-bound tool
+   `apps/mcp-server/test/view-registry.test.ts` fails on any view-bound tool
    without a view.
 4. Register an `analytics_show_*` tool in `src/widget-tools.ts` with
    `inputSchema: strictToolInput({ … })` (strict like the registrar: an
@@ -212,7 +212,7 @@ Rules while building:
   landscape's "Load" and "Job backlog"; rows stay `<tr>` + `Td`, one cell per column,
   numbers `tabular-nums` right-aligned). Order columns by priority: the identifying
   column, then the sort key, then what can give way (`hideBelow`); the host simulation
-  (`apps/mcp-server-camunda7/test-host/analytics.spec.ts`, against `stub-prometheus.ts`)
+  (`apps/mcp-server/test-host/analytics.spec.ts`, against `stub-prometheus.ts`)
   checks at 760 px that the promised columns show inside their region. Nothing to
   show: pulse-ui's `TableEmptyState` (`variant="done"` for "nothing failing", the quiet default for
   no data, the next step as `description`). Type on pulse-ui's scale: `text-section`
@@ -222,7 +222,7 @@ Rules while building:
   activities passes its payload through `src/named-views.ts` in the show tool AND its feed
   (one function each), which adds `names` from the injected BPMN lookup
   (`createNameLookup` in `src/bpmn-name-lookup.ts`, reading each diagram through widget-shell's
-  `parseBpmnNames`, the rule camunda7 names the same model by). Each model is read on the engines
+  `parseBpmnNames`, the rule the engine module names the same model by). Each model is read on the engines
   the view's rows come from (`engines`, or `enginesByKey` per process), in order, until
   one has it, so a process that runs only on a later engine is named too. An engine's
   answer is kept five minutes PER CALLER (`callerCacheKey` from widget-shell: under
@@ -232,7 +232,7 @@ Rules while building:
   to 40 keys, named by priority (the dashboard: its scope, then the activities'
   processes, then the breakdown's). The widget shows the design kit's `NamedId`
   (`@miragon/pulse-ui`: the name first, the id quiet in mono below, the id
-  alone in mono without a name; one look with camunda7) and an activity's type in words
+  alone in mono without a name; one look with the engine module) and an activity's type in words
   (`activityTypeLabel`, `src/widgets/names.ts`).
 - A count nobody measured is `null` and renders "—" through `Figure`
   (`src/widgets/figure.tsx`: the reason is read out in its place and is its tooltip),
@@ -255,7 +255,7 @@ Rules while building:
   incidents/failures. A count of what happened (new incidents included) carries no tone;
   the open incident and the job without retries (`failedJobs` in health and the landscape)
   are the states: a danger dot on its KPI, `StateCount` in a table (`src/widgets/figure.tsx`: a danger
-  `CountPill` while there is any, by widget-shell's `countTone`, the ladder camunda7 edges the same
+  `CountPill` while there is any, by widget-shell's `countTone`, the ladder the engine module edges the same
   counts by; none is a plain number). A rate is judged only against a reference, never on its own: the dashboard's
   incident rate against the period before (`previous` in `dashboardData`, the trend of its
   `KpiCell`, `deltaVerdict` with the comparisons' threshold, "not reliable" under the
@@ -268,13 +268,13 @@ Rules while building:
   glyphs or emoji, at 16 px (`dense` in rows and chips; no `size` other than 16 or 24). A chat
   hand-off is widget-shell's `<HandOffButton action="findCause" prompt={ask(…)} />`: the product's
   one table of functions with their Lucide icon and a label that names the chat, the same as
-  camunda7's (`AskAiButton` is banned in connector widgets; a new function goes into
+  the engine module's (`AskAiButton` is banned in connector widgets; a new function goes into
   widget-shell). Copy follows the brand voice in en + de; the package's brand-gate test
   runs `catalogTextFindings` over both catalogs, `scanGlyphs` over `src/widgets` +
   `src/messages`, `scanIconSizes` and `scanColors` over `src/widgets`
   (`@miragon/pulse-ui/testing`). The words come from `src/messages/GLOSSARY.md`
   ("nicht belastbar", "Zeitraum" …, plus widget-shell's `PRODUCT_GLOSSARY`
-  (`@miragon/pulse-widget-shell/testing`) shared with camunda7:
+  (`@miragon/pulse-widget-shell/testing`) shared with the engine module:
   "Incident", "Jobs ohne Versuche", "bereitgestellt" …; `glossary.test.ts` rejects the
   synonyms both rule out), counted entries are `plural(…)` and take the count formatted.
 - Only the heatmap words a summary for the model, in English through `summaryT`
@@ -304,7 +304,7 @@ Rules while building:
   a widget's `engine` prop, which only feeds its self-fetch), `period`/key from the
   echo; a null figure is left out, never sent as 0. CLAUDE.md invariant 6;
   `scripts/hand-off-refs.test.mjs` rejects a hand-written text.
-- Naming is load-bearing: `apps/mcp-server-camunda7/test/widget-contract.e2e.test.ts` enforces
+- Naming is load-bearing: `apps/mcp-server/test/widget-contract.e2e.test.ts` enforces
   the widget `_meta` on every `*_show_*` tool and app-only visibility on every `*_data`
   feed **by name**.
 
@@ -346,12 +346,12 @@ pnpm build && pnpm typecheck && pnpm test && pnpm lint
 ```
 
 A new or changed tool changes the wire surface: add its name to
-`apps/mcp-server-camunda7/test/expected-tools.ts`, then refresh the per-toolset goldens with
-`GOLDEN_UPDATE=1 pnpm --filter @miragon/pulse-mcp-server-camunda7 test` and commit the
+`apps/mcp-server/test/expected-tools.ts`, then refresh the per-toolset goldens with
+`GOLDEN_UPDATE=1 pnpm --filter @miragon/pulse-mcp-server test` and commit the
 `test/__golden__/` diff. The budget of each toolset counts the model-visible tools/list text
 plus the server instructions. If `char-budgets.json` grew, `pnpm lint` fails until the commit
 carries a `Ratchet-Exception: <why the model must read more>` trailer — trim wording first.
-A camunda7 widget that names an analytics feed by raw string is checked against the admin
+An engine widget that names an analytics feed by raw string is checked against the admin
 golden by `scripts/tool-name-refs.test.mjs` (so refresh the goldens first): renaming a feed
 fails there.
 

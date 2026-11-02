@@ -1,4 +1,5 @@
 import ts from "typescript"
+import { metricVocabulary } from "./tool-surface.mjs"
 
 /**
  * Source readers for the hand-off guard (#338). Every Ask-AI prompt and model
@@ -93,7 +94,7 @@ function toolNamesUnder(node, prefixes) {
   return names
 }
 
-const TOOL_PREFIXES = ["camunda7", "analytics"]
+const TOOL_PREFIXES = ["engine", "analytics"]
 
 function propertyName(node) {
   if (!node.name) return null
@@ -315,16 +316,20 @@ export function findModelContextContents(file, text) {
   return found
 }
 
+/** The contract's metric names and labels (`engine_id`, `engine_jobs_failed`): never a tool. */
+const METRIC_VOCABULARY = metricVocabulary()
+
 /**
  * Every `<module>_…` tool name inside a server-instructions text; a family
- * wildcard (`camunda7_query_historic_*`) names no single tool and is skipped.
+ * wildcard (`engine_query_historic_*`) names no single tool and is skipped, and
+ * so is a metric name or label of the metrics contract, which shares the prefix.
  */
 export function toolNamesIn(text, prefixes) {
   const shape = new RegExp(
     `(?<![A-Za-z0-9_])(?:${prefixes.join("|")})_[a-z0-9_]*[a-z0-9](?![A-Za-z0-9_*])`,
     "g",
   )
-  return [...new Set(text.match(shape) ?? [])]
+  return [...new Set(text.match(shape) ?? [])].filter((name) => !METRIC_VOCABULARY.has(name))
 }
 
 /**

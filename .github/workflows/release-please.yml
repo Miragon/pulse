@@ -90,10 +90,10 @@ jobs:
         directory:
           - packages/core/ui
           - packages/core/engine-core
-          - packages/connectors/camunda/camunda7-client
+          - packages/connectors/engine/engine-client
           - packages/connectors/analytics/analytics-client
           - packages/core/widget-shell
-          - packages/connectors/camunda/camunda7-connector
+          - packages/connectors/engine/engine-connector
           - packages/connectors/analytics/analytics-connector
           - apps/cli
     uses: ./.github/workflows/publish-npm-package.yml

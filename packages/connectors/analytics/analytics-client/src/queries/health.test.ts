@@ -99,7 +99,7 @@ describe("engineHealth snapshot", () => {
 
 /**
  * #340: the verdict is alert-based and says so — the same engine may be
- * "critical" in camunda7_open_cockpit's overview (incident counts) and only
+ * "critical" in engine_open_cockpit's overview (incident counts) and only
  * "degraded" here. #336: silence is not health.
  */
 describe("engineHealth verdict", () => {
@@ -164,15 +164,15 @@ describe("engineHealth PromQL", () => {
     // report the same engine-wide rows.
     const perKey = "max by (process_definition_key, engine_id)"
     expect(instant.mock.calls.map(([q]) => q)).toEqual([
-      `sum by (process_definition_key)(${perKey}(camunda_process_instances_running${sel}))`,
-      `sum by (incident_type)(max by (process_definition_key, incident_type, engine_id)(camunda_incidents_open${sel}))`,
-      `sum(${perKey}(camunda_jobs_failed${sel}))`,
-      `max by (engine_id)(camunda_jobs_executable${sel})`,
-      `sum(max by (engine_id)(camunda_jobs_suspended${sel}))`,
-      `sum(max by (status, engine_id)(camunda_usertasks_open{status="total",engine_id="prod-a"}))`,
-      `sum(max by (status, engine_id)(camunda_usertasks_open{status="unassigned",engine_id="prod-a"}))`,
-      `max by (engine_id)(camunda_external_tasks_open${sel})`,
-      `count(count by (process_definition_key)(${perKey}(camunda_process_definitions_deployed${sel})))`,
+      `sum by (process_definition_key)(${perKey}(engine_process_instances_running${sel}))`,
+      `sum by (incident_type)(max by (process_definition_key, incident_type, engine_id)(engine_incidents_open${sel}))`,
+      `sum(${perKey}(engine_jobs_failed${sel}))`,
+      `max by (engine_id)(engine_jobs_executable${sel})`,
+      `sum(max by (engine_id)(engine_jobs_suspended${sel}))`,
+      `sum(max by (status, engine_id)(engine_usertasks_open{status="total",engine_id="prod-a"}))`,
+      `sum(max by (status, engine_id)(engine_usertasks_open{status="unassigned",engine_id="prod-a"}))`,
+      `max by (engine_id)(engine_external_tasks_open${sel})`,
+      `count(count by (process_definition_key)(${perKey}(engine_process_definitions_deployed${sel})))`,
       // One engine named: only alerts carrying its engine_id — an unrelated
       // alert in a shared Prometheus cannot turn its verdict critical.
       `ALERTS{alertstate="firing",engine_id="prod-a"}`,

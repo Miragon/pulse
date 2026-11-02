@@ -14,7 +14,7 @@ body:
     attributes:
       label: Description
       description: A clear and concise description of what the bug is.
-      placeholder: When calling the `camunda7_inspect_process_instance` tool, the MCP server returns an unexpected error instead of where the process instance waits...
+      placeholder: When calling the `engine_inspect_process_instance` tool, the MCP server returns an unexpected error instead of where the process instance waits...
     validations:
       required: true
 
@@ -25,7 +25,7 @@ body:
       description: Step-by-step instructions to reproduce the behaviour.
       placeholder: |
         1. Connect an MCP host (e.g. Claude) to the Pulse server
-        2. Call the `camunda7_inspect_process_instance` tool with a valid process instance ID
+        2. Call the `engine_inspect_process_instance` tool with a valid process instance ID
         3. Observe the following error in the response...
     validations:
       required: true
@@ -59,7 +59,7 @@ body:
     attributes:
       label: Affected Module
       options:
-        - camunda7
+        - engine
         - analytics
         - core
         - ui

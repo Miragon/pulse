@@ -38,7 +38,7 @@ export interface DescribedError {
 
 const BRACKET_STATUS = /\[(\d{3})(?:[\s\]])/
 const PROMETHEUS_STATUS = /Prometheus query failed \((\d{3})\b/
-/** The engine id the camunda7 client appends or leads with. */
+/** The engine id the engine client appends or leads with. */
 const ENGINE_ID =
   /\(engine ([^\s)]+)\)|\bengine (\S+) (?:unreachable|did not respond)|connection to engine (\S+) failed/
 const ENGINE = /\bengine\b|ProcessEngineException|\bCamunda\b|\bCIB seven\b/i
@@ -47,7 +47,7 @@ const TOOL_MISSING = /\btool\b[^\n]*\bnot found\b|\bunknown tool\b|-32601\b|\bme
 const TIMEOUT = /\(timeout\)|\btimed? ?out\b|-32001\b|did not respond within/i
 const UNREACHABLE =
   /\bunreachable\b|\bconnection to \S+(?: \S+)? failed\b|ECONNREFUSED|ENOTFOUND|EHOSTUNREACH|ENETUNREACH|EAI_AGAIN|\bfailed to fetch\b|\bfetch failed\b|\bnetworkerror\b|\bload failed\b/i
-/** The camunda7 client's caveat on a write whose outcome is unknown. */
+/** The engine client's caveat on a write whose outcome is unknown. */
 const WRITE_CAVEAT = /the \w+ may still have been applied\b/i
 const STATUS_CODE = /\[\d{3}(?:\s[^\]\n]{0,120})?\]\s*/
 const LEADING_CODE = /^\[[^\]\n]{1,120}\]\s*/

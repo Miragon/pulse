@@ -14,7 +14,7 @@ import { WidgetShell } from "./widget-shell.js"
  */
 export function useDetailView<TData>(opts: {
   initialData: TData | null | undefined
-  /** Stable cache-key (e.g. ["camunda7:instance-detail", engine, id]). */
+  /** Stable cache-key (e.g. ["engine:instance-detail", engine, id]). */
   key: ReadonlyArray<unknown>
   tool: string
   args: Record<string, unknown>

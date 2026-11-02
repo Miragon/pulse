@@ -9,7 +9,7 @@ import {
   useBpmnViewer,
 } from "./use-bpmn-viewer.js"
 
-// bpmn-js needs a real SVG engine happy-dom lacks; the full lifecycle suite runs in the camunda7 connector.
+// bpmn-js needs a real SVG engine happy-dom lacks; the full lifecycle suite runs in the engine connector.
 const mock = vi.hoisted(() => {
   /** Viewbox cached on first read and dropped only by `resized()` (Canvas.js 15.27). */
   class FakeCanvas {

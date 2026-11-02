@@ -32,21 +32,21 @@ a third-party MCP inspector connected to the same engine, with nothing to instal
 ## Run it on your own engine
 
 You need Docker and the REST API of a Camunda 7, CIB seven or Operaton engine. The server boots
-read-only, and `MCP_ACTIVE_MODULES=camunda7` leaves out analytics until you run Prometheus:
+read-only, and `MCP_ACTIVE_MODULES=engine` leaves out analytics until you run Prometheus:
 
 ```sh
 docker run --rm -p 127.0.0.1:8400:8400 \
-  -e CAMUNDA_BASE_URL=http://host.docker.internal:8080/engine-rest \
-  -e MCP_ACTIVE_MODULES=camunda7 \
+  -e ENGINE_BASE_URL=http://host.docker.internal:8080/engine-rest \
+  -e MCP_ACTIVE_MODULES=engine \
   ghcr.io/miragon/pulse-server:latest
 claude mcp add --transport http pulse http://localhost:8400/mcp
 ```
 
 Pulse is pre-1.0 and minor releases can rename tools, so pin a version tag from the
 [releases](https://github.com/Miragon/pulse/releases) for anything beyond a first try. If the
-REST API needs a login, add `CAMUNDA_AUTH_TYPE=basic` with `CAMUNDA_USERNAME` and
-`CAMUNDA_PASSWORD`. Pulse assumes a Camunda 7 engine: for CIB seven or Operaton add
-`CAMUNDA_ENGINE_FLAVOR=cibseven` (or `operaton`), so its links open the right web app.
+REST API needs a login, add `ENGINE_AUTH_TYPE=basic` with `ENGINE_USERNAME` and
+`ENGINE_PASSWORD`. Pulse assumes a Camunda 7 engine: for CIB seven or Operaton add
+`ENGINE_FLAVOR=cibseven` (or `operaton`), so its links open the right web app.
 [Operations](operations.md) covers several engines, OAuth and the toolsets that
 allow writes. For analytics, your engine project adds the plugin
 `io.miragon.mcp:cibseven-history-metrics` and exports its metrics to Prometheus, as

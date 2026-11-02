@@ -24,9 +24,9 @@ const clientOf = (answer: (q: string) => PromSample[]) => ({
 
 describe("dashboardData: the activity rows", () => {
   it("attaches the median and the incidents created at each (process, activity) to its row", async () => {
-    const bucket = "camunda_activity_duration_milliseconds_bucket"
+    const bucket = "engine_activity_duration_milliseconds_bucket"
     const ch = clientOf((q) => {
-      if (q.includes("camunda_activity_ended_total")) {
+      if (q.includes("engine_activity_ended_total")) {
         return [
           act("order", "Task_check", 10, "serviceTask"),
           act("invoice", "Task_check", 4, "serviceTask"),
@@ -41,7 +41,7 @@ describe("dashboardData: the activity rows", () => {
       }
       if (
         q.startsWith("sum by (process_definition_key, activity_id)(") &&
-        q.includes("increase(camunda_incident_created_total")
+        q.includes("increase(engine_incident_created_total")
       ) {
         // The same activity id in two processes keeps two counts.
         return [act("order", "Task_check", 3), act("invoice", "Task_check", 1)]
@@ -72,8 +72,8 @@ describe("dashboardData: the activity rows", () => {
     const rows = Array.from({ length: 23 }, (_, i) => act("order", `Task_${i}`, 1, "serviceTask"))
     const sums = rows.map((r, i) => ({ ...r, value: (i + 1) * 1000 }))
     return vi.fn((q: string): Promise<PromSample[]> => {
-      if (q.includes("camunda_activity_ended_total")) return Promise.resolve(rows)
-      if (q.includes("camunda_activity_duration_milliseconds_sum")) return Promise.resolve(sums)
+      if (q.includes("engine_activity_ended_total")) return Promise.resolve(rows)
+      if (q.includes("engine_activity_duration_milliseconds_sum")) return Promise.resolve(sums)
       return Promise.resolve([])
     })
   }
@@ -101,8 +101,7 @@ describe("dashboardData: the activity rows", () => {
 
   it("gives an activity whose executions all failed a row from its incidents alone", async () => {
     const ch = clientOf((q) => {
-      if (q.includes("camunda_activity_ended_total"))
-        return [act("order", "Task_ok", 5, "userTask")]
+      if (q.includes("engine_activity_ended_total")) return [act("order", "Task_ok", 5, "userTask")]
       if (
         q.startsWith("sum by (process_definition_key, activity_id)(") &&
         q.includes("incident_created")

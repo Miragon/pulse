@@ -1,5 +1,5 @@
 import type { HostWidgets, ViewMap } from "@miragon/pulse-widget-shell/widgets"
-import { camunda7Views } from "@miragon/pulse-camunda7-connector/widgets"
+import { engineViews } from "@miragon/pulse-engine-connector/widgets"
 import { analyticsHostWidgets, analyticsViews } from "@miragon/pulse-analytics-connector/widgets"
 import { notesViews } from "@acme/mcp-notes/widgets"
 
@@ -10,12 +10,12 @@ import { notesViews } from "@acme/mcp-notes/widgets"
  * until `test/view-registry.test.ts` names the view-bound tool without a view.
  */
 export const viewRegistry: ViewMap = {
-  ...camunda7Views,
+  ...engineViews,
   ...analyticsViews,
   ...notesViews,
 }
 
-/** The widgets one module renders of another by raw id: analytics' engine landscape (camunda7's fleet view). */
+/** The widgets one module renders of another by raw id: analytics' engine landscape (the engine module's fleet view). */
 export const hostWidgets: HostWidgets = {
   ...analyticsHostWidgets,
 }

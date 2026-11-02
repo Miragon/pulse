@@ -9,7 +9,7 @@ const PACKAGE_ROOT = path.join(import.meta.dirname, "..")
 /**
  * The preamble of the server `instructions`: short and factual. Every active
  * module appends its own snippet (`instructions` on its module definition —
- * e.g. camunda7's engine routing), and tool descriptions carry the rest.
+ * e.g. the engine module's engine routing), and tool descriptions carry the rest.
  */
 export const SERVER_INSTRUCTIONS =
   "Camunda 7 / CIB seven operations, process analytics and team notes. " +

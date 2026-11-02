@@ -355,24 +355,24 @@ describe("the BPMN heatmap", () => {
     expect(screen.queryByText(/Zeitraum:/)).toBeNull()
   })
 
-  it("blames the missing camunda7 module only when the server says so (en)", () => {
-    renderIn("en", AnalyticsBpmnHeatmap, { ...HEATMAP, bpmnMissing: "no-camunda7" })
+  it("blames the missing engine module only when the server says so (en)", () => {
+    renderIn("en", AnalyticsBpmnHeatmap, { ...HEATMAP, bpmnMissing: "no-engine-module" })
     expect(
       screen.getByText(
-        "The diagram is not available here: without the camunda7 module, analytics cannot load BPMN files. Ask in the chat for the figures per activity instead.",
+        "The diagram is not available here: without the engine module, analytics cannot load BPMN files. Ask in the chat for the figures per activity instead.",
       ),
     ).toBeTruthy()
     expect(document.querySelector("[data-view-meta]")).toBeNull()
   })
 
-  it("names the engine lookup when camunda7 is there but found no diagram (de)", () => {
+  it("names the engine lookup when engine is there but found no diagram (de)", () => {
     renderIn("de", AnalyticsBpmnHeatmap, { ...HEATMAP, bpmnMissing: "not-loaded" })
     expect(
       screen.getByText(
         "Das Diagramm konnte nicht geladen werden: Keine Engine dieser Ansicht hat es geliefert. Prüf, ob die Engines erreichbar sind und der Prozess bereitgestellt ist, oder frag im Chat nach den Kennzahlen je Aktivität.",
       ),
     ).toBeTruthy()
-    expect(screen.queryByText(/camunda7-Modul/)).toBeNull()
+    expect(screen.queryByText(/Engine-Modul/)).toBeNull()
   })
 
   it.each([undefined, "constructor"])(

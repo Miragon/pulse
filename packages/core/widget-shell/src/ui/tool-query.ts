@@ -1,6 +1,6 @@
 /**
  * The view's data layer: TanStack Query over the view host's `callTool`. ONE client per view
- * document (`ViewRoot`), keys `[...key, args]`, so a write invalidates by key prefix (camunda7's
+ * document (`ViewRoot`), keys `[...key, args]`, so a write invalidates by key prefix (the engine module's
  * `WRITE_POLICY`) and every reader of that prefix refetches.
  */
 import { useCallback, useState } from "react"

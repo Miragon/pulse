@@ -32,8 +32,8 @@ The image takes its config from the environment; it never reads `.env`.
 pnpm install          # once, then commit pnpm-lock.yaml (the build uses --frozen-lockfile)
 docker build -t my-mcp-server .
 docker run -p 127.0.0.1:8400:8400 \
-  -e CAMUNDA_BASE_URL=http://host.docker.internal:8410/engine-rest \
-  -e CAMUNDA_ENGINE_FLAVOR=cibseven \
+  -e ENGINE_BASE_URL=http://host.docker.internal:8410/engine-rest \
+  -e ENGINE_FLAVOR=cibseven \
   -e PROMETHEUS_URL=http://host.docker.internal:8460 \
   my-mcp-server
 ```
@@ -42,7 +42,7 @@ Either way the MCP endpoint is `http://localhost:8400/mcp`. With `pnpm dev`,
 open the inspector at `http://localhost:8400/mcp/inspector` and call
 `notes_show_notes`: the example widget renders with no external systems (the
 production entrypoint the image runs mounts no inspector).
-The camunda7/analytics tools need a running engine and Prometheus; the
+The engine/analytics tools need a running engine and Prometheus; the
 [Pulse playground](https://github.com/Miragon/pulse/tree/main/playground)
 ships a ready-made Docker Compose stack whose URLs match `.env.example`.
 
@@ -147,32 +147,32 @@ reaches the host through the view runtime `@miragon/pulse-widget-shell/widgets`
 [`.env.example`](.env.example) documents every variable this server reads;
 copy it to `.env` (loaded by `pnpm dev` only; `pnpm start` and Docker take
 their config from the environment). A variable under a watched prefix (`MCP_`,
-`CAMUNDA_`, `PROMETHEUS_`, plus each module's own) that the server does not
+`ENGINE_`, `ENGINES_`, `PROMETHEUS_`, plus each module's own) that the server does not
 read prints a warning at boot, so typos surface immediately.
 
-Toolsets fail closed: without OAuth camunda7 and analytics run
+Toolsets fail closed: without OAuth the engine module and analytics run
 **read-only** without a `module:toolset` suffix (queries, widgets, analytics,
 no writes; a module without toolsets, like notes or analytics, registers all
-its tools); with it camunda7 runs its standard toolset, `operations`. The boot
+its tools); with it the engine module runs its standard toolset, `operations`. The boot
 log names the effective toolsets. `admin` is never
-implied, and `camunda7_create_deployment` additionally needs
-`CAMUNDA_ALLOW_DEPLOYMENTS=true` (deploying a BPMN runs code in the engine
+implied, and `engine_create_deployment` additionally needs
+`ENGINE_ALLOW_DEPLOYMENTS=true` (deploying a BPMN runs code in the engine
 JVM). See the `setup-server` skill before widening a server others can reach.
 
 OAuth comes from one provider's `MCP_USE_OAUTH_*` variables, mcp-use's own
 (the providers and what fails the boot: `.env.example`), and is also the only
 caller identity: passthrough engine auth and the per-caller caches key on it.
 
-| Variable                                     | Effect                                                                                                                         |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `PORT`                                       | HTTP port (default 8400)                                                                                                       |
-| `MCP_URL`                                    | Public base URL (behind a proxy/gateway), also the `Host`/`Origin` the server accepts and the origin the views load Geist from |
-| `MCP_ALLOWED_HOSTS` / `MCP_ALLOWED_ORIGINS`  | Further hostnames / origins the server accepts (default: localhost-class and `MCP_URL`'s only)                                 |
-| `MCP_MAX_BODY_BYTES`                         | Request-body cap (default 4 MiB; larger bodies get 413 before they are read)                                                   |
-| `MCP_METRICS_TOKEN`                          | Bearer token `/metrics` requires (default: open)                                                                               |
-| `MCP_USE_OAUTH_*`                            | One OAuth provider's variables (see `.env.example`), needs `MCP_URL`, the only caller identity                                 |
-| `MCP_ACTIVE_MODULES`                         | Modules (default: all), e.g. `camunda7:operations,notes`; no suffix: read-only, OAuth → standard                               |
-| `CAMUNDA_*`, `PROMETHEUS_URL`, `NOTES_TITLE` | Module config, see `.env.example` for the full list                                                                            |
+| Variable                                    | Effect                                                                                                                         |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `PORT`                                      | HTTP port (default 8400)                                                                                                       |
+| `MCP_URL`                                   | Public base URL (behind a proxy/gateway), also the `Host`/`Origin` the server accepts and the origin the views load Geist from |
+| `MCP_ALLOWED_HOSTS` / `MCP_ALLOWED_ORIGINS` | Further hostnames / origins the server accepts (default: localhost-class and `MCP_URL`'s only)                                 |
+| `MCP_MAX_BODY_BYTES`                        | Request-body cap (default 4 MiB; larger bodies get 413 before they are read)                                                   |
+| `MCP_METRICS_TOKEN`                         | Bearer token `/metrics` requires (default: open)                                                                               |
+| `MCP_USE_OAUTH_*`                           | One OAuth provider's variables (see `.env.example`), needs `MCP_URL`, the only caller identity                                 |
+| `MCP_ACTIVE_MODULES`                        | Modules (default: all), e.g. `engine:operations,notes`; no suffix: read-only, OAuth → standard                                 |
+| `ENGINE_*`, `PROMETHEUS_URL`, `NOTES_TITLE` | Module config, see `.env.example` for the full list                                                                            |
 
 ## Deploying
 
@@ -212,6 +212,6 @@ docker run -p 8400:8400 \
 
 ## Going further
 
-The stock server (`apps/mcp-server-camunda7` in the
+The stock server (`apps/mcp-server` in the
 [Pulse repo](https://github.com/Miragon/pulse)) additionally ships a
 Playwright host simulation of the widget bundle.

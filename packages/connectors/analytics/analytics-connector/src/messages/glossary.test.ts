@@ -56,12 +56,15 @@ describe("the catalogs use the glossary's words", () => {
   })
 
   // Widget texts, hand-off intents and model summaries alike.
-  it.each(["de", "en"] as const)("%s: the product-wide terms shared with camunda7", (language) => {
-    for (const catalog of catalogsOf(language, true)) {
-      expect(glossaryFindings(catalog, PRODUCT_GLOSSARY[language])).toEqual([])
-    }
-    expect(blindGlossaryRules(PRODUCT_GLOSSARY[language])).toEqual([])
-  })
+  it.each(["de", "en"] as const)(
+    "%s: the product-wide terms shared with the engine module",
+    (language) => {
+      for (const catalog of catalogsOf(language, true)) {
+        expect(glossaryFindings(catalog, PRODUCT_GLOSSARY[language])).toEqual([])
+      }
+      expect(blindGlossaryRules(PRODUCT_GLOSSARY[language])).toEqual([])
+    },
+  )
 
   it("names every term in GLOSSARY.md, so the document and the check cannot drift", () => {
     const doc = readFileSync(new URL("./GLOSSARY.md", import.meta.url), "utf8")

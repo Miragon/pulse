@@ -7,18 +7,15 @@ import globals from "globals"
 // compiled by Vite/the bundler) and get their type information from the
 // dedicated tsconfig.widgets.json / tsconfig.ui.json projects instead.
 const bundledUiFiles = [
-  "apps/mcp-server-camunda7/src/ui/**/*.{ts,tsx}",
+  "apps/mcp-server/src/ui/**/*.{ts,tsx}",
   "packages/connectors/analytics/analytics-connector/src/widgets/**/*.{ts,tsx}",
-  "packages/connectors/camunda/camunda7-connector/src/widgets/**/*.{ts,tsx}",
+  "packages/connectors/engine/engine-connector/src/widgets/**/*.{ts,tsx}",
 ]
 
 // Server tests (and the Playwright host simulation) live outside src/ (not
 // part of the build tsconfig) and get their type information from the
 // dedicated tsconfig.test.json project.
-const serverTestFiles = [
-  "apps/mcp-server-camunda7/test/**/*.ts",
-  "apps/mcp-server-camunda7/test-host/**/*.ts",
-]
+const serverTestFiles = ["apps/mcp-server/test/**/*.ts", "apps/mcp-server/test-host/**/*.ts"]
 
 // The VS Code extension's runtime probes (apps/vscode/test/<layer>/runtime.boundary.ts)
 // expect the globals of their layer to be missing, so apps/vscode/tsconfig.json (the
@@ -170,7 +167,7 @@ const importGates = (...gates) => ({
 // HandOffButton, whose function table (HAND_OFF_ACTIONS + kitLabels().handOff)
 // gives every function one Lucide icon and one label in every module; an
 // AskAiButton with a hand-picked icon and verb let the same function drift
-// apart between camunda7 and analytics ("Ursache im Chat klären" next to
+// apart between engine and analytics ("Ursache im Chat klären" next to
 // "Ursache im Chat suchen", FileSearch for two functions). The import (also
 // renamed) and the element (also through a namespace) are both banned in both
 // connectors' widgets.
@@ -259,7 +256,7 @@ export default tseslint.config(
       "vendor/**",
       // Widget-bundle stand-in read (never executed) by the in-process e2e
       // boots — data, not code; not part of any tsconfig project.
-      "apps/mcp-server-camunda7/test/fixtures/**",
+      "apps/mcp-server/test/fixtures/**",
       // Standalone customer-facing workspace, outside the root pnpm workspace
       // and its tsconfig projects — verified by scripts/test-template.sh
       // (build + typecheck + tests) instead of the repo's typed linting.
@@ -282,17 +279,17 @@ export default tseslint.config(
           // Standalone config files that are not part of any tsconfig
           allowDefaultProject: [
             "vitest.shared.ts",
-            "apps/mcp-server-camunda7/vite.config.ts",
-            "apps/mcp-server-camunda7/vitest.config.ts",
+            "apps/mcp-server/vite.config.ts",
+            "apps/mcp-server/vitest.config.ts",
             "packages/connectors/analytics/analytics-connector/vitest.config.ts",
             "packages/connectors/analytics/analytics-connector/vitest.stryker.config.ts",
-            "packages/connectors/camunda/camunda7-connector/vitest.config.ts",
-            "packages/connectors/camunda/camunda7-connector/vitest.stryker.config.ts",
+            "packages/connectors/engine/engine-connector/vitest.config.ts",
+            "packages/connectors/engine/engine-connector/vitest.stryker.config.ts",
             "packages/connectors/analytics/analytics-client/vitest.config.ts",
             "packages/connectors/analytics/analytics-client/vitest.stryker.config.ts",
-            "packages/connectors/camunda/camunda7-client/vitest.config.ts",
-            "packages/connectors/camunda/camunda7-client/vitest.stryker.config.ts",
-            "packages/connectors/camunda/camunda7-client/openapi-ts.config.ts",
+            "packages/connectors/engine/engine-client/vitest.config.ts",
+            "packages/connectors/engine/engine-client/vitest.stryker.config.ts",
+            "packages/connectors/engine/engine-client/openapi-ts.config.ts",
             "packages/core/engine-core/vitest.config.ts",
             "packages/core/ui/vitest.config.ts",
             "packages/core/widget-shell/vitest.config.ts",
@@ -312,9 +309,9 @@ export default tseslint.config(
     languageOptions: {
       parserOptions: {
         project: [
-          "apps/mcp-server-camunda7/tsconfig.ui.json",
+          "apps/mcp-server/tsconfig.ui.json",
           "packages/connectors/analytics/analytics-connector/tsconfig.widgets.json",
-          "packages/connectors/camunda/camunda7-connector/tsconfig.widgets.json",
+          "packages/connectors/engine/engine-connector/tsconfig.widgets.json",
         ],
         tsconfigRootDir: import.meta.dirname,
       },
@@ -326,7 +323,7 @@ export default tseslint.config(
     files: serverTestFiles,
     languageOptions: {
       parserOptions: {
-        project: ["apps/mcp-server-camunda7/tsconfig.test.json"],
+        project: ["apps/mcp-server/tsconfig.test.json"],
         tsconfigRootDir: import.meta.dirname,
       },
     },
@@ -369,7 +366,7 @@ export default tseslint.config(
 
   // React hooks for all UI/widget code
   {
-    files: ["apps/mcp-server-camunda7/src/**/*.{ts,tsx}", "packages/**/src/**/*.{ts,tsx}"],
+    files: ["apps/mcp-server/src/**/*.{ts,tsx}", "packages/**/src/**/*.{ts,tsx}"],
     plugins: { "react-hooks": reactHooks },
     rules: reactHooks.configs["recommended-latest"].rules,
   },
@@ -391,13 +388,13 @@ export default tseslint.config(
   {
     files: [
       "packages/connectors/analytics/analytics-connector/src/**/*.{ts,tsx}",
-      "packages/connectors/camunda/camunda7-connector/src/**/*.{ts,tsx}",
+      "packages/connectors/engine/engine-connector/src/**/*.{ts,tsx}",
     ],
     ignores: [
       "packages/connectors/analytics/analytics-connector/src/widget-tools.ts",
       "packages/connectors/analytics/analytics-connector/src/widget-tools/**",
-      "packages/connectors/camunda/camunda7-connector/src/widget-tools.ts",
-      "packages/connectors/camunda/camunda7-connector/src/widget-tools/**",
+      "packages/connectors/engine/engine-connector/src/widget-tools.ts",
+      "packages/connectors/engine/engine-connector/src/widget-tools/**",
     ],
     rules: { "no-restricted-syntax": ["error", ...registrarGate] },
   },
@@ -406,7 +403,7 @@ export default tseslint.config(
   // format helpers so every module renders timestamps the same
   // way. Number#toLocaleString (thousands separators) is deliberately allowed.
   {
-    files: ["apps/mcp-server-camunda7/src/ui/**/*.{ts,tsx}"],
+    files: ["apps/mcp-server/src/ui/**/*.{ts,tsx}"],
     rules: { "no-restricted-syntax": ["error", ...widgetDateGate] },
   },
   // Connector widgets sit under the registrar AND date gates, render every
@@ -414,7 +411,7 @@ export default tseslint.config(
   // widget-shell's HandOffButton (hand-off gate): one block per connector, each with the union,
   // after the registrar block (whose options it replaces for these files).
   {
-    files: ["packages/connectors/camunda/camunda7-connector/src/widgets/**/*.{ts,tsx}"],
+    files: ["packages/connectors/engine/engine-connector/src/widgets/**/*.{ts,tsx}"],
     rules: {
       "no-restricted-syntax": [
         "error",
@@ -461,7 +458,7 @@ export default tseslint.config(
   // collides with the no-restricted-syntax unions above.
   {
     files: [
-      "apps/mcp-server-camunda7/{src,test,test-host}/**/*.{ts,tsx}",
+      "apps/mcp-server/{src,test,test-host}/**/*.{ts,tsx}",
       "packages/core/ui/src/**/*.{ts,tsx}",
       "packages/core/widget-shell/src/**/*.{ts,tsx}",
       "packages/connectors/*/*/src/**/*.{ts,tsx}",
@@ -472,11 +469,11 @@ export default tseslint.config(
   },
   {
     files: [
-      "apps/mcp-server-camunda7/src/ui/**/*.{ts,tsx}",
+      "apps/mcp-server/src/ui/**/*.{ts,tsx}",
       "packages/core/ui/src/**/*.{ts,tsx}",
       "packages/core/widget-shell/src/ui/**/*.{ts,tsx}",
       "packages/connectors/analytics/analytics-connector/src/widgets/**/*.{ts,tsx}",
-      "packages/connectors/camunda/camunda7-connector/src/widgets/**/*.{ts,tsx}",
+      "packages/connectors/engine/engine-connector/src/widgets/**/*.{ts,tsx}",
     ],
     rules: {
       "no-restricted-imports": [

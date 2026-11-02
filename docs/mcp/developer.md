@@ -40,7 +40,7 @@ pnpm dev
 
 This starts the MCP server on `:8400`. Connect any MCP host to `http://localhost:8400/mcp` and
 call a tool. It boots read-only (no OAuth provider, no toolset suffix, as the boot log says); to test
-write paths, uncomment `MCP_ACTIVE_MODULES=camunda7:admin,analytics` in `.env`.
+write paths, uncomment `MCP_ACTIVE_MODULES=engine:admin,analytics` in `.env`.
 `pnpm dev` binds 127.0.0.1; `pnpm start` and Docker listen on all interfaces.
 
 ## Common tasks
@@ -54,14 +54,14 @@ write paths, uncomment `MCP_ACTIVE_MODULES=camunda7:admin,analytics` in `.env`.
 | `pnpm format`                 | Prettier                                                                             |
 
 Mutation testing: `pnpm --fail-if-no-match --filter <package> exec stryker run` (`--mutate <file>`
-narrows it) for `@miragon/pulse-widget-shell`, `-camunda7-client`, `-camunda7-connector`,
+narrows it) for `@miragon/pulse-widget-shell`, `-engine-client`, `-engine-connector`,
 `-analytics-client`, `-analytics-connector`, `-cli` or `pulse-cockpit`. A pull request runs none:
 `.github/workflows/mutation-nightly.yml` mutates every package each night (incremental). While the
 MCP server is rebuilt, the nightly run and the Stryker gates are paused (`scripts/mutation-pause.mjs`).
 
 ## Build your own server
 
-The modules ship on public npm: `@miragon/pulse-camunda7-connector`,
+The modules ship on public npm: `@miragon/pulse-engine-connector`,
 `@miragon/pulse-analytics-connector`, `@miragon/pulse-widget-shell`, `@miragon/pulse-ui`, the two
 client packages and `@miragon/pulse-engine-core`, released in lockstep (pin one version across all).
 [`templates/composed-server/`](https://github.com/Miragon/pulse/tree/main/templates/composed-server)

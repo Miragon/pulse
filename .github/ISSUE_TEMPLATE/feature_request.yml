@@ -41,7 +41,7 @@ body:
       label: Acceptance Criteria
       description: What conditions must be met for this feature to be considered complete?
       placeholder: |
-        - [ ] A new MCP tool `listIncidents` is exposed by the camunda7 module
+        - [ ] A new MCP tool `listIncidents` is exposed by the engine module
         - [ ] The tool accepts an optional `processDefinitionId` filter
         - [ ] Results include incident type, message, and affected process instance
     validations:

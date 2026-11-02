@@ -2,7 +2,7 @@ import path from "node:path"
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client"
 import type { RunningServer } from "@miragon/pulse-widget-shell/server"
-import { CAMUNDA7_HOST_WIDGET_REFS } from "@miragon/pulse-camunda7-connector/widgets"
+import { ENGINE_HOST_WIDGET_REFS } from "@miragon/pulse-engine-connector/widgets"
 import { createApp } from "../src/app.js"
 import { hostWidgets, viewRegistry } from "../src/ui/view-registry.js"
 import { stubNeutralEnv } from "./neutral-env.js"
@@ -51,7 +51,7 @@ describe("the view registry vs the view-bound tools", () => {
 /** A cross-module widget no module renders is dead code in every view's bundle. */
 describe("the host widgets", () => {
   it("hold nothing but the cross-module widgets a module renders", () => {
-    const refs: readonly string[] = CAMUNDA7_HOST_WIDGET_REFS
+    const refs: readonly string[] = ENGINE_HOST_WIDGET_REFS
     const stray = Object.keys(hostWidgets).filter((id) => !refs.includes(id))
     expect(stray).toEqual([])
     for (const ref of refs) expect(hostWidgets).toHaveProperty(ref)

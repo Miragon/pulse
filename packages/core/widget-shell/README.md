@@ -22,7 +22,7 @@ To build your own MCP server on it, start from [pulse-starter](https://github.co
 ## Overview
 
 Shared widget plumbing for the [Pulse](../../../README.md) MCP App widgets. It is the common base
-both widget modules ([`camunda7-connector`](../../connectors/camunda/camunda7-connector), [`analytics-connector`](../../connectors/analytics/analytics-connector)) build on,
+both widget modules ([`engine-connector`](../../connectors/engine/engine-connector), [`analytics-connector`](../../connectors/analytics/analytics-connector)) build on,
 so every widget gets the same data-loading, refresh and view-composition behaviour.
 
 Published to the public npm registry as `@miragon/pulse-widget-shell`, the foundation
@@ -100,7 +100,11 @@ package customers build their own connectors and composed servers on (see the
   that registers all its tools on the server the boot owns; `shared(entries)` is your wiring of
   what the active modules hand each other. The boot log states each module's toolset and why.
   `composedEnvVars(modules)` names every variable such a boot reads (the boot's own and each
-  module's `knownEnvVars`), e.g. for a `.env.example` check.
+  module's `knownEnvVars`), e.g. for a `.env.example` check. A module that was renamed declares
+  `retired: { names, envVars, warnedEnvVars }`: the boot refuses a former name in
+  `MCP_ACTIVE_MODULES` and a former variable while it is set, naming the replacement, before it
+  checks anything else; a `warnedEnvVars` entry (a credential another tool may share) only warns;
+  `retiredEnvVars(modules)` lists both kinds, so a test env can clear them too.
 - **Toolset vocabularies** (`./server`): a module declares its toolsets as
   `toolsets: createToolsetVocabulary(module, names, floor, { authenticatedDefault })` on its
   definition; a module without one has no toolsets (a suffix is ignored with a warning). The rule
@@ -136,11 +140,11 @@ package customers build their own connectors and composed servers on (see the
 
 ## Exports
 
-| Subpath     | Contents                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `./server`  | `buildViewResult` / `buildDataFeedResult` / `viewPrelude`, `createToolsetVocabulary` and the module port (`ComposableModule`, `ModulePlugin`, `ModuleEntry`), `createComposedServer` with `composedEnvVars` and its edge pieces (incl. `installFontAssets`, `fontAssetsCsp`), the per-caller request info (`callerCacheKey`, `getMcpRequestInfo`), the tool registrar (`createToolRegistrar`, `withToolErrors`), the view meta (`showToolBinding`, `appOnly`, `viewResourceUri`), the server i18n (`createTranslator`) |
-| `./widgets` | The view runtime (`mountViews`, the view host, the query hooks, `TestViewHost`; the language from the host locale (`de…` German, else English), the theme as host context > OS), the host-bound UI and `createTranslator`                                                                                                                                                                                                                                                                                              |
-| `./testing` | The product glossary: `PRODUCT_GLOSSARY`, `glossaryFindings`, `blindGlossaryRules`, `unnamedGlossaryTerms`                                                                                                                                                                                                                                                                                                                                                                                                             |
+| Subpath     | Contents                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `./server`  | `buildViewResult` / `buildDataFeedResult` / `viewPrelude`, `createToolsetVocabulary` and the module port (`ComposableModule`, `ModulePlugin`, `ModuleEntry`), `createComposedServer` with `composedEnvVars` / `retiredEnvVars` and its edge pieces (incl. `installFontAssets`, `fontAssetsCsp`), the per-caller request info (`callerCacheKey`, `getMcpRequestInfo`), the tool registrar (`createToolRegistrar`, `withToolErrors`), the view meta (`showToolBinding`, `appOnly`, `viewResourceUri`), the server i18n (`createTranslator`) |
+| `./widgets` | The view runtime (`mountViews`, the view host, the query hooks, `TestViewHost`; the language from the host locale (`de…` German, else English), the theme as host context > OS), the host-bound UI and `createTranslator`                                                                                                                                                                                                                                                                                                                 |
+| `./testing` | The product glossary: `PRODUCT_GLOSSARY`, `glossaryFindings`, `blindGlossaryRules`, `unnamedGlossaryTerms`                                                                                                                                                                                                                                                                                                                                                                                                                                |
 
 `@miragon/pulse-ui`, `react`/`react-dom`, `zod` and `@tanstack/react-query` are **peer
 dependencies**: they must resolve to a single instance across the host bundle (see the `dedupe`
@@ -161,7 +165,7 @@ on "Loading…".
 ## Where it fits
 
 ```
-camunda7-connector / analytics-connector widgets
+engine-connector / analytics-connector widgets
             │  use
             ▼
    @miragon/pulse-widget-shell   ──  view runtime · view builders · host-bound UI

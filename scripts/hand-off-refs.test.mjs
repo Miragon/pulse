@@ -117,13 +117,13 @@ describe("every hand-off names no tool", () => {
   })
 
   // The original bug class: a prompt telling the model to "read the full trace with
-  // camunda7_incident_detail_data", a feed the host hides from it. No model-facing text (prose:
+  // engine_incident_detail_data", a feed the host hides from it. No model-facing text (prose:
   // a string with whitespace) may name one.
   it("no prose sends the model to an app-only feed", () => {
     const appOnly = appOnlyFeeds()
     assert.ok(appOnly.size >= 10, `${appOnly.size} app-only feeds`)
     const prose = scanSources((file, text) =>
-      findProseToolNames(file, text, ["camunda7", "analytics"]),
+      findProseToolNames(file, text, ["engine", "analytics"]),
     )
     assert.ok(prose.length >= 20, "the scanner is not blind")
     assert.deepEqual(
@@ -138,14 +138,20 @@ describe("every hand-off names no tool", () => {
 describe("the hand-off readers", () => {
   it("find a prompt that sends the model to a feed", () => {
     const old =
-      'const p = `Read the full trace with camunda7_incident_detail_data({ incidentId: "${id}" }).`'
+      'const p = `Read the full trace with engine_incident_detail_data({ incidentId: "${id}" }).`'
     assert.deepEqual(
-      findProseToolNames("x.ts", old, ["camunda7"]).map((r) => r.name),
-      ["camunda7_incident_detail_data"],
+      findProseToolNames("x.ts", old, ["engine"]).map((r) => r.name),
+      ["engine_incident_detail_data"],
     )
     // A bare feed constant is plumbing, not prose; a family wildcard names no tool.
-    assert.deepEqual(findProseToolNames("x.ts", 'const F = "camunda7_jobs_data"', ["camunda7"]), [])
-    assert.deepEqual(toolNamesIn("history (camunda7_query_historic_*) covers", ["camunda7"]), [])
+    assert.deepEqual(findProseToolNames("x.ts", 'const F = "engine_jobs_data"', ["engine"]), [])
+    assert.deepEqual(toolNamesIn("history (engine_query_historic_*) covers", ["engine"]), [])
+  })
+
+  it("read no metric name or label as a tool, and every other engine_ token as one", () => {
+    const text =
+      "sum by (engine_id) (engine_jobs_failed) next to engine_jobs_faild and engine_stale_data"
+    assert.deepEqual(toolNamesIn(text, ["engine"]), ["engine_jobs_faild", "engine_stale_data"])
   })
 
   it("find a raw follow-up and a hand-written model context", () => {
@@ -178,14 +184,14 @@ describe("the hand-off readers", () => {
   // A spec that regains a tool list stays a spec, so the guard fails on it.
   it("report a spec's members besides its lead, ids, facts and untrusted", () => {
     const text = [
-      'const a = { intent: "k", tools: ["camunda7_x"] }',
-      "const b = { summary, ids: { engine }, toolIds: { camunda7_y: [] } }",
+      'const a = { intent: "k", tools: ["engine_x"] }',
+      "const b = { summary, ids: { engine }, toolIds: { engine_y: [] } }",
       'const c = { summary: "s", surface }',
     ].join("\n")
     assert.deepEqual(
       findHandOffSpecs("x.ts", text).map((s) => [s.at, s.extraMembers, s.namedTools]),
       [
-        ["x.ts:1", ["tools"], ["camunda7_x"]],
+        ["x.ts:1", ["tools"], ["engine_x"]],
         ["x.ts:2", ["toolIds"], []],
         ["x.ts:3", ["surface"], []],
       ],
@@ -198,18 +204,18 @@ describe("the hand-off readers", () => {
       'const LEAD = "Viewing jobs."',
       'const a = { summary: LEAD + (x ? " Retry." : ""), ids: { engine } }',
       "const b = { summary: `Viewing ${engine}` }",
-      'const c = { summary: "Act via camunda7_delete_process_instance" }',
+      'const c = { summary: "Act via engine_delete_process_instance" }',
       'const d = { summary: "s", facts: { hint: "use analytics_x" } }',
-      'const e = { intent: "k", ids: { tool: "camunda7_list_jobs" } }',
+      'const e = { intent: "k", ids: { tool: "engine_list_jobs" } }',
     ].join("\n")
     assert.deepEqual(
       findHandOffSpecs("x.ts", text).map((s) => [s.staticText, s.namedTools]),
       [
         [true, []],
         [false, []],
-        [true, ["camunda7_delete_process_instance"]],
+        [true, ["engine_delete_process_instance"]],
         [true, ["analytics_x"]],
-        [true, ["camunda7_list_jobs"]],
+        [true, ["engine_list_jobs"]],
       ],
     )
   })

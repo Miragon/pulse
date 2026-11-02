@@ -57,7 +57,7 @@ describe("analytics_show_version_compare", () => {
     const res = dataOf(await tool.handler({ ...args, minBucketSize: 10 }, {}))
 
     const incidentQueries = recording.queries.filter((q) =>
-      q.includes("camunda_incident_created_total"),
+      q.includes("engine_incident_created_total"),
     )
     expect(incidentQueries).toHaveLength(2)
     expect(incidentQueries.map((q) => /process_definition_version="(\d+)"/.exec(q)?.[1])).toEqual([

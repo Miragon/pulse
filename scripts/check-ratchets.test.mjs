@@ -37,41 +37,35 @@ export default mergeConfig(sharedConfig, defineConfig({
   },
 }))
 `
-const PKG_VITEST = "packages/connectors/camunda/camunda7-client/vitest.config.ts"
+const PKG_VITEST = "packages/connectors/engine/engine-client/vitest.config.ts"
 const BASE_THRESHOLDS = "thresholds: { statements: 44, branches: 32, functions: 45, lines: 44 },"
 // The apps and a new connector-family package: the ratchet covers each by its layout.
 const CLI_DIR = "apps/cli"
 const VSCODE_DIR = "apps/vscode"
 const FAMILY_DIR = "packages/connectors/fam/x-connector"
 const REAL_VITEST_CONFIGS = [
-  "apps/mcp-server-camunda7/vitest.config.ts",
+  "apps/mcp-server/vitest.config.ts",
   "packages/core/widget-shell/vitest.config.ts",
-  "packages/connectors/camunda/camunda7-client/vitest.config.ts",
-  "packages/connectors/camunda/camunda7-connector/vitest.config.ts",
+  "packages/connectors/engine/engine-client/vitest.config.ts",
+  "packages/connectors/engine/engine-connector/vitest.config.ts",
   "packages/connectors/analytics/analytics-client/vitest.config.ts",
   "packages/connectors/analytics/analytics-connector/vitest.config.ts",
 ]
 
 describe("ratchetKind", () => {
   it("recognises every monitored location and nothing else", () => {
-    assert.equal(ratchetKind("apps/mcp-server-camunda7/vitest.config.ts"), "vitest")
+    assert.equal(ratchetKind("apps/mcp-server/vitest.config.ts"), "vitest")
     assert.equal(ratchetKind("packages/core/widget-shell/vitest.config.ts"), "vitest")
     assert.equal(ratchetKind(PKG_VITEST), "vitest")
     assert.equal(ratchetKind("vitest.shared.ts"), "vitest")
     assert.equal(ratchetKind("packages/core/widget-shell/stryker.config.json"), "stryker")
     assert.equal(ratchetKind("eslint.config.mjs"), "eslint")
     assert.equal(ratchetKind("knip.jsonc"), "knip")
-    assert.equal(
-      ratchetKind("apps/mcp-server-camunda7/test/__golden__/char-budgets.json"),
-      "char-budgets",
-    )
-    assert.equal(
-      ratchetKind("apps/mcp-server-camunda7/test/__golden__/bundle-budget.json"),
-      "bundle-budget",
-    )
+    assert.equal(ratchetKind("apps/mcp-server/test/__golden__/char-budgets.json"), "char-budgets")
+    assert.equal(ratchetKind("apps/mcp-server/test/__golden__/bundle-budget.json"), "bundle-budget")
     assert.equal(ratchetKind("package.json"), "root-scripts")
     assert.equal(ratchetKind("packages/core/widget-shell/package.json"), "package-scripts")
-    assert.equal(ratchetKind("apps/mcp-server-camunda7/package.json"), "package-scripts")
+    assert.equal(ratchetKind("apps/mcp-server/package.json"), "package-scripts")
     assert.equal(ratchetKind("packages/core/widget-shell/vitest.stryker.config.ts"), null)
     assert.equal(ratchetKind("templates/composed-server/vitest.config.ts"), null)
     assert.equal(ratchetKind("templates/composed-server/server/package.json"), null)
@@ -98,8 +92,8 @@ describe("shadowing configs (loaded BEFORE the ratcheted file)", () => {
     "eslint.config.cjs",
     "eslint.config.ts",
     "eslint.config.mts",
-    "apps/mcp-server-camunda7/eslint.config.js",
-    "packages/connectors/camunda/camunda7-connector/src/data/eslint.config.mjs",
+    "apps/mcp-server/eslint.config.js",
+    "packages/connectors/engine/engine-connector/src/data/eslint.config.mjs",
     "knip.json",
     ".knip.json",
     ".knip.jsonc",
@@ -110,7 +104,7 @@ describe("shadowing configs (loaded BEFORE the ratcheted file)", () => {
     "packages/core/widget-shell/stryker.conf.json",
     "packages/core/widget-shell/.stryker.config.json",
     "packages/core/widget-shell/stryker.config.mjs",
-    "packages/connectors/camunda/camunda7-client/stryker.conf.cjs",
+    "packages/connectors/engine/engine-client/stryker.conf.cjs",
   ]
 
   it("flags each one — also when the diff introduces it", () => {
@@ -154,7 +148,7 @@ describe("shadowing vitest, prettier and editorconfig files", () => {
       `${VSCODE_DIR}/vitest.config.js`,
       `${FAMILY_DIR}/vitest.config.cjs`,
       "packages/core/widget-shell/vitest.config.mjs",
-      "apps/mcp-server-camunda7/vitest.config.cts",
+      "apps/mcp-server/vitest.config.cts",
     ])
       flags(rel, /second vitest config.*loads the first it finds.*Keep the package's config/)
   })
@@ -162,7 +156,7 @@ describe("shadowing vitest, prettier and editorconfig files", () => {
   it("leaves the configs vitest does not resolve from a package dir alone", () => {
     for (const rel of [
       // the widget bundle's build config, which vitest.config.ts outranks
-      "apps/mcp-server-camunda7/vite.config.ts",
+      "apps/mcp-server/vite.config.ts",
       "packages/core/widget-shell/vitest.stryker.config.ts",
       `${CLI_DIR}/src/vitest.config.mts`,
       "templates/composed-server/server/vitest.config.mts",
@@ -266,7 +260,7 @@ describe("vitest coverage thresholds (raise-only, never removed)", () => {
   const base = vitestConfig({ thresholds: BASE_THRESHOLDS })
 
   it("reads the literal thresholds of the real package configs", () => {
-    for (const rel of [PKG_VITEST, "apps/mcp-server-camunda7/vitest.config.ts"]) {
+    for (const rel of [PKG_VITEST, "apps/mcp-server/vitest.config.ts"]) {
       const { thresholds, error } = extractVitestCoverage(rel, readFileSync(rel, "utf8"))
       assert.equal(error, undefined)
       assert.deepEqual(Object.keys(thresholds).sort(), [
@@ -1411,7 +1405,7 @@ describe("knip policy (ignore lists shrink-only)", () => {
 })
 
 describe("char budgets (shrink-only)", () => {
-  const rel = "apps/mcp-server-camunda7/test/__golden__/char-budgets.json"
+  const rel = "apps/mcp-server/test/__golden__/char-budgets.json"
   const base = JSON.stringify({ $comment: "x", "tools-admin": 1000 })
 
   it("flags growth and removal, accepts shrinking", () => {
@@ -1425,7 +1419,7 @@ describe("char budgets (shrink-only)", () => {
 })
 
 describe("bundle budget (shrink-only)", () => {
-  const rel = "apps/mcp-server-camunda7/test/__golden__/bundle-budget.json"
+  const rel = "apps/mcp-server/test/__golden__/bundle-budget.json"
   const base = JSON.stringify({ $comment: "x", "mcp-app.js": 405000, "mcp-app.css": 13300 })
 
   it("flags a raised or removed ceiling, accepts a lowered one", () => {
@@ -1577,7 +1571,7 @@ describe("root scripts (no gate unhooked)", () => {
 })
 
 describe("package gate scripts are pinned to the merge base", () => {
-  const rel = "packages/connectors/camunda/camunda7-connector/package.json"
+  const rel = "packages/connectors/engine/engine-connector/package.json"
   const BASE = {
     build: "tsc",
     lint: "eslint src",
@@ -1694,7 +1688,7 @@ describe("base ref resolution in CI", () => {
 })
 
 describe("inline suppressions (shrink-only)", () => {
-  const rel = "packages/connectors/camunda/camunda7-connector/src/tools/x.ts"
+  const rel = "packages/connectors/engine/engine-connector/src/tools/x.ts"
   const code = 'server.tool("x", {}, handler)\n'
 
   it("flags a new comment that switches a gate off", () => {

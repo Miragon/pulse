@@ -129,6 +129,17 @@ export function composedEnvVars<TShared>(
   return composeFor("env", modules).knownEnvVars
 }
 
+/**
+ * Every variable the modules retired (`retired.envVars`), which a boot over them refuses while it
+ * is set. A neutral test env clears these next to `composedEnvVars`, so a value a shell still
+ * exports never reaches the boot.
+ */
+export function retiredEnvVars<TShared>(
+  modules: readonly ComposableModule<TShared>[],
+): ReadonlySet<string> {
+  return new Set(composeFor("env", modules).retiredEnvVars.keys())
+}
+
 const HEALTH_PATH = "/health"
 const METRICS_PATH = "/metrics"
 const EXEMPT_PATHS = [HEALTH_PATH, METRICS_PATH]
@@ -210,6 +221,9 @@ function resolveSelection<TShared extends object>(
   env: NodeJS.ProcessEnv,
 ) {
   const label = options.info.name
+  // A renamed setting first: an operator upgrading with old settings reads the rename, not a
+  // later check's failure.
+  composition.refuseRetired(env)
   composition.warnUnknownEnvVars(env)
   const edge = resolveHttpEdgePolicy(env)
   const oauth = options.oauth ?? oauthFromEnv(env, label)

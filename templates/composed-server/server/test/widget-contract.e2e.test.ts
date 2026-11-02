@@ -1,7 +1,7 @@
 import path from "node:path"
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client"
-import { CAMUNDA7_ADMIN_ONLY_TOOLS } from "@miragon/pulse-camunda7-connector"
+import { ENGINE_ADMIN_ONLY_TOOLS } from "@miragon/pulse-engine-connector"
 import {
   SERVED_FONT_FILES,
   SERVED_FONT_PATH,
@@ -88,7 +88,7 @@ describe("widget wire contract (dual-protocol _meta)", () => {
       title: "Acme MCP",
     })
     // Your preamble first, then each active module's own snippet — joined by
-    // the shared boot, so the Miragon modules' routing rules (camunda7's
+    // the shared boot, so the Miragon modules' routing rules (the engine module's
     // engine precedence, analytics' engine filter) reach the model with no
     // code here. A custom module adds one via `instructions` on its definition.
     const instructions = client.getInstructions() ?? ""
@@ -111,7 +111,7 @@ describe("widget wire contract (dual-protocol _meta)", () => {
       const ui = uiBlock(meta)
       return typeof ui.resourceUri === "string" && ui.visibility === undefined
     })
-    // The camunda7/analytics/notes/shell show_* tools.
+    // The engine/analytics/notes/shell show_* tools.
     expect(widgetTools.length).toBeGreaterThanOrEqual(3)
     expect(widgetTools.map((t) => t.name)).toContain("notes_show_notes")
 
@@ -141,7 +141,7 @@ describe("widget wire contract (dual-protocol _meta)", () => {
     // hang on the host's loading skeleton. The naming convention is the
     // invariant we can enforce unconditionally.
     const showTools = tools.filter((t) => t.name.includes("_show_"))
-    // 6 analytics show tools and notes_show_notes; camunda7's one view is camunda7_open_cockpit.
+    // 6 analytics show tools and notes_show_notes; the engine module's one view is engine_open_cockpit.
     expect(showTools.length).toBeGreaterThanOrEqual(7)
     for (const tool of showTools) {
       const ui = uiBlock(toolMeta(tool))
@@ -332,18 +332,18 @@ describe("widget wire contract — the font origin under MCP_URL", () => {
 
 /**
  * Toolsets fail closed: without an OAuth provider (the neutral env clears every
- * `MCP_USE_OAUTH_*`) no selection that does not NAME `camunda7:admin` may list
+ * `MCP_USE_OAUTH_*`) no selection that does not NAME `engine:admin` may list
  * an admin-only tool: not unset, not an empty or unknown suffix.
  */
 describe("fail-closed toolsets", () => {
-  it.each([undefined, "all", "camunda7:", "camunda7:bogus,analytics:,notes"])(
+  it.each([undefined, "all", "engine:", "engine:bogus,analytics:,notes"])(
     "MCP_ACTIVE_MODULES=%j lists no admin-only tool",
     async (activeModules) => {
       const { app, client, tools } = await bootAndList(activeModules)
       try {
         const names = tools.map((t) => t.name)
-        expect(names).toContain("camunda7_list_process_instances")
-        for (const tool of CAMUNDA7_ADMIN_ONLY_TOOLS) {
+        expect(names).toContain("engine_list_process_instances")
+        for (const tool of ENGINE_ADMIN_ONLY_TOOLS) {
           expect(names, `${tool} must not be listed`).not.toContain(tool)
         }
       } finally {

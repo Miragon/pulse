@@ -129,7 +129,7 @@ describe("the cross-engine landscape", () => {
     expect(calm.querySelector("[class*='border-danger']")).toBeNull()
   })
 
-  // Decision f: as camunda7's engine tiles above this table edge them.
+  // Decision f: as the engine module's engine tiles above this table edge them.
   it("edges an engine's jobs without retries in danger, like its open incidents", () => {
     renderIn("de", EngineLandscapeWidget, {
       ...LANDSCAPE,

@@ -81,7 +81,7 @@ describe("analytics_show_period_compare PromQL", () => {
     expect(queries).toHaveLength(12)
     expect(queries.slice(0, 6).every((q) => q.includes(windowA))).toBe(true)
     expect(queries.slice(6).every((q) => q.includes(windowB))).toBe(true)
-    const started = `camunda_process_instance_started_total{process_definition_key="order",${fleet}}`
+    const started = `engine_process_instance_started_total{process_definition_key="order",${fleet}}`
     expect(queries[0]).toBe(`sum(${increaseIn(started, { range: "86400s", at: atA })})`)
     expect(queries[6]).toBe(`sum(${increaseIn(started, { range: "172800s", at: atB })})`)
   })

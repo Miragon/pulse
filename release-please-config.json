@@ -16,18 +16,18 @@
         { "type": "json", "path": "package.json", "jsonpath": "$.version" },
         {
           "type": "json",
-          "path": "apps/mcp-server-camunda7/package.json",
+          "path": "apps/mcp-server/package.json",
           "jsonpath": "$.version"
         },
         { "type": "json", "path": "apps/vscode/package.json", "jsonpath": "$.version" },
         {
           "type": "json",
-          "path": "packages/connectors/camunda/camunda7-client/package.json",
+          "path": "packages/connectors/engine/engine-client/package.json",
           "jsonpath": "$.version"
         },
         {
           "type": "generic",
-          "path": "packages/connectors/camunda/camunda7-client/src/hey-api.ts"
+          "path": "packages/connectors/engine/engine-client/src/hey-api.ts"
         },
         {
           "type": "json",
@@ -51,7 +51,7 @@
         },
         {
           "type": "json",
-          "path": "packages/connectors/camunda/camunda7-connector/package.json",
+          "path": "packages/connectors/engine/engine-connector/package.json",
           "jsonpath": "$.version"
         },
         {
@@ -67,7 +67,7 @@
         {
           "type": "json",
           "path": "templates/composed-server/server/package.json",
-          "jsonpath": "$.dependencies['@miragon/pulse-camunda7-connector']"
+          "jsonpath": "$.dependencies['@miragon/pulse-engine-connector']"
         },
         {
           "type": "json",

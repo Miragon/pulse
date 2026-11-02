@@ -21,7 +21,7 @@ export interface NameRequest {
 
 export type NameLookup = (keys: Iterable<string>, request?: NameRequest) => Promise<NameIndex>
 
-/** A lookup that knows no names: what a server without the camunda7 module has. */
+/** A lookup that knows no names: what a server without the engine module has. */
 export const NO_NAMES: NameLookup = () => Promise.resolve({})
 
 export interface NameLookupOptions {

@@ -45,11 +45,11 @@ bundle build). **`mcp-use` is exactly pinned**: pin it to `mcp-use@2.12.2` in yo
   e.g. around a deployment), `show_version_compare`, `show_engine_compare`,
   `show_engine_landscape` and `show_bpmn_heatmap`. Each renders a view (`src/widgets/`) and
   returns its figures to the model as compact JSON (the heatmap: a summary).
-- **`engine_health`** (`src/tools/`) returns JSON without a view: a live WIP, incidents, backlog
+- **`analytics_engine_health`** (`src/tools/`) returns JSON without a view: a live WIP, incidents, backlog
   and alerts snapshot. The incidents open right now and their instances are the
-  [camunda7 module](../../camunda/camunda7-connector)'s.
+  [engine module](../../engine/engine-connector)'s.
 - **Configured engines only:** analytics reads exactly the server's configured engine ids:
-  `createPlugin({ engineIds })` (a composed server injects camunda7's engines through
+  `createPlugin({ engineIds })` (a composed server injects the engine module's engines through
   `analyticsModule`'s shared `engineIds`), else `ANALYTICS_ENGINE_IDS` for a standalone boot.
   Without either, every analytics tool refuses (fail-closed) instead of reading every `engine_id`
   a shared Prometheus holds. Every tool takes an optional `engine` filter (one configured id or a
@@ -74,12 +74,12 @@ invert the per-process truth. Two consequences run through the module:
   sides is what makes a delta attributable to the engine; the landscape's `sharedProcessKeys`
   lists the definitions that qualify.
 
-These tools read the `camunda_*` series emitted by the
+These tools read the `engine_*` series emitted by the
 [engine metrics plugin](../../../../engine-plugins). Per-instance drill-down (search by variable) is **not**
-metric-backed: use the `camunda7_query_historic_*` tools in the [camunda7 module](../../camunda/camunda7-connector).
+metric-backed: use the `engine_query_historic_*` tools in the [engine module](../../engine/engine-connector).
 
 The BPMN heatmap gets its diagram XML via an injected `fetchBpmnXml` shared resource (wired by the
-host app from the camunda7 module), and the dashboard and the landscape read
+host app from the engine module), and the dashboard and the landscape read
 the process and activity names behind their ids through the same lookup (`bpmn-name-lookup.ts`).
 This package has **no** engine-SDK dependency: the heatmap
 degrades gracefully without it and the views show ids. `fetchBpmnXml(key, engineId?)` reads on the

@@ -19,7 +19,7 @@ function client(reporting: string[] = []): PrometheusClient {
   return {
     instant: vi.fn((q: string): Promise<PromSample[]> =>
       Promise.resolve(
-        q.includes("camunda_jobs_executable")
+        q.includes("engine_jobs_executable")
           ? reporting.map((engine_id) => ({ metric: { engine_id }, value: 1 }))
           : [],
       ),
@@ -77,7 +77,7 @@ describe("reportingEngines — which engines in scope send metrics", () => {
 
   it("is empty when no engine in scope reports, and skips a series without an engine id", async () => {
     const instant = vi.fn((q: string): Promise<PromSample[]> =>
-      Promise.resolve(q.includes("camunda_jobs_executable") ? [{ metric: {}, value: 1 }] : []),
+      Promise.resolve(q.includes("engine_jobs_executable") ? [{ metric: {}, value: 1 }] : []),
     )
     expect((await dashboardData({ instant }, { period: "7d" })).reportingEngines).toEqual([])
     expect((await dashboardData(client(), { period: "7d" })).reportingEngines).toEqual([])

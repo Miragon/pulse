@@ -9,7 +9,7 @@ import { REPO_ROOT, scanSources } from "./source-scan.mjs"
  * ...) and PULSE_CLI_* belongs to the CLI. The typo warner watches the prefix of every known
  * variable, so ONE server name under PULSE_ would make every server in a shared environment (a
  * devcontainer, a Compose file, a shell that also runs the CLI) warn about both. Name a server
- * setting in its own family instead (CAMUNDA_*, PROMETHEUS_*, ANALYTICS_*, MCP_*). This guard
+ * setting in its own family instead (ENGINE_*, ENGINES_*, PROMETHEUS_*, ANALYTICS_*, MCP_*). This guard
  * reads the server's sources (every package and every MCP server app) and both `.env.example`
  * files; the MCP server app's `test/setup.test.ts` holds the variables the boot declares to it.
  */

@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 Guidance for AI agents working in this repository: a composed MCP server built
-from the published `@miragon/pulse-*` modules (camunda7 BPM operations, Prometheus
+from the published `@miragon/pulse-*` modules (engine BPM operations, Prometheus
 process analytics) plus your own custom modules. `README.md` is the quick tour
 for humans; this file plus the skills carry the architecture rules.
 
@@ -109,9 +109,9 @@ external infrastructure.
    reads `MCP_USE_OAUTH_*`) a module without a suffix runs its
    read-only floor, an empty/unknown suffix falls back to it, and an
    admin-like toolset is only reachable by naming it. Gate a write by the
-   module's toolset rule at registration (camunda7's
+   module's toolset rule at registration (the engine module's
    `withToolsetFilter`/`isToolInToolset` in
-   `node_modules/@miragon/pulse-camunda7-connector/src/lib/toolsets.ts`), never
+   `node_modules/@miragon/pulse-engine-connector/src/lib/toolsets.ts`), never
    on a name compare or on `toolset === undefined`, both of which fail open.
    Details: `create-module` Step 5.
 
@@ -151,7 +151,7 @@ the Tailwind scan in one shot.
   pattern (module definition, registrar tool, widget tool + data feed, widget,
   module test, widget test under `TestViewHost`). Copy it; don't invent a new shape.
 - The published Pulse modules ship their **sources**: read
-  `node_modules/@miragon/pulse-camunda7-connector/src/` and
+  `node_modules/@miragon/pulse-engine-connector/src/` and
   `node_modules/@miragon/pulse-analytics-connector/src/` for the reference
   implementations of anything the notes module doesn't cover (toolsets, paged
   lists, BPMN widgets).

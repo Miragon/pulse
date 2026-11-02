@@ -6,7 +6,7 @@ import path from "node:path"
 import { afterEach, describe, it } from "node:test"
 import { fileURLToPath } from "node:url"
 import { REPO_ROOT } from "./source-scan.mjs"
-import { fullSurface } from "./tool-surface.mjs"
+import { fullSurface, metricVocabulary } from "./tool-surface.mjs"
 
 /**
  * Docs and skills say what the code does (#345). A skill an agent follows
@@ -159,21 +159,40 @@ function backticked(file, root = REPO_ROOT) {
 
 const where = (ref) => `${ref.file}:${ref.line} \`${ref.token}\``
 
+/**
+ * A backticked token shaped like a tool: a module prefix, a `show_`, a `_data` feed. A metric
+ * name or label of the metrics contract (`engine_jobs_failed`, `engine_id`) shares the engine
+ * module's prefix and is none; every other `engine_…` token still has to be a tool.
+ */
+const METRIC_VOCABULARY = metricVocabulary()
+const looksLikeTool = (token) =>
+  /^[a-z0-9]+(?:_[a-z0-9]+)+$/.test(token) &&
+  !METRIC_VOCABULARY.has(token) &&
+  (/^(?:engine|analytics)_/.test(token) || /(?:^|_)show_/.test(token) || token.endsWith("_data"))
+
 describe("tool names in the docs", () => {
   const tools = new Set(fullSurface().map((tool) => tool.name))
   // A short form (`show_dashboard`, `bpmn_heatmap_data`) names the module's tool.
   const known = (name) =>
-    tools.has(name) || tools.has(`camunda7_${name}`) || tools.has(`analytics_${name}`)
-  const looksLikeTool = (token) =>
-    /^[a-z0-9]+(?:_[a-z0-9]+)+$/.test(token) &&
-    (/^(?:camunda7|analytics)_/.test(token) ||
-      /(?:^|_)show_/.test(token) ||
-      token.endsWith("_data"))
+    tools.has(name) || tools.has(`engine_${name}`) || tools.has(`analytics_${name}`)
 
   // The template's docs also name its own module's tools (`notes_show_notes`),
   // which its own suite checks; here only the shipped modules' names count.
   const checked = (ref) =>
-    ref.file.startsWith("templates/") ? /^(?:camunda7|analytics)_/.test(ref.token) : true
+    ref.file.startsWith("templates/") ? /^(?:engine|analytics)_/.test(ref.token) : true
+
+  it("reads a metric name or label as no tool, and every other engine_ token as one", () => {
+    for (const token of [
+      "engine_id",
+      "engine_jobs_failed",
+      "engine_usertask_duration_milliseconds_sum",
+    ]) {
+      assert.equal(looksLikeTool(token), false, token)
+    }
+    for (const token of ["engine_jobs_faild", "engine_stale_data", "engine_open_cockpit"]) {
+      assert.equal(looksLikeTool(token), true, token)
+    }
+  })
 
   it("names only tools the server registers", () => {
     const stale = docFiles
@@ -291,6 +310,7 @@ const DOCS_BUDGETS = {
   "mcp/architecture.md": 150,
   "mcp/developer.md": 80,
   "mcp/operations.md": 120,
+  "mcp/upgrading.md": 120,
   "mcp/usage.md": 150,
   "mcp/reference.md": 160,
   // The CLI's pages (docs/cli/).
@@ -374,11 +394,11 @@ describe("what the guard reads", () => {
     "docs/cli/index.md",
     "docs/vscode/getting-started.md",
     "packages/core/widget-shell/README.md",
-    "packages/connectors/camunda/camunda7-domain/README.md",
-    "packages/connectors/camunda/camunda7-domain/CLAUDE.md",
-    "packages/connectors/camunda/camunda7-domain/AGENTS.md",
-    "apps/mcp-server-camunda7/README.md",
-    "apps/mcp-server-camunda7/test-host/README.md",
+    "packages/connectors/engine/engine-domain/README.md",
+    "packages/connectors/engine/engine-domain/CLAUDE.md",
+    "packages/connectors/engine/engine-domain/AGENTS.md",
+    "apps/mcp-server/README.md",
+    "apps/mcp-server/test-host/README.md",
     "apps/cli/README.md",
     "apps/cli/CLAUDE.md",
     "apps/vscode/AGENTS.md",
@@ -407,7 +427,7 @@ describe("what the guard reads", () => {
     "apps/vscode/node_modules/foo/README.md",
     "packages/core/widget-shell/node_modules/x/README.md",
     "packages/core/widget-shell/src/notes.md",
-    "packages/connectors/camunda/camunda7-connector/src/messages/GLOSSARY.md",
+    "packages/connectors/engine/engine-connector/src/messages/GLOSSARY.md",
     ".claude/skills/shadcn/rules/forms.md",
     "templates/composed-server/server/README.md",
     "engine-plugins/README.md",
@@ -428,7 +448,7 @@ describe("what the guard reads", () => {
         "apps/vscode/AGENTS.md",
         "apps/vscode/CLAUDE.md",
         "apps/cli/README.md",
-        "packages/connectors/camunda/camunda7-domain/AGENTS.md",
+        "packages/connectors/engine/engine-domain/AGENTS.md",
         ".claude/skills/add-bpm-feature/SKILL.md",
         ".claude/skills/shadcn/SKILL.md",
         ".claude/skills/create-ticket/SKILL.md",
@@ -439,7 +459,7 @@ describe("what the guard reads", () => {
         "templates/composed-server/.claude/skills/add-widget/SKILL.md",
         "apps/vscode/AGENTS.md",
         "apps/vscode/CLAUDE.md",
-        "packages/connectors/camunda/camunda7-domain/AGENTS.md",
+        "packages/connectors/engine/engine-domain/AGENTS.md",
       ],
     )
   })
@@ -448,7 +468,7 @@ describe("what the guard reads", () => {
     const nested = [
       "apps/cli/CLAUDE.md",
       "apps/vscode/AGENTS.md",
-      "packages/connectors/camunda/camunda7-domain/AGENTS.md",
+      "packages/connectors/engine/engine-domain/AGENTS.md",
       "packages/core/widget-shell/CLAUDE.md",
     ]
     assert.deepEqual(nested.filter(isNestedAgentFile), nested)
@@ -586,8 +606,8 @@ describe("what the guard reads", () => {
       "CLAUDE.md",
       "docs/index.md",
       "packages/core/widget-shell/README.md",
-      "apps/mcp-server-camunda7/README.md",
-      "apps/mcp-server-camunda7/test-host/README.md",
+      "apps/mcp-server/README.md",
+      "apps/mcp-server/test-host/README.md",
       "templates/composed-server/CLAUDE.md",
       ".claude/skills/add-bpm-feature/SKILL.md",
       "templates/composed-server/.claude/skills/setup-server/SKILL.md",

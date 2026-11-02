@@ -59,6 +59,7 @@ export {
   createComposedServer,
   DEFAULT_DRAIN_TIMEOUT_MS,
   DEFAULT_REQUEST_TIMEOUT_MS,
+  retiredEnvVars,
   type ComposedServer,
   type ComposedServerInfo,
   type ComposedServerOptions,

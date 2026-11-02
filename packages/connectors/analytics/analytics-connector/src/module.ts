@@ -67,7 +67,7 @@ const analyticsConfigSchema = z.object({
 
 interface AnalyticsModuleShared {
   fetchBpmnXml?: FetchBpmnXml
-  /** camunda7's configured engines; wins over `ANALYTICS_ENGINE_IDS`. */
+  /** The engine module's configured engines; wins over `ANALYTICS_ENGINE_IDS`. */
   engineIds?: readonly string[]
 }
 

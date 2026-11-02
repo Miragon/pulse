@@ -23,7 +23,7 @@ export interface HealthAlert {
 // An engine-less alert counts only when it is ours: in a shared Prometheus the others belong to somebody else.
 export const ENGINE_ALERT_NAME_PATTERN = "CibSeven.+"
 
-// Carried in every result so no reader mistakes this verdict for camunda7_open_cockpit's overview: the two may disagree.
+// Carried in every result so no reader mistakes this verdict for engine_open_cockpit's overview: the two may disagree.
 export const ENGINE_HEALTH_STATUS_RULE =
   "From Prometheus, over the engines in scope: unknown when none of them reports metrics; critical only while a severity=critical alert fires for them (fleet-wide also an engine-less CibSeven* alert); degraded with any such firing alert, failed job, open incident or an engine in scope that reports nothing; else healthy."
 

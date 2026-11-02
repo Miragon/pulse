@@ -195,7 +195,7 @@ services:
 
   # Pulse server (Node). Opt-in via the `full` profile so the
   # default `docker compose up` brings up infra only, leaving port 8400
-  # free for a locally-run server (`pnpm -F @miragon/pulse-mcp-server-camunda7 dev`).
+  # free for a locally-run server (`pnpm -F @miragon/pulse-mcp-server dev`).
   # Use: docker compose --profile full up -d
   mcp-server:
     profiles: [full]
@@ -209,31 +209,31 @@ services:
       # No OAuth provider and no toolset suffix ⇒ every module boots READ-ONLY (the
       # boot log names the effective toolsets). To exercise write paths, name
       # the toolsets explicitly — e.g. add
-      #   - MCP_ACTIVE_MODULES=camunda7:operations,analytics
-      # (camunda7:admin for delete/modify/migrations/signals; deployments also
-      # need CAMUNDA_ALLOW_DEPLOYMENTS=true). Safe here only because the port is
+      #   - MCP_ACTIVE_MODULES=engine:operations,analytics
+      # (engine:admin for delete/modify/migrations/signals; deployments also
+      # need ENGINE_ALLOW_DEPLOYMENTS=true). Safe here only because the port is
       # bound to 127.0.0.1 — never widen an unauthenticated server reachable
       # from a network.
-      # Pass either a single CAMUNDA_BASE_URL (single engine) OR
-      # CAMUNDA_ENGINES_JSON with a list. Below: single-engine default; for
-      # multi-engine override by exporting CAMUNDA_ENGINES_JSON in the host
+      # Pass either a single ENGINE_BASE_URL (single engine) OR
+      # ENGINES_JSON with a list. Below: single-engine default; for
+      # multi-engine override by exporting ENGINES_JSON in the host
       # shell before `docker compose up`, or by overriding via a compose
       # override file.
-      - CAMUNDA_BASE_URL=http://cibseven:8410/engine-rest
+      - ENGINE_BASE_URL=http://cibseven:8410/engine-rest
       # Must stay in sync with the cibseven service's ENGINE_ID — that value is
       # the `engine_id` metric label every analytics query is scoped to. A
       # mismatch is silent: all analytics for the engine come back empty and its
       # health reads `unknown`.
       # Analytics reads only the configured engines, so this single-engine
-      # default leaves prod-b's metrics out until CAMUNDA_ENGINES_JSON lists it.
-      - CAMUNDA_ENGINE_ID=prod-a
+      # default leaves prod-b's metrics out until ENGINES_JSON lists it.
+      - ENGINE_ID=prod-a
       # The engine is CIB seven: without the flavor the server takes it for
       # Camunda 7 and puts Camunda 7 routes on the /webapp cockpit below.
-      - CAMUNDA_ENGINE_FLAVOR=cibseven
-      - CAMUNDA_COCKPIT_URL=http://localhost:8410/webapp
-      - CAMUNDA_AUTH_TYPE=basic
-      - CAMUNDA_USERNAME=demo
-      - CAMUNDA_PASSWORD=demo
+      - ENGINE_FLAVOR=cibseven
+      - ENGINE_COCKPIT_URL=http://localhost:8410/webapp
+      - ENGINE_AUTH_TYPE=basic
+      - ENGINE_USERNAME=demo
+      - ENGINE_PASSWORD=demo
       - PROMETHEUS_URL=http://prometheus:9090
     depends_on:
       cibseven:

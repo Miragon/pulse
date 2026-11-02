@@ -1,15 +1,15 @@
 ---
 name: add-bpm-feature
-description: Step-by-step house pattern for adding a new BPM operations tool, widget tool, or widget to the camunda7 module (`packages/connectors/camunda/camunda7-connector` + `packages/connectors/camunda/camunda7-client`). Use whenever adding or changing Camunda 7 / CIB seven tools ("add a tool to suspend jobs", "expose X from the engine REST API"), input schemas, cockpit routes, `*_data` feeds, or React widgets in the cockpit. Takes precedence over generic mcp-use examples.
+description: Step-by-step house pattern for adding a new BPM operations tool, widget tool, or widget to the engine module (`packages/connectors/engine/engine-connector` + `packages/connectors/engine/engine-client`). Use whenever adding or changing Camunda 7 / CIB seven tools ("add a tool to suspend jobs", "expose X from the engine REST API"), input schemas, cockpit routes, `*_data` feeds, or React widgets in the cockpit. Takes precedence over generic mcp-use examples.
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 ---
 
-# add-bpm-feature — new tool/widget in the camunda7 module
+# add-bpm-feature — new tool/widget in the engine module
 
-The camunda7 module never registers operations tools with raw `server.tool()`. Tools go
+The engine module never registers operations tools with raw `server.tool()`. Tools go
 through the registrar (`createToolRegistrar` from `@miragon/pulse-widget-shell/server`);
 engine access goes through `withEngine`/`resolveEngine` (per-call `engine` override >
-`CAMUNDA_DEFAULT_ENGINE` > the only configured engine). A view is registered in three places (CLAUDE.md
+`ENGINE_DEFAULT` > the only configured engine). A view is registered in three places (CLAUDE.md
 invariant 3). Follow the steps for the path you need.
 
 ## Step 0 — pick the render path
@@ -21,9 +21,9 @@ invariant 3). Follow the steps for the path you need.
 | App-only JSON for in-widget refresh/nav                          | `*_data` feed in `src/widget-tools/data-feeds.ts`, `...appOnly` (Step 4)              |
 | An answer the CLI's workflow commands give too (inspect, status) | a composite on `@miragon/pulse-engine-core` over `src/lib/engine-port.ts` (Step 2b)   |
 
-## Step 1 — input schema in camunda7-client
+## Step 1 — input schema in engine-client
 
-Add the Zod input schema to `packages/connectors/camunda/camunda7-client/src/schemas/<domain>.ts` and export
+Add the Zod input schema to `packages/connectors/engine/engine-client/src/schemas/<domain>.ts` and export
 it from `src/schemas/index.ts`. Existing style (from `schemas/process-instances.ts`):
 
 ```ts
@@ -42,17 +42,17 @@ export const listProcessInstancesInput = z.object({
 **Descriptions.** Describe a field only where the tool gives it its own meaning: what `false`
 or an omitted value selects when no shared rule says it (`withIncidents`: open only), a unit or
 format the name does not say (`retryTimeout`: in milliseconds), an id that names another object
-than its name suggests, or which views take it (`camunda7_open_cockpit`). A description that
+than its name suggests, or which views take it (`engine_open_cockpit`). A description that
 restates the name or the tool description goes. What a parameter means on every tool
 (`engine`, paging and sorting, `processDefinitionKey`/`processDefinitionId`, `activityId`,
 `incidentType`, `…Like`, the boolean filters, the date bounds, the variable shape) is said once
-in `camunda7Instructions` (`packages/connectors/camunda/camunda7-connector/src/instructions.ts`),
+in `engineInstructions` (`packages/connectors/engine/engine-connector/src/instructions.ts`),
 and the paging, sorting, `…Like`, flag, date and variable-map helpers in `schemas/shared.ts`
 carry no description of their own, so a field built from them needs none (`flagParam` and
 `engineDateParam` take one where the field means more; `wholeVariableParam` keeps its own). A
 new shared meaning goes into the instructions, briefly, not onto each tool. A safety rule stays
 at the write it guards (the cut-value rule on the variable writes), where a host that drops the
-server instructions still shows it. `apps/mcp-server-camunda7/test/tools-list.golden.test.ts`
+server instructions still shows it. `apps/mcp-server/test/tools-list.golden.test.ts`
 fails when one description repeats on more than two model-visible tools.
 
 A list/query tool pages with the shared params from
@@ -60,7 +60,7 @@ A list/query tool pages with the shared params from
 hand-rolled `maxResults`: `src/tools/list-tools.test.ts` treats every registrar tool that
 takes `maxResults` as a list and fails it without the cap or the envelope (Step 2). The
 REST calls themselves use the generated SDK (imported from
-`@miragon/pulse-camunda7-client/sdk`) — if the endpoint is missing there, the OpenAPI spec
+`@miragon/pulse-engine-client/sdk`) — if the endpoint is missing there, the OpenAPI spec
 changed and you need `pnpm generate`, not a hand-written fetch.
 
 ### Parameter naming guide
@@ -70,23 +70,23 @@ Inputs are STRICT (the registrar is always strict; raw `server.tool()` registrat
 error listing the valid keys. So one name per concept across every tool: a model that learned
 `assignee` on one tool must not be refused it on the next. Renames ship without aliases.
 
-| Concept                  | Name                                                                                                                                                                                                                                                     |
-| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Process definition       | `processDefinitionKey` (all versions), `processDefinitionId` (one version); never bare `key`                                                                                                                                                             |
-| Entity ids               | `<entity>Id` — `processInstanceId`, `deploymentId`, `jobId`, `activityId` (analytics too); never bare `id`, never `elementId`                                                                                                                            |
-| Several values           | `<name>In`, an array (`processDefinitionKeyIn`); merged with the single form via `engineKeyList`                                                                                                                                                         |
-| User filter              | `assignee` (the user a task is assigned to); a write that sets a user takes `userId`                                                                                                                                                                     |
-| Business key / substring | `businessKey` exact, `businessKeyLike`/`nameLike` substring via `likeParam()`: `engineLike` wraps a `%`-less value                                                                                                                                       |
-| Time bounds              | `<event>After`/`<event>Before` (`startedAfter`, `finishedBefore`, `incidentTimestampAfter`) via `engineDateParam()`: ISO 8601 in, `toEngineDate` out                                                                                                     |
-| Boolean filters          | `flagParam()` + `complementaryFlags` (active/suspended, …) or `trueOnly`: the engine IGNORES `false` (never sent); a both/neither pair is refused; a new `complementaryFlags` pair is named in `camunda7Instructions` (`instructions.test.ts` checks it) |
-| Paging / result size     | `firstResult` + `maxResults` from `firstResultParam` + `maxResultsParam` (above; also for a top-N cap: never `limit`)                                                                                                                                    |
-| Sorting                  | `sortBy` + `sortOrder`, sent as a pair by `engineSorting`                                                                                                                                                                                                |
+| Concept                  | Name                                                                                                                                                                                                                                                   |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Process definition       | `processDefinitionKey` (all versions), `processDefinitionId` (one version); never bare `key`                                                                                                                                                           |
+| Entity ids               | `<entity>Id` — `processInstanceId`, `deploymentId`, `jobId`, `activityId` (analytics too); never bare `id`, never `elementId`                                                                                                                          |
+| Several values           | `<name>In`, an array (`processDefinitionKeyIn`); merged with the single form via `engineKeyList`                                                                                                                                                       |
+| User filter              | `assignee` (the user a task is assigned to); a write that sets a user takes `userId`                                                                                                                                                                   |
+| Business key / substring | `businessKey` exact, `businessKeyLike`/`nameLike` substring via `likeParam()`: `engineLike` wraps a `%`-less value                                                                                                                                     |
+| Time bounds              | `<event>After`/`<event>Before` (`startedAfter`, `finishedBefore`, `incidentTimestampAfter`) via `engineDateParam()`: ISO 8601 in, `toEngineDate` out                                                                                                   |
+| Boolean filters          | `flagParam()` + `complementaryFlags` (active/suspended, …) or `trueOnly`: the engine IGNORES `false` (never sent); a both/neither pair is refused; a new `complementaryFlags` pair is named in `engineInstructions` (`instructions.test.ts` checks it) |
+| Paging / result size     | `firstResult` + `maxResults` from `firstResultParam` + `maxResultsParam` (above; also for a top-N cap: never `limit`)                                                                                                                                  |
+| Sorting                  | `sortBy` + `sortOrder`, sent as a pair by `engineSorting`                                                                                                                                                                                              |
 
 The engine's own query names may differ (`taskAssignee`, `processInstanceBusinessKey`,
 `withIncident`): the handler maps them, the schema keeps the guide's name. Every
 filter a tool advertises is pinned on the wire in `src/tools/filters.wire.test.ts`
 (page query AND `/count`); a retired spelling (`key`, `id`, `limit`, `elementId`, …) on
-any module tool fails `apps/mcp-server-camunda7/test/strict-input.e2e.test.ts`; a tool
+any module tool fails `apps/mcp-server/test/strict-input.e2e.test.ts`; a tool
 description, server-instructions text or server prompt that quotes a tool's parameter is
 checked against its schema in the admin golden by `scripts/tool-name-refs.test.mjs` (so a new
 tool's golden is refreshed first; see Step 5); write quoted arguments in call notation with
@@ -96,21 +96,21 @@ never quote parameters: they pass typed `ids` (see Step 4).
 
 ## Step 2 — register the tool
 
-Add the tool in `packages/connectors/camunda/camunda7-connector/src/tools/<domain>.ts`. Reference template —
-`camunda7_list_process_instances` from `src/tools/process-instances.ts`:
+Add the tool in `packages/connectors/engine/engine-connector/src/tools/<domain>.ts`. Reference template —
+`engine_list_process_instances` from `src/tools/process-instances.ts`:
 
 ```ts
-import { listProcessInstancesInput } from "@miragon/pulse-camunda7-client/schemas"
+import { listProcessInstancesInput } from "@miragon/pulse-engine-client/schemas"
 import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
-import { complementaryFlags, engineLike, engineSorting } from "@miragon/pulse-camunda7-client"
-import { getProcessInstances, getProcessInstancesCount } from "@miragon/pulse-camunda7-client/sdk"
+import { complementaryFlags, engineLike, engineSorting } from "@miragon/pulse-engine-client"
+import { getProcessInstances, getProcessInstancesCount } from "@miragon/pulse-engine-client/sdk"
 import { paginatedListOutput, toPaginatedList } from "../lib/pagination.js"
 import type { EngineRegistry } from "../lib/resolve-engine.js"
 import { engineParamShape, withEngine } from "../lib/with-engine.js"
 
 export function registerProcessInstanceTools(register: ToolRegistrar<EngineRegistry>) {
   register({
-    name: "camunda7_list_process_instances",
+    name: "engine_list_process_instances",
     category: "process-instances",
     description: "List running process instances.",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
@@ -154,15 +154,15 @@ Non-negotiables:
   `engine` override.
 - `handler` is wrapped in `withEngine(...)` — never construct, cache, or import a client
   directly; `withEngine` resolves the engine from the registry per call.
-- Tool names are `camunda7_<verb>_<noun>` in snake_case.
+- Tool names are `engine_<verb>_<noun>` in snake_case.
 - Write tools that only flip state return a small `{ success: true, … }` object instead
   of the raw (often empty) REST response.
 - Destructive/admin-grade tools (delete, modify, suspension, deployments, migrations,
   batches, engine-wide broadcasts like signals, the external-task worker protocol) and
-  reads that only feed an admin write (`camunda7_get_batch`,
-  `camunda7_get_activity_instance_tree`) must
+  reads that only feed an admin write (`engine_get_batch`,
+  `engine_get_activity_instance_tree`) must
   be added to `ADMIN_ONLY_TOOLS` in `src/lib/toolsets.ts` so the
-  `camunda7:read-only|operations|admin` toolset filtering stays correct — `read-only`
+  `engine:read-only|operations|admin` toolset filtering stays correct — `read-only`
   membership is derived from `readOnlyHint: true`. `src/lib/toolsets.test.ts` enforces
   the rule structurally over every registrar tool (`destructiveHint` ⇒ admin-only,
   read-only ⇒ `readOnlyHint`, every write states `destructiveHint` explicitly), and
@@ -173,8 +173,8 @@ Non-negotiables:
   `operations` (OAuth); `admin` is only ever reached by naming it. So an `operations`
   tool is on for every authenticated default deployment and an `admin` tool for none —
   place a new write deliberately. A tool that runs code inside the engine
-  (`camunda7_create_deployment`) additionally sits behind its own strict env opt-in
-  (`CAMUNDA_ALLOW_DEPLOYMENTS=true`) and is not registered without it; follow that
+  (`engine_create_deployment`) additionally sits behind its own strict env opt-in
+  (`ENGINE_ALLOW_DEPLOYMENTS=true`) and is not registered without it; follow that
   pattern for anything comparable instead of trusting the toolset alone.
 
 ### Annotation conventions
@@ -190,14 +190,14 @@ Non-negotiables:
 MCP reads an ABSENT `destructiveHint` as `true`, so every write states it — `false` is a
 deliberate claim, not a default. `idempotentHint: true` marks writes that repeat to the
 same state. Every engine tool carries `openWorldHint: true` (it talks to an external
-engine); a tool that only reads the server's own config (`camunda7_list_engines`) says
+engine); a tool that only reads the server's own config (`engine_list_engines`) says
 `openWorldHint: false`.
 
 ## Step 2b — a read composite on engine-core
 
 A question the CLI answers too (where an instance waits, how an engine is doing) runs on
 `@miragon/pulse-engine-core`, the workflow domain both share, never on a second copy here.
-The pattern is `camunda7_inspect_process_instance` and `camunda7_engine_status`
+The pattern is `engine_inspect_process_instance` and `engine_status`
 (`src/lib/composites.ts`, registered like any registrar tool):
 
 - Map every operation the composite sends in `READS` of `src/lib/engine-port.ts`, one typed
@@ -217,11 +217,11 @@ The pattern is `camunda7_inspect_process_instance` and `camunda7_engine_status`
 
 Only when you created a new `src/tools/<domain>.ts`: add
 `registerYourDomainTools(register)` to `registerTools` in
-`packages/connectors/camunda/camunda7-connector/src/tools/index.ts`, mirroring the existing calls.
+`packages/connectors/engine/engine-connector/src/tools/index.ts`, mirroring the existing calls.
 
 ## Step 4 — widget path (only for UI features)
 
-Widget components live in `packages/connectors/camunda/camunda7-connector/src/widgets/` and receive their data as
+Widget components live in `packages/connectors/engine/engine-connector/src/widgets/` and receive their data as
 a `data` prop. Compose them from the design kit `@miragon/pulse-ui` and the view runtime
 `@miragon/pulse-widget-shell/widgets` (pulse-ui holds what touches no host: primitives,
 components, tone maps, `cn`, the formatters, `Icon`, the table cells; widget-shell holds what
@@ -365,21 +365,21 @@ these primitives:
    covers and the model context read the payload's echo (`data.filters`), never the
    request's args (reference: the instance list's `listFilters`).
 
-camunda7 has ONE view, `camunda7_open_cockpit` → `CockpitApp` (CLAUDE.md invariant 3). New
+The engine module has ONE view, `engine_open_cockpit` → `CockpitApp` (CLAUDE.md invariant 3). New
 UI is a **cockpit route**, never a second view tool; a route touches five places, and the
 exhaustive maps fail to compile until each has it:
 
 1. `src/view-models.ts`: a section in `CockpitView` with the ids the route reads, and its
    data type in `CockpitStartData`.
 2. `src/data/`: ONE builder for the route's data and its read in `src/data/route-reads.ts`,
-   which the route's `*_data` feed (`src/widget-tools/data-feeds.ts`, a `CAMUNDA7_*_DATA`
+   which the route's `*_data` feed (`src/widget-tools/data-feeds.ts`, a `ENGINE_*_DATA`
    constant in `src/tool-names.ts`) and the start view share.
 3. `src/widgets/cockpit-app/routes.tsx`: a case in `CockpitRoute` that renders the
    route's widget with `seedOf(seed, section)` as its `data` and the route's `engine` and
    ids as required props. A composed view (a dashboard,
    the process detail) is ONE component that composes its widgets in a `ViewStack`.
 4. `src/widget-tools/cockpit.ts`: an entry in `START_VIEW_PARAMS` (the ids the route
-   `needs` and also `takes`), so `camunda7_open_cockpit` can open on it.
+   `needs` and also `takes`), so `engine_open_cockpit` can open on it.
 5. `src/data/cockpit-start.ts`: the route's start data in `buildCockpitStart` (its read
    with the first page's args) and its facts in `cockpitFacts`.
 
@@ -392,10 +392,10 @@ unknown, never 0), engine text clipped, never XML. A route needs an emitter in t
 too: a `DrillButton`, a KPI cell's `onClick`, or a head section in
 `src/widgets/cockpit-app/app.tsx`, each through `useNav()` with a `NavIntent`
 (`src/widgets/navigation.ts`) that `intentToView` (`src/widgets/nav-core.ts`) maps onto the
-route. A route that nothing emits and `camunda7_open_cockpit` cannot open is dead.
+route. A route that nothing emits and `engine_open_cockpit` cannot open is dead.
 
-`apps/mcp-server-camunda7/test/view-registry.test.ts` holds the view registry
-(`apps/mcp-server-camunda7/src/ui/view-registry.ts`, which spreads `camunda7Views` from
+`apps/mcp-server/test/view-registry.test.ts` holds the view registry
+(`apps/mcp-server/src/ui/view-registry.ts`, which spreads `engineViews` from
 `src/widgets/index.ts`) to the view-bound tools of the tools/list goldens.
 
 `src/widget-tools.ts` wires the cockpit tool (`src/widget-tools/cockpit.ts`), the `*_data`
@@ -405,9 +405,9 @@ uses `server.tool()` directly:
 - Every widget-path tool (the cockpit AND each feed) declares
   `inputSchema: strictToolInput({ … })` (from `@miragon/pulse-widget-shell/server`) — never
   a bare `z.object`, which strips an unknown key silently;
-  `apps/mcp-server-camunda7/test/strict-input.e2e.test.ts` refuses any module tool that
+  `apps/mcp-server/test/strict-input.e2e.test.ts` refuses any module tool that
   accepts one.
-- `camunda7_open_cockpit` spreads `...showToolBinding(CAMUNDA7_OPEN_COCKPIT, "Open Cockpit")`
+- `engine_open_cockpit` spreads `...showToolBinding(ENGINE_OPEN_COCKPIT, "Open Cockpit")`
   (from `@miragon/pulse-widget-shell/server`), which binds a native mcp-use view named after
   the tool (`view: { name }`, mcp-use then emits all `_meta.ui.*` keys and the
   `ui://views/<tool>.html` resource itself), adds the required passthrough `outputSchema`,
@@ -454,24 +454,24 @@ uses `server.tool()` directly:
   a process definition KEY spans every deployed version (key-scoped `/count`, statistics
   summed per key); only a diagram is one version, and it is labelled. Engine timestamps
   compare by instant (`engineDateMillis`/`latestEngineDate`/`earliestEngineDate` from
-  `@miragon/pulse-camunda7-client`), never as strings. A new builder adds its case to the
+  `@miragon/pulse-engine-client`), never as strings. A new builder adds its case to the
   rejection table in `src/data/honest-numbers.test.ts` — the table fails without it. The
   table breaks EVERY read the healthy build makes (method + path + query names), so a
   case declares only its enrichment reads; any other read whose failure is swallowed fails.
 - The `show_*`/`*_data` naming is load-bearing:
-  `apps/mcp-server-camunda7/test/widget-contract.e2e.test.ts` enforces the widget `_meta` on
-  every `*_show_*` tool and on `camunda7_open_cockpit`, and app-only visibility on every
+  `apps/mcp-server/test/widget-contract.e2e.test.ts` enforces the widget `_meta` on
+  every `*_show_*` tool and on `engine_open_cockpit`, and app-only visibility on every
   `*_data` feed **by name**.
 - A widget-path tool never writes. A write is a registrar tool, so the toolset filter
   (`withToolsetFilter`/`isToolInToolset`) drops it outside its toolset, and an in-widget
-  write calls it through `useEngineAction`, gated by `camunda7_widget_actions_data`.
+  write calls it through `useEngineAction`, gated by `engine_widget_actions_data`.
 - Every in-widget write runs through `useEngineAction({ tool, target, resetOn, available })`
   (`src/widgets/lib/engine-action.ts`) — never a raw `useToolMutation`/`callTool`. Its
   `allowed` is the gate — the toolset AND the subject's current state (`available`:
   false for an ended, cancelled or unconfirmed instance, a suspended one where the
   engine refuses the write): render the control only when true (hide it and a table
   column it would leave empty, never just disable it). List
-  the tool in `CAMUNDA7_WIDGET_ACTIONS` (`src/tool-names.ts`) and give it a
+  the tool in `ENGINE_WIDGET_ACTIONS` (`src/tool-names.ts`) and give it a
   `WRITE_POLICY` entry (`src/widgets/lib/write-policy.ts`: the query namespaces it
   changes, and `confirm: true` for irreversible/state-changing writes — then `run`
   needs a confirmation naming its target, rendered by `EngineActionDialog`, with
@@ -501,12 +501,12 @@ businessKey))` …; add an entry and its `feedback.*` keys in `messages/{en,de}.
 ```bash
 pnpm build && pnpm typecheck && pnpm test && pnpm lint
 # for widget/shell changes additionally:
-pnpm --filter @miragon/pulse-mcp-server-camunda7 test:host
+pnpm --filter @miragon/pulse-mcp-server test:host
 ```
 
 A new or changed tool changes the wire surface: add its name to
-`apps/mcp-server-camunda7/test/expected-tools.ts`, then refresh the per-toolset goldens with
-`GOLDEN_UPDATE=1 pnpm --filter @miragon/pulse-mcp-server-camunda7 test` and commit the
+`apps/mcp-server/test/expected-tools.ts`, then refresh the per-toolset goldens with
+`GOLDEN_UPDATE=1 pnpm --filter @miragon/pulse-mcp-server test` and commit the
 `test/__golden__/` diff (descriptions and schemas are what the model reads — review them).
 The budget counts the model-visible tools/list text plus the server instructions of each
 toolset. If `char-budgets.json` grew, `pnpm lint` fails until the commit carries a
@@ -517,6 +517,6 @@ toolset. If `char-budgets.json` grew, `pnpm lint` fails until the commit carries
 check: `docker compose -f playground/docker/docker-compose.yml up -d`, `pnpm dev`, then call the
 tool in the inspector at `http://localhost:8400/mcp/inspector`. The default `pnpm dev` boot
 is read-only (the boot log names the toolsets) — to exercise a write tool or button, set
-`MCP_ACTIVE_MODULES=camunda7:admin,analytics` in `.env` (plus
-`CAMUNDA_ALLOW_DEPLOYMENTS=true` for deployments). Run `pnpm format:check` (or
+`MCP_ACTIVE_MODULES=engine:admin,analytics` in `.env` (plus
+`ENGINE_ALLOW_DEPLOYMENTS=true` for deployments). Run `pnpm format:check` (or
 `pnpm format`) before committing.

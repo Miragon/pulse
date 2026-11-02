@@ -5,7 +5,7 @@ import { NotesListWidget } from "./notes-list.js"
 
 /**
  * Model-context description, so the model always knows what the user is
- * looking at: the house pattern from the camunda7/analytics modules.
+ * looking at: the house pattern from the engine/analytics modules.
  */
 function describeNotes(data: NotesListData): string {
   return (

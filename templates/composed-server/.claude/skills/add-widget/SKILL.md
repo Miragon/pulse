@@ -11,7 +11,7 @@ allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 (the widget test), `widget-tools.ts` (show tool and data feed), `tool-names.ts`
 (rename safety). Richer patterns (paged lists,
 KPI grids, BPMN viewers) live in
-`node_modules/@miragon/pulse-{camunda7,analytics}-connector/src/widgets/`.
+`node_modules/@miragon/pulse-{engine,analytics}-connector/src/widgets/`.
 
 ## Step 0: pick the render path
 

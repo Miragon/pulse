@@ -58,7 +58,7 @@ export const firstOrNull = (s: PromSample[]) => (s.length ? s[0].value : null)
 
 /**
  * The plugin registers a per-key gauge row only for what exists, but
- * `camunda_jobs_executable` on every tick: a per-key gauge without a series is
+ * `engine_jobs_executable` on every tick: a per-key gauge without a series is
  * a measured 0 while this probe answers. `engineSel` holds the engine matcher only.
  */
 export const reportingEnginesQuery = (engineSel: string) => engineState(M.jobsExecutable, engineSel)

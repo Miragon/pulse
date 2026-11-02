@@ -94,11 +94,11 @@ describe("the heatmap's missing-diagram cause", () => {
     }
   }
 
-  it("names the missing camunda7 module only when no lookup was injected", async () => {
+  it("names the missing engine module only when no lookup was injected", async () => {
     const { show, heat, diagram } = await payloads()
-    expect(show).toEqual({ bpmnXml: undefined, bpmnMissing: "no-camunda7" })
+    expect(show).toEqual({ bpmnXml: undefined, bpmnMissing: "no-engine-module" })
     expect(heat).toEqual({ bpmnXml: undefined, bpmnMissing: undefined })
-    expect(diagram).toEqual({ bpmnXml: null, bpmnMissing: "no-camunda7" })
+    expect(diagram).toEqual({ bpmnXml: null, bpmnMissing: "no-engine-module" })
   })
 
   it("says the lookup found nothing when it failed or returned null", async () => {
@@ -144,7 +144,7 @@ describe("the names behind the ids", () => {
   const client: PrometheusClient = {
     instant: (query: string) => {
       // The engine-state presence probe: prod-a reports.
-      if (query.includes("camunda_jobs_executable")) {
+      if (query.includes("engine_jobs_executable")) {
         return Promise.resolve([{ metric: { engine_id: "prod-a" }, value: 1 }])
       }
       if (query.includes("by (process_definition_key, activity_id, activity_type)")) {

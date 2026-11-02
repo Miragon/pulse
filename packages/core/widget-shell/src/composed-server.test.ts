@@ -5,6 +5,7 @@ import {
   composedEnvVars,
   createComposedServer,
   DEFAULT_DRAIN_TIMEOUT_MS,
+  retiredEnvVars,
   type ComposedServerOptions,
   type RunningServer,
 } from "./composed-server.js"
@@ -175,6 +176,37 @@ describe("createComposedServer — boot", () => {
         "ALPHA_URL",
       ].sort(),
     )
+  })
+
+  it("names every variable the modules retired in retiredEnvVars, none of them read", () => {
+    const retiring = { ...alpha, retired: { names: ["alpha0"], envVars: { OLD_URL: "ALPHA_URL" } } }
+    expect([...retiredEnvVars([retiring])]).toEqual(["OLD_URL"])
+    expect(composedEnvVars([retiring]).has("OLD_URL")).toBe(false)
+    expect([...retiredEnvVars([alpha])]).toEqual([])
+  })
+
+  it("refuses a retired setting FIRST, before the edge or OAuth checks and any plugin", async () => {
+    const { module, createPlugin } = spiedAlpha()
+    const retiring = {
+      ...module,
+      retired: { names: ["alpha0"], envVars: { OLD_URL: "ALPHA_URL" } },
+    }
+    await expect(
+      createComposedServer(
+        options({ modules: [retiring], env: { OLD_URL: "x", MCP_MAX_BODY_BYTES: "lots" } }),
+      ),
+    ).rejects.toThrow("OLD_URL is no longer read")
+    await expect(
+      createComposedServer(
+        options({
+          modules: [retiring],
+          env: { MCP_ACTIVE_MODULES: "alpha0:operations", MCP_USE_OAUTH_KEYCLOAK_REALM: "r" },
+        }),
+      ),
+    ).rejects.toThrow("Write alpha instead: alpha0:operations becomes alpha:operations.")
+    expect(createPlugin).not.toHaveBeenCalled()
+    const warnings = vi.mocked(console.warn).mock.calls.map(([line]) => String(line))
+    expect(warnings).toEqual([])
   })
 
   it("knows the edge env vars in the typo warner", async () => {

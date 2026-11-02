@@ -44,7 +44,7 @@ server listens on IPv4.
 
 Once connected, you'll see Camunda and analytics tools available in the
 assistant. Try asking _"show me the open incidents"_. Claude calls
-`camunda7_open_cockpit` on its incidents view and shows the cockpit there.
+`engine_open_cockpit` on its incidents view and shows the cockpit there.
 
 ## What you can ask
 
@@ -57,7 +57,7 @@ assistant. Try asking _"show me the open incidents"_. Claude calls
 | **Analytics**  | "Where do `loan-approval` instances spend the most time?" · "Compare the last 7 days of `loan-approval` with the week before." |
 | **Migrations** | "Plan a migration from v1 to v2 of `loan-approval`."                                                                           |
 
-Most data-heavy answers come back as an interactive view: the camunda7
+Most data-heavy answers come back as an interactive view: the engine
 operations cockpit (opened on its overview, the incidents, a process, an
 instance, an incident, the jobs or an instance's history, then navigated by
 clicking) and the analytics dashboards and comparisons render inline. Inline a

@@ -162,7 +162,7 @@ function CountCell({ value, t }: { value: number | null; t: T }) {
   )
 }
 
-/** A danger edge while there are any, as camunda7's engine tiles show the same counts. */
+/** A danger edge while there are any, as the engine module's engine tiles show the same counts. */
 function StateCountCell({ value, t }: { value: number | null; t: T }) {
   return (
     <Td align="right" className="tabular-nums">

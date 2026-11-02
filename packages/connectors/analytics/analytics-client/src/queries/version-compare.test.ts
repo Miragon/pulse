@@ -54,11 +54,11 @@ describe("versionCompare", () => {
       `{process_definition_key="order",process_definition_version="${ver}"${extra},engine_id="prod-a"}`
     const w = { range: "14d" }
     const count = (series: string) => increaseIn(series, w)
-    const duration = "camunda_process_instance_duration_milliseconds"
+    const duration = "engine_process_instance_duration_milliseconds"
     const queries = (ver: number) => [
-      `sum(${count(`camunda_process_instance_started_total${sel(ver)}`)})`,
-      `sum(${count(`camunda_process_instance_ended_total${sel(ver, ',state="COMPLETED"')}`)})`,
-      `sum(${count(`camunda_incident_created_total${sel(ver)}`)})`,
+      `sum(${count(`engine_process_instance_started_total${sel(ver)}`)})`,
+      `sum(${count(`engine_process_instance_ended_total${sel(ver, ',state="COMPLETED"')}`)})`,
+      `sum(${count(`engine_incident_created_total${sel(ver)}`)})`,
       `sum(${count(`${duration}_sum${sel(ver)}`)}) / sum(${count(`${duration}_count${sel(ver)}`)})`,
       `histogram_quantile(0.5, sum by (le)(${count(`${duration}_bucket${sel(ver)}`)}))`,
       `histogram_quantile(0.95, sum by (le)(${count(`${duration}_bucket${sel(ver)}`)}))`,

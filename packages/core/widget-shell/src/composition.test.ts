@@ -1,39 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { composeModules, type ComposableModule, type ResolvedBoot } from "./composition.js"
-import { createToolsetVocabulary } from "./toolsets.js"
-
-interface TestShared {
-  tag: string
-}
-
-const moduleOf = (
-  name: string,
-  overrides: Partial<ComposableModule<TestShared>> = {},
-): ComposableModule<TestShared> => ({
-  name,
-  configFromEnv: (env) => ({ url: env[`${name.toUpperCase()}_URL`] ?? "default" }),
-  knownEnvVars: [`${name.toUpperCase()}_URL`],
-  toolsets: createToolsetVocabulary(
-    name,
-    ["read-only", "operations", "admin"] as const,
-    "read-only",
-    {
-      authenticatedDefault: "operations",
-    },
-  ),
-  createPlugin: (config, shared) =>
-    ({ name, register: () => {}, config, shared }) as ReturnType<
-      ComposableModule<TestShared>["createPlugin"]
-    >,
-  ...overrides,
-})
-
-const compose = (modules: ComposableModule<TestShared>[] = [moduleOf("alpha"), moduleOf("beta")]) =>
-  composeModules<TestShared>({
-    label: "test-root",
-    modules,
-    appEnvVars: ["MCP_ACTIVE_MODULES", "MCP_URL"],
-  })
+import { composeModules, type ResolvedBoot } from "./composition.js"
+import { compose, moduleOf, type TestShared } from "./composition.test-support.js"
 
 afterEach(() => {
   vi.restoreAllMocks()

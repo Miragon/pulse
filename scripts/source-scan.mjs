@@ -17,7 +17,7 @@ export const REPO_ROOT = path.resolve(import.meta.dirname, "..")
  */
 export const APP_SCAN = {
   cli: "interface",
-  "mcp-server-camunda7": "mcp-host",
+  "mcp-server": "mcp-host",
   vscode: "interface",
 }
 

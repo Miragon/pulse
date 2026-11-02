@@ -255,7 +255,7 @@ describe("analyticsModule engine scope wiring", () => {
     return /configured engines: (.*)\.$/.exec(refused ?? "")?.[1].split(", ")
   }
 
-  it("takes the engines the composition root injects (camunda7's configured ones)", async () => {
+  it("takes the engines the composition root injects (the engine module's configured ones)", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
     expect(await fleetOf({}, { engineIds: ["prod-a", "prod-b"] })).toEqual(["prod-a", "prod-b"])
     expect(warn).not.toHaveBeenCalled()

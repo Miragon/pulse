@@ -19,8 +19,8 @@ PACKAGES=(
   core/engine-core
   core/ui
   core/widget-shell
-  connectors/camunda/camunda7-client
-  connectors/camunda/camunda7-connector
+  connectors/engine/engine-client
+  connectors/engine/engine-connector
   connectors/analytics/analytics-client
   connectors/analytics/analytics-connector
 )
@@ -38,7 +38,7 @@ pkg_name() { node -p "require('$ROOT/packages/$1/package.json').name"; }
 # mcp-use is checked too: it is exact in every stanza, peers included (a drifted
 # second instance resurrects the duplicate-React-context hang). release-please
 # does NOT bump it, so a repo-wide mcp-use bump must include the template by
-# hand. The camunda7 connector's pin is the canonical one.
+# hand. The engine connector's pin is the canonical one.
 ROOT="$ROOT" node - <<'EOF'
 const fs = require("fs")
 const root = process.env.ROOT
@@ -47,8 +47,8 @@ const pkgDirs = [
   "core/engine-core",
   "core/ui",
   "core/widget-shell",
-  "connectors/camunda/camunda7-client",
-  "connectors/camunda/camunda7-connector",
+  "connectors/engine/engine-client",
+  "connectors/engine/engine-connector",
   "connectors/analytics/analytics-client",
   "connectors/analytics/analytics-connector",
 ]
@@ -57,12 +57,12 @@ const versions = Object.fromEntries(
     .map((p) => read(`${root}/packages/${p}/package.json`))
     .map((pj) => [pj.name, pj.version]),
 )
-const camunda7 = read(`${root}/packages/connectors/camunda/camunda7-connector/package.json`)
-const MCP_USE = camunda7.peerDependencies?.["mcp-use"]
-if (!MCP_USE || MCP_USE !== camunda7.devDependencies?.["mcp-use"]) {
+const engine = read(`${root}/packages/connectors/engine/engine-connector/package.json`)
+const MCP_USE = engine.peerDependencies?.["mcp-use"]
+if (!MCP_USE || MCP_USE !== engine.devDependencies?.["mcp-use"]) {
   console.error(
-    `The camunda7 connector must pin mcp-use exactly, peer and dev alike ` +
-      `(peer ${MCP_USE}, dev ${camunda7.devDependencies?.["mcp-use"]}).`,
+    `The engine connector must pin mcp-use exactly, peer and dev alike ` +
+      `(peer ${MCP_USE}, dev ${engine.devDependencies?.["mcp-use"]}).`,
   )
   process.exit(1)
 }

@@ -32,7 +32,7 @@ mcp-env.d.ts
 .claude/scheduled_tasks.lock
 .claude/logs/
 # Playwright host-simulation output
-apps/mcp-server-camunda7/test-results/
+apps/mcp-server/test-results/
 .stryker-tmp/
 reports/
 stryker-setup-*.js

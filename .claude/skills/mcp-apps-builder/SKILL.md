@@ -16,7 +16,7 @@ meta, server i18n, caller identity) lives in `@miragon/pulse-widget-shell/server
    view map under its view tool's name (invariant 3), feeds through
    `buildDataFeedResult`, and there is no federation in this server.
 2. **The house skill for the change:**
-   - `add-bpm-feature`: a camunda7 tool, a cockpit route, a `*_data` feed or a
+   - `add-bpm-feature`: an engine tool, a cockpit route, a `*_data` feed or a
      widget.
    - `add-analytics-feature`: a PromQL query, an analytics tool or a dashboard
      widget.

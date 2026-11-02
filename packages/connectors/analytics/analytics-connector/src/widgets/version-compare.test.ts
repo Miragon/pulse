@@ -61,6 +61,6 @@ describe("versionCompareHandOff", () => {
   })
 
   it("names no tool", () => {
-    expect(prompt(result)).not.toMatch(/\b(camunda7|analytics)_[a-z0-9_]+/)
+    expect(prompt(result)).not.toMatch(/\b(engine|analytics)_[a-z0-9_]+/)
   })
 })

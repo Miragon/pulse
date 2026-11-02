@@ -37,7 +37,7 @@ const run = (client: PrometheusClient, args: Record<string, unknown>) =>
 /** Prometheus where only `prod-a` reports its engine-state gauges (when the selector admits it). */
 const onlyProdAReports = (query: string): PromSample[] =>
   query.includes("prod-a") &&
-  (query.includes("camunda_jobs_executable") || query.includes("camunda_external_tasks_open"))
+  (query.includes("engine_jobs_executable") || query.includes("engine_external_tasks_open"))
     ? [{ metric: { engine_id: "prod-a" }, value: 0 }]
     : []
 
@@ -136,12 +136,12 @@ describe("analytics_engine_health verdict labeling", () => {
     )
   })
 
-  it("states the rule, the engine scope and the routing to camunda7_open_cockpit", () => {
+  it("states the rule, the engine scope and the routing to engine_open_cockpit", () => {
     const { description } = captureConfig()
     expect(description).toContain(`Status: ${ENGINE_HEALTH_STATUS_RULE}`)
     expect(description).toContain("the silent ones (`silentEngines`")
     expect(description).toContain(
-      "Use for fleet-wide or metric-based health; for one engine's live incident clusters use camunda7_open_cockpit.",
+      "Use for fleet-wide or metric-based health; for one engine's live incident clusters use engine_open_cockpit.",
     )
   })
 })

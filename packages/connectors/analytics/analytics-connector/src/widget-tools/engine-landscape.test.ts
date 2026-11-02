@@ -84,14 +84,14 @@ describe("analytics_show_engine_landscape", () => {
     const byKey = (gauge: string, labels = "process_definition_key, engine_id") =>
       `sum by (engine_id, process_definition_key)(max by (${labels})(${gauge}${sel}))`
     expect(queries).toEqual([
-      byKey("camunda_process_definitions_deployed"),
-      byKey("camunda_process_instances_running"),
-      byKey("camunda_incidents_open", "process_definition_key, incident_type, engine_id"),
-      byKey("camunda_jobs_failed"),
-      `max by (engine_id)(camunda_jobs_executable${sel})`,
-      `max by (engine_id)(camunda_jobs_suspended${sel})`,
-      `max by (engine_id)(camunda_jobs_due_future${sel})`,
-      `max by (engine_id)(camunda_external_tasks_open${sel})`,
+      byKey("engine_process_definitions_deployed"),
+      byKey("engine_process_instances_running"),
+      byKey("engine_incidents_open", "process_definition_key, incident_type, engine_id"),
+      byKey("engine_jobs_failed"),
+      `max by (engine_id)(engine_jobs_executable${sel})`,
+      `max by (engine_id)(engine_jobs_suspended${sel})`,
+      `max by (engine_id)(engine_jobs_due_future${sel})`,
+      `max by (engine_id)(engine_external_tasks_open${sel})`,
     ])
   })
 

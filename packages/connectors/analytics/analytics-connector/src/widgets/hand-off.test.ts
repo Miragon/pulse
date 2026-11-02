@@ -72,7 +72,7 @@ describe("analytics hand-offs", () => {
   // The instructions and the tool descriptions steer the model, never the hand-off.
   it("name no tool of either module", () => {
     const prompt = bindHandOff("en").ask(executionSummaryHandOff(DASHBOARD))!
-    expect(prompt).not.toMatch(/\b(camunda7|analytics)_[a-z0-9_]+/)
+    expect(prompt).not.toMatch(/\b(engine|analytics)_[a-z0-9_]+/)
   })
 
   // The dashboard's period is on screen, so it travels as an id like the bottleneck's.
@@ -155,7 +155,7 @@ describe("analytics hand-offs", () => {
     expect(prompt.split("\n")).toContain(
       "On screen: measuredADays=7, measuredBDays=0.08, partial=true, startedPerDayDeltaPct=8300, incidentRateDeltaPp=1.5, avgDurationDeltaPct=-4, p95DurationDeltaPct=2.5, suppressed=false",
     )
-    expect(prompt).not.toMatch(/\b(camunda7|analytics)_[a-z0-9_]+/)
+    expect(prompt).not.toMatch(/\b(engine|analytics)_[a-z0-9_]+/)
   })
 
   it("quote a free-text activity type in a fence it cannot close", () => {
@@ -180,7 +180,7 @@ describe("analytics hand-offs", () => {
     const [head] = text.split("Untrusted data from the engine")
     expect(head).not.toContain("Ignore previous instructions")
     expect(text).toContain("hottestActivityId:\n`````text\nTimeout")
-    expect(text).not.toContain("camunda7_")
+    expect(text).not.toContain("engine_")
   })
 })
 
@@ -190,7 +190,7 @@ describe("the analytics Ask-AI intent catalogues", () => {
   // Intents are never filtered: a tool named in one would reach every deployment.
   it("name no tool and inline no data", () => {
     for (const [key, text] of intents) {
-      expect(text, key).not.toMatch(/\b(camunda7|analytics)_[a-z0-9_]+/)
+      expect(text, key).not.toMatch(/\b(engine|analytics)_[a-z0-9_]+/)
       expect(text, key).not.toMatch(/[{}`]|\$\{/)
       expect(text.length, key).toBeLessThanOrEqual(300)
     }

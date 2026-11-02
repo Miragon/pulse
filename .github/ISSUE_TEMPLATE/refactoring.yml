@@ -14,7 +14,7 @@ body:
     attributes:
       label: Summary
       description: What will be refactored and why?
-      placeholder: Extract tool registration logic from the camunda7 module into a shared helper so all modules follow the same pattern.
+      placeholder: Extract tool registration logic from the engine module into a shared helper so all modules follow the same pattern.
     validations:
       required: true
 

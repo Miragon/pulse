@@ -1,0 +1,59 @@
+# Pulse server, the only public app of the playground stack, served
+# WITHOUT authentication (no MCP_USE_OAUTH_*): anyone on the internet can call it, so
+# it is pinned read-only below. Build context: repo root (monorepo
+# Dockerfile). Deploy via playground/fly/deploy.sh.
+app = "miragon-ai-playground"
+primary_region = "fra"
+
+[build]
+  # Resolved relative to this fly.toml (flyctl rule); the build context
+  # stays the working directory deploy.sh cd's into.
+  dockerfile = "../../Dockerfile"
+
+[env]
+  PORT = "8400"
+  # The public URL, a custom domain on this app (Cloudflare CNAME to
+  # miragon-ai-playground.fly.dev + `fly certs add`): the Host the edge admits,
+  # the advertised URLs and the origin every view loads Geist from. The old
+  # fly.dev address stays admitted, so client configs that still name it work.
+  MCP_URL = "https://pulse-playground.miragon.ai"
+  MCP_ALLOWED_HOSTS = "miragon-ai-playground.fly.dev"
+  MCP_ALLOWED_ORIGINS = "https://miragon-ai-playground.fly.dev"
+  # Public + unauthenticated ⇒ read-only BY DESIGN: queries, widgets and
+  # analytics, no engine writes. An unauthenticated boot already
+  # defaults to read-only; the explicit pin keeps it that way should someone
+  # add an OAuth provider or widen a default. Never widen it here and never set
+  # ENGINE_ALLOW_DEPLOYMENTS on this app — deploying a BPMN runs code inside
+  # the engine JVM. A Fly SECRET of the same name
+  # overrides [env]: if `fly secrets list -a miragon-ai-playground` shows
+  # MCP_ACTIVE_MODULES, keep it in sync with this value (or unset it).
+  MCP_ACTIVE_MODULES = "engine:read-only,analytics"
+  # demo/demo is the engine's seeded admin user; its REST API does not enforce
+  # auth. The engine has no public IP, but it sits on the org's private 6PN
+  # network, which other apps in the org share — treat it as reachable by
+  # them, not as isolated. The engine is CIB seven: without `flavor` the
+  # server would take it for Camunda 7 and name and link it as one.
+  ENGINES_JSON = '[{"id":"prod-a","baseUrl":"http://miragon-ai-playground-engine.internal:8410/engine-rest","flavor":"cibseven","auth":{"type":"basic","username":"demo","password":"demo"}}]'
+  PROMETHEUS_URL = "http://miragon-ai-playground-prometheus.internal:9090"
+
+[http_service]
+  internal_port = 8400
+  force_https = true
+  # The server may scale to zero; Fly Proxy wakes it on the next MCP request.
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+# Readiness over HTTP, mirroring the Dockerfile HEALTHCHECK: /health/ready
+# answers 200 once the MCP transport serves and 503 while it drains
+# (/health/live is the liveness-only variant).
+[[http_service.checks]]
+  interval = "15s"
+  timeout = "5s"
+  grace_period = "30s"
+  method = "GET"
+  path = "/health/ready"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "1gb"

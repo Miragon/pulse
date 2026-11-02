@@ -27,6 +27,6 @@ describe("describeBpmnHeatmap", () => {
     const text = describeBpmnHeatmap(heatmap(["prod-a"]))
     expect(text).toContain('hottestActivityId="Task_A", hottestExecutions=12')
     expect(text).toContain('slowestActivityId="Task_B", slowestAvgMs=9260')
-    expect(text).not.toMatch(/\b(camunda7|analytics)_[a-z0-9_]+/)
+    expect(text).not.toMatch(/\b(engine|analytics)_[a-z0-9_]+/)
   })
 })

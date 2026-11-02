@@ -11,7 +11,7 @@ export interface ReadingRuleOptions {
   plainIncreaseAllowed?: (range: string, at: number | undefined) => boolean
 }
 
-const SERIES = String.raw`camunda_[A-Za-z0-9_]+(?:\{[^}]*\})?`
+const SERIES = String.raw`engine_[A-Za-z0-9_]+(?:\{[^}]*\})?`
 const RANGE = String.raw`[^\]\s]+`
 const OFFSET = String.raw`[^)\s]+`
 

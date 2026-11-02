@@ -247,7 +247,7 @@ const STRYKER_OK = { exists: true, config: GOOD_STRYKER }
 describe("checkPackageConfigs: the configs a source package's scripts measure against", () => {
   it("accepts a package with a vitest.config.ts and a valid stryker.config.json", () => {
     assert.deepEqual(
-      checkPackageConfigs("packages/connectors/camunda/camunda7-connector", {
+      checkPackageConfigs("packages/connectors/engine/engine-connector", {
         hasVitestConfig: true,
         stryker: STRYKER_OK,
       }),
@@ -256,14 +256,14 @@ describe("checkPackageConfigs: the configs a source package's scripts measure ag
   })
 
   it("requires a vitest.config.ts: vitest's default measures no coverage", () => {
-    const errors = checkPackageConfigs("packages/connectors/camunda/camunda7-connector", {
+    const errors = checkPackageConfigs("packages/connectors/engine/engine-connector", {
       hasVitestConfig: false,
       stryker: STRYKER_OK,
     })
     assert.equal(errors.length, 1)
     assert.match(
       errors[0],
-      /^packages\/connectors\/camunda\/camunda7-connector: no vitest\.config\.ts/,
+      /^packages\/connectors\/engine\/engine-connector: no vitest\.config\.ts/,
     )
     assert.match(errors[0], /sharedConfig/)
   })
@@ -358,7 +358,7 @@ describe("checkMutationExemptions: NO_MUTATION_APPS cannot outlive its reason", 
   })
 
   it("the real map exempts only apps, each with a reason", () => {
-    assert.deepEqual(Object.keys(NO_MUTATION_APPS), ["apps/mcp-server-camunda7"])
+    assert.deepEqual(Object.keys(NO_MUTATION_APPS), ["apps/mcp-server"])
     for (const reason of Object.values(NO_MUTATION_APPS)) assert.ok(reason.length > 20)
   })
 })
@@ -379,8 +379,8 @@ const PACKAGES = {
     stryker: GOOD_STRYKER,
   },
   "apps/server": { name: "@miragon/pulse-fixture-root", stryker: null },
-  "packages/connectors/camunda/camunda7-connector": {
-    name: "@miragon/pulse-camunda7-connector",
+  "packages/connectors/engine/engine-connector": {
+    name: "@miragon/pulse-engine-connector",
     stryker: GOOD_STRYKER,
   },
 }
@@ -422,7 +422,7 @@ function workspaceErrors(change, { noMutationApps = EXEMPT } = {}) {
   }
 }
 
-const CONNECTOR = "packages/connectors/camunda/camunda7-connector"
+const CONNECTOR = "packages/connectors/engine/engine-connector"
 
 describe("checkWorkspace over fixture trees", () => {
   it("passes the fixture as built and checks only packages with src/", () => {
@@ -436,7 +436,7 @@ describe("checkWorkspace over fixture trees", () => {
     assert.deepEqual(errors.length, 1)
     assert.match(
       errors[0],
-      /^packages\/connectors\/camunda\/camunda7-connector: no vitest\.config\.ts/,
+      /^packages\/connectors\/engine\/engine-connector: no vitest\.config\.ts/,
     )
   })
 
@@ -506,10 +506,10 @@ describe("checkWorkspace over fixture trees", () => {
     })
     assert.deepEqual(errors, [])
     for (const dir of [
-      "apps/mcp-server-camunda7",
+      "apps/mcp-server",
       "packages/core/widget-shell",
-      "packages/connectors/camunda/camunda7-client",
-      "packages/connectors/camunda/camunda7-connector",
+      "packages/connectors/engine/engine-client",
+      "packages/connectors/engine/engine-connector",
       "packages/connectors/analytics/analytics-client",
       "packages/connectors/analytics/analytics-connector",
     ]) {

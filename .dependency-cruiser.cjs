@@ -13,7 +13,7 @@
  *   - `<name>-client`: its SDK leaf (generated REST SDK or PromQL queries + Zod schemas).
  * The foundation packages live under `packages/core/` (npm names without a role
  * suffix, e.g. `@miragon/pulse-widget-shell`). The apps under `apps/` sit ON TOP of
- * the packages: the MCP server (`@miragon/pulse-mcp-server-camunda7`) composes the
+ * the packages: the MCP server (`@miragon/pulse-mcp-server`) composes the
  * connectors; of the two interface apps, the CLI (apps/cli, `@miragon/pulse-cli`) imports
  * exactly @miragon/pulse-engine-core, its workflow domain, which it bundles, and the VS Code
  * extension (apps/vscode, the unscoped `pulse-cockpit`, because vsce rejects scoped names)
@@ -58,13 +58,13 @@ const npm = (names) => [`(?:^|/)node_modules/(?:${names})(?:/|$)`, `^(?:${names}
  * self-test's sync case fails: packages-never-import-the-app and apps-never-import-apps
  * read this list.
  */
-const SERVER_PACKAGE = "@miragon/pulse-mcp-server-camunda7"
+const SERVER_PACKAGE = "@miragon/pulse-mcp-server"
 const CLI_PACKAGE = "@miragon/pulse-cli"
 const EXTENSION_PACKAGE = "pulse-cockpit"
 const APP_PACKAGES = [SERVER_PACKAGE, CLI_PACKAGE, EXTENSION_PACKAGE]
 const APP_NAMES = APP_PACKAGES.map(escapeRegExp).join("|")
 
-/** The workflow domain of the Camunda 7 REST API family: the CLI bundles it, the camunda7 connector may import it. */
+/** The workflow domain of the Camunda 7 REST API family: the CLI bundles it, the engine connector may import it. */
 const ENGINE_CORE_PACKAGE = "@miragon/pulse-engine-core"
 const ENGINE_CORE = escapeRegExp(ENGINE_CORE_PACKAGE)
 
@@ -105,7 +105,7 @@ module.exports = {
       comment:
         "Connector modules are self-contained peers and never import each other (CLAUDE.md invariant 8). " +
         "Cross-module needs go through the composition root: shared server data via SharedResources " +
-        "(apps/mcp-server-camunda7/src/setup.ts), cross-module UI via raw tool-name strings " +
+        "(apps/mcp-server/src/setup.ts), cross-module UI via raw tool-name strings " +
         "with graceful degradation.",
       from: { path: "^packages/connectors/[^/]+/([^/]+)-connector/" },
       to: {
@@ -164,7 +164,7 @@ module.exports = {
           "^packages/connectors/",
           "^apps/",
           "@miragon/pulse-[^/]+-(connector|client)(/|$)",
-          "@miragon/pulse-mcp-server-camunda7",
+          ...npm(escapeRegExp(SERVER_PACKAGE)),
         ],
       },
     },
@@ -197,9 +197,9 @@ module.exports = {
         "invariant 8): the MCP server, the CLI and the VS Code extension. No package imports " +
         "one (this rule; that no package.json declares one is check-package-naming's). " +
         "Anything a package needs from an app must be inverted into an injected port; see " +
-        "SharedResources in apps/mcp-server-camunda7/src/setup.ts.",
+        "SharedResources in apps/mcp-server/src/setup.ts.",
       from: { path: "^packages/" },
-      to: { path: ["^apps/", "@miragon/pulse-mcp-server-camunda7", ...npm(APP_NAMES)] },
+      to: { path: ["^apps/", ...npm(APP_NAMES)] },
     },
     {
       name: "apps-never-import-apps",
@@ -253,7 +253,7 @@ module.exports = {
       comment:
         "engine-core's shipped code (src/ without its tests and without the ./testing export) never " +
         "imports a test file or src/testing/ (fixtures, the fake port): they would ship in the " +
-        "package entry the camunda7 connector runs and in the CLI's bundle. Only its tests and " +
+        "package entry the engine connector runs and in the CLI's bundle. Only its tests and " +
         "./testing itself import ./testing.",
       from: {
         path: "^packages/core/engine-core/src/",
@@ -265,14 +265,14 @@ module.exports = {
       name: "engine-core-consumers",
       severity: "error",
       comment:
-        "Only the CLI (which bundles it) and the camunda7 connector (for composite tools over its " +
+        "Only the CLI (which bundles it) and the engine connector (for composite tools over its " +
         "client) may import @miragon/pulse-engine-core. Analytics reads no engine " +
         "(CLAUDE.md invariant 8); the core packages and the server app compose nothing of it.",
       from: {
         path: "^(?:apps|packages)/",
         pathNot: [
           "^apps/cli/",
-          "^packages/connectors/camunda/camunda7-connector/",
+          "^packages/connectors/engine/engine-connector/",
           "^packages/core/engine-core/",
         ],
       },
@@ -304,11 +304,11 @@ module.exports = {
       name: "connector-src-not-to-engine-core-testing",
       severity: "error",
       comment:
-        "The camunda7 connector's shipped code never imports @miragon/pulse-engine-core/testing " +
+        "The engine connector's shipped code never imports @miragon/pulse-engine-core/testing " +
         "(fixtures and the fake port): test code, which would run in every server that composes " +
         "the connector. Tests and their test-support import it.",
       from: {
-        path: "^packages/connectors/camunda/camunda7-connector/src/",
+        path: "^packages/connectors/engine/engine-connector/src/",
         pathNot: ["[.]test[.]tsx?$", "/test-support/"],
       },
       to: { path: npm(`${ENGINE_CORE}/testing`) },
@@ -578,7 +578,7 @@ module.exports = {
     // and never edited by hand, so it is the one tree kept out of the graph. Any other
     // generated tree (a command catalog, say) is cruised like hand-written code: list
     // nothing else here.
-    exclude: { path: ["^packages/connectors/camunda/camunda7-client/src/generated/"] },
+    exclude: { path: ["^packages/connectors/engine/engine-client/src/generated/"] },
     tsPreCompilationDeps: true,
     tsConfig: { fileName: "tsconfig.base.json" },
     // Keep workspace imports as node_modules/@miragon/pulse-* paths instead of

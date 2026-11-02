@@ -10,20 +10,20 @@ Begriff ändert, ändert ihn auch dort.
 ## Gemeinsame Begriffe aller Module
 
 Diese Begriffe stehen in den Ansichten mehrerer Module nebeneinander: Die Engine-übergreifende
-Übersicht von camunda7 bettet die Prozesslandschaft von analytics ein. Sie gelten deshalb in
+Übersicht des Engine-Moduls bettet die Prozesslandschaft von analytics ein. Sie gelten deshalb in
 jedem Modul gleich. Die Regeln stehen einmal in widget-shell (`PRODUCT_GLOSSARY` in
 `@miragon/pulse-widget-shell/testing`), und `glossary.test.ts` jedes Moduls prüft damit seine
-Kataloge. Das Glossar von camunda7 führt dieselbe Tabelle.
+Kataloge. Das Glossar des Engine-Moduls führt dieselbe Tabelle.
 
-| Sache                                                                        | Deutsch                                                            | Nicht                                | Englisch                  | Nicht                  |
-| ---------------------------------------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------ | ------------------------- | ---------------------- |
-| Fehler, den die Engine meldet                                                | Incident, Incidents                                                | Vorfall, Vorfälle, Störung           | incident                  | occurrence             |
-| Jobs, deren Versuche aufgebraucht sind (`failedJobs`, `camunda_jobs_failed`) | Jobs ohne Versuche („3 ohne Versuche“)                             | Fehlgeschlagene Jobs, tote Jobs      | jobs without retries      | failed jobs, dead jobs |
-| BPMN-Modell auf die Engine bringen                                           | bereitstellen, bereitgestellt (das Ergebnis heißt Deployment)      | deployen, deployst, deployt          | deploy, deployed          | –                      |
-| Business Key                                                                 | Geschäftsschlüssel                                                 | GK, Business Key                     | business key              | BK                     |
-| Instanz anhalten                                                             | aussetzen, ausgesetzt                                              | anhalten, angehalten, pausieren      | suspend, suspended        | pause, halt            |
-| Retries eines Jobs                                                           | Versuche („Noch 2 Versuche“, „Keine Versuche mehr“), neu versuchen | Wiederholungen, wiederholen, Retries | retries, retry            | –                      |
-| Alle Engines zusammen                                                        | alle Engines, Engine-übergreifend                                  | Flotte                               | all engines, cross-engine | fleet                  |
+| Sache                                                                       | Deutsch                                                            | Nicht                                | Englisch                  | Nicht                  |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------ | ------------------------- | ---------------------- |
+| Fehler, den die Engine meldet                                               | Incident, Incidents                                                | Vorfall, Vorfälle, Störung           | incident                  | occurrence             |
+| Jobs, deren Versuche aufgebraucht sind (`failedJobs`, `engine_jobs_failed`) | Jobs ohne Versuche („3 ohne Versuche“)                             | Fehlgeschlagene Jobs, tote Jobs      | jobs without retries      | failed jobs, dead jobs |
+| BPMN-Modell auf die Engine bringen                                          | bereitstellen, bereitgestellt (das Ergebnis heißt Deployment)      | deployen, deployst, deployt          | deploy, deployed          | –                      |
+| Business Key                                                                | Geschäftsschlüssel                                                 | GK, Business Key                     | business key              | BK                     |
+| Instanz anhalten                                                            | aussetzen, ausgesetzt                                              | anhalten, angehalten, pausieren      | suspend, suspended        | pause, halt            |
+| Retries eines Jobs                                                          | Versuche („Noch 2 Versuche“, „Keine Versuche mehr“), neu versuchen | Wiederholungen, wiederholen, Retries | retries, retry            | –                      |
+| Alle Engines zusammen                                                       | alle Engines, Engine-übergreifend                                  | Flotte                               | all engines, cross-engine | fleet                  |
 
 ## Begriffe von analytics
 
@@ -48,7 +48,7 @@ Label, kein Icon steht für zwei Funktionen. Ein Widget eines Connectors rendert
 über `HandOffButton` (ein ESLint-Gate verbietet `AskAiButton` dort); eine neue Funktion kommt
 mit ihrem Icon und beiden Labels ins Kit. Ein Icon-Button in einer Tabellenzeile nennt seinen
 Gegenstand im `title`, beim Vergleich zwischen Engines den Prozess (`aLandscape.compareLabel`).
-Das Glossar von camunda7 führt dieselbe Tabelle.
+Das Glossar des Engine-Moduls führt dieselbe Tabelle.
 
 | Funktion                         | Icon           | Deutsch                         | Englisch                    |
 | -------------------------------- | -------------- | ------------------------------- | --------------------------- |

@@ -1,6 +1,6 @@
 /**
  * Ambient request info for consumers WITHOUT a handler `ctx`: the per-caller caches
- * (`callerCacheKey`) and the camunda7 passthrough-auth interceptor deep in a hey-api
+ * (`callerCacheKey`) and the engine passthrough-auth interceptor deep in a hey-api
  * chain. Without the middleware nothing is forwarded (passthrough fails with the engine's
  * 401) and every caller shares the "" cache partition, which is safe only because no
  * per-caller token reaches the engine. `/server` only: `node:async_hooks` must

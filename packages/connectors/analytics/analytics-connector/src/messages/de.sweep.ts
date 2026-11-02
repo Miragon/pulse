@@ -89,8 +89,8 @@ export const deSweep: MessageCatalog = {
   "aExecSummary.title": "Prozessanalyse",
   "aFigure.notReported": "Keine Engine meldet diesen Wert: unbekannt",
   "aFigure.nothingEnded": "In diesem Zeitraum ist nichts beendet: keine Dauer",
-  "aHeatmap.bpmnNoCamunda7":
-    "Das Diagramm ist hier nicht verfügbar: Ohne das camunda7-Modul kann Analytics keine BPMN-Dateien laden. Frag im Chat stattdessen nach den Kennzahlen je Aktivität.",
+  "aHeatmap.bpmnNoEngineModule":
+    "Das Diagramm ist hier nicht verfügbar: Ohne das Engine-Modul kann Analytics keine BPMN-Dateien laden. Frag im Chat stattdessen nach den Kennzahlen je Aktivität.",
   "aHeatmap.bpmnNotLoaded":
     "Das Diagramm konnte nicht geladen werden: Keine Engine dieser Ansicht hat es geliefert. Prüf, ob die Engines erreichbar sind und der Prozess bereitgestellt ist, oder frag im Chat nach den Kennzahlen je Aktivität.",
   "aHeatmap.bpmnUnavailable":

@@ -27,9 +27,9 @@ pnpm dev                                                       # MCP server on :
   (`ssh -L 8400:127.0.0.1:8400 <host>`).
 - The server boots **read-only** (no OAuth provider, no toolset suffix; the boot
   log names the effective toolsets). To exercise write paths, set
-  `MCP_ACTIVE_MODULES=camunda7:admin,analytics` in `.env` (see the
+  `MCP_ACTIVE_MODULES=engine:admin,analytics` in `.env` (see the
   commented line there); deployments additionally need
-  `CAMUNDA_ALLOW_DEPLOYMENTS=true`.
+  `ENGINE_ALLOW_DEPLOYMENTS=true`.
 - Compose profiles: `--profile multi-engine` (second engine on :8411),
   `--profile full` (containerized server on :8400), `--profile dev` (plain
   CIB seven image, no analytics), `--profile auth` (Keycloak on :8480 for
@@ -83,10 +83,10 @@ Afterwards, point an MCP client (e.g. claude.ai custom connector) at
 ### Notes
 
 - The MCP endpoint is **unauthenticated** and pinned **read-only**
-  (`MCP_ACTIVE_MODULES=camunda7:read-only,analytics` in
-  `fly/server-camunda7.fly.toml`): anyone can query the demo engine, nobody
+  (`MCP_ACTIVE_MODULES=engine:read-only,analytics` in
+  `fly/server.fly.toml`): anyone can query the demo engine, nobody
   can change it through the server (no engine writes). Never
-  widen it there and never set `CAMUNDA_ALLOW_DEPLOYMENTS` on this app
+  widen it there and never set `ENGINE_ALLOW_DEPLOYMENTS` on this app
   (deploying a BPMN runs code in the engine JVM).
 - The public host `pulse-playground.miragon.ai` is a custom domain on the
   server app: a Cloudflare record `CNAME pulse-playground →

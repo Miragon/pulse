@@ -10,8 +10,8 @@ afterEach(() => {
 describe("viewPrelude", () => {
   it("sets the view's name on a global, as one statement ahead of the bundle", () => {
     expect(VIEW_NAME_GLOBAL).toBe("__pulseView")
-    expect(viewPrelude("camunda7_open_cockpit")).toBe(
-      'globalThis.__pulseView="camunda7_open_cockpit";\n',
+    expect(viewPrelude("engine_open_cockpit")).toBe(
+      'globalThis.__pulseView="engine_open_cockpit";\n',
     )
   })
 

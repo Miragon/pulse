@@ -18,7 +18,7 @@ groups:
 
       # Jobs that exhausted their retries: stuck work needing manual action.
       - alert: CibSevenDeadJobs
-        expr: max by (process_definition_key, engine_id) (camunda_jobs_failed) > 0
+        expr: max by (process_definition_key, engine_id) (engine_jobs_failed) > 0
         for: 5m
         labels:
           severity: warning
@@ -29,8 +29,8 @@ groups:
       # WIP exists but nothing is completing: the job executor is likely stalled.
       - alert: CibSevenNoThroughput
         expr: |
-          sum by (engine_id) (((increase(camunda_process_instance_ended_total[15m]) and present_over_time(camunda_process_instance_ended_total[1h] offset 15m)) or (max_over_time(camunda_process_instance_ended_total[15m]) unless present_over_time(camunda_process_instance_ended_total[1h] offset 15m)))) == 0
-          and sum by (engine_id) (max by (process_definition_key, engine_id) (camunda_process_instances_running)) > 0
+          sum by (engine_id) (((increase(engine_process_instance_ended_total[15m]) and present_over_time(engine_process_instance_ended_total[1h] offset 15m)) or (max_over_time(engine_process_instance_ended_total[15m]) unless present_over_time(engine_process_instance_ended_total[1h] offset 15m)))) == 0
+          and sum by (engine_id) (max by (process_definition_key, engine_id) (engine_process_instances_running)) > 0
         for: 15m
         labels:
           severity: warning
@@ -40,7 +40,7 @@ groups:
 
       # Executable job backlog piling up: the executor can't keep pace.
       - alert: CibSevenJobBacklogGrowing
-        expr: max by (engine_id) (camunda_jobs_executable) > 100
+        expr: max by (engine_id) (engine_jobs_executable) > 100
         for: 10m
         labels:
           severity: warning
@@ -50,7 +50,7 @@ groups:
 
       # External tasks queued with no or slow workers consuming them.
       - alert: CibSevenExternalTaskBacklog
-        expr: max by (engine_id) (camunda_external_tasks_open) > 50
+        expr: max by (engine_id) (engine_external_tasks_open) > 50
         for: 10m
         labels:
           severity: warning
@@ -60,7 +60,7 @@ groups:
 
       # Sustained open incidents.
       - alert: CibSevenOpenIncidents
-        expr: sum by (engine_id, incident_type) (max by (process_definition_key, incident_type, engine_id) (camunda_incidents_open)) > 0
+        expr: sum by (engine_id, incident_type) (max by (process_definition_key, incident_type, engine_id) (engine_incidents_open)) > 0
         for: 15m
         labels:
           severity: info
@@ -70,7 +70,7 @@ groups:
 
       # Human task backlog: an SLA signal.
       - alert: CibSevenUnassignedTaskBacklog
-        expr: sum by (engine_id) (max by (status, engine_id) (camunda_usertasks_open{status="unassigned"})) > 100
+        expr: sum by (engine_id) (max by (status, engine_id) (engine_usertasks_open{status="unassigned"})) > 100
         for: 30m
         labels:
           severity: info

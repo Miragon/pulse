@@ -3,7 +3,7 @@ import { before, describe, it } from "node:test"
 import ts from "typescript"
 import { OPAQUE_ARGUMENT, collectTextHelpers, findParamRefs } from "./prompt-param-refs.mjs"
 import { scanSources } from "./source-scan.mjs"
-import { fullSurface } from "./tool-surface.mjs"
+import { fullSurface, metricVocabulary } from "./tool-surface.mjs"
 
 /**
  * Raw tool-name references vs the full tool surface (#322 N187).
@@ -18,7 +18,13 @@ import { fullSurface } from "./tool-surface.mjs"
  * tool takes.
  */
 
-/** String literals (not comments, not template expressions) shaped like a `<prefix>_…` tool name. */
+/** The contract's metric names and labels (`engine_id`, `engine_jobs_failed`) share the prefix. */
+const METRIC_VOCABULARY = metricVocabulary()
+
+/**
+ * String literals (not comments, not template expressions) shaped like a `<prefix>_…` tool name;
+ * a metric name or label of the metrics contract is none, every other one must be a tool.
+ */
 function findToolNameLiterals(file, text, prefixes) {
   const shape = new RegExp(`^(?:${prefixes.join("|")})_[a-z0-9_]+$`)
   const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true)
@@ -26,7 +32,8 @@ function findToolNameLiterals(file, text, prefixes) {
   const visit = (node) => {
     if (
       (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) &&
-      shape.test(node.text)
+      shape.test(node.text) &&
+      !METRIC_VOCABULARY.has(node.text)
     ) {
       const { line } = source.getLineAndCharacterOfPosition(node.getStart())
       refs.push({ name: node.text, at: `${file}:${line + 1}` })
@@ -63,9 +70,9 @@ describe("raw tool-name literals name real tools (full surface)", () => {
     toolParams = new Map(
       surface.map((tool) => [tool.name, Object.keys(tool.inputSchema.properties ?? {})]),
     )
-    // Prefixes come from the surface itself: `camunda7_…`, `analytics_…`.
+    // Prefixes come from the surface itself: `engine_…`, `analytics_…`.
     const prefixes = [...new Set([...tools].flatMap((n) => /^([a-z0-9]+)_/.exec(n)?.[1] ?? []))]
-    assert.deepEqual(prefixes.sort(), ["analytics", "camunda7"])
+    assert.deepEqual(prefixes.sort(), ["analytics", "engine"])
     refs = scanSources((file, text) => findToolNameLiterals(file, text, prefixes))
     paramRefs = collectParamRefs(prefixes)
   })
@@ -81,11 +88,11 @@ describe("raw tool-name literals name real tools (full surface)", () => {
   })
 
   it("sees the raw cross-module references (the scanner is not blind)", () => {
-    const camunda7Refs = refs
-      .filter((r) => r.at.startsWith("packages/connectors/camunda/camunda7-connector/src/widgets/"))
+    const engineRefs = refs
+      .filter((r) => r.at.startsWith("packages/connectors/engine/engine-connector/src/widgets/"))
       .map((r) => r.name)
     for (const name of ["analytics_engine_landscape_data", "analytics_bpmn_heatmap_data"]) {
-      assert.ok(camunda7Refs.includes(name), name)
+      assert.ok(engineRefs.includes(name), name)
     }
   })
 
@@ -116,55 +123,55 @@ describe("raw tool-name literals name real tools (full surface)", () => {
   it("sees the parameters the instructions and descriptions quote (the scanner is not blind)", () => {
     const quoted = new Set(paramRefs.map((ref) => `${ref.tool}.${ref.param}`))
     // instructions.ts: the cluster scope of the guarded retry
-    assert.ok(quoted.has("camunda7_list_jobs.activityId"))
+    assert.ok(quoted.has("engine_list_jobs.activityId"))
   })
 })
 
 describe("findParamRefs", () => {
   const scan = (text) =>
-    findParamRefs("x.ts", text, ["camunda7", "analytics"]).map((r) => `${r.tool}.${r.param}`)
+    findParamRefs("x.ts", text, ["engine", "analytics"]).map((r) => `${r.tool}.${r.param}`)
 
   it("reads call notation: named, object, shorthand and parenthesized prose", () => {
-    assert.deepEqual(scan('const a = `analytics_x(a="1", b=${n}) and camunda7_y({ c: 1, d })`'), [
+    assert.deepEqual(scan('const a = `analytics_x(a="1", b=${n}) and engine_y({ c: 1, d })`'), [
       "analytics_x.a",
       "analytics_x.b",
-      "camunda7_y.c",
-      "camunda7_y.d",
+      "engine_y.c",
+      "engine_y.d",
     ])
-    assert.deepEqual(
-      scan('const a = "camunda7_y (processInstanceId 1), camunda7_z (filter by k)"'),
-      ["camunda7_y.processInstanceId", "camunda7_z.filter"],
-    )
-    assert.deepEqual(scan('const a = "Use the `camunda7_engine` tool (action \\"list\\")"'), [
-      "camunda7_engine.action",
+    assert.deepEqual(scan('const a = "engine_y (processInstanceId 1), engine_z (filter by k)"'), [
+      "engine_y.processInstanceId",
+      "engine_z.filter",
+    ])
+    assert.deepEqual(scan('const a = "Use the `engine_old_tool` tool (action \\"list\\")"'), [
+      "engine_old_tool.action",
     ])
   })
 
   it("joins concatenations and reads a conditional fragment as its text branch", () => {
     assert.deepEqual(
-      scan('const a = "try camunda7_list_x(" + `{ maxResults: 1${e ? `, engine: "e"` : ""} })`'),
-      ["camunda7_list_x.maxResults", "camunda7_list_x.engine"],
+      scan('const a = "try engine_list_x(" + `{ maxResults: 1${e ? `, engine: "e"` : ""} })`'),
+      ["engine_list_x.maxResults", "engine_list_x.engine"],
     )
-    assert.deepEqual(scan("const a = `camunda7_y(${x ? 1 : `b: ${x}`})`"), ["camunda7_y.b"])
+    assert.deepEqual(scan("const a = `engine_y(${x ? 1 : `b: ${x}`})`"), ["engine_y.b"])
     // Each side of a conditional is checked in place.
-    assert.deepEqual(scan("const a = `camunda7_y${x ? `({ a: 1 })` : ` (b 2)`}`"), [
-      "camunda7_y.a",
-      "camunda7_y.b",
+    assert.deepEqual(scan("const a = `engine_y${x ? `({ a: 1 })` : ` (b 2)`}`"), [
+      "engine_y.a",
+      "engine_y.b",
     ])
   })
 
   it("inlines a same-file const text, but not a name declared twice", () => {
     const scoped = [
       'const scope = `engine: "${e}", activityId: "${id}"`',
-      "const a = `camunda7_y({ ${scope}, c: 1 })`",
+      "const a = `engine_y({ ${scope}, c: 1 })`",
     ].join("\n")
-    assert.deepEqual(scan(scoped), ["camunda7_y.engine", "camunda7_y.activityId", "camunda7_y.c"])
+    assert.deepEqual(scan(scoped), ["engine_y.engine", "engine_y.activityId", "engine_y.c"])
     const twice = [
       'function f() { const s = "a: 1" }',
       'const s = "b: 1"',
-      "const a = `camunda7_y({ ${s} })`",
+      "const a = `engine_y({ ${s} })`",
     ].join("\n")
-    assert.deepEqual(scan(twice), [`camunda7_y.${OPAQUE_ARGUMENT}`])
+    assert.deepEqual(scan(twice), [`engine_y.${OPAQUE_ARGUMENT}`])
   })
 
   it("resolves one-line text helpers by name", () => {
@@ -174,38 +181,38 @@ describe("findParamRefs", () => {
     ].join("\n")
     const helpers = new Map(collectTextHelpers("h.ts", helperSource))
     assert.deepEqual([...helpers.keys()], ["engineArg"])
-    const text = "const a = `camunda7_y({${engineArg(id)}incidentId: '${id}'})`"
+    const text = "const a = `engine_y({${engineArg(id)}incidentId: '${id}'})`"
     assert.deepEqual(
-      findParamRefs("x.ts", text, ["camunda7"], helpers).map((r) => `${r.tool}.${r.param}`),
-      ["camunda7_y.engine", "camunda7_y.incidentId"],
+      findParamRefs("x.ts", text, ["engine"], helpers).map((r) => `${r.tool}.${r.param}`),
+      ["engine_y.engine", "engine_y.incidentId"],
     )
   })
 
   it("reports an argument whose name is an unresolvable interpolation", () => {
-    assert.deepEqual(scan("const a = `camunda7_y({ ${scope}, c: 1 })`"), [
-      `camunda7_y.${OPAQUE_ARGUMENT}`,
-      "camunda7_y.c",
+    assert.deepEqual(scan("const a = `engine_y({ ${scope}, c: 1 })`"), [
+      `engine_y.${OPAQUE_ARGUMENT}`,
+      "engine_y.c",
     ])
-    assert.deepEqual(scan("const a = `camunda7_y({${engineArg(id)}incidentId: 1})`"), [
-      `camunda7_y.${OPAQUE_ARGUMENT}`,
+    assert.deepEqual(scan("const a = `engine_y({${engineArg(id)}incidentId: 1})`"), [
+      `engine_y.${OPAQUE_ARGUMENT}`,
     ])
-    assert.deepEqual(scan('const a = `camunda7_y (${id ?? "(none)"})`'), [
-      `camunda7_y.${OPAQUE_ARGUMENT}`,
+    assert.deepEqual(scan('const a = `engine_y (${id ?? "(none)"})`'), [
+      `engine_y.${OPAQUE_ARGUMENT}`,
     ])
     // A placeholder in VALUE position is fine.
-    assert.deepEqual(scan('const a = `camunda7_y(a=${n}, b: "${m}", c ${o})`'), [
-      "camunda7_y.a",
-      "camunda7_y.b",
-      "camunda7_y.c",
+    assert.deepEqual(scan('const a = `engine_y(a=${n}, b: "${m}", c ${o})`'), [
+      "engine_y.a",
+      "engine_y.b",
+      "engine_y.c",
     ])
   })
 
   it("reads prose connectors only for parameter-shaped names", () => {
     assert.deepEqual(
       scan(
-        'const a = "camunda7_x with processDefinitionKey=k; camunda7_y for instance 1; camunda7_z with that key"',
+        'const a = "engine_x with processDefinitionKey=k; engine_y for instance 1; engine_z with that key"',
       ),
-      ["camunda7_x.processDefinitionKey"],
+      ["engine_x.processDefinitionKey"],
     )
   })
 
@@ -217,24 +224,45 @@ describe("findParamRefs", () => {
   })
 
   it("ignores comments, unclosed lists and possessive apostrophes", () => {
-    assert.deepEqual(scan("// camunda7_x(bogus=1)\nconst a = 'camunda7_y(' "), [])
-    assert.deepEqual(scan('const a = "camunda7_x (the instance\'s incidents)"'), ["camunda7_x.the"])
+    assert.deepEqual(scan("// engine_x(bogus=1)\nconst a = 'engine_y(' "), [])
+    assert.deepEqual(scan('const a = "engine_x (the instance\'s incidents)"'), ["engine_x.the"])
+  })
+
+  it("reads no metric label or name as a tool: the contract shares the prefix", () => {
+    assert.deepEqual(scan('const a = "sum by (engine_id) (engine_jobs_failed)"'), [])
+    assert.deepEqual(scan('const a = "max by engine_id(processDefinitionKey)"'), [])
+    assert.deepEqual(scan('const a = "engine_jobs_faild (processInstanceId 1)"'), [
+      "engine_jobs_faild.processInstanceId",
+    ])
   })
 })
 
 describe("findToolNameLiterals", () => {
   it("flags string literals only: comments, template expressions and other shapes pass", () => {
     const text = [
-      "// the `camunda7_in_comment_data` feed",
-      'const a = "camunda7_stale_data"',
+      "// the `engine_in_comment_data` feed",
+      'const a = "engine_stale_data"',
       "const b = `analytics_feed_data`",
-      "const c = `camunda7_${'x'}`",
-      'const d = "camunda_engine_id"',
-      'const e = "camunda7_Upper"',
+      "const c = `engine_${'x'}`",
+      'const e = "engine_Upper"',
     ].join("\n")
-    assert.deepEqual(findToolNameLiterals("x.ts", text, ["camunda7", "analytics"]), [
-      { name: "camunda7_stale_data", at: "x.ts:2" },
+    assert.deepEqual(findToolNameLiterals("x.ts", text, ["engine", "analytics"]), [
+      { name: "engine_stale_data", at: "x.ts:2" },
       { name: "analytics_feed_data", at: "x.ts:3" },
+    ])
+  })
+
+  it("passes the contract's metric names and labels, and only those", () => {
+    const text = [
+      'const a = "engine_id"',
+      'const b = "engine_jobs_failed"',
+      'const c = "engine_activity_duration_milliseconds_bucket"',
+      'const d = "engine_jobs_faild"',
+      'const e = "engine_stale_data"',
+    ].join("\n")
+    assert.deepEqual(findToolNameLiterals("x.ts", text, ["engine", "analytics"]), [
+      { name: "engine_jobs_faild", at: "x.ts:4" },
+      { name: "engine_stale_data", at: "x.ts:5" },
     ])
   })
 })

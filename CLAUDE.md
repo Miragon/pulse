@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 Guidance for AI agents working in this repository. Read the repo skill of your feature path
-before you add code: `.claude/skills/add-bpm-feature` (camunda7 tools, queries, widgets) and
+before you add code: `.claude/skills/add-bpm-feature` (engine tools, queries, widgets) and
 `.claude/skills/add-analytics-feature` (analytics).
 
 Each rule below names the gate that enforces it; when a gate fails, its message and source
@@ -14,8 +14,10 @@ Docs are held to the code:
   repo path exists, the identifiers of the skills and nested agent files exist, and each docs
   page stays within its line budget.
 - `scripts/old-names.test.mjs` fails on a technical name of the retired operate CLI, on the
-  unscoped npm package pulse-cli (someone else's), on an image off GHCR and on the retired OAuth
-  JSON variable.
+  unscoped npm package pulse-cli (someone else's), on an image off GHCR, on the retired OAuth
+  JSON variable and on a name the engine module carried up to 0.24 (its `camunda7_` tools, the
+  module name, its packages and app path, its `CAMUNDA_` server variables, its metric names);
+  the vendor (`flavor` `camunda7`, "Camunda 7") stays.
 - `scripts/check-package-scripts.mjs` (`pnpm lint:package-scripts`) fails on a `--filter`
   naming no workspace package and on a pnpm filter without `--fail-if-no-match` on a gate path
   (pnpm 10 exits 0 when a filter matches nothing, so a stale name turns a gate green).
@@ -36,20 +38,20 @@ command line interface (`apps/cli`) and a VS Code extension (`apps/vscode`) for 
 
 | Path                                                 | Contents                                                                                                                                                                                                                                                          |
 | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/mcp-server-camunda7/`                          | The MCP host: composes plugins, bundles the widget UI, serves HTTP on `:8400`                                                                                                                                                                                     |
+| `apps/mcp-server/`                                   | The MCP host: composes plugins, bundles the widget UI, serves HTTP on `:8400`                                                                                                                                                                                     |
 | `apps/cli/`                                          | The CLI (npm `@miragon/pulse-cli`): every REST operation of the engine as a command, generated from its OpenAPI spec, plus the workflow commands; its rules in `apps/cli/CLAUDE.md`                                                                               |
 | `apps/vscode/`                                       | Pulse for VS Code (`pulse-cockpit`, a .vsix): a Preact webview over an engine-neutral contract and core, the C7 adapter; its rules in `apps/vscode/CLAUDE.md`                                                                                                     |
-| `packages/connectors/camunda/camunda7-connector/`    | camunda7 module: operations tools, widget tools, widgets                                                                                                                                                                                                          |
+| `packages/connectors/engine/engine-connector/`       | engine module: operations tools, widget tools, widgets                                                                                                                                                                                                            |
 | `packages/connectors/analytics/analytics-connector/` | analytics module: Prometheus-backed tools, dashboards, comparison widgets                                                                                                                                                                                         |
-| `packages/connectors/camunda/camunda7-client/`       | Generated CIB seven REST SDK (`src/generated/`) + Zod input schemas (`src/schemas/`)                                                                                                                                                                              |
+| `packages/connectors/engine/engine-client/`          | Generated CIB seven REST SDK (`src/generated/`) + Zod input schemas (`src/schemas/`)                                                                                                                                                                              |
 | `packages/connectors/analytics/analytics-client/`    | Prometheus client + PromQL query functions (`src/queries/`) + Zod schemas                                                                                                                                                                                         |
 | `packages/core/ui/`                                  | Pulse's design kit (npm `@miragon/pulse-ui`): primitives, components, tone model, type scale, locale, toasts, formatters and the Miragon theme (`theme.css` over the vendored `--cd-*` tokens) for Pulse views and customer UIs; the brand gates under `/testing` |
 | `packages/core/widget-shell/`                        | The view runtime (`/widgets`: `mountViews`, the view host, the query hooks, `TestViewHost`, `ListTable`, hand-offs, BPMN), view + data-feed builders, the tool registrar (`createToolRegistrar`) and the boot (`/server`), the product glossary (`/testing`)      |
-| `packages/core/engine-core/`                         | The Camunda 7 REST API family's workflow domain (npm `@miragon/pulse-engine-core`): engine port, selection, inspect view, status triage, root causes, retry and advance plans, as data, no runtime dependency. The CLI bundles it, the camunda7 connector runs it |
+| `packages/core/engine-core/`                         | The Camunda 7 REST API family's workflow domain (npm `@miragon/pulse-engine-core`): engine port, selection, inspect view, status triage, root causes, retry and advance plans, as data, no runtime dependency. The CLI bundles it, the engine connector runs it   |
 | `engine-plugins/`                                    | Kotlin/Gradle: CIB seven OTEL metrics plugin (Java 21)                                                                                                                                                                                                            |
 | `playground/`                                        | Demo env: CIB seven showcase engine, Compose stack, Fly.io deploy                                                                                                                                                                                                 |
 | `docs/`                                              | Pulse docs, a VitePress site on GitHub Pages (getting started, usage, architecture, developer, operations)                                                                                                                                                        |
-| `docs/mcp/`                                          | The MCP server's pages of the docs site (getting started, usage, reference, operations, architecture, developer)                                                                                                                                                  |
+| `docs/mcp/`                                          | The MCP server's pages of the docs site (getting started, usage, reference, operations, upgrading, architecture, developer)                                                                                                                                       |
 | `docs/cli/`                                          | The CLI's pages of the docs site (install, commands, configuration, authentication, AI agents, development)                                                                                                                                                       |
 | `docs/vscode/`                                       | The VS Code extension's pages of the docs site (installation, configuration, usage, architecture)                                                                                                                                                                 |
 
@@ -57,11 +59,13 @@ Three axes decide where code goes, and they stay apart:
 
 - Vendor (CIB seven, Operaton, Camunda 7): runtime config per engine, `flavor` →
   `EngineProvider` (invariant 8), never a package or an app.
-- Dialect (an engine API family; Camunda 7 today): one package family under
-  `packages/connectors/<family>/`: `<name>-client` (the wire: SDK, schemas, engine contract)
-  and `<name>-connector` (the MCP module); a package two interfaces share is extracted on its
-  second consumer, like the family's workflow domain (`packages/core/engine-core` in the table
-  above, one port per API family). A different dialect is a new family plus its own MCP server app.
+- Dialect (an engine API family; one today, the Camunda 7 REST API all three vendors serve,
+  whose family is `packages/connectors/engine/` and whose MCP server is `apps/mcp-server`): one
+  package family under `packages/connectors/<family>/`: `<name>-client` (the wire: SDK,
+  schemas, engine contract) and `<name>-connector` (the MCP module); a package two interfaces
+  share is extracted on its second consumer, like the family's workflow domain
+  (`packages/core/engine-core` in the table above, one port per API family). A different dialect
+  is a new family plus its own MCP server app, both named after that dialect.
 - Interface (how a person or an agent reaches an engine): an app under `apps/`, today the
   MCP server, the CLI (`apps/cli`, rules in `apps/cli/CLAUDE.md`) and the VS Code extension
   (`apps/vscode`, rules in `apps/vscode/CLAUDE.md`). Another interface (a second editor
@@ -106,7 +110,7 @@ render widgets manually.
 
 If generated SDK files look wrong (e.g. `client.gen.ts` importing `./src/hey-api.js`
 instead of `../hey-api.js`), the shared turbo cache replayed a poisoned `generate`
-output. Fix it with `pnpm exec turbo run generate --filter=@miragon/pulse-camunda7-client --force`.
+output. Fix it with `pnpm exec turbo run generate --filter=@miragon/pulse-engine-client --force`.
 
 ## Design-System (verbindlich)
 
@@ -119,7 +123,7 @@ Für jedes Wort in der UI gilt zusätzlich `miragon-brand:brand-tone`.
 Die Marken-Tokens kommen aus der Skill (`cd-tokens.generated.css`); keine HEX-Werte forken. Das
 Theme von `@miragon/pulse-ui` (`@miragon/pulse-ui/theme.css`) vendort sie unverändert
 (`packages/core/ui/src/tokens/`) und bildet seine Rollen-Variablen in Hell und Dunkel darauf ab. Die
-App (`apps/mcp-server-camunda7/src/ui/globals.css`) und das Starter-Template
+App (`apps/mcp-server/src/ui/globals.css`) und das Starter-Template
 (`server/src/ui/brand.css`) importieren es nach `tailwindcss` und überschreiben nur Rollen- und
 Alias-Variablen (`--primary`, `--link`, `--focus`, `--<ton>`, `--<ton>-soft`, `--<ton>-ink`, Radien,
 Schatten), nie `--cd-*`; Komponenten nutzen nie Palettenklassen oder rohe Farben. Die Docs-Site
@@ -175,13 +179,13 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
 ## Architecture invariants
 
 1. **New operations tools go through the registrar, never raw `server.tool()`.** Add the Zod
-   input schema in `packages/connectors/camunda/camunda7-client/src/schemas/`, then register
-   the tool in `packages/connectors/camunda/camunda7-connector/src/tools/<domain>.ts` via the
+   input schema in `packages/connectors/engine/engine-client/src/schemas/`, then register
+   the tool in `packages/connectors/engine/engine-connector/src/tools/<domain>.ts` via the
    `register` callback of `createToolRegistrar` (`@miragon/pulse-widget-shell/server`, wired in
    `src/tools/index.ts`): a `category` matching its domain file (`"analytics"` in the analytics
    module), `...engineParamShape` in the input schema, the handler wrapped in `withEngine(...)`
-   (both from `src/lib/with-engine.ts`). Canonical shape: `camunda7_list_process_instances` in
-   `packages/connectors/camunda/camunda7-connector/src/tools/process-instances.ts`. ESLint
+   (both from `src/lib/with-engine.ts`). Canonical shape: `engine_list_process_instances` in
+   `packages/connectors/engine/engine-connector/src/tools/process-instances.ts`. ESLint
    (`no-restricted-syntax` in `eslint.config.mjs`) blocks raw `server.tool()` in every spelling
    outside the widget-path files its `ignores` lists. `no-restricted-syntax` is ONE rule: a
    later flat-config block REPLACES its selectors, so a glob two gates share gets one block with
@@ -192,73 +196,73 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      holds only `readOnlyHint` tools; every write states `destructiveHint`, since MCP reads an
      absent hint as `true`). Fix the annotations, not the test.
    - Toolsets are FAIL-CLOSED: without a suffix a module runs its read-only floor on an
-     unauthenticated boot and its standard toolset (camunda7 `operations`) under OAuth;
+     unauthenticated boot and its standard toolset (engine `operations`) under OAuth;
      `admin` is never implied; an empty or unknown suffix warns and falls back to the floor;
      nothing resolves to "everything" (widget-shell's `toolsets.test.ts` +
      `composition.test.ts`). Analytics declares no toolsets: every analytics tool is a read
      (its `src/module.test.ts`), and a suffix on it is ignored with a warning.
    - Admin-only by decision, each with `destructiveHint: true`: the engine-wide
-     `camunda7_throw_signal` and the external-task worker protocol (`camunda7_fetch_and_lock`,
-     `camunda7_complete_external_task`, `camunda7_handle_external_task_failure`); the read path
-     `camunda7_list_external_tasks` and the recovery `camunda7_set_external_task_retries` stay
+     `engine_throw_signal` and the external-task worker protocol (`engine_fetch_and_lock`,
+     `engine_complete_external_task`, `engine_handle_external_task_failure`); the read path
+     `engine_list_external_tasks` and the recovery `engine_set_external_task_retries` stay
      in `operations`. Reads that only feed an admin write are admin-only too:
-     `camunda7_create_migration_plan`, `camunda7_get_batch` and
-     `camunda7_get_activity_instance_tree` (the instance ids `camunda7_modify_process_instance`
-     takes); below admin, `camunda7_inspect_process_instance` shows where an instance waits.
-   - `camunda7_create_deployment` registers only with `CAMUNDA_ALLOW_DEPLOYMENTS=true`:
+     `engine_create_migration_plan`, `engine_get_batch` and
+     `engine_get_activity_instance_tree` (the instance ids `engine_modify_process_instance`
+     takes); below admin, `engine_inspect_process_instance` shows where an instance waits.
+   - `engine_create_deployment` registers only with `ENGINE_ALLOW_DEPLOYMENTS=true`:
      deploying BPMN/DMN is code execution inside the engine JVM (JUEL, scripts). Never relax
      that gate or fold it into a toolset.
 
 2. **Never talk to an engine directly.** All engine access goes through
-   `resolveEngine`/`withEngine` (`packages/connectors/camunda/camunda7-connector/src/lib/`),
+   `resolveEngine`/`withEngine` (`packages/connectors/engine/engine-connector/src/lib/`),
    which routes by precedence: per-call `engine` > the operator default
-   `CAMUNDA_DEFAULT_ENGINE` (it must name a configured engine, else the boot fails) > the only
+   `ENGINE_DEFAULT` (it must name a configured engine, else the boot fails) > the only
    configured engine > `ENGINE_NOT_SELECTED` listing the engines. There is deliberately NO
    per-user or in-memory selection (replica-unsafe; mcp-use 2 issues no session ids). A client
    you construct or cache yourself breaks multi-engine routing; `resolveEngine` already returns
    `baseUrl`/`cockpitUrl`.
 
 3. **A view is registered in three places**; a view that misses one is silently absent:
-   - the module's view map, keyed by its view tool's name (camunda7 has ONE view,
-     `camunda7_open_cockpit` → `CockpitApp` in
-     `packages/connectors/camunda/camunda7-connector/src/widgets/views.tsx`)
-   - `apps/mcp-server-camunda7/src/ui/view-registry.ts`: every module's views plus the host
+   - the module's view map, keyed by its view tool's name (the engine module has ONE view,
+     `engine_open_cockpit` → `CockpitApp` in
+     `packages/connectors/engine/engine-connector/src/widgets/views.tsx`)
+   - `apps/mcp-server/src/ui/view-registry.ts`: every module's views plus the host
      widgets (cross-module widgets by raw id)
-   - `packages/connectors/camunda/camunda7-connector/src/tool-names.ts`: the tool-name constant
+   - `packages/connectors/engine/engine-connector/src/tool-names.ts`: the tool-name constant
      for the view tool and every `*_data` feed, so in-widget feed calls stay rename-safe
 
-   New camunda7 UI is a cockpit route, never a second view: a section in `CockpitView`
+   New engine UI is a cockpit route, never a second view: a section in `CockpitView`
    (`src/view-models.ts`) and a case in `CockpitRoute` (`src/widgets/cockpit-app/routes.tsx`),
    its builder in `src/data/` with its read in `src/data/route-reads.ts` (its `*_data` feed and
    the start view share it), an entry in `START_VIEW_PARAMS`
    (`src/widget-tools/cockpit.ts`) and in `buildCockpitStart`/`cockpitFacts`
    (`src/data/cockpit-start.ts`); the exhaustive maps fail to compile until each has it. A
-   route that nothing emits and `camunda7_open_cockpit` cannot open is dead.
+   route that nothing emits and `engine_open_cockpit` cannot open is dead.
 
    A view is picked by its NAME, the view tool's name (`showToolBinding`, primed under
    `ui://views/<name>.html` with a prelude naming it), so
-   `apps/mcp-server-camunda7/test/view-registry.test.ts` holds the view registry to the
+   `apps/mcp-server/test/view-registry.test.ts` holds the view registry to the
    view-bound tools of the tools/list goldens and fails both ways: on a tool without a view
    (the "can't show this view" state) and on a view no tool opens (dead code in every
    view's bundle).
 
-4. **The `dedupe` array in `apps/mcp-server-camunda7/vite.config.ts` is load-bearing: never remove
+4. **The `dedupe` array in `apps/mcp-server/vite.config.ts` is load-bearing: never remove
    or trim it.** Without it each widget package bundles its own React, TanStack Query, mcp-use
    or pulse-ui instance, the React contexts no longer match, a widget finds no view host and
    no `QueryClient`, and every in-widget query hangs on "Loading…".
 
 5. **There are three render paths; pick deliberately:**
    - Registrar tools (`src/tools/`): plain JSON data _for the model_.
-   - Widget tools (`show_*` in analytics, `camunda7_open_cockpit` in camunda7; spread
+   - Widget tools (`show_*` in analytics, `engine_open_cockpit` in the engine module; spread
      `...showToolBinding(name, title)` from `@miragon/pulse-widget-shell/server`): render a
      view for the user, as `buildViewResult(data, text)`: the `structuredContent` IS the view's
      data and the `content` text is the model-facing result as compact JSON (the analytics
-     heatmap: a short English summary). `camunda7_open_cockpit`'s `view` picks the start
+     heatmap: a short English summary). `engine_open_cockpit`'s `view` picks the start
      route, its `structuredContent` carries that route's data (the route's widgets seed their
      feeds with it) and its `content` that route's facts. The view is picked by its name
      (= the tool's name); a composed view (a dashboard, the process detail) is ONE component
      that composes its widgets, never a layout the server sends.
-   - `*_data` feeds (spread `...appOnly`, **no** view binding; camunda7's `registerDataFeed`):
+   - `*_data` feeds (spread `...appOnly`, **no** view binding; the engine module's `registerDataFeed`):
      app-only JSON for in-widget refresh and navigation, returned as
      `buildDataFeedResult(data)`. SEP-1865 hosts hide them from the LLM, and a widget-tool
      result would be rendered by the host instead of returned to the in-widget `callTool()`.
@@ -274,7 +278,7 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
 6. **MCP App widgets compose from the design kit `@miragon/pulse-ui` and the view runtime of
    `@miragon/pulse-widget-shell/widgets`; never re-inline their primitives.** This covers
    the React views an MCP host renders (pulse-ui's and widget-shell's `src`, the connectors'
-   `src/widgets`, the host bundle in `apps/mcp-server-camunda7/src/ui/`); another interface
+   `src/widgets`, the host bundle in `apps/mcp-server/src/ui/`); another interface
    app's own UI follows the design system above.
    - **One kit.** Primitives, components, the tone model (`TONE_*`, `resolveTone`), `cn`, the
      formatters and the kit pieces (`Icon`, `Th`/`Td`, `TableEmptyState`, `NativeSelect` …) come
@@ -285,7 +289,7 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    - **The view runtime is widget-shell's.** The root's call hook (`useMcpUseViewCall` over
      `resolveViewCall`) owns the stripped-result recovery: a host that drops
      `structuredContent` gets ONE re-run of the view's own view tool, so every view-bound tool
-     is a read (`apps/mcp-server-camunda7/test/view-registry.test.ts`). `ViewFrame` renders the
+     is a read (`apps/mcp-server/test/view-registry.test.ts`). `ViewFrame` renders the
      phases (waiting, error, cancelled, ready); every `ViewStack` row and `HostWidgetSlot` has
      its own error boundary, so one crashing widget never takes its view down. Widgets reach
      the host only through `useViewHost`/`HostModelContext` and the query hooks
@@ -351,7 +355,7 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      "Jobs ohne Versuche" / "jobs without retries", "bereitstellen", Geschäftsschlüssel,
      aussetzen, Versuche, alle Engines), checked with each connector's own terms by
      `src/messages/glossary.test.ts` and listed in `src/messages/GLOSSARY.md`.
-   - **Locale on the server.** Tool results for the model are English only (camunda7's
+   - **Locale on the server.** Tool results for the model are English only (the engine module's
      cockpit facts are JSON keys, analytics' heatmap summary goes through its `summaryT`); a
      verdict travels as data and the widget words it in the host's language. The server never
      titles a view.
@@ -367,25 +371,25 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
 
 7. **Shared server data paths are single-sourced.**
    - Definition name/version/instance lookups come from
-     `packages/connectors/camunda/camunda7-connector/src/data/definition-info.ts`. Every
+     `packages/connectors/engine/engine-connector/src/data/definition-info.ts`. Every
      cockpit route has ONE builder in `src/data/` behind its `*_data` feed and the start view of
-     `camunda7_open_cockpit` (`buildCockpitStart`).
+     `engine_open_cockpit` (`buildCockpitStart`).
    - Honest numbers (`data/engine-reads.ts`): **primary rows/counts propagate errors;
      enrichment degrades to `null` (rendered "—"), never 0**; totals come from `/count` or
      statistics, never a capped page or scan; a definition view spans every version of its key
      (`data/honest-numbers.test.ts`).
    - No view payload carries BPMN XML (a view tool's `structuredContent` reaches the model on
      some hosts): a view names the version it draws (`diagramDefinitionId`) and `BpmnDiagram`
-     reads the XML from the app-only `camunda7_bpmn_xml_data` (the heatmap from
+     reads the XML from the app-only `engine_bpmn_xml_data` (the heatmap from
      `analytics_bpmn_xml_data`). The ONE XML read is `lib/definition-xml.ts`, cached per engine
      client and per caller.
    - Every engine REST rule the client defaults miss (`toEngineDate`, `engineSorting`,
      `toEngineVariable(s)`, text/plain endpoints, incident recovery, queued batches) lives in
-     the engine contract, `packages/connectors/camunda/camunda7-client/src/engine-contract/`,
+     the engine contract, `packages/connectors/engine/engine-client/src/engine-contract/`,
      used by `tools/` AND `data/`; every write tool has a recording-fake-engine case in
      `src/tools/*.wire.test.ts`. Analytics periods derive from `PERIODS`/`PERIOD_RANGE`.
-   - The workflow rules the CLI and the read composites (`camunda7_inspect_process_instance`,
-     `camunda7_engine_status`, `src/lib/composites.ts`) share live in `@miragon/pulse-engine-core`:
+   - The workflow rules the CLI and the read composites (`engine_inspect_process_instance`,
+     `engine_status`, `src/lib/composites.ts`) share live in `@miragon/pulse-engine-core`:
      selection, root cause, the composites' paging and caps; the connector's port
      (`src/lib/engine-port.ts`) maps each operation to an SDK or contract read. Deliberate
      carve-outs: the composites read definitions by id inside inspect (not `data/definition-info.ts`;
@@ -419,7 +423,7 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      imports an app, no cross-package deep imports. The interface apps import nothing of the
      MCP/UI/server stack, zod included, and no workspace package except the CLI's
      `@miragon/pulse-engine-core`, which it bundles; engine-core is a leaf (`engine-core-is-a-leaf`)
-     that only the CLI and the camunda7 connector may import (`engine-core-consumers`). Each rule has
+     that only the CLI and the engine connector may import (`engine-core-consumers`). Each rule has
      planted violations in
      `scripts/dependency-cruiser-gates.test.mjs`; a new app adds its npm name to the config's
      `APP_PACKAGES`. A rule names all three shapes an import reaches it in (a relative escape,
@@ -427,7 +431,8 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      directory in a `pathNot`.
    - **The module port.** Each module exports its definition in `src/module.ts` (config schema,
      `configFromEnv`, `knownEnvVars`, `toolsets`, `bootWarnings`, `instructions`, the rules for
-     every tool instead of 60 descriptions; plugin factory), conforming STRUCTURALLY to
+     every tool instead of 60 descriptions; `retired`, the former names and variables the boot
+     refuses, naming their replacements; plugin factory), conforming STRUCTURALLY to
      `ComposableModule<TShared>`. Its `createPlugin(config, shared)` returns a `ModulePlugin`,
      `{ name, register(server) }`: `register` puts every tool, prompt and resource of the module
      on the server the boot owns, and `name` is the owner the duplicate guard names. The
@@ -438,7 +443,7 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      `docs/mcp/operations.md`) and is authenticated exactly when it installed a provider,
      never inferred from an env var.
    - **The app composes, nothing more.** `setup.ts` holds `MODULES` and `sharedResources`, the
-     `SharedResources` wiring (`fetchBpmnXml`, camunda7's XML lookup for analytics; `engineIds`,
+     `SharedResources` wiring (`fetchBpmnXml`, the engine module's XML lookup for analytics; `engineIds`,
      the ONLY engines analytics reads, so analytics needs NO engine SDK). Widget components and
      boot plumbing live in packages; the bundle root is
      `mountViews({ views, hostWidgets })` (its `ViewRoot` provider order is load-bearing), the
@@ -458,7 +463,7 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    - **Cross-module UI is tiered**: raw tool-name strings with graceful degradation
      (`process-incidents/flow.tsx` → `analytics_bpmn_heatmap_data`); another module's widget
      only through the host widget map by raw id (`useHostWidget`/`HostWidgetSlot`:
-     `analytics:engine-landscape` in camunda7's fleet view);
+     `analytics:engine-landscape` in the engine module's fleet view);
      hard-composed views go in a dedicated package created with the first real view, never in
      the app, never as module-to-module imports. The host bundle is static, so a surface that
      needs another module probes one of its argument-free feeds once per view
@@ -469,18 +474,18 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      Hand-offs and model contexts name no tool of either module (invariant 6), so the only raw
      cross-module names are feeds and host widget ids.
    - **A write registers only through the registrar**, whose toolset filter decides it
-     (`withToolsetFilter`/`isToolInToolset` in camunda7), never an ad-hoc `toolset === …`
-     compare; an in-widget write asks `camunda7_widget_actions_data` whether it exists.
+     (`withToolsetFilter`/`isToolInToolset` in the engine module), never an ad-hoc `toolset === …`
+     compare; an in-widget write asks `engine_widget_actions_data` whether it exists.
    - **In-widget engine writes** run through ONE primitive, `useEngineAction`
-     (`camunda7-connector/src/widgets/lib/engine-action.ts`): the gate (`allowed` from
-     `camunda7_widget_actions_data`, AND `available`: no write on an ended, cancelled or
+     (`engine-connector/src/widgets/lib/engine-action.ts`): the gate (`allowed` from
+     `engine_widget_actions_data`, AND `available`: no write on an ended, cancelled or
      unconfirmed instance), the confirmation that names its target, the targeted invalidation
      through the view's one `QueryClient` (`useQueryClient`) and the optimistic marks
      (`WRITE_POLICY`); controls are hidden, not disabled (`src/widget-actions.test.ts`,
      `widgets/action-gating.test.tsx`). The cockpit's start route refreshes after a write
      because the tool result seeds its live feed query (`useViewData` always seeds).
    - **Vendors** are per-engine runtime config (`flavor` → `EngineProvider` in
-     `packages/connectors/camunda/camunda7-connector/src/providers/`); the port holds ONLY real
+     `packages/connectors/engine/engine-connector/src/providers/`); the port holds ONLY real
      differences (cockpit routes, branding, client hook), never an SDK mirror.
 
 ## Contracts
@@ -520,12 +525,12 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
   mcp-use emits the MCP-Apps keys from the tool's `view`/`visibility` fields and OVERWRITES
   the `ui` namespace on tools/list; widget-shell's `showToolBinding` stamps only the `openai/*`
   half.
-  `apps/mcp-server-camunda7/test/widget-contract.e2e.test.ts` checks the wire **by name**
-  (every `*_show_*` tool and `camunda7_open_cockpit` carry the widget `_meta`, every `*_data`
+  `apps/mcp-server/test/widget-contract.e2e.test.ts` checks the wire **by name**
+  (every `*_show_*` tool and `engine_open_cockpit` carry the widget `_meta`, every `*_data`
   feed is app-only), so the naming convention is load-bearing.
 - **The tools/list wire payload is a golden, per toolset**
-  (`apps/mcp-server-camunda7/test/tools-list.golden.test.ts`). The ONLY update path is
-  `GOLDEN_UPDATE=1 pnpm --filter @miragon/pulse-mcp-server-camunda7 test` (refused in CI);
+  (`apps/mcp-server/test/tools-list.golden.test.ts`). The ONLY update path is
+  `GOLDEN_UPDATE=1 pnpm --filter @miragon/pulse-mcp-server test` (refused in CI);
   never hand-edit a golden. `__golden__/char-budgets.json` pins each toolset's model-visible
   size, the tools/list text plus the server instructions sent at initialize (text moved into
   the instructions still counts), shrink-only: a change that makes the model read MORE text
@@ -543,7 +548,7 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
 - **The server reads no `PULSE_*` variable.** PulseAudio owns `PULSE_*` and `PULSE_CLI_*` is
   the CLI's; the typo warner watches the prefix of every known variable, so one server name
   under `PULSE_` would make it warn about both in a shared environment. A server setting goes
-  into its own family (`CAMUNDA_*`, `PROMETHEUS_*`, `ANALYTICS_*`, `MCP_*`;
+  into its own family (`ENGINE_*`, `ENGINES_*`, `PROMETHEUS_*`, `ANALYTICS_*`, `MCP_*`;
   `scripts/server-env-names.test.mjs` and the app's `test/setup.test.ts`).
 
 ## Releases
@@ -554,7 +559,7 @@ workspace (its header lists each check).
 
 - **One release-please train.** Conventional commits on `main` drive `release-please.yml`: one
   Release PR (tag `v<version>`) bumps the root, every app, the seven packages, the template's
-  pins, the camunda7-client User-Agent and `engine-plugins/gradle.properties` in lockstep
+  pins, the engine-client User-Agent and `engine-plugins/gradle.properties` in lockstep
   (`extra-files` in `release-please-config.json`). Merging it creates the release; every
   publish job then waits for manual approval of the `release` environment gate.
 - **npm:** the seven packages and `@miragon/pulse-cli` publish through
@@ -594,14 +599,14 @@ workspace (its header lists each check).
 | `pnpm lint`       | ESLint per package incl. the pattern gates, then dependency-cruiser (`lint:architecture`, `:cli`, `:vscode`), `lint:naming`, `lint:package-scripts`, `lint:ratchets` (needs `git fetch origin`), knip (`lint:deadcode`, `:cli`, `:vscode`) and `lint:github`                                                                                                                                                                                                                                                                             |
 | `pnpm fitness`    | Report: architecture graph, per-package coverage and mutation scores; locally after `pnpm test` (no CI job on a pull request), nightly the "Mutation summary" job of `.github/workflows/mutation-nightly.yml`                                                                                                                                                                                                                                                                                                                            |
 | `./gradlew build` | Kotlin compile + unit tests + Konsist architecture tests (run in `engine-plugins/`)                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| `test:host`       | `pnpm --filter @miragon/pulse-mcp-server-camunda7 test:host`: Playwright host simulation of the **built** widget bundle behind a SEP-1865 host shim, the real `camunda7_open_cockpit` against a stub engine (`pinned …` scenarios are known defects, flipped when fixed); CI "Widget host simulation (test:host)"; run it for changes to widget-shell, pulse-ui, `src/ui/` or the mcp-use pin                                                                                                                                            |
+| `test:host`       | `pnpm --filter @miragon/pulse-mcp-server test:host`: Playwright host simulation of the **built** widget bundle behind a SEP-1865 host shim, the real `engine_open_cockpit` against a stub engine (`pinned …` scenarios are known defects, flipped when fixed); CI "Widget host simulation (test:host)"; run it for changes to widget-shell, pulse-ui, `src/ui/` or the mcp-use pin                                                                                                                                                       |
 | Docker build      | `.github/workflows/docker-build.yml`: plain `docker build` of the root `Dockerfile` (no push) on every PR touching what the build stage copies                                                                                                                                                                                                                                                                                                                                                                                           |
 | Engines           | `Engines (<flavor>)` in `.github/workflows/ci.yml`: Camunda 7, CIB seven and Operaton in Testcontainers, running the CLI's suites and the VS Code extension's conformance laws (`test:engines`; images pinned in `apps/cli/test/integration/support/engines.ts`); the `Engines` job aggregates the legs                                                                                                                                                                                                                                  |
 | VS Code smoke     | activation + every contributed command in VS Code stable under Xvfb, `test:smoke` (`.github/workflows/ci.yml`)                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | VS Code package   | `vsce package` dry run of the production build (`.github/workflows/ci.yml`): bundles in, no sources, maps or node_modules; the webview budget is `pnpm test`'s (`apps/vscode/test/architecture/bundle-budget.test.ts`)                                                                                                                                                                                                                                                                                                                   |
 | CLI jobs          | `ci.yml` in the `cli` scope: `CLI binary (<target>)` (single executable on Linux x64, macOS arm64, Windows x64), `CLI image (build + smoke)`, `CLI plugin (validate)`, aggregated by `CLI (all checks)`                                                                                                                                                                                                                                                                                                                                  |
 | CI scopes         | The `changes` job runs `scripts/ci-scopes.mjs` over a PR's files and every other job runs only in its scope (a skipped job reports success); "Lint + Format" runs on every PR. A new job gets `needs: changes` and a scope; a test that starts reading a file outside its package adds that path to `PATH_RULES` or `ALSO_READ_BY`                                                                                                                                                                                                       |
-| Manual            | `docker compose -f playground/docker/docker-compose.yml up -d` + `pnpm dev`, then exercise tools/widgets in the inspector. The default boot is read-only; write paths need an explicit suffix, e.g. `MCP_ACTIVE_MODULES=camunda7:admin,analytics` in `.env`                                                                                                                                                                                                                                                                              |
+| Manual            | `docker compose -f playground/docker/docker-compose.yml up -d` + `pnpm dev`, then exercise tools/widgets in the inspector. The default boot is read-only; write paths need an explicit suffix, e.g. `MCP_ACTIVE_MODULES=engine:admin,analytics` in `.env`                                                                                                                                                                                                                                                                                |
 
 A green `pnpm build && pnpm typecheck && pnpm test && pnpm lint` is the minimum bar for
 every change, in that order (`scripts/published-imports.test.mjs` reads the built CLI bundle);
