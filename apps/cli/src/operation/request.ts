@@ -4,7 +4,7 @@ import { argumentName } from "../catalog/names.js"
 import type { OperationSpec } from "../catalog/types.js"
 import { PulseCliError, usageError } from "../errors.js"
 import type { HttpRequest } from "../http/types.js"
-import { mergeHeaders, stringifyJson } from "../util.js"
+import { mergeHeaders, stringifyJson, withoutTrailingSlashes } from "../util.js"
 import type { TypedValue } from "./variables.js"
 
 export interface Target {
@@ -35,7 +35,7 @@ export interface OperationInput {
 }
 
 export function joinUrl(baseUrl: string, path: string): string {
-  return `${baseUrl.replace(/\/+$/, "")}${path}`
+  return `${withoutTrailingSlashes(baseUrl)}${path}`
 }
 
 /** `/engine/{name}` for a named engine and an engine scoped operation, else nothing. */

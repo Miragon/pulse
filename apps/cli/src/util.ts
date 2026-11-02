@@ -34,6 +34,13 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
 }
 
+/** `value` without its trailing slashes, in linear time (`/\/+$/` backtracks on a long run of them). */
+export function withoutTrailingSlashes(value: string): string {
+  let end = value.length
+  while (end > 0 && value[end - 1] === "/") end--
+  return value.slice(0, end)
+}
+
 /**
  * Merges header maps; later maps win. Header names are case-insensitive, so a later `authorization`
  * replaces an earlier `Authorization` instead of being sent twice. The later spelling is kept.

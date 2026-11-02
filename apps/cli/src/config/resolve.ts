@@ -5,7 +5,7 @@
  */
 
 import type { PulseCliError } from "../errors.js"
-import { compact } from "../util.js"
+import { compact, withoutTrailingSlashes } from "../util.js"
 import { configError } from "./config-error.js"
 import { redactUrl } from "./redact.js"
 import { resolveHeaders } from "./headers.js"
@@ -138,7 +138,7 @@ export function validateUrl(url: string, label = "Engine URL", example = DEFAULT
       `Pass credentials as a header (-H, ${ENV.headers}) instead. Example URL: ${example}`,
     )
   }
-  return trimmed.replace(/\/+$/, "")
+  return withoutTrailingSlashes(trimmed)
 }
 
 export function validateCockpitUrl(url: string): string {

@@ -5,7 +5,7 @@
 
 import type { OutputFormat } from "../config/types.js"
 import type { OperationResult, RequestPreview } from "../operation/result.js"
-import { isRecord, stringifyJson } from "../util.js"
+import { isRecord, stringifyJson, withoutTrailingSlashes } from "../util.js"
 import { missingFields, project } from "./fields.js"
 import { curlCommand, maskHeaders, maskUrl } from "./secrets.js"
 import { renderTable } from "./table.js"
@@ -111,7 +111,7 @@ function renderDryRun(request: RequestPreview, options: RenderOptions): string {
 /** The path below the path of the REST root (`/engine-rest/task` → `/task`), else as is. */
 function relativePath(path: string, baseUrl: string | undefined): string {
   if (baseUrl === undefined || !URL.canParse(baseUrl)) return path
-  const root = new URL(baseUrl).pathname.replace(/\/+$/, "")
+  const root = withoutTrailingSlashes(new URL(baseUrl).pathname)
   return path.startsWith(`${root}/`) ? path.slice(root.length) : path
 }
 
