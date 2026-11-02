@@ -1,7 +1,7 @@
 /**
  * The program is pulse-cli. Up to 0.10.0 it was called operate, and the text it ships (code,
  * help, guide, skill, README, docs, image and formula) names it pulse-cli now. The repository's
- * old-names guard (apps/mcp-server-camunda7/test/old-names.test.ts) bans operate's technical names
+ * old-names guard (scripts/old-names.test.mjs) bans operate's technical names
  * but lets the word pass on purpose, since Pulse uses the verb; a leftover such as "operate sends
  * the token" would ship silently. So this test reads the shipped text and fails on the word in
  * lower case (`Operate`, Camunda 8's product, and `OperateError` pass) outside ALLOWED. ALLOWED is

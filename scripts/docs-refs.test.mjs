@@ -1,17 +1,19 @@
+import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
-import { afterEach, describe, expect, it } from "vitest"
-import { EXPECTED_TOOLS_ADMIN } from "./expected-tools.js"
-import { REPO_ROOT } from "./source-scan.js"
+import { afterEach, describe, it } from "node:test"
+import { fileURLToPath } from "node:url"
+import { REPO_ROOT } from "./source-scan.mjs"
+import { fullSurface } from "./tool-surface.mjs"
 
 /**
  * Docs and skills say what the code does (#345). A skill an agent follows
  * writes the code it shows, so a stale name there lands in the next change.
  * This guard reads every backticked reference in the docs, the READMEs, the
  * agent files and the skills (isCheckedDoc below) and checks it against the
- * repo: tool names against the full surface, repo paths against the tree
+ * repo: tool names against the full surface (the admin golden), repo paths against the tree
  * (from the repo root, in a nested file too), the identifiers of the skills
  * and of the nested agent files against the sources and the mcp-use
  * typings (a nested agent file's also against its package's own
@@ -27,11 +29,11 @@ import { REPO_ROOT } from "./source-scan.js"
 const TEMPLATE_ROOT = path.join(REPO_ROOT, "templates", "composed-server")
 
 /** A directory's entries; one that is gone (never there, or removed mid-walk) has none. */
-function entriesOf(dir: string): fs.Dirent[] {
+function entriesOf(dir) {
   try {
     return fs.readdirSync(dir, { withFileTypes: true })
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return []
+    if (error.code === "ENOENT") return []
     throw error
   }
 }
@@ -44,7 +46,7 @@ function entriesOf(dir: string): fs.Dirent[] {
  * removed mid-walk outside node_modules (a package's own coverage/.tmp) holds
  * no doc or source to read and is skipped the same way.
  */
-const walk = (dir: string, keep: (file: string) => boolean): string[] =>
+const walk = (dir, keep) =>
   entriesOf(dir).flatMap((entry) => {
     if (entry.name === "node_modules") return []
     const file = path.join(dir, entry.name)
@@ -53,11 +55,11 @@ const walk = (dir: string, keep: (file: string) => boolean): string[] =>
   })
 
 /** The docs pages: the Markdown in docs/, not the VitePress config, theme or build output. */
-const isDocsPage = (rel: string) =>
+const isDocsPage = (rel) =>
   rel.startsWith("docs/") && rel.endsWith(".md") && !rel.split("/").includes(".vitepress")
 
 /** The house skills and the template's. */
-const isSkill = (rel: string) =>
+const isSkill = (rel) =>
   /^(?:templates\/composed-server\/)?\.claude\/skills\/.*SKILL\.md$/.test(rel)
 
 /**
@@ -67,8 +69,7 @@ const isSkill = (rel: string) =>
  * Gradle, pnpm, docs-kit and release tooling terms that no source here
  * declares.
  */
-const isNestedAgentFile = (rel: string) =>
-  /^(?:apps|packages)\/(?:.+\/)?(?:CLAUDE|AGENTS)\.md$/.test(rel)
+const isNestedAgentFile = (rel) => /^(?:apps|packages)\/(?:.+\/)?(?:CLAUDE|AGENTS)\.md$/.test(rel)
 
 /**
  * The Markdown this guard reads (`rel` is a repo-relative POSIX path): the
@@ -78,7 +79,7 @@ const isNestedAgentFile = (rel: string) =>
  * the skills. Never node_modules, and never a CHANGELOG.md: release-please
  * writes it and quotes old commit text.
  */
-function isCheckedDoc(rel: string): boolean {
+function isCheckedDoc(rel) {
   const parts = rel.split("/")
   if (parts.includes("node_modules") || parts.at(-1) === "CHANGELOG.md") return false
   return (
@@ -100,7 +101,7 @@ function isCheckedDoc(rel: string): boolean {
  * and tsconfigs) is never read. The GIT_* variables a hook may set are
  * dropped, so `root` alone decides the repository.
  */
-function listedFiles(root: string): string[] {
+function listedFiles(root) {
   const env = Object.fromEntries(
     Object.entries(process.env).filter(([name]) => !name.startsWith("GIT_")),
   )
@@ -119,15 +120,15 @@ function listedFiles(root: string): string[] {
 }
 
 /** The checked docs among the listed files of the repo at `root`. */
-const checkedDocs = (root: string) => listedFiles(root).filter(isCheckedDoc)
+const checkedDocs = (root) => listedFiles(root).filter(isCheckedDoc)
 
 // Skills that teach no code of this repo: shadcn's is vendored (its own
 // components and CLI), create-ticket names the agent's tools.
 const NOT_REPO_CODE = new Set(["shadcn", "create-ticket"])
-const teachesRepoCode = (file: string) => !NOT_REPO_CODE.has(path.basename(path.dirname(file)))
+const teachesRepoCode = (file) => !NOT_REPO_CODE.has(path.basename(path.dirname(file)))
 
 /** The docs whose identifiers are checked: the skills that teach repo code and the nested agent files. */
-const identifierDocs = (docs: readonly string[]) => [
+const identifierDocs = (docs) => [
   ...docs.filter(isSkill).filter(teachesRepoCode),
   ...docs.filter(isNestedAgentFile),
 ]
@@ -137,15 +138,12 @@ const docFiles = repoFiles.filter(isCheckedDoc)
 const skillFiles = docFiles.filter(isSkill)
 const docsPages = docFiles.filter(isDocsPage)
 
-interface Ref {
-  file: string
-  line: number
-  token: string
-}
-
-/** Every inline-code token (`…`) with its file and line; fenced blocks are code, read separately. */
-function backticked(file: string, root = REPO_ROOT): Ref[] {
-  const refs: Ref[] = []
+/**
+ * Every inline-code token (`…`) with its file and line; fenced blocks are code, read separately.
+ * @returns {{ file: string, line: number, token: string }[]}
+ */
+function backticked(file, root = REPO_ROOT) {
+  const refs = []
   let fenced = false
   fs.readFileSync(path.join(root, file), "utf8")
     .split("\n")
@@ -159,14 +157,14 @@ function backticked(file: string, root = REPO_ROOT): Ref[] {
   return refs
 }
 
-const where = (ref: Ref) => `${ref.file}:${ref.line} \`${ref.token}\``
+const where = (ref) => `${ref.file}:${ref.line} \`${ref.token}\``
 
 describe("tool names in the docs", () => {
-  const tools = new Set(EXPECTED_TOOLS_ADMIN)
+  const tools = new Set(fullSurface().map((tool) => tool.name))
   // A short form (`show_dashboard`, `bpmn_heatmap_data`) names the module's tool.
-  const known = (name: string) =>
+  const known = (name) =>
     tools.has(name) || tools.has(`camunda7_${name}`) || tools.has(`analytics_${name}`)
-  const looksLikeTool = (token: string) =>
+  const looksLikeTool = (token) =>
     /^[a-z0-9]+(?:_[a-z0-9]+)+$/.test(token) &&
     (/^(?:camunda7|analytics)_/.test(token) ||
       /(?:^|_)show_/.test(token) ||
@@ -174,14 +172,14 @@ describe("tool names in the docs", () => {
 
   // The template's docs also name its own module's tools (`notes_show_notes`),
   // which its own suite checks; here only the shipped modules' names count.
-  const checked = (ref: Ref) =>
+  const checked = (ref) =>
     ref.file.startsWith("templates/") ? /^(?:camunda7|analytics)_/.test(ref.token) : true
 
   it("names only tools the server registers", () => {
     const stale = docFiles
       .flatMap((file) => backticked(file))
       .filter((ref) => looksLikeTool(ref.token) && checked(ref) && !known(ref.token))
-    expect(stale.map(where)).toEqual([])
+    assert.deepEqual(stale.map(where), [])
   })
 })
 
@@ -190,8 +188,8 @@ describe("repo paths in the docs", () => {
     /^(?:apps|packages|docs|scripts|playground|engine-plugins|templates|\.claude|\.github)\//
   // Written by a build or a test run, not checked in.
   const GENERATED = /(?:^|\/)(?:dist|test-results|node_modules|generated-sources)(?:\/|$)/
-  const pathOf = (token: string) => token.replace(/:\d+(?:-\d+)?$/, "").replace(/\/$/, "")
-  const isPath = (token: string) =>
+  const pathOf = (token) => token.replace(/:\d+(?:-\d+)?$/, "").replace(/\/$/, "")
+  const isPath = (token) =>
     ROOTS.test(token) && !/\.\.\.|[*<>{}\s|]/.test(token) && !GENERATED.test(token)
 
   it("cites only files and directories that exist", () => {
@@ -207,22 +205,21 @@ describe("repo paths in the docs", () => {
           (fromTemplate && fs.existsSync(path.join(TEMPLATE_ROOT, target)))
         )
       })
-    expect(missing.map(where)).toEqual([])
+    assert.deepEqual(missing.map(where), [])
   })
 })
 
 /** Every identifier-shaped word of `files`. */
-const wordsOf = (files: readonly string[]) =>
+const wordsOf = (files) =>
   new Set(files.flatMap((file) => fs.readFileSync(file, "utf8").match(/[A-Za-z_$][\w$]*/g) ?? []))
 
 // A camelCase or PascalCase name, optionally called: `useResetOnChange(…)`.
-const identifierOf = (token: string) =>
-  /^([a-z]+[A-Z]\w*|[A-Z][a-z]+[A-Z]\w*)(?:\(.*\))?$/.exec(token)?.[1]
+const identifierOf = (token) => /^([a-z]+[A-Z]\w*|[A-Z][a-z]+[A-Z]\w*)(?:\(.*\))?$/.exec(token)?.[1]
 // Names a skill invents for the reader's own code.
 const PLACEHOLDER = /Xyz|Your[A-Z]|My[A-Z]|^my[A-Z]|Foo|Example/
 
 /** The workspace package a nested agent file sits in, as a repo-relative directory. */
-const packageOf = (rel: string) =>
+const packageOf = (rel) =>
   /^(?:apps\/[^/]+|packages\/core\/[^/]+|packages\/connectors\/[^/]+\/[^/]+)/.exec(rel)?.[0]
 
 /**
@@ -232,7 +229,7 @@ const packageOf = (rel: string) =>
  * though no source names them. A skill gets none of them; its corpus stays
  * the sources and the typings.
  */
-function tsconfigWords(root: string, rel: string, files: readonly string[]): Set<string> {
+function tsconfigWords(root, rel, files) {
   const dir = packageOf(rel)
   if (dir === undefined) return new Set()
   return wordsOf(
@@ -248,14 +245,9 @@ function tsconfigWords(root: string, rel: string, files: readonly string[]): Set
  * word of `words` declares, as `file:line \`token\``; a nested agent file also
  * accepts the words of its package's own tsconfig*.json files among `files`.
  */
-function unknownIdentifiers(
-  root: string,
-  docs: readonly string[],
-  words: ReadonlySet<string>,
-  files: readonly string[],
-): string[] {
+function unknownIdentifiers(root, docs, words, files) {
   return docs.flatMap((doc) => {
-    const own = isNestedAgentFile(doc) ? tsconfigWords(root, doc, files) : new Set<string>()
+    const own = isNestedAgentFile(doc) ? tsconfigWords(root, doc, files) : new Set()
     return backticked(doc, root)
       .filter((ref) => {
         const name = identifierOf(ref.token)
@@ -266,10 +258,12 @@ function unknownIdentifiers(
 }
 
 describe("identifiers in the skills and the nested agent files", () => {
-  // The app's own copies: the versions the skills' code compiles against.
-  const packageDir = (name: string) =>
-    fs.realpathSync(path.join(import.meta.dirname, "..", "node_modules", name))
-  const isSource = (file: string) => /\.(?:tsx?|mts|mjs|cjs|kt)$/.test(file)
+  // widget-shell's copy: the mcp-use version every package and the skills' code compile against.
+  const packageDir = (name) =>
+    fs.realpathSync(path.join(REPO_ROOT, "packages/core/widget-shell/node_modules", name))
+  // This guard's own fixtures name identifiers on purpose (`useNoSuchHook`): they declare none.
+  const isSource = (file) =>
+    /\.(?:tsx?|mts|mjs|cjs|kt)$/.test(file) && file !== fileURLToPath(import.meta.url)
   const words = wordsOf([
     ...["apps", "packages", "scripts", "templates", "engine-plugins"].flatMap((dir) =>
       walk(path.join(REPO_ROOT, dir), isSource),
@@ -278,7 +272,7 @@ describe("identifiers in the skills and the nested agent files", () => {
   ])
 
   it("name only functions, hooks and types that exist", () => {
-    expect(unknownIdentifiers(REPO_ROOT, identifierDocs(docFiles), words, repoFiles)).toEqual([])
+    assert.deepEqual(unknownIdentifiers(REPO_ROOT, identifierDocs(docFiles), words, repoFiles), [])
   })
 })
 
@@ -287,7 +281,7 @@ describe("identifiers in the skills and the nested agent files", () => {
  * (`cli/index.md` for docs/cli/index.md): a page that outgrows its budget
  * condenses. index.md is the site's home, README.md the index on GitHub.
  */
-const DOCS_BUDGETS: Record<string, number> = {
+const DOCS_BUDGETS = {
   "index.md": 40,
   "README.md": 40,
   "overview.md": 40,
@@ -328,10 +322,10 @@ const DOCS_BUDGETS: Record<string, number> = {
 }
 
 /** A page's budget key: its path under docs/, so docs/index.md and docs/cli/index.md differ. */
-const pageKey = (rel: string) => rel.slice("docs/".length)
+const pageKey = (rel) => rel.slice("docs/".length)
 
 /** The pages without a budget and the budgets without a page, both as keys. */
-function budgetMismatch(pages: readonly string[], budgets: Readonly<Record<string, number>>) {
+function budgetMismatch(pages, budgets) {
   const keys = pages.map(pageKey)
   return {
     unbudgeted: keys.filter((key) => !Object.hasOwn(budgets, key)).sort(),
@@ -342,29 +336,37 @@ function budgetMismatch(pages: readonly string[], budgets: Readonly<Record<strin
 }
 
 /** A page's length in lines; a final newline ends the last line and adds none. */
-const lineCount = (text: string) => text.replace(/\n$/, "").split("\n").length
+const lineCount = (text) => text.replace(/\n$/, "").split("\n").length
 
 describe("docs page budgets", () => {
   it("every page in docs/ has a budget", () => {
     const { unbudgeted, stale } = budgetMismatch(docsPages, DOCS_BUDGETS)
-    expect([
-      ...unbudgeted.map(
-        (key) =>
-          `docs/${key} has no line budget: add "${key}": <lines> to DOCS_BUDGETS ` +
-          "(keyed by the path under docs/)",
-      ),
-      ...stale.map((key) => `DOCS_BUDGETS names ${key}, which is no page in docs/: drop the entry`),
-    ]).toEqual([])
+    assert.deepEqual(
+      [
+        ...unbudgeted.map(
+          (key) =>
+            `docs/${key} has no line budget: add "${key}": <lines> to DOCS_BUDGETS ` +
+            "(keyed by the path under docs/)",
+        ),
+        ...stale.map(
+          (key) => `DOCS_BUDGETS names ${key}, which is no page in docs/: drop the entry`,
+        ),
+      ],
+      [],
+    )
   })
 
-  it.each(Object.entries(DOCS_BUDGETS))("%s stays within %i lines", (page, lines) => {
-    const text = fs.readFileSync(path.join(REPO_ROOT, "docs", page), "utf8")
-    expect(lineCount(text)).toBeLessThanOrEqual(lines)
-  })
+  for (const [page, lines] of Object.entries(DOCS_BUDGETS)) {
+    it(`${page} stays within ${lines} lines`, () => {
+      const text = fs.readFileSync(path.join(REPO_ROOT, "docs", page), "utf8")
+      const count = lineCount(text)
+      assert.ok(count <= lines, `docs/${page} has ${count} lines, its budget is ${lines}`)
+    })
+  }
 })
 
 describe("what the guard reads", () => {
-  it.each([
+  for (const rel of [
     "README.md",
     "CLAUDE.md",
     "docs/index.md",
@@ -390,11 +392,13 @@ describe("what the guard reads", () => {
     "templates/composed-server/.claude/skills/add-widget/SKILL.md",
     "templates/composed-server/README.md",
     "templates/composed-server/CLAUDE.md",
-  ])("reads %s", (rel) => {
-    expect(isCheckedDoc(rel)).toBe(true)
-  })
+  ]) {
+    it(`reads ${rel}`, () => {
+      assert.equal(isCheckedDoc(rel), true)
+    })
+  }
 
-  it.each([
+  for (const rel of [
     "CHANGELOG.md",
     "apps/cli/CHANGELOG.md",
     "packages/core/widget-shell/CHANGELOG.md",
@@ -409,12 +413,14 @@ describe("what the guard reads", () => {
     "engine-plugins/README.md",
     "TODOS.md",
     "apps/cli/README.txt",
-  ])("leaves out %s", (rel) => {
-    expect(isCheckedDoc(rel)).toBe(false)
-  })
+  ]) {
+    it(`leaves out ${rel}`, () => {
+      assert.equal(isCheckedDoc(rel), false)
+    })
+  }
 
   it("checks the identifiers of the skills that teach repo code and of the nested agent files", () => {
-    expect(
+    assert.deepEqual(
       identifierDocs([
         "CLAUDE.md",
         "README.md",
@@ -428,13 +434,14 @@ describe("what the guard reads", () => {
         ".claude/skills/create-ticket/SKILL.md",
         "templates/composed-server/.claude/skills/add-widget/SKILL.md",
       ]),
-    ).toEqual([
-      ".claude/skills/add-bpm-feature/SKILL.md",
-      "templates/composed-server/.claude/skills/add-widget/SKILL.md",
-      "apps/vscode/AGENTS.md",
-      "apps/vscode/CLAUDE.md",
-      "packages/connectors/camunda/camunda7-domain/AGENTS.md",
-    ])
+      [
+        ".claude/skills/add-bpm-feature/SKILL.md",
+        "templates/composed-server/.claude/skills/add-widget/SKILL.md",
+        "apps/vscode/AGENTS.md",
+        "apps/vscode/CLAUDE.md",
+        "packages/connectors/camunda/camunda7-domain/AGENTS.md",
+      ],
+    )
   })
 
   it("checks the identifiers of the agent files under apps/ and packages/, not the root's", () => {
@@ -444,8 +451,8 @@ describe("what the guard reads", () => {
       "packages/connectors/camunda/camunda7-domain/AGENTS.md",
       "packages/core/widget-shell/CLAUDE.md",
     ]
-    expect(nested.filter(isNestedAgentFile)).toEqual(nested)
-    expect(
+    assert.deepEqual(nested.filter(isNestedAgentFile), nested)
+    assert.deepEqual(
       [
         "CLAUDE.md",
         "AGENTS.md",
@@ -453,22 +460,23 @@ describe("what the guard reads", () => {
         "apps/cli/README.md",
         "apps/cli/skills/pulse-cli/SKILL.md",
       ].filter(isNestedAgentFile),
-    ).toEqual([])
+      [],
+    )
   })
 
   it("keys a page by its path under docs/, so two index.md pages get two budgets", () => {
     const pages = ["docs/index.md", "docs/README.md", "docs/cli/index.md", "docs/cli/commands.md"]
-    expect(pages.map(pageKey).sort()).toEqual([
+    assert.deepEqual(pages.map(pageKey).sort(), [
       "README.md",
       "cli/commands.md",
       "cli/index.md",
       "index.md",
     ])
-    expect(budgetMismatch(pages, { "index.md": 40, "README.md": 40 })).toEqual({
+    assert.deepEqual(budgetMismatch(pages, { "index.md": 40, "README.md": 40 }), {
       unbudgeted: ["cli/commands.md", "cli/index.md"],
       stale: [],
     })
-    expect(
+    assert.deepEqual(
       budgetMismatch(pages, {
         "index.md": 40,
         "README.md": 40,
@@ -476,25 +484,24 @@ describe("what the guard reads", () => {
         "cli/commands.md": 60,
         "cli/gone.md": 20,
       }),
-    ).toEqual({ unbudgeted: [], stale: ["cli/gone.md"] })
+      { unbudgeted: [], stale: ["cli/gone.md"] },
+    )
     // A budget key inherited from Object.prototype is no budget.
-    expect(budgetMismatch(["docs/constructor"], {}).unbudgeted).toEqual(["constructor"])
-    expect(isDocsPage("docs/.vitepress/theme/notes.md")).toBe(false)
-    expect(isDocsPage("docs/cli/index.md")).toBe(true)
-    expect(isDocsPage("docs/package.json")).toBe(false)
+    assert.deepEqual(budgetMismatch(["docs/constructor"], {}).unbudgeted, ["constructor"])
+    assert.equal(isDocsPage("docs/.vitepress/theme/notes.md"), false)
+    assert.equal(isDocsPage("docs/cli/index.md"), true)
+    assert.equal(isDocsPage("docs/package.json"), false)
   })
 
   it("counts a page's lines without the final newline", () => {
-    const page = (lines: number) =>
-      `${Array.from({ length: lines }, (_, i) => `line ${i}`).join("\n")}\n`
-    expect(lineCount(page(40))).toBe(40)
-    expect(lineCount(page(40)) <= 40).toBe(true)
-    expect(lineCount(page(41)) <= 40).toBe(false)
-    expect(lineCount("one\ntwo")).toBe(2)
+    const page = (lines) => `${Array.from({ length: lines }, (_, i) => `line ${i}`).join("\n")}\n`
+    assert.equal(lineCount(page(40)), 40)
+    assert.equal(lineCount(page(41)), 41)
+    assert.equal(lineCount("one\ntwo"), 2)
   })
 
   describe("in a git checkout", () => {
-    const roots: string[] = []
+    const roots = []
     afterEach(() => {
       for (const root of roots.splice(0)) fs.rmSync(root, { recursive: true, force: true })
     })
@@ -502,7 +509,7 @@ describe("what the guard reads", () => {
     it("reads what git tracks or would add, never an ignored download or build output", () => {
       const root = fs.mkdtempSync(path.join(os.tmpdir(), "docs-refs-"))
       roots.push(root)
-      const files: Record<string, string> = {
+      const files = {
         ".gitignore": ".vscode-test/\nout/\n",
         "README.md": "root",
         "apps/vscode/README.md": "extension",
@@ -519,7 +526,7 @@ describe("what the guard reads", () => {
         Object.entries(process.env).filter(([name]) => !name.startsWith("GIT_")),
       )
       execFileSync("git", ["init", "--quiet"], { cwd: root, env })
-      expect(checkedDocs(root).sort()).toEqual([
+      assert.deepEqual(checkedDocs(root).sort(), [
         "README.md",
         "apps/vscode/README.md",
         "apps/vscode/src/notes.md",
@@ -528,7 +535,7 @@ describe("what the guard reads", () => {
   })
 
   describe("the identifier check over a fixture tree", () => {
-    const roots: string[] = []
+    const roots = []
     afterEach(() => {
       for (const root of roots.splice(0)) fs.rmSync(root, { recursive: true, force: true })
     })
@@ -537,7 +544,7 @@ describe("what the guard reads", () => {
       const root = fs.mkdtempSync(path.join(os.tmpdir(), "docs-idents-"))
       roots.push(root)
       const strict = "Strict TypeScript (`exactOptionalPropertyTypes`, `noUncheckedIndexedAccess`)."
-      const files: Record<string, string> = {
+      const files = {
         "apps/vscode/AGENTS.md": `${strict}\nCall \`useNoSuchHook()\` and \`knownHook()\`.\n`,
         "apps/vscode/tsconfig.base.json":
           '{ "compilerOptions": { "exactOptionalPropertyTypes": true, // strict\n "noUncheckedIndexedAccess": true, } }',
@@ -561,7 +568,7 @@ describe("what the guard reads", () => {
       execFileSync("git", ["init", "--quiet"], { cwd: root, env })
       const listed = listedFiles(root)
       const docs = identifierDocs(listed.filter(isCheckedDoc))
-      expect(unknownIdentifiers(root, docs, new Set(["knownHook"]), listed)).toEqual([
+      assert.deepEqual(unknownIdentifiers(root, docs, new Set(["knownHook"]), listed), [
         // A skill keeps the plain corpus: a compiler option is no identifier of the code.
         ".claude/skills/x/SKILL.md:1 `exactOptionalPropertyTypes`",
         ".claude/skills/x/SKILL.md:1 `noUncheckedIndexedAccess`",
@@ -574,22 +581,22 @@ describe("what the guard reads", () => {
   })
 
   it("reads the repo's docs, READMEs, agent files and skills (the scanner is not blind)", () => {
-    expect(docFiles).toEqual(
-      expect.arrayContaining([
-        "README.md",
-        "CLAUDE.md",
-        "docs/index.md",
-        "packages/core/widget-shell/README.md",
-        "apps/mcp-server-camunda7/README.md",
-        "apps/mcp-server-camunda7/test-host/README.md",
-        "templates/composed-server/CLAUDE.md",
-        ".claude/skills/add-bpm-feature/SKILL.md",
-        "templates/composed-server/.claude/skills/setup-server/SKILL.md",
-      ]),
-    )
-    expect(docFiles.length).toBeGreaterThanOrEqual(28)
+    for (const doc of [
+      "README.md",
+      "CLAUDE.md",
+      "docs/index.md",
+      "packages/core/widget-shell/README.md",
+      "apps/mcp-server-camunda7/README.md",
+      "apps/mcp-server-camunda7/test-host/README.md",
+      "templates/composed-server/CLAUDE.md",
+      ".claude/skills/add-bpm-feature/SKILL.md",
+      "templates/composed-server/.claude/skills/setup-server/SKILL.md",
+    ]) {
+      assert.ok(docFiles.includes(doc), doc)
+    }
+    assert.ok(docFiles.length >= 28)
     // Every skill by name: the scanner reads each one, not just enough of them.
-    expect([...skillFiles].sort()).toEqual([
+    assert.deepEqual([...skillFiles].sort(), [
       ".claude/skills/add-analytics-feature/SKILL.md",
       ".claude/skills/add-bpm-feature/SKILL.md",
       ".claude/skills/create-ticket/SKILL.md",
@@ -599,6 +606,6 @@ describe("what the guard reads", () => {
       "templates/composed-server/.claude/skills/create-module/SKILL.md",
       "templates/composed-server/.claude/skills/setup-server/SKILL.md",
     ])
-    expect(docsPages.map(pageKey)).toContain("index.md")
+    assert.ok(docsPages.map(pageKey).includes("index.md"))
   })
 })

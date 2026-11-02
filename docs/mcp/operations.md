@@ -13,35 +13,40 @@ docker run --rm -p 127.0.0.1:8400:8400 \
   ghcr.io/miragon/pulse-server:latest
 ```
 
-release-please tags `v<version>`; after manual approval `publish-to-docker.yml` builds the root
-`Dockerfile` and pushes both tags. The `HEALTHCHECK` polls `/health/ready`. SIGTERM stops
-accepting, lets in-flight requests finish (≤ 4 s; readiness answers them 503 `draining`, so add a
-Kubernetes `preStop` sleep), then closes the database pool. `playground/docker/docker-compose.yml`
+SIGTERM stops accepting, lets in-flight requests finish (≤ 4 s; readiness answers them 503
+`draining`, so add a Kubernetes `preStop` sleep), then exits. release-please tags `v<version>`,
+which `publish-to-docker.yml` pushes after manual approval. `playground/docker/docker-compose.yml`
 binds every port to `127.0.0.1` (`--profile full` adds the server); Fly.io: `playground/README.md`.
 
 ## Security
 
-Without `MCP_OAUTH` the endpoint is unauthenticated and every module without a toolset suffix
-runs **read-only**; with it the server is an OAuth resource server (Keycloak or Auth0: bearer
-tokens validated on `/mcp`, 401 otherwise, `.well-known` metadata served) and the default rises
-to camunda7 `operations` (see [Module activation](#module-activation)). Tokens must carry the
-canonical MCP URL (`MCP_URL`, then required) in `aud` (RFC 8707); any other provider or config key
-fails the boot. Every request's `Host` (and a POST's `Origin`) must be localhost-class,
-`MCP_URL`'s or allow-listed below, else 403 (DNS rebinding).
+Without an OAuth provider the endpoint is unauthenticated and every module without a toolset suffix
+runs **read-only**. With one, `/mcp` validates bearer tokens (401 otherwise, `.well-known` metadata
+served) and the default rises to camunda7 `operations`. The server reads one provider's variables:
 
-A gateway or reverse proxy that terminates auth **in front of** the server is invisible to it:
-such a deployment runs read-only until `MCP_ACTIVE_MODULES` names its toolsets.
-Identity reaches the server only as a bearer token it validates itself (`MCP_OAUTH`),
-never from a header. `admin` is only reached by naming it, never on a server anyone can reach
-unauthenticated. Deploying a BPMN/DMN is **code execution inside the engine JVM** (JUEL
-expressions, scripts), so `camunda7_create_deployment` also needs `CAMUNDA_ALLOW_DEPLOYMENTS=true`.
+| Provider    | Variables                                                                                              |
+| ----------- | ------------------------------------------------------------------------------------------------------ |
+| Keycloak    | `MCP_USE_OAUTH_KEYCLOAK_SERVER_URL` (HTTPS, HTTP on localhost only) and `MCP_USE_OAUTH_KEYCLOAK_REALM` |
+| Auth0       | `MCP_USE_OAUTH_AUTH0_DOMAIN`: the tenant domain or its issuer URL                                      |
+| WorkOS      | `MCP_USE_OAUTH_WORKOS_SUBDOMAIN`: the AuthKit host                                                     |
+| Better Auth | `MCP_USE_OAUTH_BETTER_AUTH_URL`: the auth URL, which is the issuer                                     |
+| Convex      | `MCP_USE_OAUTH_CONVEX_AUTH_URL`: the auth URL                                                          |
 
-`CAMUNDA_AUTH_TYPE=passthrough` forwards each caller's token to the engine (never to Prometheus),
-which enforces the caller's permissions if its REST auth is on; only for a trusted single-audience
-setup, since the engine could replay that token here. Without OAuth there is no caller identity.
-`docker compose --profile auth up -d` adds a local Keycloak on `:8480` (realm `miragon`,
-`demo`/`demo`; see `.env.example`). The public Fly playground is unauthenticated and pinned to
-`camunda7:read-only,analytics`.
+An incomplete provider, two providers, a value mcp-use refuses or an unread `MCP_USE_*` variable
+that names OAuth or a provider (an `…_AUDIENCE`, a misspelled prefix) fails the boot, naming the
+variables. Tokens must carry `MCP_URL` (then required) in `aud` (RFC 8707). `Host` (and a POST's
+`Origin`) must be localhost-class, `MCP_URL`'s or allow-listed below, else 403.
+
+A gateway that terminates auth **in front of** the server is invisible to it (identity is only a
+bearer token the server validates): such a deployment runs read-only until `MCP_ACTIVE_MODULES`
+names its toolsets. Deploying a BPMN/DMN is **code execution inside the engine JVM**, so
+`camunda7_create_deployment` also needs `CAMUNDA_ALLOW_DEPLOYMENTS=true`. Passthrough auth
+(`CAMUNDA_AUTH_TYPE=passthrough`) forwards each caller's token to the engine (never to Prometheus),
+for a trusted single-audience setup only: the engine could replay it here.
+
+**Upgrading from the OAuth JSON variable.** `MCP_OAUTH` now fails the boot: in one deploy, unset it
+and move its keycloak `serverUrl` and `realm` to `MCP_USE_OAUTH_KEYCLOAK_SERVER_URL` and
+`MCP_USE_OAUTH_KEYCLOAK_REALM`, its auth0 `domain` to `MCP_USE_OAUTH_AUTH0_DOMAIN`.
 
 ## Environment variables
 
@@ -51,7 +56,7 @@ setup, since the engine could replay that token here. Without OAuth there is no 
 | `MCP_URL`                                                 | unset                               | Public base URL: advertised URLs, the OAuth token audience, the `Host`/`Origin` the server accepts, and the origin the views load Geist from: the server serves it at `/fonts/geist-<version>/` (woff2, cached immutable, no CDN) and declares the origin in every view's CSP `resourceDomains`; unset, a view uses the origin its host read it from. A host that blocks the origin, or a gateway that does not route `/fonts/`, shows the host's font |
 | `MCP_ALLOWED_HOSTS` / `MCP_ALLOWED_ORIGINS`               | localhost-class                     | Further hostnames / origins (comma lists) admitted next to `MCP_URL`'s; an origin without a scheme matches any scheme and port, `*` turns the check off (only behind an edge that validates `Host` itself)                                                                                                                                                                                                                                             |
 | `MCP_MAX_BODY_BYTES`                                      | `4194304`                           | Request-body cap (4 MiB): larger bodies get 413 before they are buffered, ahead of the OAuth gate. At most 4× the cap is held across in-flight requests (503 beyond) and a request must arrive within 30 s. An unauthenticated client can still spend that budget, so rate-limit a public server at its proxy (`pnpm dev` is uncapped)                                                                                                                 |
-| `MCP_OAUTH`                                               | unset                               | JSON OAuth resource-server config, the only caller identity; providers `keycloak`, `auth0` (anything else fails the boot). Full field lists: [`.env.example`](https://github.com/Miragon/pulse/blob/main/.env.example)                                                                                                                                                                                                                                 |
+| `MCP_USE_OAUTH_*`                                         | unset                               | One OAuth provider's variables, the only caller identity; see [Security](#security)                                                                                                                                                                                                                                                                                                                                                                    |
 | `MCP_ACTIVE_MODULES`                                      | all, read-only                      | Comma-separated `module` or `module:toolset` entries, e.g. `camunda7:operations,analytics`; no suffix = read-only, under OAuth the standard toolset (see [Module activation](#module-activation))                                                                                                                                                                                                                                                      |
 | `CAMUNDA_ENGINES_FILE` / `CAMUNDA_ENGINES_JSON`           | unset                               | Engine list as a file path / inline JSON (the file wins; highest precedence): `[{id, baseUrl, cockpitUrl?, environment?, flavor?, auth?}, ...]` or the environment map `{"<environment>": [engines…]}`. `environment` groups engines in pickers and view heads; `flavor` (`cibseven` \| `operaton` \| `camunda7`, default `camunda7`) selects the vendor's cockpit-link routes and product name; mixed fleets are fine.                                |
 | `CAMUNDA_BASE_URL`                                        | `http://localhost:8410/engine-rest` | Single-engine REST endpoint (registered as id `CAMUNDA_ENGINE_ID`); ignored when `CAMUNDA_ENGINES_*` is set. The server warns at boot when no engine source is set at all: the silent fallback works against the Compose engine but breaks the `engine_id` join                                                                                                                                                                                        |
@@ -95,14 +100,14 @@ Three routes sit next to `/mcp`, outside the OAuth gate and the `Host` check:
 | Route           | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `/health/live`  | Liveness: 200 as soon as the process serves HTTP                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| `/health/ready` | Readiness: 200 once the server's own dependencies respond (the stock server has none; a composed server may wire its own), else 503 naming the failing check. Never probes engines or Prometheus: their outages surface as tool errors, not as an unroutable server. `/health` aliases it (Docker `HEALTHCHECK`, Compose, Fly)                                                                                                                                                                                                                                 |
+| `/health/ready` | Readiness: 200 while the server serves, 503 `draining` during a drain. Never probes engines or Prometheus: their outages surface as tool errors, not as an unroutable server. `/health` aliases it (Docker `HEALTHCHECK`, Compose, Fly)                                                                                                                                                                                                                                                                                                                        |
 | `/metrics`      | Prometheus text: `mcp_tool_calls_total{tool,outcome}`, `mcp_tool_call_duration_seconds{tool}`, `mcp_http_requests_total{method,route,status}`, `mcp_http_request_duration_seconds{method,route}` plus the standard `process_*`/`nodejs_*` collectors. Labels are bounded by construction (tool catalogue, known routes), never users, sessions or arguments. The tool counters see calls that reached a handler; an unknown tool or invalid arguments show only in the request log. With `MCP_METRICS_TOKEN` set it requires that bearer token (401 otherwise) |
 
 mcp-use logs one line per request to stdout (`MCP_USE_LOG_LEVEL=debug`/`trace` adds payloads; the
-boot warns). The server expects Camunda 7 / CIB seven and Prometheus; Grafana is optional (`:8470`).
-Engine metrics come from the Kotlin plugin via any Micrometer export (see
-[Architecture](architecture.md)); alert rules ship in `playground/docker/prometheus/alerts.yml`,
-and `analytics_engine_health` surfaces the same gauges and firing alerts in one call.
+boot warns). Engine metrics come from the Kotlin plugin via any Micrometer export (see
+[Architecture](architecture.md)), Grafana is optional (`:8470`); alert rules ship in
+`playground/docker/prometheus/alerts.yml`, and `analytics_engine_health` surfaces the same gauges
+and firing alerts in one call.
 
 <a id="ci-cd"></a>
 

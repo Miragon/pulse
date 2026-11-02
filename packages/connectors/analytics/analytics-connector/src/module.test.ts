@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import type { MCPServer } from "mcp-use"
-import { composeModules } from "@miragon/pulse-widget-shell/server"
+import { z } from "zod"
 import { schemas } from "@miragon/pulse-analytics-client"
 import { analyticsModule } from "./module.js"
 import { ANALYTICS_ENGINE_LANDSCAPE_DATA } from "./tool-names.js"
@@ -11,6 +11,7 @@ afterEach(() => {
 
 interface RecordedTool {
   name: string
+  inputSchema?: z.ZodObject
   annotations?: {
     readOnlyHint?: boolean
     destructiveHint?: boolean
@@ -47,39 +48,14 @@ describe("analyticsModule plugin", () => {
   })
 })
 
-/** Every analytics tool is a read, so one toolset would name them all: the module declares none. */
+/**
+ * Every analytics tool is a read, so one toolset would name them all: the module declares none.
+ * The boot strips a suffix on it with a warning and logs it without one (widget-shell's
+ * `composition.test.ts`).
+ */
 describe("analyticsModule declares no toolsets", () => {
   it("has no toolset vocabulary", () => {
     expect("toolsets" in analyticsModule).toBe(false)
-  })
-
-  describe("through the composition root (composeModules)", () => {
-    const composition = composeModules({ label: "test", modules: [analyticsModule] })
-
-    it("ignores a suffix with one warning and passes no toolset to the module", () => {
-      const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
-      for (const suffix of ["read-only", "standard"]) {
-        const boot = composition.resolveBoot(
-          { MCP_ACTIVE_MODULES: `analytics:${suffix}` },
-          { authenticated: true },
-        )
-        expect(boot.entries[0].config).not.toHaveProperty("toolset")
-        expect(warn).toHaveBeenLastCalledWith(
-          `[test] Module "analytics" has no toolsets — ignoring ":${suffix}"`,
-        )
-      }
-      expect(warn).toHaveBeenCalledTimes(2)
-    })
-
-    it("logs the module without a toolset, with or without OAuth", () => {
-      vi.spyOn(console, "info").mockImplementation(() => {})
-      for (const authenticated of [false, true]) {
-        const boot = composition.resolveBoot({}, { authenticated })
-        expect(composition.logEffectiveToolsets(boot)).toBe(
-          "[test] Toolsets — analytics (no toolsets)",
-        )
-      }
-    })
   })
 })
 
@@ -261,6 +237,15 @@ describe("every analytics tool is a read", () => {
           "analytics declares no toolsets, so a write would reach every deployment",
       ).toBe(true)
       expect(tool.annotations?.destructiveHint, tool.name).not.toBe(true)
+    }
+  })
+
+  // Structural, like camunda7's: no analytics tool pages today, so a new one that does caps too.
+  it("a tool that takes maxResults caps it at 100", () => {
+    for (const tool of surfaceFor()) {
+      const maxResults = tool.inputSchema?.shape.maxResults as z.ZodType | undefined
+      if (!maxResults) continue
+      expect((z.toJSONSchema(maxResults) as { maximum?: number }).maximum, tool.name).toBe(100)
     }
   })
 })

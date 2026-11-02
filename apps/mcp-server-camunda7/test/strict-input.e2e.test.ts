@@ -33,7 +33,6 @@ describe("strict tool inputs on the wire (full surface)", () => {
 
   beforeAll(async () => {
     server = await bootServer({
-      authenticated: true,
       env: {
         MCP_ACTIVE_MODULES: "camunda7:admin,analytics",
         CAMUNDA_ALLOW_DEPLOYMENTS: "true",

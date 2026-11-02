@@ -1,5 +1,5 @@
 {
-  "$kommentar": "Von Hand geschrieben beim Umzug aus mcp-toolkit 2.8.1 (packages/ui/src/theme/cd-tokens.generated.css) nach @miragon/pulse-ui: die Marken-Tokens aus der Skill modeler-tool-design des Plugins miragon-brand in Miragon/corporate-identity, Release 1.8.0, mit einer Herkunftszeile davor und sonst unverändert. Neu vendoren statt editieren; apps/mcp-server-camunda7/test/ui-stylesheet.test.ts (SANCTIONED_TOKEN_MANIFESTS) prüft die Kopie damit, src/theme/cd-tokens.test.ts die Herkunftszeile und CD_TOKENS.",
+  "$kommentar": "Von Hand geschrieben beim Umzug aus mcp-toolkit 2.8.1 (packages/ui/src/theme/cd-tokens.generated.css) nach @miragon/pulse-ui: die Marken-Tokens aus der Skill modeler-tool-design des Plugins miragon-brand in Miragon/corporate-identity, Release 1.8.0, mit einer Herkunftszeile davor und sonst unverändert. Neu vendoren statt editieren; packages/core/ui/src/theme/token-drift.test.ts (SANCTIONED_TOKEN_MANIFESTS) prüft die Kopie damit, src/theme/cd-tokens.test.ts die Herkunftszeile und CD_TOKENS.",
   "version": "1.8.0",
   "dateien": [
     {

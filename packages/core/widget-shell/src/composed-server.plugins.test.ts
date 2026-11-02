@@ -5,7 +5,7 @@ import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { MCPServer, registerViews } from "mcp-use"
 import { oauthCustomProvider } from "mcp-use/oauth"
-import { composeModules, type ComposableModule, type ModulePlugin } from "./composition.js"
+import type { ComposableModule, ModulePlugin } from "./composition.js"
 import {
   createComposedServer,
   type ComposedServerOptions,
@@ -42,13 +42,15 @@ const alpha: ComposableModule<object> = {
   }),
 }
 
-const composition = composeModules<object>({
-  label: "plugins-test",
-  modules: [alpha],
-  appEnvVars: ["MCP_ACTIVE_MODULES"],
+/** A module without toolsets around one plugin: the boot builds it like any other. */
+const moduleOf = (plugin: ModulePlugin): ComposableModule<object> => ({
+  name: plugin.name,
+  configFromEnv: () => ({}),
+  knownEnvVars: [],
+  createPlugin: () => plugin,
 })
 
-/** A plugin outside the module selection, owning a plain feed and a view-bound show tool. */
+/** A plugin outside alpha, owning a plain feed and a view-bound show tool. */
 const panelPlugin = (): ModulePlugin => ({
   name: "panel",
   register: (server) => {
@@ -88,15 +90,15 @@ afterEach(async () => {
 
 function options(overrides: Partial<ComposedServerOptions> = {}): ComposedServerOptions {
   return {
-    label: "plugins-test",
     info: { name: "plugins-test", version: "0.0.0" },
-    composition,
+    modules: [moduleOf(panelPlugin()), alpha],
     bundle: { jsPath: "/nonexistent/mcp-app.js" },
     env: {},
-    setup: (boot) => ({ plugins: [panelPlugin(), ...composition.pluginsFor(boot.entries, {})] }),
     ...overrides,
   }
 }
+
+const withPlugins = (...plugins: ModulePlugin[]) => ({ modules: plugins.map(moduleOf) })
 
 async function boot(overrides: Partial<ComposedServerOptions> = {}) {
   const composed = await createComposedServer(options(overrides))
@@ -172,13 +174,14 @@ describe("createComposedServer: the plugins' tools", () => {
   it("registers only the plugins' tools, also under OAuth with every module writable", async () => {
     const tool = vi.spyOn(MCPServer.prototype, "tool")
     await createComposedServer(
-      options({ oauth: testOAuth(), env: { MCP_ACTIVE_MODULES: "alpha:operations" } }),
+      options({ oauth: testOAuth(), env: { MCP_ACTIVE_MODULES: "panel,alpha:operations" } }),
     )
     const names = tool.mock.calls.map(([definition]) => definition.name)
     expect(names.sort()).toEqual(PLUGIN_TOOLS)
   })
 
-  it("hands a plugin's tools the ambient request info without the plugin installing it", async () => {
+  // A real call through mcp-use: the metrics middleware hangs on mcp-use's own tools/call event.
+  it("hands a plugin's tools the ambient request info and counts the call by tool", async () => {
     const probe: ModulePlugin = {
       name: "probe",
       register: (server) => {
@@ -187,7 +190,7 @@ describe("createComposedServer: the plugins' tools", () => {
         }))
       },
     }
-    const server = await boot({ setup: () => ({ plugins: [probe] }) })
+    const server = await boot(withPlugins(probe))
     const result = (await rpc(
       server.port,
       "tools/call",
@@ -195,51 +198,21 @@ describe("createComposedServer: the plugins' tools", () => {
       { authorization: "Bearer probe-token" },
     )) as { content: { text: string }[] }
     expect(result.content[0].text).toBe("Bearer probe-token")
+    const metrics = await fetch(`http://127.0.0.1:${server.port}/metrics`)
+    expect(await metrics.text()).toMatch(
+      /^mcp_tool_calls_total\{tool="probe_auth",outcome="ok"\} 1$/m,
+    )
   })
 
   it("fails the boot on a tool name two modules register, naming both", async () => {
     const twice = (...plugins: ModulePlugin[]) =>
-      createComposedServer(options({ setup: () => ({ plugins }) }))
+      createComposedServer(options(withPlugins(...plugins)))
     await expect(twice(pluginOf("one", "x_dup"), pluginOf("two", "x_dup"))).rejects.toThrow(
       'Tool "x_dup" is registered twice: by "one" and again by "two".',
     )
     await expect(twice(panelPlugin(), pluginOf("alpha", "panel_show_panel"))).rejects.toThrow(
       'by "panel" and again by "alpha"',
     )
-  })
-
-  it("shuts down what setup opened when the boot fails after it", async () => {
-    const shutdown = vi.fn(() => Promise.resolve())
-    const failing = createComposedServer(
-      options({
-        setup: () => ({ plugins: [pluginOf("one", "x_dup"), pluginOf("two", "x_dup")], shutdown }),
-      }),
-    )
-    await expect(failing).rejects.toThrow('Tool "x_dup" is registered twice')
-    expect(shutdown).toHaveBeenCalledOnce()
-  })
-
-  it("keeps the boot error when the shutdown after it fails too", async () => {
-    vi.spyOn(console, "error").mockImplementation(() => {})
-    const shutdown = () => Promise.reject(new Error("pool gone"))
-    const failing = createComposedServer(
-      options({
-        setup: () => ({ plugins: [pluginOf("one", "x_dup"), pluginOf("two", "x_dup")], shutdown }),
-      }),
-    )
-    await expect(failing).rejects.toThrow('Tool "x_dup" is registered twice')
-    expect(console.error).toHaveBeenCalledWith(
-      "[plugins-test] shutdown failed:",
-      new Error("pool gone"),
-    )
-  })
-
-  it("counts a boot as authenticated only when it installs OAuth", async () => {
-    const resolveBoot = vi.spyOn(composition, "resolveBoot")
-    // An untyped root may hand over `null`; it installs no bearer gate, so it gets no writes.
-    const oauth = null as unknown as ComposedServerOptions["oauth"]
-    await createComposedServer(options({ oauth }))
-    expect(resolveBoot).toHaveBeenCalledWith({}, { authenticated: false })
   })
 })
 
@@ -252,13 +225,7 @@ describe("createComposedServer: the views", () => {
     const prime = vi.spyOn(MCPServer.prototype, registerViews)
     const server = await boot({
       bundle,
-      setup: (resolved) => ({
-        plugins: [
-          panelPlugin(),
-          ...composition.pluginsFor(resolved.entries, {}),
-          pluginOf("late", "late_list"),
-        ],
-      }),
+      modules: [moduleOf(panelPlugin()), alpha, moduleOf(pluginOf("late", "late_list"))],
     })
     expect(prime).toHaveBeenCalledOnce()
     expect(Object.keys(prime.mock.calls[0][0]).sort()).toEqual([
@@ -289,7 +256,7 @@ describe("createComposedServer: the views", () => {
 
   it("reads no bundle and primes nothing when no tool binds a view", async () => {
     const prime = vi.spyOn(MCPServer.prototype, registerViews)
-    await createComposedServer(options({ setup: () => ({ plugins: [pluginOf("plain", "x")] }) }))
+    await createComposedServer(options(withPlugins(pluginOf("plain", "x"))))
     expect(prime).not.toHaveBeenCalled()
     expect(console.warn).not.toHaveBeenCalledWith(expect.stringContaining("No widget bundle"))
   })

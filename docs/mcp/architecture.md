@@ -65,10 +65,10 @@ second engine dialect cheap:
   known env vars, toolset vocabulary, boot warnings, plugin factory
   (`packages/connectors/<family>/<name>-connector/src/module.ts`). A plugin is a name plus a
   `register(server)` that puts the module's tools on the one server the shared boot builds;
-  the boot refuses a tool name two modules register. The app only selects modules
-  (`MCP_ACTIVE_MODULES`) and wires shared resources against its own port
-  (`apps/mcp-server-camunda7/src/module-contract.ts`); the shared composition resolves one
-  fail-closed toolset per module per boot (read-only unless widened) and logs it. The module
+  the boot refuses a tool name two modules register. The app only lists its modules and wires
+  their shared resources (`apps/mcp-server-camunda7/src/setup.ts`); the shared boot selects the
+  modules (`MCP_ACTIVE_MODULES`), installs OAuth from the env and resolves one fail-closed
+  toolset per module per boot (read-only unless widened) and logs it. The module
   packages are published to npm, so external composition roots can mount them next to their own
   modules. The reference is `templates/composed-server/`.
 - The MCP server app owns no domain UI. Widgets live in packages: `pulse-ui`

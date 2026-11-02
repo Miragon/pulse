@@ -1,10 +1,13 @@
+import assert from "node:assert/strict"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { builtinModules } from "node:module"
+import { afterEach, describe, it } from "node:test"
 import ts from "typescript"
-import { afterEach, describe, expect, it } from "vitest"
-import { REPO_ROOT } from "./source-scan.js"
+import { isNpmPublished } from "./check-github-config.mjs"
+import { expandWorkspaceGlobs, workspaceGlobs } from "./check-package-scripts.mjs"
+import { REPO_ROOT } from "./source-scan.mjs"
 
 /**
  * A package published to npm imports from its shipped source only what its
@@ -26,87 +29,25 @@ import { REPO_ROOT } from "./source-scan.js"
  * size budget. There is no escape hatch before that test exists.
  */
 
-interface Manifest {
-  name?: string
-  private?: unknown
-  engines?: Record<string, unknown>
-  dependencies?: Record<string, string>
-  peerDependencies?: Record<string, string>
-}
-
-interface WorkspacePackage {
-  dir: string
-  manifest: Manifest
-}
-
-/** The `packages:` globs of pnpm-workspace.yaml (plain list form). */
-function workspaceGlobs(yamlText: string): string[] {
-  const globs: string[] = []
-  let inPackages = false
-  for (const line of yamlText.split("\n")) {
-    if (/^packages:\s*$/.test(line)) {
-      inPackages = true
-      continue
-    }
-    if (!inPackages) continue
-    const item = /^\s+-\s+["']?([^"'#\s]+)["']?/.exec(line)
-    if (item?.[1]) globs.push(item[1])
-    else if (/^\S/.test(line)) break
-  }
-  return globs
-}
-
-const childDirs = (dir: string) =>
-  fs.existsSync(dir)
-    ? fs
-        .readdirSync(dir, { withFileTypes: true })
-        .filter((d) => d.isDirectory() && d.name !== "node_modules")
-        .map((d) => path.join(dir, d.name))
-        .sort()
-    : []
-
 /**
- * The directories a workspace glob names. Only literal segments and a whole
- * `*` segment are understood; any other glob fails, so a new workspace tier
- * is never silently left unread.
+ * Every workspace package of the repo at `root`: each glob's directories that hold a package.json.
+ * The shared expansion throws on a glob it cannot expand, so no workspace tier drops out unread.
+ * @returns {{ dir: string, manifest: Record<string, any> }[]}
  */
-function expandGlob(root: string, glob: string): string[] {
-  return glob.split("/").reduce<string[]>(
-    (dirs, segment) => {
-      if (segment === "*") return dirs.flatMap(childDirs)
-      if (/[*?![\]{}]/.test(segment) || segment === "" || segment === "..") {
-        throw new Error(
-          `pnpm-workspace.yaml lists "${glob}": published-imports.test.ts expands literal ` +
-            `segments and a whole "*" segment only. Write the glob that way or teach expandGlob it.`,
-        )
-      }
-      return dirs.map((dir) => path.join(dir, segment))
-    },
-    [root],
-  )
-}
-
-/** Every workspace package of the repo at `root`: each glob's directories that hold a package.json. */
-function workspacePackages(root = REPO_ROOT): WorkspacePackage[] {
+function workspacePackages(root = REPO_ROOT) {
   const globs = workspaceGlobs(fs.readFileSync(path.join(root, "pnpm-workspace.yaml"), "utf8"))
   if (globs.length === 0) {
     throw new Error(`${path.join(root, "pnpm-workspace.yaml")} lists no packages: globs`)
   }
-  return globs
-    .flatMap((glob) => expandGlob(root, glob))
-    .filter((dir) => fs.existsSync(path.join(dir, "package.json")))
-    .map((dir) => ({
-      dir,
-      manifest: JSON.parse(fs.readFileSync(path.join(dir, "package.json"), "utf8")) as Manifest,
-    }))
+  return expandWorkspaceGlobs(root, globs).map((rel) => {
+    const dir = path.join(root, rel)
+    return { dir, manifest: JSON.parse(fs.readFileSync(path.join(dir, "package.json"), "utf8")) }
+  })
 }
 
 /** Published to npm: not `"private": true`, and no VS Code extension (engines.vscode). */
-const isPublishedToNpm = (manifest: Manifest) =>
-  manifest.private !== true && manifest.engines?.vscode === undefined
-
 const publishedPackages = (root = REPO_ROOT) =>
-  workspacePackages(root).filter(({ manifest }) => isPublishedToNpm(manifest))
+  workspacePackages(root).filter(({ manifest }) => isNpmPublished(manifest))
 
 const SOURCE = /\.(?:[cm]?[jt]s|[jt]sx)$/
 const TEST_SOURCE = /\.test(?:-support)?\.(?:[cm]?[jt]s|[jt]sx)$/
@@ -114,7 +55,7 @@ const TEST_SOURCE = /\.test(?:-support)?\.(?:[cm]?[jt]s|[jt]sx)$/
 // Shipped means every source a consumer receives, the generated SDK included
 // (its imports are the client's own `dependencies`), minus tests and test
 // support.
-const isShipped = (rel: string) =>
+const isShipped = (rel) =>
   SOURCE.test(rel) &&
   !TEST_SOURCE.test(rel) &&
   !rel.split(path.sep).some((part) => part === "test-support")
@@ -129,11 +70,11 @@ const NON_LITERAL = "<non-literal import>"
  * `import(…)`, `require(…)` and `import("…")` types, in either quote style.
  * A computed `import()`/`require()` argument reads as NON_LITERAL.
  */
-function moduleSpecifiers(file: string, source: string): string[] {
-  const specifiers: string[] = []
-  const literal = (node: ts.Node | undefined) =>
+function moduleSpecifiers(file, source) {
+  const specifiers = []
+  const literal = (node) =>
     node !== undefined && ts.isStringLiteralLike(node) ? node.text : NON_LITERAL
-  const visit = (node: ts.Node) => {
+  const visit = (node) => {
     if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier) {
       specifiers.push(literal(node.moduleSpecifier))
     } else if (
@@ -159,7 +100,7 @@ function moduleSpecifiers(file: string, source: string): string[] {
 }
 
 /** The bare package names a module imports (relative paths and Node built-ins dropped). */
-function importedPackages(file: string, source: string): string[] {
+function importedPackages(file, source) {
   return moduleSpecifiers(file, source)
     .filter(
       (spec) =>
@@ -174,7 +115,7 @@ function importedPackages(file: string, source: string): string[] {
 }
 
 /** Each `file: package` a published package's src imports without declaring it. */
-function undeclaredImports({ dir, manifest }: WorkspacePackage): string[] {
+function undeclaredImports({ dir, manifest }) {
   const declared = new Set([
     manifest.name,
     ...Object.keys(manifest.dependencies ?? {}),
@@ -212,7 +153,8 @@ describe("published packages declare what their shipped source imports", () => {
       'import fs from "node:fs"',
       'import path from "path"',
     ].join("\n")
-    expect(importedPackages("x.ts", source).sort()).toEqual(
+    assert.deepEqual(
+      importedPackages("x.ts", source).sort(),
       ["@scope/types", "lazy-loaded", "multi-line", "re-exported", "side-effect"].sort(),
     )
   })
@@ -234,7 +176,8 @@ describe("published packages declare what their shipped source imports", () => {
       "export { local }",
       "import Alias = Namespace.Member",
     ].join("\n")
-    expect(importedPackages("x.ts", source).sort()).toEqual(
+    assert.deepEqual(
+      importedPackages("x.ts", source).sort(),
       [
         "@scope/re-single",
         "after-statement",
@@ -259,7 +202,7 @@ describe("published packages declare what their shipped source imports", () => {
       "require(name)",
       "require()",
     ].join("\n")
-    expect(importedPackages("x.ts", source)).toEqual([
+    assert.deepEqual(importedPackages("x.ts", source), [
       NON_LITERAL,
       NON_LITERAL,
       NON_LITERAL,
@@ -279,19 +222,21 @@ describe("published packages declare what their shipped source imports", () => {
       "const lib = require.resolve('resolved-only')",
       "obj.require('method-call')",
     ].join("\n")
-    expect(importedPackages("x.ts", source)).toEqual([])
+    assert.deepEqual(importedPackages("x.ts", source), [])
   })
 
   it("parses JSX and plain JS modules by their extension", () => {
-    expect(importedPackages("x.tsx", "import 'react'\nconst a = <div>{x}</div>")).toEqual(["react"])
-    expect(importedPackages("x.cjs", "const c = require('cjs-dep')")).toEqual(["cjs-dep"])
-    expect(importedPackages("x.mjs", "import m from 'mjs-dep'")).toEqual(["mjs-dep"])
+    assert.deepEqual(importedPackages("x.tsx", "import 'react'\nconst a = <div>{x}</div>"), [
+      "react",
+    ])
+    assert.deepEqual(importedPackages("x.cjs", "const c = require('cjs-dep')"), ["cjs-dep"])
+    assert.deepEqual(importedPackages("x.mjs", "import m from 'mjs-dep'"), ["mjs-dep"])
   })
 
   it("ships every TS and JS module but tests and test support", () => {
     const shipped = ["a.ts", "a.tsx", "a.mts", "a.cts", "a.js", "a.jsx", "a.mjs", "a.cjs", "a.d.ts"]
-    expect(shipped.filter(isShipped)).toEqual(shipped)
-    expect(
+    assert.deepEqual(shipped.filter(isShipped), shipped)
+    assert.deepEqual(
       [
         "a.test.ts",
         "a.test.tsx",
@@ -305,17 +250,18 @@ describe("published packages declare what their shipped source imports", () => {
         "GLOSSARY.md",
         "data.json",
       ].filter(isShipped),
-    ).toEqual([])
+      [],
+    )
   })
 
   describe("which packages it reads", () => {
-    const roots: string[] = []
+    const roots = []
     afterEach(() => {
       for (const root of roots.splice(0)) fs.rmSync(root, { recursive: true, force: true })
     })
 
     /** A temp repo from a { relPath: text } map; a key ending in "/" is an empty directory. */
-    function fixture(files: Record<string, string>): string {
+    function fixture(files) {
       const root = fs.mkdtempSync(path.join(os.tmpdir(), "published-imports-"))
       roots.push(root)
       for (const [rel, text] of Object.entries(files)) {
@@ -330,7 +276,7 @@ describe("published packages declare what their shipped source imports", () => {
       return root
     }
 
-    const json = (value: unknown) => JSON.stringify(value)
+    const json = (value) => JSON.stringify(value)
     const WORKSPACE = [
       "packages:",
       '  - "apps/*"',
@@ -342,7 +288,7 @@ describe("published packages declare what their shipped source imports", () => {
       '  qs: "^6.16.0"',
     ].join("\n")
     const DOMAIN = "packages/connectors/camunda/camunda7-domain"
-    const LAYOUT: Record<string, string> = {
+    const LAYOUT = {
       "pnpm-workspace.yaml": WORKSPACE,
       "apps/cli/package.json": json({
         name: "@miragon/pulse-cli",
@@ -374,9 +320,9 @@ describe("published packages declare what their shipped source imports", () => {
       [`${DOMAIN}/src/index.ts`]: "import { z } from 'zod'",
       "docs/package.json": json({ name: "@miragon/pulse-docs", private: true }),
     }
-    const findings = (root: string): Record<string, string[]> =>
+    const findings = (root) =>
       Object.fromEntries(
-        publishedPackages(root).map((pkg): [string, string[]] => [
+        publishedPackages(root).map((pkg) => [
           pkg.manifest.name ?? pkg.dir,
           undeclaredImports(pkg),
         ]),
@@ -384,16 +330,20 @@ describe("published packages declare what their shipped source imports", () => {
 
     it("reads non-private apps and -domain packages, not private apps or extensions", () => {
       const root = fixture(LAYOUT)
-      expect(workspacePackages(root).map((pkg) => pkg.manifest.name)).toEqual([
-        "@miragon/pulse-cli",
-        "@miragon/pulse-mcp-server-camunda7",
-        "pulse",
-        "@miragon/pulse-widget-shell",
-        "@miragon/pulse-camunda7-domain",
-        "@miragon/pulse-docs",
-      ])
+      assert.deepEqual(
+        workspacePackages(root).map((pkg) => pkg.manifest.name),
+        // By directory: apps/, docs, packages/connectors/, packages/core/.
+        [
+          "@miragon/pulse-cli",
+          "@miragon/pulse-mcp-server-camunda7",
+          "pulse",
+          "@miragon/pulse-docs",
+          "@miragon/pulse-camunda7-domain",
+          "@miragon/pulse-widget-shell",
+        ],
+      )
       // A CLI that bundles its domain before its bundle test exists fails.
-      expect(findings(root)).toEqual({
+      assert.deepEqual(findings(root), {
         "@miragon/pulse-cli": [
           "cli.mts: undeclared-mts",
           "index.ts: @miragon/pulse-camunda7-domain",
@@ -416,8 +366,8 @@ describe("published packages declare what their shipped source imports", () => {
           engines: { vscode: "^1.101.0" },
         }),
       })
-      expect(findings(root)["@miragon/pulse-camunda7-domain"]).toEqual([])
-      expect(Object.keys(findings(root))).not.toContain("pulse")
+      assert.deepEqual(findings(root)["@miragon/pulse-camunda7-domain"], [])
+      assert.ok(!Object.keys(findings(root)).includes("pulse"))
     })
 
     it("reads an app that names no VS Code engine and is not private: true", () => {
@@ -429,10 +379,11 @@ describe("published packages declare what their shipped source imports", () => {
           private: "true",
         }),
       })
-      expect(findings(root)).toMatchObject({
-        pulse: ["extension.ts: vscode"],
-        "@miragon/pulse-mcp-server-camunda7": ["index.ts: undeclared-but-private"],
-      })
+      const found = findings(root)
+      assert.deepEqual(found.pulse, ["extension.ts: vscode"])
+      assert.deepEqual(found["@miragon/pulse-mcp-server-camunda7"], [
+        "index.ts: undeclared-but-private",
+      ])
     })
 
     it("reports a published package without src/", () => {
@@ -441,45 +392,43 @@ describe("published packages declare what their shipped source imports", () => {
           Object.entries(LAYOUT).filter(([rel]) => !rel.startsWith(`${DOMAIN}/src/`)),
         ),
       )
-      expect(findings(root)["@miragon/pulse-camunda7-domain"]).toEqual([
-        expect.stringMatching(/^src\/: missing/),
-      ])
+      const [only, ...rest] = findings(root)["@miragon/pulse-camunda7-domain"]
+      assert.match(only, /^src\/: missing/)
+      assert.deepEqual(rest, [])
     })
 
-    it("fails on a workspace glob it cannot expand, and on a workspace without globs", () => {
-      for (const glob of ["packages/**", "apps/cli-*", "!apps/old", "../outside"]) {
-        const root = fixture({ ...LAYOUT, "pnpm-workspace.yaml": `packages:\n  - "${glob}"\n` })
-        expect(() => workspacePackages(root)).toThrow(/expands literal segments/)
-      }
+    // The glob syntax itself is the shared expansion's (check-package-scripts.test.mjs).
+    it("fails on a workspace without globs", () => {
       const root = fixture({ ...LAYOUT, "pnpm-workspace.yaml": "overrides:\n  qs: x\n" })
-      expect(() => workspacePackages(root)).toThrow(/lists no packages: globs/)
+      assert.throws(() => workspacePackages(root), /lists no packages: globs/)
     })
   })
 
   it("reads the repo's six npm packages (the scanner is not blind)", () => {
     const names = publishedPackages().map(({ manifest }) => manifest.name)
-    expect(names).toEqual(
-      expect.arrayContaining([
-        "@miragon/pulse-ui",
-        "@miragon/pulse-widget-shell",
-        "@miragon/pulse-camunda7-connector",
-        "@miragon/pulse-camunda7-client",
-        "@miragon/pulse-analytics-connector",
-        "@miragon/pulse-analytics-client",
-      ]),
-    )
-    expect(names).not.toContain("@miragon/pulse-mcp-server-camunda7")
-    expect(names).not.toContain("@miragon/pulse-docs")
+    for (const name of [
+      "@miragon/pulse-ui",
+      "@miragon/pulse-widget-shell",
+      "@miragon/pulse-camunda7-connector",
+      "@miragon/pulse-camunda7-client",
+      "@miragon/pulse-analytics-connector",
+      "@miragon/pulse-analytics-client",
+    ]) {
+      assert.ok(names.includes(name), name)
+    }
+    assert.ok(!names.includes("@miragon/pulse-mcp-server-camunda7"))
+    assert.ok(!names.includes("@miragon/pulse-docs"))
     // The workspace globs reach the server app too (private, so not published).
-    expect(workspacePackages().map(({ manifest }) => manifest.name)).toContain(
-      "@miragon/pulse-mcp-server-camunda7",
+    assert.ok(
+      workspacePackages()
+        .map(({ manifest }) => manifest.name)
+        .includes("@miragon/pulse-mcp-server-camunda7"),
     )
   })
 
-  it.each(publishedPackages().map((pkg) => ({ name: pkg.manifest.name, pkg })))(
-    "$name",
-    ({ pkg }) => {
-      expect(undeclaredImports(pkg)).toEqual([])
-    },
-  )
+  for (const pkg of publishedPackages()) {
+    it(`${pkg.manifest.name} imports only what it declares`, () => {
+      assert.deepEqual(undeclaredImports(pkg), [])
+    })
+  }
 })

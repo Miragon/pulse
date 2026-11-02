@@ -9,12 +9,13 @@ carry the details. A rule without a gate is review knowledge and keeps its reaso
 
 Docs are held to the code:
 
-- `apps/mcp-server-camunda7/test/docs-refs.test.ts` reads the tracked Markdown (this file, the
+- `scripts/docs-refs.test.mjs` reads the tracked Markdown (this file, the
   READMEs, agent files, skills and `docs/`): every backticked tool name is registered, every
   repo path exists, the identifiers of the skills and nested agent files exist, and each docs
   page stays within its line budget.
-- `apps/mcp-server-camunda7/test/old-names.test.ts` fails on a technical name of the retired
-  operate CLI, on the unscoped npm package pulse-cli (someone else's) and on an image off GHCR.
+- `scripts/old-names.test.mjs` fails on a technical name of the retired operate CLI, on the
+  unscoped npm package pulse-cli (someone else's), on an image off GHCR and on the retired OAuth
+  JSON variable.
 - `scripts/check-package-scripts.mjs` (`pnpm lint:package-scripts`) fails on a `--filter`
   naming no workspace package and on a pnpm filter without `--fail-if-no-match` on a gate path
   (pnpm 10 exits 0 when a filter matches nothing, so a stale name turns a gate green).
@@ -127,8 +128,9 @@ Ein `--cd-*` steht nur in vendorten Kopien, deren Manifest `SANCTIONED_TOKEN_MAN
 heute die Kopie in pulse-ui (`packages/core/ui/src/tokens/manifest.json`), das Doku-Kit und das
 Theme der VS-Code-Webview (`apps/vscode/src/webview/theme/manifest.json`). Eine weitere Kopie kommt
 mit einem Manifest im Format des Doku-Kits und einem Eintrag dort, nie als Ausnahme im Scan. Der
-Drift-Test ist `apps/mcp-server-camunda7/test/ui-stylesheet.test.ts` (mit
-`apps/mcp-server-camunda7/test/vendored-tokens.ts`); `test:host` prüft das gebaute Stylesheet.
+Drift-Test ist `packages/core/ui/src/theme/token-drift.test.ts` (mit
+`packages/core/ui/src/theme/vendored-tokens.test-support.ts`); `test:host` prüft das gebaute
+Stylesheet.
 
 UI-Texte gibt es auf Deutsch und Englisch, je nach Host-Locale. Deutsch folgt brand-tone
 vollständig: du-Ansprache, AI statt `KI`, „CIB seven“, kein Gedankenstrich als Verbinder,
@@ -183,9 +185,10 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    later flat-config block REPLACES its selectors, so a glob two gates share gets one block with
    the union (`scripts/eslint-gates.test.mjs`).
    - Annotations decide the toolset. A destructive or admin tool goes into `ADMIN_ONLY_TOOLS`
-     (`src/lib/toolsets.ts`); `src/lib/toolsets.test.ts` checks every registered tool (every
-     write states `destructiveHint`, since MCP reads an absent hint as `true`). Fix the
-     annotations, not the test.
+     (`src/lib/toolsets.ts`); `src/lib/toolsets.test.ts` checks every registrar tool and
+     `src/plugin.test.ts` every tool the module registers, feeds included (the read-only floor
+     holds only `readOnlyHint` tools; every write states `destructiveHint`, since MCP reads an
+     absent hint as `true`). Fix the annotations, not the test.
    - Toolsets are FAIL-CLOSED: without a suffix a module runs its read-only floor on an
      unauthenticated boot and its standard toolset (camunda7 `operations`) under OAuth;
      `admin` is never implied; an empty or unknown suffix warns and falls back to the floor;
@@ -354,7 +357,8 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      id-shaped is demoted to `untrusted`); intents and summaries are static catalogue text. A
      hand-off names no tool of any module: playbooks, the engine-pinning rule and when to use
      which tool live in the module `instructions` and the tool descriptions.
-     `apps/mcp-server-camunda7/test/hand-off-surface.test.ts` checks every widget source for it.
+     `scripts/hand-off-refs.test.mjs` checks every widget source for it; that the server
+     instructions name only tools a toolset registers is the app's `tools-list.golden.test.ts`.
 
 7. **Shared server data paths are single-sourced.**
    - Definition name/version/instance lookups come from
@@ -409,25 +413,28 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      `ComposableModule<TShared>`. Its `createPlugin(config, shared)` returns a `ModulePlugin`,
      `{ name, register(server) }`: `register` puts every tool, prompt and resource of the module
      on the server the boot owns, and `name` is the owner the duplicate guard names. The
-     composition machinery (`composeModules`, `MCP_ACTIVE_MODULES` with `module:toolset`
-     suffixes, `resolveBoot`) lives in `@miragon/pulse-widget-shell/server`. A root passes
-     `authenticated` only when it actually INSTALLED OAuth (`oauthFromEnv`), never inferred from
-     an env var.
-   - **The app composes, nothing more.** `setup.ts` declares the module list and wires
-     `SharedResources` (`fetchBpmnXml`, camunda7's XML lookup for analytics; `engineIds`, the
-     ONLY engines analytics reads, so analytics needs NO engine SDK). Widget components and
+     composition machinery (selection with `module:toolset` suffixes in `MCP_ACTIVE_MODULES`,
+     `resolveBoot`) lives inside the boot (`@miragon/pulse-widget-shell/server`); a root hands
+     it its module list and its `shared` wiring and nothing about auth. The boot installs OAuth
+     from one provider's `MCP_USE_OAUTH_*` variables (the table and the failure rules:
+     `docs/mcp/operations.md`) and is authenticated exactly when it installed a provider,
+     never inferred from an env var.
+   - **The app composes, nothing more.** `setup.ts` holds `MODULES` and `sharedResources`, the
+     `SharedResources` wiring (`fetchBpmnXml`, camunda7's XML lookup for analytics; `engineIds`,
+     the ONLY engines analytics reads, so analytics needs NO engine SDK). Widget components and
      boot plumbing live in packages; the bundle root is
      `mountViews({ views, hostWidgets })` (its `ViewRoot` provider order is load-bearing), the
      stylesheet pulse-ui's `theme.css` after `tailwindcss` (`test/ui-stylesheet.test.ts`).
-   - **One boot.** `createComposedServer` owns the boot order and the production listener. It
-     constructs the `MCPServer` itself and wraps `server.tool` before the first plugin
-     registers: a tool name two registrations share fails the boot naming both owners (`server`
-     for one outside a plugin), and every view-bound tool gets the server-wide view CSP defaults
-     (the served fonts' origin). Once every plugin has registered, it primes the one widget
-     bundle for every view. Each MCP server app owns ONE `createApp(env, deps?)` (`src/app.ts`)
-     that `src/index.ts` AND the e2e suites boot, never a test-only re-implementation. Readiness
-     probes the server's OWN dependencies only, never engines or Prometheus; metric labels stay
-     bounded (tool catalogue + known routes, never users or arguments). The HTTP edge guard
+   - **One boot.** `createComposedServer` owns the boot order and the production listener and
+     takes the root's `modules` and `shared`. It constructs the `MCPServer` itself and wraps
+     `server.tool` before the first plugin registers: a tool name two registrations share fails
+     the boot naming both owners (`server` for one outside a plugin), and every view-bound tool
+     gets the server-wide view CSP defaults (the served fonts' origin). Once every plugin has
+     registered, it primes the one widget bundle for every view. Each MCP server app owns ONE
+     `createApp(env, deps?)` (`src/app.ts`) that `src/index.ts` AND the e2e suites boot, never a
+     test-only re-implementation. Readiness never probes engines or Prometheus (it answers 503
+     only while the server drains); metric labels stay bounded (tool catalogue + known routes,
+     never users or arguments). The HTTP edge guard
      (`resolveHttpEdgePolicy`) is DNS-rebinding protection that exempts `/health*` and
      `/metrics`; never swap it for mcp-use's `allowedHosts`, which guards those too.
    - **Cross-module UI is tiered**: raw tool-name strings with graceful degradation
@@ -438,9 +445,9 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      the app, never as module-to-module imports. The host bundle is static, so a surface that
      needs another module probes one of its argument-free feeds once per view
      (`useAnalyticsActive`; a failed probe hides the offers, fail-closed).
-     `apps/mcp-server-camunda7/test/tool-name-refs.test.ts` checks every `<module>_…` literal
-     against the booted tools; the apps the source guards read are listed in `APP_SCAN`
-     (`apps/mcp-server-camunda7/test/source-scan.ts`), where a new app adds its entry.
+     `scripts/tool-name-refs.test.mjs` checks every `<module>_…` literal against the full
+     surface of the admin golden; the apps the source guards read are listed in `APP_SCAN`
+     (`scripts/source-scan.mjs`), where a new app adds its entry (an app missing there fails).
      Hand-offs and model contexts name no tool of either module (invariant 6), so the only raw
      cross-module names are feeds and host widget ids.
    - **A write registers only through the registrar**, whose toolset filter decides it
@@ -485,7 +492,7 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
   a downstream app dedupes them (`react`/`react-dom` `^19.2.0`, `zod` `^4.4.0`,
   `@miragon/pulse-ui` as `workspace:^`, packed to `^<version>`), each also an EXACT
   devDependency. A published package imports only what its `dependencies` or `peerDependencies`
-  declare (`apps/mcp-server-camunda7/test/published-imports.test.ts`). **`mcp-use` is exactly pinned
+  declare (`scripts/published-imports.test.mjs`). **`mcp-use` is exactly pinned
   even as a peer** (`2.12.2`): a duplicate instance breaks the React context and hangs every
   in-widget query (invariant 4). Name the required `mcp-use` version in each package README and
   the release changelog. An `mcp-use` bump moves every package and `templates/composed-server`
@@ -512,13 +519,14 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
 - **Federation happens in an external MCP gateway (agentgateway) IN FRONT of this server;
   this repo builds one self-contained MCP server including its UI.** Federation was dropped
   deliberately in #162: no upstream/proxy mechanics. A gateway that terminates auth in front is
-  invisible to this server: without `MCP_OAUTH` it boots read-only with no caller identity, so
+  invisible to this server: without an OAuth provider (`MCP_USE_OAUTH_*`) it boots read-only
+  with no caller identity, so
   such a deployment names its toolsets in `MCP_ACTIVE_MODULES`.
 - **The server reads no `PULSE_*` variable.** PulseAudio owns `PULSE_*` and `PULSE_CLI_*` is
   the CLI's; the typo warner watches the prefix of every known variable, so one server name
   under `PULSE_` would make it warn about both in a shared environment. A server setting goes
   into its own family (`CAMUNDA_*`, `PROMETHEUS_*`, `ANALYTICS_*`, `MCP_*`;
-  `apps/mcp-server-camunda7/test/setup-env.test.ts`).
+  `scripts/server-env-names.test.mjs` and the app's `test/setup.test.ts`).
 
 ## Releases
 
@@ -560,22 +568,22 @@ workspace (its header lists each check).
 
 ## Verification: what each check actually covers
 
-| Check             | Coverage                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm build`      | tsc emit of server code + the server app's Vite widget bundle (`build:ui`); excludes widget `.tsx` type errors in packages                                                                                                                                                                                                                                                                                                 |
-| `pnpm typecheck`  | **The only check that type-checks widget code**: `tsc -p tsconfig.widgets.json` in the two connector packages, `tsc -p tsconfig.ui.json` in the server app; the VS Code extension per layer, each with that layer's runtime globals only                                                                                                                                                                                   |
-| `pnpm test`       | Vitest unit tests, the server app's e2e smoke, wire-contract tests and tools/list goldens (in-process boot, loopback HTTP), the repo-wide `docs-refs.test.ts` and `old-names.test.ts`, the per-package coverage floors, then `node --test` over `scripts/*.test.mjs`; **no widget rendering** (the VS Code webview tests render in Chromium; locally once: `pnpm --filter pulse-cockpit exec playwright install chromium`) |
-| `pnpm lint`       | ESLint per package incl. the pattern gates, then dependency-cruiser (`lint:architecture`, `:cli`, `:vscode`), `lint:naming`, `lint:package-scripts`, `lint:ratchets` (needs `git fetch origin`), knip (`lint:deadcode`, `:cli`, `:vscode`) and `lint:github`                                                                                                                                                               |
-| `pnpm fitness`    | Report: architecture graph, per-package coverage and mutation scores; on a pull request the "Fitness report" job (mutation "(no run)"), nightly the "Mutation summary" job of `.github/workflows/mutation-nightly.yml`                                                                                                                                                                                                     |
-| `./gradlew build` | Kotlin compile + unit tests + Konsist architecture tests (run in `engine-plugins/`)                                                                                                                                                                                                                                                                                                                                        |
-| `test:host`       | `pnpm --filter @miragon/pulse-mcp-server-camunda7 test:host`: Playwright host simulation of the **built** widget bundle behind a SEP-1865 host shim, the real `camunda7_open_cockpit` against a stub engine (`pinned …` scenarios are known defects, flipped when fixed); CI "Widget host simulation (test:host)"; run it for changes to widget-shell, pulse-ui, `src/ui/` or the mcp-use pin                              |
-| Docker build      | `.github/workflows/docker-build.yml`: plain `docker build` of the root `Dockerfile` (no push) on every PR touching what the build stage copies                                                                                                                                                                                                                                                                             |
-| Engines           | `Engines (<flavor>)` in `.github/workflows/ci.yml`: Camunda 7, CIB seven and Operaton in Testcontainers, running the CLI's suites and the VS Code extension's conformance laws (`test:engines`; images pinned in `apps/cli/test/integration/support/engines.ts`); the `Engines` job aggregates the legs                                                                                                                    |
-| VS Code smoke     | activation + every contributed command in VS Code stable under Xvfb, `test:smoke` (`.github/workflows/ci.yml`)                                                                                                                                                                                                                                                                                                             |
-| VS Code package   | `vsce package` dry run of the production build (`.github/workflows/ci.yml`): bundles in, no sources, maps or node_modules; the webview budget is `pnpm test`'s (`apps/vscode/test/architecture/bundle-budget.test.ts`)                                                                                                                                                                                                     |
-| CLI jobs          | `ci.yml` in the `cli` scope: `CLI binary (<target>)` (single executable on Linux x64, macOS arm64, Windows x64), `CLI image (build + smoke)`, `CLI plugin (validate)`, aggregated by `CLI (all checks)`                                                                                                                                                                                                                    |
-| CI scopes         | The `changes` job runs `scripts/ci-scopes.mjs` over a PR's files and every other job runs only in its scope (a skipped job reports success); "Lint + Format" runs on every PR. A new job gets `needs: changes` and a scope; a test that starts reading a file outside its package adds that path to `PATH_RULES` or `ALSO_READ_BY`                                                                                         |
-| Manual            | `docker compose -f playground/docker/docker-compose.yml up -d` + `pnpm dev`, then exercise tools/widgets in the inspector. The default boot is read-only; write paths need an explicit suffix, e.g. `MCP_ACTIVE_MODULES=camunda7:admin,analytics` in `.env`                                                                                                                                                                |
+| Check             | Coverage                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm build`      | tsc emit of server code + the server app's Vite widget bundle (`build:ui`); excludes widget `.tsx` type errors in packages                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `pnpm typecheck`  | **The only check that type-checks widget code**: `tsc -p tsconfig.widgets.json` in the two connector packages, `tsc -p tsconfig.ui.json` in the server app; the VS Code extension per layer, each with that layer's runtime globals only                                                                                                                                                                                                                                                                                                 |
+| `pnpm test`       | Vitest unit tests, the server app's wire-contract tests and tools/list goldens (in-process boot, loopback HTTP), the per-package coverage floors, then `node --test` over `scripts/*.test.mjs` (repo guards included: docs-refs, old-names, published imports, tool-name and hand-off references, server env names; docs-refs and old-names also run in Lint + Format on every PR); **no widget rendering** (the VS Code webview tests render in Chromium; locally once: `pnpm --filter pulse-cockpit exec playwright install chromium`) |
+| `pnpm lint`       | ESLint per package incl. the pattern gates, then dependency-cruiser (`lint:architecture`, `:cli`, `:vscode`), `lint:naming`, `lint:package-scripts`, `lint:ratchets` (needs `git fetch origin`), knip (`lint:deadcode`, `:cli`, `:vscode`) and `lint:github`                                                                                                                                                                                                                                                                             |
+| `pnpm fitness`    | Report: architecture graph, per-package coverage and mutation scores; on a pull request the "Fitness report" job (mutation "(no run)"), nightly the "Mutation summary" job of `.github/workflows/mutation-nightly.yml`                                                                                                                                                                                                                                                                                                                   |
+| `./gradlew build` | Kotlin compile + unit tests + Konsist architecture tests (run in `engine-plugins/`)                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `test:host`       | `pnpm --filter @miragon/pulse-mcp-server-camunda7 test:host`: Playwright host simulation of the **built** widget bundle behind a SEP-1865 host shim, the real `camunda7_open_cockpit` against a stub engine (`pinned …` scenarios are known defects, flipped when fixed); CI "Widget host simulation (test:host)"; run it for changes to widget-shell, pulse-ui, `src/ui/` or the mcp-use pin                                                                                                                                            |
+| Docker build      | `.github/workflows/docker-build.yml`: plain `docker build` of the root `Dockerfile` (no push) on every PR touching what the build stage copies                                                                                                                                                                                                                                                                                                                                                                                           |
+| Engines           | `Engines (<flavor>)` in `.github/workflows/ci.yml`: Camunda 7, CIB seven and Operaton in Testcontainers, running the CLI's suites and the VS Code extension's conformance laws (`test:engines`; images pinned in `apps/cli/test/integration/support/engines.ts`); the `Engines` job aggregates the legs                                                                                                                                                                                                                                  |
+| VS Code smoke     | activation + every contributed command in VS Code stable under Xvfb, `test:smoke` (`.github/workflows/ci.yml`)                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| VS Code package   | `vsce package` dry run of the production build (`.github/workflows/ci.yml`): bundles in, no sources, maps or node_modules; the webview budget is `pnpm test`'s (`apps/vscode/test/architecture/bundle-budget.test.ts`)                                                                                                                                                                                                                                                                                                                   |
+| CLI jobs          | `ci.yml` in the `cli` scope: `CLI binary (<target>)` (single executable on Linux x64, macOS arm64, Windows x64), `CLI image (build + smoke)`, `CLI plugin (validate)`, aggregated by `CLI (all checks)`                                                                                                                                                                                                                                                                                                                                  |
+| CI scopes         | The `changes` job runs `scripts/ci-scopes.mjs` over a PR's files and every other job runs only in its scope (a skipped job reports success); "Lint + Format" runs on every PR. A new job gets `needs: changes` and a scope; a test that starts reading a file outside its package adds that path to `PATH_RULES` or `ALSO_READ_BY`                                                                                                                                                                                                       |
+| Manual            | `docker compose -f playground/docker/docker-compose.yml up -d` + `pnpm dev`, then exercise tools/widgets in the inspector. The default boot is read-only; write paths need an explicit suffix, e.g. `MCP_ACTIVE_MODULES=camunda7:admin,analytics` in `.env`                                                                                                                                                                                                                                                                              |
 
 A green `pnpm build && pnpm typecheck && pnpm test && pnpm lint` is the minimum bar for
 every change; widget changes additionally need `test:host` plus a manual render check via

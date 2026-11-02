@@ -274,12 +274,22 @@ export function workspaceGlobs(yamlText) {
   return globs
 }
 
-/** Expand `a/*` / `a/*\/*` / `docs` style workspace globs into package dirs. */
+/**
+ * Expand `a/*` / `a/*\/*` / `docs` style workspace globs into package dirs. Only literal segments
+ * and a whole `*` segment are understood; any other glob throws, so a new workspace tier never
+ * drops silently out of the gates that read the workspace.
+ */
 export function expandWorkspaceGlobs(root, globs) {
   const dirs = []
   for (const glob of globs) {
     let current = [""]
     for (const segment of glob.split("/")) {
+      if (segment !== "*" && (/[*?![\]{}]/.test(segment) || ["", ".", ".."].includes(segment))) {
+        throw new Error(
+          `pnpm-workspace.yaml lists "${glob}": the gates expand literal segments and a whole ` +
+            `"*" segment only. Write the glob that way or teach expandWorkspaceGlobs it.`,
+        )
+      }
       const next = []
       for (const base of current) {
         const abs = path.join(root, base)

@@ -9,26 +9,37 @@ import ts from "typescript"
  * can hold them to static text that names no tool.
  */
 
-export interface HandOffSpec {
-  kind: "hand-off" | "context"
-  /** Repo-relative `file:line`. */
-  at: string
-  /** Whether the `intent`/`summary` is static text (literals, `+`, `?:`, same-file consts). */
-  staticText: boolean
-  /** Every `<module>_…` tool name in the spec: its resolved lead or any member. */
-  namedTools: string[]
-  /** Members besides `intent`/`summary`, `ids`, `facts` and `untrusted` (a `tools` list, say). */
-  extraMembers: string[]
-}
+/**
+ * @typedef {object} HandOffSpec
+ * @property {"hand-off" | "context"} kind
+ * @property {string} at repo-relative `file:line`
+ * @property {boolean} staticText whether the `intent`/`summary` is static text (literals, `+`, `?:`, same-file consts)
+ * @property {string[]} namedTools every `<module>_…` tool name in the spec: its resolved lead or any member
+ * @property {string[]} extraMembers members besides `intent`/`summary`, `ids`, `facts` and `untrusted` (a `tools` list, say)
+ */
 
-function lineOf(source: ts.SourceFile, node: ts.Node): number {
+/**
+ * A top-level function's verdict: does every return hand back `modelContextText(…)`?
+ * @typedef {object} ContextFunction
+ * @property {string} name
+ * @property {string} at
+ * @property {boolean} returnsModelContext
+ */
+
+/**
+ * @typedef {object} SourceRef
+ * @property {string} name
+ * @property {string} at repo-relative `file:line`
+ */
+
+function lineOf(source, node) {
   return source.getLineAndCharacterOfPosition(node.getStart()).line + 1
 }
 
 /** `const NAME = <initializer>` declarations of a file, by name. */
-function constInitializers(source: ts.SourceFile): Map<string, ts.Expression> {
-  const consts = new Map<string, ts.Expression>()
-  const visit = (node: ts.Node) => {
+function constInitializers(source) {
+  const consts = new Map()
+  const visit = (node) => {
     if (ts.isVariableDeclarationList(node) && (node.flags & ts.NodeFlags.Const) !== 0) {
       for (const decl of node.declarations) {
         if (ts.isIdentifier(decl.name) && decl.initializer) {
@@ -43,11 +54,11 @@ function constInitializers(source: ts.SourceFile): Map<string, ts.Expression> {
 }
 
 /**
- * The text of a STATIC expression — string literals joined by `+`, both arms
- * of a `?:` (the condition may be anything), a same-file `const` of such
- * text — or null when any part is data (an interpolation, a call, a prop).
+ * The text of a STATIC expression (string literals joined by `+`, both arms
+ * of a `?:` whatever the condition, a same-file `const` of such text), or
+ * null when any part is data (an interpolation, a call, a prop).
  */
-function staticTextOf(expr: ts.Expression, consts: Map<string, ts.Expression>): string | null {
+function staticTextOf(expr, consts) {
   if (ts.isStringLiteral(expr) || ts.isNoSubstitutionTemplateLiteral(expr)) return expr.text
   if (ts.isParenthesizedExpression(expr)) return staticTextOf(expr.expression, consts)
   if (ts.isBinaryExpression(expr) && expr.operatorToken.kind === ts.SyntaxKind.PlusToken) {
@@ -66,9 +77,9 @@ function staticTextOf(expr: ts.Expression, consts: Map<string, ts.Expression>): 
 }
 
 /** Every `<module>_…` tool name in the string literals and templates under `node`. */
-function toolNamesUnder(node: ts.Node, prefixes: readonly string[]): string[] {
-  const names: string[] = []
-  const visit = (n: ts.Node) => {
+function toolNamesUnder(node, prefixes) {
+  const names = []
+  const visit = (n) => {
     if (ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)) {
       names.push(...toolNamesIn(n.text, prefixes))
     } else if (ts.isTemplateExpression(n)) {
@@ -84,7 +95,7 @@ function toolNamesUnder(node: ts.Node, prefixes: readonly string[]): string[] {
 
 const TOOL_PREFIXES = ["camunda7", "analytics"]
 
-function propertyName(node: ts.ObjectLiteralElementLike): string | null {
+function propertyName(node) {
   if (!node.name) return null
   if (ts.isIdentifier(node.name) || ts.isStringLiteral(node.name)) return node.name.text
   return null
@@ -100,7 +111,7 @@ const PLUMBING_MEMBERS = new Set(["locale", "isError"])
 const RETIRED_MEMBERS = new Set(["tools", "toolIds", "surface"])
 
 /** A spread or a caller's key makes an object plumbing that passes a spec on, not a spec. */
-function isPlumbing(node: ts.ObjectLiteralExpression): boolean {
+function isPlumbing(node) {
   return node.properties.some((p) => {
     if (ts.isSpreadAssignment(p)) return true
     const name = propertyName(p)
@@ -109,7 +120,7 @@ function isPlumbing(node: ts.ObjectLiteralExpression): boolean {
 }
 
 /** An object or array literal, directly or through a same-file const: data, never a lead's text. */
-function isDataLiteral(expr: ts.Expression, consts: Map<string, ts.Expression>): boolean {
+function isDataLiteral(expr, consts) {
   if (ts.isObjectLiteralExpression(expr) || ts.isArrayLiteralExpression(expr)) return true
   if (ts.isParenthesizedExpression(expr)) return isDataLiteral(expr.expression, consts)
   const initializer = ts.isIdentifier(expr) ? consts.get(expr.text) : undefined
@@ -117,7 +128,7 @@ function isDataLiteral(expr: ts.Expression, consts: Map<string, ts.Expression>):
 }
 
 /** Text, static or not: a string or template literal, `+` or `?:` over one, a const of one. */
-function isTextShaped(expr: ts.Expression, consts: Map<string, ts.Expression>): boolean {
+function isTextShaped(expr, consts) {
   if (ts.isStringLiteral(expr) || ts.isNoSubstitutionTemplateLiteral(expr)) return true
   if (ts.isTemplateExpression(expr)) return true
   if (ts.isParenthesizedExpression(expr)) return isTextShaped(expr.expression, consts)
@@ -137,13 +148,7 @@ function isTextShaped(expr: ts.Expression, consts: Map<string, ts.Expression>): 
  * `ids`/`facts`/`untrusted` is a data field too (`{ query, summary, … }`), unless the object
  * carries a retired member.
  */
-function isSpec(
-  kind: HandOffSpec["kind"],
-  lead: ts.Expression,
-  members: ReadonlyMap<string, ts.Expression>,
-  extraMembers: readonly string[],
-  consts: Map<string, ts.Expression>,
-): boolean {
+function isSpec(kind, lead, members, extraMembers, consts) {
   if (isDataLiteral(lead, consts)) return false
   if (kind === "hand-off" || isTextShaped(lead, consts)) return true
   const parts = ["ids", "facts", "untrusted"].some((name) => members.has(name))
@@ -151,7 +156,7 @@ function isSpec(
 }
 
 /** The value of a spec member: an assignment's initializer, a shorthand's own name. */
-function memberValue(p: ts.ObjectLiteralElementLike): ts.Expression | null {
+function memberValue(p) {
   if (ts.isPropertyAssignment(p)) return p.initializer
   if (ts.isShorthandPropertyAssignment(p)) return p.name
   return null
@@ -167,14 +172,14 @@ function memberValue(p: ts.ObjectLiteralElementLike): ts.Expression | null {
  * `intent`/`summary` must be static text, and no part of it may name a tool:
  * the instructions and the tool descriptions steer the model.
  */
-export function findHandOffSpecs(file: string, text: string): HandOffSpec[] {
+export function findHandOffSpecs(file, text) {
   const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true)
   const consts = constInitializers(source)
-  const specs: HandOffSpec[] = []
-  const visit = (node: ts.Node) => {
+  const specs = []
+  const visit = (node) => {
     if (ts.isObjectLiteralExpression(node) && !isPlumbing(node)) {
-      const members = new Map<string, ts.Expression>()
-      const extraMembers: string[] = []
+      const members = new Map()
+      const extraMembers = []
       for (const p of node.properties) {
         const name = propertyName(p)
         const value = memberValue(p)
@@ -182,7 +187,7 @@ export function findHandOffSpecs(file: string, text: string): HandOffSpec[] {
         else extraMembers.push(name ?? "<computed>")
       }
       const kind = members.has("intent") ? "hand-off" : members.has("summary") ? "context" : null
-      const lead = kind && members.get(kind === "hand-off" ? "intent" : "summary")!
+      const lead = kind && members.get(kind === "hand-off" ? "intent" : "summary")
       const leadText = lead ? staticTextOf(lead, consts) : null
       if (kind && lead && isSpec(kind, lead, members, extraMembers, consts)) {
         specs.push({
@@ -206,29 +211,21 @@ export function findHandOffSpecs(file: string, text: string): HandOffSpec[] {
   return specs
 }
 
-/** A top-level function's verdict: does every return hand back `modelContextText(…)`? */
-export interface ContextFunction {
-  name: string
-  /** Repo-relative `file:line`. */
-  at: string
-  returnsModelContext: boolean
-}
-
 /** The values a function returns: an arrow's expression body, else its own `return`s. */
-function returnedExpressions(fn: ts.SignatureDeclaration): ts.Expression[] {
+function returnedExpressions(fn) {
   if (ts.isArrowFunction(fn) && !ts.isBlock(fn.body)) return [fn.body]
-  const out: ts.Expression[] = []
-  const visit = (node: ts.Node) => {
+  const out = []
+  const visit = (node) => {
     if (ts.isFunctionLike(node)) return // a nested function's returns are not ours
     if (ts.isReturnStatement(node) && node.expression) out.push(node.expression)
     ts.forEachChild(node, visit)
   }
-  const body = (fn as ts.FunctionLikeDeclarationBase).body
+  const body = fn.body
   if (body) ts.forEachChild(body, visit)
   return out
 }
 
-const isModelContextCall = (expr: ts.Expression): boolean => {
+const isModelContextCall = (expr) => {
   const inner = ts.isParenthesizedExpression(expr) ? expr.expression : expr
   return (
     ts.isCallExpression(inner) &&
@@ -237,15 +234,15 @@ const isModelContextCall = (expr: ts.Expression): boolean => {
   )
 }
 
-function verdictOf(fn: ts.SignatureDeclaration): boolean {
+function verdictOf(fn) {
   const returned = returnedExpressions(fn)
   return returned.length > 0 && returned.every(isModelContextCall)
 }
 
 /** Every top-level `const f = (…) => …` / `function f(…)` with its {@link ContextFunction} verdict. */
-export function findContextFunctions(file: string, text: string): ContextFunction[] {
+export function findContextFunctions(file, text) {
   const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true)
-  const found: ContextFunction[] = []
+  const found = []
   for (const statement of source.statements) {
     if (ts.isFunctionDeclaration(statement) && statement.name) {
       found.push({
@@ -269,24 +266,14 @@ export function findContextFunctions(file: string, text: string): ContextFunctio
   return found
 }
 
-export interface SourceRef {
-  name: string
-  /** Repo-relative `file:line`. */
-  at: string
-}
-
 /**
- * Every identifier named `names` — calls, property accesses, imports and
+ * Every identifier named `names`: calls, property accesses, imports and
  * destructurings alike (comments and strings are not identifiers).
  */
-export function findIdentifiers(
-  file: string,
-  text: string,
-  names: ReadonlySet<string>,
-): SourceRef[] {
+export function findIdentifiers(file, text, names) {
   const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true)
-  const refs: SourceRef[] = []
-  const visit = (node: ts.Node) => {
+  const refs = []
+  const visit = (node) => {
     if (ts.isIdentifier(node) && names.has(node.text)) {
       refs.push({ name: node.text, at: `${file}:${lineOf(source, node)}` })
     }
@@ -301,13 +288,10 @@ export function findIdentifiers(
  * it is a call, else `null` (a literal, template or concatenation written in
  * place).
  */
-export function findModelContextContents(
-  file: string,
-  text: string,
-): Array<SourceRef & { callee: string | null }> {
+export function findModelContextContents(file, text) {
   const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true)
-  const found: Array<SourceRef & { callee: string | null }> = []
-  const visit = (node: ts.Node) => {
+  const found = []
+  const visit = (node) => {
     if (
       (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) &&
       node.tagName.getText(source) === "HostModelContext"
@@ -332,10 +316,10 @@ export function findModelContextContents(
 }
 
 /**
- * Every `<module>_…` tool name inside a server-instructions text — a family
+ * Every `<module>_…` tool name inside a server-instructions text; a family
  * wildcard (`camunda7_query_historic_*`) names no single tool and is skipped.
  */
-export function toolNamesIn(text: string, prefixes: readonly string[]): string[] {
+export function toolNamesIn(text, prefixes) {
   const shape = new RegExp(
     `(?<![A-Za-z0-9_])(?:${prefixes.join("|")})_[a-z0-9_]*[a-z0-9](?![A-Za-z0-9_*])`,
     "g",
@@ -344,24 +328,20 @@ export function toolNamesIn(text: string, prefixes: readonly string[]): string[]
 }
 
 /**
- * Tool names inside PROSE — a string or template text with whitespace in it,
+ * Tool names inside PROSE: a string or template text with whitespace in it,
  * i.e. something a model reads (a prompt, a description, a summary), never a
  * bare identifier like a feed constant.
  */
-export function findProseToolNames(
-  file: string,
-  text: string,
-  prefixes: readonly string[],
-): SourceRef[] {
+export function findProseToolNames(file, text, prefixes) {
   const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true)
-  const refs: SourceRef[] = []
-  const check = (node: ts.Node, prose: string) => {
+  const refs = []
+  const check = (node, prose) => {
     if (!/\s/.test(prose)) return
     for (const name of toolNamesIn(prose, prefixes)) {
       refs.push({ name, at: `${file}:${lineOf(source, node)}` })
     }
   }
-  const visit = (node: ts.Node) => {
+  const visit = (node) => {
     if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
       check(node, node.text)
     } else if (ts.isTemplateExpression(node)) {

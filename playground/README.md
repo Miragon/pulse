@@ -25,7 +25,7 @@ pnpm dev                                                       # MCP server on :
   is anonymous, Grafana runs as anonymous Admin, the rest uses demo
   credentials. From another machine, tunnel instead of rebinding
   (`ssh -L 8400:127.0.0.1:8400 <host>`).
-- The server boots **read-only** (no `MCP_OAUTH`, no toolset suffix; the boot
+- The server boots **read-only** (no OAuth provider, no toolset suffix; the boot
   log names the effective toolsets). To exercise write paths, set
   `MCP_ACTIVE_MODULES=camunda7:admin,analytics` in `.env` (see the
   commented line there); deployments additionally need
@@ -33,7 +33,7 @@ pnpm dev                                                       # MCP server on :
 - Compose profiles: `--profile multi-engine` (second engine on :8411),
   `--profile full` (containerized server on :8400), `--profile dev` (plain
   CIB seven image, no analytics), `--profile auth` (Keycloak on :8480 for
-  trying `MCP_OAUTH` locally, see the commented block in `.env.example`)
+  trying OAuth locally, see the commented block in `.env.example`)
 - The Compose project is `pulse`. A stack started before the rename still
   runs as `miragon-ai` and holds the ports: stop it once with
   `docker compose -p miragon-ai -f playground/docker/docker-compose.yml down`
@@ -97,10 +97,13 @@ miragon-ai-playground.fly.dev` (DNS only, not proxied) and
   admit it.
 - A Fly **secret** overrides an `[env]` entry of the same name. If
   `fly secrets list -a miragon-ai-playground` shows `MCP_ACTIVE_MODULES`,
-  keep it in sync with the toml (or `fly secrets unset` it). `MCP_OAUTH` as a
-  secret adds login (`fly secrets set MCP_OAUTH='…' -a
+  keep it in sync with the toml (or `fly secrets unset` it). An OAuth provider's
+  variables as secrets add login (`fly secrets set
+MCP_USE_OAUTH_KEYCLOAK_SERVER_URL=… MCP_USE_OAUTH_KEYCLOAK_REALM=… -a
 miragon-ai-playground`, see `.env.example`); the pin still keeps it
-  read-only.
+  read-only. A secret left from the retired OAuth JSON variable fails the boot:
+  unset it in the same deploy (see the upgrade note under Security in
+  `docs/mcp/operations.md`).
 - The engine keeps its H2 database in memory: every engine restart reseeds
   (~600 instances) and live traffic keeps metrics moving. Prometheus history
   survives restarts on its volume.

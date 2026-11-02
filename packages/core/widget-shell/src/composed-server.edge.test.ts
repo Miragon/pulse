@@ -1,6 +1,5 @@
 import http from "node:http"
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest"
-import { composeModules } from "./composition.js"
 import {
   createComposedServer,
   DEFAULT_REQUEST_TIMEOUT_MS,
@@ -8,7 +7,6 @@ import {
   type RunningServer,
 } from "./composed-server.js"
 
-const composition = composeModules<object>({ label: "edge-test", modules: [], appEnvVars: [] })
 const running: RunningServer[] = []
 let info: MockInstance<(line: string) => void>
 
@@ -25,13 +23,11 @@ afterEach(async () => {
 
 const compose = (env: NodeJS.ProcessEnv = {}) =>
   createComposedServer({
-    label: "edge-test",
     info: { name: "edge-test", version: "0.0.0" },
-    composition,
+    modules: [],
     // The bundle is read once; a missing file only warns (views render empty).
     bundle: { jsPath: "/nonexistent/mcp-app.js" },
     env,
-    setup: () => ({ plugins: [] }),
   })
 
 async function boot(env: NodeJS.ProcessEnv = {}, listen: ListenOptions = {}) {

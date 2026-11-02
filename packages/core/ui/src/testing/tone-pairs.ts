@@ -148,3 +148,19 @@ export const ROLE_CONTRAST_PAIRS: readonly ContrastPair[] = [
     min: 3,
   },
 ]
+
+/**
+ * The CI's own exemption (modeler-tool-design §3.3): on a light ground success green and amber
+ * reach only about 1.7:1 as a dot, edge or icon, so a status always sits next to its words.
+ * `contrastFindings` over `toneContrastPairs()` reports exactly these on the Miragon theme; a brand
+ * that lifts them to 3:1 drops the entries. Sorted, like a sorted findings list.
+ */
+export const LIGHT_STATUS_EXEMPTION: readonly string[] = (["success", "warning"] as const)
+  .flatMap((tone) => [
+    ...["card", "background"].flatMap((surface) =>
+      ["DOT", "ICON", "BORDER"].map((role) => `light: TONE_${role}.${tone} on ${surface}`),
+    ),
+    `light: TONE_DOT.${tone} inside its tint`,
+    `light: TONE_ICON.${tone} inside its tint`,
+  ])
+  .sort()

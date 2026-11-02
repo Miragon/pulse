@@ -150,7 +150,7 @@ their config from the environment). A variable under a watched prefix (`MCP_`,
 `CAMUNDA_`, `PROMETHEUS_`, plus each module's own) that the server does not
 read prints a warning at boot, so typos surface immediately.
 
-Toolsets fail closed: without `MCP_OAUTH` camunda7 and analytics run
+Toolsets fail closed: without OAuth camunda7 and analytics run
 **read-only** without a `module:toolset` suffix (queries, widgets, analytics,
 no writes; a module without toolsets, like notes or analytics, registers all
 its tools); with it camunda7 runs its standard toolset, `operations`. The boot
@@ -159,8 +159,9 @@ implied, and `camunda7_create_deployment` additionally needs
 `CAMUNDA_ALLOW_DEPLOYMENTS=true` (deploying a BPMN runs code in the engine
 JVM). See the `setup-server` skill before widening a server others can reach.
 
-`MCP_OAUTH` (Keycloak or Auth0) is also the only caller identity: passthrough
-engine auth and the per-caller caches key on it.
+OAuth comes from one provider's `MCP_USE_OAUTH_*` variables, mcp-use's own
+(the providers and what fails the boot: `.env.example`), and is also the only
+caller identity: passthrough engine auth and the per-caller caches key on it.
 
 | Variable                                     | Effect                                                                                                                         |
 | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
@@ -169,8 +170,8 @@ engine auth and the per-caller caches key on it.
 | `MCP_ALLOWED_HOSTS` / `MCP_ALLOWED_ORIGINS`  | Further hostnames / origins the server accepts (default: localhost-class and `MCP_URL`'s only)                                 |
 | `MCP_MAX_BODY_BYTES`                         | Request-body cap (default 4 MiB; larger bodies get 413 before they are read)                                                   |
 | `MCP_METRICS_TOKEN`                          | Bearer token `/metrics` requires (default: open)                                                                               |
-| `MCP_OAUTH`                                  | OAuth resource server (`keycloak` / `auth0` JSON, needs `MCP_URL`), the only caller identity                                   |
-| `MCP_ACTIVE_MODULES`                         | Modules (default: all), e.g. `camunda7:operations,notes`; no suffix: read-only, `MCP_OAUTH` → standard                         |
+| `MCP_USE_OAUTH_*`                            | One OAuth provider's variables (see `.env.example`), needs `MCP_URL`, the only caller identity                                 |
+| `MCP_ACTIVE_MODULES`                         | Modules (default: all), e.g. `camunda7:operations,notes`; no suffix: read-only, OAuth → standard                               |
 | `CAMUNDA_*`, `PROMETHEUS_URL`, `NOTES_TITLE` | Module config, see `.env.example` for the full list                                                                            |
 
 ## Deploying
@@ -189,11 +190,11 @@ docker run -p 8400:8400 \
   (or browser `Origin`) that is not localhost-class, `MCP_URL`'s or listed in
   `MCP_ALLOWED_HOSTS`/`MCP_ALLOWED_ORIGINS` (DNS-rebinding protection), so a
   deployment reached under any other name must set them.
-- Without `MCP_OAUTH` the server boots read-only and unauthenticated. Set
-  `MCP_OAUTH` (plus `MCP_URL`, the token audience) to require sign-in and
-  raise the default toolsets. An authenticating gateway in front is invisible
-  to the server: it still sees no identity, so any widened toolset is open to
-  whoever passes the gateway.
+- Without OAuth the server boots read-only and unauthenticated. Set one
+  provider's `MCP_USE_OAUTH_*` variables (plus `MCP_URL`, the token audience)
+  to require sign-in and raise the default toolsets. An authenticating gateway
+  in front is invisible to the server: it still sees no identity, so any
+  widened toolset is open to whoever passes the gateway.
 - `/health/live`, `/health/ready` and `/metrics` (Prometheus) are served next
   to `/mcp`, outside any OAuth gate and the `Host` check (`MCP_METRICS_TOKEN`
   protects the scrape); the image's `HEALTHCHECK` polls `/health/ready`;

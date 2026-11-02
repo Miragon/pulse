@@ -87,6 +87,64 @@ describe("createPlugin toolset wiring (fail-closed)", () => {
   })
 })
 
+/**
+ * Every tool on the wire, not only the registrar's: the feeds, the widget-actions feed and the
+ * cockpit register directly and skip the toolset filter, so a direct write would reach the
+ * unauthenticated read-only surface unless its annotations stop it here.
+ */
+describe("createPlugin annotates every tool it registers", () => {
+  it("the read-only floor registers readOnlyHint tools only, feeds and view tool included", async () => {
+    const { byName } = await bootSurface({})
+    expect([...byName.keys()]).toEqual(
+      expect.arrayContaining([
+        CAMUNDA7_WIDGET_ACTIONS_DATA,
+        "camunda7_jobs_data",
+        "camunda7_open_cockpit",
+      ]),
+    )
+    for (const { definition } of byName.values()) {
+      expect(definition.annotations?.readOnlyHint, definition.name).toBe(true)
+    }
+  })
+
+  // MCP reads an absent destructiveHint as `true`.
+  it("every write on the full surface states destructiveHint", async () => {
+    const { byName } = await bootSurface({ toolset: "admin", allowDeployments: true })
+    const writes = [...byName.values()].filter(
+      ({ definition }) => !definition.annotations?.readOnlyHint,
+    )
+    expect(writes.length).toBeGreaterThan(10)
+    for (const { definition } of writes) {
+      expect(typeof definition.annotations?.destructiveHint, definition.name).toBe("boolean")
+    }
+  })
+})
+
+// Structural, not a list: every tool that takes a page size caps it, the registrar reads and the
+// app-only feeds alike.
+describe("createPlugin caps every page size", () => {
+  it("caps maxResults at 100 on every tool that takes it", async () => {
+    const { byName } = await bootSurface({ toolset: "admin", allowDeployments: true })
+    const paged = [...byName.values()].flatMap(({ definition }) => {
+      const maxResults = definition.inputSchema?.shape.maxResults as z.ZodType | undefined
+      return maxResults ? [{ name: definition.name, maxResults }] : []
+    })
+    expect(paged.map((p) => p.name)).toEqual(
+      expect.arrayContaining([
+        "camunda7_list_process_instances",
+        "camunda7_jobs_data",
+        "camunda7_process_instances_data",
+        "camunda7_cluster_detail_data",
+        "camunda7_activity_incidents_data",
+      ]),
+    )
+    expect(paged.length).toBeGreaterThanOrEqual(16)
+    for (const { name, maxResults } of paged) {
+      expect((z.toJSONSchema(maxResults) as { maximum?: number }).maximum, name).toBe(100)
+    }
+  })
+})
+
 /** The advertised `engine` property of every tool that takes one, by tool name. */
 async function engineParams(engines: Camunda7PluginConfig["engines"]) {
   const { byName } = await bootSurface({ engines, toolset: "admin", allowDeployments: true })

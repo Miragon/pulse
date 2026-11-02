@@ -92,8 +92,10 @@ export function App() {
   (`CD_TOKENS`, `ROLE_TOKENS`).
 - **The brand gates** (`@miragon/pulse-ui/testing`, Node only): `catalogTextFindings` (the voice
   rules over a message catalog), `scanTypeScale`, `scanGlyphs`, `scanIconSizes`, `scanColors` and
-  `stylesheetColorFindings` over your sources, and `contrastFindings` with `toneContrastPairs()` /
-  `ROLE_CONTRAST_PAIRS` for WCAG AA in light and dark.
+  `stylesheetColorFindings` over your sources, `stylesheetShapeFindings` over a stylesheet every
+  view inlines (no height floor, no forced or inlined font, no raw colour, no `--cd-*` token), and
+  `contrastFindings` with `toneContrastPairs()` / `ROLE_CONTRAST_PAIRS` for WCAG AA in light and
+  dark (`LIGHT_STATUS_EXEMPTION` is the CI's own exemption for green and amber on light).
 - **The stylesheets**: `theme.css` (the Miragon theme without Tailwind's entry), `globals.css`
   (Tailwind, the theme and the kit's sources in one line), `fonts.css` (opt-in Geist, bundled)
   and `cd-tokens.generated.css` (the vendored `--cd-*` corporate-design tokens).

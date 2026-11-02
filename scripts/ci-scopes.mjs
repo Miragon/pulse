@@ -34,10 +34,12 @@ export const PATH_RULES = [
   { pattern: /^\.github\//, scopes: ["typescript"] },
   // Read by the CLI's tests and bundled into the CLI as its guide topics.
   { pattern: /^docs\/cli\//, scopes: ["typescript", "brand", "cli"] },
-  // Read by the token drift test.
+  // Read by the token drift test (pulse-ui).
   { pattern: /^docs\/\.vitepress\/miragon\//, scopes: ["typescript", "brand"] },
+  // Read by the token drift scan (pulse-ui).
+  { pattern: /^docs\/.*\.css$/, scopes: ["brand", "typescript"] },
   { pattern: /^docs\//, scopes: ["brand"] },
-  // Read by setup-env.test.ts.
+  // Read by scripts/server-env-names.test.mjs.
   { pattern: /^\.env\.example$/, scopes: ["typescript"] },
   { pattern: /^README\.md$/, scopes: ["brand"] },
   { pattern: /^[^/]+\.md$/, scopes: [] },
@@ -50,7 +52,7 @@ export const PATH_RULES = [
   { pattern: /^playground\/docker\//, scopes: ["typescript"] },
   { pattern: /^playground\//, scopes: [] },
   { pattern: /^templates\/.*\.(?:md|png|jpe?g|gif|webp)$/, scopes: [] },
-  // brand.css is read by the stylesheet test.
+  // The token drift scan (pulse-ui) reads them; the template's own job tests them.
   { pattern: /^templates\//, scopes: ["template", "typescript"] },
 ]
 

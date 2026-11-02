@@ -41,9 +41,9 @@ EXPOSE 8400
 USER node
 
 # Readiness over HTTP: /health/ready answers 200 once the MCP transport serves
-# and the server's own dependencies respond — the same route Compose
-# and Fly poll; /health/live is the liveness-only variant for orchestrators
-# that split the two. Node's global fetch keeps the image curl-free.
+# and 503 while it drains, the same route Compose and Fly poll; /health/live is
+# the liveness-only variant for orchestrators that split the two. Node's global
+# fetch keeps the image curl-free.
 HEALTHCHECK --interval=30s --timeout=3s --start-period=20s --retries=3 \
   CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||8400)+'/health/ready').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"
 

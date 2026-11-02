@@ -18,8 +18,8 @@ import { CD_TOKENS, CD_TOKENS_VERSION } from "./cd-tokens.js"
  *
  * To re-vendor: copy the new upstream file below the marker line, update the
  * version in the marker, CD_TOKENS_VERSION, UPSTREAM_SHA256 and CD_TOKENS,
- * then the version and sha256 in `tokens/manifest.json` (the token drift test
- * of the server app checks the copy against it).
+ * then the version and sha256 in `tokens/manifest.json` (the token drift test,
+ * `token-drift.test.ts`, checks the copy against it).
  */
 const UPSTREAM_SHA256 = "36d76f3a330a1250d332c6862be1dc4f7564d2461e7051d9a565ba723ef2c379"
 const UPSTREAM_REL = join("skills", "modeler-tool-design", "assets", "cd-tokens.generated.css")

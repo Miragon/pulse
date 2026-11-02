@@ -87,8 +87,9 @@ filter a tool advertises is pinned on the wire in `src/tools/filters.wire.test.t
 (page query AND `/count`); a retired spelling (`key`, `id`, `limit`, `elementId`, …) on
 any module tool fails `apps/mcp-server-camunda7/test/strict-input.e2e.test.ts`; a tool
 description, server-instructions text or server prompt that quotes a tool's parameter is
-checked against its schema by `apps/mcp-server-camunda7/test/tool-name-refs.test.ts` —
-write quoted arguments in call notation with literal names, `tool({ param: value })` (an
+checked against its schema in the admin golden by `scripts/tool-name-refs.test.mjs` (so a new
+tool's golden is refreshed first; see Step 5); write quoted arguments in call notation with
+literal names, `tool({ param: value })` (an
 interpolated name is reported as `${…}`). Widget Ask-AI hand-offs and model contexts
 never quote parameters: they pass typed `ids` (see Step 4).
 
@@ -160,9 +161,11 @@ Non-negotiables:
   be added to `ADMIN_ONLY_TOOLS` in `src/lib/toolsets.ts` so the
   `camunda7:read-only|operations|admin` toolset filtering stays correct — `read-only`
   membership is derived from `readOnlyHint: true`. `src/lib/toolsets.test.ts` enforces
-  the rule structurally over every registered tool (`destructiveHint` ⇒ admin-only,
-  read-only ⇒ `readOnlyHint`, every write states `destructiveHint` explicitly) — get
-  the annotations right; never edit the test to pass.
+  the rule structurally over every registrar tool (`destructiveHint` ⇒ admin-only,
+  read-only ⇒ `readOnlyHint`, every write states `destructiveHint` explicitly), and
+  `src/plugin.test.ts` over every tool the module registers, feeds included (the
+  read-only floor holds only `readOnlyHint` tools); get the annotations right, never
+  edit the test to pass.
 - Toolsets fail CLOSED: with no suffix a deployment runs `read-only` (no OAuth) or
   `operations` (OAuth); `admin` is only ever reached by naming it. So an `operations`
   tool is on for every authenticated default deployment and an `admin` tool for none —
@@ -468,7 +471,7 @@ businessKey))` …; add an entry and its `feedback.*` keys in `messages/{en,de}.
   names no tool, the module instructions and the tool descriptions steer the model.
   Reference:
   `src/widgets/remediation.ts`; the rules are CLAUDE.md invariant 6, enforced by
-  `apps/mcp-server-camunda7/test/hand-off-surface.test.ts`.
+  `scripts/hand-off-refs.test.mjs`.
 
 ## Step 5 — verify
 

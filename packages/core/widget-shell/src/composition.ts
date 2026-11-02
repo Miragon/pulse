@@ -57,14 +57,15 @@ export interface ResolvedBoot {
 
 export interface ResolveBootOptions {
   /**
-   * Only the root knows whether it INSTALLED OAuth; a server without OAuth wiring would read a stray
-   * `MCP_OAUTH` as authenticated and fail open. Omitted = `false`.
+   * Only the boot knows whether it INSTALLED OAuth; reading `MCP_USE_OAUTH_*` here would count a
+   * boot without the bearer gate as authenticated and fail open. Omitted = `false`.
    */
   authenticated?: boolean
 }
 
-/** `this`-free closures, so roots may destructure or re-export them. */
+/** What the boot (`createComposedServer`) composes the modules into; no root sees it. */
 export interface ModuleComposition<TShared> {
+  /** The one source of the variables a boot reads (`composedEnvVars`). */
   knownEnvVars: ReadonlySet<string>
   /** Unset/`all` = every module; unknown names warn and are skipped. */
   activeModules: (env?: NodeJS.ProcessEnv) => ActiveModuleRef[]

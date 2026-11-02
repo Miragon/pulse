@@ -1,15 +1,9 @@
 import { readFileSync } from "node:fs"
 import path from "node:path"
-import type { OAuthProvider } from "mcp-use/oauth"
-import {
-  createComposedServer,
-  oauthFromEnv,
-  type ComposedServer,
-} from "@miragon/pulse-widget-shell/server"
-import { SERVER_LABEL } from "./server-label.js"
-import { composition, getPlugins } from "./setup.js"
+import { createComposedServer, type ComposedServer } from "@miragon/pulse-widget-shell/server"
+import { MODULES, sharedResources } from "./setup.js"
 
-/** `src/` under tsx/vitest, `dist/` when compiled — the package root is one level up either way. */
+/** `src/` under tsx/vitest, `dist/` when compiled: the package root is one level up either way. */
 const PACKAGE_ROOT = path.join(import.meta.dirname, "..")
 
 /**
@@ -31,52 +25,33 @@ export function packageVersion(): string {
   return pkg.version
 }
 
-/** Seams for the e2e suites; production passes none. */
+/** The seam for the e2e suites; production passes none. */
 export interface AppDeps {
-  /**
-   * The OAuth provider to install. Absent = built from `MCP_OAUTH`; present
-   * (even `undefined`) = exactly this one — the e2e suites install a stub
-   * provider so authenticated boots run the real bearer gate.
-   */
-  oauth?: OAuthProvider<unknown>
   /** Widget bundle; default: the compiled `dist/mcp-app.{js,css}`. */
   bundle?: { jsPath: string; cssPath?: string }
 }
 
-/**
- * The composition root — the ONE boot sequence `src/index.ts` (production and
- * `mcp-use dev`) and the e2e suites share. App-owned here: the plugins with
- * their cross-module wiring (`setup.ts`); the OAuth provider comes from the
- * shared `oauthFromEnv` and the order of everything else lives in the shared
- * `createComposedServer` (both `@miragon/pulse-widget-shell/server`) — wired
- * exactly like the composed-server template.
- */
+/** The one boot `src/index.ts` (production and `mcp-use dev`) and the e2e suites share. */
 export async function createApp(
   env: NodeJS.ProcessEnv = process.env,
   deps: AppDeps = {},
 ): Promise<ComposedServer> {
-  // MCP_OAUTH → the provider (the only caller-identity source). Whether one
-  // was BUILT decides every module's default toolset, and a bad MCP_OAUTH
-  // fails the boot before anything listens.
-  const oauth = "oauth" in deps ? deps.oauth : oauthFromEnv({ env, label: SERVER_LABEL })
-
   return createComposedServer({
-    label: SERVER_LABEL,
     info: {
-      name: SERVER_LABEL,
+      name: "pulse",
       version: packageVersion(),
       title: "Pulse",
       description: "Camunda 7 / CIB seven operations and process analytics",
       websiteUrl: "https://github.com/Miragon/pulse",
       instructions: SERVER_INSTRUCTIONS,
     },
-    composition,
+    modules: MODULES,
+    shared: sharedResources,
     env,
-    oauth,
+    envVarHint: "see docs/mcp/operations.md",
     bundle: deps.bundle ?? {
       jsPath: path.join(PACKAGE_ROOT, "dist", "mcp-app.js"),
       cssPath: path.join(PACKAGE_ROOT, "dist", "mcp-app.css"),
     },
-    setup: (boot) => ({ plugins: getPlugins(boot) }),
   })
 }

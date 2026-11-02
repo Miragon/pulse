@@ -3,6 +3,8 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client"
 import { CAMUNDA7_ADMIN_ONLY_TOOLS } from "@miragon/pulse-camunda7-connector"
 import {
+  SERVED_FONT_FILES,
+  SERVED_FONT_PATH,
   VIEW_RESOURCE_URI_PREFIX,
   viewPrelude,
   viewResourceUri,
@@ -16,9 +18,9 @@ const FIXTURE_JS = path.join(import.meta.dirname, "fixtures", "mcp-app.js")
 /**
  * Boot the REAL composition in-process (`createApp`, exactly what
  * `src/index.ts` runs, with a stand-in widget bundle) and list its tools. The
- * env is neutral (`stubNeutralEnv`): no OAuth, edge override or store
- * directory from the developer's shell, and a dead engine URL — tools
- * register fine; only actual calls would fail.
+ * env is neutral (`stubNeutralEnv`): no OAuth, edge override or toolset
+ * from the developer's shell, and a dead engine URL: tools register fine;
+ * only actual calls would fail.
  */
 async function bootAndList(
   activeModules: string | undefined,
@@ -268,6 +270,17 @@ describe("widget wire contract (dual-protocol _meta)", () => {
       expect(await readResourceDomains(client, view.uri), view.uri).toContain(serverOrigin)
     }
   })
+
+  // The installed widget-shell (packed, as a customer gets it) serves the files: its boot only
+  // warns when it cannot resolve a font package, so this is where a missing one shows.
+  it("serves both Geist files from the installed widget-shell", async () => {
+    for (const file of Object.values(SERVED_FONT_FILES)) {
+      const font = await fetch(`${serverOrigin}${SERVED_FONT_PATH}/${file}`)
+      expect(font.status, file).toBe(200)
+      expect(font.headers.get("content-type"), file).toBe("font/woff2")
+      await font.arrayBuffer()
+    }
+  })
 })
 
 /** `_meta.ui.csp.resourceDomains` of a view resource as `resources/read` returns it. */
@@ -318,9 +331,9 @@ describe("widget wire contract — the font origin under MCP_URL", () => {
 })
 
 /**
- * Toolsets fail closed: without `MCP_OAUTH` (the neutral env clears it) no
- * selection that does not NAME `camunda7:admin` may list an admin-only tool —
- * not unset, not an empty or unknown suffix.
+ * Toolsets fail closed: without an OAuth provider (the neutral env clears every
+ * `MCP_USE_OAUTH_*`) no selection that does not NAME `camunda7:admin` may list
+ * an admin-only tool: not unset, not an empty or unknown suffix.
  */
 describe("fail-closed toolsets", () => {
   it.each([undefined, "all", "camunda7:", "camunda7:bogus,analytics:,notes"])(

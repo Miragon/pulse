@@ -1,5 +1,5 @@
 {
-  "$kommentar": "Von Hand geschrieben beim Import der VS Code Extension (Miragon/pulse-vscode, nach apps/vscode): die App- und Web-Variante der Marken-Tokens aus der Skill modeler-tool-design des Plugins miragon-brand in Miragon/corporate-identity, Release 1.20.0, unverändert vendort. Pfad im Repo, Quelle in Miragon/corporate-identity und sha256 je Datei. Neu vendoren statt editieren; apps/mcp-server-camunda7/test/ui-stylesheet.test.ts (SANCTIONED_TOKEN_MANIFESTS) prüft die Kopie damit.",
+  "$kommentar": "Von Hand geschrieben beim Import der VS Code Extension (Miragon/pulse-vscode, nach apps/vscode): die App- und Web-Variante der Marken-Tokens aus der Skill modeler-tool-design des Plugins miragon-brand in Miragon/corporate-identity, Release 1.20.0, unverändert vendort. Pfad im Repo, Quelle in Miragon/corporate-identity und sha256 je Datei. Neu vendoren statt editieren; packages/core/ui/src/theme/token-drift.test.ts (SANCTIONED_TOKEN_MANIFESTS) prüft die Kopie damit.",
   "version": "1.20.0",
   "dateien": [
     {

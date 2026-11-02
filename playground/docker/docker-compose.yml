@@ -141,8 +141,9 @@ services:
     depends_on:
       - prometheus
 
-  # Keycloak — the local IdP for the server's opt-in OAuth (MCP_OAUTH,
-  # provider "keycloak": the server only validates bearer tokens; MCP clients
+  # Keycloak: the local IdP for the server's opt-in OAuth
+  # (MCP_USE_OAUTH_KEYCLOAK_SERVER_URL and MCP_USE_OAUTH_KEYCLOAK_REALM; the
+  # server only validates bearer tokens; MCP clients
   # log in at Keycloak directly, by Dynamic Client Registration or with the
   # pre-registered `pulse-server` client for clients without DCR).
   # Opt-in via the `auth` profile — the plain
@@ -205,7 +206,7 @@ services:
       - "127.0.0.1:8400:8400"
     environment:
       - PORT=8400
-      # No MCP_OAUTH and no toolset suffix ⇒ every module boots READ-ONLY (the
+      # No OAuth provider and no toolset suffix ⇒ every module boots READ-ONLY (the
       # boot log names the effective toolsets). To exercise write paths, name
       # the toolsets explicitly — e.g. add
       #   - MCP_ACTIVE_MODULES=camunda7:operations,analytics

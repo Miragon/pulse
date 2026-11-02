@@ -63,7 +63,7 @@ export function colorFindings(source: string, file: string): ColorFinding[] {
 }
 
 /** Newlines kept so line numbers stay true; a linear scan, not a lazy regex, since it reads consumer CSS. */
-function blankComments(css: string): string {
+export function blankComments(css: string): string {
   let out = ""
   let at = 0
   for (;;) {

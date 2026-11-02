@@ -104,9 +104,9 @@ external infrastructure.
    module's vars there.
 8. **Toolsets fail closed.** A module opts into the `module:toolset` suffix by
    declaring `toolsets: createToolsetVocabulary(...)` on its definition (a
-   module without one has no toolsets); the composition resolves ONE
-   concrete toolset per module per boot and logs it. Without `MCP_OAUTH`
-   (`oauthFromEnv` in `server/src/app.ts`) a module without a suffix runs its
+   module without one has no toolsets); the boot resolves ONE
+   concrete toolset per module per boot and logs it. Without OAuth (the boot
+   reads `MCP_USE_OAUTH_*`) a module without a suffix runs its
    read-only floor, an empty/unknown suffix falls back to it, and an
    admin-like toolset is only reachable by naming it. Gate a write by the
    module's toolset rule at registration (camunda7's

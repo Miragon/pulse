@@ -92,15 +92,15 @@ package customers build their own connectors and composed servers on (see the
   overrides ROLE variables only; measure your overrides with `themeStylesheets()` from
   `@miragon/pulse-ui/testing`. The widgets follow the host's theme (then the OS); there is no
   theme preference.
-- **Module composition** (`./server`): `composeModules` is the composition-root machinery every
-  server shares: `MCP_ACTIVE_MODULES` selection with `module:toolset` suffixes, the env-typo warner
-  and boot warnings. `resolveBoot(env, { authenticated })` resolves ONE concrete toolset per module
-  per boot and threads it into the module's `config.toolset` (`ModuleEntry`); pass
-  `authenticated: true` only when your server actually installed OAuth. A module's
+- **Module composition** (inside the boot): `createComposedServer` composes the modules you hand
+  it: `MCP_ACTIVE_MODULES` selection with `module:toolset` suffixes, the env-typo warner and boot
+  warnings. It resolves ONE concrete toolset per module per boot and threads it into the module's
+  `config.toolset` (`ModuleEntry`), authenticated exactly when it installed OAuth. A module's
   `createPlugin(config, shared)` returns a `ModulePlugin`: its `name` and one `register(server)`
-  that registers all its tools on the server the boot owns; `pluginsFor(entries, shared)` builds
-  them for the active modules. `logEffectiveToolsets(boot)` prints the one boot line that states
-  each module's toolset and why.
+  that registers all its tools on the server the boot owns; `shared(entries)` is your wiring of
+  what the active modules hand each other. The boot log states each module's toolset and why.
+  `composedEnvVars(modules)` names every variable such a boot reads (the boot's own and each
+  module's `knownEnvVars`), e.g. for a `.env.example` check.
 - **Toolset vocabularies** (`./server`): a module declares its toolsets as
   `toolsets: createToolsetVocabulary(module, names, floor, { authenticatedDefault })` on its
   definition; a module without one has no toolsets (a suffix is ignored with a warning). The rule
@@ -108,38 +108,39 @@ package customers build their own connectors and composed servers on (see the
   `floor` without OAuth, `authenticatedDefault` (default: `floor`) with it; an empty or unknown
   suffix → `floor` with a warning; `resolve(undefined)` → `floor`. Nothing resolves to
   "everything" (a module's widest toolset is reachable only by naming it).
-- **Server boot** (`./server`): `createComposedServer({ label, info, composition, bundle, setup,
-oauth? })` is the one boot sequence every composed server shares: env-typo warnings, the HTTP
-  edge policy, ONE `resolveBoot` (authenticated exactly when you pass the OAuth provider you
-  install; build it with `oauthFromEnv({ env, label })` from `MCP_OAUTH` and spread
-  `OAUTH_ENV_VARS` into your known vars; it is the only caller identity), the boot log, your
-  `setup(boot)` (the plugins, plus readiness checks and a shutdown for what it opens), the
-  `MCPServer` with `serverInfo`/`instructions`, each plugin's `register` (a tool name two modules register fails the boot, naming both), the views
-  every tool binds primed once with your `bundle`, request context (request logging is mcp-use's own:
-  `MCP_USE_LOG_LEVEL`, warned at boot above `info`), `/metrics` (optional
-  `MCP_METRICS_TOKEN`), the Host/Origin guard, `/health/*` and the font route
-  (`installFontAssets`: Geist + Geist Mono as woff2 under `/fonts/geist-<version>/`, cached
-  immutable, any origin, behind the guard). Every view-bound tool advertises `MCP_URL`'s origin
-  in its view CSP `resourceDomains` and the Apps SDK `openai/widgetCSP` (`fontAssetsCsp`, merged
-  into every view-bound tool as it registers); without `MCP_URL` mcp-use appends the origin
-  the host read the view from. `HostDocument` declares the faces from that origin
-  (`declareServedFonts`, `font-display: swap`), so a host that blocks it shows its own font, then
-  the system's. `mcp-use dev` serves the returned
-  `app`; production calls `listen({ handleSignals: true })`: mcp-use's `toNodeHandler` behind a
-  request-body cap (`MCP_MAX_BODY_BYTES`, 413 before buffering), an in-flight body budget of 4×
-  the cap (503) and a 30 s request timeout, plus a graceful drain (stop accepting, in-flight
-  requests finish, readiness 503 `draining`, then your `runtime.shutdown()`). The guard is
-  DNS-rebinding protection: `Host` (and a POST's `Origin`) must be localhost-class, `MCP_URL`'s or
-  in `MCP_ALLOWED_HOSTS`/`MCP_ALLOWED_ORIGINS` (spread `HTTP_EDGE_ENV_VARS` into your known vars);
-  `/health*` and `/metrics` stay reachable by IP for probes and scrapers.
+- **Server boot** (`./server`): `createComposedServer` (options `info`, `modules`, `shared?`,
+  `bundle`, `env?`, `envVarHint?`, `oauth?`) is the one boot sequence every composed server shares:
+  env-typo warnings, the HTTP edge policy, OAuth, ONE module selection, the boot log, the plugins of
+  the active modules, the `MCPServer` with `serverInfo`/`instructions`, each plugin's `register` (a
+  tool name two modules register fails the boot, naming both), the views every tool binds primed
+  once with your `bundle`, request context (request logging is mcp-use's own: `MCP_USE_LOG_LEVEL`,
+  warned at boot above `info`), `/metrics` (optional `MCP_METRICS_TOKEN`), the Host/Origin guard,
+  `/health/*` and the font route (`installFontAssets`: Geist + Geist Mono as woff2 under
+  `/fonts/geist-<version>/`, cached immutable, any origin, behind the guard). OAuth comes from one
+  provider's `MCP_USE_OAUTH_*` variables, mcp-use's own, with `MCP_URL` as the token audience (RFC
+  8707); the providers and what fails the boot are listed under
+  [Security](https://miragon.github.io/pulse/mcp/operations#security). Without a provider the boot
+  runs unauthenticated with one warning. OAuth is the only caller identity, and `oauth` installs a
+  provider instead (a test's stub IdP). Every view-bound tool advertises `MCP_URL`'s origin in its
+  view CSP `resourceDomains` and the Apps SDK `openai/widgetCSP` (`fontAssetsCsp`, merged into every
+  view-bound tool as it registers); without `MCP_URL` mcp-use appends the origin the host read the
+  view from. `HostDocument` declares the faces from that origin (`declareServedFonts`,
+  `font-display: swap`), so a host that blocks it shows its own font, then the system's.
+  `mcp-use dev` serves the returned `app`; production calls `listen({ handleSignals: true })`:
+  mcp-use's `toNodeHandler` behind a request-body cap (`MCP_MAX_BODY_BYTES`, 413 before buffering),
+  an in-flight body budget of 4× the cap (503) and a 30 s request timeout, plus a graceful drain
+  (stop accepting, in-flight requests finish, readiness 503 `draining`). The guard is DNS-rebinding
+  protection: `Host` (and a POST's `Origin`) must be localhost-class, `MCP_URL`'s or in
+  `MCP_ALLOWED_HOSTS`/`MCP_ALLOWED_ORIGINS`; `/health*` and `/metrics` stay reachable by IP for
+  probes and scrapers.
 
 ## Exports
 
-| Subpath     | Contents                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `./server`  | `buildViewResult` / `buildDataFeedResult` / `viewPrelude`, `composeModules` / `createToolsetVocabulary` and the module port (`ModulePlugin`, `ModuleEntry`), `createComposedServer` and its edge pieces (incl. `installFontAssets`, `fontAssetsCsp`), `oauthFromEnv`, the per-caller request info (`callerCacheKey`, `getMcpRequestInfo`), the tool registrar (`createToolRegistrar`, `withToolErrors`), the view meta (`showToolBinding`, `appOnly`, `viewResourceUri`), the server i18n (`createTranslator`) |
-| `./widgets` | The view runtime (`mountViews`, the view host, the query hooks, `TestViewHost`; the language from the host locale (`de…` German, else English), the theme as host context > OS), the host-bound UI and `createTranslator`                                                                                                                                                                                                                                                                                      |
-| `./testing` | The product glossary: `PRODUCT_GLOSSARY`, `glossaryFindings`, `blindGlossaryRules`, `unnamedGlossaryTerms`                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Subpath     | Contents                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `./server`  | `buildViewResult` / `buildDataFeedResult` / `viewPrelude`, `createToolsetVocabulary` and the module port (`ComposableModule`, `ModulePlugin`, `ModuleEntry`), `createComposedServer` with `composedEnvVars` and its edge pieces (incl. `installFontAssets`, `fontAssetsCsp`), the per-caller request info (`callerCacheKey`, `getMcpRequestInfo`), the tool registrar (`createToolRegistrar`, `withToolErrors`), the view meta (`showToolBinding`, `appOnly`, `viewResourceUri`), the server i18n (`createTranslator`) |
+| `./widgets` | The view runtime (`mountViews`, the view host, the query hooks, `TestViewHost`; the language from the host locale (`de…` German, else English), the theme as host context > OS), the host-bound UI and `createTranslator`                                                                                                                                                                                                                                                                                              |
+| `./testing` | The product glossary: `PRODUCT_GLOSSARY`, `glossaryFindings`, `blindGlossaryRules`, `unnamedGlossaryTerms`                                                                                                                                                                                                                                                                                                                                                                                                             |
 
 `@miragon/pulse-ui`, `react`/`react-dom`, `zod` and `@tanstack/react-query` are **peer
 dependencies**: they must resolve to a single instance across the host bundle (see the `dedupe`

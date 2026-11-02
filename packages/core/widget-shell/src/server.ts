@@ -9,7 +9,6 @@ export {
   type McpMiddlewareHost,
   type McpRequestInfo,
 } from "./request-context.js"
-export { OAUTH_ENV_VARS, oauthFromEnv, type OAuthFromEnvOptions } from "./oauth-env.js"
 export {
   requestLogLevelWarning,
   resolvePort,
@@ -34,7 +33,6 @@ export {
 } from "./metrics.js"
 export {
   DEFAULT_MAX_BODY_BYTES,
-  HTTP_EDGE_ENV_VARS,
   installHttpEdgeGuard,
   resolveHttpEdgePolicy,
   type AllowList,
@@ -57,14 +55,13 @@ export {
   type FetchTarget,
 } from "./node-listener.js"
 export {
+  composedEnvVars,
   createComposedServer,
   DEFAULT_DRAIN_TIMEOUT_MS,
   DEFAULT_REQUEST_TIMEOUT_MS,
-  type BootComposition,
   type ComposedServer,
   type ComposedServerInfo,
   type ComposedServerOptions,
-  type ComposedServerRuntime,
   type ListenOptions,
   type RunningServer,
 } from "./composed-server.js"
@@ -76,15 +73,11 @@ export {
   viewResourceUri,
 } from "./widget-tool-bindings.js"
 export {
-  composeModules,
   type ActiveModuleRef,
   type ComposableModule,
   type EffectiveToolset,
-  type ModuleComposition,
   type ModuleEntry,
   type ModulePlugin,
-  type ResolveBootOptions,
-  type ResolvedBoot,
 } from "./composition.js"
 export {
   createToolsetVocabulary,

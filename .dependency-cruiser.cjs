@@ -100,7 +100,7 @@ module.exports = {
       comment:
         "Connector modules are self-contained peers and never import each other (CLAUDE.md invariant 8). " +
         "Cross-module needs go through the composition root: shared server data via SharedResources " +
-        "(apps/mcp-server-camunda7/src/module-contract.ts), cross-module UI via raw tool-name strings " +
+        "(apps/mcp-server-camunda7/src/setup.ts), cross-module UI via raw tool-name strings " +
         "with graceful degradation.",
       from: { path: "^packages/connectors/[^/]+/([^/]+)-connector/" },
       to: {
@@ -192,7 +192,7 @@ module.exports = {
         "invariant 8): the MCP server, the CLI and the VS Code extension. No package imports " +
         "one (this rule; that no package.json declares one is check-package-naming's). " +
         "Anything a package needs from an app must be inverted into an injected port; see " +
-        "SharedResources in apps/mcp-server-camunda7/src/module-contract.ts.",
+        "SharedResources in apps/mcp-server-camunda7/src/setup.ts.",
       from: { path: "^packages/" },
       to: { path: ["^apps/", "@miragon/pulse-mcp-server-camunda7", ...npm(APP_NAMES)] },
     },

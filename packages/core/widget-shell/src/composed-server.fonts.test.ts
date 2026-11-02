@@ -1,12 +1,11 @@
 import http from "node:http"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { composeModules, type ModulePlugin } from "./composition.js"
+import type { ComposableModule, ModulePlugin } from "./composition.js"
 import { createComposedServer, type RunningServer } from "./composed-server.js"
 import { loadServedFonts } from "./font-assets.js"
 import { SERVED_FONT_FILES, SERVED_FONT_PATH } from "./served-fonts.js"
 import { showToolBinding } from "./widget-tool-bindings.js"
 
-const composition = composeModules<object>({ label: "fonts-test", modules: [], appEnvVars: [] })
 const running: RunningServer[] = []
 const SANS = `${SERVED_FONT_PATH}/${SERVED_FONT_FILES.sans}`
 const MONO = `${SERVED_FONT_PATH}/${SERVED_FONT_FILES.mono}`
@@ -26,6 +25,13 @@ const showPlugin: ModulePlugin = {
   },
 }
 
+const demo: ComposableModule<object> = {
+  name: "demo",
+  configFromEnv: () => ({}),
+  knownEnvVars: [],
+  createPlugin: () => showPlugin,
+}
+
 beforeEach(() => {
   vi.spyOn(console, "info").mockImplementation(() => {})
   vi.spyOn(console, "warn").mockImplementation(() => {})
@@ -42,12 +48,10 @@ async function boot(env: NodeJS.ProcessEnv = {}) {
   // mcp-use reads MCP_URL from process.env itself (the request-resolved origin).
   vi.stubEnv("MCP_URL", env.MCP_URL)
   const composed = await createComposedServer({
-    label: "fonts-test",
     info: { name: "fonts-test", version: "0.0.0" },
-    composition,
+    modules: [demo],
     bundle: { jsPath: "/nonexistent/mcp-app.js" },
     env,
-    setup: () => ({ plugins: [showPlugin] }),
   })
   const server = await composed.listen({ port: 0, host: "127.0.0.1" })
   running.push(server)

@@ -42,4 +42,5 @@ export {
   type ThemeMode,
   type ThemeVariables,
 } from "./contrast.js"
-export { ROLE_CONTRAST_PAIRS, toneContrastPairs } from "./tone-pairs.js"
+export { LIGHT_STATUS_EXEMPTION, ROLE_CONTRAST_PAIRS, toneContrastPairs } from "./tone-pairs.js"
+export { stylesheetRules, stylesheetShapeFindings } from "./stylesheet-shape.js"

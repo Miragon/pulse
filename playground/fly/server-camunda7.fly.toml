@@ -1,5 +1,5 @@
 # Pulse server, the only public app of the playground stack, served
-# WITHOUT authentication (no MCP_OAUTH): anyone on the internet can call it, so
+# WITHOUT authentication (no MCP_USE_OAUTH_*): anyone on the internet can call it, so
 # it is pinned read-only below. Build context: repo root (monorepo
 # Dockerfile). Deploy via playground/fly/deploy.sh.
 app = "miragon-ai-playground"
@@ -22,7 +22,7 @@ primary_region = "fra"
   # Public + unauthenticated ⇒ read-only BY DESIGN: queries, widgets and
   # analytics, no engine writes. An unauthenticated boot already
   # defaults to read-only; the explicit pin keeps it that way should someone
-  # add MCP_OAUTH or widen a default. Never widen it here and never set
+  # add an OAuth provider or widen a default. Never widen it here and never set
   # CAMUNDA_ALLOW_DEPLOYMENTS on this app — deploying a BPMN runs code inside
   # the engine JVM. A Fly SECRET of the same name
   # overrides [env]: if `fly secrets list -a miragon-ai-playground` shows
@@ -45,8 +45,8 @@ primary_region = "fra"
   min_machines_running = 0
 
 # Readiness over HTTP, mirroring the Dockerfile HEALTHCHECK: /health/ready
-# answers 200 once the MCP transport serves and the server's own dependencies
-# respond (/health/live is the liveness-only variant).
+# answers 200 once the MCP transport serves and 503 while it drains
+# (/health/live is the liveness-only variant).
 [[http_service.checks]]
   interval = "15s"
   timeout = "5s"

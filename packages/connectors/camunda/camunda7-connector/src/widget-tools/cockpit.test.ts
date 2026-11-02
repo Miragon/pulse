@@ -4,7 +4,8 @@ import type { z } from "zod"
 import { DEFAULT_HEALTH_THRESHOLDS, type EngineHealthThresholds } from "../data/health-data.js"
 import { createEngineRegistry, type EngineEntry } from "../lib/resolve-engine.js"
 import { providerForEntry } from "../providers/index.js"
-import { CAMUNDA7_OPEN_COCKPIT } from "../tool-names.js"
+import { createPlugin } from "../plugin.js"
+import { CAMUNDA7_LIST_ENGINES, CAMUNDA7_OPEN_COCKPIT } from "../tool-names.js"
 import { engineParamShape } from "../lib/with-engine.js"
 import { startFakeEngine, type FakeEngine } from "../tools/test-support/fake-engine.js"
 import { worldReply } from "../tools/test-support/engine-world.js"
@@ -143,6 +144,30 @@ describe("camunda7_open_cockpit: the engine it opens on", () => {
       "[ENGINE_NOT_SELECTED] No engine specified and no default engine configured. Pass `engine`, one of: alpha, beta, gamma.",
     )
     expect(requests).toEqual([])
+  })
+})
+
+describe("camunda7_open_cockpit and camunda7_list_engines", () => {
+  it("the bootstrap lists exactly the engines camunda7_list_engines lists, in its order", async () => {
+    const handlers = new Map<string, Handler>()
+    createPlugin({
+      engines: [
+        { id: "prod-b", baseUrl: "http://b.invalid/engine-rest", environment: "us" },
+        { id: "prod-a", baseUrl: "http://a.invalid/engine-rest", environment: "eu" },
+        { id: "prod-c", baseUrl: "http://c.invalid/engine-rest" },
+      ],
+    }).register({
+      tool: (definition: Definition, handler: Handler) => handlers.set(definition.name, handler),
+      prompt: () => {},
+    } as unknown as MCPServer)
+    const listed = JSON.parse(textOf(await handlers.get(CAMUNDA7_LIST_ENGINES)!({}))) as {
+      engines: Array<{ id: string }>
+    }
+    const opened = dataOf(await handlers.get(CAMUNDA7_OPEN_COCKPIT)!({})).engines as Array<{
+      id: string
+    }>
+    expect(listed.engines.map((e) => e.id)).toHaveLength(3)
+    expect(opened.map((e) => e.id)).toEqual(listed.engines.map((e) => e.id))
   })
 })
 

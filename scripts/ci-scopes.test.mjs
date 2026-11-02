@@ -70,6 +70,10 @@ describe("scopesFor: prose reaches only the checks that read it", () => {
     ])
     assert.deepEqual(scopes("docs/.vitepress/theme/HomeLanding.vue"), ["brand"])
   })
+
+  it("runs the token drift scan for a stylesheet anywhere in the docs site", () => {
+    assert.deepEqual(scopes("docs/.vitepress/theme/custom.css"), ["brand", "typescript"])
+  })
 })
 
 describe("scopesFor: a package's code reaches its dependents", () => {
@@ -112,7 +116,7 @@ describe("scopesFor: paths outside the packages", () => {
     assert.deepEqual(scopes("playground/cibseven-example/build.gradle.kts"), ["cibseven-example"])
   })
 
-  it("runs the TypeScript job for the files the metrics contract and setup-env tests read", () => {
+  it("runs the TypeScript job for the files the metrics contract and server env-name tests read", () => {
     assert.deepEqual(scopes("playground/docker/prometheus/alerts.yml"), ["typescript"])
     assert.deepEqual(scopes(".env.example"), ["typescript"])
   })

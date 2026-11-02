@@ -35,12 +35,9 @@ describe("widget wire contract (dual-protocol _meta)", () => {
   let serverOrigin: string
 
   beforeAll(async () => {
-    // The widest surface (admin under OAuth); widget tools and
-    // *_data feeds are the same in every toolset.
-    server = await bootServer({
-      authenticated: true,
-      env: { MCP_ACTIVE_MODULES: "camunda7:admin,analytics" },
-    })
+    // The widest surface (admin); widget tools and *_data feeds are the
+    // same in every toolset.
+    server = await bootServer({ env: { MCP_ACTIVE_MODULES: "camunda7:admin,analytics" } })
     client = server.client
     serverOrigin = `http://127.0.0.1:${server.port}`
     tools = (await client.listTools()).tools
@@ -247,7 +244,6 @@ describe("widget wire contract — the font origin under MCP_URL", () => {
 
   beforeAll(async () => {
     server = await bootServer({
-      authenticated: true,
       env: {
         MCP_ACTIVE_MODULES: "camunda7:admin,analytics",
         MCP_URL: `${PUBLIC_ORIGIN}/mcp`,

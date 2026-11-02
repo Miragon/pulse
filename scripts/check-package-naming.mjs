@@ -21,7 +21,7 @@
  *   non-empty string. engines.vscode outside apps/ fails: every npm gate skips an extension, so a package that
  *   declared it would escape them.
  * - A generated/ directory under apps/ or packages/ is exempt from ESLint,
- *   prettier and the app's source scans (dependency-cruiser excludes only the
+ *   prettier and the source scans (`scripts/source-scan.mjs`; dependency-cruiser excludes only the
  *   CIB seven SDK and cruises every other generated/ tree), so it exists only
  *   where GENERATED_DIRS lists it with its reason.
  * - No .mts/.cts/.js/.mjs/.cjs/.jsx source under a package's src/: the ESLint
@@ -60,7 +60,7 @@ export const CONNECTOR_ROLES = ["connector", "client"]
 
 /**
  * The only generated/ directories under apps/ or packages/, each with the
- * reason it may skip ESLint, prettier and the app's source scans
+ * reason it may skip ESLint, prettier and the source scans (`scripts/source-scan.mjs`)
  * (dependency-cruiser keeps its own exclude list, today only the CIB seven SDK).
  * An entry names output a tool regenerates and nobody edits by hand; an entry
  * whose directory is gone fails as stale.
@@ -410,7 +410,7 @@ export function checkLayout(files, { generatedDirs = GENERATED_DIRS } = {}) {
   for (const dir of [...generated].sort()) {
     if (Object.hasOwn(generatedDirs, dir)) continue
     errors.push(
-      `${dir}: a generated/ directory is exempt from ESLint, prettier and the app's source ` +
+      `${dir}: a generated/ directory is exempt from ESLint, prettier and the source ` +
         `scans, so code in it escapes lint, formatting and the tool-name and hand-off guards ` +
         `(dependency-cruiser still reads it). Rename the directory, or, when ` +
         `a tool regenerates it and nobody edits it, list it in GENERATED_DIRS ` +

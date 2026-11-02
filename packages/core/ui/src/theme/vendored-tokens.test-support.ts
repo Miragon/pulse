@@ -1,9 +1,10 @@
+/// <reference types="node" />
 import { createHash } from "node:crypto"
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs"
 import { dirname, isAbsolute, join, relative, sep } from "node:path"
 
 /**
- * The verifier behind the token drift guard (`ui-stylesheet.test.ts`;
+ * The verifier behind the token drift guard (`token-drift.test.ts`;
  * modeler-tool-design §13: vendor the CI tokens unchanged, never fork a
  * value). A `--cd-*` token may be declared only in a vendored copy of a CI
  * file that a SANCTIONED manifest lists (pulse-ui's copy, the token file every
@@ -21,7 +22,7 @@ import { dirname, isAbsolute, join, relative, sep } from "node:path"
  * lists a path outside the repo, a missing or edited file, or sits next to a
  * file it does not list is a finding, never a skip.
  *
- * This module is a test helper inside the app's measured coverage scope:
+ * This module is a test helper inside pulse-ui's measured coverage scope:
  * `vendored-tokens.test.ts` reaches every branch. Keep it that way when you
  * change it.
  */
@@ -183,6 +184,117 @@ export function rootTokens(css: string): Map<string, string> {
   return tokens
 }
 
+/** What the manifests sanction: the copies inside their folders, by manifest. */
+interface Sanction {
+  /** Every sanctioned copy (absolute path). */
+  files: Set<string>
+  /** The copies each manifest sanctions. */
+  byManifest: Map<string, string[]>
+}
+
+const isRepoRelative = (pfad: string) => !isAbsolute(pfad) && !pfad.split(/[\\/]/).includes("..")
+
+/** The finding for a listed copy that is missing or edited, else none. */
+function copyFinding(manifest: string, { pfad, sha256 }: VendoredFile, file: string) {
+  if (!isFile(file)) {
+    return `${pfad}: listed in ${manifest} but missing: re-vendor it from the CI, or regenerate the manifest`
+  }
+  return sha256Of(file) === sha256
+    ? null
+    : `${pfad}: differs from ${manifest}: re-vendor it, never edit it in the repo`
+}
+
+/** The files in the manifest's folder that it does not list (the folder rule). */
+function unlistedFindings(root: string, manifest: string, listed: ReadonlySet<string>): string[] {
+  return filesUnder(join(root, dirname(manifest)))
+    .filter((file) => !listed.has(file))
+    .map(
+      (file) =>
+        `${posix(relative(root, file))}: in ${posix(dirname(manifest))}/ but not in ${manifest}: the manifest's folder holds only the vendored files, so move your own file out of it`,
+    )
+}
+
+/** One manifest: its findings, and the copies it sanctions into `sanction`. */
+function manifestFindings(root: string, manifest: string, sanction: Sanction): string[] {
+  const data = readManifest(root, manifest)
+  if (typeof data === "string") return [data]
+  const findings: string[] = []
+  const folder = join(root, dirname(manifest))
+  const listed = new Set([join(root, manifest)])
+  for (const entry of data.dateien) {
+    if (!isRepoRelative(entry.pfad)) {
+      findings.push(
+        `${manifest}: ${entry.pfad} is not a repo-relative path: name the copy from the repo root, without a ".." segment`,
+      )
+      continue
+    }
+    const file = join(root, entry.pfad)
+    listed.add(file)
+    const finding = copyFinding(manifest, entry, file)
+    if (finding !== null) {
+      findings.push(finding)
+      continue
+    }
+    // A manifest sanctions tokens only inside its own folder (the docs kit
+    // also lists its logos under docs/public/logo/: pinned, not sanctioned).
+    if (relative(folder, file).split(sep)[0] !== "..") {
+      sanction.files.add(file)
+      sanction.byManifest.set(manifest, [...(sanction.byManifest.get(manifest) ?? []), file])
+    }
+  }
+  return [...findings, ...unlistedFindings(root, manifest, listed)]
+}
+
+/** The stylesheets under the scan roots that declare a `--cd-*` outside a sanctioned copy. */
+function forkFindings(root: string, scanRoots: readonly string[], sanctioned: Set<string>) {
+  return scanRoots.flatMap((dir) => {
+    if (!existsSync(join(root, dir))) {
+      return [
+        `${dir}: scan root missing: point the drift guard at the folders that hold stylesheets`,
+      ]
+    }
+    return stylesheetsUnder(root, join(root, dir))
+      .filter((file) => !sanctioned.has(file))
+      .filter((file) => CD_DECLARATION.test(rulesOf(readFileSync(file, "utf8"))))
+      .map(
+        (file) =>
+          `${posix(relative(root, file))}: declares --cd-* outside a sanctioned vendored copy (a fork): reference pulse-ui's tokens and roles with var(), or vendor the CI file unchanged with a manifest listed in SANCTIONED_TOKEN_MANIFESTS`,
+      )
+  })
+}
+
+/** One manifest's copies against pulse-ui's palette: each value kept, and no token dropped. */
+function paletteFindings(
+  root: string,
+  manifest: string,
+  files: readonly string[],
+  palette: ReadonlyMap<string, string>,
+): string[] {
+  const findings: string[] = []
+  const declared = new Set<string>()
+  let declaresTokens = false
+  for (const file of files.filter((name) => name.endsWith(".css"))) {
+    const css = readFileSync(file, "utf8")
+    declaresTokens ||= CD_DECLARATION.test(rulesOf(css))
+    for (const [name, value] of rootTokens(css)) {
+      declared.add(name)
+      const expected = palette.get(name)
+      if (expected !== undefined && expected !== value) {
+        findings.push(
+          `${posix(relative(root, file))}: ${name} is ${value}, pulse-ui's copy says ${expected}: vendor both from the same CI release (a re-vendor), never change a value in the repo`,
+        )
+      }
+    }
+  }
+  const missing = [...palette.keys()].filter((name) => !declared.has(name))
+  if (declaresTokens && missing.length > 0) {
+    findings.push(
+      `${manifest}: its vendored stylesheets declare --cd-* tokens, but no top-level :root among them declares ${missing.join(", ")}, which pulse-ui's copy does: a copy without a palette token forks the palette by omission, so vendor the CI token file whole (a re-vendor), never trim it`,
+    )
+  }
+  return findings
+}
+
 /**
  * Findings for the vendored token copies, empty when every `--cd-*` in the
  * scanned stylesheets lives in a sanctioned, unedited copy on pulse-ui's
@@ -194,94 +306,11 @@ export function vendoredTokenFindings({
   scanRoots,
   palette,
 }: VendoredTokenOptions): string[] {
-  const findings: string[] = []
-  const sanctioned = new Set<string>()
-  /** The files each manifest sanctions. */
-  const sanctionedBy = new Map<string, string[]>()
-
-  for (const manifest of manifests) {
-    const data = readManifest(root, manifest)
-    if (typeof data === "string") {
-      findings.push(data)
-      continue
-    }
-    const folder = join(root, dirname(manifest))
-    const listed = new Set([join(root, manifest)])
-    for (const { pfad, sha256 } of data.dateien) {
-      if (isAbsolute(pfad) || pfad.split(/[\\/]/).includes("..")) {
-        findings.push(
-          `${manifest}: ${pfad} is not a repo-relative path: name the copy from the repo root, without a ".." segment`,
-        )
-        continue
-      }
-      const file = join(root, pfad)
-      listed.add(file)
-      if (!isFile(file)) {
-        findings.push(
-          `${pfad}: listed in ${manifest} but missing: re-vendor it from the CI, or regenerate the manifest`,
-        )
-        continue
-      }
-      if (sha256Of(file) !== sha256) {
-        findings.push(`${pfad}: differs from ${manifest}: re-vendor it, never edit it in the repo`)
-        continue
-      }
-      // A manifest sanctions tokens only inside its own folder (the docs kit
-      // also lists its logos under docs/public/logo/: pinned, not sanctioned).
-      if (relative(folder, file).split(sep)[0] !== "..") {
-        sanctioned.add(file)
-        sanctionedBy.set(manifest, [...(sanctionedBy.get(manifest) ?? []), file])
-      }
-    }
-    for (const file of filesUnder(folder)) {
-      if (!listed.has(file)) {
-        findings.push(
-          `${posix(relative(root, file))}: in ${posix(dirname(manifest))}/ but not in ${manifest}: the manifest's folder holds only the vendored files, so move your own file out of it`,
-        )
-      }
-    }
+  const sanction: Sanction = { files: new Set(), byManifest: new Map() }
+  const findings = manifests.flatMap((manifest) => manifestFindings(root, manifest, sanction))
+  findings.push(...forkFindings(root, scanRoots, sanction.files))
+  for (const [manifest, files] of sanction.byManifest) {
+    findings.push(...paletteFindings(root, manifest, files, palette))
   }
-
-  for (const dir of scanRoots) {
-    if (!existsSync(join(root, dir))) {
-      findings.push(
-        `${dir}: scan root missing: point the drift guard at the folders that hold stylesheets`,
-      )
-      continue
-    }
-    for (const file of stylesheetsUnder(root, join(root, dir))) {
-      if (sanctioned.has(file) || !CD_DECLARATION.test(rulesOf(readFileSync(file, "utf8")))) {
-        continue
-      }
-      findings.push(
-        `${posix(relative(root, file))}: declares --cd-* outside a sanctioned vendored copy (a fork): reference pulse-ui's tokens and roles with var(), or vendor the CI file unchanged with a manifest listed in SANCTIONED_TOKEN_MANIFESTS`,
-      )
-    }
-  }
-
-  for (const [manifest, files] of sanctionedBy) {
-    const declared = new Set<string>()
-    let declaresTokens = false
-    for (const file of files.filter((name) => name.endsWith(".css"))) {
-      const css = readFileSync(file, "utf8")
-      declaresTokens ||= CD_DECLARATION.test(rulesOf(css))
-      for (const [name, value] of rootTokens(css)) {
-        declared.add(name)
-        const expected = palette.get(name)
-        if (expected !== undefined && expected !== value) {
-          findings.push(
-            `${posix(relative(root, file))}: ${name} is ${value}, pulse-ui's copy says ${expected}: vendor both from the same CI release (a re-vendor), never change a value in the repo`,
-          )
-        }
-      }
-    }
-    const missing = [...palette.keys()].filter((name) => !declared.has(name))
-    if (declaresTokens && missing.length > 0) {
-      findings.push(
-        `${manifest}: its vendored stylesheets declare --cd-* tokens, but no top-level :root among them declares ${missing.join(", ")}, which pulse-ui's copy does: a copy without a palette token forks the palette by omission, so vendor the CI token file whole (a re-vendor), never trim it`,
-      )
-    }
-  }
-
   return findings
 }

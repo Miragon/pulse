@@ -108,7 +108,7 @@ Tool conventions (they carry the contract, so they are not cosmetic):
 
 Skip this until someone needs to run your module with a narrowed tool surface
 (`MCP_ACTIVE_MODULES=<name>:read-only`). Then declare a vocabulary and put it
-on the module definition. The composition resolves ONE concrete toolset per
+on the module definition. The boot resolves ONE concrete toolset per
 boot, logs it, and hands it to `createPlugin` as `config.toolset`:
 
 ```ts
@@ -123,11 +123,11 @@ export const myToolsets = createToolsetVocabulary("<name>", MY_TOOLSETS, "read-o
 
 - Accept it in your config schema (`toolset: z.string().optional()`) and
   resolve it once in `createPlugin` with `myToolsets.resolve(config.toolset)`.
-- The third argument is your READ-ONLY FLOOR (it must permit no write). No suffix on a boot without `MCP_OAUTH`, an empty or unknown suffix
+- The third argument is your READ-ONLY FLOOR (it must permit no write). No suffix on a boot without OAuth, an empty or unknown suffix
   (with a warning), and a direct `createPlugin` caller passing no toolset all
   land there.
-- `authenticatedDefault` is the no-suffix default under `MCP_OAUTH` (which
-  `server/src/app.ts` wires through `oauthFromEnv`), so every OAuth boot
+- `authenticatedDefault` is the no-suffix default under OAuth, which the boot
+  installs from `MCP_USE_OAUTH_*`, so every OAuth boot
   that names no suffix runs it: your standard non-admin toolset. Never make it
   your widest one: an admin-like toolset must only be reachable by naming it.
 - Write ONE rule function for the module, `isToolInToolset(config, toolset)`
@@ -180,7 +180,7 @@ inspector at `http://localhost:8400/mcp/inspector`, or headless via the
 mcp-use client/screenshot commands in `CLAUDE.md` → Verification. Also verify
 the selection path: `MCP_ACTIVE_MODULES=<name> pnpm dev` must expose exactly
 your module's tools. If you declared `toolsets`, that is its read-only floor
-without `MCP_OAUTH` and its `authenticatedDefault` with it (the boot log's
+without OAuth and its `authenticatedDefault` with it (the boot log's
 `Toolsets —` line says which).
 
 ## Anti-patterns

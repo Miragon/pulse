@@ -125,7 +125,7 @@ export function assertCharBudget(name: string, measured: number, dir = GOLDEN_DI
   }
 }
 
-interface WireTool {
+export interface WireTool {
   name: string
   title?: string
   description?: string

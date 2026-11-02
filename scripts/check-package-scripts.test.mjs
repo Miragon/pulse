@@ -137,6 +137,17 @@ describe("workspace discovery", () => {
       rmSync(root, { recursive: true, force: true })
     }
   })
+
+  // Lax expansion would read `packages/**` as no package, so a new tier would leave every gate.
+  it("fails on a glob it cannot expand instead of reading it as no package", () => {
+    for (const glob of ["packages/**", "apps/cli-*", "!apps/old", "../outside", "apps/./x"]) {
+      assert.throws(
+        () => expandWorkspaceGlobs(tmpdir(), [glob]),
+        /expand literal segments and a whole "\*" segment only/,
+        glob,
+      )
+    }
+  })
 })
 
 /** A stryker.config.json that passes every rule (the shape the repo's packages use). */

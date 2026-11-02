@@ -1,25 +1,28 @@
 /**
- * Checked-in snapshots of the tool surface per toolset, sorted by name. The
- * E2E tests compare `tools/list` against them, so adding, renaming, removing or
- * re-tiering a tool fails CI until these lists (and the README surface they
- * document) are updated deliberately.
+ * Checked-in snapshots of the tool surface per toolset, sorted by name.
+ * `tools-list.golden.test.ts` compares `tools/list` against them, so adding,
+ * renaming, removing or re-tiering a tool fails CI until these lists (and the
+ * README surface they document) are updated deliberately. Miragon/miragon-ai-docs
+ * reads this file from main too (its required check "miragon-ai references",
+ * `scripts/check-miragon-ai-refs.mjs` there), so it stays until that check reads
+ * the admin golden instead.
  *
- * Layered on purpose — each tier is the one below plus an explicit list, so a
- * review sees exactly what a toolset adds:
+ * Layered on purpose: each tier is the one below plus an explicit list, so a
+ * review sees exactly what a toolset adds.
  *
- * - READ_ONLY: the unauthenticated default (no suffix, no MCP_OAUTH) =
+ * - READ_ONLY: the unauthenticated default (no suffix, no OAuth provider) =
  *   `camunda7:read-only` plus analytics (which declares no toolsets). Only
  *   `readOnlyHint` tools.
  * - OPERATIONS: the default under OAuth = `camunda7:operations,analytics`,
  *   which adds the camunda7 engine writes.
- * - ADMIN: `camunda7:admin,analytics` + `CAMUNDA_ALLOW_DEPLOYMENTS=true`
- *   under OAuth: the full surface. Never implied by a default.
+ * - ADMIN: `camunda7:admin,analytics` + `CAMUNDA_ALLOW_DEPLOYMENTS=true`:
+ *   the full surface. Never implied by a default.
  *
- * Regenerate by running the E2E tests and copying the sorted names from the
+ * Regenerate by running the golden test and copying the sorted names from the
  * assertion diffs. These lists pin WHICH tools a toolset exposes; the full
  * wire payload of each (descriptions, annotations, visibility, schemas) is
- * pinned per toolset by tools-list.golden.test.ts → `__golden__/tools-*.json`
- * — a tool change updates both (`GOLDEN_UPDATE=1`, see golden.ts).
+ * pinned per toolset by tools-list.golden.test.ts → `__golden__/tools-*.json`;
+ * a tool change updates both (`GOLDEN_UPDATE=1`, see golden.ts).
  */
 export const EXPECTED_TOOLS_READ_ONLY: readonly string[] = [
   "analytics_bpmn_heatmap_data",

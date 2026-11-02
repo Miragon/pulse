@@ -1,13 +1,14 @@
+/// <reference types="node" />
 import { createHash } from "node:crypto"
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { basename, dirname, join } from "node:path"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
-import { rootTokens, vendoredTokenFindings } from "./vendored-tokens.js"
+import { rootTokens, vendoredTokenFindings } from "./vendored-tokens.test-support.js"
 
 /**
  * Fixture repos for the vendored-token verifier behind the drift guard in
- * `ui-stylesheet.test.ts`. Each case builds its tree under the OS temp
+ * `token-drift.test.ts`. Each case builds its tree under the OS temp
  * folder and removes it afterwards. The cases include copies the repo does not
  * hold yet (a second sanctioned copy, the App and web variant of the CI token
  * file under an extension's webview), so the guard is ready before they land.

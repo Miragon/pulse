@@ -604,7 +604,7 @@ describe("checkLayout", () => {
         "packages/core/widget-shell/src/Generated",
       ],
     )
-    assert.match(errors[0], /exempt from ESLint, prettier and the app's source scans/)
+    assert.match(errors[0], /exempt from ESLint, prettier and the source scans/)
     assert.match(errors[0], /dependency-cruiser still reads it/)
     assert.match(errors[0], /GENERATED_DIRS/)
   })

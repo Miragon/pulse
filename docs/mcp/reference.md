@@ -55,7 +55,7 @@ inputs.
 A module with toolsets runs exactly one per boot, chosen by a suffix in `MCP_ACTIVE_MODULES`
 (`camunda7:operations,analytics`) and stated in the boot log. Without a suffix the default
 fails closed: the read-only toolset on an unauthenticated server, the standard one under
-`MCP_OAUTH`. `admin` is never implied (only naming it grants it), and an empty (`camunda7:`) or
+OAuth. `admin` is never implied (only naming it grants it), and an empty (`camunda7:`) or
 unknown suffix warns and falls back to read-only, even under OAuth.
 
 | Toolset               | Surface                                                                                                                                                                                                                                   | No-suffix default |
@@ -85,7 +85,7 @@ The most common variables. See [Operations](operations.md#environment-variables)
 | `PORT`                                                    | `8400`                              | HTTP port the MCP server listens on                                                                                                                                       |
 | `MCP_ACTIVE_MODULES`                                      | all, read-only                      | Comma-separated modules (`camunda7,analytics`), each with an optional [toolset](#toolsets) suffix; no suffix = read-only, under OAuth the standard toolset                |
 | `MCP_URL`                                                 | —                                   | Public base URL: advertised URLs, OAuth audience, the `Host`/`Origin` accepted (else localhost only), and the origin the views load Geist from (`/fonts/…`)               |
-| `MCP_OAUTH`                                               | —                                   | JSON OAuth resource-server config (Keycloak / Auth0) protecting `/mcp`, the only caller identity                                                                          |
+| `MCP_USE_OAUTH_*`                                         | —                                   | One OAuth provider's variables protecting `/mcp`, the only caller identity (see [Operations](operations.md#security))                                                     |
 | `CAMUNDA_ALLOW_DEPLOYMENTS`                               | `false`                             | `true` registers `camunda7_create_deployment` under `camunda7:admin`: code execution in the engine JVM; empty = unset, any value but `true`/`false` fails the boot        |
 | `CAMUNDA_BASE_URL`                                        | `http://localhost:8410/engine-rest` | Single-engine REST base URL                                                                                                                                               |
 | `CAMUNDA_ENGINE_ID`                                       | `default`                           | Id of that engine; must match the engine's `ENGINE_ID` or its analytics stay empty                                                                                        |

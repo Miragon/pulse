@@ -303,7 +303,7 @@ Rules while building:
   screen: `engine: engineIdsOf(data.engines)` (the resolved, configured ids — never
   a widget's `engine` prop, which only feeds its self-fetch), `period`/key from the
   echo; a null figure is left out, never sent as 0. CLAUDE.md invariant 6;
-  `apps/mcp-server-camunda7/test/hand-off-surface.test.ts` rejects a hand-written text.
+  `scripts/hand-off-refs.test.mjs` rejects a hand-written text.
 - Naming is load-bearing: `apps/mcp-server-camunda7/test/widget-contract.e2e.test.ts` enforces
   the widget `_meta` on every `*_show_*` tool and app-only visibility on every `*_data`
   feed **by name**.
@@ -351,8 +351,9 @@ A new or changed tool changes the wire surface: add its name to
 `test/__golden__/` diff. The budget of each toolset counts the model-visible tools/list text
 plus the server instructions. If `char-budgets.json` grew, `pnpm lint` fails until the commit
 carries a `Ratchet-Exception: <why the model must read more>` trailer — trim wording first.
-A camunda7 widget that names an analytics feed by raw string is checked against the booted
-surface by `test/tool-name-refs.test.ts` — renaming a feed fails there.
+A camunda7 widget that names an analytics feed by raw string is checked against the admin
+golden by `scripts/tool-name-refs.test.mjs` (so refresh the goldens first): renaming a feed
+fails there.
 
 `pnpm test` runs the query snapshot tests; `pnpm typecheck` is the **only** check that
 covers widget `.tsx` code (`tsc -p tsconfig.widgets.json`). For end-to-end verification:

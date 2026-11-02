@@ -39,19 +39,19 @@ pnpm dev
 ```
 
 This starts the MCP server on `:8400`. Connect any MCP host to `http://localhost:8400/mcp` and
-call a tool. It boots read-only (no `MCP_OAUTH`, no toolset suffix, as the boot log says); to test
+call a tool. It boots read-only (no OAuth provider, no toolset suffix, as the boot log says); to test
 write paths, uncomment `MCP_ACTIVE_MODULES=camunda7:admin,analytics` in `.env`.
 `pnpm dev` binds 127.0.0.1; `pnpm start` and Docker listen on all interfaces.
 
 ## Common tasks
 
-| Command                       | What it does                    |
-| ----------------------------- | ------------------------------- |
-| `pnpm build`                  | Turbo build across the monorepo |
-| `pnpm typecheck`              | TypeScript across all packages  |
-| `pnpm test`                   | Vitest across all packages      |
-| `pnpm lint` / `pnpm lint:fix` | ESLint                          |
-| `pnpm format`                 | Prettier                        |
+| Command                       | What it does                                                                         |
+| ----------------------------- | ------------------------------------------------------------------------------------ |
+| `pnpm build`                  | Turbo build across the monorepo                                                      |
+| `pnpm typecheck`              | TypeScript across all packages                                                       |
+| `pnpm test`                   | Vitest across all packages, then the repo guards (`scripts/*.test.mjs` on node:test) |
+| `pnpm lint` / `pnpm lint:fix` | ESLint                                                                               |
+| `pnpm format`                 | Prettier                                                                             |
 
 Mutation testing: `pnpm --fail-if-no-match --filter <package> exec stryker run` (`--mutate <file>`
 narrows it) for `@miragon/pulse-widget-shell`, `-camunda7-client`, `-camunda7-connector`,
@@ -75,6 +75,6 @@ mirror [`Miragon/pulse-starter`](https://github.com/Miragon/pulse-starter)
 
 ## Documentation
 
-- These pages are Markdown in `docs/`, next to the code they describe, and build into this VitePress site (`pnpm docs:dev`, `pnpm docs:build`), published to [miragon.github.io/pulse](https://miragon.github.io/pulse/) on every push to `main`. A change to env vars, tools, ports or the getting-started steps updates them in the same PR. `apps/mcp-server-camunda7/test/docs-refs.test.ts` checks every tool name and repo path they cite, and each page's line budget.
+- These pages are Markdown in `docs/`, next to the code they describe, and build into this VitePress site (`pnpm docs:dev`, `pnpm docs:build`), published to [miragon.github.io/pulse](https://miragon.github.io/pulse/) on every push to `main`. A change to env vars, tools, ports or the getting-started steps updates them in the same PR. `scripts/docs-refs.test.mjs` checks every tool name and repo path they cite, and each page's line budget.
 - The product page [miragon.ai/tools/pulse](https://miragon.ai/tools/pulse/) is built from [Miragon/miragon-ai-docs](https://github.com/Miragon/miragon-ai-docs).
 - [Reference](reference.md) lists every tool, toolset and the common env vars; [`engine-plugins/README.md`](https://github.com/Miragon/pulse/blob/main/engine-plugins/README.md) covers the Kotlin plugin build.
