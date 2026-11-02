@@ -13,7 +13,7 @@ import {
   P,
   PARENT_DEF,
   runtimeDto,
-} from "../../test/support/workflow-fixture.js"
+} from "@miragon/pulse-engine-core/testing"
 import { loadInstance, loadView } from "./inspect.js"
 
 describe("an instance that ends while inspect reads it", () => {

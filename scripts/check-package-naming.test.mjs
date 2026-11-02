@@ -94,6 +94,7 @@ describe("checkPackageName: today's packages", () => {
         { name: "@miragon/pulse-mcp-server-camunda7", private: true, bin: { x: "dist/index.js" } },
       ],
       ["packages/core/widget-shell", { name: "@miragon/pulse-widget-shell" }],
+      ["packages/core/engine-core", { name: "@miragon/pulse-engine-core" }],
       ["packages/connectors/camunda/camunda7-client", scoped("camunda7-client")],
       ["packages/connectors/camunda/camunda7-connector", scoped("camunda7-connector")],
       ["packages/connectors/analytics/analytics-client", scoped("analytics-client")],

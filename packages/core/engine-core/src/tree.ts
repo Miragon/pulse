@@ -4,9 +4,8 @@
  * and on every engine (`rootProcessInstanceId` would include siblings and carries no parent edge).
  */
 
-import type { EnginePort } from "../engine-port/engine-port.js"
-import { compact, mapLimit } from "../util.js"
-import { PARALLEL } from "./engine.js"
+import { type EnginePort, PARALLEL } from "./port.js"
+import { compact, mapLimit } from "./util.js"
 import { definitionKeyOf, field, type Rec, str, yes } from "./records.js"
 import type { TreeNode } from "./types.js"
 

@@ -9,19 +9,21 @@ import {
   text,
 } from "../../test/support/fake-fetch.js"
 import { basicAuth } from "../auth/basic.js"
-import { loadCatalog } from "../catalog/catalog.js"
+import { findByOperationId, loadCatalog } from "../catalog/catalog.js"
+import { WORKFLOW_DOCS } from "../docs/workflow.js"
+import type { EnginePort } from "../engine-port/engine-port.js"
 import { PulseCliError } from "../errors.js"
+import { listByIds, type OperationInput, queryInput } from "@miragon/pulse-engine-core"
 import {
   countByIds,
   ID_CHUNK,
-  isMissing,
-  json as jsonOf,
-  listByIds,
+  isMissing as coreIsMissing,
   pageQuery,
-  queryInput,
-} from "./engine.js"
-import { WORKFLOW_DOCS } from "../docs/workflow.js"
-import { findByOperationId } from "../catalog/catalog.js"
+} from "@miragon/pulse-engine-core/testing"
+import { isMissing } from "./engine.js"
+
+const jsonOf = (port: EnginePort, operationId: string, input: OperationInput) =>
+  port.json(operationId, input)
 
 const NO_INPUT = { pathArgs: [], query: {} }
 
@@ -219,6 +221,21 @@ describe("isMissing", () => {
       isMissing(new PulseCliError("USAGE", "x", { engineType: "InvalidRequestException" })),
     ).toBe(false)
     expect(isMissing(new Error("x"))).toBe(false)
+  })
+
+  it("agrees with engine-core's rule on every HTTP error the engine port reads", async () => {
+    const answers: readonly (readonly [Response, boolean])[] = [
+      [engineError(404, "InvalidRequestException", "gone"), true],
+      [engineError(404, "NotFoundException", "no such path"), false],
+      [engineError(404, "QueryParamException", "bad value"), false],
+      [new Response("Not Found", { status: 404 }), false],
+      [engineError(500, "ProcessEngineException", "boom"), false],
+    ]
+    for (const [response, missing] of answers) {
+      const port = portOf(fakeServer().on("GET", "/incident", response).fetch)
+      const error = await caught(port.call("getIncidents", NO_INPUT))
+      expect([isMissing(error), coreIsMissing(port.failure(error))]).toEqual([missing, missing])
+    }
   })
 })
 

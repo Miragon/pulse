@@ -14,9 +14,10 @@
  * The foundation packages live under `packages/core/` (npm names without a role
  * suffix, e.g. `@miragon/pulse-widget-shell`). The apps under `apps/` sit ON TOP of
  * the packages: the MCP server (`@miragon/pulse-mcp-server-camunda7`) composes the
- * connectors; the two interface apps, the CLI (apps/cli, `@miragon/pulse-cli`) and the
- * VS Code extension (apps/vscode, the unscoped `pulse-cockpit`, because vsce rejects
- * scoped names), import no workspace package. No package and no app imports an app
+ * connectors; of the two interface apps, the CLI (apps/cli, `@miragon/pulse-cli`) imports
+ * exactly @miragon/pulse-engine-core, its workflow domain, which it bundles, and the VS Code
+ * extension (apps/vscode, the unscoped `pulse-cockpit`, because vsce rejects scoped names)
+ * imports none. No package and no app imports an app
  * (the extension's own closed-world rules live in apps/vscode/.dependency-cruiser.cjs).
  * APP_PACKAGES below names every app's npm name; the
  * self-test fails when a real app's name is missing there. These rules see IMPORTS only: a
@@ -62,6 +63,10 @@ const CLI_PACKAGE = "@miragon/pulse-cli"
 const EXTENSION_PACKAGE = "pulse-cockpit"
 const APP_PACKAGES = [SERVER_PACKAGE, CLI_PACKAGE, EXTENSION_PACKAGE]
 const APP_NAMES = APP_PACKAGES.map(escapeRegExp).join("|")
+
+/** The workflow domain of the Camunda 7 REST API family: the CLI bundles it, the camunda7 connector may import it. */
+const ENGINE_CORE_PACKAGE = "@miragon/pulse-engine-core"
+const ENGINE_CORE = escapeRegExp(ENGINE_CORE_PACKAGE)
 
 /**
  * What makes a package an MCP host or a widget: the UI runtime, the MCP framework and
@@ -213,9 +218,11 @@ module.exports = {
       severity: "error",
       comment:
         "The CLI (apps/cli) is a terminal interface, not an MCP host: it imports no workspace " +
-        "package and nothing of the MCP/UI/server stack (react, react-dom, lucide-react, preact, bpmn-js, diagram-js, " +
+        "package except @miragon/pulse-engine-core, its workflow domain, which tsdown bundles, and " +
+        "nothing of the MCP/UI/server stack (react, react-dom, lucide-react, preact, bpmn-js, diagram-js, " +
         "mcp-use, @modelcontextprotocol, TanStack, hono, postgres, prom-client, " +
-        "zod, @hey-api, vscode, @miragon/modeler-shell).",
+        "zod, @hey-api, vscode, @miragon/modeler-shell). A relative escape into " +
+        "packages/core/engine-core is still a violation: import the package.",
       from: { path: "^apps/cli/" },
       to: {
         path: [
@@ -226,7 +233,71 @@ module.exports = {
             `${MCP_STACK}|preact|bpmn-js|diagram-js|@miragon/modeler-shell|vscode|${escapeRegExp(EXTENSION_PACKAGE)}`,
           ),
         ],
+        pathNot: npm(ENGINE_CORE),
       },
+    },
+    {
+      name: "engine-core-is-a-leaf",
+      severity: "error",
+      comment:
+        "packages/core/engine-core (@miragon/pulse-engine-core) has no runtime dependency: its " +
+        "shipped code (the ./testing export included) imports only its own modules, no workspace " +
+        "package, no npm package and no Node built-in. Engine access comes through the caller's " +
+        "port (EngineTransport); the caller words its structured steps and reasons.",
+      from: { path: "^packages/core/engine-core/src/", pathNot: ["[.]test[.]ts$"] },
+      to: { pathNot: "^packages/core/engine-core/src/" },
+    },
+    {
+      name: "engine-core-shipped-not-to-tests",
+      severity: "error",
+      comment:
+        "engine-core's shipped code (src/ without its tests and without the ./testing export) never " +
+        "imports a test file or src/testing/ (fixtures, the fake port): they would ship in the " +
+        "package entry and in the CLI's bundle. Only its tests and ./testing itself import ./testing.",
+      from: {
+        path: "^packages/core/engine-core/src/",
+        pathNot: ["[.]test[.]ts$", "^packages/core/engine-core/src/testing/"],
+      },
+      to: { path: ["[.]test[.]ts$", "^packages/core/engine-core/src/testing/"] },
+    },
+    {
+      name: "engine-core-consumers",
+      severity: "error",
+      comment:
+        "Only the CLI (which bundles it) and the camunda7 connector (for composite tools over its " +
+        "client) may import @miragon/pulse-engine-core. Analytics reads no engine " +
+        "(CLAUDE.md invariant 8); the core packages and the server app compose nothing of it.",
+      from: {
+        path: "^(?:apps|packages)/",
+        pathNot: [
+          "^apps/cli/",
+          "^packages/connectors/camunda/camunda7-connector/",
+          "^packages/core/engine-core/",
+        ],
+      },
+      to: { path: ["^packages/core/engine-core/", ...npm(ENGINE_CORE)] },
+    },
+    {
+      name: "cli-engine-core-only-in-workflow",
+      severity: "error",
+      comment:
+        "In the CLI only the workflow commands (apps/cli/src/workflow) and the engine port " +
+        "(apps/cli/src/engine-port) import @miragon/pulse-engine-core; the command layer reaches " +
+        "it through the workflow modules, tests may import it anywhere.",
+      from: {
+        path: "^apps/cli/",
+        pathNot: ["^apps/cli/src/(?:workflow|engine-port)/", ...CLI_TEST_CODE],
+      },
+      to: { path: npm(ENGINE_CORE) },
+    },
+    {
+      name: "cli-src-not-to-engine-core-testing",
+      severity: "error",
+      comment:
+        "The CLI's shipped code never imports @miragon/pulse-engine-core/testing (fixtures and " +
+        "the fake port): they would end up in the bundle. Tests import it.",
+      from: { path: "^apps/cli/src/", pathNot: CLI_TEST_CODE },
+      to: { path: npm(`${ENGINE_CORE}/testing`) },
     },
     {
       name: "no-cross-package-deep-imports",
@@ -252,9 +323,10 @@ module.exports = {
       name: "cli-no-circular",
       severity: "error",
       comment:
-        "The CLI (apps/cli) has no import cycle at all, type-only cycles included (stricter than " +
-        "no-circular above). Extract the shared part into its own module.",
-      from: { path: "^apps/cli/" },
+        "The CLI (apps/cli) and the workflow domain it bundles (packages/core/engine-core) have no " +
+        "import cycle at all, type-only cycles included (stricter than no-circular above). Extract " +
+        "the shared part into its own module.",
+      from: { path: "^(?:apps/cli|packages/core/engine-core)/" },
       to: { circular: true },
     },
     {
@@ -271,10 +343,11 @@ module.exports = {
       name: "cli-not-to-test",
       severity: "error",
       comment:
-        "Nothing in the CLI imports a test file (*.test.ts). Shared test helpers live in " +
-        "apps/cli/test/support/.",
-      from: { path: "^apps/cli/" },
-      to: { path: "^apps/cli/.*[.]test[.]ts$" },
+        "Nothing in the CLI or in the workflow domain it bundles (packages/core/engine-core) imports " +
+        "a test file (*.test.ts). Shared test helpers live in apps/cli/test/support/ and in " +
+        "engine-core's src/testing/.",
+      from: { path: "^(apps/cli|packages/core/engine-core)/" },
+      to: { path: "^$1/.*[.]test[.]ts$" },
     },
     {
       name: "cli-src-not-to-scripts-or-test",

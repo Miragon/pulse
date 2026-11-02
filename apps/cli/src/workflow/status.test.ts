@@ -1,15 +1,16 @@
 import fc from "fast-check"
 import { describe, expect, it } from "vitest"
-import { NOW, statistics } from "../../test/support/workflow-status.js"
-import { omit } from "../util.js"
 import {
   definitionStatus,
-  groupIncidents,
   jobStatus,
   messagePattern,
+  NOW,
+  statistics,
   topicStatus,
   unknownKeys,
-} from "./status.js"
+} from "@miragon/pulse-engine-core/testing"
+import { groupIncidents } from "../../test/support/workflow-status.js"
+import { omit } from "../util.js"
 
 describe("messagePattern", () => {
   it("masks UUIDs, long hex runs and digit runs", () => {

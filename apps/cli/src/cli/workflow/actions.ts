@@ -205,9 +205,12 @@ export async function runStatus(run: WorkflowRun): Promise<void> {
   const failOn = choice(flags, "fail-on", ["warning", "critical"] as const)
   const options = {
     keys: list(flags, "process-definition-key"),
-    staleAfterMs: staleAfter === undefined ? 300_000 : parseDuration(staleAfter, "--stale-after"),
-    maxGroups: integer(flags, "max-groups", { min: 1, max: 100 }) ?? 10,
-    ...compact({ failOn }),
+    ...compact({
+      staleAfterMs:
+        staleAfter === undefined ? undefined : parseDuration(staleAfter, "--stale-after"),
+      maxGroups: integer(flags, "max-groups", { min: 1, max: 100 }),
+      failOn,
+    }),
     dryRun: dryRun(run),
     engine: {
       url: run.session.config.url,

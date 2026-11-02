@@ -4,7 +4,7 @@
  * wait for something else. Pure and independent of the order of the engine's lists.
  */
 
-import { compact } from "../util.js"
+import { compact } from "./util.js"
 import { type ActivityIndex, type ActivityNode, indexActivities } from "./activities.js"
 import { amount, compareText, field, num, type Rec, str, yes } from "./records.js"
 import type { InstanceData, WaitKind, WaitState } from "./types.js"

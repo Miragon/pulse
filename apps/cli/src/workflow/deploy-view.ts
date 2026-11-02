@@ -3,12 +3,11 @@
  * deployed now, and the definitions in effect for every resource.
  */
 
+import { amount, compareText, field, type Rec, records, str } from "@miragon/pulse-engine-core"
 import type { EnginePort } from "../engine-port/engine-port.js"
 import type { Resource } from "../operation/multipart.js"
 import { isBpmn, isDmn } from "../operation/resources.js"
 import { compact, isRecord } from "../util.js"
-import { json } from "./engine.js"
-import { amount, compareText, field, type Rec, records, str } from "./records.js"
 
 type DefinitionType = "process" | "decision" | "drd"
 
@@ -152,7 +151,7 @@ export async function resourceViews(
     (resource) => !withDefinitions.has(resource.name) && lookupsOf(resource.name).length > 0,
   )
   const [held, deployments, found] = await Promise.all([
-    changed ? json(port, "getDeploymentResources", { pathArgs: [deploymentId], query: {} }) : [],
+    changed ? port.json("getDeploymentResources", { pathArgs: [deploymentId], query: {} }) : [],
     unchanged.length > 0 ? ownDeployments(port, facts) : new Set<string>(),
     Promise.all(
       unchanged.map(async (resource) => definitionRows(port, resource.name, facts.tenantId)),

@@ -12,19 +12,28 @@ const pkg = (dir, name, dependencies = {}) => ({ dir, manifest: { name, dependen
 
 const PACKAGES = [
   pkg("packages/core/ui", "@miragon/pulse-ui"),
+  pkg("packages/core/engine-core", "@miragon/pulse-engine-core"),
   pkg("packages/core/widget-shell", "@miragon/pulse-widget-shell", {
     "@miragon/pulse-ui": "workspace:*",
   }),
   pkg("packages/connectors/camunda/camunda7-client", "@miragon/pulse-camunda7-client"),
   pkg("packages/connectors/camunda/camunda7-connector", "@miragon/pulse-camunda7-connector", {
     "@miragon/pulse-camunda7-client": "workspace:*",
+    "@miragon/pulse-engine-core": "workspace:*",
     "@miragon/pulse-widget-shell": "workspace:*",
   }),
   pkg("packages/connectors/analytics/analytics-client", "@miragon/pulse-analytics-client"),
   pkg("apps/mcp-server-camunda7", "@miragon/pulse-mcp-server-camunda7", {
     "@miragon/pulse-camunda7-connector": "workspace:*",
   }),
-  pkg("apps/cli", "@miragon/pulse-cli"),
+  // The CLI bundles engine-core: a devDependency reaches it too.
+  {
+    dir: "apps/cli",
+    manifest: {
+      name: "@miragon/pulse-cli",
+      devDependencies: { "@miragon/pulse-engine-core": "workspace:*" },
+    },
+  },
   pkg("apps/vscode", "pulse-cockpit"),
   pkg("docs", "@miragon/pulse-docs"),
 ]
@@ -84,6 +93,15 @@ describe("scopesFor: a package's code reaches its dependents", () => {
 
   it("runs the MCP server's checks and the template for a client, through its connector", () => {
     assert.deepEqual(scopes("packages/connectors/camunda/camunda7-client/src/index.ts"), [
+      "mcp",
+      "template",
+      "typescript",
+    ])
+  })
+
+  it("runs the CLI's and the MCP server's checks and the template for engine-core, its two users", () => {
+    assert.deepEqual(scopes("packages/core/engine-core/src/inspect.ts"), [
+      "cli",
       "mcp",
       "template",
       "typescript",

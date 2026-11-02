@@ -1,5 +1,6 @@
 /** An EnginePort of the workflow commands on a fake fetch, for unit tests of src/workflow. */
 
+import { fakeClock } from "@miragon/pulse-engine-core/testing"
 import { noAuth } from "../../src/auth/none.js"
 import type { AuthProvider } from "../../src/auth/types.js"
 import type { EnginePort } from "../../src/engine-port/engine-port.js"
@@ -26,20 +27,7 @@ export function portOf(fetch: typeof globalThis.fetch, options: PortOptions = {}
   })
 }
 
-/** A fake clock: `sleep` advances it at once and records the sleeps. */
-export function fakeClock(start = 1_700_000_000_000) {
-  let now = start
-  const sleeps: number[] = []
-  return {
-    sleeps,
-    now: () => now,
-    sleep: (ms: number) => {
-      sleeps.push(ms)
-      now += ms
-      return Promise.resolve()
-    },
-  }
-}
+export { fakeClock }
 
 /** Wait deps on a fake fetch and a fake clock; `onSleep` lets time pass for the fake engine. */
 export function depsOf(

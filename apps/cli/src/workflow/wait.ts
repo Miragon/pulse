@@ -4,21 +4,32 @@
  * instance view (the state at the end, also for the errors of exit code 9).
  */
 
-import type { EnginePort } from "../engine-port/engine-port.js"
-import type { PulseCliError } from "../errors.js"
-import { formatDuration } from "../operation/durations.js"
-import { compact, omit } from "../util.js"
 import {
+  activeTree,
+  compareTime,
   type Condition,
   conditionLabel,
   decide,
+  type EndedInstance,
+  engineTime,
   EXECUTABLE,
+  field,
+  formatDuration,
+  type InspectOptions,
+  listByIds,
   measure,
+  poll,
   type Probe,
+  records,
+  str,
   type Verdict,
-} from "./conditions.js"
-import { listByIds } from "./engine.js"
-import { type InspectOptions, instanceMissing, loadView } from "./inspect.js"
+  type WaitState,
+} from "@miragon/pulse-engine-core"
+import type { EnginePort } from "../engine-port/engine-port.js"
+import type { PulseCliError } from "../errors.js"
+import { compact, omit } from "../util.js"
+import { instanceMissing } from "./error-text.js"
+import { loadView } from "./inspect.js"
 import { executeJob } from "./jobs.js"
 import {
   endedError,
@@ -27,10 +38,7 @@ import {
   jobFailedError,
   timeoutError,
 } from "./outcomes.js"
-import { poll } from "./poll.js"
-import { compareTime, engineTime, field, records, str } from "./records.js"
-import { activeTree } from "./tree.js"
-import type { EndedInstance, InstanceView, WaitState } from "./types.js"
+import type { InstanceView } from "./types.js"
 
 export interface WaitSettings {
   readonly conditions: readonly Condition[]

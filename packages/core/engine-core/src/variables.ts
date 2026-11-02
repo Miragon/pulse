@@ -3,7 +3,7 @@
  * scalar types become their plain value, every other type keeps what writing it back needs. Pure.
  */
 
-import { isRecord } from "../util.js"
+import { isRecord } from "./util.js"
 import { type Rec, records, str } from "./records.js"
 
 const PLAIN_TYPES: ReadonlySet<string> = new Set([

@@ -4,30 +4,37 @@
  * per incident what happened.
  */
 
+import {
+  activeTree,
+  type EndedInstance,
+  mapLimit,
+  missingRoots,
+  PARALLEL,
+  type PlanEntry,
+  planRetry,
+  type Rec,
+  records,
+  type RetryFilter,
+  type RetryMode,
+} from "@miragon/pulse-engine-core"
 import type { EnginePort } from "../engine-port/engine-port.js"
 import { PulseCliError, usageError } from "../errors.js"
-import { compact, mapLimit, omit } from "../util.js"
-import { isMissing, PARALLEL } from "./engine.js"
-import { instanceMissing, loadView } from "./inspect.js"
+import { compact, omit } from "../util.js"
+import { isMissing } from "./engine.js"
+import { instanceMissing } from "./error-text.js"
+import { loadView } from "./inspect.js"
 import { executeJob } from "./jobs.js"
 import { type JobFailure, jobFailedError } from "./outcomes.js"
-import { type Rec, records } from "./records.js"
 import {
   checkRetryCount,
   executeWrite,
-  missingRoots,
-  type PlanEntry,
-  planRetry,
-  type RetryFilter,
-  type RetryMode,
   retriesWrite,
   retryMode,
   retryPlanView,
   skipNext,
 } from "./retry-plan.js"
 import { checkSelection, type Selection, selectInstance } from "./select.js"
-import { activeTree } from "./tree.js"
-import type { EndedInstance, InstanceView, WorkflowResult } from "./types.js"
+import type { InstanceView, WorkflowResult } from "./types.js"
 import { checkUntil } from "./until-check.js"
 import { type WaitDeps, type WaitResult, type WaitSettings, waitAndInspect } from "./wait.js"
 

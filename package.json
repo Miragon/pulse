@@ -14,7 +14,7 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test && pnpm test:scripts",
     "test:scripts": "node --test \"scripts/*.test.mjs\"",
-    "lint": "turbo run lint && pnpm lint:architecture && pnpm lint:architecture:cli && pnpm lint:architecture:vscode && pnpm lint:naming && pnpm lint:package-scripts && pnpm lint:ratchets && pnpm lint:deadcode && pnpm lint:deadcode:cli && pnpm lint:deadcode:vscode && pnpm lint:github",
+    "lint": "turbo run lint && pnpm lint:architecture && pnpm lint:architecture:cli && pnpm lint:architecture:vscode && pnpm lint:naming && pnpm lint:package-scripts && pnpm lint:ratchets && pnpm lint:deadcode && pnpm lint:deadcode:cli && pnpm lint:deadcode:engine-core && pnpm lint:deadcode:vscode && pnpm lint:github",
     "lint:architecture": "depcruise apps/*/src packages/core/*/src packages/connectors/*/*/src --config .dependency-cruiser.cjs",
     "lint:architecture:cli": "depcruise apps/cli/scripts apps/cli/test --config .dependency-cruiser.cjs",
     "lint:architecture:vscode": "depcruise apps/vscode/src apps/vscode/test apps/vscode/dev apps/vscode/scripts --config apps/vscode/.dependency-cruiser.cjs",
@@ -33,6 +33,7 @@
     "fitness": "node scripts/fitness-report.mjs",
     "lint:deadcode": "knip --exclude exports,types,enumMembers",
     "lint:deadcode:cli": "knip --workspace apps/cli",
+    "lint:deadcode:engine-core": "knip --workspace packages/core/engine-core",
     "lint:deadcode:vscode": "knip --workspace apps/vscode"
   },
   "devDependencies": {

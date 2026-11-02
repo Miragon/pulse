@@ -55,6 +55,7 @@
     "commander": "15.0.0"
   },
   "devDependencies": {
+    "@miragon/pulse-engine-core": "workspace:*",
     "@stryker-mutator/core": "10.1.1",
     "@stryker-mutator/vitest-runner": "10.1.1",
     "@types/node": "22.20.5",

@@ -7,6 +7,7 @@ only its adapter changes.
 ```mermaid
 flowchart TB
   workflow["src/workflow<br/>advance, inspect, retry …"]
+  core["@miragon/pulse-engine-core<br/>the workflow domain, bundled"]
   cli["src/cli<br/>commands, help, describe"]
   port["src/engine-port<br/>EnginePort, EngineAdapter"]
   subgraph engines["src/engines"]
@@ -17,6 +18,7 @@ flowchart TB
   api["src/api/camunda7-rest<br/>catalog + engine port"]
   rest["Operaton · CIB seven · Camunda 7<br/>/engine-rest"]
   workflow -- knows only --> port
+  workflow -- renders --> core
   cli -- selected adapter --> engines
   engines -. implements .-> port
   engines -- uses --> api
@@ -31,11 +33,13 @@ flowchart TB
 | `src/engines`     | One adapter per engine: `operaton`, `cibseven`, `camunda7`                        |
 | `src/api`         | One folder per engine API. `camunda7-rest` builds catalog and port                |
 | `src/workflow`    | The workflow commands. They know the port, never an adapter or an API             |
+| engine-core       | `packages/core/engine-core`: selection, inspect, status, plans. Data, no CLI text |
 | `src/cli`         | Selects the adapter and registers its commands                                    |
 
 dependency-cruiser enforces the boundaries (`pnpm lint:architecture && pnpm lint:architecture:cli`):
 
-- `workflow` imports `engine-port`, never `engines` or `api`.
+- `workflow` imports `engine-port` and `@miragon/pulse-engine-core`, never `engines` or `api`.
+  It turns the package's steps and reasons into the command lines and errors pulse-cli prints.
 - Only `engines/<name>/adapter.ts` imports `api`.
 - Adapters do not import each other. An API does not import another API.
 - `engine-port` imports types only. `api`, `engine-port` and `engines` use no Node built-ins.

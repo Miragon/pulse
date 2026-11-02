@@ -3,10 +3,16 @@
  * titled sections as tables (empty ones left out) and a final `Next:` block. Pure.
  */
 
+import {
+  type EndedInstance,
+  type TimelineEntry,
+  type Waited,
+  type WaitState,
+  waitId,
+} from "@miragon/pulse-engine-core"
 import { formatCell, renderTable } from "../output/table.js"
 import { isRecord } from "../util.js"
-import type { EndedInstance, InstanceView, TimelineEntry, Waited, WaitState } from "./types.js"
-import { waitId } from "./waits.js"
+import type { InstanceView } from "./types.js"
 
 export type HeaderRow = readonly [label: string, value: string | number | undefined]
 

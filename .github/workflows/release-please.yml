@@ -89,6 +89,7 @@ jobs:
       matrix:
         directory:
           - packages/core/ui
+          - packages/core/engine-core
           - packages/connectors/camunda/camunda7-client
           - packages/connectors/analytics/analytics-client
           - packages/core/widget-shell

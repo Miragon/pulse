@@ -45,6 +45,7 @@ command line interface (`apps/cli`) and a VS Code extension (`apps/vscode`) for 
 | `packages/connectors/analytics/analytics-client/`    | Prometheus client + PromQL query functions (`src/queries/`) + Zod schemas                                                                                                                                                                                         |
 | `packages/core/ui/`                                  | Pulse's design kit (npm `@miragon/pulse-ui`): primitives, components, tone model, type scale, locale, toasts, formatters and the Miragon theme (`theme.css` over the vendored `--cd-*` tokens) for Pulse views and customer UIs; the brand gates under `/testing` |
 | `packages/core/widget-shell/`                        | The view runtime (`/widgets`: `mountViews`, the view host, the query hooks, `TestViewHost`, `ListTable`, hand-offs, BPMN), view + data-feed builders, the tool registrar (`createToolRegistrar`) and the boot (`/server`), the product glossary (`/testing`)      |
+| `packages/core/engine-core/`                         | The Camunda 7 REST API family's workflow domain (npm `@miragon/pulse-engine-core`): engine port, selection, inspect view, status triage, root causes, retry and advance plans, as data, no runtime dependency. The CLI bundles it                                 |
 | `engine-plugins/`                                    | Kotlin/Gradle: CIB seven OTEL metrics plugin (Java 21)                                                                                                                                                                                                            |
 | `playground/`                                        | Demo env: CIB seven showcase engine, Compose stack, Fly.io deploy                                                                                                                                                                                                 |
 | `docs/`                                              | Pulse docs, a VitePress site on GitHub Pages (getting started, usage, architecture, developer, operations)                                                                                                                                                        |
@@ -59,7 +60,8 @@ Three axes decide where code goes, and they stay apart:
 - Dialect (an engine API family; Camunda 7 today): one package family under
   `packages/connectors/<family>/`: `<name>-client` (the wire: SDK, schemas, engine contract)
   and `<name>-connector` (the MCP module); a package two interfaces share is extracted on its
-  second consumer. A different dialect is a new family plus its own MCP server app.
+  second consumer, like the family's workflow domain (`packages/core/engine-core` in the table
+  above, one port per API family). A different dialect is a new family plus its own MCP server app.
 - Interface (how a person or an agent reaches an engine): an app under `apps/`, today the
   MCP server, the CLI (`apps/cli`, rules in `apps/cli/CLAUDE.md`) and the VS Code extension
   (`apps/vscode`, rules in `apps/vscode/CLAUDE.md`). Another interface (a second editor
@@ -401,8 +403,11 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    - **Dependency edges** (`.dependency-cruiser.cjs`, `pnpm lint:architecture` +
      `pnpm lint:architecture:cli`): connectors never import each other, a connector imports only its
      own client, clients are leaves, core is the foundation and pulse-ui its leaf, no package or app
-     imports an app, no cross-package deep imports. The interface apps import no workspace package
-     and nothing of the MCP/UI/server stack, zod included. Each rule has planted violations in
+     imports an app, no cross-package deep imports. The interface apps import nothing of the
+     MCP/UI/server stack, zod included, and no workspace package except the CLI's
+     `@miragon/pulse-engine-core`, which it bundles; engine-core is a leaf (`engine-core-is-a-leaf`)
+     that only the CLI and the camunda7 connector may import (`engine-core-consumers`). Each rule has
+     planted violations in
      `scripts/dependency-cruiser-gates.test.mjs`; a new app adds its npm name to the config's
      `APP_PACKAGES`. A rule names all three shapes an import reaches it in (a relative escape,
      `<importer>/node_modules/<name>/`, a bare specifier) and never exempts a package's own
@@ -535,11 +540,11 @@ The release workflows hold the publish credentials and no pull request runs them
 workspace (its header lists each check).
 
 - **One release-please train.** Conventional commits on `main` drive `release-please.yml`: one
-  Release PR (tag `v<version>`) bumps the root, every app, the six packages, the template's
+  Release PR (tag `v<version>`) bumps the root, every app, the seven packages, the template's
   pins, the camunda7-client User-Agent and `engine-plugins/gradle.properties` in lockstep
   (`extra-files` in `release-please-config.json`). Merging it creates the release; every
   publish job then waits for manual approval of the `release` environment gate.
-- **npm:** the six packages and `@miragon/pulse-cli` publish through
+- **npm:** the seven packages and `@miragon/pulse-cli` publish through
   `publish-npm-package.yml` with OIDC trusted publishing (no NPM_TOKEN, provenance attached).
   Each names this repository in its `repository` field, since npm refuses a provenance publish
   from another repository. The pack job runs `pnpm pack`, which rewrites `workspace:*` (npm's
@@ -586,8 +591,9 @@ workspace (its header lists each check).
 | Manual            | `docker compose -f playground/docker/docker-compose.yml up -d` + `pnpm dev`, then exercise tools/widgets in the inspector. The default boot is read-only; write paths need an explicit suffix, e.g. `MCP_ACTIVE_MODULES=camunda7:admin,analytics` in `.env`                                                                                                                                                                                                                                                                              |
 
 A green `pnpm build && pnpm typecheck && pnpm test && pnpm lint` is the minimum bar for
-every change; widget changes additionally need `test:host` plus a manual render check via
-the inspector (the host simulation renders one real view, not every widget's data path).
+every change, in that order (`scripts/published-imports.test.mjs` reads the built CLI bundle);
+widget changes additionally need `test:host` plus a manual render check via the inspector (the
+host simulation renders one real view, not every widget's data path).
 
 **Ratchets only move one way.** `scripts/check-ratchets.mjs` (`pnpm lint:ratchets`) compares
 each against the merge base with `origin/main`, and its header lists them: coverage floors in

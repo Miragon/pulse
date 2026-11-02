@@ -1,14 +1,15 @@
 /** Edge cases, ordering and grouping of the status reads (status.ts). */
 
 import { describe, expect, it } from "vitest"
-import { NOW, statistics } from "../../test/support/workflow-status.js"
 import {
   definitionStatus,
-  groupIncidents,
   jobStatus,
   messagePattern,
+  NOW,
+  statistics,
   topicStatus,
-} from "./status.js"
+} from "@miragon/pulse-engine-core/testing"
+import { groupIncidents } from "../../test/support/workflow-status.js"
 
 describe("status edge cases", () => {
   const incident = (id: string, overrides: Record<string, unknown> = {}) => ({

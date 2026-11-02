@@ -23,11 +23,21 @@ import { REPO_ROOT } from "./source-scan.mjs"
  * an image; neither is read here.
  *
  * An app that BUNDLES workspace packages it lists only as devDependencies
- * (the CLI, once it bundles its domain package) fails this src scan by
- * design. The PR that starts bundling replaces the app's src scan with a test
- * over its built bundle (Node built-ins and declared dependencies only) plus a
- * size budget. There is no escape hatch before that test exists.
+ * would fail the src scan by design, so a bundled app (BUNDLED_APPS: the CLI,
+ * which bundles @miragon/pulse-engine-core) is read from its BUILT bundle
+ * instead: every module under its dist imports only Node built-ins and its
+ * declared dependencies (a workspace package left external fails), and the
+ * bundle stays within its size budget. `pnpm build` runs first (CI's
+ * TypeScript job and the minimum bar build before `pnpm test`).
  */
+
+/**
+ * Apps read from their built bundle: the directory and the size budget in bytes, the measured
+ * size rounded up to the next 16 KiB. The budget is held by review: raise it only with a reason.
+ */
+const BUNDLED_APPS = {
+  "@miragon/pulse-cli": { dist: "apps/cli/dist", maxBytes: 2_342_912 },
+}
 
 /**
  * Every workspace package of the repo at `root`: each glob's directories that hold a package.json.
@@ -112,6 +122,32 @@ function importedPackages(file, source) {
         .slice(0, spec.startsWith("@") ? 2 : 1)
         .join("/"),
     )
+}
+
+const BUNDLE_SOURCE = /\.(?:[cm]?js)$/
+
+/** The bundle of a bundled app: `file: package` imports it does not declare, and its size. */
+function bundleFindings(root, { manifest }, bundled) {
+  const declared = new Set([
+    ...Object.keys(manifest.dependencies ?? {}),
+    ...Object.keys(manifest.peerDependencies ?? {}),
+  ])
+  const dist = path.join(root, bundled.dist)
+  if (!fs.existsSync(dist)) return [`${bundled.dist} is missing: run pnpm build first`]
+  const files = fs
+    .readdirSync(dist, { recursive: true, encoding: "utf8" })
+    .filter((rel) => BUNDLE_SOURCE.test(rel))
+  const undeclared = files.flatMap((rel) =>
+    importedPackages(rel, fs.readFileSync(path.join(dist, rel), "utf8"))
+      .filter((name) => !declared.has(name))
+      .map((name) => `${rel}: ${name}`),
+  )
+  const bytes = files.reduce((sum, rel) => sum + fs.statSync(path.join(dist, rel)).size, 0)
+  const over =
+    bytes > bundled.maxBytes
+      ? [`${bundled.dist}: ${bytes} bytes, over the budget of ${bundled.maxBytes}`]
+      : []
+  return [...new Set(undeclared)].sort().concat(over)
 }
 
 /** Each `file: package` a published package's src imports without declaring it. */
@@ -287,18 +323,18 @@ describe("published packages declare what their shipped source imports", () => {
       "overrides:",
       '  qs: "^6.16.0"',
     ].join("\n")
-    const DOMAIN = "packages/connectors/camunda/camunda7-domain"
+    const DOMAIN = "packages/core/engine-core"
     const LAYOUT = {
       "pnpm-workspace.yaml": WORKSPACE,
       "apps/cli/package.json": json({
         name: "@miragon/pulse-cli",
         bin: { "pulse-cli": "dist/pulse-cli.js" },
         dependencies: { commander: "14.0.0" },
-        devDependencies: { "@miragon/pulse-camunda7-domain": "workspace:*" },
+        devDependencies: { "@miragon/pulse-engine-core": "workspace:*" },
       }),
       "apps/cli/src/index.ts": [
         "import { Command } from 'commander'",
-        "import { routes } from '@miragon/pulse-camunda7-domain'",
+        "import { routes } from '@miragon/pulse-engine-core'",
       ].join("\n"),
       "apps/cli/src/cli.mts": "import u from 'undeclared-mts'",
       "apps/cli/src/a.test.ts": "import { it } from 'vitest'",
@@ -316,7 +352,7 @@ describe("published packages declare what their shipped source imports", () => {
         peerDependencies: { react: "^19.2.0" },
       }),
       "packages/core/widget-shell/src/ui/a.tsx": "import { useState } from 'react'",
-      [`${DOMAIN}/package.json`]: json({ name: "@miragon/pulse-camunda7-domain" }),
+      [`${DOMAIN}/package.json`]: json({ name: "@miragon/pulse-engine-core" }),
       [`${DOMAIN}/src/index.ts`]: "import { z } from 'zod'",
       "docs/package.json": json({ name: "@miragon/pulse-docs", private: true }),
     }
@@ -328,7 +364,7 @@ describe("published packages declare what their shipped source imports", () => {
         ]),
       )
 
-    it("reads non-private apps and -domain packages, not private apps or extensions", () => {
+    it("reads non-private apps and core packages, not private apps or extensions", () => {
       const root = fixture(LAYOUT)
       assert.deepEqual(
         workspacePackages(root).map((pkg) => pkg.manifest.name),
@@ -338,18 +374,15 @@ describe("published packages declare what their shipped source imports", () => {
           "@miragon/pulse-mcp-server-camunda7",
           "pulse",
           "@miragon/pulse-docs",
-          "@miragon/pulse-camunda7-domain",
+          "@miragon/pulse-engine-core",
           "@miragon/pulse-widget-shell",
         ],
       )
-      // A CLI that bundles its domain before its bundle test exists fails.
+      // The src scan of an app that bundles its domain reports the domain.
       assert.deepEqual(findings(root), {
-        "@miragon/pulse-cli": [
-          "cli.mts: undeclared-mts",
-          "index.ts: @miragon/pulse-camunda7-domain",
-        ],
+        "@miragon/pulse-cli": ["cli.mts: undeclared-mts", "index.ts: @miragon/pulse-engine-core"],
         "@miragon/pulse-widget-shell": [],
-        "@miragon/pulse-camunda7-domain": ["index.ts: zod"],
+        "@miragon/pulse-engine-core": ["index.ts: zod"],
       })
     })
 
@@ -357,7 +390,7 @@ describe("published packages declare what their shipped source imports", () => {
       const root = fixture({
         ...LAYOUT,
         [`${DOMAIN}/package.json`]: json({
-          name: "@miragon/pulse-camunda7-domain",
+          name: "@miragon/pulse-engine-core",
           peerDependencies: { zod: "^4.4.0" },
         }),
         "apps/vscode/package.json": json({
@@ -366,7 +399,7 @@ describe("published packages declare what their shipped source imports", () => {
           engines: { vscode: "^1.101.0" },
         }),
       })
-      assert.deepEqual(findings(root)["@miragon/pulse-camunda7-domain"], [])
+      assert.deepEqual(findings(root)["@miragon/pulse-engine-core"], [])
       assert.ok(!Object.keys(findings(root)).includes("pulse"))
     })
 
@@ -392,9 +425,49 @@ describe("published packages declare what their shipped source imports", () => {
           Object.entries(LAYOUT).filter(([rel]) => !rel.startsWith(`${DOMAIN}/src/`)),
         ),
       )
-      const [only, ...rest] = findings(root)["@miragon/pulse-camunda7-domain"]
+      const [only, ...rest] = findings(root)["@miragon/pulse-engine-core"]
       assert.match(only, /^src\/: missing/)
       assert.deepEqual(rest, [])
+    })
+
+    describe("a bundled app is read from its bundle", () => {
+      const CLI = { manifest: JSON.parse(LAYOUT["apps/cli/package.json"]) }
+      const BUNDLED = { dist: "apps/cli/dist", maxBytes: 1000 }
+
+      it("passes a bundle that imports only Node built-ins and its dependencies", () => {
+        const root = fixture({
+          ...LAYOUT,
+          "apps/cli/dist/pulse-cli.js": [
+            "import { Command } from 'commander'",
+            "import fs from 'node:fs'",
+            "import { join } from 'path'",
+            "const routes = {}",
+          ].join("\n"),
+        })
+        assert.deepEqual(bundleFindings(root, CLI, BUNDLED), [])
+      })
+
+      it("fails a bundle that left a workspace package external", () => {
+        const root = fixture({
+          ...LAYOUT,
+          "apps/cli/dist/pulse-cli.js": "import { routes } from '@miragon/pulse-engine-core'",
+          "apps/cli/dist/chunk.mjs": "const lazy = () => import(name)",
+        })
+        assert.deepEqual(bundleFindings(root, CLI, BUNDLED), [
+          `chunk.mjs: ${NON_LITERAL}`,
+          "pulse-cli.js: @miragon/pulse-engine-core",
+        ])
+      })
+
+      it("fails a bundle over its budget and a missing bundle with the build hint", () => {
+        const root = fixture({ ...LAYOUT, "apps/cli/dist/pulse-cli.js": "x".repeat(1001) })
+        assert.deepEqual(bundleFindings(root, CLI, BUNDLED), [
+          "apps/cli/dist: 1001 bytes, over the budget of 1000",
+        ])
+        assert.deepEqual(bundleFindings(fixture(LAYOUT), CLI, BUNDLED), [
+          "apps/cli/dist is missing: run pnpm build first",
+        ])
+      })
     })
 
     // The glob syntax itself is the shared expansion's (check-package-scripts.test.mjs).
@@ -404,9 +477,10 @@ describe("published packages declare what their shipped source imports", () => {
     })
   })
 
-  it("reads the repo's six npm packages (the scanner is not blind)", () => {
+  it("reads the repo's seven npm packages (the scanner is not blind)", () => {
     const names = publishedPackages().map(({ manifest }) => manifest.name)
     for (const name of [
+      "@miragon/pulse-engine-core",
       "@miragon/pulse-ui",
       "@miragon/pulse-widget-shell",
       "@miragon/pulse-camunda7-connector",
@@ -427,8 +501,15 @@ describe("published packages declare what their shipped source imports", () => {
   })
 
   for (const pkg of publishedPackages()) {
-    it(`${pkg.manifest.name} imports only what it declares`, () => {
-      assert.deepEqual(undeclaredImports(pkg), [])
-    })
+    const bundled = BUNDLED_APPS[pkg.manifest.name]
+    if (bundled === undefined) {
+      it(`${pkg.manifest.name} imports only what it declares`, () => {
+        assert.deepEqual(undeclaredImports(pkg), [])
+      })
+    } else {
+      it(`${pkg.manifest.name}'s bundle imports only Node built-ins and its dependencies, within its budget`, () => {
+        assert.deepEqual(bundleFindings(REPO_ROOT, pkg, bundled), [])
+      })
+    }
   }
 })

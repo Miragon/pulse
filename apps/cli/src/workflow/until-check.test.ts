@@ -3,7 +3,7 @@ import fc from "fast-check"
 import { describe, expect, it } from "vitest"
 import { portOf } from "../../test/support/engine-port.js"
 import { engineError, fakeServer, json } from "../../test/support/fake-fetch.js"
-import type { Condition } from "./conditions.js"
+import type { Condition } from "@miragon/pulse-engine-core"
 
 import { checkUntil, parseBpmn } from "./until-check.js"
 

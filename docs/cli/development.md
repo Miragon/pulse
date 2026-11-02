@@ -74,7 +74,7 @@ The command surface is data, not hand-written code:
 src/bin/        entry point and the Node runtime (I/O, timers, loopback server, browser, lock file, shell)
 src/cli/        commander wiring and the utility commands; the only layer that imports commander
 src/operation/  input building, variables, dates, guards, request building, execution, pagination
-src/workflow/   the workflow commands: engine access, instance views, waiting, plans (pure)
+src/workflow/   the workflow commands on @miragon/pulse-engine-core (bundled): its text, waiting (pure)
 src/engine-port/ what the CLI needs from an engine: EnginePort and EngineAdapter (types only)
 src/engines/    one adapter per engine (operaton, cibseven, camunda7) and the list of them (pure)
 src/api/        one folder per engine API; camunda7-rest builds catalog and port for the adapters (pure)
@@ -93,8 +93,9 @@ The overview with diagrams is in [Architecture](architecture.md), the decisions 
 (`pnpm lint:architecture` cruises `apps/cli/src`, `pnpm lint:architecture:cli` its `scripts/` and
 `test/`): no cycle (a type-only one included), only `src/bin` imports `src/cli`, only `src/cli`
 imports commander, the pure layers import no Node built-in, `workflow` knows engines only through
-`src/engine-port`, only the adapters import `src/api`, only `auth login` reaches the interactive
-login, and only `src/catalog/catalog.ts` and the adapters (each its own) read the catalogs.
+`src/engine-port`, only it and `src/engine-port` import `@miragon/pulse-engine-core`, only the
+adapters import `src/api`, only `auth login` reaches the interactive login, and only
+`src/catalog/catalog.ts` and the adapters (each its own) read the catalogs.
 
 ## Quality gates
 

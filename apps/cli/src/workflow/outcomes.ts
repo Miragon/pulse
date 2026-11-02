@@ -3,11 +3,15 @@
  * reach the expected state. Commands print their view on stdout before these errors. Pure.
  */
 
+import {
+  formatDuration,
+  type IncidentView,
+  isAdvanceable,
+  isSuspendedJob,
+  type WaitState,
+} from "@miragon/pulse-engine-core"
 import { PulseCliError } from "../errors.js"
-import { formatDuration } from "../operation/durations.js"
 import { compact } from "../util.js"
-import { isAdvanceable, isSuspendedJob } from "./next.js"
-import type { IncidentView, WaitState } from "./types.js"
 
 /** A job that failed when pulse-cli executed it. */
 export interface JobFailure {

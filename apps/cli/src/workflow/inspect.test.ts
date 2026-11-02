@@ -2,16 +2,18 @@ import { describe, expect, it } from "vitest"
 import { portOf } from "../../test/support/engine-port.js"
 import { engineError, fakeServer, json, text } from "../../test/support/fake-fetch.js"
 import { ALL, approveEngine } from "../../test/support/inspect-engine.js"
+import { instanceRequests } from "@miragon/pulse-engine-core"
 import {
   activityTree,
   C,
   CHILD_DEF,
   DEFINITIONS,
   historyDto,
+  incidentCause,
   P,
-} from "../../test/support/workflow-fixture.js"
+} from "@miragon/pulse-engine-core/testing"
 import { PulseCliError } from "../errors.js"
-import { incidentCause, inspect, instanceRequests, loadInstance, loadView } from "./inspect.js"
+import { inspect, loadInstance, loadView } from "./inspect.js"
 
 describe("loadInstance", () => {
   it("loads the fixture with 19 requests in the documented rounds", async () => {

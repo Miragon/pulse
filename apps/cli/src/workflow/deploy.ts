@@ -4,6 +4,15 @@
  * resource and optionally starts an instance.
  */
 
+import {
+  type EndedInstance,
+  engineTime,
+  queryInput,
+  type Rec,
+  records,
+  str,
+  type Waited,
+} from "@miragon/pulse-engine-core"
 import { findByOperationId } from "../catalog/catalog.js"
 import type { Catalog, MultipartBodySpec } from "../catalog/types.js"
 import type { EnginePort, PlannedRequest } from "../engine-port/engine-port.js"
@@ -16,10 +25,8 @@ import type { TypedValue } from "../operation/variables.js"
 import type { FileSystem } from "../runtime.js"
 import { compact } from "../util.js"
 import { type DeployResult, resourceViews } from "./deploy-view.js"
-import { json, queryInput } from "./engine.js"
 import { loadView } from "./inspect.js"
-import { engineTime, type Rec, records, str } from "./records.js"
-import type { EndedInstance, InstanceView, Waited, WorkflowResult } from "./types.js"
+import type { InstanceView, WorkflowResult } from "./types.js"
 import { type WaitDeps, type WaitResult, type WaitSettings, waitAndInspect } from "./wait.js"
 
 const DEPLOYMENT_SOURCE = "pulse-cli"
@@ -137,7 +144,7 @@ async function latestDeployment(
     maxResults: "1",
     tenantIdIn: options.tenantId,
   }
-  return records(await json(port, "getDeployments", queryInput(query)))[0]
+  return records(await port.json("getDeployments", queryInput(query)))[0]
 }
 
 /** A new deployment: none before, or another id with a later deployment time (engine clock). */
@@ -156,7 +163,7 @@ async function start(deps: DeployDeps, key: string, options: DeployOptions): Pro
     options.tenantId === undefined
       ? { operationId: "startProcessInstanceByKey", pathArgs: [key] }
       : { operationId: "startProcessInstanceByKeyAndTenantId", pathArgs: [key, options.tenantId] }
-  const started = await json(deps.port, input.operationId, {
+  const started = await deps.port.json(input.operationId, {
     pathArgs: input.pathArgs,
     query: {},
     body,
@@ -181,7 +188,7 @@ export async function deploy(
   const key = startKey(processIds, options)
   if (options.dryRun) return dryRun(input, resources, { ...options, key })
   const before = await latestDeployment(deps.port, options)
-  const deployment = records([await json(deps.port, "createDeployment", input)])[0] ?? {}
+  const deployment = records([await deps.port.json("createDeployment", input)])[0] ?? {}
   const result = await resourceViews(deps.port, {
     deployment,
     changed: isChanged(before, deployment),

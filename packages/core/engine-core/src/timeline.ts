@@ -1,9 +1,9 @@
 /**
- * The `--history` timeline of an instance: its historic activity instances in the
+ * The history timeline of an instance: its historic activity instances in the
  * order of the history (BPMN order), each with the historic incidents of its activity. Pure.
  */
 
-import { compact } from "../util.js"
+import { compact } from "./util.js"
 import { compareText, compareTime, engineTime, field, num, type Rec, str, yes } from "./records.js"
 import type { TimelineEntry, TimelineIncident } from "./types.js"
 

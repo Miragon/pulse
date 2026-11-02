@@ -1,17 +1,15 @@
-/** Statistics rows and a fixed clock for the status tests (src/workflow/status*.test.ts). */
+/** engine-core's incident grouping as `pulse-cli status` prints it, for the status tests. */
 
-export const NOW = Date.parse("2026-01-01T12:00:00.000Z")
+import type { Rec } from "@miragon/pulse-engine-core"
+import { groupIncidents as groupedBy } from "@miragon/pulse-engine-core/testing"
+import { groupOrder, renderGroup } from "../../src/workflow/status-command.js"
 
-export function statistics(
-  key: string,
-  version: number,
-  [instances, failedJobs, incidents]: readonly [number, number, number],
+/** The incident groups in the CLI's order, each with its next step as a command line. */
+export function groupIncidents(
+  incidents: readonly Rec[],
+  statistics: readonly Rec[],
+  batchJobDefinitions?: ReadonlySet<string>,
 ) {
-  return {
-    id: `${key}:${version}:x`,
-    instances,
-    failedJobs,
-    incidents: incidents === 0 ? [] : [{ incidentType: "failedJob", incidentCount: incidents }],
-    definition: { id: `${key}:${version}:x`, key, version, name: `${key} v${version}` },
-  }
+  const grouped = groupedBy(incidents, statistics, batchJobDefinitions, groupOrder)
+  return { ...grouped, groups: grouped.groups.map((group) => renderGroup(group)) }
 }

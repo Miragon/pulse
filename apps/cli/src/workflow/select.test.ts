@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest"
 import { portOf } from "../../test/support/engine-port.js"
 import { fakeServer, json } from "../../test/support/fake-fetch.js"
 import { PulseCliError } from "../errors.js"
-import { checkSelection, mergeCandidates, selectInstance, selectionRequests } from "./select.js"
+import { selectionRequests } from "@miragon/pulse-engine-core"
+import { mergeCandidates } from "@miragon/pulse-engine-core/testing"
+import { checkSelection, selectInstance } from "./select.js"
 
 function history(id: string, startTime: string, state = "ACTIVE") {
   return {

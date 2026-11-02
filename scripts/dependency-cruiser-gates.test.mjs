@@ -36,6 +36,7 @@ const CLI = "apps/cli"
 const EXT = "apps/vscode"
 const SHELL = "packages/core/widget-shell"
 const UI = "packages/core/ui"
+const ENGINE = "packages/core/engine-core"
 const C7_CLIENT = "packages/connectors/camunda/camunda7-client"
 const C7_CONNECTOR = "packages/connectors/camunda/camunda7-connector"
 const AN_CLIENT = "packages/connectors/analytics/analytics-client"
@@ -47,6 +48,7 @@ const WORKSPACE = {
   [EXT]: { name: "pulse-cockpit", engines: { vscode: "^1.101.0" } },
   [SHELL]: { name: "@miragon/pulse-widget-shell" },
   [UI]: { name: "@miragon/pulse-ui" },
+  [ENGINE]: { name: "@miragon/pulse-engine-core" },
   [C7_CLIENT]: { name: "@miragon/pulse-camunda7-client" },
   [C7_CONNECTOR]: { name: "@miragon/pulse-camunda7-connector" },
   [AN_CLIENT]: { name: "@miragon/pulse-analytics-client" },
@@ -86,6 +88,11 @@ const UI_LEAF = "ui-is-a-leaf"
 const NO_APP = "packages-never-import-the-app"
 const APP_APP = "apps-never-import-apps"
 const HEADLESS = "cli-is-headless"
+const ENGINE_LEAF = "engine-core-is-a-leaf"
+const ENGINE_TESTS = "engine-core-shipped-not-to-tests"
+const ENGINE_USERS = "engine-core-consumers"
+const CLI_ENGINE_CORE = "cli-engine-core-only-in-workflow"
+const CLI_ENGINE_TESTING = "cli-src-not-to-engine-core-testing"
 const DEEP = "no-cross-package-deep-imports"
 const CIRCULAR = "no-circular"
 const CLI_CYCLE = "cli-no-circular"
@@ -120,6 +127,8 @@ const SERVER_SRC = `${SERVER}/src/index.ts`
 const EXT_SRC = `${EXT}/src/extension.ts`
 const SHELL_SRC = `${SHELL}/src/index.ts`
 const UI_SRC = `${UI}/src/index.ts`
+const ENGINE_SRC = `${ENGINE}/src/index.ts`
+const ENGINE_CORE = "@miragon/pulse-engine-core"
 const C7_CLIENT_SRC = `${C7_CLIENT}/src/index.ts`
 const C7_CONNECTOR_SRC = `${C7_CONNECTOR}/src/index.ts`
 const AN_CONNECTOR_SRC = `${AN_CONNECTOR}/src/index.ts`
@@ -156,6 +165,9 @@ const LEAVES = [
   `${SHELL}/src/target.ts`,
   `${UI}/src/target.ts`,
   `${UI}/src/lib.ts`,
+  `${ENGINE}/src/target.ts`,
+  `${ENGINE}/src/lib.ts`,
+  `${ENGINE}/src/testing/fixture.ts`,
   `${C7_CLIENT}/src/target.ts`,
   `${C7_CLIENT}/src/lib.ts`,
   `${C7_CLIENT}/src/x-connector/y.ts`,
@@ -171,7 +183,7 @@ const JSON_LEAVES = [`${CLI}/src/generated/commands.json`, `${CLI}/src/generated
 const SUITES = [
   {
     rule: HEADLESS,
-    title: "the CLI imports no workspace package and nothing of the MCP/UI stack",
+    title: "the CLI imports no workspace package but engine-core, and nothing of the MCP/UI stack",
     cases: [
       ...[
         "@miragon/pulse-widget-shell",
@@ -211,6 +223,82 @@ const SUITES = [
       [CLI_SRC, "./lib.ts", []],
       [CLI_SRC, "reactive", []],
       [CLI_SRC, "pulse-tools", []],
+      // The exemption is anchored: a look-alike name and a relative escape stay violations.
+      [`${CLI}/src/workflow/x.ts`, "@miragon/pulse-engine-corex", [HEADLESS]],
+      [
+        `${CLI}/src/workflow/escape-core.ts`,
+        "../../../../packages/core/engine-core/src/target.ts",
+        [HEADLESS, DEEP],
+      ],
+    ],
+  },
+  {
+    rule: ENGINE_LEAF,
+    title: "engine-core imports only its own modules: no package, no npm module, no built-in",
+    cases: [
+      [ENGINE_SRC, "@miragon/pulse-camunda7-client", [CORE, ENGINE_LEAF]],
+      [ENGINE_SRC, "@miragon/pulse-ui", [ENGINE_LEAF]],
+      [ENGINE_SRC, "@miragon/pulse-widget-shell/server", [ENGINE_LEAF]],
+      [ENGINE_SRC, "@miragon/pulse-cli", [NO_APP, ENGINE_LEAF]],
+      ...["zod", "mcp-use", "react", "commander", "reactive", "node:fs", "path"].map((spec) => [
+        ENGINE_SRC,
+        spec,
+        [ENGINE_LEAF],
+      ]),
+      [`${ENGINE}/src/escape.ts`, "../../ui/src/target.ts", [ENGINE_LEAF, DEEP]],
+      // The shipped ./testing export is no test file: only *.test.ts may import vitest.
+      [`${ENGINE}/src/testing/index.ts`, "vitest", [ENGINE_LEAF]],
+      [ENGINE_SRC, "./lib.ts", []],
+      [`${ENGINE}/src/a.test.ts`, "vitest", []],
+    ],
+  },
+  {
+    rule: ENGINE_TESTS,
+    title: "engine-core's shipped code imports neither its tests nor its ./testing export",
+    cases: [
+      [ENGINE_SRC, "./testing/fixture.ts", [ENGINE_TESTS]],
+      [`${ENGINE}/src/inspect.ts`, "./testing/fixture.ts", [ENGINE_TESTS], "type"],
+      [`${ENGINE}/src/to-test.ts`, "./a.test.ts", [ENGINE_TESTS, CLI_NOT_TEST]],
+      // Allowed: ./testing and the tests import the fixtures and the shipped modules.
+      [`${ENGINE}/src/testing/routes.ts`, "./fixture.ts", []],
+      [`${ENGINE}/src/testing/port.ts`, "../lib.ts", []],
+      [`${ENGINE}/src/b.test.ts`, "./testing/fixture.ts", []],
+    ],
+  },
+  {
+    rule: ENGINE_USERS,
+    title: "only the CLI and the camunda7 connector import engine-core",
+    cases: [
+      [AN_CONNECTOR_SRC, ENGINE_CORE, [ENGINE_USERS]],
+      [SHELL_SRC, ENGINE_CORE, [ENGINE_USERS]],
+      [UI_SRC, ENGINE_CORE, [UI_LEAF, ENGINE_USERS]],
+      [C7_CLIENT_SRC, ENGINE_CORE, [CLIENT_LEAF, ENGINE_USERS]],
+      [SERVER_SRC, ENGINE_CORE, [ENGINE_USERS]],
+      [EXT_SRC, ENGINE_CORE, [ENGINE_USERS]],
+      [C7_CONNECTOR_SRC, ENGINE_CORE, []],
+      [`${CLI}/src/workflow/inspect.ts`, ENGINE_CORE, []],
+      [`${CLI}/src/engine-port/port.ts`, ENGINE_CORE, [], "type"],
+      // The types-only rule of the engine port still bites on the new package.
+      [`${CLI}/src/engine-port/value.ts`, ENGINE_CORE, [CLI_PORT_TYPES]],
+    ],
+  },
+  {
+    rule: CLI_ENGINE_CORE,
+    title: "in the CLI only the workflow and engine-port layers (and tests) import engine-core",
+    cases: [
+      [CLI_SRC, ENGINE_CORE, [CLI_ENGINE_CORE]],
+      [`${CLI}/src/cli/target-core.ts`, ENGINE_CORE, [CLI_ENGINE_CORE]],
+      [`${CLI}/scripts/core.ts`, ENGINE_CORE, [CLI_ENGINE_CORE]],
+      [CLI_SRC, `${ENGINE_CORE}/testing`, [CLI_ENGINE_CORE, CLI_ENGINE_TESTING]],
+      [`${CLI}/src/f.test.ts`, ENGINE_CORE, []],
+    ],
+  },
+  {
+    rule: CLI_ENGINE_TESTING,
+    title: "the CLI's shipped code never imports the fixtures of engine-core",
+    cases: [
+      [`${CLI}/src/workflow/fixture.ts`, `${ENGINE_CORE}/testing`, [CLI_ENGINE_TESTING]],
+      [`${CLI}/test/support/fixture.ts`, `${ENGINE_CORE}/testing`, []],
     ],
   },
   {
@@ -370,12 +458,17 @@ const SUITES = [
   },
   {
     rule: CLI_CYCLE,
-    title: "the CLI has no import cycle, a type-only one included",
+    title: "the CLI and engine-core have no import cycle, a type-only one included",
     cases: [
       [`${CLI}/src/cycle-a.ts`, "./cycle-b.ts", [CIRCULAR, CLI_CYCLE]],
       [`${CLI}/src/cycle-b.ts`, "./cycle-a.ts", [CIRCULAR, CLI_CYCLE]],
       [`${CLI}/src/type-cycle-a.ts`, "./type-cycle-b.ts", [CLI_CYCLE], "type"],
       [`${CLI}/src/type-cycle-b.ts`, "./type-cycle-a.ts", [CLI_CYCLE], "type"],
+      // The workflow domain the CLI bundles is held to the same rule.
+      [`${ENGINE}/src/cycle-a.ts`, "./cycle-b.ts", [CIRCULAR, CLI_CYCLE]],
+      [`${ENGINE}/src/cycle-b.ts`, "./cycle-a.ts", [CIRCULAR, CLI_CYCLE]],
+      [`${ENGINE}/src/type-cycle-a.ts`, "./type-cycle-b.ts", [CLI_CYCLE], "type"],
+      [`${ENGINE}/src/type-cycle-b.ts`, "./type-cycle-a.ts", [CLI_CYCLE], "type"],
     ],
   },
   {
@@ -388,10 +481,18 @@ const SUITES = [
   },
   {
     rule: CLI_NOT_TEST,
-    title: "nothing in the CLI imports a test file",
+    title: "nothing in the CLI or engine-core imports a test file",
     cases: [
       [`${CLI}/src/b.test.ts`, "./a.test.ts", [CLI_NOT_TEST]],
       [`${CLI}/src/c.test.ts`, "./target.ts", []],
+      [`${ENGINE}/src/testing/to-test.ts`, "../a.test.ts", [CLI_NOT_TEST]],
+      [`${ENGINE}/src/c.test.ts`, "./a.test.ts", [CLI_NOT_TEST]],
+      // Each package's own tests only: the CLI's rule never reaches into engine-core's tree.
+      [
+        `${CLI}/src/to-engine-test.ts`,
+        "../../../packages/core/engine-core/src/a.test.ts",
+        [HEADLESS, DEEP],
+      ],
     ],
   },
   {

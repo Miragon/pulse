@@ -293,6 +293,7 @@ export default tseslint.config(
             "packages/connectors/camunda/camunda7-client/vitest.config.ts",
             "packages/connectors/camunda/camunda7-client/vitest.stryker.config.ts",
             "packages/connectors/camunda/camunda7-client/openapi-ts.config.ts",
+            "packages/core/engine-core/vitest.config.ts",
             "packages/core/ui/vitest.config.ts",
             "packages/core/widget-shell/vitest.config.ts",
             "packages/core/widget-shell/vitest.stryker.config.ts",
@@ -521,9 +522,10 @@ export default tseslint.config(
   // the global ones: complexity 10 (global 15) and 300 effective lines per file (global 400) for
   // the shipped code and the scripts, plus depth, parameter, nesting, function length and
   // statement budgets. No `ignores` and no no-restricted-syntax here: the tests get their own
-  // block below, and a no-restricted-syntax setting would REPLACE the pattern gates.
+  // block below, and a no-restricted-syntax setting would REPLACE the pattern gates. The CLI's
+  // workflow domain, @miragon/pulse-engine-core (packages/core/engine-core), keeps these budgets.
   {
-    files: ["apps/cli/**/*.ts"],
+    files: ["apps/cli/**/*.ts", "packages/core/engine-core/**/*.ts"],
     extends: [tseslint.configs.strictTypeChecked, tseslint.configs.stylisticTypeChecked],
     rules: {
       "@typescript-eslint/no-explicit-any": "error",
@@ -551,8 +553,14 @@ export default tseslint.config(
   // global test budget of 400 effective lines, also for the tests and fakes outside src/ (the
   // global budget block reads apps/*/src only), and none of the per-function budgets; the
   // non-null assertion and the unsafe assignment/member access that fixtures need stay allowed.
+  // The same for engine-core's tests. Its ./testing export (fixtures, the fake port) ships on npm
+  // and keeps the budgets of shipped code.
   {
-    files: ["apps/cli/**/*.test.ts", "apps/cli/test/**/*.ts"],
+    files: [
+      "apps/cli/**/*.test.ts",
+      "apps/cli/test/**/*.ts",
+      "packages/core/engine-core/**/*.test.ts",
+    ],
     rules: {
       "max-lines": ["error", { max: 400, skipBlankLines: true, skipComments: true }],
       "max-lines-per-function": "off",

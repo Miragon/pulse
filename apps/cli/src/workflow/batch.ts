@@ -3,14 +3,22 @@
  * (finished or deleted), and fails fast when its failed jobs keep it from finishing.
  */
 
+import {
+  amount,
+  field,
+  formatDuration,
+  num,
+  poll,
+  queryInput,
+  type Rec,
+  records,
+  str,
+  type Waited,
+} from "@miragon/pulse-engine-core"
 import type { EnginePort, PlannedRequest } from "../engine-port/engine-port.js"
 import { PulseCliError } from "../errors.js"
-import { formatDuration } from "../operation/durations.js"
 import { compact } from "../util.js"
-import { json, queryInput } from "./engine.js"
-import { poll } from "./poll.js"
-import { amount, field, num, type Rec, records, str } from "./records.js"
-import type { Waited, WorkflowResult } from "./types.js"
+import type { WorkflowResult } from "./types.js"
 import { type WaitDeps, waitingNotice } from "./wait.js"
 
 interface BatchSummary {
@@ -74,8 +82,7 @@ async function stuckError(
     jobDefinitionId === undefined
       ? []
       : records(
-          await json(
-            port,
+          await port.json(
             "getJobs",
             queryInput({
               jobDefinitionId,
@@ -108,7 +115,7 @@ export async function waitForBatch(
   let last: Rec | undefined
   const result = await poll<BatchEnd>(
     async () => {
-      const statistics = records(await json(port, "getBatchStatistics", queryInput({ batchId })))[0]
+      const statistics = records(await port.json("getBatchStatistics", queryInput({ batchId })))[0]
       if (statistics !== undefined) {
         last = statistics
         return isStuck(statistics) ? { kind: "stuck" } : undefined

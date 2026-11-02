@@ -405,3 +405,25 @@ describe("gates sharing a glob are merged, not overridden", () => {
     assert.equal(messages.filter(isDateHit).length, 1)
   })
 })
+
+describe("engine-core keeps the CLI's budgets (the CLI block of eslint.config.mjs)", () => {
+  const ENGINE = "packages/core/engine-core/src"
+  const budget = async (rel, rule) => (await ruleOptionsFor(rel, rule))?.slice(1)[0] ?? null
+
+  it("holds its shipped code, the ./testing export included, to complexity 10, 300 lines, 60 per function, 20 statements, depth 3, 4 parameters", async () => {
+    for (const rel of [`${ENGINE}/__probe__.ts`, `${ENGINE}/testing/__probe__.ts`]) {
+      assert.equal(await budget(rel, "complexity"), 10, rel)
+      assert.equal((await budget(rel, "max-lines"))?.max, 300, rel)
+      assert.equal((await budget(rel, "max-lines-per-function"))?.max, 60, rel)
+      assert.equal(await budget(rel, "max-statements"), 20, rel)
+      assert.equal(await budget(rel, "max-depth"), 3, rel)
+      assert.equal(await budget(rel, "max-params"), 4, rel)
+    }
+  })
+
+  it("gives its tests 400 lines and no per-function budget", async () => {
+    const rel = `${ENGINE}/__probe__.test.ts`
+    assert.equal((await budget(rel, "max-lines"))?.max, 400)
+    assert.equal(await ruleOptionsFor(rel, "max-lines-per-function"), null)
+  })
+})

@@ -3,7 +3,7 @@
  * never trust the shape of a response: a missing or mistyped property reads as undefined. Pure.
  */
 
-import { isRecord } from "../util.js"
+import { isRecord } from "./util.js"
 
 /** An engine DTO. */
 export type Rec = Readonly<Record<string, unknown>>

@@ -53,7 +53,9 @@ second engine dialect cheap:
   real differences: cockpit routes, branding, client hook), never packages or apps.
   A _dialect_ (an engine API family: Camunda 7 today, Flowable would be another) is
   one package family: its client and its connector (the MCP module); a package two
-  interfaces share is extracted on its second consumer. An _interface_ is an app:
+  interfaces share is extracted on its second consumer, like `@miragon/pulse-engine-core`,
+  the Camunda 7 family's workflow domain that the CLI bundles (one port per API family; it
+  names no command, flag or tool). An _interface_ is an app:
   `apps/mcp-server-camunda7` is the thin composition root of the Camunda-7-dialect
   MCP server (camunda7 + analytics); a different dialect gets its own MCP server app.
   The CLI (`apps/cli`) and the VS Code extension (`apps/vscode`) are interfaces of their own.
@@ -110,11 +112,11 @@ served by the engine REST history API, not the metrics.
 
 ## Repository layout
 
-| Path                        | Description                                                       |
-| --------------------------- | ----------------------------------------------------------------- |
-| `apps/mcp-server-camunda7/` | The MCP server entry point and the widget bundle.                 |
-| `packages/`                 | Reusable libraries: clients, MCP plugins, widget-shell, pulse-ui. |
-| `engine-plugins/`           | Kotlin Micrometer plugins (process metrics).                      |
-| `playground/`               | Demo env: showcases, Compose stack, Fly.io deployment.            |
+| Path                        | Description                                                                    |
+| --------------------------- | ------------------------------------------------------------------------------ |
+| `apps/mcp-server-camunda7/` | The MCP server entry point and the widget bundle.                              |
+| `packages/`                 | Reusable libraries: clients, MCP plugins, widget-shell, pulse-ui, engine-core. |
+| `engine-plugins/`           | Kotlin Micrometer plugins (process metrics).                                   |
+| `playground/`               | Demo env: showcases, Compose stack, Fly.io deployment.                         |
 
 For deeper detail, [Reference](reference.md) lists every tool and toolset.

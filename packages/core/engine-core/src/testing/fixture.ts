@@ -1,12 +1,12 @@
 /**
- * Engine responses of the verified workflow fixture (test/integration/fixtures/workflow.bpmn) at
- * each of its wait states, shaped like the answers of Operaton 2.1.5 / Camunda 7.24 / CIB seven
- * 2.2.0, as `InstanceData` for the instance view assembly.
+ * Engine responses of the verified workflow fixture (apps/cli/test/integration/fixtures/workflow.bpmn
+ * in the Pulse repository) at each of its wait states, shaped like the answers of Operaton 2.1.5 /
+ * Camunda 7.24 / CIB seven 2.2.0, as `InstanceData` for the instance view assembly.
  */
 
-import type { Rec } from "../../src/workflow/records.js"
-import { omit } from "../../src/util.js"
-import type { InstanceData, TreeNode } from "../../src/workflow/types.js"
+import type { Rec } from "../records.js"
+import { omit } from "../util.js"
+import type { InstanceData, TreeNode } from "../types.js"
 
 export const P = "adff9abe-c3e6-11f1-aa2b-66e6c1afd69e"
 export const C = "adffc1d4-c3e6-11f1-aa2b-66e6c1afd69e"

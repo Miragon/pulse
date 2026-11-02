@@ -4,8 +4,7 @@
  * engine's lists (except the timeline, which keeps the history order).
  */
 
-import { compact } from "../util.js"
-import { nextCommands } from "./next.js"
+import { nextSteps } from "./next.js"
 import {
   compareText,
   compareTime,
@@ -25,6 +24,7 @@ import type {
   InstanceState,
   InstanceView,
 } from "./types.js"
+import { compact } from "./util.js"
 import { plainVariables } from "./variables.js"
 import { waitStates } from "./waits.js"
 
@@ -163,5 +163,5 @@ export function instanceView(data: InstanceData): InstanceView {
       truncated: data.truncated ? (true as const) : undefined,
     }),
   }
-  return { ...view, next: nextCommands(view, data.historyRequested) }
+  return { ...view, next: nextSteps(view, data.historyRequested) }
 }

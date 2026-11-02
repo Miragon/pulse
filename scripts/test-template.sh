@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Drift gate for templates/composed-server: builds the six published packages
+# Drift gate for templates/composed-server: builds the seven published packages
 # from THIS workspace, packs them into tarballs (pnpm pack rewrites
 # workspace:* to real versions), points a throwaway copy of the template at
 # the tarballs via pnpm overrides, and runs the template's full bar. Catches
@@ -16,6 +16,7 @@ WORK="$(mktemp -d)/composed-server"
 
 # Package directories under packages/; npm names come from each package.json.
 PACKAGES=(
+  core/engine-core
   core/ui
   core/widget-shell
   connectors/camunda/camunda7-client
@@ -43,6 +44,7 @@ const fs = require("fs")
 const root = process.env.ROOT
 const read = (p) => JSON.parse(fs.readFileSync(p, "utf8"))
 const pkgDirs = [
+  "core/engine-core",
   "core/ui",
   "core/widget-shell",
   "connectors/camunda/camunda7-client",

@@ -1,10 +1,20 @@
 /** Wait states of hand-made instance data: each kind of record, edge cases and the order. */
 
 import { describe, expect, it } from "vitest"
-import { activeData, activity, activityTree } from "../../test/support/workflow-fixture.js"
+import { activeData, activity, activityTree } from "./testing/fixture.js"
+import {
+  ASYNC,
+  CONDITIONAL,
+  EXTERNAL,
+  MESSAGE,
+  RECEIVE,
+  SIGNAL,
+  TIMER,
+  USER_TASK,
+} from "./testing/waits.js"
 import type { Rec } from "./records.js"
 import type { InstanceData } from "./types.js"
-import { waitStates } from "./waits.js"
+import { waitId, waitStates } from "./waits.js"
 
 const ROOT = "z-root"
 const CHILD = "a-child"
@@ -227,5 +237,20 @@ describe("waitStates", () => {
       "t1",
       "t2",
     ])
+  })
+})
+
+describe("waitId", () => {
+  it.each([
+    ["userTask", USER_TASK, "t1"],
+    ["externalTask", EXTERNAL, "e1"],
+    ["timer", TIMER, "j1"],
+    ["asyncContinuation", ASYNC, "j2"],
+    ["message", MESSAGE, "s1"],
+    ["signal", SIGNAL, "s2"],
+    ["conditional", CONDITIONAL, "s3"],
+    ["other", RECEIVE, "x3"],
+  ] as const)("names the resource of a %s wait", (_kind, wait, id) => {
+    expect(waitId(wait)).toBe(id)
   })
 })

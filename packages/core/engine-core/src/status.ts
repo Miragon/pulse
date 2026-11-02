@@ -1,10 +1,9 @@
 /**
- * Aggregation of `pulse-cli status`: definitions, incident groups, external task
- * topics, jobs, tasks and batches from the responses of round 1. Pure; `now` is injected (engine
- * and client clocks are assumed to agree, as for local containers).
+ * Aggregation of the status triage: definitions, incident groups, external task topics, jobs,
+ * tasks and batches from the responses of round 1. Pure; `now` is injected (engine and client
+ * clocks are assumed to agree, as for local containers).
  */
 
-import { compact } from "../util.js"
 import { isRetryable } from "./next.js"
 import {
   amount,
@@ -18,7 +17,7 @@ import {
   records,
   str,
 } from "./records.js"
-import { shellWord } from "./shell.js"
+import { compact } from "./util.js"
 
 export interface DefinitionStatus {
   readonly key: string
@@ -30,7 +29,27 @@ export interface DefinitionStatus {
   readonly incidents: number
 }
 
-export interface IncidentGroup {
+/**
+ * What to look at for an incident group: the incidents of a type or the failed jobs of a job
+ * definition (outside any process definition), a retry of an activity's failed jobs and external
+ * tasks (to preview), or the incidents at an activity.
+ */
+export type GroupStep =
+  | { readonly action: "listIncidentsOfType"; readonly incidentType: string }
+  | { readonly action: "listFailedJobs"; readonly jobDefinitionId?: string }
+  | {
+      readonly action: "retryActivity"
+      readonly processDefinitionKey: string
+      readonly activityId: string
+    }
+  | {
+      readonly action: "listIncidentsAtActivity"
+      readonly processDefinitionKey: string
+      readonly activityId: string
+    }
+
+/** `N`: the next step, structured (`GroupStep`) or the text a caller renders from it. */
+export interface IncidentGroup<N = GroupStep> {
   readonly processDefinitionKey: string
   readonly activityId: string
   /** Only for incidents without a process definition (standalone jobs). */
@@ -42,7 +61,7 @@ export interface IncidentGroup {
   readonly lastAt: string
   readonly rootCause?: string
   readonly processInstanceIds: readonly string[]
-  readonly next: string
+  readonly next: N
 }
 
 export interface TopicStatus {
@@ -53,7 +72,7 @@ export interface TopicStatus {
   readonly failed: number
   readonly workers: readonly string[]
   readonly oldestWaitingSince?: string
-  /** The earliest expired lock (LOCK_EXPIRED waits `--stale-after` past it). */
+  /** The earliest expired lock (LOCK_EXPIRED waits the stale threshold past it). */
   readonly oldestLockExpiredAt?: string
 }
 
@@ -143,18 +162,40 @@ export function definitionStatus(
     )
 }
 
-function groupNext(key: string, activityId: string, type: string, jobDefinitionId?: string) {
-  if (key === "") {
+function groupNext(
+  processDefinitionKey: string,
+  activityId: string,
+  incidentType: string,
+  jobDefinitionId?: string,
+): GroupStep {
+  if (processDefinitionKey === "") {
     // a job outside any process definition (a batch or a history cleanup job)
     return jobDefinitionId === undefined
-      ? `pulse-cli incident list --incident-type ${shellWord(type)}`
-      : `pulse-cli job list --job-definition-id ${shellWord(jobDefinitionId)} --with-exception`
+      ? { action: "listIncidentsOfType", incidentType }
+      : { action: "listFailedJobs", jobDefinitionId }
   }
-  const definition = shellWord(key)
-  const activity = shellWord(activityId)
-  return isRetryable(type)
-    ? `pulse-cli retry --process-definition-key ${definition} --activity-id ${activity} --dry-run`
-    : `pulse-cli incident list --process-definition-key-in ${definition} --activity-id ${activity}`
+  return isRetryable(incidentType)
+    ? { action: "retryActivity", processDefinitionKey, activityId }
+    : { action: "listIncidentsAtActivity", processDefinitionKey, activityId }
+}
+
+/** The fields of a group step, in the order `defaultGroupOrder` compares them. */
+function stepFields(step: GroupStep): string[] {
+  const own = step as Partial<Record<string, string>>
+  return [
+    step.action,
+    own.processDefinitionKey ?? "",
+    own.activityId ?? "",
+    own.incidentType ?? "",
+    own.jobDefinitionId ?? "",
+  ]
+}
+
+/** The tie-break of equal groups: action, then key, activity, incident type, job definition. */
+export function defaultGroupOrder(left: GroupStep, right: GroupStep): number {
+  const a = stepFields(left)
+  const b = stepFields(right)
+  return a.reduce((order, value, index) => order || compareText(value, b[index] ?? ""), 0)
 }
 
 /** Newest first, then by id. */
@@ -208,14 +249,15 @@ function groupOf(members: readonly Rec[]): IncidentGroup & { readonly newest: Re
 }
 
 /**
- * Root cause incidents grouped by key, activity, type and message pattern; largest groups first.
- * Incidents of the failed jobs of a batch (`batchJobDefinitions`) are left out: BATCH_FAILURES
- * reports them.
+ * Root cause incidents grouped by key, activity, type and message pattern; largest groups first,
+ * then the most recent, then `compareSteps` over the next steps. Incidents of the failed jobs of a
+ * batch (`batchJobDefinitions`) are left out: BATCH_FAILURES reports them.
  */
 export function groupIncidents(
   incidents: readonly Rec[],
   statistics: readonly Rec[],
   batchJobDefinitions: ReadonlySet<string> = new Set(),
+  compareSteps: (left: GroupStep, right: GroupStep) => number = defaultGroupOrder,
 ): GroupedIncidents {
   const definitions = definitionsById(statistics)
   const roots = incidents
@@ -236,7 +278,7 @@ export function groupIncidents(
         (left, right) =>
           right.count - left.count ||
           compareTime(right.lastAt, left.lastAt) ||
-          compareText(left.next, right.next),
+          compareSteps(left.next, right.next),
       ),
     propagated: incidents.filter((incident) => !isRoot(incident)).length,
   }

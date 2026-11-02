@@ -1,6 +1,6 @@
 import fc from "fast-check"
 import { describe, expect, it } from "vitest"
-import { fakeClock } from "../../test/support/engine-port.js"
+import { fakeClock } from "./testing/fake-port.js"
 import { poll } from "./poll.js"
 
 describe("poll", () => {
