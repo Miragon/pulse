@@ -8,6 +8,7 @@ import {
   assertGolden,
   isModelVisible,
   modelVisibleChars,
+  repeatedParamDescriptions,
   stableSort,
 } from "./golden.js"
 
@@ -112,7 +113,78 @@ describe("modelVisibleChars", () => {
       true,
     )
     const base = "a_tool".length + "Does x.".length + '{"type":"object"}'.length
-    expect(modelVisibleChars([visible, appOnly])).toBe(base)
-    expect(modelVisibleChars([{ ...visible, title: "T" }])).toBe(base + 1)
+    expect(modelVisibleChars([visible, appOnly], "")).toBe(base)
+    expect(modelVisibleChars([{ ...visible, title: "T" }], "")).toBe(base + 1)
+  })
+
+  it("adds the server instructions a client receives at initialize", () => {
+    const base = "a_tool".length + "Does x.".length + '{"type":"object"}'.length
+    expect(modelVisibleChars([visible], "Use x.")).toBe(base + 6)
+    expect(modelVisibleChars([], "Use x.")).toBe(6)
+  })
+})
+
+describe("repeatedParamDescriptions", () => {
+  const withParams = (name: string, properties: Record<string, unknown>) => ({
+    name,
+    inputSchema: { type: "object", properties },
+  })
+  const engine = { type: "string", description: "Engine id" }
+
+  it("reports a description on more than two model-visible tools, never one on two", () => {
+    const three = ["a", "b", "c"].map((name) => withParams(name, { engine }))
+    expect(repeatedParamDescriptions(three)).toEqual([
+      { description: "Engine id", params: ["engine"], tools: ["a", "b", "c"] },
+    ])
+    expect(repeatedParamDescriptions(three.slice(0, 2))).toEqual([])
+    expect(repeatedParamDescriptions(three, 3)).toEqual([])
+  })
+
+  it("never counts an app-only tool, and counts a tool once however often it repeats a text", () => {
+    const appOnly = { ...withParams("d_data", { engine }), _meta: { ui: { visibility: ["app"] } } }
+    // b carries the text twice: top level and inside a nested object.
+    const twice = withParams("b", {
+      engine,
+      nested: { type: "object", properties: { engine } },
+    })
+    const tools = [withParams("a", { engine }), twice, appOnly]
+    expect(repeatedParamDescriptions(tools)).toEqual([])
+    expect(repeatedParamDescriptions([...tools, withParams("c", { engine })])).toEqual([
+      { description: "Engine id", params: ["engine"], tools: ["a", "b", "c"] },
+    ])
+  })
+
+  it("keys on the text alone: one text under several names repeats just the same", () => {
+    const ms = { type: "number", description: "In milliseconds" }
+    const tools = [
+      withParams("a", { lockDuration: ms }),
+      withParams("b", { retryTimeout: ms }),
+      withParams("c", { lockDuration: ms }),
+    ]
+    expect(repeatedParamDescriptions(tools)).toEqual([
+      {
+        description: "In milliseconds",
+        params: ["lockDuration", "retryTimeout"],
+        tools: ["a", "b", "c"],
+      },
+    ])
+  })
+
+  it("walks every depth: nested objects, array items, map values and union branches", () => {
+    const value = { description: "The value" }
+    const tools = [
+      withParams("a", { list: { type: "array", items: { properties: { value } } } }),
+      withParams("b", { map: { type: "object", additionalProperties: { properties: { value } } } }),
+      withParams("c", { either: { anyOf: [{ type: "null" }, { properties: { value } }] } }),
+      withParams("d", {
+        outer: { type: "object", properties: { inner: { properties: { value } } } },
+      }),
+      withParams("e", { value, other: { type: "string" }, flag: true }),
+      { name: "f" },
+      { name: "g", inputSchema: { type: "object", properties: "none" } },
+    ]
+    expect(repeatedParamDescriptions(tools, 4)).toEqual([
+      { description: "The value", params: ["value"], tools: ["a", "b", "c", "d", "e"] },
+    ])
   })
 })

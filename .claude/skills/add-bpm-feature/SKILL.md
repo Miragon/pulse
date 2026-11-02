@@ -27,17 +27,34 @@ it from `src/schemas/index.ts`. Existing style (from `schemas/process-instances.
 
 ```ts
 export const listProcessInstancesInput = z.object({
-  processDefinitionKey: z.string().optional().describe("Filter by process definition key"),
-  businessKeyLike: likeParam("Filter by business key"),
-  active: flagParam("true = only active instances, false = only suspended"),
+  processDefinitionKey: z.string().optional(),
+  businessKeyLike: likeParam(),
+  active: flagParam(),
+  withIncidents: flagParam("true = only instances with an open incident"),
   firstResult: firstResultParam,
   maxResults: maxResultsParam(), // capped at MAX_PAGE_SIZE (100); default page 20
-  sortBy: z.enum(["instanceId", "definitionKey"]).optional().describe("Sort field"),
+  sortBy: z.enum(["instanceId", "definitionKey"]).optional(),
   sortOrder: sortOrderParam,
 })
 ```
 
-Every field gets a `.describe()`. A list/query tool pages with the shared params from
+**Descriptions.** Describe a field only where the tool gives it its own meaning: what `false`
+or an omitted value selects when no shared rule says it (`withIncidents`: open only), a unit or
+format the name does not say (`retryTimeout`: in milliseconds), an id that names another object
+than its name suggests, or which views take it (`camunda7_open_cockpit`). A description that
+restates the name or the tool description goes. What a parameter means on every tool
+(`engine`, paging and sorting, `processDefinitionKey`/`processDefinitionId`, `activityId`,
+`incidentType`, `…Like`, the boolean filters, the date bounds, the variable shape) is said once
+in `camunda7Instructions` (`packages/connectors/camunda/camunda7-connector/src/instructions.ts`),
+and the paging, sorting, `…Like`, flag, date and variable-map helpers in `schemas/shared.ts`
+carry no description of their own, so a field built from them needs none (`flagParam` and
+`engineDateParam` take one where the field means more; `wholeVariableParam` keeps its own). A
+new shared meaning goes into the instructions, briefly, not onto each tool. A safety rule stays
+at the write it guards (the cut-value rule on the variable writes), where a host that drops the
+server instructions still shows it. `apps/mcp-server-camunda7/test/tools-list.golden.test.ts`
+fails when one description repeats on more than two model-visible tools.
+
+A list/query tool pages with the shared params from
 `schemas/shared.ts` — `firstResultParam` + `maxResultsParam(defaultPageSize)` — never a
 hand-rolled `maxResults`: `src/tools/list-tools.test.ts` treats every registrar tool that
 takes `maxResults` as a list and fails it without the cap or the envelope (Step 2). The
@@ -52,17 +69,17 @@ Inputs are STRICT (the registrar is always strict; raw `server.tool()` registrat
 error listing the valid keys. So one name per concept across every tool: a model that learned
 `assignee` on one tool must not be refused it on the next. Renames ship without aliases.
 
-| Concept                  | Name                                                                                                                                                |
-| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Process definition       | `processDefinitionKey` (all versions), `processDefinitionId` (one version); never bare `key`                                                        |
-| Entity ids               | `<entity>Id` — `processInstanceId`, `deploymentId`, `jobId`, `activityId` (analytics too); never bare `id`, never `elementId`                       |
-| Several values           | `<name>In`, an array (`processDefinitionKeyIn`); merged with the single form via `engineKeyList`                                                    |
-| User filter              | `assignee` (the user a task is assigned to); a write that sets a user takes `userId`                                                                |
-| Business key / substring | `businessKey` exact, `businessKeyLike`/`nameLike` substring — `engineLike` wraps a `%`-less value                                                   |
-| Time bounds              | `<event>After`/`<event>Before` (`startedAfter`, `finishedBefore`, `incidentTimestampAfter`) via `engineDateParam` — ISO 8601 in, `toEngineDate` out |
-| Boolean filters          | `flagParam` + `complementaryFlags` (active/suspended, …) or `trueOnly` — the engine IGNORES `false` (never sent); a both/neither pair is refused    |
-| Paging / result size     | `firstResult` + `maxResults` from `firstResultParam` + `maxResultsParam` (above; also for a top-N cap: never `limit`)                               |
-| Sorting                  | `sortBy` + `sortOrder`, sent as a pair by `engineSorting`                                                                                           |
+| Concept                  | Name                                                                                                                                                                                                                                                     |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Process definition       | `processDefinitionKey` (all versions), `processDefinitionId` (one version); never bare `key`                                                                                                                                                             |
+| Entity ids               | `<entity>Id` — `processInstanceId`, `deploymentId`, `jobId`, `activityId` (analytics too); never bare `id`, never `elementId`                                                                                                                            |
+| Several values           | `<name>In`, an array (`processDefinitionKeyIn`); merged with the single form via `engineKeyList`                                                                                                                                                         |
+| User filter              | `assignee` (the user a task is assigned to); a write that sets a user takes `userId`                                                                                                                                                                     |
+| Business key / substring | `businessKey` exact, `businessKeyLike`/`nameLike` substring via `likeParam()`: `engineLike` wraps a `%`-less value                                                                                                                                       |
+| Time bounds              | `<event>After`/`<event>Before` (`startedAfter`, `finishedBefore`, `incidentTimestampAfter`) via `engineDateParam()`: ISO 8601 in, `toEngineDate` out                                                                                                     |
+| Boolean filters          | `flagParam()` + `complementaryFlags` (active/suspended, …) or `trueOnly`: the engine IGNORES `false` (never sent); a both/neither pair is refused; a new `complementaryFlags` pair is named in `camunda7Instructions` (`instructions.test.ts` checks it) |
+| Paging / result size     | `firstResult` + `maxResults` from `firstResultParam` + `maxResultsParam` (above; also for a top-N cap: never `limit`)                                                                                                                                    |
+| Sorting                  | `sortBy` + `sortOrder`, sent as a pair by `engineSorting`                                                                                                                                                                                                |
 
 The engine's own query names may differ (`taskAssignee`, `processInstanceBusinessKey`,
 `withIncident`): the handler maps them, the schema keeps the guide's name. Every
@@ -93,8 +110,7 @@ export function registerProcessInstanceTools(register: ToolRegistrar<EngineRegis
   register({
     name: "camunda7_list_process_instances",
     category: "process-instances",
-    description:
-      "List running process instances with optional filters. Returns one page as { items, totalCount, hasMore, nextOffset? }. If hasMore is true, call again with firstResult = nextOffset.",
+    description: "List running process instances.",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     inputSchema: { ...listProcessInstancesInput.shape, ...engineParamShape },
     outputSchema: paginatedListOutput,
@@ -123,6 +139,9 @@ export function registerProcessInstanceTools(register: ToolRegistrar<EngineRegis
   })
 }
 ```
+
+A list tool's description says what it lists, never the paging contract
+(`src/tools/list-tools.test.ts`).
 
 Non-negotiables:
 
@@ -463,7 +482,8 @@ A new or changed tool changes the wire surface: add its name to
 `apps/mcp-server-camunda7/test/expected-tools.ts`, then refresh the per-toolset goldens with
 `GOLDEN_UPDATE=1 pnpm --filter @miragon/pulse-mcp-server-camunda7 test` and commit the
 `test/__golden__/` diff (descriptions and schemas are what the model reads — review them).
-If `char-budgets.json` grew, `pnpm lint` fails until the commit carries a
+The budget counts the model-visible tools/list text plus the server instructions of each
+toolset. If `char-budgets.json` grew, `pnpm lint` fails until the commit carries a
 `Ratchet-Exception: <why the model must read more>` trailer — trim wording first.
 
 `pnpm typecheck` is the **only** automated check that type-checks widget `.tsx` code

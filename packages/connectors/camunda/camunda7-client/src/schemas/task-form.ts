@@ -1,7 +1,7 @@
 import { z } from "zod"
 
 export const getTaskFormInput = z.object({
-  taskId: z.string().describe("The task ID to derive the form schema for"),
+  taskId: z.string(),
 })
 
 export const taskFormFieldSourceSchema = z.enum(["form-data", "manual"])

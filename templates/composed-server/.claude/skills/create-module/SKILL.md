@@ -94,7 +94,9 @@ Tool conventions (they carry the contract, so they are not cosmetic):
   `_data` suffix for a plain tool: the server's wire-contract e2e test asserts
   widget `_meta` on every `*_show_*` tool and app-only visibility on every
   `*_data` feed, by name, across all composed modules including yours.
-- Every input field gets a `.describe()`.
+- Describe an input field only where it means more than its name; a rule every tool of your
+  module shares goes once into `instructions` (Step 3), which the server sends with every
+  session.
 - Annotations: reads get `{ readOnlyHint: true, idempotentHint: true }`
   (+ `openWorldHint: true` when they talk to an external system); writes drop
   `readOnlyHint`; every write states `destructiveHint` explicitly (MCP reads an

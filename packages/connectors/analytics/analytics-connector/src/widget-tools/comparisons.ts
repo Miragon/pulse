@@ -28,7 +28,7 @@ export function registerComparisonWidgetTools(ctx: AnalyticsWidgetToolsContext) 
       name: ANALYTICS_SHOW_PERIOD_COMPARE,
       title: "Period Comparison",
       description:
-        "Compare process KPIs of two periods: A is the baseline, B the candidate (around a deployment, A ends and B starts at its timestamp from camunda7_get_deployment). Per period: starts and starts per day, completions, incidents per 100 starts (with activityId also at that element), avg/median/p95 duration of the instances that ENDED, plus the deltas. Periods are clamped to now and the 30-day retention and reported as measured (`partial`); a reversed or wholly out-of-range period is refused. Flagged `suppressed` when either period has fewer than minBucketSize started or completed instances.",
+        "Compare process KPIs of two periods (around a deployment, A ends and B starts at its timestamp from camunda7_get_deployment). Per period: starts and starts per day, completions, incidents per 100 starts, avg/median/p95 duration, plus the deltas. Periods are clamped to now and the 30-day retention and reported as measured (`partial`); a reversed or wholly out-of-range period is refused.",
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
       inputSchema: strictToolInput(schemas.periodCompareInput.shape),
       ...showToolBinding(ANALYTICS_SHOW_PERIOD_COMPARE, "Period Comparison"),
@@ -47,7 +47,7 @@ export function registerComparisonWidgetTools(ctx: AnalyticsWidgetToolsContext) 
       name: ANALYTICS_SHOW_VERSION_COMPARE,
       title: "Process Version Comparison",
       description:
-        "Compare KPIs of two deployed versions of one processDefinitionKey over a shared rolling window. The version is an exact label on the instance and incident series, so starts, completions, incidents, incidents per 100 starts and avg/median/p95 duration per version and their deltas are exact; the comparison is process-wide (no element scope). Flagged `suppressed` when either version has fewer than minBucketSize started or completed instances. Find versions with camunda7_list_process_definitions.",
+        "Compare KPIs of two deployed versions of one processDefinitionKey over a shared rolling window. The version is an exact label on the instance and incident series, so starts, completions, incidents, incidents per 100 starts and avg/median/p95 duration per version and their deltas are exact; the comparison is process-wide (no element scope). Find versions with camunda7_list_process_definitions.",
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
       inputSchema: strictToolInput(schemas.versionCompareInput.shape),
       ...showToolBinding(ANALYTICS_SHOW_VERSION_COMPARE, "Process Version Comparison"),
@@ -66,7 +66,7 @@ export function registerComparisonWidgetTools(ctx: AnalyticsWidgetToolsContext) 
       name: ANALYTICS_SHOW_ENGINE_COMPARE,
       title: "Engine Comparison",
       description:
-        "Compare ONE process definition on two configured engines (e.g. prod-a vs prod-b) over a shared rolling window: starts, completions, incidents per 100 starts (with activityId also at that element), avg/median/p95 duration of the instances that ENDED, plus the deltas. processDefinitionKey is required: engines host different process mixes, so comparing whole workloads would measure the mix, not the engines. Flagged `suppressed` when either engine has fewer than minBucketSize started or completed instances. Valid keys are the `sharedProcessKeys` of analytics_show_engine_landscape.",
+        "Compare ONE process definition on two configured engines (e.g. prod-a vs prod-b) over a shared rolling window: starts, completions, incidents per 100 starts, avg/median/p95 duration, plus the deltas.",
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
       inputSchema: strictToolInput(schemas.engineCompareInput.shape),
       ...showToolBinding(ANALYTICS_SHOW_ENGINE_COMPARE, "Engine Comparison"),

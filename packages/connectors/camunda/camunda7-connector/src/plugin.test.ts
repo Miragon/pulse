@@ -115,7 +115,8 @@ describe("createPlugin advertises `engine` as the boot-time enum of configured i
     for (const { name, engine } of params) {
       const json = z.toJSONSchema(engine) as { enum?: string[]; description?: string }
       expect(json.enum, name).toEqual(["prod-a", "prod-b"])
-      expect(json.description, name).toBe("Engine id (see server instructions)")
+      // No per-tool text: the routing rule is the instructions' (instructions.test.ts).
+      expect(json.description, name).toBeUndefined()
       expect(engine.safeParse("prod-b").success, name).toBe(true)
       expect(engine.safeParse(undefined).success, name).toBe(true)
       expect(engine.safeParse("prod-c").success, name).toBe(false)

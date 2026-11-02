@@ -28,7 +28,7 @@ import {
 } from "@miragon/pulse-camunda7-client/sdk"
 import { paginatedListOutput, toPaginatedList } from "../lib/pagination.js"
 import type { EngineRegistry } from "../lib/resolve-engine.js"
-import { truncateVariableRows, VARIABLE_TRUNCATION_NOTE } from "../lib/variable-truncation.js"
+import { truncateVariableRows } from "../lib/variable-truncation.js"
 import { engineParamShape, withEngine } from "../lib/with-engine.js"
 
 interface TimeWindow {
@@ -51,8 +51,7 @@ export function registerHistoryTools(register: ToolRegistrar<EngineRegistry>) {
   register({
     name: "camunda7_query_historic_process_instances",
     category: "history",
-    description:
-      "Query historic process instances (completed and running) with filters. Returns one page as { items, totalCount, hasMore, nextOffset? }. If hasMore is true, call again with firstResult = nextOffset.",
+    description: "Query historic process instances (completed and running).",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     inputSchema: { ...queryHistoricProcessInstancesInput.shape, ...engineParamShape },
     outputSchema: paginatedListOutput,
@@ -87,7 +86,7 @@ export function registerHistoryTools(register: ToolRegistrar<EngineRegistry>) {
     name: "camunda7_query_historic_activity_instances",
     category: "history",
     description:
-      "Query historic activity instances, i.e. which BPMN activities were executed in a process instance. Returns one page as { items, totalCount, hasMore, nextOffset? }. If hasMore is true, call again with firstResult = nextOffset.",
+      "Query historic activity instances, i.e. which BPMN activities were executed in a process instance.",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     inputSchema: { ...queryHistoricActivityInstancesInput.shape, ...engineParamShape },
     outputSchema: paginatedListOutput,
@@ -120,8 +119,7 @@ export function registerHistoryTools(register: ToolRegistrar<EngineRegistry>) {
   register({
     name: "camunda7_query_historic_task_instances",
     category: "history",
-    description:
-      "Query historic task instances (completed and open user tasks). Returns one page as { items, totalCount, hasMore, nextOffset? }. If hasMore is true, call again with firstResult = nextOffset.",
+    description: "Query historic task instances (completed and open user tasks).",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     inputSchema: { ...queryHistoricTaskInstancesInput.shape, ...engineParamShape },
     outputSchema: paginatedListOutput,
@@ -152,8 +150,7 @@ export function registerHistoryTools(register: ToolRegistrar<EngineRegistry>) {
     name: "camunda7_query_historic_variable_instances",
     category: "history",
     description:
-      "Query historic variable instances, i.e. variable values from process history (serialized, with valueInfo). " +
-      `${VARIABLE_TRUNCATION_NOTE} Returns one page as { items, totalCount, hasMore, nextOffset? }. If hasMore is true, call again with firstResult = nextOffset.`,
+      "Query historic variable instances, i.e. variable values from process history (serialized, with valueInfo).",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     inputSchema: { ...queryHistoricVariableInstancesInput.shape, ...engineParamShape },
     outputSchema: paginatedListOutput,
@@ -184,9 +181,9 @@ export function registerHistoryTools(register: ToolRegistrar<EngineRegistry>) {
     name: "camunda7_query_historic_incidents",
     category: "history",
     description:
-      "Query historic incidents — open and resolved, with createTime/endTime — to tell a systemic " +
+      "Query historic incidents (open and resolved, with createTime/endTime) to tell a systemic " +
       "failure (the same activity failing across instances, since when) from a one-off; the runtime " +
-      "incident list forgets resolved ones. Returns one page as { items, totalCount, hasMore, nextOffset? }. If hasMore is true, call again with firstResult = nextOffset.",
+      "incident list forgets resolved ones.",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     inputSchema: { ...queryHistoricIncidentsInput.shape, ...engineParamShape },
     outputSchema: paginatedListOutput,

@@ -4,28 +4,26 @@ import type { Client } from "@miragon/pulse-camunda7-client"
 import type { EngineProvider } from "../engine-provider.js"
 import { resolveEngine, type EngineCallContext, type EngineRegistry } from "./resolve-engine.js"
 
-/** The routing rule is stated once in `instructions.ts`; per tool it was a fifth of the surface. */
-export const ENGINE_PARAM_DESCRIPTION = "Engine id (see server instructions)"
-
-/** Narrowed at boot to the configured ids, so the model reads valid ids off the schema. */
+/**
+ * No description: the routing rule is stated once in `instructions.ts` (per tool it was a fifth of
+ * the surface). Narrowed at boot to the configured ids, so the model reads valid ids off the enum.
+ */
 export const engineParamShape = {
-  engine: z.string().optional().describe(ENGINE_PARAM_DESCRIPTION),
+  engine: z.string().optional(),
 }
 
 export interface EngineParamShape {
   engine: z.ZodOptional<z.ZodType<string>>
 }
 
-/** A single engine still yields an enum, never a dropped property: hand-offs pass `engine` and strict input refuses unknown keys. */
+/**
+ * A single engine still yields an enum, never a dropped property: hand-offs pass `engine` and strict input refuses unknown keys.
+ * The enum names the valid ids; the routing rule is the instructions'.
+ */
 export function engineParamShapeFor(engines: readonly { id: string }[]): EngineParamShape {
   const [first, ...rest] = engines.map((e) => e.id)
   if (first === undefined) return engineParamShape
-  return {
-    engine: z
-      .enum([first, ...rest])
-      .optional()
-      .describe(ENGINE_PARAM_DESCRIPTION),
-  }
+  return { engine: z.enum([first, ...rest]).optional() }
 }
 
 /** Swaps only the exact placeholder; a tool with its own `engine` field keeps it. */

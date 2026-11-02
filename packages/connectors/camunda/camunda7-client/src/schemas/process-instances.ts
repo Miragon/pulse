@@ -11,17 +11,17 @@ import {
 } from "./shared.js"
 
 export const startProcessInstanceInput = z.object({
-  processDefinitionKey: z.string().describe("The key of the process definition to start"),
-  businessKey: z.string().optional().describe("Business key for correlation"),
+  processDefinitionKey: z.string(),
+  businessKey: z.string().optional(),
   variables: variableSchema.optional(),
 })
 
 export const listProcessInstancesInput = z.object({
-  processDefinitionKey: z.string().optional().describe("Filter by process definition key"),
-  businessKey: z.string().optional().describe("Filter by exact business key"),
-  businessKeyLike: likeParam("Filter by business key"),
-  active: flagParam("true = only active instances, false = only suspended"),
-  suspended: flagParam("true = only suspended instances, false = only active"),
+  processDefinitionKey: z.string().optional(),
+  businessKey: z.string().optional(),
+  businessKeyLike: likeParam(),
+  active: flagParam(),
+  suspended: flagParam(),
   withIncidents: flagParam("true = only instances with an open incident"),
   firstResult: firstResultParam,
   maxResults: maxResultsParam(),
@@ -32,15 +32,15 @@ export const listProcessInstancesInput = z.object({
 })
 
 export const getProcessInstanceInput = z.object({
-  processInstanceId: z.string().describe("The process instance ID"),
+  processInstanceId: z.string(),
 })
 
 export const getActivityInstanceTreeInput = z.object({
-  processInstanceId: z.string().describe("The process instance ID"),
+  processInstanceId: z.string(),
 })
 
 export const deleteProcessInstanceInput = z.object({
-  processInstanceId: z.string().describe("The process instance ID to delete"),
+  processInstanceId: z.string(),
   skipSubprocesses: z
     .boolean()
     .optional()
@@ -49,52 +49,39 @@ export const deleteProcessInstanceInput = z.object({
     .boolean()
     .optional()
     .describe("Skip custom execution listeners (e.g. when one fails the delete)"),
-  skipIoMappings: z.boolean().optional().describe("Skip input/output mappings"),
+  skipIoMappings: z.boolean().optional(),
 })
 
 export const modifyProcessInstanceInput = z.object({
-  processInstanceId: z.string().describe("The ID of the process instance to modify"),
-  skipCustomListeners: z.boolean().optional().describe("Skip execution of custom listeners"),
-  skipIoMappings: z.boolean().optional().describe("Skip execution of input/output mappings"),
-  instructions: z
-    .array(
-      z.object({
-        type: z
-          .enum(["cancel", "startBeforeActivity", "startAfterActivity", "startTransition"])
-          .describe("Instruction type"),
-        activityId: z.string().optional().describe("Activity ID to start before/after or cancel"),
-        transitionId: z.string().optional().describe("Transition ID for startTransition"),
-        activityInstanceId: z.string().optional().describe("Activity instance ID to cancel"),
-        transitionInstanceId: z.string().optional().describe("Transition instance ID to cancel"),
-        ancestorActivityInstanceId: z.string().optional().describe("Ancestor activity instance ID"),
-      }),
-    )
-    .describe("Modification instructions"),
+  processInstanceId: z.string(),
+  skipCustomListeners: z.boolean().optional(),
+  skipIoMappings: z.boolean().optional(),
+  instructions: z.array(
+    z.object({
+      type: z.enum(["cancel", "startBeforeActivity", "startAfterActivity", "startTransition"]),
+      activityId: z.string().optional().describe("Activity ID to start before/after or cancel"),
+      transitionId: z.string().optional().describe("Transition ID for startTransition"),
+      activityInstanceId: z.string().optional().describe("Activity instance ID to cancel"),
+      transitionInstanceId: z.string().optional().describe("Transition instance ID to cancel"),
+      ancestorActivityInstanceId: z.string().optional(),
+    }),
+  ),
 })
 
 export const getProcessInstanceVariablesInput = z.object({
-  processInstanceId: z.string().describe("The process instance ID"),
+  processInstanceId: z.string(),
   variableName: wholeVariableParam,
 })
 
 export const setProcessInstanceVariableInput = z.object({
-  processInstanceId: z.string().describe("The process instance ID"),
-  variableName: z.string().describe("The variable name"),
-  value: z.unknown().describe("The value (Json/Object: serialized string or parsed JSON)"),
-  type: z
-    .string()
-    .optional()
-    .describe("Variable type (String, Long, Boolean, Date: ISO 8601, Json, Object, …)"),
+  processInstanceId: z.string(),
+  variableName: z.string(),
+  value: z.unknown(),
+  type: z.string().optional(),
   valueInfo: variableValueInfo,
 })
 
 export const setProcessInstanceSuspensionInput = z.object({
-  processInstanceId: z
-    .string()
-    .describe("The ID of the process instance whose suspension state to change."),
-  suspended: z
-    .boolean()
-    .describe(
-      "Target suspension state: `true` suspends the instance (running jobs are frozen), `false` activates (unsuspends) it.",
-    ),
+  processInstanceId: z.string(),
+  suspended: z.boolean(),
 })

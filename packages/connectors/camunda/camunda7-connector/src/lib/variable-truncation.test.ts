@@ -5,7 +5,6 @@ import {
   truncateVariable,
   truncateVariableMap,
   truncateVariableRows,
-  VARIABLE_TRUNCATION_NOTE,
   variableRead,
 } from "./variable-truncation.js"
 
@@ -52,12 +51,6 @@ describe("truncateVariableMap / truncateVariableRows", () => {
       "x",
     ])
     expect(truncateVariableRows({ not: "a page" })).toEqual({ not: "a page" })
-  })
-
-  it("the description note names the cap and the marker", () => {
-    expect(VARIABLE_TRUNCATION_NOTE).toBe(
-      "String values over 2000 chars are cut (truncated: true, valueLength = full size).",
-    )
   })
 })
 

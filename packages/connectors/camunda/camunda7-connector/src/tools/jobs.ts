@@ -27,8 +27,7 @@ export function registerJobTools(register: ToolRegistrar<EngineRegistry>) {
   register({
     name: "camunda7_list_jobs",
     category: "jobs",
-    description:
-      "List jobs (timers, async continuations) with optional filters. Returns one page as { items, totalCount, hasMore, nextOffset? }. If hasMore is true, call again with firstResult = nextOffset.",
+    description: "List jobs (timers, async continuations).",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     inputSchema: { ...listJobsInput.shape, ...engineParamShape },
     outputSchema: paginatedListOutput,

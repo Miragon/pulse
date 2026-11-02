@@ -47,15 +47,18 @@ describe("listExternalTasksInput", () => {
     ])
   })
 
-  it.each(["locked", "notLocked", "withRetriesLeft", "noRetriesLeft"] as const)(
-    "tells the model what %s=false selects (sent as the complementary flag)",
-    (flag) => {
-      expect(listExternalTasksInput.shape[flag].description).toMatch(/^true = .+, false = only /)
-    },
-  )
-
-  it("documents the sort pairing on sortOrder", () => {
-    expect(listExternalTasksInput.shape.sortOrder.description).toContain("ignored without sortBy")
+  // What `false` selects (the other side of the pair) is said once in the camunda7 module
+  // instructions; each flag keeps only what its `true` means on this query.
+  it.each([
+    ["locked", "lock not expired"],
+    ["notLocked", "no lock, or it expired"],
+    ["withRetriesLeft", "or not set yet"],
+    ["noRetriesLeft", "an incident exists"],
+  ] as const)("tells the model what %s=true selects (%s)", (flag, qualifier) => {
+    const { description } = listExternalTasksInput.shape[flag]
+    expect(description).toMatch(/^true = only /)
+    expect(description).toContain(qualifier)
+    expect(description).not.toContain("false")
   })
 })
 

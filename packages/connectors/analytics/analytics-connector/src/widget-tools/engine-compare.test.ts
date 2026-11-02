@@ -182,10 +182,12 @@ describe("analytics_show_engine_compare registration", () => {
   const { definition } = showEngineCompare(recordingClient().client)
 
   it("tells the model why the process scope is mandatory", () => {
-    // The only place a model learns an unscoped comparison measures the process mix.
-    expect(definition.description).toContain("processDefinitionKey is required")
-    expect(definition.description).toContain("process mixes")
-    expect(definition.description).toContain("analytics_show_engine_landscape")
+    // The parameter is where this tool says why its scope is mandatory; the instructions' rate rule
+    // states the process-mix reason for every analytics tool.
+    const { description } = definition.inputSchema.shape.processDefinitionKey as z.ZodType
+    expect(description).toContain("REQUIRED")
+    expect(description).toContain("process mixes")
+    expect(description).toContain("analytics_show_engine_landscape")
   })
 
   it("requires processDefinitionKey at the schema boundary", () => {

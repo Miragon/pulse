@@ -5,7 +5,12 @@ import {
   EXPECTED_TOOLS_OPERATIONS,
   EXPECTED_TOOLS_READ_ONLY,
 } from "./expected-tools.js"
-import { assertCharBudget, assertGolden, modelVisibleChars } from "./golden.js"
+import {
+  assertCharBudget,
+  assertGolden,
+  modelVisibleChars,
+  repeatedParamDescriptions,
+} from "./golden.js"
 
 /**
  * Golden contract of the LLM-facing tool surface, PER TOOLSET.
@@ -16,8 +21,12 @@ import { assertCharBudget, assertGolden, modelVisibleChars } from "./golden.js"
  * whether a model sees the tool at all) steer every consuming model. The name
  * lists in expected-tools.ts pin WHICH tools a toolset exposes; these goldens
  * pin WHAT each of them says — one sorted JSON file per toolset, so a review
- * sees the exact wire change. A per-golden character budget (shrink-only via
- * `pnpm lint`) keeps the model-visible text from growing silently.
+ * sees the exact wire change. A per-toolset character budget (shrink-only via
+ * `pnpm lint`) keeps the model-visible text from growing silently: it counts
+ * the model-visible tools/list text plus the server instructions this boot
+ * sends at initialize, so text moved from a description into the
+ * instructions still counts. Each toolset also holds every parameter
+ * description to at most two model-visible tools (`repeatedParamDescriptions`).
  *
  * Intended change: `GOLDEN_UPDATE=1 pnpm --filter @miragon/pulse-mcp-server-camunda7 test`,
  * then commit the JSON diff (refused in CI).
@@ -64,8 +73,14 @@ describe("tools/list golden contract per toolset", () => {
       const sorted = [...tools].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
       // The name list is the reviewable summary; the golden the full payload.
       expect(sorted.map((t) => t.name)).toEqual([...names].sort())
+      // No parameter description repeats on more than two of this toolset's model-visible tools.
+      expect(
+        repeatedParamDescriptions(sorted),
+        "A parameter that means the same on several tools is explained once in the module " +
+          "instructions; describe it on a tool only where it means more there (add-bpm-feature skill).",
+      ).toEqual([])
       assertGolden(golden, sorted)
-      assertCharBudget(golden, modelVisibleChars(sorted))
+      assertCharBudget(golden, modelVisibleChars(sorted, server.client.getInstructions() ?? ""))
     } finally {
       await server.close()
     }

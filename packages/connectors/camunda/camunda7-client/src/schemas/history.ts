@@ -8,31 +8,31 @@ import {
   sortOrderParam,
 } from "./shared.js"
 
-/** finished/unfinished — complementary engine flags (`complementaryFlags`). */
-const finishedFlags = (things: string) => ({
-  finished: flagParam(`true = only finished ${things}, false = only unfinished`),
-  unfinished: flagParam(`true = only unfinished ${things}, false = only finished`),
-})
+/**
+ * finished/unfinished: complementary engine flags (`complementaryFlags`), a
+ * pair the camunda7 module instructions name.
+ */
+const finishedFlags = {
+  finished: flagParam(),
+  unfinished: flagParam(),
+}
 
 /** Start/end time windows of a historic query; ISO 8601 in, engine format out. */
 const timeWindow = {
-  startedAfter: engineDateParam("Started after"),
-  startedBefore: engineDateParam("Started before"),
-  finishedAfter: engineDateParam("Finished after"),
-  finishedBefore: engineDateParam("Finished before"),
+  startedAfter: engineDateParam(),
+  startedBefore: engineDateParam(),
+  finishedAfter: engineDateParam(),
+  finishedBefore: engineDateParam(),
 }
 
 export const queryHistoricProcessInstancesInput = z.object({
-  processInstanceId: z.string().optional().describe("Filter by process instance ID"),
-  processDefinitionKey: z.string().optional().describe("Filter by process definition key"),
-  businessKey: z.string().optional().describe("Filter by exact business key"),
-  businessKeyLike: likeParam("Filter by business key"),
-  ...finishedFlags("instances"),
+  processInstanceId: z.string().optional(),
+  processDefinitionKey: z.string().optional(),
+  businessKey: z.string().optional(),
+  businessKeyLike: likeParam(),
+  ...finishedFlags,
   withIncidents: flagParam("true = only instances that had an incident (open or resolved)"),
-  incidentStatus: z
-    .enum(["open", "resolved"])
-    .optional()
-    .describe("Only instances with an incident in this status"),
+  incidentStatus: z.enum(["open", "resolved"]).optional(),
   ...timeWindow,
   firstResult: firstResultParam,
   maxResults: maxResultsParam(),
@@ -53,18 +53,12 @@ export const queryHistoricProcessInstancesInput = z.object({
 })
 
 export const queryHistoricActivityInstancesInput = z.object({
-  processInstanceId: z.string().optional().describe("Filter by process instance ID"),
-  processDefinitionId: z
-    .string()
-    .optional()
-    .describe("Filter by process definition ID (this engine query has no key filter)"),
-  activityId: z.string().optional().describe("Filter by activity ID (the BPMN element id)"),
-  activityType: z
-    .string()
-    .optional()
-    .describe("Filter by activity type (e.g. userTask, serviceTask)"),
-  ...finishedFlags("activities"),
-  canceled: flagParam("true = only canceled activities"),
+  processInstanceId: z.string().optional(),
+  processDefinitionId: z.string().optional().describe("This engine query has no key filter"),
+  activityId: z.string().optional(),
+  activityType: z.string().optional().describe("e.g. userTask, serviceTask"),
+  ...finishedFlags,
+  canceled: flagParam(),
   ...timeWindow,
   firstResult: firstResultParam,
   maxResults: maxResultsParam(50),
@@ -86,10 +80,10 @@ export const queryHistoricActivityInstancesInput = z.object({
 })
 
 export const queryHistoricTaskInstancesInput = z.object({
-  processInstanceId: z.string().optional().describe("Filter by process instance ID"),
-  processDefinitionKey: z.string().optional().describe("Filter by process definition key"),
-  assignee: z.string().optional().describe("Filter by assignee user ID"),
-  ...finishedFlags("tasks"),
+  processInstanceId: z.string().optional(),
+  processDefinitionKey: z.string().optional(),
+  assignee: z.string().optional(),
+  ...finishedFlags,
   firstResult: firstResultParam,
   maxResults: maxResultsParam(),
   sortBy: z
@@ -117,10 +111,14 @@ export const queryHistoricTaskInstancesInput = z.object({
   sortOrder: sortOrderParam,
 })
 
+/**
+ * `variableName` here is a plain filter: unlike the runtime reads' `wholeVariableParam`, a
+ * history value stays cut (`truncateVariableRows`), so the field says so.
+ */
 export const queryHistoricVariableInstancesInput = z.object({
-  processInstanceId: z.string().optional().describe("Filter by process instance ID"),
-  variableName: z.string().optional().describe("Filter by exact variable name"),
-  variableNameLike: likeParam("Filter by variable name"),
+  processInstanceId: z.string().optional(),
+  variableName: z.string().optional().describe("Values stay cut, even for one name"),
+  variableNameLike: likeParam(),
   firstResult: firstResultParam,
   maxResults: maxResultsParam(50),
   sortBy: z.enum(["instanceId", "variableName", "tenantId"]).optional(),
@@ -136,14 +134,14 @@ export const queryHistoricVariableInstancesInput = z.object({
  * `false` — the tool drops it instead of claiming a filter.
  */
 export const queryHistoricIncidentsInput = z.object({
-  processInstanceId: z.string().optional().describe("Filter by process instance ID"),
-  processDefinitionKey: z.string().optional().describe("Filter by process definition key"),
-  activityId: z.string().optional().describe("Filter by the activity the incident occurred on"),
-  incidentType: z.string().optional().describe("Filter by incident type (e.g. failedJob)"),
-  open: flagParam("true = only open incidents"),
-  resolved: flagParam("true = only resolved incidents"),
-  createTimeAfter: engineDateParam("Created after"),
-  createTimeBefore: engineDateParam("Created before"),
+  processInstanceId: z.string().optional(),
+  processDefinitionKey: z.string().optional(),
+  activityId: z.string().optional(),
+  incidentType: z.string().optional(),
+  open: flagParam(),
+  resolved: flagParam(),
+  createTimeAfter: engineDateParam(),
+  createTimeBefore: engineDateParam(),
   firstResult: firstResultParam,
   maxResults: maxResultsParam(),
   sortBy: z

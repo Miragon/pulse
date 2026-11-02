@@ -1,15 +1,14 @@
 import { z } from "zod"
 
-/** A raw capped array can't tell "20 returned" from "exactly 20 exist"; `items` stays unknown on purpose, the envelope is the contract. */
+/**
+ * A raw capped array can't tell "20 returned" from "exactly 20 exist"; `items` stays unknown on purpose, the envelope is the contract.
+ * No property descriptions: the camunda7 module instructions state the paging contract once.
+ */
 export const paginatedListOutput = z.object({
-  items: z.array(z.unknown()).describe("One page of results"),
-  totalCount: z.number().int().describe("Total number of results matching the filters"),
-  hasMore: z.boolean().describe("Whether more results exist beyond this page"),
-  nextOffset: z
-    .number()
-    .int()
-    .optional()
-    .describe("Present when hasMore is true: pass as firstResult to fetch the next page"),
+  items: z.array(z.unknown()),
+  totalCount: z.number().int(),
+  hasMore: z.boolean(),
+  nextOffset: z.number().int().optional(),
 })
 
 export type PaginatedList<T> = {

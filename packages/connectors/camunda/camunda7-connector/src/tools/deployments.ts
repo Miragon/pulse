@@ -57,8 +57,7 @@ export function registerDeploymentTools(
   register({
     name: "camunda7_list_deployments",
     category: "deployments",
-    description:
-      "List deployments with optional filters. Returns one page as { items, totalCount, hasMore, nextOffset? }. If hasMore is true, call again with firstResult = nextOffset.",
+    description: "List deployments.",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     inputSchema: { ...listDeploymentsInput.shape, ...engineParamShape },
     outputSchema: paginatedListOutput,

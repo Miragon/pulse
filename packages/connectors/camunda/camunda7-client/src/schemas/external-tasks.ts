@@ -12,27 +12,20 @@ import {
  * workers see without locking, completing or failing anything. The boolean
  * filters are TRUE-ONLY on the engine side (`false` matches every task), so
  * the tool sends a `false` as its complement (locked/notLocked,
- * withRetriesLeft/noRetriesLeft — `complementaryFlags`).
+ * withRetriesLeft/noRetriesLeft — `complementaryFlags`). Each flag says what
+ * `true` selects; the camunda7 module instructions say once that `false`
+ * selects the other side of its pair.
  */
 export const listExternalTasksInput = z.object({
-  topicName: z.string().optional().describe("Filter by external task topic"),
-  workerId: z
-    .string()
-    .optional()
-    .describe("Filter by the id of the worker that most recently locked the task"),
-  locked: flagParam("true = only tasks locked now (lock not expired), false = only not locked"),
-  notLocked: flagParam(
-    "true = only tasks not locked (no lock, or it expired), false = only locked",
-  ),
-  withRetriesLeft: flagParam(
-    "true = only tasks with retries > 0 (or not set yet), false = only failed (0 retries)",
-  ),
-  noRetriesLeft: flagParam(
-    "true = only failed tasks (0 retries, an incident exists), false = only retries left",
-  ),
-  processInstanceId: z.string().optional().describe("Filter by process instance ID"),
-  processDefinitionKey: z.string().optional().describe("Filter by process definition key"),
-  activityId: z.string().optional().describe("Filter by the activity the task was created for"),
+  topicName: z.string().optional(),
+  workerId: z.string().optional().describe("The worker that most recently locked the task"),
+  locked: flagParam("true = only tasks locked now (lock not expired)"),
+  notLocked: flagParam("true = only tasks not locked (no lock, or it expired)"),
+  withRetriesLeft: flagParam("true = only tasks with retries > 0 (or not set yet)"),
+  noRetriesLeft: flagParam("true = only failed tasks (0 retries, an incident exists)"),
+  processInstanceId: z.string().optional(),
+  processDefinitionKey: z.string().optional(),
+  activityId: z.string().optional(),
   firstResult: firstResultParam,
   maxResults: maxResultsParam(),
   sortBy: z
@@ -45,8 +38,7 @@ export const listExternalTasksInput = z.object({
       "taskPriority",
       "tenantId",
     ])
-    .optional()
-    .describe("Sort field; sorts ascending unless sortOrder is given"),
+    .optional(),
   sortOrder: sortOrderParam,
 })
 
@@ -57,54 +49,38 @@ export const listExternalTasksInput = z.object({
  * `camunda7_resolve_incident` cannot resolve); 0 raises one.
  */
 export const setExternalTaskRetriesInput = z.object({
-  externalTaskId: z.string().describe("The external task ID (from camunda7_list_external_tasks)"),
-  retries: z
-    .number()
-    .int()
-    .min(0)
-    .describe("Number of retries to set; > 0 makes a failed task available to its workers again"),
+  externalTaskId: z.string(),
+  retries: z.number().int().min(0),
 })
 
 export const fetchAndLockInput = z.object({
-  workerId: z.string().describe("The ID of the worker to lock tasks for"),
-  maxTasks: z.number().int().positive().default(10).describe("Maximum number of tasks to fetch"),
-  topics: z
-    .array(
-      z.object({
-        topicName: z.string().describe("Topic name to subscribe to"),
-        lockDuration: z
-          .number()
-          .int()
-          .positive()
-          .default(300000)
-          .describe("Lock duration in milliseconds"),
-        variables: z
-          .array(z.string())
-          .optional()
-          .describe("Variable names to include in the response"),
-      }),
-    )
-    .describe("Topics to subscribe to"),
+  workerId: z.string(),
+  maxTasks: z.number().int().positive().default(10),
+  topics: z.array(
+    z.object({
+      topicName: z.string(),
+      lockDuration: z.number().int().positive().default(300000).describe("In milliseconds"),
+      variables: z
+        .array(z.string())
+        .optional()
+        .describe("Variable names to include in the response"),
+    }),
+  ),
 })
 
 export const completeExternalTaskInput = z.object({
-  externalTaskId: z.string().describe("The ID of the external task to complete"),
-  workerId: z.string().describe("The ID of the worker that locked the task"),
-  variables: variableSchema.optional().describe("Variables to set when completing the task"),
+  externalTaskId: z.string(),
+  workerId: z.string(),
+  variables: variableSchema.optional(),
 })
 
 export const handleExternalTaskFailureInput = z.object({
-  externalTaskId: z.string().describe("The ID of the external task"),
-  workerId: z.string().describe("The ID of the worker that locked the task"),
-  errorMessage: z.string().optional().describe("Error message describing the failure"),
-  errorDetails: z.string().optional().describe("Detailed error information (e.g. stack trace)"),
+  externalTaskId: z.string(),
+  workerId: z.string(),
+  errorMessage: z.string().optional(),
+  errorDetails: z.string().optional(),
   // Required: the engine reads an omitted `retries` as 0 — an incident at
   // once, and the retryTimeout is ignored.
-  retries: z.number().int().min(0).describe("Remaining retries; 0 raises an incident at once"),
-  retryTimeout: z
-    .number()
-    .int()
-    .min(0)
-    .optional()
-    .describe("Timeout in ms before the task can be retried"),
+  retries: z.number().int().min(0),
+  retryTimeout: z.number().int().min(0).optional().describe("In milliseconds"),
 })

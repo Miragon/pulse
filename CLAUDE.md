@@ -258,8 +258,10 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    Every tool takes STRICT input (the registrar always, a raw registration through
    `strictToolInput(…)`), with no exemption list: an unknown key is a tool error listing the
    valid keys, never a silently stripped filter
-   (`test/strict-input.e2e.test.ts` in the app). Parameter names follow the guide in the
-   add-bpm-feature skill.
+   (`test/strict-input.e2e.test.ts` in the app). Parameter names and descriptions follow the
+   guide in the add-bpm-feature skill: a parameter that means the same on every tool is
+   explained once in the module instructions, and a tool describes it only where it means more
+   there.
 
 6. **MCP App widgets compose from the design kit `@miragon/pulse-ui` and the view runtime of
    `@miragon/pulse-widget-shell/widgets`; never re-inline their primitives.** This covers
@@ -499,9 +501,10 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
 - **The tools/list wire payload is a golden, per toolset**
   (`apps/mcp-server-camunda7/test/tools-list.golden.test.ts`). The ONLY update path is
   `GOLDEN_UPDATE=1 pnpm --filter @miragon/pulse-mcp-server-camunda7 test` (refused in CI);
-  never hand-edit a golden. `__golden__/char-budgets.json` pins each surface's model-visible
-  size, shrink-only: a change that makes the model read MORE text needs a `Ratchet-Exception:`
-  trailer.
+  never hand-edit a golden. `__golden__/char-budgets.json` pins each toolset's model-visible
+  size, the tools/list text plus the server instructions sent at initialize (text moved into
+  the instructions still counts), shrink-only: a change that makes the model read MORE text
+  needs a `Ratchet-Exception:` trailer.
 - **The widget bundle has a budget.** Every view resource inlines the whole bundle, so its
   size is the cost of every render: `test/__golden__/bundle-budget.json` holds shrink-only gzip
   ceilings that `test-host/bundle-budget.spec.ts` checks; growth needs a `Ratchet-Exception:`

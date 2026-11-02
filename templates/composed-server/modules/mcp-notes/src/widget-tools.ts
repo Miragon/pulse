@@ -33,8 +33,7 @@ export function registerWidgetTools(server: MCPServer, store: NotesStore, title:
     {
       name: NOTES_SHOW_NOTES,
       title: "Team Notes",
-      description:
-        "Show the team's operations notes as an interactive list. Optional case-insensitive filter over title, text, and tags.",
+      description: "Show the team's operations notes as an interactive list.",
       annotations: { readOnlyHint: true, idempotentHint: true },
       inputSchema: strictToolInput(notesInputShape),
       ...showToolBinding(NOTES_SHOW_NOTES, "Team Notes"),

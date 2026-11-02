@@ -12,7 +12,10 @@ import { expect } from "vitest"
  * reviewable JSON diff in the PR.
  *
  * Next to each golden sits a CHARACTER BUDGET (`__golden__/char-budgets.json`):
- * the size of the text a model reads from that surface. The test pins it
+ * the size of the text a model reads from that toolset: its model-visible
+ * tools/list entries plus the server instructions, measured on the golden's
+ * single-engine boot (a fleet adds its engine ids to every camunda7 `engine`
+ * enum and to the routing line, which no budget shows). The test pins it
  * exactly; scripts/check-ratchets.mjs (`pnpm lint`) makes it shrink-only
  * against the merge base, so the LLM-facing surface cannot grow without a
  * reviewed `Ratchet-Exception:` commit trailer.
@@ -112,7 +115,7 @@ export function assertCharBudget(name: string, measured: number, dir = GOLDEN_DI
   }
   if (measured > budget) {
     throw new Error(
-      `The model-visible surface "${name}" grew from ${budget} to ${measured} characters. The budget is shrink-only: trim descriptions/schemas, or run ${UPDATE_COMMAND} and justify the growth with a "Ratchet-Exception: <reason>" commit trailer (pnpm lint enforces it).`,
+      `The model-visible surface "${name}" grew from ${budget} to ${measured} characters. The budget is shrink-only: trim descriptions, schemas or instructions, or run ${UPDATE_COMMAND} and justify the growth with a "Ratchet-Exception: <reason>" commit trailer (pnpm lint enforces it).`,
     )
   }
   if (measured < budget) {
@@ -141,12 +144,15 @@ export function isModelVisible(tool: WireTool): boolean {
 }
 
 /**
- * The text an MCP host hands a model for each tool it can call: name, title,
- * description and the serialized inputSchema (incl. every `.describe()`).
- * `outputSchema`, annotations and `_meta` steer hosts, not the model's
- * context, and stay out of the count (they are pinned by the golden itself).
+ * The text a model reads from one toolset: for each tool it can call, name,
+ * title, description and the serialized inputSchema (incl. every
+ * `.describe()`); plus the server `instructions` (the preamble and every
+ * active module's snippet) a client receives at initialize, so text moved
+ * from a description into the instructions still counts. `outputSchema`,
+ * annotations and `_meta` steer hosts and stay out (they are pinned by the
+ * golden itself).
  */
-export function modelVisibleChars(tools: readonly WireTool[]): number {
+export function modelVisibleChars(tools: readonly WireTool[], instructions: string): number {
   return tools
     .filter(isModelVisible)
     .reduce(
@@ -156,6 +162,57 @@ export function modelVisibleChars(tools: readonly WireTool[]): number {
         (tool.title?.length ?? 0) +
         (tool.description?.length ?? 0) +
         JSON.stringify(tool.inputSchema ?? {}).length,
-      0,
+      instructions.length,
     )
+}
+
+/** One parameter description a model reads on several tools. */
+export interface RepeatedParamDescription {
+  description: string
+  /** The parameter names it is attached to (one, unless a text is shared under several names). */
+  params: string[]
+  tools: string[]
+}
+
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null
+
+/**
+ * Every `[property name, description]` at any depth of a JSON schema: the properties of every
+ * object node, wherever it sits (nested objects, array `items`, map `additionalProperties`,
+ * `anyOf`/`oneOf`/`allOf` branches), since a nested `value` repeats a top-level one just the same.
+ */
+function describedParams(node: unknown): Array<[string, string]> {
+  if (Array.isArray(node)) return node.flatMap(describedParams)
+  if (!isObject(node)) return []
+  const { properties } = node
+  const own = isObject(properties)
+    ? Object.entries(properties).flatMap(([key, property]) =>
+        isObject(property) && typeof property.description === "string"
+          ? [[key, property.description] as [string, string]]
+          : [],
+      )
+    : []
+  return [...own, ...Object.values(node).flatMap(describedParams)]
+}
+
+/**
+ * The parameter descriptions that appear on more than `maxTools` model-visible tools, keyed on
+ * the text alone (a text shared under different names repeats just the same). A parameter that
+ * means the same on every tool is explained once in the module instructions, not per tool.
+ */
+export function repeatedParamDescriptions(
+  tools: readonly WireTool[],
+  maxTools = 2,
+): RepeatedParamDescription[] {
+  const seen = new Map<string, RepeatedParamDescription>()
+  for (const tool of tools.filter(isModelVisible)) {
+    for (const [param, description] of describedParams(tool.inputSchema)) {
+      const entry = seen.get(description) ?? { description, params: [], tools: [] }
+      if (!entry.params.includes(param)) entry.params.push(param)
+      if (!entry.tools.includes(tool.name)) entry.tools.push(tool.name)
+      seen.set(description, entry)
+    }
+  }
+  return [...seen.values()].filter((entry) => entry.tools.length > maxTools)
 }

@@ -9,18 +9,18 @@ import {
 } from "./shared.js"
 
 export const listTasksInput = z.object({
-  assignee: z.string().optional().describe("Filter by assignee user ID"),
+  assignee: z.string().optional(),
   candidateGroup: z
     .string()
     .optional()
-    .describe("Tasks offered to this group — only UNASSIGNED ones unless includeAssignedTasks"),
+    .describe("Tasks offered to this group: only UNASSIGNED ones unless includeAssignedTasks"),
   includeAssignedTasks: z
     .boolean()
     .optional()
     .describe("With candidateGroup: include tasks already claimed"),
-  processDefinitionKey: z.string().optional().describe("Filter by process definition key"),
-  processInstanceId: z.string().optional().describe("Filter by process instance ID"),
-  unassigned: flagParam("true = only unassigned tasks, false = only assigned"),
+  processDefinitionKey: z.string().optional(),
+  processInstanceId: z.string().optional(),
+  unassigned: flagParam(),
   firstResult: firstResultParam,
   maxResults: maxResultsParam(),
   sortBy: z
@@ -35,35 +35,34 @@ export const listTasksInput = z.object({
       "name",
       "priority",
     ])
-    .optional()
-    .describe("Sort field"),
+    .optional(),
   sortOrder: sortOrderParam,
 })
 
 export const getTaskInput = z.object({
-  taskId: z.string().describe("The task ID"),
+  taskId: z.string(),
 })
 
 export const claimTaskInput = z.object({
-  taskId: z.string().describe("The task ID to claim"),
-  userId: z.string().describe("The user ID to assign the task to"),
+  taskId: z.string(),
+  userId: z.string(),
 })
 
 export const unclaimTaskInput = z.object({
-  taskId: z.string().describe("The task ID to unclaim"),
+  taskId: z.string(),
 })
 
 export const completeTaskInput = z.object({
-  taskId: z.string().describe("The ID of the task to complete"),
-  variables: variableSchema.optional().describe("Variables to set when completing the task"),
+  taskId: z.string(),
+  variables: variableSchema.optional(),
 })
 
 export const setTaskAssigneeInput = z.object({
-  taskId: z.string().describe("The task ID"),
-  userId: z.string().describe("The user ID to set as assignee"),
+  taskId: z.string(),
+  userId: z.string(),
 })
 
 export const getTaskVariablesInput = z.object({
-  taskId: z.string().describe("The task ID"),
+  taskId: z.string(),
   variableName: wholeVariableParam,
 })

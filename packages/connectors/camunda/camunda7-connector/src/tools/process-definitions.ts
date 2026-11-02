@@ -17,9 +17,7 @@ export function registerProcessDefinitionTools(register: ToolRegistrar<EngineReg
   register({
     name: "camunda7_list_process_definitions",
     category: "process-definitions",
-    description:
-      "List deployed process definitions (key, name, version, deployment) with optional filters. " +
-      "Returns one page as { items, totalCount, hasMore, nextOffset? }. If hasMore is true, call again with firstResult = nextOffset.",
+    description: "List deployed process definitions (key, name, version, deployment).",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     inputSchema: { ...listProcessDefinitionsInput.shape, ...engineParamShape },
     outputSchema: paginatedListOutput,

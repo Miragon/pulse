@@ -57,7 +57,7 @@ export const jobsFilterShape = {
 }
 export type JobsFilters = z.infer<z.ZodObject<typeof jobsFilterShape>>
 
-// From the client schemas so the describe() texts stay in one place.
+// From the client schemas so the field types stay in one place.
 export const incidentsDashboardFilterShape = {
   processDefinitionKey: listProcessInstancesInput.shape.processDefinitionKey,
   incidentType: listIncidentsInput.shape.incidentType,

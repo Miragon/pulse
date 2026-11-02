@@ -2,16 +2,18 @@ import { z } from "zod"
 import { variableSchema } from "./shared.js"
 
 export const correlateMessageInput = z.object({
-  messageName: z.string().describe("The name of the message"),
-  processInstanceId: z.string().optional().describe("Correlate only to this process instance"),
-  businessKey: z.string().optional().describe("Business key to correlate with"),
-  correlationKeys: variableSchema.optional().describe("Correlation keys to match"),
-  processVariables: variableSchema.optional().describe("Variables to set on the process"),
-  all: z.boolean().optional().describe("Correlate to every match (default: exactly one)"),
-  resultEnabled: z.boolean().optional().default(true).describe("Return correlation result"),
+  messageName: z.string(),
+  processInstanceId: z.string().optional(),
+  businessKey: z.string().optional(),
+  correlationKeys: variableSchema.optional(),
+  processVariables: variableSchema
+    .optional()
+    .describe("Set on the instance the message reaches; only correlationKeys match"),
+  all: z.boolean().optional(),
+  resultEnabled: z.boolean().optional().default(true),
 })
 
 export const throwSignalInput = z.object({
-  name: z.string().describe("The name of the signal"),
-  variables: variableSchema.optional().describe("Variables to set"),
+  name: z.string(),
+  variables: variableSchema.optional(),
 })

@@ -2,12 +2,12 @@ import { z } from "zod"
 import { firstResultParam, likeParam, maxResultsParam, sortOrderParam } from "./shared.js"
 
 export const getDeploymentInput = z.object({
-  deploymentId: z.string().min(1).describe("Deployment ID"),
+  deploymentId: z.string().min(1),
 })
 
 export const listDeploymentsInput = z.object({
-  name: z.string().optional().describe("Filter by exact deployment name"),
-  nameLike: likeParam("Filter by deployment name"),
+  name: z.string().optional(),
+  nameLike: likeParam(),
   firstResult: firstResultParam,
   maxResults: maxResultsParam(),
   sortBy: z.enum(["id", "name", "deploymentTime", "tenantId"]).optional(),
@@ -45,17 +45,14 @@ const resourceName = z
   )
 
 export const createDeploymentInput = z.object({
-  deploymentName: z.string().describe("Name for the deployment"),
+  deploymentName: z.string(),
   enableDuplicateFiltering: z
     .boolean()
     .optional()
     .describe("Skip deployment if identical resources already deployed"),
-  deployChangedOnly: z
-    .boolean()
-    .optional()
-    .describe("Only deploy resources that have actually changed"),
-  deploymentSource: z.string().optional().describe("Source identifier for the deployment"),
-  tenantId: z.string().optional().describe("Tenant ID for multi-tenancy"),
+  deployChangedOnly: z.boolean().optional(),
+  deploymentSource: z.string().optional(),
+  tenantId: z.string().optional(),
   resources: z
     .array(
       z.object({
@@ -71,5 +68,5 @@ export const createDeploymentInput = z.object({
     .refine((resources) => new Set(resources.map((r) => r.name)).size === resources.length, {
       message: "Resource names must be unique within one deployment",
     })
-    .describe("Resources to deploy; each name must be unique within the deployment"),
+    .describe("Each name must be unique within the deployment"),
 })

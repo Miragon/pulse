@@ -130,8 +130,11 @@ function's `SCENARIOS` entry (`src/query-scenarios.test-support.ts`) plus its `N
 Add the tool's input schema to `packages/connectors/analytics/analytics-client/src/schemas/<topic>.ts` and
 export it from `src/schemas/index.ts`. Reuse `engineFilterShape` from
 `src/schemas/shared.ts` for the optional `engine` filter and `periodField` for the
-`period` input (derived from `PERIODS` — never redeclare the period enum), and
-`.describe()` every field (see `heatmapInput` in `src/schemas/dashboard.ts`).
+`period` input (derived from `PERIODS` — never redeclare the period enum). Descriptions follow
+the rule of the add-bpm-feature skill (reference: `engineCompareInput` in
+`src/schemas/engine-compare.ts`, whose required `processDefinitionKey` says why); `engine`,
+`period`, the A/B sides and `minBucketSize` are said once in `analyticsInstructions`
+(`packages/connectors/analytics/analytics-connector/src/instructions.ts`).
 
 **Defaults live in the schema.** `periodField` defaults to `7d` and each schema's
 `minBucketSize` to 10: the tool takes the schema's `.shape` as is, so an omitted value
@@ -345,7 +348,8 @@ pnpm build && pnpm typecheck && pnpm test && pnpm lint
 A new or changed tool changes the wire surface: add its name to
 `apps/mcp-server-camunda7/test/expected-tools.ts`, then refresh the per-toolset goldens with
 `GOLDEN_UPDATE=1 pnpm --filter @miragon/pulse-mcp-server-camunda7 test` and commit the
-`test/__golden__/` diff. If `char-budgets.json` grew, `pnpm lint` fails until the commit
+`test/__golden__/` diff. The budget of each toolset counts the model-visible tools/list text
+plus the server instructions. If `char-budgets.json` grew, `pnpm lint` fails until the commit
 carries a `Ratchet-Exception: <why the model must read more>` trailer — trim wording first.
 A camunda7 widget that names an analytics feed by raw string is checked against the booted
 surface by `test/tool-name-refs.test.ts` — renaming a feed fails there.

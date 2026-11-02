@@ -50,31 +50,25 @@ const START_VIEW_PARAMS: Record<
 const START_VIEWS = Object.keys(START_VIEW_PARAMS) as [CockpitSection, ...CockpitSection[]]
 
 const startViewShape = {
-  view: z.enum(START_VIEWS).optional().describe("Where it opens (default overview)."),
+  view: z.enum(START_VIEWS).optional(),
   processDefinitionKey: z
     .string()
     .optional()
-    .describe("process-detail (required), process-instances, jobs: the process definition key."),
+    .describe("process-detail (required), process-instances, jobs."),
   focus: z
     .enum(["incidents"])
     .optional()
     .describe("process-detail: focus on its incidents; if none, list processes that have some."),
   activityId: z.string().optional().describe("cluster-detail (required): the failing activity id."),
-  incidentType: z
-    .string()
-    .optional()
-    .describe("cluster-detail (required): the incident type, e.g. failedJob."),
+  incidentType: z.string().optional().describe("cluster-detail (required)."),
   messageSignature: z
     .string()
     .optional()
     .describe(
       "cluster-detail: a failure message signature (the overview's topCluster); omitted: all.",
     ),
-  processInstanceId: z
-    .string()
-    .optional()
-    .describe("instance-detail, history (required): the process instance id."),
-  incidentId: z.string().optional().describe("incident-detail (required): the incident id."),
+  processInstanceId: z.string().optional().describe("instance-detail, history (required)."),
+  incidentId: z.string().optional().describe("incident-detail (required)."),
   failedOnly: z.boolean().optional().describe("jobs: only jobs without retries."),
 } satisfies Record<StartParam | "view", z.ZodType>
 

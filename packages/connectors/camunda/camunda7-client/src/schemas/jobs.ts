@@ -8,13 +8,13 @@ import {
 } from "./shared.js"
 
 export const listJobsInput = z.object({
-  processInstanceId: z.string().optional().describe("Filter by process instance ID"),
-  processDefinitionKey: z.string().optional().describe("Filter by process definition key"),
-  activityId: z.string().optional().describe("Filter by the activity the job belongs to"),
-  withRetriesLeft: flagParam("true = only jobs with retries > 0, false = only failed (0 retries)"),
-  noRetriesLeft: flagParam("true = only failed jobs (0 retries), false = only retries > 0"),
-  active: flagParam("true = only active jobs, false = only suspended"),
-  suspended: flagParam("true = only suspended jobs, false = only active"),
+  processInstanceId: z.string().optional(),
+  processDefinitionKey: z.string().optional(),
+  activityId: z.string().optional(),
+  withRetriesLeft: flagParam(),
+  noRetriesLeft: flagParam(),
+  active: flagParam(),
+  suspended: flagParam(),
   firstResult: firstResultParam,
   maxResults: maxResultsParam(),
   sortBy: z
@@ -34,13 +34,13 @@ export const listJobsInput = z.object({
 })
 
 export const setJobRetriesInput = z.object({
-  jobId: z.string().describe("The job ID"),
-  retries: z.number().int().min(0).describe("Number of retries to set"),
+  jobId: z.string(),
+  retries: z.number().int().min(0),
 })
 
 export const setJobRetriesBatchInput = z.object({
-  jobIds: z.array(z.string()).min(1).describe("IDs of the jobs whose retries should be set."),
-  retries: z.number().int().min(0).describe("Number of retries to set on every job. Must be >= 0."),
+  jobIds: z.array(z.string()).min(1),
+  retries: z.number().int().min(0),
   dueDate: engineDateParam("New due date; a past one runs the jobs at once"),
 })
 
@@ -50,5 +50,5 @@ export const setJobRetriesBatchInput = z.object({
  * `camunda7_list_jobs` only summarises as `exceptionMessage`.
  */
 export const getJobStacktraceInput = z.object({
-  jobId: z.string().min(1).describe("The job ID (e.g. from camunda7_list_jobs)"),
+  jobId: z.string().min(1),
 })

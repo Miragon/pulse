@@ -24,11 +24,7 @@ import {
 } from "@miragon/pulse-camunda7-client/sdk"
 import { paginatedListOutput, toPaginatedList } from "../lib/pagination.js"
 import type { EngineRegistry } from "../lib/resolve-engine.js"
-import {
-  CUT_VALUE_WRITE_RULE,
-  VARIABLE_TRUNCATION_NOTE,
-  variableRead,
-} from "../lib/variable-truncation.js"
+import { CUT_VALUE_WRITE_RULE, variableRead } from "../lib/variable-truncation.js"
 import { completeUserTask } from "../lib/task-completion.js"
 import { engineParamShape, withEngine } from "../lib/with-engine.js"
 
@@ -37,7 +33,7 @@ export function registerTaskTools(register: ToolRegistrar<EngineRegistry>) {
     name: "camunda7_list_tasks",
     category: "tasks",
     description:
-      "List user tasks with optional filters. Each task carries ID, name, assignee, process info, and timestamps. Returns one page as { items, totalCount, hasMore, nextOffset? }. If hasMore is true, call again with firstResult = nextOffset.",
+      "List user tasks. Each task carries ID, name, assignee, process info, and timestamps.",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     inputSchema: { ...listTasksInput.shape, ...engineParamShape },
     outputSchema: paginatedListOutput,
@@ -138,7 +134,8 @@ export function registerTaskTools(register: ToolRegistrar<EngineRegistry>) {
   register({
     name: "camunda7_get_task_variables",
     category: "tasks",
-    description: `Get all variables of a user task (Json/Xml/Object: serialized string + valueInfo). ${VARIABLE_TRUNCATION_NOTE}`,
+    description:
+      "Get all variables of a user task (Json/Xml/Object: serialized string + valueInfo).",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     inputSchema: { ...getTaskVariablesInput.shape, ...engineParamShape },
     handler: withEngine(async (client, args) =>

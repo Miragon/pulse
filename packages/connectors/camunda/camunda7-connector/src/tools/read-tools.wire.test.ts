@@ -190,6 +190,18 @@ describe("variable reads bound oversized values with a truncation marker", () =>
     },
   )
 
+  // The cut itself is said once in the module instructions (instructions.test.ts); the result
+  // carries truncated: true and valueLength.
+  it.each([
+    "camunda7_get_process_instance_variables",
+    "camunda7_get_task_variables",
+    "camunda7_query_historic_variable_instances",
+  ])("%s leaves the cut rule to the instructions", (name) => {
+    const description = tools.get(name)?.description
+    expect(description).toBeDefined()
+    expect(description).not.toContain("chars are cut")
+  })
+
   it("camunda7_query_historic_variable_instances, per row", async () => {
     const engine = await engineWith({
       "GET /history/variable-instance": {

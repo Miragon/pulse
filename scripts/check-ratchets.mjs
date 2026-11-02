@@ -64,7 +64,8 @@
  *                                   shrink-only; `include`/`project` never
  *                                   appear or shrink; never deleted
  *   apps/<app>/test/__golden__/char-budgets.json
- *                                   model-visible tool-surface budgets
+ *                                   model-visible surface budgets per toolset
+ *                                   (tools/list plus the server instructions)
  *                                   shrink-only, never removed
  *   apps/<app>/test/__golden__/bundle-budget.json
  *                                   widget-bundle gzip ceilings shrink-only,
@@ -1266,7 +1267,7 @@ function compareKnip(relPath, oldJson, newJson) {
 /** The growth message of each shrink-only budget file. */
 const BUDGET_GROWTH = {
   "char-budgets": (relPath, name, from, to) =>
-    `${relPath} -> "${name}": ${from} -> ${to} model-visible characters. The LLM-facing tool surface budget is shrink-only — trim descriptions/schemas elsewhere, or justify the growth with a Ratchet-Exception trailer.`,
+    `${relPath} -> "${name}": ${from} -> ${to} model-visible characters. The surface a model reads (tools/list plus the server instructions) is shrink-only: trim descriptions, schemas or instructions, or justify the growth with a Ratchet-Exception trailer.`,
   "bundle-budget": (relPath, name, from, to) =>
     `${relPath} -> "${name}": ${from} -> ${to} bytes gzip. Every view resource inlines the widget bundle, so its ceiling is shrink-only — shrink the bundle, or justify the growth with a Ratchet-Exception trailer.`,
 }

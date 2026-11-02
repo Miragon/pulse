@@ -16,8 +16,7 @@ export function registerTools(server: MCPServer, store: NotesStore): void {
   register({
     name: "notes_list_notes",
     category: "notes",
-    description:
-      "List the team's operations notes (title, text, tags, last update). Optional case-insensitive filter over title, text, and tags.",
+    description: "List the team's operations notes (title, text, tags, last update).",
     annotations: { readOnlyHint: true, idempotentHint: true },
     inputSchema: {
       query: z

@@ -14,8 +14,7 @@ export function registerIncidentTools(register: ToolRegistrar<EngineRegistry>) {
   register({
     name: "camunda7_list_incidents",
     category: "incidents",
-    description:
-      "List incidents (errors) in the engine: failed jobs, external task failures, etc. Returns one page as { items, totalCount, hasMore, nextOffset? }. If hasMore is true, call again with firstResult = nextOffset.",
+    description: "List incidents (errors) in the engine: failed jobs, external task failures, etc.",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     inputSchema: { ...listIncidentsInput.shape, ...engineParamShape },
     outputSchema: paginatedListOutput,

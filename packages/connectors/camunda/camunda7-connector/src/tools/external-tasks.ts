@@ -28,11 +28,9 @@ export function registerExternalTaskTools(register: ToolRegistrar<EngineRegistry
     name: "camunda7_list_external_tasks",
     category: "external-tasks",
     description:
-      "List external tasks (service-task work handed to external workers) with optional filters — topic, worker, " +
-      "lock state, retries, process instance/definition, activity. Read-only: it never locks, completes or fails a task " +
+      "List external tasks (service-task work handed to external workers). Read-only: it never locks, completes or fails a task " +
       "(noRetriesLeft finds the failed ones; where the toolset allows engine writes, camunda7_set_external_task_retries " +
-      "hands them back to their workers). " +
-      "Returns one page as { items, totalCount, hasMore, nextOffset? }. If hasMore is true, call again with firstResult = nextOffset.",
+      "hands them back to their workers).",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     inputSchema: { ...listExternalTasksInput.shape, ...engineParamShape },
     outputSchema: paginatedListOutput,

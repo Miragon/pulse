@@ -2,8 +2,6 @@
 // Widget feeds read uncut: an in-place edit writes the shown value back whole.
 export const MAX_VARIABLE_VALUE_CHARS = 2000
 
-export const VARIABLE_TRUNCATION_NOTE = `String values over ${MAX_VARIABLE_VALUE_CHARS} chars are cut (truncated: true, valueLength = full size).`
-
 /** A cut value written back would overwrite the stored value with its prefix. */
 export const CUT_VALUE_WRITE_RULE =
   "Never write back a value read with truncated: true — it is incomplete; read it whole first (variableName)."

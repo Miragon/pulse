@@ -32,11 +32,7 @@ import {
 } from "@miragon/pulse-camunda7-client/sdk"
 import { paginatedListOutput, toPaginatedList } from "../lib/pagination.js"
 import type { EngineRegistry } from "../lib/resolve-engine.js"
-import {
-  CUT_VALUE_WRITE_RULE,
-  VARIABLE_TRUNCATION_NOTE,
-  variableRead,
-} from "../lib/variable-truncation.js"
+import { CUT_VALUE_WRITE_RULE, variableRead } from "../lib/variable-truncation.js"
 import { engineParamShape, withEngine } from "../lib/with-engine.js"
 
 export function registerProcessInstanceTools(register: ToolRegistrar<EngineRegistry>) {
@@ -62,8 +58,7 @@ export function registerProcessInstanceTools(register: ToolRegistrar<EngineRegis
   register({
     name: "camunda7_list_process_instances",
     category: "process-instances",
-    description:
-      "List running process instances with optional filters. Returns one page as { items, totalCount, hasMore, nextOffset? }. If hasMore is true, call again with firstResult = nextOffset.",
+    description: "List running process instances.",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     inputSchema: { ...listProcessInstancesInput.shape, ...engineParamShape },
     outputSchema: paginatedListOutput,
@@ -160,7 +155,8 @@ export function registerProcessInstanceTools(register: ToolRegistrar<EngineRegis
   register({
     name: "camunda7_get_process_instance_variables",
     category: "process-instances",
-    description: `Get all variables of a process instance (Json/Xml/Object: serialized string + valueInfo). ${VARIABLE_TRUNCATION_NOTE}`,
+    description:
+      "Get all variables of a process instance (Json/Xml/Object: serialized string + valueInfo).",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     inputSchema: { ...getProcessInstanceVariablesInput.shape, ...engineParamShape },
     handler: withEngine(async (client, args) =>
@@ -174,7 +170,9 @@ export function registerProcessInstanceTools(register: ToolRegistrar<EngineRegis
   register({
     name: "camunda7_set_process_instance_variable",
     category: "process-instances",
-    description: `Set a single variable on a process instance. An Object needs valueInfo.objectTypeName (pass back the valueInfo read). ${CUT_VALUE_WRITE_RULE}`,
+    // The Object rule (valueInfo.objectTypeName) is the instructions' variable input rule;
+    // `toEngineVariable` names it when it is missing.
+    description: `Set a single variable on a process instance; pass back the valueInfo read. ${CUT_VALUE_WRITE_RULE}`,
     annotations: { destructiveHint: false, idempotentHint: true, openWorldHint: true },
     inputSchema: { ...setProcessInstanceVariableInput.shape, ...engineParamShape },
     handler: withEngine(async (client, args) => {

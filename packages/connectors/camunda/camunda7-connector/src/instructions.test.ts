@@ -1,3 +1,5 @@
+import fs from "node:fs"
+import path from "node:path"
 import { describe, expect, it, vi } from "vitest"
 import type { MCPServer } from "mcp-use"
 import { runWithMcpRequestInfo } from "@miragon/pulse-widget-shell/server"
@@ -22,10 +24,11 @@ describe("camunda7Module.instructions", () => {
 
   // The old summaries said "an unknown number of", "at least N" and "(all versions; diagram vN)"
   // in words; the cockpit's JSON facts carry null and two counts, so the rule says how to read them.
-  it("names the one view and how to read its facts", () => {
+  // What the cockpit shows and where `view` opens it is said by the tool's own description.
+  it("says how to read the cockpit's facts", () => {
     const text = snippet(TWO, "operations")
     expect(text).toContain(
-      "- View: camunda7_open_cockpit is the one view for the user. Its overview judges ONE engine from its open incidents, read live from the engine (status, statusRule); its view parameter opens the incidents, a failure cluster, a process, its instances, an instance, an incident, the jobs or an instance's history instead. Each call returns that view's facts as JSON: null is unknown, never 0; incidentCount null beside scannedIncidentCount N means at least N; a process's counts span every deployed version, diagramVersion names only the drawn diagram.",
+      "- The facts camunda7_open_cockpit returns as JSON: null is unknown, never 0; incidentCount null beside scannedIncidentCount N means at least N; a process's counts span every deployed version, diagramVersion names only the drawn diagram.\n",
     )
     expect(text).toContain(
       "history (camunda7_query_historic_*) covers finished instances, activities, tasks, variables and resolved incidents.\n",
@@ -41,11 +44,80 @@ describe("camunda7Module.instructions", () => {
     expect(text).not.toContain("ENGINE_NOT_SELECTED")
   })
 
-  it("states the cut-value rule for variable reads once", () => {
-    expect(snippet(TWO, "operations")).toContain(
-      "- Variable reads cut string values over 2000 chars (truncated: true): " +
-        "never write such a value back: read that variable whole with variableName first.",
+  // A parameter that means the same on every tool is described here, not on each tool. The
+  // verbatim lines are the instructions' contract: the char budget pins only their length.
+  it.each(["read-only", "operations", "admin"])(
+    "%s: states the shared parameter rules",
+    (toolset) => {
+      const text = snippet(TWO, toolset)
+      expect(text).toContain(
+        "- Filters mean the same on every tool: processDefinitionKey spans every version of a key, " +
+          "processDefinitionId names one version; activityId is the BPMN element id; incidentType is " +
+          "failedJob, failedExternalTask or a custom type; a …Like filter matches a substring (% wildcards " +
+          "allowed), without Like it matches exactly.\n",
+      )
+      expect(text).toContain(
+        "- Boolean filters narrow on true; false selects the other side only in these pairs: " +
+          "active/suspended, finished/unfinished, locked/notLocked, withRetriesLeft/noRetriesLeft, " +
+          "unassigned (false: assigned). Any other false is ignored; open/resolved are not a pair.\n",
+      )
+      expect(text).toContain(
+        "- Paging: a tool that takes firstResult (zero-based) returns one page " +
+          "{ items, totalCount, hasMore, nextOffset? }; while hasMore, call again with firstResult = " +
+          "nextOffset. maxResults: default in each schema, at most 100. " +
+          "sortBy sorts ascending unless sortOrder is desc; without sortBy the engine's order applies.\n",
+      )
+    },
+  )
+
+  it.each([
+    ["read-only", false],
+    ["operations", true],
+    ["admin", true],
+  ] as const)("%s: the variable input shape only where a tool takes variables", (toolset, has) => {
+    const rule =
+      "- Variable inputs (variables, correlationKeys, processVariables, " +
+      "camunda7_set_process_instance_variable): type is String, Long, Boolean, Date (ISO 8601), Json, " +
+      "Object, …; a Json or Object value is a serialized string or parsed JSON; an Object needs " +
+      "valueInfo.objectTypeName.\n"
+    expect(snippet(TWO, toolset).includes(rule)).toBe(has)
+  })
+
+  // The whole read is the runtime reads' `variableName` and the write-back rule sits on the two
+  // variable writes (read-tools.wire.test.ts): a host that drops the instructions still meets both.
+  it.each(["read-only", "operations", "admin"])(
+    "%s: states the cut of variable reads once",
+    (toolset) => {
+      const text = snippet(TWO, toolset)
+      expect(text).toContain(
+        "- Variable reads cut string values over 2000 chars (truncated: true).\n",
+      )
+      expect(text).not.toContain("never write such a value back")
+    },
+  )
+
+  // FLAG_RULE lists the complementary pairs by name: a pair the tools send but the rule omits
+  // would read to the model as "false is ignored".
+  it("names every complementary flag pair the tools send", () => {
+    const dir = path.join(import.meta.dirname, "tools")
+    const sources = fs
+      .readdirSync(dir)
+      .filter((file) => file.endsWith(".ts") && !file.endsWith(".test.ts"))
+      .map((file) => fs.readFileSync(path.join(dir, file), "utf8"))
+    const pairs = sources.flatMap((source) =>
+      [...source.matchAll(/complementaryFlags\([^)]*?"(\w+)",\s*"(\w+)"\)/g)].map(([, a, b]) => [
+        a,
+        b,
+      ]),
     )
+    expect(pairs.length, "the scanner is not blind").toBeGreaterThanOrEqual(5)
+    const flagLine = snippet(TWO, "read-only")
+      .split("\n")
+      .find((line) => line.startsWith("- Boolean filters"))
+    for (const [a, b] of pairs) {
+      // `assigned` is no parameter (strict input refuses it), so its pair reads "unassigned (false: assigned)".
+      expect(flagLine, `${a}/${b}`).toMatch(new RegExp(`\\b${a}/${b}\\b|\\b${a} \\(false: ${b}\\)`))
+    }
   })
 
   // Cockpit navigation never moves the default engine, so an engine-less call would answer from another engine.

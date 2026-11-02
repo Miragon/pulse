@@ -25,7 +25,9 @@ BPM operations across these domains (`category`): `engines`, `process-definition
 - **History, migrations & batches:** `query_historic_*` (ISO 8601 dates; incidents incl. resolved
   ones), migration tools; batch tools return a queued `batchId` that `get_batch` follows
 - **Lists:** one page as `{ items, totalCount, hasMore, nextOffset? }`, `maxResults` ≤ 100;
-  variable reads cut values over 2000 characters (`truncated: true`); `variableName` reads one whole
+  variable reads cut values over 2000 characters (`truncated: true`); the runtime reads'
+  `variableName` returns one whole (history values stay cut); the server instructions state this
+  paging contract, the shared filters and the variable shape once instead of on every tool
 - **View:** `open_cockpit`, the operations cockpit and the module's one view: `view` opens it on
   the overview (default), the incidents, a failure cluster, a process, its instances, an
   instance, an incident, the jobs or an instance's history; the result carries that view's facts

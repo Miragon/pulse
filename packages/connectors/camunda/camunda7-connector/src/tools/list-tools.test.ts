@@ -183,6 +183,20 @@ describe("every list/query tool shares one pagination contract", () => {
   it("caps at 100 — one turn's worth of rows", () => {
     expect(MAX_PAGE_SIZE).toBe(100)
   })
+
+  // The paging and sort contract is said once in the module instructions (instructions.test.ts).
+  it.each(listTools.map((c) => [c.name, c] as const))(
+    "%s leaves the paging contract to the instructions",
+    (_name, config) => {
+      const shape = config.inputSchema as Record<string, z.ZodType | undefined>
+      for (const param of ["firstResult", "maxResults", "sortBy", "sortOrder"]) {
+        expect(shape[param], param).toBeDefined()
+        expect(shape[param]?.description, param).toBeUndefined()
+      }
+      expect(config.description).not.toContain("nextOffset")
+      expect(config.description).not.toContain("Returns one page")
+    },
+  )
 })
 
 describe.each(cases)("$tool pagination envelope", ({ tool, list, count, filterArgs, ...c }) => {
@@ -259,9 +273,6 @@ describe("camunda7_list_external_tasks", () => {
       openWorldHint: true,
     })
     expect(config?.description).toContain("it never locks, completes or fails a task")
-    expect(config?.description).toMatch(
-      /If hasMore is true, call again with firstResult = nextOffset\.$/,
-    )
   })
 
   it("defaults sortOrder to asc when only sortBy is given", async () => {

@@ -2,26 +2,14 @@ import { z } from "zod"
 import { engineDateParam, firstResultParam, maxResultsParam, sortOrderParam } from "./shared.js"
 
 export const listIncidentsInput = z.object({
-  processInstanceId: z.string().optional().describe("Filter by process instance ID"),
-  processDefinitionKey: z
-    .string()
-    .optional()
-    .describe("Filter by process definition key (all versions)"),
-  processDefinitionKeyIn: z
-    .array(z.string())
-    .optional()
-    .describe("Filter by any of these process definition keys"),
-  processDefinitionId: z
-    .string()
-    .optional()
-    .describe("Filter by process definition ID (one version)"),
-  activityId: z.string().optional().describe("Filter by the activity the incident occurred at"),
-  incidentType: z
-    .string()
-    .optional()
-    .describe("Filter by incident type (e.g. failedJob, failedExternalTask)"),
-  incidentTimestampAfter: engineDateParam("Raised after"),
-  incidentTimestampBefore: engineDateParam("Raised before"),
+  processInstanceId: z.string().optional(),
+  processDefinitionKey: z.string().optional(),
+  processDefinitionKeyIn: z.array(z.string()).optional(),
+  processDefinitionId: z.string().optional(),
+  activityId: z.string().optional(),
+  incidentType: z.string().optional(),
+  incidentTimestampAfter: engineDateParam(),
+  incidentTimestampBefore: engineDateParam(),
   firstResult: firstResultParam,
   maxResults: maxResultsParam(),
   sortBy: z
@@ -44,9 +32,9 @@ export const listIncidentsInput = z.object({
 })
 
 export const resolveIncidentInput = z.object({
-  incidentId: z.string().describe("The incident ID to resolve"),
+  incidentId: z.string(),
 })
 
 export const formatIncidentIssueInput = z.object({
-  incidentId: z.string().describe("The incident ID to draft a ticket for"),
+  incidentId: z.string(),
 })
