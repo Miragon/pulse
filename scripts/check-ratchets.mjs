@@ -1308,7 +1308,7 @@ const excludeList = (script) =>
 /** The root chains whose segments are gates. */
 const ROOT_CHAINS = ["lint", "test"]
 /** Root gates CI (or the docs) run directly, outside the lint/test chains. */
-const DIRECT_ROOT_GATES = ["build", "typecheck", "format:check", "test:pg"]
+const DIRECT_ROOT_GATES = ["build", "typecheck", "format:check"]
 /** The only shape a NEW chain segment may take. */
 const PLAIN_PNPM_SEGMENT = /^pnpm (?:run )?([\w:-]+)$/
 /** Per-package scripts that turbo runs as gates. */

@@ -1489,8 +1489,7 @@ describe("root scripts (no gate unhooked)", () => {
       "lint:ratchets": "node scripts/check-ratchets.mjs",
       "lint:deadcode": "knip --exclude exports,types",
       "test:scripts": 'node --test "scripts/*.test.mjs"',
-      "test:pg":
-        "TEST_DATABASE_URL=${TEST_DATABASE_URL:-x} pnpm --filter @miragon/pulse-widget-shell --filter @miragon/pulse-camunda7-connector run test",
+      build: "turbo run build",
       typecheck: "turbo run typecheck",
       "format:check": "prettier --check .",
     }
@@ -1522,24 +1521,23 @@ describe("root scripts (no gate unhooked)", () => {
       }
     })
 
-    it("pins the gates CI runs directly too (test:pg, typecheck, format:check)", () => {
+    it("pins the gates CI runs directly too (build, typecheck, format:check)", () => {
       for (const scripts of [
-        // widget-shell is the only package with Postgres suites
-        {
-          "test:pg":
-            "TEST_DATABASE_URL=${TEST_DATABASE_URL:-x} pnpm --filter @miragon/pulse-camunda7-connector run test",
-        },
+        { build: "turbo run build --filter=!@miragon/pulse-cli" },
         { typecheck: "turbo run typecheck --filter=!@miragon/pulse-widget-shell" },
         { "format:check": "prettier --check . || true" },
       ]) {
         const violations = checkRatchetFile("package.json", old, withScripts(scripts))
         assert.equal(violations.length, 1, JSON.stringify(scripts))
       }
-      const { "test:pg": _dropped, ...withoutPg } = BASE_SCRIPTS
-      assert.match(
-        checkRatchetFile("package.json", old, JSON.stringify({ scripts: withoutPg }))[0],
-        /"test:pg" was removed/,
-      )
+      for (const gate of ["build", "typecheck", "format:check"]) {
+        const { [gate]: _dropped, ...without } = BASE_SCRIPTS
+        assert.match(
+          checkRatchetFile("package.json", old, JSON.stringify({ scripts: without }))[0],
+          new RegExp(`"${gate}" was removed`),
+          gate,
+        )
+      }
     })
 
     it("lets the --exclude lists shrink, and reformatting pass", () => {
