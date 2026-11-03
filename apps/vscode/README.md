@@ -37,22 +37,24 @@ Decisions and their reasons: [docs/adr](docs/adr/README.md).
 Run these from the repository root; the repository's bar (`pnpm build && pnpm typecheck &&
 pnpm test && pnpm lint`) covers the extension too.
 
-| Command                                            | What it does                                                                                 |
-| -------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `pnpm --filter pulse-cockpit test`                 | unit tests and the webview tests in Chromium, with the coverage floors and the bundle budget |
-| `pnpm --filter pulse-cockpit run typecheck`        | the whole app, then each layer with its runtime's globals only                               |
-| `pnpm --filter pulse-cockpit run lint`             | ESLint with the extension's house rules                                                      |
-| `pnpm lint:architecture:vscode`                    | the closed-world dependency rules of the layers                                              |
-| `pnpm lint:deadcode`                               | knip over every workspace, the extension included: no dead file, dependency or enum member   |
-| `pnpm lint:deadcode:exports`                       | knip over every workspace but docs: no unused export or exported type                        |
-| `pnpm --filter pulse-cockpit exec stryker run`     | Stryker mutation testing of contract, core, the C7 adapter and the model adapter             |
-| `pnpm --filter pulse-cockpit run test:engines`     | conformance kit against a real engine (`PULSE_ENGINE_IMAGE`, testcontainers)                 |
-| `pnpm --filter pulse-cockpit run test:smoke`       | activation test in VS Code (`@vscode/test-cli`)                                              |
-| `pnpm --filter pulse-cockpit run test:e2e`         | Playwright drives VS Code against `engine:up`                                                |
-| `pnpm --filter pulse-cockpit run dev`              | browser dev host for the webview (fake engine or `PULSE_DEV_ENGINE`)                         |
-| `pnpm --filter pulse-cockpit run sandbox:up`       | shop sandbox for manual testing (`sandbox:traffic`, `sandbox:down`)                          |
-| `pnpm --filter pulse-cockpit run docs:screenshots` | one VS Code screenshot per use case into `apps/vscode/docs/screenshots` (sandbox running)    |
-| `pnpm --filter pulse-cockpit run package`          | the `.vsix`                                                                                  |
+| Command                                             | What it does                                                                                 |
+| --------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `pnpm --filter pulse-cockpit test`                  | unit tests and the webview tests in Chromium, with the coverage floors and the bundle budget |
+| `pnpm --filter pulse-cockpit run typecheck`         | the whole app, then each layer with its runtime's globals only                               |
+| `pnpm --filter pulse-cockpit run lint`              | ESLint with the extension's house rules                                                      |
+| `pnpm lint:architecture:vscode`                     | the closed-world dependency rules of the layers                                              |
+| `pnpm lint:deadcode`                                | knip over every workspace, the extension included: no dead file, dependency or enum member   |
+| `pnpm lint:deadcode:exports`                        | knip over every workspace but docs: no unused export or exported type                        |
+| `pnpm --filter pulse-cockpit exec stryker run`      | Stryker mutation testing of contract, core, the C7 adapter and the model adapter             |
+| `pnpm --filter pulse-cockpit run test:engines`      | conformance kit against a real engine (`PULSE_ENGINE_IMAGE`, testcontainers)                 |
+| `pnpm --filter pulse-cockpit run test:smoke`        | activation test in VS Code (`@vscode/test-cli`)                                              |
+| `pnpm --filter pulse-cockpit run test:e2e`          | Playwright drives VS Code against `engine:up`                                                |
+| `pnpm --filter pulse-cockpit run test:smoke:docker` | the smoke test in Docker under Xvfb (`apps/vscode/test/docker`): no VS Code window opens     |
+| `pnpm --filter pulse-cockpit run test:e2e:docker`   | the e2e in Docker under Xvfb, against `engine:up`; screenshots land in test-results/e2e      |
+| `pnpm --filter pulse-cockpit run dev`               | browser dev host for the webview (fake engine or `PULSE_DEV_ENGINE`)                         |
+| `pnpm --filter pulse-cockpit run sandbox:up`        | shop sandbox for manual testing (`sandbox:traffic`, `sandbox:down`)                          |
+| `pnpm --filter pulse-cockpit run docs:screenshots`  | one VS Code screenshot per use case into `apps/vscode/docs/screenshots` (sandbox running)    |
+| `pnpm --filter pulse-cockpit run package`           | the `.vsix`                                                                                  |
 
 The C7 adapter bundles `@miragon/pulse-engine-core` from its build: after `pnpm install`, build it
 once (`pnpm exec turbo run build --filter='pulse-cockpit^...'`, or `pnpm build`) before these

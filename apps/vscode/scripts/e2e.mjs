@@ -267,6 +267,7 @@ async function launch(userData) {
       "--skip-release-notes",
       "--disable-telemetry",
       "--new-window",
+      ...(process.env.PULSE_VSCODE_NO_SANDBOX === "1" ? ["--no-sandbox"] : []),
     ],
   })
 }

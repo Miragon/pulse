@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process"
 
-function containerTool() {
+export function containerTool() {
   for (const tool of ["podman", "docker"]) {
     try {
       execFileSync(tool, ["--version"], { stdio: "ignore" })

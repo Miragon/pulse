@@ -19,6 +19,7 @@ export default defineConfig({
     "--disable-extensions",
     "--disable-workspace-trust",
     `--user-data-dir=${join(tmpdir(), "pulse-smoke")}`,
+    ...(process.env.PULSE_VSCODE_NO_SANDBOX === "1" ? ["--no-sandbox"] : []),
   ],
   mocha: { ui: "tdd", timeout: 60_000 },
 })
