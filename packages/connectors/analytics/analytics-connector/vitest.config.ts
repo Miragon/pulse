@@ -11,7 +11,7 @@ export default mergeConfig(
         // coverage up; never lower. Documented re-baseline 2026-08-13: the
         // shared settings/i18n/toolset boilerplate (a well-tested surface)
         // moved to @miragon/pulse-widget-shell, where the SAME code is held to
-        // that package's higher thresholds — this package's percentages
+        // that package's higher thresholds: this package's percentages
         // shifted without a single line losing tests. Raised 2026-10-08 with
         // the version-compare caveats and the comparison/failure widget
         // helpers under test (measured statements 43.62 / branches 22.13 /

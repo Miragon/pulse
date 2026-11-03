@@ -18,7 +18,7 @@ export default defineConfig({
   },
   build: {
     // Two-file output (ES module + stylesheet) for the boot's
-    // `bundle` — the mcp-use 2 native-view shape (the 1.x single-file
+    // `bundle`, the mcp-use 2 native-view shape (the 1.x single-file
     // HTML via vite-plugin-singlefile is gone). Assets stay inlined so the
     // bundle remains self-contained inside the sandboxed view iframe.
     assetsInlineLimit: 100_000_000,
