@@ -11,9 +11,9 @@
  * REST API) or another source (`analytics`, Prometheus). Its packages are named
  * `<family>-<role>` (npm `@miragon/pulse-<family>-<role>`; the naming gate holds the family
  * name), keyed by the role suffix:
- *   - `<family>-connector`: the MCP module (tools, widget tools, widgets);
- *   - `<family>-client`: its SDK leaf (generated REST SDK or PromQL queries; analytics-client
- *     also still carries its tool input schemas, the engine family's live in its connector);
+ *   - `<family>-connector`: the MCP module (tools and their input schemas, widget tools,
+ *     widgets);
+ *   - `<family>-client`: its SDK leaf (generated REST SDK or PromQL queries);
  *   - `<family>-core`, when the family's interfaces share a pure domain: a leaf that the
  *     family's connector and the interface apps that bundle it import (engine-core).
  * The foundation packages every family builds on live under `packages/core/` (npm names
@@ -205,14 +205,13 @@ module.exports = {
       name: "clients-are-leaves",
       severity: "error",
       comment:
-        "*-client packages are SDK leaves (generated REST SDK / PromQL queries, analytics-client " +
-        "also its tool input schemas): " +
+        "*-client packages are SDK leaves (generated REST SDK / PromQL queries): " +
         "they never import connectors, family cores, the foundation packages or sibling clients. Shared " +
         "logic that grows here belongs in the connector layer or a core package, not in a client.",
       from: { path: "^packages/connectors/[^/]+/([^/]+)-client/" },
       to: {
         path: ["^packages/(core|connectors)/", "@miragon/pulse-"],
-        // The own tree (src, own third-party node_modules such as zod) stays exempt
+        // The own tree (src, own third-party node_modules such as vitest) stays exempt
         // EXCEPT any @miragon/pulse-* package declared in its own node_modules (shape 2).
         pathNot: [
           "^packages/connectors/[^/]+/$1-client/(?!node_modules/@miragon/pulse-)",

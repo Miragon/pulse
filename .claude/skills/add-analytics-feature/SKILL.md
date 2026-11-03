@@ -125,10 +125,13 @@ Also cover the mapping logic (ranking, thresholds, rounding, null fields), and a
 function's `SCENARIOS` entry (`src/query-scenarios.test-support.ts`) plus its `NO_DATA` and
 `SCOPE_ECHO` entries in `src/query-honesty.test.ts` (Step 1).
 
-## Step 3: input schema
+## Step 3: input schema in analytics-connector
 
-Add the tool's input schema to `packages/connectors/analytics/analytics-client/src/schemas/<topic>.ts` and
-export it from `src/schemas/index.ts`. Reuse `engineFilterShape` from
+Add the tool's input schema to
+`packages/connectors/analytics/analytics-connector/src/schemas/<topic>.ts`, next to the tool
+that registers it, and export it from `src/schemas/index.ts`, which the tool imports
+(`./schemas/index.js` from `src/widget-tools.ts`, `../schemas/index.js` from `src/tools/` and
+`src/widget-tools/`). analytics-client is the wire and has no zod. Reuse `engineFilterShape` from
 `src/schemas/shared.ts` for the optional `engine` filter and `periodField` for the
 `period` input (derived from `PERIODS`; never redeclare the period enum). Descriptions follow
 the rule of the add-bpm-feature skill (reference: `engineCompareInput` in
@@ -330,7 +333,7 @@ export function registerHealthTools(
     category: "analytics",
     description: "Live operational health of the CIB seven engine(s) …",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-    inputSchema: schemas.engineHealthInput.shape,
+    inputSchema: engineHealthInput.shape,
     handler: async (ch, args, ctx) =>
       queries.engineHealth(withCallerSignal(ch, ctx?.signal), {
         engine: engineScope.resolve(args.engine),

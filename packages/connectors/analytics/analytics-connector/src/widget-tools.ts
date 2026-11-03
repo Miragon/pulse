@@ -7,12 +7,7 @@ import {
   withToolErrors,
   strictToolInput,
 } from "@miragon/pulse-widget-shell/server"
-import {
-  queries,
-  schemas,
-  withCallerSignal,
-  type PrometheusClient,
-} from "@miragon/pulse-analytics-client"
+import { queries, withCallerSignal, type PrometheusClient } from "@miragon/pulse-analytics-client"
 import {
   ANALYTICS_BPMN_HEATMAP_DATA,
   ANALYTICS_BPMN_XML_DATA,
@@ -20,6 +15,7 @@ import {
   ANALYTICS_SHOW_DASHBOARD,
 } from "./tool-names.js"
 import { summaryT as t } from "./summary.js"
+import { dashboardInput, engineFilterShape, heatmapInput } from "./schemas/index.js"
 import { registerComparisonWidgetTools } from "./widget-tools/comparisons.js"
 import { viewWithJson } from "./widget-tools/shared.js"
 import { isFleetRequest, withEngineScope, type AnalyticsEngineScope } from "./engine-ids.js"
@@ -79,7 +75,7 @@ export function registerWidgetTools(
       description:
         "Show process metrics from Prometheus for a rolling period: starts, completions, incidents created (not failed instances) and resolved, avg/median/p95 duration of the instances that ENDED in it (null when none did), the period before as reference, and the live state now (instances running, incidents open). Broken down per process definition and per (process, activity): executions, total/avg/median/p95 time and incidents created (unscoped: the top 20 by total time).",
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-      inputSchema: strictToolInput(schemas.dashboardInput.shape),
+      inputSchema: strictToolInput(dashboardInput.shape),
       ...showToolBinding(ANALYTICS_SHOW_DASHBOARD, "Process Analytics Dashboard"),
     },
     withToolErrors(async (args, ctx) => {
@@ -100,7 +96,7 @@ export function registerWidgetTools(
       description:
         "Render a process definition's BPMN diagram with a per-element heat overlay from metrics, with a Frequency↔Duration toggle (traversal count vs average duration per element). Node-level only (sequence-flow/edge heat is not available from metrics) and rendered on the latest deployed version's diagram (activity metrics carry no version label). Needs the engine module to fetch the BPMN XML; otherwise the widget shows a fallback.",
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-      inputSchema: strictToolInput(schemas.heatmapInput.shape),
+      inputSchema: strictToolInput(heatmapInput.shape),
       ...showToolBinding(ANALYTICS_SHOW_BPMN_HEATMAP, "BPMN Heatmap"),
     },
     withToolErrors(async (args, ctx) => {
@@ -138,7 +134,7 @@ export function registerWidgetTools(
       description:
         "Internal JSON feed (no UI) for the BPMN heatmap: per-element execution frequency + average duration over a window. Lets another widget (e.g. the CIB seven cockpit) paint the heat on its own diagram. Prefer analytics_show_bpmn_heatmap for a standalone view.",
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-      inputSchema: strictToolInput(schemas.heatmapInput.shape),
+      inputSchema: strictToolInput(heatmapInput.shape),
       ...appOnly,
     },
     withToolErrors(async (args, ctx) => {
@@ -165,8 +161,8 @@ export function registerWidgetTools(
         "Internal JSON feed (no UI): the latest deployed BPMN XML of a process key on the engines in scope, for the heatmap view's diagram.",
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
       inputSchema: strictToolInput({
-        processDefinitionKey: schemas.heatmapInput.shape.processDefinitionKey,
-        ...schemas.engineFilterShape,
+        processDefinitionKey: heatmapInput.shape.processDefinitionKey,
+        ...engineFilterShape,
       }),
       ...appOnly,
     },

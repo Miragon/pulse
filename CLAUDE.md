@@ -43,9 +43,9 @@ command line interface (`apps/cli`) and a VS Code extension (`apps/vscode`) for 
 | `apps/vscode/`                                       | Pulse for VS Code (`pulse-cockpit`, a .vsix): a Preact webview over an engine-neutral contract and core, the C7 adapter; its rules in `apps/vscode/CLAUDE.md`                                                                                                     |
 | `packages/connectors/engine/engine-connector/`       | engine module: operations tools, widget tools, widgets                                                                                                                                                                                                            |
 | `packages/connectors/analytics/analytics-connector/` | analytics module: Prometheus-backed tools, dashboards, comparison widgets                                                                                                                                                                                         |
-| `packages/connectors/engine/engine-client/`          | Generated CIB seven REST SDK (`src/generated/`), `createEngineClient`, `EngineRequestError` and the SDK-bound reads (`src/engine-contract/`); a leaf, no zod                                                                                                      |
+| `packages/connectors/engine/engine-client/`          | Generated CIB seven REST SDK (`src/generated/`), `createEngineClient`, `EngineRequestError` and the SDK-bound reads (`src/engine-contract/`); a leaf                                                                                                              |
 | `packages/connectors/engine/engine-core/`            | The Camunda 7 REST API family's workflow domain and pure engine REST rules (npm `@miragon/pulse-engine-core`): port, selection, inspect, status triage, root causes, retry/advance plans, dates, filters, variable writes; no runtime dependency                  |
-| `packages/connectors/analytics/analytics-client/`    | Prometheus client + PromQL query functions (`src/queries/`) + Zod schemas                                                                                                                                                                                         |
+| `packages/connectors/analytics/analytics-client/`    | Prometheus client, PromQL query functions (`src/queries/`) and the metrics contract; a leaf                                                                                                                                                                       |
 | `packages/core/ui/`                                  | Pulse's design kit (npm `@miragon/pulse-ui`): primitives, components, tone model, type scale, locale, toasts, formatters and the Miragon theme (`theme.css` over the vendored `--cd-*` tokens) for Pulse views and customer UIs; the brand gates under `/testing` |
 | `packages/core/widget-shell/`                        | The view runtime (`/widgets`: `mountViews`, the view host, the query hooks, `TestViewHost`, `ListTable`, hand-offs, BPMN), view + data-feed builders, the tool registrar (`createToolRegistrar`) and the boot (`/server`), the product glossary (`/testing`)      |
 | `engine-plugins/`                                    | Kotlin/Gradle: CIB seven OTEL metrics plugin (Java 21)                                                                                                                                                                                                            |
@@ -75,10 +75,11 @@ A family is one source the MCP server reads: a dialect, or another source such a
 `<family>-client` (the wire: SDK, client, the SDK-bound reads) and, when the family's interfaces
 share a pure domain, `<family>-core` (no runtime dependency, one port per family, the home of the
 family's pure rules; extracted on its second consumer, like `engine-core`, which the CLI and the
-VS Code extension's C7 adapter bundle and the engine connector runs). The engine family's tool input schemas live in its connector,
-next to the tools (`packages/connectors/engine/engine-connector/src/schemas/`); analytics-client
-still carries analytics' own (`packages/connectors/analytics/analytics-client/src/schemas/`,
-with its zod peer) until they move the same way.
+VS Code extension's C7 adapter bundle and the engine connector runs). A family's tool input
+schemas live in its connector, next to the tools
+(`packages/connectors/engine/engine-connector/src/schemas/`,
+`packages/connectors/analytics/analytics-connector/src/schemas/`), so a client carries no zod:
+validating tool input is the connector's concern, and the wire takes typed parameters.
 Family code stays in its family: `packages/core/` holds what every family builds on (pulse-ui,
 widget-shell), never one family's code.
 
