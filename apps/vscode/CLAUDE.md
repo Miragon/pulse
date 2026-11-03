@@ -22,6 +22,8 @@ pnpm --filter pulse-cockpit exec stryker run    # Stryker over contract, core, t
 pnpm --filter pulse-cockpit run test:engines     # adapter conformance on a real engine; needs podman/docker
 pnpm --filter pulse-cockpit run test:smoke       # the extension activates in a real VS Code
 pnpm --filter pulse-cockpit run test:e2e         # VS Code e2e; needs `engine:up`
+pnpm --filter pulse-cockpit run test:smoke:docker # both in Docker under Xvfb: no VS Code window
+pnpm --filter pulse-cockpit run test:e2e:docker   # on your desktop (e2e: needs `engine:up`)
 pnpm --filter pulse-cockpit run sandbox:up       # shop sandbox for manual testing: two seeded engines
 pnpm --filter pulse-cockpit run sandbox:open     # build, start the sandbox if needed, open it in VS Code
 pnpm --filter pulse-cockpit run docs:screenshots # one screenshot per use case (after sandbox:up)
