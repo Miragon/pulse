@@ -325,7 +325,9 @@ describe("engine-core keeps the CLI's budgets (the CLI block of eslint.config.mj
 
 // D10 of the architecture review (2026-11-02): the type-safety rules are errors in every tree;
 // require-await is off in the MCP trees only (the reason sits next to it in eslint.config.mjs).
-// Planted code linted with the real config at existing paths, so the typed rules run.
+// Read from the effective config of a real file per tree: linting planted text there depends on
+// the typed parser finding the file in its program, and a parse failure would report no rule at
+// all (red here on CI, and a silent pass for "off").
 describe("type-safety rules: errors everywhere, require-await off in the MCP trees only", () => {
   const TYPE_SAFETY = [
     "@typescript-eslint/no-explicit-any",
@@ -337,20 +339,13 @@ describe("type-safety rules: errors everywhere, require-await off in the MCP tre
     "@typescript-eslint/no-base-to-string",
   ]
   const REQUIRE_AWAIT = "@typescript-eslint/require-await"
-  const PLANTED = [
-    "declare const a: any",
-    "export const b = a",
-    "export const c: unknown = a.c",
-    "export const d: unknown = a()",
-    "export const e = Math.max(a)",
-    "export const f = () => a.f",
-    "const o: object = {}",
-    "export const s = String(o)",
-    "export async function g() { return 1 }",
-  ].join("\n")
-  const errorsAt = async (rel) => {
-    const [result] = await eslint.lintText(PLANTED, { filePath: path.join(repoRoot, rel) })
-    return new Set(result.messages.filter((m) => m.severity === 2).map((m) => m.ruleId))
+  const SEVERITY = { 0: "off", 1: "warn", 2: "error" }
+  /** The effective severity of `rule` for a repo path: "off", "warn" or "error". */
+  const severityAt = async (rel, rule) => {
+    const config = await eslint.calculateConfigForFile(path.join(repoRoot, rel))
+    const setting = config.rules?.[rule]
+    const level = Array.isArray(setting) ? setting[0] : setting
+    return SEVERITY[level] ?? level ?? "off"
   }
   const MCP_TREES = [
     "apps/mcp-server/src/setup.ts",
@@ -368,17 +363,16 @@ describe("type-safety rules: errors everywhere, require-await off in the MCP tre
 
   it("reports every type-safety rule as an error, in the MCP trees and the strict ones", async () => {
     for (const rel of [...MCP_TREES, ...STRICT_TREES]) {
-      const errors = await errorsAt(rel)
-      assert.deepEqual(
-        TYPE_SAFETY.filter((rule) => !errors.has(rule)),
-        [],
-        `${rel}: a type-safety rule is no error`,
-      )
+      const notError = []
+      for (const rule of TYPE_SAFETY) {
+        if ((await severityAt(rel, rule)) !== "error") notError.push(rule)
+      }
+      assert.deepEqual(notError, [], `${rel}: a type-safety rule is no error`)
     }
   })
 
   it("leaves require-await off in the MCP trees and at error in the CLI, engine-core and VS Code", async () => {
-    for (const rel of MCP_TREES) assert.equal(await ruleOptionsFor(rel, REQUIRE_AWAIT), null, rel)
-    for (const rel of STRICT_TREES) assert.ok((await errorsAt(rel)).has(REQUIRE_AWAIT), rel)
+    for (const rel of MCP_TREES) assert.equal(await severityAt(rel, REQUIRE_AWAIT), "off", rel)
+    for (const rel of STRICT_TREES) assert.equal(await severityAt(rel, REQUIRE_AWAIT), "error", rel)
   })
 })
