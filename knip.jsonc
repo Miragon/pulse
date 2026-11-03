@@ -3,9 +3,8 @@
   // Dead-code fitness function (`pnpm lint:deadcode`, part of `pnpm lint`):
   // every check but unused exports and types, in every workspace. Exports and
   // types are `pnpm lint:deadcode:exports` (`--include exports,types`), in every
-  // workspace but docs (below). The two cover `lint:deadcode:cli`, `:engine-core`
-  // and `:vscode` too, which stay chained into `pnpm lint`: the ratchet pins that
-  // chain, so dropping one needs a Ratchet-Exception trailer (the owner's call).
+  // workspace but docs (below). Together they report every issue type in every
+  // workspace (docs: all but exports and types), so no workspace runs on its own.
   // knip never reports what an ENTRY file exports (includeEntryExports is off):
   // the published entries' own lists are locked by their index tests.
   // Every ignore below is a documented exception — the list is shrink-only,

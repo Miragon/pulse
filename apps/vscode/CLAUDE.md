@@ -15,7 +15,8 @@ Run them from the repository root.
 pnpm --filter pulse-cockpit run typecheck        # tsc over the app, then once per layer with that layer's globals
 pnpm --filter pulse-cockpit run lint             # ESLint with the house rules below
 pnpm lint:architecture:vscode                   # the closed-world dependency rules
-pnpm lint:deadcode:vscode                       # knip over the extension, unused exports and types included
+pnpm lint:deadcode                              # knip over every workspace: dead files, dependencies, enum members
+pnpm lint:deadcode:exports                      # knip over every workspace but docs: unused exports and types
 pnpm --filter pulse-cockpit test                 # unit and webview (Chromium) tests, coverage floors
 pnpm --filter pulse-cockpit exec stryker run    # Stryker over contract, core, the C7 adapter and the model adapter
 pnpm --filter pulse-cockpit run test:engines     # adapter conformance on a real engine; needs podman/docker

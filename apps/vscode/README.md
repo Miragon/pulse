@@ -43,7 +43,8 @@ pnpm test && pnpm lint`) covers the extension too.
 | `pnpm --filter pulse-cockpit run typecheck`        | the whole app, then each layer with its runtime's globals only                               |
 | `pnpm --filter pulse-cockpit run lint`             | ESLint with the extension's house rules                                                      |
 | `pnpm lint:architecture:vscode`                    | the closed-world dependency rules of the layers                                              |
-| `pnpm lint:deadcode:vscode`                        | knip over the extension: no dead file, dependency, export or exported type                   |
+| `pnpm lint:deadcode`                               | knip over every workspace, the extension included: no dead file, dependency or enum member   |
+| `pnpm lint:deadcode:exports`                       | knip over every workspace but docs: no unused export or exported type                        |
 | `pnpm --filter pulse-cockpit exec stryker run`     | Stryker mutation testing of contract, core, the C7 adapter and the model adapter             |
 | `pnpm --filter pulse-cockpit run test:engines`     | conformance kit against a real engine (`PULSE_ENGINE_IMAGE`, testcontainers)                 |
 | `pnpm --filter pulse-cockpit run test:smoke`       | activation test in VS Code (`@vscode/test-cli`)                                              |
