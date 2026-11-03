@@ -27,8 +27,6 @@ import type { BpmnMissingReason } from "./heatmap-data.js"
 import { NO_NAMES, type FetchBpmnXml, type NameLookup } from "./bpmn-name-lookup.js"
 import { namedDashboard } from "./named-views.js"
 
-export type { FetchBpmnXml } from "./bpmn-name-lookup.js"
-
 /**
  * One engine by name, or every engine a fleet aggregate adds up, so a fleet figure never reads as
  * one engine's (the heatmap's summary; the engine scope never resolves to no engine).

@@ -96,9 +96,9 @@ export function App() {
   view inlines (no height floor, no forced or inlined font, no raw colour, no `--cd-*` token), and
   `contrastFindings` with `toneContrastPairs()` / `ROLE_CONTRAST_PAIRS` for WCAG AA in light and
   dark (`LIGHT_STATUS_EXEMPTION` is the CI's own exemption for green and amber on light).
-- **The stylesheets**: `theme.css` (the Miragon theme without Tailwind's entry), `globals.css`
-  (Tailwind, the theme and the kit's sources in one line), `fonts.css` (opt-in Geist, bundled)
-  and `cd-tokens.generated.css` (the vendored `--cd-*` corporate-design tokens).
+- **The stylesheets**: `theme.css` (the Miragon theme without Tailwind's entry; it imports the
+  vendored `--cd-*` corporate-design tokens, `cd-tokens.generated.css`), `globals.css` (Tailwind,
+  the theme and the kit's sources in one line) and `fonts.css` (opt-in Geist, bundled).
 
 ## Use with Tailwind v4
 

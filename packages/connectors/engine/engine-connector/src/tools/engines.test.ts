@@ -2,11 +2,8 @@ import { describe, it, expect } from "vitest"
 import type { Client } from "@miragon/pulse-engine-client"
 import { registerEngineTools } from "./engines.js"
 import { captureTools } from "./test-support/fake-engine.js"
-import {
-  createEngineRegistry,
-  type EngineEntry,
-  type EngineRegistry,
-} from "../lib/resolve-engine.js"
+import type { EngineEntry } from "../engine-provider.js"
+import { createEngineRegistry, type EngineRegistry } from "../lib/resolve-engine.js"
 import { ENGINE_LIST_ENGINES } from "../tool-names.js"
 
 const ENGINES = [

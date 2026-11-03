@@ -15,7 +15,7 @@ import { useState } from "react"
  */
 
 /** The part of an element the hand-back needs (structural, so it tests without a DOM). */
-export interface FocusReturnTarget {
+interface FocusReturnTarget {
   readonly isConnected: boolean
   focus: () => void
 }

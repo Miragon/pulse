@@ -12,7 +12,7 @@ export const WORLD = {
   activityId: "charge",
 } as const
 
-export const WORLD_XML =
+const WORLD_XML =
   '<?xml version="1.0"?><definitions><process id="order"><serviceTask id="charge" name="Charge card"/></process></definitions>'
 
 const definition = (version: 1 | 2) => ({

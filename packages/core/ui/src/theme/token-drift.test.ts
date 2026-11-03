@@ -54,7 +54,7 @@ const uiTokens = read("../tokens/cd-tokens.generated.css")
 describe("Miragon tokens: vendored copies listed by manifest", () => {
   it("the shipped theme imports pulse-ui's vendored token file", () => {
     expect(uiTheme).toContain('@import "./tokens/cd-tokens.generated.css";')
-    // The package exports every consumer's contrast check reads are these two files.
+    // Every consumer's contrast check reads these two files: theme.css and the tokens it imports.
     expect(themeStylesheets()).toEqual([uiTokens, uiTheme])
   })
 

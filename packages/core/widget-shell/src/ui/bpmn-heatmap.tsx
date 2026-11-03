@@ -9,15 +9,13 @@ import {
   weightRange,
   type HeatPoint,
 } from "./bpmn-heatmap/heat-utils.js"
-import { DEFAULT_HEATMAP_LABELS, type BpmnHeatmapLabels } from "./bpmn-heatmap-labels.js"
+import { DEFAULT_HEATMAP_LABELS } from "./bpmn-heatmap-labels.js"
 import { BpmnZoomControls } from "./bpmn-zoom-controls.js"
 import { kitLabels } from "./kit-labels.js"
 import { useBpmnViewer } from "./use-bpmn-viewer.js"
 
 // A `= {}` parameter default would be a fresh identity per render and re-trigger the repaint effect.
 const EMPTY_EDGES: Record<string, number> = {}
-
-export type { BpmnHeatmapLabels }
 
 export interface BpmnHeatmapProps {
   bpmnXml: string

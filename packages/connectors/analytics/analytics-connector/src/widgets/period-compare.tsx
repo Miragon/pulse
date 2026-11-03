@@ -44,7 +44,7 @@ type MeasuredPeriod = Pick<PeriodCompareKpi, "from" | "to">
  * A short period reads "2 Stunden", never "0,1 Tage": the length comes from the measured bounds,
  * since `days` (0.01 d, ~14 min) is too coarse for a period cut short at now.
  */
-export function windowLength(t: T, measured: MeasuredPeriod): string {
+function windowLength(t: T, measured: MeasuredPeriod): string {
   const seconds = (Date.parse(measured.to) - Date.parse(measured.from)) / 1000
   if (seconds >= DAY) {
     return t("aCommon.days", { count: formatNumber(seconds / DAY, { maximumFractionDigits: 1 }) })

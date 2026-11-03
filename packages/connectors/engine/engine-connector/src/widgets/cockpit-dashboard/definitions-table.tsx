@@ -23,7 +23,7 @@ const PAGE_SIZE = 50
  * Client-side search and paging on purpose: `/process-definition/statistics` is uncapped, has
  * no filter/offset params, and engine-side paging would lose the issue-first sort.
  */
-export function ProcessDefinitionsSection({
+function ProcessDefinitionsSection({
   data: initialData = null,
   engine,
 }: {

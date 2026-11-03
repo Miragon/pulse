@@ -3,7 +3,7 @@ import { cn, FOCUS_RING, useLocale, useToast, Icon, Td } from "@miragon/pulse-ui
 import { Check, Copy } from "lucide-react"
 import { kitLabels } from "./kit-labels.js"
 
-export const ID_FULL_LENGTH = 12
+const ID_FULL_LENGTH = 12
 const ID_SHORT_LENGTH = 8
 
 export function shortId(value: string): string {

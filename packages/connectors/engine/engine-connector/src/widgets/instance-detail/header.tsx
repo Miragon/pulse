@@ -38,7 +38,7 @@ export function instanceStatus(
 }
 
 /** A plan, never an execution; the business key is quoted. */
-export function diagnoseInstanceHandOff({
+function diagnoseInstanceHandOff({
   instance,
   engineId,
   activeActivityIds,

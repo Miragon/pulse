@@ -1,6 +1,13 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  // Dead-code fitness function (`pnpm lint:deadcode`, part of `pnpm lint`).
+  // Dead-code fitness function (`pnpm lint:deadcode`, part of `pnpm lint`):
+  // every check but unused exports and types, in every workspace. Exports and
+  // types are `pnpm lint:deadcode:exports` (`--include exports,types`), in every
+  // workspace but docs (below). The two cover `lint:deadcode:cli`, `:engine-core`
+  // and `:vscode`, which stay only because the ratchet pins `pnpm lint`'s chain;
+  // a later cut deletes them by name (P12). knip never reports what an ENTRY file
+  // exports (includeEntryExports is off): the published entries' own lists are
+  // locked by their index tests.
   // Every ignore below is a documented exception — the list is shrink-only,
   // same convention as the ESLint ratchet lists.
 
@@ -95,6 +102,9 @@
     },
 
     "docs": {
+      // `lint:deadcode:exports` skips this workspace: its code is the vendored kit,
+      // whose exports (miragonLegal, MiragonGitHub, …) are the kit's API for every
+      // Miragon docs site and are never edited here.
       // The Miragon docs kit (.vitepress/miragon/, vendored unchanged from
       // Miragon/corporate-identity, pinned by its check.mjs): slug.d.mts types
       // slug.mjs for TypeScript, so no import names the declaration itself.

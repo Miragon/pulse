@@ -88,7 +88,7 @@ export const HEAT_GRADIENT_CSS = `linear-gradient(to right, color-mix(in srgb, v
   Math.round(MIN_HEAT_INTENSITY * 100),
 )}%, var(--cd-${BPMN_TOKENS.heat.from})), var(--cd-${BPMN_TOKENS.heat.to}))`
 
-export function buildBrush(radius: number, blur: number): HTMLCanvasElement {
+function buildBrush(radius: number, blur: number): HTMLCanvasElement {
   const r2 = radius + blur
   const canvas = document.createElement("canvas")
   canvas.width = canvas.height = r2 * 2

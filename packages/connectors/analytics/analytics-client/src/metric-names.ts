@@ -21,8 +21,6 @@ export const METRIC_NAMES = {
   externalTasksOpen: "engine_external_tasks_open",
 } as const
 
-export type MetricName = (typeof METRIC_NAMES)[keyof typeof METRIC_NAMES]
-
 export type GaugeName =
   | typeof METRIC_NAMES.processInstancesRunning
   | typeof METRIC_NAMES.jobsFailed

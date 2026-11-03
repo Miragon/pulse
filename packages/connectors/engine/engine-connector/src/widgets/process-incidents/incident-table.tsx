@@ -35,7 +35,7 @@ import { MoreActions } from "../lib/more-actions.js"
 const INCIDENT_PAGE_SIZE = 10
 
 /** Its message is engine text, quoted. */
-export function draftIncidentTicketHandOff(
+function draftIncidentTicketHandOff(
   incident: IncidentInstance,
   engine: string | undefined,
 ): HandOff {

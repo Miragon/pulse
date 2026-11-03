@@ -11,7 +11,7 @@ import {
 import { useHandOff, type HandOff } from "./hand-off.js"
 
 /** The process is held fixed, so a real gap is the engine's (or its environment's). */
-export function engineCompareHandOff(data: EngineCompareResult): HandOff {
+function engineCompareHandOff(data: EngineCompareResult): HandOff {
   return {
     intent: "askAi.engineCompare",
     ids: {

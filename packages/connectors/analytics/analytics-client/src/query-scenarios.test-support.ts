@@ -1,7 +1,7 @@
 import type { PrometheusClient, PromSample } from "./prometheus.js"
 import * as queries from "./queries/index.js"
 
-export const REPRESENTATIVE_SAMPLE: PromSample = {
+const REPRESENTATIVE_SAMPLE: PromSample = {
   metric: {
     engine_id: "prod-a",
     process_definition_key: "invoice",
@@ -42,7 +42,7 @@ export type Scenario = (ch: PrometheusClient) => Promise<unknown>
  * pins the clock sees windows relative to ITS now). Scenario windows must sit
  * inside the retention or the query refuses them.
  */
-export const isoDaysAgo = (days: number) => new Date(Date.now() - days * 86_400_000).toISOString()
+const isoDaysAgo = (days: number) => new Date(Date.now() - days * 86_400_000).toISOString()
 
 // A total map over `queries`: a new export without a scenario fails `pnpm typecheck`.
 export const SCENARIOS: { [K in keyof typeof queries]: Scenario[] } = {

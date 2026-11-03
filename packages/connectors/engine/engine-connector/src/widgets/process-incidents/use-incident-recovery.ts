@@ -31,7 +31,7 @@ interface ExternalTaskRetryArgs extends Record<string, unknown> {
 }
 
 /** #322 U13, U4: a write on prod says so before it runs. */
-export function resolveConfirmation(
+function resolveConfirmation(
   t: T,
   incident: RecoverableIncident,
   engineId: string | undefined,

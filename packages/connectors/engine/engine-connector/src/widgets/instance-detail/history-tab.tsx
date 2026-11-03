@@ -3,7 +3,7 @@ import { PagedHistoryView } from "../history-timeline.js"
 import { useHandOff, type HandOff } from "../lib/hand-off.js"
 
 /** Walk ONE instance's activity history: where the token spent its time. */
-export function explainTimelineHandOff(
+function explainTimelineHandOff(
   instanceId: string,
   definitionId: string,
   engineId: string | undefined,

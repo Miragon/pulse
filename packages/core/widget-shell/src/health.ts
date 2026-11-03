@@ -9,7 +9,7 @@ export interface HttpRouteHost {
   get(path: string, handler: (ctx: unknown) => Response | Promise<Response>): unknown
 }
 
-export type ReadinessCheck = () => void | Promise<void>
+type ReadinessCheck = () => void | Promise<void>
 
 export interface HealthOptions {
   path?: string
@@ -21,9 +21,9 @@ export interface HealthOptions {
   draining?: () => boolean
 }
 
-export type HealthStatus = "up" | "down"
+type HealthStatus = "up" | "down"
 
-export interface HealthReport {
+interface HealthReport {
   status: HealthStatus | "draining"
   checks: Record<string, HealthStatus>
 }

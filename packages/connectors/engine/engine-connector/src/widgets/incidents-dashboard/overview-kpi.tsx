@@ -13,7 +13,7 @@ import { formatCount } from "../lib/format-count.js"
 import { dashboardScope, incidentsFeed } from "./scope.js"
 
 /** A filtered total is stated as the matching incidents; a plan, nothing changed yet. */
-export function triageIncidentsHandOff(data: IncidentsDashboardData, engine: string): HandOff {
+function triageIncidentsHandOff(data: IncidentsDashboardData, engine: string): HandOff {
   const scope = dashboardScope(data.filters)
   return {
     intent: scope.filtered ? "askAi.incidents.triageFiltered" : "askAi.incidents.triage",
@@ -33,7 +33,7 @@ export function triageIncidentsHandOff(data: IncidentsDashboardData, engine: str
   }
 }
 
-export function IncidentOverviewKpiView({
+function IncidentOverviewKpiView({
   data: initialData = null,
   engine,
 }: {

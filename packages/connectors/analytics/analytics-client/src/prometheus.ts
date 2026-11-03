@@ -8,7 +8,7 @@ export interface PrometheusConfig {
   timeoutMs?: number
 }
 
-export const DEFAULT_PROMETHEUS_TIMEOUT_MS = 30_000
+const DEFAULT_PROMETHEUS_TIMEOUT_MS = 30_000
 
 /** The longest delay a Node timer holds — a longer deadline would fire at once. */
 const MAX_TIMEOUT_MS = 2_147_483_647
@@ -20,7 +20,7 @@ export interface PromSample {
   value: number
 }
 
-export interface PrometheusQueryOptions {
+interface PrometheusQueryOptions {
   signal?: AbortSignal
 }
 
@@ -292,7 +292,7 @@ export function selector(...matchers: Array<string | undefined>): string {
 // The repo stack's `--storage.tsdb.retention.time`; a longer window would silently read partial data.
 export const RETENTION_DAYS = 30
 
-export const PERIOD_RANGE = {
+const PERIOD_RANGE = {
   "1d": "1d",
   "3d": "3d",
   "7d": "7d",

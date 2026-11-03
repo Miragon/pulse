@@ -10,7 +10,7 @@ import {
 import type { EngineAskAiKey } from "../../messages/en.ask-ai.js"
 import { translator } from "../../messages/use-t.js"
 
-export type EngineAskAiIntent = Exclude<EngineAskAiKey, `${string}Label`>
+type EngineAskAiIntent = Exclude<EngineAskAiKey, `${string}Label`>
 
 /** A hand-off names no tool: the module instructions and the tool descriptions steer the model. */
 export interface HandOff extends HandOffParts {

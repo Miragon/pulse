@@ -3,10 +3,10 @@
 export type AskAiPrompt = string & { readonly __brand: "AskAiPrompt" }
 
 /** An id or on-screen fact: inlined only when id-shaped, else quoted as untrusted. */
-export type HandOffValue = string | number | boolean | readonly string[] | null | undefined
+type HandOffValue = string | number | boolean | readonly string[] | null | undefined
 
 /** Engine / third-party free text, quoted as data under its author-chosen name. */
-export interface UntrustedText {
+interface UntrustedText {
   label: string
   text: string | null | undefined
 }

@@ -50,7 +50,7 @@ function clusterActivities(data: EngineHealthData): string[] {
 }
 
 /** Grounding context, so the operator never restates what they are looking at. */
-export function describeHealth(data: EngineHealthData, engine: string): ViewContext {
+function describeHealth(data: EngineHealthData, engine: string): ViewContext {
   const { summary, clusters, status } = data
   const top = clusters[0]
   return {
@@ -76,7 +76,7 @@ export function describeHealth(data: EngineHealthData, engine: string): ViewCont
   }
 }
 
-export function triageHandOff(data: EngineHealthData, engine: string): HandOff {
+function triageHandOff(data: EngineHealthData, engine: string): HandOff {
   const { summary } = data
   return {
     intent: "askAi.health.triage",
@@ -94,7 +94,7 @@ export function triageHandOff(data: EngineHealthData, engine: string): HandOff {
 }
 
 /** An unreachable engine is itself an incident: hand it to the agent. The error text is quoted, never inlined. */
-export function diagnoseHandOff(engine: string, message: string): HandOff {
+function diagnoseHandOff(engine: string, message: string): HandOff {
   return {
     intent: "askAi.health.diagnoseUnreachable",
     ids: { engine },

@@ -37,7 +37,6 @@ import {
 } from "./history-steps.js"
 
 export type { HistoryTimelineData }
-export type HistoryActivity = HistoryTimelineData["activities"][number]
 
 type TimelineInstance = NonNullable<HistoryTimelineData["processInstance"]>
 
@@ -82,7 +81,7 @@ export function explainActivityHandOff(
 }
 
 /** Shell-less activity history: `"timeline"` (outliers, Ask-AI) or the compact `"table"` of the incident detail. */
-export function HistoryTimelineView({
+function HistoryTimelineView({
   activities,
   processInstance,
   instanceRef,
@@ -319,7 +318,7 @@ export function PagedHistoryView({
 }
 
 /** The feed returns one capped page; the rest is a "Load more" away on the same engine, never silently cut. */
-export function describeHistoryTimeline(data: HistoryTimelineData): ViewContext {
+function describeHistoryTimeline(data: HistoryTimelineData): ViewContext {
   const pi = data.processInstance
   return {
     summary: pi

@@ -139,7 +139,7 @@ interface Fleet {
 }
 
 /** The "never rank engines by a rate" rule lives in the analytics instructions. */
-export function fleetOverviewHandOff({ engineIds, environments }: Fleet): HandOff {
+function fleetOverviewHandOff({ engineIds, environments }: Fleet): HandOff {
   return {
     intent: "askAi.fleet.overview",
     ids: { engine: engineIds },
@@ -147,7 +147,7 @@ export function fleetOverviewHandOff({ engineIds, environments }: Fleet): HandOf
   }
 }
 
-export function fleetFailuresHandOff({ engineIds, environments }: Fleet): HandOff {
+function fleetFailuresHandOff({ engineIds, environments }: Fleet): HandOff {
   return {
     intent: "askAi.fleet.failures",
     ids: { engine: engineIds },
@@ -155,7 +155,7 @@ export function fleetFailuresHandOff({ engineIds, environments }: Fleet): HandOf
   }
 }
 
-export function fleetPerformanceHandOff({ engineIds, environments }: Fleet): HandOff {
+function fleetPerformanceHandOff({ engineIds, environments }: Fleet): HandOff {
   return {
     intent: "askAi.fleet.performance",
     ids: { engine: engineIds },

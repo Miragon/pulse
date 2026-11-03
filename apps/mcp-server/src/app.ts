@@ -18,7 +18,7 @@ export const SERVER_INSTRUCTIONS =
   "On hosts that render MCP Apps, prefer the view tools (*_show_*, *_open_*) to present results to the user."
 
 /** The version release-please maintains in `package.json` — never a hard-coded copy. */
-export function packageVersion(): string {
+function packageVersion(): string {
   const pkg = JSON.parse(readFileSync(path.join(PACKAGE_ROOT, "package.json"), "utf8")) as {
     version: string
   }

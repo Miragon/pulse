@@ -28,7 +28,7 @@ const RING_LAYER = "pointer-events-none absolute inset-0 z-[2] rounded-sm"
 /** Container-query widths of the region itself; `md` hides in a 760 px inline view, shows in fullscreen. */
 export const COLUMN_BREAKPOINTS = { sm: "40rem", md: "48rem", lg: "64rem" } as const
 
-export type ColumnBreakpoint = keyof typeof COLUMN_BREAKPOINTS
+type ColumnBreakpoint = keyof typeof COLUMN_BREAKPOINTS
 
 export interface ListTableColumn {
   label?: ReactNode

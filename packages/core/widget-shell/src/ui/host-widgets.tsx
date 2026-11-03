@@ -23,7 +23,7 @@ export function HostWidgetsProvider({
   return <HostWidgetsContext.Provider value={widgets}>{children}</HostWidgetsContext.Provider>
 }
 
-export function useHostWidgets(): HostWidgets {
+function useHostWidgets(): HostWidgets {
   return useContext(HostWidgetsContext)
 }
 

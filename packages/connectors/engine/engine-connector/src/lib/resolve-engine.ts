@@ -1,10 +1,6 @@
 import { withCallerSignal, type Client } from "@miragon/pulse-engine-client"
-import type { EngineProvider } from "../engine-provider.js"
+import type { EngineEntry, EngineProvider } from "../engine-provider.js"
 import { providerForEntry } from "../providers/index.js"
-
-// Re-exported so existing importers keep their path.
-export type { EngineAuth, EngineEntry, EngineFlavor } from "../engine-provider.js"
-import type { EngineEntry } from "../engine-provider.js"
 
 interface EngineBackend {
   client: Client

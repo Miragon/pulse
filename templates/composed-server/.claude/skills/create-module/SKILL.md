@@ -77,6 +77,10 @@ The contract, field by field (see `notesModule`):
   tool descriptions stay one-liners. `config` carries the effective `toolset`;
   return `undefined` to add nothing.
 
+`src/index.ts`, the package root, exports the module definition and only what
+a root wires (`notesModule`); `createPlugin`, the config and the data types stay
+inside the package, as in the Miragon connectors.
+
 `src/module.test.ts` checks the port the way the boot uses it: the plugin's
 name and the tools its `register` adds. Keep it in step with your tools.
 

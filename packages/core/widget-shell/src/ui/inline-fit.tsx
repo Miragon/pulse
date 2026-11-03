@@ -15,13 +15,6 @@ import {
 import { FIT_LIMITS, solveInlineFit } from "./inline-fit-solve.js"
 import { DOM_MEASURE, LIST_SELECTOR, SlotRegistry, type FitMeasure } from "./inline-fit-registry.js"
 
-export {
-  CONTINUES_ATTRIBUTE,
-  DOM_MEASURE,
-  FIT_CONTINUES_ROW,
-  type FitMeasure,
-} from "./inline-fit-registry.js"
-
 /**
  * The measured inline fit (#396): a card taller than the host budget becomes
  * one scroll box, so inline lists show only the rows that fit, measured on
@@ -33,7 +26,7 @@ export {
  * Outside a host and in fullscreen there is no fit: every row shows.
  */
 
-export const START_ROWS = 10
+const START_ROWS = 10
 export const UNSTATED_BUDGET = 600
 /** Smaller width changes are scrollbars or rounding, not a new epoch. */
 const WIDTH_EPSILON = 8

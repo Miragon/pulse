@@ -1,16 +1,6 @@
 // Best-effort regex parse; `readonly` fields are displayed but not submitted (the engine rejects a value).
 import type { TaskFormField } from "../view-models.js"
 
-interface ConditionLiteral {
-  value: unknown
-  type: "String" | "Boolean" | "Long" | "Double"
-}
-
-interface InferredCondition {
-  variable: string
-  literal: ConditionLiteral
-}
-
 const CAMUNDA_TYPE_MAP: Record<string, string> = {
   string: "String",
   boolean: "Boolean",
@@ -140,43 +130,4 @@ function readAttr(attrs: string, name: string): string | null {
 
 function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-}
-
-// Dotted identifiers are matched but dropped below: a flat task variable can't set a nested path.
-const COMPARISON_RE =
-  /([A-Za-z_$][\w$.]*)\s*(?:==|!=|<=?|>=?)\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|true|false|-?\d+(?:\.\d+)?)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|true|false|-?\d+(?:\.\d+)?)\s*(?:==|!=|<=?|>=?)\s*([A-Za-z_$][\w$.]*)/g
-
-export function parseConditionExpression(expr: string): InferredCondition[] {
-  const stripped = expr.replace(/^\s*\$\{\s*/, "").replace(/\s*\}\s*$/, "")
-  const conditions: InferredCondition[] = []
-  for (const match of stripped.matchAll(COMPARISON_RE)) {
-    const variable = match[1] ?? match[4]
-    const rawValue = match[2] ?? match[3]
-    if (!variable || !rawValue) continue
-    if (variable.includes(".")) continue
-    const literal = parseLiteral(rawValue)
-    if (literal) conditions.push({ variable, literal })
-  }
-  return conditions
-}
-
-function parseLiteral(raw: string): ConditionLiteral | null {
-  const trimmed = raw.trim()
-  if (
-    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
-    (trimmed.startsWith("'") && trimmed.endsWith("'"))
-  ) {
-    const inner = trimmed.slice(1, -1).replace(/\\(.)/g, "$1")
-    return { value: inner, type: "String" }
-  }
-  if (trimmed === "true" || trimmed === "false") {
-    return { value: trimmed === "true", type: "Boolean" }
-  }
-  if (/^-?\d+$/.test(trimmed)) {
-    return { value: Number(trimmed), type: "Long" }
-  }
-  if (/^-?\d+\.\d+$/.test(trimmed)) {
-    return { value: Number(trimmed), type: "Double" }
-  }
-  return null
 }

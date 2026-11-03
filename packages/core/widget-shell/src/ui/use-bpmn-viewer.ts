@@ -36,11 +36,11 @@ export interface BpmnOverlays {
   add: (elementId: string, overlay: { position: object; html: string }) => void
 }
 
-export interface BpmnElementRegistry {
+interface BpmnElementRegistry {
   getAll: () => BpmnElement[]
 }
 
-export interface BpmnEventBus {
+interface BpmnEventBus {
   on: (event: string, fn: () => void) => void
   off: (event: string, fn: () => void) => void
 }
@@ -64,7 +64,7 @@ function paintLightCanvas(container: HTMLElement): void {
 
 export const DIAGRAM_MIN_HEIGHT = 240
 export const DIAGRAM_MAX_HEIGHT = 560
-export const DIAGRAM_DEFAULT_HEIGHT = 360
+const DIAGRAM_DEFAULT_HEIGHT = 360
 /** The fit's 0.95 margin plus the zoom bar's reach. */
 const DIAGRAM_HEIGHT_PADDING = 48
 

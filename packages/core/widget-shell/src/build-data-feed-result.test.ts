@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
-import { buildDataFeedResult, decodeToolResult } from "./server.js"
+import { decodeToolResult } from "./tool-result.js"
+import { buildDataFeedResult } from "./view-results.js"
 
 /** No widget `_meta`: a result with `ui.resourceUri` would be rendered by the host, not returned to `callTool()`. */
 describe("buildDataFeedResult", () => {

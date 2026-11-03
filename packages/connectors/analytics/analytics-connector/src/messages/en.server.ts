@@ -1,4 +1,4 @@
-import type { MessageCatalog } from "@miragon/pulse-widget-shell/widgets"
+import type { MessageCatalog } from "@miragon/pulse-widget-shell/server"
 
 /** Model-facing, but the model may quote them, so the voice rules apply too. */
 export const enServer: MessageCatalog = {

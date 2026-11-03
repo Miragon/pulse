@@ -1,7 +1,6 @@
-import { readFileSync } from "node:fs"
-import { createRequire } from "node:module"
 import AxeBuilder from "@axe-core/playwright"
 import { expect, test, type FrameLocator, type Locator, type Page } from "@playwright/test"
+import { themeStylesheets } from "@miragon/pulse-ui/testing"
 import { SERVED_FONT_PATH } from "@miragon/pulse-widget-shell/server"
 import {
   BROKEN_ENGINE,
@@ -56,8 +55,7 @@ const CHROME = {
  * reference for what the BUILT stylesheet must carry.
  */
 function vendoredColourTokens(): [string, string][] {
-  const require = createRequire(import.meta.url)
-  const css = readFileSync(require.resolve("@miragon/pulse-ui/cd-tokens.generated.css"), "utf8")
+  const [css] = themeStylesheets()
   return [...css.matchAll(/(--cd-[\w-]+):\s*(#[0-9a-fA-F]{3,8});/g)].map(([, name, value]) => [
     name,
     value,

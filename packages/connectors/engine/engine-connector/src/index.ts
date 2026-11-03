@@ -1,16 +1,5 @@
-export { createPlugin } from "./plugin.js"
-export type { EnginePluginConfig } from "./plugin.js"
-export { engineModule, engineConfigSchema, createBpmnXmlFetcher } from "./module.js"
+// What a composition root wires: the module, the analytics lookups it shares, and the admin-only
+// tool list a root's tests hold the toolsets to. Everything else stays inside the module.
+export { engineModule, createBpmnXmlFetcher } from "./module.js"
 export { configuredEngineIds } from "./configured-engine-ids.js"
 export { ENGINE_ADMIN_ONLY_TOOLS } from "./lib/toolsets.js"
-export type {
-  CockpitRef,
-  EngineClientSettings,
-  EngineCockpitStrategy,
-  EngineEntry,
-  EngineFlavor,
-  EngineProvider,
-} from "./engine-provider.js"
-export { ENGINE_PROVIDERS, providerForEntry } from "./providers/index.js"
-export { resolveMcpBearerToken } from "./lib/mcp-auth.js"
-export type * from "./view-models.js"

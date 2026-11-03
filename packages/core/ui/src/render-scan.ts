@@ -28,7 +28,7 @@ const NAMED_ENTITIES: Record<string, string> = {
 }
 
 /** Decode the HTML entities React's SSR emits (named, decimal and hex). */
-export function decodeEntities(text: string): string {
+function decodeEntities(text: string): string {
   return text.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (whole, ref: string) => {
     if (ref.startsWith("#x") || ref.startsWith("#X")) {
       return String.fromCodePoint(Number.parseInt(ref.slice(2), 16))

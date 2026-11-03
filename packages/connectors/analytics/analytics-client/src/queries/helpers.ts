@@ -82,12 +82,12 @@ export function ratePct(part: number, base: number): number | null {
   return base > 0 ? round1((part * 100) / base) : null
 }
 
-export function pctChange(before: number | null, after: number | null): number | null {
+function pctChange(before: number | null, after: number | null): number | null {
   if (before === null || after === null || before === 0) return null
   return Math.round(((after - before) / before) * 10000) / 100
 }
 
-export function ppDelta(before: number | null, after: number | null): number | null {
+function ppDelta(before: number | null, after: number | null): number | null {
   return before === null || after === null ? null : round1(after - before)
 }
 

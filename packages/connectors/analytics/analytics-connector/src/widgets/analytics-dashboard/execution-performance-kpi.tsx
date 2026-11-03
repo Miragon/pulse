@@ -18,7 +18,7 @@ const VERDICT_KEY: Record<DeltaVerdict, string> = {
  * process fixed: over a mix the rate moves with the mix (Simpson's paradox), so
  * an unscoped dashboard shows the previous rate without a verdict.
  */
-export function incidentRateTrend(
+function incidentRateTrend(
   t: T,
   data: Pick<DashboardView, "incidentRatePct" | "previous" | "processDefinitionKey">,
 ): Pick<KpiCell, "trend" | "trendDirection" | "trendTone"> {

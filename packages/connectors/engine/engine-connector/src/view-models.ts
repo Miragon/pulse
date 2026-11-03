@@ -9,7 +9,7 @@ import type { ClusterDetailData, EngineHealthData } from "./view-models.health.j
 export const LIST_PAGE_SIZE = 50
 export const HISTORY_PAGE_SIZE = 100
 
-export interface IncidentStat {
+interface IncidentStat {
   incidentType: string
   incidentCount: number
 }
@@ -51,7 +51,7 @@ export interface TaskData {
   description: string | null
 }
 
-export type TaskFormFieldSource = "form-data" | "manual"
+type TaskFormFieldSource = "form-data" | "manual"
 
 export interface TaskFormField {
   name: string
@@ -78,7 +78,7 @@ export interface OpenUserTask extends TaskData {
   formSchema: TaskFormSchema | null
 }
 
-export interface Job {
+interface Job {
   id: string
   processInstanceId: string
   processDefinitionKey: string | null
@@ -149,7 +149,7 @@ export type CockpitView =
 export type CockpitSection = CockpitView["section"]
 
 /** The overview's two widgets: the health verdict and the definitions table. */
-export interface CockpitOverviewData {
+interface CockpitOverviewData {
   health: EngineHealthData
   definitions: CockpitDashboardData
 }
@@ -269,7 +269,7 @@ export interface InstanceDetailData {
   engineId?: string
 }
 
-export interface ActivityData {
+interface ActivityData {
   id: string
   activityId: string
   activityName: string | null
@@ -281,7 +281,7 @@ export interface ActivityData {
   taskId: string | null
 }
 
-export interface HistoricProcessInstance {
+interface HistoricProcessInstance {
   id: string
   processDefinitionKey: string
   processDefinitionName: string | null
@@ -301,7 +301,7 @@ export interface HistoryTimelineData {
 }
 
 /** From the newest-first recency scan: facts it cannot vouch for are null, never a guess. */
-export interface IncidentActivityFacts {
+interface IncidentActivityFacts {
   activityId: string
   /** Display name from the diagram — null without one (or for an activity only older versions have). */
   activityName: string | null
@@ -341,7 +341,7 @@ export interface IncidentsDashboardProcess {
 }
 
 /** `provider.branding.displayName`; names the link into the engine's web app, never this app's "Cockpit". */
-export type EngineVendorInfo = { engineVendor: string }
+type EngineVendorInfo = { engineVendor: string }
 
 export interface IncidentsDashboardData extends EngineVendorInfo {
   totalCount: number

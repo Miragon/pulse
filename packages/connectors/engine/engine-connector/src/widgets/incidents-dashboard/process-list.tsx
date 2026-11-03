@@ -223,7 +223,7 @@ function filterProcesses(
 }
 
 /** One widget so the search/chip state stays one `useState`. */
-export function IncidentProcessListView({
+function IncidentProcessListView({
   data: initialData = null,
   engine,
 }: {

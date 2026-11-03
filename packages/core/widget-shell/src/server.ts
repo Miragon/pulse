@@ -1,92 +1,23 @@
-/** The `/server` import path for module tools and composition roots. */
+/**
+ * The `/server` import path: the module port, tool authoring and the boot. The boot's own parts
+ * (edge guard, body limit, metrics, health, request context) stay inside `createComposedServer`,
+ * so no root can wire a second boot that skips one of them.
+ */
+
+// The module port: what a module hands the boot.
+export { type ComposableModule, type ModuleEntry, type ModulePlugin } from "./composition.js"
+export { createToolsetVocabulary, type ToolsetVocabulary } from "./toolsets.js"
+
+// Tool authoring: the registrar, the view and feed bindings and results, the server i18n, the
+// BPMN-name readers and the per-caller request info.
 export { withToolErrors } from "./tool-errors.js"
 export { createToolRegistrar, type ToolConfig, type ToolRegistrar } from "./tool-registrar.js"
-export {
-  callerCacheKey,
-  getMcpRequestInfo,
-  installMcpRequestContext,
-  runWithMcpRequestInfo,
-  type McpMiddlewareHost,
-  type McpRequestInfo,
-} from "./request-context.js"
-export {
-  requestLogLevelWarning,
-  resolvePort,
-  swallowDevCliViewsPrime,
-  type ResolvePortOptions,
-  type ToolCallMiddlewareHost,
-} from "./host-boot.js"
-export {
-  installHealthEndpoints,
-  type HealthOptions,
-  type HealthReport,
-  type HealthStatus,
-  type HttpRouteHost,
-  type ReadinessCheck,
-} from "./health.js"
-export {
-  installMetrics,
-  type HttpMiddlewareContext,
-  type HttpMiddlewareHost,
-  type MetricsHost,
-  type MetricsOptions,
-} from "./metrics.js"
-export {
-  DEFAULT_MAX_BODY_BYTES,
-  installHttpEdgeGuard,
-  resolveHttpEdgePolicy,
-  type AllowList,
-  type EdgeGuardContext,
-  type EdgeGuardHost,
-  type EdgeGuardOptions,
-  type HttpEdgePolicy,
-} from "./http-edge.js"
-export {
-  fontAssetsCsp,
-  installFontAssets,
-  type FontAsset,
-  type FontAssetsOptions,
-} from "./font-assets.js"
-export { SERVED_FONT_FILES, SERVED_FONT_PATH, servedFontBaseUrl } from "./served-fonts.js"
-export { VIEW_BUNDLE_DEDUPE } from "./view-bundle.js"
-export {
-  createBodyLimitedListener,
-  type BodyLimitedListener,
-  type BodyLimitedListenerOptions,
-  type FetchTarget,
-} from "./node-listener.js"
-export {
-  composedEnvVars,
-  createComposedServer,
-  DEFAULT_DRAIN_TIMEOUT_MS,
-  DEFAULT_REQUEST_TIMEOUT_MS,
-  retiredEnvVars,
-  type ComposedServer,
-  type ComposedServerInfo,
-  type ComposedServerOptions,
-  type ListenOptions,
-  type RunningServer,
-} from "./composed-server.js"
-export {
-  appOnly,
-  showToolBinding,
-  strictToolInput,
-  VIEW_RESOURCE_URI_PREFIX,
-  viewResourceUri,
-} from "./widget-tool-bindings.js"
-export {
-  type ActiveModuleRef,
-  type ComposableModule,
-  type EffectiveToolset,
-  type ModuleEntry,
-  type ModulePlugin,
-} from "./composition.js"
-export {
-  createToolsetVocabulary,
-  type EffectiveSelection,
-  type ToolsetSource,
-  type ToolsetVocabulary,
-} from "./toolsets.js"
+export { appOnly, showToolBinding, strictToolInput } from "./widget-tool-bindings.js"
+export { buildDataFeedResult, buildViewResult, type ViewResult } from "./view-results.js"
+// The two protocol helpers both halves use are also on `/widgets`, with their types: server
+// summaries and widget strings call createTranslator at runtime, and the server's tool tests
+// decode results the way the view runtime does. Neither half imports the other's entry.
+export { decodeToolResult, type ToolResult } from "./tool-result.js"
 export {
   createTranslator,
   type Catalogs,
@@ -101,7 +32,35 @@ export {
   type BpmnModelNames,
   type BpmnNames,
 } from "./bpmn-names.js"
+export {
+  callerCacheKey,
+  getMcpRequestInfo,
+  runWithMcpRequestInfo,
+  type McpRequestInfo,
+} from "./request-context.js"
 
-export { buildDataFeedResult, buildViewResult, type ViewResult } from "./view-results.js"
+// The boot: one composed server, the variables it reads, the view resources it primes and the
+// view bundle's dedupe list.
+export {
+  composedEnvVars,
+  createComposedServer,
+  retiredEnvVars,
+  type ComposedServer,
+  type ComposedServerInfo,
+  type ComposedServerOptions,
+  type ListenOptions,
+  type RunningServer,
+} from "./composed-server.js"
+export { VIEW_RESOURCE_URI_PREFIX, viewResourceUri } from "./widget-tool-bindings.js"
 export { viewPrelude } from "./view-name.js"
-export { decodeToolResult, type ToolResult } from "./tool-result.js"
+export { VIEW_BUNDLE_DEDUPE } from "./view-bundle.js"
+
+// The served fonts (owner order: unchanged), and the route host installFontAssets takes.
+export type { HttpRouteHost } from "./health.js"
+export {
+  fontAssetsCsp,
+  installFontAssets,
+  type FontAsset,
+  type FontAssetsOptions,
+} from "./font-assets.js"
+export { SERVED_FONT_FILES, SERVED_FONT_PATH, servedFontBaseUrl } from "./served-fonts.js"

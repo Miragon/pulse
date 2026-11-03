@@ -22,12 +22,12 @@ usable by any CIB Seven / Camunda 7 project.
 
 ## Exports
 
-| Subpath     | Contents                                                               |
-| ----------- | ---------------------------------------------------------------------- |
-| `.`         | `createEngineClient` factory, `EngineRequestError` + schema re-exports |
-| `./sdk`     | Generated SDK, one typed function per REST operation                   |
-| `./types`   | Generated request/response types                                       |
-| `./schemas` | Zod input schemas (see below)                                          |
+| Subpath     | Contents                                                                |
+| ----------- | ----------------------------------------------------------------------- |
+| `.`         | `createEngineClient` factory, `EngineRequestError`, the engine contract |
+| `./sdk`     | Generated SDK, one typed function per REST operation                    |
+| `./types`   | Generated request/response types                                        |
+| `./schemas` | Zod input schemas (see below)                                           |
 
 These four subpaths are the public API. The internal layout of the generated
 output (`dist/generated/**`) is not: it may change with any `@hey-api/openapi-ts`

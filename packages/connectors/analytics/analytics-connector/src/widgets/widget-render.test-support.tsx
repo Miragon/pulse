@@ -4,7 +4,7 @@ import { cleanup, render, screen, within } from "@testing-library/react"
 import { LocaleProvider, setFormatLocale } from "@miragon/pulse-ui"
 import { TestViewHost } from "@miragon/pulse-widget-shell/widgets"
 
-export const NOW = "2026-10-10T12:40:00.000Z"
+const NOW = "2026-10-10T12:40:00.000Z"
 export const AS_OF = "2026-10-10T12:32:00.000Z"
 
 /** Fixes the clock at {@link NOW} and resets the view state after each test. */

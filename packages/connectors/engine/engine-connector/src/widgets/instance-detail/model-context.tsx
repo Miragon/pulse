@@ -6,7 +6,7 @@ import { HostModelContext } from "@miragon/pulse-widget-shell/widgets"
 type InstanceState = "cancelled" | "ended" | "unconfirmed" | "suspended" | "running"
 
 /** The instance the operator is looking at; its writes only as far as the deployment has them. */
-export function describeInstance({
+function describeInstance({
   instance,
   engineId,
   state,

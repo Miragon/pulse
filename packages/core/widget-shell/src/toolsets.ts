@@ -16,7 +16,7 @@ export interface ToolsetVocabulary<T extends string> {
 /** Where an effective toolset came from — the reason the boot log names. */
 export type ToolsetSource = "suffix" | "default" | "fallback"
 
-export interface EffectiveSelection<T extends string> {
+interface EffectiveSelection<T extends string> {
   toolset: T
   source: ToolsetSource
 }

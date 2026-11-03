@@ -316,7 +316,7 @@ function ProcessMatrix({ data, t }: { data: EngineLandscapeView; t: T }) {
  * The one valid engine-vs-engine hand-off: same process, two engines (further engines named so the
  * model can pair them next).
  */
-export function landscapeCompareHandOff(processKey: string, on: readonly string[]): HandOff {
+function landscapeCompareHandOff(processKey: string, on: readonly string[]): HandOff {
   const [engineA, engineB, ...more] = on
   return {
     intent: "askAi.landscapeCompare",

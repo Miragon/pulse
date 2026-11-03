@@ -103,10 +103,8 @@ template) moves to the new packages and exports:
 ```text
 @miragon/pulse-camunda7-client      ->  @miragon/pulse-engine-client
 @miragon/pulse-camunda7-connector   ->  @miragon/pulse-engine-connector
-camunda7Module, camunda7ConfigSchema, Camunda7PluginConfig, CAMUNDA7_ADMIN_ONLY_TOOLS
-                                    ->  engineModule, engineConfigSchema, EnginePluginConfig, ENGINE_ADMIN_ONLY_TOOLS
-camunda7Views, CAMUNDA7_HOST_WIDGET_REFS (./widgets)
-                                    ->  engineViews, ENGINE_HOST_WIDGET_REFS
+camunda7Module, CAMUNDA7_ADMIN_ONLY_TOOLS  ->  engineModule, ENGINE_ADMIN_ONLY_TOOLS
+camunda7Views, CAMUNDA7_HOST_WIDGET_REFS  ->  engineViews, ENGINE_HOST_WIDGET_REFS  (./widgets)
 createCamunda7Client, Camunda7ClientOptions, Camunda7AuthType
                                     ->  createEngineClient, EngineClientOptions, EngineAuthType
 @source "../../node_modules/@miragon/pulse-camunda7-connector/src"   (Tailwind, globals.css)
@@ -118,3 +116,5 @@ apps/mcp-server-camunda7            ->  apps/mcp-server  (this repository)
 A `setup.ts` that finds the module by name looks for `engineModule.name`. The engine sees the
 client's User-Agent as `@miragon/pulse-engine-client/<version>`. A module of your own peers
 `@miragon/pulse-widget-shell` (`^<version>`); your Vite config spreads its `VIEW_BUNDLE_DEDUPE`.
+The connector roots drop `createPlugin` (use `engineModule`, `analyticsModule`), input schemas come
+from `@miragon/pulse-engine-client/schemas`; widget-shell's boot parts run in `createComposedServer`.

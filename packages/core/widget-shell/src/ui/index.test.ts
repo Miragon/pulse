@@ -2,35 +2,74 @@
 import { describe, expect, it } from "vitest"
 import * as widgets from "./index.js"
 
-/** A piece missing from `/widgets` is a piece no connector can import. */
+/**
+ * The published entry, name by name: a name added here is a promise to every customer, a name
+ * dropped a breaking change, so either is a decision made in review, not a side effect. Types are
+ * erased at runtime: this locks the runtime names (knip does not report an entry's own exports).
+ */
 describe("the /widgets entry", () => {
-  it.each([
-    "ListTable",
-    "COLUMN_BREAKPOINTS",
-    "BpmnHeatmapWidget",
-    "HeatValuesTable",
-    "countTone",
-    "severityTone",
-    // The view runtime.
-    "mountViews",
-    "mountView",
-    "ViewStack",
-    "ViewErrorBoundary",
-    "useViewHost",
-    "HostModelContext",
-    "useHostWidget",
-    "LocaleGate",
-    "useToolQuery",
-    "useToolMutation",
-    "useViewData",
-    "createViewQueryClient",
-    "useQueryClient",
-    "decodeToolResult",
-    "createTranslator",
-    "TestViewHost",
-    "createTestQueryClient",
-  ])("exports %s", (name) => {
-    expect(widgets).toHaveProperty(name)
-    expect(widgets[name as keyof typeof widgets]).toBeDefined()
+  it("exports exactly these runtime names", () => {
+    expect(Object.keys(widgets).sort()).toEqual([
+      "AskAiButton",
+      "BPMN_OVERLAY_CSS",
+      "BPMN_TOKENS",
+      "BpmnHeatmap",
+      "BpmnHeatmapWidget",
+      "BpmnZoomControls",
+      "ConfirmDialog",
+      "FIT_CONTINUES_ROW",
+      "HAND_OFF_ACTIONS",
+      "HandOffButton",
+      "HeatmapLegend",
+      "HostModelContext",
+      "HostWidgetSlot",
+      "IdCell",
+      "IdText",
+      "ListTable",
+      "OpenInCockpitLink",
+      "PagedRows",
+      "QueryFallback",
+      "RowsBudgeted",
+      "SERVED_FONTS_STYLE_ID",
+      "SERVED_FONT_FILES",
+      "SERVED_FONT_PATH",
+      "TableSkeleton",
+      "TestViewHost",
+      "ViewDataState",
+      "ViewErrorBoundary",
+      "ViewMeta",
+      "ViewStack",
+      "WidgetShell",
+      "askAiPrompt",
+      "cdVar",
+      "countTone",
+      "createTestQueryClient",
+      "createTranslator",
+      "createViewQueryClient",
+      "declareServedFonts",
+      "decodeToolResult",
+      "describeError",
+      "formatLookback",
+      "injectBpmnOverlayCss",
+      "modelContextText",
+      "mountView",
+      "mountViews",
+      "servedFontBaseUrl",
+      "severityTone",
+      "shortId",
+      "useActionFeedback",
+      "useBpmnViewer",
+      "useDetailView",
+      "useHostDisplayMode",
+      "useHostWidget",
+      "usePagedListView",
+      "usePagedViewData",
+      "useQueryClient",
+      "useToolMutation",
+      "useToolQuery",
+      "useViewData",
+      "useViewHost",
+      "viewRefreshState",
+    ])
   })
 })

@@ -101,7 +101,7 @@ export function triageJobsHandOff(data: JobPanelData, engineId: string | undefin
 }
 
 // Exception text is engine data, quoted.
-export function explainJobHandOff(job: Job, engineId: string | undefined): HandOff {
+function explainJobHandOff(job: Job, engineId: string | undefined): HandOff {
   return {
     intent: "askAi.jobs.explainFailure",
     ids: {
@@ -116,7 +116,7 @@ export function explainJobHandOff(job: Job, engineId: string | undefined): HandO
   }
 }
 
-export function draftJobTicketHandOff(job: Job, engineId: string | undefined): HandOff {
+function draftJobTicketHandOff(job: Job, engineId: string | undefined): HandOff {
   return {
     intent: "askAi.jobs.draftTicket",
     ids: {

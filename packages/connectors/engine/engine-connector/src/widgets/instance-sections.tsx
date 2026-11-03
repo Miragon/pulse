@@ -18,16 +18,12 @@ function prettyJson(serialized: string): string {
 }
 
 // Omitted, `true`/`false` as the engine writes it.
-export interface BooleanLabels {
+interface BooleanLabels {
   yes: string
   no: string
 }
 
-export function formatVariableValue(
-  value: unknown,
-  type?: string,
-  booleans?: BooleanLabels,
-): string {
+function formatVariableValue(value: unknown, type?: string, booleans?: BooleanLabels): string {
   if (typeof value === "boolean" && booleans) return value ? booleans.yes : booleans.no
   return valueText(value, type)
 }

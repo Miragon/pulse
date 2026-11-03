@@ -49,13 +49,13 @@ export interface ComposableModule<TShared> {
   }
 }
 
-export interface ActiveModuleRef {
+interface ActiveModuleRef {
   name: string
   /** Kept even when EMPTY (`engine:` → `""`), so an empty suffix fails closed like an unknown one. */
   toolset?: string
 }
 
-export interface EffectiveToolset {
+interface EffectiveToolset {
   module: string
   toolset?: string
   source: ToolsetSource | "none"
@@ -67,7 +67,7 @@ export interface ResolvedBoot {
   toolsets: EffectiveToolset[]
 }
 
-export interface ResolveBootOptions {
+interface ResolveBootOptions {
   /**
    * Only the boot knows whether it INSTALLED OAuth; reading `MCP_USE_OAUTH_*` here would count a
    * boot without the bearer gate as authenticated and fail open. Omitted = `false`.

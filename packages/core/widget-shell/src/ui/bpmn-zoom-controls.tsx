@@ -2,7 +2,7 @@ import { cn, FOCUS_RING_INSET, useLocale, Icon } from "@miragon/pulse-ui"
 import { Scan, ZoomIn, ZoomOut } from "lucide-react"
 import { kitLabels } from "./kit-labels.js"
 
-export interface BpmnZoomControlsLabels {
+interface BpmnZoomControlsLabels {
   zoomIn?: string
   zoomOut?: string
   fit?: string

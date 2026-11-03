@@ -221,7 +221,7 @@ function IncidentRow({
 }
 
 /** Drill-in for ONE failure cluster, between the engine overview's cluster list and the single-incident detail. */
-export function ClusterDetailView({
+function ClusterDetailView({
   data: initialData = null,
   ...route
 }: ClusterRoute & { data?: ClusterDetailData | null }) {

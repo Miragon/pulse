@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs"
-import { createRequire } from "node:module"
 import { describe, expect, it } from "vitest"
 import { CD_TOKENS, type CdTokenName } from "@miragon/pulse-ui"
 import {
@@ -18,10 +16,9 @@ function tokenNames(value: unknown): CdTokenName[] {
 
 const USED = [...new Set(tokenNames(BPMN_TOKENS))]
 
-/** The vendored corporate-design stylesheet, as pulse-ui ships it. */
+/** The vendored corporate-design stylesheet, as pulse-ui ships it (the tokens come first). */
 function vendoredTokens(): Map<string, string> {
-  const require = createRequire(import.meta.url)
-  const css = readFileSync(require.resolve("@miragon/pulse-ui/cd-tokens.generated.css"), "utf8")
+  const [css] = themeStylesheets()
   return new Map(
     [...css.matchAll(/--cd-([\w-]+):\s*([^;]+);/g)].map(([, name, value]) => [name, value.trim()]),
   )

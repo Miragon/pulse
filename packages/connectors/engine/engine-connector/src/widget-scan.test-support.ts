@@ -9,7 +9,7 @@ const SRC_DIR = fileURLToPath(new URL("./", import.meta.url))
 export const WIDGETS_DIR = join(SRC_DIR, "widgets")
 
 /** How widget code can name a tool it calls. */
-export type Via = "action" | "mutation" | "callTool" | "read"
+type Via = "action" | "mutation" | "callTool" | "read"
 
 export interface ToolReference {
   file: string

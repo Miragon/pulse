@@ -9,12 +9,12 @@ import {
 import { METRIC_NAMES as M } from "../metric-names.js"
 import { engineState, reportingEnginesQuery } from "./helpers.js"
 
-export interface HealthCount {
+interface HealthCount {
   label: string
   count: number
 }
 
-export interface HealthAlert {
+interface HealthAlert {
   name: string
   severity: string
   scope: string

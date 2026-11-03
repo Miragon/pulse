@@ -31,7 +31,7 @@ export interface WriteFeedback<TResult> {
   failure: string
 }
 
-export interface RunOptions<TResult> {
+interface RunOptions<TResult> {
   confirm?: ActionConfirmation
   feedback: WriteFeedback<TResult>
   onSuccess?: (result: TResult) => void

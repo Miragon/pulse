@@ -1,6 +1,6 @@
-import { mergeProps } from "@base-ui/react/merge-props"
-import { useRender } from "@base-ui/react/use-render"
+import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
+import { Slot } from "radix-ui"
 
 import { FOCUS_RING } from "../lib/focus-ring.js"
 import { TONE_BORDER, TONE_SOFT } from "../lib/tone-utils.js"
@@ -36,26 +36,27 @@ const badgeVariants = cva(
   },
 )
 
+// `asChild` renders the badge's classes and data attributes on its one child (a link, say),
+// like Button; `data-slot` and `data-variant` name the part for styling and tests.
 function Badge({
   className,
   variant = "default",
-  render,
+  asChild = false,
   ...props
-}: useRender.ComponentProps<"span"> & VariantProps<typeof badgeVariants>) {
-  return useRender({
-    defaultTagName: "span",
-    props: mergeProps<"span">(
-      {
-        className: cn(badgeVariants({ variant }), className),
-      },
-      props,
-    ),
-    render,
-    state: {
-      slot: "badge",
-      variant,
-    },
-  })
+}: React.ComponentProps<"span"> &
+  VariantProps<typeof badgeVariants> & {
+    asChild?: boolean
+  }) {
+  const Comp = asChild ? Slot.Root : "span"
+
+  return (
+    <Comp
+      data-slot="badge"
+      data-variant={variant ?? undefined}
+      className={cn(badgeVariants({ variant }), className)}
+      {...props}
+    />
+  )
 }
 
 export { Badge, badgeVariants }

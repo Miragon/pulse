@@ -1,8 +1,6 @@
 import { resolveLanguage } from "./host-context.js"
 import { ERROR_LABELS, type ErrorKindLabels, type ErrorSource } from "./error-labels.js"
 
-export type { ErrorSource } from "./error-labels.js"
-
 /** `unreachable` covers 502/503, `timeout` 408/504, `notOnServer` an inactive module. */
 export const ERROR_KINDS = [
   "unreachable",

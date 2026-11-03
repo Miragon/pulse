@@ -26,7 +26,7 @@ export interface EngineLandscapeEngine {
   exclusiveDefinitionKeys: number | null
 }
 
-export interface EngineLandscapeProcess {
+interface EngineLandscapeProcess {
   processDefinitionKey: string
   engineIds: string[]
   shared: boolean

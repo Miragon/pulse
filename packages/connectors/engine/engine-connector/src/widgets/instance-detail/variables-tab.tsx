@@ -4,7 +4,7 @@ import { VariablesTable } from "../instance-sections.js"
 import { useHandOff, type HandOff } from "../lib/hand-off.js"
 
 /** The model reads values through the tool (hosts treat its output as data); a fix is only proposed. */
-export function checkVariablesHandOff(
+function checkVariablesHandOff(
   instanceId: string,
   definitionId: string,
   engineId: string | undefined,

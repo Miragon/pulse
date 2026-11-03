@@ -4,7 +4,7 @@ export const getTaskFormInput = z.object({
   taskId: z.string(),
 })
 
-export const taskFormFieldSourceSchema = z.enum(["form-data", "manual"])
+const taskFormFieldSourceSchema = z.enum(["form-data", "manual"])
 
 export const taskFormFieldSchema = z.object({
   name: z.string(),

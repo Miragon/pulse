@@ -62,10 +62,7 @@ function toDefinitionInfo(raw: RawDefinition, key: string): DefinitionInfo {
  * Over EVERY tenant. `GET /process-definition/key/{key}` finds only tenant-less
  * definitions, so a tenant deployment would read as unknown.
  */
-export async function findLatestDefinition(
-  client: Client,
-  key: string,
-): Promise<DefinitionInfo | null> {
+async function findLatestDefinition(client: Client, key: string): Promise<DefinitionInfo | null> {
   const [latest] = rowsOf<RawDefinition>(
     await getProcessDefinitions({
       client,

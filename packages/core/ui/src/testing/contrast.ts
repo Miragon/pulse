@@ -1,16 +1,21 @@
 import { readFileSync } from "node:fs"
 import { createRequire } from "node:module"
+import { pathToFileURL } from "node:url"
 
 /**
  * WCAG contrast over the THEME as written, resolved the way the browser would, so a brand
  * override that drops a role below AA fails a test, not a screenshot review.
  */
 
-/** The kit's shipped theme (tokens, then roles). Pass first, then a consumer's brand: `parseThemeVariables(...themeStylesheets(), brandCss)`. */
+/**
+ * The kit's shipped theme: the vendored `--cd-*` tokens, then the roles (`theme.css`). Pass first,
+ * then a consumer's brand: `parseThemeVariables(...themeStylesheets(), brandCss)`. The tokens are
+ * the file `theme.css` imports, read next to it, as its `@import` resolves them.
+ */
 export function themeStylesheets(): string[] {
-  const require = createRequire(import.meta.url)
-  const read = (entry: string) => readFileSync(require.resolve(entry), "utf8")
-  return [read("@miragon/pulse-ui/cd-tokens.generated.css"), read("@miragon/pulse-ui/theme.css")]
+  const theme = createRequire(import.meta.url).resolve("@miragon/pulse-ui/theme.css")
+  const tokens = new URL("./tokens/cd-tokens.generated.css", pathToFileURL(theme))
+  return [readFileSync(tokens, "utf8"), readFileSync(theme, "utf8")]
 }
 
 export type ThemeMode = "light" | "dark"

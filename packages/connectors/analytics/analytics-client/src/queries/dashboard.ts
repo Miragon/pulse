@@ -30,7 +30,7 @@ export const ACTIVITY_BREAKDOWN_LIMIT = 20
 // The comparisons' default `minBucketSize`: below it the previous rate gets no verdict.
 const MIN_BUCKET_SIZE = 10
 
-export interface ActivityBreakdownItem {
+interface ActivityBreakdownItem {
   processDefinitionKey: string
   activityId: string
   /** "" for an activity with incidents but no ended execution: only `activity_ended` carries it. */
@@ -44,7 +44,7 @@ export interface ActivityBreakdownItem {
   incidentsCreated: number
 }
 
-export interface DefinitionBreakdownItem {
+interface DefinitionBreakdownItem {
   processDefinitionKey: string
   startedCount: number
   completedCount: number
@@ -53,7 +53,7 @@ export interface DefinitionBreakdownItem {
   avgDurationMs: number | null
 }
 
-export interface PreviousPeriodFlows {
+interface PreviousPeriodFlows {
   startedCount: number
   incidentsCreated: number
   incidentRatePct: number | null

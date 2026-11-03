@@ -5,11 +5,8 @@ import { registerTools } from "./tools/index.js"
 import { registerIncidentIssuePrompt, registerIncidentIssueTools } from "./tools/incident-issue.js"
 import { registerEngineTools } from "./tools/engines.js"
 import { registerWidgetTools } from "./widget-tools.js"
-import {
-  createEngineRegistry,
-  type EngineEntry,
-  type EngineRegistry,
-} from "./lib/resolve-engine.js"
+import type { EngineEntry } from "./engine-provider.js"
+import { createEngineRegistry, type EngineRegistry } from "./lib/resolve-engine.js"
 import { resolveEngineToolset, withToolsetFilter } from "./lib/toolsets.js"
 import { withEngineParam } from "./lib/with-engine.js"
 

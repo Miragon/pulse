@@ -49,8 +49,7 @@
     },
     "./theme.css": "./src/theme.css",
     "./globals.css": "./src/globals.css",
-    "./fonts.css": "./src/fonts.css",
-    "./cd-tokens.generated.css": "./src/tokens/cd-tokens.generated.css"
+    "./fonts.css": "./src/fonts.css"
   },
   "scripts": {
     "build": "tsc",
@@ -75,7 +74,6 @@
     }
   },
   "dependencies": {
-    "@base-ui/react": "1.8.0",
     "@fontsource-variable/geist": "5.3.0",
     "@fontsource-variable/geist-mono": "5.3.0",
     "class-variance-authority": "0.7.1",
