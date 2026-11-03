@@ -11,7 +11,7 @@ export default mergeConfig(
         // push coverage up; never lower. Documented re-baseline 2026-08-13:
         // the profile store + migrations (a well-tested surface) moved to
         // @miragon/pulse-widget-shell, where the SAME code is now held to that
-        // package's higher thresholds — this package's percentages shifted
+        // package's higher thresholds, so this package's percentages shifted
         // without a single line losing tests (lines 38 → 35 at measured
         // 37.54%). Raised 2026-08-17 with module.ts under test (measured
         // statements 38.66 / branches 27.88 / functions 32.05 / lines 39.09).
@@ -24,19 +24,19 @@ export default mergeConfig(
         // 40.44 / functions 47.64 / lines 55.62). Raised 2026-10-09 with the
         // engine-contract wire guards over every write tool (#328; measured
         // statements 61.86 / branches 44.95 / functions 55.72 / lines 63.05).
-        // Raised 2026-10-09 with the #328 review guards — task completion,
+        // Raised 2026-10-09 with the #328 review guards: task completion,
         // the incident-detail and task-form widget suites (measured
         // statements 66.56 / branches 52.07 / functions 60.53 / lines 67.96).
-        // Raised 2026-10-10 with the #335 honest-numbers guards — the per-
+        // Raised 2026-10-10 with the #335 honest-numbers guards: the per-
         // builder rejection table and the recording-engine builder suites
         // (measured statements 76.75 / branches 62.91 / functions 73.30 /
-        // lines 78.03). Raised 2026-10-10 with the #335 review guards — every
+        // lines 78.03). Raised 2026-10-10 with the #335 review guards: every
         // read of every builder broken in turn and the capped-scan health
         // suites (measured statements 77.26 / branches 63.80 / functions
         // 74.06 / lines 78.57). The #338 hand-offs rendered against each toolset's
         // live surface (measured standalone 74.1 / 60.39 / 69.05 / 75.57)
         // stay under the stacked floor. Raised 2026-10-10 with the #341
-        // write-path suites — the engine-action primitive, the render-level
+        // write-path suites: the engine-action primitive, the render-level
         // gating of every write site, the seeded standalone refresh (measured
         // 83.38 / 71.81 / 81.22 / 84.39; main was 78.66 / 66.81 / 75.72 / 79.89).
         // #341's cockpit-scope, paged-list and definition-view render suites

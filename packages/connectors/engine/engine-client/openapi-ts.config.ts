@@ -14,7 +14,7 @@ export default defineConfig({
       name: "@hey-api/client-fetch",
       throwOnError: true,
       // Runtime defaults (headers, throwOnError, responseStyle) shared by the
-      // generated default client and `createEngineClient` — see src/hey-api.ts.
+      // generated default client and `createEngineClient` (see src/hey-api.ts).
       // openapi-ts resolves this path relative to the package root (cwd) and
       // then emits the computed relative import into
       // src/generated/client.gen.ts (keeping the build's `.js` extension).
