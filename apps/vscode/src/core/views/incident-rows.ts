@@ -1,5 +1,4 @@
 import type { Incident, IncidentDetails, IncidentJob } from "../../contract/index.js"
-import { RootCause } from "../incidents/root-cause.js"
 import type { IncidentRow, JobLink } from "../protocol/index.js"
 import type { CalledInstanceLinks } from "./called-instance-links.js"
 import { ModelFactsView } from "./model-facts-view.js"
@@ -18,7 +17,7 @@ export class IncidentRows {
 
   private rowOf(incident: Incident): IncidentRow {
     const details = this.completeDetails(incident)
-    const cause = details === undefined ? undefined : RootCause.of(details.text)
+    const cause = details?.rootCause
     const link = this.links.linkTo(incident.instanceId)
     const detailsKind = incident.details?.kind
     return {

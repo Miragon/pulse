@@ -1,7 +1,7 @@
 # Runtime contract
 
 - Status: accepted
-- Last reviewed: 2026-10-26
+- Last reviewed: 2026-11-03
 
 ## Context
 
@@ -84,8 +84,8 @@ for any workspace, and the conformance kit does not cover them
 - **Own vocabulary.** `bpmnProcessId`, `definitionId` (one deployed version),
   `instanceId`, `elementId`. Ids are branded opaque strings, never numbers.
 - **Facts, not interpretations.** Adapters deliver facts and normalise engine quirks
-  (UTC ISO timestamps, lossless big integers, root incidents only, error mapping).
-  The core interprets: root-cause line, grouping, overlays, notices.
+  (UTC ISO timestamps, lossless big integers, root incidents only, error mapping, the
+  root cause of an engine's stack trace). The core interprets: grouping, overlays, notices.
 - **Optional fields, no capability flags.** What one engine cannot deliver is an
   optional field (`details?`, `calledFromElementId?`, `retriesLeft?`). A later real
   capability gap becomes an optional method, never a flags object that can disagree
@@ -160,20 +160,27 @@ for any workspace, and the conformance kit does not cover them
   finds and counts nothing. The core re-reads a selection before a bulk
   write and reconciles a finished bulk operation with it.
 - **Truncation is explicit.** Details in an instance detail may be truncated and say
-  so; `getIncidentDetails` never is. The core derives a root cause only from complete
-  text.
+  so; `getIncidentDetails` never is. The core shows a root cause only of complete
+  details.
+- **Details name their root cause.** `IncidentDetails.rootCause` is one line out of the
+  text (for a stack trace its last cause, short class name, at most 300 characters) and
+  `rootCauseLine` the line of the text a viewer opens at. Reading a stack trace is engine
+  knowledge, so the adapter delivers both (the C7 adapter through engine-core's
+  `rootCause` and `rootCauseLine`); the law
+  "incidents: details name their root cause in one line and point at a line of their
+  text" holds every adapter to it.
 
 ### Conformance kit
 
 ```mermaid
 flowchart LR
-  kit[ConformanceKit: 46 read laws, 15 command laws]
+  kit[ConformanceKit: 47 read laws, 15 command laws]
   kit --> fake[FakeEngine in memory]
   kit --> c7[C7Adapter on Operaton, CIB seven, Camunda 7 in containers]
   saboteurs[Saboteurs: broken runtimes] -- each must fail its law --> kit
 ```
 
-`apps/vscode/src/contract/conformance` holds 46 read laws and 15 command laws as
+`apps/vscode/src/contract/conformance` holds 47 read laws and 15 command laws as
 executable cases, modelled on `@miragon/modeler-api/conformance`:
 `new ConformanceKit(test).registerRuntimeLaws(prepare)` and `.registerCommandLaws(prepare)`
 bind them to any `(name, fn)` runner and throw a `ConformanceViolation` when a law fails. Command laws run on

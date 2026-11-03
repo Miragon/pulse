@@ -132,9 +132,12 @@ flowchart TB
   core --> contract
   webview -- types only --> protocol[core/protocol]
   adapterC7 --> contract
+  adapterC7 -- bundled --> engineCore["@miragon/pulse-engine-core"]
 ```
 
 Every import edge not drawn fails `pnpm lint:architecture:vscode` (dependency-cruiser, closed world).
+The one workspace package is engine-core, the Camunda 7 family's workflow domain that the CLI
+and the MCP server run too: only the C7 adapter imports it, and esbuild bundles it.
 
 ## 4. One adapter for Operaton, CIB seven and Camunda 7
 
@@ -148,18 +151,20 @@ flowchart LR
     readers[Readers: C7 answers to contract read models]
     rest[src/engine-rest: REST calls, answers checked]
   end
+  core["engine-core: inspect, wait states, root cause"]
   subgraph family [Same REST API]
     camunda7[Camunda 7.24]
     operaton[Operaton 2.1]
     cibseven[CIB seven 2.2]
   end
   readers --> rest
+  rest -- its port over EngineHttp --> core
   rest -- HTTP /engine-rest --> family
 ```
 
 | Question                             | Answer                                                                                                                 |
 | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
-| Does the C7 adapter cover all three? | Yes: all 46 read laws and 15 command laws pass on Operaton 2.1.5, CIB seven 2.2.0, Camunda 7.24.0                      |
+| Does the C7 adapter cover all three? | Yes: all 47 read laws and 15 command laws pass on Operaton 2.1.5, CIB seven 2.2.0, Camunda 7.24.0                      |
 | Do we need an adapter per fork?      | No, only per API family                                                                                                |
 | What does a new engine family need?  | A package `adapter-<family>` with an `EngineAdapter`, its conformance test, one line in the composition root           |
 | Where does Camunda 8 stand?          | Not included. The spike built a C8 adapter on REST v2 against an API mock, then removed it to keep the prototype small |
@@ -217,7 +222,7 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-  kit[ConformanceKit: 46 read laws, 15 command laws]
+  kit[ConformanceKit: 47 read laws, 15 command laws]
   kit --> fake[FakeEngine in memory]
   kit --> c7[C7Adapter on Operaton, CIB seven, Camunda 7 in containers]
   saboteurs[Saboteurs: broken runtimes] -- each must fail its law --> kit

@@ -56,8 +56,9 @@ second engine dialect cheap:
   server reads, a dialect or another source such as `analytics` (Prometheus): its client,
   its connector (the MCP module) and, when its interfaces share a pure domain, its core.
   A package two interfaces share is extracted on its second consumer into the family's core,
-  like `@miragon/pulse-engine-core`, the Camunda 7 family's workflow domain that the CLI
-  bundles and the engine connector runs over its client (one port per API family; it names
+  like `@miragon/pulse-engine-core`, the Camunda 7 family's workflow domain that the CLI and
+  the VS Code extension's C7 adapter bundle and the engine connector runs over its client
+  (one port per API family; it names
   no command, flag or tool). `packages/core/` holds what every family builds on, never one
   family's code. An
   _interface_ is an app:

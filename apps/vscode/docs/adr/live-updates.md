@@ -1,7 +1,7 @@
 # Live updates
 
 - Status: accepted
-- Last reviewed: 2026-10-23
+- Last reviewed: 2026-11-03
 
 ## Context
 
@@ -18,9 +18,9 @@ What they found:
   consistent storage. Every benchmarked cockpit polls lists, counts and diagram
   statistics; push exists only for append-only logs. Polling the existing ports is the
   only engine-neutral way.
-- A read is expensive here: every port call starts at least one CLI process (about 120 ms
-  and 100 MB on a laptop) that makes one or more REST calls with a password check each. A
-  definition panel at 5 s would start over 100 processes a minute; many laptops polling
+- A read is not free here: every port call makes one or more REST calls, each with a
+  password check on the engine (an instance detail more than a dozen, in a few rounds). A
+  definition panel at 5 s would send over 100 requests a minute; many laptops polling
   one shared engine add up. Ten failed logins lock a C7 user until an admin unlocks it.
 - Hidden tabs, an unfocused window or an idle desk must cost nothing. Users must never lose
   what they look at: version, filter, loaded pages, zoom, editor text, focus.
@@ -148,7 +148,7 @@ A running bulk operation ([writes.md](writes.md)) is followed by a poll of its o
   `EnginesTreeLive` runs one `DefinitionsLoop` per engine of the tree.
 - The contract does not change: no `observedAt`, no change probe. `asOf` is the start of the
   load.
-- Tests pin the engine calls of one tick (port calls, not CLI processes): instance at most
+- Tests pin the engine calls of one tick (port calls, not REST requests): instance at most
   2, definition at most 7, no local file reads on a tick.
 
 ## Consequences

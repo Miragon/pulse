@@ -34,7 +34,8 @@ const PACKAGES = [
       devDependencies: { "@miragon/pulse-engine-core": "workspace:*" },
     },
   },
-  pkg("apps/vscode", "pulse-cockpit"),
+  // The extension's C7 adapter bundles engine-core.
+  pkg("apps/vscode", "pulse-cockpit", { "@miragon/pulse-engine-core": "workspace:*" }),
   pkg("docs", "@miragon/pulse-docs"),
 ]
 
@@ -99,12 +100,14 @@ describe("scopesFor: a package's code reaches its dependents", () => {
     ])
   })
 
-  it("runs the CLI's and the MCP server's checks and the template for engine-core, its two users", () => {
+  it("runs the CLI's, the extension's and the MCP server's checks and the template for engine-core, its three users", () => {
     assert.deepEqual(scopes("packages/connectors/engine/engine-core/src/inspect.ts"), [
       "cli",
       "mcp",
       "template",
       "typescript",
+      "vscode",
+      "vscode-package",
     ])
   })
 
@@ -238,6 +241,14 @@ describe("the real workspace", () => {
       (dir) => dir !== "docs" && !scopesFor([`${dir}/src/index.ts`], packages).has("typescript"),
     )
     assert.deepEqual(without, [])
+  })
+
+  it("runs the extension's checks for engine-core, which its C7 adapter bundles", () => {
+    const changed = scopesFor(
+      ["packages/connectors/engine/engine-core/src/root-cause.ts"],
+      packages,
+    )
+    assert.ok(changed.has("vscode") && changed.has("vscode-package") && changed.has("cli"))
   })
 
   it("keeps the CLI and the extension apart from the MCP server's packages", () => {

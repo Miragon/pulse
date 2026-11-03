@@ -1,3 +1,4 @@
+import { toEngineDate } from "@miragon/pulse-engine-core"
 import { ValueKinds, type ValueKind } from "../../../contract/index.js"
 
 const NUMBER_KINDS: ReadonlySet<ValueKind> = new Set<ValueKind>(["integer", "decimal"])
@@ -33,7 +34,7 @@ export class EngineValues {
     const epochMillis = typeof value === "string" ? Date.parse(value) : Number.NaN
     return Number.isNaN(epochMillis)
       ? undefined
-      : JSON.stringify(new Date(epochMillis).toISOString().replace("Z", "+0000"))
+      : JSON.stringify(toEngineDate(new Date(epochMillis)))
   }
 
   static parsed(text: string): unknown {

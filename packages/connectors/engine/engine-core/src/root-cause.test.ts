@@ -1,6 +1,6 @@
 import fc from "fast-check"
 import { describe, expect, it } from "vitest"
-import { rootCause } from "./root-cause.js"
+import { rootCause, rootCauseLine } from "./root-cause.js"
 
 const STACKTRACE = [
   "org.camunda.bpm.engine.ProcessEngineException: Unknown property used in expression: ${failBooking ? missingBean.run() : true}. Cause: Cannot resolve identifier 'missingBean'",
@@ -66,5 +66,37 @@ describe("rootCause details", () => {
     expect(rootCause("failed in com.acme.Thing")).toBe("failed in com.acme.Thing")
     expect(rootCause("org.x.F bar")).toBe("F bar")
     expect(rootCause("a \t  b")).toBe("a b")
+  })
+})
+
+describe("rootCauseLine", () => {
+  it('points at the line of the last "Caused by:", if there is one', () => {
+    expect(rootCauseLine("a\nCaused by: b\n  at x\nCaused by: c\n  at y")).toBe(3)
+    expect(rootCauseLine(STACKTRACE)).toBe(2)
+    expect(rootCauseLine("no cause here")).toBeUndefined()
+    expect(rootCauseLine("")).toBeUndefined()
+  })
+
+  it("counts CRLF, LF and CR as one line break each and ignores indentation", () => {
+    expect(rootCauseLine("a\r\nb\rc\n\t  Caused by: d")).toBe(3)
+  })
+
+  it("is the line rootCause reads its cause from (property)", () => {
+    fc.assert(
+      fc.property(fc.array(fc.string()), (lines) => {
+        const text = lines.join("\n")
+        const index = rootCauseLine(text)
+        const all = text.split(/\r\n|[\n\r]/)
+        if (index === undefined) {
+          expect(all.some((line) => line.trim().startsWith("Caused by: "))).toBe(false)
+        } else {
+          const cause = all[index]?.trim().slice("Caused by: ".length) ?? ""
+          expect(rootCause(text)).toBe(rootCause(cause) ?? "")
+          expect(all.slice(index + 1).some((line) => line.trim().startsWith("Caused by: "))).toBe(
+            false,
+          )
+        }
+      }),
+    )
   })
 })

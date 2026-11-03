@@ -45,7 +45,7 @@ sequenceDiagram
 - `apps/vscode/src/core/views`: view builders: read models in, one view model out
 - `apps/vscode/src/core/explorer`: what the Engines tree lists
 - `apps/vscode/src/core/drift`: does a local `.bpmn` file match a deployed version? (`ModelDrift`)
-- `apps/vscode/src/core/bpmn`, `apps/vscode/src/core/incidents`, `apps/vscode/src/core/diagrams`: text rules for BPMN XML and errors, diagram cache
+- `apps/vscode/src/core/bpmn`, `apps/vscode/src/core/diagrams`: text rules for BPMN XML, diagram cache (the root cause of an incident comes with its details from the adapter)
 
 ## Rules
 

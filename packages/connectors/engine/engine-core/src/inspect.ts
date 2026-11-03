@@ -29,7 +29,8 @@ export interface InspectOptions {
 
 /** Root causes are loaded for at most this many incidents per command run. */
 const MAX_CAUSES = 10
-const MAX_STACKTRACE_LINES = 200
+/** A stack trace an instance view carries is cut after this many lines. */
+export const MAX_STACKTRACE_LINES = 200
 const NO_VALUES = { deserializeValues: String(RAW_VARIABLES.deserializeValues) }
 const JOBS = { operationId: "getJobs", key: "processInstanceIds" }
 /** The request that holds the root cause of an incident type. */

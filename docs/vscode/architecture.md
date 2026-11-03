@@ -2,7 +2,9 @@
 
 The core never knows which engine it talks to: it asks the ports of a contract, and one adapter
 per engine family answers. The C7 adapter serves Operaton, CIB seven and Camunda 7 over their
-REST API; a new engine is one more adapter folder and one entry in the composition root.
+REST API, with the Camunda 7 family's workflow domain (`@miragon/pulse-engine-core`, shared with
+the CLI and the MCP server and bundled into the extension) for inspecting an instance and its
+root causes; a new engine is one more adapter folder and one entry in the composition root.
 
 ```mermaid
 flowchart LR
@@ -11,6 +13,7 @@ flowchart LR
   core --> contract["contract: ports and read models"]
   c7["adapter c7"] -. implements .-> contract
   c7 --> engines["Operaton, CIB seven, Camunda 7: /engine-rest"]
+  c7 -- bundled --> enginecore["engine-core: inspect, root cause"]
 ```
 
 The extension is one package with six layers under `apps/vscode/src`, each with its own globals
@@ -19,7 +22,7 @@ and dependency rules:
 | Layer      | Holds                                                   |
 | ---------- | ------------------------------------------------------- |
 | `contract` | ports, read models, conformance laws                    |
-| `core`     | grouping, root cause, view models, panel behaviour      |
+| `core`     | grouping, view models, panel behaviour                  |
 | `webview`  | what the panels draw                                    |
 | `host`     | the VS Code wiring and the composition root             |
 | `adapters` | one folder per engine family (`c7` today)               |

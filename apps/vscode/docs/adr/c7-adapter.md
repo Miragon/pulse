@@ -1,7 +1,7 @@
 # Camunda 7 family adapter
 
 - Status: accepted
-- Last reviewed: 2026-10-28
+- Last reviewed: 2026-11-03
 
 ## Context
 
@@ -15,6 +15,9 @@ flowchart LR
     readers[Readers: C7 answers to contract read models]
     rest[src/engine-rest: REST calls, parses and checks the JSON]
   end
+  core[engine-core: inspect rounds, wait states, root cause, engine date format]
+  rest -- "EngineTransport over EngineHttp" --> core
+  readers --> core
   subgraph family [Same REST API]
     camunda7[Camunda 7.24]
     operaton[Operaton 2.1]
@@ -27,8 +30,27 @@ flowchart LR
 ## Decision
 
 `apps/vscode/src/adapters/c7` implements `EngineAdapter`, `ProcessRuntime` and `ProcessCommands`
-on top of a **small REST client** in `apps/vscode/src/adapters/c7/engine-rest/`, standalone:
-no shared package, no dependency.
+on top of a **small REST client** in `apps/vscode/src/adapters/c7/engine-rest/` and the
+Camunda 7 family's workflow domain, `@miragon/pulse-engine-core`, the package the CLI and the
+MCP server run too.
+
+- **One edge to engine-core, bundled.** engine-core has no runtime dependency and no Node
+  built-in, takes its engine through a caller's port and returns data. Only this adapter
+  imports it (its main entry; `apps/vscode/.dependency-cruiser.cjs`:
+  `engine-core-only-in-the-c7-adapter`, and the root rule `family-core-consumers` with the
+  adapter in `CORE_BUNDLES`); the contract, the core, the webview and the host stay
+  engine-neutral. esbuild inlines it into `dist/extension.cjs`, the .vsix ships no
+  `node_modules`. Up to 0.24 the adapter carried its own copy of the inspect domain
+  ("standalone: no shared package"); that copy predated engine-core, which came from the same
+  CLI code, and a fix to wait states or root causes landed twice. One home now: the
+  conformance laws run engine-core on all three engines.
+- **engine-core's port over `EngineHttp`.** `HttpEngineTransport` implements engine-core's
+  `EngineTransport`: `InspectOperations` maps each operation id engine-core's inspection
+  sends to its REST path (a test holds the table equal to engine-core's
+  `INSPECT_OPERATIONS`), a stack trace or error details are read as text, everything else
+  as lossless JSON through `EngineHttp`. Its failure reading keeps the extension's
+  missing resource (below), so engine-core's port reads a missing record, activity tree or
+  stack trace exactly as the adapter did.
 
 - **Typed calls.** The `EngineClient` interface exposes `definitionStatistics`,
   `activityStatistics`, `diagramXml`, `historicInstances`, `historicInstanceCount`,
@@ -46,17 +68,21 @@ no shared package, no dependency.
   selected target; Pulse reads the workspace's `.pulse-cli.json` itself (`TargetsParser`).
   Ids must match `^[A-Za-z0-9_][\w.:-]*$` (no comma that would add ids to a list) and are
   refused before sending; variable names without control characters, at most 255.
-- **`inspect` loads an instance in rounds**: runtime and history record; the called
-  instances below it (`superProcessInstance`, level by level, at most 10 levels and 100
-  instances, else `truncated`); per instance its activity instance tree, incidents and
-  event subscriptions; once for the tree its tasks, external tasks, jobs (and which are
-  timers), definitions and job definitions; the scope variables and the history of
-  activities; the stack trace or error details of the first 10 root incidents (200 lines).
-  Wait states are one per user task, external task, job and message, signal or
-  conditional subscription plus every leaf activity instance without one (except a call
-  activity with a called instance), sorted by depth, instance, activity, kind and id; a
-  boundary event names the activity it is attached to. An instance that ends between the
-  rounds is read again, then as ended (history only).
+- **`inspect` runs engine-core's `loadInstance`** over `EngineHttp` (`HttpEngineTransport`,
+  `InspectOperations`), with variables and stack traces and without history, and maps
+  engine-core's instance view to the adapter's `InspectView` (`InspectViews`,
+  `WaitingAtViews`). The rounds, their caps, the wait states and the retry of an instance
+  that ends between the rounds are engine-core's
+  (`packages/connectors/engine/engine-core/src/inspect.ts`). The adapter owns the history
+  of activities (the path and the calls, `InstancePath`): its own read of
+  `GET /history/activity-instance`, in parallel with the rounds, because engine-core's history
+  option would also read every historic incident of the instance on each live refresh. When
+  the view is ended, the path is read once more after it, so an instance that ended during
+  the rounds shows its whole path (ended instances are not polled).
+- **Incident details carry their root cause.** `IncidentTexts` adds engine-core's
+  `rootCause` and `rootCauseLine` of the text to every `IncidentDetails` the adapter reads
+  (`getIncidentDetails`, the details of `getInstanceDetail`); the core shows the root cause
+  of complete details and the host opens the text at that line.
 - **Writes** are seven requests:
 
   | Request                                                           | For                              |
@@ -224,12 +250,12 @@ instance, the definitions by instance) goes in as a parameter, never as construc
 | `apps/vscode/src/adapters/c7/web-ui`              | `CockpitWebUi`                                                                                                                                                                                                                      | the routes into Cockpit or the CIB seven webclient                                                                                             |
 | `apps/vscode/src/adapters/c7`                     | `C7Adapter`, `C7ProcessRuntime`, `C7ProcessCommands`                                                                                                                                                                                | the entry and the two ports; every port call runs through `ErrorTranslation`                                                                   |
 | `apps/vscode/src/adapters/c7/reading`             | `EngineReader`, `DefinitionReader`, `ElementStatisticsReader`, `CalledProcessReader`, `InstanceSearch`, `InstanceDetailReader`, `IncidentSearch`, `IncidentDetailsReader`, `BulkOperationReader`, `MigrationReader`, `OffsetPaging` | which engine calls answer a port method, in parallel where possible, and their answers as read models; offset paging behind the cursor         |
-| `apps/vscode/src/adapters/c7/mapping`             | `DefinitionRefs`, `InstanceStates`, `Timestamps`, `RootIncident`                                                                                                                                                                    | the translations several readers share, without I/O                                                                                            |
+| `apps/vscode/src/adapters/c7/mapping`             | `DefinitionRefs`, `InstanceStates`, `Timestamps`, `RootIncident`, `IncidentTexts`                                                                                                                                                   | the translations several readers share, without I/O; the root cause of incident details (engine-core)                                          |
 | `apps/vscode/src/adapters/c7/writing`             | `VariableBody`, `CancelBody`, `MigrationBody`, `EngineValues`, `Redaction`, `SourceToken`, `MoveBody`                                                                                                                               | the bodies of a variable change, a move, a cancel and a migration, the allowed types and their engine form, what to keep out of error messages |
 | `apps/vscode/src/adapters/c7/errors`              | `ErrorTranslation`                                                                                                                                                                                                                  | engine failures to `RuntimeError`: `translated`, `unlessMissing`, `commanded<Result>`, `submitted<Result>`, `isRefusal`                        |
 | `apps/vscode/src/adapters/c7/engine-rest`         | `EngineClient`/`RestEngineClient`, `EngineWriter`/`RestEngineWriter`, `RequestArguments`, `Present`                                                                                                                                 | one method per engine call; strict ids and variable names                                                                                      |
 | `apps/vscode/src/adapters/c7/engine-rest/http`    | `EngineHttp`, `EngineRequestError`                                                                                                                                                                                                  | one request: URL, auth, deadline, size cap, no redirects, lossless JSON, failures with status and engine type                                  |
-| `apps/vscode/src/adapters/c7/engine-rest/inspect` | `InstanceInspection`, `InspectedInstance`, `InstanceTree`, `ActivityIndex`, `WaitStates`, `ParallelReads`                                                                                                                           | `inspect`: the rounds of reads, the tree of called instances, where it waits, the view                                                         |
+| `apps/vscode/src/adapters/c7/engine-rest/inspect` | `InstanceInspection`, `HttpEngineTransport`, `InspectOperations`, `InspectViews`, `WaitingAtViews`, `InstancePath`                                                                                                                  | `inspect`: engine-core's rounds over `EngineHttp`, its instance view as the adapter's `InspectView`, the path from the history                 |
 | `apps/vscode/src/adapters/c7/engine-rest/views`   | `JsonObject`, `LosslessJson`, `UnexpectedAnswerError` and one parser per view                                                                                                                                                       | the engine's JSON to typed views, checked at runtime                                                                                           |
 
 Tests construct `new C7Adapter(send)` with a fake `fetch` that answers recorded REST
@@ -245,6 +271,23 @@ routes and so run every class above.
   REST API already answers, so instances seeded in that window got timestamps from the
   rewound clock, up to an end before their start. `startEngine` refuses an engine on which
   the example is deployed.
+- Since engine-core reads the instance, two edge cases read as the CLI and the MCP tools
+  read them: an empty string the engine sends for a business key, an assignee, an event or
+  activity or definition name counts as absent, and an ended instance lists one historic
+  variable per name (the last row of the engine's list). A field of the wrong JSON type in
+  what engine-core reads is skipped instead of failing as `unexpectedResponse` (no engine
+  of the family sends one). Every other answer, and every instance of the conformance world
+  on all three engines, reads as before.
+  The wire differs in paging details (the called instances are read with
+  `firstResult=0`, the caller of an instance without history with `maxResults=2`), for
+  an id the engine does not know one history read more, and for an ended instance one
+  read of its path more (the parallel one, before the adapter knows that it ended).
+- Rules the adapter still holds next to engine-core, for a later cut: which text holds an
+  incident's cause and its fallbacks (`IncidentDetailsReader`, engine-core's cause read is
+  not exported), the root incident (`RootIncident`), the path of the history
+  (`InstancePath`; engine-core's `timelineOf` is not exported and needs the historic
+  incidents), the incident retry, the date input and the Integer/Long inference of a
+  variable, and the wider missing-resource reading of `HttpEngineTransport`.
 - A call costs its HTTP round trip, no process start. Certificates and proxies come from
   VS Code's settings, no longer from environment variables such as `NODE_EXTRA_CA_CERTS`.
 - OAuth2 targets are refused with a clear message in v0.1.

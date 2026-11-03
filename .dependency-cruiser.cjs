@@ -23,7 +23,8 @@
  * connectors; of the two interface apps, the CLI (apps/cli, `@miragon/pulse-cli`) imports
  * exactly the family core it bundles (CLI_CORE), and the VS Code
  * extension (apps/vscode, the unscoped `pulse-cockpit`, because vsce rejects scoped names)
- * imports none. No package and no app imports an app
+ * imports it in its C7 adapter alone (apps/vscode/src/adapters/c7, esbuild bundles it).
+ * No package and no app imports an app
  * (the extension's own closed-world rules live in apps/vscode/.dependency-cruiser.cjs).
  * APP_PACKAGES below names every app's npm name; the
  * self-test fails when a real app's name is missing there. These rules see IMPORTS only: a
@@ -82,12 +83,20 @@ const FAMILY_CORE = "@miragon/pulse-[^/]+-core"
 const FAMILY_CORE_TREE = "^packages/connectors/[^/]+/[^/]+-core/"
 
 /**
- * The interface apps that bundle a family core (tsdown inlines it), each with the one core it
- * bundles: with the family's own connector the only importers of a family core
- * (family-core-consumers). The CLI's rules hold the core it bundles as part of the CLI.
+ * The interface apps (or the one part of an app) that bundle a family core (tsdown or esbuild
+ * inlines it), each with the one core it bundles. The keys are, with the family's own connector,
+ * the only importers of a family core (family-core-consumers). This config reads the name and
+ * tree of the CLI's entry only: the CLI's rules below hold the core it bundles as part of the
+ * CLI. The extension's entry documents its core here; its own config
+ * (apps/vscode/.dependency-cruiser.cjs, engine-core-only-in-the-c7-adapter) holds the C7 adapter
+ * to that core's main entry and keeps the core out of every other layer.
  */
 const CORE_BUNDLES = {
   "^apps/cli/": {
+    name: "@miragon/pulse-engine-core",
+    tree: "packages/connectors/engine/engine-core",
+  },
+  "^apps/vscode/src/adapters/c7/": {
     name: "@miragon/pulse-engine-core",
     tree: "packages/connectors/engine/engine-core",
   },
@@ -411,7 +420,8 @@ module.exports = {
       severity: "error",
       comment:
         "A family core is imported by its own family's connector (connectors-own-their-family) " +
-        "and by the interface apps that bundle it (CORE_BUNDLERS: the CLI bundles engine-core), " +
+        "and by the interface apps that bundle it (CORE_BUNDLERS: the CLI and the VS Code " +
+        "extension's C7 adapter, apps/vscode/src/adapters/c7, bundle engine-core), " +
         "by no other app: the MCP server composes connectors, not their domain. The other " +
         "packages answer to their own rules: packages/core to core-is-foundation, a client to " +
         "clients-are-leaves, a family core to family-core-is-a-leaf.",

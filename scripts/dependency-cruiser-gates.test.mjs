@@ -330,7 +330,20 @@ const SUITES = [
       [UI_SRC, ENGINE_CORE, [CORE, UI_LEAF]],
       [ENGINE_CLIENT_SRC, ENGINE_CORE, [CLIENT_LEAF]],
       [ENGINE_CLIENT_SRC, `${ENGINE_CORE}/testing`, [CLIENT_LEAF, NO_TESTING]],
-      // Allowed: the family's own connector and the CLI, which bundles engine-core.
+      // The extension bundles engine-core in its C7 adapter alone (keyed on that subtree).
+      [`${EXT}/src/core/a.ts`, ENGINE_CORE, [CORE_USERS]],
+      [`${EXT}/src/adapters/other/a.ts`, ENGINE_CORE, [CORE_USERS]],
+      [`${EXT}/src/adapters/c7-other/a.ts`, ENGINE_CORE, [CORE_USERS]],
+      [`${EXT}/src/adapters/c7/testing.ts`, `${ENGINE_CORE}/testing`, [NO_TESTING]],
+      [
+        `${EXT}/src/adapters/c7/escape-core.ts`,
+        "../../../../../packages/connectors/engine/engine-core/src/target.ts",
+        [DEEP],
+      ],
+      // Allowed: the family's own connector, the CLI and the extension's C7 adapter, which
+      // bundle engine-core.
+      [`${EXT}/src/adapters/c7/inspect.ts`, ENGINE_CORE, []],
+      [`${EXT}/src/adapters/c7/engine-rest/inspect/port.ts`, ENGINE_CORE, []],
       [ENGINE_CONNECTOR_SRC, ENGINE_CORE, []],
       [AN_CONNECTOR_SRC, AN_CORE_NAME, []],
       [`${CLI}/src/workflow/inspect.ts`, ENGINE_CORE, []],

@@ -74,8 +74,8 @@ A family is one source the MCP server reads: a dialect, or another source such a
 (Prometheus). Its packages are named `<family>-<role>`: `<family>-connector` (the MCP module),
 `<family>-client` (the wire: SDK, client, the SDK-bound reads) and, when the family's interfaces
 share a pure domain, `<family>-core` (no runtime dependency, one port per family, the home of the
-family's pure rules; extracted on its second consumer, like `engine-core`, which the CLI bundles
-and the engine connector runs). The engine family's tool input schemas live in its connector,
+family's pure rules; extracted on its second consumer, like `engine-core`, which the CLI and the
+VS Code extension's C7 adapter bundle and the engine connector runs). The engine family's tool input schemas live in its connector,
 next to the tools (`packages/connectors/engine/engine-connector/src/schemas/`); analytics-client
 still carries analytics' own (`packages/connectors/analytics/analytics-client/src/schemas/`,
 with its zod peer) until they move the same way.
@@ -462,9 +462,10 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      own family's client and core, clients and family cores are leaves, core is the foundation and
      pulse-ui its leaf, no package or app imports an app, no cross-package deep imports. The
      interface apps import nothing of the MCP/UI/server stack, zod included, and no workspace
-     package except a family core they bundle (the CLI's `@miragon/pulse-engine-core`); a family
-     core (`family-core-is-a-leaf`) is imported only by its family's connector and the apps that
-     bundle it (`family-core-consumers`, `CORE_BUNDLERS`), and no shipped code imports a
+     package except a family core they bundle (`@miragon/pulse-engine-core`: the CLI's, and the
+     VS Code extension's in its C7 adapter alone, `apps/vscode/src/adapters/c7`); a family
+     core (`family-core-is-a-leaf`) is imported only by its family's connector and the apps (or
+     the app part) that bundle it (`family-core-consumers`, `CORE_BUNDLERS`), and no shipped code imports a
      `./testing` entry (`shipped-code-not-to-testing`). The family rules key on the roles, so a
      new family inherits them. The seams keep browser code apart from the server: widget-shell's
      view half (`src/ui`) imports only itself, `src/protocol` (the wire both halves share: tool

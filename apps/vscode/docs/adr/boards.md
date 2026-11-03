@@ -1,7 +1,7 @@
 # Boards
 
 - Status: accepted
-- Last reviewed: 2026-10-31 (the MCP server dropped its saved dashboards)
+- Last reviewed: 2026-11-03 (the adapter calls REST, no CLI process per call)
 
 ## Context
 
@@ -28,8 +28,8 @@ What they found:
 - Every read the widgets need already exists as a port method (`countInstances`,
   `searchInstances`, `listDefinitions`, `describeEngine`). `InstanceSummary` carries no
   variables, so `var:` columns would cost one detail read per row.
-- Each port call starts a CLI process; a board with N widgets over M engines multiplies that,
-  and a stale password over M engines could lock users out.
+- Each port call makes one or more REST calls; a board with N widgets over M engines
+  multiplies them, and a stale password over M engines could lock users out.
 
 ## Decision
 

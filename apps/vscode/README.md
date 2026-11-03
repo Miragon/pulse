@@ -53,7 +53,10 @@ pnpm test && pnpm lint`) covers the extension too.
 | `pnpm --filter pulse-cockpit run docs:screenshots` | one VS Code screenshot per use case into `apps/vscode/docs/screenshots` (sandbox running)    |
 | `pnpm --filter pulse-cockpit run package`          | the `.vsix`                                                                                  |
 
-The webview tests need Chromium once: `pnpm --filter pulse-cockpit exec playwright install chromium`.
+The C7 adapter bundles `@miragon/pulse-engine-core` from its build: after `pnpm install`, build it
+once (`pnpm exec turbo run build --filter='pulse-cockpit^...'`, or `pnpm build`) before these
+commands, and again after a change to engine-core. The webview tests need Chromium once:
+`pnpm --filter pulse-cockpit exec playwright install chromium`.
 
 The README's `apps/vscode/docs/demo.gif` comes from the `product-shots` skill in
 [Miragon/corporate-identity](https://github.com/Miragon/corporate-identity), see

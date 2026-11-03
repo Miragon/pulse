@@ -27,6 +27,10 @@ pnpm --filter pulse-cockpit run docs:screenshots # one screenshot per use case (
 pnpm --filter pulse-cockpit run package          # the .vsix
 ```
 
+The C7 adapter bundles engine-core from its build: after `pnpm install`, build it once
+(`pnpm exec turbo run build --filter='pulse-cockpit^...'`, or `pnpm build`) before these
+commands, and again after a change to engine-core.
+
 The bar for every change is the repository's: `pnpm build && pnpm typecheck && pnpm test &&
 pnpm lint` at the root. The webview tests run in Chromium: install it once with
 `pnpm --filter pulse-cockpit exec playwright install chromium`. Run `test:engines`, `test:e2e`
@@ -51,21 +55,26 @@ and `TESTCONTAINERS_RYUK_DISABLED=true` for `test:engines`.
 The app is one package with six layers under `apps/vscode/src`. Each layer has its own
 `tsconfig.<layer>.json` (its runtime's globals only) and its own dependency rules.
 
-| You want to…                                                                | Put it in                                                                                                                                                                                    | Never                                      |
-| --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| Add an engine question                                                      | `apps/vscode/src/contract` (port + read model + a conformance law + a saboteur)                                                                                                              | engine words in the contract               |
-| Add a write                                                                 | `ProcessCommands` + a command law + a saboteur; policy and confirmation per `apps/vscode/docs/adr/writes.md`                                                                                 | authority in a webview intent              |
-| Interpret runtime data (grouping, root cause, view models, panel behaviour) | `apps/vscode/src/core`                                                                                                                                                                       | `vscode`, DOM, Node, engine words          |
-| Change what the webview shows                                               | `apps/vscode/src/core/protocol` (types) and `apps/vscode/src/webview`                                                                                                                        | logic in the webview, `--vscode-*` colours |
-| Talk to Operaton / CIB seven / Camunda 7                                    | `apps/vscode/src/adapters/c7` (mapping) and `apps/vscode/src/adapters/c7/engine-rest` (REST client)                                                                                          | imports from core, webview or host         |
-| Add an engine                                                               | `apps/vscode/src/adapters/<engine>` with a class implementing `EngineAdapter` + an `*.engine.test.ts` running the `ConformanceKit` + one entry in `apps/vscode/src/host/composition-root.ts` | branching on engines anywhere else         |
-| Read the local `.bpmn` model or find the implementing code                  | `apps/vscode/src/model` (behind `ModelSource` / `CodeLocator`), per `apps/vscode/docs/adr/local-sources.md`                                                                                  | moddle or bpmn-modeler libs anywhere else  |
-| Wire VS Code                                                                | `apps/vscode/src/host`                                                                                                                                                                       | business rules                             |
+| You want to…                                                    | Put it in                                                                                                                                                                                                      | Never                                      |
+| --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| Add an engine question                                          | `apps/vscode/src/contract` (port + read model + a conformance law + a saboteur)                                                                                                                                | engine words in the contract               |
+| Add a write                                                     | `ProcessCommands` + a command law + a saboteur; policy and confirmation per `apps/vscode/docs/adr/writes.md`                                                                                                   | authority in a webview intent              |
+| Interpret runtime data (grouping, view models, panel behaviour) | `apps/vscode/src/core`                                                                                                                                                                                         | `vscode`, DOM, Node, engine words          |
+| Change what the webview shows                                   | `apps/vscode/src/core/protocol` (types) and `apps/vscode/src/webview`                                                                                                                                          | logic in the webview, `--vscode-*` colours |
+| Talk to Operaton / CIB seven / Camunda 7                        | `apps/vscode/src/adapters/c7` (mapping) and `apps/vscode/src/adapters/c7/engine-rest` (REST client; its `inspect` runs engine-core over it); inspect, wait states, root causes in `@miragon/pulse-engine-core` | imports from core, webview or host; a copy |
+| Add an engine                                                   | `apps/vscode/src/adapters/<engine>` with a class implementing `EngineAdapter` + an `*.engine.test.ts` running the `ConformanceKit` + one entry in `apps/vscode/src/host/composition-root.ts`                   | branching on engines anywhere else         |
+| Read the local `.bpmn` model or find the implementing code      | `apps/vscode/src/model` (behind `ModelSource` / `CodeLocator`), per `apps/vscode/docs/adr/local-sources.md`                                                                                                    | moddle or bpmn-modeler libs anywhere else  |
+| Wire VS Code                                                    | `apps/vscode/src/host`                                                                                                                                                                                         | business rules                             |
 
 The dependency rules are closed-world (`apps/vscode/.dependency-cruiser.cjs`): an import that
 is not explicitly allowed fails `pnpm lint:architecture:vscode` with a message that says where
-it belongs. Nothing outside them is allowed, so no widget-shell, no React, no zod and no other
-workspace package either.
+it belongs. Nothing outside them is allowed, so no widget-shell, no React, no zod and one
+workspace package only: the C7 adapter (`apps/vscode/src/adapters/c7` and its tests in
+`apps/vscode/test/adapters/c7`) imports `@miragon/pulse-engine-core`, the Camunda 7 family's
+workflow domain that the CLI and the MCP server run too, through its main entry, and esbuild
+bundles it (`engine-core-only-in-the-c7-adapter`; the repository's `family-core-consumers`). A
+change to how an instance is inspected, where it waits or what its root cause is goes into
+engine-core, never into a copy here; contract, core, webview and host stay engine-neutral.
 
 ## Rules
 

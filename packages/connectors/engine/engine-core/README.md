@@ -16,6 +16,8 @@ writes, incident recovery). It runs on an engine port you implement and returns 
 [@miragon/pulse-engine-connector](https://www.npmjs.com/package/@miragon/pulse-engine-connector)
 runs inspect and status on it over its client, as the MCP tools `engine_inspect_process_instance`
 and `engine_status`.
+Pulse for VS Code bundles it in its C7 adapter: an instance's panel reads the instance through
+`loadInstance` and the root cause of an incident through `rootCause` and `rootCauseLine`.
 It is the shared domain of every Pulse interface to this API family, so an MCP tool and a CLI
 command answer the same question by the same rules.
 
@@ -47,7 +49,8 @@ npm install @miragon/pulse-engine-core
   fails instead of reading as missing.
 - **Inspect:** `inspectInstance(port, selection, options)` selects an instance by id, by business
   key or by key with `latest`, and loads its view: wait states with their ids, root-cause
-  incidents, called instances, optionally variables, the history timeline and stacktraces.
+  incidents, called instances, optionally variables, the history timeline and stacktraces (cut
+  after `MAX_STACKTRACE_LINES` lines).
 - **Status:** `readStatus({ port, now }, options)` triages one engine: findings with severity, the
   overall status, definitions, incident groups with their root cause, topics, jobs and batches,
   every cut named in `truncated`.
@@ -60,7 +63,7 @@ npm install @miragon/pulse-engine-core
   `complementaryFlags`, `engineLike`, `engineKeyList`, `engineInstanceSearch`), paired sorting
   (`engineSorting`), variable writes and typing (`toEngineVariable(s)`, `autoTypedValue`),
   incident recovery (`incidentRecovery`), the raw variable read flag (`RAW_VARIABLES`) and root
-  causes (`rootCause`).
+  causes (`rootCause`, and `rootCauseLine`, the line a viewer opens the text at).
 
 ```ts
 import { createEnginePort, type EngineTransport, inspectInstance } from "@miragon/pulse-engine-core"

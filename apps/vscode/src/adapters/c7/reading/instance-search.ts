@@ -1,3 +1,4 @@
+import { toEngineDate } from "@miragon/pulse-engine-core"
 import {
   InstanceId,
   type InstanceFilter,
@@ -28,7 +29,6 @@ const OPERATORS: Readonly<Record<VariableComparison, VariableQueryCondition["ope
   lessThan: "lt",
 }
 const SQL_WILDCARDS = /[\\%_]/g
-const ENGINE_UTC_OFFSET = "+0000"
 
 export class InstanceSearch {
   constructor(private readonly client: EngineClient) {}
@@ -91,7 +91,7 @@ export class InstanceSearch {
   }
 
   private dateOf(at: IsoTimestamp): string {
-    return new Date(at).toISOString().replace("Z", ENGINE_UTC_OFFSET)
+    return toEngineDate(new Date(at))
   }
 
   private likeOf(pattern: string): string {

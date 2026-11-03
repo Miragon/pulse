@@ -66,7 +66,7 @@ export { RAW_VARIABLES } from "./variables.js"
 export { incidentRecovery, type IncidentRecovery } from "./incident-recovery.js"
 export { mapLimit } from "./util.js"
 export { formatDuration } from "./durations.js"
-export { rootCause } from "./root-cause.js"
+export { rootCause, rootCauseLine } from "./root-cause.js"
 export type {
   AdvanceInput,
   AdvanceOption,
@@ -98,6 +98,7 @@ export {
   instanceRequests,
   loadInstance,
   loadView,
+  MAX_STACKTRACE_LINES,
 } from "./inspect.js"
 export { activeTree, type InstanceTree } from "./tree.js"
 export { waitId } from "./waits.js"

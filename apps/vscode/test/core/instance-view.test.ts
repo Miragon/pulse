@@ -148,7 +148,12 @@ describe("the instance view", () => {
             type: "failedJob",
             message: "boom again",
             createdAt: SINCE,
-            details: { kind: "errorMessage", text: "worker said no", truncated: false },
+            details: {
+              kind: "errorMessage",
+              text: "worker said no",
+              truncated: false,
+              rootCause: "worker said no",
+            },
           },
         ],
       }),
