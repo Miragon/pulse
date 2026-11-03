@@ -4,10 +4,10 @@
   // every check but unused exports and types, in every workspace. Exports and
   // types are `pnpm lint:deadcode:exports` (`--include exports,types`), in every
   // workspace but docs (below). The two cover `lint:deadcode:cli`, `:engine-core`
-  // and `:vscode`, which stay only because the ratchet pins `pnpm lint`'s chain;
-  // a later cut deletes them by name (P12). knip never reports what an ENTRY file
-  // exports (includeEntryExports is off): the published entries' own lists are
-  // locked by their index tests.
+  // and `:vscode` too, which stay chained into `pnpm lint`: the ratchet pins that
+  // chain, so dropping one needs a Ratchet-Exception trailer (the owner's call).
+  // knip never reports what an ENTRY file exports (includeEntryExports is off):
+  // the published entries' own lists are locked by their index tests.
   // Every ignore below is a documented exception — the list is shrink-only,
   // same convention as the ESLint ratchet lists.
 

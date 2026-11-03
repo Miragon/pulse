@@ -10,15 +10,7 @@
     "src/bpmn-names.ts",
     "src/engine-ids.ts",
     "src/named-views.ts",
-    "src/server-locale.ts",
-    "src/settings-tools.ts",
-    "src/settings.ts",
-    "src/toolsets.ts",
-    "src/tools/engine-compare.ts",
-    "src/tools/engine-landscape.ts",
-    "src/tools/health.ts",
-    "src/tools/performance.ts",
-    "src/tools/version-compare.ts"
+    "src/tools/health.ts"
   ],
   "inPlace": true,
   "incremental": true,

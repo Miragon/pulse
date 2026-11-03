@@ -63,6 +63,8 @@ describe("ratchetKind", () => {
     assert.equal(ratchetKind("knip.jsonc"), "knip")
     assert.equal(ratchetKind("apps/mcp-server/test/__golden__/char-budgets.json"), "char-budgets")
     assert.equal(ratchetKind("apps/mcp-server/test/__golden__/bundle-budget.json"), "bundle-budget")
+    assert.equal(ratchetKind("apps/vscode/test/__golden__/bundle-budget.json"), "bundle-budget")
+    assert.equal(ratchetKind("apps/cli/test/__golden__/bundle-budget.json"), "bundle-budget")
     assert.equal(ratchetKind("package.json"), "root-scripts")
     assert.equal(ratchetKind("packages/core/widget-shell/package.json"), "package-scripts")
     assert.equal(ratchetKind("apps/mcp-server/package.json"), "package-scripts")
@@ -1429,7 +1431,7 @@ describe("bundle budget (shrink-only)", () => {
         base,
         JSON.stringify({ "mcp-app.js": 410000, "mcp-app.css": 13300 }),
       )[0],
-      /405000 -> 410000 bytes gzip/,
+      /405000 -> 410000 bytes/,
     )
     assert.match(
       checkRatchetFile(rel, base, JSON.stringify({ "mcp-app.js": 405000 }))[0],
@@ -1439,6 +1441,37 @@ describe("bundle budget (shrink-only)", () => {
       checkRatchetFile(rel, base, JSON.stringify({ "mcp-app.js": 400000, "mcp-app.css": 13000 })),
       [],
     )
+  })
+})
+
+describe("the CLI's bundle budget (shrink-only, raw bytes)", () => {
+  const rel = "apps/cli/test/__golden__/bundle-budget.json"
+  const base = JSON.stringify({ $comment: "x", dist: 2342912 })
+
+  it("flags a raised ceiling: without a Ratchet-Exception trailer the gate fails", () => {
+    const [violation, ...rest] = checkRatchetFile(rel, base, JSON.stringify({ dist: 2359296 }))
+    assert.match(
+      violation,
+      /apps\/cli\/test\/__golden__\/bundle-budget\.json -> "dist": 2342912 -> 2359296 bytes/,
+    )
+    assert.match(violation, /every npm install of the CLI downloads its dist/)
+    assert.deepEqual(rest, [])
+  })
+
+  it("flags a removed ceiling and a removed file", () => {
+    assert.match(
+      checkRatchetFile(rel, base, JSON.stringify({ $comment: "x" }))[0],
+      /"dist" was removed/,
+    )
+    assert.match(checkRatchetFile(rel, base, null)[0], /"dist" was removed/)
+  })
+
+  it("accepts a lowered or unchanged ceiling and reads the real file", () => {
+    assert.deepEqual(checkRatchetFile(rel, base, JSON.stringify({ dist: 2326528 })), [])
+    assert.deepEqual(checkRatchetFile(rel, base, base), [])
+    const real = readFileSync(rel, "utf8")
+    assert.deepEqual(checkRatchetFile(rel, real, real), [])
+    assert.equal(typeof JSON.parse(real).dist, "number")
   })
 })
 

@@ -5,7 +5,7 @@
   "vitest": {
     "configFile": "vitest.stryker.config.ts"
   },
-  "mutate": ["src/**/*.ts", "!src/**/*.test.ts", "!src/postgres.ts", "!src/*-store-postgres.ts"],
+  "mutate": ["src/**/*.ts", "!src/**/*.test.ts"],
   "inPlace": true,
   "incremental": true,
   "incrementalFile": "reports/stryker-incremental.json",

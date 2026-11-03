@@ -15,9 +15,9 @@ Docs are held to the code:
   page stays within its line budget.
 - `scripts/old-names.test.mjs` fails on a technical name of the retired operate CLI, on the
   unscoped npm package pulse-cli (someone else's), on an image off GHCR, on the retired OAuth
-  JSON variable and on a name the engine module carried up to 0.24 (its `camunda7_` tools, the
-  module name, its packages and app path, its `CAMUNDA_` server variables, its metric names);
-  the vendor (`flavor` `camunda7`, "Camunda 7") stays.
+  JSON variable, on a package of the retired MCP toolkit and on a name the engine module carried
+  up to 0.24 (its `camunda7_` tools, the module name, its packages and app path, its `CAMUNDA_`
+  server variables, its metric names); the vendor (`flavor` `camunda7`, "Camunda 7") stays.
 - `scripts/check-package-scripts.mjs` (`pnpm lint:package-scripts`) fails on a `--filter`
   naming no workspace package and on a pnpm filter without `--fail-if-no-match` on a gate path
   (pnpm 10 exits 0 when a filter matches nothing, so a stale name turns a gate green).
@@ -458,9 +458,10 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      Rules key on `@miragon/pulse-`, never on bare `@miragon/`, which other Miragon packages
      share. Gate: `scripts/check-package-naming.mjs` (`pnpm lint:naming`).
    - **Dependency edges** (`.dependency-cruiser.cjs`, `pnpm lint:architecture` +
-     `pnpm lint:architecture:cli`): connectors never import each other, a connector imports only its
-     own family's client and core, clients and family cores are leaves, core is the foundation and
-     pulse-ui its leaf, no package or app imports an app, no cross-package deep imports. The
+     `pnpm lint:architecture:cli`; the VS Code extension's own closed-world rules:
+     `apps/vscode/CLAUDE.md`): connectors never import each other, a connector imports only its
+     own family's client and core, clients and family cores are leaves, core is the foundation
+     and pulse-ui its leaf, no package or app imports an app, no cross-package deep imports. The
      interface apps import nothing of the MCP/UI/server stack, zod included, and no workspace
      package except a family core they bundle (`@miragon/pulse-engine-core`: the CLI's, and the
      VS Code extension's in its C7 adapter alone, `apps/vscode/src/adapters/c7`); a family
@@ -611,7 +612,12 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
 - **The widget bundle has a budget.** Every view resource inlines the whole bundle, so its
   size is the cost of every render: `test/__golden__/bundle-budget.json` holds shrink-only gzip
   ceilings that `test-host/bundle-budget.spec.ts` checks; growth needs a `Ratchet-Exception:`
-  trailer that says why.
+  trailer that says why. Two more shipped bundles have a shrink-only ceiling: the VS Code
+  webview's (`apps/vscode/test/__golden__/bundle-budget.json`, gzip) and the CLI's npm dist
+  (`apps/cli/test/__golden__/bundle-budget.json`, raw bytes, read by
+  `scripts/published-imports.test.mjs`, which also makes it come down once the dist shrinks
+  more than 10 % below it). The CLI's standalone bundle (`build/standalone`, the single
+  executables and the image) has none.
 - **Federation happens in an external MCP gateway (agentgateway) IN FRONT of this server;
   this repo builds one self-contained MCP server including its UI.** Federation was dropped
   deliberately in #162: no upstream/proxy mechanics. A gateway that terminates auth in front is
@@ -666,11 +672,11 @@ workspace (its header lists each check).
 
 | Check             | Coverage                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm build`      | tsc emit of server code + the server app's Vite widget bundle (`build:ui`); excludes widget `.tsx` type errors in packages                                                                                                                                                                                                                                                                                                                                                                                                               |
-| `pnpm typecheck`  | **The only check that type-checks widget code**: `tsc -p tsconfig.widgets.json` in the two connector packages and widget-shell (its view half), `tsc -p tsconfig.ui.json` in the server app; the VS Code extension per layer, each with that layer's runtime globals only                                                                                                                                                                                                                                                                |
-| `pnpm test`       | Vitest unit tests, the server app's wire-contract tests and tools/list goldens (in-process boot, loopback HTTP), the per-package coverage floors, then `node --test` over `scripts/*.test.mjs` (repo guards included: docs-refs, old-names, published imports, tool-name and hand-off references, server env names; docs-refs and old-names also run in Lint + Format on every PR); **no widget rendering** (the VS Code webview tests render in Chromium; locally once: `pnpm --filter pulse-cockpit exec playwright install chromium`) |
+| `pnpm build`      | turbo `build` everywhere: tsc emit of the packages and server code, the server app's Vite widget bundle (`build:ui`), the CLI's tsdown bundle (`apps/cli/dist`) and the VS Code extension's esbuild bundles; excludes widget `.tsx` type errors in packages                                                                                                                                                                                                                                                                              |
+| `pnpm typecheck`  | **The only check that type-checks widget code**: `tsc -p tsconfig.widgets.json` in the two connector packages and widget-shell (its view half), `tsc -p tsconfig.ui.json` (and `tsconfig.test.json`) in the server app; the VS Code extension per layer, each with that layer's runtime globals only                                                                                                                                                                                                                                     |
+| `pnpm test`       | Vitest unit tests, the server app's wire-contract tests and tools/list goldens (in-process boot, loopback HTTP), the VS Code extension's architecture tests, the per-package coverage floors, then `node --test` over `scripts/*.test.mjs` (repo guards and gate self-tests, below the table); docs-refs, old-names and `lint:package-scripts` also run in Lint + Format; **no widget rendering** (the VS Code webview tests render in Chromium; locally once: `pnpm --filter pulse-cockpit exec playwright install chromium`)           |
 | `pnpm lint`       | ESLint per package incl. the pattern gates, then dependency-cruiser (`lint:architecture`, `:cli`, `:vscode`), `lint:naming`, `lint:package-scripts`, `lint:ratchets` (needs `git fetch origin`), knip (`lint:deadcode`: everything but exports and types; `:exports`: exports and types in every workspace but the vendored docs kit; `:cli`, `:engine-core`, `:vscode` repeat their workspace) and `lint:github`                                                                                                                        |
-| `pnpm fitness`    | Report: architecture graph, per-package coverage and mutation scores; locally after `pnpm test` (no CI job on a pull request), nightly the "Mutation summary" job of `.github/workflows/mutation-nightly.yml`                                                                                                                                                                                                                                                                                                                            |
+| `pnpm fitness`    | Report: architecture graph, per-package coverage and mutation scores; locally after `pnpm test` (no CI job on a pull request), else the "Mutation summary" job of `.github/workflows/mutation-nightly.yml` (dispatch only while mutation testing is paused, see below)                                                                                                                                                                                                                                                                   |
 | `./gradlew build` | Kotlin compile + unit tests + Konsist architecture tests (run in `engine-plugins/`)                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | `test:host`       | `pnpm --filter @miragon/pulse-mcp-server test:host`: Playwright host simulation of the **built** widget bundle behind a SEP-1865 host shim, the real `engine_open_cockpit` against a stub engine (`pinned …` scenarios are known defects, flipped when fixed); CI "Widget host simulation (test:host)"; run it for changes to widget-shell, pulse-ui, `src/ui/` or the mcp-use pin                                                                                                                                                       |
 | Template          | `scripts/test-template.sh` (in `pnpm check:all`; CI "Composed-server template (Build + Test)"): packs the published libraries (`scripts/workspace-packages.mjs`), checks the tarballs' contents (`scripts/pack-contents.mjs`), points a copy of `templates/composed-server` at them and runs its build, typecheck and tests, its pins checked against the workspace first (`scripts/template-pins.mjs`). ESLint, knip and dependency-cruiser skip `templates/`: the template's composition-root rules (invariant 8) are review knowledge |
@@ -682,6 +688,13 @@ workspace (its header lists each check).
 | CI scopes         | The `changes` job runs `scripts/ci-scopes.mjs` over a PR's files and every other job runs only in its scope (a skipped job reports success); "Lint + Format" runs on every PR. A new job gets `needs: changes` and a scope; a test that starts reading a file outside its package adds that path to `PATH_RULES` or `ALSO_READ_BY`                                                                                                                                                                                                       |
 | Manual            | `pnpm play` (or the playground + `pnpm dev` with a `.env`), then exercise tools/widgets in the inspector. The default boot is read-only; write paths need an explicit suffix: `pnpm play --admin`, or `MCP_ACTIVE_MODULES=engine:admin,analytics` in `.env`                                                                                                                                                                                                                                                                              |
 
+The repo guards `pnpm test` runs over the real tree: docs-refs, old-names, published imports,
+tool-name and hand-off references, server env names, the source scan's `APP_SCAN` and the
+template pins. Besides the dependency-cruiser and ESLint self-tests (invariants 8 and 1), the
+naming, package-scripts, ratchet, GitHub-config, CI-scope and pack-content checks each prove
+themselves on planted violations in fixtures; the extension's own gates live in
+`apps/vscode/test/architecture`.
+
 A green `pnpm build && pnpm typecheck && pnpm test && pnpm lint` (`pnpm check` runs them) is the minimum bar for
 every change, in that order (`scripts/published-imports.test.mjs` reads the built CLI bundle);
 widget changes additionally need `test:host` plus a manual render check via the inspector (the
@@ -692,12 +705,13 @@ each against the merge base with `origin/main`, and its header lists them: cover
 each `vitest.config.ts` rise (raise one when you better a file); each `stryker.config.json`'s
 `mutate` allowlist (the tested surface) grows and its `thresholds.break` rises; the ESLint
 budgets (complexity 15 and 400 lines; the CLI and the VS Code extension 10 and 300), knip
-ignores (each with its reason), the char and bundle budgets and inline suppressions only
-shrink; gate commands stay as they are; a second config that would shadow a ratcheted one
+ignores (each with its reason), the char and bundle budgets (Contracts) and inline suppressions
+only shrink; gate commands stay as they are; a second config that would shadow a ratcheted one
 fails. The one escape is a `Ratchet-Exception: <reason>` commit trailer in the branch range,
 which turns the failures into warnings for the reviewer; never weaken the checker instead.
 `pnpm lint:package-scripts` holds a package's first configs: every package with `src/` has a
-`vitest.config.ts` and a `stryker.config.json` (except the apps `NO_MUTATION_APPS` exempts).
+`vitest.config.ts` and, once mutation testing resumes, a `stryker.config.json` (except the apps
+`NO_MUTATION_APPS` exempts).
 
 **Mutation testing is paused while the MCP server is rebuilt** (owner decision, 2026-10-31;
 `scripts/mutation-pause.mjs`): the nightly run has no schedule, `lint:ratchets` skips the Stryker

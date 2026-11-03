@@ -19,7 +19,9 @@ written for the MCP server, so this file holds the CLI's own. The pages for peop
   `@miragon/pulse-engine-core` (`packages/connectors/engine/engine-core`, the engine family's
   core), are a devDependency that tsdown bundles; everything else that ships is the code in
   `apps/cli/src/`. The built bundle imports only commander and Node built-ins, and stays within
-  its size budget (`scripts/published-imports.test.mjs` reads `apps/cli/dist`).
+  its size budget (`scripts/published-imports.test.mjs` reads `apps/cli/dist` and the ceiling in
+  `apps/cli/test/__golden__/bundle-budget.json`, which `pnpm lint:ratchets` holds shrink-only:
+  growth needs a `Ratchet-Exception:` trailer that says why).
 
 ## Layers
 

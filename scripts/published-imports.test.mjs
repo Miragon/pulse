@@ -6,6 +6,7 @@ import { builtinModules } from "node:module"
 import { afterEach, describe, it } from "node:test"
 import ts from "typescript"
 import { isNpmPublished, readWorkspace } from "./workspace-packages.mjs"
+import { ratchetKind } from "./check-ratchets.mjs"
 import { REPO_ROOT } from "./source-scan.mjs"
 
 /**
@@ -26,16 +27,40 @@ import { REPO_ROOT } from "./source-scan.mjs"
  * which bundles @miragon/pulse-engine-core) is read from its BUILT bundle
  * instead: every module under its dist imports only Node built-ins and its
  * declared dependencies (a workspace package left external fails), and the
- * bundle stays within its size budget. `pnpm build` runs first (CI's
+ * bundle stays within its size budget and close to it. `pnpm build` runs first (CI's
  * TypeScript job and the minimum bar build before `pnpm test`).
  */
 
 /**
- * Apps read from their built bundle: the directory and the size budget in bytes, the measured
- * size rounded up to the next 16 KiB. The budget is held by review: raise it only with a reason.
+ * Apps read from their built bundle: the directory, and the budget file whose `dist` key is the
+ * size budget in bytes of every module under it (set to the measured size rounded up to the next
+ * 16 KiB). The budget file is a shrink-only ratchet (scripts/check-ratchets.mjs, like the widget
+ * bundle's and the webview's): a raise needs a Ratchet-Exception trailer that says why, and a
+ * bundle that shrank more than 10 % below its budget lowers it (BUDGET_TIGHT, as the widget
+ * bundle's spec does), so the headroom never silently piles up.
  */
 const BUNDLED_APPS = {
-  "@miragon/pulse-cli": { dist: "apps/cli/dist", maxBytes: 2_342_912 },
+  "@miragon/pulse-cli": {
+    dist: "apps/cli/dist",
+    budget: "apps/cli/test/__golden__/bundle-budget.json",
+  },
+}
+
+/** Below this share of its budget a bundle lowers the budget. */
+const BUDGET_TIGHT = 0.9
+/** A budget is set to the measured size rounded up to the next multiple of this. */
+const BUDGET_STEP = 16 * 1024
+
+/** The size budget in bytes a bundled app's budget file holds (its `dist` key); throws without one. */
+function bundleBudget(root, bundled) {
+  const file = path.join(root, bundled.budget)
+  if (!fs.existsSync(file))
+    throw new Error(`${bundled.budget} is missing: the bundle has no budget`)
+  const maxBytes = JSON.parse(fs.readFileSync(file, "utf8")).dist
+  if (!Number.isInteger(maxBytes) || maxBytes <= 0) {
+    throw new Error(`${bundled.budget} holds no ceiling: "dist" must be a positive byte count`)
+  }
+  return maxBytes
 }
 
 /**
@@ -134,11 +159,16 @@ function bundleFindings(root, { manifest }, bundled) {
       .map((name) => `${rel}: ${name}`),
   )
   const bytes = files.reduce((sum, rel) => sum + fs.statSync(path.join(dist, rel)).size, 0)
-  const over =
-    bytes > bundled.maxBytes
-      ? [`${bundled.dist}: ${bytes} bytes, over the budget of ${bundled.maxBytes}`]
-      : []
-  return [...new Set(undeclared)].sort().concat(over)
+  const maxBytes = bundleBudget(root, bundled)
+  const size =
+    bytes > maxBytes
+      ? [`${bundled.dist}: ${bytes} bytes, over the budget of ${maxBytes}`]
+      : bytes < Math.floor(maxBytes * BUDGET_TIGHT)
+        ? [
+            `${bundled.dist}: ${bytes} bytes, more than 10 % below the budget of ${maxBytes}: lower "dist" in ${bundled.budget} to ${Math.ceil(bytes / BUDGET_STEP) * BUDGET_STEP}`,
+          ]
+        : []
+  return [...new Set(undeclared)].sort().concat(size)
 }
 
 /** Each `file: package` a published package's src imports without declaring it. */
@@ -421,41 +451,85 @@ describe("published packages declare what their shipped source imports", () => {
 
     describe("a bundled app is read from its bundle", () => {
       const CLI = { manifest: JSON.parse(LAYOUT["apps/cli/package.json"]) }
-      const BUNDLED = { dist: "apps/cli/dist", maxBytes: 1000 }
+      const BUDGET = "apps/cli/test/__golden__/bundle-budget.json"
+      const BUNDLED = { dist: "apps/cli/dist", budget: BUDGET }
+      /** The layout with these dist files and a budget file; the budget defaults to their size. */
+      const withBudget = (files, budget) => ({
+        ...LAYOUT,
+        ...files,
+        [BUDGET]: json({
+          $comment: "x",
+          dist: budget ?? Object.values(files).reduce((sum, text) => sum + text.length, 0),
+        }),
+      })
 
       it("passes a bundle that imports only Node built-ins and its dependencies", () => {
-        const root = fixture({
-          ...LAYOUT,
-          "apps/cli/dist/pulse-cli.js": [
-            "import { Command } from 'commander'",
-            "import fs from 'node:fs'",
-            "import { join } from 'path'",
-            "const routes = {}",
-          ].join("\n"),
-        })
+        const root = fixture(
+          withBudget({
+            "apps/cli/dist/pulse-cli.js": [
+              "import { Command } from 'commander'",
+              "import fs from 'node:fs'",
+              "import { join } from 'path'",
+              "const routes = {}",
+            ].join("\n"),
+          }),
+        )
         assert.deepEqual(bundleFindings(root, CLI, BUNDLED), [])
       })
 
       it("fails a bundle that left a workspace package external", () => {
-        const root = fixture({
-          ...LAYOUT,
-          "apps/cli/dist/pulse-cli.js": "import { routes } from '@miragon/pulse-engine-core'",
-          "apps/cli/dist/chunk.mjs": "const lazy = () => import(name)",
-        })
+        const root = fixture(
+          withBudget({
+            "apps/cli/dist/pulse-cli.js": "import { routes } from '@miragon/pulse-engine-core'",
+            "apps/cli/dist/chunk.mjs": "const lazy = () => import(name)",
+          }),
+        )
         assert.deepEqual(bundleFindings(root, CLI, BUNDLED), [
           `chunk.mjs: ${NON_LITERAL}`,
           "pulse-cli.js: @miragon/pulse-engine-core",
         ])
       })
 
+      const sized = (bytes) =>
+        fixture(withBudget({ "apps/cli/dist/pulse-cli.js": "x".repeat(bytes) }, 1000))
+
       it("fails a bundle over its budget and a missing bundle with the build hint", () => {
-        const root = fixture({ ...LAYOUT, "apps/cli/dist/pulse-cli.js": "x".repeat(1001) })
-        assert.deepEqual(bundleFindings(root, CLI, BUNDLED), [
+        assert.deepEqual(bundleFindings(sized(1001), CLI, BUNDLED), [
           "apps/cli/dist: 1001 bytes, over the budget of 1000",
         ])
-        assert.deepEqual(bundleFindings(fixture(LAYOUT), CLI, BUNDLED), [
+        assert.deepEqual(bundleFindings(sized(1000), CLI, BUNDLED), [])
+        assert.deepEqual(bundleFindings(fixture(withBudget({}, 1000)), CLI, BUNDLED), [
           "apps/cli/dist is missing: run pnpm build first",
         ])
+      })
+
+      it("fails a bundle that shrank more than 10 % below its budget, so the budget comes down", () => {
+        assert.deepEqual(bundleFindings(sized(900), CLI, BUNDLED), [])
+        const [finding, ...rest] = bundleFindings(sized(899), CLI, BUNDLED)
+        assert.match(
+          finding,
+          /^apps\/cli\/dist: 899 bytes, more than 10 % below the budget of 1000: lower "dist" in apps\/cli\/test\/__golden__\/bundle-budget\.json to /,
+        )
+        assert.deepEqual(rest, [])
+      })
+
+      it("fails a bundle without a budget file or without a ceiling in it", () => {
+        const dist = { "apps/cli/dist/pulse-cli.js": "x" }
+        assert.throws(
+          () => bundleFindings(fixture({ ...LAYOUT, ...dist }), CLI, BUNDLED),
+          /bundle-budget\.json is missing: the bundle has no budget/,
+        )
+        for (const ceiling of [undefined, "1000", 0, 1.5]) {
+          const root = fixture({ ...LAYOUT, ...dist, [BUDGET]: json({ dist: ceiling }) })
+          assert.throws(() => bundleFindings(root, CLI, BUNDLED), /holds no ceiling/)
+        }
+      })
+
+      it("reads every bundled app's budget from a ratcheted budget file", () => {
+        for (const bundled of Object.values(BUNDLED_APPS)) {
+          assert.equal(ratchetKind(bundled.budget), "bundle-budget", bundled.budget)
+          assert.ok(bundleBudget(REPO_ROOT, bundled) > 0)
+        }
       })
     })
 
