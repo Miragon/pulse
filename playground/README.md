@@ -94,6 +94,22 @@ First deploy creates the apps and the Prometheus volume.
 Afterwards, point an MCP client (e.g. claude.ai custom connector) at
 `https://pulse-playground.miragon.ai/mcp`.
 
+### pulse-cli against the Fly engine
+
+The project file `.pulse-cli.json` holds the profile `playground`: the Fly engine through a local
+tunnel on port 18410 (8410 is the local stack's), CIB seven, no login, read-only. Open the tunnel
+with an account of the Fly org, then name the profile:
+
+```sh
+fly proxy 18410:8410 --app miragon-ai-playground-engine   # keep it running
+pulse-cli status --profile playground                     # in a second terminal, inside the repo
+```
+
+`pulse-cli` is the installed CLI (`npm install -g @miragon/pulse-cli`) or the repo's build
+(`node apps/cli/dist/pulse-cli.js`); `pnpm play:cli` always targets the local stack. The engine is
+shared and every engine restart reseeds it, so the profile refuses writes; a deliberate write test
+sets `PULSE_CLI_READ_ONLY=0` for that one call.
+
 ### Notes
 
 - The MCP endpoint is **unauthenticated** and pinned **read-only**
