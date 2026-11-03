@@ -19,11 +19,16 @@ From a fresh clone with Node.js, pnpm and Docker (no JDK, no `.env`):
 pnpm stack:up       # engine, OTEL, Prometheus, Grafana; waits until they answer
 pnpm play           # stack:up if needed, then the MCP server on :8400 against it
 pnpm play:cli -- ping   # pnpm -s play:cli -- ... leaves stdout to the CLI, for a pipe
+pulse-cli status    # an installed pulse-cli: .pulse-cli.json makes the stack's engine its default
 pnpm stack:status   # what runs, healthy or not
 pnpm stack:down     # stop (volumes kept; --wipe drops them)
 ```
 
 - MCP endpoint: `http://localhost:8400/mcp`, inspector: `http://localhost:8400/mcp/inspector`
+- `.pulse-cli.json`, the CLI's project file, holds the default profile `local` for the stack's
+  engine (CIB seven, no login: its REST API is anonymous). Inside the repo a bare `pulse-cli`
+  (`npm install -g @miragon/pulse-cli`, or the build `node apps/cli/dist/pulse-cli.js`) reaches
+  it; your own profiles stay available with `--profile`.
 - Grafana: `http://localhost:8470`, Prometheus: `http://localhost:8460`, engine:
   `http://localhost:8410` (login `demo` / `demo`)
 - The engine image copies a jar (`cibseven-example/build/libs/`): `stack:up` builds it when it is
@@ -93,22 +98,6 @@ fly auth login
 First deploy creates the apps and the Prometheus volume.
 Afterwards, point an MCP client (e.g. claude.ai custom connector) at
 `https://pulse-playground.miragon.ai/mcp`.
-
-### pulse-cli against the Fly engine
-
-The project file `.pulse-cli.json` holds the profile `playground`: the Fly engine through a local
-tunnel on port 18410 (8410 is the local stack's), CIB seven, no login, read-only. Open the tunnel
-with an account of the Fly org, then name the profile:
-
-```sh
-fly proxy 18410:8410 --app miragon-ai-playground-engine   # keep it running
-pulse-cli status --profile playground                     # in a second terminal, inside the repo
-```
-
-`pulse-cli` is the installed CLI (`npm install -g @miragon/pulse-cli`) or the repo's build
-(`node apps/cli/dist/pulse-cli.js`); `pnpm play:cli` always targets the local stack. The engine is
-shared and every engine restart reseeds it, so the profile refuses writes; a deliberate write test
-sets `PULSE_CLI_READ_ONLY=0` for that one call.
 
 ### Notes
 

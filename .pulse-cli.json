@@ -1,12 +1,12 @@
 {
+  "defaultProfile": "local",
   "profiles": {
-    "playground": {
-      "url": "http://localhost:18410/engine-rest",
+    "local": {
+      "url": "http://localhost:8410/engine-rest",
       "flavor": "cibseven",
       "auth": {
         "type": "none"
-      },
-      "readOnly": true
+      }
     }
   }
 }
