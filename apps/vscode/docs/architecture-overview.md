@@ -139,7 +139,8 @@ Every import edge not drawn fails `pnpm lint:architecture:vscode` (dependency-cr
 ## 4. One adapter for Operaton, CIB seven and Camunda 7
 
 Operaton and CIB seven are forks of Camunda 7 and keep its REST API. So one adapter
-serves all three, and the conformance kit proves it on each of them in CI. Camunda 8 is a
+serves all three, and the conformance kit proves it on Operaton and CIB seven in CI (Camunda 7
+passed on 7.24.0 until its image left Docker Hub in November 2026). Camunda 8 is a
 different engine (Zeebe) with a different API, so it would get an adapter of its own.
 
 ```mermaid

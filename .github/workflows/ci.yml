@@ -191,9 +191,6 @@ jobs:
       matrix:
         # cli-engine: the flavor's name in PULSE_CLI_IT_ENGINES.
         include:
-          - flavor: camunda7
-            image: camunda/camunda-bpm-platform:run-7.24.0
-            cli-engine: camunda
           - flavor: cibseven
             image: cibseven/cibseven:run-2.2.0
             cli-engine: cibseven
