@@ -1,5 +1,5 @@
 /**
- * `pulse-cli status`: engine triage in one call, @miragon/pulse-engine-core's `readStatus` with the
+ * `pulse status`: engine triage in one call, @miragon/pulse-engine-core's `readStatus` with the
  * engine address (masked) and the next steps as command lines; `--fail-on` turns the status into
  * CHECK_FAILED.
  */
@@ -13,7 +13,7 @@ import { findingCommand, groupCommand } from "./next-text.js"
 import type { WorkflowResult } from "./types.js"
 
 type IncidentGroup = core.IncidentGroup<string>
-/** A finding as `pulse-cli status` prints it: its next step as a command line. */
+/** A finding as `pulse status` prints it: its next step as a command line. */
 type Finding = Omit<core.Finding<string>, "next"> & { readonly next?: string }
 
 export interface StatusOptions extends core.StatusOptions {

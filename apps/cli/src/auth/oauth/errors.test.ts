@@ -21,7 +21,7 @@ import {
 const NOW = 1_700_000_000_000
 const P = { profile: "p" }
 const HINT =
-  "Run `pulse-cli auth login --profile p` in a terminal: a person logs in once in the browser, pulse-cli refreshes the token afterwards. Agents cannot log in themselves."
+  "Run `pulse auth login --profile p` in a terminal: a person logs in once in the browser, pulse refreshes the token afterwards. Agents cannot log in themselves."
 
 function thrown(action: () => void): PulseCliError {
   try {
@@ -37,10 +37,10 @@ describe("login hint", () => {
   it("names the profile, or PULSE_CLI_AUTH and the PULSE_CLI_OAUTH_* settings without one", () => {
     expect(loginHint(P)).toBe(HINT)
     expect(loginHint({})).toBe(
-      "Run `pulse-cli auth login` in a terminal with PULSE_CLI_AUTH=oauth and the same PULSE_CLI_OAUTH_* settings: a person logs in once in the browser, pulse-cli refreshes the token afterwards. Agents cannot log in themselves.",
+      "Run `pulse auth login` in a terminal with PULSE_CLI_AUTH=oauth and the same PULSE_CLI_OAUTH_* settings: a person logs in once in the browser, pulse refreshes the token afterwards. Agents cannot log in themselves.",
     )
-    expect(loginCommand({ profile: "prod" })).toBe("pulse-cli auth login --profile prod")
-    expect(loginCommand({ configFile: "/c.json" })).toBe("pulse-cli auth login")
+    expect(loginCommand({ profile: "prod" })).toBe("pulse auth login --profile prod")
+    expect(loginCommand({ configFile: "/c.json" })).toBe("pulse auth login")
     expect(owner("p")).toBe('profile "p"')
     expect(owner(undefined)).toBe("the environment configuration")
     expect(profileNote("p")).toBe('(profile "p")')
@@ -67,7 +67,7 @@ describe("login hint", () => {
       'The OAuth login of profile "p" was removed while this command ran',
     )
     expect(removedWhileRunning(P).details.hint).toBe(
-      `A logout (also of a profile that shares the login) or \`pulse-cli config set|unset|delete\` removed it. ${HINT}`,
+      `A logout (also of a profile that shares the login) or \`pulse config set|unset|delete\` removed it. ${HINT}`,
     )
     expect(iso(0)).toBe("1970-01-01T00:00:00.000Z")
   })
@@ -81,21 +81,21 @@ describe("login hint", () => {
 
   it("names where to log in: the project directory, a config file named by --config", () => {
     expect(loginHint({ profile: "p", projectDirectory: "/work/shop" })).toContain(
-      "Run `pulse-cli auth login --profile p` in a terminal in /work/shop: a person",
+      "Run `pulse auth login --profile p` in a terminal in /work/shop: a person",
     )
     expect(loginCommand({ profile: "p", configFile: "/home/me/ci/pulse-cli.json" })).toBe(
-      "pulse-cli auth login --config /home/me/ci/pulse-cli.json --profile p",
+      "pulse auth login --config /home/me/ci/pulse-cli.json --profile p",
     )
     expect(loginCommand({ profile: "p", configFile: "/home/me/my files/it's.json" })).toBe(
-      "pulse-cli auth login --config '/home/me/my files/it'\\''s.json' --profile p",
+      "pulse auth login --config '/home/me/my files/it'\\''s.json' --profile p",
     )
     expect(loginCommand({ profile: "p", configFile: "C:\\Users\\me\\op.json" })).toBe(
-      "pulse-cli auth login --config C:\\Users\\me\\op.json --profile p",
+      "pulse auth login --config C:\\Users\\me\\op.json --profile p",
     )
     expect(statusCommand({ profile: "p", configFile: "/c.json" })).toBe(
-      "pulse-cli auth status --config /c.json --profile p",
+      "pulse auth status --config /c.json --profile p",
     )
-    expect(statusCommand({})).toBe("pulse-cli auth status")
+    expect(statusCommand({})).toBe("pulse auth status")
     const who = { profile: "p", projectDirectory: "/work/shop" }
     const login = cachedLogin(NOW, { refreshRejected: { at: NOW, error: "invalid_grant" } })
     expect(cannotRefresh(login, NOW, who).details.hint).toContain("in a terminal in /work/shop:")
@@ -194,7 +194,7 @@ describe("checkUsable", () => {
       'The access token of profile "p" expired at 2023-11-14T22:13:20.000Z and there is no refresh token',
     )
     expect(error.details.hint).toBe(
-      `Request the offline_access scope or allow refresh tokens for the client, so that pulse-cli can refresh the token. ${HINT}`,
+      `Request the offline_access scope or allow refresh tokens for the client, so that pulse can refresh the token. ${HINT}`,
     )
   })
 

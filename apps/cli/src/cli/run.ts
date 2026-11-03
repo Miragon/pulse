@@ -16,7 +16,7 @@ function contextOf(runtime: Runtime, engine: EngineAdapter, state: CliState): Cl
   return { runtime, engine, catalog: engine.catalog, state }
 }
 
-/** Runs `pulse-cli <argv...>` and resolves to the exit code. Never rejects. */
+/** Runs `pulse <argv...>` and resolves to the exit code. Never rejects. */
 export async function run(argv: readonly string[], runtime: Runtime): Promise<number> {
   const state: CliState = { argv }
   try {

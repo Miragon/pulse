@@ -1,6 +1,6 @@
 /**
  * Bearer tokens the gateway refuses: a 401 for a forged token, a 403 for a token without the
- * engine audience, and a 401 for a JWT that expired within pulse-cli's grace.
+ * engine audience, and a 401 for a JWT that expired within pulse's grace.
  */
 
 import { setTimeout as sleep } from "node:timers/promises"
@@ -58,7 +58,7 @@ export function registerErrors(suite: BearerSuite): void {
   it("sends a JWT that expired less than 30 s ago and explains the 401 with its expiry", async () => {
     const token = (await directLogin(top().issuer, CLIENTS.short, "openid")).accessToken
     remember(token)
-    // expired at the gateway (1 s skew), but within pulse-cli's grace
+    // expired at the gateway (1 s skew), but within pulse's grace
     await sleep(Math.max(0, expiryOf(token) + GATEWAY_SKEW_MS - Date.now()))
     const result = await run(countArgs(globalFlag("verbose")), { env: { PULSE_CLI_TOKEN: token } })
     expect(Date.now()).toBeLessThan(expiryOf(token) + EXPIRY_GRACE_MS)
@@ -66,7 +66,7 @@ export function registerErrors(suite: BearerSuite): void {
     expect(error.status).toBe(401)
     expect(explanation(error)).toContain("Jwt is expired")
     expect(error.hint).toMatch(/rejected the bearer token from PULSE_CLI_TOKEN/i)
-    // pulse-cli knows exp has passed, so the hint says so instead of a list of things to check
+    // pulse knows exp has passed, so the hint says so instead of a list of things to check
     expect(error.hint).toContain(`It expired at ${expiryIso(token)}`)
     expect(trace(result)).toEqual([COUNT_REQUEST, "< 401"])
   })

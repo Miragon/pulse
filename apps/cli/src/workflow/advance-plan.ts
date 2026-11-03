@@ -1,6 +1,6 @@
 /**
- * Planning of `pulse-cli advance`: @miragon/pulse-engine-core's advance plan with the worker id
- * `pulse-cli` and usage errors that name the flags and ready commands.
+ * Planning of `pulse advance`: @miragon/pulse-engine-core's advance plan with the worker id
+ * `pulse` and usage errors that name the flags and ready commands.
  */
 
 import * as core from "@miragon/pulse-engine-core"

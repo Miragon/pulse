@@ -158,7 +158,7 @@ function missingError(missing: readonly Credential[], selectedBy: string, contex
   const places = missing.map((credential) => lookedUp(credential, context.selected))
   return configError(
     `Basic auth is selected but ${values} ${missing.length > 1 ? "are" : "is"} missing`,
-    `Basic auth was selected by ${selectedBy}. Looked up ${places.join("; ")}. Pipe the password into --auth-password-stdin, set ${ENV.username} and ${ENV.password}, or store them with \`pulse-cli config set <profile> --auth basic --auth-user <name> --auth-password-env <VAR>\`; --auth none switches Basic auth off.`,
+    `Basic auth was selected by ${selectedBy}. Looked up ${places.join("; ")}. Pipe the password into --auth-password-stdin, set ${ENV.username} and ${ENV.password}, or store them with \`pulse config set <profile> --auth basic --auth-user <name> --auth-password-env <VAR>\`; --auth none switches Basic auth off.`,
   )
 }
 
@@ -273,7 +273,7 @@ function authOf(
   }
 }
 
-/** `authCommand`: for `pulse-cli auth` commands, whose hints never suggest `--auth`. */
+/** `authCommand`: for `pulse auth` commands, whose hints never suggest `--auth`. */
 export function resolveAuth(
   flags: ConfigFlags,
   env: Env,
@@ -300,20 +300,20 @@ function headerOrigin(source: Source, profile: string | undefined): string {
   if (source === "flag") return "given with -H/--header"
   if (source === "env") return `from ${ENV.headers}`
   const name = profile ?? "<profile>"
-  return `from the headers of profile "${name}"; \`pulse-cli config unset ${name} headers\` removes them`
+  return `from the headers of profile "${name}"; \`pulse config unset ${name} headers\` removes them`
 }
 
-/** The credentials of an auth type, and what pulse-cli sends in the Authorization header. */
+/** The credentials of an auth type, and what pulse sends in the Authorization header. */
 const CREDENTIALS: Readonly<Record<Exclude<AuthType, "none">, readonly [string, string]>> = {
-  basic: ["Basic auth", "with Basic auth, pulse-cli sends the credentials in it"],
-  oauth: ["OAuth", "with OAuth, pulse-cli sends the access token in it"],
-  bearer: ["Bearer auth", "with bearer auth, pulse-cli sends the token in it"],
+  basic: ["Basic auth", "with Basic auth, pulse sends the credentials in it"],
+  oauth: ["OAuth", "with OAuth, pulse sends the access token in it"],
+  bearer: ["Bearer auth", "with bearer auth, pulse sends the token in it"],
 }
 
 /**
  * Basic auth, OAuth or a bearer token and an explicit Authorization header (`-H`,
  * PULSE_CLI_HEADERS, profile headers) would fight over the same header: a CONFIG error asks to drop
- * one. For `pulse-cli auth` commands (`authCommand`) only the header can go.
+ * one. For `pulse auth` commands (`authCommand`) only the header can go.
  */
 export function authorizationConflict(
   auth: AuthConfig,
@@ -328,7 +328,7 @@ export function authorizationConflict(
     `${name} and an Authorization header are both configured`,
     authCommand
       ? `Remove the Authorization header (${origin}): ${sent}.`
-      : `Drop one: remove the Authorization header (${origin}), or switch ${name} off with --auth none, ${ENV.auth}=none or \`pulse-cli config unset ${profile ?? "<profile>"} auth\`.`,
+      : `Drop one: remove the Authorization header (${origin}), or switch ${name} off with --auth none, ${ENV.auth}=none or \`pulse config unset ${profile ?? "<profile>"} auth\`.`,
   )
 }
 

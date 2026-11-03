@@ -248,7 +248,7 @@ describe("parseTokenResponse", () => {
 
   it.each(["DPoP", "mac", 7])("refuses the token type %j", (type) => {
     expect(() => parseTokenResponse({ access_token: "a", token_type: type })).toThrow(
-      `Unsupported token type "${String(type)}"; pulse-cli sends Bearer tokens only`,
+      `Unsupported token type "${String(type)}"; pulse sends Bearer tokens only`,
     )
   })
 })
@@ -277,7 +277,7 @@ describe("tokenError", () => {
     json,
   })
   const HINT =
-    "Run `pulse-cli auth login --profile p` in a terminal: a person logs in once in the browser, pulse-cli refreshes the token afterwards. Agents cannot log in themselves."
+    "Run `pulse auth login --profile p` in a terminal: a person logs in once in the browser, pulse refreshes the token afterwards. Agents cannot log in themselves."
 
   it("maps invalid_grant on refresh to LOGIN_REQUIRED", () => {
     const error = tokenError(
@@ -330,7 +330,7 @@ describe("tokenError", () => {
       "The authorization server rejected the authorization code (invalid_grant: Code not valid)",
     )
     expect(grant.details.hint).toBe(
-      "The code expired or was already used; run `pulse-cli auth login --profile p` again.",
+      "The code expired or was already used; run `pulse auth login --profile p` again.",
     )
     const other = tokenError(answer(400, { error: "invalid_request" }), "exchange", PUBLIC)
     expect(other.code).toBe("LOGIN_FAILED")
@@ -377,7 +377,7 @@ describe("tokenError", () => {
     )
     expect(redirect.code).toBe("CONFIG")
     expect(redirect.message).toBe(
-      `Unexpected answer from ${TOKEN_ENDPOINT}: HTTP 302 Found (pulse-cli follows no redirects)`,
+      `Unexpected answer from ${TOKEN_ENDPOINT}: HTTP 302 Found (pulse follows no redirects)`,
     )
     expect(redirect.details.hint).toBe('Check the token endpoint (auth.issuer of profile "p").')
     const forbidden = tokenError(

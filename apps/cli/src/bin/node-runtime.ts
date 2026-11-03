@@ -66,12 +66,12 @@ function outputStream(stream: ProcessStream): OutputStream {
   }
 }
 
-/** Reads stdin completely; refuses to wait for a terminal (pulse-cli never prompts). */
+/** Reads stdin completely; refuses to wait for a terminal (pulse never prompts). */
 async function readStdin(stdin: NodeJS.ReadStream = process.stdin): Promise<Uint8Array> {
   if (stdin.isTTY) {
     throw usageError(
       "stdin is a terminal; pipe the input into the command",
-      `Examples: echo '{}' | pulse-cli ... --body - (or --body @file.json); printf '%s\\n' "$PASSWORD" | pulse-cli ... --auth-password-stdin (a token: --auth-token-stdin).`,
+      `Examples: echo '{}' | pulse ... --body - (or --body @file.json); printf '%s\\n' "$PASSWORD" | pulse ... --auth-password-stdin (a token: --auth-token-stdin).`,
     )
   }
   const chunks: Buffer[] = []

@@ -1,5 +1,5 @@
 /**
- * `pulse-cli auth` and `config delete` for profiles that share a login (the same issuer and client):
+ * `pulse auth` and `config delete` for profiles that share a login (the same issuer and client):
  * one login for all of them, lost together on logout and kept until the last of them goes, and a
  * login of its own for another audience or scopes.
  */

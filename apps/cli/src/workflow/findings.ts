@@ -1,9 +1,9 @@
-/** `--fail-on` of `pulse-cli status`: CHECK_FAILED when the status reaches the level. */
+/** `--fail-on` of `pulse status`: CHECK_FAILED when the status reaches the level. */
 
 import type { EngineStatus, Severity } from "@miragon/pulse-engine-core"
 import { PulseCliError } from "../errors.js"
 
-/** A finding as `pulse-cli status` prints it: the next step as a command line. */
+/** A finding as `pulse status` prints it: the next step as a command line. */
 interface PrintedFinding {
   readonly severity: Severity
   readonly code: string

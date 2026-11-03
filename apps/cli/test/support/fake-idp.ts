@@ -90,7 +90,7 @@ function base64Url(text: string): string {
   return Buffer.from(text, "utf8").toString("base64url")
 }
 
-/** An unsigned JWT with the claims (pulse-cli only decodes ID tokens for display). */
+/** An unsigned JWT with the claims (pulse only decodes ID tokens for display). */
 export function jwt(claims: Readonly<Record<string, unknown>>): string {
   return `${base64Url('{"alg":"none"}')}.${base64Url(JSON.stringify(claims))}.sig`
 }

@@ -8,7 +8,7 @@
  * file is shared and names no credentials, neither secrets nor the variables that hold them: they
  * come from the environment (PULSE_CLI_TOKEN, PULSE_CLI_TOKEN_COMMAND, PULSE_CLI_PASSWORD,
  * PULSE_CLI_OAUTH_CLIENT_SECRET) or the user's own config file. So a cloned repository can neither
- * run code through pulse-cli nor send a variable of its choice to the URL it names. Its profiles
+ * run code through pulse nor send a variable of its choice to the URL it names. Its profiles
  * share OAuth logins only among the profiles of its repository (`projectOrigin`).
  */
 
@@ -201,10 +201,10 @@ function defaultProblem(file: ConfigFile): string | undefined {
     : `defaultProfile "${name}" is not one of its profiles; a project file chooses only among its own profiles`
 }
 
-const CREDENTIAL_HINT = `Credentials come from the environment (${ENV.token}, ${ENV.tokenCommand}, ${ENV.password}, ${ENV.oauthClientSecret}) or from a profile of the same name in your own config file. Remove it from the project file, e.g. with \`pulse-cli config unset <profile> auth --project\` (\`headers\` for a secret header), and a committed secret from the history of your repository, too.`
+const CREDENTIAL_HINT = `Credentials come from the environment (${ENV.token}, ${ENV.tokenCommand}, ${ENV.password}, ${ENV.oauthClientSecret}) or from a profile of the same name in your own config file. Remove it from the project file, e.g. with \`pulse config unset <profile> auth --project\` (\`headers\` for a secret header), and a committed secret from the history of your repository, too.`
 
 const DEFAULT_HINT =
-  "Make one of its profiles the default with `pulse-cli config use <profile> --project`, or remove defaultProfile from the file."
+  "Make one of its profiles the default with `pulse config use <profile> --project`, or remove defaultProfile from the file."
 
 /**
  * Why `file` is no valid project file, and how to fix it: a credential (projectSecretProblem) or a
@@ -247,7 +247,7 @@ export async function readProjectFile(fs: FileSystem, path: string): Promise<Con
   } catch (error) {
     throw configError(
       `Cannot read project file ${path} (${reasonOf(error)})`,
-      "Check the file and its permissions; pulse-cli looks up .pulse-cli.json from the working directory up to the repository root.",
+      "Check the file and its permissions; pulse looks up .pulse-cli.json from the working directory up to the repository root.",
     )
   }
   return parseProjectFile(new TextDecoder().decode(content), path)

@@ -30,7 +30,7 @@ const CLIENT_HEADERS: ReadonlySet<string> = new Set([
 ])
 const HEADER_HINT = 'Use the form "Name: value", e.g. "X-Tenant-Id: acme".'
 
-/** True for a header name pulse-cli may send: an HTTP token, not a connection management header. */
+/** True for a header name pulse may send: an HTTP token, not a connection management header. */
 export function isHeaderName(name: string): boolean {
   return HEADER_NAME.test(name) && !CLIENT_HEADERS.has(name.toLowerCase())
 }

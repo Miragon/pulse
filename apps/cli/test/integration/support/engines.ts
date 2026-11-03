@@ -11,7 +11,7 @@ export type EngineName = (typeof ENGINE_NAMES)[number]
 
 export interface EngineDefinition {
   readonly name: EngineName
-  /** The engine adapter of pulse-cli (`--flavor`, PULSE_CLI_FLAVOR). */
+  /** The engine adapter of pulse (`--flavor`, PULSE_CLI_FLAVOR). */
   readonly flavor: Flavor
   readonly image: string
   /** Container port of the HTTP server. */

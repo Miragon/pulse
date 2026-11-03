@@ -1,4 +1,4 @@
-/** engine-core's incident grouping as `pulse-cli status` prints it, for the status tests. */
+/** engine-core's incident grouping as `pulse status` prints it, for the status tests. */
 
 import type { Rec } from "@miragon/pulse-engine-core"
 import { groupIncidents as groupedBy } from "@miragon/pulse-engine-core/testing"

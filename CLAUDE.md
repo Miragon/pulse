@@ -14,10 +14,11 @@ Docs are held to the code:
   repo path exists, the identifiers of the skills and nested agent files exist, and each docs
   page stays within its line budget.
 - `scripts/old-names.test.mjs` fails on a technical name of the retired operate CLI, on the
-  unscoped npm package pulse-cli (someone else's), on an image off GHCR, on the retired OAuth
-  JSON variable, on a package of the retired MCP toolkit and on a name the engine module carried
-  up to 0.24 (its `camunda7_` tools, the module name, its packages and app path, its `CAMUNDA_`
-  server variables, its metric names); the vendor (`flavor` `camunda7`, "Camunda 7") stays.
+  unscoped npm packages pulse and pulse-cli (someone else's), on an image off GHCR, on the
+  retired OAuth JSON variable, on a package of the retired MCP toolkit and on a name the engine
+  module carried up to 0.24 (its `camunda7_` tools, the module name, its packages and app path,
+  its `CAMUNDA_` server variables, its metric names); the vendor (`flavor` `camunda7`,
+  "Camunda 7") stays.
 - `scripts/check-package-scripts.mjs` (`pnpm lint:package-scripts`) fails on a `--filter`
   naming no workspace package and on a pnpm filter without `--fail-if-no-match` on a gate path
   (pnpm 10 exits 0 when a filter matches nothing, so a stale name turns a gate green).
@@ -664,9 +665,10 @@ workspace (its header lists each check).
   Nothing publishes to Docker Hub.
 - **The CLI's binaries, image and Homebrew formula** publish via `publish-cli.yml` and
   `publish-homebrew.yml`: five Node.js 24 single executables, `ghcr.io/miragon/pulse-cli` and,
-  for a stable release, the formula `miragon/tap/pulse-cli` as a pull request to
-  Miragon/homebrew-tap. The jobs that hold a token install nothing. A new GHCR package starts
-  private; an organization owner makes it public once.
+  for a stable release, the formula `miragon/tap/pulse-cli` (the executable `pulse-cli` and the
+  command `pulse` linked to it) as a pull request to Miragon/homebrew-tap. The jobs that hold a
+  token install nothing. A new GHCR package starts private; an organization owner makes it public
+  once.
 
 ## Verification: what each check actually covers
 

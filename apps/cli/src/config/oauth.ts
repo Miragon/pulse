@@ -125,7 +125,7 @@ export function validateAudience(audience: string, label: string): string {
   if (trimmed === "" || !VSCHAR.test(trimmed)) {
     throw configError(
       `The OAuth audience (${label}) must be printable ASCII and not empty`,
-      "Example: engine-rest. Without an audience (the authorization server sets it itself, e.g. a Keycloak audience mapper) remove it: `pulse-cli config unset <profile> audience`, or unset PULSE_CLI_OAUTH_AUDIENCE.",
+      "Example: engine-rest. Without an audience (the authorization server sets it itself, e.g. a Keycloak audience mapper) remove it: `pulse config unset <profile> audience`, or unset PULSE_CLI_OAUTH_AUDIENCE.",
     )
   }
   return trimmed

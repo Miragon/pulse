@@ -209,7 +209,7 @@ function lockError(path: string, cause: unknown): PulseCliError {
     "CONFIG",
     `Cannot lock the token cache ${path}`,
     {
-      hint: `Another pulse-cli process holds ${path}.lock. If no pulse-cli process is running, remove ${path}.lock; nothing was sent.`,
+      hint: `Another pulse process holds ${path}.lock. If no pulse process is running, remove ${path}.lock; nothing was sent.`,
     },
     cause,
   )

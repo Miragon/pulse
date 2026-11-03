@@ -174,7 +174,7 @@ describe("resolveAuth password", () => {
         'The password variable CAMUNDA_PASSWORD (auth.passwordEnv of profile "prod") is not set or empty',
       )
       expect(error.details.hint).toBe(
-        "Export it, e.g. export CAMUNDA_PASSWORD=<password>, or name another variable with `pulse-cli config set prod --auth-password-env <VAR>`.",
+        "Export it, e.g. export CAMUNDA_PASSWORD=<password>, or name another variable with `pulse config set prod --auth-password-env <VAR>`.",
       )
     },
   )
@@ -189,7 +189,7 @@ describe("resolveAuth missing credentials", () => {
       "Basic auth is selected but the username and the password are missing",
     )
     expect(error.details.hint).toBe(
-      "Basic auth was selected by --auth basic. Looked up the username in --auth-user, PULSE_CLI_USERNAME and a profile (none is selected); the password in --auth-password-stdin, PULSE_CLI_PASSWORD and a profile (none is selected). Pipe the password into --auth-password-stdin, set PULSE_CLI_USERNAME and PULSE_CLI_PASSWORD, or store them with `pulse-cli config set <profile> --auth basic --auth-user <name> --auth-password-env <VAR>`; --auth none switches Basic auth off.",
+      "Basic auth was selected by --auth basic. Looked up the username in --auth-user, PULSE_CLI_USERNAME and a profile (none is selected); the password in --auth-password-stdin, PULSE_CLI_PASSWORD and a profile (none is selected). Pipe the password into --auth-password-stdin, set PULSE_CLI_USERNAME and PULSE_CLI_PASSWORD, or store them with `pulse config set <profile> --auth basic --auth-user <name> --auth-password-env <VAR>`; --auth none switches Basic auth off.",
     )
   })
 

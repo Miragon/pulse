@@ -131,10 +131,10 @@ describe("unsetProfileKeys", () => {
     const error = failure(() => unsetProfileKeys(TWO, "qa", ["url"]))
     expect(error.message).toBe('Profile "qa" does not exist')
     expect(error.details.hint).toBe(
-      "Known profiles: dev, prod. Create it with `pulse-cli config set qa --url <url>`.",
+      "Known profiles: dev, prod. Create it with `pulse config set qa --url <url>`.",
     )
     expect(failure(() => unsetProfileKeys(undefined, "qa", ["url"])).details.hint).toBe(
-      "Create it with `pulse-cli config set qa --url <url>`.",
+      "Create it with `pulse config set qa --url <url>`.",
     )
   })
 

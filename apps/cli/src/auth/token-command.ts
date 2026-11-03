@@ -4,7 +4,7 @@
  * stdout is the token (a leading `Bearer ` is dropped, the rest must be an RFC 6750 b64token). A
  * command that cannot start, fails, times out or prints no token is LOGIN_FAILED (exit 4) and
  * quotes the end of its stderr. Messages never show the token, nor the command line (it may
- * contain a secret; `pulse-cli config show` prints it).
+ * contain a secret; `pulse config show` prints it).
  */
 
 import { normalizeToken } from "../config/bearer.js"
@@ -28,7 +28,7 @@ function loginFailed(config: CommandBearerConfig, problem: string): PulseCliErro
     "LOGIN_FAILED",
     `The bearer token command (${config.origin}) ${problem}`,
     {
-      hint: `pulse-cli runs the command with the shell in the working directory, stdin closed and bounded by the request timeout (--timeout), and takes the first line of its stdout as the token (not a JSON answer: use e.g. jq -r .access_token). Run it in a shell to see what goes wrong (\`pulse-cli config show\` prints it).`,
+      hint: `pulse runs the command with the shell in the working directory, stdin closed and bounded by the request timeout (--timeout), and takes the first line of its stdout as the token (not a JSON answer: use e.g. jq -r .access_token). Run it in a shell to see what goes wrong (\`pulse config show\` prints it).`,
     },
   )
 }

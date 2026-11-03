@@ -8,7 +8,7 @@ const NOTE = "A bearer token is set (from PULSE_CLI_TOKEN) but not used."
 /** A provider like the OAuth one: a class with a getter and methods that use `this`. */
 class FakeOAuth implements AuthProvider {
   readonly type = "oauth"
-  readonly loginStatusCommand = "pulse-cli auth status"
+  readonly loginStatusCommand = "pulse auth status"
   user: string | undefined
   constructor(private readonly failure: PulseCliError | undefined) {}
 
@@ -71,7 +71,7 @@ describe("withAuthNote", () => {
     expect(noted.principal).toEqual({ user: "alice", source: "login" })
     await expect(noted.refresh?.()).resolves.toBe(true)
     expect(noted.rejectedHint?.(401)).toBe("oauth 401")
-    expect(noted).toMatchObject({ type: "oauth", loginStatusCommand: "pulse-cli auth status" })
+    expect(noted).toMatchObject({ type: "oauth", loginStatusCommand: "pulse auth status" })
   })
 
   it("adds no method the provider lacks and keeps a preview without a note", async () => {

@@ -1,4 +1,4 @@
-/** An engine as pulse-cli sees it: its name, its command catalog and its port. Types only. */
+/** An engine as pulse sees it: its name, its command catalog and its port. Types only. */
 
 import type { Catalog } from "../catalog/types.js"
 import type { Flavor } from "../config/types.js"

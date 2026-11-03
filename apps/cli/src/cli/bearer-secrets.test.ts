@@ -56,7 +56,7 @@ function stored(auth: Record<string, unknown>): Readonly<Record<string, string>>
   return { [CONFIG_PATH]: JSON.stringify({ defaultProfile: "p", profiles: { p: { auth } } }) }
 }
 
-/** Every way a token reaches pulse-cli, and every command that renders something. */
+/** Every way a token reaches pulse, and every command that renders something. */
 function scenarios(token: string): Scenario[] {
   const env = { PULSE_CLI_TOKEN: token }
   const stdin = ["--auth-token-stdin"]

@@ -150,7 +150,7 @@ describe("logout", () => {
     const result = await logout(TOKEN_FILE, TARGET, test.deps)
     expect(result).toMatchObject({ removed: true, revoked: null })
     expect(result.warnings).toEqual([
-      "Warning: pulse-cli knows no token revocation endpoint (RFC 7009) for https://login.example.com/realms/camunda (explicit endpoints, or none in its discovery document); the refresh token was not revoked and stays valid until 2023-11-14T22:43:20.000Z. End the session at the authorization server if needed (sign out, or revoke the user's sessions).",
+      "Warning: pulse knows no token revocation endpoint (RFC 7009) for https://login.example.com/realms/camunda (explicit endpoints, or none in its discovery document); the refresh token was not revoked and stays valid until 2023-11-14T22:43:20.000Z. End the session at the authorization server if needed (sign out, or revoke the user's sessions).",
     ])
     expect(test.idp.requests).toEqual([])
   })

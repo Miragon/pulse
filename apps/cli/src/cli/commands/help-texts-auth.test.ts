@@ -11,17 +11,17 @@ const HELP: readonly (readonly [string, readonly string[]])[] = [
   [
     "auth",
     [
-      "Usage: pulse-cli auth [options] [command]",
+      "Usage: pulse auth [options] [command]",
       "",
       "Log in with OAuth 2.0 (authorization code flow with PKCE) and manage the cached",
       "tokens.",
       "",
-      'A person runs "pulse-cli auth login" once in a terminal; every other command',
-      "reads the token cache and refreshes the token on its own. Agents never log in",
+      'A person runs "pulse auth login" once in a terminal; every other command reads',
+      "the token cache and refreshes the token on its own. Agents never log in",
       "themselves: without a usable login a command fails with LOGIN_REQUIRED (exit 4).",
       "",
       "A bearer token from elsewhere (--auth bearer, PULSE_CLI_TOKEN) needs no login:",
-      '"pulse-cli auth status" shows where it comes from and, for a JWT, its subject,',
+      '"pulse auth status" shows where it comes from and, for a JWT, its subject,',
       "issuer, audience and expiry.",
       "",
       "Options:",
@@ -50,7 +50,7 @@ const HELP: readonly (readonly [string, readonly string[]])[] = [
   [
     "auth login",
     [
-      "Usage: pulse-cli auth login [options]",
+      "Usage: pulse auth login [options]",
       "",
       "Log in with the OAuth settings of the profile: prints the authorization URL,",
       "opens the system browser and waits for the login at",
@@ -73,7 +73,7 @@ const HELP: readonly (readonly [string, readonly string[]])[] = [
   [
     "auth status",
     [
-      "Usage: pulse-cli auth status [options]",
+      "Usage: pulse auth status [options]",
       "",
       "Show the cached OAuth login without network access: user, scopes and the expiry",
       "of the access and refresh token. Exit 0 when commands can run without a new",
@@ -95,7 +95,7 @@ const HELP: readonly (readonly [string, readonly string[]])[] = [
   [
     "auth logout",
     [
-      "Usage: pulse-cli auth logout [options]",
+      "Usage: pulse auth logout [options]",
       "",
       "Revoke the refresh token at the authorization server (when it supports",
       "revocation) and remove the cached login, for every profile that shares it. Works",
@@ -115,7 +115,7 @@ const HELP: readonly (readonly [string, readonly string[]])[] = [
 ]
 
 describe("help texts", () => {
-  it.each(HELP)('documents "pulse-cli %s" with its arguments and options', async (path, lines) => {
+  it.each(HELP)('documents "pulse %s" with its arguments and options', async (path, lines) => {
     expect(await help(path.split(" "))).toBe(`${lines.join("\n")}\n`)
   })
 })

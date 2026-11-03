@@ -7,4 +7,4 @@ max: 0
 arm: both
 ---
 
-Claude does not load the pulse-cli skill for Camunda 8, which pulse-cli does not support.
+Claude does not load the pulse-cli skill for Camunda 8, which the CLI does not support.

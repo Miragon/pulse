@@ -1,5 +1,5 @@
 /**
- * `pulse-cli auth login`: the authorization code flow with PKCE and a loopback
+ * `pulse auth login`: the authorization code flow with PKCE and a loopback
  * redirect on 127.0.0.1 (RFC 8252). It prints the authorization URL (also over SSH), opens the
  * system browser unless --no-browser, waits for the callback with the right state, exchanges the
  * code and writes the token cache under the lock. Only `src/cli/commands/auth.ts` imports this
@@ -36,7 +36,7 @@ export interface LoginResult {
 export const IGNORED_STATE_NOTICE =
   "Ignored a login callback without the right state (not from this login; a stale browser tab or another program)."
 
-const EXCHANGE_FAILED = "pulse-cli could not exchange the authorization code."
+const EXCHANGE_FAILED = "pulse could not exchange the authorization code."
 
 interface Accepted {
   readonly completion: Promise<CachedLogin>
@@ -62,7 +62,7 @@ interface Flow {
 function portSetting(config: OAuthConfig): string {
   return config.sources.redirectPort === "env" || config.profile === undefined
     ? `${ENV.oauthRedirectPort}=<port>`
-    : `pulse-cli config set ${config.profile} --oauth-redirect-port <port>`
+    : `pulse config set ${config.profile} --oauth-redirect-port <port>`
 }
 
 function listenError(error: unknown, config: OAuthConfig) {
@@ -152,7 +152,7 @@ function handle(
   }
   if (request.path !== "/callback") return { status: 404, html: failurePage("Not found.") }
   if (flow.accepted) {
-    return { status: 409, html: failurePage("pulse-cli already received the login callback.") }
+    return { status: 409, html: failurePage("pulse already received the login callback.") }
   }
   if (!hasState(request.query, flow.pkce.state)) {
     if (!flow.noticed) flow.deps.stderr.write(`${IGNORED_STATE_NOTICE}\n`)

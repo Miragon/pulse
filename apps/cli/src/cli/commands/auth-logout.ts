@@ -1,5 +1,5 @@
 /**
- * `pulse-cli auth logout`: revokes and removes the cached OAuth login of the
+ * `pulse auth logout`: revokes and removes the cached OAuth login of the
  * selected profile, found from its stored settings also when they no longer resolve, and names
  * every profile that shared it. A token command's cached token is removed (auth-bearer.ts); a
  * bearer token from elsewhere has nothing to log out.

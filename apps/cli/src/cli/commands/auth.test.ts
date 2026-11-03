@@ -1,5 +1,5 @@
 /**
- * `pulse-cli auth login` through `run()` on the fake runtime and the fake identity provider: outputs
+ * `pulse auth login` through `run()` on the fake runtime and the fake identity provider: outputs
  * (json and table), stderr lines, exit codes and the token cache. `auth status|logout` are in
  * auth-logout.test.ts, profiles that share a login in auth-shared-login.test.ts.
  */
@@ -18,7 +18,7 @@ function setup(options: LoginSetup = {}) {
   return { idp, runtime, cli: (args: readonly string[]) => execute(run, args, runtime) }
 }
 
-describe("pulse-cli auth login", () => {
+describe("pulse auth login", () => {
   it("logs in, prints the view as JSON and the documented lines on stderr", async () => {
     const { cli, runtime } = setup()
     const result = await cli(["auth", "login"])
@@ -101,14 +101,13 @@ describe("pulse-cli auth login", () => {
     expect(result.code).toBe(3)
     expect(errorOf(result.stderr)).toMatchObject({
       code: "CONFIG",
-      message: 'pulse-cli auth login needs OAuth, but profile "p" uses basic',
-      hint: "Configure it: pulse-cli config set p --auth oauth --oauth-issuer <url> --oauth-client-id <id>",
+      message: 'pulse auth login needs OAuth, but profile "p" uses basic',
+      hint: "Configure it: pulse config set p --auth oauth --oauth-issuer <url> --oauth-client-id <id>",
     })
     const none = await execute(run, ["auth", "status"], fakeRuntime())
     expect(errorOf(none.stderr)).toMatchObject({
-      message:
-        "pulse-cli auth status needs OAuth or a bearer token, but the configuration uses none",
-      hint: "Configure it: pulse-cli config set <profile> --auth oauth --oauth-issuer <url> --oauth-client-id <id>. For a bearer token from elsewhere: PULSE_CLI_AUTH=bearer with PULSE_CLI_TOKEN or --auth-token-stdin.",
+      message: "pulse auth status needs OAuth or a bearer token, but the configuration uses none",
+      hint: "Configure it: pulse config set <profile> --auth oauth --oauth-issuer <url> --oauth-client-id <id>. For a bearer token from elsewhere: PULSE_CLI_AUTH=bearer with PULSE_CLI_TOKEN or --auth-token-stdin.",
     })
   })
 
@@ -124,7 +123,7 @@ describe("pulse-cli auth login", () => {
       errorOf((await execute(run, args, fakeRuntime(options))).stderr).hint
 
     expect(await hintOf(["auth", "login"], { files: files("none") })).toBe(
-      'OAuth is switched off by the auth.type of profile "p". Switch it on: pulse-cli config set p --auth oauth',
+      'OAuth is switched off by the auth.type of profile "p". Switch it on: pulse config set p --auth oauth',
     )
     expect(
       await hintOf(["auth", "status"], { files: files("oauth"), env: { PULSE_CLI_AUTH: "none" } }),
@@ -134,7 +133,7 @@ describe("pulse-cli auth login", () => {
     )
     // a switched-off Basic auth is no OAuth setting: the usual way to configure OAuth
     expect(await hintOf(["auth", "login"], { env: { PULSE_CLI_PASSWORD: "pw" } })).toBe(
-      "Configure it: pulse-cli config set <profile> --auth oauth --oauth-issuer <url> --oauth-client-id <id>",
+      "Configure it: pulse config set <profile> --auth oauth --oauth-issuer <url> --oauth-client-id <id>",
     )
   })
 
@@ -165,7 +164,7 @@ describe("pulse-cli auth login", () => {
       expect(errorOf(result.stderr)).toMatchObject({
         code: "CONFIG",
         message: "OAuth and an Authorization header are both configured",
-        hint: "Remove the Authorization header (from PULSE_CLI_HEADERS): with OAuth, pulse-cli sends the access token in it.",
+        hint: "Remove the Authorization header (from PULSE_CLI_HEADERS): with OAuth, pulse sends the access token in it.",
       })
     }
     const { cli } = setup({ runtime: { env: { PULSE_CLI_HEADERS: "Authorization: Bearer x" } } })
@@ -191,8 +190,8 @@ describe("pulse-cli auth login", () => {
             : ""
         expect(errorOf(result.stderr)).toMatchObject({
           code: "CONFIG",
-          message: `pulse-cli auth ${command} needs ${needs}, but profile "p" uses basic`,
-          hint: `Configure it: pulse-cli config set p --auth oauth --oauth-issuer <url> --oauth-client-id <id>${bearer}`,
+          message: `pulse auth ${command} needs ${needs}, but profile "p" uses basic`,
+          hint: `Configure it: pulse config set p --auth oauth --oauth-issuer <url> --oauth-client-id <id>${bearer}`,
         })
       }
     }

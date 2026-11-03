@@ -1,7 +1,7 @@
 ---
 type: regex
-pattern: 'pulse-cli (?:deploy|deployment create) [^\n]*invoice\.bpmn'
+pattern: 'pulse(?:-cli)? (?:deploy|deployment create) [^\n]*invoice\.bpmn'
 target: last_message
 ---
 
-The answer deploys invoice.bpmn with pulse-cli.
+The answer deploys invoice.bpmn with `pulse`.

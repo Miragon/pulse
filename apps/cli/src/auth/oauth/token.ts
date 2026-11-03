@@ -91,7 +91,7 @@ function checkTokenType(tokenType: unknown): void {
     return
   }
   throw configError(
-    `Unsupported token type "${sanitize(typeof tokenType === "string" ? tokenType : JSON.stringify(tokenType))}"; pulse-cli sends Bearer tokens only`,
+    `Unsupported token type "${sanitize(typeof tokenType === "string" ? tokenType : JSON.stringify(tokenType))}"; pulse sends Bearer tokens only`,
     "Configure the client at the authorization server for Bearer tokens (no DPoP or mTLS binding).",
   )
 }
@@ -193,7 +193,7 @@ function errorCodeOf(answer: ServerAnswer): string | undefined {
 
 function unexpected(answer: ServerAnswer, client: TokenClient): PulseCliError {
   const redirect =
-    answer.status >= 300 && answer.status < 400 ? " (pulse-cli follows no redirects)" : ""
+    answer.status >= 300 && answer.status < 400 ? " (pulse follows no redirects)" : ""
   return configError(
     `Unexpected answer from ${shownUrl(answer.url)}: ${statusLine(answer)}${redirect}`,
     `Check the token endpoint (${client.endpoint.source}).`,

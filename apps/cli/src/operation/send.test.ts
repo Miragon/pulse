@@ -112,7 +112,7 @@ describe("sendRequest", () => {
     const error = await caught(sendRequest(request, basic))
     expect(error.code).toBe("UNAUTHORIZED")
     expect(error.details.hint).toBe(
-      "The engine rejected the credentials of user demo (source: profile for the user, env for the password). Check the username and the password; `pulse-cli config show` shows where each comes from. After a failed login the engine refuses the user for a few seconds (and locks it after repeated failures), so wait before retrying.",
+      "The engine rejected the credentials of user demo (source: profile for the user, env for the password). Check the username and the password; `pulse config show` shows where each comes from. After a failed login the engine refuses the user for a few seconds (and locks it after repeated failures), so wait before retrying.",
     )
     expect(error.details.request).toEqual({ method: "POST", url: request.url })
     expect(JSON.stringify(error.details)).not.toContain("wrong-password")
@@ -127,7 +127,7 @@ describe("sendRequest", () => {
     const unauthenticated = { ...client(() => new Response("", { status: 401 })), auth }
     const error = await caught(sendRequest(request, unauthenticated))
     expect(error.details.hint).toMatch(
-      /^The engine requires authentication and pulse-cli sent no credentials: a password is set \(from PULSE_CLI_PASSWORD\), but no username\. Use Basic auth: /,
+      /^The engine requires authentication and pulse sent no credentials: a password is set \(from PULSE_CLI_PASSWORD\), but no username\. Use Basic auth: /,
     )
   })
 

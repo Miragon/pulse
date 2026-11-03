@@ -1,4 +1,4 @@
-/** `pulse-cli retry`, `deploy` and `status` through `run()` against the fake workflow engine. */
+/** `pulse retry`, `deploy` and `status` through `run()` against the fake workflow engine. */
 
 import { describe, expect, it } from "vitest"
 import { errorOf, workflowSetup } from "../../../test/support/cli-workflow.js"
@@ -8,7 +8,7 @@ import { run } from "../run.js"
 
 const setup = (stage?: Stage, options?: FakeRuntimeOptions) => workflowSetup(run, stage, options)
 
-describe("pulse-cli retry", () => {
+describe("pulse retry", () => {
   it("retries the failed job of an instance and executes it with --now", async () => {
     const { cli, engine } = setup("failed")
     const result = await cli(["retry", "--business-key", "B-1", "--now"])
@@ -52,7 +52,7 @@ describe("pulse-cli retry", () => {
     const refused = await cli(["retry", "--process-definition-key", "invoice"])
     expect(errorOf(refused.stderr)).toMatchObject({
       code: "CONFIRMATION_REQUIRED",
-      message: "`pulse-cli retry` is a bulk operation and needs confirmation",
+      message: "`pulse retry` is a bulk operation and needs confirmation",
     })
     expect(engine.requests).toEqual([])
     const preview = await cli([
@@ -90,7 +90,7 @@ describe("pulse-cli retry", () => {
   })
 })
 
-describe("pulse-cli deploy", () => {
+describe("pulse deploy", () => {
   const files = {
     "bpmn/order.bpmn":
       '<bpmn:definitions><bpmn:process id="order" isExecutable="true"/></bpmn:definitions>',
@@ -168,7 +168,7 @@ describe("pulse-cli deploy", () => {
   })
 })
 
-describe("pulse-cli status", () => {
+describe("pulse status", () => {
   it("reports the incident group as a warning finding with the next command", async () => {
     const { cli } = setup("failed")
     const result = await cli(["status"])
@@ -181,7 +181,7 @@ describe("pulse-cli status", () => {
         {
           severity: "warning",
           code: "INCIDENTS",
-          next: "pulse-cli retry --process-definition-key invoice --activity-id book --dry-run",
+          next: "pulse retry --process-definition-key invoice --activity-id book --dry-run",
         },
       ],
       incidents: [

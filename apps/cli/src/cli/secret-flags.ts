@@ -30,17 +30,17 @@ const AUTH_FLAGS: Readonly<Record<string, string>> = {
 const SECRET_NAME = /password|passwd|pwd|secret|token|-pass(?:$|-)/i
 
 const SECRET_HINT =
-  "Secrets are never flag values: pipe the password into --auth-password-stdin, or set PULSE_CLI_PASSWORD (a profile stores the name of a variable: config set --auth-password-env <VAR>); pass a bearer token with PULSE_CLI_TOKEN or --auth-token-stdin; an OAuth token comes from `pulse-cli auth login`. "
+  "Secrets are never flag values: pipe the password into --auth-password-stdin, or set PULSE_CLI_PASSWORD (a profile stores the name of a variable: config set --auth-password-env <VAR>); pass a bearer token with PULSE_CLI_TOKEN or --auth-token-stdin; an OAuth token comes from `pulse auth login`. "
 
 /** The stdin flags, and what an extra argument next to them most likely is. */
 const STDIN_HINTS: readonly (readonly [flag: string, hint: string])[] = [
   [
     "--auth-password-stdin",
-    `--auth-password-stdin takes no value: pipe the password into it, e.g. printf '%s\\n' "$PASSWORD" | pulse-cli ... --auth-password-stdin. `,
+    `--auth-password-stdin takes no value: pipe the password into it, e.g. printf '%s\\n' "$PASSWORD" | pulse ... --auth-password-stdin. `,
   ],
   [
     "--auth-token-stdin",
-    `--auth-token-stdin takes no value: pipe the token into it, e.g. printf '%s\\n' "$TOKEN" | pulse-cli ... --auth-token-stdin. `,
+    `--auth-token-stdin takes no value: pipe the token into it, e.g. printf '%s\\n' "$TOKEN" | pulse ... --auth-token-stdin. `,
   ],
 ]
 
@@ -61,7 +61,7 @@ export function authFlagFor(name: string, known: readonly string[]): string[] {
 
 /** `--show-secrets` is no secret, but only some commands print credentials at all. */
 const SHOW_SECRETS_HINT =
-  "--show-secrets works where pulse-cli prints credentials: --dry-run and --verbose of API and workflow commands, api and ping, and config show. `pulse-cli auth` commands never print a token. "
+  "--show-secrets works where pulse prints credentials: --dry-run and --verbose of API and workflow commands, api and ping, and config show. `pulse auth` commands never print a token. "
 
 /**
  * A hint (with a trailing space) for an unknown option that looks like it wants a secret, or for

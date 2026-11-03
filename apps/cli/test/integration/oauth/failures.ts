@@ -109,7 +109,7 @@ export function registerFailures(suite: OAuthSuite): void {
     })
     const url = await pending.authorizationUrl()
     expect(new URL(url).searchParams.get("client_id")).toBe(UNKNOWN_CLIENT)
-    // the browser shows the error; the authorization server never redirects to pulse-cli
+    // the browser shows the error; the authorization server never redirects to pulse
     const page = await openAuthorizationUrl(url)
     expect(page.status).toBe(400)
     expect(page.html).toContain("Client not found")

@@ -86,7 +86,7 @@ describe("retry", () => {
             processInstanceId: "p1",
             action: "none",
             result: "skipped",
-            next: "pulse-cli incident resolve custom --yes",
+            next: "pulse incident resolve custom --yes",
           },
         ],
       },
@@ -217,7 +217,7 @@ describe("retry", () => {
             action: "retries=1, execute",
             result: "failed",
             rootCause: "B: root",
-            next: "pulse-cli inspect p1 --stacktrace",
+            next: "pulse inspect p1 --stacktrace",
           },
         ],
       },
@@ -288,7 +288,7 @@ describe("retry details", () => {
       retry(depsOf(server.fetch), { ...BASE, selection: { latest: false }, incidentIds: ["nope"] }),
     ).rejects.toMatchObject({
       details: {
-        hint: "List the open incidents with `pulse-cli incident list`; resolved incidents are gone.",
+        hint: "List the open incidents with `pulse incident list`; resolved incidents are gone.",
       },
     })
   })
@@ -368,7 +368,7 @@ describe("retry details", () => {
       instance !== undefined && "incidents" in instance ? instance.incidents[0] : {},
     ).not.toHaveProperty("stacktrace")
     expect(result.kind === "view" ? result.failure?.details.hint : "").toContain(
-      "`pulse-cli inspect pi-1 --stacktrace`",
+      "`pulse inspect pi-1 --stacktrace`",
     )
     expect(engine.requests.some((request) => request.path === "/process-instance/count")).toBe(
       false,

@@ -43,7 +43,7 @@ export interface AuthProvider {
   readonly note?: string
   /**
    * The command that shows whether the login is usable, for the hint of a redirect (OAuth:
-   * `pulse-cli auth status --profile p`).
+   * `pulse auth status --profile p`).
    */
   readonly loginStatusCommand?: string
 }

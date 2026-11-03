@@ -16,14 +16,14 @@ import { run } from "../run.js"
 const setup = (stage?: Stage, options?: FakeRuntimeOptions) => workflowSetup(run, stage, options)
 
 describe("workflow commands in the CLI", () => {
-  it('points "pulse-cli workflow <command>" to the top-level command', async () => {
+  it('points "pulse workflow <command>" to the top-level command', async () => {
     const { cli } = setup()
     const result = await cli(["workflow", "inspect", "pi-1"])
     expect(errorOf(result.stderr)).toEqual({
       code: "USAGE",
       exitCode: 2,
       message: 'Unknown command "workflow"',
-      hint: 'Workflow commands are top-level: pulse-cli inspect. "pulse-cli commands workflow" lists them.',
+      hint: 'Workflow commands are top-level: pulse inspect. "pulse commands workflow" lists them.',
     })
   })
 
@@ -40,7 +40,7 @@ describe("workflow commands in help, commands and describe", () => {
     for (const name of ["inspect", "wait", "advance", "retry", "deploy", "status"]) {
       const { stdout, code } = await cli([name, "--help"])
       expect(code).toBe(0)
-      expect(stdout).toMatch(new RegExp(`^Usage: pulse-cli ${name} `))
+      expect(stdout).toMatch(new RegExp(`^Usage: pulse ${name} `))
       const headings = stdout
         .split("\n")
         .filter((line) =>
@@ -53,7 +53,7 @@ describe("workflow commands in help, commands and describe", () => {
       ).toEqual(
         expect.arrayContaining(["Requests", "Effect", "Options", "Global Options", "Examples"]),
       )
-      expect(stdout).toContain(`\n  $ pulse-cli ${name}`)
+      expect(stdout).toContain(`\n  $ pulse ${name}`)
     }
     const wait = await cli(["wait", "--help"])
     expect(wait.stdout).toContain("\nEffect: read; write with --execute-jobs\n")
@@ -73,12 +73,12 @@ describe("workflow commands in help, commands and describe", () => {
       unknown
     >
     expect(described).toMatchObject({
-      command: "pulse-cli inspect [process-instance-id]",
+      command: "pulse inspect [process-instance-id]",
       workflow: true,
       effect: "read",
     })
     expect((await cli(["describe", "retry", "-o", "table"])).stdout).toMatch(
-      /^USAGE\n {2}pulse-cli retry \[process-instance-id\] \[options\]\n/,
+      /^USAGE\n {2}pulse retry \[process-instance-id\] \[options\]\n/,
     )
     expect(JSON.parse((await cli(["describe", "workflow"])).stdout)).toHaveLength(6)
     const unknown = await cli(["describe", "inspekt"])
@@ -126,7 +126,7 @@ describe("workflow comfort details", () => {
     )
     expect(result.code).toBe(2)
     expect(errorOf(result.stderr).hint).toBe(
-      "Choose one: pulse-cli advance a --var approved=true --wait --wait-timeout 2m, pulse-cli advance b --var approved=true --wait --wait-timeout 2m; or narrow the selection with --process-definition-key <key>, or take the most recently started one with --latest.",
+      "Choose one: pulse advance a --var approved=true --wait --wait-timeout 2m, pulse advance b --var approved=true --wait --wait-timeout 2m; or narrow the selection with --process-definition-key <key>, or take the most recently started one with --latest.",
     )
   })
 

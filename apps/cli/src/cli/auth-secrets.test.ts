@@ -57,7 +57,7 @@ function secretForms(user: string, password: string): string[] {
   return [password, JSON.stringify(password).slice(1, -1), base64(`${user}:${password}`)]
 }
 
-/** Every way the credentials reach pulse-cli, and every command that renders something. */
+/** Every way the credentials reach pulse, and every command that renders something. */
 function scenarios(user: string, password: string): Scenario[] {
   const env = { PULSE_CLI_USERNAME: user, PULSE_CLI_PASSWORD: password }
   const stdin = ["--auth-user", user, "--auth-password-stdin"]
@@ -97,7 +97,7 @@ function scenarios(user: string, password: string): Scenario[] {
   ]
 }
 
-/** Usernames: no ":" and no control characters (pulse-cli refuses them). */
+/** Usernames: no ":" and no control characters (pulse refuses them). */
 const users = fc
   .string({ unit: "binary", minLength: 1, maxLength: 12 })
   .map((value) => `u${value.replace(/[\p{Cc}:\s]/gu, "")}`)

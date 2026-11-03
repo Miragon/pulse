@@ -60,7 +60,7 @@ describe("runTokenCommand", () => {
       `${PREFIX} failed with exit code 7: line 2 / line  [31m3 / line 4`,
     )
     expect(result.error?.details.hint).toBe(
-      "pulse-cli runs the command with the shell in the working directory, stdin closed and bounded by the request timeout (--timeout), and takes the first line of its stdout as the token (not a JSON answer: use e.g. jq -r .access_token). Run it in a shell to see what goes wrong (`pulse-cli config show` prints it).",
+      "pulse runs the command with the shell in the working directory, stdin closed and bounded by the request timeout (--timeout), and takes the first line of its stdout as the token (not a JSON answer: use e.g. jq -r .access_token). Run it in a shell to see what goes wrong (`pulse config show` prints it).",
     )
     const silent = await runWith({ commands: { exitCode: 1 } })
     expect(silent.error?.message).toBe(`${PREFIX} failed with exit code 1`)

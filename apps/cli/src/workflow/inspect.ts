@@ -1,5 +1,5 @@
 /**
- * `pulse-cli inspect`: where a process instance waits and why. The rounds of requests and the
+ * `pulse inspect`: where a process instance waits and why. The rounds of requests and the
  * instance view are @miragon/pulse-engine-core's; the view's next steps become command lines.
  */
 
@@ -40,7 +40,7 @@ export async function loadView(
   return "next" in view ? cliView(view) : view
 }
 
-/** `pulse-cli inspect`: the first round only with `--dry-run`, else the view. */
+/** `pulse inspect`: the first round only with `--dry-run`, else the view. */
 export async function inspect(
   port: EnginePort,
   selection: Selection,

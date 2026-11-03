@@ -1,6 +1,6 @@
 /**
  * Views printed by the workflow commands: the views of @miragon/pulse-engine-core with their next
- * steps rendered as `pulse-cli` command lines, and its writes. Types only.
+ * steps rendered as `pulse` command lines, and its writes. Types only.
  */
 
 import type * as core from "@miragon/pulse-engine-core"

@@ -6,18 +6,18 @@ Camunda 7. Without Node.js, take the standalone executable or the container imag
 
 ## A first triage
 
-pulse-cli uses `http://localhost:8080/engine-rest` by default, so a local engine needs no
+The CLI uses `http://localhost:8080/engine-rest` by default, so a local engine needs no
 configuration. Give it a few seconds to start before the first command.
 
 ```sh
 npm install -g @miragon/pulse-cli
 docker run -d --name engine -p 8080:8080 operaton/operaton:2.1.5
 # or cibseven/cibseven:run-2.2.0
-pulse-cli ping
-pulse-cli status
+pulse ping
+pulse status
 ```
 
-`pulse-cli ping` checks the connection. `pulse-cli status` triages the whole engine in one read-only
+`pulse ping` checks the connection. `pulse status` triages the whole engine in one read-only
 call: incidents grouped by root cause, overdue jobs, external task workers and failed batches,
 each finding with the next command to run. The Operaton image ships the invoice example, so a
 fresh container already has instances, and no findings:
@@ -66,32 +66,32 @@ Deploy it with an instance, see where it waits, then complete the task. No id is
 around: the workflow commands find the instance by its business key.
 
 ```sh
-pulse-cli deploy order.bpmn --start --business-key ORD-1001 --var amount=250
-pulse-cli inspect --business-key ORD-1001
-pulse-cli advance --business-key ORD-1001 --var approved=true
+pulse deploy order.bpmn --start --business-key ORD-1001 --var amount=250
+pulse inspect --business-key ORD-1001
+pulse advance --business-key ORD-1001 --var approved=true
 ```
 
 The same steps as raw REST operations, one command per request:
 
 ```sh
-pulse-cli deployment create order.bpmn --deployment-name order
-pulse-cli process-definition start order --business-key ORD-1002 --var amount=250
-TASK_ID=$(pulse-cli task list --process-definition-key order --fields id | jq -r '.[0].id')
-pulse-cli task complete "$TASK_ID" --var approved=true
-pulse-cli historic-process-instance list --process-definition-key order --finished --fields id,businessKey,state -o table
+pulse deployment create order.bpmn --deployment-name order
+pulse process-definition start order --business-key ORD-1002 --var amount=250
+TASK_ID=$(pulse task list --process-definition-key order --fields id | jq -r '.[0].id')
+pulse task complete "$TASK_ID" --var approved=true
+pulse historic-process-instance list --process-definition-key order --finished --fields id,businessKey,state -o table
 ```
 
 ## Your engine, Claude Code or CI
 
-Point pulse-cli at your own engine with a read-only profile, or hand it to Claude Code or your CI
+Point the CLI at your own engine with a read-only profile, or hand it to Claude Code or your CI
 pipeline. A profile also holds the engine's Basic auth, OAuth or bearer token settings, see
 [authentication](./authentication.md).
 
 ::: code-group
 
 ```sh [Your engine]
-pulse-cli config set prod --url https://engine.example.com/engine-rest --read-only
-pulse-cli status --profile prod
+pulse config set prod --url https://engine.example.com/engine-rest --read-only
+pulse status --profile prod
 ```
 
 ```text [Claude Code]
@@ -102,14 +102,14 @@ pulse-cli status --profile prod
 
 ```sh [CI]
 export PULSE_CLI_URL=https://engine.example.com/engine-rest
-pulse-cli status --read-only --fail-on warning
+pulse status --read-only --fail-on warning
 ```
 
 :::
 
 The [Claude Code plugin](./agents.md#claude-code-plugin) calls the CLI you installed, or
 `npx -y @miragon/pulse-cli` if there is none. Other agents need one line in `AGENTS.md` or
-`CLAUDE.md`: "Run `pulse-cli guide` before using `pulse-cli`."
+`CLAUDE.md`: "Run `pulse guide` before using `pulse`."
 
 In CI, `--fail-on warning` fails on any finding, an open incident included. `--fail-on critical`
 fails only when executable jobs are overdue, and that finding asks whether the job executor is
@@ -121,5 +121,5 @@ running. Either way the command exits with code 9 (`CHECK_FAILED`).
   `status`, the six commands that combine several requests.
 - [Recipes](./recipes.md): command lines for everyday tasks.
 - [Safety](./safety.md): previews, confirmation and read-only mode.
-- In the CLI: `pulse-cli commands` lists the API groups, `pulse-cli describe <group> <command>`
-  explains a command and `pulse-cli guide` prints the usage guide.
+- In the CLI: `pulse commands` lists the API groups, `pulse describe <group> <command>`
+  explains a command and `pulse guide` prints the usage guide.

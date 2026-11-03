@@ -206,24 +206,24 @@ describe("unsetVariable", () => {
       [
         "CONFIG",
         'The password variable CI_VALUE (auth.passwordEnv of profile "prod") is not set or empty',
-        "Export it, e.g. export CI_VALUE=<password>, or name another variable with `pulse-cli config set prod --auth-password-env <VAR>`.",
+        "Export it, e.g. export CI_VALUE=<password>, or name another variable with `pulse config set prod --auth-password-env <VAR>`.",
       ],
       [
         "CONFIG",
         'The client secret variable CI_VALUE (auth.clientSecretEnv of profile "prod") is not set or empty',
-        "Export it, e.g. export CI_VALUE=<secret>, or name another variable with `pulse-cli config set prod --oauth-client-secret-env <VAR>`.",
+        "Export it, e.g. export CI_VALUE=<secret>, or name another variable with `pulse config set prod --oauth-client-secret-env <VAR>`.",
       ],
       [
         "CONFIG",
         'The token variable CI_VALUE (auth.tokenEnv of profile "prod") is not set or empty',
-        "Export it, e.g. export CI_VALUE=<token>, or name another variable with `pulse-cli config set prod --auth-token-env <VAR>`.",
+        "Export it, e.g. export CI_VALUE=<token>, or name another variable with `pulse config set prod --auth-token-env <VAR>`.",
       ],
     ])
   })
 
   it("does not repeat a name in another form: it may be the secret stored by mistake", () => {
     expect(text(unsetVariable("hunter2", "p", PASSWORD_VARIABLE))).toBe(
-      'The password variable named by auth.passwordEnv of profile "p" is not set or empty\nIts name is not in the usual upper-case form, so it is not repeated: it may be a password stored by mistake. Check auth.passwordEnv in the config file (`pulse-cli config path`), or name another variable with `pulse-cli config set p --auth-password-env <VAR>`.',
+      'The password variable named by auth.passwordEnv of profile "p" is not set or empty\nIts name is not in the usual upper-case form, so it is not repeated: it may be a password stored by mistake. Check auth.passwordEnv in the config file (`pulse config path`), or name another variable with `pulse config set p --auth-password-env <VAR>`.',
     )
     fc.assert(
       fc.property(unusualNames, fc.constantFrom(...KINDS), (name, variable) => {

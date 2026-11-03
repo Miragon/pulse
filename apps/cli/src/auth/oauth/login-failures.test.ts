@@ -22,7 +22,7 @@ describe("login", () => {
     test.idp.queue("token", oauthError(400, "invalid_grant", "Code not valid"))
     const page = await test.runtime.loopback.request("/callback", callback)
     expect(page.status).toBe(400)
-    expect(page.html).toContain("pulse-cli could not exchange the authorization code.")
+    expect(page.html).toContain("pulse could not exchange the authorization code.")
     const error = await rejection(result)
     expect(error.code).toBe("LOGIN_FAILED")
     expect(error.message).toBe(
@@ -47,7 +47,7 @@ describe("login", () => {
     expect(error.code).toBe("LOGIN_FAILED")
     expect(error.message).toBe("No login arrived within 1.5 s")
     expect(error.details.hint).toBe(
-      'Complete the login in the browser. If it showed an error such as "Invalid parameter: redirect_uri", register http://127.0.0.1/callback (any port; Keycloak, Entra ID) for client pulse-cli, or set a fixed port (pulse-cli config set p --oauth-redirect-port <port>) and register http://127.0.0.1:<port>/callback; then run the command again.',
+      'Complete the login in the browser. If it showed an error such as "Invalid parameter: redirect_uri", register http://127.0.0.1/callback (any port; Keycloak, Entra ID) for client pulse-cli, or set a fixed port (pulse config set p --oauth-redirect-port <port>) and register http://127.0.0.1:<port>/callback; then run the command again.',
     )
     expect(test.runtime.deadlines).toEqual([1500])
     expect(test.runtime.stderr.text()).toContain("Waiting up to 1.5 s for the login")
@@ -79,7 +79,7 @@ describe("login", () => {
     expect(error.code).toBe("CONFIG")
     expect(error.message).toBe("Port 8765 for the login callback is in use")
     expect(error.details.hint).toBe(
-      "Stop the program that uses it or choose another port: pulse-cli config set p --oauth-redirect-port <port> (0 = any free port); the port must match the redirect URI registered for client pulse-cli.",
+      "Stop the program that uses it or choose another port: pulse config set p --oauth-redirect-port <port> (0 = any free port); the port must match the redirect URI registered for client pulse-cli.",
     )
     const sources = { ...oauthConfig().sources, redirectPort: "env" as const }
     const fromEnv = await rejection(

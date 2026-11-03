@@ -1,5 +1,5 @@
 /**
- * Planning of `pulse-cli retry`: @miragon/pulse-engine-core's retry plan with usage errors that
+ * Planning of `pulse retry`: @miragon/pulse-engine-core's retry plan with usage errors that
  * name the flags and the skipped incidents' next commands.
  */
 

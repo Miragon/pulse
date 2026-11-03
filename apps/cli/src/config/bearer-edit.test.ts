@@ -151,7 +151,7 @@ describe("setProfile with a bearer token", () => {
       'Profile "p" would have both bearer auth and an Authorization header',
     )
     expect(error.details.hint).toBe(
-      "Keep one: bearer auth options replace a stored Authorization header (`pulse-cli config set p --auth bearer`); --auth none switches bearer auth off and keeps the header (`pulse-cli config set p --auth none -H 'Authorization: ...'`).",
+      "Keep one: bearer auth options replace a stored Authorization header (`pulse config set p --auth bearer`); --auth none switches bearer auth off and keeps the header (`pulse config set p --auth none -H 'Authorization: ...'`).",
     )
   })
 })

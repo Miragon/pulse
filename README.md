@@ -12,7 +12,7 @@ idea, three clients on the same engines:
 
 - **Your AI chat:** an MCP server that answers with interactive views of incidents, instances and
   diagrams, in Claude, ChatGPT and other hosts.
-- **Your terminal:** `pulse-cli`, every engine operation as one short command, for people and AI
+- **Your terminal:** `pulse`, every engine operation as one short command, for people and AI
   agents alike.
 - **VS Code:** runtime data next to your BPMN models: instances, incidents, variables and retries.
 
@@ -52,7 +52,7 @@ start one locally with `docker run -p 8080:8080 operaton/operaton:2.1.5`.
 | --------------------------------------------------------------------------------------------------------- | ----------------------------------------- | ------------------------------------------------------------ |
 | [`apps/mcp-server/`](apps/mcp-server)                                                                     | `ghcr.io/miragon/pulse-server`            | The MCP server: composes the modules, serves HTTP on `:8400` |
 | [`apps/cli/`](apps/cli)                                                                                   | `@miragon/pulse-cli`                      | The command line interface                                   |
-| [`apps/vscode/`](apps/vscode)                                                                             | `pulse` (a .vsix)                         | Pulse for VS Code                                            |
+| [`apps/vscode/`](apps/vscode)                                                                             | `pulse-cockpit` (a .vsix)                 | Pulse for VS Code                                            |
 | [`packages/connectors/engine/engine-connector/`](packages/connectors/engine/engine-connector)             | `@miragon/pulse-engine-connector`         | Operations tools and widgets for Camunda 7 engines           |
 | [`packages/connectors/analytics/analytics-connector/`](packages/connectors/analytics/analytics-connector) | `@miragon/pulse-analytics-connector`      | Prometheus-backed analytics tools and dashboards             |
 | [`packages/connectors/engine/engine-client/`](packages/connectors/engine/engine-client)                   | `@miragon/pulse-engine-client`            | Typed REST SDK and client for the engine                     |

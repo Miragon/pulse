@@ -39,7 +39,7 @@ describe("createNodeRuntime().readStdin", () => {
     expect(code).toBe("USAGE")
     expect(message).toBe("stdin is a terminal; pipe the input into the command")
     expect(details.hint).toBe(
-      `Examples: echo '{}' | pulse-cli ... --body - (or --body @file.json); printf '%s\\n' "$PASSWORD" | pulse-cli ... --auth-password-stdin (a token: --auth-token-stdin).`,
+      `Examples: echo '{}' | pulse ... --body - (or --body @file.json); printf '%s\\n' "$PASSWORD" | pulse ... --auth-password-stdin (a token: --auth-token-stdin).`,
     )
     // rendered errors are single lines; a template literal "\n" would break the printf example
     expect(details.hint).not.toMatch(/[\r\n]/)

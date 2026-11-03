@@ -161,5 +161,5 @@ function networkHint(code: string | undefined): string {
   if (DNS_ERRORS.has(code)) {
     return "The host name does not resolve. Check --url, PULSE_CLI_URL or your profile."
   }
-  return "Is the engine running? Check --url, PULSE_CLI_URL or `pulse-cli config show`. Run `pulse-cli ping` to test the connection."
+  return "Is the engine running? Check --url, PULSE_CLI_URL or `pulse config show`. Run `pulse ping` to test the connection."
 }
