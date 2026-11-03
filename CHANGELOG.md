@@ -1,5 +1,67 @@
 # Changelog
 
+## [0.25.0](https://github.com/Miragon/pulse/compare/v0.24.2...v0.25.0) (2026-11-03)
+
+
+### ⚠ BREAKING CHANGES
+
+* the MCP server, its modules and its npm packages change as listed below; docs/mcp/upgrading.md walks through the migration.
+* `MCP_ACTIVE_MODULES=camunda7:<toolset>` is `engine:<toolset>`; every `camunda7_*` tool is `engine_*` (`camunda7_engine_status` and `camunda7_engine_health_data` are `engine_status` and `engine_health_data`); every `CAMUNDA_*` setting is `ENGINE_*` (`CAMUNDA_ENGINES_FILE` and `CAMUNDA_ENGINES_JSON` are `ENGINES_FILE` and `ENGINES_JSON`, `CAMUNDA_DEFAULT_ENGINE` is `ENGINE_DEFAULT`) with its value unchanged; the engine plugin's `camunda_*` metrics are `engine_*` with the same labels; `@miragon/pulse-camunda7-client` and `@miragon/pulse-camunda7-connector` are `@miragon/pulse-engine-client` and `@miragon/pulse-engine-connector`. The boot refuses the old module name and every old setting that is set, except `CAMUNDA_USERNAME`, `CAMUNDA_PASSWORD` and `CAMUNDA_TOKEN`, which only warn. Upgrade the engine plugin and the server together and move dashboards and alerts to the new metric names.
+* the tools render-view, refresh-view, get-framework-manifest, get-builder-catalogue and the dashboard tools are gone, and so are saved dashboards. `MCP_DASHBOARD_DIR` is no longer read. Modules register through `createPlugin` returning `{ name, register(server) }`.
+* a show tool's structuredContent is the view data itself, with no layout envelope. A bundle root calls `mountViews({ views, hostWidgets })`; widget-shell drops `AppShellProviders`, `LocalizedAppView`, `adaptDataWidget` (the `./ui` export), `buildSingleWidgetView`, `buildComposedView`, `settingsLayout` and `shellWidgets`.
+* the components, tone model, locale, toasts, formatters and the Miragon theme come from `@miragon/pulse-ui` (`@miragon/pulse-ui/theme.css`) and the brand gates from `@miragon/pulse-ui/testing`; widget-shell no longer exports them, and `@miragon/mcp-toolkit-ui` is no longer used. `TONE_TEXT` is `TONE_INK`; `TOOLKIT_MESSAGES`, `useToolkitMessages` and `toolkitMessages` are `UI_MESSAGES`, `useUiMessages` and `uiMessages`.
+* `createToolRegistrar`, `withToolErrors`, `createTranslator` and the catalog types come from `@miragon/pulse-widget-shell/server`; drop `@miragon/mcp-toolkit-core` from your manifests and your Vite dedupe list. Registrar tools always take strict input. The Pulse packages require mcp-use 2.12.2, pinned exactly, also as a peer.
+* the settings tools and `camunda7_select_engine` are gone; `DATABASE_URL` and `MCP_PROFILE_DIR` are no longer read, and profile data in Postgres is abandoned. The UI language follows the host locale (German for de*, else English) and tool results for the model are English only. A multi-engine deployment names its default engine with `ENGINE_DEFAULT`. Analytics declares no toolsets.
+* **analytics:** analytics_analyze_process_performance, analytics_element_bottleneck, analytics_find_failed_instances, analytics_show_failure_dashboard, analytics_cluster_compare, analytics_show_cluster_compare, analytics_compare_execution_periods, analytics_version_compare, analytics_engine_compare and analytics_engine_landscape are gone; analytics_show_dashboard, analytics_show_period_compare and the other analytics_show_* tools answer their questions, and the incidents open right now come from the engine module. Results use one vocabulary in camelCase and milliseconds (the dashboard's `totalCount` is `startedCount`, analytics_engine_health's `deadJobs` is `failedJobs`), and `@miragon/pulse-analytics-client` exports only its root entry.
+* **engine:** the twelve show tools of the engine module (engine health, process list, incidents dashboard, cluster detail, process detail, process incidents, process instances, instance detail, incident detail, BPMN viewer, job panel, history timeline) are gone. `engine_open_cockpit` opens each as a `view` with the ids it needs; its structuredContent is `{ engineId, engines, start }` and its content the view's facts as compact JSON. Widget hand-offs and model contexts name no tool. The heatmap's `durationSec` is `durationMs`.
+* `MCP_OAUTH` is gone; set one provider's `MCP_USE_OAUTH_*` variables instead (Keycloak, Auth0, and new WorkOS, Better Auth and Convex), and unset `MCP_OAUTH` in the same deploy: the boot fails while it is still set. `MCP_URL` stays the token audience. `createComposedServer` takes `info`, `modules`, `shared` and `bundle`; `composeModules`, `oauthFromEnv` and the boot's other parts are no longer exported.
+* **engine:** `camunda7_get_process_instance` is removed: use `engine_inspect_process_instance`, which also shows ended instances, wait states, root-cause incidents and called instances. `engine_get_activity_instance_tree` is in the admin toolset only. `@miragon/pulse-engine-connector` depends on `@miragon/pulse-engine-core` at runtime.
+* **exports:** 83 names that `@miragon/pulse-widget-shell` and `@miragon/pulse-analytics-connector` exported in 0.24 are gone, among them the boot's parts on `/server` (`installMetrics`, `installHealthEndpoints`, `installHttpEdgeGuard`, `resolvePort` and more; boot through `createComposedServer`) and view-runtime internals on `/widgets` (`InlineFitBox`, `DisplayModeToggle`, `useShellHost`, the providers). The starter template imports none of them.
+* **engine:** `@miragon/pulse-engine-client` has no `/schemas` entry and no zod peer: the tool input schemas belong to the engine connector and are not exported. The pure engine rules (`toEngineDate`, `engineSorting`, `toEngineVariable(s)`, `incidentRecovery`, `RAW_VARIABLES` and the rest) come from `@miragon/pulse-engine-core`.
+* **widgets:** `@miragon/pulse-widget-shell/widgets` no longer exports `BpmnHeatmap`, `HeatmapLegend`, `BpmnHeatmapWidget` and their types. A view that drew the heat renders the host widgets `analytics:process-heatmap` and `analytics:process-heatmap-legend` through `HostWidgetSlot`; a root that spreads `analyticsHostWidgets`, as the template does, needs no change.
+* **cli:** `pulse-cli completion` is gone and the Homebrew formula no longer installs a completion script, so Tab completion stops working in a plain shell after upgrading.
+* **cli:** the first deploy without --name after the update deploys every resource again under the name pulse-cli, since unchanged files are compared per deployment name; pass --name operate to keep the old deployment line. An external task locked by an earlier advance as operate can be completed once its lock expires, or with --worker-id operate.
+* **cli:** pulse-cli no longer reads the names of operate (up to 0.10.0), earlier than the "first release after 2027-01-31" its warning announced: set PULSE_CLI_* instead of OPERATE_* (PULSE_CLI_URL, PULSE_CLI_TOKEN …), rename .operate.json to .pulse-cli.json (the VS Code extension reads only that name too), move ~/.config/operate/config.json to ~/.config/pulse-cli/config.json (Windows: %APPDATA%\pulse-cli) and run pulse-cli auth login once, and call pulse-cli instead of operate (the Homebrew formula no longer links it).
+
+### Features
+
+* **engine-core:** the CLI's workflow domain as @miragon/pulse-engine-core ([0b45840](https://github.com/Miragon/pulse/commit/0b45840589d6c369100ea82524d2ccee38bdd3a5))
+* **engine:** inline, the cockpit's trail shares the head row ([0b45840](https://github.com/Miragon/pulse/commit/0b45840589d6c369100ea82524d2ccee38bdd3a5))
+* **engine:** inspect and engine status tools on engine-core ([0b45840](https://github.com/Miragon/pulse/commit/0b45840589d6c369100ea82524d2ccee38bdd3a5))
+* **vscode:** add boards, shared JSON views across engines ([#474](https://github.com/Miragon/pulse/issues/474)) ([237eb97](https://github.com/Miragon/pulse/commit/237eb974e386ad80835ec6df4024cf2aecfa0a9c))
+* **vscode:** search instances by process variables ([#473](https://github.com/Miragon/pulse/issues/473)) ([fe142c9](https://github.com/Miragon/pulse/commit/fe142c9a379607706583bcfb621a6f2a35adffd1))
+
+
+### Bug Fixes
+
+* bump the npm-dependencies group across 1 directory with 7 updates ([#484](https://github.com/Miragon/pulse/issues/484)) ([a52fc64](https://github.com/Miragon/pulse/commit/a52fc64382e43f5176fb695d2806e05c5a8475eb))
+* bump the vscode group across 1 directory with 3 updates ([#502](https://github.com/Miragon/pulse/issues/502)) ([a584b23](https://github.com/Miragon/pulse/commit/a584b23f7b9c540688b6fe0d8aeeba41da4c98d5))
+* bump the vscode group with 2 updates ([#478](https://github.com/Miragon/pulse/issues/478)) ([3c5e5bf](https://github.com/Miragon/pulse/commit/3c5e5bf17afa67fc47c56027a261541e075ed61c))
+* **cli:** trim trailing slashes in linear time ([0b45840](https://github.com/Miragon/pulse/commit/0b45840589d6c369100ea82524d2ccee38bdd3a5))
+* **deps:** patch hono, glob, minimatch and the template's vitest ([#511](https://github.com/Miragon/pulse/issues/511)) ([fde9665](https://github.com/Miragon/pulse/commit/fde966532f9d34f2c8311ca7741f55324654bcd0))
+* **ui:** read stylesheets, markup and font URLs in linear time ([0b45840](https://github.com/Miragon/pulse/commit/0b45840589d6c369100ea82524d2ccee38bdd3a5))
+* **vscode:** trim trailing slashes of engine endpoints in linear time ([0b45840](https://github.com/Miragon/pulse/commit/0b45840589d6c369100ea82524d2ccee38bdd3a5))
+
+
+### Code Refactoring
+
+* **analytics:** one tool per analytics question ([0b45840](https://github.com/Miragon/pulse/commit/0b45840589d6c369100ea82524d2ccee38bdd3a5))
+* **cli:** name the default worker and deployment pulse-cli ([#472](https://github.com/Miragon/pulse/issues/472)) ([7a5384d](https://github.com/Miragon/pulse/commit/7a5384d3aa5c5a216ca72fd00d000e074a4ffc5e))
+* **cli:** remove operate's names ([caa6589](https://github.com/Miragon/pulse/commit/caa658952f36c14e8eca74af95cb1e4ea4f533c7))
+* **cli:** remove shell completion ([#493](https://github.com/Miragon/pulse/issues/493)) ([29be7fa](https://github.com/Miragon/pulse/commit/29be7fa16c86ae499bf9bb3f4bcee7f3470f9531))
+* drop @miragon/mcp-toolkit-core and bump mcp-use to 2.12.2 ([0b45840](https://github.com/Miragon/pulse/commit/0b45840589d6c369100ea82524d2ccee38bdd3a5))
+* drop per-user settings, the profile store and Postgres ([0b45840](https://github.com/Miragon/pulse/commit/0b45840589d6c369100ea82524d2ccee38bdd3a5))
+* drop the toolkit's dynamic UI layer and own the server boot ([0b45840](https://github.com/Miragon/pulse/commit/0b45840589d6c369100ea82524d2ccee38bdd3a5))
+* **engine:** give the engine REST rules one home in engine-core ([0b45840](https://github.com/Miragon/pulse/commit/0b45840589d6c369100ea82524d2ccee38bdd3a5))
+* **engine:** one routed cockpit is the only engine view ([0b45840](https://github.com/Miragon/pulse/commit/0b45840589d6c369100ea82524d2ccee38bdd3a5))
+* **exports:** trim the published entries to what servers and modules use ([0b45840](https://github.com/Miragon/pulse/commit/0b45840589d6c369100ea82524d2ccee38bdd3a5))
+* move the design kit into the new package @miragon/pulse-ui ([0b45840](https://github.com/Miragon/pulse/commit/0b45840589d6c369100ea82524d2ccee38bdd3a5))
+* own the view runtime in widget-shell and send plain view data ([0b45840](https://github.com/Miragon/pulse/commit/0b45840589d6c369100ea82524d2ccee38bdd3a5))
+* rebuild the MCP server mcp-use first ([#498](https://github.com/Miragon/pulse/issues/498)) ([0b45840](https://github.com/Miragon/pulse/commit/0b45840589d6c369100ea82524d2ccee38bdd3a5))
+* rename the camunda7 module, its tools, packages, settings and metrics to engine ([0b45840](https://github.com/Miragon/pulse/commit/0b45840589d6c369100ea82524d2ccee38bdd3a5))
+* the boot composes and reads OAuth from mcp-use's own variables ([0b45840](https://github.com/Miragon/pulse/commit/0b45840589d6c369100ea82524d2ccee38bdd3a5))
+* **widgets:** move the heatmap to analytics behind a host widget ([0b45840](https://github.com/Miragon/pulse/commit/0b45840589d6c369100ea82524d2ccee38bdd3a5))
+
 ## [0.24.2](https://github.com/Miragon/pulse/compare/v0.24.1...v0.24.2) (2026-10-26)
 
 
