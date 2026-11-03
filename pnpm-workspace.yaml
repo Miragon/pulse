@@ -33,6 +33,16 @@ overrides:
   # via @vscode/test-cli <- mocha 11: denial of service in parsePatch and applyPatch
   # (GHSA-73rr-hh4g-fpgx)
   "mocha>diff": "^8.0.3"
+  # File matching in the test toolchain: testcontainers <- archiver (the CLI's and the VS Code
+  # extension's engine suites), mocha and c8 (the VS Code smoke run), ESLint, Stryker and vsce.
+  # Both cross their dependents' majors. None of the dependents uses what the new majors
+  # removed (minimatch's makeRe, regexp and AST, glob's isRegExp and walk sets); the ESLint
+  # config of every file stays the same.
+  # glob: AbortSignal cancellation bypass allows filesystem traversal after the timeout
+  # (GHSA-3g3m-2fjr-6pw4)
+  glob: "^14.0.2"
+  # minimatch: denial of service through globparts amplification (GHSA-g3hv-75wg-m249)
+  minimatch: "^11.0.1"
   # The docs site (docs/): VitePress 1.6.4 asks for vite ^5.4.14, below the fix
   # for the server.fs.deny bypass. An exact pin, not a range: it is the vite the
   # Miragon docs kit (docs/.vitepress/miragon/) is built and tested with, and it
