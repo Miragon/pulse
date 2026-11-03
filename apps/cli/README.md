@@ -113,8 +113,9 @@ Details: [using pulse-cli from AI agents](https://miragon.github.io/pulse/cli/ag
 
 ## Engines
 
-pulse-cli works with Operaton, CIB seven and Camunda 7, and is tested against all three on every
-change. Camunda 8 is not supported: it has a different API.
+pulse-cli works with Operaton, CIB seven and Camunda 7. Every change is tested against Operaton
+and CIB seven; Camunda 7 was tested with 7.24.0 until its image left Docker Hub in November 2026.
+Camunda 8 is not supported: it has a different API.
 
 Details: [engines](https://miragon.github.io/pulse/cli/engines).
 

@@ -68,8 +68,9 @@ no `generate` script, so turbo's cached `generate` task never replays a stale ca
 - Unit and fast-check property tests drive the CLI through `fakeRuntime`, an in-memory runtime;
   only the tests of `apps/cli/src/bin/` touch the real system. Every CLI line of a `sh` block in `apps/cli/README.md` and `docs/cli/` runs
   against a fake engine (`DOC_PAGES`): a documented command line that fails is a failing test.
-- The Testcontainers suites (`test:engines`, Docker, build first) run the built CLI against the
-  three engines, with Basic auth, behind Keycloak and an Envoy gateway, and pack the tarball.
+- The Testcontainers suites (`test:engines`, Docker, build first) run the built CLI against
+  Operaton and CIB seven (Camunda 7's image left Docker Hub in November 2026), with Basic auth,
+  behind Keycloak and an Envoy gateway, and pack the tarball.
 - `apps/cli/stryker.config.json` mutates the logic layers and the catalog generator (break 92).
   It runs in place, because the tests read `docs/cli/` and `release-please-config.json` from the
   repository root: leave the tree alone during a run. The mutate list only grows.
