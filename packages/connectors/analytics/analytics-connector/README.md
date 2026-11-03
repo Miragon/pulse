@@ -48,6 +48,12 @@ hangs every in-widget query on "Loading…".
   e.g. around a deployment), `show_version_compare`, `show_engine_compare`,
   `show_engine_landscape` and `show_bpmn_heatmap`. Each renders a view (`src/widgets/`) and
   returns its figures to the model as compact JSON (the heatmap: a summary).
+- **Host widgets** (`analyticsHostWidgets` from `./widgets`): what another module renders by raw
+  id, each fetching its own data. The engine module's fleet view shows
+  `analytics:engine-landscape`; its process flow shows the heat of one process on its own diagram
+  with `analytics:process-heatmap` (`processDefinitionKey`, `engine`, `mode`, the diagram's
+  `bpmnXml` and an `onUnavailable` fallback) and `analytics:process-heatmap-legend` (`mode`).
+  A composition root spreads them into its `hostWidgets`.
 - **`analytics_engine_health`** (`src/tools/`) returns JSON without a view: a live WIP, incidents, backlog
   and alerts snapshot. The incidents open right now and their instances are the
   [engine module](../../engine/engine-connector)'s.

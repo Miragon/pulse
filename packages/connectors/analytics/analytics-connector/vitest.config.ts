@@ -35,8 +35,10 @@ export default mergeConfig(
         // test): measured 95.08 / 83.15 / 95.21 / 97.21. Raised again with the
         // analytics pass (the name lookup, the named views, the settings
         // validation and the landscape's unknown engines under test):
-        // measured 96.82 / 88.5 / 96.94 / 98.44.
-        thresholds: { statements: 94, branches: 86, functions: 94, lines: 96 },
+        // measured 96.82 / 88.5 / 96.94 / 98.44. Raised again with the heatmap moved in from
+        // widget-shell with its suites and the process flow's host widgets under test:
+        // measured 97.03 / 91.58 / 97.11 / 98.92.
+        thresholds: { statements: 95, branches: 89, functions: 95, lines: 96 },
       },
     },
   }),

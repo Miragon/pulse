@@ -18,6 +18,12 @@ import { EngineCompareWidget } from "./engine-compare.js"
 import { EngineLandscapeWidget } from "./engine-landscape.js"
 import { describeBpmnHeatmap } from "./model-descriptions.js"
 import { PeriodCompareWidget } from "./period-compare.js"
+import {
+  PROCESS_HEATMAP_LEGEND_WIDGET,
+  PROCESS_HEATMAP_WIDGET,
+  ProcessHeatmapHostWidget,
+  ProcessHeatmapLegendHostWidget,
+} from "./process-heatmap.js"
 import { VersionCompareWidget } from "./version-compare.js"
 
 /** The heatmap's tool result is a summary, so the view tells the model what it shows. */
@@ -42,12 +48,15 @@ export const analyticsViews: ViewMap = {
   [ANALYTICS_SHOW_BPMN_HEATMAP]: BpmnHeatmapView,
 }
 
+/** The id the engine module's fleet view renders the landscape by. */
+const ENGINE_LANDSCAPE_WIDGET = "analytics:engine-landscape"
+
 function isEngineList(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((id) => typeof id === "string")
 }
 
 /**
- * the engine module's fleet view renders the landscape by its raw id with `{ engine: string[] }`, every
+ * The engine module's fleet view renders the landscape by its raw id with `{ engine: string[] }`, every
  * configured engine, so an engine without metrics still shows. Anything else is no engine list:
  * the landscape then reads every engine.
  */
@@ -56,7 +65,12 @@ export function FleetLandscape(props: Record<string, unknown>) {
   return <EngineLandscapeWidget data={null} engine={engine} />
 }
 
-/** Rendered by raw id from another module: the engine module's fleet view. */
+/**
+ * Rendered by raw id from another module: the landscape in the engine module's fleet view, the
+ * heatmap and its legend in its process flow.
+ */
 export const analyticsHostWidgets: HostWidgets = {
-  "analytics:engine-landscape": FleetLandscape,
+  [ENGINE_LANDSCAPE_WIDGET]: FleetLandscape,
+  [PROCESS_HEATMAP_WIDGET]: ProcessHeatmapHostWidget,
+  [PROCESS_HEATMAP_LEGEND_WIDGET]: ProcessHeatmapLegendHostWidget,
 }

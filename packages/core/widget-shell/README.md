@@ -54,7 +54,7 @@ package customers build their own connectors and composed servers on (see the
   it, a server test its own tool's). The view itself is declared on the tool by `showToolBinding`
   (a `view` binding; mcp-use derives the `_meta.ui` keys from it), and the boot primes each
   view with `viewPrelude(name)` ahead of the bundle.
-- **BPMN names** (`./server`): `readBpmnNames` / `parseBpmnNames`: the one rule every module
+- **BPMN names** (`./server`, and `./widgets` for a view): `readBpmnNames` / `parseBpmnNames`: the one rule every module
   reads a model's names by, without a DOM (a process's own name, else its Modeler pool's;
   character references such as `&#10;` and `&#38;` decoded, space folded), so two modules never
   name the same process or activity differently.

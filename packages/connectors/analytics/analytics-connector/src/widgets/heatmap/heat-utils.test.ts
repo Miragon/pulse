@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
-import { buildHeatPoints, type BpmnElement } from "./heat-utils.js"
+import type { BpmnElement } from "@miragon/pulse-widget-shell/widgets"
+import { buildHeatPoints } from "./heat-utils.js"
 
 const shape = (id: string, type = "bpmn:ServiceTask"): BpmnElement => ({
   id,

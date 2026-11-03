@@ -1,5 +1,7 @@
 import { useEffect, useRef } from "react"
-import { ErrorState, useLocale } from "@miragon/pulse-ui"
+import { ErrorState } from "@miragon/pulse-ui"
+import { BpmnZoomControls, useBpmnViewer } from "@miragon/pulse-widget-shell/widgets"
+import { useT } from "../../messages/use-t.js"
 import {
   buildGradientLut,
   buildHeatPoints,
@@ -8,11 +10,7 @@ import {
   HEAT_PEAK_ALPHA,
   weightRange,
   type HeatPoint,
-} from "./bpmn-heatmap/heat-utils.js"
-import { DEFAULT_HEATMAP_LABELS } from "./bpmn-heatmap-labels.js"
-import { BpmnZoomControls } from "./bpmn-zoom-controls.js"
-import { kitLabels } from "./kit-labels.js"
-import { useBpmnViewer } from "./use-bpmn-viewer.js"
+} from "./heat-utils.js"
 
 // A `= {}` parameter default would be a fresh identity per render and re-trigger the repaint effect.
 const EMPTY_EDGES: Record<string, number> = {}
@@ -25,13 +23,14 @@ export interface BpmnHeatmapProps {
   /** A fixed frame height; default: the diagram's own (240–560 px, `diagramHeight`). */
   height?: number
   diagramRadius?: number
-  /** Accessible name for the diagram (localize per module; English fallback). */
-  diagramAriaLabel?: string
-  errorTitle?: string
-  /** No fallback, so a caller without a localized hint shows no English sentence. */
-  errorHint?: string
+  /** The words are the caller's, since each place words the heatmap for itself (`t()`-resolved). */
+  diagramAriaLabel: string
+  /** What happened, over the inline import error. */
+  errorTitle: string
+  /** What you can do, under the title. */
+  errorHint: string
   /** Without it an empty result (no traffic, or a mismatched metrics `engine_id`) looks like a rendered heatmap. */
-  noHeatLabel?: string
+  noHeatLabel: string
 }
 
 /** The viewer mounts once per `bpmnXml`; new heat values only repaint the overlay. One hue, never red (red is for incidents); the frame is a forced-light island. */
@@ -41,10 +40,10 @@ export function BpmnHeatmap({
   edgeFrequencies = EMPTY_EDGES,
   height,
   diagramRadius = 55,
-  diagramAriaLabel = DEFAULT_HEATMAP_LABELS.diagramAriaLabel,
-  errorTitle = DEFAULT_HEATMAP_LABELS.errorTitle,
+  diagramAriaLabel,
+  errorTitle,
   errorHint,
-  noHeatLabel = DEFAULT_HEATMAP_LABELS.noHeat,
+  noHeatLabel,
 }: BpmnHeatmapProps) {
   const heatCanvasRef = useRef<HTMLCanvasElement>(null)
   const redrawRef = useRef<(() => void) | null>(null)
@@ -182,26 +181,16 @@ export function BpmnHeatmap({
   )
 }
 
-/** The layer maps the range linearly onto the swatch, so the ends are the values they encode; one value for every element shows once, at the full end. */
-export function HeatmapLegend({
-  min,
-  max,
-  lessLabel = DEFAULT_HEATMAP_LABELS.less,
-  moreLabel = DEFAULT_HEATMAP_LABELS.more,
-}: {
-  min?: string
-  max?: string
-  lessLabel?: string
-  moreLabel?: string
-}) {
-  const labels = kitLabels(useLocale())
+/** The layer maps the range linearly onto the swatch, so the ends are the values they encode; one value for every element shows once, at the full end. Without values it runs from less to more. */
+export function HeatmapLegend({ min, max }: { min?: string; max?: string }) {
+  const t = useT()
   const range = min !== undefined && max !== undefined
   const single = range && min === max
-  const start = range ? (single ? null : min) : lessLabel
-  const end = range ? max : moreLabel
+  const start = range ? (single ? null : min) : t("aHeatmap.less")
+  const end = range ? max : t("aHeatmap.more")
   return (
     <div className="text-small flex items-center gap-2">
-      {range && <span className="sr-only">{single ? max : labels.heatmapRange({ min, max })}</span>}
+      {range && <span className="sr-only">{single ? max : t("aHeatmap.range", { min, max })}</span>}
       {start !== null && (
         <span aria-hidden={range || undefined} className="text-muted-foreground tabular-nums">
           {start}

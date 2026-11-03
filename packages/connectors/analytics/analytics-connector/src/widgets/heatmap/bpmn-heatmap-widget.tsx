@@ -5,7 +5,6 @@ import {
   CardContent,
   cn,
   FOCUS_RING,
-  useLocale,
   WidgetHeader,
   formatDuration,
   formatNumber,
@@ -14,12 +13,11 @@ import {
   TableEmptyState,
   Td,
 } from "@miragon/pulse-ui"
+import { ListTable } from "@miragon/pulse-widget-shell/widgets"
 import { ChevronRight } from "lucide-react"
-import { BpmnHeatmap, HeatmapLegend } from "./bpmn-heatmap.js"
-import { bpmnElementNames, bpmnProcessName, heatRange } from "./bpmn-heatmap/heat-utils.js"
-import { DEFAULT_HEATMAP_LABELS, type BpmnHeatmapLabels } from "./bpmn-heatmap-labels.js"
-import { kitLabels } from "./kit-labels.js"
-import { ListTable } from "./list-table.js"
+import { useT } from "../../messages/use-t.js"
+import { BpmnHeatmap, HeatmapLegend } from "./heat-diagram.js"
+import { bpmnElementNames, bpmnProcessName, heatRange } from "./heat-utils.js"
 
 export interface BpmnHeatmapData {
   processDefinitionKey: string
@@ -30,10 +28,11 @@ export interface BpmnHeatmapData {
   durationMs: Record<string, number>
 }
 
-type Mode = "frequency" | "duration"
+/** The heat a diagram shows: executions per element, or their average duration. */
+export type HeatMode = "frequency" | "duration"
 
 /** A heat value in the mode's unit: a count, or a duration ("3m 7s" / "3 Min. 7 s"). */
-function formatHeat(mode: Mode, value: number): string {
+function formatHeat(mode: HeatMode, value: number): string {
   return mode === "frequency" ? formatNumber(value) : formatDuration(value)
 }
 
@@ -42,20 +41,18 @@ export function HeatValuesTable({
   bpmnXml,
   values,
   format,
-  labels,
 }: {
   bpmnXml: string
   values: Record<string, number>
   format: (value: number) => string
-  labels?: Pick<BpmnHeatmapLabels, "valuesTable" | "elementColumn" | "valueColumn">
 }) {
-  const kit = kitLabels(useLocale())
+  const t = useT()
   const names = useMemo(() => bpmnElementNames(bpmnXml), [bpmnXml])
   const rows = Object.entries(values)
     .filter(([, v]) => Number.isFinite(v) && v > 0)
     .sort(([, a], [, b]) => b - a)
   if (rows.length === 0) return null
-  const title = labels?.valuesTable ?? kit.heatmapValues
+  const title = t("aHeatmap.valuesTable")
   return (
     <details className="group">
       <summary
@@ -74,8 +71,8 @@ export function HeatValuesTable({
         <ListTable
           ariaLabel={title}
           columns={[
-            { label: labels?.elementColumn ?? kit.heatmapElement },
-            { label: labels?.valueColumn ?? kit.heatmapValue, align: "right" },
+            { label: t("aHeatmap.elementColumn") },
+            { label: t("aHeatmap.valueColumn"), align: "right" },
           ]}
         >
           {rows.map(([id, value]) => (
@@ -100,26 +97,28 @@ export function HeatValuesTable({
 /** Node-only: metrics carry no per-instance path data, so sequence flows are not heated. */
 export function BpmnHeatmapWidget({
   data,
-  labels,
+  bpmnUnavailable,
   meta,
 }: {
   data: BpmnHeatmapData
-  labels?: BpmnHeatmapLabels
-  /** Replaces the period badge, whose period it carries. */
+  /** The empty state without a diagram: the caller knows why there is none. */
+  bpmnUnavailable: string
+  /** Replaces the period line, whose period it carries. */
   meta?: ReactNode
 }) {
-  const [mode, setMode] = useState<Mode>("frequency")
-  const kit = kitLabels(useLocale())
-  const l = { ...DEFAULT_HEATMAP_LABELS, ...labels }
+  const [mode, setMode] = useState<HeatMode>("frequency")
+  const t = useT()
   const xml = data.bpmnXml
   // The process's name by the rule the other analytics views use (its own, else its pool's).
   const key = data.processDefinitionKey
   const processName = useMemo(() => (xml ? bpmnProcessName(xml, key) : null), [xml, key])
 
-  if (!data.bpmnXml) return <TableEmptyState>{l.bpmnUnavailable}</TableEmptyState>
+  if (!data.bpmnXml) return <TableEmptyState>{bpmnUnavailable}</TableEmptyState>
 
   const values = mode === "frequency" ? data.frequency : data.durationMs
-  const legendLabel = mode === "frequency" ? l.frequencyLegend : l.durationLegend
+  const legendLabel = t(
+    mode === "frequency" ? "aHeatmap.frequencyLegend" : "aHeatmap.durationLegend",
+  )
   const range = heatRange(values)
   const format = (value: number) => formatHeat(mode, value)
 
@@ -128,7 +127,7 @@ export function BpmnHeatmapWidget({
       <CardContent className="flex flex-col gap-4">
         <WidgetHeader
           as="h2"
-          title={l.title}
+          title={t("aHeatmap.title")}
           titleSuffix={
             processName ? (
               <>
@@ -148,18 +147,18 @@ export function BpmnHeatmapWidget({
           sub={
             meta ?? (
               <span>
-                {l.window} {data.period}
+                {t("aHeatmap.window")} {data.period}
               </span>
             )
           }
           actions={
-            <SegmentedControl<Mode>
-              ariaLabel={labels?.modeAriaLabel ?? kit.heatmapMetric}
+            <SegmentedControl<HeatMode>
+              ariaLabel={t("aHeatmap.metric")}
               value={mode}
               onChange={setMode}
               options={[
-                { value: "frequency", label: l.frequency },
-                { value: "duration", label: l.duration },
+                { value: "frequency", label: t("aHeatmap.frequency") },
+                { value: "duration", label: t("aHeatmap.duration") },
               ]}
             />
           }
@@ -168,22 +167,20 @@ export function BpmnHeatmapWidget({
         <BpmnHeatmap
           bpmnXml={data.bpmnXml}
           nodeFrequencies={values}
-          diagramAriaLabel={l.diagramAriaLabel}
-          errorTitle={l.errorTitle}
-          errorHint={l.errorHint}
-          noHeatLabel={l.noHeat}
+          diagramAriaLabel={t("aHeatmap.diagramAria")}
+          errorTitle={t("aHeatmap.errorTitle")}
+          errorHint={t("aHeatmap.errorHint")}
+          noHeatLabel={t("aHeatmap.noHeat")}
         />
 
         <div className="flex flex-wrap items-center gap-3">
           <span className="text-muted-foreground text-small">{legendLabel}</span>
           <HeatmapLegend
-            lessLabel={l.less}
-            moreLabel={l.more}
             min={range ? format(range.min) : undefined}
             max={range ? format(range.max) : undefined}
           />
         </div>
-        <HeatValuesTable bpmnXml={data.bpmnXml} values={values} format={format} labels={labels} />
+        <HeatValuesTable bpmnXml={data.bpmnXml} values={values} format={format} />
       </CardContent>
     </Card>
   )

@@ -6,7 +6,7 @@ import {
   resolveColor,
   themeStylesheets,
 } from "@miragon/pulse-ui/testing"
-import { BPMN_OVERLAY_CSS, BPMN_TOKENS, cdValue, cdVar } from "./bpmn-tokens.js"
+import { BPMN_OVERLAY_CSS, BPMN_TOKENS, cdVar } from "./bpmn-tokens.js"
 
 /** Every `--cd-*` token name the module uses. */
 function tokenNames(value: unknown): CdTokenName[] {
@@ -35,8 +35,7 @@ describe("BPMN token module ↔ the vendored CSS (modeler-tool-design §13 drift
     expect(USED.length).toBeGreaterThan(0)
     for (const name of USED) {
       expect(css.get(name), `--cd-${name}`).toBeDefined()
-      expect(cdValue(name).toLowerCase(), `--cd-${name}`).toBe(css.get(name)?.toLowerCase())
-      expect(CD_TOKENS[name]).toBe(cdValue(name))
+      expect(CD_TOKENS[name].toLowerCase(), `--cd-${name}`).toBe(css.get(name)?.toLowerCase())
     }
   })
 

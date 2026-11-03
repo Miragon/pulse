@@ -509,19 +509,24 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      never users or arguments). The HTTP edge guard
      (`resolveHttpEdgePolicy`) is DNS-rebinding protection that exempts `/health*` and
      `/metrics`; never swap it for mcp-use's `allowedHosts`, which guards those too.
-   - **Cross-module UI is tiered**: raw tool-name strings with graceful degradation
-     (`process-incidents/flow.tsx` → `analytics_bpmn_heatmap_data`); another module's widget
-     only through the host widget map by raw id (`useHostWidget`/`HostWidgetSlot`:
-     `analytics:engine-landscape` in the engine module's fleet view);
-     hard-composed views go in a dedicated package created with the first real view, never in
-     the app, never as module-to-module imports. The host bundle is static, so a surface that
-     needs another module probes one of its argument-free feeds once per view
-     (`useAnalyticsActive`; a failed probe hides the offers, fail-closed).
+   - **Cross-module UI is tiered**: another module's widget only through the host widget map
+     by raw id (`useHostWidget`/`HostWidgetSlot`: `analytics:engine-landscape` in the engine
+     module's fleet view, `analytics:process-heatmap` and `analytics:process-heatmap-legend` in
+     its process flow). The module that owns the data owns the widget and its payload type: the
+     widget fetches its own data and reads its props as untyped input. The heatmap's ids and props
+     are pinned on both sides (`process-heatmap.test.tsx`, `process-definition-flow.test.tsx`)
+     and rendered together by `test:host`; props outside its contract call the caller's
+     fallback, never a blank area. A raw tool-name
+     string with graceful degradation is left only for the probe; hard-composed views go in a
+     dedicated package created with the first real view, never in the app, never as
+     module-to-module imports. The host bundle is static, so a surface that needs another module
+     probes one of its argument-free feeds once per view (`useAnalyticsActive`; a failed probe,
+     or a bundle without the host widget, hides the offers, fail-closed).
      `scripts/tool-name-refs.test.mjs` checks every `<module>_…` literal against the full
      surface of the admin golden; the apps the source guards read are listed in `APP_SCAN`
      (`scripts/source-scan.mjs`), where a new app adds its entry (an app missing there fails).
      Hand-offs and model contexts name no tool of either module (invariant 6), so the only raw
-     cross-module names are feeds and host widget ids.
+     cross-module names are the probe feed and host widget ids.
    - **A write registers only through the registrar**, whose toolset filter decides it
      (`withToolsetFilter`/`isToolInToolset` in the engine module), never an ad-hoc `toolset === …`
      compare; an in-widget write asks `engine_widget_actions_data` whether it exists.

@@ -1,16 +1,15 @@
 import { Skeleton } from "@miragon/pulse-ui"
 import {
-  BpmnHeatmapWidget,
   QueryFallback,
   ViewMeta,
   formatLookback,
-  type BpmnHeatmapData,
   useToolQuery,
 } from "@miragon/pulse-widget-shell/widgets"
 
 import type { BpmnMissingReason } from "../heatmap-data.js"
 import { useT } from "../messages/use-t.js"
 import { ANALYTICS_BPMN_XML_DATA } from "../tool-names.js"
+import { BpmnHeatmapWidget, type BpmnHeatmapData } from "./heatmap/bpmn-heatmap-widget.js"
 import { enginesMeta } from "./view-meta.js"
 
 /** The diagram is NOT in it (read from `analytics_bpmn_xml_data`), so the model never sees the XML. */
@@ -39,7 +38,7 @@ function bpmnMissingKey(data: Pick<AnalyticsBpmnHeatmapData, "bpmnMissing">) {
     : "aHeatmap.bpmnUnavailable"
 }
 
-/** The shell carries no module i18n, so this binds `useT()` to it. */
+/** The diagram from its own feed, so the view's payload carries no XML. */
 function useHeatmapWithDiagram(data: AnalyticsBpmnHeatmapData) {
   const hasDiagram = data.bpmnMissing === undefined
   const diagram = useToolQuery<HeatmapDiagram>(
@@ -80,21 +79,7 @@ export function AnalyticsBpmnHeatmap({ data }: { data: AnalyticsBpmnHeatmapData 
           asOf={data.asOf}
         />
       }
-      labels={{
-        title: t("aHeatmap.title"),
-        window: t("aHeatmap.window"),
-        frequency: t("aHeatmap.frequency"),
-        duration: t("aHeatmap.duration"),
-        frequencyLegend: t("aHeatmap.frequencyLegend"),
-        durationLegend: t("aHeatmap.durationLegend"),
-        noHeat: t("aHeatmap.noHeat"),
-        bpmnUnavailable: t(bpmnMissingKey(full)),
-        less: t("aHeatmap.less"),
-        more: t("aHeatmap.more"),
-        diagramAriaLabel: t("aHeatmap.diagramAria"),
-        errorTitle: t("aHeatmap.errorTitle"),
-        errorHint: t("aHeatmap.errorHint"),
-      }}
+      bpmnUnavailable={t(bpmnMissingKey(full))}
     />
   )
 }

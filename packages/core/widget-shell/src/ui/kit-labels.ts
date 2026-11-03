@@ -21,14 +21,9 @@ export interface KitLabels {
   copyFailedHint: string
   fullId: string
   working: string
-  heatmapValues: string
   rowsShown: (p: { shown: string; total: string }) => string
   showAll: string
   showMore: string
-  heatmapMetric: string
-  heatmapElement: string
-  heatmapValue: string
-  heatmapRange: (p: { min: string; max: string }) => string
   /** The view frame (`ViewFrame`): its waiting, cancel, error and toolbar words. */
   slowHint: string
   cancelled: string
@@ -75,11 +70,6 @@ const LABELS: Record<Locale, KitLabels> = {
     copyFailedHint: "The full ID is now selected. Copy it yourself.",
     fullId: "Full ID",
     working: "Working…",
-    heatmapValues: "Values per element",
-    heatmapMetric: "Metric",
-    heatmapElement: "Element",
-    heatmapValue: "Value",
-    heatmapRange: ({ min, max }) => `${min} to ${max}`,
     rowsShown: ({ shown, total }) => `${shown} of ${total} shown`,
     showAll: "Show all",
     showMore: "Show more",
@@ -126,11 +116,6 @@ const LABELS: Record<Locale, KitLabels> = {
     copyFailedHint: "Die ganze ID ist jetzt markiert. Kopier sie selbst.",
     fullId: "Ganze ID",
     working: "Wird ausgeführt…",
-    heatmapValues: "Werte je Element",
-    heatmapMetric: "Kennzahl",
-    heatmapElement: "Element",
-    heatmapValue: "Wert",
-    heatmapRange: ({ min, max }) => `${min} bis ${max}`,
     rowsShown: ({ shown, total }) => `${shown} von ${total} angezeigt`,
     showAll: "Alle anzeigen",
     showMore: "Mehr anzeigen",

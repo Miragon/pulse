@@ -9,11 +9,12 @@ import { fullSurface, metricVocabulary } from "./tool-surface.mjs"
  *
  * Modules never import each other (CLAUDE.md invariant 8), so a widget that needs another
  * module's feed names it by raw string (`analytics-probe.ts` → `analytics_engine_landscape_data`,
- * `process-incidents/flow.tsx` → `analytics_bpmn_heatmap_data`). Graceful degradation then HIDES
- * a stale name at runtime: the fleet view is silently never offered, the heatmap overlay silently
- * absent, and the module's own tests stub the same stale literal. So every `<module>_…` string
- * literal in a package's or an MCP server app's non-test source must name a tool of the full
- * surface (the admin golden).
+ * the probe behind every analytics offer). Graceful degradation then HIDES a stale name at
+ * runtime: the fleet's landscape and the process flow's heatmap modes are silently never offered,
+ * and the module's own tests stub the same stale literal. So every `<module>_…` string literal in
+ * a package's or an MCP server app's non-test source must name a tool of the full surface (the
+ * admin golden). Another module's widget is rendered by its host-widget id instead, which the
+ * app's `view-registry.test.ts` holds to a registered host widget.
  */
 
 /** The contract's metric names and labels (`engine_id`, `engine_jobs_failed`) share the prefix. */
@@ -65,13 +66,15 @@ describe("raw tool-name literals name real tools (full surface)", () => {
     )
   })
 
-  it("sees the raw cross-module references (the scanner is not blind)", () => {
+  it("sees the raw cross-module references (the scanner is not blind), and only the probe", () => {
     const engineRefs = refs
       .filter((r) => r.at.startsWith("packages/connectors/engine/engine-connector/src/widgets/"))
       .map((r) => r.name)
-    for (const name of ["analytics_engine_landscape_data", "analytics_bpmn_heatmap_data"]) {
-      assert.ok(engineRefs.includes(name), name)
-    }
+    // The one raw analytics name in the engine's widgets: the probe. The heat values are
+    // analytics' own, read by its `analytics:process-heatmap` host widget; a raw feed name here is
+    // a cross-module payload the engine would re-declare without a compile error.
+    const analyticsRefs = [...new Set(engineRefs.filter((name) => name.startsWith("analytics_")))]
+    assert.deepEqual(analyticsRefs, ["analytics_engine_landscape_data"])
   })
 })
 

@@ -1,32 +1,15 @@
-import { parseBpmnNames, readBpmnNames } from "../../protocol/bpmn-names.js"
-import { BPMN_TOKENS, cdValue } from "../bpmn-tokens.js"
+import { CD_TOKENS } from "@miragon/pulse-ui"
+import {
+  BPMN_TOKENS,
+  parseBpmnNames,
+  readBpmnNames,
+  type BpmnElement,
+} from "@miragon/pulse-widget-shell/widgets"
 
 /** Kept free of React and viewer state so the math is testable. */
 
-interface BusinessObject {
-  id?: string
-  $type?: string
-  sourceRef?: { id?: string }
-  targetRef?: { id?: string }
-}
-
-interface Waypoint {
-  x: number
-  y: number
-}
-
-export interface BpmnElement {
-  id: string
-  type?: string
-  x?: number
-  y?: number
-  width?: number
-  height?: number
-  waypoints?: Waypoint[]
-  businessObject?: BusinessObject
-  /** Set on label elements; points back at the shape they label. */
-  labelTarget?: BpmnElement
-}
+/** bpmn-js's model element behind a shape, as the shared viewer types it. */
+type BusinessObject = NonNullable<BpmnElement["businessObject"]>
 
 export interface HeatPoint {
   x: number
@@ -69,8 +52,8 @@ export function hexChannels(hex: string): [number, number, number] {
 /** Owner decision 2j: ONE hue, never a rainbow and never red (red is for incidents). */
 export function heatColor(t: number): [number, number, number, number] {
   const clamped = Math.max(0, Math.min(1, t))
-  const from = hexChannels(cdValue(BPMN_TOKENS.heat.from))
-  const to = hexChannels(cdValue(BPMN_TOKENS.heat.to))
+  const from = hexChannels(CD_TOKENS[BPMN_TOKENS.heat.from])
+  const to = hexChannels(CD_TOKENS[BPMN_TOKENS.heat.to])
   const mix = (i: number) => Math.round(from[i] + (to[i] - from[i]) * clamped)
   const alpha = HEAT_PEAK_ALPHA * Math.min(1, clamped / HEAT_RIM)
   return [mix(0), mix(1), mix(2), Math.round(alpha * 255)]

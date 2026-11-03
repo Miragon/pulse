@@ -6,7 +6,7 @@ export const ANALYTICS_SHOW_VERSION_COMPARE = "analytics_show_version_compare"
 export const ANALYTICS_SHOW_ENGINE_COMPARE = "analytics_show_engine_compare"
 export const ANALYTICS_SHOW_ENGINE_LANDSCAPE = "analytics_show_engine_landscape"
 export const ANALYTICS_SHOW_BPMN_HEATMAP = "analytics_show_bpmn_heatmap"
-// The engine module's process-incidents flow references this by raw string: keep it stable.
+// The heat values the heatmap host widget (`analytics:process-heatmap`) reads.
 export const ANALYTICS_BPMN_HEATMAP_DATA = "analytics_bpmn_heatmap_data"
 // Kept out of the heat payload, so the model never reads the XML.
 export const ANALYTICS_BPMN_XML_DATA = "analytics_bpmn_xml_data"

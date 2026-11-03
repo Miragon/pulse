@@ -114,7 +114,7 @@ apps/mcp-server-camunda7            ->  apps/mcp-server  (this repository)
 ```
 
 A `setup.ts` that finds the module by name looks for `engineModule.name`. Your module peers
-`@miragon/pulse-widget-shell` (`^<version>`); your Vite config spreads its `VIEW_BUNDLE_DEDUPE`.
-The engine sees the client's User-Agent as `@miragon/pulse-engine-client/<version>`. Connector
-roots drop `createPlugin` (use `engineModule`, `analyticsModule`), engine-client its `/schemas`
-(unpublished) and pure rules (engine-core's); widget-shell's boot runs in `createComposedServer`.
+`@miragon/pulse-widget-shell` (`^<version>`); your Vite config spreads its `VIEW_BUNDLE_DEDUPE`. The client's
+User-Agent is `@miragon/pulse-engine-client/<version>`. Connector roots drop `createPlugin` (use `engineModule`,
+`analyticsModule`), engine-client its `/schemas` (unpublished) and pure rules (engine-core's); widget-shell's boot
+runs in `createComposedServer`. Its heatmap exports (`BpmnHeatmap`, `BpmnHeatmapWidget`, `HeatmapLegend`) are gone without a replacement: the heat is analytics' host widgets, so spread `analyticsHostWidgets` or register `analytics:process-heatmap` and `analytics:process-heatmap-legend`.

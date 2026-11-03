@@ -297,21 +297,11 @@ export const deSweep: MessageCatalog = {
   "procIncEmpty.siblingsUnavailable":
     "Ob andere Prozesse offene Incidents haben, ließ sich nicht prüfen. Schau in die Incident-Übersicht.",
   "procIncFlow.diagramVersion": "Diagramm v{version} (neueste) · Zahlen über alle Versionen",
-  "procIncFlow.heatmapCaptionDuration": "Ø Dauer je Element · 30 Tage",
-  "procIncFlow.heatmapCaptionFrequency": "Ausführungen je Element · 30 Tage",
-  "procIncFlow.heatmapDiagramAria": "BPMN-Prozessdiagramm mit Ausführungs-Heatmap",
-  "procIncFlow.heatmapErrorHint": "Öffne das Modell in deinem Modeler und prüf es.",
-  "procIncFlow.heatmapErrorTitle": "Das Diagramm ließ sich nicht darstellen",
-  "procIncFlow.heatmapLoading": "Heatmap wird geladen…",
-  "procIncFlow.heatmapNoDiagram": "Kein Diagramm für die Heatmap verfügbar.",
-  "procIncFlow.heatmapNoValues": "Keine Metriken für diese Engine in diesem Zeitraum.",
   "procIncFlow.heatmapUnavailable":
     "Die Heatmap konnte nicht geladen werden. Prüf, ob das Analytics-Modul eingeschaltet ist.",
   "procIncFlow.hint": ({ count }) => `${countOf(count, "Aktivität", "Aktivitäten")} mit Fehlern`,
   "procIncFlow.hintOfTotal": ({ count, total }) =>
     `${String(count)} von ${countOf(total, "Aktivität", "Aktivitäten")} mit Fehlern`,
-  "procIncFlow.legendLess": "Weniger",
-  "procIncFlow.legendMore": "Mehr",
   "procIncFlow.loading": "Wird geladen…",
   "procIncFlow.modeAria": "Anzeige des Prozessablaufs",
   "procIncFlow.modeDuration": "Dauer",

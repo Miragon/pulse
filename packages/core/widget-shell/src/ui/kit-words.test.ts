@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest"
 import { catalogTextFindings } from "@miragon/pulse-ui/testing"
 import { glossaryFindings, PRODUCT_GLOSSARY } from "../testing/index.js"
 import { ASK_AI_PROMPT_LABELS } from "./ask-ai-prompt.js"
-import { DEFAULT_HEATMAP_LABELS } from "./bpmn-heatmap-labels.js"
 import { ERROR_KINDS } from "./describe-error.js"
 import { ERROR_LABELS, type ErrorLabels, type ErrorSource } from "./error-labels.js"
 import { KIT_LABELS } from "./kit-labels.js"
@@ -64,7 +63,6 @@ describe("kit copy follows the voice rules", () => {
     ["kit labels (en)", KIT_LABELS.en, "en"],
     ["hand-off fence (de)", ASK_AI_PROMPT_LABELS.de, "de"],
     ["hand-off fence (en)", ASK_AI_PROMPT_LABELS.en, "en"],
-    ["heatmap defaults (en)", DEFAULT_HEATMAP_LABELS, "en"],
     ["error words (de)", ERROR_WORDS.de, "de"],
     ["error words (en)", ERROR_WORDS.en, "en"],
   ] as const)("%s", (_, catalog, language) => {

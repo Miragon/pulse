@@ -85,3 +85,7 @@ Das Glossar des Engine-Moduls führt dieselbe Tabelle.
   Metriken), Stand.
 - Der Server setzt keinen Titel über eine Ansicht: die Überschrift des Widgets nennt sie in
   der Sprache des Hosts. Das gilt für die Show-Tools jedes Moduls.
+- Fehlermeldungen sagen, was passiert ist, und was du tun kannst. Über einem Diagramm der
+  Heatmap (`BpmnHeatmap`) steht der erste Teil als `errorTitle`, der zweite als `errorHint`
+  darunter; der Titel hat nur eine Zeile. Jeder Ort hat dafür eigene Texte (`aHeatmap.*` in
+  der Ansicht, `aProcessHeatmap.*` im Prozessfluss des Engine-Moduls).

@@ -32,7 +32,7 @@ helpers from `src/prometheus.ts` — never concatenate label values by hand:
   of a clustered engine reports the same engine-wide rows, so they are folded with
   `max by (<the gauge's contract labels>)` before anything sums them
 - Durations are whole MILLISECONDS on the wire (contract rule 1) and in every result
-  (`*Ms`, camelCase, the heatmap included: widget-shell's `BpmnHeatmapData.durationMs`)
+  (`*Ms`, camelCase, the heatmap included: `BpmnHeatmapData.durationMs`)
 
 Reference shape (from `elementHeat` in `src/queries/element.ts`):
 
@@ -245,7 +245,7 @@ Rules while building:
   engine's counts are null, never 0. A known "none" is words, never "—" ("Kein
   Prozess"). A different state (a process not deployed on an engine) gets its own sign
   and a legend line.
-- The heatmap is widget-shell's `BpmnHeatmapWidget`: ONE hue from `--cd-info-soft` to
+- The heatmap is this module's `BpmnHeatmapWidget` (`src/widgets/heatmap/`): ONE hue from `--cd-info-soft` to
   `--cd-blau` (red is for incidents), every element above zero at a visible minimum, a
   legend with the smallest and largest value (`HeatmapLegend` `min`/`max`, formatted),
   the values per element as a table under the diagram (`HeatValuesTable`), the frame
@@ -355,9 +355,18 @@ A new or changed tool changes the wire surface: add its name to
 `test/__golden__/` diff. The budget of each toolset counts the model-visible tools/list text
 plus the server instructions. If `char-budgets.json` grew, `pnpm lint` fails until the commit
 carries a `Ratchet-Exception: <why the model must read more>` trailer — trim wording first.
-An engine widget that names an analytics feed by raw string is checked against the admin
-golden by `scripts/tool-name-refs.test.mjs` (so refresh the goldens first): renaming a feed
-fails there.
+An engine widget that names an analytics feed by raw string (today only the probe,
+`analytics_engine_landscape_data`) is checked against the admin golden by
+`scripts/tool-name-refs.test.mjs` (so refresh the goldens first): renaming a feed fails there.
+The engine module shows analytics' UI only through the host widgets (`analyticsHostWidgets` in
+`src/widgets/views.tsx`): `analytics:engine-landscape` in its fleet view,
+`analytics:process-heatmap` and `analytics:process-heatmap-legend` in its process flow. A host
+widget fetches its own data and reads its props as untyped input
+(`readProcessHeatmapProps`; props outside the contract call the caller's `onUnavailable`, so
+the engine falls back to its incidents); the ids and props are a contract, pinned here
+(`src/widgets/process-heatmap.test.tsx`) and on the engine side, rendered together by the
+app's `test:host` (the process flow in Frequency and Duration), and the app's
+`view-registry.test.ts` holds each id the engine renders to a registered widget.
 
 `pnpm test` runs the query snapshot tests; `pnpm typecheck` is the **only** check that
 covers widget `.tsx` code (`tsc -p tsconfig.widgets.json`). For end-to-end verification:

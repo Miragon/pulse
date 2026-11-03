@@ -8,7 +8,6 @@ import {
   type RefObject,
 } from "react"
 import NavigatedViewer from "bpmn-js/lib/NavigatedViewer"
-import { type BpmnElement } from "./bpmn-heatmap/heat-utils.js"
 import { BPMN_TOKENS, cdVar } from "./bpmn-tokens.js"
 import { useInlineBudget } from "./inline-budget.js"
 
@@ -34,6 +33,32 @@ export interface BpmnCanvas {
 
 export interface BpmnOverlays {
   add: (elementId: string, overlay: { position: object; html: string }) => void
+}
+
+interface BpmnBusinessObject {
+  id?: string
+  $type?: string
+  sourceRef?: { id?: string }
+  targetRef?: { id?: string }
+}
+
+interface BpmnWaypoint {
+  x: number
+  y: number
+}
+
+/** One element of the drawn diagram (`elementRegistry.getAll()`): the slice a widget reads. */
+export interface BpmnElement {
+  id: string
+  type?: string
+  x?: number
+  y?: number
+  width?: number
+  height?: number
+  waypoints?: BpmnWaypoint[]
+  businessObject?: BpmnBusinessObject
+  /** Set on label elements; points back at the shape they label. */
+  labelTarget?: BpmnElement
 }
 
 interface BpmnElementRegistry {

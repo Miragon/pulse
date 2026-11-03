@@ -71,8 +71,8 @@ mit ihrem Icon und beiden Labels ins Kit. Das Glossar von analytics führt diese
 
 - Fehlermeldungen sagen, was passiert ist, und was du tun kannst: „Der Job konnte nicht neu
   eingeplant werden (…). Prüf die Fehlermeldung und versuch es noch mal.“ Steht der erste Teil
-  als Titel über einer Meldung (`QueryFallback`, `BpmnHeatmap`), kommt der zweite als
-  `errorHint` darunter; der Titel hat nur eine Zeile.
+  als Titel über einer Meldung (`ErrorState`), kommt der zweite als `description` darunter
+  (`QueryFallback` nimmt beide aus `describeError`); der Titel hat nur eine Zeile.
 - Booleans heißen „Ja“ und „Nein“ („Yes“ und „No“), nie `true`/`false`.
 - Zahlen kommen formatiert in den Katalog (`formatNumber` im Widget); der Plural hängt an der
   Zahl (`countOf` in `plural.ts`), nie an zwei Schlüsseln `…One`/`…Other`.

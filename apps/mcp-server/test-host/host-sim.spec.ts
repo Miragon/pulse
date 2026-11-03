@@ -963,6 +963,33 @@ test.describe("real BPMN view (engine_open_cockpit, a process)", () => {
       expect(hit, `${name} is covered`).toBe(true)
     }
   })
+
+  // The engine module's flow and analytics' host widgets meet only here: each side pins the
+  // props in its own suite, so a drift between them shows in this render.
+  test("the process flow paints analytics' heat through its host widgets", async ({ page }) => {
+    const app = await openView(page, {
+      args: { engine: HEALTHY_ENGINE, view: "process-detail", processDefinitionKey: "invoice" },
+    })
+    const modes = app.getByRole("group", { name: "Process flow display" })
+    // Offered once the analytics probe answered and both host widgets are in the bundle.
+    const frequency = modes.getByRole("button", { name: "Frequency" })
+    await expect(frequency).toBeVisible({ timeout: 15_000 })
+    await frequency.click()
+
+    // The stub Prometheus holds the heat of `invoice` on `stub` only: the key and the engine
+    // reached the feed, and the diagram the flow passed is drawn under the heat.
+    const heat = app.getByRole("img", {
+      name: "BPMN process diagram with an execution heat overlay",
+    })
+    await expect(heat.locator(".djs-connection")).toHaveCount(4, { timeout: 15_000 })
+    await expect(app.getByText("Executions per element · 30 days")).toBeVisible()
+    await expect(app.getByText("No metrics for this engine in this period.")).toHaveCount(0)
+
+    await modes.getByRole("button", { name: "Duration" }).click()
+    await expect(app.getByText("Avg duration per element · 30 days")).toBeVisible()
+    await expect(heat).toBeVisible()
+    await expect(app.getByText(/Could not load the heatmap/)).toHaveCount(0)
+  })
 })
 
 /**

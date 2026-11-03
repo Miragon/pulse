@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import {
   Alert,
   AlertDescription,
@@ -8,11 +8,10 @@ import {
   type SegmentedControlOption,
 } from "@miragon/pulse-ui"
 import {
-  BpmnHeatmap,
-  HeatmapLegend,
+  HostWidgetSlot,
   ViewDataState,
   WidgetShell,
-  useToolQuery,
+  useHostWidget,
 } from "@miragon/pulse-widget-shell/widgets"
 import type { ProcessIncidentsData } from "../../view-models.js"
 import { BpmnDiagram, useDefinitionXml, type BpmnHighlight } from "../bpmn-diagram.js"
@@ -22,15 +21,21 @@ import { diagramActivityFraction } from "./activity-scope.js"
 import { useDefinitionData, type DefinitionScope } from "./feed.js"
 
 type FlowMode = "incidents" | "frequency" | "duration"
-
-interface HeatValues {
-  frequency: Record<string, number>
-  durationMs: Record<string, number>
-}
+type HeatMode = Exclude<FlowMode, "incidents">
 
 /**
- * Mounted only when the operator leaves "Incidents", so the metrics query never runs on
- * first paint. A raw cross-module tool name; a failing feed hides the heatmap modes instead of erroring.
+ * Analytics' widgets by their raw ids, without a module-to-module import: the heat of this
+ * process on the diagram, and its legend in the toolbar. They fetch the heat themselves; the app's
+ * `view-registry.test.ts` holds each id to a registered host widget, and
+ * `process-definition-flow.test.tsx` pins the props passed here.
+ */
+export const PROCESS_HEATMAP_WIDGET = "analytics:process-heatmap"
+export const PROCESS_HEATMAP_LEGEND_WIDGET = "analytics:process-heatmap-legend"
+
+/**
+ * Mounted only when the operator leaves "Incidents", so the metrics query never runs on first
+ * paint. The diagram is this module's (the version the flow draws); a failing heat feed calls
+ * `onUnavailable`, which hides the heatmap modes instead of erroring.
  */
 function ProcessHeatmap({
   processDefinitionKey,
@@ -42,43 +47,16 @@ function ProcessHeatmap({
   processDefinitionKey: string
   definitionId: string
   engine: string
-  mode: "frequency" | "duration"
+  mode: HeatMode
   onUnavailable: () => void
 }) {
-  const t = useT()
   const xml = useDefinitionXml(definitionId, engine)
-  const q = useToolQuery<HeatValues>(
-    // Without engine + key the cache would leak one view's heatmap into another.
-    ["engine:heatmap", engine, processDefinitionKey],
-    "analytics_bpmn_heatmap_data",
-    { processDefinitionKey, period: "30d", engine },
-  )
-  const unavailable = q.isError
-  useEffect(() => {
-    if (unavailable) onUnavailable()
-  }, [unavailable, onUnavailable])
-  if (unavailable) return null
-  if (xml.isError || xml.data?.bpmnXml === null) {
-    return (
-      <Alert>
-        <AlertDescription>{t("procIncFlow.heatmapNoDiagram")}</AlertDescription>
-      </Alert>
-    )
-  }
-  if (!q.data || !xml.data?.bpmnXml) {
-    return (
-      <div className="text-muted-foreground text-dense p-6">{t("procIncFlow.heatmapLoading")}</div>
-    )
-  }
-  const values = mode === "frequency" ? q.data.frequency : q.data.durationMs
+  // undefined while the diagram loads, null when there is none.
+  const bpmnXml = xml.isError || xml.data?.bpmnXml === null ? null : xml.data?.bpmnXml
   return (
-    <BpmnHeatmap
-      bpmnXml={xml.data.bpmnXml}
-      nodeFrequencies={values}
-      diagramAriaLabel={t("procIncFlow.heatmapDiagramAria")}
-      errorTitle={t("procIncFlow.heatmapErrorTitle")}
-      errorHint={t("procIncFlow.heatmapErrorHint")}
-      noHeatLabel={t("procIncFlow.heatmapNoValues")}
+    <HostWidgetSlot
+      id={PROCESS_HEATMAP_WIDGET}
+      props={{ processDefinitionKey, engine, mode, bpmnXml, onUnavailable }}
     />
   )
 }
@@ -122,30 +100,30 @@ function FlowModeToolbar({
           {heatmapUnavailable && ` · ${t("procIncFlow.heatmapUnavailable")}`}
         </span>
       ) : (
-        <div className="flex items-center gap-2">
-          <span className="text-muted-foreground text-small">
-            {mode === "frequency"
-              ? t("procIncFlow.heatmapCaptionFrequency")
-              : t("procIncFlow.heatmapCaptionDuration")}
-          </span>
-          <HeatmapLegend
-            lessLabel={t("procIncFlow.legendLess")}
-            moreLabel={t("procIncFlow.legendMore")}
-          />
-        </div>
+        <HostWidgetSlot id={PROCESS_HEATMAP_LEGEND_WIDGET} props={{ mode }} />
       )}
     </div>
   )
 }
 
-/** Leads with incidents; the heatmap modes join only once analytics is confirmed active. */
+/**
+ * Leads with incidents; the heatmap modes join only once analytics is confirmed active and its
+ * heatmap widgets are in this bundle.
+ */
 export function ProcessDefinitionFlow(scope: DefinitionScope) {
   const t = useT()
   const { engine } = scope
   const { data, loading, error, refetch } = useDefinitionData(scope)
   const [chosenMode, setMode] = useState<FlowMode>("incidents")
   const [heatmapUnavailable, setHeatmapUnavailable] = useState(false)
-  const heatmapOffered = useAnalyticsActive() && !heatmapUnavailable
+  const heatmapWidget = useHostWidget(PROCESS_HEATMAP_WIDGET)
+  const legendWidget = useHostWidget(PROCESS_HEATMAP_LEGEND_WIDGET)
+  const analyticsActive = useAnalyticsActive()
+  const heatmapOffered =
+    analyticsActive &&
+    heatmapWidget !== undefined &&
+    legendWidget !== undefined &&
+    !heatmapUnavailable
   const mode: FlowMode = heatmapOffered ? chosenMode : "incidents"
   // Both halves in the handler: deriving the fallback in an effect would commit an empty heatmap first.
   const markHeatmapUnavailable = useCallback(() => {

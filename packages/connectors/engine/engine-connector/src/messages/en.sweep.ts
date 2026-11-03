@@ -293,21 +293,11 @@ export const enSweep: MessageCatalog = {
   "procIncEmpty.siblingsUnavailable":
     "Could not check other processes for open incidents. Look at the incidents overview.",
   "procIncFlow.diagramVersion": "diagram v{version} (latest) · counts span all versions",
-  "procIncFlow.heatmapCaptionDuration": "Avg duration per element · 30 days",
-  "procIncFlow.heatmapCaptionFrequency": "Executions per element · 30 days",
-  "procIncFlow.heatmapDiagramAria": "BPMN process diagram with an execution heat overlay",
-  "procIncFlow.heatmapErrorHint": "Open the model in your modeler and check it.",
-  "procIncFlow.heatmapErrorTitle": "The diagram could not be rendered",
-  "procIncFlow.heatmapLoading": "Loading heatmap…",
-  "procIncFlow.heatmapNoDiagram": "No diagram available for the heatmap.",
-  "procIncFlow.heatmapNoValues": "No metrics for this engine in this period.",
   "procIncFlow.heatmapUnavailable":
     "Could not load the heatmap. Check that the analytics module is enabled.",
   "procIncFlow.hint": ({ count }) => `${countOf(count, "activity", "activities")} failing`,
   "procIncFlow.hintOfTotal": ({ count, total }) =>
     `${String(count)} of ${countOf(total, "activity", "activities")} failing`,
-  "procIncFlow.legendLess": "Less",
-  "procIncFlow.legendMore": "More",
   "procIncFlow.loading": "Loading…",
   "procIncFlow.modeAria": "Process flow display",
   "procIncFlow.modeDuration": "Duration",

@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { LocaleProvider, setFormatLocale } from "@miragon/pulse-ui"
-import { BpmnHeatmap, HeatmapLegend } from "./bpmn-heatmap.js"
+import { BpmnHeatmap, HeatmapLegend } from "./heat-diagram.js"
 import { BpmnHeatmapWidget, HeatValuesTable, type BpmnHeatmapData } from "./bpmn-heatmap-widget.js"
 
 // bpmn-js needs a real SVG engine; a stub that imports any diagram 4:1 wide.
@@ -58,18 +58,29 @@ const DATA: BpmnHeatmapData = {
   durationMs: { Task_A: 187000, Task_B: 2000 },
 }
 
+/** The caller words the missing diagram, since only it knows why there is none. */
+const NO_DIAGRAM = "No diagram, ask in the chat."
+
+/** The diagram's words are its caller's. */
+const DIAGRAM_WORDS = {
+  diagramAriaLabel: "Heat diagram",
+  errorTitle: "Diagram not drawn",
+  errorHint: "Ask in the chat.",
+  noHeatLabel: "No values",
+}
+
 describe("BpmnHeatmapWidget (U16)", () => {
   beforeEach(() => setFormatLocale({ language: "en", locale: "en-US" }))
 
   it("names the process by its model's name, the key quiet beside it (U13)", () => {
     const named = XML.replace('<bpmn:process id="order">', '<bpmn:process id="order" name="Order">')
-    render(<BpmnHeatmapWidget data={{ ...DATA, bpmnXml: named }} />)
+    render(<BpmnHeatmapWidget data={{ ...DATA, bpmnXml: named }} bpmnUnavailable={NO_DIAGRAM} />)
     const heading = screen.getByRole("heading", { level: 2 })
     expect(heading.textContent).toMatch(/Orderorder$/)
     expect(screen.getByText("order").className).toContain("font-mono")
     cleanup()
     // Without a name the key is the badge, in mono.
-    render(<BpmnHeatmapWidget data={DATA} />)
+    render(<BpmnHeatmapWidget data={DATA} bpmnUnavailable={NO_DIAGRAM} />)
     const badge = screen.getByText("order")
     expect(badge.className).toContain("font-mono")
     expect(badge.getAttribute("data-slot")).toBe("badge")
@@ -81,13 +92,13 @@ describe("BpmnHeatmapWidget (U16)", () => {
       "<bpmn:process",
       '<bpmn:collaboration id="c"><bpmn:participant id="Pool" name="Order handling" processRef="order"/></bpmn:collaboration><bpmn:process',
     )
-    render(<BpmnHeatmapWidget data={{ ...DATA, bpmnXml: pooled }} />)
+    render(<BpmnHeatmapWidget data={{ ...DATA, bpmnXml: pooled }} bpmnUnavailable={NO_DIAGRAM} />)
     const heading = screen.getByRole("heading", { level: 2 })
     expect(heading.textContent).toMatch(/Order handlingorder$/)
   })
 
   it("says what the colours mean: the legend runs from the smallest value to the largest", () => {
-    render(<BpmnHeatmapWidget data={DATA} />)
+    render(<BpmnHeatmapWidget data={DATA} bpmnUnavailable={NO_DIAGRAM} />)
     expect(screen.getByText("3 to 1,234").className).toContain("sr-only")
     const legend = screen.getByText("3 to 1,234").parentElement!
     const visible = [...legend.querySelectorAll("[aria-hidden]")].map((el) => el.textContent)
@@ -95,7 +106,7 @@ describe("BpmnHeatmapWidget (U16)", () => {
   })
 
   it("lists the value per element, named from the diagram, largest first", () => {
-    render(<BpmnHeatmapWidget data={DATA} />)
+    render(<BpmnHeatmapWidget data={DATA} bpmnUnavailable={NO_DIAGRAM} />)
     const summary = screen.getByText("Values per element")
     expect(summary.closest("details")).toBeTruthy()
     const table = screen.getByRole("table", { name: "Values per element" })
@@ -108,11 +119,11 @@ describe("BpmnHeatmapWidget (U16)", () => {
     setFormatLocale({ language: "de", locale: "de-DE" })
     render(
       <LocaleProvider locale="de">
-        <BpmnHeatmapWidget data={DATA} />
+        <BpmnHeatmapWidget data={DATA} bpmnUnavailable={NO_DIAGRAM} />
       </LocaleProvider>,
     )
     const group = screen.getByRole("group", { name: "Kennzahl" })
-    const duration = screen.getByRole("button", { name: "Duration" })
+    const duration = screen.getByRole("button", { name: "Dauer" })
     expect(group.contains(duration)).toBe(true)
     fireEvent.click(duration)
     expect(duration.getAttribute("aria-pressed")).toBe("true")
@@ -121,7 +132,7 @@ describe("BpmnHeatmapWidget (U16)", () => {
   })
 
   it("heads the view with a 28 px h2 title and keeps the paper light", () => {
-    const { container } = render(<BpmnHeatmapWidget data={DATA} />)
+    const { container } = render(<BpmnHeatmapWidget data={DATA} bpmnUnavailable={NO_DIAGRAM} />)
     const heading = screen.getByRole("heading", { level: 2 })
     expect(heading.textContent).toContain("BPMN heatmap")
     expect(heading.className).toContain("text-title")
@@ -129,48 +140,45 @@ describe("BpmnHeatmapWidget (U16)", () => {
     expect(frame?.getAttribute("data-theme-mode")).toBe("light")
   })
 
-  it("says so in an empty state without a diagram", () => {
-    render(<BpmnHeatmapWidget data={{ ...DATA, bpmnXml: null }} />)
-    expect(
-      screen.getByText(/The BPMN diagram is not available/).closest("[data-empty-variant]"),
-    ).toBeTruthy()
+  it("says so in the caller's words in an empty state without a diagram", () => {
+    render(<BpmnHeatmapWidget data={{ ...DATA, bpmnXml: null }} bpmnUnavailable={NO_DIAGRAM} />)
+    expect(screen.getByText(NO_DIAGRAM).closest("[data-empty-variant]")).toBeTruthy()
   })
 })
 
 describe("BpmnHeatmap", () => {
   it("sizes its frame from the diagram unless given a height", () => {
-    const { container, rerender } = render(<BpmnHeatmap bpmnXml={XML} nodeFrequencies={{}} />)
+    const { container, rerender } = render(
+      <BpmnHeatmap bpmnXml={XML} nodeFrequencies={{}} {...DIAGRAM_WORDS} />,
+    )
     const frame = () => container.querySelector('[data-theme-mode="light"]') as HTMLElement
     expect(frame().style.height).toBe("360px")
-    rerender(<BpmnHeatmap bpmnXml={XML} nodeFrequencies={{}} height={300} />)
+    rerender(<BpmnHeatmap bpmnXml={XML} nodeFrequencies={{}} height={300} {...DIAGRAM_WORDS} />)
     expect(frame().style.height).toBe("300px")
   })
 
   it("shows the import failure as an inline error, the parser's words under Details", async () => {
     viewer.fail = true
-    render(
-      <BpmnHeatmap
-        bpmnXml="<broken/>"
-        nodeFrequencies={{}}
-        errorTitle="Diagram not drawn"
-        errorHint="Ask in the chat."
-      />,
-    )
+    render(<BpmnHeatmap bpmnXml="<broken/>" nodeFrequencies={{}} {...DIAGRAM_WORDS} />)
     const state = await screen.findByRole("alert")
     expect(state.getAttribute("data-variant")).toBe("inline")
-    expect(state.textContent).toContain("Diagram not drawn")
+    expect(state.textContent).toContain("Diagram not drawnAsk in the chat.")
     expect(screen.getByText("unparsable <bpmn:x>").closest("details")).toBeTruthy()
   })
 
   it("says so over the diagram when no element carries a value", async () => {
-    render(<BpmnHeatmap bpmnXml={XML} nodeFrequencies={{ Task_A: 0 }} noHeatLabel="No values" />)
+    render(<BpmnHeatmap bpmnXml={XML} nodeFrequencies={{ Task_A: 0 }} {...DIAGRAM_WORDS} />)
     await waitFor(() => expect(screen.getByRole("status").textContent).toBe("No values"))
   })
 })
 
 describe("HeatmapLegend", () => {
-  it("falls back to Less/More without values, the swatch on the light paper", () => {
-    const { container } = render(<HeatmapLegend lessLabel="Weniger" moreLabel="Mehr" />)
+  it("runs from less to more without values, in the view's language, the swatch on the light paper", () => {
+    const { container } = render(
+      <LocaleProvider locale="de">
+        <HeatmapLegend />
+      </LocaleProvider>,
+    )
     expect(screen.getByText("Weniger")).toBeTruthy()
     expect(screen.getByText("Mehr")).toBeTruthy()
     expect(container.querySelector('[data-theme-mode="light"]')).toBeTruthy()
@@ -192,17 +200,14 @@ describe("HeatValuesTable", () => {
     expect(container.innerHTML).toBe("")
   })
 
-  it("takes the caller's words", () => {
+  it("words its columns in the view's language; an element without a name keeps its id", () => {
     render(
-      <HeatValuesTable
-        bpmnXml={XML}
-        values={{ Unnamed: 5 }}
-        format={String}
-        labels={{ valuesTable: "Werte", elementColumn: "Schritt", valueColumn: "Anzahl" }}
-      />,
+      <LocaleProvider locale="de">
+        <HeatValuesTable bpmnXml={XML} values={{ Unnamed: 5 }} format={String} />
+      </LocaleProvider>,
     )
-    expect(screen.getByRole("columnheader", { name: "Schritt" })).toBeTruthy()
-    expect(screen.getByRole("columnheader", { name: "Anzahl" })).toBeTruthy()
+    expect(screen.getByRole("table", { name: "Werte je Element" })).toBeTruthy()
+    expect(screen.getByRole("columnheader", { name: "Wert" })).toBeTruthy()
     expect(screen.getByText("Unnamed").className).toContain("font-mono")
   })
 })

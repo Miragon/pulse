@@ -4,31 +4,10 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { buttonVariants } from "@miragon/pulse-ui"
 import { OpenInCockpitLink } from "./open-in-cockpit-link.js"
 import { TestViewHost, type HostAction } from "./test-view-host.js"
-import { DEFAULT_HEATMAP_LABELS } from "./bpmn-heatmap-labels.js"
 
 /** widget-shell's own tone-aware pieces; pulse-ui's components are pinned by its own suites. */
 
 afterEach(cleanup)
-
-describe("heatmap defaults", () => {
-  it("pins the English fallback strings", () => {
-    expect(DEFAULT_HEATMAP_LABELS).toEqual({
-      title: "BPMN heatmap",
-      window: "window:",
-      frequency: "Frequency",
-      duration: "Duration",
-      frequencyLegend: "Executions per element",
-      durationLegend: "Avg duration per element",
-      noHeat: "No metric data in this window.",
-      bpmnUnavailable:
-        "The BPMN diagram is not available. Ask in the chat for the figures per element instead.",
-      less: "Less",
-      more: "More",
-      diagramAriaLabel: "BPMN process diagram with an execution heat overlay",
-      errorTitle: "Diagram could not be rendered",
-    })
-  })
-})
 
 describe("OpenInCockpitLink", () => {
   function renderLink(

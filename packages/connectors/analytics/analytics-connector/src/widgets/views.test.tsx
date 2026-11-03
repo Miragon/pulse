@@ -100,8 +100,12 @@ describe("analyticsViews", () => {
 })
 
 describe("analyticsHostWidgets", () => {
-  it("offers the fleet's landscape by raw id", () => {
-    expect(Object.keys(analyticsHostWidgets)).toEqual(["analytics:engine-landscape"])
+  it("offers the fleet's landscape and the process flow's heatmap and legend by raw id", () => {
+    expect(Object.keys(analyticsHostWidgets)).toEqual([
+      "analytics:engine-landscape",
+      "analytics:process-heatmap",
+      "analytics:process-heatmap-legend",
+    ])
   })
 
   it.each([

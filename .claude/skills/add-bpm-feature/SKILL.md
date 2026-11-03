@@ -344,11 +344,13 @@ through the view tool and the `*_data` feeds (`connector-widgets-are-browser-cod
   `BpmnZoomControls` (light in every theme, Lucide). The frame height comes from the
   diagram's size (`height` from the hook: its height at the scale bpmn-js draws it, never
   past 1:1, 240–560 px, read from the XML's DI before the import, so the frame does not
-  jump): pass no fixed `height` to `BpmnDiagram` or `BpmnHeatmap` unless a layout needs
-  one. Overlay and legend colours are widget-shell's ONE
-  token module (`BPMN_TOKENS`, `widget-shell/src/ui/bpmn-tokens.ts`: incident = danger,
-  running/open task = blue on the info tint, counts white on blue or danger; strokes
-  ≥ 3:1, badge text ≥ 4.5:1, drift- and contrast-tested) through `HIGHLIGHT_COLORS`
+  jump): pass no fixed `height` to `BpmnDiagram` unless a layout needs one. The heat on the
+  process flow is analytics' (`analytics:process-heatmap` through `HostWidgetSlot`, offered only
+  while `useAnalyticsActive` holds and both heatmap host widgets are registered): this module
+  passes its diagram, never the heat values.
+  Overlay and legend colours are widget-shell's ONE token module (`BPMN_TOKENS`,
+  `widget-shell/src/ui/bpmn-tokens.ts`: incident = danger, running/open task = blue on the
+  info tint, counts white on blue or danger; strokes ≥ 3:1, badge text ≥ 4.5:1, drift- and contrast-tested) through `HIGHLIGHT_COLORS`
   (`src/widgets/bpmn-highlights.ts`); the CSS is
   `injectBpmnOverlayCss()`. No pulse: an open user task is a heavier dashed stroke
 

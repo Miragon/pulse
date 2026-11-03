@@ -76,16 +76,17 @@ export { PagedRows } from "./paged-rows.js"
 export { RowsBudgeted } from "./inline-budget.js"
 export type { InlineRows } from "./inline-fit.js"
 export { FIT_CONTINUES_ROW } from "./inline-fit-registry.js"
-export { BpmnHeatmap, HeatmapLegend, type BpmnHeatmapProps } from "./bpmn-heatmap.js"
-export type { BpmnHeatmapLabels } from "./bpmn-heatmap-labels.js"
-export { BpmnHeatmapWidget, type BpmnHeatmapData } from "./bpmn-heatmap-widget.js"
 export { BPMN_TOKENS, BPMN_OVERLAY_CSS, injectBpmnOverlayCss, cdVar } from "./bpmn-tokens.js"
 export {
   useBpmnViewer,
   type BpmnCanvas,
+  type BpmnElement,
   type BpmnOverlays,
   type BpmnViewerWithGet,
   type UseBpmnViewerOptions,
   type UseBpmnViewerResult,
 } from "./use-bpmn-viewer.js"
 export { BpmnZoomControls, type BpmnZoomControlsProps } from "./bpmn-zoom-controls.js"
+// Also on `/server` (src/protocol/): the one rule every module names a model's process and elements
+// by, on the server and in a view (analytics' heatmap names its values table with it).
+export { parseBpmnNames, readBpmnNames } from "../protocol/bpmn-names.js"
