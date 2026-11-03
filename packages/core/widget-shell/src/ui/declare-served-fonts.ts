@@ -1,5 +1,5 @@
 import { fontFaces } from "@miragon/pulse-ui"
-import { SERVED_FONT_FILES, servedFontBaseUrl } from "../served-fonts.js"
+import { SERVED_FONT_FILES, servedFontBaseUrl } from "../protocol/served-fonts.js"
 
 export const SERVED_FONTS_STYLE_ID = "__miragon-served-fonts"
 

@@ -37,7 +37,7 @@ import { fontAssetsCsp, installFontAssets } from "./font-assets.js"
 import { installToolSchemaTrim } from "./tool-schema-trim.js"
 import { installMcpRequestContext } from "./request-context.js"
 import { installToolRegistration } from "./tool-registration.js"
-import { viewPrelude } from "./view-name.js"
+import { viewPrelude } from "./protocol/view-name.js"
 
 /** What the server reports as `serverInfo` (plus the `instructions` it advertises). */
 export interface ComposedServerInfo {

@@ -13,7 +13,7 @@ import {
 } from "./composed-server.js"
 import { getMcpRequestInfo } from "./request-context.js"
 import { createToolsetVocabulary } from "./toolsets.js"
-import { viewPrelude } from "./view-name.js"
+import { viewPrelude } from "./protocol/view-name.js"
 import { showToolBinding } from "./widget-tool-bindings.js"
 
 const answer = () => ({ content: [{ type: "text" as const, text: "ok" }], structuredContent: {} })

@@ -24,7 +24,7 @@ import {
   useSendFollowUp,
   useToolContext,
 } from "mcp-use/react"
-import { decodeToolResult, type ToolResult } from "../tool-result.js"
+import { decodeToolResult, type ToolResult } from "../protocol/tool-result.js"
 import { NO_CALL_OBSERVATION, type CallObserver } from "./call-observer.js"
 import { HostContexts, type RequestDisplayMode } from "./host-contexts.js"
 import { hostThemeOf } from "./host-context.js"

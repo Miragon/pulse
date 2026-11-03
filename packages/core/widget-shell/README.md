@@ -178,5 +178,15 @@ engine-connector / analytics-connector widgets
    mcp-use/react (the view's host) · @tanstack/react-query · @miragon/pulse-ui (design kit)
 ```
 
+One package, two halves that share one wire protocol: `./widgets` is `src/ui`, `./server` (and
+`./testing`) the rest of `src/`, and both import the protocol modules in `src/protocol` (tool
+results, the view name, the served fonts, the translator, the BPMN-name reader), which import
+nothing themselves. The shipped code of one half imports nothing of the other (tests and the
+`./testing` fixtures aside): a server never loads React and a view bundle never loads the boot.
+dependency-cruiser holds the seam (`widget-shell-views-browser-only`,
+`widget-shell-server-headless`, `widget-shell-protocol-is-a-leaf`), and the two tsconfigs type
+each half with its own runtime's globals (`tsconfig.widgets.json`: DOM, no Node; the protocol
+under both).
+
 See the architecture invariants in [`CLAUDE.md`](../../../CLAUDE.md) for how a view is
 registered.

@@ -18,7 +18,7 @@ import {
 import { QueryClientProvider, type QueryClient } from "@tanstack/react-query"
 import { LocaleProvider, ToastProvider, ICON_STROKE } from "@miragon/pulse-ui"
 import { LucideProvider } from "lucide-react"
-import type { ToolResult } from "../tool-result.js"
+import type { ToolResult } from "../protocol/tool-result.js"
 import { HostContexts, type RequestDisplayMode } from "./host-contexts.js"
 import { HostWidgetsProvider, type HostWidgets } from "./host-widgets.js"
 import type { ShellHost } from "./shell-host.js"

@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest"
 import type { ReactElement } from "react"
-import { VIEW_NAME_GLOBAL } from "../view-name.js"
+import { VIEW_NAME_GLOBAL } from "../protocol/view-name.js"
 import { installCallObserver } from "./call-observer.js"
 import { SHELL_VIEW_CONFIG } from "./display-mode-toggle.js"
 import { mountView, mountViews, ViewRoot, type MountViewOptions } from "./view-root.js"

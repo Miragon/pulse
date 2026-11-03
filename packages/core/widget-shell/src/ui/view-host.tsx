@@ -1,5 +1,5 @@
 import { createContext, useContext, type ComponentType, type ReactNode } from "react"
-import type { ToolResult } from "../tool-result.js"
+import type { ToolResult } from "../protocol/tool-result.js"
 
 /**
  * The ONE seam between a view and its host. Widgets never import `mcp-use/react` (its hooks

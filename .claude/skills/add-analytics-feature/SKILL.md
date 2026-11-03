@@ -147,6 +147,10 @@ Each analytics question gets ONE tool, and normally that is a show tool: it rend
 for the user and returns its figures to the model. The view chain mirrors the engine module:
 
 1. Component in `packages/connectors/analytics/analytics-connector/src/widgets/`, taking a `data` prop.
+   Widgets are browser code: at runtime they import only their own widgets, `src/messages`,
+   `src/tool-names.ts`, `src/bpmn-names.ts`, `@miragon/pulse-widget-shell/widgets` and the view
+   stack; the tools, the plugin, the module, `@miragon/pulse-analytics-client` and anything else
+   only as types (`connector-widgets-are-browser-code` in `.dependency-cruiser.cjs`).
 2. Register its view in `src/widgets/views.tsx` in `analyticsViews` under the show tool's
    name (an `ANALYTICS_SHOW_*` constant in `src/tool-names.ts`): one explicit component
    per view, taking `{ data }`. It wraps its widget in

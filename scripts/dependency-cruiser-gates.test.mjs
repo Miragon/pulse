@@ -89,6 +89,10 @@ const OWN_FAMILY = "connectors-own-their-family"
 const CLIENT_LEAF = "clients-are-leaves"
 const CORE = "core-is-foundation"
 const UI_LEAF = "ui-is-a-leaf"
+const SHELL_VIEWS = "widget-shell-views-browser-only"
+const SHELL_HEADLESS = "widget-shell-server-headless"
+const SHELL_PROTOCOL = "widget-shell-protocol-is-a-leaf"
+const WIDGETS_BROWSER = "connector-widgets-are-browser-code"
 const NO_APP = "packages-never-import-the-app"
 const APP_APP = "apps-never-import-apps"
 const HEADLESS = "cli-is-headless"
@@ -181,6 +185,34 @@ const LEAVES = [
   `${ENGINE_CLIENT}/src/x-connector/y.ts`,
   `${ENGINE_CLIENT}/src/generated/sdk.gen.ts`,
   `${ENGINE_CONNECTOR}/src/generated/catalog.ts`,
+  `${SHELL}/src/composed-server.ts`,
+  `${SHELL}/src/tool-registrar.ts`,
+  `${SHELL}/src/ui/lib.ts`,
+  `${SHELL}/src/ui/target.ts`,
+  `${SHELL}/src/protocol/tool-result.ts`,
+  `${SHELL}/src/protocol/view-name.ts`,
+  `${ENGINE_CONNECTOR}/src/tools/target.ts`,
+  `${ENGINE_CONNECTOR}/src/data/target.ts`,
+  `${ENGINE_CONNECTOR}/src/lib/with-engine.ts`,
+  `${ENGINE_CONNECTOR}/src/lib/environments.ts`,
+  `${ENGINE_CONNECTOR}/src/widget-tools/target.ts`,
+  `${ENGINE_CONNECTOR}/src/widget-tools.ts`,
+  `${ENGINE_CONNECTOR}/src/plugin.ts`,
+  `${ENGINE_CONNECTOR}/src/module.ts`,
+  `${ENGINE_CONNECTOR}/src/feed-contracts.ts`,
+  `${ENGINE_CONNECTOR}/src/instructions.ts`,
+  `${ENGINE_CONNECTOR}/src/engine-provider.ts`,
+  `${ENGINE_CONNECTOR}/src/providers/target.ts`,
+  `${ENGINE_CONNECTOR}/src/view-models.ts`,
+  `${ENGINE_CONNECTOR}/src/view-models.health.ts`,
+  `${ENGINE_CONNECTOR}/src/tool-names.ts`,
+  `${ENGINE_CONNECTOR}/src/messages/use-t.ts`,
+  `${ENGINE_CONNECTOR}/src/widgets/lib/engine-action.ts`,
+  `${AN_CONNECTOR}/src/tools/target.ts`,
+  `${AN_CONNECTOR}/src/bpmn-names.ts`,
+  `${AN_CONNECTOR}/src/instructions.ts`,
+  `${AN_CONNECTOR}/src/summary.ts`,
+  `${AN_CONNECTOR}/src/lib/environments.ts`,
 ]
 const JSON_LEAVES = [`${CLI}/src/generated/commands.json`, `${CLI}/src/generated/catalog.a.json`]
 
@@ -401,10 +433,11 @@ const SUITES = [
     cases: [
       [SHELL_SRC, "@miragon/pulse-engine-connector", [CORE]],
       [SHELL_SRC, "@miragon/pulse-analytics-client", [CORE]],
-      [SHELL_SRC, "react", []],
+      // React and the kit are the view half's (the server half is widget-shell-server-headless's).
+      [`${SHELL}/src/ui/view.ts`, "react", []],
       [SHELL_SRC, "zod", []],
       [SHELL_SRC, "mcp-use", []],
-      [SHELL_SRC, "@miragon/pulse-ui", []],
+      [`${SHELL}/src/ui/view.ts`, "@miragon/pulse-ui", []],
       [SHELL_SRC, "@miragon/pulse-mcp-server-kit", []],
     ],
   },
@@ -435,6 +468,203 @@ const SUITES = [
       [UI_SRC, "./lib.ts", []],
       [ENGINE_CONNECTOR_SRC, "@miragon/pulse-ui", []],
       [SERVER_SRC, "@miragon/pulse-ui", []],
+    ],
+  },
+  {
+    rule: SHELL_VIEWS,
+    title: "widget-shell's view half imports only itself, the protocol and the view stack",
+    cases: [
+      // The server half, by path, at runtime or for a type.
+      [`${SHELL}/src/ui/to-server.ts`, "../composed-server.ts", [SHELL_VIEWS]],
+      [`${SHELL}/src/ui/to-server-type.ts`, "../tool-registrar.ts", [SHELL_VIEWS], "type"],
+      [`${SHELL}/src/ui/to-server-dynamic.ts`, "../composed-server.ts", [SHELL_VIEWS], "dynamic"],
+      [`${SHELL}/src/ui/deep/to-server.ts`, "../../tool-registrar.ts", [SHELL_VIEWS]],
+      // Its own `/server` entry, Node built-ins and the server packages.
+      ...[
+        "@miragon/pulse-widget-shell/server",
+        "node:fs",
+        "mcp-use",
+        "mcp-use/server",
+        "@modelcontextprotocol/sdk/server",
+        "prom-client",
+        "zod",
+        "commander",
+        // Anchored: a look-alike of an allowed name is no view-stack package.
+        "reactive",
+      ].map((spec) => [`${SHELL}/src/ui/server-stack.ts`, spec, [SHELL_VIEWS]]),
+      [`${SHELL}/src/ui/to-connector.ts`, "@miragon/pulse-engine-connector", [CORE, SHELL_VIEWS]],
+      [`${SHELL}/src/ui/to-testing.ts`, "../testing/glossary.ts", [NO_TESTING, SHELL_VIEWS]],
+      // Allowed: its own modules, the protocol and the view stack.
+      [`${SHELL}/src/ui/view.ts`, "./lib.ts", []],
+      [`${SHELL}/src/ui/view.ts`, "../protocol/tool-result.ts", []],
+      [`${SHELL}/src/ui/view-type.ts`, "../protocol/view-name.ts", [], "type"],
+      ...[
+        "react-dom/client",
+        "lucide-react",
+        "@tanstack/react-query",
+        "mcp-use/react",
+        "bpmn-js/lib/NavigatedViewer",
+        "diagram-js",
+      ].map((spec) => [`${SHELL}/src/ui/view.ts`, spec, []]),
+      // Tests and test-support run in Node: exempt.
+      [`${SHELL}/src/ui/brand.test.ts`, "node:fs", []],
+      [`${SHELL}/src/ui/view.test.tsx`, "../composed-server.ts", []],
+      [`${SHELL}/src/ui/host.test-support.ts`, "mcp-use", []],
+    ],
+  },
+  {
+    rule: SHELL_HEADLESS,
+    title: "widget-shell's server half never imports the view half or React",
+    cases: [
+      [`${SHELL}/src/boot.ts`, "./ui/target.ts", [SHELL_HEADLESS]],
+      [`${SHELL}/src/boot-type.ts`, "./ui/lib.ts", [SHELL_HEADLESS], "type"],
+      [`${SHELL}/src/boot-dynamic.ts`, "./ui/target.ts", [SHELL_HEADLESS], "dynamic"],
+      [`${SHELL}/src/testing-free/nested.ts`, "../ui/target.ts", [SHELL_HEADLESS]],
+      ...[
+        "react",
+        "react-dom/server",
+        "lucide-react",
+        "@tanstack/react-query",
+        "@miragon/pulse-ui",
+        "mcp-use/react",
+        "bpmn-js",
+        "diagram-js",
+      ].map((spec) => [`${SHELL}/src/view-stack.ts`, spec, [SHELL_HEADLESS]]),
+      [`${SHELL}/src/view-stack.ts`, "@miragon/pulse-ui/testing", [NO_TESTING, SHELL_HEADLESS]],
+      // Allowed: the protocol, the server stack, Node built-ins; the server's own modules.
+      [`${SHELL}/src/server-entry.ts`, "./protocol/tool-result.ts", []],
+      [`${SHELL}/src/server-entry.ts`, "./composed-server.ts", []],
+      [`${SHELL}/src/server-entry.ts`, "mcp-use/server", []],
+      [`${SHELL}/src/server-entry.ts`, "prom-client", []],
+      [`${SHELL}/src/server-entry.ts`, "node:http", []],
+      // Look-alikes of the view stack are none of it.
+      [`${SHELL}/src/server-entry.ts`, "reactive", []],
+      // Tests, test-support and the ./testing entry are exempt.
+      [`${SHELL}/src/fonts.test.ts`, "@miragon/pulse-ui", []],
+      [`${SHELL}/src/brand.test.ts`, "./ui/target.ts", []],
+      [`${SHELL}/src/composition.test-support.ts`, "react", []],
+      [`${SHELL}/src/testing/glossary.ts`, "react", []],
+    ],
+  },
+  {
+    rule: SHELL_PROTOCOL,
+    title: "widget-shell's protocol imports nothing but itself",
+    cases: [
+      // Either half, by path, at runtime or for a type.
+      [`${SHELL}/src/protocol/to-server.ts`, "../composed-server.ts", [SHELL_PROTOCOL]],
+      [`${SHELL}/src/protocol/to-views.ts`, "../ui/target.ts", [SHELL_PROTOCOL]],
+      [`${SHELL}/src/protocol/to-views-type.ts`, "../ui/lib.ts", [SHELL_PROTOCOL], "type"],
+      // Any npm package (the view stack and the server stack alike) and any Node built-in.
+      ...["react", "@miragon/pulse-ui", "mcp-use", "zod", "node:crypto"].map((spec) => [
+        `${SHELL}/src/protocol/to-npm.ts`,
+        spec,
+        [SHELL_PROTOCOL],
+      ]),
+      // Neither half's rule fires on the protocol: each rule has one subject.
+      [`${SHELL}/src/protocol/to-mcp-server.ts`, "mcp-use/server", [SHELL_PROTOCOL]],
+      // Allowed: another protocol module.
+      [`${SHELL}/src/protocol/tool-result-reader.ts`, "./view-name.ts", []],
+      // Its tests run in Node: exempt.
+      [`${SHELL}/src/protocol/tool-result.test.ts`, "node:fs", []],
+    ],
+  },
+  {
+    rule: WIDGETS_BROWSER,
+    title: "a connector's widgets import only browser code at runtime (an allowlist)",
+    cases: [
+      ...[
+        "../tools/target.ts",
+        "../data/target.ts",
+        "../lib/with-engine.ts",
+        "../widget-tools/target.ts",
+        "../widget-tools.ts",
+        "../plugin.ts",
+        "../module.ts",
+        "../feed-contracts.ts",
+        // Server modules no directory names: the package root, the instructions, the providers.
+        "../index.ts",
+        "../instructions.ts",
+        "../engine-provider.ts",
+        "../providers/target.ts",
+        "@miragon/pulse-engine-client",
+        "@miragon/pulse-engine-client/sdk",
+        "@miragon/pulse-widget-shell/server",
+        // Server packages and Node built-ins.
+        "mcp-use",
+        "mcp-use/server",
+        "zod",
+        "node:fs",
+        // Anchored: a look-alike of an allowed name is no view-stack package.
+        "reactive",
+      ].map((spec) => [`${ENGINE_CONNECTOR}/src/widgets/server-code.tsx`, spec, [WIDGETS_BROWSER]]),
+      [`${ENGINE_CONNECTOR}/src/widgets/nested/deep.ts`, "../../data/target.ts", [WIDGETS_BROWSER]],
+      [
+        `${ENGINE_CONNECTOR}/src/widgets/dynamic.ts`,
+        "../tools/target.ts",
+        [WIDGETS_BROWSER],
+        "dynamic",
+      ],
+      [
+        `${ENGINE_CONNECTOR}/src/widgets/escape-client.ts`,
+        "../../../engine-client/src/target.ts",
+        [DEEP, WIDGETS_BROWSER],
+      ],
+      [
+        `${ENGINE_CONNECTOR}/src/widgets/escape-shell.ts`,
+        "../../../../../core/widget-shell/src/composed-server.ts",
+        [DEEP, WIDGETS_BROWSER],
+      ],
+      [`${AN_CONNECTOR}/src/widgets/server-code.tsx`, "../tools/target.ts", [WIDGETS_BROWSER]],
+      [
+        `${AN_CONNECTOR}/src/widgets/server-code.tsx`,
+        "@miragon/pulse-analytics-client",
+        [WIDGETS_BROWSER],
+      ],
+      [`${AN_CONNECTOR}/src/widgets/server-code.tsx`, "../instructions.ts", [WIDGETS_BROWSER]],
+      [`${AN_CONNECTOR}/src/widgets/server-code.tsx`, "../summary.ts", [WIDGETS_BROWSER]],
+      // The exemption is the engine connector's file, by path: not another connector's lib.
+      [`${AN_CONNECTOR}/src/widgets/server-code.tsx`, "../lib/environments.ts", [WIDGETS_BROWSER]],
+      // Another family's client is no browser code either (and connectors-own-their-family's).
+      [
+        `${AN_CONNECTOR}/src/widgets/engine-sdk.ts`,
+        "@miragon/pulse-engine-client",
+        [OWN_FAMILY, WIDGETS_BROWSER],
+      ],
+      // Allowed: type-only edges to the server side (view-model and feed types).
+      ...[
+        "../tools/target.ts",
+        "../data/target.ts",
+        "../lib/with-engine.ts",
+        "../feed-contracts.ts",
+        "@miragon/pulse-engine-client",
+      ].map((spec) => [`${ENGINE_CONNECTOR}/src/widgets/types.ts`, spec, [], "type"]),
+      [`${AN_CONNECTOR}/src/widgets/types.ts`, "@miragon/pulse-analytics-client", [], "type"],
+      // Allowed at runtime: the widgets' own modules, the shared words, names and view models, the
+      // one exempt lib module, widget-shell's view half and the view stack.
+      ...[
+        "./lib/engine-action.ts",
+        "../view-models.ts",
+        "../view-models.health.ts",
+        "../tool-names.ts",
+        "../messages/use-t.ts",
+        "../lib/environments.ts",
+        "@miragon/pulse-widget-shell/widgets",
+        "@miragon/pulse-ui",
+        "react",
+        "react-dom/client",
+        "lucide-react",
+        "@tanstack/react-query",
+      ].map((spec) => [`${ENGINE_CONNECTOR}/src/widgets/view.tsx`, spec, []]),
+      [`${AN_CONNECTOR}/src/widgets/view.tsx`, "../bpmn-names.ts", []],
+      // Tests and their test-support boot the plugin and fake the engine: exempt.
+      [`${ENGINE_CONNECTOR}/src/widgets/views.test.tsx`, "../plugin.ts", []],
+      [
+        `${ENGINE_CONNECTOR}/src/widgets/lib/hand-off.test-support.ts`,
+        "../../tools/test-support/fake-engine.ts",
+        [],
+      ],
+      // The server side imports its own server code freely.
+      [`${ENGINE_CONNECTOR}/src/widget-tools/cockpit.ts`, "../data/target.ts", []],
     ],
   },
   {
@@ -502,7 +732,9 @@ const SUITES = [
         "../../../packages/core/widget-shell/src/target.ts",
         [DEEP],
       ],
-      [`${SHELL}/src/escape-ui.ts`, "../../ui/src/target.ts", [DEEP]],
+      // pulse-ui by path: the server half never imports the view stack at all.
+      [`${SHELL}/src/escape-ui.ts`, "../../ui/src/target.ts", [DEEP, SHELL_HEADLESS]],
+      [`${SHELL}/src/ui/escape-ui.ts`, "../../../ui/src/target.ts", [DEEP, SHELL_VIEWS]],
       // The engine connector may import engine-core, but only by its name, never by a path.
       [`${ENGINE_CONNECTOR}/src/escape-core.ts`, "../../engine-core/src/target.ts", [DEEP]],
     ],

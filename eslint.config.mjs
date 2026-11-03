@@ -3,13 +3,18 @@ import tseslint from "typescript-eslint"
 import reactHooks from "eslint-plugin-react-hooks"
 import globals from "globals"
 
-// Widget/UI sources are excluded from the package tsconfigs (they are
-// compiled by Vite/the bundler) and get their type information from the
-// dedicated tsconfig.widgets.json / tsconfig.ui.json projects instead.
-const bundledUiFiles = [
-  "apps/mcp-server/src/ui/**/*.{ts,tsx}",
+// The widget trees: every tree of React views an MCP host renders (the host bundle's src/ui,
+// widget-shell's view half, both connectors' widgets). They are excluded from their package's
+// tsconfig.json and typed by the browser-only tsconfig.widgets.json / tsconfig.ui.json projects
+// instead, and the date and number gates (invariant 6) hold all of them.
+const CONNECTOR_WIDGETS = [
   "packages/connectors/analytics/analytics-connector/src/widgets/**/*.{ts,tsx}",
   "packages/connectors/engine/engine-connector/src/widgets/**/*.{ts,tsx}",
+]
+const WIDGET_TREES = [
+  "apps/mcp-server/src/ui/**/*.{ts,tsx}",
+  "packages/core/widget-shell/src/ui/**/*.{ts,tsx}",
+  ...CONNECTOR_WIDGETS,
 ]
 
 // Server tests (and the Playwright host simulation) live outside src/ (not
@@ -232,7 +237,7 @@ export default tseslint.config(
 
   // Typed linting via the project service for everything the package tsconfigs cover
   {
-    ignores: [...bundledUiFiles, ...serverTestFiles, ...vscodeBoundaryProbes],
+    ignores: [...WIDGET_TREES, ...serverTestFiles, ...vscodeBoundaryProbes],
     languageOptions: {
       parserOptions: {
         projectService: {
@@ -263,13 +268,14 @@ export default tseslint.config(
     },
   },
 
-  // Widget/UI files: typed via their dedicated tsconfig projects
+  // The widget trees: typed via their dedicated tsconfig projects
   {
-    files: bundledUiFiles,
+    files: WIDGET_TREES,
     languageOptions: {
       parserOptions: {
         project: [
           "apps/mcp-server/tsconfig.ui.json",
+          "packages/core/widget-shell/tsconfig.widgets.json",
           "packages/connectors/analytics/analytics-connector/tsconfig.widgets.json",
           "packages/connectors/engine/engine-connector/tsconfig.widgets.json",
         ],
@@ -358,19 +364,19 @@ export default tseslint.config(
     rules: { "no-restricted-syntax": ["error", ...registrarGate] },
   },
 
-  // Invariant 6: all date/time rendering in widgets goes through pulse-ui's
-  // format helpers so every module renders timestamps the same
-  // way. Number#toLocaleString (thousands separators) is deliberately allowed.
+  // Invariant 6: every widget tree renders dates and numbers through pulse-ui's
+  // formatters, so every module renders them the same way in the view's locale (date
+  // and number gates). After the registrar block, whose options it replaces for the
+  // connector widgets: they get the union in the next block.
   {
-    files: ["apps/mcp-server/src/ui/**/*.{ts,tsx}"],
-    rules: { "no-restricted-syntax": ["error", ...widgetDateGate] },
+    files: WIDGET_TREES,
+    rules: { "no-restricted-syntax": ["error", ...widgetDateGate, ...widgetNumberGate] },
   },
-  // Connector widgets sit under the registrar AND date gates, render every
-  // number through pulse-ui's formatters (number gate) and every hand-off through
-  // widget-shell's HandOffButton (hand-off gate): one block per connector, each with the union,
-  // after the registrar block (whose options it replaces for these files).
+  // Connector widgets sit under the registrar, date and number gates and render every
+  // hand-off through widget-shell's HandOffButton (hand-off gate): one block with the union,
+  // after the registrar and WIDGET_TREES blocks (whose options it replaces for these files).
   {
-    files: ["packages/connectors/engine/engine-connector/src/widgets/**/*.{ts,tsx}"],
+    files: CONNECTOR_WIDGETS,
     rules: {
       "no-restricted-syntax": [
         "error",
@@ -381,26 +387,10 @@ export default tseslint.config(
       ],
     },
   },
-  {
-    files: ["packages/connectors/analytics/analytics-connector/src/widgets/**/*.{ts,tsx}"],
-    rules: {
-      "no-restricted-syntax": [
-        "error",
-        ...registrarGate,
-        ...widgetDateGate,
-        ...widgetNumberGate,
-        ...widgetHandOffGate,
-      ],
-    },
-  },
-  // Invariant 6, numbers: pulse-ui's code, widget-shell's widget code, and both
-  // connectors' widgets in their union blocks above.
+  // Invariant 6, numbers: pulse-ui's code too (the kit, not a widget tree: it builds the
+  // date formatters the date gate points at).
   {
     files: ["packages/core/ui/src/**/*.{ts,tsx}"],
-    rules: { "no-restricted-syntax": ["error", ...widgetNumberGate] },
-  },
-  {
-    files: ["packages/core/widget-shell/src/ui/**/*.{ts,tsx}"],
     rules: { "no-restricted-syntax": ["error", ...widgetNumberGate] },
   },
   // The kit's two number formatters: `format.ts` (the view's locale, set by LocaleGate)

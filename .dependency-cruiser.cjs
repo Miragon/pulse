@@ -121,6 +121,22 @@ const MCP_STACK = [
   "@hey-api/[^/]+",
 ].join("|")
 
+/**
+ * The view stack: React and what builds on it (Lucide, TanStack Query, the design kit, the view
+ * runtime's mcp-use adapter `mcp-use/react`, which ESLint keeps to widget-shell's adapter, and the
+ * BPMN viewer). The only npm packages widget-shell's view half and (with widget-shell's
+ * `/widgets`) a connector's widgets import, and none of them is widget-shell's server half's. The
+ * server stack (mcp-use itself, @modelcontextprotocol, prom-client, zod) and Node built-ins are
+ * not among them.
+ */
+const VIEW_STACK =
+  "react|react-dom|lucide-react|@tanstack/[^/]+|@miragon/pulse-ui|mcp-use/react|bpmn-js|diagram-js"
+
+/** widget-shell's two halves and the protocol modules both import (see the seam rules). */
+const SHELL_SRC = "^packages/core/widget-shell/src/"
+const SHELL_VIEWS = `${SHELL_SRC}ui/`
+const SHELL_PROTOCOL = `${SHELL_SRC}protocol/`
+
 /** The CLI's test code: colocated unit tests, and test/ with its fakes and engine suites. */
 const CLI_TEST_CODE = ["[.]test[.]ts$", "^apps/cli/test/"]
 
@@ -223,6 +239,76 @@ module.exports = {
           ...npm(
             "mcp-use|@modelcontextprotocol/[^/]+|@tanstack/[^/]+|zod|prom-client|@hey-api/[^/]+|bpmn-js|diagram-js",
           ),
+        ],
+      },
+    },
+    // ── The browser/server seams: widget-shell's halves and connector widgets (review P7) ──
+    // widget-shell stays ONE package (`/server` and `/widgets`) because its halves share one wire
+    // protocol, src/protocol/ (tool results, the view name, the served fonts, the translator, the
+    // BPMN-name reader). Three rules keep the parts apart, so a later split is a path move: the
+    // view half (src/ui) imports only itself, the protocol and the view stack; the server half
+    // (the rest of src/) never imports the view half or the view stack; the protocol imports
+    // nothing but itself. tsconfig.widgets.json (DOM, no Node types) and tsconfig.json (Node
+    // types, no DOM) hold the same seam for types; the protocol is typed under both.
+    {
+      name: "widget-shell-views-browser-only",
+      severity: "error",
+      comment:
+        "widget-shell's view half (src/ui, the `/widgets` entry, in every view bundle) imports " +
+        "only src/ui, src/protocol and the view stack (VIEW_STACK): no server module of " +
+        "widget-shell, no Node built-in, no server package (mcp-use, prom-client, zod). What both " +
+        "halves need moves into src/protocol, dependency-free.",
+      from: { path: SHELL_VIEWS, pathNot: SRC_TEST_CODE },
+      to: { pathNot: [SHELL_VIEWS, SHELL_PROTOCOL, ...npm(VIEW_STACK)] },
+    },
+    {
+      name: "widget-shell-server-headless",
+      severity: "error",
+      comment:
+        "widget-shell's server half (src/ without src/ui and src/protocol: the `/server` boot, " +
+        "the module port, tool authoring) never imports the view half (src/ui) or the view stack " +
+        "(VIEW_STACK): a server never loads React. What both halves need moves into src/protocol.",
+      from: { path: SHELL_SRC, pathNot: [SHELL_VIEWS, SHELL_PROTOCOL, ...SRC_TEST_CODE] },
+      // pulse-ui by relative escape too (no-cross-package-deep-imports bites there as well).
+      to: { path: [SHELL_VIEWS, "^packages/core/ui/", ...npm(VIEW_STACK)] },
+    },
+    {
+      name: "widget-shell-protocol-is-a-leaf",
+      severity: "error",
+      comment:
+        "widget-shell's protocol modules (src/protocol: the wire both halves share) import only " +
+        "each other: no npm package, no Node built-in, nothing of either half. They run in the " +
+        "server and in every view bundle alike; what one half alone needs stays in that half.",
+      from: { path: SHELL_PROTOCOL, pathNot: SRC_TEST_CODE },
+      to: { pathNot: SHELL_PROTOCOL },
+    },
+    {
+      name: "connector-widgets-are-browser-code",
+      severity: "error",
+      comment:
+        "A connector's widgets (src/widgets, compiled into every view bundle) import at runtime " +
+        "only browser code: their own src/widgets, the shared words (src/messages), the tool " +
+        "names (src/tool-names.ts), the view models (src/view-models*.ts), the BPMN-name reader " +
+        "(src/bpmn-names.ts), widget-shell's `/widgets` and the view stack (VIEW_STACK). Nothing " +
+        "else of the connector (tools, widget tools, data builders, server lib, providers, " +
+        "instructions, feed contracts, plugin, module, the package root), no client SDK, no " +
+        "server package (mcp-use, zod), no Node built-in. Type-only imports stay allowed: a " +
+        "widget reads the view models' and feeds' types. Data reaches a widget through its view " +
+        "tool and `*_data` feeds. Exempt: the engine connector's src/lib/environments.ts, the pure " +
+        "engine grouping the cockpit's widgets and the engine tools share (the lib/ split of the " +
+        "review's P11 gives it its place).",
+      from: {
+        path: "^packages/connectors/[^/]+/([^/]+)-connector/src/widgets/",
+        pathNot: SRC_TEST_CODE,
+      },
+      to: {
+        dependencyTypesNot: ["type-only"],
+        pathNot: [
+          "^packages/connectors/[^/]+/$1-connector/src/(?:widgets|messages)/",
+          "^packages/connectors/[^/]+/$1-connector/src/(?:tool-names|view-models[.\\w-]*|bpmn-names)[.]tsx?$",
+          // The one named exemption (the engine connector's, not every connector's lib/).
+          "^packages/connectors/engine/engine-connector/src/lib/environments[.]ts$",
+          ...npm(`${VIEW_STACK}|@miragon/pulse-widget-shell/widgets`),
         ],
       },
     },

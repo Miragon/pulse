@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from "react"
 import { useLocale } from "@miragon/pulse-ui"
-import { decodeToolResult } from "../tool-result.js"
+import { decodeToolResult } from "../protocol/tool-result.js"
 import { useInlineBudget } from "./inline-budget.js"
 import { useInlineRows, type InlineRows } from "./inline-fit.js"
 import { kitLabels } from "./kit-labels.js"

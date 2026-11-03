@@ -227,7 +227,13 @@ a `data` prop. Compose them from the design kit `@miragon/pulse-ui` and the view
 `@miragon/pulse-widget-shell/widgets` (pulse-ui holds what touches no host: primitives,
 components, tone maps, `cn`, the formatters, `Icon`, the table cells; widget-shell holds what
 reads the host or calls a tool, and neither re-exports the other's names); never re-inline
-these primitives:
+these primitives. Widgets are browser code: at runtime they import only their own widgets,
+`src/messages`, `src/tool-names.ts`, the view models, `@miragon/pulse-widget-shell/widgets` and the
+view stack (plus the pure `src/lib/environments.ts`, the one named exemption); `src/tools`,
+`src/data`, the rest of `src/lib`, the feed contracts, the plugin, the module,
+`@miragon/pulse-engine-client` and anything else only as types (`import type`). Data arrives
+through the view tool and the `*_data` feeds (`connector-widgets-are-browser-code` in
+`.dependency-cruiser.cjs`):
 
 - `ViewDataState` — the loading/error/no-data guard (no inline Alert/loading ternary):
   `onRetry` is required (`paged.retry`, a query's `refetch`), loading is a `skeleton`

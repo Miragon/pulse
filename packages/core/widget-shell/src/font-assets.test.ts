@@ -9,7 +9,7 @@ import {
   type FontAsset,
 } from "./font-assets.js"
 import type { HttpRouteHost } from "./health.js"
-import { SERVED_FONT_FILES } from "./served-fonts.js"
+import { SERVED_FONT_FILES } from "./protocol/served-fonts.js"
 
 /** A woff2 file starts with the signature `wOF2`. */
 const WOFF2_SIGNATURE = [0x77, 0x4f, 0x46, 0x32]

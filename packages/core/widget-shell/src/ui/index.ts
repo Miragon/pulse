@@ -35,16 +35,17 @@ export {
   type ViewDataOptions,
   type ViewDataResult,
 } from "./tool-query.js"
-// Also on `/server`, with their types: the view runtime decodes `ViewHost.callTool`'s raw result
-// as the server's tool tests do, and widget strings and server summaries both translate.
-export { decodeToolResult, type ToolResult } from "../tool-result.js"
+// Also on `/server`, with their types (both from src/protocol/, the tree the halves share): the
+// view runtime decodes `ViewHost.callTool`'s raw result as the server's tool tests do, and widget
+// strings and server summaries both translate.
+export { decodeToolResult, type ToolResult } from "../protocol/tool-result.js"
 export {
   createTranslator,
   type Catalogs,
   type Message,
   type MessageCatalog,
   type Translator,
-} from "../translator.js"
+} from "../protocol/translator.js"
 export {
   createTestQueryClient,
   TestViewHost,
@@ -53,7 +54,7 @@ export {
 } from "./test-view-host.js"
 // The served fonts (owner order: unchanged).
 export { declareServedFonts, SERVED_FONTS_STYLE_ID } from "./declare-served-fonts.js"
-export { SERVED_FONT_FILES, SERVED_FONT_PATH, servedFontBaseUrl } from "../served-fonts.js"
+export { SERVED_FONT_FILES, SERVED_FONT_PATH, servedFontBaseUrl } from "../protocol/served-fonts.js"
 export { useDetailView } from "./use-detail-view.js"
 export { viewRefreshState, type ViewRefreshState } from "./view-refresh-state.js"
 // Public for a customer's own hand-off that HAND_OFF_ACTIONS does not list; Pulse's own

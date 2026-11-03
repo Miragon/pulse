@@ -1,18 +1,15 @@
-import { fileURLToPath } from "node:url"
 import { describe, expect, it } from "vitest"
-import {
-  catalogTextFindings,
-  scanColors,
-  scanGlyphs,
-  scanIconSizes,
-  scanTypeScale,
-} from "@miragon/pulse-ui/testing"
+import { catalogTextFindings } from "@miragon/pulse-ui/testing"
 import { glossaryFindings, PRODUCT_GLOSSARY } from "../testing/index.js"
 import { ASK_AI_PROMPT_LABELS } from "./ask-ai-prompt.js"
 import { DEFAULT_HEATMAP_LABELS } from "./bpmn-heatmap-labels.js"
 import { ERROR_KINDS } from "./describe-error.js"
 import { ERROR_LABELS, type ErrorLabels, type ErrorSource } from "./error-labels.js"
 import { KIT_LABELS } from "./kit-labels.js"
+
+// The kit's words: the catalog text and glossary half of the brand gates, next to the catalogs
+// it reads. The scans of the kit's code read sources from disk, which the browser-only
+// tsconfig.widgets.json does not type: ../brand-gates.test.ts.
 
 /** Every source the words branch on, with a key for the rendered entry. */
 const ERROR_SOURCES: ReadonlyArray<[key: string, source: ErrorSource]> = [
@@ -75,26 +72,6 @@ describe("kit copy follows the voice rules", () => {
   })
 })
 
-const UI_DIR = fileURLToPath(new URL(".", import.meta.url))
-
-describe("kit widget code draws icons with Lucide, never glyphs or emoji", () => {
-  it("src/ui has no forbidden glyph in JSX or strings", () => {
-    expect(scanGlyphs(UI_DIR)).toEqual([])
-  })
-})
-
-describe("kit widget code draws icons at the CI sizes", () => {
-  it("src/ui has no icon at a size other than 16 or 24 px", () => {
-    expect(scanIconSizes(UI_DIR)).toEqual([])
-  })
-})
-
-describe("kit widget code sets text on the type scale", () => {
-  it("src/ui has no text size off the five steps and nothing below 13 px", () => {
-    expect(scanTypeScale(UI_DIR)).toEqual([])
-  })
-})
-
 describe("kit copy uses the product glossary", () => {
   // The kit's labels sit in every module's views (hand-offs, list chrome).
   it.each(["de", "en"] as const)("kit labels (%s)", (language) => {
@@ -103,11 +80,5 @@ describe("kit copy uses the product glossary", () => {
 
   it.each(["de", "en"] as const)("error words (%s)", (language) => {
     expect(glossaryFindings(ERROR_WORDS[language], PRODUCT_GLOSSARY[language])).toEqual([])
-  })
-})
-
-describe("kit widget code colours through role names only", () => {
-  it("src/ui has no palette class or raw colour", () => {
-    expect(scanColors(UI_DIR)).toEqual([])
   })
 })

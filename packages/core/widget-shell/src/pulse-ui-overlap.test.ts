@@ -10,7 +10,8 @@ import { describe, expect, it } from "vitest"
  * design kit from `@miragon/pulse-ui` directly. A widget-shell export under a pulse-ui name is
  * a fork or a second import path; a re-export is a second import path under any name. Read
  * statically via the TS compiler (pulse-ui's built declarations, `^build` runs first), so no
- * module counts as uncovered.
+ * module counts as uncovered. Outside src/ui: it reads files from disk, and tsconfig.widgets.json
+ * is browser-only.
  */
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -56,8 +57,8 @@ const PULSE_UI = {
 }
 const KIT = new Set([...PULSE_UI.root, ...PULSE_UI.testing])
 const WIDGETS = {
-  widgets: exportsOf(join(here, "index.ts")),
-  testing: exportsOf(join(here, "../testing/index.ts")),
+  widgets: exportsOf(join(here, "ui/index.ts")),
+  testing: exportsOf(join(here, "testing/index.ts")),
 }
 const SHELL = [...WIDGETS.widgets, ...WIDGETS.testing]
 

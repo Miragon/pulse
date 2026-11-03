@@ -301,7 +301,7 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      formatters and the kit pieces (`Icon`, `Th`/`Td`, `TableEmptyState`, `NativeSelect` …) come
      from `@miragon/pulse-ui`, a leaf (`ui-is-a-leaf`, invariant 8); widget-shell exports only
      what touches the host and never a pulse-ui name
-     (`packages/core/widget-shell/src/ui/pulse-ui-overlap.test.ts`). A form says an invalid
+     (`packages/core/widget-shell/src/pulse-ui-overlap.test.ts`). A form says an invalid
      entry inline next to the control it marks `aria-invalid`, never clamps it silently.
    - **The view runtime is widget-shell's.** The root's call hook (`useMcpUseViewCall` over
      `resolveViewCall`) owns the stripped-result recovery: a host that drops
@@ -330,7 +330,9 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      (`readBpmnNames`/`parseBpmnNames`), so every module shows them alike.
    - **Type, dates and numbers.** Text sits on pulse-ui's `TYPE_SCALE` (13 px floor,
      `scanTypeScale`). Dates and numbers go through the kit's `format*` helpers in the locale
-     `LocaleGate` publishes (ESLint gates, `scripts/eslint-gates.test.mjs`). A count reaches a
+     `LocaleGate` publishes (ESLint's date and number gates over `WIDGET_TREES`, every widget
+     tree: the host bundle's `src/ui`, widget-shell's and both connectors' widgets;
+     `scripts/eslint-gates.test.mjs`). A count reaches a
      catalog entry already formatted, and the entry puts the noun in the right number
      (`countOf`, `plural(…)`), never a `…One`/`…Other` key pair.
    - **BPMN** renders through `useBpmnViewer` + `BpmnZoomControls` on a forced-light canvas
@@ -366,7 +368,8 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    - **Brand gates and glossary.** Every widget package runs the gates of
      `@miragon/pulse-ui/testing` (`catalogTextFindings`, `scanGlyphs`, `scanIconSizes`,
      `scanColors`) in its own `brand-gates.test.ts` (the host bundle's `src/ui` runs
-     `scanGlyphs`), and its en/de catalogs hold the same
+     `scanGlyphs`; widget-shell checks its words next to its catalogs, in
+     `packages/core/widget-shell/src/ui/kit-words.test.ts`), and its en/de catalogs hold the same
      keys. One term per thing across the product: `PRODUCT_GLOSSARY`
      (`@miragon/pulse-widget-shell/testing`; Incident,
      "Jobs ohne Versuche" / "jobs without retries", "bereitstellen", Geschäftsschlüssel,
@@ -445,11 +448,22 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      core (`family-core-is-a-leaf`) is imported only by its family's connector and the apps that
      bundle it (`family-core-consumers`, `CORE_BUNDLERS`), and no shipped code imports a
      `./testing` entry (`shipped-code-not-to-testing`). The family rules key on the roles, so a
-     new family inherits them. Each rule has planted violations in
-     `scripts/dependency-cruiser-gates.test.mjs`; a new app adds its npm name to the config's
-     `APP_PACKAGES`. A rule names all three shapes an import reaches it in (a relative escape,
-     `<importer>/node_modules/<name>/`, a bare specifier) and never exempts a package's own
-     directory in a `pathNot`.
+     new family inherits them. The seams keep browser code apart from the server: widget-shell's
+     view half (`src/ui`) imports only itself, `src/protocol` (the wire both halves share: tool
+     results, the view name, the served fonts, the translator, the BPMN-name reader) and the
+     view stack (`widget-shell-views-browser-only`); its server half never imports `src/ui` or
+     React (`widget-shell-server-headless`); `src/protocol` imports nothing but itself
+     (`widget-shell-protocol-is-a-leaf`); its `tsconfig.widgets.json` (DOM, no Node types) and
+     `tsconfig.json` (Node, no DOM) split the types the same way. A connector's `src/widgets`
+     imports at runtime only an allowlist (`connector-widgets-are-browser-code`): its own
+     widgets, `src/messages`, `src/tool-names.ts`, the view models, `src/bpmn-names.ts`,
+     widget-shell's `/widgets` and the view stack, plus one named exemption, the pure
+     `packages/connectors/engine/engine-connector/src/lib/environments.ts`; anything else of the
+     connector, its client, a server package or a Node built-in only as a type. Each rule has
+     planted violations in `scripts/dependency-cruiser-gates.test.mjs`; a new app adds its npm
+     name to the config's `APP_PACKAGES`. A rule names all three shapes an import reaches it in
+     (a relative escape, `<importer>/node_modules/<name>/`, a bare specifier) and never exempts a
+     package's own directory in a `pathNot`.
    - **The module port.** Each module exports its definition in `src/module.ts` (config schema,
      `configFromEnv`, `knownEnvVars`, `toolsets`, `bootWarnings`, `instructions`, the rules for
      every tool instead of 60 descriptions; `retired`, the former names and variables the boot
@@ -623,7 +637,7 @@ workspace (its header lists each check).
 | Check             | Coverage                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `pnpm build`      | tsc emit of server code + the server app's Vite widget bundle (`build:ui`); excludes widget `.tsx` type errors in packages                                                                                                                                                                                                                                                                                                                                                                                                               |
-| `pnpm typecheck`  | **The only check that type-checks widget code**: `tsc -p tsconfig.widgets.json` in the two connector packages, `tsc -p tsconfig.ui.json` in the server app; the VS Code extension per layer, each with that layer's runtime globals only                                                                                                                                                                                                                                                                                                 |
+| `pnpm typecheck`  | **The only check that type-checks widget code**: `tsc -p tsconfig.widgets.json` in the two connector packages and widget-shell (its view half), `tsc -p tsconfig.ui.json` in the server app; the VS Code extension per layer, each with that layer's runtime globals only                                                                                                                                                                                                                                                                |
 | `pnpm test`       | Vitest unit tests, the server app's wire-contract tests and tools/list goldens (in-process boot, loopback HTTP), the per-package coverage floors, then `node --test` over `scripts/*.test.mjs` (repo guards included: docs-refs, old-names, published imports, tool-name and hand-off references, server env names; docs-refs and old-names also run in Lint + Format on every PR); **no widget rendering** (the VS Code webview tests render in Chromium; locally once: `pnpm --filter pulse-cockpit exec playwright install chromium`) |
 | `pnpm lint`       | ESLint per package incl. the pattern gates, then dependency-cruiser (`lint:architecture`, `:cli`, `:vscode`), `lint:naming`, `lint:package-scripts`, `lint:ratchets` (needs `git fetch origin`), knip (`lint:deadcode`: everything but exports and types; `:exports`: exports and types in every workspace but the vendored docs kit; `:cli`, `:engine-core`, `:vscode` repeat their workspace) and `lint:github`                                                                                                                        |
 | `pnpm fitness`    | Report: architecture graph, per-package coverage and mutation scores; locally after `pnpm test` (no CI job on a pull request), nightly the "Mutation summary" job of `.github/workflows/mutation-nightly.yml`                                                                                                                                                                                                                                                                                                                            |

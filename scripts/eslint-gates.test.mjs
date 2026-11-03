@@ -57,15 +57,48 @@ const isNumberHit = (m) => m.includes("view's locale") || m.includes("browser's 
 
 const WS = "packages/core/widget-shell/src/ui"
 const UI = "packages/core/ui/src"
-/** The number gate's probes: pulse-ui's code and widget-shell's widget code. */
-const NUMBER_PATHS = [
-  `${UI}/__probe__.ts`,
-  `${UI}/__probe__.tsx`,
-  `${WS}/__probe__.ts`,
-  `${WS}/__probe__.tsx`,
-]
+const APP_UI = "apps/mcp-server/src/ui"
+/**
+ * WIDGET_TREES of eslint.config.mjs: the host bundle's src/ui, widget-shell's view half and both
+ * connectors' widgets, a .ts and a .tsx probe each. The date and number gates hold all of them.
+ */
+const WIDGET_TREE_PATHS = [
+  APP_UI,
+  WS,
+  `${ENGINE_CONNECTOR_SRC_DIR}/widgets`,
+  `${AN}/widgets`,
+].flatMap((dir) => [`${dir}/__probe__.ts`, `${dir}/__probe__.tsx`])
+/** The number gate's probes: pulse-ui's code and every widget tree. */
+const NUMBER_PATHS = [`${UI}/__probe__.ts`, `${UI}/__probe__.tsx`, ...WIDGET_TREE_PATHS]
 
-describe("number gate (invariant 6) in pulse-ui and widget-shell's widget code", () => {
+describe("date gate (invariant 6) in every widget tree", () => {
+  it("catches Intl.DateTimeFormat (new and called), toLocaleDateString and toLocaleTimeString", async () => {
+    const code = [
+      'new Intl.DateTimeFormat("de", opts).format(d)',
+      "Intl.DateTimeFormat(undefined).format(d)",
+      "d.toLocaleDateString()",
+      'd.toLocaleTimeString("de")',
+    ].join("\n")
+    for (const rel of WIDGET_TREE_PATHS) {
+      const messages = await gateMessages(rel, code)
+      assert.equal(messages.filter(isDateHit).length, 4, rel)
+    }
+  })
+
+  it("leaves the server half of widget-shell and the kit's own date formatters alone", async () => {
+    const code = 'new Intl.DateTimeFormat("de").format(d)\nd.toLocaleDateString()'
+    for (const rel of [
+      "packages/core/widget-shell/src/__probe__.ts",
+      "packages/core/widget-shell/src/protocol/__probe__.ts",
+      `${UI}/kit/format.ts`,
+    ]) {
+      const messages = await gateMessages(rel, code)
+      assert.equal(messages.filter(isDateHit).length, 0, rel)
+    }
+  })
+})
+
+describe("number gate (invariant 6) in pulse-ui and every widget tree", () => {
   it("catches toFixed and an argument-less toLocaleString in .ts and .tsx", async () => {
     for (const rel of NUMBER_PATHS) {
       const messages = await gateMessages(
@@ -94,7 +127,7 @@ describe("number gate (invariant 6) in pulse-ui and widget-shell's widget code",
   })
 
   it("leaves a locale-bound toLocaleString (the kit's own date helpers) alone", async () => {
-    for (const rel of [`${UI}/__probe__.ts`, `${WS}/__probe__.ts`]) {
+    for (const rel of [`${UI}/__probe__.ts`, ...WIDGET_TREE_PATHS]) {
       const messages = await gateMessages(
         rel,
         'const a = d.toLocaleString(locale, opts)\nconst b = n.toLocaleString("de")\nconst c = d.toLocaleString(current?.locale, zoned())',
@@ -292,12 +325,21 @@ describe("gates sharing a glob are merged, not overridden", () => {
     }
   })
 
-  it("the app's UI keeps the date gate", async () => {
-    const messages = await gateMessages(
-      "apps/mcp-server/src/ui/__probe__.tsx",
+  it("the widget trees without another gate carry exactly the date and number gates", async () => {
+    const code = [
+      'import { AskAiButton } from "@miragon/pulse-widget-shell/widgets"',
+      'server.tool("x")',
       "d.toLocaleTimeString()",
-    )
-    assert.equal(messages.filter(isDateHit).length, 1)
+      "const a = n.toFixed(1)",
+    ].join("\n")
+    for (const dir of [APP_UI, WS]) {
+      for (const rel of [`${dir}/__probe__.ts`, `${dir}/__probe__.tsx`]) {
+        const messages = await gateMessages(rel, code)
+        assert.equal(messages.filter(isDateHit).length, 1, `${rel}: date gate dropped`)
+        assert.equal(messages.filter(isNumberHit).length, 1, `${rel}: number gate dropped`)
+        assert.equal(messages.length, 2, `${rel}: ${messages.join(" | ")}`)
+      }
+    }
   })
 })
 

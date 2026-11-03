@@ -46,9 +46,9 @@
     }
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && tsc -p tsconfig.widgets.json --noEmit false",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.widgets.json",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix"
   },

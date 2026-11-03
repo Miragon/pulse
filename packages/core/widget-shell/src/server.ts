@@ -16,22 +16,24 @@ export { appOnly, showToolBinding, strictToolInput } from "./widget-tool-binding
 export { buildDataFeedResult, buildViewResult, type ViewResult } from "./view-results.js"
 // The two protocol helpers both halves use are also on `/widgets`, with their types: server
 // summaries and widget strings call createTranslator at runtime, and the server's tool tests
-// decode results the way the view runtime does. Neither half imports the other's entry.
-export { decodeToolResult, type ToolResult } from "./tool-result.js"
+// decode results the way the view runtime does. Both come from src/protocol/, the one tree the
+// server half and the view half (src/ui) share; neither half imports the other
+// (.dependency-cruiser.cjs: widget-shell-server-headless, widget-shell-views-browser-only).
+export { decodeToolResult, type ToolResult } from "./protocol/tool-result.js"
 export {
   createTranslator,
   type Catalogs,
   type Message,
   type MessageCatalog,
   type Translator,
-} from "./translator.js"
+} from "./protocol/translator.js"
 export {
   bpmnProcessNameOf,
   parseBpmnNames,
   readBpmnNames,
   type BpmnModelNames,
   type BpmnNames,
-} from "./bpmn-names.js"
+} from "./protocol/bpmn-names.js"
 export {
   callerCacheKey,
   getMcpRequestInfo,
@@ -52,7 +54,7 @@ export {
   type RunningServer,
 } from "./composed-server.js"
 export { VIEW_RESOURCE_URI_PREFIX, viewResourceUri } from "./widget-tool-bindings.js"
-export { viewPrelude } from "./view-name.js"
+export { viewPrelude } from "./protocol/view-name.js"
 export { VIEW_BUNDLE_DEDUPE } from "./view-bundle.js"
 
 // The served fonts (owner order: unchanged), and the route host installFontAssets takes.
@@ -63,4 +65,4 @@ export {
   type FontAsset,
   type FontAssetsOptions,
 } from "./font-assets.js"
-export { SERVED_FONT_FILES, SERVED_FONT_PATH, servedFontBaseUrl } from "./served-fonts.js"
+export { SERVED_FONT_FILES, SERVED_FONT_PATH, servedFontBaseUrl } from "./protocol/served-fonts.js"

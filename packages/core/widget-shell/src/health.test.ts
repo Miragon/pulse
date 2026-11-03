@@ -13,7 +13,7 @@ function install(options?: HealthOptions) {
     const handler = routes.get(path)
     if (!handler) throw new Error(`no route registered for ${path}`)
     const res = await handler({})
-    return { status: res.status, body: (await res.json()) as unknown, headers: res.headers }
+    return { status: res.status, body: await res.json(), headers: res.headers }
   }
   return { routes, call }
 }

@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { ComposableModule, ModulePlugin } from "./composition.js"
 import { createComposedServer, type RunningServer } from "./composed-server.js"
 import { loadServedFonts } from "./font-assets.js"
-import { SERVED_FONT_FILES, SERVED_FONT_PATH } from "./served-fonts.js"
+import { SERVED_FONT_FILES, SERVED_FONT_PATH } from "./protocol/served-fonts.js"
 import { showToolBinding } from "./widget-tool-bindings.js"
 
 const running: RunningServer[] = []

@@ -14,7 +14,7 @@ import {
   type UseQueryOptions,
   type UseQueryResult,
 } from "@tanstack/react-query"
-import { decodeToolResult } from "../tool-result.js"
+import { decodeToolResult } from "../protocol/tool-result.js"
 import { useViewHost } from "./view-host.js"
 
 export { useQueryClient, type QueryClient } from "@tanstack/react-query"

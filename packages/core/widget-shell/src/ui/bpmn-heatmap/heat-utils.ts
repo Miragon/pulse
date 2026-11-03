@@ -1,4 +1,4 @@
-import { parseBpmnNames, readBpmnNames } from "../../bpmn-names.js"
+import { parseBpmnNames, readBpmnNames } from "../../protocol/bpmn-names.js"
 import { BPMN_TOKENS, cdValue } from "../bpmn-tokens.js"
 
 /** Kept free of React and viewer state so the math is testable. */
