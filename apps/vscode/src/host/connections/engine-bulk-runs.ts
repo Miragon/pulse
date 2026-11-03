@@ -1,4 +1,5 @@
 import { BulkRuns } from "../../core/index.js"
+import { EndpointPath } from "./endpoint-path.js"
 import type { EngineTarget } from "./engine-target.js"
 
 export class EngineBulkRuns {
@@ -6,7 +7,7 @@ export class EngineBulkRuns {
 
   of(target: EngineTarget): BulkRuns {
     const url = new URL(target.endpoint)
-    const key = `${url.origin}${url.pathname.replace(/\/+$/, "")}`
+    const key = `${url.origin}${EndpointPath.withoutTrailingSlashes(url.pathname)}`
     const known = this.runs.get(key)
     if (known !== undefined) {
       return known

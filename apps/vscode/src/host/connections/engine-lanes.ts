@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto"
 import { EngineLane } from "../../core/index.js"
 import type { Credentials } from "./connection.js"
+import { EndpointPath } from "./endpoint-path.js"
 import type { EngineTarget } from "./engine-target.js"
 
 export interface LaneRequest {
@@ -27,7 +28,7 @@ export class EngineLanes {
 
   private static keyOf({ target, credentials }: LaneRequest): string {
     return createHash("sha256")
-      .update(JSON.stringify([target.endpoint.replace(/\/+$/, ""), credentials]))
+      .update(JSON.stringify([EndpointPath.withoutTrailingSlashes(target.endpoint), credentials]))
       .digest("hex")
   }
 }

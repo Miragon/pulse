@@ -123,7 +123,7 @@ export class EngineHttp {
   }
 
   private urlOf(request: EngineRequest): URL {
-    const url = new URL(`${this.options.url.replace(/\/+$/, "")}${request.path}`)
+    const url = new URL(`${EngineHttp.withoutTrailingSlashes(this.options.url)}${request.path}`)
     for (const [name, value] of Object.entries(request.query)) {
       if (value !== undefined) {
         url.searchParams.set(name, value)
@@ -173,6 +173,14 @@ export class EngineHttp {
       text += decoder.decode(read.value, { stream: true })
     }
     return text + decoder.decode()
+  }
+
+  private static withoutTrailingSlashes(url: string): string {
+    let end = url.length
+    while (end > 0 && url[end - 1] === "/") {
+      end -= 1
+    }
+    return url.slice(0, end)
   }
 
   private static tooLarge(): UnexpectedAnswerError {
