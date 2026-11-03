@@ -5,11 +5,11 @@ has its own adapter in pulse-cli, so a difference of one engine stays in one pla
 
 ## Compatibility
 
-| Engine    | `flavor`   | Tested in CI with                         |
-| --------- | ---------- | ----------------------------------------- |
-| Operaton  | `operaton` | `operaton/operaton:2.1.5`                 |
-| CIB seven | `cibseven` | `cibseven/cibseven:run-2.2.0`             |
-| Camunda 7 | `camunda7` | `camunda/camunda-bpm-platform:run-7.24.0` |
+| Engine    | `flavor`   | Tested in CI with                                      |
+| --------- | ---------- | ------------------------------------------------------ |
+| Operaton  | `operaton` | `operaton/operaton:2.1.5`                              |
+| CIB seven | `cibseven` | `cibseven/cibseven:run-2.2.0`                          |
+| Camunda 7 | `camunda7` | 7.24.0 until its image left Docker Hub (November 2026) |
 
 Commands for features an engine does not offer fail with the engine's error. Property names that
 differ between the engines are both accepted (`operatonFormRef`, `camundaFormRef`). Camunda 8 is

@@ -6,7 +6,8 @@
 ## Context
 
 Operaton and CIB seven are forks of Camunda 7 and keep its REST API, so one adapter
-serves all three; the conformance kit runs on each of them in CI. Up to 0.24 the adapter
+serves all three; the conformance kit runs on Operaton and CIB seven in CI (Camunda 7's
+image left Docker Hub in November 2026; it passed on 7.24.0 until then). Up to 0.24 the adapter
 spawned Miragon's retired engine CLI per call; it now calls the REST API itself:
 
 ```mermaid
@@ -263,8 +264,8 @@ routes and so run every class above.
 
 ## Consequences
 
-- The conformance kit passes all laws against `operaton/operaton:2.1.5`,
-  `cibseven/cibseven:run-2.2.0` and `camunda/camunda-bpm-platform:run-7.24.0`
+- The conformance kit passes all laws against `operaton/operaton:2.1.5` and
+  `cibseven/cibseven:run-2.2.0` (and passed against Camunda 7.24.0 until its image left Docker Hub)
   (`PULSE_ENGINE_IMAGE=… pnpm --filter pulse-cockpit run test:engines`).
   The engines under test (`test:engines`, `engine:up`) run without their bundled invoice
   example: it sets the engine's global clock back by days while it seeds itself, after the

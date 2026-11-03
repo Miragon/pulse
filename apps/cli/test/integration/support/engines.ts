@@ -6,7 +6,7 @@
 import { GenericContainer, type StartedNetwork, Wait } from "testcontainers"
 import type { Flavor } from "../../../src/config/types.js"
 
-export const ENGINE_NAMES = ["operaton", "cibseven", "camunda"] as const
+export const ENGINE_NAMES = ["operaton", "cibseven"] as const
 export type EngineName = (typeof ENGINE_NAMES)[number]
 
 export interface EngineDefinition {
@@ -74,16 +74,6 @@ export const ENGINES: Readonly<Record<EngineName, EngineDefinition>> = {
       CAMUNDA_BPM_RUN_AUTH_ENABLED: "true",
       CAMUNDA_BPM_RUN_AUTH_AUTHENTICATION: "basic",
     },
-    withoutExampleEnv: { CAMUNDA_BPM_RUN_EXAMPLE_ENABLED: "false" },
-  },
-  camunda: {
-    name: "camunda",
-    flavor: "camunda7",
-    image: "camunda/camunda-bpm-platform:run-7.24.0",
-    port: 8080,
-    restPath: "/engine-rest",
-    version: "7.24.0",
-    basicAuthEnv: { CAMUNDA_BPM_RUN_AUTH_ENABLED: "true" },
     withoutExampleEnv: { CAMUNDA_BPM_RUN_EXAMPLE_ENABLED: "false" },
   },
 }
