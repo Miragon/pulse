@@ -1,6 +1,6 @@
 {
   "name": "pulse-monorepo",
-  "version": "0.24.2",
+  "version": "0.25.0",
   "private": true,
   "license": "MIT",
   "packageManager": "pnpm@10.32.1",

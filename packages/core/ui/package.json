@@ -1,6 +1,6 @@
 {
   "name": "@miragon/pulse-ui",
-  "version": "0.24.2",
+  "version": "0.25.0",
   "description": "Pulse's design kit for MCP App views and your own React UIs: shadcn-based primitives, components, the tone model and type scale, locale, toasts and formatters, and the Miragon theme over the vendored corporate-design tokens.",
   "license": "MIT",
   "keywords": [
