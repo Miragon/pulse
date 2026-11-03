@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { UNKNOWN_KEY, remediationHandOff, type RemediationCluster } from "./remediation.js"
-import type { EngineToolset } from "../lib/toolsets.js"
+import type { EngineToolset } from "../lib/mcp/toolsets.js"
 import { bindHandOff } from "./lib/hand-off.js"
 import { widgetActionsFeedFor } from "./lib/hand-off.test-support.js"
 

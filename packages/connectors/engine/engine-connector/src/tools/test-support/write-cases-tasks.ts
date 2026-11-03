@@ -1,4 +1,4 @@
-/** The endpoint follows from the task (`lib/task-completion.ts`). */
+/** The endpoint follows from the task (`lib/bpmn/complete-user-task.ts`). */
 import type { FakeRoutes } from "./fake-engine.js"
 import type { WireRequest, WriteCase } from "./write-cases.js"
 

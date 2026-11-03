@@ -15,9 +15,9 @@ import {
   completeExternalTaskResource,
   handleFailure,
 } from "@miragon/pulse-engine-client/sdk"
-import { paginatedListOutput, toPaginatedList } from "../lib/pagination.js"
-import type { EngineRegistry } from "../lib/resolve-engine.js"
-import { engineParamShape, withEngine } from "../lib/with-engine.js"
+import { paginatedListOutput, toPaginatedList } from "../lib/mcp/pagination.js"
+import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
+import { engineParamShape, withEngine } from "../lib/engine/with-engine.js"
 
 export function registerExternalTaskTools(register: ToolRegistrar<EngineRegistry>) {
   register({

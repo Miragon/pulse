@@ -19,7 +19,7 @@ import {
   enginesByEnvironment,
   formatEnginesByEnvironment,
   groupEnginesByEnvironment,
-} from "../../lib/environments.js"
+} from "../../lib/shared/environments.js"
 import { useT } from "../../messages/use-t.js"
 import { useHandOff, type HandOff } from "../lib/hand-off.js"
 import { useEngineHealth } from "./engine-health.js"

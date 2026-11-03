@@ -18,8 +18,8 @@ invariant 3). Follow the steps for the path you need.
 | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
 | JSON data for the model                                          | Registrar tool in `src/tools/<domain>.ts` (Steps 1–3)                                 |
 | A view for the user                                              | a cockpit route plus its builder and `*_data` feed (Step 4); never a second view tool |
-| App-only JSON for in-widget refresh/nav                          | `*_data` feed in `src/widget-tools/data-feeds.ts`, `...appOnly` (Step 4)              |
-| An answer the CLI's workflow commands give too (inspect, status) | a composite on `@miragon/pulse-engine-core` over `src/lib/engine-port.ts` (Step 2b)   |
+| App-only JSON for in-widget refresh/nav                          | `*_data` feed in `DATA_FEEDS` of `src/data/feeds.ts` (Step 4)                         |
+| An answer the CLI's workflow commands give too (inspect, status) | a composite on `@miragon/pulse-engine-core` over `src/lib/core-adapter/` (Step 2b)    |
 
 ## Step 1 — input schema next to the tools
 
@@ -108,9 +108,9 @@ import { listProcessInstancesInput } from "../schemas/index.js"
 import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import { complementaryFlags, engineLike, engineSorting } from "@miragon/pulse-engine-core"
 import { getProcessInstances, getProcessInstancesCount } from "@miragon/pulse-engine-client/sdk"
-import { paginatedListOutput, toPaginatedList } from "../lib/pagination.js"
-import type { EngineRegistry } from "../lib/resolve-engine.js"
-import { engineParamShape, withEngine } from "../lib/with-engine.js"
+import { paginatedListOutput, toPaginatedList } from "../lib/mcp/pagination.js"
+import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
+import { engineParamShape, withEngine } from "../lib/engine/with-engine.js"
 
 export function registerProcessInstanceTools(register: ToolRegistrar<EngineRegistry>) {
   register({
@@ -165,9 +165,9 @@ Non-negotiables:
   batches, engine-wide broadcasts like signals, the external-task worker protocol) and
   reads that only feed an admin write (`engine_get_batch`,
   `engine_get_activity_instance_tree`) must
-  be added to `ADMIN_ONLY_TOOLS` in `src/lib/toolsets.ts` so the
+  be added to `ADMIN_ONLY_TOOLS` in `src/lib/mcp/toolsets.ts` so the
   `engine:read-only|operations|admin` toolset filtering stays correct — `read-only`
-  membership is derived from `readOnlyHint: true`. `src/lib/toolsets.test.ts` enforces
+  membership is derived from `readOnlyHint: true`. `src/lib/mcp/toolsets.test.ts` enforces
   the rule structurally over every registrar tool (`destructiveHint` ⇒ admin-only,
   read-only ⇒ `readOnlyHint`, every write states `destructiveHint` explicitly), and
   `src/plugin.test.ts` over every tool the module registers, feeds included (the
@@ -204,20 +204,32 @@ A question the CLI answers too (where an instance waits, how an engine is doing)
 core), the workflow domain both share, never on a second copy here. A rule both need that it
 lacks goes into that package (a leaf: no dependency, data rather than wording).
 The pattern is `engine_inspect_process_instance` and `engine_status`
-(`src/lib/composites.ts`, registered like any registrar tool):
+(`src/lib/core-adapter/composites.ts`, registered like any registrar tool):
 
-- Map every operation the composite sends in `READS` of `src/lib/engine-port.ts`, one typed
+- Map every operation the composite sends in `READS` of `src/lib/core-adapter/engine-port.ts`, one typed
   SDK read each; text/plain and variable reads go through engine-client's SDK-bound reads
   (`fetchJobStacktrace`, `readProcessInstanceVariables`), as `engine-contract.test.ts`
-  demands. `src/lib/engine-port.test.ts` holds `READS` to engine-core's operation lists.
-- Word engine-core's error reasons in `src/lib/workflow-errors.ts` (`[CODE] message` in the
+  demands. `src/lib/core-adapter/engine-port.test.ts` holds `READS` to engine-core's operation
+  lists.
+- Word engine-core's error reasons in `src/lib/core-adapter/workflow-errors.ts` (`[CODE] message` in the
   tool's parameter names, no tool names).
 - Return data for the model: drop `next` (it would name tools a toolset may lack), cut
   variables with `truncatePlainVariables`, and cap every list engine-core leaves uncapped for
   the CLI (today wait states, incidents, timeline, variables, definitions, topics), naming each
   cut in `truncated`. The cap bounds the result, not the reads. Pin the wire and each cap in
-  `src/lib/composites.wire.test.ts` (inspect) and `src/lib/composites-status.wire.test.ts`
-  (status), over the helpers of `src/tools/test-support/composites.ts`.
+  `src/lib/core-adapter/composites.wire.test.ts` (inspect) and
+  `src/lib/core-adapter/composites-status.wire.test.ts` (status), over the helpers of
+  `src/lib/core-adapter/composites.test-support.ts`.
+
+`src/lib/` is split by job, and each helper goes into the folder of its job: `engine/`
+(routing: `resolveEngine`, `withEngine`, the cockpit links, passthrough auth), `core-adapter/`
+(the engine-core port, the composites, their error wording), `bpmn/` (the definition XML,
+BPMN and task-form reading, completing a user task by its form), `mcp/` (the tool surface:
+toolsets, the paging envelope, the bounds on variable values and failure text) and `shared/`
+(pure code the widgets run too). `src/data/` and `src/lib/` never import `src/tools/`,
+`src/widget-tools/`, `src/widgets/` or the connector's root (`index`, `plugin`, `module`)
+(`connector-data-and-lib-point-down`): a helper a builder needs from a tool moves down into the
+lib folder of its job (the task form's `buildTaskFormSchema` into `bpmn/`).
 
 ## Step 3 — wire a new domain file
 
@@ -234,10 +246,12 @@ components, tone maps, `cn`, the formatters, `Icon`, the table cells; widget-she
 reads the host or calls a tool, and neither re-exports the other's names); never re-inline
 these primitives. Widgets are browser code: at runtime they import only their own widgets,
 `src/messages`, `src/tool-names.ts`, the view models, `@miragon/pulse-widget-shell/widgets` and the
-view stack (plus the pure `src/lib/environments.ts`, the one named exemption); `src/tools`,
-`src/data`, the rest of `src/lib`, the feed contracts, the plugin, the module,
-`@miragon/pulse-engine-client` and anything else only as types (`import type`). Data arrives
-through the view tool and the `*_data` feeds (`connector-widgets-are-browser-code` in
+view stack, plus `src/lib/shared` (pure code the server runs too, held to the same allowlist);
+`src/tools`, `src/data`, the feed contracts, the plugin, the module,
+`@miragon/pulse-engine-client` and anything else only as types (`import type`), and the other
+`src/lib` folders not even as types: a type both sides need is declared once in
+`src/lib/shared` (`TaskCompletion`). Data arrives through the view tool and the `*_data` feeds
+(`connector-widgets-are-browser-code` and `connector-widgets-only-shared-lib` in
 `.dependency-cruiser.cjs`):
 
 - `ViewDataState` — the loading/error/no-data guard (no inline Alert/loading ternary):
@@ -380,22 +394,31 @@ through the view tool and the `*_data` feeds (`connector-widgets-are-browser-cod
    request's args (reference: the instance list's `listFilters`).
 
 The engine module has ONE view, `engine_open_cockpit` → `CockpitApp` (CLAUDE.md invariant 3). New
-UI is a **cockpit route**, never a second view tool; a route touches five places, and the
-exhaustive maps fail to compile until each has it:
+UI is a **cockpit route**, never a second view tool. On the server a route is five entries;
+`COCKPIT_ROUTES` and the widgets' route switch fail to compile without it, and
+`src/data/cockpit-start.test.ts` fails on a route whose feed is missing from `DATA_FEEDS`:
 
 1. `src/view-models.ts`: a section in `CockpitView` with the ids the route reads, and its
    data type in `CockpitStartData`.
-2. `src/data/`: ONE builder for the route's data and its read in `src/data/route-reads.ts`,
-   which the route's `*_data` feed (`src/widget-tools/data-feeds.ts`, a `ENGINE_*_DATA`
-   constant in `src/tool-names.ts`) and the start view share.
-3. `src/widgets/cockpit-app/routes.tsx`: a case in `CockpitRoute` that renders the
-   route's widget with `seedOf(seed, section)` as its `data` and the route's `engine` and
-   ids as required props. A composed view (a dashboard,
-   the process detail) is ONE component that composes its widgets in a `ViewStack`.
-4. `src/widget-tools/cockpit.ts`: an entry in `START_VIEW_PARAMS` (the ids the route
-   `needs` and also `takes`), so `engine_open_cockpit` can open on it.
-5. `src/data/cockpit-start.ts`: the route's start data in `buildCockpitStart` (its read
-   with the first page's args) and its facts in `cockpitFacts`.
+2. `src/data/`: ONE builder for the route's data (`<route>-data.ts`).
+3. `src/data/feeds.ts`: the route's `*_data` feed,
+   `dataFeed({ name, title, description, shape, read })`, in `DATA_FEEDS`; `read` calls the
+   builder. `src/widget-tools/data-feeds.ts` registers every feed of `DATA_FEEDS`.
+4. `src/tool-names.ts`: the feed's name as an `ENGINE_*_DATA` constant.
+5. `src/data/routes.ts`: the route's entry in `COCKPIT_ROUTES`: the ids it `needs` and also
+   `takes` (fields of its own `CockpitView` section, checked at compile time), its `start` (its
+   feed's read with the first page's args) and its `facts`. `src/widget-tools/cockpit.ts`
+   builds the `view` enum and checks the ids from it, and `src/data/cockpit-start.ts`
+   dispatches the start view and its facts. A start param new to the cockpit also gets its
+   described field in `startViewShape` (`src/widget-tools/cockpit.ts`; `StartParam` is read
+   off `CockpitView`, so a missing field fails to compile), and a route that takes an existing
+   param adds its name to that param's description (the tools/list golden shows the change).
+
+In the widgets a route is its widget, a case in `CockpitRoute`
+(`src/widgets/cockpit-app/routes.tsx`) that renders it with `seedOf(seed, section)` as its
+`data` and the route's `engine` and ids as required props, a `NavIntent` and an emitter (below)
+and its en/de messages. A composed view (a dashboard, the process detail) is ONE component that
+composes its widgets in a `ViewStack`.
 
 The start data is exactly the feed's page-0 payload: build it with the size the widget
 pages by (`LIST_PAGE_SIZE`, `HISTORY_PAGE_SIZE` in `src/view-models.ts`), so the route's
@@ -413,8 +436,8 @@ route. A route that nothing emits and `engine_open_cockpit` cannot open is dead.
 `src/widgets/index.ts`) to the view-bound tools of the tools/list goldens.
 
 `src/widget-tools.ts` wires the cockpit tool (`src/widget-tools/cockpit.ts`), the `*_data`
-feeds (`data-feeds.ts`) and the actions feed; these files are the documented exception that
-uses `server.tool()` directly:
+feeds (`data-feeds.ts`, over `DATA_FEEDS`) and the actions feed; these files are the documented
+exception that uses `server.tool()` directly:
 
 - Every widget-path tool (the cockpit AND each feed) declares
   `inputSchema: strictToolInput({ … })` (from `@miragon/pulse-widget-shell/server`) — never
@@ -430,16 +453,17 @@ uses `server.tool()` directly:
   `resolveEngine(args.engine, registry, ctx)`, which already returns `baseUrl`/`cockpitUrl`;
   never fish them out of `registry.engines`. It returns `buildViewResult(data, facts)`
   (from `@miragon/pulse-widget-shell/server`): `data` IS the view's data, no title (the
-  widget's heading names the view); the facts are the compact JSON of `cockpitFacts`, the
+  widget's heading names the view); the facts are the compact JSON of the route's `facts`, the
   model-facing text channel, while the full payload travels only in `structuredContent`.
-- `*_data` feeds: register through `registerDataFeed` in `data-feeds.ts` (`name`, `title`,
-  `description`, `shape`, `read`), which spreads `...appOnly` (the native
+- `*_data` feeds: describe one with `dataFeed({ name, title, description, shape, read })` in
+  `DATA_FEEDS` (`src/data/feeds.ts`); `registerDataFeed` in `data-feeds.ts` registers each and
+  spreads `...appOnly` (the native
   `visibility: "app"` field, emitted as SEP-1865 `_meta.ui.visibility: ["app"]`, plus
   `openai/widgetAccessible`; **no** view binding) and returns `buildDataFeedResult(data)` so
   the in-widget `callTool()` gets JSON back instead of the host rendering a new widget.
   Wrap every raw handler in `withToolErrors` (from `@miragon/pulse-widget-shell/server`).
 - Shared data paths: every number a view shows comes from ONE builder in `src/data/`
-  that its `*_data` feed AND the cockpit's start view (`buildCockpitStart`) call; never
+  that its `*_data` feed AND the cockpit's start view (`COCKPIT_ROUTES`) call; never
   fork one. Definition lookups (id parsers, the key lookup, the per-KEY fold of the
   per-version statistics) come from `src/data/definition-info.ts`. A key's latest version is
   `fetchLatestDefinition`

@@ -1,6 +1,6 @@
 import { shortId } from "@miragon/pulse-widget-shell/widgets"
 import type { T } from "../../messages/use-t.js"
-import type { TaskCompletion } from "./complete-task.js"
+import type { TaskCompletion } from "../../lib/shared/task-completion.js"
 import type { TargetLine, WriteFeedback } from "./engine-action.js"
 
 /** The business key is what people search for; else the short id. */

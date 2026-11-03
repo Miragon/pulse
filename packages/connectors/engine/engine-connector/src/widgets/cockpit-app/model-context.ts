@@ -1,4 +1,4 @@
-import { enginesByEnvironment } from "../../lib/environments.js"
+import { enginesByEnvironment } from "../../lib/shared/environments.js"
 import type { ViewContext } from "../lib/hand-off.js"
 import type { CockpitView } from "../../view-models.js"
 import { selectedEntity } from "../nav-core.js"

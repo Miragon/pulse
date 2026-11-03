@@ -4,8 +4,8 @@ import type { MCPServer } from "mcp-use"
 import type { Client } from "@miragon/pulse-engine-client"
 import { z } from "zod"
 import { createConfiguredEngineRegistry, createPlugin, type EnginePluginConfig } from "./plugin.js"
-import { EngineNotSelectedError, resolveEngine } from "./lib/resolve-engine.js"
-import { ENGINE_ADMIN_ONLY_TOOLS } from "./lib/toolsets.js"
+import { EngineNotSelectedError, resolveEngine } from "./lib/engine/resolve-engine.js"
+import { ENGINE_ADMIN_ONLY_TOOLS } from "./lib/mcp/toolsets.js"
 import { ENGINE_LIST_ENGINES, ENGINE_WIDGET_ACTIONS_DATA } from "./tool-names.js"
 
 afterEach(() => {

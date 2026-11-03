@@ -3,8 +3,8 @@ import {
   type ToolConfig,
   type ToolRegistrar,
 } from "@miragon/pulse-widget-shell/server"
-import type { EngineRegistry } from "./resolve-engine.js"
-import { ENGINE_WIDGET_ACTIONS, type EngineWidgetAction } from "../tool-names.js"
+import type { EngineRegistry } from "../engine/resolve-engine.js"
+import { ENGINE_WIDGET_ACTIONS, type EngineWidgetAction } from "../../tool-names.js"
 
 export const ENGINE_TOOLSETS = ["read-only", "operations", "admin"] as const
 export type EngineToolset = (typeof ENGINE_TOOLSETS)[number]

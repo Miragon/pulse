@@ -8,7 +8,7 @@ import type {
 } from "../view-models.js"
 import type { EngineProvider } from "../engine-provider.js"
 import type { IncidentsDashboardFilters } from "../feed-contracts.js"
-import { buildProcessCockpitUrl } from "../lib/cockpit-url.js"
+import { buildProcessCockpitUrl } from "../lib/engine/cockpit-url.js"
 import {
   definitionKeyResolver,
   fetchStatsByKey,

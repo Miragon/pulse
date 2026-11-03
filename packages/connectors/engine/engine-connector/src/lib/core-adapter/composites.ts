@@ -10,7 +10,7 @@
  */
 
 import type { Client } from "@miragon/pulse-engine-client"
-import type { engineStatusInput, inspectProcessInstanceInput } from "../schemas/index.js"
+import type { engineStatusInput, inspectProcessInstanceInput } from "../../schemas/index.js"
 import {
   type EnginePort,
   type Finding,
@@ -22,9 +22,9 @@ import {
   type TimelineEntry,
 } from "@miragon/pulse-engine-core"
 import type { z } from "zod"
-import { boundFailureText, condenseStacktrace } from "../tools/incident-issue.js"
+import { boundFailureText, condenseStacktrace } from "../mcp/failure-text.js"
 import { enginePortFor } from "./engine-port.js"
-import { truncatePlainVariables } from "./variable-truncation.js"
+import { truncatePlainVariables } from "../mcp/variable-truncation.js"
 import { asToolError } from "./workflow-errors.js"
 
 export type InspectArgs = z.infer<typeof inspectProcessInstanceInput>

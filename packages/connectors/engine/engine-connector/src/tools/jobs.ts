@@ -13,10 +13,10 @@ import {
   setJobRetries,
   setJobRetriesAsyncOperation,
 } from "@miragon/pulse-engine-client/sdk"
-import { paginatedListOutput, toPaginatedList } from "../lib/pagination.js"
-import type { EngineRegistry } from "../lib/resolve-engine.js"
-import { engineParamShape, withEngine } from "../lib/with-engine.js"
-import { boundFailureText, condenseStacktrace } from "./incident-issue.js"
+import { paginatedListOutput, toPaginatedList } from "../lib/mcp/pagination.js"
+import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
+import { engineParamShape, withEngine } from "../lib/engine/with-engine.js"
+import { boundFailureText, condenseStacktrace } from "../lib/mcp/failure-text.js"
 
 export function registerJobTools(register: ToolRegistrar<EngineRegistry>) {
   register({

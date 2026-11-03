@@ -2,4 +2,4 @@
 // tool list a root's tests hold the toolsets to. Everything else stays inside the module.
 export { engineModule, createBpmnXmlFetcher } from "./module.js"
 export { configuredEngineIds } from "./configured-engine-ids.js"
-export { ENGINE_ADMIN_ONLY_TOOLS } from "./lib/toolsets.js"
+export { ENGINE_ADMIN_ONLY_TOOLS } from "./lib/mcp/toolsets.js"

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest"
-import { resolveEngine } from "../lib/resolve-engine.js"
+import { resolveEngine } from "../lib/engine/resolve-engine.js"
 import { cibsevenProvider } from "../providers/index.js"
 import {
   registryFor,

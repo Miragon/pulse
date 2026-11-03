@@ -1,9 +1,9 @@
 import { engineStatusInput } from "../schemas/index.js"
 import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
-import { engineStatusForModel } from "../lib/composites.js"
-import type { EngineRegistry } from "../lib/resolve-engine.js"
-import { engineParamShape, withEngine } from "../lib/with-engine.js"
-import { environmentOf, groupEnginesByEnvironment } from "../lib/environments.js"
+import { engineStatusForModel } from "../lib/core-adapter/composites.js"
+import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
+import { engineParamShape, withEngine } from "../lib/engine/with-engine.js"
+import { environmentOf, groupEnginesByEnvironment } from "../lib/shared/environments.js"
 import { providerForEntry } from "../providers/index.js"
 import { ENGINE_LIST_ENGINES } from "../tool-names.js"
 

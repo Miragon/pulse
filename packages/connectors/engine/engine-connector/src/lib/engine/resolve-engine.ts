@@ -1,12 +1,16 @@
 import { withCallerSignal, type Client } from "@miragon/pulse-engine-client"
-import type { EngineEntry, EngineProvider } from "../engine-provider.js"
-import { providerForEntry } from "../providers/index.js"
+import type { EngineEntry } from "../../engine-provider.js"
+import { providerForEntry } from "../../providers/index.js"
+import type { EngineLink } from "./cockpit-url.js"
 
-interface EngineBackend {
+/** A configured engine: its address and provider (`EngineLink`) and its client. */
+interface EngineBackend extends EngineLink {
   client: Client
-  baseUrl: string
-  cockpitUrl?: string
-  provider: EngineProvider
+}
+
+/** The engine a call runs on: its client (bound to the caller's signal), id, URLs and provider. */
+export interface ResolvedEngine extends EngineBackend {
+  engineId: string
 }
 
 /** No in-memory selection state: it would break behind more than one replica; the operator sets `defaultEngineId` instead. */
@@ -78,7 +82,7 @@ export function resolveEngine(
   override: string | undefined,
   registry: EngineRegistry,
   call?: EngineCallContext,
-): EngineBackend & { engineId: string } {
+): ResolvedEngine {
   const engineId = pickEngineId(override, registry)
   const backend = registry.backends.get(engineId)
   if (!backend) throw new UnknownEngineError(engineId, registry.engines)

@@ -11,12 +11,8 @@ import { readTaskVariables, type Client, type VariableMap } from "@miragon/pulse
 import { toEngineVariables, type EngineVariableInput } from "@miragon/pulse-engine-core"
 import { complete, getTask, resolve, submit } from "@miragon/pulse-engine-client/sdk"
 import { formFieldSubmitRules, type FormFieldSubmitRule } from "./bpmn-task-form.js"
+import type { TaskCompletion } from "../shared/task-completion.js"
 import { fetchDefinitionXml } from "./definition-xml.js"
-
-export type TaskCompletion =
-  | { success: true; taskId: string; outcome: "completed" }
-  /** A delegated task went back to its owner (now its assignee) and stays open. */
-  | { success: true; taskId: string; outcome: "resolved"; assignee: string | null }
 
 interface TaskRow {
   taskDefinitionKey?: string | null

@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "vitest"
 import type { z } from "zod"
 import { registerTools } from "./index.js"
 import { registerIncidentIssueTools } from "./incident-issue.js"
-import { MAX_VARIABLE_VALUE_CHARS } from "../lib/variable-truncation.js"
+import { MAX_VARIABLE_VALUE_CHARS } from "../lib/mcp/variable-truncation.js"
 import {
   callTool,
   captureTools,

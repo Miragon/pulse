@@ -3,7 +3,7 @@ import { z } from "zod"
 import type { ModulePlugin } from "@miragon/pulse-widget-shell/server"
 import { createConfiguredEngineRegistry, createPlugin } from "./plugin.js"
 import { DEFAULT_ENGINE_FLAVOR } from "./providers/index.js"
-import { engineToolsets } from "./lib/toolsets.js"
+import { engineToolsets } from "./lib/mcp/toolsets.js"
 import { engineInstructions } from "./instructions.js"
 import {
   RETIRED_CREDENTIAL_ENV_VARS,

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { MCPServer } from "mcp-use"
-import { resolveEngine } from "../lib/resolve-engine.js"
-import { engineParamShape } from "../lib/with-engine.js"
+import { resolveEngine } from "../lib/engine/resolve-engine.js"
+import { engineParamShape } from "../lib/engine/with-engine.js"
 import {
   ENGINE_CLUSTER_DETAIL_DATA,
   ENGINE_COCKPIT_OVERVIEW_DATA,

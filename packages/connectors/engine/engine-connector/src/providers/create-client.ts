@@ -1,6 +1,6 @@
 import { createEngineClient, type Client } from "@miragon/pulse-engine-client"
 import type { EngineAuth, EngineClientSettings, EngineEntry } from "../engine-provider.js"
-import { resolveMcpBearerToken } from "../lib/mcp-auth.js"
+import { resolveMcpBearerToken } from "../lib/engine/mcp-auth.js"
 
 /** One function, so a real vendor divergence later is an explicit fork visible in review. */
 export function createDialectClient(

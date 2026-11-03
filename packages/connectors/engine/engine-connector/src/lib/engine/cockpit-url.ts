@@ -1,8 +1,12 @@
-import type { CockpitRef, EngineProvider } from "../engine-provider.js"
+import type { CockpitRef, EngineProvider } from "../../engine-provider.js"
 
 // Routes come from the provider; here only: an explicit `cockpitUrl` is the webapp BASE,
 // only `http(s):` bases pass, and an unbuildable link is `null`, never a guessed URL.
 
+/**
+ * An engine's address and provider, what a link into its web app needs; the engine shapes of
+ * `resolve-engine.ts` and `with-engine.ts` extend it.
+ */
 export interface EngineLink {
   baseUrl: string
   cockpitUrl?: string

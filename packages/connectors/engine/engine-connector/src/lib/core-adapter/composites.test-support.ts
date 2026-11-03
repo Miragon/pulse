@@ -5,7 +5,7 @@ import {
   type EngineStatusArgs,
   type InspectArgs,
   inspectForModel,
-} from "../../lib/composites.js"
+} from "./composites.js"
 import {
   clientFor,
   type FakeEngine,
@@ -13,7 +13,7 @@ import {
   type FakeRoutes,
   type RecordedRequest,
   startFakeEngine,
-} from "./fake-engine.js"
+} from "../../tools/test-support/fake-engine.js"
 
 /** The read composites on the wire: engine-core's rounds over the real client and a loopback engine. */
 

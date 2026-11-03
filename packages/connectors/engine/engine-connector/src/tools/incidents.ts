@@ -2,9 +2,9 @@ import { listIncidentsInput, resolveIncidentInput } from "../schemas/index.js"
 import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import { engineKeyList, engineSorting, toOptionalEngineDate } from "@miragon/pulse-engine-core"
 import { getIncidents, getIncidentsCount, resolveIncident } from "@miragon/pulse-engine-client/sdk"
-import { paginatedListOutput, toPaginatedList } from "../lib/pagination.js"
-import type { EngineRegistry } from "../lib/resolve-engine.js"
-import { engineParamShape, withEngine } from "../lib/with-engine.js"
+import { paginatedListOutput, toPaginatedList } from "../lib/mcp/pagination.js"
+import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
+import { engineParamShape, withEngine } from "../lib/engine/with-engine.js"
 
 export function registerIncidentTools(register: ToolRegistrar<EngineRegistry>) {
   register({

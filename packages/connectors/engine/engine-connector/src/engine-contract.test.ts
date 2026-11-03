@@ -11,7 +11,7 @@ const SRC = fileURLToPath(new URL("./", import.meta.url))
  * with 406, variable reads deserialize Object values eagerly. `home` names the one
  * module here allowed the raw call.
  */
-const TASK_COMPLETION = { wrapper: "completeUserTask", home: "lib/task-completion.ts" }
+const TASK_COMPLETION = { wrapper: "completeUserTask", home: "lib/bpmn/complete-user-task.ts" }
 const CONTRACT_WRAPPED: Record<string, { wrapper: string; home?: string }> = {
   getStacktrace: { wrapper: "fetchJobStacktrace" },
   getExternalTaskErrorDetails: { wrapper: "fetchExternalTaskErrorDetails" },

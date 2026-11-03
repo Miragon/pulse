@@ -12,43 +12,20 @@ import type {
   CockpitView,
 } from "../view-models.js"
 import { buildCockpitStart, cockpitFacts } from "../data/cockpit-start.js"
+import { COCKPIT_ROUTES, type StartParam } from "../data/routes.js"
 import { ENGINE_OPEN_COCKPIT } from "../tool-names.js"
-import { cockpitEngineId, resolveEngine } from "../lib/resolve-engine.js"
-import { environmentOf } from "../lib/environments.js"
+import { cockpitEngineId, resolveEngine } from "../lib/engine/resolve-engine.js"
+import { environmentOf } from "../lib/shared/environments.js"
 import type { WidgetToolsContext } from "./shared.js"
 
-/** The ids a start view may carry, besides `view` itself. */
-type StartParam =
-  | "processDefinitionKey"
-  | "focus"
-  | "activityId"
-  | "incidentType"
-  | "messageSignature"
-  | "processInstanceId"
-  | "incidentId"
-  | "failedOnly"
+/** The `view` enum: the routes in their descriptor's order (`data/routes.ts`). */
+const START_VIEWS = Object.keys(COCKPIT_ROUTES) as [CockpitSection, ...CockpitSection[]]
 
 /**
- * What each route reads; total over the sections, so a new route fails to compile until it is
- * listed, and its key order is the order of the `view` enum.
+ * One field per `StartParam` (the view models' ids, `data/routes.ts`), checked by `satisfies`.
+ * Each description names the routes that take the param: a route that takes one adds its name
+ * there (the tools/list golden shows the change).
  */
-const START_VIEW_PARAMS: Record<
-  CockpitSection,
-  { needs: readonly StartParam[]; takes: readonly StartParam[] }
-> = {
-  overview: { needs: [], takes: [] },
-  incidents: { needs: [], takes: [] },
-  "cluster-detail": { needs: ["activityId", "incidentType"], takes: ["messageSignature"] },
-  "process-detail": { needs: ["processDefinitionKey"], takes: ["focus"] },
-  "process-instances": { needs: [], takes: ["processDefinitionKey"] },
-  "instance-detail": { needs: ["processInstanceId"], takes: [] },
-  "incident-detail": { needs: ["incidentId"], takes: [] },
-  jobs: { needs: [], takes: ["processDefinitionKey", "failedOnly"] },
-  history: { needs: ["processInstanceId"], takes: [] },
-}
-
-const START_VIEWS = Object.keys(START_VIEW_PARAMS) as [CockpitSection, ...CockpitSection[]]
-
 const startViewShape = {
   view: z.enum(START_VIEWS).optional(),
   processDefinitionKey: z
@@ -79,8 +56,8 @@ const START_PARAMS = Object.keys(startViewShape).filter((key): key is StartParam
 const given = (value: unknown) => value !== undefined && value !== ""
 
 const acceptedBy = (view: CockpitSection) => [
-  ...START_VIEW_PARAMS[view].needs,
-  ...START_VIEW_PARAMS[view].takes,
+  ...COCKPIT_ROUTES[view].needs,
+  ...COCKPIT_ROUTES[view].takes,
 ]
 
 /**
@@ -90,7 +67,7 @@ const acceptedBy = (view: CockpitSection) => [
 function checkStartView(input: StartIds & { view?: CockpitSection }, ctx: z.RefinementCtx) {
   const view = input.view ?? "overview"
   const accepted = acceptedBy(view)
-  for (const param of START_VIEW_PARAMS[view].needs) {
+  for (const param of COCKPIT_ROUTES[view].needs) {
     if (!given(input[param])) {
       ctx.addIssue({ code: "custom", path: [param], message: `view "${view}" needs ${param}.` })
     }

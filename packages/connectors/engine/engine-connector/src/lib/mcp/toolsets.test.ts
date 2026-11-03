@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { registerEngineTools } from "../tools/engines.js"
-import { registerTools } from "../tools/index.js"
-import { registerIncidentIssueTools } from "../tools/incident-issue.js"
-import type { EngineRegistry } from "./resolve-engine.js"
+import { registerEngineTools } from "../../tools/engines.js"
+import { registerTools } from "../../tools/index.js"
+import { registerIncidentIssueTools } from "../../tools/incident-issue.js"
+import type { EngineRegistry } from "../engine/resolve-engine.js"
 import type { ToolConfig } from "@miragon/pulse-widget-shell/server"
 import {
   allowedWidgetActions,
@@ -13,7 +13,7 @@ import {
   withToolsetFilter,
   type EngineToolset,
 } from "./toolsets.js"
-import { ENGINE_WIDGET_ACTIONS } from "../tool-names.js"
+import { ENGINE_WIDGET_ACTIONS } from "../../tool-names.js"
 
 type Register = Parameters<typeof registerTools>[0]
 type Config = ToolConfig<EngineRegistry>

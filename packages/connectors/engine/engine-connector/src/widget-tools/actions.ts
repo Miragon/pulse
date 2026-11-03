@@ -4,7 +4,7 @@ import {
   withToolErrors,
   strictToolInput,
 } from "@miragon/pulse-widget-shell/server"
-import { allowedWidgetActions } from "../lib/toolsets.js"
+import { allowedWidgetActions } from "../lib/mcp/toolsets.js"
 import { ENGINE_WIDGET_ACTIONS_DATA } from "../tool-names.js"
 import type { WidgetToolsContext } from "./shared.js"
 

@@ -16,8 +16,8 @@ import type {
 } from "../view-models.js"
 import type { ActivityIncidentsFilters, PagingArgs } from "../feed-contracts.js"
 import type { EngineProvider } from "../engine-provider.js"
-import { buildProcessCockpitUrl } from "../lib/cockpit-url.js"
-import { bpmnActivityIds } from "../lib/bpmn-parse.js"
+import { buildProcessCockpitUrl } from "../lib/engine/cockpit-url.js"
+import { bpmnActivityIds } from "../lib/bpmn/bpmn-parse.js"
 import {
   fetchDefinitionXml,
   fetchLatestDefinition,

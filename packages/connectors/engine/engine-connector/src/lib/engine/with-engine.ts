@@ -1,7 +1,7 @@
 import { z } from "zod"
 import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import type { Client } from "@miragon/pulse-engine-client"
-import type { EngineProvider } from "../engine-provider.js"
+import type { EngineLink } from "./cockpit-url.js"
 import { resolveEngine, type EngineCallContext, type EngineRegistry } from "./resolve-engine.js"
 
 /**
@@ -44,11 +44,9 @@ export function withEngineParam(
   }
 }
 
-export interface EngineContext {
+/** The engine a handler runs on, besides its client: its id, address and provider. */
+export interface EngineContext extends EngineLink {
   engineId: string
-  baseUrl: string
-  cockpitUrl?: string
-  provider: EngineProvider
 }
 
 /**

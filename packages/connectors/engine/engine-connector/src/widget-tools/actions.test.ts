@@ -2,10 +2,10 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import { feedPayload } from "../tools/test-support/feed-payload.js"
 import type { MCPServer } from "mcp-use"
 import { DEFAULT_HEALTH_THRESHOLDS } from "../data/health-data.js"
-import type { EngineRegistry } from "../lib/resolve-engine.js"
-import { resolveEngineToolset, type EngineToolset } from "../lib/toolsets.js"
+import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
+import { resolveEngineToolset, type EngineToolset } from "../lib/mcp/toolsets.js"
 import { ENGINE_WIDGET_ACTIONS, ENGINE_WIDGET_ACTIONS_DATA } from "../tool-names.js"
-import { engineParamShape } from "../lib/with-engine.js"
+import { engineParamShape } from "../lib/engine/with-engine.js"
 import { registerWidgetActionsFeed } from "./actions.js"
 
 afterEach(() => {

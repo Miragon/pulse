@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { buildInstanceCockpitUrl, buildProcessCockpitUrl } from "./cockpit-url.js"
-import { camunda7Provider, cibsevenProvider, operatonProvider } from "../providers/index.js"
+import { camunda7Provider, cibsevenProvider, operatonProvider } from "../../providers/index.js"
 
 /** Engine link context shorthand: explicit cockpitUrl wins, baseUrl is the derive fallback. */
 const cib = (cockpitUrl?: string, baseUrl = "ignored://x") => ({

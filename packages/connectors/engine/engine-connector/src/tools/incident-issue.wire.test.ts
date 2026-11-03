@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import type { MCPServer } from "mcp-use"
 import type { z } from "zod"
 import { registerIncidentIssuePrompt, registerIncidentIssueTools } from "./incident-issue.js"
-import { createEngineRegistry } from "../lib/resolve-engine.js"
+import { createEngineRegistry } from "../lib/engine/resolve-engine.js"
 import { providerForEntry } from "../providers/index.js"
 import {
   callTool,

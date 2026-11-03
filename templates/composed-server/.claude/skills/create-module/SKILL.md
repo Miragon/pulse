@@ -142,7 +142,7 @@ export const myToolsets = createToolsetVocabulary("<name>", MY_TOOLSETS, "read-o
   `toolset === "read-only"` compare (fails open for every name you add later)
   or a `toolset === undefined` shortcut (an absent toolset is the floor, not
   "everything"). Reference:
-  `node_modules/@miragon/pulse-engine-connector/src/lib/toolsets.ts`.
+  `node_modules/@miragon/pulse-engine-connector/src/lib/mcp/toolsets.ts`.
 
 ## Step 6: wire the module into the server
 

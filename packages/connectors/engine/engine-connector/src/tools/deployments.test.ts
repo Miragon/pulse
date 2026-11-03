@@ -8,7 +8,7 @@ import type {
   MultiFormDeploymentDto,
 } from "@miragon/pulse-engine-client/types"
 import type { EngineEntry } from "../engine-provider.js"
-import { createEngineRegistry, type EngineRegistry } from "../lib/resolve-engine.js"
+import { createEngineRegistry, type EngineRegistry } from "../lib/engine/resolve-engine.js"
 import { providerForEntry } from "../providers/index.js"
 import { registerDeploymentTools } from "./deployments.js"
 import { captureTools } from "./test-support/fake-engine.js"

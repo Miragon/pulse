@@ -3,8 +3,8 @@ import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import { queuedBatch, type Client } from "@miragon/pulse-engine-client"
 import { generateMigrationPlan, executeMigrationPlanAsync } from "@miragon/pulse-engine-client/sdk"
 import type { MigrationInstructionDto } from "@miragon/pulse-engine-client/types"
-import type { EngineRegistry } from "../lib/resolve-engine.js"
-import { engineParamShape, withEngine } from "../lib/with-engine.js"
+import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
+import { engineParamShape, withEngine } from "../lib/engine/with-engine.js"
 
 /**
  * The execute endpoint does NOT derive a mapping: without instructions every instance with an

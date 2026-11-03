@@ -9,10 +9,10 @@ import {
   getTasks,
   getTasksCount,
 } from "@miragon/pulse-engine-client/sdk"
-import { buildTaskFormSchema } from "../tools/task-form.js"
-import { collectActiveActivityIds, collectIncidentActivityIds } from "../lib/activity-tree.js"
+import { buildTaskFormSchema } from "../lib/bpmn/task-form-schema.js"
+import { collectActiveActivityIds, collectIncidentActivityIds } from "../lib/bpmn/activity-tree.js"
 import { parseBpmnNames } from "@miragon/pulse-widget-shell/server"
-import { buildInstanceCockpitUrl } from "../lib/cockpit-url.js"
+import { buildInstanceCockpitUrl } from "../lib/engine/cockpit-url.js"
 import type { EngineProvider } from "../engine-provider.js"
 import {
   definitionKeyInId,

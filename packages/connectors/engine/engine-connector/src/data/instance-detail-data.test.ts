@@ -15,7 +15,7 @@ vi.mock("@miragon/pulse-engine-client/sdk", () => ({
   getTasksCount: vi.fn(),
 }))
 
-vi.mock("../tools/task-form.js", () => ({ buildTaskFormSchema: vi.fn() }))
+vi.mock("../lib/bpmn/task-form-schema.js", () => ({ buildTaskFormSchema: vi.fn() }))
 
 import {
   getActivityInstanceTree,
@@ -28,7 +28,7 @@ import {
   getTasks,
   getTasksCount,
 } from "@miragon/pulse-engine-client/sdk"
-import { buildTaskFormSchema } from "../tools/task-form.js"
+import { buildTaskFormSchema } from "../lib/bpmn/task-form-schema.js"
 
 import { buildInstanceDetailData } from "./instance-detail-data.js"
 

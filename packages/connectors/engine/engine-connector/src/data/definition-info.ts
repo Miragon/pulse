@@ -8,7 +8,7 @@ import {
   readBpmnNames,
   type BpmnModelNames,
 } from "@miragon/pulse-widget-shell/server"
-import { fetchDefinitionXml } from "../lib/definition-xml.js"
+import { fetchDefinitionXml } from "../lib/bpmn/definition-xml.js"
 import { rowsOf } from "./engine-reads.js"
 
 export { fetchDefinitionXml }

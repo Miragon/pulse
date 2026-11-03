@@ -13,9 +13,9 @@ import {
   createDeployment,
 } from "@miragon/pulse-engine-client/sdk"
 import type { MultiFormDeploymentDto } from "@miragon/pulse-engine-client/types"
-import { paginatedListOutput, toPaginatedList } from "../lib/pagination.js"
-import type { EngineRegistry } from "../lib/resolve-engine.js"
-import { engineParamShape, withEngine } from "../lib/with-engine.js"
+import { paginatedListOutput, toPaginatedList } from "../lib/mcp/pagination.js"
+import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
+import { engineParamShape, withEngine } from "../lib/engine/with-engine.js"
 
 /**
  * A PLAIN record: the SDK serializer walks `Object.entries(body)`, so a prebuilt `FormData`

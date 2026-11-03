@@ -2,10 +2,10 @@ import { listProcessDefinitionsInput, getProcessDefinitionXmlInput } from "../sc
 import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import { engineLike, engineSorting, trueOnly } from "@miragon/pulse-engine-core"
 import { getProcessDefinitions, getProcessDefinitionsCount } from "@miragon/pulse-engine-client/sdk"
-import { paginatedListOutput, toPaginatedList } from "../lib/pagination.js"
-import type { EngineRegistry } from "../lib/resolve-engine.js"
-import { engineParamShape, withEngine } from "../lib/with-engine.js"
-import { fetchDefinitionXml } from "../lib/definition-xml.js"
+import { paginatedListOutput, toPaginatedList } from "../lib/mcp/pagination.js"
+import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
+import { engineParamShape, withEngine } from "../lib/engine/with-engine.js"
+import { fetchDefinitionXml } from "../lib/bpmn/definition-xml.js"
 
 export function registerProcessDefinitionTools(register: ToolRegistrar<EngineRegistry>) {
   register({

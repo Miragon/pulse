@@ -6,7 +6,7 @@ import {
   getHistoricProcessInstances,
   getIncidents,
 } from "@miragon/pulse-engine-client/sdk"
-import { collectIncidentActivityIds } from "../lib/activity-tree.js"
+import { collectIncidentActivityIds } from "../lib/bpmn/activity-tree.js"
 import type { HistoryTimelineData } from "../view-models.js"
 import type { PagingArgs } from "../feed-contracts.js"
 import { nameUnnamedDefinitions } from "./definition-info.js"

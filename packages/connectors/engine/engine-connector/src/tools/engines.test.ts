@@ -3,7 +3,7 @@ import type { Client } from "@miragon/pulse-engine-client"
 import { registerEngineTools } from "./engines.js"
 import { captureTools } from "./test-support/fake-engine.js"
 import type { EngineEntry } from "../engine-provider.js"
-import { createEngineRegistry, type EngineRegistry } from "../lib/resolve-engine.js"
+import { createEngineRegistry, type EngineRegistry } from "../lib/engine/resolve-engine.js"
 import { ENGINE_LIST_ENGINES } from "../tool-names.js"
 
 const ENGINES = [
@@ -16,7 +16,7 @@ type Handler = (
   args: Record<string, unknown>,
 ) => Promise<Record<string, unknown>>
 
-/** Toolset mechanics are `lib/toolsets.test.ts`'s; this pins the handler contract. */
+/** Toolset mechanics are `lib/mcp/toolsets.test.ts`'s; this pins the handler contract. */
 function harness(engines: EngineEntry[] = ENGINES, defaultEngineId?: string) {
   const registry = createEngineRegistry(engines, (e) => ({ __engine: e.id }) as unknown as Client, {
     defaultEngineId,

@@ -1,6 +1,6 @@
 import { MAX_PAGE_SIZE } from "./schemas/index.js"
-import { MAX_VARIABLE_VALUE_CHARS } from "./lib/variable-truncation.js"
-import type { EngineToolset } from "./lib/toolsets.js"
+import { MAX_VARIABLE_VALUE_CHARS } from "./lib/mcp/variable-truncation.js"
+import type { EngineToolset } from "./lib/mcp/toolsets.js"
 
 /** Rules for EVERY engine tool, once instead of per description (the `engine` text alone was a fifth of the surface). */
 export interface EngineInstructionsInput {

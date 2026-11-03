@@ -18,11 +18,11 @@ import {
   unclaim,
   setAssignee,
 } from "@miragon/pulse-engine-client/sdk"
-import { paginatedListOutput, toPaginatedList } from "../lib/pagination.js"
-import type { EngineRegistry } from "../lib/resolve-engine.js"
-import { CUT_VALUE_WRITE_RULE, variableRead } from "../lib/variable-truncation.js"
-import { completeUserTask } from "../lib/task-completion.js"
-import { engineParamShape, withEngine } from "../lib/with-engine.js"
+import { paginatedListOutput, toPaginatedList } from "../lib/mcp/pagination.js"
+import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
+import { CUT_VALUE_WRITE_RULE, variableRead } from "../lib/mcp/variable-truncation.js"
+import { completeUserTask } from "../lib/bpmn/complete-user-task.js"
+import { engineParamShape, withEngine } from "../lib/engine/with-engine.js"
 
 export function registerTaskTools(register: ToolRegistrar<EngineRegistry>) {
   register({

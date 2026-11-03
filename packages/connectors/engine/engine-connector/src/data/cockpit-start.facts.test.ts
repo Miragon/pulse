@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { toEngineDate } from "@miragon/pulse-engine-core"
-import { resolveEngine } from "../lib/resolve-engine.js"
+import { resolveEngine } from "../lib/engine/resolve-engine.js"
 import {
   registryFor,
   startFakeEngine,

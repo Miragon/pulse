@@ -20,7 +20,7 @@ import {
   getProcessInstance,
 } from "@miragon/pulse-engine-client/sdk"
 
-import { buildInstanceCockpitUrl } from "../lib/cockpit-url.js"
+import { buildInstanceCockpitUrl } from "../lib/engine/cockpit-url.js"
 import type { EngineProvider } from "../engine-provider.js"
 import { bpmnProcessNameOf, readBpmnNames } from "@miragon/pulse-widget-shell/server"
 import {

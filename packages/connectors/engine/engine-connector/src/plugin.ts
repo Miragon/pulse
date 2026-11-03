@@ -6,9 +6,9 @@ import { registerIncidentIssuePrompt, registerIncidentIssueTools } from "./tools
 import { registerEngineTools } from "./tools/engines.js"
 import { registerWidgetTools } from "./widget-tools.js"
 import type { EngineEntry } from "./engine-provider.js"
-import { createEngineRegistry, type EngineRegistry } from "./lib/resolve-engine.js"
-import { resolveEngineToolset, withToolsetFilter } from "./lib/toolsets.js"
-import { withEngineParam } from "./lib/with-engine.js"
+import { createEngineRegistry, type EngineRegistry } from "./lib/engine/resolve-engine.js"
+import { resolveEngineToolset, withToolsetFilter } from "./lib/mcp/toolsets.js"
+import { withEngineParam } from "./lib/engine/with-engine.js"
 
 export interface EnginePluginConfig {
   engines: EngineEntry[]

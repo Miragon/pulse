@@ -1,5 +1,5 @@
 // Best-effort regex parse; `readonly` fields are displayed but not submitted (the engine rejects a value).
-import type { TaskFormField } from "../view-models.js"
+import type { TaskFormField } from "../../view-models.js"
 
 const CAMUNDA_TYPE_MAP: Record<string, string> = {
   string: "String",

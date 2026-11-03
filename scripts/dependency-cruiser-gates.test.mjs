@@ -93,6 +93,8 @@ const SHELL_VIEWS = "widget-shell-views-browser-only"
 const SHELL_HEADLESS = "widget-shell-server-headless"
 const SHELL_PROTOCOL = "widget-shell-protocol-is-a-leaf"
 const WIDGETS_BROWSER = "connector-widgets-are-browser-code"
+const WIDGETS_SHARED_LIB = "connector-widgets-only-shared-lib"
+const POINT_DOWN = "connector-data-and-lib-point-down"
 const NO_APP = "packages-never-import-the-app"
 const APP_APP = "apps-never-import-apps"
 const HEADLESS = "cli-is-headless"
@@ -193,12 +195,16 @@ const LEAVES = [
   `${SHELL}/src/protocol/view-name.ts`,
   `${ENGINE_CONNECTOR}/src/tools/target.ts`,
   `${ENGINE_CONNECTOR}/src/data/target.ts`,
-  `${ENGINE_CONNECTOR}/src/lib/with-engine.ts`,
-  `${ENGINE_CONNECTOR}/src/lib/environments.ts`,
+  `${ENGINE_CONNECTOR}/src/lib/engine/with-engine.ts`,
+  `${ENGINE_CONNECTOR}/src/lib/mcp/toolsets.ts`,
+  `${ENGINE_CONNECTOR}/src/lib/shared/environments.ts`,
+  `${ENGINE_CONNECTOR}/src/lib/shared/task-completion.ts`,
+  `${ENGINE_CONNECTOR}/src/lib/shared-server/target.ts`,
   `${ENGINE_CONNECTOR}/src/widget-tools/target.ts`,
   `${ENGINE_CONNECTOR}/src/widget-tools.ts`,
   `${ENGINE_CONNECTOR}/src/plugin.ts`,
   `${ENGINE_CONNECTOR}/src/module.ts`,
+  `${ENGINE_CONNECTOR}/src/plugin-names.ts`,
   `${ENGINE_CONNECTOR}/src/feed-contracts.ts`,
   `${ENGINE_CONNECTOR}/src/instructions.ts`,
   `${ENGINE_CONNECTOR}/src/engine-provider.ts`,
@@ -212,7 +218,10 @@ const LEAVES = [
   `${AN_CONNECTOR}/src/bpmn-names.ts`,
   `${AN_CONNECTOR}/src/instructions.ts`,
   `${AN_CONNECTOR}/src/summary.ts`,
-  `${AN_CONNECTOR}/src/lib/environments.ts`,
+  `${AN_CONNECTOR}/src/lib/engine/target.ts`,
+  `${AN_CONNECTOR}/src/widget-tools.ts`,
+  `${AN_CONNECTOR}/src/plugin.ts`,
+  `${AN_CONNECTOR}/src/lib/shared/environments.ts`,
 ]
 const JSON_LEAVES = [`${CLI}/src/generated/commands.json`, `${CLI}/src/generated/catalog.a.json`]
 
@@ -356,7 +365,11 @@ const SUITES = [
     title: "shipped code imports no ./testing entry, a package's own src/testing included",
     cases: [
       [`${CLI}/src/workflow/fixture.ts`, `${ENGINE_CORE}/testing`, [NO_TESTING]],
-      [`${ENGINE_CONNECTOR}/src/lib/composites.ts`, `${ENGINE_CORE}/testing`, [NO_TESTING]],
+      [
+        `${ENGINE_CONNECTOR}/src/lib/core-adapter/composites.ts`,
+        `${ENGINE_CORE}/testing`,
+        [NO_TESTING],
+      ],
       [ENGINE_CONNECTOR_SRC, `${ENGINE_CORE}/testing`, [NO_TESTING]],
       // pulse-ui/testing reads files and parses TypeScript: no shipped module imports it.
       [`${SHELL}/src/ui/brand.ts`, "@miragon/pulse-ui/testing", [NO_TESTING]],
@@ -369,7 +382,12 @@ const SUITES = [
       [`${UI}/src/kit/scan.ts`, "../testing/glyphs.ts", [NO_TESTING]],
       // test-support may import ./testing, so shipped code may not import test-support.
       [`${CLI}/src/workflow/support.ts`, "./test-support/fixture.ts", [NO_TESTING]],
-      [`${ENGINE_CONNECTOR}/src/lib/x.ts`, "../tools/test-support/fake-engine.ts", [NO_TESTING]],
+      // From a lib folder it is an edge up into src/tools as well.
+      [
+        `${ENGINE_CONNECTOR}/src/lib/engine/x.ts`,
+        "../../tools/test-support/fake-engine.ts",
+        [NO_TESTING, POINT_DOWN],
+      ],
       [`${SHELL}/src/boot.ts`, "./composition.test-support.ts", [NO_TESTING]],
       [`${CLI}/src/workflow/test-support/fixture.ts`, `${ENGINE_CORE}/testing`, []],
       // A test file of its own tree is cli-not-to-test's.
@@ -378,7 +396,11 @@ const SUITES = [
       [`${SHELL}/src/ui/kit.ts`, "@miragon/pulse-ui/testing-kit", []],
       // Allowed: tests, their test-support, test/ trees and a ./testing entry itself.
       [`${CLI}/test/support/fixture.ts`, `${ENGINE_CORE}/testing`, []],
-      [`${ENGINE_CONNECTOR}/src/lib/composites.wire.test.ts`, `${ENGINE_CORE}/testing`, []],
+      [
+        `${ENGINE_CONNECTOR}/src/lib/core-adapter/composites.wire.test.ts`,
+        `${ENGINE_CORE}/testing`,
+        [],
+      ],
       [`${ENGINE_CONNECTOR}/src/tools/test-support/fake-engine.ts`, `${ENGINE_CORE}/testing`, []],
       [`${SHELL}/src/testing/glossary.ts`, "@miragon/pulse-ui/testing", []],
       [`${SHELL}/src/composition.test-support.ts`, "@miragon/pulse-ui/testing", []],
@@ -578,12 +600,12 @@ const SUITES = [
   },
   {
     rule: WIDGETS_BROWSER,
-    title: "a connector's widgets import only browser code at runtime (an allowlist)",
+    title:
+      "a connector's widgets and its src/lib/shared import only browser code at runtime (an allowlist)",
     cases: [
       ...[
         "../tools/target.ts",
         "../data/target.ts",
-        "../lib/with-engine.ts",
         "../widget-tools/target.ts",
         "../widget-tools.ts",
         "../plugin.ts",
@@ -630,8 +652,8 @@ const SUITES = [
       ],
       [`${AN_CONNECTOR}/src/widgets/server-code.tsx`, "../instructions.ts", [WIDGETS_BROWSER]],
       [`${AN_CONNECTOR}/src/widgets/server-code.tsx`, "../summary.ts", [WIDGETS_BROWSER]],
-      // The exemption is the engine connector's file, by path: not another connector's lib.
-      [`${AN_CONNECTOR}/src/widgets/server-code.tsx`, "../lib/environments.ts", [WIDGETS_BROWSER]],
+      // No file is exempt by name any more: the shared folder is every connector's, by role.
+      [`${AN_CONNECTOR}/src/widgets/view.tsx`, "../lib/shared/environments.ts", []],
       // Another family's client is no browser code either (and connectors-own-their-family's).
       [
         `${AN_CONNECTOR}/src/widgets/engine-sdk.ts`,
@@ -642,20 +664,19 @@ const SUITES = [
       ...[
         "../tools/target.ts",
         "../data/target.ts",
-        "../lib/with-engine.ts",
         "../feed-contracts.ts",
         "@miragon/pulse-engine-client",
       ].map((spec) => [`${ENGINE_CONNECTOR}/src/widgets/types.ts`, spec, [], "type"]),
       [`${AN_CONNECTOR}/src/widgets/types.ts`, "@miragon/pulse-analytics-client", [], "type"],
       // Allowed at runtime: the widgets' own modules, the shared words, names and view models, the
-      // one exempt lib module, widget-shell's view half and the view stack.
+      // shared lib folder, widget-shell's view half and the view stack.
       ...[
         "./lib/engine-action.ts",
         "../view-models.ts",
         "../view-models.health.ts",
         "../tool-names.ts",
         "../messages/use-t.ts",
-        "../lib/environments.ts",
+        "../lib/shared/environments.ts",
         "@miragon/pulse-widget-shell/widgets",
         "@miragon/pulse-ui",
         "react",
@@ -671,8 +692,143 @@ const SUITES = [
         "../../tools/test-support/fake-engine.ts",
         [],
       ],
+      // src/lib/shared is held to the same allowlist: what it imports reaches every view bundle.
+      ...[
+        "../engine/with-engine.ts",
+        "../../data/target.ts",
+        "@miragon/pulse-engine-client",
+        "@miragon/pulse-widget-shell/server",
+        "zod",
+        "node:fs",
+      ].map((spec) => [`${ENGINE_CONNECTOR}/src/lib/shared/leak.ts`, spec, [WIDGETS_BROWSER]]),
+      // The connector's root is server code above the lib folders: both rules.
+      [
+        `${ENGINE_CONNECTOR}/src/lib/shared/leak.ts`,
+        "../../plugin.ts",
+        [POINT_DOWN, WIDGETS_BROWSER],
+      ],
+      [`${ENGINE_CONNECTOR}/src/lib/shared/types.ts`, "../engine/with-engine.ts", [], "type"],
+      ...[
+        "./task-completion.ts",
+        "../../tool-names.ts",
+        "../../messages/use-t.ts",
+        "@miragon/pulse-widget-shell/widgets",
+        "react",
+      ].map((spec) => [`${ENGINE_CONNECTOR}/src/lib/shared/fine.ts`, spec, []]),
+      [`${ENGINE_CONNECTOR}/src/lib/shared/environments.test.ts`, "vitest", []],
       // The server side imports its own server code freely.
       [`${ENGINE_CONNECTOR}/src/widget-tools/cockpit.ts`, "../data/target.ts", []],
+      [`${ENGINE_CONNECTOR}/src/tools/engines.ts`, "../lib/shared/environments.ts", []],
+    ],
+  },
+  {
+    rule: WIDGETS_SHARED_LIB,
+    title: "of a connector's lib folders its widgets import only src/lib/shared, types included",
+    cases: [
+      ...[
+        "../lib/engine/with-engine.ts",
+        "../lib/mcp/toolsets.ts",
+        "../lib/core-adapter/composites.ts",
+      ].map((spec) => [
+        `${ENGINE_CONNECTOR}/src/widgets/server-types.ts`,
+        spec,
+        [WIDGETS_SHARED_LIB],
+        "type",
+      ]),
+      // At runtime it is server code as well.
+      [
+        `${ENGINE_CONNECTOR}/src/widgets/server-lib.ts`,
+        "../lib/engine/with-engine.ts",
+        [WIDGETS_BROWSER, WIDGETS_SHARED_LIB],
+      ],
+      [
+        `${ENGINE_CONNECTOR}/src/widgets/nested/deep-lib.ts`,
+        "../../lib/mcp/toolsets.ts",
+        [WIDGETS_BROWSER, WIDGETS_SHARED_LIB],
+        "dynamic",
+      ],
+      // Anchored on the folder: a look-alike of shared/ is no shared folder.
+      [
+        `${ENGINE_CONNECTOR}/src/widgets/look-alike.ts`,
+        "../lib/shared-server/target.ts",
+        [WIDGETS_BROWSER, WIDGETS_SHARED_LIB],
+      ],
+      // Keyed on the role: any connector's widgets.
+      [
+        `${AN_CONNECTOR}/src/widgets/server-lib.ts`,
+        "../lib/engine/target.ts",
+        [WIDGETS_BROWSER, WIDGETS_SHARED_LIB],
+      ],
+      // Allowed: the shared folder, at runtime and as a type.
+      [
+        `${ENGINE_CONNECTOR}/src/widgets/shared-types.ts`,
+        "../lib/shared/task-completion.ts",
+        [],
+        "type",
+      ],
+      [`${ENGINE_CONNECTOR}/src/widgets/shared-lib.ts`, "../lib/shared/environments.ts", []],
+      // Tests and their test-support read the toolsets to render each surface: exempt.
+      [`${ENGINE_CONNECTOR}/src/widgets/remediation.test.ts`, "../lib/mcp/toolsets.ts", [], "type"],
+      [
+        `${ENGINE_CONNECTOR}/src/widgets/lib/hand-off.test-support.ts`,
+        "../../lib/mcp/toolsets.ts",
+        [],
+        "type",
+      ],
+    ],
+  },
+  {
+    rule: POINT_DOWN,
+    title:
+      "a connector's data builders and lib folders never import its tools, widget tools or widgets",
+    cases: [
+      ...[
+        "../tools/target.ts",
+        "../widget-tools/target.ts",
+        "../widget-tools.ts",
+        "../widgets/lib/engine-action.ts",
+      ].map((spec) => [`${ENGINE_CONNECTOR}/src/data/up.ts`, spec, [POINT_DOWN]]),
+      ...["../../tools/target.ts", "../../widget-tools/target.ts", "../../widget-tools.ts"].map(
+        (spec) => [`${ENGINE_CONNECTOR}/src/lib/bpmn/up.ts`, spec, [POINT_DOWN]],
+      ),
+      // A type is an edge up too, and so is a lazy import.
+      [`${ENGINE_CONNECTOR}/src/data/up-types.ts`, "../tools/target.ts", [POINT_DOWN], "type"],
+      [`${ENGINE_CONNECTOR}/src/data/up-lazy.ts`, "../tools/target.ts", [POINT_DOWN], "dynamic"],
+      [
+        `${ENGINE_CONNECTOR}/src/lib/shared/up.ts`,
+        "../../widgets/lib/engine-action.ts",
+        [POINT_DOWN],
+      ],
+      // Its root registers every tool: by relative path ...
+      [`${ENGINE_CONNECTOR}/src/data/root-up.ts`, "../plugin.ts", [POINT_DOWN]],
+      [`${ENGINE_CONNECTOR}/src/data/root-up.ts`, "../module.ts", [POINT_DOWN]],
+      [`${ENGINE_CONNECTOR}/src/lib/engine/root-up.ts`, "../../index.ts", [POINT_DOWN]],
+      [`${AN_CONNECTOR}/src/lib/engine/root-up.ts`, "../../plugin.ts", [POINT_DOWN]],
+      // ... and by the connector's own npm name, which reaches its root and its widgets.
+      [`${ENGINE_CONNECTOR}/src/data/self.ts`, "@miragon/pulse-engine-connector", [POINT_DOWN]],
+      [
+        `${ENGINE_CONNECTOR}/src/lib/mcp/self.ts`,
+        "@miragon/pulse-engine-connector/widgets",
+        [POINT_DOWN],
+      ],
+      // Keyed on the role: any connector's data and lib.
+      [`${AN_CONNECTOR}/src/data/up.ts`, "../tools/target.ts", [POINT_DOWN]],
+      [`${AN_CONNECTOR}/src/lib/engine/up.ts`, "../../widget-tools.ts", [POINT_DOWN]],
+      // Allowed: down and sideways, and every layer above may import these.
+      [`${ENGINE_CONNECTOR}/src/data/down.ts`, "../lib/engine/with-engine.ts", []],
+      [`${ENGINE_CONNECTOR}/src/data/down.ts`, "../view-models.ts", []],
+      [`${ENGINE_CONNECTOR}/src/lib/bpmn/down.ts`, "../engine/with-engine.ts", []],
+      [`${ENGINE_CONNECTOR}/src/lib/bpmn/down.ts`, "../../tool-names.ts", []],
+      // Root files that register nothing stay below: only index, plugin and module are the root.
+      [`${ENGINE_CONNECTOR}/src/data/down.ts`, "../plugin-names.ts", []],
+      [`${ENGINE_CONNECTOR}/src/lib/engine/down.ts`, "../../engine-provider.ts", []],
+      [`${ENGINE_CONNECTOR}/src/tools/up.ts`, "../data/target.ts", []],
+      [`${ENGINE_CONNECTOR}/src/tools/up.ts`, "../lib/engine/with-engine.ts", []],
+      [`${ENGINE_CONNECTOR}/src/widget-tools/up.ts`, "../lib/mcp/toolsets.ts", []],
+      // Tests and their test-support boot the plugin and its tools: exempt.
+      [`${ENGINE_CONNECTOR}/src/data/cockpit-start.test.ts`, "../widget-tools/target.ts", []],
+      [`${ENGINE_CONNECTOR}/src/lib/mcp/toolsets.test.ts`, "../../tools/target.ts", []],
+      [`${ENGINE_CONNECTOR}/src/lib/engine/fake.test-support.ts`, "../../tools/target.ts", []],
     ],
   },
   {

@@ -29,11 +29,11 @@ import {
   setProcessInstanceVariable,
   updateSuspensionStateById,
 } from "@miragon/pulse-engine-client/sdk"
-import { inspectForModel } from "../lib/composites.js"
-import { paginatedListOutput, toPaginatedList } from "../lib/pagination.js"
-import type { EngineRegistry } from "../lib/resolve-engine.js"
-import { CUT_VALUE_WRITE_RULE, variableRead } from "../lib/variable-truncation.js"
-import { engineParamShape, withEngine } from "../lib/with-engine.js"
+import { inspectForModel } from "../lib/core-adapter/composites.js"
+import { paginatedListOutput, toPaginatedList } from "../lib/mcp/pagination.js"
+import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
+import { CUT_VALUE_WRITE_RULE, variableRead } from "../lib/mcp/variable-truncation.js"
+import { engineParamShape, withEngine } from "../lib/engine/with-engine.js"
 
 export function registerProcessInstanceTools(register: ToolRegistrar<EngineRegistry>) {
   register({

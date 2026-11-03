@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it } from "vitest"
-import { engineWith, status, stopFakeEngines } from "../tools/test-support/composites.js"
-import type { FakeRoutes } from "../tools/test-support/fake-engine.js"
+import { engineWith, status, stopFakeEngines } from "./composites.test-support.js"
+import type { FakeRoutes } from "../../tools/test-support/fake-engine.js"
 import { FINDING_RULES, MAX_STATUS_ROWS, STATUS_RULE } from "./composites.js"
 
-/** engine_status on the wire (helpers: tools/test-support/composites.ts). */
+/** engine_status on the wire (helpers: composites.test-support.ts). */
 
 afterEach(stopFakeEngines)
 

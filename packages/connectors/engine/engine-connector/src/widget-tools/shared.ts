@@ -1,14 +1,8 @@
 import type { MCPServer } from "mcp-use"
 import type { EngineHealthThresholds } from "../data/health-data.js"
-import { clusterDetailFilterShape } from "../feed-contracts.js"
-import { pagingShape } from "../schemas/index.js"
-import type { EngineRegistry, resolveEngine } from "../lib/resolve-engine.js"
-import type { EngineToolset } from "../lib/toolsets.js"
-import type { EngineParamShape } from "../lib/with-engine.js"
-
-export type ResolvedEngine = ReturnType<typeof resolveEngine>
-
-export const clusterDetailShape = { ...clusterDetailFilterShape, ...pagingShape }
+import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
+import type { EngineToolset } from "../lib/mcp/toolsets.js"
+import type { EngineParamShape } from "../lib/engine/with-engine.js"
 
 export interface WidgetToolsContext {
   server: MCPServer

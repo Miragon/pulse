@@ -8,7 +8,7 @@ import type { AddressInfo } from "node:net"
 import { z } from "zod"
 import type { ToolConfig } from "@miragon/pulse-widget-shell/server"
 import type { Client } from "@miragon/pulse-engine-client"
-import { createEngineRegistry, type EngineRegistry } from "../../lib/resolve-engine.js"
+import { createEngineRegistry, type EngineRegistry } from "../../lib/engine/resolve-engine.js"
 import { providerForEntry } from "../../providers/index.js"
 
 export interface RecordedRequest {

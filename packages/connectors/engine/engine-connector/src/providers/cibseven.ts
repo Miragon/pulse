@@ -1,5 +1,5 @@
 import type { EngineProvider } from "../engine-provider.js"
-import { tabSuffix } from "../lib/cockpit-url.js"
+import { tabSuffix } from "../lib/engine/cockpit-url.js"
 import { createDialectClient } from "./create-client.js"
 
 /** Addressed by process KEY; an omitted version resolves to latest, a "latest" segment would 404. */

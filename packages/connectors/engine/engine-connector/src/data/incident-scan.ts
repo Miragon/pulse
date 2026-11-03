@@ -8,7 +8,7 @@ import {
 import { getIncidents, getProcessInstances } from "@miragon/pulse-engine-client/sdk"
 import type { IncidentInstance } from "../view-models.js"
 import type { EngineProvider } from "../engine-provider.js"
-import { buildInstanceCockpitUrl } from "../lib/cockpit-url.js"
+import { buildInstanceCockpitUrl } from "../lib/engine/cockpit-url.js"
 import { definitionVersionFromId } from "./definition-info.js"
 import { INCIDENT_SCAN_LIMIT, rowsOf } from "./engine-reads.js"
 

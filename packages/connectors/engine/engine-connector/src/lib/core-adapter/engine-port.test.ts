@@ -1,7 +1,11 @@
 import { afterEach, describe, expect, it } from "vitest"
 import { EngineRequestError } from "@miragon/pulse-engine-client"
 import { INSPECT_OPERATIONS, STATUS_OPERATIONS } from "@miragon/pulse-engine-core/testing"
-import { clientFor, type FakeEngine, startFakeEngine } from "../tools/test-support/fake-engine.js"
+import {
+  clientFor,
+  type FakeEngine,
+  startFakeEngine,
+} from "../../tools/test-support/fake-engine.js"
 import { engineFailure, enginePortFor, READS } from "./engine-port.js"
 
 const engines: FakeEngine[] = []

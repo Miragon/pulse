@@ -288,29 +288,64 @@ module.exports = {
       name: "connector-widgets-are-browser-code",
       severity: "error",
       comment:
-        "A connector's widgets (src/widgets, compiled into every view bundle) import at runtime " +
-        "only browser code: their own src/widgets, the shared words (src/messages), the tool " +
+        "A connector's widgets (src/widgets, compiled into every view bundle) and the lib folder " +
+        "they share with the server (src/lib/shared) import at runtime only browser code: the " +
+        "widgets' own src/widgets, src/lib/shared, the shared words (src/messages), the tool " +
         "names (src/tool-names.ts), the view models (src/view-models*.ts), the BPMN-name reader " +
         "(src/bpmn-names.ts), widget-shell's `/widgets` and the view stack (VIEW_STACK). Nothing " +
-        "else of the connector (tools, widget tools, data builders, server lib, providers, " +
-        "instructions, feed contracts, plugin, module, the package root), no client SDK, no " +
-        "server package (mcp-use, zod), no Node built-in. Type-only imports stay allowed: a " +
-        "widget reads the view models' and feeds' types. Data reaches a widget through its view " +
-        "tool and `*_data` feeds. Exempt: the engine connector's src/lib/environments.ts, the pure " +
-        "engine grouping the cockpit's widgets and the engine tools share (the lib/ split of the " +
-        "review's P11 gives it its place).",
+        "else of the connector (tools, widget tools, data builders, the other lib folders, " +
+        "providers, instructions, feed contracts, plugin, module, the package root), no client " +
+        "SDK, no server package (mcp-use, zod), no Node built-in. Type-only imports stay allowed: " +
+        "a widget reads the view models' and feeds' types. Data reaches a widget through its view " +
+        "tool and `*_data` feeds; pure code the widgets and the server both run goes into " +
+        "src/lib/shared.",
       from: {
-        path: "^packages/connectors/[^/]+/([^/]+)-connector/src/widgets/",
+        path: "^packages/connectors/[^/]+/([^/]+)-connector/src/(?:widgets|lib/shared)/",
         pathNot: SRC_TEST_CODE,
       },
       to: {
         dependencyTypesNot: ["type-only"],
         pathNot: [
-          "^packages/connectors/[^/]+/$1-connector/src/(?:widgets|messages)/",
+          "^packages/connectors/[^/]+/$1-connector/src/(?:widgets|messages|lib/shared)/",
           "^packages/connectors/[^/]+/$1-connector/src/(?:tool-names|view-models[.\\w-]*|bpmn-names)[.]tsx?$",
-          // The one named exemption (the engine connector's, not every connector's lib/).
-          "^packages/connectors/engine/engine-connector/src/lib/environments[.]ts$",
           ...npm(`${VIEW_STACK}|@miragon/pulse-widget-shell/widgets`),
+        ],
+      },
+    },
+    {
+      name: "connector-widgets-only-shared-lib",
+      severity: "error",
+      comment:
+        "Of a connector's lib folders (src/lib/<job>: engine routing, the engine-core adapter, " +
+        "BPMN reading, the MCP tool surface) its widgets import only src/lib/shared, not even " +
+        "for a type: the other folders are server code, and a type a widget needs from the " +
+        "server side is declared once in src/lib/shared (TaskCompletion) or in the view models.",
+      from: {
+        path: "^packages/connectors/[^/]+/([^/]+)-connector/src/widgets/",
+        pathNot: SRC_TEST_CODE,
+      },
+      to: { path: "^packages/connectors/[^/]+/$1-connector/src/lib/(?!shared/)" },
+    },
+    {
+      name: "connector-data-and-lib-point-down",
+      severity: "error",
+      comment:
+        "Inside a connector the edges point one way: the tools (src/tools), the widget tools " +
+        "(src/widget-tools.ts, src/widget-tools/) and the widgets (src/widgets) build on the data " +
+        "builders (src/data) and the lib folders (src/lib/<job>), never the reverse. A helper a " +
+        "builder or a lib module needs from a tool moves down into the lib folder of its job " +
+        "(condenseStacktrace into src/lib/mcp, buildTaskFormSchema into src/lib/bpmn). Tests and " +
+        "their test-support may boot the tools. Nor does such a module import the connector's " +
+        "root (src/index, src/plugin, src/module, which register every tool) or the connector " +
+        "by its own npm name: its root and `/widgets` entries sit above these layers.",
+      from: {
+        path: "^packages/connectors/[^/]+/([^/]+)-connector/src/(?:data|lib)/",
+        pathNot: SRC_TEST_CODE,
+      },
+      to: {
+        path: [
+          "^packages/connectors/[^/]+/$1-connector/src/(?:(?:tools|widget-tools|widgets)/|(?:widget-tools|index|plugin|module)[.]tsx?$)",
+          ...npm("@miragon/pulse-$1-connector"),
         ],
       },
     },

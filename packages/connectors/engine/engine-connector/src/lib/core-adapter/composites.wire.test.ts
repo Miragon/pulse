@@ -13,16 +13,16 @@ import {
   fixtureEngine,
   inspect,
   stopFakeEngines,
-} from "../tools/test-support/composites.js"
+} from "./composites.test-support.js"
 import {
   MAX_INCIDENTS,
   MAX_TIMELINE_ENTRIES,
   MAX_VARIABLES,
   MAX_WAIT_STATES,
 } from "./composites.js"
-import { MAX_VARIABLE_VALUE_CHARS } from "./variable-truncation.js"
+import { MAX_VARIABLE_VALUE_CHARS } from "../mcp/variable-truncation.js"
 
-/** engine_inspect_process_instance on the wire (helpers: tools/test-support/composites.ts). */
+/** engine_inspect_process_instance on the wire (helpers: composites.test-support.ts). */
 
 afterEach(stopFakeEngines)
 

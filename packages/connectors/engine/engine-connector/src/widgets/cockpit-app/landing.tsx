@@ -12,7 +12,7 @@ import {
 } from "@miragon/pulse-ui"
 import { WidgetShell } from "@miragon/pulse-widget-shell/widgets"
 import { ArrowRight, CircleDashed, Layers, LoaderCircle, Unplug } from "lucide-react"
-import { DEFAULT_ENVIRONMENT_ID, groupEnginesByEnvironment } from "../../lib/environments.js"
+import { DEFAULT_ENVIRONMENT_ID, groupEnginesByEnvironment } from "../../lib/shared/environments.js"
 import { translator } from "../../messages/use-t.js"
 import { useEngineHealth } from "./engine-health.js"
 

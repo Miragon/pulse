@@ -118,7 +118,7 @@ external infrastructure.
    admin-like toolset is only reachable by naming it. Gate a write by the
    module's toolset rule at registration (the engine module's
    `withToolsetFilter`/`isToolInToolset` in
-   `node_modules/@miragon/pulse-engine-connector/src/lib/toolsets.ts`), never
+   `node_modules/@miragon/pulse-engine-connector/src/lib/mcp/toolsets.ts`), never
    on a name compare or on `toolset === undefined`, both of which fail open.
    Details: `create-module` Step 5.
 

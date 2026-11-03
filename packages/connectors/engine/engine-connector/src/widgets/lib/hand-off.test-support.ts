@@ -2,7 +2,7 @@ import { vi } from "vitest"
 import { feedPayload } from "../../tools/test-support/feed-payload.js"
 import type { MCPServer } from "mcp-use"
 import { createPlugin } from "../../plugin.js"
-import type { EngineToolset } from "../../lib/toolsets.js"
+import type { EngineToolset } from "../../lib/mcp/toolsets.js"
 import { ENGINE_WIDGET_ACTIONS_DATA } from "../../tool-names.js"
 
 /** Runs the real registration paths, so tests can't drift from the toolsets like a hand-written list. */

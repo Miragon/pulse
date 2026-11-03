@@ -26,10 +26,10 @@ import {
   getHistoricIncidents,
   getHistoricIncidentsCount,
 } from "@miragon/pulse-engine-client/sdk"
-import { paginatedListOutput, toPaginatedList } from "../lib/pagination.js"
-import type { EngineRegistry } from "../lib/resolve-engine.js"
-import { truncateVariableRows } from "../lib/variable-truncation.js"
-import { engineParamShape, withEngine } from "../lib/with-engine.js"
+import { paginatedListOutput, toPaginatedList } from "../lib/mcp/pagination.js"
+import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
+import { truncateVariableRows } from "../lib/mcp/variable-truncation.js"
+import { engineParamShape, withEngine } from "../lib/engine/with-engine.js"
 
 interface TimeWindow {
   startedAfter?: string

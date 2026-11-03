@@ -201,15 +201,15 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    `register` callback of `createToolRegistrar` (`@miragon/pulse-widget-shell/server`, wired in
    `src/tools/index.ts`): a `category` matching its domain file (`"analytics"` in the analytics
    module), `...engineParamShape` in the input schema, the handler wrapped in `withEngine(...)`
-   (both from `src/lib/with-engine.ts`). Canonical shape: `engine_list_process_instances` in
+   (both from `src/lib/engine/with-engine.ts`). Canonical shape: `engine_list_process_instances` in
    `packages/connectors/engine/engine-connector/src/tools/process-instances.ts`. ESLint
    (`no-restricted-syntax` in `eslint.config.mjs`) blocks raw `server.tool()` in every spelling
    outside the widget-path files its `ignores` lists. `no-restricted-syntax` is ONE rule: a
    later flat-config block REPLACES its selectors, so a glob two gates share gets one block with
    the union (`scripts/eslint-gates.test.mjs`).
    - Annotations decide the toolset. A destructive or admin tool goes into `ADMIN_ONLY_TOOLS`
-     (`src/lib/toolsets.ts`); `src/lib/toolsets.test.ts` checks every registrar tool and
-     `src/plugin.test.ts` every tool the module registers, feeds included (the read-only floor
+     (`src/lib/mcp/toolsets.ts`); `src/lib/mcp/toolsets.test.ts` checks every registrar tool
+     and `src/plugin.test.ts` every tool the module registers, feeds included (the read-only floor
      holds only `readOnlyHint` tools; every write states `destructiveHint`, since MCP reads an
      absent hint as `true`). Fix the annotations, not the test.
    - Toolsets are FAIL-CLOSED: without a suffix a module runs its read-only floor on an
@@ -231,7 +231,7 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      that gate or fold it into a toolset.
 
 2. **Never talk to an engine directly.** All engine access goes through
-   `resolveEngine`/`withEngine` (`packages/connectors/engine/engine-connector/src/lib/`),
+   `resolveEngine`/`withEngine` (`packages/connectors/engine/engine-connector/src/lib/engine/`),
    which routes by precedence: per-call `engine` > the operator default
    `ENGINE_DEFAULT` (it must name a configured engine, else the boot fails) > the only
    configured engine > `ENGINE_NOT_SELECTED` listing the engines. There is deliberately NO
@@ -248,13 +248,17 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    - `packages/connectors/engine/engine-connector/src/tool-names.ts`: the tool-name constant
      for the view tool and every `*_data` feed, so in-widget feed calls stay rename-safe
 
-   New engine UI is a cockpit route, never a second view: a section in `CockpitView`
-   (`src/view-models.ts`) and a case in `CockpitRoute` (`src/widgets/cockpit-app/routes.tsx`),
-   its builder in `src/data/` with its read in `src/data/route-reads.ts` (its `*_data` feed and
-   the start view share it), an entry in `START_VIEW_PARAMS`
-   (`src/widget-tools/cockpit.ts`) and in `buildCockpitStart`/`cockpitFacts`
-   (`src/data/cockpit-start.ts`); the exhaustive maps fail to compile until each has it. A
-   route that nothing emits and `engine_open_cockpit` cannot open is dead.
+   New engine UI is a cockpit route, never a second view: a section in `CockpitView` and its
+   data in `CockpitStartData` (`src/view-models.ts`), its builder in `src/data/`, its `*_data`
+   feed in `DATA_FEEDS` (`src/data/feeds.ts`) and the feed's name in `src/tool-names.ts`, its
+   entry in the route descriptor `COCKPIT_ROUTES` (`src/data/routes.ts`: the ids it needs and
+   takes, its start data as that feed's first page and its facts for the model) and a case in
+   the widgets' `CockpitRoute` (`src/widgets/cockpit-app/routes.tsx`). The feed registrations
+   (`src/widget-tools/data-feeds.ts`), the `view` enum and its ids
+   (`src/widget-tools/cockpit.ts`) and the start dispatch (`src/data/cockpit-start.ts`) derive
+   from them; `COCKPIT_ROUTES` and the widgets' route switch are total over the sections, so
+   they fail to compile until each has the route. A route that nothing emits and
+   `engine_open_cockpit` cannot open is dead.
 
    A view is picked by its NAME, the view tool's name (`showToolBinding`, primed under
    `ui://views/<name>.html` with a prelude naming it), so
@@ -397,7 +401,7 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    - Definition name/version/instance lookups come from
      `packages/connectors/engine/engine-connector/src/data/definition-info.ts`. Every
      cockpit route has ONE builder in `src/data/` behind its `*_data` feed and the start view of
-     `engine_open_cockpit` (`buildCockpitStart`).
+     `engine_open_cockpit`, both read through its feed in `src/data/feeds.ts`.
    - Honest numbers (`data/engine-reads.ts`): **primary rows/counts propagate errors;
      enrichment degrades to `null` (rendered "—"), never 0**; totals come from `/count` or
      statistics, never a capped page or scan; a definition view spans every version of its key
@@ -405,8 +409,8 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    - No view payload carries BPMN XML (a view tool's `structuredContent` reaches the model on
      some hosts): a view names the version it draws (`diagramDefinitionId`) and `BpmnDiagram`
      reads the XML from the app-only `engine_bpmn_xml_data` (the heatmap from
-     `analytics_bpmn_xml_data`). The ONE XML read is `lib/definition-xml.ts`, cached per engine
-     client and per caller.
+     `analytics_bpmn_xml_data`). The ONE XML read is `lib/bpmn/definition-xml.ts`, cached per
+     engine client and per caller.
    - Each engine REST rule the client defaults miss has one home, used by `tools/` AND `data/`
      (and by the CLI): the pure rules (`toEngineDate`, `engineSorting`, the filters,
      `toEngineVariable(s)`, `autoTypedValue`, `incidentRecovery`, `RAW_VARIABLES`, root causes,
@@ -423,10 +427,10 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      the CLI does not). Every write tool has a recording-fake-engine case in
      `src/tools/*.wire.test.ts`. Analytics periods derive from `PERIODS`/`PERIOD_RANGE`.
    - The workflow rules the CLI and the read composites (`engine_inspect_process_instance`,
-     `engine_status`, `src/lib/composites.ts`) share live in `@miragon/pulse-engine-core`:
-     selection, root cause, the composites' paging and caps; the connector's port
-     (`src/lib/engine-port.ts`) maps each operation to an SDK or contract read. Deliberate
-     carve-outs: the composites read definitions by id inside inspect (not `data/definition-info.ts`;
+     `engine_status`, `src/lib/core-adapter/composites.ts`) share live in
+     `@miragon/pulse-engine-core`: selection, root cause, the composites' paging and caps; the
+     connector's port (`src/lib/core-adapter/engine-port.ts`) maps each operation to an SDK or
+     contract read. Deliberate carve-outs: the composites read definitions by id inside inspect (not `data/definition-info.ts`;
      `definitionKeyOf` only as a fallback), send UTC `+0000` dates (`engineFormat`, not
      `toEngineDate`), and count overdue jobs from a capped scan of 1,000 per key, named in
      `truncated` (not a `/count`). The MCP side caps the result lists engine-core leaves uncapped
@@ -469,13 +473,19 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      React (`widget-shell-server-headless`); `src/protocol` imports nothing but itself
      (`widget-shell-protocol-is-a-leaf`); its `tsconfig.widgets.json` (DOM, no Node types) and
      `tsconfig.json` (Node, no DOM) split the types the same way. A connector's `src/widgets`
-     imports at runtime only an allowlist (`connector-widgets-are-browser-code`): its own
-     widgets, `src/messages`, `src/tool-names.ts`, the view models, `src/bpmn-names.ts`,
-     widget-shell's `/widgets` and the view stack, plus one named exemption, the pure
-     `packages/connectors/engine/engine-connector/src/lib/environments.ts`; anything else of the
-     connector, its client, a server package or a Node built-in only as a type. Each rule has
-     planted violations in `scripts/dependency-cruiser-gates.test.mjs`; a new app adds its npm
-     name to the config's `APP_PACKAGES`. A rule names all three shapes an import reaches it in
+     and `src/lib/shared` import at runtime only an allowlist
+     (`connector-widgets-are-browser-code`): its own widgets, `src/lib/shared`, `src/messages`,
+     `src/tool-names.ts`, the view models, `src/bpmn-names.ts`, widget-shell's `/widgets` and the
+     view stack; anything else of the connector, its client, a server package or a Node built-in
+     only as a type, and the other lib folders not even as a type
+     (`connector-widgets-only-shared-lib`). Inside a connector the edges point one way: `src/data`
+     and the lib folders (`src/lib/engine` routing, `src/lib/core-adapter` the engine-core port,
+     `src/lib/bpmn` BPMN and task forms, `src/lib/mcp` the tool surface, `src/lib/shared` what the
+     widgets share) never import `src/tools`, `src/widget-tools`, `src/widgets` or the
+     connector's root (`src/index`, `src/plugin`, `src/module`)
+     (`connector-data-and-lib-point-down`). Each rule has planted violations in
+     `scripts/dependency-cruiser-gates.test.mjs`; a new app adds its npm name to the config's
+     `APP_PACKAGES`. A rule names all three shapes an import reaches it in
      (a relative escape, `<importer>/node_modules/<name>/`, a bare specifier) and never exempts a
      package's own directory in a `pathNot`.
    - **The module port.** Each module exports its definition in `src/module.ts` (config schema,

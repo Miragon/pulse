@@ -5,13 +5,13 @@ import type { MCPServer } from "mcp-use"
 import { createToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import { DEFAULT_HEALTH_THRESHOLDS } from "../data/health-data.js"
 import type { EngineEntry } from "../engine-provider.js"
-import { createEngineRegistry } from "../lib/resolve-engine.js"
+import { createEngineRegistry } from "../lib/engine/resolve-engine.js"
 import { engineModule, createBpmnXmlFetcher } from "../module.js"
 import { providerForEntry } from "../providers/index.js"
 import { ENGINE_PROCESS_INSTANCES_DATA } from "../tool-names.js"
 import { registerWidgetDataFeeds } from "../widget-tools/data-feeds.js"
 import { registerProcessInstanceTools } from "./process-instances.js"
-import { engineParamShape } from "../lib/with-engine.js"
+import { engineParamShape } from "../lib/engine/with-engine.js"
 
 /** #325, end to end with nothing mocked: before the fix these read "[object Object]". */
 

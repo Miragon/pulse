@@ -1,8 +1,8 @@
 import { getBatchInput } from "../schemas/index.js"
 import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import { readBatch } from "@miragon/pulse-engine-client"
-import type { EngineRegistry } from "../lib/resolve-engine.js"
-import { engineParamShape, withEngine } from "../lib/with-engine.js"
+import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
+import { engineParamShape, withEngine } from "../lib/engine/with-engine.js"
 
 /** Batch writes only report a QUEUED batch; this read says what became of it. */
 export function registerBatchTools(register: ToolRegistrar<EngineRegistry>) {

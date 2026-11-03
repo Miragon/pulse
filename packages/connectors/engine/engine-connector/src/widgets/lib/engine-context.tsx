@@ -1,7 +1,7 @@
 import { cn } from "@miragon/pulse-ui"
 import { useToolQuery } from "@miragon/pulse-widget-shell/widgets"
 import { ENGINE_LIST_ENGINES } from "../../tool-names.js"
-import { DEFAULT_ENVIRONMENT_ID } from "../../lib/environments.js"
+import { DEFAULT_ENVIRONMENT_ID } from "../../lib/shared/environments.js"
 import { useT, type T } from "../../messages/use-t.js"
 import type { TargetLine } from "./engine-action.js"
 

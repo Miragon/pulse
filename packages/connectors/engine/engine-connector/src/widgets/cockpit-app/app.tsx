@@ -9,7 +9,7 @@ import {
   WidgetShell,
 } from "@miragon/pulse-widget-shell/widgets"
 import type { CockpitAppData, CockpitStart, CockpitView } from "../../view-models.js"
-import { groupEnginesByEnvironment } from "../../lib/environments.js"
+import { groupEnginesByEnvironment } from "../../lib/shared/environments.js"
 import { environmentIn } from "../lib/engine-context.js"
 import { NavProvider, type NavIntent, type OnNavigate } from "../navigation.js"
 import { type CockpitScope, intentToView, popTo, pushView, viewKey } from "../nav-core.js"
