@@ -6,7 +6,7 @@
 import { WorkflowError } from "./errors.js"
 import { isAdvanceable, isSuspendedJob } from "./next.js"
 import type { PlannedWrite } from "./port.js"
-import { engineTime } from "./records.js"
+import { engineTime } from "./dates.js"
 import type { AdvanceInput, AdvanceOption, InstanceView, WaitKind, WaitState } from "./types.js"
 import { compact } from "./util.js"
 import { waitId } from "./waits.js"

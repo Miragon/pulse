@@ -1,6 +1,7 @@
 import type { MCPServer } from "mcp-use"
 import type { EngineHealthThresholds } from "../data/health-data.js"
-import { clusterDetailFilterShape, pagingShape } from "../feed-contracts.js"
+import { clusterDetailFilterShape } from "../feed-contracts.js"
+import { pagingShape } from "../schemas/index.js"
 import type { EngineRegistry, resolveEngine } from "../lib/resolve-engine.js"
 import type { EngineToolset } from "../lib/toolsets.js"
 import type { EngineParamShape } from "../lib/with-engine.js"

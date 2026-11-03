@@ -26,7 +26,6 @@ import { ENGINE_ACTIVITY_INCIDENTS_DATA } from "../../tool-names.js"
 import { useHandOff, type HandOff } from "../lib/hand-off.js"
 import { useT } from "../../messages/use-t.js"
 import { EngineActionDialog } from "../lib/engine-action-dialog.js"
-import { recoveryOf } from "../lib/incident-recovery.js"
 import { useIncidentRecovery, type IncidentRecoveryState } from "./use-incident-recovery.js"
 import { InstanceLabel } from "../lib/identity.js"
 import { MoreActions } from "../lib/more-actions.js"
@@ -109,7 +108,7 @@ export function IncidentTable({
         {incidents.map((incident) => {
           const done = recovery.isDone(incident)
           const error = recovery.errorOf(incident)
-          const retried = recoveryOf(incident).action !== "resolve"
+          const retried = incident.recovery.action !== "resolve"
           const instanceUrl = incident.cockpitInstanceUrl
           return (
             <Fragment key={incident.id}>

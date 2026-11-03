@@ -1,23 +1,19 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from "vitest"
-import type { ComponentType } from "react"
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import {
   ENGINE_INCIDENT_DETAIL_DATA,
   ENGINE_WIDGET_ACTIONS,
   ENGINE_WIDGET_ACTIONS_DATA,
 } from "../tool-names.js"
-import type { IncidentDetailData, IncidentInstance } from "../view-models.js"
+import type { IncidentDetailData } from "../view-models.js"
 import { IncidentDetailWidget } from "./incident-detail.js"
-import { IncidentTable } from "./process-incidents/incident-table.js"
-import { useIncidentRecovery } from "./process-incidents/use-incident-recovery.js"
 import { TestViewHost, createTestQueryClient } from "@miragon/pulse-widget-shell/widgets"
 
 // One retry-free client per test; the test reads and pokes its cache.
 let queryClient = createTestQueryClient()
 
-// #328: Retry for built-in types, Resolve only for custom ones, each only with its tool. A result
-// stored before `recovery` existed still renders: a reopened chat hands the old structuredContent.
+// #328: Retry for built-in types, Resolve only for custom ones, each only with its tool.
 
 afterEach(() => {
   cleanup()
@@ -209,59 +205,5 @@ describe("the incident detail offers the remedy the engine accepts", () => {
     expect(await screen.findAllByText("failedJob")).not.toHaveLength(0)
     expect(screen.queryByText("Retry job")).toBeNull()
     expect(screen.queryByText("Mark as resolved")).toBeNull()
-  })
-})
-
-describe("a result stored before `recovery` existed still renders", () => {
-  const stored = (data: IncidentDetailData): IncidentDetailData => {
-    const old = { ...data }
-    delete old.recovery
-    return old
-  }
-
-  it("detail: a failedJob with its job keeps Retry, a custom one keeps Resolve", async () => {
-    renderDetail(stored(FAILED_JOB), { [ENGINE_WIDGET_ACTIONS_DATA]: ALL_ACTIONS })
-    expect(await screen.findByText("Retry job")).toBeTruthy()
-    cleanup()
-    queryClient = createTestQueryClient()
-    renderDetail(stored(CUSTOM), { [ENGINE_WIDGET_ACTIONS_DATA]: ALL_ACTIONS })
-    expect(await screen.findByText("Mark as resolved")).toBeTruthy()
-  })
-
-  it("detail: a failedExternalTask without a target offers no action instead of crashing", async () => {
-    renderDetail(stored(FAILED_TASK), { [ENGINE_WIDGET_ACTIONS_DATA]: ALL_ACTIONS })
-    await gateSettled()
-    expect(await screen.findAllByText("failedExternalTask")).not.toHaveLength(0)
-    expect(screen.queryByText("Retry task")).toBeNull()
-    expect(screen.queryByText("Mark as resolved")).toBeNull()
-  })
-
-  it("list rows without `recovery` render: custom → Resolve, built-in → no action", async () => {
-    const rows = [
-      { id: "a", incidentType: "invoiceMismatch", incidentMessage: "message a" },
-      { id: "b", incidentType: "failedJob", incidentMessage: "message b" },
-    ].map((row): IncidentInstance => ({
-      ...row,
-      processInstanceId: "pi-1",
-      incidentTimestamp: "2026-10-09T09:30:00.000+0000",
-      cockpitInstanceUrl: null,
-      businessKey: null,
-    }))
-    const Rows: ComponentType<Record<string, unknown>> = () => {
-      const recovery = useIncidentRecovery("prod", { resetOn: rows })
-      return <IncidentTable incidents={rows} recovery={recovery} onAnalyze={() => {}} />
-    }
-    render(
-      <TestViewHost tools={{ [ENGINE_WIDGET_ACTIONS_DATA]: ALL_ACTIONS }} client={queryClient}>
-        <Rows />
-      </TestViewHost>,
-    )
-    const buttonsOf = async (message: string) =>
-      [...(await screen.findByText(message)).closest("tr")!.querySelectorAll("button")].map(
-        (b) => b.textContent,
-      )
-    await waitFor(async () => expect(await buttonsOf("message a")).toContain("Mark as resolved"))
-    expect(await buttonsOf("message b")).not.toContain("Mark as resolved")
-    expect(await buttonsOf("message b")).not.toContain("Retry")
   })
 })

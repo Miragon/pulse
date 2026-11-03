@@ -1,7 +1,7 @@
 {
   "name": "@miragon/pulse-engine-client",
   "version": "0.24.2",
-  "description": "Generated CIB Seven / Camunda 7 REST SDK plus Zod input schemas.",
+  "description": "Generated CIB Seven / Camunda 7 REST SDK, its client with deadlines and engine errors, and the reads whose REST contract the SDK defaults miss.",
   "license": "MIT",
   "keywords": [
     "camunda",
@@ -9,8 +9,7 @@
     "cib-seven",
     "bpmn",
     "rest-client",
-    "sdk",
-    "mcp"
+    "sdk"
   ],
   "homepage": "https://github.com/Miragon/pulse/tree/main/packages/connectors/engine/engine-client#readme",
   "bugs": "https://github.com/Miragon/pulse/issues",
@@ -46,10 +45,6 @@
     "./types": {
       "types": "./dist/generated/types.gen.d.ts",
       "import": "./dist/generated/types.gen.js"
-    },
-    "./schemas": {
-      "types": "./dist/schemas/index.d.ts",
-      "import": "./dist/schemas/index.js"
     }
   },
   "scripts": {
@@ -61,15 +56,11 @@
     "generate": "openapi-ts",
     "spec:refresh": "sh ./scripts/refresh-spec.sh"
   },
-  "peerDependencies": {
-    "zod": "^4.4.0"
-  },
   "devDependencies": {
     "@hey-api/openapi-ts": "0.99.0",
     "@stryker-mutator/core": "10.1.1",
     "@stryker-mutator/vitest-runner": "10.1.1",
     "typescript": "6.0.3",
-    "vitest": "5.0.5",
-    "zod": "4.6.7"
+    "vitest": "5.0.5"
   }
 }

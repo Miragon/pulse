@@ -18,7 +18,6 @@ import * as sdk from "../generated/sdk.gen.js"
 import type { Client } from "../generated/client/types.gen.js"
 import { EngineRequestError } from "../engine-error.js"
 import {
-  RAW_VARIABLES,
   fetchExternalTaskErrorDetails,
   fetchJobStacktrace,
   readBatch,
@@ -57,6 +56,23 @@ describe("fetchJobStacktrace — a text/plain-only endpoint", () => {
     expect(await fetchJobStacktrace(client, "job-1")).toBeNull()
   })
 
+  // Pinned as it is: engine-core's isMissing would rethrow these two (a wrong REST root, an
+  // unreadable query value); one "missing" rule for both is a behaviour change of its own.
+  it.each(["NotFoundException", "QueryParamException"])(
+    "reads EVERY 404 as none, also one of type %s",
+    async (type) => {
+      mocked.mockRejectedValueOnce(
+        new EngineRequestError("[404] gone", {
+          kind: "http",
+          httpStatus: 404,
+          type,
+          engineMessage: "gone",
+        }),
+      )
+      expect(await fetchJobStacktrace(client, "job-1")).toBeNull()
+    },
+  )
+
   it("throws every other failure instead of reporting 'no stacktrace'", async () => {
     mocked.mockRejectedValueOnce(httpError(403))
     await expect(fetchJobStacktrace(client, "job-1")).rejects.toMatchObject({ httpStatus: 403 })
@@ -91,10 +107,6 @@ describe("fetchExternalTaskErrorDetails — a text/plain-only endpoint", () => {
 
 describe("variable reads never let the engine deserialize", () => {
   const VARS = { payload: { type: "Json", value: '{"a":1}', valueInfo: {} } }
-
-  it("is the one query flag every variable read sends", () => {
-    expect(RAW_VARIABLES).toEqual({ deserializeValues: false })
-  })
 
   it("reads process-instance variables with deserializeValues=false", async () => {
     vi.mocked(sdk.getProcessInstanceVariables).mockResolvedValue(VARS)

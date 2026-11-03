@@ -1,11 +1,11 @@
-import { formatIncidentIssueInput } from "@miragon/pulse-engine-client/schemas"
+import { formatIncidentIssueInput } from "../schemas/index.js"
 import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import {
   fetchExternalTaskErrorDetails,
   fetchJobStacktrace,
-  incidentRecovery,
   type Client,
 } from "@miragon/pulse-engine-client"
+import { incidentRecovery } from "@miragon/pulse-engine-core"
 import {
   getIncident,
   getProcessDefinition,

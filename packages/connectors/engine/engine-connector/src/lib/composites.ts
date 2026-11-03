@@ -2,7 +2,7 @@
  * The read composites on @miragon/pulse-engine-core, the workflow domain pulse-cli runs too: one
  * call answers what took several reads (`engine_inspect_process_instance`,
  * `engine_status`). Each takes the input of its schema (`inspectProcessInstanceInput`,
- * `engineStatusInput` in the client) and the client `withEngine` resolved, and returns plain data
+ * `engineStatusInput` in `src/schemas/`) and the client `withEngine` resolved, and returns plain data
  * for the model: no next steps (they would name tools a toolset may lack), the engine by its id,
  * variables cut like every read, and the lists engine-core leaves uncapped for the CLI (wait
  * states, incidents, timeline, variables, definitions, topics) capped here, each cut named in
@@ -10,10 +10,7 @@
  */
 
 import type { Client } from "@miragon/pulse-engine-client"
-import type {
-  engineStatusInput,
-  inspectProcessInstanceInput,
-} from "@miragon/pulse-engine-client/schemas"
+import type { engineStatusInput, inspectProcessInstanceInput } from "../schemas/index.js"
 import {
   type EnginePort,
   type Finding,

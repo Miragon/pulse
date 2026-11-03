@@ -1,9 +1,8 @@
 import fs from "node:fs"
 import { z } from "zod"
 import type { ModulePlugin } from "@miragon/pulse-widget-shell/server"
-import type { Client } from "@miragon/pulse-engine-client"
-import { createPlugin } from "./plugin.js"
-import { DEFAULT_ENGINE_FLAVOR, providerForEntry } from "./providers/index.js"
+import { createConfiguredEngineRegistry, createPlugin } from "./plugin.js"
+import { DEFAULT_ENGINE_FLAVOR } from "./providers/index.js"
 import { engineToolsets } from "./lib/toolsets.js"
 import { engineInstructions } from "./instructions.js"
 import {
@@ -360,36 +359,21 @@ export const engineModule = {
 }
 
 /**
- * Lets analytics read BPMN XML without the engine SDK (omitted `engineId`: the first engine).
+ * Lets analytics read BPMN XML without the engine SDK (omitted `engineId`: the FIRST configured
+ * engine, not the `ENGINE_DEFAULT` precedence the tools route by; kept as it is in a refactor).
  * `null` means not deployed; a failed read or an unknown engine REJECTS, so a failure
- * never reads as "not deployed".
+ * never reads as "not deployed". Its clients come from the tools' routing
+ * (`createConfiguredEngineRegistry`: per-engine auth, the timeout), one per engine, in a
+ * registry of its own.
  */
 export function createBpmnXmlFetcher(
   config: Record<string, unknown>,
 ): ((processDefinitionKey: string, engineId?: string) => Promise<string | null>) | undefined {
-  const parsed = engineConfigSchema.parse(config)
-  const clients = new Map<string, Client>()
-
-  function clientFor(entry: (typeof parsed.engines)[number]): Client {
-    const known = clients.get(entry.id)
-    if (known) return known
-    const auth = entry.auth ?? {
-      type: parsed.authType,
-      username: parsed.username,
-      password: parsed.password,
-      token: parsed.token,
-    }
-    const client = providerForEntry(entry).createClient(entry, auth, {
-      timeoutMs: parsed.requestTimeoutMs,
-    })
-    clients.set(entry.id, client)
-    return client
-  }
-
+  const registry = createConfiguredEngineRegistry(engineConfigSchema.parse(config))
+  const firstEngineId = registry.engines[0]?.id
   return async (processDefinitionKey, engineId) => {
-    const entry =
-      engineId === undefined ? parsed.engines[0] : parsed.engines.find((e) => e.id === engineId)
-    if (!entry) throw new Error(`No engine "${engineId}" is configured.`)
-    return fetchLatestDefinitionXml(clientFor(entry), processDefinitionKey)
+    const backend = registry.backends.get(engineId ?? firstEngineId ?? "")
+    if (!backend) throw new Error(`No engine "${engineId}" is configured.`)
+    return fetchLatestDefinitionXml(backend.client, processDefinitionKey)
   }
 }

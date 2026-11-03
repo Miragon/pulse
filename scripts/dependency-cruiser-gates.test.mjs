@@ -98,7 +98,7 @@ const APP_APP = "apps-never-import-apps"
 const HEADLESS = "cli-is-headless"
 const CORE_LEAF = "family-core-is-a-leaf"
 const CORE_USERS = "family-core-consumers"
-const CLI_CORE_LAYERS = "cli-family-core-only-in-workflow"
+const CLI_CORE_LAYERS = "cli-family-core-only-in-named-layers"
 const NO_TESTING = "shipped-code-not-to-testing"
 const DEEP = "no-cross-package-deep-imports"
 const CIRCULAR = "no-circular"
@@ -332,9 +332,17 @@ const SUITES = [
   },
   {
     rule: CLI_CORE_LAYERS,
-    title: "in the CLI only the workflow and engine-port layers (and tests) import the core",
+    title:
+      "in the CLI only the workflow and engine-port layers, the two rule modules of operation (and tests) import the core",
     cases: [
       [CLI_SRC, ENGINE_CORE, [CLI_CORE_LAYERS]],
+      // operation/ applies the core's date reading and auto typing in exactly two modules.
+      [`${CLI}/src/operation/dates.ts`, ENGINE_CORE, []],
+      [`${CLI}/src/operation/variables.ts`, ENGINE_CORE, []],
+      [`${CLI}/src/operation/values.ts`, ENGINE_CORE, [CLI_CORE_LAYERS]],
+      [`${CLI}/src/operation/dates.test-support.ts`, ENGINE_CORE, [CLI_CORE_LAYERS]],
+      [`${CLI}/src/operation/dates-other.ts`, ENGINE_CORE, [CLI_CORE_LAYERS]],
+      [`${CLI}/src/operation/sub/dates.ts`, ENGINE_CORE, [CLI_CORE_LAYERS]],
       [`${CLI}/src/cli/target-core.ts`, ENGINE_CORE, [CLI_CORE_LAYERS]],
       [`${CLI}/scripts/core.ts`, ENGINE_CORE, [CLI_CORE_LAYERS]],
       [CLI_SRC, `${ENGINE_CORE}/testing`, [CLI_CORE_LAYERS, NO_TESTING]],

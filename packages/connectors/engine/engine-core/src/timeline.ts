@@ -4,7 +4,8 @@
  */
 
 import { compact } from "./util.js"
-import { compareText, compareTime, engineTime, field, num, type Rec, str, yes } from "./records.js"
+import { engineTime } from "./dates.js"
+import { compareText, compareTime, field, num, type Rec, str, yes } from "./records.js"
 import type { TimelineEntry, TimelineIncident } from "./types.js"
 
 function entryOf(activity: Rec): TimelineEntry {

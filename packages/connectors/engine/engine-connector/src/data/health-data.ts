@@ -1,9 +1,5 @@
-import {
-  engineDateMillis,
-  latestEngineDate,
-  toEngineDate,
-  type Client,
-} from "@miragon/pulse-engine-client"
+import type { Client } from "@miragon/pulse-engine-client"
+import { engineDateMillis, latestEngineDate, toEngineDate } from "@miragon/pulse-engine-core"
 import {
   getHistoricProcessInstancesCount,
   getIncidents,

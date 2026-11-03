@@ -30,14 +30,21 @@ import { endedBatchReport, runningBatchReport, type BatchReport } from "./batche
 const TEXT_PLAIN = { parseAs: "text", headers: { Accept: "text/plain" } } as const
 
 /**
- * The query every variable read sends — runtime AND historic
- * (`/history/variable-instance` takes the same flag).
+ * The query the variable reads send. The rule's home is engine-core's `RAW_VARIABLES`; this leaf
+ * does not import engine-core, so its SDK reads restate the flag (the engine connector's wire
+ * tests hold every variable read to `deserializeValues=false`).
  */
-export const RAW_VARIABLES = { deserializeValues: false } as const
+const RAW_VARIABLES = { deserializeValues: false } as const
 
 export type VariableMap = Record<string, VariableValueDto>
 
-function isNotFound(error: unknown): boolean {
+/**
+ * The client's "missing" rule: EVERY 404. Broader than engine-core's `isMissing`, which leaves
+ * out a 404 of the JAX-RS `NotFoundException` (no such endpoint: a wrong REST root) and of
+ * `QueryParamException`; so here a wrong REST root reads as "none". Kept as it is in a refactor:
+ * one rule for both is a behaviour change of its own.
+ */
+function isAnyNotFound(error: unknown): boolean {
   return error instanceof EngineRequestError && error.httpStatus === 404
 }
 
@@ -55,7 +62,7 @@ export async function fetchJobStacktrace(client: Client, jobId: string): Promise
   try {
     return textOrNull(await getStacktrace({ client, path: { id: jobId }, ...TEXT_PLAIN }))
   } catch (error) {
-    if (isNotFound(error)) return null
+    if (isAnyNotFound(error)) return null
     throw error
   }
 }
@@ -74,7 +81,7 @@ export async function fetchExternalTaskErrorDetails(
       await getExternalTaskErrorDetails({ client, path: { id: externalTaskId }, ...TEXT_PLAIN }),
     )
   } catch (error) {
-    if (isNotFound(error)) return null
+    if (isAnyNotFound(error)) return null
     throw error
   }
 }
@@ -108,7 +115,7 @@ export async function readBatch(client: Client, batchId: string): Promise<BatchR
   try {
     return endedBatchReport(await getHistoricBatch({ client, path: { id: batchId } }))
   } catch (error) {
-    if (!isNotFound(error)) throw error
+    if (!isAnyNotFound(error)) throw error
     throw new Error(
       `Batch ${batchId} not found: no running batch has this id and the engine history holds no record of it`,
       { cause: error },

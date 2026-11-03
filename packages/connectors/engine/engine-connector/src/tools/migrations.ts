@@ -1,7 +1,4 @@
-import {
-  createMigrationPlanInput,
-  migrateProcessInstancesAsyncInput,
-} from "@miragon/pulse-engine-client/schemas"
+import { createMigrationPlanInput, migrateProcessInstancesAsyncInput } from "../schemas/index.js"
 import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import { queuedBatch, type Client } from "@miragon/pulse-engine-client"
 import { generateMigrationPlan, executeMigrationPlanAsync } from "@miragon/pulse-engine-client/sdk"

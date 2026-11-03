@@ -57,7 +57,7 @@ export function engineLike(value: string | undefined): string | undefined {
  * A comma-list `…In` filter from single and list inputs (`processDefinitionKey`
  * + `processDefinitionKeyIn`), de-duplicated; nothing sent when both are empty.
  */
-export function engineKeyList(...parts: Array<string | readonly string[] | undefined>) {
+export function engineKeyList(...parts: (string | readonly string[] | undefined)[]) {
   const values = [...new Set(parts.flat().filter((value): value is string => !!value))]
   return values.length > 0 ? values.join(",") : undefined
 }
@@ -72,7 +72,7 @@ export function engineKeyList(...parts: Array<string | readonly string[] | undef
  * id with a trailing space would match nothing.
  */
 export function engineInstanceSearch(term: string | undefined): {
-  orQueries?: Array<{ businessKeyLike: string; processInstanceIds: string[] }>
+  orQueries?: { businessKeyLike: string; processInstanceIds: string[] }[]
 } {
   const value = term?.trim()
   if (!value) return {}

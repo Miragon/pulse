@@ -15,11 +15,11 @@ written for the MCP server, so this file holds the CLI's own. The pages for peop
 - AI first: it never asks a question, previews every write (`--dry-run`), needs `--yes` to
   delete, has a read-only mode, and writes its answers as JSON and its errors as one JSON line on
   stderr with a documented exit code. A change to any of that is a change to the docs.
-- One runtime dependency, commander. The workflow domain, `@miragon/pulse-engine-core`
-  (`packages/connectors/engine/engine-core`, the engine family's core), is a devDependency that
-  tsdown bundles; everything else that ships is the code in `apps/cli/src/`. The built bundle
-  imports only commander and Node built-ins, and stays within its size budget
-  (`scripts/published-imports.test.mjs` reads `apps/cli/dist`).
+- One runtime dependency, commander. The workflow domain and engine REST rules,
+  `@miragon/pulse-engine-core` (`packages/connectors/engine/engine-core`, the engine family's
+  core), are a devDependency that tsdown bundles; everything else that ships is the code in
+  `apps/cli/src/`. The built bundle imports only commander and Node built-ins, and stays within
+  its size budget (`scripts/published-imports.test.mjs` reads `apps/cli/dist`).
 
 ## Layers
 
@@ -47,8 +47,11 @@ cruises `apps/cli/src`, `pnpm lint:architecture:cli` its `scripts/` and `test/`.
 No cycle, a type-only one included. The pure layers import no Node built-in (WebCrypto and the
 timers are globals). Only the `auth login` command reaches the interactive login (loopback
 server, browser), so no other command can ever wait for a person. The CLI imports no workspace
-package but `@miragon/pulse-engine-core`, and that only from `apps/cli/src/workflow/` and
-`apps/cli/src/engine-port/` (tests anywhere), and nothing of the MCP or UI stack. The package
+package but `@miragon/pulse-engine-core`, and that only from `apps/cli/src/workflow/`,
+`apps/cli/src/engine-port/` and the two operation modules that apply its engine REST rules,
+`apps/cli/src/operation/dates.ts` (the `UTC_WITHOUT_OFFSET` date reading) and
+`apps/cli/src/operation/variables.ts` (`autoTypedValue`) (tests anywhere), and nothing of the MCP
+or UI stack. The package
 returns data (next steps, error reasons); `next-text.ts` and `error-text.ts` in
 `apps/cli/src/workflow/` word them as the CLI prints them.
 

@@ -1,6 +1,6 @@
 ---
 name: add-bpm-feature
-description: Step-by-step house pattern for adding a new BPM operations tool, widget tool, or widget to the engine module (`packages/connectors/engine/engine-connector` + `packages/connectors/engine/engine-client`). Use whenever adding or changing Camunda 7 / CIB seven tools ("add a tool to suspend jobs", "expose X from the engine REST API"), input schemas, cockpit routes, `*_data` feeds, or React widgets in the cockpit. Takes precedence over generic mcp-use examples.
+description: Step-by-step house pattern for adding a new BPM operations tool, widget tool, or widget to the engine module (`packages/connectors/engine/engine-connector`, over `packages/connectors/engine/engine-client` and `packages/connectors/engine/engine-core`). Use whenever adding or changing Camunda 7 / CIB seven tools ("add a tool to suspend jobs", "expose X from the engine REST API"), input schemas, cockpit routes, `*_data` feeds, or React widgets in the cockpit. Takes precedence over generic mcp-use examples.
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 ---
 
@@ -21,10 +21,10 @@ invariant 3). Follow the steps for the path you need.
 | App-only JSON for in-widget refresh/nav                          | `*_data` feed in `src/widget-tools/data-feeds.ts`, `...appOnly` (Step 4)              |
 | An answer the CLI's workflow commands give too (inspect, status) | a composite on `@miragon/pulse-engine-core` over `src/lib/engine-port.ts` (Step 2b)   |
 
-## Step 1 — input schema in engine-client
+## Step 1 — input schema next to the tools
 
-Add the Zod input schema to `packages/connectors/engine/engine-client/src/schemas/<domain>.ts` and export
-it from `src/schemas/index.ts`. Existing style (from `schemas/process-instances.ts`):
+Add the Zod input schema to `packages/connectors/engine/engine-connector/src/schemas/<domain>.ts` and
+export it from `src/schemas/index.ts`. Existing style (from `schemas/process-instances.ts`):
 
 ```ts
 export const listProcessInstancesInput = z.object({
@@ -57,11 +57,16 @@ fails when one description repeats on more than two model-visible tools.
 
 A list/query tool pages with the shared params from
 `schemas/shared.ts` — `firstResultParam` + `maxResultsParam(defaultPageSize)` — never a
-hand-rolled `maxResults`: `src/tools/list-tools.test.ts` treats every registrar tool that
+hand-rolled `maxResults` (a `*_data` feed spreads `pagingShape` from the same file, the one paging
+definition in its described, default-free form): `src/tools/list-tools.test.ts` treats every registrar tool that
 takes `maxResults` as a list and fails it without the cap or the envelope (Step 2). The
 REST calls themselves use the generated SDK (imported from
 `@miragon/pulse-engine-client/sdk`) — if the endpoint is missing there, the OpenAPI spec
-changed and you need `pnpm generate`, not a hand-written fetch.
+changed and you need `pnpm generate`, not a hand-written fetch. The engine's REST rules the
+handler applies (`toEngineDate`, `engineLike`, `complementaryFlags`, `engineSorting`,
+`toEngineVariables`, `incidentRecovery`, `RAW_VARIABLES`) come from `@miragon/pulse-engine-core`,
+their one home, which the CLI uses too; the reads bound to the SDK (`fetchJobStacktrace`,
+`readProcessInstanceVariables`, `readBatch`) from `@miragon/pulse-engine-client`.
 
 ### Parameter naming guide
 
@@ -99,9 +104,9 @@ Add the tool in `packages/connectors/engine/engine-connector/src/tools/<domain>.
 `engine_list_process_instances` from `src/tools/process-instances.ts`:
 
 ```ts
-import { listProcessInstancesInput } from "@miragon/pulse-engine-client/schemas"
+import { listProcessInstancesInput } from "../schemas/index.js"
 import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
-import { complementaryFlags, engineLike, engineSorting } from "@miragon/pulse-engine-client"
+import { complementaryFlags, engineLike, engineSorting } from "@miragon/pulse-engine-core"
 import { getProcessInstances, getProcessInstancesCount } from "@miragon/pulse-engine-client/sdk"
 import { paginatedListOutput, toPaginatedList } from "../lib/pagination.js"
 import type { EngineRegistry } from "../lib/resolve-engine.js"
@@ -202,7 +207,7 @@ The pattern is `engine_inspect_process_instance` and `engine_status`
 (`src/lib/composites.ts`, registered like any registrar tool):
 
 - Map every operation the composite sends in `READS` of `src/lib/engine-port.ts`, one typed
-  SDK read each; text/plain and variable reads go through the engine contract wrappers
+  SDK read each; text/plain and variable reads go through engine-client's SDK-bound reads
   (`fetchJobStacktrace`, `readProcessInstanceVariables`), as `engine-contract.test.ts`
   demands. `src/lib/engine-port.test.ts` holds `READS` to engine-core's operation lists.
 - Word engine-core's error reasons in `src/lib/workflow-errors.ts` (`[CODE] message` in the
@@ -461,7 +466,7 @@ uses `server.tool()` directly:
   a process definition KEY spans every deployed version (key-scoped `/count`, statistics
   summed per key); only a diagram is one version, and it is labelled. Engine timestamps
   compare by instant (`engineDateMillis`/`latestEngineDate`/`earliestEngineDate` from
-  `@miragon/pulse-engine-client`), never as strings. A new builder adds its case to the
+  `@miragon/pulse-engine-core`), never as strings. A new builder adds its case to the
   rejection table in `src/data/honest-numbers.test.ts` — the table fails without it. The
   table breaks EVERY read the healthy build makes (method + path + query names), so a
   case declares only its enrichment reads; any other read whose failure is swallowed fails.

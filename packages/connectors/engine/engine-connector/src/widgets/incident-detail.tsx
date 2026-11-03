@@ -2,13 +2,12 @@ import { useMemo } from "react"
 import { Alert, AlertDescription, SectionHeading } from "@miragon/pulse-ui"
 import { useDetailView, HostModelContext } from "@miragon/pulse-widget-shell/widgets"
 
-import type { IncidentDetailData, IncidentRecovery } from "../view-models.js"
+import type { IncidentDetailData } from "../view-models.js"
 
 import { ENGINE_INCIDENT_DETAIL_DATA } from "../tool-names.js"
 import { BpmnDiagram, type BpmnHighlight } from "./bpmn-diagram.js"
 import { DetailPage } from "./detail-page.js"
 import { FailureSummary, StacktraceTab } from "./incident-detail/failure-tab.js"
-import { recoveryOf } from "./lib/incident-recovery.js"
 import { IncidentDetailHeader } from "./incident-detail/header.js"
 import { InstanceTab } from "./incident-detail/instance-tab.js"
 import { EngineActionDialog } from "./lib/engine-action-dialog.js"
@@ -23,11 +22,6 @@ import { useT } from "../messages/use-t.js"
 
 export type { IncidentDetailData }
 
-// An old stored payload falls back to its type and job.
-function detailRecovery(data: IncidentDetailData): IncidentRecovery {
-  return recoveryOf(data, data.job?.id)
-}
-
 // Business key included so confirmation and toasts name the instance as the head does (#322 U13).
 function recoverable(data: IncidentDetailData): RecoverableIncident {
   return {
@@ -35,7 +29,7 @@ function recoverable(data: IncidentDetailData): RecoverableIncident {
     incidentType: data.incidentType,
     processInstanceId: data.processInstanceId,
     businessKey: data.businessKey,
-    recovery: detailRecovery(data),
+    recovery: data.recovery,
   }
 }
 

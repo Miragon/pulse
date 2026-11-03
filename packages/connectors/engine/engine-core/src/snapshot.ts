@@ -4,6 +4,7 @@
  * engine's lists (except the timeline, which keeps the history order).
  */
 
+import { incidentRecovery } from "./incident-recovery.js"
 import { nextSteps } from "./next.js"
 import {
   compareText,
@@ -89,7 +90,10 @@ function incidentView(data: InstanceData, incident: Rec): IncidentView {
   const id = field(incident, "id")
   const type = field(incident, "incidentType")
   const pid = str(incident, "processInstanceId")
-  const configuration = str(incident, "configuration")
+  const recovery = incidentRecovery({
+    incidentType: type,
+    configuration: str(incident, "configuration"),
+  })
   const cause = data.causes.get(id)
   const message = str(incident, "incidentMessage")
   return {
@@ -101,8 +105,9 @@ function incidentView(data: InstanceData, incident: Rec): IncidentView {
       message,
       // left out when it says the same as the message
       rootCause: cause?.rootCause === message ? undefined : cause?.rootCause,
-      jobId: type === "failedJob" ? configuration : undefined,
-      externalTaskId: type === "failedExternalTask" ? configuration : undefined,
+      jobId: recovery.action === "retry-job" ? recovery.jobId : undefined,
+      externalTaskId:
+        recovery.action === "retry-external-task" ? recovery.externalTaskId : undefined,
     }),
     since: field(incident, "incidentTimestamp"),
     ...compact({ annotation: str(incident, "annotation"), stacktrace: cause?.stacktrace }),

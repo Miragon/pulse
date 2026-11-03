@@ -7,13 +7,8 @@
  * So a form task is submitted with the current value of every omitted field, a formless one
  * completes, and a delegated one is resolved and reported as such, never as completed.
  */
-import {
-  readTaskVariables,
-  toEngineVariables,
-  type Client,
-  type EngineVariableInput,
-  type VariableMap,
-} from "@miragon/pulse-engine-client"
+import { readTaskVariables, type Client, type VariableMap } from "@miragon/pulse-engine-client"
+import { toEngineVariables, type EngineVariableInput } from "@miragon/pulse-engine-core"
 import { complete, getTask, resolve, submit } from "@miragon/pulse-engine-client/sdk"
 import { formFieldSubmitRules, type FormFieldSubmitRule } from "./bpmn-task-form.js"
 import { fetchDefinitionXml } from "./definition-xml.js"

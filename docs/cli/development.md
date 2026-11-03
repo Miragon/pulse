@@ -93,7 +93,7 @@ The overview with diagrams is in [Architecture](architecture.md), the decisions 
 (`pnpm lint:architecture` cruises `apps/cli/src`, `pnpm lint:architecture:cli` its `scripts/` and
 `test/`): no cycle (a type-only one included), only `src/bin` imports `src/cli`, only `src/cli`
 imports commander, the pure layers import no Node built-in, `workflow` knows engines only through
-`src/engine-port`, only it and `src/engine-port` import `@miragon/pulse-engine-core`, only the
+`src/engine-port`, only they and `src/operation/{dates,variables}.ts` import engine-core, only the
 adapters import `src/api`, only `auth login` reaches the interactive login, and only
 `src/catalog/catalog.ts` and the adapters (each its own) read the catalogs.
 

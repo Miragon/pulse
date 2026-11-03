@@ -1,10 +1,10 @@
+import type { Client } from "@miragon/pulse-engine-client"
 import {
   complementaryFlags,
   engineInstanceSearch,
   engineLike,
   trueOnly,
-  type Client,
-} from "@miragon/pulse-engine-client"
+} from "@miragon/pulse-engine-core"
 import {
   LIST_PAGE_SIZE,
   type CockpitDashboardData,

@@ -3,11 +3,12 @@
  * key), so they are reproducible. A caller renders each step in its own words. Pure.
  */
 
+import { BUILT_IN_INCIDENT_TYPES } from "./incident-recovery.js"
 import type { InstanceView, ItemStep, ItemWait, NextStep, WaitState } from "./types.js"
 
 const MAX_NEXT = 3
 const MAX_ACTIVITIES = 2
-const RETRYABLE: ReadonlySet<string> = new Set(["failedJob", "failedExternalTask"])
+const RETRYABLE: ReadonlySet<string> = new Set(BUILT_IN_INCIDENT_TYPES)
 const ADVANCEABLE: ReadonlySet<string> = new Set([
   "userTask",
   "externalTask",

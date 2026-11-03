@@ -1,6 +1,8 @@
 /**
  * @miragon/pulse-engine-core: the workflow domain of the Camunda 7 REST API family (Operaton,
- * CIB seven, Camunda 7). Runs on a caller's `EnginePort`; returns data and throws
+ * CIB seven, Camunda 7), and the one home of its pure engine REST rules (dates, filters,
+ * sorting, variable writes and typing, incident recovery, root causes, raw variable reads, the
+ * missing resource). Runs on a caller's `EnginePort`; returns data and throws
  * `WorkflowError` reasons, and names no command, flag or tool: next steps and error reasons are
  * structured, the caller words them. The pure rules behind these functions that only tests reach
  * are exported from `@miragon/pulse-engine-core/testing`.
@@ -26,13 +28,42 @@ export {
   compareText,
   compareTime,
   definitionKeyOf,
-  engineTime,
   field,
   num,
   type Rec,
   records,
   str,
 } from "./records.js"
+export {
+  type DateInputReading,
+  earliestEngineDate,
+  ENGINE_DATE_INPUT_FORMS,
+  engineDateInput,
+  engineDateMillis,
+  engineTime,
+  isEngineDateInput,
+  latestEngineDate,
+  OFFSET_REQUIRED,
+  toEngineDate,
+  toOptionalEngineDate,
+  UTC_WITHOUT_OFFSET,
+} from "./dates.js"
+export { engineSorting } from "./sorting.js"
+export {
+  complementaryFlags,
+  engineInstanceSearch,
+  engineKeyList,
+  engineLike,
+  trueOnly,
+} from "./filters.js"
+export {
+  autoTypedValue,
+  type EngineVariableInput,
+  toEngineVariable,
+  toEngineVariables,
+} from "./variable-writes.js"
+export { RAW_VARIABLES } from "./variables.js"
+export { incidentRecovery, type IncidentRecovery } from "./incident-recovery.js"
 export { mapLimit } from "./util.js"
 export { formatDuration } from "./durations.js"
 export { rootCause } from "./root-cause.js"

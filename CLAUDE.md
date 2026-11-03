@@ -43,8 +43,8 @@ command line interface (`apps/cli`) and a VS Code extension (`apps/vscode`) for 
 | `apps/vscode/`                                       | Pulse for VS Code (`pulse-cockpit`, a .vsix): a Preact webview over an engine-neutral contract and core, the C7 adapter; its rules in `apps/vscode/CLAUDE.md`                                                                                                     |
 | `packages/connectors/engine/engine-connector/`       | engine module: operations tools, widget tools, widgets                                                                                                                                                                                                            |
 | `packages/connectors/analytics/analytics-connector/` | analytics module: Prometheus-backed tools, dashboards, comparison widgets                                                                                                                                                                                         |
-| `packages/connectors/engine/engine-client/`          | Generated CIB seven REST SDK (`src/generated/`) + Zod input schemas (`src/schemas/`)                                                                                                                                                                              |
-| `packages/connectors/engine/engine-core/`            | The Camunda 7 REST API family's workflow domain (npm `@miragon/pulse-engine-core`): engine port, selection, inspect view, status triage, root causes, retry and advance plans, as data, no runtime dependency. The CLI bundles it, the engine connector runs it   |
+| `packages/connectors/engine/engine-client/`          | Generated CIB seven REST SDK (`src/generated/`), `createEngineClient`, `EngineRequestError` and the SDK-bound reads (`src/engine-contract/`); a leaf, no zod                                                                                                      |
+| `packages/connectors/engine/engine-core/`            | The Camunda 7 REST API family's workflow domain and pure engine REST rules (npm `@miragon/pulse-engine-core`): port, selection, inspect, status triage, root causes, retry/advance plans, dates, filters, variable writes; no runtime dependency                  |
 | `packages/connectors/analytics/analytics-client/`    | Prometheus client + PromQL query functions (`src/queries/`) + Zod schemas                                                                                                                                                                                         |
 | `packages/core/ui/`                                  | Pulse's design kit (npm `@miragon/pulse-ui`): primitives, components, tone model, type scale, locale, toasts, formatters and the Miragon theme (`theme.css` over the vendored `--cd-*` tokens) for Pulse views and customer UIs; the brand gates under `/testing` |
 | `packages/core/widget-shell/`                        | The view runtime (`/widgets`: `mountViews`, the view host, the query hooks, `TestViewHost`, `ListTable`, hand-offs, BPMN), view + data-feed builders, the tool registrar (`createToolRegistrar`) and the boot (`/server`), the product glossary (`/testing`)      |
@@ -72,9 +72,13 @@ Three axes decide where code goes, and they stay apart:
 
 A family is one source the MCP server reads: a dialect, or another source such as `analytics`
 (Prometheus). Its packages are named `<family>-<role>`: `<family>-connector` (the MCP module),
-`<family>-client` (the wire: SDK, schemas, engine contract) and, when the family's interfaces
-share a pure domain, `<family>-core` (no runtime dependency, one port per family; extracted on
-its second consumer, like `engine-core`, which the CLI bundles and the engine connector runs).
+`<family>-client` (the wire: SDK, client, the SDK-bound reads) and, when the family's interfaces
+share a pure domain, `<family>-core` (no runtime dependency, one port per family, the home of the
+family's pure rules; extracted on its second consumer, like `engine-core`, which the CLI bundles
+and the engine connector runs). The engine family's tool input schemas live in its connector,
+next to the tools (`packages/connectors/engine/engine-connector/src/schemas/`); analytics-client
+still carries analytics' own (`packages/connectors/analytics/analytics-client/src/schemas/`,
+with its zod peer) until they move the same way.
 Family code stays in its family: `packages/core/` holds what every family builds on (pulse-ui,
 widget-shell), never one family's code.
 
@@ -192,7 +196,7 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
 ## Architecture invariants
 
 1. **New operations tools go through the registrar, never raw `server.tool()`.** Add the Zod
-   input schema in `packages/connectors/engine/engine-client/src/schemas/`, then register
+   input schema in `packages/connectors/engine/engine-connector/src/schemas/`, then register
    the tool in `packages/connectors/engine/engine-connector/src/tools/<domain>.ts` via the
    `register` callback of `createToolRegistrar` (`@miragon/pulse-widget-shell/server`, wired in
    `src/tools/index.ts`): a `category` matching its domain file (`"analytics"` in the analytics
@@ -403,10 +407,20 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
      reads the XML from the app-only `engine_bpmn_xml_data` (the heatmap from
      `analytics_bpmn_xml_data`). The ONE XML read is `lib/definition-xml.ts`, cached per engine
      client and per caller.
-   - Every engine REST rule the client defaults miss (`toEngineDate`, `engineSorting`,
-     `toEngineVariable(s)`, text/plain endpoints, incident recovery, queued batches) lives in
-     the engine contract, `packages/connectors/engine/engine-client/src/engine-contract/`,
-     used by `tools/` AND `data/`; every write tool has a recording-fake-engine case in
+   - Each engine REST rule the client defaults miss has one home, used by `tools/` AND `data/`
+     (and by the CLI): the pure rules (`toEngineDate`, `engineSorting`, the filters,
+     `toEngineVariable(s)`, `autoTypedValue`, `incidentRecovery`, `RAW_VARIABLES`, root causes,
+     and inside the engine port the missing-resource rule) in `@miragon/pulse-engine-core`, the
+     reads bound to the SDK (text/plain endpoints, raw variable reads, `readBatch`, queued
+     batches) in engine-client's `packages/connectors/engine/engine-client/src/engine-contract/`,
+     which does not import engine-core. Dates parse in one parser, read in one of two named
+     readings (`DateInputReading`: `OFFSET_REQUIRED` for the MCP tools, `UTC_WITHOUT_OFFSET` for
+     the CLI). The copies that remain are named, each until the behaviour PR settles it: the
+     raw-variable flag restated in the leaf client; three 404 readers (the client's reads take
+     EVERY 404 as "none", `isAnyNotFound`; engine-core's port and the CLI's
+     `apps/cli/src/workflow/engine.ts` exclude `NotFoundException`/`QueryParamException`, the
+     CLI's held equal to engine-core's by its test); two redirect settings (the client follows,
+     the CLI does not). Every write tool has a recording-fake-engine case in
      `src/tools/*.wire.test.ts`. Analytics periods derive from `PERIODS`/`PERIOD_RANGE`.
    - The workflow rules the CLI and the read composites (`engine_inspect_process_instance`,
      `engine_status`, `src/lib/composites.ts`) share live in `@miragon/pulse-engine-core`:

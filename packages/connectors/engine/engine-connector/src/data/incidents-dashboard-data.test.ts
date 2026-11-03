@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest"
-import { toEngineDate } from "@miragon/pulse-engine-client"
+import { toEngineDate } from "@miragon/pulse-engine-core"
 import { cibsevenProvider } from "../providers/index.js"
 import {
   clientFor,

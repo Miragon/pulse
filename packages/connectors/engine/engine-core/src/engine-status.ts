@@ -8,7 +8,8 @@ import { EXECUTABLE } from "./conditions.js"
 import { type EngineStatus, type Finding, findings, engineStatus } from "./findings.js"
 import { incidentCause } from "./inspect.js"
 import { type EnginePort, PARALLEL, type PlannedRequest, pageQuery, type Query } from "./port.js"
-import { amount, countOf, engineFormat, type Rec, records, str } from "./records.js"
+import { engineFormat } from "./dates.js"
+import { amount, countOf, type Rec, records, str } from "./records.js"
 import { queryInput } from "./requests.js"
 import {
   type DefinitionStatus,

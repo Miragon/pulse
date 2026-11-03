@@ -113,8 +113,8 @@ bpmnMissing: "no-camunda7"          ->  bpmnMissing: "no-engine-module"  (analyt
 apps/mcp-server-camunda7            ->  apps/mcp-server  (this repository)
 ```
 
-A `setup.ts` that finds the module by name looks for `engineModule.name`. The engine sees the
-client's User-Agent as `@miragon/pulse-engine-client/<version>`. A module of your own peers
+A `setup.ts` that finds the module by name looks for `engineModule.name`. Your module peers
 `@miragon/pulse-widget-shell` (`^<version>`); your Vite config spreads its `VIEW_BUNDLE_DEDUPE`.
-The connector roots drop `createPlugin` (use `engineModule`, `analyticsModule`), input schemas come
-from `@miragon/pulse-engine-client/schemas`; widget-shell's boot parts run in `createComposedServer`.
+The engine sees the client's User-Agent as `@miragon/pulse-engine-client/<version>`. Connector
+roots drop `createPlugin` (use `engineModule`, `analyticsModule`), engine-client its `/schemas`
+(unpublished) and pure rules (engine-core's); widget-shell's boot runs in `createComposedServer`.

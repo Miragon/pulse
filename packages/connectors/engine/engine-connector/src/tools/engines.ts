@@ -1,4 +1,4 @@
-import { engineStatusInput } from "@miragon/pulse-engine-client/schemas"
+import { engineStatusInput } from "../schemas/index.js"
 import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import { engineStatusForModel } from "../lib/composites.js"
 import type { EngineRegistry } from "../lib/resolve-engine.js"

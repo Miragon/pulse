@@ -10,13 +10,13 @@ import {
   compareText,
   compareTime,
   definitionKeyOf,
-  engineTime,
   field,
   num,
   type Rec,
   records,
   str,
 } from "./records.js"
+import { engineTime } from "./dates.js"
 import { compact } from "./util.js"
 
 export interface DefinitionStatus {

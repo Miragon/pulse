@@ -6,14 +6,10 @@ import {
   completeTaskInput,
   setTaskAssigneeInput,
   getTaskVariablesInput,
-} from "@miragon/pulse-engine-client/schemas"
+} from "../schemas/index.js"
 import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
-import {
-  complementaryFlags,
-  engineSorting,
-  readTaskVariables,
-  trueOnly,
-} from "@miragon/pulse-engine-client"
+import { readTaskVariables } from "@miragon/pulse-engine-client"
+import { complementaryFlags, engineSorting, trueOnly } from "@miragon/pulse-engine-core"
 import {
   getTasks,
   getTasksCount,

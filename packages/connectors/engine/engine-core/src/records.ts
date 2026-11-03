@@ -1,8 +1,9 @@
 /**
- * Typed reads of engine response objects (DTOs) and of engine timestamps. The workflow commands
+ * Typed reads of engine response objects (DTOs) and their order (timestamps read in dates.ts). The workflow commands
  * never trust the shape of a response: a missing or mistyped property reads as undefined. Pure.
  */
 
+import { engineTime } from "./dates.js"
 import { isRecord } from "./util.js"
 
 /** An engine DTO. */
@@ -50,21 +51,6 @@ export function countOf(value: unknown): number {
 export function definitionKeyOf(definitionId: string | undefined): string | undefined {
   const key = definitionId?.split(":")[0] ?? ""
   return key === "" ? undefined : key
-}
-
-/** RFC 822 offsets (`+0200`) as ISO offsets (`+02:00`), which every Date parser accepts. */
-const RFC822_OFFSET = /([+-]\d{2})(\d{2})$/
-
-/** Milliseconds of an engine timestamp (`2024-05-01T10:00:00.000+0200`), or undefined. */
-export function engineTime(value: string | undefined): number | undefined {
-  if (value === undefined) return undefined
-  const time = Date.parse(value.replace(RFC822_OFFSET, "$1:$2"))
-  return Number.isNaN(time) ? undefined : time
-}
-
-/** An instant in the engine format, in UTC: `2024-05-01T08:00:00.000+0000`. */
-export function engineFormat(ms: number): string {
-  return new Date(ms).toISOString().replace("Z", "+0000")
 }
 
 /** Ordinal string order, independent of the locale. */

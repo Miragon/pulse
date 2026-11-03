@@ -1,9 +1,9 @@
 import {
   fetchJobStacktrace,
-  incidentRecovery,
   readProcessInstanceVariables,
   type Client,
 } from "@miragon/pulse-engine-client"
+import { incidentRecovery } from "@miragon/pulse-engine-core"
 import type {
   ActivityTree,
   IncidentDetailData,

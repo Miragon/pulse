@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { ENGINE_DATE_INPUT_FORMS, isEngineDateInput } from "../engine-contract/dates.js"
+import { ENGINE_DATE_INPUT_FORMS, isEngineDateInput } from "@miragon/pulse-engine-core"
 
 /**
  * Variable metadata in the engine's `valueInfo` shape. Object values need
@@ -33,15 +33,6 @@ export const wholeVariableParam = z
   .describe("Return only this variable, whole (never cut)")
 
 /**
- * Shared paging offset for every list/query input schema. Pairs with
- * `maxResults`: a list tool returns the page `[firstResult, firstResult +
- * maxResults)` plus a total count, so callers page through by passing the
- * `nextOffset` from the previous response. No description: the paging
- * contract is stated once in the engine module instructions.
- */
-export const firstResultParam = z.number().int().min(0).optional().default(0)
-
-/**
  * The largest page any list/query tool returns. One page is what a model
  * reads in one turn: an uncapped `maxResults` let a single call pull an
  * engine's whole history into the context. More rows are one `nextOffset`
@@ -50,12 +41,41 @@ export const firstResultParam = z.number().int().min(0).optional().default(0)
 export const MAX_PAGE_SIZE = 100
 
 /**
- * The shared `maxResults` field of every list/query input schema: capped at
- * {@link MAX_PAGE_SIZE}, with a per-tool default page size. No description:
- * the paging contract is stated once in the engine module instructions.
+ * The one paging definition, of the list tools and the widget feeds alike:
+ * an offset from 0 (`firstResult`) and a page of at most
+ * {@link MAX_PAGE_SIZE} rows (`maxResults`). A list returns the page
+ * `[firstResult, firstResult + maxResults)` plus a total count. Each surface
+ * presents it its own way, below; both forms are on the tools/list wire.
+ */
+const pageOffset = () => z.number().int().min(0).optional()
+const pageSize = () => z.number().int().positive().max(MAX_PAGE_SIZE).optional()
+
+/**
+ * The list tools' paging offset. Pairs with `maxResults`: callers page
+ * through by passing the `nextOffset` from the previous response. No
+ * description: the paging contract is stated once in the engine module
+ * instructions.
+ */
+export const firstResultParam = pageOffset().default(0)
+
+/**
+ * The list tools' `maxResults`, with a per-tool default page size. No
+ * description: the paging contract is stated once in the engine module
+ * instructions.
  */
 export function maxResultsParam(defaultPageSize = 20) {
-  return z.number().int().positive().max(MAX_PAGE_SIZE).optional().default(defaultPageSize)
+  return pageSize().default(defaultPageSize)
+}
+
+/**
+ * The widget feeds' paging (`*_data`): described, no default (a feed's
+ * builder pages by its own default when the widget sends none). Capped on
+ * every feed on the wire: some hosts hand a view's `structuredContent` to
+ * the model.
+ */
+export const pagingShape = {
+  firstResult: pageOffset().describe("Offset for pagination (0-based)."),
+  maxResults: pageSize().describe("Page size."),
 }
 
 /**
@@ -100,7 +120,7 @@ export function flagParam(description?: string) {
 export function engineDateParam(description?: string) {
   const date = z
     .string()
-    .refine(isEngineDateInput, { message: `Expected ${ENGINE_DATE_INPUT_FORMS}` })
+    .refine((value) => isEngineDateInput(value), { message: `Expected ${ENGINE_DATE_INPUT_FORMS}` })
     .optional()
   return description === undefined ? date : date.describe(description)
 }

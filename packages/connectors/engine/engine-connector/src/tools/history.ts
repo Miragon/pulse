@@ -4,7 +4,7 @@ import {
   queryHistoricTaskInstancesInput,
   queryHistoricVariableInstancesInput,
   queryHistoricIncidentsInput,
-} from "@miragon/pulse-engine-client/schemas"
+} from "../schemas/index.js"
 import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import {
   RAW_VARIABLES,
@@ -13,7 +13,7 @@ import {
   engineSorting,
   toOptionalEngineDate,
   trueOnly,
-} from "@miragon/pulse-engine-client"
+} from "@miragon/pulse-engine-core"
 import {
   getHistoricProcessInstances,
   getHistoricProcessInstancesCount,

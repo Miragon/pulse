@@ -1,6 +1,6 @@
 import { readTaskVariables, type Client, type VariableMap } from "@miragon/pulse-engine-client"
 import type { TaskFormField, TaskFormSchema } from "../view-models.js"
-import { getTaskFormInput } from "@miragon/pulse-engine-client/schemas"
+import { getTaskFormInput } from "../schemas/index.js"
 import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import { getTask } from "@miragon/pulse-engine-client/sdk"
 import { fetchDefinitionXml } from "../lib/definition-xml.js"

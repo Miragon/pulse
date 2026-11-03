@@ -19,7 +19,7 @@ import type {
   Selection,
 } from "./types.js"
 import { compact, isRecord, mapLimit } from "./util.js"
-import { historicVariableMap } from "./variables.js"
+import { historicVariableMap, RAW_VARIABLES } from "./variables.js"
 
 export interface InspectOptions {
   readonly variables: boolean
@@ -30,7 +30,7 @@ export interface InspectOptions {
 /** Root causes are loaded for at most this many incidents per command run. */
 const MAX_CAUSES = 10
 const MAX_STACKTRACE_LINES = 200
-const NO_VALUES = { deserializeValues: "false" }
+const NO_VALUES = { deserializeValues: String(RAW_VARIABLES.deserializeValues) }
 const JOBS = { operationId: "getJobs", key: "processInstanceIds" }
 /** The request that holds the root cause of an incident type. */
 const CAUSE_OPERATIONS: ReadonlyMap<string, string> = new Map([

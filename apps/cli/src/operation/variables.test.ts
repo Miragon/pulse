@@ -18,84 +18,15 @@ function caught(action: () => unknown): PulseCliError {
 }
 
 describe("typeValue (auto typing)", () => {
+  // The typing rule itself is engine-core's autoTypedValue, tested there.
   it.each([
     ["true", true, "Boolean"],
-    ["false", false, "Boolean"],
-    ["null", null, "Null"],
-    ["0", 0, "Integer"],
-    // JSON has no negative zero: -0 and 0 serialize alike
-    ["-0", 0, "Integer"],
     ["42", 42, "Integer"],
-    ["-17", -17, "Integer"],
-    [String(INT32_MAX), INT32_MAX, "Integer"],
-    [String(INT32_MIN), INT32_MIN, "Integer"],
-    [String(INT32_MAX + 1), INT32_MAX + 1, "Long"],
-    [String(INT32_MIN - 1), INT32_MIN - 1, "Long"],
-    [String(Number.MAX_SAFE_INTEGER), Number.MAX_SAFE_INTEGER, "Long"],
-    [String(Number.MIN_SAFE_INTEGER), Number.MIN_SAFE_INTEGER, "Long"],
     ["9007199254740992", 9007199254740992n, "Long"],
-    ["9223372036854775808", "9223372036854775808", "String"],
     ["1.5", 1.5, "Double"],
-    ["-0.25", -0.25, "Double"],
-    ["0.0", 0, "Double"],
     ["01234", "01234", "String"],
-    ["1.", "1.", "String"],
-    [".5", ".5", "String"],
-    ["1e3", "1e3", "String"],
-    ["x1.5", "x1.5", "String"],
-    ["1.5x", "1.5x", "String"],
-    ["x15", "x15", "String"],
-    ["15x", "15x", "String"],
-    ["TRUE", "TRUE", "String"],
-    ["", "", "String"],
-    ["hello world", "hello world", "String"],
-  ])("types %j", (raw, value, type) => {
+  ])("types %j like engine-core", (raw, value, type) => {
     expect(typeValue(raw)).toEqual({ value, type })
-  })
-
-  it("classifies int32 integers as Integer", () => {
-    fc.assert(
-      fc.property(fc.integer({ min: INT32_MIN, max: INT32_MAX }), (n) => {
-        expect(typeValue(String(n))).toEqual({ value: n, type: "Integer" })
-      }),
-    )
-  })
-
-  it("classifies safe integers beyond int32 as Long", () => {
-    const beyond = fc.oneof(
-      fc.integer({ min: INT32_MAX + 1, max: Number.MAX_SAFE_INTEGER }),
-      fc.integer({ min: Number.MIN_SAFE_INTEGER, max: INT32_MIN - 1 }),
-    )
-    fc.assert(
-      fc.property(beyond, (n) => {
-        expect(typeValue(String(n))).toEqual({ value: n, type: "Long" })
-      }),
-    )
-  })
-
-  it("classifies plain decimals as Double", () => {
-    fc.assert(
-      fc.property(fc.integer(), fc.stringMatching(/^\d{1,6}$/), (whole, fraction) => {
-        const raw = `${whole}.${fraction}`
-        expect(typeValue(raw)).toEqual({ value: Number(raw), type: "Double" })
-      }),
-    )
-  })
-
-  it("keeps everything else as String", () => {
-    const other = fc
-      .string()
-      .filter(
-        (raw) =>
-          !["true", "false", "null"].includes(raw) &&
-          !/^-?(0|[1-9]\d*)$/.test(raw) &&
-          !/^-?(0|[1-9]\d*)\.\d+$/.test(raw),
-      )
-    fc.assert(
-      fc.property(other, (raw) => {
-        expect(typeValue(raw)).toEqual({ value: raw, type: "String" })
-      }),
-    )
   })
 })
 

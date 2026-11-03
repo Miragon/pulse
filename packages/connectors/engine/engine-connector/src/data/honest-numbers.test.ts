@@ -2,7 +2,8 @@ import { readdirSync } from "node:fs"
 import { dirname } from "node:path"
 import { fileURLToPath } from "node:url"
 import { afterEach, describe, expect, it } from "vitest"
-import { toEngineDate, type Client } from "@miragon/pulse-engine-client"
+import type { Client } from "@miragon/pulse-engine-client"
+import { toEngineDate } from "@miragon/pulse-engine-core"
 import { cibsevenProvider } from "../providers/index.js"
 import {
   clientFor,

@@ -39,9 +39,9 @@ import {
   incidentsDashboardFilterShape,
   instanceSearchShape,
   jobsFilterShape,
-  pagingShape,
   processInstancesFilterShape,
 } from "../feed-contracts.js"
+import { pagingShape } from "../schemas/index.js"
 import { type WidgetToolsContext, type ResolvedEngine, clusterDetailShape } from "./shared.js"
 
 type FeedInput<TShape extends z.ZodRawShape> = z.output<z.ZodObject<TShape>>

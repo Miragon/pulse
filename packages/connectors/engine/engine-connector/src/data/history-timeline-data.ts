@@ -1,5 +1,5 @@
 import type { Client } from "@miragon/pulse-engine-client"
-import { MAX_PAGE_SIZE } from "@miragon/pulse-engine-client/schemas"
+import { MAX_PAGE_SIZE } from "../schemas/index.js"
 import {
   getHistoricActivityInstances,
   getHistoricActivityInstancesCount,

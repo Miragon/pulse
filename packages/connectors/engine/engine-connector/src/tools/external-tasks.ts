@@ -4,9 +4,9 @@ import {
   fetchAndLockInput,
   completeExternalTaskInput,
   handleExternalTaskFailureInput,
-} from "@miragon/pulse-engine-client/schemas"
+} from "../schemas/index.js"
 import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
-import { complementaryFlags, engineSorting, toEngineVariables } from "@miragon/pulse-engine-client"
+import { complementaryFlags, engineSorting, toEngineVariables } from "@miragon/pulse-engine-core"
 import {
   getExternalTasks,
   getExternalTasksCount,

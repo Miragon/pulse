@@ -1,21 +1,21 @@
 /**
  * Parses `--var` arguments into Camunda typed variable values.
  *
- *   name=value          auto typed: true/false → Boolean, integers → Integer/Long,
- *                       decimals → Double, null → Null, everything else → String
+ *   name=value          auto typed (engine-core's autoTypedValue): true/false → Boolean,
+ *                       integers → Integer/Long, decimals → Double, null → Null, everything
+ *                       else → String
  *   name:Type=value     explicit type, e.g. zip:String=01234, order:Json={"id":1}
  *
  * The typed conversions are the ones of option values (values.ts): `Date` values are normalized
  * like date-time options, `Long` keeps all 64 bits (as BigInt beyond 2^53).
  */
 
+import { autoTypedValue, type TypedValue } from "@miragon/pulse-engine-core"
 import { usageError } from "../errors.js"
 import { convertScalar, type ScalarSpec } from "./values.js"
 
-export interface TypedValue {
-  readonly value: unknown
-  readonly type: string
-}
+/** A typed variable value as the engine takes it (engine-core's). */
+export type { TypedValue }
 
 /** How a variable value appears in messages: `label` (`--var amount`) and an example for a type. */
 export interface ValueLabel {
@@ -61,11 +61,6 @@ const CONVERTERS: ReadonlyMap<string, Converter> = new Map<string, Converter>([
 ])
 
 export const VARIABLE_TYPES: readonly string[] = [...CONVERTERS.keys()]
-
-const INT32 = { min: -(2 ** 31), max: 2 ** 31 - 1 }
-const INT64 = { min: -(2n ** 63n), max: 2n ** 63n - 1n }
-const INTEGER = /^-?(0|[1-9]\d*)$/
-const DECIMAL = /^-?(0|[1-9]\d*)\.\d+$/
 
 /** `--var amount`: the label of a `--<flag> name=value` argument. */
 function variableLabel(flag: string, name: string): ValueLabel {
@@ -114,7 +109,7 @@ export function typeValue(
   explicitType?: string,
   label: ValueLabel = VALUE_LABEL,
 ): TypedValue {
-  if (explicitType === undefined) return autoTyped(raw)
+  if (explicitType === undefined) return autoTypedValue(raw)
   const type = canonicalType(explicitType)
   const converter = CONVERTERS.get(type)
   if (converter === undefined) throw unknownType(explicitType)
@@ -136,22 +131,4 @@ function unknownType(type: string) {
     `Unknown variable type "${type}"`,
     `Supported types: ${VARIABLE_TYPES.join(", ")}. Use --body for Object, File or Bytes variables.`,
   )
-}
-
-/** Integers: Integer (int32), else Long (exact, BigInt beyond 2^53), else beyond int64 a String. */
-function autoInteger(raw: string): TypedValue | undefined {
-  const value = BigInt(raw)
-  if (value >= INT32.min && value <= INT32.max) return { value: Number(value), type: "Integer" }
-  if (value < INT64.min || value > INT64.max) return undefined
-  const exact = value >= Number.MIN_SAFE_INTEGER && value <= Number.MAX_SAFE_INTEGER
-  return { value: exact ? Number(value) : value, type: "Long" }
-}
-
-function autoTyped(raw: string): TypedValue {
-  if (raw === "true" || raw === "false") return { value: raw === "true", type: "Boolean" }
-  if (raw === "null") return { value: null, type: "Null" }
-  const integer = INTEGER.test(raw) ? autoInteger(raw) : undefined
-  if (integer !== undefined) return integer
-  if (DECIMAL.test(raw)) return { value: Number(raw), type: "Double" }
-  return { value: raw, type: "String" }
 }

@@ -1,6 +1,6 @@
-import { correlateMessageInput, throwSignalInput } from "@miragon/pulse-engine-client/schemas"
+import { correlateMessageInput, throwSignalInput } from "../schemas/index.js"
 import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
-import { toEngineVariables } from "@miragon/pulse-engine-client"
+import { toEngineVariables } from "@miragon/pulse-engine-core"
 import { deliverMessage, throwSignal } from "@miragon/pulse-engine-client/sdk"
 import type { EngineRegistry } from "../lib/resolve-engine.js"
 import { engineParamShape, withEngine } from "../lib/with-engine.js"

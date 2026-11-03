@@ -3,9 +3,9 @@ import {
   listDeploymentsInput,
   createDeploymentInput,
   getDeploymentInput,
-} from "@miragon/pulse-engine-client/schemas"
+} from "../schemas/index.js"
 import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
-import { engineLike, engineSorting } from "@miragon/pulse-engine-client"
+import { engineLike, engineSorting } from "@miragon/pulse-engine-core"
 import {
   getDeployments,
   getDeploymentsCount,

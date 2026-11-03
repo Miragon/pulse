@@ -3,15 +3,10 @@ import {
   getJobStacktraceInput,
   setJobRetriesInput,
   setJobRetriesBatchInput,
-} from "@miragon/pulse-engine-client/schemas"
+} from "../schemas/index.js"
 import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
-import {
-  complementaryFlags,
-  engineSorting,
-  fetchJobStacktrace,
-  queuedBatch,
-  toOptionalEngineDate,
-} from "@miragon/pulse-engine-client"
+import { fetchJobStacktrace, queuedBatch } from "@miragon/pulse-engine-client"
+import { complementaryFlags, engineSorting, toOptionalEngineDate } from "@miragon/pulse-engine-core"
 import {
   getJobs,
   getJobsCount,

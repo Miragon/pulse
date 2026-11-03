@@ -133,6 +133,10 @@ export function createEngineClient(options: EngineClientOptions): Client {
       headers: buildAuthHeader(options),
       // hey-api calls its `fetch` with the finished Request only.
       fetch: fetchWithDeadline as typeof fetch,
+      // Redirects are FOLLOWED, hey-api's own default, stated so the difference shows: the CLI
+      // and the VS Code extension send `redirect: "manual"` (a followed 302/303 turns a write
+      // into a GET). One policy for all three is a behaviour change of its own.
+      redirect: "follow",
     }),
   )
 

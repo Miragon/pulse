@@ -1,4 +1,4 @@
-export { firstResultParam, MAX_PAGE_SIZE, maxResultsParam, variableSchema } from "./shared.js"
+export { MAX_PAGE_SIZE, pagingShape } from "./shared.js"
 export { listProcessDefinitionsInput, getProcessDefinitionXmlInput } from "./process-definitions.js"
 export {
   startProcessInstanceInput,
@@ -20,14 +20,7 @@ export {
   setTaskAssigneeInput,
   getTaskVariablesInput,
 } from "./tasks.js"
-export {
-  getTaskFormInput,
-  taskFormFieldSchema,
-  taskFormSchema,
-  type TaskFormField,
-  type TaskFormFieldSource,
-  type TaskFormSchema,
-} from "./task-form.js"
+export { getTaskFormInput } from "./task-form.js"
 export {
   listExternalTasksInput,
   fetchAndLockInput,

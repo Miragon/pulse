@@ -5,14 +5,13 @@ import {
   compareTime,
   countOf,
   definitionKeyOf,
-  engineFormat,
-  engineTime,
   field,
   num,
   records,
   str,
   yes,
 } from "./records.js"
+import { engineFormat, engineTime } from "./dates.js"
 import { timelineOf } from "./timeline.js"
 
 describe("records", () => {

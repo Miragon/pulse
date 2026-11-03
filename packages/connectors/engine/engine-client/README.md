@@ -9,27 +9,30 @@ A typed TypeScript client for the REST API of Camunda 7, CIB seven and Operaton.
 ## Install
 
 ```sh
-npm install @miragon/pulse-engine-client zod
+npm install @miragon/pulse-engine-client
 ```
 
 ## Overview
 
 TypeScript client for the [CIB Seven](https://cibseven.org/) REST API: an SDK
-generated with [`@hey-api/openapi-ts`](https://heyapi.dev/) plus hand-written,
-MCP-oriented Zod input schemas. There is no official TypeScript client for
-CIB Seven; this package fills that gap for Pulse and is
-usable by any CIB Seven / Camunda 7 project.
+generated with [`@hey-api/openapi-ts`](https://heyapi.dev/), a client factory
+with deadlines and engine errors, and the reads whose REST contract the SDK
+defaults miss. There is no official TypeScript client for CIB Seven; this
+package fills that gap for Pulse and is usable by any CIB Seven / Camunda 7
+project. It has no runtime dependency. The pure engine REST rules (dates,
+filters, sorting, variable writes, incident recovery) live in
+[`@miragon/pulse-engine-core`](../engine-core/README.md), which this package
+does not import.
 
 ## Exports
 
-| Subpath     | Contents                                                                |
-| ----------- | ----------------------------------------------------------------------- |
-| `.`         | `createEngineClient` factory, `EngineRequestError`, the engine contract |
-| `./sdk`     | Generated SDK, one typed function per REST operation                    |
-| `./types`   | Generated request/response types                                        |
-| `./schemas` | Zod input schemas (see below)                                           |
+| Subpath   | Contents                                                                                  |
+| --------- | ----------------------------------------------------------------------------------------- |
+| `.`       | `createEngineClient` factory, `EngineRequestError`, the SDK-bound reads and batch reports |
+| `./sdk`   | Generated SDK, one typed function per REST operation                                      |
+| `./types` | Generated request/response types                                                          |
 
-These four subpaths are the public API. The internal layout of the generated
+These three subpaths are the public API. The internal layout of the generated
 output (`dist/generated/**`) is not: it may change with any `@hey-api/openapi-ts`
 upgrade, so deep imports are deliberately not exported.
 
@@ -96,11 +99,12 @@ git diff                      # review spec + SDK changes, run the repo verifica
 Commit the spec and the regenerated output together: `src/generated/` is
 checked in and CI assumes it matches the spec.
 
-## MCP-oriented input schemas
+## The SDK-bound reads
 
-`src/schemas/` (exported as `./schemas`) are hand-written Zod schemas for the
-MCP tools in `@miragon/pulse-engine-connector`: flat parameter objects with
-LLM-friendly descriptions, sensible defaults, and conservative bounds. They
-are intentionally narrower than the full REST API surface and are not
-generated from the spec. They are the package's value-add for building MCP
-tools on top of the raw SDK, and can be ignored by non-MCP consumers.
+`src/engine-contract/` holds the reads whose REST contract differs from the SDK
+defaults: the `text/plain`-only stacktrace and error-details endpoints
+(`fetchJobStacktrace`, `fetchExternalTaskErrorDetails`, `null` on a 404),
+variable reads with `deserializeValues=false` (`readProcessInstanceVariables`,
+`readTaskVariables`) and `readBatch`, which falls back from the runtime
+statistics to the history record. The MCP tools' input schemas live in
+`@miragon/pulse-engine-connector` next to its tools.

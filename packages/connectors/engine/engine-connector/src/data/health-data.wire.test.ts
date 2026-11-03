@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest"
-import { engineDateMillis, toEngineDate } from "@miragon/pulse-engine-client"
+import { engineDateMillis, toEngineDate } from "@miragon/pulse-engine-core"
 import {
   clientFor,
   startFakeEngine,

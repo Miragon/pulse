@@ -17,7 +17,6 @@ import { Check, RotateCcw } from "lucide-react"
 
 import type { IncidentDetailData, IncidentDetailJob } from "../../view-models.js"
 
-import { recoveryOf } from "../lib/incident-recovery.js"
 import { useHandOff, type HandOff } from "../lib/hand-off.js"
 import { useT } from "../../messages/use-t.js"
 
@@ -143,7 +142,7 @@ function RetryButton({
   retrying: boolean
 }) {
   const t = useT()
-  const task = recoveryOf(data).action === "retry-external-task"
+  const task = data.recovery.action === "retry-external-task"
   const aria = task ? t("incidentFailure.retryTaskAria") : t("incidentFailure.retryAria")
   return (
     <Button size="sm" onClick={onRetry} disabled={retrying} title={aria} aria-label={aria}>

@@ -1,17 +1,10 @@
 import { z } from "zod"
-import {
-  listIncidentsInput,
-  listProcessInstancesInput,
-  MAX_PAGE_SIZE,
-} from "@miragon/pulse-engine-client/schemas"
+import type { pagingShape } from "./schemas/index.js"
+import { listIncidentsInput, listProcessInstancesInput } from "./schemas/index.js"
 
 /** Single source for both tool schemas and (type-only, no runtime zod) the builders and widgets. */
 
-/** Capped on every tool on the wire: some hosts hand a view's `structuredContent` to the model. */
-export const pagingShape = {
-  firstResult: z.number().int().min(0).optional().describe("Offset for pagination (0-based)."),
-  maxResults: z.number().int().positive().max(MAX_PAGE_SIZE).optional().describe("Page size."),
-}
+/** The feeds' paging (`pagingShape`, the one paging definition in `schemas/shared.ts`). */
 export type PagingArgs = z.infer<z.ZodObject<typeof pagingShape>>
 
 export const processInstancesFilterShape = {
@@ -57,7 +50,7 @@ export const jobsFilterShape = {
 }
 export type JobsFilters = z.infer<z.ZodObject<typeof jobsFilterShape>>
 
-// From the client schemas so the field types stay in one place.
+// From the tool input schemas so the field types stay in one place.
 export const incidentsDashboardFilterShape = {
   processDefinitionKey: listProcessInstancesInput.shape.processDefinitionKey,
   incidentType: listIncidentsInput.shape.incidentType,

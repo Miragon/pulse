@@ -89,7 +89,8 @@ hangs every in-widget query on "Loading…".
 This module has strict house patterns: read the
 [`add-bpm-feature`](../../../../.claude/skills/add-bpm-feature) skill and the architecture invariants in
 [`CLAUDE.md`](../../../../CLAUDE.md) before adding tools, schemas, or widgets. In short: input schemas live
-in [`@miragon/pulse-engine-client`](../engine-client), tools register via the registrar (never raw
+in `src/schemas/` next to the tools, the pure engine rules in
+[`@miragon/pulse-engine-core`](../engine-core), tools register via the registrar (never raw
 `server.tool()`), and a view is a cockpit route (its section, its builder and `*_data` feed, its
 start view), never a second view tool: see the add-bpm-feature skill.
 
@@ -98,6 +99,7 @@ start view), never a second view tool: see the add-bpm-feature skill.
 | Path                     | Contents                                                                  |
 | ------------------------ | ------------------------------------------------------------------------- |
 | `src/tools/`             | Registrar operations tools, one file per domain (`index.ts` wires them)   |
+| `src/schemas/`           | The tools' Zod input schemas and the one paging definition                |
 | `src/widget-tools.ts`    | `engine_open_cockpit` and the `*_data` feeds                              |
 | `src/widgets/`           | The cockpit app, its routes and widgets + `views.tsx`                     |
 | `src/tool-names.ts`      | Tool-name constants for rename-safe in-widget feed calls                  |

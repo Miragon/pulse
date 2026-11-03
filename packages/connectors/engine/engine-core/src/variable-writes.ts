@@ -13,14 +13,24 @@
  * model (or a widget) may send a parsed JSON object, an ISO date or an Object
  * without a format and still produce the one shape the engine accepts.
  */
-import type { VariableValueDto } from "../generated/types.gen.js"
 import { toEngineDate } from "./dates.js"
+import type { TypedValue } from "./types.js"
+
+/**
+ * A variable in the engine's wire shape, the REST API's `VariableValueDto` (this package has no
+ * dependency, so it states the shape; the SDK's type accepts it as is).
+ */
+export interface EngineVariable {
+  value?: unknown
+  type?: string | undefined
+  valueInfo?: Record<string, unknown>
+}
 
 /** A variable as a tool receives it (value, optional type + valueInfo). */
 export interface EngineVariableInput {
   value?: unknown
-  type?: string
-  valueInfo?: Record<string, unknown>
+  type?: string | undefined
+  valueInfo?: Record<string, unknown> | undefined
 }
 
 /** The serialization format an Object variable gets when none is given. */
@@ -71,12 +81,12 @@ function dateValue(name: string, value: unknown): unknown {
 }
 
 /**
- * One variable in the engine's wire shape (`VariableValueDto`). Throws a
+ * One variable in the engine's wire shape (`EngineVariable`, the SDK's `VariableValueDto`). Throws a
  * `RangeError` naming the variable for a value the engine would refuse.
  */
-export function toEngineVariable(name: string, input: EngineVariableInput): VariableValueDto {
+export function toEngineVariable(name: string, input: EngineVariableInput): EngineVariable {
   const key = typeKey(input.type)
-  const out: VariableValueDto = { value: input.value, type: input.type }
+  const out: EngineVariable = { value: input.value, type: input.type }
   if (key === "json" || key === "xml" || key === "object") out.value = serialized(name, input)
   if (key === "date") out.value = dateValue(name, input.value)
   if (key === "object") out.valueInfo = objectValueInfo(name, input)
@@ -87,9 +97,37 @@ export function toEngineVariable(name: string, input: EngineVariableInput): Vari
 /** {@link toEngineVariable} over a variables map; `undefined` stays `undefined`. */
 export function toEngineVariables(
   variables: Record<string, EngineVariableInput> | undefined,
-): Record<string, VariableValueDto> | undefined {
+): Record<string, EngineVariable> | undefined {
   if (!variables) return undefined
   return Object.fromEntries(
     Object.entries(variables).map(([name, input]) => [name, toEngineVariable(name, input)]),
   )
+}
+
+const INT32 = { min: -(2 ** 31), max: 2 ** 31 - 1 }
+const INT64 = { min: -(2n ** 63n), max: 2n ** 63n - 1n }
+const INTEGER = /^-?(0|[1-9]\d*)$/
+const DECIMAL = /^-?(0|[1-9]\d*)\.\d+$/
+
+/** Integers: Integer (int32), else Long (exact, BigInt beyond 2^53), else beyond int64 a String. */
+function autoInteger(raw: string): TypedValue | undefined {
+  const value = BigInt(raw)
+  if (value >= INT32.min && value <= INT32.max) return { value: Number(value), type: "Integer" }
+  if (value < INT64.min || value > INT64.max) return undefined
+  const exact = value >= Number.MIN_SAFE_INTEGER && value <= Number.MAX_SAFE_INTEGER
+  return { value: exact ? Number(value) : value, type: "Long" }
+}
+
+/**
+ * A variable value given as text, typed by its form: `true`/`false` → Boolean, `null` → Null,
+ * integers → Integer (int32) or Long (int64, a BigInt beyond 2^53), plain decimals → Double,
+ * everything else (also an integer beyond int64, `01234`, `1e3`) → String.
+ */
+export function autoTypedValue(raw: string): TypedValue {
+  if (raw === "true" || raw === "false") return { value: raw === "true", type: "Boolean" }
+  if (raw === "null") return { value: null, type: "Null" }
+  const integer = INTEGER.test(raw) ? autoInteger(raw) : undefined
+  if (integer !== undefined) return integer
+  if (DECIMAL.test(raw)) return { value: Number(raw), type: "Double" }
+  return { value: raw, type: "String" }
 }

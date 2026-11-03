@@ -1,10 +1,10 @@
+import type { Client } from "@miragon/pulse-engine-client"
 import {
   earliestEngineDate,
   engineDateMillis,
   incidentRecovery,
   latestEngineDate,
-  type Client,
-} from "@miragon/pulse-engine-client"
+} from "@miragon/pulse-engine-core"
 import { getIncidents, getProcessInstances } from "@miragon/pulse-engine-client/sdk"
 import type { IncidentInstance } from "../view-models.js"
 import type { EngineProvider } from "../engine-provider.js"

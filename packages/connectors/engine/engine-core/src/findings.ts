@@ -4,7 +4,8 @@
  */
 
 import { formatDuration } from "./durations.js"
-import { amount, compareText, engineTime, field, type Rec, str } from "./records.js"
+import { engineTime } from "./dates.js"
+import { amount, compareText, field, type Rec, str } from "./records.js"
 import type { GroupStep, IncidentGroup, JobStatus, TopicStatus } from "./status.js"
 import { compact } from "./util.js"
 

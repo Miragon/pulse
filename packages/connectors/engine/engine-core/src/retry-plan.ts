@@ -4,6 +4,7 @@
  */
 
 import { WorkflowError } from "./errors.js"
+import { type IncidentRecovery, incidentRecovery } from "./incident-recovery.js"
 import type { PlannedWrite } from "./port.js"
 import { compareText, compareTime, field, type Rec, str } from "./records.js"
 import type { Selection } from "./types.js"
@@ -60,13 +61,16 @@ export function missingRoots(incidents: readonly Rec[]): string[] {
   return [...new Set(roots)].filter((id) => !loaded.has(id)).sort(compareText)
 }
 
-const ACTIONS: ReadonlyMap<string, PlanEntry["action"]> = new Map([
-  ["failedJob", "job"],
-  ["failedExternalTask", "externalTask"],
-])
+/** The plan's action per recovery: retry fixes only what a retry clears. */
+const ACTIONS: Readonly<Record<IncidentRecovery["action"], PlanEntry["action"]>> = {
+  "retry-job": "job",
+  "retry-external-task": "externalTask",
+  resolve: "skip",
+  none: "skip",
+}
 
 function actionOf(type: string, configuration: string | undefined): PlanEntry["action"] {
-  return configuration === undefined ? "skip" : (ACTIONS.get(type) ?? "skip")
+  return ACTIONS[incidentRecovery({ incidentType: type, configuration }).action]
 }
 
 function entryOf(incident: Rec): PlanEntry {

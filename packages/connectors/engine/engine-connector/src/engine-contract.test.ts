@@ -69,7 +69,7 @@ describe("engine calls with a contract override go through the engine contract",
 
   it("engine dates are written by toEngineDate, never by a local rewrite", () => {
     for (const { file, text } of sources()) {
-      expect(text, `${file}: use toEngineDate from the engine contract`).not.toMatch(
+      expect(text, `${file}: use toEngineDate (engine-core)`).not.toMatch(
         /\.replace\(\s*["']Z["']\s*,\s*["']\+0000["']\s*\)/,
       )
     }

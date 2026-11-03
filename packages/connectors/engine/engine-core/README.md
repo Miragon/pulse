@@ -5,8 +5,9 @@
 [![Docs](https://img.shields.io/badge/docs-miragon.github.io%2Fpulse-335DE5?style=flat-square)](https://miragon.github.io/pulse/)
 
 The workflow domain of the Camunda 7 REST API family (Operaton, CIB seven, Camunda 7): where a
-process instance waits and why, how an engine is doing, and what retry and advance would send.
-It runs on an engine port you implement and returns data.
+process instance waits and why, how an engine is doing, and what retry and advance would send,
+and the pure engine REST rules every caller of this API needs (dates, filters, sorting, variable
+writes, incident recovery). It runs on an engine port you implement and returns data.
 
 ## Who uses it
 
@@ -52,6 +53,14 @@ npm install @miragon/pulse-engine-core
   every cut named in `truncated`.
 - **Plans:** the pure parts of retry (`planRetry`, `retriesWrite`), advance (`chooseWait`,
   `advanceSteps`) and wait (`parseCondition`, `decide`, `poll`).
+- **Engine REST rules:** the one home of what the engine expects other than what a caller
+  naturally sends: dates (`toEngineDate`, `engineDateInput` in a `DateInputReading`:
+  `OFFSET_REQUIRED` refuses a time without an offset, `UTC_WITHOUT_OFFSET` reads it as UTC;
+  `engineDateMillis`, `latestEngineDate`), true-only and `…Like` filters (`trueOnly`,
+  `complementaryFlags`, `engineLike`, `engineKeyList`, `engineInstanceSearch`), paired sorting
+  (`engineSorting`), variable writes and typing (`toEngineVariable(s)`, `autoTypedValue`),
+  incident recovery (`incidentRecovery`), the raw variable read flag (`RAW_VARIABLES`) and root
+  causes (`rootCause`).
 
 ```ts
 import { createEnginePort, type EngineTransport, inspectInstance } from "@miragon/pulse-engine-core"

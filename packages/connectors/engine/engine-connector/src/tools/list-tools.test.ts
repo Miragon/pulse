@@ -9,7 +9,7 @@ vi.mock("@miragon/pulse-engine-client/sdk", async (importOriginal) => {
 
 import { z } from "zod"
 import * as sdk from "@miragon/pulse-engine-client/sdk"
-import { MAX_PAGE_SIZE } from "@miragon/pulse-engine-client/schemas"
+import { MAX_PAGE_SIZE } from "../schemas/index.js"
 import { paginatedListOutput } from "../lib/pagination.js"
 import { createEngineRegistry, type EngineRegistry } from "../lib/resolve-engine.js"
 import { registerTools } from "./index.js"

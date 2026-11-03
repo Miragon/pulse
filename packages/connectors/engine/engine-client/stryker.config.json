@@ -9,12 +9,7 @@
     "src/client.ts",
     "src/engine-error.ts",
     "src/engine-contract/batches.ts",
-    "src/engine-contract/dates.ts",
-    "src/engine-contract/filters.ts",
-    "src/engine-contract/incidents.ts",
-    "src/engine-contract/reads.ts",
-    "src/engine-contract/sorting.ts",
-    "src/engine-contract/variables.ts"
+    "src/engine-contract/reads.ts"
   ],
   "inPlace": true,
   "incremental": true,

@@ -8,17 +8,17 @@ import {
   getProcessInstanceVariablesInput,
   setProcessInstanceVariableInput,
   setProcessInstanceSuspensionInput,
-} from "@miragon/pulse-engine-client/schemas"
+} from "../schemas/index.js"
 import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
+import { readProcessInstanceVariables } from "@miragon/pulse-engine-client"
 import {
   complementaryFlags,
   engineLike,
   engineSorting,
-  readProcessInstanceVariables,
   trueOnly,
   toEngineVariable,
   toEngineVariables,
-} from "@miragon/pulse-engine-client"
+} from "@miragon/pulse-engine-core"
 import {
   startProcessInstanceByKey,
   getProcessInstances,

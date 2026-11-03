@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { historicVariableMap, plainVariables } from "./variables.js"
+import { historicVariableMap, plainVariables, RAW_VARIABLES } from "./variables.js"
 
 describe("plainVariables", () => {
   it("flattens scalar types, keeps the others typed and sorts by name", () => {
@@ -51,5 +51,11 @@ describe("historicVariableMap", () => {
         "p1",
       ),
     ).toEqual({ a: { type: "Integer", value: 1, valueInfo: undefined } })
+  })
+})
+
+describe("RAW_VARIABLES", () => {
+  it("is the one query flag every variable read sends", () => {
+    expect(RAW_VARIABLES).toEqual({ deserializeValues: false })
   })
 })

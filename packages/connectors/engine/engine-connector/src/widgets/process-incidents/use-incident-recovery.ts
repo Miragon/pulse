@@ -1,6 +1,5 @@
 import type { IncidentInstance } from "../../view-models.js"
 import { useT, type T } from "../../messages/use-t.js"
-import { recoveryOf } from "../lib/incident-recovery.js"
 import { useEngineAction, type ActionConfirmation, type TargetLine } from "../lib/engine-action.js"
 import { engineTargetLines, useEngineEnvironment } from "../lib/engine-context.js"
 import { instanceName, instanceTargetLines, writeFeedback } from "../lib/write-feedback.js"
@@ -80,8 +79,8 @@ export function useIncidentRecovery(
     available,
   })
 
-  function remedyOf(incident: RecoverableIncident, jobId?: string | null) {
-    const recovery = recoveryOf(incident, jobId)
+  function remedyOf(incident: RecoverableIncident) {
+    const { recovery } = incident
     const instance = instanceName(incident.processInstanceId, incident.businessKey)
     switch (recovery.action) {
       case "resolve":
@@ -128,26 +127,26 @@ export function useIncidentRecovery(
   return {
     resolve,
     /** Null when the incident type, toolset or state offers none. */
-    actionFor(incident: RecoverableIncident, jobId?: string | null): RowAction | null {
-      const remedy = remedyOf(incident, jobId)
+    actionFor(incident: RecoverableIncident): RowAction | null {
+      const remedy = remedyOf(incident)
       return remedy?.action.allowed ? remedy.kind : null
     },
     /** Until the feed refetches. */
-    isDone(incident: RecoverableIncident, jobId?: string | null): boolean {
-      const remedy = remedyOf(incident, jobId)
+    isDone(incident: RecoverableIncident): boolean {
+      const remedy = remedyOf(incident)
       return remedy !== null && remedy.action.done.has(remedy.target)
     },
-    isPending(incident: RecoverableIncident, jobId?: string | null): boolean {
-      const remedy = remedyOf(incident, jobId)
+    isPending(incident: RecoverableIncident): boolean {
+      const remedy = remedyOf(incident)
       return remedy !== null && remedy.action.pending(remedy.target)
     },
-    errorOf(incident: RecoverableIncident, jobId?: string | null): string | null {
-      const remedy = remedyOf(incident, jobId)
+    errorOf(incident: RecoverableIncident): string | null {
+      const remedy = remedyOf(incident)
       return remedy ? remedy.action.error(remedy.target) : null
     },
     /** Resolve asks first, Retry runs at once. */
-    act(incident: RecoverableIncident, jobId?: string | null) {
-      remedyOf(incident, jobId)?.start()
+    act(incident: RecoverableIncident) {
+      remedyOf(incident)?.start()
     },
   }
 }

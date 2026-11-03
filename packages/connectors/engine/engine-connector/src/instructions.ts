@@ -1,4 +1,4 @@
-import { MAX_PAGE_SIZE } from "@miragon/pulse-engine-client/schemas"
+import { MAX_PAGE_SIZE } from "./schemas/index.js"
 import { MAX_VARIABLE_VALUE_CHARS } from "./lib/variable-truncation.js"
 import type { EngineToolset } from "./lib/toolsets.js"
 

@@ -1,4 +1,5 @@
 /** What the widgets render, not engine API types (those live in `@miragon/pulse-engine-client/types`). */
+import type { IncidentRecovery } from "@miragon/pulse-engine-core"
 import type { IncidentsDashboardFilters, JobsFilters } from "./feed-contracts.js"
 import type { ClusterDetailData, EngineHealthData } from "./view-models.health.js"
 
@@ -213,12 +214,8 @@ export interface VariableValue {
   valueInfo?: Record<string, unknown>
 }
 
-/** The engine contract's `incidentRecovery`; `none`: propagated from a called instance, cleared at its root cause. */
-export type IncidentRecovery =
-  | { action: "resolve" }
-  | { action: "retry-job"; jobId: string }
-  | { action: "retry-external-task"; externalTaskId: string }
-  | { action: "none" }
+/** engine-core's `incidentRecovery`; `none`: propagated from a called instance, cleared at its root cause. */
+export type { IncidentRecovery }
 
 export interface IncidentInstance {
   id: string
@@ -228,8 +225,7 @@ export interface IncidentInstance {
   incidentType: string
   incidentMessage: string | null
   incidentTimestamp: string
-  /** Optional: an older stored result reaches the view as is (reopened conversation). Read via `recoveryOf`. */
-  recovery?: IncidentRecovery
+  recovery: IncidentRecovery
   /** Null without cockpitUrl or when scheme validation rejected it. */
   cockpitInstanceUrl: string | null
 }
@@ -432,8 +428,7 @@ export interface IncidentDetailData extends EngineVendorInfo {
 
   // Null for external-task incidents
   job: IncidentDetailJob | null
-  /** Optional like {@link IncidentInstance.recovery}: read it through `recoveryOf`. */
-  recovery?: IncidentRecovery
+  recovery: IncidentRecovery
 
   instance: {
     id: string

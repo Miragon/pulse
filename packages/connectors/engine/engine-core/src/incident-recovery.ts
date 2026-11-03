@@ -13,9 +13,9 @@ export const BUILT_IN_INCIDENT_TYPES = ["failedJob", "failedExternalTask"] as co
 
 /**
  * What clears an incident:
- * - `resolve` — a custom incident: `engine_resolve_incident`;
- * - `retry-job` — `engine_set_job_retries` on `jobId`;
- * - `retry-external-task` — `engine_set_external_task_retries` on `externalTaskId`;
+ * - `resolve` — a custom incident: resolve it (`DELETE /incident/{id}`);
+ * - `retry-job` — set the retries of the job `jobId`;
+ * - `retry-external-task` — set the retries of the external task `externalTaskId`;
  * - `none` — a built-in incident without a `configuration`: one propagated
  *   from a called instance, cleared by retrying its ROOT-CAUSE incident.
  */
@@ -26,10 +26,11 @@ export type IncidentRecovery =
   | { action: "none" }
 
 export function incidentRecovery(incident: {
-  incidentType?: string | null
-  configuration?: string | null
+  incidentType?: string | null | undefined
+  configuration?: string | null | undefined
 }): IncidentRecovery {
-  const target = incident.configuration || null
+  // An empty configuration names nothing, like an absent one.
+  const target = incident.configuration === "" ? null : (incident.configuration ?? null)
   switch (incident.incidentType) {
     case "failedJob":
       return target ? { action: "retry-job", jobId: target } : { action: "none" }

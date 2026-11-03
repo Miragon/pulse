@@ -1,8 +1,5 @@
-import {
-  incidentRecovery,
-  readProcessInstanceVariables,
-  type Client,
-} from "@miragon/pulse-engine-client"
+import { readProcessInstanceVariables, type Client } from "@miragon/pulse-engine-client"
+import { incidentRecovery } from "@miragon/pulse-engine-core"
 import type { InstanceDetailData, TaskData } from "../view-models.js"
 import {
   getActivityInstanceTree,

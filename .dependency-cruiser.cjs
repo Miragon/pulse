@@ -12,7 +12,8 @@
  * `<family>-<role>` (npm `@miragon/pulse-<family>-<role>`; the naming gate holds the family
  * name), keyed by the role suffix:
  *   - `<family>-connector`: the MCP module (tools, widget tools, widgets);
- *   - `<family>-client`: its SDK leaf (generated REST SDK or PromQL queries + Zod schemas);
+ *   - `<family>-client`: its SDK leaf (generated REST SDK or PromQL queries; analytics-client
+ *     also still carries its tool input schemas, the engine family's live in its connector);
  *   - `<family>-core`, when the family's interfaces share a pure domain: a leaf that the
  *     family's connector and the interface apps that bundle it import (engine-core).
  * The foundation packages every family builds on live under `packages/core/` (npm names
@@ -194,7 +195,8 @@ module.exports = {
       name: "clients-are-leaves",
       severity: "error",
       comment:
-        "*-client packages are SDK leaves (generated REST SDK / PromQL queries + Zod schemas): " +
+        "*-client packages are SDK leaves (generated REST SDK / PromQL queries, analytics-client " +
+        "also its tool input schemas): " +
         "they never import connectors, family cores, the foundation packages or sibling clients. Shared " +
         "logic that grows here belongs in the connector layer or a core package, not in a client.",
       from: { path: "^packages/connectors/[^/]+/([^/]+)-client/" },
@@ -382,16 +384,22 @@ module.exports = {
       to: { path: [FAMILY_CORE_TREE, ...npm(FAMILY_CORE)] },
     },
     {
-      name: "cli-family-core-only-in-workflow",
+      name: "cli-family-core-only-in-named-layers",
       severity: "error",
       comment:
-        "In the CLI only the workflow commands (apps/cli/src/workflow) and the engine port " +
-        "(apps/cli/src/engine-port) import the family core it bundles (CLI_CORE); the command " +
-        "layer reaches it through the workflow modules, tests may import it anywhere. Any other " +
-        "core is cli-is-headless's.",
+        "In the CLI only the workflow commands (apps/cli/src/workflow), the engine port " +
+        "(apps/cli/src/engine-port) and the two operation modules that apply the core's engine " +
+        "REST rules to option values (operation/dates.ts: the date reading, operation/variables.ts: " +
+        "the auto typing) import the family core it bundles (CLI_CORE); the command layer " +
+        "reaches it through the workflow modules, tests may import it anywhere. Any other core " +
+        "is cli-is-headless's.",
       from: {
         path: "^apps/cli/",
-        pathNot: ["^apps/cli/src/(?:workflow|engine-port)/", ...CLI_TEST_CODE],
+        pathNot: [
+          "^apps/cli/src/(?:workflow|engine-port)/",
+          "^apps/cli/src/operation/(?:dates|variables)[.]ts$",
+          ...CLI_TEST_CODE,
+        ],
       },
       to: { path: npm(CLI_CORE) },
     },

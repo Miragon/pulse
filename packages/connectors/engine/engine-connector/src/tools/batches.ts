@@ -1,4 +1,4 @@
-import { getBatchInput } from "@miragon/pulse-engine-client/schemas"
+import { getBatchInput } from "../schemas/index.js"
 import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import { readBatch } from "@miragon/pulse-engine-client"
 import type { EngineRegistry } from "../lib/resolve-engine.js"

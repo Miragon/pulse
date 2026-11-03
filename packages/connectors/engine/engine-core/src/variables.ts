@@ -6,6 +6,16 @@
 import { isRecord } from "./util.js"
 import { type Rec, records, str } from "./records.js"
 
+/**
+ * The query every variable read sends, runtime AND historic (`/history/variable-instance` takes
+ * the same flag). The engine's default `deserializeValues=true` deserializes every Object
+ * variable eagerly (one class missing on its classpath fails the WHOLE read with a 500) and
+ * renders Json variables as Jackson's view of the Spin node instead of their JSON. With `false`,
+ * Object/Json/Xml values come back as their serialized string + `valueInfo`, exactly the shape a
+ * variable write takes back.
+ */
+export const RAW_VARIABLES = { deserializeValues: false } as const
+
 const PLAIN_TYPES: ReadonlySet<string> = new Set([
   "string",
   "boolean",

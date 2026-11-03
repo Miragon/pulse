@@ -1,6 +1,6 @@
-import { listIncidentsInput, resolveIncidentInput } from "@miragon/pulse-engine-client/schemas"
+import { listIncidentsInput, resolveIncidentInput } from "../schemas/index.js"
 import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
-import { engineKeyList, engineSorting, toOptionalEngineDate } from "@miragon/pulse-engine-client"
+import { engineKeyList, engineSorting, toOptionalEngineDate } from "@miragon/pulse-engine-core"
 import { getIncidents, getIncidentsCount, resolveIncident } from "@miragon/pulse-engine-client/sdk"
 import { paginatedListOutput, toPaginatedList } from "../lib/pagination.js"
 import type { EngineRegistry } from "../lib/resolve-engine.js"
