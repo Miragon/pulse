@@ -38,6 +38,12 @@ updates:
       # The template's @miragon/pulse-* pins are the workspace's own version: release-please bumps
       # them with the release (extra-files), never a registry update.
       - dependency-name: "@miragon/pulse-*"
+      # @types/node types the Node a package runs on: the CLI promises engines.node >=22.12.0 and
+      # the VS Code extension runs on VS Code's Node 22, so their 22 types catch an API those
+      # runtimes lack. A newer major would let it through; a major moves by hand, with the floor.
+      - dependency-name: "@types/node"
+        update-types:
+          - "version-update:semver-major"
     # Dependabot assigns each dependency to the FIRST group that matches it: the specific groups
     # come first, and the catch-all excludes their patterns as well.
     groups:
