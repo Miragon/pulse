@@ -401,7 +401,7 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
   test("in-widget query: the server-side search refetches through the app-only feed", async ({
     page,
   }) => {
-    // The path the vite `dedupe` list protects (CLAUDE.md invariant 4): the
+    // The path the vite `dedupe` (VIEW_BUNDLE_DEDUPE, CLAUDE.md invariant 4) protects: the
     // widget package's useToolQuery must see the shell's CallToolContext, or
     // every in-widget query hangs on its skeleton. The cockpit opens on the
     // realistic engine's instance list (160 instances, business keys to search).

@@ -4,11 +4,10 @@ What changes between releases that needs your hand: settings, tool names and met
 
 ## Renamed from camunda7 to engine (0.25)
 
-The module that talks to the engine served one REST API that three vendors implement (Camunda 7,
-CIB seven, Operaton), but its name named one of them. From 0.25 on it is the `engine` module: its
-tools, settings, packages and metric names follow. Values stay as they are, and the vendor setting
-`flavor` keeps `camunda7` for Camunda 7. The boot refuses a retired setting and names its
-replacement, so a server with old settings never starts without the engine or ignores a setting.
+The module that talks to the engine served one REST API that three vendors implement (Camunda 7, CIB
+seven, Operaton), but its name named one of them. From 0.25 on it is the `engine` module: its tools,
+settings, packages and metric names follow. Values stay as they are, and the vendor setting `flavor`
+keeps `camunda7` for Camunda 7. The boot refuses a retired setting and names its replacement.
 Upgrade the metrics plugin and the server in the same release (or bridge, see below). The image
 `ghcr.io/miragon/pulse-server`, the CLI and the VS Code extension keep their names and settings.
 
@@ -117,4 +116,5 @@ apps/mcp-server-camunda7            ->  apps/mcp-server  (this repository)
 ```
 
 A `setup.ts` that finds the module by name looks for `engineModule.name`. The engine sees the
-client's User-Agent as `@miragon/pulse-engine-client/<version>`.
+client's User-Agent as `@miragon/pulse-engine-client/<version>`. A module of your own peers
+`@miragon/pulse-widget-shell` (`^<version>`); your Vite config spreads its `VIEW_BUNDLE_DEDUPE`.

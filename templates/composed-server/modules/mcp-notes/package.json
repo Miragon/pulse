@@ -18,10 +18,9 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.widgets.json"
   },
-  "dependencies": {
-    "@miragon/pulse-widget-shell": "0.24.2"
-  },
   "peerDependencies": {
+    "@miragon/pulse-ui": "^0.24.2",
+    "@miragon/pulse-widget-shell": "^0.24.2",
     "mcp-use": "2.12.2",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
@@ -37,17 +36,18 @@
   },
   "devDependencies": {
     "@miragon/pulse-ui": "0.24.2",
+    "@miragon/pulse-widget-shell": "0.24.2",
     "@tanstack/react-query": "5.103.2",
     "@testing-library/react": "16.3.3",
     "@types/node": "22.19.15",
     "@types/react": "19.2.17",
     "happy-dom": "21.0.4",
-    "lucide-react": "1.48.0",
+    "lucide-react": "1.61.0",
     "mcp-use": "2.12.2",
-    "react": "19.2.8",
-    "react-dom": "19.2.8",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
     "typescript": "5.9.3",
     "vitest": "4.1.11",
-    "zod": "4.5.4"
+    "zod": "4.6.7"
   }
 }

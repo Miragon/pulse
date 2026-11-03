@@ -4,9 +4,14 @@
 # more in one unmergeable PR).
 version: 2
 updates:
-  # npm dependencies (pnpm monorepo)
+  # npm dependencies: the pnpm monorepo and the starter template, which pins what the workspace
+  # pins (scripts/template-pins.mjs, in pnpm test). One entry, so a grouped patch or minor bump
+  # moves both directories. A major or a security update can arrive for one directory only: the
+  # pin check then fails until the same pull request bumps the other directory by hand.
   - package-ecosystem: "npm"
-    directory: "/"
+    directories:
+      - "/"
+      - "/templates/composed-server"
     schedule:
       interval: "weekly"
     # majors arrive as individual PRs: leave room next to the grouped one
@@ -25,11 +30,15 @@ updates:
         update-types:
           - "version-update:semver-minor"
           - "version-update:semver-major"
+      # The template's @miragon/pulse-* pins are the workspace's own version: release-please bumps
+      # them with the release (extra-files), never a registry update.
+      - dependency-name: "@miragon/pulse-*"
     # Dependabot assigns each dependency to the FIRST group that matches it: the specific groups
     # come first, and the catch-all excludes their patterns as well.
     groups:
       # mcp-use is pinned exactly in every package and the template, peers included, so
-      # it moves in its own PR (a lone bump breaks the template drift gate, see #270).
+      # it moves in its own PR, and a lone bump of one directory breaks the template drift
+      # gate (see #270).
       mcp-use:
         patterns:
           - "mcp-use"

@@ -27,7 +27,13 @@
   "type": "module",
   "files": [
     "dist",
-    "src"
+    "!dist/**/*.test.*",
+    "!dist/**/*.test-support.*",
+    "!dist/**/test-support",
+    "src",
+    "!src/**/*.test.*",
+    "!src/**/*.test-support.*",
+    "!src/**/test-support"
   ],
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -46,11 +52,12 @@
     "lint:fix": "eslint src --fix"
   },
   "dependencies": {
-    "@miragon/pulse-analytics-client": "workspace:*",
-    "@miragon/pulse-widget-shell": "workspace:*"
+    "@miragon/pulse-analytics-client": "workspace:*"
   },
   "peerDependencies": {
     "@miragon/pulse-ui": "workspace:^",
+    "@miragon/pulse-widget-shell": "workspace:^",
+    "bpmn-js": "^18.31.1",
     "lucide-react": "^0.562.0 || ^1.0.0",
     "mcp-use": "2.12.2",
     "react": "^19.2.0",
@@ -73,6 +80,7 @@
   },
   "devDependencies": {
     "@miragon/pulse-ui": "workspace:*",
+    "@miragon/pulse-widget-shell": "workspace:*",
     "@stryker-mutator/core": "10.1.1",
     "@stryker-mutator/vitest-runner": "10.1.1",
     "@testing-library/react": "16.3.3",

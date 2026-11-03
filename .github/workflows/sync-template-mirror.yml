@@ -58,22 +58,31 @@ jobs:
 
       # npm's read replicas can lag the publish by a minute or two — a plain
       # install would then resolve a 404 and fail the whole sync. The metadata can
-      # arrive before the tarball (0.23.0), so both have to answer.
+      # arrive before the tarball (0.23.0), so both have to answer. The packages are
+      # the libraries the workspace publishes (scripts/workspace-packages.mjs, the
+      # predicate the release gate and scripts/test-template.sh read; node built-ins
+      # only, so it runs before any install). It is read from the checked-out tag, so a
+      # re-sync of a tag cut before the script existed (v0.24.x and older) fails here.
       - name: Wait until the released packages are visible on npm
         env:
           TAG: ${{ inputs.tag_name }}
         run: |
           version="${TAG#v}"
+          names="$(node scripts/workspace-packages.mjs libraries | cut -f2)"
+          if [ -z "$names" ]; then
+            echo "::error::scripts/workspace-packages.mjs listed no library"
+            exit 1
+          fi
           deadline=$((SECONDS + 600))
-          for p in ui engine-client analytics-client widget-shell engine-core engine-connector analytics-connector; do
-            tarball="https://registry.npmjs.org/@miragon/pulse-$p/-/pulse-$p-$version.tgz"
-            until npm view "@miragon/pulse-$p@$version" version >/dev/null 2>&1 &&
+          for name in $names; do
+            tarball="https://registry.npmjs.org/$name/-/${name#*/}-$version.tgz"
+            until npm view "$name@$version" version >/dev/null 2>&1 &&
               curl -sfI "$tarball" >/dev/null; do
               if ((SECONDS >= deadline)); then
-                echo "::error::@miragon/pulse-$p@$version not visible on npm after 10 minutes"
+                echo "::error::$name@$version not visible on npm after 10 minutes"
                 exit 1
               fi
-              echo "waiting for @miragon/pulse-$p@$version ..."
+              echo "waiting for $name@$version ..."
               sleep 15
             done
           done

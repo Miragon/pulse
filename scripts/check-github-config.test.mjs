@@ -36,11 +36,10 @@ import {
   checkRepo,
   checkVscodePublish,
   expectedRepository,
-  isNpmPublished,
   packageManagerRun,
   pluginManifests,
-  readWorkspace,
 } from "./check-github-config.mjs"
+import { isNpmPublished, readWorkspace } from "./workspace-packages.mjs"
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const readDoc = (file) => parse(readFileSync(path.join(ROOT, file), "utf8"))
@@ -117,13 +116,6 @@ const matches = (errors, pattern) => errors.some((error) => pattern.test(error))
 describe("the repo", () => {
   it("holds every rule", () => {
     assert.deepEqual(checkRepo(ROOT), [])
-  })
-
-  it("publishes exactly the packages that are neither private nor an extension", () => {
-    assert.equal(isNpmPublished({ name: "a" }), true)
-    assert.equal(isNpmPublished({ name: "a", private: true }), false)
-    assert.equal(isNpmPublished({ name: "pulse", engines: { vscode: "^1.101.0" } }), false)
-    assert.equal(isNpmPublished({ name: "a", engines: { node: ">=22" } }), true)
   })
 })
 

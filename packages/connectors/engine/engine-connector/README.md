@@ -16,7 +16,7 @@ interactive views that show incidents, instances and diagrams right in the chat.
 
 ```sh
 npm install @miragon/pulse-engine-connector @miragon/pulse-widget-shell
-npm install react react-dom zod lucide-react bpmn-js@18.31.0 @miragon/pulse-ui mcp-use@2.12.2
+npm install react react-dom zod lucide-react bpmn-js@18.31.1 @miragon/pulse-ui mcp-use@2.12.2
 ```
 
 To build your own MCP server on it, start from [pulse-starter](https://github.com/Miragon/pulse-starter).
@@ -36,12 +36,15 @@ the other `@miragon/pulse-*` packages (pin them all to one version); the
 into your own MCP server.
 
 The consumer-shared libraries are ranged **peer dependencies** so they dedupe against your app's
-copy: `react`/`react-dom` `^19.2.0`, `zod` `^4.4.0`, `@miragon/pulse-ui` `^<this release>` (the
-design kit the widgets compose from), `lucide-react` `^0.562.0 || ^1.0.0` (the widgets' icons; add
-it to your `dedupe` list like the widget-shell asks, and pin a 1.x copy (this repo pins 1.61.0):
-widget-shell's view root imports `LucideProvider`, which 0.x lacks, so a deduped 0.x copy fails the
-bundle build). **`mcp-use` is exactly pinned**: pin it to `mcp-use@2.12.2` in your app. A duplicate
-`mcp-use` instance breaks the React context and hangs every in-widget query on "Loading…".
+copy: `react`/`react-dom` `^19.2.0`, `zod` `^4.4.0`, `@miragon/pulse-ui` and
+`@miragon/pulse-widget-shell` `^<this release>` (the design kit the widgets compose from, and the
+view runtime and boot your server shares with every module), `lucide-react` `^0.562.0 || ^1.0.0`
+(the widgets' icons; pin a 1.x copy (this repo pins 1.61.0): widget-shell's view root imports
+`LucideProvider`, which 0.x lacks, so a deduped 0.x copy fails the bundle build). Your view
+bundle's Vite config spreads widget-shell's `VIEW_BUNDLE_DEDUPE` into `resolve.dedupe`. `bpmn-js`
+is a peer (`^18.31.1`): the widgets draw BPMN diagrams. **`mcp-use` is exactly pinned**: pin
+it to `mcp-use@2.12.2` in your app. A duplicate `mcp-use` instance breaks the React context and
+hangs every in-widget query on "Loading…".
 
 ## What it provides
 

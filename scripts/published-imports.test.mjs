@@ -5,8 +5,7 @@ import path from "node:path"
 import { builtinModules } from "node:module"
 import { afterEach, describe, it } from "node:test"
 import ts from "typescript"
-import { isNpmPublished } from "./check-github-config.mjs"
-import { expandWorkspaceGlobs, workspaceGlobs } from "./check-package-scripts.mjs"
+import { isNpmPublished, readWorkspace } from "./workspace-packages.mjs"
 import { REPO_ROOT } from "./source-scan.mjs"
 
 /**
@@ -40,20 +39,12 @@ const BUNDLED_APPS = {
 }
 
 /**
- * Every workspace package of the repo at `root`: each glob's directories that hold a package.json.
- * The shared expansion throws on a glob it cannot expand, so no workspace tier drops out unread.
+ * Every workspace package of the repo at `root` (workspace-packages.mjs's reader, which fails on a
+ * workspace without globs), its directory absolute.
  * @returns {{ dir: string, manifest: Record<string, any> }[]}
  */
-function workspacePackages(root = REPO_ROOT) {
-  const globs = workspaceGlobs(fs.readFileSync(path.join(root, "pnpm-workspace.yaml"), "utf8"))
-  if (globs.length === 0) {
-    throw new Error(`${path.join(root, "pnpm-workspace.yaml")} lists no packages: globs`)
-  }
-  return expandWorkspaceGlobs(root, globs).map((rel) => {
-    const dir = path.join(root, rel)
-    return { dir, manifest: JSON.parse(fs.readFileSync(path.join(dir, "package.json"), "utf8")) }
-  })
-}
+const workspacePackages = (root = REPO_ROOT) =>
+  readWorkspace(root).map(({ dir, manifest }) => ({ dir: path.join(root, dir), manifest }))
 
 /** Published to npm: not `"private": true`, and no VS Code extension (engines.vscode). */
 const publishedPackages = (root = REPO_ROOT) =>

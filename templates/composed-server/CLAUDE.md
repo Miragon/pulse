@@ -66,7 +66,10 @@ external infrastructure.
    `server/test/view-registry.test.ts` boots the real composition and fails
    on a view-bound tool without a view, and on a view no tool opens.
 4. **`resolve.dedupe` in `server/vite.config.ts` is load-bearing: never trim
-   it.** Without it every in-widget query hangs on "Loading…" (duplicate React
+   it.** It spreads widget-shell's `VIEW_BUNDLE_DEDUPE`
+   (`@miragon/pulse-widget-shell/server`), the packages the view bundle must
+   resolve once; a package of your own that carries a React context goes after
+   it. Without it every in-widget query hangs on "Loading…" (duplicate React
    contexts).
    **Widgets compose their UI from the design kit `@miragon/pulse-ui`**
    (primitives, `WidgetHeader`, `KpiGrid`, the pills, the `TONE_*` maps, `cn`,
@@ -83,10 +86,14 @@ external infrastructure.
    `modules/mcp-notes/src/widgets/notes-list.test.tsx` does.
 5. **Exact version pins** (`save-exact` in `.npmrc`) for `dependencies`/
    `devDependencies`: upgrade all `@miragon/pulse-*` packages together to one
-   version. The consumer-shared libraries are ranged `peerDependencies`
-   instead (`react`/`react-dom` `^19.2.0` and `zod` `^4.4.0`), so they
-   dedupe against your app's copy; keep an exact copy of each in
-   `devDependencies` for local builds.
+   version. The consumer-shared libraries are ranged `peerDependencies` of a
+   module instead (`react`/`react-dom` `^19.2.0`, `zod` `^4.4.0`,
+   `@miragon/pulse-ui` and `@miragon/pulse-widget-shell` `^<version>`), so
+   they resolve to the server's one copy; keep an exact copy of each in
+   `devDependencies` for local builds. Keep `react`, `react-dom`, `zod`,
+   `lucide-react` and `@tanstack/react-query` at the versions the Pulse
+   packages are built with (Pulse checks its own copy of this template against
+   them).
    **`mcp-use` stays exactly pinned** even as a peer (`2.12.2`): a duplicate
    `mcp-use` instance breaks the React context and hangs every in-widget query
    on "Loading…" (invariant #4). `@mcp-use/client` (a dev dependency of `server/`) is

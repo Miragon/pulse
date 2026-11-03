@@ -57,8 +57,9 @@ The package itself is `private` and not published to npm.
   `ui://views/<tool>.html` view resource per widget tool (derived from each tool's `view` binding),
   each with a prelude naming its view, so `mountViews` picks the tool's view from
   [`src/ui/view-registry.ts`](src/ui/view-registry.ts). The `dedupe` array in
-  [`vite.config.ts`](vite.config.ts) is load-bearing: it keeps a single React / TanStack Query /
-  mcp-use / pulse-ui instance, so a widget finds the view host and the one `QueryClient`.
+  [`vite.config.ts`](vite.config.ts) is load-bearing: it spreads widget-shell's `VIEW_BUNDLE_DEDUPE`
+  and so keeps a single React / TanStack Query / mcp-use / pulse-ui / widget-shell instance, so a
+  widget finds the view host and the one `QueryClient`.
 - **Serves HTTP:** streamable-HTTP MCP on `:8400/mcp`; the `mcp-use` inspector (`:8400/mcp/inspector`) ships with `mcp-use dev` only, never with the production entrypoint
   in dev.
 
@@ -98,7 +99,7 @@ Configuration is entirely environment-driven. See
 | `src/app.ts`     | `createApp(env, deps?)`: the shared boot over the module list; the e2e suites boot it too     |
 | `src/setup.ts`   | The module list and the cross-module wiring (`SharedResources`)                               |
 | `src/ui/`        | Widget host bundle: `view-registry.ts` (views + host widgets) + `main.tsx` (`mountViews`)     |
-| `vite.config.ts` | Single-file widget bundle config (keep the `dedupe` array)                                    |
+| `vite.config.ts` | Single-file widget bundle config (keep `dedupe` spreading `VIEW_BUNDLE_DEDUPE`)               |
 | `Dockerfile`     | Lives at the repo root; multi-stage build that produces the published image                   |
 
 ## Renamed from miragon-ai

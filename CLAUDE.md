@@ -259,10 +259,14 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    (the "can't show this view" state) and on a view no tool opens (dead code in every
    view's bundle).
 
-4. **The `dedupe` array in `apps/mcp-server/vite.config.ts` is load-bearing: never remove
-   or trim it.** Without it each widget package bundles its own React, TanStack Query, mcp-use
-   or pulse-ui instance, the React contexts no longer match, a widget finds no view host and
-   no `QueryClient`, and every in-widget query hangs on "Loading…".
+4. **The view bundle's `resolve.dedupe` is load-bearing: never remove or trim it.** It is
+   widget-shell's `VIEW_BUNDLE_DEDUPE` (`@miragon/pulse-widget-shell/server`), spread whole in
+   `apps/mcp-server/vite.config.ts` and the template's `server/vite.config.ts`. Without it each
+   widget package bundles its own React, TanStack Query, mcp-use, pulse-ui or widget-shell
+   instance, the React contexts no longer match, a widget finds no view host and no
+   `QueryClient`, and every in-widget query hangs on "Loading…". widget-shell's
+   `src/view-bundle.test.ts` holds the list to its peers, `test/view-bundle.test.ts` the app's
+   config to the list, test:host's in-widget query the built bundle.
 
 5. **There are three render paths; pick deliberately:**
    - Registrar tools (`src/tools/`): plain JSON data _for the model_.
@@ -529,15 +533,23 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
   (`src/widget-tools/engine-{compare,landscape}.test.ts`).
 - **Pinning is split by dependency stanza.** `dependencies`/`devDependencies` stay EXACT
   (`save-exact=true` in `.npmrc`). Consumer-shared libraries are RANGED `peerDependencies`, so
-  a downstream app dedupes them (`react`/`react-dom` `^19.2.0`, `zod` `^4.4.0`,
-  `@miragon/pulse-ui` as `workspace:^`, packed to `^<version>`), each also an EXACT
-  devDependency. A published package imports only what its `dependencies` or `peerDependencies`
-  declare (`scripts/published-imports.test.mjs`). **`mcp-use` is exactly pinned
-  even as a peer** (`2.12.2`): a duplicate instance breaks the React context and hangs every
-  in-widget query (invariant 4). Name the required `mcp-use` version in each package README and
-  the release changelog. An `mcp-use` bump moves every package and `templates/composed-server`
-  together (`scripts/test-template.sh` checks the template's pins), never one package in
-  isolation.
+  a downstream app dedupes them (`react`/`react-dom` `^19.2.0`, `zod` `^4.4.0`, `bpmn-js`
+  `^18.31.1`, `@miragon/pulse-ui` and `@miragon/pulse-widget-shell` as `workspace:^`, packed to
+  `^<version>`), each also an EXACT devDependency. `bpmn-js` is a peer of widget-shell
+  (`./widgets` exports the BPMN viewer, so every view bundle imports it) and of the two
+  connectors, which draw diagrams. A published package imports only what its `dependencies` or
+  `peerDependencies` declare (`scripts/published-imports.test.mjs`), and its tarball ships no
+  test and every module its entries reach (`scripts/pack-contents.mjs`, run by
+  `scripts/test-template.sh`); a connector ships `dist` and its `src`, the template's reference
+  implementation. **`mcp-use` is exactly pinned even as a peer** (`2.12.2`): a duplicate instance
+  breaks the React context and hangs every in-widget query (invariant 4). Name the required
+  `mcp-use` version in each package README and the release changelog. The template pins what the
+  workspace pins (the `@miragon/pulse-*` libraries, `mcp-use`, `react`, `react-dom`, `zod`,
+  `lucide-react`, `@tanstack/react-query`; `scripts/template-pins.mjs`, in `pnpm test` and
+  `scripts/test-template.sh`), never one package in isolation. Dependabot's one npm entry
+  covers the root and the template, so a grouped minor or patch bump moves both; a major or a
+  security update can arrive for one directory only and turns `pnpm test` red until the
+  template pins the same version: bump both in that pull request.
 - **The widget `_meta` contract is split since mcp-use 2; never hand-write the `ui` half.**
   mcp-use emits the MCP-Apps keys from the tool's `view`/`visibility` fields and OVERWRITES
   the `ui` namespace on tools/list; widget-shell's `showToolBinding` stamps only the `openai/*`
@@ -617,7 +629,7 @@ workspace (its header lists each check).
 | `pnpm fitness`    | Report: architecture graph, per-package coverage and mutation scores; locally after `pnpm test` (no CI job on a pull request), nightly the "Mutation summary" job of `.github/workflows/mutation-nightly.yml`                                                                                                                                                                                                                                                                                                                            |
 | `./gradlew build` | Kotlin compile + unit tests + Konsist architecture tests (run in `engine-plugins/`)                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | `test:host`       | `pnpm --filter @miragon/pulse-mcp-server test:host`: Playwright host simulation of the **built** widget bundle behind a SEP-1865 host shim, the real `engine_open_cockpit` against a stub engine (`pinned …` scenarios are known defects, flipped when fixed); CI "Widget host simulation (test:host)"; run it for changes to widget-shell, pulse-ui, `src/ui/` or the mcp-use pin                                                                                                                                                       |
-| Template          | `scripts/test-template.sh` (in `pnpm check:all`; CI "Composed-server template (Build + Test)"): packs the seven published packages, points a copy of `templates/composed-server` at the tarballs and runs its build, typecheck and tests, its `@miragon/pulse-*` and `mcp-use` pins checked against the workspace. ESLint, knip and dependency-cruiser skip `templates/`: the template's composition-root rules (invariant 8) are review knowledge                                                                                       |
+| Template          | `scripts/test-template.sh` (in `pnpm check:all`; CI "Composed-server template (Build + Test)"): packs the published libraries (`scripts/workspace-packages.mjs`), checks the tarballs' contents (`scripts/pack-contents.mjs`), points a copy of `templates/composed-server` at them and runs its build, typecheck and tests, its pins checked against the workspace first (`scripts/template-pins.mjs`). ESLint, knip and dependency-cruiser skip `templates/`: the template's composition-root rules (invariant 8) are review knowledge |
 | Docker build      | `.github/workflows/docker-build.yml`: plain `docker build` of the root `Dockerfile` (no push) on every PR touching what the build stage copies                                                                                                                                                                                                                                                                                                                                                                                           |
 | Engines           | `Engines (<flavor>)` in `.github/workflows/ci.yml`: Camunda 7, CIB seven and Operaton in Testcontainers, running the CLI's suites and the VS Code extension's conformance laws (`test:engines`; images pinned in `apps/cli/test/integration/support/engines.ts`); the `Engines` job aggregates the legs                                                                                                                                                                                                                                  |
 | VS Code smoke     | activation + every contributed command in VS Code stable under Xvfb, `test:smoke` (`.github/workflows/ci.yml`)                                                                                                                                                                                                                                                                                                                                                                                                                           |

@@ -26,7 +26,10 @@
     "access": "public"
   },
   "files": [
-    "dist"
+    "dist",
+    "!dist/**/*.test.*",
+    "!dist/**/*.test-support.*",
+    "!dist/**/test-support"
   ],
   "type": "module",
   "main": "dist/index.js",

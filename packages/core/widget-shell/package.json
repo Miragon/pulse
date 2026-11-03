@@ -26,7 +26,10 @@
   },
   "type": "module",
   "files": [
-    "dist"
+    "dist",
+    "!dist/**/*.test.*",
+    "!dist/**/*.test-support.*",
+    "!dist/**/test-support"
   ],
   "exports": {
     "./server": {
@@ -52,7 +55,7 @@
   "peerDependencies": {
     "@miragon/pulse-ui": "workspace:^",
     "@tanstack/react-query": "^5.103.2",
-    "bpmn-js": "18.31.1",
+    "bpmn-js": "^18.31.1",
     "lucide-react": "^0.562.0 || ^1.0.0",
     "mcp-use": "2.12.2",
     "react": "^19.2.0",

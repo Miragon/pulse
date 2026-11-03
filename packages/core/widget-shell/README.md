@@ -11,7 +11,7 @@ Its UI builds on the design kit [`@miragon/pulse-ui`](../ui).
 ## Install
 
 ```sh
-npm install @miragon/pulse-widget-shell zod bpmn-js@18.31.0 mcp-use@2.12.2
+npm install @miragon/pulse-widget-shell zod bpmn-js@18.31.1 mcp-use@2.12.2
 ```
 
 The widgets also need `react`, `react-dom`, `@miragon/pulse-ui`, `lucide-react` and
@@ -140,23 +140,26 @@ package customers build their own connectors and composed servers on (see the
 
 ## Exports
 
-| Subpath     | Contents                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `./server`  | `buildViewResult` / `buildDataFeedResult` / `viewPrelude`, `createToolsetVocabulary` and the module port (`ComposableModule`, `ModulePlugin`, `ModuleEntry`), `createComposedServer` with `composedEnvVars` / `retiredEnvVars` and its edge pieces (incl. `installFontAssets`, `fontAssetsCsp`), the per-caller request info (`callerCacheKey`, `getMcpRequestInfo`), the tool registrar (`createToolRegistrar`, `withToolErrors`), the view meta (`showToolBinding`, `appOnly`, `viewResourceUri`), the server i18n (`createTranslator`) |
-| `./widgets` | The view runtime (`mountViews`, the view host, the query hooks, `TestViewHost`; the language from the host locale (`de…` German, else English), the theme as host context > OS), the host-bound UI and `createTranslator`                                                                                                                                                                                                                                                                                                                 |
-| `./testing` | The product glossary: `PRODUCT_GLOSSARY`, `glossaryFindings`, `blindGlossaryRules`, `unnamedGlossaryTerms`                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| Subpath     | Contents                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `./server`  | `buildViewResult` / `buildDataFeedResult` / `viewPrelude`, `createToolsetVocabulary` and the module port (`ComposableModule`, `ModulePlugin`, `ModuleEntry`), `createComposedServer` with `composedEnvVars` / `retiredEnvVars` and its edge pieces (incl. `installFontAssets`, `fontAssetsCsp`), the per-caller request info (`callerCacheKey`, `getMcpRequestInfo`), the tool registrar (`createToolRegistrar`, `withToolErrors`), the view meta (`showToolBinding`, `appOnly`, `viewResourceUri`), the server i18n (`createTranslator`), the view bundle's dedupe list (`VIEW_BUNDLE_DEDUPE`) |
+| `./widgets` | The view runtime (`mountViews`, the view host, the query hooks, `TestViewHost`; the language from the host locale (`de…` German, else English), the theme as host context > OS), the host-bound UI and `createTranslator`                                                                                                                                                                                                                                                                                                                                                                       |
+| `./testing` | The product glossary: `PRODUCT_GLOSSARY`, `glossaryFindings`, `blindGlossaryRules`, `unnamedGlossaryTerms`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 
 `@miragon/pulse-ui`, `react`/`react-dom`, `zod` and `@tanstack/react-query` are **peer
-dependencies**: they must resolve to a single instance across the host bundle (see the `dedupe`
-array in the server app's `vite.config.ts`), otherwise the React contexts diverge and in-widget
-queries hang. They are published as ranges (`react`/`react-dom` `^19.2.0`, `zod` `^4.4.0`,
-`@miragon/pulse-ui` `^<this release>`, `lucide-react` `^0.562.0 || ^1.0.0`) so they dedupe against
-your app's copy;
-add `lucide-react` to your `dedupe` list too. **A host bundle that dedupes `lucide-react` needs a
-1.x copy that exports `LucideProvider`** (this repo pins 1.61.0): widget-shell's view root imports
-`LucideProvider`, which 0.x does not export, so a deduped 0.x copy fails the bundle build with a
-missing export. The peer range still admits 0.562 only for this repo's own test graph; no package
-manager warns you about it.
+dependencies**: they must resolve to a single instance across the host bundle, otherwise the React
+contexts diverge and in-widget queries hang. Spread `VIEW_BUNDLE_DEDUPE` (`./server`) into your
+view bundle's Vite `resolve.dedupe` (`dedupe: [...VIEW_BUNDLE_DEDUPE]`): it names every package
+that must exist once, this one included, and a release that adds one reaches you with the version
+bump. A module of your own, like the Pulse connectors, peers this package (`^<this release>`), so
+your server's copy is the only one. The peers are published as ranges (`react`/`react-dom`
+`^19.2.0`, `zod` `^4.4.0`, `@miragon/pulse-ui` `^<this release>`, `lucide-react`
+`^0.562.0 || ^1.0.0`) so they dedupe against your app's copy. **A host bundle that dedupes
+`lucide-react` needs a 1.x copy that exports `LucideProvider`** (this repo pins 1.61.0):
+widget-shell's view root imports `LucideProvider`, which 0.x does not export, so a deduped 0.x copy
+fails the bundle build with a missing export. The peer range still admits 0.562 only for this repo's
+own test graph; no package manager warns you about it. `bpmn-js` is a peer (`^18.31.1`):
+`./widgets` exports the BPMN viewer, so every view bundle imports it.
 
 `mcp-use` is the exception: it is an **exactly pinned** peer dependency. Pin it to `mcp-use@2.12.2`
 in your app. A duplicate `mcp-use` instance breaks the React context and hangs every in-widget query

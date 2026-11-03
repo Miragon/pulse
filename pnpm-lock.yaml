@@ -329,13 +329,13 @@ importers:
       '@miragon/pulse-analytics-client':
         specifier: workspace:*
         version: link:../analytics-client
-      '@miragon/pulse-widget-shell':
-        specifier: workspace:*
-        version: link:../../../core/widget-shell
     devDependencies:
       '@miragon/pulse-ui':
         specifier: workspace:*
         version: link:../../../core/ui
+      '@miragon/pulse-widget-shell':
+        specifier: workspace:*
+        version: link:../../../core/widget-shell
       '@stryker-mutator/core':
         specifier: 10.1.1
         version: 10.1.1(@types/node@26.6.5)
@@ -405,13 +405,13 @@ importers:
       '@miragon/pulse-engine-core':
         specifier: workspace:*
         version: link:../engine-core
-      '@miragon/pulse-widget-shell':
-        specifier: workspace:*
-        version: link:../../../core/widget-shell
     devDependencies:
       '@miragon/pulse-ui':
         specifier: workspace:*
         version: link:../../../core/ui
+      '@miragon/pulse-widget-shell':
+        specifier: workspace:*
+        version: link:../../../core/widget-shell
       '@stryker-mutator/core':
         specifier: 10.1.1
         version: 10.1.1(@types/node@26.6.5)

@@ -48,6 +48,7 @@ export {
   type FontAssetsOptions,
 } from "./font-assets.js"
 export { SERVED_FONT_FILES, SERVED_FONT_PATH, servedFontBaseUrl } from "./served-fonts.js"
+export { VIEW_BUNDLE_DEDUPE } from "./view-bundle.js"
 export {
   createBodyLimitedListener,
   type BodyLimitedListener,

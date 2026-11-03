@@ -26,6 +26,9 @@
   },
   "files": [
     "dist",
+    "!dist/**/*.test.*",
+    "!dist/**/*.test-support.*",
+    "!dist/**/test-support",
     "metrics-contract.json"
   ],
   "type": "module",

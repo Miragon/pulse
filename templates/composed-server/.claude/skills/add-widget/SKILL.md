@@ -194,7 +194,7 @@ root to see changes.
 | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | "Can't show this view"               | the module's view map is not spread in `server/src/ui/view-registry.ts`, or its key differs from the show tool's name (the guard test names the tool)                         |
 | Widget renders unstyled              | widget sources outside the Tailwind scan set: workspace modules are globbed (`modules/*/src`); an npm-installed module needs its own `@source` in `server/src/ui/globals.css` |
-| Hangs on "Loading…" forever          | `resolve.dedupe` trimmed in `server/vite.config.ts` (duplicate React contexts), or a missing `isError` branch in the fallback                                                 |
+| Hangs on "Loading…" forever          | `resolve.dedupe` in `server/vite.config.ts` trimmed or no longer spreading `VIEW_BUNDLE_DEDUPE` (duplicate React contexts), or a missing `isError` branch in the fallback     |
 | A refresh renders a second view      | the widget calls the `show_*` tool instead of the `*_data` feed                                                                                                               |
 | e2e test fails on `_meta`/visibility | tool name breaks the `_show_`/`_data` convention, or a hand-written `_meta.ui` key: use the helpers                                                                           |
 | Boot fails on a duplicate tool name  | two plugins register the same name; the error names both modules, rename one (keep the `<module>_` prefix)                                                                    |

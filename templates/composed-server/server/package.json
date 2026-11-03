@@ -23,7 +23,7 @@
     "@miragon/pulse-engine-connector": "0.24.2",
     "@miragon/pulse-widget-shell": "0.24.2",
     "mcp-use": "2.12.2",
-    "zod": "4.6.6"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@mcp-use/client": "2.4.5",
@@ -36,9 +36,9 @@
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.0.1",
     "cross-env": "10.1.0",
-    "lucide-react": "1.48.0",
-    "react": "19.2.8",
-    "react-dom": "19.2.8",
+    "lucide-react": "1.61.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
     "tailwindcss": "4.3.3",
     "typescript": "5.9.3",
     "vite": "8.1.6",

@@ -2,31 +2,19 @@ import { fileURLToPath } from "node:url"
 import { defineConfig } from "vite"
 import react from "@vitejs/plugin-react"
 import tailwindcss from "@tailwindcss/vite"
+import { VIEW_BUNDLE_DEDUPE } from "@miragon/pulse-widget-shell/server"
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
-    // The widget packages (engine-connector, widget-shell, analytics-connector) and this
-    // app each resolve their own pnpm instance of React, TanStack Query, mcp-use and the kit
-    // (@miragon/pulse-ui), each with its own peer-dep hash. Bundling several copies gives each
-    // its own React context: the view root (widget-shell's copy) provides the view host and the
-    // ONE QueryClient, but a widget's `useViewHost`/`useToolQuery` would read a *different*
-    // context → no client, no host → every in-widget query hangs on "Loading…". Same trap for
-    // the module-scoped view runtime in `mcp-use/react` (the guide's "hooks require a browser
-    // view" crash). Dedupe collapses them to a single instance so the context matches.
-    dedupe: [
-      "react",
-      "react-dom",
-      "@tanstack/react-query",
-      "mcp-use",
-      // pulse-ui carries the locale and toast contexts every widget reads.
-      "@miragon/pulse-ui",
-      // The kit's Lucide icons and mcp-use's: one copy in the bundle, the
-      // version this app pins. That devDependency is load-bearing twice: it
-      // also keeps mcp-use's lucide peer on ONE pnpm instance (mcp-use 2
-      // migration guide §1; without it the view runtime exists twice).
-      "lucide-react",
-    ],
+    // LOAD-BEARING (CLAUDE.md invariant 4): widget-shell's list of what the view bundle must
+    // resolve to ONE instance (React, TanStack Query, mcp-use, the kit, the view runtime,
+    // lucide-react). Each copy carries its own React context, so a second one leaves a widget
+    // without a view host and a QueryClient, and every in-widget query hangs on "Loading…".
+    // Spread it whole; add to it, never trim it. The lucide-react devDependency this app pins
+    // is load-bearing twice: it also keeps mcp-use's lucide peer on ONE pnpm instance (mcp-use 2
+    // migration guide §1; without it the view runtime exists twice).
+    dedupe: [...VIEW_BUNDLE_DEDUPE],
   },
   build: {
     // Two-file output (ES module + stylesheet) for the boot's

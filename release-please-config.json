@@ -82,7 +82,17 @@
         {
           "type": "json",
           "path": "templates/composed-server/modules/mcp-notes/package.json",
-          "jsonpath": "$.dependencies['@miragon/pulse-widget-shell']"
+          "jsonpath": "$.peerDependencies['@miragon/pulse-ui']"
+        },
+        {
+          "type": "json",
+          "path": "templates/composed-server/modules/mcp-notes/package.json",
+          "jsonpath": "$.peerDependencies['@miragon/pulse-widget-shell']"
+        },
+        {
+          "type": "json",
+          "path": "templates/composed-server/modules/mcp-notes/package.json",
+          "jsonpath": "$.devDependencies['@miragon/pulse-widget-shell']"
         },
         {
           "type": "json",
