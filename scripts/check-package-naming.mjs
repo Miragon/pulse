@@ -10,9 +10,13 @@
  *   packages/connectors/<family>/<dir> (plus the docs site at docs/), its
  *   directory is lowercase kebab-case and never repeats the product prefix
  *   ("pulse-"), and no pnpm-workspace.yaml glob reaches another layout.
- * - A connector-family package ends in a role suffix (CONNECTOR_ROLES:
- *   -connector, -client); apps and foundation packages carry none,
- *   because the dependency-cruiser rules match the suffix by name.
+ * - A connector-family package is named <family>-<role>: its family's directory
+ *   name plus a role suffix (CONNECTOR_ROLES: -connector, -client, -core), since
+ *   connectors-own-their-family matches a connector's own client and core by that
+ *   name; apps and foundation packages carry no suffix, because the
+ *   dependency-cruiser rules match the suffix by name. A family's -core (its pure
+ *   domain, e.g. engine-core) is family code: it lives in the family, never under
+ *   packages/core/, which holds what every family builds on and no family's code.
  * - The npm name is @miragon/pulse-<dir>. The one exception is a VS Code
  *   extension, an app whose package.json declares engines.vscode: vsce takes no
  *   scope, so it is named pulse-cockpit (Marketplace id
@@ -56,7 +60,7 @@ import { expandWorkspaceGlobs, workspaceGlobs } from "./check-package-scripts.mj
  * dependency-cruiser rule (the lockstep test in check-package-naming.test.mjs
  * fails otherwise): add a role there in the same change as here.
  */
-export const CONNECTOR_ROLES = ["connector", "client"]
+export const CONNECTOR_ROLES = ["connector", "client", "core"]
 
 /**
  * The only generated/ directories under apps/ or packages/, each with the
@@ -176,12 +180,20 @@ function checkDirectory(dir, kind, base, expected) {
         `rules key on that suffix; a package without it falls out of them); rename it`,
     )
   }
+  const family = dir.split("/")[2]
+  if (kind === "connector-family" && role !== undefined && base !== `${family}-${role}`) {
+    errors.push(
+      `${dir}: a connector-family package is named after its family, '${family}-${role}': ` +
+        `connectors-own-their-family matches a connector's own client and core by the family ` +
+        `name, so '${base}' would count as a foreign family's package; rename the directory`,
+    )
+  }
   if (kind !== "connector-family" && role !== undefined) {
     errors.push(
       `${dir}: the role suffix -${role} belongs to packages/connectors/<family>/ only: the ` +
         `dependency-cruiser rules match @miragon/pulse-*-${role} by name and would treat this ` +
         `${kind === "app" ? "app" : "foundation package"} as a connector-family package; ` +
-        `rename the directory`,
+        `move a family's package into packages/connectors/<family>/, else rename the directory`,
     )
   }
   return errors

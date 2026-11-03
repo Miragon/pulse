@@ -27,14 +27,14 @@ flowchart TB
 
 ## Layers
 
-| Folder            | What it holds                                                                     |
-| ----------------- | --------------------------------------------------------------------------------- |
-| `src/engine-port` | What pulse-cli needs from an engine: `EnginePort` and `EngineAdapter`. Types only |
-| `src/engines`     | One adapter per engine: `operaton`, `cibseven`, `camunda7`                        |
-| `src/api`         | One folder per engine API. `camunda7-rest` builds catalog and port                |
-| `src/workflow`    | The workflow commands. They know the port, never an adapter or an API             |
-| engine-core       | `packages/core/engine-core`: selection, inspect, status, plans. Data, no CLI text |
-| `src/cli`         | Selects the adapter and registers its commands                                    |
+| Folder            | What it holds                                                                                  |
+| ----------------- | ---------------------------------------------------------------------------------------------- |
+| `src/engine-port` | What pulse-cli needs from an engine: `EnginePort` and `EngineAdapter`. Types only              |
+| `src/engines`     | One adapter per engine: `operaton`, `cibseven`, `camunda7`                                     |
+| `src/api`         | One folder per engine API. `camunda7-rest` builds catalog and port                             |
+| `src/workflow`    | The workflow commands. They know the port, never an adapter or an API                          |
+| engine-core       | `packages/connectors/engine/engine-core`: selection, inspect, status, plans. Data, no CLI text |
+| `src/cli`         | Selects the adapter and registers its commands                                                 |
 
 dependency-cruiser enforces the boundaries (`pnpm lint:architecture && pnpm lint:architecture:cli`):
 

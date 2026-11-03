@@ -83,7 +83,7 @@ importers:
     devDependencies:
       '@miragon/pulse-engine-core':
         specifier: workspace:*
-        version: link:../../packages/core/engine-core
+        version: link:../../packages/connectors/engine/engine-core
       '@stryker-mutator/core':
         specifier: 10.1.1
         version: 10.1.1(@types/node@22.20.5)
@@ -404,7 +404,7 @@ importers:
         version: link:../engine-client
       '@miragon/pulse-engine-core':
         specifier: workspace:*
-        version: link:../../../core/engine-core
+        version: link:../engine-core
       '@miragon/pulse-widget-shell':
         specifier: workspace:*
         version: link:../../../core/widget-shell
@@ -455,7 +455,7 @@ importers:
         specifier: 4.6.7
         version: 4.6.7
 
-  packages/core/engine-core:
+  packages/connectors/engine/engine-core:
     devDependencies:
       fast-check:
         specifier: 4.10.2

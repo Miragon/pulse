@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url"
 import { cruise } from "dependency-cruiser"
 import extractDepcruiseOptions from "dependency-cruiser/config-utl/extract-depcruise-options"
 import extractTSConfig from "dependency-cruiser/config-utl/extract-ts-config"
+import { CONNECTOR_ROLES } from "./check-package-naming.mjs"
 
 /**
  * Self-test of the dependency rules in .dependency-cruiser.cjs (a gate that has never been
@@ -36,11 +37,13 @@ const CLI = "apps/cli"
 const EXT = "apps/vscode"
 const SHELL = "packages/core/widget-shell"
 const UI = "packages/core/ui"
-const ENGINE = "packages/core/engine-core"
+const ENGINE = "packages/connectors/engine/engine-core"
 const ENGINE_CLIENT = "packages/connectors/engine/engine-client"
 const ENGINE_CONNECTOR = "packages/connectors/engine/engine-connector"
 const AN_CLIENT = "packages/connectors/analytics/analytics-client"
 const AN_CONNECTOR = "packages/connectors/analytics/analytics-connector"
+// No such package exists: a second family's core proves the core rules key on the role.
+const AN_CORE = "packages/connectors/analytics/analytics-core"
 
 const WORKSPACE = {
   [SERVER]: { name: "@miragon/pulse-mcp-server", private: true },
@@ -53,6 +56,7 @@ const WORKSPACE = {
   [ENGINE_CONNECTOR]: { name: "@miragon/pulse-engine-connector" },
   [AN_CLIENT]: { name: "@miragon/pulse-analytics-client" },
   [AN_CONNECTOR]: { name: "@miragon/pulse-analytics-connector" },
+  [AN_CORE]: { name: "@miragon/pulse-analytics-core" },
 }
 
 // Third-party stubs installed into every importer's own node_modules. `vscode` is left out
@@ -81,19 +85,17 @@ const THIRD_PARTY = [
 ]
 
 const PEERS = "connectors-are-peers"
-const OWN_CLIENT = "connectors-own-their-client"
+const OWN_FAMILY = "connectors-own-their-family"
 const CLIENT_LEAF = "clients-are-leaves"
 const CORE = "core-is-foundation"
 const UI_LEAF = "ui-is-a-leaf"
 const NO_APP = "packages-never-import-the-app"
 const APP_APP = "apps-never-import-apps"
 const HEADLESS = "cli-is-headless"
-const ENGINE_LEAF = "engine-core-is-a-leaf"
-const ENGINE_TESTS = "engine-core-shipped-not-to-tests"
-const ENGINE_USERS = "engine-core-consumers"
-const CLI_ENGINE_CORE = "cli-engine-core-only-in-workflow"
-const CLI_ENGINE_TESTING = "cli-src-not-to-engine-core-testing"
-const CONNECTOR_ENGINE_TESTING = "connector-src-not-to-engine-core-testing"
+const CORE_LEAF = "family-core-is-a-leaf"
+const CORE_USERS = "family-core-consumers"
+const CLI_CORE_LAYERS = "cli-family-core-only-in-workflow"
+const NO_TESTING = "shipped-code-not-to-testing"
 const DEEP = "no-cross-package-deep-imports"
 const CIRCULAR = "no-circular"
 const CLI_CYCLE = "cli-no-circular"
@@ -130,6 +132,8 @@ const SHELL_SRC = `${SHELL}/src/index.ts`
 const UI_SRC = `${UI}/src/index.ts`
 const ENGINE_SRC = `${ENGINE}/src/index.ts`
 const ENGINE_CORE = "@miragon/pulse-engine-core"
+const AN_CORE_NAME = "@miragon/pulse-analytics-core"
+const AN_CORE_SRC = `${AN_CORE}/src/index.ts`
 const ENGINE_CLIENT_SRC = `${ENGINE_CLIENT}/src/index.ts`
 const ENGINE_CONNECTOR_SRC = `${ENGINE_CONNECTOR}/src/index.ts`
 const AN_CONNECTOR_SRC = `${AN_CONNECTOR}/src/index.ts`
@@ -166,9 +170,12 @@ const LEAVES = [
   `${SHELL}/src/target.ts`,
   `${UI}/src/target.ts`,
   `${UI}/src/lib.ts`,
+  `${UI}/src/testing/glyphs.ts`,
   `${ENGINE}/src/target.ts`,
   `${ENGINE}/src/lib.ts`,
   `${ENGINE}/src/testing/fixture.ts`,
+  `${AN_CORE}/src/lib.ts`,
+  `${AN_CORE}/src/a.test.ts`,
   `${ENGINE_CLIENT}/src/target.ts`,
   `${ENGINE_CLIENT}/src/lib.ts`,
   `${ENGINE_CLIENT}/src/x-connector/y.ts`,
@@ -184,7 +191,7 @@ const JSON_LEAVES = [`${CLI}/src/generated/commands.json`, `${CLI}/src/generated
 const SUITES = [
   {
     rule: HEADLESS,
-    title: "the CLI imports no workspace package but engine-core, and nothing of the MCP/UI stack",
+    title: "the CLI imports no workspace package but the core it bundles, nor the MCP/UI stack",
     cases: [
       ...[
         "@miragon/pulse-widget-shell",
@@ -227,58 +234,64 @@ const SUITES = [
       [`${CLI}/src/workflow/x.ts`, "@miragon/pulse-engine-corex", [HEADLESS]],
       [
         `${CLI}/src/workflow/escape-core.ts`,
-        "../../../../packages/core/engine-core/src/target.ts",
+        "../../../../packages/connectors/engine/engine-core/src/target.ts",
         [HEADLESS, DEEP],
       ],
+      // It names the one core the CLI bundles: another family's core stays a violation.
+      [`${CLI}/src/workflow/other-core.ts`, AN_CORE_NAME, [HEADLESS]],
     ],
   },
   {
-    rule: ENGINE_LEAF,
-    title: "engine-core imports only its own modules: no package, no npm module, no built-in",
+    rule: CORE_LEAF,
+    title: "a family core imports only its own modules: no package, no npm module, no built-in",
     cases: [
-      [ENGINE_SRC, "@miragon/pulse-engine-client", [CORE, ENGINE_LEAF]],
+      [ENGINE_SRC, "@miragon/pulse-engine-client", [CORE_LEAF]],
       // engine-core and the engine family share the stem: the family stays out of the leaf.
-      [ENGINE_SRC, "@miragon/pulse-engine-connector", [CORE, ENGINE_LEAF]],
-      [ENGINE_SRC, "@miragon/pulse-ui", [ENGINE_LEAF]],
-      [ENGINE_SRC, "@miragon/pulse-widget-shell/server", [ENGINE_LEAF]],
-      [ENGINE_SRC, "@miragon/pulse-cli", [NO_APP, ENGINE_LEAF]],
+      [ENGINE_SRC, "@miragon/pulse-engine-connector", [CORE_LEAF]],
+      [ENGINE_SRC, AN_CORE_NAME, [CORE_LEAF]],
+      [ENGINE_SRC, "@miragon/pulse-ui", [CORE_LEAF]],
+      [ENGINE_SRC, "@miragon/pulse-widget-shell/server", [CORE_LEAF]],
+      [ENGINE_SRC, "@miragon/pulse-cli", [NO_APP, CORE_LEAF]],
       ...["zod", "mcp-use", "react", "commander", "reactive", "node:fs", "path"].map((spec) => [
         ENGINE_SRC,
         spec,
-        [ENGINE_LEAF],
+        [CORE_LEAF],
       ]),
-      [`${ENGINE}/src/escape.ts`, "../../ui/src/target.ts", [ENGINE_LEAF, DEEP]],
+      [`${ENGINE}/src/escape.ts`, "../../../../core/ui/src/target.ts", [CORE_LEAF, DEEP]],
+      [`${ENGINE}/src/escape-client.ts`, "../../engine-client/src/target.ts", [CORE_LEAF, DEEP]],
       // The shipped ./testing export is no test file: only *.test.ts may import vitest.
-      [`${ENGINE}/src/testing/index.ts`, "vitest", [ENGINE_LEAF]],
+      [`${ENGINE}/src/testing/index.ts`, "vitest", [CORE_LEAF]],
       [ENGINE_SRC, "./lib.ts", []],
       [`${ENGINE}/src/a.test.ts`, "vitest", []],
+      // Keyed on the role: any family's core is a leaf, by the layout alone.
+      [AN_CORE_SRC, "@miragon/pulse-analytics-client", [CORE_LEAF]],
+      [AN_CORE_SRC, "zod", [CORE_LEAF]],
+      [AN_CORE_SRC, "./lib.ts", []],
     ],
   },
   {
-    rule: ENGINE_TESTS,
-    title: "engine-core's shipped code imports neither its tests nor its ./testing export",
+    rule: CORE_USERS,
+    title: "a family core is imported by its family's connector and the apps that bundle it",
     cases: [
-      [ENGINE_SRC, "./testing/fixture.ts", [ENGINE_TESTS]],
-      [`${ENGINE}/src/inspect.ts`, "./testing/fixture.ts", [ENGINE_TESTS], "type"],
-      [`${ENGINE}/src/to-test.ts`, "./a.test.ts", [ENGINE_TESTS, CLI_NOT_TEST]],
-      // Allowed: ./testing and the tests import the fixtures and the shipped modules.
-      [`${ENGINE}/src/testing/routes.ts`, "./fixture.ts", []],
-      [`${ENGINE}/src/testing/port.ts`, "../lib.ts", []],
-      [`${ENGINE}/src/b.test.ts`, "./testing/fixture.ts", []],
-    ],
-  },
-  {
-    rule: ENGINE_USERS,
-    title: "only the CLI and the engine connector import engine-core",
-    cases: [
-      [AN_CONNECTOR_SRC, ENGINE_CORE, [ENGINE_USERS]],
-      [SHELL_SRC, ENGINE_CORE, [ENGINE_USERS]],
-      [UI_SRC, ENGINE_CORE, [UI_LEAF, ENGINE_USERS]],
-      [ENGINE_CLIENT_SRC, ENGINE_CORE, [CLIENT_LEAF, ENGINE_USERS]],
-      [ENGINE_CLIENT_SRC, `${ENGINE_CORE}/testing`, [CLIENT_LEAF, ENGINE_USERS]],
-      [SERVER_SRC, ENGINE_CORE, [ENGINE_USERS]],
-      [EXT_SRC, ENGINE_CORE, [ENGINE_USERS]],
+      [SERVER_SRC, ENGINE_CORE, [CORE_USERS]],
+      [SERVER_SRC, AN_CORE_NAME, [CORE_USERS]],
+      [EXT_SRC, ENGINE_CORE, [CORE_USERS]],
+      [
+        `${SERVER}/src/escape-core.ts`,
+        "../../../packages/connectors/engine/engine-core/src/target.ts",
+        [CORE_USERS, DEEP],
+      ],
+      // The other packages answer to their own rule, each edge to exactly one.
+      [AN_CONNECTOR_SRC, ENGINE_CORE, [OWN_FAMILY]],
+      [ENGINE_CONNECTOR_SRC, AN_CORE_NAME, [OWN_FAMILY]],
+      [SHELL_SRC, ENGINE_CORE, [CORE]],
+      [SHELL_SRC, AN_CORE_NAME, [CORE]],
+      [UI_SRC, ENGINE_CORE, [CORE, UI_LEAF]],
+      [ENGINE_CLIENT_SRC, ENGINE_CORE, [CLIENT_LEAF]],
+      [ENGINE_CLIENT_SRC, `${ENGINE_CORE}/testing`, [CLIENT_LEAF, NO_TESTING]],
+      // Allowed: the family's own connector and the CLI, which bundles engine-core.
       [ENGINE_CONNECTOR_SRC, ENGINE_CORE, []],
+      [AN_CONNECTOR_SRC, AN_CORE_NAME, []],
       [`${CLI}/src/workflow/inspect.ts`, ENGINE_CORE, []],
       [`${CLI}/src/engine-port/port.ts`, ENGINE_CORE, [], "type"],
       // The types-only rule of the engine port still bites on the new package.
@@ -286,37 +299,54 @@ const SUITES = [
     ],
   },
   {
-    rule: CLI_ENGINE_CORE,
-    title: "in the CLI only the workflow and engine-port layers (and tests) import engine-core",
+    rule: CLI_CORE_LAYERS,
+    title: "in the CLI only the workflow and engine-port layers (and tests) import the core",
     cases: [
-      [CLI_SRC, ENGINE_CORE, [CLI_ENGINE_CORE]],
-      [`${CLI}/src/cli/target-core.ts`, ENGINE_CORE, [CLI_ENGINE_CORE]],
-      [`${CLI}/scripts/core.ts`, ENGINE_CORE, [CLI_ENGINE_CORE]],
-      [CLI_SRC, `${ENGINE_CORE}/testing`, [CLI_ENGINE_CORE, CLI_ENGINE_TESTING]],
+      [CLI_SRC, ENGINE_CORE, [CLI_CORE_LAYERS]],
+      [`${CLI}/src/cli/target-core.ts`, ENGINE_CORE, [CLI_CORE_LAYERS]],
+      [`${CLI}/scripts/core.ts`, ENGINE_CORE, [CLI_CORE_LAYERS]],
+      [CLI_SRC, `${ENGINE_CORE}/testing`, [CLI_CORE_LAYERS, NO_TESTING]],
+      // Another family's core is cli-is-headless's alone.
+      [`${CLI}/src/cli/other-core.ts`, AN_CORE_NAME, [HEADLESS]],
       [`${CLI}/src/f.test.ts`, ENGINE_CORE, []],
     ],
   },
   {
-    rule: CLI_ENGINE_TESTING,
-    title: "the CLI's shipped code never imports the fixtures of engine-core",
+    rule: NO_TESTING,
+    title: "shipped code imports no ./testing entry, a package's own src/testing included",
     cases: [
-      [`${CLI}/src/workflow/fixture.ts`, `${ENGINE_CORE}/testing`, [CLI_ENGINE_TESTING]],
+      [`${CLI}/src/workflow/fixture.ts`, `${ENGINE_CORE}/testing`, [NO_TESTING]],
+      [`${ENGINE_CONNECTOR}/src/lib/composites.ts`, `${ENGINE_CORE}/testing`, [NO_TESTING]],
+      [ENGINE_CONNECTOR_SRC, `${ENGINE_CORE}/testing`, [NO_TESTING]],
+      // pulse-ui/testing reads files and parses TypeScript: no shipped module imports it.
+      [`${SHELL}/src/ui/brand.ts`, "@miragon/pulse-ui/testing", [NO_TESTING]],
+      [`${SERVER}/src/ui/brand.ts`, "@miragon/pulse-ui/testing", [NO_TESTING]],
+      [`${AN_CONNECTOR}/src/widgets/brand.ts`, "@miragon/pulse-ui/testing", [NO_TESTING]],
+      [`${EXT}/src/brand.ts`, "@miragon/pulse-ui/testing", [NO_TESTING]],
+      // A package's own testing tree, by relative path.
+      [ENGINE_SRC, "./testing/fixture.ts", [NO_TESTING]],
+      [`${ENGINE}/src/inspect.ts`, "./testing/fixture.ts", [NO_TESTING], "type"],
+      [`${UI}/src/kit/scan.ts`, "../testing/glyphs.ts", [NO_TESTING]],
+      // test-support may import ./testing, so shipped code may not import test-support.
+      [`${CLI}/src/workflow/support.ts`, "./test-support/fixture.ts", [NO_TESTING]],
+      [`${ENGINE_CONNECTOR}/src/lib/x.ts`, "../tools/test-support/fake-engine.ts", [NO_TESTING]],
+      [`${SHELL}/src/boot.ts`, "./composition.test-support.ts", [NO_TESTING]],
+      [`${CLI}/src/workflow/test-support/fixture.ts`, `${ENGINE_CORE}/testing`, []],
+      // A test file of its own tree is cli-not-to-test's.
+      [`${ENGINE}/src/to-test.ts`, "./a.test.ts", [CLI_NOT_TEST]],
+      // Anchored: a look-alike subpath is no ./testing entry.
+      [`${SHELL}/src/ui/kit.ts`, "@miragon/pulse-ui/testing-kit", []],
+      // Allowed: tests, their test-support, test/ trees and a ./testing entry itself.
       [`${CLI}/test/support/fixture.ts`, `${ENGINE_CORE}/testing`, []],
-    ],
-  },
-  {
-    rule: CONNECTOR_ENGINE_TESTING,
-    title: "the engine connector's shipped code never imports the fixtures of engine-core",
-    cases: [
-      [
-        `${ENGINE_CONNECTOR}/src/lib/composites.ts`,
-        `${ENGINE_CORE}/testing`,
-        [CONNECTOR_ENGINE_TESTING],
-      ],
-      [ENGINE_CONNECTOR_SRC, `${ENGINE_CORE}/testing`, [CONNECTOR_ENGINE_TESTING]],
-      // Allowed: the tests and their test-support.
       [`${ENGINE_CONNECTOR}/src/lib/composites.wire.test.ts`, `${ENGINE_CORE}/testing`, []],
       [`${ENGINE_CONNECTOR}/src/tools/test-support/fake-engine.ts`, `${ENGINE_CORE}/testing`, []],
+      [`${SHELL}/src/testing/glossary.ts`, "@miragon/pulse-ui/testing", []],
+      [`${SHELL}/src/composition.test-support.ts`, "@miragon/pulse-ui/testing", []],
+      [`${SERVER}/src/brand.test.ts`, "@miragon/pulse-ui/testing", []],
+      [`${UI}/src/testing/index.ts`, "./glyphs.ts", []],
+      [`${ENGINE}/src/testing/routes.ts`, "./fixture.ts", []],
+      [`${ENGINE}/src/testing/port.ts`, "../lib.ts", []],
+      [`${ENGINE}/src/b.test.ts`, "./testing/fixture.ts", []],
     ],
   },
   {
@@ -427,12 +457,18 @@ const SUITES = [
     ],
   },
   {
-    rule: OWN_CLIENT,
-    title: "a connector depends on its own client only",
+    rule: OWN_FAMILY,
+    title: "a connector depends on its own family's client and core only",
     cases: [
-      [ENGINE_CONNECTOR_SRC, "@miragon/pulse-analytics-client", [OWN_CLIENT]],
-      [AN_CONNECTOR_SRC, "@miragon/pulse-engine-client/sdk", [OWN_CLIENT]],
-      [AN_CONNECTOR_SRC, "@miragon/pulse-engine-client", [OWN_CLIENT]],
+      [ENGINE_CONNECTOR_SRC, "@miragon/pulse-analytics-client", [OWN_FAMILY]],
+      [AN_CONNECTOR_SRC, "@miragon/pulse-engine-client/sdk", [OWN_FAMILY]],
+      [AN_CONNECTOR_SRC, "@miragon/pulse-engine-client", [OWN_FAMILY]],
+      [AN_CONNECTOR_SRC, `${ENGINE_CORE}/testing`, [OWN_FAMILY, NO_TESTING]],
+      [
+        `${AN_CONNECTOR}/src/escape-core.ts`,
+        "../../../engine/engine-core/src/target.ts",
+        [OWN_FAMILY, DEEP],
+      ],
       [AN_CONNECTOR_SRC, "@miragon/pulse-analytics-client", []],
     ],
   },
@@ -468,11 +504,7 @@ const SUITES = [
       ],
       [`${SHELL}/src/escape-ui.ts`, "../../ui/src/target.ts", [DEEP]],
       // The engine connector may import engine-core, but only by its name, never by a path.
-      [
-        `${ENGINE_CONNECTOR}/src/escape-core.ts`,
-        "../../../../core/engine-core/src/target.ts",
-        [DEEP],
-      ],
+      [`${ENGINE_CONNECTOR}/src/escape-core.ts`, "../../engine-core/src/target.ts", [DEEP]],
     ],
   },
   {
@@ -487,7 +519,7 @@ const SUITES = [
   },
   {
     rule: CLI_CYCLE,
-    title: "the CLI and engine-core have no import cycle, a type-only one included",
+    title: "the CLI and the core it bundles have no import cycle, a type-only one included",
     cases: [
       [`${CLI}/src/cycle-a.ts`, "./cycle-b.ts", [CIRCULAR, CLI_CYCLE]],
       [`${CLI}/src/cycle-b.ts`, "./cycle-a.ts", [CIRCULAR, CLI_CYCLE]],
@@ -498,6 +530,9 @@ const SUITES = [
       [`${ENGINE}/src/cycle-b.ts`, "./cycle-a.ts", [CIRCULAR, CLI_CYCLE]],
       [`${ENGINE}/src/type-cycle-a.ts`, "./type-cycle-b.ts", [CLI_CYCLE], "type"],
       [`${ENGINE}/src/type-cycle-b.ts`, "./type-cycle-a.ts", [CLI_CYCLE], "type"],
+      // A core the CLI does not bundle is out of the CLI's rules: no-circular tolerates the type.
+      [`${AN_CORE}/src/type-cycle-a.ts`, "./type-cycle-b.ts", [], "type"],
+      [`${AN_CORE}/src/type-cycle-b.ts`, "./type-cycle-a.ts", [], "type"],
     ],
   },
   {
@@ -510,16 +545,18 @@ const SUITES = [
   },
   {
     rule: CLI_NOT_TEST,
-    title: "nothing in the CLI or engine-core imports a test file",
+    title: "nothing in the CLI or the core it bundles imports a test file of its own",
     cases: [
       [`${CLI}/src/b.test.ts`, "./a.test.ts", [CLI_NOT_TEST]],
       [`${CLI}/src/c.test.ts`, "./target.ts", []],
       [`${ENGINE}/src/testing/to-test.ts`, "../a.test.ts", [CLI_NOT_TEST]],
       [`${ENGINE}/src/c.test.ts`, "./a.test.ts", [CLI_NOT_TEST]],
-      // Each package's own tests only: the CLI's rule never reaches into engine-core's tree.
+      // A core the CLI does not bundle is out of the CLI's rules.
+      [`${AN_CORE}/src/to-test.ts`, "./a.test.ts", []],
+      // Each package's own tests only: the CLI's rule never reaches into the core's tree.
       [
         `${CLI}/src/to-engine-test.ts`,
-        "../../../packages/core/engine-core/src/a.test.ts",
+        "../../../packages/connectors/engine/engine-core/src/a.test.ts",
         [HEADLESS, DEEP],
       ],
     ],
@@ -987,14 +1024,14 @@ describe("the self-test covers the whole config", () => {
     assert.deepEqual(soft, [], "a rule below severity error never fails pnpm lint:architecture")
   })
 
-  it("the connector-family roles the rules key on are connector and client", () => {
+  it("the connector-family roles the rules key on are the naming gate's", () => {
     const roles = new Set(
       config.forbidden
         .flatMap((rule) => [rule.from.path ?? []].flat())
-        .map((pattern) => /^\^packages\/connectors\/.*-([a-z]+)\/$/.exec(pattern)?.[1])
+        .map((pattern) => /^\^packages\/connectors\/.*-([a-z]+)\/(?:src\/)?$/.exec(pattern)?.[1])
         .filter(Boolean),
     )
-    assert.deepEqual([...roles].sort(), ["client", "connector"])
+    assert.deepEqual([...roles].sort(), [...CONNECTOR_ROLES].sort())
   })
 
   it("every real connector-family package carries one of those roles", () => {
@@ -1011,7 +1048,7 @@ describe("the self-test covers the whole config", () => {
           )
           .map((entry) => `packages/connectors/${family.name}/${entry.name}`),
       )
-      .filter((dir) => !/-(?:connector|client)$/.test(dir))
+      .filter((dir) => !CONNECTOR_ROLES.some((role) => dir.endsWith(`-${role}`)))
     assert.deepEqual(offenders, [], "a package without a role suffix falls out of every rule")
   })
 })

@@ -12,7 +12,7 @@ const pkg = (dir, name, dependencies = {}) => ({ dir, manifest: { name, dependen
 
 const PACKAGES = [
   pkg("packages/core/ui", "@miragon/pulse-ui"),
-  pkg("packages/core/engine-core", "@miragon/pulse-engine-core"),
+  pkg("packages/connectors/engine/engine-core", "@miragon/pulse-engine-core"),
   pkg("packages/core/widget-shell", "@miragon/pulse-widget-shell", {
     "@miragon/pulse-ui": "workspace:*",
   }),
@@ -100,7 +100,7 @@ describe("scopesFor: a package's code reaches its dependents", () => {
   })
 
   it("runs the CLI's and the MCP server's checks and the template for engine-core, its two users", () => {
-    assert.deepEqual(scopes("packages/core/engine-core/src/inspect.ts"), [
+    assert.deepEqual(scopes("packages/connectors/engine/engine-core/src/inspect.ts"), [
       "cli",
       "mcp",
       "template",

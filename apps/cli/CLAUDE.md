@@ -16,9 +16,10 @@ written for the MCP server, so this file holds the CLI's own. The pages for peop
   delete, has a read-only mode, and writes its answers as JSON and its errors as one JSON line on
   stderr with a documented exit code. A change to any of that is a change to the docs.
 - One runtime dependency, commander. The workflow domain, `@miragon/pulse-engine-core`
-  (`packages/core/engine-core`), is a devDependency that tsdown bundles; everything else that ships
-  is the code in `apps/cli/src/`. The built bundle imports only commander and Node built-ins, and
-  stays within its size budget (`scripts/published-imports.test.mjs` reads `apps/cli/dist`).
+  (`packages/connectors/engine/engine-core`, the engine family's core), is a devDependency that
+  tsdown bundles; everything else that ships is the code in `apps/cli/src/`. The built bundle
+  imports only commander and Node built-ins, and stays within its size budget
+  (`scripts/published-imports.test.mjs` reads `apps/cli/dist`).
 
 ## Layers
 
@@ -53,8 +54,9 @@ returns data (next steps, error reasons); `next-text.ts` and `error-text.ts` in
 
 ## Budgets
 
-The CLI's blocks in the root `eslint.config.mjs` (which also hold `packages/core/engine-core`)
-are stricter than the global ones and only tighten: the strict type-checked rules of
+The CLI's blocks in the root `eslint.config.mjs` (which also hold
+`packages/connectors/engine/engine-core`) are stricter than the global ones and only tighten: the
+strict type-checked rules of
 typescript-eslint, complexity 10, 300 effective lines per file for shipped code and scripts, 60
 lines per function, 20 statements, depth 3, 4 parameters. Every test file stays within 400
 lines, also under `apps/cli/test/`: a test that grows splits along its describes into a sibling

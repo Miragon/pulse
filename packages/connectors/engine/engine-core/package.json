@@ -11,7 +11,7 @@
     "bpmn",
     "workflow"
   ],
-  "homepage": "https://github.com/Miragon/pulse/tree/main/packages/core/engine-core#readme",
+  "homepage": "https://github.com/Miragon/pulse/tree/main/packages/connectors/engine/engine-core#readme",
   "bugs": "https://github.com/Miragon/pulse/issues",
   "engines": {
     "node": ">=22.22.2"
@@ -19,7 +19,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Miragon/pulse.git",
-    "directory": "packages/core/engine-core"
+    "directory": "packages/connectors/engine/engine-core"
   },
   "publishConfig": {
     "access": "public"

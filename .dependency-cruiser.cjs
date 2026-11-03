@@ -6,16 +6,21 @@
  * Rule comments are written for the (human or AI) contributor who trips them:
  * each says what is forbidden and names the house path to use instead.
  *
- * Layout + naming carry the layer semantics. A connector family under
- * `packages/connectors/<family>/` has two roles, keyed by the directory suffix
- * and the npm name `@miragon/pulse-<name>-<role>`:
- *   - `<name>-connector`: the MCP module (tools, widget tools, widgets);
- *   - `<name>-client`: its SDK leaf (generated REST SDK or PromQL queries + Zod schemas).
- * The foundation packages live under `packages/core/` (npm names without a role
- * suffix, e.g. `@miragon/pulse-widget-shell`). The apps under `apps/` sit ON TOP of
+ * Layout + naming carry the layer semantics. A family under `packages/connectors/<family>/` is
+ * one source the MCP server reads: an engine API family (a dialect; today `engine`, the Camunda 7
+ * REST API) or another source (`analytics`, Prometheus). Its packages are named
+ * `<family>-<role>` (npm `@miragon/pulse-<family>-<role>`; the naming gate holds the family
+ * name), keyed by the role suffix:
+ *   - `<family>-connector`: the MCP module (tools, widget tools, widgets);
+ *   - `<family>-client`: its SDK leaf (generated REST SDK or PromQL queries + Zod schemas);
+ *   - `<family>-core`, when the family's interfaces share a pure domain: a leaf that the
+ *     family's connector and the interface apps that bundle it import (engine-core).
+ * The foundation packages every family builds on live under `packages/core/` (npm names
+ * without a role suffix, e.g. `@miragon/pulse-widget-shell`), never one family's code. The
+ * apps under `apps/` sit ON TOP of
  * the packages: the MCP server (`@miragon/pulse-mcp-server`) composes the
  * connectors; of the two interface apps, the CLI (apps/cli, `@miragon/pulse-cli`) imports
- * exactly @miragon/pulse-engine-core, its workflow domain, which it bundles, and the VS Code
+ * exactly the family core it bundles (CLI_CORE), and the VS Code
  * extension (apps/vscode, the unscoped `pulse-cockpit`, because vsce rejects scoped names)
  * imports none. No package and no app imports an app
  * (the extension's own closed-world rules live in apps/vscode/.dependency-cruiser.cjs).
@@ -64,9 +69,40 @@ const EXTENSION_PACKAGE = "pulse-cockpit"
 const APP_PACKAGES = [SERVER_PACKAGE, CLI_PACKAGE, EXTENSION_PACKAGE]
 const APP_NAMES = APP_PACKAGES.map(escapeRegExp).join("|")
 
-/** The workflow domain of the Camunda 7 REST API family: the CLI bundles it, the engine connector may import it. */
-const ENGINE_CORE_PACKAGE = "@miragon/pulse-engine-core"
-const ENGINE_CORE = escapeRegExp(ENGINE_CORE_PACKAGE)
+/** The root of a workspace package: an app, a foundation package or a family's package. */
+const PACKAGE_ROOT = "(?:apps/[^/]+|packages/core/[^/]+|packages/connectors/[^/]+/[^/]+)"
+
+/**
+ * A family core, `packages/connectors/<family>/<family>-core` (npm
+ * `@miragon/pulse-<family>-core`): the family's pure domain. Its rules key on the role, never on
+ * one package's name.
+ */
+const FAMILY_CORE = "@miragon/pulse-[^/]+-core"
+const FAMILY_CORE_TREE = "^packages/connectors/[^/]+/[^/]+-core/"
+
+/**
+ * The interface apps that bundle a family core (tsdown inlines it), each with the one core it
+ * bundles: with the family's own connector the only importers of a family core
+ * (family-core-consumers). The CLI's rules hold the core it bundles as part of the CLI.
+ */
+const CORE_BUNDLES = {
+  "^apps/cli/": {
+    name: "@miragon/pulse-engine-core",
+    tree: "packages/connectors/engine/engine-core",
+  },
+}
+const CORE_BUNDLERS = Object.keys(CORE_BUNDLES)
+const CLI_CORE = escapeRegExp(CORE_BUNDLES["^apps/cli/"].name)
+const CLI_CORE_TREE = escapeRegExp(CORE_BUNDLES["^apps/cli/"].tree)
+
+/** Test-support modules: helpers of the tests, never shipped. */
+const TEST_SUPPORT = ["[.]test-support[.]tsx?$", "/test-support/"]
+
+/**
+ * Test code in a package's src/: its tests, their test-support and its own ./testing entry
+ * (src/testing/). Everything else under src/ ships, in a package entry or in a bundle.
+ */
+const SRC_TEST_CODE = ["[.]test[.]tsx?$", ...TEST_SUPPORT, `^${PACKAGE_ROOT}/src/testing/`]
 
 /**
  * What makes a package an MCP host or a widget: the UI runtime, the MCP framework and
@@ -117,17 +153,25 @@ module.exports = {
       },
     },
     {
-      name: "connectors-own-their-client",
+      name: "connectors-own-their-family",
       severity: "error",
       comment:
-        "A connector may only depend on its own client package (analytics-connector → " +
-        "analytics-client). Engine data a foreign module needs arrives as an injected port on " +
-        "SharedResources: the pattern is fetchBpmnXml, which feeds the analytics heatmap without " +
-        "giving the analytics connector an engine-SDK dependency (CLAUDE.md invariant 8).",
+        "A connector may only depend on its own family's client and core (analytics-connector → " +
+        "analytics-client; engine-connector → engine-client, engine-core). Engine data a foreign " +
+        "module needs arrives as an injected port on SharedResources: the pattern is " +
+        "fetchBpmnXml, which feeds the analytics heatmap without giving the analytics connector " +
+        "an engine-SDK dependency (CLAUDE.md invariant 8).",
       from: { path: "^packages/connectors/[^/]+/([^/]+)-connector/" },
       to: {
-        path: ["^packages/connectors/.+-client/", "@miragon/pulse-[^/]+-client(/|$)"],
-        pathNot: ["^packages/connectors/[^/]+/$1-client/", "@miragon/pulse-$1-client(/|$)"],
+        path: [
+          "^packages/connectors/.+-client/",
+          FAMILY_CORE_TREE,
+          "@miragon/pulse-[^/]+-(?:client|core)(/|$)",
+        ],
+        pathNot: [
+          "^packages/connectors/[^/]+/$1-(?:client|core)/",
+          "@miragon/pulse-$1-(?:client|core)(/|$)",
+        ],
       },
     },
     {
@@ -135,7 +179,7 @@ module.exports = {
       severity: "error",
       comment:
         "*-client packages are SDK leaves (generated REST SDK / PromQL queries + Zod schemas): " +
-        "they never import connectors, the core packages or sibling clients. Shared " +
+        "they never import connectors, family cores, the foundation packages or sibling clients. Shared " +
         "logic that grows here belongs in the connector layer or a core package, not in a client.",
       from: { path: "^packages/connectors/[^/]+/([^/]+)-client/" },
       to: {
@@ -152,13 +196,14 @@ module.exports = {
       name: "core-is-foundation",
       severity: "error",
       comment:
-        "packages/core/* is the shared foundation underneath every connector: it depends on core " +
-        "siblings and third-party libraries only (pulse-ui is the leaf among them), never on a " +
-        "connector or a client. When a connector needs something a sibling already has, extract it INTO a core " +
-        "package (on the second concrete consumer), never make core reach up into a connector.",
+        "packages/core/* is the foundation every family builds on: it depends " +
+        "on core siblings and third-party libraries only (pulse-ui is the leaf among them), never " +
+        "on a family package (a connector, a client or a family core). When connectors of two " +
+        "families need the same thing, extract it INTO a core package (on the second concrete " +
+        "consumer); what one family needs stays in that family (its -core), never in packages/core.",
       from: { path: "^packages/core/" },
       to: {
-        path: ["^packages/connectors/", "@miragon/pulse-[^/]+-(connector|client)(/|$)"],
+        path: ["^packages/connectors/", "@miragon/pulse-[^/]+-(connector|client|core)(/|$)"],
       },
     },
     {
@@ -210,11 +255,12 @@ module.exports = {
       severity: "error",
       comment:
         "The CLI (apps/cli) is a terminal interface, not an MCP host: it imports no workspace " +
-        "package except @miragon/pulse-engine-core, its workflow domain, which tsdown bundles, and " +
-        "nothing of the MCP/UI/server stack (react, react-dom, lucide-react, preact, bpmn-js, diagram-js, " +
+        "package except the family core it bundles (CLI_CORE: @miragon/pulse-engine-core, the " +
+        "engine family's workflow domain, which tsdown inlines), and nothing of the MCP/UI/server " +
+        "stack (react, react-dom, lucide-react, preact, bpmn-js, diagram-js, " +
         "mcp-use, @modelcontextprotocol, TanStack, prom-client, " +
         "zod, @hey-api, vscode, @miragon/modeler-shell). A relative escape into " +
-        "packages/core/engine-core is still a violation: import the package.",
+        "packages/connectors/engine/engine-core is still a violation: import the package.",
       from: { path: "^apps/cli/" },
       to: {
         path: [
@@ -222,85 +268,68 @@ module.exports = {
           "@miragon/pulse-",
           ...npm(`${MCP_STACK}|preact|bpmn-js|diagram-js|@miragon/modeler-shell|vscode`),
         ],
-        pathNot: npm(ENGINE_CORE),
+        pathNot: npm(CLI_CORE),
       },
     },
     {
-      name: "engine-core-is-a-leaf",
+      name: "family-core-is-a-leaf",
       severity: "error",
       comment:
-        "packages/core/engine-core (@miragon/pulse-engine-core) has no runtime dependency: its " +
-        "shipped code (the ./testing export included) imports only its own modules, no workspace " +
-        "package, no npm package and no Node built-in. Engine access comes through the caller's " +
-        "port (EngineTransport); the caller words its structured steps and reasons.",
-      from: { path: "^packages/core/engine-core/src/", pathNot: ["[.]test[.]ts$"] },
-      to: { pathNot: "^packages/core/engine-core/src/" },
+        "A family core (packages/connectors/<family>/<family>-core, e.g. @miragon/pulse-engine-core) " +
+        "has no runtime dependency: its shipped code (the ./testing export included) imports only " +
+        "its own modules, no workspace package, no npm package and no Node built-in. The caller " +
+        "supplies every effect through a port (engine-core's EngineTransport) and words the " +
+        "structured results.",
+      from: { path: "^packages/connectors/([^/]+)/([^/]+)-core/src/", pathNot: ["[.]test[.]ts$"] },
+      to: { pathNot: "^packages/connectors/$1/$2-core/src/" },
     },
     {
-      name: "engine-core-shipped-not-to-tests",
+      name: "family-core-consumers",
       severity: "error",
       comment:
-        "engine-core's shipped code (src/ without its tests and without the ./testing export) never " +
-        "imports a test file or src/testing/ (fixtures, the fake port): they would ship in the " +
-        "package entry the engine connector runs and in the CLI's bundle. Only its tests and " +
-        "./testing itself import ./testing.",
-      from: {
-        path: "^packages/core/engine-core/src/",
-        pathNot: ["[.]test[.]ts$", "^packages/core/engine-core/src/testing/"],
-      },
-      to: { path: ["[.]test[.]ts$", "^packages/core/engine-core/src/testing/"] },
+        "A family core is imported by its own family's connector (connectors-own-their-family) " +
+        "and by the interface apps that bundle it (CORE_BUNDLERS: the CLI bundles engine-core), " +
+        "by no other app: the MCP server composes connectors, not their domain. The other " +
+        "packages answer to their own rules: packages/core to core-is-foundation, a client to " +
+        "clients-are-leaves, a family core to family-core-is-a-leaf.",
+      from: { path: "^apps/", pathNot: CORE_BUNDLERS },
+      to: { path: [FAMILY_CORE_TREE, ...npm(FAMILY_CORE)] },
     },
     {
-      name: "engine-core-consumers",
-      severity: "error",
-      comment:
-        "Only the CLI (which bundles it) and the engine connector (for composite tools over its " +
-        "client) may import @miragon/pulse-engine-core. Analytics reads no engine " +
-        "(CLAUDE.md invariant 8); the core packages and the server app compose nothing of it.",
-      from: {
-        path: "^(?:apps|packages)/",
-        pathNot: [
-          "^apps/cli/",
-          "^packages/connectors/engine/engine-connector/",
-          "^packages/core/engine-core/",
-        ],
-      },
-      to: { path: ["^packages/core/engine-core/", ...npm(ENGINE_CORE)] },
-    },
-    {
-      name: "cli-engine-core-only-in-workflow",
+      name: "cli-family-core-only-in-workflow",
       severity: "error",
       comment:
         "In the CLI only the workflow commands (apps/cli/src/workflow) and the engine port " +
-        "(apps/cli/src/engine-port) import @miragon/pulse-engine-core; the command layer reaches " +
-        "it through the workflow modules, tests may import it anywhere.",
+        "(apps/cli/src/engine-port) import the family core it bundles (CLI_CORE); the command " +
+        "layer reaches it through the workflow modules, tests may import it anywhere. Any other " +
+        "core is cli-is-headless's.",
       from: {
         path: "^apps/cli/",
         pathNot: ["^apps/cli/src/(?:workflow|engine-port)/", ...CLI_TEST_CODE],
       },
-      to: { path: npm(ENGINE_CORE) },
+      to: { path: npm(CLI_CORE) },
     },
     {
-      name: "cli-src-not-to-engine-core-testing",
+      name: "shipped-code-not-to-testing",
       severity: "error",
       comment:
-        "The CLI's shipped code never imports @miragon/pulse-engine-core/testing (fixtures and " +
-        "the fake port): they would end up in the bundle. Tests import it.",
-      from: { path: "^apps/cli/src/", pathNot: CLI_TEST_CODE },
-      to: { path: npm(`${ENGINE_CORE}/testing`) },
-    },
-    {
-      name: "connector-src-not-to-engine-core-testing",
-      severity: "error",
-      comment:
-        "The engine connector's shipped code never imports @miragon/pulse-engine-core/testing " +
-        "(fixtures and the fake port): test code, which would run in every server that composes " +
-        "the connector. Tests and their test-support import it.",
-      from: {
-        path: "^packages/connectors/engine/engine-connector/src/",
-        pathNot: ["[.]test[.]tsx?$", "/test-support/"],
+        "Shipped code (a package's or an app's src/ without its tests, their test-support and " +
+        "its own ./testing entry) never imports a ./testing entry (no @miragon/pulse-*/testing, " +
+        "no src/testing/ tree) nor a test-support module. They hold fixtures, fake ports and the " +
+        "brand gates (pulse-ui/testing reads files with node:fs and parses with typescript), " +
+        "which would ship in the package entry, in every server that composes it and in the " +
+        "bundles. Tests, test-support and a ./testing entry import them. A ./testing entry is " +
+        "published, but for the consumers' tests only, so it counts as test code here: as an " +
+        "importer it is exempt, and no shipped module may reach it.",
+      from: { path: `^${PACKAGE_ROOT}/src/`, pathNot: SRC_TEST_CODE },
+      to: {
+        path: [
+          ...npm("@miragon/pulse-[^/]+/testing"),
+          "/src/testing/",
+          // test-support is exempt as an importer above, so shipped code may not reach it.
+          ...TEST_SUPPORT,
+        ],
       },
-      to: { path: npm(`${ENGINE_CORE}/testing`) },
     },
     {
       name: "no-cross-package-deep-imports",
@@ -309,7 +338,7 @@ module.exports = {
         "Never reach into a sibling package's source tree by relative path: import its public " +
         "entry (@miragon/pulse-<pkg>, or a subpath like @miragon/pulse-widget-shell/widgets) so the " +
         "exports map stays the contract between packages.",
-      from: { path: "^(apps/[^/]+|packages/core/[^/]+|packages/connectors/[^/]+/[^/]+)/" },
+      from: { path: `^(${PACKAGE_ROOT})/` },
       to: { path: "^(packages|apps)/", pathNot: "^$1/" },
     },
     {
@@ -326,10 +355,10 @@ module.exports = {
       name: "cli-no-circular",
       severity: "error",
       comment:
-        "The CLI (apps/cli) and the workflow domain it bundles (packages/core/engine-core) have no " +
+        "The CLI (apps/cli) and the family core it bundles (CLI_CORE_TREE, engine-core) have no " +
         "import cycle at all, type-only cycles included (stricter than no-circular above). Extract " +
         "the shared part into its own module.",
-      from: { path: "^(?:apps/cli|packages/core/engine-core)/" },
+      from: { path: `^(?:apps/cli|${CLI_CORE_TREE})/` },
       to: { circular: true },
     },
     {
@@ -346,10 +375,10 @@ module.exports = {
       name: "cli-not-to-test",
       severity: "error",
       comment:
-        "Nothing in the CLI or in the workflow domain it bundles (packages/core/engine-core) imports " +
-        "a test file (*.test.ts). Shared test helpers live in apps/cli/test/support/ and in " +
-        "engine-core's src/testing/.",
-      from: { path: "^(apps/cli|packages/core/engine-core)/" },
+        "Nothing in the CLI or in the family core it bundles (CLI_CORE_TREE, engine-core) imports " +
+        "a test file (*.test.ts) of its own tree. Shared test helpers live in " +
+        "apps/cli/test/support/ and in the core's src/testing/.",
+      from: { path: `^(apps/cli|${CLI_CORE_TREE})/` },
       to: { path: "^$1/.*[.]test[.]ts$" },
     },
     {

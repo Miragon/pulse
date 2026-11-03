@@ -323,7 +323,7 @@ describe("published packages declare what their shipped source imports", () => {
       "overrides:",
       '  qs: "^6.16.0"',
     ].join("\n")
-    const DOMAIN = "packages/core/engine-core"
+    const DOMAIN = "packages/connectors/engine/engine-core"
     const LAYOUT = {
       "pnpm-workspace.yaml": WORKSPACE,
       "apps/cli/package.json": json({
@@ -364,7 +364,7 @@ describe("published packages declare what their shipped source imports", () => {
         ]),
       )
 
-    it("reads non-private apps and core packages, not private apps or extensions", () => {
+    it("reads non-private apps and packages, not private apps or extensions", () => {
       const root = fixture(LAYOUT)
       assert.deepEqual(
         workspacePackages(root).map((pkg) => pkg.manifest.name),

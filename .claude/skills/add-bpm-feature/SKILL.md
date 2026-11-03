@@ -195,7 +195,9 @@ engine); a tool that only reads the server's own config (`engine_list_engines`) 
 ## Step 2b — a read composite on engine-core
 
 A question the CLI answers too (where an instance waits, how an engine is doing) runs on
-`@miragon/pulse-engine-core`, the workflow domain both share, never on a second copy here.
+`@miragon/pulse-engine-core` (`packages/connectors/engine/engine-core`, the engine family's
+core), the workflow domain both share, never on a second copy here. A rule both need that it
+lacks goes into that package (a leaf: no dependency, data rather than wording).
 The pattern is `engine_inspect_process_instance` and `engine_status`
 (`src/lib/composites.ts`, registered like any registrar tool):
 

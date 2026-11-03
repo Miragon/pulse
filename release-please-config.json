@@ -36,7 +36,7 @@
         },
         {
           "type": "json",
-          "path": "packages/core/engine-core/package.json",
+          "path": "packages/connectors/engine/engine-core/package.json",
           "jsonpath": "$.version"
         },
         {

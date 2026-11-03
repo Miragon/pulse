@@ -16,9 +16,9 @@ WORK="$(mktemp -d)/composed-server"
 
 # Package directories under packages/; npm names come from each package.json.
 PACKAGES=(
-  core/engine-core
   core/ui
   core/widget-shell
+  connectors/engine/engine-core
   connectors/engine/engine-client
   connectors/engine/engine-connector
   connectors/analytics/analytics-client
@@ -44,9 +44,9 @@ const fs = require("fs")
 const root = process.env.ROOT
 const read = (p) => JSON.parse(fs.readFileSync(p, "utf8"))
 const pkgDirs = [
-  "core/engine-core",
   "core/ui",
   "core/widget-shell",
+  "connectors/engine/engine-core",
   "connectors/engine/engine-client",
   "connectors/engine/engine-connector",
   "connectors/analytics/analytics-client",

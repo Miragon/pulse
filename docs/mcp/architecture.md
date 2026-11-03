@@ -52,10 +52,14 @@ second engine dialect cheap:
   (`flavor` on the engine entry, resolved to an `EngineProvider` carrying only the
   real differences: cockpit routes, branding, client hook), never packages or apps.
   A _dialect_ (an engine API family: Camunda 7 today, Flowable would be another) is
-  one package family: its client and its connector (the MCP module); a package two
-  interfaces share is extracted on its second consumer, like `@miragon/pulse-engine-core`,
-  the Camunda 7 family's workflow domain that the CLI bundles and the engine connector runs
-  over its client (one port per API family; it names no command, flag or tool). An
+  one package family under `packages/connectors/<family>/`. A family is one source the
+  server reads, a dialect or another source such as `analytics` (Prometheus): its client,
+  its connector (the MCP module) and, when its interfaces share a pure domain, its core.
+  A package two interfaces share is extracted on its second consumer into the family's core,
+  like `@miragon/pulse-engine-core`, the Camunda 7 family's workflow domain that the CLI
+  bundles and the engine connector runs over its client (one port per API family; it names
+  no command, flag or tool). `packages/core/` holds what every family builds on, never one
+  family's code. An
   _interface_ is an app:
   `apps/mcp-server` is the thin composition root of the Camunda-7-dialect
   MCP server (engine + analytics); a different dialect gets a family and an MCP server app
@@ -67,7 +71,7 @@ second engine dialect cheap:
   configured engine ids, the only engines analytics reads (`engineIds`).
 - Modules are self-contained. Each exports a module definition: config schema, env mapping,
   known env vars, toolset vocabulary, boot warnings, plugin factory
-  (`packages/connectors/<family>/<name>-connector/src/module.ts`). A plugin is a name plus a
+  (`packages/connectors/<family>/<family>-connector/src/module.ts`). A plugin is a name plus a
   `register(server)` that puts the module's tools on the one server the shared boot builds;
   the boot refuses a tool name two modules register. The app only lists its modules and wires
   their shared resources (`apps/mcp-server/src/setup.ts`); the shared boot selects the
@@ -114,11 +118,12 @@ served by the engine REST history API, not the metrics.
 
 ## Repository layout
 
-| Path               | Description                                                                    |
-| ------------------ | ------------------------------------------------------------------------------ |
-| `apps/mcp-server/` | The MCP server entry point and the widget bundle.                              |
-| `packages/`        | Reusable libraries: clients, MCP plugins, widget-shell, pulse-ui, engine-core. |
-| `engine-plugins/`  | Kotlin Micrometer plugins (process metrics).                                   |
-| `playground/`      | Demo env: showcases, Compose stack, Fly.io deployment.                         |
+| Path                   | Description                                                           |
+| ---------------------- | --------------------------------------------------------------------- |
+| `apps/mcp-server/`     | The MCP server entry point and the widget bundle.                     |
+| `packages/core/`       | What every family builds on: widget-shell, pulse-ui.                  |
+| `packages/connectors/` | One folder per family: client, connector (MCP plugin), optional core. |
+| `engine-plugins/`      | Kotlin Micrometer plugins (process metrics).                          |
+| `playground/`          | Demo env: showcases, Compose stack, Fly.io deployment.                |
 
 For deeper detail, [Reference](reference.md) lists every tool and toolset.

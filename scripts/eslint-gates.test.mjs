@@ -302,7 +302,7 @@ describe("gates sharing a glob are merged, not overridden", () => {
 })
 
 describe("engine-core keeps the CLI's budgets (the CLI block of eslint.config.mjs)", () => {
-  const ENGINE = "packages/core/engine-core/src"
+  const ENGINE = "packages/connectors/engine/engine-core/src"
   const budget = async (rel, rule) => (await ruleOptionsFor(rel, rule))?.slice(1)[0] ?? null
 
   it("holds its shipped code, the ./testing export included, to complexity 10, 300 lines, 60 per function, 20 statements, depth 3, 4 parameters", async () => {
@@ -362,7 +362,7 @@ describe("type-safety rules: errors everywhere, require-await off in the MCP tre
   ]
   const STRICT_TREES = [
     "apps/cli/src/util.ts",
-    "packages/core/engine-core/src/index.ts",
+    "packages/connectors/engine/engine-core/src/index.ts",
     "apps/vscode/src/core/boards/board-filters.ts",
   ]
 

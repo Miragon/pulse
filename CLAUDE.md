@@ -44,10 +44,10 @@ command line interface (`apps/cli`) and a VS Code extension (`apps/vscode`) for 
 | `packages/connectors/engine/engine-connector/`       | engine module: operations tools, widget tools, widgets                                                                                                                                                                                                            |
 | `packages/connectors/analytics/analytics-connector/` | analytics module: Prometheus-backed tools, dashboards, comparison widgets                                                                                                                                                                                         |
 | `packages/connectors/engine/engine-client/`          | Generated CIB seven REST SDK (`src/generated/`) + Zod input schemas (`src/schemas/`)                                                                                                                                                                              |
+| `packages/connectors/engine/engine-core/`            | The Camunda 7 REST API family's workflow domain (npm `@miragon/pulse-engine-core`): engine port, selection, inspect view, status triage, root causes, retry and advance plans, as data, no runtime dependency. The CLI bundles it, the engine connector runs it   |
 | `packages/connectors/analytics/analytics-client/`    | Prometheus client + PromQL query functions (`src/queries/`) + Zod schemas                                                                                                                                                                                         |
 | `packages/core/ui/`                                  | Pulse's design kit (npm `@miragon/pulse-ui`): primitives, components, tone model, type scale, locale, toasts, formatters and the Miragon theme (`theme.css` over the vendored `--cd-*` tokens) for Pulse views and customer UIs; the brand gates under `/testing` |
 | `packages/core/widget-shell/`                        | The view runtime (`/widgets`: `mountViews`, the view host, the query hooks, `TestViewHost`, `ListTable`, hand-offs, BPMN), view + data-feed builders, the tool registrar (`createToolRegistrar`) and the boot (`/server`), the product glossary (`/testing`)      |
-| `packages/core/engine-core/`                         | The Camunda 7 REST API family's workflow domain (npm `@miragon/pulse-engine-core`): engine port, selection, inspect view, status triage, root causes, retry and advance plans, as data, no runtime dependency. The CLI bundles it, the engine connector runs it   |
 | `engine-plugins/`                                    | Kotlin/Gradle: CIB seven OTEL metrics plugin (Java 21)                                                                                                                                                                                                            |
 | `playground/`                                        | Demo env: CIB seven showcase engine, Compose stack, Fly.io deploy                                                                                                                                                                                                 |
 | `docs/`                                              | Pulse docs, a VitePress site on GitHub Pages (getting started, usage, architecture, developer, operations)                                                                                                                                                        |
@@ -59,18 +59,24 @@ Three axes decide where code goes, and they stay apart:
 
 - Vendor (CIB seven, Operaton, Camunda 7): runtime config per engine, `flavor` →
   `EngineProvider` (invariant 8), never a package or an app.
-- Dialect (an engine API family; one today, the Camunda 7 REST API all three vendors serve,
-  whose family is `packages/connectors/engine/` and whose MCP server is `apps/mcp-server`): one
-  package family under `packages/connectors/<family>/`: `<name>-client` (the wire: SDK,
-  schemas, engine contract) and `<name>-connector` (the MCP module); a package two interfaces
-  share is extracted on its second consumer, like the family's workflow domain
-  (`packages/core/engine-core` in the table above, one port per API family). A different dialect
-  is a new family plus its own MCP server app, both named after that dialect.
+- Dialect (an engine API family; one today, the Camunda 7 REST API all three vendors serve):
+  one package family under `packages/connectors/<family>/`, named for the API family it speaks
+  (the Camunda 7 REST family is `engine`, its MCP server `apps/mcp-server`). A different
+  dialect is a new family plus its own MCP server app, both named after that dialect, and
+  inherits its gates from the layout.
 - Interface (how a person or an agent reaches an engine): an app under `apps/`, today the
   MCP server, the CLI (`apps/cli`, rules in `apps/cli/CLAUDE.md`) and the VS Code extension
   (`apps/vscode`, rules in `apps/vscode/CLAUDE.md`). Another interface (a second editor
   extension, say) is an app of its own. Apps never import each other, and no package imports
   an app.
+
+A family is one source the MCP server reads: a dialect, or another source such as `analytics`
+(Prometheus). Its packages are named `<family>-<role>`: `<family>-connector` (the MCP module),
+`<family>-client` (the wire: SDK, schemas, engine contract) and, when the family's interfaces
+share a pure domain, `<family>-core` (no runtime dependency, one port per family; extracted on
+its second consumer, like `engine-core`, which the CLI bundles and the engine connector runs).
+Family code stays in its family: `packages/core/` holds what every family builds on (pulse-ui,
+widget-shell), never one family's code.
 
 The architecture invariants below are written for the MCP server, its modules and its widgets.
 The package rules of invariant 8 (layout, naming, dependency edges) hold for every workspace
@@ -418,20 +424,24 @@ Abweichungen vom Guide (Owner-Entscheidung, nur hier dokumentiert):
    apps (this repo's and the template's).
    - **Layout and naming** are load-bearing: the gates key on them, and a package that breaks
      the convention silently falls out of them. Connector modules live at
-     `packages/connectors/<family>/<name>-connector` (npm `@miragon/pulse-<name>-connector`),
-     their SDK leaves at `packages/connectors/<family>/<name>-client`, foundation packages
-     under `packages/core/` (npm `@miragon/pulse-<name>`), apps at `apps/<dir>` (npm
+     `packages/connectors/<family>/<family>-connector` (npm `@miragon/pulse-<family>-connector`),
+     their SDK leaves at `packages/connectors/<family>/<family>-client`, the family's domain at
+     `packages/connectors/<family>/<family>-core` (the role suffixes `CONNECTOR_ROLES`; the gate
+     holds the family name), the foundation packages under `packages/core/` (npm
+     `@miragon/pulse-<name>`, no role suffix), apps at `apps/<dir>` (npm
      `@miragon/pulse-<dir>`); the VS Code extension is `pulse-cockpit` (vsce takes no scope).
      Rules key on `@miragon/pulse-`, never on bare `@miragon/`, which other Miragon packages
      share. Gate: `scripts/check-package-naming.mjs` (`pnpm lint:naming`).
    - **Dependency edges** (`.dependency-cruiser.cjs`, `pnpm lint:architecture` +
      `pnpm lint:architecture:cli`): connectors never import each other, a connector imports only its
-     own client, clients are leaves, core is the foundation and pulse-ui its leaf, no package or app
-     imports an app, no cross-package deep imports. The interface apps import nothing of the
-     MCP/UI/server stack, zod included, and no workspace package except the CLI's
-     `@miragon/pulse-engine-core`, which it bundles; engine-core is a leaf (`engine-core-is-a-leaf`)
-     that only the CLI and the engine connector may import (`engine-core-consumers`). Each rule has
-     planted violations in
+     own family's client and core, clients and family cores are leaves, core is the foundation and
+     pulse-ui its leaf, no package or app imports an app, no cross-package deep imports. The
+     interface apps import nothing of the MCP/UI/server stack, zod included, and no workspace
+     package except a family core they bundle (the CLI's `@miragon/pulse-engine-core`); a family
+     core (`family-core-is-a-leaf`) is imported only by its family's connector and the apps that
+     bundle it (`family-core-consumers`, `CORE_BUNDLERS`), and no shipped code imports a
+     `./testing` entry (`shipped-code-not-to-testing`). The family rules key on the roles, so a
+     new family inherits them. Each rule has planted violations in
      `scripts/dependency-cruiser-gates.test.mjs`; a new app adds its npm name to the config's
      `APP_PACKAGES`. A rule names all three shapes an import reaches it in (a relative escape,
      `<importer>/node_modules/<name>/`, a bare specifier) and never exempts a package's own

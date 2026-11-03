@@ -40,7 +40,7 @@
     "fitness": "node scripts/fitness-report.mjs",
     "lint:deadcode": "knip --exclude exports,types,enumMembers",
     "lint:deadcode:cli": "knip --workspace apps/cli",
-    "lint:deadcode:engine-core": "knip --workspace packages/core/engine-core",
+    "lint:deadcode:engine-core": "knip --workspace packages/connectors/engine/engine-core",
     "lint:deadcode:vscode": "knip --workspace apps/vscode"
   },
   "devDependencies": {

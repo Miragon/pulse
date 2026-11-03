@@ -250,7 +250,7 @@ export default tseslint.config(
             "packages/connectors/engine/engine-client/vitest.config.ts",
             "packages/connectors/engine/engine-client/vitest.stryker.config.ts",
             "packages/connectors/engine/engine-client/openapi-ts.config.ts",
-            "packages/core/engine-core/vitest.config.ts",
+            "packages/connectors/engine/engine-core/vitest.config.ts",
             "packages/core/ui/vitest.config.ts",
             "packages/core/widget-shell/vitest.config.ts",
             "packages/core/widget-shell/vitest.stryker.config.ts",
@@ -457,9 +457,9 @@ export default tseslint.config(
   // lines per file (global 400) for the shipped code and the scripts, plus depth, parameter,
   // nesting, function length and statement budgets. No `ignores` and no no-restricted-syntax here: the tests get their own
   // block below, and a no-restricted-syntax setting would REPLACE the pattern gates. The CLI's
-  // workflow domain, @miragon/pulse-engine-core (packages/core/engine-core), keeps these budgets.
+  // workflow domain, @miragon/pulse-engine-core (packages/connectors/engine/engine-core), keeps these budgets.
   {
-    files: ["apps/cli/**/*.ts", "packages/core/engine-core/**/*.ts"],
+    files: ["apps/cli/**/*.ts", "packages/connectors/engine/engine-core/**/*.ts"],
     extends: [tseslint.configs.strictTypeChecked, tseslint.configs.stylisticTypeChecked],
     rules: {
       "@typescript-eslint/restrict-template-expressions": ["error", { allowNumber: true }],
@@ -485,7 +485,7 @@ export default tseslint.config(
     files: [
       "apps/cli/**/*.test.ts",
       "apps/cli/test/**/*.ts",
-      "packages/core/engine-core/**/*.test.ts",
+      "packages/connectors/engine/engine-core/**/*.test.ts",
     ],
     rules: {
       "max-lines": ["error", { max: 400, skipBlankLines: true, skipComments: true }],

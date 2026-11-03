@@ -94,7 +94,7 @@ describe("checkPackageName: today's packages", () => {
         { name: "@miragon/pulse-mcp-server", private: true, bin: { x: "dist/index.js" } },
       ],
       ["packages/core/widget-shell", { name: "@miragon/pulse-widget-shell" }],
-      ["packages/core/engine-core", { name: "@miragon/pulse-engine-core" }],
+      ["packages/connectors/engine/engine-core", { name: "@miragon/pulse-engine-core" }],
       ["packages/connectors/engine/engine-client", scoped("engine-client")],
       ["packages/connectors/engine/engine-connector", scoped("engine-connector")],
       ["packages/connectors/analytics/analytics-client", scoped("analytics-client")],
@@ -205,15 +205,38 @@ describe("checkPackageName: VS Code extension (an app with engines.vscode)", () 
 describe("checkPackageName: connector families", () => {
   it("rejects every other suffix", () => {
     for (const base of [
-      "engine-core",
       "engine-domain",
       "engineconnector",
       "engine-clients",
       "engine-client-utils",
+      "engine-cores",
+      "engine-core-utils",
       "client",
     ]) {
       const dir = `packages/connectors/engine/${base}`
-      assertOne(checkPackageName(dir, scoped(dir)), /must end in -connector or -client/, base)
+      assertOne(
+        checkPackageName(dir, scoped(dir)),
+        /must end in -connector, -client or -core/,
+        base,
+      )
+    }
+  })
+
+  it("names a family's package after its family: <family>-<role>", () => {
+    for (const dir of [
+      "packages/connectors/engine/c7-client",
+      "packages/connectors/engine/analytics-core",
+      "packages/connectors/analytics/engine-connector",
+      "packages/connectors/engine/engine-x-client",
+    ]) {
+      assertOne(checkPackageName(dir, scoped(dir)), /is named after its family/, dir)
+    }
+  })
+
+  it("accepts a family's pure domain as its -core", () => {
+    for (const base of ["engine-core", "analytics-core"]) {
+      const dir = `packages/connectors/${base.split("-")[0]}/${base}`
+      assert.deepEqual(checkPackageName(dir, scoped(dir)), [], dir)
     }
   })
 
@@ -231,7 +254,10 @@ describe("checkPackageName: directory rules", () => {
     for (const dir of [
       "packages/core/engine-connector",
       "packages/core/shared-client",
+      // A family's domain is family code: packages/core holds no family's code.
+      "packages/core/engine-core",
       "apps/foo-connector",
+      "apps/vscode-core",
     ]) {
       assertOne(checkPackageName(dir, scoped(dir)), /belongs to packages\/connectors/, dir)
     }
@@ -250,10 +276,7 @@ describe("checkPackageName: directory rules", () => {
       ["apps/pulse-cli", { name: "@miragon/pulse-pulse-cli" }],
       ["apps/pulse", { name: "@miragon/pulse-pulse" }],
       ["packages/core/pulse-kit", { name: "@miragon/pulse-pulse-kit" }],
-      [
-        "packages/connectors/engine/pulse-engine-client",
-        { name: "@miragon/pulse-pulse-engine-client" },
-      ],
+      ["packages/connectors/pulse/pulse-client", { name: "@miragon/pulse-pulse-client" }],
       ["apps/pulse-vscode", { name: "pulse-cockpit", engines: { vscode: "^1.101.0" } }],
     ]) {
       assertOne(checkPackageName(dir, manifest), /repeats the product prefix/, dir)

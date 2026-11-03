@@ -26,7 +26,7 @@ To build your own MCP server on it, start from [pulse-starter](https://github.co
 The **engine module** for [Pulse](../../../../README.md): Camunda 7 / CIB Seven BPM operations as
 `engine_*` MCP tools, plus the interactive cockpit widgets (MCP Apps). Built on
 [`@miragon/pulse-engine-client`](../engine-client), `@miragon/pulse-ui`,
-`@miragon/pulse-widget-shell` and [`@miragon/pulse-engine-core`](../../../core/engine-core), the
+`@miragon/pulse-widget-shell` and [`@miragon/pulse-engine-core`](../engine-core), the
 workflow domain pulse-cli runs too, which this module runs over its client.
 
 The server loads this module as `engine` via `engineModule` (`src/module.ts`), which conforms
