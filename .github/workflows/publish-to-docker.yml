@@ -11,7 +11,7 @@ on:
       dry_run:
         type: boolean
         default: false
-        description: "Build & verify only — do not push"
+        description: "Build & verify only: do not push"
       version:
         type: string
         default: ""
@@ -21,7 +21,7 @@ on:
       dry_run:
         type: boolean
         default: false
-        description: "Build & verify only — do not push"
+        description: "Build & verify only: do not push"
       version:
         type: string
         default: ""

@@ -291,7 +291,7 @@ function isBoolean(schema: z.ZodType): boolean {
   return inner.def.type === "boolean"
 }
 
-describe("strict input — an unknown filter is refused, not dropped", () => {
+describe("strict input: an unknown filter is refused, not dropped", () => {
   it("rejects a misnamed filter before any request", async () => {
     const engine = await startFakeEngine()
     engines.push(engine)

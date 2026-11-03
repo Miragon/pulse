@@ -21,7 +21,7 @@ export interface FilterBarProps {
   /** Placeholder for the search input. Default: the locale's "Filter…". */
   searchPlaceholder?: string
   /**
-   * Accessible name of the search input. Default: the locale's "Filter" — a
+   * Accessible name of the search input. Default: the locale's "Filter", since a
    * placeholder is no label (it disappears while you type).
    */
   searchAriaLabel?: string

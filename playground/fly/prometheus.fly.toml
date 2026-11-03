@@ -1,6 +1,6 @@
-# Prometheus — scrapes the Collector, feeds the analytics module and Grafana.
+# Prometheus: scrapes the Collector, feeds the analytics module and Grafana.
 # Private-only (no public IP) and always-on; the TSDB persists on a Fly
-# volume (auto-created on first deploy, single machine — playground grade).
+# volume (auto-created on first deploy, single machine, playground grade).
 # Build context: playground/docker/prometheus (config + shared alert rules
 # baked in via Dockerfile.fly).
 app = "miragon-ai-playground-prometheus"

@@ -133,7 +133,7 @@ async function probeSettled(status: "success" | "error") {
   )
 }
 
-describe.each(ENTRIES)("definition view flow — %s", (_entry, props) => {
+describe.each(ENTRIES)("definition view flow: %s", (_entry, props) => {
   it("without analytics: the incident overlay, no heatmap mode, no heatmap widget", async () => {
     const calls = renderFlow(props, { analytics: false })
 
@@ -162,7 +162,7 @@ describe.each(ENTRIES)("definition view flow — %s", (_entry, props) => {
   })
 })
 
-describe("definition view flow — the props it passes analytics' heatmap widgets", () => {
+describe("definition view flow: the props it passes analytics' heatmap widgets", () => {
   const [, props] = ENTRIES[0]
 
   it("passes key, engine, mode, the drawn diagram and the fallback, and nothing else", async () => {

@@ -1,12 +1,12 @@
 #!/usr/bin/env sh
-# Refresh cibseven-open-api-doc.json from the official CIB Seven OpenAPI
+# Refresh cibseven-open-api-doc.json from the official CIB seven OpenAPI
 # artifact on Maven Central (org.cibseven.bpm:cibseven-engine-rest-openapi).
-# The engine itself does not serve its spec over HTTP — the artifact jar
+# The engine itself does not serve its spec over HTTP: the artifact jar
 # (which contains openapi.json) is the canonical published source.
 #
-# Note: the spec SOURCE is the CIB Seven jar, but the SURFACE is the standard
-# Camunda 7 engine-rest API (no CIB-Seven-only endpoints) — the generated SDK
-# works unchanged against any C7-lineage engine (CIB Seven, Operaton, Camunda 7).
+# Note: the spec SOURCE is the CIB seven jar, but the SURFACE is the standard
+# Camunda 7 engine-rest API (no CIB seven-only endpoints): the generated SDK
+# works unchanged against any C7-lineage engine (CIB seven, Operaton, Camunda 7).
 #
 # Usage: pnpm spec:refresh <version>   e.g. pnpm spec:refresh 2.2.0
 # Afterwards: pnpm generate, review the git diff, commit spec + generated code.
@@ -31,4 +31,4 @@ curl -fsSL "$URL" -o "${TMP_DIR}/${ARTIFACT}"
 unzip -p "${TMP_DIR}/${ARTIFACT}" openapi.json > cibseven-open-api-doc.json
 
 echo "Wrote cibseven-open-api-doc.json (artifact version ${VERSION})."
-echo "Next: pnpm generate && git diff — review the regenerated SDK before committing."
+echo "Next: pnpm generate && git diff, then review the regenerated SDK before committing."

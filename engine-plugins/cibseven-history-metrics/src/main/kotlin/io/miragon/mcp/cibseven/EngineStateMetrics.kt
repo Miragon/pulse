@@ -13,12 +13,12 @@ import java.util.concurrent.TimeUnit
 
 /**
  * Point-in-time engine-state gauges, complementing the event-driven counters in
- * [ProcessMetrics]. These answer "what is the state right now" — running WIP,
- * open incidents, job backlog, task backlog — which flow counters cannot derive
+ * [ProcessMetrics]. These answer "what is the state right now" (running WIP,
+ * open incidents, job backlog, task backlog), which flow counters cannot derive
  * (a long-running instance shows in no `increase[period]`, but it is live WIP).
  *
- * Implemented as Micrometer [MultiGauge]s (the row set — e.g. per definition
- * key — is dynamic) refreshed by a single daemon-thread scheduler: unlike the
+ * Implemented as Micrometer [MultiGauge]s (the row set, e.g. per definition
+ * key, is dynamic) refreshed by a single daemon-thread scheduler: unlike the
  * OTEL API, Micrometer has no per-export callback, and a poll-time gauge
  * function would run engine queries on every scrape of every registry.
  * `register(rows, overwrite = true)` swaps the full row set each tick, so rows
@@ -30,7 +30,7 @@ import java.util.concurrent.TimeUnit
  * read a gauge as `max by (<its contract labels>)` before aggregating further,
  * never as a sum over nodes (rule 3 of `metrics-contract.json`).
  *
- * Cost note: each tick issues a handful of engine queries — fine for typical
+ * Cost note: each tick issues a handful of engine queries: fine for typical
  * deployments; widen the `state-interval` property if the definition count is
  * very large.
  */
@@ -93,7 +93,7 @@ class EngineStateMetrics(private val engine: ProcessEngine, private val engineId
         refreshExternalTasks()
     }
 
-    /** Running instances + dead (retries-exhausted) jobs + open incidents — one query, aggregated per key. */
+    /** Running instances + dead (retries-exhausted) jobs + open incidents: one query, aggregated per key. */
     private fun refreshDefinitionStats() {
         try {
             val runningByKey = HashMap<String, Long>()
@@ -168,7 +168,7 @@ class EngineStateMetrics(private val engine: ProcessEngine, private val engineId
         }
     }
 
-    /** Open external tasks (worker pattern). Total only — topic has no group-by query. */
+    /** Open external tasks (worker pattern). Total only: topic has no group-by query. */
     private fun refreshExternalTasks() {
         try {
             openExternalTasks.register(singleRow(engine.externalTaskService.createExternalTaskQuery().count()), true)

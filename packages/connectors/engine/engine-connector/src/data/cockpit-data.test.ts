@@ -29,7 +29,7 @@ const statsRow = (key: string, version: number, over: Record<string, unknown> = 
   ...over,
 })
 
-describe("buildCockpitDashboardData — one row per KEY (#335 N60)", () => {
+describe("buildCockpitDashboardData: one row per KEY (#335 N60)", () => {
   it("sums instances, failed jobs and incidents over every version of a key", async () => {
     const { engine, client } = await engineWith({
       "GET /process-definition/statistics": {
@@ -54,7 +54,7 @@ describe("buildCockpitDashboardData — one row per KEY (#335 N60)", () => {
 
     const data = await buildCockpitDashboardData(client, "engine-a")
 
-    // The latest-version-only figures were 61 / 5 / 28 — the old bug.
+    // The latest-version-only figures were 61 / 5 / 28 (the old bug).
     expect(data.definitions[0]).toEqual({
       id: "leasing:2:d",
       key: "leasing",
@@ -134,7 +134,7 @@ function instanceRoutes(counts: { all: number; withIncident: number; suspended: 
   }
 }
 
-describe("buildProcessInstancesData — totals and page-scoped incident flags (#335 N65)", () => {
+describe("buildProcessInstancesData: totals and page-scoped incident flags (#335 N65)", () => {
   it("flags incidents with ONE query over the page's ids and reports filtered-set totals", async () => {
     const { engine, client } = await engineWith(
       instanceRoutes({ all: 152, withIncident: 57, suspended: 9 }),
@@ -165,7 +165,7 @@ describe("buildProcessInstancesData — totals and page-scoped incident flags (#
       {
         id: "p3",
         businessKey: null,
-        // A bare generated id names no key — a scoped list's rows run on its key.
+        // A bare generated id names no key, but a scoped list's rows run on its key.
         processDefinitionKey: "K1",
         processDefinitionName: "Order",
         version: null,
@@ -173,7 +173,7 @@ describe("buildProcessInstancesData — totals and page-scoped incident flags (#
         hasIncident: false,
       },
     ])
-    // Whole-set totals from /count — never the page's 1 incident / 1 suspended.
+    // Whole-set totals from /count, never the page's 1 incident / 1 suspended.
     expect(data).toMatchObject({
       processDefinitionName: "Order",
       totalCount: 152,
@@ -208,7 +208,7 @@ describe("buildProcessInstancesData — totals and page-scoped incident flags (#
 
     expect(data).toMatchObject({ totalCount: 4, withIncidentCount: 4, suspendedCount: 0 })
     expect(calls(engine, "/process-instance/count")).toHaveLength(1)
-    // Every row of a withIncident page has one — no flag query either.
+    // Every row of a withIncident page has one: no flag query either.
     expect(calls(engine, "/process-instance")).toHaveLength(1)
     expect(data.instances.every((i) => i.hasIncident)).toBe(true)
   })
@@ -321,12 +321,12 @@ describe("buildProcessInstancesData — totals and page-scoped incident flags (#
 
     const data = await buildProcessInstancesData(client, "engine-a", {})
 
-    // No key lookup — only the page's names, ONE read over its versions (#322 U13).
+    // No key lookup, only the page's names, ONE read over its versions (#322 U13).
     expect(calls(engine, "/process-definition").map((r) => r.query)).toEqual([
       { processDefinitionIdIn: "K1:7:dep,legacy-id", maxResults: "2" },
     ])
     expect(data.instances.map((i) => i.processDefinitionName)).toEqual(["Order", "Order", null])
-    // Only p3's bare id needs the statistics; they do not list it — null, not "legacy-id".
+    // Only p3's bare id needs the statistics; they do not list it: null, not "legacy-id".
     expect(calls(engine, "/process-definition/statistics")).toHaveLength(1)
     expect(data.instances.map((i) => i.processDefinitionKey)).toEqual(["K1", "K1", null])
     expect(data.processDefinitionKey).toBeNull()
@@ -334,7 +334,7 @@ describe("buildProcessInstancesData — totals and page-scoped incident flags (#
   })
 })
 
-describe("buildProcessInstancesData — each row's real definition key", () => {
+describe("buildProcessInstancesData: each row's real definition key", () => {
   // A long key with UUID ids gets a bare id; parsed, that UUID would drill into
   // a definition view no key matches.
   const LONG_KEY = "customerOnboardingApprovalProcess"
@@ -378,7 +378,7 @@ describe("buildProcessInstancesData — each row's real definition key", () => {
     expect(calls(engine, "/process-definition/statistics")).toHaveLength(1)
   })
 
-  it("leaves an unresolvable key null when the statistics fail — never the UUID (enrichment)", async () => {
+  it("leaves an unresolvable key null when the statistics fail, never the UUID (enrichment)", async () => {
     const { client } = await engineWith(
       routes({ status: 500, body: { type: "ProcessEngineException", message: "boom" } }),
     )

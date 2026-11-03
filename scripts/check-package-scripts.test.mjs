@@ -44,7 +44,7 @@ describe("checkPackageScripts", () => {
     )
   })
 
-  it("flags each missing script — turbo would skip the package silently", () => {
+  it("flags each missing script: turbo would skip the package silently", () => {
     const errors = checkPackageScripts("packages/x", {
       typecheck: "tsc --noEmit",
       test: "vitest run",

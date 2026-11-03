@@ -11,7 +11,7 @@ coverage/
 # e-mail: a checkout may still hold them, so never commit or ship them.
 **/.profiles
 **/.data
-# The template ships without a lockfile — customers generate and commit their
+# The template ships without a lockfile: customers generate and commit their
 # own after copying it out (its Dockerfile expects one).
 templates/composed-server/pnpm-lock.yaml
 miranum-ai/

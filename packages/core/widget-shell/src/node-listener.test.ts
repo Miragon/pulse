@@ -89,7 +89,7 @@ function post(
           req.destroy()
           reject(
             new Error(
-              `No answer within ${OPEN_UPLOAD_ANSWER_MS} ms while the upload was still open — ` +
+              `No answer within ${OPEN_UPLOAD_ANSWER_MS} ms while the upload was still open: ` +
                 "the server waited for the body instead of refusing it",
             ),
           )
@@ -146,7 +146,7 @@ describe("createBodyLimitedListener", () => {
   it("answers 413 mid-stream for an undeclared body while the client is still sending", async () => {
     const target = echoTarget()
     const { port } = await serve(target, 1024)
-    // The upload is never ended — only a mid-stream answer resolves `post`.
+    // The upload is never ended: only a mid-stream answer resolves `post`.
     const res = await post(port, { chunks: [Buffer.alloc(600), Buffer.alloc(600)], end: false })
     expect(res.status).toBe(413)
     expect(target.fetch).not.toHaveBeenCalled()
@@ -255,7 +255,7 @@ describe("createBodyLimitedListener", () => {
   })
 })
 
-/** A target that holds every request until `release()` — in-flight tool calls. */
+/** A target that holds every request until `release()` (in-flight tool calls). */
 function gatedTarget() {
   let release!: () => void
   const gate = new Promise<void>((resolve) => (release = resolve))
@@ -269,7 +269,7 @@ function gatedTarget() {
   return { target, release }
 }
 
-describe("createBodyLimitedListener — the in-flight body budget", () => {
+describe("createBodyLimitedListener: the in-flight body budget", () => {
   it("answers 503 + Retry-After for a declared body the budget has no room for, unread", async () => {
     const { target, release } = gatedTarget()
     const { listener, port } = await serve(target, 100, { maxInFlightBodyBytes: 150 })
@@ -282,7 +282,7 @@ describe("createBodyLimitedListener — the in-flight body budget", () => {
     expect(res.headers["retry-after"]).toBe("1")
     expect(res.headers.connection).toBe("close")
     expect(errorMessage(res.body)).toBe(
-      "Server busy: request bodies in flight would exceed 150 bytes — retry shortly.",
+      "Server busy: request bodies in flight would exceed 150 bytes. Retry shortly.",
     )
     expect(target.fetch).toHaveBeenCalledTimes(1)
     expect(listener.heldBodyBytes).toBe(100)
@@ -309,7 +309,7 @@ describe("createBodyLimitedListener — the in-flight body budget", () => {
     const { listener, port } = await serve(target, 100, { maxInFlightBodyBytes: 100 })
     const holder = post(port, { chunks: [Buffer.alloc(100, 0x61)], end: true })
     await vi.waitFor(() => expect(listener.heldBodyBytes).toBe(100))
-    // The bridge has the body — the share still counts while the response is open.
+    // The bridge has the body, but the share still counts while the response is open.
     await vi.waitFor(() => expect(target.fetch).toHaveBeenCalledTimes(1))
     const refused = await post(port, { chunks: [Buffer.alloc(1)], end: true })
     expect(refused.status).toBe(503)
@@ -335,7 +335,7 @@ describe("createBodyLimitedListener — the in-flight body budget", () => {
   })
 })
 
-describe("createBodyLimitedListener — requests refused before their body", () => {
+describe("createBodyLimitedListener: requests refused before their body", () => {
   /** Echoes what the bridge handed on: the body and its framing/type headers. */
   function headerEcho(): FetchTarget & { fetch: ReturnType<typeof vi.fn> } {
     return {
@@ -385,7 +385,7 @@ describe("createBodyLimitedListener — requests refused before their body", () 
     expect(capped.status).toBe(413)
   })
 
-  it("never consults the check for GET/HEAD — there is no body to spare", async () => {
+  it("never consults the check for GET/HEAD: there is no body to spare", async () => {
     const refusedBeforeBody = vi.fn(() => true)
     const { port } = await serve(echoTarget(), 64, { refusedBeforeBody })
     await new Promise<void>((resolve, reject) => {

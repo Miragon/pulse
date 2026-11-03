@@ -6,19 +6,19 @@ name: Sync template mirror
 # read-only convenience so customers get GitHub's "Use this template" button
 # and a committed pnpm-lock.yaml (which makes `docker build` work without a
 # prior local install). Before pushing, the template is installed and tested
-# against the REAL public registry — no tarball overrides — which is the one
+# against the REAL public registry (no tarball overrides), which is the one
 # check scripts/test-template.sh cannot perform.
 #
 # Runs after publish-npm on purpose: syncing on the release merge would
 # briefly advertise pins that are not on npm yet.
 #
 # One-time setup:
-#   1. Create the mirror repo (MIRROR_OWNER/MIRROR_NAME below) —
-#      auto-initialized (any README) so it has a default branch — and mark it
+#   1. Create the mirror repo (MIRROR_OWNER/MIRROR_NAME below),
+#      auto-initialized (any README) so it has a default branch, and mark it
 #      as a template repository (Settings → Template repository).
 #   2. Grant the release-please GitHub App access to that repo (org Settings
 #      → GitHub Apps → Configure → Repository access). The push auth is a
-#      short-lived installation token minted from that app — no PAT.
+#      short-lived installation token minted from that app (no PAT).
 #   3. Bootstrap via workflow_dispatch with the latest release tag.
 on:
   workflow_call:
@@ -56,7 +56,7 @@ jobs:
         with:
           node-version: 22
 
-      # npm's read replicas can lag the publish by a minute or two — a plain
+      # npm's read replicas can lag the publish by a minute or two: a plain
       # install would then resolve a 404 and fail the whole sync. The metadata can
       # arrive before the tarball (0.23.0), so both have to answer. The packages are
       # the libraries the workspace publishes (scripts/workspace-packages.mjs, the
@@ -144,7 +144,7 @@ jobs:
           cd mirror
           git add -A
           if git diff --cached --quiet; then
-            echo "Mirror already up to date — nothing to push."
+            echo "Mirror already up to date: nothing to push."
             exit 0
           fi
           git config user.name "github-actions[bot]"

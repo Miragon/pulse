@@ -66,7 +66,7 @@ function draftTool(repository?: string) {
 }
 
 describe("engine_format_incident_issue targets the configured repository only", () => {
-  it("offers no repository parameter — a model cannot redirect the draft", async () => {
+  it("offers no repository parameter: a model cannot redirect the draft", async () => {
     const config = draftTool("acme/ops")
     expect(Object.keys(config.inputSchema as Record<string, z.ZodType>).sort()).toEqual([
       "engine",
@@ -89,7 +89,7 @@ describe("engine_format_incident_issue targets the configured repository only", 
     expect(draft.nextStep).toContain('"acme/ops"')
   })
 
-  it("keeps internal links out of the prefilled URL — the draft itself still has them", async () => {
+  it("keeps internal links out of the prefilled URL, but the draft itself still has them", async () => {
     const engine = await incidentEngine()
     const draft = (await callTool(draftTool("acme/ops"), registryWithCockpit(engine), {
       incidentId: "inc-1",

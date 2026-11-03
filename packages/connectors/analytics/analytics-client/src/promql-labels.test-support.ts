@@ -76,7 +76,7 @@ const isWildcard = (alt: string) => alt === ".*" || alt === ".+" || alt.startsWi
 export interface LabelCheck {
   violations: string[]
   series: string[]
-  /** Label references verified — lets a caller detect a silently empty scan. */
+  /** Label references verified (lets a caller detect a silently empty scan). */
   checkedLabels: number
   resultLabels: string[] | undefined
 }
@@ -120,7 +120,7 @@ class LabelChecker {
 
   private evalSelector(node: Extract<PromNode, { type: "selector" }>): Scope {
     if (!node.name) {
-      this.fail("selector without a metric name — not supported")
+      this.fail("selector without a metric name is not supported")
       return vector([], [])
     }
     this.series.add(node.name)
@@ -157,7 +157,7 @@ class LabelChecker {
     if (node.func === "histogram_quantile") return this.evalHistogramQuantile(args[1])
     if (LABEL_PRESERVING.has(node.func) && firstVector) return firstVector
     if (node.func === "vector") return vector([], [])
-    this.fail(`unsupported function ${node.func}() — extend promql-labels.test-support.ts`)
+    this.fail(`unsupported function ${node.func}(); extend promql-labels.test-support.ts`)
     return firstVector ?? { kind: "scalar" }
   }
 
@@ -205,7 +205,7 @@ class LabelChecker {
   private checkMatching(op: string, m: VectorMatching, lhs: VectorScope, rhs: VectorScope): void {
     for (const label of m.labels) {
       if (m.mode === "on") {
-        // Matching on a label one side lacks pairs everything with "" — a bug.
+        // Matching on a label one side lacks pairs everything with "": a bug.
         this.requireLabel(lhs, label, `${op} on (${label}), left side`)
         this.requireLabel(rhs, label, `${op} on (${label}), right side`)
         continue

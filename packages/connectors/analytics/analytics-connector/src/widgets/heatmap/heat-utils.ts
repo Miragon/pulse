@@ -41,7 +41,7 @@ export function heatIntensity(weight: number, range: { min: number; max: number 
 /** Below 1 on purpose: at 0.75 the darkest step keeps a black task label above 4.5:1. */
 export const HEAT_PEAK_ALPHA = 0.75
 
-/** Intensity at which the opacity reaches its peak — the soft rim of a blob below it. */
+/** Intensity at which the opacity reaches its peak: the soft rim of a blob below it. */
 const HEAT_RIM = 0.2
 
 export function hexChannels(hex: string): [number, number, number] {
@@ -94,7 +94,7 @@ export function buildHeatPoints(
 ): HeatPoint[] {
   const points: HeatPoint[] = []
   for (const el of elements) {
-    // Skip label elements — they share their target's businessObject id and
+    // Skip label elements: they share their target's businessObject id and
     // would otherwise stamp a second heat blob over the activity's text.
     if (el.type === "label" || el.labelTarget) continue
     const bo = el.businessObject

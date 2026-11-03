@@ -22,7 +22,7 @@ async function build(failIncidents: boolean) {
   return { data, engine }
 }
 
-describe("buildHistoryTimelineData — the failing steps", () => {
+describe("buildHistoryTimelineData: the failing steps", () => {
   it("names the activities with an open incident on this instance", async () => {
     const { data, engine } = await build(false)
     expect(data.incidentActivityIds).toEqual([WORLD.activityId])
@@ -40,7 +40,7 @@ describe("buildHistoryTimelineData — the failing steps", () => {
 })
 
 // One rule with analytics (`readBpmnNames`): a Modeler pool names the process.
-describe("buildHistoryTimelineData — the process name", () => {
+describe("buildHistoryTimelineData: the process name", () => {
   const instance = (processDefinitionName: string | null) => ({
     id: "pi-1",
     processDefinitionId: "miraveloLeasing:3:d",

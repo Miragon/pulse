@@ -29,7 +29,7 @@ function windowsOf(promql: string): Array<{ from: number; to: number; text: stri
   })
 }
 
-describe("query honesty — time windows", () => {
+describe("query honesty: time windows", () => {
   it.each(Object.entries(SCENARIOS))(
     "%s reads only windows inside [now − retention, now]",
     async (_name, scenarios) => {
@@ -119,11 +119,11 @@ function expectUnmeasuredCompare(kpis: readonly CompareKpis[], delta: CompareKpi
     expect(k.p95DurationMs).toBeNull()
     expect(k.incidentRatePct).toBeNull()
   }
-  // …so no delta against them either — never a −100 % from a missing value.
+  // …so no delta against them either, never a −100 % from a missing value.
   expect(Object.values(delta).every((v) => v === null)).toBe(true)
 }
 
-describe("query honesty — a Prometheus without data", () => {
+describe("query honesty: a Prometheus without data", () => {
   it("states a no-data shape for every exported query function", () => {
     expect(Object.keys(NO_DATA).sort()).toEqual(exportedQueryFunctions().sort())
   })
@@ -141,7 +141,7 @@ describe("query honesty — a Prometheus without data", () => {
 })
 
 // The plugin registers per-key gauge rows only for what exists: nothing open means no series, yet a measured 0.
-describe("query honesty — a reporting engine with nothing open", () => {
+describe("query honesty: a reporting engine with nothing open", () => {
   it("dashboard, engine health and landscape agree on 0", async () => {
     const { ch } = recordingClient((q) =>
       q.includes("engine_jobs_executable") || q.includes("engine_external_tasks_open")
@@ -178,7 +178,7 @@ const SCOPE_ECHO: {
 } = {
   elementHeat: {
     exempt:
-      "heatmap values only — its show tool and feed carry the scope in their own payload (analytics-connector engine-scope.test.ts)",
+      "heatmap values only: its show tool and feed carry the scope in their own payload (analytics-connector engine-scope.test.ts)",
   },
   periodCompare: {
     echo: (ch, engine) =>
@@ -210,12 +210,12 @@ const SCOPE_ECHO: {
   engineHealth: { echo: (ch, engine) => queries.engineHealth(ch, { engine }) },
 }
 
-describe("query honesty — every aggregate names the engines it covers", () => {
+describe("query honesty: every aggregate names the engines it covers", () => {
   it.each(Object.entries(SCOPE_ECHO))("%s", async (_name, rule) => {
     if ("exempt" in rule) return
     const { ch } = recordingClient()
     expect((await rule.echo(ch, FLEET)).engines).toEqual(FLEET)
-    // Unscoped library call: `null` = every engine Prometheus holds — never a
+    // Unscoped library call: `null` = every engine Prometheus holds, never a
     // made-up list, never silently absent.
     expect((await rule.echo(ch, [])).engines).toBeNull()
   })
@@ -230,13 +230,13 @@ function emptyStrings(value: unknown, path = "$"): string[] {
   return []
 }
 
-describe("query honesty — no placeholder fields", () => {
+describe("query honesty: no placeholder fields", () => {
   it.each(Object.entries(SCENARIOS))(
     "%s fills every string field it returns",
     async (_name, scenarios) => {
       for (const run of scenarios) {
         // Every sample carries every label, so an empty string can only be a
-        // field no query fills — a placeholder posing as data.
+        // field no query fills: a placeholder posing as data.
         const { ch } = recordingClient()
         expect(emptyStrings(await run(ch))).toEqual([])
       }

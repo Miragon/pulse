@@ -16,7 +16,7 @@ object SeedClock {
     /**
      * `true` while the seed has pinned [ClockUtil] to a fixed [Date]. Flipped
      * by [set] / [reset]. Read by [maybeAdvanceForActivity] so delegates can
-     * call it unconditionally — the helper short-circuits to a no-op outside
+     * call it unconditionally: the helper short-circuits to a no-op outside
      * seed mode, keeping production behavior unchanged.
      */
     @Volatile
@@ -33,17 +33,17 @@ object SeedClock {
     }
 
     /**
-     * Long-tail completion latency in minutes — most tasks finish quickly, a
+     * Long-tail completion latency in minutes: most tasks finish quickly, a
      * small fraction drags on for days. Same shape as the legacy seeder used,
      * kept here so both seeders share one realistic distribution.
      */
     fun sampleUserTaskLatencyMinutes(): Long {
         val roll = Random.nextDouble()
         return when {
-            roll < 0.60 -> Random.nextLong(2, 120) // 2min – 2h
-            roll < 0.90 -> Random.nextLong(120, 12 * 60) // 2h – 12h
-            roll < 0.98 -> Random.nextLong(12 * 60, 72 * 60) // 12h – 3d
-            else -> Random.nextLong(72 * 60, 7 * 24 * 60) // 3d – 7d outliers
+            roll < 0.60 -> Random.nextLong(2, 120) // 2min–2h
+            roll < 0.90 -> Random.nextLong(120, 12 * 60) // 2h–12h
+            roll < 0.98 -> Random.nextLong(12 * 60, 72 * 60) // 12h–3d
+            else -> Random.nextLong(72 * 60, 7 * 24 * 60) // 3d–7d outliers
         }
     }
 

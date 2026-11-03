@@ -2,11 +2,11 @@ import { describe, expect, it } from "vitest"
 import { engineModule } from "./module.js"
 
 /**
- * Passthrough forwards the caller's MCP token to the engine — the MCP auth
- * spec's forbidden token passthrough. It stays for trusted single-audience
+ * Passthrough forwards the caller's MCP token to the engine (the MCP auth
+ * spec's forbidden token passthrough). It stays for trusted single-audience
  * setups (#330), and the boot says so for exactly the engines that use it.
  */
-describe("engineModule.bootWarnings — passthrough", () => {
+describe("engineModule.bootWarnings: passthrough", () => {
   const passthroughWarning = (env: NodeJS.ProcessEnv) =>
     engineModule.bootWarnings(env).filter((w) => w.startsWith("Passthrough auth"))
 

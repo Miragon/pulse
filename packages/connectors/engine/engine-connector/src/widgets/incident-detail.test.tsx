@@ -99,7 +99,7 @@ async function gateSettled() {
 }
 
 describe("the incident detail offers the remedy the engine accepts", () => {
-  it("failedJob: Retry job sets the job's retries to 1 on the incident's engine — no Resolve", async () => {
+  it("failedJob: Retry job sets the job's retries to 1 on the incident's engine, no Resolve", async () => {
     const calls: Calls = []
     renderDetail(FAILED_JOB, {
       [ENGINE_WIDGET_ACTIONS_DATA]: ALL_ACTIONS,
@@ -114,7 +114,7 @@ describe("the incident detail offers the remedy the engine accepts", () => {
     expect(screen.queryByText("Mark as resolved")).toBeNull()
   })
 
-  it("failedExternalTask: Retry task sets the external task's retries — no Resolve", async () => {
+  it("failedExternalTask: Retry task sets the external task's retries, no Resolve", async () => {
     const calls: Calls = []
     renderDetail(FAILED_TASK, {
       [ENGINE_WIDGET_ACTIONS_DATA]: ALL_ACTIONS,
@@ -136,7 +136,7 @@ describe("the incident detail offers the remedy the engine accepts", () => {
     expect(screen.queryByText("Retry task")).toBeNull()
   })
 
-  it("labels each detail's failure section by its own heading — two details on one page included", async () => {
+  it("labels each detail's failure section by its own heading, two details on one page included", async () => {
     const Two = () => (
       <>
         <IncidentDetailWidget data={CUSTOM} incidentId={CUSTOM.incidentId} engine="prod" />

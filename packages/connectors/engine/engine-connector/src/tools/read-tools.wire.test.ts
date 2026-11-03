@@ -84,7 +84,7 @@ describe("history date filters take ISO 8601 and reach the engine in its format"
     expect(engine.requests).toHaveLength(2)
   })
 
-  it("converts the historic incidents' createTimeAfter/createTimeBefore — list AND count", async () => {
+  it("converts the historic incidents' createTimeAfter/createTimeBefore, list AND count", async () => {
     const engine = await engineWith({}, { body: [] })
     await call(engine, "engine_query_historic_incidents", {
       activityId: "callWms",
@@ -228,7 +228,7 @@ describe("variable reads bound oversized values with a truncation marker", () =>
 })
 
 describe("engine_list_tasks candidate groups", () => {
-  it("forwards includeAssignedTasks with candidateGroup — list AND count", async () => {
+  it("forwards includeAssignedTasks with candidateGroup, list AND count", async () => {
     const engine = await engineWith({}, { body: [] })
     await call(engine, "engine_list_tasks", { candidateGroup: "ops", includeAssignedTasks: true })
     expect(engine.requests.map((r) => r.query.includeAssignedTasks)).toEqual(["true", "true"])

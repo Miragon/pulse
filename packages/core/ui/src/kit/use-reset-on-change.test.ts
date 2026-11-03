@@ -25,7 +25,7 @@ describe("useResetOnChange", () => {
     rerender({ k: "b" })
     expect(reset).toHaveBeenCalledTimes(1)
 
-    // The new key is now the baseline — re-rendering on it must not reset again.
+    // The new key is now the baseline: re-rendering on it must not reset again.
     rerender({ k: "b" })
     expect(reset).toHaveBeenCalledTimes(1)
 
@@ -33,7 +33,7 @@ describe("useResetOnChange", () => {
     expect(reset).toHaveBeenCalledTimes(2)
   })
 
-  it("keys on identity, not equality — an equal-valued new object still resets", () => {
+  it("keys on identity, not equality: an equal-valued new object still resets", () => {
     const reset = vi.fn()
     const { rerender } = renderHook(({ k }) => useResetOnChange(k, reset), {
       initialProps: { k: { total: 1 } },
@@ -43,7 +43,7 @@ describe("useResetOnChange", () => {
     expect(reset).toHaveBeenCalledTimes(1)
   })
 
-  it("commits the reset value directly — no render showing the stale state first", () => {
+  it("commits the reset value directly, with no render showing the stale state first", () => {
     const committed = vi.fn()
     const { result, rerender } = renderHook(
       ({ k }) => {

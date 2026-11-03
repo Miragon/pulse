@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 # Mirrors the stock Pulse server image (two-stage pnpm build). Requires a
-# committed pnpm-lock.yaml — run `pnpm install` once and commit the lockfile.
+# committed pnpm-lock.yaml: run `pnpm install` once and commit the lockfile.
 
 FROM node:26-slim AS base
 
@@ -14,7 +14,7 @@ WORKDIR /app
 
 # The pnpm store (/pnpm/store, derived from PNPM_HOME) must live IN the layer, never in a
 # `--mount=type=cache`: registry caches persist layers but not cache mounts, so a cache-hit
-# on this step would skip `pnpm fetch` and leave the store empty — the `--offline` install
+# on this step would skip `pnpm fetch` and leave the store empty, and the `--offline` install
 # below then fails with ERR_PNPM_NO_OFFLINE_TARBALL.
 COPY pnpm-lock.yaml .npmrc ./
 RUN pnpm fetch
@@ -27,7 +27,7 @@ RUN pnpm install --frozen-lockfile --offline
 
 RUN pnpm run build
 
-# Selected by path, not by name — renaming the @acme scope needs no edit here.
+# Selected by path, not by name: renaming the @acme scope needs no edit here.
 RUN pnpm --filter ./server deploy --prod --legacy /app/deployed
 
 FROM base AS runtime

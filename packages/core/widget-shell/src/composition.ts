@@ -177,7 +177,7 @@ export function composeModules<TShared>(options: {
     )
     if (repeated.length > 0) {
       throw new Error(
-        `[${label}] MCP_ACTIVE_MODULES names ${repeated.map((name) => `"${name}"`).join(", ")} more than once — list each module once, with at most one :toolset.`,
+        `[${label}] MCP_ACTIVE_MODULES names ${repeated.map((name) => `"${name}"`).join(", ")} more than once. List each module once, with at most one :toolset.`,
       )
     }
     return {
@@ -200,7 +200,7 @@ export function composeModules<TShared>(options: {
       return { module: module.name, toolset, source }
     }
     if (suffix !== undefined) {
-      console.warn(`[${label}] Module "${module.name}" has no toolsets — ignoring ":${suffix}"`)
+      console.warn(`[${label}] Module "${module.name}" has no toolsets: ignoring ":${suffix}"`)
     }
     return { module: module.name, source: "none" }
   }
@@ -253,7 +253,7 @@ export function composeModules<TShared>(options: {
       )
       for (const name of unknown) {
         console.warn(
-          `[${label}] Unknown environment variable "${name}" — the server does not read it; ` +
+          `[${label}] Unknown environment variable "${name}": the server does not read it; ` +
             `check for a typo${envVarHint ? ` (${envVarHint})` : ""}.`,
         )
       }
@@ -264,7 +264,7 @@ export function composeModules<TShared>(options: {
       const { known, unknown } = parseActiveModules(env)
       const warnings = [
         ...warnedEnvVarSentences(env, warnedEnvVars),
-        ...unknown.map((name) => `Unknown module "${name}" in MCP_ACTIVE_MODULES — skipping`),
+        ...unknown.map((name) => `Unknown module "${name}" in MCP_ACTIVE_MODULES: skipping`),
         ...known.flatMap(({ name }) => registry[name].bootWarnings?.(env) ?? []),
       ]
       for (const warning of warnings) {
@@ -282,7 +282,7 @@ export function composeModules<TShared>(options: {
         return `${module}:${toolset} (${source})`
       }
       const modules = boot.toolsets.map(describe).join(", ")
-      const line = `[${label}] Toolsets — ${modules || "no active modules"}`
+      const line = `[${label}] Toolsets: ${modules || "no active modules"}`
       console.info(line)
       return line
     },

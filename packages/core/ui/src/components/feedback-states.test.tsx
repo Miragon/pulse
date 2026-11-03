@@ -14,7 +14,7 @@ import { ToastProvider, ToastViewport, useToast, type ToastApi } from "./Toast.j
 
 /**
  * Accessibility contract of the feedback primitives, pinned on their SSR
- * markup (the house render path — no jsdom): roles, live regions, accessible
+ * markup (the house render path, no jsdom): roles, live regions, accessible
  * names in the active locale, native focusable controls, nothing that steals
  * focus.
  */
@@ -24,7 +24,7 @@ const inGerman = (node: ReactNode) =>
   renderToStaticMarkup(<LocaleProvider locale="de-DE">{node}</LocaleProvider>)
 const noop = (): void => {}
 
-/** No positive tabindex and no autofocus anywhere — feedback never steals focus. */
+/** No positive tabindex and no autofocus anywhere: feedback never steals focus. */
 function expectNoFocusTheft(html: string) {
   expect(html).not.toMatch(/autofocus/i)
   for (const value of html.match(/tabindex="(-?\d+)"/gi) ?? []) {

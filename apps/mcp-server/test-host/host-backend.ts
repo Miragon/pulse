@@ -7,11 +7,11 @@ import { viewResourceUri } from "@miragon/pulse-widget-shell/server"
 
 /** What `GET /host/view` hands the host page: the served view, as a host receives it. */
 export interface HostView {
-  /** `resources/read` text of `ui://views/<tool>.html` — the document mcp-use serves. */
+  /** `resources/read` text of `ui://views/<tool>.html`, the document mcp-use serves. */
   html: string
-  /** `_meta.ui.csp` of that read — the host turns it into the frame's CSP. */
+  /** `_meta.ui.csp` of that read (the host turns it into the frame's CSP). */
   csp: Record<string, string[]> | undefined
-  /** The tool's `tools/list` entry — sent to the view as `hostContext.toolInfo.tool`. */
+  /** The tool's `tools/list` entry, sent to the view as `hostContext.toolInfo.tool`. */
   tool: unknown
 }
 
@@ -96,13 +96,13 @@ async function route(
 /**
  * The host's server side, as a real MCP Apps host has one: it reads the view
  * resource and proxies every `tools/call` to the MCP server over a real MCP
- * client — the page (host-sim.html) never talks to the server itself, and the
+ * client. The page (host-sim.html) never talks to the server itself, and the
  * view only ever talks to the page (postMessage), exactly like in claude.ai.
  *
  * - `GET /`               the host page
  * - `GET /host/view?tool` {@link HostView} for one view-bound tool
  * - `POST /host/call`     `{ name, arguments }` → `{ result }` | `{ error }`
- *   (a tool's `isError` result is a `result` — only protocol failures are errors)
+ *   (a tool's `isError` result is a `result`; only protocol failures are errors)
  */
 export async function startHostBackend(client: Client): Promise<HostBackend> {
   const server = http.createServer((req, res) => {

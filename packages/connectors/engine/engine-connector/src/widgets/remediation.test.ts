@@ -104,7 +104,7 @@ describe("remediationHandOff scopes the model to the cluster", () => {
   })
 
   // #340 made `engine` a boot-time enum: a placeholder is a refused call.
-  it("never invents an engine — without one the id is simply absent", () => {
+  it("never invents an engine: without one the id is simply absent", () => {
     const h = bindHandOff("en")
     const prompt = h.ask(remediationHandOff(CLUSTER, undefined, true))!
     expect(prompt).not.toMatch(/engine=|current engine|default/)

@@ -8,7 +8,7 @@ describe("fontFaces (opt-in Geist by URL)", () => {
   // collection, outside any mutant Stryker activates.
   const css = () => fontFaces({ baseUrl: "https://mcp.example.com/fonts" })
 
-  it("declares Geist and Geist Mono — the families the font tokens name first", () => {
+  it("declares Geist and Geist Mono, the families the font tokens name first", () => {
     expect(css()).toContain('font-family: "Geist";')
     expect(css()).toContain('font-family: "Geist Mono";')
     expect(css().match(/@font-face \{/g)).toHaveLength(2)

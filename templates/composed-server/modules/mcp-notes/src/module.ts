@@ -7,7 +7,7 @@ import { registerWidgetTools } from "./widget-tools.js"
 /**
  * Self-contained module definition: everything the server needs to mount the
  * notes module. Conforms structurally to the server's `ModuleDefinition` port
- * (`server/src/setup.ts`) — no import of the server.
+ * (`server/src/setup.ts`), with no import of the server.
  */
 
 const notesConfigSchema = z.object({
@@ -42,7 +42,7 @@ export const notesModule = {
   /** This module's slice of the app's unknown-env-var typo warner. */
   knownEnvVars: ["NOTES_TITLE"] as const,
 
-  // No `toolsets`: every notes tool is a read, so there is nothing to narrow —
+  // No `toolsets`: every notes tool is a read, so there is nothing to narrow;
   // the server ignores a `notes:<toolset>` suffix with a warning. A module
   // with writes declares `toolsets: createToolsetVocabulary(...)` instead.
 

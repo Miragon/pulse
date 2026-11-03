@@ -1,6 +1,6 @@
 /**
  * The REALISTIC engine of the host simulation (`/realistic/engine-rest`): the
- * shapes a real CIB seven answers with, sized like the playground — long
+ * shapes a real CIB seven answers with, sized like the playground, with long
  * process names and keys, 160 running instances (a third without a business
  * key, long keys on the rest, a third with an incident, some suspended), 73
  * jobs on one activity with long and short error messages. The fixture

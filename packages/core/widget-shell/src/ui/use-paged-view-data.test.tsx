@@ -76,7 +76,7 @@ const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 20))
 const invalidate = () => act(() => host.client().invalidateQueries({ queryKey: ["test:list"] }))
 
 describe("usePagedViewData", () => {
-  it("serves page 0 from handed-in initialData — as the SEED of a live page-0 query", async () => {
+  it("serves page 0 from handed-in initialData, as the SEED of a live page-0 query", async () => {
     const initialData = page(["a", "b"], 5)
     const { result } = setup({ initialData, args: {} })
     expect(result.current.items).toEqual(["a", "b"])
@@ -168,7 +168,7 @@ describe("usePagedViewData", () => {
     rerender({ initialData, args: { q: "b" } })
     rerender({ initialData, args: {} })
 
-    // Resolves at a stale offset for the pre-round-trip filter — must not append.
+    // Resolves at a stale offset for the pre-round-trip filter: must not append.
     await act(async () => {
       more.land(toolResult(page(["z1", "z2"], 5)))
       await Promise.resolve()
@@ -214,7 +214,7 @@ describe("usePagedViewData", () => {
  * A new page 0 must never unmount the list (#341 N123), and a page-0 failure
  * is never reported as "Failed to load more" (N130).
  */
-describe("usePagedViewData — page-0 fetch states", () => {
+describe("usePagedViewData: page-0 fetch states", () => {
   const A = page(["a", "b"], 3)
   const SEARCH = { q: "x" }
 
@@ -319,7 +319,7 @@ describe("usePagedViewData — page-0 fetch states", () => {
     const again = deferred()
     callTool.mockReturnValueOnce(again.promise)
     act(() => result.current.retry())
-    // The retry re-runs page 0 of the search — never the next offset.
+    // The retry re-runs page 0 of the search, never the next offset.
     await waitFor(() => expect(page0Calls(SEARCH)).toHaveLength(2))
     expect(
       callTool.mock.calls.some(([, sent]) => (sent as { firstResult: number }).firstResult > 0),
@@ -332,7 +332,7 @@ describe("usePagedViewData — page-0 fetch states", () => {
     expect(result.current.stale).toBe(false)
   })
 
-  it("a failed background refetch is a page-0 error over the stale rows — never a load-more error", async () => {
+  it("a failed background refetch is a page-0 error over the stale rows, never a load-more error", async () => {
     const { result } = await settledOnA()
     callTool.mockRejectedValueOnce(new Error("timeout"))
     await invalidate()

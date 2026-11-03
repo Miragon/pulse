@@ -58,7 +58,7 @@ function renderForm(
 const NO_FIELDS: TaskFormSchema = { taskId: "t-1", fields: [] }
 
 describe("the task form reports what the engine did", () => {
-  it("a delegated task went back to its owner — shown as such, never as completed", async () => {
+  it("a delegated task went back to its owner: shown as such, never as completed", async () => {
     let completed = 0
     renderForm(
       NO_FIELDS,

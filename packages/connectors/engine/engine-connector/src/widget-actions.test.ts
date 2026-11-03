@@ -14,13 +14,13 @@ import {
   type WidgetScan,
 } from "./widget-scan.test-support.js"
 
-/** THE in-widget write primitive — the one file allowed to hold a raw mutation and the gate. */
+/** THE in-widget write primitive: the one file allowed to hold a raw mutation and the gate. */
 const PRIMITIVE = "lib/engine-action.ts"
 
 /**
  * The files that may obtain a raw tool caller at all. Calls through one are
  * tracked by name (aliases and renames included), but a caller handed on as a
- * value — a parameter, a prop — leaves that reach, so every new holder is a
+ * value (a parameter, a prop) leaves that reach, so every new holder is a
  * reviewed decision. None today: navigation stays inside the cockpit.
  */
 const RAW_CALLER_HOLDERS: Record<string, string> = {}
@@ -79,7 +79,7 @@ describe("every in-widget write goes through useEngineAction", () => {
     const bypasses = scan.references.filter((r) => r.via !== "action" && isWrite(r.name))
     expect(
       bypasses.map((r) => `${at(r)} ${r.via}(${r.name})`),
-      "run the write through useEngineAction — it gates, confirms, refreshes and resets",
+      "run the write through useEngineAction: it gates, confirms, refreshes and resets",
     ).toEqual([])
   })
 
@@ -89,7 +89,7 @@ describe("every in-widget write goes through useEngineAction", () => {
       expect(isWrite(ref.name), `${at(ref)}: ${ref.name} is not a registered write`).toBe(true)
       expect(
         listed.has(ref.name ?? ""),
-        `${at(ref)}: add ${ref.name} to ENGINE_WIDGET_ACTIONS (tool-names.ts) — the feed gates only listed writes`,
+        `${at(ref)}: add ${ref.name} to ENGINE_WIDGET_ACTIONS (tool-names.ts). The feed gates only listed writes`,
       ).toBe(true)
     }
   })
@@ -127,7 +127,7 @@ describe("every in-widget write goes through useEngineAction", () => {
 
 /** The guard's own blind spots, pinned on sources written to hit them. */
 describe("the structural scan itself", () => {
-  it("takes no query-key root from the policy it checks — a namespace never certifies itself", () => {
+  it("takes no query-key root from the policy it checks: a namespace never certifies itself", () => {
     const policy = scanText(
       "lib/write-policy.ts",
       readFileSync(join(WIDGETS_DIR, "lib/write-policy.ts"), "utf8"),

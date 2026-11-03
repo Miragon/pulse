@@ -96,7 +96,7 @@ describe("buildClusterDetailData paging", () => {
     mockedGetIncidents.mockResolvedValue(mixed)
 
     // "timeout calling 'WMS'" normalizes to this signature (lowercased,
-    // quoted values masked) — the same shape the engine-health clusters emit.
+    // quoted values masked), the same shape the engine-health clusters emit.
     const data = await buildClusterDetailData(client, "eng1", {
       ...args,
       messageSignature: "timeout calling '<v>'",
@@ -171,7 +171,7 @@ describe("healthVerdictRule", () => {
 describe("buildEngineHealthData verdict", () => {
   const T: EngineHealthThresholds = { criticalIncidents: 10, criticalClusterSize: 4 }
 
-  /** `sizes[i]` open incidents on activity `A<i>` — one cluster per activity. */
+  /** `sizes[i]` open incidents on activity `A<i>`: one cluster per activity. */
   function scan(sizes: number[]): IncidentRowFixture[] {
     return sizes.flatMap((size, cluster) =>
       Array.from({ length: size }, (_, i) => ({

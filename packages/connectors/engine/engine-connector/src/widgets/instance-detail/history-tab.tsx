@@ -37,7 +37,7 @@ export function HistoryTab({
           prompt={ask(explainTimelineHandOff(instanceId, definitionId, engineId))}
         />
       </div>
-      {/* Mounted on first tab activation — the lazy-load point. */}
+      {/* Mounted on first tab activation: the lazy-load point. */}
       <PagedHistoryView
         processInstanceId={instanceId}
         processDefinitionKey={definitionKey}

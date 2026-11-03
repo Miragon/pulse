@@ -17,7 +17,7 @@ interface IncidentStat {
 
 /** Counts span all versions: old versions keep running after a redeploy. */
 export interface DefinitionStat {
-  /** Id of the latest version — the row's link target. */
+  /** Id of the latest version, the row's link target. */
   id: string
   key: string
   name: string | null
@@ -68,9 +68,9 @@ export interface TaskFormField {
 export interface TaskFormSchema {
   taskId: string
   fields: TaskFormField[]
-  /** The task's own form (embedded/external/Camunda Form) — set only without form fields. */
+  /** The task's own form (embedded/external/Camunda Form), set only without form fields. */
   formKey?: string
-  /** Key of a Camunda Form the task links (`camunda:formRef`) — set only without form fields or formKey. */
+  /** Key of a Camunda Form the task links (`camunda:formRef`), set only without form fields or formKey. */
   formRef?: string
 }
 
@@ -84,10 +84,10 @@ interface Job {
   processInstanceId: string
   processDefinitionKey: string | null
   processDefinitionId: string | null
-  /** The process's name (the job's definition version) — null without one or unread. */
+  /** The process's name (the job's definition version); null without one or unread. */
   processDefinitionName: string | null
   activityId: string | null
-  /** The failing activity's name in the job's diagram — null without one or unread. */
+  /** The failing activity's name in the job's diagram; null without one or unread. */
   activityName: string | null
   retries: number
   exceptionMessage: string | null
@@ -111,7 +111,7 @@ export interface ProcessInstanceRow {
   businessKey: string | null
   /** Resolved, never parsed from a generated definition id (long keys): null when unresolvable. */
   processDefinitionKey: string | null
-  /** The name of the definition this instance runs on — null without one or unread. */
+  /** The name of the definition this instance runs on; null without one or unread. */
   processDefinitionName: string | null
   version: number | null
   suspended: boolean
@@ -220,7 +220,7 @@ export type { IncidentRecovery }
 export interface IncidentInstance {
   id: string
   processInstanceId: string
-  /** The instance's business key — what the row names it by (else its short id); null without one or unread. */
+  /** The instance's business key, what the row names it by (else its short id); null without one or unread. */
   businessKey: string | null
   incidentType: string
   incidentMessage: string | null
@@ -246,7 +246,7 @@ export interface InstanceDetailData {
     suspended: boolean
     ended: boolean
   }
-  /** The process's name, from the instance's diagram — null without one or unreadable. */
+  /** The process's name, from the instance's diagram; null without one or unreadable. */
   processDefinitionName: string | null
   /** Null for a generated id (long keys); the timeline's analytics hand-offs are omitted then. */
   definitionKey: string | null
@@ -291,7 +291,7 @@ export interface HistoryTimelineData {
   processInstance: HistoricProcessInstance | null
   activities: ActivityData[]
   totalActivities: number
-  /** Activities with an open incident on this instance — the timeline marks them; null when unread. */
+  /** Activities with an open incident on this instance, which the timeline marks; null when unread. */
   incidentActivityIds: string[] | null
   engineId?: string
 }
@@ -299,9 +299,9 @@ export interface HistoryTimelineData {
 /** From the newest-first recency scan: facts it cannot vouch for are null, never a guess. */
 interface IncidentActivityFacts {
   activityId: string
-  /** Display name from the diagram — null without one (or for an activity only older versions have). */
+  /** Display name from the diagram; null without one (or for an activity only older versions have). */
   activityName: string | null
-  /** Newest scanned failure message — null when the activity's incidents lie beyond the scan. */
+  /** Newest scanned failure message; null when the activity's incidents lie beyond the scan. */
   representativeMessage: string | null
   /** Null unless the scan holds ALL of the activity's incidents. */
   firstSeen: string | null
@@ -316,7 +316,7 @@ export interface IncidentsDashboardActivity extends IncidentActivityFacts {
   last24hCount: number | null
 }
 
-/** One process definition KEY with open incidents — every count spans all versions. */
+/** One process definition KEY with open incidents. Every count spans all versions. */
 export interface IncidentsDashboardProcess {
   processDefinitionKey: string
   processDefinitionName: string | null
@@ -387,7 +387,7 @@ export interface ProcessIncidentsData extends EngineVendorInfo {
   last24hCount: number
   /** Jobs with no retries left, over every version of the key. */
   failedJobs: number
-  /** Activities in the diagram — null when the diagram is unavailable. */
+  /** Activities in the diagram; null when the diagram is unavailable. */
   totalActivityCount: number | null
   /** Numerator of `totalActivityCount`; `activities` may hold more (only older versions have them). */
   affectedDiagramActivityCount: number | null

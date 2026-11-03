@@ -8,7 +8,7 @@ on:
       dry_run:
         type: boolean
         default: false
-        description: "Dry run (build & verify only — no PR, no release, no publish)"
+        description: "Dry run (build & verify only: no PR, no release, no publish)"
 
 permissions:
   contents: write # release-please commits + tags; publish checks out the repo
@@ -48,7 +48,7 @@ jobs:
     environment: release
     steps:
       - name: Approved
-        run: echo "Release approved — proceeding to publish."
+        run: echo "Release approved. Proceeding to publish."
 
   publish-maven:
     name: Publish engine plugins to Maven Central

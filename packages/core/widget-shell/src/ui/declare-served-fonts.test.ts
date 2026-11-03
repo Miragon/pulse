@@ -33,7 +33,7 @@ describe("declareServedFonts", () => {
     expect(document.querySelectorAll(`#${SERVED_FONTS_STYLE_ID}`)).toHaveLength(1)
   })
 
-  it("declares nothing outside a served view document — the host's font renders", () => {
+  it("declares nothing outside a served view document: the host's font renders", () => {
     expect(declareServedFonts(document, "")).toBeUndefined()
     expect(declared()).toBeNull()
   })

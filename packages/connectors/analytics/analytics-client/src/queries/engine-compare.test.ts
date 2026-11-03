@@ -134,7 +134,7 @@ describe("engineCompare", () => {
     expect((await engineCompare(ch, { ...params, minBucketSize: 60 })).suppressed).toBe(true)
   })
 
-  it("flags it suppressed when too few instances COMPLETED — the durations' sample", async () => {
+  it("flags it suppressed when too few instances COMPLETED (the durations' sample)", async () => {
     const { ch } = mockClient({
       "prod-a": { started: 100, completed: 80, incidents: 0, avg: 10, p95: 20 },
       "prod-b": { started: 100, completed: 3, incidents: 0, avg: 1, p95: 2 },
@@ -144,7 +144,7 @@ describe("engineCompare", () => {
 
   it("reads 'nothing ended' as an unmeasured duration and suppresses its delta (N78)", async () => {
     // prod-b started work but nothing ended yet: the duration ratio is NaN,
-    // which the client drops — formerly a 0 s duration and a −100 % delta.
+    // which the client drops (formerly a 0 s duration and a −100 % delta).
     const { ch } = mockClient({
       "prod-a": { started: 100, completed: 80, incidents: 5, avg: 10, p95: 20 },
       "prod-b": { started: 40, completed: 0, incidents: 0, avg: null, p95: null },
@@ -178,7 +178,7 @@ describe("engineCompare", () => {
     expect(aQueries).toHaveLength(6)
     expect(bQueries).toHaveLength(6)
     // The scope that makes the delta attributable to the engine rather than to
-    // a different process mix — never absent.
+    // a different process mix is never absent.
     expect(queries.every((q) => q.includes('process_definition_key="order"'))).toBe(true)
     expect(queries.every((q) => q.includes("[14d]"))).toBe(true)
   })

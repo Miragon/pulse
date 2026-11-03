@@ -4,7 +4,7 @@ import { createToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import type { NotesStore } from "./notes-store.js"
 
 /**
- * Plain operations tools — JSON data *for the model* (render path 1 of 3).
+ * Plain operations tools: JSON data *for the model* (render path 1 of 3).
  * Registered through the registrar, never raw `server.tool()`; only widget
  * tools (widget-tools.ts) use the raw registration path. The registrar is
  * always strict: an unknown (e.g. misnamed) key is a tool error naming the

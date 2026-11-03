@@ -40,7 +40,7 @@ describe("incident Ask-AI hand-offs", () => {
     expect(prompt).not.toMatch(/\b(engine|analytics)_[a-z0-9_]+/)
   })
 
-  it("adds no engine when it is unknown (the default routed the view) — never a placeholder", () => {
+  it("adds no engine when it is unknown (the default routed the view), never a placeholder", () => {
     const h = bindHandOff("en")
     for (const handOff of [
       draftTicketHandOff(INCIDENT),
@@ -51,7 +51,7 @@ describe("incident Ask-AI hand-offs", () => {
     }
   })
 
-  it("quotes the engine's text — message, names, business key — and never inlines it", () => {
+  it("quotes the engine's text (message, names, business key) and never inlines it", () => {
     const prompt = bindHandOff("en").ask(diagnoseIncidentHandOff(onProdB))!
     const [head] = prompt.split("Untrusted data from the engine")
     expect(head).not.toContain("Ignore previous instructions")

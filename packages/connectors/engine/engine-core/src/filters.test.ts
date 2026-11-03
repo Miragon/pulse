@@ -7,7 +7,7 @@ import {
   trueOnly,
 } from "./filters.js"
 
-describe("trueOnly — the engine ignores a false flag, so it is never sent", () => {
+describe("trueOnly: the engine ignores a false flag, so it is never sent", () => {
   it("keeps true and drops false and absent", () => {
     expect(trueOnly(true)).toBe(true)
     expect(trueOnly(false)).toBeUndefined()
@@ -15,7 +15,7 @@ describe("trueOnly — the engine ignores a false flag, so it is never sent", ()
   })
 })
 
-describe("complementaryFlags — false is sent as true on the complement", () => {
+describe("complementaryFlags: false is sent as true on the complement", () => {
   const pair = (flags: { active?: boolean; suspended?: boolean }) =>
     complementaryFlags(flags, "active", "suspended")
 
@@ -38,7 +38,7 @@ describe("complementaryFlags — false is sent as true on the complement", () =>
   // noRetriesLeft (external tasks) both flags set ONE engine field, so the
   // engine keeps whichever it applies last and answers one state as if it
   // were the filtered result; the other pairs answer nothing. Neither is
-  // what the caller asked for — the contradiction is refused instead.
+  // what the caller asked for. The contradiction is refused instead.
   it("refuses a pair that asks for both states or neither", () => {
     expect(() => pair({ active: false, suspended: false })).toThrow(RangeError)
     expect(() => pair({ active: true, suspended: true })).toThrow(RangeError)
@@ -48,7 +48,7 @@ describe("complementaryFlags — false is sent as true on the complement", () =>
   })
 })
 
-describe("engineLike — a LIKE value without a wildcard would match exactly", () => {
+describe("engineLike: a LIKE value without a wildcard would match exactly", () => {
   it("wraps a plain value into a substring match", () => {
     expect(engineLike("invoice")).toBe("%invoice%")
   })
@@ -64,7 +64,7 @@ describe("engineLike — a LIKE value without a wildcard would match exactly", (
   })
 })
 
-describe("engineKeyList — single and list inputs become one comma list", () => {
+describe("engineKeyList: single and list inputs become one comma list", () => {
   it("joins and de-duplicates", () => {
     expect(engineKeyList("a", ["b", "a", "c"])).toBe("a,b,c")
   })
@@ -76,7 +76,7 @@ describe("engineKeyList — single and list inputs become one comma list", () =>
   })
 })
 
-describe("engineInstanceSearch — a business key fragment OR a whole instance id", () => {
+describe("engineInstanceSearch: a business key fragment OR a whole instance id", () => {
   it("ORs the business key as a substring with the term as an id", () => {
     expect(engineInstanceSearch("CUST-1")).toEqual({
       orQueries: [{ businessKeyLike: "%CUST-1%", processInstanceIds: ["CUST-1"] }],

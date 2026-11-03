@@ -4,7 +4,7 @@ import { join } from "node:path"
 import { afterAll, describe, expect, it } from "vitest"
 import { FORBIDDEN_GLYPHS, glyphFindings, scanGlyphs } from "./glyphs.js"
 
-describe("glyphFindings — no Unicode glyphs or emoji as icons", () => {
+describe("glyphFindings: no Unicode glyphs or emoji as icons", () => {
   it("finds a glyph in JSX text, attributes, string and template literals", () => {
     const source = [
       "// a comment may name ✦ freely",
@@ -158,7 +158,7 @@ describe("glyphFindings — no Unicode glyphs or emoji as icons", () => {
   })
 })
 
-describe("scanGlyphs — a source tree", () => {
+describe("scanGlyphs: a source tree", () => {
   const root = mkdtempSync(join(tmpdir(), "glyphs-"))
   afterAll(() => rmSync(root, { recursive: true, force: true }))
 

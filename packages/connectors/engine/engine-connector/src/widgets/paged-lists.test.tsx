@@ -275,7 +275,7 @@ describe("the instance list states what is ON SCREEN while a filter is pending o
     await waitFor(() => expect(held).toHaveLength(1))
     expect(held[0].args).toMatchObject({ suspended: true })
 
-    // The rows on screen are the unfiltered 120 — so is everything said about them.
+    // The rows on screen are the unfiltered 120; so is everything said about them.
     await waitFor(() => expect(modelContexts.at(-1)).toContain("PREVIOUS result"))
     const context = modelContexts.at(-1)!
     expect(context.split("\n")).toContain("On screen: loaded=2, matchingInstances=120")
@@ -301,7 +301,7 @@ describe("the instance list states what is ON SCREEN while a filter is pending o
     expect(triage().split("\n")).toContain("On screen: matchingInstances=7, suspended=true")
   })
 
-  it("a failed chip keeps saying so — to the operator and to the model", async () => {
+  it("a failed chip keeps saying so, to the operator and to the model", async () => {
     const { held, control, modelContexts, triage } = await engineWideList()
 
     fireEvent.click(screen.getByRole("button", { name: "Suspended" }))

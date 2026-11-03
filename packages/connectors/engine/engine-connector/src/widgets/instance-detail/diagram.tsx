@@ -46,7 +46,7 @@ export function InstanceDiagramSection({
           />
         </>
       )}
-      {/* Textual token view next to the diagram — shows multi-instance
+      {/* Textual token view next to the diagram: shows multi-instance
           nesting the diagram overlay can't, collapsed by default. */}
       {activityTree && (
         <Section title={t("instanceDetail.sectionActivityTree")}>

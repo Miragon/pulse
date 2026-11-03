@@ -27,9 +27,9 @@ describe("StatusBadge: the state in words, marked in its tone", () => {
   })
 
   it("requires its text: colour is never the only signal", () => {
-    // @ts-expect-error — children are mandatory
+    // @ts-expect-error: children are mandatory
     const bare = <StatusBadge tone="danger" />
-    // @ts-expect-error — null is no text either
+    // @ts-expect-error: null is no text either
     const nothing = <StatusBadge tone="danger">{null}</StatusBadge>
     expect(bare.props).not.toHaveProperty("children")
     expect(nothing.props).toHaveProperty("children", null)

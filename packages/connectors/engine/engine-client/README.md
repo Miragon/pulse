@@ -14,11 +14,11 @@ npm install @miragon/pulse-engine-client
 
 ## Overview
 
-TypeScript client for the [CIB Seven](https://cibseven.org/) REST API: an SDK
+TypeScript client for the [CIB seven](https://cibseven.org/) REST API: an SDK
 generated with [`@hey-api/openapi-ts`](https://heyapi.dev/), a client factory
 with deadlines and engine errors, and the reads whose REST contract the SDK
-defaults miss. There is no official TypeScript client for CIB Seven; this
-package fills that gap for Pulse and is usable by any CIB Seven / Camunda 7
+defaults miss. There is no official TypeScript client for CIB seven; this
+package fills that gap for Pulse and is usable by any CIB seven / Camunda 7
 project. It has no runtime dependency. The pure engine REST rules (dates,
 filters, sorting, variable writes, incident recovery) live in
 [`@miragon/pulse-engine-core`](../engine-core/README.md), which this package
@@ -91,7 +91,7 @@ canonical source.
 To refresh:
 
 ```bash
-pnpm spec:refresh <version>   # e.g. pnpm spec:refresh 2.2.0 — downloads + extracts the spec
+pnpm spec:refresh <version>   # downloads + extracts the spec, e.g. pnpm spec:refresh 2.2.0
 pnpm generate                 # regenerate src/generated from the new spec
 git diff                      # review spec + SDK changes, run the repo verification suite
 ```

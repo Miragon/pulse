@@ -8,7 +8,7 @@ const engineWithCockpit = (cockpitUrl: string) => ({
   provider: cibsevenProvider,
 })
 
-/** No cockpitUrl and a baseUrl without /engine-rest suffix — no link derivable. */
+/** No cockpitUrl and a baseUrl without /engine-rest suffix: no link derivable. */
 const engineWithoutCockpit = { baseUrl: "http://engine.internal/api", provider: cibsevenProvider }
 
 describe("buildIncidentIssuePayload", () => {

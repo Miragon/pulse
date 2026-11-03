@@ -61,7 +61,7 @@ describe("engine_list_engines", () => {
     expect((list.engines as Array<{ id: string }>).map((e) => e.id)).toEqual(["alpha", "beta"])
   })
 
-  it("never hands the model an engine's internal REST baseUrl — only a configured cockpitUrl", async () => {
+  it("never hands the model an engine's internal REST baseUrl, only a configured cockpitUrl", async () => {
     const { list: listEngines } = harness()
     const list = await listEngines()
     expect(list.engines).toEqual([
@@ -84,7 +84,7 @@ describe("engine_list_engines", () => {
     expect(list.environments).toEqual([{ id: "default", engineIds: ["alpha", "beta"] }])
   })
 
-  it("maps environments to their engines in config order — the two-stage selection view", async () => {
+  it("maps environments to their engines in config order: the two-stage selection view", async () => {
     const { list: listEngines } = harness([
       { id: "eu-a", baseUrl: "http://eu-a/engine-rest", environment: "prod-eu" },
       { id: "us-a", baseUrl: "http://us-a/engine-rest", environment: "prod-us" },

@@ -41,7 +41,7 @@ describe("trimToolSchema", () => {
 })
 
 describe("trimToolDescriptor / installToolSchemaTrim", () => {
-  it("trims the input schema only — the output schema is what clients validate against", () => {
+  it("trims the input schema only: the output schema is what clients validate against", () => {
     const tool = { name: "t", inputSchema: input, outputSchema: input }
     const trimmed = trimToolDescriptor(tool) as typeof tool
     expect(trimmed.inputSchema).not.toHaveProperty("$schema")

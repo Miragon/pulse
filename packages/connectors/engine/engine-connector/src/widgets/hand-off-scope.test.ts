@@ -44,7 +44,7 @@ describe("scopingDefinitionKey", () => {
     expect(scopingDefinitionKey(LONG_KEY, BARE_ID)).toBe(LONG_KEY)
   })
 
-  it("drops a key that is only its bare definition id — and an empty one", () => {
+  it("drops a key that is only its bare definition id, and an empty one", () => {
     expect(scopingDefinitionKey(BARE_ID, BARE_ID)).toBeUndefined()
     expect(scopingDefinitionKey("", "")).toBeUndefined()
     expect(scopingDefinitionKey(null, "order:3:dep-1")).toBeUndefined()
@@ -122,7 +122,7 @@ describe("the instances list states its count as the filtered set's", () => {
     )!
     expect(prompt).toContain("On screen: matchingInstances=12, suspended=true, withIncidents=true")
     expect(prompt).not.toContain("runningInstances")
-    // The business-key filter is operator text — quoted, never inlined.
+    // The business-key filter is operator text: quoted, never inlined.
     const [head, quoted] = prompt.split("businessKeyLike:\n")
     expect(head).not.toContain("ORD 4%")
     expect(quoted.startsWith("```text\nORD 4%\n```")).toBe(true)

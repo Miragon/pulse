@@ -63,7 +63,7 @@ describe("variableRead", () => {
     expect(variableRead(variables).big).toMatchObject({ truncated: true })
   })
 
-  it("with a name, returns only that variable — whole and unmarked", () => {
+  it("with a name, returns only that variable, whole and unmarked", () => {
     const read = variableRead(variables, "big")
     expect(read).toEqual({ big: { value: OVER, type: "Json" } })
     expect(read.big).toBe(variables.big)

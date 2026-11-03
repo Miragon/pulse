@@ -1,5 +1,5 @@
 /**
- * Engine reads whose REST contract differs from the client defaults — the
+ * Engine reads whose REST contract differs from the client defaults, the
  * ONE place `tools/` and `data/` take them from, so no call site can forget
  * the override:
  *
@@ -10,8 +10,8 @@
  *   then deserializes every Object variable eagerly (one class missing on its
  *   classpath fails the WHOLE read with a 500) and renders Json variables as
  *   Jackson's view of the Spin node instead of their JSON. With `false`,
- *   Object/Json/Xml values come back as their serialized string + `valueInfo`
- *   — exactly the shape a variable write takes back.
+ *   Object/Json/Xml values come back as their serialized string + `valueInfo`,
+ *   exactly the shape a variable write takes back.
  */
 import type { Client } from "../generated/client/types.gen.js"
 import {
@@ -55,7 +55,7 @@ function textOrNull(text: unknown): string | null {
 
 /**
  * The exception stacktrace of a job; `null` when the job has none or no
- * longer exists (404). Every other failure throws — the caller decides
+ * longer exists (404). Every other failure throws: the caller decides
  * whether a missing stacktrace may degrade.
  */
 export async function fetchJobStacktrace(client: Client, jobId: string): Promise<string | null> {
@@ -106,7 +106,7 @@ export function readTaskVariables(client: Client, taskId: string): Promise<Varia
 /**
  * Where a batch stands: the runtime statistics while it exists (counts incl.
  * failed batch jobs), its history record once it ended. A batch neither
- * holds is reported as an error — it never existed, or ended on an engine
+ * holds is reported as an error: it never existed, or ended on an engine
  * without batch history.
  */
 export async function readBatch(client: Client, batchId: string): Promise<BatchReport> {

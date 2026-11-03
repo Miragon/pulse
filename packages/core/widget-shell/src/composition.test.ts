@@ -68,7 +68,7 @@ describe("activeModules / resolveBoot entries", () => {
     const { entries } = compose(modules).resolveBoot({ MCP_ACTIVE_MODULES: "alpha:read-only" })
     expect(entries[0].config).not.toHaveProperty("toolset")
     expect(warn).toHaveBeenCalledWith(
-      '[test-root] Module "alpha" has no toolsets — ignoring ":read-only"',
+      '[test-root] Module "alpha" has no toolsets: ignoring ":read-only"',
     )
   })
 
@@ -85,21 +85,19 @@ describe("activeModules / resolveBoot entries", () => {
     expect(boot.toolsets).toEqual([{ module: "alpha", source: "none" }])
     expect(warn).toHaveBeenCalledTimes(1)
     expect(warn).toHaveBeenCalledWith(
-      '[test-root] Module "alpha" has no toolsets — ignoring ":admin"',
+      '[test-root] Module "alpha" has no toolsets: ignoring ":admin"',
     )
     vi.spyOn(console, "info").mockImplementation(() => {})
-    expect(composition.logEffectiveToolsets(boot)).toBe(
-      "[test-root] Toolsets — alpha (no toolsets)",
-    )
+    expect(composition.logEffectiveToolsets(boot)).toBe("[test-root] Toolsets: alpha (no toolsets)")
   })
 })
 
-describe("resolveBoot — the fail-closed toolset rule", () => {
+describe("resolveBoot: the fail-closed toolset rule", () => {
   const toolsetsOf = (boot: ResolvedBoot) =>
     Object.fromEntries(boot.toolsets.map(({ module, toolset }) => [module, toolset]))
 
   it.each([undefined, "", "all", "alpha,beta"])(
-    "MCP_ACTIVE_MODULES=%j defaults to the floor without OAuth and to the standard toolset with it — never admin",
+    "MCP_ACTIVE_MODULES=%j defaults to the floor without OAuth and to the standard toolset with it, never admin",
     (value) => {
       const env = value === undefined ? {} : { MCP_ACTIVE_MODULES: value }
       const anonymous = compose().resolveBoot(env)
@@ -170,7 +168,7 @@ describe("logEffectiveToolsets", () => {
     const boot = composition.resolveBoot({ MCP_ACTIVE_MODULES: "alpha:admin,beta:typo,gamma" })
     const line = composition.logEffectiveToolsets(boot)
     expect(line).toBe(
-      "[test-root] Toolsets — alpha:admin (suffix), beta:read-only (fallback), gamma (no toolsets)",
+      "[test-root] Toolsets: alpha:admin (suffix), beta:read-only (fallback), gamma (no toolsets)",
     )
     expect(info).toHaveBeenCalledTimes(1)
     expect(info).toHaveBeenCalledWith(line)
@@ -182,11 +180,11 @@ describe("logEffectiveToolsets", () => {
     const composition = compose([moduleOf("alpha"), moduleOf("beta", { toolsets: undefined })])
     const env = { MCP_ACTIVE_MODULES: "alpha,beta" }
     expect(composition.logEffectiveToolsets(composition.resolveBoot(env))).toBe(
-      "[test-root] Toolsets — alpha:read-only (default without OAuth), beta (no toolsets)",
+      "[test-root] Toolsets: alpha:read-only (default without OAuth), beta (no toolsets)",
     )
     expect(
       composition.logEffectiveToolsets(composition.resolveBoot(env, { authenticated: true })),
-    ).toBe("[test-root] Toolsets — alpha:operations (default with OAuth), beta (no toolsets)")
+    ).toBe("[test-root] Toolsets: alpha:operations (default with OAuth), beta (no toolsets)")
   })
 
   it("says so when no module is active", () => {
@@ -195,7 +193,7 @@ describe("logEffectiveToolsets", () => {
     const composition = compose()
     expect(
       composition.logEffectiveToolsets(composition.resolveBoot({ MCP_ACTIVE_MODULES: "nope" })),
-    ).toBe("[test-root] Toolsets — no active modules")
+    ).toBe("[test-root] Toolsets: no active modules")
   })
 })
 
@@ -275,8 +273,8 @@ describe("warnUnknownEnvVars", () => {
   it("exempts `<KNOWN_VAR>_*` extensions (docker-secrets style), but not near-misses", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
     const unknown = compose().warnUnknownEnvVars({
-      BETA_URL_FILE: "/run/secrets/beta", // extends the known BETA_URL — another process's var
-      BETA_URLX: "typo", // near-miss, not an extension — still warns
+      BETA_URL_FILE: "/run/secrets/beta", // extends the known BETA_URL: another process's var
+      BETA_URLX: "typo", // near-miss, not an extension: still warns
     })
     expect(unknown).toEqual(["BETA_URLX"])
     expect(warn).toHaveBeenCalledTimes(1)

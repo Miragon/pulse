@@ -45,7 +45,7 @@ describe("tone contrast (the kit's Miragon theme, light + dark)", () => {
 })
 
 describe("role contrast (the kit's Miragon theme, light + dark)", () => {
-  it("reaches AA on every neutral and interaction role — the interim gaps are gone", () => {
+  it("reaches AA on every neutral and interaction role: the interim gaps are gone", () => {
     // The shadcn neutrals missed it on the input edge (1.26:1) and the quiet
     // text on muted (4.34:1); the Miragon roles reach 3.40:1 and 5.29:1.
     expect(contrastFindings(theme, ROLE_CONTRAST_PAIRS)).toEqual([])

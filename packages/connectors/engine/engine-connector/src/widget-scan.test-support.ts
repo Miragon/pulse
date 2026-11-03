@@ -158,7 +158,7 @@ function rawCallers(source: ts.SourceFile): Set<string> {
 
 /**
  * The call's positional tool argument. A call through a raw tool caller
- * (`rawCallers`) — or any other `*CallTool(…)` — counts as a raw call too.
+ * (`rawCallers`), or any other `*CallTool(…)`, counts as a raw call too.
  */
 function positionalTool(
   call: ts.CallExpression,
@@ -173,7 +173,7 @@ function positionalTool(
   return known && arg ? { via: known.via, arg } : null
 }
 
-/** What a file-local function returns — a key helper such as `feedKey(scope)`. */
+/** What a file-local function (a key helper such as `feedKey(scope)`) returns. */
 function returnedBy(source: ts.SourceFile, name: string): ts.Expression[] {
   const returned: ts.Expression[] = []
   const visit = (node: ts.Node) => {
@@ -210,7 +210,7 @@ function keyRoot(key: ts.Expression): string | null {
 }
 
 /**
- * A `{ tool: … }` option — of `useEngineAction` (the write) or of a read
+ * A `{ tool: … }` option, of `useEngineAction` (the write) or of a read
  * hook (`useDetailView`, `usePagedViewData`, …).
  */
 function toolOption(node: ts.Node): { via: Via; arg: ts.Expression } | null {
@@ -280,7 +280,7 @@ export function scanWidgets(): WidgetScan {
   return scan
 }
 
-/** The scan of ONE source text — the guard's own self-tests. */
+/** The scan of ONE source text (the guard's own self-tests). */
 export function scanText(file: string, text: string): WidgetScan {
   const scan = emptyScan()
   const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true)

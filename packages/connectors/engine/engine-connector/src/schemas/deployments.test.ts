@@ -25,7 +25,7 @@ describe("createDeploymentInput", () => {
     )
   })
 
-  it("rejects a resource without a file name — the engine names the resource after it", () => {
+  it("rejects a resource without a file name: the engine names the resource after it", () => {
     const result = createDeploymentInput.safeParse({
       deploymentName: "d",
       resources: [{ name: "", content: BPMN }],
@@ -34,7 +34,7 @@ describe("createDeploymentInput", () => {
   })
 
   // Each name below is one the transport or the engine's multipart parser
-  // would REWRITE, so it would be deployed under another name — and could
+  // would REWRITE, so it would be deployed under another name and could
   // collide with a distinct name the uniqueness check let through.
   it.each([
     ['a"b.bpmn', 'Resource names must not contain " or \\'],
@@ -56,7 +56,7 @@ describe("createDeploymentInput", () => {
     ])
   })
 
-  it("accepts names that travel unchanged — paths, inner spaces, percent signs, non-ASCII", () => {
+  it("accepts names that travel unchanged: paths, inner spaces, percent signs, non-ASCII", () => {
     const names = ["processes/order process.bpmn", "Größe – Rabattstufen.dmn", "100%.form"]
     const result = createDeploymentInput.safeParse({
       deploymentName: "d",

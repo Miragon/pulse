@@ -54,7 +54,7 @@ export function describeCluster(data: ClusterDetailData): ViewContext {
       processDefinitionKey: keys.processDefinitionKey,
       processDefinitionKeyIn: keys.processDefinitionKeyIn,
     },
-    // Counts a capped scan cannot vouch for are a lower bound or left out —
+    // Counts a capped scan cannot vouch for are a lower bound or left out,
     // never a 0 (#335); the list then covers only the newest scanned ones.
     facts: {
       ...clusterCountFacts(data),
@@ -308,7 +308,7 @@ function ClusterDetailView({
                 >
                   {paged.items.map((row) => (
                     <IncidentRow
-                      // The engine can report rows without an incident id — fall back to
+                      // The engine can report rows without an incident id: fall back to
                       // instance+timestamp so React keys stay unique per incident row.
                       key={row.incidentId || `${row.processInstanceId}-${row.incidentTimestamp}`}
                       row={row}

@@ -46,7 +46,7 @@ export const setJobRetriesBatchInput = z.object({
 
 /**
  * A job's exception stacktrace (`GET /job/{id}/stacktrace`, read via the
- * engine contract's `fetchJobStacktrace`) — the failure detail
+ * engine contract's `fetchJobStacktrace`), the failure detail
  * `engine_list_jobs` only summarises as `exceptionMessage`.
  */
 export const getJobStacktraceInput = z.object({

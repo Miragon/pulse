@@ -90,7 +90,7 @@ describe("useViewData (seeded) + viewRefreshState", () => {
     expect(result.current.refreshing).toBe(false)
   })
 
-  it("reports a failed refetch from its FIRST attempt — not after the client's retries", async () => {
+  it("reports a failed refetch from its FIRST attempt, not after the client's retries", async () => {
     // TanStack retries 3× (~7 s) with `error` null; a view gating writes would keep offering them.
     host.withRetries()
     callTool.mockRejectedValue(new Error("gone"))
@@ -145,7 +145,7 @@ describe("useDetailView", () => {
     expect(String(result.current.loadError)).toContain("not found")
   })
 
-  it("offers a Retry on a failed load — never a dead end", async () => {
+  it("offers a Retry on a failed load, never a dead end", async () => {
     callTool.mockRejectedValueOnce(new Error("[503 ProcessEngineException] down (engine prod)"))
     render(<Detail seed={null} />, { wrapper })
     // The error in words; the raw text only under "Details".

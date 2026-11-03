@@ -103,7 +103,7 @@ export function ActivityIncidentList({
               }
             >
               {/* Rows come from the paged per-activity feed (mounted on
-                  expand), not the definition payload — the group reaches every
+                  expand), not the definition payload: the group reaches every
                   incident, not just the 200-row recency scan. The table owns
                   the rows' remedies, keyed on that feed. */}
               <PagedIncidentTable

@@ -25,7 +25,7 @@ const BY_KEY = "by (process_definition_key)"
  * the live gauges) sit before the global-KPI fallbacks.
  */
 const CANNED_SAMPLES: Array<[(q: string) => boolean, PromSample[]]> = [
-  // Activity-level breakdowns — `StartEvent_1` exists in two processes.
+  // Activity-level breakdowns (`StartEvent_1` exists in two processes).
   [
     (q) => q.includes("engine_activity_ended_total"),
     [
@@ -112,13 +112,13 @@ describe("dashboardData", () => {
       avgDurationMs: 12000,
       medianDurationMs: 8000,
       p95DurationMs: 30000,
-      // Live gauges — NOT started − ended (would be 30) nor created − resolved (6)
+      // Live gauges: NOT started − ended (would be 30) nor created − resolved (6)
       runningNow: 156,
       openIncidentsNow: 12,
     })
   })
 
-  it("groups the activity breakdown by (process, activity) — ids repeat across models (N84)", async () => {
+  it("groups the activity breakdown by (process, activity): ids repeat across models (N84)", async () => {
     const { ch } = mockClient()
     const res = await dashboardData(ch, { period: "7d" })
 
@@ -223,7 +223,7 @@ describe("dashboardData", () => {
 
   it("reads a reporting engine's missing gauge series as a measured 0, not as unreported", async () => {
     // The metrics plugin registers an open-incident row only per (key, type)
-    // that HAS incidents, and a running row only per deployed key — so a
+    // that HAS incidents, and a running row only per deployed key, so a
     // healthy engine with nothing open sends no engine_incidents_open series
     // at all. Its presence probe still answers: that is a 0, the same 0 engine
     // health and the landscape report.
@@ -239,7 +239,7 @@ describe("dashboardData", () => {
 
     expect(res).toMatchObject({ runningNow: 156, openIncidentsNow: 0 })
 
-    // A process the engine does not run: nothing running, nothing open — both 0.
+    // A process the engine does not run: nothing running, nothing open (both 0).
     const scoped = await dashboardData(
       { instant },
       { processDefinitionKey: "gone", period: "1d", engine: "prod-a" },
@@ -264,7 +264,7 @@ describe("dashboardData", () => {
     ])
   })
 
-  it("lets an incident rate exceed 100 % rather than capping it — incidents are not instances", async () => {
+  it("lets an incident rate exceed 100 % rather than capping it: incidents are not instances", async () => {
     const instant = vi.fn(async (q: string): Promise<PromSample[]> =>
       q.includes("incident_created") ? [v(30)] : q.includes("started_total") ? [v(10)] : [],
     )
@@ -283,7 +283,7 @@ describe("dashboardData", () => {
     const queries = instant.mock.calls.map((c) => c[0])
     expect(queries.length).toBeGreaterThan(0)
     expect(queries.every((q) => q.includes('engine_id="prod-a"'))).toBe(true)
-    // The presence probe asks whether the ENGINE reports — its gauge carries
+    // The presence probe asks whether the ENGINE reports: its gauge carries
     // engine_id only; every other query is scoped to the process.
     const probe = 'max by (engine_id)(engine_jobs_executable{engine_id="prod-a"})'
     expect(queries.filter((q) => q === probe)).toHaveLength(1)

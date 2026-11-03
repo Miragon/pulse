@@ -49,7 +49,7 @@ export interface KpiCell {
    */
   trendDirection?: TrendDirection
   /**
-   * Explicit tone of the trend — overrides the direction's default. Shown as
+   * Explicit tone of the trend; overrides the direction's default. Shown as
    * the direction icon's colour, or as a dot when there is no direction.
    */
   trendTone?: ToneName
@@ -59,7 +59,7 @@ export interface KpiCell {
    * (`variant="soft"`). The figure itself stays in the foreground colour.
    */
   tone?: ToneName
-  /** When set, the cell renders as a button — turns a metric into a nav entry point. */
+  /** When set, the cell renders as a button: it turns a metric into a nav entry point. */
   onClick?: () => void
   /**
    * What activating the cell does ("Opens the incidents dashboard"). Read as
@@ -120,7 +120,7 @@ export interface KpiGridProps {
   className?: string
 }
 
-/** A small status dot; decorative — the label next to it carries the meaning. */
+/** A small status dot, decorative: the label next to it carries the meaning. */
 function ToneDot({ tone, className }: { tone: ToneVariant; className: string }) {
   return (
     <span
@@ -134,7 +134,7 @@ function ToneDot({ tone, className }: { tone: ToneVariant; className: string }) 
 /**
  * The trend line: neutral words (the foreground next to a state, quiet
  * without one) and the state beside them as a direction icon or a dot in the
- * tone — never as coloured digits.
+ * tone, never as coloured digits.
  */
 function TrendLine({ cell }: { cell: KpiCell }) {
   const direction = cell.trendDirection
@@ -158,7 +158,7 @@ function TrendLine({ cell }: { cell: KpiCell }) {
   )
 }
 
-/** Label, figure, fraction and trend — shared by the strip and soft variants. */
+/** Label, figure, fraction and trend, shared by the strip and soft variants. */
 function KpiCellBody({ cell, variant }: { cell: KpiCell; variant: "strip" | "soft" }) {
   const tone = resolveTone(cell.tone)
   return (
@@ -268,7 +268,7 @@ function KpiStripHeader({ header }: { header: KpiGridHeader }) {
 }
 
 /**
- * A row of headline metrics — the canonical way to show KPIs in a widget
+ * A row of headline metrics, the canonical way to show KPIs in a widget
  * (replaces the single-metric KPICard). Cells flow as columns (1–6), falling
  * back to 2 columns in narrow frames. A cell's `tone` shows as a dot next to
  * its label (or as a soft card's tint and edge); figures stay in the

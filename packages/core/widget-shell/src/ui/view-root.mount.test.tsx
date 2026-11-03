@@ -41,7 +41,7 @@ describe("mountViews", () => {
     expect(element.props).toMatchObject({ name: "demo_show_rows", view: Rows, hostWidgets })
   })
 
-  it("mounts no view for a name the map lacks, or without a prelude — never an inherited key", () => {
+  it("mounts no view for a name the map lacks, or without a prelude; never an inherited key", () => {
     global[VIEW_NAME_GLOBAL] = "toString"
     mountViews({ views: { demo_show_rows: Rows } })
     expect(mounted().props).toMatchObject({ name: "toString", view: undefined })

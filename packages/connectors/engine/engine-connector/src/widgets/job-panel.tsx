@@ -331,7 +331,7 @@ export function JobPanelWidget({
         <TableEmptyState>{t("jobPanel.noJobs")}</TableEmptyState>
       ) : (
         <>
-          {/* Jobs without retries come first — the feed sorts by retries. The
+          {/* Jobs without retries come first: the feed sorts by retries. The
               rows are the inline head of the list (PagedRows, #396). */}
           <PagedRows paged={paged}>
             <ListTable

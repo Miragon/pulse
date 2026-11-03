@@ -11,7 +11,7 @@ export interface StubEngine {
   brokenBaseUrl: string
   /** `baseUrl` of the realistic engine (`realistic-engine.ts`): long names, 160 instances, 73 jobs. */
   realisticBaseUrl: string
-  /** Origin of the scenario control routes — see {@link startStubEngine}. */
+  /** Origin of the scenario control routes (see {@link startStubEngine}). */
   controlUrl: string
   close(): Promise<void>
 }
@@ -26,7 +26,7 @@ const DEFINITIONS = JSON.parse(
   readFileSync(path.join(import.meta.dirname, "fixtures", "process-definitions.json"), "utf8"),
 ) as ProcessDefinition[]
 
-/** The one diagram the stub serves (key `invoice`) — for the BPMN canvas scenario. */
+/** The one diagram the stub serves (key `invoice`), for the BPMN canvas scenario. */
 const INVOICE_BPMN = readFileSync(
   path.join(import.meta.dirname, "fixtures", "invoice.bpmn"),
   "utf8",
@@ -163,8 +163,8 @@ function stubJobs(): Map<string, StubJob> {
 }
 
 /**
- * `/job` reads — the count (GET, query) and the panel's query (POST, its
- * filter in the body) — and the retries write; null for every other request.
+ * `/job` reads, the count (GET, query) and the panel's query (POST, its
+ * filter in the body), and the retries write; null for every other request.
  */
 function jobRoute(
   method: string,
@@ -233,7 +233,7 @@ function createSearchHolds() {
       for (const answer of entry.waiting) answer()
       return entry.waiting.length
     },
-    /** Answers now — or, while `term` is held, once it is released. */
+    /** Answers now or, while `term` is held, once it is released. */
     answer(term: string, send: () => void): void {
       const entry = term === "" ? undefined : held.get(term)
       if (entry) entry.waiting.push(send)
@@ -243,13 +243,13 @@ function createSearchHolds() {
 }
 
 /**
- * A CIB Seven REST stand-in for the host simulation: the real cockpit tool runs
+ * A CIB seven REST stand-in for the host simulation: the real cockpit tool runs
  * against it through the real server, so the view renders the payload the
  * server ACTUALLY builds (view envelope, data shape, engine id) from a fixed
  * engine response (`fixtures/process-definitions.json` with their statistics,
  * no open incident, the `invoice` diagram `fixtures/invoice.bpmn` with empty
  * activity statistics and three failed jobs).
- * The broken base URL turns any tool into a genuine `isError` result — an
+ * The broken base URL turns any tool into a genuine `isError` result: an
  * engine 503 through the server's own error mapping.
  *
  * Scenario control, so an in-flight state is observable without a timing

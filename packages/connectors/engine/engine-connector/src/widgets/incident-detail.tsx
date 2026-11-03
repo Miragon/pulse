@@ -52,7 +52,7 @@ function remedyProps(recovery: IncidentRecoveryState, incident: RecoverableIncid
 
 // The ticket draft and the remedy follow the module instructions. Engine text is quoted.
 export function describeIncident(data: IncidentDetailData, resolved: boolean): ViewContext {
-  // A key parsed from a bare definition id is that id — stated as what it is.
+  // A key parsed from a bare definition id is that id, stated as what it is.
   const key = scopingDefinitionKey(data.processDefinitionKey, data.processDefinitionId)
   return {
     summary: "The operator is viewing one incident.",
@@ -169,7 +169,7 @@ export function IncidentDetailWidget({
         {
           id: "history",
           label: t("incidentDetail.tabHistory"),
-          /* Mounted on first tab activation — pages the registrar history
+          /* Mounted on first tab activation. Pages the registrar history
              query itself instead of shipping capped rows in the payload. */
           content: (
             <PagedHistoryView

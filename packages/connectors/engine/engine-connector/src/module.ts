@@ -59,7 +59,7 @@ const engineSchema = z.object({
   auth: engineAuthSchema.optional(),
 })
 
-/** The longest delay a Node timer holds — a longer deadline would fire at once. */
+/** The longest delay a Node timer holds: a longer deadline would fire at once. */
 const MAX_TIMEOUT_MS = 2_147_483_647
 
 export const engineConfigSchema = z
@@ -112,17 +112,17 @@ export const engineConfigSchema = z
       c.authType !== "basic" || c.engines.every((e) => e.auth) || Boolean(c.username && c.password),
     {
       message:
-        "ENGINE_AUTH_TYPE=basic requires ENGINE_USERNAME and ENGINE_PASSWORD (unless every engine carries its own auth) — otherwise engine requests would silently run unauthenticated",
+        "ENGINE_AUTH_TYPE=basic requires ENGINE_USERNAME and ENGINE_PASSWORD (unless every engine carries its own auth); otherwise engine requests would silently run unauthenticated",
     },
   )
   .refine((c) => c.authType !== "bearer" || c.engines.every((e) => e.auth) || Boolean(c.token), {
     message:
-      "ENGINE_AUTH_TYPE=bearer requires ENGINE_TOKEN (unless every engine carries its own auth) — otherwise engine requests would silently run unauthenticated",
+      "ENGINE_AUTH_TYPE=bearer requires ENGINE_TOKEN (unless every engine carries its own auth); otherwise engine requests would silently run unauthenticated",
   })
   // A duplicate id would silently route both entries' traffic to one of them.
   .refine((c) => new Set(c.engines.map((e) => e.id)).size === c.engines.length, {
     message:
-      "Engine ids must be unique across all environments — the id is the per-call `engine` selector and the join key against the metrics' engine_id label",
+      "Engine ids must be unique across all environments: the id is the per-call `engine` selector and the join key against the metrics' engine_id label",
   })
   // No quotes around the ids: ZodError.message is the issues JSON, which would escape them.
   .superRefine((c, issues) => {
@@ -165,7 +165,7 @@ function assertUniqueTopLevelKeys(rawText: string): void {
       if (depth === 1 && rawText[k] === ":") {
         if (seen.has(key)) {
           throw new Error(
-            `Engine config: duplicate environment key "${key}" — JSON keeps only the LAST duplicate, silently dropping the other block's engines. Merge the blocks into one array.`,
+            `Engine config: duplicate environment key "${key}". JSON keeps only the LAST duplicate, silently dropping the other block's engines. Merge the blocks into one array.`,
           )
         }
         seen.add(key)
@@ -188,7 +188,7 @@ function normalizeEnginesConfig(raw: unknown): unknown {
   return Object.entries(raw).flatMap(([environment, engines]) => {
     if (!Array.isArray(engines)) {
       throw new Error(
-        `Engine config environment "${environment}" must map to an ARRAY of engine entries — got ${typeof engines}. Environment-map form: {"<environment>": [{id, baseUrl, …}, …], …}.`,
+        `Engine config environment "${environment}" must map to an ARRAY of engine entries, but got ${typeof engines}. Environment-map form: {"<environment>": [{id, baseUrl, …}, …], …}.`,
       )
     }
     return engines.map((engine: unknown) => {
@@ -196,7 +196,7 @@ function normalizeEnginesConfig(raw: unknown): unknown {
         const own = (engine as { environment?: unknown }).environment
         if (own !== undefined && own !== environment) {
           throw new Error(
-            `Engine config: entry under environment "${environment}" carries a contradicting environment ${JSON.stringify(own)} — drop the per-entry field or move the entry.`,
+            `Engine config: entry under environment "${environment}" carries a contradicting environment ${JSON.stringify(own)}. Drop the per-entry field or move the entry.`,
           )
         }
         return { ...engine, environment }
@@ -320,18 +320,18 @@ export const engineModule = {
       const id = env.ENGINE_ID?.trim() || "default"
       const flavor = engineFlavorFromEnv(env) ?? DEFAULT_ENGINE_FLAVOR
       warnings.push(
-        `No engine is configured (ENGINES_FILE / ENGINES_JSON / ENGINE_BASE_URL) — defaulting to http://localhost:8410/engine-rest with engine id "${id}". That id is the join key against the metrics' engine_id label: engine-scoped analytics return empty when it does not match the ENGINE_ID the engine stamps (the repo's Compose stack stamps "prod-a" — set ENGINE_ID to match). Its cockpit links and name follow flavor "${flavor}"; the Compose engine is CIB seven (ENGINE_FLAVOR=cibseven).`,
+        `No engine is configured (ENGINES_FILE / ENGINES_JSON / ENGINE_BASE_URL): defaulting to http://localhost:8410/engine-rest with engine id "${id}". That id is the join key against the metrics' engine_id label: engine-scoped analytics return empty when it does not match the ENGINE_ID the engine stamps (the repo's Compose stack stamps "prod-a"; set ENGINE_ID to match). Its cockpit links and name follow flavor "${flavor}"; the Compose engine is CIB seven (ENGINE_FLAVOR=cibseven).`,
       )
     }
     const passthrough = passthroughEngineIds(env)
     if (passthrough.length > 0) {
       warnings.push(
-        `Passthrough auth on ${passthrough.map((id) => `"${id}"`).join(", ")}: each caller's MCP bearer token goes to the engine unchanged. Only for a trusted single-audience setup — the engine must accept a token minted for this MCP server, and anyone who sees it there can replay it against this server and every other passthrough engine. Elsewhere give the engine its own basic or bearer credentials.`,
+        `Passthrough auth on ${passthrough.map((id) => `"${id}"`).join(", ")}: each caller's MCP bearer token goes to the engine unchanged. Only for a trusted single-audience setup: the engine must accept a token minted for this MCP server, and anyone who sees it there can replay it against this server and every other passthrough engine. Elsewhere give the engine its own basic or bearer credentials.`,
       )
     }
     if (allowDeploymentsFromEnv(env) === "true") {
       warnings.push(
-        "ENGINE_ALLOW_DEPLOYMENTS=true — engine_create_deployment is registered under engine:admin. Deploying a process runs code inside the engine JVM (expressions, scripts and listener/delegate references execute with the engine's privileges): grant engine:admin only to callers you would trust with that.",
+        "ENGINE_ALLOW_DEPLOYMENTS=true: engine_create_deployment is registered under engine:admin. Deploying a process runs code inside the engine JVM (expressions, scripts and listener/delegate references execute with the engine's privileges): grant engine:admin only to callers you would trust with that.",
       )
     }
     return warnings

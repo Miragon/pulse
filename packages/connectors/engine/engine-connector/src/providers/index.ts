@@ -18,7 +18,7 @@ export function providerForEntry(entry: Pick<EngineEntry, "id" | "flavor">): Eng
   const provider = ENGINE_PROVIDERS[flavor]
   if (!provider) {
     throw new Error(
-      `Unknown engine flavor "${flavor}" for engine "${entry.id}" — expected one of: ${Object.keys(
+      `Unknown engine flavor "${flavor}" for engine "${entry.id}". Expected one of: ${Object.keys(
         ENGINE_PROVIDERS,
       ).join(", ")}`,
     )

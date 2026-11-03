@@ -1,6 +1,6 @@
 /**
  * Batches. A batch write (`POST /job/retries`, `POST /migration/executeAsync`)
- * returns as soon as the engine has QUEUED the batch — the work and its
+ * returns as soon as the engine has QUEUED the batch: the work and its
  * failures happen later, in batch jobs. A tool must therefore never report
  * the queued batch as done: it hands back the batch id with status `queued`,
  * and `engine_get_batch` reports what became of it.
@@ -26,11 +26,11 @@ export function queuedBatch(batch: BatchDto): QueuedBatch {
 }
 
 /**
- * - `running` — batch jobs are still being created or executed;
- * - `failing` — some batch jobs ran out of retries: the batch cannot finish
+ * - `running`: batch jobs are still being created or executed;
+ * - `failing`: some batch jobs ran out of retries, so the batch cannot finish
  *   until they are retried or the batch is deleted;
- * - `suspended` — suspended, nothing executes;
- * - `completed` — the batch ended (all jobs done, or it was deleted).
+ * - `suspended`: suspended, nothing executes;
+ * - `completed`: the batch ended (all jobs done, or it was deleted).
  */
 export type BatchStatus = "running" | "failing" | "suspended" | "completed"
 
@@ -39,7 +39,7 @@ export interface BatchReport {
   type: string | null
   status: BatchStatus
   totalJobs: number | null
-  /** Runtime counts — null once the batch has ended. */
+  /** Runtime counts, null once the batch has ended. */
   remainingJobs: number | null
   completedJobs: number | null
   failedJobs: number | null

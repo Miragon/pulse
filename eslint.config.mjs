@@ -32,13 +32,13 @@ const vscodeBoundaryProbes = ["apps/vscode/test/*/runtime.boundary.ts"]
 
 const TOOL_MEMBER = "/^(tool|registerTool)$/"
 const REGISTRAR_MESSAGE =
-  "Operations tools are registered through createToolRegistrar (@miragon/pulse-widget-shell/server) in src/tools/ (see .claude/skills/add-bpm-feature); raw server.tool() — also via a computed key, .call/.bind/.apply, destructuring or Reflect.get — is reserved for the widget-tools files."
+  "Operations tools are registered through createToolRegistrar (@miragon/pulse-widget-shell/server) in src/tools/ (see .claude/skills/add-bpm-feature); raw server.tool() (also via a computed key, .call/.bind/.apply, destructuring or Reflect.get) is reserved for the widget-tools files."
 
 // Invariant 1. Not just the canonical `x.tool(...)`: every syntactic route
 // to the member that names it literally (an agent "working around" the gate
 // reaches for exactly these). A key computed at runtime stays out of any
-// selector's reach — that is review's job. Parameter destructuring and object
-// literals stay allowed — test fakes build `{ tool } as unknown as MCPServer`.
+// selector's reach: that is review's job. Parameter destructuring and object
+// literals stay allowed: test fakes build `{ tool } as unknown as MCPServer`.
 // Inline `eslint-disable` of this rule (or of complexity/max-lines) is caught
 // by scripts/check-ratchets.mjs, not here: a directive could disable a rule
 // that polices directives.
@@ -64,7 +64,7 @@ const widgetDateGate = [
     selector:
       ":matches(NewExpression, CallExpression)[callee.object.name='Intl'][callee.property.name='DateTimeFormat']",
     message:
-      "Use formatTimestamp/formatDate/formatTime from @miragon/pulse-ui — the single source for timestamp rendering (CLAUDE.md invariant 6).",
+      "Use formatTimestamp/formatDate/formatTime from @miragon/pulse-ui, the single source for timestamp rendering (CLAUDE.md invariant 6).",
   },
   {
     selector: "CallExpression[callee.property.name='toLocaleDateString']",
@@ -219,10 +219,10 @@ export default tseslint.config(
       "**/node_modules/**",
       "**/generated/**",
       // Widget-bundle stand-in read (never executed) by the in-process e2e
-      // boots — data, not code; not part of any tsconfig project.
+      // boots: data, not code; not part of any tsconfig project.
       "apps/mcp-server/test/fixtures/**",
       // Standalone customer-facing workspace, outside the root pnpm workspace
-      // and its tsconfig projects — verified by scripts/test-template.sh
+      // and its tsconfig projects, verified by scripts/test-template.sh
       // (build + typecheck + tests) instead of the repo's typed linting.
       "templates/**",
       // The Miragon docs kit, vendored byte for byte from
@@ -340,7 +340,7 @@ export default tseslint.config(
   // rules live in .dependency-cruiser.cjs (`pnpm lint:architecture`).
 
   // `no-restricted-syntax` is ONE rule: in flat config a later block REPLACES
-  // an earlier block's options for every file both match — selector lists
+  // an earlier block's options for every file both match; selector lists
   // are never merged. Each gate's selectors therefore live in a constant
   // (top of file), and a glob two gates share gets ONE block carrying the
   // union (the connector widgets below). scripts/eslint-gates.test.mjs pins
@@ -433,7 +433,7 @@ export default tseslint.config(
       "max-lines": ["error", { max: 400, skipBlankLines: true, skipComments: true }],
     },
   },
-  // i18n message catalogs are data, not code — no length budget.
+  // i18n message catalogs are data, not code: no length budget.
   {
     files: ["packages/connectors/*/*/src/messages/*.sweep.ts"],
     rules: { "max-lines": "off" },

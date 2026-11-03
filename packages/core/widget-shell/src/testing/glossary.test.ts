@@ -6,7 +6,7 @@ import {
   unnamedGlossaryTerms,
 } from "./glossary.js"
 
-describe("PRODUCT_GLOSSARY — the terms every module's views share", () => {
+describe("PRODUCT_GLOSSARY: the terms every module's views share", () => {
   it.each(["de", "en"] as const)("%s: the gate is not blind, each rule catches its probe", (l) => {
     expect(blindGlossaryRules(PRODUCT_GLOSSARY[l])).toEqual([])
   })

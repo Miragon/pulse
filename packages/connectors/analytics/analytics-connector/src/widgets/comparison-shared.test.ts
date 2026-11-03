@@ -151,7 +151,7 @@ describe("buildComparisonMetrics", () => {
   })
 })
 
-describe("deltaVerdict — U6: volume neutral, thresholds per metric, suppressed not reliable", () => {
+describe("deltaVerdict (U6): volume neutral, thresholds per metric, suppressed not reliable", () => {
   it("never judges a volume: fewer starts on a test engine are no regression", () => {
     for (const value of [-84.7, 0, 427.4]) {
       expect(deltaVerdict(value, VOLUME, false)).toBeUndefined()
@@ -223,7 +223,7 @@ describe("formatDelta", () => {
 })
 
 describe("deltaFacts", () => {
-  it("names starts per day and leaves a never-measured delta null — never a 0", () => {
+  it("names starts per day and leaves a never-measured delta null, never a 0", () => {
     expect(deltaFacts(delta, false)).toEqual({
       startedPerDayDeltaPct: 10,
       incidentRateDeltaPp: -2,

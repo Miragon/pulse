@@ -31,12 +31,12 @@ import kotlin.test.assertTrue
  * Kotlin side of the Kotlin<->TS metric contract. Verifies that the meters the
  * plugin actually emits ([ProcessMetrics] via [MetricsHistoryEventHandler],
  * [EngineStateMetrics]) stay in sync with
- * `packages/connectors/analytics/analytics-client/metrics-contract.json` — the single source of
+ * `packages/connectors/analytics/analytics-client/metrics-contract.json`, the single source of
  * truth consumed by the TS queries, the Prometheus alert rules and the Grafana
  * dashboards. A rename on either side fails this test.
  *
  * Unlike the OTEL no-op API, Micrometer exposes every registered meter with
- * its full metadata at runtime — so the test drives real history events and a
+ * its full metadata at runtime, so the test drives real history events and a
  * mocked engine into a [SimpleMeterRegistry] and compares actual emissions
  * (names, types, units, tag keys, tag values) against the contract, instead of
  * regex-scanning the plugin sources.
@@ -60,7 +60,7 @@ class MetricsContractTest {
     /**
      * Emitted meters by name. SimpleMeterRegistry surfaces SLO buckets as a
      * synthetic `<name>.histogram` gauge per bucket (registries with a native
-     * histogram type — Prometheus, OTLP — fold them into the summary itself),
+     * histogram type, Prometheus and OTLP, fold them into the summary itself),
      * so those are representation details, not contract-relevant meters.
      */
     private fun emittedMeters(): Map<String, List<Meter>> = registry.meters

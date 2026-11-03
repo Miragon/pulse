@@ -65,7 +65,7 @@ describe("the Ask-AI intent catalogues", () => {
     }
   })
 
-  it("stay short — the playbooks live in the server instructions", () => {
+  it("stay short: the playbooks live in the server instructions", () => {
     for (const [key, text] of intents) expect(text.length, key).toBeLessThanOrEqual(300)
   })
 

@@ -66,7 +66,7 @@ const DATA: IncidentsDashboardData = {
 const asWidget = (c: unknown) => c as ComponentType<Record<string, unknown>>
 const data = DATA as unknown as Record<string, unknown>
 
-describe("incidents dashboard widgets — honest numbers", () => {
+describe("incidents dashboard widgets: honest numbers", () => {
   it("shows the unknown affected-activity total as —, never 0", () => {
     render(
       <TestViewHost>
@@ -89,7 +89,7 @@ describe("incidents dashboard widgets — honest numbers", () => {
     )
 
     expect(screen.getByText("250")).toBeTruthy()
-    // quiet's incidents all lie beyond the scan — still listed, with its exact 7.
+    // quiet's incidents all lie beyond the scan; it is still listed, with its exact 7.
     expect(screen.getByText("Quiet")).toBeTruthy()
     expect(screen.getByText("7")).toBeTruthy()
 
@@ -118,7 +118,7 @@ describe("incidents dashboard widgets — honest numbers", () => {
 
 // A filtered view without an `engine` prop reads its scope from the data echo and never refetches
 // (`incidentsFeed` is never ready), so no request can widen it.
-describe("incidents dashboard — a filtered view keeps its scope", () => {
+describe("incidents dashboard: a filtered view keeps its scope", () => {
   const FILTERED: IncidentsDashboardData = {
     ...DATA,
     totalCount: 7,
@@ -208,7 +208,7 @@ describe("incidents dashboard — a filtered view keeps its scope", () => {
   })
 
   it("the cockpit self-fetches the engine's whole dashboard and hands off its answer", async () => {
-    // The cockpit's incidents view passes the engine alone — no data, no filter.
+    // The cockpit's incidents view passes the engine alone: no data, no filter.
     const View = (props: Record<string, unknown>) => (
       <IncidentOverviewKpi {...props} data={null} engine="prod-a" />
     )

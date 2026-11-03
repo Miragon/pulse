@@ -8,9 +8,9 @@ import tseslint from "typescript-eslint"
 /**
  * Self-test of the architecture pattern gates in eslint.config.mjs (a gate
  * that has never been red is decoration). For each probe it asks the REAL
- * config which `no-restricted-syntax` options apply to a real path — so a
+ * config which `no-restricted-syntax` options apply to a real path, so a
  * later block silently replacing an earlier block's selectors (flat config
- * does not merge one rule's options) turns this red — and then lints known-bad
+ * does not merge one rule's options) turns this red. Then it lints known-bad
  * snippets with exactly those options.
  */
 
@@ -255,7 +255,7 @@ describe("registrar gate (invariant 1) catches every spelling", () => {
     `${AN}/tools/__probe__.tsx`,
   ]) {
     for (const [label, code] of Object.entries(REGISTRAR_ESCAPES)) {
-      it(`${label} — ${path.extname(rel)}`, async () => {
+      it(`${label} (${path.extname(rel)})`, async () => {
         const messages = await gateMessages(rel, code)
         assert.ok(messages.some(isRegistrarHit), `${rel}: "${code}" passed the registrar gate`)
       })

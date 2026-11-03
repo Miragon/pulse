@@ -13,7 +13,7 @@ export interface ShellHost {
   timeZone?: string
   /** SEP-1865 `styles.variables` (`--color-*`, `--font-*`, …). */
   styleVariables?: HostStyleVariables
-  /** SEP-1865 `styles.css.fonts` — `@font-face`/`@import` CSS for the host font. */
+  /** SEP-1865 `styles.css.fonts`: `@font-face`/`@import` CSS for the host font. */
   fontCss?: string
   displayMode: string
   availableDisplayModes: readonly string[]

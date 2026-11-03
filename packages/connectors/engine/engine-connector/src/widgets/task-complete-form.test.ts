@@ -15,7 +15,7 @@ describe("coerceValue", () => {
   })
 
   it("refuses Long values beyond 2^53 instead of silently rounding", () => {
-    // Number("9007199254740993") === 9007199254740992 — writing that to the
+    // Number("9007199254740993") === 9007199254740992. Writing that to the
     // engine would corrupt the variable without any operator-visible error.
     expect(coerceValue("9007199254740993", "Long")).toBeUndefined()
     expect(coerceValue("-9007199254740993", "Long")).toBeUndefined()
@@ -29,7 +29,7 @@ describe("coerceValue", () => {
 })
 
 describe("coerceValue for the engine's serialized and date types", () => {
-  it("validates Json/Object input but keeps the string — the engine takes no parsed object", () => {
+  it("validates Json/Object input but keeps the string: the engine takes no parsed object", () => {
     expect(coerceValue('{"a":[1,2]}', "Json")).toBe('{"a":[1,2]}')
     expect(coerceValue("[1,2]", "Object")).toBe("[1,2]")
     expect(coerceValue("{a:", "Json")).toBeUndefined()

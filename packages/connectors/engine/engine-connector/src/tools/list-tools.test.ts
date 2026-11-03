@@ -180,7 +180,7 @@ describe("every list/query tool shares one pagination contract", () => {
     },
   )
 
-  it("caps at 100 — one turn's worth of rows", () => {
+  it("caps at 100, one turn's worth of rows", () => {
     expect(MAX_PAGE_SIZE).toBe(100)
   })
 
@@ -291,7 +291,7 @@ describe("engine_list_external_tasks", () => {
     expect(query).toMatchObject({ sortBy: "taskPriority", sortOrder: "desc" })
   })
 
-  it("drops a lone sortOrder — the engine rejects it without sortBy", async () => {
+  it("drops a lone sortOrder: the engine rejects it without sortBy", async () => {
     const { query } = await pageQuery({ sortOrder: "desc" })
     expect(query).not.toHaveProperty("sortBy")
     expect(query).not.toHaveProperty("sortOrder")
@@ -343,7 +343,7 @@ describe("engine_set_external_task_retries", () => {
     expect(result).toEqual({ success: true, externalTaskId: "ext-1", retries: 3 })
   })
 
-  it("is a non-destructive, idempotent operations write — never a read", () => {
+  it("is a non-destructive, idempotent operations write, never a read", () => {
     expect(tools.get("engine_set_external_task_retries")?.annotations).toEqual({
       destructiveHint: false,
       idempotentHint: true,

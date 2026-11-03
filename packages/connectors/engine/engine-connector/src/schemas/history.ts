@@ -127,11 +127,11 @@ export const queryHistoricVariableInstancesInput = z.object({
 
 /**
  * Historic incidents (`GET /history/incident`): open AND resolved ones with
- * their create/end timestamps — the recurrence and "since when" questions the
+ * their create/end timestamps, for the recurrence and "since when" questions the
  * runtime incident list cannot answer once an incident is resolved. The
  * `open`/`resolved` filters are TRUE-ONLY (`trueOnly`): an incident can also be
  * deleted, so neither is the other's complement, and the engine ignores a
- * `false` — the tool drops it instead of claiming a filter.
+ * `false`: the tool drops it instead of claiming a filter.
  */
 export const queryHistoricIncidentsInput = z.object({
   processInstanceId: z.string().optional(),

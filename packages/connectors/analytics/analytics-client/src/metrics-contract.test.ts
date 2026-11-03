@@ -54,7 +54,7 @@ const byClauses = (text: string) =>
       .find((token) => !CONTRACT_LABELS.has(token)),
   }))
 
-/** Strip block and line comments — doc comments may legitimately mention series names. */
+/** Strip block and line comments: doc comments may legitimately mention series names. */
 const stripComments = (src: string) =>
   src
     .replace(/\/\*[\s\S]*?\*\//g, "")
@@ -232,7 +232,7 @@ describe("metrics contract", () => {
             regexChecked++
             expect(
               /^[A-Za-z_][A-Za-z0-9_]*$/.test(alt),
-              `${label}=~"${match[1]}" (${name}): alternative "${alt}" is neither a plain value nor a recognised wildcard — extend the parser if the pattern is legitimate`,
+              `${label}=~"${match[1]}" (${name}): alternative "${alt}" is neither a plain value nor a recognised wildcard. Extend the parser if the pattern is legitimate`,
             ).toBe(true)
             expect(
               values.has(alt),
@@ -243,7 +243,7 @@ describe("metrics contract", () => {
       }
     }
     expect(exactChecked).toBeGreaterThan(0)
-    // The Grafana dashboard pins `status=~"total|unassigned"` — if this reads
+    // The Grafana dashboard pins `status=~"total|unassigned"`. If this reads
     // 0 the regex-matcher scan silently broke, not the dashboard.
     expect(regexChecked).toBeGreaterThan(0)
   })
@@ -275,7 +275,7 @@ describe("metrics contract", () => {
           checked++
           expect(
             metric.labels.includes(label),
-            `${name} groups ${series} by "${label}" — not a declared label of ${metric.promName}`,
+            `${name} groups ${series} by "${label}", which is not a declared label of ${metric.promName}`,
           ).toBe(true)
         }
       }
@@ -300,7 +300,7 @@ describe("metrics contract", () => {
 
   it("every contract metric has at least one consumer (queries, alerts or dashboards)", () => {
     // Emitted by the engine plugin for future dashboards but consumed nowhere
-    // yet. Remove an entry from this allowlist the moment a consumer appears —
+    // yet. Remove an entry from this allowlist the moment a consumer appears:
     // the stale-entry check below fails to remind you. Do NOT add new entries
     // without the same "deliberately emitted ahead of consumption" rationale.
     const KNOWN_UNCONSUMED = new Set([
@@ -317,13 +317,13 @@ describe("metrics contract", () => {
           : [m.promName]
       const consumed = series.some((s) => used.has(s))
       if (KNOWN_UNCONSUMED.has(m.promName)) {
-        expect(consumed, `${m.promName} is consumed now — remove it from KNOWN_UNCONSUMED`).toBe(
+        expect(consumed, `${m.promName} is consumed now; remove it from KNOWN_UNCONSUMED`).toBe(
           false,
         )
       } else {
         expect(
           consumed,
-          `${m.promName} has no consumer (TS queries, alerts.yml, Grafana dashboards) — dead contract entry?`,
+          `${m.promName} has no consumer (TS queries, alerts.yml, Grafana dashboards). Dead contract entry?`,
         ).toBe(true)
       }
     }

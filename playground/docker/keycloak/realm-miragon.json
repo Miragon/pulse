@@ -108,7 +108,7 @@
     },
     {
       "name": "profile",
-      "description": "Standard OIDC profile scope. Defined here because a realm import with clientScopes suppresses Keycloak's built-ins, and MCP clients request 'openid email profile' — a missing scope fails authorization with invalid_scope.",
+      "description": "Standard OIDC profile scope. Defined here because a realm import with clientScopes suppresses Keycloak's built-ins, and MCP clients request 'openid email profile'; a missing scope fails authorization with invalid_scope.",
       "protocol": "openid-connect",
       "attributes": {
         "include.in.token.scope": "true",

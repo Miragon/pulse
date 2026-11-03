@@ -34,7 +34,7 @@ describe("useActionFeedback (U9: a write is never silent)", () => {
     expect(screen.getByText("It runs within the next minute.")).toBeTruthy()
   })
 
-  it("reports a failure as a danger toast: the object, then why and what to do — not the raw text", () => {
+  it("reports a failure as a danger toast: the object, then why and what to do, not the raw text", () => {
     const feedback = renderIn("de")
     act(() =>
       feedback.failed(
@@ -88,7 +88,7 @@ describe("failureLine", () => {
     )
   })
 
-  it("quotes an engine refusal's own reason — a toast has no Details to point to", () => {
+  it("quotes an engine refusal's own reason: a toast has no Details to point to", () => {
     const de = failureLine(
       new Error("[500 ProcessEngineException] Cannot resolve incident (engine prod)"),
       "de",
@@ -117,7 +117,7 @@ describe("failureLine", () => {
     expect(long.length).toBeLessThan(300)
   })
 
-  it("says a write whose answer never came may have gone through — no blind retry", () => {
+  it("says a write whose answer never came may have gone through: no blind retry", () => {
     expect(
       failureLine(
         new Error(

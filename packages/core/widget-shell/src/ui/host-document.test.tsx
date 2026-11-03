@@ -30,7 +30,7 @@ afterEach(() => {
 })
 
 describe("HostDocument", () => {
-  it("lets an inline view size to its content — no box, no floor", () => {
+  it("lets an inline view size to its content: no box, no floor", () => {
     renderDocument({})
     expect(wrapper().style.display).toBe("contents")
     expect(wrapper().style.maxHeight).toBe("")

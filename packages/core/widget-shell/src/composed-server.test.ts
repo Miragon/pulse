@@ -137,14 +137,14 @@ function rpcResult(body: string): Record<string, unknown> {
   return (JSON.parse(json) as { result: Record<string, unknown> }).result
 }
 
-describe("createComposedServer — boot", () => {
+describe("createComposedServer: boot", () => {
   it("resolves ONE selection from the modules and logs the HTTP edge", async () => {
     const composed = await createComposedServer(options())
     expect(composed.boot.entries).toEqual([
       { app: "alpha", config: { url: "default", toolset: "read-only" } },
     ])
     expect(info).toHaveBeenCalledWith(
-      expect.stringMatching(/^\[test-root\] HTTP edge — hosts: localhost, 127\.0\.0\.1, \[::1\];/),
+      expect.stringMatching(/^\[test-root\] HTTP edge: hosts localhost, 127\.0\.0\.1, \[::1\];/),
     )
   })
 
@@ -230,7 +230,7 @@ describe("createComposedServer — boot", () => {
   })
 })
 
-describe("createComposedServer — on the wire", () => {
+describe("createComposedServer: on the wire", () => {
   it("reports serverInfo and instructions from the root's info", async () => {
     const { server } = await boot()
     const res = await initialize(server.port)
@@ -320,7 +320,7 @@ describe("createComposedServer — on the wire", () => {
   })
 })
 
-describe("createComposedServer — graceful drain", () => {
+describe("createComposedServer: graceful drain", () => {
   it("drains: readiness 503, in-flight requests finish, then the drain ends", async () => {
     const order: string[] = []
     let release!: () => void

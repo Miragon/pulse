@@ -5,7 +5,7 @@ import { analyticsInstructions } from "./instructions.js"
 import type { FetchBpmnXml } from "./bpmn-name-lookup.js"
 import { NO_ENGINE_SCOPE_MESSAGE } from "./engine-ids.js"
 
-/** The longest delay a Node timer holds — a longer deadline would fire at once. */
+/** The longest delay a Node timer holds; a longer deadline would fire at once. */
 const MAX_TIMEOUT_MS = 2_147_483_647
 
 const HEADERS_ERROR =
@@ -94,7 +94,7 @@ export const analyticsModule = {
 
   configFromEnv(env: NodeJS.ProcessEnv): Record<string, unknown> {
     // Blank = unset for every variable (a `KEY=` left in a .env file).
-    // Credentials are passed verbatim otherwise — never trimmed into another secret.
+    // Credentials are passed verbatim otherwise, never trimmed into another secret.
     const trimmed = (name: string) => env[name]?.trim() || undefined
     const verbatim = (name: string) => (env[name]?.trim() ? env[name] : undefined)
     return {
@@ -122,7 +122,7 @@ export const analyticsModule = {
   bootWarnings(env: NodeJS.ProcessEnv): string[] {
     if (env.PROMETHEUS_URL?.trim()) return []
     return [
-      "PROMETHEUS_URL is not set — defaulting to http://localhost:9090. The repo's Compose stack publishes Prometheus on :8460 (PROMETHEUS_URL=http://localhost:8460).",
+      "PROMETHEUS_URL is not set: defaulting to http://localhost:9090. The repo's Compose stack publishes Prometheus on :8460 (PROMETHEUS_URL=http://localhost:8460).",
     ]
   },
 

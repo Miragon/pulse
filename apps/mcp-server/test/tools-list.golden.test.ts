@@ -25,7 +25,7 @@ import {
  * `outputSchema` and the full `_meta` (incl. `ui.visibility`, which decides
  * whether a model sees the tool at all) steer every consuming model. The name
  * lists in expected-tools.ts pin WHICH tools a toolset exposes; these goldens
- * pin WHAT each of them says — one sorted JSON file per toolset, so a review
+ * pin WHAT each of them says: one sorted JSON file per toolset, so a review
  * sees the exact wire change. A per-toolset character budget (shrink-only via
  * `pnpm lint`) keeps the model-visible text from growing silently: it counts
  * the model-visible tools/list text plus the server instructions this boot

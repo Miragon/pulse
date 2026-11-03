@@ -34,7 +34,7 @@ describe("groupEnginesByEnvironment", () => {
     ])
   })
 
-  it("yields exactly one default group for an environment-less list — the consumers' single-stage switch", () => {
+  it("yields exactly one default group for an environment-less list: the consumers' single-stage switch", () => {
     // The consumers' element shape: engine entries whose environment is optional.
     const engines: Array<{ id: string; environment?: string }> = [{ id: "a" }, { id: "b" }]
     expect(groupEnginesByEnvironment(engines)).toEqual([
@@ -68,7 +68,7 @@ describe("formatEnginesByEnvironment", () => {
     ).toBe("prod-eu: a, c; prod-us: b")
   })
 
-  it("stays a flat id list for a single group — and empty for none", () => {
+  it("stays a flat id list for a single group and empty for none", () => {
     expect(
       formatEnginesByEnvironment([
         { id: DEFAULT_ENVIRONMENT_ID, engines: [{ id: "a" }, { id: "b" }] },
@@ -88,7 +88,7 @@ describe("enginesByEnvironment", () => {
     ).toEqual(["prod-eu/a", "prod-eu/c", "prod-us/b"])
   })
 
-  it("adds nothing for a single environment — or none", () => {
+  it("adds nothing for a single environment or none", () => {
     expect(
       enginesByEnvironment([{ id: DEFAULT_ENVIRONMENT_ID, engines: [{ id: "a" }, { id: "b" }] }]),
     ).toBeUndefined()

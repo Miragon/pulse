@@ -22,7 +22,7 @@ async function openAnalytics(
   host: { maxHeight?: number; displayModes?: string[] } = {},
 ): Promise<FrameLocator> {
   const base = process.env.HOST_SIM_URL
-  if (!base) throw new Error("HOST_SIM_URL is unset — run via `playwright test -c test-host`")
+  if (!base) throw new Error("HOST_SIM_URL is unset. Run via `playwright test -c test-host`")
   const query = new URLSearchParams({
     tool,
     args: JSON.stringify({}),
@@ -73,7 +73,7 @@ test.describe("analytics at the inline width (760 px)", () => {
     expect(scrollWidth, "the document never scrolls sideways").toBeLessThanOrEqual(clientWidth)
 
     // U2: total time (the sort key), executions, Avg and P95 all show and
-    // lie inside the region — none scrolled out of sight.
+    // lie inside the region, none scrolled out of sight.
     const columns = await columnsInView(region)
     expect(columns.map((c) => c.label).slice(0, 5)).toEqual([
       "Activity",
@@ -203,7 +203,7 @@ test.describe("analytics at the inline width (760 px)", () => {
 /**
  * Inline, a view is a card in the chat (#396): under the host's height budget
  * a table shows the head of its rows, says how many there are, and offers the
- * rest — fullscreen where the host offers it, else the next rows in place.
+ * rest: fullscreen where the host offers it, else the next rows in place.
  * The stub's activity table has six rows; a 400 px budget leaves room for three.
  */
 test.describe("an inline card under the host's height budget (#396)", () => {

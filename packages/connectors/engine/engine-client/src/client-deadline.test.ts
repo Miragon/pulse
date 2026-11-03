@@ -37,7 +37,7 @@ const startProcessInstanceByKey = (o: {
   body: Record<string, unknown>
 }) => o.client.post({ url: "/process-definition/key/{key}/start", path: o.path, body: o.body })
 
-/** Requests the fake engine has seen — for the body and interceptor checks. */
+/** Requests the fake engine has seen, for the body and interceptor checks. */
 const seen: Array<{ method?: string; path: string; headers: http.IncomingHttpHeaders }> = []
 
 type Route = (res: http.ServerResponse, body: string) => void
@@ -47,7 +47,7 @@ function json(res: http.ServerResponse, status: number, body: unknown) {
   res.end(JSON.stringify(body))
 }
 
-const never: Route = () => {} // never answers — the deadline must end the call
+const never: Route = () => {} // never answers: the deadline must end the call
 
 const routeTable: Record<string, Route> = {
   "/process-instance/hang": never,
@@ -131,7 +131,7 @@ describe("the per-request deadline", () => {
     )
   })
 
-  // Abort first: these arrive WITH a response — the status must not win.
+  // Abort first: these arrive WITH a response, but the status must not win.
   it("wins over an error response whose BODY stalls", async () => {
     const e = await failure(
       getProcessInstance({ client: client(100), path: { id: "stall-error" } }),
@@ -197,7 +197,7 @@ describe("caller cancellation", () => {
     expect(seen.length).toBe(before)
   })
 
-  it("never aborts a write once started — the caller's signal only binds reads", async () => {
+  it("never aborts a write once started: the caller's signal only binds reads", async () => {
     const controller = new AbortController()
     setTimeout(() => controller.abort(), 20)
     const started = (await startProcessInstanceByKey({
@@ -226,7 +226,7 @@ describe("a consumer's request interceptor that returns a NEW Request", () => {
     return c
   }
 
-  it("cannot detach the deadline — nor make it read as a caller cancellation", async () => {
+  it("cannot detach the deadline, nor make it read as a caller cancellation", async () => {
     const started = Date.now()
     const pending = failure(
       getProcessInstance({ client: withTenantHeader(client(200)), path: { id: "hang" } }),

@@ -16,7 +16,7 @@ const violations = (
   plainIncreaseAllowed?: (range: string, at?: number) => boolean,
 ) => readingRuleViolations(promql, METRICS, { plainIncreaseAllowed })
 
-describe("readingRuleViolations — counters and histograms", () => {
+describe("readingRuleViolations: counters and histograms", () => {
   it("accepts the born-series count, rolling and pinned, with a selector", () => {
     const born = (series: string, range: string, at?: number) =>
       `((increase(${series}[${range}]${at === undefined ? "" : ` @ ${at}`}) and present_over_time(${series}[1h]${at === undefined ? "" : ` @ ${at}`} offset ${range})) or (max_over_time(${series}[${range}]${at === undefined ? "" : ` @ ${at}`}) unless present_over_time(${series}[1h]${at === undefined ? "" : ` @ ${at}`} offset ${range})))`
@@ -70,7 +70,7 @@ describe("readingRuleViolations — counters and histograms", () => {
   })
 })
 
-describe("readingRuleViolations — gauges", () => {
+describe("readingRuleViolations: gauges", () => {
   it("accepts a gauge folded over exactly its contract labels, in any order", () => {
     expect(
       violations('sum(max by (engine_id, process_definition_key)(engine_open{engine_id="a"}))'),

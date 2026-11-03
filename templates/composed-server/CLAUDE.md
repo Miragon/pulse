@@ -17,11 +17,11 @@ task paths. Read the matching one BEFORE starting:
 ## Commands
 
 ```bash
-pnpm install          # public npm registry only — no credentials needed
+pnpm install          # public npm registry only, no credentials needed
 cp .env.example .env  # local config; `pnpm dev` loads it (only `pnpm dev` does)
 
 pnpm build            # modules → widget bundle → server
-pnpm typecheck        # tsc everywhere, INCLUDING widget .tsx code — the only check that covers it
+pnpm typecheck        # tsc everywhere, INCLUDING widget .tsx code: the only check that covers it
 pnpm test             # vitest: guard tests + in-process e2e wire-contract tests
 pnpm dev              # MCP endpoint on :8400/mcp, inspector on :8400/mcp/inspector
 

@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component
  * `MeterRegistry` bean: Spring Boot adds every auto-configured registry to the
  * global composite (`management.metrics.use-global-registry`, default on), the
  * OTEL Java agent's Micrometer bridge registers there too, and composite
- * meters are bound into child registries added later — so the export path
+ * meters are bound into child registries added later, so the export path
  * needs no wiring here and the engine can boot before the registries exist.
  *
  * The history handler is added to the engine's existing

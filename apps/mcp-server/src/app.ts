@@ -7,9 +7,9 @@ import { MODULES, sharedResources } from "./setup.js"
 const PACKAGE_ROOT = path.join(import.meta.dirname, "..")
 
 /**
- * The preamble of the server `instructions` — deliberately short and factual.
+ * The preamble of the server `instructions`, deliberately short and factual.
  * Each active module appends its own snippet (engine routing, dates, tool
- * families, health routing — `ComposableModule.instructions`), and the tool
+ * families, health routing; `ComposableModule.instructions`), and the tool
  * descriptions carry the per-tool details.
  */
 export const SERVER_INSTRUCTIONS =
@@ -17,7 +17,7 @@ export const SERVER_INSTRUCTIONS =
   "Toolsets fail closed: a tool missing from tools/list is not enabled on this deployment. " +
   "On hosts that render MCP Apps, prefer the view tools (*_show_*, *_open_*) to present results to the user."
 
-/** The version release-please maintains in `package.json` — never a hard-coded copy. */
+/** The version release-please maintains in `package.json`, never a hard-coded copy. */
 function packageVersion(): string {
   const pkg = JSON.parse(readFileSync(path.join(PACKAGE_ROOT, "package.json"), "utf8")) as {
     version: string

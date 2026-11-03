@@ -7,7 +7,7 @@ import { EngineRequestError, toEngineRequestError } from "./engine-error.js"
 /**
  * Guard for the model-facing engine error text (#325). Runs the REAL
  * generated hey-api client built by `createEngineClient` against a REAL
- * local HTTP server that answers like an engine does — hey-api throws the
+ * local HTTP server that answers like an engine does: hey-api throws the
  * parsed ExceptionDto (not an Error) for every 4xx/5xx, which used to reach
  * the model as "[object Object]". Each assertion pins the exact `message`
  * widget-shell's `withToolErrors` hands to the model (`e instanceof Error ?
@@ -42,7 +42,7 @@ function text(res: http.ServerResponse, status: number, body?: string) {
   res.end(body)
 }
 
-/** The request arrived (body read) — then the connection drops. */
+/** The request arrived (body read), then the connection drops. */
 const reset: Route = (_, req) => req.socket.destroy()
 
 const routeTable: Record<string, Route> = {
@@ -158,7 +158,7 @@ describe("engine errors reach the model as actionable text", () => {
     )
     expect(e.engineCode).toBe(1)
     // `status`/`code` would make widget-shell's withToolErrors prefix a second
-    // "[500] " / "[1] " — the message already carries the status.
+    // "[500] " / "[1] ". The message already carries the status.
     expect(e).not.toHaveProperty("status")
     expect(e).not.toHaveProperty("code")
   })
@@ -250,7 +250,7 @@ describe("network failures", () => {
     }
   })
 
-  it("only connect-phase failures — the engine cannot have seen the request — read 'unreachable'", () => {
+  it("only connect-phase failures (the engine cannot have seen the request) read 'unreachable'", () => {
     const post = new Request("http://engine.invalid/x", { method: "POST" })
     const map = (code?: string) =>
       toEngineRequestError(new TypeError("fetch failed", { cause: code ? { code } : {} }), {
@@ -283,7 +283,7 @@ describe("401 hints per auth type", () => {
   })
 
   // The fake engine quotes the rejected Authorization header back, like some
-  // proxies do — the credential must be masked, not handed to the model.
+  // proxies do: the credential must be masked, not handed to the model.
   it("passthrough with a forwarded token", async () => {
     const e = await unauthorized({ authType: "passthrough", tokenProvider: () => "tok-123" })
     expect(e.message).toBe(

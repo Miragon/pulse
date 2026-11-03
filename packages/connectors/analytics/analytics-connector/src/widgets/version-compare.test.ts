@@ -38,13 +38,13 @@ const result: VersionCompareResult = {
 const prompt = (data: VersionCompareResult) => bindHandOff("en").ask(versionCompareHandOff(data))!
 
 describe("versionCompareHandOff", () => {
-  it("re-runs the process-wide comparison on the engines on screen — never an element scope", () => {
+  it("re-runs the process-wide comparison on the engines on screen, never an element scope", () => {
     const text = prompt(result)
 
     expect(text).toContain(
       'Ids: engine="prod-a", processDefinitionKey="order", versionA=1, versionB=2, windowDays=14\n',
     )
-    // The tool takes no element scope (#336) — the hand-off must not suggest one.
+    // The tool takes no element scope (#336); the hand-off must not suggest one.
     expect(text).not.toContain("activityId")
   })
 

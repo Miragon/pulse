@@ -20,7 +20,7 @@ const german = () => setFormatLocale({ language: "de", locale: "de-DE", timeZone
 const english = () =>
   setFormatLocale({ language: "en", locale: "en-GB", timeZone: "Europe/Berlin" })
 
-describe("formatLookback — a period token as the frame of a view", () => {
+describe("formatLookback: a period token as the frame of a view", () => {
   it("names the last n units in German and English", () => {
     german()
     expect(plain(formatLookback("7d"))).toBe("Letzte 7 Tage")
@@ -51,7 +51,7 @@ describe("formatLookback — a period token as the frame of a view", () => {
   })
 })
 
-describe("formatViewMeta — period · engines · as-of", () => {
+describe("formatViewMeta: period · engines · as-of", () => {
   it("joins the known parts in German (the U7 reference line)", () => {
     german()
     expect(

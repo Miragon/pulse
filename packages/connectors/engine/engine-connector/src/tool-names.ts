@@ -21,7 +21,7 @@ export const ENGINE_LIST_ENGINES = "engine_list_engines"
 // `src/widget-actions.test.ts` fails on an in-widget write missing here.
 export const ENGINE_WIDGET_ACTIONS = [
   "engine_set_job_retries",
-  // The failedExternalTask incident's remedy — resolve refuses that type.
+  // The failedExternalTask incident's remedy (resolve refuses that type).
   "engine_set_external_task_retries",
   "engine_resolve_incident",
   "engine_complete_task",

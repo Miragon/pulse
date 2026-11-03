@@ -52,7 +52,7 @@ function violationsOf(origin: string, promql: string): string[] {
   return checkQueryLabels(promql, catalog).violations.map((v) => `${origin}: ${v}\n    ${promql}`)
 }
 
-describe("metrics contract — labels each query actually sends", () => {
+describe("metrics contract: labels each query actually sends", () => {
   it("has a scenario for every exported query function", () => {
     expect(Object.keys(SCENARIOS).sort()).toEqual(exportedQueryFunctions().sort())
   })
@@ -72,34 +72,34 @@ describe("metrics contract — labels each query actually sends", () => {
         }
       }
       expect(violations).toEqual([])
-      // Every query scopes by at least one label (engine, process, …) — 0
+      // Every query scopes by at least one label (engine, process, …): 0
       // here means the scenario args or the checker went blind.
       expect(checked, `${name}: no label reference was checked`).toBeGreaterThan(0)
     },
   )
 })
 
-describe("metrics contract — labels in alert rules and dashboards", () => {
+describe("metrics contract: labels in alert rules and dashboards", () => {
   it("alert rule expressions name only declared labels", () => {
     expect(alertRules.length).toBeGreaterThan(0)
-    // Every `expr:` in the file was extracted — none hides in a YAML shape
+    // Every `expr:` in the file was extracted: none hides in a YAML shape
     // (flow mapping, …) the extractor does not read.
     expect(alertRules).toHaveLength(alertsYaml.match(/\bexpr:/g)?.length ?? 0)
     expect(alertRules.flatMap((expr) => violationsOf("alerts.yml", expr))).toEqual([])
     for (const expr of alertRules) {
-      // A rule that selects no series or yields no vector was not checked —
-      // e.g. an expression that parsed as one PromQL string literal.
+      // A rule that selects no series or yields no vector was not checked
+      // (e.g. an expression that parsed as one PromQL string literal).
       const { series, resultLabels } = checkQueryLabels(expr, catalog)
       expect(series, `alerts.yml selects no series: ${expr}`).not.toEqual([])
       expect(resultLabels, `alerts.yml yields no vector: ${expr}`).toBeDefined()
     }
-    // The rules aggregate by engine_id — `engineHealth` filters ALERTS on it.
+    // The rules aggregate by engine_id: `engineHealth` filters ALERTS on it.
     expect(alertLabels.has("engine_id")).toBe(true)
   })
 
   it("every shipped alert rule is named so engineHealth recognises it as the module's own", () => {
     // Engine-less alerts (CibSevenEngineNoMetrics) only count when their name
-    // matches — a rule outside the pattern would silently drop out of the
+    // matches: a rule outside the pattern would silently drop out of the
     // fleet-wide verdict, and a shared Prometheus' foreign alerts must not count.
     const names = [...alertsYaml.matchAll(/^\s*-\s*alert:\s*(\S+)\s*$/gm)].map((m) => m[1])
     expect(names).toHaveLength(alertRules.length)
@@ -126,7 +126,7 @@ describe("metrics contract — labels in alert rules and dashboards", () => {
   })
 })
 
-describe("metrics contract — reading rules", () => {
+describe("metrics contract: reading rules", () => {
   const plainIncreaseAllowed = (range: string, at: number | undefined) => {
     const now = nowSeconds()
     const seconds = rangeSeconds(range)

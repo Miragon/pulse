@@ -88,7 +88,7 @@ describe("useApplyTheme", () => {
 
     cleanup()
     renderHook(() => useApplyTheme(), { wrapper: inHost({ styleVariables }) })
-    // No host theme, so the OS decides — the host's palette does not apply.
+    // No host theme, so the OS decides. The host's palette does not apply.
     expect(root.style.getPropertyValue("--card")).toBe("")
     expect(root.style.getPropertyValue("--foreground")).toBe("")
   })

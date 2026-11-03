@@ -4,7 +4,7 @@ description: Step-by-step house pattern for adding a new BPM operations tool, wi
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 ---
 
-# add-bpm-feature — new tool/widget in the engine module
+# add-bpm-feature: new tool/widget in the engine module
 
 The engine module never registers operations tools with raw `server.tool()`. Tools go
 through the registrar (`createToolRegistrar` from `@miragon/pulse-widget-shell/server`);
@@ -12,7 +12,7 @@ engine access goes through `withEngine`/`resolveEngine` (per-call `engine` overr
 `ENGINE_DEFAULT` > the only configured engine). A view is registered in three places (CLAUDE.md
 invariant 3). Follow the steps for the path you need.
 
-## Step 0 — pick the render path
+## Step 0: pick the render path
 
 | You need…                                                        | Path                                                                                  |
 | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
@@ -21,7 +21,7 @@ invariant 3). Follow the steps for the path you need.
 | App-only JSON for in-widget refresh/nav                          | `*_data` feed in `DATA_FEEDS` of `src/data/feeds.ts` (Step 4)                         |
 | An answer the CLI's workflow commands give too (inspect, status) | a composite on `@miragon/pulse-engine-core` over `src/lib/core-adapter/` (Step 2b)    |
 
-## Step 1 — input schema next to the tools
+## Step 1: input schema next to the tools
 
 Add the Zod input schema to `packages/connectors/engine/engine-connector/src/schemas/<domain>.ts` and
 export it from `src/schemas/index.ts`. Existing style (from `schemas/process-instances.ts`):
@@ -56,12 +56,12 @@ server instructions still shows it. `apps/mcp-server/test/tools-list.golden.test
 fails when one description repeats on more than two model-visible tools.
 
 A list/query tool pages with the shared params from
-`schemas/shared.ts` — `firstResultParam` + `maxResultsParam(defaultPageSize)` — never a
+`schemas/shared.ts` (`firstResultParam` + `maxResultsParam(defaultPageSize)`), never a
 hand-rolled `maxResults` (a `*_data` feed spreads `pagingShape` from the same file, the one paging
 definition in its described, default-free form): `src/tools/list-tools.test.ts` treats every registrar tool that
 takes `maxResults` as a list and fails it without the cap or the envelope (Step 2). The
 REST calls themselves use the generated SDK (imported from
-`@miragon/pulse-engine-client/sdk`) — if the endpoint is missing there, the OpenAPI spec
+`@miragon/pulse-engine-client/sdk`). If the endpoint is missing there, the OpenAPI spec
 changed and you need `pnpm generate`, not a hand-written fetch. The engine's REST rules the
 handler applies (`toEngineDate`, `engineLike`, `complementaryFlags`, `engineSorting`,
 `toEngineVariables`, `incidentRecovery`, `RAW_VARIABLES`) come from `@miragon/pulse-engine-core`,
@@ -78,7 +78,7 @@ error listing the valid keys. So one name per concept across every tool: a model
 | Concept                  | Name                                                                                                                                                                                                                                                   |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Process definition       | `processDefinitionKey` (all versions), `processDefinitionId` (one version); never bare `key`                                                                                                                                                           |
-| Entity ids               | `<entity>Id` — `processInstanceId`, `deploymentId`, `jobId`, `activityId` (analytics too); never bare `id`, never `elementId`                                                                                                                          |
+| Entity ids               | `<entity>Id`: `processInstanceId`, `deploymentId`, `jobId`, `activityId` (analytics too); never bare `id`, never `elementId`                                                                                                                           |
 | Several values           | `<name>In`, an array (`processDefinitionKeyIn`); merged with the single form via `engineKeyList`                                                                                                                                                       |
 | User filter              | `assignee` (the user a task is assigned to); a write that sets a user takes `userId`                                                                                                                                                                   |
 | Business key / substring | `businessKey` exact, `businessKeyLike`/`nameLike` substring via `likeParam()`: `engineLike` wraps a `%`-less value                                                                                                                                     |
@@ -98,9 +98,9 @@ filters) is held to `listJobsInput` by `src/instructions.test.ts`; a newly quote
 gets its own pin there. Widget Ask-AI hand-offs and model contexts never quote parameters:
 they pass typed `ids` (see Step 4).
 
-## Step 2 — register the tool
+## Step 2: register the tool
 
-Add the tool in `packages/connectors/engine/engine-connector/src/tools/<domain>.ts`. Reference template —
+Add the tool in `packages/connectors/engine/engine-connector/src/tools/<domain>.ts`. The reference template is
 `engine_list_process_instances` from `src/tools/process-instances.ts`:
 
 ```ts
@@ -122,7 +122,7 @@ export function registerProcessInstanceTools(register: ToolRegistrar<EngineRegis
     outputSchema: paginatedListOutput,
     handler: withEngine(async (client, args) => {
       // The filters in the engine's format (naming guide), shared by the page
-      // and its /count twin — fetched in parallel, so the envelope's total is honest.
+      // and its /count twin (fetched in parallel), so the envelope's total is honest.
       const filters = {
         processDefinitionKey: args.processDefinitionKey,
         businessKeyLike: engineLike(args.businessKeyLike),
@@ -152,11 +152,11 @@ A list tool's description says what it lists, never the paging contract
 Non-negotiables:
 
 - Every tool carries a `category` matching its domain file name (e.g.
-  `"process-instances"`, `"tasks"` — `task-form.ts` uses `"tasks"`,
+  `"process-instances"`, `"tasks"`; `task-form.ts` uses `"tasks"`,
   `incident-issue.ts` uses `"incidents"`).
 - `inputSchema` spreads `...engineParamShape` so every tool accepts the per-call
   `engine` override.
-- `handler` is wrapped in `withEngine(...)` — never construct, cache, or import a client
+- `handler` is wrapped in `withEngine(...)`. Never construct, cache, or import a client
   directly; `withEngine` resolves the engine from the registry per call.
 - Tool names are `engine_<verb>_<noun>` in snake_case.
 - Write tools that only flip state return a small `{ success: true, … }` object instead
@@ -166,7 +166,7 @@ Non-negotiables:
   reads that only feed an admin write (`engine_get_batch`,
   `engine_get_activity_instance_tree`) must
   be added to `ADMIN_ONLY_TOOLS` in `src/lib/mcp/toolsets.ts` so the
-  `engine:read-only|operations|admin` toolset filtering stays correct — `read-only`
+  `engine:read-only|operations|admin` toolset filtering stays correct. `read-only`
   membership is derived from `readOnlyHint: true`. `src/lib/mcp/toolsets.test.ts` enforces
   the rule structurally over every registrar tool (`destructiveHint` ⇒ admin-only,
   read-only ⇒ `readOnlyHint`, every write states `destructiveHint` explicitly), and
@@ -175,7 +175,7 @@ Non-negotiables:
   edit the test to pass.
 - Toolsets fail CLOSED: with no suffix a deployment runs `read-only` (no OAuth) or
   `operations` (OAuth); `admin` is only ever reached by naming it. So an `operations`
-  tool is on for every authenticated default deployment and an `admin` tool for none —
+  tool is on for every authenticated default deployment and an `admin` tool for none:
   place a new write deliberately. A tool that runs code inside the engine
   (`engine_create_deployment`) additionally sits behind its own strict env opt-in
   (`ENGINE_ALLOW_DEPLOYMENTS=true`) and is not registered without it; follow that
@@ -191,13 +191,13 @@ Non-negotiables:
 | Delete / irreversible (delete, modify)        | `{ destructiveHint: true, openWorldHint: true }` (admin-only)           |
 | Engine-wide / worker / deploy                 | `{ destructiveHint: true, openWorldHint: true }` (admin-only)           |
 
-MCP reads an ABSENT `destructiveHint` as `true`, so every write states it — `false` is a
+MCP reads an ABSENT `destructiveHint` as `true`, so every write states it; `false` is a
 deliberate claim, not a default. `idempotentHint: true` marks writes that repeat to the
 same state. Every engine tool carries `openWorldHint: true` (it talks to an external
 engine); a tool that only reads the server's own config (`engine_list_engines`) says
 `openWorldHint: false`.
 
-## Step 2b — a read composite on engine-core
+## Step 2b: a read composite on engine-core
 
 A question the CLI answers too (where an instance waits, how an engine is doing) runs on
 `@miragon/pulse-engine-core` (`packages/connectors/engine/engine-core`, the engine family's
@@ -231,13 +231,13 @@ toolsets, the paging envelope, the bounds on variable values and failure text) a
 (`connector-data-and-lib-point-down`): a helper a builder needs from a tool moves down into the
 lib folder of its job (the task form's `buildTaskFormSchema` into `bpmn/`).
 
-## Step 3 — wire a new domain file
+## Step 3: wire a new domain file
 
 Only when you created a new `src/tools/<domain>.ts`: add
 `registerYourDomainTools(register)` to `registerTools` in
 `packages/connectors/engine/engine-connector/src/tools/index.ts`, mirroring the existing calls.
 
-## Step 4 — widget path (only for UI features)
+## Step 4: widget path (only for UI features)
 
 Widget components live in `packages/connectors/engine/engine-connector/src/widgets/` and receive their data as
 a `data` prop. Compose them from the design kit `@miragon/pulse-ui` and the view runtime
@@ -254,11 +254,11 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
 (`connector-widgets-are-browser-code` and `connector-widgets-only-shared-lib` in
 `.dependency-cruiser.cjs`):
 
-- `ViewDataState` — the loading/error/no-data guard (no inline Alert/loading ternary):
+- `ViewDataState` is the loading/error/no-data guard (no inline Alert/loading ternary):
   `onRetry` is required (`paged.retry`, a query's `refetch`), loading is a `skeleton`
   slot under a polite sr-only status ("Ansicht wird geladen…" unless `loadingText`),
   no data pulse-ui's `EmptyState`
-- Self-fetching widgets: skeleton + error via `QueryFallback` (+ `TableSkeleton`) — a
+- Self-fetching widgets: skeleton + error via `QueryFallback` (+ `TableSkeleton`). A
   missing `isError` branch means an eternal skeleton; `onRetry` is required
 - Errors speak through widget-shell's `describeError(error, locale)`: an engine or transport
   failure (503/unreachable, timeout, a tool this server lacks, 401/403, 404, an engine
@@ -327,9 +327,9 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   entries (`HandOffButton`, `OpenInCockpitLink`); a confirmation names an instance with
   `instanceTargetLines` (business key, then short id)
 - Status: a `ToneVariant` (`danger`/`warning`/`success`/`info`/`neutral`; open incident or
-  failed job without retries = `danger` — `severityTone`/`countTone` from
+  failed job without retries = `danger` (`severityTone`/`countTone` from
   `@miragon/pulse-widget-shell/widgets` is the one ladder for incident and job counts in every
-  module, a count without a state stays neutral —, retries left or degraded = `warning`) shown via
+  module, a count without a state stays neutral), retries left or degraded = `warning`) shown via
   pulse-ui's `StatusBadge` (tone and words required)/`CountPill`/`KpiCell.tone` or its
   `TONE_DOT`/`TONE_BORDER`/`TONE_ICON`/`TONE_TINT`/`TONE_SOFT`/`TONE_INK` maps (a tone
   from the wire through `resolveTone`), next to readable words; never a coloured
@@ -368,7 +368,7 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
   (`src/widgets/bpmn-highlights.ts`); the CSS is
   `injectBpmnOverlayCss()`. No pulse: an open user task is a heavier dashed stroke
 
-**Paged list recipe** (every list that can exceed one page follows it — reference:
+**Paged list recipe** (every list that can exceed one page follows it; reference:
 `src/widgets/process-instances/list.tsx`):
 
 1. Feed: accept `firstResult`/`maxResults` (+ server-side filter params like
@@ -383,13 +383,13 @@ view stack, plus `src/lib/shared` (pure code the server runs too, held to the sa
    are the previous result) around `ListTable` (frame + `Th` header row;
    rows stay hand-composed `<tr>` + `Td`) or a `RowCard` stack → `TableEmptyState`
    (distinguish "no match" when `interacted`) → pulse-ui's `PagedListFooter`
-   (`paged` as is, `noun` from the catalog — the stale page-0 error and the load-more
+   (`paged` as is, `noun` from the catalog; it renders the stale page-0 error and the load-more
    error, each with its own retry and the raw reason under Details, + "Showing X of Y" in
    the list's one live region + Load more; deliberately not infinite scroll; rendered
    under an empty result too). Guard the whole view on
    `!paged.firstPage` only: a search keeps the previous rows (and the search box)
    mounted while its page 0 is in flight. While it does, `paged.stale` is true and
-   `firstPage`/`total` are the PREVIOUS result's — a header count, the filters it
+   `firstPage`/`total` are the PREVIOUS result's: a header count, the filters it
    covers and the model context read the payload's echo (`data.filters`), never the
    request's args (reference: the instance list's `listFilters`).
 
@@ -440,7 +440,7 @@ feeds (`data-feeds.ts`, over `DATA_FEEDS`) and the actions feed; these files are
 exception that uses `server.tool()` directly:
 
 - Every widget-path tool (the cockpit AND each feed) declares
-  `inputSchema: strictToolInput({ … })` (from `@miragon/pulse-widget-shell/server`) — never
+  `inputSchema: strictToolInput({ … })` (from `@miragon/pulse-widget-shell/server`), never
   a bare `z.object`, which strips an unknown key silently;
   `apps/mcp-server/test/strict-input.e2e.test.ts` refuses any module tool that
   accepts one.
@@ -467,22 +467,22 @@ exception that uses `server.tool()` directly:
   fork one. Definition lookups (id parsers, the key lookup, the per-KEY fold of the
   per-version statistics) come from `src/data/definition-info.ts`. A key's latest version is
   `fetchLatestDefinition`
-  (every tenant) — never `/process-definition/key/{key}`, which only knows tenant-less
+  (every tenant), never `/process-definition/key/{key}`, which only knows tenant-less
   definitions. A long key's (over ~25 characters) definition id is a bare generated
   UUID that names no key, so ANY key that scopes a query, a drill, a hand-off or a
   cockpit link is resolved, never parsed: a view queried by key uses that key; rows
   that carry only a definition id go through `resolveDefinitionKeys` (at most ONE
-  definition-statistics read, none when every id names its key) — a primary read where
+  definition-statistics read, none when every id names its key): a primary read where
   the key is what the view hands on, else wrapped in `optional(...)` as enrichment, so
   a bare id's key is `null` (no drill, no link), never its UUID. A view that already
   reads the statistics resolves through `definitionKeyResolver` over them.
   `processDefinitionKeyFromId` is a display fallback only.
-- **Honest numbers** (`src/data/engine-reads.ts`): PRIMARY rows and counts — what the
-  view exists to show, and every number its facts report — propagate engine
+- **Honest numbers** (`src/data/engine-reads.ts`): PRIMARY rows and counts (what the
+  view exists to show, and every number its facts report) propagate engine
   failures (read them through `countOf`/`rowsOf`; `withToolErrors` turns the throw into
-  a tool error), and an unknown id or key is a not-found error — never a view of zeros. Only
+  a tool error), and an unknown id or key is a not-found error, never a view of zeros. Only
   ENRICHMENT (display names, diagram XML, cockpit links, optional history) degrades, via
-  `optional(...)`, and to `null` — never to a `0`, `[]` or `{}` that reads as a fact.
+  `optional(...)`, and to `null`, never to a `0`, `[]` or `{}` that reads as a fact.
   Widgets render that null as "—" (`formatCount`, `src/widgets/lib/format-count.ts`),
   the facts keep it `null` (the instructions read it as unknown). Totals come from `/count`
   endpoints or statistics, never from
@@ -493,7 +493,7 @@ exception that uses `server.tool()` directly:
   summed per key); only a diagram is one version, and it is labelled. Engine timestamps
   compare by instant (`engineDateMillis`/`latestEngineDate`/`earliestEngineDate` from
   `@miragon/pulse-engine-core`), never as strings. A new builder adds its case to the
-  rejection table in `src/data/honest-numbers.test.ts` — the table fails without it. The
+  rejection table in `src/data/honest-numbers.test.ts`; the table fails without it. The
   table breaks EVERY read the healthy build makes (method + path + query names), so a
   case declares only its enrichment reads; any other read whose failure is swallowed fails.
 - The `show_*`/`*_data` naming is load-bearing:
@@ -504,14 +504,14 @@ exception that uses `server.tool()` directly:
   (`withToolsetFilter`/`isToolInToolset`) drops it outside its toolset, and an in-widget
   write calls it through `useEngineAction`, gated by `engine_widget_actions_data`.
 - Every in-widget write runs through `useEngineAction({ tool, target, resetOn, available })`
-  (`src/widgets/lib/engine-action.ts`) — never a raw `useToolMutation`/`callTool`. Its
-  `allowed` is the gate — the toolset AND the subject's current state (`available`:
+  (`src/widgets/lib/engine-action.ts`), never a raw `useToolMutation`/`callTool`. Its
+  `allowed` is the gate, the toolset AND the subject's current state (`available`:
   false for an ended, cancelled or unconfirmed instance, a suspended one where the
   engine refuses the write): render the control only when true (hide it and a table
   column it would leave empty, never just disable it). List
   the tool in `ENGINE_WIDGET_ACTIONS` (`src/tool-names.ts`) and give it a
   `WRITE_POLICY` entry (`src/widgets/lib/write-policy.ts`: the query namespaces it
-  changes, and `confirm: true` for irreversible/state-changing writes — then `run`
+  changes, and `confirm: true` for irreversible/state-changing writes; then `run`
   needs a confirmation naming its target, rendered by `EngineActionDialog`, with
   verb + object on both buttons: widget-shell's `ConfirmDialog`, an `alertdialog` over the
   scrim, the destructive confirm in the danger role, a failure shown inside it). Every
@@ -520,13 +520,13 @@ exception that uses `server.tool()` directly:
 businessKey))` …; add an entry and its `feedback.*` keys in `messages/{en,de}.feedback.ts`
   for a new write): a success toast, a failure toast with the reason in words
   (`useActionFeedback`); a confirmed write's failure stays in its dialog. Optimistic state reads `action.done` (dropped when
-  `resetOn` changes — pass the data the marked ROWS come from, not a sibling feed).
+  `resetOn` changes; pass the data the marked ROWS come from, not a sibling feed).
   `src/widget-actions.test.ts` enforces all of it structurally; add
   the new call site to `src/widgets/action-gating.sites.ts` + its renderer in
   `action-gating.test-support.tsx`.
 - Everything the widget tells the model goes through `useHandOff()`
   (`src/widgets/lib/hand-off.ts`): `<HandOffButton action="…" prompt={ask(handOff)} />` and
-  `<HostModelContext content={context(view)}>`. A hand-off is a typed spec — an `intent`
+  `<HostModelContext content={context(view)}>`. A hand-off is a typed spec: an `intent`
   key from `messages/{en,de}.ask-ai.ts` (static, no tool names) or a static view
   `summary`, plus `ids`, `facts`, `untrusted` (engine text, fenced); no `tools`: a hand-off
   names no tool, the module instructions and the tool descriptions steer the model.
@@ -534,7 +534,7 @@ businessKey))` …; add an entry and its `feedback.*` keys in `messages/{en,de}.
   `src/widgets/remediation.ts`; the rules are CLAUDE.md invariant 6, enforced by
   `scripts/hand-off-refs.test.mjs`.
 
-## Step 5 — verify
+## Step 5: verify
 
 ```bash
 pnpm build && pnpm typecheck && pnpm test && pnpm lint
@@ -545,15 +545,15 @@ pnpm --filter @miragon/pulse-mcp-server test:host
 A new or changed tool changes the wire surface: add its name to
 `apps/mcp-server/test/expected-tools.ts`, then refresh the per-toolset goldens with
 `GOLDEN_UPDATE=1 pnpm --filter @miragon/pulse-mcp-server test` and commit the
-`test/__golden__/` diff (descriptions and schemas are what the model reads — review them).
+`test/__golden__/` diff (descriptions and schemas are what the model reads; review them).
 The budget counts the model-visible tools/list text plus the server instructions of each
 toolset. If `char-budgets.json` grew, `pnpm lint` fails until the commit carries a
-`Ratchet-Exception: <why the model must read more>` trailer — trim wording first.
+`Ratchet-Exception: <why the model must read more>` trailer. Trim wording first.
 
 `pnpm typecheck` is the **only** automated check that type-checks widget `.tsx` code
-(`tsc -p tsconfig.widgets.json`) — never skip it. For widgets also do a manual render
+(`tsc -p tsconfig.widgets.json`); never skip it. For widgets also do a manual render
 check: `pnpm play` (playground, build and server in one command), then call the
 tool in the inspector at `http://localhost:8400/mcp/inspector`. The default boot
-is read-only (the boot log names the toolsets) — to exercise a write tool or button, run
+is read-only (the boot log names the toolsets). To exercise a write tool or button, run
 `pnpm play --admin` (`--deploy` for deployments). Run `pnpm format:check` (or
 `pnpm format`) before committing.

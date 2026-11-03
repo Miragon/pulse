@@ -67,7 +67,7 @@ describe("tone-utils", () => {
   })
 
   it("puts the foreground on every tint, never the ink or the status colour (CI §3.3)", () => {
-    // "-soft: Text darauf --cd-schwarz, Rand in der Statusfarbe" — the rim
+    // "-soft: Text darauf --cd-schwarz, Rand in der Statusfarbe": the rim
     // (TONE_BORDER) carries the tone; a neutral count on the muted tint is a
     // figure and stays in the foreground too.
     for (const tone of ALL_TONES) {

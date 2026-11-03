@@ -12,7 +12,7 @@ export interface SectionHeadingProps {
 }
 
 /**
- * Section title row — a small semibold heading with an optional muted hint or
+ * Section title row: a small semibold heading with an optional muted hint or
  * control on the right. Use to label a block inside a widget body (e.g. a list
  * or sub-table) without the visual weight of a full card header. The title is
  * a caption ({@link MICRO_LABEL}: 13 px semibold, normal case); a section that

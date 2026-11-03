@@ -9,7 +9,7 @@ export type SortOrder = "asc" | "desc"
 
 /**
  * The sort pair a list query sends: a `sortBy` alone sorts ascending, a
- * `sortOrder` alone has no field to apply to and is dropped — never one
+ * `sortOrder` alone has no field to apply to and is dropped: never one
  * without the other.
  */
 export function engineSorting<TField extends string>(args: {

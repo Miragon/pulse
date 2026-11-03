@@ -1,6 +1,6 @@
 /**
- * Engine dates. CIB Seven / Camunda 7 / Operaton parse EVERY date — query
- * filters, request bodies, `Date` variables — with one Java pattern,
+ * Engine dates. CIB seven / Camunda 7 / Operaton parse EVERY date (query
+ * filters, request bodies, `Date` variables) with one Java pattern,
  * `yyyy-MM-dd'T'HH:mm:ss.SSSZ`, where `Z` is a `±HHMM` offset. A literal "Z",
  * an offset with a colon, missing milliseconds or a bare date are all 400s.
  * Callers therefore accept ordinary ISO 8601 at their boundary and convert it
@@ -220,7 +220,7 @@ export function engineDateMillis(value: string | null | undefined): number | nul
   return local - offsetMinutes * 60_000
 }
 
-/** The engine timestamp `pick` prefers by instant — returned as given; null when none parses. */
+/** The engine timestamp `pick` prefers by instant, returned as given; null when none parses. */
 function pickEngineDate(
   values: Iterable<string | null | undefined>,
   pick: (candidate: number, best: number) => boolean,

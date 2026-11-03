@@ -50,7 +50,7 @@ export function useToast(): ToastApi {
 }
 
 /**
- * Status edge per tone — the status colour as border, never as text. Repeated
+ * Status edge per tone: the status colour as border, never as text. Repeated
  * under `dark:` so the card's dark 3:1 rim (`dark:border-input`, a later rule)
  * does not paint over it.
  */
@@ -74,7 +74,7 @@ const TOAST_ICON: Record<ToastTone, LucideIcon> = {
 }
 
 /**
- * The stack of toasts — a presentational view over a list (the provider owns
+ * The stack of toasts: a presentational view over a list (the provider owns
  * the state). The container is ONE persistent live region
  * (`aria-live="polite"`, mounted before the first toast so that toast is
  * announced, each new toast on its own: `aria-atomic="false"`), without

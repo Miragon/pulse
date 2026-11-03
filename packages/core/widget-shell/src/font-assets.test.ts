@@ -105,7 +105,7 @@ describe("installFontAssets", () => {
     expect(new Uint8Array(await res.arrayBuffer())).toEqual(new Uint8Array([1, 2, 3]))
   })
 
-  it("boots on without the route when the files cannot be read — the views use the host's font", () => {
+  it("boots on without the route when the files cannot be read: the views use the host's font", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
     const { host, routes } = fakeHost()
     const failure = new Error("ENOENT")
@@ -135,7 +135,7 @@ describe("installFontAssets", () => {
 })
 
 describe("fontAssetsCsp", () => {
-  it("admits MCP_URL's origin in resourceDomains — the origin the views load fonts from", () => {
+  it("admits MCP_URL's origin in resourceDomains: the origin the views load fonts from", () => {
     expect(fontAssetsCsp({ MCP_URL: "https://mcp.example.com/mcp" })).toEqual({
       resourceDomains: ["https://mcp.example.com"],
     })

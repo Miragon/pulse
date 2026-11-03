@@ -7,7 +7,7 @@ package io.miragon.mcp.cibseven.example.seeders
  */
 interface ProcessSeeder {
 
-    /** Human-readable key used in log lines — matches the BPMN processDefinitionKey. */
+    /** Human-readable key used in log lines; matches the BPMN processDefinitionKey. */
     val processKey: String
 
     fun isActiveFor(profile: SeedProfile): Boolean

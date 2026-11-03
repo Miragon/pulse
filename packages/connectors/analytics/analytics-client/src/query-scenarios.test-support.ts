@@ -38,7 +38,7 @@ export function recordingClient(
 export type Scenario = (ch: PrometheusClient) => Promise<unknown>
 
 /**
- * ISO timestamp `days` before now (whole days, at call time — so a guard that
+ * ISO timestamp `days` before now (whole days, at call time, so a guard that
  * pins the clock sees windows relative to ITS now). Scenario windows must sit
  * inside the retention or the query refuses them.
  */

@@ -8,11 +8,11 @@ import {
 } from "./shared.js"
 
 /**
- * Read-only external-task query (`GET /external-task`) — inspects what the
+ * Read-only external-task query (`GET /external-task`): inspects what the
  * workers see without locking, completing or failing anything. The boolean
  * filters are TRUE-ONLY on the engine side (`false` matches every task), so
  * the tool sends a `false` as its complement (locked/notLocked,
- * withRetriesLeft/noRetriesLeft — `complementaryFlags`). Each flag says what
+ * withRetriesLeft/noRetriesLeft; `complementaryFlags`). Each flag says what
  * `true` selects; the engine module instructions say once that `false`
  * selects the other side of its pair.
  */
@@ -43,7 +43,7 @@ export const listExternalTasksInput = z.object({
 })
 
 /**
- * Per-task retries (`PUT /external-task/{id}/retries`) — the operations-level
+ * Per-task retries (`PUT /external-task/{id}/retries`), the operations-level
  * recovery for a failed external task: retries > 0 hand it back to its
  * workers and clear its `failedExternalTask` incident (which
  * `engine_resolve_incident` cannot resolve); 0 raises one.
@@ -79,8 +79,8 @@ export const handleExternalTaskFailureInput = z.object({
   workerId: z.string(),
   errorMessage: z.string().optional(),
   errorDetails: z.string().optional(),
-  // Required: the engine reads an omitted `retries` as 0 — an incident at
-  // once, and the retryTimeout is ignored.
+  // Required: the engine reads an omitted `retries` as 0 (an incident at
+  // once, and the retryTimeout is ignored).
   retries: z.number().int().min(0),
   retryTimeout: z.number().int().min(0).optional().describe("In milliseconds"),
 })

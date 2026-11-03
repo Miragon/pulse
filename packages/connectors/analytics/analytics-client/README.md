@@ -14,7 +14,7 @@ npm install @miragon/pulse-analytics-client zod
 
 ## Overview
 
-Prometheus client and PromQL query layer for Camunda 7 / CIB Seven process analytics. It pairs a thin
+Prometheus client and PromQL query layer for Camunda 7 / CIB seven process analytics. It pairs a thin
 HTTP client for the Prometheus query API with a set of typed, purpose-built query functions and the
 **metrics contract**, the single source of truth for the `engine_*` metric names and labels the
 [engine plugin](../../../../engine-plugins) emits.

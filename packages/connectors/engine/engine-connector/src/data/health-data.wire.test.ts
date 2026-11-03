@@ -53,7 +53,7 @@ async function engineWith(routes: FakeRoutes) {
   return { engine, client: clientFor(engine) }
 }
 
-describe("buildEngineHealthData — exact totals", () => {
+describe("buildEngineHealthData: exact totals", () => {
   it("reads the recency windows from /count and the landscape from per-key statistics", async () => {
     const { engine, client } = await engineWith({
       // Newest first, as the engine sorts it.
@@ -81,7 +81,7 @@ describe("buildEngineHealthData — exact totals", () => {
 
     const data = await buildEngineHealthData(client, "fake")
 
-    // Each window lands in its own field — the hour's count is not the day's.
+    // Each window lands in its own field: the hour's count is not the day's.
     expect(data.summary).toEqual({
       totalIncidents: 11,
       lastHourIncidents: 3,
@@ -152,9 +152,9 @@ describe("buildEngineHealthData — exact totals", () => {
     ])
   })
 
-  it("reports what a capped scan cannot vouch for as unknown — totals, cluster sizes, 24h", async () => {
+  it("reports what a capped scan cannot vouch for as unknown: totals, cluster sizes, 24h", async () => {
     // A mass failure: the newest 2000 of 5000 incidents, all from the last
-    // half hour — the scan reaches back neither to the clusters' start nor 24h.
+    // half hour. The scan reaches back neither to the clusters' start nor 24h.
     const scan = Array.from({ length: CLUSTER_SCAN_LIMIT }, (_, n) =>
       incident(`i${n}`, ago((n * 30 * MINUTE) / CLUSTER_SCAN_LIMIT), `a${n % 3}`),
     )
@@ -171,7 +171,7 @@ describe("buildEngineHealthData — exact totals", () => {
     // The verdict is data (status + counts); each reader words it (#322 U3).
     expect(data.status).toBe("critical")
     expect(data).not.toHaveProperty("headline")
-    // The top cluster holds 667 of the SCANNED rows — a lower bound, not its size.
+    // The top cluster holds 667 of the SCANNED rows: a lower bound, not its size.
     expect(data.clusters[0]).toMatchObject({
       activityId: "a0",
       incidentCount: null,
@@ -200,7 +200,7 @@ describe("buildEngineHealthData — exact totals", () => {
     })
   })
 
-  it("names a long key's cluster by the statistics — its definition id is a bare UUID", async () => {
+  it("names a long key's cluster by the statistics: its definition id is a bare UUID", async () => {
     const uuid = "6f1c2a9e-0b7d-4c33-9a51-3d2e8f40b7aa"
     const { client } = await engineWith({
       "GET /incident": { body: [{ ...incident("a", ago(MINUTE)), processDefinitionId: uuid }] },
@@ -223,7 +223,7 @@ describe("buildEngineHealthData — exact totals", () => {
   })
 })
 
-describe("buildClusterDetailData — first/latest by instant (#335 N71)", () => {
+describe("buildClusterDetailData: first/latest by instant (#335 N71)", () => {
   it("orders the cluster's timestamps across a DST fall-back correctly", async () => {
     const { client } = await engineWith({
       "GET /incident": { body: [incident("b", AFTER_FALL_BACK), incident("a", BEFORE_FALL_BACK)] },
@@ -239,9 +239,9 @@ describe("buildClusterDetailData — first/latest by instant (#335 N71)", () => 
   })
 })
 
-describe("buildClusterDetailData — the real definition keys", () => {
+describe("buildClusterDetailData: the real definition keys", () => {
   // A key over ~25 characters with UUID ids: the engine stores a bare id,
-  // and a key parsed from it is that UUID — no key filter matches it.
+  // and a key parsed from it is that UUID, which no key filter matches.
   const LONG_KEY = "customerOnboardingApprovalProcess"
   const UUID = "6f1c2a9e-0b7d-4c33-9a51-3d2e8f40b7aa"
   const onLongKey = (id: string, ageMs: number) => ({
@@ -249,7 +249,7 @@ describe("buildClusterDetailData — the real definition keys", () => {
     processDefinitionId: UUID,
   })
 
-  it("resolves a bare UUID definition id through the statistics — rows and cluster keys", async () => {
+  it("resolves a bare UUID definition id through the statistics (rows and cluster keys)", async () => {
     const { engine, client } = await engineWith({
       "GET /incident": {
         body: [onLongKey("c", MINUTE), onLongKey("b", 2 * MINUTE), incident("a", ago(HOUR))],
@@ -304,7 +304,7 @@ describe("buildClusterDetailData — the real definition keys", () => {
   })
 })
 
-describe("buildClusterDetailData — names before ids (#322 U13)", () => {
+describe("buildClusterDetailData: names before ids (#322 U13)", () => {
   it("names the activity and each row's process from the diagrams, once per version", async () => {
     const xml =
       '<definitions><process id="order" name="Order to cash"><serviceTask id="charge" name="Charge card"/></process></definitions>'
@@ -328,7 +328,7 @@ describe("buildClusterDetailData — names before ids (#322 U13)", () => {
   })
 })
 
-describe("buildClusterDetailData — a cluster larger than the scan", () => {
+describe("buildClusterDetailData: a cluster larger than the scan", () => {
   /** The newest 2000 of a mass failure, all from the last half hour; every other one signature B. */
   const massFailure = () =>
     Array.from({ length: CLUSTER_SCAN_LIMIT }, (_, n) => ({
@@ -386,7 +386,7 @@ describe("buildClusterDetailData — a cluster larger than the scan", () => {
       firstSeen: null,
       totalMatching: CLUSTER_SCAN_LIMIT / 2,
     })
-    // /incident/count cannot filter by message — it is not asked.
+    // /incident/count cannot filter by message: it is not asked.
     expect(engine.requests.filter((r) => r.path === "/incident/count")).toEqual([])
   })
 

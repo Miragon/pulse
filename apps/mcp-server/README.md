@@ -76,7 +76,7 @@ docker run --rm -p 127.0.0.1:8400:8400 \
   -e PROMETHEUS_URL=http://host.docker.internal:9090 \
   ghcr.io/miragon/pulse-server:latest
 
-# From source (local dev — needs the Docker infra; see the root README)
+# From source (local dev: needs the Docker infra; see the root README)
 pnpm dev          # build:ui + mcp-use dev on :8400, inspector at /mcp/inspector
 pnpm build        # build:ui (Vite widget bundle) + build:server (tsc)
 pnpm start        # run the compiled server from dist/

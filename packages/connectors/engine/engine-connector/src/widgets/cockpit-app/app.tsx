@@ -251,7 +251,7 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
   if (scope.kind === "landing") {
     return (
       <NavigationFocus viewKey={nav.key} label={nav.label}>
-        {/* The model hears the picker as the picker — no engine is in scope. */}
+        {/* The model hears the picker as the picker: no engine is in scope. */}
         <HostModelContext content={context(landingContext(engineGroups))}>{null}</HostModelContext>
         <LandingChooser
           engines={engines}

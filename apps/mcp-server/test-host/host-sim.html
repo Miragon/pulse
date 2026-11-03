@@ -23,7 +23,7 @@
   <body>
     <!-- Strictest sandbox a host can pick: scripts only, opaque origin (no
          storage, no same-origin access). Real hosts add allow-same-origin on
-         a separate sandbox origin — a view that works here works there. -->
+         a separate sandbox origin. A view that works here works there. -->
     <iframe id="app" sandbox="allow-scripts" title="view under test"></iframe>
     <script type="module">
       // Minimal SEP-1865 (MCP Apps) host. It renders the view document the
@@ -81,7 +81,7 @@
         // The view sent ui/initialize (answered `initDelayMs` later).
         initializeRequested: false,
         initialized: false,
-        // Date.now() when the view sent `initialized` — the clock `resultDelayMs` runs on.
+        // Date.now() when the view sent `initialized`, the clock `resultDelayMs` runs on.
         initializedAt: null,
         // "result" | "cancelled" once the host finished the rendering call.
         delivered: null,
@@ -140,7 +140,7 @@
       }
 
       // The "model's" invocation completes before the view mounts, so the
-      // result's timing is exactly `resultDelayMs` after `initialized` — never
+      // result's timing is exactly `resultDelayMs` after `initialized`, never
       // the backend's latency on a loaded CI runner.
       const [originalCall, viewResponse] = await Promise.all([
         backendCall(scenario.tool, scenario.args),
@@ -150,7 +150,7 @@
       if (!viewResponse.ok) throw new Error(view.error?.message ?? "view read failed")
       const meta = `<meta http-equiv="Content-Security-Policy" content="${cspFor(view.csp)}">`
       // The CSP must open <head>, ahead of every script, or the "nothing is
-      // blocked" check runs without one — refuse a document without a <head>.
+      // blocked" check runs without one. Refuse a document without a <head>.
       const headOpen = /<head(?:\s[^>]*)?>/i
       if (!headOpen.test(view.html)) {
         const reason = "view document has no <head>: the CSP cannot be injected"
@@ -211,7 +211,7 @@
 
       function initializeResult(m) {
         return {
-          // Echo the guest's version — this host speaks whatever it asks for.
+          // Echo the guest's version: this host speaks whatever it asks for.
           protocolVersion: m.params?.protocolVersion ?? "2025-11-21",
           hostInfo: { name: "miragon-host-sim", version: "1.0.0" },
           hostCapabilities: {

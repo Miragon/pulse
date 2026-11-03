@@ -24,7 +24,7 @@ export function DetailPage({
   header: ReactNode
   kpi?: ReactNode
   diagram?: ReactNode
-  /** Tabbed body — takes precedence over `content` when non-empty. */
+  /** Tabbed body. Takes precedence over `content` when non-empty. */
   tabs?: DetailPageTab[]
   /** Single-block body for pages where tabs would split cohesive context. */
   content?: ReactNode

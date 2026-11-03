@@ -13,7 +13,7 @@ WORKDIR /app
 
 # The pnpm store (/pnpm/store, derived from PNPM_HOME) must live IN the layer, never in a
 # `--mount=type=cache`: registry caches (`cache-to: type=gha`) persist layers but not cache
-# mounts, so a cache-hit on this step would skip `pnpm fetch` and leave the store empty —
+# mounts, so a cache-hit on this step would skip `pnpm fetch` and leave the store empty:
 # the `--offline` install below then fails with ERR_PNPM_NO_OFFLINE_TARBALL.
 COPY pnpm-lock.yaml .npmrc ./
 RUN pnpm fetch
@@ -24,7 +24,7 @@ COPY packages/ packages/
 
 RUN pnpm install --frozen-lockfile --offline
 
-# Turbo's cache is a pure accelerator — an empty one only means a slower build.
+# Turbo's cache is a pure accelerator: an empty one only means a slower build.
 RUN --mount=type=cache,id=turbo-server,target=/app/.turbo \
     pnpm turbo build --filter=@miragon/pulse-mcp-server...
 

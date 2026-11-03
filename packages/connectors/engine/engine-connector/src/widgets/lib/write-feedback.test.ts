@@ -18,7 +18,7 @@ describe("instanceName", () => {
 })
 
 describe("instanceTargetLines", () => {
-  it("leads with the business key, then the short id — never the bare UUID", () => {
+  it("leads with the business key, then the short id, never the bare UUID", () => {
     const id = "5f0ce78e-6b1d-11ef-9c3a-0242ac120002"
     expect(instanceTargetLines(tFor("de"), id, "LEA-2026-00424")).toEqual([
       ["Geschäftsschlüssel", "LEA-2026-00424"],
@@ -28,7 +28,7 @@ describe("instanceTargetLines", () => {
   })
 })
 
-describe("writeFeedback — every write names its object (U9)", () => {
+describe("writeFeedback: every write names its object (U9)", () => {
   const de = tFor("de")
   const en = tFor("en")
 

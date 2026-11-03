@@ -112,7 +112,7 @@ function toProcess(
     .sort((a, b) => b[1].length - a[1].length)
     .map(([activityId, rows]) => ({
       activityId,
-      // No BPMN on the overview — the definition view resolves display names.
+      // No BPMN on the overview: the definition view resolves display names.
       activityName: null,
       scannedIncidentCount: rows.length,
       ...scanFacts(rows, { fullyScanned, scan: ctx.scan, cutoffMs: ctx.cutoffMs }),

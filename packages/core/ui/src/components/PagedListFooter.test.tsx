@@ -46,7 +46,7 @@ const statusOf = (html: string) =>
     .replace(/\s+/g, " ")
     .trim()
 
-describe("PagedListFooter — settled and in-flight states", () => {
+describe("PagedListFooter: settled and in-flight states", () => {
   it("a settled page: the count in the live region, Load more, no alert", () => {
     const html = render(paged())
     expect(statusOf(html)).toBe("Showing 2 of 3 items")
@@ -77,7 +77,7 @@ describe("PagedListFooter — settled and in-flight states", () => {
   })
 })
 
-describe("PagedListFooter — two failures, two retries", () => {
+describe("PagedListFooter: two failures, two retries", () => {
   const failed = new Error("[503] engine down")
 
   it("a failed search over the previous rows: a warning alert whose retry re-runs page 0", () => {

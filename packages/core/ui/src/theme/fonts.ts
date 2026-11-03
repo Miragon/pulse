@@ -62,7 +62,7 @@ function face(family: string, url: string, display: string): string {
 
 /**
  * The `@font-face` rules for Geist and Geist Mono (latin, variable weight
- * 100–900) served from `baseUrl`. Pure — inject the string where your app
+ * 100–900) served from `baseUrl`. Pure: inject the string where your app
  * builds its document, e.g. `<style>{fontFaces({ baseUrl })}</style>`.
  *
  * @example

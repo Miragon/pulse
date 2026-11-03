@@ -45,7 +45,7 @@ const row = (n: number, activityId: string, definitionId: string) => ({
 // `incidentTotal` is what /incident/count reports.
 function definitionRoutes(scan: unknown[], incidentTotal: number): FakeRoutes {
   return {
-    // The key's latest version over every tenant — the list endpoint.
+    // The key's latest version over every tenant (the list endpoint).
     "GET /process-definition": {
       body: [{ id: V2, key: KEY, name: "Leasing", version: 2, tenantId: "acme" }],
     },
@@ -76,7 +76,7 @@ async function build(routes: FakeRoutes) {
 const queriesOf = (requests: RecordedRequest[], path: string) =>
   requests.filter((r) => r.path === path).map((r) => r.query)
 
-describe("buildProcessIncidentsData — key-wide (#335 N60)", () => {
+describe("buildProcessIncidentsData: key-wide (#335 N60)", () => {
   it("counts every version through key-scoped /count endpoints in two parallel stages (N67)", async () => {
     // A complete scan: three incidents, on v1 AND v2.
     const scan = [row(0, "assess", V2), row(1, "assess", V1), row(2, "oldTask", V1)]
@@ -91,12 +91,12 @@ describe("buildProcessIncidentsData — key-wide (#335 N60)", () => {
       incidentCount: 3,
       last24hCount: 4,
       // "1 of the diagram's 2": oldTask (v1 only) has incidents but is no
-      // activity of the v2 diagram — it stays in `activities`, outside the
+      // activity of the v2 diagram: it stays in `activities`, outside the
       // fraction, which would otherwise read "2 of 2".
       totalActivityCount: 2,
       affectedDiagramActivityCount: 1,
       latestIncident: scan[0].incidentTimestamp,
-      // Only the empty state reads other processes — unread is null, never [].
+      // Only the empty state reads other processes. Unread is null, never [].
       siblingsWithIncidents: null,
     })
     // Per activity, across versions; an activity only v1 has keeps its id.
@@ -144,7 +144,7 @@ describe("buildProcessIncidentsData — key-wide (#335 N60)", () => {
     ])
   })
 
-  it("resolves a key deployed for a tenant — /process-definition/key/{key} only knows tenant-less ones", async () => {
+  it("resolves a key deployed for a tenant: /process-definition/key/{key} only knows tenant-less ones", async () => {
     // definitionRoutes answers the tenant-less endpoints with the engine's 404.
     const { data } = await build(definitionRoutes([row(0, "assess", V2)], 1))
 
@@ -152,14 +152,14 @@ describe("buildProcessIncidentsData — key-wide (#335 N60)", () => {
     expect(data.diagramDefinitionId).toBe(V2)
   })
 
-  it("fails on a key no version is deployed for — never a view of zeros", async () => {
+  it("fails on a key no version is deployed for, never a view of zeros", async () => {
     await expect(
       build({ ...definitionRoutes([], 0), "GET /process-definition": { body: [] } }),
     ).rejects.toThrow(`No process definition with key "${KEY}" is deployed on this engine.`)
   })
 
   it("sums the activity statistics of every version with incidents when the scan is capped", async () => {
-    // 263 open incidents; the 200-row scan holds only the newest — none of oldTask's.
+    // 263 open incidents; the 200-row scan holds only the newest, none of oldTask's.
     const scan = [
       ...Array.from({ length: 180 }, (_, n) => row(n, "assess", n % 2 ? V1 : V2)),
       ...Array.from({ length: 20 }, (_, n) => row(180 + n, "sendPolicy", V2)),
@@ -190,7 +190,7 @@ describe("buildProcessIncidentsData — key-wide (#335 N60)", () => {
       },
     })
 
-    // Exact per-activity counts summing to the key's 263 — the old view
+    // Exact per-activity counts summing to the key's 263. The old view
     // showed v2 only (150) next to a key-wide total.
     expect(data.activities.map((a) => [a.activityId, a.incidentCount])).toEqual([
       ["assess", 220],
@@ -208,7 +208,7 @@ describe("buildProcessIncidentsData — key-wide (#335 N60)", () => {
     expect(queriesOf(requests, "/process-definition/statistics")).toEqual([{ incidents: "true" }])
   })
 
-  it("offers the keys that DO have incidents when this one has none — null when unreadable", async () => {
+  it("offers the keys that DO have incidents when this one has none; null when unreadable", async () => {
     const siblings = await build({
       ...definitionRoutes([], 0),
       "GET /process-definition/statistics": {
@@ -240,7 +240,7 @@ describe("buildProcessIncidentsData — key-wide (#335 N60)", () => {
   })
 })
 
-describe("buildActivityIncidentsData — one page of an activity's incidents (N67)", () => {
+describe("buildActivityIncidentsData: one page of an activity's incidents (N67)", () => {
   it("pages engine-side with the exact total and links each row to its own version", async () => {
     const engine = await startFakeEngine({
       "GET /incident": { body: [row(0, "assess", V1)] },
@@ -275,7 +275,7 @@ describe("buildActivityIncidentsData — one page of an activity's incidents (N6
         ["/incident/count", { processDefinitionKeyIn: KEY, activityId: "assess" }],
       ]),
     )
-    // No statistics or definition lookup per expanded group — only the page's
+    // No statistics or definition lookup per expanded group, only the page's
     // business keys, ONE read (#322 U13).
     expect(engine.requests.map((r) => r.path)).toEqual(
       expect.arrayContaining(["/incident", "/incident/count", "/process-instance"]),
@@ -317,7 +317,7 @@ describe("buildActivityIncidentsData — one page of an activity's incidents (N6
 
   it("links a row on a bare generated definition id by the view's key, never its UUID", async () => {
     // A key over ~25 characters with UUID ids: the engine stores a bare id
-    // that names no key (and no version) — the rows still run on the queried key.
+    // that names no key (and no version), but the rows still run on the queried key.
     const longKey = "customerOnboardingApprovalProcess"
     const uuid = "6f1c2a9e-0b7d-4c33-9a51-3d2e8f40b7aa"
     const engine = await startFakeEngine({
@@ -334,7 +334,7 @@ describe("buildActivityIncidentsData — one page of an activity's incidents (N6
     })
 
     const url = data.incidents[0].cockpitInstanceUrl
-    // The CIB Seven route by key; an unknown version is left out (latest).
+    // The CIB seven route by key; an unknown version is left out (latest).
     expect(url).toContain(`/process/${longKey}/pi-assess-0?tab=incidents`)
     expect(url).not.toContain(uuid)
     // The rows' business keys, never a definition lookup.
@@ -344,7 +344,7 @@ describe("buildActivityIncidentsData — one page of an activity's incidents (N6
 
 // One rule with analytics (`readBpmnNames`): an unnamed definition takes its pool
 // name, in the title and in the empty state alike.
-describe("buildProcessIncidentsData — names from a Modeler pool", () => {
+describe("buildProcessIncidentsData: names from a Modeler pool", () => {
   const pooled = (key: string) =>
     `<definitions><collaboration id="C"><participant id="Pool" name="Pool of ${key}" processRef="${key}"/></collaboration><process id="${key}"/></definitions>`
 

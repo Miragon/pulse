@@ -13,7 +13,7 @@ export interface BpmnZoomControlsProps {
   onZoomOut: () => void
   onFit: () => void
   labels?: BpmnZoomControlsLabels
-  /** Merged over the default placement — e.g. `top-6 right-6` repositions. */
+  /** Merged over the default placement (e.g. `top-6 right-6` repositions). */
   className?: string
 }
 

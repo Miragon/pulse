@@ -4,7 +4,7 @@ import { catalogTextFindings } from "./catalog-text.js"
 const rules = (catalog: Record<string, unknown>, language: "de" | "en" = "de") =>
   catalogTextFindings(catalog, { language }).map((f) => `${f.key}:${f.rule}`)
 
-describe("catalogTextFindings — the voice rules over a message catalog", () => {
+describe("catalogTextFindings: the voice rules over a message catalog", () => {
   it("passes a clean catalog in both languages", () => {
     const de = {
       a: "Die Liste konnte nicht aktualisiert werden. Du siehst das vorherige Ergebnis.",

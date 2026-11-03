@@ -57,9 +57,9 @@ function uiBlock(meta: Record<string, unknown>): Record<string, unknown> {
  * claude.ai) actually see on tools/list, resources/list and resources/read.
  * Since mcp-use 2 the MCP Apps half (`_meta.ui.*`, the `ui://views/<tool>.html`
  * resources, the CSP) is emitted natively from each tool's `view`/`visibility`
- * binding — one view PER TOOL instead of 1.x's single shared app resource —
+ * binding (one view PER TOOL instead of 1.x's single shared app resource),
  * while widget-shell's `showToolBinding` stamps the Apps SDK half
- * (`openai/*`). The name-based checks are the load-bearing part — they cover
+ * (`openai/*`). The name-based checks are the load-bearing part: they cover
  * every module this app composes, including custom ones, without listing tools
  * by hand: a `*_show_*` tool without its view binding hangs on the host's
  * loading skeleton; a model-visible `*_data` feed gets rendered by the host
@@ -87,7 +87,7 @@ describe("widget wire contract (dual-protocol _meta)", () => {
       version: packageVersion(),
       title: "Acme MCP",
     })
-    // Your preamble first, then each active module's own snippet — joined by
+    // Your preamble first, then each active module's own snippet, joined by
     // the shared boot, so the Miragon modules' routing rules (the engine module's
     // engine precedence, analytics' engine filter) reach the model with no
     // code here. A custom module adds one via `instructions` on its definition.
@@ -135,7 +135,7 @@ describe("widget wire contract (dual-protocol _meta)", () => {
     }
   })
 
-  it("carries widget _meta on every *_show_* tool (name-based — catches a forgotten view binding)", () => {
+  it("carries widget _meta on every *_show_* tool (name-based; catches a forgotten view binding)", () => {
     // The meta-derived filter above can only check tools that HAVE meta; a
     // show tool that forgot its view binding would silently drop out of it and
     // hang on the host's loading skeleton. The naming convention is the
@@ -152,7 +152,7 @@ describe("widget wire contract (dual-protocol _meta)", () => {
     }
   })
 
-  it("marks every *_data feed app-only + widget-accessible (name-based — catches a forgotten visibility)", () => {
+  it("marks every *_data feed app-only + widget-accessible (name-based; catches a forgotten visibility)", () => {
     const dataTools = tools.filter((t) => t.name.endsWith("_data"))
     expect(dataTools.length).toBeGreaterThanOrEqual(5)
     for (const tool of dataTools) {
@@ -160,14 +160,14 @@ describe("widget wire contract (dual-protocol _meta)", () => {
       const ui = uiBlock(meta)
       expect(
         Array.isArray(ui.visibility) && (ui.visibility as unknown[]).includes("app"),
-        `${tool.name}: *_data feeds must carry visibility ["app"] — a model-visible feed ` +
+        `${tool.name}: *_data feeds must carry visibility ["app"]: a model-visible feed ` +
           `would be rendered by the host instead of feeding the in-widget callTool`,
       ).toBe(true)
       expect(ui.resourceUri, `${tool.name}: *_data feeds must not carry a resourceUri`).toBe(
         undefined,
       )
       // The Apps-SDK half of the dual contract: those hosts only allow
-      // in-widget callTool on tools carrying the key — a feed without it
+      // in-widget callTool on tools carrying the key; a feed without it
       // renders fine but every pagination/search/refresh is denied.
       expect(
         meta["openai/widgetAccessible"],
@@ -190,7 +190,7 @@ describe("widget wire contract (dual-protocol _meta)", () => {
       // A RENDERING key on an app-only feed would make hosts render its
       // result instead of returning it to the in-widget callTool.
       // `openai/widgetAccessible` is deliberately NOT in this list: it renders
-      // nothing — it only authorizes the in-widget callTool on Apps-SDK hosts.
+      // nothing; it only authorizes the in-widget callTool on Apps-SDK hosts.
       expect(meta, `${label} must not advertise an output template`).not.toHaveProperty(
         "openai/outputTemplate",
       )
@@ -260,8 +260,8 @@ describe("widget wire contract (dual-protocol _meta)", () => {
     expect(csp!.connectDomains).toContain(serverOrigin)
   })
 
-  it("admits the server's origin for resources on EVERY view — where the view loads Geist from", async () => {
-    // Without MCP_URL the origin is the one the host read the view from — the
+  it("admits the server's origin for resources on EVERY view, where the view loads Geist from", async () => {
+    // Without MCP_URL the origin is the one the host read the view from, the
     // same origin the view resolves its font URLs against.
     const { resources } = await client.listResources()
     const views = resources.filter((r) => r.uri.startsWith(VIEW_RESOURCE_URI_PREFIX))
@@ -293,11 +293,11 @@ async function readResourceDomains(client: Client, uri: string): Promise<string[
 
 /**
  * Behind its public URL (`MCP_URL`) the server declares that origin itself on
- * every view-bound tool — the shell's, the Miragon modules' and YOUR modules'
- * alike, listed and read, and in the Apps SDK half (`openai/widgetCSP`) — so
+ * every view-bound tool (the shell's, the Miragon modules' and YOUR modules'
+ * alike, listed and read, and in the Apps SDK half, `openai/widgetCSP`), so
  * a host admits the font route the views load Geist from.
  */
-describe("widget wire contract — the font origin under MCP_URL", () => {
+describe("widget wire contract: the font origin under MCP_URL", () => {
   const PUBLIC_ORIGIN = "https://mcp.acme.test"
   let app: RunningServer
   let client: Client

@@ -8,7 +8,7 @@ pnpm-lock.yaml
 CHANGELOG.md
 
 # tools/list goldens: written byte-exact by the golden helper (JSON.stringify,
-# 2 spaces) under GOLDEN_UPDATE=1 — Prettier would re-wrap their arrays and
+# 2 spaces) under GOLDEN_UPDATE=1; Prettier would re-wrap their arrays and
 # the next update would fight it. Reviewed as JSON diffs, never hand-edited.
 apps/*/test/__golden__/
 

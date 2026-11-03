@@ -2,7 +2,7 @@ global:
   scrape_interval: 15s
   evaluation_interval: 15s
 
-# CIB Seven operational alert rules. Prometheus evaluates them and exposes the
+# CIB seven operational alert rules. Prometheus evaluates them and exposes the
 # state via the `ALERTS` metric / `/api/v1/alerts`. Wire an Alertmanager under
 # `alerting:` to route notifications.
 rule_files:

@@ -22,7 +22,7 @@ export interface WidgetHeaderProps {
   size?: "default" | "detail"
   /** Inline after the title inside the heading (e.g. a version chip). */
   titleSuffix?: ReactNode
-  /** Above the title — a `StatusBadge` that says the state in words. */
+  /** Above the title: a `StatusBadge` that says the state in words. */
   badge?: ReactNode
   /** Subtitle/meta row under the title (e.g. a live pill + counts), a 13 px caption row. */
   sub?: ReactNode

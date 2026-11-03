@@ -35,7 +35,7 @@ const wrapper = host.wrapper
 const answer = (page: Page) => ({ structuredContent: page })
 
 interface Props {
-  /** The handed-in page 0 — dropped by `usePagedListView` once a filter is set. */
+  /** The handed-in page 0, dropped by `usePagedListView` once a filter is set. */
   initialData: Page | null
   args: Record<string, unknown>
 }
@@ -81,7 +81,7 @@ afterEach(async () => {
   await host.dispose()
 })
 
-describe("usePagedViewData — a seeded page 0 that keeps its rows (real query stack)", () => {
+describe("usePagedViewData: a seeded page 0 that keeps its rows (real query stack)", () => {
   it("serves the seed without a fetch; a write's invalidation replaces it and collapses the pages", async () => {
     const { result } = setup({ initialData: SEED, args: {} })
     await act(() => new Promise((resolve) => setTimeout(resolve, 20)))
@@ -99,7 +99,7 @@ describe("usePagedViewData — a seeded page 0 that keeps its rows (real query s
     expect(result.current.stale).toBe(false)
   })
 
-  it("keeps the seeded rows while a search's page 0 is in flight — stale, no next page of them", async () => {
+  it("keeps the seeded rows while a search's page 0 is in flight: stale, no next page of them", async () => {
     let land!: (value: unknown) => void
     callTool.mockReturnValue(new Promise((resolve) => (land = resolve)))
     const { result, rerender } = setup({ initialData: SEED, args: {} })
@@ -120,7 +120,7 @@ describe("usePagedViewData — a seeded page 0 that keeps its rows (real query s
     expect(result.current.refreshing).toBe(false)
   })
 
-  it("a cleared search shows the refetched page 0 again — the old seed never rolls it back", async () => {
+  it("a cleared search shows the refetched page 0 again: the old seed never rolls it back", async () => {
     const { result, rerender } = setup({ initialData: SEED, args: {} })
     callTool.mockResolvedValue(answer({ items: ["a2", "b2"], total: 4 }))
     await act(() => host.client().invalidateQueries({ queryKey: ["test:paged"] }))
@@ -137,7 +137,7 @@ describe("usePagedViewData — a seeded page 0 that keeps its rows (real query s
   })
 })
 
-describe("usePagedViewData — a failed page 0 over the rows on screen, from its first attempt", () => {
+describe("usePagedViewData: a failed page 0 over the rows on screen, from its first attempt", () => {
   it("an invalidation's refetch: the error is up while the client still retries", async () => {
     const { result } = setup({ initialData: SEED, args: {} })
     callTool.mockRejectedValue(new Error("engine down"))
@@ -146,7 +146,7 @@ describe("usePagedViewData — a failed page 0 over the rows on screen, from its
 
     await waitFor(() => expect(result.current.error?.message).toBe("engine down"))
     expect(callTool).toHaveBeenCalledTimes(1)
-    // The rows are this filter's last good answer — unconfirmed, not stale.
+    // The rows are this filter's last good answer: unconfirmed, not stale.
     expect(result.current.firstPage).toBe(SEED)
     expect(result.current.stale).toBe(false)
     expect(result.current.refreshing).toBe(true)
@@ -165,7 +165,7 @@ describe("usePagedViewData — a failed page 0 over the rows on screen, from its
     expect(result.current.loading).toBe(false)
   })
 
-  it("no rows on screen: the guard keeps loading through the retries — no error yet", async () => {
+  it("no rows on screen: the guard keeps loading through the retries (no error yet)", async () => {
     callTool.mockRejectedValue(new Error("engine down"))
     const { result } = setup({ initialData: null, args: {} })
 
@@ -176,7 +176,7 @@ describe("usePagedViewData — a failed page 0 over the rows on screen, from its
     expect(result.current.loading).toBe(true)
   })
 
-  it("its Retry during the client's backoff is a new read at once — not a wait for the running chain", async () => {
+  it("its Retry during the client's backoff is a new read at once, not a wait for the running chain", async () => {
     callTool.mockRejectedValueOnce(new Error("engine down"))
     const { rerender } = render(<ListFooter initialData={SEED} args={{}} />, { wrapper })
     rerender(<ListFooter initialData={null} args={SEARCH} />)

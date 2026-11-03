@@ -64,7 +64,7 @@ subprojects {
     }
 
     // Publishing to Maven Central (Sonatype Central Portal) is configured per
-    // publishable module via the Vanniktech Maven Publish plugin — see
+    // publishable module via the Vanniktech Maven Publish plugin; see
     // `cibseven-history-metrics/build.gradle.kts`. `konsist` is test-only and
     // applies no publishing. `publish-to-maven.yml` runs
     // `publishAndReleaseToMavenCentral` from the release train.

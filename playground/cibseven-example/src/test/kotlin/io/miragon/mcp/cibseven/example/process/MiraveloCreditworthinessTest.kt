@@ -18,7 +18,7 @@ import org.junit.jupiter.api.extension.RegisterExtension
  * happy path plus each of the three "risk identified" error boundaries.
  *
  * The sub-process declares three error boundary events without an `errorRef`
- * attribute — this is one of the BPMN-modelling defects we expect these tests
+ * attribute. This is one of the BPMN-modelling defects we expect these tests
  * to surface (Camunda treats missing errorRef as catch-all, but with no
  * `<bpmn:error>` declaration the error code propagation is brittle).
  */

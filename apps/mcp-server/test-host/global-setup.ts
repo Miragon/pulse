@@ -40,10 +40,10 @@ async function deploy(env: Record<string, string>): Promise<Deployment> {
 
 /**
  * Boots the system under test once per run: the REAL composition root
- * (`createApp`, i.e. what `src/index.ts` runs — plugins, view resources, the
+ * (`createApp`, i.e. what `src/index.ts` runs: plugins, view resources, the
  * HTTP edge) serving the BUILT widget bundle (`dist/mcp-app.{js,css}`, from
  * `build:ui`), against a stub engine, plus the host's server side in front of
- * it. Everything listens on ephemeral loopback ports — parallel runs in other
+ * it. Everything listens on ephemeral loopback ports: parallel runs in other
  * checkouts can never collide or be reused by accident. The workers find the
  * host page via `HOST_SIM_URL`, the write-capable deployment via
  * `HOST_SIM_OPERATIONS_URL`, the realistic engine's deployment via
@@ -61,7 +61,7 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
     ]),
     PROMETHEUS_URL: prometheus.url,
   }
-  // The default deployment: no OAuth, so every module runs read-only — the
+  // The default deployment (no OAuth, so every module runs read-only) is the
   // widest audience a view has to work for.
   const readOnly = await deploy(engines)
   // A gateway-fronted deployment naming its toolset: the widget writes are

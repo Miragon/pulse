@@ -27,7 +27,7 @@ function client(reporting: string[] = []): PrometheusClient {
   }
 }
 
-describe("asOf — when the figures were read", () => {
+describe("asOf: when the figures were read", () => {
   it("stamps every view result with the query time", async () => {
     const results = await Promise.all([
       dashboardData(client(), { period: "7d" }),
@@ -66,7 +66,7 @@ describe("asOf — when the figures were read", () => {
   })
 })
 
-describe("reportingEngines — which engines in scope send metrics", () => {
+describe("reportingEngines: which engines in scope send metrics", () => {
   it("lists the engines the presence probe answered for, ascending and once each", async () => {
     const res = await dashboardData(client(["prod-c", "prod-a", "prod-c"]), {
       period: "7d",

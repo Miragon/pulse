@@ -97,7 +97,7 @@ describe("ViewFrame: before the view", () => {
     expect(lines.at(-1)).toContain("cancelled before it rendered")
   })
 
-  it("says the app can't show a view it has no component for — no retry", () => {
+  it("says the app can't show a view it has no component for: no retry", () => {
     const { lines } = renderFrame({ phase: "ready", data: {}, reloadedAt: null }, { view: null })
     expect(
       screen.getByText("This app can't show this view. Ask in the chat to open it again."),

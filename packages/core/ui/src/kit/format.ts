@@ -92,7 +92,7 @@ export function formatNumber(
 export interface PercentFormatOptions {
   /** Default 1, raised to `minimumFractionDigits` when that is larger. */
   maximumFractionDigits?: number
-  /** Default 0 — set it equal to the maximum for aligned table columns. */
+  /** Default 0; set it equal to the maximum for aligned table columns. */
   minimumFractionDigits?: number
   signed?: boolean
 }

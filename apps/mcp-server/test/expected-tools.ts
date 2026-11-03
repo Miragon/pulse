@@ -88,7 +88,7 @@ const OPERATIONS_ADDS: readonly string[] = [
   "engine_unclaim_task",
 ]
 
-/** What `engine:admin` (+ ENGINE_ALLOW_DEPLOYMENTS=true) adds — never implied. */
+/** What `engine:admin` (+ ENGINE_ALLOW_DEPLOYMENTS=true) adds, never implied. */
 const ADMIN_ADDS: readonly string[] = [
   "engine_complete_external_task",
   "engine_create_deployment",

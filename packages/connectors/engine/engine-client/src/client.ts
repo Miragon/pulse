@@ -35,8 +35,8 @@ export interface EngineClientOptions {
   /**
    * Token source for `authType: "passthrough"`, called on every request; the
    * returned bearer token (without the `Bearer ` scheme prefix) is sent as
-   * the `Authorization` header. When it returns `undefined` — or no provider
-   * is given — the request is sent without auth, like `authType: "none"`;
+   * the `Authorization` header. When it returns `undefined` (or no provider
+   * is given), the request is sent without auth, like `authType: "none"`;
    * an engine with REST auth enabled then answers 401.
    */
   tokenProvider?: () => string | undefined
@@ -54,12 +54,12 @@ function buildAuthHeader(options: EngineClientOptions): Record<string, string> {
   if (authType === "bearer" && token) {
     return { Authorization: `Bearer ${token}` }
   }
-  // "passthrough" deliberately sets no static header — the per-request
+  // "passthrough" deliberately sets no static header: the per-request
   // interceptor below owns the Authorization header instead.
   return {}
 }
 
-/** The remedy a 401 message names — it depends on where the credential came from. */
+/** The remedy a 401 message names: it depends on where the credential came from. */
 function unauthorizedHint(options: EngineClientOptions): string {
   switch (options.authType ?? "none") {
     case "passthrough":
@@ -97,7 +97,7 @@ function credentialsOf(options: EngineClientOptions, request: Request | undefine
 /**
  * Per-engine client factory. All defaults (JSON content negotiation headers,
  * `throwOnError`, `responseStyle`) come from `createClientConfig` in
- * src/hey-api.ts — the same function the generated default client uses — so
+ * src/hey-api.ts (the same function the generated default client uses), so
  * runtime behavior and the generated SDK types stay in sync.
  *
  * Every client, whatever its auth type, carries a per-request deadline in its
@@ -105,8 +105,8 @@ function credentialsOf(options: EngineClientOptions, request: Request | undefine
  * an error interceptor that maps every failure to an `EngineRequestError`
  * (status, exception type, engine message, engine id; credentials masked).
  *
- * The deadline binds the request as it LEAVES — after every request
- * interceptor — so an interceptor that returns a new `Request` can neither
+ * The deadline binds the request as it LEAVES (after every request
+ * interceptor), so an interceptor that returns a new `Request` can neither
  * detach it nor disguise it as a cancellation. A custom `fetch` (per call or
  * via `setConfig`) replaces the deadline with it: wrap
  * `client.getConfig().fetch` instead. Request interceptors should mutate the
@@ -144,7 +144,7 @@ export function createEngineClient(options: EngineClientOptions): Client {
     const { tokenProvider } = options
     // Not the hey-api `auth` option: the generated operations all declare the
     // `basic` security scheme, so `auth` would base64-mangle a bearer token.
-    // The interceptor must only ever touch Authorization — the multipart
+    // The interceptor must only ever touch Authorization: the multipart
     // operations rely on an absent Content-Type for the boundary parameter.
     client.interceptors.request.use((request) => {
       const token = tokenProvider()
@@ -171,7 +171,7 @@ export function createEngineClient(options: EngineClientOptions): Client {
   return client
 }
 
-/** The methods a caller's cancellation may abort — reads, never writes. */
+/** The methods a caller's cancellation may abort: reads, never writes. */
 const CANCELLABLE_METHODS = ["get", "head", "options"] as const
 
 /**

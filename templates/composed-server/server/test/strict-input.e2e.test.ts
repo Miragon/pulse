@@ -35,7 +35,7 @@ function errorText(result: unknown): string {
  * no more; a module without toolsets by its bare name). Together the boots
  * register every tool any toolset registers. The default boot would not: it
  * puts every module on its read-only floor, which hides every write tool
- * above it — an engine write, a destructive registrar tool —
+ * above it (an engine write, a destructive registrar tool):
  * exactly the tools where a dropped scoping key hurts most. Derived from
  * `MODULES`, not hand-listed: your module's toolsets are covered the moment
  * it declares them.
@@ -52,7 +52,7 @@ function toolsetSelections(): string[] {
 /**
  * Boot the composed server on `selection` and probe every tool not probed
  * yet with an unknown key. No toolset grants `engine_create_deployment`
- * on its own — it also needs the `ENGINE_ALLOW_DEPLOYMENTS` opt-in, so the
+ * on its own: it also needs the `ENGINE_ALLOW_DEPLOYMENTS` opt-in, so the
  * guard sets it.
  */
 async function probeBoot(selection: string, probed: Map<string, ProbedTool>): Promise<void> {
@@ -89,7 +89,7 @@ async function probeBoot(selection: string, probed: Map<string, ProbedTool>): Pr
  * misnamed optional filter then silently widens the result and the model
  * never learns. Registrar tools (`createToolRegistrar`) are always strict,
  * raw `server.tool()` registrations take `strictToolInput(shape)` (both from
- * `@miragon/pulse-widget-shell/server`) — then an unknown key is a tool error
+ * `@miragon/pulse-widget-shell/server`); then an unknown key is a tool error
  * naming the valid keys, which the model fixes in one retry.
  */
 describe("strict tool inputs on the wire (every module, every toolset)", () => {

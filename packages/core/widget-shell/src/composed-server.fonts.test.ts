@@ -180,7 +180,7 @@ describe("the font route", () => {
     expect(hostedView.status).toBe(200)
   })
 
-  it("admits MCP_URL's host — where a hosted view reaches the server", async () => {
+  it("admits MCP_URL's host, where a hosted view reaches the server", async () => {
     const server = await boot({ MCP_URL: "https://mcp.example.test/mcp" })
     const res = await request(server.port, { path: SANS, headers: { host: "mcp.example.test" } })
     expect(res.status).toBe(200)

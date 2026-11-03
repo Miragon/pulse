@@ -54,7 +54,7 @@ describe("dedupe", () => {
   })
 })
 
-describe("applyHighlights — marker priority", () => {
+describe("applyHighlights: marker priority", () => {
   it("applies running marker to plain active activities only", () => {
     const c = createMockCanvas()
     const o = createMockOverlays()
@@ -98,7 +98,7 @@ describe("applyHighlights — marker priority", () => {
   })
 })
 
-describe("applyHighlights — overlays", () => {
+describe("applyHighlights: overlays", () => {
   it("does not add a label badge for open-tasks (border pulse only)", () => {
     const c = createMockCanvas()
     const o = createMockOverlays()
@@ -182,7 +182,7 @@ describe("HIGHLIGHT_COLORS", () => {
   })
 })
 
-describe("applyHighlights — error tolerance", () => {
+describe("applyHighlights: error tolerance", () => {
   it("skips activities the canvas does not know about", () => {
     const calls: MarkerCall[] = []
     const canvas = {

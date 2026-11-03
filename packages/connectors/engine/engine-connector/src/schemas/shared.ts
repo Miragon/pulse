@@ -24,7 +24,7 @@ export const variableSchema = z.record(
 /**
  * The optional `variableName` of the runtime variable reads. A model-facing
  * read cuts long string values (`truncated: true`); naming one variable
- * returns it whole — the read a write-back must start from, since a cut value
+ * returns it whole, the read a write-back must start from, since a cut value
  * written back silently loses the rest.
  */
 export const wholeVariableParam = z
@@ -36,7 +36,7 @@ export const wholeVariableParam = z
  * The largest page any list/query tool returns. One page is what a model
  * reads in one turn: an uncapped `maxResults` let a single call pull an
  * engine's whole history into the context. More rows are one `nextOffset`
- * call away — the envelope says so.
+ * call away; the envelope says so.
  */
 export const MAX_PAGE_SIZE = 100
 

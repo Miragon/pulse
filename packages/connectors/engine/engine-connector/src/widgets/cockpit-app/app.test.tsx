@@ -116,7 +116,7 @@ function renderCockpit(
 
 describe("CockpitApp navigation is side-effect free", () => {
   // Navigation never moves the default engine, so the model must learn the viewed engine.
-  it("tells the model which engine the operator is viewing — and to pin it", async () => {
+  it("tells the model which engine the operator is viewing, and to pin it", async () => {
     const { modelContexts } = renderCockpit()
     fireEvent.click(await screen.findByRole("button", { name: /prod-a/ }))
     await waitFor(() => expect(modelContexts.at(-1)).toContain('Ids: engine="prod-a"'))
@@ -151,7 +151,7 @@ describe("CockpitApp opens on the bootstrap's engine", () => {
     expect(onLanding()).toBe(false)
   })
 
-  it("no resolved engine: the picker — and the model hears it is on the picker", async () => {
+  it("no resolved engine: the picker, and the model hears it is on the picker", async () => {
     const { modelContexts } = renderCockpit()
     expect(onLanding()).toBe(true)
     await waitFor(() => expect(modelContexts.at(-1)).toContain("engine picker"))

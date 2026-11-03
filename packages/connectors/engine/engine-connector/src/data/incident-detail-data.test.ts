@@ -31,7 +31,7 @@ const incident = (over: Record<string, unknown>) => ({
   ...over,
 })
 
-/** The incident's instance — primary: the tabs present its state as fact. */
+/** The incident's instance (primary): the tabs present its state as fact. */
 const INSTANCE: FakeRoutes = {
   "GET /process-instance/pi-1": { body: { id: "pi-1", definitionId: "def-1", suspended: false } },
   "GET /process-instance/pi-1/activity-instances": {
@@ -119,9 +119,9 @@ describe("buildIncidentDetailData through the engine contract", () => {
   })
 })
 
-describe("buildIncidentDetailData — the definition's real key", () => {
+describe("buildIncidentDetailData: the definition's real key", () => {
   // A key over ~25 characters with UUID ids: the engine stores a bare id, and
-  // a key parsed from it is that UUID — no key filter matches it.
+  // a key parsed from it is that UUID, which no key filter matches.
   const LONG_KEY = "customerOnboardingApprovalProcess"
   const UUID = "6f1c2a9e-0b7d-4c33-9a51-3d2e8f40b7aa"
 
@@ -141,7 +141,7 @@ describe("buildIncidentDetailData — the definition's real key", () => {
       processDefinitionName: "Onboarding",
       processDefinitionVersion: 4,
     })
-    // So does the CIB Seven cockpit link, which addresses the key.
+    // So does the CIB seven cockpit link, which addresses the key.
     expect(data.cockpitInstanceUrl).toContain(`/process/${LONG_KEY}/4/pi-1?tab=variables`)
   })
 
@@ -156,7 +156,7 @@ describe("buildIncidentDetailData — the definition's real key", () => {
     expect(data.cockpitInstanceUrl).toContain("/process/order/pi-1?tab=variables")
   })
 
-  it("builds no cockpit link from a bare id whose lookup failed — never the UUID as a key", async () => {
+  it("builds no cockpit link from a bare id whose lookup failed, never the UUID as a key", async () => {
     const { data } = await build({
       "GET /incident/inc-1": { body: incident({ processDefinitionId: UUID }) },
       "GET /job": { body: [] },
@@ -168,7 +168,7 @@ describe("buildIncidentDetailData — the definition's real key", () => {
     expect(data.cockpitInstanceUrl).toBeNull()
   })
 
-  it("names no key for an incident without a definition — and looks none up", async () => {
+  it("names no key for an incident without a definition and looks none up", async () => {
     const { data, engine } = await build({
       "GET /incident/inc-1": { body: incident({ processDefinitionId: null }) },
       "GET /job": { body: [] },
@@ -180,7 +180,7 @@ describe("buildIncidentDetailData — the definition's real key", () => {
 })
 
 // One rule with analytics (`readBpmnNames`): the head showed "Rechnung&#10;prüfen".
-describe("buildIncidentDetailData — names from a Modeler diagram", () => {
+describe("buildIncidentDetailData: names from a Modeler diagram", () => {
   it("names the activity with its references decoded and the process by its pool", async () => {
     const xml = `<definitions>
   <collaboration id="C"><participant id="Pool" name="Miravelo - Bike Leasing" processRef="order"/></collaboration>

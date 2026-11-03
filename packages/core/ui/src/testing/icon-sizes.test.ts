@@ -4,7 +4,7 @@ import { join } from "node:path"
 import { afterAll, describe, expect, it } from "vitest"
 import { iconSizeFindings, scanIconSizes } from "./icon-sizes.js"
 
-describe("iconSizeFindings — icons at the CI sizes only", () => {
+describe("iconSizeFindings: icons at the CI sizes only", () => {
   it("flags an off-size icon and spares the CI sizes, the default and string sizes", () => {
     const probe = [
       "const a = <Icon icon={TriangleAlert} size={14} dense />",

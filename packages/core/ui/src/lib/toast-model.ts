@@ -6,7 +6,7 @@
 
 import { resolveTone } from "./tone-utils.js"
 
-/** Status tone of a toast — the four status roles (`--success` … `--info`). */
+/** Status tone of a toast: the four status roles (`--success` … `--info`). */
 export type ToastTone = "success" | "warning" | "danger" | "info"
 
 /**
@@ -46,7 +46,7 @@ export interface ToastItem {
 
 /** Default lifetime of a toast (CI §8: about 2.8 s). */
 export const TOAST_DURATION_MS = 2800
-/** Lifetime of an error toast (CI §8: about 5 s) — long enough to read the reason. */
+/** Lifetime of an error toast (CI §8: about 5 s), long enough to read the reason. */
 export const TOAST_ERROR_DURATION_MS = 5000
 /** At most this many toasts stack; the oldest leaves first. */
 export const MAX_VISIBLE_TOASTS = 3
@@ -103,7 +103,7 @@ export interface ToastTimer {
   hold: (reason: string) => void
   /** Release `reason`; once nothing holds the toast, it resumes with the time that was left. */
   release: (reason: string) => void
-  /** The time left in ms — frozen while held. */
+  /** The time left in ms, frozen while held. */
   remaining: () => number
   /** Stop for good (the toast left early or unmounted); `onExpire` never fires afterwards. */
   cancel: () => void
@@ -111,7 +111,7 @@ export interface ToastTimer {
 
 /**
  * A pausable countdown: starts at once, pauses while anything holds it
- * (hover, keyboard focus — so a reader can finish), and on release RESUMES
+ * (hover, keyboard focus, so a reader can finish), and on release RESUMES
  * WITH THE REMAINING TIME instead of restarting the full duration. Fires
  * `onExpire` once.
  */

@@ -23,7 +23,7 @@ import {
  *
  * Scenarios titled "pinned …" assert the CURRENT behaviour of a known defect
  * that lives outside this repo's fix scope; each names its issue. When the
- * fix lands, the pin fails on purpose — flip it to the expected behaviour
+ * fix lands, the pin fails on purpose. Flip it to the expected behaviour
  * stated in its assertion message.
  */
 
@@ -104,7 +104,7 @@ interface Scenario {
 async function openView(page: Page, scenario: Scenario = {}): Promise<FrameLocator> {
   const hostEnv = scenario.hostEnv ?? "HOST_SIM_URL"
   const base = process.env[hostEnv]
-  if (!base) throw new Error(`${hostEnv} is unset — run via \`playwright test -c test-host\``)
+  if (!base) throw new Error(`${hostEnv} is unset. Run via \`playwright test -c test-host\``)
   const query = new URLSearchParams({
     tool: scenario.tool ?? RENDER_TOOL,
     args: JSON.stringify(scenario.args ?? { engine: HEALTHY_ENGINE }),
@@ -131,7 +131,7 @@ async function openView(page: Page, scenario: Scenario = {}): Promise<FrameLocat
 async function engineControl(action: "hold" | "release", term: string): Promise<void> {
   const base = process.env[ENGINE_CONTROL_ENV]
   if (!base)
-    throw new Error(`${ENGINE_CONTROL_ENV} is unset — run via \`playwright test -c test-host\``)
+    throw new Error(`${ENGINE_CONTROL_ENV} is unset. Run via \`playwright test -c test-host\``)
   const query = new URLSearchParams({ term })
   const res = await fetch(`${base}/__control/${action}?${query.toString()}`, { method: "POST" })
   expect(res.ok, `stub engine ${action} "${term}"`).toBe(true)
@@ -141,7 +141,7 @@ async function hostLog(page: Page): Promise<HostLog> {
   return await page.evaluate(() => (window as unknown as { __hostLog: HostLog }).__hostLog)
 }
 
-/** tools/call requests the VIEW sent for the rendering tool — re-executions. */
+/** tools/call requests the VIEW sent for the rendering tool: re-executions. */
 async function reExecutions(page: Page): Promise<HostLog["toolCalls"]> {
   return (await hostLog(page)).toolCalls.filter((c) => c.name === RENDER_TOOL)
 }
@@ -267,7 +267,7 @@ type DomNode = { nodeId: number; children?: DomNode[]; contentDocument?: DomNode
 
 /**
  * The fonts Chromium actually drew the text directly inside `locator` with
- * (CDP `CSS.getPlatformFontsForNode`) — not the computed stack, which names
+ * (CDP `CSS.getPlatformFontsForNode`), not the computed stack, which names
  * Geist first whether or not it loaded. The srcdoc view shares the page's
  * CDP session, so the probe pierces into the frame's document.
  */
@@ -348,8 +348,8 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
     await expect(app.getByRole("heading", { name: "All processes", exact: true })).toHaveCount(1)
     // Harness self-checks: the frame runs mcp-use's synthesized document
     // (its inline view config) with the view's name from the prelude,
-    // sandboxed to an opaque origin, under the host's CSP — the first element
-    // of <head>, ahead of every script.
+    // sandboxed to an opaque origin, under the host's CSP (the first element
+    // of <head>, ahead of every script).
     expect(
       await app.locator("html").evaluate(() => ({
         viewConfig: "__mcpUseViewConfig" in globalThis,
@@ -379,7 +379,7 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
     // and nothing throws …
     expect(errors).toEqual([])
     // … and that CSP is in force, so the empty list measured something: a
-    // load it does not allow is refused (and logged — after the check above).
+    // load it does not allow is refused (and logged, after the check above).
     expect(
       await app.locator("html").evaluate(
         () =>
@@ -644,7 +644,7 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
     expect(await app.locator("html").getAttribute("lang")).toBe("de")
   })
 
-  test("a slow handshake: nothing paints before the host context arrives — no English or OS-theme flash (#339)", async ({
+  test("a slow handshake: nothing paints before the host context arrives, no English or OS-theme flash (#339)", async ({
     page,
   }) => {
     const app = await openView(page, { initDelayMs: 3_000, theme: "dark", locale: "de-DE" })
@@ -686,7 +686,7 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
       return result
     })
     // The Miragon stack: Geist, then the host's font in the fallback slot,
-    // then the system — the host no longer replaces the whole stack …
+    // then the system. The host no longer replaces the whole stack …
     expect(fonts.roleInline).toBe("")
     expect(fonts.hostSlot).toBe('"Host Sim Sans", serif')
     expect(fonts.body).toMatch(/^"?Geist"?,/)
@@ -758,14 +758,14 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
       }
     })
     expect(container).toMatchObject({ maxHeight: "220px", scrolls: true })
-    // The report belongs to the capped list — at least the container — and
+    // The report belongs to the capped list (at least the container) and
     // stays inside the budget.
     const reported = await settledHeight(page, app)
     expect(reported).toBeGreaterThanOrEqual(Math.floor(container.height))
     expect(reported).toBeLessThanOrEqual(220)
   })
 
-  // #396: a list view fits a usual budget as a card — it never turns into one
+  // #396: a list view fits a usual budget as a card. It never turns into one
   // scroll box inside the chat (the 220 px case above is the safety net).
   test("a 600 px budget: the list view fits as a card, without a scroll of its own", async ({
     page,
@@ -810,7 +810,7 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
 /**
  * Geist and Geist Mono come from the server's own font route, admitted by the
  * view's CSP (`resourceDomains`). Where they cannot arrive, the host's font
- * renders — at once (`font-display: swap`) and without moving the layout.
+ * renders, at once (`font-display: swap`) and without moving the layout.
  */
 test.describe("served fonts (Geist from the server's font route)", () => {
   /** The name of the first definition (body text) and its key (an id, `font-mono`). */
@@ -819,7 +819,7 @@ test.describe("served fonts (Geist from the server's font route)", () => {
 
   /**
    * What the text of `locator` renders in WITHOUT Geist: a twin with the same
-   * text and size in the element's stack minus its Geist entries — the host's
+   * text and size in the element's stack minus its Geist entries: the host's
    * font where the host sent one, else the system's.
    */
   async function fallbackFonts(page: Page, app: FrameLocator, locator: Locator) {
@@ -1078,7 +1078,7 @@ const NARROW_WIDTH = 420
  * inside the box changes them along their whole length; one a clipping
  * wrapper cut away changes none, and one the pinned action column paints
  * over leaves the right side (and that column's stretch of the top and
- * bottom) unchanged — see {@link changedShare}.
+ * bottom) unchanged (see {@link changedShare}).
  */
 async function edgeStrips(page: Page, target: Locator): Promise<Buffer[]> {
   const box = await target.boundingBox()
@@ -1258,7 +1258,7 @@ test.describe("layout at the inline width (760 px, U2/U20, WCAG 1.4.10)", () => 
     expect((await hostLog(page)).methods).toContain("ui/message")
   })
 
-  test("a table wider than its region scrolls inside it — its last column comes into view", async ({
+  test("a table wider than its region scrolls inside it: its last column comes into view", async ({
     page,
   }) => {
     const app = await openView(page, { args: JOBS_ARGS, width: NARROW_WIDTH })
@@ -1408,7 +1408,7 @@ test.describe("cockpit (engine_open_cockpit)", () => {
   })
 
   // #322 U15: the picker is the engine list, each engine's state in words in
-  // its accessible name — an unreachable engine says so, never a grey dot.
+  // its accessible name: an unreachable engine says so, never a grey dot.
   test("without one, shows the engine picker", async ({ page }) => {
     const app = await openView(page, { tool: "engine_open_cockpit", args: {} })
     await expect(app.getByRole("heading", { level: 1, name: "Operations Cockpit" })).toBeVisible({

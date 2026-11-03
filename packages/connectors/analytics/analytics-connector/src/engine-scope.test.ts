@@ -207,7 +207,7 @@ describe("every engine-reading tool is scoped to the configured engines (N138)",
   )
 
   it.each(Object.entries(ARGS))(
-    "%s refuses — and reads nothing — while no engine is configured (fail-closed)",
+    "%s refuses (and reads nothing) while no engine is configured (fail-closed)",
     async (name, args) => {
       const { ch, sent } = recordingClient()
       const { refused } = await call(toolsOver(ch, createEngineScope([])).get(name)!, args)
@@ -266,14 +266,14 @@ describe("analyticsModule engine scope wiring", () => {
     expect(await fleetOf(config, {})).toEqual(["prod-a", "prod-b"])
   })
 
-  it("ignores ANALYTICS_ENGINE_IDS — saying so — when the root injects its engines", async () => {
+  it("ignores ANALYTICS_ENGINE_IDS (saying so) when the root injects its engines", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
     const config = analyticsModule.configFromEnv({ ANALYTICS_ENGINE_IDS: "tenant-x" })
     expect(await fleetOf(config, { engineIds: ["prod-a"] })).toEqual(["prod-a"])
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("ANALYTICS_ENGINE_IDS is ignored"))
   })
 
-  it("boots fail-closed — with a warning — when neither names an engine", async () => {
+  it("boots fail-closed, with a warning, when neither names an engine", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
     expect(await fleetOf({}, {})).toEqual([])
     expect(warn).toHaveBeenCalledWith(`[analytics] ${NO_ENGINE_SCOPE_MESSAGE}`)

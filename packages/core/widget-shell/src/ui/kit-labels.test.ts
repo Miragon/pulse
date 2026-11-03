@@ -16,7 +16,7 @@ function rendered(tag: string | undefined) {
   }
 }
 
-describe("kitLabels — the kit's own strings follow the active locale", () => {
+describe("kitLabels: the kit's own strings follow the active locale", () => {
   it("speaks German for any German tag", () => {
     for (const tag of ["de", "de-AT", "DE-ch"]) {
       expect(rendered(tag)).toEqual({

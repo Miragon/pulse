@@ -285,12 +285,12 @@ interface DrainContext {
 async function drain(ctx: DrainContext): Promise<void> {
   const { label, app, server, listener } = ctx
   ctx.state.draining = true
-  console.info(`[${label}] Draining — ${listener.inFlight} request(s) in flight`)
+  console.info(`[${label}] Draining: ${listener.inFlight} request(s) in flight`)
   const closed = new Promise<void>((resolve) => server.close(() => resolve()))
   server.closeIdleConnections()
   if (!(await settlesWithin(listener.idle(), ctx.drainTimeoutMs))) {
     console.warn(
-      `[${label}] Drain timed out after ${ctx.drainTimeoutMs}ms — closing ${listener.inFlight} request(s)`,
+      `[${label}] Drain timed out after ${ctx.drainTimeoutMs}ms: closing ${listener.inFlight} request(s)`,
     )
   }
   // Closing the MCP handler before the sockets ends streams cleanly instead of resetting them.
@@ -320,7 +320,7 @@ async function listen(
   const listener = createBodyLimitedListener(app, {
     maxBodyBytes: guard.maxBodyBytes,
     maxInFlightBodyBytes: guard.maxInFlightBodyBytes,
-    // The guard refuses these whatever their body says — never buffer it.
+    // The guard refuses these whatever their body says: never buffer it.
     refusedBeforeBody: (req) =>
       edgeRejection(
         {

@@ -1,9 +1,9 @@
 [versions]
 # Language / platform
 kotlin = "2.4.21"
-# Spring Boot 4.1.0 (latest). CIB Seven 2.2.0's matrix officially lists 4.0.x, but
-# 4.1.0 boots and serves cleanly here — engine, REST and the Cockpit/Tasklist
-# webapp were all verified by actually running the cibseven-example app — once the
+# Spring Boot 4.1.0 (latest). CIB seven 2.2.0's matrix officially lists 4.0.x, but
+# 4.1.0 boots and serves cleanly here (engine, REST and the Cockpit/Tasklist
+# webapp were all verified by actually running the cibseven-example app) once the
 # stray Spring Boot 3.5 webclient is excluded (see cibseven-example/build.gradle.kts:
 # it calls a Spring MVC method removed in Spring Framework 7). Fallback is 4.0.7
 # (top of the officially supported 4.0.x line). Consume the `-4` starters below.
@@ -25,7 +25,7 @@ camunda7 = "7.24.0"
 cibseven = "2.2.0"
 
 # Runtime libraries
-# Aligned with the Spring Boot 4.1 BOM (micrometer.version) — pinned explicitly so
+# Aligned with the Spring Boot 4.1 BOM (micrometer.version); pinned explicitly so
 # the published POM carries a concrete version for consumers outside this build.
 micrometer = "1.17.1"
 
@@ -42,9 +42,9 @@ camunda7-engine = { module = "org.camunda.bpm:camunda-engine", version.ref = "ca
 camunda7-starter-rest = { module = "org.camunda.bpm.springboot:camunda-bpm-spring-boot-starter-rest", version.ref = "camunda7" }
 camunda7-starter-webapp = { module = "org.camunda.bpm.springboot:camunda-bpm-spring-boot-starter-webapp", version.ref = "camunda7" }
 cibseven-engine = { module = "org.cibseven.bpm:cibseven-engine", version.ref = "cibseven" }
-# CIB Seven Spring Boot starters: the `-4` artifacts are the Spring Boot 4 build
+# CIB seven Spring Boot starters: the `-4` artifacts are the Spring Boot 4 build
 # (Jakarta EE 11 / Spring Framework 7). The suffix-less coordinates are the
-# Spring Boot 3.5 build — do not mix them with a Spring Boot 4 BOM.
+# Spring Boot 3.5 build; do not mix them with a Spring Boot 4 BOM.
 cibseven-starter = { module = "org.cibseven.bpm.springboot:cibseven-bpm-spring-boot-starter-4", version.ref = "cibseven" }
 cibseven-starter-rest = { module = "org.cibseven.bpm.springboot:cibseven-bpm-spring-boot-starter-rest-4", version.ref = "cibseven" }
 cibseven-starter-webapp = { module = "org.cibseven.bpm.springboot:cibseven-bpm-spring-boot-starter-webapp-4", version.ref = "cibseven" }
@@ -54,13 +54,13 @@ cibseven-bpm-assert = { module = "org.cibseven.bpm:cibseven-bpm-assert", version
 # Runtime libraries (explicit versions)
 micrometer-core = { module = "io.micrometer:micrometer-core", version.ref = "micrometer" }
 
-# BOM-managed (version resolved from spring-boot-bom — listed for discoverability)
+# BOM-managed (version resolved from spring-boot-bom, listed for discoverability)
 jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind" }
 micrometer-registry-otlp = { module = "io.micrometer:micrometer-registry-otlp" }
 spring-boot-starter = { module = "org.springframework.boot:spring-boot-starter" }
 spring-boot-starter-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator" }
 # Spring Boot 4 gates OtlpMetricsExportAutoConfiguration on this module's
-# OpenTelemetryProperties (resource attributes) — without it the OTLP export
+# OpenTelemetryProperties (resource attributes): without it the OTLP export
 # silently never activates.
 spring-boot-opentelemetry = { module = "org.springframework.boot:spring-boot-opentelemetry" }
 spring-boot-starter-jdbc = { module = "org.springframework.boot:spring-boot-starter-jdbc" }

@@ -90,7 +90,7 @@ describe("parseBpmnNames", () => {
   })
 })
 
-describe("readBpmnNames — comments and CDATA are cut linearly (CodeQL js/polynomial-redos)", () => {
+describe("readBpmnNames: comments and CDATA are cut linearly (CodeQL js/polynomial-redos)", () => {
   const doc = (inner: string) =>
     `<definitions><process id="p" name="Rechnung">${inner}<task id="t" name="Prüfen"/></process></definitions>`
 

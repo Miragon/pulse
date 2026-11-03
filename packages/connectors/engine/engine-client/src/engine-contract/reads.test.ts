@@ -40,7 +40,7 @@ beforeEach(() => {
   vi.resetAllMocks()
 })
 
-describe("fetchJobStacktrace — a text/plain-only endpoint", () => {
+describe("fetchJobStacktrace: a text/plain-only endpoint", () => {
   const mocked = vi.mocked(sdk.getStacktrace)
 
   it("asks for text/plain parsed as text (the default Accept is a 406)", async () => {
@@ -81,7 +81,7 @@ describe("fetchJobStacktrace — a text/plain-only endpoint", () => {
   })
 })
 
-describe("fetchExternalTaskErrorDetails — a text/plain-only endpoint", () => {
+describe("fetchExternalTaskErrorDetails: a text/plain-only endpoint", () => {
   const mocked = vi.mocked(sdk.getExternalTaskErrorDetails)
 
   it("asks for text/plain parsed as text", async () => {

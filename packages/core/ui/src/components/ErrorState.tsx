@@ -13,7 +13,7 @@ export type ErrorStateTone = "danger" | "warning" | "info"
 export interface ErrorStateProps {
   /** What happened, in plain words ("This view couldn't be loaded"). */
   title: ReactNode
-  /** What you can do next — or the human reason, when you can map the raw one. */
+  /** What you can do next, or the human reason when you can map the raw one. */
   description?: ReactNode
   /**
    * The raw technical reason (engine exception, HTTP status), shown collapsed
@@ -41,7 +41,7 @@ export interface ErrorStateProps {
    */
   variant?: "block" | "inline"
   /**
-   * Live-region role. Default `"alert"` — an error that appears after the
+   * Live-region role. Default `"alert"`: an error that appears after the
    * fact is announced. Use `"status"` for a quieter notice, or `"none"` when
    * the state is part of the first paint.
    */

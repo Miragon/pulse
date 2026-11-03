@@ -46,7 +46,7 @@ describe("triageProcessHandOff", () => {
   it("states key-wide counts and the diagram's own activity fraction", () => {
     const prompt = bindHandOff("en").ask(triageProcessHandOff(PROCESS_VIEW, "prod-a"))!
     expect(prompt).toContain('countScope="allVersions", diagramVersion=3, openIncidents=7')
-    // "1 of 2" over the diagram — never the key-wide list over it ("2 of 2").
+    // "1 of 2" over the diagram, never the key-wide list over it ("2 of 2").
     expect(prompt).toContain("affectedDiagramActivities=1, diagramActivities=2")
     expect(prompt).toContain("affectedOnlyInOlderVersions=1")
   })

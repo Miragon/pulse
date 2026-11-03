@@ -4,7 +4,7 @@
  * `turbo run <task>`, and turbo silently SKIPS a workspace package that does
  * not define the script. A package without `lint` therefore falls out of
  * every ESLint gate and complexity/max-lines budget while `pnpm lint` stays
- * green — the fail-open that kept both client packages unlinted until an
+ * green: the fail-open that kept both client packages unlinted until an
  * ESLint error had already landed there (#333).
  *
  * Every workspace package with a `src/` directory must define `lint` (ESLint
@@ -43,7 +43,7 @@ import { MUTATION_PAUSED } from "./mutation-pause.mjs"
 
 /**
  * The scripts every source package must define, each anchored to the command
- * it must actually run — no flags, no shell operators: `"lint": "true"` would
+ * it must actually run (no flags, no shell operators): `"lint": "true"` would
  * satisfy turbo and lint nothing, and so would `"lint": "eslint src || true"`.
  */
 export const REQUIRED_SCRIPTS = {
@@ -96,18 +96,18 @@ export function checkPackageScripts(dir, scripts, { tsconfigs = [] } = {}) {
     const command = normalizedCommand(scripts?.[name])
     if (command === undefined) {
       errors.push(
-        `${dir}: missing "${name}" script — turbo skips the package, so \`pnpm ${name}\` ` +
+        `${dir}: missing "${name}" script: turbo skips the package, so \`pnpm ${name}\` ` +
           `never covers its src/ (expected: ${expect})`,
       )
     } else if (!pattern.test(command)) {
-      errors.push(`${dir}: "${name}" script is "${command}" — expected it to run ${expect}`)
+      errors.push(`${dir}: "${name}" script is "${command}", expected it to run ${expect}`)
     }
   }
   const typecheck = normalizedCommand(scripts?.typecheck) ?? ""
   for (const tsconfig of tsconfigs) {
     if (!typecheck.split(" && ").includes(`tsc -p ${tsconfig}`)) {
       errors.push(
-        `${dir}: "typecheck" does not run \`tsc -p ${tsconfig}\` — the sources only that ` +
+        `${dir}: "typecheck" does not run \`tsc -p ${tsconfig}\`: the sources only that ` +
           `project covers (widgets, UI, tests) would go unchecked`,
       )
     }

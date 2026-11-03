@@ -22,7 +22,7 @@ const ENGINES = ["stub", "down"] as const
 /**
  * The activities of the `invoice` diagram (fixtures/invoice.bpmn, so their
  * names resolve through the stub engine's BPMN) plus one of a process whose
- * diagram the engine does not serve — that one keeps its id.
+ * diagram the engine does not serve (that one keeps its id).
  */
 const ACTIVITIES: Array<{ key: string; id: string; type: string; count: number; avgSec: number }> =
   [

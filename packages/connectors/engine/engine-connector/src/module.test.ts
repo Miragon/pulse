@@ -16,7 +16,7 @@ describe("engineModule.toolsets (fail-closed policy)", () => {
     expect(vocabulary.authenticatedDefault).toBe("operations")
   })
 
-  it("no suffix: read-only without OAuth, operations with it — never admin", () => {
+  it("no suffix: read-only without OAuth, operations with it, never admin", () => {
     expect(vocabulary.effective(undefined, { authenticated: false })).toEqual({
       toolset: "read-only",
       source: "default",
@@ -235,7 +235,7 @@ describe("engineModule.configFromEnv environment-map form", () => {
     expect(enginesOf({ ENGINES_JSON: JSON.stringify(flat) })).toEqual(flat)
   })
 
-  it("rejects a duplicate environment key — JSON.parse would silently keep only the last block", () => {
+  it("rejects a duplicate environment key: JSON.parse would silently keep only the last block", () => {
     const duplicated =
       '{"prod-eu":[{"id":"eu-a","baseUrl":"http://eu-a.example/engine-rest"}],' +
       '"prod-us":[{"id":"us-a","baseUrl":"http://us-a.example/engine-rest"}],' +
@@ -245,7 +245,7 @@ describe("engineModule.configFromEnv environment-map form", () => {
     )
   })
 
-  it("only depth-1 keys count as duplicates — repeated engine-entry fields stay legal", () => {
+  it("only depth-1 keys count as duplicates; repeated engine-entry fields stay legal", () => {
     // Every engine entry repeats "id"/"baseUrl", and the array form has no
     // top-level object keys at all.
     expect(() =>
@@ -306,7 +306,7 @@ describe("engineModule.bootWarnings", () => {
     })
     expect(warnings).toHaveLength(1)
     expect(warnings[0]).toContain(
-      "ENGINE_ALLOW_DEPLOYMENTS=true — engine_create_deployment is registered under engine:admin",
+      "ENGINE_ALLOW_DEPLOYMENTS=true: engine_create_deployment is registered under engine:admin",
     )
     expect(warnings[0]).toContain("Deploying a process runs code inside the engine JVM")
     expect(engineModule.bootWarnings({ ...configured, ENGINE_ALLOW_DEPLOYMENTS: "false" })).toEqual(
@@ -412,17 +412,17 @@ describe("engineConfigSchema auth validation", () => {
     ).not.toThrow()
   })
 
-  it("rejects purely numeric environment ids — JS object enumeration would reorder them first", () => {
+  it("rejects purely numeric environment ids: JS object enumeration would reorder them first", () => {
     expect(() => engineConfigSchema.parse({ engines: [{ ...engine, environment: "2" }] })).toThrow(
       /purely numeric/,
     )
-    // A digit-leading id with a non-digit is not an array-index key — stays legal.
+    // A digit-leading id with a non-digit is not an array-index key, so it stays legal.
     expect(() =>
       engineConfigSchema.parse({ engines: [{ ...engine, environment: "2nd-region" }] }),
     ).not.toThrow()
   })
 
-  it("rejects duplicate engine ids across environments — the id stays the flat join key", () => {
+  it("rejects duplicate engine ids across environments: the id stays the flat join key", () => {
     expect(() =>
       engineConfigSchema.parse({
         engines: [

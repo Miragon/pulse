@@ -240,7 +240,7 @@ function HealthKpis({ summary, go }: { summary: EngineHealthData["summary"]; go:
         },
         {
           label: t("engineHealth.kpiAffectedActivities"),
-          // null: the incident scan was capped — "—", never a guessed count.
+          // null (the incident scan was capped) shows "—", never a guessed count.
           value: formatCount(summary.affectedActivities),
         },
         {
@@ -356,7 +356,7 @@ export function EngineHealthView({
         }
       />
 
-      {/* A failed re-pull keeps the last verdict — and says it is not current. */}
+      {/* A failed re-pull keeps the last verdict and says it is not current. */}
       {refreshError && !refreshing && (
         <ErrorState
           variant="inline"

@@ -21,8 +21,8 @@
  * as a dot, icon or border NEXT to the text. On a tint the text is always the
  * foreground (CI §3.3: "-soft: Text darauf --cd-schwarz, Rand in der
  * Statusfarbe"), so pair `TONE_SOFT` with `TONE_BORDER`. `TONE_INK` is for
- * a tone's words on a plain surface (a field error); figures — counts, KPI
- * values, trends — never take it: they stay in the foreground next to a
+ * a tone's words on a plain surface (a field error); figures (counts, KPI
+ * values, trends) never take it: they stay in the foreground next to a
  * `TONE_DOT`. In dark mode the colours are the `-hell` values and the tints
  * are transparent (no tinted fills on dark). The `neutral` tone reuses the
  * muted ramp.
@@ -82,7 +82,7 @@ export function isToneVariant(value: unknown): value is ToneVariant {
 /**
  * Map any tone name onto the vocabulary: a {@link ToneVariant} as is, a
  * retired name ({@link TONE_ALIASES}, case-insensitive) onto its tone, and
- * anything else — unknown, empty, not a string — onto `fallback` (default
+ * anything else (unknown, empty, not a string) onto `fallback` (default
  * `"neutral"`, the tone without a state).
  */
 export function resolveTone(name: unknown, fallback: ToneVariant = "neutral"): ToneVariant {
@@ -93,7 +93,7 @@ export function resolveTone(name: unknown, fallback: ToneVariant = "neutral"): T
 }
 
 /**
- * Tinted surface + its text (the foreground: CI §3.3) — badges, pills,
+ * Tinted surface + its text (the foreground: CI §3.3) for badges, pills,
  * banners. Pair it with {@link TONE_BORDER}: the rim carries the tone, and in
  * dark mode (no tints) it is all that does. The neutral tint is the muted
  * surface, its text the foreground too (a count on it is a figure).
@@ -115,7 +115,7 @@ export const TONE_TINT: Record<ToneVariant, string> = {
   danger: "bg-danger-soft",
 }
 
-/** Solid dot colour — a status dot next to a label, a bar, a meter fill. */
+/** Solid dot colour: a status dot next to a label, a bar, a meter fill. */
 export const TONE_DOT: Record<ToneVariant, string> = {
   neutral: "bg-muted-foreground",
   info: "bg-info",
@@ -139,7 +139,7 @@ export const TONE_INK: Record<ToneVariant, string> = {
   danger: "text-danger-ink",
 }
 
-/** Border colour in the tone — the rim of a tinted badge, banner or toast. */
+/** Border colour in the tone: the rim of a tinted badge, banner or toast. */
 export const TONE_BORDER: Record<ToneVariant, string> = {
   neutral: "border-border",
   info: "border-info",
@@ -149,7 +149,7 @@ export const TONE_BORDER: Record<ToneVariant, string> = {
 }
 
 /**
- * Icon colour in the tone (SVG `currentColor`). For icons only — never for
+ * Icon colour in the tone (SVG `currentColor`). For icons only, never for
  * text: an icon next to its label carries the tone, the label stays readable.
  */
 export const TONE_ICON: Record<ToneVariant, string> = {

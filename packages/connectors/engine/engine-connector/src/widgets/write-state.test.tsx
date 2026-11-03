@@ -21,7 +21,7 @@ import {
 installWritePathHarness()
 
 describe("the instance view offers only what its CURRENT state allows (N99)", () => {
-  it("a suspended instance offers no task completion — the engine refuses one", async () => {
+  it("a suspended instance offers no task completion: the engine refuses one", async () => {
     renderInstance(Seeded, instance({ instance: { ...instance().instance, suspended: true } }), {})
     expect(await screen.findByRole("button", { name: "Activate" })).toBeTruthy()
     expect(screen.getByText("Review invoice")).toBeTruthy()
@@ -73,7 +73,7 @@ describe("the instance view offers only what its CURRENT state allows (N99)", ()
     expect(screen.queryByRole("button", { name: "Retry" })).toBeNull()
   })
 
-  it("an open variable editor closes when the instance is cancelled — its Save cannot write", async () => {
+  it("an open variable editor closes when the instance is cancelled: its Save cannot write", async () => {
     const calls: Calls = []
     renderInstance(Seeded, instance({ openTasks: [], openTaskCount: 0 }), {
       ...recorder(calls, "engine_delete_process_instance", () => ({ success: true })),

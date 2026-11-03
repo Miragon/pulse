@@ -15,7 +15,7 @@ describe("buildDataFeedResult", () => {
     expect(decodeToolResult(result)).toEqual(data)
   })
 
-  it("sends the payload once — no structuredContent copy, no widget _meta, no view binding", () => {
+  it("sends the payload once: no structuredContent copy, no widget _meta, no view binding", () => {
     expect(Object.keys(result)).toEqual(["content"])
   })
 

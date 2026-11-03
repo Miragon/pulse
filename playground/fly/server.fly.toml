@@ -23,14 +23,14 @@ primary_region = "fra"
   # analytics, no engine writes. An unauthenticated boot already
   # defaults to read-only; the explicit pin keeps it that way should someone
   # add an OAuth provider or widen a default. Never widen it here and never set
-  # ENGINE_ALLOW_DEPLOYMENTS on this app — deploying a BPMN runs code inside
+  # ENGINE_ALLOW_DEPLOYMENTS on this app: deploying a BPMN runs code inside
   # the engine JVM. A Fly SECRET of the same name
   # overrides [env]: if `fly secrets list -a miragon-ai-playground` shows
   # MCP_ACTIVE_MODULES, keep it in sync with this value (or unset it).
   MCP_ACTIVE_MODULES = "engine:read-only,analytics"
   # demo/demo is the engine's seeded admin user; its REST API does not enforce
   # auth. The engine has no public IP, but it sits on the org's private 6PN
-  # network, which other apps in the org share — treat it as reachable by
+  # network, which other apps in the org share; treat it as reachable by
   # them, not as isolated. The engine is CIB seven: without `flavor` the
   # server would take it for Camunda 7 and name and link it as one.
   ENGINES_JSON = '[{"id":"prod-a","baseUrl":"http://miragon-ai-playground-engine.internal:8410/engine-rest","flavor":"cibseven","auth":{"type":"basic","username":"demo","password":"demo"}}]'

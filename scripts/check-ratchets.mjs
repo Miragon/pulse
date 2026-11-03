@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
- * Ratchet self-protection — ported from mcp-toolkit's scripts/check-ratchets.mjs
+ * Ratchet self-protection, ported from mcp-toolkit's scripts/check-ratchets.mjs
  * and adapted to where this repo keeps its ratchets.
  *
  * The fastest way to turn a red gate green is to loosen the gate in the same
- * diff — a rule-shaped edit nobody reads as a regression. This check compares
+ * diff: a rule-shaped edit nobody reads as a regression. This check compares
  * every ratchet against the MERGE BASE of the target branch (never against
  * the PR's own files) and fails on any move in the forbidden direction:
  *
@@ -129,7 +129,7 @@
  * CODEOWNERS review still applies to every PR. There is no other bypass.
  *
  * Run: node scripts/check-ratchets.mjs [baseRef]   (`pnpm lint:ratchets`;
- * default origin/main. In CI the base is ALWAYS origin/$GITHUB_BASE_REF — a
+ * default origin/main. In CI the base is ALWAYS origin/$GITHUB_BASE_REF: a
  * positional ref is ignored there, and a pull request whose merge base is
  * HEAD fails instead of comparing the branch with itself; CI needs
  * fetch-depth: 0). The working tree is the "new" side, so uncommitted
@@ -150,7 +150,7 @@ const PKG = String.raw`(?:apps/[^/]+|packages/core/[^/]+|packages/connectors/[^/
 
 /** The default message: the tool resolves the shadow first, the ratchet keeps reading `replaces`. */
 const loadedInstead = (replaces) => (relPath) =>
-  `${relPath} would be loaded INSTEAD of ${replaces} — the tool resolves it first, while this check keeps reading the ratcheted file, so every threshold, ignore list and gate in it could be swapped out unseen. Edit ${replaces} instead.`
+  `${relPath} would be loaded INSTEAD of ${replaces}: the tool resolves it first, while this check keeps reading the ratcheted file, so every threshold, ignore list and gate in it could be swapped out unseen. Edit ${replaces} instead.`
 
 /**
  * A directory prefix anywhere below the repo root that is not inside an
@@ -228,7 +228,7 @@ export function ratchetKind(relPath) {
 /** The ratchet kinds of a workspace package.json: each must carry no `prettier` key. */
 const MANIFEST_KINDS = new Set(["root-scripts", "package-scripts", "workspace-manifest"])
 
-// ── Source extraction (TypeScript AST — no evaluation, no imports) ──────────
+// ── Source extraction (TypeScript AST, no evaluation, no imports) ───────────
 
 /** Whitespace- and trailing-comma-insensitive source text: prettier-stable keys. */
 const normalize = (text) => text.replace(/\s+/g, "").replace(/,([\]}])/g, "$1")
@@ -272,7 +272,7 @@ function staticName(name) {
 const lastProperty = (object, name) =>
   object.properties.findLast((p) => ts.isPropertyAssignment(p) && staticName(p.name) === name)
 
-/** A property's static name — also for `{ name }` shorthand — or undefined. */
+/** A property's static name (also for `{ name }` shorthand) or undefined. */
 const memberName = (prop) =>
   ts.isPropertyAssignment(prop) || ts.isShorthandPropertyAssignment(prop)
     ? propName(prop.name)
@@ -520,7 +520,7 @@ function readProjects(node, opaque) {
  * cannot read: a spread or shorthand inside coverage or test, a non-literal
  * threshold, and every computed key of the file whose name is no literal
  * (`[KEY]: ...` could BE coverage, test, thresholds or enabled).
- * `usesShared`: the config passes `sharedConfig` (vitest.shared.ts — where
+ * `usesShared`: the config passes `sharedConfig` (vitest.shared.ts, where
  * coverage is ENABLED) into a call such as `mergeConfig`; vitest's own
  * default is coverage off.
  */
@@ -562,7 +562,7 @@ export function extractVitestCoverage(relPath, text) {
   let reached = new Set()
   if (rootTest) {
     if (!ts.isObjectLiteralExpression(rootTest))
-      return { error: "`test` is not an object literal — the ratchet cannot read it" }
+      return { error: "`test` is not an object literal: the ratchet cannot read it" }
     for (const prop of rootTest.properties) {
       if (!ts.isPropertyAssignment(prop)) {
         // A spread or shorthand could carry include/exclude the AST cannot see.
@@ -587,7 +587,7 @@ export function extractVitestCoverage(relPath, text) {
     }
   if (blocks.length === 0) return result
   if (blocks.length > 1)
-    return { error: `${blocks.length} \`coverage\` blocks — the ratchet needs exactly one` }
+    return { error: `${blocks.length} \`coverage\` blocks, but the ratchet needs exactly one` }
   if (insideProjectTest(blocks[0]))
     return {
       error:
@@ -600,7 +600,7 @@ export function extractVitestCoverage(relPath, text) {
     }
   const coverage = blocks[0].initializer
   if (!ts.isObjectLiteralExpression(coverage))
-    return { error: "`coverage` is not an object literal — the ratchet cannot read it" }
+    return { error: "`coverage` is not an object literal: the ratchet cannot read it" }
   for (const prop of coverage.properties) {
     if (!ts.isPropertyAssignment(prop)) {
       // A spread or shorthand could carry thresholds/exclude the AST cannot see.
@@ -655,7 +655,7 @@ const isDynamicImport = (node) =>
   (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
     (ts.isIdentifier(node.expression) && node.expression.text === "require"))
 
-/** The rules the architecture and budget gates set — never relaxed per file. */
+/** The rules the architecture and budget gates set, never relaxed per file. */
 const GATE_RULES = ["complexity", "max-lines", "no-restricted-syntax"]
 
 /**
@@ -718,7 +718,7 @@ export function collectKnipIgnores(node, prefix = "", into = new Set()) {
 /**
  * knip's narrowing lists, by path: the issue-type `include` and a
  * workspace's `project` files. Absent, knip checks every issue type and every
- * project file — so these may never appear, and never shrink.
+ * project file, so these may never appear, and never shrink.
  */
 export function collectKnipScopes(node, prefix = "", into = new Map()) {
   if (!node || typeof node !== "object" || Array.isArray(node)) return into
@@ -750,7 +750,7 @@ const SUPPRESSION_GREP = "eslint|(v8|c8|istanbul)[[:space:]]+ignore|stryker[[:sp
 
 /**
  * Every comment of a source file, once each: the leading and trailing trivia
- * of every token. JSX text and JSDoc nodes are skipped — their text is not
+ * of every token. JSX text and JSDoc nodes are skipped: their text is not
  * trivia, and scanning it would read prose as comments.
  */
 function sourceComments(relPath, text) {
@@ -815,7 +815,7 @@ function classifyComment({ block, value }) {
 
 /**
  * The gate-suppressing comments of one source file: `eslint-disable*` naming
- * complexity / max-lines / no-restricted-syntax (or no rule — that is every
+ * complexity / max-lines / no-restricted-syntax (or no rule, which is every
  * rule), inline `/* eslint <gate rule>: … *\/` config, coverage hints
  * (`v8|c8|istanbul ignore`) and `Stryker disable`.
  */
@@ -840,7 +840,7 @@ export function compareSuppressions(relPath, oldText, newText) {
     const had = before.get(directive) ?? 0
     if (lines.length > had) {
       violations.push(
-        `${relPath}:${lines.join(",")} -> new inline \`${directive}\` (${had} -> ${lines.length}). An inline suppression is an exemption the config ratchets cannot see — fix the code instead (split the function or file, register through the registrar, write the test).`,
+        `${relPath}:${lines.join(",")} -> new inline \`${directive}\` (${had} -> ${lines.length}). An inline suppression is an exemption the config ratchets cannot see. Fix the code instead (split the function or file, register through the registrar, write the test).`,
       )
     }
   }
@@ -859,7 +859,7 @@ function includeChanges(relPath, key, before, after, why) {
     .filter((entry) => !after.includes(entry))
     .map(
       (entry) =>
-        `${relPath} -> ${key} lost "${entry}". Include lists only grow — narrowing them measures less.`,
+        `${relPath} -> ${key} lost "${entry}". Include lists only grow: narrowing them measures less.`,
     )
 }
 
@@ -888,7 +888,7 @@ function floorChanges(relPath, label, before, after) {
           ? ""
           : " A negative floor caps the uncovered count, a positive one is a percentage: they compare only through 100."
       violations.push(
-        `${relPath} -> ${label}.${metric}: ${was} -> ${now}. Ratchets are raise-only — write the missing tests instead (pnpm --filter <pkg> test prints the uncovered files).${kinds}`,
+        `${relPath} -> ${label}.${metric}: ${was} -> ${now}. Ratchets are raise-only. Write the missing tests instead (pnpm --filter <pkg> test prints the uncovered files).${kinds}`,
       )
     }
   }
@@ -1037,7 +1037,7 @@ function compareVitest(relPath, oldText, newText) {
   const cur = extractVitestCoverage(relPath, newText)
   if (cur.error)
     return [
-      `${relPath}: ${cur.error}. A ratchet the gate cannot read is a disabled ratchet — keep the literal \`coverage: { thresholds: { … } }\` shape.`,
+      `${relPath}: ${cur.error}. A ratchet the gate cannot read is a disabled ratchet. Keep the literal \`coverage: { thresholds: { … } }\` shape.`,
     ]
   const violations = floorChanges(
     relPath,
@@ -1067,7 +1067,7 @@ function compareVitest(relPath, oldText, newText) {
   for (const entry of cur.exclude) {
     if (!old.exclude.includes(entry)) {
       violations.push(
-        `${relPath} -> new coverage.exclude entry "${entry}". The measured surface only grows — excluding code the default run CAN execute "raises" coverage by measuring less.`,
+        `${relPath} -> new coverage.exclude entry "${entry}". The measured surface only grows: excluding code the default run CAN execute "raises" coverage by measuring less.`,
       )
     }
   }
@@ -1090,7 +1090,7 @@ function compareVitest(relPath, oldText, newText) {
   for (const entry of cur.testExclude) {
     if (!old.testExclude.includes(entry)) {
       violations.push(
-        `${relPath} -> new test.exclude entry "${entry}". Tests that never run never load the code they cover — the measured surface only grows.`,
+        `${relPath} -> new test.exclude entry "${entry}". Tests that never run never load the code they cover; the measured surface only grows.`,
       )
     }
   }
@@ -1107,7 +1107,7 @@ function compareVitest(relPath, oldText, newText) {
   }
   if (old.usesShared && !cur.usesShared && cur.enabled !== true) {
     violations.push(
-      `${relPath} no longer merges sharedConfig and does not enable coverage itself — the thresholds would never be enforced.`,
+      `${relPath} no longer merges sharedConfig and does not enable coverage itself: the thresholds would never be enforced.`,
     )
   }
   for (const entry of cur.opaque) {
@@ -1120,7 +1120,7 @@ function compareVitest(relPath, oldText, newText) {
   return violations
 }
 
-/** Stryker options that only shape reports, caching or parallelism — free to change. */
+/** Stryker options that only shape reports, caching or parallelism: free to change. */
 const STRYKER_FREE_KEYS = new Set([
   "$schema",
   "allowConsoleColors",
@@ -1174,7 +1174,7 @@ function compareStryker(relPath, oldJson, newJson, fileExists) {
   const violations = []
   if (newJson === null) {
     return [
-      `${relPath} was removed. The mutation gate needs it — removing it drops the package out of the nightly mutation run.`,
+      `${relPath} was removed. The mutation gate needs it: removing it drops the package out of the nightly mutation run.`,
     ]
   }
   const oldBreak = oldJson?.thresholds?.break
@@ -1183,7 +1183,7 @@ function compareStryker(relPath, oldJson, newJson, fileExists) {
     typeof newBreak === "number" && typeof oldBreak === "number" && newBreak > oldBreak
   if (typeof oldBreak === "number" && (typeof newBreak !== "number" || newBreak < oldBreak)) {
     violations.push(
-      `${relPath} -> thresholds.break: ${oldBreak} -> ${String(newBreak)}. The mutation floor is raise-only — kill the surviving mutants (write the missing assertions) instead of lowering it.`,
+      `${relPath} -> thresholds.break: ${oldBreak} -> ${String(newBreak)}. The mutation floor is raise-only. Kill the surviving mutants (write the missing assertions) instead of lowering it.`,
     )
   }
   const oldMutate = Array.isArray(oldJson?.mutate) ? oldJson.mutate : []
@@ -1204,14 +1204,14 @@ function compareStryker(relPath, oldJson, newJson, fileExists) {
   ]
   if (shrinkers.length > 0 && !breakRaised) {
     violations.push(
-      `${relPath} -> mutate allowlist shrank (${shrinkers.join(", ")}) without raising thresholds.break. Shrinking the measured surface "improves" the score by measuring less — allowed ONLY together with a break raise for the remaining surface.`,
+      `${relPath} -> mutate allowlist shrank (${shrinkers.join(", ")}) without raising thresholds.break. Shrinking the measured surface "improves" the score by measuring less; it is allowed ONLY together with a break raise for the remaining surface.`,
     )
   }
   const oldExcluded = oldJson?.mutator?.excludedMutations ?? []
   for (const mutation of newJson?.mutator?.excludedMutations ?? []) {
     if (!oldExcluded.includes(mutation)) {
       violations.push(
-        `${relPath} -> new mutator.excludedMutations entry "${mutation}". Excluding mutators measures less — kill the mutants instead.`,
+        `${relPath} -> new mutator.excludedMutations entry "${mutation}". Excluding mutators measures less. Kill the mutants instead.`,
       )
     }
   }
@@ -1222,7 +1222,7 @@ function compareStryker(relPath, oldJson, newJson, fileExists) {
     const now = stableJson(after[key])
     if (was !== now) {
       violations.push(
-        `${relPath} -> "${key}" changed (${was ?? "unset"} -> ${now ?? "unset"}). Outside mutate/thresholds every Stryker option decides which mutants exist or how they count (ignoreStatic, ignorers, mutator.plugins, the test runner and its config — and a timed-out mutant counts as killed, so timeoutMS too): pinned to the merge base.`,
+        `${relPath} -> "${key}" changed (${was ?? "unset"} -> ${now ?? "unset"}). Outside mutate/thresholds every Stryker option decides which mutants exist or how they count (ignoreStatic, ignorers, mutator.plugins, the test runner and its config; a timed-out mutant counts as killed, so timeoutMS too): pinned to the merge base.`,
       )
     }
   }
@@ -1230,7 +1230,7 @@ function compareStryker(relPath, oldJson, newJson, fileExists) {
 }
 
 function compareEslint(relPath, oldText, newText) {
-  if (newText === null) return [`${relPath} was removed — every ESLint gate goes with it.`]
+  if (newText === null) return [`${relPath} was removed: every ESLint gate goes with it.`]
   const old = extractEslintRatchets(relPath, oldText)
   const cur = extractEslintRatchets(relPath, newText)
   const violations = []
@@ -1245,7 +1245,7 @@ function compareEslint(relPath, oldText, newText) {
     if (!old.ignores.includes(entry)) {
       const [scope, glob] = entry.split(" :: ")
       violations.push(
-        `${relPath} -> new \`ignores\` entry "${glob}" (exempts from: ${scope}). Ignore lists are shrink-only per block — an ignored file escapes every gate in that block, and the global ignores exempt it from every rule.`,
+        `${relPath} -> new \`ignores\` entry "${glob}" (exempts from: ${scope}). Ignore lists are shrink-only per block: an ignored file escapes every gate in that block, and the global ignores exempt it from every rule.`,
       )
     }
   }
@@ -1255,7 +1255,7 @@ function compareEslint(relPath, oldText, newText) {
 function compareKnip(relPath, oldJson, newJson) {
   if (newJson === null) {
     return [
-      `${relPath} was removed — knip then runs on its defaults or on whichever knip.json/knip.ts it finds, and every ratcheted list goes with it.`,
+      `${relPath} was removed: knip then runs on its defaults or on whichever knip.json/knip.ts it finds, and every ratcheted list goes with it.`,
     ]
   }
   const oldIgnores = collectKnipIgnores(oldJson)
@@ -1263,7 +1263,7 @@ function compareKnip(relPath, oldJson, newJson) {
   for (const entry of collectKnipIgnores(newJson)) {
     if (!oldIgnores.has(entry)) {
       violations.push(
-        `${relPath} -> new "${entry}". knip's ignore lists, issue-type excludes, relaxed rules and entry globs are shrink-only — each makes knip report less (an entry marks files as used). Delete the dead code / declare the dependency instead.`,
+        `${relPath} -> new "${entry}". knip's ignore lists, issue-type excludes, relaxed rules and entry globs are shrink-only: each makes knip report less (an entry marks files as used). Delete the dead code / declare the dependency instead.`,
       )
     }
   }
@@ -1272,7 +1272,7 @@ function compareKnip(relPath, oldJson, newJson) {
     const before = oldScopes.get(key)
     if (!before) {
       violations.push(
-        `${relPath} -> "${key.split(".").pop()}" appeared at ${key}. knip checks every issue type and every project file by default — an include/project list can only narrow that.`,
+        `${relPath} -> "${key.split(".").pop()}" appeared at ${key}. knip checks every issue type and every project file by default, so an include/project list can only narrow that.`,
       )
       continue
     }
@@ -1345,7 +1345,7 @@ const CI_PACKAGE_SCRIPTS = [
 ]
 
 /**
- * Why `after` is not the pinned gate command `before` — null when it is,
+ * Why `after` is not the pinned gate command `before`, or null when it is,
  * or when only an `--exclude` list shrank (the one tightening a gate command
  * takes without the trailer).
  */
@@ -1356,9 +1356,9 @@ function gateCommandChange(before, after) {
     const allowed = new Set(excludeList(before))
     const grown = excludeList(after).filter((kind) => !allowed.has(kind))
     if (grown.length === 0) return null
-    return `now excludes ${grown.map((kind) => `"${kind}"`).join(", ")} — an --exclude list only shrinks (the command is otherwise pinned to the merge base)`
+    return `now excludes ${grown.map((kind) => `"${kind}"`).join(", ")}, but an --exclude list only shrinks (the command is otherwise pinned to the merge base)`
   }
-  return `changed: "${normalizeCommand(before)}" -> "${normalizeCommand(after)}". Gate commands are pinned to the merge base — an added argument (a base ref, \`|| true\`, \`--include\`, \`--config\`, a test-name filter) hollows a gate as surely as a removed one; a deliberate change carries the Ratchet-Exception trailer`
+  return `changed: "${normalizeCommand(before)}" -> "${normalizeCommand(after)}". Gate commands are pinned to the merge base: an added argument (a base ref, \`|| true\`, \`--include\`, \`--config\`, a test-name filter) hollows a gate as surely as a removed one; a deliberate change carries the Ratchet-Exception trailer`
 }
 
 function compareRootScripts(relPath, oldJson, newJson) {
@@ -1381,7 +1381,7 @@ function compareRootScripts(relPath, oldJson, newJson) {
     for (const segment of after) {
       if (!before.includes(segment) && !PLAIN_PNPM_SEGMENT.test(segment)) {
         violations.push(
-          `${relPath} -> \`pnpm ${name}\` gained "${segment}". The chain only grows by plain \`pnpm <script>\` gates — any other command or shell operator (\`||\`, \`;\`, \`|\`, \`exit\`) can end the chain early or swallow its exit code.`,
+          `${relPath} -> \`pnpm ${name}\` gained "${segment}". The chain only grows by plain \`pnpm <script>\` gates: any other command or shell operator (\`||\`, \`;\`, \`|\`, \`exit\`) can end the chain early or swallow its exit code.`,
         )
       }
     }
@@ -1390,7 +1390,7 @@ function compareRootScripts(relPath, oldJson, newJson) {
     if (typeof oldScripts[script] !== "string") continue
     if (typeof newScripts[script] !== "string") {
       violations.push(
-        `${relPath} -> "${script}" was removed — a gate CI runs or chains goes with it.`,
+        `${relPath} -> "${script}" was removed: a gate CI runs or chains goes with it.`,
       )
       continue
     }
@@ -1399,7 +1399,7 @@ function compareRootScripts(relPath, oldJson, newJson) {
   }
   if (newJson && Object.hasOwn(newJson, "knip")) {
     violations.push(
-      `${relPath} -> a \`knip\` key (package.json#knip). knip merges it UNDER knip.jsonc, so every key knip.jsonc leaves out (include, exclude, rules, ignore…) would come from here, unratcheted — keep the knip config in knip.jsonc.`,
+      `${relPath} -> a \`knip\` key (package.json#knip). knip merges it UNDER knip.jsonc, so every key knip.jsonc leaves out (include, exclude, rules, ignore…) would come from here, unratcheted. Keep the knip config in knip.jsonc.`,
     )
   }
   return violations
@@ -1414,11 +1414,11 @@ function comparePackageScripts(relPath, oldJson, newJson) {
     const after = newJson?.scripts?.[script]
     if (typeof after !== "string") {
       violations.push(
-        `${relPath} -> "${script}" was removed — turbo then skips the package's ${script} gate silently.`,
+        `${relPath} -> "${script}" was removed: turbo then skips the package's ${script} gate silently.`,
       )
     } else if (normalizeCommand(before) !== normalizeCommand(after)) {
       violations.push(
-        `${relPath} -> the "${script}" gate changed: "${normalizeCommand(before)}" -> "${normalizeCommand(after)}". A package's gate commands are pinned to the merge base — \`--coverage.enabled=false\`, \`--rule 'complexity: off'\`, \`|| true\` or a dropped \`tsc -p\` project switch the gate off while the command still "runs" it. A deliberate change carries the Ratchet-Exception trailer.`,
+        `${relPath} -> the "${script}" gate changed: "${normalizeCommand(before)}" -> "${normalizeCommand(after)}". A package's gate commands are pinned to the merge base: \`--coverage.enabled=false\`, \`--rule 'complexity: off'\`, \`|| true\` or a dropped \`tsc -p\` project switch the gate off while the command still "runs" it. A deliberate change carries the Ratchet-Exception trailer.`,
       )
     }
   }
@@ -1427,12 +1427,10 @@ function comparePackageScripts(relPath, oldJson, newJson) {
     if (typeof before !== "string") continue
     const after = newJson?.scripts?.[script]
     if (typeof after !== "string") {
-      violations.push(
-        `${relPath} -> "${script}" was removed — a CI or release job runs it by name.`,
-      )
+      violations.push(`${relPath} -> "${script}" was removed: a CI or release job runs it by name.`)
     } else if (normalizeCommand(before) !== normalizeCommand(after)) {
       violations.push(
-        `${relPath} -> the "${script}" script changed: "${normalizeCommand(before)}" -> "${normalizeCommand(after)}". A CI or release job runs it by name, so it is pinned to the merge base like a gate — a dropped step or an \`|| true\` hollows the job while it stays green. A deliberate change carries the Ratchet-Exception trailer.`,
+        `${relPath} -> the "${script}" script changed: "${normalizeCommand(before)}" -> "${normalizeCommand(after)}". A CI or release job runs it by name, so it is pinned to the merge base like a gate: a dropped step or an \`|| true\` hollows the job while it stays green. A deliberate change carries the Ratchet-Exception trailer.`,
       )
     }
   }
@@ -1458,7 +1456,7 @@ function manifestKeyViolations(relPath, json) {
 
 /** A ratchet file that does not parse: fails whatever the base held. */
 const invalidJson = (relPath) => [
-  `${relPath} is not valid JSON — a broken ratchet file disables the gate.`,
+  `${relPath} is not valid JSON: a broken ratchet file disables the gate.`,
 ]
 
 /**
@@ -1487,7 +1485,7 @@ function introducedViolations(kind, relPath, newText) {
  */
 export function checkRatchetFile(relPath, oldText, newText, fileExists = () => true) {
   const kind = ratchetKind(relPath)
-  // A shadowing config fails whenever it exists — introducing one is the attack.
+  // A shadowing config fails whenever it exists: introducing one is the attack.
   if (kind === "shadow-config")
     return newText === null || newText === undefined ? [] : [shadowViolation(relPath)]
   if (oldText === null || oldText === undefined) return introducedViolations(kind, relPath, newText)
@@ -1960,13 +1958,13 @@ async function check(repo, eslint, { argv, env, log, error }) {
   const { ref: baseRef, ignoredArg } = resolveBaseRef(argv, env)
   if (ignoredArg) {
     log(
-      `check-ratchets: ignoring the base ref "${ignoredArg}" — in CI the base is always the PR base (${baseRef}).`,
+      `check-ratchets: ignoring the base ref "${ignoredArg}": in CI the base is always the PR base (${baseRef}).`,
     )
   }
 
   if (git("rev-parse", "--is-shallow-repository").trim() === "true") {
     return fail(
-      "shallow clone — the merge base may be missing. In CI check out with `fetch-depth: 0`; locally run `git fetch --unshallow`. Refusing to skip silently.",
+      "shallow clone: the merge base may be missing. In CI check out with `fetch-depth: 0`; locally run `git fetch --unshallow`. Refusing to skip silently.",
     )
   }
   let mergeBase
@@ -1980,23 +1978,23 @@ async function check(repo, eslint, { argv, env, log, error }) {
   if (mergeBase === git("rev-parse", "HEAD").trim()) {
     if (isPullRequest(env)) {
       return fail(
-        `HEAD is the merge base with ${baseRef} on a pull request — the check would compare the branch with itself and pass vacuously. Refusing.`,
+        `HEAD is the merge base with ${baseRef} on a pull request: the check would compare the branch with itself and pass vacuously. Refusing.`,
       )
     }
     log(
-      `check-ratchets: HEAD is the merge base with ${baseRef} — comparing the working tree against it.`,
+      `check-ratchets: HEAD is the merge base with ${baseRef}. Comparing the working tree against it.`,
     )
   }
 
   if (MUTATION_PAUSED) {
     log(
-      "check-ratchets: mutation testing is paused (scripts/mutation-pause.mjs) — Stryker configs are not compared.",
+      "check-ratchets: mutation testing is paused (scripts/mutation-pause.mjs), so Stryker configs are not compared.",
     )
   }
   const { violations, baseFileCount } = await netViolations(repo, eslint, mergeBase)
   if (violations.length === 0) {
     log(
-      `check-ratchets: ${baseFileCount} ratchet file(s) + inline suppressions vs ${baseRef} (${mergeBase.slice(0, 9)}) — all move in the right direction.`,
+      `check-ratchets: ${baseFileCount} ratchet file(s) + inline suppressions vs ${baseRef} (${mergeBase.slice(0, 9)}): all move in the right direction.`,
     )
     return 0
   }
@@ -2007,7 +2005,7 @@ async function check(repo, eslint, { argv, env, log, error }) {
     for (const { message } of violations)
       error(`${inCi ? "::error::" : ""}RATCHET VIOLATION ${message}`)
     return fail(
-      `${violations.length} violation(s), and no commit in the range carries a trailer. Ratchets only move one way — fix the code, not the threshold. ${ESCAPE}`,
+      `${violations.length} violation(s), and no commit in the range carries a trailer. Ratchets only move one way: fix the code, not the threshold. ${ESCAPE}`,
     )
   }
 
@@ -2017,7 +2015,7 @@ async function check(repo, eslint, { argv, env, log, error }) {
   const verdicts = attributeViolations(violations, steps)
   for (const { violation, verdict, commits: makers } of verdicts) {
     if (verdict === "waved") {
-      log(`${inCi ? "::warning::" : ""}RATCHET EXCEPTION APPLIED — ${violation.message}`)
+      log(`${inCi ? "::warning::" : ""}RATCHET EXCEPTION APPLIED: ${violation.message}`)
       for (const commit of makers)
         log(`    waved by ${describeCommit(commit)}: ${commit.trailers.join(" | ")}`)
       continue
@@ -2052,11 +2050,11 @@ async function check(repo, eslint, { argv, env, log, error }) {
   const failed = verdicts.length - waved.length
   if (failed > 0) {
     return fail(
-      `${failed} of ${verdicts.length} violation(s) not covered by a trailer of the commit that makes them. Ratchets only move one way — fix the code, not the threshold. ${ESCAPE}`,
+      `${failed} of ${verdicts.length} violation(s) not covered by a trailer of the commit that makes them. Ratchets only move one way: fix the code, not the threshold. ${ESCAPE}`,
     )
   }
   log(
-    `check-ratchets: ${waved.length} violation(s) waved through, each by the Ratchet-Exception trailer of every commit that makes it (listed above). Reviewers: this is the single documented escape — check each reason.`,
+    `check-ratchets: ${waved.length} violation(s) waved through, each by the Ratchet-Exception trailer of every commit that makes it (listed above). Reviewers: this is the single documented escape. Check each reason.`,
   )
   return 0
 }

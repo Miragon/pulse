@@ -52,7 +52,7 @@ const Kpi = ({ data }: { data: ProcessIncidentsData }) => (
   <ProcessDefinitionKpi data={data} processDefinitionKey="leasing" engine="prod-a" />
 )
 
-describe("definition view — activities affected over the diagram", () => {
+describe("definition view: activities affected over the diagram", () => {
   it("counts only the diagram's activities in the fraction and names the older-version ones beside it", () => {
     render(
       <TestViewHost>

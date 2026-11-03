@@ -39,7 +39,7 @@ describe("BPMN token module ↔ the vendored CSS (modeler-tool-design §13 drift
     }
   })
 
-  it("the overlay CSS refers to the tokens by variable — no raw colour", () => {
+  it("the overlay CSS refers to the tokens by variable: no raw colour", () => {
     expect(BPMN_OVERLAY_CSS).not.toMatch(/#[0-9a-f]{3,8}\b|rgba?\(/i)
     const referenced = [...BPMN_OVERLAY_CSS.matchAll(/var\(--cd-([\w-]+)\)/g)].map((m) => m[1])
     const css = vendoredTokens()

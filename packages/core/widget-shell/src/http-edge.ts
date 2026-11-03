@@ -131,7 +131,7 @@ export function describeHttpEdgePolicy(policy: HttpEdgePolicy): string {
   const list = (allowList: AllowList) =>
     allowList === "*" ? "any (validation off)" : allowList.join(", ")
   return (
-    `HTTP edge — hosts: ${list(policy.allowedHosts)}; origins: ${list(policy.allowedOrigins)}; ` +
+    `HTTP edge: hosts ${list(policy.allowedHosts)}; origins ${list(policy.allowedOrigins)}; ` +
     `max body ${formatBytes(policy.maxBodyBytes)} (${formatBytes(policy.maxInFlightBodyBytes)} in flight); ` +
     `/metrics ${policy.metricsToken ? "token-protected" : "open"}`
   )

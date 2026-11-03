@@ -185,7 +185,7 @@ mcp-use client/screenshot commands in `CLAUDE.md` → Verification. Also verify
 the selection path: `MCP_ACTIVE_MODULES=<name> pnpm dev` must expose exactly
 your module's tools. If you declared `toolsets`, that is its read-only floor
 without OAuth and its `authenticatedDefault` with it (the boot log's
-`Toolsets —` line says which).
+`Toolsets:` line says which).
 
 ## Anti-patterns
 

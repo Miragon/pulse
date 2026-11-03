@@ -176,7 +176,7 @@ export function useEngineAction<TArgs extends Record<string, unknown>, TResult =
     if (WRITE_POLICY[tool].confirm) {
       const spec = runOptions.confirm
       if (!spec) {
-        throw new Error(`${tool} asks first — run it with a confirmation that names its target`)
+        throw new Error(`${tool} asks first: run it with a confirmation that names its target`)
       }
       const asked = { args, options: runOptions, confirmation: { target: key, spec } }
       setState((s) => ({ ...s, asked, errors: without(s.errors, key) }))

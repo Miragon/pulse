@@ -139,7 +139,7 @@ describe("buildInstanceDetailData", () => {
 
   describe("the cockpit links of a bare generated definition id", () => {
     // A key over ~25 characters with UUID ids: the engine stores a bare id,
-    // and a key parsed from it is that UUID — a cockpit route no key matches.
+    // and a key parsed from it is that UUID (a cockpit route no key matches).
     const LONG_KEY = "customerOnboardingApprovalProcess"
     const UUID = "6f1c2a9e-0b7d-4c33-9a51-3d2e8f40b7aa"
     const URLS = { baseUrl: "http://localhost:8080/engine-rest", provider: cibsevenProvider }
@@ -152,7 +152,7 @@ describe("buildInstanceDetailData", () => {
         { id: "i1", processInstanceId: "p1", incidentType: "failedJob" },
       ] as never)
 
-    it("address the key the statistics resolve — ONE read", async () => {
+    it("address the key the statistics resolve (ONE read)", async () => {
       withOneIncident()
       mockedStatistics.mockResolvedValueOnce([
         { id: UUID, instances: 1, incidents: [], definition: { id: UUID, key: LONG_KEY } },
@@ -171,7 +171,7 @@ describe("buildInstanceDetailData", () => {
       expect(mockedStatistics).toHaveBeenCalledTimes(1)
     })
 
-    it("are null when the statistics fail (enrichment) — never the UUID as a key", async () => {
+    it("are null when the statistics fail (enrichment), never the UUID as a key", async () => {
       withOneIncident()
       mockedStatistics.mockRejectedValueOnce(new Error("boom"))
 
@@ -195,7 +195,7 @@ describe("buildInstanceDetailData", () => {
       expect(mockedStatistics).not.toHaveBeenCalled()
     })
 
-    it("read no statistics for an instance without incidents — no link to build", async () => {
+    it("read no statistics for an instance without incidents: no link to build", async () => {
       const data = await buildInstanceDetailData(
         fakeClient,
         "engine-a",
@@ -248,7 +248,7 @@ describe("buildInstanceDetailData", () => {
     expect(data.diagramDefinitionId).toBeNull()
   })
 
-  it("attaches a form schema per open task — null (never 'no form') when one fails", async () => {
+  it("attaches a form schema per open task; null (never 'no form') when one fails", async () => {
     mockedTasks.mockResolvedValueOnce([
       { id: "t1", taskDefinitionKey: "Task_1", processDefinitionId: "K1:3:dep" },
       { id: "t2", taskDefinitionKey: "Task_2", processDefinitionId: "K1:3:dep" },
@@ -315,7 +315,7 @@ describe("buildInstanceDetailData", () => {
     expect(mockedTasksCount.mock.calls[0]?.[0]?.query).toEqual({ processInstanceId: "p1" })
   })
 
-  it("fails — never '0 open incidents' — when the incident read fails", async () => {
+  it("fails (never '0 open incidents') when the incident read fails", async () => {
     mockedIncidents.mockRejectedValueOnce(new Error("503"))
 
     await expect(

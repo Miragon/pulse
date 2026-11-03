@@ -116,7 +116,7 @@ export function BpmnHeatmap({
       const onChange = () => redraw()
       eventBus.on("canvas.viewbox.changed", onChange)
       eventBus.on("canvas.resized", onChange)
-      // Resize only repaints the overlay — the operator's pan/zoom is kept.
+      // Resize only repaints the overlay; the operator's pan/zoom is kept.
       const ro = new ResizeObserver(() => redraw())
       if (containerRef.current) ro.observe(containerRef.current)
       return () => {

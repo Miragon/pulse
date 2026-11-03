@@ -71,7 +71,7 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-describe("useEngineAction — the gate", () => {
+describe("useEngineAction: the gate", () => {
   it("is not allowed (and runs nothing) until the deployment's feed allows it", async () => {
     allowed = []
     const { result } = retryAction()
@@ -81,7 +81,7 @@ describe("useEngineAction — the gate", () => {
     expect(write).not.toHaveBeenCalled()
   })
 
-  it("is closed while the subject's state does not allow the write — the gate notwithstanding", async () => {
+  it("is closed while the subject's state does not allow the write, the gate notwithstanding", async () => {
     const { result, rerender } = renderHook(
       ({ available }: { available: boolean }) =>
         useEngineAction<RetryArgs>({
@@ -101,7 +101,7 @@ describe("useEngineAction — the gate", () => {
   })
 })
 
-describe("useEngineAction — the write", () => {
+describe("useEngineAction: the write", () => {
   it("runs per target: pending, then done with the result, then the targeted refresh", async () => {
     const invalidate = vi.spyOn(queryClient, "invalidateQueries")
     write.mockReturnValue({ success: true, retries: 1 })
@@ -124,7 +124,7 @@ describe("useEngineAction — the write", () => {
     expect(refreshed).toEqual(WRITE_POLICY.engine_set_job_retries.invalidates)
   })
 
-  it("keeps a failure at its target until that target runs again — and refreshes nothing", async () => {
+  it("keeps a failure at its target until that target runs again, and refreshes nothing", async () => {
     const invalidate = vi.spyOn(queryClient, "invalidateQueries")
     write.mockImplementationOnce(() => {
       throw new Error("job gone")
@@ -171,7 +171,7 @@ describe("useEngineAction — the write", () => {
   })
 })
 
-describe("useEngineAction — a write that asks first", () => {
+describe("useEngineAction: a write that asks first", () => {
   function resolveAction() {
     return renderHook(
       ({ available }: { available: boolean }) =>
@@ -200,7 +200,7 @@ describe("useEngineAction — a write that asks first", () => {
     expect(write).not.toHaveBeenCalled()
   })
 
-  it("keeps a question whose write is in flight — the dialog must show its outcome", async () => {
+  it("keeps a question whose write is in flight: the dialog must show its outcome", async () => {
     let finish!: (value: unknown) => void
     write.mockReturnValueOnce(new Promise((resolve) => (finish = resolve)))
     const { result, rerender } = resolveAction()
@@ -261,7 +261,7 @@ describe("useEngineAction — a write that asks first", () => {
     expect(result.current.confirmation).toBeNull()
     expect(result.current.error("inc-1")).toBe("not resolvable")
 
-    // Asking again starts a fresh question — the old failure does not greet it.
+    // Asking again starts a fresh question: the old failure does not greet it.
     act(() => result.current.run({ incidentId: "inc-1" }, { confirm: CONFIRM, feedback: FEEDBACK }))
     expect(result.current.error("inc-1")).toBeNull()
   })
@@ -282,7 +282,7 @@ describe("useEngineAction — a write that asks first", () => {
   })
 })
 
-describe("useEngineAction — the feedback (U9: a write is never silent)", () => {
+describe("useEngineAction: the feedback (U9: a write is never silent)", () => {
   // The test host brings the toast stack.
   const toastWrapper = wrapper
 
@@ -338,7 +338,7 @@ describe("useEngineAction — the feedback (U9: a write is never silent)", () =>
     expect(shown.textContent).not.toContain("ProcessEngineException")
   })
 
-  it("leaves a confirmed write's failure to its dialog — no second, toast-shaped copy", async () => {
+  it("leaves a confirmed write's failure to its dialog: no second, toast-shaped copy", async () => {
     write.mockImplementation(() => {
       throw new Error("not resolvable")
     })

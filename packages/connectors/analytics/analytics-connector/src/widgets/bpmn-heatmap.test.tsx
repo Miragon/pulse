@@ -45,7 +45,7 @@ function renderIn(language: "de" | "en") {
   )
 }
 
-describe("the BPMN heatmap — a diagram bpmn-js cannot import", () => {
+describe("the BPMN heatmap: a diagram bpmn-js cannot import", () => {
   it.each([
     [
       "de" as const,

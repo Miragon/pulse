@@ -7,7 +7,7 @@ import { expect } from "vitest"
  *
  * Deliberately NOT vitest snapshots: `vitest -u` would be a one-command
  * bypass an agent reaches for reflexively. Plain JSON + toEqual makes
- * `vitest -u` a no-op — the ONLY update path is an explicit
+ * `vitest -u` a no-op: the ONLY update path is an explicit
  * `GOLDEN_UPDATE=1` run, which is refused in CI, so every golden change is a
  * reviewable JSON diff in the PR.
  *
@@ -30,7 +30,7 @@ const UPDATE_COMMAND = "GOLDEN_UPDATE=1 pnpm --filter @miragon/pulse-mcp-server 
 export const GOLDEN_HINT =
   `The frozen tool surface diverges from the checked-in golden. If the change is INTENDED: run \`${UPDATE_COMMAND}\`, ` +
   "commit the JSON diff and justify it in the PR (a description, schema or annotation change alters what every " +
-  "consuming model reads). NEVER edit a golden by hand to match broken output — fix the code instead."
+  "consuming model reads). NEVER edit a golden by hand to match broken output. Fix the code instead."
 
 /** Recursively sort object keys so goldens are byte-stable; arrays keep their order. */
 export function stableSort(value: unknown): unknown {
@@ -47,13 +47,13 @@ export function stableSort(value: unknown): unknown {
 
 /**
  * True when this run may rewrite goldens: `GOLDEN_UPDATE=1` outside CI.
- * Throws in CI — a golden only ever changes through a committed, reviewed diff.
+ * Throws in CI: a golden only ever changes through a committed, reviewed diff.
  */
 function updating(what: string, dir: string): boolean {
   if (process.env.GOLDEN_UPDATE !== "1") return false
   if (process.env.CI) {
     throw new Error(
-      `GOLDEN_UPDATE is forbidden in CI — goldens change only via a local, committed, reviewed JSON diff (${what}).`,
+      `GOLDEN_UPDATE is forbidden in CI: goldens change only via a local, committed, reviewed JSON diff (${what}).`,
     )
   }
   fs.mkdirSync(dir, { recursive: true })
@@ -70,13 +70,13 @@ export function assertGolden(name: string, actual: unknown, dir = GOLDEN_DIR): v
   if (updating(name, dir)) {
     fs.writeFileSync(file, JSON.stringify(sorted, null, 2) + "\n", "utf8")
     console.warn(
-      `GOLDEN UPDATED: ${path.relative(process.cwd(), file)} — commit and justify the diff.`,
+      `GOLDEN UPDATED: ${path.relative(process.cwd(), file)}. Commit and justify the diff.`,
     )
     return
   }
   if (!fs.existsSync(file)) {
     throw new Error(
-      `Golden "${name}" does not exist yet. If this surface is new and intended: ${UPDATE_COMMAND} — then commit the JSON. Never hand-write a golden.`,
+      `Golden "${name}" does not exist yet. If this surface is new and intended: ${UPDATE_COMMAND}, then commit the JSON. Never hand-write a golden.`,
     )
   }
   expect(sorted, GOLDEN_HINT).toEqual(JSON.parse(fs.readFileSync(file, "utf8")))
@@ -90,7 +90,7 @@ function readBudgets(file: string): Budgets {
 
 /**
  * Pins golden `name`'s model-visible character count to its budget. With
- * `GOLDEN_UPDATE=1` the budget is rewritten to the measured value — a raise
+ * `GOLDEN_UPDATE=1` the budget is rewritten to the measured value. A raise
  * then fails `pnpm lint` (check-ratchets) unless the branch carries a
  * `Ratchet-Exception:` trailer; a shrink tightens the budget for good.
  */
@@ -120,7 +120,7 @@ export function assertCharBudget(name: string, measured: number, dir = GOLDEN_DI
   }
   if (measured < budget) {
     throw new Error(
-      `The model-visible surface "${name}" shrank from ${budget} to ${measured} characters — tighten the budget: ${UPDATE_COMMAND}.`,
+      `The model-visible surface "${name}" shrank from ${budget} to ${measured} characters; tighten the budget: ${UPDATE_COMMAND}.`,
     )
   }
 }

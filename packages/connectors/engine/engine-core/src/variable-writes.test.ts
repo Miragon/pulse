@@ -12,7 +12,7 @@ const INT32_MAX = 2 ** 31 - 1
 
 /**
  * The wire shape per variable type. Each rule mirrors an engine refusal
- * verified against CIB Seven 2.2: a non-string Json/Xml/Object value is a 400
+ * verified against CIB seven 2.2: a non-string Json/Xml/Object value is a 400
  * "Must provide 'null' or String value for value of SerializableValue type",
  * an Object without objectTypeName finds no serializer, an ISO "Z" date
  * cannot be converted to java.util.Date.
@@ -30,7 +30,7 @@ describe("toEngineVariable", () => {
   })
 
   it.each(["Json", "json"])(
-    "stringifies a parsed %s value — the engine takes only the string",
+    "stringifies a parsed %s value: the engine takes only the string",
     (type) => {
       expect(toEngineVariable("v", { value: { a: [1, 2] }, type })).toEqual({
         value: '{"a":[1,2]}',

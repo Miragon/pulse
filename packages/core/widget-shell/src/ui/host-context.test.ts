@@ -11,7 +11,7 @@ import {
   validTimeZone,
 } from "./host-context.js"
 
-describe("resolveTheme — host > OS, no in-app switch", () => {
+describe("resolveTheme: host > OS, no in-app switch", () => {
   it("the host's theme wins over the OS, both ways", () => {
     expect(resolveTheme("dark", false)).toBe("dark")
     expect(resolveTheme("light", true)).toBe("light")

@@ -33,16 +33,13 @@ async function feedSettled() {
 const EVERY_WRITE = [...ENGINE_WIDGET_ACTIONS]
 
 describe("every in-widget write renders its control only where it is allowed", () => {
-  it.each(GATING_SITES)(
-    "$site — shown when the deployment offers it",
-    async ({ site, control }) => {
-      render(GATING_RENDERERS[site](EVERY_WRITE, queryClient))
-      expect(await screen.findByRole("button", { name: control })).toBeTruthy()
-    },
-  )
+  it.each(GATING_SITES)("$site: shown when the deployment offers it", async ({ site, control }) => {
+    render(GATING_RENDERERS[site](EVERY_WRITE, queryClient))
+    expect(await screen.findByRole("button", { name: control })).toBeTruthy()
+  })
 
   it.each(GATING_SITES)(
-    "$site — hidden (not disabled) when everything but it is offered",
+    "$site: hidden (not disabled) when everything but it is offered",
     async ({ site, control, write }) => {
       render(
         GATING_RENDERERS[site](

@@ -1,7 +1,7 @@
 {
   "name": "@miragon/pulse-engine-client",
   "version": "0.24.2",
-  "description": "Generated CIB Seven / Camunda 7 REST SDK, its client with deadlines and engine errors, and the reads whose REST contract the SDK defaults miss.",
+  "description": "Generated CIB seven / Camunda 7 REST SDK, its client with deadlines and engine errors, and the reads whose REST contract the SDK defaults miss.",
   "license": "MIT",
   "keywords": [
     "camunda",

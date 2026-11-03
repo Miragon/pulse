@@ -139,7 +139,7 @@ export function createBodyLimitedListener(
   }
   const busy: Refusal = {
     status: 503,
-    message: `Server busy: request bodies in flight would exceed ${maxInFlightBodyBytes} bytes — retry shortly.`,
+    message: `Server busy: request bodies in flight would exceed ${maxInFlightBodyBytes} bytes. Retry shortly.`,
     headers: { "retry-after": "1" },
   }
   let inFlight = 0

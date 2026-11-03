@@ -196,7 +196,7 @@ describe("jumping from a call activity in the instance view", () => {
     await panel.handle({ type: "ready" })
 
     expect(instanceView(fixture.lastState()).calls).toEqual([
-      { elementId: CALL_ACTIVITY, label: "Not called yet – open called process Print label" },
+      { elementId: CALL_ACTIVITY, label: "Not called yet: open called process Print label" },
     ])
 
     await panel.handle({ type: "openCall", elementId: CALL_ACTIVITY, toSide: false })

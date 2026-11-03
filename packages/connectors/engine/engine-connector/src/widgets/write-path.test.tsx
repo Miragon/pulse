@@ -82,7 +82,7 @@ describe("completing a user task refreshes the instance (N99)", () => {
     expect(feedCalls(calls)).toHaveLength(2)
   })
 
-  it("offers no Suspend/Cancel from the refetch's FIRST failure on — not after the client's retries", async () => {
+  it("offers no Suspend/Cancel from the refetch's FIRST failure on, not after the client's retries", async () => {
     // The runtime read is a 404 now; the stale snapshot must not offer actions, not even during the
     // ~7 s of production retries.
     withProductionRetries()
@@ -279,7 +279,7 @@ const JOBS: JobPanelData = {
 }
 
 describe("the cockpit's seeded start view refreshes after a write (K46)", () => {
-  it("job panel: Retry refetches the seeded page — the retried job leaves the failed-only list", async () => {
+  it("job panel: Retry refetches the seeded page, so the retried job leaves the failed-only list", async () => {
     const calls: Calls = []
     const AFTER_RETRY: JobPanelData = { ...JOBS, totalCount: 0, failedCount: 0, jobs: [] }
     render(

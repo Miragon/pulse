@@ -174,7 +174,7 @@ function VariableRow({
                 {editError}
               </p>
             )}
-            {/* Server-side rejection of a validly-parsed write — without this the
+            {/* Server-side rejection of a validly-parsed write: without this the
                 Save button just re-enables and the row stays silently in edit. */}
             {!editError && serverError && (
               <p role="alert" className="text-destructive text-small font-sans">

@@ -21,10 +21,10 @@ export interface ConfirmDialogProps {
   onOpenChange: (open: boolean) => void
   title: string
   description: string
-  /** What the write acts on, by name — at least one line. */
+  /** What the write acts on, by name (at least one line). */
   target: readonly ConfirmTarget[]
   confirmLabel: string
-  /** Not doing it, as verb + object ("Keep instance") — never a bare "Cancel". */
+  /** Not doing it, as verb + object ("Keep instance"), never a bare "Cancel". */
   keepLabel: string
   /** The confirm button while the write runs (default: the locale's "Working…"). */
   pendingLabel?: string

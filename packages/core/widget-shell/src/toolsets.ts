@@ -4,7 +4,7 @@ export interface ToolsetVocabulary<T extends string> {
   names: readonly T[]
   /** The read-only floor: empty/unknown suffixes, unauthenticated boots and direct callers without a toolset land here. */
   fallback: T
-  /** The no-suffix default under OAuth — the module's standard non-admin toolset. */
+  /** The no-suffix default under OAuth: the module's standard non-admin toolset. */
   authenticatedDefault: T
   isKnown(value: string): value is T
   /** A missing toolset only arrives from a direct `createPlugin` caller, which gets the floor, never everything. */
@@ -13,7 +13,7 @@ export interface ToolsetVocabulary<T extends string> {
   effective(suffix: string | undefined, options: { authenticated: boolean }): EffectiveSelection<T>
 }
 
-/** Where an effective toolset came from — the reason the boot log names. */
+/** Where an effective toolset came from: the reason the boot log names. */
 export type ToolsetSource = "suffix" | "default" | "fallback"
 
 interface EffectiveSelection<T extends string> {
@@ -35,7 +35,7 @@ export function createToolsetVocabulary<T extends string>(
   const isKnown = (value: string): value is T => (names as readonly string[]).includes(value)
   const degrade = (reason: string): T => {
     console.warn(
-      `[${moduleName}] ${reason} — falling back to "${fallback}". Known toolsets: ${names.join(", ")}`,
+      `[${moduleName}] ${reason}: falling back to "${fallback}". Known toolsets: ${names.join(", ")}`,
     )
     return fallback
   }

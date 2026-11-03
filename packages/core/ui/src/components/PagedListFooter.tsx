@@ -4,7 +4,7 @@ import { ErrorState } from "./ErrorState.js"
 import { ListFooter } from "./ListFooter.js"
 
 /**
- * What {@link PagedListFooter} reads from a paged list — structural, so a
+ * What {@link PagedListFooter} reads from a paged list: structural, so a
  * paged-query hook's result (`items`, `total`, `loadMore`, …) passes as is.
  */
 export interface PagedListState {
@@ -30,7 +30,7 @@ export interface PagedListState {
   firstPage?: unknown
   /** The first-page failure (see {@link firstPage}). */
   error?: Error | null
-  /** Re-run the first page — the retry of {@link error}. */
+  /** Re-run the first page: the retry of {@link error}. */
   retry?: () => void
   /** The last load-more failure; {@link loadMore} retries it, the rows above stay current. */
   loadMoreError?: Error | null
@@ -54,7 +54,7 @@ function rawReason(error: Error): string {
 
 /**
  * The tail of a paged list: its failures and the honest {@link ListFooter}.
- * Two failures stay apart because their retries differ — a failed first page
+ * Two failures stay apart because their retries differ: a failed first page
  * over the rows still on screen ("You're seeing the previous result", its
  * retry re-runs page 0) and a failed load-more ("The entries above are
  * current", its retry fetches the next offset). Each is an inline

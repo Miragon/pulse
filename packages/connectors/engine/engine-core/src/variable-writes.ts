@@ -2,7 +2,7 @@
  * Variable writes. The engine REST layer types a variable value by its
  * `type` and is strict about the wire shape:
  *
- * - `Json`, `Xml` (Spin) and `Object` are SERIALIZABLE types — the value must
+ * - `Json`, `Xml` (Spin) and `Object` are SERIALIZABLE types: the value must
  *   be the serialized STRING (or null); a JSON object/array is a 400 "Must
  *   provide 'null' or String value for value of SerializableValue type".
  * - `Object` additionally needs `valueInfo.objectTypeName` (+ the

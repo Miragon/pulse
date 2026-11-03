@@ -49,7 +49,7 @@ function pickFrames(frames: string[]): string[] {
 
 export function condenseStacktrace(raw: string): string {
   const lines = raw.split(/\r?\n/)
-  // Free text (a worker's error details) has no frames to trim — keep it whole.
+  // Free text (a worker's error details) has no frames to trim: keep it whole.
   if (!lines.some(isFrame)) return raw.trim()
   const sections: { head: string; frames: string[] }[] = []
   let current: { head: string; frames: string[] } | null = null

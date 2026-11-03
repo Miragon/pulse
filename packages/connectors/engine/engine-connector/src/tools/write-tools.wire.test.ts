@@ -79,7 +79,7 @@ describe.each(CASES)("$toolName on the wire", (writeCase) => {
 })
 
 describe("writes the engine would misread are refused before any request", () => {
-  it("handle_external_task_failure requires retries — omitted, the engine reads 0", async () => {
+  it("handle_external_task_failure requires retries: omitted, the engine reads 0", async () => {
     const engine = await engineWith()
     expect(() =>
       callTool(toolConfig("engine_handle_external_task_failure"), registryFor(engine), {
@@ -131,7 +131,7 @@ describe("writes the engine would misread are refused before any request", () =>
 describe("complete_task never picks its endpoint on a guess", () => {
   const writes = (engine: FakeEngine) => engine.requests.filter((r) => r.method !== "GET")
 
-  it("fails without a write when the task's BPMN cannot be read — a form could be hiding there", async () => {
+  it("fails without a write when the task's BPMN cannot be read: a form could be hiding there", async () => {
     const engine = await engineWith({
       ...taskRoutes(TASK, FORM_BPMN),
       "GET /process-definition/def-1/xml": { status: 403, body: { message: "not authorized" } },

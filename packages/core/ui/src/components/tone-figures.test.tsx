@@ -6,7 +6,7 @@ import { CountPill, LivePill } from "./Pills.js"
 
 /**
  * Status model (owner decision 2e-f, CI §3.3): coloured digits are retired.
- * A figure — a KPI value, a trend, a count — stays in the foreground; the tone
+ * A figure (a KPI value, a trend, a count) stays in the foreground; the tone
  * shows as a dot, a border or a tint next to it. These components carry
  * figures, so no tone colour may reach their text (SSR, the house render path).
  */
@@ -31,7 +31,7 @@ describe("figures never take a tone colour", () => {
     // Icons draw in the tone (SVG currentColor, TONE_ICON); no WORD or digit does.
     const words = html.replace(/<svg[\s\S]*?<\/svg>/g, "")
     expect(words).not.toMatch(TONE_AS_TEXT)
-    // The tone is still there — as a dot next to a label, an icon next to a trend.
+    // The tone is still there: as a dot next to a label, an icon next to a trend.
     expect(html).toMatch(/bg-danger\b/)
     expect(html).toMatch(/bg-success\b/)
     expect(html).toMatch(/<svg[^>]*class="lucide lucide-trending-up[^"]*text-danger"/)

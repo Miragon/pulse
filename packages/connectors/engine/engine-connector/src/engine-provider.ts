@@ -48,7 +48,7 @@ export interface EngineCockpitStrategy {
 
 export interface EngineProvider {
   flavor: EngineFlavor
-  /** REST-client factory — identical across vendors today; the hook exists for real divergence. */
+  /** REST-client factory, identical across vendors today; the hook exists for real divergence. */
   createClient(entry: EngineEntry, auth: EngineAuth, settings?: EngineClientSettings): Client
   cockpit: EngineCockpitStrategy
   branding: { displayName: string }

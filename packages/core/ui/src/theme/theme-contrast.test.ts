@@ -105,19 +105,19 @@ const STATUS_SURFACES = (tone: (typeof TONES)[number]): [string, string][] => [
 ]
 
 describe.each(MODES)("contrast in %s mode (computed from the vendored tokens)", (mode) => {
-  it.each(TEXT_PAIRS)("text %s on %s ≥ 4.5:1 — %s", (fg, bg) => {
+  it.each(TEXT_PAIRS)("text %s on %s ≥ 4.5:1 (%s)", (fg, bg) => {
     expect(ratio(fg, bg, mode)).toBeGreaterThanOrEqual(4.5)
   })
 
   it.each(LIGHT_ONLY_TEXT_PAIRS)(
-    "text %s on %s ≥ 4.5:1 in light only (dark exemption still needed) — %s",
+    "text %s on %s ≥ 4.5:1 in light only, dark exemption still needed (%s)",
     (fg, bg) => {
       if (mode === "light") expect(ratio(fg, bg, mode)).toBeGreaterThanOrEqual(4.5)
       else expect(ratio(fg, bg, mode)).toBeLessThan(4.5)
     },
   )
 
-  it.each(NON_TEXT_PAIRS)("non-text %s on %s ≥ 3:1 — %s", (fg, bg) => {
+  it.each(NON_TEXT_PAIRS)("non-text %s on %s ≥ 3:1 (%s)", (fg, bg) => {
     expect(ratio(fg, bg, mode)).toBeGreaterThanOrEqual(3)
   })
 
@@ -129,7 +129,7 @@ describe.each(MODES)("contrast in %s mode (computed from the vendored tokens)", 
         where,
       ]),
     ),
-  )("status colour %s on %s ≥ 3:1 unless CI-exempt on light — %s", (name, bg) => {
+  )("status colour %s on %s ≥ 3:1 unless CI-exempt on light (%s)", (name, bg) => {
     const r = ratio(name, bg, mode)
     if (mode === "light" && LIGHT_EXEMPT_STATUS.includes(name)) {
       // Still exempt? If the CI ever lifts it to 3:1, drop the exemption.

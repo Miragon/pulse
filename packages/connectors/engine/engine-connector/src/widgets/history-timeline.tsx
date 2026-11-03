@@ -97,7 +97,7 @@ function HistoryTimelineView({
   instanceRef?: TimelineInstanceRef
   engineId: string
   totalActivities?: number
-  /** Activities with an open incident on this instance — their running step is marked. */
+  /** Activities with an open incident on this instance: their running step is marked. */
   incidentActivityIds?: readonly string[] | null
   variant?: "timeline" | "table"
   /** The element whose children are the rows, for the inline fit of a paged timeline. */
@@ -262,7 +262,7 @@ export function PagedHistoryView({
   variant?: "timeline" | "table"
   initialPage?: HistoryPage | null
   processInstance?: HistoryTimelineData["processInstance"]
-  /** Activities with an open incident on this instance — their running step is marked. */
+  /** Activities with an open incident on this instance: their running step is marked. */
   incidentActivityIds?: readonly string[] | null
 }) {
   const t = useT()

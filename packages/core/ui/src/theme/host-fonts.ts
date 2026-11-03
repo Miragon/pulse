@@ -31,8 +31,8 @@ export interface InlineStyleTarget {
  * `document.documentElement.style`, where the host variables were applied):
  * each non-empty `--font-sans` / `--font-mono` in `hostVariables` is written
  * to its {@link HOST_FONT_VARIABLES} slot, and the role is cleared when it
- * still holds exactly the host's value — an app's own inline brand font
- * stays. Idempotent; a no-op without host variables.
+ * still holds exactly the host's value (an app's own inline brand font
+ * stays). Idempotent; a no-op without host variables.
  *
  * @example
  * applyHostStyleVariables(vars) // the host layer writes --font-sans on <html>

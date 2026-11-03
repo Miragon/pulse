@@ -29,7 +29,7 @@ describe("definitionKeyInId", () => {
     expect(definitionKeyInId(":2:d2")).toBeNull()
   })
 
-  it("is the display parse's source — which shows a bare id as itself", () => {
+  it("is the display parse's source, which shows a bare id as itself", () => {
     expect(processDefinitionKeyFromId("order:2:d2")).toBe("order")
     expect(processDefinitionKeyFromId(UUID)).toBe(UUID)
   })
@@ -111,13 +111,13 @@ describe("fetchLatestDefinitionXml", () => {
     ])
   })
 
-  it("is null for a key with no deployed version — and reads no XML", async () => {
+  it("is null for a key with no deployed version and reads no XML", async () => {
     const engine = await tenantEngine()
     expect(await fetchLatestDefinitionXml(clientFor(engine), "unknown")).toBeNull()
     expect(engine.requests.map((r) => r.path)).toEqual(["/process-definition"])
   })
 
-  it("propagates a failed read — the caller decides whether the diagram is enrichment", async () => {
+  it("propagates a failed read: the caller decides whether the diagram is enrichment", async () => {
     const engine = await startFakeEngine({
       "GET /process-definition": { status: 500, body: { message: "db down" } },
     })

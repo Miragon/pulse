@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * `pnpm fitness` — the repo's fitness-function dashboard. Aggregates what the
+ * `pnpm fitness`: the repo's fitness-function dashboard. Aggregates what the
  * gates already measure into one report: architecture graph (dependency-
  * cruiser), per-package coverage (from the
  * last `pnpm test` run's coverage-summary.json) and mutation scores (from

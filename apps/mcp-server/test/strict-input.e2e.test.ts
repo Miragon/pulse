@@ -7,10 +7,10 @@ import { isModelVisible } from "./golden.js"
  * server STRIP an unknown key before the handler runs: a misnamed optional
  * filter (`processDefinitionKey` on a tool that only knows
  * `processDefinitionId`) then returned engine-wide results with no error, and
- * the model attributed them to the process it asked about. Every tool —
- * model-facing tools AND the app-only `*_data` feeds, which our own widgets
- * call (a stale widget argument must surface as an error, not as quietly
- * unfiltered data) — must refuse an unknown key with a tool error that names
+ * the model attributed them to the process it asked about. Every tool
+ * (model-facing tools AND the app-only `*_data` feeds, which our own widgets
+ * call; a stale widget argument must surface as an error, not as quietly
+ * unfiltered data) must refuse an unknown key with a tool error that names
  * the valid keys, and advertise `additionalProperties: false`.
  */
 

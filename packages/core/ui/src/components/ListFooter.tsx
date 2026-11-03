@@ -41,7 +41,7 @@ export interface ListFooterProps {
 
 /**
  * Footer for a paginated list: an honest "Showing X of Y" total plus an
- * explicit "Load more" control. Deliberately not infinite scroll — the user
+ * explicit "Load more" control. Deliberately not infinite scroll: the user
  * gets the total, a reachable footer, and control over fetching. The count
  * is a polite live region (`role="status"`), so a keyboard or screen-reader
  * user hears the new total after "Load more" or a filter change; while a

@@ -3,7 +3,7 @@
  * no-op, so the tools never forward a filter value as given:
  *
  * - Boolean filters are TRUE-ONLY: `true` narrows the result, `false` is
- *   IGNORED (HTTP 200, no filter) — neither a negation nor a 400. A forwarded
+ *   IGNORED (HTTP 200, no filter): neither a negation nor a 400. A forwarded
  *   `suspended=false` would return the suspended instances to a caller who
  *   asked for the opposite. Flags go out only when `true`; where the engine
  *   has the complementary flag (active/suspended, finished/unfinished, …), a

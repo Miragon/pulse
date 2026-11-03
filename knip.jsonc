@@ -7,7 +7,7 @@
   // workspace (docs: all but exports and types), so no workspace runs on its own.
   // knip never reports what an ENTRY file exports (includeEntryExports is off):
   // the published entries' own lists are locked by their index tests.
-  // Every ignore below is a documented exception — the list is shrink-only,
+  // Every ignore below is a documented exception: the list is shrink-only,
   // same convention as the ESLint ratchet lists.
 
   // Standalone customer-facing workspace OUTSIDE the pnpm workspace; verified
@@ -71,7 +71,7 @@
       "vitest": {
         "config": ["vitest.config.ts", "vitest.stryker.config.ts"],
       },
-      // Generated CIB Seven SDK (pnpm generate) — its export surface mirrors
+      // Generated CIB seven SDK (pnpm generate): its export surface mirrors
       // the OpenAPI spec, not our usage.
       "ignore": ["src/generated/**"],
     },

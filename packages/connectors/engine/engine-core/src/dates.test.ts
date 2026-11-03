@@ -17,7 +17,7 @@ import {
 /** Every reading of the one parser. */
 const READINGS: readonly DateInputReading[] = [OFFSET_REQUIRED, UTC_WITHOUT_OFFSET]
 
-/** The ONLY shape CIB Seven parses (verified live: every other form is a 400). */
+/** The ONLY shape CIB seven parses (verified live: every other form is a 400). */
 const ENGINE_FORMAT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}[+-]\d{4}$/
 
 describe("toEngineDate", () => {
@@ -102,7 +102,7 @@ describe("toOptionalEngineDate", () => {
   })
 })
 
-describe("engineDateMillis — engine timestamps order by instant (#335 N71)", () => {
+describe("engineDateMillis: engine timestamps order by instant (#335 N71)", () => {
   it.each([
     ["2026-10-25T02:30:00.000+0200", Date.UTC(2026, 9, 25, 0, 30)],
     ["2026-10-25T02:10:00.000+0100", Date.UTC(2026, 9, 25, 1, 10)],
@@ -155,7 +155,7 @@ describe("latestEngineDate / earliestEngineDate", () => {
  * The two readings of one parser. They differ today and each interface keeps its own until one
  * reading is chosen for all (a behaviour change): these cases pin every difference.
  */
-describe("engineDateInput — the two readings", () => {
+describe("engineDateInput: the two readings", () => {
   it("reads as OFFSET_REQUIRED by default", () => {
     expect(engineDateInput("2026-10-01T08:30:00Z")).toBe("2026-10-01T08:30:00.000+0000")
     expect(engineDateInput("2026-10-01T08:30:00")).toBeUndefined()
@@ -291,7 +291,7 @@ const GREGORIAN_FROM: Readonly<Record<DateInputReading, number>> = {
   [OFFSET_REQUIRED]: 1,
 }
 
-describe.each(READINGS)("engineDateInput — %s properties", (reading) => {
+describe.each(READINGS)("engineDateInput: %s properties", (reading) => {
   const convert = (input: string): string => {
     const engine = engineDateInput(input, reading)
     if (engine === undefined) throw new Error(`refused ${input}`)
@@ -356,7 +356,7 @@ describe.each(READINGS)("engineDateInput — %s properties", (reading) => {
   })
 })
 
-describe("engineDateInput — UTC_WITHOUT_OFFSET (the CLI's reading)", () => {
+describe("engineDateInput: UTC_WITHOUT_OFFSET (the CLI's reading)", () => {
   it.each([
     ["2024-05-01T10:00:00.000+0200", "2024-05-01T10:00:00.000+0200"],
     ["2024-05-01T10:00:00.000-0530", "2024-05-01T10:00:00.000-0530"],

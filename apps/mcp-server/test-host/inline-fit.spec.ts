@@ -51,7 +51,7 @@ async function openView(
 ): Promise<FrameLocator> {
   const base = process.env[REALISTIC_HOST_ENV]
   if (!base)
-    throw new Error(`${REALISTIC_HOST_ENV} is unset — run via \`playwright test -c test-host\``)
+    throw new Error(`${REALISTIC_HOST_ENV} is unset. Run via \`playwright test -c test-host\``)
   const query = new URLSearchParams({
     tool: view.tool,
     args: JSON.stringify(view.args),

@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component
  * register as v1 and v2 of the same processDefinitionKey. Camunda's atomic
  * deployment rejects two definitions sharing one key, so the auto-deployer
  * (which bundles every `*.bpmn` resource into one deployment) cannot do this
- * for us — we deploy explicitly here instead.
+ * for us, so we deploy explicitly here instead.
  *
  * Runs before [SeedOrchestrator] (lower @Order) so the seeder finds both
  * versions when it queries by `processDefinitionVersion`.
@@ -24,7 +24,7 @@ class BpmnDeploymentBootstrap(private val repositoryService: RepositoryService) 
     private val log = LoggerFactory.getLogger(BpmnDeploymentBootstrap::class.java)
 
     override fun run(vararg args: String) {
-        // Skip when v1 is already on the engine — keeps idempotency for hot
+        // Skip when v1 is already on the engine; keeps idempotency for hot
         // restarts against a populated database.
         val v1Already = repositoryService.createProcessDefinitionQuery()
             .processDefinitionKey("miraveloLeasing")
@@ -38,7 +38,7 @@ class BpmnDeploymentBootstrap(private val repositoryService: RepositoryService) 
                 .deploy()
             log.info("Deployed miraveloLeasing v1 + assessCreditworthiness")
         } else {
-            log.info("miraveloLeasing v1 already deployed — skipping")
+            log.info("miraveloLeasing v1 already deployed, skipping")
         }
 
         val v2Already = repositoryService.createProcessDefinitionQuery()
@@ -52,7 +52,7 @@ class BpmnDeploymentBootstrap(private val repositoryService: RepositoryService) 
                 .deploy()
             log.info("Deployed miraveloLeasing v2")
         } else {
-            log.info("miraveloLeasing v2 already deployed — skipping")
+            log.info("miraveloLeasing v2 already deployed, skipping")
         }
     }
 }

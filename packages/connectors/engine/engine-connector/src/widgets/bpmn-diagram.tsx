@@ -90,7 +90,7 @@ export function BpmnCanvas({
     fit,
   } = useBpmnViewer({
     bpmnXml,
-    // A changed highlight set redecorates via a full re-import — bpmn-js
+    // A changed highlight set redecorates via a full re-import: bpmn-js
     // markers/overlays are only ever added, never removed.
     reimportKey: highlights,
     fitOnResize: true,
@@ -100,7 +100,7 @@ export function BpmnCanvas({
     },
   })
 
-  // Host layout switches (inline ↔ fullscreen) resize the container — refit.
+  // Host layout switches (inline ↔ fullscreen) resize the container: refit.
   useEffect(() => {
     fit()
   }, [displayMode, fit])

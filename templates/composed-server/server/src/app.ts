@@ -8,7 +8,7 @@ const PACKAGE_ROOT = path.join(import.meta.dirname, "..")
 
 /**
  * The preamble of the server `instructions`: short and factual. Every active
- * module appends its own snippet (`instructions` on its module definition —
+ * module appends its own snippet (`instructions` on its module definition,
  * e.g. the engine module's engine routing), and tool descriptions carry the rest.
  */
 export const SERVER_INSTRUCTIONS =
@@ -16,7 +16,7 @@ export const SERVER_INSTRUCTIONS =
   "Toolsets fail closed: a tool missing from tools/list is not enabled on this deployment. " +
   "On hosts that render MCP Apps, prefer the view tools (*_show_*, *_open_*) to present results to the user."
 
-/** The version in `package.json` — reported as `serverInfo.version`, never a hard-coded copy. */
+/** The version in `package.json`, reported as `serverInfo.version`, never a hard-coded copy. */
 export function packageVersion(): string {
   const pkg = JSON.parse(readFileSync(path.join(PACKAGE_ROOT, "package.json"), "utf8")) as {
     version: string

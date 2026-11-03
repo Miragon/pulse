@@ -84,7 +84,7 @@ describe("brand.css", () => {
     expect(brandCss).toContain('@import "@miragon/pulse-ui/theme.css"')
   })
 
-  it("sets role variables only — never a --cd-* token, never a variable the theme lacks", () => {
+  it("sets role variables only: never a --cd-* token, never a variable the theme lacks", () => {
     const roles = new Set(
       declaredVariables(...miragon).filter((name) => !/^--(cd|color)-/.test(name)),
     )

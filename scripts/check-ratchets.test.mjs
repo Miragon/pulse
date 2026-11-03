@@ -114,7 +114,7 @@ describe("shadowing configs (loaded BEFORE the ratcheted file)", () => {
     "packages/connectors/engine/engine-client/stryker.conf.cjs",
   ]
 
-  it("flags each one — also when the diff introduces it", () => {
+  it("flags each one, also when the diff introduces it", () => {
     for (const rel of SHADOWS) {
       assert.equal(ratchetKind(rel), "shadow-config", rel)
       const violations = checkRatchetFile(rel, null, '{"ignore":["**"]}')
@@ -994,7 +994,7 @@ export const sharedConfig = defineConfig({
     assert.deepEqual(checkRatchetFile("vitest.shared.ts", base, shared(["**/src/postgres.ts"])), [])
   })
 
-  it("flags dropping `enabled: true` — vitest then defaults to coverage off", () => {
+  it("flags dropping `enabled: true` (vitest then defaults to coverage off)", () => {
     const dropped = base.replace("enabled: true, ", "")
     assert.match(
       checkRatchetFile("vitest.shared.ts", base, dropped)[0],
@@ -1273,7 +1273,7 @@ export default [
     assert.match(grown[0], /src\/tools\/raw\.ts/)
   })
 
-  it("keys an ignore by the block it sits in — copying an exemption into the global ignores is new", () => {
+  it("keys an ignore by the block it sits in: copying an exemption into the global ignores is new", () => {
     const gates = (globalIgnores) => `export default [
   { ignores: [${globalIgnores}] },
   { files: ["src/**/*.ts"], ignores: ["src/widget-tools/**"], rules: { "no-restricted-syntax": ["error", "X"] } },
@@ -1323,7 +1323,7 @@ export default [
     assert.match(checkRatchetFile("eslint.config.mjs", base, null)[0], /was removed/)
   })
 
-  it("ignores parser-project partitions (no rules) — they route files, not exempt them", () => {
+  it("ignores parser-project partitions (no rules): they route files, not exempt them", () => {
     const partition = (globs) =>
       `export default [{ ignores: [${globs}], languageOptions: { parserOptions: {} } }]`
     assert.deepEqual(
@@ -1688,7 +1688,7 @@ describe("package gate scripts are pinned to the merge base", () => {
           JSON.stringify({ name: "pulse", scripts }),
         )
         assert.equal(violations.length, 1, script)
-        assert.match(violations[0], new RegExp(`"${script}" was removed — a CI or release job`))
+        assert.match(violations[0], new RegExp(`"${script}" was removed: a CI or release job`))
       }
     })
 
@@ -1890,7 +1890,7 @@ describe("the trailer covers its own commit (replayed per commit)", () => {
     const sha = repo.commit(`feat: a new tool\n\n${TRAILER}`, () => repo.budget(120))
     const { code, out } = await repo.check()
     assert.equal(code, 0, out)
-    assert.match(out, /RATCHET EXCEPTION APPLIED .*"tools": 100 -> 120/)
+    assert.match(out, /RATCHET EXCEPTION APPLIED: .*"tools": 100 -> 120/)
     assert.ok(out.includes(`waved by ${sha.slice(0, 9)} ("feat: a new tool"): ${TRAILER}`), out)
   })
 
@@ -1983,7 +1983,7 @@ describe("the trailer covers its own commit (replayed per commit)", () => {
   it("fails closed when no single commit makes a violation (the steps only add up to it)", async () => {
     // A switches perFile on (no count floor yet: fine), B trades a floor for a
     // count floor (its own violation, covered). Only together do they make
-    // "perFile next to a negative floor" — no commit's trailer covers that.
+    // "perFile next to a negative floor": no commit's trailer covers that.
     const config = (thresholds) => `import { defineConfig, mergeConfig } from "vitest/config"
 import { sharedConfig } from "../../../vitest.shared"
 export default mergeConfig(sharedConfig, defineConfig({
@@ -2007,7 +2007,7 @@ export default mergeConfig(sharedConfig, defineConfig({
     )
     const { code, out } = await repo.check()
     assert.equal(code, 1, out)
-    assert.match(out, /RATCHET EXCEPTION APPLIED .*lines: 80 -> -5/)
+    assert.match(out, /RATCHET EXCEPTION APPLIED: .*lines: 80 -> -5/)
     assert.match(out, /RATCHET VIOLATION .*perFile switched on next to a negative floor/)
     assert.match(out, /no single commit makes it/)
   })

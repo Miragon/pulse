@@ -81,7 +81,7 @@ function sourceTag(source: ReturnType<typeof classifyError>["source"]): string {
   return source.type
 }
 
-describe("classifyError — the mapping table", () => {
+describe("classifyError: the mapping table", () => {
   it.each(TABLE)("%s → %s", (raw, kind, status, source) => {
     const facts = classifyError(new Error(raw))
     expect(facts.kind).toBe(kind)
@@ -152,7 +152,7 @@ describe("classifyError — the mapping table", () => {
   })
 })
 
-describe("classifyError — hostile input stays linear (CodeQL js/polynomial-redos)", () => {
+describe("classifyError: hostile input stays linear (CodeQL js/polynomial-redos)", () => {
   const spaces = " ".repeat(100_000)
 
   it("reads a long whitespace run before the write caveat and the engine suffix quickly", () => {
@@ -166,7 +166,7 @@ describe("classifyError — hostile input stays linear (CodeQL js/polynomial-red
   })
 })
 
-describe("describeError — the words, en and de", () => {
+describe("describeError: the words, en and de", () => {
   const down = new Error(
     "[503 ProcessEngineException] Engine is shutting down (engine prod-leasing)",
   )

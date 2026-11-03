@@ -80,7 +80,7 @@ describe("engine_get_task_form", () => {
     )
   })
 
-  it("fails when the task's BPMN cannot be read — a form could be hiding there", async () => {
+  it("fails when the task's BPMN cannot be read: a form could be hiding there", async () => {
     const engine = await engineWith({
       "GET /task/t-1": { body: TASK },
       "GET /process-definition/def-1/xml": { status: 403, body: { message: "not authorized" } },
@@ -117,7 +117,7 @@ describe("engine_get_task_form", () => {
     })
   })
 
-  it("names a linked Camunda Form (camunda:formRef) — the task has no formKey then", async () => {
+  it("names a linked Camunda Form (camunda:formRef); the task has no formKey then", async () => {
     const engine = await engineWith({
       "GET /task/t-1": {
         body: { ...TASK, camundaFormRef: { key: "invoiceForm", binding: "latest", version: null } },
@@ -171,7 +171,7 @@ describe("engine_format_incident_issue reads the failure text through the contra
     expect(engine.requests.find((r) => r.path.endsWith("/errorDetails"))?.headers.accept).toBe(
       "text/plain",
     )
-    // Free text has no frames to condense — kept whole.
+    // Free text has no frames to condense, so it is kept whole.
     expect(draft.body).toContain("SMTP 550\nmailbox full")
   })
 
@@ -185,7 +185,7 @@ describe("engine_format_incident_issue reads the failure text through the contra
     })) as {
       body: string
     }
-    // The reason is engine/network text — in a span it cannot close (#338).
+    // The reason is engine/network text: in a span it cannot close (#338).
     expect(draft.body).toContain("_Stacktrace could not be loaded:_ `[403] not authorized")
     expect(draft.body).not.toContain("_No stacktrace available._")
   })

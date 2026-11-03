@@ -4,9 +4,9 @@
  * The AST half reads only the `ignores` lists and the imports of
  * eslint.config.mjs. This half asks ESLint itself: the merge-base config and
  * the working-tree config are both evaluated, and for every source file under
- * apps/ and packages/ — plus one sample path per `files`/`ignores` glob that
+ * apps/ and packages/ (plus one sample path per `files`/`ignores` glob that
  * matches no file yet, so an exemption pre-planted for a future file is seen
- * too — the settings ESLint would apply are compared:
+ * too), the settings ESLint would apply are compared:
  *
  *   - a file linted on the base stays linted (never newly ignored);
  *   - complexity / max-lines / no-restricted-syntax at "error" stay "error";
@@ -14,13 +14,13 @@
  *     relax;
  *   - no-restricted-syntax never drops, for one file, a selector the new
  *     config still applies to others (a per-file carve-out or an override
- *     block that REPLACES a gate's selectors — flat config never merges one
+ *     block that REPLACES a gate's selectors: flat config never merges one
  *     rule's options); a gate rewritten for every file is rewritten the same
  *     way for every file that shared it, and never ends up with fewer
  *     selectors.
  *
- * Whatever shape produced a setting — a const, a spread, an imported object,
- * a reordered block, an ignore moved between blocks — the outcome is what the
+ * Whatever shape produced a setting (a const, a spread, an imported object,
+ * a reordered block, an ignore moved between blocks), the outcome is what the
  * gates enforce, so that is what is compared.
  */
 import path from "node:path"
@@ -228,7 +228,7 @@ function looseningsByReason(effective) {
 /** The violation message of one reason and the files it holds for. */
 const looseningMessage = (label, { reason, files }) => {
   const shown = files.slice(0, 5).join(", ")
-  return `${label} -> ${reason} for ${files.length} file(s): ${shown}${files.length > 5 ? ", …" : ""}. The effective config is what the gates enforce, whatever shape produced it — fix the code instead (or carry the Ratchet-Exception trailer for a deliberate gate change).`
+  return `${label} -> ${reason} for ${files.length} file(s): ${shown}${files.length > 5 ? ", …" : ""}. The effective config is what the gates enforce, whatever shape produced it. Fix the code instead (or carry the Ratchet-Exception trailer for a deliberate gate change).`
 }
 
 /**

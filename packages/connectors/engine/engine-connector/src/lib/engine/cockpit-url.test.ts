@@ -184,7 +184,7 @@ describe("classic-cockpit flavors (camunda7 / operaton)", () => {
     ).toBe("http://op.example/operaton/app/cockpit/default/#/process-instance/inst-1")
   })
 
-  it("an explicit cockpitUrl gets the FLAVOR's route appended (not the CIB Seven one)", () => {
+  it("an explicit cockpitUrl gets the FLAVOR's route appended (not the CIB seven one)", () => {
     expect(
       buildProcessCockpitUrl(
         {

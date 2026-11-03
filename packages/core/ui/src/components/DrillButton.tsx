@@ -5,10 +5,10 @@ import { buttonVariants } from "../primitives/button.js"
 export interface DrillButtonProps {
   /** Button label. */
   children: ReactNode
-  /** Drill/navigation handler — wire to in-widget navigation (e.g. `showWidget`). */
+  /** Drill/navigation handler; wire it to in-widget navigation (e.g. `showWidget`). */
   onDrill: () => void
   /**
-   * Optional leading icon — a Lucide icon of the domain, never a typed glyph.
+   * Optional leading icon: a Lucide icon of the domain, never a typed glyph.
    * Decorative (`aria-hidden`). The trailing arrow is always rendered.
    */
   icon?: ReactNode
@@ -26,7 +26,7 @@ const BUTTON_SIZE = { sm: "sm", md: "default" } as const
  * button with a trailing Lucide arrow that drills into a detail/sub-view. Use
  * it for every in-app drill (row "Open", header nav) so they read identically
  * and stay visually quieter than primary/agentic actions. Decoupled from any
- * host — pass an `onDrill` callback (e.g. wrapping `useHostActions().showWidget`).
+ * host: pass an `onDrill` callback (e.g. wrapping `useHostActions().showWidget`).
  *
  * It IS the kit's outline `Button` (`buttonVariants`): `sm` is 32 px,
  * 14 px, weight 600, the size of a `Button size="sm"` or an `AskAiButton`

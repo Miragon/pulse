@@ -12,7 +12,7 @@ import { NOTES_LIST_DATA, NOTES_SHOW_NOTES } from "./tool-names.js"
 import type { NotesStore } from "./notes-store.js"
 
 /**
- * Inputs shared by `notes_show_notes` and its `notes_list_data` feed —
+ * Inputs shared by `notes_show_notes` and its `notes_list_data` feed,
  * declared through `strictToolInput`, the raw-path twin of the registrar's
  * strict input: an unknown key is refused, never stripped.
  */

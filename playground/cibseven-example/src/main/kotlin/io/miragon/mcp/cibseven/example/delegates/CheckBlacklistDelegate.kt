@@ -33,7 +33,7 @@ class CheckBlacklistDelegate : JavaDelegate {
             throw BpmnError("BLACKLIST_HIT", "Customer $customerId is on the blacklist")
         }
 
-        // Reaching this point means none of the three checks raised — the
+        // Reaching this point means none of the three checks raised: the
         // customer is creditworthy. Set the flag so the parent process gateway
         // can route to policy delivery.
         execution.setVariable("creditworthy", true)

@@ -17,7 +17,7 @@ export function Th({
   children,
 }: {
   align?: "left" | "right"
-  /** Bare header cell (e.g. the empty action column) — border/padding only. */
+  /** Bare header cell (e.g. the empty action column): border/padding only. */
   plain?: boolean
   sort?: ColumnSort
   className?: string

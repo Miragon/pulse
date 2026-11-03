@@ -10,7 +10,7 @@ import { colorFindings, scanColors, stylesheetColorFindings } from "./colors.js"
 const found = (source: string, file = "w.tsx") =>
   colorFindings(source, file).map((f) => `${f.line}:${f.match}`)
 
-describe("colorFindings — role names only, never palette classes or raw colours", () => {
+describe("colorFindings: role names only, never palette classes or raw colours", () => {
   it("finds Tailwind palette utilities in class strings, variants and templates included", () => {
     const source = [
       'export const a = <span className="text-red-600 font-bold">x</span>',
@@ -113,7 +113,7 @@ describe("colorFindings — role names only, never palette classes or raw colour
   })
 })
 
-describe("stylesheetColorFindings — a consumer stylesheet names no raw colour", () => {
+describe("stylesheetColorFindings: a consumer stylesheet names no raw colour", () => {
   it("finds hex and colour functions in rules, with their line", () => {
     const css = [
       '@import "@miragon/pulse-ui/theme.css";',
@@ -153,7 +153,7 @@ describe("stylesheetColorFindings — a consumer stylesheet names no raw colour"
   })
 })
 
-describe("scanColors — a source tree with a reasoned allow list", () => {
+describe("scanColors: a source tree with a reasoned allow list", () => {
   const root = mkdtempSync(join(tmpdir(), "colors-"))
   afterAll(() => rmSync(root, { recursive: true, force: true }))
   mkdirSync(join(root, "ramp"))

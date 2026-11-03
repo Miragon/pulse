@@ -29,7 +29,7 @@ const JOB_ORDER = [
   { sortBy: "jobId", sortOrder: "asc" },
 ]
 
-describe("buildJobPanelData — exact totals from /job/count", () => {
+describe("buildJobPanelData: exact totals from /job/count", () => {
   const jobRoutes = {
     "POST /job": {
       body: [
@@ -103,7 +103,7 @@ describe("buildJobPanelData — exact totals from /job/count", () => {
     })
   })
 
-  it("names each job's activity and process from its version's diagram — once per version", async () => {
+  it("names each job's activity and process from its version's diagram, once per version", async () => {
     const xml =
       '<definitions><process id="K1" name="Order to cash"><serviceTask id="charge" name="Charge card"/></process></definitions>'
     const job = (id: string, definitionId: string) => ({

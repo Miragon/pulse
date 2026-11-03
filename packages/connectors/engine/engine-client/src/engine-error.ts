@@ -1,7 +1,7 @@
 /**
- * Typed engine-call failures. hey-api throws whatever the engine sent — the
+ * Typed engine-call failures. hey-api throws whatever the engine sent (the
  * parsed `ExceptionDto` object for a JSON error body, the raw text otherwise,
- * `{}` for an empty body — and a bare `TypeError("fetch failed")` for network
+ * `{}` for an empty body) and a bare `TypeError("fetch failed")` for network
  * failures. None of that is an `Error` carrying a readable message, so every
  * engine 4xx/5xx used to reach the model as "[object Object]". The client's
  * always-on error interceptor ([[createEngineClient]]) funnels every failure
@@ -32,7 +32,7 @@ const EXCEPTION_TYPE = /^[\w$.]{1,120}$/
  * The HTTP status is `httpStatus`, deliberately NOT `status` (and the
  * engine's numeric error code is `engineCode`, not `code`): widget-shell's
  * `withToolErrors` prefixes any `status`/`code` property as `[…] `, which
- * would print the status twice — the message is complete on its own.
+ * would print the status twice. The message is complete on its own.
  */
 export class EngineRequestError extends Error {
   readonly kind: EngineFailureKind
@@ -71,8 +71,8 @@ export class EngineRequestError extends Error {
 }
 
 /**
- * Every form a credential can take in echoed text — as configured, trimmed
- * (header values are sent trimmed) and whitespace-collapsed — longest first,
+ * Every form a credential can take in echoed text: as configured, trimmed
+ * (header values are sent trimmed) and whitespace-collapsed. Longest first,
  * so a value is masked whole before any shorter one inside it. Values under
  * 4 characters are skipped: masking those would shred ordinary text.
  */
@@ -162,7 +162,7 @@ export interface EngineErrorContext {
   timedOut: boolean
   /** Appended as a sentence to 401 messages (auth-type-specific remedy). */
   unauthorizedHint?: string
-  /** Credentials the request carried — masked wherever engine text is echoed. */
+  /** Credentials the request carried, masked wherever engine text is echoed. */
   secrets?: ReadonlyArray<string | undefined>
 }
 
@@ -183,7 +183,7 @@ const CONNECT_PHASE_CODES = new Set([
 ])
 
 /**
- * The engine's POST QUERIES the connector reads through — a POST only
+ * The engine's POST QUERIES the connector reads through: a POST only
  * because the query has a body (`POST /job` takes a sort over two keys, its
  * GET twin only one). Reads: a failure carries no write caveat. Matched as
  * the path's last segment(s) below the REST root.
@@ -267,7 +267,7 @@ function networkError(error: TypeError, request: Request, engineId: string | und
 /**
  * Maps whatever a failed engine call threw to an {@link EngineRequestError}.
  * Errors that are none of these kinds (e.g. a request that could not even be
- * built) pass through unchanged — they already carry their own message.
+ * built) pass through unchanged: they already carry their own message.
  */
 export function toEngineRequestError(error: unknown, ctx: EngineErrorContext): unknown {
   if (error instanceof EngineRequestError) return error

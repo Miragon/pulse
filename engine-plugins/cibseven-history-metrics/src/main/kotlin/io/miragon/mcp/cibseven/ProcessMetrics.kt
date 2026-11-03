@@ -8,7 +8,7 @@ import io.micrometer.core.instrument.Tags
 /**
  * Micrometer meters for process analytics, emitted straight from the engine's
  * history-event stream (100 % coverage, never sampled). Records into the given
- * [MeterRegistry] — the plugin passes Micrometer's global composite registry,
+ * [MeterRegistry]: the plugin passes Micrometer's global composite registry,
  * so any export path the host application configures (Spring Boot Actuator
  * scrape or OTLP push, the OTEL Java agent's Micrometer bridge) receives the
  * meters. Without any export registry every recording is a no-op, so the
@@ -38,7 +38,7 @@ import io.micrometer.core.instrument.Tags
  * ## Cardinality contract
  * Only model-bounded tags are attached (definition key/version, activity
  * id/type, task key, incident type, engine id, tenant, instance state). NEVER
- * attach instance ids, business keys, variable values or raw incident messages —
+ * attach instance ids, business keys, variable values or raw incident messages:
  * they explode the time-series count. See [MetricsHistoryEventHandler].
  */
 class ProcessMetrics(private val registry: MeterRegistry) {
@@ -72,7 +72,7 @@ class ProcessMetrics(private val registry: MeterRegistry) {
 
     fun incidentResolved(tags: Tags) = counter("engine.incident.resolved", "Incidents resolved", tags)
 
-    // `register` is idempotent — it returns the existing meter for a known
+    // `register` is idempotent: it returns the existing meter for a known
     // (name, tags) pair, so the per-event lookup is a cheap map hit.
     private fun counter(name: String, description: String, tags: Tags) = Counter.builder(name)
         .description(description)

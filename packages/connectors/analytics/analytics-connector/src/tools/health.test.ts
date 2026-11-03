@@ -41,8 +41,8 @@ const onlyProdAReports = (query: string): PromSample[] =>
     ? [{ metric: { engine_id: "prod-a" }, value: 0 }]
     : []
 
-describe("analytics_engine_health — engine scope (N138)", () => {
-  it("with engine omitted, judges exactly the configured fleet — never every engine Prometheus holds", async () => {
+describe("analytics_engine_health: engine scope (N138)", () => {
+  it("with engine omitted, judges exactly the configured fleet, never every engine Prometheus holds", async () => {
     const { client, queries } = recordingClient()
     const result = await run(client, {})
 
@@ -59,7 +59,7 @@ describe("analytics_engine_health — engine scope (N138)", () => {
   })
 })
 
-describe("analytics_engine_health — verdict (N76)", () => {
+describe("analytics_engine_health: verdict (N76)", () => {
   it("reads a Prometheus without any metrics of the fleet as unknown, never healthy", async () => {
     const { client } = recordingClient()
     const result = await run(client, {})
@@ -89,7 +89,7 @@ describe("analytics_engine_health — verdict (N76)", () => {
   })
 })
 
-describe("analytics_engine_health — alerts (N76)", () => {
+describe("analytics_engine_health: alerts (N76)", () => {
   const alertQueries = (queries: string[]) => queries.filter((q) => q.includes("ALERTS"))
 
   it("scopes one engine's verdict to that engine's alerts only", async () => {
@@ -127,7 +127,7 @@ describe("analytics_engine_health — alerts (N76)", () => {
 
 /** #340: each health tool states its rules and routes to the other. */
 describe("analytics_engine_health verdict labeling", () => {
-  it("carries the status rule — including the unknown verdict — in every result", async () => {
+  it("carries the status rule (including the unknown verdict) in every result", async () => {
     const { client } = recordingClient()
     const result = await run(client, {})
     expect(result.statusRule).toBe(ENGINE_HEALTH_STATUS_RULE)

@@ -11,7 +11,7 @@
  * | `dense`   | `text-dense`   | 14 px / 400 / 1.5           | dense tables and controls (inputs, chips, count pills, the inline alert box): the documented product exception, never running text |
  * | `small`   | `text-small`   | 13 px / 400 / 1.5           | captions, labels, hints, meta rows: the FLOOR |
  *
- * Nothing renders below 13 px — no `text-xs` (12 px), no `text-[10px]`
+ * Nothing renders below 13 px: no `text-xs` (12 px), no `text-[10px]`
  * micro-labels (`examples/test/design-system.test.ts` enforces it). A label
  * that used to be a 10–11 px uppercase caption is {@link MICRO_LABEL}: 13 px,
  * semibold, normal case.
@@ -40,7 +40,7 @@ export const TYPE_FLOOR_PX = 13
 
 /**
  * A caption above a value or a column: table heads, KPI labels, group
- * labels. 13 px semibold in normal case — the CI floor, where these used to
+ * labels. 13 px semibold in normal case: the CI floor, where these used to
  * be 10–11 px uppercase. Typography only: add the colour
  * (`text-muted-foreground`) at the call site.
  */

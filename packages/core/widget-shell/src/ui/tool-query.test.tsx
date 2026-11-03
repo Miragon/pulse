@@ -119,7 +119,7 @@ describe("useViewData (always seeded)", () => {
     const { result } = setup(seed)
     expect(result.current.data).toBe(seed)
     expect(host.client().getQueryData(CACHE_KEY)).toBe(seed)
-    // A fresh seed is the feed's current answer — the show tool just read it.
+    // A fresh seed is the feed's current answer: the show tool just read it.
     await act(() => new Promise((resolve) => setTimeout(resolve, 20)))
     expect(callTool).not.toHaveBeenCalled()
     expect(result.current.isFetching).toBe(false)
@@ -140,7 +140,7 @@ describe("useViewData (always seeded)", () => {
     await waitFor(() => expect(result.current.data).toEqual({ value: "fetched" }))
   })
 
-  it("stays idle while not enabled — the seed still renders", async () => {
+  it("stays idle while not enabled, but the seed still renders", async () => {
     const { result } = setup({ value: "seed" }, false)
     await act(() => host.client().invalidateQueries({ queryKey: ["test:view"] }))
     expect(callTool).not.toHaveBeenCalled()
@@ -158,7 +158,7 @@ describe("useViewData (always seeded)", () => {
     expect(result.current.data).toEqual({ value: "after write" })
   })
 
-  it("lets a payload it never seeded win over the cache — a new delivery", () => {
+  it("lets a payload it never seeded win over the cache: a new delivery", () => {
     host.client().setQueryData(CACHE_KEY, { value: "cached" })
     const { result } = setup({ value: "never seeded before" })
     expect(result.current.data).toEqual({ value: "never seeded before" })
@@ -175,12 +175,12 @@ describe("useViewData (always seeded)", () => {
     const { result, rerender } = setup({ value: "payload" })
     await act(() => host.client().invalidateQueries({ queryKey: ["test:view"] }))
     await waitFor(() => expect(result.current.data).toEqual({ value: "after write" }))
-    // Same content, new identity — the host re-emitted what it delivered.
+    // Same content, new identity: the host re-emitted what it delivered.
     rerender({ seed: { value: "payload" }, enabled: true })
     expect(result.current.data).toEqual({ value: "after write" })
   })
 
-  it("re-seeds an emptied cache with a payload it seeded before — no fetch on mount", async () => {
+  it("re-seeds an emptied cache with a payload it seeded before: no fetch on mount", async () => {
     const first = setup({ value: "seeded twice" })
     first.unmount()
     host.client().clear()
@@ -221,7 +221,7 @@ describe("useViewData (always seeded)", () => {
     expect(result.current.data?.value).toBe("cyclic")
   })
 
-  it("keeps the shown data next to a failed refetch — and refetch() retries it", async () => {
+  it("keeps the shown data next to a failed refetch, and refetch() retries it", async () => {
     callTool.mockRejectedValueOnce(new Error("engine down"))
     const { result } = setup({ value: "seed" })
     await act(() => host.client().invalidateQueries({ queryKey: ["test:view"] }))
@@ -234,7 +234,7 @@ describe("useViewData (always seeded)", () => {
     expect(result.current.error).toBeNull()
   })
 
-  it("refetch() without data is a new read at once — never a wait for the retry backoff", async () => {
+  it("refetch() without data is a new read at once, never a wait for the retry backoff", async () => {
     // TanStack restarts an in-flight fetch only over data; without, a plain refetch joins the backoff chain.
     host.withRetries()
     callTool.mockRejectedValueOnce(new Error("engine down"))
@@ -253,7 +253,7 @@ describe("useViewData (always seeded)", () => {
     expect(callTool).toHaveBeenCalledTimes(2)
   })
 
-  it("refetch() cancels only its OWN chain — a sibling's read in flight still lands", async () => {
+  it("refetch() cancels only its OWN chain: a sibling's read in flight still lands", async () => {
     host.withRetries()
     // Same key prefix, a superset of the args: what a prefix match would also hit.
     const SIBLING_ARGS = { ...ARGS, firstResult: 0 }

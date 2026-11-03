@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { endedBatchReport, queuedBatch, runningBatchReport } from "./batches.js"
 
-describe("batch reports — queued is never done", () => {
+describe("batch reports: queued is never done", () => {
   it("hands back the id and status queued instead of a success flag", () => {
     const queued = queuedBatch({ id: "b-1", type: "set-job-retries", totalJobs: 3 })
     expect(queued).toEqual({

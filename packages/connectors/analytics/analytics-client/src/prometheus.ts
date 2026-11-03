@@ -10,7 +10,7 @@ export interface PrometheusConfig {
 
 const DEFAULT_PROMETHEUS_TIMEOUT_MS = 30_000
 
-/** The longest delay a Node timer holds — a longer deadline would fire at once. */
+/** The longest delay a Node timer holds: a longer deadline would fire at once. */
 const MAX_TIMEOUT_MS = 2_147_483_647
 
 const MAX_ERROR_TEXT = 500
@@ -60,7 +60,7 @@ function authorizationFor(
   const explicitBasic = config.username !== undefined || config.password !== undefined
   if (userinfo.username !== undefined && (explicitBasic || config.bearerToken)) {
     throw new Error(
-      "Prometheus auth is ambiguous: the URL carries credentials AND PROMETHEUS_USERNAME/PROMETHEUS_PASSWORD or PROMETHEUS_BEARER_TOKEN are set — use one",
+      "Prometheus auth is ambiguous: the URL carries credentials AND PROMETHEUS_USERNAME/PROMETHEUS_PASSWORD or PROMETHEUS_BEARER_TOKEN are set; use one",
     )
   }
   if (config.bearerToken && explicitBasic) {
@@ -86,8 +86,8 @@ const HEADER_NAME = /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/
 const HEADER_VALUE = /^[^\r\n\0]*$/
 
 /**
- * Every form a secret can take in echoed text — as configured, trimmed
- * (header values are sent trimmed) and whitespace-collapsed — longest first,
+ * Every form a secret can take in echoed text (as configured, trimmed and
+ * whitespace-collapsed; header values are sent trimmed), longest first,
  * so a value is masked whole before any shorter one inside it. Values under
  * 4 characters are skipped: masking those would shred ordinary text.
  */
@@ -117,7 +117,7 @@ function buildHeaders(
   const headers = new Headers()
   for (const [name, value] of Object.entries(config.headers ?? {})) {
     // Checked up front so the value (often a secret, e.g. an API key) never
-    // lands in an error — only the header name is named.
+    // lands in an error: only the header name is named.
     if (!HEADER_NAME.test(name) || !HEADER_VALUE.test(value)) {
       throw new Error(
         `Prometheus header "${name}" (PROMETHEUS_HEADERS) has an invalid name or value`,

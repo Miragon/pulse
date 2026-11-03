@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { BUILT_IN_INCIDENT_TYPES, incidentRecovery } from "./incident-recovery.js"
 
-describe("incidentRecovery — built-in incidents are retried, never resolved", () => {
+describe("incidentRecovery: built-in incidents are retried, never resolved", () => {
   it("names exactly the two engine-raised types", () => {
     expect(BUILT_IN_INCIDENT_TYPES).toEqual(["failedJob", "failedExternalTask"])
   })

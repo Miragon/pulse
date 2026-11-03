@@ -47,7 +47,7 @@ async function bootSurface(config: Partial<EnginePluginConfig>) {
 }
 
 describe("createPlugin toolset wiring (fail-closed)", () => {
-  it("without a toolset boots the read-only floor on every path — never everything", async () => {
+  it("without a toolset boots the read-only floor on every path, never everything", async () => {
     const { names, byName, allowedActions } = await bootSurface({})
     for (const admin of ENGINE_ADMIN_ONLY_TOOLS) expect(names).not.toContain(admin)
     expect(names).not.toContain("engine_start_process_instance")
@@ -162,7 +162,7 @@ describe("createPlugin advertises `engine` as the boot-time enum of configured i
 
   it("several engines: every tool with `engine` (registrar AND widget path) lists exactly the ids", async () => {
     const params = await engineParams(TWO)
-    // Sanity: both paths carry the parameter — otherwise this test is vacuous.
+    // Sanity: both paths carry the parameter; otherwise this test is vacuous.
     expect(params.map((p) => p.name)).toEqual(
       expect.arrayContaining([
         "engine_list_process_instances",
@@ -181,7 +181,7 @@ describe("createPlugin advertises `engine` as the boot-time enum of configured i
     }
   })
 
-  it("one engine: `engine` stays a single-value enum — an explicit id is still accepted", async () => {
+  it("one engine: `engine` stays a single-value enum; an explicit id is still accepted", async () => {
     const params = await engineParams([TWO[0]])
     expect(params.length).toBeGreaterThan(40)
     for (const { name, engine } of params) {
@@ -250,7 +250,7 @@ describe("createPlugin per-engine auth", () => {
   it("does not mix per-engine auth fields with the module-wide credentials", () => {
     const registry = registryOf({
       engines: [
-        // Declares its own auth but no token — must NOT inherit the global
+        // Declares its own auth but no token, so it must NOT inherit the global
         // basic credentials and must send no Authorization header at all.
         { id: "solo", baseUrl: "http://solo.example/engine-rest", auth: { type: "bearer" } },
       ],

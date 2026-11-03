@@ -9,7 +9,7 @@ interface TaskMeta {
   processDefinitionId?: string | null
   /** The task's own form (embedded/external/`camunda-forms:`), if any. */
   formKey?: string | null
-  /** A linked Camunda Form (`camunda:formRef`) — the task then has no formKey. */
+  /** A linked Camunda Form (`camunda:formRef`); the task then has no formKey. */
   camundaFormRef?: { key?: string | null } | null
 }
 

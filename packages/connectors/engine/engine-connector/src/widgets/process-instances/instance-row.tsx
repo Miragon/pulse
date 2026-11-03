@@ -47,7 +47,7 @@ export function InstanceRow({
     <tr className="hover:bg-muted transition-colors">
       <Td>
         {/* One instance label (#322 U13): the business key, the UUID a
-            copyable chip beside it — never a three-line UUID. */}
+            copyable chip beside it, never a three-line UUID. */}
         <span className="flex items-center gap-2">
           <span aria-hidden="true" className={`size-1.5 shrink-0 rounded-full ${TONE_DOT[tone]}`} />
           <InstanceLabel id={row.id} businessKey={row.businessKey} />

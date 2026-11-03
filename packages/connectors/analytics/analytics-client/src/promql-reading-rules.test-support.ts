@@ -17,7 +17,7 @@ const OFFSET = String.raw`[^)\s]+`
 
 /**
  * `((increase(S[R]@) and present_over_time(S[1h]@ offset O)) or
- * (max_over_time(S[R]@) unless present_over_time(S[1h]@ offset O)))` — O is
+ * (max_over_time(S[R]@) unless present_over_time(S[1h]@ offset O)))`. O is
  * the window's range, or the end of its first hour at the retention edge.
  */
 const BORN_READ = new RegExp(
@@ -43,12 +43,12 @@ export function readingRuleViolations(
       if (metric.type === "gauge") {
         if (!nodeFolded(promql, index, metric.labels)) {
           violations.push(
-            `${metric.promName} is not read as max by (${metric.labels.join(", ")})(…) — fold a clustered engine's nodes first`,
+            `${metric.promName} is not read as max by (${metric.labels.join(", ")})(…); fold a clustered engine's nodes first`,
           )
         }
       } else if (!covered.some(([from, to]) => index >= from && index < to)) {
         violations.push(
-          `${metric.promName} is read outside the born-series count (increaseIn) — increase()/rate() miss a series' first sample`,
+          `${metric.promName} is read outside the born-series count (increaseIn): increase()/rate() miss a series' first sample`,
         )
       }
     }

@@ -121,7 +121,7 @@ describe("withToolsetFilter over the real engine tool surface", () => {
 })
 
 describe("the toolset resolution fails closed", () => {
-  it("a missing toolset resolves to the read-only floor silently — never to everything", () => {
+  it("a missing toolset resolves to the read-only floor silently, never to everything", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
     const resolved = resolveEngineToolset(undefined)
     expect(resolved).toBe("read-only")
@@ -145,7 +145,7 @@ describe("the toolset resolution fails closed", () => {
 describe("deployments are opt-in on top of admin (code execution in the engine JVM)", () => {
   const DEPLOY = "engine_create_deployment"
 
-  it("is absent without the flag — even under admin", () => {
+  it("is absent without the flag, even under admin", () => {
     expect(toolNamesFor("admin")).not.toContain(DEPLOY)
   })
 
@@ -236,29 +236,29 @@ describe("toolset rule holds structurally for every registered tool", () => {
     const destructive = configsFor("admin", FULL).filter(
       (c) => c.annotations?.destructiveHint === true,
     )
-    // Sanity: the surface does carry destructive tools — otherwise this test is vacuous.
+    // Sanity: the surface does carry destructive tools; otherwise this test is vacuous.
     expect(destructive.length).toBeGreaterThanOrEqual(9)
     for (const config of destructive) {
       expect(
         operations.has(config.name),
-        `${config.name} carries destructiveHint but is advertised in operations — add it to ADMIN_ONLY_TOOLS`,
+        `${config.name} carries destructiveHint but is advertised in operations. Add it to ADMIN_ONLY_TOOLS`,
       ).toBe(false)
     }
   })
 
-  it("every write states destructiveHint explicitly — MCP defaults an absent hint to TRUE", () => {
+  it("every write states destructiveHint explicitly: MCP defaults an absent hint to TRUE", () => {
     const writes = configsFor("admin", FULL).filter((c) => c.annotations?.readOnlyHint !== true)
-    // Sanity: the surface does carry writes — otherwise this test is vacuous.
+    // Sanity: the surface does carry writes; otherwise this test is vacuous.
     expect(writes.length).toBeGreaterThanOrEqual(20)
     for (const config of writes) {
       expect(
         typeof config.annotations?.destructiveHint,
-        `${config.name} is a write without an explicit destructiveHint — hosts read the absent hint as destructive`,
+        `${config.name} is a write without an explicit destructiveHint: hosts read the absent hint as destructive`,
       ).toBe("boolean")
     }
   })
 
-  it("read-only advertises only readOnlyHint tools — no exemption", () => {
+  it("read-only advertises only readOnlyHint tools (no exemption)", () => {
     const readOnly = configsFor("read-only", FULL)
     expect(readOnly.length).toBeGreaterThan(0)
     for (const config of readOnly) {

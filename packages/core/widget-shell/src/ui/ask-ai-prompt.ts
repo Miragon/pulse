@@ -18,7 +18,7 @@ export interface HandOffParts {
 }
 
 export interface AskAiPromptSpec extends HandOffParts {
-  /** The short task, from the module's catalogue (`t("askAi.…")`) — static text. */
+  /** The short task, from the module's catalogue (`t("askAi.…")`): static text. */
   intent: string
   locale: string
 }

@@ -1,6 +1,6 @@
 /**
- * Read SSR markup (`renderToStaticMarkup`) the way a user — sighted or with a
- * screen reader — meets it: its text nodes plus the attributes that carry
+ * Read SSR markup (`renderToStaticMarkup`) the way a user (sighted or with a
+ * screen reader) meets it: its text nodes plus the attributes that carry
  * text (accessible names, tooltips, placeholders). DATA/TEST support module
  * like `render-cases.tsx`: the a11y and i18n render suites scan through it,
  * so it stays pure and dependency-free. React's SSR output is well-formed

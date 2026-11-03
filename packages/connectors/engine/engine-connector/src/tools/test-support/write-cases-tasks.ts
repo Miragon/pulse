@@ -152,7 +152,7 @@ export const TASK_WRITE_CASES: WriteCase[] = [
   },
   {
     toolName: "engine_complete_task",
-    title: "reports a delegated form task as resolved — the form endpoint resolves it",
+    title: "reports a delegated form task as resolved: the form endpoint resolves it",
     args: {
       taskId: "t-1",
       variables: {

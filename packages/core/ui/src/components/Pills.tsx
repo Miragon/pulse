@@ -38,7 +38,7 @@ export function LivePill({ tone = "info", children, className }: LivePillProps) 
   )
 }
 
-/** The words a {@link StatusBadge} must carry: text, a number or an element — never nothing. */
+/** The words a {@link StatusBadge} must carry: text, a number or an element, never nothing. */
 export type StatusBadgeText = string | number | ReactElement | (string | number | ReactElement)[]
 
 export interface StatusBadgeProps {
@@ -53,7 +53,7 @@ export interface StatusBadgeProps {
  * A state in words, marked in its tone: tint, edge and a static dot next to
  * foreground text (CI §3.3: the colour marks the state, the words say it).
  * For a detail-page header (`WidgetHeader`'s `badge`) or a table cell. The
- * text is required — a badge without words would make colour the only
+ * text is required: a badge without words would make colour the only
  * signal. The pulsing dot is {@link LivePill}'s live-data semantic.
  */
 export function StatusBadge({ children, tone, className }: StatusBadgeProps) {
@@ -84,7 +84,7 @@ export interface CountPillProps {
 }
 
 /**
- * Compact count badge — tabular numbers on a tinted background with a border
+ * Compact count badge: tabular numbers on a tinted background with a border
  * in the tone. Use as the right-aligned indicator on a list/group row (e.g. a
  * per-group item count). The number stays in the foreground in every tone
  * (no coloured digits): the tint and the border carry the tone. A count

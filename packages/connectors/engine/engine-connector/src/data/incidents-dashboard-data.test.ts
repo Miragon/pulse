@@ -68,7 +68,7 @@ async function build(
   return { data, requests: engine.requests }
 }
 
-describe("buildIncidentsDashboardData — exact cards beyond the scan (#335 N61)", () => {
+describe("buildIncidentsDashboardData: exact cards beyond the scan (#335 N61)", () => {
   it("keeps a process whose incidents all lie beyond the 200-row scan, with its exact count", async () => {
     // 257 open incidents: a 250-incident burst in the last minutes fills the
     // whole scan; quiet's 7 older incidents are all beyond it.
@@ -81,7 +81,7 @@ describe("buildIncidentsDashboardData — exact cards beyond the scan (#335 N61)
       totalCount: 257,
       processCount: 2,
       last24hCount: 251,
-      // Neither card's breakdown is complete — unknown, not a sum of scans.
+      // Neither card's breakdown is complete: unknown, not a sum of scans.
       affectedActivityCount: null,
       latestIncident: scan[0].incidentTimestamp,
     })
@@ -94,7 +94,7 @@ describe("buildIncidentsDashboardData — exact cards beyond the scan (#335 N61)
       incidentCount: 250,
       scannedIncidentCount: 200,
       affectedActivityCount: null,
-      // The scan does not reach back 24h — the burst alone is newer.
+      // The scan does not reach back 24h: the burst alone is newer.
       last24hCount: null,
     })
     expect(
@@ -147,7 +147,7 @@ describe("buildIncidentsDashboardData — exact cards beyond the scan (#335 N61)
     })
   })
 
-  it("joins scanned rows to their card through the statistics — a long key's id is a bare UUID", async () => {
+  it("joins scanned rows to their card through the statistics: a long key's id is a bare UUID", async () => {
     // `key:version:uuid` would exceed 64 characters, so the engine stored the
     // bare generated id: nothing in it names the key.
     const key = "customerOnboardingApprovalProcess"
@@ -170,7 +170,7 @@ describe("buildIncidentsDashboardData — exact cards beyond the scan (#335 N61)
       },
     })
 
-    // The scan holds all 3 — the card says so, instead of "0 activities ·
+    // The scan holds all 3; the card says so, instead of "0 activities ·
     // +0 last 24h" next to its 3 incidents.
     expect(data.processes).toHaveLength(1)
     expect(data.processes[0]).toMatchObject({
@@ -186,7 +186,7 @@ describe("buildIncidentsDashboardData — exact cards beyond the scan (#335 N61)
 
   it("never vouches for a card the complete scan holds none of (attribution gap)", async () => {
     // The statistics list a version the scan rows cannot be joined to: the
-    // card keeps its exact count, its scan facts are unknown — not zeros.
+    // card keeps its exact count, its scan facts are unknown, not zeros.
     const { data } = await build({
       ...routes([], { total: 0, last24h: 0 }),
       "GET /process-definition/statistics": { body: [stats("late", 1, 2, 4)] },
@@ -201,7 +201,7 @@ describe("buildIncidentsDashboardData — exact cards beyond the scan (#335 N61)
     })
   })
 
-  it("fails on a scope key no version is deployed for — never '0 open incidents'", async () => {
+  it("fails on a scope key no version is deployed for, never '0 open incidents'", async () => {
     await expect(
       build(routes([], { total: 0, last24h: 0 }), { processDefinitionKey: "invoce" }),
     ).rejects.toThrow('No process definition with key "invoce" is deployed on this engine.')
@@ -233,7 +233,7 @@ describe("buildIncidentsDashboardData — exact cards beyond the scan (#335 N61)
 })
 
 // One rule with analytics (`readBpmnNames`): an unnamed process takes its pool name.
-describe("buildIncidentsDashboardData — names", () => {
+describe("buildIncidentsDashboardData: names", () => {
   it("names a card's unnamed process by its Modeler pool, reading only that diagram", async () => {
     const pooled = `<definitions><collaboration id="C"><participant id="Pool" name="Miravelo - Bike Leasing" processRef="quiet"/></collaboration><process id="quiet"/></definitions>`
     const base = routes([], { total: 257, last24h: 0 })

@@ -144,7 +144,7 @@ afterEach(() => {
 })
 
 describe("useBpmnViewer canvas (#339, N122)", () => {
-  it("paints the container as the fixed light canvas in a dark document — no call site opts in", async () => {
+  it("paints the container as the fixed light canvas in a dark document: no call site opts in", async () => {
     document.documentElement.classList.add("dark")
     render(<Diagram xml={XML} />)
 

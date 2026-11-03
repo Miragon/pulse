@@ -33,7 +33,7 @@ describe("providerForEntry", () => {
 
   it("fails on a flavor an untyped caller made up, naming the engine and the known ones", () => {
     expect(() => providerForEntry({ id: "a", flavor: "flowable" as EngineFlavor })).toThrow(
-      'Unknown engine flavor "flowable" for engine "a" — expected one of: cibseven, operaton, camunda7',
+      'Unknown engine flavor "flowable" for engine "a". Expected one of: cibseven, operaton, camunda7',
     )
   })
 })

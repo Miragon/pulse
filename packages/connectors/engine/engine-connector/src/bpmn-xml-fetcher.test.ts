@@ -4,8 +4,8 @@ import { startFakeEngine } from "./tools/test-support/fake-engine.js"
 
 /**
  * The BPMN-XML lookup handed to analytics (its heatmap and the names in its
- * views): the key's latest version over every tenant, read by id — the
- * definition view's own lookup. The tenant-less
+ * views): the key's latest version over every tenant, read by id (the
+ * definition view's own lookup). The tenant-less
  * `/process-definition/key/{key}/xml` left a tenant-deployed key without a
  * diagram (#322 follow-up).
  */

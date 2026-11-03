@@ -188,7 +188,7 @@ describe("engineModule.instructions", () => {
     for (const param of quoted) expect(Object.keys(listJobsInput.shape)).toContain(param)
   })
 
-  it("one engine: `engine` may be omitted — no routing lecture", () => {
+  it("one engine: `engine` may be omitted, without a routing lecture", () => {
     const text = snippet([TWO[0]], "operations")
     expect(text).toContain('one engine is configured ("prod-a"); `engine` may be omitted.')
     expect(text).not.toContain("ENGINE_NOT_SELECTED")

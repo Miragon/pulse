@@ -98,7 +98,7 @@ describe("engineHealth snapshot", () => {
 })
 
 /**
- * #340: the verdict is alert-based and says so — the same engine may be
+ * #340: the verdict is alert-based and says so: the same engine may be
  * "critical" in engine_open_cockpit's overview (incident counts) and only
  * "degraded" here. #336: silence is not health.
  */
@@ -127,7 +127,7 @@ describe("engineHealth verdict", () => {
     expect(result.statusRule).toBe(ENGINE_HEALTH_STATUS_RULE)
   })
 
-  it("reads an engine that sends nothing — or a mistyped id — as unknown, never healthy (N76)", async () => {
+  it("reads an engine that sends nothing (or a mistyped id) as unknown, never healthy (N76)", async () => {
     const { ch } = mockClient({ reporting: [] })
     const result = await engineHealth(ch, { engine: "prod-b" })
     expect(result).toMatchObject({
@@ -173,7 +173,7 @@ describe("engineHealth PromQL", () => {
       `sum(max by (status, engine_id)(engine_usertasks_open{status="unassigned",engine_id="prod-a"}))`,
       `max by (engine_id)(engine_external_tasks_open${sel})`,
       `count(count by (process_definition_key)(${perKey}(engine_process_definitions_deployed${sel})))`,
-      // One engine named: only alerts carrying its engine_id — an unrelated
+      // One engine named: only alerts carrying its engine_id, so an unrelated
       // alert in a shared Prometheus cannot turn its verdict critical.
       `ALERTS{alertstate="firing",engine_id="prod-a"}`,
       `ALERTS{alertstate="pending",engine_id="prod-a"}`,
@@ -190,7 +190,7 @@ describe("engineHealth PromQL", () => {
     ])
   })
 
-  it("reads only the module's own rules when unscoped — never a shared Prometheus' foreign alerts", async () => {
+  it("reads only the module's own rules when unscoped, never a shared Prometheus' foreign alerts", async () => {
     const { ch, instant } = mockClient()
     await engineHealth(ch, {})
     const alertQueries = instant.mock.calls.map(([q]) => q).filter((q) => q.startsWith("ALERTS"))

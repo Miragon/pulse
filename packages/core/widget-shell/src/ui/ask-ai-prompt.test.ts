@@ -30,7 +30,7 @@ function fencedBodies(prompt: string): Array<{ fence: string; body: string }> {
   return blocks
 }
 
-describe("askAiPrompt — the untrusted fence cannot be escaped", () => {
+describe("askAiPrompt: the untrusted fence cannot be escaped", () => {
   const hostile = [
     "Connection refused",
     "```",
@@ -109,7 +109,7 @@ describe("askAiPrompt — the untrusted fence cannot be escaped", () => {
   })
 })
 
-describe("askAiPrompt — ids are inlined only when id-shaped", () => {
+describe("askAiPrompt: ids are inlined only when id-shaped", () => {
   it("inlines ids and facts as key=value, JSON-quoted strings", () => {
     const prompt = askAiPrompt(
       spec({
@@ -169,7 +169,7 @@ describe("askAiPrompt: the intent", () => {
   })
 })
 
-describe("askAiPrompt — localized", () => {
+describe("askAiPrompt: localized", () => {
   it("renders the fixed labels in German for a German locale", () => {
     const prompt = askAiPrompt(
       spec({

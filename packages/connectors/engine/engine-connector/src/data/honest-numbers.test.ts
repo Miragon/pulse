@@ -139,7 +139,7 @@ const CASES: Record<string, Case> = {
     unknown: { read: KEY_LOOKUP, reply: NO_ROWS },
   },
   // Engine-wide rows on a bare definition id: their keys (the process
-  // column's drill) resolve through the statistics — enrichment.
+  // column's drill) resolve through the statistics (enrichment).
   "buildProcessInstancesData (engine-wide, bare definition ids)": {
     run: (client) => buildProcessInstancesData(client, "fake", {}),
     world: onBareDefinitionId("/process-instance", [
@@ -220,7 +220,7 @@ const CASES: Record<string, Case> = {
   },
   buildClusterDetailData: { run: clusterDetail, enrichment: clusterNames },
   // The cluster's keys scope its remediation: a bare definition id resolves
-  // through the statistics, and that read is primary — never a guessed key.
+  // through the statistics, and that read is primary: never a guessed key.
   "buildClusterDetailData (bare definition ids)": {
     run: clusterDetail,
     world: onBareDefinitionId(
@@ -247,7 +247,7 @@ const CASES: Record<string, Case> = {
     unknown: { read: `GET /incident/${WORLD.incidentId}`, reply: NOT_FOUND },
     enrichment: incidentDetailEnrichment,
   },
-  // The root cause decides which job and message the view shows — primary.
+  // The root cause decides which job and message the view shows (primary).
   "buildIncidentDetailData (delegated incident)": {
     run: (client, baseUrl) =>
       buildIncidentDetailData(client, {
@@ -275,7 +275,7 @@ const CASES: Record<string, Case> = {
       r.path === "/incident" ? { body: incidentScan(INCIDENT_SCAN_LIMIT) } : undefined,
     enrichment: processIncidentsXml,
   },
-  // No incidents: the empty state reads the other processes — enrichment.
+  // No incidents: the empty state reads the other processes (enrichment).
   "buildProcessIncidentsData (no incidents)": {
     run: processIncidents,
     world: (r) =>
@@ -306,7 +306,7 @@ const CASES: Record<string, Case> = {
   },
 }
 
-/** The case's engine — the world plus its overrides, with at most one read broken. */
+/** The case's engine: the world plus its overrides, with at most one read broken. */
 function engineReply(builder: Case, broken?: { read: string; reply: FakeReply }) {
   return (request: RecordedRequest): FakeReply =>
     broken && readOf(request) === broken.read
@@ -337,7 +337,7 @@ describe.each(Object.entries(CASES))("%s", (_name, builder) => {
     expect([...reads].filter((read) => !(read in enrichment)).length).toBeGreaterThan(0)
   })
 
-  it("fails — never a confident 0 or [] — when ANY primary read fails", async () => {
+  it("fails (never a confident 0 or []) when ANY primary read fails", async () => {
     const { reads } = await build(builder)
     const primary = [...reads].filter((read) => !(read in enrichment))
     const broken = await Promise.all(

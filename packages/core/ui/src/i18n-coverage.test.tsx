@@ -12,8 +12,8 @@ import { userFacingTexts } from "./render-scan.js"
 
 /**
  * Render half of the i18n guard (the static half is `no-hardcoded-copy.test.ts`):
- * render every component under the German locale with a MARKED catalog —
- * each catalog string wrapped in ⟦…⟧ — and scan every text node and text
+ * render every component under the German locale with a MARKED catalog
+ * (each catalog string wrapped in ⟦…⟧) and scan every text node and text
  * attribute. Whatever is neither marked (it came from the catalog) nor a
  * fixture value the case passed in (it came from props) is a hard-coded
  * string that a German user would read in English.

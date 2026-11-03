@@ -25,7 +25,7 @@ export function KometMark({
       aria-hidden={label ? undefined : true}
       className={cn("shrink-0 items-center justify-center [&>svg]:size-full!", className)}
       style={{ display: "var(--brand-mark-display, inline-flex)", width: px, height: px }}
-      // The CI's file, byte for byte — no JSX re-drawing of the mark.
+      // The CI's file, byte for byte: no JSX re-drawing of the mark.
       dangerouslySetInnerHTML={{ __html: KOMET_SVG }}
     />
   )

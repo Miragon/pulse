@@ -23,7 +23,7 @@ describe("buildHeatPoints", () => {
     expect(buildHeatPoints([shape("Activity_A")], {}, {})).toEqual([])
   })
 
-  it("skips zero values — a map of zeros must read as no data, not as cold heat", () => {
+  it("skips zero values: a map of zeros must read as no data, not as cold heat", () => {
     expect(buildHeatPoints([shape("Activity_A")], { Activity_A: 0 }, {})).toEqual([])
   })
 
@@ -55,7 +55,7 @@ describe("buildHeatPoints", () => {
     const points = buildHeatPoints([flow], {}, { "Activity_A->Activity_B": 12 })
     expect(points.length).toBeGreaterThan(1)
     expect(points.every((p) => p.weight === 12 && p.y === 0)).toBe(true)
-    // Metrics carry no per-instance path — an absent edge stays cold.
+    // Metrics carry no per-instance path, so an absent edge stays cold.
     expect(buildHeatPoints([flow], {}, {})).toEqual([])
   })
 })

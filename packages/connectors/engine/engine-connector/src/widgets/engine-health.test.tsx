@@ -104,7 +104,7 @@ const Widget = ({ data }: { data: EngineHealthData }) => (
 )
 
 describe("EngineHealthVerdict (fixture render)", () => {
-  it("labels each view's clusters section by its own heading — two views on one page included", () => {
+  it("labels each view's clusters section by its own heading, two views on one page included", () => {
     const Two = () => (
       <>
         <EngineHealthVerdict data={DEGRADED} engine="default" />
@@ -154,7 +154,7 @@ describe("EngineHealthVerdict (fixture render)", () => {
 
   // A failed widget-actions feed keeps the hand-offs; the gate stays closed, so the clusters diagnose.
   it("offers the diagnosis until the widget-actions feed answers", async () => {
-    // The shared client retries a failed query with backoff — fail at once.
+    // The shared client retries a failed query with backoff. Fail at once.
     queryClient.setQueryDefaults(["engine-widget-actions"], { retry: false })
     const actions: HostAction[] = []
     render(
