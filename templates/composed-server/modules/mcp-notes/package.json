@@ -39,7 +39,7 @@
     "@miragon/pulse-widget-shell": "0.24.2",
     "@tanstack/react-query": "5.103.2",
     "@testing-library/react": "16.3.3",
-    "@types/node": "22.19.15",
+    "@types/node": "26.6.5",
     "@types/react": "19.2.17",
     "happy-dom": "21.0.4",
     "lucide-react": "1.66.0",
