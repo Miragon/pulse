@@ -14,6 +14,11 @@ updates:
       - "/templates/composed-server"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 3
+      semver-major-days: 7
+      semver-minor-days: 3
+      semver-patch-days: 1
     # majors arrive as individual PRs: leave room next to the grouped one
     open-pull-requests-limit: 10
     commit-message:
@@ -108,6 +113,11 @@ updates:
     directory: "/engine-plugins"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 3
+      semver-major-days: 7
+      semver-minor-days: 3
+      semver-patch-days: 1
     reviewers:
       - "dominikhorn93"
       - "emaarco"
@@ -124,6 +134,11 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 3
+      semver-major-days: 7
+      semver-minor-days: 3
+      semver-patch-days: 1
     reviewers:
       - "dominikhorn93"
       - "emaarco"
@@ -145,6 +160,11 @@ updates:
       - "/playground/cibseven-example"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 3
+      semver-major-days: 7
+      semver-minor-days: 3
+      semver-patch-days: 1
     reviewers:
       - "dominikhorn93"
       - "emaarco"
@@ -161,6 +181,11 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 3
+      semver-major-days: 7
+      semver-minor-days: 3
+      semver-patch-days: 1
     reviewers:
       - "dominikhorn93"
       - "emaarco"
@@ -177,6 +202,11 @@ updates:
     directory: "/apps/cli"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 3
+      semver-major-days: 7
+      semver-minor-days: 3
+      semver-patch-days: 1
     reviewers:
       - "dominikhorn93"
       - "emaarco"
