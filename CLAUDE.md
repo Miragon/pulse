@@ -707,8 +707,10 @@ each `vitest.config.ts` rise (raise one when you better a file); each `stryker.c
 budgets (complexity 15 and 400 lines; the CLI and the VS Code extension 10 and 300), knip
 ignores (each with its reason), the char and bundle budgets (Contracts) and inline suppressions
 only shrink; gate commands stay as they are; a second config that would shadow a ratcheted one
-fails. The one escape is a `Ratchet-Exception: <reason>` commit trailer in the branch range,
-which turns the failures into warnings for the reviewer; never weaken the checker instead.
+fails. The one escape is a `Ratchet-Exception: <reason>` commit trailer, which turns the
+failures into warnings for the reviewer; never weaken the checker instead. The trailer covers
+the commit that carries it: the checker replays the range commit by commit and waves a
+violation only when every commit that makes it carries one.
 `pnpm lint:package-scripts` holds a package's first configs: every package with `src/` has a
 `vitest.config.ts` and, once mutation testing resumes, a `stryker.config.json` (except the apps
 `NO_MUTATION_APPS` exempts).

@@ -51,3 +51,5 @@ apps/vscode/dist-dev/
 apps/vscode/test-results/
 __screenshots__/
 .vitest/
+# check-ratchets.mjs: the temporary eslint.config.mjs copies an interrupted run leaves behind
+.check-ratchets-*.eslint.mjs

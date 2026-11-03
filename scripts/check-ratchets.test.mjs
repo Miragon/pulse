@@ -1,7 +1,9 @@
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
-import { readFileSync } from "node:fs"
-import { describe, it } from "node:test"
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import path from "node:path"
+import { after, describe, it } from "node:test"
 import { BaseCoverageProvider } from "vitest/node"
 import {
   EXCEPTION_TRAILER,
@@ -12,14 +14,17 @@ import {
   isPullRequest,
   ratchetKind,
   resolveBaseRef,
+  run,
   suppressionDirectives,
+  violationKey,
 } from "./check-ratchets.mjs"
 
 /**
  * Negative tests for the ratchet self-protection: every forbidden direction
- * must produce a violation, every allowed one must not. The CLI wrapper
- * (merge-base resolution, trailer escape) runs in `pnpm lint`; the direction
- * policy lives in the pure `checkRatchetFile`.
+ * must produce a violation, every allowed one must not. The direction
+ * policy lives in the pure `checkRatchetFile`; the CLI (merge-base resolution,
+ * the per-commit replay that scopes the trailer escape) runs here against
+ * synthetic git repositories and in `pnpm lint` against this one.
  */
 
 const vitestConfig = ({ thresholds, exclude = "", extra = "" }) => `
@@ -1789,5 +1794,349 @@ describe("introduction and the escape trailer", () => {
     assert.ok(EXCEPTION_TRAILER.test("fix: x\n\nRatchet-Exception: module moved to core"))
     assert.ok(!EXCEPTION_TRAILER.test("fix: x\n\nRatchet-Exception: "))
     assert.ok(!EXCEPTION_TRAILER.test("mentions Ratchet-Exception: inline"))
+  })
+})
+
+/**
+ * The trailer covers the commit that carries it: the checker replays itself
+ * commit by commit in a synthetic repository (a `main` branch as the base)
+ * and waves a net violation only when every commit that makes it carries
+ * the trailer.
+ */
+describe("the trailer covers its own commit (replayed per commit)", () => {
+  const BUDGET = "apps/a/test/__golden__/char-budgets.json"
+  const VITEST = "packages/core/x/vitest.config.ts"
+  const TRAILER = "Ratchet-Exception: the model must read the new tool"
+  const dirs = []
+  after(() => {
+    for (const dir of dirs) rmSync(dir, { recursive: true, force: true })
+  })
+
+  /** A repository with `main` holding the budget at 100, checked out on `branch`. */
+  function synthetic(files = {}) {
+    const dir = mkdtempSync(path.join(tmpdir(), "ratchet-range-"))
+    dirs.push(dir)
+    // Never the caller's GIT_* (a hook exports GIT_DIR): it would point these
+    // commits at the outer repository.
+    const env = {
+      ...Object.fromEntries(
+        Object.entries(process.env).filter(([name]) => !name.startsWith("GIT_")),
+      ),
+      GIT_CONFIG_GLOBAL: "/dev/null",
+      GIT_CONFIG_NOSYSTEM: "1",
+      GIT_AUTHOR_NAME: "t",
+      GIT_AUTHOR_EMAIL: "t@example.com",
+      GIT_COMMITTER_NAME: "t",
+      GIT_COMMITTER_EMAIL: "t@example.com",
+    }
+    const git = (...args) =>
+      execFileSync("git", args, {
+        cwd: dir,
+        env,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+      }).trim()
+    const write = (rel, text) => {
+      mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true })
+      writeFileSync(path.join(dir, rel), text)
+    }
+    const budget = (value) => write(BUDGET, `${JSON.stringify({ tools: value }, null, 2)}\n`)
+    const commit = (message, change) => {
+      change?.()
+      git("add", "-A")
+      git("commit", "-q", "--allow-empty", "-m", message)
+      return git("rev-parse", "HEAD")
+    }
+    git("init", "-q", "-b", "main")
+    budget(100)
+    for (const [rel, text] of Object.entries(files)) write(rel, text)
+    commit("chore: base")
+    git("checkout", "-q", "-b", "branch")
+    const check = async (env = {}) => {
+      const out = []
+      const code = await run({
+        root: dir,
+        argv: ["node", "check-ratchets.mjs", "main"],
+        env,
+        log: (line) => out.push(line),
+        error: (line) => out.push(line),
+      })
+      return { code, out: out.join("\n") }
+    }
+    return { dir, git, write, budget, commit, check }
+  }
+
+  it("keys a violation by file and wording, numbers and quoted from -> to values aside", () => {
+    assert.equal(
+      violationKey(`${BUDGET} -> "tools": 86058 -> 86500 model-visible characters.`),
+      violationKey(`${BUDGET} -> "tools": 86500 -> 87000 model-visible characters.`),
+    )
+    assert.equal(
+      violationKey('p/package.json -> the "test" gate changed: "vitest run" -> "vitest run -x".'),
+      violationKey('p/package.json -> the "test" gate changed: "vitest" -> "vitest run -y".'),
+    )
+    assert.equal(violationKey("a.ts:12,40 -> new (0 -> 2)"), violationKey("a.ts:7 -> new (1 -> 2)"))
+    assert.notEqual(
+      violationKey(`${BUDGET} -> "tools": 1 -> 2`),
+      violationKey(`${BUDGET} -> "x": 1 -> 2`),
+    )
+    // Digits inside a name stay: camunda7 is not camunda8, v8 ignore is not c8 ignore.
+    assert.notEqual(violationKey("v8 ignore next"), violationKey("c8 ignore next"))
+  })
+
+  it("waves a violation the commit that makes it covers, and names that commit and its reason", async () => {
+    const repo = synthetic()
+    repo.commit("feat: unrelated", () => repo.write("README.md", "x\n"))
+    const sha = repo.commit(`feat: a new tool\n\n${TRAILER}`, () => repo.budget(120))
+    const { code, out } = await repo.check()
+    assert.equal(code, 0, out)
+    assert.match(out, /RATCHET EXCEPTION APPLIED .*"tools": 100 -> 120/)
+    assert.ok(out.includes(`waved by ${sha.slice(0, 9)} ("feat: a new tool"): ${TRAILER}`), out)
+  })
+
+  it("fails a violation made in A while only B carries a trailer", async () => {
+    const repo = synthetic()
+    const a = repo.commit("feat: a", () => repo.budget(120))
+    repo.commit(`feat: b\n\n${TRAILER}`, () => repo.write("README.md", "x\n"))
+    const { code, out } = await repo.check()
+    assert.equal(code, 1, out)
+    assert.match(out, /RATCHET VIOLATION .*"tools": 100 -> 120/)
+    assert.ok(out.includes(`made by ${a.slice(0, 9)} ("feat: a"), which carries no`), out)
+    assert.match(out, /reword that commit .*a trailer on any other commit covers nothing/)
+  })
+
+  it("needs the trailer on every commit that makes it: made in A, made again in B", async () => {
+    // Decision: a budget raised in A (no trailer) and again in B (trailer)
+    // fails: B's reason does not cover A's growth. With both trailers it passes.
+    const repo = synthetic()
+    const a = repo.commit("feat: a", () => repo.budget(110))
+    repo.commit(`feat: b\n\n${TRAILER}`, () => repo.budget(120))
+    const bare = await repo.check()
+    assert.equal(bare.code, 1, bare.out)
+    assert.ok(bare.out.includes(`made by ${a.slice(0, 9)}`), bare.out)
+
+    const both = synthetic()
+    const first = both.commit(`feat: a\n\n${TRAILER}`, () => both.budget(110))
+    const second = both.commit(`feat: b\n\n${TRAILER}`, () => both.budget(120))
+    const covered = await both.check()
+    assert.equal(covered.code, 0, covered.out)
+    for (const sha of [first, second])
+      assert.ok(covered.out.includes(`waved by ${sha.slice(0, 9)}`))
+  })
+
+  it("an older trailer covers nothing the uncommitted changes or a later commit make", async () => {
+    const repo = synthetic()
+    repo.commit(`feat: a\n\n${TRAILER}`, () => repo.budget(120))
+    repo.budget(130) // uncommitted
+    const dirty = await repo.check()
+    assert.equal(dirty.code, 1, dirty.out)
+    assert.match(
+      dirty.out,
+      /made by the uncommitted changes in the working tree, which no trailer covers/,
+    )
+
+    const later = repo.commit("feat: c", () => repo.budget(130))
+    const committed = await repo.check()
+    assert.equal(committed.code, 1, committed.out)
+    assert.ok(committed.out.includes(`made by ${later.slice(0, 9)} ("feat: c")`), committed.out)
+  })
+
+  it("a merge counts against its branch-side parent; its own change needs its own trailer", async () => {
+    const repo = synthetic()
+    const a = repo.commit(`feat: a\n\n${TRAILER}`, () => repo.budget(120))
+    repo.git("checkout", "-q", "main")
+    repo.commit("feat: main moves on", () => repo.write("MAIN.md", "x\n"))
+    repo.git("checkout", "-q", "branch")
+    repo.git("merge", "-q", "--no-edit", "main")
+    const merged = await repo.check()
+    assert.equal(merged.code, 0, merged.out)
+    assert.ok(merged.out.includes(`waved by ${a.slice(0, 9)}`), merged.out)
+
+    // A loosening made in the merge itself (an evil merge) is the merge's own.
+    repo.git("checkout", "-q", "main")
+    repo.commit("feat: main again", () => repo.write("MAIN2.md", "x\n"))
+    repo.git("checkout", "-q", "branch")
+    repo.git("merge", "-q", "--no-commit", "main")
+    repo.budget(125)
+    const evil = repo.commit("Merge main into branch")
+    const loosened = await repo.check()
+    assert.equal(loosened.code, 1, loosened.out)
+    assert.ok(loosened.out.includes(`made by ${evil.slice(0, 9)} ("Merge main into branch")`))
+    assert.match(loosened.out, /give the merge commit the trailer, or rebase onto the base/)
+  })
+
+  it("GitHub's pull-request test merge (base tip first) counts against the branch", async () => {
+    const repo = synthetic()
+    const a = repo.commit(`feat: a\n\n${TRAILER}`, () => repo.budget(120))
+    repo.git("checkout", "-q", "main")
+    repo.commit("feat: main moves on", () => repo.write("MAIN.md", "x\n"))
+    // actions/checkout's refs/pull/N/merge: the base tip is the first parent.
+    repo.git("checkout", "-q", "--detach", "main")
+    repo.git("merge", "-q", "--no-ff", "-m", "Merge abc into def", "branch")
+    repo.git("update-ref", "refs/remotes/origin/main", "main")
+    const { code, out } = await repo.check({ GITHUB_BASE_REF: "main" })
+    assert.equal(code, 0, out)
+    assert.ok(out.includes(`waved by ${a.slice(0, 9)}`), out)
+    assert.ok(!out.includes("Merge abc into def"), out)
+  })
+
+  it("fails closed when no single commit makes a violation (the steps only add up to it)", async () => {
+    // A switches perFile on (no count floor yet: fine), B trades a floor for a
+    // count floor (its own violation, covered). Only together do they make
+    // "perFile next to a negative floor" — no commit's trailer covers that.
+    const config = (thresholds) => `import { defineConfig, mergeConfig } from "vitest/config"
+import { sharedConfig } from "../../../vitest.shared"
+export default mergeConfig(sharedConfig, defineConfig({
+  test: { coverage: { thresholds: { ${thresholds} } } },
+}))
+`
+    const repo = synthetic({
+      [VITEST]: config("statements: 80, branches: 80, functions: 80, lines: 80"),
+    })
+    repo.commit(`test: per file\n\n${TRAILER}`, () =>
+      repo.write(
+        VITEST,
+        config("statements: 80, branches: 80, functions: 80, lines: 80, perFile: true"),
+      ),
+    )
+    repo.commit(`test: count floor\n\n${TRAILER}`, () =>
+      repo.write(
+        VITEST,
+        config("statements: 80, branches: 80, functions: 80, lines: -5, perFile: true"),
+      ),
+    )
+    const { code, out } = await repo.check()
+    assert.equal(code, 1, out)
+    assert.match(out, /RATCHET EXCEPTION APPLIED .*lines: 80 -> -5/)
+    assert.match(out, /RATCHET VIOLATION .*perFile switched on next to a negative floor/)
+    assert.match(out, /no single commit makes it/)
+  })
+
+  it("fails every violation when no commit carries a trailer", async () => {
+    const repo = synthetic()
+    repo.commit("feat: a", () => repo.budget(120))
+    const { code, out } = await repo.check()
+    assert.equal(code, 1, out)
+    assert.match(out, /RATCHET VIOLATION .*"tools": 100 -> 120/)
+    assert.match(out, /no commit in the range carries a trailer/)
+  })
+
+  it("matches the effective ESLint config file by file", async () => {
+    const files = (extra) => `export default [
+  { files: ["packages/**/*.ts"], rules: { complexity: ["error", 15] } },${extra}
+]
+`
+    const relax = (file) => `\n  { files: ["${file}"], rules: { complexity: "off" } },`
+    const sources = {
+      "packages/a/src/x.ts": "export const x = 1\n",
+      "packages/b/src/y.ts": "export const y = 1\n",
+    }
+    const repo = synthetic({ "eslint.config.mjs": files(""), ...sources })
+    repo.commit(`build: relax x\n\n${TRAILER}`, () =>
+      repo.write("eslint.config.mjs", files(relax("packages/a/src/x.ts"))),
+    )
+    const one = await repo.check()
+    assert.equal(one.code, 0, one.out)
+    assert.match(
+      one.out,
+      /complexity is no longer an error for 1 file\(s\): packages\/a\/src\/x\.ts/,
+    )
+
+    // B relaxes another file without a trailer: the same reason, a file A never made.
+    const b = repo.commit("build: relax y", () =>
+      repo.write(
+        "eslint.config.mjs",
+        files(relax("packages/a/src/x.ts") + relax("packages/b/src/y.ts")),
+      ),
+    )
+    const two = await repo.check()
+    assert.equal(two.code, 1, two.out)
+    assert.match(two.out, /complexity is no longer an error for 2 file\(s\)/)
+    assert.ok(two.out.includes(`made by ${b.slice(0, 9)} ("build: relax y")`), two.out)
+
+    // File by file, not reason by reason: a relaxation of y made and undone
+    // without a trailer is no maker of x's relaxation.
+    const undone = synthetic({ "eslint.config.mjs": files(""), ...sources })
+    undone.commit("build: relax y", () =>
+      undone.write("eslint.config.mjs", files(relax("packages/b/src/y.ts"))),
+    )
+    undone.commit("build: undo y", () => undone.write("eslint.config.mjs", files("")))
+    const c = undone.commit(`build: relax x\n\n${TRAILER}`, () =>
+      undone.write("eslint.config.mjs", files(relax("packages/a/src/x.ts"))),
+    )
+    const only = await undone.check()
+    assert.equal(only.code, 0, only.out)
+    assert.ok(only.out.includes(`waved by ${c.slice(0, 9)}`), only.out)
+  })
+
+  it("keys a no-restricted-syntax carve-out by selector: a second one of the same file is another commit's", async () => {
+    // A (trailer) carves WithStatement out of f.ts; B (no trailer, then the
+    // uncommitted changes) also carves DebuggerStatement out of it. The net
+    // finding names one selector as its example; each lost selector is its own key.
+    const config = (override) => `export default [
+  { files: ["packages/**/*.ts"], rules: { "no-restricted-syntax": ["error", "WithStatement", "DebuggerStatement"] } },${override}
+]
+`
+    const only = (...selectors) =>
+      `\n  { files: ["packages/a/src/f.ts"], rules: { "no-restricted-syntax": ${JSON.stringify(["error", ...selectors])} } },`
+    const repo = synthetic({
+      "eslint.config.mjs": config(""),
+      "packages/a/src/f.ts": "export const f = 1\n",
+      "packages/b/src/g.ts": "export const g = 1\n",
+      "packages/c/src/h.ts": "export const h = 1\n",
+    })
+    const a = repo.commit(`build: carve With out of f\n\n${TRAILER}`, () =>
+      repo.write("eslint.config.mjs", config(only("DebuggerStatement"))),
+    )
+    const waved = await repo.check()
+    assert.equal(waved.code, 0, waved.out)
+    assert.ok(waved.out.includes(`waved by ${a.slice(0, 9)}`), waved.out)
+
+    repo.write("eslint.config.mjs", config(only("ThisExpression"))) // uncommitted
+    const dirty = await repo.check()
+    assert.equal(dirty.code, 1, dirty.out)
+    assert.match(dirty.out, /RATCHET VIOLATION .*no-restricted-syntax drops 2 selector/)
+    assert.match(dirty.out, /made by the uncommitted changes in the working tree/)
+
+    const b = repo.commit("build: carve Debugger out of f too")
+    const committed = await repo.check()
+    assert.equal(committed.code, 1, committed.out)
+    assert.ok(committed.out.includes(`made by ${b.slice(0, 9)}`), committed.out)
+    assert.ok(!committed.out.includes(`made by ${a.slice(0, 9)}`), committed.out)
+  })
+
+  it("reads the repository at root even when the caller's environment sets GIT_DIR", async () => {
+    const repo = synthetic()
+    const a = repo.commit(`feat: a\n\n${TRAILER}`, () => repo.budget(120))
+    const saved = process.env.GIT_DIR
+    process.env.GIT_DIR = path.join(repo.dir, "no-such-repository")
+    try {
+      const { code, out } = await repo.check()
+      assert.equal(code, 0, out)
+      assert.ok(out.includes(`waved by ${a.slice(0, 9)}`), out)
+    } finally {
+      if (saved === undefined) delete process.env.GIT_DIR
+      else process.env.GIT_DIR = saved
+    }
+  })
+
+  it("a file added later under an exemption belongs to the commit that made the exemption", async () => {
+    const config = (extra) => `export default [
+  { files: ["packages/**/*.ts"], rules: { complexity: ["error", 15] } },${extra}
+]
+`
+    const exempt = `\n  { files: ["packages/a/src/**"], rules: { complexity: "off" } },`
+    const repo = synthetic({
+      "eslint.config.mjs": config(""),
+      "packages/a/src/x.ts": "export const x = 1\n",
+    })
+    const a = repo.commit(`build: exempt a\n\n${TRAILER}`, () =>
+      repo.write("eslint.config.mjs", config(exempt)),
+    )
+    repo.commit("feat: z", () => repo.write("packages/a/src/z.ts", "export const z = 1\n"))
+    const { code, out } = await repo.check()
+    assert.equal(code, 0, out)
+    assert.match(out, /complexity is no longer an error for 2 file\(s\)/)
+    assert.ok(out.includes(`waved by ${a.slice(0, 9)}`), out)
   })
 })

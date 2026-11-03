@@ -194,28 +194,80 @@ function peerSelectors(effective) {
   return peers
 }
 
-/** Per-file loosenings → one violation per reason, naming the files. */
-export function describeLoosenings(effective, label) {
+/** A reason that a file's no-restricted-syntax lost selectors (drops, rewritten, shrank). */
+const isSelectorLoss = (reason) =>
+  reason.startsWith("no-restricted-syntax ") && !reason.endsWith(" is no longer an error")
+
+/** The selectors one file's enforced no-restricted-syntax lost, `base` -> `cur`. */
+const lostSelectors = (base, cur) => {
+  const now = enforcedSelectors(cur)
+  return [...enforcedSelectors(base)].filter((selector) => !now.has(selector)).sort()
+}
+
+/**
+ * Per-file loosenings grouped by reason: `[{ reason, files, lost }]`. `lost`
+ * maps each file of a selector-loss reason to the selectors it lost, since
+ * the reason itself names only one of them as an example.
+ */
+function looseningsByReason(effective) {
   const stillApplied = new Set(effective.flatMap(({ cur }) => [...enforcedSelectors(cur)]))
   const peers = peerSelectors(effective)
   const byReason = new Map()
   for (const entry of effective) {
     const context = { stillApplied, peers: peers.get(entry) ?? null }
-    for (const reason of loosenings(entry.base, entry.cur, context))
-      byReason.set(reason, [...(byReason.get(reason) ?? []), entry.rel])
+    for (const reason of loosenings(entry.base, entry.cur, context)) {
+      if (!byReason.has(reason)) byReason.set(reason, { reason, files: [], lost: {} })
+      const found = byReason.get(reason)
+      found.files.push(entry.rel)
+      if (isSelectorLoss(reason)) found.lost[entry.rel] = lostSelectors(entry.base, entry.cur)
+    }
   }
-  return [...byReason].map(([reason, files]) => {
-    const shown = files.slice(0, 5).join(", ")
-    return `${label} -> ${reason} for ${files.length} file(s): ${shown}${files.length > 5 ? ", …" : ""}. The effective config is what the gates enforce, whatever shape produced it — fix the code instead (or carry the Ratchet-Exception trailer for a deliberate gate change).`
-  })
+  return [...byReason.values()]
+}
+
+/** The violation message of one reason and the files it holds for. */
+const looseningMessage = (label, { reason, files }) => {
+  const shown = files.slice(0, 5).join(", ")
+  return `${label} -> ${reason} for ${files.length} file(s): ${shown}${files.length > 5 ? ", …" : ""}. The effective config is what the gates enforce, whatever shape produced it — fix the code instead (or carry the Ratchet-Exception trailer for a deliberate gate change).`
+}
+
+/**
+ * `(configFile, absPath) => Promise<config>`: the config ESLint calculates
+ * for a file under one config file, one ESLint instance per config file and
+ * every answer remembered, so a caller that compares many pairs of configs
+ * (check-ratchets.mjs, commit by commit) evaluates each config once.
+ */
+export function effectiveConfigReader(cwd) {
+  const instances = new Map()
+  const answers = new Map()
+  return (configFile, abs) => {
+    const key = `${configFile}\0${abs}`
+    if (!answers.has(key)) {
+      if (!instances.has(configFile))
+        instances.set(configFile, new ESLint({ cwd, overrideConfigFile: configFile }))
+      answers.set(key, instances.get(configFile).calculateConfigForFile(abs))
+    }
+    return answers.get(key)
+  }
 }
 
 /**
  * Compare the settings ESLint applies under `baseConfigFile` vs
  * `newConfigFile` (both resolved from `cwd`) for `files` (repo-relative) plus
- * a sample path per glob that matches none of them.
+ * a sample path per glob that matches none of them: one finding per reason,
+ * `{ reason, files, lost, message }` (check-ratchets.mjs matches a finding to
+ * the commits that made it file by file, and a lost no-restricted-syntax
+ * selector by selector). `readConfig` (effectiveConfigReader) may be shared
+ * between comparisons whose config files keep their contents.
  */
-export async function compareEffectiveEslint({ cwd, baseConfigFile, newConfigFile, files, label }) {
+export async function effectiveLooseningFindings({
+  cwd,
+  baseConfigFile,
+  newConfigFile,
+  files,
+  label,
+  readConfig = effectiveConfigReader(cwd),
+}) {
   const globs = [
     ...configGlobs(await loadConfigArray(baseConfigFile)),
     ...configGlobs(await loadConfigArray(newConfigFile)),
@@ -225,16 +277,17 @@ export async function compareEffectiveEslint({ cwd, baseConfigFile, newConfigFil
     .map(sampleFromGlob)
     .filter(Boolean)
   const probes = [...new Set([...files, ...samples])].sort()
-  const base = new ESLint({ cwd, overrideConfigFile: baseConfigFile })
-  const cur = new ESLint({ cwd, overrideConfigFile: newConfigFile })
   const effective = []
   for (const rel of probes) {
     const abs = path.join(cwd, rel)
     effective.push({
       rel,
-      base: await base.calculateConfigForFile(abs),
-      cur: await cur.calculateConfigForFile(abs),
+      base: await readConfig(baseConfigFile, abs),
+      cur: await readConfig(newConfigFile, abs),
     })
   }
-  return describeLoosenings(effective, label)
+  return looseningsByReason(effective).map((found) => ({
+    ...found,
+    message: looseningMessage(label, found),
+  }))
 }

@@ -3,7 +3,11 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import path from "node:path"
 import { after, before, describe, it } from "node:test"
-import { compareEffectiveEslint, loosenings, sampleFromGlob } from "./eslint-effective-config.mjs"
+import {
+  effectiveLooseningFindings,
+  loosenings,
+  sampleFromGlob,
+} from "./eslint-effective-config.mjs"
 
 /**
  * The effective-config half of the ESLint ratchet: whatever SHAPE a config
@@ -38,7 +42,7 @@ const FILES = [
   "packages/d/src/big.ts",
 ]
 
-describe("compareEffectiveEslint", () => {
+describe("effectiveLooseningFindings", () => {
   let dir
   let n = 0
   before(() => {
@@ -47,12 +51,12 @@ describe("compareEffectiveEslint", () => {
   })
   after(() => rmSync(dir, { recursive: true, force: true }))
 
-  /** Violations of a new config (appended blocks / a full replacement) against BASE. */
-  async function compare({ append = "", replace } = {}) {
+  /** Findings of a new config (appended blocks / a full replacement) against BASE. */
+  async function findings({ append = "", replace } = {}) {
     const text = replace ?? BASE.replace(/\]$/, `${append}\n]`)
     const file = path.join(dir, `new-${(n += 1)}.mjs`)
     writeFileSync(file, text)
-    return compareEffectiveEslint({
+    return effectiveLooseningFindings({
       cwd: dir,
       baseConfigFile: path.join(dir, "base.mjs"),
       newConfigFile: file,
@@ -60,6 +64,9 @@ describe("compareEffectiveEslint", () => {
       label: "eslint.config.mjs",
     })
   }
+
+  /** The violation messages of those findings, one per reason. */
+  const compare = async (change) => (await findings(change)).map(({ message }) => message)
 
   it("sees a budget switched off through a const, whatever the shape", async () => {
     const violations = await compare({
@@ -103,14 +110,37 @@ describe("compareEffectiveEslint", () => {
   })
 
   it("sees a per-file override that REPLACES the gate's selectors", async () => {
-    const violations = await compare({
+    const found = await findings({
       append: `{ files: ["packages/c/src/tools/b.ts"], rules: { "no-restricted-syntax": ["error", "Foo", "Bar", "Baz"] } },`,
     })
-    assert.equal(violations.length, 1)
+    assert.equal(found.length, 1)
     assert.match(
-      violations[0],
+      found[0].message,
       /drops 2 selector\(s\) other files keep.*packages\/c\/src\/tools\/b\.ts/,
     )
+    assert.deepEqual(found[0].files, ["packages/c/src/tools/b.ts"])
+    // The reason names one lost selector as an example; `lost` names every one,
+    // so check-ratchets can match each to the commit that dropped it.
+    assert.deepEqual(found[0].lost, {
+      "packages/c/src/tools/b.ts": [GATE[1].selector, SECOND[1].selector].sort(),
+    })
+  })
+
+  it("names the files of each reason, and no lost selectors for a severity change", async () => {
+    const found = await findings({
+      append: `{ files: ["packages/c/src/tools/a.ts", "packages/d/src/big.ts"], rules: { complexity: "off", "no-restricted-syntax": "off" } },`,
+    })
+    const byReason = Object.fromEntries(
+      found.map(({ reason, files, lost }) => [reason, { files, lost }]),
+    )
+    assert.deepEqual(byReason["complexity is no longer an error"], {
+      files: ["packages/c/src/tools/a.ts", "packages/d/src/big.ts"],
+      lost: {},
+    })
+    assert.deepEqual(byReason["no-restricted-syntax is no longer an error"], {
+      files: ["packages/c/src/tools/a.ts"],
+      lost: {},
+    })
   })
 
   it("lets a gate be rewritten for every file only without shrinking it", async () => {
