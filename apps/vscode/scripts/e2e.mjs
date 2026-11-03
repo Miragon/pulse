@@ -164,6 +164,22 @@ const STEPS = [
     },
   ],
   [
+    "the overview of an engine that cannot be reached says so instead of staying blank",
+    async (window) => {
+      await window.getByRole("treeitem", { name: /^prod-eu, / }).click()
+      await window
+        .locator(".tab.active", { hasText: "prod-eu · Processes" })
+        .waitFor({ timeout: 30_000 })
+      await (
+        await panelFrame(window)
+      )
+        .getByText("Can't reach prod-eu.")
+        .waitFor({ timeout: 60_000 })
+      await shot(window, "07-unreachable-overview")
+      await window.locator(".statusbar").click({ position: { x: 800, y: 8 } })
+    },
+  ],
+  [
     "a changed model is flagged as differing from the engine",
     async (window) => {
       await openModel(window, "order-draft.bpmn")
@@ -198,7 +214,7 @@ const STEPS = [
       const overview = await panelFrame(window)
       const order = overview.getByRole("row", { name: /Order fulfillment/ })
       await order.waitFor({ timeout: 30_000 })
-      await overview.getByRole("row", { name: /Invoice Receipt/ }).waitFor()
+      await overview.getByRole("row", { name: /Dispatch order/ }).waitFor()
       await shot(window, "10-engine-overview")
       await order.click()
       await window
