@@ -1,6 +1,6 @@
 /**
- * `pulse-cli describe`: everything an agent needs to call one operation — usage, arguments, options,
- * request body schema, responses and examples — as a JSON view and as readable plain text. Pure.
+ * `pulse-cli describe`: everything an agent needs to call one operation (usage, arguments, options,
+ * request body schema, responses and examples) as a JSON view and as readable plain text. Pure.
  */
 
 import { expandSchema, type Schemas } from "../catalog/schema.js"

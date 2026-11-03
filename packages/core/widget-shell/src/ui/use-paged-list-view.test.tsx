@@ -1,8 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import type { ReactNode } from "react"
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react"
-import { AppQueryProvider, queryClient } from "@miragon/mcp-toolkit-ui"
+import { spyHost } from "./tool-host.test-support.js"
 import { usePagedListView } from "./use-paged-list-view.js"
 
 interface Page {
@@ -15,9 +14,8 @@ const toolResult = (p: Page) => ({ structuredContent: p })
 
 const callTool = vi.fn()
 
-function wrapper({ children }: { children: ReactNode }) {
-  return <AppQueryProvider callTool={callTool}>{children}</AppQueryProvider>
-}
+const host = spyHost("test_list_data", callTool)
+const wrapper = host.wrapper
 
 /** The list's filter args: a chip (`suspended`) is part of them, as in the real lists. */
 const argsFor = (filtersActive: boolean) =>
@@ -56,20 +54,14 @@ function deferred() {
 
 const debounce = () => act(() => new Promise((resolve) => setTimeout(resolve, 350)))
 
-const toolkitDefaults = queryClient.getDefaultOptions()
-
 beforeEach(() => {
   callTool.mockReset()
-  queryClient.setDefaultOptions({
-    ...toolkitDefaults,
-    queries: { ...toolkitDefaults.queries, retry: false },
-  })
+  host.reset()
 })
 
-afterEach(() => {
+afterEach(async () => {
   cleanup()
-  queryClient.clear()
-  queryClient.setDefaultOptions(toolkitDefaults)
+  await host.dispose()
 })
 
 describe("usePagedListView", () => {
@@ -94,12 +86,14 @@ describe("usePagedListView", () => {
     // Unfiltered: the handed-in page is the seed of a query that stays live.
     expect(result.current.paged.items).toEqual(["a", "b"])
     expect(
-      queryClient.getQueryData([
-        "test:list",
-        JSON.stringify({ scope: "s1" }),
-        "page0",
-        { scope: "s1", firstResult: 0, maxResults: 2 },
-      ]),
+      host
+        .client()
+        .getQueryData([
+          "test:list",
+          JSON.stringify({ scope: "s1" }),
+          "page0",
+          { scope: "s1", firstResult: 0, maxResults: 2 },
+        ]),
     ).toBe(PAGE)
     expect(callTool).not.toHaveBeenCalled()
 
@@ -157,7 +151,7 @@ describe("usePagedListView", () => {
     expect(result.current.interacted).toBe(true)
 
     // The chip is cleared; the unfiltered page 0 (gone from the cache) is in flight.
-    queryClient.removeQueries({ queryKey: ["test:list", JSON.stringify({ scope: "s1" })] })
+    host.client().removeQueries({ queryKey: ["test:list", JSON.stringify({ scope: "s1" })] })
     callTool.mockReturnValueOnce(deferred().promise)
     rerender({ filtersActive: false })
     await waitFor(() => expect(page0Calls({ scope: "s1" })).toHaveLength(2))

@@ -1,4 +1,4 @@
-import { useLocale } from "@miragon/mcp-toolkit-ui"
+import { useLocale, type LucideIcon } from "@miragon/pulse-ui"
 import {
   ArrowLeftRight,
   Braces,
@@ -18,7 +18,6 @@ import {
 } from "lucide-react"
 import { AskAiButton, type AskAiVariant } from "./ask-ai-button.js"
 import type { AskAiPrompt } from "./ask-ai-prompt.js"
-import type { LucideIcon } from "./icon.js"
 import { kitLabels } from "./kit-labels.js"
 
 /** One icon per function, no icon for two (CI U4: never a sparkle); labels are the kit's `handOff`. */

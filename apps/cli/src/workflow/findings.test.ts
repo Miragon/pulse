@@ -1,7 +1,15 @@
 import { describe, expect, it } from "vitest"
-import { checkFailure, engineStatus, type FindingInput, findings } from "./findings.js"
+import type { IncidentGroup } from "@miragon/pulse-engine-core"
+import {
+  engineStatus,
+  type FindingInput,
+  findings as coreFindings,
+} from "@miragon/pulse-engine-core/testing"
+import { checkFailure } from "./findings.js"
 import { omit } from "../util.js"
-import type { IncidentGroup } from "./status.js"
+import { renderFinding } from "./status-command.js"
+
+const findings = (input: FindingInput) => coreFindings(input).map(renderFinding)
 
 const NOW = Date.parse("2026-01-01T12:00:00.000Z")
 
@@ -24,8 +32,10 @@ const GROUP: IncidentGroup = {
   lastAt: "b",
   rootCause: "PropertyNotFoundException: missingBean",
   processInstanceIds: ["p1"],
-  next: "pulse-cli retry --process-definition-key order --activity-id book --dry-run",
+  next: { action: "retryActivity", processDefinitionKey: "order", activityId: "book" },
 }
+/** The command line of GROUP's step. */
+const GROUP_NEXT = "pulse-cli retry --process-definition-key order --activity-id book --dry-run"
 
 const withoutCause = omit(GROUP, "rootCause")
 
@@ -94,13 +104,13 @@ describe("findings", () => {
         severity: "warning",
         code: "INCIDENTS",
         message: "1 failedJob incident at order/book: plain",
-        next: GROUP.next,
+        next: GROUP_NEXT,
       },
       {
         severity: "warning",
         code: "INCIDENTS",
         message: "2 failedJob incidents at order/book: PropertyNotFoundException: missingBean",
-        next: GROUP.next,
+        next: GROUP_NEXT,
       },
       {
         severity: "warning",
@@ -132,7 +142,7 @@ describe("checkFailure", () => {
       code: "CHECK_FAILED",
       message: "Engine status is warning (1 finding)",
       details: {
-        hint: `Start with: ${GROUP.next}`,
+        hint: `Start with: ${GROUP_NEXT}`,
         data: { status: "warning", findings: warning },
       },
     })
@@ -212,7 +222,7 @@ describe("finding rules at their limits", () => {
       processDefinitionKey: "",
       activityId: "",
       jobDefinitionId: "jd-1",
-      next: "pulse-cli job list --job-definition-id jd-1 --with-exception",
+      next: { action: "listFailedJobs", jobDefinitionId: "jd-1" },
     }
     expect(findings({ ...QUIET, incidents: [standalone] })[0]?.message).toBe(
       "2 failedJob incidents at job definition jd-1: PropertyNotFoundException: missingBean",

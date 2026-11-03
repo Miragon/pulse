@@ -4,24 +4,25 @@
 [![CI](https://img.shields.io/github/actions/workflow/status/Miragon/pulse/ci.yml?style=flat-square&label=ci)](https://github.com/Miragon/pulse/actions/workflows/ci.yml)
 [![Docs](https://img.shields.io/badge/docs-miragon.github.io%2Fpulse-335DE5?style=flat-square)](https://miragon.github.io/pulse/)
 
-The base for your own Pulse server: the shared widget kit, the settings page and the server boot
-that the Pulse connectors and the [pulse-starter](https://github.com/Miragon/pulse-starter) build on.
+The base for your own Pulse server: the view runtime and the server boot that
+the Pulse connectors and the [pulse-starter](https://github.com/Miragon/pulse-starter) build on.
+Its UI builds on the design kit [`@miragon/pulse-ui`](../ui).
 
 ## Install
 
 ```sh
-npm install @miragon/pulse-widget-shell zod bpmn-js@18.31.0 @miragon/mcp-toolkit-core mcp-use@2.7.3
+npm install @miragon/pulse-widget-shell zod bpmn-js@18.31.1 mcp-use@2.12.2
 ```
 
-The widgets also need `react`, `react-dom`, `@miragon/mcp-toolkit-ui`, `lucide-react` and
-`@tanstack/react-query`; the Postgres stores need `postgres`.
+The widgets also need `react`, `react-dom`, `@miragon/pulse-ui`, `lucide-react` and
+`@tanstack/react-query`.
 
 To build your own MCP server on it, start from [pulse-starter](https://github.com/Miragon/pulse-starter).
 
 ## Overview
 
 Shared widget plumbing for the [Pulse](../../../README.md) MCP App widgets. It is the common base
-both widget modules ([`camunda7-connector`](../../connectors/camunda/camunda7-connector), [`analytics-connector`](../../connectors/analytics/analytics-connector)) build on,
+both widget modules ([`engine-connector`](../../connectors/engine/engine-connector), [`analytics-connector`](../../connectors/analytics/analytics-connector)) build on,
 so every widget gets the same data-loading, refresh and view-composition behaviour.
 
 Published to the public npm registry as `@miragon/pulse-widget-shell`, the foundation
@@ -30,156 +31,162 @@ package customers build their own connectors and composed servers on (see the
 
 ## What it provides
 
-- **`adaptDataWidget`** (`./ui`): wraps a presentational React component into a data-aware widget:
-  handles the initial structured-content payload, in-widget `callTool()` refresh via the `*_data`
-  feeds, and loading / error states. This is what keeps widgets rename-safe and refreshable.
-- **View builders** (`./server`): `buildSingleWidgetView`, `buildComposedView` and
-  `buildDataFeedResult` (the single implementation of the app-only `*_data` feed result), the
-  server-side helpers that assemble a widget tool's result: a summary for the model plus the
-  `structuredContent` layout its view renders. The view itself is declared on the tool by
-  `showToolBinding` (a `view` binding; mcp-use derives the `_meta.ui` keys from it).
-- **BPMN names** (`./server`): `readBpmnNames` / `parseBpmnNames`: the one rule every module
+- **The view runtime** (`./widgets`): the bundle root `mountViews({ views, hostWidgets })` picks
+  the view the document's prelude names (the show tool's name) from your view map and mounts it
+  under the view root (the mcp-use adapter, ONE `QueryClient` per document, `HostDocument`,
+  `LocaleGate`, toasts); `mountView` mounts one view without a map. `LocaleGate` renders German
+  for a host locale whose language is `de` (`de`, `de-DE`, `de_AT`) and English otherwise. The
+  root's call hook (`useMcpUseViewCall` over `resolveViewCall`) owns the stripped-result recovery: a host that
+  drops `structuredContent` (claude.ai) gets the view re-running its own show tool ONCE (every
+  view-bound tool is a read), stamped "Reloaded at"; the view frame renders the phases (waiting,
+  error with a retry, cancelled, ready) and keeps a crashing view, and each `ViewStack` row and
+  `HostWidgetSlot`, inside its own error boundary. Widgets reach the host only through the view
+  host seam (`useViewHost`: `callTool`, `sendFollowUp`, `openExternal`; `HostModelContext`) and the query
+  hooks (`useToolQuery`, `useToolMutation`, `useViewData` (which seeds a feed with the view's
+  data), `useQueryClient`), never `mcp-use/react`, so a widget renders under `TestViewHost`
+  (fake tools, a log of host actions and model contexts) in a plain test. Another module's
+  widget renders by raw id through the host widgets (`useHostWidget`, `HostWidgetSlot`).
+- **View builders** (`./server`): `buildViewResult(data, summary)` (a show tool's result: the
+  `structuredContent` IS the view's data, the text what the model reads: a short summary or,
+  where the model needs the figures, the result as compact JSON) and
+  `buildDataFeedResult` (the single implementation of the app-only `*_data` feed result);
+  `decodeToolResult` reads either (on both entries: a widget decodes `callTool`'s raw result with
+  it, a server test its own tool's). The view itself is declared on the tool by `showToolBinding`
+  (a `view` binding; mcp-use derives the `_meta.ui` keys from it), and the boot primes each
+  view with `viewPrelude(name)` ahead of the bundle.
+- **BPMN names** (`./server`, and `./widgets` for a view): `readBpmnNames` / `parseBpmnNames`: the one rule every module
   reads a model's names by, without a DOM (a process's own name, else its Modeler pool's;
   character references such as `&#10;` and `&#38;` decoded, space folded), so two modules never
   name the same process or activity differently.
-- **The `shell:*` catalogue** (`./server`): `shellDefinition` + `createShellPlugin` register the
-  always-on generic `shell:kpi-grid` / `shell:data-table` widgets, the standard
-  `render-view`/builder composition targets fed via `props.dataKey`, and the settings page.
-  `createShellPlugin({ profileStore, allowSave })` adds the settings triple: `shell_show_settings`
-  (the page: the language section, then every `<module>:settings` section the host bundles),
-  `shell_settings_data` (what `ProfileGate` reads the language from) and `shell_save_settings`
-  (pass `allowSave: frameworkWritesAllowed(boot)`). Hosts spread `shellWidgets` (`./widgets`)
-  into their registry. Apps own no domain UI, so the catalogue lives here.
-- **Shared UI primitives** (`./widgets`): what the kit adds on top of `@miragon/mcp-toolkit-ui`
-  (`WidgetShell`, tables, `ListTable` + `PagedRows`, the dual-mode data hooks, formatters,
-  hand-offs, the BPMN viewer, `useApplyTheme`, …), reused across both widget packages.
-  Inline in a chat a view is a card (#396): `HostDocument`'s measured fit (`InlineFitBox`,
-  `useInlineRows`) caps a paged list (`usePagedViewData`) and an unpaged `ListTable` to the
+- **Host-bound UI** (`./widgets`): what widget-shell adds on top of the design kit
+  `@miragon/pulse-ui`, the pieces that touch the host, a tool call or BPMN
+  (`WidgetShell`, `ListTable` + `PagedRows`, the dual-mode data hooks, hand-offs, the BPMN
+  viewer, …), reused across both widget packages.
+  Inline in a chat a view is a card (#396): the view root's measured fit (`HostDocument`,
+  `InlineFitBox`) caps a paged list (`usePagedViewData`) and an unpaged `ListTable` to the
   rows that fit the host's height budget, measured on the rendered view, with the count and
-  a way to the rest (fullscreen where the host offers it); the BPMN canvas stays at 320 px,
-  long text in `TEXT_BLOCK_FRAME`.
+  a way to the rest (fullscreen where the host offers it); the BPMN canvas stays at 320 px.
   Layout, states and feedback: `ListTable` scrolls inside a named, keyboard-reachable region
   (column priorities via `hideBelow`, the row actions pinned with `sticky`, the sorted
   column marked with `sort`, heads over adjacent columns with `groups`), `IdCell`/`IdText`
-  show an id shortened in Geist Mono with a copy button, `NamedId` shows a process or an
-  element by its name with the id quiet in mono below, `countTone`/`severityTone` are the one
+  show an id shortened in Geist Mono with a copy button, `countTone`/`severityTone` are the one
   severity ladder for incident and job counts, `describeError` turns an engine or
-  transport failure into what happened and what you can do (the toolkit's `ErrorState` in
+  transport failure into what happened and what you can do (pulse-ui's `ErrorState` in
   `ViewDataState`, `QueryFallback`, `useDetailView`, raw text under "Details", retry
-  required), `useActionFeedback` raises the toolkit's toasts after a write (an engine
+  required), `useActionFeedback` raises pulse-ui's toasts after a write (an engine
   refusal's own reason quoted, a write whose answer never came flagged), `ConfirmDialog`
-  asks before one, `TableEmptyState` has an `empty` and a `done` variant, `KometMark` /
-  `AppEmptyState` carry the Miragon signature on app-level surfaces only (hidden by a brand
-  that sets `--brand-mark-display: none`), and the BPMN canvas reads one token module
-  (`BPMN_TOKENS`, `BPMN_OVERLAY_CSS`) with its height from the diagram's size at the scale
-  bpmn-js draws it (`diagramHeight`, read from the XML's DI before the import). The
-  toolkit's own components and helpers (`KpiGrid`, `StatusBadge`/`LivePill`/`CountPill`,
-  `FilterBar`, `WidgetHeader`, `PagedListFooter`, `SectionHeading`, the `TONE_*` maps,
-  `resolveTone`, `MICRO_LABEL`, `cn`, `useDebouncedValue`, …) are imported from the toolkit:
-  the kit neither forks nor re-exports them. Status
-  is a tone (the toolkit's `TONE_*` maps over the `--<tone>`, `--<tone>-soft` and `--<tone>-ink` roles: a dot,
-  edge or icon next to black text, black text on a tint, never a coloured number), function
-  icons are Lucide via `Icon`, and numbers, percentages, periods and durations render in the
-  view's locale (`formatNumber`, `formatPercent`, `formatPercentPoints`, `formatPeriod`,
-  `formatDuration`).
-- **Brand gates** (`./testing`): the checks every widget package runs in its own tests:
-  `catalogTextFindings` (the voice rules over a message catalog), `scanTypeScale` (text on the
-  type scale's five steps, nothing below 13 px), `scanGlyphs` (no Unicode glyphs,
-  emoji, lone symbols or sparkle imports as icons), `scanColors` (role names only: no palette
-  classes, retired accents or raw colours, with a reasoned allow list), `stylesheetColorFindings`
-  (no raw colour or retired accent variable in a stylesheet's rules) and `contrastFindings` with
-  `toneContrastPairs()` / `ROLE_CONTRAST_PAIRS` (WCAG AA of every tone and role pair over
-  `toolkitThemeStylesheets()` (the toolkit's Miragon theme as installed) plus your overrides,
-  light and dark; `:root` and the dark scopes cascade in source order as on
-  `<html class="dark" data-theme="dark">`, so override a role under both). Node only;
-  `scanGlyphs` and `scanColors` need `typescript`.
-- **Theme:** none of its own. The widgets colour through the role variables of the toolkit's
-  Miragon theme (`@miragon/mcp-toolkit-ui/theme.css`: the vendored `--cd-*` corporate-design
+  asks before one, and the BPMN canvas reads one token module (`BPMN_TOKENS`,
+  `BPMN_OVERLAY_CSS`) with its height from the diagram's size at the scale bpmn-js draws it
+  (read from the XML's DI before the import). The design kit (the
+  primitives and components, the `TONE_*` maps, `cn`, the formatters, `Icon`, the table
+  cells `Th`/`Td`, `TableEmptyState`, `NamedId`, `KometMark`/`AppEmptyState`,
+  `TEXT_BLOCK_FRAME`, …) is imported from `@miragon/pulse-ui`: widget-shell neither forks nor
+  re-exports it.
+- **Product glossary** (`./testing`): `PRODUCT_GLOSSARY` (one word per thing across the Pulse
+  modules), `glossaryFindings`, `blindGlossaryRules` and `unnamedGlossaryTerms`, which every
+  widget package checks its catalogs against. The generic brand gates (`catalogTextFindings`,
+  the scanners, the contrast helpers) are `@miragon/pulse-ui/testing`. Node only.
+- **Theme:** none of its own. The widgets colour through the role variables of pulse-ui's
+  Miragon theme (`@miragon/pulse-ui/theme.css`: the vendored `--cd-*` corporate-design
   tokens and the roles on top, light and dark). Your stylesheet imports it after `tailwindcss`,
-  `@source`s the toolkit's `src` (and this package's `dist`), and overrides ROLE variables only.
-  The widgets follow the host's theme (then the OS); there is no theme preference.
-- **Module composition** (`./server`): `composeModules` is the composition-root machinery every
-  server shares: `MCP_ACTIVE_MODULES` selection with `module:toolset` suffixes, the env-typo warner
-  and boot warnings. `resolveBoot(env, { authenticated })` resolves ONE concrete toolset per module
-  per boot and threads it into the module's `config.toolset`; pass `authenticated: true` only when
-  your server actually installed OAuth. `logEffectiveToolsets(boot)` prints the one boot line that
-  states each module's toolset and why, and `frameworkWritesAllowed(boot)` decides whether
-  framework writes no module toolset filters (the toolkit's dashboard builder) may be registered:
-  only with OAuth and no module on its read-only floor.
+  `@source`s pulse-ui's `dist` and this package's `dist`, and
+  overrides ROLE variables only; measure your overrides with `themeStylesheets()` from
+  `@miragon/pulse-ui/testing`. The widgets follow the host's theme (then the OS); there is no
+  theme preference.
+- **Module composition** (inside the boot): `createComposedServer` composes the modules you hand
+  it: `MCP_ACTIVE_MODULES` selection with `module:toolset` suffixes, the env-typo warner and boot
+  warnings. It resolves ONE concrete toolset per module per boot and threads it into the module's
+  `config.toolset` (`ModuleEntry`), authenticated exactly when it installed OAuth. A module's
+  `createPlugin(config, shared)` returns a `ModulePlugin`: its `name` and one `register(server)`
+  that registers all its tools on the server the boot owns; `shared(entries)` is your wiring of
+  what the active modules hand each other. The boot log states each module's toolset and why.
+  `composedEnvVars(modules)` names every variable such a boot reads (the boot's own and each
+  module's `knownEnvVars`), e.g. for a `.env.example` check. A module that was renamed declares
+  `retired: { names, envVars, warnedEnvVars }`: the boot refuses a former name in
+  `MCP_ACTIVE_MODULES` and a former variable while it is set, naming the replacement, before it
+  checks anything else; a `warnedEnvVars` entry (a credential another tool may share) only warns;
+  `retiredEnvVars(modules)` lists both kinds, so a test env can clear them too.
 - **Toolset vocabularies** (`./server`): a module declares its toolsets as
   `toolsets: createToolsetVocabulary(module, names, floor, { authenticatedDefault })` on its
   definition; a module without one has no toolsets (a suffix is ignored with a warning). The rule
   is fail-closed: no suffix →
   `floor` without OAuth, `authenticatedDefault` (default: `floor`) with it; an empty or unknown
   suffix → `floor` with a warning; `resolve(undefined)` → `floor`. Nothing resolves to
-  "everything" (a module's widest toolset is reachable only by naming it), and
-  `allowsDurableWrites(toolset)` is true for every toolset above the floor.
-- **Server boot** (`./server`): `createComposedServer({ label, info, composition, bundle, setup,
-oauth? })` is the one boot sequence every composed server shares: env-typo warnings, the HTTP
-  edge policy, ONE `resolveBoot` (authenticated exactly when you pass the OAuth provider you
-  install; build it with `oauthFromEnv({ env, label })` from `MCP_OAUTH` and spread
-  `OAUTH_ENV_VARS` into your known vars; it is the only caller identity), the boot log, your
-  `setup(boot)` (plugins + persistence), `createFrameworkApp` with
-  `serverInfo`/`instructions`, request context (request logging is mcp-use's own:
-  `MCP_USE_LOG_LEVEL`, warned at boot above `info`), `/metrics` (optional
-  `MCP_METRICS_TOKEN`), the Host/Origin guard, `/health/*` and the font route
-  (`installFontAssets`: Geist + Geist Mono as woff2 under `/fonts/geist-<version>/`, cached
-  immutable, any origin, behind the guard). Every view-bound tool advertises `MCP_URL`'s origin
-  in its view CSP `resourceDomains` and the Apps SDK `openai/widgetCSP` (`fontAssetsCsp`, applied
-  to every plugin by `honorWidgetMetaDefaults`); without `MCP_URL` mcp-use appends the origin
-  the host read the view from. `HostDocument` declares the faces from that origin
-  (`declareServedFonts`, `font-display: swap`), so a host that blocks it shows its own font, then
-  the system's. `mcp-use dev` serves the returned
-  `app`; production calls `listen({ handleSignals: true })`: mcp-use's `toNodeHandler` behind a
-  request-body cap (`MCP_MAX_BODY_BYTES`, 413 before buffering), an in-flight body budget of 4×
-  the cap (503) and a 30 s request timeout, plus a graceful drain (stop accepting, in-flight
-  requests finish, readiness 503 `draining`, then your `runtime.shutdown()`). The guard is
-  DNS-rebinding protection: `Host` (and a POST's `Origin`) must be localhost-class, `MCP_URL`'s or
-  in `MCP_ALLOWED_HOSTS`/`MCP_ALLOWED_ORIGINS` (spread `HTTP_EDGE_ENV_VARS` into your known vars);
-  `/health*` and `/metrics` stay reachable by IP for probes and scrapers.
-- **Persistence** (`./server`): the user-profile store (in-memory / filesystem / Postgres) and the
-  Postgres `DashboardStore` for the toolkit's saved dashboards, plus the `createSql` client and the
-  `runMigrations` runner that applies each store's own `Migration[]` (`PROFILE_STORE_MIGRATIONS`,
-  `DASHBOARD_STORE_MIGRATIONS`) under an advisory lock. A composed server picks its backends from
-  its own env and injects them; it does not reimplement the stores. `postgres` is an **optional**
-  peer dependency: the driver is loaded through a dynamic import inside `createSql`, so servers
-  persisting to disk or memory never need it installed.
+  "everything" (a module's widest toolset is reachable only by naming it).
+- **Server boot** (`./server`): `createComposedServer` (options `info`, `modules`, `shared?`,
+  `bundle`, `env?`, `envVarHint?`, `oauth?`) is the one boot sequence every composed server shares:
+  env-typo warnings, the HTTP edge policy, OAuth, ONE module selection, the boot log, the plugins of
+  the active modules, the `MCPServer` with `serverInfo`/`instructions`, each plugin's `register` (a
+  tool name two modules register fails the boot, naming both), the views every tool binds primed
+  once with your `bundle`, request context (request logging is mcp-use's own: `MCP_USE_LOG_LEVEL`,
+  warned at boot above `info`), `/metrics` (optional `MCP_METRICS_TOKEN`), the Host/Origin guard,
+  `/health/*` and the font route (`installFontAssets`: Geist + Geist Mono as woff2 under
+  `/fonts/geist-<version>/`, cached immutable, any origin, behind the guard). OAuth comes from one
+  provider's `MCP_USE_OAUTH_*` variables, mcp-use's own, with `MCP_URL` as the token audience (RFC
+  8707); the providers and what fails the boot are listed under
+  [Security](https://miragon.github.io/pulse/mcp/operations#security). Without a provider the boot
+  runs unauthenticated with one warning. OAuth is the only caller identity, and `oauth` installs a
+  provider instead (a test's stub IdP). Every view-bound tool advertises `MCP_URL`'s origin in its
+  view CSP `resourceDomains` and the Apps SDK `openai/widgetCSP` (`fontAssetsCsp`, merged into every
+  view-bound tool as it registers); without `MCP_URL` mcp-use appends the origin the host read the
+  view from. `HostDocument` declares the faces from that origin (`declareServedFonts`,
+  `font-display: swap`), so a host that blocks it shows its own font, then the system's.
+  `mcp-use dev` serves the returned `app`; production calls `listen({ handleSignals: true })`:
+  mcp-use's `toNodeHandler` behind a request-body cap (`MCP_MAX_BODY_BYTES`, 413 before buffering),
+  an in-flight body budget of 4× the cap (503) and a 30 s request timeout, plus a graceful drain
+  (stop accepting, in-flight requests finish, readiness 503 `draining`). The guard is DNS-rebinding
+  protection: `Host` (and a POST's `Origin`) must be localhost-class, `MCP_URL`'s or in
+  `MCP_ALLOWED_HOSTS`/`MCP_ALLOWED_ORIGINS`; `/health*` and `/metrics` stay reachable by IP for
+  probes and scrapers.
 
 ## Exports
 
-| Subpath     | Contents                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `./server`  | `buildSingleWidgetView` / `buildComposedView` / `buildDataFeedResult`, `shellDefinition`/`createShellPlugin`, `createBuilderTexts` (the view builder's en/de names from a module's catalogs), `composeModules` / `frameworkWritesAllowed` / `createToolsetVocabulary`, `createComposedServer` and its edge pieces (incl. `installFontAssets`, `fontAssetsCsp`, `honorWidgetMetaDefaults`), `oauthFromEnv`, caller identity (`resolveProfileKey`), the profile + dashboard stores and the Postgres client/migration runner |
-| `./ui`      | `adaptDataWidget`, the data-aware widget wrapper                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| `./widgets` | Shared widget UI primitives incl. the generic `shell:*` components and the host app shell (`AppShellProviders`: the language as explicit profile > host context > English, the theme as host context > OS)                                                                                                                                                                                                                                                                                                                |
-| `./testing` | The brand gates for your widget package's tests: `catalogTextFindings`, `missingDisplayTexts` + `displayTextCatalog` (every widget, step and top-level props field named for the view builder in en and de) + `displayTextsSentToModel` (none of those names reaches the model), `scanGlyphs`, `scanColors`, `stylesheetColorFindings`, `parseThemeVariables` + `contrastFindings` with `toneContrastPairs()` / `ROLE_CONTRAST_PAIRS` over `toolkitThemeStylesheets()`                                                    |
+| Subpath     | Contents                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `./server`  | The module port (`ComposableModule`, `ModulePlugin`, `ModuleEntry`, `createToolsetVocabulary`); tool authoring: the registrar (`createToolRegistrar`, `withToolErrors`), the view and feed bindings and results (`showToolBinding`, `appOnly`, `strictToolInput`, `buildViewResult`, `buildDataFeedResult`, `decodeToolResult`), the server i18n (`createTranslator`), the BPMN-name readers and the per-caller request info (`callerCacheKey`, `getMcpRequestInfo`, `runWithMcpRequestInfo`); the boot: `createComposedServer` with `composedEnvVars` / `retiredEnvVars`, the view URIs (`viewResourceUri`, `viewPrelude`), `VIEW_BUNDLE_DEDUPE` and the served fonts (`installFontAssets`, `fontAssetsCsp`). The boot's parts (edge guard, body limit, metrics, health) run only inside `createComposedServer` |
+| `./widgets` | The view runtime (`mountViews`, the view host, the query hooks, `TestViewHost`; the language from the host locale (`de…` German, else English), the theme as host context > OS), the host-bound UI, `AskAiButton` for a hand-off `HAND_OFF_ACTIONS` does not list, `decodeToolResult` and `createTranslator`, each with the types its signature names. The view root's providers and the inline-fit machinery stay inside `mountViews`                                                                                                                                                                                                                                                                                                                                                                           |
+| `./testing` | The product glossary: `PRODUCT_GLOSSARY`, `glossaryFindings`, `blindGlossaryRules`, `unnamedGlossaryTerms`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 
-The `@miragon/mcp-toolkit-*`, `react`/`react-dom`, `zod` and `@tanstack/react-query` deps are
-**peer dependencies**: they must resolve to a single instance across the host bundle (see the
-`dedupe` array in the server app's `vite.config.ts`), otherwise the React contexts diverge and
-in-widget queries hang. They are published as ranges (`react`/`react-dom` `^19.2.0`, `zod`
-`^4.4.0`, `@miragon/mcp-toolkit-*` `~2.8.1`, `lucide-react` `^0.562.0 || ^1.0.0`) so they dedupe
-against your app's copy; add `lucide-react` to your `dedupe` list too. **A host bundle that dedupes
-`lucide-react` needs 1.47.0 or newer** (the version `@miragon/mcp-toolkit-ui` 2.8 depends on): the
-toolkit's chrome imports `LucideProvider`, which 0.x does not export, so a deduped 0.x copy fails
-the bundle build with a missing export. The peer range still admits 0.562 only for this repo's own
-test graph; no package manager warns you about it.
+`@miragon/pulse-ui`, `react`/`react-dom`, `zod` and `@tanstack/react-query` are **peer
+dependencies**: they must resolve to a single instance across the host bundle, otherwise the React
+contexts diverge and in-widget queries hang. Spread `VIEW_BUNDLE_DEDUPE` (`./server`) into your
+view bundle's Vite `resolve.dedupe` (`dedupe: [...VIEW_BUNDLE_DEDUPE]`): it names every package
+that must exist once, this one included, and a release that adds one reaches you with the version
+bump. A module of your own, like the Pulse connectors, peers this package (`^<this release>`), so
+your server's copy is the only one. The peers are published as ranges (`react`/`react-dom`
+`^19.2.0`, `zod` `^4.4.0`, `@miragon/pulse-ui` `^<this release>`, `lucide-react`
+`^0.562.0 || ^1.0.0`) so they dedupe against your app's copy. **A host bundle that dedupes
+`lucide-react` needs a 1.x copy that exports `LucideProvider`** (this repo pins 1.66.0):
+widget-shell's view root imports `LucideProvider`, which 0.x does not export, so a deduped 0.x copy
+fails the bundle build with a missing export. The peer range still admits 0.562 only for this repo's
+own test graph; no package manager warns you about it. `bpmn-js` is a peer (`^18.31.1`):
+`./widgets` exports the BPMN viewer, so every view bundle imports it.
 
-`mcp-use` is the exception: it is an **exactly pinned** peer dependency. Pin it to `mcp-use@2.7.3`
+`mcp-use` is the exception: it is an **exactly pinned** peer dependency. Pin it to `mcp-use@2.12.2`
 in your app. A duplicate `mcp-use` instance breaks the React context and hangs every in-widget query
 on "Loading…".
 
 ## Where it fits
 
 ```
-camunda7-connector / analytics-connector widgets
+engine-connector / analytics-connector widgets
             │  use
             ▼
-   @miragon/pulse-widget-shell   ──  adaptDataWidget · view builders · UI primitives
+   @miragon/pulse-widget-shell   ──  view runtime · view builders · host-bound UI
             │  build on
             ▼
-   @miragon/mcp-toolkit-ui (React + react-query)
+   mcp-use/react (the view's host) · @tanstack/react-query · @miragon/pulse-ui (design kit)
 ```
 
-See the architecture invariants in [`CLAUDE.md`](../../../CLAUDE.md) for the four-link widget
-registration chain.
+One package, two halves that share one wire protocol: `./widgets` is `src/ui`, `./server` (and
+`./testing`) the rest of `src/`, and both import the protocol modules in `src/protocol` (tool
+results, the view name, the served fonts, the translator, the BPMN-name reader), which import
+nothing themselves. The shipped code of one half imports nothing of the other (tests and the
+`./testing` fixtures aside): a server never loads React and a view bundle never loads the boot.
+dependency-cruiser holds the seam (`widget-shell-views-browser-only`,
+`widget-shell-server-headless`, `widget-shell-protocol-is-a-leaf`), and the two tsconfigs type
+each half with its own runtime's globals (`tsconfig.widgets.json`: DOM, no Node; the protocol
+under both).
+
+See the architecture invariants in [`CLAUDE.md`](../../../CLAUDE.md) for how a view is
+registered.

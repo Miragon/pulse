@@ -8,7 +8,6 @@ import {
   type RefObject,
 } from "react"
 import NavigatedViewer from "bpmn-js/lib/NavigatedViewer"
-import { type BpmnElement } from "./bpmn-heatmap/heat-utils.js"
 import { BPMN_TOKENS, cdVar } from "./bpmn-tokens.js"
 import { useInlineBudget } from "./inline-budget.js"
 
@@ -36,11 +35,37 @@ export interface BpmnOverlays {
   add: (elementId: string, overlay: { position: object; html: string }) => void
 }
 
-export interface BpmnElementRegistry {
+interface BpmnBusinessObject {
+  id?: string
+  $type?: string
+  sourceRef?: { id?: string }
+  targetRef?: { id?: string }
+}
+
+interface BpmnWaypoint {
+  x: number
+  y: number
+}
+
+/** One element of the drawn diagram (`elementRegistry.getAll()`): the slice a widget reads. */
+export interface BpmnElement {
+  id: string
+  type?: string
+  x?: number
+  y?: number
+  width?: number
+  height?: number
+  waypoints?: BpmnWaypoint[]
+  businessObject?: BpmnBusinessObject
+  /** Set on label elements; points back at the shape they label. */
+  labelTarget?: BpmnElement
+}
+
+interface BpmnElementRegistry {
   getAll: () => BpmnElement[]
 }
 
-export interface BpmnEventBus {
+interface BpmnEventBus {
   on: (event: string, fn: () => void) => void
   off: (event: string, fn: () => void) => void
 }
@@ -64,7 +89,7 @@ function paintLightCanvas(container: HTMLElement): void {
 
 export const DIAGRAM_MIN_HEIGHT = 240
 export const DIAGRAM_MAX_HEIGHT = 560
-export const DIAGRAM_DEFAULT_HEIGHT = 360
+const DIAGRAM_DEFAULT_HEIGHT = 360
 /** The fit's 0.95 margin plus the zoom bar's reach. */
 const DIAGRAM_HEIGHT_PADDING = 48
 
@@ -199,6 +224,9 @@ export function useBpmnViewer({
   const fit = useCallback(() => {
     const canvas = getCanvas()
     if (!canvas) return
+    // A hidden container (`display: none`: the origin view behind a drill) has no layout box, and
+    // bpmn-js throws on the non-finite scale it would compute; showing it again resizes and refits.
+    if (containerRef.current?.getClientRects().length === 0) return
     canvas.resized()
     canvas.zoom("fit-viewport", "auto")
     canvas.zoom(canvas.zoom() * 0.95)

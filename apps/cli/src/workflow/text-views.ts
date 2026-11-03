@@ -3,12 +3,13 @@
  * built from the helpers of text.ts. Pure.
  */
 
+import type { EndedInstance } from "@miragon/pulse-engine-core"
 import type { AdvanceView } from "./advance.js"
 import type { BatchView } from "./batch.js"
 import type { DeployView } from "./deploy.js"
 import type { RetryView } from "./retry.js"
 import type { StatusView } from "./status-command.js"
-import type { EndedInstance, InstanceView } from "./types.js"
+import type { InstanceView } from "./types.js"
 import {
   formatElapsed,
   headerBlock,

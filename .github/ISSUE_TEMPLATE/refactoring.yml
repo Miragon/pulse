@@ -14,7 +14,7 @@ body:
     attributes:
       label: Summary
       description: What will be refactored and why?
-      placeholder: Extract tool registration logic from the camunda7 module into a shared helper so all modules follow the same pattern.
+      placeholder: Extract tool registration logic from the engine module into a shared helper so all modules follow the same pattern.
     validations:
       required: true
 
@@ -34,7 +34,7 @@ body:
       label: Target State
       description: Describe what the code should look like after the refactoring.
       placeholder: |
-        All modules use the shared `createToolRegistrar` helper from `@miragon/mcp-toolkit-core/tools`. Registration logic is defined once and modules only provide their tool definitions.
+        All modules use the shared `createToolRegistrar` helper from `@miragon/pulse-widget-shell/server`. Registration logic is defined once and modules only provide their tool definitions.
     validations:
       required: true
 

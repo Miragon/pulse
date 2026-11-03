@@ -1,19 +1,19 @@
 import { describe, expect, it } from "vitest"
 import type { VersionCompareKpi, VersionCompareResult } from "@miragon/pulse-analytics-client"
 import { versionCompareHandOff } from "./version-compare.js"
-import { ANALYTICS_ONLY_SURFACE, bindHandOff } from "./hand-off.js"
+import { bindHandOff } from "./hand-off.js"
 
 const versionKpi = (version: number, incidentRatePct: number): VersionCompareKpi => ({
   version,
-  bucket: version === 1 ? "versionA" : "versionB",
-  instance_count: 100,
-  completed_count: 90,
-  incident_count: incidentRatePct,
-  incident_rate_pct: incidentRatePct,
-  element_incident_count: null,
-  element_incident_rate_pct: null,
-  avg_duration_sec: 10,
-  p95_duration_sec: 20,
+  startedCount: 100,
+  completedCount: 90,
+  incidentsCreated: incidentRatePct,
+  incidentRatePct,
+  elementIncidentsCreated: null,
+  elementIncidentRatePct: null,
+  avgDurationMs: 10_000,
+  medianDurationMs: 8_000,
+  p95DurationMs: 20_000,
 })
 
 const result: VersionCompareResult = {
@@ -26,25 +26,25 @@ const result: VersionCompareResult = {
   suppressed: false,
   kpis: [versionKpi(1, 2), versionKpi(2, 2.5)],
   delta: {
-    started_per_day_delta_pct: 0,
-    incident_rate_delta_pp: 0.5,
-    element_incident_rate_delta_pp: null,
-    avg_duration_delta_pct: 25,
-    p95_duration_delta_pct: 40,
+    startedPerDayDeltaPct: 0,
+    incidentRateDeltaPp: 0.5,
+    elementIncidentRateDeltaPp: null,
+    avgDurationDeltaPct: 25,
+    p95DurationDeltaPct: 40,
   },
+  asOf: "2026-10-10T12:32:00.000Z",
 }
 
-const prompt = (data: VersionCompareResult) =>
-  bindHandOff("en", ANALYTICS_ONLY_SURFACE).ask(versionCompareHandOff(data))!
+const prompt = (data: VersionCompareResult) => bindHandOff("en").ask(versionCompareHandOff(data))!
 
 describe("versionCompareHandOff", () => {
-  it("re-runs the process-wide comparison on the engines on screen — never an element scope", () => {
+  it("re-runs the process-wide comparison on the engines on screen, never an element scope", () => {
     const text = prompt(result)
 
     expect(text).toContain(
       'Ids: engine="prod-a", processDefinitionKey="order", versionA=1, versionB=2, windowDays=14\n',
     )
-    // The tool takes no element scope (#336) — the hand-off must not suggest one.
+    // The tool takes no element scope (#336); the hand-off must not suggest one.
     expect(text).not.toContain("activityId")
   })
 
@@ -56,13 +56,11 @@ describe("versionCompareHandOff", () => {
   })
 
   it("leaves a null delta out instead of sending it as 0", () => {
-    const text = prompt({ ...result, delta: { ...result.delta, p95_duration_delta_pct: null } })
+    const text = prompt({ ...result, delta: { ...result.delta, p95DurationDeltaPct: null } })
     expect(text).not.toContain("p95DurationDeltaPct")
   })
 
-  it("names the confirming comparison and the element ranking", () => {
-    expect(prompt(result)).toContain(
-      "Tools: analytics_version_compare, analytics_element_bottleneck",
-    )
+  it("names no tool", () => {
+    expect(prompt(result)).not.toMatch(/\b(engine|analytics)_[a-z0-9_]+/)
   })
 })

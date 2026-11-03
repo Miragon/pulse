@@ -1,7 +1,13 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  // Dead-code fitness function (`pnpm lint:deadcode`, part of `pnpm lint`).
-  // Every ignore below is a documented exception — the list is shrink-only,
+  // Dead-code fitness function (`pnpm lint:deadcode`, part of `pnpm lint`):
+  // every check but unused exports and types, in every workspace. Exports and
+  // types are `pnpm lint:deadcode:exports` (`--include exports,types`), in every
+  // workspace but docs (below). Together they report every issue type in every
+  // workspace (docs: all but exports and types), so no workspace runs on its own.
+  // knip never reports what an ENTRY file exports (includeEntryExports is off):
+  // the published entries' own lists are locked by their index tests.
+  // Every ignore below is a documented exception: the list is shrink-only,
   // same convention as the ESLint ratchet lists.
 
   // Standalone customer-facing workspace OUTSIDE the pnpm workspace; verified
@@ -13,10 +19,10 @@
       "entry": ["scripts/*.mjs", "vitest.shared.ts"],
     },
 
-    "apps/mcp-server-camunda7": {
-      // The UI bundle entries are declared explicitly and the vite plugin
-      // stays off (historical: the pre-2.x config needed an INPUT env var);
-      // the explicit list is stable and cheap to keep.
+    "apps/mcp-server": {
+      // The vite plugin stays off: the bundle entry (src/ui/main.tsx) and
+      // vite.config.ts are listed below by hand, which is all it would add
+      // (with it on, knip reports exactly those two entries as redundant).
       "vite": false,
       // No stryker.config.json: exempt by NO_MUTATION_APPS (scripts/check-package-scripts.mjs).
       "entry": [
@@ -61,11 +67,11 @@
       "ignore": ["sandbox/**"],
     },
 
-    "packages/connectors/camunda/camunda7-client": {
+    "packages/connectors/engine/engine-client": {
       "vitest": {
         "config": ["vitest.config.ts", "vitest.stryker.config.ts"],
       },
-      // Generated CIB Seven SDK (pnpm generate) — its export surface mirrors
+      // Generated CIB seven SDK (pnpm generate): its export surface mirrors
       // the OpenAPI spec, not our usage.
       "ignore": ["src/generated/**"],
     },
@@ -76,7 +82,7 @@
       },
     },
 
-    "packages/connectors/camunda/camunda7-connector": {
+    "packages/connectors/engine/engine-connector": {
       "vitest": {
         "config": ["vitest.config.ts", "vitest.stryker.config.ts"],
       },
@@ -95,6 +101,9 @@
     },
 
     "docs": {
+      // `lint:deadcode:exports` skips this workspace: its code is the vendored kit,
+      // whose exports (miragonLegal, MiragonGitHub, …) are the kit's API for every
+      // Miragon docs site and are never edited here.
       // The Miragon docs kit (.vitepress/miragon/, vendored unchanged from
       // Miragon/corporate-identity, pinned by its check.mjs): slug.d.mts types
       // slug.mjs for TypeScript, so no import names the declaration itself.

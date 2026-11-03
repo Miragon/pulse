@@ -83,55 +83,6 @@ jobs:
 
       - run: pnpm test
 
-      # Coverage for the fitness job. Exact depth, never `**` (it follows pnpm's symlinks).
-      - uses: actions/upload-artifact@v7.0.2
-        with:
-          name: coverage-summaries
-          path: |
-            apps/*/coverage/coverage-summary.json
-            packages/core/*/coverage/coverage-summary.json
-            packages/connectors/*/*/coverage/coverage-summary.json
-          if-no-files-found: error
-          retention-days: 1
-
-  # Postgres suites skip without TEST_DATABASE_URL; same DB as the compose stack.
-  postgres:
-    name: Postgres adapters (test:pg)
-    needs: changes
-    if: needs.changes.outputs.mcp == 'true'
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:18.1-alpine
-        env:
-          POSTGRES_USER: miragon
-          POSTGRES_PASSWORD: miragon
-          POSTGRES_DB: miragon_test
-        ports:
-          - 8440:5432
-        options: >-
-          --health-cmd "pg_isready -U miragon -d miragon_test"
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 12
-    env:
-      TEST_DATABASE_URL: postgres://miragon:miragon@localhost:8440/miragon_test
-    steps:
-      - uses: actions/checkout@v7.0.1
-
-      - uses: pnpm/action-setup@v6.1.0
-
-      - uses: actions/setup-node@v7.1.0
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - run: pnpm install --frozen-lockfile
-
-      - run: pnpm build
-
-      - run: pnpm test:pg
-
   # Playwright host simulation of the built widget bundle (test-host/README.md).
   host-sim:
     name: Widget host simulation (test:host)
@@ -155,7 +106,7 @@ jobs:
 
       # Browser cache keyed on the @playwright/test pin.
       - id: playwright
-        run: echo "version=$(node -p "require('./apps/mcp-server-camunda7/package.json').devDependencies['@playwright/test']")" >> "$GITHUB_OUTPUT"
+        run: echo "version=$(node -p "require('./apps/mcp-server/package.json').devDependencies['@playwright/test']")" >> "$GITHUB_OUTPUT"
 
       - id: playwright-cache
         uses: actions/cache@v6.1.0
@@ -164,18 +115,18 @@ jobs:
           key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium-shell
 
       - if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server-camunda7 exec playwright install --with-deps --only-shell chromium
+        run: pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server exec playwright install --with-deps --only-shell chromium
 
       - if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server-camunda7 exec playwright install-deps chromium
+        run: pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server exec playwright install-deps chromium
 
-      - run: pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server-camunda7 test:host
+      - run: pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server test:host
 
       - if: failure()
         uses: actions/upload-artifact@v7.0.2
         with:
           name: host-sim-results
-          path: apps/mcp-server-camunda7/test-results/
+          path: apps/mcp-server/test-results/
           if-no-files-found: ignore
           retention-days: 7
 
@@ -372,36 +323,10 @@ jobs:
 
       - name: Repo-wide guards (docs-refs, old-names, pnpm filters)
         run: |
-          pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server-camunda7 exec vitest run test/docs-refs.test.ts test/old-names.test.ts --coverage.enabled=false
+          node --test scripts/docs-refs.test.mjs scripts/old-names.test.mjs
           pnpm lint:package-scripts
 
       - uses: Miragon/pin-npm-dependencies@v1.2.2
-
-  # Fitness report from the typescript job's coverage; mutation only nightly.
-  fitness:
-    name: Fitness report
-    needs: [typescript]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7.0.1
-
-      - uses: pnpm/action-setup@v6.1.0
-
-      - uses: actions/setup-node@v7.1.0
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - run: pnpm install --frozen-lockfile
-
-      # depcruise reads each package's dist.
-      - run: pnpm build
-
-      - uses: actions/download-artifact@v8.0.2
-        with:
-          name: coverage-summaries
-
-      - run: pnpm fitness
 
   template:
     name: Composed-server template (Build + Test)

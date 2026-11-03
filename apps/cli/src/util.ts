@@ -34,6 +34,13 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
 }
 
+/** `value` without its trailing slashes, in linear time (`/\/+$/` backtracks on a long run of them). */
+export function withoutTrailingSlashes(value: string): string {
+  let end = value.length
+  while (end > 0 && value[end - 1] === "/") end--
+  return value.slice(0, end)
+}
+
 /**
  * Merges header maps; later maps win. Header names are case-insensitive, so a later `authorization`
  * replaces an earlier `Authorization` instead of being sent twice. The later spelling is kept.
@@ -162,32 +169,4 @@ export function closeNames(word: string, names: readonly string[]): string[] {
     .sort((left, right) => left.distance - right.distance)
     .slice(0, MAX_SUGGESTIONS)
     .map((candidate) => candidate.name)
-}
-
-/**
- * Maps every item with `fn`, at most `limit` calls at a time, and resolves to the results in the
- * order of the items (requests of one round of a workflow command run like this). Rejects with the
- * first failure; no item starts after it (calls already running finish on their own).
- */
-export async function mapLimit<T, R>(
-  items: readonly T[],
-  limit: number,
-  fn: (item: T, index: number) => Promise<R>,
-): Promise<R[]> {
-  const results = new Array<R>(items.length)
-  let next = 0
-  let failed = false
-  const worker = async (): Promise<void> => {
-    while (!failed && next < items.length) {
-      const index = next++
-      try {
-        results[index] = await fn(items[index] as T, index)
-      } catch (error) {
-        failed = true
-        throw error
-      }
-    }
-  }
-  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker))
-  return results
 }

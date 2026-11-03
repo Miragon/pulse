@@ -4,7 +4,7 @@ import { CallTargets, type CalledInstanceChoice, type CallTarget } from "./call-
 import { Labels } from "./labels.js"
 
 const OPEN_FROM_DEFINITION = "Open called process"
-const OPEN_FROM_INSTANCE = "Not called yet – open called process"
+const OPEN_FROM_INSTANCE = "Not called yet: open called process"
 
 export class CallLinks {
   constructor(

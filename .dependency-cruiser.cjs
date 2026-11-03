@@ -6,17 +6,25 @@
  * Rule comments are written for the (human or AI) contributor who trips them:
  * each says what is forbidden and names the house path to use instead.
  *
- * Layout + naming carry the layer semantics. A connector family under
- * `packages/connectors/<family>/` has two roles, keyed by the directory suffix
- * and the npm name `@miragon/pulse-<name>-<role>`:
- *   - `<name>-connector`: the MCP module (tools, widgets, pipeline steps);
- *   - `<name>-client`: its SDK leaf (generated REST SDK or PromQL queries + Zod schemas).
- * The foundation packages live under `packages/core/` (npm names without a role
- * suffix, e.g. `@miragon/pulse-widget-shell`). The apps under `apps/` sit ON TOP of
- * the packages: the MCP server (`@miragon/pulse-mcp-server-camunda7`) composes the
- * connectors; the two interface apps, the CLI (apps/cli, `@miragon/pulse-cli`) and the
- * VS Code extension (apps/vscode, the unscoped `pulse-cockpit`, because vsce rejects
- * scoped names), import no workspace package. No package and no app imports an app
+ * Layout + naming carry the layer semantics. A family under `packages/connectors/<family>/` is
+ * one source the MCP server reads: an engine API family (a dialect; today `engine`, the Camunda 7
+ * REST API) or another source (`analytics`, Prometheus). Its packages are named
+ * `<family>-<role>` (npm `@miragon/pulse-<family>-<role>`; the naming gate holds the family
+ * name), keyed by the role suffix:
+ *   - `<family>-connector`: the MCP module (tools, widget tools, widgets);
+ *   - `<family>-client`: its SDK leaf (generated REST SDK or PromQL queries; analytics-client
+ *     also still carries its tool input schemas, the engine family's live in its connector);
+ *   - `<family>-core`, when the family's interfaces share a pure domain: a leaf that the
+ *     family's connector and the interface apps that bundle it import (engine-core).
+ * The foundation packages every family builds on live under `packages/core/` (npm names
+ * without a role suffix, e.g. `@miragon/pulse-widget-shell`), never one family's code. The
+ * apps under `apps/` sit ON TOP of
+ * the packages: the MCP server (`@miragon/pulse-mcp-server`) composes the
+ * connectors; of the two interface apps, the CLI (apps/cli, `@miragon/pulse-cli`) imports
+ * exactly the family core it bundles (CLI_CORE), and the VS Code
+ * extension (apps/vscode, the unscoped `pulse-cockpit`, because vsce rejects scoped names)
+ * imports it in its C7 adapter alone (apps/vscode/src/adapters/c7, esbuild bundles it).
+ * No package and no app imports an app
  * (the extension's own closed-world rules live in apps/vscode/.dependency-cruiser.cjs).
  * APP_PACKAGES below names every app's npm name; the
  * self-test fails when a real app's name is missing there. These rules see IMPORTS only: a
@@ -57,16 +65,59 @@ const npm = (names) => [`(?:^|/)node_modules/(?:${names})(?:/|$)`, `^(?:${names}
  * self-test's sync case fails: packages-never-import-the-app and apps-never-import-apps
  * read this list.
  */
-const SERVER_PACKAGE = "@miragon/pulse-mcp-server-camunda7"
+const SERVER_PACKAGE = "@miragon/pulse-mcp-server"
 const CLI_PACKAGE = "@miragon/pulse-cli"
 const EXTENSION_PACKAGE = "pulse-cockpit"
 const APP_PACKAGES = [SERVER_PACKAGE, CLI_PACKAGE, EXTENSION_PACKAGE]
 const APP_NAMES = APP_PACKAGES.map(escapeRegExp).join("|")
 
+/** The root of a workspace package: an app, a foundation package or a family's package. */
+const PACKAGE_ROOT = "(?:apps/[^/]+|packages/core/[^/]+|packages/connectors/[^/]+/[^/]+)"
+
+/**
+ * A family core, `packages/connectors/<family>/<family>-core` (npm
+ * `@miragon/pulse-<family>-core`): the family's pure domain. Its rules key on the role, never on
+ * one package's name.
+ */
+const FAMILY_CORE = "@miragon/pulse-[^/]+-core"
+const FAMILY_CORE_TREE = "^packages/connectors/[^/]+/[^/]+-core/"
+
+/**
+ * The interface apps (or the one part of an app) that bundle a family core (tsdown or esbuild
+ * inlines it), each with the one core it bundles. The keys are, with the family's own connector,
+ * the only importers of a family core (family-core-consumers). This config reads the name and
+ * tree of the CLI's entry only: the CLI's rules below hold the core it bundles as part of the
+ * CLI. The extension's entry documents its core here; its own config
+ * (apps/vscode/.dependency-cruiser.cjs, engine-core-only-in-the-c7-adapter) holds the C7 adapter
+ * to that core's main entry and keeps the core out of every other layer.
+ */
+const CORE_BUNDLES = {
+  "^apps/cli/": {
+    name: "@miragon/pulse-engine-core",
+    tree: "packages/connectors/engine/engine-core",
+  },
+  "^apps/vscode/src/adapters/c7/": {
+    name: "@miragon/pulse-engine-core",
+    tree: "packages/connectors/engine/engine-core",
+  },
+}
+const CORE_BUNDLERS = Object.keys(CORE_BUNDLES)
+const CLI_CORE = escapeRegExp(CORE_BUNDLES["^apps/cli/"].name)
+const CLI_CORE_TREE = escapeRegExp(CORE_BUNDLES["^apps/cli/"].tree)
+
+/** Test-support modules: helpers of the tests, never shipped. */
+const TEST_SUPPORT = ["[.]test-support[.]tsx?$", "/test-support/"]
+
+/**
+ * Test code in a package's src/: its tests, their test-support and its own ./testing entry
+ * (src/testing/). Everything else under src/ ships, in a package entry or in a bundle.
+ */
+const SRC_TEST_CODE = ["[.]test[.]tsx?$", ...TEST_SUPPORT, `^${PACKAGE_ROOT}/src/testing/`]
+
 /**
  * What makes a package an MCP host or a widget: the UI runtime, the MCP framework and
- * protocol SDK, the toolkit, the server's HTTP, persistence and metrics stack, zod and
- * the generated REST SDK's runtime. The CLI imports none of it.
+ * protocol SDK, the server's metrics, zod and the generated REST SDK's runtime. The CLI
+ * imports none of it.
  */
 const MCP_STACK = [
   "react",
@@ -75,13 +126,26 @@ const MCP_STACK = [
   "@tanstack/[^/]+",
   "mcp-use",
   "@modelcontextprotocol/[^/]+",
-  "@miragon/mcp-toolkit-[^/]+",
-  "hono",
-  "postgres",
   "prom-client",
   "zod",
   "@hey-api/[^/]+",
 ].join("|")
+
+/**
+ * The view stack: React and what builds on it (Lucide, TanStack Query, the design kit, the view
+ * runtime's mcp-use adapter `mcp-use/react`, which ESLint keeps to widget-shell's adapter, and the
+ * BPMN viewer). The only npm packages widget-shell's view half and (with widget-shell's
+ * `/widgets`) a connector's widgets import, and none of them is widget-shell's server half's. The
+ * server stack (mcp-use itself, @modelcontextprotocol, prom-client, zod) and Node built-ins are
+ * not among them.
+ */
+const VIEW_STACK =
+  "react|react-dom|lucide-react|@tanstack/[^/]+|@miragon/pulse-ui|mcp-use/react|bpmn-js|diagram-js"
+
+/** widget-shell's two halves and the protocol modules both import (see the seam rules). */
+const SHELL_SRC = "^packages/core/widget-shell/src/"
+const SHELL_VIEWS = `${SHELL_SRC}ui/`
+const SHELL_PROTOCOL = `${SHELL_SRC}protocol/`
 
 /** The CLI's test code: colocated unit tests, and test/ with its fakes and engine suites. */
 const CLI_TEST_CODE = ["[.]test[.]ts$", "^apps/cli/test/"]
@@ -101,8 +165,9 @@ module.exports = {
       comment:
         "Connector modules are self-contained peers and never import each other (CLAUDE.md invariant 8). " +
         "Cross-module needs go through the composition root: shared server data via SharedResources " +
-        "(apps/mcp-server-camunda7/src/module-contract.ts), cross-module UI via shell:* widgets " +
-        "(props.dataKey) or raw tool-name strings with graceful degradation.",
+        "(apps/mcp-server/src/setup.ts), another module's widget via the host widget map by raw id " +
+        "(useHostWidget/HostWidgetSlot), and a raw tool-name string with graceful degradation only " +
+        "for the probe of an argument-free feed.",
       from: { path: "^packages/connectors/[^/]+/([^/]+)-connector/" },
       to: {
         path: ["^packages/connectors/.+-connector/", "@miragon/pulse-[^/]+-connector(/|$)"],
@@ -115,29 +180,38 @@ module.exports = {
       },
     },
     {
-      name: "connectors-own-their-client",
+      name: "connectors-own-their-family",
       severity: "error",
       comment:
-        "A connector may only depend on its own client package (analytics-connector → " +
-        "analytics-client). Engine data a foreign module needs arrives as an injected port on " +
-        "SharedResources: the pattern is fetchBpmnXml, which feeds the analytics heatmap without " +
-        "giving the analytics connector an engine-SDK dependency (CLAUDE.md invariant 8).",
+        "A connector may only depend on its own family's client and core (analytics-connector → " +
+        "analytics-client; engine-connector → engine-client, engine-core). Engine data a foreign " +
+        "module needs arrives as an injected port on SharedResources: the pattern is " +
+        "fetchBpmnXml, which feeds the analytics heatmap without giving the analytics connector " +
+        "an engine-SDK dependency (CLAUDE.md invariant 8).",
       from: { path: "^packages/connectors/[^/]+/([^/]+)-connector/" },
       to: {
-        path: ["^packages/connectors/.+-client/", "@miragon/pulse-[^/]+-client(/|$)"],
-        pathNot: ["^packages/connectors/[^/]+/$1-client/", "@miragon/pulse-$1-client(/|$)"],
+        path: [
+          "^packages/connectors/.+-client/",
+          FAMILY_CORE_TREE,
+          "@miragon/pulse-[^/]+-(?:client|core)(/|$)",
+        ],
+        pathNot: [
+          "^packages/connectors/[^/]+/$1-(?:client|core)/",
+          "@miragon/pulse-$1-(?:client|core)(/|$)",
+        ],
       },
     },
     {
       name: "clients-are-leaves",
       severity: "error",
       comment:
-        "*-client packages are SDK leaves (generated REST SDK / PromQL queries + Zod schemas): " +
-        "they never import connectors, the core packages, sibling clients, or an app. Shared " +
+        "*-client packages are SDK leaves (generated REST SDK / PromQL queries, analytics-client " +
+        "also its tool input schemas): " +
+        "they never import connectors, family cores, the foundation packages or sibling clients. Shared " +
         "logic that grows here belongs in the connector layer or a core package, not in a client.",
       from: { path: "^packages/connectors/[^/]+/([^/]+)-client/" },
       to: {
-        path: ["^packages/(core|connectors)/", "^apps/", "@miragon/pulse-"],
+        path: ["^packages/(core|connectors)/", "@miragon/pulse-"],
         // The own tree (src, own third-party node_modules such as zod) stays exempt
         // EXCEPT any @miragon/pulse-* package declared in its own node_modules (shape 2).
         pathNot: [
@@ -150,16 +224,138 @@ module.exports = {
       name: "core-is-foundation",
       severity: "error",
       comment:
-        "packages/core/* is the shared foundation underneath every connector: it depends on the " +
-        "toolkit (and core siblings) only, never on a connector, a client or an app. When a connector needs something a sibling already has, extract it INTO a core " +
-        "package (on the second concrete consumer), never make core reach up into a connector.",
+        "packages/core/* is the foundation every family builds on: it depends " +
+        "on core siblings and third-party libraries only (pulse-ui is the leaf among them), never " +
+        "on a family package (a connector, a client or a family core). When connectors of two " +
+        "families need the same thing, extract it INTO a core package (on the second concrete " +
+        "consumer); what one family needs stays in that family (its -core), never in packages/core.",
       from: { path: "^packages/core/" },
       to: {
+        path: ["^packages/connectors/", "@miragon/pulse-[^/]+-(connector|client|core)(/|$)"],
+      },
+    },
+    {
+      name: "ui-is-a-leaf",
+      severity: "error",
+      comment:
+        "packages/core/ui (@miragon/pulse-ui) is the design kit every Pulse view and every customer UI " +
+        "builds on: it imports no workspace package and nothing of the MCP, query, server or schema " +
+        "stack (mcp-use, @modelcontextprotocol, TanStack, zod, prom-client, " +
+        "@hey-api, bpmn-js, diagram-js). What needs the host, a tool call or BPMN belongs in widget-shell, " +
+        "which imports pulse-ui, never the other way round (CLAUDE.md invariants 6 and 8).",
+      from: { path: "^packages/core/ui/" },
+      to: {
         path: [
-          "^packages/connectors/",
-          "^apps/",
-          "@miragon/pulse-[^/]+-(connector|client)(/|$)",
-          "@miragon/pulse-mcp-server-camunda7",
+          "^packages/(?!core/ui/)",
+          "@miragon/pulse-(?!ui(?:/|$))",
+          ...npm(
+            "mcp-use|@modelcontextprotocol/[^/]+|@tanstack/[^/]+|zod|prom-client|@hey-api/[^/]+|bpmn-js|diagram-js",
+          ),
+        ],
+      },
+    },
+    // ── The browser/server seams: widget-shell's halves and connector widgets (review P7) ──
+    // widget-shell stays ONE package (`/server` and `/widgets`) because its halves share one wire
+    // protocol, src/protocol/ (tool results, the view name, the served fonts, the translator, the
+    // BPMN-name reader). Three rules keep the parts apart, so a later split is a path move: the
+    // view half (src/ui) imports only itself, the protocol and the view stack; the server half
+    // (the rest of src/) never imports the view half or the view stack; the protocol imports
+    // nothing but itself. tsconfig.widgets.json (DOM, no Node types) and tsconfig.json (Node
+    // types, no DOM) hold the same seam for types; the protocol is typed under both.
+    {
+      name: "widget-shell-views-browser-only",
+      severity: "error",
+      comment:
+        "widget-shell's view half (src/ui, the `/widgets` entry, in every view bundle) imports " +
+        "only src/ui, src/protocol and the view stack (VIEW_STACK): no server module of " +
+        "widget-shell, no Node built-in, no server package (mcp-use, prom-client, zod). What both " +
+        "halves need moves into src/protocol, dependency-free.",
+      from: { path: SHELL_VIEWS, pathNot: SRC_TEST_CODE },
+      to: { pathNot: [SHELL_VIEWS, SHELL_PROTOCOL, ...npm(VIEW_STACK)] },
+    },
+    {
+      name: "widget-shell-server-headless",
+      severity: "error",
+      comment:
+        "widget-shell's server half (src/ without src/ui and src/protocol: the `/server` boot, " +
+        "the module port, tool authoring) never imports the view half (src/ui) or the view stack " +
+        "(VIEW_STACK): a server never loads React. What both halves need moves into src/protocol.",
+      from: { path: SHELL_SRC, pathNot: [SHELL_VIEWS, SHELL_PROTOCOL, ...SRC_TEST_CODE] },
+      // pulse-ui by relative escape too (no-cross-package-deep-imports bites there as well).
+      to: { path: [SHELL_VIEWS, "^packages/core/ui/", ...npm(VIEW_STACK)] },
+    },
+    {
+      name: "widget-shell-protocol-is-a-leaf",
+      severity: "error",
+      comment:
+        "widget-shell's protocol modules (src/protocol: the wire both halves share) import only " +
+        "each other: no npm package, no Node built-in, nothing of either half. They run in the " +
+        "server and in every view bundle alike; what one half alone needs stays in that half.",
+      from: { path: SHELL_PROTOCOL, pathNot: SRC_TEST_CODE },
+      to: { pathNot: SHELL_PROTOCOL },
+    },
+    {
+      name: "connector-widgets-are-browser-code",
+      severity: "error",
+      comment:
+        "A connector's widgets (src/widgets, compiled into every view bundle) and the lib folder " +
+        "they share with the server (src/lib/shared) import at runtime only browser code: the " +
+        "widgets' own src/widgets, src/lib/shared, the shared words (src/messages), the tool " +
+        "names (src/tool-names.ts), the view models (src/view-models*.ts), the BPMN-name reader " +
+        "(src/bpmn-names.ts), widget-shell's `/widgets` and the view stack (VIEW_STACK). Nothing " +
+        "else of the connector (tools, widget tools, data builders, the other lib folders, " +
+        "providers, instructions, feed contracts, plugin, module, the package root), no client " +
+        "SDK, no server package (mcp-use, zod), no Node built-in. Type-only imports stay allowed: " +
+        "a widget reads the view models' and feeds' types. Data reaches a widget through its view " +
+        "tool and `*_data` feeds; pure code the widgets and the server both run goes into " +
+        "src/lib/shared.",
+      from: {
+        path: "^packages/connectors/[^/]+/([^/]+)-connector/src/(?:widgets|lib/shared)/",
+        pathNot: SRC_TEST_CODE,
+      },
+      to: {
+        dependencyTypesNot: ["type-only"],
+        pathNot: [
+          "^packages/connectors/[^/]+/$1-connector/src/(?:widgets|messages|lib/shared)/",
+          "^packages/connectors/[^/]+/$1-connector/src/(?:tool-names|view-models[.\\w-]*|bpmn-names)[.]tsx?$",
+          ...npm(`${VIEW_STACK}|@miragon/pulse-widget-shell/widgets`),
+        ],
+      },
+    },
+    {
+      name: "connector-widgets-only-shared-lib",
+      severity: "error",
+      comment:
+        "Of a connector's lib folders (src/lib/<job>: engine routing, the engine-core adapter, " +
+        "BPMN reading, the MCP tool surface) its widgets import only src/lib/shared, not even " +
+        "for a type: the other folders are server code, and a type a widget needs from the " +
+        "server side is declared once in src/lib/shared (TaskCompletion) or in the view models.",
+      from: {
+        path: "^packages/connectors/[^/]+/([^/]+)-connector/src/widgets/",
+        pathNot: SRC_TEST_CODE,
+      },
+      to: { path: "^packages/connectors/[^/]+/$1-connector/src/lib/(?!shared/)" },
+    },
+    {
+      name: "connector-data-and-lib-point-down",
+      severity: "error",
+      comment:
+        "Inside a connector the edges point one way: the tools (src/tools), the widget tools " +
+        "(src/widget-tools.ts, src/widget-tools/) and the widgets (src/widgets) build on the data " +
+        "builders (src/data) and the lib folders (src/lib/<job>), never the reverse. A helper a " +
+        "builder or a lib module needs from a tool moves down into the lib folder of its job " +
+        "(condenseStacktrace into src/lib/mcp, buildTaskFormSchema into src/lib/bpmn). Tests and " +
+        "their test-support may boot the tools. Nor does such a module import the connector's " +
+        "root (src/index, src/plugin, src/module, which register every tool) or the connector " +
+        "by its own npm name: its root and `/widgets` entries sit above these layers.",
+      from: {
+        path: "^packages/connectors/[^/]+/([^/]+)-connector/src/(?:data|lib)/",
+        pathNot: SRC_TEST_CODE,
+      },
+      to: {
+        path: [
+          "^packages/connectors/[^/]+/$1-connector/src/(?:(?:tools|widget-tools|widgets)/|(?:widget-tools|index|plugin|module)[.]tsx?$)",
+          ...npm("@miragon/pulse-$1-connector"),
         ],
       },
     },
@@ -171,9 +367,9 @@ module.exports = {
         "invariant 8): the MCP server, the CLI and the VS Code extension. No package imports " +
         "one (this rule; that no package.json declares one is check-package-naming's). " +
         "Anything a package needs from an app must be inverted into an injected port; see " +
-        "SharedResources in apps/mcp-server-camunda7/src/module-contract.ts.",
+        "SharedResources in apps/mcp-server/src/setup.ts.",
       from: { path: "^packages/" },
-      to: { path: ["^apps/", "@miragon/pulse-mcp-server-camunda7", ...npm(APP_NAMES)] },
+      to: { path: ["^apps/", ...npm(APP_NAMES)] },
     },
     {
       name: "apps-never-import-apps",
@@ -192,18 +388,86 @@ module.exports = {
       severity: "error",
       comment:
         "The CLI (apps/cli) is a terminal interface, not an MCP host: it imports no workspace " +
-        "package and nothing of the MCP/UI/server stack (react, react-dom, lucide-react, preact, bpmn-js, diagram-js, " +
-        "mcp-use, @modelcontextprotocol, the toolkit, TanStack, hono, postgres, prom-client, " +
-        "zod, @hey-api, vscode, @miragon/modeler-shell).",
+        "package except the family core it bundles (CLI_CORE: @miragon/pulse-engine-core, the " +
+        "engine family's workflow domain, which tsdown inlines), and nothing of the MCP/UI/server " +
+        "stack (react, react-dom, lucide-react, preact, bpmn-js, diagram-js, " +
+        "mcp-use, @modelcontextprotocol, TanStack, prom-client, " +
+        "zod, @hey-api, vscode, @miragon/modeler-shell). A relative escape into " +
+        "packages/connectors/engine/engine-core is still a violation: import the package.",
       from: { path: "^apps/cli/" },
       to: {
         path: [
           "^packages/",
-          "^apps/(?!cli/)",
           "@miragon/pulse-",
-          ...npm(
-            `${MCP_STACK}|preact|bpmn-js|diagram-js|@miragon/modeler-shell|vscode|${escapeRegExp(EXTENSION_PACKAGE)}`,
-          ),
+          ...npm(`${MCP_STACK}|preact|bpmn-js|diagram-js|@miragon/modeler-shell|vscode`),
+        ],
+        pathNot: npm(CLI_CORE),
+      },
+    },
+    {
+      name: "family-core-is-a-leaf",
+      severity: "error",
+      comment:
+        "A family core (packages/connectors/<family>/<family>-core, e.g. @miragon/pulse-engine-core) " +
+        "has no runtime dependency: its shipped code (the ./testing export included) imports only " +
+        "its own modules, no workspace package, no npm package and no Node built-in. The caller " +
+        "supplies every effect through a port (engine-core's EngineTransport) and words the " +
+        "structured results.",
+      from: { path: "^packages/connectors/([^/]+)/([^/]+)-core/src/", pathNot: ["[.]test[.]ts$"] },
+      to: { pathNot: "^packages/connectors/$1/$2-core/src/" },
+    },
+    {
+      name: "family-core-consumers",
+      severity: "error",
+      comment:
+        "A family core is imported by its own family's connector (connectors-own-their-family) " +
+        "and by the interface apps that bundle it (CORE_BUNDLERS: the CLI and the VS Code " +
+        "extension's C7 adapter, apps/vscode/src/adapters/c7, bundle engine-core), " +
+        "by no other app: the MCP server composes connectors, not their domain. The other " +
+        "packages answer to their own rules: packages/core to core-is-foundation, a client to " +
+        "clients-are-leaves, a family core to family-core-is-a-leaf.",
+      from: { path: "^apps/", pathNot: CORE_BUNDLERS },
+      to: { path: [FAMILY_CORE_TREE, ...npm(FAMILY_CORE)] },
+    },
+    {
+      name: "cli-family-core-only-in-named-layers",
+      severity: "error",
+      comment:
+        "In the CLI only the workflow commands (apps/cli/src/workflow), the engine port " +
+        "(apps/cli/src/engine-port) and the two operation modules that apply the core's engine " +
+        "REST rules to option values (operation/dates.ts: the date reading, operation/variables.ts: " +
+        "the auto typing) import the family core it bundles (CLI_CORE); the command layer " +
+        "reaches it through the workflow modules, tests may import it anywhere. Any other core " +
+        "is cli-is-headless's.",
+      from: {
+        path: "^apps/cli/",
+        pathNot: [
+          "^apps/cli/src/(?:workflow|engine-port)/",
+          "^apps/cli/src/operation/(?:dates|variables)[.]ts$",
+          ...CLI_TEST_CODE,
+        ],
+      },
+      to: { path: npm(CLI_CORE) },
+    },
+    {
+      name: "shipped-code-not-to-testing",
+      severity: "error",
+      comment:
+        "Shipped code (a package's or an app's src/ without its tests, their test-support and " +
+        "its own ./testing entry) never imports a ./testing entry (no @miragon/pulse-*/testing, " +
+        "no src/testing/ tree) nor a test-support module. They hold fixtures, fake ports and the " +
+        "brand gates (pulse-ui/testing reads files with node:fs and parses with typescript), " +
+        "which would ship in the package entry, in every server that composes it and in the " +
+        "bundles. Tests, test-support and a ./testing entry import them. A ./testing entry is " +
+        "published, but for the consumers' tests only, so it counts as test code here: as an " +
+        "importer it is exempt, and no shipped module may reach it.",
+      from: { path: `^${PACKAGE_ROOT}/src/`, pathNot: SRC_TEST_CODE },
+      to: {
+        path: [
+          ...npm("@miragon/pulse-[^/]+/testing"),
+          "/src/testing/",
+          // test-support is exempt as an importer above, so shipped code may not reach it.
+          ...TEST_SUPPORT,
         ],
       },
     },
@@ -214,7 +478,7 @@ module.exports = {
         "Never reach into a sibling package's source tree by relative path: import its public " +
         "entry (@miragon/pulse-<pkg>, or a subpath like @miragon/pulse-widget-shell/widgets) so the " +
         "exports map stays the contract between packages.",
-      from: { path: "^(apps/[^/]+|packages/core/[^/]+|packages/connectors/[^/]+/[^/]+)/" },
+      from: { path: `^(${PACKAGE_ROOT})/` },
       to: { path: "^(packages|apps)/", pathNot: "^$1/" },
     },
     {
@@ -231,9 +495,10 @@ module.exports = {
       name: "cli-no-circular",
       severity: "error",
       comment:
-        "The CLI (apps/cli) has no import cycle at all, type-only cycles included (stricter than " +
-        "no-circular above). Extract the shared part into its own module.",
-      from: { path: "^apps/cli/" },
+        "The CLI (apps/cli) and the family core it bundles (CLI_CORE_TREE, engine-core) have no " +
+        "import cycle at all, type-only cycles included (stricter than no-circular above). Extract " +
+        "the shared part into its own module.",
+      from: { path: `^(?:apps/cli|${CLI_CORE_TREE})/` },
       to: { circular: true },
     },
     {
@@ -250,10 +515,11 @@ module.exports = {
       name: "cli-not-to-test",
       severity: "error",
       comment:
-        "Nothing in the CLI imports a test file (*.test.ts). Shared test helpers live in " +
-        "apps/cli/test/support/.",
-      from: { path: "^apps/cli/" },
-      to: { path: "^apps/cli/.*[.]test[.]ts$" },
+        "Nothing in the CLI or in the family core it bundles (CLI_CORE_TREE, engine-core) imports " +
+        "a test file (*.test.ts) of its own tree. Shared test helpers live in " +
+        "apps/cli/test/support/ and in the core's src/testing/.",
+      from: { path: `^(apps/cli|${CLI_CORE_TREE})/` },
+      to: { path: "^$1/.*[.]test[.]ts$" },
     },
     {
       name: "cli-src-not-to-scripts-or-test",
@@ -470,7 +736,7 @@ module.exports = {
     // and never edited by hand, so it is the one tree kept out of the graph. Any other
     // generated tree (a command catalog, say) is cruised like hand-written code: list
     // nothing else here.
-    exclude: { path: ["^packages/connectors/camunda/camunda7-client/src/generated/"] },
+    exclude: { path: ["^packages/connectors/engine/engine-client/src/generated/"] },
     tsPreCompilationDeps: true,
     tsConfig: { fileName: "tsconfig.base.json" },
     // Keep workspace imports as node_modules/@miragon/pulse-* paths instead of

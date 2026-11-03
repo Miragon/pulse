@@ -43,7 +43,8 @@ pnpm test && pnpm lint`) covers the extension too.
 | `pnpm --filter pulse-cockpit run typecheck`        | the whole app, then each layer with its runtime's globals only                               |
 | `pnpm --filter pulse-cockpit run lint`             | ESLint with the extension's house rules                                                      |
 | `pnpm lint:architecture:vscode`                    | the closed-world dependency rules of the layers                                              |
-| `pnpm lint:deadcode:vscode`                        | knip over the extension: no dead file, dependency, export or exported type                   |
+| `pnpm lint:deadcode`                               | knip over every workspace, the extension included: no dead file, dependency or enum member   |
+| `pnpm lint:deadcode:exports`                       | knip over every workspace but docs: no unused export or exported type                        |
 | `pnpm --filter pulse-cockpit exec stryker run`     | Stryker mutation testing of contract, core, the C7 adapter and the model adapter             |
 | `pnpm --filter pulse-cockpit run test:engines`     | conformance kit against a real engine (`PULSE_ENGINE_IMAGE`, testcontainers)                 |
 | `pnpm --filter pulse-cockpit run test:smoke`       | activation test in VS Code (`@vscode/test-cli`)                                              |
@@ -53,7 +54,10 @@ pnpm test && pnpm lint`) covers the extension too.
 | `pnpm --filter pulse-cockpit run docs:screenshots` | one VS Code screenshot per use case into `apps/vscode/docs/screenshots` (sandbox running)    |
 | `pnpm --filter pulse-cockpit run package`          | the `.vsix`                                                                                  |
 
-The webview tests need Chromium once: `pnpm --filter pulse-cockpit exec playwright install chromium`.
+The C7 adapter bundles `@miragon/pulse-engine-core` from its build: after `pnpm install`, build it
+once (`pnpm exec turbo run build --filter='pulse-cockpit^...'`, or `pnpm build`) before these
+commands, and again after a change to engine-core. The webview tests need Chromium once:
+`pnpm --filter pulse-cockpit exec playwright install chromium`.
 
 The README's `apps/vscode/docs/demo.gif` comes from the `product-shots` skill in
 [Miragon/corporate-identity](https://github.com/Miragon/corporate-identity), see
@@ -70,7 +74,7 @@ plain release to the Visual Studio Marketplace and Open VSX and attaches it to t
 release. Every pull
 request packages it too (CI job "VS Code package (vsce dry run)"); to check the release path by
 hand, run the Release workflow with `dry_run`. The whole train:
-[the repository's CLAUDE.md](../../CLAUDE.md#releases--toolkit-contributions).
+[the repository's CLAUDE.md](../../CLAUDE.md#releases).
 
 ## License
 

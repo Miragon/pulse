@@ -1,6 +1,5 @@
 import type { IncidentDetails } from "../../contract/index.js"
 import * as vscode from "vscode"
-import { RootCause } from "../../core/index.js"
 
 export const INCIDENT_SCHEME = "pulse-incident"
 
@@ -16,7 +15,7 @@ export class IncidentDocuments implements vscode.TextDocumentContentProvider {
     const uri = vscode.Uri.from({ scheme: INCIDENT_SCHEME, path: `/${title}.${extension}` })
     this.contents.set(uri.toString(), details.text)
     const document = await vscode.workspace.openTextDocument(uri)
-    const causeLine = new vscode.Position(RootCause.lineIndex(details.text) ?? 0, 0)
+    const causeLine = new vscode.Position(details.rootCauseLine ?? 0, 0)
     await vscode.window.showTextDocument(document, {
       preview: true,
       viewColumn: vscode.ViewColumn.Beside,

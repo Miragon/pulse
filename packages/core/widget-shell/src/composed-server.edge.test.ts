@@ -1,15 +1,12 @@
 import http from "node:http"
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest"
-import { composeModules } from "./composition.js"
 import {
   createComposedServer,
   DEFAULT_REQUEST_TIMEOUT_MS,
   type ListenOptions,
   type RunningServer,
 } from "./composed-server.js"
-import { createShellPlugin } from "./shell-catalogue.js"
 
-const composition = composeModules<object>({ label: "edge-test", modules: [], appEnvVars: [] })
 const running: RunningServer[] = []
 let info: MockInstance<(line: string) => void>
 
@@ -26,13 +23,11 @@ afterEach(async () => {
 
 const compose = (env: NodeJS.ProcessEnv = {}) =>
   createComposedServer({
-    label: "edge-test",
     info: { name: "edge-test", version: "0.0.0" },
-    composition,
+    modules: [],
     // The bundle is read once; a missing file only warns (views render empty).
     bundle: { jsPath: "/nonexistent/mcp-app.js" },
     env,
-    setup: () => ({ plugins: [createShellPlugin()] }),
   })
 
 async function boot(env: NodeJS.ProcessEnv = {}, listen: ListenOptions = {}) {
@@ -101,10 +96,10 @@ const INITIALIZE = JSON.stringify({
   },
 })
 
-describe("createComposedServer — admission before the body", () => {
+describe("createComposedServer: admission before the body", () => {
   it("answers a foreign Host's POST from the guard without reading its body", async () => {
     const { server } = await boot({ MCP_MAX_BODY_BYTES: "64" })
-    // Over the cap and never finished — the guard's 403 comes first anyway.
+    // Over the cap and never finished, but the guard's 403 comes first anyway.
     const res = await openUpload(server.port, {
       host: "attacker.example",
       "content-type": "application/json",
@@ -129,7 +124,7 @@ describe("createComposedServer — admission before the body", () => {
     expect(res.body).toContain('Origin \\"https://attacker.example\\" is not allowed')
   })
 
-  it("decides exemptions like the guard: a POST to an exempt path is read — and capped", async () => {
+  it("decides exemptions like the guard: a POST to an exempt path is read, and capped", async () => {
     const { server } = await boot({ MCP_MAX_BODY_BYTES: "64" })
     const headers = { host: "10.0.0.7:8400", "content-length": "5000" }
     expect((await openUpload(server.port, headers, "/health/x?probe=1")).status).toBe(413)
@@ -138,7 +133,7 @@ describe("createComposedServer — admission before the body", () => {
   })
 
   it("answers 503 once the in-flight body budget is spent", async () => {
-    // Budget: 4 × 64 bytes — four held cap-sized bodies leave no room.
+    // Budget: 4 × 64 bytes. Four held cap-sized bodies leave no room.
     const { composed, server } = await boot({ MCP_MAX_BODY_BYTES: "64" })
     let release!: () => void
     const gate = new Promise<void>((resolve) => (release = resolve))
@@ -178,7 +173,7 @@ describe("createComposedServer — admission before the body", () => {
   })
 })
 
-describe("createComposedServer — under mcp-use dev (the CLI owns the socket)", () => {
+describe("createComposedServer: under mcp-use dev (the CLI owns the socket)", () => {
   const TUNNEL_HOST = "k3x9.tunnel.example"
 
   const tunneled = (

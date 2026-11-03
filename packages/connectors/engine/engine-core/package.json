@@ -1,0 +1,57 @@
+{
+  "name": "@miragon/pulse-engine-core",
+  "version": "0.24.2",
+  "description": "The workflow domain of the Camunda 7 REST API family (Operaton, CIB seven, Camunda 7): the engine port, instance selection, the inspect view, the status triage, root causes and the plans of retry and advance, and the pure engine REST rules (dates, filters, sorting, variable writes, incident recovery). No runtime dependency.",
+  "license": "MIT",
+  "keywords": [
+    "camunda",
+    "camunda7",
+    "operaton",
+    "cibseven",
+    "bpmn",
+    "workflow"
+  ],
+  "homepage": "https://github.com/Miragon/pulse/tree/main/packages/connectors/engine/engine-core#readme",
+  "bugs": "https://github.com/Miragon/pulse/issues",
+  "engines": {
+    "node": ">=22.22.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Miragon/pulse.git",
+    "directory": "packages/connectors/engine/engine-core"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "!dist/**/*.test.*"
+  ],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing/index.d.ts",
+      "import": "./dist/testing/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix"
+  },
+  "devDependencies": {
+    "fast-check": "4.10.2",
+    "typescript": "6.0.3",
+    "vitest": "5.0.5"
+  }
+}

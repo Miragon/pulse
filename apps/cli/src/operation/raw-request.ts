@@ -7,6 +7,7 @@
  */
 
 import { usageError } from "../errors.js"
+import { withoutTrailingSlashes } from "../util.js"
 
 /** Base for resolving dot segments; never contacted. */
 const PLACEHOLDER_ORIGIN = "http://pulse-cli.invalid"
@@ -38,7 +39,7 @@ export function parseApiPath(raw: string): ApiPath {
   const index = raw.indexOf("?")
   const rawPath = index < 0 ? raw : raw.slice(0, index)
   const collapsed = `/${rawPath}`.replace(/[/\\]+/g, "/")
-  const resolved = new URL(collapsed, PLACEHOLDER_ORIGIN).pathname.replace(/\/+$/, "")
+  const resolved = withoutTrailingSlashes(new URL(collapsed, PLACEHOLDER_ORIGIN).pathname)
   return { path: resolved === "" ? "/" : resolved, query: index < 0 ? "" : raw.slice(index + 1) }
 }
 

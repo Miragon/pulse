@@ -4,11 +4,11 @@ coverage/
 *.tsbuildinfo
 # mcp-use dev artifacts (tool-registry types)
 .mcp-use/
-# Local credentials and dev persistence (MCP_PROFILE_DIR / MCP_DASHBOARD_DIR
-# records are keyed by user id or e-mail) — in every package, never in the
-# image or the repo. `.env.example` is the committed template.
+# Local credentials, in every package, never in the image or the repo.
+# `.env.example` is the committed template.
 **/.env*
 !**/.env.example
+# Local profile records of the removed profile store, keyed by user id or
+# e-mail: a checkout may still hold them, so never commit or ship them.
 **/.profiles
-**/.dashboards
 **/.data

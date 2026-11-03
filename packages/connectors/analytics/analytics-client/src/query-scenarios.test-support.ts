@@ -1,7 +1,7 @@
 import type { PrometheusClient, PromSample } from "./prometheus.js"
 import * as queries from "./queries/index.js"
 
-export const REPRESENTATIVE_SAMPLE: PromSample = {
+const REPRESENTATIVE_SAMPLE: PromSample = {
   metric: {
     engine_id: "prod-a",
     process_definition_key: "invoice",
@@ -38,76 +38,38 @@ export function recordingClient(
 export type Scenario = (ch: PrometheusClient) => Promise<unknown>
 
 /**
- * ISO timestamp `days` before now (whole days, at call time — so a guard that
+ * ISO timestamp `days` before now (whole days, at call time, so a guard that
  * pins the clock sees windows relative to ITS now). Scenario windows must sit
  * inside the retention or the query refuses them.
  */
-export const isoDaysAgo = (days: number) => new Date(Date.now() - days * 86_400_000).toISOString()
+const isoDaysAgo = (days: number) => new Date(Date.now() - days * 86_400_000).toISOString()
 
 // A total map over `queries`: a new export without a scenario fails `pnpm typecheck`.
 export const SCENARIOS: { [K in keyof typeof queries]: Scenario[] } = {
-  analyzePerformance: [
-    (ch) =>
-      queries.analyzePerformance(ch, {
-        processDefinitionKey: "invoice",
-        period: "7d",
-        includeActivityBreakdown: true,
-        engine: "prod-a",
-      }),
+  elementHeat: [
+    (ch) => queries.elementHeat(ch, { processDefinitionKey: "invoice", period: "7d", engine: "a" }),
   ],
-  comparePeriods: [
+  periodCompare: [
     (ch) =>
-      queries.comparePeriods(ch, {
+      queries.periodCompare(ch, {
         processDefinitionKey: "invoice",
+        activityId: "Task_check",
         periodAFrom: isoDaysAgo(14),
         periodATo: isoDaysAgo(7),
         periodBFrom: isoDaysAgo(7),
         periodBTo: isoDaysAgo(0),
-        includeActivityBreakdown: true,
+        minBucketSize: 1,
+        engine: "prod-a",
+      }),
+    // A recent split: period B reaches past now.
+    (ch) =>
+      queries.periodCompare(ch, {
+        periodAFrom: isoDaysAgo(9),
+        periodATo: isoDaysAgo(2),
+        periodBFrom: isoDaysAgo(2),
+        periodBTo: isoDaysAgo(-5),
+        minBucketSize: 1,
         engine: ["prod-a", "prod-b"],
-      }),
-  ],
-  findFailedInstances: [
-    (ch) =>
-      queries.findFailedInstances(ch, {
-        processDefinitionKey: "invoice",
-        incidentType: "failedJob",
-        maxResults: 10,
-        engine: "prod-a",
-      }),
-    (ch) => queries.findFailedInstances(ch, { maxResults: 10 }),
-  ],
-  elementBottleneck: [
-    (ch) =>
-      queries.elementBottleneck(ch, {
-        processDefinitionKey: "invoice",
-        period: "7d",
-        minBucketSize: 1,
-        maxResults: 10,
-        engine: "prod-a",
-      }),
-  ],
-  elementHeat: [
-    (ch) => queries.elementHeat(ch, { processDefinitionKey: "invoice", period: "7d", engine: "a" }),
-  ],
-  clusterCompare: [
-    (ch) =>
-      queries.clusterCompare(ch, {
-        processDefinitionKey: "invoice",
-        activityId: "Task_check",
-        deploymentTimestamp: isoDaysAgo(10),
-        windowBeforeDays: 7,
-        windowAfterDays: 7,
-        minBucketSize: 1,
-        engine: "prod-a",
-      }),
-    // A recent deployment: the post-deploy window reaches past now.
-    (ch) =>
-      queries.clusterCompare(ch, {
-        deploymentTimestamp: isoDaysAgo(2),
-        windowBeforeDays: 7,
-        windowAfterDays: 7,
-        minBucketSize: 1,
       }),
   ],
   versionCompare: [
@@ -140,7 +102,6 @@ export const SCENARIOS: { [K in keyof typeof queries]: Scenario[] } = {
     (ch) => queries.dashboardData(ch, { processDefinitionKey: "invoice", period: "7d" }),
     (ch) => queries.dashboardData(ch, { period: "1d", engine: "prod-a" }),
   ],
-  failureDashboardData: [(ch) => queries.failureDashboardData(ch, { engine: "prod-a" })],
   engineHealth: [
     (ch) => queries.engineHealth(ch, {}),
     (ch) => queries.engineHealth(ch, { engine: "prod-a" }),

@@ -1,10 +1,6 @@
 import { describe, expect, it, vi } from "vitest"
-import type {
-  AnalyticsDashboardData,
-  EngineLandscapeResult,
-  FailureDashboardData,
-} from "@miragon/pulse-analytics-client"
-import { namedDashboard, namedFailureDashboard, namedLandscape } from "./named-views.js"
+import type { AnalyticsDashboardData, EngineLandscapeResult } from "@miragon/pulse-analytics-client"
+import { namedDashboard, namedLandscape } from "./named-views.js"
 import { createNameLookup, type NameLookup } from "./bpmn-name-lookup.js"
 import { elementNameOf, processNameOf } from "./bpmn-names.js"
 
@@ -36,33 +32,21 @@ describe("named views", () => {
     expect(request?.engines).toEqual(["prod-b", "prod-a"])
   })
 
-  it("the dashboard reads on its whole scope when the payload does not say which engines report", async () => {
-    const namesFor = lookup()
-    await namedDashboard(
-      {
-        processDefinitionKey: null,
-        engines: ["prod-a", "prod-b"],
-        definitionBreakdown: [],
-        activityBreakdown: [],
-      } as unknown as AnalyticsDashboardData,
-      namesFor,
-    )
-    expect(namesFor.mock.calls[0][1]?.engines).toEqual(["prod-a", "prod-b"])
-  })
-
   it("names a process key such as constructor like any other", async () => {
     const namesFor = lookup()
     await namedDashboard(
       {
         processDefinitionKey: null,
         engines: null,
+        reportingEngines: ["prod-a"],
         definitionBreakdown: [{ processDefinitionKey: "constructor" }],
         activityBreakdown: [{ processDefinitionKey: "constructor", activityId: "Task_A" }],
       } as unknown as AnalyticsDashboardData,
       namesFor,
     )
     expect(namesFor.mock.calls[0][1]?.elementIds).toEqual({ constructor: ["Task_A"] })
-    expect(namesFor.mock.calls[0][1]?.engines).toBeNull()
+    // Unscoped (a library call): the engines that report.
+    expect(namesFor.mock.calls[0][1]?.engines).toEqual(["prod-a"])
   })
 
   // The lookup reads at most 40 models per view: a big fleet must not lose its bottleneck names to
@@ -89,36 +73,6 @@ describe("named views", () => {
     // The cap falls on the end of the breakdown instead.
     expect(processNameOf(names, "p0")).toBe("Process p0")
     expect(processNameOf(names, "p40")).toBeNull()
-  })
-
-  it("the failure dashboard: process names only, its most affected first, on its engines", async () => {
-    const failures = lookup()
-    await namedFailureDashboard(
-      {
-        engines: ["prod-a", "prod-b"],
-        errorPatterns: [{ processDefinitionKey: "a" }],
-        processBreakdown: [{ processDefinitionKey: "b" }],
-        mostAffectedProcess: "b",
-      } as unknown as FailureDashboardData,
-      failures,
-    )
-    expect([...failures.mock.calls[0][0]]).toEqual(["b", "a", "b"])
-    expect(failures.mock.calls[0][1]).toEqual({
-      elementIds: { a: [], b: [] },
-      engines: ["prod-a", "prod-b"],
-    })
-
-    const none = lookup()
-    await namedFailureDashboard(
-      {
-        engines: ["prod-a"],
-        errorPatterns: [],
-        processBreakdown: [],
-        mostAffectedProcess: null,
-      } as unknown as FailureDashboardData,
-      none,
-    )
-    expect([...none.mock.calls[0][0]]).toEqual([])
   })
 
   it("the landscape: each process read on the engines it runs on", async () => {

@@ -3,10 +3,10 @@
  * default condition `idle`) or, with `--batch`, for a batch.
  */
 
+import { type EndedInstance, instanceRequests, selectionRequests } from "@miragon/pulse-engine-core"
 import { type BatchView, batchRequests, waitForBatch } from "./batch.js"
-import { instanceRequests } from "./inspect.js"
-import { checkSelection, type Selection, selectInstance, selectionRequests } from "./select.js"
-import type { EndedInstance, InstanceView, WorkflowResult } from "./types.js"
+import { checkSelection, type Selection, selectInstance } from "./select.js"
+import type { InstanceView, WorkflowResult } from "./types.js"
 import { checkUntil } from "./until-check.js"
 import { type WaitDeps, type WaitSettings, waitAndInspect } from "./wait.js"
 

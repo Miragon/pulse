@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest"
-import { withToolErrors } from "./server.js"
+import { describe, expect, it, vi } from "vitest"
+import { withToolErrors } from "./tool-errors.js"
 
 class CodedError extends Error {
   readonly code = "ENGINE_NOT_SELECTED"
@@ -28,7 +28,7 @@ describe("withToolErrors", () => {
     )
   })
 
-  it("prefers an HTTP-ish `status` over `code`, matching the toolkit registrar", async () => {
+  it("prefers an HTTP-ish `status` over `code`", async () => {
     const e = Object.assign(new Error("boom"), { status: 404, code: "IGNORED" })
     const wrapped = withToolErrors(() => Promise.reject(e))
     const result = (await wrapped()) as { content: { text: string }[] }
@@ -46,5 +46,13 @@ describe("withToolErrors", () => {
     expect(((await thrownString()) as { content: { text: string }[] }).content[0].text).toBe(
       "string failure",
     )
+  })
+
+  it("survives a nullish rejection", async () => {
+    const wrapped = withToolErrors(vi.fn<() => Promise<never>>().mockRejectedValue(undefined))
+    expect(await wrapped()).toEqual({
+      isError: true,
+      content: [{ type: "text", text: "undefined" }],
+    })
   })
 })

@@ -6,6 +6,10 @@ const IMAGE = process.env.PULSE_ENGINE_IMAGE ?? "operaton/operaton:2.1.5"
 const PORT = process.env.PULSE_ENGINE_PORT ?? "18080"
 const engine = engineClient(`http://localhost:${PORT}/engine-rest`)
 const WORLD = "test/adapters/c7/world"
+const WITHOUT_RUN_EXAMPLE = {
+  CAMUNDA_BPM_RUN_EXAMPLE_ENABLED: "false",
+  OPERATON_BPM_RUN_EXAMPLE_ENABLED: "false",
+}
 
 const ORDERS = [
   ["ORD-1001", 1, "review"],
@@ -58,7 +62,7 @@ async function seed() {
 }
 
 async function up() {
-  startContainer({ name: CONTAINER, image: IMAGE, port: PORT })
+  startContainer({ name: CONTAINER, image: IMAGE, port: PORT, environment: WITHOUT_RUN_EXAMPLE })
   await waitUntil(engine.isReady, "the engine to start", 180_000)
   await seed()
   console.log(`Engine ready at ${engine.endpoint} (${IMAGE}), seeded with demo instances.`)

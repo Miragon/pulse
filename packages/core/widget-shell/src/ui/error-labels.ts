@@ -1,4 +1,4 @@
-import type { Locale } from "../profile-constants.js"
+import type { Locale } from "./host-context.js"
 
 export type ErrorSource =
   { type: "engine"; id?: string } | { type: "prometheus" } | { type: "unknown" }
@@ -8,7 +8,7 @@ export interface ErrorKindLabels {
   hint: (p: { source: ErrorSource["type"] }) => string
 }
 
-/** Checked branch by branch by the catalog text and glossary tests in `brand-gates.test.ts`. */
+/** Checked branch by branch by the catalog text and glossary tests in `kit-words.test.ts`. */
 export interface ErrorLabels {
   /** The source as the subject of a title, sentence-initial. */
   source: (p: { source: ErrorSource }) => string

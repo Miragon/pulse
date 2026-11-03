@@ -1,4 +1,4 @@
-# OTEL Collector — receives OTLP metrics from the engine, serves them for
+# OTEL Collector: receives OTLP metrics from the engine, serves them for
 # Prometheus on :9464. Private-only (no public IP) and always-on: the engine
 # pushes and Prometheus scrapes continuously.
 # Build context: playground/docker/otel (config baked in via Dockerfile.fly).

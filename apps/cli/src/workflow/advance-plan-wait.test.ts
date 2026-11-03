@@ -23,7 +23,7 @@ import {
   chooseWait,
 } from "./advance-plan.js"
 import { omit } from "../util.js"
-import type { WaitState } from "./types.js"
+import type { WaitState } from "@miragon/pulse-engine-core"
 
 describe("chooseWait", () => {
   it("takes the only advanceable wait state, or the one of --activity-id", () => {

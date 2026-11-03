@@ -1,10 +1,10 @@
-# CIB Seven playground engine (seeded, with live traffic + Micrometer metrics
+# CIB seven playground engine (seeded, with live traffic + Micrometer metrics
 # pushed over OTLP).
 # Private-only: no [http_service]/[[services]] section means Fly never
 # allocates a public IP; the server reaches it via 6PN (…engine.internal).
 # The machine never auto-stops (no Fly Proxy in the path), which the stack
 # needs anyway: live traffic and metric export must run continuously.
-# Build context: playground/cibseven-example — run `./gradlew bootJar` first
+# Build context: playground/cibseven-example; run `./gradlew bootJar` first
 # (the Dockerfile copies build/libs/cibseven-example.jar).
 app = "miragon-ai-playground-engine"
 primary_region = "fra"

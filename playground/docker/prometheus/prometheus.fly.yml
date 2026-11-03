@@ -1,4 +1,4 @@
-# Fly.io variant of prometheus.yml — identical scrape jobs, but targets are
+# Fly.io variant of prometheus.yml: identical scrape jobs, but targets are
 # Fly private-network (6PN) hostnames instead of Compose service names.
 # Prometheus does not interpolate env vars in its config, hence the copy.
 # Keep the job names and rule_files in sync with prometheus.yml.

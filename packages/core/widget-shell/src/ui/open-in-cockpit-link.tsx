@@ -1,10 +1,8 @@
 import type { MouseEvent } from "react"
-import { buttonVariants, useLocale } from "@miragon/mcp-toolkit-ui"
+import { buttonVariants, useLocale, Icon, MENU_ITEM } from "@miragon/pulse-ui"
 import { ExternalLink } from "lucide-react"
-import { useHostActions } from "@miragon/mcp-toolkit-ui/app"
-import { Icon } from "./icon.js"
 import { kitLabels } from "./kit-labels.js"
-import { MENU_ITEM } from "./menu-item.js"
+import { useViewHost } from "./view-host.js"
 
 /** Named after the vendor, not "Cockpit", which is this app's own name. */
 export function OpenInCockpitLink({
@@ -19,7 +17,7 @@ export function OpenInCockpitLink({
   label?: string
   variant?: "outline" | "menuitem"
 }) {
-  const host = useHostActions()
+  const { openExternal } = useViewHost()
   const labels = kitLabels(useLocale())
   const text = label ?? labels.openInVendor(vendor)
   const link = {
@@ -28,7 +26,7 @@ export function OpenInCockpitLink({
     rel: "noopener noreferrer",
     onClick: (e: MouseEvent<HTMLAnchorElement>) => {
       e.preventDefault()
-      host.openLink(url)
+      openExternal(url)
     },
     "aria-label": labels.opensInNewTab(text),
   }

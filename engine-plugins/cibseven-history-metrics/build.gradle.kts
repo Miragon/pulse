@@ -9,12 +9,12 @@ plugins {
 // `io.miragon.mcp:cibseven-history-metrics`.
 
 dependencies {
-    // Bundled into the plugin's transitive POM dependencies — the only runtime dep
+    // Bundled into the plugin's transitive POM dependencies: the only runtime dep
     // consumers need to resolve; the engine/spring stack is `compileOnly` (provided).
     implementation(libs.micrometer.core)
     compileOnly(libs.spring.boot.starter)
 
-    // CIB Seven Engine SDK — provided at runtime by the engine. The contract test
+    // CIB seven Engine SDK, provided at runtime by the engine. The contract test
     // drives real history events and a mocked engine, so tests need it too.
     compileOnly(libs.cibseven.engine)
     testImplementation(libs.cibseven.engine)
@@ -69,7 +69,7 @@ mavenPublishing {
 
 tasks.test {
     // MetricsContractTest reads the shared Kotlin<->TS metric contract at
-    // runtime — declare the contract as a task input so a contract change
+    // runtime. Declare the contract as a task input so a contract change
     // re-runs the otherwise up-to-date test task.
     inputs.file(rootProject.layout.projectDirectory.file("../packages/connectors/analytics/analytics-client/metrics-contract.json"))
         .withPathSensitivity(PathSensitivity.NONE)

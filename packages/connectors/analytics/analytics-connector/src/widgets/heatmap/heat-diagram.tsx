@@ -1,0 +1,214 @@
+import { useEffect, useRef } from "react"
+import { ErrorState } from "@miragon/pulse-ui"
+import { BpmnZoomControls, useBpmnViewer } from "@miragon/pulse-widget-shell/widgets"
+import { useT } from "../../messages/use-t.js"
+import {
+  buildGradientLut,
+  buildHeatPoints,
+  drawHeatLayer,
+  HEAT_GRADIENT_CSS,
+  HEAT_PEAK_ALPHA,
+  weightRange,
+  type HeatPoint,
+} from "./heat-utils.js"
+
+// A `= {}` parameter default would be a fresh identity per render and re-trigger the repaint effect.
+const EMPTY_EDGES: Record<string, number> = {}
+
+export interface BpmnHeatmapProps {
+  bpmnXml: string
+  nodeFrequencies: Record<string, number>
+  /** Per-edge value keyed by `${sourceId}->${targetId}`. Metrics carry none → `{}`. */
+  edgeFrequencies?: Record<string, number>
+  /** A fixed frame height; default: the diagram's own (240–560 px, `diagramHeight`). */
+  height?: number
+  diagramRadius?: number
+  /** The words are the caller's, since each place words the heatmap for itself (`t()`-resolved). */
+  diagramAriaLabel: string
+  /** What happened, over the inline import error. */
+  errorTitle: string
+  /** What you can do, under the title. */
+  errorHint: string
+  /** Without it an empty result (no traffic, or a mismatched metrics `engine_id`) looks like a rendered heatmap. */
+  noHeatLabel: string
+}
+
+/** The viewer mounts once per `bpmnXml`; new heat values only repaint the overlay. One hue, never red (red is for incidents); the frame is a forced-light island. */
+export function BpmnHeatmap({
+  bpmnXml,
+  nodeFrequencies,
+  edgeFrequencies = EMPTY_EDGES,
+  height,
+  diagramRadius = 55,
+  diagramAriaLabel,
+  errorTitle,
+  errorHint,
+  noHeatLabel,
+}: BpmnHeatmapProps) {
+  const heatCanvasRef = useRef<HTMLCanvasElement>(null)
+  const redrawRef = useRef<(() => void) | null>(null)
+  // Synced in an effect, not during render, so a discarded render cannot leak into the ref; declared before the repaint effect so redraw() sees this commit's values.
+  const dataRef = useRef({ nodeFrequencies, edgeFrequencies, diagramRadius })
+  useEffect(() => {
+    dataRef.current = { nodeFrequencies, edgeFrequencies, diagramRadius }
+  })
+
+  const {
+    containerRef,
+    height: autoHeight,
+    importError,
+    zoomIn,
+    zoomOut,
+    fit,
+  } = useBpmnViewer({
+    bpmnXml,
+    onImported: (imported) => {
+      const gradientLut = buildGradientLut()
+      const canvas = imported.get("canvas")
+      const elementRegistry = imported.get("elementRegistry")
+      const eventBus = imported.get("eventBus")
+
+      const redraw = () => {
+        const heatCanvas = heatCanvasRef.current
+        const container = containerRef.current
+        if (!heatCanvas || !container) return
+        const rect = container.getBoundingClientRect()
+        const dpr = window.devicePixelRatio || 1
+        if (
+          heatCanvas.width !== Math.round(rect.width * dpr) ||
+          heatCanvas.height !== Math.round(rect.height * dpr)
+        ) {
+          heatCanvas.width = Math.round(rect.width * dpr)
+          heatCanvas.height = Math.round(rect.height * dpr)
+          heatCanvas.style.width = `${rect.width}px`
+          heatCanvas.style.height = `${rect.height}px`
+        }
+        const ctx = heatCanvas.getContext("2d")
+        if (!ctx) return
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+
+        const { nodeFrequencies: nf, edgeFrequencies: ef, diagramRadius: dr } = dataRef.current
+        const heatPoints = buildHeatPoints(elementRegistry.getAll(), nf, ef)
+        const range = weightRange(heatPoints.map((p) => p.weight)) ?? { min: 0, max: 0 }
+        const vb = canvas.viewbox()
+        const scale = vb.scale
+        const screenPoints: HeatPoint[] = heatPoints.map((p) => ({
+          x: (p.x - vb.x) * scale,
+          y: (p.y - vb.y) * scale,
+          weight: p.weight,
+        }))
+        const radiusPx = Math.max(20, dr * scale)
+        drawHeatLayer(
+          ctx,
+          rect.width,
+          rect.height,
+          heatCanvas.width,
+          heatCanvas.height,
+          screenPoints,
+          range,
+          radiusPx,
+          gradientLut,
+        )
+      }
+
+      redrawRef.current = redraw
+      redraw()
+      const onChange = () => redraw()
+      eventBus.on("canvas.viewbox.changed", onChange)
+      eventBus.on("canvas.resized", onChange)
+      // Resize only repaints the overlay; the operator's pan/zoom is kept.
+      const ro = new ResizeObserver(() => redraw())
+      if (containerRef.current) ro.observe(containerRef.current)
+      return () => {
+        eventBus.off("canvas.viewbox.changed", onChange)
+        eventBus.off("canvas.resized", onChange)
+        ro.disconnect()
+        redrawRef.current = null
+      }
+    },
+  })
+
+  useEffect(() => {
+    redrawRef.current?.()
+  }, [nodeFrequencies, edgeFrequencies, diagramRadius])
+
+  // Mirrors buildHeatPoints' `weight > 0`: a map of zeros must read as "no data" too.
+  const hasHeat =
+    Object.values(nodeFrequencies).some((v) => v > 0) ||
+    Object.values(edgeFrequencies).some((v) => v > 0)
+
+  return (
+    <div
+      data-theme-mode="light"
+      className="relative w-full"
+      style={{ height: `${height ?? autoHeight}px` }}
+    >
+      <div
+        ref={containerRef}
+        role="img"
+        aria-label={diagramAriaLabel}
+        className="border-border absolute inset-0 size-full rounded-md border"
+      />
+      <canvas
+        ref={heatCanvasRef}
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 size-full rounded-md"
+        style={{ mixBlendMode: "multiply" }}
+      />
+      {importError ? (
+        <div className="absolute inset-x-3 top-3">
+          <ErrorState
+            variant="inline"
+            title={errorTitle}
+            description={errorHint}
+            details={importError}
+          />
+        </div>
+      ) : (
+        <>
+          {hasHeat ? null : (
+            <div
+              role="status"
+              className="border-border bg-card text-muted-foreground text-small shadow-1 pointer-events-none absolute top-3 left-3 rounded-sm border px-2 py-1"
+            >
+              {noHeatLabel}
+            </div>
+          )}
+          <BpmnZoomControls onZoomIn={zoomIn} onZoomOut={zoomOut} onFit={fit} />
+        </>
+      )}
+    </div>
+  )
+}
+
+/** The layer maps the range linearly onto the swatch, so the ends are the values they encode; one value for every element shows once, at the full end. Without values it runs from less to more. */
+export function HeatmapLegend({ min, max }: { min?: string; max?: string }) {
+  const t = useT()
+  const range = min !== undefined && max !== undefined
+  const single = range && min === max
+  const start = range ? (single ? null : min) : t("aHeatmap.less")
+  const end = range ? max : t("aHeatmap.more")
+  return (
+    <div className="text-small flex items-center gap-2">
+      {range && <span className="sr-only">{single ? max : t("aHeatmap.range", { min, max })}</span>}
+      {start !== null && (
+        <span aria-hidden={range || undefined} className="text-muted-foreground tabular-nums">
+          {start}
+        </span>
+      )}
+      <span
+        aria-hidden="true"
+        data-theme-mode="light"
+        className="bg-background border-border inline-flex h-3 w-32 overflow-hidden rounded-sm border"
+      >
+        <span
+          className="size-full"
+          style={{ background: HEAT_GRADIENT_CSS, opacity: HEAT_PEAK_ALPHA }}
+        />
+      </span>
+      <span aria-hidden={range || undefined} className="text-muted-foreground tabular-nums">
+        {end}
+      </span>
+    </div>
+  )
+}

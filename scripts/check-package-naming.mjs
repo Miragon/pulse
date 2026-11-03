@@ -10,9 +10,13 @@
  *   packages/connectors/<family>/<dir> (plus the docs site at docs/), its
  *   directory is lowercase kebab-case and never repeats the product prefix
  *   ("pulse-"), and no pnpm-workspace.yaml glob reaches another layout.
- * - A connector-family package ends in a role suffix (CONNECTOR_ROLES:
- *   -connector, -client); apps and foundation packages carry none,
- *   because the dependency-cruiser rules match the suffix by name.
+ * - A connector-family package is named <family>-<role>: its family's directory
+ *   name plus a role suffix (CONNECTOR_ROLES: -connector, -client, -core), since
+ *   connectors-own-their-family matches a connector's own client and core by that
+ *   name; apps and foundation packages carry no suffix, because the
+ *   dependency-cruiser rules match the suffix by name. A family's -core (its pure
+ *   domain, e.g. engine-core) is family code: it lives in the family, never under
+ *   packages/core/, which holds what every family builds on and no family's code.
  * - The npm name is @miragon/pulse-<dir>. The one exception is a VS Code
  *   extension, an app whose package.json declares engines.vscode: vsce takes no
  *   scope, so it is named pulse-cockpit (Marketplace id
@@ -21,12 +25,12 @@
  *   non-empty string. engines.vscode outside apps/ fails: every npm gate skips an extension, so a package that
  *   declared it would escape them.
  * - A generated/ directory under apps/ or packages/ is exempt from ESLint,
- *   prettier and the app's source scans (dependency-cruiser excludes only the
+ *   prettier and the source scans (`scripts/source-scan.mjs`; dependency-cruiser excludes only the
  *   CIB seven SDK and cruises every other generated/ tree), so it exists only
  *   where GENERATED_DIRS lists it with its reason.
  * - No .mts/.cts/.js/.mjs/.cjs/.jsx source under a package's src/: the ESLint
  *   complexity/max-lines budgets and pattern gates (globbed *.{ts,tsx}) and
- *   widget-shell's brand-gate scans (scanGlyphs, scanColors, scanIconSizes,
+ *   pulse-ui's brand-gate scans (scanGlyphs, scanColors, scanIconSizes,
  *   scanTypeScale) read .ts and .tsx only.
  * - No package.json declares an app (the npm name of an apps/<dir>) in dependencies, devDependencies, peerDependencies or
  *   optionalDependencies: not by its name, not as an npm: or workspace: alias,
@@ -56,17 +60,17 @@ import { expandWorkspaceGlobs, workspaceGlobs } from "./check-package-scripts.mj
  * dependency-cruiser rule (the lockstep test in check-package-naming.test.mjs
  * fails otherwise): add a role there in the same change as here.
  */
-export const CONNECTOR_ROLES = ["connector", "client"]
+export const CONNECTOR_ROLES = ["connector", "client", "core"]
 
 /**
  * The only generated/ directories under apps/ or packages/, each with the
- * reason it may skip ESLint, prettier and the app's source scans
+ * reason it may skip ESLint, prettier and the source scans (`scripts/source-scan.mjs`)
  * (dependency-cruiser keeps its own exclude list, today only the CIB seven SDK).
  * An entry names output a tool regenerates and nobody edits by hand; an entry
  * whose directory is gone fails as stale.
  */
 export const GENERATED_DIRS = {
-  "packages/connectors/camunda/camunda7-client/src/generated":
+  "packages/connectors/engine/engine-client/src/generated":
     "the hey-api SDK `pnpm generate` regenerates from the CIB seven OpenAPI spec; never edited by hand",
   "apps/cli/src/generated":
     "the CLI's command catalog (catalog.json) of every engine, which `pnpm --fail-if-no-match --filter @miragon/pulse-cli catalog` renders from apps/cli/spec; never edited by hand (scripts/catalog/render.test.ts fails on a stale one)",
@@ -176,12 +180,20 @@ function checkDirectory(dir, kind, base, expected) {
         `rules key on that suffix; a package without it falls out of them); rename it`,
     )
   }
+  const family = dir.split("/")[2]
+  if (kind === "connector-family" && role !== undefined && base !== `${family}-${role}`) {
+    errors.push(
+      `${dir}: a connector-family package is named after its family, '${family}-${role}': ` +
+        `connectors-own-their-family matches a connector's own client and core by the family ` +
+        `name, so '${base}' would count as a foreign family's package; rename the directory`,
+    )
+  }
   if (kind !== "connector-family" && role !== undefined) {
     errors.push(
       `${dir}: the role suffix -${role} belongs to packages/connectors/<family>/ only: the ` +
         `dependency-cruiser rules match @miragon/pulse-*-${role} by name and would treat this ` +
         `${kind === "app" ? "app" : "foundation package"} as a connector-family package; ` +
-        `rename the directory`,
+        `move a family's package into packages/connectors/<family>/, else rename the directory`,
     )
   }
   return errors
@@ -410,7 +422,7 @@ export function checkLayout(files, { generatedDirs = GENERATED_DIRS } = {}) {
   for (const dir of [...generated].sort()) {
     if (Object.hasOwn(generatedDirs, dir)) continue
     errors.push(
-      `${dir}: a generated/ directory is exempt from ESLint, prettier and the app's source ` +
+      `${dir}: a generated/ directory is exempt from ESLint, prettier and the source ` +
         `scans, so code in it escapes lint, formatting and the tool-name and hand-off guards ` +
         `(dependency-cruiser still reads it). Rename the directory, or, when ` +
         `a tool regenerates it and nobody edits it, list it in GENERATED_DIRS ` +
@@ -428,7 +440,7 @@ export function checkLayout(files, { generatedDirs = GENERATED_DIRS } = {}) {
     errors.push(
       `${file}: a ${path.posix.extname(file)} source under src/ escapes the ESLint ` +
         `complexity and max-lines budgets and pattern gates (globbed *.{ts,tsx}) and ` +
-        `widget-shell's brand-gate scans, which read .ts and .tsx only; write it as .ts or ` +
+        `pulse-ui's brand-gate scans, which read .ts and .tsx only; write it as .ts or ` +
         `.tsx (a build script lives at the package root, outside src/)`,
     )
   }

@@ -44,23 +44,25 @@ server listens on IPv4.
 
 Once connected, you'll see Camunda and analytics tools available in the
 assistant. Try asking _"show me the open incidents"_. Claude calls
-`camunda7_show_incidents_dashboard` and renders the result in the incidents widget.
+`engine_open_cockpit` on its incidents view and shows the cockpit there.
 
 ## What you can ask
 
-| Topic          | Example questions                                                                                      |
-| -------------- | ------------------------------------------------------------------------------------------------------ |
-| **Processes**  | "Show me all process definitions." · "Start a new instance of `loan-approval`."                        |
-| **Tasks**      | "What tasks are assigned to me?" · "Complete task 12345 with `approved=true`."                         |
-| **Incidents**  | "Triage the open incidents." · "Retry all failed jobs from this morning."                              |
-| **Analytics**  | "Where do `loan-approval` instances spend the most time?" · "Find failed instances from the last 24h." |
-| **Migrations** | "Plan a migration from v1 to v2 of `loan-approval`."                                                   |
+| Topic          | Example questions                                                                                                              |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| **Processes**  | "Show me all process definitions." · "Start a new instance of `loan-approval`."                                                |
+| **Tasks**      | "What tasks are assigned to me?" · "Complete task 12345 with `approved=true`."                                                 |
+| **Incidents**  | "Triage the open incidents." · "Retry all failed jobs from this morning."                                                      |
+| **Diagnosis**  | "Where does order B-1 wait, and why?" · "How is the engine doing right now?"                                                   |
+| **Analytics**  | "Where do `loan-approval` instances spend the most time?" · "Compare the last 7 days of `loan-approval` with the week before." |
+| **Migrations** | "Plan a migration from v1 to v2 of `loan-approval`."                                                                           |
 
-Most data-heavy answers come back as an interactive widget: process lists,
-task inboxes, incident dashboards, instance details, and analytics dashboards
-all render inline. Inline a widget stays a compact card: a list shows its
-first rows and how many there are, and **Show all** opens it fullscreen where
-your chat app offers that.
+Most data-heavy answers come back as an interactive view: the engine
+operations cockpit (opened on its overview, the incidents, a process, an
+instance, an incident, the jobs or an instance's history, then navigated by
+clicking) and the analytics dashboards and comparisons render inline. Inline a
+view stays a compact card: a list shows its first rows and how many there are,
+and **Show all** opens it fullscreen where your chat app offers that.
 
 What the assistant may _change_ depends on the deployment's toolset. A
 read-only deployment (the playground, or any server without login unless its
@@ -75,32 +77,12 @@ it acts on (instance, business key, engine); after any action the view reloads
 what it changed: completing a task shows the next one. The cockpit's
 **Refresh** re-reads the open view, e.g. after the assistant changed something.
 
-## Your settings
+## Language and theme
 
-Ask _"open my settings"_ (or click **Settings** in the cockpit) for the full
-page: the language first, then one section per active module, so an assistant
-with only some modules connected shows only those sections.
-
-| Setting             | Section                | Effect                                                                                                   |
-| ------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------- |
-| Language            | Language               | UI language (Automatic: the chat app's); a chosen one also sets the language tool summaries come back in |
-| Engine availability | Engines and dashboards | Which engines appear in pickers, and the default the cockpit opens on                                    |
-| Pinned dashboards   | Engines and dashboards | Which saved dashboards come first in pickers (needs login)                                               |
-| Look-back period    | Analytics              | Applied whenever you ask an analytics question without naming a window                                   |
-| Comparison bucket   | Analytics              | How many instances a window needs before a comparison is trusted                                         |
-
-You can also open a single section (_"open my engine settings"_ or _"show my
-analytics settings"_) or change a value in passing, without any page:
-_"switch the UI to German"_, _"default my analytics to 30 days"_. Only the
-setting you name changes; the rest keeps its value.
-
-Settings are saved per user account, so they need a deployment with login:
-signed in, they follow you across conversations. Without a login, and on a
-read-only deployment, the page shows the defaults (widgets follow the chat
-app's language) but hides Save. Light or dark is never a setting: the widgets
-always follow the chat app's theme, and your system's without one. Saved dashboards exist only with
-login on a deployment that allows writes; otherwise the dashboard picker says
-"Saved dashboards are unavailable".
+The widgets speak German when your chat app's language is German, and
+English otherwise. Light or dark follows the chat app's theme, and your
+system's without one. The tool results the assistant reads are English; it
+still answers you in your language.
 
 ## Tips
 

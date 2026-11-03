@@ -25,7 +25,7 @@ describe("createNameLookup", () => {
     vi.useRealTimers()
   })
 
-  it("knows no names without a BPMN lookup (no camunda7 module)", async () => {
+  it("knows no names without a BPMN lookup (no engine module)", async () => {
     expect(createNameLookup(undefined)).toBe(NO_NAMES)
     expect(await NO_NAMES(["a"])).toEqual({})
   })

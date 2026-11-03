@@ -1,29 +1,18 @@
 import { describe, expect, it } from "vitest"
-import { parseToolResult } from "@miragon/mcp-toolkit-ui"
+import { decodeToolResult, type ToolResult } from "@miragon/pulse-widget-shell/server"
 import type { MCPServer } from "mcp-use"
 import type { PrometheusClient } from "@miragon/pulse-analytics-client"
 import { registerWidgetTools } from "./widget-tools.js"
 import { createEngineScope } from "./engine-ids.js"
-import type { ProfileSource } from "./server-locale.js"
 import type { FetchBpmnXml, NameRequest } from "./bpmn-name-lookup.js"
 
 /** Feeds answer in JSON text only. */
-const feedData = <T = Record<string, unknown>>(result: unknown): T => parseToolResult<T>(result)
+const feedData = <T = Record<string, unknown>>(result: unknown): T =>
+  decodeToolResult<T>(result as ToolResult)
 
-type Cell = { widget: string; props?: Record<string, unknown> }
-type ShowResult = { structuredContent: { layout: Array<{ row: Cell[] }> } }
+/** A show tool's structuredContent IS the view's data. */
+type ShowResult = { structuredContent: Record<string, unknown> }
 type Handler = (args: Record<string, unknown>, ctx: unknown) => Promise<ShowResult>
-
-function handlers(ch: PrometheusClient): Map<string, Handler> {
-  const byName = new Map<string, Handler>()
-  const server = {
-    tool: (definition: { name: string }, handler: Handler) => {
-      byName.set(definition.name, handler)
-    },
-  } as unknown as MCPServer
-  registerWidgetTools(server, ch, { engineScope: createEngineScope(["prod-a", "prod-b"]) })
-  return byName
-}
 
 function recordingClient(): { client: PrometheusClient; queries: string[] } {
   const queries: string[] = []
@@ -38,77 +27,41 @@ function recordingClient(): { client: PrometheusClient; queries: string[] } {
   }
 }
 
-const cells = (result: ShowResult) => result.structuredContent.layout.flatMap((r) => r.row)
-
-// Without the scope, the cells' hand-offs would send the model to every engine.
-describe("analytics_show_failure_dashboard engine scope", () => {
-  it("queries the engine and hands it to every cell", async () => {
-    const { client, queries } = recordingClient()
-    const show = handlers(client).get("analytics_show_failure_dashboard")!
-    const result = await show({ engine: "prod-b" }, {})
-
-    expect(queries.length).toBeGreaterThan(0)
-    for (const query of queries) expect(query).toContain('engine_id="prod-b"')
-    // model-descriptions.test.ts pins the `engine` id the hand-offs then carry.
-    expect(cells(result)).toEqual([
-      { widget: "analytics:failure-summary-kpi", props: { engine: "prod-b" } },
-      { widget: "analytics:error-patterns-table", props: { engine: "prod-b" } },
-      { widget: "analytics:failure-rate-table", props: { engine: "prod-b" } },
-    ])
-  })
-
-  // The aggregate is the CONFIGURED fleet (#336), never the whole Prometheus.
-  it("reads the configured fleet for the aggregate and leaves the cells unscoped", async () => {
-    const { client, queries } = recordingClient()
-    const result = await handlers(client).get("analytics_show_failure_dashboard")!({}, {})
-
-    expect(queries.length).toBeGreaterThan(0)
-    for (const query of queries) expect(query).toContain('engine_id=~"prod-a|prod-b"')
-    expect(cells(result).every((cell) => cell.props === undefined)).toBe(true)
-  })
-})
-
-describe("view titles (U3) and the heatmap's as-of stamp (U7)", () => {
+describe("no server titles (U3) and the heatmap's as-of stamp (U7)", () => {
   const CTX = { auth: { user: { id: "user-1" } } }
-  function localizedHandlers(language: string): Map<string, Handler> {
+  function viewHandlers(): Map<string, Handler> {
     const byName = new Map<string, Handler>()
     const server = {
       tool: (definition: { name: string }, handler: Handler) => {
         byName.set(definition.name, handler)
       },
     } as unknown as MCPServer
-    const profileStore: ProfileSource = { get: () => Promise.resolve({ language }) }
     registerWidgetTools(server, recordingClient().client, {
       engineScope: createEngineScope(["prod-a"]),
-      profileStore,
     })
     return byName
   }
+  // Handlers called directly get no schema defaults: pass the period.
   const SHOWS: Array<[string, Record<string, unknown>]> = [
-    ["analytics_show_dashboard", {}],
-    ["analytics_show_failure_dashboard", {}],
-    ["analytics_show_bpmn_heatmap", { processDefinitionKey: "order" }],
+    ["analytics_show_dashboard", { period: "7d" }],
+    ["analytics_show_bpmn_heatmap", { processDefinitionKey: "order", period: "7d" }],
   ]
-  const titles = async (language: string) => {
-    const tools = localizedHandlers(language)
-    const results = await Promise.all(SHOWS.map(([name, args]) => tools.get(name)!(args, CTX)))
-    return results.map((r) => (r.structuredContent as unknown as { title?: string }).title)
-  }
-
-  it("titles each view in the caller's language, like the widget heading", async () => {
-    expect(await titles("de")).toEqual(["Prozessanalyse", "Fehleranalyse", "BPMN-Heatmap"])
-    expect(await titles("en")).toEqual(["Process analytics", "Failure analysis", "BPMN heatmap"])
+  it("hands the view its data only: the widget heading names it in the host's language", async () => {
+    const tools = viewHandlers()
+    for (const [name, args] of SHOWS) {
+      const { structuredContent } = await tools.get(name)!(args, CTX)
+      expect(Object.keys(structuredContent)).not.toContain("title")
+      expect(Object.keys(structuredContent)).not.toContain("layout")
+    }
   })
 
   it("stamps the heatmap with the time its values were read, in the view and the feed", async () => {
-    const tools = localizedHandlers("en")
-    const args = { processDefinitionKey: "order" }
-    const show = (await tools.get("analytics_show_bpmn_heatmap")!(args, CTX)) as unknown as {
-      structuredContent: { context: { stepData: { result: { data: { asOf?: string } } } } }
-    }
+    const tools = viewHandlers()
+    const args = { processDefinitionKey: "order", period: "7d" }
+    const show = await tools.get("analytics_show_bpmn_heatmap")!(args, CTX)
     const feed = await tools.get("analytics_bpmn_heatmap_data")!(args, CTX)
     const iso = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/
-    expect(show.structuredContent.context.stepData.result.data.asOf).toMatch(iso)
+    expect(show.structuredContent.asOf).toMatch(iso)
     expect(feedData<{ asOf?: string }>(feed).asOf).toMatch(iso)
   })
 })
@@ -129,25 +82,23 @@ describe("the heatmap's missing-diagram cause", () => {
       engineScope: createEngineScope(engines),
       fetchBpmnXml,
     })
-    const args = { processDefinitionKey: "order" }
-    const show = (await byName.get("analytics_show_bpmn_heatmap")!(args, {})) as unknown as {
-      structuredContent: { context: { stepData: { result: { data: Diagram } } } }
-    }
+    const args = { processDefinitionKey: "order", period: "7d" }
+    const show = await byName.get("analytics_show_bpmn_heatmap")!(args, {})
     const heat = feedData<Diagram>(await byName.get("analytics_bpmn_heatmap_data")!(args, {}))
     const diagram = feedData<Diagram>(await byName.get("analytics_bpmn_xml_data")!(args, {}))
     const fields = ({ bpmnXml, bpmnMissing }: Diagram) => ({ bpmnXml, bpmnMissing })
     return {
-      show: fields(show.structuredContent.context.stepData.result.data),
+      show: fields(show.structuredContent),
       heat: fields(heat),
       diagram: fields(diagram),
     }
   }
 
-  it("names the missing camunda7 module only when no lookup was injected", async () => {
+  it("names the missing engine module only when no lookup was injected", async () => {
     const { show, heat, diagram } = await payloads()
-    expect(show).toEqual({ bpmnXml: undefined, bpmnMissing: "no-camunda7" })
+    expect(show).toEqual({ bpmnXml: undefined, bpmnMissing: "no-engine-module" })
     expect(heat).toEqual({ bpmnXml: undefined, bpmnMissing: undefined })
-    expect(diagram).toEqual({ bpmnXml: null, bpmnMissing: "no-camunda7" })
+    expect(diagram).toEqual({ bpmnXml: null, bpmnMissing: "no-engine-module" })
   })
 
   it("says the lookup found nothing when it failed or returned null", async () => {
@@ -192,13 +143,14 @@ describe("the names behind the ids", () => {
   const ORDER = { process_definition_key: "order" }
   const client: PrometheusClient = {
     instant: (query: string) => {
+      // The engine-state presence probe: prod-a reports.
+      if (query.includes("engine_jobs_executable")) {
+        return Promise.resolve([{ metric: { engine_id: "prod-a" }, value: 1 }])
+      }
       if (query.includes("by (process_definition_key, activity_id, activity_type)")) {
         return Promise.resolve([
           { metric: { ...ORDER, activity_id: "Task_A", activity_type: "userTask" }, value: 2 },
         ])
-      }
-      if (query.includes("by (process_definition_key, incident_type)")) {
-        return Promise.resolve([{ metric: { ...ORDER, incident_type: "failedJob" }, value: 1 }])
       }
       if (query.includes("by (engine_id, process_definition_key)")) {
         return Promise.resolve([{ metric: { ...ORDER, engine_id: "prod-a" }, value: 1 }])
@@ -222,31 +174,21 @@ describe("the names behind the ids", () => {
       },
     } as unknown as MCPServer
     const calls: Array<[string[], NameRequest | undefined]> = []
-    const profileStore: ProfileSource = {
-      get: () => Promise.resolve({ modules: { analytics: { minBucketSize: 3 } } }),
-    }
     registerWidgetTools(server, client, {
       engineScope: createEngineScope(["prod-a"]),
-      profileStore,
       namesFor: (keys, request) => {
         calls.push([[...keys], request])
         return Promise.resolve(NAMES)
       },
     })
     const ctx = { auth: { user: { id: "user-1" } } }
-    const result = await byName.get(name)!({}, ctx)
-    return { content: feedData(result), calls }
+    // Handlers called directly get no schema defaults: pass the period.
+    const result = await byName.get(name)!({ period: "7d" }, ctx)
+    return { content: feedData(result), result, calls }
   }
-
-  const payloadOf = (content: Record<string, unknown>) =>
-    ((content.context as { stepData?: { result?: { data?: unknown } } } | undefined)?.stepData
-      ?.result?.data ?? content) as Record<string, unknown>
 
   it.each([
     "analytics_show_dashboard",
-    "analytics_dashboard_data",
-    "analytics_show_failure_dashboard",
-    "analytics_failure_dashboard_data",
     "analytics_show_engine_landscape",
     "analytics_engine_landscape_data",
   ])("%s carries the names", async (name) => {
@@ -257,23 +199,33 @@ describe("the names behind the ids", () => {
   })
 
   it("asks for the elements of the activity breakdown only", async () => {
-    const { calls } = await run("analytics_dashboard_data")
+    const { calls } = await run("analytics_show_dashboard")
     expect(calls[0][1]?.elementIds).toEqual({ order: ["Task_A"] })
-    const failures = await run("analytics_failure_dashboard_data")
-    expect(failures.calls[0][1]?.elementIds).toEqual({ order: [] })
   })
 
   // A process that runs only on a later engine is named too.
   it("reads the models on the engines the rows come from", async () => {
-    const failures = await run("analytics_failure_dashboard_data")
-    expect(failures.calls[0][1]?.engines).toEqual(["prod-a"])
+    const dashboard = await run("analytics_show_dashboard")
+    expect(dashboard.calls[0][1]?.engines).toEqual(["prod-a"])
     const landscape = await run("analytics_engine_landscape_data")
     expect(landscape.calls[0][1]?.enginesByKey).toEqual({ order: ["prod-a"] })
   })
 
-  it("judges the dashboard's rate against the caller's saved comparison floor", async () => {
-    const { content } = await run("analytics_dashboard_data")
-    // 4 starts in each window, the saved floor 3: a change of the rate is judged.
-    expect(payloadOf(content).previous).toMatchObject({ totalCount: 4, suppressed: false })
+  it("returns the dashboard's figures to the model as compact JSON, without the names", async () => {
+    const { result } = await run("analytics_show_dashboard")
+    const text = (result as unknown as { content: Array<{ text: string }> }).content[0].text
+    const { names, ...figures } = result.structuredContent
+    expect(names).toEqual(NAMES)
+    // No pretty printing: one line, the figures exactly as the view gets them.
+    expect(text).not.toContain("\n")
+    expect(JSON.parse(text)).toEqual(figures)
+    expect(text).toBe(JSON.stringify(figures))
+    expect(text).not.toContain("Order fulfillment")
+  })
+
+  it("judges the dashboard's rate against the comparison floor, the schemas' default 10", async () => {
+    const { content } = await run("analytics_show_dashboard")
+    // 4 starts in each window, below the floor 10: the rate change is not judged.
+    expect(content.previous).toMatchObject({ startedCount: 4, suppressed: true })
   })
 })

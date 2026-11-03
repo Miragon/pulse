@@ -56,6 +56,8 @@ export const CASE = {
   incidentsFiltered: "incidents: filter by process and by instance",
   incidentsNameTheirVersion: "incidents: each incident names the version it was raised in",
   incidentDetailsComplete: "incidents: details are complete, unknown is undefined",
+  incidentDetailsNameRootCause:
+    "incidents: details name their root cause in one line and point at a line of their text",
   migrationProposal:
     "migration: the proposal between two versions maps the elements where tokens wait and checks clean",
   migrationCheck: "migration: the check names the mapping between incompatible elements",

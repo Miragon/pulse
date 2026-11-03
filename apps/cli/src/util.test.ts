@@ -1,3 +1,4 @@
+import { mapLimit } from "@miragon/pulse-engine-core"
 import fc from "fast-check"
 import { describe, expect, it } from "vitest"
 import {
@@ -5,11 +6,11 @@ import {
   compact,
   editDistance,
   isRecord,
-  mapLimit,
   mergeHeaders,
   omit,
   parseJson,
   stringifyJson,
+  withoutTrailingSlashes,
 } from "./util.js"
 
 describe("compact", () => {
@@ -60,6 +61,28 @@ describe("omit", () => {
   it("keeps the object as it is when the key is absent", () => {
     const input: { a: number; b?: number } = { a: 1 }
     expect(omit(input, "b")).toStrictEqual({ a: 1 })
+  })
+})
+
+describe("withoutTrailingSlashes", () => {
+  it.each([
+    ["http://h/engine-rest/", "http://h/engine-rest"],
+    ["http://h/engine-rest///", "http://h/engine-rest"],
+    ["http://h/engine-rest", "http://h/engine-rest"],
+    ["/a//b/", "/a//b"],
+    ["///", ""],
+    ["", ""],
+  ])("%s -> %s", (value, expected) => {
+    expect(withoutTrailingSlashes(value)).toBe(expected)
+  })
+
+  // `/\/+$/` backtracks quadratically on this one (about 14 s on Node 24); the loop takes
+  // milliseconds.
+  it("reads a long run of inner slashes in linear time", () => {
+    const value = `x${"/".repeat(200_000)}x`
+    const start = performance.now()
+    expect(withoutTrailingSlashes(value)).toBe(value)
+    expect(performance.now() - start).toBeLessThan(1000)
   })
 })
 

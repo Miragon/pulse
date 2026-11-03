@@ -1,5 +1,5 @@
 import { useLayoutEffect, type CSSProperties, type ReactNode } from "react"
-import { adoptHostFontVariables } from "@miragon/mcp-toolkit-ui"
+import { adoptHostFontVariables } from "@miragon/pulse-ui"
 import { declareServedFonts } from "./declare-served-fonts.js"
 import { InlineFitBox, UNSTATED_BUDGET } from "./inline-fit.js"
 import { useShellHost } from "./shell-host.js"
@@ -21,11 +21,11 @@ const INLINE_STYLE: CSSProperties = { display: "contents" }
  * view that overflows a stated budget scrolls inside it instead of clipping.
  */
 export function HostDocument({ children }: { children: ReactNode }) {
-  const { styleVariables, fontCss, displayMode, maxHeight } = useShellHost()
+  const { styleVariables, fontCss, displayMode, maxHeight, publicBase } = useShellHost()
 
   useLayoutEffect(() => {
-    declareServedFonts()
-  }, [])
+    declareServedFonts(document, publicBase ?? "")
+  }, [publicBase])
 
   useLayoutEffect(() => {
     if (!styleVariables) return

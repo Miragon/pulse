@@ -8,7 +8,7 @@ import {
   REGION_FOCUS_RING,
   type ListTableColumn,
 } from "./list-table.js"
-import { Td } from "./table.js"
+import { Td } from "@miragon/pulse-ui"
 
 afterEach(cleanup)
 

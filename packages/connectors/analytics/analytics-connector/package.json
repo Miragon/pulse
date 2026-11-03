@@ -27,7 +27,13 @@
   "type": "module",
   "files": [
     "dist",
-    "src"
+    "!dist/**/*.test.*",
+    "!dist/**/*.test-support.*",
+    "!dist/**/test-support",
+    "src",
+    "!src/**/*.test.*",
+    "!src/**/*.test-support.*",
+    "!src/**/test-support"
   ],
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -36,8 +42,7 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./widgets": "./src/widgets/index.ts",
-    "./definition": "./src/definition.ts"
+    "./widgets": "./src/widgets/index.ts"
   },
   "scripts": {
     "build": "tsc",
@@ -47,20 +52,20 @@
     "lint:fix": "eslint src --fix"
   },
   "dependencies": {
-    "@miragon/pulse-analytics-client": "workspace:*",
-    "@miragon/pulse-widget-shell": "workspace:*"
+    "@miragon/pulse-analytics-client": "workspace:*"
   },
   "peerDependencies": {
-    "@miragon/mcp-toolkit-core": "~2.8.1",
-    "@miragon/mcp-toolkit-ui": "~2.8.1",
+    "@miragon/pulse-ui": "workspace:^",
+    "@miragon/pulse-widget-shell": "workspace:^",
+    "bpmn-js": "^18.31.1",
     "lucide-react": "^0.562.0 || ^1.0.0",
-    "mcp-use": "2.7.3",
+    "mcp-use": "2.12.2",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "zod": "^4.4.0"
   },
   "peerDependenciesMeta": {
-    "@miragon/mcp-toolkit-ui": {
+    "@miragon/pulse-ui": {
       "optional": true
     },
     "lucide-react": {
@@ -74,8 +79,8 @@
     }
   },
   "devDependencies": {
-    "@miragon/mcp-toolkit-core": "2.8.1",
-    "@miragon/mcp-toolkit-ui": "2.8.1",
+    "@miragon/pulse-ui": "workspace:*",
+    "@miragon/pulse-widget-shell": "workspace:*",
     "@stryker-mutator/core": "10.1.1",
     "@stryker-mutator/vitest-runner": "10.1.1",
     "@testing-library/react": "16.3.3",
@@ -83,7 +88,7 @@
     "bpmn-js": "18.31.1",
     "happy-dom": "21.0.4",
     "lucide-react": "1.66.0",
-    "mcp-use": "2.7.3",
+    "mcp-use": "2.12.2",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "typescript": "6.0.3",

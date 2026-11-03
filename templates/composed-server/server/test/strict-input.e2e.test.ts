@@ -1,29 +1,12 @@
 import path from "node:path"
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client"
-import { CAMUNDA7_ADMIN_ONLY_TOOLS } from "@miragon/pulse-camunda7-connector"
+import { ENGINE_ADMIN_ONLY_TOOLS } from "@miragon/pulse-engine-connector"
 import { createApp } from "../src/app.js"
 import { MODULES } from "../src/setup.js"
 import { stubNeutralEnv } from "./neutral-env.js"
 
 const FIXTURE_JS = path.join(import.meta.dirname, "fixtures", "mcp-app.js")
-
-/**
- * The toolkit's own framework tools (render-view & co.): registered by
- * `@miragon/mcp-toolkit-core` without a strict-input option, out of this
- * server's reach. Pinned by name so a MODULE tool can never slip into the
- * exemption.
- */
-const TOOLKIT_FRAMEWORK_TOOLS = [
-  "delete-dashboard",
-  "get-builder-catalogue",
-  "get-framework-manifest",
-  "list-dashboards",
-  "load-dashboard",
-  "refresh-view",
-  "render-view",
-  "save-dashboard",
-]
 
 const PROBE_KEY = "__strictInputProbe"
 
@@ -32,7 +15,7 @@ interface WireTool {
   inputSchema: { properties?: Record<string, unknown>; additionalProperties?: unknown }
 }
 
-/** One module tool, probed once in the first boot that lists it. */
+/** One tool, probed once in the first boot that lists it. */
 interface ProbedTool {
   tool: WireTool
   /** The `MCP_ACTIVE_MODULES` selection of that boot. */
@@ -52,7 +35,7 @@ function errorText(result: unknown): string {
  * no more; a module without toolsets by its bare name). Together the boots
  * register every tool any toolset registers. The default boot would not: it
  * puts every module on its read-only floor, which hides every write tool
- * above it — a `<module>_save_settings`, a destructive registrar tool —
+ * above it (an engine write, a destructive registrar tool):
  * exactly the tools where a dropped scoping key hurts most. Derived from
  * `MODULES`, not hand-listed: your module's toolsets are covered the moment
  * it declares them.
@@ -67,13 +50,13 @@ function toolsetSelections(): string[] {
 }
 
 /**
- * Boot the composed server on `selection` and probe every module tool not
- * probed yet with an unknown key. No toolset grants `camunda7_create_deployment`
- * on its own — it also needs the `CAMUNDA_ALLOW_DEPLOYMENTS` opt-in, so the
+ * Boot the composed server on `selection` and probe every tool not probed
+ * yet with an unknown key. No toolset grants `engine_create_deployment`
+ * on its own: it also needs the `ENGINE_ALLOW_DEPLOYMENTS` opt-in, so the
  * guard sets it.
  */
 async function probeBoot(selection: string, probed: Map<string, ProbedTool>): Promise<void> {
-  stubNeutralEnv({ MCP_ACTIVE_MODULES: selection, CAMUNDA_ALLOW_DEPLOYMENTS: "true" })
+  stubNeutralEnv({ MCP_ACTIVE_MODULES: selection, ENGINE_ALLOW_DEPLOYMENTS: "true" })
   const composed = await createApp(process.env, { bundle: { jsPath: FIXTURE_JS } })
   const app = await composed.listen({ port: 0, host: "127.0.0.1" })
   const client = new Client({ name: "strict-input-test", version: "0.0.0" })
@@ -83,7 +66,7 @@ async function probeBoot(selection: string, probed: Map<string, ProbedTool>): Pr
     )
     const tools = (await client.listTools()).tools as unknown as WireTool[]
     for (const tool of tools) {
-      if (TOOLKIT_FRAMEWORK_TOOLS.includes(tool.name) || probed.has(tool.name)) continue
+      if (probed.has(tool.name)) continue
       const result = await client.callTool({ name: tool.name, arguments: { [PROBE_KEY]: true } })
       probed.set(tool.name, {
         tool,
@@ -99,15 +82,15 @@ async function probeBoot(selection: string, probed: Map<string, ProbedTool>): Pr
 }
 
 /**
- * Strict tool inputs across EVERY composed module, yours included, on EVERY
- * toolset it declares (see {@link toolsetSelections}). A non-strict input
+ * Strict tool inputs on EVERY listed tool: every composed module's, yours
+ * included, on EVERY toolset it declares (see
+ * {@link toolsetSelections}). A non-strict input
  * schema lets the server STRIP an unknown key before the handler runs: a
  * misnamed optional filter then silently widens the result and the model
- * never learns. Registrar tools take `{ strictInput: true }`
- * (`createToolRegistrar`), raw `server.tool()` registrations
- * `strictToolInput(shape)` (`@miragon/pulse-widget-shell/server`) — then an
- * unknown key is a tool error naming the valid keys, which the model fixes
- * in one retry.
+ * never learns. Registrar tools (`createToolRegistrar`) are always strict,
+ * raw `server.tool()` registrations take `strictToolInput(shape)` (both from
+ * `@miragon/pulse-widget-shell/server`); then an unknown key is a tool error
+ * naming the valid keys, which the model fixes in one retry.
  */
 describe("strict tool inputs on the wire (every module, every toolset)", () => {
   const selections = toolsetSelections()
@@ -136,26 +119,26 @@ describe("strict tool inputs on the wire (every module, every toolset)", () => {
     expect(names).toEqual(
       expect.arrayContaining(["notes_list_notes", "notes_show_notes", "notes_list_data"]),
     )
-    expect(names.some((name) => name.startsWith("camunda7_"))).toBe(true)
+    expect(names.some((name) => name.startsWith("engine_"))).toBe(true)
     expect(names.some((name) => name.startsWith("analytics_"))).toBe(true)
     // Registered only above the read-only floor: the floor boot alone never lists them.
     expect(names).toEqual(
       expect.arrayContaining([
-        ...CAMUNDA7_ADMIN_ONLY_TOOLS,
-        "camunda7_save_settings",
-        "analytics_save_settings",
+        ...ENGINE_ADMIN_ONLY_TOOLS,
+        "engine_set_job_retries",
+        "engine_resolve_incident",
       ]),
     )
   })
 
-  it("every module tool advertises additionalProperties: false", () => {
+  it("every tool advertises additionalProperties: false", () => {
     const open = [...probed.values()]
       .filter(({ tool }) => tool.inputSchema.additionalProperties !== false)
       .map(({ tool, selection }) => `${tool.name} (${selection})`)
     expect(open, "tools whose advertised input accepts unknown keys").toEqual([])
   })
 
-  it("every module tool refuses an unknown key with a tool error naming the valid keys", () => {
+  it("every tool refuses an unknown key with a tool error naming the valid keys", () => {
     const failures: string[] = []
     for (const { tool, selection, isError, text } of probed.values()) {
       const valid = Object.keys(tool.inputSchema.properties ?? {})

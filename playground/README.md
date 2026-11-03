@@ -13,27 +13,41 @@ the whole stack to Fly.io with one workflow.
 
 ## Run locally
 
+From a fresh clone with Node.js, pnpm and Docker (no JDK, no `.env`):
+
 ```sh
-docker compose -f playground/docker/docker-compose.yml up -d   # infra: engine, OTEL, Prometheus, Grafana
-cp .env.example .env                                           # dev defaults: Prometheus :8460
-pnpm dev                                                       # MCP server on :8400
+pnpm stack:up       # engine, OTEL, Prometheus, Grafana; waits until they answer
+pnpm play           # stack:up if needed, then the MCP server on :8400 against it
+pnpm play:cli -- ping   # pnpm -s play:cli -- ... leaves stdout to the CLI, for a pipe
+pnpm stack:status   # what runs, healthy or not
+pnpm stack:down     # stop (volumes kept; --wipe drops them)
 ```
 
 - MCP endpoint: `http://localhost:8400/mcp`, inspector: `http://localhost:8400/mcp/inspector`
-- Grafana: `http://localhost:8470`, Prometheus: `http://localhost:8460`, engine: `http://localhost:8410`
+- Grafana: `http://localhost:8470`, Prometheus: `http://localhost:8460`, engine:
+  `http://localhost:8410` (login `demo` / `demo`)
+- The engine image copies a jar (`cibseven-example/build/libs/`): `stack:up` builds it when it is
+  missing or older than its sources, on a local JDK 21 or else in an `eclipse-temurin:21-jdk`
+  container (Gradle cache in the Docker volume `pulse-gradle-cache`; `--jdk-container` forces it).
+- `stack:up` reuses a stack that already answers as it is, and stops with a message when another
+  container or process holds one of its ports. After a change to the engine plugin or the
+  example, `pnpm stack:down && pnpm stack:up` deploys it (`stack:up` says when the jar is stale).
+- With your own settings instead: `cp .env.example .env`, then `pnpm dev`.
 - Every published port binds to `127.0.0.1` on purpose: the engine REST API
   is anonymous, Grafana runs as anonymous Admin, the rest uses demo
   credentials. From another machine, tunnel instead of rebinding
   (`ssh -L 8400:127.0.0.1:8400 <host>`).
-- The server boots **read-only** (no `MCP_OAUTH`, no toolset suffix; the boot
-  log names the effective toolsets). To exercise write paths, set
-  `MCP_ACTIVE_MODULES=camunda7:admin,analytics:standard` in `.env` (see the
-  commented line there); deployments additionally need
-  `CAMUNDA_ALLOW_DEPLOYMENTS=true`.
-- Compose profiles: `--profile multi-engine` (second engine on :8411),
+- The server boots **read-only** (no OAuth provider, no toolset suffix; the boot
+  log names the effective toolsets). To exercise write paths, run
+  `pnpm play --admin` (deployments: `--deploy`), or set
+  `MCP_ACTIVE_MODULES=engine:admin,analytics` in `.env` for `pnpm dev`;
+  deployments additionally need `ENGINE_ALLOW_DEPLOYMENTS=true`.
+- Compose profiles: `--profile multi-engine` (second engine on :8411;
+  `pnpm stack:up --multi-engine`, `pnpm play --multi-engine`),
   `--profile full` (containerized server on :8400), `--profile dev` (plain
-  CIB seven image, no analytics), `--profile auth` (Keycloak on :8480 for
-  trying `MCP_OAUTH` locally, see the commented block in `.env.example`)
+  CIB seven image, no analytics, without its invoice example, so it starts empty), `--profile auth` (Keycloak on :8480 for
+  trying OAuth locally: `pnpm play --auth` puts the server behind it, `pnpm stack:up --auth`
+  starts it alone; see the commented block in `.env.example`)
 - The Compose project is `pulse`. A stack started before the rename still
   runs as `miragon-ai` and holds the ports: stop it once with
   `docker compose -p miragon-ai -f playground/docker/docker-compose.yml down`
@@ -41,7 +55,7 @@ pnpm dev                                                       # MCP server on :
 
 ## Deploy to Fly.io
 
-The stack maps to six Fly apps in one org, wired over Fly's private 6PN
+The stack maps to five Fly apps in one org, wired over Fly's private 6PN
 network. Only the server is public: everything else has no public IP, but
 6PN is shared by every app in the org: the anonymous engine REST API is
 reachable from all of them, so keep untrusted apps out of the org.
@@ -53,7 +67,6 @@ reachable from all of them, so keep untrusted apps out of the org.
 | `miragon-ai-playground-otel`       | OTEL Collector | private (`….internal:4318` / `:9464`)             |
 | `miragon-ai-playground-prometheus` | Prometheus     | private (`….internal:9090`), 3 GB volume          |
 | `miragon-ai-playground-grafana`    | Grafana        | private: `flyctl proxy 8470:3000 -a <app>`        |
-| `miragon-ai-playground-postgres`   | Postgres       | private (`….internal:5432`), 1 GB volume          |
 
 ### Via GitHub Actions (recommended)
 
@@ -74,22 +87,21 @@ One-time setup:
 ```sh
 fly auth login
 (cd playground/cibseven-example && ./gradlew bootJar)   # engine image copies the jar
-./playground/fly/deploy.sh all                          # or: otel|engine|prometheus|grafana|postgres|server
+./playground/fly/deploy.sh all                          # or: otel|engine|prometheus|grafana|server
 ```
 
-First deploy creates the apps and the Prometheus + Postgres volumes.
+First deploy creates the apps and the Prometheus volume.
 Afterwards, point an MCP client (e.g. claude.ai custom connector) at
 `https://pulse-playground.miragon.ai/mcp`.
 
 ### Notes
 
 - The MCP endpoint is **unauthenticated** and pinned **read-only**
-  (`MCP_ACTIVE_MODULES=camunda7:read-only,analytics:read-only` in
-  `fly/server-camunda7.fly.toml`): anyone can query the demo engine, nobody
-  can change it through the server (no engine writes, settings saves or
-  dashboard builder). Never widen it there and never set
-  `CAMUNDA_ALLOW_DEPLOYMENTS` on this app (deploying a BPMN runs code in the
-  engine JVM).
+  (`MCP_ACTIVE_MODULES=engine:read-only,analytics` in
+  `fly/server.fly.toml`): anyone can query the demo engine, nobody
+  can change it through the server (no engine writes). Never
+  widen it there and never set `ENGINE_ALLOW_DEPLOYMENTS` on this app
+  (deploying a BPMN runs code in the engine JVM).
 - The public host `pulse-playground.miragon.ai` is a custom domain on the
   server app: a Cloudflare record `CNAME pulse-playground →
 miragon-ai-playground.fly.dev` (DNS only, not proxied) and
@@ -99,18 +111,16 @@ miragon-ai-playground.fly.dev` (DNS only, not proxied) and
   admit it.
 - A Fly **secret** overrides an `[env]` entry of the same name. If
   `fly secrets list -a miragon-ai-playground` shows `MCP_ACTIVE_MODULES`,
-  keep it in sync with the toml (or `fly secrets unset` it). `MCP_OAUTH` as a
-  secret adds login (`fly secrets set MCP_OAUTH='…' -a
+  keep it in sync with the toml (or `fly secrets unset` it). An OAuth provider's
+  variables as secrets add login (`fly secrets set
+MCP_USE_OAUTH_KEYCLOAK_SERVER_URL=… MCP_USE_OAUTH_KEYCLOAK_REALM=… -a
 miragon-ai-playground`, see `.env.example`); the pin still keeps it
-  read-only.
+  read-only. A secret left from the retired OAuth JSON variable fails the boot:
+  unset it in the same deploy (see the upgrade note under Security in
+  `docs/mcp/operations.md`).
 - The engine keeps its H2 database in memory: every engine restart reseeds
   (~600 instances) and live traffic keeps metrics moving. Prometheus history
   survives restarts on its volume.
-- User settings + saved dashboards persist to the Postgres app once its
-  secrets are set (one-time, see `fly/postgres.fly.toml`):
-  `fly secrets set POSTGRES_PASSWORD=<pw> -a miragon-ai-playground-postgres`
-  and the matching `DATABASE_URL` secret on `miragon-ai-playground`. Without
-  the `DATABASE_URL` secret the server keeps its in-memory stores.
 - Everything runs single-machine (`--ha=false`), sized for demos, roughly
   $15–25/month; the server scales to zero when idle. Tear down with
   `fly apps destroy <app>` per app.

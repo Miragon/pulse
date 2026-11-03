@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it } from "vitest"
 import { act, cleanup, renderHook, screen } from "@testing-library/react"
 import type { ReactNode } from "react"
-import { LocaleProvider, ToastProvider } from "@miragon/mcp-toolkit-ui"
+import { LocaleProvider, ToastProvider } from "@miragon/pulse-ui"
 import { failureLine, useActionFeedback, type ActionFeedback } from "./action-feedback.js"
 
 afterEach(cleanup)
@@ -30,11 +30,11 @@ describe("useActionFeedback (U9: a write is never silent)", () => {
 
   it("passes a success's second line on", () => {
     const feedback = renderIn("en")
-    act(() => feedback.succeeded("Settings saved", "They apply to every view."))
-    expect(screen.getByText("They apply to every view.")).toBeTruthy()
+    act(() => feedback.succeeded("Job rescheduled", "It runs within the next minute."))
+    expect(screen.getByText("It runs within the next minute.")).toBeTruthy()
   })
 
-  it("reports a failure as a danger toast: the object, then why and what to do — not the raw text", () => {
+  it("reports a failure as a danger toast: the object, then why and what to do, not the raw text", () => {
     const feedback = renderIn("de")
     act(() =>
       feedback.failed(
@@ -63,7 +63,7 @@ describe("useActionFeedback (U9: a write is never silent)", () => {
     expect(toast?.textContent).not.toContain("Details")
   })
 
-  it("announces through the toolkit's polite live region", () => {
+  it("announces through pulse-ui's polite live region", () => {
     const feedback = renderIn("en")
     act(() => feedback.succeeded("Saved"))
     const viewport = document.querySelector('[data-slot="toast-viewport"]')
@@ -88,7 +88,7 @@ describe("failureLine", () => {
     )
   })
 
-  it("quotes an engine refusal's own reason — a toast has no Details to point to", () => {
+  it("quotes an engine refusal's own reason: a toast has no Details to point to", () => {
     const de = failureLine(
       new Error("[500 ProcessEngineException] Cannot resolve incident (engine prod)"),
       "de",
@@ -117,7 +117,7 @@ describe("failureLine", () => {
     expect(long.length).toBeLessThan(300)
   })
 
-  it("says a write whose answer never came may have gone through — no blind retry", () => {
+  it("says a write whose answer never came may have gone through: no blind retry", () => {
     expect(
       failureLine(
         new Error(

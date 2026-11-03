@@ -3,15 +3,15 @@ dist/
 .turbo/
 coverage/
 *.tsbuildinfo
-# Local credentials and dev persistence (MCP_PROFILE_DIR / MCP_DASHBOARD_DIR
-# records are keyed by user id or e-mail) — in every package, never in the
-# image or the repo. `.env.example` is the committed template.
+# Local credentials, in every package, never in the image or the repo.
+# `.env.example` is the committed template.
 **/.env*
 !**/.env.example
+# Local profile records of the removed profile store, keyed by user id or
+# e-mail: a checkout may still hold them, so never commit or ship them.
 **/.profiles
-**/.dashboards
 **/.data
-# The template ships without a lockfile — customers generate and commit their
+# The template ships without a lockfile: customers generate and commit their
 # own after copying it out (its Dockerfile expects one).
 templates/composed-server/pnpm-lock.yaml
 miranum-ai/
@@ -32,7 +32,7 @@ mcp-env.d.ts
 .claude/scheduled_tasks.lock
 .claude/logs/
 # Playwright host-simulation output
-apps/mcp-server-camunda7/test-results/
+apps/mcp-server/test-results/
 .stryker-tmp/
 reports/
 stryker-setup-*.js
@@ -51,3 +51,5 @@ apps/vscode/dist-dev/
 apps/vscode/test-results/
 __screenshots__/
 .vitest/
+# check-ratchets.mjs: the temporary eslint.config.mjs copies an interrupted run leaves behind
+.check-ratchets-*.eslint.mjs

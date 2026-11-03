@@ -1,12 +1,18 @@
 import { Children, useId, type ReactNode } from "react"
-import { Button, cn, MICRO_LABEL, useLocale } from "@miragon/mcp-toolkit-ui"
+import {
+  Button,
+  cn,
+  MICRO_LABEL,
+  useLocale,
+  formatNumber,
+  Icon,
+  Th,
+  type ColumnSort,
+} from "@miragon/pulse-ui"
 import { Maximize2 } from "lucide-react"
-import { formatNumber } from "./format.js"
-import { Icon } from "./icon.js"
 import { useInlineBudget, useRowsBudgeted } from "./inline-budget.js"
 import { useInlineRows } from "./inline-fit.js"
 import { kitLabels } from "./kit-labels.js"
-import { Th, type ColumnSort } from "./table.js"
 
 /**
  * Focus ring as an inward outline on a sibling over the region: an outset ring
@@ -22,7 +28,7 @@ const RING_LAYER = "pointer-events-none absolute inset-0 z-[2] rounded-sm"
 /** Container-query widths of the region itself; `md` hides in a 760 px inline view, shows in fullscreen. */
 export const COLUMN_BREAKPOINTS = { sm: "40rem", md: "48rem", lg: "64rem" } as const
 
-export type ColumnBreakpoint = keyof typeof COLUMN_BREAKPOINTS
+type ColumnBreakpoint = keyof typeof COLUMN_BREAKPOINTS
 
 export interface ListTableColumn {
   label?: ReactNode

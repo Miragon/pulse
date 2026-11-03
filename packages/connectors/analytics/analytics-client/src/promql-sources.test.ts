@@ -33,7 +33,7 @@ describe("alertExpressions", () => {
 
   it("lets the checker see the labels of a quoted rule", () => {
     // Left quoted, this parsed as one PromQL string literal: no violation,
-    // zero labels checked — the guard passed without looking.
+    // zero labels checked. The guard passed without looking.
     const [expr] = alertExpressions(`    expr: 'sum by (foo) (backlog{bar="x"}) > 0'`)
     const result = checkQueryLabels(expr, catalog)
     expect(result.series).toEqual(["backlog"])

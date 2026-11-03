@@ -1,4 +1,4 @@
-import type { Message } from "@miragon/mcp-toolkit-core"
+import type { Message } from "@miragon/pulse-widget-shell/widgets"
 
 /**
  * `one` when the count param is exactly 1, else `other`. Widgets pass the count already formatted:

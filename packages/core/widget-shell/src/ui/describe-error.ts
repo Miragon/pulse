@@ -1,7 +1,5 @@
-import { supportedLanguage } from "./host-context.js"
+import { resolveLanguage } from "./host-context.js"
 import { ERROR_LABELS, type ErrorKindLabels, type ErrorSource } from "./error-labels.js"
-
-export type { ErrorSource } from "./error-labels.js"
 
 /** `unreachable` covers 502/503, `timeout` 408/504, `notOnServer` an inactive module. */
 export const ERROR_KINDS = [
@@ -38,7 +36,7 @@ export interface DescribedError {
 
 const BRACKET_STATUS = /\[(\d{3})(?:[\s\]])/
 const PROMETHEUS_STATUS = /Prometheus query failed \((\d{3})\b/
-/** The engine id the camunda7 client appends or leads with. */
+/** The engine id the engine client appends or leads with. */
 const ENGINE_ID =
   /\(engine ([^\s)]+)\)|\bengine (\S+) (?:unreachable|did not respond)|connection to engine (\S+) failed/
 const ENGINE = /\bengine\b|ProcessEngineException|\bCamunda\b|\bCIB seven\b/i
@@ -47,7 +45,7 @@ const TOOL_MISSING = /\btool\b[^\n]*\bnot found\b|\bunknown tool\b|-32601\b|\bme
 const TIMEOUT = /\(timeout\)|\btimed? ?out\b|-32001\b|did not respond within/i
 const UNREACHABLE =
   /\bunreachable\b|\bconnection to \S+(?: \S+)? failed\b|ECONNREFUSED|ENOTFOUND|EHOSTUNREACH|ENETUNREACH|EAI_AGAIN|\bfailed to fetch\b|\bfetch failed\b|\bnetworkerror\b|\bload failed\b/i
-/** The camunda7 client's caveat on a write whose outcome is unknown. */
+/** The engine client's caveat on a write whose outcome is unknown. */
 const WRITE_CAVEAT = /the \w+ may still have been applied\b/i
 const STATUS_CODE = /\[\d{3}(?:\s[^\]\n]{0,120})?\]\s*/
 const LEADING_CODE = /^\[[^\]\n]{1,120}\]\s*/
@@ -143,13 +141,13 @@ export interface DescribeErrorOptions {
   fallbackTitle?: string
 }
 
-/** Never the raw "[503 ProcessEngineException] …" as the headline; feed the result to the toolkit's `ErrorState`. */
+/** Never the raw "[503 ProcessEngineException] …" as the headline; feed the result to pulse-ui's `ErrorState`. */
 export function describeError(
   error: unknown,
   locale: string | undefined,
   options: DescribeErrorOptions = {},
 ): DescribedError {
-  const labels = ERROR_LABELS[supportedLanguage(locale) ?? "en"]
+  const labels = ERROR_LABELS[resolveLanguage(locale)]
   const facts = classifyError(error)
   const words: ErrorKindLabels = labels[facts.kind]
   const source = labels.source({ source: facts.source })

@@ -20,7 +20,7 @@ class CheckBlacklistDelegate : JavaDelegate {
         // Pre-fix bug era: MiraveloLeasingSeeder marks instances in the legacy
         // window with `_simulateBlacklistOutage=true`, the upstream blacklist
         // provider was unreachable. Surfaces as a job-level incident on
-        // Activity_CheckBlacklist (asyncBefore) and feeds analytics.cluster.compare
+        // Activity_CheckBlacklist (asyncBefore) and feeds the period comparison
         // with the IMPROVED verdict for UC5 once the cutoff has passed.
         val outage = execution.getVariable("_simulateBlacklistOutage") as? Boolean ?: false
         if (outage) {
@@ -33,7 +33,7 @@ class CheckBlacklistDelegate : JavaDelegate {
             throw BpmnError("BLACKLIST_HIT", "Customer $customerId is on the blacklist")
         }
 
-        // Reaching this point means none of the three checks raised — the
+        // Reaching this point means none of the three checks raised: the
         // customer is creditworthy. Set the flag so the parent process gateway
         // can route to policy delivery.
         execution.setVariable("creditworthy", true)

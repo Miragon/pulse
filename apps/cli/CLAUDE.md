@@ -15,46 +15,59 @@ written for the MCP server, so this file holds the CLI's own. The pages for peop
 - AI first: it never asks a question, previews every write (`--dry-run`), needs `--yes` to
   delete, has a read-only mode, and writes its answers as JSON and its errors as one JSON line on
   stderr with a documented exit code. A change to any of that is a change to the docs.
-- One runtime dependency, commander. Everything else that ships is the code in
-  `apps/cli/src/`, which imports only commander and Node built-ins (published-imports checks it).
+- One runtime dependency, commander. The workflow domain and engine REST rules,
+  `@miragon/pulse-engine-core` (`packages/connectors/engine/engine-core`, the engine family's
+  core), are a devDependency that tsdown bundles; everything else that ships is the code in
+  `apps/cli/src/`. The built bundle imports only commander and Node built-ins, and stays within
+  its size budget (`scripts/published-imports.test.mjs` reads `apps/cli/dist` and the ceiling in
+  `apps/cli/test/__golden__/bundle-budget.json`, which `pnpm lint:ratchets` holds shrink-only:
+  growth needs a `Ratchet-Exception:` trailer that says why).
 
 ## Layers
 
 The `cli-*` rules of the root `.dependency-cruiser.cjs` enforce them; `pnpm lint:architecture`
 cruises `apps/cli/src`, `pnpm lint:architecture:cli` its `scripts/` and `test/`.
 
-| Path                        | Holds                                                                     |
-| --------------------------- | ------------------------------------------------------------------------- |
-| `apps/cli/src/bin/`         | The entry point and the Node runtime (`createNodeRuntime`)                |
-| `apps/cli/src/cli/`         | commander wiring and the utility commands; the only layer with commander  |
-| `apps/cli/src/operation/`   | Input building, guards, requests, execution, paging                       |
-| `apps/cli/src/workflow/`    | The workflow commands, pure, on the engine port only                      |
-| `apps/cli/src/engine-port/` | `EnginePort` and `EngineAdapter`: types only                              |
-| `apps/cli/src/engines/`     | One adapter per engine, all on the one generated catalog                  |
-| `apps/cli/src/api/`         | One folder per engine API; only the adapters use one                      |
-| `apps/cli/src/docs/`        | The guide, `describe`, examples: the texts agents read                    |
-| `apps/cli/src/catalog/`     | Catalog access (`loadCatalog`), schemas, body validation                  |
-| `apps/cli/src/config/`      | Config resolution, profiles, project files                                |
-| `apps/cli/src/auth/`        | Auth providers: Basic, bearer, token commands, OAuth                      |
-| `apps/cli/src/http/`        | The fetch client and the mapping of HTTP errors                           |
-| `apps/cli/src/output/`      | JSON, tables, field projection, errors, secret masking                    |
-| `apps/cli/scripts/`         | The catalog generator (`renderCatalog`), the executable build             |
-| `apps/cli/test/`            | Fakes for the unit tests (`apps/cli/test/support/`) and the engine suites |
+| Path                        | Holds                                                                      |
+| --------------------------- | -------------------------------------------------------------------------- |
+| `apps/cli/src/bin/`         | The entry point and the Node runtime (`createNodeRuntime`)                 |
+| `apps/cli/src/cli/`         | commander wiring and the utility commands; the only layer with commander   |
+| `apps/cli/src/operation/`   | Input building, guards, requests, execution, paging                        |
+| `apps/cli/src/workflow/`    | The workflow commands, pure: engine-core's bindings, its CLI text, waiting |
+| `apps/cli/src/engine-port/` | engine-core's port plus `call`, `preview`, `route`: types only             |
+| `apps/cli/src/engines/`     | One adapter per engine, all on the one generated catalog                   |
+| `apps/cli/src/api/`         | One folder per engine API; only the adapters use one                       |
+| `apps/cli/src/docs/`        | The guide, `describe`, examples: the texts agents read                     |
+| `apps/cli/src/catalog/`     | Catalog access (`loadCatalog`), schemas, body validation                   |
+| `apps/cli/src/config/`      | Config resolution, profiles, project files                                 |
+| `apps/cli/src/auth/`        | Auth providers: Basic, bearer, token commands, OAuth                       |
+| `apps/cli/src/http/`        | The fetch client and the mapping of HTTP errors                            |
+| `apps/cli/src/output/`      | JSON, tables, field projection, errors, secret masking                     |
+| `apps/cli/scripts/`         | The catalog generator (`renderCatalog`), the executable build              |
+| `apps/cli/test/`            | Fakes for the unit tests (`apps/cli/test/support/`) and the engine suites  |
 
 No cycle, a type-only one included. The pure layers import no Node built-in (WebCrypto and the
 timers are globals). Only the `auth login` command reaches the interactive login (loopback
 server, browser), so no other command can ever wait for a person. The CLI imports no workspace
-package and nothing of the MCP or UI stack.
+package but `@miragon/pulse-engine-core`, and that only from `apps/cli/src/workflow/`,
+`apps/cli/src/engine-port/` and the two operation modules that apply its engine REST rules,
+`apps/cli/src/operation/dates.ts` (the `UTC_WITHOUT_OFFSET` date reading) and
+`apps/cli/src/operation/variables.ts` (`autoTypedValue`) (tests anywhere), and nothing of the MCP
+or UI stack. The package
+returns data (next steps, error reasons); `next-text.ts` and `error-text.ts` in
+`apps/cli/src/workflow/` word them as the CLI prints them.
 
 ## Budgets
 
-The CLI's blocks in the root `eslint.config.mjs` are stricter than the global ones and only
-tighten: the strict type-checked rules of typescript-eslint, complexity 10, 300 effective lines
-per file for shipped code and scripts, 60 lines per function, 20 statements, depth 3, 4
-parameters. Every test file stays within 400 lines, also under `apps/cli/test/`: a test that
-grows splits along its describes into a sibling file, its shared helpers go to
-`apps/cli/test/support/`, and split files never import each other. An engine suite keeps one
-container topology per file and registers its tests from modules beside it.
+The CLI's blocks in the root `eslint.config.mjs` (which also hold
+`packages/connectors/engine/engine-core`) are stricter than the global ones and only tighten: the
+strict type-checked rules of
+typescript-eslint, complexity 10, 300 effective lines per file for shipped code and scripts, 60
+lines per function, 20 statements, depth 3, 4 parameters. Every test file stays within 400
+lines, also under `apps/cli/test/`: a test that grows splits along its describes into a sibling
+file, its shared helpers go to `apps/cli/test/support/`, and split files never import each other.
+An engine suite keeps one container topology per file and registers its tests from modules
+beside it.
 
 ## Catalogs
 
@@ -85,5 +98,5 @@ Up to 0.10.0 the CLI was operate; pulse-cli reads none of its names.
 A change to a command, an option, an output or an error changes, in the same commit, the guide
 and help texts in `apps/cli/src/docs/`, the page in `docs/cli/` and, where it applies, the skill
 in `apps/cli/skills/pulse-cli/SKILL.md`. Each page in `docs/cli/` has a line budget in
-`apps/mcp-server-camunda7/test/docs-refs.test.ts`. The topics of `pulse-cli guide <topic>` are pages
+`scripts/docs-refs.test.mjs`. The topics of `pulse-cli guide <topic>` are pages
 of `docs/cli/`, bundled as text (`GUIDE_TOPICS`): such a page is read by agents offline too.

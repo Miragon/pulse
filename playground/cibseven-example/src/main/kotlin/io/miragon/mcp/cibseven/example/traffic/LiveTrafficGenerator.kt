@@ -16,12 +16,12 @@ import kotlin.random.Random
  * time, so the metric-first analytics light up without manual nudging.
  *
  * The `seed-presentation` profile bulk-loads ~600 backdated instances in one
- * startup burst — great for historical depth, but invisible to
+ * startup burst: great for historical depth, but invisible to
  * `increase()`/`rate()` over a window (the counters jump faster than a scrape).
  * This generator adds the missing *live pulse*: a steady trickle of real-time
  * instances (same variable mix as the seed, including the ~20 % blacklist
  * failures) plus task completions, so throughput, p95 durations, incident
- * rates, and version/cluster comparisons all populate naturally.
+ * rates, and version/period comparisons all populate naturally.
  *
  * Opt-in and self-contained: `@EnableScheduling` is only switched on when
  * `live-traffic.enabled=true`. The job executor runs the async service tasks,
@@ -57,7 +57,7 @@ class LiveTrafficGenerator(
             startBatch()
             completePendingDecisions()
         } catch (e: Exception) {
-            // Process may not be deployed yet on the first ticks — retry next tick.
+            // Process may not be deployed yet on the first ticks; retry next tick.
             log.debug("live-traffic tick skipped: {}", e.message)
         }
     }
@@ -78,13 +78,13 @@ class LiveTrafficGenerator(
             if (Random.nextDouble() < failureRate) {
                 vars["_simulateBlacklistOutage"] = true
             }
-            // Latest deployed version (v2) — live traffic on the current rollout.
+            // Latest deployed version (v2): live traffic on the current rollout.
             runtimeService.startProcessInstanceByKey("miraveloLeasing", "LIVE-$n", vars)
         }
     }
 
     private fun completePendingDecisions() {
-        // Only this generator's own instances (businessKey `LIVE-…`) — never the
+        // Only this generator's own instances (businessKey `LIVE-…`), never the
         // backdated seed's leftover tasks, whose completion would emit a huge
         // (now − backdated-create-time) duration and pollute the live metrics.
         val tasks = taskService.createTaskQuery()

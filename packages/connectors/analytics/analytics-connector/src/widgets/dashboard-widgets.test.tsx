@@ -22,7 +22,7 @@ import {
   withWidgetClock,
 } from "./widget-render.test-support.js"
 
-/** The failure dashboard and the landscape: `failure-landscape-widgets.test.tsx`. */
+/** The landscape: `engine-landscape.test.tsx`. */
 
 withWidgetClock()
 
@@ -32,7 +32,7 @@ const DASHBOARD: Named<AnalyticsDashboardData> = {
   engines: ["prod-a", "prod-b", "prod-c"],
   reportingEngines: ["prod-a", "prod-c"],
   asOf: AS_OF,
-  totalCount: 1629,
+  startedCount: 1629,
   completedCount: 1482,
   incidentsCreated: 55,
   incidentsResolved: 34,
@@ -50,8 +50,10 @@ const DASHBOARD: Named<AnalyticsDashboardData> = {
       activityType: "userTask",
       executionCount: 1240,
       avgDurationMs: 187_000,
+      medianDurationMs: 150_000,
       p95DurationMs: 420_000,
       totalTimeMs: 231_880_000,
+      incidentsCreated: 4,
     },
     {
       processDefinitionKey: "invoice",
@@ -59,24 +61,26 @@ const DASHBOARD: Named<AnalyticsDashboardData> = {
       activityType: "noneEndEvent",
       executionCount: 300,
       avgDurationMs: 0,
+      medianDurationMs: null,
       p95DurationMs: null,
       totalTimeMs: 0,
+      incidentsCreated: 0,
     },
   ],
   activityCount: 2,
   definitionBreakdown: [
     {
       processDefinitionKey: "miraveloLeasing",
-      totalInstances: 1288,
-      completed: 1262,
+      startedCount: 1288,
+      completedCount: 1262,
       runningNow: 1,
       incidentsCreated: 1,
       avgDurationMs: 8_340_000,
     },
     {
       processDefinitionKey: "invoice",
-      totalInstances: 341,
-      completed: 220,
+      startedCount: 341,
+      completedCount: 220,
       runningNow: null,
       incidentsCreated: 0,
       avgDurationMs: null,
@@ -137,7 +141,7 @@ describe("the analytics dashboard in German", () => {
 
   it("judges the incident rate only against the previous period, from its threshold on", () => {
     const previous = {
-      totalCount: 1500,
+      startedCount: 1500,
       incidentsCreated: 20,
       incidentRatePct: 1.3,
       partial: false,
@@ -174,7 +178,7 @@ describe("the analytics dashboard in German", () => {
 
     renderIn("en", ExecutionPerformanceKpi, {
       ...scoped,
-      previous: { ...previous, totalCount: 0, incidentsCreated: 0, incidentRatePct: null },
+      previous: { ...previous, startedCount: 0, incidentsCreated: 0, incidentRatePct: null },
     })
     expect(screen.getByText("Previous period: no starts")).toBeTruthy()
   })
@@ -183,7 +187,7 @@ describe("the analytics dashboard in German", () => {
   // even while no process changed, so its change is no verdict.
   it("names the previous rate of a dashboard over several processes without judging it", () => {
     const previous = {
-      totalCount: 1500,
+      startedCount: 1500,
       incidentsCreated: 20,
       incidentRatePct: 1.3,
       partial: false,
@@ -323,9 +327,8 @@ describe("the analytics dashboard in German", () => {
 
 describe("the analytics dashboard in English", () => {
   it("frames the figures and keeps sentence case", () => {
-    renderIn("en", ExecutionSummaryKpi, { ...DASHBOARD, reportingEngines: undefined })
-    // Without the reporting engines the line says nothing about them.
-    expect(metaLine()).toBe("Last 7 days · 3 engines · As of 14:32")
+    renderIn("en", ExecutionSummaryKpi, DASHBOARD)
+    expect(metaLine()).toBe("Last 7 days · 3 engines (1 without metrics) · As of 14:32")
     expect(screen.getByText("1,629")).toBeTruthy()
     expect(screen.getByText("Process analytics")).toBeTruthy()
     expect(screen.getByRole("button", { name: /Assess in chat/ })).toBeTruthy()
@@ -337,7 +340,7 @@ const HEATMAP: AnalyticsBpmnHeatmapData = {
   period: "14d",
   engines: ["prod-a", "prod-b"],
   frequency: { Task_A: 12 },
-  durationSec: { Task_A: 3.5 },
+  durationMs: { Task_A: 3500 },
   asOf: AS_OF,
 }
 
@@ -352,24 +355,24 @@ describe("the BPMN heatmap", () => {
     expect(screen.queryByText(/Zeitraum:/)).toBeNull()
   })
 
-  it("blames the missing camunda7 module only when the server says so (en)", () => {
-    renderIn("en", AnalyticsBpmnHeatmap, { ...HEATMAP, bpmnMissing: "no-camunda7" })
+  it("blames the missing engine module only when the server says so (en)", () => {
+    renderIn("en", AnalyticsBpmnHeatmap, { ...HEATMAP, bpmnMissing: "no-engine-module" })
     expect(
       screen.getByText(
-        "The diagram is not available here: without the camunda7 module, analytics cannot load BPMN files. Ask in the chat for the figures per activity instead.",
+        "The diagram is not available here: without the engine module, analytics cannot load BPMN files. Ask in the chat for the figures per activity instead.",
       ),
     ).toBeTruthy()
     expect(document.querySelector("[data-view-meta]")).toBeNull()
   })
 
-  it("names the engine lookup when camunda7 is there but found no diagram (de)", () => {
+  it("names the engine lookup when engine is there but found no diagram (de)", () => {
     renderIn("de", AnalyticsBpmnHeatmap, { ...HEATMAP, bpmnMissing: "not-loaded" })
     expect(
       screen.getByText(
         "Das Diagramm konnte nicht geladen werden: Keine Engine dieser Ansicht hat es geliefert. Prüf, ob die Engines erreichbar sind und der Prozess bereitgestellt ist, oder frag im Chat nach den Kennzahlen je Aktivität.",
       ),
     ).toBeTruthy()
-    expect(screen.queryByText(/camunda7-Modul/)).toBeNull()
+    expect(screen.queryByText(/Engine-Modul/)).toBeNull()
   })
 
   it.each([undefined, "constructor"])(

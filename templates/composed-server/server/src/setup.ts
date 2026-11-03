@@ -1,181 +1,44 @@
-import type { AppConfig, AppConfigEntry, AppPlugin } from "@miragon/mcp-toolkit-core"
-import { createFileSystemDashboardStore } from "@miragon/mcp-toolkit-core/tools"
-import type { DashboardStore } from "@miragon/mcp-toolkit-core/tools"
-import type { MCPServer } from "mcp-use"
-
 import {
-  camunda7Module,
+  engineModule,
   configuredEngineIds,
   createBpmnXmlFetcher,
-} from "@miragon/pulse-camunda7-connector"
+} from "@miragon/pulse-engine-connector"
 import { analyticsModule, type FetchBpmnXml } from "@miragon/pulse-analytics-connector"
 import { notesModule } from "@acme/mcp-notes"
-import {
-  composeModules,
-  createShellPlugin,
-  frameworkWritesAllowed,
-  HTTP_EDGE_ENV_VARS,
-  OAUTH_ENV_VARS,
-  profileStoreFromEnv,
-  type ComposableModule,
-  type ProfileStore,
-  type ResolvedBoot,
-} from "@miragon/pulse-widget-shell/server"
+import type { ComposableModule, ModuleEntry } from "@miragon/pulse-widget-shell/server"
 
 /**
- * Cross-module resources the server wires at boot and threads into every
- * module's plugin. App-owned on purpose: which module's capability reaches
- * which other module is configuration knowledge — modules stay peers and
- * never import each other.
+ * What one module hands the others at boot. Yours on purpose: which module's capability reaches
+ * which other module is configuration knowledge; modules stay peers and never import each other.
  */
 export interface SharedResources {
-  /**
-   * One per-user preference store for the whole server (language,
-   * engine and dashboard defaults), keyed by the OAuth caller. Filesystem-backed
-   * when `MCP_PROFILE_DIR` is set, else in-memory.
-   */
-  profileStore: ProfileStore
-  /**
-   * BPMN-XML lookup from the camunda7 module (on any of its engines),
-   * consumed by the analytics heatmap and the names in the analytics views.
-   * Absent when camunda7 is inactive — consumers degrade gracefully.
-   */
+  /** The engine module's BPMN-XML lookup (on any of its engines) for the analytics heatmap and the names in its views. */
   fetchBpmnXml?: FetchBpmnXml
-  /**
-   * The engine ids this server is configured for (camunda7's engines) — the
-   * only engines analytics reads from a Prometheus that may be shared with
-   * other teams. Absent when camunda7 is inactive: analytics then takes
-   * `ANALYTICS_ENGINE_IDS`, else refuses every engine read.
-   */
+  /** The engine module's configured engine ids: the only engines analytics reads from a possibly shared Prometheus. */
   engineIds?: readonly string[]
 }
 
-/**
- * The port every mounted module satisfies — structurally: modules never
- * import this file, and your own module doesn't have to either. The port
- * shape and selection machinery live in `@miragon/pulse-widget-shell/server`;
- * this app only instantiates it with its own `SharedResources`.
- */
+/** The port every module meets structurally; modules never import this file, yours need not either. */
 export type ModuleDefinition = ComposableModule<SharedResources>
 
 /**
- * Which modules THIS server composes. Each module brings its own config
- * schema, env mapping and known env vars — this file only selects and wires.
- *
- * Adding a module touches three places (the `create-module` skill walks
- * through them): this list, the spread in `src/ui/widget-registry.ts`, and
- * the module's `definition` in `test/widget-registry.test.ts` — Tailwind
- * picks up workspace modules automatically via the `modules/` glob in
- * `src/ui/globals.css`.
- *
- * Exported for `test/strict-input.e2e.test.ts`, which boots every toolset
- * each listed module declares — yours included, without a test edit.
+ * The modules THIS server composes; the boot selects, warns and wires them. Adding a module
+ * touches this list and the spread in `src/ui/view-registry.ts` next to its `workspace:*`
+ * dependency (the `create-module` skill walks through them). `test/strict-input.e2e.test.ts` and
+ * `test/env-example.test.ts` read this list, so your module is covered without a test edit.
  */
-export const MODULES: readonly ModuleDefinition[] = [camunda7Module, analyticsModule, notesModule]
+export const MODULES: readonly ModuleDefinition[] = [engineModule, analyticsModule, notesModule]
 
 /**
- * App-owned env vars; each module contributes its own slice via
- * `knownEnvVars`, the shared HTTP edge (`MCP_URL`, the Host/Origin
- * allow-lists, the body cap, the metrics token) via `HTTP_EDGE_ENV_VARS`, the
- * shared OAuth wiring (`MCP_OAUTH`, read by `oauthFromEnv` in `app.ts`) via
- * `OAUTH_ENV_VARS`. Every known var feeds the boot-time typo warner.
+ * The engine module hands analytics its BPMN-XML lookup and its engine ids, so analytics needs no engine
+ * SDK. Without the engine module the heatmap degrades and analytics falls back to ANALYTICS_ENGINE_IDS,
+ * else refuses every engine.
  */
-const APP_ENV_VARS = [
-  ...HTTP_EDGE_ENV_VARS,
-  ...OAUTH_ENV_VARS,
-  "MCP_ACTIVE_MODULES",
-  "MCP_DASHBOARD_DIR",
-  "MCP_PROFILE_DIR",
-  // mcp-use's request-log level, read by mcp-use itself (the boot warns at
-  // debug/trace).
-  "MCP_USE_LOG_LEVEL",
-]
-
-/** The composition `createApp` hands to the shared boot (`createComposedServer`). */
-export const composition = composeModules<SharedResources>({
-  label: "acme-mcp",
-  modules: MODULES,
-  appEnvVars: APP_ENV_VARS,
-})
-
-/** Exported for the `.env.example` guard in `test/env-example.test.ts`. */
-export const KNOWN_ENV_VARS = composition.knownEnvVars
-
-/**
- * The module selection as the shared boot resolves it: each module's
- * effective toolset threaded into its config. `createApp`'s boot is
- * authenticated exactly when `oauthFromEnv` built a provider from
- * `MCP_OAUTH`; this argument-less default (tests, `getPlugins()`) is the
- * unauthenticated one — every module without an explicit suffix on its
- * read-only floor, the toolkit's dashboard builder off.
- */
-export function resolveBoot(env: NodeJS.ProcessEnv = process.env): ResolvedBoot {
-  return composition.resolveBoot(env)
-}
-
-export function getAppConfig(boot: ResolvedBoot = resolveBoot()): AppConfig {
-  return { activeApps: boot.entries, pipelines: {} }
-}
-
-// ── Persistence ──────────────────────────────────────────────────────────
-// Deliberately minimal: filesystem-backed when the env knob is set (survives
-// restarts), in-memory otherwise. For Postgres stores with migrations, see
-// the stock server (`apps/mcp-server-camunda7/src/persistence/` in the
-// Pulse repo).
-
-export function createProfileStore(env: NodeJS.ProcessEnv = process.env): ProfileStore {
-  return profileStoreFromEnv(env)
-}
-
-/** `undefined` lets the toolkit fall back to its in-memory dashboard store. */
-export function createDashboardStore(
-  env: NodeJS.ProcessEnv = process.env,
-): DashboardStore | undefined {
-  return env.MCP_DASHBOARD_DIR
-    ? createFileSystemDashboardStore({ dir: env.MCP_DASHBOARD_DIR })
-    : undefined
-}
-
-// ── Plugins ──────────────────────────────────────────────────────────────
-
-/**
- * Cross-module wiring — deliberately app-owned: which module's capability
- * reaches which other module is configuration knowledge.
- */
-function buildSharedResources(
-  entries: AppConfigEntry[],
-  profileStore: ProfileStore,
-): SharedResources {
-  // From camunda7, for modules without an engine-SDK dependency: the BPMN-XML
-  // lookup (the analytics heatmap) and the configured engine ids (the only
-  // engines analytics reads). Absent when camunda7 is inactive — the heatmap
-  // degrades, analytics falls back to ANALYTICS_ENGINE_IDS, else fails closed.
-  const camunda7Entry = entries.find((e) => e.app === camunda7Module.name)
-  if (!camunda7Entry) return { profileStore }
+export function sharedResources(entries: readonly ModuleEntry[]): SharedResources {
+  const engine = entries.find((entry) => entry.app === engineModule.name)
+  if (!engine) return {}
   return {
-    profileStore,
-    fetchBpmnXml: createBpmnXmlFetcher(camunda7Entry.config),
-    engineIds: configuredEngineIds(camunda7Entry.config),
+    fetchBpmnXml: createBpmnXmlFetcher(engine.config),
+    engineIds: configuredEngineIds(engine.config),
   }
-}
-
-/**
- * `createApp` passes the store it built and the once-per-boot selection; the
- * defaults keep argument-less callers (tests) working without duplicating
- * either here.
- */
-export function getPlugins(
-  profileStore: ProfileStore = createProfileStore(),
-  boot: ResolvedBoot = resolveBoot(),
-): AppPlugin<MCPServer>[] {
-  const { entries } = boot
-  const shared = buildSharedResources(entries, profileStore)
-  return [
-    // Always-on shell (`shell:*`): the generic widgets plus the settings page
-    // and the UI language, deliberately outside the MCP_ACTIVE_MODULES
-    // selection. Its language save is a framework write: OAuth and no module
-    // on its read-only floor.
-    createShellPlugin({ profileStore, allowSave: frameworkWritesAllowed(boot) }),
-    ...composition.pluginsFor(entries, shared),
-  ]
 }

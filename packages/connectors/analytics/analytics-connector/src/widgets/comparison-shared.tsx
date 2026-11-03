@@ -1,7 +1,5 @@
 import type { ReactNode } from "react"
 import {
-  Alert,
-  AlertDescription,
   Card,
   CardContent,
   Table,
@@ -12,29 +10,23 @@ import {
   TableRow,
   cn,
   TONE_ICON,
-} from "@miragon/mcp-toolkit-ui"
-import { CircleAlert, TrendingDown, TrendingUp } from "lucide-react"
-import {
   Icon,
   formatDuration,
   formatNumber,
   formatPercent,
-} from "@miragon/pulse-widget-shell/widgets"
+} from "@miragon/pulse-ui"
+import { CircleAlert, TrendingDown, TrendingUp } from "lucide-react"
 import type { CompareKpiDelta, CompareKpis } from "@miragon/pulse-analytics-client"
 import { useT, type T } from "../messages/use-t.js"
 
-/** Hand-off facts (#338): a null delta (zero baseline) is never sent as 0. */
-export function deltaFacts(delta: CompareKpiDelta, suppressed: boolean) {
-  return {
-    // Starts compare PER DAY, so a clamped (shorter) window compares fairly.
-    startedPerDayDeltaPct: delta.started_per_day_delta_pct,
-    incidentRateDeltaPp: delta.incident_rate_delta_pp,
-    elementIncidentRateDeltaPp: delta.element_incident_rate_delta_pp,
-    avgDurationDeltaPct: delta.avg_duration_delta_pct,
-    p95DurationDeltaPct: delta.p95_duration_delta_pct,
-    suppressed,
-  }
-}
+/**
+ * Hand-off facts (#338): a null delta (zero baseline) is never sent as 0. Starts compare PER
+ * DAY, so a clamped (shorter) period compares fairly.
+ */
+export const deltaFacts = (delta: CompareKpiDelta, suppressed: boolean) => ({
+  ...delta,
+  suppressed,
+})
 
 /**
  * U6: only a quality metric gets a verdict, from `minChange` on (in the delta's
@@ -78,19 +70,21 @@ export function formatDelta(value: number | null, unit: DeltaUnit): string {
   return formatNumber(shown, { signDisplay: "exceptZero", maximumFractionDigits: 1 })
 }
 
-/** Nullable rates and durations render "not measured", never "0,0" or "0 ms". */
-type ComparableKpis = Pick<CompareKpis, "instance_count"> & {
-  incident_rate_pct: number | null
-  element_incident_count: number | null
-  element_incident_rate_pct: number | null
-  avg_duration_sec: number | null
-  p95_duration_sec: number | null
-}
+/** Nullable rates and durations render "not measured", never "0,0" or "0 ms". No median row. */
+type ComparableKpis = Pick<
+  CompareKpis,
+  | "startedCount"
+  | "incidentRatePct"
+  | "elementIncidentsCreated"
+  | "elementIncidentRatePct"
+  | "avgDurationMs"
+  | "p95DurationMs"
+>
 
 /** Incidents per 100 starts, one decimal: "6,6" / "6.6" (no %: a rate may pass 100). */
 const rateValue = (n: number | null) =>
   n === null ? null : formatNumber(n, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
-const durationValue = (sec: number | null) => (sec === null ? null : formatDuration(sec * 1000))
+const durationValue = (ms: number | null) => (ms === null ? null : formatDuration(ms))
 
 export type ComparisonMetric = {
   label: string
@@ -124,37 +118,37 @@ const COMPARE_METRICS: Array<{
   {
     // A volume: no verdict.
     labelKey: "aComparison.metricStarted",
-    value: (k) => formatNumber(k.instance_count),
-    delta: (d) => d.started_per_day_delta_pct,
+    value: (k) => formatNumber(k.startedCount),
+    delta: (d) => d.startedPerDayDeltaPct,
     unit: "pct",
     rule: VOLUME,
   },
   {
     labelKey: "aComparison.metricIncidentRate",
-    value: (k) => rateValue(k.incident_rate_pct),
-    delta: (d) => d.incident_rate_delta_pp,
+    value: (k) => rateValue(k.incidentRatePct),
+    delta: (d) => d.incidentRateDeltaPp,
     unit: "rate",
     rule: RATE_UP_IS_WORSE,
   },
   {
     labelKey: "aComparison.metricElementIncidentRate",
-    value: (k) => rateValue(k.element_incident_rate_pct),
-    delta: (d) => d.element_incident_rate_delta_pp,
+    value: (k) => rateValue(k.elementIncidentRatePct),
+    delta: (d) => d.elementIncidentRateDeltaPp,
     unit: "rate",
     rule: RATE_UP_IS_WORSE,
     elementOnly: true,
   },
   {
     labelKey: "aComparison.metricAvgDuration",
-    value: (k) => durationValue(k.avg_duration_sec),
-    delta: (d) => d.avg_duration_delta_pct,
+    value: (k) => durationValue(k.avgDurationMs),
+    delta: (d) => d.avgDurationDeltaPct,
     unit: "pct",
     rule: DURATION_UP_IS_WORSE,
   },
   {
     labelKey: "aComparison.metricP95Duration",
-    value: (k) => durationValue(k.p95_duration_sec),
-    delta: (d) => d.p95_duration_delta_pct,
+    value: (k) => durationValue(k.p95DurationMs),
+    delta: (d) => d.p95DurationDeltaPct,
     unit: "pct",
     rule: DURATION_UP_IS_WORSE,
   },
@@ -168,7 +162,7 @@ export function buildComparisonMetrics(
 ): ComparisonMetric[] {
   const unavailable = t("aComparison.valueUnavailable")
   const elementScoped =
-    before.element_incident_count !== null || after.element_incident_count !== null
+    before.elementIncidentsCreated !== null || after.elementIncidentsCreated !== null
   return COMPARE_METRICS.filter((m) => !m.elementOnly || elementScoped).map((m) => ({
     label: t(m.labelKey),
     before: m.value(before) ?? unavailable,
@@ -218,16 +212,7 @@ function DeltaCell({
   )
 }
 
-/** Destructive is reserved for errors. */
-export function ComparisonEmptyState({ children }: { children: ReactNode }) {
-  return (
-    <Alert>
-      <AlertDescription>{children}</AlertDescription>
-    </Alert>
-  )
-}
-
-/** Not the toolkit `Badge`: it forces 12 px icons, the view keeps 16 px (`scanIconSizes`). */
+/** Not the kit's `Badge`: it forces 12 px icons, the view keeps 16 px (`scanIconSizes`). */
 export function SuppressedBadge({ children }: { children: ReactNode }) {
   return (
     <span
@@ -250,7 +235,6 @@ export function ComparisonCard({
   metrics,
   suppressed,
   actions,
-  note,
 }: {
   title: string
   badges: ReactNode
@@ -262,8 +246,6 @@ export function ComparisonCard({
   /** A side is below `minBucketSize`: every quality delta reads "not reliable". */
   suppressed: boolean
   actions?: ReactNode
-  /** Optional caveat under the table, e.g. why a metric reads "not measured". */
-  note?: ReactNode
 }) {
   const t = useT()
   return (
@@ -296,11 +278,6 @@ export function ComparisonCard({
             ))}
           </TableBody>
         </Table>
-        {note && (
-          <Alert className="mt-4">
-            <AlertDescription>{note}</AlertDescription>
-          </Alert>
-        )}
       </CardContent>
     </Card>
   )

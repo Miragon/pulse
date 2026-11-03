@@ -1,50 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import {
-  composeModules,
-  frameworkWritesAllowed,
-  type ComposableModule,
-  type ResolvedBoot,
-} from "./composition.js"
-import { createToolsetVocabulary } from "./toolsets.js"
-
-interface TestShared {
-  tag: string
-}
-
-const moduleOf = (
-  name: string,
-  overrides: Partial<ComposableModule<TestShared>> = {},
-): ComposableModule<TestShared> => ({
-  name,
-  configFromEnv: (env) => ({ url: env[`${name.toUpperCase()}_URL`] ?? "default" }),
-  knownEnvVars: [`${name.toUpperCase()}_URL`],
-  toolsets: createToolsetVocabulary(
-    name,
-    ["read-only", "operations", "admin"] as const,
-    "read-only",
-    {
-      authenticatedDefault: "operations",
-    },
-  ),
-  createPlugin: (config, shared) =>
-    ({ definition: { name }, config, shared }) as unknown as ReturnType<
-      ComposableModule<TestShared>["createPlugin"]
-    >,
-  ...overrides,
-})
-
-const compose = (modules: ComposableModule<TestShared>[] = [moduleOf("alpha"), moduleOf("beta")]) =>
-  composeModules<TestShared>({
-    label: "test-root",
-    modules,
-    appEnvVars: ["MCP_ACTIVE_MODULES", "MCP_PROFILE_DIR"],
-  })
+import { composeModules, type ResolvedBoot } from "./composition.js"
+import { compose, moduleOf, type TestShared } from "./composition.test-support.js"
 
 afterEach(() => {
   vi.restoreAllMocks()
 })
 
-describe("activeModules / appEntries", () => {
+describe("activeModules / resolveBoot entries", () => {
   it("activates every module when MCP_ACTIVE_MODULES is unset or 'all'", () => {
     expect(compose().activeModules({})).toEqual([{ name: "alpha" }, { name: "beta" }])
     expect(compose().activeModules({ MCP_ACTIVE_MODULES: "all" })).toEqual([
@@ -90,7 +52,7 @@ describe("activeModules / appEntries", () => {
   })
 
   it("threads the EFFECTIVE toolset into every module config; config comes from configFromEnv(env)", () => {
-    const entries = compose().appEntries({
+    const { entries } = compose().resolveBoot({
       MCP_ACTIVE_MODULES: "alpha:admin,beta",
       ALPHA_URL: "http://a",
     })
@@ -103,10 +65,10 @@ describe("activeModules / appEntries", () => {
   it("strips the toolset suffix (warning) for modules without toolsets", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
     const modules = [moduleOf("alpha", { toolsets: undefined })]
-    const entries = compose(modules).appEntries({ MCP_ACTIVE_MODULES: "alpha:read-only" })
+    const { entries } = compose(modules).resolveBoot({ MCP_ACTIVE_MODULES: "alpha:read-only" })
     expect(entries[0].config).not.toHaveProperty("toolset")
     expect(warn).toHaveBeenCalledWith(
-      '[test-root] Module "alpha" has no toolsets — ignoring ":read-only"',
+      '[test-root] Module "alpha" has no toolsets: ignoring ":read-only"',
     )
   })
 
@@ -120,35 +82,22 @@ describe("activeModules / appEntries", () => {
       { authenticated: true },
     )
     expect(boot.entries[0].config).not.toHaveProperty("toolset")
-    expect(boot.toolsets).toEqual([{ module: "alpha", source: "none", durableWrites: true }])
+    expect(boot.toolsets).toEqual([{ module: "alpha", source: "none" }])
     expect(warn).toHaveBeenCalledTimes(1)
     expect(warn).toHaveBeenCalledWith(
-      '[test-root] Module "alpha" has no toolsets — ignoring ":admin"',
+      '[test-root] Module "alpha" has no toolsets: ignoring ":admin"',
     )
     vi.spyOn(console, "info").mockImplementation(() => {})
-    expect(composition.logEffectiveToolsets(boot)).toBe(
-      "[test-root] Toolsets — alpha (no toolsets)",
-    )
-  })
-
-  it("appConfig wraps the entries in the mcp-use shape", () => {
-    expect(compose().appConfig({ MCP_ACTIVE_MODULES: "alpha" })).toEqual({
-      activeApps: [{ app: "alpha", config: { url: "default", toolset: "read-only" } }],
-      pipelines: {},
-    })
-    expect(compose().appConfig({ MCP_ACTIVE_MODULES: "alpha" }, { authenticated: true })).toEqual({
-      activeApps: [{ app: "alpha", config: { url: "default", toolset: "operations" } }],
-      pipelines: {},
-    })
+    expect(composition.logEffectiveToolsets(boot)).toBe("[test-root] Toolsets: alpha (no toolsets)")
   })
 })
 
-describe("resolveBoot — the fail-closed toolset rule", () => {
+describe("resolveBoot: the fail-closed toolset rule", () => {
   const toolsetsOf = (boot: ResolvedBoot) =>
     Object.fromEntries(boot.toolsets.map(({ module, toolset }) => [module, toolset]))
 
   it.each([undefined, "", "all", "alpha,beta"])(
-    "MCP_ACTIVE_MODULES=%j defaults to the floor without OAuth and to the standard toolset with it — never admin",
+    "MCP_ACTIVE_MODULES=%j defaults to the floor without OAuth and to the standard toolset with it, never admin",
     (value) => {
       const env = value === undefined ? {} : { MCP_ACTIVE_MODULES: value }
       const anonymous = compose().resolveBoot(env)
@@ -191,17 +140,17 @@ describe("resolveBoot — the fail-closed toolset rule", () => {
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('[alpha] Unknown toolset "typo"'))
   })
 
-  it("reports whether each effective toolset permits durable writes", () => {
+  it("reports each module's effective toolset and where it came from", () => {
     const boot = compose().resolveBoot({ MCP_ACTIVE_MODULES: "alpha:operations,beta" })
     expect(boot.toolsets).toEqual([
-      { module: "alpha", toolset: "operations", source: "suffix", durableWrites: true },
-      { module: "beta", toolset: "read-only", source: "default", durableWrites: false },
+      { module: "alpha", toolset: "operations", source: "suffix" },
+      { module: "beta", toolset: "read-only", source: "default" },
     ])
   })
 
-  it("leaves modules without toolsets unrestricted and toolset-free", () => {
+  it("leaves modules without toolsets toolset-free", () => {
     const boot = compose([moduleOf("alpha", { toolsets: undefined })]).resolveBoot({})
-    expect(boot.toolsets).toEqual([{ module: "alpha", source: "none", durableWrites: true }])
+    expect(boot.toolsets).toEqual([{ module: "alpha", source: "none" }])
     expect(boot.entries[0].config).not.toHaveProperty("toolset")
   })
 })
@@ -219,7 +168,7 @@ describe("logEffectiveToolsets", () => {
     const boot = composition.resolveBoot({ MCP_ACTIVE_MODULES: "alpha:admin,beta:typo,gamma" })
     const line = composition.logEffectiveToolsets(boot)
     expect(line).toBe(
-      "[test-root] Toolsets — alpha:admin (suffix), beta:read-only (fallback), gamma (no toolsets)",
+      "[test-root] Toolsets: alpha:admin (suffix), beta:read-only (fallback), gamma (no toolsets)",
     )
     expect(info).toHaveBeenCalledTimes(1)
     expect(info).toHaveBeenCalledWith(line)
@@ -231,11 +180,11 @@ describe("logEffectiveToolsets", () => {
     const composition = compose([moduleOf("alpha"), moduleOf("beta", { toolsets: undefined })])
     const env = { MCP_ACTIVE_MODULES: "alpha,beta" }
     expect(composition.logEffectiveToolsets(composition.resolveBoot(env))).toBe(
-      "[test-root] Toolsets — alpha:read-only (default without OAuth), beta (no toolsets)",
+      "[test-root] Toolsets: alpha:read-only (default without OAuth), beta (no toolsets)",
     )
     expect(
       composition.logEffectiveToolsets(composition.resolveBoot(env, { authenticated: true })),
-    ).toBe("[test-root] Toolsets — alpha:operations (default with OAuth), beta (no toolsets)")
+    ).toBe("[test-root] Toolsets: alpha:operations (default with OAuth), beta (no toolsets)")
   })
 
   it("says so when no module is active", () => {
@@ -244,16 +193,15 @@ describe("logEffectiveToolsets", () => {
     const composition = compose()
     expect(
       composition.logEffectiveToolsets(composition.resolveBoot({ MCP_ACTIVE_MODULES: "nope" })),
-    ).toBe("[test-root] Toolsets — no active modules")
+    ).toBe("[test-root] Toolsets: no active modules")
   })
 })
 
 describe("instructions", () => {
   const instructed = (name: string) =>
     moduleOf(name, {
-      instructions: (config, { authenticated }) =>
-        `${name}: toolset ${String(config.toolset)}, url ${String(config.url)}, ` +
-        `${authenticated ? "signed in" : "anonymous"}`,
+      instructions: (config) =>
+        `${name}: toolset ${String(config.toolset)}, url ${String(config.url)}`,
     })
 
   it("joins the ACTIVE modules' snippets in selection order, each from its own boot config", () => {
@@ -263,8 +211,7 @@ describe("instructions", () => {
       { authenticated: true },
     )
     expect(composition.instructions(boot)).toBe(
-      "beta: toolset admin, url default, signed in\n\n" +
-        "alpha: toolset operations, url http://a, signed in",
+      "beta: toolset admin, url default\n\n" + "alpha: toolset operations, url http://a",
     )
   })
 
@@ -275,7 +222,7 @@ describe("instructions", () => {
       moduleOf("gamma", { instructions: () => "  " }),
     ])
     expect(composition.instructions(composition.resolveBoot({}))).toBe(
-      "alpha: toolset read-only, url default, anonymous",
+      "alpha: toolset read-only, url default",
     )
     expect(
       composition.instructions(composition.resolveBoot({ MCP_ACTIVE_MODULES: "beta,gamma" })),
@@ -283,41 +230,22 @@ describe("instructions", () => {
   })
 })
 
-describe("frameworkWritesAllowed", () => {
-  const boot = (authenticated: boolean, env: NodeJS.ProcessEnv) =>
-    compose([
-      moduleOf("alpha"),
-      moduleOf("beta"),
-      moduleOf("gamma", { toolsets: undefined }),
-    ]).resolveBoot(env, { authenticated })
-
-  it("requires OAuth — without a caller identity framework records are ownerless", () => {
-    expect(
-      frameworkWritesAllowed(boot(false, { MCP_ACTIVE_MODULES: "alpha:admin,beta:admin" })),
-    ).toBe(false)
-  })
-
-  it("allows them under OAuth when every module permits durable writes", () => {
-    expect(frameworkWritesAllowed(boot(true, {}))).toBe(true)
-    expect(frameworkWritesAllowed(boot(true, { MCP_ACTIVE_MODULES: "alpha:admin,gamma" }))).toBe(
-      true,
-    )
-  })
-
-  it("refuses them when ANY module sits on its read-only floor — the most restrictive wins", () => {
-    expect(
-      frameworkWritesAllowed(boot(true, { MCP_ACTIVE_MODULES: "alpha:admin,beta:read-only" })),
-    ).toBe(false)
-  })
-})
-
 describe("pluginsFor", () => {
-  it("instantiates each entry's plugin with the shared resources", () => {
+  it("instantiates each entry's plugin with its config and the shared resources", () => {
     const composition = compose()
-    const entries = composition.appEntries({ MCP_ACTIVE_MODULES: "beta" })
+    const { entries } = composition.resolveBoot({ MCP_ACTIVE_MODULES: "beta" })
     const plugins = composition.pluginsFor(entries, { tag: "shared-1" })
     expect(plugins).toHaveLength(1)
-    expect(plugins[0]).toMatchObject({ shared: { tag: "shared-1" } })
+    expect(plugins[0]).toMatchObject({
+      name: "beta",
+      config: { url: "default", toolset: "read-only" },
+      shared: { tag: "shared-1" },
+    })
+  })
+
+  it("skips an entry no module of this composition owns", () => {
+    const plugins = compose().pluginsFor([{ app: "stranger", config: {} }], { tag: "shared-1" })
+    expect(plugins).toEqual([])
   })
 })
 
@@ -326,11 +254,11 @@ describe("warnUnknownEnvVars", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
     const unknown = compose().warnUnknownEnvVars({
       ALPHA_URLX: "typo", // derived prefix ALPHA_
-      MCP_PROFILE_DIRX: "typo", // derived prefix MCP_
+      MCP_URLX: "typo", // derived prefix MCP_
       PATH: "/usr/bin", // unwatched prefix
       BETA_URL: "http://ok", // known
     })
-    expect(unknown.sort()).toEqual(["ALPHA_URLX", "MCP_PROFILE_DIRX"])
+    expect(unknown.sort()).toEqual(["ALPHA_URLX", "MCP_URLX"])
     expect(warn).toHaveBeenCalledTimes(2)
   })
 
@@ -345,8 +273,8 @@ describe("warnUnknownEnvVars", () => {
   it("exempts `<KNOWN_VAR>_*` extensions (docker-secrets style), but not near-misses", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
     const unknown = compose().warnUnknownEnvVars({
-      BETA_URL_FILE: "/run/secrets/beta", // extends the known BETA_URL — another process's var
-      BETA_URLX: "typo", // near-miss, not an extension — still warns
+      BETA_URL_FILE: "/run/secrets/beta", // extends the known BETA_URL: another process's var
+      BETA_URLX: "typo", // near-miss, not an extension: still warns
     })
     expect(unknown).toEqual(["BETA_URLX"])
     expect(warn).toHaveBeenCalledTimes(1)

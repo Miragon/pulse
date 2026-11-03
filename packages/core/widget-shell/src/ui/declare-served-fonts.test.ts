@@ -9,7 +9,6 @@ const declared = () => document.getElementById(SERVED_FONTS_STYLE_ID)
 
 afterEach(() => {
   declared()?.remove()
-  delete globalThis.__mcpUseViewConfig
 })
 
 describe("declareServedFonts", () => {
@@ -34,14 +33,7 @@ describe("declareServedFonts", () => {
     expect(document.querySelectorAll(`#${SERVED_FONTS_STYLE_ID}`)).toHaveLength(1)
   })
 
-  it("reads the public base mcp-use injects into the served view document by default", () => {
-    globalThis.__mcpUseViewConfig = { publicBase: PUBLIC_BASE }
-    expect(declareServedFonts()).toBe(FONT_BASE)
-    expect(declared()).not.toBeNull()
-  })
-
-  it("declares nothing outside a served view document — the host's font renders", () => {
-    expect(declareServedFonts()).toBeUndefined()
+  it("declares nothing outside a served view document: the host's font renders", () => {
     expect(declareServedFonts(document, "")).toBeUndefined()
     expect(declared()).toBeNull()
   })

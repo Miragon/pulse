@@ -5,8 +5,10 @@ The adapter that answers Pulse's questions and writes for Operaton, CIB seven an
 ## Why
 
 Operaton and CIB seven are forks of Camunda 7 and keep its REST API, so one adapter serves all
-three. It calls that REST API itself with `fetch` ([c7-adapter.md](../../../docs/adr/c7-adapter.md)):
-no child process, no library of its own beyond the extension.
+three. It calls that REST API itself with `fetch` ([c7-adapter.md](../../../docs/adr/c7-adapter.md)),
+no child process, and runs the family's workflow domain, `@miragon/pulse-engine-core` (the
+inspection of an instance, its wait states, root causes), which the CLI and the MCP server
+share; esbuild bundles it into the extension.
 
 ## How it works
 
@@ -36,14 +38,15 @@ Writes (`ProcessCommands`) take the same road on a connection that may write.
 
 - `apps/vscode/src/adapters/c7`: `C7Adapter` builds a runtime and commands per engine connection
 - `apps/vscode/src/adapters/c7/reading`: one reader per question, e.g. `InstanceDetailReader`, with its own mapping
-- `apps/vscode/src/adapters/c7/mapping`: what several readers share: definition refs, states, timestamps, root incidents
+- `apps/vscode/src/adapters/c7/mapping`: what several readers share: definition refs, states, timestamps, root incidents, the root cause of incident details
 - `apps/vscode/src/adapters/c7/writing`, `apps/vscode/src/adapters/c7/errors`: the bodies of a variable change and a move, the token a move cancels; failures to `RuntimeError`
 - `apps/vscode/src/adapters/c7/web-ui`: `CockpitWebUi`: links into Cockpit or the CIB seven webclient
-- `apps/vscode/src/adapters/c7/engine-rest`: the REST client: requests, paging, the instance inspection, parsed and checked views
+- `apps/vscode/src/adapters/c7/engine-rest`: the REST client: requests, paging, parsed and checked views
+- `apps/vscode/src/adapters/c7/engine-rest/inspect`: engine-core's port over `EngineHttp` (`HttpEngineTransport`) and its instance view as the adapter's `InspectView`
 
 ## Rules
 
-- `apps/vscode/src/adapters/c7` imports only the contract and no Node built-in (dependency-cruiser)
+- `apps/vscode/src/adapters/c7` imports only the contract and the main entry of `@miragon/pulse-engine-core`, no Node built-in (dependency-cruiser); no other layer imports engine-core
 - Engine words are allowed here, not in contract, core or webview; classes, no comments (ESLint)
 
 ## Proven on

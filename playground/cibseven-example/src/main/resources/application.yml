@@ -33,7 +33,7 @@ cibseven:
     authentication:
       jwtSecret: Y2liN2V2ZW4tZXhhbXBsZS1zZWNyZXQta2V5LXRoYXQtaXMtbG9uZy1lbm91Z2gtZm9yLWp3dC1zaWduaW5nLXB1cnBvc2VzLWFuZC1uZWVkcy10by1iZS1hdC1sZWFzdC0xNTUtY2hhcnMtbG9uZw==
 
-# History plugins — Micrometer process-metrics emitter (the metric-first
+# History plugins: Micrometer process-metrics emitter (the metric-first
 # analytics path). Emits aggregated counters/histograms from the history-event
 # stream into Micrometer's global registry; the OTLP registry below pushes them
 # to the Collector, which serves them to Prometheus. No event store required.
@@ -43,7 +43,7 @@ miragon.mcp.cibseven.history.metrics:
   # Prometheus/analytics can attribute and compare data across engines.
   engine-id: ${ENGINE_ID:default}
 
-# Micrometer OTLP push (micrometer-registry-otlp via Actuator) — same wire
+# Micrometer OTLP push (micrometer-registry-otlp via Actuator): same wire
 # format and interval as the previous OTEL-agent setup, minus the agent. The
 # OTLP registry natively honors OTEL_SERVICE_NAME for the resource attributes.
 management:

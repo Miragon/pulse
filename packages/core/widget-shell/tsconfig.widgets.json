@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    // Browser-only: keep the base's Node globals out of the view half.
+    "types": [],
+    "noEmit": true,
+    "composite": false
+  },
+  // The view half (`/widgets`) and the protocol modules it shares with the server half; the
+  // protocol tests run in Node and are the server half's.
+  "include": ["src/ui", "src/protocol"],
+  "exclude": ["src/protocol/**/*.test.ts"]
+}

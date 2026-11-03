@@ -1,25 +1,55 @@
 import { describe, expect, it } from "vitest"
 import { z } from "zod"
-import type { MCPServer } from "mcp-use"
-import { createToolRegistrar } from "@miragon/mcp-toolkit-core/tools"
-import { appOnly, showToolBinding, strictToolInput } from "./widget-tool-bindings.js"
+import {
+  VIEW_RESOURCE_URI_PREFIX,
+  appOnly,
+  showToolBinding,
+  strictToolInput,
+  viewResourceUri,
+} from "./widget-tool-bindings.js"
+
+describe("viewResourceUri", () => {
+  it("builds mcp-use's view resource URI", () => {
+    expect(viewResourceUri("show_tasks_board")).toBe("ui://views/show_tasks_board.html")
+    expect(viewResourceUri("x").startsWith(VIEW_RESOURCE_URI_PREFIX)).toBe(true)
+  })
+})
 
 describe("showToolBinding", () => {
-  it("binds the view to the tool name and stamps the Apps-SDK _meta half", () => {
-    const binding = showToolBinding("camunda7_show_thing", "Thing")
+  const binding = showToolBinding("show_widget", "Widget")
+
+  it("binds the view to the tool name", () => {
     expect(binding.view).toEqual({
-      name: "camunda7_show_thing",
-      description: "Thing",
+      name: "show_widget",
+      description: "Widget",
       prefersBorder: true,
-    })
-    expect(binding._meta).toMatchObject({
-      "openai/outputTemplate": "ui://views/camunda7_show_thing.html",
-      "openai/widgetAccessible": true,
     })
   })
 
+  it("stamps the five Apps SDK keys in the wire order", () => {
+    expect(Object.keys(binding._meta)).toEqual([
+      "openai/outputTemplate",
+      "openai/toolInvocation/invoking",
+      "openai/toolInvocation/invoked",
+      "openai/widgetAccessible",
+      "openai/resultCanProduceWidget",
+    ])
+    expect(binding._meta).toEqual({
+      "openai/outputTemplate": "ui://views/show_widget.html",
+      "openai/toolInvocation/invoking": "Loading Widget…",
+      "openai/toolInvocation/invoked": "Widget ready",
+      "openai/widgetAccessible": true,
+      "openai/resultCanProduceWidget": true,
+    })
+  })
+
+  it("never stamps a ui key: mcp-use owns that namespace", () => {
+    expect(Object.keys(binding._meta).some((key) => key === "ui" || key.startsWith("ui/"))).toBe(
+      false,
+    )
+  })
+
   it("carries a passthrough outputSchema (mcp-use requires one for view-bound tools)", () => {
-    const binding = showToolBinding("t", "T")
     // Free-form structuredContent must survive SDK-side validation unstripped.
     expect(binding.outputSchema.parse({ anything: 1, nested: { x: true } })).toEqual({
       anything: 1,
@@ -40,23 +70,6 @@ describe("appOnly", () => {
 describe("strictToolInput", () => {
   const shape = { processDefinitionKey: z.string().optional(), engine: z.string().optional() }
 
-  function registrarSchema(input: Record<string, z.ZodType>): z.ZodType {
-    let schema: z.ZodType | undefined
-    const server = {
-      tool: (definition: { inputSchema: z.ZodType }) => {
-        schema = definition.inputSchema
-      },
-    } as unknown as MCPServer
-    createToolRegistrar(server, null, { strictInput: true })({
-      name: "probe",
-      description: "probe",
-      inputSchema: input,
-      handler: () => Promise.resolve(null),
-    })
-    if (!schema) throw new Error("the registrar registered nothing")
-    return schema
-  }
-
   const failure = (schema: z.ZodType, args: unknown) => {
     const result = schema.safeParse(args)
     if (result.success) throw new Error("expected a validation failure")
@@ -69,16 +82,10 @@ describe("strictToolInput", () => {
     ])
   })
 
-  it("reports exactly the registrar's message (the widget path matches the registrar path)", () => {
-    for (const args of [{ bogus: 1 }, { a: 1, b: 2, engine: "x" }]) {
-      expect(failure(strictToolInput(shape), args)).toEqual(failure(registrarSchema(shape), args))
-    }
-    expect(failure(strictToolInput({}), { x: 1 })).toEqual(failure(registrarSchema({}), { x: 1 }))
-  })
-
   it("keeps valid input and other validation messages untouched", () => {
     expect(strictToolInput(shape).parse({ engine: "a" })).toEqual({ engine: "a" })
     expect(failure(strictToolInput(shape), { engine: 1 })[0]).not.toMatch(/Unknown key/)
+    expect(failure(strictToolInput(shape), "not an object")[0]).not.toMatch(/Unknown key/)
   })
 
   it("advertises additionalProperties: false", () => {

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { parseToolResult } from "@miragon/mcp-toolkit-ui"
+import { decodeToolResult, type ToolResult } from "@miragon/pulse-widget-shell/server"
 import type { MCPServer } from "mcp-use"
 import type { PrometheusClient, PromSample } from "@miragon/pulse-analytics-client"
 import {
@@ -82,71 +82,42 @@ function recordingClient(answer: (q: string) => PromSample[] = () => []) {
 
 const daysAgo = (days: number) => new Date(Date.now() - days * 86_400_000).toISOString()
 
-/** Total over the registered surface, so a new tool must prove its engine scoping here. */
+/**
+ * Total over the registered surface, so a new tool must prove its engine scoping here. Handlers
+ * called directly get no schema defaults: the periods and comparison floors are passed.
+ */
 const ARGS: Record<string, Record<string, unknown>> = {
-  analytics_analyze_process_performance: {
-    processDefinitionKey: "order",
-    period: "7d",
-    includeActivityBreakdown: true,
-  },
-  analytics_compare_execution_periods: {
-    processDefinitionKey: "order",
+  analytics_engine_health: {},
+  analytics_show_dashboard: { period: "7d" },
+  analytics_show_period_compare: {
     periodAFrom: daysAgo(6),
     periodATo: daysAgo(4),
     periodBFrom: daysAgo(3),
     periodBTo: daysAgo(1),
-    includeActivityBreakdown: true,
-  },
-  analytics_find_failed_instances: { maxResults: 5 },
-  analytics_element_bottleneck: { processDefinitionKey: "order", maxResults: 5 },
-  analytics_cluster_compare: {
-    deploymentTimestamp: daysAgo(2),
-    windowBeforeDays: 3,
-    windowAfterDays: 3,
     activityId: "Task_check",
-  },
-  analytics_version_compare: {
-    processDefinitionKey: "order",
-    versionA: 1,
-    versionB: 2,
-    windowDays: 7,
-  },
-  analytics_engine_compare: {
-    processDefinitionKey: "order",
-    engineA: "prod-a",
-    engineB: "prod-b",
-    windowDays: 7,
-  },
-  analytics_engine_landscape: {},
-  analytics_engine_health: {},
-  analytics_show_dashboard: {},
-  analytics_dashboard_data: {},
-  analytics_show_failure_dashboard: {},
-  analytics_failure_dashboard_data: {},
-  analytics_show_cluster_compare: {
-    deploymentTimestamp: daysAgo(2),
-    windowBeforeDays: 3,
-    windowAfterDays: 3,
+    minBucketSize: 10,
   },
   analytics_show_version_compare: {
     processDefinitionKey: "order",
     versionA: 1,
     versionB: 2,
     windowDays: 7,
+    minBucketSize: 10,
   },
   analytics_show_engine_compare: {
     processDefinitionKey: "order",
     engineA: "prod-a",
     engineB: "prod-b",
     windowDays: 7,
+    minBucketSize: 10,
   },
   analytics_show_engine_landscape: {},
   analytics_engine_landscape_data: {},
-  analytics_show_bpmn_heatmap: { processDefinitionKey: "order" },
-  analytics_bpmn_heatmap_data: { processDefinitionKey: "order" },
+  analytics_show_bpmn_heatmap: { processDefinitionKey: "order", period: "7d" },
+  analytics_bpmn_heatmap_data: { processDefinitionKey: "order", period: "7d" },
 }
 
-const PAIRWISE = new Set(["analytics_engine_compare", "analytics_show_engine_compare"])
+const PAIRWISE = new Set(["analytics_show_engine_compare"])
 
 /** The heatmap's diagram comes from the engine. */
 const READS_NO_PROMETHEUS = new Set(["analytics_bpmn_xml_data"])
@@ -236,7 +207,7 @@ describe("every engine-reading tool is scoped to the configured engines (N138)",
   )
 
   it.each(Object.entries(ARGS))(
-    "%s refuses — and reads nothing — while no engine is configured (fail-closed)",
+    "%s refuses (and reads nothing) while no engine is configured (fail-closed)",
     async (name, args) => {
       const { ch, sent } = recordingClient()
       const { refused } = await call(toolsOver(ch, createEngineScope([])).get(name)!, args)
@@ -249,20 +220,15 @@ describe("every engine-reading tool is scoped to the configured engines (N138)",
 describe("the BPMN heatmap names the engines its heat adds up (K33)", () => {
   const scope = createEngineScope(["prod-a", "prod-b"])
   type Payload = { engines?: unknown }
-  const payloadOf = (result: unknown): Payload => {
-    const r = result as {
-      structuredContent?: { context?: { stepData: { result: { data: Payload } } } }
-    }
-    // A view carries it in its step data; a feed answers in JSON text.
-    return r.structuredContent?.context?.stepData.result.data ?? parseToolResult<Payload>(result)
-  }
+  // A view carries it as its structuredContent; a feed answers in JSON text.
+  const payloadOf = (result: unknown): Payload => decodeToolResult<Payload>(result as ToolResult)
 
   it.each(["analytics_show_bpmn_heatmap", "analytics_bpmn_heatmap_data"])(
     "%s echoes the resolved engines in its payload",
     async (name) => {
       const tool = toolsOver(recordingClient().ch, scope).get(name)!
-      const fleet = await tool({ processDefinitionKey: "order" }, {})
-      const one = await tool({ processDefinitionKey: "order", engine: "prod-b" }, {})
+      const fleet = await tool({ processDefinitionKey: "order", period: "7d" }, {})
+      const one = await tool({ processDefinitionKey: "order", period: "7d", engine: "prod-b" }, {})
 
       expect(payloadOf(fleet).engines).toEqual(["prod-a", "prod-b"])
       expect(payloadOf(one).engines).toEqual(["prod-b"])
@@ -271,35 +237,45 @@ describe("the BPMN heatmap names the engines its heat adds up (K33)", () => {
 })
 
 describe("analyticsModule engine scope wiring", () => {
-  function fleetOf(config: Record<string, unknown>, shared: { engineIds?: string[] }) {
-    const plugin = analyticsModule.createPlugin(
-      { url: "http://prometheus.invalid", ...config },
-      shared,
-    )
-    return (plugin.appConfig as { engineScope: AnalyticsEngineScope }).engineScope.ids
+  /** The booted module's fleet, as its refusal of an unknown engine names it (before any query). */
+  async function fleetOf(config: Record<string, unknown>, shared: { engineIds?: string[] }) {
+    const tools = new Map<string, ToolCallback>()
+    const server = {
+      tool: (definition: { name: string }, callback: ToolCallback) => {
+        tools.set(definition.name, callback)
+      },
+    } as unknown as MCPServer
+    analyticsModule
+      .createPlugin({ url: "http://prometheus.invalid", ...config }, shared)
+      .register(server)
+    const { refused } = await call(tools.get("analytics_engine_health")!, {
+      engine: "not-configured",
+    })
+    if (refused === NO_ENGINE_SCOPE_MESSAGE) return []
+    return /configured engines: (.*)\.$/.exec(refused ?? "")?.[1].split(", ")
   }
 
-  it("takes the engines the composition root injects (camunda7's configured ones)", () => {
+  it("takes the engines the composition root injects (the engine module's configured ones)", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
-    expect(fleetOf({}, { engineIds: ["prod-a", "prod-b"] })).toEqual(["prod-a", "prod-b"])
+    expect(await fleetOf({}, { engineIds: ["prod-a", "prod-b"] })).toEqual(["prod-a", "prod-b"])
     expect(warn).not.toHaveBeenCalled()
   })
 
-  it("falls back to ANALYTICS_ENGINE_IDS for a standalone analytics boot", () => {
+  it("falls back to ANALYTICS_ENGINE_IDS for a standalone analytics boot", async () => {
     const config = analyticsModule.configFromEnv({ ANALYTICS_ENGINE_IDS: " prod-a , prod-b ," })
-    expect(fleetOf(config, {})).toEqual(["prod-a", "prod-b"])
+    expect(await fleetOf(config, {})).toEqual(["prod-a", "prod-b"])
   })
 
-  it("ignores ANALYTICS_ENGINE_IDS — saying so — when the root injects its engines", () => {
+  it("ignores ANALYTICS_ENGINE_IDS (saying so) when the root injects its engines", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
     const config = analyticsModule.configFromEnv({ ANALYTICS_ENGINE_IDS: "tenant-x" })
-    expect(fleetOf(config, { engineIds: ["prod-a"] })).toEqual(["prod-a"])
+    expect(await fleetOf(config, { engineIds: ["prod-a"] })).toEqual(["prod-a"])
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("ANALYTICS_ENGINE_IDS is ignored"))
   })
 
-  it("boots fail-closed — with a warning — when neither names an engine", () => {
+  it("boots fail-closed, with a warning, when neither names an engine", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
-    expect(fleetOf({}, {})).toEqual([])
+    expect(await fleetOf({}, {})).toEqual([])
     expect(warn).toHaveBeenCalledWith(`[analytics] ${NO_ENGINE_SCOPE_MESSAGE}`)
   })
 

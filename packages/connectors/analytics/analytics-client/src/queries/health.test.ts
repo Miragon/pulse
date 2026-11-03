@@ -9,7 +9,7 @@ interface Fixture {
   reporting?: string[]
   running?: PromSample[]
   incidents?: PromSample[]
-  dead?: number
+  failed?: number
   firing?: PromSample[]
   pending?: PromSample[]
 }
@@ -24,7 +24,7 @@ function mockClient(fixture: Fixture = {}) {
     }
     if (q.includes("process_instances_running")) return fixture.running ?? []
     if (q.includes("incidents_open")) return fixture.incidents ?? []
-    if (q.includes("jobs_failed")) return scalar(fixture.dead)
+    if (q.includes("jobs_failed")) return scalar(fixture.failed)
     if (q.includes("jobs_executable")) return perEngine(6.2)
     if (q.includes("jobs_suspended")) return scalar(2)
     if (q.includes('status="total"')) return scalar(9)
@@ -51,7 +51,7 @@ describe("engineHealth snapshot", () => {
         sample({}, 1),
       ],
       incidents: [sample({ incident_type: "failedJob" }, 3)],
-      dead: 1.6,
+      failed: 1.6,
     })
     const result = await engineHealth(ch, {})
     expect(result).toMatchObject({
@@ -66,7 +66,7 @@ describe("engineHealth snapshot", () => {
       ],
       openIncidents: 3,
       openIncidentsByType: [{ label: "failedJob", count: 3 }],
-      deadJobs: 2,
+      failedJobs: 2,
       executableJobs: 12,
       suspendedJobs: 2,
       openUserTasks: 9,
@@ -98,15 +98,15 @@ describe("engineHealth snapshot", () => {
 })
 
 /**
- * #340: the verdict is alert-based and says so — the same engine may be
- * "critical" in camunda7_show_engine_health (incident counts) and only
+ * #340: the verdict is alert-based and says so: the same engine may be
+ * "critical" in engine_open_cockpit's overview (incident counts) and only
  * "degraded" here. #336: silence is not health.
  */
 describe("engineHealth verdict", () => {
   it.each<[string, Fixture, string]>([
     ["a reporting engine without any signal", {}, "healthy"],
     ["one open incident", { incidents: [sample({ incident_type: "failedJob" }, 1)] }, "degraded"],
-    ["one dead job", { dead: 1 }, "degraded"],
+    ["one failed job", { failed: 1 }, "degraded"],
     ["a firing warning", { firing: [alert("Slow", "warning")] }, "degraded"],
     ["a firing critical alert", { firing: [alert("NoMetrics", "critical")] }, "critical"],
     ["a merely PENDING critical alert", { pending: [alert("NoMetrics", "critical")] }, "healthy"],
@@ -127,7 +127,7 @@ describe("engineHealth verdict", () => {
     expect(result.statusRule).toBe(ENGINE_HEALTH_STATUS_RULE)
   })
 
-  it("reads an engine that sends nothing — or a mistyped id — as unknown, never healthy (N76)", async () => {
+  it("reads an engine that sends nothing (or a mistyped id) as unknown, never healthy (N76)", async () => {
     const { ch } = mockClient({ reporting: [] })
     const result = await engineHealth(ch, { engine: "prod-b" })
     expect(result).toMatchObject({
@@ -150,7 +150,7 @@ describe("engineHealth verdict", () => {
 
   it("states its rule in words", () => {
     expect(ENGINE_HEALTH_STATUS_RULE).toBe(
-      "From Prometheus, over the engines in scope: unknown when none of them reports metrics; critical only while a severity=critical alert fires for them (fleet-wide also an engine-less CibSeven* alert); degraded with any such firing alert, dead job, open incident or an engine in scope that reports nothing; else healthy.",
+      "From Prometheus, over the engines in scope: unknown when none of them reports metrics; critical only while a severity=critical alert fires for them (fleet-wide also an engine-less CibSeven* alert); degraded with any such firing alert, failed job, open incident or an engine in scope that reports nothing; else healthy.",
     )
   })
 })
@@ -164,16 +164,16 @@ describe("engineHealth PromQL", () => {
     // report the same engine-wide rows.
     const perKey = "max by (process_definition_key, engine_id)"
     expect(instant.mock.calls.map(([q]) => q)).toEqual([
-      `sum by (process_definition_key)(${perKey}(camunda_process_instances_running${sel}))`,
-      `sum by (incident_type)(max by (process_definition_key, incident_type, engine_id)(camunda_incidents_open${sel}))`,
-      `sum(${perKey}(camunda_jobs_failed${sel}))`,
-      `max by (engine_id)(camunda_jobs_executable${sel})`,
-      `sum(max by (engine_id)(camunda_jobs_suspended${sel}))`,
-      `sum(max by (status, engine_id)(camunda_usertasks_open{status="total",engine_id="prod-a"}))`,
-      `sum(max by (status, engine_id)(camunda_usertasks_open{status="unassigned",engine_id="prod-a"}))`,
-      `max by (engine_id)(camunda_external_tasks_open${sel})`,
-      `count(count by (process_definition_key)(${perKey}(camunda_process_definitions_deployed${sel})))`,
-      // One engine named: only alerts carrying its engine_id — an unrelated
+      `sum by (process_definition_key)(${perKey}(engine_process_instances_running${sel}))`,
+      `sum by (incident_type)(max by (process_definition_key, incident_type, engine_id)(engine_incidents_open${sel}))`,
+      `sum(${perKey}(engine_jobs_failed${sel}))`,
+      `max by (engine_id)(engine_jobs_executable${sel})`,
+      `sum(max by (engine_id)(engine_jobs_suspended${sel}))`,
+      `sum(max by (status, engine_id)(engine_usertasks_open{status="total",engine_id="prod-a"}))`,
+      `sum(max by (status, engine_id)(engine_usertasks_open{status="unassigned",engine_id="prod-a"}))`,
+      `max by (engine_id)(engine_external_tasks_open${sel})`,
+      `count(count by (process_definition_key)(${perKey}(engine_process_definitions_deployed${sel})))`,
+      // One engine named: only alerts carrying its engine_id, so an unrelated
       // alert in a shared Prometheus cannot turn its verdict critical.
       `ALERTS{alertstate="firing",engine_id="prod-a"}`,
       `ALERTS{alertstate="pending",engine_id="prod-a"}`,
@@ -190,7 +190,7 @@ describe("engineHealth PromQL", () => {
     ])
   })
 
-  it("reads only the module's own rules when unscoped — never a shared Prometheus' foreign alerts", async () => {
+  it("reads only the module's own rules when unscoped, never a shared Prometheus' foreign alerts", async () => {
     const { ch, instant } = mockClient()
     await engineHealth(ch, {})
     const alertQueries = instant.mock.calls.map(([q]) => q).filter((q) => q.startsWith("ALERTS"))

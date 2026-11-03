@@ -11,18 +11,31 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."
 const pkg = (dir, name, dependencies = {}) => ({ dir, manifest: { name, dependencies } })
 
 const PACKAGES = [
-  pkg("packages/core/widget-shell", "@miragon/pulse-widget-shell"),
-  pkg("packages/connectors/camunda/camunda7-client", "@miragon/pulse-camunda7-client"),
-  pkg("packages/connectors/camunda/camunda7-connector", "@miragon/pulse-camunda7-connector", {
-    "@miragon/pulse-camunda7-client": "workspace:*",
+  pkg("packages/core/ui", "@miragon/pulse-ui"),
+  pkg("packages/connectors/engine/engine-core", "@miragon/pulse-engine-core"),
+  pkg("packages/core/widget-shell", "@miragon/pulse-widget-shell", {
+    "@miragon/pulse-ui": "workspace:*",
+  }),
+  pkg("packages/connectors/engine/engine-client", "@miragon/pulse-engine-client"),
+  pkg("packages/connectors/engine/engine-connector", "@miragon/pulse-engine-connector", {
+    "@miragon/pulse-engine-client": "workspace:*",
+    "@miragon/pulse-engine-core": "workspace:*",
     "@miragon/pulse-widget-shell": "workspace:*",
   }),
   pkg("packages/connectors/analytics/analytics-client", "@miragon/pulse-analytics-client"),
-  pkg("apps/mcp-server-camunda7", "@miragon/pulse-mcp-server-camunda7", {
-    "@miragon/pulse-camunda7-connector": "workspace:*",
+  pkg("apps/mcp-server", "@miragon/pulse-mcp-server", {
+    "@miragon/pulse-engine-connector": "workspace:*",
   }),
-  pkg("apps/cli", "@miragon/pulse-cli"),
-  pkg("apps/vscode", "pulse-cockpit"),
+  // The CLI bundles engine-core: a devDependency reaches it too.
+  {
+    dir: "apps/cli",
+    manifest: {
+      name: "@miragon/pulse-cli",
+      devDependencies: { "@miragon/pulse-engine-core": "workspace:*" },
+    },
+  },
+  // The extension's C7 adapter bundles engine-core.
+  pkg("apps/vscode", "pulse-cockpit", { "@miragon/pulse-engine-core": "workspace:*" }),
   pkg("docs", "@miragon/pulse-docs"),
 ]
 
@@ -46,7 +59,7 @@ describe("scopesFor: prose reaches only the checks that read it", () => {
 
   it("treats prose inside a package's code as code (a glossary its test reads)", () => {
     assert.deepEqual(
-      scopes("packages/connectors/camunda/camunda7-connector/src/messages/GLOSSARY.md"),
+      scopes("packages/connectors/engine/engine-connector/src/messages/GLOSSARY.md"),
       ["mcp", "template", "typescript"],
     )
   })
@@ -67,15 +80,39 @@ describe("scopesFor: prose reaches only the checks that read it", () => {
     ])
     assert.deepEqual(scopes("docs/.vitepress/theme/HomeLanding.vue"), ["brand"])
   })
+
+  it("runs the token drift scan for a stylesheet anywhere in the docs site", () => {
+    assert.deepEqual(scopes("docs/.vitepress/theme/custom.css"), ["brand", "typescript"])
+  })
 })
 
 describe("scopesFor: a package's code reaches its dependents", () => {
+  it("runs the MCP server's checks and the template for pulse-ui's stylesheet, through widget-shell", () => {
+    assert.deepEqual(scopes("packages/core/ui/src/theme.css"), ["mcp", "template", "typescript"])
+    assert.ok(withDependents(["packages/core/ui"], PACKAGES).has("packages/core/widget-shell"))
+  })
+
   it("runs the MCP server's checks and the template for a client, through its connector", () => {
-    assert.deepEqual(scopes("packages/connectors/camunda/camunda7-client/src/index.ts"), [
+    assert.deepEqual(scopes("packages/connectors/engine/engine-client/src/index.ts"), [
       "mcp",
       "template",
       "typescript",
     ])
+  })
+
+  it("runs the CLI's, the extension's and the MCP server's checks and the template for engine-core, its three users", () => {
+    assert.deepEqual(scopes("packages/connectors/engine/engine-core/src/inspect.ts"), [
+      "cli",
+      "mcp",
+      "template",
+      "typescript",
+      "vscode",
+      "vscode-package",
+    ])
+  })
+
+  it("runs the MCP server's checks for the server app itself, not only through a package", () => {
+    assert.deepEqual(scopes("apps/mcp-server/src/app.ts"), ["mcp", "typescript"])
   })
 
   it("runs only the CLI's checks for the CLI", () => {
@@ -104,7 +141,7 @@ describe("scopesFor: paths outside the packages", () => {
     assert.deepEqual(scopes("playground/cibseven-example/build.gradle.kts"), ["cibseven-example"])
   })
 
-  it("runs the TypeScript job for the files the metrics contract and setup-env tests read", () => {
+  it("runs the TypeScript job for the files the metrics contract and server env-name tests read", () => {
     assert.deepEqual(scopes("playground/docker/prometheus/alerts.yml"), ["typescript"])
     assert.deepEqual(scopes(".env.example"), ["typescript"])
   })
@@ -144,8 +181,8 @@ describe("scopesFor fails closed", () => {
 describe("withDependents", () => {
   it("adds every package that depends on a changed one, transitively", () => {
     assert.deepEqual([...withDependents(["packages/core/widget-shell"], PACKAGES)].sort(), [
-      "apps/mcp-server-camunda7",
-      "packages/connectors/camunda/camunda7-connector",
+      "apps/mcp-server",
+      "packages/connectors/engine/engine-connector",
       "packages/core/widget-shell",
     ])
   })
@@ -204,6 +241,14 @@ describe("the real workspace", () => {
       (dir) => dir !== "docs" && !scopesFor([`${dir}/src/index.ts`], packages).has("typescript"),
     )
     assert.deepEqual(without, [])
+  })
+
+  it("runs the extension's checks for engine-core, which its C7 adapter bundles", () => {
+    const changed = scopesFor(
+      ["packages/connectors/engine/engine-core/src/root-cause.ts"],
+      packages,
+    )
+    assert.ok(changed.has("vscode") && changed.has("vscode-package") && changed.has("cli"))
   })
 
   it("keeps the CLI and the extension apart from the MCP server's packages", () => {

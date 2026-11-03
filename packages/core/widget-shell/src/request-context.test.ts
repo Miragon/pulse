@@ -38,8 +38,9 @@ describe("runWithMcpRequestInfo / getMcpRequestInfo", () => {
   })
 
   it("exposes the info inside the run scope only", () => {
-    const inside = runWithMcpRequestInfo({ anonymousCaller: true }, () => getMcpRequestInfo())
-    expect(inside).toEqual({ anonymousCaller: true })
+    const info = { authorization: "Bearer token" }
+    const inside = runWithMcpRequestInfo(info, () => getMcpRequestInfo())
+    expect(inside).toEqual(info)
     expect(getMcpRequestInfo()).toBeUndefined()
   })
 })
@@ -50,7 +51,7 @@ describe("callerCacheKey", () => {
 
   it("is empty outside a request and for a request without a caller or a credential", () => {
     expect(callerCacheKey()).toBe("")
-    expect(runWithMcpRequestInfo({ anonymousCaller: true }, callerCacheKey)).toBe("")
+    expect(runWithMcpRequestInfo({}, callerCacheKey)).toBe("")
   })
 
   it("is stable for one caller and credential, and keeps no credential", () => {
@@ -102,10 +103,6 @@ describe("installMcpRequestContext", () => {
       session: { sessionId: "victim" },
     }
     expect(await seenFor(ctx)).toEqual({ authUserId: undefined, authorization: undefined })
-  })
-
-  it("never declares an anonymous caller — only runWithMcpRequestInfo can", async () => {
-    expect(await seenFor({})).toEqual({ authUserId: undefined, authorization: undefined })
   })
 
   it("ignores a non-string auth user id and a throwing header accessor", async () => {

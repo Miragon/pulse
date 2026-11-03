@@ -2,33 +2,26 @@ import { fileURLToPath } from "node:url"
 import { defineConfig } from "vite"
 import react from "@vitejs/plugin-react"
 import tailwindcss from "@tailwindcss/vite"
+import { VIEW_BUNDLE_DEDUPE } from "@miragon/pulse-widget-shell/server"
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
-    // LOAD-BEARING — never trim this list. The widget packages each resolve
-    // their own pnpm instance of the toolkit/React/Query libs; bundling two
-    // copies gives each its own React context, `useCallTool()` reads the
-    // wrong one, and every in-widget query hangs on "Loading…". Dedupe
-    // collapses them to a single instance. @miragon/pulse-widget-shell is listed
-    // because it is installed from npm here and carries a React context of
-    // its own.
-    dedupe: [
-      "react",
-      "react-dom",
-      "@tanstack/react-query",
-      "mcp-use",
-      "@miragon/mcp-toolkit-ui",
-      "@miragon/mcp-toolkit-core",
-      "@miragon/pulse-widget-shell",
-      // The kit's Lucide icons and the toolkit's: one instance.
-      "lucide-react",
-    ],
+    // LOAD-BEARING: widget-shell's list of what the view bundle must resolve to
+    // ONE instance (React, TanStack Query, mcp-use, the kit @miragon/pulse-ui,
+    // the view runtime @miragon/pulse-widget-shell, lucide-react). The modules
+    // each resolve their own pnpm instance of these; bundling two copies gives
+    // each its own React context, a widget's `useViewHost()`/`useToolQuery()`
+    // reads the wrong one (no view host, no QueryClient), and every in-widget
+    // query hangs on "Loading…". Spread it whole and never trim it; a package
+    // of your own that carries a React context goes after it.
+    dedupe: [...VIEW_BUNDLE_DEDUPE],
   },
   build: {
-    // Two-file output (ES module + stylesheet) for createFrameworkApp's
-    // `app.bundle`, with all assets inlined so the bundle stays self-contained
-    // inside the sandboxed view iframe.
+    // Two-file output (ES module + stylesheet) for the boot's `bundle`
+    // (`createComposedServer` inlines both into every view), with all assets
+    // inlined so the bundle stays self-contained inside the sandboxed view
+    // iframe.
     assetsInlineLimit: 100_000_000,
     cssCodeSplit: false,
     rollupOptions: {

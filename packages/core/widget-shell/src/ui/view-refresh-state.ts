@@ -1,4 +1,4 @@
-import type { ViewDataResult } from "@miragon/mcp-toolkit-ui/hooks"
+import type { ViewDataResult } from "./tool-query.js"
 
 export interface ViewRefreshState {
   /**

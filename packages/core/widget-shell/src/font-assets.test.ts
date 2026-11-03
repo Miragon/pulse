@@ -9,7 +9,7 @@ import {
   type FontAsset,
 } from "./font-assets.js"
 import type { HttpRouteHost } from "./health.js"
-import { SERVED_FONT_FILES } from "./served-fonts.js"
+import { SERVED_FONT_FILES } from "./protocol/served-fonts.js"
 
 /** A woff2 file starts with the signature `wOF2`. */
 const WOFF2_SIGNATURE = [0x77, 0x4f, 0x46, 0x32]
@@ -105,7 +105,7 @@ describe("installFontAssets", () => {
     expect(new Uint8Array(await res.arrayBuffer())).toEqual(new Uint8Array([1, 2, 3]))
   })
 
-  it("boots on without the route when the files cannot be read — the views use the host's font", () => {
+  it("boots on without the route when the files cannot be read: the views use the host's font", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
     const { host, routes } = fakeHost()
     const failure = new Error("ENOENT")
@@ -135,7 +135,7 @@ describe("installFontAssets", () => {
 })
 
 describe("fontAssetsCsp", () => {
-  it("admits MCP_URL's origin in resourceDomains — the origin the views load fonts from", () => {
+  it("admits MCP_URL's origin in resourceDomains: the origin the views load fonts from", () => {
     expect(fontAssetsCsp({ MCP_URL: "https://mcp.example.com/mcp" })).toEqual({
       resourceDomains: ["https://mcp.example.com"],
     })

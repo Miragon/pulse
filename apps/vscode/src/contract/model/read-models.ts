@@ -84,6 +84,8 @@ export interface IncidentDetails {
   readonly kind: "stacktrace" | "errorMessage"
   readonly text: string
   readonly truncated: boolean
+  readonly rootCause?: string
+  readonly rootCauseLine?: number
 }
 
 export interface IncidentJob {

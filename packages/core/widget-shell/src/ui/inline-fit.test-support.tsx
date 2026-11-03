@@ -1,8 +1,9 @@
 import type { ReactNode } from "react"
 import { screen } from "@testing-library/react"
-import { LocaleProvider } from "@miragon/mcp-toolkit-ui"
+import { LocaleProvider } from "@miragon/pulse-ui"
 import { InlineBudgetProvider, type InlineBudget } from "./inline-budget.js"
-import { InlineFitBox, type FitMeasure } from "./inline-fit.js"
+import { InlineFitBox } from "./inline-fit.js"
+import type { FitMeasure } from "./inline-fit-registry.js"
 import { ListTable } from "./list-table.js"
 
 /** happy-dom has no layout, so the inline-fit tests inject one. */

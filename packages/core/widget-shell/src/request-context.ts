@@ -1,17 +1,17 @@
 /**
- * Ambient request info for consumers WITHOUT a handler `ctx`: pipeline steps and the
- * camunda7 passthrough-auth interceptor deep in a hey-api chain. Fail-closed: no
- * middleware or no request means NO identity, never a shared record. `/server` only:
- * `node:async_hooks` must never reach the widget bundle.
+ * Ambient request info for consumers WITHOUT a handler `ctx`: the per-caller caches
+ * (`callerCacheKey`) and the engine passthrough-auth interceptor deep in a hey-api
+ * chain. Without the middleware nothing is forwarded (passthrough fails with the engine's
+ * 401) and every caller shares the "" cache partition, which is safe only because no
+ * per-caller token reaches the engine. `/server` only: `node:async_hooks` must
+ * never reach the widget bundle.
  */
 import { AsyncLocalStorage } from "node:async_hooks"
 import { createHash } from "node:crypto"
-import { resolveCallerId } from "@miragon/mcp-toolkit-core"
+import { callerUserId } from "./caller.js"
 
 export interface McpRequestInfo {
   authUserId?: string
-  /** Never derived from a request: only code under {@link runWithMcpRequestInfo} can declare it. */
-  anonymousCaller?: boolean
   authorization?: string
 }
 
@@ -33,7 +33,7 @@ export function callerCacheKey(): string {
     .digest("base64url")
 }
 
-/** The test seam, and the only way to declare an `anonymousCaller`. */
+/** The test seam. */
 export function runWithMcpRequestInfo<T>(info: McpRequestInfo, fn: () => T): T {
   return storage.run(info, fn)
 }
@@ -53,7 +53,7 @@ function deriveInfo(ctx: MiddlewareCtxLike): McpRequestInfo {
     }
   }
   return {
-    authUserId: resolveCallerId(ctx),
+    authUserId: callerUserId(ctx),
     authorization: header("Authorization") ?? header("authorization"),
   }
 }

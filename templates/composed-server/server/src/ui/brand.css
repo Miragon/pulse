@@ -1,7 +1,7 @@
 /*
- * Your brand — the one place this server's look is decided.
+ * Your brand: the one place this server's look is decided.
  *
- * It starts from the Miragon theme, the toolkit's default: the vendored
+ * It starts from the Miragon theme, pulse-ui's default: the vendored
  * corporate-design tokens (--cd-*) and the ROLE variables every widget
  * colours through, in light and dark. Keep it as it is, or override role
  * variables in the block below. Never set the --cd-* tokens themselves, and
@@ -46,11 +46,11 @@
  * Keep every pair readable: text and each -foreground on its fill 4.5:1;
  * edges, dots, icons and the focus ring 3:1. server/test/brand.test.ts
  * measures those pairs (the role and tone pairs of
- * @miragon/pulse-widget-shell/testing) in light and dark over the Miragon
+ * @miragon/pulse-ui/testing) in light and dark over the Miragon
  * neutrals, the example at the end of this file included. It does not
  * measure charts, the sidebar, radii, shadows or fonts.
  */
-@import "@miragon/mcp-toolkit-ui/theme.css";
+@import "@miragon/pulse-ui/theme.css";
 
 /* ── Brand overrides: role variables only ─────────────────────────────────── */
 

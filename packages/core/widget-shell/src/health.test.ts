@@ -13,7 +13,7 @@ function install(options?: HealthOptions) {
     const handler = routes.get(path)
     if (!handler) throw new Error(`no route registered for ${path}`)
     const res = await handler({})
-    return { status: res.status, body: (await res.json()) as unknown, headers: res.headers }
+    return { status: res.status, body: await res.json(), headers: res.headers }
   }
   return { routes, call }
 }
@@ -109,7 +109,7 @@ describe("installHealthEndpoints", () => {
     expect(String(warn.mock.calls[0][1])).toContain("timed out after 10ms")
   })
 
-  it("answers 503 draining once the host drains — without running the checks — while live stays up", async () => {
+  it("answers 503 draining once the host drains (without running the checks) while live stays up", async () => {
     const check = vi.fn()
     let draining = false
     const { call } = install({ readiness: { db: check }, draining: () => draining })

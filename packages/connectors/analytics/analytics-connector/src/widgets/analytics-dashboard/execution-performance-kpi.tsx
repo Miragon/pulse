@@ -1,7 +1,6 @@
-import { WidgetShell, formatDuration, formatNumber } from "@miragon/pulse-widget-shell/widgets"
-import { KpiGrid, KpiGridSkeleton, type KpiCell } from "@miragon/mcp-toolkit-ui"
-import { useDashboardSelfFetch, type DashboardScopeProps, type DashboardView } from "./lib.js"
-import { QueryGate } from "../query-gate.js"
+import { formatDuration, formatNumber, KpiGrid, type KpiCell } from "@miragon/pulse-ui"
+import { WidgetShell } from "@miragon/pulse-widget-shell/widgets"
+import type { DashboardView } from "./lib.js"
 import { useT, type T } from "../../messages/use-t.js"
 import { RATE_UP_IS_WORSE, deltaVerdict, type DeltaVerdict } from "../comparison-shared.js"
 
@@ -19,7 +18,7 @@ const VERDICT_KEY: Record<DeltaVerdict, string> = {
  * process fixed: over a mix the rate moves with the mix (Simpson's paradox), so
  * an unscoped dashboard shows the previous rate without a verdict.
  */
-export function incidentRateTrend(
+function incidentRateTrend(
   t: T,
   data: Pick<DashboardView, "incidentRatePct" | "previous" | "processDefinitionKey">,
 ): Pick<KpiCell, "trend" | "trendDirection" | "trendTone"> {
@@ -44,40 +43,26 @@ export function incidentRateTrend(
   }
 }
 
-export function ExecutionPerformanceKpi({
-  data: initialData,
-  processDefinitionKey,
-  period,
-  engine,
-}: { data: DashboardView | null } & DashboardScopeProps) {
+export function ExecutionPerformanceKpi({ data }: { data: DashboardView }) {
   const t = useT()
-  const fallbackQuery = useDashboardSelfFetch(initialData, { processDefinitionKey, period, engine })
 
   return (
-    <QueryGate
-      initialData={initialData}
-      query={fallbackQuery}
-      skeleton={<KpiGridSkeleton cells={4} boxed />}
-    >
-      {(data) => (
-        <WidgetShell>
-          <KpiGrid
-            boxed
-            header={{ label: t("aExecPerf.headerLabel") }}
-            cells={[
-              { label: t("aExecPerf.avgDuration"), value: formatDuration(data.avgDurationMs) },
-              { label: t("aExecPerf.median"), value: formatDuration(data.medianDurationMs) },
-              { label: t("aExecPerf.p95"), value: formatDuration(data.p95DurationMs) },
-              {
-                label: t("aExecPerf.incidentRate"),
-                // One instance may carry several incidents, so the rate can pass 100.
-                value: rate(data.incidentRatePct),
-                ...incidentRateTrend(t, data),
-              },
-            ]}
-          />
-        </WidgetShell>
-      )}
-    </QueryGate>
+    <WidgetShell>
+      <KpiGrid
+        boxed
+        header={{ label: t("aExecPerf.headerLabel") }}
+        cells={[
+          { label: t("aExecPerf.avgDuration"), value: formatDuration(data.avgDurationMs) },
+          { label: t("aExecPerf.median"), value: formatDuration(data.medianDurationMs) },
+          { label: t("aExecPerf.p95"), value: formatDuration(data.p95DurationMs) },
+          {
+            label: t("aExecPerf.incidentRate"),
+            // One instance may carry several incidents, so the rate can pass 100.
+            value: rate(data.incidentRatePct),
+            ...incidentRateTrend(t, data),
+          },
+        ]}
+      />
+    </WidgetShell>
   )
 }

@@ -3,10 +3,13 @@
   "compilerOptions": {
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "jsx": "react-jsx",
+    // The server half (`/server`, `/testing`, src/protocol): Node's globals from the base, no DOM.
+    // The view half (src/ui) is tsconfig.widgets.json's.
+    "lib": ["ES2022"],
     "outDir": "dist",
     "rootDir": "src",
     "composite": false
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["src/ui"]
 }

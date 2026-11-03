@@ -1,18 +1,17 @@
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
+import { describe, expect, it } from "vitest"
 import type { MCPServer } from "mcp-use"
 import type {
-  ClusterCompareResult,
+  EngineLandscapeResult,
   PrometheusClient,
   VersionCompareResult,
 } from "@miragon/pulse-analytics-client"
 import { createEngineScope } from "../engine-ids.js"
-import type { ProfileSource } from "../server-locale.js"
 import { registerComparisonWidgetTools } from "./comparisons.js"
 
 type ToolResult = {
   isError?: boolean
   content: Array<{ type: string; text: string }>
-  structuredContent: { context: { stepData: { result: { data: unknown } } } }
+  structuredContent: Record<string, unknown>
 }
 type Handler = (args: Record<string, unknown>, ctx: unknown) => Promise<ToolResult>
 
@@ -25,26 +24,42 @@ function handlers(ch: PrometheusClient): Map<string, Handler> {
       byName.set(definition.name, handler)
     },
   } as unknown as MCPServer
-  registerComparisonWidgetTools({ server, ch, engineScope })
+  registerComparisonWidgetTools({
+    server,
+    ch,
+    engineScope,
+    namesFor: (keys) =>
+      Promise.resolve(
+        Object.fromEntries([...keys].map((key) => [key, { name: `Name ${key}`, elements: {} }])),
+      ),
+  })
   return byName
 }
 
-const dataOf = <T>(result: ToolResult) => result.structuredContent.context.stepData.result.data as T
+const dataOf = <T>(result: ToolResult) => result.structuredContent as T
+const modelOf = <T>(result: ToolResult) => JSON.parse(result.content[0].text) as T
 
 /** Every query answers 20, so instance counts and durations are equal across versions. */
 const ch: PrometheusClient = { instant: () => Promise.resolve([{ metric: {}, value: 20 }]) }
 
+const daysAgo = (days: number) => new Date(Date.now() - days * 86_400_000).toISOString()
+
 describe("analytics_show_version_compare", () => {
-  it("summarises the measured incident-rate delta per version (#337)", async () => {
+  it("returns the per-version incident rates to the model as compact JSON (issue 337)", async () => {
     const show = handlers(ch).get("analytics_show_version_compare")!
     const result = await show(
       { processDefinitionKey: "order", versionA: 1, versionB: 2, windowDays: 14 },
       {},
     )
 
-    expect(result.content[0].text).toContain("incident rate 0pp")
-    const data = dataOf<VersionCompareResult>(result)
-    expect(data.kpis.map((k) => k.incident_rate_pct)).toEqual([100, 100])
+    const text = result.content[0].text
+    expect(text).not.toContain("\n")
+    const model = modelOf<VersionCompareResult>(result)
+    expect(model.kpis.map((k) => k.incidentRatePct)).toEqual([100, 100])
+    expect(model.delta.incidentRateDeltaPp).toBe(0)
+    expect(dataOf<VersionCompareResult>(result).kpis.map((k) => k.incidentRatePct)).toEqual([
+      100, 100,
+    ])
   })
 
   it("names the engines a fleet comparison aggregates (K33)", async () => {
@@ -53,61 +68,12 @@ describe("analytics_show_version_compare", () => {
       { processDefinitionKey: "order", versionA: 1, versionB: 2, windowDays: 14 },
       {},
     )
-    expect(result.content[0].text).toContain(
-      'across all 2 configured engines ("prod-a", "prod-b"), aggregated',
-    )
+    expect(modelOf<VersionCompareResult>(result).engines).toEqual(["prod-a", "prod-b"])
     expect(dataOf<VersionCompareResult>(result).engines).toEqual(["prod-a", "prod-b"])
   })
 })
 
-describe("analytics_show_cluster_compare — clamped windows (N79)", () => {
-  const NOW = Date.parse("2026-10-09T12:00:00Z")
-  beforeAll(() => {
-    vi.useFakeTimers({ toFake: ["Date"], now: NOW })
-  })
-  afterAll(() => {
-    vi.useRealTimers()
-  })
-
-  it("measures a recent deployment's post window up to now and says so", async () => {
-    const sent: string[] = []
-    const recording: PrometheusClient = {
-      instant: (q) => {
-        sent.push(q)
-        return Promise.resolve([{ metric: {}, value: 20 }])
-      },
-    }
-    const deployedTwoHoursAgo = new Date(NOW - 2 * 3_600_000).toISOString()
-    const result = await handlers(recording).get("analytics_show_cluster_compare")!(
-      { deploymentTimestamp: deployedTwoHoursAgo, windowBeforeDays: 7, windowAfterDays: 7 },
-      {},
-    )
-
-    // No `@` anchor beyond now — the post window is 2 h, not 7 d.
-    const anchors = sent.flatMap((q) => [...q.matchAll(/@ (\d+)/g)].map((m) => Number(m[1])))
-    expect(Math.max(...anchors)).toBe(NOW / 1000)
-    const data = dataOf<ClusterCompareResult>(result)
-    expect(data).toMatchObject({
-      partial: true,
-      requestedWindowDays: { before: 7, after: 7 },
-      windowDays: { before: 7, after: 0.08 },
-    })
-    expect(result.content[0].text).toContain("measured -7d / +0.08d, partial")
-    // 20 starts in 2 h vs 20 in 7 d is a huge rise PER DAY — never a flat 0 %.
-    expect(data.delta.started_per_day_delta_pct).toBe(8300)
-  })
-
-  it("refuses a deployment in the future instead of comparing an empty window", async () => {
-    const result = await handlers(ch).get("analytics_show_cluster_compare")!(
-      { deploymentTimestamp: new Date(NOW + 3_600_000).toISOString() },
-      {},
-    )
-    expect(result.isError).toBe(true)
-    expect(result.content[0].text).toContain("deploymentTimestamp lies in the future")
-  })
-})
-
-describe("analytics_show_engine_compare — engine scope (N138)", () => {
+describe("analytics_show_engine_compare: engine scope (N138)", () => {
   it("refuses an engine outside the configured ones", async () => {
     const result = await handlers(ch).get("analytics_show_engine_compare")!(
       { processDefinitionKey: "order", engineA: "prod-a", engineB: "tenant-x" },
@@ -118,24 +84,81 @@ describe("analytics_show_engine_compare — engine scope (N138)", () => {
   })
 })
 
-describe("view titles (U3): the toolbar speaks the caller's language", () => {
-  const CTX = { auth: { user: { id: "user-1" } } }
-  const titledHandlers = (language: string) => {
-    const byName = new Map<string, Handler>()
-    const server = {
-      tool: (definition: { name: string }, handler: Handler) => {
-        byName.set(definition.name, handler)
-      },
-    } as unknown as MCPServer
-    const profileStore: ProfileSource = { get: () => Promise.resolve({ language }) }
-    registerComparisonWidgetTools({ server, ch, engineScope, profileStore })
-    return byName
+describe("the model reads what the view shows", () => {
+  const ORDER = { process_definition_key: "order", engine_id: "prod-a" }
+  const landscapeClient: PrometheusClient = {
+    instant: (q) =>
+      Promise.resolve(
+        q.includes("by (engine_id, process_definition_key)")
+          ? [{ metric: ORDER, value: 3 }]
+          : [{ metric: { engine_id: "prod-a" }, value: 1 }],
+      ),
   }
-  const titleOf = (result: ToolResult) =>
-    (result.structuredContent as unknown as { title?: string }).title
+  // Handlers called directly get no schema defaults: pass the windows and floors.
+  const CALLS: Array<[string, Record<string, unknown>]> = [
+    [
+      "analytics_show_period_compare",
+      {
+        periodAFrom: daysAgo(4),
+        periodATo: daysAgo(2),
+        periodBFrom: daysAgo(2),
+        periodBTo: daysAgo(1),
+        minBucketSize: 10,
+      },
+    ],
+    [
+      "analytics_show_version_compare",
+      { processDefinitionKey: "o", versionA: 1, versionB: 2, windowDays: 14, minBucketSize: 10 },
+    ],
+    [
+      "analytics_show_engine_compare",
+      {
+        processDefinitionKey: "o",
+        engineA: "prod-a",
+        engineB: "prod-b",
+        windowDays: 14,
+        minBucketSize: 10,
+      },
+    ],
+  ]
 
+  it.each(CALLS)(
+    "%s returns the same result in content and structuredContent",
+    async (name, args) => {
+      const result = await handlers(ch).get(name)!(args, {})
+      expect(result.isError).toBeFalsy()
+      expect(result.content[0].text).toBe(JSON.stringify(result.structuredContent))
+    },
+  )
+
+  it("returns the landscape's figures without the names the view shows", async () => {
+    const result = await handlers(landscapeClient).get("analytics_show_engine_landscape")!({}, {})
+    const { names, ...figures } = dataOf<Record<string, unknown>>(result)
+    expect(names).toEqual({ order: { name: "Name order", elements: {} } })
+    expect(result.content[0].text).toBe(JSON.stringify(figures))
+    expect(modelOf<EngineLandscapeResult>(result).processes[0]).toMatchObject({
+      processDefinitionKey: "order",
+      runningTotal: 3,
+    })
+    expect(result.content[0].text).not.toContain("Name order")
+  })
+})
+
+describe("no server titles (U3): the widget heading names the view in the host's language", () => {
+  const CTX = { auth: { user: { id: "user-1" } } }
+  const titledHandlers = () => handlers(ch)
   const CALLS: Array<[string, Record<string, unknown>]> = [
     // Handlers called directly get no schema defaults: pass the window.
+    [
+      "analytics_show_period_compare",
+      {
+        periodAFrom: daysAgo(4),
+        periodATo: daysAgo(2),
+        periodBFrom: daysAgo(2),
+        periodBTo: daysAgo(1),
+        minBucketSize: 10,
+      },
+    ],
     [
       "analytics_show_version_compare",
       { processDefinitionKey: "o", versionA: 1, versionB: 2, windowDays: 14 },
@@ -146,24 +169,13 @@ describe("view titles (U3): the toolbar speaks the caller's language", () => {
     ],
     ["analytics_show_engine_landscape", {}],
   ]
-  const titles = async (language: string) => {
-    const tools = titledHandlers(language)
-    return Promise.all(CALLS.map(([name, args]) => tools.get(name)!(args, CTX).then(titleOf)))
-  }
 
-  it("titles each comparison and the landscape in German", async () => {
-    expect(await titles("de")).toEqual([
-      "Versionsvergleich",
-      "Engine-Vergleich",
-      "Engine-übergreifende Übersicht",
-    ])
-  })
-
-  it("and in English, in sentence case", async () => {
-    expect(await titles("en")).toEqual([
-      "Version comparison",
-      "Engine comparison",
-      "Cross-engine landscape",
-    ])
+  it("hands each comparison and the landscape its data only", async () => {
+    const tools = titledHandlers()
+    for (const [name, args] of CALLS) {
+      const { structuredContent } = await tools.get(name)!(args, CTX)
+      expect(Object.keys(structuredContent)).not.toContain("title")
+      expect(Object.keys(structuredContent)).not.toContain("layout")
+    }
   })
 })

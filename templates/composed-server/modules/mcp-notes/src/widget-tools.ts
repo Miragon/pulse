@@ -3,18 +3,18 @@ import type { MCPServer } from "mcp-use"
 import {
   appOnly,
   buildDataFeedResult,
-  buildSingleWidgetView,
+  buildViewResult,
   showToolBinding,
   strictToolInput,
   withToolErrors,
 } from "@miragon/pulse-widget-shell/server"
-import { NOTES_LIST_DATA } from "./tool-names.js"
+import { NOTES_LIST_DATA, NOTES_SHOW_NOTES } from "./tool-names.js"
 import type { NotesStore } from "./notes-store.js"
 
 /**
- * Inputs shared by `notes_show_notes` and its `notes_list_data` feed —
+ * Inputs shared by `notes_show_notes` and its `notes_list_data` feed,
  * declared through `strictToolInput`, the raw-path twin of the registrar's
- * `strictInput`: an unknown key is refused, never stripped.
+ * strict input: an unknown key is refused, never stripped.
  */
 const notesInputShape = {
   query: z
@@ -24,48 +24,47 @@ const notesInputShape = {
 }
 
 export function registerWidgetTools(server: MCPServer, store: NotesStore, title: string) {
-  // Render path 2 of 3: renders the widget for the user AND returns a short
-  // summary for the model. The `_show_` naming is load-bearing — the server's
-  // widget-contract e2e test asserts the widget `_meta` on it by name.
+  // Render path 2 of 3: renders the view for the user AND returns a short
+  // summary for the model. Its structuredContent IS the view's data, and the
+  // tool's name is the view's name (`notesViews` in `widgets/index.ts`). The
+  // `_show_` naming is load-bearing: the server's widget-contract e2e test
+  // asserts the view `_meta` on it by name.
   server.tool(
     {
-      name: "notes_show_notes",
+      name: NOTES_SHOW_NOTES,
       title: "Team Notes",
-      description:
-        "Show the team's operations notes as an interactive list. Optional case-insensitive filter over title, text, and tags.",
+      description: "Show the team's operations notes as an interactive list.",
       annotations: { readOnlyHint: true, idempotentHint: true },
       inputSchema: strictToolInput(notesInputShape),
-      ...showToolBinding("notes_show_notes", "Team Notes"),
+      ...showToolBinding(NOTES_SHOW_NOTES, "Team Notes"),
     },
     withToolErrors(async (args) => {
       const notes = store.list(args)
-      return buildSingleWidgetView({
-        widget: "notes:list",
-        app: "notes",
-        dataType: "notes:list",
-        data: { title, notes },
-        title: "Team Notes",
-        summary:
-          `Showing ${notes.length} team note(s)` +
+      return buildViewResult(
+        { title, query: args.query ?? null, notes },
+        `Showing ${notes.length} team note(s)` +
           `${args.query ? ` matching "${args.query}"` : ""}. ` +
           "Fetch the raw list with notes_list_notes.",
-      })
+      )
     }),
   )
 
-  // Render path 3 of 3: the app-only `*_data` feed for the widget's own
-  // refresh/self-fetch. The `_data` suffix is load-bearing — the e2e test
-  // asserts app-only visibility on it by name.
+  // Render path 3 of 3: the app-only `*_data` feed the widget re-reads (a
+  // retry, an invalidation after a write) and fetches when it is embedded
+  // without data. Same builder, same arguments as the show tool. The `_data`
+  // suffix is load-bearing: the e2e test asserts app-only visibility on it by name.
   server.tool(
     {
       name: NOTES_LIST_DATA,
       title: "Notes list data (internal)",
       description:
-        "Internal JSON feed (no UI) for the notes widget's self-fetch. Prefer notes_show_notes.",
+        "Internal JSON feed (no UI) for the notes widget's refresh. Prefer notes_show_notes.",
       annotations: { readOnlyHint: true, idempotentHint: true },
       inputSchema: strictToolInput(notesInputShape),
       ...appOnly,
     },
-    withToolErrors(async (args) => buildDataFeedResult({ title, notes: store.list(args) })),
+    withToolErrors(async (args) =>
+      buildDataFeedResult({ title, query: args.query ?? null, notes: store.list(args) }),
+    ),
   )
 }

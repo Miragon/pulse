@@ -1,13 +1,13 @@
-# Local demo stack — LOOPBACK-ONLY BY DESIGN. Every published port binds to
+# Local demo stack: LOOPBACK-ONLY BY DESIGN. Every published port binds to
 # 127.0.0.1: the engine REST API accepts anonymous requests (anyone who reaches
 # it can deploy and start processes), Grafana runs as anonymous Admin, and
-# Postgres, Keycloak and the OTEL Collector use demo-grade credentials or none.
-# Don't drop the 127.0.0.1: prefixes to reach the stack from another machine —
+# Keycloak and the OTEL Collector use demo-grade credentials or none.
+# Don't drop the 127.0.0.1: prefixes to reach the stack from another machine;
 # tunnel instead, e.g. `ssh -L 8400:127.0.0.1:8400 -L 8470:127.0.0.1:8470 <host>`.
 name: pulse
 
 services:
-  # Default: custom-built CIB Seven with the Micrometer metrics plugin.
+  # Default: custom-built CIB seven with the Micrometer metrics plugin.
   # Identifies itself as `prod-a` via the `engine_id` metric tag.
   cibseven:
     build:
@@ -76,7 +76,7 @@ services:
       retries: 12
       start_period: 30s
 
-  # Dev: plain CIB Seven image, no custom build
+  # Dev: plain CIB seven image, no custom build
   # Use: docker compose --profile dev up
   cibseven-dev:
     profiles: [dev]
@@ -85,6 +85,10 @@ services:
       - "127.0.0.1:8410:8080"
     environment:
       - CIBSEVEN_BPM_RUN_AUTH_ENABLED=true
+      # Without the invoice example: it sets the engine clock back while it seeds itself,
+      # after the REST API already answers, so data created then gets rewound timestamps.
+      # CIB seven's Run reads camunda.bpm.*, so this variable keeps the CAMUNDA_ prefix.
+      - CAMUNDA_BPM_RUN_EXAMPLE_ENABLED=false
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:8080/engine-rest/engine || exit 1"]
       interval: 10s
@@ -92,7 +96,7 @@ services:
       retries: 12
       start_period: 30s
 
-  # OpenTelemetry Collector — receives OTLP pushed by the engines' Micrometer
+  # OpenTelemetry Collector: receives OTLP pushed by the engines' Micrometer
   # OTLP registry, serves process metrics for Prometheus to scrape (:9464).
   # Sole export path of the metric-first analytics stack.
   otel-collector:
@@ -108,7 +112,7 @@ services:
       - "127.0.0.1:8450:8888" # Collector's own telemetry
       - "127.0.0.1:8451:9464" # Prometheus exporter (process metrics)
 
-  # Prometheus — scrapes the Collector's process metrics.
+  # Prometheus: scrapes the Collector's process metrics.
   prometheus:
     image: prom/prometheus:v3.1.0
     command:
@@ -123,7 +127,7 @@ services:
     depends_on:
       - otel-collector
 
-  # Grafana — process-analytics dashboards over Prometheus. Anonymous admin so
+  # Grafana: process-analytics dashboards over Prometheus. Anonymous admin so
   # the demo opens straight onto the provisioned dashboards.
   grafana:
     image: grafana/grafana:11.4.0
@@ -141,40 +145,16 @@ services:
     depends_on:
       - prometheus
 
-  # Postgres — durable user settings + saved dashboards for the MCP server
-  # (opt-in via DATABASE_URL). Default profile so a locally-run server
-  # (`pnpm dev`) reaches it on localhost:8440. The init script creates a
-  # second database for the opt-in `pnpm test:pg` suites, so tests never touch
-  # the playground's own data. demo-grade credentials, matching demo/demo.
-  postgres:
-    image: postgres:18.1-alpine
-    environment:
-      - POSTGRES_USER=miragon
-      - POSTGRES_PASSWORD=miragon
-      - POSTGRES_DB=miragon
-    volumes:
-      # The 18+ image keeps PGDATA in a versioned subdirectory of
-      # /var/lib/postgresql — mount the parent, not .../data.
-      - postgres-data:/var/lib/postgresql
-      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-    ports:
-      - "127.0.0.1:8440:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U miragon -d miragon"]
-      interval: 5s
-      timeout: 3s
-      retries: 12
-      start_period: 10s
-
-  # Keycloak — the local IdP for the server's opt-in OAuth (MCP_OAUTH,
-  # provider "keycloak": the server only validates bearer tokens; MCP clients
+  # Keycloak: the local IdP for the server's opt-in OAuth
+  # (MCP_USE_OAUTH_KEYCLOAK_SERVER_URL and MCP_USE_OAUTH_KEYCLOAK_REALM; the
+  # server only validates bearer tokens; MCP clients
   # log in at Keycloak directly, by Dynamic Client Registration or with the
   # pre-registered `pulse-server` client for clients without DCR).
-  # Opt-in via the `auth` profile — the plain
+  # Opt-in via the `auth` profile: the plain
   # `docker compose up` stays auth-free; with the profile a locally-run
   # server reaches it on localhost:8480. `--import-realm` seeds the `miragon` realm
   # (client + demo/demo user + the `mcp-resource` audience scope that stamps
-  # http://localhost:8400/mcp into aud — mcp-use 2 rejects tokens without it,
+  # http://localhost:8400/mcp into aud; mcp-use 2 rejects tokens without it,
   # RFC 8707) from ./keycloak/realm-miragon.json on first boot. MCP clients
   # register via Dynamic Client Registration: the seeded Trusted Hosts policy
   # admits clients whose redirect URIs point at loopback (foreign hosts stay
@@ -198,7 +178,7 @@ services:
       - KC_HEALTH_ENABLED=true
     volumes:
       # No data volume ON PURPOSE: the image runs as uid 1000 and cannot chown
-      # a root-owned named volume, and the realm file IS the source of truth —
+      # a root-owned named volume, and the realm file IS the source of truth:
       # a recreated container simply re-imports it (admin-console experiments
       # are ephemeral, like the rest of the demo stack).
       - ./keycloak/realm-miragon.json:/opt/keycloak/data/import/realm-miragon.json:ro
@@ -219,7 +199,7 @@ services:
 
   # Pulse server (Node). Opt-in via the `full` profile so the
   # default `docker compose up` brings up infra only, leaving port 8400
-  # free for a locally-run server (`pnpm -F @miragon/pulse-mcp-server-camunda7 dev`).
+  # free for a locally-run server (`pnpm -F @miragon/pulse-mcp-server dev`).
   # Use: docker compose --profile full up -d
   mcp-server:
     profiles: [full]
@@ -230,46 +210,42 @@ services:
       - "127.0.0.1:8400:8400"
     environment:
       - PORT=8400
-      # No MCP_OAUTH and no toolset suffix ⇒ every module boots READ-ONLY (the
+      # No OAuth provider and no toolset suffix ⇒ every module boots READ-ONLY (the
       # boot log names the effective toolsets). To exercise write paths, name
-      # the toolsets explicitly — e.g. add
-      #   - MCP_ACTIVE_MODULES=camunda7:operations,analytics:standard
-      # (camunda7:admin for delete/modify/migrations/signals; deployments also
-      # need CAMUNDA_ALLOW_DEPLOYMENTS=true). Safe here only because the port is
-      # bound to 127.0.0.1 — never widen an unauthenticated server reachable
+      # the toolsets explicitly, e.g. add
+      #   - MCP_ACTIVE_MODULES=engine:operations,analytics
+      # (engine:admin for delete/modify/migrations/signals; deployments also
+      # need ENGINE_ALLOW_DEPLOYMENTS=true). Safe here only because the port is
+      # bound to 127.0.0.1; never widen an unauthenticated server reachable
       # from a network.
-      # Pass either a single CAMUNDA_BASE_URL (single engine) OR
-      # CAMUNDA_ENGINES_JSON with a list. Below: single-engine default; for
-      # multi-engine override by exporting CAMUNDA_ENGINES_JSON in the host
+      # Pass either a single ENGINE_BASE_URL (single engine) OR
+      # ENGINES_JSON with a list. Below: single-engine default; for
+      # multi-engine override by exporting ENGINES_JSON in the host
       # shell before `docker compose up`, or by overriding via a compose
       # override file.
-      - CAMUNDA_BASE_URL=http://cibseven:8410/engine-rest
-      # Must stay in sync with the cibseven service's ENGINE_ID — that value is
+      - ENGINE_BASE_URL=http://cibseven:8410/engine-rest
+      # Must stay in sync with the cibseven service's ENGINE_ID: that value is
       # the `engine_id` metric label every analytics query is scoped to. A
       # mismatch is silent: all analytics for the engine come back empty and its
       # health reads `unknown`.
       # Analytics reads only the configured engines, so this single-engine
-      # default leaves prod-b's metrics out until CAMUNDA_ENGINES_JSON lists it.
-      - CAMUNDA_ENGINE_ID=prod-a
+      # default leaves prod-b's metrics out until ENGINES_JSON lists it.
+      - ENGINE_ID=prod-a
       # The engine is CIB seven: without the flavor the server takes it for
       # Camunda 7 and puts Camunda 7 routes on the /webapp cockpit below.
-      - CAMUNDA_ENGINE_FLAVOR=cibseven
-      - CAMUNDA_COCKPIT_URL=http://localhost:8410/webapp
-      - CAMUNDA_AUTH_TYPE=basic
-      - CAMUNDA_USERNAME=demo
-      - CAMUNDA_PASSWORD=demo
+      - ENGINE_FLAVOR=cibseven
+      - ENGINE_COCKPIT_URL=http://localhost:8410/webapp
+      - ENGINE_AUTH_TYPE=basic
+      - ENGINE_USERNAME=demo
+      - ENGINE_PASSWORD=demo
       - PROMETHEUS_URL=http://prometheus:9090
-      # Durable user settings + dashboards (src/persistence/ in the server app).
-      - DATABASE_URL=postgres://miragon:miragon@postgres:5432/miragon
     depends_on:
       cibseven:
         condition: service_healthy
       prometheus:
         condition: service_started
-      postgres:
-        condition: service_healthy
     healthcheck:
-      # Readiness over HTTP (the server's /health/ready — mirrors the Dockerfile
+      # Readiness over HTTP (the server's /health/ready; mirrors the Dockerfile
       # HEALTHCHECK); the image ships no curl, Node's global fetch does the probe.
       test:
         [
@@ -285,4 +261,3 @@ services:
 
 volumes:
   prometheus-data:
-  postgres-data:

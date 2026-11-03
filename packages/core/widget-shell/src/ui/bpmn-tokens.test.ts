@@ -1,21 +1,12 @@
-import { readFileSync } from "node:fs"
-import { createRequire } from "node:module"
 import { describe, expect, it } from "vitest"
-import { CD_TOKENS, type CdTokenName } from "@miragon/mcp-toolkit-ui"
+import { CD_TOKENS, type CdTokenName } from "@miragon/pulse-ui"
 import {
   contrastRatio,
   parseThemeVariables,
   resolveColor,
-  toolkitThemeStylesheets,
-} from "../testing/index.js"
-import {
-  BPMN_OVERLAY_CSS,
-  BPMN_TOKENS,
-  badgeSwatch,
-  cdValue,
-  cdVar,
-  markerSwatch,
-} from "./bpmn-tokens.js"
+  themeStylesheets,
+} from "@miragon/pulse-ui/testing"
+import { BPMN_OVERLAY_CSS, BPMN_TOKENS, cdVar } from "./bpmn-tokens.js"
 
 /** Every `--cd-*` token name the module uses. */
 function tokenNames(value: unknown): CdTokenName[] {
@@ -25,20 +16,16 @@ function tokenNames(value: unknown): CdTokenName[] {
 
 const USED = [...new Set(tokenNames(BPMN_TOKENS))]
 
-/** The vendored corporate-design stylesheet, as the toolkit ships it. */
+/** The vendored corporate-design stylesheet, as pulse-ui ships it (the tokens come first). */
 function vendoredTokens(): Map<string, string> {
-  const require = createRequire(import.meta.url)
-  const css = readFileSync(
-    require.resolve("@miragon/mcp-toolkit-ui/cd-tokens.generated.css"),
-    "utf8",
-  )
+  const [css] = themeStylesheets()
   return new Map(
     [...css.matchAll(/--cd-([\w-]+):\s*([^;]+);/g)].map(([, name, value]) => [name, value.trim()]),
   )
 }
 
 /** A token on the light paper (the canvas is light in every theme). */
-const light = parseThemeVariables(...toolkitThemeStylesheets()).light
+const light = parseThemeVariables(...themeStylesheets()).light
 const color = (name: CdTokenName) => resolveColor(cdVar(name), light)
 const ratio = (a: CdTokenName, b: CdTokenName) => contrastRatio(color(a), color(b))
 
@@ -48,12 +35,11 @@ describe("BPMN token module ↔ the vendored CSS (modeler-tool-design §13 drift
     expect(USED.length).toBeGreaterThan(0)
     for (const name of USED) {
       expect(css.get(name), `--cd-${name}`).toBeDefined()
-      expect(cdValue(name).toLowerCase(), `--cd-${name}`).toBe(css.get(name)?.toLowerCase())
-      expect(CD_TOKENS[name]).toBe(cdValue(name))
+      expect(CD_TOKENS[name].toLowerCase(), `--cd-${name}`).toBe(css.get(name)?.toLowerCase())
     }
   })
 
-  it("the overlay CSS refers to the tokens by variable — no raw colour", () => {
+  it("the overlay CSS refers to the tokens by variable: no raw colour", () => {
     expect(BPMN_OVERLAY_CSS).not.toMatch(/#[0-9a-f]{3,8}\b|rgba?\(/i)
     const referenced = [...BPMN_OVERLAY_CSS.matchAll(/var\(--cd-([\w-]+)\)/g)].map((m) => m[1])
     const css = vendoredTokens()
@@ -84,17 +70,6 @@ describe("BPMN token module ↔ the vendored CSS (modeler-tool-design §13 drift
   it("an open task stands still: a dashed stroke, no animation (prefers-reduced-motion)", () => {
     expect(BPMN_OVERLAY_CSS).not.toMatch(/animation|@keyframes|transition/)
     expect(BPMN_OVERLAY_CSS).toMatch(/highlight-open-user-task[^}]*stroke-dasharray/)
-  })
-
-  it("the legend swatches paint what the diagram paints", () => {
-    expect(markerSwatch(BPMN_TOKENS.incident)).toEqual({
-      borderColor: "var(--cd-danger)",
-      background: "var(--cd-danger-soft)",
-    })
-    expect(badgeSwatch(BPMN_TOKENS.instanceBadge)).toEqual({
-      background: "var(--cd-blau)",
-      color: "var(--cd-weiss)",
-    })
   })
 })
 

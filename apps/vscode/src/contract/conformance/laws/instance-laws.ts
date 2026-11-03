@@ -138,7 +138,11 @@ const instancesEndedByBusinessKey: ConformanceCase = {
     Ensure.that(ended.businessKey === "ORD-1003", this.name, "business key is missing")
     const startedAt = Ensure.defined(ended.startedAt, this.name, "startedAt is missing")
     const endedAt = Ensure.defined(ended.endedAt, this.name, "endedAt is missing")
-    Ensure.that(startedAt <= endedAt, this.name, "ended before it started")
+    Ensure.that(
+      startedAt <= endedAt,
+      this.name,
+      `ended at ${endedAt}, before it started at ${startedAt}`,
+    )
   },
 }
 

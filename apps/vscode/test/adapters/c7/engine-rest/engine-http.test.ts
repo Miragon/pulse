@@ -13,6 +13,25 @@ function httpAnswering(answer: () => Promise<Response>, writes = false): EngineH
   })
 }
 
+function hrefOf(input: Parameters<typeof fetch>[0]): string {
+  if (typeof input === "string") {
+    return input
+  }
+  return input instanceof URL ? input.href : input.url
+}
+
+function httpAt(url: string, reached: string[] = []): EngineHttp {
+  return new EngineHttp({
+    url,
+    credentials: { kind: "none" },
+    writes: false,
+    send: (input) => {
+      reached.push(hrefOf(input))
+      return Promise.resolve(Response.json({ version: "7.24.0" }))
+    },
+  })
+}
+
 function endlessAnswer(): Response {
   return new Response(
     new ReadableStream<Uint8Array>({
@@ -48,6 +67,18 @@ describe("the engine's HTTP connection", () => {
     await expect(http.read("/version")).rejects.toThrow(
       `Cannot reach ${REST_URL}/version (TypeError: fetch failed)`,
     )
+  })
+
+  test("drops the trailing slashes of the engine URL", async () => {
+    const reached: string[] = []
+    await httpAt(`${REST_URL}///`, reached).read("/version")
+    expect(reached).toEqual([`${REST_URL}/version`])
+  })
+
+  test("reads an engine URL with a long run of inner slashes in linear time", async () => {
+    const start = performance.now()
+    await httpAt(`${REST_URL}${"/".repeat(200_000)}x`).read("/version")
+    expect(performance.now() - start).toBeLessThan(1000)
   })
 
   test("refuses to write on a connection that only reads", async () => {

@@ -24,13 +24,13 @@ describe("resolvePort", () => {
 
   it.each(["abc", "0", "65536", "-1", "80.5"])("rejects %j", (value) => {
     expect(() => resolvePort({ env: { PORT: value } })).toThrow(
-      `invalid PORT "${value}" — expected an integer 1-65535`,
+      `invalid PORT "${value}": expected an integer 1-65535`,
     )
   })
 
   it("prefixes the host label onto the error", () => {
     expect(() => resolvePort({ env: { PORT: "abc" }, label: "test-app" })).toThrow(
-      `[test-app] invalid PORT "abc" — expected an integer 1-65535`,
+      `[test-app] invalid PORT "abc": expected an integer 1-65535`,
     )
   })
 })
@@ -61,7 +61,7 @@ describe("requestLogLevelWarning", () => {
 
   it("warns that debug logs tool inputs and outputs", () => {
     expect(requestLogLevelWarning({ MCP_USE_LOG_LEVEL: " DEBUG " })).toMatch(
-      /^MCP_USE_LOG_LEVEL=debug — mcp-use logs tool inputs and outputs/,
+      /^MCP_USE_LOG_LEVEL=debug: mcp-use logs tool inputs and outputs/,
     )
   })
 

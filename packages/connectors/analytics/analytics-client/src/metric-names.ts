@@ -1,27 +1,25 @@
 // Hand-maintained, not imported: metrics-contract.json lies outside the tsconfig `rootDir`.
 export const METRIC_NAMES = {
-  processInstanceStarted: "camunda_process_instance_started_total",
-  processInstanceEnded: "camunda_process_instance_ended_total",
-  activityEnded: "camunda_activity_ended_total",
-  userTaskCreated: "camunda_usertask_created_total",
-  userTaskCompleted: "camunda_usertask_completed_total",
-  incidentCreated: "camunda_incident_created_total",
-  incidentResolved: "camunda_incident_resolved_total",
-  processInstanceDuration: "camunda_process_instance_duration_milliseconds",
-  activityDuration: "camunda_activity_duration_milliseconds",
-  userTaskDuration: "camunda_usertask_duration_milliseconds",
-  processInstancesRunning: "camunda_process_instances_running",
-  jobsFailed: "camunda_jobs_failed",
-  incidentsOpen: "camunda_incidents_open",
-  jobsExecutable: "camunda_jobs_executable",
-  jobsSuspended: "camunda_jobs_suspended",
-  jobsDueFuture: "camunda_jobs_due_future",
-  userTasksOpen: "camunda_usertasks_open",
-  processDefinitionsDeployed: "camunda_process_definitions_deployed",
-  externalTasksOpen: "camunda_external_tasks_open",
+  processInstanceStarted: "engine_process_instance_started_total",
+  processInstanceEnded: "engine_process_instance_ended_total",
+  activityEnded: "engine_activity_ended_total",
+  userTaskCreated: "engine_usertask_created_total",
+  userTaskCompleted: "engine_usertask_completed_total",
+  incidentCreated: "engine_incident_created_total",
+  incidentResolved: "engine_incident_resolved_total",
+  processInstanceDuration: "engine_process_instance_duration_milliseconds",
+  activityDuration: "engine_activity_duration_milliseconds",
+  userTaskDuration: "engine_usertask_duration_milliseconds",
+  processInstancesRunning: "engine_process_instances_running",
+  jobsFailed: "engine_jobs_failed",
+  incidentsOpen: "engine_incidents_open",
+  jobsExecutable: "engine_jobs_executable",
+  jobsSuspended: "engine_jobs_suspended",
+  jobsDueFuture: "engine_jobs_due_future",
+  userTasksOpen: "engine_usertasks_open",
+  processDefinitionsDeployed: "engine_process_definitions_deployed",
+  externalTasksOpen: "engine_external_tasks_open",
 } as const
-
-export type MetricName = (typeof METRIC_NAMES)[keyof typeof METRIC_NAMES]
 
 export type GaugeName =
   | typeof METRIC_NAMES.processInstancesRunning

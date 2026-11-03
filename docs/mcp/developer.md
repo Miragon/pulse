@@ -1,6 +1,6 @@
 # Pulse developer guide
 
-A working development environment for Pulse in five commands, or zero if you start with the hosted playground.
+From a fresh clone to a running server in one command, or zero if you start with the hosted playground.
 
 ## Try it first (no install)
 
@@ -12,57 +12,50 @@ analytics stack, read-only. See [Connect your Claude in 30 seconds](getting-star
 
 - Node.js 22.22.2 or later (`engines` in the root `package.json`)
 - pnpm 10.32.1 (pinned via `packageManager`; `corepack enable` picks it up automatically)
-- Java 21 + [jenv](https://www.jenv.be/) (only needed to build the Kotlin engine plugins)
-- Docker (for Camunda, the OTEL Collector, and Prometheus)
+- Docker: the local playground, and the engine jar's build when no JDK 21 is installed
+- Optional: a JDK 21, which builds the engine jar and the Kotlin engine plugins faster
 
-## Clone and install
+## Clone and run
 
 ```bash
 git clone git@github.com:Miragon/pulse.git
 cd pulse
-pnpm install
+pnpm play
 ```
 
-## Start the infrastructure
-
-The default Compose stack brings up CIB seven, the OTEL Collector, Prometheus, and Grafana, but **not** the Node MCP server, so port `8400` stays free for `pnpm dev`. Every port binds to `127.0.0.1`.
-
-```bash
-docker compose -f playground/docker/docker-compose.yml up -d
-```
-
-## Run the server
-
-```bash
-cp .env.example .env   # dev defaults: engine on :8410, Prometheus on :8460
-pnpm dev
-```
-
-This starts the MCP server on `:8400`. Connect any MCP host to `http://localhost:8400/mcp` and
-call a tool. It boots read-only (no `MCP_OAUTH`, no toolset suffix, as the boot log says); to test
-write paths, uncomment `MCP_ACTIVE_MODULES=camunda7:admin,analytics:standard` in `.env`.
-`pnpm dev` binds 127.0.0.1; `pnpm start` and Docker listen on all interfaces.
+`pnpm play` installs the dependencies, starts the playground in Docker (CIB seven with demo data
+and live traffic, the OTEL Collector, Prometheus, Grafana; the first start builds the engine jar,
+a few minutes), builds the server and runs it on `:8400` against the playground. Connect any MCP
+host to `http://localhost:8400/mcp`, or open the inspector at `http://localhost:8400/mcp/inspector`.
+It boots read-only; `--admin` adds the write tools, `--deploy` deployments, `--multi-engine` a
+second engine. A variable set in your shell wins over the playground's settings. Ctrl-C stops the
+server, the playground keeps running. Every port binds to `127.0.0.1`.
 
 ## Common tasks
 
-| Command                       | What it does                    |
-| ----------------------------- | ------------------------------- |
-| `pnpm build`                  | Turbo build across the monorepo |
-| `pnpm typecheck`              | TypeScript across all packages  |
-| `pnpm test`                   | Vitest across all packages      |
-| `pnpm lint` / `pnpm lint:fix` | ESLint                          |
-| `pnpm format`                 | Prettier                        |
+| Command                                         | What it does                                                                                          |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `pnpm play:cli -- <args>`                       | The CLI against the playground engine                                                                 |
+| `pnpm stack:up` / `stack:down` / `stack:status` | Start (`--multi-engine`, `--auth`), stop (`--wipe` drops the volumes) or show the playground          |
+| `pnpm dev`                                      | The server with your own settings (`cp .env.example .env` first)                                      |
+| `pnpm check`                                    | The bar for every change: install, build, typecheck, test, lint, format; a log per step in `reports/` |
+| `pnpm check:all`                                | `check` plus the host simulation, the template, the Gradle build, the docs build, the engine suites   |
+| `pnpm lint:fix` / `pnpm format`                 | ESLint and Prettier fixes                                                                             |
+
+The gates one by one: `pnpm build`, `pnpm typecheck`, `pnpm test`, `pnpm lint`, `pnpm format:check`.
+`pnpm dev` and `pnpm play` bind 127.0.0.1; `pnpm start` and Docker listen on all interfaces.
 
 Mutation testing: `pnpm --fail-if-no-match --filter <package> exec stryker run` (`--mutate <file>`
-narrows it) for `@miragon/pulse-widget-shell`, `-camunda7-client`, `-camunda7-connector`,
+narrows it) for `@miragon/pulse-widget-shell`, `-engine-client`, `-engine-connector`,
 `-analytics-client`, `-analytics-connector`, `-cli` or `pulse-cockpit`. A pull request runs none:
-`.github/workflows/mutation-nightly.yml` mutates every package each night (incremental).
+`.github/workflows/mutation-nightly.yml` mutates every package each night (incremental). While the
+MCP server is rebuilt, the nightly run and the Stryker gates are paused (`scripts/mutation-pause.mjs`).
 
 ## Build your own server
 
-The modules ship on public npm: `@miragon/pulse-camunda7-connector`,
-`@miragon/pulse-analytics-connector`, `@miragon/pulse-widget-shell` plus the two client packages,
-released in lockstep (pin one version across all of them).
+The modules ship on public npm: `@miragon/pulse-engine-connector`,
+`@miragon/pulse-analytics-connector`, `@miragon/pulse-widget-shell`, `@miragon/pulse-ui`, the two
+client packages and `@miragon/pulse-engine-core`, released in lockstep (pin one version across all).
 [`templates/composed-server/`](https://github.com/Miragon/pulse/tree/main/templates/composed-server)
 is a ready-to-copy pnpm workspace that composes them with an example custom module (tools,
 widget, guard tests included); its `CLAUDE.md` and `.claude/skills/` document the module
@@ -74,6 +67,6 @@ mirror [`Miragon/pulse-starter`](https://github.com/Miragon/pulse-starter)
 
 ## Documentation
 
-- These pages are Markdown in `docs/`, next to the code they describe, and build into this VitePress site (`pnpm docs:dev`, `pnpm docs:build`), published to [miragon.github.io/pulse](https://miragon.github.io/pulse/) on every push to `main`. A change to env vars, tools, ports or the getting-started steps updates them in the same PR. `apps/mcp-server-camunda7/test/docs-refs.test.ts` checks every tool name and repo path they cite, and each page's line budget.
+- These pages are Markdown in `docs/`, next to the code they describe, and build into this VitePress site (`pnpm docs:dev`, `pnpm docs:build`), published to [miragon.github.io/pulse](https://miragon.github.io/pulse/) on every push to `main`. A change to env vars, tools, ports or the getting-started steps updates them in the same PR. `scripts/docs-refs.test.mjs` checks every tool name and repo path they cite, and each page's line budget.
 - The product page [miragon.ai/tools/pulse](https://miragon.ai/tools/pulse/) is built from [Miragon/miragon-ai-docs](https://github.com/Miragon/miragon-ai-docs).
 - [Reference](reference.md) lists every tool, toolset and the common env vars; [`engine-plugins/README.md`](https://github.com/Miragon/pulse/blob/main/engine-plugins/README.md) covers the Kotlin plugin build.

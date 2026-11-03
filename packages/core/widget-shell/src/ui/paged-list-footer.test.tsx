@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
-import { LocaleProvider, PagedListFooter } from "@miragon/mcp-toolkit-ui"
+import { LocaleProvider, PagedListFooter } from "@miragon/pulse-ui"
 import { NO_FIT_ROWS } from "./inline-fit.js"
 import { PagedRows } from "./paged-rows.js"
 import type { PagedViewData } from "./use-paged-view-data.js"
@@ -46,7 +46,7 @@ function renderList(state: PagedViewData<string, object>) {
  * A stale list must be SEEN as stale, and no "Showing X of Y" may pair the
  * previous count with the new search (#341 review). ONE live region: the footer.
  */
-describe("PagedListFooter + PagedRows — the stale and in-flight states", () => {
+describe("PagedListFooter + PagedRows: the stale and in-flight states", () => {
   it("a settled page: the count in the one live region, rows not marked", () => {
     const { rows, status } = renderList(paged())
     expect(screen.getAllByRole("status")).toHaveLength(1)
@@ -105,7 +105,7 @@ describe("PagedListFooter + PagedRows — the stale and in-flight states", () =>
 })
 
 /** #339: without caller texts the footer follows the active locale. */
-describe("PagedListFooter — the catalog follows the active locale", () => {
+describe("PagedListFooter: the catalog follows the active locale", () => {
   function renderGerman(state: PagedViewData<string, object>) {
     render(
       <LocaleProvider locale="de">

@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    // view-registry.test.ts pulls the module views (tsx) into this program
+    // via src/ui/view-registry.ts.
+    "jsx": "react-jsx",
+    "noEmit": true,
+    "composite": false,
+    "rootDir": "."
+  },
+  "include": ["src", "test", "test-host"],
+  "exclude": ["src/ui"]
+}

@@ -49,17 +49,12 @@ function boot(env: NodeJS.ProcessEnv) {
     tool: (definition: { name: string }, callback: ToolCallback) => {
       tools.set(definition.name, callback)
     },
-    use: () => {},
   } as unknown as MCPServer
   const plugin = analyticsModule.createPlugin(
-    {
-      ...analyticsModule.configFromEnv({ PROMETHEUS_URL: url, ...ENGINES, ...env }),
-      toolset: "read-only",
-    },
+    analyticsModule.configFromEnv({ PROMETHEUS_URL: url, ...ENGINES, ...env }),
     {},
   )
-  plugin.registerTools?.(server)
-  plugin.registerWidgetTools?.(server)
+  plugin.register(server)
   return tools
 }
 
@@ -68,7 +63,7 @@ describe("Prometheus config reaches the wire", () => {
     hang = false
     seenAuth.length = 0
     const tools = boot({ PROMETHEUS_BEARER_TOKEN: "tok-123" })
-    const result = await tools.get("analytics_engine_landscape")!({})
+    const result = await tools.get("analytics_engine_health")!({})
     expect(result.isError).toBeFalsy()
     expect(seenAuth.length).toBeGreaterThan(0)
     expect(seenAuth.every((auth) => auth === "Bearer tok-123")).toBe(true)
@@ -83,7 +78,7 @@ describe("Prometheus config reaches the wire", () => {
       PROMETHEUS_USERNAME: "grafana",
       PROMETHEUS_PASSWORD: "hunter2-pass",
     })
-    const result = await tools.get("analytics_engine_landscape")!({})
+    const result = await tools.get("analytics_engine_health")!({})
     expect(result.isError).toBeFalsy()
     expect(seenTenant.length).toBeGreaterThan(0)
     expect(seenTenant.every((tenant) => tenant === "tenant-a")).toBe(true)
@@ -94,38 +89,28 @@ describe("Prometheus config reaches the wire", () => {
   it("PROMETHEUS_TIMEOUT_MS bounds a hung Prometheus", async () => {
     hang = true
     const tools = boot({ PROMETHEUS_TIMEOUT_MS: "60" })
-    const result = await tools.get("analytics_engine_landscape")!({})
+    const result = await tools.get("analytics_engine_health")!({})
     expect(result.isError).toBe(true)
     expect(result.content[0].text).toBe("Prometheus did not respond within 60 ms (timeout)")
   })
 
-  it("EVERY widget tool and feed hands ctx.signal to its queries", async () => {
+  it("EVERY tool hands ctx.signal to its queries", async () => {
     hang = false
-    const tools = new Map<string, ToolCallback>()
-    const server = {
-      tool: (definition: { name: string }, callback: ToolCallback) => {
-        tools.set(definition.name, callback)
-      },
-    } as unknown as MCPServer
-    analyticsModule
-      .createPlugin(
-        {
-          ...analyticsModule.configFromEnv({ PROMETHEUS_URL: url, ...ENGINES }),
-          toolset: "read-only",
-        },
-        {},
-      )
-      .registerWidgetTools?.(server)
+    const tools = boot({})
     // Unsignalled a handler must reach Prometheus, with an already-aborted ctx.signal it must not:
     // a handler that drops ctx would still query.
+    const daysAgo = (days: number) => new Date(Date.now() - days * 86_400_000).toISOString()
     const args = {
       processDefinitionKey: "order",
-      // Handlers called directly get no schema defaults: the compare windows.
+      // Handlers called directly get no schema defaults: the period, the compare periods and floor.
+      period: "7d",
+      minBucketSize: 10,
       windowDays: 7,
-      windowBeforeDays: 3,
-      windowAfterDays: 3,
-      // Relative to now: compare windows are held inside the retention.
-      deploymentTimestamp: new Date(Date.now() - 3 * 86_400_000).toISOString(),
+      // Relative to now: compare periods are held inside the retention.
+      periodAFrom: daysAgo(6),
+      periodATo: daysAgo(4),
+      periodBFrom: daysAgo(3),
+      periodBTo: daysAgo(1),
       engineA: "prod-a",
       engineB: "prod-b",
     }
@@ -145,13 +130,9 @@ describe("Prometheus config reaches the wire", () => {
         queries: 0,
       })
     }
-    // The settings and the heatmap's diagram (read from the engine) never ask Prometheus.
-    expect(neverQuery.sort()).toEqual([
-      "analytics_bpmn_xml_data",
-      "analytics_settings_data",
-      "analytics_show_settings",
-    ])
-    expect(tools.size - neverQuery.length).toBeGreaterThanOrEqual(11)
+    // The heatmap's diagram (read from the engine) never asks Prometheus.
+    expect(neverQuery.sort()).toEqual(["analytics_bpmn_xml_data"])
+    expect(tools.size - neverQuery.length).toBeGreaterThanOrEqual(9)
   })
 
   it("a widget feed's ctx.signal cancels its queries before the deadline", async () => {

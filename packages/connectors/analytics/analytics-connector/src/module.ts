@@ -1,14 +1,11 @@
 import { z } from "zod"
-import type { AppPlugin } from "@miragon/mcp-toolkit-core"
-import type { MCPServer } from "mcp-use"
+import type { ModulePlugin } from "@miragon/pulse-widget-shell/server"
 import { createPlugin } from "./plugin.js"
-import { analyticsToolsets } from "./toolsets.js"
 import { analyticsInstructions } from "./instructions.js"
 import type { FetchBpmnXml } from "./bpmn-name-lookup.js"
-import type { ProfileSource } from "./server-locale.js"
 import { NO_ENGINE_SCOPE_MESSAGE } from "./engine-ids.js"
 
-/** The longest delay a Node timer holds — a longer deadline would fire at once. */
+/** The longest delay a Node timer holds; a longer deadline would fire at once. */
 const MAX_TIMEOUT_MS = 2_147_483_647
 
 const HEADERS_ERROR =
@@ -66,14 +63,11 @@ const analyticsConfigSchema = z.object({
       ),
     ])
     .optional(),
-  /** A plain string so a direct caller's unknown name fails closed instead of throwing. */
-  toolset: z.string().optional(),
 })
 
 interface AnalyticsModuleShared {
-  profileStore?: ProfileSource
   fetchBpmnXml?: FetchBpmnXml
-  /** camunda7's configured engines; wins over `ANALYTICS_ENGINE_IDS`. */
+  /** The engine module's configured engines; wins over `ANALYTICS_ENGINE_IDS`. */
   engineIds?: readonly string[]
 }
 
@@ -100,7 +94,7 @@ export const analyticsModule = {
 
   configFromEnv(env: NodeJS.ProcessEnv): Record<string, unknown> {
     // Blank = unset for every variable (a `KEY=` left in a .env file).
-    // Credentials are passed verbatim otherwise — never trimmed into another secret.
+    // Credentials are passed verbatim otherwise, never trimmed into another secret.
     const trimmed = (name: string) => env[name]?.trim() || undefined
     const verbatim = (name: string) => (env[name]?.trim() ? env[name] : undefined)
     return {
@@ -124,13 +118,11 @@ export const analyticsModule = {
     "ANALYTICS_ENGINE_IDS",
   ] as const,
 
-  toolsets: analyticsToolsets,
-
   /** The default :9090 is a bare Prometheus, not the compose stack's :8460; without the hint queries 404 silently. */
   bootWarnings(env: NodeJS.ProcessEnv): string[] {
     if (env.PROMETHEUS_URL?.trim()) return []
     return [
-      "PROMETHEUS_URL is not set — defaulting to http://localhost:9090. The repo's Compose stack publishes Prometheus on :8460 (PROMETHEUS_URL=http://localhost:8460).",
+      "PROMETHEUS_URL is not set: defaulting to http://localhost:9090. The repo's Compose stack publishes Prometheus on :8460 (PROMETHEUS_URL=http://localhost:8460).",
     ]
   },
 
@@ -138,18 +130,12 @@ export const analyticsModule = {
     return analyticsInstructions()
   },
 
-  createPlugin(
-    config: Record<string, unknown>,
-    shared: AnalyticsModuleShared,
-  ): AppPlugin<MCPServer> {
-    const { toolset, engineIds, ...parsed } = analyticsConfigSchema.parse(config)
+  createPlugin(config: Record<string, unknown>, shared: AnalyticsModuleShared): ModulePlugin {
+    const { engineIds, ...parsed } = analyticsConfigSchema.parse(config)
     return createPlugin({
       ...parsed,
       engineIds: effectiveEngineIds(shared.engineIds, engineIds),
-      // Resolved once here, so the plugin only ever sees a declared name.
-      toolset: analyticsToolsets.resolve(toolset),
       fetchBpmnXml: shared.fetchBpmnXml,
-      profileStore: shared.profileStore,
     })
   },
 }

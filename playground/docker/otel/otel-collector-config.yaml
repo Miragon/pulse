@@ -1,4 +1,4 @@
-# Listeners bind dual-stack ("[::]" accepts IPv4 and IPv6) — required on
+# Listeners bind dual-stack ("[::]" accepts IPv4 and IPv6), required on
 # Fly.io, where private 6PN traffic arrives over IPv6; unchanged behaviour
 # on the local Docker network.
 receivers:
@@ -23,7 +23,7 @@ processors:
         action: upsert
 
 exporters:
-  # Process analytics metrics — exposed for Prometheus to scrape. This is the
+  # Process analytics metrics, exposed for Prometheus to scrape. This is the
   # sole export path for the metric-first analytics stack; the engine pushes
   # Micrometer metrics over OTLP, the Collector serves them here. Names are
   # normalised to Prometheus convention (dots → underscores, unit + `_total`

@@ -3,22 +3,24 @@ import tseslint from "typescript-eslint"
 import reactHooks from "eslint-plugin-react-hooks"
 import globals from "globals"
 
-// Widget/UI sources are excluded from the package tsconfigs (they are
-// compiled by Vite/the bundler) and get their type information from the
-// dedicated tsconfig.widgets.json / tsconfig.ui.json projects instead.
-const bundledUiFiles = [
-  "apps/mcp-server-camunda7/src/ui/**/*.{ts,tsx}",
+// The widget trees: every tree of React views an MCP host renders (the host bundle's src/ui,
+// widget-shell's view half, both connectors' widgets). They are excluded from their package's
+// tsconfig.json and typed by the browser-only tsconfig.widgets.json / tsconfig.ui.json projects
+// instead, and the date and number gates (invariant 6) hold all of them.
+const CONNECTOR_WIDGETS = [
   "packages/connectors/analytics/analytics-connector/src/widgets/**/*.{ts,tsx}",
-  "packages/connectors/camunda/camunda7-connector/src/widgets/**/*.{ts,tsx}",
+  "packages/connectors/engine/engine-connector/src/widgets/**/*.{ts,tsx}",
+]
+const WIDGET_TREES = [
+  "apps/mcp-server/src/ui/**/*.{ts,tsx}",
+  "packages/core/widget-shell/src/ui/**/*.{ts,tsx}",
+  ...CONNECTOR_WIDGETS,
 ]
 
 // Server tests (and the Playwright host simulation) live outside src/ (not
 // part of the build tsconfig) and get their type information from the
 // dedicated tsconfig.test.json project.
-const serverTestFiles = [
-  "apps/mcp-server-camunda7/test/**/*.ts",
-  "apps/mcp-server-camunda7/test-host/**/*.ts",
-]
+const serverTestFiles = ["apps/mcp-server/test/**/*.ts", "apps/mcp-server/test-host/**/*.ts"]
 
 // The VS Code extension's runtime probes (apps/vscode/test/<layer>/runtime.boundary.ts)
 // expect the globals of their layer to be missing, so apps/vscode/tsconfig.json (the
@@ -30,13 +32,13 @@ const vscodeBoundaryProbes = ["apps/vscode/test/*/runtime.boundary.ts"]
 
 const TOOL_MEMBER = "/^(tool|registerTool)$/"
 const REGISTRAR_MESSAGE =
-  "Operations tools are registered through createToolRegistrar in src/tools/ (see .claude/skills/add-bpm-feature); raw server.tool() — also via a computed key, .call/.bind/.apply, destructuring or Reflect.get — is reserved for the widget-tools files."
+  "Operations tools are registered through createToolRegistrar (@miragon/pulse-widget-shell/server) in src/tools/ (see .claude/skills/add-bpm-feature); raw server.tool() (also via a computed key, .call/.bind/.apply, destructuring or Reflect.get) is reserved for the widget-tools files."
 
 // Invariant 1. Not just the canonical `x.tool(...)`: every syntactic route
 // to the member that names it literally (an agent "working around" the gate
 // reaches for exactly these). A key computed at runtime stays out of any
-// selector's reach — that is review's job. Parameter destructuring and object
-// literals stay allowed — test fakes build `{ tool } as unknown as MCPServer`.
+// selector's reach: that is review's job. Parameter destructuring and object
+// literals stay allowed: test fakes build `{ tool } as unknown as MCPServer`.
 // Inline `eslint-disable` of this rule (or of complexity/max-lines) is caught
 // by scripts/check-ratchets.mjs, not here: a directive could disable a rule
 // that polices directives.
@@ -62,33 +64,33 @@ const widgetDateGate = [
     selector:
       ":matches(NewExpression, CallExpression)[callee.object.name='Intl'][callee.property.name='DateTimeFormat']",
     message:
-      "Use formatTimestamp/formatDate/formatTime from @miragon/pulse-widget-shell/widgets — the single source for timestamp rendering (CLAUDE.md invariant 6).",
+      "Use formatTimestamp/formatDate/formatTime from @miragon/pulse-ui, the single source for timestamp rendering (CLAUDE.md invariant 6).",
   },
   {
     selector: "CallExpression[callee.property.name='toLocaleDateString']",
     message:
-      "Use formatDate from @miragon/pulse-widget-shell/widgets instead of Date#toLocaleDateString (CLAUDE.md invariant 6).",
+      "Use formatDate from @miragon/pulse-ui instead of Date#toLocaleDateString (CLAUDE.md invariant 6).",
   },
   {
     selector: "CallExpression[callee.property.name='toLocaleTimeString']",
     message:
-      "Use formatTime from @miragon/pulse-widget-shell/widgets instead of Date#toLocaleTimeString (CLAUDE.md invariant 6).",
+      "Use formatTime from @miragon/pulse-ui instead of Date#toLocaleTimeString (CLAUDE.md invariant 6).",
   },
 ]
 
-// Invariant 6: numbers in widget code render through the kit formatters
+// Invariant 6: numbers in widget code render through pulse-ui's formatters
 // (formatNumber/formatPercent/formatPercentPoints/formatPeriod/formatDuration),
 // which read the view's locale. Number#toFixed formats in no locale; a
 // toLocaleString() without a locale (no argument, `undefined`, `null`, `[]`)
 // in the browser's; a hand-built Intl.NumberFormat bypasses the formatters
-// (only the kit's format.ts builds one — see its block below).
+// (only pulse-ui's two formatters build one: see their block below).
 const NUMBER_FORMAT_SELECTOR =
   ":matches(NewExpression, CallExpression)[callee.object.name='Intl'][callee.property.name='NumberFormat']"
 const widgetNumberGate = [
   {
     selector: "CallExpression[callee.property.name='toFixed']",
     message:
-      "Use formatNumber/formatPercent/formatPercentPoints from the widget-shell kit instead of Number#toFixed: it ignores the view's locale (CLAUDE.md invariant 6).",
+      "Use formatNumber/formatPercent/formatPercentPoints from the pulse-ui kit instead of Number#toFixed: it ignores the view's locale (CLAUDE.md invariant 6).",
   },
   {
     // Each alternative pins the node type: esquery compares String(value), so
@@ -97,12 +99,12 @@ const widgetNumberGate = [
     selector:
       "CallExpression[callee.property.name='toLocaleString']:matches([arguments.length=0], [arguments.0.type='Identifier'][arguments.0.name='undefined'], [arguments.0.type='Literal'][arguments.0.raw='null'], [arguments.0.type='ArrayExpression'][arguments.0.elements.length=0])",
     message:
-      "Use formatNumber from the widget-shell kit instead of toLocaleString() without a locale: it formats in the browser's locale, not the view's (CLAUDE.md invariant 6).",
+      "Use formatNumber from the pulse-ui kit instead of toLocaleString() without a locale: it formats in the browser's locale, not the view's (CLAUDE.md invariant 6).",
   },
   {
     selector: NUMBER_FORMAT_SELECTOR,
     message:
-      "Use formatNumber/formatPercent/formatPercentPoints from the widget-shell kit instead of a hand-built Intl.NumberFormat: they read the view's locale (CLAUDE.md invariant 6).",
+      "Use formatNumber/formatPercent/formatPercentPoints from the pulse-ui kit instead of a hand-built Intl.NumberFormat: they read the view's locale (CLAUDE.md invariant 6).",
   },
 ]
 // The kit's formatters themselves: the same gate minus Intl.NumberFormat.
@@ -110,43 +112,32 @@ const widgetNumberGateForFormatters = widgetNumberGate.filter(
   (gate) => gate.selector !== NUMBER_FORMAT_SELECTOR,
 )
 
-// Invariant 6 / CI U4: the AI affordance is the Lucide icon of the concrete
-// function plus a verb that names the chat, never a sparkle. Every export
-// spelling of lucide-react's sparkle icons, and their deep imports. (The kit's
-// scanGlyphs checks the same imports for packages outside this config.)
-const SPARKLE_MESSAGE =
-  "No Sparkles/WandSparkles as the AI affordance (CI U4): use the Lucide icon of the concrete function (e.g. FileSearch) and a verb that names the chat (CLAUDE.md invariant 6)."
-const widgetSparkleGate = {
+// Invariant 6: widgets reach the host only through widget-shell's view host (`useViewHost`,
+// `HostModelContext`) and query hooks, never `mcp-use/react` itself: its hooks throw outside
+// `bootstrapView`, so a widget importing it could not render under `TestViewHost`. The ONE
+// adapter is widget-shell's `mcp-use-host.tsx` + `view-root.tsx`. (The AI sparkle is banned by
+// pulse-ui's scanGlyphs, which every widget tree runs in its brand-gates test.)
+const mcpUseReactGate = {
   paths: [
     {
-      name: "lucide-react",
-      importNames: ["Sparkle", "Sparkles", "WandSparkles", "Wand2"].flatMap((icon) => [
-        icon,
-        `${icon}Icon`,
-        `Lucide${icon}`,
-      ]),
-      message: SPARKLE_MESSAGE,
-    },
-  ],
-  patterns: [
-    {
-      regex: "^lucide-react/(?:.*/)?(?:sparkles?|wand-sparkles|wand-2)(?:\\.js)?$",
-      message: SPARKLE_MESSAGE,
+      name: "mcp-use/react",
+      message:
+        "Only widget-shell's view root (view-root.tsx, mcp-use-host.tsx) imports mcp-use/react; a widget uses the view host (useViewHost) and renders under TestViewHost in tests (CLAUDE.md invariant 6).",
     },
   ],
 }
 
 // Invariant 6 / CI U4, the other half: ONE hand-off vocabulary across the
-// product. A connector widget renders a chat hand-off only through the kit's
+// product. A connector widget renders a chat hand-off only through widget-shell's
 // HandOffButton, whose function table (HAND_OFF_ACTIONS + kitLabels().handOff)
 // gives every function one Lucide icon and one label in every module; an
 // AskAiButton with a hand-picked icon and verb let the same function drift
-// apart between camunda7 and analytics ("Ursache im Chat klären" next to
+// apart between engine and analytics ("Ursache im Chat klären" next to
 // "Ursache im Chat suchen", FileSearch for two functions). The import (also
 // renamed) and the element (also through a namespace) are both banned in both
 // connectors' widgets.
 const HAND_OFF_MESSAGE =
-  "Render a chat hand-off with the kit's HandOffButton (`action` from HAND_OFF_ACTIONS: one Lucide icon and one verb that names the chat per function, in every module), not AskAiButton (CI U4, CLAUDE.md invariant 6)."
+  "Render a chat hand-off with widget-shell's HandOffButton (`action` from HAND_OFF_ACTIONS: one Lucide icon and one verb that names the chat per function, in every module), not AskAiButton (CI U4, CLAUDE.md invariant 6)."
 const widgetHandOffGate = [
   "ImportSpecifier[imported.name='AskAiButton']",
   "JSXOpeningElement[name.name='AskAiButton']",
@@ -227,12 +218,11 @@ export default tseslint.config(
       "**/dist/**",
       "**/node_modules/**",
       "**/generated/**",
-      "vendor/**",
       // Widget-bundle stand-in read (never executed) by the in-process e2e
-      // boots — data, not code; not part of any tsconfig project.
-      "apps/mcp-server-camunda7/test/fixtures/**",
+      // boots: data, not code; not part of any tsconfig project.
+      "apps/mcp-server/test/fixtures/**",
       // Standalone customer-facing workspace, outside the root pnpm workspace
-      // and its tsconfig projects — verified by scripts/test-template.sh
+      // and its tsconfig projects, verified by scripts/test-template.sh
       // (build + typecheck + tests) instead of the repo's typed linting.
       "templates/**",
       // The Miragon docs kit, vendored byte for byte from
@@ -246,24 +236,26 @@ export default tseslint.config(
 
   // Typed linting via the project service for everything the package tsconfigs cover
   {
-    ignores: [...bundledUiFiles, ...serverTestFiles, ...vscodeBoundaryProbes],
+    ignores: [...WIDGET_TREES, ...serverTestFiles, ...vscodeBoundaryProbes],
     languageOptions: {
       parserOptions: {
         projectService: {
           // Standalone config files that are not part of any tsconfig
           allowDefaultProject: [
             "vitest.shared.ts",
-            "apps/mcp-server-camunda7/vite.config.ts",
-            "apps/mcp-server-camunda7/vitest.config.ts",
+            "apps/mcp-server/vite.config.ts",
+            "apps/mcp-server/vitest.config.ts",
             "packages/connectors/analytics/analytics-connector/vitest.config.ts",
             "packages/connectors/analytics/analytics-connector/vitest.stryker.config.ts",
-            "packages/connectors/camunda/camunda7-connector/vitest.config.ts",
-            "packages/connectors/camunda/camunda7-connector/vitest.stryker.config.ts",
+            "packages/connectors/engine/engine-connector/vitest.config.ts",
+            "packages/connectors/engine/engine-connector/vitest.stryker.config.ts",
             "packages/connectors/analytics/analytics-client/vitest.config.ts",
             "packages/connectors/analytics/analytics-client/vitest.stryker.config.ts",
-            "packages/connectors/camunda/camunda7-client/vitest.config.ts",
-            "packages/connectors/camunda/camunda7-client/vitest.stryker.config.ts",
-            "packages/connectors/camunda/camunda7-client/openapi-ts.config.ts",
+            "packages/connectors/engine/engine-client/vitest.config.ts",
+            "packages/connectors/engine/engine-client/vitest.stryker.config.ts",
+            "packages/connectors/engine/engine-client/openapi-ts.config.ts",
+            "packages/connectors/engine/engine-core/vitest.config.ts",
+            "packages/core/ui/vitest.config.ts",
             "packages/core/widget-shell/vitest.config.ts",
             "packages/core/widget-shell/vitest.stryker.config.ts",
             "docs/.vitepress/config.ts",
@@ -275,15 +267,16 @@ export default tseslint.config(
     },
   },
 
-  // Widget/UI files: typed via their dedicated tsconfig projects
+  // The widget trees: typed via their dedicated tsconfig projects
   {
-    files: bundledUiFiles,
+    files: WIDGET_TREES,
     languageOptions: {
       parserOptions: {
         project: [
-          "apps/mcp-server-camunda7/tsconfig.ui.json",
+          "apps/mcp-server/tsconfig.ui.json",
+          "packages/core/widget-shell/tsconfig.widgets.json",
           "packages/connectors/analytics/analytics-connector/tsconfig.widgets.json",
-          "packages/connectors/camunda/camunda7-connector/tsconfig.widgets.json",
+          "packages/connectors/engine/engine-connector/tsconfig.widgets.json",
         ],
         tsconfigRootDir: import.meta.dirname,
       },
@@ -295,7 +288,7 @@ export default tseslint.config(
     files: serverTestFiles,
     languageOptions: {
       parserOptions: {
-        project: ["apps/mcp-server-camunda7/tsconfig.test.json"],
+        project: ["apps/mcp-server/tsconfig.test.json"],
         tsconfigRootDir: import.meta.dirname,
       },
     },
@@ -319,15 +312,14 @@ export default tseslint.config(
 
   {
     rules: {
-      "@typescript-eslint/no-explicit-any": "warn",
-      // Downgraded to warn: mcp-use has poor type coverage (Phase 1)
-      "@typescript-eslint/no-unsafe-argument": "warn",
-      "@typescript-eslint/no-unsafe-assignment": "warn",
-      "@typescript-eslint/no-unsafe-call": "warn",
-      "@typescript-eslint/no-unsafe-member-access": "warn",
-      "@typescript-eslint/no-unsafe-return": "warn",
-      "@typescript-eslint/require-await": "warn",
-      "@typescript-eslint/no-base-to-string": "warn",
+      // The type-safety rules (no-explicit-any, no-unsafe-*, no-base-to-string) stay at the
+      // recommendedTypeChecked level, error. require-await is off everywhere but the CLI,
+      // engine-core and the VS Code extension, whose blocks below set it at error again: in the
+      // MCP trees an async function without await is how they satisfy a Promise-returning
+      // signature (mcp-use's tool, prompt and resource callbacks, the health probes, fetch stubs
+      // and the Prometheus fakes of the tests), where the rule only asks for a Promise.resolve
+      // wrapper.
+      "@typescript-eslint/require-await": "off",
       "@typescript-eslint/consistent-type-imports": [
         "error",
         { prefer: "type-imports", fixStyle: "inline-type-imports" },
@@ -338,7 +330,7 @@ export default tseslint.config(
 
   // React hooks for all UI/widget code
   {
-    files: ["apps/mcp-server-camunda7/src/**/*.{ts,tsx}", "packages/**/src/**/*.{ts,tsx}"],
+    files: ["apps/mcp-server/src/**/*.{ts,tsx}", "packages/**/src/**/*.{ts,tsx}"],
     plugins: { "react-hooks": reactHooks },
     rules: reactHooks.configs["recommended-latest"].rules,
   },
@@ -348,7 +340,7 @@ export default tseslint.config(
   // rules live in .dependency-cruiser.cjs (`pnpm lint:architecture`).
 
   // `no-restricted-syntax` is ONE rule: in flat config a later block REPLACES
-  // an earlier block's options for every file both match — selector lists
+  // an earlier block's options for every file both match; selector lists
   // are never merged. Each gate's selectors therefore live in a constant
   // (top of file), and a glob two gates share gets ONE block carrying the
   // union (the connector widgets below). scripts/eslint-gates.test.mjs pins
@@ -356,37 +348,34 @@ export default tseslint.config(
 
   // Invariant 1: operations tools go through createToolRegistrar. Raw
   // server.tool() is reserved for the widget-tools path (show_* / *_data
-  // feeds + module settings) — exactly the ignores list below. A durable
-  // write registered there must gate itself against the module's toolset.
+  // feeds), exactly the ignores list below.
   {
     files: [
       "packages/connectors/analytics/analytics-connector/src/**/*.{ts,tsx}",
-      "packages/connectors/camunda/camunda7-connector/src/**/*.{ts,tsx}",
+      "packages/connectors/engine/engine-connector/src/**/*.{ts,tsx}",
     ],
     ignores: [
       "packages/connectors/analytics/analytics-connector/src/widget-tools.ts",
       "packages/connectors/analytics/analytics-connector/src/widget-tools/**",
-      "packages/connectors/analytics/analytics-connector/src/settings-tools.ts",
-      "packages/connectors/camunda/camunda7-connector/src/widget-tools.ts",
-      "packages/connectors/camunda/camunda7-connector/src/widget-tools/**",
-      "packages/connectors/camunda/camunda7-connector/src/tools/user-profile.ts",
+      "packages/connectors/engine/engine-connector/src/widget-tools.ts",
+      "packages/connectors/engine/engine-connector/src/widget-tools/**",
     ],
     rules: { "no-restricted-syntax": ["error", ...registrarGate] },
   },
 
-  // Invariant 6: all date/time rendering in widgets goes through the
-  // widget-shell format helpers so every module renders timestamps the same
-  // way. Number#toLocaleString (thousands separators) is deliberately allowed.
+  // Invariant 6: every widget tree renders dates and numbers through pulse-ui's
+  // formatters, so every module renders them the same way in the view's locale (date
+  // and number gates). After the registrar block, whose options it replaces for the
+  // connector widgets: they get the union in the next block.
   {
-    files: ["apps/mcp-server-camunda7/src/ui/**/*.{ts,tsx}"],
-    rules: { "no-restricted-syntax": ["error", ...widgetDateGate] },
+    files: WIDGET_TREES,
+    rules: { "no-restricted-syntax": ["error", ...widgetDateGate, ...widgetNumberGate] },
   },
-  // Connector widgets sit under the registrar AND date gates, render every
-  // number through the kit formatters (number gate) and every hand-off through
-  // the kit's HandOffButton (hand-off gate) — one block per connector, each with the union,
-  // after the registrar block (whose options it replaces for these files).
+  // Connector widgets sit under the registrar, date and number gates and render every
+  // hand-off through widget-shell's HandOffButton (hand-off gate): one block with the union,
+  // after the registrar and WIDGET_TREES blocks (whose options it replaces for these files).
   {
-    files: ["packages/connectors/camunda/camunda7-connector/src/widgets/**/*.{ts,tsx}"],
+    files: CONNECTOR_WIDGETS,
     rules: {
       "no-restricted-syntax": [
         "error",
@@ -397,38 +386,38 @@ export default tseslint.config(
       ],
     },
   },
+  // Invariant 6, numbers: pulse-ui's code too (the kit, not a widget tree: it builds the
+  // date formatters the date gate points at).
   {
-    files: ["packages/connectors/analytics/analytics-connector/src/widgets/**/*.{ts,tsx}"],
-    rules: {
-      "no-restricted-syntax": [
-        "error",
-        ...registrarGate,
-        ...widgetDateGate,
-        ...widgetNumberGate,
-        ...widgetHandOffGate,
-      ],
-    },
-  },
-  // Invariant 6, numbers: the kit's own widget code, and both connectors'
-  // widgets in their union blocks above.
-  {
-    files: ["packages/core/widget-shell/src/ui/**/*.{ts,tsx}"],
+    files: ["packages/core/ui/src/**/*.{ts,tsx}"],
     rules: { "no-restricted-syntax": ["error", ...widgetNumberGate] },
   },
+  // The kit's two number formatters: `format.ts` (the view's locale, set by LocaleGate)
+  // and `formatCount` in `ui-messages.ts` (the components' own locale). After the
+  // general pulse-ui block: a later block replaces `no-restricted-syntax` for both files.
   {
-    files: ["packages/core/widget-shell/src/ui/format.ts"],
+    files: ["packages/core/ui/src/kit/format.ts", "packages/core/ui/src/locale/ui-messages.ts"],
     rules: { "no-restricted-syntax": ["error", ...widgetNumberGateForFormatters] },
   },
-  // Invariant 6, AI affordance: no sparkle icon in any widget tree (its own
-  // rule, so it never collides with the no-restricted-syntax unions above).
+  // Invariant 6, imports: no `mcp-use/react` in any MCP source or test but widget-shell's
+  // adapter. Its own rule (`no-restricted-imports` is ONE rule too: a glob two import gates
+  // share gets their union), so it never collides with the no-restricted-syntax unions above.
   {
     files: [
-      "apps/mcp-server-camunda7/src/ui/**/*.{ts,tsx}",
-      "packages/core/widget-shell/src/ui/**/*.{ts,tsx}",
-      "packages/connectors/analytics/analytics-connector/src/widgets/**/*.{ts,tsx}",
-      "packages/connectors/camunda/camunda7-connector/src/widgets/**/*.{ts,tsx}",
+      "apps/mcp-server/{src,test,test-host}/**/*.{ts,tsx}",
+      "packages/core/ui/src/**/*.{ts,tsx}",
+      "packages/core/widget-shell/src/**/*.{ts,tsx}",
+      "packages/connectors/*/*/src/**/*.{ts,tsx}",
     ],
-    rules: { "no-restricted-imports": ["error", widgetSparkleGate] },
+    rules: { "no-restricted-imports": ["error", mcpUseReactGate] },
+  },
+  {
+    files: [
+      "packages/core/widget-shell/src/ui/mcp-use-host.tsx",
+      "packages/core/widget-shell/src/ui/view-root.tsx",
+      "packages/core/widget-shell/src/ui/view-root.test.tsx",
+    ],
+    rules: { "no-restricted-imports": "off" },
   },
   // ── Ratchet metrics: complexity + file-length budgets ───────────────────
   // Global targets for all source code; scripts/check-ratchets.mjs keeps them
@@ -444,7 +433,7 @@ export default tseslint.config(
       "max-lines": ["error", { max: 400, skipBlankLines: true, skipComments: true }],
     },
   },
-  // i18n message catalogs are data, not code — no length budget.
+  // i18n message catalogs are data, not code: no length budget.
   {
     files: ["packages/connectors/*/*/src/messages/*.sweep.ts"],
     rules: { "max-lines": "off" },
@@ -452,24 +441,16 @@ export default tseslint.config(
   // ── The CLI (apps/cli) ───────────────────────────────────────────────────
   // Brought along from the operate repository, where the CLI grew up: typescript-eslint's
   // strict and stylistic type-checked sets for every CLI file (src, scripts, test, the configs),
-  // the rules the global block above downgrades for mcp-use (no-unsafe-*, require-await, ...)
-  // back at error (the CLI touches neither mcp-use nor the toolkit), and budgets stricter than
-  // the global ones: complexity 10 (global 15) and 300 effective lines per file (global 400) for
-  // the shipped code and the scripts, plus depth, parameter, nesting, function length and
-  // statement budgets. No `ignores` and no no-restricted-syntax here: the tests get their own
-  // block below, and a no-restricted-syntax setting would REPLACE the pattern gates.
+  // which set the type-safety rules and require-await (off in the global block above) at error,
+  // and budgets stricter than the global ones: complexity 10 (global 15) and 300 effective
+  // lines per file (global 400) for the shipped code and the scripts, plus depth, parameter,
+  // nesting, function length and statement budgets. No `ignores` and no no-restricted-syntax here: the tests get their own
+  // block below, and a no-restricted-syntax setting would REPLACE the pattern gates. The CLI's
+  // workflow domain, @miragon/pulse-engine-core (packages/connectors/engine/engine-core), keeps these budgets.
   {
-    files: ["apps/cli/**/*.ts"],
+    files: ["apps/cli/**/*.ts", "packages/connectors/engine/engine-core/**/*.ts"],
     extends: [tseslint.configs.strictTypeChecked, tseslint.configs.stylisticTypeChecked],
     rules: {
-      "@typescript-eslint/no-explicit-any": "error",
-      "@typescript-eslint/no-unsafe-argument": "error",
-      "@typescript-eslint/no-unsafe-assignment": "error",
-      "@typescript-eslint/no-unsafe-call": "error",
-      "@typescript-eslint/no-unsafe-member-access": "error",
-      "@typescript-eslint/no-unsafe-return": "error",
-      "@typescript-eslint/require-await": "error",
-      "@typescript-eslint/no-base-to-string": "error",
       "@typescript-eslint/restrict-template-expressions": ["error", { allowNumber: true }],
       "no-console": "error",
       eqeqeq: ["error", "always"],
@@ -487,8 +468,14 @@ export default tseslint.config(
   // global test budget of 400 effective lines, also for the tests and fakes outside src/ (the
   // global budget block reads apps/*/src only), and none of the per-function budgets; the
   // non-null assertion and the unsafe assignment/member access that fixtures need stay allowed.
+  // The same for engine-core's tests. Its ./testing export (fixtures, the fake port) ships on npm
+  // and keeps the budgets of shipped code.
   {
-    files: ["apps/cli/**/*.test.ts", "apps/cli/test/**/*.ts"],
+    files: [
+      "apps/cli/**/*.test.ts",
+      "apps/cli/test/**/*.ts",
+      "packages/connectors/engine/engine-core/**/*.test.ts",
+    ],
     rules: {
       "max-lines": ["error", { max: 400, skipBlankLines: true, skipComments: true }],
       "max-lines-per-function": "off",

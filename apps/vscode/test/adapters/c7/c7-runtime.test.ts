@@ -67,10 +67,14 @@ const CHARGE_MESSAGE =
   "Unknown property used in expression: ${paymentService.charge(amount)}. Cause: Cannot resolve identifier 'paymentService'"
 const LABEL_MESSAGE =
   "Unknown property used in expression: ${labelPrinter.print(orderId)}. Cause: Cannot resolve identifier 'labelPrinter'"
-const STACKTRACE_DETAILS = {
-  kind: "stacktrace",
-  text: expect.stringMatching(/^org\.operaton\.bpm\.engine\.ProcessEngineException/) as string,
-  truncated: false,
+function stacktraceDetails(identifier: string) {
+  return {
+    kind: "stacktrace",
+    text: expect.stringMatching(/^org\.operaton\.bpm\.engine\.ProcessEngineException/) as string,
+    truncated: false,
+    rootCause: `PropertyNotFoundException: Cannot resolve identifier '${identifier}'`,
+    rootCauseLine: 82,
+  }
 }
 
 const ROUTE = {
@@ -504,7 +508,7 @@ describe("the C7 runtime over recorded engine answers", () => {
         createdAt: "2026-10-21T18:44:04.613Z",
         retriesLeft: 0,
         job: { id: WORLD_IDS.labelJob },
-        details: STACKTRACE_DETAILS,
+        details: stacktraceDetails("labelPrinter"),
       },
     ])
     expect(detail?.variables).toEqual([
@@ -608,7 +612,7 @@ describe("the C7 runtime over recorded engine answers", () => {
         createdAt: "2026-10-21T18:44:04.554Z",
         retriesLeft: 0,
         job: { id: WORLD_IDS.chargeJob },
-        details: STACKTRACE_DETAILS,
+        details: stacktraceDetails("paymentService"),
       },
     ])
     expect(detail?.path).toEqual([
@@ -760,11 +764,13 @@ describe("the C7 runtime over recorded engine answers", () => {
       kind: "stacktrace",
       text: "java.net.ConnectException: Connection refused",
       truncated: false,
+      rootCause: "ConnectException: Connection refused",
     })
     expect(await runtime.getIncidentDetails(IncidentId("task-gone"))).toEqual({
       kind: "errorMessage",
       text: "Customer service is down",
       truncated: false,
+      rootCause: "Customer service is down",
     })
   })
 

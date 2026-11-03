@@ -1,0 +1,22 @@
+@import "tailwindcss";
+@source "../../../../packages/core/ui/src";
+@source not "../../../../packages/core/ui/src/testing";
+@source "../../../../packages/core/widget-shell/src/ui";
+@source "../../../../packages/connectors/engine/engine-connector/src";
+@source "../../../../packages/connectors/analytics/analytics-connector/src";
+/*
+ * pulse-ui's Miragon theme: the vendored corporate-design tokens (--cd-*) and
+ * the role variables on top of them, light and dark (neutrals,
+ * --primary/--link/--focus, the status tones with -soft and -ink, radii,
+ * shadows, motion, the font stacks). Every widget colours through those role
+ * names; this app overrides none of them. The brand gates' fixtures in
+ * pulse-ui's src/testing hold palette classes on purpose, so Tailwind never
+ * scans them.
+ *
+ * Never import pulse-ui's `globals.css` next to it (a second Tailwind entry
+ * with its own @source) or `fonts.css` (Geist as base64 in every view
+ * document; Geist arrives by URL from the server's font route,
+ * `declareServedFonts` in `HostDocument`). Guarded by
+ * test/ui-stylesheet.test.ts.
+ */
+@import "@miragon/pulse-ui/theme.css";

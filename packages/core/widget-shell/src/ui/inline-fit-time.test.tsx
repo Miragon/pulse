@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { useState } from "react"
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
-import type { FitMeasure } from "./inline-fit.js"
+import type { FitMeasure } from "./inline-fit-registry.js"
 import { Host, ROWS, Table, layout, shownRows } from "./inline-fit.test-support.js"
 
 afterEach(() => cleanup())

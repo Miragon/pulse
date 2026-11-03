@@ -1,30 +1,21 @@
 // @vitest-environment happy-dom
 import type { ReactNode } from "react"
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it } from "vitest"
 import { cleanup, render as rtlRender, screen } from "@testing-library/react"
-import { LocaleProvider } from "@miragon/mcp-toolkit-ui"
-import { HostBridgeProvider, type HostBridge } from "@miragon/mcp-toolkit-ui/app"
+import { LocaleProvider } from "@miragon/pulse-ui"
 import { askAiPrompt } from "./ask-ai-prompt.js"
 import { HAND_OFF_ACTIONS, HandOffButton, type HandOffAction } from "./hand-off-button.js"
 import { KIT_LABELS } from "./kit-labels.js"
+import { TestViewHost } from "./test-view-host.js"
 
 afterEach(cleanup)
 
-const bridge: HostBridge = {
-  callTool: vi.fn(),
-  sendFollowup: vi.fn(),
-  openExternal: vi.fn(),
-  getWidgetData: () => null,
-}
-
-const render = (ui: ReactNode) =>
-  rtlRender(<HostBridgeProvider bridge={bridge}>{ui}</HostBridgeProvider>)
+const render = (ui: ReactNode) => rtlRender(<TestViewHost>{ui}</TestViewHost>)
 
 const prompt = askAiPrompt({
   intent: "Explain this.",
   locale: "en",
   ids: { incidentId: "i1" },
-  surface: { has: () => true },
 })
 
 const lucideClass = (name: string) =>

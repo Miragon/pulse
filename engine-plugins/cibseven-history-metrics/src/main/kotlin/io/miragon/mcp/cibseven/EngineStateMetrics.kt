@@ -13,12 +13,12 @@ import java.util.concurrent.TimeUnit
 
 /**
  * Point-in-time engine-state gauges, complementing the event-driven counters in
- * [ProcessMetrics]. These answer "what is the state right now" — running WIP,
- * open incidents, job backlog, task backlog — which flow counters cannot derive
+ * [ProcessMetrics]. These answer "what is the state right now" (running WIP,
+ * open incidents, job backlog, task backlog), which flow counters cannot derive
  * (a long-running instance shows in no `increase[period]`, but it is live WIP).
  *
- * Implemented as Micrometer [MultiGauge]s (the row set — e.g. per definition
- * key — is dynamic) refreshed by a single daemon-thread scheduler: unlike the
+ * Implemented as Micrometer [MultiGauge]s (the row set, e.g. per definition
+ * key, is dynamic) refreshed by a single daemon-thread scheduler: unlike the
  * OTEL API, Micrometer has no per-export callback, and a poll-time gauge
  * function would run engine queries on every scrape of every registry.
  * `register(rows, overwrite = true)` swaps the full row set each tick, so rows
@@ -30,7 +30,7 @@ import java.util.concurrent.TimeUnit
  * read a gauge as `max by (<its contract labels>)` before aggregating further,
  * never as a sum over nodes (rule 3 of `metrics-contract.json`).
  *
- * Cost note: each tick issues a handful of engine queries — fine for typical
+ * Cost note: each tick issues a handful of engine queries: fine for typical
  * deployments; widen the `state-interval` property if the definition count is
  * very large.
  */
@@ -40,31 +40,31 @@ class EngineStateMetrics(private val engine: ProcessEngine, private val engineId
     private val engineTags = Tags.of("engine_id", engineId)
     private var scheduler: ScheduledExecutorService? = null
 
-    private val running = MultiGauge.builder("camunda.process.instances.running")
+    private val running = MultiGauge.builder("engine.process.instances.running")
         .description("Currently running (active) process instances")
         .register(registry)
-    private val failedJobs = MultiGauge.builder("camunda.jobs.failed")
+    private val failedJobs = MultiGauge.builder("engine.jobs.failed")
         .description("Jobs with no retries left (dead), by process definition")
         .register(registry)
-    private val openIncidents = MultiGauge.builder("camunda.incidents.open")
+    private val openIncidents = MultiGauge.builder("engine.incidents.open")
         .description("Open incidents, by process definition and type")
         .register(registry)
-    private val executableJobs = MultiGauge.builder("camunda.jobs.executable")
+    private val executableJobs = MultiGauge.builder("engine.jobs.executable")
         .description("Jobs ready to execute now")
         .register(registry)
-    private val suspendedJobs = MultiGauge.builder("camunda.jobs.suspended")
+    private val suspendedJobs = MultiGauge.builder("engine.jobs.suspended")
         .description("Suspended jobs")
         .register(registry)
-    private val dueFutureJobs = MultiGauge.builder("camunda.jobs.due_future")
+    private val dueFutureJobs = MultiGauge.builder("engine.jobs.due_future")
         .description("Jobs with a due date in the future")
         .register(registry)
-    private val openTasks = MultiGauge.builder("camunda.usertasks.open")
+    private val openTasks = MultiGauge.builder("engine.usertasks.open")
         .description("Open user tasks, by status")
         .register(registry)
-    private val deployedDefinitions = MultiGauge.builder("camunda.process.definitions.deployed")
+    private val deployedDefinitions = MultiGauge.builder("engine.process.definitions.deployed")
         .description("Deployed process definition versions, by key")
         .register(registry)
-    private val openExternalTasks = MultiGauge.builder("camunda.external_tasks.open")
+    private val openExternalTasks = MultiGauge.builder("engine.external_tasks.open")
         .description("Open external tasks awaiting a worker")
         .register(registry)
 
@@ -93,7 +93,7 @@ class EngineStateMetrics(private val engine: ProcessEngine, private val engineId
         refreshExternalTasks()
     }
 
-    /** Running instances + dead (retries-exhausted) jobs + open incidents — one query, aggregated per key. */
+    /** Running instances + dead (retries-exhausted) jobs + open incidents: one query, aggregated per key. */
     private fun refreshDefinitionStats() {
         try {
             val runningByKey = HashMap<String, Long>()
@@ -168,7 +168,7 @@ class EngineStateMetrics(private val engine: ProcessEngine, private val engineId
         }
     }
 
-    /** Open external tasks (worker pattern). Total only — topic has no group-by query. */
+    /** Open external tasks (worker pattern). Total only: topic has no group-by query. */
     private fun refreshExternalTasks() {
         try {
             openExternalTasks.register(singleRow(engine.externalTaskService.createExternalTaskQuery().count()), true)

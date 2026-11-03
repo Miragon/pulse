@@ -148,7 +148,7 @@ class MiraveloLeasingTest {
         var guard = 0
         while (guard++ < 8) {
             // .executable() skips the 2h non-interrupting boundary timer on
-            // Activity_DecideOnApplication — without this filter the test would
+            // Activity_DecideOnApplication: without this filter the test would
             // force-fire the timer, spawn the "Accelerate decision making"
             // branch, and the parallel user task would keep the instance from
             // ending.

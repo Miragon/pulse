@@ -77,7 +77,7 @@ export interface VectorMatching {
 
 /**
  * Parsed expression. Parentheses, unary signs and the range / `offset` / `@`
- * postfixes are folded into their operand — none of them changes the label set.
+ * postfixes are folded into their operand: none of them changes the label set.
  */
 export type PromNode =
   | { type: "number" }

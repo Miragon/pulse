@@ -13,10 +13,10 @@ import org.springframework.stereotype.Component
  * seeders → orchestrator).
  *
  * Queries by `rootProcessInstanceId` instead of `processInstanceId` so the
- * asyncBefore blacklist job in `assessCreditworthiness` — which runs under the
- * *sub-process* PI — is drained alongside the parent's SendPolicy job.
+ * asyncBefore blacklist job in `assessCreditworthiness` (which runs under the
+ * *sub-process* PI) is drained alongside the parent's SendPolicy job.
  *
- * `.executable()` skips timer jobs whose due date is still in the future — a
+ * `.executable()` skips timer jobs whose due date is still in the future: a
  * must for `Activity_DecideOnApplication`, whose 2 h non-interrupting boundary
  * timer the normal path must *not* fire.
  */

@@ -4,7 +4,7 @@
  * `turbo run <task>`, and turbo silently SKIPS a workspace package that does
  * not define the script. A package without `lint` therefore falls out of
  * every ESLint gate and complexity/max-lines budget while `pnpm lint` stays
- * green — the fail-open that kept both client packages unlinted until an
+ * green: the fail-open that kept both client packages unlinted until an
  * ESLint error had already landed there (#333).
  *
  * Every workspace package with a `src/` directory must define `lint` (ESLint
@@ -39,10 +39,11 @@ import { execFileSync } from "node:child_process"
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
+import { MUTATION_PAUSED } from "./mutation-pause.mjs"
 
 /**
  * The scripts every source package must define, each anchored to the command
- * it must actually run — no flags, no shell operators: `"lint": "true"` would
+ * it must actually run (no flags, no shell operators): `"lint": "true"` would
  * satisfy turbo and lint nothing, and so would `"lint": "eslint src || true"`.
  */
 export const REQUIRED_SCRIPTS = {
@@ -71,7 +72,7 @@ export const REQUIRED_SCRIPTS = {
  * gate, so the map cannot outlive its reason.
  */
 export const NO_MUTATION_APPS = {
-  "apps/mcp-server-camunda7":
+  "apps/mcp-server":
     "the composition root: its logic lives in the packages, which the nightly run mutates, and " +
     "the app itself is tested end to end (in-process boots, tools/list goldens, the host simulation)",
 }
@@ -95,18 +96,18 @@ export function checkPackageScripts(dir, scripts, { tsconfigs = [] } = {}) {
     const command = normalizedCommand(scripts?.[name])
     if (command === undefined) {
       errors.push(
-        `${dir}: missing "${name}" script — turbo skips the package, so \`pnpm ${name}\` ` +
+        `${dir}: missing "${name}" script: turbo skips the package, so \`pnpm ${name}\` ` +
           `never covers its src/ (expected: ${expect})`,
       )
     } else if (!pattern.test(command)) {
-      errors.push(`${dir}: "${name}" script is "${command}" — expected it to run ${expect}`)
+      errors.push(`${dir}: "${name}" script is "${command}", expected it to run ${expect}`)
     }
   }
   const typecheck = normalizedCommand(scripts?.typecheck) ?? ""
   for (const tsconfig of tsconfigs) {
     if (!typecheck.split(" && ").includes(`tsc -p ${tsconfig}`)) {
       errors.push(
-        `${dir}: "typecheck" does not run \`tsc -p ${tsconfig}\` — the sources only that ` +
+        `${dir}: "typecheck" does not run \`tsc -p ${tsconfig}\`: the sources only that ` +
           `project covers (widgets, UI, tests) would go unchecked`,
       )
     }
@@ -165,9 +166,13 @@ export function checkStrykerConfig(dir, config) {
 /**
  * Violations for the configs one source package must carry (pure; unit-tested).
  * `stryker`: `{ exists, config, parseError }` as read from its
- * stryker.config.json; `exemptReason`: its NO_MUTATION_APPS entry, if any.
+ * stryker.config.json; `exemptReason`: its NO_MUTATION_APPS entry, if any;
+ * `mutationPaused`: skip the Stryker rules (scripts/mutation-pause.mjs).
  */
-export function checkPackageConfigs(dir, { hasVitestConfig, stryker, exemptReason }) {
+export function checkPackageConfigs(
+  dir,
+  { hasVitestConfig, stryker, exemptReason, mutationPaused = false },
+) {
   const errors = []
   if (!hasVitestConfig) {
     errors.push(
@@ -176,6 +181,7 @@ export function checkPackageConfigs(dir, { hasVitestConfig, stryker, exemptReaso
         `sharedConfig from vitest.shared.ts and sets the package's coverage thresholds`,
     )
   }
+  if (mutationPaused) return errors
   if (!stryker.exists) {
     if (exemptReason === undefined) {
       errors.push(
@@ -268,12 +274,22 @@ export function workspaceGlobs(yamlText) {
   return globs
 }
 
-/** Expand `a/*` / `a/*\/*` / `docs` style workspace globs into package dirs. */
+/**
+ * Expand `a/*` / `a/*\/*` / `docs` style workspace globs into package dirs. Only literal segments
+ * and a whole `*` segment are understood; any other glob throws, so a new workspace tier never
+ * drops silently out of the gates that read the workspace.
+ */
 export function expandWorkspaceGlobs(root, globs) {
   const dirs = []
   for (const glob of globs) {
     let current = [""]
     for (const segment of glob.split("/")) {
+      if (segment !== "*" && (/[*?![\]{}]/.test(segment) || ["", ".", ".."].includes(segment))) {
+        throw new Error(
+          `pnpm-workspace.yaml lists "${glob}": the gates expand literal segments and a whole ` +
+            `"*" segment only. Write the glob that way or teach expandWorkspaceGlobs it.`,
+        )
+      }
       const next = []
       for (const base of current) {
         const abs = path.join(root, base)
@@ -299,7 +315,11 @@ export function expandWorkspaceGlobs(root, globs) {
  * Every violation in the workspace under `root` (reads the tree; tested over
  * tmpdir fixtures and the real repo). `sourceDirs`: the packages with src/.
  */
-export function checkWorkspace(root, globs, { noMutationApps = NO_MUTATION_APPS } = {}) {
+export function checkWorkspace(
+  root,
+  globs,
+  { noMutationApps = NO_MUTATION_APPS, mutationPaused = false } = {},
+) {
   const errors = []
   const sourceDirs = []
   for (const dir of expandWorkspaceGlobs(root, globs)) {
@@ -314,10 +334,11 @@ export function checkWorkspace(root, globs, { noMutationApps = NO_MUTATION_APPS 
         hasVitestConfig: existsSync(path.join(abs, "vitest.config.ts")),
         stryker,
         exemptReason: Object.hasOwn(noMutationApps, dir) ? noMutationApps[dir] : undefined,
+        mutationPaused,
       }),
     )
   }
-  errors.push(...checkMutationExemptions(sourceDirs, noMutationApps))
+  if (!mutationPaused) errors.push(...checkMutationExemptions(sourceDirs, noMutationApps))
   return { errors, sourceDirs }
 }
 
@@ -420,7 +441,7 @@ if (isMain) {
     console.error("check-package-scripts: no workspace globs found in pnpm-workspace.yaml")
     process.exit(1)
   }
-  const { errors, sourceDirs } = checkWorkspace(root, globs)
+  const { errors, sourceDirs } = checkWorkspace(root, globs, { mutationPaused: MUTATION_PAUSED })
   errors.push(...checkFilters(repoTextFiles(root)))
   if (errors.length > 0) {
     console.error(
@@ -435,7 +456,10 @@ if (isMain) {
     process.exit(1)
   }
   const exempt = Object.keys(NO_MUTATION_APPS).join(", ")
+  const mutation = MUTATION_PAUSED
+    ? "(mutation testing paused, stryker.config.json not checked: scripts/mutation-pause.mjs)"
+    : `and a gated stryker.config.json (exempt from mutation: ${exempt})`
   console.log(
-    `Package scripts: all ${sourceDirs.length} source packages run the canonical lint, typecheck and test, carry a vitest.config.ts and a gated stryker.config.json (exempt from mutation: ${exempt}), and every pnpm filter names a workspace package.`,
+    `Package scripts: all ${sourceDirs.length} source packages run the canonical lint, typecheck and test, carry a vitest.config.ts ${mutation}, and every pnpm filter names a workspace package.`,
   )
 }

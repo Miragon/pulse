@@ -7,7 +7,7 @@
  */
 
 /** A loopback caller is the machine itself. */
-export const LOCALHOST_HOSTNAMES: readonly string[] = ["localhost", "127.0.0.1", "[::1]"]
+const LOCALHOST_HOSTNAMES: readonly string[] = ["localhost", "127.0.0.1", "[::1]"]
 
 /**
  * 4 MiB bounds ONE request; mcp-use parses a JSON body into a heap graph up to ~20× its size before
@@ -27,7 +27,7 @@ export const HTTP_EDGE_ENV_VARS = [
 ] as const
 
 /** `"*"` is an explicit opt-out for edges that validate themselves. */
-export type AllowList = readonly string[] | "*"
+type AllowList = readonly string[] | "*"
 
 export interface HttpEdgePolicy {
   allowedHosts: AllowList
@@ -131,7 +131,7 @@ export function describeHttpEdgePolicy(policy: HttpEdgePolicy): string {
   const list = (allowList: AllowList) =>
     allowList === "*" ? "any (validation off)" : allowList.join(", ")
   return (
-    `HTTP edge — hosts: ${list(policy.allowedHosts)}; origins: ${list(policy.allowedOrigins)}; ` +
+    `HTTP edge: hosts ${list(policy.allowedHosts)}; origins ${list(policy.allowedOrigins)}; ` +
     `max body ${formatBytes(policy.maxBodyBytes)} (${formatBytes(policy.maxInFlightBodyBytes)} in flight); ` +
     `/metrics ${policy.metricsToken ? "token-protected" : "open"}`
   )

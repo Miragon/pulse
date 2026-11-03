@@ -8,7 +8,7 @@ import io.micrometer.core.instrument.Tags
 /**
  * Micrometer meters for process analytics, emitted straight from the engine's
  * history-event stream (100 % coverage, never sampled). Records into the given
- * [MeterRegistry] — the plugin passes Micrometer's global composite registry,
+ * [MeterRegistry]: the plugin passes Micrometer's global composite registry,
  * so any export path the host application configures (Spring Boot Actuator
  * scrape or OTLP push, the OTEL Java agent's Micrometer bridge) receives the
  * meters. Without any export registry every recording is a no-op, so the
@@ -18,10 +18,10 @@ import io.micrometer.core.instrument.Tags
  * Both export paths converge on the same Prometheus series: the OTEL
  * Collector's Prometheus exporter and Micrometer's own Prometheus registry
  * lowercase, replace `.` with `_`, append the unit and `_total` to monotonic
- * counters. So `camunda.process.instance.duration` (base unit `milliseconds`)
- * surfaces as `camunda_process_instance_duration_milliseconds{_bucket,_sum,_count}`
- * and `camunda.process.instance.started` as
- * `camunda_process_instance_started_total`. The base unit is deliberately the
+ * counters. So `engine.process.instance.duration` (base unit `milliseconds`)
+ * surfaces as `engine_process_instance_duration_milliseconds{_bucket,_sum,_count}`
+ * and `engine.process.instance.started` as
+ * `engine_process_instance_started_total`. The base unit is deliberately the
  * spelled-out `milliseconds` (not UCUM `ms`) because both exporters append it
  * verbatim.
  *
@@ -38,41 +38,41 @@ import io.micrometer.core.instrument.Tags
  * ## Cardinality contract
  * Only model-bounded tags are attached (definition key/version, activity
  * id/type, task key, incident type, engine id, tenant, instance state). NEVER
- * attach instance ids, business keys, variable values or raw incident messages —
+ * attach instance ids, business keys, variable values or raw incident messages:
  * they explode the time-series count. See [MetricsHistoryEventHandler].
  */
 class ProcessMetrics(private val registry: MeterRegistry) {
 
     // --- Process instance ---
-    fun processStarted(tags: Tags) = counter("camunda.process.instance.started", "Process instances started", tags)
+    fun processStarted(tags: Tags) = counter("engine.process.instance.started", "Process instances started", tags)
 
-    fun processEnded(tags: Tags) = counter("camunda.process.instance.ended", "Process instances ended, by terminal state", tags)
+    fun processEnded(tags: Tags) = counter("engine.process.instance.ended", "Process instances ended, by terminal state", tags)
 
     fun processDuration(millis: Long, tags: Tags) =
-        durationSummary("camunda.process.instance.duration", "End-to-end process instance duration", FLOW_BUCKETS_MS, tags)
+        durationSummary("engine.process.instance.duration", "End-to-end process instance duration", FLOW_BUCKETS_MS, tags)
             .record(millis.toDouble())
 
     // --- Activity instance (heatmap + bottleneck) ---
-    fun activityEnded(tags: Tags) = counter("camunda.activity.ended", "Activity instances completed", tags)
+    fun activityEnded(tags: Tags) = counter("engine.activity.ended", "Activity instances completed", tags)
 
     fun activityDuration(millis: Long, tags: Tags) =
-        durationSummary("camunda.activity.duration", "Activity instance execution time", FLOW_BUCKETS_MS, tags)
+        durationSummary("engine.activity.duration", "Activity instance execution time", FLOW_BUCKETS_MS, tags)
             .record(millis.toDouble())
 
     // --- User task ---
-    fun taskCreated(tags: Tags) = counter("camunda.usertask.created", "User tasks created", tags)
+    fun taskCreated(tags: Tags) = counter("engine.usertask.created", "User tasks created", tags)
 
-    fun taskCompleted(tags: Tags) = counter("camunda.usertask.completed", "User tasks completed", tags)
+    fun taskCompleted(tags: Tags) = counter("engine.usertask.completed", "User tasks completed", tags)
 
-    fun taskDuration(millis: Long, tags: Tags) = durationSummary("camunda.usertask.duration", "User task cycle time", TASK_BUCKETS_MS, tags)
+    fun taskDuration(millis: Long, tags: Tags) = durationSummary("engine.usertask.duration", "User task cycle time", TASK_BUCKETS_MS, tags)
         .record(millis.toDouble())
 
     // --- Incident (failure analysis) ---
-    fun incidentCreated(tags: Tags) = counter("camunda.incident.created", "Incidents created", tags)
+    fun incidentCreated(tags: Tags) = counter("engine.incident.created", "Incidents created", tags)
 
-    fun incidentResolved(tags: Tags) = counter("camunda.incident.resolved", "Incidents resolved", tags)
+    fun incidentResolved(tags: Tags) = counter("engine.incident.resolved", "Incidents resolved", tags)
 
-    // `register` is idempotent — it returns the existing meter for a known
+    // `register` is idempotent: it returns the existing meter for a known
     // (name, tags) pair, so the per-event lookup is a cheap map hit.
     private fun counter(name: String, description: String, tags: Tags) = Counter.builder(name)
         .description(description)

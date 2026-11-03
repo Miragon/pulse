@@ -29,8 +29,8 @@ export function requestLogLevelWarning(env: NodeJS.ProcessEnv): string | undefin
   const level = env.MCP_USE_LOG_LEVEL?.trim().toLowerCase()
   if (level !== "debug" && level !== "trace") return undefined
   return level === "trace"
-    ? "MCP_USE_LOG_LEVEL=trace — mcp-use logs every request and response in full, headers (bearer tokens) included. For debugging only."
-    : "MCP_USE_LOG_LEVEL=debug — mcp-use logs tool inputs and outputs (process variables, business keys) on every call. For debugging only."
+    ? "MCP_USE_LOG_LEVEL=trace: mcp-use logs every request and response in full, headers (bearer tokens) included. For debugging only."
+    : "MCP_USE_LOG_LEVEL=debug: mcp-use logs tool inputs and outputs (process variables, business keys) on every call. For debugging only."
 }
 
 /**
@@ -60,7 +60,7 @@ export function resolvePort({
   const port = Number(env.PORT?.trim() || fallback)
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
     const prefix = label ? `[${label}] ` : ""
-    throw new Error(`${prefix}invalid PORT "${env.PORT}" — expected an integer 1-65535`)
+    throw new Error(`${prefix}invalid PORT "${env.PORT}": expected an integer 1-65535`)
   }
   return port
 }

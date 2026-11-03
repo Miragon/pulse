@@ -26,6 +26,9 @@
   },
   "files": [
     "dist",
+    "!dist/**/*.test.*",
+    "!dist/**/*.test-support.*",
+    "!dist/**/test-support",
     "metrics-contract.json"
   ],
   "type": "module",
@@ -35,22 +38,6 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    },
-    "./schemas": {
-      "types": "./dist/schemas/index.d.ts",
-      "import": "./dist/schemas/index.js"
-    },
-    "./queries": {
-      "types": "./dist/queries/index.d.ts",
-      "import": "./dist/queries/index.js"
-    },
-    "./widgets": {
-      "types": "./dist/widgets.d.ts",
-      "import": "./dist/widgets.js"
-    },
-    "./*": {
-      "types": "./dist/*.d.ts",
-      "import": "./dist/*.js"
     }
   },
   "scripts": {

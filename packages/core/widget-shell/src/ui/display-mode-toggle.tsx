@@ -1,7 +1,7 @@
 import { createContext, useContext, type ReactNode } from "react"
-import { Button, useToolkitMessages } from "@miragon/mcp-toolkit-ui"
+import { Button, useLocale, Icon } from "@miragon/pulse-ui"
 import { Maximize2, Minimize2 } from "lucide-react"
-import { Icon } from "./icon.js"
+import { kitLabels } from "./kit-labels.js"
 
 /** Outside a host nothing can be switched. */
 export interface DisplayModeControl {
@@ -36,10 +36,10 @@ export function useDisplayModeControl(): DisplayModeControl {
   return useContext(DisplayModeControlContext)
 }
 
-/** For a surface that hides the view's own chrome (#344 N109); nothing where the host offers no fullscreen. */
+/** The view frame's fullscreen switch (a chrome button, CI §8); nothing where the host offers no fullscreen. */
 export function DisplayModeToggle() {
   const { displayMode, canFullscreen, request } = useDisplayModeControl()
-  const words = useToolkitMessages().view
+  const words = kitLabels(useLocale())
   if (!canFullscreen) return null
   const fullscreen = displayMode === "fullscreen"
   const label = fullscreen ? words.exitFullscreen : words.enterFullscreen
@@ -47,12 +47,13 @@ export function DisplayModeToggle() {
     <Button
       type="button"
       variant="outline"
-      size="icon"
+      size="icon-sm"
+      className="shadow-1"
       aria-label={label}
       title={label}
       onClick={() => request(fullscreen ? "inline" : "fullscreen")}
     >
-      <Icon icon={fullscreen ? Minimize2 : Maximize2} />
+      <Icon icon={fullscreen ? Minimize2 : Maximize2} dense />
     </Button>
   )
 }

@@ -1,20 +1,20 @@
 logging:
   level:
     # Seeding intentionally triggers two incident eras (pre-fix blacklist outage
-    # and rollback-era policy-template render failure) — the delegates log
+    # and rollback-era policy-template render failure); the delegates log
     # their simulated failures at WARN. Suppress the engine's redundant ERROR
     # re-log so the seed output stays readable.
     org.cibseven.bpm.engine.context: "OFF"
 
 seed:
-  # PRESENTATION profile — ~600 miraveloLeasing instances with the full
+  # PRESENTATION profile: ~600 miraveloLeasing instances with the full
   # coverage surface for the dev-skills demo recipes.
   #
   # UC2 (change-impact):
   #   - `region` (EU/US/APAC), `bikeModel` (city/cargo/trail/road),
-  #     `customerSegment` (PRIVATE/BUSINESS/STUDENT) — categorical
+  #     `customerSegment` (PRIVATE/BUSINESS/STUDENT): categorical
   #     reclassification without producing new BPMN paths.
-  #   - `priorityFlag` boolean at ~20 % — boolean reclassification.
+  #   - `priorityFlag` boolean at ~20 %: boolean reclassification.
   #
   # UC5 IMPROVED:
   #   - Pre-fix era days 15..30 → `_simulateBlacklistOutage=true` on 15 %

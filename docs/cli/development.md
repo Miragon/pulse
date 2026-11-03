@@ -74,7 +74,7 @@ The command surface is data, not hand-written code:
 src/bin/        entry point and the Node runtime (I/O, timers, loopback server, browser, lock file, shell)
 src/cli/        commander wiring and the utility commands; the only layer that imports commander
 src/operation/  input building, variables, dates, guards, request building, execution, pagination
-src/workflow/   the workflow commands: engine access, instance views, waiting, plans (pure)
+src/workflow/   the workflow commands on @miragon/pulse-engine-core (bundled): its text, waiting (pure)
 src/engine-port/ what the CLI needs from an engine: EnginePort and EngineAdapter (types only)
 src/engines/    one adapter per engine (operaton, cibseven, camunda7) and the list of them (pure)
 src/api/        one folder per engine API; camunda7-rest builds catalog and port for the adapters (pure)
@@ -93,15 +93,16 @@ The overview with diagrams is in [Architecture](architecture.md), the decisions 
 (`pnpm lint:architecture` cruises `apps/cli/src`, `pnpm lint:architecture:cli` its `scripts/` and
 `test/`): no cycle (a type-only one included), only `src/bin` imports `src/cli`, only `src/cli`
 imports commander, the pure layers import no Node built-in, `workflow` knows engines only through
-`src/engine-port`, only the adapters import `src/api`, only `auth login` reaches the interactive
-login, and only `src/catalog/catalog.ts` and the adapters (each its own) read the catalogs.
+`src/engine-port`, only they and `src/operation/{dates,variables}.ts` import engine-core, only the
+adapters import `src/api`, only `auth login` reaches the interactive login, and only
+`src/catalog/catalog.ts` and the adapters (each its own) read the catalogs.
 
 ## Quality gates
 
 - **TypeScript** strict (`apps/cli/tsconfig.json`), **ESLint** with the CLI's blocks of
   `eslint.config.mjs`: typescript-eslint `strictTypeChecked`, complexity 10, 300 lines per file
-  (400 for tests), 60 lines per function, 20 statements, depth 3, 4 parameters. **Prettier** as
-  everywhere, **knip** also on unused exports, types and enum members (`pnpm lint:deadcode:cli`).
+  (400 for tests), 60 lines per function, 20 statements, depth 3, 4 parameters. **Prettier**,
+  **knip** on every issue type (`pnpm lint:deadcode`, `pnpm lint:deadcode:exports`).
 - **vitest** with v8 coverage floors of 90 % for lines, statements and functions and 85 % for
   branches (`apps/cli/vitest.config.ts`); the floors only rise.
 - **fast-check** property tests for naming, patches, variable parsing, dates, query building,

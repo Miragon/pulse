@@ -2,22 +2,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { useState, type ReactNode } from "react"
 import { act, cleanup, fireEvent, render, renderHook, screen } from "@testing-library/react"
-import {
-  AppQueryProvider,
-  LocaleProvider,
-  PagedListFooter,
-  queryClient,
-} from "@miragon/mcp-toolkit-ui"
+import { LocaleProvider, PagedListFooter } from "@miragon/pulse-ui"
 import { PagedRows } from "./paged-rows.js"
 import { Host, ROWS, Table, layout, shownRows } from "./inline-fit.test-support.js"
+import { spyHost } from "./tool-host.test-support.js"
 import { usePagedViewData } from "./use-paged-view-data.js"
 
 /** #396 with an injected layout; the host simulation measures the real thing. */
 
-afterEach(() => {
-  cleanup()
-  queryClient.clear()
-})
+afterEach(cleanup)
 
 describe("a table inline", () => {
   it("shows the rows that fit, says how many there are, and opens fullscreen", () => {
@@ -133,15 +126,13 @@ describe("a paged list inline", () => {
     total: number
   }
   const callTool = vi.fn()
-  const toolkitDefaults = queryClient.getDefaultOptions()
+  const host = spyHost("test_list_data", callTool)
+  const ToolHost = host.wrapper
   beforeEach(() => {
     callTool.mockReset()
-    queryClient.setDefaultOptions({
-      ...toolkitDefaults,
-      queries: { ...toolkitDefaults.queries, retry: false },
-    })
+    host.reset()
   })
-  afterEach(() => queryClient.setDefaultOptions(toolkitDefaults))
+  afterEach(() => host.dispose())
 
   const seed: Page = { items: ROWS.slice(0, 10), total: 40 }
 
@@ -168,11 +159,11 @@ describe("a paged list inline", () => {
 
   function renderList(expand: (() => void) | null) {
     return render(
-      <AppQueryProvider callTool={callTool}>
+      <ToolHost>
         <Host expand={expand} measure={layout({ chrome: 300, row: 60 })}>
           <List />
         </Host>
-      </AppQueryProvider>,
+      </ToolHost>,
     )
   }
 
@@ -217,11 +208,11 @@ describe("a paged list inline", () => {
     }
     callTool.mockReturnValue(new Promise(() => undefined))
     render(
-      <AppQueryProvider callTool={callTool}>
+      <ToolHost>
         <Host measure={layout({ chrome: 300, row: 60 })}>
           <Searchable />
         </Host>
-      </AppQueryProvider>,
+      </ToolHost>,
     )
     fireEvent.click(screen.getByRole("button", { name: "Load more" }))
     expect(shownRows()).toHaveLength(8)
@@ -230,9 +221,7 @@ describe("a paged list inline", () => {
   })
 
   it("shows every row outside a host", () => {
-    const wrapper = ({ children }: { children: ReactNode }) => (
-      <AppQueryProvider callTool={callTool}>{children}</AppQueryProvider>
-    )
+    const wrapper = ({ children }: { children: ReactNode }) => <ToolHost>{children}</ToolHost>
     const { result } = renderHook(
       () =>
         usePagedViewData<string, Page>({

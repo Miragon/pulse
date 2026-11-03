@@ -1,8 +1,8 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    // widget-registry.test.ts pulls the module widget bundles (tsx) into this
-    // program via src/ui/widget-registry.ts.
+    // view-registry.test.ts pulls the module views (tsx) into this program
+    // via src/ui/view-registry.ts.
     "jsx": "react-jsx",
     "noEmit": true,
     "declaration": false,

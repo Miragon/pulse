@@ -5,8 +5,8 @@ packages:
   - "docs"
 
 # Transitive packages carrying open advisories that their dependents have not
-# caught up with yet. All of them sit in the build/test toolchain only — none of
-# them ships in the server image — but pinning the patched line here is what
+# caught up with yet. All of them sit in the build/test toolchain only (none of
+# them ships in the server image), but pinning the patched line here is what
 # closes the Dependabot alert. Keep every entry caret-ranged (the docs pin at
 # the end is the one exception): an override replaces the dependent's own range
 # outright, so a bare `>=` would happily resolve the next major (js-yaml 5,

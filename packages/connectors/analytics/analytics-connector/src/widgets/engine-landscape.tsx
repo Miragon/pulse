@@ -3,37 +3,37 @@ import {
   KpiGrid,
   SectionHeading,
   StatusBadge,
-  useToolQuery,
   type KpiCell,
-} from "@miragon/mcp-toolkit-ui"
+  Icon,
+  NamedId,
+  TableEmptyState,
+  Td,
+  formatNumber,
+} from "@miragon/pulse-ui"
 import { Info } from "lucide-react"
 import {
   HandOffButton,
-  Icon,
   ListTable,
-  NamedId,
-  TableEmptyState,
+  QueryFallback,
   TableSkeleton,
-  Td,
   ViewMeta,
   WidgetShell,
-  formatNumber,
   type ListTableColumn,
   type ListTableGroup,
+  useToolQuery,
 } from "@miragon/pulse-widget-shell/widgets"
 import type { EngineLandscapeEngine, EngineLandscapeResult } from "@miragon/pulse-analytics-client"
 import { ANALYTICS_ENGINE_LANDSCAPE_DATA } from "../tool-names.js"
-import { QueryGate } from "./query-gate.js"
 import { useT, type T } from "../messages/use-t.js"
 import { useHandOff, type HandOff } from "./hand-off.js"
 import { processNameOf, type Named } from "../bpmn-names.js"
 import { Figure, FigureLegend, Legend, StateCount } from "./figure.js"
 
 /** The landscape payload: the figures plus the process names behind the matrix's keys. */
-export type EngineLandscapeView = Named<EngineLandscapeResult>
-export type EngineLandscapeData = EngineLandscapeView | null
+type EngineLandscapeView = Named<EngineLandscapeResult>
+type EngineLandscapeData = EngineLandscapeView | null
 
-/** Engine ids from the layout cell props (`engine` may be a string or a list). */
+/** Engine ids from the `engine` prop (a string or a list; the fleet view passes every engine). */
 function engineIdsFromProps(engine: string | string[] | undefined): string[] {
   if (typeof engine === "string") return engine.length > 0 ? [engine] : []
   if (Array.isArray(engine)) return engine.filter((id) => typeof id === "string" && id.length > 0)
@@ -63,16 +63,26 @@ export function EngineLandscapeWidget({
     { enabled: !initialData },
   )
 
+  const data = initialData ?? query.data ?? null
+  if (!data) {
+    return (
+      <WidgetShell>
+        <QueryFallback
+          isError={query.isError}
+          error={query.error}
+          errorTitle={t("aCommon.loadError")}
+          onRetry={() => void query.refetch()}
+          skeleton={<TableSkeleton />}
+        />
+      </WidgetShell>
+    )
+  }
   return (
-    <QueryGate initialData={initialData} query={query} skeleton={<TableSkeleton />}>
-      {(data) => (
-        <WidgetShell>
-          <LandscapeSummary data={data} t={t} />
-          <EngineTable data={data} t={t} />
-          <ProcessMatrix data={data} t={t} />
-        </WidgetShell>
-      )}
-    </QueryGate>
+    <WidgetShell>
+      <LandscapeSummary data={data} t={t} />
+      <EngineTable data={data} t={t} />
+      <ProcessMatrix data={data} t={t} />
+    </WidgetShell>
   )
 }
 
@@ -152,7 +162,7 @@ function CountCell({ value, t }: { value: number | null; t: T }) {
   )
 }
 
-/** A danger edge while there are any, as camunda7's engine tiles show the same counts. */
+/** A danger edge while there are any, as the engine module's engine tiles show the same counts. */
 function StateCountCell({ value, t }: { value: number | null; t: T }) {
   return (
     <Td align="right" className="tabular-nums">
@@ -306,13 +316,12 @@ function ProcessMatrix({ data, t }: { data: EngineLandscapeView; t: T }) {
  * The one valid engine-vs-engine hand-off: same process, two engines (further engines named so the
  * model can pair them next).
  */
-export function landscapeCompareHandOff(processKey: string, on: readonly string[]): HandOff {
+function landscapeCompareHandOff(processKey: string, on: readonly string[]): HandOff {
   const [engineA, engineB, ...more] = on
   return {
     intent: "askAi.landscapeCompare",
-    ids: { processDefinitionKey: processKey, engineA, engineB, windowDays: 14 },
+    ids: { processDefinitionKey: processKey, engineA, engineB },
     facts: { alsoRunsOn: more.length > 0 ? more : undefined },
-    tools: ["analytics_show_engine_compare"],
   }
 }
 

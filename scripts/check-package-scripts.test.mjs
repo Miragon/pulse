@@ -20,6 +20,7 @@ import {
   unknownFilters,
   workspaceGlobs,
 } from "./check-package-scripts.mjs"
+import { MUTATION_PAUSED } from "./mutation-pause.mjs"
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 
@@ -43,7 +44,7 @@ describe("checkPackageScripts", () => {
     )
   })
 
-  it("flags each missing script — turbo would skip the package silently", () => {
+  it("flags each missing script: turbo would skip the package silently", () => {
     const errors = checkPackageScripts("packages/x", {
       typecheck: "tsc --noEmit",
       test: "vitest run",
@@ -134,6 +135,17 @@ describe("workspace discovery", () => {
       )
     } finally {
       rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  // Lax expansion would read `packages/**` as no package, so a new tier would leave every gate.
+  it("fails on a glob it cannot expand instead of reading it as no package", () => {
+    for (const glob of ["packages/**", "apps/cli-*", "!apps/old", "../outside", "apps/./x"]) {
+      assert.throws(
+        () => expandWorkspaceGlobs(tmpdir(), [glob]),
+        /expand literal segments and a whole "\*" segment only/,
+        glob,
+      )
     }
   })
 })
@@ -235,7 +247,7 @@ const STRYKER_OK = { exists: true, config: GOOD_STRYKER }
 describe("checkPackageConfigs: the configs a source package's scripts measure against", () => {
   it("accepts a package with a vitest.config.ts and a valid stryker.config.json", () => {
     assert.deepEqual(
-      checkPackageConfigs("packages/connectors/camunda/camunda7-connector", {
+      checkPackageConfigs("packages/connectors/engine/engine-connector", {
         hasVitestConfig: true,
         stryker: STRYKER_OK,
       }),
@@ -244,14 +256,14 @@ describe("checkPackageConfigs: the configs a source package's scripts measure ag
   })
 
   it("requires a vitest.config.ts: vitest's default measures no coverage", () => {
-    const errors = checkPackageConfigs("packages/connectors/camunda/camunda7-connector", {
+    const errors = checkPackageConfigs("packages/connectors/engine/engine-connector", {
       hasVitestConfig: false,
       stryker: STRYKER_OK,
     })
     assert.equal(errors.length, 1)
     assert.match(
       errors[0],
-      /^packages\/connectors\/camunda\/camunda7-connector: no vitest\.config\.ts/,
+      /^packages\/connectors\/engine\/engine-connector: no vitest\.config\.ts/,
     )
     assert.match(errors[0], /sharedConfig/)
   })
@@ -295,6 +307,24 @@ describe("checkPackageConfigs: the configs a source package's scripts measure ag
       /^apps\/cli\/stryker\.config\.json is not valid JSON \(Unexpected token\)/,
     )
   })
+
+  it("skips only the Stryker rules while mutation testing is paused", () => {
+    assert.deepEqual(
+      checkPackageConfigs("apps/cli", {
+        hasVitestConfig: true,
+        stryker: { exists: false },
+        mutationPaused: true,
+      }),
+      [],
+    )
+    const errors = checkPackageConfigs("apps/cli", {
+      hasVitestConfig: false,
+      stryker: { exists: true, parseError: "Unexpected token" },
+      mutationPaused: true,
+    })
+    assert.equal(errors.length, 1)
+    assert.match(errors[0], /^apps\/cli: no vitest\.config\.ts/)
+  })
 })
 
 describe("checkMutationExemptions: NO_MUTATION_APPS cannot outlive its reason", () => {
@@ -328,7 +358,7 @@ describe("checkMutationExemptions: NO_MUTATION_APPS cannot outlive its reason", 
   })
 
   it("the real map exempts only apps, each with a reason", () => {
-    assert.deepEqual(Object.keys(NO_MUTATION_APPS), ["apps/mcp-server-camunda7"])
+    assert.deepEqual(Object.keys(NO_MUTATION_APPS), ["apps/mcp-server"])
     for (const reason of Object.values(NO_MUTATION_APPS)) assert.ok(reason.length > 20)
   })
 })
@@ -349,8 +379,8 @@ const PACKAGES = {
     stryker: GOOD_STRYKER,
   },
   "apps/server": { name: "@miragon/pulse-fixture-root", stryker: null },
-  "packages/connectors/camunda/camunda7-connector": {
-    name: "@miragon/pulse-camunda7-connector",
+  "packages/connectors/engine/engine-connector": {
+    name: "@miragon/pulse-engine-connector",
     stryker: GOOD_STRYKER,
   },
 }
@@ -392,7 +422,7 @@ function workspaceErrors(change, { noMutationApps = EXEMPT } = {}) {
   }
 }
 
-const CONNECTOR = "packages/connectors/camunda/camunda7-connector"
+const CONNECTOR = "packages/connectors/engine/engine-connector"
 
 describe("checkWorkspace over fixture trees", () => {
   it("passes the fixture as built and checks only packages with src/", () => {
@@ -406,7 +436,7 @@ describe("checkWorkspace over fixture trees", () => {
     assert.deepEqual(errors.length, 1)
     assert.match(
       errors[0],
-      /^packages\/connectors\/camunda\/camunda7-connector: no vitest\.config\.ts/,
+      /^packages\/connectors\/engine\/engine-connector: no vitest\.config\.ts/,
     )
   })
 
@@ -471,13 +501,15 @@ describe("checkWorkspace over fixture trees", () => {
 
   it("real repo: every source package passes, the exempt server app included", () => {
     const globs = workspaceGlobs(readFileSync(path.join(repoRoot, "pnpm-workspace.yaml"), "utf8"))
-    const { errors, sourceDirs } = checkWorkspace(repoRoot, globs)
+    const { errors, sourceDirs } = checkWorkspace(repoRoot, globs, {
+      mutationPaused: MUTATION_PAUSED,
+    })
     assert.deepEqual(errors, [])
     for (const dir of [
-      "apps/mcp-server-camunda7",
+      "apps/mcp-server",
       "packages/core/widget-shell",
-      "packages/connectors/camunda/camunda7-client",
-      "packages/connectors/camunda/camunda7-connector",
+      "packages/connectors/engine/engine-client",
+      "packages/connectors/engine/engine-connector",
       "packages/connectors/analytics/analytics-client",
       "packages/connectors/analytics/analytics-connector",
     ]) {

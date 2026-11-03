@@ -13,9 +13,10 @@ name: Mutation (nightly)
 # full pass (owner decision: incremental nightly only); a dispatch with `force` re-tests every
 # mutant. The cache key fingerprints the lockfile, the vitest, tsconfig and Stryker config and
 # the Node major, so a change there starts the package cold.
+#
+# PAUSED while the MCP server is rebuilt (owner decision, 2026-10-31; scripts/mutation-pause.mjs):
+# no schedule, manual dispatch only. Resuming restores `schedule: - cron: "0 2 * * *"`.
 on:
-  schedule:
-    - cron: "0 2 * * *"
   workflow_dispatch:
     inputs:
       force:
@@ -128,7 +129,7 @@ jobs:
           path: ${{ matrix.dir }}/reports/stryker-incremental.json
           key: ${{ steps.cache-key.outputs.prefix }}${{ github.run_id }}-${{ github.run_attempt }}
 
-      # One exact-depth glob per package form, as for ci.yml's coverage-summaries: their least
+      # One exact-depth glob per package form, never `**` (it follows pnpm's symlinks): their least
       # common ancestor is the repo root, so the report keeps its package prefix and the summary
       # job unpacks every leg's over the checkout.
       - if: ${{ !cancelled() }}

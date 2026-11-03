@@ -6,13 +6,10 @@ import {
   scanGlyphs,
   scanIconSizes,
   scanTypeScale,
-} from "@miragon/pulse-widget-shell/testing"
+} from "@miragon/pulse-ui/testing"
 import { deAskAi } from "./messages/de.ask-ai.js"
-import { deBuilder } from "./messages/de.builder.js"
-import { deServer } from "./messages/de.server.js"
 import { deSweep } from "./messages/de.sweep.js"
 import { enAskAi } from "./messages/en.ask-ai.js"
-import { enBuilder } from "./messages/en.builder.js"
 import { enServer } from "./messages/en.server.js"
 import { enSweep } from "./messages/en.sweep.js"
 
@@ -23,10 +20,7 @@ describe("analytics copy follows the voice rules", () => {
     ["widget texts (en)", enSweep, "en"],
     ["Ask-AI intents (de)", deAskAi, "de"],
     ["Ask-AI intents (en)", enAskAi, "en"],
-    ["model summaries (de)", deServer, "de"],
     ["model summaries (en)", enServer, "en"],
-    ["view builder names (de)", deBuilder, "de"],
-    ["view builder names (en)", enBuilder, "en"],
   ] as const)("%s", (_, catalog, language) => {
     expect(catalogTextFindings(catalog, { language })).toEqual([])
   })

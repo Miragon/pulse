@@ -4,12 +4,10 @@
  * one retry less), so every error is checked against the job itself.
  */
 
+import { type Rec, records, rootCause, str } from "@miragon/pulse-engine-core"
 import type { EnginePort } from "../engine-port/engine-port.js"
 import { PulseCliError } from "../errors.js"
 import { compact } from "../util.js"
-
-import { type Rec, records, str } from "./records.js"
-import { rootCause } from "./root-cause.js"
 
 export type JobOutcome =
   | { readonly result: "executed"; readonly executedBy?: "jobExecutor" }

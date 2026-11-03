@@ -1,9 +1,11 @@
 import { useCallback, useMemo, useState } from "react"
-import { parseToolResult, useCallTool, useLocale } from "@miragon/mcp-toolkit-ui"
-import { useViewData, type UseViewDataOptions } from "@miragon/mcp-toolkit-ui/hooks"
+import { useLocale } from "@miragon/pulse-ui"
+import { decodeToolResult } from "../protocol/tool-result.js"
 import { useInlineBudget } from "./inline-budget.js"
 import { useInlineRows, type InlineRows } from "./inline-fit.js"
 import { kitLabels } from "./kit-labels.js"
+import { useViewData, type ViewDataOptions } from "./tool-query.js"
+import { useViewHost } from "./view-host.js"
 
 /**
  * Appended pages, tagged with a reset generation: an A→B→A filter round-trip
@@ -47,7 +49,7 @@ export interface PagedViewData<TItem, TData = unknown> {
   footerLabels: { loadMore: string } | undefined
 }
 
-type PlaceholderOf<TData> = UseViewDataOptions<TData>["placeholderData"]
+type PlaceholderOf<TData> = ViewDataOptions<TData>["placeholderData"]
 
 /**
  * Keep-previous-data for page 0: without it the loading guard would unmount
@@ -82,7 +84,7 @@ function useShownPage<TData>(data: TData | null, scope: string, failed: boolean)
 }
 
 /**
- * Offset-paginated sibling of the toolkit's `useViewData`; page 0 is seeded so
+ * Offset-paginated sibling of `useViewData`; page 0 is seeded so
  * a write's invalidation refetches a standalone list too. The feed must return
  * the full filtered `total`. Button-driven, not infinite scroll.
  */
@@ -97,7 +99,7 @@ export function usePagedViewData<TItem, TData>(opts: {
   selectTotal: (data: TData) => number
 }): PagedViewData<TItem, TData> {
   const { initialData, key, tool, args, pageSize, ready, selectItems, selectTotal } = opts
-  const callTool = useCallTool()
+  const { callTool } = useViewHost()
   const argsKey = JSON.stringify(args)
   const { scope, placeholderData } = useSameListPlaceholder<TData>(key)
 
@@ -107,7 +109,7 @@ export function usePagedViewData<TItem, TData>(opts: {
     tool,
     { ...args, firstResult: 0, maxResults: pageSize },
     ready,
-    { initialDataMode: "seed", placeholderData },
+    { placeholderData },
   )
   // `fetched` is THIS filter's page 0; `first` is the page on screen.
   const fetched = page0.isPlaceholderData ? null : page0.data
@@ -139,12 +141,12 @@ export function usePagedViewData<TItem, TData>(opts: {
 
   const gen = pages.gen
   const fetchNext = useCallback(() => {
-    if (!fetched || loadingMore || !callTool) return
+    if (!fetched || loadingMore) return
     setLoadingMore(true)
     setPages((prev) => (prev.gen === gen ? { ...prev, error: null } : prev))
     void callTool(tool, { ...args, firstResult: items.length, maxResults: pageSize })
       .then((res) => {
-        const data = parseToolResult<TData>(res)
+        const data = decodeToolResult<TData>(res)
         const pageItems = selectItems(data)
         setPages((prev) =>
           prev.gen === gen

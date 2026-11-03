@@ -12,9 +12,13 @@ import {
   P,
   PARENT_DEF,
   ROOT_NODE,
-} from "../../test/support/workflow-fixture.js"
+  instanceView as viewOf,
+} from "@miragon/pulse-engine-core/testing"
+import type { InstanceData } from "@miragon/pulse-engine-core"
 import { omit } from "../util.js"
-import { instanceView } from "./snapshot.js"
+import { cliView } from "./inspect.js"
+
+const instanceView = (data: InstanceData) => cliView(viewOf(data))
 
 describe("instanceView details", () => {
   it("sorts incidents by time and id, children by depth, key and id", () => {

@@ -18,7 +18,7 @@ import org.slf4j.LoggerFactory
  * ([ProcessMetrics]).
  *
  * Implements the engine's `HistoryEventHandler` SPI, but instead of persisting
- * events it records aggregated Micrometer metrics — so no event store is
+ * events it records aggregated Micrometer metrics, so no event store is
  * needed. History events fire for every instance and are not sampled, so
  * counters and histograms see 100 % of traffic.
  *
@@ -155,7 +155,7 @@ class MetricsHistoryEventHandler(private val engineId: String, registry: MeterRe
     private fun versionOf(processDefinitionId: String?): String = processDefinitionId?.split(":")?.getOrNull(1).orEmpty()
 
     /**
-     * True when the event's own timestamp is well in the past — i.e. a
+     * True when the event's own timestamp is well in the past, i.e. a
      * backdated/replayed event (bulk seeding), not live traffic. Keyed off the
      * event timestamp rather than the ambient clock, because history events may
      * be handled at transaction-flush time (after the seed has reset the clock),

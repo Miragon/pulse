@@ -1,42 +1,40 @@
-import { useToolQuery, WidgetHeader } from "@miragon/mcp-toolkit-ui"
+import { WidgetHeader, TableEmptyState, Td, formatTimestamp } from "@miragon/pulse-ui"
 import {
   ListTable,
   QueryFallback,
-  TableEmptyState,
   TableSkeleton,
-  Td,
   WidgetShell,
-  formatTimestamp,
+  useViewData,
 } from "@miragon/pulse-widget-shell/widgets"
 import { NOTES_LIST_DATA } from "../tool-names.js"
 import type { NotesListData } from "../notes-store.js"
 
 /**
- * The notes list widget. Receives `data` from a `notes_show_notes` render (via
- * `adaptDataWidget` in `widgets/index.ts`); when mounted without data (e.g. a
- * host refresh), it self-fetches the app-only `notes_list_data` feed — never
- * the show tool, whose result the host would render as a second widget.
+ * The notes list widget. A `notes_show_notes` render hands in `data` (via `NotesListView` in
+ * `widgets/views.tsx`), which SEEDS the `notes_list_data` feed's cache entry: a retry or an
+ * invalidation after a write re-reads the feed with the same filter. Mounted without data (on
+ * another view), it fetches the feed itself. Never the show tool, whose result the host would
+ * render as a second view.
  */
 export function NotesListWidget({ data: initialData }: { data: NotesListData | null }) {
-  const query = useToolQuery<NotesListData>(
+  const args = initialData?.query ? { query: initialData.query } : {}
+  const { data, error, refetch } = useViewData<NotesListData>(
+    initialData,
     ["notes:list"],
     NOTES_LIST_DATA,
-    {},
-    {
-      enabled: !initialData,
-    },
+    args,
+    true,
   )
-  const data = initialData ?? query.data ?? null
 
   if (!data) {
     return (
       <WidgetShell>
         <WidgetHeader title="Team Notes" />
         <QueryFallback
-          isError={query.isError}
-          error={query.error}
+          isError={error !== null}
+          error={error}
           errorTitle="Failed to load notes"
-          onRetry={() => void query.refetch()}
+          onRetry={refetch}
           skeleton={<TableSkeleton />}
         />
       </WidgetShell>

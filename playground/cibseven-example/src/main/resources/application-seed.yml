@@ -12,7 +12,7 @@ seed:
   # Instances started earlier than (now - buggy-era-days) belong to the pre-fix
   # era. A subset of them gets `_simulateBlacklistOutage=true`, which makes the
   # asyncBefore `CheckBlacklist` task in the `assessCreditworthiness` sub-
-  # process raise an incident. Feeds analytics.cluster.compare with a real
+  # process raise an incident. Feeds the period comparison with a real
   # before/after gap for the fix-verification skill (UC5).
   buggy-era-days: 15
   buggy-era-failure-rate: 0.15
@@ -23,5 +23,5 @@ seed:
   # Failure rate applied to instances seeded inside the last 7 days. Reuses the
   # blacklist-outage simulator so the analytics dashboard's default 7d window
   # sees Incidents > 0. Independent from the buggy-era band (15..30 days ago)
-  # which still anchors the IMPROVED cluster-compare verdict.
+  # which still anchors the IMPROVED period comparison verdict.
   current-era-failure-rate: 0.04

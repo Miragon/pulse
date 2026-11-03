@@ -32,25 +32,25 @@ describe("createToolsetVocabulary", () => {
   })
 
   describe("resolve (module side)", () => {
-    it("resolves a missing toolset to the floor, silently — never to everything", () => {
+    it("resolves a missing toolset to the floor silently, never to everything", () => {
       const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
       expect(vocab().resolve(undefined)).toBe("read-only")
       expect(warn).not.toHaveBeenCalled()
     })
 
-    it("fails CLOSED on unknown names — degrades to the fallback toolset, loudly", () => {
+    it("fails CLOSED on unknown names: degrades to the fallback toolset, loudly", () => {
       const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
       expect(vocab().resolve("does-not-exist")).toBe("read-only")
       expect(warn).toHaveBeenCalledTimes(1)
       expect(warn).toHaveBeenCalledWith(
-        '[mymodule] Unknown toolset "does-not-exist" — falling back to "read-only". ' +
+        '[mymodule] Unknown toolset "does-not-exist": falling back to "read-only". ' +
           "Known toolsets: read-only, operations, admin",
       )
     })
   })
 
   describe("effective (composition side)", () => {
-    it("applies the auth-dependent default when there is no suffix — never admin", () => {
+    it("applies the auth-dependent default when there is no suffix, never admin", () => {
       const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
       expect(vocab().effective(undefined, { authenticated: false })).toEqual({
         toolset: "read-only",
@@ -77,28 +77,18 @@ describe("createToolsetVocabulary", () => {
       ["   ", "Empty toolset suffix"],
       ["typo", 'Unknown toolset "typo"'],
       ["admin:read-only", 'Unknown toolset "admin:read-only"'],
-    ])(
-      "fails closed on suffix %j — the floor even under OAuth, with one warning",
-      (suffix, why) => {
-        const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
-        for (const authenticated of [false, true]) {
-          expect(vocab().effective(suffix, { authenticated })).toEqual({
-            toolset: "read-only",
-            source: "fallback",
-          })
-        }
-        expect(warn).toHaveBeenCalledTimes(2)
-        expect(warn).toHaveBeenCalledWith(
-          `[mymodule] ${why} — falling back to "read-only". Known toolsets: read-only, operations, admin`,
-        )
-      },
-    )
-  })
-
-  it("permits durable writes on every toolset above the read-only floor", () => {
-    const v = vocab()
-    expect(v.allowsDurableWrites("read-only")).toBe(false)
-    expect(v.allowsDurableWrites("operations")).toBe(true)
-    expect(v.allowsDurableWrites("admin")).toBe(true)
+    ])("fails closed on suffix %j: the floor even under OAuth, with one warning", (suffix, why) => {
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+      for (const authenticated of [false, true]) {
+        expect(vocab().effective(suffix, { authenticated })).toEqual({
+          toolset: "read-only",
+          source: "fallback",
+        })
+      }
+      expect(warn).toHaveBeenCalledTimes(2)
+      expect(warn).toHaveBeenCalledWith(
+        `[mymodule] ${why}: falling back to "read-only". Known toolsets: read-only, operations, admin`,
+      )
+    })
   })
 })

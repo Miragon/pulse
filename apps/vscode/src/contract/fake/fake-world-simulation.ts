@@ -41,6 +41,8 @@ const STACKTRACE = [
   "\tat org.example.Worker.execute(Worker.java:42)",
   "Caused by: org.example.MissingBean: Cannot resolve identifier",
 ].join("\n")
+const ROOT_CAUSE = "MissingBean: Cannot resolve identifier"
+const ROOT_CAUSE_LINE = 2
 
 const LOCAL_VARIABLE: Variable = {
   name: WORLD_LOCAL_VARIABLE.name,
@@ -148,7 +150,13 @@ export class FakeWorldSimulation {
         retriesLeft: 0,
         job: { id: `job-of-${instanceId}` },
       },
-      fullDetails: { kind: "stacktrace", text: STACKTRACE, truncated: false },
+      fullDetails: {
+        kind: "stacktrace",
+        text: STACKTRACE,
+        truncated: false,
+        rootCause: ROOT_CAUSE,
+        rootCauseLine: ROOT_CAUSE_LINE,
+      },
     }
   }
 

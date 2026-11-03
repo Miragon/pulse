@@ -14,12 +14,13 @@ import {
   P,
   PARENT_DEF,
   paidStage,
+  instanceView as viewOf,
   waitSignalStage,
-} from "../../test/support/workflow-fixture.js"
-import type { Rec } from "./records.js"
-import { instanceView } from "./snapshot.js"
-import type { InstanceData, WaitState } from "./types.js"
-import { waitId } from "./waits.js"
+} from "@miragon/pulse-engine-core/testing"
+import { type InstanceData, type Rec, type WaitState, waitId } from "@miragon/pulse-engine-core"
+import { cliView } from "./inspect.js"
+
+const instanceView = (data: InstanceData) => cliView(viewOf(data))
 
 describe("instanceView of the verified fixture", () => {
   it("waits at the user task of the called instance (call activity not listed)", () => {

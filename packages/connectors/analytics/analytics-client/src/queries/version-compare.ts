@@ -17,10 +17,7 @@ import {
 
 export interface VersionCompareKpi extends CompareKpis {
   version: number
-  bucket: "versionA" | "versionB"
 }
-
-export type VersionCompareDelta = CompareKpiDelta
 
 export interface VersionCompareResult {
   engines: string[] | null
@@ -30,13 +27,13 @@ export interface VersionCompareResult {
   windowDays: number
   minBucketSize: number
   suppressed: boolean
-  kpis: VersionCompareKpi[]
-  delta: VersionCompareDelta
-  /** Optional: payloads recorded before it existed lack it. */
-  asOf?: string
+  kpis: [VersionCompareKpi, VersionCompareKpi]
+  delta: CompareKpiDelta
+  asOf: string
 }
 
-// Versions are a label on the instance and incident series only, so there is no element scope.
+// The version is a label on the instance and incident series, not on the activity series, so the
+// incident figures are exact per version and there is no element scope.
 export async function versionCompare(
   ch: PrometheusClient,
   params: {
@@ -56,8 +53,8 @@ export async function versionCompare(
   const asOf = asOfNow()
 
   const [a, b] = await Promise.all([
-    versionKpi(ch, params, "versionA", versionA, range),
-    versionKpi(ch, params, "versionB", versionB, range),
+    versionKpi(ch, params, versionA, range),
+    versionKpi(ch, params, versionB, range),
   ])
 
   return {
@@ -77,7 +74,6 @@ export async function versionCompare(
 async function versionKpi(
   ch: PrometheusClient,
   params: { processDefinitionKey: string; engine?: EngineFilterInput },
-  bucket: "versionA" | "versionB",
   version: number,
   range: string,
 ): Promise<VersionCompareKpi> {
@@ -92,5 +88,5 @@ async function versionKpi(
     },
     { range },
   )
-  return { version, bucket, ...kpis }
+  return { version, ...kpis }
 }

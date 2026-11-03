@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Drift gate for templates/composed-server: builds the five published packages
+# Drift gate for templates/composed-server: builds the published libraries
 # from THIS workspace, packs them into tarballs (pnpm pack rewrites
 # workspace:* to real versions), points a throwaway copy of the template at
 # the tarballs via pnpm overrides, and runs the template's full bar. Catches
@@ -14,137 +14,41 @@ TEMPLATE="$ROOT/templates/composed-server"
 PACK_DIR="$(mktemp -d)"
 WORK="$(mktemp -d)/composed-server"
 
-# Package directories under packages/; npm names come from each package.json.
-PACKAGES=(
-  core/widget-shell
-  connectors/camunda/camunda7-client
-  connectors/camunda/camunda7-connector
-  connectors/analytics/analytics-client
-  connectors/analytics/analytics-connector
-)
+# The libraries a composed server builds on, from the workspace itself
+# (scripts/workspace-packages.mjs: published to npm from packages/, the same
+# predicate the release gate and the mirror workflow read): a package added,
+# moved or made private changes this list through its manifest alone.
+LIBRARIES="$(node "$ROOT/scripts/workspace-packages.mjs" libraries)"
+PACKAGES=()
+NAMES=()
+while IFS=$'\t' read -r dir name; do
+  PACKAGES+=("$dir")
+  NAMES+=("$name")
+done <<<"$LIBRARIES"
+if ((${#PACKAGES[@]} == 0)); then
+  echo "test-template: no library found under $ROOT/packages" >&2
+  exit 1
+fi
 
-pkg_name() { node -p "require('$ROOT/packages/$1/package.json').name"; }
-
-# The template's committed @miragon/pulse-* pins must match the workspace versions:
-# release-please bumps both together via extra-files; a drifted pin means an
-# extra-files entry is missing and customers would install a stale release.
-# A dependency the check does not know would slip past it: one under the old
-# @miragon-ai scope (renamed in #415) or a @miragon/pulse-* name the workspace
-# does not publish would install whatever npm holds under that name (the old
-# scope's last release, 0.20.0) and stay green. Both fail, in every
-# package.json of the template (server, modules, root).
-# The toolkit family and mcp-use are checked too, but the pin SHAPE differs by
-# stanza: toolkit-core (and react/react-dom/zod) are ranged peerDependencies so
-# consumers dedupe them, while the exact devDependency copy stays pinned
-# (save-exact; a drifted second instance resurrects the duplicate-React-context
-# hang). mcp-use is exact everywhere. release-please does NOT bump these — a
-# repo-wide toolkit/mcp-use bump must include the template by hand. The check is
-# stanza-aware: template peerDependencies compare against the connector's peer
-# ranges, template deps/devDeps against its exact pins.
-ROOT="$ROOT" node - <<'EOF'
-const fs = require("fs")
-const root = process.env.ROOT
-const read = (p) => JSON.parse(fs.readFileSync(p, "utf8"))
-const pkgDirs = [
-  "core/widget-shell",
-  "connectors/camunda/camunda7-client",
-  "connectors/camunda/camunda7-connector",
-  "connectors/analytics/analytics-client",
-  "connectors/analytics/analytics-connector",
-]
-const versions = Object.fromEntries(
-  pkgDirs
-    .map((p) => read(`${root}/packages/${p}/package.json`))
-    .map((pj) => [pj.name, pj.version]),
-)
-const tracked = (name) => name.startsWith("@miragon/mcp-toolkit-") || name === "mcp-use"
-// The camunda7 connector declares the canonical pins for the toolkit family and
-// mcp-use; peer pins (ranges) and exact pins (deps/devDeps) are tracked apart.
-const camunda7 = read(`${root}/packages/connectors/camunda/camunda7-connector/package.json`)
-const peerPins = {}
-const exactPins = {}
-for (const [name, pin] of Object.entries(camunda7.peerDependencies ?? {})) {
-  if (tracked(name)) peerPins[name] = pin
-}
-for (const deps of [camunda7.dependencies, camunda7.devDependencies]) {
-  for (const [name, pin] of Object.entries(deps ?? {})) {
-    if (tracked(name)) exactPins[name] = pin
-  }
-}
-// Every package.json of the template, found on disk: a module added later is
-// checked without an edit here.
-const templateRoot = `${root}/templates/composed-server`
-const SKIP_DIRS = new Set(["node_modules", "dist", ".mcp-use"])
-const templateManifests = (dir, rel = "") =>
-  fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    const path = rel ? `${rel}/${entry.name}` : entry.name
-    if (entry.isDirectory()) {
-      return SKIP_DIRS.has(entry.name) ? [] : templateManifests(`${dir}/${entry.name}`, path)
-    }
-    return entry.name === "package.json" ? [path] : []
-  })
-const manifests = templateManifests(templateRoot).sort()
-if (!manifests.includes("server/package.json")) {
-  console.error(`No server/package.json under ${templateRoot}: is the template still there?`)
-  process.exit(1)
-}
-const OLD_SCOPE = "@miragon-ai/"
-const PRODUCT_SCOPE = "@miragon/pulse-"
-const bad = []
-const unknown = []
-for (const file of manifests) {
-  const pj = read(`${templateRoot}/${file}`)
-  for (const [stanza, pins] of [
-    ["dependencies", exactPins],
-    ["devDependencies", exactPins],
-    ["peerDependencies", peerPins],
-    ["optionalDependencies", exactPins],
-  ]) {
-    for (const [name, pin] of Object.entries(pj[stanza] ?? {})) {
-      if (name.startsWith(OLD_SCOPE)) {
-        unknown.push(`${file} (${stanza}): ${name} is the old scope, renamed to ${PRODUCT_SCOPE}*`)
-        continue
-      }
-      if (name.startsWith(PRODUCT_SCOPE) && !(name in versions)) {
-        unknown.push(`${file} (${stanza}): ${name} is no package of this workspace`)
-        continue
-      }
-      const expected = versions[name] ?? pins[name]
-      if (expected && pin !== expected) {
-        bad.push(`${file} (${stanza}): ${name} pinned ${pin}, workspace is ${expected}`)
-      }
-    }
-  }
-}
-if (unknown.length) {
-  console.error(
-    "Template depends on packages this workspace does not publish (pnpm would install " +
-      "whatever npm holds under that name; known: " +
-      Object.keys(versions).join(", ") +
-      "):\n" +
-      unknown.join("\n"),
-  )
-}
-if (bad.length) {
-  console.error(
-    "Template pins drifted from the workspace versions (missing release-please extra-files " +
-      "entry, or a toolkit/mcp-use bump that skipped the template?):\n" +
-      bad.join("\n"),
-  )
-}
-if (unknown.length || bad.length) process.exit(1)
-EOF
+# The template's pins must equal the workspace's: the @miragon/pulse-* libraries
+# (release-please bumps them via extra-files), mcp-use, react, react-dom, zod,
+# lucide-react and @tanstack/react-query (scripts/template-pins.mjs says why).
+node "$ROOT/scripts/template-pins.mjs"
 
 # Build what the tarballs ship (files: dist [+ src]).
 FILTERS=()
-for p in "${PACKAGES[@]}"; do FILTERS+=("--filter" "$(pkg_name "$p")"); done
+for name in "${NAMES[@]}"; do FILTERS+=("--filter" "$name"); done
 pnpm --dir "$ROOT" exec turbo run build "${FILTERS[@]}"
 
 for p in "${PACKAGES[@]}"; do
   base="$(basename "$p")"
   mkdir -p "$PACK_DIR/$base"
-  (cd "$ROOT/packages/$p" && pnpm pack --pack-destination "$PACK_DIR/$base" >/dev/null)
+  (cd "$ROOT/$p" && pnpm pack --pack-destination "$PACK_DIR/$base" >/dev/null)
 done
+
+# What the tarballs ship: no tests, every entry and every relative import inside
+# (scripts/pack-contents.mjs).
+node "$ROOT/scripts/pack-contents.mjs" "$PACK_DIR"/*/*.tgz
 
 rsync -a --exclude node_modules --exclude dist --exclude .mcp-use "$TEMPLATE/" "$WORK/"
 
@@ -153,10 +57,10 @@ rsync -a --exclude node_modules --exclude dist --exclude .mcp-use "$TEMPLATE/" "
 {
   echo ""
   echo "overrides:"
-  for p in "${PACKAGES[@]}"; do
-    base="$(basename "$p")"
+  for i in "${!PACKAGES[@]}"; do
+    base="$(basename "${PACKAGES[$i]}")"
     tgz=("$PACK_DIR/$base"/*.tgz)
-    echo "  \"$(pkg_name "$p")\": \"file:${tgz[0]}\""
+    echo "  \"${NAMES[$i]}\": \"file:${tgz[0]}\""
   done
 } >> "$WORK/pnpm-workspace.yaml"
 

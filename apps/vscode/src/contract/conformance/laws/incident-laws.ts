@@ -111,9 +111,35 @@ const incidentDetailsComplete: ConformanceCase = {
   },
 }
 
+const incidentDetailsNameRootCause: ConformanceCase = {
+  name: CASE.incidentDetailsNameRootCause,
+  async run(harness) {
+    const page = await harness.runtime.searchIncidents(
+      { instanceId: harness.world.instanceIds["ORD-1002"] },
+      PAGE,
+    )
+    const incident = Ensure.defined(page.items[0], this.name, "no incident of ORD-1002")
+    const details = Ensure.defined(
+      await harness.runtime.getIncidentDetails(incident.id),
+      this.name,
+      "no details for the failed task",
+    )
+    const cause = details.rootCause ?? ""
+    Ensure.that(cause.trim() !== "" && !/[\r\n]/.test(cause), this.name, `root cause "${cause}"`)
+    const lines = details.text.split(/\r\n|[\n\r]/).length
+    const line = details.rootCauseLine ?? 0
+    Ensure.that(
+      Number.isInteger(line) && line >= 0 && line < lines,
+      this.name,
+      `root cause line ${line} of ${lines}`,
+    )
+  },
+}
+
 export const INCIDENT_LAWS: readonly ConformanceCase[] = [
   incidentsRootOnly,
   incidentsFiltered,
   incidentsNameTheirVersion,
   incidentDetailsComplete,
+  incidentDetailsNameRootCause,
 ]

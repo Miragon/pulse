@@ -9,7 +9,7 @@ export default mergeConfig(
       coverage: {
         // Ratchet: frozen 2 points under the baseline. Raise when you push
         // coverage up; never lower. Re-baselined UP 2026-08-17: the Postgres
-        // adapters left the measurement (shared `coverage.exclude` — they are
+        // adapters left the measurement (shared `coverage.exclude`: they are
         // only executable under `pnpm test:pg`), so the numbers now describe
         // the code this run actually exercises; measured statements 85.35 /
         // branches 88.55 / functions 95.04 / lines 86.86. Raised 2026-10-08
@@ -28,8 +28,7 @@ export default mergeConfig(
         // measured 94.23 / 93.69 / 96.77 / 95.1. Branches raised with its
         // review fixes (colour gate, cascade model, lone-symbol rule, each
         // with its negative cases): measured 94.64 / 94.06 / 97.01 / 95.48.
-        // Raised again with the toolkit 2.8 review fixes (the generic shell:*
-        // widgets and the builder-text model guard fully covered): measured
+        // Raised again with the toolkit 2.8 review fixes: measured
         // 95.14 / 94.82 / 97.06 / 96.05. Raised again with the kit layout
         // (describeError's mapping table, ListTable's region and column rules,
         // the BPMN token module, the heat ramp and the type-scale gate, each

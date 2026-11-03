@@ -1,5 +1,6 @@
 import type { IncidentDetails, IncidentId } from "../../../contract/index.js"
 import { ErrorTranslation } from "../errors/error-translation.js"
+import { IncidentTexts } from "../mapping/incident-texts.js"
 import { RootIncident } from "../mapping/root-incident.js"
 import type { IncidentView, EngineClient } from "../engine-rest/index.js"
 
@@ -13,11 +14,11 @@ export class IncidentDetailsReader {
     }
     const engineText = await this.engineTextOf(incident)
     if (engineText !== undefined && engineText.trim() !== "") {
-      return { kind: "stacktrace", text: engineText.trimEnd(), truncated: false }
+      return IncidentTexts.details("stacktrace", engineText.trimEnd(), false)
     }
     const message = incident.incidentMessage
     if (message !== undefined && message.trim() !== "") {
-      return { kind: "errorMessage", text: message, truncated: false }
+      return IncidentTexts.details("errorMessage", message, false)
     }
     return undefined
   }

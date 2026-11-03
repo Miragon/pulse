@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useDebouncedValue } from "@miragon/mcp-toolkit-ui"
+import { useDebouncedValue } from "@miragon/pulse-ui"
 import { usePagedViewData, type PagedViewData } from "./use-paged-view-data.js"
 
 export interface PagedListView<TItem, TData> {

@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
-import { LocaleProvider, ToastProvider } from "@miragon/mcp-toolkit-ui"
+import { LocaleProvider, ToastProvider } from "@miragon/pulse-ui"
 import { copyText, IdCell, IdText, shortId } from "./id-text.js"
 
 const UUID = "5f0ce78e-6b1d-11ef-9c3a-0242ac120002"

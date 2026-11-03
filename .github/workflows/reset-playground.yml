@@ -2,11 +2,11 @@ name: Reset Playground
 
 # Nightly reset of the Fly.io playground back to a clean, known state:
 #
-#   1. Restart the CIB Seven engine machine. Its H2 database lives in memory and
+#   1. Restart the CIB seven engine machine. Its H2 database lives in memory and
 #      reseeds from scratch on every boot (~600 process instances); live traffic
 #      resumes and metric export continues automatically.
 #   2. Wipe the Prometheus metric history. The TSDB persists on a Fly volume, so
-#      a restart alone would keep the old data — the history is deleted over the
+#      a restart alone would keep the old data: the history is deleted over the
 #      TSDB admin API instead. Prometheus keeps scraping, so a fresh metric
 #      window starts building immediately.
 #
@@ -15,14 +15,14 @@ name: Reset Playground
 # lives in deploy-playground.yml if that is ever needed.
 #
 # Runs on the schedule below and can be triggered manually. Requires the same
-# org-scoped FLY_API_TOKEN repo secret as deploy-playground.yml — a token of
+# org-scoped FLY_API_TOKEN repo secret as deploy-playground.yml: a token of
 # the org that owns the playground apps (`fly tokens create org -o miragon`).
 # An app-scoped deploy token (`fly tokens create deploy`) does not work: it
 # cannot reach two apps, and Fly rejects it as "unauthorized".
 #
 # NOTE ON TIMING: GitHub Actions cron is UTC and does not observe DST, so a fixed
 # UTC time drifts one hour across the year in Germany. 22:00 UTC = 00:00 local
-# during CEST (summer) and 23:00 during CET (winter) — either way, the middle of
+# during CEST (summer) and 23:00 during CET (winter): either way, the middle of
 # the night. GitHub may also delay scheduled runs under load, and the schedule
 # only fires from the repository's default branch (main).
 on:
@@ -42,7 +42,7 @@ jobs:
   reset:
     name: Reset playground (engine + metrics)
     # Destructive against the shared playground (full TSDB wipe): only ever run
-    # from the canonical repo — a fork or repo transfer must not fire this,
+    # from the canonical repo: a fork or repo transfer must not fire this,
     # and a copied workflow pointed at other Fly apps should fail this guard.
     if: github.repository == 'Miragon/pulse'
     runs-on: ubuntu-latest
@@ -80,7 +80,7 @@ jobs:
         run: |
           ids=$(flyctl machines list --app "$ENGINE_APP" --json | jq -r '.[].id')
           if [ -z "$ids" ]; then
-            echo "::error::no machines found for $ENGINE_APP — is the playground deployed?"
+            echo "::error::no machines found for $ENGINE_APP. Is the playground deployed?"
             exit 1
           fi
           restarted_at=$(date -u +%Y-%m-%dT%H:%M:%S)
@@ -117,7 +117,7 @@ jobs:
           # Prometheus is private-only (6PN), so reach its admin API through a
           # WireGuard proxy that flyctl brings up from the FLY_API_TOKEN. The
           # image is scratch-based (no shell), so an in-container wipe over
-          # `ssh` is not an option — delete the series over HTTP instead.
+          # `ssh` is not an option; delete the series over HTTP instead.
           flyctl proxy 9090:9090 --app "$PROM_APP" &
           proxy_pid=$!
           trap 'kill "$proxy_pid" 2>/dev/null || true' EXIT

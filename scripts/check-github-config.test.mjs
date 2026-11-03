@@ -36,11 +36,10 @@ import {
   checkRepo,
   checkVscodePublish,
   expectedRepository,
-  isNpmPublished,
   packageManagerRun,
   pluginManifests,
-  readWorkspace,
 } from "./check-github-config.mjs"
+import { isNpmPublished, readWorkspace } from "./workspace-packages.mjs"
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const readDoc = (file) => parse(readFileSync(path.join(ROOT, file), "utf8"))
@@ -72,13 +71,13 @@ const published = (dir, manifest) => ({
  * them; the real files are compared with the real workspace alone.
  */
 const TODAY = {
-  "apps/mcp-server-camunda7": { name: "@miragon/pulse-mcp-server-camunda7", private: true },
+  "apps/mcp-server": { name: "@miragon/pulse-mcp-server", private: true },
   ...published("packages/core/widget-shell", { name: "@miragon/pulse-widget-shell" }),
-  ...published("packages/connectors/camunda/camunda7-client", {
-    name: "@miragon/pulse-camunda7-client",
+  ...published("packages/connectors/engine/engine-client", {
+    name: "@miragon/pulse-engine-client",
   }),
-  ...published("packages/connectors/camunda/camunda7-connector", {
-    name: "@miragon/pulse-camunda7-connector",
+  ...published("packages/connectors/engine/engine-connector", {
+    name: "@miragon/pulse-engine-connector",
   }),
   ...published("packages/connectors/analytics/analytics-client", {
     name: "@miragon/pulse-analytics-client",
@@ -117,13 +116,6 @@ const matches = (errors, pattern) => errors.some((error) => pattern.test(error))
 describe("the repo", () => {
   it("holds every rule", () => {
     assert.deepEqual(checkRepo(ROOT), [])
-  })
-
-  it("publishes exactly the packages that are neither private nor an extension", () => {
-    assert.equal(isNpmPublished({ name: "a" }), true)
-    assert.equal(isNpmPublished({ name: "a", private: true }), false)
-    assert.equal(isNpmPublished({ name: "pulse", engines: { vscode: "^1.101.0" } }), false)
-    assert.equal(isNpmPublished({ name: "a", engines: { node: ">=22" } }), true)
   })
 })
 
@@ -468,7 +460,7 @@ describe("the Resolve package step", () => {
     ["packages/core/missing", /no workspace package directory/],
     ["apps/cli; touch pwned", /no workspace package directory/],
     ["apps/private-app", /is private: npm never receives it/],
-    ["apps/mcp-server-camunda7", /is private/],
+    ["apps/mcp-server", /is private/],
     ["apps/vscode", /engines\.vscode: a VS Code extension ships as a \.vsix through vsce\/ovsx/],
   ]) {
     it(`refuses ${DIR}`, () => {
@@ -702,7 +694,7 @@ describe("checkPublishMatrix", () => {
     )
     assert.ok(
       matches(
-        matrixErrors(packages, addToMatrix("apps/mcp-server-camunda7")),
+        matrixErrors(packages, addToMatrix("apps/mcp-server")),
         /is private: npm never receives it/,
       ),
     )

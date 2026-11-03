@@ -198,7 +198,7 @@ async function moveBy(offset: number) {
             </div>
           </div>
           <div v-else-if="index === 1" class="screen terminal">
-            <div class="term-bar">zsh — ~/shop</div>
+            <div class="term-bar">zsh · ~/shop</div>
             <div class="term-body">
               <div v-for="(line, at) in terminal" :key="at">
                 <span v-for="(part, from) in line" :key="from" :class="part.tone">{{

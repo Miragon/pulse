@@ -26,7 +26,7 @@ export interface EngineLandscapeEngine {
   exclusiveDefinitionKeys: number | null
 }
 
-export interface EngineLandscapeProcess {
+interface EngineLandscapeProcess {
   processDefinitionKey: string
   engineIds: string[]
   shared: boolean
@@ -49,8 +49,7 @@ export interface EngineLandscapeResult {
     openIncidents: number | null
     failedJobs: number | null
   }
-  /** Optional: payloads recorded before it existed lack it. */
-  asOf?: string
+  asOf: string
 }
 
 interface Cell {

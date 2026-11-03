@@ -176,6 +176,26 @@ const SABOTAGES: readonly (readonly [string, Sabotage, readonly CaseName[]])[] =
     [CASE.incidentDetailsComplete],
   ],
   [
+    "incident details lose their root cause",
+    (runtime) => ({
+      getIncidentDetails: async (incidentId) => {
+        const details = await runtime.getIncidentDetails(incidentId)
+        return details && { kind: details.kind, text: details.text, truncated: details.truncated }
+      },
+    }),
+    [CASE.incidentDetailsNameRootCause],
+  ],
+  [
+    "incident details point past their text",
+    (runtime) => ({
+      getIncidentDetails: async (incidentId) => {
+        const details = await runtime.getIncidentDetails(incidentId)
+        return details && { ...details, rootCauseLine: details.text.split("\n").length }
+      },
+    }),
+    [CASE.incidentDetailsNameRootCause],
+  ],
+  [
     "an unknown instance throws instead of being undefined",
     (runtime, harness) => ({
       getInstanceDetail: (instanceId) =>

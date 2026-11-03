@@ -1,9 +1,8 @@
-import { cn, FOCUS_RING_INSET, useLocale } from "@miragon/mcp-toolkit-ui"
+import { cn, FOCUS_RING_INSET, useLocale, Icon } from "@miragon/pulse-ui"
 import { Scan, ZoomIn, ZoomOut } from "lucide-react"
-import { Icon } from "./icon.js"
 import { kitLabels } from "./kit-labels.js"
 
-export interface BpmnZoomControlsLabels {
+interface BpmnZoomControlsLabels {
   zoomIn?: string
   zoomOut?: string
   fit?: string
@@ -14,7 +13,7 @@ export interface BpmnZoomControlsProps {
   onZoomOut: () => void
   onFit: () => void
   labels?: BpmnZoomControlsLabels
-  /** Merged over the default placement — e.g. `top-6 right-6` repositions. */
+  /** Merged over the default placement (e.g. `top-6 right-6` repositions). */
   className?: string
 }
 

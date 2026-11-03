@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
-import { LocaleProvider } from "@miragon/mcp-toolkit-ui"
+import { LocaleProvider } from "@miragon/pulse-ui"
 import { useState } from "react"
 import { anchoredTop, ConfirmDialog, type ConfirmDialogProps } from "./confirm-dialog.js"
 import { DisplayModeProvider } from "./widget-shell.js"

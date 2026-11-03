@@ -1,23 +1,19 @@
 import http from "node:http"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import type { AppPlugin } from "@miragon/mcp-toolkit-core"
-import type { MCPServer } from "mcp-use"
-import { composeModules } from "./composition.js"
+import type { ComposableModule, ModulePlugin } from "./composition.js"
 import { createComposedServer, type RunningServer } from "./composed-server.js"
 import { loadServedFonts } from "./font-assets.js"
-import { SERVED_FONT_FILES, SERVED_FONT_PATH } from "./served-fonts.js"
-import { createShellPlugin } from "./shell-catalogue.js"
+import { SERVED_FONT_FILES, SERVED_FONT_PATH } from "./protocol/served-fonts.js"
 import { showToolBinding } from "./widget-tool-bindings.js"
 
-const composition = composeModules<object>({ label: "fonts-test", modules: [], appEnvVars: [] })
 const running: RunningServer[] = []
 const SANS = `${SERVED_FONT_PATH}/${SERVED_FONT_FILES.sans}`
 const MONO = `${SERVED_FONT_PATH}/${SERVED_FONT_FILES.mono}`
 
 /** A module plugin with one view-bound show tool, registered the house way. */
-const showPlugin: AppPlugin<MCPServer> = {
-  definition: { name: "demo", steps: [], widgets: [] },
-  registerWidgetTools: (server) => {
+const showPlugin: ModulePlugin = {
+  name: "demo",
+  register: (server) => {
     server.tool(
       {
         name: "demo_show_thing",
@@ -27,6 +23,13 @@ const showPlugin: AppPlugin<MCPServer> = {
       () => ({ content: [{ type: "text" as const, text: "ok" }], structuredContent: {} }),
     )
   },
+}
+
+const demo: ComposableModule<object> = {
+  name: "demo",
+  configFromEnv: () => ({}),
+  knownEnvVars: [],
+  createPlugin: () => showPlugin,
 }
 
 beforeEach(() => {
@@ -45,12 +48,10 @@ async function boot(env: NodeJS.ProcessEnv = {}) {
   // mcp-use reads MCP_URL from process.env itself (the request-resolved origin).
   vi.stubEnv("MCP_URL", env.MCP_URL)
   const composed = await createComposedServer({
-    label: "fonts-test",
     info: { name: "fonts-test", version: "0.0.0" },
-    composition,
+    modules: [demo],
     bundle: { jsPath: "/nonexistent/mcp-app.js" },
     env,
-    setup: () => ({ plugins: [createShellPlugin(), showPlugin] }),
   })
   const server = await composed.listen({ port: 0, host: "127.0.0.1" })
   running.push(server)
@@ -179,7 +180,7 @@ describe("the font route", () => {
     expect(hostedView.status).toBe(200)
   })
 
-  it("admits MCP_URL's host — where a hosted view reaches the server", async () => {
+  it("admits MCP_URL's host, where a hosted view reaches the server", async () => {
     const server = await boot({ MCP_URL: "https://mcp.example.test/mcp" })
     const res = await request(server.port, { path: SANS, headers: { host: "mcp.example.test" } })
     expect(res.status).toBe(200)
@@ -199,10 +200,7 @@ describe("the font origin on the views", () => {
   it("advertises MCP_URL's origin in resourceDomains on every view resource, listed and read", async () => {
     const server = await boot({ MCP_URL: "https://mcp.example.test/mcp" })
     const resources = await viewResources(server.port)
-    expect(resources.map((r) => r.uri).sort()).toEqual([
-      "ui://views/demo_show_thing.html",
-      "ui://views/render-view.html",
-    ])
+    expect(resources.map((r) => r.uri)).toEqual(["ui://views/demo_show_thing.html"])
     for (const resource of resources) {
       expect(resource._meta?.ui?.csp?.resourceDomains, `${resource.uri} listed`).toContain(
         "https://mcp.example.test",
@@ -218,7 +216,7 @@ describe("the font origin on the views", () => {
     const server = await boot({ MCP_URL: "https://mcp.example.test/mcp" })
     const { tools } = (await rpc(server.port, "tools/list")) as { tools: ToolEntry[] }
     const widgetTools = tools.filter((tool) => tool._meta?.["openai/outputTemplate"] !== undefined)
-    expect(widgetTools.map((tool) => tool.name).sort()).toEqual(["demo_show_thing", "render-view"])
+    expect(widgetTools.map((tool) => tool.name)).toEqual(["demo_show_thing"])
     for (const tool of widgetTools) {
       expect(tool._meta?.["openai/widgetCSP"], tool.name).toEqual({
         resource_domains: ["https://mcp.example.test"],

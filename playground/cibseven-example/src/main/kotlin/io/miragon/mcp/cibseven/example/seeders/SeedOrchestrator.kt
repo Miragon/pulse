@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Component
 
 /**
- * Single entry point for Spring's CommandLineRunner — picks the active
+ * Single entry point for Spring's CommandLineRunner: picks the active
  * [SeedProfile] from `seed.profile` and dispatches to every [ProcessSeeder]
  * that opts in for it. Keeps the legacy `seed` profile behavior-identical by
  * defaulting `seed.profile` to `DEFAULT` when not set.
@@ -24,11 +24,11 @@ class SeedOrchestrator(private val seeders: List<ProcessSeeder>, @Value("\${seed
 
     override fun run(vararg args: String) {
         val profile = SeedProfile.fromString(profileValue)
-        log.info("Seed orchestrator starting — profile={} seeders={}", profile, seeders.map { it.processKey })
+        log.info("Seed orchestrator starting: profile={} seeders={}", profile, seeders.map { it.processKey })
 
         val active = seeders.filter { it.isActiveFor(profile) }
         if (active.isEmpty()) {
-            log.warn("No seeders active for profile {} — nothing to seed.", profile)
+            log.warn("No seeders active for profile {}, nothing to seed.", profile)
             return
         }
 

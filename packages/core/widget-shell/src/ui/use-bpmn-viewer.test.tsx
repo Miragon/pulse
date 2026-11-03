@@ -9,7 +9,7 @@ import {
   useBpmnViewer,
 } from "./use-bpmn-viewer.js"
 
-// bpmn-js needs a real SVG engine happy-dom lacks; the full lifecycle suite runs in the camunda7 connector.
+// bpmn-js needs a real SVG engine happy-dom lacks; the full lifecycle suite runs in the engine connector.
 const mock = vi.hoisted(() => {
   /** Viewbox cached on first read and dropped only by `resized()` (Canvas.js 15.27). */
   class FakeCanvas {
@@ -144,7 +144,7 @@ afterEach(() => {
 })
 
 describe("useBpmnViewer canvas (#339, N122)", () => {
-  it("paints the container as the fixed light canvas in a dark document — no call site opts in", async () => {
+  it("paints the container as the fixed light canvas in a dark document: no call site opts in", async () => {
     document.documentElement.classList.add("dark")
     render(<Diagram xml={XML} />)
 
@@ -242,6 +242,19 @@ describe("useBpmnViewer frame and fit", () => {
     render(<Framed xml={INVOICE_DI} />)
     await waitFor(() => expect(mock.MockViewer.canvases[0]?.fits.length).toBeGreaterThan(0))
     expect(mock.MockViewer.canvases[0].fits[0]).toMatchObject({ center: "auto", outerHeight: 265 })
+  })
+
+  it("never fits a hidden container (no layout box), so a drill's hidden origin view keeps its diagram", async () => {
+    const rects = vi
+      .spyOn(HTMLElement.prototype, "getClientRects")
+      .mockReturnValue([] as unknown as DOMRectList)
+    try {
+      render(<Framed xml={INVOICE_DI} fitOnResize />)
+      await act(async () => {})
+      expect(mock.MockViewer.canvases[0]?.fits ?? []).toEqual([])
+    } finally {
+      rects.mockRestore()
+    }
   })
 
   it("refits a heatmap-style viewer against the NEW frame once the drawn diagram sized it", async () => {

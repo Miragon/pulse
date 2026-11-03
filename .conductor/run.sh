@@ -3,19 +3,6 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-if [ ! -d node_modules ]; then
-  echo "ERROR: node_modules missing — run setup first." >&2
-  exit 1
-fi
-
-if [ ! -f .env ]; then
-  sed "s|\$(pwd)|$(pwd)|g" .env.example > .env
-  echo "Created .env from .env.example"
-fi
-
-# Default compose stack = infra only (CIB Seven, OTEL Collector, Prometheus, Grafana).
-# The bundled MCP server lives behind the `full` profile and is intentionally not
-# started here so `pnpm dev` can bind port 8400 without a conflict.
-docker compose -f playground/docker/docker-compose.yml up -d
-
-exec pnpm dev
+# Installs, starts the playground (engine, OTEL Collector, Prometheus, Grafana), builds and runs
+# the MCP server on :8400 against it; no .env needed (scripts/local.mjs).
+exec pnpm play

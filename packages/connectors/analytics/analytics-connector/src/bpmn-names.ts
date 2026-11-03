@@ -4,7 +4,7 @@
  */
 
 /**
- * The shape of the kit's `BpmnNames` (`parseBpmnNames`), the one rule camunda7 names the same model
+ * The shape of the kit's `BpmnNames` (`parseBpmnNames`), the one rule the engine module names the same model
  * by.
  */
 export interface ProcessNames {

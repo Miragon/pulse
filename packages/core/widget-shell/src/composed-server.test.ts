@@ -1,14 +1,16 @@
 import http from "node:http"
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest"
-import { oauthCustomProvider } from "mcp-use/oauth"
-import { composeModules, type ComposableModule } from "./composition.js"
+import type { ComposableModule, ModuleEntry } from "./composition.js"
 import {
+  composedEnvVars,
   createComposedServer,
   DEFAULT_DRAIN_TIMEOUT_MS,
+  retiredEnvVars,
   type ComposedServerOptions,
   type RunningServer,
 } from "./composed-server.js"
-import { createShellPlugin } from "./shell-catalogue.js"
+import { HTTP_EDGE_ENV_VARS } from "./http-edge.js"
+import { OAUTH_ENV_VARS } from "./oauth-env.js"
 import { createToolsetVocabulary } from "./toolsets.js"
 
 const alpha: ComposableModule<object> = {
@@ -18,14 +20,8 @@ const alpha: ComposableModule<object> = {
   toolsets: createToolsetVocabulary("alpha", ["read-only", "operations"] as const, "read-only", {
     authenticatedDefault: "operations",
   }),
-  createPlugin: () => ({ definition: { name: "alpha", steps: [], widgets: [] } }),
+  createPlugin: () => ({ name: "alpha", register: () => {} }),
 }
-
-const composition = composeModules<object>({
-  label: "test-root",
-  modules: [alpha],
-  appEnvVars: ["MCP_ACTIVE_MODULES"],
-})
 
 const running: RunningServer[] = []
 let info: MockInstance<(line: string) => void>
@@ -43,21 +39,27 @@ afterEach(async () => {
 
 function options(overrides: Partial<ComposedServerOptions> = {}): ComposedServerOptions {
   return {
-    label: "test-root",
     info: {
-      name: "test-server",
+      name: "test-root",
       version: "9.8.7",
       title: "Test Server",
       websiteUrl: "https://example.com/test",
       instructions: "Be brief.",
     },
-    composition,
+    modules: [alpha],
     // The bundle is read once; a missing file only warns (views render empty).
     bundle: { jsPath: "/nonexistent/mcp-app.js" },
     env: {},
-    setup: () => ({ plugins: [createShellPlugin(), ...composition.pluginsFor([], {})] }),
     ...overrides,
   }
+}
+
+/** `alpha` with a `createPlugin` spy, to see whether (and with what) the boot built its plugin. */
+function spiedAlpha() {
+  const createPlugin = vi.fn((config: Record<string, unknown>, shared: object) =>
+    alpha.createPlugin(config, shared),
+  )
+  return { module: { ...alpha, createPlugin }, createPlugin }
 }
 
 async function boot(overrides: Partial<ComposedServerOptions> = {}, drainTimeoutMs?: number) {
@@ -135,65 +137,81 @@ function rpcResult(body: string): Record<string, unknown> {
   return (JSON.parse(json) as { result: Record<string, unknown> }).result
 }
 
-describe("createComposedServer — boot", () => {
-  it("resolves ONE unauthenticated selection without OAuth and keeps the builder off", async () => {
+describe("createComposedServer: boot", () => {
+  it("resolves ONE selection from the modules and logs the HTTP edge", async () => {
     const composed = await createComposedServer(options())
-    expect(composed.boot.authenticated).toBe(false)
     expect(composed.boot.entries).toEqual([
       { app: "alpha", config: { url: "default", toolset: "read-only" } },
     ])
-    expect(composed.builder).toBe(false)
     expect(info).toHaveBeenCalledWith(
-      "[test-root] Dashboard builder off (needs OAuth and no read-only module) — render-view stays.",
-    )
-    expect(info).toHaveBeenCalledWith(
-      expect.stringMatching(/^\[test-root\] HTTP edge — hosts: localhost, 127\.0\.0\.1, \[::1\];/),
+      expect.stringMatching(/^\[test-root\] HTTP edge: hosts localhost, 127\.0\.0\.1, \[::1\];/),
     )
   })
 
-  it("hands the selection to setup() and authenticates it exactly when OAuth is installed", async () => {
-    const setup = vi.fn(options().setup)
-    const oauth = oauthCustomProvider<unknown>({
-      resource: "http://localhost/mcp",
-      oauthMetadata: {
-        issuer: "https://idp.example.test",
-        authorization_endpoint: "https://idp.example.test/a",
-        token_endpoint: "https://idp.example.test/t",
-        response_types_supported: ["code"],
-      },
-      createTokenVerifier: () => ({
-        verifyAccessToken: () => Promise.reject(new Error("no tokens in this test")),
-      }),
-      mapAuthInfo: () => ({ user: {}, payload: {}, permissions: [] }),
-    })
-    const composed = await createComposedServer(options({ oauth, setup }))
-    expect(composed.boot.authenticated).toBe(true)
-    expect(composed.boot.entries[0].config).toMatchObject({ toolset: "operations" })
-    expect(composed.builder).toBe(true)
-    expect(setup).toHaveBeenCalledWith(composed.boot)
-  })
-
-  it("fails the boot when OAuth has no resource and MCP_URL is unset", async () => {
-    const oauth = { resource: undefined } as unknown as ComposedServerOptions["oauth"]
-    await expect(createComposedServer(options({ oauth }))).rejects.toThrow(
-      "[test-root] OAuth needs MCP_URL",
-    )
-  })
-
-  it("fails the boot on an invalid edge setting before running setup()", async () => {
-    const setup = vi.fn(options().setup)
+  it("fails the boot on an invalid edge setting before any plugin is created", async () => {
+    const { module, createPlugin } = spiedAlpha()
     await expect(
-      createComposedServer(options({ env: { MCP_MAX_BODY_BYTES: "lots" }, setup })),
+      createComposedServer(options({ modules: [module], env: { MCP_MAX_BODY_BYTES: "lots" } })),
     ).rejects.toThrow(/MCP_MAX_BODY_BYTES/)
-    expect(setup).not.toHaveBeenCalled()
+    expect(createPlugin).not.toHaveBeenCalled()
   })
 
-  it("knows the edge env vars and the root's extras in the typo warner", async () => {
+  it("hands every plugin the shared resources the root builds from the active entries", async () => {
+    const { module, createPlugin } = spiedAlpha()
+    const shared = (entries: readonly ModuleEntry[]) => ({ names: entries.map((e) => e.app) })
+    await createComposedServer(options({ modules: [module], shared }))
+    expect(createPlugin).toHaveBeenCalledWith(
+      { url: "default", toolset: "read-only" },
+      { names: ["alpha"] },
+    )
+  })
+
+  it("names the boot's variables and every module's in composedEnvVars", () => {
+    expect([...composedEnvVars([alpha])].sort()).toEqual(
+      [
+        ...HTTP_EDGE_ENV_VARS,
+        ...OAUTH_ENV_VARS,
+        "MCP_ACTIVE_MODULES",
+        "MCP_USE_LOG_LEVEL",
+        "ALPHA_URL",
+      ].sort(),
+    )
+  })
+
+  it("names every variable the modules retired in retiredEnvVars, none of them read", () => {
+    const retiring = { ...alpha, retired: { names: ["alpha0"], envVars: { OLD_URL: "ALPHA_URL" } } }
+    expect([...retiredEnvVars([retiring])]).toEqual(["OLD_URL"])
+    expect(composedEnvVars([retiring]).has("OLD_URL")).toBe(false)
+    expect([...retiredEnvVars([alpha])]).toEqual([])
+  })
+
+  it("refuses a retired setting FIRST, before the edge or OAuth checks and any plugin", async () => {
+    const { module, createPlugin } = spiedAlpha()
+    const retiring = {
+      ...module,
+      retired: { names: ["alpha0"], envVars: { OLD_URL: "ALPHA_URL" } },
+    }
+    await expect(
+      createComposedServer(
+        options({ modules: [retiring], env: { OLD_URL: "x", MCP_MAX_BODY_BYTES: "lots" } }),
+      ),
+    ).rejects.toThrow("OLD_URL is no longer read")
+    await expect(
+      createComposedServer(
+        options({
+          modules: [retiring],
+          env: { MCP_ACTIVE_MODULES: "alpha0:operations", MCP_USE_OAUTH_KEYCLOAK_REALM: "r" },
+        }),
+      ),
+    ).rejects.toThrow("Write alpha instead: alpha0:operations becomes alpha:operations.")
+    expect(createPlugin).not.toHaveBeenCalled()
+    const warnings = vi.mocked(console.warn).mock.calls.map(([line]) => String(line))
+    expect(warnings).toEqual([])
+  })
+
+  it("knows the edge env vars in the typo warner", async () => {
     await createComposedServer(
-      options({
-        env: { MCP_ALLOWED_HOSTS: "a.example", MCP_SECRET_X: "1", MCP_TYPO: "1" },
-        extraKnownEnvVars: ["MCP_SECRET_X"],
-      }),
+      options({ env: { MCP_ALLOWED_HOSTS: "a.example", ALPHA_URL: "x", MCP_TYPO: "1" } }),
     )
     const warnings = vi.mocked(console.warn).mock.calls.map(([line]) => String(line))
     expect(warnings.filter((line) => line.includes("Unknown environment variable"))).toEqual([
@@ -212,14 +230,14 @@ describe("createComposedServer — boot", () => {
   })
 })
 
-describe("createComposedServer — on the wire", () => {
+describe("createComposedServer: on the wire", () => {
   it("reports serverInfo and instructions from the root's info", async () => {
     const { server } = await boot()
     const res = await initialize(server.port)
     expect(res.status).toBe(200)
     const result = rpcResult(res.body)
     expect(result.serverInfo).toMatchObject({
-      name: "test-server",
+      name: "test-root",
       version: "9.8.7",
       title: "Test Server",
       websiteUrl: "https://example.com/test",
@@ -229,19 +247,13 @@ describe("createComposedServer — on the wire", () => {
   })
 
   it("appends each active module's instructions to the root's preamble", async () => {
-    const instructed = composeModules<object>({
-      label: "test-root",
-      modules: [
-        {
-          ...alpha,
-          instructions: (config, { authenticated }) =>
-            `alpha routes to ${String(config.url)} (${authenticated ? "signed in" : "anonymous"}).`,
-        },
-      ],
-    })
-    const { server } = await boot({ composition: instructed })
+    const instructed = {
+      ...alpha,
+      instructions: (config: Record<string, unknown>) => `alpha routes to ${String(config.url)}.`,
+    }
+    const { server } = await boot({ modules: [instructed] })
     const result = rpcResult((await initialize(server.port)).body)
-    expect(result.instructions).toBe("Be brief.\n\nalpha routes to default (anonymous).")
+    expect(result.instructions).toBe("Be brief.\n\nalpha routes to default.")
   })
 
   it("guards /mcp by Host and Origin but leaves the probes and the scrape to IP callers", async () => {
@@ -308,22 +320,17 @@ describe("createComposedServer — on the wire", () => {
   })
 })
 
-describe("createComposedServer — graceful drain", () => {
-  it("drains: readiness 503, in-flight requests finish, then the runtime shuts down", async () => {
+describe("createComposedServer: graceful drain", () => {
+  it("drains: readiness 503, in-flight requests finish, then the drain ends", async () => {
     const order: string[] = []
     let release!: () => void
     const gate = new Promise<void>((resolve) => (release = resolve))
-    const { composed, server } = await boot({
-      setup: () => ({
-        plugins: [createShellPlugin()],
-        shutdown: () => {
-          order.push("runtime.shutdown")
-          return Promise.resolve()
-        },
-      }),
-    })
+    const { composed, server } = await boot({ modules: [] })
     // Stands in for an in-flight tool call; registered before the first request mounts the app.
+    let arrived!: () => void
+    const received = new Promise<void>((resolve) => (arrived = resolve))
     composed.app.get("/slow", async () => {
+      arrived()
       await gate
       order.push("slow answered")
       return new Response("done")
@@ -333,33 +340,36 @@ describe("createComposedServer — graceful drain", () => {
       const ready = await request(server.port, { path: "/health/ready" })
       expect(ready.status).toBe(200)
     })
-    await new Promise((resolve) => setTimeout(resolve, 20))
+    // The request is in flight once its handler runs; a fixed sleep would race a loaded machine.
+    await received
 
     const shutdown = server.shutdown()
     expect(server.shutdown()).toBe(shutdown)
+    void shutdown.then(() => order.push("drained"))
     // No new connections once draining.
     await expect(request(server.port, { path: "/health/live" })).rejects.toThrow(/ECONNREFUSED/)
     release()
     expect((await inFlight).body).toBe("done")
     await shutdown
-    expect(order).toEqual(["slow answered", "runtime.shutdown"])
+    expect(order).toEqual(["slow answered", "drained"])
   })
 
   it("stops waiting for a hung request after the drain timeout", async () => {
-    const shutdownRuntime = vi.fn(async () => {})
-    const { composed, server } = await boot(
-      { setup: () => ({ plugins: [createShellPlugin()], shutdown: shutdownRuntime }) },
-      30,
-    )
-    composed.app.get("/hang", () => new Promise<Response>(() => {}))
+    const { composed, server } = await boot({ modules: [] }, 30)
+    let arrived!: () => void
+    const received = new Promise<void>((resolve) => (arrived = resolve))
+    composed.app.get("/hang", () => {
+      arrived()
+      return new Promise<Response>(() => {})
+    })
     const hung = request(server.port, { path: "/hang" }).catch((error: Error) => error)
-    await new Promise((resolve) => setTimeout(resolve, 30))
+    // Shut down only once the request is in flight; a fixed sleep raced a loaded machine.
+    await received
 
     await server.shutdown()
     expect(console.warn).toHaveBeenCalledWith(
       expect.stringContaining("[test-root] Drain timed out after 30ms"),
     )
-    expect(shutdownRuntime).toHaveBeenCalledTimes(1)
     expect(await hung).toBeInstanceOf(Error)
   })
 
@@ -374,39 +384,14 @@ describe("createComposedServer — graceful drain", () => {
       return process
     }) as typeof process.once)
     const exit = vi.spyOn(process, "exit").mockImplementation((() => undefined) as never)
-    const shutdownRuntime = vi.fn(async () => {})
-    const composed = await createComposedServer(
-      options({ setup: () => ({ plugins: [createShellPlugin()], shutdown: shutdownRuntime }) }),
-    )
+    const composed = await createComposedServer(options({ modules: [] }))
     const server = await composed.listen({ port: 0, host: "127.0.0.1", handleSignals: true })
     expect([...handlers.keys()].sort()).toEqual(["SIGINT", "SIGTERM"])
 
     handlers.get("SIGTERM")!()
     await vi.waitFor(() => expect(exit).toHaveBeenCalledWith(0))
-    expect(shutdownRuntime).toHaveBeenCalledTimes(1)
+    // The signal ran the same idempotent drain.
+    await expect(request(server.port, { path: "/health/live" })).rejects.toThrow(/ECONNREFUSED/)
     await server.shutdown()
-  })
-
-  it("exits 1 when the drain fails", async () => {
-    const handlers = new Map<string, () => void>()
-    vi.spyOn(process, "once").mockImplementation(((event: string, handler: () => void) => {
-      handlers.set(event, handler)
-      return process
-    }) as typeof process.once)
-    const exit = vi.spyOn(process, "exit").mockImplementation((() => undefined) as never)
-    const error = vi.spyOn(console, "error").mockImplementation(() => {})
-    const composed = await createComposedServer(
-      options({
-        setup: () => ({
-          plugins: [createShellPlugin()],
-          shutdown: () => Promise.reject(new Error("pool stuck")),
-        }),
-      }),
-    )
-    await composed.listen({ port: 0, host: "127.0.0.1", handleSignals: true })
-
-    handlers.get("SIGINT")!()
-    await vi.waitFor(() => expect(exit).toHaveBeenCalledWith(1))
-    expect(error).toHaveBeenCalledWith("[test-root] shutdown failed:", expect.any(Error))
   })
 })

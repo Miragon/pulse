@@ -16,6 +16,7 @@ import {
 } from "../../../contract/index.js"
 import { ErrorTranslation } from "../errors/error-translation.js"
 import { DefinitionRefs } from "../mapping/definition-refs.js"
+import { IncidentTexts } from "../mapping/incident-texts.js"
 import { InstanceStates } from "../mapping/instance-states.js"
 import { Timestamps } from "../mapping/timestamps.js"
 import {
@@ -192,11 +193,11 @@ export class InstanceDetailReader {
         details:
           stacktrace === undefined
             ? undefined
-            : ({
-                kind: "stacktrace",
-                text: stacktrace.lines.join("\n"),
-                truncated: stacktrace.truncated,
-              } as const),
+            : IncidentTexts.details(
+                "stacktrace",
+                stacktrace.lines.join("\n"),
+                stacktrace.truncated,
+              ),
       }),
     }
   }

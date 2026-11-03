@@ -5,7 +5,7 @@ import { parsePromql } from "./promql-parse.test-support.js"
 /**
  * The checker behind the selector-label contract guard
  * (`metrics-contract-labels.test.ts`). These cases pin down that each
- * violation class is actually caught — a checker that silently accepts
+ * violation class is actually caught: a checker that silently accepts
  * everything would let the guard pass vacuously.
  */
 
@@ -35,7 +35,7 @@ const catalog = contractCatalog(
 const check = (query: string) => checkQueryLabels(query, catalog)
 const violations = (query: string) => check(query).violations
 
-describe("checkQueryLabels — accepted shapes", () => {
+describe("checkQueryLabels: accepted shapes", () => {
   it.each([
     'sum(increase(inc_total{process_definition_key="k",engine_id=~"a|b"}[7d]))',
     "sum by (activity_id)(increase(inc_total[86400s] @ 1700000000))",
@@ -62,7 +62,7 @@ describe("checkQueryLabels — accepted shapes", () => {
   })
 })
 
-describe("checkQueryLabels — violations", () => {
+describe("checkQueryLabels: violations", () => {
   it("flags a matcher label the series does not declare (the version-compare bug)", () => {
     const [v, ...rest] = violations(
       'sum(increase(inc_total{process_definition_key="k",process_definition_version="2"}[7d]))',
@@ -144,7 +144,7 @@ describe("checkQueryLabels — violations", () => {
   })
 })
 
-describe("checkQueryLabels — result labels", () => {
+describe("checkQueryLabels: result labels", () => {
   it.each([
     ["inc_total or backlog", ["activity_id", "engine_id", "process_definition_key"]],
     ["backlog unless inc_total", ["engine_id"]],

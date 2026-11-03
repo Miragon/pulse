@@ -1,0 +1,3133 @@
+[
+  {
+    "_meta": {
+      "openai/widgetAccessible": true,
+      "ui": {
+        "visibility": [
+          "app"
+        ]
+      }
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Internal JSON feed (no UI) for the BPMN heatmap: per-element execution frequency + average duration over a window. Lets another widget (e.g. the CIB seven cockpit) paint the heat on its own diagram. Prefer analytics_show_bpmn_heatmap for a standalone view.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          ]
+        },
+        "period": {
+          "default": "7d",
+          "enum": [
+            "1d",
+            "3d",
+            "7d",
+            "14d",
+            "30d"
+          ],
+          "type": "string"
+        },
+        "processDefinitionKey": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "processDefinitionKey"
+      ],
+      "type": "object"
+    },
+    "name": "analytics_bpmn_heatmap_data",
+    "title": "BPMN heatmap data (internal)"
+  },
+  {
+    "_meta": {
+      "openai/widgetAccessible": true,
+      "ui": {
+        "visibility": [
+          "app"
+        ]
+      }
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Internal JSON feed (no UI): the latest deployed BPMN XML of a process key on the engines in scope, for the heatmap view's diagram.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          ]
+        },
+        "processDefinitionKey": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "processDefinitionKey"
+      ],
+      "type": "object"
+    },
+    "name": "analytics_bpmn_xml_data",
+    "title": "BPMN heatmap diagram (internal)"
+  },
+  {
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Live operational health of the CIB seven engine(s), from Prometheus state gauges: running WIP, open incidents by type, failed jobs (retries exhausted), executable/suspended job backlog, open/unassigned user tasks, external-task backlog, deployed definitions, and which alert rules are firing/pending. Names the engines judged and the silent ones (`silentEngines`: their counts read 0 because nothing arrives). Status: From Prometheus, over the engines in scope: unknown when none of them reports metrics; critical only while a severity=critical alert fires for them (fleet-wide also an engine-less CibSeven* alert); degraded with any such firing alert, failed job, open incident or an engine in scope that reports nothing; else healthy. Use for fleet-wide or metric-based health; for one engine's live incident clusters use engine_open_cockpit.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "name": "analytics_engine_health"
+  },
+  {
+    "_meta": {
+      "openai/widgetAccessible": true,
+      "ui": {
+        "visibility": [
+          "app"
+        ]
+      }
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Internal JSON feed (no UI) for the cross-engine landscape widget's self-fetch, also consumed by the engine cockpit's cross-engine mode. Prefer analytics_show_engine_landscape.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          ],
+          "description": "Engines to list; omitted: every configured one."
+        }
+      },
+      "type": "object"
+    },
+    "name": "analytics_engine_landscape_data",
+    "title": "Engine landscape data (internal)"
+  },
+  {
+    "_meta": {
+      "openai/outputTemplate": "ui://views/analytics_show_bpmn_heatmap.html",
+      "openai/resultCanProduceWidget": true,
+      "openai/toolInvocation/invoked": "BPMN Heatmap ready",
+      "openai/toolInvocation/invoking": "Loading BPMN Heatmap…",
+      "openai/widgetAccessible": true,
+      "ui": {
+        "resourceUri": "ui://views/analytics_show_bpmn_heatmap.html"
+      },
+      "ui/resourceUri": "ui://views/analytics_show_bpmn_heatmap.html"
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Render a process definition's BPMN diagram with a per-element heat overlay from metrics, with a Frequency↔Duration toggle (traversal count vs average duration per element). Node-level only (sequence-flow/edge heat is not available from metrics) and rendered on the latest deployed version's diagram (activity metrics carry no version label). Needs the engine module to fetch the BPMN XML; otherwise the widget shows a fallback.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          ]
+        },
+        "period": {
+          "default": "7d",
+          "enum": [
+            "1d",
+            "3d",
+            "7d",
+            "14d",
+            "30d"
+          ],
+          "type": "string"
+        },
+        "processDefinitionKey": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "processDefinitionKey"
+      ],
+      "type": "object"
+    },
+    "name": "analytics_show_bpmn_heatmap",
+    "outputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": {},
+      "properties": {},
+      "type": "object"
+    },
+    "title": "BPMN Heatmap"
+  },
+  {
+    "_meta": {
+      "openai/outputTemplate": "ui://views/analytics_show_dashboard.html",
+      "openai/resultCanProduceWidget": true,
+      "openai/toolInvocation/invoked": "Process Analytics Dashboard ready",
+      "openai/toolInvocation/invoking": "Loading Process Analytics Dashboard…",
+      "openai/widgetAccessible": true,
+      "ui": {
+        "resourceUri": "ui://views/analytics_show_dashboard.html"
+      },
+      "ui/resourceUri": "ui://views/analytics_show_dashboard.html"
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Show process metrics from Prometheus for a rolling period: starts, completions, incidents created (not failed instances) and resolved, avg/median/p95 duration of the instances that ENDED in it (null when none did), the period before as reference, and the live state now (instances running, incidents open). Broken down per process definition and per (process, activity): executions, total/avg/median/p95 time and incidents created (unscoped: the top 20 by total time).",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          ]
+        },
+        "period": {
+          "default": "7d",
+          "enum": [
+            "1d",
+            "3d",
+            "7d",
+            "14d",
+            "30d"
+          ],
+          "type": "string"
+        },
+        "processDefinitionKey": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "name": "analytics_show_dashboard",
+    "outputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": {},
+      "properties": {},
+      "type": "object"
+    },
+    "title": "Process Analytics Dashboard"
+  },
+  {
+    "_meta": {
+      "openai/outputTemplate": "ui://views/analytics_show_engine_compare.html",
+      "openai/resultCanProduceWidget": true,
+      "openai/toolInvocation/invoked": "Engine Comparison ready",
+      "openai/toolInvocation/invoking": "Loading Engine Comparison…",
+      "openai/widgetAccessible": true,
+      "ui": {
+        "resourceUri": "ui://views/analytics_show_engine_compare.html"
+      },
+      "ui/resourceUri": "ui://views/analytics_show_engine_compare.html"
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Compare ONE process definition on two configured engines (e.g. prod-a vs prod-b) over a shared rolling window: starts, completions, incidents per 100 starts, avg/median/p95 duration, plus the deltas.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "activityId": {
+          "description": "Also count the incidents at this BPMN element (elementIncident*).",
+          "type": "string"
+        },
+        "engineA": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "engineB": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "minBucketSize": {
+          "default": 10,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "processDefinitionKey": {
+          "description": "The process definition key to compare on both engines, REQUIRED: engines run different process mixes, so comparing their whole workloads measures the mix, not the engines. Keys deployed on several engines are the `sharedProcessKeys` of analytics_show_engine_landscape.",
+          "minLength": 1,
+          "type": "string"
+        },
+        "windowDays": {
+          "default": 14,
+          "maximum": 30,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "processDefinitionKey",
+        "engineA",
+        "engineB"
+      ],
+      "type": "object"
+    },
+    "name": "analytics_show_engine_compare",
+    "outputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": {},
+      "properties": {},
+      "type": "object"
+    },
+    "title": "Engine Comparison"
+  },
+  {
+    "_meta": {
+      "openai/outputTemplate": "ui://views/analytics_show_engine_landscape.html",
+      "openai/resultCanProduceWidget": true,
+      "openai/toolInvocation/invoked": "Cross-Engine Landscape ready",
+      "openai/toolInvocation/invoking": "Loading Cross-Engine Landscape…",
+      "openai/widgetAccessible": true,
+      "ui": {
+        "resourceUri": "ui://views/analytics_show_engine_landscape.html"
+      },
+      "ui/resourceUri": "ui://views/analytics_show_engine_landscape.html"
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Show the cross-engine landscape of the configured engines: which process definitions run on which engine, the load per engine (running instances, open incidents, failed jobs) and the engine-owned job backlog (executable, suspended and future-due jobs, open external tasks). Counts, not rates: engines host different process mixes, so a per-engine rate would measure the mix; the backlog gauges carry no process label and do compare. `sharedProcessKeys` (deployed on several engines) are the only sound inputs for analytics_show_engine_compare; an engine without metrics has `reporting: false`.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          ],
+          "description": "Engines to list; omitted: every configured one."
+        }
+      },
+      "type": "object"
+    },
+    "name": "analytics_show_engine_landscape",
+    "outputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": {},
+      "properties": {},
+      "type": "object"
+    },
+    "title": "Cross-Engine Landscape"
+  },
+  {
+    "_meta": {
+      "openai/outputTemplate": "ui://views/analytics_show_period_compare.html",
+      "openai/resultCanProduceWidget": true,
+      "openai/toolInvocation/invoked": "Period Comparison ready",
+      "openai/toolInvocation/invoking": "Loading Period Comparison…",
+      "openai/widgetAccessible": true,
+      "ui": {
+        "resourceUri": "ui://views/analytics_show_period_compare.html"
+      },
+      "ui/resourceUri": "ui://views/analytics_show_period_compare.html"
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Compare process KPIs of two periods (around a deployment, A ends and B starts at its timestamp from engine_get_deployment). Per period: starts and starts per day, completions, incidents per 100 starts, avg/median/p95 duration, plus the deltas. Periods are clamped to now and the 30-day retention and reported as measured (`partial`); a reversed or wholly out-of-range period is refused.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "activityId": {
+          "description": "Also count the incidents at this BPMN element (elementIncident*).",
+          "type": "string"
+        },
+        "engine": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          ]
+        },
+        "minBucketSize": {
+          "default": 10,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "periodAFrom": {
+          "type": "string"
+        },
+        "periodATo": {
+          "type": "string"
+        },
+        "periodBFrom": {
+          "type": "string"
+        },
+        "periodBTo": {
+          "type": "string"
+        },
+        "processDefinitionKey": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "periodAFrom",
+        "periodATo",
+        "periodBFrom",
+        "periodBTo"
+      ],
+      "type": "object"
+    },
+    "name": "analytics_show_period_compare",
+    "outputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": {},
+      "properties": {},
+      "type": "object"
+    },
+    "title": "Period Comparison"
+  },
+  {
+    "_meta": {
+      "openai/outputTemplate": "ui://views/analytics_show_version_compare.html",
+      "openai/resultCanProduceWidget": true,
+      "openai/toolInvocation/invoked": "Process Version Comparison ready",
+      "openai/toolInvocation/invoking": "Loading Process Version Comparison…",
+      "openai/widgetAccessible": true,
+      "ui": {
+        "resourceUri": "ui://views/analytics_show_version_compare.html"
+      },
+      "ui/resourceUri": "ui://views/analytics_show_version_compare.html"
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Compare KPIs of two deployed versions of one processDefinitionKey over a shared rolling window. The version is an exact label on the instance and incident series, so starts, completions, incidents, incidents per 100 starts and avg/median/p95 duration per version and their deltas are exact; the comparison is process-wide (no element scope). Find versions with engine_list_process_definitions.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          ]
+        },
+        "minBucketSize": {
+          "default": 10,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "processDefinitionKey": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "versionA": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "versionB": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "windowDays": {
+          "default": 14,
+          "maximum": 30,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "processDefinitionKey",
+        "versionA",
+        "versionB"
+      ],
+      "type": "object"
+    },
+    "name": "analytics_show_version_compare",
+    "outputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": {},
+      "properties": {},
+      "type": "object"
+    },
+    "title": "Process Version Comparison"
+  },
+  {
+    "_meta": {
+      "openai/widgetAccessible": true,
+      "ui": {
+        "visibility": [
+          "app"
+        ]
+      }
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Internal JSON feed (no UI) for one activity's incident rows, offset-paged. Prefer engine_open_cockpit.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "activityId": {
+          "description": "Activity id whose incidents to page",
+          "type": "string"
+        },
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "firstResult": {
+          "description": "Offset for pagination (0-based).",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "maxResults": {
+          "description": "Page size.",
+          "exclusiveMinimum": 0,
+          "maximum": 100,
+          "type": "integer"
+        },
+        "processDefinitionKey": {
+          "description": "Process definition key",
+          "type": "string"
+        }
+      },
+      "required": [
+        "processDefinitionKey",
+        "activityId"
+      ],
+      "type": "object"
+    },
+    "name": "engine_activity_incidents_data",
+    "title": "Activity incidents data (internal)"
+  },
+  {
+    "_meta": {
+      "openai/widgetAccessible": true,
+      "ui": {
+        "visibility": [
+          "app"
+        ]
+      }
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Internal JSON feed (no UI): one deployed process definition's BPMN 2.0 XML, by id, which every diagram in the views draws. Use engine_get_process_definition_xml for the XML itself.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "processDefinitionId": {
+          "description": "The deployed version's id (key:version:deployment).",
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "processDefinitionId"
+      ],
+      "type": "object"
+    },
+    "name": "engine_bpmn_xml_data",
+    "title": "BPMN XML data (internal)"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "description": "Claim a user task for a specific user.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "taskId": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "taskId",
+        "userId"
+      ],
+      "type": "object"
+    },
+    "name": "engine_claim_task"
+  },
+  {
+    "_meta": {
+      "openai/widgetAccessible": true,
+      "ui": {
+        "visibility": [
+          "app"
+        ]
+      }
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Internal JSON feed (no UI) for one failure cluster's detail. Prefer engine_open_cockpit.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "activityId": {
+          "description": "Activity id of the failure cluster.",
+          "type": "string"
+        },
+        "businessKeyLike": {
+          "description": "Narrow the affected-instance list by business key (substring; % wildcards allowed).",
+          "type": "string"
+        },
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "firstResult": {
+          "description": "Offset for pagination (0-based).",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "incidentType": {
+          "description": "Incident type of the cluster, e.g. \"failedJob\".",
+          "type": "string"
+        },
+        "maxResults": {
+          "description": "Page size.",
+          "exclusiveMinimum": 0,
+          "maximum": 100,
+          "type": "integer"
+        },
+        "messageSignature": {
+          "description": "Normalized failure-message signature (as produced by the engine-health clusters). Omitted → all messages for this activity + type.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "activityId",
+        "incidentType"
+      ],
+      "type": "object"
+    },
+    "name": "engine_cluster_detail_data",
+    "title": "Cluster detail data (internal)"
+  },
+  {
+    "_meta": {
+      "openai/widgetAccessible": true,
+      "ui": {
+        "visibility": [
+          "app"
+        ]
+      }
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Internal JSON feed (no UI) for the cockpit overview: per-definition stats. Prefer engine_open_cockpit.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "name": "engine_cockpit_overview_data",
+    "title": "Cockpit overview data (internal)"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "openWorldHint": true
+    },
+    "description": "Complete a user task by ID, optionally setting variables. A task with form fields is submitted as its form: the engine enforces them (required, readonly, types); omitted fields keep their value. A delegated task (delegationState PENDING) is resolved back to its owner instead and stays open (outcome \"resolved\"). Never write back a value read with truncated: true. It is incomplete; read it whole first (variableName).",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "taskId": {
+          "type": "string"
+        },
+        "variables": {
+          "additionalProperties": {
+            "properties": {
+              "type": {
+                "type": "string"
+              },
+              "value": {},
+              "valueInfo": {
+                "additionalProperties": {},
+                "propertyNames": {
+                  "type": "string"
+                },
+                "type": "object"
+              }
+            },
+            "required": [
+              "value"
+            ],
+            "type": "object"
+          },
+          "propertyNames": {
+            "type": "string"
+          },
+          "type": "object"
+        }
+      },
+      "required": [
+        "taskId"
+      ],
+      "type": "object"
+    },
+    "name": "engine_complete_task"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "openWorldHint": true
+    },
+    "description": "Correlate a message to a waiting catch event or a message start event; target it via processInstanceId, businessKey or correlationKeys. Unless all=true the engine needs EXACTLY one match: several fail, and so does none without a message start event.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "all": {
+          "type": "boolean"
+        },
+        "businessKey": {
+          "type": "string"
+        },
+        "correlationKeys": {
+          "additionalProperties": {
+            "properties": {
+              "type": {
+                "type": "string"
+              },
+              "value": {},
+              "valueInfo": {
+                "additionalProperties": {},
+                "propertyNames": {
+                  "type": "string"
+                },
+                "type": "object"
+              }
+            },
+            "required": [
+              "value"
+            ],
+            "type": "object"
+          },
+          "propertyNames": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "messageName": {
+          "type": "string"
+        },
+        "processInstanceId": {
+          "type": "string"
+        },
+        "processVariables": {
+          "additionalProperties": {
+            "properties": {
+              "type": {
+                "type": "string"
+              },
+              "value": {},
+              "valueInfo": {
+                "additionalProperties": {},
+                "propertyNames": {
+                  "type": "string"
+                },
+                "type": "object"
+              }
+            },
+            "required": [
+              "value"
+            ],
+            "type": "object"
+          },
+          "description": "Set on the instance the message reaches; only correlationKeys match",
+          "propertyNames": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "resultEnabled": {
+          "default": true,
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "messageName"
+      ],
+      "type": "object"
+    },
+    "name": "engine_correlate_message"
+  },
+  {
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Build a structured, tracker-agnostic ticket draft (title, markdown body, labels) from a Camunda 7 / CIB seven incident. Does NOT file anything: present the draft in the chat for review and reuse; the user decides where it goes (their issue tracker via whatever integration is available, the prefilled GitHub URL of the configured repository, or copy-paste).",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "incidentId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "incidentId"
+      ],
+      "type": "object"
+    },
+    "name": "engine_format_incident_issue"
+  },
+  {
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Get a deployment by ID: its timestamp and source, for pre/post deployment correlation (commit hash → deployment ID → timestamp).",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "deploymentId": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "deploymentId"
+      ],
+      "type": "object"
+    },
+    "name": "engine_get_deployment"
+  },
+  {
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Get the exception stacktrace of a failed job, condensed to the exception lines, the Caused-by chain and user-code frames (framework frames trimmed). stacktrace is null when the job has none or no longer exists.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "jobId": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "jobId"
+      ],
+      "type": "object"
+    },
+    "name": "engine_get_job_stacktrace"
+  },
+  {
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Get the BPMN 2.0 XML of a process definition by ID. Returns the raw BPMN XML string.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "processDefinitionId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "processDefinitionId"
+      ],
+      "type": "object"
+    },
+    "name": "engine_get_process_definition_xml"
+  },
+  {
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Get all variables of a process instance (Json/Xml/Object: serialized string + valueInfo).",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "processInstanceId": {
+          "type": "string"
+        },
+        "variableName": {
+          "description": "Return only this variable, whole (never cut)",
+          "type": "string"
+        }
+      },
+      "required": [
+        "processInstanceId"
+      ],
+      "type": "object"
+    },
+    "name": "engine_get_process_instance_variables"
+  },
+  {
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Get details of a single user task by ID.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "taskId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "taskId"
+      ],
+      "type": "object"
+    },
+    "name": "engine_get_task"
+  },
+  {
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Load the form schema for a user task from its embedded BPMN form definition (`<camunda:formData>`): fields (type, required, readonly) pre-filled with current values. Never submit readonly fields. Without form fields, fields is empty and formKey (or formRef, a linked Camunda Form) names the task's own form, if any.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "taskId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "taskId"
+      ],
+      "type": "object"
+    },
+    "name": "engine_get_task_form"
+  },
+  {
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Get all variables of a user task (Json/Xml/Object: serialized string + valueInfo).",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "taskId": {
+          "type": "string"
+        },
+        "variableName": {
+          "description": "Return only this variable, whole (never cut)",
+          "type": "string"
+        }
+      },
+      "required": [
+        "taskId"
+      ],
+      "type": "object"
+    },
+    "name": "engine_get_task_variables"
+  },
+  {
+    "_meta": {
+      "openai/widgetAccessible": true,
+      "ui": {
+        "visibility": [
+          "app"
+        ]
+      }
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Internal JSON feed (no UI) for the engine health verdict + incident clusters. Prefer engine_open_cockpit.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "name": "engine_health_data",
+    "title": "Engine health data (internal)"
+  },
+  {
+    "_meta": {
+      "openai/widgetAccessible": true,
+      "ui": {
+        "visibility": [
+          "app"
+        ]
+      }
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Internal JSON feed (no UI) for one process instance's activity history, ended instances included. Prefer engine_open_cockpit.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "processInstanceId": {
+          "description": "The process instance ID",
+          "type": "string"
+        }
+      },
+      "required": [
+        "processInstanceId"
+      ],
+      "type": "object"
+    },
+    "name": "engine_history_timeline_data",
+    "title": "History timeline data (internal)"
+  },
+  {
+    "_meta": {
+      "openai/widgetAccessible": true,
+      "ui": {
+        "visibility": [
+          "app"
+        ]
+      }
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Internal JSON feed (no UI) for a single incident: stacktrace, BPMN with the failing activity, variables, activity tree, history. Prefer engine_open_cockpit.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "incidentId": {
+          "description": "The incident ID to inspect",
+          "type": "string"
+        }
+      },
+      "required": [
+        "incidentId"
+      ],
+      "type": "object"
+    },
+    "name": "engine_incident_detail_data",
+    "title": "Incident detail data (internal)"
+  },
+  {
+    "_meta": {
+      "openai/widgetAccessible": true,
+      "ui": {
+        "visibility": [
+          "app"
+        ]
+      }
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Internal JSON feed (no UI) for the incidents dashboard: open incidents grouped by process. Prefer engine_open_cockpit.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "incidentType": {
+          "type": "string"
+        },
+        "processDefinitionKey": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "name": "engine_incidents_data",
+    "title": "Incidents dashboard data (internal)"
+  },
+  {
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Where one process instance waits and why, running or ended: root-cause incidents, called instances. Select by processInstanceId, businessKey or processDefinitionKey.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "businessKey": {
+          "type": "string"
+        },
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "includeHistory": {
+          "type": "boolean"
+        },
+        "includeStacktraces": {
+          "type": "boolean"
+        },
+        "includeVariables": {
+          "type": "boolean"
+        },
+        "latest": {
+          "type": "boolean"
+        },
+        "processDefinitionKey": {
+          "type": "string"
+        },
+        "processInstanceId": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "name": "engine_inspect_process_instance"
+  },
+  {
+    "_meta": {
+      "openai/widgetAccessible": true,
+      "ui": {
+        "visibility": [
+          "app"
+        ]
+      }
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Internal JSON feed (no UI) for a single process instance. Prefer engine_open_cockpit.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "processInstanceId": {
+          "description": "The process instance ID",
+          "type": "string"
+        }
+      },
+      "required": [
+        "processInstanceId"
+      ],
+      "type": "object"
+    },
+    "name": "engine_instance_detail_data",
+    "title": "Instance detail data (internal)"
+  },
+  {
+    "_meta": {
+      "openai/widgetAccessible": true,
+      "ui": {
+        "visibility": [
+          "app"
+        ]
+      }
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Internal JSON feed (no UI) for jobs. Prefer engine_open_cockpit.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "failedOnly": {
+          "description": "Show only failed jobs (no retries left)",
+          "type": "boolean"
+        },
+        "firstResult": {
+          "description": "Offset for pagination (0-based).",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "maxResults": {
+          "description": "Page size.",
+          "exclusiveMinimum": 0,
+          "maximum": 100,
+          "type": "integer"
+        },
+        "processDefinitionKey": {
+          "description": "Filter by process definition key",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "name": "engine_jobs_data",
+    "title": "Jobs data (internal)"
+  },
+  {
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "List deployments.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "firstResult": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "maxResults": {
+          "default": 20,
+          "exclusiveMinimum": 0,
+          "maximum": 100,
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "nameLike": {
+          "type": "string"
+        },
+        "sortBy": {
+          "enum": [
+            "id",
+            "name",
+            "deploymentTime",
+            "tenantId"
+          ],
+          "type": "string"
+        },
+        "sortOrder": {
+          "enum": [
+            "asc",
+            "desc"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "name": "engine_list_deployments",
+    "outputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "hasMore": {
+          "type": "boolean"
+        },
+        "items": {
+          "items": {},
+          "type": "array"
+        },
+        "nextOffset": {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        },
+        "totalCount": {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "items",
+        "totalCount",
+        "hasMore"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "description": "List the configured engines, grouped by environment (`environments` maps each to its engine ids), plus the default engine (`defaultEngineId`, null when none).",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {},
+      "type": "object"
+    },
+    "name": "engine_list_engines"
+  },
+  {
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "List external tasks (service-task work handed to external workers). Read-only: it never locks, completes or fails a task (noRetriesLeft finds the failed ones; where the toolset allows engine writes, engine_set_external_task_retries hands them back to their workers).",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "activityId": {
+          "type": "string"
+        },
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "firstResult": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "locked": {
+          "description": "true = only tasks locked now (lock not expired)",
+          "type": "boolean"
+        },
+        "maxResults": {
+          "default": 20,
+          "exclusiveMinimum": 0,
+          "maximum": 100,
+          "type": "integer"
+        },
+        "noRetriesLeft": {
+          "description": "true = only failed tasks (0 retries, an incident exists)",
+          "type": "boolean"
+        },
+        "notLocked": {
+          "description": "true = only tasks not locked (no lock, or it expired)",
+          "type": "boolean"
+        },
+        "processDefinitionKey": {
+          "type": "string"
+        },
+        "processInstanceId": {
+          "type": "string"
+        },
+        "sortBy": {
+          "enum": [
+            "id",
+            "lockExpirationTime",
+            "processInstanceId",
+            "processDefinitionId",
+            "processDefinitionKey",
+            "taskPriority",
+            "tenantId"
+          ],
+          "type": "string"
+        },
+        "sortOrder": {
+          "enum": [
+            "asc",
+            "desc"
+          ],
+          "type": "string"
+        },
+        "topicName": {
+          "type": "string"
+        },
+        "withRetriesLeft": {
+          "description": "true = only tasks with retries > 0 (or not set yet)",
+          "type": "boolean"
+        },
+        "workerId": {
+          "description": "The worker that most recently locked the task",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "name": "engine_list_external_tasks",
+    "outputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "hasMore": {
+          "type": "boolean"
+        },
+        "items": {
+          "items": {},
+          "type": "array"
+        },
+        "nextOffset": {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        },
+        "totalCount": {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "items",
+        "totalCount",
+        "hasMore"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "List incidents (errors) in the engine: failed jobs, external task failures, etc.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "activityId": {
+          "type": "string"
+        },
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "firstResult": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "incidentTimestampAfter": {
+          "type": "string"
+        },
+        "incidentTimestampBefore": {
+          "type": "string"
+        },
+        "incidentType": {
+          "type": "string"
+        },
+        "maxResults": {
+          "default": 20,
+          "exclusiveMinimum": 0,
+          "maximum": 100,
+          "type": "integer"
+        },
+        "processDefinitionId": {
+          "type": "string"
+        },
+        "processDefinitionKey": {
+          "type": "string"
+        },
+        "processDefinitionKeyIn": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "processInstanceId": {
+          "type": "string"
+        },
+        "sortBy": {
+          "enum": [
+            "incidentId",
+            "incidentMessage",
+            "incidentTimestamp",
+            "incidentType",
+            "executionId",
+            "activityId",
+            "processInstanceId",
+            "processDefinitionId",
+            "causeIncidentId",
+            "rootCauseIncidentId",
+            "configuration",
+            "tenantId"
+          ],
+          "type": "string"
+        },
+        "sortOrder": {
+          "enum": [
+            "asc",
+            "desc"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "name": "engine_list_incidents",
+    "outputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "hasMore": {
+          "type": "boolean"
+        },
+        "items": {
+          "items": {},
+          "type": "array"
+        },
+        "nextOffset": {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        },
+        "totalCount": {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "items",
+        "totalCount",
+        "hasMore"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "List jobs (timers, async continuations).",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "active": {
+          "type": "boolean"
+        },
+        "activityId": {
+          "type": "string"
+        },
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "firstResult": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "maxResults": {
+          "default": 20,
+          "exclusiveMinimum": 0,
+          "maximum": 100,
+          "type": "integer"
+        },
+        "noRetriesLeft": {
+          "type": "boolean"
+        },
+        "processDefinitionKey": {
+          "type": "string"
+        },
+        "processInstanceId": {
+          "type": "string"
+        },
+        "sortBy": {
+          "enum": [
+            "jobId",
+            "executionId",
+            "processInstanceId",
+            "processDefinitionId",
+            "processDefinitionKey",
+            "jobPriority",
+            "jobRetries",
+            "jobDueDate",
+            "tenantId"
+          ],
+          "type": "string"
+        },
+        "sortOrder": {
+          "enum": [
+            "asc",
+            "desc"
+          ],
+          "type": "string"
+        },
+        "suspended": {
+          "type": "boolean"
+        },
+        "withRetriesLeft": {
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "name": "engine_list_jobs",
+    "outputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "hasMore": {
+          "type": "boolean"
+        },
+        "items": {
+          "items": {},
+          "type": "array"
+        },
+        "nextOffset": {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        },
+        "totalCount": {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "items",
+        "totalCount",
+        "hasMore"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "List deployed process definitions (key, name, version, deployment).",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "firstResult": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "latestVersion": {
+          "type": "boolean"
+        },
+        "maxResults": {
+          "default": 20,
+          "exclusiveMinimum": 0,
+          "maximum": 100,
+          "type": "integer"
+        },
+        "nameLike": {
+          "type": "string"
+        },
+        "processDefinitionKey": {
+          "type": "string"
+        },
+        "sortBy": {
+          "enum": [
+            "category",
+            "key",
+            "id",
+            "name",
+            "version",
+            "deploymentId",
+            "deployTime",
+            "versionTag"
+          ],
+          "type": "string"
+        },
+        "sortOrder": {
+          "enum": [
+            "asc",
+            "desc"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "name": "engine_list_process_definitions",
+    "outputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "hasMore": {
+          "type": "boolean"
+        },
+        "items": {
+          "items": {},
+          "type": "array"
+        },
+        "nextOffset": {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        },
+        "totalCount": {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "items",
+        "totalCount",
+        "hasMore"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "List running process instances.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "active": {
+          "type": "boolean"
+        },
+        "businessKey": {
+          "type": "string"
+        },
+        "businessKeyLike": {
+          "type": "string"
+        },
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "firstResult": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "maxResults": {
+          "default": 20,
+          "exclusiveMinimum": 0,
+          "maximum": 100,
+          "type": "integer"
+        },
+        "processDefinitionKey": {
+          "type": "string"
+        },
+        "sortBy": {
+          "enum": [
+            "instanceId",
+            "definitionKey",
+            "definitionId",
+            "tenantId",
+            "businessKey"
+          ],
+          "type": "string"
+        },
+        "sortOrder": {
+          "enum": [
+            "asc",
+            "desc"
+          ],
+          "type": "string"
+        },
+        "suspended": {
+          "type": "boolean"
+        },
+        "withIncidents": {
+          "description": "true = only instances with an open incident",
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "name": "engine_list_process_instances",
+    "outputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "hasMore": {
+          "type": "boolean"
+        },
+        "items": {
+          "items": {},
+          "type": "array"
+        },
+        "nextOffset": {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        },
+        "totalCount": {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "items",
+        "totalCount",
+        "hasMore"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "List user tasks. Each task carries ID, name, assignee, process info, and timestamps.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "assignee": {
+          "type": "string"
+        },
+        "candidateGroup": {
+          "description": "Tasks offered to this group: only UNASSIGNED ones unless includeAssignedTasks",
+          "type": "string"
+        },
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "firstResult": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "includeAssignedTasks": {
+          "description": "With candidateGroup: include tasks already claimed",
+          "type": "boolean"
+        },
+        "maxResults": {
+          "default": 20,
+          "exclusiveMinimum": 0,
+          "maximum": 100,
+          "type": "integer"
+        },
+        "processDefinitionKey": {
+          "type": "string"
+        },
+        "processInstanceId": {
+          "type": "string"
+        },
+        "sortBy": {
+          "enum": [
+            "instanceId",
+            "dueDate",
+            "assignee",
+            "created",
+            "lastUpdated",
+            "description",
+            "id",
+            "name",
+            "priority"
+          ],
+          "type": "string"
+        },
+        "sortOrder": {
+          "enum": [
+            "asc",
+            "desc"
+          ],
+          "type": "string"
+        },
+        "unassigned": {
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "name": "engine_list_tasks",
+    "outputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "hasMore": {
+          "type": "boolean"
+        },
+        "items": {
+          "items": {},
+          "type": "array"
+        },
+        "nextOffset": {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        },
+        "totalCount": {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "items",
+        "totalCount",
+        "hasMore"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "_meta": {
+      "openai/outputTemplate": "ui://views/engine_open_cockpit.html",
+      "openai/resultCanProduceWidget": true,
+      "openai/toolInvocation/invoked": "Open Cockpit ready",
+      "openai/toolInvocation/invoking": "Loading Open Cockpit…",
+      "openai/widgetAccessible": true,
+      "ui": {
+        "resourceUri": "ui://views/engine_open_cockpit.html"
+      },
+      "ui/resourceUri": "ui://views/engine_open_cockpit.html"
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Show the user the operations cockpit on one engine; they navigate it without further tool calls. `view` picks where it opens, by default the overview: the health verdict from the open incidents, the top failure clusters and every process. instance-detail needs a running instance; history shows ended ones too. You get that view's facts as compact JSON.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "activityId": {
+          "description": "cluster-detail (required): the failing activity id.",
+          "type": "string"
+        },
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "failedOnly": {
+          "description": "jobs: only jobs without retries.",
+          "type": "boolean"
+        },
+        "focus": {
+          "description": "process-detail: focus on its incidents; if none, list processes that have some.",
+          "enum": [
+            "incidents"
+          ],
+          "type": "string"
+        },
+        "incidentId": {
+          "description": "incident-detail (required).",
+          "type": "string"
+        },
+        "incidentType": {
+          "description": "cluster-detail (required).",
+          "type": "string"
+        },
+        "messageSignature": {
+          "description": "cluster-detail: a failure message signature (the overview's topCluster); omitted: all.",
+          "type": "string"
+        },
+        "processDefinitionKey": {
+          "description": "process-detail (required), process-instances, jobs.",
+          "type": "string"
+        },
+        "processInstanceId": {
+          "description": "instance-detail, history (required).",
+          "type": "string"
+        },
+        "view": {
+          "enum": [
+            "overview",
+            "incidents",
+            "cluster-detail",
+            "process-detail",
+            "process-instances",
+            "instance-detail",
+            "incident-detail",
+            "jobs",
+            "history"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "name": "engine_open_cockpit",
+    "outputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": {},
+      "properties": {},
+      "type": "object"
+    },
+    "title": "Open Cockpit"
+  },
+  {
+    "_meta": {
+      "openai/widgetAccessible": true,
+      "ui": {
+        "visibility": [
+          "app"
+        ]
+      }
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Internal JSON feed (no UI) for the unified definition view: header, KPIs (incl. failed jobs), BPMN overlays, activity-grouped incidents. Prefer engine_open_cockpit.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "processDefinitionKey": {
+          "description": "Process definition key to drill into",
+          "type": "string"
+        }
+      },
+      "required": [
+        "processDefinitionKey"
+      ],
+      "type": "object"
+    },
+    "name": "engine_process_incidents_data",
+    "title": "Process incidents data (internal)"
+  },
+  {
+    "_meta": {
+      "openai/widgetAccessible": true,
+      "ui": {
+        "visibility": [
+          "app"
+        ]
+      }
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Internal JSON feed (no UI) for a definition's running instances. Prefer engine_open_cockpit.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "active": {
+          "description": "true = only running (non-suspended) instances, false = only suspended.",
+          "type": "boolean"
+        },
+        "businessKeyLike": {
+          "description": "Filter by business key (substring; % wildcards allowed).",
+          "type": "string"
+        },
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "firstResult": {
+          "description": "Offset for pagination (0-based).",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "maxResults": {
+          "description": "Page size.",
+          "exclusiveMinimum": 0,
+          "maximum": 100,
+          "type": "integer"
+        },
+        "processDefinitionKey": {
+          "description": "Process definition key whose instances to list. Omit for ALL running instances engine-wide.",
+          "type": "string"
+        },
+        "search": {
+          "description": "Search box: business key (substring) or whole process instance id. Replaces businessKeyLike.",
+          "type": "string"
+        },
+        "suspended": {
+          "description": "true = only suspended instances, false = only running.",
+          "type": "boolean"
+        },
+        "withIncidents": {
+          "description": "true = only instances that currently have an open incident.",
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "name": "engine_process_instances_data",
+    "title": "Process instances data (internal)"
+  },
+  {
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Query historic activity instances, i.e. which BPMN activities were executed in a process instance.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "activityId": {
+          "type": "string"
+        },
+        "activityType": {
+          "description": "e.g. userTask, serviceTask",
+          "type": "string"
+        },
+        "canceled": {
+          "type": "boolean"
+        },
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "finished": {
+          "type": "boolean"
+        },
+        "finishedAfter": {
+          "type": "string"
+        },
+        "finishedBefore": {
+          "type": "string"
+        },
+        "firstResult": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "maxResults": {
+          "default": 50,
+          "exclusiveMinimum": 0,
+          "maximum": 100,
+          "type": "integer"
+        },
+        "processDefinitionId": {
+          "description": "This engine query has no key filter",
+          "type": "string"
+        },
+        "processInstanceId": {
+          "type": "string"
+        },
+        "sortBy": {
+          "enum": [
+            "activityInstanceId",
+            "instanceId",
+            "executionId",
+            "activityId",
+            "activityName",
+            "activityType",
+            "startTime",
+            "endTime",
+            "duration",
+            "tenantId"
+          ],
+          "type": "string"
+        },
+        "sortOrder": {
+          "enum": [
+            "asc",
+            "desc"
+          ],
+          "type": "string"
+        },
+        "startedAfter": {
+          "type": "string"
+        },
+        "startedBefore": {
+          "type": "string"
+        },
+        "unfinished": {
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "name": "engine_query_historic_activity_instances",
+    "outputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "hasMore": {
+          "type": "boolean"
+        },
+        "items": {
+          "items": {},
+          "type": "array"
+        },
+        "nextOffset": {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        },
+        "totalCount": {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "items",
+        "totalCount",
+        "hasMore"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Query historic incidents (open and resolved, with createTime/endTime) to tell a systemic failure (the same activity failing across instances, since when) from a one-off; the runtime incident list forgets resolved ones.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "activityId": {
+          "type": "string"
+        },
+        "createTimeAfter": {
+          "type": "string"
+        },
+        "createTimeBefore": {
+          "type": "string"
+        },
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "firstResult": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "incidentType": {
+          "type": "string"
+        },
+        "maxResults": {
+          "default": 20,
+          "exclusiveMinimum": 0,
+          "maximum": 100,
+          "type": "integer"
+        },
+        "open": {
+          "type": "boolean"
+        },
+        "processDefinitionKey": {
+          "type": "string"
+        },
+        "processInstanceId": {
+          "type": "string"
+        },
+        "resolved": {
+          "type": "boolean"
+        },
+        "sortBy": {
+          "enum": [
+            "createTime",
+            "endTime",
+            "incidentType",
+            "activityId",
+            "processInstanceId",
+            "processDefinitionKey"
+          ],
+          "type": "string"
+        },
+        "sortOrder": {
+          "enum": [
+            "asc",
+            "desc"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "name": "engine_query_historic_incidents",
+    "outputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "hasMore": {
+          "type": "boolean"
+        },
+        "items": {
+          "items": {},
+          "type": "array"
+        },
+        "nextOffset": {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        },
+        "totalCount": {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "items",
+        "totalCount",
+        "hasMore"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Query historic process instances (completed and running).",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "businessKey": {
+          "type": "string"
+        },
+        "businessKeyLike": {
+          "type": "string"
+        },
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "finished": {
+          "type": "boolean"
+        },
+        "finishedAfter": {
+          "type": "string"
+        },
+        "finishedBefore": {
+          "type": "string"
+        },
+        "firstResult": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "incidentStatus": {
+          "enum": [
+            "open",
+            "resolved"
+          ],
+          "type": "string"
+        },
+        "maxResults": {
+          "default": 20,
+          "exclusiveMinimum": 0,
+          "maximum": 100,
+          "type": "integer"
+        },
+        "processDefinitionKey": {
+          "type": "string"
+        },
+        "processInstanceId": {
+          "type": "string"
+        },
+        "sortBy": {
+          "enum": [
+            "instanceId",
+            "definitionId",
+            "definitionKey",
+            "definitionName",
+            "startTime",
+            "endTime",
+            "duration",
+            "tenantId",
+            "businessKey"
+          ],
+          "type": "string"
+        },
+        "sortOrder": {
+          "enum": [
+            "asc",
+            "desc"
+          ],
+          "type": "string"
+        },
+        "startedAfter": {
+          "type": "string"
+        },
+        "startedBefore": {
+          "type": "string"
+        },
+        "unfinished": {
+          "type": "boolean"
+        },
+        "withIncidents": {
+          "description": "true = only instances that had an incident (open or resolved)",
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "name": "engine_query_historic_process_instances",
+    "outputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "hasMore": {
+          "type": "boolean"
+        },
+        "items": {
+          "items": {},
+          "type": "array"
+        },
+        "nextOffset": {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        },
+        "totalCount": {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "items",
+        "totalCount",
+        "hasMore"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Query historic task instances (completed and open user tasks).",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "assignee": {
+          "type": "string"
+        },
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "finished": {
+          "type": "boolean"
+        },
+        "firstResult": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "maxResults": {
+          "default": 20,
+          "exclusiveMinimum": 0,
+          "maximum": 100,
+          "type": "integer"
+        },
+        "processDefinitionKey": {
+          "type": "string"
+        },
+        "processInstanceId": {
+          "type": "string"
+        },
+        "sortBy": {
+          "enum": [
+            "taskId",
+            "activityInstanceId",
+            "processDefinitionId",
+            "processInstanceId",
+            "executionId",
+            "duration",
+            "endTime",
+            "startTime",
+            "taskName",
+            "taskDescription",
+            "assignee",
+            "owner",
+            "dueDate",
+            "followUpDate",
+            "deleteReason",
+            "taskDefinitionKey",
+            "priority",
+            "tenantId"
+          ],
+          "type": "string"
+        },
+        "sortOrder": {
+          "enum": [
+            "asc",
+            "desc"
+          ],
+          "type": "string"
+        },
+        "unfinished": {
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "name": "engine_query_historic_task_instances",
+    "outputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "hasMore": {
+          "type": "boolean"
+        },
+        "items": {
+          "items": {},
+          "type": "array"
+        },
+        "nextOffset": {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        },
+        "totalCount": {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "items",
+        "totalCount",
+        "hasMore"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Query historic variable instances, i.e. variable values from process history (serialized, with valueInfo).",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "firstResult": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "maxResults": {
+          "default": 50,
+          "exclusiveMinimum": 0,
+          "maximum": 100,
+          "type": "integer"
+        },
+        "processInstanceId": {
+          "type": "string"
+        },
+        "sortBy": {
+          "enum": [
+            "instanceId",
+            "variableName",
+            "tenantId"
+          ],
+          "type": "string"
+        },
+        "sortOrder": {
+          "enum": [
+            "asc",
+            "desc"
+          ],
+          "type": "string"
+        },
+        "variableName": {
+          "description": "Values stay cut, even for one name",
+          "type": "string"
+        },
+        "variableNameLike": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "name": "engine_query_historic_variable_instances",
+    "outputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "hasMore": {
+          "type": "boolean"
+        },
+        "items": {
+          "items": {},
+          "type": "array"
+        },
+        "nextOffset": {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        },
+        "totalCount": {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "items",
+        "totalCount",
+        "hasMore"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "openWorldHint": true
+    },
+    "description": "Resolve a custom incident by ID. The engine refuses failedJob/failedExternalTask (400); retry those instead: engine_set_job_retries / engine_set_external_task_retries on the incident's configuration id.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "incidentId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "incidentId"
+      ],
+      "type": "object"
+    },
+    "name": "engine_resolve_incident"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "description": "Set the retries of an external task. Retries > 0 hand a failed task back to its workers and clear its failedExternalTask incident (engine_resolve_incident cannot resolve that incident type); 0 raises an incident. Never locks, completes or fails the task itself.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "externalTaskId": {
+          "type": "string"
+        },
+        "retries": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "externalTaskId",
+        "retries"
+      ],
+      "type": "object"
+    },
+    "name": "engine_set_external_task_retries"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "description": "Set the number of retries for a failed job. Setting retries > 0 will re-execute the job.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "jobId": {
+          "type": "string"
+        },
+        "retries": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "jobId",
+        "retries"
+      ],
+      "type": "object"
+    },
+    "name": "engine_set_job_retries"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "description": "Set a single variable on a process instance; pass back the valueInfo read. Never write back a value read with truncated: true. It is incomplete; read it whole first (variableName).",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "processInstanceId": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "value": {},
+        "valueInfo": {
+          "additionalProperties": {},
+          "propertyNames": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "variableName": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "processInstanceId",
+        "variableName",
+        "value"
+      ],
+      "type": "object"
+    },
+    "name": "engine_set_process_instance_variable"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "description": "Set the assignee of a user task.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "taskId": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "taskId",
+        "userId"
+      ],
+      "type": "object"
+    },
+    "name": "engine_set_task_assignee"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "openWorldHint": true
+    },
+    "description": "Start a new process instance by process definition key. Optionally set a business key and initial variables.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "businessKey": {
+          "type": "string"
+        },
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "processDefinitionKey": {
+          "type": "string"
+        },
+        "variables": {
+          "additionalProperties": {
+            "properties": {
+              "type": {
+                "type": "string"
+              },
+              "value": {},
+              "valueInfo": {
+                "additionalProperties": {},
+                "propertyNames": {
+                  "type": "string"
+                },
+                "type": "object"
+              }
+            },
+            "required": [
+              "value"
+            ],
+            "type": "object"
+          },
+          "propertyNames": {
+            "type": "string"
+          },
+          "type": "object"
+        }
+      },
+      "required": [
+        "processDefinitionKey"
+      ],
+      "type": "object"
+    },
+    "name": "engine_start_process_instance"
+  },
+  {
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Triage of one engine: findings by severity, overall status and counts.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "processDefinitionKeyIn": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "name": "engine_status"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "description": "Unclaim (release) a user task, removing the current assignee.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "taskId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "taskId"
+      ],
+      "type": "object"
+    },
+    "name": "engine_unclaim_task"
+  },
+  {
+    "_meta": {
+      "openai/widgetAccessible": true,
+      "ui": {
+        "visibility": [
+          "app"
+        ]
+      }
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "description": "Internal JSON feed (no UI): which engine write actions the widgets may offer in this deployment.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {},
+      "type": "object"
+    },
+    "name": "engine_widget_actions_data",
+    "title": "Widget actions (internal)"
+  }
+]

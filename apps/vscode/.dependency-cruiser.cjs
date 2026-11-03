@@ -12,6 +12,10 @@ const WEBVIEW_LIBRARIES =
 const EXTENSION_LIBRARIES = "(^|/)node_modules/@miragon/modeler-shell/"
 const MODEL_ADAPTER = `${APP}src/model/`
 const MODEL_ADAPTER_ENTRY = `${APP}src/model/index[.]ts$`
+const C7_ADAPTER_AND_TESTS = `${APP}(src|test)/adapters/c7/`
+const ENGINE_CORE =
+  "(^|/)node_modules/@miragon/pulse-engine-core/|^@miragon/pulse-engine-core(/|$)|^packages/connectors/engine/engine-core/"
+const ENGINE_CORE_ENTRY = "(^|/)node_modules/@miragon/pulse-engine-core/dist/index[.]d[.]ts$"
 const MODEL_LIBRARIES =
   "(^|/)node_modules/(bpmn-moddle|camunda-bpmn-moddle|zeebe-bpmn-moddle|@miragon/bpmn-modeler[^/]*)/"
 
@@ -37,6 +41,12 @@ module.exports = {
       comment: "Adapters depend only on the contract.",
       from: { path: `${APP}src/adapters/[^/]+/` },
       to: { path: CONTRACT_ENTRY },
+    },
+    {
+      comment:
+        "The C7 adapter runs the Camunda 7 family's workflow domain (@miragon/pulse-engine-core, its main entry), which esbuild bundles into the extension.",
+      from: { path: `${APP}src/adapters/c7/` },
+      to: { path: ENGINE_CORE_ENTRY },
     },
     {
       comment:
@@ -86,6 +96,14 @@ module.exports = {
         "BPMN model libraries (bpmn-moddle, its vendor descriptors, bpmn-modeler libs) belong in apps/vscode/src/model only. Read what you need through the ModelSource or CodeLocator port of the contract instead.",
       from: { pathNot: [MODEL_ADAPTER, "(^|/)node_modules/"] },
       to: { path: MODEL_LIBRARIES },
+    },
+    {
+      name: "engine-core-only-in-the-c7-adapter",
+      severity: "error",
+      comment:
+        "@miragon/pulse-engine-core is the Camunda 7 family's workflow domain: only apps/vscode/src/adapters/c7 and its tests in apps/vscode/test/adapters/c7 import it. The contract, the core, the webview, the host, the model adapter and other adapters stay engine-neutral; read what you need through a port of the contract.",
+      from: { pathNot: [C7_ADAPTER_AND_TESTS, "(^|/)node_modules/"] },
+      to: { path: ENGINE_CORE },
     },
     {
       name: "protocol-imports-nothing",

@@ -95,8 +95,8 @@ describe("describeHttpEdgePolicy", () => {
         resolveHttpEdgePolicy({ MCP_URL: "https://mcp.example.com", MCP_METRICS_TOKEN: "t" }),
       ),
     ).toBe(
-      "HTTP edge — hosts: localhost, 127.0.0.1, [::1], mcp.example.com; " +
-        "origins: localhost, 127.0.0.1, [::1], https://mcp.example.com; " +
+      "HTTP edge: hosts localhost, 127.0.0.1, [::1], mcp.example.com; " +
+        "origins localhost, 127.0.0.1, [::1], https://mcp.example.com; " +
         "max body 4 MiB (16 MiB in flight); /metrics token-protected",
     )
     expect(
@@ -108,7 +108,7 @@ describe("describeHttpEdgePolicy", () => {
         }),
       ),
     ).toBe(
-      "HTTP edge — hosts: any (validation off); origins: any (validation off); " +
+      "HTTP edge: hosts any (validation off); origins any (validation off); " +
         "max body 1.5 MiB (6 MiB in flight); /metrics open",
     )
   })

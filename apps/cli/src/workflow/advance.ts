@@ -4,11 +4,17 @@
  * instance afterwards (optionally after waiting).
  */
 
+import {
+  type AdvanceInput,
+  type EndedInstance,
+  type WaitKind,
+  type WaitState,
+  waitId,
+} from "@miragon/pulse-engine-core"
 import type { EnginePort } from "../engine-port/engine-port.js"
 import { PulseCliError } from "../errors.js"
 import { compact, omit } from "../util.js"
 import {
-  type AdvanceInput,
   advanceSteps,
   checkAdvanceInput,
   checkLock,
@@ -21,17 +27,9 @@ import { loadInstance, loadView } from "./inspect.js"
 import { executeJob } from "./jobs.js"
 import { type JobFailure, jobFailedError } from "./outcomes.js"
 import { checkSelection, type Selection, selectInstance } from "./select.js"
-import type {
-  EndedInstance,
-  InstanceView,
-  PlannedWrite,
-  WaitKind,
-  WaitState,
-  WorkflowResult,
-} from "./types.js"
+import type { InstanceView, PlannedWrite, WorkflowResult } from "./types.js"
 import { checkUntil } from "./until-check.js"
 import { type WaitDeps, type WaitResult, type WaitSettings, waitAndInspect } from "./wait.js"
-import { waitId } from "./waits.js"
 
 interface AdvancedView {
   readonly processInstanceId: string

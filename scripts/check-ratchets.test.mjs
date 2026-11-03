@@ -1,7 +1,9 @@
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
-import { readFileSync } from "node:fs"
-import { describe, it } from "node:test"
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import path from "node:path"
+import { after, describe, it } from "node:test"
 import { BaseCoverageProvider } from "vitest/node"
 import {
   EXCEPTION_TRAILER,
@@ -12,14 +14,17 @@ import {
   isPullRequest,
   ratchetKind,
   resolveBaseRef,
+  run,
   suppressionDirectives,
+  violationKey,
 } from "./check-ratchets.mjs"
 
 /**
  * Negative tests for the ratchet self-protection: every forbidden direction
- * must produce a violation, every allowed one must not. The CLI wrapper
- * (merge-base resolution, trailer escape) runs in `pnpm lint`; the direction
- * policy lives in the pure `checkRatchetFile`.
+ * must produce a violation, every allowed one must not. The direction
+ * policy lives in the pure `checkRatchetFile`; the CLI (merge-base resolution,
+ * the per-commit replay that scopes the trailer escape) runs here against
+ * synthetic git repositories and in `pnpm lint` against this one.
  */
 
 const vitestConfig = ({ thresholds, exclude = "", extra = "" }) => `
@@ -37,41 +42,37 @@ export default mergeConfig(sharedConfig, defineConfig({
   },
 }))
 `
-const PKG_VITEST = "packages/connectors/camunda/camunda7-client/vitest.config.ts"
+const PKG_VITEST = "packages/connectors/engine/engine-client/vitest.config.ts"
 const BASE_THRESHOLDS = "thresholds: { statements: 44, branches: 32, functions: 45, lines: 44 },"
 // The apps and a new connector-family package: the ratchet covers each by its layout.
 const CLI_DIR = "apps/cli"
 const VSCODE_DIR = "apps/vscode"
 const FAMILY_DIR = "packages/connectors/fam/x-connector"
 const REAL_VITEST_CONFIGS = [
-  "apps/mcp-server-camunda7/vitest.config.ts",
+  "apps/mcp-server/vitest.config.ts",
   "packages/core/widget-shell/vitest.config.ts",
-  "packages/connectors/camunda/camunda7-client/vitest.config.ts",
-  "packages/connectors/camunda/camunda7-connector/vitest.config.ts",
+  "packages/connectors/engine/engine-client/vitest.config.ts",
+  "packages/connectors/engine/engine-connector/vitest.config.ts",
   "packages/connectors/analytics/analytics-client/vitest.config.ts",
   "packages/connectors/analytics/analytics-connector/vitest.config.ts",
 ]
 
 describe("ratchetKind", () => {
   it("recognises every monitored location and nothing else", () => {
-    assert.equal(ratchetKind("apps/mcp-server-camunda7/vitest.config.ts"), "vitest")
+    assert.equal(ratchetKind("apps/mcp-server/vitest.config.ts"), "vitest")
     assert.equal(ratchetKind("packages/core/widget-shell/vitest.config.ts"), "vitest")
     assert.equal(ratchetKind(PKG_VITEST), "vitest")
     assert.equal(ratchetKind("vitest.shared.ts"), "vitest")
     assert.equal(ratchetKind("packages/core/widget-shell/stryker.config.json"), "stryker")
     assert.equal(ratchetKind("eslint.config.mjs"), "eslint")
     assert.equal(ratchetKind("knip.jsonc"), "knip")
-    assert.equal(
-      ratchetKind("apps/mcp-server-camunda7/test/__golden__/char-budgets.json"),
-      "char-budgets",
-    )
-    assert.equal(
-      ratchetKind("apps/mcp-server-camunda7/test/__golden__/bundle-budget.json"),
-      "bundle-budget",
-    )
+    assert.equal(ratchetKind("apps/mcp-server/test/__golden__/char-budgets.json"), "char-budgets")
+    assert.equal(ratchetKind("apps/mcp-server/test/__golden__/bundle-budget.json"), "bundle-budget")
+    assert.equal(ratchetKind("apps/vscode/test/__golden__/bundle-budget.json"), "bundle-budget")
+    assert.equal(ratchetKind("apps/cli/test/__golden__/bundle-budget.json"), "bundle-budget")
     assert.equal(ratchetKind("package.json"), "root-scripts")
     assert.equal(ratchetKind("packages/core/widget-shell/package.json"), "package-scripts")
-    assert.equal(ratchetKind("apps/mcp-server-camunda7/package.json"), "package-scripts")
+    assert.equal(ratchetKind("apps/mcp-server/package.json"), "package-scripts")
     assert.equal(ratchetKind("packages/core/widget-shell/vitest.stryker.config.ts"), null)
     assert.equal(ratchetKind("templates/composed-server/vitest.config.ts"), null)
     assert.equal(ratchetKind("templates/composed-server/server/package.json"), null)
@@ -98,8 +99,8 @@ describe("shadowing configs (loaded BEFORE the ratcheted file)", () => {
     "eslint.config.cjs",
     "eslint.config.ts",
     "eslint.config.mts",
-    "apps/mcp-server-camunda7/eslint.config.js",
-    "packages/connectors/camunda/camunda7-connector/src/data/eslint.config.mjs",
+    "apps/mcp-server/eslint.config.js",
+    "packages/connectors/engine/engine-connector/src/data/eslint.config.mjs",
     "knip.json",
     ".knip.json",
     ".knip.jsonc",
@@ -110,10 +111,10 @@ describe("shadowing configs (loaded BEFORE the ratcheted file)", () => {
     "packages/core/widget-shell/stryker.conf.json",
     "packages/core/widget-shell/.stryker.config.json",
     "packages/core/widget-shell/stryker.config.mjs",
-    "packages/connectors/camunda/camunda7-client/stryker.conf.cjs",
+    "packages/connectors/engine/engine-client/stryker.conf.cjs",
   ]
 
-  it("flags each one — also when the diff introduces it", () => {
+  it("flags each one, also when the diff introduces it", () => {
     for (const rel of SHADOWS) {
       assert.equal(ratchetKind(rel), "shadow-config", rel)
       const violations = checkRatchetFile(rel, null, '{"ignore":["**"]}')
@@ -154,7 +155,7 @@ describe("shadowing vitest, prettier and editorconfig files", () => {
       `${VSCODE_DIR}/vitest.config.js`,
       `${FAMILY_DIR}/vitest.config.cjs`,
       "packages/core/widget-shell/vitest.config.mjs",
-      "apps/mcp-server-camunda7/vitest.config.cts",
+      "apps/mcp-server/vitest.config.cts",
     ])
       flags(rel, /second vitest config.*loads the first it finds.*Keep the package's config/)
   })
@@ -162,7 +163,7 @@ describe("shadowing vitest, prettier and editorconfig files", () => {
   it("leaves the configs vitest does not resolve from a package dir alone", () => {
     for (const rel of [
       // the widget bundle's build config, which vitest.config.ts outranks
-      "apps/mcp-server-camunda7/vite.config.ts",
+      "apps/mcp-server/vite.config.ts",
       "packages/core/widget-shell/vitest.stryker.config.ts",
       `${CLI_DIR}/src/vitest.config.mts`,
       "templates/composed-server/server/vitest.config.mts",
@@ -266,7 +267,7 @@ describe("vitest coverage thresholds (raise-only, never removed)", () => {
   const base = vitestConfig({ thresholds: BASE_THRESHOLDS })
 
   it("reads the literal thresholds of the real package configs", () => {
-    for (const rel of [PKG_VITEST, "apps/mcp-server-camunda7/vitest.config.ts"]) {
+    for (const rel of [PKG_VITEST, "apps/mcp-server/vitest.config.ts"]) {
       const { thresholds, error } = extractVitestCoverage(rel, readFileSync(rel, "utf8"))
       assert.equal(error, undefined)
       assert.deepEqual(Object.keys(thresholds).sort(), [
@@ -993,7 +994,7 @@ export const sharedConfig = defineConfig({
     assert.deepEqual(checkRatchetFile("vitest.shared.ts", base, shared(["**/src/postgres.ts"])), [])
   })
 
-  it("flags dropping `enabled: true` — vitest then defaults to coverage off", () => {
+  it("flags dropping `enabled: true` (vitest then defaults to coverage off)", () => {
     const dropped = base.replace("enabled: true, ", "")
     assert.match(
       checkRatchetFile("vitest.shared.ts", base, dropped)[0],
@@ -1014,7 +1015,7 @@ export const sharedConfig = defineConfig({
     )
     assert.equal(enabled, true)
     assert.ok(exclude.includes("...coverageConfigDefaults.exclude"))
-    assert.ok(exclude.includes("**/src/postgres.ts"))
+    assert.deepEqual(exclude, ["...coverageConfigDefaults.exclude"])
   })
 
   it("flags a coverage.include that appears in the shared config", () => {
@@ -1272,7 +1273,7 @@ export default [
     assert.match(grown[0], /src\/tools\/raw\.ts/)
   })
 
-  it("keys an ignore by the block it sits in — copying an exemption into the global ignores is new", () => {
+  it("keys an ignore by the block it sits in: copying an exemption into the global ignores is new", () => {
     const gates = (globalIgnores) => `export default [
   { ignores: [${globalIgnores}] },
   { files: ["src/**/*.ts"], ignores: ["src/widget-tools/**"], rules: { "no-restricted-syntax": ["error", "X"] } },
@@ -1322,7 +1323,7 @@ export default [
     assert.match(checkRatchetFile("eslint.config.mjs", base, null)[0], /was removed/)
   })
 
-  it("ignores parser-project partitions (no rules) — they route files, not exempt them", () => {
+  it("ignores parser-project partitions (no rules): they route files, not exempt them", () => {
     const partition = (globs) =>
       `export default [{ ignores: [${globs}], languageOptions: { parserOptions: {} } }]`
     assert.deepEqual(
@@ -1411,7 +1412,7 @@ describe("knip policy (ignore lists shrink-only)", () => {
 })
 
 describe("char budgets (shrink-only)", () => {
-  const rel = "apps/mcp-server-camunda7/test/__golden__/char-budgets.json"
+  const rel = "apps/mcp-server/test/__golden__/char-budgets.json"
   const base = JSON.stringify({ $comment: "x", "tools-admin": 1000 })
 
   it("flags growth and removal, accepts shrinking", () => {
@@ -1425,7 +1426,7 @@ describe("char budgets (shrink-only)", () => {
 })
 
 describe("bundle budget (shrink-only)", () => {
-  const rel = "apps/mcp-server-camunda7/test/__golden__/bundle-budget.json"
+  const rel = "apps/mcp-server/test/__golden__/bundle-budget.json"
   const base = JSON.stringify({ $comment: "x", "mcp-app.js": 405000, "mcp-app.css": 13300 })
 
   it("flags a raised or removed ceiling, accepts a lowered one", () => {
@@ -1435,7 +1436,7 @@ describe("bundle budget (shrink-only)", () => {
         base,
         JSON.stringify({ "mcp-app.js": 410000, "mcp-app.css": 13300 }),
       )[0],
-      /405000 -> 410000 bytes gzip/,
+      /405000 -> 410000 bytes/,
     )
     assert.match(
       checkRatchetFile(rel, base, JSON.stringify({ "mcp-app.js": 405000 }))[0],
@@ -1445,6 +1446,37 @@ describe("bundle budget (shrink-only)", () => {
       checkRatchetFile(rel, base, JSON.stringify({ "mcp-app.js": 400000, "mcp-app.css": 13000 })),
       [],
     )
+  })
+})
+
+describe("the CLI's bundle budget (shrink-only, raw bytes)", () => {
+  const rel = "apps/cli/test/__golden__/bundle-budget.json"
+  const base = JSON.stringify({ $comment: "x", dist: 2342912 })
+
+  it("flags a raised ceiling: without a Ratchet-Exception trailer the gate fails", () => {
+    const [violation, ...rest] = checkRatchetFile(rel, base, JSON.stringify({ dist: 2359296 }))
+    assert.match(
+      violation,
+      /apps\/cli\/test\/__golden__\/bundle-budget\.json -> "dist": 2342912 -> 2359296 bytes/,
+    )
+    assert.match(violation, /every npm install of the CLI downloads its dist/)
+    assert.deepEqual(rest, [])
+  })
+
+  it("flags a removed ceiling and a removed file", () => {
+    assert.match(
+      checkRatchetFile(rel, base, JSON.stringify({ $comment: "x" }))[0],
+      /"dist" was removed/,
+    )
+    assert.match(checkRatchetFile(rel, base, null)[0], /"dist" was removed/)
+  })
+
+  it("accepts a lowered or unchanged ceiling and reads the real file", () => {
+    assert.deepEqual(checkRatchetFile(rel, base, JSON.stringify({ dist: 2326528 })), [])
+    assert.deepEqual(checkRatchetFile(rel, base, base), [])
+    const real = readFileSync(rel, "utf8")
+    assert.deepEqual(checkRatchetFile(rel, real, real), [])
+    assert.equal(typeof JSON.parse(real).dist, "number")
   })
 })
 
@@ -1489,8 +1521,7 @@ describe("root scripts (no gate unhooked)", () => {
       "lint:ratchets": "node scripts/check-ratchets.mjs",
       "lint:deadcode": "knip --exclude exports,types",
       "test:scripts": 'node --test "scripts/*.test.mjs"',
-      "test:pg":
-        "TEST_DATABASE_URL=${TEST_DATABASE_URL:-x} pnpm --filter @miragon/pulse-widget-shell --filter @miragon/pulse-camunda7-connector run test",
+      build: "turbo run build",
       typecheck: "turbo run typecheck",
       "format:check": "prettier --check .",
     }
@@ -1522,24 +1553,23 @@ describe("root scripts (no gate unhooked)", () => {
       }
     })
 
-    it("pins the gates CI runs directly too (test:pg, typecheck, format:check)", () => {
+    it("pins the gates CI runs directly too (build, typecheck, format:check)", () => {
       for (const scripts of [
-        // widget-shell is the only package with Postgres suites
-        {
-          "test:pg":
-            "TEST_DATABASE_URL=${TEST_DATABASE_URL:-x} pnpm --filter @miragon/pulse-camunda7-connector run test",
-        },
+        { build: "turbo run build --filter=!@miragon/pulse-cli" },
         { typecheck: "turbo run typecheck --filter=!@miragon/pulse-widget-shell" },
         { "format:check": "prettier --check . || true" },
       ]) {
         const violations = checkRatchetFile("package.json", old, withScripts(scripts))
         assert.equal(violations.length, 1, JSON.stringify(scripts))
       }
-      const { "test:pg": _dropped, ...withoutPg } = BASE_SCRIPTS
-      assert.match(
-        checkRatchetFile("package.json", old, JSON.stringify({ scripts: withoutPg }))[0],
-        /"test:pg" was removed/,
-      )
+      for (const gate of ["build", "typecheck", "format:check"]) {
+        const { [gate]: _dropped, ...without } = BASE_SCRIPTS
+        assert.match(
+          checkRatchetFile("package.json", old, JSON.stringify({ scripts: without }))[0],
+          new RegExp(`"${gate}" was removed`),
+          gate,
+        )
+      }
     })
 
     it("lets the --exclude lists shrink, and reformatting pass", () => {
@@ -1579,7 +1609,7 @@ describe("root scripts (no gate unhooked)", () => {
 })
 
 describe("package gate scripts are pinned to the merge base", () => {
-  const rel = "packages/connectors/camunda/camunda7-connector/package.json"
+  const rel = "packages/connectors/engine/engine-connector/package.json"
   const BASE = {
     build: "tsc",
     lint: "eslint src",
@@ -1658,7 +1688,7 @@ describe("package gate scripts are pinned to the merge base", () => {
           JSON.stringify({ name: "pulse", scripts }),
         )
         assert.equal(violations.length, 1, script)
-        assert.match(violations[0], new RegExp(`"${script}" was removed — a CI or release job`))
+        assert.match(violations[0], new RegExp(`"${script}" was removed: a CI or release job`))
       }
     })
 
@@ -1696,7 +1726,7 @@ describe("base ref resolution in CI", () => {
 })
 
 describe("inline suppressions (shrink-only)", () => {
-  const rel = "packages/connectors/camunda/camunda7-connector/src/tools/x.ts"
+  const rel = "packages/connectors/engine/engine-connector/src/tools/x.ts"
   const code = 'server.tool("x", {}, handler)\n'
 
   it("flags a new comment that switches a gate off", () => {
@@ -1764,5 +1794,349 @@ describe("introduction and the escape trailer", () => {
     assert.ok(EXCEPTION_TRAILER.test("fix: x\n\nRatchet-Exception: module moved to core"))
     assert.ok(!EXCEPTION_TRAILER.test("fix: x\n\nRatchet-Exception: "))
     assert.ok(!EXCEPTION_TRAILER.test("mentions Ratchet-Exception: inline"))
+  })
+})
+
+/**
+ * The trailer covers the commit that carries it: the checker replays itself
+ * commit by commit in a synthetic repository (a `main` branch as the base)
+ * and waves a net violation only when every commit that makes it carries
+ * the trailer.
+ */
+describe("the trailer covers its own commit (replayed per commit)", () => {
+  const BUDGET = "apps/a/test/__golden__/char-budgets.json"
+  const VITEST = "packages/core/x/vitest.config.ts"
+  const TRAILER = "Ratchet-Exception: the model must read the new tool"
+  const dirs = []
+  after(() => {
+    for (const dir of dirs) rmSync(dir, { recursive: true, force: true })
+  })
+
+  /** A repository with `main` holding the budget at 100, checked out on `branch`. */
+  function synthetic(files = {}) {
+    const dir = mkdtempSync(path.join(tmpdir(), "ratchet-range-"))
+    dirs.push(dir)
+    // Never the caller's GIT_* (a hook exports GIT_DIR): it would point these
+    // commits at the outer repository.
+    const env = {
+      ...Object.fromEntries(
+        Object.entries(process.env).filter(([name]) => !name.startsWith("GIT_")),
+      ),
+      GIT_CONFIG_GLOBAL: "/dev/null",
+      GIT_CONFIG_NOSYSTEM: "1",
+      GIT_AUTHOR_NAME: "t",
+      GIT_AUTHOR_EMAIL: "t@example.com",
+      GIT_COMMITTER_NAME: "t",
+      GIT_COMMITTER_EMAIL: "t@example.com",
+    }
+    const git = (...args) =>
+      execFileSync("git", args, {
+        cwd: dir,
+        env,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+      }).trim()
+    const write = (rel, text) => {
+      mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true })
+      writeFileSync(path.join(dir, rel), text)
+    }
+    const budget = (value) => write(BUDGET, `${JSON.stringify({ tools: value }, null, 2)}\n`)
+    const commit = (message, change) => {
+      change?.()
+      git("add", "-A")
+      git("commit", "-q", "--allow-empty", "-m", message)
+      return git("rev-parse", "HEAD")
+    }
+    git("init", "-q", "-b", "main")
+    budget(100)
+    for (const [rel, text] of Object.entries(files)) write(rel, text)
+    commit("chore: base")
+    git("checkout", "-q", "-b", "branch")
+    const check = async (env = {}) => {
+      const out = []
+      const code = await run({
+        root: dir,
+        argv: ["node", "check-ratchets.mjs", "main"],
+        env,
+        log: (line) => out.push(line),
+        error: (line) => out.push(line),
+      })
+      return { code, out: out.join("\n") }
+    }
+    return { dir, git, write, budget, commit, check }
+  }
+
+  it("keys a violation by file and wording, numbers and quoted from -> to values aside", () => {
+    assert.equal(
+      violationKey(`${BUDGET} -> "tools": 86058 -> 86500 model-visible characters.`),
+      violationKey(`${BUDGET} -> "tools": 86500 -> 87000 model-visible characters.`),
+    )
+    assert.equal(
+      violationKey('p/package.json -> the "test" gate changed: "vitest run" -> "vitest run -x".'),
+      violationKey('p/package.json -> the "test" gate changed: "vitest" -> "vitest run -y".'),
+    )
+    assert.equal(violationKey("a.ts:12,40 -> new (0 -> 2)"), violationKey("a.ts:7 -> new (1 -> 2)"))
+    assert.notEqual(
+      violationKey(`${BUDGET} -> "tools": 1 -> 2`),
+      violationKey(`${BUDGET} -> "x": 1 -> 2`),
+    )
+    // Digits inside a name stay: camunda7 is not camunda8, v8 ignore is not c8 ignore.
+    assert.notEqual(violationKey("v8 ignore next"), violationKey("c8 ignore next"))
+  })
+
+  it("waves a violation the commit that makes it covers, and names that commit and its reason", async () => {
+    const repo = synthetic()
+    repo.commit("feat: unrelated", () => repo.write("README.md", "x\n"))
+    const sha = repo.commit(`feat: a new tool\n\n${TRAILER}`, () => repo.budget(120))
+    const { code, out } = await repo.check()
+    assert.equal(code, 0, out)
+    assert.match(out, /RATCHET EXCEPTION APPLIED: .*"tools": 100 -> 120/)
+    assert.ok(out.includes(`waved by ${sha.slice(0, 9)} ("feat: a new tool"): ${TRAILER}`), out)
+  })
+
+  it("fails a violation made in A while only B carries a trailer", async () => {
+    const repo = synthetic()
+    const a = repo.commit("feat: a", () => repo.budget(120))
+    repo.commit(`feat: b\n\n${TRAILER}`, () => repo.write("README.md", "x\n"))
+    const { code, out } = await repo.check()
+    assert.equal(code, 1, out)
+    assert.match(out, /RATCHET VIOLATION .*"tools": 100 -> 120/)
+    assert.ok(out.includes(`made by ${a.slice(0, 9)} ("feat: a"), which carries no`), out)
+    assert.match(out, /reword that commit .*a trailer on any other commit covers nothing/)
+  })
+
+  it("needs the trailer on every commit that makes it: made in A, made again in B", async () => {
+    // Decision: a budget raised in A (no trailer) and again in B (trailer)
+    // fails: B's reason does not cover A's growth. With both trailers it passes.
+    const repo = synthetic()
+    const a = repo.commit("feat: a", () => repo.budget(110))
+    repo.commit(`feat: b\n\n${TRAILER}`, () => repo.budget(120))
+    const bare = await repo.check()
+    assert.equal(bare.code, 1, bare.out)
+    assert.ok(bare.out.includes(`made by ${a.slice(0, 9)}`), bare.out)
+
+    const both = synthetic()
+    const first = both.commit(`feat: a\n\n${TRAILER}`, () => both.budget(110))
+    const second = both.commit(`feat: b\n\n${TRAILER}`, () => both.budget(120))
+    const covered = await both.check()
+    assert.equal(covered.code, 0, covered.out)
+    for (const sha of [first, second])
+      assert.ok(covered.out.includes(`waved by ${sha.slice(0, 9)}`))
+  })
+
+  it("an older trailer covers nothing the uncommitted changes or a later commit make", async () => {
+    const repo = synthetic()
+    repo.commit(`feat: a\n\n${TRAILER}`, () => repo.budget(120))
+    repo.budget(130) // uncommitted
+    const dirty = await repo.check()
+    assert.equal(dirty.code, 1, dirty.out)
+    assert.match(
+      dirty.out,
+      /made by the uncommitted changes in the working tree, which no trailer covers/,
+    )
+
+    const later = repo.commit("feat: c", () => repo.budget(130))
+    const committed = await repo.check()
+    assert.equal(committed.code, 1, committed.out)
+    assert.ok(committed.out.includes(`made by ${later.slice(0, 9)} ("feat: c")`), committed.out)
+  })
+
+  it("a merge counts against its branch-side parent; its own change needs its own trailer", async () => {
+    const repo = synthetic()
+    const a = repo.commit(`feat: a\n\n${TRAILER}`, () => repo.budget(120))
+    repo.git("checkout", "-q", "main")
+    repo.commit("feat: main moves on", () => repo.write("MAIN.md", "x\n"))
+    repo.git("checkout", "-q", "branch")
+    repo.git("merge", "-q", "--no-edit", "main")
+    const merged = await repo.check()
+    assert.equal(merged.code, 0, merged.out)
+    assert.ok(merged.out.includes(`waved by ${a.slice(0, 9)}`), merged.out)
+
+    // A loosening made in the merge itself (an evil merge) is the merge's own.
+    repo.git("checkout", "-q", "main")
+    repo.commit("feat: main again", () => repo.write("MAIN2.md", "x\n"))
+    repo.git("checkout", "-q", "branch")
+    repo.git("merge", "-q", "--no-commit", "main")
+    repo.budget(125)
+    const evil = repo.commit("Merge main into branch")
+    const loosened = await repo.check()
+    assert.equal(loosened.code, 1, loosened.out)
+    assert.ok(loosened.out.includes(`made by ${evil.slice(0, 9)} ("Merge main into branch")`))
+    assert.match(loosened.out, /give the merge commit the trailer, or rebase onto the base/)
+  })
+
+  it("GitHub's pull-request test merge (base tip first) counts against the branch", async () => {
+    const repo = synthetic()
+    const a = repo.commit(`feat: a\n\n${TRAILER}`, () => repo.budget(120))
+    repo.git("checkout", "-q", "main")
+    repo.commit("feat: main moves on", () => repo.write("MAIN.md", "x\n"))
+    // actions/checkout's refs/pull/N/merge: the base tip is the first parent.
+    repo.git("checkout", "-q", "--detach", "main")
+    repo.git("merge", "-q", "--no-ff", "-m", "Merge abc into def", "branch")
+    repo.git("update-ref", "refs/remotes/origin/main", "main")
+    const { code, out } = await repo.check({ GITHUB_BASE_REF: "main" })
+    assert.equal(code, 0, out)
+    assert.ok(out.includes(`waved by ${a.slice(0, 9)}`), out)
+    assert.ok(!out.includes("Merge abc into def"), out)
+  })
+
+  it("fails closed when no single commit makes a violation (the steps only add up to it)", async () => {
+    // A switches perFile on (no count floor yet: fine), B trades a floor for a
+    // count floor (its own violation, covered). Only together do they make
+    // "perFile next to a negative floor": no commit's trailer covers that.
+    const config = (thresholds) => `import { defineConfig, mergeConfig } from "vitest/config"
+import { sharedConfig } from "../../../vitest.shared"
+export default mergeConfig(sharedConfig, defineConfig({
+  test: { coverage: { thresholds: { ${thresholds} } } },
+}))
+`
+    const repo = synthetic({
+      [VITEST]: config("statements: 80, branches: 80, functions: 80, lines: 80"),
+    })
+    repo.commit(`test: per file\n\n${TRAILER}`, () =>
+      repo.write(
+        VITEST,
+        config("statements: 80, branches: 80, functions: 80, lines: 80, perFile: true"),
+      ),
+    )
+    repo.commit(`test: count floor\n\n${TRAILER}`, () =>
+      repo.write(
+        VITEST,
+        config("statements: 80, branches: 80, functions: 80, lines: -5, perFile: true"),
+      ),
+    )
+    const { code, out } = await repo.check()
+    assert.equal(code, 1, out)
+    assert.match(out, /RATCHET EXCEPTION APPLIED: .*lines: 80 -> -5/)
+    assert.match(out, /RATCHET VIOLATION .*perFile switched on next to a negative floor/)
+    assert.match(out, /no single commit makes it/)
+  })
+
+  it("fails every violation when no commit carries a trailer", async () => {
+    const repo = synthetic()
+    repo.commit("feat: a", () => repo.budget(120))
+    const { code, out } = await repo.check()
+    assert.equal(code, 1, out)
+    assert.match(out, /RATCHET VIOLATION .*"tools": 100 -> 120/)
+    assert.match(out, /no commit in the range carries a trailer/)
+  })
+
+  it("matches the effective ESLint config file by file", async () => {
+    const files = (extra) => `export default [
+  { files: ["packages/**/*.ts"], rules: { complexity: ["error", 15] } },${extra}
+]
+`
+    const relax = (file) => `\n  { files: ["${file}"], rules: { complexity: "off" } },`
+    const sources = {
+      "packages/a/src/x.ts": "export const x = 1\n",
+      "packages/b/src/y.ts": "export const y = 1\n",
+    }
+    const repo = synthetic({ "eslint.config.mjs": files(""), ...sources })
+    repo.commit(`build: relax x\n\n${TRAILER}`, () =>
+      repo.write("eslint.config.mjs", files(relax("packages/a/src/x.ts"))),
+    )
+    const one = await repo.check()
+    assert.equal(one.code, 0, one.out)
+    assert.match(
+      one.out,
+      /complexity is no longer an error for 1 file\(s\): packages\/a\/src\/x\.ts/,
+    )
+
+    // B relaxes another file without a trailer: the same reason, a file A never made.
+    const b = repo.commit("build: relax y", () =>
+      repo.write(
+        "eslint.config.mjs",
+        files(relax("packages/a/src/x.ts") + relax("packages/b/src/y.ts")),
+      ),
+    )
+    const two = await repo.check()
+    assert.equal(two.code, 1, two.out)
+    assert.match(two.out, /complexity is no longer an error for 2 file\(s\)/)
+    assert.ok(two.out.includes(`made by ${b.slice(0, 9)} ("build: relax y")`), two.out)
+
+    // File by file, not reason by reason: a relaxation of y made and undone
+    // without a trailer is no maker of x's relaxation.
+    const undone = synthetic({ "eslint.config.mjs": files(""), ...sources })
+    undone.commit("build: relax y", () =>
+      undone.write("eslint.config.mjs", files(relax("packages/b/src/y.ts"))),
+    )
+    undone.commit("build: undo y", () => undone.write("eslint.config.mjs", files("")))
+    const c = undone.commit(`build: relax x\n\n${TRAILER}`, () =>
+      undone.write("eslint.config.mjs", files(relax("packages/a/src/x.ts"))),
+    )
+    const only = await undone.check()
+    assert.equal(only.code, 0, only.out)
+    assert.ok(only.out.includes(`waved by ${c.slice(0, 9)}`), only.out)
+  })
+
+  it("keys a no-restricted-syntax carve-out by selector: a second one of the same file is another commit's", async () => {
+    // A (trailer) carves WithStatement out of f.ts; B (no trailer, then the
+    // uncommitted changes) also carves DebuggerStatement out of it. The net
+    // finding names one selector as its example; each lost selector is its own key.
+    const config = (override) => `export default [
+  { files: ["packages/**/*.ts"], rules: { "no-restricted-syntax": ["error", "WithStatement", "DebuggerStatement"] } },${override}
+]
+`
+    const only = (...selectors) =>
+      `\n  { files: ["packages/a/src/f.ts"], rules: { "no-restricted-syntax": ${JSON.stringify(["error", ...selectors])} } },`
+    const repo = synthetic({
+      "eslint.config.mjs": config(""),
+      "packages/a/src/f.ts": "export const f = 1\n",
+      "packages/b/src/g.ts": "export const g = 1\n",
+      "packages/c/src/h.ts": "export const h = 1\n",
+    })
+    const a = repo.commit(`build: carve With out of f\n\n${TRAILER}`, () =>
+      repo.write("eslint.config.mjs", config(only("DebuggerStatement"))),
+    )
+    const waved = await repo.check()
+    assert.equal(waved.code, 0, waved.out)
+    assert.ok(waved.out.includes(`waved by ${a.slice(0, 9)}`), waved.out)
+
+    repo.write("eslint.config.mjs", config(only("ThisExpression"))) // uncommitted
+    const dirty = await repo.check()
+    assert.equal(dirty.code, 1, dirty.out)
+    assert.match(dirty.out, /RATCHET VIOLATION .*no-restricted-syntax drops 2 selector/)
+    assert.match(dirty.out, /made by the uncommitted changes in the working tree/)
+
+    const b = repo.commit("build: carve Debugger out of f too")
+    const committed = await repo.check()
+    assert.equal(committed.code, 1, committed.out)
+    assert.ok(committed.out.includes(`made by ${b.slice(0, 9)}`), committed.out)
+    assert.ok(!committed.out.includes(`made by ${a.slice(0, 9)}`), committed.out)
+  })
+
+  it("reads the repository at root even when the caller's environment sets GIT_DIR", async () => {
+    const repo = synthetic()
+    const a = repo.commit(`feat: a\n\n${TRAILER}`, () => repo.budget(120))
+    const saved = process.env.GIT_DIR
+    process.env.GIT_DIR = path.join(repo.dir, "no-such-repository")
+    try {
+      const { code, out } = await repo.check()
+      assert.equal(code, 0, out)
+      assert.ok(out.includes(`waved by ${a.slice(0, 9)}`), out)
+    } finally {
+      if (saved === undefined) delete process.env.GIT_DIR
+      else process.env.GIT_DIR = saved
+    }
+  })
+
+  it("a file added later under an exemption belongs to the commit that made the exemption", async () => {
+    const config = (extra) => `export default [
+  { files: ["packages/**/*.ts"], rules: { complexity: ["error", 15] } },${extra}
+]
+`
+    const exempt = `\n  { files: ["packages/a/src/**"], rules: { complexity: "off" } },`
+    const repo = synthetic({
+      "eslint.config.mjs": config(""),
+      "packages/a/src/x.ts": "export const x = 1\n",
+    })
+    const a = repo.commit(`build: exempt a\n\n${TRAILER}`, () =>
+      repo.write("eslint.config.mjs", config(exempt)),
+    )
+    repo.commit("feat: z", () => repo.write("packages/a/src/z.ts", "export const z = 1\n"))
+    const { code, out } = await repo.check()
+    assert.equal(code, 0, out)
+    assert.match(out, /complexity is no longer an error for 2 file\(s\)/)
+    assert.ok(out.includes(`waved by ${a.slice(0, 9)}`), out)
   })
 })

@@ -1,19 +1,20 @@
 import fs from "node:fs"
 import path from "node:path"
 import { describe, expect, it } from "vitest"
-import { KNOWN_ENV_VARS } from "../src/setup.js"
+import { composedEnvVars } from "@miragon/pulse-widget-shell/server"
+import { MODULES } from "../src/setup.js"
 
 /**
  * Keeps `.env.example` and the server's actual env surface in sync. Both
  * drift directions fail silently for the customer who copies the file:
  * a variable the server does NOT read prints an "Unknown environment
- * variable" warning on every boot (the typo warner in setup.ts), and a
+ * variable" warning on every boot (the boot's typo warner), and a
  * variable a module added but the example never documents is simply
  * undiscoverable. Add yours to `.env.example` when you add a module.
  */
 
 /**
- * Read on purpose, not in APP_ENV_VARS: `PORT` is consumed by `listen()` of
+ * Read on purpose, not in `composedEnvVars`: `PORT` is consumed by `listen()` of
  * `createComposedServer` (`@miragon/pulse-widget-shell/server`), not by a module.
  */
 const EXTRA_ALLOWED = ["PORT"]
@@ -30,7 +31,7 @@ function documentedKeys(content: string): string[] {
 
 describe(".env.example matches the server's env surface", () => {
   const keys = documentedKeys(fs.readFileSync(ENV_EXAMPLE, "utf8"))
-  const allowed = new Set([...KNOWN_ENV_VARS, ...EXTRA_ALLOWED])
+  const allowed = new Set([...composedEnvVars(MODULES), ...EXTRA_ALLOWED])
 
   it("documents no variable the server ignores (a copied .env would warn at boot)", () => {
     expect(keys.filter((key) => !allowed.has(key))).toEqual([])

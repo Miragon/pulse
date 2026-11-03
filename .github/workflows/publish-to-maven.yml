@@ -6,13 +6,13 @@ on:
       dry_run:
         type: boolean
         default: false
-        description: "Build & verify only — publish to Maven Local, not Central"
+        description: "Build & verify only: publish to Maven Local, not Central"
   workflow_dispatch:
     inputs:
       dry_run:
         type: boolean
         default: false
-        description: "Build & verify only — publish to Maven Local, not Central"
+        description: "Build & verify only: publish to Maven Local, not Central"
 
 permissions:
   contents: read

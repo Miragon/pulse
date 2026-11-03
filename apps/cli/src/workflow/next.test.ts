@@ -1,7 +1,13 @@
 /** nextCommands and its details (next.ts). */
 
 import { describe, expect, it } from "vitest"
-import { isAdvanceable, nextCommands } from "./next.js"
+import { isAdvanceable, type InstanceView } from "@miragon/pulse-engine-core"
+import { nextSteps } from "@miragon/pulse-engine-core/testing"
+import { nextCommand } from "./next-text.js"
+
+type NextInput = Pick<InstanceView, "id" | "state" | "waitingAt" | "incidents">
+const nextCommands = (view: NextInput, historyShown: boolean) =>
+  nextSteps(view, historyShown).map(nextCommand)
 
 describe("nextCommands", () => {
   const base = { id: "p1", state: "ACTIVE" as const, waitingAt: [], incidents: [] }

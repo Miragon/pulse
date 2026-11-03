@@ -12,31 +12,31 @@ import java.time.temporal.ChronoUnit
 import kotlin.random.Random
 
 /**
- * Seeder for the `miraveloLeasing` process — Miravelo's bike-leasing inquiry
+ * Seeder for the `miraveloLeasing` process: Miravelo's bike-leasing inquiry
  * with embedded `assessCreditworthiness` sub-process.
  *
  * The seeder is structured so all five Dev Skills have stable demo anchors:
  *
- * - **UC2** (change-impact) — `region`, `bikeModel`, `customerSegment`,
+ * - **UC2** (change-impact): `region`, `bikeModel`, `customerSegment`,
  *   `priorityFlag` cover categorical and boolean reclassifications without
  *   producing new BPMN paths.
- * - **UC5 IMPROVED** — pre-fix blacklist provider outage (days
+ * - **UC5 IMPROVED**: pre-fix blacklist provider outage (days
  *   `daysBack..(daysBack-buggyEraDays)`) raises a job-level incident on
  *   Activity_CheckBlacklist. After the cutoff the failure rate drops to 0.
- * - **UC5 REGRESSED** — narrow rollback band (PRESENTATION only) raises a
+ * - **UC5 REGRESSED**: narrow rollback band (PRESENTATION only) raises a
  *   policy-template render failure on Activity_SendPolicy. Bracketed by stable
  *   rates before and after.
- * - **UC6 DEAD** — cargo bikes are capped at 24 months (PRESENTATION /
+ * - **UC6 DEAD**: cargo bikes are capped at 24 months (PRESENTATION /
  *   MINIMAL), so `bikeModel == "cargo" && leaseTermMonths > 24` is
  *   structurally unreachable.
- * - **UC6 UNKNOWN** — `channel == "FAX"` at ~1 % stays below the default
+ * - **UC6 UNKNOWN**: `channel == "FAX"` at ~1 % stays below the default
  *   minBucketSize=10. The non-interrupting 2 h timer boundary on
  *   `Activity_DecideOnApplication` fires for a small fraction of
  *   risk-identified instances → `Event_DecisionAccelerated` is also a
  *   suppressed bucket on a different element.
  *
  * Profile behavior:
- * - [SeedProfile.DEFAULT]: legacy-shape seed — 200 instances, single bug era,
+ * - [SeedProfile.DEFAULT]: legacy-shape seed with 200 instances, single bug era,
  *   no cargo cap. Existing demo recipes that rely on the legacy shape stay
  *   reproducible.
  * - [SeedProfile.MINIMAL]: 80 instances, cargo cap on, no rollback era. Fast
@@ -84,7 +84,7 @@ class MiraveloLeasingSeeder(
         val rollbackEraFailureRate: Double,
         // Recent failures inside the last 7 days so analytics_show_dashboard
         // (period=7d default) renders Incidents > 0. Distinct from buggyEra
-        // (15..30 days ago) which anchors the IMPROVED cluster-compare verdict.
+        // (15..30 days ago) which anchors the IMPROVED period comparison verdict.
         val currentEraFailureRate: Double,
     )
 
@@ -182,13 +182,13 @@ class MiraveloLeasingSeeder(
 
         // Resolve the deployed v1 / v2 process_definition_ids so each instance
         // can be started against a specific version. Camunda's
-        // startProcessInstanceByKey would always pick the latest — instead we
-        // dispatch by id so analytics_version_compare sees a real population
+        // startProcessInstanceByKey would always pick the latest; instead we
+        // dispatch by id so analytics_show_version_compare sees a real population
         // on both versions.
         val v1Id = findVersionId(processKey, version = 1)
         val v2Id = findVersionId(processKey, version = 2)
         if (v1Id == null) {
-            log.warn("miraveloLeasing v1 not deployed — skipping seed run.")
+            log.warn("miraveloLeasing v1 not deployed, skipping seed run.")
             return
         }
         log.info(
@@ -216,7 +216,7 @@ class MiraveloLeasingSeeder(
             val bikeModel = bikeModels.random()
             val rawTerm = leaseTermOptions.random()
             val leaseTermMonths = if (cfg.capCargoLeaseTerm && bikeModel == "cargo") {
-                // Cargo bikes are capped at 24 months. Anchors UC6 DEAD —
+                // Cargo bikes are capped at 24 months. Anchors UC6 DEAD:
                 // `bikeModel == "cargo" && leaseTermMonths > 24` is provably
                 // unreachable regardless of how many instances we seed.
                 rawTerm.coerceAtMost(24)
@@ -266,7 +266,7 @@ class MiraveloLeasingSeeder(
             }
             if (inCurrentEra && Random.nextDouble() < cfg.currentEraFailureRate) {
                 // Reuse the existing blacklist-outage variable so we don't
-                // grow the delegate surface — the analytics dashboard sees
+                // grow the delegate surface; the analytics dashboard sees
                 // an open incident on Activity_CheckBlacklist within the
                 // default 7-day window.
                 variables["_simulateBlacklistOutage"] = true
@@ -280,7 +280,7 @@ class MiraveloLeasingSeeder(
             // Drain the asyncBefore CheckBlacklist job (sub-process) and any
             // SendPolicy job that follows in the creditworthy branch. For
             // bug-era instances the failing job decrements retries until an
-            // incident appears — JobDrainer's catch + .executable() filter
+            // incident appears; JobDrainer's catch + .executable() filter
             // exits the loop cleanly.
             jobDrainer.drainJobsForInstance(instance.id)
 
@@ -379,7 +379,7 @@ class MiraveloLeasingSeeder(
         }
     }
 
-    // Log-skewed lease amount in EUR — most leases are small consumer bikes,
+    // Log-skewed lease amount in EUR: most leases are small consumer bikes,
     // a few are high-end e-bikes / cargo bundles.
     private fun sampleLeaseAmount(): Int {
         val tier = Random.nextDouble()
@@ -404,7 +404,7 @@ class MiraveloLeasingSeeder(
 
     private fun samplePostalCode(undeliverableRate: Double): String = if (Random.nextDouble() < undeliverableRate) {
         // "99…" prefix triggers UNDELIVERABLE_POSTAL_CODE in
-        // CheckPostalCodeDelegate — rare risk-identified path.
+        // CheckPostalCodeDelegate (rare risk-identified path).
         "99${Random.nextInt(100, 999)}"
     } else {
         Random.nextInt(10_000, 89_999).toString()

@@ -11,16 +11,15 @@ function rendered(tag: string | undefined) {
     openInEngine: labels.openInVendor(undefined),
     opensInNewTab: labels.opensInNewTab("In CIB seven öffnen"),
     copyId: labels.copyId("5f0ce78e…"),
-    heatmapRange: labels.heatmapRange({ min: "1", max: "1.234" }),
     rowsShown: labels.rowsShown({ shown: "8", total: "23" }),
+    reloadedAt: labels.reloadedAt("14:32"),
   }
 }
 
-describe("kitLabels — the kit's own strings follow the active locale", () => {
+describe("kitLabels: the kit's own strings follow the active locale", () => {
   it("speaks German for any German tag", () => {
     for (const tag of ["de", "de-AT", "DE-ch"]) {
       expect(rendered(tag)).toEqual({
-        loading: "Wird geladen…",
         loadingView: "Ansicht wird geladen…",
         zoomIn: "Vergrößern",
         zoomOut: "Verkleinern",
@@ -38,20 +37,17 @@ describe("kitLabels — the kit's own strings follow the active locale", () => {
         copyFailedHint: "Die ganze ID ist jetzt markiert. Kopier sie selbst.",
         fullId: "Ganze ID",
         working: "Wird ausgeführt…",
-        dataTable: "Datentabelle",
-        yes: "Ja",
-        no: "Nein",
-        noFiguresYet: "Noch keine Kennzahlen",
-        noRowsYet: "Noch keine Zeilen",
-        noDataHint: "Die Werte erscheinen hier, sobald die Ansicht Daten hat.",
-        heatmapValues: "Werte je Element",
-        heatmapMetric: "Kennzahl",
-        heatmapElement: "Element",
-        heatmapValue: "Wert",
-        heatmapRange: "1 bis 1.234",
         rowsShown: "8 von 23 angezeigt",
         showAll: "Alle anzeigen",
         showMore: "Mehr anzeigen",
+        slowHint: "Das dauert länger als üblich. Wenn nichts passiert, frag im Chat noch mal nach.",
+        cancelled: "Abgebrochen. Frag im Chat noch mal nach dieser Ansicht.",
+        viewErrorTitle: "Die Ansicht konnte nicht geladen werden",
+        viewMissing: "Diese App kann die Ansicht nicht anzeigen. Frag im Chat noch mal nach ihr.",
+        viewCrashed: "Dieses Element konnte nicht angezeigt werden.",
+        enterFullscreen: "Vollbild",
+        exitFullscreen: "Vollbild verlassen",
+        reloadedAt: "Neu geladen um 14:32 Uhr",
       })
     }
   })
@@ -59,7 +55,6 @@ describe("kitLabels — the kit's own strings follow the active locale", () => {
   it("falls back to English for English, unsupported and missing locales", () => {
     for (const tag of ["en-US", "fr-FR", undefined]) {
       expect(rendered(tag)).toEqual({
-        loading: "Loading…",
         loadingView: "Loading view…",
         zoomIn: "Zoom in",
         zoomOut: "Zoom out",
@@ -77,20 +72,17 @@ describe("kitLabels — the kit's own strings follow the active locale", () => {
         copyFailedHint: "The full ID is now selected. Copy it yourself.",
         fullId: "Full ID",
         working: "Working…",
-        dataTable: "Data table",
-        yes: "Yes",
-        no: "No",
-        noFiguresYet: "No figures yet",
-        noRowsYet: "No rows yet",
-        noDataHint: "Values appear here once the view has data.",
-        heatmapValues: "Values per element",
-        heatmapMetric: "Metric",
-        heatmapElement: "Element",
-        heatmapValue: "Value",
-        heatmapRange: "1 to 1.234",
         rowsShown: "8 of 23 shown",
         showAll: "Show all",
         showMore: "Show more",
+        slowHint: "This is taking longer than usual. If nothing happens, ask in the chat again.",
+        cancelled: "Cancelled. Ask in the chat to open this view again.",
+        viewErrorTitle: "This view couldn't be loaded",
+        viewMissing: "This app can't show this view. Ask in the chat to open it again.",
+        viewCrashed: "This element couldn't be displayed.",
+        enterFullscreen: "Fullscreen",
+        exitFullscreen: "Exit fullscreen",
+        reloadedAt: "Reloaded at 14:32",
       })
     }
   })

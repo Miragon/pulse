@@ -1,4 +1,4 @@
-# Fly.io image for Prometheus — Fly Machines cannot bind-mount config files,
+# Fly.io image for Prometheus: Fly Machines cannot bind-mount config files,
 # so the config and the (contract-checked, shared) alert rules are baked in.
 # Deployed via playground/fly/deploy.sh with playground/fly/prometheus.fly.toml.
 FROM prom/prometheus:v3.15.1
@@ -15,6 +15,6 @@ USER root
 #
 # --web.enable-admin-api exposes the TSDB admin endpoints (delete_series /
 # clean_tombstones) that the nightly Reset Playground workflow uses to wipe the
-# metric history. Safe here because Prometheus has no public IP — it is only
+# metric history. Safe here because Prometheus has no public IP: it is only
 # reachable over 6PN (and, for the wipe, a token-authenticated `flyctl proxy`).
 CMD ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.path=/prometheus", "--storage.tsdb.retention.time=30d", "--web.listen-address=[::]:9090", "--web.enable-admin-api"]

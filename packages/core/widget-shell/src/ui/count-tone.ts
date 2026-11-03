@@ -1,4 +1,4 @@
-import type { ToneVariant } from "@miragon/mcp-toolkit-ui"
+import { type ToneVariant } from "@miragon/pulse-ui"
 
 /** #322 U14: open incidents and jobs without retries are `danger`; other counts carry no tone. Warning is for what can still recover on its own, never for these counts. */
 

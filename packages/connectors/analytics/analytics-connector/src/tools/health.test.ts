@@ -5,7 +5,7 @@ import {
   type PrometheusClient,
   type PromSample,
 } from "@miragon/pulse-analytics-client"
-import type { RegisteredToolMeta, ToolConfig } from "@miragon/mcp-toolkit-core/tools"
+import type { ToolConfig } from "@miragon/pulse-widget-shell/server"
 import { createEngineScope } from "../engine-ids.js"
 import { registerHealthTools } from "./health.js"
 
@@ -15,9 +15,7 @@ const scope = createEngineScope(["prod-a", "prod-b"])
 
 function captureConfig(): Config {
   const configs: Config[] = []
-  const register = Object.assign((config: Config) => configs.push(config), {
-    getRegisteredTools: (): RegisteredToolMeta[] => [],
-  })
+  const register = (config: Config) => configs.push(config)
   registerHealthTools(register as never, scope)
   return configs[0]
 }
@@ -39,12 +37,12 @@ const run = (client: PrometheusClient, args: Record<string, unknown>) =>
 /** Prometheus where only `prod-a` reports its engine-state gauges (when the selector admits it). */
 const onlyProdAReports = (query: string): PromSample[] =>
   query.includes("prod-a") &&
-  (query.includes("camunda_jobs_executable") || query.includes("camunda_external_tasks_open"))
+  (query.includes("engine_jobs_executable") || query.includes("engine_external_tasks_open"))
     ? [{ metric: { engine_id: "prod-a" }, value: 0 }]
     : []
 
-describe("analytics_engine_health — engine scope (N138)", () => {
-  it("with engine omitted, judges exactly the configured fleet — never every engine Prometheus holds", async () => {
+describe("analytics_engine_health: engine scope (N138)", () => {
+  it("with engine omitted, judges exactly the configured fleet, never every engine Prometheus holds", async () => {
     const { client, queries } = recordingClient()
     const result = await run(client, {})
 
@@ -61,7 +59,7 @@ describe("analytics_engine_health — engine scope (N138)", () => {
   })
 })
 
-describe("analytics_engine_health — verdict (N76)", () => {
+describe("analytics_engine_health: verdict (N76)", () => {
   it("reads a Prometheus without any metrics of the fleet as unknown, never healthy", async () => {
     const { client } = recordingClient()
     const result = await run(client, {})
@@ -91,7 +89,7 @@ describe("analytics_engine_health — verdict (N76)", () => {
   })
 })
 
-describe("analytics_engine_health — alerts (N76)", () => {
+describe("analytics_engine_health: alerts (N76)", () => {
   const alertQueries = (queries: string[]) => queries.filter((q) => q.includes("ALERTS"))
 
   it("scopes one engine's verdict to that engine's alerts only", async () => {
@@ -129,7 +127,7 @@ describe("analytics_engine_health — alerts (N76)", () => {
 
 /** #340: each health tool states its rules and routes to the other. */
 describe("analytics_engine_health verdict labeling", () => {
-  it("carries the status rule — including the unknown verdict — in every result", async () => {
+  it("carries the status rule (including the unknown verdict) in every result", async () => {
     const { client } = recordingClient()
     const result = await run(client, {})
     expect(result.statusRule).toBe(ENGINE_HEALTH_STATUS_RULE)
@@ -138,12 +136,12 @@ describe("analytics_engine_health verdict labeling", () => {
     )
   })
 
-  it("states the rule, the engine scope and the routing to camunda7_show_engine_health", () => {
+  it("states the rule, the engine scope and the routing to engine_open_cockpit", () => {
     const { description } = captureConfig()
     expect(description).toContain(`Status: ${ENGINE_HEALTH_STATUS_RULE}`)
     expect(description).toContain("the silent ones (`silentEngines`")
     expect(description).toContain(
-      "Use for fleet-wide or metric-based health; for one engine's live incident clusters use camunda7_show_engine_health.",
+      "Use for fleet-wide or metric-based health; for one engine's live incident clusters use engine_open_cockpit.",
     )
   })
 })

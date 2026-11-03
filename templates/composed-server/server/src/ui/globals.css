@@ -1,27 +1,27 @@
 @import "tailwindcss";
 /*
  * Tailwind must scan the widget SOURCES of every composed module for class
- * names — node_modules is outside its automatic source detection, so each
+ * names: node_modules is outside its automatic source detection, so each
  * npm-installed module package needs an explicit @source. The Miragon module
  * packages ship their `src/` (their /widgets export points at TypeScript
- * source, compiled by this app's Vite build); widget-shell ships compiled
- * `dist/` (class names survive as string literals). A package missing here
- * renders with broken styling — no build error.
+ * source, compiled by this app's Vite build); pulse-ui and widget-shell ship
+ * compiled `dist/` (class names survive as string literals). A package
+ * missing here renders with broken styling and no build error.
  * Workspace modules need NO entry: the glob below covers every package under
- * `modules/` (the explicit extension list is load-bearing — Tailwind appends
+ * `modules/` (the explicit extension list is load-bearing: Tailwind appends
  * its implicit one only to plain directory paths, so a bare directory glob
  * would silently match nothing).
  */
-@source "../../node_modules/@miragon/mcp-toolkit-ui/src";
+@source "../../node_modules/@miragon/pulse-ui/dist";
 @source "../../node_modules/@miragon/pulse-widget-shell/dist";
-@source "../../node_modules/@miragon/pulse-camunda7-connector/src";
+@source "../../node_modules/@miragon/pulse-engine-connector/src";
 @source "../../node_modules/@miragon/pulse-analytics-connector/src";
 @source "../../../modules/*/src/**/*.{ts,tsx}";
 /*
- * The look: the toolkit's Miragon theme plus your brand overrides, both in
- * brand.css. Do not import `@miragon/mcp-toolkit-ui/globals.css` here (a
- * second Tailwind entry) nor `@miragon/mcp-toolkit-ui/fonts.css` (Geist as
- * base64 in every view document): Geist arrives by URL from the server's
- * font route, declared in every view by the widget shell's `HostDocument`.
+ * The look: pulse-ui's Miragon theme plus your brand overrides, both in
+ * brand.css. Do not import `@miragon/pulse-ui/globals.css` here (a second
+ * Tailwind entry) nor `@miragon/pulse-ui/fonts.css` (Geist as base64 in
+ * every view document): Geist arrives by URL from the server's font route,
+ * declared in every view by the widget shell's `HostDocument`.
  */
 @import "./brand.css";

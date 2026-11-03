@@ -1,4 +1,4 @@
-# Grafana — process-analytics dashboards over Prometheus. Private-only: the
+# Grafana: process-analytics dashboards over Prometheus. Private-only: the
 # anonymous-admin setup from the Compose stack is only safe because this app
 # never gets a public IP. Reach it via:
 #   flyctl proxy 8470:3000 -a miragon-ai-playground-grafana  →  http://localhost:8470

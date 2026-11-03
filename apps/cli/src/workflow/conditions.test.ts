@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest"
 import { portOf } from "../../test/support/engine-port.js"
 import { fakeServer, json } from "../../test/support/fake-fetch.js"
-import { type Condition, conditionLabel, decide, measure, parseCondition } from "./conditions.js"
+import { type Condition, conditionLabel, decide, measure } from "@miragon/pulse-engine-core"
+import { parseCondition } from "./conditions.js"
 
 describe("parseCondition", () => {
   it.each([

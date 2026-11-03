@@ -2,7 +2,7 @@ import { ESLint } from "eslint"
 import { describe, expect, test } from "vitest"
 import { readRepoFile, REPO_ROOT } from "./support/files.js"
 
-const PROBE_FILE = "apps/vscode/src/core/incidents/root-cause.ts"
+const PROBE_FILE = "apps/vscode/src/core/views/labels.ts"
 const CLASS_PROBE = "apps/vscode/src/contract/model/value-kinds.ts"
 const COMPONENT_PROBE = "apps/vscode/src/webview/components/icon.tsx"
 

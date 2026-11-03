@@ -1,13 +1,13 @@
 name: Deploy Playground
 
-# Deploys the playground stack (playground/) to Fly.io — one Fly app per
+# Deploys the playground stack (playground/) to Fly.io: one Fly app per
 # service, see playground/fly/deploy.sh. Manual trigger only: the playground
 # is a demo environment, not part of the release train.
 #
-# Required repo secret: FLY_API_TOKEN — an org-scoped Fly deploy token
+# Required repo secret: FLY_API_TOKEN, an org-scoped Fly deploy token
 # (`fly tokens create org -o miragon`), stored including the leading `FlyV1 `
 # prefix. An app-scoped token (`fly tokens create deploy`) is rejected as
-# "unauthorized" — it cannot reach the other playground apps.
+# "unauthorized": it cannot reach the other playground apps.
 on:
   workflow_dispatch:
     inputs:
@@ -21,7 +21,6 @@ on:
           - engine
           - prometheus
           - grafana
-          - postgres
           - server
 
 permissions:
@@ -58,7 +57,7 @@ jobs:
 
       # superfly/flyctl-actions has no exact-version release tags beyond 1.5,
       # so pin by commit SHA instead (repo convention: no floating tags). The
-      # flyctl binary is pinned via `version` and must be bumped manually —
+      # flyctl binary is pinned via `version` and must be bumped manually:
       # Dependabot only updates the action SHA.
       - uses: superfly/flyctl-actions/setup-flyctl@ed8efb33836e8b2096c7fd3ba1c8afe303ebbff1 # 1.6
         with:

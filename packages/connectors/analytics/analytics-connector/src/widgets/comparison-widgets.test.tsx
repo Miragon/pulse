@@ -2,19 +2,20 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { ComponentType } from "react"
 import { cleanup, render, screen, within } from "@testing-library/react"
-import { LocaleProvider, queryClient } from "@miragon/mcp-toolkit-ui"
-import { WidgetFixtureHost } from "@miragon/mcp-toolkit-ui/app"
+import { LocaleProvider, setFormatLocale } from "@miragon/pulse-ui"
 import type {
-  ClusterCompareResult,
   CompareKpiDelta,
+  EngineCompareKpi,
   EngineCompareResult,
+  PeriodCompareKpi,
+  PeriodCompareResult,
   VersionCompareKpi,
   VersionCompareResult,
 } from "@miragon/pulse-analytics-client"
-import { setFormatLocale } from "@miragon/pulse-widget-shell/testing"
 import { VersionCompareWidget } from "./version-compare.js"
 import { EngineCompareWidget } from "./engine-compare.js"
-import { ClusterCompareWidget } from "./cluster-compare.js"
+import { PeriodCompareWidget } from "./period-compare.js"
+import { TestViewHost } from "@miragon/pulse-widget-shell/widgets"
 
 const NOW = "2026-10-10T12:40:00.000Z"
 const AS_OF = "2026-10-10T12:32:00.000Z"
@@ -25,7 +26,6 @@ beforeEach(() => {
 })
 afterEach(() => {
   cleanup()
-  queryClient.clear()
   setFormatLocale(undefined)
   vi.useRealTimers()
 })
@@ -38,10 +38,9 @@ function renderIn(language: "de" | "en", Widget: ComponentType<{ data: never }>,
   })
   return render(
     <LocaleProvider locale={language}>
-      <WidgetFixtureHost
-        widget={Widget as unknown as ComponentType<Record<string, unknown>>}
-        data={data as Record<string, unknown>}
-      />
+      <TestViewHost>
+        <Widget data={data as never} />
+      </TestViewHost>
     </LocaleProvider>,
   )
 }
@@ -61,28 +60,28 @@ const metaLine = () =>
 
 const versionKpi = (version: number, over: Partial<VersionCompareKpi> = {}): VersionCompareKpi => ({
   version,
-  bucket: version === 1 ? "versionA" : "versionB",
-  instance_count: 576,
-  completed_count: 500,
-  incident_count: 12,
-  incident_rate_pct: 2.1,
-  element_incident_count: null,
-  element_incident_rate_pct: null,
-  avg_duration_sec: 8340,
-  p95_duration_sec: 20100,
+  startedCount: 576,
+  completedCount: 500,
+  incidentsCreated: 12,
+  incidentRatePct: 2.1,
+  elementIncidentsCreated: null,
+  elementIncidentRatePct: null,
+  avgDurationMs: 8_340_000,
+  medianDurationMs: 7_200_000,
+  p95DurationMs: 20_100_000,
   ...over,
 })
 
 const DELTA: CompareKpiDelta = {
   // Traffic moved to v2: a volume, never a verdict.
-  started_per_day_delta_pct: -84.7,
+  startedPerDayDeltaPct: -84.7,
   // Past the 1-per-100-starts threshold: worse.
-  incident_rate_delta_pp: 1.4,
-  element_incident_rate_delta_pp: null,
+  incidentRateDeltaPp: 1.4,
+  elementIncidentRateDeltaPp: null,
   // Slower by 25 %: past the 5 % duration threshold.
-  avg_duration_delta_pct: 25,
+  avgDurationDeltaPct: 25,
   // Rounding jitter: below the threshold, neutral.
-  p95_duration_delta_pct: 3,
+  p95DurationDeltaPct: 3,
 }
 
 const VERSION: VersionCompareResult = {
@@ -93,7 +92,7 @@ const VERSION: VersionCompareResult = {
   windowDays: 14,
   minBucketSize: 10,
   suppressed: false,
-  kpis: [versionKpi(1), versionKpi(2, { instance_count: 88 })],
+  kpis: [versionKpi(1), versionKpi(2, { startedCount: 88 })],
   delta: DELTA,
   asOf: AS_OF,
 }
@@ -142,17 +141,17 @@ describe("VersionCompareWidget in German", () => {
   })
 })
 
-const engineKpi = (engineId: string, bucket: "engineA" | "engineB", over = {}) => ({
+const engineKpi = (engineId: string, over: Partial<EngineCompareKpi> = {}): EngineCompareKpi => ({
   engineId,
-  bucket,
-  instance_count: 576,
-  completed_count: 560,
-  incident_count: 38,
-  incident_rate_pct: 6.6,
-  element_incident_count: null,
-  element_incident_rate_pct: null,
-  avg_duration_sec: 8340,
-  p95_duration_sec: 20100,
+  startedCount: 576,
+  completedCount: 560,
+  incidentsCreated: 38,
+  incidentRatePct: 6.6,
+  elementIncidentsCreated: null,
+  elementIncidentRatePct: null,
+  avgDurationMs: 8_340_000,
+  medianDurationMs: 7_200_000,
+  p95DurationMs: 20_100_000,
   ...over,
 })
 
@@ -165,15 +164,15 @@ const ENGINES: EngineCompareResult = {
   minBucketSize: 10,
   suppressed: false,
   kpis: [
-    engineKpi("prod-leasing", "engineA"),
-    engineKpi("test-leasing", "engineB", { instance_count: 88, incident_rate_pct: 6.8 }),
+    engineKpi("prod-leasing"),
+    engineKpi("test-leasing", { startedCount: 88, incidentRatePct: 6.8 }),
   ],
   delta: {
-    started_per_day_delta_pct: -84.7,
-    incident_rate_delta_pp: 0.2,
-    element_incident_rate_delta_pp: null,
-    avg_duration_delta_pct: -12,
-    p95_duration_delta_pct: null,
+    startedPerDayDeltaPct: -84.7,
+    incidentRateDeltaPp: 0.2,
+    elementIncidentRateDeltaPp: null,
+    avgDurationDeltaPct: -12,
+    p95DurationDeltaPct: null,
   },
   asOf: AS_OF,
 }
@@ -211,40 +210,40 @@ describe("EngineCompareWidget in English", () => {
   })
 })
 
-const DEPLOYED_AT = Date.parse("2026-10-10T10:40:00.000Z")
+const SPLIT = Date.parse("2026-10-10T10:40:00.000Z")
 const iso = (ms: number) => new Date(ms).toISOString()
 
-/** `window_days` rounded to 0.01 d like the query does. */
-function cluster(beforeSec: number, afterSec: number): ClusterCompareResult {
-  const windows = {
-    before: { from: DEPLOYED_AT - beforeSec * 1000, to: DEPLOYED_AT, seconds: beforeSec },
-    after: { from: DEPLOYED_AT, to: DEPLOYED_AT + afterSec * 1000, seconds: afterSec },
-  }
+/** Two periods split at one instant; `days` rounded to 0.01 d like the query does. */
+function periods(aSec: number, bSec: number): PeriodCompareResult {
   const days = (seconds: number) => Math.round((seconds / 86_400) * 100) / 100
+  const kpi = (from: number, seconds: number): PeriodCompareKpi => ({
+    from: iso(from),
+    to: iso(from + seconds * 1000),
+    days: days(seconds),
+    partial: false,
+    startedCount: 576,
+    startedPerDay: 82.3,
+    completedCount: 500,
+    incidentsCreated: 38,
+    incidentRatePct: 6.6,
+    elementIncidentsCreated: null,
+    elementIncidentRatePct: null,
+    avgDurationMs: 8_340_000,
+    medianDurationMs: 7_200_000,
+    p95DurationMs: 20_100_000,
+  })
   return {
     engines: ["prod-a", "prod-b"],
     processDefinitionKey: "order",
     activityId: null,
-    deploymentTimestamp: iso(DEPLOYED_AT),
-    requestedWindowDays: { before: 7, after: 7 },
-    windowDays: { before: days(beforeSec), after: days(afterSec) },
-    partial: true,
+    periodAFrom: iso(SPLIT - 7 * 86_400_000),
+    periodATo: iso(SPLIT),
+    periodBFrom: iso(SPLIT),
+    periodBTo: iso(SPLIT + 7 * 86_400_000),
     minBucketSize: 10,
     suppressed: false,
-    kpis: (["before", "after"] as const).map((period) => ({
-      period,
-      window_from: iso(windows[period].from),
-      window_to: iso(windows[period].to),
-      window_days: days(windows[period].seconds),
-      instance_count: 576,
-      completed_count: 500,
-      incident_count: 38,
-      incident_rate_pct: 6.6,
-      element_incident_count: null,
-      element_incident_rate_pct: null,
-      avg_duration_sec: 8340,
-      p95_duration_sec: 20100,
-    })),
+    partial: true,
+    kpis: [kpi(SPLIT - aSec * 1000, aSec), { ...kpi(SPLIT, bSec), partial: true }],
     delta: DELTA,
     asOf: AS_OF,
   }
@@ -252,43 +251,38 @@ function cluster(beforeSec: number, afterSec: number): ClusterCompareResult {
 
 const HOUR = 3600
 const DAY = 24 * HOUR
-const CLUSTER = cluster(7 * DAY, 2 * HOUR)
+const PERIODS = periods(7 * DAY, 2 * HOUR)
 
-describe("ClusterCompareWidget", () => {
-  it("names the measured windows, a short one in hours (de)", () => {
-    renderIn("de", ClusterCompareWidget, CLUSTER)
-    expect(metaLine()).toBe("7 Tage davor, 2 Stunden danach · 2 Engines · Stand 14:32")
+describe("PeriodCompareWidget", () => {
+  it("names the measured periods, a short one in hours (de)", () => {
+    renderIn("de", PeriodCompareWidget, PERIODS)
+    expect(metaLine()).toBe("A 7 Tage, B 2 Stunden · 2 Engines · Stand 14:32")
     expect(screen.getByText("Zeitraum gekürzt")).toBeTruthy()
-    expect(within(screen.getByRole("table")).getByText("Vorher")).toBeTruthy()
+    expect(within(screen.getByRole("table")).getByText("Zeitraum A")).toBeTruthy()
+    expect(within(screen.getByRole("table")).getByText("Zeitraum B")).toBeTruthy()
   })
 
   it("says the same in English", () => {
-    renderIn("en", ClusterCompareWidget, cluster(DAY, 1.5 * DAY))
-    expect(metaLine()).toBe("1 day before, 1.5 days after · 2 engines · As of 14:32")
+    renderIn("en", PeriodCompareWidget, periods(DAY, 1.5 * DAY))
+    expect(metaLine()).toBe("A 1 day, B 1.5 days · 2 engines · As of 14:32")
+    expect(within(screen.getByRole("table")).getByText("Period A")).toBeTruthy()
   })
 
-  it("reads a window of a few minutes from its bounds, never as a rounded-up hour", () => {
-    renderIn("de", ClusterCompareWidget, cluster(7 * DAY, 10 * 60))
-    expect(metaLine()).toBe("7 Tage davor, 10 Minuten danach · 2 Engines · Stand 14:32")
+  it("reads a period of a few minutes from its bounds, never as a rounded-up hour", () => {
+    renderIn("de", PeriodCompareWidget, periods(7 * DAY, 10 * 60))
+    expect(metaLine()).toBe("A 7 Tage, B 10 Minuten · 2 Engines · Stand 14:32")
   })
 
-  it("says 'under 1 minute' for a deployment compared right away", () => {
-    renderIn("en", ClusterCompareWidget, cluster(7 * DAY, 30))
-    expect(metaLine()).toBe("7 days before, under 1 minute after · 2 engines · As of 14:32")
+  it("says 'under 1 minute' for a period compared right away", () => {
+    renderIn("en", PeriodCompareWidget, periods(7 * DAY, 30))
+    expect(metaLine()).toBe("A 7 days, B under 1 minute · 2 engines · As of 14:32")
     cleanup()
-    renderIn("de", ClusterCompareWidget, cluster(7 * DAY, 60))
-    expect(metaLine()).toBe("7 Tage davor, 1 Minute danach · 2 Engines · Stand 14:32")
-  })
-
-  it("falls back to the rounded window length when the bounds do not parse", () => {
-    const unparsable = cluster(7 * DAY, 2 * HOUR)
-    unparsable.kpis = unparsable.kpis.map((kpi) => ({ ...kpi, window_from: "", window_to: "" }))
-    renderIn("de", ClusterCompareWidget, unparsable)
-    expect(metaLine()).toBe("7 Tage davor, 2 Stunden danach · 2 Engines · Stand 14:32")
+    renderIn("de", PeriodCompareWidget, periods(7 * DAY, 60))
+    expect(metaLine()).toBe("A 7 Tage, B 1 Minute · 2 Engines · Stand 14:32")
   })
 
   it("hands off to assess the comparison with the Scale icon", () => {
-    renderIn("de", ClusterCompareWidget, CLUSTER)
+    renderIn("de", PeriodCompareWidget, PERIODS)
     const ask = screen.getByRole("button", { name: /Im Chat bewerten/ })
     expect(ask.querySelector("svg")?.getAttribute("class")).toContain("lucide-list-checks")
   })

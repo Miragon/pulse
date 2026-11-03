@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 # Mirrors the stock Pulse server image (two-stage pnpm build). Requires a
-# committed pnpm-lock.yaml — run `pnpm install` once and commit the lockfile.
+# committed pnpm-lock.yaml: run `pnpm install` once and commit the lockfile.
 
 FROM node:26-slim AS base
 
@@ -14,7 +14,7 @@ WORKDIR /app
 
 # The pnpm store (/pnpm/store, derived from PNPM_HOME) must live IN the layer, never in a
 # `--mount=type=cache`: registry caches persist layers but not cache mounts, so a cache-hit
-# on this step would skip `pnpm fetch` and leave the store empty — the `--offline` install
+# on this step would skip `pnpm fetch` and leave the store empty, and the `--offline` install
 # below then fails with ERR_PNPM_NO_OFFLINE_TARBALL.
 COPY pnpm-lock.yaml .npmrc ./
 RUN pnpm fetch
@@ -27,7 +27,7 @@ RUN pnpm install --frozen-lockfile --offline
 
 RUN pnpm run build
 
-# Selected by path, not by name — renaming the @acme scope needs no edit here.
+# Selected by path, not by name: renaming the @acme scope needs no edit here.
 RUN pnpm --filter ./server deploy --prod --legacy /app/deployed
 
 FROM base AS runtime
@@ -41,9 +41,8 @@ EXPOSE 8400
 USER node
 
 # Readiness over HTTP: /health/ready answers 200 once the MCP transport serves
-# (add readiness checks for the stores you wire in server/src/app.ts — `setup`
-# → `readiness`); /health/live is the liveness-only variant. Node's global
-# fetch keeps the image curl-free.
+# and 503 while it drains; /health/live is the liveness-only variant. Node's
+# global fetch keeps the image curl-free.
 HEALTHCHECK --interval=30s --timeout=3s --start-period=20s --retries=3 \
   CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||8400)+'/health/ready').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"
 

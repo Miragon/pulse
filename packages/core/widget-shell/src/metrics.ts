@@ -14,7 +14,7 @@ export interface HttpMiddlewareContext {
   res: { status: number }
 }
 
-export interface HttpMiddlewareHost {
+interface HttpMiddlewareHost {
   use(
     path: "*",
     handler: (ctx: HttpMiddlewareContext, next: () => Promise<void>) => Promise<void>,

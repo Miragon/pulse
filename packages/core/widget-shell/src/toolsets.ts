@@ -4,21 +4,19 @@ export interface ToolsetVocabulary<T extends string> {
   names: readonly T[]
   /** The read-only floor: empty/unknown suffixes, unauthenticated boots and direct callers without a toolset land here. */
   fallback: T
-  /** The no-suffix default under OAuth — the module's standard non-admin toolset. */
+  /** The no-suffix default under OAuth: the module's standard non-admin toolset. */
   authenticatedDefault: T
   isKnown(value: string): value is T
   /** A missing toolset only arrives from a direct `createPlugin` caller, which gets the floor, never everything. */
   resolve(toolset: string | undefined): T
   /** `undefined` = no suffix, `""` = present but empty. */
   effective(suffix: string | undefined, options: { authenticated: boolean }): EffectiveSelection<T>
-  /** Whether the toolset permits durable writes — every toolset above the read-only floor. */
-  allowsDurableWrites(toolset: T): boolean
 }
 
-/** Where an effective toolset came from — the reason the boot log names. */
+/** Where an effective toolset came from: the reason the boot log names. */
 export type ToolsetSource = "suffix" | "default" | "fallback"
 
-export interface EffectiveSelection<T extends string> {
+interface EffectiveSelection<T extends string> {
   toolset: T
   source: ToolsetSource
 }
@@ -37,7 +35,7 @@ export function createToolsetVocabulary<T extends string>(
   const isKnown = (value: string): value is T => (names as readonly string[]).includes(value)
   const degrade = (reason: string): T => {
     console.warn(
-      `[${moduleName}] ${reason} — falling back to "${fallback}". Known toolsets: ${names.join(", ")}`,
+      `[${moduleName}] ${reason}: falling back to "${fallback}". Known toolsets: ${names.join(", ")}`,
     )
     return fallback
   }
@@ -59,9 +57,6 @@ export function createToolsetVocabulary<T extends string>(
       if (isKnown(name)) return { toolset: name, source: "suffix" }
       const reason = name === "" ? "Empty toolset suffix" : `Unknown toolset "${name}"`
       return { toolset: degrade(reason), source: "fallback" }
-    },
-    allowsDurableWrites(toolset) {
-      return toolset !== fallback
     },
   }
 }

@@ -33,8 +33,8 @@ import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { isDeepStrictEqual } from "node:util"
 import { parse } from "yaml"
-import { expandWorkspaceGlobs, workspaceGlobs } from "./check-package-scripts.mjs"
 import { SCOPES } from "./ci-scopes.mjs"
+import { isNpmPublished, isVscodeExtension, readWorkspace } from "./workspace-packages.mjs"
 
 export const PUBLISH_WORKFLOW = ".github/workflows/publish-npm-package.yml"
 export const RELEASE_WORKFLOW = ".github/workflows/release-please.yml"
@@ -44,22 +44,6 @@ export const VSCODE_PUBLISH_WORKFLOW = ".github/workflows/publish-vscode-extensi
 /** The directories the Resolve package step of the publish workflow accepts. */
 export const PUBLISHABLE_DIR =
   /^(apps\/[a-z0-9][a-z0-9-]*|packages\/core\/[a-z0-9][a-z0-9-]*|packages\/connectors\/[a-z0-9][a-z0-9-]*\/[a-z0-9][a-z0-9-]*)$/
-
-/** A VS Code extension: an app whose package.json declares engines.vscode. */
-export const isVscodeExtension = (manifest) => manifest?.engines?.vscode !== undefined
-
-/** Published to npm: not private and no VS Code extension, which ships as a .vsix instead. */
-export const isNpmPublished = (manifest) =>
-  manifest?.private !== true && !isVscodeExtension(manifest)
-
-/** Every workspace package as `{ dir, manifest }`, sorted by directory. */
-export function readWorkspace(root) {
-  const globs = workspaceGlobs(readFileSync(path.join(root, "pnpm-workspace.yaml"), "utf8"))
-  return expandWorkspaceGlobs(root, globs).map((dir) => ({
-    dir,
-    manifest: JSON.parse(readFileSync(path.join(root, dir, "package.json"), "utf8")),
-  }))
-}
 
 const asList = (value) => (value === undefined || value === null ? [] : [value].flat())
 const jobsOf = (doc) => Object.entries(doc?.jobs ?? {})

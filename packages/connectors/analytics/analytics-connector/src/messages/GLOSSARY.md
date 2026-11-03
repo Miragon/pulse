@@ -1,8 +1,8 @@
 # Glossar der Analytics-Texte
 
 Ein Begriff, ein Wort: Die Kataloge in diesem Ordner (`*.sweep.ts` für die Widgets,
-`*.ask-ai.ts` für die Übergaben an den Chat, `*.server.ts` für die Zusammenfassungen an
-das Modell) benutzen genau die Wörter dieser Tabellen. Die Schreibregeln (du, AI, „CIB
+`*.ask-ai.ts` für die Übergaben an den Chat, `en.server.ts` für die Zusammenfassungen an
+das Modell, die es nur auf Englisch gibt) benutzen genau die Wörter dieser Tabellen. Die Schreibregeln (du, AI, „CIB
 seven“, kein Gedankenstrich als Verbinder) prüft `brand-gates.test.ts`, die Begriffe
 `glossary.test.ts` über `glossary.ts` und die gemeinsamen Regeln des Kits. Wer hier einen
 Begriff ändert, ändert ihn auch dort.
@@ -10,20 +10,20 @@ Begriff ändert, ändert ihn auch dort.
 ## Gemeinsame Begriffe aller Module
 
 Diese Begriffe stehen in den Ansichten mehrerer Module nebeneinander: Die Engine-übergreifende
-Übersicht von camunda7 bettet die Prozesslandschaft von analytics ein. Sie gelten deshalb in
-jedem Modul gleich. Die Regeln stehen einmal im Kit (`PRODUCT_GLOSSARY` in
+Übersicht des Engine-Moduls bettet die Prozesslandschaft von analytics ein. Sie gelten deshalb in
+jedem Modul gleich. Die Regeln stehen einmal in widget-shell (`PRODUCT_GLOSSARY` in
 `@miragon/pulse-widget-shell/testing`), und `glossary.test.ts` jedes Moduls prüft damit seine
-Kataloge. Das Glossar von camunda7 führt dieselbe Tabelle.
+Kataloge. Das Glossar des Engine-Moduls führt dieselbe Tabelle.
 
-| Sache                                                                        | Deutsch                                                            | Nicht                                | Englisch                  | Nicht                  |
-| ---------------------------------------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------ | ------------------------- | ---------------------- |
-| Fehler, den die Engine meldet                                                | Incident, Incidents                                                | Vorfall, Vorfälle, Störung           | incident                  | occurrence             |
-| Jobs, deren Versuche aufgebraucht sind (`failedJobs`, `camunda_jobs_failed`) | Jobs ohne Versuche („3 ohne Versuche“)                             | Fehlgeschlagene Jobs, tote Jobs      | jobs without retries      | failed jobs, dead jobs |
-| BPMN-Modell auf die Engine bringen                                           | bereitstellen, bereitgestellt (das Ergebnis heißt Deployment)      | deployen, deployst, deployt          | deploy, deployed          | –                      |
-| Business Key                                                                 | Geschäftsschlüssel                                                 | GK, Business Key                     | business key              | BK                     |
-| Instanz anhalten                                                             | aussetzen, ausgesetzt                                              | anhalten, angehalten, pausieren      | suspend, suspended        | pause, halt            |
-| Retries eines Jobs                                                           | Versuche („Noch 2 Versuche“, „Keine Versuche mehr“), neu versuchen | Wiederholungen, wiederholen, Retries | retries, retry            | –                      |
-| Alle Engines zusammen                                                        | alle Engines, Engine-übergreifend                                  | Flotte                               | all engines, cross-engine | fleet                  |
+| Sache                                                                       | Deutsch                                                            | Nicht                                | Englisch                  | Nicht                  |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------ | ------------------------- | ---------------------- |
+| Fehler, den die Engine meldet                                               | Incident, Incidents                                                | Vorfall, Vorfälle, Störung           | incident                  | occurrence             |
+| Jobs, deren Versuche aufgebraucht sind (`failedJobs`, `engine_jobs_failed`) | Jobs ohne Versuche („3 ohne Versuche“)                             | Fehlgeschlagene Jobs, tote Jobs      | jobs without retries      | failed jobs, dead jobs |
+| BPMN-Modell auf die Engine bringen                                          | bereitstellen, bereitgestellt (das Ergebnis heißt Deployment)      | deployen, deployst, deployt          | deploy, deployed          | –                      |
+| Business Key                                                                | Geschäftsschlüssel                                                 | GK, Business Key                     | business key              | BK                     |
+| Instanz anhalten                                                            | aussetzen, ausgesetzt                                              | anhalten, angehalten, pausieren      | suspend, suspended        | pause, halt            |
+| Retries eines Jobs                                                          | Versuche („Noch 2 Versuche“, „Keine Versuche mehr“), neu versuchen | Wiederholungen, wiederholen, Retries | retries, retry            | –                      |
+| Alle Engines zusammen                                                       | alle Engines, Engine-übergreifend                                  | Flotte                               | all engines, cross-engine | fleet                  |
 
 ## Begriffe von analytics
 
@@ -41,14 +41,14 @@ Kataloge. Das Glossar von camunda7 führt dieselbe Tabelle.
 ## Übergaben an den Chat
 
 Eine Übergabe zeigt das Lucide-Icon der konkreten Funktion und ein Verb, das sagt, dass die
-Arbeit im Chat passiert, nie ein Sparkle. Beides steht einmal im Kit: `HandOffButton` mit seiner
+Arbeit im Chat passiert, nie ein Sparkle. Beides steht einmal in widget-shell: `HandOffButton` mit seiner
 Tabelle `HAND_OFF_ACTIONS` (Icon) und `kitLabels().handOff` (Label, de und en) in
 `@miragon/pulse-widget-shell/widgets`. Jede Funktion hat in jedem Modul dasselbe Icon und dasselbe
 Label, kein Icon steht für zwei Funktionen. Ein Widget eines Connectors rendert Übergaben nur
 über `HandOffButton` (ein ESLint-Gate verbietet `AskAiButton` dort); eine neue Funktion kommt
 mit ihrem Icon und beiden Labels ins Kit. Ein Icon-Button in einer Tabellenzeile nennt seinen
 Gegenstand im `title`, beim Vergleich zwischen Engines den Prozess (`aLandscape.compareLabel`).
-Das Glossar von camunda7 führt dieselbe Tabelle.
+Das Glossar des Engine-Moduls führt dieselbe Tabelle.
 
 | Funktion                         | Icon           | Deutsch                         | Englisch                    |
 | -------------------------------- | -------------- | ------------------------------- | --------------------------- |
@@ -83,6 +83,9 @@ Das Glossar von camunda7 führt dieselbe Tabelle.
   belastbar“.
 - Unter jedem Titel steht der Bezugsrahmen: Zeitraum, Engines (und wie viele davon ohne
   Metriken), Stand.
-- Ein Show-Tool setzt den Titel seiner Ansicht nur in einer Sprache, die das Profil nennt
-  (`localizeViewFor`); mit „system“ setzt es keinen, und die Überschrift des Widgets nennt die
-  Ansicht in der Sprache des Hosts. Das gilt für die Show-Tools jedes Moduls.
+- Der Server setzt keinen Titel über eine Ansicht: die Überschrift des Widgets nennt sie in
+  der Sprache des Hosts. Das gilt für die Show-Tools jedes Moduls.
+- Fehlermeldungen sagen, was passiert ist, und was du tun kannst. Über einem Diagramm der
+  Heatmap (`BpmnHeatmap`) steht der erste Teil als `errorTitle`, der zweite als `errorHint`
+  darunter; der Titel hat nur eine Zeile. Jeder Ort hat dafür eigene Texte (`aHeatmap.*` in
+  der Ansicht, `aProcessHeatmap.*` im Prozessfluss des Engine-Moduls).

@@ -1,12 +1,17 @@
-# Engine plugins: Kotlin Micrometer metrics for CIB Seven
+# Engine plugins: Kotlin Micrometer metrics for CIB seven
 
-Multi-module Gradle build (Java 21) containing the CIB Seven process-metrics plugin
-(`cibseven-history-metrics`). It runs inside the CIB Seven runtime and records Micrometer metrics
-into the global registry, so any Micrometer export path surfaces them in Prometheus as `camunda_*`
+Multi-module Gradle build (Java 21) containing the CIB seven process-metrics plugin
+(`cibseven-history-metrics`). It runs inside the CIB seven runtime and records Micrometer metrics
+into the global registry, so any Micrometer export path surfaces them in Prometheus as `engine_*`
 series: an OTLP push via `micrometer-registry-otlp` through the OTEL Collector (the playground
 default), an Actuator Prometheus scrape, or the OTEL Java agent's Micrometer bridge. There is no
 engine-side database. Those series are what the [analytics module](../packages/connectors/analytics/analytics-connector) of
 [Pulse](../README.md) queries.
+
+From 0.25 every meter is named `engine.*` (Prometheus `engine_*`); up to 0.24 the names started
+with `camunda`. Upgrade the plugin and the Pulse server together, and port your own alert rules and
+dashboards: [Upgrading](../docs/mcp/upgrading.md) lists every old name and a scrape-time rename
+for engines that upgrade later.
 
 Published to **Maven Central** as `io.miragon.mcp:cibseven-history-metrics` (released via
 release-please together with the server image). A runnable showcase that consumes this plugin lives
@@ -52,7 +57,7 @@ dependencies {
 ```
 
 `micrometer-core` resolves transitively; the engine/Spring stack is `compileOnly`
-(provided by the CIB Seven runtime).
+(provided by the CIB seven runtime).
 
 For the OTLP push path on Spring Boot 4, additionally add
 `spring-boot-starter-actuator`, `io.micrometer:micrometer-registry-otlp` and

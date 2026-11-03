@@ -197,10 +197,21 @@ describe("inspecting an instance over REST", () => {
       calls: [{ activityId: "call", calledProcessInstanceId: "c1" }],
       timeline: [{ activityId: "call", startTime: SINCE, canceled: true }],
       variables: [
-        { name: "total", valueJson: "9007199254740993" },
         { name: "doc", valueJson: '"{}"', type: "Json" },
+        { name: "total", valueJson: "9007199254740993" },
       ],
     })
+  })
+
+  test("cuts a long stack trace and says that it is cut", async () => {
+    const frames = Array.from({ length: 250 }, (_, index) => `\tat Frame${index}`)
+    const details = get("/external-task/x1/errorDetails", new Response(frames.join("\n")))
+    const routes = RUNNING_TREE.map((route) => (route.route === details.route ? details : route))
+
+    const stacktrace = (await inspect(routes))?.incidents[0]?.stacktrace
+
+    expect(stacktrace?.truncated).toBe(true)
+    expect(stacktrace?.lines).toHaveLength(200)
   })
 
   test("reads an ended instance from its history alone", async () => {
@@ -253,6 +264,28 @@ describe("inspecting an instance over REST", () => {
     ])
 
     expect(view).toMatchObject({ id: "p1", state: "COMPLETED", waitingAt: [] })
+  })
+
+  test("reads the path of an instance that ended between two reads after its end", async () => {
+    let runtimeReads = 0
+    const start = { activityId: "start", startTime: SINCE, endTime: SINCE }
+    const view = await inspect([
+      get("/process-instance/p1", { id: "p1", definitionId: ORDER }, () => runtimeReads++ === 0),
+      get("/process-instance/p1", MISSING),
+      get("/history/process-instance/p1", history("p1", { state: "COMPLETED" })),
+      get("/process-instance", []),
+      get("/process-instance/p1/activity-instances", MISSING),
+      get("/process-instance/p1/variables", engineFailure(500, "NullValueException", "gone")),
+      get("/history/variable-instance", []),
+      get("/history/activity-instance", [start], () => runtimeReads < 2),
+      get("/history/activity-instance", [
+        start,
+        { activityId: "end", startTime: LATER, endTime: LATER },
+      ]),
+      ...emptyLists([...LISTS, "/process-definition", "/job-definition"]),
+    ])
+
+    expect(view?.timeline.map((step) => step.activityId)).toEqual(["start", "end"])
   })
 
   test("cuts the tree of called instances ten levels down and leaves out those that ended", async () => {

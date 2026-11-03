@@ -1,0 +1,20 @@
+/*
+ * @miragon/pulse-ui/fonts.css: OPT-IN Geist and Geist Mono, self-hosted
+ * through your bundler (no CDN). Import it next to globals.css/theme.css:
+ *
+ *   @import "@miragon/pulse-ui/globals.css";
+ *   @import "@miragon/pulse-ui/fonts.css";
+ *
+ * Cost: a bundler that inlines assets (vite-plugin-singlefile, MCP App views)
+ * embeds the woff2 files as base64 in every view. When a server can serve the
+ * files, prefer `fontFaces({ baseUrl })`, which references them by URL (and
+ * allow that origin in the view's CSP resourceDomains). The token stacks
+ * (--font-sans, --font-mono) name both families first, so either path works.
+ * A host's own font stays the fallback behind them: `adoptHostFontVariables`
+ * moves it to --host-font-sans/--host-font-mono (widget-shell's HostDocument,
+ * for example, calls it); an app with its own host-document layer calls that helper after
+ * applying the host's style variables, or the host's --font-sans replaces the
+ * whole stack.
+ */
+@import "@fontsource-variable/geist/wght.css";
+@import "@fontsource-variable/geist-mono/wght.css";

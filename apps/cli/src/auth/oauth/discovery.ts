@@ -12,6 +12,7 @@ import { ENV, type OAuthConfig } from "../../config/types.js"
 import { PulseCliError } from "../../errors.js"
 import { getJson, sanitize, type ServerAnswer, shownUrl, statusLine, statusOf } from "./http.js"
 import type { ClientAuthMethod, OAuthDeps, ServerMetadata } from "./types.js"
+import { withoutTrailingSlashes } from "../../util.js"
 
 const OIDC_PATH = "/.well-known/openid-configuration"
 const RFC8414_PATH = "/.well-known/oauth-authorization-server"
@@ -20,7 +21,7 @@ const DISCOVERY_HINT = `The issuer is the URL in front of ${OIDC_PATH}, e.g. ${I
 
 /** The two discovery locations of an issuer: OpenID Connect first, then RFC 8414. */
 export function discoveryUrls(issuer: string): [string, string] {
-  const trimmed = issuer.replace(/\/+$/, "")
+  const trimmed = withoutTrailingSlashes(issuer)
   const url = new URL(trimmed)
   const path = url.pathname === "/" ? "" : url.pathname
   return [`${trimmed}${OIDC_PATH}`, `${url.origin}${RFC8414_PATH}${path}`]

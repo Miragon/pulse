@@ -6,12 +6,12 @@ export interface FitMeasure {
   rows: (rowsElement: HTMLElement) => number[]
 }
 
-export const ROWS_ATTRIBUTE = "data-inline-fit-rows"
+const ROWS_ATTRIBUTE = "data-inline-fit-rows"
 /** A row continuing the one before (an incident's error line): the fit counts ITEMS, as the cap does. */
-export const CONTINUES_ATTRIBUTE = "data-inline-fit-continues"
+const CONTINUES_ATTRIBUTE = "data-inline-fit-continues"
 
 export const FIT_CONTINUES_ROW = { [CONTINUES_ATTRIBUTE]: "" } as const
-export const FALLBACK_ATTRIBUTE = "data-inline-fit-fallback"
+const FALLBACK_ATTRIBUTE = "data-inline-fit-fallback"
 export const LIST_SELECTOR = `[${ROWS_ATTRIBUTE}], [${FALLBACK_ATTRIBUTE}]`
 
 export const DOM_MEASURE: FitMeasure = {

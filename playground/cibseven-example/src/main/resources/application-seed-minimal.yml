@@ -6,7 +6,7 @@ logging:
     org.cibseven.bpm.engine.context: "OFF"
 
 seed:
-  # MINIMAL profile — ~80 miraveloLeasing instances for fast local iteration
+  # MINIMAL profile: ~80 miraveloLeasing instances for fast local iteration
   # and CI smoke tests. Every edge case (pre-fix blacklist outage,
   # priorityFlag, timer escalation, cargo-term DEAD cap, FAX channel) is hit
   # at least once so the skills can be validated without a long boot.

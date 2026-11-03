@@ -34,11 +34,16 @@ const TABLE: Array<[raw: string, kind: ErrorKind, status: number | undefined, so
   ["Prometheus did not respond within 10000 ms (timeout)", "timeout", undefined, "prometheus"],
   ["MCP error -32001: Request timed out", "timeout", undefined, "unknown"],
   ["[504] Gateway Timeout (engine prod)", "timeout", 504, "engine:prod"],
-  ["Tool camunda7_process_list_data not found", "notOnServer", undefined, "unknown"],
-  ["MCP error -32602: Tool analytics_settings_data not found", "notOnServer", undefined, "unknown"],
-  ["Unknown tool: camunda7_jobs_data", "notOnServer", undefined, "unknown"],
+  ["Tool engine_jobs_data not found", "notOnServer", undefined, "unknown"],
   [
-    "[401] Unauthorized (engine prod). Check CAMUNDA_ENGINES_JSON credentials",
+    "MCP error -32602: Tool analytics_engine_landscape_data not found",
+    "notOnServer",
+    undefined,
+    "unknown",
+  ],
+  ["Unknown tool: engine_jobs_data", "notOnServer", undefined, "unknown"],
+  [
+    "[401] Unauthorized (engine prod). Check ENGINES_JSON credentials",
     "unauthorized",
     401,
     "engine:prod",
@@ -63,7 +68,7 @@ const TABLE: Array<[raw: string, kind: ErrorKind, status: number | undefined, so
   ],
   ["[400 InvalidRequestException] Invalid variable value", "failed", 400, "unknown"],
   [
-    "[ENGINE_NOT_SELECTED] No engine specified and no default engine saved.",
+    "[ENGINE_NOT_SELECTED] No engine specified and no default engine configured. Pass `engine`, one of: prod-a, prod-b.",
     "unknown",
     undefined,
     "engine",
@@ -76,7 +81,7 @@ function sourceTag(source: ReturnType<typeof classifyError>["source"]): string {
   return source.type
 }
 
-describe("classifyError — the mapping table", () => {
+describe("classifyError: the mapping table", () => {
   it.each(TABLE)("%s → %s", (raw, kind, status, source) => {
     const facts = classifyError(new Error(raw))
     expect(facts.kind).toBe(kind)
@@ -147,7 +152,7 @@ describe("classifyError — the mapping table", () => {
   })
 })
 
-describe("classifyError — hostile input stays linear (CodeQL js/polynomial-redos)", () => {
+describe("classifyError: hostile input stays linear (CodeQL js/polynomial-redos)", () => {
   const spaces = " ".repeat(100_000)
 
   it("reads a long whitespace run before the write caveat and the engine suffix quickly", () => {
@@ -161,7 +166,7 @@ describe("classifyError — hostile input stays linear (CodeQL js/polynomial-red
   })
 })
 
-describe("describeError — the words, en and de", () => {
+describe("describeError: the words, en and de", () => {
   const down = new Error(
     "[503 ProcessEngineException] Engine is shutting down (engine prod-leasing)",
   )

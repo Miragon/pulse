@@ -1,6 +1,5 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import type { ReactNode } from "react"
 import {
   act,
   cleanup,
@@ -10,8 +9,9 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react"
-import { AppQueryProvider, LocaleProvider, queryClient } from "@miragon/mcp-toolkit-ui"
-import { useViewData } from "@miragon/mcp-toolkit-ui/hooks"
+import { LocaleProvider } from "@miragon/pulse-ui"
+import { spyHost } from "./tool-host.test-support.js"
+import { useViewData } from "./tool-query.js"
 import { useDetailView } from "./use-detail-view.js"
 import { viewRefreshState } from "./view-refresh-state.js"
 
@@ -22,29 +22,22 @@ interface Detail {
 const callTool = vi.fn()
 const answer = (name: string) => ({ structuredContent: { name } })
 
-function wrapper({ children }: { children: ReactNode }) {
-  return <AppQueryProvider callTool={callTool}>{children}</AppQueryProvider>
-}
-
-const toolkitDefaults = queryClient.getDefaultOptions()
+const host = spyHost("test_detail_data", callTool)
+const wrapper = host.wrapper
 
 beforeEach(() => {
   callTool.mockReset()
-  queryClient.setDefaultOptions({
-    ...toolkitDefaults,
-    queries: { ...toolkitDefaults.queries, retry: false },
-  })
+  host.reset()
 })
 
-afterEach(() => {
+afterEach(async () => {
   cleanup()
-  queryClient.clear()
-  queryClient.setDefaultOptions(toolkitDefaults)
+  await host.dispose()
 })
 
-const invalidate = () => act(() => queryClient.invalidateQueries({ queryKey: ["test:detail"] }))
+const invalidate = () => act(() => host.client().invalidateQueries({ queryKey: ["test:detail"] }))
 
-describe("useViewData in seed mode + viewRefreshState", () => {
+describe("useViewData (seeded) + viewRefreshState", () => {
   function setup(seed: Detail | null, ready = true) {
     return renderHook(
       () => {
@@ -54,7 +47,6 @@ describe("useViewData in seed mode + viewRefreshState", () => {
           "test_detail_data",
           { id: "x" },
           ready,
-          { initialDataMode: "seed" },
         )
         return { ...view, ...viewRefreshState(view) }
       },
@@ -90,7 +82,7 @@ describe("useViewData in seed mode + viewRefreshState", () => {
     const { result } = setup({ name: "seed" })
     expect(result.current.refreshing).toBe(false)
     // Not awaited and not in act: an open act scope would swallow the next test's updates.
-    void queryClient.invalidateQueries({ queryKey: ["test:detail"] })
+    void host.client().invalidateQueries({ queryKey: ["test:detail"] })
     await waitFor(() => expect(result.current.refreshing).toBe(true))
     act(() => fail(new Error("gone")))
     await waitFor(() => expect(result.current.refreshError?.message).toBe("gone"))
@@ -98,12 +90,12 @@ describe("useViewData in seed mode + viewRefreshState", () => {
     expect(result.current.refreshing).toBe(false)
   })
 
-  it("reports a failed refetch from its FIRST attempt — not after the client's retries", async () => {
+  it("reports a failed refetch from its FIRST attempt, not after the client's retries", async () => {
     // TanStack retries 3× (~7 s) with `error` null; a view gating writes would keep offering them.
-    queryClient.setDefaultOptions(toolkitDefaults)
+    host.withRetries()
     callTool.mockRejectedValue(new Error("gone"))
     const { result } = setup({ name: "seed" })
-    void queryClient.invalidateQueries({ queryKey: ["test:detail"] })
+    void host.client().invalidateQueries({ queryKey: ["test:detail"] })
     await waitFor(() => expect(result.current.refreshError?.message).toBe("gone"))
     // Still retrying: one attempt so far, the refetch in flight.
     expect(callTool).toHaveBeenCalledTimes(1)
@@ -153,7 +145,7 @@ describe("useDetailView", () => {
     expect(String(result.current.loadError)).toContain("not found")
   })
 
-  it("offers a Retry on a failed load — never a dead end", async () => {
+  it("offers a Retry on a failed load, never a dead end", async () => {
     callTool.mockRejectedValueOnce(new Error("[503 ProcessEngineException] down (engine prod)"))
     render(<Detail seed={null} />, { wrapper })
     // The error in words; the raw text only under "Details".

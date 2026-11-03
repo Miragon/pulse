@@ -33,8 +33,8 @@ export function alertExpressions(yaml: string): string[] {
 
 /**
  * The string a plain or quoted YAML flow scalar denotes. Single quotes escape
- * only `''`; double quotes use backslash escapes, parsed as their JSON subset —
- * anything beyond it (or a trailing comment after the closing quote) throws.
+ * only `''`; double quotes use backslash escapes, parsed as their JSON subset.
+ * Anything beyond it (or a trailing comment after the closing quote) throws.
  */
 function yamlFlowScalar(text: string): string {
   if (text.startsWith("'")) {
@@ -77,8 +77,8 @@ function templatingQuery(query: string): string[] {
   if (!fn) return []
   const args = new RegExp(`^\\s*${fn}\\s*\\(([\\s\\S]*)\\)\\s*$`).exec(query)?.[1].trim()
   if (fn === "query_result" && args) return [args]
-  // label_values(<series selector>, <label>): the label is the LAST argument —
-  // the selector itself may contain commas between its matchers.
+  // label_values(<series selector>, <label>): the label is the LAST argument.
+  // The selector itself may contain commas between its matchers.
   const labelValues = args && /^([\s\S]+),\s*([A-Za-z_][A-Za-z0-9_]*)$/.exec(args)
   if (labelValues) return [`count by (${labelValues[2]})(${labelValues[1].trim()})`]
   throw new Error(`unsupported Grafana templating query (extend dashboardQueries for it): ${query}`)

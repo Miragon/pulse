@@ -29,9 +29,32 @@ const coveredSeries = new Set(
   ),
 )
 
-const extractSeries = (text: string) => [...new Set(text.match(/camunda_[a-zA-Z0-9_]+/g) ?? [])]
+/**
+ * Every label a contract metric carries. The series share their prefix with the `engine_id` label
+ * (`by (engine_id)`, `{engine_id="…"}`, Grafana's `$engine_id`), so a series scan skips exactly
+ * these and reads every other `engine_…` token as a series the contract must hold.
+ */
+const CONTRACT_LABELS = new Set(contract.metrics.flatMap((m) => m.labels))
 
-/** Strip block and line comments — doc comments may legitimately mention series names. */
+const extractSeries = (text: string) =>
+  [...new Set(text.match(/engine_[a-zA-Z0-9_]+/g) ?? [])].filter((s) => !CONTRACT_LABELS.has(s))
+
+/**
+ * `sum by (a, b)(max by (…)(engine_x{…}))`: each by-clause with the first series after it (the
+ * aggregated expression's, behind any nested calls, parentheses and inner by-clauses, whose
+ * `engine_id` is a label, not a series). Two flat regexes and a slice, not one nested pattern:
+ * that one backtracked (CodeQL js/redos).
+ */
+const byClauses = (text: string) =>
+  [...text.matchAll(/\bby\s*\(([^)]*)\)/g)].map((clause) => ({
+    clause: clause[0],
+    labels: clause[1],
+    series: [...text.slice(clause.index + clause[0].length).matchAll(/engine_[A-Za-z0-9_]+/g)]
+      .map((match) => match[0])
+      .find((token) => !CONTRACT_LABELS.has(token)),
+  }))
+
+/** Strip block and line comments: doc comments may legitimately mention series names. */
 const stripComments = (src: string) =>
   src
     .replace(/\/\*[\s\S]*?\*\//g, "")
@@ -101,7 +124,7 @@ describe("metrics contract", () => {
   it("declares well-formed metrics", () => {
     expect(contract.metrics.length).toBeGreaterThan(0)
     for (const m of contract.metrics) {
-      expect(m.otelName, m.promName).toMatch(/^camunda\.[a-z._]+$/)
+      expect(m.otelName, m.promName).toMatch(/^engine\.[a-z._]+$/)
       expect(["counter", "histogram", "gauge"]).toContain(m.type)
       expect(m.labels.length, `${m.promName} must carry engine_id`).toBeGreaterThan(0)
       expect(m.labels).toContain("engine_id")
@@ -140,7 +163,7 @@ describe("metrics contract", () => {
     expect(constNames).toEqual(contractNames)
   })
 
-  it("covers every camunda_* metric used in the Prometheus alert rules", () => {
+  it("covers every engine_* metric used in the Prometheus alert rules", () => {
     const alerts = readFileSync(alertsFile, "utf8")
     const used = extractSeries(alerts)
     expect(used.length).toBeGreaterThan(0)
@@ -149,19 +172,19 @@ describe("metrics contract", () => {
     }
   })
 
-  it("covers every camunda_* metric used in the Grafana dashboards", () => {
+  it("covers every engine_* metric used in the Grafana dashboards", () => {
     const dashboards = readdirSync(dashboardsDir).filter((f) => f.endsWith(".json"))
     expect(dashboards.length).toBeGreaterThan(0)
     for (const file of dashboards) {
       const used = extractSeries(readFileSync(join(dashboardsDir, file), "utf8"))
-      expect(used.length, `${file} should reference camunda_* metrics`).toBeGreaterThan(0)
+      expect(used.length, `${file} should reference engine_* metrics`).toBeGreaterThan(0)
       for (const series of used) {
         expect(coveredSeries.has(series), `${series} (${file}) missing from contract`).toBe(true)
       }
     }
   })
 
-  it("query sources contain no raw camunda_* literals (METRIC_NAMES only)", () => {
+  it("query sources contain no raw engine_* literals (METRIC_NAMES only)", () => {
     const sources = readdirSync(queriesDir).filter(
       (f) => f.endsWith(".ts") && !f.endsWith(".test.ts"),
     )
@@ -209,7 +232,7 @@ describe("metrics contract", () => {
             regexChecked++
             expect(
               /^[A-Za-z_][A-Za-z0-9_]*$/.test(alt),
-              `${label}=~"${match[1]}" (${name}): alternative "${alt}" is neither a plain value nor a recognised wildcard — extend the parser if the pattern is legitimate`,
+              `${label}=~"${match[1]}" (${name}): alternative "${alt}" is neither a plain value nor a recognised wildcard. Extend the parser if the pattern is legitimate`,
             ).toBe(true)
             expect(
               values.has(alt),
@@ -220,7 +243,7 @@ describe("metrics contract", () => {
       }
     }
     expect(exactChecked).toBeGreaterThan(0)
-    // The Grafana dashboard pins `status=~"total|unassigned"` — if this reads
+    // The Grafana dashboard pins `status=~"total|unassigned"`. If this reads
     // 0 the regex-matcher scan silently broke, not the dashboard.
     expect(regexChecked).toBeGreaterThan(0)
   })
@@ -236,19 +259,10 @@ describe("metrics contract", () => {
       }
     }
 
-    // `sum by (a, b)(max by (…)(camunda_x{…}))` — each by-clause attributed to
-    // the first camunda_* series after it (the aggregated expression's, behind
-    // any nested calls, parentheses and inner by-clauses). Two flat regexes and
-    // a slice, not one nested pattern: that one backtracked (CodeQL js/redos).
-    const byClause = /\bby\s*\(([^)]*)\)/g
-    const firstSeries = /camunda_[A-Za-z0-9_]+/
-
     let checked = 0
     for (const { name, text } of [alertsSource(), ...dashboardSources()]) {
-      for (const clause of text.matchAll(byClause)) {
-        const labelList = clause[1]
-        const series = firstSeries.exec(text.slice(clause.index + clause[0].length))?.[0]
-        expect(series, `unattributable "${clause[0]}" clause in ${name}`).toBeDefined()
+      for (const { clause, labels: labelList, series } of byClauses(text)) {
+        expect(series, `unattributable "${clause}" clause in ${name}`).toBeDefined()
         if (series === undefined) continue
         const metric = seriesToMetric.get(series)
         expect(metric, `${series} (${name}) missing from contract`).toBeDefined()
@@ -261,7 +275,7 @@ describe("metrics contract", () => {
           checked++
           expect(
             metric.labels.includes(label),
-            `${name} groups ${series} by "${label}" — not a declared label of ${metric.promName}`,
+            `${name} groups ${series} by "${label}", which is not a declared label of ${metric.promName}`,
           ).toBe(true)
         }
       }
@@ -269,14 +283,29 @@ describe("metrics contract", () => {
     expect(checked).toBeGreaterThan(0)
   })
 
+  it("reads the engine_id label as no series, and every other engine_ token as one", () => {
+    const query =
+      'sum by (engine_id) (max by (process_definition_key, engine_id) (engine_jobs_failed{engine_id="$engine_id"}))'
+    expect(extractSeries(query)).toEqual(["engine_jobs_failed"])
+    expect(byClauses(query).map(({ series }) => series)).toEqual([
+      "engine_jobs_failed",
+      "engine_jobs_failed",
+    ])
+    // A series the contract does not hold still reads as one, so the checks above fail on it.
+    const unknown = "sum by (engine_id) (increase(engine_unknown_total[5m]))"
+    expect(extractSeries(unknown)).toEqual(["engine_unknown_total"])
+    expect(coveredSeries.has("engine_unknown_total")).toBe(false)
+    expect(byClauses(unknown)[0]?.series).toBe("engine_unknown_total")
+  })
+
   it("every contract metric has at least one consumer (queries, alerts or dashboards)", () => {
     // Emitted by the engine plugin for future dashboards but consumed nowhere
-    // yet. Remove an entry from this allowlist the moment a consumer appears —
+    // yet. Remove an entry from this allowlist the moment a consumer appears:
     // the stale-entry check below fails to remind you. Do NOT add new entries
     // without the same "deliberately emitted ahead of consumption" rationale.
     const KNOWN_UNCONSUMED = new Set([
-      "camunda_usertask_created_total",
-      "camunda_usertask_completed_total",
+      "engine_usertask_created_total",
+      "engine_usertask_completed_total",
     ])
 
     const used = new Set(allConsumerSources().flatMap(({ text }) => extractSeries(text)))
@@ -288,13 +317,13 @@ describe("metrics contract", () => {
           : [m.promName]
       const consumed = series.some((s) => used.has(s))
       if (KNOWN_UNCONSUMED.has(m.promName)) {
-        expect(consumed, `${m.promName} is consumed now — remove it from KNOWN_UNCONSUMED`).toBe(
+        expect(consumed, `${m.promName} is consumed now; remove it from KNOWN_UNCONSUMED`).toBe(
           false,
         )
       } else {
         expect(
           consumed,
-          `${m.promName} has no consumer (TS queries, alerts.yml, Grafana dashboards) — dead contract entry?`,
+          `${m.promName} has no consumer (TS queries, alerts.yml, Grafana dashboards). Dead contract entry?`,
         ).toBe(true)
       }
     }
