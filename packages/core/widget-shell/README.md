@@ -156,7 +156,7 @@ bump. A module of your own, like the Pulse connectors, peers this package (`^<th
 your server's copy is the only one. The peers are published as ranges (`react`/`react-dom`
 `^19.2.0`, `zod` `^4.4.0`, `@miragon/pulse-ui` `^<this release>`, `lucide-react`
 `^0.562.0 || ^1.0.0`) so they dedupe against your app's copy. **A host bundle that dedupes
-`lucide-react` needs a 1.x copy that exports `LucideProvider`** (this repo pins 1.61.0):
+`lucide-react` needs a 1.x copy that exports `LucideProvider`** (this repo pins 1.66.0):
 widget-shell's view root imports `LucideProvider`, which 0.x does not export, so a deduped 0.x copy
 fails the bundle build with a missing export. The peer range still admits 0.562 only for this repo's
 own test graph; no package manager warns you about it. `bpmn-js` is a peer (`^18.31.1`):
