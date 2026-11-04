@@ -1,0 +1,14 @@
+{
+  "about": "url is blank.",
+  "file": {
+    "profiles": {
+      "local": {
+        "url": "  "
+      }
+    }
+  },
+  "cli": {
+    "valid": false,
+    "error": "profile \"local\" has an invalid url"
+  }
+}

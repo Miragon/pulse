@@ -1,0 +1,15 @@
+{
+  "about": "The former name of flavor.",
+  "file": {
+    "profiles": {
+      "local": {
+        "url": "http://localhost:8080/engine-rest",
+        "platform": "camunda7"
+      }
+    }
+  },
+  "cli": {
+    "valid": false,
+    "error": "unknown key(s) platform in profile \"local\""
+  }
+}

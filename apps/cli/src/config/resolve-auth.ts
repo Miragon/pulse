@@ -273,6 +273,22 @@ function authOf(
   }
 }
 
+/** The type resolveAuth uses: the explicit one, else the one a username or a token implies. */
+function typeOf(context: Context) {
+  const explicit = pickType(context)
+  const username = pickUsername(context)
+  return { explicit, username, type: explicit ?? impliedType(username, context) }
+}
+
+/** The auth type resolveAuth picks, before it reads a credential; undefined means none. */
+export function pickAuthType(
+  flags: ConfigFlags,
+  env: Env,
+  selected: SelectedProfile,
+): AuthType | undefined {
+  return typeOf({ flags, env, selected }).type?.value
+}
+
 /** `authCommand`: for `pulse-cli auth` commands, whose hints never suggest `--auth`. */
 export function resolveAuth(
   flags: ConfigFlags,
@@ -281,9 +297,7 @@ export function resolveAuth(
   authCommand = false,
 ): ResolvedAuth {
   const context: Context = { flags, env, selected, authCommand }
-  const explicit = pickType(context)
-  const username = pickUsername(context)
-  const type = explicit ?? impliedType(username, context)
+  const { explicit, username, type } = typeOf(context)
   const unused =
     explicit === undefined || explicit.value === "bearer"
       ? undefined

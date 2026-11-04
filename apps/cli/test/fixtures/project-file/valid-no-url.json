@@ -1,0 +1,21 @@
+{
+  "about": "Without a url the CLI uses PULSE_CLI_URL or its default; Pulse for VS Code reads no environment and names it.",
+  "file": {
+    "profiles": {
+      "nowhere": {
+        "readOnly": true
+      }
+    }
+  },
+  "cli": {
+    "valid": true,
+    "profiles": {
+      "nowhere": {
+        "url": "http://localhost:8080/engine-rest",
+        "flavor": "camunda7",
+        "readOnly": true,
+        "auth": "none"
+      }
+    }
+  }
+}

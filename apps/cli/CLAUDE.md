@@ -44,7 +44,8 @@ cruises `apps/cli/src`, `pnpm lint:architecture:cli` its `scripts/` and `test/`.
 | `apps/cli/src/http/`        | The fetch client and the mapping of HTTP errors                            |
 | `apps/cli/src/output/`      | JSON, tables, field projection, errors, secret masking                     |
 | `apps/cli/scripts/`         | The catalog generator (`renderCatalog`), the executable build              |
-| `apps/cli/test/`            | Fakes for the unit tests (`apps/cli/test/support/`) and the engine suites  |
+| `apps/cli/schema/`          | The JSON Schema of the project file, shipped in the npm package            |
+| `apps/cli/test/`            | Fakes (`apps/cli/test/support/`), the project file fixtures, engine suites |
 
 No cycle, a type-only one included. The pure layers import no Node built-in (WebCrypto and the
 timers are globals). Only the `auth login` command reaches the interactive login (loopback
@@ -68,6 +69,24 @@ lines, also under `apps/cli/test/`: a test that grows splits along its describes
 file, its shared helpers go to `apps/cli/test/support/`, and split files never import each other.
 An engine suite keeps one container topology per file and registers its tests from modules
 beside it.
+
+## The project file schema
+
+The CLI owns the format of `.pulse-cli.json`: `apps/cli/schema/project-file.schema.json` (JSON
+Schema draft-07, shipped in the npm package, `$id` on unpkg) describes exactly what
+`parseProjectFile` accepts. The shared fixtures in `apps/cli/test/fixtures/project-file/` (one
+file each: the file and the CLI's verdict, the error or each profile as it resolves) hold both:
+`apps/cli/src/config/project-schema.test.ts` gives every fixture to the parser and the schema and
+resolves each profile, `apps/cli/src/config/project-schema-boundaries.test.ts` checks the edges
+both ways, as a table and as properties, the refused header names drawn from the CLI's own lists.
+The CLI owns the files and its verdict; Pulse for VS Code owns what it makes of them
+(`apps/vscode/test/host/project-file-fixtures.expected.json`), and its
+`apps/vscode/test/host/project-file-fixtures.test.ts` reads the fixtures as files. A change to
+what a project file may hold changes the parser, the schema and a fixture in the same commit; a
+new fixture needs an entry in the extension's expectations too. The one rule JSON Schema cannot
+express (a defaultProfile names one of the file's profiles) is checked next to the schema in
+`apps/cli/test/support/project-schema.ts`. An invalid fixture holds one violation, so the schema
+has to catch each on its own.
 
 ## Catalogs
 

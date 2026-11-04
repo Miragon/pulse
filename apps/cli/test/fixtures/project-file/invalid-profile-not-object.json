@@ -1,0 +1,12 @@
+{
+  "about": "A profile that is no object.",
+  "file": {
+    "profiles": {
+      "nonsense": "nonsense"
+    }
+  },
+  "cli": {
+    "valid": false,
+    "error": "profile \"nonsense\" must be an object"
+  }
+}

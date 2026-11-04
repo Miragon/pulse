@@ -1,0 +1,11 @@
+{
+  "about": "$schema is no string.",
+  "file": {
+    "$schema": 1,
+    "profiles": {}
+  },
+  "cli": {
+    "valid": false,
+    "error": "$schema must be a string"
+  }
+}

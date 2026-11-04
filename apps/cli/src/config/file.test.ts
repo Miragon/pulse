@@ -129,9 +129,12 @@ describe("parseConfigFile", () => {
     expect(parseConfigFile(JSON.stringify(full), PATH)).toEqual(full)
   })
 
-  it("accepts and drops $schema", () => {
+  it("keeps a $schema string and rejects any other value", () => {
     const parsed = parseConfigFile('{"$schema":"https://x/schema.json","profiles":{}}', PATH)
-    expect(parsed).toStrictEqual({ profiles: {} })
+    expect(parsed).toStrictEqual({ $schema: "https://x/schema.json", profiles: {} })
+    expect(parseFailure('{"$schema":1}').message).toBe(
+      `Invalid config file ${PATH}: $schema must be a string (the URL or path of a JSON Schema)`,
+    )
   })
 
   it("defaults missing profiles to an empty object", () => {
@@ -403,8 +406,12 @@ describe("writeConfigFile", () => {
 
   it("writes what parseConfigFile reads back", async () => {
     const { fs, writes } = memoryFs()
-    const config: ConfigFile = { profiles: { a: { headers: { "X-A": "b" }, readOnly: true } } }
+    const config: ConfigFile = {
+      $schema: "./schema.json",
+      profiles: { a: { headers: { "X-A": "b" }, readOnly: true } },
+    }
     await writeConfigFile(fs, PATH, config)
+    expect(String(writes[0]?.data)).toMatch(/^\{\n {2}"\$schema": "\.\/schema\.json",\n/)
     expect(parseConfigFile(String(writes[0]?.data), PATH)).toEqual(config)
   })
 })

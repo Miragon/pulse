@@ -1,0 +1,77 @@
+{
+  "about": "The auth types both parsers support; credentials come from elsewhere.",
+  "file": {
+    "profiles": {
+      "none": {
+        "url": "http://localhost:8080/engine-rest",
+        "auth": {
+          "type": "none"
+        }
+      },
+      "basic": {
+        "url": "http://localhost:8080/engine-rest",
+        "auth": {
+          "type": "basic"
+        }
+      },
+      "oauth": {
+        "url": "http://localhost:8080/engine-rest",
+        "auth": {
+          "type": "oauth",
+          "issuer": "https://login.example.com/realms/camunda",
+          "clientId": "pulse-cli",
+          "scopes": ["openid"],
+          "audience": "engine-rest",
+          "redirectPort": 0
+        }
+      },
+      "endpoints": {
+        "url": "http://localhost:8080/engine-rest",
+        "auth": {
+          "type": "oauth",
+          "authorizationEndpoint": "https://login.example.com/realms/camunda/protocol/openid-connect/auth",
+          "tokenEndpoint": "https://login.example.com/realms/camunda/protocol/openid-connect/token",
+          "clientId": "pulse-cli"
+        }
+      },
+      "absent": {
+        "url": "http://localhost:8080/engine-rest"
+      }
+    }
+  },
+  "cli": {
+    "valid": true,
+    "profiles": {
+      "none": {
+        "url": "http://localhost:8080/engine-rest",
+        "flavor": "camunda7",
+        "readOnly": false,
+        "auth": "none"
+      },
+      "basic": {
+        "url": "http://localhost:8080/engine-rest",
+        "flavor": "camunda7",
+        "readOnly": false,
+        "auth": "basic"
+      },
+      "oauth": {
+        "url": "http://localhost:8080/engine-rest",
+        "flavor": "camunda7",
+        "readOnly": false,
+        "auth": "oauth"
+      },
+      "endpoints": {
+        "url": "http://localhost:8080/engine-rest",
+        "flavor": "camunda7",
+        "readOnly": false,
+        "auth": "oauth"
+      },
+      "absent": {
+        "url": "http://localhost:8080/engine-rest",
+        "flavor": "camunda7",
+        "readOnly": false,
+        "auth": "none"
+      }
+    }
+  }
+}

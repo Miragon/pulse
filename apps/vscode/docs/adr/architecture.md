@@ -1,7 +1,7 @@
 # Architecture
 
 - Status: accepted
-- Last reviewed: 2026-10-26 (boards)
+- Last reviewed: 2026-11-04 (the CLI's project file fixtures)
 
 ## Context
 
@@ -62,6 +62,21 @@ host        → core, protocol, contract, vscode, modeler-shell, Node built-ins
               adapters and the model adapter only from host/composition-root.ts
 tests, scripts, dev tooling → anything
 ```
+
+One edge crosses into another app, and only as a file read: the CLI owns the format of
+`.pulse-cli.json` (its JSON Schema `apps/cli/schema/project-file.schema.json`) and the shared
+fixtures in `apps/cli/test/fixtures/project-file/`, each the file and the CLI's verdict. The
+extension owns what it makes of each fixture, in
+`apps/vscode/test/host/project-file-fixtures.expected.json`, so rewording a problem changes no
+file of the CLI. The test `apps/vscode/test/host/project-file-fixtures.test.ts` reads the
+fixtures with `node:fs`, never through an import (apps never import each other; a file read is
+no import edge), and holds `TargetsParser` to them: every profile the CLI accepts is a target with
+the CLI's URL, auth type and read-only flag, or a named problem, and every fixture has exactly one
+expectation. A change to the CLI's rules changes the fixtures, and this test fails until the
+parser follows; `apps/vscode/turbo.json` names the fixtures as inputs of `test`, so a cached run
+never hides that. Pulse reads profile by profile and ignores keys it does not use, so a file the
+CLI refuses as a whole (a committed password, a secret header, an unknown key) can still list
+engines; the fixtures pin that.
 
 Each layer has its own `tsconfig.<layer>.json` with `lib`/`types` matching its runtime,
 so code that uses `document` in the core or `process` in the webview does not compile.

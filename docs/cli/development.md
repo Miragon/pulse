@@ -85,7 +85,8 @@ src/auth/       auth providers (none, basic, bearer with JWT expiry, token comma
 src/http/       fetch based HTTP client and error mapping
 src/output/     JSON, tables, field projection, errors, secret masking (pure)
 scripts/        catalog generator, standalone executable build, packaging smoke test
-test/           fakes for unit tests, Testcontainers engine suites
+schema/         the JSON Schema of the project file .pulse-cli.json, shipped in the npm package
+test/           fakes for unit tests, the project file fixtures, Testcontainers engine suites
 ```
 
 The overview with diagrams is in [Architecture](architecture.md), the decisions in
@@ -126,5 +127,4 @@ adapters import `src/api`, only `auth login` reaches the interactive login, and 
   prompt, and put transcripts with output into ` ```text ` blocks.
 - The catalog is generated: change the spec patches or the generator and run `catalog`; never
   edit a file in `apps/cli/src/generated/` by hand.
-- Commits are conventional, with the scope `cli`: the CLI is released with the rest of the
-  repository, and release-please writes the release notes from the commit titles.
+- Commits are conventional, with the scope `cli`: release-please writes the notes from their titles.

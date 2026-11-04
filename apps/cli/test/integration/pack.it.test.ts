@@ -141,9 +141,14 @@ describe("packed npm tarball", () => {
     )
   })
 
-  it("ships the README, the license and the agent skill", async () => {
+  it("ships the README, the license, the agent skill and the project file schema", async () => {
     const packageDir = installedPackageDir(prefix)
-    for (const file of ["README.md", "LICENSE", join("skills", "pulse-cli", "SKILL.md")]) {
+    for (const file of [
+      "README.md",
+      "LICENSE",
+      join("skills", "pulse-cli", "SKILL.md"),
+      join("schema", "project-file.schema.json"),
+    ]) {
       expect(existsSync(join(packageDir, file)), file).toBe(true)
     }
     const skill = await readFile(join(packageDir, "skills", "pulse-cli", "SKILL.md"), "utf8")

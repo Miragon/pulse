@@ -1,0 +1,10 @@
+{
+  "about": "profiles is null.",
+  "file": {
+    "profiles": null
+  },
+  "cli": {
+    "valid": false,
+    "error": "profiles must be an object"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "about": "An unknown profile key; Pulse for VS Code ignores keys it does not read.",
+  "file": {
+    "profiles": {
+      "local": {
+        "url": "http://localhost:8080/engine-rest",
+        "colour": "blue"
+      }
+    }
+  },
+  "cli": {
+    "valid": false,
+    "error": "unknown key(s) colour in profile \"local\""
+  }
+}

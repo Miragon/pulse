@@ -1,0 +1,18 @@
+{
+  "about": "OAuth keys with type basic; Pulse for VS Code reads the type.",
+  "file": {
+    "profiles": {
+      "local": {
+        "url": "http://localhost:8080/engine-rest",
+        "auth": {
+          "type": "basic",
+          "issuer": "https://login.example.com/realms/camunda"
+        }
+      }
+    }
+  },
+  "cli": {
+    "valid": false,
+    "error": "profile \"local\" has OAuth keys (issuer) but its auth.type is basic"
+  }
+}

@@ -19,8 +19,9 @@ const BEYOND_LATIN1 = /[Ā-\u{10ffff}]/u
 /**
  * Connection management headers the HTTP client sets itself; undici refuses most of them (the
  * request would fail as if the engine were unreachable) and a wrong Content-Length breaks bodies.
+ * The project file schema refuses them too.
  */
-const CLIENT_HEADERS: ReadonlySet<string> = new Set([
+export const CLIENT_HEADERS: ReadonlySet<string> = new Set([
   "connection",
   "content-length",
   "expect",

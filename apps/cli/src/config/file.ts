@@ -189,6 +189,13 @@ function checkDefaultProfile(value: unknown, path: string): asserts value is str
   }
 }
 
+/** $schema: the URL or path of a JSON Schema for editors, e.g. the project file's. */
+function checkSchema(value: unknown, path: string): asserts value is string | undefined {
+  if (value !== undefined && typeof value !== "string") {
+    fail(path, "$schema must be a string (the URL or path of a JSON Schema)")
+  }
+}
+
 export function parseConfigFile(text: string, path: string): ConfigFile {
   let parsed: unknown
   try {
@@ -198,10 +205,12 @@ export function parseConfigFile(text: string, path: string): ConfigFile {
   }
   if (!isRecord(parsed)) fail(path, "expected a JSON object")
   checkKeys(parsed, ROOT_KEYS, "the root object", path)
-  const { defaultProfile, profiles = {} } = parsed
+  const { $schema, defaultProfile, profiles = {} } = parsed
+  checkSchema($schema, path)
   checkDefaultProfile(defaultProfile, path)
   if (!isRecord(profiles)) fail(path, "profiles must be an object")
   return {
+    ...($schema === undefined ? {} : { $schema }),
     ...(defaultProfile === undefined ? {} : { defaultProfile }),
     profiles: Object.fromEntries(
       Object.entries(profiles).map(([name, profile]) => [
@@ -252,10 +261,18 @@ export async function readConfigFile(
   return parseConfigFile(new TextDecoder().decode(data), path)
 }
 
-/** The text of a config file: its default profile and profiles, indented, with a final newline. */
+/**
+ * The text of a config file: its $schema, default profile and profiles, indented, with a final
+ * newline.
+ */
 function serializeConfigFile(config: ConfigFile): string {
-  const { defaultProfile, profiles } = config
-  return `${JSON.stringify({ ...(defaultProfile === undefined ? {} : { defaultProfile }), profiles }, null, 2)}\n`
+  const { $schema, defaultProfile, profiles } = config
+  const file = {
+    ...($schema === undefined ? {} : { $schema }),
+    ...(defaultProfile === undefined ? {} : { defaultProfile }),
+    profiles,
+  }
+  return `${JSON.stringify(file, null, 2)}\n`
 }
 
 /**

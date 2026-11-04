@@ -1,0 +1,14 @@
+{
+  "about": "A profile name with a space.",
+  "file": {
+    "profiles": {
+      "prod eu": {
+        "url": "http://localhost:8080/engine-rest"
+      }
+    }
+  },
+  "cli": {
+    "valid": false,
+    "error": "invalid profile name \"prod eu\""
+  }
+}

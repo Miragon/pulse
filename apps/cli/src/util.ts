@@ -59,13 +59,21 @@ export function mergeHeaders(
   return Object.fromEntries(merged.values())
 }
 
-const SECRET_HEADERS: ReadonlySet<string> = new Set([
+/** Headers that carry a secret by name (lower case); the project file schema refuses them too. */
+export const SECRET_HEADERS: ReadonlySet<string> = new Set([
   "authorization",
   "proxy-authorization",
   "cookie",
   "set-cookie",
 ])
-const SECRET_NAME_PARTS = ["token", "secret", "password", "api-key", "apikey"]
+/** Parts of a header name that mark a secret (lower case); the project file schema refuses them too. */
+export const SECRET_NAME_PARTS: readonly string[] = [
+  "token",
+  "secret",
+  "password",
+  "api-key",
+  "apikey",
+]
 
 /**
  * True for a header that carries a secret: credentials, cookies and names containing token,

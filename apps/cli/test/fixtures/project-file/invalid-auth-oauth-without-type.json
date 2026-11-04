@@ -1,0 +1,18 @@
+{
+  "about": "OAuth is never implied: OAuth keys need type oauth.",
+  "file": {
+    "profiles": {
+      "local": {
+        "url": "http://localhost:8080/engine-rest",
+        "auth": {
+          "issuer": "https://login.example.com/realms/camunda",
+          "clientId": "pulse-cli"
+        }
+      }
+    }
+  },
+  "cli": {
+    "valid": false,
+    "error": "profile \"local\" has OAuth keys (issuer, clientId) but its auth.type is not set"
+  }
+}

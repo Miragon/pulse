@@ -127,6 +127,14 @@ pulse-cli config list
 pulse-cli config path --project
 ```
 
+```json
+{
+  "$schema": "https://unpkg.com/@miragon/pulse-cli/schema/project-file.schema.json",
+  "defaultProfile": "orders",
+  "profiles": { "orders": { "url": "http://localhost:8112/engine-rest/orders" } }
+}
+```
+
 - Its profiles join yours. On a name clash your own profile wins as a whole. The project's
   `defaultProfile` wins inside the repository, so a bare `pulse-cli status` reaches its engine.
 - A project file names engines, never credentials: passwords, secrets, tokens, their `*Env`
@@ -136,5 +144,9 @@ pulse-cli config path --project
   ([shared logins](authentication.md#shared-logins)) or a profile of the same name in your file.
 - `config set|unset|use|delete --project` write the project file (mode `0644`).
   `config list` shows each profile's `scope` (`user` or `project`).
+- `$schema` lets your editor check the file against the JSON Schema that ships with pulse-cli
+  (`schema/project-file.schema.json` in the npm package); pulse-cli keeps the key when it writes
+  the file. The URL above serves the latest release; `@miragon/pulse-cli@<version>` pins yours.
+  [Pulse for VS Code](../vscode/configuration.md) reads the same profiles.
 - Treat a project file like code: it decides where your credentials from the environment and its
   profiles' OAuth login are sent.

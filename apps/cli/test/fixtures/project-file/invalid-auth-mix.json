@@ -1,0 +1,18 @@
+{
+  "about": "Basic auth and OAuth keys in one profile.",
+  "file": {
+    "profiles": {
+      "local": {
+        "url": "http://localhost:8080/engine-rest",
+        "auth": {
+          "username": "demo",
+          "issuer": "https://login.example.com/realms/camunda"
+        }
+      }
+    }
+  },
+  "cli": {
+    "valid": false,
+    "error": "profile \"local\" mixes Basic auth keys (username) and OAuth keys (issuer)"
+  }
+}

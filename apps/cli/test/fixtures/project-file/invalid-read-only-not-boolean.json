@@ -1,0 +1,15 @@
+{
+  "about": "readOnly is no boolean: never a writable engine.",
+  "file": {
+    "profiles": {
+      "local": {
+        "url": "http://localhost:8080/engine-rest",
+        "readOnly": "yes"
+      }
+    }
+  },
+  "cli": {
+    "valid": false,
+    "error": "profile \"local\" has an invalid readOnly"
+  }
+}
