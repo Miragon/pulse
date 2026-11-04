@@ -19,8 +19,14 @@ Pulse reads your engines as profiles in `.pulse-cli.json`, the project file of t
 ```
 
 Pulse reads `url`, `flavor` (`camunda7`, `cibseven` or `operaton`; `camunda7` when absent),
-`auth.type` (`none`, `basic`), `cockpitUrl` and `readOnly` (no writes from Pulse either). A
-profile it cannot serve yet shows up as a problem in the Engines view.
+`engine` (the default engine only), `auth.type` (`none`, `basic`; without a type a `username`
+means `basic`), `cockpitUrl` and `readOnly` (no writes from Pulse either), with the CLI's rules:
+URLs lose trailing slashes, and a value the CLI refuses never becomes a default. Such a profile,
+and one Pulse cannot serve yet, shows up as a problem in the Engines view. Pulse reads no
+`PULSE_CLI_*` variable, so a profile needs its `url`, and it sends no profile `headers`. Pulse
+reads profile by profile and skips the keys it does not use (`headers`, `timeout`, `output`,
+credentials), so a file the CLI refuses as a whole, say one with a committed password, can still
+list engines here: check a project file with `pulse-cli config list`.
 
 Set credentials with _Pulse: Set Credentials…_. They live in VS Code's secret storage.
 

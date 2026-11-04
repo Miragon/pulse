@@ -1,0 +1,14 @@
+{
+  "about": "url is no string.",
+  "file": {
+    "profiles": {
+      "local": {
+        "url": 8080
+      }
+    }
+  },
+  "cli": {
+    "valid": false,
+    "error": "profile \"local\" has an invalid url"
+  }
+}

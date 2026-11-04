@@ -1,0 +1,19 @@
+{
+  "about": "One OAuth endpoint without the other.",
+  "file": {
+    "profiles": {
+      "local": {
+        "url": "http://localhost:8080/engine-rest",
+        "auth": {
+          "type": "oauth",
+          "authorizationEndpoint": "https://login.example.com/realms/camunda/auth",
+          "clientId": "pulse-cli"
+        }
+      }
+    }
+  },
+  "cli": {
+    "valid": false,
+    "error": "profile \"local\" sets auth.authorizationEndpoint without the other endpoint"
+  }
+}

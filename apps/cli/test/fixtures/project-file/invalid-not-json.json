@@ -1,0 +1,8 @@
+{
+  "about": "A file that is not JSON.",
+  "text": "{\"profiles\": ",
+  "cli": {
+    "valid": false,
+    "error": "not valid JSON (line 1, column 14)"
+  }
+}

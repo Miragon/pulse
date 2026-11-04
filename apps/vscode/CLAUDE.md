@@ -97,6 +97,13 @@ engine-core, never into a copy here; contract, core, webview and host stay engin
 - A new gate is a rule in a standard tool (ESLint, dependency-cruiser, knip, tsc, Vitest,
   Stryker) or a test. A rule you write proves it bites with a case in
   `apps/vscode/test/architecture`; see `apps/vscode/docs/adr/guardrails.md`.
+- `.pulse-cli.json` follows the CLI's rules: the CLI owns its JSON Schema and the fixtures in
+  `apps/cli/test/fixtures/project-file/` (the file and the CLI's verdict), the extension its
+  expectations of them (`apps/vscode/test/host/project-file-fixtures.expected.json`, one entry
+  per fixture). `apps/vscode/test/host/project-file-fixtures.test.ts` reads the fixtures as files
+  (never an import) and holds `TargetsParser` to both. A profile the CLI accepts is a target with
+  the CLI's URL, auth type and read-only flag, or a named problem; a value the CLI refuses never
+  becomes a default. Change the parser with the fixtures, not apart.
 - When you change a boundary, the contract, the protocol or a dependency, update the matching
   record in `apps/vscode/docs/adr/` in the same commit.
 - The webview's colours are the Miragon tokens in `apps/vscode/src/webview/theme/`, vendored

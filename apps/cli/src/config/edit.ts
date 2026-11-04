@@ -184,11 +184,9 @@ function canonical(profile: Profile): Profile {
   return compact(Object.fromEntries(PROFILE_KEYS.map((key) => [key, profile[key]])))
 }
 
-function buildFile(
-  profiles: Readonly<Record<string, Profile>>,
-  defaultProfile: string | undefined,
-): ConfigFile {
-  return defaultProfile === undefined ? { profiles } : { defaultProfile, profiles }
+/** The edited file: `current`'s $schema (an edit keeps it), the default profile and profiles. */
+function buildFile(current: ConfigFile, profiles: ConfigFile["profiles"], defaultProfile?: string) {
+  return { ...compact({ $schema: current.$schema, defaultProfile }), profiles }
 }
 
 function requireProfile(file: ConfigFile, name: string): Profile {
@@ -215,6 +213,7 @@ export function setProfile(
   const first = Object.keys(current.profiles).length === 0
   const makeDefault = changes.makeDefault === true || first
   return buildFile(
+    current,
     { ...current.profiles, [name]: profile },
     makeDefault ? name : current.defaultProfile,
   )
@@ -257,14 +256,14 @@ export function unsetProfileKeys(
   )
   const rest = withoutAuthKeys(auth, authKeys)
   const edited = canonical(rest === undefined ? kept : { ...kept, auth: rest })
-  return buildFile({ ...current.profiles, [name]: edited }, current.defaultProfile)
+  return buildFile(current, { ...current.profiles, [name]: edited }, current.defaultProfile)
 }
 
 /** Makes an existing profile the default profile. */
 export function useProfile(file: ConfigFile | undefined, name: string): ConfigFile {
   const current = file ?? EMPTY
   requireProfile(current, name)
-  return buildFile(current.profiles, name)
+  return buildFile(current, current.profiles, name)
 }
 
 /** Removes a profile and clears the default profile if it pointed to it. */
@@ -275,7 +274,7 @@ export function deleteProfile(file: ConfigFile | undefined, name: string): Confi
     Object.entries(current.profiles).filter(([candidate]) => candidate !== name),
   )
   const defaultProfile = current.defaultProfile === name ? undefined : current.defaultProfile
-  return buildFile(profiles, defaultProfile)
+  return buildFile(current, profiles, defaultProfile)
 }
 
 /** Profile names are unique, so two summaries never compare equal. */

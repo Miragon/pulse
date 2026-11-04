@@ -76,12 +76,12 @@ describe("parsing the profiles of .pulse-cli.json", () => {
     expect(parsed.targets).toEqual([
       expect.objectContaining({
         name: "dev",
-        webUiUrl: "http://localhost:18090/operaton/app/cockpit/default/",
+        webUiUrl: "http://localhost:18090/operaton/app/cockpit/default",
       }),
     ])
     expect(parsed.problems.map((problem) => problem.detail())).toEqual([
-      `${FILE}: profile "file" needs a cockpitUrl that is an http or https URL without credentials`,
-      `${FILE}: profile "secret" needs a cockpitUrl that is an http or https URL without credentials`,
+      `${FILE}: profile "file" needs a cockpitUrl that is an http or https URL without credentials, query or fragment`,
+      `${FILE}: profile "secret" needs a cockpitUrl that is an http or https URL without credentials, query or fragment`,
     ])
   })
 
@@ -104,8 +104,8 @@ describe("parsing the profiles of .pulse-cli.json", () => {
     expect(parsed.problems.map((problem) => problem.detail())).toEqual([
       `${FILE}: profile "cluster" uses the flavor camunda8, which Pulse does not support yet`,
       `${FILE}: profile "named" names a process engine other than "default", which Pulse does not support yet`,
-      `${FILE}: profile "bad-url" needs a valid url without credentials and an auth type Pulse supports (none, basic or oauth)`,
-      `${FILE}: profile "bearer" needs a valid url without credentials and an auth type Pulse supports (none, basic or oauth)`,
+      `${FILE}: profile "bad-url" needs a url that is an http or https URL without credentials, query or fragment`,
+      `${FILE}: profile "bearer" uses bearer auth, which Pulse does not support yet`,
       `${FILE}: profile "nonsense" is not an object`,
     ])
   })
@@ -151,9 +151,10 @@ describe("parsing the profiles of .pulse-cli.json", () => {
       targets: [],
       problems: [{ path: FILE, message: "the file is not valid JSON" }],
     })
-    expect(new TargetsParser(FILE).parse("{}").problems).toEqual([
+    expect(new TargetsParser(FILE).parse('{"profiles": []}').problems).toEqual([
       { path: FILE, message: 'the file needs a "profiles" object' },
     ])
+    expect(new TargetsParser(FILE).parse("{}")).toEqual({ targets: [], problems: [] })
   })
 
   test("names the broken file and what is wrong, for the error item in the Engines tree", () => {

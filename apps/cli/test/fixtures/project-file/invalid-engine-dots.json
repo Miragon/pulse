@@ -1,0 +1,15 @@
+{
+  "about": "An engine name that would leave /engine/{name}.",
+  "file": {
+    "profiles": {
+      "local": {
+        "url": "http://localhost:8080/engine-rest",
+        "engine": ".."
+      }
+    }
+  },
+  "cli": {
+    "valid": false,
+    "error": "profile \"local\" has an invalid engine"
+  }
+}

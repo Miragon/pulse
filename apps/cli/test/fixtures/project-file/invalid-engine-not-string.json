@@ -1,0 +1,15 @@
+{
+  "about": "engine is no string.",
+  "file": {
+    "profiles": {
+      "local": {
+        "url": "http://localhost:8080/engine-rest",
+        "engine": 1
+      }
+    }
+  },
+  "cli": {
+    "valid": false,
+    "error": "profile \"local\" has an invalid engine"
+  }
+}

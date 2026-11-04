@@ -1,7 +1,7 @@
 # Boards
 
 - Status: accepted
-- Last reviewed: 2026-11-03 (the adapter calls REST, no CLI process per call)
+- Last reviewed: 2026-11-04 (the project file follows the CLI's rules)
 
 ## Context
 
@@ -84,8 +84,9 @@ an open board on save, and **Pulse: New Board…** writes a starter board.
 - Deferred: `var:` columns (a variable projection in the contract with a law and a saboteur),
   oldest first and an age filter for stuck instances, a real incident count in the contract,
   and grouping incidents by message.
-- `.pulse-cli.json` is parsed in the CLI and in the extension with different rules; a shared
-  profile schema in a `-domain` package is its own change.
+- `.pulse-cli.json` is parsed in the CLI and in the extension, by the CLI's rules: the CLI owns
+  its JSON Schema and the fixtures that hold both parsers to it, no shared package
+  ([architecture.md](architecture.md)).
 
 ## Decision log
 

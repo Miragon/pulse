@@ -1,7 +1,7 @@
 # Camunda 7 family adapter
 
 - Status: accepted
-- Last reviewed: 2026-11-03
+- Last reviewed: 2026-11-04
 
 ## Context
 
@@ -66,7 +66,9 @@ MCP server run too.
   connection for reads refuses every write before it leaves; `C7Adapter.commands` builds
   the writer on its own connection, a test holds both.
 - **The engine shown is the engine queried.** URL and credentials come only from the
-  selected target; Pulse reads the workspace's `.pulse-cli.json` itself (`TargetsParser`).
+  selected target; Pulse reads the workspace's `.pulse-cli.json` itself (`TargetsParser`,
+  held to the CLI's fixtures: the CLI's URL without trailing slashes, never a default for a
+  value the CLI refuses).
   Ids must match `^[A-Za-z0-9_][\w.:-]*$` (no comma that would add ids to a list) and are
   refused before sending; variable names without control characters, at most 255.
 - **`inspect` runs engine-core's `loadInstance`** over `EngineHttp` (`HttpEngineTransport`,

@@ -285,7 +285,7 @@ read-only document.
 - It opens the shown instance (Cockpit on its incidents tab when it has one) or the
   shown version, not single incidents: Cockpit's instance page lists them.
 - `cockpitUrl` per profile in `.pulse-cli.json` (an http or https URL
-  without credentials, else the target is refused with a problem); without it there is
+  without credentials, query or fragment, else the target is refused with a problem); without it there is
   no button at all, never a disabled one, and no guess from the REST endpoint: a link
   that 404s costs more trust than a missing one. The adapter knows the routes
   ([c7-adapter.md](c7-adapter.md)); the webview posts

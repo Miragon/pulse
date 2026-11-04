@@ -253,6 +253,8 @@ export type SelectedProfile =
     }
 
 export interface ConfigFile {
+  /** The JSON Schema the file names for editors; kept when the CLI writes the file. */
+  readonly $schema?: string
   readonly defaultProfile?: string
   readonly profiles: Readonly<Record<string, Profile>>
 }
