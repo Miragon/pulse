@@ -6,11 +6,11 @@
     "configFile": "vitest.stryker.config.ts"
   },
   "mutate": [
-    "src/bpmn-name-lookup.ts",
-    "src/bpmn-names.ts",
-    "src/engine-ids.ts",
-    "src/named-views.ts",
-    "src/tools/health.ts"
+    "src/**/*.ts",
+    "!src/**/*.test.ts",
+    "!src/testing/**",
+    "!src/index.ts",
+    "!src/types.ts"
   ],
   "inPlace": true,
   "incremental": true,
@@ -22,6 +22,6 @@
   "thresholds": {
     "high": 80,
     "low": 60,
-    "break": 42
+    "break": 89
   }
 }

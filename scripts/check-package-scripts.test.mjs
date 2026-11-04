@@ -7,9 +7,9 @@ import { fileURLToPath } from "node:url"
 import {
   GATE_PATH,
   MUTATION_REPORT,
-  NO_MUTATION_APPS,
+  MUTATED_PACKAGES,
   checkFilters,
-  checkMutationExemptions,
+  checkMutatedPackages,
   checkPackageConfigs,
   checkPackageScripts,
   checkStrykerConfig,
@@ -243,22 +243,31 @@ describe("checkStrykerConfig: a config whose defaults would keep the gate green 
 })
 
 const STRYKER_OK = { exists: true, config: GOOD_STRYKER }
+const NO_STRYKER = { exists: false }
+const CORE = "packages/connectors/engine/engine-core"
+const CONNECTOR = "packages/connectors/engine/engine-connector"
+const CHOSEN = "owner decision: the shared pure rules"
 
 describe("checkPackageConfigs: the configs a source package's scripts measure against", () => {
-  it("accepts a package with a vitest.config.ts and a valid stryker.config.json", () => {
+  it("accepts a listed package with a valid stryker.config.json and an unlisted one without", () => {
     assert.deepEqual(
-      checkPackageConfigs("packages/connectors/engine/engine-connector", {
+      checkPackageConfigs(CORE, {
         hasVitestConfig: true,
         stryker: STRYKER_OK,
+        mutatedReason: CHOSEN,
       }),
+      [],
+    )
+    assert.deepEqual(
+      checkPackageConfigs(CONNECTOR, { hasVitestConfig: true, stryker: NO_STRYKER }),
       [],
     )
   })
 
   it("requires a vitest.config.ts: vitest's default measures no coverage", () => {
-    const errors = checkPackageConfigs("packages/connectors/engine/engine-connector", {
+    const errors = checkPackageConfigs(CONNECTOR, {
       hasVitestConfig: false,
-      stryker: STRYKER_OK,
+      stryker: NO_STRYKER,
     })
     assert.equal(errors.length, 1)
     assert.match(
@@ -268,98 +277,114 @@ describe("checkPackageConfigs: the configs a source package's scripts measure ag
     assert.match(errors[0], /sharedConfig/)
   })
 
-  it("requires a stryker.config.json unless the app is exempt", () => {
-    const errors = checkPackageConfigs("apps/cli", {
+  it("requires a stryker.config.json in a listed package", () => {
+    const errors = checkPackageConfigs(CORE, {
       hasVitestConfig: true,
-      stryker: { exists: false },
-    })
-    assert.equal(errors.length, 1)
-    assert.match(errors[0], /^apps\/cli: no stryker\.config\.json/)
-    assert.deepEqual(
-      checkPackageConfigs("apps/server", {
-        hasVitestConfig: true,
-        stryker: { exists: false },
-        exemptReason: "composition root",
-      }),
-      [],
-    )
-  })
-
-  it("fails an exemption once the app carries a config, and still checks that config", () => {
-    const errors = checkPackageConfigs("apps/server", {
-      hasVitestConfig: true,
-      stryker: { exists: true, config: withThresholds({ break: null }) },
-      exemptReason: "composition root",
-    })
-    assert.equal(errors.length, 2)
-    assert.match(errors[0], /listed in NO_MUTATION_APPS but carries a stryker\.config\.json/)
-    assert.match(errors[1], /thresholds\.break/)
-  })
-
-  it("names an unreadable config instead of crashing or skipping it", () => {
-    const errors = checkPackageConfigs("apps/cli", {
-      hasVitestConfig: true,
-      stryker: { exists: true, parseError: "Unexpected token" },
+      stryker: NO_STRYKER,
+      mutatedReason: CHOSEN,
     })
     assert.equal(errors.length, 1)
     assert.match(
       errors[0],
-      /^apps\/cli\/stryker\.config\.json is not valid JSON \(Unexpected token\)/,
+      /^packages\/connectors\/engine\/engine-core: listed in MUTATED_PACKAGES but has no stryker\.config\.json/,
+    )
+  })
+
+  it("fails a stryker.config.json in an unlisted package, valid or not", () => {
+    for (const stryker of [
+      STRYKER_OK,
+      { exists: true, config: withThresholds({ break: null }) },
+      { exists: true, parseError: "Unexpected token" },
+    ]) {
+      const errors = checkPackageConfigs("apps/cli", { hasVitestConfig: true, stryker })
+      assert.equal(errors.length, 1, JSON.stringify(stryker))
+      assert.match(
+        errors[0],
+        /^apps\/cli: carries a stryker\.config\.json but is not in MUTATED_PACKAGES/,
+      )
+    }
+  })
+
+  it("checks a listed package's config", () => {
+    const errors = checkPackageConfigs(CORE, {
+      hasVitestConfig: true,
+      stryker: { exists: true, config: withThresholds({ break: null }) },
+      mutatedReason: CHOSEN,
+    })
+    assert.equal(errors.length, 1)
+    assert.match(
+      errors[0],
+      /^packages\/connectors\/engine\/engine-core\/stryker\.config\.json: thresholds\.break/,
+    )
+  })
+
+  it("names an unreadable config instead of crashing or skipping it", () => {
+    const errors = checkPackageConfigs(CORE, {
+      hasVitestConfig: true,
+      stryker: { exists: true, parseError: "Unexpected token" },
+      mutatedReason: CHOSEN,
+    })
+    assert.equal(errors.length, 1)
+    assert.match(
+      errors[0],
+      /^packages\/connectors\/engine\/engine-core\/stryker\.config\.json is not valid JSON \(Unexpected token\)/,
     )
   })
 
   it("skips only the Stryker rules while mutation testing is paused", () => {
     assert.deepEqual(
-      checkPackageConfigs("apps/cli", {
+      checkPackageConfigs(CORE, {
         hasVitestConfig: true,
-        stryker: { exists: false },
+        stryker: NO_STRYKER,
+        mutatedReason: CHOSEN,
         mutationPaused: true,
       }),
       [],
     )
-    const errors = checkPackageConfigs("apps/cli", {
+    assert.deepEqual(
+      checkPackageConfigs("apps/cli", {
+        hasVitestConfig: true,
+        stryker: STRYKER_OK,
+        mutationPaused: true,
+      }),
+      [],
+    )
+    const errors = checkPackageConfigs(CORE, {
       hasVitestConfig: false,
       stryker: { exists: true, parseError: "Unexpected token" },
+      mutatedReason: CHOSEN,
       mutationPaused: true,
     })
     assert.equal(errors.length, 1)
-    assert.match(errors[0], /^apps\/cli: no vitest\.config\.ts/)
+    assert.match(errors[0], /^packages\/connectors\/engine\/engine-core: no vitest\.config\.ts/)
   })
 })
 
-describe("checkMutationExemptions: NO_MUTATION_APPS cannot outlive its reason", () => {
-  const sources = ["apps/server", "apps/cli", "packages/core/a"]
+describe("checkMutatedPackages: MUTATED_PACKAGES cannot outlive its reason", () => {
+  const sources = ["apps/server", "apps/cli", CORE]
 
-  it("accepts an app that is a source package and carries a reason", () => {
-    assert.deepEqual(checkMutationExemptions(sources, { "apps/server": "composition root" }), [])
-    assert.deepEqual(checkMutationExemptions(sources, {}), [])
+  it("accepts a source package that carries a reason", () => {
+    assert.deepEqual(checkMutatedPackages(sources, { [CORE]: CHOSEN }), [])
+    assert.deepEqual(checkMutatedPackages(sources, {}), [])
   })
 
-  it("fails a stale entry: the app is gone or has no src/", () => {
-    const errors = checkMutationExemptions(sources, { "apps/gone": "composition root" })
+  it("fails a stale entry: the package is gone or has no src/", () => {
+    const errors = checkMutatedPackages(sources, { "packages/core/gone": CHOSEN })
     assert.equal(errors.length, 1)
-    assert.match(errors[0], /"apps\/gone" is not a workspace package with src\/ .*remove the/)
-  })
-
-  it("exempts apps only: a package is a library the gate must mutate", () => {
-    for (const dir of ["packages/core/a", "apps/cli/src", "docs"]) {
-      const errors = checkMutationExemptions(sources, { [dir]: "reason" })
-      assert.equal(errors.length, 1, dir)
-      assert.match(errors[0], /is not an app \(apps\/<name>\)/)
-    }
+    assert.match(errors[0], /"packages\/core\/gone" is not a workspace package with src\//)
   })
 
   it("requires a reason", () => {
     for (const reason of ["", "  ", undefined, 1]) {
-      const errors = checkMutationExemptions(sources, { "apps/server": reason })
+      const errors = checkMutatedPackages(sources, { [CORE]: reason })
       assert.equal(errors.length, 1, JSON.stringify(reason))
       assert.match(errors[0], /carries no reason/)
     }
   })
 
-  it("the real map exempts only apps, each with a reason", () => {
-    assert.deepEqual(Object.keys(NO_MUTATION_APPS), ["apps/mcp-server"])
-    for (const reason of Object.values(NO_MUTATION_APPS)) assert.ok(reason.length > 20)
+  it("the real map lists engine-core alone, with the owner's decision as its reason", () => {
+    assert.deepEqual(Object.keys(MUTATED_PACKAGES), [CORE])
+    assert.match(MUTATED_PACKAGES[CORE], /owner decision 2026-11-04/)
   })
 })
 
@@ -367,24 +392,18 @@ const SCRIPTS = COMPLETE
 
 /**
  * A workspace fixture: every package below passes, so each case breaks one
- * thing. The apps are the ones P1 prepares for (a published CLI and a VS Code
- * extension, which declares engines.vscode), plus a connector package and an
- * exempt server app.
+ * thing. A published CLI, a VS Code extension (it declares engines.vscode), a
+ * server app and a connector package carry no stryker.config.json; the family
+ * core is the one package the fixture's MUTATED lists, and carries one.
  */
 const PACKAGES = {
-  "apps/cli": { name: "@miragon/pulse-cli", stryker: GOOD_STRYKER },
-  "apps/vscode": {
-    name: "pulse",
-    engines: { vscode: "^1.95.0" },
-    stryker: GOOD_STRYKER,
-  },
-  "apps/server": { name: "@miragon/pulse-fixture-root", stryker: null },
-  "packages/connectors/engine/engine-connector": {
-    name: "@miragon/pulse-engine-connector",
-    stryker: GOOD_STRYKER,
-  },
+  "apps/cli": { name: "@miragon/pulse-cli" },
+  "apps/vscode": { name: "pulse", engines: { vscode: "^1.95.0" } },
+  "apps/server": { name: "@miragon/pulse-fixture-root" },
+  [CONNECTOR]: { name: "@miragon/pulse-engine-connector" },
+  [CORE]: { name: "@miragon/pulse-engine-core", stryker: GOOD_STRYKER },
 }
-const EXEMPT = { "apps/server": "the fixture's composition root" }
+const MUTATED = { [CORE]: "the fixture's chosen package" }
 
 /** Builds the fixture under a fresh tmpdir with `change(packages)` applied; returns its root. */
 function workspaceFixture(change = () => {}) {
@@ -401,9 +420,10 @@ function workspaceFixture(change = () => {}) {
   )
   // The docs site: no src/, so no gate applies.
   write("docs/package.json", JSON.stringify({ name: "@miragon/pulse-docs" }))
-  for (const [dir, { name, engines, stryker, vitest = true, raw }] of Object.entries(packages)) {
+  for (const [dir, spec] of Object.entries(packages)) {
+    const { name, engines, stryker, vitest = true, src = true, raw } = spec
     write(`${dir}/package.json`, JSON.stringify({ name, engines, scripts: SCRIPTS }))
-    write(`${dir}/src/index.ts`, "export {}\n")
+    if (src) write(`${dir}/src/index.ts`, "export {}\n")
     if (vitest) write(`${dir}/vitest.config.ts`, "export default {}\n")
     if (raw !== undefined) write(`${dir}/stryker.config.json`, raw)
     else if (stryker) write(`${dir}/stryker.config.json`, JSON.stringify(stryker))
@@ -412,23 +432,21 @@ function workspaceFixture(change = () => {}) {
 }
 
 /** The errors checkWorkspace reports for the fixture with `change` applied. */
-function workspaceErrors(change, { noMutationApps = EXEMPT } = {}) {
+function workspaceErrors(change, { mutatedPackages = MUTATED, mutationPaused = false } = {}) {
   const root = workspaceFixture(change)
   try {
     const globs = workspaceGlobs(readFileSync(path.join(root, "pnpm-workspace.yaml"), "utf8"))
-    return checkWorkspace(root, globs, { noMutationApps })
+    return checkWorkspace(root, globs, { mutatedPackages, mutationPaused })
   } finally {
     rmSync(root, { recursive: true, force: true })
   }
 }
 
-const CONNECTOR = "packages/connectors/engine/engine-connector"
-
 describe("checkWorkspace over fixture trees", () => {
   it("passes the fixture as built and checks only packages with src/", () => {
     const { errors, sourceDirs } = workspaceErrors()
     assert.deepEqual(errors, [])
-    assert.deepEqual(sourceDirs, ["apps/cli", "apps/server", "apps/vscode", CONNECTOR])
+    assert.deepEqual(sourceDirs, ["apps/cli", "apps/server", "apps/vscode", CONNECTOR, CORE])
   })
 
   it("flags a connector package without vitest.config.ts", () => {
@@ -440,22 +458,33 @@ describe("checkWorkspace over fixture trees", () => {
     )
   })
 
-  it("flags an apps/cli without stryker.config.json", () => {
-    const { errors } = workspaceErrors((p) => (p["apps/cli"].stryker = null))
+  it("flags a listed package without stryker.config.json", () => {
+    const { errors } = workspaceErrors((p) => (p[CORE].stryker = null))
     assert.equal(errors.length, 1)
-    assert.match(errors[0], /^apps\/cli: no stryker\.config\.json/)
+    assert.match(
+      errors[0],
+      /^packages\/connectors\/engine\/engine-core: listed in MUTATED_PACKAGES/,
+    )
   })
 
-  it("flags an engines.vscode app without stryker.config.json", () => {
-    const { errors } = workspaceErrors((p) => (p["apps/vscode"].stryker = null))
-    assert.equal(errors.length, 1)
-    assert.match(errors[0], /^apps\/vscode: no stryker\.config\.json/)
-  })
+  for (const dir of ["apps/cli", "apps/vscode", "apps/server", CONNECTOR]) {
+    it(`flags a valid stryker.config.json in the unlisted ${dir}`, () => {
+      const { errors } = workspaceErrors((p) => (p[dir].stryker = GOOD_STRYKER))
+      assert.equal(errors.length, 1, errors.join("\n"))
+      assert.ok(
+        errors[0].startsWith(`${dir}: carries a stryker.config.json but is not in `),
+        errors[0],
+      )
+    })
+  }
 
-  it("flags the exempt app once the exemption is gone", () => {
-    const { errors } = workspaceErrors(undefined, { noMutationApps: {} })
+  it("flags the chosen package's config once the package leaves the list", () => {
+    const { errors } = workspaceErrors(undefined, { mutatedPackages: {} })
     assert.equal(errors.length, 1)
-    assert.match(errors[0], /^apps\/server: no stryker\.config\.json/)
+    assert.match(
+      errors[0],
+      /^packages\/connectors\/engine\/engine-core: carries a stryker\.config\.json/,
+    )
   })
 
   for (const [label, stryker, pattern] of [
@@ -473,33 +502,54 @@ describe("checkWorkspace over fixture trees", () => {
       /"reporters" does not include "json"/,
     ],
   ]) {
-    it(`flags a connector package's stryker.config.json with ${label}`, () => {
-      const { errors } = workspaceErrors((p) => (p[CONNECTOR].stryker = stryker))
+    it(`flags a listed package's stryker.config.json with ${label}`, () => {
+      const { errors } = workspaceErrors((p) => (p[CORE].stryker = stryker))
       assert.equal(errors.length, 1, errors.join("\n"))
-      assert.ok(errors[0].startsWith(`${CONNECTOR}/stryker.config.json: `), errors[0])
+      assert.ok(errors[0].startsWith(`${CORE}/stryker.config.json: `), errors[0])
       assert.match(errors[0], pattern)
     })
   }
 
-  it("flags an engines.vscode app's config that is not valid JSON", () => {
-    const { errors } = workspaceErrors((p) => (p["apps/vscode"].raw = "{ mutate: [ }"))
+  it("flags a listed package's config that is not valid JSON", () => {
+    const { errors } = workspaceErrors((p) => (p[CORE].raw = "{ mutate: [ }"))
     assert.equal(errors.length, 1)
-    assert.match(errors[0], /^apps\/vscode\/stryker\.config\.json is not valid JSON/)
+    assert.match(
+      errors[0],
+      /^packages\/connectors\/engine\/engine-core\/stryker\.config\.json is not valid JSON/,
+    )
   })
 
-  it("flags a stale NO_MUTATION_APPS entry: the app is gone", () => {
-    const { errors } = workspaceErrors((p) => delete p["apps/server"])
+  it("flags a stale MUTATED_PACKAGES entry: the package is gone", () => {
+    const { errors } = workspaceErrors((p) => delete p[CORE])
     assert.equal(errors.length, 1)
-    assert.match(errors[0], /"apps\/server" is not a workspace package with src\//)
+    assert.match(
+      errors[0],
+      /"packages\/connectors\/engine\/engine-core" is not a workspace package with src\//,
+    )
   })
 
-  it("flags a stale NO_MUTATION_APPS entry: the app now carries a stryker.config.json", () => {
-    const { errors } = workspaceErrors((p) => (p["apps/server"].stryker = GOOD_STRYKER))
+  it("flags a stale MUTATED_PACKAGES entry: the package has no src/", () => {
+    const { errors, sourceDirs } = workspaceErrors((p) => (p[CORE].src = false))
+    assert.ok(!sourceDirs.includes(CORE))
     assert.equal(errors.length, 1)
-    assert.match(errors[0], /^apps\/server: listed in NO_MUTATION_APPS but carries/)
+    assert.match(
+      errors[0],
+      /"packages\/connectors\/engine\/engine-core" is not a workspace package with src\//,
+    )
   })
 
-  it("real repo: every source package passes, the exempt server app included", () => {
+  it("checks no Stryker rule while mutation testing is paused", () => {
+    const { errors } = workspaceErrors(
+      (p) => {
+        p[CONNECTOR].stryker = GOOD_STRYKER
+        p[CORE].stryker = null
+      },
+      { mutatedPackages: { ...MUTATED, "packages/core/gone": "" }, mutationPaused: true },
+    )
+    assert.deepEqual(errors, [])
+  })
+
+  it("real repo: every source package passes, and only the listed ones carry a config", () => {
     const globs = workspaceGlobs(readFileSync(path.join(repoRoot, "pnpm-workspace.yaml"), "utf8"))
     const { errors, sourceDirs } = checkWorkspace(repoRoot, globs, {
       mutationPaused: MUTATION_PAUSED,
@@ -510,6 +560,7 @@ describe("checkWorkspace over fixture trees", () => {
       "packages/core/widget-shell",
       "packages/connectors/engine/engine-client",
       "packages/connectors/engine/engine-connector",
+      "packages/connectors/engine/engine-core",
       "packages/connectors/analytics/analytics-client",
       "packages/connectors/analytics/analytics-connector",
     ]) {

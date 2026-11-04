@@ -698,7 +698,7 @@ workspace (its header lists each check).
 | `pnpm typecheck`  | **The only check that type-checks widget code**: `tsc -p tsconfig.widgets.json` in the two connector packages and widget-shell (its view half), `tsc -p tsconfig.ui.json` (and `tsconfig.test.json`) in the server app; the VS Code extension per layer, each with that layer's runtime globals only                                                                                                                                                                                                                                     |
 | `pnpm test`       | Vitest unit tests, the server app's wire-contract tests and tools/list goldens (in-process boot, loopback HTTP), the VS Code extension's architecture tests, the per-package coverage floors, then `node --test` over `scripts/*.test.mjs` (repo guards and gate self-tests, below the table); docs-refs, old-names and `lint:package-scripts` also run in Lint + Format; **no widget rendering** (the VS Code webview tests render in Chromium; locally once: `pnpm --filter pulse-cockpit exec playwright install chromium`)           |
 | `pnpm lint`       | ESLint per package incl. the pattern gates, then dependency-cruiser (`lint:architecture`, `:cli`, `:vscode`), `lint:naming`, `lint:package-scripts`, `lint:ratchets` (needs `git fetch origin`), knip (`lint:deadcode`: everything but exports and types; `:exports`: exports and types in every workspace but the vendored docs kit) and `lint:github`                                                                                                                                                                                  |
-| `pnpm fitness`    | Report: architecture graph, per-package coverage and mutation scores; locally after `pnpm test` (no CI job on a pull request), else the "Mutation summary" job of `.github/workflows/mutation-nightly.yml` (dispatch only while mutation testing is paused, see below)                                                                                                                                                                                                                                                                   |
+| `pnpm fitness`    | Report: architecture graph, per-package coverage and engine-core's mutation score; locally after `pnpm test` (no CI job on a pull request), else the "Mutation summary" job of `.github/workflows/mutation-nightly.yml`                                                                                                                                                                                                                                                                                                                  |
 | `./gradlew build` | Kotlin compile + unit tests + Konsist architecture tests (run in `engine-plugins/`)                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | `test:host`       | `pnpm --filter @miragon/pulse-mcp-server test:host`: Playwright host simulation of the **built** widget bundle behind a SEP-1865 host shim, the real `engine_open_cockpit` against a stub engine (`pinned …` scenarios are known defects, flipped when fixed); CI "Widget host simulation (test:host)"; run it for changes to widget-shell, pulse-ui, `src/ui/` or the mcp-use pin                                                                                                                                                       |
 | Template          | `scripts/test-template.sh` (in `pnpm check:all`; CI "Composed-server template (Build + Test)"): packs the published libraries (`scripts/workspace-packages.mjs`), checks the tarballs' contents (`scripts/pack-contents.mjs`), points a copy of `templates/composed-server` at them and runs its build, typecheck and tests, its pins checked against the workspace first (`scripts/template-pins.mjs`). ESLint, knip and dependency-cruiser skip `templates/`: the template's composition-root rules (invariant 8) are review knowledge |
@@ -724,26 +724,27 @@ host simulation renders one real view, not every widget's data path).
 
 **Ratchets only move one way.** `scripts/check-ratchets.mjs` (`pnpm lint:ratchets`) compares
 each against the merge base with `origin/main`, and its header lists them: coverage floors in
-each `vitest.config.ts` rise (raise one when you better a file); each `stryker.config.json`'s
-`mutate` allowlist (the tested surface) grows and its `thresholds.break` rises; the ESLint
-budgets (complexity 15 and 400 lines; the CLI and the VS Code extension 10 and 300), knip
-ignores (each with its reason), the char and bundle budgets (Contracts) and inline suppressions
-only shrink; gate commands stay as they are; a second config that would shadow a ratcheted one
-fails. The one escape is a `Ratchet-Exception: <reason>` commit trailer, which turns the
-failures into warnings for the reviewer; never weaken the checker instead. The trailer covers
-the commit that carries it: the checker replays the range commit by commit and waves a
-violation only when every commit that makes it carries one.
+each `vitest.config.ts` rise (raise one when you better a file); a `stryker.config.json`'s
+`mutate` allowlist (the tested surface; today engine-core's alone) grows and its
+`thresholds.break` rises; the ESLint budgets (complexity 15 and 400 lines; the CLI and the
+VS Code extension 10 and 300), knip ignores (each with its reason), the char and bundle
+budgets (Contracts) and inline suppressions only shrink; gate commands stay as they are; a
+second config that would shadow a ratcheted one fails. The one escape is a
+`Ratchet-Exception: <reason>` commit trailer, which turns the failures into warnings for the
+reviewer; never weaken the checker instead. The trailer covers the commit that carries it: the
+checker replays the range commit by commit and waves a violation only when every commit that
+makes it carries one.
 `pnpm lint:package-scripts` holds a package's first configs: every package with `src/` has a
-`vitest.config.ts` and, once mutation testing resumes, a `stryker.config.json` (except the apps
-`NO_MUTATION_APPS` exempts).
+`vitest.config.ts`, and a valid `stryker.config.json` sits in each package `MUTATED_PACKAGES`
+lists and in no other.
 
-**Mutation testing is paused while the MCP server is rebuilt** (owner decision, 2026-10-31;
-`scripts/mutation-pause.mjs`): the nightly run has no schedule, `lint:ratchets` skips the Stryker
-policies and `lint:package-scripts` neither requires nor checks a `stryker.config.json`. Spend no
-work on allowlists, break floors or mutants until the switch is back to `false`.
-
-Mutation testing runs nightly (`.github/workflows/mutation-nightly.yml`), never on a pull
-request (owner decision); locally `pnpm --fail-if-no-match --filter <package> exec stryker run`
-(`--mutate <file>` narrows it). Runs use `vitest.stryker.config.ts` with coverage off (a
-threshold failure would read as a killed mutant), and DOM widget suites stay out, since the
-Stryker runner disables per-file isolation.
+**Mutation testing covers `@miragon/pulse-engine-core` only** (owner decision, 2026-11-04). It
+holds the pure engine rules the CLI, the MCP server and the VS Code extension share, so a
+surviving mutant there is a wrong rule in all three; in every other package a full run costs
+more than it finds. A package joins only by an owner decision, as an entry in
+`MUTATED_PACKAGES` (`scripts/check-package-scripts.mjs`). It runs nightly
+(`.github/workflows/mutation-nightly.yml`), never on a pull request (owner decision); a pause
+flips `scripts/mutation-pause.mjs` and drops the schedule. Locally:
+`pnpm --fail-if-no-match --filter @miragon/pulse-engine-core exec stryker run` (`--mutate <file>`
+narrows it), with `vitest.stryker.config.ts`: coverage off, since a threshold failure would read
+as a killed mutant.

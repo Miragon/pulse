@@ -18,7 +18,6 @@ pnpm lint:architecture:vscode                   # the closed-world dependency ru
 pnpm lint:deadcode                              # knip over every workspace: dead files, dependencies, enum members
 pnpm lint:deadcode:exports                      # knip over every workspace but docs: unused exports and types
 pnpm --filter pulse-cockpit test                 # unit and webview (Chromium) tests, coverage floors
-pnpm --filter pulse-cockpit exec stryker run    # Stryker over contract, core, the C7 adapter and the model adapter
 pnpm --filter pulse-cockpit run test:engines     # adapter conformance on a real engine; needs podman/docker
 pnpm --filter pulse-cockpit run test:smoke       # the extension activates in a real VS Code
 pnpm --filter pulse-cockpit run test:e2e         # VS Code e2e; needs `engine:up`
@@ -91,14 +90,14 @@ webview and host stay engine-neutral.
 - Budgets: complexity 10, 300 lines per file, 60 per function, 4 parameters, 20 statements.
   Split instead of raising.
 - Strict TypeScript (`exactOptionalPropertyTypes`, `noUncheckedIndexedAccess`).
-- Thresholds only move one way: the coverage floors (`apps/vscode/vitest.config.ts`), the
-  mutation floor (`apps/vscode/stryker.config.json`) and the webview bundle budget
-  (`apps/vscode/test/__golden__/bundle-budget.json`). `pnpm lint:ratchets` holds them to the
-  merge base like every other ratchet of the repo. Do not delete tests. An exception to a
-  guardrail is a human's decision in review, never your own edit.
-- A new gate is a rule in a standard tool (ESLint, dependency-cruiser, knip, tsc, Vitest,
-  Stryker) or a test. A rule you write proves it bites with a case in
-  `apps/vscode/test/architecture`; see `apps/vscode/docs/adr/guardrails.md`.
+- Thresholds only move one way: the coverage floors (`apps/vscode/vitest.config.ts`) and the
+  webview bundle budget (`apps/vscode/test/__golden__/bundle-budget.json`).
+  `pnpm lint:ratchets` holds them to the merge base like every other ratchet of the repo. Do
+  not delete tests. An exception to a guardrail is a human's decision in review, never your
+  own edit.
+- A new gate is a rule in a standard tool (ESLint, dependency-cruiser, knip, tsc, Vitest) or
+  a test. A rule you write proves it bites with a case in `apps/vscode/test/architecture`;
+  see `apps/vscode/docs/adr/guardrails.md`.
 - `.pulse-cli.json` follows the CLI's rules: the CLI owns its JSON Schema and the fixtures in
   `apps/cli/test/fixtures/project-file/` (the file and the CLI's verdict), the extension its
   expectations of them (`apps/vscode/test/host/project-file-fixtures.expected.json`, one entry

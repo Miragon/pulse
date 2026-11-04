@@ -83,8 +83,6 @@
   "devDependencies": {
     "@miragon/pulse-ui": "workspace:*",
     "@miragon/pulse-widget-shell": "workspace:*",
-    "@stryker-mutator/core": "10.1.1",
-    "@stryker-mutator/vitest-runner": "10.1.1",
     "@testing-library/react": "16.3.3",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",

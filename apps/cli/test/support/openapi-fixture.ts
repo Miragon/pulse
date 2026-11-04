@@ -1,7 +1,7 @@
 /**
  * A small OpenAPI document and its helpers, for the operation extraction tests
  * (scripts/catalog/operations*.test.ts). It lives here rather than under scripts/catalog, where
- * mutation testing and coverage would measure it.
+ * coverage would measure it.
  */
 
 import type { Schema } from "../../src/catalog/types.js"
@@ -140,7 +140,7 @@ export const SPEC = document({
   "/version": { get: { operationId: "getVersion", tags: ["Version"] } },
 })
 
-/** Extracts inside the calling test, so mutation testing attributes the coverage to it. */
+/** Extracts inside the calling test, so a failure fails that test instead of the whole file. */
 export const byId = (id: string) => {
   const operation = extractOperations(SPEC).find((candidate) => candidate.operationId === id)
   if (operation === undefined) throw new Error(`missing ${id}`)

@@ -48,8 +48,6 @@
     "lint:fix": "eslint src --fix"
   },
   "devDependencies": {
-    "@stryker-mutator/core": "10.1.1",
-    "@stryker-mutator/vitest-runner": "10.1.1",
     "@types/node": "26.6.5",
     "typescript": "6.0.3",
     "vitest": "5.0.5"

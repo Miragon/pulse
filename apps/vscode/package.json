@@ -311,8 +311,6 @@
     "zeebe-bpmn-moddle": "2.0.0"
   },
   "devDependencies": {
-    "@stryker-mutator/core": "10.1.1",
-    "@stryker-mutator/vitest-runner": "10.1.1",
     "@types/node": "22.20.5",
     "@types/vscode": "1.101.0",
     "@vitest/browser-playwright": "5.0.5",

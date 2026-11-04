@@ -24,7 +24,6 @@
       // vite.config.ts are listed below by hand, which is all it would add
       // (with it on, knip reports exactly those two entries as redundant).
       "vite": false,
-      // No stryker.config.json: exempt by NO_MUTATION_APPS (scripts/check-package-scripts.mjs).
       "entry": [
         "src/ui/main.tsx",
         // Parsed statically as an entry so its plugin imports count as used.
@@ -39,7 +38,7 @@
       // tsdown.standalone.config.ts builds the bundle of the standalone executable and the
       // image; neither name is one the plugins find on their own.
       "vitest": {
-        "config": ["vitest.config.ts", "vitest.stryker.config.ts", "vitest.integration.config.ts"],
+        "config": ["vitest.config.ts", "vitest.integration.config.ts"],
       },
       "tsdown": {
         "config": ["tsdown.config.ts", "tsdown.standalone.config.ts"],
@@ -60,7 +59,7 @@
         "test/smoke/*.test.cjs",
       ],
       "vitest": {
-        "config": ["vitest.config.ts", "vitest.stryker.config.ts", "vitest.engines.config.ts"],
+        "config": ["vitest.config.ts", "vitest.engines.config.ts"],
       },
       // The shop sandbox: a Java and JS project the extension's code links point at, not
       // code of the extension.
@@ -68,33 +67,12 @@
     },
 
     "packages/connectors/engine/engine-client": {
-      "vitest": {
-        "config": ["vitest.config.ts", "vitest.stryker.config.ts"],
-      },
       // Generated CIB seven SDK (pnpm generate): its export surface mirrors
       // the OpenAPI spec, not our usage.
       "ignore": ["src/generated/**"],
     },
 
-    "packages/connectors/analytics/analytics-client": {
-      "vitest": {
-        "config": ["vitest.config.ts", "vitest.stryker.config.ts"],
-      },
-    },
-
-    "packages/connectors/engine/engine-connector": {
-      "vitest": {
-        "config": ["vitest.config.ts", "vitest.stryker.config.ts"],
-      },
-    },
-
-    "packages/connectors/analytics/analytics-connector": {
-      "vitest": {
-        "config": ["vitest.config.ts", "vitest.stryker.config.ts"],
-      },
-    },
-
-    "packages/core/widget-shell": {
+    "packages/connectors/engine/engine-core": {
       "vitest": {
         "config": ["vitest.config.ts", "vitest.stryker.config.ts"],
       },

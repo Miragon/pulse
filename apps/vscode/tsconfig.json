@@ -25,13 +25,6 @@
     "jsx": "react-jsx",
     "jsxImportSource": "preact"
   },
-  "include": [
-    "src",
-    "test",
-    "dev",
-    "vitest.config.ts",
-    "vitest.stryker.config.ts",
-    "vitest.engines.config.ts"
-  ],
+  "include": ["src", "test", "dev", "vitest.config.ts", "vitest.engines.config.ts"],
   "exclude": ["test/*/runtime.boundary.ts"]
 }
