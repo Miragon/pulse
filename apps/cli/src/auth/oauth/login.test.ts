@@ -184,7 +184,7 @@ describe("login", () => {
     await login(oauthConfig(), { noBrowser: false, loginTimeoutMs: 1000 }, loginDeps(runtime))
     expect(done.result).toMatchObject({ status: 409 })
     expect((done.result as { html: string }).html).toContain(
-      "pulse-cli already received the login callback.",
+      "pulse already received the login callback.",
     )
   })
 

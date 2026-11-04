@@ -69,7 +69,7 @@ describe("operation commands: errors", () => {
       status: 404,
       engineType: "InvalidRequestException",
       engineMessage: "Process instance with id nope does not exist",
-      hint: "Check the id or key. List the existing ones with `pulse-cli process-instance list`.",
+      hint: "Check the id or key. List the existing ones with `pulse process-instance list`.",
       request: { method: "GET", url: `${BASE_URL}/process-instance/nope` },
     })
   })
@@ -85,7 +85,7 @@ describe("operation commands: errors", () => {
     expect(errorOf(result.stderr)).toMatchObject({
       code: "HTTP_CLIENT_ERROR",
       message: "HTTP 400 Bad Request: Unsupported value type 'Integr'",
-      hint: "The engine rejected the request. Check parameters and body with `pulse-cli describe process-definition start`.",
+      hint: "The engine rejected the request. Check parameters and body with `pulse describe process-definition start`.",
     })
   })
 
@@ -97,7 +97,7 @@ describe("operation commands: errors", () => {
     )
     const result = await cli(server, ["process-instance", "list", "--all"])
     expect(errorOf(result.stderr)).toMatchObject({
-      hint: "The engine rejected the request. Check parameters and body with `pulse-cli describe process-instance list`.",
+      hint: "The engine rejected the request. Check parameters and body with `pulse describe process-instance list`.",
     })
   })
 

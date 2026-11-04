@@ -108,14 +108,30 @@ no `generate` script, so turbo's cached `generate` task never replays a stale ca
   repository root: leave the tree alone during a run. The mutate list only grows.
 - Coverage floors in `apps/cli/vitest.config.ts` only rise.
 
+## The command and its second name
+
+The command is `pulse`: usage, help, the guide, `describe`, the next steps and the hints print it,
+and the docs and the skill say it. `CLI_NAME` (`apps/cli/src/util.ts`) names the program for
+commander, the examples and the usage lines; the guide, the next steps and the hints spell `pulse`
+in their text, and the product-name test keeps them free of the old name. `pulse-cli`, the
+command up to 0.25, stays as a second `bin` of the same bundle, so scripts and agents that
+call it keep working, and `npx @miragon/pulse-cli` runs the bin named like the package. Names
+that are no command keep their spelling: the npm package, `PULSE_CLI_*`, `.pulse-cli.json`, the
+config directory, the image, the release assets, the bundle file, the Homebrew formula, the
+plugin and its skill, and the worker id and deployment name and source the engine stores.
+`apps/cli/src/bin/bin-names.test.ts` holds the two bins to one entry,
+`apps/cli/src/product-name.test.ts` the shipped text to `pulse` outside its named exceptions, and
+the docs tests key on `CLI_NAME` and fail on a code block that runs `pulse-cli`, which they would
+skip.
+
 ## Names of operate
 
-Up to 0.10.0 the CLI was operate; pulse-cli reads none of its names.
+Up to 0.10.0 the CLI was operate; it reads none of its names.
 
 ## Docs move with the code
 
 A change to a command, an option, an output or an error changes, in the same commit, the guide
 and help texts in `apps/cli/src/docs/`, the page in `docs/cli/` and, where it applies, the skill
 in `apps/cli/skills/pulse-cli/SKILL.md`. Each page in `docs/cli/` has a line budget in
-`scripts/docs-refs.test.mjs`. The topics of `pulse-cli guide <topic>` are pages
+`scripts/docs-refs.test.mjs`. The topics of `pulse guide <topic>` are pages
 of `docs/cli/`, bundled as text (`GUIDE_TOPICS`): such a page is read by agents offline too.

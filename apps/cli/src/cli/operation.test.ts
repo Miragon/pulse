@@ -236,7 +236,7 @@ describe("operation commands: dry-run and guards", () => {
     expect(errorOf(refused.stderr)).toEqual({
       code: "CONFIRMATION_REQUIRED",
       exitCode: 2,
-      message: "`pulse-cli process-instance delete` is a delete operation and needs confirmation",
+      message: "`pulse process-instance delete` is a delete operation and needs confirmation",
       hint: "Re-run with --yes to confirm, or --dry-run to preview.",
     })
     expect(server.requests).toEqual([])
@@ -255,7 +255,7 @@ describe("operation commands: dry-run and guards", () => {
     expect(errorOf(flag.stderr)).toEqual({
       code: "READ_ONLY",
       exitCode: 2,
-      message: "`pulse-cli task claim` is a write operation and read-only mode is enabled",
+      message: "`pulse task claim` is a write operation and read-only mode is enabled",
       hint: "Read-only mode is enabled by --read-only. Use --dry-run to preview the request.",
     })
     const env = await cli(server, ["task", "claim", "t1"], { env: { PULSE_CLI_READ_ONLY: "yes" } })

@@ -196,20 +196,20 @@ describe("HTTP 401", () => {
     expect(result.code).toBe(4)
     expect(errorOf(result.stderr)).toMatchObject({
       code: "UNAUTHORIZED",
-      hint: "The engine rejected the credentials of user demo (source: env). Check the username and the password; `pulse-cli config show` shows where each comes from. After a failed login the engine refuses the user for a few seconds (and locks it after repeated failures), so wait before retrying.",
+      hint: "The engine rejected the credentials of user demo (source: env). Check the username and the password; `pulse config show` shows where each comes from. After a failed login the engine refuses the user for a few seconds (and locks it after repeated failures), so wait before retrying.",
     })
     expect(result.stderr).not.toContain("wrong")
   })
 
-  it("says that pulse-cli sent no credentials and how to send them", async () => {
+  it("says that pulse sent no credentials and how to send them", async () => {
     const result = await cli(["task", "list"], {}, 401)
     expect(result.code).toBe(4)
     const { hint } = errorOf(result.stderr) as { hint: string }
-    expect(hint).toContain("pulse-cli sent no credentials")
+    expect(hint).toContain("pulse sent no credentials")
     expect(hint).toContain("--auth basic --auth-user <name>")
     expect(hint).toContain("PULSE_CLI_USERNAME and PULSE_CLI_PASSWORD")
     expect(hint).toContain(
-      "`pulse-cli config set <profile> --auth basic --auth-user <name> --auth-password-env <VAR>`",
+      "`pulse config set <profile> --auth basic --auth-user <name> --auth-password-env <VAR>`",
     )
   })
 })
@@ -237,14 +237,14 @@ describe("credentials that select nothing", () => {
     expect(result.code).toBe(4)
     expect(result.requests[0]?.headers.authorization).toBeUndefined()
     expect((errorOf(result.stderr) as { hint: string }).hint).toMatch(
-      /^The engine requires authentication and pulse-cli sent no credentials: Basic auth is switched off by PULSE_CLI_AUTH=none\. Use Basic auth: /,
+      /^The engine requires authentication and pulse sent no credentials: Basic auth is switched off by PULSE_CLI_AUTH=none\. Use Basic auth: /,
     )
   })
 
   it("says in the 401 hint that a password without a username was not used", async () => {
     const result = await cli(["task", "list"], { env: { PULSE_CLI_PASSWORD: "demo" } }, 401)
     expect((errorOf(result.stderr) as { hint: string }).hint).toMatch(
-      /^The engine requires authentication and pulse-cli sent no credentials: a password is set \(from PULSE_CLI_PASSWORD\), but no username\. /,
+      /^The engine requires authentication and pulse sent no credentials: a password is set \(from PULSE_CLI_PASSWORD\), but no username\. /,
     )
     expect(result.stderr).not.toContain('"demo"')
   })

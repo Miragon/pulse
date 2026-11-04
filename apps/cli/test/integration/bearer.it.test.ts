@@ -1,11 +1,11 @@
 /**
  * Bearer tokens from elsewhere (`--auth bearer`) of the built CLI against the OAuth
- * topology of support/oauth.ts: Keycloak issues the tokens without pulse-cli (a CI pipeline's client
+ * topology of support/oauth.ts: Keycloak issues the tokens without pulse (a CI pipeline's client
  * credentials grant, a person's login through another tool), and Envoy's `jwt_authn` gateway
- * checks them in front of an unmodified engine. pulse-cli only sends `Authorization: Bearer
+ * checks them in front of an unmodified engine. pulse only sends `Authorization: Bearer
  * <token>`: no login, no refresh, no token cache.
  *
- * Token commands fetch such tokens for pulse-cli: PULSE_CLI_TOKEN_COMMAND runs a script
+ * Token commands fetch such tokens for pulse: PULSE_CLI_TOKEN_COMMAND runs a script
  * that runs the client credentials grant, also for a profile of a project file.
  *
  * Only what needs the gateway or Keycloak is here; the resolution rules and their errors are

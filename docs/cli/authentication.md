@@ -1,6 +1,6 @@
 # Authentication
 
-`pulse-cli` supports [Basic auth](#basic-auth), [OAuth 2.0](#oauth) (authorization code flow with
+`pulse` supports [Basic auth](#basic-auth), [OAuth 2.0](#oauth) (authorization code flow with
 PKCE, for Keycloak, Microsoft Entra ID, Auth0 or another OpenID Connect provider),
 [bearer tokens](#bearer-tokens) you get elsewhere, [token commands](#token-commands) that fetch
 one, and [headers](#other-headers) for other schemes.
@@ -8,10 +8,10 @@ one, and [headers](#other-headers) for other schemes.
 - The type comes from `--auth none|basic|oauth|bearer`, `PULSE_CLI_AUTH` or the profile. Without
   one, a username selects `basic` and a token selects `bearer`. OAuth is never implied.
 - Each value resolves on its own: flag > environment variable > profile. With `--url` or
-  `PULSE_CLI_URL` set, the profile's credentials go to that URL: check `pulse-cli config show`.
+  `PULSE_CLI_URL` set, the profile's credentials go to that URL: check `pulse config show`.
 - Secrets are never plain flags and are masked (`***`) in output unless `--show-secrets`.
 
-Every option: `pulse-cli auth <command> --help`.
+Every option: `pulse auth <command> --help`.
 
 ## Basic auth
 
@@ -27,12 +27,12 @@ or a filter or proxy in front of `/engine-rest`.
 
 ```sh
 # per call: the password comes from stdin
-printf '%s\n' "$CAMUNDA_PASSWORD" | pulse-cli ping --auth basic --auth-user demo --auth-password-stdin
+printf '%s\n' "$CAMUNDA_PASSWORD" | pulse ping --auth basic --auth-user demo --auth-password-stdin
 # per shell: read it without echo and without shell history
 read -rs PULSE_CLI_PASSWORD && export PULSE_CLI_PASSWORD
-pulse-cli task list --assignee demo
+pulse task list --assignee demo
 # per profile: only the name of the variable is stored
-pulse-cli config set staging --url https://staging.example.com/engine-rest --auth basic --auth-user demo --auth-password-env CAMUNDA_PASSWORD
+pulse config set staging --url https://staging.example.com/engine-rest --auth basic --auth-user demo --auth-password-env CAMUNDA_PASSWORD
 ```
 
 - In a profile, store the variable name with `--auth-password-env`; a literal `password` is plain
@@ -43,22 +43,22 @@ pulse-cli config set staging --url https://staging.example.com/engine-rest --aut
 
 ## OAuth
 
-A person logs in once with `pulse-cli auth login` in a terminal; other commands use and refresh the
+A person logs in once with `pulse auth login` in a terminal; other commands use and refresh the
 cached tokens. Without a usable login they fail with `LOGIN_REQUIRED` (exit 4) and name the command
 to run, so agents never wait for a browser. Client credentials and the device flow are not
 supported.
 
 ```sh
-pulse-cli config set sso --url https://camunda.example.com/engine-rest --auth oauth --oauth-issuer https://login.example.com/realms/camunda --oauth-client-id pulse-cli --oauth-audience engine-rest
+pulse config set sso --url https://camunda.example.com/engine-rest --auth oauth --oauth-issuer https://login.example.com/realms/camunda --oauth-client-id pulse-cli --oauth-audience engine-rest
 ```
 
 ```text
-$ pulse-cli auth login --profile sso
+$ pulse auth login --profile sso
 Open this URL in a browser to log in:
   https://login.example.com/realms/camunda/protocol/openid-connect/auth?response_type=code&client_id=pulse-cli&redirect_uri=...
 Logged in as alice (profile "sso").
 
-$ pulse-cli process-instance list --profile sso
+$ pulse process-instance list --profile sso
 ```
 
 | Value         | Environment                                                                | `config set` option                                        |
@@ -83,13 +83,13 @@ $ pulse-cli process-instance list --profile sso
 - Tokens are cached in `~/.config/pulse-cli/tokens` (mode `0600`). Changing issuer, client, audience
   or scopes needs a new login.
 - `UNAUTHORIZED` or `FORBIDDEN` after a successful login are gateway (issuer, audience, clock) or
-  permission problems, not login problems: do not ask for a new login. The gateway must expect exactly the issuer URL pulse-cli
+  permission problems, not login problems: do not ask for a new login. The gateway must expect exactly the issuer URL the CLI
   logs in with (`localhost` and `127.0.0.1` differ).
 - URLs must use `https://` (`http://` only for loopback).
 
 ### Shared logins
 
-One `pulse-cli auth login` serves every OAuth profile of the same origin that stores the same issuer
+One `pulse auth login` serves every OAuth profile of the same origin that stores the same issuer
 (or token endpoint), client id, audience and scopes. A repository with an engine per service needs
 one login, not one per profile.
 
@@ -125,43 +125,43 @@ When you already get an access token elsewhere (SSO tooling, a CI secret, `az`, 
 ```sh
 # Microsoft Entra ID: a token for the API the engine's gateway expects
 export PULSE_CLI_TOKEN=$(az account get-access-token --resource api://<engine-api-app-id> --query accessToken -o tsv)
-pulse-cli process-instance list
+pulse process-instance list
 # Google Cloud
 export PULSE_CLI_TOKEN=$(gcloud auth print-access-token)
 # CI job: the profile stores only the variable name
-pulse-cli config set ci --url https://camunda.example.com/engine-rest --auth bearer --auth-token-env CI_ENGINE_TOKEN
+pulse config set ci --url https://camunda.example.com/engine-rest --auth bearer --auth-token-env CI_ENGINE_TOKEN
 ```
 
 - `PULSE_CLI_TOKEN` or `--auth-token-stdin` select `bearer` when no type is set. An explicit `basic`
   or `oauth` type wins: add `--auth bearer` or `PULSE_CLI_AUTH=bearer`.
 - A JWT whose `exp` has passed fails before any request with `TOKEN_EXPIRED` (exit 4). Fetch a new
   token, or use a [token command](#token-commands). Opaque tokens are sent as they are.
-- `pulse-cli auth status` shows the token's source and, for a JWT, its claims and expiry.
+- `pulse auth status` shows the token's source and, for a JWT, its claims and expiry.
 
 ## Token commands
 
 `PULSE_CLI_TOKEN_COMMAND` is a command line that prints a bearer token on the first line of its
-stdout. pulse-cli runs it when it needs a token, which suits short-lived tokens such as a local
+stdout. The CLI runs it when it needs a token, which suits short-lived tokens such as a local
 Keycloak dev realm. A repository sets it for agents in the `env` of its `.claude/settings.json`,
 people in their shell or in direnv's `.envrc`.
 
 ```sh
 export PULSE_CLI_TOKEN_COMMAND="$PWD/scripts/dev-token.sh"
-pulse-cli task list
+pulse task list
 ```
 
 - Token sources in order: `--auth-token-stdin`, `PULSE_CLI_TOKEN`, `PULSE_CLI_TOKEN_COMMAND`, then
   the profile's `tokenEnv` or `token`.
 - It runs in the working directory with stdin closed and must print the token, not JSON (use
   e.g. `jq -r .access_token`). Use an absolute path or no path: a relative one runs the script of
-  whatever directory pulse-cli runs in.
+  whatever directory the CLI runs in.
 - A JWT is cached until shortly before it expires, also for later and parallel calls. After a 401
-  pulse-cli runs the command once more and retries.
+  the CLI runs the command once more and retries.
 - A failing command exits 4 with `LOGIN_FAILED` and the end of its stderr. `auth status` runs it
   and shows the claims, `auth logout` removes the cached token.
 
 Only the environment sets a token command, never a profile or a
-[project file](configuration.md#project-file): a project file cannot make pulse-cli run code.
+[project file](configuration.md#project-file): a project file cannot make the CLI run code.
 
 ## Other headers
 
@@ -172,5 +172,5 @@ configuration error. Secret headers are masked unless `--show-secrets`.
 
 ```sh
 export PULSE_CLI_HEADERS='X-API-Key: k-7f3a...'
-pulse-cli config set prod --header 'X-Tenant-Id: acme'
+pulse config set prod --header 'X-Tenant-Id: acme'
 ```

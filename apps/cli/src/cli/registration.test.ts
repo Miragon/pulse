@@ -55,7 +55,7 @@ function leafCommand(operation: OperationSpec) {
 
 describe("registration of every catalog operation", () => {
   it("registers all groups and operations without commander errors", () => {
-    const root = new Command("pulse-cli").configureHelp(helpConfiguration())
+    const root = new Command("pulse").configureHelp(helpConfiguration())
     let count = 0
     for (const group of catalog.groups) {
       const groupCommand = root.command(group.name)

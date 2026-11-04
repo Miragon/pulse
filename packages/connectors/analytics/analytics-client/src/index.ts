@@ -10,7 +10,6 @@ export {
 export { increaseIn } from "./queries/helpers.js"
 // Not in `queries`: the query scenarios enumerate every member of that namespace.
 export { ENGINE_HEALTH_STATUS_RULE } from "./queries/health.js"
-export * as schemas from "./schemas/index.js"
 export * as queries from "./queries/index.js"
 export type {
   AnalyticsDashboardData,

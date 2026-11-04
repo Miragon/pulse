@@ -64,7 +64,7 @@ describe("api helpers", () => {
   })
 })
 
-describe("pulse-cli api: normalized paths", () => {
+describe("pulse api: normalized paths", () => {
   it.each([
     "/process-instance/./delete",
     "/process-instance/delete/",
@@ -79,7 +79,7 @@ describe("pulse-cli api: normalized paths", () => {
     expect(errorOf(result.stderr)).toMatchObject({
       code: "CONFIRMATION_REQUIRED",
       message: expect.stringMatching(
-        /^`pulse-cli api POST \/process-instance\/(?:delete|%64elete)` is a bulk operation/,
+        /^`pulse api POST \/process-instance\/(?:delete|%64elete)` is a bulk operation/,
       ),
     })
     expect(server.requests).toEqual([])
@@ -114,7 +114,7 @@ describe("pulse-cli api: normalized paths", () => {
   })
 })
 
-describe("pulse-cli api", () => {
+describe("pulse api", () => {
   it("sends a GET request and prints the JSON response", async () => {
     const server = fakeServer().on("GET", "/process-definition/count", json({ count: 3 }))
     const result = await cli(server, ["api", "get", "process-definition/count"])
@@ -224,7 +224,7 @@ describe("pulse-cli api", () => {
     expect(errorOf(refused.stderr)).toMatchObject({
       code: "CONFIRMATION_REQUIRED",
       message:
-        "`pulse-cli api DELETE /process-instance/p1` is a delete operation and needs confirmation",
+        "`pulse api DELETE /process-instance/p1` is a delete operation and needs confirmation",
     })
     const bulk = await cli(server, ["api", "POST", "/process-instance/delete", "--body", "{}"])
     expect(errorOf(bulk.stderr)).toMatchObject({ code: "CONFIRMATION_REQUIRED" })
@@ -241,7 +241,7 @@ describe("pulse-cli api", () => {
     const write = await cli(server, ["api", "PUT", "/custom", "--read-only"])
     expect(errorOf(write.stderr)).toMatchObject({
       code: "READ_ONLY",
-      message: "`pulse-cli api PUT /custom` is a write operation and read-only mode is enabled",
+      message: "`pulse api PUT /custom` is a write operation and read-only mode is enabled",
     })
     const read = await cli(server, ["api", "GET", "/task", "--read-only"])
     expect(read.code).toBe(0)
@@ -258,7 +258,7 @@ describe("pulse-cli api", () => {
     expect(errorOf(result.stderr)).toMatchObject({
       code: "NOT_FOUND",
       status: 404,
-      hint: "Check the id or key. List the existing ones with `pulse-cli process-instance list`.",
+      hint: "Check the id or key. List the existing ones with `pulse process-instance list`.",
     })
   })
 
@@ -268,7 +268,7 @@ describe("pulse-cli api", () => {
     expect(result.code).toBe(6)
     expect(errorOf(result.stderr)).toMatchObject({
       message: "HTTP 400 Bad Request: bad",
-      hint: "The engine rejected the request. Check parameters and body with `pulse-cli describe <group> <command>`.",
+      hint: "The engine rejected the request. Check parameters and body with `pulse describe <group> <command>`.",
     })
   })
 
@@ -283,7 +283,7 @@ describe("pulse-cli api", () => {
     const missing = await cli(fakeServer(), ["api", "GET"])
     expect(errorOf(missing.stderr)).toMatchObject({
       message: "Missing required argument 'path'",
-      hint: 'Run "pulse-cli api --help" for the usage.',
+      hint: 'Run "pulse api --help" for the usage.',
     })
   })
 })

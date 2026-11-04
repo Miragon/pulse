@@ -1,5 +1,5 @@
 /**
- * Pure edit functions behind `pulse-cli config set|unset|use|delete|list|show`. They take the parsed
+ * Pure edit functions behind `pulse config set|unset|use|delete|list|show`. They take the parsed
  * config file (undefined when it does not exist yet), never modify it and return a new one; the CLI
  * reads and writes the file. Values are validated with the validators of resolve.ts.
  */
@@ -63,7 +63,7 @@ export interface ProfileChanges extends OAuthChanges, BearerChanges {
 }
 
 /**
- * One row of `pulse-cli config list`. Values the profile does not set are null; `scope` says
+ * One row of `pulse config list`. Values the profile does not set are null; `scope` says
  * whether it comes from the project file or the user's (or the named) config file.
  */
 export interface ProfileSummary {
@@ -103,7 +103,7 @@ interface TokenValue extends ConfigValue<string> {
 }
 
 /**
- * Output of `pulse-cli config show`: every effective value with its source (`auth` is the type,
+ * Output of `pulse config show`: every effective value with its source (`auth` is the type,
  * `username` and `password` the Basic auth credentials, the OAuth settings only for type oauth,
  * `token` or `tokenCommand` for type bearer or an unused one). Header values, the password, the
  * client secret and the token are not masked here; the CLI masks them unless --show-secrets is

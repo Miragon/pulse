@@ -19,14 +19,14 @@ From a fresh clone with Node.js, pnpm and Docker (no JDK, no `.env`):
 pnpm stack:up       # engine, OTEL, Prometheus, Grafana; waits until they answer
 pnpm play           # stack:up if needed, then the MCP server on :8400 against it
 pnpm play:cli -- ping   # pnpm -s play:cli -- ... leaves stdout to the CLI, for a pipe
-pulse-cli status    # an installed pulse-cli: .pulse-cli.json makes the stack's engine its default
+pulse status        # an installed pulse: .pulse-cli.json makes the stack's engine its default
 pnpm stack:status   # what runs, healthy or not
 pnpm stack:down     # stop (volumes kept; --wipe drops them)
 ```
 
 - MCP endpoint: `http://localhost:8400/mcp`, inspector: `http://localhost:8400/mcp/inspector`
 - `.pulse-cli.json`, the CLI's project file, holds the default profile `local` for the stack's
-  engine (CIB seven, no login: its REST API is anonymous). Inside the repo a bare `pulse-cli`
+  engine (CIB seven, no login: its REST API is anonymous). Inside the repo a bare `pulse`
   (`npm install -g @miragon/pulse-cli`, or the build `node apps/cli/dist/pulse-cli.js`) reaches
   it; your own profiles stay available with `--profile`.
 - Grafana: `http://localhost:8470`, Prometheus: `http://localhost:8460`, engine:

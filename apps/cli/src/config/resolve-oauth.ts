@@ -80,7 +80,7 @@ const OAUTH_ENV: readonly string[] = [
 ]
 
 const SET_HINT =
-  "`pulse-cli config set <profile> --auth oauth --oauth-issuer <url> --oauth-client-id <id>`"
+  "`pulse config set <profile> --auth oauth --oauth-issuer <url> --oauth-client-id <id>`"
 
 /** A secret: blank counts as unset, other values are kept exactly. */
 function present(value: string | undefined): string | undefined {
@@ -238,7 +238,7 @@ function refuseStdinPassword(context: OAuthContext, selectedBy: string): void {
   if (present(context.flags.authPassword) === undefined) return
   throw configError(
     `--auth-password-stdin reads a Basic auth password, but OAuth is selected by ${selectedBy}`,
-    "Drop --auth-password-stdin: OAuth logs in with `pulse-cli auth login` and needs no password.",
+    "Drop --auth-password-stdin: OAuth logs in with `pulse auth login` and needs no password.",
   )
 }
 

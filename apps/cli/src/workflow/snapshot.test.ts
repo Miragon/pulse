@@ -45,7 +45,7 @@ describe("instanceView of the verified fixture", () => {
       incidents: [],
       children: [{ id: C, parentId: P, key: "workflow-child", version: 1, state: "ACTIVE" }],
       variables: { failBooking: true },
-      next: [`pulse-cli advance ${P}`],
+      next: [`pulse advance ${P}`],
     })
   })
 
@@ -115,14 +115,14 @@ describe("instanceView of the verified fixture", () => {
         since: "2026-10-09T13:38:39.877+0000",
       },
     ])
-    expect(view.next).toEqual([`pulse-cli retry ${P}`, `pulse-cli advance ${P}`])
+    expect(view.next).toEqual([`pulse retry ${P}`, `pulse advance ${P}`])
   })
 
   it('lists a receive task without message as "other"', () => {
     expect(instanceView(waitSignalStage()).waitingAt).toEqual([
       { activityId: "wait-signal", activityType: "receiveTask", kind: "other", executionId: P },
     ])
-    expect(instanceView(waitSignalStage()).next).toEqual([`pulse-cli advance ${P}`])
+    expect(instanceView(waitSignalStage()).next).toEqual([`pulse advance ${P}`])
   })
 
   it("shows an ended instance from the history with no wait states and a --history hint", () => {
@@ -135,7 +135,7 @@ describe("instanceView of the verified fixture", () => {
       incidents: [],
       children: [],
     })
-    expect(view.next).toEqual([`pulse-cli inspect ${P} --history`])
+    expect(view.next).toEqual([`pulse inspect ${P} --history`])
     expect(instanceView({ ...endedStage(), historyRequested: true }).next).toEqual([])
   })
 })
@@ -276,7 +276,7 @@ describe("instanceView properties", () => {
         expect(next.length).toBeLessThanOrEqual(3)
         for (const command of next)
           expect(command).toMatch(
-            /^pulse-cli (retry|advance|inspect) [\w-]+( --activity-id [\w-]+| --history)?$/,
+            /^pulse (retry|advance|inspect) [\w-]+( --activity-id [\w-]+| --history)?$/,
           )
       }),
     )

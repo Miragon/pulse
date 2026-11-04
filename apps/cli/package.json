@@ -24,6 +24,7 @@
   },
   "type": "module",
   "bin": {
+    "pulse": "dist/pulse-cli.js",
     "pulse-cli": "dist/pulse-cli.js"
   },
   "files": [

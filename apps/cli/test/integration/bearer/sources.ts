@@ -25,7 +25,7 @@ import {
 export function registerSources(suite: BearerSuite): void {
   const { top, trace, expectHidden, run } = suite
 
-  it("runs against a gateway that takes the tokens Keycloak issues without pulse-cli", async () => {
+  it("runs against a gateway that takes the tokens Keycloak issues without pulse", async () => {
     const { url, issuer } = top()
     expect(claimsOf(suite.ciToken)).toMatchObject({
       iss: issuer,
@@ -53,7 +53,7 @@ export function registerSources(suite: BearerSuite): void {
     const env = { PULSE_CLI_TOKEN: suite.ciToken }
     const list = await run([...argv("process-definition list"), globalFlag("verbose")], { env })
     expect(expectSuccess(list).json<ProcessDefinition[]>()).toEqual(expect.any(Array))
-    // one request, no token request: pulse-cli neither logs in nor refreshes
+    // one request, no token request: pulse neither logs in nor refreshes
     expect(trace(list)).toEqual(["> GET <engine>/process-definition", "< 200"])
     expect(list.stderr).toMatch(MASKED_BEARER)
 

@@ -63,10 +63,10 @@ describe("httpError", () => {
     expect(error.code).toBe("UNAUTHORIZED")
     expect(error.exitCode).toBe(4)
     expect(error.details.hint).toBe(
-      "The engine rejected the credentials of user demo (source: env). Check the username and the password; `pulse-cli config show` shows where each comes from. After a failed login the engine refuses the user for a few seconds (and locks it after repeated failures), so wait before retrying.",
+      "The engine rejected the credentials of user demo (source: env). Check the username and the password; `pulse config show` shows where each comes from. After a failed login the engine refuses the user for a few seconds (and locks it after repeated failures), so wait before retrying.",
     )
     expect(error.details.request).toEqual(REQUEST)
-    expect(HINTS[401]).toContain("pulse-cli sent no credentials")
+    expect(HINTS[401]).toContain("pulse sent no credentials")
     expect(HINTS[401]).not.toContain("issues/1")
   })
 
@@ -75,8 +75,8 @@ describe("httpError", () => {
     const error = httpError(response(401, ""), off)
     expect(error.details.hint).toBe(
       HINTS[401].replace(
-        "pulse-cli sent no credentials.",
-        "pulse-cli sent no credentials: Basic auth is switched off by PULSE_CLI_AUTH=none.",
+        "pulse sent no credentials.",
+        "pulse sent no credentials: Basic auth is switched off by PULSE_CLI_AUTH=none.",
       ),
     )
     expect(error.details.hint).not.toBe(HINTS[401])

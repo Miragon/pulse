@@ -2,12 +2,12 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://unpkg.com/@miragon/pulse-cli/schema/project-file.schema.json",
   "title": "Pulse CLI project file",
-  "description": "The project file .pulse-cli.json: profiles a repository shares with its team, read by the Pulse CLI and Pulse for VS Code. It names engines, never credentials. pulse-cli also refuses a defaultProfile that is not one of the file's profiles, a rule JSON Schema cannot express.",
+  "description": "The project file .pulse-cli.json: profiles a repository shares with its team, read by the Pulse CLI and Pulse for VS Code. It names engines, never credentials. The CLI also refuses a defaultProfile that is not one of the file's profiles, a rule JSON Schema cannot express.",
   "type": "object",
   "additionalProperties": false,
   "properties": {
     "$schema": {
-      "description": "The URL or path of this schema, so that your editor checks the file. pulse-cli keeps it when it writes the file.",
+      "description": "The URL or path of this schema, so that your editor checks the file. The CLI keeps it when it writes the file.",
       "type": "string"
     },
     "defaultProfile": {
@@ -89,7 +89,7 @@
       }
     },
     "auth": {
-      "description": "How pulse-cli authenticates. Without type a username selects Basic auth; OAuth needs type oauth. Credentials come from the environment, an OAuth login or a profile of the same name in your own config file.",
+      "description": "How the CLI authenticates. Without type a username selects Basic auth; OAuth needs type oauth. Credentials come from the environment, an OAuth login or a profile of the same name in your own config file.",
       "type": "object",
       "additionalProperties": false,
       "properties": {

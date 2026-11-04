@@ -494,6 +494,8 @@ jobs:
           done > "$RUNNER_TEMP/pulse-cli-SHA256SUMS"
           bash scripts/homebrew-formula.sh 0.0.0 "$RUNNER_TEMP/pulse-cli-SHA256SUMS" > "$RUNNER_TEMP/pulse-cli.rb"
           ruby -c "$RUNNER_TEMP/pulse-cli.rb"
+          grep -F 'bin.install_symlink bin/"pulse-cli" => "pulse"' "$RUNNER_TEMP/pulse-cli.rb"
+          grep -F 'shell_output("#{bin}/pulse --version")' "$RUNNER_TEMP/pulse-cli.rb"
 
   # CLI image for both platforms, no push; smoke test on the runner's platform.
   cli-image:

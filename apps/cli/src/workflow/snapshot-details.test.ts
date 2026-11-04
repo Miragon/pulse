@@ -126,8 +126,8 @@ describe("instanceView details", () => {
       activityName: "Review",
     })
     expect(instanceView(data).next).toEqual([
-      `pulse-cli advance ${P} --activity-id cancel-start`,
-      `pulse-cli advance ${P} --activity-id reminder`,
+      `pulse advance ${P} --activity-id cancel-start`,
+      `pulse advance ${P} --activity-id reminder`,
     ])
   })
 

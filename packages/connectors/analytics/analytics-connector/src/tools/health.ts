@@ -1,12 +1,12 @@
 import type { PrometheusClient } from "@miragon/pulse-analytics-client"
 import {
   ENGINE_HEALTH_STATUS_RULE,
-  schemas,
   queries,
   withCallerSignal,
 } from "@miragon/pulse-analytics-client"
 import type { ToolRegistrar } from "@miragon/pulse-widget-shell/server"
 import type { AnalyticsEngineScope } from "../engine-ids.js"
+import { engineHealthInput } from "../schemas/index.js"
 
 export function registerHealthTools(
   register: ToolRegistrar<PrometheusClient>,
@@ -21,7 +21,7 @@ export function registerHealthTools(
       `Status: ${ENGINE_HEALTH_STATUS_RULE} ` +
       "Use for fleet-wide or metric-based health; for one engine's live incident clusters use engine_open_cockpit.",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-    inputSchema: schemas.engineHealthInput.shape,
+    inputSchema: engineHealthInput.shape,
     handler: async (ch, args, ctx) => {
       const engines = engineScope.resolve(args.engine)
       // The module's engine-less alerts (a collector outage) only count for a

@@ -1,5 +1,5 @@
 ---
-description: A deploy-and-start request loads the skill and is answered with pulse-cli commands.
+description: A deploy-and-start request loads the skill and is answered with `pulse` commands.
 tags: [trigger]
 max_turns: 6
 allowed_tools: [Skill]

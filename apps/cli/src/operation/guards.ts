@@ -27,7 +27,7 @@ function readOnlyHint(source: string | undefined): string {
 
 /**
  * Throws READ_ONLY or CONFIRMATION_REQUIRED. `label` names the command in the message, e.g.
- * `pulse-cli process-instance delete`.
+ * `pulse process-instance delete`.
  */
 export function checkEffect(effect: Effect, label: string, options: GuardOptions): void {
   if (options.dryRun || effect === "read") return

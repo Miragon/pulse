@@ -1,6 +1,6 @@
 # Architecture
 
-pulse-cli speaks to an engine through a port. Each engine has its own adapter behind that port.
+The CLI speaks to an engine through a port. Each engine has its own adapter behind that port.
 Today every adapter passes straight through to the Camunda 7 REST API. When an engine diverges,
 only its adapter changes.
 
@@ -31,7 +31,7 @@ flowchart TB
 
 | Folder            | What it holds                                                                                  |
 | ----------------- | ---------------------------------------------------------------------------------------------- |
-| `src/engine-port` | What pulse-cli needs from an engine: `EnginePort` and `EngineAdapter`. Types only              |
+| `src/engine-port` | What the CLI needs from an engine: `EnginePort` and `EngineAdapter`. Types only                |
 | `src/engines`     | One adapter per engine: `operaton`, `cibseven`, `camunda7`                                     |
 | `src/api`         | One folder per engine API. `camunda7-rest` builds catalog and port                             |
 | `src/workflow`    | The workflow commands. They know the port, never an adapter or an API                          |
@@ -41,7 +41,7 @@ flowchart TB
 dependency-cruiser enforces the boundaries (`pnpm lint:architecture && pnpm lint:architecture:cli`):
 
 - `workflow` imports `engine-port` and `@miragon/pulse-engine-core`, never `engines` or `api`.
-  It turns the package's steps and reasons into the command lines and errors pulse-cli prints.
+  It turns the package's steps and reasons into the command lines and errors the CLI prints.
   Only `operation/dates.ts` and `operation/variables.ts` also import engine-core, for its rules.
 - Only `engines/<name>/adapter.ts` imports `api`.
 - Adapters do not import each other. An API does not import another API.
@@ -80,7 +80,7 @@ flowchart LR
   adapter --> program["createProgram: commands, help, describe"]
 ```
 
-A config file that cannot be read does not stop the selection: pulse-cli falls back to `camunda7`,
+A config file that cannot be read does not stop the selection: the CLI falls back to `camunda7`,
 and the command reports the problem when it reads its configuration.
 
 ## A workflow command

@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { PERIODS } from "../prometheus.js"
+import { PERIODS } from "@miragon/pulse-analytics-client"
 
 /** No description: the module's server instructions name the periods once. */
 export const periodField = z.enum(PERIODS).default("7d")

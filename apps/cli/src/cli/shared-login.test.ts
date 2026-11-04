@@ -122,7 +122,7 @@ describe("a login shared by the profiles of a repository", () => {
       "pulse-cli",
     ])
     expect(before.stderr).toBe(
-      "Next: run `pulse-cli auth login --profile invoices` in a terminal to log in.\n",
+      "Next: run `pulse auth login --profile invoices` in a terminal to log in.\n",
     )
     expect((await cli(SHOP, ["auth", "login"])).code).toBe(0)
     const after = await cli(SHOP, [
@@ -149,7 +149,7 @@ describe("a login shared by the profiles of a repository", () => {
     )
     const other = await cli(SHOP, ["config", "set", "audit", "--project", ...options, "audit-cli"])
     expect(other.stderr).toBe(
-      "Next: run `pulse-cli auth login --profile audit` in a terminal to log in.\n",
+      "Next: run `pulse auth login --profile audit` in a terminal to log in.\n",
     )
   })
 
@@ -160,12 +160,12 @@ describe("a login shared by the profiles of a repository", () => {
     const audience = ["--oauth-audience", "engine-rest"]
     const billing = await cli("/home/tester", ["config", "set", "billing", ...audience])
     expect(billing.stderr).toBe(
-      "Next: run `pulse-cli auth login --profile billing` in a terminal to log in.\n",
+      "Next: run `pulse auth login --profile billing` in a terminal to log in.\n",
     )
     expect(has(OWN_LOGIN)).toBe(true)
     const orders = await cli("/home/tester", ["config", "set", "orders", ...audience])
     expect(orders.stderr).toBe(
-      `Removed the OAuth login of profile "orders" for its previous settings (${OWN_LOGIN}); it was not revoked.\nNext: run \`pulse-cli auth login --profile orders\` in a terminal to log in.\n`,
+      `Removed the OAuth login of profile "orders" for its previous settings (${OWN_LOGIN}); it was not revoked.\nNext: run \`pulse auth login --profile orders\` in a terminal to log in.\n`,
     )
     expect(has(OWN_LOGIN)).toBe(false)
   })
@@ -182,7 +182,7 @@ describe("a login shared by the profiles of a repository", () => {
     const args = ["config", "set", "orders", "--project", "--oauth-audience", "engine-rest"]
     const edit = await cli(WORKTREE, args)
     expect(edit.stderr).toBe(
-      `Notice: kept the OAuth login of profile "orders" for its previous settings (${SHOP_LOGIN}): other worktrees and project files of the repository may still use it. It was not revoked; delete the file once none does.\nNext: run \`pulse-cli auth login --profile orders\` in a terminal to log in.\n`,
+      `Notice: kept the OAuth login of profile "orders" for its previous settings (${SHOP_LOGIN}): other worktrees and project files of the repository may still use it. It was not revoked; delete the file once none does.\nNext: run \`pulse auth login --profile orders\` in a terminal to log in.\n`,
     )
     expect((await cli(SHOP, ["auth", "status"])).code).toBe(0)
   })
@@ -193,7 +193,7 @@ describe("a login shared by the profiles of a repository", () => {
     const oauth = ["--auth", "oauth", "--oauth-issuer", ISSUER, "--oauth-client-id", "pulse-cli"]
     const set = await cli("/home/tester", [...args, ...oauth])
     expect(set.stderr).toBe(
-      "Next: run `pulse-cli auth login --config /home/tester/ci/pulse-cli.json --profile p` in a terminal to log in.\n",
+      "Next: run `pulse auth login --config /home/tester/ci/pulse-cli.json --profile p` in a terminal to log in.\n",
     )
     const status = await cli("/home/tester", [
       "auth",
@@ -204,7 +204,7 @@ describe("a login shared by the profiles of a repository", () => {
       "p",
     ])
     expect(errorOf(status.stderr).hint).toContain(
-      "Run `pulse-cli auth login --config /home/tester/ci/pulse-cli.json --profile p` in a terminal:",
+      "Run `pulse auth login --config /home/tester/ci/pulse-cli.json --profile p` in a terminal:",
     )
   })
 })
@@ -231,7 +231,7 @@ describe("a login never crosses origins", () => {
         message: 'Not logged in: profile "orders" has no OAuth login',
       })
       expect(errorOf(result.stderr).hint).toContain(
-        `Run \`pulse-cli auth login --profile orders\` in a terminal in ${OTHER}:`,
+        `Run \`pulse auth login --profile orders\` in a terminal in ${OTHER}:`,
       )
     }
     expect(engine("https://collector.example").requests).toEqual([])

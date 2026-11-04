@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import type { MCPServer } from "mcp-use"
 import { z } from "zod"
-import { schemas } from "@miragon/pulse-analytics-client"
 import { analyticsModule } from "./module.js"
+import { dashboardInput } from "./schemas/index.js"
 import { ANALYTICS_ENGINE_LANDSCAPE_DATA } from "./tool-names.js"
 
 afterEach(() => {
@@ -119,8 +119,8 @@ describe("analyticsModule.instructions", () => {
 
   // `engine` and `period` mean the same on every analytics tool: the instructions say it once.
   it("leaves engine and period to the instructions", () => {
-    expect(schemas.dashboardInput.shape.engine.description).toBeUndefined()
-    expect(schemas.dashboardInput.shape.period.description).toBeUndefined()
+    expect(dashboardInput.shape.engine.description).toBeUndefined()
+    expect(dashboardInput.shape.period.description).toBeUndefined()
     const text = analyticsModule.instructions()
     expect(text).toContain("- `engine` is a metric filter over this server's configured engines")
     expect(text).toContain("- period is one of ")

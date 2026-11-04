@@ -1,4 +1,4 @@
-/** `pulse-cli config set|show|list|delete` with OAuth through `run()`. */
+/** `pulse config set|show|list|delete` with OAuth through `run()`. */
 
 import { describe, expect, it } from "vitest"
 import { ISSUER } from "../../../test/support/fake-idp.js"
@@ -32,7 +32,7 @@ function errorOf(stderr: string): Record<string, unknown> {
   return (JSON.parse(line) as { error: Record<string, unknown> }).error
 }
 
-const NEXT = "Next: run `pulse-cli auth login --profile p` in a terminal to log in.\n"
+const NEXT = "Next: run `pulse auth login --profile p` in a terminal to log in.\n"
 
 describe("config set with OAuth options", () => {
   it("stores the OAuth settings, selects oauth and says what comes next", async () => {
@@ -119,7 +119,7 @@ describe("config set with OAuth options", () => {
     expect(errorOf(empty.stderr)).toMatchObject({
       code: "USAGE",
       message: "--oauth-client-secret-stdin read an empty client secret",
-      hint: `Pipe the client secret into the command, e.g. printf '%s\\n' "$CLIENT_SECRET" | pulse-cli config set <profile> --oauth-client-secret-stdin.`,
+      hint: `Pipe the client secret into the command, e.g. printf '%s\\n' "$CLIENT_SECRET" | pulse config set <profile> --oauth-client-secret-stdin.`,
     })
     const both = await cli(
       ["config", "set", "p", "--oauth-client-secret-stdin", "--auth-password-stdin"],
@@ -293,7 +293,7 @@ describe("config set with OAuth options", () => {
     expect(errorOf(secret.stderr).hint).toContain("--oauth-client-secret-env")
     const token = await cli(["ping", "--token=abc123"])
     expect(token.stderr).not.toContain("abc123")
-    expect(errorOf(token.stderr).hint).toContain("an OAuth token comes from `pulse-cli auth login`")
+    expect(errorOf(token.stderr).hint).toContain("an OAuth token comes from `pulse auth login`")
   })
 })
 
@@ -364,7 +364,7 @@ describe("config unset with OAuth settings", () => {
       clientId: "pulse-cli",
     })
     const blank = await cli(["config", "set", "p", "--oauth-audience", " "], { files })
-    expect(errorOf(blank.stderr).hint).toContain("`pulse-cli config unset <profile> audience`")
+    expect(errorOf(blank.stderr).hint).toContain("`pulse config unset <profile> audience`")
   })
 
   it("lists the OAuth settings in the help and in the hint of an unknown key", async () => {

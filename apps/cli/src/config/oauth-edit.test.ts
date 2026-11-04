@@ -1,4 +1,4 @@
-/** `pulse-cli config set` with OAuth options (rules 1–6) and `config show` rows. */
+/** `pulse config set` with OAuth options (rules 1–6) and `config show` rows. */
 
 import { posix, win32 } from "node:path"
 import { describe, expect, it } from "vitest"
@@ -228,7 +228,7 @@ describe("the Authorization header with OAuth (rule 6)", () => {
     )
     expect(error.message).toBe('Profile "p" would have both OAuth and an Authorization header')
     expect(error.details.hint).toBe(
-      "Keep one: OAuth options replace a stored Authorization header (`pulse-cli config set p --auth oauth`); --auth none switches OAuth off and keeps the header (`pulse-cli config set p --auth none -H 'Authorization: ...'`).",
+      "Keep one: OAuth options replace a stored Authorization header (`pulse config set p --auth oauth`); --auth none switches OAuth off and keeps the header (`pulse config set p --auth none -H 'Authorization: ...'`).",
     )
   })
 
@@ -303,7 +303,7 @@ describe("config list and show with OAuth", () => {
 })
 
 describe("token cache paths", () => {
-  it("lives in the pulse-cli config directory, never next to --config", () => {
+  it("lives in the pulse config directory, never next to --config", () => {
     const home = { homedir: "/home/u", platform: "linux" }
     expect(tokenDirectory({}, home)).toBe("/home/u/.config/pulse-cli/tokens")
     expect(

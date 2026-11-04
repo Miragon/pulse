@@ -150,7 +150,7 @@ export function unsetVariableWarnings(names: VariableNames, env: Env): string[] 
  */
 export function unsetVariable(name: string, profile: string, variable: SecretVariable) {
   const { flag, key, noun, placeholder } = variable
-  const another = `name another variable with \`pulse-cli config set ${profile} ${flag} <VAR>\``
+  const another = `name another variable with \`pulse config set ${profile} ${flag} <VAR>\``
   if (isConventionalVariable(name)) {
     return configError(
       `The ${noun} variable ${name} (auth.${key} of profile "${profile}") is not set or empty`,
@@ -159,6 +159,6 @@ export function unsetVariable(name: string, profile: string, variable: SecretVar
   }
   return configError(
     `The ${noun} variable named by auth.${key} of profile "${profile}" is not set or empty`,
-    `Its name is not in the usual upper-case form, so it is not repeated: it may be a ${noun} stored by mistake. Check auth.${key} in the config file (\`pulse-cli config path\`), or ${another}.`,
+    `Its name is not in the usual upper-case form, so it is not repeated: it may be a ${noun} stored by mistake. Check auth.${key} in the config file (\`pulse config path\`), or ${another}.`,
   )
 }

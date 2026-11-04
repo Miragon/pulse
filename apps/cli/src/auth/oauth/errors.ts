@@ -1,6 +1,6 @@
 /**
  * The errors of the OAuth flow. LOGIN_REQUIRED (exit 4) means a person must run
- * `pulse-cli auth login` in a terminal; agents cannot log in themselves, so the hint says who does
+ * `pulse auth login` in a terminal; agents cannot log in themselves, so the hint says who does
  * what. LOGIN_FAILED (exit 4) is a login that did not complete.
  */
 
@@ -15,7 +15,7 @@ export function owner(profile: string | undefined): string {
   return profile === undefined ? "the environment configuration" : `profile "${profile}"`
 }
 
-/** `(profile "p")`, or `(no profile)`, for the lines of `pulse-cli auth login`. */
+/** `(profile "p")`, or `(no profile)`, for the lines of `pulse auth login`. */
 export function profileNote(profile: string | undefined): string {
   return profile === undefined ? "(no profile)" : `(profile "${profile}")`
 }
@@ -38,11 +38,11 @@ function shellWord(path: string): string {
   return /^[\w@%+=:,./\\-]+$/.test(path) ? path : `'${path.replace(/'/g, `'\\''`)}'`
 }
 
-/** `pulse-cli auth <command> [--config <file>] [--profile <p>]` for the login of `who`. */
+/** `pulse auth <command> [--config <file>] [--profile <p>]` for the login of `who`. */
 function authCommand(command: string, who: LoginOwner): string {
-  if (who.profile === undefined) return `pulse-cli auth ${command}`
+  if (who.profile === undefined) return `pulse auth ${command}`
   const config = who.configFile === undefined ? "" : ` --config ${shellWord(who.configFile)}`
-  return `pulse-cli auth ${command}${config} --profile ${who.profile}`
+  return `pulse auth ${command}${config} --profile ${who.profile}`
 }
 
 /** The command a person runs to log in. */
@@ -56,7 +56,7 @@ export function statusCommand(who: LoginOwner): string {
 }
 
 /**
- * `` `pulse-cli auth login ...` in a terminal ``, and where: a profile of a project file is logged in
+ * `` `pulse auth login ...` in a terminal ``, and where: a profile of a project file is logged in
  * where that file applies. Without a profile the person needs PULSE_CLI_AUTH=oauth too: `auth login`
  * has no `--auth` option, so an agent's `--auth oauth` does not carry over.
  */
@@ -71,7 +71,7 @@ export function inTerminal(who: LoginOwner): string {
 
 /** The hint of every LOGIN_REQUIRED error. */
 export function loginHint(who: LoginOwner): string {
-  return `Run ${inTerminal(who)}: a person logs in once in the browser, pulse-cli refreshes the token afterwards. Agents cannot log in themselves.`
+  return `Run ${inTerminal(who)}: a person logs in once in the browser, pulse refreshes the token afterwards. Agents cannot log in themselves.`
 }
 
 /** LOGIN_REQUIRED with the login hint, after an optional explanation. */
@@ -129,7 +129,7 @@ export function removedWhileRunning(who: LoginOwner): PulseCliError {
   return loginRequired(
     `The OAuth login of ${owner(who.profile)} was removed while this command ran`,
     who,
-    "A logout (also of a profile that shares the login) or `pulse-cli config set|unset|delete` removed it.",
+    "A logout (also of a profile that shares the login) or `pulse config set|unset|delete` removed it.",
   )
 }
 
@@ -138,7 +138,7 @@ export const REFRESH_REJECTED =
   "The session expired, was revoked, or the refresh token was replayed."
 
 /**
- * LOGIN_REQUIRED for a login pulse-cli cannot refresh: the authorization server refused its
+ * LOGIN_REQUIRED for a login pulse cannot refresh: the authorization server refused its
  * refresh token before, it has none, or an expired one.
  */
 export function cannotRefresh(login: CachedLogin, now: number, who: LoginOwner) {
@@ -155,7 +155,7 @@ export function cannotRefresh(login: CachedLogin, now: number, who: LoginOwner) 
     return loginRequired(
       `The access token of ${whose} expired at ${iso(login.expiresAt ?? now)} and there is no refresh token`,
       who,
-      "Request the offline_access scope or allow refresh tokens for the client, so that pulse-cli can refresh the token.",
+      "Request the offline_access scope or allow refresh tokens for the client, so that pulse can refresh the token.",
     )
   }
   return loginRequired(

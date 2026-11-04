@@ -30,9 +30,9 @@ export const PROFILE = {
   noaud: "noaud",
   /** a client id Keycloak does not know */
   wrongClient: "wrong-client",
-  /** pulse-cli with the issuer spelled http://127.0.0.1:<port>/... (only with Docker on localhost) */
+  /** pulse with the issuer spelled http://127.0.0.1:<port>/... (only with Docker on localhost) */
   loopbackIp: "loopback-ip",
-  /** pulse-cli like "it" with the email scope: two profiles that share a login, names differ in case */
+  /** pulse like "it" with the email scope: two profiles that share a login, names differ in case */
   caseLower: "case-it",
   caseUpper: "Case-It",
 } as const
@@ -61,7 +61,7 @@ export function authArgs(
   return ["auth", command, "--profile", profile, ...extra]
 }
 
-/** `pulse-cli process-definition count --profile <profile> [flags...]`, a read the gateway guards. */
+/** `pulse process-definition count --profile <profile> [flags...]`, a read the gateway guards. */
 export function countArgs(profile: string, ...flags: string[]): string[] {
   return [...argv("process-definition count"), globalFlag("profile"), profile, ...flags]
 }

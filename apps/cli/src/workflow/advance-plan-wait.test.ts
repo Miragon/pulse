@@ -37,9 +37,7 @@ describe("chooseWait", () => {
     )
     const suspended = usage(() => chooseWait(view([USER_TASK], { state: "SUSPENDED" })))
     expect(suspended.message).toBe("Process instance p1 is suspended")
-    expect(suspended.details.hint).toBe(
-      "Activate it first: `pulse-cli process-instance activate p1`.",
-    )
+    expect(suspended.details.hint).toBe("Activate it first: `pulse process-instance activate p1`.")
   })
 
   it("lists the places with ready commands when the instance waits at several", () => {
@@ -48,7 +46,7 @@ describe("chooseWait", () => {
       "Process instance p1 waits at 4 places; choose one with --activity-id",
     )
     expect(error.details.hint).toBe(
-      "Choose one: pulse-cli advance p1 --activity-id approve, pulse-cli advance p1 --activity-id charge, pulse-cli advance p1 --activity-id cool-down.",
+      "Choose one: pulse advance p1 --activity-id approve, pulse advance p1 --activity-id charge, pulse advance p1 --activity-id cool-down.",
     )
     expect((error.details.data as { candidates: unknown[] }).candidates[0]).toEqual({
       activityId: "approve",
@@ -63,23 +61,21 @@ describe("chooseWait", () => {
     const error = usage(() => chooseWait(view([USER_TASK, second])))
     expect(error.message).toBe("Process instance p1 waits 2 times at approve")
     expect(error.details.hint).toBe(
-      "Move one item with its generated command: pulse-cli task complete t1 --var ..., pulse-cli task complete t2 --var ....",
+      "Move one item with its generated command: pulse task complete t1 --var ..., pulse task complete t2 --var ....",
     )
     const jobs = usage(() => chooseWait(view([ASYNC, { ...ASYNC, jobId: "j3" }])))
-    expect(jobs.details.hint).toContain("pulse-cli job execute j2")
+    expect(jobs.details.hint).toContain("pulse job execute j2")
     const externals = usage(() =>
       chooseWait(view([EXTERNAL, { ...EXTERNAL, externalTaskId: "e2" }])),
     )
-    expect(externals.details.hint).toContain(
-      "pulse-cli external-task complete e1 --worker-id <worker>",
-    )
+    expect(externals.details.hint).toContain("pulse external-task complete e1 --worker-id <worker>")
     const receive = usage(() => chooseWait(view([RECEIVE, { ...RECEIVE, executionId: "x9" }])))
-    expect(receive.details.hint).toContain("pulse-cli execution signal x3")
+    expect(receive.details.hint).toContain("pulse execution signal x3")
     // a message goes to its execution, not to the subscription id
     const messages = usage(() =>
       chooseWait(view([MESSAGE, { ...MESSAGE, eventSubscriptionId: "s9", executionId: "x9" }])),
     )
-    expect(messages.details.hint).toContain("pulse-cli execution trigger-event")
+    expect(messages.details.hint).toContain("pulse execution trigger-event")
     expect(messages.details.hint).not.toContain(
       `execution signal ${"eventSubscriptionId" in MESSAGE ? MESSAGE.eventSubscriptionId : ""}`,
     )
@@ -93,7 +89,7 @@ describe("chooseWait", () => {
     )
     // --activity-id approve would refuse to pick one of its two items
     expect(error.details.hint).toBe(
-      "Choose one: pulse-cli task complete t1 --var ..., pulse-cli advance p1 --activity-id charge.",
+      "Choose one: pulse task complete t1 --var ..., pulse advance p1 --activity-id charge.",
     )
   })
 
@@ -103,7 +99,7 @@ describe("chooseWait", () => {
       chooseWait(view([USER_TASK, odd]), undefined, ["--var", "'note=two words'", "--wait"]),
     )
     expect(error.details.hint).toBe(
-      "Choose one: pulse-cli advance p1 --activity-id approve --var 'note=two words' --wait, pulse-cli advance p1 --activity-id 'charge card' --var 'note=two words' --wait.",
+      "Choose one: pulse advance p1 --activity-id approve --var 'note=two words' --wait, pulse advance p1 --activity-id 'charge card' --var 'note=two words' --wait.",
     )
   })
 
@@ -123,7 +119,7 @@ describe("chooseWait", () => {
       checkSuspended({ ...ASYNC, suspended: true })
     })
     expect(error.message).toBe("Job j2 at book is suspended; the job executor does not run it")
-    expect(error.details.hint).toContain("`pulse-cli job activate j2`")
+    expect(error.details.hint).toContain("`pulse job activate j2`")
     expect(() => {
       checkSuspended({ ...TIMER, suspended: true })
     }).toThrow(/is suspended/)
@@ -134,21 +130,21 @@ describe("chooseWait", () => {
       "It waits at: approve (userTask).",
     )
     expect(usage(() => chooseWait(view([CONDITIONAL]))).details.hint).toBe(
-      "Conditional events react to variables: `pulse-cli process-instance set-variable p1 <name> --value <value>`.",
+      "Conditional events react to variables: `pulse process-instance set-variable p1 <name> --value <value>`.",
     )
     const truncated = view([], {
       truncated: true,
       children: [{ id: "c9", parentId: "p1", key: "k", state: "ACTIVE" }],
     })
     expect(usage(() => chooseWait(truncated)).details.hint).toBe(
-      "The instance tree was cut; inspect the called instances, e.g. `pulse-cli inspect c9`.",
+      "The instance tree was cut; inspect the called instances, e.g. `pulse inspect c9`.",
     )
     const nothing = usage(() =>
       chooseWait(view([{ activityId: "x", kind: "other", executionId: "e" }])),
     )
     expect(nothing).toMatchObject({
-      message: "Process instance p1 waits at nothing pulse-cli can advance",
-      details: { hint: "`pulse-cli inspect p1` shows where it waits." },
+      message: "Process instance p1 waits at nothing pulse can advance",
+      details: { hint: "`pulse inspect p1` shows where it waits." },
     })
   })
 })
@@ -189,7 +185,7 @@ describe("advance plan details", () => {
       checkOptions(USER_TASK, { errorMessage: "x", retries: 1 })
     })
     expect(error.message).toBe("--retries applies to external tasks only; approve is a userTask")
-    expect(error.details.hint).toBe("Run `pulse-cli advance --help` for the options per kind.")
+    expect(error.details.hint).toBe("Run `pulse advance --help` for the options per kind.")
     expect(
       usage(() => {
         checkOptions(MESSAGE, { errorMessage: "x" })
@@ -269,7 +265,7 @@ describe("advance plan details", () => {
     const error = usage(() => chooseWait(view(timers)))
     expect(error.code).toBe("USAGE")
     expect(error.details.hint).toBe(
-      "Move one item with its generated command: pulse-cli job execute j1, pulse-cli job execute j2, pulse-cli job execute j3.",
+      "Move one item with its generated command: pulse job execute j1, pulse job execute j2, pulse job execute j3.",
     )
     expect((error.details.data as { candidates: unknown[] }).candidates).toHaveLength(4)
     expect(usage(() => chooseWait(view([USER_TASK, EXTERNAL]))).code).toBe("USAGE")
@@ -280,17 +276,17 @@ describe("advance plan details", () => {
       "It waits at: approve (userTask).",
     )
     expect(usage(() => chooseWait(view([]), "nope")).details.hint).toBe(
-      "`pulse-cli inspect p1` shows where it waits.",
+      "`pulse inspect p1` shows where it waits.",
     )
     expect(usage(() => chooseWait(view([], { truncated: true }))).details.hint).toBe(
-      "`pulse-cli inspect p1` shows where it waits.",
+      "`pulse inspect p1` shows where it waits.",
     )
     const children = [{ id: "c9", parentId: "p1", key: "k", state: "ACTIVE" as const }]
     expect(usage(() => chooseWait(view([], { children }))).details.hint).toBe(
-      "`pulse-cli inspect p1` shows where it waits.",
+      "`pulse inspect p1` shows where it waits.",
     )
     expect(usage(() => chooseWait(view([], { state: "INTERNALLY_TERMINATED" }))).details.hint).toBe(
-      "`pulse-cli inspect p1 --history` shows the path it took.",
+      "`pulse inspect p1 --history` shows the path it took.",
     )
   })
 })

@@ -1,7 +1,7 @@
 # Engines
 
-pulse-cli works with Operaton, CIB seven and Camunda 7. All three speak the Camunda 7 REST API. Each
-has its own adapter in pulse-cli, so a difference of one engine stays in one place.
+The CLI works with Operaton, CIB seven and Camunda 7. All three speak the Camunda 7 REST API. Each
+has its own adapter in the CLI, so a difference of one engine stays in one place.
 
 ## Compatibility
 
@@ -17,12 +17,12 @@ not supported: it has a different API (see the [decision](adr/002-camunda-8-is-a
 
 ## Choosing the engine
 
-Set `flavor` in a profile, `PULSE_CLI_FLAVOR` or `--flavor`. Without it pulse-cli uses
+Set `flavor` in a profile, `PULSE_CLI_FLAVOR` or `--flavor`. Without it the CLI uses
 `camunda7`, which works for all three engines today.
 
 ```sh
-pulse-cli config set local --flavor operaton
-pulse-cli ping --flavor cibseven
+pulse config set local --flavor operaton
+pulse ping --flavor cibseven
 ```
 
 `flavor` is the product. `engine` is the name of a process engine on that server
@@ -30,7 +30,7 @@ pulse-cli ping --flavor cibseven
 
 ## Known differences
 
-None that pulse-cli has to handle today, so every adapter reads the same generated catalog,
+None that the CLI has to handle today, so every adapter reads the same generated catalog,
 `apps/cli/src/generated/catalog.json`.
 
 ## Adding a difference

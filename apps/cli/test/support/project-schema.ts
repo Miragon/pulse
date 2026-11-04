@@ -52,7 +52,7 @@ export type ExpectedProfile =
 export interface Fixture {
   readonly name: string
   readonly about: string
-  /** The file's text: `text` as given, else `file` as pulse-cli writes JSON. */
+  /** The file's text: `text` as given, else `file` as the CLI writes JSON. */
   readonly text: string
   readonly cli:
     | { readonly valid: true; readonly profiles: Readonly<Record<string, ExpectedProfile>> }

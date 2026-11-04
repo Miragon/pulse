@@ -13,11 +13,11 @@ function cli(args: readonly string[], options: FakeRuntimeOptions = {}) {
 
 const TOPICS = GUIDE_TOPICS.map((topic) => ({ topic: topic.name, summary: topic.summary }))
 
-describe("pulse-cli guide", () => {
+describe("pulse guide", () => {
   it("prints the core guide as markdown", async () => {
     const result = await cli(["guide"])
     expect(result).toMatchObject({ code: 0, stdout: GUIDE, stderr: "" })
-    expect(result.stdout).toMatch(/^# pulse-cli: /)
+    expect(result.stdout).toMatch(/^# Pulse CLI: /)
     expect(result.stdout.endsWith("\n")).toBe(true)
   })
 
@@ -73,7 +73,7 @@ describe("pulse-cli guide", () => {
         code: "USAGE",
         exitCode: 2,
         message: 'Unknown guide topic "oauth"',
-        hint: 'Did you mean auth? The topics are workflow, input, output, config, auth, recipes ("pulse-cli guide --list" summarizes them); "pulse-cli guide" alone prints the core guide.',
+        hint: 'Did you mean auth? The topics are workflow, input, output, config, auth, recipes ("pulse guide --list" summarizes them); "pulse guide" alone prints the core guide.',
       },
     })
     const setup = JSON.parse((await cli(["guide", "setup"])).stderr) as { error: { hint: string } }
@@ -95,7 +95,7 @@ describe("pulse-cli guide", () => {
         code: "USAGE",
         exitCode: 2,
         message: '--list takes no topic, got "auth"',
-        hint: 'Run "pulse-cli guide --list" for the topics or "pulse-cli guide auth" for one topic.',
+        hint: 'Run "pulse guide --list" for the topics or "pulse guide auth" for one topic.',
       },
     })
     const unknown = await cli(["guide", "--list", "setup"])
@@ -103,7 +103,7 @@ describe("pulse-cli guide", () => {
     expect(JSON.parse(unknown.stderr)).toMatchObject({
       error: {
         message: '--list takes no topic, got "setup"',
-        hint: 'Run "pulse-cli guide --list" for the topics.',
+        hint: 'Run "pulse guide --list" for the topics.',
       },
     })
   })
@@ -111,7 +111,7 @@ describe("pulse-cli guide", () => {
   it("describes itself and its topics in its help", async () => {
     const result = await cli(["guide", "--help"])
     expect(result.stdout).toMatch(
-      /^Usage: pulse-cli guide \[topic\] \[options\]\n\nPrint the usage guide/,
+      /^Usage: pulse guide \[topic\] \[options\]\n\nPrint the usage guide/,
     )
     expect(result.stdout).toContain(
       `Topics: ${GUIDE_TOPICS.map((topic) => topic.name).join(", ")}.`,

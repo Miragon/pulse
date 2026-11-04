@@ -122,7 +122,7 @@ describe("checkRetryCount", () => {
   it("refuses more than 1000 retries and truncated lists before any write", () => {
     expect(() => {
       checkRetryCount(entries, false, "payment")
-    }).toThrow("More than 1000 incidents to retry; pulse-cli retries them one by one")
+    }).toThrow("More than 1000 incidents to retry; pulse retries them one by one")
     expect(() => {
       checkRetryCount([], true, undefined)
     }).toThrow(/^More than 1000/)
@@ -178,7 +178,7 @@ describe("writes and plan", () => {
       incidents: 2,
       jobs: 1,
       externalTasks: 0,
-      skipped: [{ incidentId: "s", type: "x", next: "pulse-cli incident resolve s --yes" }],
+      skipped: [{ incidentId: "s", type: "x", next: "pulse incident resolve s --yes" }],
     })
   })
 })
@@ -247,7 +247,7 @@ describe("retry plan details", () => {
       expect.unreachable()
     } catch (error) {
       expect((error as { details: { hint: string } }).details.hint).toBe(
-        'Set the retries asynchronously instead: `pulse-cli job set-retries-async --body \'{"jobQuery":{"processDefinitionKey":"<key>","noRetriesLeft":true},"retries":1}\' --yes` and `pulse-cli external-task set-retries-async`.',
+        'Set the retries asynchronously instead: `pulse job set-retries-async --body \'{"jobQuery":{"processDefinitionKey":"<key>","noRetriesLeft":true},"retries":1}\' --yes` and `pulse external-task set-retries-async`.',
       )
     }
   })

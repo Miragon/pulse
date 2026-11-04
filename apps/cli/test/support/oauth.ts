@@ -145,7 +145,7 @@ export function cachedLogin(now: number, overrides: Partial<CachedLogin> = {}): 
   }
 }
 
-/** The file content of a cached login, as pulse-cli writes it. */
+/** The file content of a cached login, as pulse writes it. */
 export function cacheText(login: CachedLogin): string {
   return `${JSON.stringify(login, null, 2)}\n`
 }

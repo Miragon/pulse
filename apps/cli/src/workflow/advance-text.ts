@@ -1,5 +1,5 @@
 /**
- * The usage errors of `pulse-cli advance` that name places and options: the flag and text of each
+ * The usage errors of `pulse advance` that name places and options: the flag and text of each
  * option, the ready commands of an ambiguous choice and the hint when nothing can move. Pure.
  */
 
@@ -53,7 +53,7 @@ function itemHint(wait: WaitState): string {
   if (wait.kind === "userTask") return `${itemCommand(wait) ?? ""} --var ...`
   return (
     itemCommand(wait) ??
-    `pulse-cli external-task complete ${waitId(wait)} --worker-id <worker> (after locking it)`
+    `pulse external-task complete ${waitId(wait)} --worker-id <worker> (after locking it)`
   )
 }
 
@@ -67,7 +67,7 @@ function candidate(id: string, wait: WaitState) {
 }
 
 /**
- * A ready command per place: `pulse-cli advance <id> --activity-id <a>` with the other options of
+ * A ready command per place: `pulse advance <id> --activity-id <a>` with the other options of
  * the command line, or the generated command of the first item of a multi-instance activity
  * (`advance --activity-id` refuses to pick one of its items).
  */
@@ -75,7 +75,7 @@ function placeCommand(id: string, waits: readonly WaitState[], options: string):
   const [first, ...more] = waits
   if (first === undefined) return ""
   if (more.length > 0) return itemHint(first)
-  return `pulse-cli advance ${id} --activity-id ${shellWord(first.activityId)}${options}`
+  return `pulse advance ${id} --activity-id ${shellWord(first.activityId)}${options}`
 }
 
 /** Several wait states could move; `options` are the other words of the command line. */
@@ -113,13 +113,13 @@ export function nothing(reason: Reason<"advance-nothing">): PulseCliError {
       `It waits at: ${waiting.join(", ")}.`,
     )
   }
-  let hint = `\`pulse-cli inspect ${id}\` shows where it waits.`
+  let hint = `\`pulse inspect ${id}\` shows where it waits.`
   if (reason.conditional) {
-    hint = `Conditional events react to variables: \`pulse-cli process-instance set-variable ${id} <name> --value <value>\`.`
+    hint = `Conditional events react to variables: \`pulse process-instance set-variable ${id} <name> --value <value>\`.`
   } else if (reason.firstChildId !== undefined) {
-    hint = `The instance tree was cut; inspect the called instances, e.g. \`pulse-cli inspect ${reason.firstChildId}\`.`
+    hint = `The instance tree was cut; inspect the called instances, e.g. \`pulse inspect ${reason.firstChildId}\`.`
   }
-  return usageError(`Process instance ${id} waits at nothing pulse-cli can advance`, hint)
+  return usageError(`Process instance ${id} waits at nothing pulse can advance`, hint)
 }
 
 /** An option that does not apply to the chosen wait state. */
@@ -127,7 +127,7 @@ export function optionKind(reason: Reason<"advance-option-kind">): PulseCliError
   const kinds = listText(reason.appliesTo.map((kind) => KIND_NOUNS[kind]))
   return usageError(
     `${FLAGS[reason.option]} applies to ${kinds} only; ${reason.activityId} is a ${reason.waitKind}`,
-    "Run `pulse-cli advance --help` for the options per kind.",
+    "Run `pulse advance --help` for the options per kind.",
   )
 }
 

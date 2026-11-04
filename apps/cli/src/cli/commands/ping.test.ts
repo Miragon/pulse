@@ -36,7 +36,7 @@ function cli(args: readonly string[], options: FakeRuntimeOptions = {}) {
   )
 }
 
-describe("pulse-cli ping", () => {
+describe("pulse ping", () => {
   it("prints url, engine, version, engine names, latency and auth", async () => {
     const result = await cli(["ping"])
     expect(result).toMatchObject({ code: 0, stderr: "" })
@@ -117,7 +117,7 @@ describe("pulse-cli ping", () => {
 
   it("shows its help with the global options", async () => {
     const result = await cli(["ping", "--help"])
-    expect(result.stdout).toMatch(/^Usage: pulse-cli ping \[options\]\n\nCheck the connection/)
+    expect(result.stdout).toMatch(/^Usage: pulse ping \[options\]\n\nCheck the connection/)
     expect(result.stdout).toContain("\nGlobal Options:\n  --url <url> ")
   })
 })

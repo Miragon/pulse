@@ -286,7 +286,7 @@ describe("resolveAuth with OAuth", () => {
       'The client secret variable SECRET (auth.clientSecretEnv of profile "p") is not set or empty',
     )
     expect(missing.details.hint).toBe(
-      "Export it, e.g. export SECRET=<secret>, or name another variable with `pulse-cli config set p --oauth-client-secret-env <VAR>`.",
+      "Export it, e.g. export SECRET=<secret>, or name another variable with `pulse config set p --oauth-client-secret-env <VAR>`.",
     )
     const control = failure(() => resolveAuth({}, { SECRET: "a\nb" }, profile(stored)))
     expect(control.message).toContain('(from SECRET, auth.clientSecretEnv of profile "p")')
@@ -297,14 +297,14 @@ describe("resolveAuth with OAuth", () => {
     const error = failure(() => resolveAuth({ auth: "oauth" }, {}, profile({})))
     expect(error.message).toBe("OAuth is selected but the issuer and the client id are missing")
     expect(error.details.hint).toBe(
-      'OAuth was selected by --auth oauth. Looked up the issuer in PULSE_CLI_OAUTH_ISSUER, PULSE_CLI_OAUTH_AUTHORIZATION_ENDPOINT + PULSE_CLI_OAUTH_TOKEN_ENDPOINT and the auth.issuer / auth.authorizationEndpoint + auth.tokenEndpoint of profile "p"; the client id in PULSE_CLI_OAUTH_CLIENT_ID and the auth.clientId of profile "p". Store them with `pulse-cli config set <profile> --auth oauth --oauth-issuer <url> --oauth-client-id <id>`, or set the PULSE_CLI_OAUTH_* variables; --auth none switches OAuth off.',
+      'OAuth was selected by --auth oauth. Looked up the issuer in PULSE_CLI_OAUTH_ISSUER, PULSE_CLI_OAUTH_AUTHORIZATION_ENDPOINT + PULSE_CLI_OAUTH_TOKEN_ENDPOINT and the auth.issuer / auth.authorizationEndpoint + auth.tokenEndpoint of profile "p"; the client id in PULSE_CLI_OAUTH_CLIENT_ID and the auth.clientId of profile "p". Store them with `pulse config set <profile> --auth oauth --oauth-issuer <url> --oauth-client-id <id>`, or set the PULSE_CLI_OAUTH_* variables; --auth none switches OAuth off.',
     )
     expect(
       failure(() =>
         resolveAuth({}, { PULSE_CLI_AUTH: "oauth", PULSE_CLI_OAUTH_ISSUER: ISSUER }, {}),
       ).details.hint,
     ).toBe(
-      "OAuth was selected by PULSE_CLI_AUTH=oauth. Looked up the client id in PULSE_CLI_OAUTH_CLIENT_ID and a profile (none is selected). Store them with `pulse-cli config set <profile> --auth oauth --oauth-issuer <url> --oauth-client-id <id>`, or set the PULSE_CLI_OAUTH_* variables; --auth none switches OAuth off.",
+      "OAuth was selected by PULSE_CLI_AUTH=oauth. Looked up the client id in PULSE_CLI_OAUTH_CLIENT_ID and a profile (none is selected). Store them with `pulse config set <profile> --auth oauth --oauth-issuer <url> --oauth-client-id <id>`, or set the PULSE_CLI_OAUTH_* variables; --auth none switches OAuth off.",
     )
     expect(
       failure(() => resolveAuth({}, {}, profile({ type: "oauth", clientId: "c" }))).message,
@@ -323,7 +323,7 @@ describe("resolveAuth with OAuth", () => {
       '--auth-password-stdin reads a Basic auth password, but OAuth is selected by the auth.type of profile "p"',
     )
     expect(error.details.hint).toBe(
-      "Drop --auth-password-stdin: OAuth logs in with `pulse-cli auth login` and needs no password.",
+      "Drop --auth-password-stdin: OAuth logs in with `pulse auth login` and needs no password.",
     )
   })
 
@@ -360,7 +360,7 @@ describe("OAuth and an Authorization header", () => {
     const error = authorizationConflict(config, "flag", "p")
     expect(error?.message).toBe("OAuth and an Authorization header are both configured")
     expect(error?.details.hint).toBe(
-      "Drop one: remove the Authorization header (given with -H/--header), or switch OAuth off with --auth none, PULSE_CLI_AUTH=none or `pulse-cli config unset p auth`.",
+      "Drop one: remove the Authorization header (given with -H/--header), or switch OAuth off with --auth none, PULSE_CLI_AUTH=none or `pulse config unset p auth`.",
     )
   })
 

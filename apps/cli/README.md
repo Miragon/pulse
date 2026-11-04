@@ -22,7 +22,7 @@ act and one to check the result, and each answer has to be read to build the nex
 deployment, a migration or a search through the history is no different. An agent that works this
 way is slow, and every id it copies is a chance to hit the wrong instance.
 
-pulse-cli turns this around: the agent names what it means and what should happen, in one short
+The Pulse CLI turns this around: the agent names what it means and what should happen, in one short
 command, and the CLI sends the requests. What you get:
 
 - One short command replaces a chain of requests, so the agent writes little and works fast.
@@ -43,8 +43,11 @@ below).
 
 ```sh
 npm install -g @miragon/pulse-cli      # or, without Node.js: brew install miragon/tap/pulse-cli
-pulse-cli guide
+pulse guide
 ```
+
+The command is `pulse`. `pulse-cli`, its name up to 0.25, stays as a second name, so scripts and
+agents that call it keep working.
 
 ## Quick start
 
@@ -53,9 +56,9 @@ Start an engine, then deploy a process, start an instance and complete its first
 
 ```sh
 docker run -d --name engine -p 8080:8080 operaton/operaton:2.1.5
-pulse-cli ping
-pulse-cli deploy order.bpmn --start --business-key ORD-1001 --var amount=250
-pulse-cli advance --business-key ORD-1001 --var approved=true
+pulse ping
+pulse deploy order.bpmn --start --business-key ORD-1001 --var amount=250
+pulse advance --business-key ORD-1001 --var approved=true
 ```
 
 ```text
@@ -99,8 +102,8 @@ Details: [workflow commands](https://miragon.github.io/pulse/cli/workflow-comman
 
 ## AI agents and the Claude Code plugin
 
-Everything an agent needs is in the CLI: `pulse-cli guide` prints the usage guide, and one line in
-`AGENTS.md` or `CLAUDE.md` ("Run `pulse-cli guide` before using `pulse-cli`") is enough. The CLI
+Everything an agent needs is in the CLI: `pulse guide` prints the usage guide, and one line in
+`AGENTS.md` or `CLAUDE.md` ("Run `pulse guide` before using `pulse`") is enough. The CLI
 is also a Claude Code plugin in the plugin marketplace of this repository, whose skill makes Claude
 use the CLI whenever a task touches an engine.
 
@@ -109,11 +112,11 @@ use the CLI whenever a task touches an engine.
 /plugin install pulse-cli@pulse
 ```
 
-Details: [using pulse-cli from AI agents](https://miragon.github.io/pulse/cli/agents).
+Details: [using the CLI from AI agents](https://miragon.github.io/pulse/cli/agents).
 
 ## Engines
 
-pulse-cli works with Operaton, CIB seven and Camunda 7. Every change is tested against Operaton
+The CLI works with Operaton, CIB seven and Camunda 7. Every change is tested against Operaton
 and CIB seven; Camunda 7 was tested with 7.24.0 until its image left Docker Hub in November 2026.
 Camunda 8 is not supported: it has a different API.
 
@@ -140,7 +143,7 @@ built from the pages in [`docs/cli/`](https://github.com/Miragon/pulse/tree/main
 - [Authentication](https://miragon.github.io/pulse/cli/authentication): Basic auth, OAuth logins, bearer tokens, token commands, other headers
 - [Safety](https://miragon.github.io/pulse/cli/safety): previews, confirmation, read-only mode
 - [Recipes](https://miragon.github.io/pulse/cli/recipes): command lines for everyday tasks
-- [Using pulse-cli from AI agents](https://miragon.github.io/pulse/cli/agents): the guide, the Claude Code plugin and skill
+- [Using the CLI from AI agents](https://miragon.github.io/pulse/cli/agents): the guide, the Claude Code plugin and skill
 - [Engines](https://miragon.github.io/pulse/cli/engines): compatibility, choosing the engine, adding a difference or an engine
 - [Architecture](https://miragon.github.io/pulse/cli/architecture): engine port, adapters, catalog generation; [decisions](https://miragon.github.io/pulse/cli/adr/)
 - [Development](https://github.com/Miragon/pulse/blob/main/docs/cli/development.md): building and testing the CLI in the Pulse repository

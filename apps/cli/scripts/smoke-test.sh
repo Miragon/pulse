@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Smoke test of a packaged pulse-cli without an engine: a standalone executable, the
+# Smoke test of the packaged CLI without an engine: a standalone executable, the
 # container image or any other command line that starts the CLI and forwards stdin.
 #
 #   scripts/smoke-test.sh build/bin/pulse-cli-linux-x64
@@ -10,7 +10,7 @@
 set -euo pipefail
 
 if [ "$#" -eq 0 ]; then
-  echo "usage: $0 <command that starts pulse-cli...>" >&2
+  echo "usage: $0 <command that starts the CLI...>" >&2
   exit 2
 fi
 
@@ -44,10 +44,10 @@ expect() {
 }
 
 expect '--version' "$expected" "$@" --version
-expect '--help' '*Usage: pulse-cli *API groups:*process-instance*' "$@" --help
+expect '--help' '*Usage: pulse *API groups:*process-instance*' "$@" --help
 expect 'commands (catalog)' '\[{"group":*"group":"process-instance"*' "$@" commands
 expect 'describe' '*"operationId":"getProcessInstances"*' "$@" describe process-instance list
-expect 'guide' '*pulse-cli ping*' "$@" guide
+expect 'guide' '*pulse ping*' "$@" guide
 expect 'dry-run' \
   '*"method":"DELETE","url":"http://engine.example:8080/engine-rest/process-instance/abc"*' \
   "$@" process-instance delete abc --dry-run --url "$engine"

@@ -123,7 +123,7 @@ describe("callbackCode", () => {
       reason: "The authorization server reported access_denied.",
     })
     expect("error" in denied && denied.error.details.hint).toBe(
-      "The user cancelled the login or may not use client pulse-cli; run `pulse-cli auth login --profile p` again.",
+      "The user cancelled the login or may not use client pulse-cli; run `pulse auth login --profile p` again.",
     )
     for (const code of [
       "invalid_request",

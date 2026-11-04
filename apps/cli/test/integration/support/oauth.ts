@@ -4,7 +4,7 @@
  * checks the Bearer token (the engines have no OAuth resource server of their own).
  *
  * ```
- * pulse-cli ──http://localhost:<envoy>/engine-rest──▶ Envoy ──http://engine-<name>:8080──▶ engine
+ * pulse ──http://localhost:<envoy>/engine-rest──▶ Envoy ──http://engine-<name>:8080──▶ engine
  *      └──discovery, token, revoke──▶ Keycloak (alias keycloak) ◀──JWKS── Envoy
  * ```
  *
@@ -151,7 +151,7 @@ export async function startOAuthTopology(engine: EngineName): Promise<OAuthTopol
     const host = keycloak.getHost()
     if (!LOOPBACK_HOSTS.has(host)) {
       throw new Error(
-        `The Docker host is "${host}", not this machine: pulse-cli accepts http issuers only on ` +
+        `The Docker host is "${host}", not this machine: pulse accepts http issuers only on ` +
           "loopback hosts, so the OAuth integration test needs a local Docker daemon",
       )
     }

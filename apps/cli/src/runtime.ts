@@ -40,7 +40,7 @@ export interface FileSystem {
   ownedByUser?(path: string): Promise<boolean>
 }
 
-/** A request to the loopback server of `pulse-cli auth login` (the OAuth callback). */
+/** A request to the loopback server of `pulse auth login` (the OAuth callback). */
 export interface LoopbackRequest {
   readonly method: string
   /** The path without the query string. */
@@ -93,7 +93,7 @@ export interface Runtime {
   randomBytes(length: number): Uint8Array
   /**
    * An HTTP server on 127.0.0.1 only (port 0: an ephemeral port); rejects with the listen error
-   * (its `code`, e.g. EADDRINUSE). Only `pulse-cli auth login` starts one.
+   * (its `code`, e.g. EADDRINUSE). Only `pulse auth login` starts one.
    */
   listenLoopback(
     port: number,

@@ -1,5 +1,5 @@
 /**
- * Drift protection between the docs and the real command line: every `pulse-cli` command of the core
+ * Drift protection between the docs and the real command line: every `pulse` command of the core
  * guide, of the README and of every page of docs/ (the guide topics; each page in order on its own
  * fake engine) and every example of every operation must run in the CLI with exit code 0
  * (examples with --dry-run, whose preview must show the method and path of the operation).
@@ -14,12 +14,14 @@ import {
   type FakeRuntime,
   fakeRuntime,
 } from "../../test/support/fake-runtime.js"
+import { SECOND_NAME } from "../../test/support/package-bins.js"
 import { WorkflowEngine } from "../../test/support/workflow-engine.js"
 import { loadCatalog } from "../catalog/catalog.js"
 import type { OperationSpec } from "../catalog/types.js"
 import { examplesFor } from "../docs/examples.js"
 import { GUIDE } from "../docs/guide.js"
 import { commandWords } from "../docs/text.js"
+import { CLI_NAME } from "../util.js"
 import { run } from "./run.js"
 
 const catalog = loadCatalog()
@@ -31,26 +33,26 @@ function shellWords(line: string): string[] {
   return commandWords(line).map((word) => word.replaceAll("'", ""))
 }
 
-function cliSegments(words: readonly string[]): string[][] {
+function cliSegments(words: readonly string[], program: string): string[][] {
   const segments: string[][] = [[]]
   for (const word of words) {
     if (SHELL_OPERATORS.has(word)) segments.push([])
     else segments.at(-1)?.push(word)
   }
-  return segments.filter((segment) => segment[0] === "pulse-cli")
+  return segments.filter((segment) => segment[0] === program)
 }
 
 /**
- * `pulse-cli` commands in the shell code blocks (```sh, or ```sh [label] in a VitePress code group)
+ * `pulse` commands in the shell code blocks (```sh, or ```sh [label] in a VitePress code group)
  * of markdown, split at shell operators. Other blocks hold transcripts and syntax summaries.
  */
-function fencedCommands(markdown: string): string[][] {
+function fencedCommands(markdown: string, program = CLI_NAME): string[][] {
   const commands: string[][] = []
   let fence: string | undefined
   for (const line of markdown.split("\n")) {
     if (line.startsWith("```")) fence = fence === undefined ? line.slice(3) : undefined
     else if (fence !== undefined && /^sh(?: \[.*\])?$/.test(fence)) {
-      commands.push(...cliSegments(shellWords(line)))
+      commands.push(...cliSegments(shellWords(line), program))
     }
   }
   return commands
@@ -75,7 +77,7 @@ function referencedFiles(words: readonly string[]): Record<string, string> {
   return Object.fromEntries(paths.map((path) => [path, contentOf(path)]))
 }
 
-/** Directories the documented `pulse-cli deploy` lines deploy, each with one process. */
+/** Directories the documented `pulse deploy` lines deploy, each with one process. */
 const DEPLOYED_DIRECTORIES = {
   "bpmn/invoice.bpmn": processXml("invoice.bpmn"),
   "src/main/resources/invoice.bpmn": processXml("invoice.bpmn"),
@@ -86,7 +88,7 @@ const DEPLOYED_DIRECTORIES = {
  * incident of the failing job (the next line retries it).
  */
 const EXIT_9: ReadonlySet<string> = new Set([
-  "pulse-cli advance --business-key B-1 --var approved=true --wait",
+  "pulse advance --business-key B-1 --var approved=true --wait",
 ])
 
 /**
@@ -175,17 +177,19 @@ async function previewFailures(examples: readonly (readonly [OperationSpec, read
 }
 
 describe("documented command lines run in the CLI", () => {
-  it("finds the pulse-cli commands of fenced code blocks", () => {
+  it("finds the pulse commands of fenced code blocks", () => {
     const markdown =
-      "text pulse-cli x\n```sh\necho '{}' | pulse-cli guide && pulse-cli ping -o 'json'\n```\n```text\npulse-cli <group>\n```"
+      "text pulse x\n```sh\necho '{}' | pulse guide && pulse ping -o 'json'\n```\n```text\npulse <group>\n```"
     expect(fencedCommands(markdown)).toEqual([
-      ["pulse-cli", "guide"],
-      ["pulse-cli", "ping", "-o", "json"],
+      ["pulse", "guide"],
+      ["pulse", "ping", "-o", "json"],
     ])
-    const codeGroup =
-      "```sh [CI]\npulse-cli status\n```\n```text [Claude Code]\n/pulse-cli:status\n```"
-    expect(fencedCommands(codeGroup)).toEqual([["pulse-cli", "status"]])
-    expect(fencedCommands("```shell\npulse-cli status\n```")).toEqual([])
+    const codeGroup = "```sh [CI]\npulse status\n```\n```text [Claude Code]\n/pulse-cli:status\n```"
+    expect(fencedCommands(codeGroup)).toEqual([["pulse", "status"]])
+    expect(fencedCommands("```shell\npulse status\n```")).toEqual([])
+    expect(fencedCommands("```sh\npulse-cli ping && pulse guide\n```", SECOND_NAME)).toEqual([
+      ["pulse-cli", "ping"],
+    ])
     expect(referencedFiles(["--body", "@a.json", "b.bpmn", "c.txt"])).toEqual({
       "a.json": "{}",
       "b.bpmn": processXml("b.bpmn"),
@@ -201,6 +205,14 @@ describe("documented command lines run in the CLI", () => {
   it.each(DOC_PAGES)("runs the commands of %s in order", async (_, text) => {
     const page = fencedCommands(text)
     expect(await failures(page, documentedRuntime(page.flat(), READER_CONFIG))).toEqual([])
+  })
+
+  it("runs nothing under the second name, which these checks would skip", () => {
+    const pages = [["the core guide", GUIDE] as const, ...DOC_PAGES]
+    const unchecked = pages.flatMap(([name, text]) =>
+      fencedCommands(text, SECOND_NAME).map((words) => `${name}: ${words.join(" ")}`),
+    )
+    expect(unchecked).toEqual([])
   })
 
   it("finds the commands of the README and the docs pages", () => {
@@ -221,26 +233,26 @@ describe("documented command lines run in the CLI", () => {
   it("notices an example whose preview does not match its operation", async () => {
     const list = catalog.operations.find((operation) => operation.operationId === "getTasks")!
     const count = catalog.operations.find((operation) => operation.operationId === "getTasksCount")!
-    const words = ["pulse-cli", "task", "count", "--dry-run"]
+    const words = ["pulse", "task", "count", "--dry-run"]
     expect(await previewFailures([[count, words]])).toEqual([])
     expect(await previewFailures([[list, words]])).toHaveLength(1)
-    const table = ["pulse-cli", "task", "delete", "t1", "--dry-run", "-o", "table"]
+    const table = ["pulse", "task", "delete", "t1", "--dry-run", "-o", "table"]
     const remove = catalog.operations.find((operation) => operation.operationId === "deleteTask")!
     expect(await previewFailures([[remove, table]])).toEqual([])
   })
 
   it("reports the command lines that fail", async () => {
     const lines = [
-      ["pulse-cli", "task", "list", "--no-such-flag"],
-      ["pulse-cli", "guide"],
+      ["pulse", "task", "list", "--no-such-flag"],
+      ["pulse", "guide"],
     ]
     expect(await failures(lines, documentedRuntime([]))).toEqual([
-      `pulse-cli task list --no-such-flag: ${JSON.stringify({
+      `pulse task list --no-such-flag: ${JSON.stringify({
         error: {
           code: "USAGE",
           exitCode: 2,
           message: 'Unknown option "--no-such-flag"',
-          hint: 'Run "pulse-cli task list --help" for the usage.',
+          hint: 'Run "pulse task list --help" for the usage.',
         },
       })}\n`,
     ])

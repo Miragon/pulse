@@ -20,21 +20,21 @@ function caught(action: () => unknown): PulseCliError {
 describe("checkEffect", () => {
   it("allows read and write without flags", () => {
     expect(() => {
-      checkEffect("read", "pulse-cli task list", base)
+      checkEffect("read", "pulse task list", base)
     }).not.toThrow()
     expect(() => {
-      checkEffect("write", "pulse-cli task claim", base)
+      checkEffect("write", "pulse task claim", base)
     }).not.toThrow()
   })
 
   it.each(["delete", "bulk"] as const)("requires confirmation for %s", (effect) => {
     const error = caught(() => {
-      checkEffect(effect, "pulse-cli process-instance delete", base)
+      checkEffect(effect, "pulse process-instance delete", base)
     })
     expect(error.code).toBe("CONFIRMATION_REQUIRED")
     expect(error.exitCode).toBe(2)
     expect(error.message).toBe(
-      `\`pulse-cli process-instance delete\` is a ${effect} operation and needs confirmation`,
+      `\`pulse process-instance delete\` is a ${effect} operation and needs confirmation`,
     )
     expect(error.details).toEqual({
       hint: "Re-run with --yes to confirm, or --dry-run to preview.",
@@ -52,7 +52,7 @@ describe("checkEffect", () => {
 
   it.each(["write", "delete", "bulk"] as const)("refuses %s in read-only mode", (effect) => {
     const error = caught(() => {
-      checkEffect(effect, "pulse-cli job set-retries", {
+      checkEffect(effect, "pulse job set-retries", {
         ...base,
         readOnly: true,
         yes: true,
@@ -62,7 +62,7 @@ describe("checkEffect", () => {
     expect(error.code).toBe("READ_ONLY")
     expect(error.exitCode).toBe(2)
     expect(error.message).toBe(
-      `\`pulse-cli job set-retries\` is a ${effect} operation and read-only mode is enabled`,
+      `\`pulse job set-retries\` is a ${effect} operation and read-only mode is enabled`,
     )
     expect(error.details).toEqual({
       hint: 'Read-only mode is enabled by profile "prod". Use --dry-run to preview the request.',

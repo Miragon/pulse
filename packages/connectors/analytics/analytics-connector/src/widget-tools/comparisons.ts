@@ -5,7 +5,7 @@ import {
   withToolErrors,
   strictToolInput,
 } from "@miragon/pulse-widget-shell/server"
-import { queries, schemas, withCallerSignal } from "@miragon/pulse-analytics-client"
+import { queries, withCallerSignal } from "@miragon/pulse-analytics-client"
 import {
   ANALYTICS_ENGINE_LANDSCAPE_DATA,
   ANALYTICS_SHOW_ENGINE_COMPARE,
@@ -16,6 +16,12 @@ import {
 import { withEngineScope } from "../engine-ids.js"
 import { namedLandscape } from "../named-views.js"
 import { NO_NAMES } from "../bpmn-name-lookup.js"
+import {
+  engineCompareInput,
+  engineLandscapeInput,
+  periodCompareInput,
+  versionCompareInput,
+} from "../schemas/index.js"
 import { viewWithJson, type AnalyticsWidgetToolsContext } from "./shared.js"
 
 /** The landscape is no fourth comparison: engines host different process mixes. */
@@ -30,7 +36,7 @@ export function registerComparisonWidgetTools(ctx: AnalyticsWidgetToolsContext) 
       description:
         "Compare process KPIs of two periods (around a deployment, A ends and B starts at its timestamp from engine_get_deployment). Per period: starts and starts per day, completions, incidents per 100 starts, avg/median/p95 duration, plus the deltas. Periods are clamped to now and the 30-day retention and reported as measured (`partial`); a reversed or wholly out-of-range period is refused.",
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-      inputSchema: strictToolInput(schemas.periodCompareInput.shape),
+      inputSchema: strictToolInput(periodCompareInput.shape),
       ...showToolBinding(ANALYTICS_SHOW_PERIOD_COMPARE, "Period Comparison"),
     },
     withToolErrors(async (args, toolCtx) => {
@@ -49,7 +55,7 @@ export function registerComparisonWidgetTools(ctx: AnalyticsWidgetToolsContext) 
       description:
         "Compare KPIs of two deployed versions of one processDefinitionKey over a shared rolling window. The version is an exact label on the instance and incident series, so starts, completions, incidents, incidents per 100 starts and avg/median/p95 duration per version and their deltas are exact; the comparison is process-wide (no element scope). Find versions with engine_list_process_definitions.",
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-      inputSchema: strictToolInput(schemas.versionCompareInput.shape),
+      inputSchema: strictToolInput(versionCompareInput.shape),
       ...showToolBinding(ANALYTICS_SHOW_VERSION_COMPARE, "Process Version Comparison"),
     },
     withToolErrors(async (args, toolCtx) => {
@@ -68,7 +74,7 @@ export function registerComparisonWidgetTools(ctx: AnalyticsWidgetToolsContext) 
       description:
         "Compare ONE process definition on two configured engines (e.g. prod-a vs prod-b) over a shared rolling window: starts, completions, incidents per 100 starts, avg/median/p95 duration, plus the deltas.",
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-      inputSchema: strictToolInput(schemas.engineCompareInput.shape),
+      inputSchema: strictToolInput(engineCompareInput.shape),
       ...showToolBinding(ANALYTICS_SHOW_ENGINE_COMPARE, "Engine Comparison"),
     },
     withToolErrors(async (args, toolCtx) => {
@@ -89,7 +95,7 @@ export function registerComparisonWidgetTools(ctx: AnalyticsWidgetToolsContext) 
       description:
         "Show the cross-engine landscape of the configured engines: which process definitions run on which engine, the load per engine (running instances, open incidents, failed jobs) and the engine-owned job backlog (executable, suspended and future-due jobs, open external tasks). Counts, not rates: engines host different process mixes, so a per-engine rate would measure the mix; the backlog gauges carry no process label and do compare. `sharedProcessKeys` (deployed on several engines) are the only sound inputs for analytics_show_engine_compare; an engine without metrics has `reporting: false`.",
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-      inputSchema: strictToolInput(schemas.engineLandscapeInput.shape),
+      inputSchema: strictToolInput(engineLandscapeInput.shape),
       ...showToolBinding(ANALYTICS_SHOW_ENGINE_LANDSCAPE, "Cross-Engine Landscape"),
     },
     withToolErrors(async (args, toolCtx) => {
@@ -108,7 +114,7 @@ export function registerComparisonWidgetTools(ctx: AnalyticsWidgetToolsContext) 
       description:
         "Internal JSON feed (no UI) for the cross-engine landscape widget's self-fetch, also consumed by the engine cockpit's cross-engine mode. Prefer analytics_show_engine_landscape.",
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-      inputSchema: strictToolInput(schemas.engineLandscapeInput.shape),
+      inputSchema: strictToolInput(engineLandscapeInput.shape),
       ...appOnly,
     },
     withToolErrors(async (args, toolCtx) => {

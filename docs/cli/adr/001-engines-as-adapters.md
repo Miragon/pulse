@@ -4,7 +4,7 @@
 
 Operaton, CIB seven and Camunda 7 speak the same REST API today. Nothing guarantees that this stays
 so: the forks release on their own schedules and have started to rename things (`operatonFormRef`,
-`camundaFormRef`). pulse-cli drives its commands from a catalog generated from one OpenAPI spec, and
+`camundaFormRef`). The CLI drives its commands from a catalog generated from one OpenAPI spec, and
 its workflow commands call that catalog directly. A difference in one engine would have had to be
 handled with checks of the engine name across the code base.
 
@@ -12,7 +12,7 @@ handled with checks of the engine name across the code base.
 
 **Three questions, three folders.**
 
-- `src/engine-port`: what pulse-cli needs from an engine. `EnginePort` (call, find, list, text,
+- `src/engine-port`: what the CLI needs from an engine. `EnginePort` (call, find, list, text,
   preview, route) and `EngineAdapter` (name, catalog, port). Types only.
 - `src/engines/<name>/adapter.ts`: who speaks to the engine. One adapter per engine.
 - `src/api/<api>`: which language. `camunda7-rest` builds the catalog and the port for every
@@ -38,7 +38,7 @@ The overview is in [Architecture](../architecture.md), the engine list in [Engin
 - A difference of one engine changes its catalog or its adapter. The other engines do not move.
 - The workflow commands are written once, against the port.
 - One generated catalog is committed and every adapter reads it while no engine diverges.
-- Existing profiles keep working: without `flavor` pulse-cli behaves as before. Versions without the
+- Existing profiles keep working: without `flavor` the CLI behaves as before. Versions without the
   key reject a config file that contains it.
 - `src/catalog`, `src/operation` and `src/http` still hold the Camunda 7 REST code. They move into
   `src/api/camunda7-rest` step by step, not in one move.

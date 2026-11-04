@@ -25,7 +25,7 @@ import { makeTempDir, removeTempDir } from "./support/temp.js"
 import type { Count, ExternalTask, ProcessInstance, Task } from "./support/types.js"
 
 export function registerScenario(engineName: EngineName): void {
-  describe.skipIf(!isEngineEnabled(engineName))(`pulse-cli against ${engineName}`, () => {
+  describe.skipIf(!isEngineEnabled(engineName))(`pulse against ${engineName}`, () => {
     let engine: RunningEngine | undefined
     let workdir: string | undefined
     let configFile = ""

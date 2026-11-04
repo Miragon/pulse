@@ -35,7 +35,7 @@ export function instanceMissing(id: string): PulseCliError {
     "NOT_FOUND",
     `Process instance ${id} does not exist (neither running nor in the history)`,
     {
-      hint: "List instances with `pulse-cli process-instance list` (running) or `pulse-cli historic-process-instance list` (also ended); with history level none, ended instances cannot be found.",
+      hint: "List instances with `pulse process-instance list` (running) or `pulse historic-process-instance list` (also ended); with history level none, ended instances cannot be found.",
     },
   )
 }
@@ -57,7 +57,7 @@ function capitalized(text: string): string {
 
 function notFound(selection: Selection): PulseCliError {
   return new PulseCliError("NOT_FOUND", `No process instance with ${filterText(selection)}`, {
-    hint: "Check the filters with `pulse-cli process-instance list` (running instances) and `pulse-cli historic-process-instance list` (also ended ones); with history level none, ended instances cannot be found.",
+    hint: "Check the filters with `pulse process-instance list` (running instances) and `pulse historic-process-instance list` (also ended ones); with history level none, ended instances cannot be found.",
   })
 }
 
@@ -68,7 +68,7 @@ function ambiguous(reason: Reason<"selection-ambiguous">, context: ErrorContext)
   const options = context.options?.map((word) => ` ${word}`).join("") ?? ""
   const ready = candidates
     .slice(0, READY_COMMANDS)
-    .map((candidate) => `pulse-cli ${context.command ?? ""} ${candidate.id}${options}`)
+    .map((candidate) => `pulse ${context.command ?? ""} ${candidate.id}${options}`)
   return new PulseCliError(
     "USAGE",
     `${capitalized(filterText(selection))} ${both ? "match" : "matches"} ${count} process instances`,
@@ -82,8 +82,8 @@ function ambiguous(reason: Reason<"selection-ambiguous">, context: ErrorContext)
 function tooMany(reason: Reason<"retry-too-many">): PulseCliError {
   const definition = reason.processDefinitionKey ?? "<key>"
   return usageError(
-    `More than ${reason.max} incidents to retry; pulse-cli retries them one by one`,
-    `Set the retries asynchronously instead: \`pulse-cli job set-retries-async --body '{"jobQuery":{"processDefinitionKey":"${definition}","noRetriesLeft":true},"retries":1}' --yes\` and \`pulse-cli external-task set-retries-async\`.`,
+    `More than ${reason.max} incidents to retry; pulse retries them one by one`,
+    `Set the retries asynchronously instead: \`pulse job set-retries-async --body '{"jobQuery":{"processDefinitionKey":"${definition}","noRetriesLeft":true},"retries":1}' --yes\` and \`pulse external-task set-retries-async\`.`,
   )
 }
 
@@ -105,7 +105,7 @@ const RENDER: { readonly [K in Kind]: Render<K> } = {
   "latest-needs-history": () =>
     usageError(
       "--latest needs the history (level activity or higher) to order instances",
-      "Pass the process instance id instead; `pulse-cli process-instance list` lists the running ones.",
+      "Pass the process instance id instead; `pulse process-instance list` lists the running ones.",
     ),
   "instance-missing": (reason) => instanceMissing(reason.id),
   "condition-invalid": (reason) =>
@@ -124,12 +124,12 @@ const RENDER: { readonly [K in Kind]: Render<K> } = {
   "advance-ended": (reason) =>
     usageError(
       `Process instance ${reason.id} has ended (${reason.state}); nothing to advance`,
-      `\`pulse-cli inspect ${reason.id} --history\` shows the path it took.`,
+      `\`pulse inspect ${reason.id} --history\` shows the path it took.`,
     ),
   "advance-suspended": (reason) =>
     usageError(
       `Process instance ${reason.id} is suspended`,
-      `Activate it first: \`pulse-cli process-instance activate ${reason.id}\`.`,
+      `Activate it first: \`pulse process-instance activate ${reason.id}\`.`,
     ),
   "advance-nothing": nothing,
   "advance-ambiguous": (reason, context) => several(reason, context.options ?? []),
@@ -137,12 +137,12 @@ const RENDER: { readonly [K in Kind]: Render<K> } = {
   "advance-job-suspended": (reason) =>
     usageError(
       `Job ${reason.jobId} at ${reason.activityId} is suspended; the job executor does not run it`,
-      `Activate it first: \`pulse-cli job activate ${reason.jobId}\` (a suspended job definition suspends its new jobs too: \`pulse-cli job-definition activate <id>\`).`,
+      `Activate it first: \`pulse job activate ${reason.jobId}\` (a suspended job definition suspends its new jobs too: \`pulse job-definition activate <id>\`).`,
     ),
   "advance-locked": (reason) =>
     usageError(
       `External task ${reason.externalTaskId} is locked by worker ${reason.workerId} until ${reason.lockExpirationTime ?? ""}`,
-      `Pass --worker-id ${reason.workerId}, or unlock it: \`pulse-cli external-task unlock ${reason.externalTaskId}\`.`,
+      `Pass --worker-id ${reason.workerId}, or unlock it: \`pulse external-task unlock ${reason.externalTaskId}\`.`,
     ),
 }
 

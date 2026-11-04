@@ -15,7 +15,7 @@ const HELP: readonly (readonly [string, readonly string[]])[] = [
   [
     "commands",
     [
-      "Usage: pulse-cli commands [group] [options]",
+      "Usage: pulse commands [group] [options]",
       "",
       "List the API groups, or the commands of a group, a search or an effect.",
       "",
@@ -45,15 +45,15 @@ const HELP: readonly (readonly [string, readonly string[]])[] = [
   [
     "describe",
     [
-      "Usage: pulse-cli describe <group> [command] [options]",
+      "Usage: pulse describe <group> [command] [options]",
       "",
       "Describe a command: usage, arguments, options, request body schema, responses",
       "and examples.",
       "",
       "Name the command by group and command (process-definition start), by its",
       "operationId (startProcessInstanceByKey) or as a workflow command (inspect). A",
-      'group alone lists its commands like "pulse-cli commands <group>". Prints JSON',
-      "when stdout is not a terminal, readable text otherwise.",
+      'group alone lists its commands like "pulse commands <group>". Prints JSON when',
+      "stdout is not a terminal, readable text otherwise.",
       "",
       "Arguments:",
       "  group                  Group (process-definition), workflow command (inspect)",
@@ -72,7 +72,7 @@ const HELP: readonly (readonly [string, readonly string[]])[] = [
   [
     "api",
     [
-      "Usage: pulse-cli api <method> <path> [options]",
+      "Usage: pulse api <method> <path> [options]",
       "",
       "Send a raw request to a path relative to the REST API root.",
       "",
@@ -132,7 +132,7 @@ const HELP: readonly (readonly [string, readonly string[]])[] = [
   [
     "guide",
     [
-      "Usage: pulse-cli guide [topic] [options]",
+      "Usage: pulse guide [topic] [options]",
       "",
       "Print the usage guide for agents and scripts as markdown. Without a topic: the",
       "core guide (setup, discover, describe, preview, run, workflow commands,",
@@ -157,7 +157,7 @@ const HELP: readonly (readonly [string, readonly string[]])[] = [
   [
     "ping",
     [
-      "Usage: pulse-cli ping [options]",
+      "Usage: pulse ping [options]",
       "",
       "Check the connection to the engine: REST API version, process engines and",
       "latency.",
@@ -241,7 +241,7 @@ const GLOBAL_OPTIONS = [
 ]
 
 describe("help texts", () => {
-  it.each(HELP)('documents "pulse-cli %s" with its arguments and options', async (path, lines) => {
+  it.each(HELP)('documents "pulse %s" with its arguments and options', async (path, lines) => {
     expect(await help(path.split(" "))).toBe(`${lines.join("\n")}\n`)
   })
 

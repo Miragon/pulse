@@ -1,19 +1,19 @@
 # Configuration
 
 Every setting is resolved per value: **flag > environment variable > profile > default**.
-`pulse-cli config show` prints the effective values and where each one comes from. Profiles live in
+`pulse config show` prints the effective values and where each one comes from. Profiles live in
 your config file and, for a repository, in its [project file](#project-file).
 
-Every option: `pulse-cli config <command> --help`.
+Every option: `pulse config <command> --help`.
 
 ## Global options
 
 These work on every API command, `api` and `ping`, after the command path
-(`pulse-cli task list -o table`): target (`--url`, `--engine`, `--flavor`, `--profile`,
+(`pulse task list -o table`): target (`--url`, `--engine`, `--flavor`, `--profile`,
 `--config`), output
 (`-o/--output`, `--fields`, `--pretty`, `--out-file`, `--verbose`), guards (`--dry-run`, `--yes`,
 `--read-only`), requests (`--timeout`, `-H`) and [authentication](authentication.md). The list with
-meanings and variables: `pulse-cli ping --help`.
+meanings and variables: `pulse ping --help`.
 
 ## Environment variables
 
@@ -39,9 +39,9 @@ meanings and variables: `pulse-cli ping --help`.
 
 Lookup order: `--config <path>`, `PULSE_CLI_CONFIG`, `$XDG_CONFIG_HOME/pulse-cli/config.json`,
 `~/.config/pulse-cli/config.json` (Windows: `%APPDATA%\pulse-cli\config.json`).
-`pulse-cli config path` prints the location. A file named with `--config` or `PULSE_CLI_CONFIG` must
+`pulse config path` prints the location. A file named with `--config` or `PULSE_CLI_CONFIG` must
 exist and is the only file read.
-pulse-cli validates every value and writes the file with mode `0600`; you can also edit it by hand:
+The CLI validates every value and writes the file with mode `0600`; you can also edit it by hand:
 
 ```json
 {
@@ -80,14 +80,14 @@ pulse-cli validates every value and writes the file with mode `0600`; you can al
 ## Engines
 
 `flavor` says which product runs behind the URL: `operaton`, `cibseven` or `camunda7`. It
-selects the engine adapter and with it the commands, help and `describe`. Without it pulse-cli uses
+selects the engine adapter and with it the commands, help and `describe`. Without it the CLI uses
 `camunda7`, which works for all three today. `engine` stays what it was: the name of a process
 engine (`/engine/{name}`).
 
 ```sh
-pulse-cli config set local --flavor operaton
-PULSE_CLI_FLAVOR=cibseven pulse-cli ping
-pulse-cli ping --flavor camunda7
+pulse config set local --flavor operaton
+PULSE_CLI_FLAVOR=cibseven pulse ping
+pulse ping --flavor camunda7
 ```
 
 An unknown value is an error that lists the known engines. Before the CLI moved to Pulse the key
@@ -96,15 +96,15 @@ was called `platform`; that name is an unknown key now, and `--platform` an unkn
 ## Profiles
 
 ```sh
-pulse-cli config set local --url http://localhost:8080/engine-rest --default
-pulse-cli config set prod --url https://camunda.example.com/engine-rest --read-only
-pulse-cli config set prod --cockpit-url https://camunda.example.com/operaton/app/cockpit/default/
-pulse-cli config list
-pulse-cli config show --profile prod
-pulse-cli config use prod
-pulse-cli ping --profile local
-pulse-cli config unset prod readOnly
-pulse-cli config delete prod
+pulse config set local --url http://localhost:8080/engine-rest --default
+pulse config set prod --url https://camunda.example.com/engine-rest --read-only
+pulse config set prod --cockpit-url https://camunda.example.com/operaton/app/cockpit/default/
+pulse config list
+pulse config show --profile prod
+pulse config use prod
+pulse ping --profile local
+pulse config unset prod readOnly
+pulse config delete prod
 ```
 
 - `config set` creates or updates a profile; only the given values change. The first profile
@@ -117,14 +117,14 @@ pulse-cli config delete prod
 ## Project file
 
 A repository can ship its profiles in `.pulse-cli.json`, in the format of the config file, so
-neither developers nor agents need a setup step. pulse-cli looks it up from the working directory
+neither developers nor agents need a setup step. The CLI looks it up from the working directory
 up to the repository root; the nearest file wins. `--config` or `PULSE_CLI_CONFIG` turn the lookup
 off.
 
 ```sh
-pulse-cli config set orders --project --url http://localhost:8112/engine-rest/orders --default
-pulse-cli config list
-pulse-cli config path --project
+pulse config set orders --project --url http://localhost:8112/engine-rest/orders --default
+pulse config list
+pulse config path --project
 ```
 
 ```json
@@ -136,7 +136,7 @@ pulse-cli config path --project
 ```
 
 - Its profiles join yours. On a name clash your own profile wins as a whole. The project's
-  `defaultProfile` wins inside the repository, so a bare `pulse-cli status` reaches its engine.
+  `defaultProfile` wins inside the repository, so a bare `pulse status` reaches its engine.
 - A project file names engines, never credentials: passwords, secrets, tokens, their `*Env`
   variables and secret headers are refused. Credentials come from the environment
   (`PULSE_CLI_TOKEN`, [`PULSE_CLI_TOKEN_COMMAND`](authentication.md#token-commands),
@@ -144,8 +144,8 @@ pulse-cli config path --project
   ([shared logins](authentication.md#shared-logins)) or a profile of the same name in your file.
 - `config set|unset|use|delete --project` write the project file (mode `0644`).
   `config list` shows each profile's `scope` (`user` or `project`).
-- `$schema` lets your editor check the file against the JSON Schema that ships with pulse-cli
-  (`schema/project-file.schema.json` in the npm package); pulse-cli keeps the key when it writes
+- `$schema` lets your editor check the file against the JSON Schema that ships with the CLI
+  (`schema/project-file.schema.json` in the npm package); the CLI keeps the key when it writes
   the file. The URL above serves the latest release; `@miragon/pulse-cli@<version>` pins yours.
   [Pulse for VS Code](../vscode/configuration.md) reads the same profiles.
 - Treat a project file like code: it decides where your credentials from the environment and its

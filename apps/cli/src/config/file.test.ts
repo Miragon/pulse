@@ -5,7 +5,7 @@ import { configFilePath, parseConfigFile, readConfigFile, writeConfigFile } from
 import type { ConfigFile } from "./types.js"
 
 const PATH = "/home/me/.config/pulse-cli/config.json"
-const HINT = "Fix the file or recreate it with `pulse-cli config set`."
+const HINT = "Fix the file or recreate it with `pulse config set`."
 const HEADERS =
   "an object mapping header names (not Connection, Content-Length, Expect, Keep-Alive, Transfer-Encoding or Upgrade) to ISO-8859-1 (Latin-1) string values without control characters"
 const ENGINE = 'a process engine name, not "." or ".."'
@@ -354,7 +354,7 @@ describe("readConfigFile", () => {
       code: "CONFIG",
       message: "Config file /typo.json does not exist",
       details: {
-        hint: "Create it with `pulse-cli config set <profile> --url <url> --config /typo.json`, or fix the path of --config or PULSE_CLI_CONFIG.",
+        hint: "Create it with `pulse config set <profile> --url <url> --config /typo.json`, or fix the path of --config or PULSE_CLI_CONFIG.",
       },
     })
   })

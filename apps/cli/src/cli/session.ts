@@ -41,7 +41,7 @@ export interface Session {
 export interface SessionOptions {
   /** `--body -`: stdin holds the body, so `--auth-password-stdin` and `--auth-token-stdin` are refused. */
   readonly bodyFromStdin?: boolean
-  /** `pulse-cli auth login|status`: hints never suggest switching OAuth off. */
+  /** `pulse auth login|status`: hints never suggest switching OAuth off. */
   readonly authCommand?: boolean
 }
 
@@ -157,7 +157,7 @@ function plainHttpWarning(session: Session): string | undefined {
   const host = plainHttpHost(config.url)
   return host === undefined
     ? undefined
-    : `Warning: pulse-cli sends ${token} over plain http to ${host}; anyone on the network path can read and reuse it. Use https:// for the engine URL (RFC 6750 §5.3).`
+    : `Warning: pulse sends ${token} over plain http to ${host}; anyone on the network path can read and reuse it. Use https:// for the engine URL (RFC 6750 §5.3).`
 }
 
 /**

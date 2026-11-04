@@ -1,5 +1,5 @@
 /**
- * The session of `pulse-cli auth login|status` and the auth type these commands need: OAuth for login (CONFIG `needs OAuth, but profile "p" uses basic` otherwise, with
+ * The session of `pulse auth login|status` and the auth type these commands need: OAuth for login (CONFIG `needs OAuth, but profile "p" uses basic` otherwise, with
  * how to switch stored or exported OAuth settings on), OAuth or a bearer token for status, and no
  * login or logout for a bearer token from elsewhere (USAGE). `auth` commands have no `--auth`
  * option, so hints never suggest one.
@@ -48,11 +48,11 @@ function notOAuthHint(state: NotOAuth, env: Env): string {
   const variable = oauthEnvVariable(env)
   const off = state.off?.includes("OAuth") === true ? state.off : undefined
   if (off === undefined) {
-    return `Configure it: pulse-cli config set ${profile} --auth oauth --oauth-issuer <url> --oauth-client-id <id>`
+    return `Configure it: pulse config set ${profile} --auth oauth --oauth-issuer <url> --oauth-client-id <id>`
   }
   switch (state.source) {
     case "profile":
-      return `${off}. Switch it on: pulse-cli config set ${profile} --auth oauth`
+      return `${off}. Switch it on: pulse config set ${profile} --auth oauth`
     case "env":
       return `${off}. Switch it on: ${ENV.auth}=oauth`
     default:
@@ -71,7 +71,7 @@ function statusHint(state: NotOAuth, env: Env): string {
   if (state.off?.startsWith("Bearer auth") === true) {
     const on =
       state.source === "profile"
-        ? `pulse-cli config set ${state.profile ?? "<profile>"} --auth bearer`
+        ? `pulse config set ${state.profile ?? "<profile>"} --auth bearer`
         : `${ENV.auth}=bearer`
     return `${state.off}. Switch it on: ${on}`
   }
@@ -85,12 +85,12 @@ export function notOAuth(command: string, state: NotOAuth, env: Env) {
   const owner = state.profile === undefined ? "the configuration" : `profile "${state.profile}"`
   if (command === "status") {
     return configError(
-      `pulse-cli auth status needs OAuth or a bearer token, but ${owner} uses ${state.type}`,
+      `pulse auth status needs OAuth or a bearer token, but ${owner} uses ${state.type}`,
       statusHint(state, env),
     )
   }
   return configError(
-    `pulse-cli auth ${command} needs OAuth, but ${owner} uses ${state.type}`,
+    `pulse auth ${command} needs OAuth, but ${owner} uses ${state.type}`,
     notOAuthHint(state, env),
   )
 }

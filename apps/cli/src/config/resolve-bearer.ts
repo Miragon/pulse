@@ -1,6 +1,6 @@
 /**
- * Resolves a bearer token obtained outside pulse-cli. The token:
- * `--auth-token-stdin` > PULSE_CLI_TOKEN > PULSE_CLI_TOKEN_COMMAND (a command line pulse-cli runs when
+ * Resolves a bearer token obtained outside pulse. The token:
+ * `--auth-token-stdin` > PULSE_CLI_TOKEN > PULSE_CLI_TOKEN_COMMAND (a command line pulse runs when
  * it needs the token) > the variable named by the profile's auth.tokenEnv (only read when no
  * higher source has a token) > the profile's auth.token. Without an auth type anywhere, a token
  * from the flag or the environment, or PULSE_CLI_TOKEN_COMMAND, selects bearer auth, like a username
@@ -28,7 +28,7 @@ export interface BearerContext {
   readonly flags: ConfigFlags
   readonly env: Env
   readonly selected: SelectedProfile
-  /** `pulse-cli auth` commands have no `--auth` option: hints suggest PULSE_CLI_AUTH instead. */
+  /** `pulse auth` commands have no `--auth` option: hints suggest PULSE_CLI_AUTH instead. */
   readonly authCommand?: boolean
 }
 
@@ -125,7 +125,7 @@ function missingToken(selectedBy: string, selected: SelectedProfile) {
   const name = selected.name ?? "<profile>"
   return configError(
     "Bearer auth is selected but the token is missing",
-    `Bearer auth was selected by ${selectedBy}. Looked up the token in ${STDIN_FLAG}, ${ENV.token}, ${ENV.tokenCommand} and ${profile}. Fetch a token with the tool that issues it (e.g. az account get-access-token, gcloud auth print-access-token) and export ${ENV.token}=<token>, let pulse-cli run that tool with export ${ENV.tokenCommand}=<command>, pipe it into ${STDIN_FLAG}, or store the name of its variable with \`pulse-cli config set ${name} --auth bearer --auth-token-env <VAR>\`; --auth none switches bearer auth off.`,
+    `Bearer auth was selected by ${selectedBy}. Looked up the token in ${STDIN_FLAG}, ${ENV.token}, ${ENV.tokenCommand} and ${profile}. Fetch a token with the tool that issues it (e.g. az account get-access-token, gcloud auth print-access-token) and export ${ENV.token}=<token>, let pulse run that tool with export ${ENV.tokenCommand}=<command>, pipe it into ${STDIN_FLAG}, or store the name of its variable with \`pulse config set ${name} --auth bearer --auth-token-env <VAR>\`; --auth none switches bearer auth off.`,
   )
 }
 

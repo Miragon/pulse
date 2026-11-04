@@ -24,7 +24,7 @@ async function cli(args: readonly string[], options: FakeRuntimeOptions = {}, st
   return { ...outcome, requests: fake.requests }
 }
 
-describe("pulse-cli config with a bearer token", () => {
+describe("pulse config with a bearer token", () => {
   it("stores a token from stdin with a plain text warning and prints it masked", async () => {
     const result = await cli(["config", "set", "ci", "--auth-token-stdin", "-o", "json"], {
       stdin: "Bearer lit.token\n",
@@ -110,11 +110,11 @@ describe("mistyped bearer flags", () => {
       code: "USAGE",
       exitCode: 2,
       message: "Unknown command (not repeated: it may be a token or password)",
-      hint: `--auth-token-stdin takes no value: pipe the token into it, e.g. printf '%s\\n' "$TOKEN" | pulse-cli ... --auth-token-stdin. Run "pulse-cli --help" for the commands.`,
+      hint: `--auth-token-stdin takes no value: pipe the token into it, e.g. printf '%s\\n' "$TOKEN" | pulse ... --auth-token-stdin. Run "pulse --help" for the commands.`,
     })
     const typed = await cli(["--auth", "bearer", JWT, "task", "list"])
     expect(errorOf(typed.stderr).hint).toBe(
-      '--auth takes only the type: the token goes into PULSE_CLI_TOKEN or --auth-token-stdin, not after --auth bearer. Run "pulse-cli --help" for the commands.',
+      '--auth takes only the type: the token goes into PULSE_CLI_TOKEN or --auth-token-stdin, not after --auth bearer. Run "pulse --help" for the commands.',
     )
     const password = await cli(["--auth-password-stdin", "s3cr3t.pw", "task", "list"])
     const group = await cli(["auth", JWT])
@@ -137,7 +137,7 @@ describe("mistyped bearer flags", () => {
       code: "USAGE",
       exitCode: 2,
       message: "Too many arguments for 'list'. Expected 0 arguments but got 1.",
-      hint: '--auth takes only the type: the token goes into PULSE_CLI_TOKEN or --auth-token-stdin, not after --auth bearer. Run "pulse-cli task list --help" for the usage.',
+      hint: '--auth takes only the type: the token goes into PULSE_CLI_TOKEN or --auth-token-stdin, not after --auth bearer. Run "pulse task list --help" for the usage.',
     })
     const equals = await cli(["ping", "--auth=Bearer", JWT])
     const set = await cli(["config", "set", "p", "--auth", "bearer", JWT])
@@ -149,7 +149,7 @@ describe("mistyped bearer flags", () => {
       code: "USAGE",
       exitCode: 2,
       message: "Too many arguments for 'status'. Expected 0 arguments but got 1.",
-      hint: `pulse-cli auth status takes no token argument: pipe the token into --auth-token-stdin, e.g. printf '%s\\n' "$TOKEN" | pulse-cli auth status --auth-token-stdin. Run "pulse-cli auth status --help" for the usage.`,
+      hint: `pulse auth status takes no token argument: pipe the token into --auth-token-stdin, e.g. printf '%s\\n' "$TOKEN" | pulse auth status --auth-token-stdin. Run "pulse auth status --help" for the usage.`,
     })
     const logout = await cli(["auth", "logout", JWT])
     for (const result of [after, equals, set, status, logout]) {

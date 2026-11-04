@@ -6,7 +6,7 @@ import { run } from "../run.js"
 
 const setup = (stage?: Stage, options?: FakeRuntimeOptions) => workflowSetup(run, stage, options)
 
-describe("pulse-cli inspect", () => {
+describe("pulse inspect", () => {
   it("prints the instance view of a business key as JSON", async () => {
     const { cli, engine } = setup()
     const result = await cli(["inspect", "--business-key", "B-1"])
@@ -33,7 +33,7 @@ describe("pulse-cli inspect", () => {
       waitingAt: [
         { activityId: "approve", kind: "userTask", taskId: "task-1", activityType: "userTask" },
       ],
-      next: ["pulse-cli advance pi-1"],
+      next: ["pulse advance pi-1"],
     })
     expect(routes(engine).slice(0, 2)).toEqual([
       "GET /history/process-instance",
@@ -48,7 +48,7 @@ describe("pulse-cli inspect", () => {
     expect(table.stdout).toContain(
       "\nWaiting at:\nACTIVITY  KIND      ID      DETAIL   INSTANCE\napprove   userTask  task-1  Approve\n",
     )
-    expect(table.stdout).toContain("\nNext:\n  pulse-cli advance pi-1\n")
+    expect(table.stdout).toContain("\nNext:\n  pulse advance pi-1\n")
     const fields = await cli(["inspect", "pi-1", "--fields", "id,state,nope"])
     expect(fields.stdout).toBe('{"id":"pi-1","state":"ACTIVE"}\n')
     expect(fields.stderr).toMatch(/^Warning: field "nope" not found in the response \(fields: id, /)
@@ -120,7 +120,7 @@ describe("pulse-cli inspect", () => {
   })
 })
 
-describe("pulse-cli wait", () => {
+describe("pulse wait", () => {
   it('prints the instance view with "waited" once the instance is idle', async () => {
     const { cli } = setup()
     const result = await cli(["wait", "--business-key", "B-1", "--no-variables"])
@@ -170,7 +170,7 @@ describe("pulse-cli wait", () => {
     const refused = await cli(["wait", "pi-1", "--execute-jobs", "--read-only"])
     expect(errorOf(refused.stderr)).toMatchObject({
       code: "READ_ONLY",
-      message: "`pulse-cli wait` is a write operation and read-only mode is enabled",
+      message: "`pulse wait` is a write operation and read-only mode is enabled",
     })
   })
 
@@ -216,7 +216,7 @@ describe("pulse-cli wait", () => {
   })
 })
 
-describe("pulse-cli advance", () => {
+describe("pulse advance", () => {
   it("completes the user task and prints where the instance waits now", async () => {
     const { cli, engine } = setup()
     const result = await cli(["advance", "--business-key", "B-1", "--var", "approved=true"])

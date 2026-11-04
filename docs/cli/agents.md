@@ -1,30 +1,30 @@
-# Using pulse-cli from AI agents
+# Using the CLI from AI agents
 
-`pulse-cli` is built to be driven by coding agents. Everything an agent needs is in the CLI itself.
-Point your agent at it, e.g. in `AGENTS.md` or `CLAUDE.md`: "Run `pulse-cli guide` before using
-`pulse-cli`."
+`pulse` is built to be driven by coding agents. Everything an agent needs is in the CLI itself.
+Point your agent at it, e.g. in `AGENTS.md` or `CLAUDE.md`: "Run `pulse guide` before using
+`pulse`."
 
 ```sh
-pulse-cli guide
-pulse-cli commands --search 'process instance'
-pulse-cli describe process-definition start
-pulse-cli process-definition start invoice --var amount=250 --dry-run
-pulse-cli process-definition start invoice --var amount=250
-pulse-cli guide auth
+pulse guide
+pulse commands --search 'process instance'
+pulse describe process-definition start
+pulse process-definition start invoice --var amount=250 --dry-run
+pulse process-definition start invoice --var amount=250
+pulse guide auth
 ```
 
-- `pulse-cli guide` prints a short usage guide with an index of topics. `pulse-cli guide <topic>`
+- `pulse guide` prints a short usage guide with an index of topics. `pulse guide <topic>`
   prints one topic (`workflow`, `input`, `output`, `config`, `auth`, `recipes`), the page of these
-  docs that covers it, offline; `pulse-cli guide --list` lists them. Every command line in the guide is tested against the CLI.
-- `pulse-cli commands [group]` and `--search <words>` list commands; `pulse-cli describe` returns
+  docs that covers it, offline; `pulse guide --list` lists them. Every command line in the guide is tested against the CLI.
+- `pulse commands [group]` and `--search <words>` list commands; `pulse describe` returns
   arguments, options, body schema and examples as JSON. `--dry-run` previews a write.
-- `pulse-cli api <METHOD> <path>` sends a raw request with the same guards, output and errors.
+- `pulse api <METHOD> <path>` sends a raw request with the same guards, output and errors.
 - The workflow commands (`inspect`, `wait`, `advance`, `retry`, `deploy`, `status`) drive a process
-  instance without passing ids around. `pulse-cli wait` replaces `sleep`; exit code 9 means the
+  instance without passing ids around. `pulse wait` replaces `sleep`; exit code 9 means the
   process did not reach the expected state.
-- With OAuth, a person logs in once with `pulse-cli auth login`; agents never do. A command that
+- With OAuth, a person logs in once with `pulse auth login`; agents never do. A command that
   needs a login fails with `LOGIN_REQUIRED` (exit 4) and names the command to run.
-  `pulse-cli auth status` tells whether the login is usable.
+  `pulse auth status` tells whether the login is usable.
 - A bearer token from `PULSE_CLI_TOKEN` is never refreshed: on `TOKEN_EXPIRED` (exit 4) the agent
   asks for a new one. A [token command](authentication.md#token-commands) in the `env` of
   `.claude/settings.json` fetches short-lived tokens instead.
@@ -44,11 +44,11 @@ repository (`.claude-plugin/marketplace.json`):
 From a shell: `claude plugin marketplace add Miragon/pulse` and
 `claude plugin install pulse-cli@pulse`. The plugin contains:
 
-- The skill `pulse-cli`, the text of `pulse-cli guide`. Claude Code loads it when a task reads or
+- The skill `pulse-cli`, the text of `pulse guide`. Claude Code loads it when a task reads or
   changes the state of a Camunda 7, Operaton or CIB seven engine; `/pulse-cli` loads it by hand.
-- The command `/pulse-cli:status [options]`: Claude runs `pulse-cli status` (read-only) and
+- The command `/pulse-cli:status [options]`: Claude runs `pulse status` (read-only) and
   summarizes incidents, overdue jobs, external task workers and next commands. Only the bare
-  `pulse-cli status` and `pulse-cli ping` run without a permission prompt.
+  `pulse status` and `pulse ping` run without a permission prompt.
 
 The CLI is not part of the plugin: install it with `npm install -g @miragon/pulse-cli`, otherwise
 the skill runs `npx -y @miragon/pulse-cli`. Plugin and npm versions match. Claude Code does not

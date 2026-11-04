@@ -13,6 +13,6 @@
   },
   "cli": {
     "valid": false,
-    "error": "profile \"local\" sets auth.tokenCommand, which pulse-cli no longer reads"
+    "error": "profile \"local\" sets auth.tokenCommand, which pulse no longer reads"
   }
 }

@@ -1,7 +1,7 @@
 {
   "name": "@miragon/pulse-analytics-client",
   "version": "0.25.0",
-  "description": "Prometheus client and PromQL query functions for Camunda process analytics, with Zod schemas.",
+  "description": "Prometheus client and PromQL query functions for Camunda process analytics, with the metrics contract.",
   "license": "MIT",
   "keywords": [
     "camunda",
@@ -47,15 +47,11 @@
     "lint": "eslint src",
     "lint:fix": "eslint src --fix"
   },
-  "peerDependencies": {
-    "zod": "^4.4.0"
-  },
   "devDependencies": {
     "@stryker-mutator/core": "10.1.1",
     "@stryker-mutator/vitest-runner": "10.1.1",
     "@types/node": "26.6.5",
     "typescript": "6.0.3",
-    "vitest": "5.0.5",
-    "zod": "4.6.7"
+    "vitest": "5.0.5"
   }
 }
