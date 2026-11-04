@@ -13,14 +13,8 @@ import { findByOperationId, loadCatalog } from "../catalog/catalog.js"
 import { WORKFLOW_DOCS } from "../docs/workflow.js"
 import type { EnginePort } from "../engine-port/engine-port.js"
 import { PulseCliError } from "../errors.js"
-import { listByIds, type OperationInput, queryInput } from "@miragon/pulse-engine-core"
-import {
-  countByIds,
-  ID_CHUNK,
-  isMissing as coreIsMissing,
-  pageQuery,
-} from "@miragon/pulse-engine-core/testing"
-import { isMissing } from "./engine.js"
+import { isMissing, listByIds, type OperationInput, queryInput } from "@miragon/pulse-engine-core"
+import { countByIds, ID_CHUNK, pageQuery } from "@miragon/pulse-engine-core/testing"
 
 const jsonOf = (port: EnginePort, operationId: string, input: OperationInput) =>
   port.json(operationId, input)
@@ -208,22 +202,8 @@ describe("id chunks", () => {
   })
 })
 
-describe("isMissing", () => {
-  it("is true only for engine 404s", () => {
-    expect(
-      isMissing(new PulseCliError("NOT_FOUND", "x", { engineType: "InvalidRequestException" })),
-    ).toBe(true)
-    expect(
-      isMissing(new PulseCliError("NOT_FOUND", "x", { engineType: "NotFoundException" })),
-    ).toBe(false)
-    expect(isMissing(new PulseCliError("NOT_FOUND", "x"))).toBe(false)
-    expect(
-      isMissing(new PulseCliError("USAGE", "x", { engineType: "InvalidRequestException" })),
-    ).toBe(false)
-    expect(isMissing(new Error("x"))).toBe(false)
-  })
-
-  it("agrees with engine-core's rule on every HTTP error the engine port reads", async () => {
+describe("a missing resource", () => {
+  it("is engine-core's isMissing over the port's reading of every HTTP error", async () => {
     const answers: readonly (readonly [Response, boolean])[] = [
       [engineError(404, "InvalidRequestException", "gone"), true],
       [engineError(404, "NotFoundException", "no such path"), false],
@@ -234,8 +214,9 @@ describe("isMissing", () => {
     for (const [response, missing] of answers) {
       const port = portOf(fakeServer().on("GET", "/incident", response).fetch)
       const error = await caught(port.call("getIncidents", NO_INPUT))
-      expect([isMissing(error), coreIsMissing(port.failure(error))]).toEqual([missing, missing])
+      expect(isMissing(port.failure(error))).toBe(missing)
     }
+    expect(isMissing(portOf(fakeServer().fetch).failure(new Error("x")))).toBe(false)
   })
 })
 

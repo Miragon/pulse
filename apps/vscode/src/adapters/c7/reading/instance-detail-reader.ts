@@ -1,4 +1,10 @@
 import {
+  MAX_STACKTRACE_LINES,
+  type ChildView,
+  type IncidentView,
+  type WaitState as InspectedWait,
+} from "@miragon/pulse-engine-core"
+import {
   BpmnProcessId,
   ElementId,
   IncidentId,
@@ -17,17 +23,15 @@ import {
 import { ErrorTranslation } from "../errors/error-translation.js"
 import { DefinitionRefs } from "../mapping/definition-refs.js"
 import { IncidentTexts } from "../mapping/incident-texts.js"
+import { InspectedVariables } from "../mapping/inspected-variables.js"
 import { InstanceStates } from "../mapping/instance-states.js"
 import { Timestamps } from "../mapping/timestamps.js"
 import {
   Present,
   VARIABLE_PAGE_SIZE,
-  type ChildInstanceView,
   type EngineClient,
-  type InspectedIncidentView,
   type InspectView,
   type VariableView,
-  type WaitingAtView,
 } from "../engine-rest/index.js"
 
 type DefinitionsByInstance = ReadonlyMap<string, DefinitionRef>
@@ -90,7 +94,7 @@ export class InstanceDetailReader {
       path: view.timeline.map((entry) => ({
         elementId: ElementId(entry.activityId),
         startedAt: Timestamps.fromEngine(entry.startTime),
-        canceled: entry.canceled,
+        canceled: entry.canceled === true,
         ...Present.fields({
           elementName: entry.activityName,
           endedAt: Timestamps.optional(entry.endTime),
@@ -102,7 +106,7 @@ export class InstanceDetailReader {
       ),
       calledInstances: view.children.map((child) => this.calledInstanceOf(child, view)),
       variables: this.variablesOf(instance, view, typedVariables),
-      truncated: view.truncated || (typedVariables?.length ?? 0) >= VARIABLE_PAGE_SIZE,
+      truncated: view.truncated === true || (typedVariables?.length ?? 0) >= VARIABLE_PAGE_SIZE,
     }
   }
 
@@ -111,7 +115,7 @@ export class InstanceDetailReader {
       id: InstanceId(view.id),
       definition: DefinitionRefs.of(view.definition),
       state: InstanceStates.of(view.state),
-      hasIncident: view.incidents.length > 0 || view.propagatedIncidents > 0,
+      hasIncident: view.incidents.length > 0 || (view.propagatedIncidents ?? 0) > 0,
       ...Present.fields({
         businessKey: view.businessKey,
         startedAt: Timestamps.optional(view.startTime),
@@ -121,9 +125,8 @@ export class InstanceDetailReader {
     }
   }
 
-  private waitStateOf(wait: WaitingAtView, inspectedInstanceId: string): WaitState {
+  private waitStateOf(wait: InspectedWait, inspectedInstanceId: string): WaitState {
     const base = this.waitBaseOf(wait, inspectedInstanceId)
-    const retries = Present.fields({ retriesLeft: wait.retries })
     switch (wait.kind) {
       case "userTask":
         return {
@@ -132,14 +135,21 @@ export class InstanceDetailReader {
           ...Present.fields({ assignee: wait.assignee, dueAt: Timestamps.optional(wait.due) }),
         }
       case "externalTask":
-        return { ...base, kind: "workerTask", taskType: wait.topic ?? "", ...retries }
+        return {
+          ...base,
+          kind: "workerTask",
+          taskType: wait.topic,
+          ...Present.fields({ retriesLeft: wait.retries }),
+        }
       case "asyncContinuation":
-        return { ...base, kind: "asyncContinuation", ...retries }
+        return { ...base, kind: "asyncContinuation", retriesLeft: wait.retries }
       case "timer":
         return {
           ...base,
           kind: "timer",
-          ...Present.fields({ dueAt: Timestamps.optional(wait.dueDate) }),
+          ...Present.fields({
+            dueAt: Timestamps.optional(wait.dueDate === "" ? undefined : wait.dueDate),
+          }),
         }
       case "message":
         return { ...base, kind: "message", ...Present.fields({ messageName: wait.eventName }) }
@@ -150,7 +160,7 @@ export class InstanceDetailReader {
     }
   }
 
-  private waitBaseOf(wait: WaitingAtView, inspectedInstanceId: string) {
+  private waitBaseOf(wait: InspectedWait, inspectedInstanceId: string) {
     return {
       instanceId: InstanceId(wait.processInstanceId ?? inspectedInstanceId),
       elementId: ElementId(wait.activityId),
@@ -164,7 +174,7 @@ export class InstanceDetailReader {
   }
 
   private incidentOf(
-    incident: InspectedIncidentView,
+    incident: IncidentView,
     facts: {
       view: InspectView
       definitions: DefinitionsByInstance
@@ -195,14 +205,14 @@ export class InstanceDetailReader {
             ? undefined
             : IncidentTexts.details(
                 "stacktrace",
-                stacktrace.lines.join("\n"),
-                stacktrace.truncated,
+                stacktrace.join("\n"),
+                stacktrace.length >= MAX_STACKTRACE_LINES,
               ),
       }),
     }
   }
 
-  private jobOf(incident: InspectedIncidentView, view: InspectView): IncidentJob | undefined {
+  private jobOf(incident: IncidentView, view: InspectView): IncidentJob | undefined {
     if (incident.jobId !== undefined) {
       return { id: incident.jobId }
     }
@@ -212,11 +222,12 @@ export class InstanceDetailReader {
     const waiting = view.waitingAt.find(
       (wait) => wait.incidentId === incident.id && wait.kind === "externalTask",
     )
-    return { id: incident.externalTaskId, ...Present.fields({ type: waiting?.topic }) }
+    const topic = waiting?.kind === "externalTask" ? waiting.topic : undefined
+    return { id: incident.externalTaskId, ...Present.fields({ type: topic }) }
   }
 
-  private calledInstanceOf(child: ChildInstanceView, view: InspectView): CalledInstance {
-    const call = view.calls.find((candidate) => candidate.calledProcessInstanceId === child.id)
+  private calledInstanceOf(child: ChildView, view: InspectView): CalledInstance {
+    const call = view.timeline.find((entry) => entry.calledProcessInstanceId === child.id)
     return {
       id: InstanceId(child.id),
       parentInstanceId: InstanceId(child.parentId),
@@ -234,7 +245,9 @@ export class InstanceDetailReader {
     typedVariables: readonly VariableView[] | undefined,
   ): Variable[] {
     const views =
-      instance.state === "running" && typedVariables !== undefined ? typedVariables : view.variables
+      instance.state === "running" && typedVariables !== undefined
+        ? typedVariables
+        : InspectedVariables.of(view.variables)
     return views
       .map((variable) => this.variableOf(variable))
       .sort((left, right) => left.name.localeCompare(right.name))

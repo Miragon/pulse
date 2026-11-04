@@ -7,6 +7,7 @@
 import {
   activeTree,
   type EndedInstance,
+  isMissing,
   mapLimit,
   missingRoots,
   PARALLEL,
@@ -20,7 +21,6 @@ import {
 import type { EnginePort } from "../engine-port/engine-port.js"
 import { PulseCliError, usageError } from "../errors.js"
 import { compact, omit } from "../util.js"
-import { isMissing } from "./engine.js"
 import { instanceMissing } from "./error-text.js"
 import { loadView } from "./inspect.js"
 import { executeJob } from "./jobs.js"
@@ -142,10 +142,11 @@ async function load(port: EnginePort, mode: RetryMode, options: RetryOptions): P
 
 /**
  * A job or external task that no longer exists (its incident was resolved meanwhile): external
- * tasks answer 404, jobs 500 `ENGINE-13053 No job found with id` (verified on all three engines).
+ * tasks answer 404 (a missing resource by engine-core's `isMissing`), jobs 500
+ * `ENGINE-13053 No job found with id` (verified on all three engines).
  */
-function isGone(error: unknown): boolean {
-  if (isMissing(error)) return true
+function isGone(port: EnginePort, error: unknown): boolean {
+  if (isMissing(port.failure(error))) return true
   if (!(error instanceof PulseCliError) || error.details.status !== 500) return false
   return /ENGINE-13053|No job found/.test(error.details.engineMessage ?? error.message)
 }
@@ -166,7 +167,7 @@ async function setRetries(port: EnginePort, entry: PlanEntry, retries: number): 
     await port.call(write.operationId, write.input)
     return { entry, result: "retried" }
   } catch (error) {
-    if (isGone(error)) return { entry, result: "gone" }
+    if (isGone(port, error)) return { entry, result: "gone" }
     if (error instanceof PulseCliError) return { entry, result: "error", error }
     throw error
   }

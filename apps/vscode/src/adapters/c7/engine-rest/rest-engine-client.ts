@@ -1,4 +1,4 @@
-import { RAW_VARIABLES } from "@miragon/pulse-engine-core"
+import { RAW_VARIABLES_QUERY } from "@miragon/pulse-engine-core"
 import type { EngineClient } from "./engine-client.js"
 import type { EngineHttp } from "./http/engine-http.js"
 import { InstanceInspection } from "./inspect/instance-inspection.js"
@@ -34,7 +34,6 @@ import type {
 export const VARIABLE_PAGE_SIZE = 500
 const MAX_NAMED_VARIABLES = 2000
 const MAX_FAILED_JOBS = 100
-const NO_VALUES = { deserializeValues: String(RAW_VARIABLES.deserializeValues) }
 const NEWEST_FIRST = [
   { sortBy: "startTime", sortOrder: "desc" },
   { sortBy: "instanceId", sortOrder: "asc" },
@@ -130,7 +129,7 @@ export class RestEngineClient implements EngineClient {
     return VariableViewParser.instances(
       await this.http.read("/variable-instance", {
         processInstanceIdIn: RequestArguments.identifier(instanceId),
-        ...NO_VALUES,
+        ...RAW_VARIABLES_QUERY,
         maxResults: String(VARIABLE_PAGE_SIZE),
       }),
     )
@@ -140,7 +139,7 @@ export class RestEngineClient implements EngineClient {
     return VariableViewParser.names(
       await this.http.read(
         "/history/variable-instance",
-        { ...NO_VALUES, maxResults: String(MAX_NAMED_VARIABLES) },
+        { ...RAW_VARIABLES_QUERY, maxResults: String(MAX_NAMED_VARIABLES) },
         { processInstanceIdIn: instanceIds },
       ),
     )

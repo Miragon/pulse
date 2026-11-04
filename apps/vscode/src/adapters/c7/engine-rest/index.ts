@@ -1,4 +1,5 @@
 export { Present } from "./present.js"
+export { JsonObject } from "./views/json-object.js"
 export { LosslessJson } from "./views/lossless-json.js"
 export { UnexpectedAnswerError } from "./views/unexpected-answer-error.js"
 export { EngineHttp } from "./http/engine-http.js"
@@ -12,7 +13,6 @@ export type {
   BatchStatisticsView,
   BatchView,
   HistoricBatchView,
-  ChildInstanceView,
   DefinitionView,
   FailedJobView,
   HistoricInstanceQuery,
@@ -20,9 +20,7 @@ export type {
   VariableQueryCondition,
   IncidentInstanceView,
   IncidentView,
-  InspectedIncidentView,
   InspectView,
   MigrationInstructionView,
   VariableView,
-  WaitingAtView,
 } from "./views/views.js"

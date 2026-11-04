@@ -3,6 +3,7 @@ import { C7ProcessCommands } from "../../../../src/adapters/c7/c7-process-comman
 import { C7ProcessRuntime } from "../../../../src/adapters/c7/c7-process-runtime.js"
 import {
   EngineHttp,
+  LosslessJson,
   RestEngineClient,
   RestEngineWriter,
   type InspectView,
@@ -28,7 +29,7 @@ class SnapshotEngineClient extends RestEngineClient {
     const snapshot = this.snapshots[instanceId]
     return snapshot === undefined
       ? super.inspect(instanceId)
-      : Promise.resolve(JSON.parse(snapshot) as InspectView)
+      : Promise.resolve(LosslessJson.parse(snapshot) as InspectView)
   }
 }
 

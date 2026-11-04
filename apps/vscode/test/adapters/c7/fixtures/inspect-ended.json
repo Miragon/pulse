@@ -11,38 +11,31 @@
   "startTime": "2026-10-21T18:44:04.525+0000",
   "endTime": "2026-10-21T18:44:04.526+0000",
   "waitingAt": [],
-  "incidents": [],
   "propagatedIncidents": 0,
   "children": [],
-  "calls": [],
+  "incidents": [],
+  "variables": {
+    "route": "express"
+  },
   "timeline": [
     {
       "activityId": "Event_OrderReceived",
       "activityName": "Order received",
       "startTime": "2026-10-21T18:44:04.525+0000",
-      "endTime": "2026-10-21T18:44:04.525+0000",
-      "canceled": false
+      "endTime": "2026-10-21T18:44:04.525+0000"
     },
     {
       "activityId": "Gateway_Route",
       "activityName": "Route?",
       "startTime": "2026-10-21T18:44:04.525+0000",
-      "endTime": "2026-10-21T18:44:04.525+0000",
-      "canceled": false
+      "endTime": "2026-10-21T18:44:04.525+0000"
     },
     {
       "activityId": "Event_ShippedExpress",
       "activityName": "Shipped express",
       "startTime": "2026-10-21T18:44:04.526+0000",
-      "endTime": "2026-10-21T18:44:04.526+0000",
-      "canceled": false
+      "endTime": "2026-10-21T18:44:04.526+0000"
     }
   ],
-  "variables": [
-    {
-      "name": "route",
-      "valueJson": "\"express\""
-    }
-  ],
-  "truncated": false
+  "next": []
 }

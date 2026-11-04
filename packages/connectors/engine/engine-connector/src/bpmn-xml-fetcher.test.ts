@@ -1,6 +1,13 @@
-import { describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
+import type { MCPServer } from "mcp-use"
 import { engineModule, createBpmnXmlFetcher } from "./module.js"
-import { startFakeEngine } from "./tools/test-support/fake-engine.js"
+import {
+  type FakeEngine,
+  type FakeRoutes,
+  startFakeEngine,
+} from "./tools/test-support/fake-engine.js"
+
+type ToolHandler = (args: unknown, ctx: { signal: AbortSignal }) => Promise<unknown>
 
 /**
  * The BPMN-XML lookup handed to analytics (its heatmap and the names in its
@@ -55,40 +62,98 @@ describe("createBpmnXmlFetcher", () => {
     }
   })
 
-  // A process may run on a later engine only: the consumer names the engine.
-  it("reads on the engine it is asked for, the first configured one by default", async () => {
-    const definitions = (id: string) => ({
-      "GET /process-definition": (request: { query: Record<string, string> }) => ({
-        body:
-          request.query.key === "leasing"
-            ? [{ id: `leasing:1:${id}`, key: "leasing", version: 1 }]
-            : [],
-      }),
-      [`GET /process-definition/leasing:1:${id}/xml`]: {
-        body: { id: `leasing:1:${id}`, bpmn20Xml: `<definitions id="${id}"/>` },
-      },
+  // A process may run on a later engine only: the consumer names the engine. Without one, the
+  // tools' precedence (invariant 2): ENGINE_DEFAULT, else the only engine, else no pick at all.
+  describe("picks the engine by the tools' precedence", () => {
+    const engines: FakeEngine[] = []
+    afterEach(async () => {
+      await Promise.all(engines.splice(0).map((engine) => engine.close()))
     })
-    const first = await startFakeEngine(definitions("a"))
-    const second = await startFakeEngine(definitions("b"))
-    try {
+
+    async function twoEngines() {
+      const a = await startFakeEngine(definitions("a"))
+      const b = await startFakeEngine(definitions("b"))
+      engines.push(a, b)
+      return JSON.stringify([
+        { id: "prod-a", baseUrl: a.baseUrl },
+        { id: "prod-b", baseUrl: b.baseUrl },
+      ])
+    }
+
+    it("reads on the engine it is asked for, and refuses an unknown one", async () => {
       const fetchBpmnXml = createBpmnXmlFetcher(
-        engineModule.configFromEnv({
-          ENGINES_JSON: JSON.stringify([
-            { id: "prod-a", baseUrl: first.baseUrl },
-            { id: "prod-b", baseUrl: second.baseUrl },
-          ]),
-        }),
+        engineModule.configFromEnv({ ENGINES_JSON: await twoEngines() }),
       )!
       expect(await fetchBpmnXml("leasing", "prod-b")).toBe('<definitions id="b"/>')
-      expect(await fetchBpmnXml("leasing")).toBe('<definitions id="a"/>')
       expect(await fetchBpmnXml("leasing", "prod-a")).toBe('<definitions id="a"/>')
-      expect(second.requests).toHaveLength(2)
       await expect(fetchBpmnXml("leasing", "prod-z")).rejects.toThrow(
-        'No engine "prod-z" is configured.',
+        'Unknown engine id "prod-z". Available: prod-a, prod-b.',
       )
+    })
+
+    it("without an engine id: ENGINE_DEFAULT, not the first configured engine", async () => {
+      const fetchBpmnXml = createBpmnXmlFetcher(
+        engineModule.configFromEnv({ ENGINES_JSON: await twoEngines(), ENGINE_DEFAULT: "prod-b" }),
+      )!
+      expect(await fetchBpmnXml("leasing")).toBe('<definitions id="b"/>')
+    })
+
+    it("without an engine id and without a default: the only engine", async () => {
+      const only = await startFakeEngine(definitions("a"))
+      engines.push(only)
+      const fetchBpmnXml = createBpmnXmlFetcher(
+        engineModule.configFromEnv({ ENGINE_BASE_URL: only.baseUrl }),
+      )!
+      expect(await fetchBpmnXml("leasing")).toBe('<definitions id="a"/>')
+    })
+
+    it("without an engine id, a default or a single engine: ENGINE_NOT_SELECTED", async () => {
+      const fetchBpmnXml = createBpmnXmlFetcher(
+        engineModule.configFromEnv({ ENGINES_JSON: await twoEngines() }),
+      )!
+      await expect(fetchBpmnXml("leasing")).rejects.toMatchObject({ code: "ENGINE_NOT_SELECTED" })
+    })
+  })
+})
+
+function definitions(id: string): FakeRoutes {
+  return {
+    "GET /process-definition": (request) => ({
+      body:
+        request.query.key === "leasing"
+          ? [{ id: `leasing:1:${id}`, key: "leasing", version: 1 }]
+          : [],
+    }),
+    [`GET /process-definition/leasing:1:${id}/xml`]: {
+      body: { id: `leasing:1:${id}`, bpmn20Xml: `<definitions id="${id}"/>` },
+    },
+  }
+}
+
+/**
+ * The lookup runs on the module's own clients: the plugin the boot creates from the same config
+ * object, so a diagram analytics read is the one the tools then answer from definition-xml.ts's
+ * cache, also through a tool call's per-request client view (`ctx.signal`).
+ */
+describe("createBpmnXmlFetcher shares the engine module's clients and XML cache", () => {
+  it("one XML read for the lookup and the tool on the same boot config", async () => {
+    const engine = await startFakeEngine(definitions("a"))
+    try {
+      const config = engineModule.configFromEnv({ ENGINE_BASE_URL: engine.baseUrl })
+      const fetchBpmnXml = createBpmnXmlFetcher(config)!
+      const tool = vi.fn()
+      engineModule.createPlugin(config).register({ tool, prompt: vi.fn() } as unknown as MCPServer)
+      const [, handler] = (tool.mock.calls as [{ name: string }, ToolHandler][]).find(
+        ([definition]) => definition.name === "engine_get_process_definition_xml",
+      )!
+
+      expect(await fetchBpmnXml("leasing")).toBe('<definitions id="a"/>')
+      const signal = new AbortController().signal
+      const answer = await handler({ processDefinitionId: "leasing:1:a" }, { signal })
+      expect(JSON.stringify(answer)).toContain("definitions id=")
+      expect(engine.requests.filter((r) => r.path.endsWith("/xml"))).toHaveLength(1)
     } finally {
-      await first.close()
-      await second.close()
+      await engine.close()
     }
   })
 })

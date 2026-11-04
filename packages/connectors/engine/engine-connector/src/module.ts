@@ -11,6 +11,7 @@ import {
   RETIRED_MODULE_NAMES,
 } from "./retired-settings.js"
 import { fetchLatestDefinitionXml } from "./data/definition-info.js"
+import { type EngineRegistry, resolveEngine } from "./lib/engine/resolve-engine.js"
 
 // Incomplete credentials fail the boot instead of silently sending unauthenticated requests.
 const engineAuthSchema = z
@@ -347,7 +348,7 @@ export const engineModule = {
   },
 
   createPlugin(config: Record<string, unknown>): ModulePlugin {
-    return createPlugin(engineConfigSchema.parse(config))
+    return createPlugin(engineConfigSchema.parse(config), registryOf(config))
   },
 
   /** The `camunda7` names up to 0.24: the boot refuses each while it is set, naming its replacement. */
@@ -359,21 +360,32 @@ export const engineModule = {
 }
 
 /**
- * Lets analytics read BPMN XML without the engine SDK (omitted `engineId`: the FIRST configured
- * engine, not the `ENGINE_DEFAULT` precedence the tools route by; kept as it is in a refactor).
- * `null` means not deployed; a failed read or an unknown engine REJECTS, so a failure
- * never reads as "not deployed". Its clients come from the tools' routing
- * (`createConfiguredEngineRegistry`: per-engine auth, the timeout), one per engine, in a
- * registry of its own.
+ * The module's engine registry for one boot config: the boot hands the same config object
+ * (`ModuleEntry.config`) to `sharedResources` and to `createPlugin`, so the tools and the BPMN
+ * lookup below run on the same clients and share `definition-xml.ts`'s cache.
+ */
+const registries = new WeakMap<Record<string, unknown>, EngineRegistry>()
+
+function registryOf(config: Record<string, unknown>): EngineRegistry {
+  let registry = registries.get(config)
+  if (!registry) {
+    registry = createConfiguredEngineRegistry(engineConfigSchema.parse(config))
+    registries.set(config, registry)
+  }
+  return registry
+}
+
+/**
+ * Lets analytics read BPMN XML without the engine SDK. The engine is picked by the tools' one
+ * precedence (`resolveEngine`): the named `engineId`, else `ENGINE_DEFAULT`, else the only
+ * configured engine, else it rejects with `ENGINE_NOT_SELECTED`; an unknown id rejects too.
+ * `null` means not deployed; a failed read REJECTS, so a failure never reads as "not deployed".
+ * It runs on the module's own clients for this config (the tools' registry and XML cache).
  */
 export function createBpmnXmlFetcher(
   config: Record<string, unknown>,
 ): ((processDefinitionKey: string, engineId?: string) => Promise<string | null>) | undefined {
-  const registry = createConfiguredEngineRegistry(engineConfigSchema.parse(config))
-  const firstEngineId = registry.engines[0]?.id
-  return async (processDefinitionKey, engineId) => {
-    const backend = registry.backends.get(engineId ?? firstEngineId ?? "")
-    if (!backend) throw new Error(`No engine "${engineId}" is configured.`)
-    return fetchLatestDefinitionXml(backend.client, processDefinitionKey)
-  }
+  const registry = registryOf(config)
+  return async (processDefinitionKey, engineId) =>
+    fetchLatestDefinitionXml(resolveEngine(engineId, registry).client, processDefinitionKey)
 }

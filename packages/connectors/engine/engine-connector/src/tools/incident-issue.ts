@@ -22,6 +22,7 @@ import type { EngineRegistry } from "../lib/engine/resolve-engine.js"
 import { buildInstanceCockpitUrl, type EngineLink } from "../lib/engine/cockpit-url.js"
 import { engineParamShape, withEngine } from "../lib/engine/with-engine.js"
 import { boundFailureText, condenseStacktrace } from "../lib/mcp/failure-text.js"
+import { noneIfMissing } from "../lib/core-adapter/engine-port.js"
 
 export interface IncidentIssueConfig {
   /**
@@ -270,9 +271,9 @@ async function fetchFailureText(
   try {
     const stacktrace =
       recovery.action === "retry-job"
-        ? await fetchJobStacktrace(client, recovery.jobId)
+        ? await noneIfMissing(fetchJobStacktrace(client, recovery.jobId))
         : recovery.action === "retry-external-task"
-          ? await fetchExternalTaskErrorDetails(client, recovery.externalTaskId)
+          ? await noneIfMissing(fetchExternalTaskErrorDetails(client, recovery.externalTaskId))
           : null
     return { stacktrace, stacktraceError: null }
   } catch (error) {

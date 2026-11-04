@@ -19,37 +19,30 @@
       "assignee": "demo"
     }
   ],
-  "incidents": [],
   "propagatedIncidents": 0,
   "children": [],
-  "calls": [],
+  "incidents": [],
+  "variables": {
+    "route": "review"
+  },
   "timeline": [
     {
       "activityId": "Event_OrderReceived",
       "activityName": "Order received",
       "startTime": "2026-10-21T18:44:04.474+0000",
-      "endTime": "2026-10-21T18:44:04.474+0000",
-      "canceled": false
+      "endTime": "2026-10-21T18:44:04.474+0000"
     },
     {
       "activityId": "Gateway_Route",
       "activityName": "Route?",
       "startTime": "2026-10-21T18:44:04.474+0000",
-      "endTime": "2026-10-21T18:44:04.475+0000",
-      "canceled": false
+      "endTime": "2026-10-21T18:44:04.475+0000"
     },
     {
       "activityId": "Activity_ReviewOrder",
       "activityName": "Review order",
-      "startTime": "2026-10-21T18:44:04.475+0000",
-      "canceled": false
+      "startTime": "2026-10-21T18:44:04.475+0000"
     }
   ],
-  "variables": [
-    {
-      "name": "route",
-      "valueJson": "\"review\""
-    }
-  ],
-  "truncated": false
+  "next": []
 }

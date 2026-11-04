@@ -10,6 +10,7 @@ import {
   registryFor,
   startFakeEngine,
   type FakeEngine,
+  type FakeReply,
 } from "./test-support/fake-engine.js"
 
 /** #338: a model-supplied target would be a one-click path for internal diagnostics into any repository. */
@@ -37,14 +38,14 @@ afterEach(async () => {
   await Promise.all(engines.splice(0).map((engine) => engine.close()))
 })
 
-async function incidentEngine() {
+async function incidentEngine(stacktrace?: FakeReply) {
   const engine = await startFakeEngine({
     "GET /incident/inc-1": { body: INCIDENT },
     "GET /process-instance/pi-42": { body: { id: "pi-42", definitionId: "def-7" } },
     "GET /process-definition/def-7": {
       body: { id: "def-7", key: "invoice", version: 7 },
     },
-    "GET /job/job-1/stacktrace": {
+    "GET /job/job-1/stacktrace": stacktrace ?? {
       body: "java.lang.IllegalStateException: boom",
       contentType: "text/plain",
     },
@@ -188,5 +189,30 @@ describe("the draft_incident_ticket prompt", () => {
   it("offers no prefilled link without a configured repository", async () => {
     const text = await promptFor().text({ incidentId: "inc-1" })
     expect(text).not.toContain("prefilledUrl")
+  })
+})
+
+/** A 404 of the stacktrace read is "none" only when the engine names the job as missing. */
+describe("engine_format_incident_issue reads the stacktrace's 404 by engine-core's rule", () => {
+  async function draftWith(stacktrace: FakeReply): Promise<Draft> {
+    const engine = await incidentEngine(stacktrace)
+    return (await callTool(draftTool(), registryFor(engine), { incidentId: "inc-1" })) as Draft
+  }
+
+  it("shows no stacktrace for a job that is gone", async () => {
+    const draft = await draftWith({
+      status: 404,
+      body: { type: "InvalidRequestException", message: "No job found with id job-1" },
+    })
+    expect(draft.body).toContain("_No stacktrace available._")
+  })
+
+  it("says the stacktrace could not be loaded on a wrong REST root", async () => {
+    const draft = await draftWith({
+      status: 404,
+      body: { type: "NotFoundException", message: "HTTP 404 Not Found" },
+    })
+    expect(draft.body).toContain("_Stacktrace could not be loaded:_")
+    expect(draft.body).toContain("NotFoundException")
   })
 })

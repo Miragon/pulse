@@ -54,6 +54,14 @@ export function registerRequests(scenario: Scenario): void {
     expect(result.stdout).toBe("")
   })
 
+  // The engine family reads a 404 as a missing resource only with an engine exception type
+  // (engine-core's isMissing), so a gone job's stacktrace must come back typed, as text/plain read.
+  it("answers an unknown job's stacktrace with a typed 404", async () => {
+    const result = await cli(argv("job get-stacktrace", ["does-not-exist"]))
+    const error = expectError(result, "NOT_FOUND", 5)
+    expect(error).toMatchObject({ status: 404, engineType: "InvalidRequestException" })
+  })
+
   it("reports a process engine name the REST API does not serve", async () => {
     const ping = await cli(["ping", globalFlag("engine"), "no-such-engine"])
     const pingError = expectError(ping, "CONFIG", 3)

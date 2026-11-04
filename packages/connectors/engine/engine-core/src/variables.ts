@@ -16,6 +16,11 @@ import { type Rec, records, str } from "./records.js"
  */
 export const RAW_VARIABLES = { deserializeValues: false } as const
 
+/** {@link RAW_VARIABLES} as the port's text query (`deserializeValues=false`), for every caller of a port. */
+export const RAW_VARIABLES_QUERY = {
+  deserializeValues: String(RAW_VARIABLES.deserializeValues),
+} as const satisfies Readonly<Record<string, string>>
+
 const PLAIN_TYPES: ReadonlySet<string> = new Set([
   "string",
   "boolean",

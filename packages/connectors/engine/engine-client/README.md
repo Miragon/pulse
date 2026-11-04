@@ -67,8 +67,14 @@ request's credentials masked):
 `engine prod-a unreachable (ECONNREFUSED)` (no connection: the engine never
 saw the request), `connection to engine prod-a failed (ECONNRESET)` (dropped
 mid-request; a write adds that it may still have been applied), or
-`engine prod-a did not respond within 30000 ms (timeout)`. Pass `engineId` to
-name the engine in those messages and `timeoutMs` to change the per-request
+`engine prod-a did not respond within 30000 ms (timeout)`. A client never
+follows a redirect (a followed 302/303 turns a write into a GET): a 3xx
+rejects with `[302] redirect to https://sso.example/login (engine prod-a)` and
+the fix (point the engine URL at the REST API root itself, e.g. `https://`; a
+redirect to a login page means missing or expired credentials). A 404 that is
+no engine answer (a JAX-RS `NotFoundException` or an error page without an
+exception type) adds "No such endpoint: check that the engine URL points at the REST
+API root itself". Pass `engineId` to name the engine in those messages and `timeoutMs` to change the per-request
 deadline (default 30 000 ms). `withCallerSignal(client, signal)` returns a view
 whose reads (`GET`/`HEAD`/`OPTIONS`) also abort with the caller's signal;
 writes never do, since aborting a started write cannot undo it.
@@ -103,8 +109,14 @@ checked in and CI assumes it matches the spec.
 
 `src/engine-contract/` holds the reads whose REST contract differs from the SDK
 defaults: the `text/plain`-only stacktrace and error-details endpoints
-(`fetchJobStacktrace`, `fetchExternalTaskErrorDetails`, `null` on a 404),
-variable reads with `deserializeValues=false` (`readProcessInstanceVariables`,
-`readTaskVariables`) and `readBatch`, which falls back from the runtime
-statistics to the history record. The MCP tools' input schemas live in
-`@miragon/pulse-engine-connector` next to its tools.
+(`fetchJobStacktrace`, `fetchExternalTaskErrorDetails`, `null` for an empty
+body), variable reads with `deserializeValues=false`
+(`readProcessInstanceVariables`, `readTaskVariables`) and `readBatch`, which
+falls back from the runtime statistics to the history record. These reads
+decide nothing about a failure: every engine error rejects, a 404 included.
+Whether a 404 names a missing resource or a wrong REST root is
+`@miragon/pulse-engine-core`'s `isMissing`, which the caller applies; this
+package stays a leaf and does not import it. The variable reads restate
+engine-core's `RAW_VARIABLES`, and the engine connector holds the copy equal.
+The MCP tools' input schemas live in `@miragon/pulse-engine-connector` next to
+its tools.

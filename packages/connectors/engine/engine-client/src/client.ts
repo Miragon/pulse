@@ -101,9 +101,10 @@ function credentialsOf(options: EngineClientOptions, request: Request | undefine
  * runtime behavior and the generated SDK types stay in sync.
  *
  * Every client, whatever its auth type, carries a per-request deadline in its
- * `fetch` (combined with a caller `signal`, see {@link withCallerSignal}) and
- * an error interceptor that maps every failure to an `EngineRequestError`
- * (status, exception type, engine message, engine id; credentials masked).
+ * `fetch` (combined with a caller `signal`, see {@link withCallerSignal}),
+ * never follows a redirect (a 3xx fails the call) and has an error
+ * interceptor that maps every failure to an `EngineRequestError` (status,
+ * exception type, engine message, engine id; credentials masked).
  *
  * The deadline binds the request as it LEAVES (after every request
  * interceptor), so an interceptor that returns a new `Request` can neither
@@ -133,10 +134,10 @@ export function createEngineClient(options: EngineClientOptions): Client {
       headers: buildAuthHeader(options),
       // hey-api calls its `fetch` with the finished Request only.
       fetch: fetchWithDeadline as typeof fetch,
-      // Redirects are FOLLOWED, hey-api's own default, stated so the difference shows: the CLI
-      // and the VS Code extension send `redirect: "manual"` (a followed 302/303 turns a write
-      // into a GET). One policy for all three is a behaviour change of its own.
-      redirect: "follow",
+      // Redirects are NEVER followed, as in the CLI and the VS Code extension: a followed
+      // 302/303 turns a write into a GET (of a login page that "succeeds"). A 3xx is an engine
+      // error whose message tells the operator what to fix (engine-error.ts).
+      redirect: "manual",
     }),
   )
 

@@ -65,6 +65,13 @@ const routeTable: Record<string, Route> = {
       code: 1,
     }),
   "/process-instance/empty": (res) => text(res, 500),
+  // A wrong REST root: JAX-RS's answer for a path it does not serve, and a servlet container's page.
+  "/process-instance/no-endpoint": (res) =>
+    json(res, 404, { type: "NotFoundException", message: "HTTP 404 Not Found" }),
+  "/process-instance/no-engine": (res) => {
+    res.writeHead(404, { "Content-Type": "text/html" })
+    res.end("<html>Not Found</html>")
+  },
   "/process-instance/text": (res) => text(res, 502, LONG_TEXT),
   "/process-instance/proxy-json": (res) => json(res, 403, { error: "Forbidden", status: 403 }),
   // A proxy's envelope: `type` is no exception class name.
@@ -149,6 +156,19 @@ describe("engine errors reach the model as actionable text", () => {
     )
     const del = await failure(deleteProcessInstance({ client: client(), path: { id: "missing" } }))
     expect(del.message).toBe(get.message)
+  })
+
+  it("404 of a wrong REST root → asks to check that the engine URL is the REST root", async () => {
+    const hint =
+      ". No such endpoint: check that the engine URL points at the REST API root itself " +
+      "(e.g. http://localhost:8080/engine-rest)."
+    const route = await failure(
+      getProcessInstance({ client: client(), path: { id: "no-endpoint" } }),
+    )
+    expect(route.message).toBe(`[404 NotFoundException] HTTP 404 Not Found (engine prod-a)${hint}`)
+    const page = await failure(getProcessInstance({ client: client(), path: { id: "no-engine" } }))
+    expect(page.message).toBe(`[404] <html>Not Found</html> (engine prod-a)${hint}`)
+    expect(page).toMatchObject({ httpStatus: 404, type: undefined })
   })
 
   it("keeps the engine's error code as data without decorating the message with it", async () => {

@@ -51,7 +51,7 @@ MCP server run too.
   `INSPECT_OPERATIONS`), a stack trace or error details are read as text, everything else
   as lossless JSON through `EngineHttp`. Its failure reading keeps the extension's
   missing resource (below), so engine-core's port reads a missing record, activity tree or
-  stack trace exactly as the adapter did.
+  stack trace exactly as the adapter does elsewhere.
 
 - **Typed calls.** The `EngineClient` interface exposes `definitionStatistics`,
   `activityStatistics`, `diagramXml`, `historicInstances`, `historicInstanceCount`,
@@ -72,14 +72,18 @@ MCP server run too.
   Ids must match `^[A-Za-z0-9_][\w.:-]*$` (no comma that would add ids to a list) and are
   refused before sending; variable names without control characters, at most 255.
 - **`inspect` runs engine-core's `loadInstance`** over `EngineHttp` (`HttpEngineTransport`,
-  `InspectOperations`), with variables and stack traces and without history, and maps
-  engine-core's instance view to the adapter's `InspectView` (`InspectViews`,
-  `WaitingAtViews`). The rounds, their caps, the wait states and the retry of an instance
-  that ends between the rounds are engine-core's
+  `InspectOperations`), with variables and stack traces and without history. The adapter's
+  `InspectView` is engine-core's `InstanceView` with no mirror type: its wait states,
+  incidents, children and variables are engine-core's types, and the reader maps them to the
+  contract (`InstanceDetailReader`; `InspectedVariables` turns the variable map into the
+  adapter's `VariableView`, the one shape that differs). The rounds, their caps, the wait
+  states and the retry of an instance that ends between the rounds are engine-core's
   (`packages/connectors/engine/engine-core/src/inspect.ts`). The adapter owns the history
-  of activities (the path and the calls, `InstancePath`): its own read of
-  `GET /history/activity-instance`, in parallel with the rounds, because engine-core's history
-  option would also read every historic incident of the instance on each live refresh. When
+  of activities (the path, and the calls in it): its own read of
+  `GET /history/activity-instance`, in parallel with the rounds, read by engine-core's
+  `timelineOf` after the adapter checked that each step names its activity and start time
+  (else `UnexpectedAnswerError`, as before), because engine-core's history option would also read every historic incident
+  of the instance on each live refresh. The view also guarantees the definition's version. When
   the view is ended, the path is read once more after it, so an instance that ended during
   the rounds shows its whole path (ended instances are not polled).
 - **Incident details carry their root cause.** `IncidentTexts` adds engine-core's
@@ -120,8 +124,9 @@ MCP server run too.
   created the batch and the core treats that outcome as unknown. The submitted value or
   the cancel reason (raw and JSON-escaped, `Redaction.ofValue` and `Redaction.ofText`) is
   removed from the engine's message, also when the engine reports something as not found.
-  A missing resource is an engine 404 that names an exception other than
-  `NotFoundException` (the 404 of a wrong REST root), a 500 `NullValueException` (a
+  A missing resource is an engine 404 that engine-core's `isMissing` reads as missing (an
+  exception other than `NotFoundException`, the 404 of a wrong REST root, and
+  `QueryParamException`, an unreadable query value), a 500 `NullValueException` (a
   resource that ended between two reads) or a refused id.
 
 - **A move pins the token it cancels.** `moveToken` costs two calls: the activity instance
@@ -253,12 +258,12 @@ instance, the definitions by instance) goes in as a parameter, never as construc
 | `apps/vscode/src/adapters/c7/web-ui`              | `CockpitWebUi`                                                                                                                                                                                                                      | the routes into Cockpit or the CIB seven webclient                                                                                             |
 | `apps/vscode/src/adapters/c7`                     | `C7Adapter`, `C7ProcessRuntime`, `C7ProcessCommands`                                                                                                                                                                                | the entry and the two ports; every port call runs through `ErrorTranslation`                                                                   |
 | `apps/vscode/src/adapters/c7/reading`             | `EngineReader`, `DefinitionReader`, `ElementStatisticsReader`, `CalledProcessReader`, `InstanceSearch`, `InstanceDetailReader`, `IncidentSearch`, `IncidentDetailsReader`, `BulkOperationReader`, `MigrationReader`, `OffsetPaging` | which engine calls answer a port method, in parallel where possible, and their answers as read models; offset paging behind the cursor         |
-| `apps/vscode/src/adapters/c7/mapping`             | `DefinitionRefs`, `InstanceStates`, `Timestamps`, `RootIncident`, `IncidentTexts`                                                                                                                                                   | the translations several readers share, without I/O; the root cause of incident details (engine-core)                                          |
+| `apps/vscode/src/adapters/c7/mapping`             | `DefinitionRefs`, `InstanceStates`, `Timestamps`, `RootIncident`, `IncidentTexts`, `InspectedVariables`                                                                                                                             | the translations several readers share, without I/O; the root cause of incident details (engine-core)                                          |
 | `apps/vscode/src/adapters/c7/writing`             | `VariableBody`, `CancelBody`, `MigrationBody`, `EngineValues`, `Redaction`, `SourceToken`, `MoveBody`                                                                                                                               | the bodies of a variable change, a move, a cancel and a migration, the allowed types and their engine form, what to keep out of error messages |
 | `apps/vscode/src/adapters/c7/errors`              | `ErrorTranslation`                                                                                                                                                                                                                  | engine failures to `RuntimeError`: `translated`, `unlessMissing`, `commanded<Result>`, `submitted<Result>`, `isRefusal`                        |
 | `apps/vscode/src/adapters/c7/engine-rest`         | `EngineClient`/`RestEngineClient`, `EngineWriter`/`RestEngineWriter`, `RequestArguments`, `Present`                                                                                                                                 | one method per engine call; strict ids and variable names                                                                                      |
 | `apps/vscode/src/adapters/c7/engine-rest/http`    | `EngineHttp`, `EngineRequestError`                                                                                                                                                                                                  | one request: URL, auth, deadline, size cap, no redirects, lossless JSON, failures with status and engine type                                  |
-| `apps/vscode/src/adapters/c7/engine-rest/inspect` | `InstanceInspection`, `HttpEngineTransport`, `InspectOperations`, `InspectViews`, `WaitingAtViews`, `InstancePath`                                                                                                                  | `inspect`: engine-core's rounds over `EngineHttp`, its instance view as the adapter's `InspectView`, the path from the history                 |
+| `apps/vscode/src/adapters/c7/engine-rest/inspect` | `InstanceInspection`, `HttpEngineTransport`, `InspectOperations`                                                                                                                                                                    | `inspect`: engine-core's rounds over `EngineHttp`, its instance view as the adapter's `InspectView`, the path from the history                 |
 | `apps/vscode/src/adapters/c7/engine-rest/views`   | `JsonObject`, `LosslessJson`, `UnexpectedAnswerError` and one parser per view                                                                                                                                                       | the engine's JSON to typed views, checked at runtime                                                                                           |
 
 Tests construct `new C7Adapter(send)` with a fake `fetch` that answers recorded REST
@@ -287,10 +292,12 @@ routes and so run every class above.
   read of its path more (the parallel one, before the adapter knows that it ended).
 - Rules the adapter still holds next to engine-core, for a later cut: which text holds an
   incident's cause and its fallbacks (`IncidentDetailsReader`, engine-core's cause read is
-  not exported), the root incident (`RootIncident`), the path of the history
-  (`InstancePath`; engine-core's `timelineOf` is not exported and needs the historic
-  incidents), the incident retry, the date input and the Integer/Long inference of a
-  variable, and the wider missing-resource reading of `HttpEngineTransport`.
+  not exported), the root incident (`RootIncident`), the incident retry, the date input and
+  the Integer/Long inference of a variable, and the readings of `HttpEngineTransport` beyond
+  engine-core's missing 404 (a refused id, a 500 `NullValueException`).
+- Since the adapter reads a 404 by engine-core's `isMissing`, a 404 `QueryParamException`
+  (a query value the engine cannot read) is no missing resource any more: a read fails as
+  `misconfigured` instead of answering "none".
 - A call costs its HTTP round trip, no process start. Certificates and proxies come from
   VS Code's settings, no longer from environment variables such as `NODE_EXTRA_CA_CERTS`.
 - OAuth2 targets are refused with a clear message in v0.1.

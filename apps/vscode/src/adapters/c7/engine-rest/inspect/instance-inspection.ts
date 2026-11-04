@@ -2,15 +2,19 @@ import {
   createEnginePort,
   isWorkflowError,
   loadInstance,
+  records,
+  timelineOf,
+  type DefinitionView,
   type EnginePort,
   type InspectOptions,
   type InstanceView,
+  type TimelineEntry,
 } from "@miragon/pulse-engine-core"
 import type { EngineHttp } from "../http/engine-http.js"
 import { JsonObject } from "../views/json-object.js"
+import { UnexpectedAnswerError } from "../views/unexpected-answer-error.js"
 import type { InspectView } from "../views/views.js"
 import { HttpEngineTransport } from "./http-engine-transport.js"
-import { InspectViews } from "./inspect-views.js"
 
 const WITHOUT_HISTORY: InspectOptions = { variables: true, history: false, stacktrace: true }
 const TIMELINE = "/history/activity-instance"
@@ -29,12 +33,13 @@ export class InstanceInspection {
     if (instance === undefined) {
       return undefined
     }
-    return InspectViews.of(
-      instance,
-      LIVE_STATES.has(instance.state)
+    return {
+      ...instance,
+      definition: InstanceInspection.listed(instance.definition),
+      timeline: LIVE_STATES.has(instance.state)
         ? InstanceInspection.valueOf(timeline)
         : await this.timeline(id),
-    )
+    }
   }
 
   private async instanceView(id: string): Promise<InstanceView | undefined> {
@@ -48,9 +53,26 @@ export class InstanceInspection {
     }
   }
 
-  private async timeline(id: string): Promise<JsonObject[]> {
+  private async timeline(id: string): Promise<TimelineEntry[]> {
     const query = { processInstanceId: id, sortBy: "occurrence", sortOrder: "asc" }
-    return JsonObject.listOf(await this.http.readAll(TIMELINE, query), TIMELINE)
+    const rows = await this.http.readAll(TIMELINE, query)
+    InstanceInspection.requireWhereAndWhenEachStepRan(rows)
+    return timelineOf(records(rows), [])
+  }
+
+  private static requireWhereAndWhenEachStepRan(rows: readonly unknown[]): void {
+    for (const row of JsonObject.listOf(rows, "activity instance")) {
+      row.requiredString("activityId")
+      row.requiredString("startTime")
+    }
+  }
+
+  private static listed(definition: DefinitionView): DefinitionView & { readonly version: number } {
+    const { version } = definition
+    if (version === undefined) {
+      throw new UnexpectedAnswerError(`definition ${definition.id} is missing`)
+    }
+    return { ...definition, version }
   }
 
   private static valueOf<Value>(result: PromiseSettledResult<Value>): Value {

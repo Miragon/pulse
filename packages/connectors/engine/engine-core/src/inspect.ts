@@ -19,7 +19,7 @@ import type {
   Selection,
 } from "./types.js"
 import { compact, isRecord, mapLimit } from "./util.js"
-import { historicVariableMap, RAW_VARIABLES } from "./variables.js"
+import { historicVariableMap, RAW_VARIABLES_QUERY } from "./variables.js"
 
 export interface InspectOptions {
   readonly variables: boolean
@@ -31,7 +31,6 @@ export interface InspectOptions {
 const MAX_CAUSES = 10
 /** A stack trace an instance view carries is cut after this many lines. */
 export const MAX_STACKTRACE_LINES = 200
-const NO_VALUES = { deserializeValues: String(RAW_VARIABLES.deserializeValues) }
 const JOBS = { operationId: "getJobs", key: "processInstanceIds" }
 /** The request that holds the root cause of an incident type. */
 const CAUSE_OPERATIONS: ReadonlyMap<string, string> = new Map([
@@ -90,7 +89,7 @@ function emptyData(id: string, options: InspectOptions): InstanceData {
 async function endedData(port: EnginePort, id: string, history: Rec, options: InspectOptions) {
   const [variables, past] = await Promise.all([
     options.variables
-      ? port.list("getHistoricVariableInstances", { processInstanceId: id, ...NO_VALUES })
+      ? port.list("getHistoricVariableInstances", { processInstanceId: id, ...RAW_VARIABLES_QUERY })
       : undefined,
     options.history ? timeline(port, id) : undefined,
   ])
@@ -139,7 +138,7 @@ async function scopeVariables(port: EnginePort, id: string): Promise<Rec | "gone
   try {
     const value = await port.json("getProcessInstanceVariables", {
       pathArgs: [id],
-      query: NO_VALUES,
+      query: RAW_VARIABLES_QUERY,
     })
     return isRecord(value) ? value : {}
   } catch (error) {
