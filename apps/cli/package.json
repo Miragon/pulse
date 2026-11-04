@@ -55,6 +55,7 @@
     "commander": "15.0.0"
   },
   "devDependencies": {
+    "@bomb.sh/tab": "0.0.22",
     "@miragon/pulse-engine-core": "workspace:*",
     "@stryker-mutator/core": "10.1.1",
     "@stryker-mutator/vitest-runner": "10.1.1",

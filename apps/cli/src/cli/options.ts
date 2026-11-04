@@ -6,7 +6,7 @@
 import { type Command, Option } from "commander"
 import type { OptionDoc } from "../docs/options.js"
 import type { CommandValues, FlagValue } from "../operation/input.js"
-import { setHelpTerm } from "./help.js"
+import { offerValues, setHelpTerm } from "./help.js"
 
 /** A registered operation option: commander attribute name → catalog flag. */
 export interface RegisteredOption {
@@ -38,7 +38,9 @@ function presenceOption(flag: string, description: string): Option {
 }
 
 function valueOption(doc: OptionDoc, description: string): Option {
-  return new Option(`--${doc.flag} ${doc.valueName ?? "<value>"}`, description)
+  const option = new Option(`--${doc.flag} ${doc.valueName ?? "<value>"}`, description)
+  if (doc.enum !== undefined) offerValues(option, doc.enum)
+  return option
 }
 
 /** The commander options of one option doc; the first one carries the help text. */

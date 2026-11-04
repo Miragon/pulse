@@ -83,6 +83,7 @@ export function normalizeArgv(
 
 /** The group named by a normalized argument list (`task list`, `help task`), if any. */
 export function addressedCommand(args: readonly string[]): string | undefined {
+  if (args[0] === "complete" && args[1] === "--") return args[2]
   return args[0] === "help" ? args[1] : args[0]
 }
 

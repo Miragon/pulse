@@ -5,8 +5,9 @@
  */
 
 import { type Command, Option } from "commander"
-import { type ConfigFlags, DEFAULT_FLAVOR, FLAVORS } from "../config/types.js"
+import { type ConfigFlags, DEFAULT_FLAVOR, FLAVORS, OUTPUT_FORMATS } from "../config/types.js"
 import { compact } from "../util.js"
+import { offerValues } from "./help.js"
 import { collect } from "./options.js"
 
 export interface GlobalOptionSpec {
@@ -17,6 +18,8 @@ export interface GlobalOptionSpec {
   /** Placeholder of the option argument; absent for flags without one. */
   readonly value?: string
   readonly repeatable?: boolean
+  /** The allowed values, offered by shell completion; the CLI validates them itself. */
+  readonly values?: readonly string[]
   readonly description: string
 }
 
@@ -36,6 +39,7 @@ export const GLOBAL_OPTIONS: readonly GlobalOptionSpec[] = [
   {
     long: "flavor",
     value: "<name>",
+    values: FLAVORS,
     description: `Engine product: ${FLAVORS.join(", ")}; default ${DEFAULT_FLAVOR} (env PULSE_CLI_FLAVOR)`,
   },
   {
@@ -48,6 +52,7 @@ export const GLOBAL_OPTIONS: readonly GlobalOptionSpec[] = [
     long: "output",
     short: "o",
     value: "<format>",
+    values: OUTPUT_FORMATS,
     description: "json or table; default: table on a terminal, else json (env PULSE_CLI_OUTPUT)",
   },
   {
@@ -140,6 +145,7 @@ export function optionFlags(spec: GlobalOptionSpec): string {
 
 function createOption(spec: GlobalOptionSpec, group: string): Option {
   const option = new Option(optionFlags(spec), spec.description).helpGroup(group)
+  if (spec.values !== undefined) offerValues(option, spec.values)
   return spec.repeatable === true ? option.argParser(collect) : option
 }
 

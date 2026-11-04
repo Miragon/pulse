@@ -63,6 +63,7 @@ class PulseCli < Formula
 
   def install
     bin.install "pulse-cli"
+    generate_completions_from_executable(bin/"pulse-cli", "completion")
   end
 
   test do

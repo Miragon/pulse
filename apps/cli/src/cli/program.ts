@@ -3,6 +3,7 @@
  * description, but operation commands only for the group addressed on the command line.
  */
 
+import tab from "@bomb.sh/tab/commander"
 import { Command } from "commander"
 import { findGroup, operationsInGroup } from "../catalog/catalog.js"
 import type { Catalog } from "../catalog/types.js"
@@ -14,7 +15,13 @@ import { subcommand } from "./command.js"
 import { UTILITY_COMMANDS } from "./commands/index.js"
 import type { CliContext } from "./context.js"
 import { exitHandler } from "./errors.js"
-import { helpConfiguration, outputConfiguration, ROOT_DESCRIPTION, rootFooter } from "./help.js"
+import {
+  helpConfiguration,
+  outputConfiguration,
+  ROOT_DESCRIPTION,
+  rootFooter,
+  useSummaryAsDescription,
+} from "./help.js"
 import { registerOperation } from "./operation.js"
 import { registerWorkflowCommands } from "./workflow/index.js"
 
@@ -69,5 +76,7 @@ export function createProgram(args: readonly string[], context: CliContext): Com
   for (const utility of UTILITY_COMMANDS) utility.register(program, context)
   registerWorkflowCommands(program, context)
   registerGroups(program, context, addressedCommand(args))
+  useSummaryAsDescription(program)
+  tab(program, { completionCommandName: "completion" })
   return program
 }
